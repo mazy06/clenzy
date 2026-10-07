@@ -113,7 +113,8 @@ public class CommissionInvoiceService {
             return null;
         }
 
-        String number = numberingService.generateNextNumber(orgId);
+        if(!numberingService.checkAndRecord(invoice,"COMMISSION")) return invoiceRepository.save(invoice);
+        String number = numberingService.generateNextNumberFor(invoice);
         invoice.setInvoiceNumber(number);
         invoice.setInvoiceDate(LocalDate.now());
 
@@ -125,6 +126,7 @@ public class CommissionInvoiceService {
         }
 
         invoice = invoiceRepository.save(invoice);
+        numberingService.checkAndRecord(invoice,"COMMISSION");
         log.info("Facture commission {} ({}) generee pour reservation {} (totalTTC={})",
             number, invoice.getStatus(), reservation.getId(), invoice.getTotalTtc());
         return invoice;

@@ -903,7 +903,13 @@
     "paywall": {
       "title": "Crédits IA épuisés",
       "message": "Cette action nécessite des crédits IA. Rechargez votre solde pour continuer d’utiliser l’assistant et les générations."
-    }
+    },
+    "topupReturn": "Retour du paiement : les crédits seront disponibles après confirmation du prestataire de paiement.",
+    "reserved": "{{credits}} crédits réservés pour les agents en cours. Le reliquat est libéré à la fin.",
+    "debt": "{{credits}} crédits à régulariser après consommation ou retrait de crédits. Les prochaines dotations compensent ce solde. Aucun paiement automatique n’est déclenché.",
+    "purchases": "Achats de crédits IA",
+    "noPurchases": "Aucun achat de pack confirmé.",
+    "pendingReconciliation": "{{credits}} crédits historiques à rapprocher avec leur facture payée. Ils restent indisponibles tant que la preuve est incomplète."
   },
   "supervision": {
     "description": {
@@ -1918,7 +1924,7 @@
     },
     "commissions": {
       "title": "Commissions activités",
-      "note": "Votre part sur les réservations d'activités, reversée via vos paiements. Active dès qu'un fournisseur d'activités est connecté.",
+      "note": "Les conversions importées restent attendues jusqu’à réception d’un règlement du programme. Une attribution au journal n’est pas un virement bancaire au propriétaire.",
       "bookings": "réservation(s)",
       "dialogTitle": "Commissions & ma part"
     },
@@ -6873,8 +6879,8 @@
       "importFailed": "L'import a échoué.",
       "importEmpty": "Aucune commission exploitable dans ce fichier : les lignes sans référence ni montant sont ignorées.",
       "importDone": "{{count}} commission(s) enregistrée(s).",
-      "importGross": "Commission perçue",
-      "importIdempotent": "Les références déjà importées sont renvoyées sans être créditées une seconde fois."
+      "importGross": "Commission attendue",
+      "importIdempotent": "Les conversions importées restent attendues jusqu’à réception d’un règlement du programme. Une attribution au journal n’est pas un virement bancaire au propriétaire."
     },
     "deposit": {
       "description": "Part du devis exigible dès sa validation, pour les interventions de maintenance.",
@@ -9445,7 +9451,8 @@
       "marketplace_email_confirmation": "Place de marché — Confirmation d'adresse",
       "marketplace_decision_accepted": "Place de marché — Candidature acceptée",
       "marketplace_decision_rejected": "Place de marché — Candidature refusée",
-      "marketplace_account_activation": "Place de marché — Activation du compte"
+      "marketplace_account_activation": "Place de marché — Activation du compte",
+      "contract_signature_request": "Demande de signature du contrat"
     },
     "dialog": {
       "loadError": "Erreur de chargement du template.",
@@ -9511,7 +9518,7 @@
       "documentTemplates": "Templates documents",
       "history": "Historique",
       "variablesAndTags": "Variables & Tags",
-      "compliance": "Conformite",
+      "compliance": "Conformité",
       "newDocTemplate": "Nouveau template",
       "generateDoc": "Generer un document",
       "searchTag": "Rechercher un tag..."
@@ -9576,7 +9583,7 @@
     "failedBadge_other": "{{count}} échecs",
     "details": {
       "moreActions": "Plus d'actions",
-      "downloadSource": "Télécharger le fichier source (.odt)",
+      "downloadSource": "Télécharger le fichier source (.html)",
       "downloadPreview": "Télécharger l'aperçu PDF",
       "rescanTags": "Re-scanner les tags",
       "preview": "Aperçu",
@@ -9613,7 +9620,7 @@
       "title": "Catalogue des templates par étape du parcours",
       "trigger": "Déclencheur :",
       "noTemplate": "Aucun template uploadé",
-      "uploadOdt": "Uploader un template .odt",
+      "uploadOdt": "Uploader un template .html",
       "messagingTemplate": "Template de messagerie — configurable dans",
       "manage": "Gérer",
       "builtIn": "Template intégré au système — non modifiable",
@@ -9623,7 +9630,7 @@
     },
     "upload": {
       "title": "Nouveau template de document",
-      "selectFile": "Sélectionner un fichier template ODT",
+      "selectFile": "Sélectionner un fichier template HTML",
       "name": "Nom du template *",
       "documentType": "Type de document *",
       "emailSubject": "Objet de l'email",
@@ -9631,10 +9638,10 @@
       "emailBody": "Corps de l'email (HTML)"
     },
     "list": {
-      "import": "Importer un template .odt",
+      "import": "Importer un template .html",
       "preview": "Aperçu",
       "empty": "Aucun template",
-      "emptyHint": "Importez un premier template .odt : il devient un document généré automatiquement (facture, attestation, état des lieux).",
+      "emptyHint": "Importez un premier template .html : il devient un document généré automatiquement (facture, attestation, état des lieux).",
       "importHint": "Variables remplacées à la génération · 10 Mo max"
     },
     "variables": {
@@ -9665,12 +9672,16 @@
     "noRecipientHint": "Pas de destinataire — ajoutez un e-mail voyageur avant de renvoyer",
     "saveAndResend": "Enregistrer et renvoyer",
     "previewError": "Erreur lors de la génération de l'aperçu",
+    "previewInvalidPdf": "Le serveur n’a pas renvoyé un PDF valide.",
+    "pdfPage": "Page {{page}} sur {{total}}",
+    "emailPreview": "Aperçu de l’email",
+    "pdfReadError": "Impossible d’afficher ce PDF. Regénérez l’aperçu pour réessayer.",
     "activationError": "Erreur lors de l'activation",
     "rescanError": "Erreur lors de la nouvelle analyse",
     "previewDownloadError": "Erreur lors du téléchargement de l'aperçu",
-    "onlyOdt": "Seuls les fichiers .odt sont acceptés",
+    "onlyOdt": "Seuls les fichiers .html sont acceptés",
     "replaceError": "Erreur lors du remplacement du fichier",
-    "replaceFile": "Remplacer le fichier (.odt)",
+    "replaceFile": "Remplacer le fichier (.html)",
     "uploadError": "Erreur lors de l'import du modèle",
     "generationError": "Erreur lors de la génération",
     "copyTag": "Copier le tag",
@@ -9681,7 +9692,10 @@
       "GENERATING": "En cours de génération",
       "FAILED": "Échec",
       "PENDING": "En attente"
-    }
+    },
+    "htmlSizeLimit": "Le modèle HTML doit contenir entre 1 octet et 5 Mo.",
+    "canonicalInvoiceModel": "Les factures et avoirs utilisent le modèle HTML commun de Finance. Cet aperçu montre ce modèle avec des données fictives. La source historique reste consultable ; sa modification ne change pas les factures émises.",
+    "legacyHtmlSource": "Source historique conservée. Elle est convertie en HTML pour les aperçus, les nouveaux PDF et le téléchargement du modèle."
   },
   "messaging": {
     "whatsappStatus": {
@@ -10440,6 +10454,26 @@
       "taxAmount": "Montant TVA",
       "lineCount": "Lignes",
       "noData": "Aucune donnee fiscale pour cette periode"
+    },
+    "jurisdictions": {
+      "intro": "Configurez un profil fiscal pour chaque pays où se trouvent vos logements. Ce choix ne modifie ni le pays de facturation ni le tarif de votre abonnement Baitly.",
+      "saveFirst": "Enregistrez vos modifications avant de changer de pays.",
+      "primary": "Profil principal"
+    },
+    "submissions": {
+      "title": "Transmissions des factures",
+      "hint": "Une facture émise et une transmission acceptée sont deux étapes distinctes. Le statut dépend du partenaire effectivement configuré.",
+      "error": "Impossible de charger les transmissions.",
+      "empty": "Aucune transmission enregistrée pour ce pays.",
+      "reference": "Référence partenaire :",
+      "states": {
+        "PENDING": "En attente de raccordement ou de confirmation",
+        "RENDERED": "Document préparé",
+        "CLEARED": "Acceptée",
+        "REPORTED": "Transmission confirmée",
+        "FAILED": "À rapprocher",
+        "NOT_REQUIRED": "Transmission non requise"
+      }
     }
   },
   "bookingEngine": {
@@ -11738,7 +11772,8 @@
         "f7": "17 % d'économie",
         "alt": "Kit complet : tous les capteurs Baitly pour un logement"
       }
-    }
+    },
+    "checkoutFailed": "Le paiement ne peut pas être ouvert. Votre panier est conservé."
   },
   "serviceOptions": {
     "title": "Options de service",
@@ -11882,7 +11917,7 @@
         "documentTemplates": "Bibliothèque des templates PDF (factures, attestations, état des lieux) versionnés et réutilisables.",
         "history": "Historique unifié des messages envoyés et documents générés, filtrable par canal et statut.",
         "variablesAndTags": "Référence des variables disponibles ({{guest.name}}, {{property.address}}…) pour personnaliser vos templates.",
-        "compliance": "Tableau de bord conformité : factures NF, attestations légales, recherche par numéro de document."
+        "compliance": "Vérifiez les dossiers, complétez les brouillons et suivez les archives et transmissions. Les modèles se contrôlent dans Modèles PDF ; les identités se règlent dans Paramètres."
       }
     },
     "reports": {
@@ -12401,7 +12436,11 @@
         "discountValueInvalid": "La valeur de remise doit être supérieure à 0.",
         "percentTooBig": "Un pourcentage ne peut pas dépasser 100.",
         "saveFailed": "Impossible d'enregistrer le voucher."
-      }
+      },
+      "currency": "Devise de la promotion",
+      "currencyChoose": "Choisir une devise",
+      "currencyRequired": "Choisissez la devise des montants de cette promotion.",
+      "lodgingOnly": "La remise porte sur l’hébergement. Les taxes, le ménage et les options restent dus."
     },
     "analytics": {
       "title": "Performance — 30 derniers jours",
@@ -17724,7 +17763,7 @@
     },
     "entreprise": {
       "label": "Entreprise",
-      "description": "Informations de votre société"
+      "description": "Identité de l’émetteur : organisation, prestataire ou Baitly selon le document"
     },
     "client": {
       "label": "Client",
@@ -17812,13 +17851,13 @@
       },
       "doc-devis": {
         "name": "Devis",
-        "description": "Devis généré à partir d'un modèle .odt et converti en PDF. Peut être envoyé par e-mail au client.",
+        "description": "Devis généré à partir d'un modèle .html et converti en PDF. Peut être envoyé par e-mail au client.",
         "trigger": "Manuel ou déclencheur automatique (évènement métier)",
         "recipient": "Client ou propriétaire"
       },
       "doc-facture": {
         "name": "Facture",
-        "description": "Facture générée à partir d'un modèle .odt. Soumise aux règles de conformité (numérotation légale, empreinte, verrouillage).",
+        "description": "Facture générée à partir d'un modèle .html. Soumise aux règles de conformité (numérotation légale, empreinte, verrouillage).",
         "trigger": "Manuel ou déclencheur automatique (évènement métier)",
         "recipient": "Client ou propriétaire"
       },
@@ -19669,7 +19708,8 @@
     "sources": {
       "OWNER_PAYOUT": "Propriétaire",
       "INTERVENTION": "Prestataire",
-      "PROVIDER_EXPENSE": "Dépense prestataire"
+      "PROVIDER_EXPENSE": "Dépense prestataire",
+      "COMMERCE": "Ventes et commissions"
     },
     "transfers": "Transferts",
     "loadError": "Impossible de charger ces informations. Réessayez.",
@@ -20012,5 +20052,484 @@
     "available": "Solde remboursable : {{amount}}",
     "portionAmount": "Montant pour la prestation {{id}}",
     "remaining": "Reste à répartir : {{amount}}"
+  },
+  "affiliateReceipts": {
+    "title": "Commissions à rapprocher",
+    "hint": "Les conversions importées restent attendues jusqu’à réception d’un règlement du programme. Une attribution au journal n’est pas un virement bancaire au propriétaire.",
+    "loadError": "Impossible de charger les commissions.",
+    "empty": "Aucun rapport importé.",
+    "select": "Sélectionnez une conversion pour consulter ou rapprocher sa commission.",
+    "reference": "Référence du justificatif de règlement",
+    "property": "Logement bénéficiaire",
+    "amount": "Montant reçu",
+    "date": "Date de réception",
+    "declaration": "Enregistrer la réception constatée sur le relevé du programme ou de la banque. Cette action n’envoie pas d’argent.",
+    "receive": "Enregistrer la réception",
+    "cancel": "Annuler la commission attendue",
+    "saveError": "Le rapprochement n’a pas abouti.",
+    "legacy": "Ancien historique sans preuve de réception. Une revue est nécessaire avant tout nouveau crédit.",
+    "status": {
+      "PENDING": "Attendue",
+      "CONFIRMED": "Confirmée",
+      "RECEIVED": "Reçue du programme",
+      "PAID": "Historique à vérifier",
+      "CANCELLED": "Annulée"
+    },
+    "expected": "Commission attendue",
+    "received": "Commission reçue",
+    "host": "Part propriétaire attribuée",
+    "adjustments": {
+      "title": "Corrections de commission",
+      "edit": "Corriger le montant",
+      "amount": "Nouveau montant de commission",
+      "reason": "Motif de la correction",
+      "hint": "La correction conserve le taux et le bénéficiaire d’origine. Le journal conserve l’attribution et sa correction ; aucun argent n’est envoyé par cette action."
+    }
+  },
+  "monthlySubscription": {
+    "tab": "Abonnement",
+    "title": "Votre abonnement Baitly",
+    "intro": "Une formule par logement, avec des remises progressives selon votre parc et votre ancienneté. Les montants ci-dessous sont hors taxes.",
+    "plan": "Formule",
+    "promo": "Code promotionnel",
+    "apply": "Appliquer",
+    "properties": "{{count}} logement(s) facturé(s)",
+    "tax": "Taxes calculées au paiement selon vos informations de facturation",
+    "period": "Période",
+    "loyalty": "Remise fidélité",
+    "monthlyNet": "Par mois HT",
+    "phases": {
+      "0": "Mois 1 à 3",
+      "1": "Mois 4 à 6",
+      "2": "Mois 7 à 12",
+      "3": "À partir du mois 13"
+    },
+    "firstInvoice": "Première échéance : {{amount}} HT",
+    "preserve": "La remise volume est déjà incluse. Le code promo porte sur la première échéance. Votre formule actuelle est conservée tant que le nouveau paiement n’est pas confirmé.",
+    "checkout": "Continuer vers le paiement",
+    "pending": "Paiement Baitly {{plan}} en cours de préparation ou de confirmation.",
+    "resume": "Reprendre le paiement",
+    "verify": "Vérifier le statut",
+    "abandon": "Abandonner cette tentative",
+    "paidUntil": "Période payée jusqu’au {{date}}",
+    "cancellationScheduled": "Résiliation programmée à la fin de la période en cours.",
+    "cancel": "Résilier en fin de période",
+    "invoices": "Factures d’abonnement",
+    "invoice": "Facture PDF",
+    "settle": "Régler la facture",
+    "includingTax": "TTC",
+    "error": "Impossible de poursuivre. Réessayez la même tentative.",
+    "discover": "Une formule qui suit votre activité",
+    "review": "Voir ma proposition",
+    "fixedDiscount": "Montant fixe",
+    "currency": "Devise de la remise",
+    "status": {
+      "ACTIVE": "Actif",
+      "PAST_DUE": "Échéance impayée",
+      "SUSPENDED": "Suspendu",
+      "CANCELLED": "Résilié",
+      "REVIEW_REQUIRED": "À rapprocher",
+      "ENDED": "Terminé",
+      "REPLACED": "Remplacé",
+      "EXPIRED": "Tentative expirée"
+    },
+    "invoiceStatus": {
+      "paid": "Payée",
+      "open": "À régler",
+      "void": "Annulée",
+      "uncollectible": "Impayée",
+      "draft": "Brouillon"
+    },
+    "chooseCountry": "Choisir le pays du client",
+    "countryScope": "Le pays du client détermine la grille en monnaie locale et la société qui facture le PMS. Tous les logements du portefeuille sont comptés, quel que soit leur pays.",
+    "sellerCountry": "Société d’exploitation : {{country}}.",
+    "countryLocked": "Le pays est conservé pour ce contrat. Un changement nécessite une migration de facturation.",
+    "change": {
+      "title": "Faire évoluer l’abonnement",
+      "paymentMethod": "Moyen de paiement",
+      "preview": "Voir le tarif à la prochaine échéance",
+      "effective": "{{amount}} HT par mois à partir du {{date}}",
+      "noProration": "Aucun débit immédiat ni prorata. Votre formule actuelle reste disponible jusqu’au renouvellement.",
+      "scheduled": "Changement programmé. Il prendra effet après le paiement de la prochaine échéance.",
+      "confirm": "Confirmer ce changement"
+    }
+  },
+  "signupMonthly": {
+    "country": "Pays de facturation",
+    "properties": "Nombre de logements",
+    "largePortfolio": "À partir de 50 logements, contactez Baitly pour un devis.",
+    "netPerMonth": "HT / mois",
+    "firstNet": "Première échéance HT"
+  },
+  "commerceRefunds": {
+    "title": "Remboursements de cette vente",
+    "paid": "Encaissé",
+    "refunded": "Remboursé",
+    "reserved": "En cours",
+    "available": "Remboursable",
+    "amount": "Montant",
+    "reason": "Motif",
+    "hint": "Le montant sera restitué sur le moyen de paiement d’origine. Le résultat sera confirmé après vérification auprès du prestataire de paiement.",
+    "confirm": "Confirmer le remboursement de {{amount}}",
+    "failed": "Le remboursement n’a pas pu être vérifié.",
+    "states": {
+      "PROCESSING": "Vérification en cours",
+      "COMPLETED": "Confirmé",
+      "FAILED": "À rapprocher",
+      "CANCELLED": "Annulé"
+    }
+  },
+  "commerceOperations": {
+    "title": "Réalisation et suivi",
+    "empty": "Aucune étape enregistrée.",
+    "action": "Prochaine étape",
+    "proof": "Référence justificative ou de suivi",
+    "note": "Précisions",
+    "hint": "Cette action enregistre une étape. Une annulation ou un retour ne déclenche pas de remboursement.",
+    "states": {
+      "SCHEDULED": "Planifié",
+      "FULFILLED": "Réalisé",
+      "CANCELLED": "Annulé",
+      "PREPARING": "En préparation",
+      "SHIPPED": "Expédié",
+      "DELIVERED": "Livré",
+      "RETURN_REQUESTED": "Retour demandé",
+      "RETURNED": "Retour reçu"
+    },
+    "restockProof": "Justificatif du contrôle physique",
+    "restock": "Réintégrer les articles contrôlés au stock",
+    "restocked": "Les articles ont été réintégrés au stock."
+  },
+  "hardwareOrders": {
+    "title": "Commandes",
+    "empty": "Aucune commande pour le moment.",
+    "order": "Commande {{id}}",
+    "states": {
+      "PENDING": "Paiement attendu",
+      "PAID": "Payée",
+      "SHIPPED": "Expédiée",
+      "DELIVERED": "Livrée",
+      "CANCELLED": "Annulée"
+    }
+  },
+  "hardwareInventory": {
+    "title": "Stock matériel",
+    "hint": "Enregistrez uniquement les unités réellement disponibles. Les réserves de commandes sont suivies séparément.",
+    "country": "Société et entrepôt",
+    "product": "Produit",
+    "quantities": "{{available}} disponibles · {{reserved}} réservés",
+    "delta": "Quantité à ajouter ou retirer",
+    "proof": "Bon de réception ou motif justifié",
+    "countries": {
+      "FR": "France",
+      "MA": "Maroc",
+      "SA": "Arabie saoudite"
+    }
+  },
+  "commercePayouts": {
+    "title": "Reversements de la vente",
+    "hint": "Un transfert confirmé est distinct de l’arrivée en banque. Seul le solde net prouvé peut être versé.",
+    "OWNER": "Propriétaire",
+    "CONCIERGE": "Gestionnaire",
+    "prepare": "Préparer le versement",
+    "tracking": "Voir le suivi",
+    "recovery": "Fonds à récupérer",
+    "confirmation": "Verser {{amount}} au compte connecté : {{party}} ?",
+    "confirm": "Confirmer le versement",
+    "failed": "Le versement reste à vérifier.",
+    "states": {
+      "PREPARED": "Prêt à reprendre",
+      "SUBMITTING": "En cours",
+      "TRANSFERRED": "Transfert confirmé",
+      "RECONCILIATION_REQUIRED": "À rapprocher",
+      "PENDING": "À récupérer",
+      "PROCESSING": "Récupération en cours",
+      "REVIEW_REQUIRED": "Récupération à vérifier",
+      "RECOVERED": "Fonds récupérés",
+      "CANCELLED": "Préparation annulée"
+    },
+    "cancelPreparation": "Annuler la préparation"
+  },
+  "saleDocuments": {
+    "title": "Factures et avoirs",
+    "INVOICE": "Facture",
+    "CREDIT_NOTE": "Avoir",
+    "amounts": "{{total}} TTC · {{net}} HT",
+    "open": "Ouvrir le PDF",
+    "pending": "Le document sera disponible après vérification de son émission.",
+    "review": "Document à rapprocher : les données du vendeur ou la preuve d’émission doivent être vérifiées.",
+    "loadError": "Impossible de charger les documents. Réessayez.",
+    "export": "Exporter les données",
+    "exportError": "Impossible d’exporter ce document."
+  },
+  "commerceEvidence": {
+    "title": "Pièces du vendeur ou du partenaire",
+    "upsellHint": "Rattachez la facture du vendeur effectif et ses avoirs. L’identité fiscale ou le mandat doit figurer sur la pièce. Ce dépôt archive le document ; il ne crée pas une facture Baitly et ne confirme aucun nouveau paiement.",
+    "affiliateHint": "Rattachez le relevé des commissions reçues et ses corrections. Le prix total de l’activité vendue par le partenaire reste distinct de cette commission.",
+    "target": "Opération à justifier",
+    "number": "Numéro de la pièce",
+    "issuer": "Émetteur figurant sur la pièce",
+    "issuerReference": "Identifiant légal ou référence du mandat",
+    "file": "Pièce PDF, PNG ou JPEG · 5 Mo maximum",
+    "sizeError": "La pièce dépasse 5 Mo.",
+    "attach": "Rattacher la pièce",
+    "download": "Télécharger la pièce",
+    "kinds": {
+      "INVOICE": "Facture vendeur",
+      "CREDIT_NOTE": "Avoir vendeur",
+      "PARTNER_STATEMENT": "Relevé partenaire",
+      "CORRECTION_STATEMENT": "Relevé corrigé"
+    }
+  },
+  "commerceReadiness": {
+    "title": "Préparer la mise en service",
+    "scope": "Sociétés Baitly et ventes de la plateforme",
+    "hint": "Ces contrôles portent sur la configuration technique. Ils ne valident pas les obligations fiscales, les coordonnées légales du vendeur ni la recette complète des paiements. Les catégories produit sont partagées ; le PSP doit être raccordé pour chaque société.",
+    "country": "Pays de la société facturante",
+    "countries": {
+      "FR": "France",
+      "MA": "Maroc",
+      "SA": "Arabie saoudite"
+    },
+    "checks": "Prérequis de configuration",
+    "error": "Diagnostic indisponible. Relancez la vérification avant de vous fier à un résultat précédent.",
+    "verify": "Vérifier auprès de Stripe",
+    "localDate": "Configuration lue le {{date}} · aucun appel au PSP",
+    "remoteDate": "Vérification demandée le {{date}} · compte Stripe France uniquement",
+    "allowed": "Autorisé",
+    "sandboxRequested": "Mode test demandé",
+    "states": {
+      "CONFIGURED": "Renseigné",
+      "MISSING": "À compléter",
+      "NOT_CHECKED": "Non vérifié",
+      "UNAVAILABLE": "Vérification indisponible",
+      "NOT_CONNECTED": "À raccorder",
+      "EXEMPTION_DECLARED": "Exemption déclarée"
+    },
+    "items": {
+      "platformKey": {
+        "title": "Clé serveur Stripe",
+        "hint": "Présence de la clé globale, sans contrôle de validité ni affichage du secret."
+      },
+      "sellerAccount": {
+        "title": "Compte de la société française",
+        "hint": "Vérification à la demande : pays France, dossier transmis et encaissement activé chez Stripe."
+      },
+      "taxSettings": {
+        "title": "Paramétrage Stripe Tax",
+        "hint": "Configuration active et au moins une immatriculation active. La couverture de chaque vente reste à valider."
+      },
+      "localPlatform": {
+        "title": "PSP de la société locale",
+        "hint": "Le circuit abonnements et reversements de cette société reste à raccorder. Un adaptateur de paiement local ne suffit pas ; aucun repli sur Stripe France."
+      },
+      "pmsTaxCode": {
+        "title": "Catégorie fiscale · abonnement PMS",
+        "hint": "Code renseigné au format attendu. Tarif hors taxes ; qualification fiscale à confirmer."
+      },
+      "creditTaxCode": {
+        "title": "Catégorie fiscale · crédits IA",
+        "hint": "Code renseigné au format attendu. Catalogue actuel toutes taxes comprises ; qualification à confirmer."
+      },
+      "hardwareTaxCode": {
+        "title": "Catégorie fiscale · objets connectés",
+        "hint": "Code renseigné au format attendu. Catalogue actuel toutes taxes comprises ; qualification à confirmer."
+      },
+      "eInvoicing": {
+        "title": "Transmission des factures",
+        "hint": "Raccordement technique de l’adaptateur du pays. Une exemption déclarée ne prouve pas une exemption légale."
+      }
+    }
+  },
+  "fiscalDocument": {
+    "title": "Document fiscal électronique",
+    "hint": "Préparez les données de routage de cette facture B2B française. Les montants et l’identité déjà émis restent inchangés.",
+    "seller": "Vendeur · France",
+    "buyer": "Acheteur · France",
+    "postcode": "Code postal",
+    "city": "Ville",
+    "legalId": "SIREN",
+    "routingId": "Adresse de routage (SIREN ou SIREN_suffixe)",
+    "error": "Préparation indisponible.",
+    "archived": "XML archivé · contrôles locaux validés",
+    "review": "Archive à rapprocher",
+    "download": "Télécharger le XML",
+    "checked": "Contrôles EN 16931 et règles françaises validés. Vous pouvez archiver le document.",
+    "invalid": "Points à corriger avant archivage",
+    "check": "Contrôler le document",
+    "checking": "Contrôle en cours…",
+    "archive": "Archiver le document contrôlé",
+    "archiving": "Archivage…",
+    "archiveHint": "L’archive est définitive. Elle sera utilisée pour la transmission si un partenaire est raccordé. Ce contrôle local ne confirme ni la réception réglementaire ni le paiement.",
+    "transmissionBlocked": "Transmission bloquée : mentions françaises à compléter",
+    "termsTitle": "Mentions déjà présentes sur la facture",
+    "termsHint": "Recopiez chaque passage correspondant, à l’identique. Une mention manquante nécessite une rectification de la facture source.",
+    "missingTerms": "Aucune mention enregistrée sur la facture.",
+    "processCode": "Nature de la facture commerciale",
+    "chooseProcess": "Sélectionner la nature",
+    "process": {
+      "B1": "Vente de biens",
+      "S1": "Prestation de services",
+      "M1": "Biens et services"
+    },
+    "recoveryCosts": "Mention des frais de recouvrement",
+    "latePenalties": "Mention des pénalités de retard",
+    "discount": "Mention de l’escompte"
+  },
+  "documentVerification": {
+    "title": "Vérification du document",
+    "hint": "Contrôle interne des identités, des lignes et des montants. La transmission fiscale et le paiement gardent leur propre suivi.",
+    "check": "Vérifier le document",
+    "complete": "Compléter le brouillon",
+    "issue": "Émettre la facture",
+    "save": "Enregistrer et vérifier",
+    "paymentPreserved": "Le paiement confirmé est conservé. Seule l’émission du document attend la correction.",
+    "archived": "PDF émis archivé : les téléchargements servent le même fichier.",
+    "notArchived": "PDF non archivé à ce stade.",
+    "history": "20 dernières vérifications",
+    "previous": "Version antérieure",
+    "openHub": "Ouvrir le centre Conformité",
+    "restricted": "La gestion des documents fiscaux est réservée aux responsables de l’organisation.",
+    "hubHint": "Vérifiez les dossiers, complétez les brouillons et suivez les archives et transmissions. Les modèles se contrôlent dans Modèles PDF ; les identités se règlent dans Paramètres.",
+    "country": "Pays fiscal",
+    "allCountries": "Tous les pays",
+    "stage": "Étape de vérification",
+    "allStates": "Toutes les étapes",
+    "empty": "Aucun document ne correspond à ces filtres.",
+    "loadError": "Chargement des dossiers impossible.",
+    "templateTitle": "Qualité du modèle",
+    "templateHint": "Ce contrôle vérifie les variables du modèle, pas les valeurs d’un document émis. Les factures utilisent le rendu canonique partagé avec Finance.",
+    "templateCheck": "Contrôler ce modèle",
+    "templateUnchecked": "Modèle ou référentiel modifié : contrôle à refaire.",
+    "templateOk": "Variables contrôlées",
+    "templateBlocked": "Modèle à vérifier",
+    "states": {
+      "TO_CHECK": "À vérifier",
+      "BLOCKED": "À compléter / rapprocher",
+      "CHECKED": "Contrôlé en interne",
+      "COPY": "Duplicata"
+    },
+    "fields": {
+      "sellerName": "Nom légal du vendeur",
+      "sellerAddress": "Adresse du vendeur",
+      "sellerTaxId": "Identifiant fiscal du vendeur",
+      "buyerName": "Nom du destinataire",
+      "buyerAddress": "Adresse du destinataire",
+      "buyerTaxId": "Identifiant fiscal du destinataire",
+      "legalMentions": "Mentions et conditions",
+      "dueDate": "Échéance"
+    },
+    "issuerScope": "Émetteur et devise du document",
+    "unknownIssuer": "Émetteur à rapprocher",
+    "copies": "Documents commerciaux déjà émis",
+    "copiesHint": "Retrouvez les copies des abonnements, crédits IA et achats de matériel. Leur référence et leur émetteur sont conservés ; elles ne sont pas réémises ni ajoutées aux ventes de votre organisation. Les 100 derniers documents de chaque catégorie sont affichés.",
+    "copySource": "Origine du document",
+    "sources": {
+      "SUBSCRIPTION": "Abonnements PMS",
+      "AI_CREDIT_TOPUP": "Crédits IA",
+      "HARDWARE_ORDER": "Matériel"
+    }
+  },
+  "documentsWorkspace": {
+    "tabs": {
+      "catalog": "Modèles",
+      "messages": "Messages"
+    },
+    "views": {
+      "library": "Bibliothèque de documents",
+      "guide": "Parcours & usages",
+      "variables": "Variables des modèles",
+      "email": "Emails & messages",
+      "whatsapp": "WhatsApp",
+      "activity": "Documents & envois",
+      "amendments": "Avenants acceptés",
+      "checks": "Vérification & transmission",
+      "templates": "Qualité des modèles"
+    },
+    "hints": {
+      "library": "Sélectionnez un modèle pour consulter son aperçu avec des données fictives.",
+      "guide": "Quel document envoyer, à qui et à quel moment ? Retrouvez les modèles associés à chaque étape.",
+      "variables": "Choisissez une variable, consultez un exemple puis copiez-la dans votre modèle de document.",
+      "email": "Personnalisez les messages voyageurs et les notifications de votre organisation depuis une même bibliothèque.",
+      "whatsapp": "Consultez le contenu par langue et son état de validation Meta avant de le personnaliser.",
+      "activity": "Retrouvez un document généré ou un message envoyé, son destinataire et les actions de suivi.",
+      "amendments": "Consultez les décisions acceptées et téléchargez leur archive PDF lorsqu’elle est prête.",
+      "checks": "Vérifiez les informations du document avant son émission, puis suivez sa transmission fiscale.",
+      "templates": "Contrôlez la structure d’un modèle avant de l’utiliser. Ce contrôle ne remplace pas la vérification du document émis."
+    },
+    "back": "Retour à la liste",
+    "selectTitle": "Tout le dossier, au même endroit",
+    "selectHint": "Sélectionnez une ligne pour consulter son contenu, ses informations et les actions disponibles.",
+    "viewsLabel": "Vue de la section",
+    "import": "Importer un modèle",
+    "searchDocument": "Rechercher un numéro, un émetteur, un destinataire…",
+    "searchTemplate": "Rechercher un modèle…",
+    "searchMessage": "Rechercher un message…",
+    "searchCurrentPage": "Rechercher dans cette page de documents…",
+    "count_one": "{{count}} élément",
+    "count_other": "{{count}} éléments",
+    "allStates": "Tous les statuts",
+    "allOrigins": "Toutes les origines",
+    "loadError": "Impossible de charger les éléments. Réessayez.",
+    "deleteError": "La suppression a échoué.",
+    "openTemplate": "Aperçu & configuration",
+    "activate": "Activer",
+    "type": "Type",
+    "file": "Fichier",
+    "manual": "À la demande",
+    "variables": "Variables disponibles",
+    "recipient": "Destinataire",
+    "journey": "Étape du parcours",
+    "allJourney": "Toutes les étapes",
+    "content": "Contenu du message",
+    "deleteMessageTitle": "Supprimer ce modèle ?",
+    "deleteMessageHint": "Le modèle « {{name}} » ne sera plus disponible pour vos messages.",
+    "interfaceLanguage": "Langue de l’interface",
+    "whatsappStatus": {
+      "APPROVED": "Approuvé par Meta",
+      "PENDING": "En attente de validation Meta",
+      "REJECTED": "Refusé par Meta",
+      "PAUSED": "Suspendu par Meta",
+      "UNKNOWN": "Validation Meta non renseignée"
+    },
+    "categories": {
+      "UTILITY": "Message de service",
+      "MARKETING": "Communication marketing",
+      "AUTHENTICATION": "Authentification"
+    },
+    "status": {
+      "PENDING": "En attente",
+      "GENERATING": "Génération en cours",
+      "COMPLETED": "Généré",
+      "FAILED": "Échec",
+      "SENT": "Envoyé",
+      "DELIVERED": "Distribué",
+      "BOUNCED": "Adresse rejetée",
+      "LOCKED": "Scellé",
+      "ARCHIVED": "Archivé"
+    },
+    "date": "Date",
+    "reference": "Référence",
+    "size": "Taille",
+    "guest": "Voyageur",
+    "channel": "Canal",
+    "correction": "Corrige le document #{{id}}.",
+    "resend": "Renvoyer",
+    "previewUnavailable": "Aperçu indisponible.",
+    "downloadError": "Le téléchargement a échoué.",
+    "integrityOk": "L’intégrité du document est vérifiée.",
+    "integrityFailed": "L’intégrité du document n’a pas pu être confirmée.",
+    "verifyError": "La vérification a échoué.",
+    "verifyIntegrity": "Vérifier l’intégrité",
+    "historyHint": "Choisissez les documents ou un canal de messagerie.",
+    "editAndResendHint": "L’adresse du voyageur sera mise à jour, puis ce message lui sera renvoyé.",
+    "copy": "Copier la variable",
+    "copied": "Variable copiée",
+    "copyError": "Impossible de copier. Sélectionnez la variable pour la copier manuellement.",
+    "example": "Exemple",
+    "category": "Catégorie",
+    "allCategories": "Toutes les catégories",
+    "description": "Description",
+    "total": "Montant TTC"
   }
 }

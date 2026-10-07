@@ -1,263 +1,50 @@
-import React, { useImperativeHandle, useMemo, useState, forwardRef } from 'react';
-import StatusChip, { STATUS_TONES, type ToneTokens } from '../../components/StatusChip';
-import { Alert, AlertDescription } from '../../components/ui';
-import { TriangleAlert, Info } from 'lucide-react';
-import { Button, Spinner, Tooltip, TooltipContent, TooltipTrigger } from '../../components/ui';
-import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '../../components/ui';
-import { Edit } from '../../icons';
-import { cn } from '../../utils/cn';
+import { useImperativeHandle, useState, forwardRef } from 'react';
+import { Pencil } from 'lucide-react';
+import { Alert, AlertDescription, Button, NativeSelect, NativeSelectOption } from '../../components/ui';
 import { useTranslation } from '../../hooks/useTranslation';
 import { useWhatsAppTemplatesList } from '../../hooks/useWhatsAppTemplates';
-import type { WhatsAppTemplateGroup } from '../../services/api/whatsappTemplatesApi';
+import { useScreenSearch } from '../../components/ScreenChrome';
+import PagePagination from '../../components/PagePagination';
 import WhatsAppTemplateEditorDialog from './WhatsAppTemplateEditorDialog';
-
-// ─── Tons sémantiques (tokens StatusChip, alignés sur MessageTemplatesSection) ─
-
-const TONE = {
-  ok: STATUS_TONES.ok,
-  warn: STATUS_TONES.warn,
-  info: STATUS_TONES.info,
-  muted: STATUS_TONES.neutral,
-} as const;
-
-/** Ton par categorie Meta WhatsApp. */
-const CATEGORY_TONE: Record<string, ToneTokens> = {
-  UTILITY: TONE.ok,
-  MARKETING: TONE.warn,
-  AUTHENTICATION: TONE.info,
-};
-
-/**
- * Resout le code de langue Meta (fr_FR/en_US/ar_AR) selon la langue active
- * du PMS. Fallback sur fr_FR si la langue active n'est pas dispo dans le
- * template (ex: l'org a override fr mais pas en).
- *
- * <p>Pourquoi : sans ca, on prenait {@code Object.values(group.languages)[0]}
- * qui retournait ar_AR en premier (ordre alphabetique de serialisation JSON)
- * → l'utilisateur voyait l'apercu en arabe meme en interface francaise.</p>
- */
-function resolvePreviewLang(group: WhatsAppTemplateGroup, pmsLang: string): string {
-  const candidates = [
-    metaCodeFor(pmsLang),
-    'fr_FR',
-    'en_US',
-  ];
-  for (const code of candidates) {
-    if (group.languages[code]) return code;
-  }
-  // Worst case : prend la 1ere dispo (l'org a peut-etre supprime fr/en).
-  return Object.keys(group.languages)[0] ?? 'fr_FR';
-}
-
-/** Mapping i18n.language (fr/en/ar) → locale Meta (fr_FR/en_US/ar_AR). */
-function metaCodeFor(pmsLang: string): string {
-  switch (pmsLang) {
-    case 'en': return 'en_US';
-    case 'ar': return 'ar_AR';
-    default: return 'fr_FR';
-  }
-}
-
-// ─── Ref Interface (aligne sur MessageTemplatesSectionRef) ──────────────────
-
-export interface WhatsAppTemplatesSectionRef {
-  refresh: () => void;
-}
-
-/**
- * Tab "Templates WhatsApp" dans Documents & Communication.
- *
- * <h3>Architecture</h3>
- * Mirror visuel de {@code MessageTemplatesSection} (table avec colonnes Nom /
- * Origine / Objet / Langue / Actions). La seule difference UX significative
- * reste dans le dialog d'edition : preview en bulle WhatsApp verte (cf.
- * {@link WhatsAppTemplateEditorDialog}) au lieu de Paper plain pour les emails.
- *
- * <h3>Donnees</h3>
- * Fetch via {@link useWhatsAppTemplatesList} (React Query, staleTime 60s).
- * Les overrides per-org masquent les templates systeme avec meme cle/langue
- * cote service backend.
- */
+import DocumentsWorkspace, { DOCUMENT_ART, DocumentFacts, DocumentsLoading } from './components/DocumentsWorkspace';
+export interface WhatsAppTemplatesSectionRef { refresh: () => void }
 const WhatsAppTemplatesSection = forwardRef<WhatsAppTemplatesSectionRef>((_, ref) => {
-  const { t } = useTranslation();
-  const { data: groups = [], isLoading, error, refetch } = useWhatsAppTemplatesList();
-  const [editingKey, setEditingKey] = useState<string | null>(null);
-
-  useImperativeHandle(ref, () => ({
-    refresh: () => { void refetch(); },
-  }), [refetch]);
-
-  // Tri stable : personnalises en premier, puis ordre alphabetique de templateKey.
-  const sortedGroups = useMemo(() => {
-    return [...groups].sort((a, b) => {
-      if (a.isCustomized !== b.isCustomized) return a.isCustomized ? -1 : 1;
-      return a.templateKey.localeCompare(b.templateKey);
-    });
-  }, [groups]);
-
-  if (isLoading) {
-    return (
-      <div className="flex justify-center p-6">
-        <Spinner className="size-10" />
-      </div>
-    );
-  }
-
-  return (
-    <div>
-      {error && (
-        <Alert variant="destructive" className="mb-3">
-          <TriangleAlert />
-          <AlertDescription>{t('whatsappTemplates.loadError')}</AlertDescription>
-        </Alert>
-      )}
-
-      {sortedGroups.length === 0 ? (
-        <Alert variant="info" className="mt-3">
-          <Info />
-          <AlertDescription>{t('whatsappTemplates.empty')}</AlertDescription>
-        </Alert>
-      ) : (
-        // Surface de tableau : fond `card` de Baitly UI, sans filet (le tableau
-        // porte deja ses propres separateurs de ligne).
-        <div className="overflow-x-auto rounded-xl bg-card">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>{t('messaging.templates.name')}</TableHead>
-                <TableHead>{t('messaging.templates.origin')}</TableHead>
-                <TableHead>{t('whatsappTemplates.table.preview')}</TableHead>
-                <TableHead>{t('messaging.templates.language')}</TableHead>
-                <TableHead className="text-center">{t('messaging.templates.status')}</TableHead>
-                <TableHead className="text-center">{t('messaging.templates.version')}</TableHead>
-                <TableHead>{t('messaging.templates.createdBy')}</TableHead>
-                <TableHead className="text-end">{t('common.actions')}</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {sortedGroups.map((group) => (
-                <WhatsAppRow
-                  key={group.templateKey}
-                  group={group}
-                  onEdit={() => setEditingKey(group.templateKey)}
-                />
-              ))}
-            </TableBody>
-          </Table>
-        </div>
-      )}
-
-      {editingKey && (
-        <WhatsAppTemplateEditorDialog
-          templateKey={editingKey}
-          open={true}
-          onClose={() => setEditingKey(null)}
-        />
-      )}
-    </div>
-  );
-});
-
-WhatsAppTemplatesSection.displayName = 'WhatsAppTemplatesSection';
-
-// ─── Row par template (pattern aligne sur SystemRow/UserRow de MessageTemplatesSection) ─
-
-interface RowProps {
-  group: WhatsAppTemplateGroup;
-  onEdit: () => void;
-}
-
-const WhatsAppRow: React.FC<RowProps> = ({ group, onEdit }) => {
   const { t, currentLanguage } = useTranslation();
-
-  // Resoud la langue d'apercu selon la langue active du PMS (avec fallback fr).
-  // Sinon le `Object.values()[0]` retournait ar_AR par hasard d'ordre alpha,
-  // et l'utilisateur en interface FR voyait de l'arabe dans la table.
-  const previewLangCode = resolvePreviewLang(group, currentLanguage);
-  const previewLang = group.languages[previewLangCode];
-  const previewExcerpt = previewLang
-    ? previewLang.bodyNamed.slice(0, 80).replace(/\s+/g, ' ').trim()
-        + (previewLang.bodyNamed.length > 80 ? '…' : '')
-    : '—';
-
-  const friendlyName = t(`whatsappTemplates.keys.${group.templateKey}`);
-  const categoryTone = CATEGORY_TONE[group.category] ?? TONE.muted;
-  // Affiche le code court (FR/EN/AR) de la langue d'apercu courante. Les autres
-  // langues sont accessibles depuis le dialog d'edition via le selecteur.
-  const langChipLabel = previewLangCode.split('_')[0].toUpperCase();
-
-  return (
-    <TableRow>
-      <TableCell>
-        <div className="inline-flex items-center gap-1.5">
-          <p className="text-xs font-semibold text-foreground">
-            {friendlyName}
-          </p>
-          <StatusChip tokens={categoryTone} label={group.category} />
-        </div>
-      </TableCell>
-      <TableCell>
-        <StatusChip
-          tokens={group.isCustomized ? TONE.ok : TONE.muted}
-          label={group.isCustomized
-            ? t('messaging.templates.originCustomized')
-            : t('messaging.templates.originSystem')}
-        />
-      </TableCell>
-      <TableCell>
-        {/* RTL pour l'apercu si la langue active est l'arabe — sinon le
-            texte arabe s'affiche en LTR et est cassé visuellement. */}
-        <p
-          className={cn(
-            'max-w-[280px] truncate text-[0.8125rem]',
-            previewLangCode === 'ar_AR'
-              ? '[direction:rtl] text-start'
-              : '[direction:ltr] text-start',
-          )}
-        >
-          {previewExcerpt}
-        </p>
-      </TableCell>
-      <TableCell>
-        <StatusChip tokens={TONE.muted} label={langChipLabel} />
-      </TableCell>
-      <TableCell className="text-center">
-        {/* Templates WhatsApp toujours actifs cote serveur (pas de notion
-            d'activation/desactivation pour les templates WhatsApp en BDD).
-            La valeur reelle d'activation cote Meta est dans metaApprovalStatus
-            (PENDING/APPROVED/REJECTED) — non expose ici en colonne. */}
-        <StatusChip tokens={TONE.ok} label={t('messaging.templates.active')} />
-      </TableCell>
-      <TableCell className="text-center">
-        <span className="text-xs font-mono text-muted-foreground">v1</span>
-      </TableCell>
-      <TableCell>
-        <p className="text-muted-foreground text-[0.8125rem]">
-          {group.isCustomized ? '—' : t('messaging.templates.systemAuthor')}
-        </p>
-      </TableCell>
-      <TableCell className="text-end">
-        <Tooltip>
-          {/* Declencheur = <span> natif : les primitives du kit ne transmettent
-              pas de ref (React 18), le tooltip n'aurait pas d'ancre. */}
-          <TooltipTrigger asChild>
-            <span className="inline-flex">
-              <Button
-                variant="ghost"
-                size="icon-sm"
-                onClick={onEdit}
-                aria-label={t('common.edit')}
-                className="cursor-pointer hover:text-primary hover:bg-primary-soft"
-              >
-                <Edit size={16} strokeWidth={1.75} />
-              </Button>
-            </span>
-          </TooltipTrigger>
-          <TooltipContent>{t('common.edit')}</TooltipContent>
-        </Tooltip>
-      </TableCell>
-    </TableRow>
-  );
-};
-
+  const query = useWhatsAppTemplatesList();
+  const [editingKey, setEditingKey] = useState<string | null>(null);
+  const [search, setSearch] = useState(''); const [page, setPage] = useState(0); const [language, setLanguage] = useState('');
+  useScreenSearch(search, value => { setSearch(value); setPage(0); }, t('documentsWorkspace.searchMessage'));
+  useImperativeHandle(ref, () => ({ refresh: () => { void query.refetch(); } }), [query.refetch]);
+  const rows = [...(query.data ?? [])].sort((a, b) => Number(b.isCustomized) - Number(a.isCustomized) || a.templateKey.localeCompare(b.templateKey))
+    .filter(row => t(`whatsappTemplates.keys.${row.templateKey}`, row.templateKey).toLocaleLowerCase().includes(search.toLocaleLowerCase()));
+  const pageIndex = Math.min(page, Math.max(0, Math.ceil(rows.length / 12) - 1));
+  return <>
+    <div className="documents-toolbar"><p>{t('documentsWorkspace.count', { count: rows.length })}</p>
+      <NativeSelect aria-label={t('messaging.templates.language')} value={language} onChange={e => setLanguage(e.target.value)}>
+        <NativeSelectOption value="">{t('documentsWorkspace.interfaceLanguage')}</NativeSelectOption>
+        <NativeSelectOption value="fr_FR">Français</NativeSelectOption><NativeSelectOption value="en_US">English</NativeSelectOption><NativeSelectOption value="ar_AR">العربية</NativeSelectOption>
+      </NativeSelect></div>
+    {query.error && <Alert variant="destructive" role="alert"><AlertDescription>{t('whatsappTemplates.loadError')}</AlertDescription><Button variant="ghost" onClick={() => void query.refetch()}>{t('common.retry')}</Button></Alert>}
+    {query.isPending ? <DocumentsLoading /> : !query.error && <DocumentsWorkspace label="WhatsApp" records={rows.slice(pageIndex * 12, (pageIndex + 1) * 12).map(group => {
+      const preferred = language || ({ fr: 'fr_FR', en: 'en_US', ar: 'ar_AR' }[currentLanguage] ?? 'fr_FR');
+      const locale = group.languages[preferred] ? preferred : group.languages.fr_FR ? 'fr_FR' : Object.keys(group.languages)[0];
+      const content = group.languages[locale];
+      const status = content?.metaApprovalStatus || 'UNKNOWN';
+      return { id: group.templateKey, title: t(`whatsappTemplates.keys.${group.templateKey}`, group.templateKey), image: DOCUMENT_ART.message,
+        meta: locale?.split('_')[0].toUpperCase(), subtitle: t(`documentsWorkspace.whatsappStatus.${status}`, status),
+        status: { value: status, label: t(`documentsWorkspace.whatsappStatus.${status}`, status) },
+        actions: <Button size="sm" onClick={() => setEditingKey(group.templateKey)}><Pencil size={15} />{t('common.edit')}</Button>,
+        detail: <><DocumentFacts items={[
+          { label: t('messaging.templates.origin'), value: t(group.isCustomized ? 'messaging.templates.originCustomized' : 'messaging.templates.originSystem') },
+          { label: t('documentsWorkspace.type'), value: t(`documentsWorkspace.categories.${group.category}`, group.category) },
+          { label: t('messaging.templates.language'), value: locale?.split('_')[0].toUpperCase() },
+        ]} /><h3>{t('documentsWorkspace.content')}</h3><div className="documents-preview" dir="auto">{content?.bodyNamed}</div>
+          {!!content?.variables.length && <><h3>{t('documentsWorkspace.variables')}</h3><div className="documents-variables">{content.variables.map(value => <code key={value}>{'{'+value+'}'}</code>)}</div></>}
+        </>,
+      };
+    })} pagination={<PagePagination page={pageIndex} rowsPerPage={12} count={rows.length} onPageChange={setPage} />} />}
+    {editingKey && <WhatsAppTemplateEditorDialog templateKey={editingKey} open onClose={() => setEditingKey(null)} />}
+  </>;
+});
+WhatsAppTemplatesSection.displayName = 'WhatsAppTemplatesSection';
 export default WhatsAppTemplatesSection;

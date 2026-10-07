@@ -35,6 +35,8 @@ export interface SystemEmailTemplate {
   variables: string[];
   /** ISO 8601, sert au cache busting. */
   updatedAt: string | null;
+  /** Même enveloppe de rendu pour l'envoi et les aperçus. */
+  wrapperStyle?: string;
 }
 
 /**

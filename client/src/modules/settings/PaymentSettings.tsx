@@ -60,6 +60,7 @@ import {
 import type { ChannelCommissionOverview } from "../../services/api/accountingApi";
 import SettingsSection from "./components/SettingsSection";
 import { useAuth } from "../../hooks/useAuth";
+import BaitlyCommerceReadiness, { useCommerceReadiness } from "./BaitlyCommerceReadiness";
 import MaintenanceDepositSection from "./MaintenanceDepositSection";
 import SplitBarEditor from "./components/SplitBarEditor";
 import ServicesActivitiesPanel from "./components/ServicesActivitiesPanel";
@@ -144,48 +145,10 @@ const allProviders: PaymentProviderType[] = [
   "YOUCAN_PAY",
 ];
 
-/**
- * Verifie si la config d'un provider est suffisamment renseignee pour
- * etre activee.
- * - STRIPE   : toujours OK (config globale application.yml).
- * - PAYTABS  : profileId + region dans configJson (server_key chiffré BDD).
- * - CMI      : okUrl + failUrl dans configJson (client_id + store_key BDD).
- * - PAYZONE  : webhookUrl dans configJson (api_key BDD). MAD principal.
- * - YOUCAN_PAY : presence du record (cle privee chiffree, non exposee).
- */
-const isProviderConfigured = (
-  type: PaymentProviderType,
-  config?: PaymentMethodConfig
-): boolean => {
-  if (type === "STRIPE") return true;
-  if (!config) return false;
-  const json = (config.config ?? {}) as Record<string, unknown>;
-  if (type === "PAYTABS") {
-    return (
-      json.profileId != null &&
-      typeof json.region === "string" &&
-      json.region.length > 0
-    );
-  }
-  if (type === "CMI") {
-    return typeof json.okUrl === "string" && typeof json.failUrl === "string";
-  }
-  if (type === "PAYZONE") {
-    // L'api_key elle-même n'est pas exposée par l'API (chiffrée), donc on
-    // s'appuie sur la presence d'au moins une clef provider-specific dans
-    // configJson — la webhookUrl est requise au moment du saving du dialog.
-    return typeof json.webhookUrl === "string" && json.webhookUrl.length > 0;
-  }
-  if (type === "YOUCAN_PAY") {
-    // La clé privée (chiffrée) n'est pas exposée par l'API — l'existence du
-    // record suffit (elle est requise au save du dialog).
-    return config.id != null;
-  }
-  return false;
-};
-
 export default function PaymentSettings() {
   const { hasAnyRole } = useAuth();
+  const diagnostic = useCommerceReadiness(hasAnyRole(["SUPER_ADMIN", "SUPER_MANAGER"]));
+  const isProviderConfigured = (type: PaymentProviderType) => diagnostic.report?.providers.some(row => row.provider === type && row.implemented && row.settingsPresent) === true;
   const { t } = useTranslation();
   const { showNotification } = useNotification();
   const [configs, setConfigs] = useState<PaymentMethodConfig[]>([]);
@@ -311,27 +274,23 @@ export default function PaymentSettings() {
     providerType: PaymentProviderType,
     currentEnabled: boolean
   ) => {
-    const config = getConfig(providerType);
     // Pour PayTabs/CMI : si on essaie d'activer mais pas encore configure → ouvre le dialog.
     if (
       !currentEnabled &&
       CONFIGURABLE_PROVIDERS.includes(providerType) &&
-      !isProviderConfigured(providerType, config)
+      !isProviderConfigured(providerType)
     ) {
       openConfigDialog(providerType);
       return;
     }
     try {
-      await paymentConfigApi.updateConfig(providerType, {
+      const updated = await paymentConfigApi.updateConfig(providerType, {
         enabled: !currentEnabled,
       });
-      setConfigs((prev) =>
-        prev.map((c) =>
-          c.providerType === providerType
-            ? { ...c, enabled: !currentEnabled }
-            : c
-        )
-      );
+      setConfigs(prev => prev.some(c => c.providerType === providerType)
+        ? prev.map(c => c.providerType === providerType ? updated : c)
+        : [...prev, updated]);
+      void diagnostic.refresh();
       showNotification(
         `${PAYMENT_PROVIDER_LABELS[providerType]} ${!currentEnabled ? "activé" : "désactivé"}`,
         "success",
@@ -364,6 +323,7 @@ export default function PaymentSettings() {
           )
         : [...prev, updated];
     });
+    void diagnostic.refresh();
     showNotification(`${PAYMENT_PROVIDER_LABELS[configDialogProvider]} configuré`, "success");
   };
 
@@ -494,19 +454,22 @@ export default function PaymentSettings() {
             const enabled = config?.enabled ?? false;
             const isStub = STUB_PROVIDERS.includes(type);
             const isConfigurable = CONFIGURABLE_PROVIDERS.includes(type);
-            const isConfigured = isProviderConfigured(type, config);
+            const isConfigured = isProviderConfigured(type);
             const brandColor =
               PROVIDER_COLORS[type] ?? "var(--bui-muted-foreground)";
 
             const statusChips = (
               <>
                 {isStub && <StatusChip tone="neutral" label={t('common.comingSoonShort')} />}
-                {isConfigurable && !isConfigured && (
-                  <StatusChip tone="warn" label={t('settings.integrations.status.toConfigure')} />
+                {!isConfigured && (
+                  <StatusChip tone="warn" label={diagnostic.error
+                    ? t('commerceReadiness.states.UNAVAILABLE')
+                    : !diagnostic.report ? t('commerceReadiness.states.NOT_CHECKED')
+                    : t('settings.integrations.status.toConfigure')} />
                 )}
-                {enabled && !isStub && <StatusChip tone="ok" label="Actif" />}
-                {config?.sandboxMode && isConfigured && (
-                  <StatusChip tone="warn" label="Sandbox" />
+                {enabled && !isStub && <StatusChip tone="neutral" label={t("commerceReadiness.allowed")} />}
+                {type !== "STRIPE" && config?.sandboxMode && isConfigured && (
+                  <StatusChip tone="warn" label={t("commerceReadiness.sandboxRequested")} />
                 )}
               </>
             );
@@ -522,6 +485,8 @@ export default function PaymentSettings() {
                   <Button
                     variant="ghost"
                     size="icon-sm"
+                    disabled={!hasAnyRole(['SUPER_ADMIN'])}
+                    aria-label={t('settings.payments.configureCredentials')}
                     onClick={(e) => {
                       e.stopPropagation();
                       openConfigDialog(type);
@@ -560,7 +525,7 @@ export default function PaymentSettings() {
                   description={PROVIDER_REGIONS[type]}
                   checked={enabled}
                   onChange={() => handleToggle(type, enabled)}
-                  disabled={isStub}
+                  disabled={isStub || !hasAnyRole(["SUPER_ADMIN"]) || (!enabled && (diagnostic.pending || diagnostic.error || (type === "STRIPE" && !isConfigured)))}
                   divider={index < allProviders.length - 1}
                 />
                 {configureButton && (
@@ -584,7 +549,10 @@ export default function PaymentSettings() {
       <div className="flex flex-col gap-3">
         {/* Acompte de maintenance : reglage de PLATEFORME, donc reserve au
             staff. Sa place est ici, avec ce qui touche a l'argent. */}
-        {hasAnyRole(['SUPER_ADMIN', 'SUPER_MANAGER']) && <MaintenanceDepositSection />}
+        {hasAnyRole(['SUPER_ADMIN', 'SUPER_MANAGER']) && <>
+          <BaitlyCommerceReadiness diagnostic={diagnostic} />
+          <MaintenanceDepositSection />
+        </>}
 
         {/* ─── Revenue Split ─── */}
         <SettingsSection

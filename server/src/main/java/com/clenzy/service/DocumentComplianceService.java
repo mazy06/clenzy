@@ -113,6 +113,7 @@ public class DocumentComplianceService {
     public Map<String, Object> verifyDocumentIntegrity(Long generationId) {
         DocumentGeneration generation = generationRepository.findById(generationId)
                 .orElseThrow(() -> new DocumentNotFoundException("Generation introuvable: " + generationId));
+        requireOrganization(generation);
 
         Map<String, Object> result = new LinkedHashMap<>();
         result.put("generationId", generationId);
@@ -169,7 +170,7 @@ public class DocumentComplianceService {
 
         List<DocumentTemplateTag> templateTags = templateTagRepository.findByTemplateId(templateId);
         Set<String> tagNames = templateTags.stream()
-                .map(t -> t.getTagName().toLowerCase())
+                .map(t -> normalizeTag(t.getTagName()))
                 .collect(Collectors.toSet());
 
         // Query par pays
@@ -179,6 +180,7 @@ public class DocumentComplianceService {
         List<String> missingTags = new ArrayList<>();
         List<String> missingMentions = new ArrayList<>();
         List<String> warnings = new ArrayList<>();
+        if(requirements.isEmpty()) warnings.add("Référentiel absent : qualité du modèle non vérifiée");
 
         // Delegation au strategy pour le mapping mentions → tags
         Map<String, List<String>> mentionToTags = strategy.buildMentionTagMapping();
@@ -187,13 +189,15 @@ public class DocumentComplianceService {
             List<String> expectedTags = mentionToTags.getOrDefault(req.getRequirementKey(), Collections.emptyList());
 
             if (expectedTags.isEmpty()) {
-                if (req.getDefaultValue() == null || req.getDefaultValue().isBlank()) {
-                    warnings.add(req.getLabel() + " (pas de valeur par defaut)");
-                }
+                warnings.add(req.getLabel() + " (règle non automatisée : revue du modèle requise)");
+                if(req.isRequired()) missingMentions.add(req.getLabel());
                 continue;
             }
 
-            boolean hasAtLeastOne = expectedTags.stream().anyMatch(tagNames::contains);
+            var normalized=expectedTags.stream().map(DocumentComplianceService::normalizeTag).distinct().toList();
+            boolean hasAtLeastOne = "identite_vendeur".equals(req.getRequirementKey())
+                ? normalized.stream().allMatch(tagNames::contains)
+                : normalized.stream().anyMatch(tagNames::contains);
             if (!hasAtLeastOne && req.isRequired()) {
                 missingMentions.add(req.getLabel());
                 missingTags.addAll(expectedTags);
@@ -202,9 +206,9 @@ public class DocumentComplianceService {
 
         int totalRequired = (int) requirements.stream().filter(DocumentLegalRequirement::isRequired).count();
         int fulfilled = totalRequired - missingMentions.size();
-        int score = totalRequired > 0 ? (fulfilled * 100) / totalRequired : 100;
+        int score = totalRequired > 0 ? Math.max(0,(fulfilled * 100) / totalRequired) : 0;
 
-        boolean compliant = missingMentions.isEmpty();
+        boolean compliant = totalRequired>0 && missingMentions.isEmpty() && warnings.isEmpty();
 
         TemplateComplianceReport report = new TemplateComplianceReport();
         report.setTemplate(template);
@@ -215,6 +219,8 @@ public class DocumentComplianceService {
         report.setMissingMentions(String.join(",", missingMentions));
         report.setWarnings(String.join(",", warnings));
         report.setScore(score);
+        report.setCountryCode(countryCode);
+        report.setSourceHash(templateFingerprint(template,countryCode));
         complianceReportRepository.save(report);
 
         auditLogService.logAction(AuditAction.COMPLIANCE_CHECK, "DocumentTemplate",
@@ -332,6 +338,9 @@ public class DocumentComplianceService {
                 .orElseThrow(() -> new DocumentNotFoundException("Generation introuvable: " + newGenerationId));
         DocumentGeneration originalGen = generationRepository.findById(originalGenerationId)
                 .orElseThrow(() -> new DocumentNotFoundException("Generation originale introuvable: " + originalGenerationId));
+        requireOrganization(newGen);requireOrganization(originalGen);
+        if(originalGen.getDocumentType()==DocumentType.FACTURE || newGen.getDocumentType()==DocumentType.FACTURE)
+            throw new DocumentComplianceException("Rectifiez une facture depuis son dossier Finance avec un avoir lié");
 
         if (!originalGen.isLocked()) {
             throw new DocumentComplianceException("Le document original n'est pas verrouille");
@@ -374,8 +383,9 @@ public class DocumentComplianceService {
             }
         }
 
-        LocalDateTime lastCheckAt = complianceReportRepository.findMaxCheckedAt().orElse(null);
-        int avgScore = complianceReportRepository.findAverageScore();
+        var currentReports=templateRepository.findAll().stream().map(t->getLastComplianceReport(t.getId())).flatMap(Optional::stream).toList();
+        LocalDateTime lastCheckAt = currentReports.stream().map(ComplianceReportDto::checkedAt).max(LocalDateTime::compareTo).orElse(null);
+        int avgScore = (int)currentReports.stream().mapToInt(ComplianceReportDto::score).average().orElse(0);
 
         return new ComplianceStatsDto(
                 totalDocuments, totalLocked,
@@ -391,7 +401,29 @@ public class DocumentComplianceService {
         DocumentTemplate template = templateRepository.findById(templateId).orElse(null);
         if (template == null) return Optional.empty();
 
-        return complianceReportRepository.findTopByTemplateOrderByCheckedAtDesc(template)
+        String country=tenantContext.getCountryCode();String hash=templateFingerprint(template,country);
+        return complianceReportRepository.findByTemplateOrderByCheckedAtDesc(template).stream()
+                .filter(r->country.equals(r.getCountryCode()) && hash.equals(r.getSourceHash())).findFirst()
                 .map(report -> ComplianceReportDto.fromEntity(report, template.getName(), template.getDocumentType().name()));
+    }
+
+    private static String normalizeTag(String value){return value.toLowerCase(Locale.ROOT).replace("${", "").replace("}", "");}
+
+    public void requireCorrectable(Long id) {
+        var document=generationRepository.findById(id).orElseThrow(()->new DocumentNotFoundException("Document introuvable"));
+        requireOrganization(document);
+        if(document.getDocumentType()==DocumentType.FACTURE)throw new DocumentComplianceException("Rectifiez cette facture depuis Finance avec un avoir lié");
+    }
+    private void requireOrganization(DocumentGeneration document) {
+        if(!Objects.equals(document.getOrganizationId(),tenantContext.getRequiredOrganizationId()))throw new org.springframework.security.access.AccessDeniedException("Document inaccessible");
+    }
+
+    private String templateFingerprint(DocumentTemplate template,String country) {
+        var requirements=legalRequirementRepository.findByCountryCodeAndDocumentTypeAndActiveTrueOrderByDisplayOrderAsc(country,template.getDocumentType());
+        var rules=requirements.stream().map(r->r.getRequirementKey()+":"+r.isRequired()+":"+r.getDefaultValue()+":"+r.getDescription()).sorted().toList();
+        var tags=templateTagRepository.findByTemplateId(template.getId()).stream().map(t->normalizeTag(t.getTagName())).sorted().toList();
+        String content=template.getFileContent()==null?Objects.toString(template.getFilePath()):computeHash(template.getFileContent());
+        String value="baitly-html-template-3|"+country+"|"+template.getVersion()+"|"+template.getUpdatedAt()+"|"+content+"|"+tags+"|"+rules+"|"+new TreeMap<>(strategyRegistry.get(country).buildMentionTagMapping());
+        return computeHash(value.getBytes(java.nio.charset.StandardCharsets.UTF_8));
     }
 }

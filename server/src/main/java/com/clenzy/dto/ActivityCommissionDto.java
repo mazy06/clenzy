@@ -16,12 +16,15 @@ public record ActivityCommissionDto(
         BigDecimal platformShare,
         String currency,
         String status,
-        LocalDateTime createdAt) {
+        LocalDateTime createdAt,
+        Long propertyId,
+        String receiptReference,
+        LocalDateTime receivedAt) {
 
     public static ActivityCommissionDto from(ActivityCommission c) {
         return new ActivityCommissionDto(
                 c.getId(), c.getReservationId(), c.getProvider().name(), c.getExternalBookingId(),
                 c.getGrossCommission(), c.getHostShare(), c.getPlatformShare(), c.getCurrency(),
-                c.getStatus().name(), c.getCreatedAt());
+                c.getStatus().name(), c.getCreatedAt(), c.getPropertyId(), c.getReceiptReference(), c.getReceivedAt());
     }
 }

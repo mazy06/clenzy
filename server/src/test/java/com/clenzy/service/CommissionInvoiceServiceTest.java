@@ -133,7 +133,8 @@ class CommissionInvoiceServiceTest {
             .thenReturn(Optional.empty());
         when(fiscalProfileRepository.findByOrganizationId(ORG_ID)).thenReturn(Optional.of(fiscalProfile()));
         when(invoiceGeneratorService.generateCommissionFromReservation(r, c, ORG_ID)).thenReturn(generated());
-        when(numberingService.generateNextNumber(ORG_ID)).thenReturn("FA-2026-00010");
+        when(numberingService.checkAndRecord(any(), anyString())).thenReturn(true);
+        when(numberingService.generateNextNumberFor(org.mockito.ArgumentMatchers.any(com.clenzy.model.Invoice.class))).thenReturn("FA-2026-00010");
 
         Invoice result = service.generateForReservation(r);
 
@@ -152,7 +153,8 @@ class CommissionInvoiceServiceTest {
             .thenReturn(Optional.empty());
         when(fiscalProfileRepository.findByOrganizationId(ORG_ID)).thenReturn(Optional.of(fiscalProfile()));
         when(invoiceGeneratorService.generateCommissionFromReservation(r, c, ORG_ID)).thenReturn(generated());
-        when(numberingService.generateNextNumber(ORG_ID)).thenReturn("FA-2026-00011");
+        when(numberingService.checkAndRecord(any(), anyString())).thenReturn(true);
+        when(numberingService.generateNextNumberFor(org.mockito.ArgumentMatchers.any(com.clenzy.model.Invoice.class))).thenReturn("FA-2026-00011");
 
         Invoice result = service.generateForReservation(r);
 

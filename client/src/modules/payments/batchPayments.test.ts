@@ -2,9 +2,20 @@ import { beforeEach, expect, it, vi } from 'vitest';
 import { paymentsApi, type PaymentRecord } from '../../services/api/paymentsApi';
 import { serviceRequestsApi } from '../../services/api/serviceRequestsApi';
 import { payableItems, prepareBatchPayments } from './batchPayments';
-vi.mock('../../services/api/paymentsApi', () => ({ paymentsApi: { createBatchSession: vi.fn() } }));
+vi.mock('../../services/api/paymentsApi', () => ({ paymentsApi: { createBatchSession: vi.fn(), createSession: vi.fn() } }));
 vi.mock('../../services/api/serviceRequestsApi', () => ({ serviceRequestsApi: { createPaymentSession: vi.fn() } }));
 beforeEach(() => vi.clearAllMocks());
+it('prépare un solde d’acompte dans une session distincte au sein de la même sélection', async () => {
+  vi.mocked(paymentsApi.createSession).mockResolvedValue({ sessionId: 'cs_balance', url: 'https://checkout.stripe.com/balance' });
+  vi.mocked(paymentsApi.createBatchSession).mockResolvedValue({ sessionId: 'cs_batch', url: 'https://checkout.stripe.com/batch' });
+  const result = await prepareBatchPayments([
+    { key: 'INTERVENTION:1', label: 'Solde maintenance', amount: 70, currency: 'EUR', individualCheckout: true },
+    { key: 'INTERVENTION:2', label: 'Ménage', amount: 20, currency: 'EUR' },
+  ]);
+  expect(paymentsApi.createSession).toHaveBeenCalledWith(expect.objectContaining({ interventionId: 1, amount: 70, purpose: 'FULL' }));
+  expect(paymentsApi.createBatchSession).toHaveBeenCalledWith(expect.objectContaining({ interventionIds: [2], totalAmount: 20 }));
+  expect(result.map(row => row.url)).toEqual(['https://checkout.stripe.com/balance', 'https://checkout.stripe.com/batch']);
+});
 it('exclut les réservations, paiements incertains, déjà payés et non éligibles', () => {
   const record = { id: 1, referenceId: 1, description: 'Ménage', propertyName: 'Maison', type: 'INTERVENTION', status: 'PENDING', canCollect: true, amount: 20, currency: 'EUR' } as PaymentRecord;
   expect(payableItems([record, { ...record, type: 'RESERVATION' }, { ...record, status: 'PAID' }, { ...record, status: 'UNKNOWN' }, { ...record, canCollect: undefined }])).toHaveLength(1);

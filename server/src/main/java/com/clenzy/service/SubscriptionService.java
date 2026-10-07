@@ -92,21 +92,7 @@ public class SubscriptionService {
         int priceInCents = pricingConfigService.getPmsMonthlyPriceCents()
                 + pricingConfigService.getAiMonthlySurchargeCents(target);
 
-        // Annuler l'ancien abonnement Stripe si existant
-        if (user.getStripeSubscriptionId() != null && !user.getStripeSubscriptionId().isEmpty()) {
-            try {
-                Subscription existingSub = stripeGateway.retrieveSubscription(user.getStripeSubscriptionId());
-                if (!"canceled".equals(existingSub.getStatus())) {
-                    stripeGateway.cancelSubscription(existingSub, SubscriptionCancelParams.builder()
-                            .setProrate(true)
-                            .build());
-                    log.info("Ancien abonnement Stripe {} annule pour user {}", user.getStripeSubscriptionId(), user.getEmail());
-                }
-            } catch (StripeException e) {
-                log.warn("Erreur annulation ancien abonnement Stripe {}: {}", user.getStripeSubscriptionId(), e.getMessage());
-                // On continue meme si l'annulation echoue
-            }
-        }
+        // L'ancien contrat reste en vigueur tant que le remplacement n'est pas confirmé.
 
         // Checkout d'abonnement HÉBERGÉ via le port SubscriptionProvider (Vague 3).
         String forfaitDisplayName = target.substring(0, 1).toUpperCase() + target.substring(1);
@@ -117,6 +103,9 @@ public class SubscriptionService {
         metadata.put("userId", user.getId().toString());
         metadata.put("forfait", target);
         metadata.put("previousForfait", currentForfait);
+        if(user.getStripeSubscriptionId()!=null)metadata.put("previousSubscriptionId",user.getStripeSubscriptionId());
+        metadata.put("expectedAmount",String.valueOf(priceInCents));
+        metadata.put("currency",currency);
 
         SubscriptionCheckoutRequest request = new SubscriptionCheckoutRequest(
                 priceInCents,
@@ -167,6 +156,19 @@ public class SubscriptionService {
             Long userId = Long.parseLong(userIdStr);
             User user = userRepository.findById(userId)
                     .orElseThrow(() -> new RuntimeException("Utilisateur id=" + userId + " introuvable"));
+
+            if (!"complete".equals(session.getStatus()) || !"paid".equals(session.getPaymentStatus())
+                    || !"subscription".equals(session.getMode()) || session.getSubscription()==null
+                    || session.getCustomer()==null || !VALID_FORFAITS.contains(targetForfait)
+                    || (user.getStripeCustomerId()!=null && !user.getStripeCustomerId().equals(session.getCustomer())))
+                throw new IllegalStateException("Paiement d'abonnement historique non confirmé");
+            String previousSubscription=session.getMetadata().get("previousSubscriptionId");
+            if(previousSubscription!=null && !previousSubscription.equals(session.getSubscription())) {
+                var previous=stripeGateway.retrieveSubscription(previousSubscription);
+                if(!session.getCustomer().equals(previous.getCustomer()))
+                    throw new IllegalStateException("Ancien abonnement étranger au payeur");
+                if(!"canceled".equals(previous.getStatus()))stripeGateway.cancelSubscription(previous,SubscriptionCancelParams.builder().setProrate(true).build());
+            }
 
             // Mettre a jour le forfait
             user.setForfait(targetForfait);

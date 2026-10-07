@@ -60,8 +60,30 @@ public interface PaymentTransactionRepository extends JpaRepository<PaymentTrans
     List<PaymentTransaction> findStandaloneRefundAttempts(@Param("org") Long org, @Param("ids") List<Long> ids);
 
     default List<Long> findStandaloneRefundableMissionIds(Long org, List<Long> ids) {
-        return retainRefundCandidates(org, findStandaloneRefundCandidateMissionIds(org, ids), 1L);
+        var result=new java.util.HashSet<>(retainRefundCandidates(org, findStandaloneRefundCandidateMissionIds(org, ids), 1L));
+        result.addAll(retainRefundCandidates(org,findMaintenanceRefundCandidateMissionIds(org,ids),2L));
+        return result.stream().sorted().toList();
     }
+
+    @Query(value="""
+        SELECT i.id FROM interventions i JOIN payment_transactions t
+          ON t.organization_id=i.organization_id AND t.source_id=i.id AND t.source_type='INTERVENTION'
+        WHERE i.organization_id=:org AND i.id IN (:ids) AND i.payment_status IN ('PAID','PARTIALLY_REFUNDED')
+          AND i.currency='EUR' AND t.payment_type='CHECKOUT' AND t.status='COMPLETED'
+          AND t.provider_type='STRIPE' AND t.currency=i.currency AND COALESCE(t.disputed_amount,0)=0
+          AND t.provider_tx_id LIKE 'cs_%' AND t.amount>0
+          AND EXISTS (SELECT 1 FROM service_quotes q WHERE q.organization_id=i.organization_id AND q.intervention_id=i.id
+            AND q.status='APPROVED' AND q.amount=i.estimated_cost AND q.deposit_paid_at IS NOT NULL
+            AND q.deposit_transaction_ref IN (SELECT d.transaction_ref FROM payment_transactions d
+              WHERE d.organization_id=i.organization_id AND d.source_type='INTERVENTION' AND d.source_id=i.id
+                AND d.status='COMPLETED' AND d.amount=q.deposit_amount))
+          AND NOT EXISTS (SELECT 1 FROM intervention_payment_allocations a WHERE a.organization_id=i.organization_id AND a.intervention_id=i.id)
+          AND NOT EXISTS (SELECT 1 FROM service_quote_cancellations c WHERE c.organization_id=i.organization_id AND c.intervention_id=i.id)
+        GROUP BY i.id, i.estimated_cost, i.stripe_session_id
+        HAVING count(*)=2 AND count(DISTINCT t.provider_tx_id)=2 AND sum(t.amount)=i.estimated_cost
+          AND sum(CASE WHEN t.provider_tx_id=i.stripe_session_id THEN 1 ELSE 0 END)=1
+        """,nativeQuery=true)
+    List<Long> findMaintenanceRefundCandidateMissionIds(@Param("org") Long org,@Param("ids") List<Long> ids);
 
     default List<Long> findAllocatedRefundableMissionIds(Long org, List<Long> ids) {
         return retainRefundCandidates(org, findAllocatedRefundCandidateMissionIds(org, ids), 0L);

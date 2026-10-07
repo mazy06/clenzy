@@ -23,6 +23,10 @@ import java.util.Optional;
 @Repository
 public interface BookingVoucherRepository extends JpaRepository<BookingVoucher, Long> {
 
+    @org.springframework.data.jpa.repository.Lock(jakarta.persistence.LockModeType.PESSIMISTIC_WRITE)
+    @Query("select v from BookingVoucher v where v.id=:id and v.organizationId=:org")
+    Optional<BookingVoucher> lockForClaim(@Param("id") Long id, @Param("org") Long org);
+
     /**
      * Lookup d'un voucher par code (case-insensitive) pour une org donnee.
      * Utilise au moment ou le guest entre le code dans le booking engine.

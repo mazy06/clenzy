@@ -5,13 +5,6 @@ import com.clenzy.exception.DocumentStorageException;
 import com.clenzy.model.DocumentTemplate;
 import com.clenzy.model.DocumentTemplateTag;
 import com.clenzy.model.TagType;
-import fr.opensagres.xdocreport.document.IXDocReport;
-import fr.opensagres.xdocreport.document.images.ByteArrayImageProvider;
-import fr.opensagres.xdocreport.document.images.IImageProvider;
-import fr.opensagres.xdocreport.document.registry.XDocReportRegistry;
-import fr.opensagres.xdocreport.template.IContext;
-import fr.opensagres.xdocreport.template.TemplateEngineKind;
-import fr.opensagres.xdocreport.template.formatter.FieldsMetadata;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
@@ -25,14 +18,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
-/**
- * Rendu des templates de documents : resolution du contenu binaire (.odt),
- * remplissage Freemarker via XDocReport et validation de la presence des tags.
- * <p>
- * Extrait de {@link DocumentGeneratorService} (refactor SRP) — comportement
- * strictement identique. Utilise par le pipeline de generation, la preview
- * et la gestion des templates.
- */
+/** Source de modèles HTML commune à la prévisualisation et à la génération finale. */
 @Component
 public class DocumentTemplateRenderer {
 
@@ -49,72 +35,17 @@ public class DocumentTemplateRenderer {
      */
     public byte[] resolveTemplateContent(DocumentTemplate template) {
         if (template.getFileContent() != null) {
-            return template.getFileContent();
+            return BaitlyLegacyOdtImporter.html(template.getFileContent());
         }
         if (template.getFilePath() != null && !template.getFilePath().isBlank()) {
-            return templateStorageService.loadAsBytes(template.getFilePath());
+            return BaitlyLegacyOdtImporter.html(templateStorageService.loadAsBytes(template.getFilePath()));
         }
         throw new DocumentStorageException("No content for template: " + template.getId());
     }
 
-    /**
-     * Remplit un template.
-     *
-     * <p><b>Images.</b> {@link TagType#IMAGE} existait dans le modele et
-     * {@code TemplateParserService} detectait deja les tags nommes {@code logo},
-     * {@code signature}, {@code photo} ou {@code cachet} — mais rien ne les
-     * rendait : ce remplissage se contentait d'un {@code context.put}, sans
-     * {@code FieldsMetadata} ni {@code IImageProvider}, les deux que XDocReport
-     * exige. Un tag image sortait donc vide.</p>
-     *
-     * <p>Convention : toute valeur de type {@code byte[]} dans le contexte est
-     * traitee comme une image. Le type porte l'intention, il n'y a pas de
-     * registre parallele a tenir a jour.</p>
-     */
-    public byte[] fillTemplate(byte[] templateContent, Map<String, Object> contextMap) throws Exception {
-        try (InputStream is = new ByteArrayInputStream(templateContent)) {
-            IXDocReport report = XDocReportRegistry.getRegistry().loadReport(
-                    is, TemplateEngineKind.Freemarker);
-
-            // Les champs image se declarent AVANT le remplissage : XDocReport en a
-            // besoin pour remplacer le placeholder par un vrai objet dessin.
-            FieldsMetadata metadata = report.createFieldsMetadata();
-            for (Map.Entry<String, Object> entry : contextMap.entrySet()) {
-                if (entry.getValue() instanceof byte[]) {
-                    metadata.addFieldAsImage(entry.getKey());
-                }
-            }
-
-            IContext context = report.createContext();
-
-            // Sanitize string values to prevent Freemarker template injection
-            for (Map.Entry<String, Object> entry : contextMap.entrySet()) {
-                if (entry.getValue() instanceof String strVal) {
-                    // Block Freemarker directives in user-provided values
-                    if (strVal.contains("<#") || strVal.contains("${") || strVal.contains("<@")) {
-                        log.warn("Potential template injection detected in tag '{}', sanitizing", entry.getKey());
-                        entry.setValue(strVal.replace("<#", "&lt;#").replace("${", "&#36;{").replace("<@", "&lt;@"));
-                    }
-                }
-            }
-
-            for (Map.Entry<String, Object> entry : contextMap.entrySet()) {
-                if (entry.getValue() instanceof byte[] imageBytes) {
-                    // `setUseImageSize` : le dessin prend la taille du
-                    // placeholder du template, pas celle du fichier source —
-                    // sans quoi un logo en pleine resolution deborde la page.
-                    IImageProvider image = new ByteArrayImageProvider(imageBytes);
-                    image.setUseImageSize(false);
-                    context.put(entry.getKey(), image);
-                } else {
-                    context.put(entry.getKey(), entry.getValue());
-                }
-            }
-
-            ByteArrayOutputStream out = new ByteArrayOutputStream();
-            report.process(context, out);
-            return out.toByteArray();
-        }
+    /** Rendu HTML UTF-8 ; l'adaptateur ODT ne lit que les anciennes sources conservées. */
+    public byte[] fillTemplate(byte[] templateContent, Map<String, Object> contextMap) {
+        return BaitlyHtmlTemplates.render(BaitlyLegacyOdtImporter.html(templateContent), contextMap);
     }
 
     /**
@@ -142,7 +73,7 @@ public class DocumentTemplateRenderer {
                 missingTags.add("${" + tagName + "} (groupe '" + group + "' absent)");
             } else if (groupObj instanceof Map) {
                 Map<String, Object> groupMap = (Map<String, Object>) groupObj;
-                if (!groupMap.containsKey(field)) {
+                if (!containsPath(groupMap, field)) {
                     missingTags.add("${" + tagName + "} (champ '" + field + "' absent du groupe '" + group + "')");
                 }
             }
@@ -194,7 +125,11 @@ public class DocumentTemplateRenderer {
         // 3) Remplissage des champs manquants par une valeur vide typee.
         for (DocumentTemplateTag tag : tags) {
             String tagName = tag.getTagName();
-            if (tagName == null || !tagName.contains(".")) continue;
+            if (tagName == null) continue;
+            if (!tagName.contains(".")) {
+                context.putIfAbsent(tagName, emptyForType(tag.getTagType() != null ? tag.getTagType() : TagType.SIMPLE, visiblePlaceholder));
+                continue;
+            }
             int dot = tagName.indexOf('.');
             String group = tagName.substring(0, dot);
             String field = tagName.substring(dot + 1);
@@ -208,10 +143,30 @@ public class DocumentTemplateRenderer {
                 groupMap = new LinkedHashMap<>();
                 context.put(group, groupMap);
             }
-            if (!groupMap.containsKey(field)) {
-                groupMap.put(field, emptyForType(type, visiblePlaceholder));
+            String[] path = field.split("\\.");
+            // Copy each branch: resolver maps may be immutable or shared with a snapshot.
+            groupMap = new LinkedHashMap<>(groupMap);
+            context.put(group, groupMap);
+            for (int index = 0; index < path.length - 1; index++) {
+                Object child = groupMap.get(path[index]);
+                Map<String, Object> next = child instanceof Map<?, ?>
+                        ? new LinkedHashMap<>((Map<String, Object>) child) : new LinkedHashMap<>();
+                groupMap.put(path[index], next);
+                groupMap = next;
+            }
+            if (!groupMap.containsKey(path[path.length - 1])) {
+                groupMap.put(path[path.length - 1], emptyForType(type, visiblePlaceholder));
             }
         }
+    }
+
+    private boolean containsPath(Map<String, Object> context, String path) {
+        Object value = context;
+        for (String field : path.split("\\.")) {
+            if (!(value instanceof Map<?, ?> map) || !map.containsKey(field)) return false;
+            value = map.get(field);
+        }
+        return value != null;
     }
 
     private Object emptyForType(TagType type, boolean visiblePlaceholder) {

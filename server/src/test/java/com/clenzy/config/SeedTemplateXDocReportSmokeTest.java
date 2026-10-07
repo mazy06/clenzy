@@ -1,9 +1,5 @@
 package com.clenzy.config;
 
-import fr.opensagres.xdocreport.document.IXDocReport;
-import fr.opensagres.xdocreport.document.registry.XDocReportRegistry;
-import fr.opensagres.xdocreport.template.IContext;
-import fr.opensagres.xdocreport.template.TemplateEngineKind;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.core.io.ClassPathResource;
@@ -17,7 +13,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 /**
  * Smoke test du rendu reel : les 8 templates embarques se remplissent via le
- * moteur XDocReport/Freemarker tel qu'utilise en prod
+ * moteur HTML/Freemarker tel qu'utilise en prod
  * ({@code DocumentGeneratorService.fillTemplate}) — directives equilibrees,
  * expressions resolvables, boucle de lignes fonctionnelle.
  *
@@ -25,51 +21,47 @@ import static org.assertj.core.api.Assertions.assertThat;
  * (directive Freemarker invalide, balise mal fermee) fait echouer ce test
  * avant tout deploiement.</p>
  */
-@DisplayName("Seed document templates — rendu XDocReport")
+@DisplayName("Seed document templates — rendu HTML")
 class SeedTemplateXDocReportSmokeTest {
 
     /** Les 7 templates au modele "intervention" (meme jeu de tags que la facture). */
     private static final List<String> INTERVENTION_TEMPLATES = List.of(
-            "facture-clenzy", "autorisation-travaux-clenzy", "bon-intervention-clenzy",
-            "justificatif-paiement-clenzy", "justificatif-remboursement-clenzy",
-            "mandat-gestion-clenzy", "validation-fin-mission-clenzy");
+            "facture-baitly", "autorisation-travaux-baitly", "bon-intervention-baitly",
+            "justificatif-paiement-baitly", "justificatif-remboursement-baitly",
+            "mandat-gestion-baitly", "validation-fin-mission-baitly");
 
     @Test
     @DisplayName("les 7 templates type-intervention se remplissent sans erreur Freemarker")
     void interventionTemplates_fillWithoutError() throws Exception {
         for (String slug : INTERVENTION_TEMPLATES) {
-            assertValidOdt(fill("seed/document-templates/" + slug + ".odt", interventionModel()), slug);
+            assertValidHtml(fill("seed/document-templates/" + slug + ".html", interventionModel()), slug);
         }
     }
 
     @Test
-    @DisplayName("devis-clenzy.odt se remplit sans erreur Freemarker")
+    @DisplayName("devis-baitly.html se remplit sans erreur Freemarker")
     void devisTemplate_fillsWithoutError() throws Exception {
-        assertValidOdt(fill("seed/document-templates/devis-clenzy.odt", devisModel()), "devis-clenzy");
+        assertValidHtml(fill("seed/document-templates/devis-baitly.html", devisModel()), "devis-baitly");
     }
 
     @Test
-    @DisplayName("devis-menage-clenzy.odt se remplit sans erreur Freemarker")
+    @DisplayName("devis-menage-baitly.html se remplit sans erreur Freemarker")
     void devisMenageTemplate_fillsWithoutError() throws Exception {
-        assertValidOdt(fill("seed/document-templates/devis-menage-clenzy.odt", menageModel()), "devis-menage-clenzy");
+        assertValidHtml(fill("seed/document-templates/devis-menage-baitly.html", menageModel()), "devis-menage-baitly");
     }
 
     /** Reproduit fidelement DocumentGeneratorService.fillTemplate (moteur Freemarker, put direct). */
     private static byte[] fill(String resourcePath, Map<String, Object> model) throws Exception {
         try (InputStream is = new ClassPathResource(resourcePath).getInputStream()) {
-            IXDocReport report = XDocReportRegistry.getRegistry().loadReport(is, TemplateEngineKind.Freemarker);
-            IContext context = report.createContext();
-            model.forEach(context::put);
-            ByteArrayOutputStream out = new ByteArrayOutputStream();
-            report.process(context, out);
-            return out.toByteArray();
+            return new com.clenzy.service.DocumentTemplateRenderer(null).fillTemplate(is.readAllBytes(), model);
         }
     }
 
-    private static void assertValidOdt(byte[] out, String slug) {
-        assertThat(out).as("template %s produit un document", slug).isNotEmpty();
-        // En-tete ZIP "PK" => archive ODT valide produite.
-        assertThat(new String(out, 0, 2)).as("template %s est une archive ODT", slug).isEqualTo("PK");
+    private static void assertValidHtml(byte[] out, String slug) {
+        String html = new String(out, java.nio.charset.StandardCharsets.UTF_8);
+        assertThat(org.jsoup.Jsoup.parse(html).body().text()).as("template %s", slug).contains("Baitly");
+        assertThat(html).doesNotContain("${", "[#list", "[#if");
+        com.clenzy.service.BaitlyHtmlTemplates.validateResources(html);
     }
 
     private static Map<String, Object> interventionModel() {
@@ -77,7 +69,7 @@ class SeedTemplateXDocReportSmokeTest {
                 Map.of("description", "Menage", "quantite", "1",
                         "prix_unitaire", "100 EUR", "total", "100 EUR"));
         return Map.ofEntries(
-            Map.entry("entreprise", Map.of("nom", "Clenzy", "adresse", "12 rue X, 75001 Paris",
+            Map.entry("entreprise", Map.of("nom", "Baitly", "adresse", "12 rue X, 75001 Paris",
                     "siret", "12345678900012", "email", "info@clenzy.fr", "telephone", "07 49 24 54 66")),
             Map.entry("client", Map.of("nom_complet", "Toufik Mazy", "societe", "Acme", "email", "t@x.fr",
                     "telephone", "06 00 00 00 00", "code_postal", "75001", "ville", "Paris")),
@@ -94,7 +86,7 @@ class SeedTemplateXDocReportSmokeTest {
                     // intervention.lignes : encore utilise par les 6 autres templates type-intervention.
                     Map.entry("lignes", lignes))),
             // lignes (top-level) + has_intervention/has_technicien : alimentent le nouveau
-            // facture-clenzy.odt ([#list lignes] + guards [#if has_intervention]/[#if has_technicien]).
+            // facture-baitly.html ([#list lignes] + guards [#if has_intervention]/[#if has_technicien]).
             // fill() ne passe pas par fillMissingTags : on fournit ces cles a la main.
             Map.entry("lignes", lignes),
             Map.entry("has_intervention", true),
@@ -110,7 +102,7 @@ class SeedTemplateXDocReportSmokeTest {
 
     private static Map<String, Object> menageModel() {
         return Map.of(
-            "entreprise", Map.of("nom", "Clenzy", "adresse", "12 rue X", "siret", "123",
+            "entreprise", Map.of("nom", "Baitly", "adresse", "12 rue X", "siret", "123",
                     "email", "info@clenzy.fr", "telephone", "07 49 24 54 66"),
             "client", Map.of("nom_complet", "Toufik Mazy", "email", "t@x.fr", "telephone", "06 00 00 00 00"),
             "property", Map.of("nom", "Duplex Marrakech", "adresse", "1 rue Y", "code_postal", "40000",
@@ -129,7 +121,7 @@ class SeedTemplateXDocReportSmokeTest {
 
     private static Map<String, Object> devisModel() {
         return Map.of(
-            "entreprise", Map.of("nom", "Clenzy", "adresse", "12 rue X", "siret", "123",
+            "entreprise", Map.of("nom", "Baitly", "adresse", "12 rue X", "siret", "123",
                     "email", "info@clenzy.fr", "telephone", "07 49 24 54 66"),
             "client", Map.of("nom_complet", "Toufik Mazy", "societe", "Acme", "email", "t@x.fr",
                     "telephone", "06 00 00 00 00", "code_postal", "75001", "ville", "Paris"),

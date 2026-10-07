@@ -49,5 +49,10 @@ public record VoucherCreatePayload(
     Integer maxUsesPerGuest,
     VoucherChannelScope channelScope,
     VoucherStatus status,
-    List<Long> propertyIds
-) {}
+    List<Long> propertyIds,
+    String currency
+) {
+    public VoucherCreatePayload(String name, String description, String code, VoucherType type, VoucherDiscountType discountType, BigDecimal discountValue, Instant validFrom, Instant validUntil, Integer minStayNights, BigDecimal minTotalAmount, Integer maxStayNights, Integer maxUsesTotal, Integer maxUsesPerGuest, VoucherChannelScope channelScope, VoucherStatus status, List<Long> propertyIds) {
+        this(name, description, code, type, discountType, discountValue, validFrom, validUntil, minStayNights, minTotalAmount, maxStayNights, maxUsesTotal, maxUsesPerGuest, channelScope, status, propertyIds, null);
+    }
+}

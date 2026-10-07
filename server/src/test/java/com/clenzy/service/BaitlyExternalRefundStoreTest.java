@@ -44,7 +44,7 @@ class BaitlyExternalRefundStoreTest {
         factory=new Configuration().addPackage("com.clenzy.model").addAnnotatedClass(PaymentTransaction.class)
                 .addAnnotatedClass(InterventionPaymentAllocation.class).addAnnotatedClass(LedgerEntry.class)
                 .addAnnotatedClass(HousekeeperPayoutRecord.class).addAnnotatedClass(PayoutTransfer.class).addAnnotatedClass(BaitlyTransferRecovery.class)
-                .addAnnotatedClass(Invoice.class).addAnnotatedClass(InvoiceLine.class).addAnnotatedClass(InvoiceNumberSequence.class)
+                .addAnnotatedClass(Invoice.class).addAnnotatedClass(InvoiceLine.class).addAnnotatedClass(InvoiceNumberSequence.class).addAnnotatedClass(BaitlyInvoiceIssuerSequence.class)
                 .addAnnotatedClass(OutboxEvent.class)
                 .addInputStream(new ByteArrayInputStream(mapped.getBytes(StandardCharsets.UTF_8)))
                 .setProperty("hibernate.connection.url",jdbc==null?"jdbc:h2:mem:externalrefund;MODE=PostgreSQL;LOCK_TIMEOUT=5000"
@@ -86,12 +86,12 @@ class BaitlyExternalRefundStoreTest {
         var persistence=new PaymentPersistence(repo,durableOutbox,new ObjectMapper(),mock(DepositReconciler.class),coordination,mock(InvoicePaymentCoordination.class), org.mockito.Mockito.mock(com.clenzy.service.payout.BaitlyTransferRecoveryStore.class));
         return new BaitlyExternalRefundStore(em,repo,tenant,new BaitlyExternalRefundEligibility(em,repo,coordination,locks,
                 new com.clenzy.service.payout.BaitlyTransferRecoveryStore(em)),persistence,reconciliation,mock(BaitlyExternalReservationRefunds.class),
-                new BaitlyExternalBatchRefunds(em,repo,locks,coordination,new com.clenzy.service.payout.BaitlyTransferRecoveryStore(em)));
+                new BaitlyExternalBatchRefunds(em,repo,locks,coordination,new com.clenzy.service.payout.BaitlyTransferRecoveryStore(em)),mock(com.clenzy.service.ai.BaitlyCreditFunding.class));
     }
     @BeforeEach void seed() {
         when(tenant.getRequiredOrganizationId()).thenReturn(7L);
         tx(em -> {
-            for(String entity:List.of("OutboxEvent","InvoiceLine","Invoice","InvoiceNumberSequence","BaitlyTransferRecovery","PayoutTransfer","HousekeeperPayoutRecord","LedgerEntry","InterventionPaymentAllocation","PaymentTransaction","Intervention")) em.createQuery("delete from "+entity).executeUpdate();
+            for(String entity:List.of("OutboxEvent","InvoiceLine","Invoice","InvoiceNumberSequence","BaitlyInvoiceIssuerSequence","BaitlyTransferRecovery","PayoutTransfer","HousekeeperPayoutRecord","LedgerEntry","InterventionPaymentAllocation","PaymentTransaction","Intervention")) em.createQuery("delete from "+entity).executeUpdate();
             em.createNativeQuery("DELETE FROM housekeeper_payout_records").executeUpdate(); em.createNativeQuery("DELETE FROM invoices").executeUpdate();
             var p=RefundCreditNotePersistenceTest.transaction("TX-original",TransactionType.CHECKOUT); p.setProviderTxId("cs_original"); em.persist(p);
             var mission=new Intervention(); mission.setId(364L); mission.setOrganizationId(7L); mission.setEstimatedCost(new BigDecimal("45"));
@@ -287,7 +287,7 @@ class BaitlyExternalRefundStoreTest {
     }
     @Test void externalSeriesCreatesDistinctCreditsWhoseTaxesAndLinesCancelTheOriginalExactly() {
         Long invoiceId=tx(em -> {
-            var invoice=new Invoice(); invoice.setOrganizationId(7L); invoice.setInvoiceNumber("FA-ORIGINAL");
+            var invoice=new Invoice();invoice.setBuyerName("Destinataire TEST");invoice.setSellerName("Émetteur test");invoice.setSellerAddress("1 rue de la Simulation, Paris");invoice.setSellerTaxId("FR-TEST-ONLY"); invoice.setOrganizationId(7L); invoice.setInvoiceNumber("FA-ORIGINAL");
             invoice.setInvoiceDate(java.time.LocalDate.now()); invoice.setStatus(InvoiceStatus.PAID); invoice.setInvoiceType(InvoiceType.GUEST);
             invoice.setInterventionId(364L); invoice.setPaymentTransactionId(payments(em).findByTransactionRef("TX-original").orElseThrow().getId());
             invoice.setCurrency("EUR"); invoice.setTotalHt(new BigDecimal("38.64")); invoice.setTotalTax(new BigDecimal("6.36")); invoice.setTotalTtc(new BigDecimal("45"));

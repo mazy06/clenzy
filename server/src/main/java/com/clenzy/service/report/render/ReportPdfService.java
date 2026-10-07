@@ -3,8 +3,6 @@ package com.clenzy.service.report.render;
 import com.clenzy.dto.report.ReportMeta;
 import com.clenzy.dto.report.ReportNarrative;
 import com.clenzy.dto.report.ReportSnapshot;
-import com.itextpdf.html2pdf.ConverterProperties;
-import com.itextpdf.html2pdf.HtmlConverter;
 import com.itextpdf.io.font.constants.StandardFonts;
 import com.itextpdf.kernel.colors.DeviceRgb;
 import com.itextpdf.kernel.font.PdfFont;
@@ -42,9 +40,9 @@ import java.util.Map;
  * imperativement obligerait a tenir deux mises en page en parallele, et elles
  * divergeraient des la premiere retouche.</p>
  *
- * <p>Aucun navigateur n'intervient : les graphiques sont du SVG produit cote
- * serveur, rendu par le module SVG d'iText. C'est ce qui permet au planificateur
- * mensuel et a l'agent de produire un releve sans session ouverte.</p>
+ * <p>Le moteur Chromium commun rend le HTML et les graphiques SVG produits côté
+ * serveur, sans session utilisateur. iText ajoute uniquement la pagination et
+ * la décoration de couverture au PDF déjà rendu.</p>
  */
 @Service
 public class ReportPdfService {
@@ -60,7 +58,10 @@ public class ReportPdfService {
 
     private final ReportHtmlRenderer htmlRenderer;
 
-    public ReportPdfService(ReportHtmlRenderer htmlRenderer) {
+    private final com.clenzy.service.BaitlyPdfEngine engine;
+
+    public ReportPdfService(ReportHtmlRenderer htmlRenderer, com.clenzy.service.BaitlyPdfEngine engine) {
+        this.engine=engine;
         this.htmlRenderer = htmlRenderer;
     }
 
@@ -154,9 +155,8 @@ public class ReportPdfService {
      * plus.</p>
      */
     private byte[] paginate(byte[] source, ReportMeta meta, boolean draft) {
-        try (ByteArrayOutputStream out = new ByteArrayOutputStream(source.length + 8_192);
-             PdfDocument pdf = new PdfDocument(
-                     new PdfReader(new ByteArrayInputStream(source)), new PdfWriter(out))) {
+        try {
+            return engine.edit(source, pdf -> {
 
             coverBackground(pdf.getPage(1));
 
@@ -188,8 +188,7 @@ public class ReportPdfService {
                             .setTextAlignment(TextAlignment.RIGHT).setMargin(0));
                 }
             }
-            pdf.close();
-            return out.toByteArray();
+            });
         } catch (Exception e) {
             // Une pagination ratee ne doit pas couter le document : on rend le
             // flux non numerote plutot que rien du tout.
@@ -235,19 +234,5 @@ public class ReportPdfService {
         return value == null ? "" : value;
     }
 
-    private byte[] fromHtml(String html) {
-        try (ByteArrayOutputStream out = new ByteArrayOutputStream(64 * 1024)) {
-            final ConverterProperties properties = new ConverterProperties();
-            try (PdfDocument pdf = new PdfDocument(new PdfWriter(out))) {
-                pdf.setDefaultPageSize(PageSize.A4);
-                try (Document document = HtmlConverter.convertToDocument(html, pdf, properties)) {
-                    document.flush();
-                }
-            }
-            return out.toByteArray();
-        } catch (Exception e) {
-            log.error("Rendu PDF du rapport impossible", e);
-            throw new IllegalStateException("Impossible de generer le PDF du rapport", e);
-        }
-    }
+    private byte[] fromHtml(String html) { return engine.reportHtml(html); }
 }

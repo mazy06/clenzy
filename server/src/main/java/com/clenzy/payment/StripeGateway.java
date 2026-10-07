@@ -70,6 +70,34 @@ public class StripeGateway {
         return Session.retrieve(sessionId, requestOptions(null));
     }
 
+    public Account retrievePlatformAccount() throws StripeException {
+        return Account.retrieve(requestOptions(null));
+    }
+
+    /** Un prix en MAD/SAR ne permet pas de facturer avec l'entité française par défaut. */
+    public String requireSubscriptionSellerCountry(String country) throws StripeException {
+        Account account=retrievePlatformAccount();
+        if(account==null || account.getId()==null || country==null || !country.equalsIgnoreCase(account.getCountry()))
+            throw new IllegalStateException("Le compte de paiement de la société Baitly "+country+" doit être raccordé avant la souscription");
+        return account.getId();
+    }
+
+    public void verifySubscriptionSeller(String country,String accountId) throws StripeException {
+        if(accountId==null)return; // Contrats historiques, à rapprocher sans inventer leur vendeur.
+        if(!accountId.equals(requireSubscriptionSellerCountry(country)))
+            throw new IllegalStateException("Le compte de paiement ne correspond pas à la société du contrat Baitly");
+    }
+
+    /** Sans paramétrage fiscal actif, ne pas annoncer des taxes calculées en facturant silencieusement zéro. */
+    public void requireSubscriptionTaxReady() throws StripeException {
+        var tax = new com.stripe.StripeClient(stripeSecretKey).v1().tax();
+        var settings = tax.settings().retrieve();
+        var registrations = tax.registrations().list(com.stripe.param.tax.RegistrationListParams.builder()
+                .setStatus(com.stripe.param.tax.RegistrationListParams.Status.ACTIVE).setLimit(1L).build());
+        if (!"active".equals(settings.getStatus()) || registrations.getData().isEmpty())
+            throw new IllegalStateException("La facturation HT nécessite de finaliser la configuration Stripe Tax de Baitly avant le paiement");
+    }
+
     /** Résout la session d'un remboursement externe sans se fier à ses métadonnées. */
     public java.util.List<Session> sessionsForPaymentIntent(String intent) throws StripeException {
         var params = com.stripe.param.checkout.SessionListParams.builder().setPaymentIntent(intent).setLimit(100L).build();
@@ -232,6 +260,65 @@ public class StripeGateway {
         return Coupon.create(params, requestOptions(null));
     }
 
+    public Coupon createCoupon(CouponCreateParams params,String key) throws StripeException {
+        return Coupon.create(params,requestOptions(key));
+    }
+
+    public com.stripe.model.Invoice retrieveInvoice(String id) throws StripeException {
+        return com.stripe.model.Invoice.retrieve(id,requestOptions(null));
+    }
+
+    public java.util.List<com.stripe.model.CreditNote> creditNotes(String invoice) throws StripeException {
+        var result=new java.util.ArrayList<com.stripe.model.CreditNote>();
+        for(var note:com.stripe.model.CreditNote.list(java.util.Map.of("invoice",invoice,"limit",100L),requestOptions(null)).autoPagingIterable())result.add(note);
+        return java.util.List.copyOf(result);
+    }
+
+    public java.util.List<com.stripe.model.InvoiceLineItem> invoiceLines(String invoice)throws StripeException {
+        var result=new java.util.ArrayList<com.stripe.model.InvoiceLineItem>();
+        for(var line:new com.stripe.StripeClient(stripeSecretKey).v1().invoices().lineItems().list(invoice,com.stripe.param.InvoiceLineItemListParams.builder().setLimit(100L).build()).autoPagingIterable())result.add(line);
+        return java.util.List.copyOf(result);
+    }
+    public java.util.List<com.stripe.model.CreditNoteLineItem> creditNoteLines(String note)throws StripeException {
+        var result=new java.util.ArrayList<com.stripe.model.CreditNoteLineItem>();
+        for(var line:new com.stripe.StripeClient(stripeSecretKey).v1().creditNotes().lineItems().list(note,
+            com.stripe.param.CreditNoteLineItemListParams.builder().setLimit(100L).build()).autoPagingIterable())result.add(line);
+        return java.util.List.copyOf(result);
+    }
+
+    /** Rattache un remboursement existant ; ne crée jamais un second remboursement. */
+    public com.stripe.model.CreditNote createLinkedCreditNote(com.stripe.param.CreditNoteCreateParams params,String key) throws StripeException {
+        if(params.getRefundAmount()!=null || params.getRefunds()==null || params.getRefunds().size()!=1
+                || params.getEmailType()!=com.stripe.param.CreditNoteCreateParams.EmailType.NONE)
+            throw new IllegalArgumentException("L'avoir doit uniquement référencer un remboursement existant");
+        return com.stripe.model.CreditNote.create(params,requestOptions(key));
+    }
+
+    public java.util.List<com.stripe.model.InvoicePayment> invoicePayments(String invoice,String intent) throws StripeException {
+        var params=new java.util.HashMap<String,Object>();params.put("limit",100L);
+        if(invoice!=null)params.put("invoice",invoice);
+        if(intent!=null)params.put("payment",java.util.Map.of("type","payment_intent","payment_intent",intent));
+        if(invoice==null && intent==null)throw new IllegalArgumentException("Facture ou encaissement requis");
+        var result=new java.util.ArrayList<com.stripe.model.InvoicePayment>();
+        for(var payment:com.stripe.model.InvoicePayment.list(params,requestOptions(null)).autoPagingIterable())result.add(payment);
+        return java.util.List.copyOf(result);
+    }
+
+    public java.util.List<Refund> refundsForCharge(String charge) throws StripeException {
+        var result=new java.util.ArrayList<Refund>();
+        for(var refund:Refund.list(java.util.Map.of("charge",charge,"limit",100L),requestOptions(null)).autoPagingIterable())result.add(refund);
+        return java.util.List.copyOf(result);
+    }
+
+    public Subscription updateSubscription(Subscription subscription,java.util.Map<String,Object> params,String key) throws StripeException {
+        return subscription.update(params,requestOptions(key));
+    }
+
+    public String subscriptionPaymentPortal(String customer,String returnUrl) throws StripeException {
+        return com.stripe.model.billingportal.Session.create(java.util.Map.of("customer",customer,"return_url",returnUrl,
+                "flow_data",java.util.Map.of("type","payment_method_update")),requestOptions(null)).getUrl();
+    }
+
     public Customer createCustomer(CustomerCreateParams params) throws StripeException {
         return Customer.create(params, requestOptions(null));
     }
@@ -286,6 +373,19 @@ public class StripeGateway {
 
     public Subscription retrieveSubscription(String subscriptionId) throws StripeException {
         return Subscription.retrieve(subscriptionId, requestOptions(null));
+    }
+
+    public com.stripe.model.SubscriptionSchedule createSubscriptionSchedule(String subscriptionId, String key) throws StripeException {
+        return com.stripe.model.SubscriptionSchedule.create(java.util.Map.of("from_subscription", subscriptionId), requestOptions(key));
+    }
+
+    public com.stripe.model.SubscriptionSchedule retrieveSubscriptionSchedule(String id) throws StripeException {
+        return com.stripe.model.SubscriptionSchedule.retrieve(id, requestOptions(null));
+    }
+
+    public com.stripe.model.SubscriptionSchedule updateSubscriptionSchedule(com.stripe.model.SubscriptionSchedule schedule,
+            java.util.Map<String,Object> parameters, String key) throws StripeException {
+        return schedule.update(parameters, requestOptions(key));
     }
 
     public Subscription cancelSubscription(Subscription subscription, SubscriptionCancelParams params)

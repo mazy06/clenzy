@@ -34,20 +34,33 @@ public class BaitlyExternalRefundEligibility {
         if(mission.getServiceRequest()!=null) attempts.addAll(payments.findByOrganizationIdAndSourceTypeAndSourceId(
                 original.getOrganizationId(),"SERVICE_REQUEST",mission.getServiceRequest().getId()));
         require(attempts.stream().allMatch(p -> Objects.equals(p.getId(),original.getId()) || Objects.equals(p.getId(),refund.getId())
-                || p.getPaymentType()==TransactionType.REFUND || p.getStatus()==TransactionStatus.CANCELLED),
+                || p.getPaymentType()==TransactionType.REFUND || p.getStatus()==TransactionStatus.CANCELLED
+                || p.getPaymentType()==TransactionType.CHECKOUT && "INTERVENTION".equals(p.getSourceType())
+                    && Objects.equals(mission.getId(),p.getSourceId()) && BaitlyMaintenanceReceipts.multiple(attempts)),
                 "Un autre financement ou remboursement doit être rapproché");
         attempts.forEach(em::refresh);
-        BigDecimal before=BaitlyExternalRefundSeries.before(original,refund,attempts,snapshot);
-        require(mission.getPaymentStatus()==(before.signum()==0?PaymentStatus.PAID:PaymentStatus.PARTIALLY_REFUNDED),
+        var maintenance=BaitlyMaintenanceReceipts.multiple(attempts) ? coordination.maintenanceReceipts(mission,attempts) : null;
+        BigDecimal before=BaitlyExternalRefundSeries.before(original,refund,maintenance==null?attempts:BaitlyMaintenanceReceipts.forReceipt(original,attempts),snapshot);
+        BigDecimal globalBefore=before;
+        if(maintenance!=null) {
+            var previous=attempts.stream().filter(p -> p.getPaymentType()==TransactionType.REFUND && !BaitlyExternalRefundStore.rejectedBeforeAccounting(p)
+                    && BaitlyRefundEvidence.order(p)<BaitlyRefundEvidence.order(refund)).toList();
+            require(previous.stream().allMatch(p -> p.getStatus()==TransactionStatus.COMPLETED && BaitlyRefundEvidence.confirmedStripe(p)),
+                    "Un remboursement antérieur de l'acompte ou du solde doit être rapproché");
+            globalBefore=previous.stream().map(PaymentTransaction::getAmount).reduce(BigDecimal.ZERO,BigDecimal::add);
+        }
+        require(mission.getPaymentStatus()==(globalBefore.signum()==0?PaymentStatus.PAID:PaymentStatus.PARTIALLY_REFUNDED),
                 "Le cumul remboursé de la mission doit être rapproché");
         var metadata=new HashMap<>(refund.getMetadata()); metadata.put("cumulativeRefund",true);
         metadata.put("refundBefore",before.toPlainString()); metadata.put("refundAfter",before.add(refund.getAmount()).toPlainString());
+        if(maintenance!=null) { metadata.put("maintenanceRefund",true);metadata.put("maintenanceRefundBefore",globalBefore.toPlainString()); }
         refund.setMetadata(metadata);
         Number conflicting=(Number)em.createNativeQuery("""
             SELECT (SELECT count(*) FROM intervention_payment_allocations WHERE organization_id=:org AND intervention_id=:mission)
                  + (SELECT count(*) FROM invoices WHERE organization_id=:org AND intervention_id=:mission
-                       AND payment_transaction_id IS NOT NULL AND payment_transaction_id<>:payment)
-            """).setParameter("org",original.getOrganizationId()).setParameter("mission",mission.getId()).setParameter("payment",original.getId()).getSingleResult();
+                       AND payment_transaction_id IS NOT NULL AND payment_transaction_id<>:payment AND :maintenance=false)
+            """).setParameter("org",original.getOrganizationId()).setParameter("mission",mission.getId()).setParameter("payment",original.getId())
+                .setParameter("maintenance",maintenance!=null).getSingleResult();
         require(conflicting.longValue()==0,"Reversement ou financement partagé à rapprocher");
         var entries=em.createQuery("from LedgerEntry e where e.organizationId=:org and "
                 + "((e.referenceType=com.clenzy.model.LedgerReferenceType.PAYMENT and e.referenceId=:payment and e.description like 'Paiement intervention%') "
@@ -65,7 +78,7 @@ public class BaitlyExternalRefundEligibility {
                 if(e.getReferenceType()==LedgerReferenceType.PAYMENT) receipt=receipt.add(e.getAmount()); else split=split.add(e.getAmount());
             }
         }
-        require(receipt.compareTo(original.getAmount())==0 && split.compareTo(receipt)<=0,"Encaissement comptable incomplet");
+        require(receipt.compareTo(maintenance==null?original.getAmount():maintenance.gross())==0 && split.compareTo(receipt)<=0,"Encaissement comptable incomplet");
         long reversals=em.createQuery("select count(e) from LedgerEntry e where e.organizationId=:org "
                 + "and e.referenceType=com.clenzy.model.LedgerReferenceType.REFUND and e.referenceId in (:ref,:externalRef)",Long.class)
                 .setParameter("org",original.getOrganizationId()).setParameter("ref","REFUND-INTERVENTION-"+mission.getId())
@@ -73,6 +86,6 @@ public class BaitlyExternalRefundEligibility {
         require(reversals==0,"Une contre-écriture historique doit être rapprochée");
         // La preuve du remboursement externe n'autorise pas une nouvelle restitution client.
         // Seule la part du transfert initial est réservée, comme pour une demande depuis Finance.
-        recoveries.prepareSeriesInterventionRefund(refund, original.getAmount().subtract(before));
+        recoveries.prepareSeriesInterventionRefund(refund, (maintenance==null?original.getAmount():maintenance.gross()).subtract(globalBefore));
     }
 }

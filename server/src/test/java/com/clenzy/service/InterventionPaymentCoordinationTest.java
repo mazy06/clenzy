@@ -147,7 +147,7 @@ class InterventionPaymentCoordinationTest {
                 .hasMessageContaining("devise");
     }
 
-    @Test void depositIsRereadBeforeComputingBalance() {
+    @Test void unprovenDepositIsRereadAndBlockedBeforeComputingBalance() {
         var em = mock(EntityManager.class);
         var quotes = mock(com.clenzy.repository.ServiceQuoteRepository.class);
         var mission = new Intervention(); mission.setId(1L); mission.setOrganizationId(7L);
@@ -160,9 +160,9 @@ class InterventionPaymentCoordinationTest {
         doAnswer(call -> { quote.setDepositPaidAt(java.time.LocalDateTime.now()); return null; }).when(em).refresh(quote);
         var coordination = new InterventionPaymentCoordination(em, mock(PaymentTransactionRepository.class), quotes, mock(CurrencyConverterService.class));
         assertThatThrownBy(() -> coordination.lockPaymentMissions(7L, request("INTERVENTION", 1L, Map.of())))
-                .hasMessageContaining("montant à payer a changé");
+                .hasMessageContaining("rapproché avant le paiement du solde");
         assertThatThrownBy(() -> coordination.lockPaymentMissions(7L, request("INTERVENTION", 1L, Map.of("purpose", "DEPOSIT"))))
-                .hasMessageContaining("aucun montant exigible");
+                .hasMessageContaining("rapproché avant le paiement du solde");
     }
 
     @Test void deferredPaymentUsesFreshBalanceAndLocalCurrencyConversion() {

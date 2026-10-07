@@ -64,8 +64,13 @@ public record BookingVoucherCreateRequestDto(
     VoucherStatus status,
 
     /** Vide ou null = applicable a toutes les properties de l'org. */
-    List<Long> propertyIds
+    List<Long> propertyIds,
+    String currency
 ) {
+    public BookingVoucherCreateRequestDto(String name, String description, String code, VoucherType type, VoucherDiscountType discountType, BigDecimal discountValue, Instant validFrom, Instant validUntil, Integer minStayNights, BigDecimal minTotalAmount, Integer maxStayNights, Integer maxUsesTotal, Integer maxUsesPerGuest, VoucherChannelScope channelScope, VoucherStatus status, List<Long> propertyIds) {
+        this(name, description, code, type, discountType, discountValue, validFrom, validUntil, minStayNights, minTotalAmount, maxStayNights, maxUsesTotal, maxUsesPerGuest, channelScope, status, propertyIds, null);
+    }
+
     public VoucherCreatePayload toPayload() {
         return new VoucherCreatePayload(
             name, description, code, type, discountType, discountValue,
@@ -73,7 +78,7 @@ public record BookingVoucherCreateRequestDto(
             minStayNights, minTotalAmount, maxStayNights,
             maxUsesTotal, maxUsesPerGuest,
             channelScope, status,
-            propertyIds
+            propertyIds, currency
         );
     }
 }

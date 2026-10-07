@@ -99,7 +99,7 @@ class InvoicePaymentCoordinationTest {
     }
     @Test void depositCannotBeCollectedAgainViaFullInvoice() {
         mission(invoice()); var q = new ServiceQuote(); q.setStatus(ServiceQuote.Status.APPROVED);
-        q.setDepositPaidAt(LocalDateTime.now()); q.setDepositAmount(BigDecimal.TEN);
+        q.setDepositPaidAt(LocalDateTime.now()); q.setDepositTransactionRef("DEP-TEST"); q.setDepositAmount(BigDecimal.TEN);
         when(quotes.findByInterventionIdAndOrganizationIdOrderByAmountAsc(2L, 7L)).thenReturn(List.of(q));
         assertThatThrownBy(this::prepare).hasMessageContaining("solde ou la devise");
     }
@@ -129,5 +129,43 @@ class InvoicePaymentCoordinationTest {
         when(query.getResultList()).thenReturn(List.of());
         service.reconcile("TX-invoice");
         verifyNoInteractions(ledger);
+    }
+
+    PaymentOrchestrationRequest bookingRequest(String source,String amount,Map<String,String> metadata) {
+        return new PaymentOrchestrationRequest(new BigDecimal(amount),"EUR",source,2L,"Séjour","guest@example.test",
+            PaymentProviderType.STRIPE,null,null,metadata,source+"-2");
+    }
+    void noLegacyInvoice() {
+        @SuppressWarnings("unchecked") TypedQuery<Long> q=mock(TypedQuery.class,RETURNS_SELF);
+        when(em.createQuery(anyString(),eq(Long.class))).thenReturn(q);when(q.getSingleResult()).thenReturn(0L);
+    }
+    @Test void loyaltyCreditReducesCashWithoutChangingTheStayDebt() {
+        var r=stay(invoice());r.setCreditApplied(new BigDecimal("20"));noLegacyInvoice();
+        service.lockForPayment(7L,bookingRequest("RESERVATION","60",Map.of()));
+        assertThatThrownBy(()->service.lockForPayment(7L,bookingRequest("RESERVATION","80",Map.of()))).hasMessageContaining("montant");
+    }
+    @Test void embeddedDepositIsValidatedAgainstTheLockedStay() {
+        var r=stay(invoice());noLegacyInvoice();
+        var request=bookingRequest("BOOKING_CHECKOUT","20",Map.of("server_total","80","deposit_balance","60"));
+        service.lockForPayment(7L,request);verify(em).refresh(r,LockModeType.PESSIMISTIC_WRITE);
+        r.setTotalPrice(new BigDecimal("90"));
+        assertThatThrownBy(()->service.lockForPayment(7L,request)).hasMessageContaining("modifiée");
+    }
+    @Test void alternateBookingRouteCannotBypassAnExistingCheckout() {
+        stay(invoice());var p=new PaymentTransaction();p.setPaymentType(TransactionType.CHECKOUT);p.setStatus(TransactionStatus.PROCESSING);
+        when(payments.findByOrganizationIdAndSourceTypeAndSourceId(7L,"RESERVATION",2L)).thenReturn(List.of(p));
+        assertThatThrownBy(()->service.lockForPayment(7L,bookingRequest("BOOKING_CHECKOUT","80",Map.of("server_total","80","deposit_balance","0"))))
+            .hasMessageContaining("paiement existe");
+    }
+    @Test void balanceRequiresOneProvenDepositAndNoOtherAttempt() {
+        var r=stay(invoice());r.setPaymentStatus(PaymentStatus.PARTIALLY_PAID);r.setAmountPaid(new BigDecimal("20"));r.setAmountDue(new BigDecimal("60"));r.setStripeSessionId("cs_deposit");
+        var request=bookingRequest("BOOKING_BALANCE","60",Map.of());
+        assertThatThrownBy(()->service.lockForPayment(7L,request)).hasMessageContaining("acompte doit");
+        var p=new PaymentTransaction();p.setPaymentType(TransactionType.CHECKOUT);p.setStatus(TransactionStatus.COMPLETED);
+        p.setAmount(new BigDecimal("20"));p.setCurrency("EUR");p.setProviderTxId("cs_deposit");
+        when(payments.findByOrganizationIdAndSourceTypeAndSourceId(7L,"BOOKING_CHECKOUT",2L)).thenReturn(List.of(p));
+        noLegacyInvoice();service.lockForPayment(7L,request);
+        p.setAmount(new BigDecimal("10"));
+        assertThatThrownBy(()->service.lockForPayment(7L,request)).hasMessageContaining("paiement existe");
     }
 }

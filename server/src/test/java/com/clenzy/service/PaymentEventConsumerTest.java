@@ -102,7 +102,7 @@ class PaymentEventConsumerTest {
         consumer = new PaymentEventConsumer(splitPaymentService, escrowHoldRepository, reservationRepository,
                 deferredPaymentReconciliationService, reservationPaymentReconciliationService,
                 bookingBalanceReconciliationService, peripheralPaymentReconciliationService,
-                transactionRepository, kafkaTenantScope, interventionRefundReconciliationService, batchReconciliation, invoicePayments, refundCreditNotes);
+                transactionRepository, kafkaTenantScope, interventionRefundReconciliationService, batchReconciliation, invoicePayments, refundCreditNotes,org.mockito.Mockito.mock(BaitlyCommerceRefunds.class));
     }
 
     private EscrowHold escrow() {

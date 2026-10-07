@@ -58,6 +58,9 @@ public class PendingReservationCleanupScheduler {
     private final com.clenzy.service.AbandonedBookingService abandonedBookingService;
     private final TransactionTemplate transactionTemplate;
     private final com.clenzy.tenant.TenantScopedExecutor tenantScopedExecutor;
+    private final com.clenzy.repository.PaymentTransactionRepository payments;
+    private final com.clenzy.service.voucher.BaitlyVoucherClaims vouchers;
+    private final jakarta.persistence.EntityManager em;
 
     /**
      * Auto-injection : appeler une methode {@code @Transactional} de CETTE classe
@@ -74,7 +77,10 @@ public class PendingReservationCleanupScheduler {
                                                com.clenzy.service.AbandonedBookingService abandonedBookingService,
                                                PlatformTransactionManager transactionManager,
                                               com.clenzy.tenant.TenantScopedExecutor tenantScopedExecutor,
-                                              ObjectProvider<PendingReservationCleanupScheduler> self) {
+                                              ObjectProvider<PendingReservationCleanupScheduler> self,
+                                              com.clenzy.repository.PaymentTransactionRepository payments,
+                                              com.clenzy.service.voucher.BaitlyVoucherClaims vouchers,
+                                              jakarta.persistence.EntityManager em) {
         this.pendingReservationRepository = pendingReservationRepository;
         this.configRepository = configRepository;
         this.calendarEngine = calendarEngine;
@@ -83,6 +89,9 @@ public class PendingReservationCleanupScheduler {
         this.transactionTemplate = new TransactionTemplate(transactionManager);
         this.tenantScopedExecutor = tenantScopedExecutor;
         this.self = self;
+        this.payments = payments;
+        this.vouchers = vouchers;
+        this.em = em;
     }
 
     /**
@@ -181,9 +190,35 @@ public class PendingReservationCleanupScheduler {
     }
 
     @Transactional
-    public void cancelAndReleaseCalendar(Reservation reservation) {
+    public void cancelAndReleaseCalendar(Reservation observed) {
+        String expiredSession = observed.getStripeSessionId();
+        Reservation reservation = pendingReservationRepository.lockHold(observed.getId(), observed.getOrganizationId()).orElse(null);
+        if (reservation == null) return;
+        em.refresh(reservation, jakarta.persistence.LockModeType.PESSIMISTIC_WRITE);
+        boolean alreadyCancelled = "cancelled".equalsIgnoreCase(reservation.getStatus());
+        if ((!"pending".equalsIgnoreCase(reservation.getStatus()) && !alreadyCancelled)
+                || reservation.getPaymentStatus() == null || !java.util.Set.of(PaymentStatus.PENDING, PaymentStatus.PROCESSING,
+                    PaymentStatus.FAILED, PaymentStatus.CANCELLED).contains(reservation.getPaymentStatus())
+                || reservation.getPaidAt() != null || reservation.getAmountPaid() != null && reservation.getAmountPaid().signum() > 0
+                || !java.util.Objects.equals(reservation.getStripeSessionId(), expiredSession)) return;
+        // Une intention peut être enregistrée avant que Stripe retourne l'ID de session.
+        // En cas de délai réseau, conserver les dates jusqu'à sa réconciliation.
+        for (String source : List.of("RESERVATION", "BOOKING_CHECKOUT", "BOOKING_BALANCE")) {
+            for (var payment : payments.findByOrganizationIdAndSourceTypeAndSourceId(reservation.getOrganizationId(), source, reservation.getId())) {
+                if (payment.getPaymentType() != com.clenzy.model.TransactionType.CHECKOUT) continue;
+                if (payment.getStatus() == com.clenzy.model.TransactionStatus.COMPLETED
+                        || payment.getStatus() == com.clenzy.model.TransactionStatus.REFUNDED || payment.hasDisputeRisk()) return;
+                if (payment.getStatus() != com.clenzy.model.TransactionStatus.CANCELLED
+                        && (expiredSession == null || !java.util.Objects.equals(payment.getProviderTxId(), expiredSession))) return;
+            }
+        }
+        if (alreadyCancelled) {
+            vouchers.releaseExpired(reservation);
+            return;
+        }
         reservation.markCancelled();
         reservation.setPaymentStatus(PaymentStatus.CANCELLED);
+        vouchers.releaseExpired(reservation);
         pendingReservationRepository.save(reservation);
 
         // Capture du panier abandonne (relance ulterieure, CLZ Domaine 2) — insert DB dans la

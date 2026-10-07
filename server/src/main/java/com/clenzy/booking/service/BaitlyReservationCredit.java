@@ -14,10 +14,13 @@ import java.util.Objects;
 public class BaitlyReservationCredit {
     private final GuestCreditService credits;
     private final PaymentTransactionRepository payments;
+    private final com.clenzy.service.voucher.BaitlyVoucherClaims vouchers;
 
-    public BaitlyReservationCredit(GuestCreditService credits, PaymentTransactionRepository payments) {
+    public BaitlyReservationCredit(GuestCreditService credits, PaymentTransactionRepository payments,
+            com.clenzy.service.voucher.BaitlyVoucherClaims vouchers) {
         this.credits = credits;
         this.payments = payments;
+        this.vouchers = vouchers;
     }
 
     public static BigDecimal applied(Reservation stay) {
@@ -59,11 +62,12 @@ public class BaitlyReservationCredit {
     /** Appelé sous le verrou du séjour, AVANT PAID, ledger, factures ou notifications. */
     @Transactional(propagation = Propagation.MANDATORY)
     public void confirm(Reservation stay) {
+        vouchers.consume(stay);
         if (applied(stay).signum() == 0) return;
         var payment = payments.findByProviderTxId(stay.getStripeSessionId())
             .orElseThrow(() -> new IllegalStateException("Encaissement réduit sans preuve : rapprochement requis"));
         if (payment.getStatus() != TransactionStatus.COMPLETED || payment.getPaymentType() != TransactionType.CHECKOUT
-                || !"RESERVATION".equals(payment.getSourceType()) || !Objects.equals(stay.getId(), payment.getSourceId())
+                || !java.util.Set.of("RESERVATION","BOOKING_CHECKOUT").contains(payment.getSourceType()) || !Objects.equals(stay.getId(), payment.getSourceId())
                 || !Objects.equals(stay.getOrganizationId(), payment.getOrganizationId())
                 || !Objects.equals(stay.getCurrency(), payment.getCurrency()) || payment.hasDisputeRisk()
                 || payment.getAmount() == null || cash(stay).compareTo(payment.getAmount()) != 0

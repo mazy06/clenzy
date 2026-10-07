@@ -38,15 +38,19 @@ public final class TagFormatting {
     }
 
     public static String formatMoney(BigDecimal amount, String currency) {
-        if (amount == null) return "0,00 €";
-        String symbol = switch (currency != null ? currency.toUpperCase() : "EUR") {
+        String code = currency == null || currency.isBlank() ? "EUR" : currency.trim().toUpperCase(java.util.Locale.ROOT);
+        String symbol = switch (code) {
             case "MAD" -> "MAD";
             case "SAR" -> "SAR";
             case "USD" -> "$";
             case "GBP" -> "£";
-            default -> "€";
+            case "EUR" -> "€";
+            default -> code;
         };
-        String formatted = String.format("%,.2f", amount).replace(",", " ").replace(".", ",");
+        var formatter = java.text.NumberFormat.getNumberInstance(java.util.Locale.FRANCE);
+        formatter.setMinimumFractionDigits(2);
+        formatter.setMaximumFractionDigits(2);
+        String formatted = formatter.format(amount == null ? BigDecimal.ZERO : amount).replace('\u202f', ' ').replace('\u00a0', ' ');
         return formatted + " " + symbol;
     }
 }

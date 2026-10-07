@@ -43,20 +43,20 @@ class EInvoicingProviderRegistryTest {
     void fallsBackToNoOp_whenCodeNotImplemented() {
         var registry = new EInvoicingProviderRegistry(List.of(noOp), noOp);
 
-        assertThat(registry.resolve(country("factur_x"))).isSameAs(noOp);
+        assertThat(registry.resolve(country("factur_x")).configured()).isFalse();
     }
 
     @Test
     void fallsBackToNoOp_whenCountryNull() {
         var registry = new EInvoicingProviderRegistry(List.of(noOp), noOp);
 
-        assertThat(registry.resolve(null)).isSameAs(noOp);
+        assertThat(registry.resolve(null).configured()).isFalse();
     }
 
     @Test
     void fallsBackToNoOp_whenProviderCodeBlank() {
         var registry = new EInvoicingProviderRegistry(List.of(noOp), noOp);
 
-        assertThat(registry.resolve(country("   "))).isSameAs(noOp);
+        assertThat(registry.resolve(country("   ")).configured()).isFalse();
     }
 }

@@ -1,4 +1,5 @@
 import FinanceWorkspace from '../billing/components/FinanceWorkspace';
+import BaitlyDocumentVerificationPanel from './BaitlyDocumentVerificationPanel';
 import { FinanceAmountKpis } from '../billing/components/FinanceKpis';
 import React, { useState, useMemo } from 'react';
 import StatusChip from '../../components/StatusChip';
@@ -44,7 +45,6 @@ import EmptyState from '../../components/EmptyState';
 import { useTranslation } from '../../hooks/useTranslation';
 import {
   useInvoices,
-  useIssueInvoice,
   usePayInvoice,
   useCancelInvoice,
   useTemplateStatus,
@@ -210,7 +210,6 @@ const InvoicesList: React.FC<InvoicesListProps> = ({ embedded = false }) => {
   useHighlightTarget(highlightId, !isLoading && displayedInvoices.length > 0);
 
   const { data: templateStatus } = useTemplateStatus();
-  const issueMutation = useIssueInvoice();
   const paymentMutation = usePayInvoice();
   const cancelMutation = useCancelInvoice();
   const duplicateMutation = useDuplicateInvoice();
@@ -456,7 +455,7 @@ const InvoicesList: React.FC<InvoicesListProps> = ({ embedded = false }) => {
                 ];
 
                 return (
-                  { id: inv.id, identity: { interventionId: inv.interventionId, reservationId: inv.reservationId }, title: <>
+                  { id: inv.id, detail: <BaitlyDocumentVerificationPanel invoice={inv} />, identity: { interventionId: inv.interventionId, reservationId: inv.reservationId }, title: <>
                       <div className="flex items-center gap-1">
                         {/* Litteral et non `cn()` : tailwind-merge considere `font-[...]` et
                             `font-semibold` comme un meme groupe et supprimerait la police display. */}
@@ -483,16 +482,6 @@ const InvoicesList: React.FC<InvoicesListProps> = ({ embedded = false }) => {
                         )}
 
                         {/* Emettre */}
-                        {inv.status === 'DRAFT' && (
-                          <RowAction
-                            label={t('invoices.actions.issue', 'Emettre')}
-                            className="text-primary hover:text-primary"
-                            onClick={() => issueMutation.mutate(inv.id)}
-                            disabled={issueMutation.isPending}
-                          >
-                            <SendIcon size={18} strokeWidth={1.75} />
-                          </RowAction>
-                        )}
 
                         {/* Ouvrir le règlement PSP ; seul son retour confirmé règle la facture. */}
                         {['SENT', 'ISSUED', 'OVERDUE'].includes(inv.status) && !inv.duplicateOfId && (
@@ -507,7 +496,7 @@ const InvoicesList: React.FC<InvoicesListProps> = ({ embedded = false }) => {
                         )}
 
                         {/* Annuler */}
-                        {(inv.status === 'DRAFT' || inv.status === 'ISSUED') && (
+                        {inv.status === 'ISSUED' && (
                           <RowAction
                             label={t('invoices.actions.cancel', 'Annuler')}
                             className="text-destructive-ink hover:bg-destructive-soft hover:text-destructive-ink"
@@ -534,7 +523,7 @@ const InvoicesList: React.FC<InvoicesListProps> = ({ embedded = false }) => {
                         <RowAction
                           label={t('invoices.actions.downloadPdf', 'Telecharger PDF')}
                           onClick={() => handleDownloadPdf(inv.id, inv.invoiceNumber)}
-                          disabled={downloadingId !== null}
+                          disabled={downloadingId !== null || inv.status === 'DRAFT'}
                         >
                           <DownloadIcon size={18} strokeWidth={1.75} />
                         </RowAction>

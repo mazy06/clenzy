@@ -108,20 +108,8 @@ public class StripePaymentProvider implements PaymentProvider {
                     .setMode(com.stripe.param.checkout.SessionCreateParams.Mode.PAYMENT)
                     .setSuccessUrl(successUrl)
                     .setCancelUrl(cancelUrl)
-                    .addLineItem(
-                        com.stripe.param.checkout.SessionCreateParams.LineItem.builder()
-                            .setQuantity(1L)
-                            .setPriceData(
-                                com.stripe.param.checkout.SessionCreateParams.LineItem.PriceData.builder()
-                                    .setCurrency(request.currency().toLowerCase())
-                                    // Arrondi HALF_UP + longValueExact, jamais de troncature (Z3-BUGS-09)
-                                    .setUnitAmount(StripeAmounts.toMinorUnits(request.amount()))
-                                    .setProductData(
-                                        com.stripe.param.checkout.SessionCreateParams.LineItem.PriceData.ProductData.builder()
-                                            .setName(request.description() != null ? request.description() : "Payment")
-                                            .build())
-                                    .build())
-                            .build());
+                    .addLineItem(lineItem(request));
+            configureInvoice(builder,request);
 
             if (request.customerEmail() != null) {
                 builder.setCustomerEmail(request.customerEmail());
@@ -184,19 +172,8 @@ public class StripePaymentProvider implements PaymentProvider {
                     .setUiMode(com.stripe.param.checkout.SessionCreateParams.UiMode.EMBEDDED_PAGE)
                     .setRedirectOnCompletion(
                         com.stripe.param.checkout.SessionCreateParams.RedirectOnCompletion.NEVER)
-                    .addLineItem(
-                        com.stripe.param.checkout.SessionCreateParams.LineItem.builder()
-                            .setQuantity(1L)
-                            .setPriceData(
-                                com.stripe.param.checkout.SessionCreateParams.LineItem.PriceData.builder()
-                                    .setCurrency(request.currency().toLowerCase())
-                                    .setUnitAmount(StripeAmounts.toMinorUnits(request.amount()))
-                                    .setProductData(
-                                        com.stripe.param.checkout.SessionCreateParams.LineItem.PriceData.ProductData.builder()
-                                            .setName(request.description() != null ? request.description() : "Payment")
-                                            .build())
-                                    .build())
-                            .build());
+                    .addLineItem(lineItem(request));
+            configureInvoice(builder,request);
 
             if (request.expiresAtEpochSeconds() != null) {
                 builder.setExpiresAt(request.expiresAtEpochSeconds());
@@ -204,19 +181,17 @@ public class StripePaymentProvider implements PaymentProvider {
             if (request.customerEmail() != null) {
                 builder.setCustomerEmail(request.customerEmail());
             }
+            var intentData = com.stripe.param.checkout.SessionCreateParams.PaymentIntentData.builder();
             // Caution : enregistre la carte (customer + off-session) pour un hold manuel ultérieur.
             if (request.saveCardForFutureUse()) {
-                builder
-                    .setCustomerCreation(com.stripe.param.checkout.SessionCreateParams.CustomerCreation.ALWAYS)
-                    .setPaymentIntentData(
-                        com.stripe.param.checkout.SessionCreateParams.PaymentIntentData.builder()
-                            .setSetupFutureUsage(
-                                com.stripe.param.checkout.SessionCreateParams.PaymentIntentData.SetupFutureUsage.OFF_SESSION)
-                            .build());
+                builder.setCustomerCreation(com.stripe.param.checkout.SessionCreateParams.CustomerCreation.ALWAYS);
+                intentData.setSetupFutureUsage(com.stripe.param.checkout.SessionCreateParams.PaymentIntentData.SetupFutureUsage.OFF_SESSION);
             }
             if (request.metadata() != null) {
                 builder.putAllMetadata(request.metadata());
+                intentData.putAllMetadata(request.metadata());
             }
+            builder.setPaymentIntentData(intentData.build());
 
             com.stripe.model.checkout.Session session = stripeGateway.createSession(builder.build(), request.idempotencyKey());
 
@@ -225,6 +200,31 @@ public class StripePaymentProvider implements PaymentProvider {
             log.error("Stripe embedded createPayment failed: {}", e.getMessage());
             return PaymentResult.failure("Stripe error: " + e.getMessage());
         }
+    }
+
+    private static com.stripe.param.checkout.SessionCreateParams.LineItem lineItem(PaymentRequest request) {
+        var product=com.stripe.param.checkout.SessionCreateParams.LineItem.PriceData.ProductData.builder()
+            .setName(request.description()!=null?request.description():"Paiement Baitly");
+        var price=com.stripe.param.checkout.SessionCreateParams.LineItem.PriceData.builder().setCurrency(request.currency().toLowerCase(java.util.Locale.ROOT))
+            .setUnitAmount(StripeAmounts.toMinorUnits(request.amount()));
+        if(invoiceRequested(request)) {
+            String code=request.metadata().get("baitly_tax_code");
+            if(code==null || !code.matches("txcd_[0-9]{8}"))throw new IllegalArgumentException("Catégorie fiscale absente");
+            product.setTaxCode(code);price.setTaxBehavior(com.stripe.param.checkout.SessionCreateParams.LineItem.PriceData.TaxBehavior.INCLUSIVE);
+        }
+        return com.stripe.param.checkout.SessionCreateParams.LineItem.builder().setQuantity(1L).setPriceData(price.setProductData(product.build()).build()).build();
+    }
+    private static boolean invoiceRequested(PaymentRequest request) {
+        return request.metadata()!=null && "true".equals(request.metadata().get("baitly_commerce_invoice"));
+    }
+    private static void configureInvoice(com.stripe.param.checkout.SessionCreateParams.Builder builder,PaymentRequest request) {
+        if(!invoiceRequested(request))return;
+        builder.setAutomaticTax(com.stripe.param.checkout.SessionCreateParams.AutomaticTax.builder().setEnabled(true).build())
+            .setCustomerCreation(com.stripe.param.checkout.SessionCreateParams.CustomerCreation.ALWAYS)
+            .setBillingAddressCollection(com.stripe.param.checkout.SessionCreateParams.BillingAddressCollection.REQUIRED)
+            .setTaxIdCollection(com.stripe.param.checkout.SessionCreateParams.TaxIdCollection.builder().setEnabled(true).build())
+            .setInvoiceCreation(com.stripe.param.checkout.SessionCreateParams.InvoiceCreation.builder().setEnabled(true)
+                .setInvoiceData(com.stripe.param.checkout.SessionCreateParams.InvoiceCreation.InvoiceData.builder().putAllMetadata(request.metadata()).build()).build());
     }
 
     @Override

@@ -9,6 +9,11 @@ import java.util.List;
 import java.util.Optional;
 
 public interface PendingInscriptionRepository extends JpaRepository<PendingInscription, Long> {
+    Optional<PendingInscription> findByRequestId(java.util.UUID requestId);
+    boolean existsByEmailIgnoreCaseAndStatusIn(String email, java.util.Collection<PendingInscriptionStatus> statuses);
+    @org.springframework.data.jpa.repository.Lock(jakarta.persistence.LockModeType.PESSIMISTIC_WRITE)
+    @org.springframework.data.jpa.repository.Query("select p from PendingInscription p where p.id=:id")
+    Optional<PendingInscription> lockById(@org.springframework.data.repository.query.Param("id") Long id);
 
     /**
      * Rechercher une inscription en attente par l'ID de session Stripe

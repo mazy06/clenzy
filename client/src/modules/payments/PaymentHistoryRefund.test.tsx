@@ -32,7 +32,7 @@ afterEach(() => { cleanup(); vi.restoreAllMocks(); });
 async function openRefund() {
   render(<MemoryRouter><PaymentHistoryPage embedded /></MemoryRouter>);
   fireEvent.click(await screen.findByRole('button', { name: 'Demander un remboursement' }));
-  return screen.getByRole('button', { name: 'Rembourser', exact: true });
+  return screen.getByRole('button', { name: 'Rembourser' });
 }
 
 it('keeps a pending refund visible and prevents a second submission', async () => {
@@ -46,7 +46,7 @@ it('keeps a pending refund visible and prevents a second submission', async () =
   complete({ status: 'PROCESSING', message: 'Vérification Stripe en cours' });
   expect(await screen.findByText('Vérification Stripe en cours')).toBeVisible();
   expect(screen.getByRole('dialog')).toBeVisible();
-  expect(screen.getByRole('button', { name: 'Rembourser', exact: true })).toBeDisabled();
+  expect(screen.getByRole('button', { name: 'Rembourser' })).toBeDisabled();
   expect(api.getAllHistory).toHaveBeenCalledTimes(1);
 });
 
@@ -64,7 +64,7 @@ it('keeps following the refund when Stripe confirms before the Baitly journal', 
   interventions.getById.mockImplementation(() => new Promise(resolve => { reconcile = resolve; }));
   fireEvent.click(await openRefund());
   expect(await screen.findByText(/Mise à jour du paiement/)).toBeVisible();
-  expect(screen.getByRole('button', { name: 'Rembourser', exact: true })).toBeDisabled();
+  expect(screen.getByRole('button', { name: 'Rembourser' })).toBeDisabled();
   expect(api.getAllHistory).toHaveBeenCalledTimes(1);
   reconcile({ paymentStatus: 'REFUNDED' });
   await waitFor(() => expect(api.getAllHistory).toHaveBeenCalledTimes(2));
@@ -175,4 +175,17 @@ it('lets a confirmed batch allocation refund only its selected amount', async ()
   await waitFor(() => expect(api.refundInstallment).toHaveBeenCalledWith(414, 5.01, expect.any(String)));
   expect(api.refund).not.toHaveBeenCalled();
   expect(screen.getByRole('dialog')).toBeVisible();
+});
+
+it('follows the entire maintenance refund plan even when refunding its full deposit plus balance', async () => {
+  api.getAllHistory.mockResolvedValue([{ id: 1, referenceId: 364, type: 'INTERVENTION', status: 'PAID', amount: 100,
+    supportsPartialRefund: true, refundAcrossReceipts: true, currency: 'EUR', description: 'Maintenance avec acompte' }]);
+  api.refundInstallment.mockResolvedValue({ status: 'PROCESSING', message: 'Confirmation des deux restitutions en cours', refundReference: 'REF-first-part' });
+  api.refundInstallmentStatus.mockResolvedValue({ status: 'PROCESSING', reconciled: false });
+  fireEvent.click(await openRefund());
+  await waitFor(() => expect(api.refundInstallment).toHaveBeenCalledWith(364, 100, expect.any(String)));
+  expect(api.refund).not.toHaveBeenCalled();
+  expect(screen.getByRole('dialog')).toBeVisible();
+  expect(screen.getByRole('button', { name: 'Rembourser' })).toBeDisabled();
+  expect(api.getAllHistory).toHaveBeenCalledTimes(1);
 });

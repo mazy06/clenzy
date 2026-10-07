@@ -20,6 +20,7 @@ class BaitlyRefundCapabilityPersistenceTest {
 
     @BeforeAll static void start() {
         factory = new Configuration().addPackage("com.clenzy.model").addAnnotatedClass(PaymentTransaction.class)
+                .addAnnotatedClass(ServiceQuote.class)
                 .setProperty("hibernate.connection.url", "jdbc:h2:mem:refundcapability;MODE=PostgreSQL")
                 .setProperty("hibernate.hbm2ddl.auto", "create-drop").buildSessionFactory();
         try (var session = factory.createEntityManager()) {
@@ -49,6 +50,19 @@ class BaitlyRefundCapabilityPersistenceTest {
         assertThat(eligible(7L)).containsExactly(15L); assertThat(eligible(8L)).isEmpty();
         em.createNativeQuery("UPDATE interventions SET payment_status='PARTIALLY_REFUNDED'").executeUpdate();
         assertThat(eligible(7L)).containsExactly(15L);
+    }
+
+    @Test void depositAndBalanceExposeOneRefundBudgetOnlyWithTheirQuoteProof() {
+        var repo=new JpaRepositoryFactory(em).getRepository(PaymentTransactionRepository.class);
+        var original=repo.findByTransactionRef("TX-capability").orElseThrow();original.setAmount(new BigDecimal("25"));
+        var deposit=new PaymentTransaction();deposit.setOrganizationId(7L);deposit.setSourceType("INTERVENTION");deposit.setSourceId(15L);
+        deposit.setTransactionRef("TX-deposit");deposit.setPaymentType(TransactionType.CHECKOUT);deposit.setProviderType(PaymentProviderType.STRIPE);
+        deposit.setProviderTxId("cs_deposit");deposit.setAmount(new BigDecimal("10"));deposit.setCurrency("EUR");deposit.setStatus(TransactionStatus.COMPLETED);em.persist(deposit);
+        assertThat(eligible(7L)).isEmpty();
+        var quote=new ServiceQuote();quote.setOrganizationId(7L);quote.setInterventionId(15L);quote.setStatus(ServiceQuote.Status.APPROVED);
+        quote.setAmount(new BigDecimal("35"));quote.setDepositAmount(new BigDecimal("10"));quote.setDepositPaidAt(java.time.LocalDateTime.now());
+        quote.setProviderName("Prestataire test");quote.setDepositTransactionRef("TX-deposit");em.persist(quote);em.flush();assertThat(eligible(7L)).containsExactly(15L);
+        deposit.setDisputedAmount(BigDecimal.ONE);em.flush();assertThat(eligible(7L)).isEmpty();
     }
     @ParameterizedTest @ValueSource(strings = {
             "UPDATE payment_transactions SET source_type='INTERVENTION_BATCH'",

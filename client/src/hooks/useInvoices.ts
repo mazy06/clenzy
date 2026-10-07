@@ -3,6 +3,7 @@ import { invoicesApi } from '../services/api/invoicesApi';
 import type { InvoiceFilters } from '../services/api/invoicesApi';
 import { trackEvent } from '../providers/PostHogProvider';
 import { useTranslation } from './useTranslation';
+import { useCommerceScope } from './useCommerceScope';
 
 // ─── Query Keys ─────────────────────────────────────────────────────────────
 
@@ -14,8 +15,10 @@ export const invoiceKeys = {
 // ─── Hooks ──────────────────────────────────────────────────────────────────
 
 export function useInvoices(filters?: InvoiceFilters) {
+  const scope = useCommerceScope();
   return useQuery({
-    queryKey: [...invoiceKeys.all, filters] as const,
+    queryKey: [...invoiceKeys.all, scope, filters] as const,
+    enabled: !!scope,
     queryFn: () => invoicesApi.list(filters),
     staleTime: 60_000,
   });
@@ -64,8 +67,10 @@ export function useCancelInvoice() {
 }
 
 export function useTemplateStatus() {
+  const scope = useCommerceScope();
   return useQuery({
-    queryKey: ['invoices', 'template-status'] as const,
+    queryKey: ['invoices', 'template-status', scope] as const,
+    enabled: !!scope,
     queryFn: () => invoicesApi.checkTemplateStatus(),
     staleTime: 5 * 60_000,
   });

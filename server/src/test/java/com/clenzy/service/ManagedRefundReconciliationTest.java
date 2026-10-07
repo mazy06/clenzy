@@ -17,7 +17,7 @@ class ManagedRefundReconciliationTest {
     ManagedStripeRefund stripe = mock(ManagedStripeRefund.class);
     BaitlyBatchRefundPersistence allocations = mock(BaitlyBatchRefundPersistence.class);
     BaitlyExternalRefundReconciliation external = mock(BaitlyExternalRefundReconciliation.class);
-    ManagedRefundReconciliation service = new ManagedRefundReconciliation(payments, persistence, stripe, mock(com.clenzy.booking.service.BookingCancellationRefundProcessor.class), allocations, external);
+    ManagedRefundReconciliation service = new ManagedRefundReconciliation(payments, persistence, stripe, mock(com.clenzy.booking.service.BookingCancellationRefundProcessor.class), allocations, external, mock(BaitlyRefundSeriesStore.class));
     PaymentTransaction original, refund;
 
     @BeforeEach void setup() {

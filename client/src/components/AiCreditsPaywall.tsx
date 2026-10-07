@@ -1,4 +1,4 @@
-import { useEffect, useState, type CSSProperties } from 'react';
+import { useEffect, useRef, useState, type CSSProperties } from 'react';
 import { cn } from '../utils/cn';
 import { Alert, AlertDescription, Button, Dialog, DialogContent, DialogHeader, DialogTitle, Spinner } from './ui';
 import { Sparkles, X, Wallet, AlertTriangle, ArrowRight, Check } from 'lucide-react';
@@ -32,6 +32,7 @@ export default function AiCreditsPaywall({ open, onClose, title, message, balanc
   const balance = balanceMillicredits ?? fetchedBalance;
   const [selected, setSelected] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const attempt = useRef<{pack:string;id:string;pending:boolean} | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -51,15 +52,19 @@ export default function AiCreditsPaywall({ open, onClose, title, message, balanc
   };
 
   const handleBuy = async () => {
-    if (!selected || busy) return;
+    if (!selected || attempt.current?.pending) return;
+    if (attempt.current?.pack !== selected) attempt.current = {pack:selected,id:crypto.randomUUID(),pending:false};
+    const purchase = attempt.current!;
+    purchase.pending = true;
     setBusy(true);
     setError(null);
     try {
-      const { checkoutUrl } = await aiCreditsApi.createTopUp(selected);
+      const { checkoutUrl } = await aiCreditsApi.createTopUp(selected, purchase.id);
       window.location.href = checkoutUrl; // Stripe Checkout hébergé
     } catch (e) {
       setError(e instanceof Error ? e.message : "Impossible d'ouvrir le paiement. Réessayez.");
       setBusy(false);
+      purchase.pending = false;
     }
   };
 

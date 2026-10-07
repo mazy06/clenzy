@@ -68,6 +68,7 @@ public class AdminPlatformPromoCodeController {
                 return ResponseEntity.badRequest().body(Map.of("error", "discountValue requis (entier)."));
             }
             promo.setDiscountValue(((Number) value).intValue());
+            if(body.get("currency") instanceof String currency)promo.setCurrency(currency);
 
             if (body.get("maxUses") instanceof Number n) {
                 promo.setMaxUses(n.intValue());

@@ -16,8 +16,13 @@ public record DirectBookingResponse(
         String currency,
         String stripePaymentIntentId,
         String stripeClientSecret,
-        String message
+        String message,
+        String checkoutUrl
 ) {
+    public DirectBookingResponse(String bookingId,String status,String propertyName,LocalDate checkIn,LocalDate checkOut,
+            BigDecimal totalPrice,String currency,String stripePaymentIntentId,String stripeClientSecret,String message) {
+        this(bookingId,status,propertyName,checkIn,checkOut,totalPrice,currency,stripePaymentIntentId,stripeClientSecret,message,null);
+    }
 
     /**
      * Statuts possibles de la reservation directe.

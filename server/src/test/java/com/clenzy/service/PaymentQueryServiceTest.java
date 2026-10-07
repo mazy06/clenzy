@@ -21,7 +21,7 @@ class PaymentQueryServiceTest {
     final InterventionBatchCheckoutService batch = mock(InterventionBatchCheckoutService.class);
     final PaymentTransactionRepository transactions = mock(PaymentTransactionRepository.class);
     final PaymentQueryService service = new PaymentQueryService(interventions, reservations, requests,
-            mock(UserService.class), mock(StripeService.class), tenant, quotes, batch, transactions, mock(BaitlyInterventionCheckoutExpiry.class));
+            mock(UserService.class), mock(StripeService.class), tenant, quotes, batch, transactions, mock(BaitlyInterventionCheckoutExpiry.class), mock(BaitlyMaintenanceDepositCheckout.class));
     final User admin = new User();
 
     PaymentQueryServiceTest() { admin.setRole(UserRole.SUPER_ADMIN); when(tenant.getRequiredOrganizationId()).thenReturn(2L); }
@@ -164,7 +164,7 @@ class PaymentQueryServiceTest {
         mission.setEstimatedCost(new BigDecimal("100")); mission.setPaymentStatus(PaymentStatus.PENDING);
         mission.setStatus(status);
         var quote = new ServiceQuote(); quote.setStatus(ServiceQuote.Status.APPROVED);
-        quote.setDepositAmount(new BigDecimal("30")); quote.setDepositPaidAt(java.time.LocalDateTime.now());
+        quote.setDepositAmount(new BigDecimal("30")); quote.setDepositPaidAt(java.time.LocalDateTime.now()); quote.setDepositTransactionRef("DEP-TEST");
         when(quotes.findByInterventionIdAndOrganizationIdOrderByAmountAsc(3L, 2L)).thenReturn(List.of(quote));
         when(interventions.findPaymentHistory(isNull(), isNull(), any(), eq(2L))).thenReturn(new PageImpl<>(List.of(mission)));
         when(requests.findPaymentHistory(isNull(), isNull(), any(), eq(2L))).thenReturn(new PageImpl<>(List.of()));

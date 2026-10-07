@@ -93,8 +93,11 @@ class InvoiceGeneratorServiceTest {
         when(invoicesByInterventionQuery.getResultList()).thenReturn(invoices);
     }
 
+    private Property testProperty(){var property=new Property();property.setOrganizationId(1L);property.setCountryCode("FR");return property;}
+
     private Reservation createTestReservation() {
         Reservation res = new Reservation();
+        res.setOrganizationId(1L);res.setProperty(testProperty());
         res.setId(100L);
         res.setGuestName("John Doe");
         res.setGuestCount(2);
@@ -116,13 +119,36 @@ class InvoiceGeneratorServiceTest {
         return fp;
     }
 
+
+
+    @Test void invoiceKeepsInterventionCurrencyEvenWithADifferentLocalTaxCurrency() {
+        var intervention=new Intervention();intervention.setOrganizationId(1L);intervention.setProperty(testProperty());intervention.getProperty().setCountryCode("MA");
+        intervention.setCurrency("EUR");intervention.setEstimatedCost(new BigDecimal("50"));
+        var fiscal=new FiscalProfile(1L,"MA","MAD");fiscal.setVatRegistered(false);
+        when(fiscalProfileRepository.findByOrganizationId(1L)).thenReturn(Optional.of(fiscal));
+        when(invoiceRepository.save(any())).thenAnswer(call->call.getArgument(0));
+        var invoice=service.generateFromIntervention(intervention,1L);
+        assertThat(invoice.getCountryCode()).isEqualTo("MA");assertThat(invoice.getCurrency()).isEqualTo("EUR");assertThat(invoice.getTotalTtc()).isEqualByComparingTo("50");
+    }
+
+    @Test void aMoroccanPropertyUsesItsOwnProfileEvenWhenTheOrganizationDefaultIsFrench() {
+        var stay=createTestReservation();stay.getProperty().setCountryCode("MA");stay.setCurrency("MAD");
+        var maroc=new FiscalProfile(1L,"MA","MAD");maroc.setLegalEntityName("Gestion Maroc");maroc.setVatRegistered(false);
+        when(fiscalProfileRepository.findByOrganizationId(1L)).thenReturn(Optional.of(createTestFiscalProfile()));
+        when(fiscalProfileRepository.findByOrganizationIdAndCountryCode(1L,"MA")).thenReturn(Optional.of(maroc));
+        when(invoiceRepository.save(any())).thenAnswer(call->call.getArgument(0));
+        var invoice=service.generateFromReservation(stay,1L);
+        assertThat(invoice.getCountryCode()).isEqualTo("MA");assertThat(invoice.getSellerName()).isEqualTo("Gestion Maroc");
+        assertThat(invoice.getTotalTtc()).isEqualByComparingTo("300.00");assertThat(invoice.getTotalTax()).isZero();
+        verifyNoInteractions(fiscalEngine);
+    }
+
     @Nested
     class GenerateFromReservation {
 
         @Test
         void shouldCreateDraftInvoiceWithAccommodationAndCleaningLines() {
             when(tenantContext.getRequiredOrganizationId()).thenReturn(1L);
-            when(tenantContext.getCountryCode()).thenReturn("FR");
 
 
             when(invoiceRepository.findAllByReservationId(100L)).thenReturn(List.of());
@@ -163,8 +189,8 @@ class InvoiceGeneratorServiceTest {
 
         @Test
         void shouldThrowIfInvoiceAlreadyExistsForReservation() {
+            when(reservationRepository.findById(100L)).thenReturn(Optional.of(createTestReservation()));
             when(tenantContext.getRequiredOrganizationId()).thenReturn(1L);
-            when(tenantContext.getCountryCode()).thenReturn("FR");
 
 
             Invoice existing = new Invoice();
@@ -182,9 +208,7 @@ class InvoiceGeneratorServiceTest {
         @Test
         void shouldThrowIfReservationNotFound() {
             when(tenantContext.getRequiredOrganizationId()).thenReturn(1L);
-            when(tenantContext.getCountryCode()).thenReturn("FR");
 
-            when(invoiceRepository.findAllByReservationId(999L)).thenReturn(List.of());
             when(reservationRepository.findById(999L)).thenReturn(Optional.empty());
 
             GenerateInvoiceRequest request = new GenerateInvoiceRequest(
@@ -198,7 +222,6 @@ class InvoiceGeneratorServiceTest {
         @Test
         void shouldIncludeTouristTaxLineWhenRateProvided() {
             when(tenantContext.getRequiredOrganizationId()).thenReturn(1L);
-            when(tenantContext.getCountryCode()).thenReturn("FR");
 
 
             when(invoiceRepository.findAllByReservationId(100L)).thenReturn(List.of());
@@ -240,7 +263,6 @@ class InvoiceGeneratorServiceTest {
         @Test
         void shouldUseGuestNameWhenBuyerNameNotProvided() {
             when(tenantContext.getRequiredOrganizationId()).thenReturn(1L);
-            when(tenantContext.getCountryCode()).thenReturn("FR");
 
 
             when(invoiceRepository.findAllByReservationId(100L)).thenReturn(List.of());
@@ -277,7 +299,6 @@ class InvoiceGeneratorServiceTest {
         @Test
         void shouldUseReservationCurrencyInsteadOfTenantDefault() {
             when(tenantContext.getRequiredOrganizationId()).thenReturn(1L);
-            when(tenantContext.getCountryCode()).thenReturn("MA");
 
             Reservation res = createTestReservation();
             res.setCurrency("MAD");
@@ -294,7 +315,7 @@ class InvoiceGeneratorServiceTest {
                 new BigDecimal("50.00"), new BigDecimal("10.00"), new BigDecimal("60.00"),
                 new BigDecimal("0.2000"), "TVA 20%", "CLEANING");
 
-            when(fiscalEngine.calculateTax(eq("MA"), any(), any()))
+            when(fiscalEngine.calculateTax(eq("FR"), any(), any()))
                 .thenReturn(accommodationTax, cleaningTax);
 
             when(invoiceRepository.save(any(Invoice.class)))
@@ -310,13 +331,12 @@ class InvoiceGeneratorServiceTest {
             InvoiceDto result = service.generateFromReservation(request);
 
             assertThat(result.currency()).isEqualTo("MAD");
+            assertThat(result.countryCode()).isEqualTo("FR");
         }
 
         @Test
         void shouldFallbackToTenantCurrencyWhenReservationCurrencyIsNull() {
             when(tenantContext.getRequiredOrganizationId()).thenReturn(1L);
-            when(tenantContext.getCountryCode()).thenReturn("FR");
-            when(tenantContext.getDefaultCurrency()).thenReturn("EUR");
 
             Reservation res = createTestReservation();
             res.setCurrency(null);
@@ -371,8 +391,8 @@ class InvoiceGeneratorServiceTest {
             draft.setTotalTax(BigDecimal.ZERO);
             draft.setTotalTtc(BigDecimal.ZERO);
 
-            when(invoiceRepository.findById(10L)).thenReturn(Optional.of(draft));
-            when(numberingService.generateNextNumber()).thenReturn("FA2026-00001");
+            when(invoiceRepository.findForUpdate(10L)).thenReturn(Optional.of(draft));
+            when(numberingService.generateNextNumberFor(org.mockito.ArgumentMatchers.any(com.clenzy.model.Invoice.class))).thenReturn("FA2026-00001");
             when(invoiceRepository.save(any(Invoice.class)))
                 .thenAnswer(invocation -> invocation.getArgument(0));
 
@@ -391,7 +411,7 @@ class InvoiceGeneratorServiceTest {
             issued.setOrganizationId(1L);
             issued.setStatus(InvoiceStatus.ISSUED);
 
-            when(invoiceRepository.findById(10L)).thenReturn(Optional.of(issued));
+            when(invoiceRepository.findForUpdate(10L)).thenReturn(Optional.of(issued));
 
             assertThatThrownBy(() -> service.issueInvoice(10L))
                 .isInstanceOf(IllegalStateException.class)
@@ -401,7 +421,7 @@ class InvoiceGeneratorServiceTest {
         @Test
         void shouldThrowIfInvoiceNotFound() {
             when(tenantContext.getRequiredOrganizationId()).thenReturn(1L);
-            when(invoiceRepository.findById(999L)).thenReturn(Optional.empty());
+            when(invoiceRepository.findForUpdate(999L)).thenReturn(Optional.empty());
 
             assertThatThrownBy(() -> service.issueInvoice(999L))
                 .isInstanceOf(IllegalArgumentException.class)
@@ -417,7 +437,7 @@ class InvoiceGeneratorServiceTest {
             otherOrg.setOrganizationId(2L); // different org
             otherOrg.setStatus(InvoiceStatus.DRAFT);
 
-            when(invoiceRepository.findById(10L)).thenReturn(Optional.of(otherOrg));
+            when(invoiceRepository.findForUpdate(10L)).thenReturn(Optional.of(otherOrg));
 
             assertThatThrownBy(() -> service.issueInvoice(10L))
                 .isInstanceOf(IllegalArgumentException.class);
@@ -459,7 +479,7 @@ class InvoiceGeneratorServiceTest {
             issued.addLine(line);
 
             when(invoiceRepository.findForUpdate(10L)).thenReturn(Optional.of(issued));
-            when(numberingService.generateNextNumber()).thenReturn("FA2026-00002");
+            when(numberingService.generateNextNumberFor(org.mockito.ArgumentMatchers.any(com.clenzy.model.Invoice.class))).thenReturn("FA2026-00002");
             when(invoiceRepository.save(any(Invoice.class)))
                 .thenAnswer(invocation -> {
                     Invoice inv = invocation.getArgument(0);
@@ -596,7 +616,6 @@ class InvoiceGeneratorServiceTest {
         @Test
         void shouldDeriveAccommodationFromTotalPriceWhenRoomRevenueIsNull() {
             when(tenantContext.getRequiredOrganizationId()).thenReturn(1L);
-            when(tenantContext.getCountryCode()).thenReturn("FR");
 
             Reservation res = createTestReservation();
             res.setRoomRevenue(null); // hebergement = totalPrice - menage
@@ -628,7 +647,6 @@ class InvoiceGeneratorServiceTest {
         @Test
         void shouldSkipAccommodationLineWhenRoomRevenueIsZero() {
             when(tenantContext.getRequiredOrganizationId()).thenReturn(1L);
-            when(tenantContext.getCountryCode()).thenReturn("FR");
 
             Reservation res = createTestReservation();
             res.setRoomRevenue(BigDecimal.ZERO);
@@ -659,7 +677,6 @@ class InvoiceGeneratorServiceTest {
         @Test
         void shouldSkipCleaningLineWhenCleaningFeeIsNull() {
             when(tenantContext.getRequiredOrganizationId()).thenReturn(1L);
-            when(tenantContext.getCountryCode()).thenReturn("FR");
 
             Reservation res = createTestReservation();
             res.setCleaningFee(null);
@@ -688,7 +705,6 @@ class InvoiceGeneratorServiceTest {
         @Test
         void shouldHandleSameDayCheckInOut_thenForcesAtLeastOneNight() {
             when(tenantContext.getRequiredOrganizationId()).thenReturn(1L);
-            when(tenantContext.getCountryCode()).thenReturn("FR");
 
             Reservation res = createTestReservation();
             res.setCheckIn(LocalDate.of(2026, 5, 10));
@@ -720,7 +736,6 @@ class InvoiceGeneratorServiceTest {
         @Test
         void shouldUseTaxIdNumberAsFallbackWhenVatNumberIsNull() {
             when(tenantContext.getRequiredOrganizationId()).thenReturn(1L);
-            when(tenantContext.getCountryCode()).thenReturn("FR");
 
             FiscalProfile fp = createTestFiscalProfile();
             fp.setVatNumber(null);
@@ -747,7 +762,6 @@ class InvoiceGeneratorServiceTest {
         @Test
         void shouldThrowIfFiscalProfileNotConfigured() {
             when(tenantContext.getRequiredOrganizationId()).thenReturn(1L);
-            when(tenantContext.getCountryCode()).thenReturn("FR");
 
             when(invoiceRepository.findAllByReservationId(100L)).thenReturn(List.of());
             when(reservationRepository.findById(100L)).thenReturn(Optional.of(createTestReservation()));
@@ -757,13 +771,12 @@ class InvoiceGeneratorServiceTest {
 
             assertThatThrownBy(() -> service.generateFromReservation(req))
                 .isInstanceOf(IllegalStateException.class)
-                .hasMessageContaining("Profil fiscal");
+                .hasMessageContaining("profil fiscal");
         }
 
         @Test
         void shouldSkipTouristTaxWhenComputedAmountIsZero() {
             when(tenantContext.getRequiredOrganizationId()).thenReturn(1L);
-            when(tenantContext.getCountryCode()).thenReturn("FR");
 
             when(invoiceRepository.findAllByReservationId(100L)).thenReturn(List.of());
             when(reservationRepository.findById(100L)).thenReturn(Optional.of(createTestReservation()));
@@ -795,7 +808,6 @@ class InvoiceGeneratorServiceTest {
         @Test
         void shouldSetDueDate30DaysAfterInvoiceDate() {
             when(tenantContext.getRequiredOrganizationId()).thenReturn(1L);
-            when(tenantContext.getCountryCode()).thenReturn("FR");
 
             when(invoiceRepository.findAllByReservationId(100L)).thenReturn(List.of());
             when(reservationRepository.findById(100L)).thenReturn(Optional.of(createTestReservation()));
@@ -842,7 +854,7 @@ class InvoiceGeneratorServiceTest {
 
             // Reservation has default currency=EUR; null it so fallback to FiscalProfile MAD
             Reservation res = createTestReservation();
-            res.setCurrency(null);
+            res.setCurrency(null);res.setOrganizationId(42L);res.getProperty().setOrganizationId(42L);res.getProperty().setCountryCode("MA");
 
             Invoice result = service.generateFromReservation(res, 42L);
 
@@ -877,29 +889,11 @@ class InvoiceGeneratorServiceTest {
         }
 
         @Test
-        void shouldDefaultToEurWhenFiscalProfileHasNoCurrency() {
-            FiscalProfile fp = createTestFiscalProfile();
-            fp.setDefaultCurrency(null);
-            fp.setCountryCode(null);
-
-            Reservation res = createTestReservation();
-            res.setCurrency(null);
-
+        void shouldRefuseAnUnidentifiedFiscalCountry() {
+            FiscalProfile fp=createTestFiscalProfile();fp.setCountryCode(null);
             when(fiscalProfileRepository.findByOrganizationId(1L)).thenReturn(Optional.of(fp));
-
-            TaxResult acc = new TaxResult(BigDecimal.ZERO, BigDecimal.ZERO, BigDecimal.ZERO,
-                BigDecimal.ZERO, "n/a", "ACCOMMODATION");
-            TaxResult cln = new TaxResult(BigDecimal.ZERO, BigDecimal.ZERO, BigDecimal.ZERO,
-                BigDecimal.ZERO, "n/a", "CLEANING");
-            when(fiscalEngine.calculateTax(eq("FR"), any(), any())).thenReturn(acc, cln);
-
-            when(invoiceRepository.save(any(Invoice.class)))
-                .thenAnswer(inv -> { Invoice i = inv.getArgument(0); i.setId(99L); return i; });
-
-            Invoice result = service.generateFromReservation(res, 1L);
-
-            assertThat(result.getCurrency()).isEqualTo("EUR");
-            assertThat(result.getCountryCode()).isEqualTo("FR");
+            assertThatThrownBy(()->service.generateFromReservation(createTestReservation(),1L))
+                .hasMessageContaining("profil fiscal");
         }
 
         @Test
@@ -990,7 +984,6 @@ class InvoiceGeneratorServiceTest {
         void whenGeneratingManualDraftFromReservation_thenLineAmountsDerivedFromTtc() {
             // Arrange — meme regle pour le chemin manuel (InvoiceController)
             when(tenantContext.getRequiredOrganizationId()).thenReturn(1L);
-            when(tenantContext.getCountryCode()).thenReturn("FR");
             when(invoiceRepository.findAllByReservationId(100L))
                 .thenReturn(List.of());
             when(reservationRepository.findById(100L)).thenReturn(Optional.of(createTestReservation()));
@@ -1042,6 +1035,7 @@ class InvoiceGeneratorServiceTest {
 
         private Intervention buildIntervention(Long id, String title, BigDecimal cost) {
             Intervention intervention = new Intervention();
+            intervention.setOrganizationId(1L);intervention.setProperty(testProperty());
             intervention.setId(id);
             intervention.setTitle(title);
             intervention.setEstimatedCost(cost);
@@ -1250,10 +1244,11 @@ class InvoiceGeneratorServiceTest {
         @Test
         void shouldReturnExistingInvoiceWhenAlreadyExistsForReservation() {
             Invoice existing = new Invoice();
+            existing.setOrganizationId(1L);
             existing.setId(100L);
             existing.setInvoiceNumber("FA-2026-00001");
             existing.setStatus(InvoiceStatus.ISSUED);
-            // Already linked → linkDocumentGeneration short-circuits
+            // Une facture déjà liée conserve son document original.
             existing.setDocumentGenerationId(999L);
 
             when(invoiceRepository.findAllByReservationId(50L)).thenReturn(List.of(existing));
@@ -1265,25 +1260,26 @@ class InvoiceGeneratorServiceTest {
         }
 
         @Test
-        void shouldLinkDocumentGenerationIfMissingOnExistingInvoice() {
+        void defersDocumentLinkUntilThePipelineHasArchivedThePdf() {
             Invoice existing = new Invoice();
+            existing.setOrganizationId(1L);
             existing.setId(100L);
             existing.setInvoiceNumber("FA-2026-00001");
             existing.setStatus(InvoiceStatus.ISSUED);
             existing.setDocumentGenerationId(null);
 
             when(invoiceRepository.findAllByReservationId(50L)).thenReturn(List.of(existing));
-            when(invoiceRepository.save(any(Invoice.class))).thenAnswer(inv -> inv.getArgument(0));
 
             Invoice result = service.createIssuedFromDocumentGeneration(
                 ReferenceType.RESERVATION, 50L, 1L, "FA-2026-00001", 999L);
 
-            assertThat(result.getDocumentGenerationId()).isEqualTo(999L);
+            assertThat(result.getDocumentGenerationId()).isNull();
         }
 
         @Test
         void shouldNotReSaveWhenDocumentGenerationIdAlreadySet() {
             Invoice existing = new Invoice();
+            existing.setOrganizationId(1L);
             existing.setId(100L);
             existing.setInvoiceNumber("FA-2026-00001");
             existing.setStatus(InvoiceStatus.ISSUED);
@@ -1313,15 +1309,15 @@ class InvoiceGeneratorServiceTest {
                 BigDecimal.ZERO, "n/a", "CLEANING");
             when(fiscalEngine.calculateTax(eq("FR"), any(), any())).thenReturn(acc, cln);
 
-            when(numberingService.generateNextNumber(1L)).thenReturn("FA2026-00042");
+            when(numberingService.generateNextNumberFor(org.mockito.ArgumentMatchers.any(com.clenzy.model.Invoice.class))).thenReturn("FA2026-00042");
             when(invoiceRepository.save(any(Invoice.class)))
                 .thenAnswer(inv -> { Invoice i = inv.getArgument(0); i.setId(70L); return i; });
 
             Invoice result = service.createIssuedFromDocumentGeneration(
-                ReferenceType.RESERVATION, 50L, 1L, "FAC-2026-00007", 999L);
+                ReferenceType.RESERVATION, 50L, 1L, null, 999L);
 
             assertThat(result.getStatus()).isEqualTo(InvoiceStatus.ISSUED);
-            assertThat(result.getDocumentGenerationId()).isEqualTo(999L);
+            assertThat(result.getDocumentGenerationId()).isNull();
             // Z3-BUGS-07 : la facture est numerotee par l'UNIQUE sequence Invoice,
             // pas par le numero du document PDF (double sequence = doublons NF).
             assertThat(result.getInvoiceNumber()).isEqualTo("FA2026-00042");
@@ -1333,6 +1329,7 @@ class InvoiceGeneratorServiceTest {
             stubInvoicesByIntervention(60L, List.of());
 
             Intervention i = new Intervention();
+            i.setOrganizationId(1L);i.setProperty(testProperty());
             i.setId(60L);
             i.setTitle("Test");
             i.setEstimatedCost(BigDecimal.ZERO);
@@ -1342,12 +1339,12 @@ class InvoiceGeneratorServiceTest {
             FiscalProfile fp = createTestFiscalProfile();
             when(fiscalProfileRepository.findByOrganizationId(1L)).thenReturn(Optional.of(fp));
 
-            when(numberingService.generateNextNumber(1L)).thenReturn("FA2026-00043");
+            when(numberingService.generateNextNumberFor(org.mockito.ArgumentMatchers.any(com.clenzy.model.Invoice.class))).thenReturn("FA2026-00043");
             when(invoiceRepository.save(any(Invoice.class)))
                 .thenAnswer(inv -> { Invoice iv = inv.getArgument(0); iv.setId(70L); return iv; });
 
             Invoice result = service.createIssuedFromDocumentGeneration(
-                ReferenceType.INTERVENTION, 60L, 1L, "FAC-2026-00008", 888L);
+                ReferenceType.INTERVENTION, 60L, 1L, null, 888L);
 
             assertThat(result.getStatus()).isEqualTo(InvoiceStatus.ISSUED);
             assertThat(result.getInvoiceNumber()).isEqualTo("FA2026-00043");
@@ -1366,15 +1363,15 @@ class InvoiceGeneratorServiceTest {
                 BigDecimal.ZERO, "n/a", "CLEANING");
             when(fiscalEngine.calculateTax(eq("FR"), any(), any())).thenReturn(acc, cln);
 
-            when(numberingService.generateNextNumber(1L)).thenReturn("FA2026-00099");
+            when(numberingService.generateNextNumberFor(org.mockito.ArgumentMatchers.any(com.clenzy.model.Invoice.class))).thenReturn("FA2026-00099");
             when(invoiceRepository.save(any(Invoice.class)))
                 .thenAnswer(inv -> { Invoice iv = inv.getArgument(0); iv.setId(70L); return iv; });
 
             service.createIssuedFromDocumentGeneration(
-                ReferenceType.RESERVATION, 50L, 1L, "FAC-2026-00100", 999L);
+                ReferenceType.RESERVATION, 50L, 1L, null, 999L);
 
             // Un seul chemin de numerotation pour l'entite Invoice
-            verify(numberingService).generateNextNumber(1L);
+            verify(numberingService).generateNextNumberFor(any(Invoice.class));
         }
 
         /**
@@ -1386,12 +1383,14 @@ class InvoiceGeneratorServiceTest {
         @Test
         void whenInterventionHasCancelledInvoiceAndActiveReissue_thenActiveInvoiceIsReturned() {
             Invoice cancelled = new Invoice();
+            cancelled.setOrganizationId(1L);
             cancelled.setId(70L);
             cancelled.setInterventionId(60L);
             cancelled.setInvoiceNumber("FA2026-00010");
             cancelled.setStatus(InvoiceStatus.CANCELLED);
 
             Invoice active = new Invoice();
+            active.setOrganizationId(1L);
             active.setId(71L);
             active.setInterventionId(60L);
             active.setInvoiceNumber("FA2026-00011");
@@ -1401,7 +1400,7 @@ class InvoiceGeneratorServiceTest {
             stubInvoicesByIntervention(60L, List.of(cancelled, active));
 
             Invoice result = service.createIssuedFromDocumentGeneration(
-                ReferenceType.INTERVENTION, 60L, 1L, "FAC-2026-00009", 888L);
+                ReferenceType.INTERVENTION, 60L, 1L, null, 888L);
 
             assertThat(result).isSameAs(active);
             verify(numberingService, never()).generateNextNumber(anyLong());
@@ -1417,12 +1416,14 @@ class InvoiceGeneratorServiceTest {
         @Test
         void whenInterventionHasOnlyCancelledAndDuplicataInvoices_thenNewInvoiceIsCreated() {
             Invoice cancelled = new Invoice();
+            cancelled.setOrganizationId(1L);
             cancelled.setId(70L);
             cancelled.setInterventionId(60L);
             cancelled.setInvoiceNumber("FA2026-00010");
             cancelled.setStatus(InvoiceStatus.CANCELLED);
 
             Invoice duplicata = new Invoice();
+            duplicata.setOrganizationId(1L);
             duplicata.setId(72L);
             duplicata.setInterventionId(60L);
             duplicata.setInvoiceNumber("FA2026-00010-DUP-1");
@@ -1432,18 +1433,19 @@ class InvoiceGeneratorServiceTest {
             stubInvoicesByIntervention(60L, List.of(cancelled, duplicata));
 
             Intervention i = new Intervention();
+            i.setOrganizationId(1L);i.setProperty(testProperty());
             i.setId(60L);
             i.setTitle("Test");
             i.setEstimatedCost(BigDecimal.ZERO);
             when(interventionRepository.findById(60L)).thenReturn(Optional.of(i));
             when(fiscalProfileRepository.findByOrganizationId(1L))
                 .thenReturn(Optional.of(createTestFiscalProfile()));
-            when(numberingService.generateNextNumber(1L)).thenReturn("FA2026-00044");
+            when(numberingService.generateNextNumberFor(org.mockito.ArgumentMatchers.any(com.clenzy.model.Invoice.class))).thenReturn("FA2026-00044");
             when(invoiceRepository.save(any(Invoice.class)))
                 .thenAnswer(inv -> { Invoice iv = inv.getArgument(0); iv.setId(73L); return iv; });
 
             Invoice result = service.createIssuedFromDocumentGeneration(
-                ReferenceType.INTERVENTION, 60L, 1L, "FAC-2026-00012", 889L);
+                ReferenceType.INTERVENTION, 60L, 1L, null, 889L);
 
             assertThat(result.getId()).isEqualTo(73L);
             assertThat(result.getStatus()).isEqualTo(InvoiceStatus.ISSUED);
@@ -1513,7 +1515,7 @@ class InvoiceGeneratorServiceTest {
             paid.setTotalTtc(BigDecimal.ZERO);
 
             when(invoiceRepository.findForUpdate(10L)).thenReturn(Optional.of(paid));
-            when(numberingService.generateNextNumber()).thenReturn("FA-2026-00002");
+            when(numberingService.generateNextNumberFor(org.mockito.ArgumentMatchers.any(com.clenzy.model.Invoice.class))).thenReturn("FA-2026-00002");
             when(invoiceRepository.save(any(Invoice.class)))
                 .thenAnswer(inv -> { Invoice i = inv.getArgument(0); if (i.getStatus() == InvoiceStatus.CREDIT_NOTE) i.setId(11L); return i; });
 
@@ -1580,7 +1582,6 @@ class InvoiceGeneratorServiceTest {
             res.setCurrency("EUR");
 
             when(tenantContext.getRequiredOrganizationId()).thenReturn(1L);
-            when(tenantContext.getCountryCode()).thenReturn("FR");
             when(invoiceRepository.findAllByReservationId(100L)).thenReturn(List.of());
             when(reservationRepository.findById(100L)).thenReturn(Optional.of(res));
             when(fiscalProfileRepository.findByOrganizationId(1L))
@@ -1717,7 +1718,6 @@ class InvoiceGeneratorServiceTest {
         void whenManualReservationIsInvoicedManuallyWithTouristTaxConfig_thenTouristTaxAppearsOnce() {
             Reservation res = manualReservation();
             when(tenantContext.getRequiredOrganizationId()).thenReturn(1L);
-            when(tenantContext.getCountryCode()).thenReturn("FR");
             when(invoiceRepository.findAllByReservationId(100L)).thenReturn(List.of());
             when(reservationRepository.findById(100L)).thenReturn(Optional.of(res));
             stubFiscalProfile();
@@ -1839,7 +1839,6 @@ class InvoiceGeneratorServiceTest {
             Invoice creditNote = guestInvoice(2L, InvoiceStatus.CREDIT_NOTE);
 
             when(tenantContext.getRequiredOrganizationId()).thenReturn(1L);
-            when(tenantContext.getCountryCode()).thenReturn("FR");
             when(invoiceRepository.findAllByReservationId(100L))
                 .thenReturn(List.of(cancelled, creditNote));
             when(reservationRepository.findById(100L)).thenReturn(Optional.of(createTestReservation()));
@@ -1864,12 +1863,12 @@ class InvoiceGeneratorServiceTest {
 
         @Test
         void whenActiveInvoiceCoexistsWithCancelledOnes_thenDuplicateCheckBlocks() {
+            when(reservationRepository.findById(100L)).thenReturn(Optional.of(createTestReservation()));
             // Arrange — 1 facture active + 1 annulee (etat post-dedoublonnage 0226)
             Invoice cancelled = guestInvoice(1L, InvoiceStatus.CANCELLED);
             Invoice active = guestInvoice(2L, InvoiceStatus.ISSUED);
 
             when(tenantContext.getRequiredOrganizationId()).thenReturn(1L);
-            when(tenantContext.getCountryCode()).thenReturn("FR");
             when(invoiceRepository.findAllByReservationId(100L))
                 .thenReturn(List.of(cancelled, active));
 
@@ -1895,7 +1894,7 @@ class InvoiceGeneratorServiceTest {
 
             // Act — idempotence createIssuedFromDocumentGeneration : retrouve la facture active
             Invoice result = service.createIssuedFromDocumentGeneration(
-                ReferenceType.RESERVATION, 50L, 1L, "FAC-2026-00001", 999L);
+                ReferenceType.RESERVATION, 50L, 1L, null, 999L);
 
             // Assert
             assertThat(result).isSameAs(active);
@@ -1916,6 +1915,7 @@ class InvoiceGeneratorServiceTest {
         /** Le séjour Airbnb de référence : 289,50 EUR brut, 44,87 EUR de host fee. */
         private Reservation airbnbStay() {
             Reservation res = new Reservation();
+        res.setOrganizationId(1L);res.setProperty(testProperty());
             res.setId(700L);
             res.setGuestName("Ada Lovelace");
             res.setCheckIn(LocalDate.of(2026, 5, 10));
@@ -1923,7 +1923,7 @@ class InvoiceGeneratorServiceTest {
             res.setTotalPrice(new BigDecimal("289.50"));
             res.setOtaFeeAmount(new BigDecimal("44.87"));
 
-            Property property = new Property();
+            Property property = testProperty();
             property.setId(300L);
             User owner = new User();
             owner.setFirstName("Grace");

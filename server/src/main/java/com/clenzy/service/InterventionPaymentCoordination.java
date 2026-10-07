@@ -84,8 +84,13 @@ public class InterventionPaymentCoordination {
             var agreement = quotes.findByInterventionIdAndOrganizationIdOrderByAmountAsc(mission.getId(), orgId);
             // Écarter un devis conservé dans le contexte de persistance avant l'acquisition du verrou.
             agreement.forEach(em::refresh);
+            var history = payments.findByOrganizationIdAndSourceTypeAndSourceId(orgId, "INTERVENTION", mission.getId());
+            history.forEach(em::refresh);
+            DepositReconciler.requireAvailableDeposit(mission, agreement, history);
             BigDecimal amount = InterventionPaymentAmounts.payable(mission, agreement, deposit);
             if (amount == null || amount.signum() <= 0) throw new PaymentValidationException("Cette mission ne présente aucun montant exigible");
+            if ((!"INTERVENTION".equals(request.sourceType()) || ids.size()!=1) && mission.getEstimatedCost()!=null && amount.compareTo(mission.getEstimatedCost())<0)
+                throw new PaymentValidationException("Le solde de cet acompte nécessite sa propre session de paiement. Sélectionnez-le depuis Finance pour préparer son lien dédié.");
             String currency = mission.getCurrency();
             if (currency == null || currency.isBlank()) currency = direct ? "EUR" : request.currency();
             if (request.currency() == null || request.currency().isBlank()) throw new PaymentValidationException("Devise requise");
@@ -190,11 +195,14 @@ public class InterventionPaymentCoordination {
 
     private void requireStandaloneRefund(com.clenzy.model.PaymentTransaction payment, boolean series) {
         var mission = lockMission(payment.getOrganizationId(), payment.getSourceId());
+        var rows=payments.findByOrganizationIdAndSourceTypeAndSourceId(payment.getOrganizationId(),"INTERVENTION",payment.getSourceId());
+        rows.forEach(em::refresh);
+        var maintenance=BaitlyMaintenanceReceipts.multiple(rows) ? maintenanceReceipts(mission,rows) : null;
         String currency = mission.getCurrency() == null ? "EUR" : mission.getCurrency();
         if ((mission.getPaymentStatus() != PaymentStatus.PAID && !(series && mission.getPaymentStatus()==PaymentStatus.PARTIALLY_REFUNDED)) || mission.getEstimatedCost() == null
-                || mission.getEstimatedCost().compareTo(payment.getAmount()) != 0
+                || (maintenance==null && mission.getEstimatedCost().compareTo(payment.getAmount()) != 0)
                 || !currency.equalsIgnoreCase(payment.getCurrency())
-                || (payment.getProviderType() == com.clenzy.model.PaymentProviderType.STRIPE
+                || (maintenance==null && payment.getProviderType() == com.clenzy.model.PaymentProviderType.STRIPE
                     && !Objects.equals(mission.getStripeSessionId(), payment.getProviderTxId()))) {
             throw new PaymentValidationException("Le remboursement exige un encaissement rapproché de cette mission.");
         }
@@ -206,6 +214,16 @@ public class InterventionPaymentCoordination {
                 .setParameter("mission", payment.getSourceId()).setParameter("payment", payment.getId()).getSingleResult();
         if (shared.longValue() > 0) throw new PaymentValidationException("Ce paiement partagé exige un remboursement par allocation.");
         requireRefundOutsideCancellationCase(payment);
+    }
+
+    public BaitlyMaintenanceReceipts maintenanceReceipts(Intervention mission,List<com.clenzy.model.PaymentTransaction> rows) {
+        var agreements=quotes.findByInterventionIdAndOrganizationIdOrderByAmountAsc(mission.getId(),mission.getOrganizationId());
+        agreements.forEach(em::refresh);
+        var funding=BaitlyMaintenanceReceipts.verify(mission,rows,agreements);
+        Number shared=(Number)em.createNativeQuery("SELECT count(*) FROM intervention_payment_allocations WHERE organization_id=:org AND intervention_id=:mission")
+                .setParameter("org",mission.getOrganizationId()).setParameter("mission",mission.getId()).getSingleResult();
+        if(shared.longValue()!=0) throw new PaymentValidationException("Un solde groupé doit être rapproché par allocation");
+        return funding;
     }
 
     public void requireRefundOutsideCancellationCase(com.clenzy.model.PaymentTransaction payment) {

@@ -125,16 +125,23 @@ public class BaitlyTransferRecoveryStore {
     }
     public record Instruction(Long id, Long org, Long transferId, String transferReference, String destination,
             String destinationPayment, Boolean livemode, BigDecimal transferAmount, BigDecimal amount,
-            String currency, String refundReference, Instant firstAttemptAt, List<PreviousRecovery> previous) {
+            String currency, String refundReference, Instant firstAttemptAt, List<PreviousRecovery> previous, boolean commerce) {
         public Instruction { previous = List.copyOf(previous); }
+        public Instruction(Long id, Long org, Long transferId, String transferReference, String destination,
+                String destinationPayment, Boolean livemode, BigDecimal transferAmount, BigDecimal amount,
+                String currency, String refundReference, Instant firstAttemptAt, List<PreviousRecovery> previous) {
+            this(id,org,transferId,transferReference,destination,destinationPayment,livemode,transferAmount,amount,currency,refundReference,firstAttemptAt,previous,false);
+        }
         public Instruction(Long id, Long org, Long transferId, String transferReference, String destination,
                 String destinationPayment, Boolean livemode, BigDecimal transferAmount, BigDecimal amount,
                 String currency, String refundReference, Instant firstAttemptAt) {
             this(id,org,transferId,transferReference,destination,destinationPayment,livemode,transferAmount,amount,
                     currency,refundReference,firstAttemptAt,List.of());
         }
-        public String key() { return "baitly-transfer-recovery-" + id; }
+        public String key() { return (commerce?"baitly-commerce-recovery-":"baitly-transfer-recovery-") + id; }
         public Map<String,String> metadata() {
+            if(commerce)return Map.of("baitly_recovery_id",id.toString(),"baitly_organization_id",org.toString(),"baitly_refund_ref",refundReference,
+                    "baitly_transfer_id",transferId.toString(),"baitly_recovery_kind","COMMERCE");
             return Map.of("baitly_recovery_id", id.toString(), "baitly_organization_id", org.toString(),
                     "baitly_refund_ref", refundReference, "baitly_transfer_id", transferId.toString());
         }

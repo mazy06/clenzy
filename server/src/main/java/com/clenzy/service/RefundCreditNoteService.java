@@ -64,6 +64,9 @@ public class RefundCreditNoteService {
 
     @Transactional
     public Long reconcile(String refundRef) {
+        // La réconciliation du journal peut nous appeler dans la même transaction.
+        // Ne pas perdre ses écritures locales lors des refresh sous verrou.
+        em.flush();
         Long org = tenant.getRequiredOrganizationId();
         var candidate = payments.findByTransactionRef(refundRef).orElseThrow();
         require(Objects.equals(candidate.getOrganizationId(), org), "Remboursement hors organisation");
@@ -106,10 +109,17 @@ public class RefundCreditNoteService {
         var mission = em.find(Intervention.class, refund.getSourceId());
         require(mission != null && Objects.equals(mission.getOrganizationId(), org), "Intervention hors organisation");
         em.refresh(mission, LockModeType.PESSIMISTIC_WRITE);
+        BaitlyMaintenanceReceipts maintenance=null;
+        if(BaitlyMaintenanceReceipts.aggregated(refund)) {
+            var rows=payments.findByOrganizationIdAndSourceTypeAndSourceId(org,"INTERVENTION",mission.getId());rows.forEach(em::refresh);
+            var quotes=em.createQuery("from ServiceQuote where organizationId=:org and interventionId=:mission",ServiceQuote.class)
+                    .setParameter("org",org).setParameter("mission",mission.getId()).getResultList();
+            maintenance=BaitlyMaintenanceReceipts.verify(mission,rows,quotes);maintenance.history(rows);paidBasis=maintenance.gross();
+        }
         require((series ? mission.getPaymentStatus()==PaymentStatus.PARTIALLY_REFUNDED || mission.getPaymentStatus()==PaymentStatus.REFUNDED
                 : mission.getPaymentStatus() == (externalPartial ? PaymentStatus.PARTIALLY_REFUNDED : PaymentStatus.REFUNDED))
             && Objects.equals(mission.getOrganizationId(), org)
-            && Objects.equals(mission.getStripeSessionId(), payment.getProviderTxId())
+            && (maintenance!=null || Objects.equals(mission.getStripeSessionId(), payment.getProviderTxId()))
             && equal(mission.getEstimatedCost(), series || externalPartial ? paidBasis : refund.getAmount())
             && Objects.equals(mission.getCurrency(), refund.getCurrency()),
             "Remboursement de l'intervention à rapprocher");
@@ -127,13 +137,14 @@ public class RefundCreditNoteService {
         if (original.getPaymentTransactionId() == null) {
             long paidCycles = payments.findByOrganizationIdAndSourceTypeAndSourceId(org, "INTERVENTION", mission.getId()).stream()
                 .filter(tx -> tx.getPaymentType() == TransactionType.CHECKOUT && tx.getStatus() == TransactionStatus.COMPLETED).count();
-            require(paidCycles == 1, "Plusieurs encaissements : la facture historique doit être rapprochée");
+            require(paidCycles == 1 || maintenance!=null, "Plusieurs encaissements : la facture historique doit être rapprochée");
         }
         require(original.getStatus() == InvoiceStatus.PAID && Objects.equals(original.getOrganizationId(), org)
             && Objects.equals(original.getInterventionId(), mission.getId()) && original.getDuplicateOfId() == null
             && original.getOriginalInvoiceId() == null && original.getRefundTransactionId() == null
             && original.getInvoiceType() == InvoiceType.GUEST
-            && (original.getPaymentTransactionId() == null || Objects.equals(original.getPaymentTransactionId(), payment.getId()))
+            && (original.getPaymentTransactionId() == null || Objects.equals(original.getPaymentTransactionId(), payment.getId())
+                || maintenance!=null && maintenance.receipts().stream().map(PaymentTransaction::getId).toList().contains(original.getPaymentTransactionId()))
             && Objects.equals(original.getCurrency(), refund.getCurrency())
             && equal(original.getTotalTtc(), series || externalPartial ? paidBasis : refund.getAmount()),
             "Facture et encaissement à rapprocher avant l'avoir");
@@ -147,8 +158,8 @@ public class RefundCreditNoteService {
             .setParameter("mention", "%" + original.getInvoiceNumber() + "%").getSingleResult();
         require(historical == 0, "Un ancien avoir doit être rapproché");
 
-        var credit = copyReversed(original, refund);
-        credit.setInvoiceNumber(numbers.generateNextNumber(org));
+        var credit = copyReversed(original, BaitlyMaintenanceReceipts.accounting(refund));
+        credit.setInvoiceNumber(numbers.generateNextNumberFor(credit));
         invoices.saveAndFlush(credit);
         clearError(refund);
         return credit.getId();
@@ -167,7 +178,8 @@ public class RefundCreditNoteService {
                 require(prior!=null && BaitlyRefundEvidence.order(prior)<BaitlyRefundEvidence.order(refund) && prior.getStatus()==TransactionStatus.COMPLETED
                         && Objects.equals(prior.getOrganizationId(),org) && prior.getMetadata()!=null
                         && Objects.equals(prior.getSourceType(),refund.getSourceType()) && Objects.equals(prior.getSourceId(),refund.getSourceId())
-                        && Objects.equals(prior.getMetadata().get("originalTransactionRef"),payment.getTransactionRef())
+                        && (BaitlyMaintenanceReceipts.aggregated(refund) && BaitlyMaintenanceReceipts.aggregated(prior)
+                            || Objects.equals(prior.getMetadata().get("originalTransactionRef"),payment.getTransactionRef()))
                         && equal(note.getTotalTtc(),prior.getAmount().negate()),"Avoir antérieur non rapproché");
                 credited=credited.subtract(note.getTotalTtc());
                 for(var line:note.getLines()) {
@@ -175,7 +187,7 @@ public class RefundCreditNoteService {
                     creditedTaxes.merge(line.getLineNumber(),line.getTaxAmount().negate(),BigDecimal::add);
                 }
             }
-            require(equal(credited,BaitlyRefundSeries.before(refund)),"Les avoirs antérieurs doivent être créés avant le suivant");
+            require(equal(credited,BaitlyMaintenanceReceipts.before(refund)),"Les avoirs antérieurs doivent être créés avant le suivant");
             var ordered=original.getLines().stream().sorted(java.util.Comparator.comparing(InvoiceLine::getLineNumber)).toList();
             var expected=BaitlyRefundSeries.apportion(ordered.stream().map(InvoiceLine::getTotalTtc).toList(),credited);
             for(int i=0;i<ordered.size();i++) {
@@ -262,7 +274,7 @@ public class RefundCreditNoteService {
             .setParameter("mention", "%" + original.getInvoiceNumber() + "%").getSingleResult();
         require(historical == 0, "Un ancien avoir de séjour doit être rapproché");
         var credit = copyReversed(original, refund);
-        credit.setInvoiceNumber(numbers.generateNextNumber(org));
+        credit.setInvoiceNumber(numbers.generateNextNumberFor(credit));
         invoices.saveAndFlush(credit);
         clearError(refund);
         return credit.getId();
@@ -318,6 +330,7 @@ public class RefundCreditNoteService {
         credit.setOriginalInvoiceId(original.getId()); credit.setRefundTransactionId(refund.getId());
         credit.setInterventionId(original.getInterventionId()); credit.setReservationId(original.getReservationId());
         credit.setCurrency(original.getCurrency()); credit.setCountryCode(original.getCountryCode());
+        credit.setIssuerKey(original.getIssuerKey());
         credit.setSellerName(original.getSellerName()); credit.setSellerAddress(original.getSellerAddress()); credit.setSellerTaxId(original.getSellerTaxId());
         credit.setBuyerName(original.getBuyerName()); credit.setBuyerAddress(original.getBuyerAddress()); credit.setBuyerTaxId(original.getBuyerTaxId());
         require(equal(creditHt.add(creditTax), refund.getAmount()), "Montant de l'avoir différent du remboursement");
@@ -372,7 +385,7 @@ public class RefundCreditNoteService {
                     allocation.setPaymentType(TransactionType.REFUND);allocation.setProviderTxId(refund.getProviderTxId());allocation.setTransactionRef(refund.getTransactionRef());
                     allocation.setMetadata(java.util.Map.of("externalRefund",true,"externalRefundConfirmed",true,"cumulativeRefund",true,"refundBefore",before.toPlainString()));
                     var note=copyReversed(original,allocation);note.setRefundTransactionId(null);note.setOwnerRefundTransactionId(refund.getId());
-                    note.setInvoiceNumber(numbers.generateNextNumber(org));note.setPayoutId(payout.getId());
+                    note.setInvoiceNumber(numbers.generateNextNumberFor(note));note.setPayoutId(payout.getId());
                     note.setLegalMentions("Avoir de commission sur facture "+original.getInvoiceNumber()+" consécutif au remboursement voyageur "+refund.getTransactionRef()+".");
                     invoices.saveAndFlush(note);
                 }

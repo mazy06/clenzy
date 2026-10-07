@@ -31,7 +31,10 @@ function PayoutTracking({ scope, organizationName }: { scope: string; organizati
   const { t, currentLanguage } = useTranslation();
   const [search, setSearch] = useState('');
   const [filters, setFilters] = useState<TransferFilters>({ page: 0, state: '', source: '', search: '' });
-  const [selected, setSelected] = useState<number | null>(null);
+  const [selected, setSelected] = useState<number | null>(() => {
+    const requested = new URLSearchParams(window.location.search).get('transfer');
+    return requested && /^[1-9]\d{0,14}$/.test(requested) ? Number(requested) : null;
+  });
   const queries = useQueryClient();
   const key = ['payout-transfers', scope];
   const list = useQuery({ queryKey: [...key, filters], queryFn: () => payoutTransfersApi.list(filters) });
@@ -83,7 +86,7 @@ function PayoutTracking({ scope, organizationName }: { scope: string; organizati
       </select></label>
       <label>{t('payoutTracking.filterSource')}<select value={filters.source} onChange={(event) => changeFilter({ source: event.target.value as TransferSource | '' })}>
         <option value="">{t('payoutTracking.allSources')}</option>
-        <option value="OWNER_PAYOUT">{t('payoutTracking.sources.OWNER_PAYOUT')}</option><option value="INTERVENTION">{t('payoutTracking.sources.INTERVENTION')}</option><option value="PROVIDER_EXPENSE">{t('payoutTracking.sources.PROVIDER_EXPENSE')}</option>
+        <option value="OWNER_PAYOUT">{t('payoutTracking.sources.OWNER_PAYOUT')}</option><option value="INTERVENTION">{t('payoutTracking.sources.INTERVENTION')}</option><option value="PROVIDER_EXPENSE">{t('payoutTracking.sources.PROVIDER_EXPENSE')}</option><option value="COMMERCE">{t('payoutTracking.sources.COMMERCE')}</option>
       </select></label>
     </div>
     <div className="payout-tracking__workspace" data-selected={selected !== null}>

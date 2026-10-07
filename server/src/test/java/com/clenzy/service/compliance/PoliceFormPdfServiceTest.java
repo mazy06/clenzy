@@ -36,7 +36,7 @@ class PoliceFormPdfServiceTest {
 
     private PoliceFormPdfService service() {
         return new PoliceFormPdfService(declarationRepository, licenseRepository, accessGuard, tenantContext,
-                auditLogService);
+                auditLogService, new com.clenzy.service.BaitlyPdfTestEngine());
     }
 
     private GuestDeclaration declaration(Reservation r, boolean primary, String first, String birth,

@@ -4655,3 +4655,222 @@ databaseChangeLog:
             relativeToChangelogFile: true
             splitStatements: false
             stripComments: false
+
+  - changeSet:
+      id: "0516-upsell-settlement-snapshot"
+      author: clenzy-team
+      changes:
+        - sqlFile:
+            path: changes/0516__upsell_settlement_snapshot.sql
+            relativeToChangelogFile: true
+
+  - changeSet:
+      id: "0517-affiliate-receipts"
+      author: clenzy-team
+      changes:
+        - sqlFile:
+            path: changes/0517__affiliate_receipts.sql
+            relativeToChangelogFile: true
+
+  - changeSet:
+      id: "0518-monthly-subscription-orders"
+      author: clenzy-team
+      changes:
+        - sqlFile:
+            path: changes/0518__monthly_subscription_orders.sql
+            relativeToChangelogFile: true
+
+  - changeSet:
+      id: "0519-commerce-payment-references"
+      author: clenzy-team
+      changes:
+        - sqlFile:
+            path: changes/0519__commerce_payment_references.sql
+            relativeToChangelogFile: true
+
+  - changeSet:
+      id: "0520-booking-voucher-claims"
+      author: clenzy-team
+      changes:
+        - sqlFile:
+            path: changes/0520__booking_voucher_claims.sql
+            relativeToChangelogFile: true
+
+  - changeSet:
+      id: "0521-ai-credit-ledger-reference"
+      author: clenzy-team
+      changes:
+        - sqlFile:
+            path: changes/0521__ai_credit_ledger_reference.sql
+            relativeToChangelogFile: true
+
+  - changeSet:
+      id: "0522-signup-monthly-contract"
+      author: clenzy-team
+      changes:
+        - sqlFile:
+            path: changes/0522__signup_monthly_contract.sql
+            relativeToChangelogFile: true
+
+  - changeSet:
+      id: "0523-billing-country-and-fiscal-jurisdictions"
+      author: clenzy-team
+      changes:
+        - sqlFile:
+            path: changes/0523__billing_country_and_fiscal_jurisdictions.sql
+            relativeToChangelogFile: true
+
+  - changeSet:
+      id: "0524-durable-ai-credit-wallet"
+      author: clenzy-team
+      changes:
+        - sqlFile:
+            path: changes/0524__durable_ai_credit_wallet.sql
+            relativeToChangelogFile: true
+  - changeSet:
+      id: "0525-booking-voucher-currency"
+      author: clenzy-team
+      changes:
+        - sqlFile:
+            path: changes/0525__booking_voucher_currency.sql
+            relativeToChangelogFile: true
+  - changeSet:
+      id: "0526-subscription-amendments"
+      author: clenzy-team
+      changes:
+        - sqlFile:
+            path: changes/0526__subscription_amendments.sql
+            relativeToChangelogFile: true
+  - changeSet:
+      id: "0527-subscription-funding"
+      author: clenzy-team
+      changes:
+        - sqlFile:
+            path: changes/0527__subscription_funding.sql
+            relativeToChangelogFile: true
+  - changeSet:
+      id: "0528-affiliate-adjustments"
+      author: clenzy-team
+      changes:
+        - sqlFile:
+            path: changes/0528__affiliate_adjustments.sql
+            relativeToChangelogFile: true
+  - changeSet:
+      id: "0529-commerce-operations"
+      author: clenzy-team
+      changes:
+        - sqlFile:
+            path: changes/0529__commerce_operations.sql
+            relativeToChangelogFile: true
+  - changeSet:
+      id: "0530-hardware-inventory"
+      author: clenzy-team
+      changes:
+        - sqlFile:
+            path: changes/0530__hardware_inventory.sql
+            relativeToChangelogFile: true
+  - changeSet:
+      id: "0531-commerce-purchase-requests"
+      author: clenzy-team
+      changes:
+        - sqlFile:
+            path: changes/0531__commerce_purchase_requests.sql
+            relativeToChangelogFile: true
+
+  - changeSet:
+      id: "0532-commerce-payouts"
+      author: clenzy-team
+      changes:
+        - sqlFile:
+            path: changes/0532__commerce_payouts.sql
+            relativeToChangelogFile: true
+
+  - changeSet:
+      id: "0533-sale-documents"
+      author: clenzy-team
+      changes:
+        - sqlFile:
+            path: changes/0533__sale_documents.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+            stripComments: false
+
+  - changeSet:
+      id: "0534-einvoice-submission-boundary"
+      author: clenzy-team
+      changes:
+        - sqlFile:
+            path: changes/0534__einvoice_submission_boundary.sql
+            relativeToChangelogFile: true
+
+  - changeSet:
+      id: "0535-legacy-credit-funding"
+      author: clenzy-team
+      changes:
+        - sqlFile:
+            path: changes/0535__legacy_credit_funding.sql
+            relativeToChangelogFile: true
+
+  - changeSet:
+      id: "0536-unissued-commerce-payout-cancellation"
+      author: clenzy-team
+      changes:
+        - sqlFile:
+            path: changes/0536__unissued_commerce_payout_cancellation.sql
+            relativeToChangelogFile: true
+
+  - changeSet:
+      id: "0537-invoice-issuer-sequences"
+      author: clenzy-team
+      changes:
+        - sqlFile:
+            path: changes/0537__invoice_issuer_sequences.sql
+            relativeToChangelogFile: true
+
+  - changeSet:
+      id: "0538-commerce-beneficiary-read-and-stock-retry"
+      author: clenzy-team
+      changes:
+        - sqlFile:
+            path: changes/0538__commerce_beneficiary_read_and_stock_retry.sql
+            relativeToChangelogFile: true
+
+  - changeSet:
+      id: "0539-commerce-issuer-evidence"
+      author: clenzy-team
+      changes:
+        - sqlFile:
+            path: changes/0539__commerce_issuer_evidence.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+            stripComments: false
+
+  - changeSet:
+      id: "0540-iopole-status-inbox"
+      author: clenzy-team
+      changes:
+        - sqlFile:
+            path: changes/0540__iopole_status_inbox.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+            stripComments: false
+
+  - changeSet:
+      id: "0541-invoice-fiscal-documents"
+      author: clenzy-team
+      changes:
+        - sqlFile:
+            path: changes/0541__invoice_fiscal_documents.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+            stripComments: false
+
+  - changeSet:
+      id: "0542-invoice-verification-and-pdf-archive"
+      author: clenzy-team
+      changes:
+        - sqlFile:
+            path: changes/0542__invoice_verification_and_pdf_archive.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+            stripComments: false

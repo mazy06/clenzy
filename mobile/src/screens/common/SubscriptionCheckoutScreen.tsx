@@ -1,373 +1,170 @@
-import React, { useState } from 'react';
-import { View, Text, ScrollView, Pressable, Alert } from 'react-native';
+import React, { useMemo, useRef, useState } from 'react';
+import { View, Text, ScrollView, Pressable, TextInput, StyleSheet, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useTranslation } from 'react-i18next';
+import { randomUUID } from 'expo-crypto';
+import * as WebBrowser from 'expo-web-browser';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuthStore } from '@/store/authStore';
-import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
+import { Select } from '@/components/ui/Select';
 import { useTheme } from '@/theme';
-import { useNativePayment } from '@/hooks/useNativePayment';
+import { baitlySubscriptionApi as api, requireBaitlyStripeCheckout } from '@/api/endpoints/baitlySubscriptionApi';
+import type { MonthlyPlan, MonthlyContract } from '@shared/types/baitlySubscription';
+import { BAITLY_BILLING_COUNTRIES } from '@shared/types/baitlySubscription';
+import { BaitlySubscriptionChange } from './BaitlySubscriptionChange';
 
-type IoniconsName = keyof typeof Ionicons.glyphMap;
+type ParamList = { SubscriptionCheckout: { forfait: string } };
+const pendingStates = new Set(['PREPARED', 'CHECKOUT_OPEN', 'ACTIVATING']);
 
-interface ForfaitInfo {
-  key: string;
-  label: string;
-  description: string;
-  features: string[];
-  icon: IoniconsName;
-  color: string;
-  priceLabel: string;
-}
-
-const FORFAIT_INFO: Record<string, ForfaitInfo> = {
-  essentiel: {
-    key: 'essentiel',
-    label: 'Essentiel',
-    description: 'Pour demarrer la gestion de vos proprietes',
-    features: ['Gestion des proprietes', 'Interventions manuelles', 'Suivi basique'],
-    icon: 'leaf-outline',
-    color: '#6B8A9A',
-    priceLabel: '5,00',
-  },
-  confort: {
-    key: 'confort',
-    label: 'Confort',
-    description: 'Automatisez la gestion de vos reservations',
-    features: [
-      'Planning interactif',
-      'Import iCal automatique',
-      'Interventions automatiques',
-      'Notifications avancees',
-    ],
-    icon: 'star-outline',
-    color: '#4A7C8E',
-    priceLabel: '5,00',
-  },
-  premium: {
-    key: 'premium',
-    label: 'Premium',
-    description: "L'experience complete pour les professionnels",
-    features: [
-      'Tout le forfait Confort',
-      'Rapports & analytics',
-      'Support prioritaire',
-      'API dediee',
-    ],
-    icon: 'diamond-outline',
-    color: '#C8924A',
-    priceLabel: '5,00',
-  },
-};
-
-type ParamList = {
-  SubscriptionCheckout: { forfait: string };
-};
-
+/** Le navigateur ne confirme pas un paiement : seul le contrat rechargé depuis Baitly fait foi. */
 export function SubscriptionCheckoutScreen() {
   const theme = useTheme();
-  const navigation = useNavigation<any>();
+  const navigation = useNavigation();
   const route = useRoute<RouteProp<ParamList, 'SubscriptionCheckout'>>();
-  const user = useAuthStore((s) => s.user);
-  const loadUser = useAuthStore((s) => s.loadUser);
-
-  const targetForfait = route.params.forfait;
-  const plan = FORFAIT_INFO[targetForfait] || FORFAIT_INFO.confort;
-  const currentForfait = user?.forfait?.toLowerCase() || 'essentiel';
-  const currentPlan = FORFAIT_INFO[currentForfait] || FORFAIT_INFO.essentiel;
-
-  const { state, error, initAndPresentPaymentSheet, reset } = useNativePayment();
-
-  const [billingAddress, setBillingAddress] = useState('');
-
-  const handlePay = async () => {
-    const success = await initAndPresentPaymentSheet({
-      type: 'subscription',
-      forfait: targetForfait,
-    });
-
-    if (success) {
-      // Recharger les donnees utilisateur pour mettre a jour le forfait
-      await loadUser();
-      Alert.alert(
-        'Paiement confirme',
-        `Votre forfait a ete mis a jour vers ${plan.label}.`,
-        [{ text: 'OK', onPress: () => navigation.goBack() }],
-      );
-    } else if (state === 'error' && error) {
-      Alert.alert('Erreur de paiement', error);
-    }
+  const { t, i18n } = useTranslation();
+  const user = useAuthStore(s => s.user);
+  const loadUser = useAuthStore(s => s.loadUser);
+  const cache = useQueryClient();
+  const [plan, setPlan] = useState<MonthlyPlan>(() => {
+    const requested = route.params?.forfait ?? user?.forfait;
+    return requested === 'premium' || requested === 'pro' || requested === 'confort' ? 'pro' : 'essential';
+  });
+  const [promoInput, setPromoInput] = useState('');
+  const [promoCode, setPromoCode] = useState('');
+  const [countrySelection, setCountrySelection] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const busyRef = useRef(false);
+  const attempt = useRef<{ key: string; id: string } | null>(null);
+  const scope = ['mobile-monthly-subscription', user?.id, user?.organizationId];
+  const contracts = useQuery({ queryKey: [...scope, 'contracts'], queryFn: api.contracts, enabled: Boolean(user) });
+  const billing = useQuery({ queryKey: [...scope, 'billing-country'], queryFn: api.billingCountry, enabled: Boolean(user) });
+  const country = countrySelection ?? billing.data?.billingCountry ?? '';
+  const countryReady = !billing.isPending && !billing.isError && Boolean(country) && country === billing.data?.billingCountry;
+  const countryLocked = contracts.isPending || contracts.isError || Boolean(contracts.data?.some(contract => !['EXPIRED', 'CANCELLED'].includes(contract.status)));
+  const countryOptions = useMemo(() => {
+    const names = typeof Intl.DisplayNames === 'function' ? new Intl.DisplayNames([i18n.language], { type: 'region' }) : null;
+    return BAITLY_BILLING_COUNTRIES.map(code => ({ value: code, label: names?.of(code) ?? code }));
+  }, [i18n.language]);
+  const proposal = useQuery({ queryKey: [...scope, 'proposal', billing.data?.billingCountry, plan, promoCode], queryFn: () => api.proposal(plan, promoCode), enabled: Boolean(user) && countryReady });
+  const pending = contracts.data?.find(contract => pendingStates.has(contract.status));
+  const current = contracts.data?.find(contract => ['ACTIVE', 'PAST_DUE', 'SUSPENDED'].includes(contract.status));
+  const quote = proposal.data;
+  const money = (cents: number, currency: string) => new Intl.NumberFormat(i18n.language, { style: 'currency', currency }).format(cents / 100);
+  const message = (failure: unknown) => (failure as { message?: string })?.message || t('monthlySubscription.error');
+  const reload = async () => { await cache.invalidateQueries({ queryKey: scope }); await loadUser(); };
+  const run = async (action: () => Promise<void>) => {
+    if (busyRef.current) return;
+    busyRef.current = true; setBusy(true); setError(null);
+    try { await action(); } catch (failure) { setError(message(failure)); }
+    finally { busyRef.current = false; setBusy(false); }
   };
-
-  const isProcessing = state === 'loading' || state === 'presenting';
+  const refresh = (contract: MonthlyContract) => run(async () => { await api.refresh(contract.id); await reload(); });
+  const saveCountry = () => run(async () => {
+    if (countryLocked || !country) return;
+    const saved = await api.updateBillingCountry(country);
+    cache.setQueryData([...scope, 'billing-country'], saved);
+    setCountrySelection(null); attempt.current = null;
+    await cache.invalidateQueries({ queryKey: scope });
+  });
+  const pay = () => run(async () => {
+    if (!countryReady) { setError(t('monthlySubscription.saveCountryFirst')); return; }
+    const selectedPlan = pending?.plan ?? plan;
+    const selectedPromo = pending?.promoCode ?? (pending ? null : promoCode || null);
+    const key = `${user?.id}:${user?.organizationId}:${country}:${selectedPlan}:${selectedPromo ?? ''}`;
+    if (attempt.current?.key !== key) attempt.current = { key, id: randomUUID() };
+    const requestId = pending?.requestId ?? attempt.current.id;
+    const checkout = await api.checkout(selectedPlan, requestId, selectedPromo);
+    await contracts.refetch();
+    await WebBrowser.openBrowserAsync(requireBaitlyStripeCheckout(checkout.checkoutUrl), { dismissButtonStyle: 'close' });
+    const saved = (await api.contracts()).find(contract => contract.requestId === requestId);
+    if (saved && saved.status !== 'PREPARED') await api.refresh(saved.id);
+    await reload();
+  });
+  const text = { color: theme.colors.text.primary };
+  const muted = { color: theme.colors.text.secondary };
+  const surface = { backgroundColor: theme.colors.background.paper, borderColor: theme.colors.border.main };
+  const cannotPay = busy || !countryReady || contracts.isPending || contracts.isError || proposal.isFetching || !quote || Boolean(pending) || promoInput.trim().toUpperCase() !== promoCode;
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: theme.colors.background.default }} edges={['top']}>
-      {/* Header */}
-      <View style={{
-        flexDirection: 'row',
-        alignItems: 'center',
-        paddingHorizontal: theme.SPACING.lg,
-        paddingTop: theme.SPACING.md,
-        paddingBottom: theme.SPACING.md,
-        gap: theme.SPACING.md,
-      }}>
-        <Pressable
-          onPress={() => navigation.goBack()}
-          hitSlop={12}
-          disabled={isProcessing}
-          style={({ pressed }) => ({
-            width: 40,
-            height: 40,
-            borderRadius: theme.BORDER_RADIUS.md,
-            backgroundColor: pressed ? theme.colors.background.surface : theme.colors.background.paper,
-            alignItems: 'center',
-            justifyContent: 'center',
-            ...theme.shadows.xs,
-            opacity: isProcessing ? 0.5 : 1,
-          })}
-        >
-          <Ionicons name="arrow-back" size={20} color={theme.colors.text.primary} />
+    <SafeAreaView style={[styles.screen, { backgroundColor: theme.colors.background.default }]} edges={['top', 'bottom']}>
+      <View style={styles.header}>
+        <Pressable accessibilityRole="button" accessibilityLabel={t('monthlySubscription.back')} onPress={() => navigation.goBack()} hitSlop={12} style={styles.back}>
+          <Ionicons name="arrow-back" size={22} color={theme.colors.text.primary} />
         </Pressable>
-        <Text style={{ ...theme.typography.h3, color: theme.colors.text.primary, flex: 1 }}>
-          Paiement
-        </Text>
-        <View style={{
-          flexDirection: 'row',
-          alignItems: 'center',
-          gap: 4,
-          paddingHorizontal: 10,
-          paddingVertical: 4,
-          borderRadius: theme.BORDER_RADIUS.lg,
-          backgroundColor: `${theme.colors.success.main}0C`,
-        }}>
-          <Ionicons name="lock-closed" size={12} color={theme.colors.success.main} />
-          <Text style={{ ...theme.typography.caption, color: theme.colors.success.main, fontWeight: '600', fontSize: 10 }}>
-            Securise
-          </Text>
-        </View>
+        <Text style={[theme.typography.h3, text]}>{t('monthlySubscription.title')}</Text>
       </View>
-
-      <ScrollView
-        contentContainerStyle={{ paddingBottom: 120 }}
-        showsVerticalScrollIndicator={false}
-      >
-        <View style={{ paddingHorizontal: theme.SPACING.lg }}>
-          {/* Upgrade summary */}
-          <Card style={{ marginBottom: theme.SPACING.lg }}>
-            <Text style={{
-              ...theme.typography.body2,
-              fontWeight: '700',
-              color: theme.colors.text.primary,
-              marginBottom: theme.SPACING.md,
-            }}>
-              Changement de forfait
-            </Text>
-
-            {/* Current → Target */}
-            <View style={{
-              flexDirection: 'row',
-              alignItems: 'center',
-              gap: theme.SPACING.md,
-              marginBottom: theme.SPACING.lg,
-            }}>
-              {/* Current plan */}
-              <View style={{
-                flex: 1,
-                padding: theme.SPACING.md,
-                borderRadius: theme.BORDER_RADIUS.md,
-                backgroundColor: theme.colors.background.surface,
-                alignItems: 'center',
-              }}>
-                <Ionicons name={currentPlan.icon} size={24} color={theme.colors.text.disabled} />
-                <Text style={{
-                  ...theme.typography.caption,
-                  color: theme.colors.text.disabled,
-                  marginTop: 4,
-                }}>
-                  Actuel
-                </Text>
-                <Text style={{
-                  ...theme.typography.body2,
-                  fontWeight: '600',
-                  color: theme.colors.text.secondary,
-                  marginTop: 2,
-                }}>
-                  {currentPlan.label}
-                </Text>
-              </View>
-
-              {/* Arrow */}
-              <Ionicons name="arrow-forward" size={20} color={theme.colors.primary.main} />
-
-              {/* Target plan */}
-              <View style={{
-                flex: 1,
-                padding: theme.SPACING.md,
-                borderRadius: theme.BORDER_RADIUS.md,
-                backgroundColor: `${plan.color}0C`,
-                alignItems: 'center',
-                borderWidth: 1.5,
-                borderColor: `${plan.color}30`,
-              }}>
-                <Ionicons name={plan.icon} size={24} color={plan.color} />
-                <Text style={{
-                  ...theme.typography.caption,
-                  color: plan.color,
-                  marginTop: 4,
-                  fontWeight: '600',
-                }}>
-                  Nouveau
-                </Text>
-                <Text style={{
-                  ...theme.typography.body2,
-                  fontWeight: '700',
-                  color: plan.color,
-                  marginTop: 2,
-                }}>
-                  {plan.label}
-                </Text>
-              </View>
-            </View>
-
-            {/* Features included */}
-            <Text style={{
-              ...theme.typography.caption,
-              fontWeight: '600',
-              color: theme.colors.text.secondary,
-              marginBottom: theme.SPACING.sm,
-            }}>
-              Inclus dans {plan.label} :
-            </Text>
-            {plan.features.map((feature) => (
-              <View key={feature} style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 6 }}>
-                <Ionicons name="checkmark-circle" size={16} color={plan.color} />
-                <Text style={{ ...theme.typography.body2, color: theme.colors.text.primary }}>
-                  {feature}
-                </Text>
-              </View>
-            ))}
-          </Card>
-
-          {/* Order summary */}
-          <Card style={{ marginBottom: theme.SPACING.lg }}>
-            <Text style={{
-              ...theme.typography.body2,
-              fontWeight: '700',
-              color: theme.colors.text.primary,
-              marginBottom: theme.SPACING.md,
-            }}>
-              Resume de la commande
-            </Text>
-
-            <View style={{
-              flexDirection: 'row',
-              justifyContent: 'space-between',
-              alignItems: 'center',
-              paddingVertical: theme.SPACING.sm,
-            }}>
-              <View style={{ flex: 1 }}>
-                <Text style={{ ...theme.typography.body1, color: theme.colors.text.primary }}>
-                  Forfait {plan.label}
-                </Text>
-                <Text style={{ ...theme.typography.caption, color: theme.colors.text.disabled }}>
-                  Abonnement mensuel
-                </Text>
-              </View>
-              <Text style={{ ...theme.typography.body1, fontWeight: '600', color: theme.colors.text.primary }}>
-                {plan.priceLabel} EUR
-              </Text>
-            </View>
-
-            <View style={{
-              borderTopWidth: 1,
-              borderTopColor: theme.colors.border.light,
-              paddingTop: theme.SPACING.md,
-              marginTop: theme.SPACING.sm,
-              flexDirection: 'row',
-              justifyContent: 'space-between',
-              alignItems: 'center',
-            }}>
-              <Text style={{ ...theme.typography.h4, color: theme.colors.text.primary }}>
-                Total
-              </Text>
-              <View style={{ alignItems: 'flex-end' }}>
-                <Text style={{ ...theme.typography.h3, color: theme.colors.primary.main }}>
-                  {plan.priceLabel} EUR
-                </Text>
-                <Text style={{ ...theme.typography.caption, color: theme.colors.text.disabled }}>
-                  par mois, TTC
-                </Text>
-              </View>
-            </View>
-          </Card>
-
-          {/* Payment info */}
-          <Card variant="filled" style={{ marginBottom: theme.SPACING.xl }}>
-            <View style={{ flexDirection: 'row', alignItems: 'flex-start', gap: theme.SPACING.md }}>
-              <Ionicons name="card-outline" size={20} color={theme.colors.primary.main} />
-              <View style={{ flex: 1 }}>
-                <Text style={{
-                  ...theme.typography.body2,
-                  fontWeight: '600',
-                  color: theme.colors.text.primary,
-                  marginBottom: 4,
-                }}>
-                  Paiement securise
-                </Text>
-                <Text style={{ ...theme.typography.caption, color: theme.colors.text.secondary }}>
-                  Vous pouvez payer par carte bancaire, Apple Pay ou Google Pay.
-                  Votre moyen de paiement sera sauvegarde pour les prochaines echeances.
-                </Text>
-              </View>
-            </View>
-          </Card>
-
-          {/* Pay button */}
-          <Button
-            title={isProcessing ? 'Traitement en cours...' : `Payer ${plan.priceLabel} EUR / mois`}
-            onPress={handlePay}
-            disabled={isProcessing}
-            loading={isProcessing}
-            fullWidth
-            size="large"
-            icon={!isProcessing ? <Ionicons name="shield-checkmark-outline" size={20} color="#fff" /> : undefined}
-            style={{ marginBottom: theme.SPACING.md }}
-          />
-
-          {/* Error display */}
-          {state === 'error' && error && (
-            <View style={{
-              padding: theme.SPACING.md,
-              borderRadius: theme.BORDER_RADIUS.md,
-              backgroundColor: `${theme.colors.error.main}0C`,
-              marginBottom: theme.SPACING.md,
-            }}>
-              <Text style={{ ...theme.typography.body2, color: theme.colors.error.main }}>
-                {error}
-              </Text>
-              <Pressable onPress={reset} style={{ marginTop: theme.SPACING.sm }}>
-                <Text style={{ ...theme.typography.body2, color: theme.colors.primary.main, fontWeight: '600' }}>
-                  Reessayer
-                </Text>
-              </Pressable>
-            </View>
-          )}
-
-          {/* Terms */}
-          <Text style={{
-            ...theme.typography.caption,
-            color: theme.colors.text.disabled,
-            textAlign: 'center',
-            lineHeight: 18,
-          }}>
-            En procedant au paiement, vous acceptez les conditions generales de vente.
-            L'abonnement se renouvelle automatiquement chaque mois.
-            Vous pouvez annuler a tout moment.
-          </Text>
+      <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
+        <Text style={[theme.typography.body2, muted]}>{t('monthlySubscription.intro')}</Text>
+        {error || contracts.error ? <Text accessibilityRole="alert" style={{ color: theme.colors.error.main }}>{error || message(contracts.error)}</Text> : null}
+        {contracts.isError ? <Button variant="outlined" title={t('monthlySubscription.retry')} onPress={() => { void contracts.refetch(); }} /> : null}
+        <View style={styles.billingCountry}>
+          {countryLocked || busy || billing.isPending || billing.isError ? <>
+            <Text style={[theme.typography.body2, muted]}>{t('monthlySubscription.billingCountry')}</Text>
+            <Text style={[theme.typography.body1, text]}>{countryOptions.find(option => option.value === country)?.label ?? t('monthlySubscription.chooseCountry')}</Text>
+          </> : <Select label={t('monthlySubscription.billingCountry')} placeholder={t('monthlySubscription.chooseCountry')} value={country} options={countryOptions} onChange={setCountrySelection} />}
+          <Text style={[theme.typography.caption, muted]}>{t('monthlySubscription.countryScope')}</Text>
+          {countryLocked ? <Text style={[theme.typography.caption, muted]}>{t('monthlySubscription.countryLocked')}</Text> : null}
+          {!countryLocked ? <Button variant="outlined" title={t('monthlySubscription.saveCountry')} disabled={busy || billing.isPending || billing.isError || !country || country === billing.data?.billingCountry} onPress={() => { void saveCountry(); }} /> : null}
+          {billing.error ? <Text accessibilityRole="alert" style={{ color: theme.colors.error.main }}>{message(billing.error)}</Text> : null}
+          {billing.isError ? <Button variant="text" title={t('monthlySubscription.retry')} onPress={() => { void billing.refetch(); }} /> : null}
         </View>
+        {pending ? (
+          <View style={[styles.section, surface]}>
+            <Text style={[theme.typography.h3, text]}>{t('monthlySubscription.pending')}</Text>
+            <Text style={[theme.typography.body2, muted]}>{t('monthlySubscription.awaiting')}</Text>
+            <Text style={[theme.typography.h3, text, styles.number]}>{money(pending.firstInvoiceExcludingTaxCents, pending.currency)} {t('monthlySubscription.net')}</Text>
+            {pending.status !== 'ACTIVATING' ? <Button title={t('monthlySubscription.resume')} onPress={() => { void pay(); }} loading={busy} disabled={!countryReady} /> : null}
+            {pending.status !== 'PREPARED' ? <Button variant="outlined" title={t('monthlySubscription.verify')} onPress={() => { void refresh(pending); }} disabled={busy} /> : null}
+            {pending.status !== 'ACTIVATING' ? <Button variant="text" title={t('monthlySubscription.abandon')} disabled={busy} onPress={() => { void run(async () => { await api.abandon(pending.id); attempt.current = null; await reload(); }); }} /> : null}
+          </View>
+        ) : current ? <BaitlySubscriptionChange contract={current} /> : (
+          <>
+            <View style={styles.plans}>
+              {(['essential', 'pro'] as const).map(value => <Button key={value} title={value === 'pro' ? 'Baitly Pro' : 'Baitly Essentiel'} variant={value === plan ? 'contained' : 'outlined'} disabled={busy} style={styles.plan} onPress={() => setPlan(value)} />)}
+            </View>
+            <View style={[styles.section, surface]}>
+              {proposal.isFetching ? <ActivityIndicator accessibilityLabel={t('monthlySubscription.loading')} color={theme.colors.primary.main} /> : null}
+              {proposal.error ? <Text accessibilityRole="alert" style={{ color: theme.colors.error.main }}>{message(proposal.error)}</Text> : null}
+              {quote ? <>
+                <Text style={[theme.typography.body2, muted]}>{t('monthlySubscription.properties', { count: Math.max(1, quote.propertyCount) })}</Text>
+                <Text style={[theme.typography.h2, text, styles.number]}>{money(quote.firstInvoiceExcludingTaxCents, quote.phases[0].currency)} {t('monthlySubscription.net')}</Text>
+                <Text style={[theme.typography.body2, muted]}>{t('monthlySubscription.taxes')}</Text>
+                {quote.phases.map(phase => <View key={phase.subscriptionMonth} style={styles.row}>
+                  <Text style={[theme.typography.body2, muted]}>{t('monthlySubscription.fromMonth', { month: phase.subscriptionMonth })}</Text>
+                  <Text style={[theme.typography.body2, text, styles.number]}>{money(phase.totalCents, phase.currency)} {t('monthlySubscription.net')}</Text>
+                </View>)}
+              </> : null}
+              <Text style={[theme.typography.body2, text]}>{t('monthlySubscription.promo')}</Text>
+              <TextInput accessibilityLabel={t('monthlySubscription.promo')} value={promoInput} onChangeText={setPromoInput} autoCapitalize="characters" autoCorrect={false} editable={!busy} style={[styles.input, text, { borderColor: theme.colors.border.main }]} />
+              <Button variant="outlined" title={t('monthlySubscription.apply')} disabled={busy} onPress={() => setPromoCode(promoInput.trim().toUpperCase())} />
+              <Button title={t('monthlySubscription.continue')} disabled={cannotPay} loading={busy} onPress={() => { void pay(); }} />
+            </View>
+          </>
+        )}
+        {contracts.data?.filter(contract => !pendingStates.has(contract.status)).map(contract => <View key={contract.id} style={[styles.section, surface]}>
+          <View style={styles.row}>
+            <Text style={[theme.typography.h3, text]}>{contract.plan === 'pro' ? 'Baitly Pro' : 'Baitly Essentiel'}</Text>
+            <Text style={[theme.typography.caption, muted]}>{t(`monthlySubscription.status.${contract.status}`, { defaultValue: t('monthlySubscription.review') })}</Text>
+          </View>
+          {contract.paidUntil ? <Text style={[theme.typography.body2, muted]}>{t('monthlySubscription.paidUntil', { date: new Date(contract.paidUntil).toLocaleDateString(i18n.language) })}</Text> : null}
+          <Button title={t('monthlySubscription.verify')} variant="text" disabled={busy} onPress={() => { void refresh(contract); }} />
+        </View>)}
       </ScrollView>
     </SafeAreaView>
   );
 }
+
+const styles = StyleSheet.create({
+  screen: { flex: 1 }, header: { padding: 16, flexDirection: 'row', alignItems: 'center', gap: 12 },
+  back: { padding: 8 }, content: { padding: 20, gap: 20, paddingBottom: 32 },
+  section: { padding: 20, borderWidth: 1, borderRadius: 18, gap: 14 },
+  billingCountry: { gap: 10 },
+  plans: { flexDirection: 'row', flexWrap: 'wrap', gap: 12 }, plan: { flex: 1, minWidth: 125 },
+  row: { flexDirection: 'row', justifyContent: 'space-between', flexWrap: 'wrap', gap: 8 },
+  input: { borderWidth: 1, borderRadius: 10, padding: 12, minHeight: 48 },
+  number: { fontVariant: ['tabular-nums'] },
+});

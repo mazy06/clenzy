@@ -1,0 +1,12 @@
+[
+  {
+    "file": "BR-FR-Flux2-Schematron-CII.xslt",
+    "sha256": "02c9b97965438c1f587269a07daa5191b15efd3408f913b57bd35570f439ef10",
+    "source": "https://raw.githubusercontent.com/fnfempe/France_RFE/97ba0f3d4ef2abed5780e9490d5c3a2be832ab1d/FNFE_RFE_INVOICE/CII/EN16931/2xslt/BR-FR-Flux2-Schematron-CII.xslt"
+  },
+  {
+    "file": "LICENSE",
+    "sha256": "c71d239df91726fc519c6eb72d318ec65820627232b2f796219e87dcf35d0ab4",
+    "source": "https://raw.githubusercontent.com/fnfempe/France_RFE/97ba0f3d4ef2abed5780e9490d5c3a2be832ab1d/LICENSE"
+  }
+]

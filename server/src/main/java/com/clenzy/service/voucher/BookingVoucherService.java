@@ -118,6 +118,7 @@ public class BookingVoucherService {
         v.setType(payload.type());
         v.setDiscountType(payload.discountType());
         v.setDiscountValue(payload.discountValue());
+        v.setCurrency(normalizeCurrency(payload.currency()));
         v.setValidFrom(payload.validFrom());
         v.setValidUntil(payload.validUntil());
         v.setMinStayNights(payload.minStayNights());
@@ -129,6 +130,7 @@ public class BookingVoucherService {
         v.setStatus(payload.status() != null ? payload.status() : VoucherStatus.DRAFT);
         v.setCreatedByOrgType(creatorType);
         v.setCreatedByUserId(userId);
+        validateMonetaryTerms(v);
 
         BookingVoucher saved = voucherRepo.save(v);
         replaceScope(saved.getId(), orgId, payload.propertyIds());
@@ -176,6 +178,7 @@ public class BookingVoucherService {
         if (payload.description() != null) v.setDescription(payload.description());
         if (payload.discountType() != null) v.setDiscountType(payload.discountType());
         if (payload.discountValue() != null) v.setDiscountValue(payload.discountValue());
+        if (payload.currency() != null) v.setCurrency(normalizeCurrency(payload.currency()));
         if (payload.validFrom() != null) v.setValidFrom(payload.validFrom());
         if (payload.validUntil() != null) v.setValidUntil(payload.validUntil());
         if (payload.minStayNights() != null) v.setMinStayNights(payload.minStayNights());
@@ -193,6 +196,7 @@ public class BookingVoucherService {
             replaceScope(voucherId, orgId, payload.propertyIds());
         }
 
+        validateMonetaryTerms(v);
         logger.info("Voucher updated : id={}, code={}", voucherId, v.getCode());
         return voucherRepo.save(v);
     }
@@ -212,11 +216,27 @@ public class BookingVoucherService {
     /** Pause/Resume rapide d'un voucher (raccourci sans full update). */
     public BookingVoucher setStatus(Long voucherId, Long orgId, VoucherStatus newStatus) {
         BookingVoucher v = findOrThrow(voucherId, orgId);
+        if(newStatus==VoucherStatus.ACTIVE) validateMonetaryTerms(v);
         VoucherStatus oldStatus = v.getStatus();
         checkStatusTransition(oldStatus, newStatus);
         v.setStatus(newStatus);
         logger.info("Voucher status change : id={}, {} -> {}", voucherId, oldStatus, newStatus);
         return voucherRepo.save(v);
+    }
+
+    private static String normalizeCurrency(String code) {
+        if(code==null || code.isBlank()) return null;
+        String normalized=code.strip().toUpperCase(java.util.Locale.ROOT);
+        try { java.util.Currency.getInstance(normalized); } catch(IllegalArgumentException error) { throw new VoucherException("Devise de promotion invalide"); }
+        return normalized;
+    }
+    private static void validateMonetaryTerms(BookingVoucher v) {
+        if((v.getDiscountType()==VoucherDiscountType.FIXED_AMOUNT || v.getMinTotalAmount()!=null && v.getMinTotalAmount().signum()>0)
+                && v.getCurrency()==null) throw new VoucherException("Renseignez la devise du montant promotionnel");
+        if(v.getDiscountValue()==null || v.getDiscountValue().signum()<=0 || v.getDiscountValue().scale()>2
+                || v.getDiscountType()==VoucherDiscountType.PERCENTAGE && v.getDiscountValue().compareTo(BigDecimal.valueOf(100))>0
+                || v.getDiscountType()==VoucherDiscountType.FREE_NIGHTS && v.getDiscountValue().stripTrailingZeros().scale()>0)
+            throw new VoucherException("Valeur de remise invalide");
     }
 
     // ─────────────────────────────────────────────────────────────────────────

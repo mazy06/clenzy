@@ -70,6 +70,24 @@ class StripePaymentProviderTest {
     }
 
     // ── createPayment ─────────────────────────────────────────────────────
+    @org.junit.jupiter.params.ParameterizedTest
+    @org.junit.jupiter.params.provider.ValueSource(booleans={false,true})
+    void commerceCheckoutPreservesTtcTaxAndInvoiceMetadataIncludingEmbeddedCard(boolean embedded)throws Exception {
+        var gateway=mock(com.clenzy.payment.StripeGateway.class);
+        var service=new StripePaymentProvider(gateway,mock(com.clenzy.payment.ManagedStripeRefund.class));
+        var session=new Session();session.setId("cs_tax");session.setUrl("https://checkout.stripe.com/test");session.setClientSecret("test_secret");
+        when(gateway.createSession(any(SessionCreateParams.class),eq("tax-request"))).thenReturn(session);
+        var metadata=Map.of("baitly_commerce_invoice","true","baitly_tax_code","txcd_10000000","seller_account","acct_test");
+        var request=new PaymentRequest(new BigDecimal("12"),"EUR","Test", "buyer@example.test",null,"https://example.test/success","https://example.test/cancel","tax-request",metadata,embedded,null,true);
+        assertThat(service.createPayment(request).success()).isTrue();
+        var capture=org.mockito.ArgumentCaptor.forClass(SessionCreateParams.class);org.mockito.Mockito.verify(gateway).createSession(capture.capture(),eq("tax-request"));
+        var p=capture.getValue();assertThat(p.getAutomaticTax().getEnabled()).isTrue();assertThat(p.getInvoiceCreation().getEnabled()).isTrue();
+        assertThat(p.getLineItems().getFirst().getPriceData().getUnitAmount()).isEqualTo(1200);
+        assertThat(p.getLineItems().getFirst().getPriceData().getTaxBehavior()).isEqualTo(SessionCreateParams.LineItem.PriceData.TaxBehavior.INCLUSIVE);
+        assertThat(p.getPaymentIntentData().getMetadata()).containsAllEntriesOf(metadata);
+        assertThat(p.getInvoiceCreation().getInvoiceData().getMetadata()).containsAllEntriesOf(metadata);
+        if(embedded)assertThat(p.getPaymentIntentData().getSetupFutureUsage()).isEqualTo(SessionCreateParams.PaymentIntentData.SetupFutureUsage.OFF_SESSION);
+    }
 
     @Nested
     class ResumeEmbedded {

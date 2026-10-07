@@ -78,6 +78,7 @@ import TaxRulesSection from './TaxRulesSection';
 import TouristTaxSection from './TouristTaxSection';
 import FrComplianceOverviewSection from './FrComplianceOverviewSection';
 import PaymentSettings from './PaymentSettings';
+import BaitlyMonthlySubscription from './BaitlyMonthlySubscription';
 import AiSettingsSection from './AiSettingsSection';
 import IntegrationsSection from './IntegrationsSection';
 import IntegrationsHeader from './components/IntegrationsHeader';
@@ -267,6 +268,7 @@ export default function Settings() {
     ai: tabIndexFromKey(settingsTabs, 'ai'),
     fiscal: tabIndexFromKey(settingsTabs, 'fiscal'),
     organization: tabIndexFromKey(settingsTabs, 'organization'),
+    subscription: tabIndexFromKey(settingsTabs, 'subscription'),
     payment: tabIndexFromKey(settingsTabs, 'payment'),
     integrations: tabIndexFromKey(settingsTabs, 'integrations'),
     migration: tabIndexFromKey(settingsTabs, 'migration'),
@@ -1079,6 +1081,8 @@ export default function Settings() {
           />
         </TabPanel>
       )}
+
+      {tabIdx.subscription >= 0 && <TabPanel value={tabValue} index={tabIdx.subscription}><BaitlyMonthlySubscription /></TabPanel>}
 
       {/* ─── Onglet Paiement (ADMIN/MANAGER) ─────────────────────────── */}
       {hasAnyRole(['SUPER_ADMIN', 'SUPER_MANAGER']) && (

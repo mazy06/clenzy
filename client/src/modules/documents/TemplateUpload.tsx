@@ -44,14 +44,19 @@ const TemplateUpload: React.FC<TemplateUploadProps> = ({ open, onClose, onSucces
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const f = e.target.files?.[0];
+    setFile(null);
     if (f) {
-      if (!f.name.toLowerCase().endsWith('.odt')
-          || (f.type && f.type !== 'application/vnd.oasis.opendocument.text')) {
+      if (!f.name.toLowerCase().endsWith('.html')
+          || (f.type && f.type !== 'text/html')) {
         setError(t('documents.onlyOdt'));
         return;
       }
+      if (f.size === 0 || f.size > 5 * 1024 * 1024) {
+        setError(t('documents.htmlSizeLimit', 'Le modèle HTML doit contenir entre 1 octet et 5 Mo.'));
+        return;
+      }
       setFile(f);
-      if (!name) setName(f.name.replace('.odt', ''));
+      if (!name) setName(f.name.replace(/\.html$/i, ''));
       setError(null);
     }
   };
@@ -119,10 +124,10 @@ const TemplateUpload: React.FC<TemplateUploadProps> = ({ open, onClose, onSucces
               file ? 'border-success bg-success-soft' : 'border-border bg-field',
             )}
           >
-            <input type="file" accept=".odt" hidden onChange={handleFileChange} aria-label={t('documents.upload.selectFile')} />
+            <input type="file" accept=".html" hidden onChange={handleFileChange} aria-label={t('documents.upload.selectFile')} />
             <span className={cn('inline-flex mb-1.5', file ? 'text-success' : 'text-faint')}><CloudUpload size={40} strokeWidth={1.75} /></span>
             <p className="text-sm font-medium">
-              {file ? file.name : 'Cliquez pour sélectionner un fichier .odt'}
+              {file ? file.name : 'Cliquez pour sélectionner un fichier .html'}
             </p>
             {file && (
               <span className="text-xs text-muted-foreground tabular-nums">

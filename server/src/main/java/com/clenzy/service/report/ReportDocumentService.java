@@ -256,6 +256,7 @@ public class ReportDocumentService {
         return organizationRepository.findById(orgId)
                 .map(com.clenzy.model.Organization::getName)
                 .filter(name -> name != null && !name.isBlank())
+                .map(com.clenzy.service.BaitlyDocumentIdentity::displayName)
                 .orElse("Votre gestionnaire");
     }
 

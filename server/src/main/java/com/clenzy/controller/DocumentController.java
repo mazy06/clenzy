@@ -86,7 +86,7 @@ public class DocumentController {
     }
 
     @PostMapping(value = "/templates", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    @Operation(summary = "Uploader un nouveau template .odt")
+    @Operation(summary = "Uploader un nouveau modèle HTML")
     @PreAuthorize("hasRole('SUPER_ADMIN')")
     public ResponseEntity<DocumentTemplateDto> uploadTemplate(
             @AuthenticationPrincipal Jwt jwt,
@@ -140,7 +140,7 @@ public class DocumentController {
     }
 
     @PutMapping(value = "/templates/{id}/file", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    @Operation(summary = "Remplacer le fichier .odt d'un template existant (re-parse automatique des tags)")
+    @Operation(summary = "Remplacer le fichier HTML d'un template existant (re-parse automatique des tags)")
     @PreAuthorize("hasRole('SUPER_ADMIN')")
     public ResponseEntity<DocumentTemplateDto> replaceTemplateFile(
             @PathVariable Long id,
@@ -158,19 +158,22 @@ public class DocumentController {
     }
 
     @GetMapping("/templates/{id}/download")
-    @Operation(summary = "Telecharger le fichier original du template (.odt source)")
+    @Operation(summary = "Telecharger le fichier original du template (HTML source)")
     @PreAuthorize("hasAnyRole('SUPER_ADMIN','SUPER_MANAGER')")
     public ResponseEntity<byte[]> downloadTemplateOriginal(@PathVariable Long id) {
         DocumentTemplate template = generatorService.getTemplate(id);
         byte[] content = generatorService.getTemplateOriginalContent(id);
-        String filename = template.getOriginalFilename() != null ? template.getOriginalFilename() : "template.odt";
+        String filename = template.getOriginalFilename() != null
+                ? template.getOriginalFilename().replaceAll("(?i)\\.odt$", ".html")
+                    .replaceAll("(?i)clenzy", "baitly").replaceAll("[\\r\\n\"\\\\/]", "_")
+                : "template.html";
         String encodedFilename = URLEncoder.encode(filename, StandardCharsets.UTF_8).replace("+", "%20");
 
         return ResponseEntity.ok()
-                .header("Content-Type", "application/vnd.oasis.opendocument.text")
+                .header("Content-Type", "text/html; charset=UTF-8")
                 .header("Content-Disposition", "attachment; filename=\"" + filename + "\"; "
                         + "filename*=UTF-8''" + encodedFilename)
-                .header("Cache-Control", "private, max-age=300")
+                .header("Cache-Control", "no-cache, no-store, must-revalidate")
                 .body(content);
     }
 
@@ -180,12 +183,13 @@ public class DocumentController {
     public ResponseEntity<byte[]> previewTemplate(@PathVariable Long id) {
         DocumentTemplate template = generatorService.getTemplate(id);
         byte[] pdf = generatorService.generateTemplatePreview(id);
-        String baseName = template.getName() != null ? template.getName().replaceAll("[^a-zA-Z0-9_-]+", "_") : "template";
+        String baseName = template.getName() != null
+                ? template.getName().replaceAll("(?i)clenzy", "Baitly").replaceAll("[^a-zA-Z0-9_-]+", "_") : "template";
         String filename = baseName + "_preview.pdf";
         String encodedFilename = URLEncoder.encode(filename, StandardCharsets.UTF_8).replace("+", "%20");
 
         // Content-Disposition inline pour que le navigateur affiche le PDF
-        // au lieu de declencher un telechargement (le frontend ouvre dans un nouvel onglet).
+        // dans le lecteur intégré ; aucune commande de téléchargement de l’aperçu.
         return ResponseEntity.ok()
                 .header("Content-Type", "application/pdf")
                 .header("Content-Disposition", "inline; filename=\"" + filename + "\"; "
@@ -412,6 +416,12 @@ public class DocumentController {
         return ResponseEntity.ok(report);
     }
 
+    @GetMapping("/templates/{id}/compliance-check")
+    @PreAuthorize("hasRole('SUPER_ADMIN')")
+    public ResponseEntity<ComplianceReportDto> lastTemplateCheck(@PathVariable Long id) {
+        return ResponseEntity.ok(complianceService.getLastComplianceReport(id).orElse(null));
+    }
+
     @GetMapping("/compliance/stats")
     @Operation(summary = "Statistiques globales de conformite NF")
     @PreAuthorize("hasRole('SUPER_ADMIN')")
@@ -435,6 +445,8 @@ public class DocumentController {
             @AuthenticationPrincipal Jwt jwt,
             @RequestBody GenerateDocumentRequest request
     ) {
+        complianceService.requireCorrectable(id);
+        if("FACTURE".equals(request.documentType())) throw new com.clenzy.exception.DocumentValidationException("Les factures sont rectifiées depuis Finance");
         DocumentGenerationDto result = generatorService.generateDocument(request, jwt);
         complianceService.markAsCorrection(result.id(), id);
         return ResponseEntity.status(HttpStatus.CREATED).body(result);

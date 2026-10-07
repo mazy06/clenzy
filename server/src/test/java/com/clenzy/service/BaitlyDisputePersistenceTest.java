@@ -1,5 +1,7 @@
 package com.clenzy.service;
 
+import static org.mockito.Mockito.mock;
+
 import com.clenzy.model.*;
 import com.clenzy.tenant.TenantContext;
 import jakarta.persistence.EntityManager;
@@ -52,9 +54,9 @@ class BaitlyDisputePersistenceTest {
         return new BaitlyDisputeProof(paymentId,7L,"cs_test","dp_test","ch_test","pi_test",new BigDecimal("35"),"EUR",status,null,movements);
     }
     @Test void openThenWonReleasesOnlyPrincipalAndKeepsExactFeesAndHistory() {
-        tx(em->{ var row=new BaitlyDisputeStore(em,tenant).observe(proof("needs_response",false));
+        tx(em->{ var row=new BaitlyDisputeStore(em,tenant,mock(com.clenzy.service.ai.BaitlyCreditFunding.class)).observe(proof("needs_response",false));
             assertThat(row.getReservationId()).isEqualTo(22L); assertThat(em.find(PaymentTransaction.class,paymentId).getDisputedAmount()).isEqualByComparingTo("35"); return null; });
-        tx(em->{ var store=new BaitlyDisputeStore(em,tenant); store.observe(proof("won",true)); store.observe(proof("won",true));
+        tx(em->{ var store=new BaitlyDisputeStore(em,tenant,mock(com.clenzy.service.ai.BaitlyCreditFunding.class)); store.observe(proof("won",true)); store.observe(proof("won",true));
             store.observe(proof("needs_response",false)); // livraison ancienne après clôture
             assertThat(em.find(PaymentTransaction.class,paymentId).getDisputedAmount()).isZero();
             assertThat(em.createQuery("select count(e) from BaitlyDisputeBalanceEntry e",Long.class).getSingleResult()).isEqualTo(2L);
@@ -63,37 +65,37 @@ class BaitlyDisputePersistenceTest {
             return null; });
     }
     @Test void closedBeforeOpenedStillRecordsLossAndNeverMakesLostMoneyAvailable() {
-        tx(em->{ var store=new BaitlyDisputeStore(em,tenant); store.observe(proof("lost",false)); store.observe(proof("needs_response",false));
+        tx(em->{ var store=new BaitlyDisputeStore(em,tenant,mock(com.clenzy.service.ai.BaitlyCreditFunding.class)); store.observe(proof("lost",false)); store.observe(proof("needs_response",false));
             assertThat(em.find(PaymentTransaction.class,paymentId).getDisputedAmount()).isEqualByComparingTo("35"); return null; });
     }
     @Test void warningClosedIsNotMistakenForALostDispute() {
         var inquiry=new BaitlyDisputeProof(paymentId,7L,"cs_test","dp_test","ch_test","pi_test",new BigDecimal("35"),"EUR","warning_closed",null,List.of());
-        tx(em->{ var store=new BaitlyDisputeStore(em,tenant); var row=store.observe(inquiry);
+        tx(em->{ var store=new BaitlyDisputeStore(em,tenant,mock(com.clenzy.service.ai.BaitlyCreditFunding.class)); var row=store.observe(inquiry);
             assertThat(row.getStatus()).isEqualTo(PaymentDispute.Status.CLOSED);
             assertThat(em.find(PaymentTransaction.class,paymentId).getDisputedAmount()).isZero(); return null; });
     }
     @Test void wonButNotYetReinstatedKeepsFundsHeldUntilCanonicalCreditArrives() {
-        tx(em->{ var row=new BaitlyDisputeStore(em,tenant).observe(proof("won",false));
+        tx(em->{ var row=new BaitlyDisputeStore(em,tenant,mock(com.clenzy.service.ai.BaitlyCreditFunding.class)).observe(proof("won",false));
             assertThat(row.isFundingHeld()).isTrue(); assertThat(em.find(PaymentTransaction.class,paymentId).getDisputedAmount()).isEqualByComparingTo("35"); return null; });
-        tx(em->{ var row=new BaitlyDisputeStore(em,tenant).observe(proof("won",true));
+        tx(em->{ var row=new BaitlyDisputeStore(em,tenant,mock(com.clenzy.service.ai.BaitlyCreditFunding.class)).observe(proof("won",true));
             assertThat(row.isFundingHeld()).isFalse(); assertThat(em.find(PaymentTransaction.class,paymentId).getDisputedAmount()).isZero(); return null; });
     }
     @Test void foreignTenantCannotObserveOrReserveFunds() {
         tenant.setOrganizationId(8L);
-        assertThatThrownBy(()->tx(em->new BaitlyDisputeStore(em,tenant).observe(proof("needs_response",false)))).hasMessageContaining("hors organisation");
+        assertThatThrownBy(()->tx(em->new BaitlyDisputeStore(em,tenant,mock(com.clenzy.service.ai.BaitlyCreditFunding.class)).observe(proof("needs_response",false)))).hasMessageContaining("hors organisation");
     }
     @Test void wonWithoutAnyMovementDoesNotInventRestitution() {
         var absent=new BaitlyDisputeProof(paymentId,7L,"cs_test","dp_test","ch_test","pi_test",new BigDecimal("35"),"EUR","won",null,List.of());
-        tx(em->{ var row=new BaitlyDisputeStore(em,tenant).observe(absent);
+        tx(em->{ var row=new BaitlyDisputeStore(em,tenant,mock(com.clenzy.service.ai.BaitlyCreditFunding.class)).observe(absent);
             assertThat(row.isFundingHeld()).isTrue();
             assertThat(em.find(PaymentTransaction.class,paymentId).getDisputedAmount()).isEqualByComparingTo("35"); return null; });
     }
     @Test void conflictingBalanceEvidenceRollsBackTheWholeTransition() {
-        tx(em->new BaitlyDisputeStore(em,tenant).observe(proof("needs_response",false)));
+        tx(em->new BaitlyDisputeStore(em,tenant,mock(com.clenzy.service.ai.BaitlyCreditFunding.class)).observe(proof("needs_response",false)));
         var valid=proof("won",true);
         var wrong=new BaitlyDisputeProof(paymentId,7L,"cs_test","dp_test","ch_test","pi_test",new BigDecimal("35"),"EUR","won",null,
                 List.of(new BaitlyDisputeProof.Movement("txn_debit",new BigDecimal("-35"),BigDecimal.ZERO,new BigDecimal("-35"),"EUR",Instant.EPOCH,Instant.EPOCH)));
-        assertThatThrownBy(()->tx(em->new BaitlyDisputeStore(em,tenant).observe(wrong))).hasMessageContaining("Mouvement Stripe");
+        assertThatThrownBy(()->tx(em->new BaitlyDisputeStore(em,tenant,mock(com.clenzy.service.ai.BaitlyCreditFunding.class)).observe(wrong))).hasMessageContaining("Mouvement Stripe");
         tx(em->{ assertThat(em.find(PaymentTransaction.class,paymentId).getDisputedAmount()).isEqualByComparingTo("35"); return null; });
     }
 }

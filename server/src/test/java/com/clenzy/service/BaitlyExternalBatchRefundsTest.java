@@ -44,7 +44,7 @@ class BaitlyExternalBatchRefundsTest {
         factory=new Configuration().addPackage("com.clenzy.model").addAnnotatedClass(PaymentTransaction.class)
                 .addAnnotatedClass(InterventionPaymentAllocation.class).addAnnotatedClass(LedgerEntry.class)
                 .addAnnotatedClass(HousekeeperPayoutRecord.class).addAnnotatedClass(PayoutTransfer.class).addAnnotatedClass(BaitlyTransferRecovery.class)
-                .addAnnotatedClass(Invoice.class).addAnnotatedClass(InvoiceLine.class).addAnnotatedClass(InvoiceNumberSequence.class)
+                .addAnnotatedClass(Invoice.class).addAnnotatedClass(InvoiceLine.class).addAnnotatedClass(InvoiceNumberSequence.class).addAnnotatedClass(BaitlyInvoiceIssuerSequence.class)
                 .addAnnotatedClass(OutboxEvent.class)
                 .addInputStream(new ByteArrayInputStream(mapped.getBytes(StandardCharsets.UTF_8)))
                 .setProperty("hibernate.connection.url",jdbc==null?"jdbc:h2:mem:externalbatchrefund;MODE=PostgreSQL;LOCK_TIMEOUT=5000"
@@ -83,7 +83,7 @@ class BaitlyExternalBatchRefundsTest {
         };
         var persistence=new PaymentPersistence(repo,durableOutbox,new ObjectMapper(),mock(DepositReconciler.class),coordination,mock(InvoicePaymentCoordination.class), org.mockito.Mockito.mock(com.clenzy.service.payout.BaitlyTransferRecoveryStore.class));
         return new BaitlyExternalRefundStore(em,repo,tenant,new BaitlyExternalRefundEligibility(em,repo,coordination,locks,
-                new com.clenzy.service.payout.BaitlyTransferRecoveryStore(em)),persistence,reconciliation,mock(BaitlyExternalReservationRefunds.class),batch(em));
+                new com.clenzy.service.payout.BaitlyTransferRecoveryStore(em)),persistence,reconciliation,mock(BaitlyExternalReservationRefunds.class),batch(em),mock(com.clenzy.service.ai.BaitlyCreditFunding.class));
     }
     BaitlyBatchRefundPersistence batches(EntityManager em) {
         var coordination=new InterventionPaymentCoordination(em,payments(em),mock(ServiceQuoteRepository.class),mock(CurrencyConverterService.class)) {
@@ -100,7 +100,7 @@ class BaitlyExternalBatchRefundsTest {
     @BeforeEach void seed() {
         when(tenant.getRequiredOrganizationId()).thenReturn(7L);
         tx(em -> {
-            for(String entity:List.of("OutboxEvent","InvoiceLine","Invoice","InvoiceNumberSequence","BaitlyTransferRecovery","PayoutTransfer","HousekeeperPayoutRecord","LedgerEntry","InterventionPaymentAllocation","PaymentTransaction","Intervention"))
+            for(String entity:List.of("OutboxEvent","InvoiceLine","Invoice","InvoiceNumberSequence","BaitlyInvoiceIssuerSequence","BaitlyTransferRecovery","PayoutTransfer","HousekeeperPayoutRecord","LedgerEntry","InterventionPaymentAllocation","PaymentTransaction","Intervention"))
                 em.createQuery("delete from "+entity).executeUpdate();
             em.createNativeQuery("DELETE FROM housekeeper_payout_records").executeUpdate();
             em.createNativeQuery("DELETE FROM invoices").executeUpdate();
@@ -217,7 +217,7 @@ class BaitlyExternalBatchRefundsTest {
     @Test void partialExternalSeriesIssuesOneCreditNotePerProofWithExactTaxTotal() {
         tx(em -> {
             em.persist(new InvoiceNumberSequence(7L,"FA",java.time.LocalDate.now().getYear()));
-            var invoice=new Invoice();invoice.setOrganizationId(7L);invoice.setInvoiceNumber("INV-BATCH");invoice.setInvoiceDate(java.time.LocalDate.now());
+            var invoice=new Invoice();invoice.setBuyerName("Destinataire TEST");invoice.setSellerName("Émetteur test");invoice.setSellerAddress("1 rue de la Simulation, Paris");invoice.setSellerTaxId("FR-TEST-ONLY");invoice.setOrganizationId(7L);invoice.setInvoiceNumber("INV-BATCH");invoice.setInvoiceDate(java.time.LocalDate.now());
             invoice.setInvoiceType(InvoiceType.GUEST);invoice.setInterventionId(10L);invoice.setStatus(InvoiceStatus.SENT);invoice.setCurrency("EUR");
             invoice.setTotalHt(new BigDecimal("29.17"));invoice.setTotalTax(new BigDecimal("5.83"));invoice.setTotalTtc(new BigDecimal("35"));
             invoice.addLine(RefundCreditNotePersistenceTest.line(1,"29.17","5.83","35","0.20"));em.persist(invoice);return null;

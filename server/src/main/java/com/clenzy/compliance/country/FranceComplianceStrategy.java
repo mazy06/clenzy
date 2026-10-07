@@ -48,7 +48,7 @@ public class FranceComplianceStrategy implements CountryComplianceStrategy {
             tags.putIfAbsent("validite", validite);
             // Conditions de paiement applicables au devis (acceptation = signature)
             tags.putIfAbsent("conditions_paiement",
-                "Paiement de l'abonnement par prelevement SEPA mensuel ou virement annuel. "
+                "Paiement sécurisé auprès du prestataire de paiement proposé par Baitly. "
               + "Acceptation du devis : retour signe par email. "
               + "Penalites de retard : 3 fois le taux d'interet legal.");
         }

@@ -33,10 +33,19 @@ public class InscriptionController {
 
     private final InscriptionService inscriptionService;
     private final PlatformSettingsService platformSettings;
+    private final com.clenzy.service.BaitlySignupCheckout signupCheckout;
 
-    public InscriptionController(InscriptionService inscriptionService, PlatformSettingsService platformSettings) {
+    public InscriptionController(InscriptionService inscriptionService, PlatformSettingsService platformSettings, com.clenzy.service.BaitlySignupCheckout signupCheckout) {
         this.inscriptionService = inscriptionService;
         this.platformSettings = platformSettings;
+        this.signupCheckout = signupCheckout;
+    }
+
+    @GetMapping("/quote")
+    public com.clenzy.service.BaitlySignupCheckout.Proposal quote(
+            @RequestParam com.clenzy.service.BaitlyMonthlyPricing.Plan plan,
+            @RequestParam String country, @RequestParam int properties, @RequestParam(required=false) String promoCode) {
+        return signupCheckout.quote(plan,country,properties,promoCode);
     }
 
     /**

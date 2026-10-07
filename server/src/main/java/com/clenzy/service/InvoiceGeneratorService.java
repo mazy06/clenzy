@@ -82,8 +82,12 @@ public class InvoiceGeneratorService {
     @Transactional
     public InvoiceDto generateFromReservation(GenerateInvoiceRequest request) {
         Long orgId = tenantContext.getRequiredOrganizationId();
-        String countryCode = tenantContext.getCountryCode();
 
+        Reservation reservation = reservationRepository.findById(request.reservationId())
+            .orElseThrow(() -> new IllegalArgumentException(
+                "Reservation introuvable: " + request.reservationId()));
+        if(!Objects.equals(reservation.getOrganizationId(),orgId))
+            throw new org.springframework.security.access.AccessDeniedException("Réservation étrangère à l'organisation");
         // Verifier qu'il n'y a pas deja une facture de sejour ACTIVE pour cette reservation
         findActiveGuestInvoice(request.reservationId())
             .ifPresent(existing -> {
@@ -92,20 +96,14 @@ public class InvoiceGeneratorService {
                     + " (facture " + existing.getInvoiceNumber() + ")");
             });
 
-        Reservation reservation = reservationRepository.findById(request.reservationId())
-            .orElseThrow(() -> new IllegalArgumentException(
-                "Reservation introuvable: " + request.reservationId()));
+        FiscalProfile fiscalProfile=BaitlyFiscalJurisdictions.forProperty(fiscalProfileRepository,orgId,reservation.getProperty());
+        String countryCode=fiscalProfile.getCountryCode();
 
         // Utiliser la devise de la reservation (multi-devise),
         // fallback sur la devise par defaut de l'organisation
         String currency = reservation.getCurrency() != null
             ? reservation.getCurrency()
-            : tenantContext.getDefaultCurrency();
-
-        // Charger le profil fiscal pour les infos vendeur
-        FiscalProfile fiscalProfile = fiscalProfileRepository.findByOrganizationId(orgId)
-            .orElseThrow(() -> new IllegalStateException(
-                "Profil fiscal non configure pour l'organisation " + orgId));
+            : fiscalProfile.getDefaultCurrency();
 
         // Construction commune (en-tete + lignes du sejour) : chemin fiscal unique
         Invoice invoice = buildReservationDraft(reservation, orgId, fiscalProfile,
@@ -133,7 +131,7 @@ public class InvoiceGeneratorService {
     public InvoiceDto issueInvoice(Long invoiceId) {
         Long orgId = tenantContext.getRequiredOrganizationId();
 
-        Invoice invoice = invoiceRepository.findById(invoiceId)
+        Invoice invoice = invoiceRepository.findForUpdate(invoiceId)
             .orElseThrow(() -> new IllegalArgumentException("Facture introuvable: " + invoiceId));
 
         if (!invoice.getOrganizationId().equals(orgId)) {
@@ -146,12 +144,14 @@ public class InvoiceGeneratorService {
         }
 
         // Attribuer un numero sequentiel
-        String invoiceNumber = numberingService.generateNextNumber();
+        invoice.setInvoiceDate(LocalDate.now());
+        String invoiceNumber = numberingService.generateNextNumberFor(invoice);
         invoice.setInvoiceNumber(invoiceNumber);
         invoice.setInvoiceDate(LocalDate.now());
-        invoice.setStatus(InvoiceStatus.ISSUED);
+        invoice.setStatus(invoice.getPaidAt()!=null ? InvoiceStatus.PAID : InvoiceStatus.ISSUED);
 
         invoice = invoiceRepository.save(invoice);
+        numberingService.checkAndRecord(invoice, "ISSUE");
         log.info("Facture emise: {} (id={}, totalTTC={})",
             invoiceNumber, invoice.getId(), invoice.getTotalTtc());
 
@@ -194,7 +194,7 @@ public class InvoiceGeneratorService {
         creditNote.setOriginalInvoiceId(original.getId());
         creditNote.setInvoiceType(original.getInvoiceType());
         creditNote.setInterventionId(original.getInterventionId());
-        creditNote.setInvoiceNumber(numberingService.generateNextNumber());
+        creditNote.setIssuerKey(original.getIssuerKey());
         creditNote.setInvoiceDate(LocalDate.now());
         creditNote.setCurrency(original.getCurrency());
         creditNote.setCountryCode(original.getCountryCode());
@@ -225,6 +225,7 @@ public class InvoiceGeneratorService {
         }
 
         computeTotals(creditNote);
+        creditNote.setInvoiceNumber(numberingService.generateNextNumberFor(creditNote));
         creditNote = invoiceRepository.save(creditNote);
 
         log.info("Avoir {} cree pour facture {} (totalTTC={})",
@@ -269,12 +270,9 @@ public class InvoiceGeneratorService {
      */
     @Transactional
     public Invoice generateFromReservation(Reservation reservation, Long orgId) {
-        FiscalProfile fiscalProfile = fiscalProfileRepository.findByOrganizationId(orgId)
-            .orElseThrow(() -> new IllegalStateException(
-                "Profil fiscal non configure pour l'organisation " + orgId));
-
-        String countryCode = fiscalProfile.getCountryCode() != null
-            ? fiscalProfile.getCountryCode() : "FR";
+        if(!Objects.equals(reservation.getOrganizationId(),orgId))throw new org.springframework.security.access.AccessDeniedException("Réservation étrangère à l'organisation");
+        FiscalProfile fiscalProfile=BaitlyFiscalJurisdictions.forProperty(fiscalProfileRepository,orgId,reservation.getProperty());
+        String countryCode=fiscalProfile.getCountryCode();
         String currency = reservation.getCurrency() != null
             ? reservation.getCurrency()
             : (fiscalProfile.getDefaultCurrency() != null ? fiscalProfile.getDefaultCurrency() : "EUR");
@@ -311,12 +309,9 @@ public class InvoiceGeneratorService {
     @Transactional
     public Invoice generateCommissionForPayout(Reservation reservation,
             ManagementCommissionCalculator.Commission commission, Long orgId) {
-        FiscalProfile fiscalProfile = fiscalProfileRepository.findByOrganizationId(orgId)
-            .orElseThrow(() -> new IllegalStateException(
-                "Profil fiscal non configure pour l'organisation " + orgId));
-
-        String countryCode = fiscalProfile.getCountryCode() != null
-            ? fiscalProfile.getCountryCode() : "FR";
+        if(!Objects.equals(reservation.getOrganizationId(),orgId))throw new org.springframework.security.access.AccessDeniedException("Réservation étrangère à l'organisation");
+        FiscalProfile fiscalProfile=BaitlyFiscalJurisdictions.forProperty(fiscalProfileRepository,orgId,reservation.getProperty());
+        String countryCode=fiscalProfile.getCountryCode();
         String currency = reservation.getCurrency() != null
             ? reservation.getCurrency()
             : (fiscalProfile.getDefaultCurrency() != null ? fiscalProfile.getDefaultCurrency() : "EUR");
@@ -360,11 +355,11 @@ public class InvoiceGeneratorService {
         // Ligne unique : commission de gestion (prestation de service → TVA standard)
         int ratePct = rate.multiply(BigDecimal.valueOf(100)).setScale(0, RoundingMode.HALF_UP).intValue();
         LocalDate taxDate = reservation.getCheckOut() != null ? reservation.getCheckOut() : LocalDate.now();
-        TaxResult commissionTax = fiscalEngine.calculateTax(
+        TaxResult commissionTax = fiscalProfile.isVatRegistered() ? fiscalEngine.calculateTax(
             countryCode,
             new TaxableItem(commissionHt, TaxCategory.STANDARD.name(), "Commission de gestion"),
             taxDate
-        );
+        ) : new TaxResult(commissionHt,BigDecimal.ZERO,commissionHt,BigDecimal.ZERO,"Profil non assujetti","STANDARD");
         invoice.addLine(createLine(1,
             String.format("Commission de gestion (%d%%) - reservation #%d, sejour du %s au %s",
                 ratePct, reservation.getId(), reservation.getCheckIn(), reservation.getCheckOut()),
@@ -406,14 +401,11 @@ public class InvoiceGeneratorService {
      */
     @Transactional
     public Invoice generateFromIntervention(Intervention intervention, Long orgId) {
-        FiscalProfile fiscalProfile = fiscalProfileRepository.findByOrganizationId(orgId)
-            .orElseThrow(() -> new IllegalStateException(
-                "Profil fiscal non configure pour l'organisation " + orgId));
-
-        String countryCode = fiscalProfile.getCountryCode() != null
-            ? fiscalProfile.getCountryCode() : "FR";
-        String currency = fiscalProfile.getDefaultCurrency() != null
-            ? fiscalProfile.getDefaultCurrency() : "EUR";
+        if(!Objects.equals(intervention.getOrganizationId(),orgId))throw new org.springframework.security.access.AccessDeniedException("Intervention étrangère à l'organisation");
+        FiscalProfile fiscalProfile=BaitlyFiscalJurisdictions.forProperty(fiscalProfileRepository,orgId,intervention.getProperty());
+        String countryCode=fiscalProfile.getCountryCode();
+        String currency = intervention.getCurrency();
+        if(currency==null || currency.isBlank())throw new IllegalStateException("Devise de l'intervention à rapprocher avant facturation");
 
         Invoice invoice = new Invoice();
         invoice.setOrganizationId(orgId);
@@ -453,7 +445,7 @@ public class InvoiceGeneratorService {
             TaxResult tax = decomposeTtcAmount(
                 countryCode, amount, TaxCategory.STANDARD,
                 "Intervention: " + intervention.getTitle(),
-                LocalDate.now()
+                LocalDate.now(),fiscalProfile.isVatRegistered()
             );
 
             invoice.addLine(createLine(1,
@@ -509,6 +501,7 @@ public class InvoiceGeneratorService {
         duplicate.setSellerName(original.getSellerName());
         duplicate.setSellerAddress(original.getSellerAddress());
         duplicate.setSellerTaxId(original.getSellerTaxId());
+        duplicate.setIssuerKey(original.getIssuerKey());
         duplicate.setBuyerName(original.getBuyerName());
         duplicate.setBuyerAddress(original.getBuyerAddress());
         duplicate.setBuyerTaxId(original.getBuyerTaxId());
@@ -546,46 +539,31 @@ public class InvoiceGeneratorService {
 
     // --- Bridge DocumentGeneration → Invoice ---
 
-    /**
-     * Cree une facture ISSUED a partir d'une DocumentGeneration FACTURE.
-     * Idempotent : si une Invoice existe deja pour cette reference, elle est simplement liee.
-     *
-     * <p>Numerotation : l'entite Invoice est numerotee par l'UNIQUE sequence
-     * {@link InvoiceNumberingService} ({@code invoice_number_sequences}), dans la meme
-     * transaction que l'insertion. Le numero legal du document PDF
-     * ({@code documentLegalNumber}, sequence {@code document_number_sequences}) n'est
-     * plus reutilise pour la facture : deux sequences independantes sur
-     * {@code invoices.invoice_number} produisaient des doublons et des numeros
-     * non sequentiels (non-conformite NF). La course Kafka/webhook est fermee par
-     * les index uniques partiels (migration 0226) : le flux perdant rollback
-     * entierement, numero compris.</p>
-     *
-     * @param refType        RESERVATION ou INTERVENTION
-     * @param referenceId    ID de la reservation ou intervention
-     * @param orgId          ID de l'organisation
-     * @param documentLegalNumber  Numero legal du document PDF (conserve pour trace uniquement)
-     * @param documentGenerationId  ID de la DocumentGeneration a lier
-     * @return l'Invoice creee ou existante
-     */
-    @Transactional(propagation = Propagation.REQUIRES_NEW)
+    /** Prépare la facture canonique avant tout rendu ; numéro, données et PDF partagent la transaction. */
+    @Transactional
     public Invoice createIssuedFromDocumentGeneration(ReferenceType refType, Long referenceId,
                                                        Long orgId, String documentLegalNumber,
                                                        Long documentGenerationId) {
         // Idempotence : verifier si une Invoice existe deja
         Optional<Invoice> existing = findExistingInvoice(refType, referenceId);
-        if (existing.isPresent()) {
-            return linkDocumentGeneration(existing.get(), documentGenerationId);
+        Invoice invoice = existing.orElseGet(() -> createDraftForReference(refType, referenceId, orgId));
+        if(!Objects.equals(invoice.getOrganizationId(),orgId)) throw new IllegalArgumentException("Facture inaccessible");
+        if(existing.isPresent()) entityManager.refresh(invoice,jakarta.persistence.LockModeType.PESSIMISTIC_WRITE);
+        if(invoice.getStatus()!=InvoiceStatus.DRAFT) {
+            if(documentLegalNumber!=null && !documentLegalNumber.equals(invoice.getInvoiceNumber()))
+                throw new IllegalStateException("Numéro du PDF différent de la facture : rapprochement requis");
+            return invoice;
         }
-
-        Invoice invoice = createDraftForReference(refType, referenceId, orgId);
+        if(documentLegalNumber!=null) throw new IllegalStateException("La facture doit être préparée avant le numéro du PDF");
 
         // Numerotation par l'unique sequence Invoice, dans la transaction courante :
         // un rollback annule a la fois la facture et l'increment (pas de trou).
-        String invoiceNumber = numberingService.generateNextNumber(orgId);
+        invoice.setInvoiceDate(LocalDate.now());
+        String invoiceNumber = numberingService.generateNextNumberFor(invoice);
         invoice.setInvoiceNumber(invoiceNumber);
-        invoice.setStatus(InvoiceStatus.ISSUED);
-        invoice.setDocumentGenerationId(documentGenerationId);
+        invoice.setStatus(invoice.getPaidAt()!=null ? InvoiceStatus.PAID : InvoiceStatus.ISSUED);
         invoice = invoiceRepository.save(invoice);
+        numberingService.checkAndRecord(invoice,"DOCUMENT_PIPELINE");
 
         log.info("Invoice ISSUED {} creee depuis DocumentGeneration #{} ({} {}, numero document {})",
             invoiceNumber, documentGenerationId, refType, referenceId, documentLegalNumber);
@@ -597,12 +575,14 @@ public class InvoiceGeneratorService {
             Reservation reservation = reservationRepository.findById(referenceId)
                 .orElseThrow(() -> new IllegalArgumentException(
                     "Reservation introuvable: " + referenceId));
+            if(!Objects.equals(orgId,reservation.getOrganizationId())) throw new IllegalArgumentException("Réservation inaccessible");
             return generateFromReservation(reservation, orgId);
         }
         if (refType == ReferenceType.INTERVENTION) {
             Intervention intervention = interventionRepository.findById(referenceId)
                 .orElseThrow(() -> new IllegalArgumentException(
                     "Intervention introuvable: " + referenceId));
+            if(!Objects.equals(orgId,intervention.getOrganizationId())) throw new IllegalArgumentException("Intervention inaccessible");
             return generateFromIntervention(intervention, orgId);
         }
         throw new IllegalArgumentException(
@@ -629,7 +609,7 @@ public class InvoiceGeneratorService {
      * partiel {@code uq_invoices_reservation_type_active} (migration 0226) :
      * type GUEST, non annulee, pas un avoir, pas un duplicata.</p>
      */
-    private Optional<Invoice> findActiveGuestInvoice(Long reservationId) {
+    Optional<Invoice> findActiveGuestInvoice(Long reservationId) {
         return invoiceRepository.findAllByReservationId(reservationId).stream()
             .filter(invoice -> invoice.getInvoiceType() == InvoiceType.GUEST)
             .filter(invoice -> invoice.getDuplicateOfId() == null)
@@ -653,7 +633,7 @@ public class InvoiceGeneratorService {
      * non annulee, pas un avoir, pas un duplicata — symetrique de
      * {@link #findActiveGuestInvoice(Long)}.</p>
      */
-    private Optional<Invoice> findActiveInterventionInvoice(Long interventionId) {
+    Optional<Invoice> findActiveInterventionInvoice(Long interventionId) {
         List<Invoice> candidates = entityManager.createQuery(
                 "SELECT i FROM Invoice i WHERE i.interventionId = :interventionId",
                 Invoice.class)
@@ -667,12 +647,10 @@ public class InvoiceGeneratorService {
                 Comparator.nullsLast(Comparator.naturalOrder())));
     }
 
-    private Invoice linkDocumentGeneration(Invoice invoice, Long documentGenerationId) {
-        if (invoice.getDocumentGenerationId() == null) {
-            invoice.setDocumentGenerationId(documentGenerationId);
-            invoice = invoiceRepository.save(invoice);
-            log.info("Invoice {} liee a DocumentGeneration #{}", invoice.getInvoiceNumber(), documentGenerationId);
-        }
+    /** Relecture après verrou : un webhook concurrent a pu émettre le brouillon entre-temps. */
+    Invoice lockForIssuance(Long id) {
+        var invoice=invoiceRepository.findForUpdate(id).orElseThrow();
+        entityManager.refresh(invoice);
         return invoice;
     }
 
@@ -718,7 +696,7 @@ public class InvoiceGeneratorService {
         // Mentions legales
         invoice.setLegalMentions(fiscalProfile.getLegalMentions());
 
-        addStayLines(invoice, reservation, countryCode);
+        addStayLines(invoice, reservation, countryCode,fiscalProfile.isVatRegistered());
         applyLoyaltyDiscount(invoice,reservation);
         return invoice;
     }
@@ -750,7 +728,7 @@ public class InvoiceGeneratorService {
      * et taxe de sejour encaissee (hors TVA). La facture totalise ainsi ce que le
      * guest a paye, quel que soit le canal.
      */
-    private void addStayLines(Invoice invoice, Reservation reservation, String countryCode) {
+    private void addStayLines(Invoice invoice, Reservation reservation, String countryCode,boolean vatRegistered) {
         int lineNum = 1;
 
         StayAmounts amounts = StayAmounts.of(reservation);
@@ -768,7 +746,7 @@ public class InvoiceGeneratorService {
             TaxResult accommodationTax = decomposeTtcAmount(
                 countryCode, accommodation, TaxCategory.ACCOMMODATION,
                 "Hebergement " + reservation.getCheckIn() + " - " + reservation.getCheckOut(),
-                reservation.getCheckIn());
+                reservation.getCheckIn(),vatRegistered);
 
             invoice.addLine(createLine(lineNum++,
                 String.format("Hebergement du %s au %s (%d nuits)",
@@ -783,7 +761,7 @@ public class InvoiceGeneratorService {
         if (cleaningFee.compareTo(BigDecimal.ZERO) > 0) {
             TaxResult cleaningTax = decomposeTtcAmount(
                 countryCode, cleaningFee, TaxCategory.CLEANING,
-                "Frais de menage", reservation.getCheckIn());
+                "Frais de menage", reservation.getCheckIn(),vatRegistered);
 
             invoice.addLine(createLine(lineNum++,
                 "Frais de menage",
@@ -798,7 +776,7 @@ public class InvoiceGeneratorService {
         if (serviceOptions.compareTo(BigDecimal.ZERO) > 0) {
             TaxResult serviceTax = decomposeTtcAmount(
                 countryCode, serviceOptions, TaxCategory.STANDARD,
-                "Prestations complementaires", reservation.getCheckIn());
+                "Prestations complementaires", reservation.getCheckIn(),vatRegistered);
 
             invoice.addLine(createLine(lineNum++,
                 "Prestations complementaires",
@@ -909,7 +887,11 @@ public class InvoiceGeneratorService {
      */
     private TaxResult decomposeTtcAmount(String countryCode, BigDecimal amountTtc,
                                          TaxCategory category, String description,
-                                         LocalDate taxDate) {
+                                         LocalDate taxDate,boolean vatRegistered) {
+        if(!vatRegistered) {
+            BigDecimal amount=MoneyUtils.round(amountTtc);
+            return new TaxResult(amount,BigDecimal.ZERO,amount,BigDecimal.ZERO,"Profil non assujetti",category.name());
+        }
         TaxResult rateLookup = fiscalEngine.calculateTax(
             countryCode,
             new TaxableItem(amountTtc, category.name(), description),

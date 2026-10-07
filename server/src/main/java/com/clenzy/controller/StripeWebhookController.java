@@ -45,7 +45,8 @@ public class StripeWebhookController {
             "payment_intent.succeeded", "payment_intent.payment_failed", "account.updated",
             "transfer.failed", "charge.dispute.created", "charge.dispute.updated",
             "charge.dispute.closed", "charge.dispute.funds_withdrawn", "charge.dispute.funds_reinstated",
-            "invoice.paid", "refund.created", "refund.updated", "refund.failed");
+            "invoice.paid", "invoice.payment_failed", "invoice.voided", "invoice.marked_uncollectible",
+            "customer.subscription.updated", "customer.subscription.deleted", "refund.created", "refund.updated", "refund.failed");
 
     private final PaymentEventActionRecorder paymentEventActionRecorder;
     private final com.clenzy.service.paymentconnect.PaymentConnectionStore paymentConnectionStore;
@@ -60,6 +61,11 @@ public class StripeWebhookController {
     private final SubscriptionService subscriptionService;
     private final MobilePaymentService mobilePaymentService;
     private final PaymentOrchestrationService orchestrationService;
+    private final com.clenzy.service.BaitlyCheckoutJournal checkoutJournal;
+    private final com.clenzy.service.BaitlyMonthlySubscriptionService monthlySubscriptions;
+    private final com.clenzy.service.BaitlySubscriptionBilling subscriptionBilling;
+    private final com.clenzy.service.BaitlySubscriptionMoneyEvents subscriptionMoney;
+    private final com.clenzy.service.BaitlyMaintenanceDepositCheckout maintenanceDeposit;
     private final StripeConnectService stripeConnectService;
     private final ShopService shopService;
     private final PublicBookingService publicBookingService;
@@ -92,7 +98,17 @@ public class StripeWebhookController {
                                    com.clenzy.service.InterventionBatchCheckoutService batchCheckout,
                                    com.clenzy.service.InvoiceCheckoutService invoiceCheckout,
                                    com.clenzy.service.ManagedRefundReconciliation refunds,
-                                   com.clenzy.service.BaitlyInterventionCheckoutExpiry checkoutExpiry) {
+                                   com.clenzy.service.BaitlyInterventionCheckoutExpiry checkoutExpiry,
+                                   com.clenzy.service.BaitlyCheckoutJournal checkoutJournal,
+                                   com.clenzy.service.BaitlyMonthlySubscriptionService monthlySubscriptions,
+                                   com.clenzy.service.BaitlySubscriptionBilling subscriptionBilling,
+                                   com.clenzy.service.BaitlyMaintenanceDepositCheckout maintenanceDeposit,
+                                   com.clenzy.service.BaitlySubscriptionMoneyEvents subscriptionMoney) {
+        this.subscriptionMoney=subscriptionMoney;
+        this.maintenanceDeposit=maintenanceDeposit;
+        this.monthlySubscriptions=monthlySubscriptions;
+        this.subscriptionBilling=subscriptionBilling;
+        this.checkoutJournal = checkoutJournal;
         this.checkoutExpiry = checkoutExpiry;
         this.refunds = refunds;
         this.invoiceCheckout = invoiceCheckout;
@@ -170,8 +186,10 @@ public class StripeWebhookController {
                 case "refund.failed":
                     // Le circuit géré concerne les remboursements de la plateforme,
                     // jamais ceux d'un compte connecté portant des métadonnées identiques.
-                    if (event.getAccount() == null) refunds.onWebhook((com.stripe.model.Refund)
-                            event.getDataObjectDeserializer().getObject().orElseThrow());
+                    if (event.getAccount() == null) {
+                        var refund=(com.stripe.model.Refund)event.getDataObjectDeserializer().getObject().orElseThrow();
+                        if(!subscriptionMoney.charge(refund.getCharge()))refunds.onWebhook(refund);
+                    }
                     break;
                 case "payout.created":
                 case "payout.updated":
@@ -182,23 +200,25 @@ public class StripeWebhookController {
                     bankPayoutHandler.handleVerifiedEvent(event);
                     break;
                 case "checkout.session.completed":
-                    handleCheckoutCompleted(event);
+                    // Les encaissements Baitly appartiennent au compte plateforme.
+                    // Des métadonnées identiques sur un compte connecté ne lui donnent aucun droit.
+                    if (event.getAccount() == null) handleCheckoutCompleted(event);
                     break;
 
                 case "checkout.session.async_payment_succeeded":
-                    handleAsyncPaymentSucceeded(event);
+                    if (event.getAccount() == null) handleAsyncPaymentSucceeded(event);
                     break;
 
                 case "checkout.session.async_payment_failed":
-                    handleAsyncPaymentFailed(event);
+                    if (event.getAccount() == null) handleAsyncPaymentFailed(event);
                     break;
 
                 case "payment_intent.succeeded":
-                    handlePaymentIntentSucceeded(event);
+                    if (event.getAccount() == null) handlePaymentIntentSucceeded(event);
                     break;
 
                 case "payment_intent.payment_failed":
-                    handlePaymentIntentFailed(event);
+                    if (event.getAccount() == null) handlePaymentIntentFailed(event);
                     break;
 
                 case "account.updated":
@@ -219,19 +239,28 @@ public class StripeWebhookController {
                 case "charge.dispute.updated":
                 case "charge.dispute.funds_withdrawn":
                 case "charge.dispute.funds_reinstated":
-                    if (event.getAccount() == null) handleDisputeOpened(event);
+                    if (event.getAccount() == null && !subscriptionMoney.charge(((Dispute)event.getDataObjectDeserializer().getObject().orElseThrow()).getCharge())) handleDisputeOpened(event);
                     break;
 
                 case "charge.dispute.closed":
-                    if (event.getAccount() == null) handleDisputeClosed(event);
+                    if (event.getAccount() == null && !subscriptionMoney.charge(((Dispute)event.getDataObjectDeserializer().getObject().orElseThrow()).getCharge())) handleDisputeClosed(event);
                     break;
 
                 case "checkout.session.expired":
-                    handleSessionExpired(event);
+                    if (event.getAccount() == null) handleSessionExpired(event);
                     break;
 
                 case "invoice.paid":
-                    handleInvoicePaid(event);
+                    if(event.getAccount()==null)handleInvoicePaid(event);
+                    break;
+                case "invoice.payment_failed":
+                case "invoice.voided":
+                case "invoice.marked_uncollectible":
+                    if(event.getAccount()==null)subscriptionBilling.invoice(((com.stripe.model.Invoice)event.getDataObjectDeserializer().getObject().orElseThrow()).getId());
+                    break;
+                case "customer.subscription.updated":
+                case "customer.subscription.deleted":
+                    if(event.getAccount()==null)subscriptionBilling.subscription(((com.stripe.model.Subscription)event.getDataObjectDeserializer().getObject().orElseThrow()).getId());
                     break;
 
                 default:
@@ -254,20 +283,14 @@ public class StripeWebhookController {
      * invoice id). Les invoices sans abonnement PMS connu sont ignorees
      * silencieusement (autres produits Stripe du compte).
      */
-    private void handleInvoicePaid(Event event) {
+    private void handleInvoicePaid(Event event) throws com.stripe.exception.StripeException {
         com.stripe.model.Invoice invoice = (com.stripe.model.Invoice) event
                 .getDataObjectDeserializer().getObject().orElse(null);
         if (invoice == null) {
             logger.warn("invoice.paid indeserialisable (eventId={}) — ignore", event.getId());
             return;
         }
-        String subscriptionId = invoice.getParent() != null
-                && invoice.getParent().getSubscriptionDetails() != null
-                ? invoice.getParent().getSubscriptionDetails().getSubscription() : null;
-        if (subscriptionId == null || subscriptionId.isBlank()) {
-            return; // invoice hors abonnement (one-shot) : pas de dotation
-        }
-        aiCreditGrantService.grantForPaidInvoice(subscriptionId, invoice.getId());
+        subscriptionMoney.invoice(invoice.getId());
     }
 
     /**
@@ -276,10 +299,11 @@ public class StripeWebhookController {
      * - Inscription (mode SUBSCRIPTION, metadata.type = "inscription") : cree le compte + abonnement mensuel
      * - Intervention (mode PAYMENT, metadata.intervention_id) : paiement unique de l'intervention
      */
-    private void handleCheckoutCompleted(Event event) {
+    private void handleCheckoutCompleted(Event event) throws com.stripe.exception.StripeException {
         Session session = (Session) event.getDataObjectDeserializer().getObject()
                 .orElseThrow(() -> new IllegalStateException("Session Stripe incompatible"));
 
+        if (maintenanceDeposit.handleWebhook(session)) return;
         if (invoiceCheckout.handleWebhook(session)) return;
         if (batchCheckout.handleWebhook(session)) return;
 
@@ -305,6 +329,10 @@ public class StripeWebhookController {
         }
 
         logger.info("Type determine pour session {}: type={}", sessionId, type);
+        if(com.clenzy.service.BaitlyMonthlySubscriptionService.TYPE.equals(type)) {
+            if(event.getAccount()==null)monthlySubscriptions.complete(sessionId);
+            return;
+        }
 
         // Vague 2 (ADR paiement multi-provider) : les flux « payer un total » migrés vers
         // l'orchestration (ex. paiement différé groupé) sont réconciliés de façon
@@ -319,24 +347,17 @@ public class StripeWebhookController {
             return;
         }
 
+        updatePaymentTransaction(session, true);
+
         // Z3-BUGS-10 : plus de try/catch avaleur par branche. Une exception de
         // confirmation remonte au handler principal qui retourne 500 → Stripe
         // re-livre l'evenement (les confirmations sont idempotentes).
         if ("ai_credit_topup".equals(type)) {
-            // Recharge de credits IA (campagne T-07) : credit idempotent de la poche
-            // TOPUP (stripe_ref = sessionId). Montant/credits issus des metadata
-            // posees SERVEUR par AiCreditPurchaseService — jamais du client.
-            Long orgId = Long.valueOf(session.getMetadata().get("org_id"));
-            long millicredits = Long.parseLong(session.getMetadata().get("millicredits"));
-            logger.info("Top-up credits IA reussi : session={}, org={}, {}mc",
-                    sessionId, orgId, millicredits);
-            aiCreditGrantService.grantTopUp(orgId, millicredits, sessionId);
-            return;
+            throw new IllegalStateException("Ancienne recharge IA sans transaction rapprochée");
         } else if ("hardware_purchase".equals(type)) {
             // Paiement d'achat de materiel IoT (shop)
             logger.info("Paiement hardware reussi pour session: {}", sessionId);
             shopService.completeOrder(sessionId);
-            updatePaymentTransaction(session, true);
             return;
         } else if ("inscription".equals(type)) {
             // Paiement d'inscription (subscription) : confirmer le paiement + envoyer email de confirmation
@@ -383,8 +404,6 @@ public class StripeWebhookController {
             paymentTenantScope.forIntervention(sessionId, () -> stripeService.confirmPayment(sessionId));
         }
 
-        // Update PaymentTransaction if the payment was routed through the orchestrator
-        updatePaymentTransaction(session, true);
     }
 
     /**
@@ -416,10 +435,10 @@ public class StripeWebhookController {
         // Z3-BUGS-10 : un echec ici remonte au handler principal (500 → re-livraison).
         // completeTransaction est idempotent (skip si deja COMPLETED).
         if (success) {
-            orchestrationService.completeTransaction(transactionRef);
+            checkoutJournal.apply(session, true);
             logger.info("PaymentTransaction {} marked COMPLETED via Stripe webhook", transactionRef);
         } else {
-            orchestrationService.failTransaction(transactionRef, "Stripe async payment failed");
+            checkoutJournal.apply(session, false);
             logger.info("PaymentTransaction {} marked FAILED via Stripe webhook", transactionRef);
         }
     }
@@ -427,18 +446,23 @@ public class StripeWebhookController {
     /**
      * Gere les paiements asynchrones reussis (pour les moyens de paiement differes)
      */
-    private void handleAsyncPaymentSucceeded(Event event) {
+    private void handleAsyncPaymentSucceeded(Event event) throws com.stripe.exception.StripeException {
         Session session = (Session) event.getDataObjectDeserializer()
                 .getObject()
                 .orElse(null);
 
         if (session == null) return;
 
+        if (maintenanceDeposit.handleWebhook(session)) return;
         if (invoiceCheckout.handleWebhook(session)) return;
         if (batchCheckout.handleWebhook(session)) return;
 
         String sessionId = session.getId();
         String type = session.getMetadata() != null ? session.getMetadata().get("type") : null;
+        if(com.clenzy.service.BaitlyMonthlySubscriptionService.TYPE.equals(type)) {
+            if(event.getAccount()==null)monthlySubscriptions.complete(sessionId);
+            return;
+        }
 
         // Vague 2 : flux orchestré « payer un total » → completion ledger, réconciliation
         // par le consumer PAYMENT_COMPLETED (cf. handleCheckoutCompleted).
@@ -449,7 +473,12 @@ public class StripeWebhookController {
             return;
         }
 
-        if ("hardware_purchase".equals(type)) {
+        updatePaymentTransaction(session, true);
+        if ("upgrade".equals(type)) {
+            subscriptionService.completeUpgrade(sessionId);
+        } else if ("ai_credit_topup".equals(type)) {
+            throw new IllegalStateException("Ancienne recharge IA sans transaction rapprochée");
+        } else if ("hardware_purchase".equals(type)) {
             logger.info("Paiement hardware asynchrone reussi pour session: {}", sessionId);
             shopService.completeOrder(sessionId);
         } else if ("inscription".equals(type)) {
@@ -476,8 +505,6 @@ public class StripeWebhookController {
             paymentTenantScope.forIntervention(sessionId, () -> stripeService.confirmPayment(sessionId));
         }
 
-        // Update PaymentTransaction for async success
-        updatePaymentTransaction(session, true);
     }
 
     /**
@@ -490,6 +517,7 @@ public class StripeWebhookController {
 
         if (session == null) return;
 
+        if (maintenanceDeposit.handleWebhook(session)) return;
         if (invoiceCheckout.handleWebhook(session)) return;
         if (batchCheckout.handleWebhook(session)) return;
 
@@ -714,9 +742,16 @@ public class StripeWebhookController {
      * est compté comme en cours d'encaissement alors qu'il ne rentrera jamais,
      * et aucune relance n'est déclenchée.</p>
      */
-    private void handleSessionExpired(Event event) {
+    private void handleSessionExpired(Event event) throws com.stripe.exception.StripeException {
         final Session session = (Session) event.getDataObjectDeserializer().getObject().orElse(null);
         if (session == null) return;
+        if(session.getMetadata()!=null && com.clenzy.service.BaitlyMonthlySubscriptionService.TYPE.equals(session.getMetadata().get("type"))) {
+            if(event.getAccount()==null)monthlySubscriptions.expire(session.getId());return;
+        }
+        if (session.getMetadata()!=null && "inscription".equals(session.getMetadata().get("type"))) {
+            if(event.getAccount()==null)inscriptionService.expireInscription(session.getId());return;
+        }
+        if (maintenanceDeposit.handleWebhook(session)) return;
         if (invoiceCheckout.handleWebhook(session)) return;
         if (batchCheckout.handleWebhook(session)) return;
         if (checkoutExpiry.handleWebhook(session.getId())) return;

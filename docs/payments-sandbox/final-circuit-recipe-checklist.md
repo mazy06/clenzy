@@ -56,6 +56,94 @@ Les validations précédentes restent des preuves historiques, pas une certifica
 - [ ] Dépense : confirmation explicite, une seule émission au double clic, refus métier visible, ancienne éligibilité désactivée si sa relecture échoue, statut conservé après recharge.
 - [ ] Rapprochement : changement de référence invalide la vérification et le consentement ; double clic confirme une seule fois ; HTTP 409 redemande une vérification sans envoyer de transfert.
 
+## Extension commerciale du 7 octobre 2026
+
+Exécuter ensuite les [scénarios détaillés des sept lots](../../scripts/payments/commerce-final-recipe.md),
+en conservant le même relevé de preuves. Leur implémentation et leurs limites sont décrites dans
+l'[audit commercial](../../scripts/payments/commerce-expansion-audit.md).
+
+- [ ] Portefeuille IA : achat, réservation concurrente, consommation, expiration, remboursement/litige, dette et anciennes dotations à rapprocher.
+- [ ] Maintenance : acompte puis solde, préparation groupée avec liens individuels, remboursements cumulés et reversement net.
+- [ ] Booking et promotions : parcours public/intégré/direct, devise, nuits offertes, panier, quotas et paiements tardifs.
+- [ ] Abonnements PMS : grilles locales HT dégressives, pays de facturation, renouvellement, impayés, changement à échéance, droits et mobile.
+- [ ] Upsells et affiliation : réalisation, corrections, pièces vendeur, commissions réellement reçues, transferts et récupération après remboursement.
+- [ ] Matériel : stock concurrent, reprise d'une session non rattachée, expédition, retour physique et remboursement distincts.
+- [ ] Documents : émetteur, séries, copies/PDF/exports, avoirs liés aux restitutions et transmission fiscale durable.
+
+Les PSP MA/SA, identités/immatriculations, connecteurs fiscaux, mandats d'émission au nom des
+vendeurs et accès contractuels aux rapports partenaires restent des prérequis externes. Un
+connecteur absent n'est ni une exemption ni une recette réussie. Aucun scénario de cette section
+n'est validé par les seuls tests isolés.
+
 ## Conditions de clôture
 
+### Documents & Communications : refonte du 7 octobre 2026
+
+- [ ] Parcourir les quatre espaces Modèles, Messages, Historique et Conformité. Vérifier aussi les anciens liens vers modèles de documents, WhatsApp, variables et avenants : ils doivent ouvrir la vue fusionnée correspondante.
+- [ ] Contrôler la liste compacte, les images, la pagination et les actions du détail à 375, 768, 1024 et 1440 px. Sur téléphone : ouverture du détail, retour à la ligne sélectionnée, absence de débordement horizontal.
+- [ ] Tester les icônes de statut au survol, au clavier et au toucher ; leurs explications doivent rester accessibles. Vérifier les thèmes clair/sombre et le français, l’anglais et l’arabe.
+- [ ] Importer un modèle HTML de test, consulter directement son aperçu fictif et filigrané dans la bibliothèque, changer de page et vérifier l’absence de commandes de téléchargement/impression. Tester séparément le téléchargement du modèle source HTML et la redirection des anciens liens de détail. Vérifier séparément la qualité du modèle et la revue fiscale de la facture émise.
+- [ ] Modifier un message de test, comparer son aperçu au rendu de l’éditeur et vérifier la validation Meta propre à chaque langue WhatsApp. Aucun envoi réel n’est nécessaire pour contrôler la présentation.
+- [ ] Depuis l’historique, ouvrir l’aperçu archivé et le dossier Conformité correspondant ; contrôler les avenants prêts/en préparation, les erreurs de téléchargement et le renvoi d’un message fictif échoué.
+- [ ] Vérifier le changement d’organisation, les droits du membre et de l’administrateur, les états vides et les pannes API sans réaffichage de données privées en cache.
+
+Les tests interface et HTTP isolés couvrent la navigation historique, la sélection mobile,
+les infobulles, le cloisonnement, les statuts Meta, les archives, les imports et la revue fiscale.
+Les 33 tests ciblés et le contrôle `tsconfig.documents-tests.json` passent. Les nouvelles
+suites sont incluses dans `scripts/payments/financial_recipe.json`. Le build global a été
+validé le 7 octobre 2026 : `npm run build` (prébuild SDK, `tsc -b`, Vite et service worker),
+code de sortie 0 en 109 secondes, avec Node 22.16.0 et une limite de heap de 4 Gio.
+Les trois avertissements CSS provenaient d’exemples de classes dans un commentaire
+de `PropertyCard.tsx`, interprétés par Tailwind ; le commentaire a été corrigé.
+Les avertissements non bloquants restants concernent les exports du SDK, les imports
+statiques/dynamiques communs et la taille de certains bundles.
+La vérification navigateur a commencé sur la bibliothèque et les messages ; elle reste à
+compléter : le serveur local a signalé des timeouts Hikari/base de données, puis la session
+ne chargeait plus ses permissions. Ne pas considérer cette recette visuelle comme entièrement validée.
+
+Contrôle du démarrage local après reconstruction : l’injection du client HTTP de
+`BaitlyPdfEngine` était ambiguë entre les clients général, Channex et Cloudflare, ce qui
+empêchait le serveur de démarrer. Le client général est maintenant explicitement qualifié.
+Le nouveau test de contexte Spring reproduit la présence des trois clients et vérifie le
+client effectivement utilisé ; il rejoint la recette automatisée. Le packaging serveur et
+les 65 tests ciblés passent, y compris les deux conversions réelles via Gotenberg local
+(`-Dbaitly.test.pdf-url=http://localhost:8083`), sans test ignoré dans ce relevé consolidé.
+Le JAR corrigé a été chargé par l’utilisateur : huit contrôles de santé HTTP 200 entre 16 et 64 ms (médiane 23 ms). Le lecteur PDF canvas a été vérifié dans le navigateur aux largeurs 375, 768, 1024 et 1440 px. Les nouveaux rendus fictifs et le service d’aperçu email nécessitent encore le chargement du nouveau JAR.
+
 Pour chaque scénario, conserver les références Baitly/Stripe, les montants avant/après, les états et les limites. Ne jamais remplacer un parcours incomplet par une modification SQL des données métier. Une simple réponse HTTP 200 ou un retour de Checkout ne prouve pas un encaissement, un rapprochement comptable ou une réception bancaire. Les scénarios indisponibles dans le sandbox doivent rester explicitement non validés.
+
+### Aperçus PDF et emails harmonisés
+
+- [ ] Charger le nouveau JAR ; vérifier les aperçus fictifs dans la bibliothèque et dans Parcours & usages, y compris après changement d’organisation.
+- [ ] Parcourir les emails voyageurs et système : même enveloppe que dans leurs éditeurs, variables remplacées par les exemples, aucun lien actif, ressource distante ni envoi.
+- [ ] Vérifier les modèles absents, les erreurs HTTP et la régénération ; alterner entre email et PDF sans aperçu périmé.
+- [ ] Vérifier français, anglais, arabe, clavier, téléphone et documents multipages ; conserver les archives émises inchangées.
+
+Les nouveaux tests de génération et d’interface sont intégrés au manifeste de recette. Les conversions Chromium isolées et les tests HTTP ne constituent pas la validation du nouveau JAR dans le serveur partagé.
+
+Livrable du 7 octobre, 21:58 : packaging final réussi, 42 tests documentaires et 37 conversions Chromium ; suite PDF/email de 100 tests et 19 tests interface réussie, zéro test ignoré. Build frontend complet validé. Sauvegarde et livrable figé sous `/private/tmp/baitly-document-preview-release` ; script de chargement manuel `/private/tmp/baitly-install-document-previews.py --apply`, non exécuté par l’agent.
+
+### Mise en page adaptative des trois bibliothèques
+
+- [x] Retirer les bandeaux introductifs des vues Bibliothèque de documents, Parcours & usages et Variables des modèles ; placer filtres et compteurs dans le header partagé.
+- [x] Mesurer la hauteur disponible et les lignes pour calculer la pagination automatiquement, avec le même comportement sur les trois vues. Conserver la sélection lors du redimensionnement et revenir au début après filtrage.
+- [x] Vérifier les formats 375, 768, 1024 et 1440 px : aucun débordement de page ; filtres accessibles depuis le header, directement ou dans son menu selon la largeur ; détail et retour accessibles sur téléphone.
+- [ ] Refaire ces contrôles avec les aperçus PDF/email du nouveau JAR, en français, anglais, arabe et thème sombre pendant la recette finale.
+
+Contrôle du 7 octobre : 17 tests interface réussis dans quatre suites, dont le nouveau test de dimensionnement et de filtrage des variables ; contrôle TypeScript incluant les tests réussi. À 1440 × 800, les listes affichent huit lignes ; à 768 × 900, dix lignes. Le nombre dépend de la place réelle, sans constante différente pour les variables. Ces changements d’interface ne nécessitent aucun redémarrage du serveur.
+
+Build frontend complet validé après ces changements : prébuild SDK, TypeScript, Vite et PWA, sortie 0. Les avertissements existants de découpage des bundles restent non bloquants.
+
+### Header partagé : largeur disponible et ancrage
+
+Le header mesure désormais sa zone disponible, y compris les changements de sidebar,
+et cumule les marges des enveloppes pleine largeur pour rejoindre les bords de l’écran.
+Les groupes trop larges se replient ; la recherche reste accessible sous forme d’icône
+quand le libellé manque de place. Le choix d’un filtre survit au déplacement entre
+le menu et la barre. L’icône décorative du titre s’efface sur les petites largeurs.
+
+- [x] Documents vérifié à 320, 375, 768, 1024, 1440, 1920 et 2560 px, sans débordement horizontal ; sidebar ouverte/repliée, filtre conservé au redimensionnement.
+- [x] Planning vérifié à 1440 px : dates, recherche et actions visibles, header de bord à bord.
+- [x] 25 tests ciblés réussis, dont les changements de conteneur sans resize de fenêtre, les contrôles longs, le changement de vue et les marges imbriquées. Vérification TypeScript réussie.
+- [x] Build frontend complet réussi après la correction du header (SDK, TypeScript, Vite, PWA), sortie 0. Avertissements non bloquants de taille/découpage des bundles existants.
+- [ ] Reprendre le parcours en anglais et arabe, thème sombre, pendant la recette finale.

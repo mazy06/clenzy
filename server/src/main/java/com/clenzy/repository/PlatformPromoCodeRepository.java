@@ -9,6 +9,9 @@ import org.springframework.data.repository.query.Param;
 import java.util.Optional;
 
 public interface PlatformPromoCodeRepository extends JpaRepository<PlatformPromoCode, Long> {
+    @org.springframework.data.jpa.repository.Lock(jakarta.persistence.LockModeType.PESSIMISTIC_WRITE)
+    @Query("select p from PlatformPromoCode p where upper(p.code)=upper(:code)")
+    Optional<PlatformPromoCode> lockByCode(@Param("code") String code);
 
     /**
      * Lookup case-insensitive (le code est stocke UPPER mais on normalise
@@ -31,7 +34,11 @@ public interface PlatformPromoCodeRepository extends JpaRepository<PlatformPromo
             SET p.usedCount = p.usedCount + 1
             WHERE p.id = :id
               AND p.active = true
-              AND (p.maxUses IS NULL OR p.usedCount < p.maxUses)
+              AND (p.validFrom IS NULL OR p.validFrom <= CURRENT_TIMESTAMP)
+              AND (p.validUntil IS NULL OR p.validUntil >= CURRENT_TIMESTAMP)
+              AND (p.maxUses IS NULL OR p.usedCount +
+                   (SELECT COUNT(o) FROM BaitlySubscriptionOrder o WHERE o.promoCodeId=p.id
+                     AND o.status IN ('PREPARED','CHECKOUT_OPEN','ACTIVATING')) < p.maxUses)
             """)
     int tryIncrementUsedCount(@Param("id") Long id);
 }

@@ -15,7 +15,6 @@ import {
   Textarea,
   NativeSelect,
   NativeSelectOption,
-  Separator,
 } from '../../components/ui';
 import { Save } from '../../icons';
 import { useTranslation } from '../../hooks/useTranslation';
@@ -25,7 +24,7 @@ import {
   type TemplateVariable,
 } from '../../services/api/guestMessagingApi';
 import VariablePicker from '../documents/components/VariablePicker';
-import { EmailMarkdownPreview } from '../../utils/emailMarkdown';
+import EmailTemplatePreview from '../documents/EmailTemplatePreview';
 
 interface MessageTemplateEditorProps {
   open: boolean;
@@ -150,15 +149,6 @@ export default function MessageTemplateEditor({
     }
   };
 
-  // Preview : remplace les variables par des exemples
-  const getPreviewText = (text: string): string => {
-    let preview = text;
-    for (const v of variables) {
-      preview = preview.replace(new RegExp(`\\{${v.key}\\}`, 'g'), v.example);
-    }
-    return preview;
-  };
-
   return (
     <Dialog open={open} onOpenChange={(next) => { if (!next) onClose(); }}>
       <DialogContent className="sm:max-w-[1200px] min-h-[70vh] max-h-[90vh] overflow-y-auto">
@@ -279,19 +269,8 @@ export default function MessageTemplateEditor({
               <h4 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
                 {t('messaging.templates.editor.preview')}
               </h4>
-              <div className="rounded-xl border border-border bg-muted p-3">
-                <p className="text-sm font-medium text-foreground">
-                  {t('messaging.templates.editor.previewSubject')}: {getPreviewText(subject) || '—'}
-                </p>
-                <Separator className="my-2" />
-                {body ? (
-                  <div className="text-sm">
-                    {/* Rendu identique à l'email envoyé (gras, puces, paragraphes) */}
-                    <EmailMarkdownPreview text={getPreviewText(body)} />
-                  </div>
-                ) : (
-                  <p className="text-sm text-muted-foreground">—</p>
-                )}
+              <div className="h-[560px] overflow-hidden rounded-xl border border-border">
+                <EmailTemplatePreview subject={subject} body={body} language={language} />
               </div>
             </div>
           </div>

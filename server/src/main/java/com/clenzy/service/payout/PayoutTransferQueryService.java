@@ -17,13 +17,15 @@ public class PayoutTransferQueryService {
     private final com.clenzy.repository.UserRepository users;
     private final com.clenzy.repository.OrganizationRepository organizations;
     private final com.clenzy.repository.BaitlyTransferRecoveryRepository recoveries;
+    private final com.clenzy.repository.BaitlyCommerceRecoveryRepository commerceRecoveries;
     public PayoutTransferQueryService(PayoutTransferRepository transfers, PayoutTransferEventRepository events,
             com.clenzy.repository.BankPayoutObservationRepository bankPayouts,
             com.clenzy.repository.UserRepository users, com.clenzy.repository.OrganizationRepository organizations,
-            com.clenzy.repository.BaitlyTransferRecoveryRepository recoveries) {
+            com.clenzy.repository.BaitlyTransferRecoveryRepository recoveries,com.clenzy.repository.BaitlyCommerceRecoveryRepository commerceRecoveries) {
         this.transfers = transfers; this.events = events; this.bankPayouts = bankPayouts;
         this.users = users; this.organizations = organizations;
         this.recoveries = recoveries;
+        this.commerceRecoveries = commerceRecoveries;
     }
     public Page<PayoutTransferDto> list(Long orgId, int page, int size) {
         return list(orgId, page, size, null, null, "");
@@ -60,6 +62,9 @@ public class PayoutTransferQueryService {
                 transfer.getBeneficiaryOrganizationId() != null
                     ? organizations.findById(transfer.getBeneficiaryOrganizationId()).map(com.clenzy.model.Organization::getName).orElse(null)
                     : users.findById(transfer.getBeneficiaryUserId()).map(com.clenzy.model.User::getFullName).orElse(null),
-                recoveries.findHistory(orgId,id).stream().map(PayoutTransferDto.Recovery::from).toList());
+                java.util.stream.Stream.concat(recoveries.findHistory(orgId,id).stream().map(PayoutTransferDto.Recovery::from),
+                    commerceRecoveries.findByOrganizationIdAndTransferIdOrderById(orgId,id).stream().map(r->new PayoutTransferDto.Recovery(
+                        switch(r.getState()){case "RECOVERED"->com.clenzy.model.BaitlyTransferRecovery.State.RECOVERED;case "REVIEW_REQUIRED"->com.clenzy.model.BaitlyTransferRecovery.State.REVIEW_REQUIRED;default->com.clenzy.model.BaitlyTransferRecovery.State.RECOVERING;},
+                        r.getAmount(),java.math.BigDecimal.ZERO,transfer.getCurrency(),r.getReference(),r.getCreatedAt(),r.getCreatedAt()))).toList());
     }
 }

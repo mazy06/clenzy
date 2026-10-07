@@ -39,5 +39,14 @@ public record VoucherValidationRequestDto(
     String guestEmail,
 
     @NotNull(message = "channel requis")
-    VoucherChannelScope channel
-) {}
+    VoucherChannelScope channel,
+    java.time.LocalDate checkIn,
+    java.time.LocalDate checkOut,
+    Integer guests,
+    Integer children
+) {
+    public VoucherValidationRequestDto(Long organizationId,String code,Long propertyId,Integer stayNights,BigDecimal subtotal,
+                                        String guestEmail,VoucherChannelScope channel) {
+        this(organizationId,code,propertyId,stayNights,subtotal,guestEmail,channel,null,null,null,null);
+    }
+}

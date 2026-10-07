@@ -60,7 +60,7 @@ class DocumentGeneratorServiceExtraTest {
     @Mock private DocumentStorageService documentStorageService;
     @Mock private TemplateParserService templateParserService;
     @Mock private TagResolverService tagResolverService;
-    @Mock private LibreOfficeConversionService conversionService;
+    @Mock private BaitlyPdfEngine conversionService;
     @Mock private EmailService emailService;
     @Mock private NotificationService notificationService;
     @Mock private AuditLogService auditLogService;
@@ -92,14 +92,11 @@ class DocumentGeneratorServiceExtraTest {
                 emailService, generationRepository);
         DocumentGenerationPipeline generationPipeline = new DocumentGenerationPipeline(
                 generationRepository, documentStorageService, tagResolverService, conversionService,
-                numberingService, complianceService, invoiceGeneratorService, notificationService,
+                numberingService, complianceService, invoiceGeneratorService, org.mockito.Mockito.mock(InvoicePdfService.class), org.mockito.Mockito.mock(BaitlyInvoicePdfStore.class), notificationService,
                 auditLogService, tenantContext, failureRecorder, emailDispatcher, renderer, meterRegistry,
                 org.mockito.Mockito.mock(org.springframework.transaction.PlatformTransactionManager.class));
         DocumentPreviewService previewService = new DocumentPreviewService(
-                tagResolverService, numberingService, complianceService, conversionService,
-                tenantContext, entityManager, renderer,
-                interventionRepository, receivedFormRepository, serviceRequestRepository,
-                reservationRepository, propertyRepository, providerExpenseRepository);
+                conversionService, renderer, new InvoicePdfService(conversionService));
         service = new DocumentGeneratorService(
                 templateManager, previewService, generationPipeline, emailDispatcher,
                 templateRepository, generationRepository, taxRulePreValidator,

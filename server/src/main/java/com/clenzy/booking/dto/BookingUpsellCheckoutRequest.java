@@ -8,5 +8,6 @@ import jakarta.validation.constraints.NotBlank;
  */
 public record BookingUpsellCheckoutRequest(
     @NotBlank String reservationCode,
-    String returnUrl
+    String returnUrl,
+    @jakarta.validation.constraints.NotNull java.util.UUID requestId
 ) {}

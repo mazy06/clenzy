@@ -1,9 +1,11 @@
-import React, { useState, useMemo, useCallback } from 'react';
+import BaitlyHardwareOrders from './BaitlyHardwareOrders';
+import BaitlyHardwareInventoryPanel from './BaitlyHardwareInventoryPanel';
+import { useAuth } from '../../hooks/useAuth';
+import React, { useState, useMemo, useCallback, useRef } from 'react';
 import { Button, Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../../components/ui';
 import { ShoppingCartOutlined, Memory, CheckCircleOutline } from '../../icons';
-import { useNotification } from '../../hooks/useNotification';
 import { useTranslation } from '../../hooks/useTranslation';
-import apiClient from '../../services/apiClient';
+import { baitlyShopCheckout } from './baitlyShopCheckout';
 import { SHOP_PRODUCTS, CATEGORIES } from './shopProducts';
 import type { ProductCategory } from './shopProducts';
 import ProductCard from './ProductCard';
@@ -29,7 +31,8 @@ const categoryTranslationKeys: Record<string, string> = {
 
 const ShopPage: React.FC = () => {
   const { t } = useTranslation();
-  const { notify } = useNotification();
+  const { hasAnyRole } = useAuth();
+  const [management, setManagement] = useState<'orders' | 'stock' | null>(null);
 
   const [selectedCategory, setSelectedCategory] = useUserPreference<'all' | ProductCategory>('baitly.shop.category', 'all');
   const [view, setView] = useUserPreference<CatalogView>('baitly.catalog.view', 'cards');
@@ -38,6 +41,10 @@ const ShopPage: React.FC = () => {
   useScreenSearch(search, setSearch, t('baitlyCatalog.searchProducts'));
   const [cart, setCart] = useState<Map<string, number>>(new Map());
   const [drawerOpen, setDrawerOpen] = useState(false);
+  const [checkoutBusy, setCheckoutBusy] = useState(false);
+  const [checkoutError, setCheckoutError] = useState('');
+  const checkoutPending = useRef(false);
+  const checkoutAttempt = useRef<{ key: string; id: string } | null>(null);
 
   const cartCount = useMemo(
     () => Array.from(cart.values()).reduce((sum, qty) => sum + qty, 0),
@@ -98,20 +105,24 @@ const ShopPage: React.FC = () => {
   }, []);
 
   const handleCheckout = useCallback(async () => {
-    const items = Array.from(cart.entries()).map(([productId, quantity]) => ({
-      productId,
-      quantity,
-    }));
-
+    if (checkoutPending.current || cart.size === 0) return;
+    checkoutPending.current = true;setCheckoutBusy(true);setCheckoutError('');
     try {
-      await apiClient.post('/api/shop/checkout', { items });
-    } catch {
-      // backend not ready yet
+      const items = Array.from(cart.entries()).map(([productId, quantity]) => {
+        const product = SHOP_PRODUCTS.find(p => p.id === productId);
+        if (!product) throw new Error(t('shop.checkoutFailed'));
+        return { sku: product.sku, quantity };
+      }).sort((a, b) => a.sku.localeCompare(b.sku));
+      const key = JSON.stringify(items);
+      if (checkoutAttempt.current?.key !== key) checkoutAttempt.current = { key, id: crypto.randomUUID() };
+      const url = await baitlyShopCheckout(items, checkoutAttempt.current.id);
+      window.location.assign(url);
+    } catch (error) {
+      setCheckoutError(error instanceof Error ? error.message : t('shop.checkoutFailed'));
+    } finally {
+      checkoutPending.current = false;setCheckoutBusy(false);
     }
-
-    notify.success(t('common.processing'));
-    setDrawerOpen(false);
-  }, [cart, notify, t]);
+  }, [cart, t]);
 
   const categoryCounts = useMemo(() => {
     const counts: Record<string, number> = {
@@ -136,6 +147,9 @@ const ShopPage: React.FC = () => {
         backPath="/dashboard"
         showBackButton={false}
         actions={(
+          <>
+          <Button variant="ghost" onClick={() => setManagement(management === 'orders' ? null : 'orders')}>{t('hardwareOrders.title')}</Button>
+          {hasAnyRole(['SUPER_ADMIN']) && <Button variant="ghost" onClick={() => setManagement(management === 'stock' ? null : 'stock')}>{t('hardwareInventory.title')}</Button>}
           <Button
             variant="ghost"
             size="icon"
@@ -148,10 +162,11 @@ const ShopPage: React.FC = () => {
             </span>
             <NavCountBadge count={cartCount} className="absolute -top-1 -end-1" />
           </Button>
+          </>
         )}
       />
 
-      <BaitlyCatalog title={t(categoryTranslationKeys[selectedCategory])} count={filteredProducts.length}
+      {!management && <BaitlyCatalog title={t(categoryTranslationKeys[selectedCategory])} count={filteredProducts.length}
         view={view} onViewChange={setView}
         toolbar={<Select value={sort} onValueChange={value => setSort(value as Sort)}>
           <SelectTrigger size="sm" className="w-40 cursor-pointer" aria-label={t('baitlyCatalog.sort')}><SelectValue /></SelectTrigger>
@@ -184,12 +199,16 @@ const ShopPage: React.FC = () => {
           action={<Button variant="outline" onClick={() => { setSearch(''); setSelectedCategory('all'); }}>
             {t('baitlyCatalog.reset')}
           </Button>} />}
-      </BaitlyCatalog>
+      </BaitlyCatalog>}
 
+      {management === 'orders' && <BaitlyHardwareOrders />}
+      {management === 'stock' && <BaitlyHardwareInventoryPanel />}
       <CartDrawer
         open={drawerOpen}
         onClose={() => setDrawerOpen(false)}
         cart={cart}
+        busy={checkoutBusy}
+        error={checkoutError}
         onUpdateQuantity={handleUpdateQuantity}
         onRemoveItem={handleRemoveItem}
         onCheckout={handleCheckout}

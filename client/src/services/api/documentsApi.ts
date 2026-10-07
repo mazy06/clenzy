@@ -126,6 +126,10 @@ export interface TagCategoryOption {
 
 // ─── API ─────────────────────────────────────────────────────────────────────
 
+export class InvalidDocumentPdfError extends Error {
+  constructor() { super('Invalid PDF response'); this.name = 'InvalidDocumentPdfError'; }
+}
+
 export const documentsApi = {
 
   // ─── Templates ──────────────────────────────────────────────────────────
@@ -159,7 +163,7 @@ export const documentsApi = {
   },
 
   /**
-   * Remplace le fichier .odt du template existant (PUT multipart).
+   * Remplace le fichier HTML du template existant (PUT multipart).
    * Le serveur re-parse automatiquement les tags du nouveau contenu.
    * Les metadata (nom, description, documentType, active) sont preservees.
    */
@@ -181,7 +185,7 @@ export const documentsApi = {
     return response.json() as Promise<DocumentTemplate>;
   },
 
-  /** Telecharger le fichier .odt source du template (avec balises non substituees). */
+  /** Télécharger la source HTML du modèle (avec balises non substituées). */
   async downloadTemplateOriginal(id: number, filename: string) {
     const url = `${API_CONFIG.BASE_URL}${API_CONFIG.BASE_PATH}/documents/templates/${id}/download`;
     const token = getAccessToken();
@@ -196,7 +200,7 @@ export const documentsApi = {
     const blobUrl = window.URL.createObjectURL(blob);
     const link = document.createElement('a');
     link.href = blobUrl;
-    link.download = filename || 'template.odt';
+    link.download = (filename || 'template.html').replace(/\.odt$/i, '.html');
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -208,31 +212,29 @@ export const documentsApi = {
    * et retourne une object URL (Blob) prete a etre affichee dans une balise
    * <iframe> ou un viewer PDF. L'appelant doit liberer l'URL via revokeObjectURL.
    */
-  async fetchTemplatePreviewBlobUrl(id: number): Promise<string> {
+  async fetchTemplatePreviewBlobUrl(id: number, signal?: AbortSignal): Promise<string> {
     const url = `${API_CONFIG.BASE_URL}${API_CONFIG.BASE_PATH}/documents/templates/${id}/preview`;
     const token = getAccessToken();
     const response = await fetch(url, {
       headers: token ? { Authorization: `Bearer ${token}` } : {},
       credentials: 'include',
+      signal,
     });
     if (!response.ok) {
       throw new Error(`Erreur ${response.status} lors de la generation de l'apercu`);
     }
-    const blob = await response.blob();
-    return window.URL.createObjectURL(blob);
+    const mediaType = response.headers.get('content-type')?.split(';')[0].trim().toLowerCase();
+    if (mediaType !== 'application/pdf') throw new InvalidDocumentPdfError();
+    const bytes = await response.arrayBuffer();
+    const header = Array.from(new Uint8Array(bytes, 0, Math.min(5, bytes.byteLength)), byte => String.fromCharCode(byte)).join('');
+    if (header !== '%PDF-') throw new InvalidDocumentPdfError();
+    signal?.throwIfAborted();
+    // Seul un PDF du moteur serveur validé peut atteindre le lecteur natif.
+    return window.URL.createObjectURL(new Blob([bytes], { type: 'application/pdf' }));
   },
 
   /** Telecharger directement l'apercu PDF (fichier _preview.pdf). */
-  async downloadTemplatePreview(id: number, filename: string) {
-    const blobUrl = await this.fetchTemplatePreviewBlobUrl(id);
-    const link = document.createElement('a');
-    link.href = blobUrl;
-    link.download = filename || 'template_preview.pdf';
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    window.URL.revokeObjectURL(blobUrl);
-  },
+
 
   // ─── Generation ─────────────────────────────────────────────────────────
 

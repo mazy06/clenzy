@@ -22,7 +22,7 @@ class PayoutReconciliationServiceTest {
     final HousekeeperPayoutRecordRepository providers=mock(HousekeeperPayoutRecordRepository.class);
     final StripeGateway stripe=mock(StripeGateway.class);
     final BaitlyExpensePayoutStore expenses=mock(BaitlyExpensePayoutStore.class);
-    final PayoutReconciliationWriter writer=new PayoutReconciliationWriter(transfers,events,owners,providers,org.mockito.Mockito.mock(BaitlyOwnerPayoutDocuments.class), expenses);
+    final PayoutReconciliationWriter writer=new PayoutReconciliationWriter(transfers,events,owners,providers,org.mockito.Mockito.mock(BaitlyOwnerPayoutDocuments.class), expenses, org.mockito.Mockito.mock(BaitlyCommercePayoutStore.class));
     final PayoutReconciliationService service=new PayoutReconciliationService(transfers,stripe,writer);
     final PayoutTransferInstruction instruction=new PayoutTransferInstruction(7L,PayoutTransfer.Source.INTERVENTION,11L,null,9L,
             new BigDecimal("80"),"EUR","acct_company","Maintenance #11");

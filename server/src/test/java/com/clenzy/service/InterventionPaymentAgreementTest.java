@@ -90,7 +90,7 @@ class InterventionPaymentAgreementTest {
 
     @ParameterizedTest @ValueSource(booleans = {false, true})
     void balanceDeductsPaidDeposit(boolean embedded) {
-        quote.setDepositPaidAt(LocalDateTime.now());
+        quote.setDepositPaidAt(LocalDateTime.now()); quote.setDepositTransactionRef("DEP-TEST");
         successfulPayment();
         pay(embedded, "FULL", "160");
         assertThat(sent().amount()).isEqualByComparingTo("160");
@@ -101,7 +101,7 @@ class InterventionPaymentAgreementTest {
     void deliveredMissionCanPayItsBalanceWithoutReopeningTheWork(boolean embedded) {
         mission.setStatus(InterventionStatus.COMPLETED);
         mission.setCompletedAt(LocalDateTime.of(2026,10,6,12,0));
-        quote.setDepositPaidAt(LocalDateTime.now());
+        quote.setDepositPaidAt(LocalDateTime.now()); quote.setDepositTransactionRef("DEP-TEST");
         successfulPayment();
         pay(embedded,"FULL","160");
         assertThat(sent().amount()).isEqualByComparingTo("160");
@@ -128,7 +128,7 @@ class InterventionPaymentAgreementTest {
 
     @ParameterizedTest @ValueSource(booleans = {false, true})
     void alreadyPaidDepositCannotBeChargedAgain(boolean embedded) {
-        quote.setDepositPaidAt(LocalDateTime.now());
+        quote.setDepositPaidAt(LocalDateTime.now()); quote.setDepositTransactionRef("DEP-TEST");
         assertThatThrownBy(() -> pay(embedded, "DEPOSIT", "40"))
                 .isInstanceOf(com.clenzy.exception.PaymentValidationException.class);
         verifyNoInteractions(orchestration);
@@ -137,7 +137,7 @@ class InterventionPaymentAgreementTest {
 
     @ParameterizedTest @ValueSource(booleans = {false, true})
     void totalCannotBeChargedAgainAfterDeposit(boolean embedded) {
-        quote.setDepositPaidAt(LocalDateTime.now());
+        quote.setDepositPaidAt(LocalDateTime.now()); quote.setDepositTransactionRef("DEP-TEST");
         assertThatThrownBy(() -> pay(embedded, "FULL", "200"))
                 .isInstanceOf(com.clenzy.exception.PaymentValidationException.class);
         verifyNoInteractions(orchestration);

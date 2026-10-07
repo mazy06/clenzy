@@ -29,13 +29,16 @@ public class BaitlyExternalRefundStore {
     private final InterventionRefundReconciliationService reconciliation;
     private final BaitlyExternalReservationRefunds reservationRefunds;
     private final BaitlyExternalBatchRefunds batchRefunds;
+    private final com.clenzy.service.ai.BaitlyCreditFunding credits;
     public BaitlyExternalRefundStore(EntityManager em, PaymentTransactionRepository payments, TenantContext tenant,
             BaitlyExternalRefundEligibility eligibility, PaymentPersistence persistence, InterventionRefundReconciliationService reconciliation,
-            BaitlyExternalReservationRefunds reservationRefunds, BaitlyExternalBatchRefunds batchRefunds) {
+            BaitlyExternalReservationRefunds reservationRefunds, BaitlyExternalBatchRefunds batchRefunds,
+            com.clenzy.service.ai.BaitlyCreditFunding credits) {
         this.em=em; this.payments=payments; this.tenant=tenant; this.eligibility=eligibility;
         this.persistence=persistence; this.reconciliation=reconciliation;
         this.reservationRefunds=reservationRefunds;
         this.batchRefunds=batchRefunds;
+        this.credits=credits;
     }
     public record Candidate(long id, Long org, String ref, String providerId) {}
     public record State(Long org, String ref, String providerId, java.math.BigDecimal amount, String currency, boolean review) {}
@@ -96,6 +99,7 @@ public class BaitlyExternalRefundStore {
         metadata.put("paymentIntent",proof.intent()); metadata.put("reviewRequired",review);
         refund.setMetadata(metadata);
         refund.setErrorMessage(review?"Remboursement externe Stripe : rapprochement requis":null);
+        credits.sync(original);
         return state(refund);
     }
     /** Tous les effets locaux sont atomiques, sous le verrou de l'encaissement puis de la mission. */
@@ -118,6 +122,18 @@ public class BaitlyExternalRefundStore {
                 && proof.originalRef().equals(refund.getMetadata().get("originalTransactionRef"))
                 && proof.amount().compareTo(refund.getAmount())==0, "Remboursement externe non confirmé");
         boolean batch="INTERVENTION_BATCH".equals(original.getSourceType());
+        if (BaitlyCommerceRefunds.supports(original.getSourceType())) {
+            require(original.getStatus()==TransactionStatus.COMPLETED,"Pack non encaissé");
+            var related=payments.findByOrganizationIdAndSourceTypeAndSourceId(proof.org(),proof.source(),proof.sourceId()).stream()
+                    .filter(p -> p.getMetadata()!=null && proof.originalRef().equals(p.getMetadata().get("originalTransactionRef"))).toList();
+            var before=BaitlyExternalRefundSeries.before(original,refund,related,snapshot);
+            var metadata=new HashMap<>(refund.getMetadata()); metadata.put("externalRefundConfirmed",true); metadata.put("reviewRequired",false);
+            metadata.put("cumulativeRefund",true);metadata.put("refundBefore",before.toPlainString());metadata.put("refundAfter",before.add(refund.getAmount()).toPlainString());
+            refund.setMetadata(metadata); refund.setErrorMessage(null);
+            persistence.finalizeRefund(refund.getTransactionRef(),PaymentResult.success(proof.refundId(),null,"REFUNDED"),proof.org());
+            credits.sync(original);
+            return state(refund);
+        }
         if(batch) batchRefunds.reconcile(original,refund,snapshot);
         if(batch && BaitlyRefundEvidence.distributed(refund)) {
             var metadata=new HashMap<>(refund.getMetadata()); metadata.put("externalRefundConfirmed",true); metadata.put("reviewRequired",false);

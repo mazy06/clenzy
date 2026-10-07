@@ -19,10 +19,12 @@ public class ManagedRefundReconciliation {
     private final ManagedStripeRefund stripe;
     private final BaitlyBatchRefundPersistence batchRefunds;
     private final BaitlyExternalRefundReconciliation externalRefunds;
+    private final BaitlyRefundSeriesStore seriesStore;
     private final com.clenzy.booking.service.BookingCancellationRefundProcessor bookingRefunds;
     public ManagedRefundReconciliation(PaymentTransactionRepository payments, PaymentPersistence persistence,
             ManagedStripeRefund stripe, com.clenzy.booking.service.BookingCancellationRefundProcessor bookingRefunds,
-            BaitlyBatchRefundPersistence batchRefunds, BaitlyExternalRefundReconciliation externalRefunds) {
+            BaitlyBatchRefundPersistence batchRefunds, BaitlyExternalRefundReconciliation externalRefunds, BaitlyRefundSeriesStore seriesStore) {
+        this.seriesStore=seriesStore;
         this.externalRefunds = externalRefunds;
         this.batchRefunds = batchRefunds;
         this.bookingRefunds = bookingRefunds;
@@ -80,6 +82,8 @@ public class ManagedRefundReconciliation {
 
     PaymentTransaction reconcile(PaymentTransaction tx, String providerRefundId) throws com.stripe.exception.StripeException {
         if(!PaymentPersistence.managedRefund(tx)) throw new IllegalStateException("Une preuve externe ne peut pas émettre de remboursement");
+        if(BaitlyMaintenanceReceipts.aggregated(tx) && tx.getStatus()!=TransactionStatus.COMPLETED
+                && !seriesStore.prepareMaintenanceRecovery(tx)) return tx;
         Object originalRef = tx.getMetadata().get("originalTransactionRef");
         if (!(originalRef instanceof String ref)) throw new IllegalStateException("Encaissement d'origine absent");
         var original = payments.findByTransactionRef(ref).orElseThrow();
@@ -90,7 +94,8 @@ public class ManagedRefundReconciliation {
                 || original.getProviderType() != PaymentProviderType.STRIPE
                 || original.getPaymentType() != TransactionType.CHECKOUT || original.getStatus() != TransactionStatus.COMPLETED
                 || !Objects.equals(tx.getOrganizationId(), original.getOrganizationId())
-                || !"INTERVENTION".equals(tx.getSourceType())
+                || !("INTERVENTION".equals(tx.getSourceType()) || (BaitlyCommerceRefunds.supports(tx.getSourceType())
+                    && Boolean.TRUE.equals(tx.getMetadata().get("commerceRefund")) && series))
                 || !Objects.equals(tx.getCurrency(), original.getCurrency())
                 || (!allocated && (!Objects.equals(tx.getSourceType(), original.getSourceType())
                     || !Objects.equals(tx.getSourceId(), original.getSourceId())
@@ -108,8 +113,10 @@ public class ManagedRefundReconciliation {
             result=external.isEmpty() ? stripe.executeAllocation(context,tx.getAmount(),batchRefunds.manifest(original))
                     : stripe.executeSeries(context,tx.getAmount(),batchRefunds.managedManifest(original),external);
         } else if(series) {
-            var history=BaitlyRefundSeries.history(original,payments.findByOrganizationIdAndSourceTypeAndSourceId(
-                    tx.getOrganizationId(),tx.getSourceType(),tx.getSourceId()));
+            var rows=payments.findByOrganizationIdAndSourceTypeAndSourceId(tx.getOrganizationId(),tx.getSourceType(),tx.getSourceId());
+            if(BaitlyCommerceRefunds.supports(tx.getSourceType())) rows=BaitlyCommerceRefunds.forReceipt(original,rows);
+            var history=BaitlyRefundSeries.history(original,BaitlyMaintenanceReceipts.aggregated(tx)
+                    ? BaitlyMaintenanceReceipts.forReceipt(original,rows) : rows);
             var decisions=new java.util.HashMap<String,java.math.BigDecimal>();
             var external=new java.util.HashMap<String,java.math.BigDecimal>();
             for(var row:history) {

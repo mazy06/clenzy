@@ -245,4 +245,28 @@ class InvoicePaymentPersistenceTest {
             em.getTransaction().rollback();
         }
     }
+
+    @Test void embeddedAndHostedCheckoutCannotReserveTheSameDebtTwice() throws Exception {
+        var attempting=new CountDownLatch(1);
+        var embedded=new PaymentOrchestrationRequest(new BigDecimal("80"),"EUR","BOOKING_CHECKOUT",2L,"Séjour",
+            "guest@example.test",PaymentProviderType.STRIPE,null,null,Map.of("server_total","80","deposit_balance","0"),"EMBEDDED-2");
+        try(var winner=factory.createEntityManager();var pool=Executors.newSingleThreadExecutor()) {
+            winner.getTransaction().begin();
+            coordination(winner,ledger(winner)).lockForPayment(7L,embedded);
+            intent(winner,"BOOKING_CHECKOUT");winner.flush();
+            var loser=pool.submit(()->{
+                try(var em=factory.createEntityManager()) {
+                    em.getTransaction().begin();em.find(Reservation.class,2L);attempting.countDown();
+                    try {coordination(em,ledger(em)).lockForPayment(7L,request(false));return "unexpected admission";}
+                    catch(IllegalStateException expected){return expected.getMessage();}
+                    finally {em.getTransaction().rollback();}
+                }
+            });
+            try {assertThat(attempting.await(2,TimeUnit.SECONDS)).isTrue();
+                assertThatThrownBy(()->loser.get(200,TimeUnit.MILLISECONDS)).isInstanceOf(TimeoutException.class);
+            } finally {winner.getTransaction().commit();}
+            assertThat(loser.get(5,TimeUnit.SECONDS)).contains("paiement existe déjà");
+            assertThat(winner.createQuery("select count(t) from PaymentTransaction t",Long.class).getSingleResult()).isEqualTo(1L);
+        }
+    }
 }

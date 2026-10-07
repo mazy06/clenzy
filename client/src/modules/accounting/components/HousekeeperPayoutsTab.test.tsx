@@ -34,7 +34,7 @@ it('confirme et transmet le montant recalculé de 70 €, jamais les anciens 0 �
   fireEvent.click(button);
   expect(screen.getByRole('dialog')).toHaveTextContent(/70,00\s*€/);
   expect(housekeeperPayoutsApi.retry).not.toHaveBeenCalled();
-  fireEvent.click(screen.getByRole('button', { name: 'Relancer', exact: true }));
+  fireEvent.click(screen.getByRole('button', { name: 'Relancer' }));
   await waitFor(() => expect(housekeeperPayoutsApi.retry).toHaveBeenCalledExactlyOnceWith(7, { amount: 70, commissionAmount: 0 }));
 });
 

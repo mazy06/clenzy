@@ -29,7 +29,7 @@ class InterventionBatchInitiationTest {
     @Test void batchUsesServerBalancesAndStableIdsWithoutSavingDetachedMissions() {
         var first=mission(1,"40"); mission(2,"50");
         var quote=new ServiceQuote(); quote.setStatus(ServiceQuote.Status.APPROVED); quote.setDepositAmount(BigDecimal.TEN);
-        quote.setDepositPaidAt(java.time.LocalDateTime.now());
+        quote.setDepositPaidAt(java.time.LocalDateTime.now()); quote.setDepositTransactionRef("DEP-TEST");
         when(quotes.findByInterventionIdAndOrganizationIdOrderByAmountAsc(1L,7L)).thenReturn(List.of(quote));
         when(orchestration.initiatePayment(any())).thenReturn(new PaymentOrchestrationResult(null,PaymentResult.success("cs_batch","https://checkout.stripe.com/test"),PaymentProviderType.STRIPE));
         var result=service.createBatchPaymentSession(new BatchPaymentSessionRequest(List.of(2L,1L,2L),new BigDecimal("80"),null),"host@example.test");

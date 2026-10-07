@@ -23,7 +23,7 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * Synchronise les templates ODT bundles dans le JAR (classpath:templates/*.odt)
+ * Synchronise uniquement les modèles HTML Baitly gérés par la plateforme.
  * avec les enregistrements existants en base.
  * <p>
  * S'execute au demarrage de l'application apres le boot complet de Spring.
@@ -32,7 +32,7 @@ import java.util.Map;
  * si le contenu est deja a jour, rien n'est touche.
  * <p>
  * Cas d'usage : faire evoluer le rendu d'un template sans demander aux
- * admins de re-uploader le .odt depuis l'UI.
+ * admins de réimporter un modèle HTML depuis l'UI.
  */
 @Service
 public class DocumentTemplateSyncService {
@@ -41,7 +41,7 @@ public class DocumentTemplateSyncService {
 
     /** Mapping : nom de fichier bundle -> documentType attendu en base. */
     private static final Map<String, String> BUNDLED_TEMPLATES = Map.of(
-            "template_devis.odt", "DEVIS"
+            "baitly-devis.html", "DEVIS"
             // DEVIS_PRESTATAIRE n'a PAS de bundle : c'est justement ce bundle,
             // pousse par-dessus le modele seme, qui apporte les blocs forfait /
             // abonnement du devis prospect. Le devis d'intervention garde le
@@ -105,6 +105,8 @@ public class DocumentTemplateSyncService {
         }
 
         for (DocumentTemplate tpl : existing) {
+            // Ne jamais remplacer un modèle téléversé ou personnalisé par une organisation.
+            if (!"system-seed".equals(tpl.getCreatedBy())) continue;
             byte[] current = tpl.getFileContent();
             String currentHash = current != null ? sha256(current) : "";
             if (bundledHash.equals(currentHash)) {
@@ -117,9 +119,7 @@ public class DocumentTemplateSyncService {
                     current != null ? current.length : 0, bundledBytes.length);
 
             tpl.setFileContent(bundledBytes);
-            if (tpl.getOriginalFilename() == null || tpl.getOriginalFilename().isBlank()) {
-                tpl.setOriginalFilename(resourceName);
-            }
+            tpl.setOriginalFilename(resourceName);
             tpl.setVersion(tpl.getVersion() == null ? 2 : tpl.getVersion() + 1);
             templateRepository.save(tpl);
 

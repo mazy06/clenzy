@@ -36,8 +36,10 @@ public class TagResolverService {
     private static final Logger log = LoggerFactory.getLogger(TagResolverService.class);
 
     private final Map<String, ReferenceTagResolver> resolversByType;
+    private final BaitlyDocumentIdentity identity;
+    private final com.clenzy.tenant.TenantContext tenant;
 
-    @Value("${clenzy.company.name:Clenzy}")
+    @Value("${clenzy.company.name:Baitly}")
     private String companyName;
 
     @Value("${clenzy.company.address:}")
@@ -46,13 +48,15 @@ public class TagResolverService {
     @Value("${clenzy.company.siret:}")
     private String companySiret;
 
-    @Value("${clenzy.company.email:info@clenzy.fr}")
+    @Value("${clenzy.company.email:}")
     private String companyEmail;
 
     @Value("${clenzy.company.phone:}")
     private String companyPhone;
 
-    public TagResolverService(List<ReferenceTagResolver> referenceTagResolvers) {
+    public TagResolverService(List<ReferenceTagResolver> referenceTagResolvers, BaitlyDocumentIdentity identity, com.clenzy.tenant.TenantContext tenant) {
+        this.identity = identity;
+        this.tenant = tenant;
         this.resolversByType = referenceTagResolvers.stream()
                 .collect(Collectors.toUnmodifiableMap(ReferenceTagResolver::referenceType, resolver -> resolver));
     }
@@ -66,6 +70,10 @@ public class TagResolverService {
      * @return Map hierarchique des tags resolus (ex: {"client": {"nom": "Dupont", ...}, "property": {...}})
      */
     public Map<String, Object> resolveTagsForDocument(DocumentType documentType, Long referenceId, String referenceType) {
+        return resolveTagsForDocument(documentType, referenceId, referenceType, tenant.getOrganizationId(), tenant.getCountryCode());
+    }
+
+    public Map<String, Object> resolveTagsForDocument(DocumentType documentType, Long referenceId, String referenceType, Long orgId, String country) {
         log.debug("Resolving tags for {} (ref: {} #{})", documentType, referenceType, referenceId);
 
         Map<String, Object> context = new LinkedHashMap<>();
@@ -83,6 +91,7 @@ public class TagResolverService {
             log.warn("Unknown reference type: {}", referenceType);
         }
 
+        identity.apply(orgId, country, documentType, referenceType, context);
         log.debug("Resolved {} top-level tag groups", context.size());
         return context;
     }
@@ -100,7 +109,7 @@ public class TagResolverService {
 
     private Map<String, Object> resolveEntrepriseTags() {
         Map<String, Object> tags = new LinkedHashMap<>();
-        tags.put("nom", companyName);
+        tags.put("nom", BaitlyDocumentIdentity.displayName(companyName));
         tags.put("adresse", companyAddress);
         tags.put("siret", companySiret);
         tags.put("email", companyEmail);

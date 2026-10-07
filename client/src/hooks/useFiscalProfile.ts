@@ -10,20 +10,20 @@ export const fiscalProfileKeys = {
 
 // ─── Hooks ──────────────────────────────────────────────────────────────────
 
-export function useFiscalProfile() {
+export function useFiscalProfile(country?: string) {
   return useQuery({
-    queryKey: fiscalProfileKeys.all,
-    queryFn: () => fiscalProfileApi.get(),
+    queryKey: country ? [...fiscalProfileKeys.all, country] : fiscalProfileKeys.all,
+    queryFn: () => fiscalProfileApi.get(country),
     staleTime: 60_000,
     retry: 1,           // Only 1 retry — fast feedback
     retryDelay: 1_000,
   });
 }
 
-export function useUpdateFiscalProfile() {
+export function useUpdateFiscalProfile(country?: string) {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (data: FiscalProfileUpdate) => fiscalProfileApi.update(data),
+    mutationFn: (data: FiscalProfileUpdate) => fiscalProfileApi.update(data, country),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: fiscalProfileKeys.all });
     },

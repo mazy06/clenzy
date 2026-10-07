@@ -23,9 +23,13 @@ public class ShopController {
     private static final Logger log = LoggerFactory.getLogger(ShopController.class);
 
     private final ShopService shopService;
+    private final com.clenzy.service.BaitlyCommerceOperations operations;
+    private final com.clenzy.tenant.TenantContext tenant;
+    private final com.clenzy.service.BaitlySaleDocumentStore documents;
 
-    public ShopController(ShopService shopService) {
+    public ShopController(ShopService shopService,com.clenzy.service.BaitlyCommerceOperations operations,com.clenzy.tenant.TenantContext tenant,com.clenzy.service.BaitlySaleDocumentStore documents) {
         this.shopService = shopService;
+        this.operations=operations;this.tenant=tenant;this.documents=documents;
     }
 
     @GetMapping("/catalog")
@@ -45,10 +49,26 @@ public class ShopController {
     }
 
     @GetMapping("/orders")
-    public ResponseEntity<List<HardwareOrderDto>> getOrders() {
+    public ResponseEntity<List<HardwareOrderDto>> getOrders(@AuthenticationPrincipal Jwt jwt,org.springframework.security.core.Authentication authentication) {
         return ResponseEntity.ok(
-            shopService.getOrders().stream()
+            shopService.getOrders(jwt.getSubject(),manager(authentication)).stream()
                 .map(HardwareOrderDto::from)
                 .toList());
     }
+    @GetMapping("/orders/{id}/operations")
+    public List<com.clenzy.model.BaitlyCommerceOperation> operations(@PathVariable Long id,@AuthenticationPrincipal Jwt jwt,org.springframework.security.core.Authentication authentication) {
+        shopService.requireOrderAccess(id,jwt.getSubject(),manager(authentication));
+        return operations.history(tenant.getRequiredOrganizationId(),"HARDWARE_ORDER",id);
+    }
+    @GetMapping("/orders/{id}/documents")
+    public java.util.List<com.clenzy.service.BaitlySaleDocumentStore.View> documents(@PathVariable Long id,@AuthenticationPrincipal Jwt jwt,org.springframework.security.core.Authentication auth){
+        shopService.requireOrderAccess(id,jwt.getSubject(),manager(auth));
+        return documents.list(tenant.getRequiredOrganizationId(),"HARDWARE_ORDER",id);
+    }
+    @GetMapping("/orders/{id}/documents/{document}/export")
+    public java.util.Map<String,Object> exportDocument(@PathVariable Long id,@PathVariable Long document,@AuthenticationPrincipal Jwt jwt,org.springframework.security.core.Authentication auth){
+        shopService.requireOrderAccess(id,jwt.getSubject(),manager(auth));
+        return documents.export(tenant.getRequiredOrganizationId(),document,"HARDWARE_ORDER",id);
+    }
+    private static boolean manager(org.springframework.security.core.Authentication auth){return auth!=null && auth.getAuthorities().stream().anyMatch(a->a.getAuthority().equals("ROLE_SUPER_ADMIN") || a.getAuthority().equals("ROLE_SUPER_MANAGER"));}
 }

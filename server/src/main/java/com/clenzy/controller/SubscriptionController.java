@@ -41,16 +41,8 @@ public class SubscriptionController {
             return ResponseEntity.badRequest().body(Map.of("error", "Le champ targetForfait est requis"));
         }
 
-        try {
-            Map<String, String> result = subscriptionService.createUpgradeCheckout(jwt.getSubject(), targetForfait);
-            return ResponseEntity.ok(result);
-        } catch (IllegalArgumentException e) {
-            log.warn("Upgrade refuse pour {}: {}", jwt.getSubject(), e.getMessage());
-            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
-        } catch (StripeException e) {
-            log.error("Erreur Stripe pour upgrade de {}: {}", jwt.getSubject(), e.getMessage());
-            return ResponseEntity.internalServerError()
-                    .body(Map.of("error", "Erreur de paiement: " + e.getMessage()));
-        }
+        return ResponseEntity.status(410).body(Map.of("error",
+                "Consultez la proposition d'abonnement dans Paramètres > Abonnement avant de changer de formule.",
+                "next", "/settings?tab=subscription"));
     }
 }

@@ -32,12 +32,12 @@ import java.util.List;
  * d'une demande publique, facture a la cloture d'une intervention) exige un
  * template actif org-scope (numerotation legale NF). Le flux public n'a pas de
  * TenantContext : l'org de generation est derivee du template, qui DOIT donc
- * porter l'org Clenzy (non-null), resolue par nom.</p>
+ * porter l'org Baitly (non-null), resolue par nom.</p>
  *
  * <p><b>Idempotent + re-seed par checksum</b> : pour chaque template embarque,
  * s'il n'existe pas d'actif il est seede ; s'il en existe un et qu'il provient
  * du seed ({@code createdBy = system-seed}), son contenu est mis a jour quand le
- * .odt embarque change (comparaison SHA-256) — ce qui permet de propager une
+ * .html embarque change (comparaison SHA-256) — ce qui permet de propager une
  * refonte du rendu en prod. Un template personnalise par un admin via l'UI
  * ({@code createdBy != system-seed}) n'est JAMAIS ecrase.</p>
  *
@@ -57,26 +57,28 @@ public class DefaultDocumentTemplateSeeder implements ApplicationRunner {
     private record TemplateSeed(DocumentType type, String resourcePath, String name, String originalFilename) {}
 
     private static final List<TemplateSeed> SEEDS = List.of(
-            new TemplateSeed(DocumentType.DEVIS, "seed/document-templates/devis-clenzy.odt",
-                    "Devis Clenzy", "Devis Clenzy.odt"),
-            new TemplateSeed(DocumentType.DEVIS_PRESTATAIRE, "seed/document-templates/devis-prestataire-clenzy.odt",
-                    "Devis Prestataire Baitly", "Devis Prestataire Baitly.odt"),
-            new TemplateSeed(DocumentType.DEVIS_MENAGE, "seed/document-templates/devis-menage-clenzy.odt",
-                    "Devis Menage Clenzy", "Devis Menage Clenzy.odt"),
-            new TemplateSeed(DocumentType.FACTURE, "seed/document-templates/facture-clenzy.odt",
-                    "Facture Clenzy", "Facture Clenzy.odt"),
-            new TemplateSeed(DocumentType.AUTORISATION_TRAVAUX, "seed/document-templates/autorisation-travaux-clenzy.odt",
-                    "Autorisation Travaux Clenzy", "Autorisation Travaux Clenzy.odt"),
-            new TemplateSeed(DocumentType.BON_INTERVENTION, "seed/document-templates/bon-intervention-clenzy.odt",
-                    "Bon Intervention Clenzy", "Bon Intervention Clenzy.odt"),
-            new TemplateSeed(DocumentType.JUSTIFICATIF_PAIEMENT, "seed/document-templates/justificatif-paiement-clenzy.odt",
-                    "Justificatif Paiement Clenzy", "Justificatif Paiement Clenzy.odt"),
-            new TemplateSeed(DocumentType.JUSTIFICATIF_REMBOURSEMENT, "seed/document-templates/justificatif-remboursement-clenzy.odt",
-                    "Justificatif Remboursement", "Justificatif Remboursement.odt"),
-            new TemplateSeed(DocumentType.MANDAT_GESTION, "seed/document-templates/mandat-gestion-clenzy.odt",
-                    "Mandat Gestion Clenzy", "Mandat Gestion Clenzy.odt"),
-            new TemplateSeed(DocumentType.VALIDATION_FIN_MISSION, "seed/document-templates/validation-fin-mission-clenzy.odt",
-                    "Validation Fin Mission Clenzy", "Validation Fin Mission Clenzy.odt")
+            new TemplateSeed(DocumentType.DEVIS, "templates/baitly-devis.html",
+                    "Devis Baitly", "Devis Baitly.html"),
+            new TemplateSeed(DocumentType.DEVIS_PRESTATAIRE, "seed/document-templates/devis-prestataire-baitly.html",
+                    "Devis Prestataire Baitly", "Devis Prestataire Baitly.html"),
+            new TemplateSeed(DocumentType.DEVIS_MENAGE, "seed/document-templates/devis-menage-baitly.html",
+                    "Devis Menage Baitly", "Devis Menage Baitly.html"),
+            new TemplateSeed(DocumentType.FACTURE, "seed/document-templates/facture-baitly.html",
+                    "Facture Baitly", "Facture Baitly.html"),
+            new TemplateSeed(DocumentType.AUTORISATION_TRAVAUX, "seed/document-templates/autorisation-travaux-baitly.html",
+                    "Autorisation Travaux Baitly", "Autorisation Travaux Baitly.html"),
+            new TemplateSeed(DocumentType.BON_INTERVENTION, "seed/document-templates/bon-intervention-baitly.html",
+                    "Bon Intervention Baitly", "Bon Intervention Baitly.html"),
+            new TemplateSeed(DocumentType.BON_COMMANDE, "seed/document-templates/bon-commande-baitly.html",
+                    "Bon de commande Baitly", "Bon de commande Baitly.html"),
+            new TemplateSeed(DocumentType.JUSTIFICATIF_PAIEMENT, "seed/document-templates/justificatif-paiement-baitly.html",
+                    "Justificatif Paiement Baitly", "Justificatif Paiement Baitly.html"),
+            new TemplateSeed(DocumentType.JUSTIFICATIF_REMBOURSEMENT, "seed/document-templates/justificatif-remboursement-baitly.html",
+                    "Justificatif Remboursement", "Justificatif Remboursement.html"),
+            new TemplateSeed(DocumentType.MANDAT_GESTION, "seed/document-templates/mandat-gestion-baitly.html",
+                    "Mandat Gestion Baitly", "Mandat Gestion Baitly.html"),
+            new TemplateSeed(DocumentType.VALIDATION_FIN_MISSION, "seed/document-templates/validation-fin-mission-baitly.html",
+                    "Validation Fin Mission Baitly", "Validation Fin Mission Baitly.html")
     );
 
     private final DocumentTemplateRepository templateRepository;
@@ -119,7 +121,7 @@ public class DefaultDocumentTemplateSeeder implements ApplicationRunner {
     }
 
     private void seedTemplate(TemplateSeed seed) {
-        byte[] content = loadOdtBytes(seed.resourcePath());
+        byte[] content = loadHtmlBytes(seed.resourcePath());
         if (content == null) {
             return;
         }
@@ -131,13 +133,13 @@ public class DefaultDocumentTemplateSeeder implements ApplicationRunner {
         }
         // Z1-BUGS-07 : le seeder tourne au boot SANS filtre Hibernate (pas de
         // TenantContext) — les requetes "actif par type" globales voyaient les
-        // templates des AUTRES organisations : seed Clenzy saute si une autre org
+        // templates des AUTRES organisations : seed Baitly saute si une autre org
         // avait un actif du meme type, et IncorrectResultSizeDataAccessException
         // des que deux actifs du meme type coexistaient. On scope donc
-        // explicitement la recherche sur l'organisation Clenzy.
+        // explicitement la recherche sur l'organisation Baitly.
         DocumentTemplate activeForOrg = findActiveTemplateForOrg(seed.type(), org.getId());
         if (activeForOrg != null) {
-            // Un template actif existe deja pour l'org Clenzy : on tente une mise a
+            // Un template actif existe deja pour l'org Baitly : on tente une mise a
             // jour par checksum (re-seed du nouveau rendu embarque), sans jamais
             // ecraser un template personnalise par un admin via l'UI.
             maybeUpdateSeededTemplate(seed, activeForOrg, content);
@@ -159,8 +161,8 @@ public class DefaultDocumentTemplateSeeder implements ApplicationRunner {
      *
      * <p>Le nom configure d'abord ({@code clenzy.seed.default-org-name}), puis
      * un repli sur celle qui PORTE deja des modeles. Le nom seul etait un pari :
-     * apres le renommage Clenzy -> Baitly, plus aucune organisation ne
-     * s'appelait « Clenzy » et le seeder devenait inerte en silence — un
+     * apres le rebranding, le nom historique pouvait ne plus correspondre
+     * a aucune organisation et le seeder devenait inerte en silence ; un
      * nouveau type de document n'etait jamais cree, et sa premiere generation
      * echouait sur « Aucun template actif ».</p>
      */
@@ -186,7 +188,7 @@ public class DefaultDocumentTemplateSeeder implements ApplicationRunner {
     }
 
     /**
-     * Met a jour le contenu d'un template seede si le fichier .odt embarque a
+     * Met a jour le contenu d'un template seede si le fichier .html embarque a
      * change (comparaison par checksum SHA-256). N'ecrase JAMAIS un template dont
      * le {@code createdBy} n'est pas {@value #CREATED_BY} (= personnalise par un
      * admin). Idempotent : ne sauvegarde que si le contenu differe reellement.
@@ -279,7 +281,7 @@ public class DefaultDocumentTemplateSeeder implements ApplicationRunner {
         }
     }
 
-    private byte[] loadOdtBytes(String resourcePath) {
+    private byte[] loadHtmlBytes(String resourcePath) {
         ClassPathResource resource = new ClassPathResource(resourcePath);
         if (!resource.exists()) {
             log.warn("Ressource template introuvable au classpath : {}", resourcePath);

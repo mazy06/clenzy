@@ -10,6 +10,7 @@ export interface PromoCode {
   code: string;
   discountType: 'PERCENTAGE' | 'FIXED';
   discountValue: number;
+  currency?: string | null;
   maxUses: number | null;
   usedCount: number;
   validFrom: string | null;   // ISO-8601 LocalDateTime
@@ -29,6 +30,7 @@ export interface PromoCodeCreatePayload {
   code: string;
   discountType: 'PERCENTAGE' | 'FIXED';
   discountValue: number;
+  currency?: string | null;
   maxUses?: number | null;
   validFrom?: string | null;
   validUntil?: string | null;

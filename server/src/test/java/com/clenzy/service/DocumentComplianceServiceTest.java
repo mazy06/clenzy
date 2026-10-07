@@ -53,6 +53,7 @@ class DocumentComplianceServiceTest {
 
         // Default to FR country code
         lenient().when(tenantContext.getCountryCode()).thenReturn("FR");
+        lenient().when(tenantContext.getRequiredOrganizationId()).thenReturn(1L);
 
         service = new DocumentComplianceService(generationRepository, legalRequirementRepository,
                 complianceReportRepository, templateRepository, templateTagRepository,
@@ -84,7 +85,7 @@ class DocumentComplianceServiceTest {
         @DisplayName("returns same hash for identical content")
         void whenSameContent_thenSameHash() {
             // Arrange
-            byte[] content = "Clenzy Document".getBytes();
+            byte[] content = "Baitly Document".getBytes();
 
             // Act
             String hash1 = service.computeHash(content);
@@ -117,6 +118,7 @@ class DocumentComplianceServiceTest {
         void whenCalled_thenSetsHashAndLocksDocument() {
             // Arrange
             DocumentGeneration generation = new DocumentGeneration();
+            generation.setOrganizationId(1L); generation.setDocumentType(DocumentType.DEVIS);
             generation.setId(1L);
             generation.setLegalNumber("FAC-2026-0001");
             byte[] pdfBytes = "pdf content".getBytes();
@@ -156,6 +158,7 @@ class DocumentComplianceServiceTest {
         void whenNoHash_thenNotVerified() {
             // Arrange
             DocumentGeneration gen = new DocumentGeneration();
+            gen.setOrganizationId(1L); gen.setDocumentType(DocumentType.DEVIS);
             gen.setId(1L);
             gen.setDocumentHash(null);
             when(generationRepository.findById(1L)).thenReturn(Optional.of(gen));
@@ -173,6 +176,7 @@ class DocumentComplianceServiceTest {
         void whenNoFilePath_thenNotVerified() {
             // Arrange
             DocumentGeneration gen = new DocumentGeneration();
+            gen.setOrganizationId(1L); gen.setDocumentType(DocumentType.DEVIS);
             gen.setId(1L);
             gen.setDocumentHash("somehash");
             gen.setFilePath(null);
@@ -193,6 +197,7 @@ class DocumentComplianceServiceTest {
             String expectedHash = service.computeHash(content);
 
             DocumentGeneration gen = new DocumentGeneration();
+            gen.setOrganizationId(1L); gen.setDocumentType(DocumentType.DEVIS);
             gen.setId(1L);
             gen.setLegalNumber("FAC-2026-0001");
             gen.setDocumentHash(expectedHash);
@@ -216,6 +221,7 @@ class DocumentComplianceServiceTest {
         void whenHashMismatch_thenNotVerified() {
             // Arrange
             DocumentGeneration gen = new DocumentGeneration();
+            gen.setOrganizationId(1L); gen.setDocumentType(DocumentType.DEVIS);
             gen.setId(1L);
             gen.setLegalNumber("FAC-2026-0001");
             gen.setDocumentHash("aaaa1111bbbb2222cccc3333dddd4444eeee5555ffff6666aabb7788ccdd9900");
@@ -235,6 +241,7 @@ class DocumentComplianceServiceTest {
         void whenFileReadFails_thenNotVerified() {
             // Arrange
             DocumentGeneration gen = new DocumentGeneration();
+            gen.setOrganizationId(1L); gen.setDocumentType(DocumentType.DEVIS);
             gen.setId(1L);
             gen.setDocumentHash("somehash123");
             gen.setFilePath("/docs/missing.pdf");
@@ -288,7 +295,9 @@ class DocumentComplianceServiceTest {
             tag4.setTagName("intervention.titre");
             DocumentTemplateTag tag5 = new DocumentTemplateTag();
             tag5.setTagName("paiement.montant");
-            when(templateTagRepository.findByTemplateId(1L)).thenReturn(List.of(tag1, tag2, tag3, tag4, tag5));
+            var address = new DocumentTemplateTag(); address.setTagName("entreprise.adresse");
+            var taxId = new DocumentTemplateTag(); taxId.setTagName("${entreprise.siret}");
+            when(templateTagRepository.findByTemplateId(1L)).thenReturn(List.of(tag1, tag2, tag3, tag4, tag5,address,taxId));
 
             // Requirements that map to the tags we have
             DocumentLegalRequirement req1 = buildRequirement("numero_facture", "Numero facture", true, null);
@@ -474,8 +483,10 @@ class DocumentComplianceServiceTest {
         void whenOriginalNotLocked_thenThrows() {
             // Arrange
             DocumentGeneration newGen = new DocumentGeneration();
+            newGen.setOrganizationId(1L); newGen.setDocumentType(DocumentType.DEVIS);
             newGen.setId(2L);
             DocumentGeneration originalGen = new DocumentGeneration();
+            originalGen.setOrganizationId(1L); originalGen.setDocumentType(DocumentType.DEVIS);
             originalGen.setId(1L);
             originalGen.setLocked(false);
 
@@ -492,8 +503,10 @@ class DocumentComplianceServiceTest {
         void whenOriginalLocked_thenSetsCorrectsId() {
             // Arrange
             DocumentGeneration newGen = new DocumentGeneration();
+            newGen.setOrganizationId(1L); newGen.setDocumentType(DocumentType.DEVIS);
             newGen.setId(2L);
             DocumentGeneration originalGen = new DocumentGeneration();
+            originalGen.setOrganizationId(1L); originalGen.setDocumentType(DocumentType.DEVIS);
             originalGen.setId(1L);
             originalGen.setLocked(true);
             originalGen.setLegalNumber("FAC-2026-0001");
@@ -527,6 +540,7 @@ class DocumentComplianceServiceTest {
         void whenOriginalGenNotFound_thenThrows() {
             // Arrange
             DocumentGeneration newGen = new DocumentGeneration();
+            newGen.setOrganizationId(1L); newGen.setDocumentType(DocumentType.DEVIS);
             newGen.setId(2L);
             when(generationRepository.findById(2L)).thenReturn(Optional.of(newGen));
             when(generationRepository.findById(99L)).thenReturn(Optional.empty());
@@ -554,8 +568,6 @@ class DocumentComplianceServiceTest {
             when(generationRepository.countByDocumentTypeAndLockedTrue(DocumentType.FACTURE)).thenReturn(25L);
             when(generationRepository.countByDocumentType(DocumentType.DEVIS)).thenReturn(20L);
             when(generationRepository.countByDocumentTypeAndLockedTrue(DocumentType.DEVIS)).thenReturn(15L);
-            when(complianceReportRepository.findMaxCheckedAt()).thenReturn(Optional.empty());
-            when(complianceReportRepository.findAverageScore()).thenReturn(85);
 
             // Act
             ComplianceStatsDto stats = service.getComplianceStats();
@@ -567,7 +579,7 @@ class DocumentComplianceServiceTest {
             assertThat(stats.totalFacturesLocked()).isEqualTo(25L);
             assertThat(stats.totalDevis()).isEqualTo(20L);
             assertThat(stats.totalDevisLocked()).isEqualTo(15L);
-            assertThat(stats.averageComplianceScore()).isEqualTo(85);
+            assertThat(stats.averageComplianceScore()).isEqualTo(0);
         }
 
         @Test
@@ -580,8 +592,6 @@ class DocumentComplianceServiceTest {
             when(generationRepository.countByDocumentType(DocumentType.FACTURE)).thenReturn(30L);
             when(generationRepository.countByDocumentTypeAndLockedTrue(any())).thenReturn(0L);
             when(generationRepository.countByDocumentTypeAndLockedTrue(DocumentType.FACTURE)).thenReturn(10L);
-            when(complianceReportRepository.findMaxCheckedAt()).thenReturn(Optional.of(LocalDateTime.now()));
-            when(complianceReportRepository.findAverageScore()).thenReturn(90);
 
             // Act
             ComplianceStatsDto stats = service.getComplianceStats();
@@ -619,8 +629,8 @@ class DocumentComplianceServiceTest {
             template.setName("Test Template");
             template.setDocumentType(DocumentType.FACTURE);
             when(templateRepository.findById(1L)).thenReturn(Optional.of(template));
-            when(complianceReportRepository.findTopByTemplateOrderByCheckedAtDesc(template))
-                    .thenReturn(Optional.empty());
+            when(complianceReportRepository.findByTemplateOrderByCheckedAtDesc(template))
+                    .thenReturn(List.of());
 
             // Act
             Optional<ComplianceReportDto> result = service.getLastComplianceReport(1L);
@@ -639,24 +649,21 @@ class DocumentComplianceServiceTest {
             template.setDocumentType(DocumentType.FACTURE);
             when(templateRepository.findById(1L)).thenReturn(Optional.of(template));
 
-            TemplateComplianceReport report = new TemplateComplianceReport();
-            report.setId(10L);
-            report.setTemplate(template);
-            report.setCompliant(true);
-            report.setCheckedBy("admin");
-            report.setScore(100);
-            report.setMissingTags("");
-            report.setMissingMentions("");
-            report.setWarnings("");
-            when(complianceReportRepository.findTopByTemplateOrderByCheckedAtDesc(template))
-                    .thenReturn(Optional.of(report));
+            when(complianceReportRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+            service.checkTemplateCompliance(1L,"admin");
+            var capture=ArgumentCaptor.forClass(TemplateComplianceReport.class);
+            verify(complianceReportRepository).save(capture.capture());
+            var report=capture.getValue();
+            when(complianceReportRepository.findByTemplateOrderByCheckedAtDesc(template)).thenReturn(List.of(report));
 
             // Act
             Optional<ComplianceReportDto> result = service.getLastComplianceReport(1L);
 
             // Assert
             assertThat(result).isPresent();
-            assertThat(result.get().compliant()).isTrue();
+            assertThat(result.get().compliant()).isFalse(); // aucun référentiel : jamais certifié automatiquement
+            template.setVersion(99);
+            assertThat(service.getLastComplianceReport(1L)).isEmpty();
             assertThat(result.get().templateName()).isEqualTo("Facture Standard");
             assertThat(result.get().documentType()).isEqualTo("FACTURE");
         }

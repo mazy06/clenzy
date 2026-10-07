@@ -28,6 +28,7 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
@@ -41,6 +42,9 @@ class PendingReservationCleanupSchedulerTest {
     @Mock private StripeService stripeService;
     @Mock private com.clenzy.service.AbandonedBookingService abandonedBookingService;
     @Mock private PlatformTransactionManager transactionManager;
+    @Mock private com.clenzy.repository.PaymentTransactionRepository payments;
+    @Mock private com.clenzy.service.voucher.BaitlyVoucherClaims vouchers;
+    @Mock private jakarta.persistence.EntityManager em;
 
     private PendingReservationCleanupScheduler scheduler;
 
@@ -71,7 +75,7 @@ class PendingReservationCleanupSchedulerTest {
 
         scheduler = new PendingReservationCleanupScheduler(
             pendingReservationRepository, configRepository, calendarEngine, stripeService,
-            abandonedBookingService, transactionManager, tenantScopedExecutor, self);
+            abandonedBookingService, transactionManager, tenantScopedExecutor, self, payments, vouchers, em);
 
         lenient().when(self.getObject()).thenReturn(scheduler);
     }
@@ -89,6 +93,7 @@ class PendingReservationCleanupSchedulerTest {
         Property property = new Property();
         property.setId(42L);
         reservation.setProperty(property);
+        lenient().when(pendingReservationRepository.lockHold(id, ORG_ID)).thenReturn(Optional.of(reservation));
         return reservation;
     }
 
@@ -107,6 +112,7 @@ class PendingReservationCleanupSchedulerTest {
         assertThat(reservation.getPaymentStatus()).isEqualTo(PaymentStatus.CANCELLED);
         verify(pendingReservationRepository).save(reservation);
         verify(calendarEngine).cancel(1L, ORG_ID, "booking-engine-cleanup");
+        verify(vouchers).releaseExpired(reservation);
     }
 
     @Test
@@ -207,5 +213,57 @@ class PendingReservationCleanupSchedulerTest {
         assertThat(reservation.getStatus()).isEqualTo("cancelled");
         assertThat(reservation.getPaymentStatus()).isEqualTo(PaymentStatus.CANCELLED);
         verify(calendarEngine).cancel(8L, ORG_ID, "booking-engine-cleanup");
+    }
+
+    @Test void confirmedPaymentBetweenScanAndLockCannotBeCancelled() {
+        var observed = buildExpiredReservation(10L, "cs_old");
+        var current = buildExpiredReservation(10L, "cs_old");
+        current.setPaymentStatus(PaymentStatus.PAID);
+        when(pendingReservationRepository.findUnpaidHolds()).thenReturn(List.of(observed));
+        when(stripeService.expireCheckoutSession("cs_old")).thenReturn(StripeService.CheckoutSessionExpiryResult.EXPIRED);
+        scheduler.cleanupExpiredPendingReservations();
+        assertThat(current.getPaymentStatus()).isEqualTo(PaymentStatus.PAID);
+        verify(calendarEngine, never()).cancel(any(), any(), any());
+        verify(vouchers, never()).releaseExpired(any());
+    }
+
+    @Test void newCheckoutBetweenScanAndLockPreservesDatesAndPromotion() {
+        var observed = buildExpiredReservation(11L, "cs_old");
+        var current = buildExpiredReservation(11L, "cs_new");
+        when(pendingReservationRepository.findUnpaidHolds()).thenReturn(List.of(observed));
+        when(stripeService.expireCheckoutSession("cs_old")).thenReturn(StripeService.CheckoutSessionExpiryResult.EXPIRED);
+        scheduler.cleanupExpiredPendingReservations();
+        assertThat(current.getStatus()).isEqualTo("pending");
+        verify(calendarEngine, never()).cancel(any(), any(), any());
+        verify(vouchers, never()).releaseExpired(any());
+    }
+
+    @Test void uncertainCheckoutCreationWithoutSessionPreservesDates() {
+        var stay = buildExpiredReservation(12L, null);
+        var intent = new com.clenzy.model.PaymentTransaction();
+        intent.setPaymentType(com.clenzy.model.TransactionType.CHECKOUT);
+        intent.setStatus(com.clenzy.model.TransactionStatus.PENDING);
+        when(payments.findByOrganizationIdAndSourceTypeAndSourceId(ORG_ID, "RESERVATION", 12L)).thenReturn(List.of(intent));
+        when(pendingReservationRepository.findUnpaidHolds()).thenReturn(List.of(stay));
+        scheduler.cleanupExpiredPendingReservations();
+        assertThat(stay.getStatus()).isEqualTo("pending");
+        verify(vouchers, never()).releaseExpired(any());
+        verify(calendarEngine, never()).cancel(any(), any(), any());
+    }
+
+    @Test void processingCheckoutCanExpireOnlyAfterStripeConfirmsExpiration() {
+        var stay=buildExpiredReservation(13L,"cs_open");stay.setPaymentStatus(PaymentStatus.PROCESSING);
+        when(pendingReservationRepository.findUnpaidHolds()).thenReturn(List.of(stay));
+        when(stripeService.expireCheckoutSession("cs_open")).thenReturn(StripeService.CheckoutSessionExpiryResult.EXPIRED);
+        scheduler.cleanupExpiredPendingReservations();
+        assertThat(stay.getStatus()).isEqualTo("cancelled");verify(vouchers).releaseExpired(stay);
+    }
+
+    @Test void alreadyCancelledUnpaidStayReleasesHeldPromotionWithoutRecancellingCalendar() {
+        var stay=buildExpiredReservation(14L,"cs_open");stay.markCancelled();
+        when(pendingReservationRepository.findUnpaidHolds()).thenReturn(List.of(stay));
+        when(stripeService.expireCheckoutSession("cs_open")).thenReturn(StripeService.CheckoutSessionExpiryResult.EXPIRED);
+        scheduler.cleanupExpiredPendingReservations();
+        verify(vouchers).releaseExpired(stay);verifyNoInteractions(calendarEngine);
     }
 }

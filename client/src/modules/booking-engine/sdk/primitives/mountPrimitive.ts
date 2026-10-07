@@ -615,10 +615,11 @@ function upsellCard(u: ApiBookingUpsell, reservationCode: string | null, baseUrl
   btn.textContent = i18n.t('upsells.add');
   // Achat impossible sans réservation (la commande lie une réservation existante).
   btn.disabled = !reservationCode;
+  const purchaseRequestId = crypto.randomUUID();
   btn.addEventListener('click', () => {
-    if (!reservationCode) return;
+    if (!reservationCode || btn.disabled) return;
     btn.disabled = true;
-    ctx.core.api.upsellCheckout(u.offerId, reservationCode, window.location.href)
+    ctx.core.api.upsellCheckout(u.offerId, reservationCode, window.location.href, purchaseRequestId)
       .then((r) => { if (r.checkoutUrl) { window.location.href = r.checkoutUrl; } else { btn.disabled = false; } })
       .catch(() => { btn.disabled = false; });
   });

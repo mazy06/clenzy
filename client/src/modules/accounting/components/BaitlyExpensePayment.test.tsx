@@ -21,15 +21,18 @@ beforeEach(() => {
 afterEach(cleanup);
 
 it('prépare puis confirme explicitement le montant et le bénéficiaire, sans double clic', async () => {
-  let resolve!: (value: unknown) => void;
-  vi.mocked(providerExpensesApi.transfer).mockReturnValue(new Promise(done => { resolve = done; }) as ReturnType<typeof providerExpensesApi.transfer>);
+  let resolve!: (value: Awaited<ReturnType<typeof providerExpensesApi.transfer>>) => void;
+  vi.mocked(providerExpensesApi.transfer).mockReturnValue(new Promise(done => { resolve = done; }));
   mount(); fireEvent.click(await screen.findByRole('button', { name: 'Préparer le versement de la dépense' }));
   expect(screen.getByText(/compte personnel de Jean Martin/)).toHaveTextContent('10,00');
   expect(providerExpensesApi.transfer).not.toHaveBeenCalled();
   const button = screen.getByRole('button', { name: /Verser 10/ });
   fireEvent.click(button); fireEvent.click(button);
   await waitFor(() => expect(providerExpensesApi.transfer).toHaveBeenCalledExactlyOnceWith(31, { userId: 42, organizationId: null }));
-  resolve({ state: 'TRANSFERRED', externalReference: 'tr_expense' });
+  resolve({ id: 1, source: 'PROVIDER_EXPENSE', sourceId: 31, beneficiaryUserId: 42,
+    beneficiaryOrganizationId: null, amount: 10, currency: 'EUR', provider: 'STRIPE',
+    state: 'TRANSFERRED', externalReference: 'tr_expense', description: 'Dépense de test',
+    createdAt: '2026-10-07T12:00:00Z', updatedAt: '2026-10-07T12:00:00Z' });
   expect(await screen.findByRole('status')).toHaveTextContent('tr_expense');
   expect(screen.getByRole('status')).toHaveTextContent('réception bancaire se consulte');
 });

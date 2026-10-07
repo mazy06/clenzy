@@ -51,6 +51,8 @@ class InvoiceControllerTest {
 
     private InvoiceController controller;
 
+    @Mock private com.clenzy.service.BaitlyInvoicePdfStore pdfStore;
+
     @BeforeEach
     void setUp() {
         // Pattern Vague A : service REEL construit au-dessus des mocks repository/tenant
@@ -58,7 +60,7 @@ class InvoiceControllerTest {
         controller = new InvoiceController(invoiceGeneratorService, invoicePaymentService,
                 invoicePaymentLinkService,
                 new InvoiceQueryService(invoiceRepository, documentTemplateRepository,
-                        invoicePdfService, tenantContext), paymentAccess);
+                        invoicePdfService, pdfStore, tenantContext), paymentAccess, org.mockito.Mockito.mock(com.clenzy.service.OrganizationService.class), tenantContext);
     }
 
     private InvoiceDto dto(Long id) {
@@ -91,7 +93,7 @@ class InvoiceControllerTest {
         GenerateInvoiceRequest req = new GenerateInvoiceRequest(10L, null, null, null, null);
         when(invoiceGeneratorService.generateFromReservation(req)).thenReturn(dto(99L));
 
-        ResponseEntity<InvoiceDto> response = controller.generate(req);
+        ResponseEntity<InvoiceDto> response = controller.generate(req, org.springframework.security.oauth2.jwt.Jwt.withTokenValue("test").header("alg","none").subject("admin").build());
         assertThat(response.getStatusCode().value()).isEqualTo(201);
         assertThat(response.getBody().id()).isEqualTo(99L);
     }
@@ -100,7 +102,7 @@ class InvoiceControllerTest {
     void issue_returnsUpdated() {
         when(invoiceGeneratorService.issueInvoice(5L)).thenReturn(dto(5L));
 
-        ResponseEntity<InvoiceDto> response = controller.issue(5L);
+        ResponseEntity<InvoiceDto> response = controller.issue(5L, org.springframework.security.oauth2.jwt.Jwt.withTokenValue("test").header("alg","none").subject("admin").build());
         assertThat(response.getStatusCode().value()).isEqualTo(200);
     }
 
@@ -108,7 +110,7 @@ class InvoiceControllerTest {
     void cancel_withReason() {
         when(invoiceGeneratorService.cancelInvoice(5L, "Mistake")).thenReturn(dto(5L));
 
-        ResponseEntity<InvoiceDto> response = controller.cancel(5L, "Mistake");
+        ResponseEntity<InvoiceDto> response = controller.cancel(5L, "Mistake", org.springframework.security.oauth2.jwt.Jwt.withTokenValue("test").header("alg","none").subject("admin").build());
         assertThat(response.getStatusCode().value()).isEqualTo(200);
     }
 
@@ -116,7 +118,7 @@ class InvoiceControllerTest {
     void cancel_nullReason() {
         when(invoiceGeneratorService.cancelInvoice(5L, null)).thenReturn(dto(5L));
 
-        ResponseEntity<InvoiceDto> response = controller.cancel(5L, null);
+        ResponseEntity<InvoiceDto> response = controller.cancel(5L, null, org.springframework.security.oauth2.jwt.Jwt.withTokenValue("test").header("alg","none").subject("admin").build());
         assertThat(response.getStatusCode().value()).isEqualTo(200);
     }
 
@@ -127,8 +129,10 @@ class InvoiceControllerTest {
         invoice.setId(5L);
         invoice.setOrganizationId(1L);
         invoice.setInvoiceNumber("INV/2026/001");
+        invoice.setStatus(com.clenzy.model.InvoiceStatus.ISSUED);
         when(invoiceRepository.findWithLinesById(5L)).thenReturn(Optional.of(invoice));
-        when(invoicePdfService.generatePdf(invoice)).thenReturn(new byte[]{1, 2, 3});
+        when(pdfStore.existing(1L,5L)).thenReturn(new byte[]{1, 2, 3});
+        when(pdfStore.archive(org.mockito.ArgumentMatchers.eq(1L),org.mockito.ArgumentMatchers.eq(5L),org.mockito.ArgumentMatchers.anyString(),org.mockito.ArgumentMatchers.any())).thenAnswer(call -> call.getArgument(3));
 
         ResponseEntity<byte[]> response = controller.downloadPdf(5L);
         assertThat(response.getStatusCode().value()).isEqualTo(200);
@@ -162,7 +166,7 @@ class InvoiceControllerTest {
     void send_callsService() {
         when(invoiceGeneratorService.getInvoice(5L)).thenReturn(dto(5L));
 
-        ResponseEntity<InvoiceDto> response = controller.send(5L);
+        ResponseEntity<InvoiceDto> response = controller.send(5L, org.springframework.security.oauth2.jwt.Jwt.withTokenValue("test").header("alg","none").subject("admin").build());
         assertThat(response.getStatusCode().value()).isEqualTo(200);
         verify(invoicePaymentService).sendInvoice(5L);
     }
@@ -223,7 +227,7 @@ class InvoiceControllerTest {
     void duplicate_returnsCreated() {
         when(invoiceGeneratorService.generateDuplicate(5L)).thenReturn(dto(99L));
 
-        ResponseEntity<InvoiceDto> response = controller.duplicate(5L);
+        ResponseEntity<InvoiceDto> response = controller.duplicate(5L, org.springframework.security.oauth2.jwt.Jwt.withTokenValue("test").header("alg","none").subject("admin").build());
         assertThat(response.getStatusCode().value()).isEqualTo(201);
         assertThat(response.getBody().id()).isEqualTo(99L);
     }

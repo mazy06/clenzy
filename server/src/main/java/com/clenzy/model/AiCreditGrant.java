@@ -43,6 +43,12 @@ public class AiCreditGrant {
     @Column(name = "millicredits_consumed", nullable = false)
     private long millicreditsConsumed;
 
+    @Column(name = "millicredits_revoked", nullable = false)
+    private long millicreditsRevoked;
+
+    @Column(name = "millicredits_expired", nullable = false)
+    private long millicreditsExpired;
+
     @Column(name = "granted_at", nullable = false)
     private Instant grantedAt;
 
@@ -50,8 +56,13 @@ public class AiCreditGrant {
     private Instant expiresAt;
 
     /** Reference Stripe (invoice/checkout session) — idempotence des webhooks T-07. */
-    @Column(name = "stripe_ref", length = 64, unique = true)
+    @Column(name = "stripe_ref", length = 255, unique = true)
     private String stripeRef;
+
+    @Column(name = "funding_invoice_id", length = 255)
+    private String fundingInvoiceId;
+    @Column(name = "funding_pending", nullable = false)
+    private boolean fundingPending;
 
     protected AiCreditGrant() {}
 
@@ -64,11 +75,16 @@ public class AiCreditGrant {
         this.grantedAt = Instant.now();
         this.expiresAt = expiresAt;
         this.stripeRef = stripeRef;
+        this.fundingPending = SOURCE_SUBSCRIPTION.equals(source) && stripeRef != null
+                && stripeRef.matches("monthly:[0-9]+:[0-9]{4}-[0-9]{2}");
     }
 
     /** Millicredits restants dans la poche. */
     public long remaining() {
-        return Math.max(0, millicreditsGranted - millicreditsConsumed);
+        return fundingPending ? 0 : unspent();
+    }
+    public long unspent() {
+        return Math.max(0, millicreditsGranted - millicreditsConsumed - millicreditsRevoked - millicreditsExpired);
     }
 
     /**
@@ -77,6 +93,7 @@ public class AiCreditGrant {
      * @return le montant reellement applique (≤ amount, borne par le restant)
      */
     public long applyConsumption(long amount) {
+        if(amount<0)throw new IllegalArgumentException("Une consommation de crédits ne peut pas être négative");
         long applied = Math.min(amount, remaining());
         this.millicreditsConsumed += applied;
         return applied;
@@ -87,7 +104,21 @@ public class AiCreditGrant {
     public String getSource() { return source; }
     public long getMillicreditsGranted() { return millicreditsGranted; }
     public long getMillicreditsConsumed() { return millicreditsConsumed; }
+    public long getMillicreditsRevoked() { return millicreditsRevoked; }
+    public long getMillicreditsExpired() { return millicreditsExpired; }
+    public void expireRemaining() { millicreditsExpired = Math.addExact(millicreditsExpired, remaining()); }
+    public void setMillicreditsRevoked(long amount) {
+        if (amount < 0 || amount > millicreditsGranted) throw new IllegalArgumentException("Retrait de crédits incohérent");
+        millicreditsRevoked = amount;
+    }
     public Instant getGrantedAt() { return grantedAt; }
     public Instant getExpiresAt() { return expiresAt; }
     public String getStripeRef() { return stripeRef; }
+    public String getFundingInvoiceId() { return fundingInvoiceId; }
+    public boolean isFundingPending() { return fundingPending; }
+    public void linkFunding(String invoice) {
+        if (invoice == null || !invoice.startsWith("in_") || fundingInvoiceId != null && !fundingInvoiceId.equals(invoice))
+            throw new IllegalStateException("Rattachement de crédits incohérent");
+        fundingInvoiceId = invoice; fundingPending = false;
+    }
 }

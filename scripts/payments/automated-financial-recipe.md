@@ -53,12 +53,30 @@ PostgreSQL. La persistance des montants payé/dû est vérifiée après commit, 
 livraisons concurrentes, les devises et organisations étrangères, les montants divergents, les
 réservations annulées/remboursées et le paiement d'un solde sans acompte cohérent.
 
+La sélection couvre également les [sept lots commerciaux](commerce-expansion-audit.md) :
+portefeuille IA, acompte/solde de maintenance, booking/promotions, abonnements PMS,
+upsells/affiliation, matériel et documents fiscaux. Elle comprend les pièces vendeur immuables,
+les séries par émetteur, les crédits historiques sans couverture prouvée et la récupération
+après un transfert confirmé tardivement.
+
+Le mobile possède sa suite `SubscriptionCheckoutScreen.test.tsx` dans le workspace `mobile`,
+exécutée par la CI mobile existante. Pour la relancer depuis la racine :
+
+```sh
+rtk npm test --workspace mobile -- --runInBand --watchman=false SubscriptionCheckoutScreen.test.tsx
+```
+
+Cette suite utilise React Native avec les endpoints simulés ; elle ne remplace pas un test
+sur appareil ni le retour réel depuis Checkout.
+
 ## Campagne finale à conserver séparément
 
 Le [plan de recette Baitly/Stripe](../../docs/payments-sandbox/final-circuit-recipe-checklist.md)
 reste à exécuter après les travaux de code. Il couvre le navigateur complet, l'authentification,
 les rôles, les comptes Connect, les vraies notifications Stripe de test et le rapprochement bancaire.
 Les tests d'intégration HTTP ajoutés ici **ne sont pas une recette E2E du PMS avec Stripe**.
+La [recette de l'extension commerciale](commerce-final-recipe.md) complète ce plan avec les
+sept lots, leurs preuves attendues et les prérequis PSP/fiscaux non encore configurés.
 
 Conserver les scénarios et fixtures sous contrôle de version pour accélérer cette campagne,
 mais aucune confirmation financière ne doit être validée uniquement par un retour de navigateur.

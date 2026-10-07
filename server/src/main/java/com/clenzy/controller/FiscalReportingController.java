@@ -28,14 +28,19 @@ public class FiscalReportingController {
         this.reportingService = reportingService;
     }
 
+    @GetMapping("/vat-summary/by-country")
+    public java.util.List<VatSummaryDto> byCountry(@RequestParam LocalDate from,@RequestParam LocalDate to) {
+        return reportingService.getVatSummariesByCountry(from,to);
+    }
+
     /**
      * Resume TVA pour une periode personnalisee.
      */
     @GetMapping("/vat-summary")
     public ResponseEntity<VatSummaryDto> getVatSummary(
             @RequestParam LocalDate from,
-            @RequestParam LocalDate to) {
-        return ResponseEntity.ok(reportingService.getVatSummary(from, to));
+            @RequestParam LocalDate to,@RequestParam(required=false) String country) {
+        return ResponseEntity.ok(reportingService.getVatSummary(from, to,country));
     }
 
     /**
@@ -44,8 +49,9 @@ public class FiscalReportingController {
     @GetMapping("/vat-summary/monthly")
     public ResponseEntity<VatSummaryDto> getMonthlyVatSummary(
             @RequestParam int year,
-            @RequestParam int month) {
-        return ResponseEntity.ok(reportingService.getMonthlyVatSummary(year, month));
+            @RequestParam int month,@RequestParam(required=false) String country) {
+        var period=java.time.YearMonth.of(year,month);
+        return ResponseEntity.ok(reportingService.getVatSummary(period.atDay(1),period.atEndOfMonth(),country));
     }
 
     /**
@@ -54,8 +60,10 @@ public class FiscalReportingController {
     @GetMapping("/vat-summary/quarterly")
     public ResponseEntity<VatSummaryDto> getQuarterlyVatSummary(
             @RequestParam int year,
-            @RequestParam int quarter) {
-        return ResponseEntity.ok(reportingService.getQuarterlyVatSummary(year, quarter));
+            @RequestParam int quarter,@RequestParam(required=false) String country) {
+        if(quarter<1 || quarter>4)throw new IllegalArgumentException("Trimestre invalide");
+        var start=LocalDate.of(year,(quarter-1)*3+1,1);
+        return ResponseEntity.ok(reportingService.getVatSummary(start,start.plusMonths(3).minusDays(1),country));
     }
 
     /**
@@ -63,7 +71,7 @@ public class FiscalReportingController {
      */
     @GetMapping("/vat-summary/annual")
     public ResponseEntity<VatSummaryDto> getAnnualVatSummary(
-            @RequestParam int year) {
-        return ResponseEntity.ok(reportingService.getAnnualVatSummary(year));
+            @RequestParam int year,@RequestParam(required=false) String country) {
+        return ResponseEntity.ok(reportingService.getVatSummary(LocalDate.of(year,1,1),LocalDate.of(year,12,31),country));
     }
 }

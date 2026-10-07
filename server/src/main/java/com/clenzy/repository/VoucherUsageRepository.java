@@ -28,7 +28,9 @@ public interface VoucherUsageRepository extends JpaRepository<VoucherUsage, Long
     /**
      * Detection d'abus : combien de fois ce guest_email a utilise ce voucher.
      */
-    long countByVoucherIdAndGuestEmail(Long voucherId, String guestEmail);
+    @Query("select count(u) from VoucherUsage u where u.voucherId=:voucherId "
+        + "and lower(trim(u.guestEmail))=lower(trim(:guestEmail)) and u.claimStatus<>'RELEASED'")
+    long countByVoucherIdAndGuestEmail(@Param("voucherId") Long voucherId, @Param("guestEmail") String guestEmail);
 
     /**
      * Aggregation pour le dashboard analytics par voucher :
@@ -42,7 +44,7 @@ public interface VoucherUsageRepository extends JpaRepository<VoucherUsage, Long
             COALESCE(SUM(u.finalTotal), 0)
         )
         FROM VoucherUsage u
-        WHERE u.voucherId = :voucherId
+        WHERE u.voucherId = :voucherId AND u.claimStatus='CONSUMED'
     """)
     VoucherStatsRow aggregateStatsByVoucher(@Param("voucherId") Long voucherId);
 
@@ -57,7 +59,7 @@ public interface VoucherUsageRepository extends JpaRepository<VoucherUsage, Long
             COALESCE(SUM(u.finalTotal), 0)
         )
         FROM VoucherUsage u
-        WHERE u.organizationId = :orgId
+        WHERE u.organizationId = :orgId AND u.claimStatus='CONSUMED'
           AND u.appliedAt >= :from
           AND u.appliedAt <= :to
     """)
@@ -85,7 +87,7 @@ public interface VoucherUsageRepository extends JpaRepository<VoucherUsage, Long
             COALESCE(SUM(u.finalTotal), 0)
         )
         FROM VoucherUsage u
-        WHERE u.organizationId = :orgId
+        WHERE u.organizationId = :orgId AND u.claimStatus='CONSUMED'
           AND u.appliedAt >= :from
           AND u.appliedAt <= :to
         GROUP BY u.voucherId

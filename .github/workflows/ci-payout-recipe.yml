@@ -1,4 +1,4 @@
-name: Baitly payout recipe
+name: Baitly financial and commerce recipe
 
 on:
   pull_request:
@@ -11,6 +11,17 @@ on:
       - 'client/src/modules/accounting/**'
       - 'client/src/modules/billing/**'
       - 'client/src/modules/account/**'
+      - 'client/src/modules/settings/**'
+      - 'client/src/modules/shop/**'
+      - 'client/src/modules/welcome-guide/**'
+      - 'client/src/modules/auth/**'
+      - 'client/src/modules/vouchers/**'
+      - 'client/src/modules/admin/PromoCodesPage.tsx'
+      - 'client/site/data/baitlyLoyaltyPricing*'
+      - 'client/site/pages/PricingPage.tsx'
+      - 'client/site/components/BaitlyPricing*'
+      - 'shared/**'
+      - 'booking-sdk/**'
       - 'client/src/services/api/**'
       - 'client/src/services/apiClient.ts'
       - 'client/src/test/**'
@@ -37,6 +48,17 @@ on:
       - 'client/src/modules/accounting/**'
       - 'client/src/modules/billing/**'
       - 'client/src/modules/account/**'
+      - 'client/src/modules/settings/**'
+      - 'client/src/modules/shop/**'
+      - 'client/src/modules/welcome-guide/**'
+      - 'client/src/modules/auth/**'
+      - 'client/src/modules/vouchers/**'
+      - 'client/src/modules/admin/PromoCodesPage.tsx'
+      - 'client/site/data/baitlyLoyaltyPricing*'
+      - 'client/site/pages/PricingPage.tsx'
+      - 'client/site/components/BaitlyPricing*'
+      - 'shared/**'
+      - 'booking-sdk/**'
       - 'client/src/services/api/**'
       - 'client/src/services/apiClient.ts'
       - 'client/src/test/**'
@@ -111,7 +133,7 @@ jobs:
           retention-days: 7
 
   finance-interface:
-    name: Finance refund interactions
+    name: Finance and commerce HTTP interactions
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:

@@ -195,8 +195,17 @@ public class Invoice {
         line.setInvoice(this);
     }
 
+    @Column(name="issuer_key",length=64)
+    private String issuerKey;
+    public String getIssuerKey(){return issuerKey;}
+    public void setIssuerKey(String key){
+        if(issuerKey!=null && !issuerKey.equals(key))throw new IllegalStateException("Émetteur de facture déjà figé");
+        issuerKey=key;
+    }
+
     public boolean isImmutable() {
-        return status == InvoiceStatus.ISSUED || status == InvoiceStatus.PAID || status == InvoiceStatus.CREDIT_NOTE;
+        return status == InvoiceStatus.ISSUED || status == InvoiceStatus.SENT || status == InvoiceStatus.OVERDUE
+            || status == InvoiceStatus.PAID || status == InvoiceStatus.CREDIT_NOTE || status == InvoiceStatus.CANCELLED;
     }
 
     public Long getId() { return id; }

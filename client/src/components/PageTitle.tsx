@@ -123,7 +123,7 @@ export default function PageTitle({
   // d'onglet, qui doit lui être ACCOLÉ et non repoussé à l'autre bout de la
   // barre. C'est l'enveloppe qui porte la croissance (`className`).
   return (
-    <div className={cn('flex min-w-0 items-center gap-2', className)}>
+    <div data-slot="page-title" className={cn('flex min-w-0 items-center gap-2', className)}>
       {titled}
       {segmentSlot}
     </div>

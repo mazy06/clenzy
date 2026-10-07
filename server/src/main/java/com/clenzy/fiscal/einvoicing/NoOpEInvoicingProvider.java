@@ -4,12 +4,13 @@ import com.clenzy.model.Invoice;
 import org.springframework.stereotype.Component;
 
 /**
- * Provider e-invoicing par defaut (mode {@link EInvoicingMode#NONE}) : pays sans contrainte
- * legale d'e-invoicing, ou provider d'un pays pas encore implemente. Ne casse jamais le flux
- * de facturation existant (CLZ-P0-04). Repli du {@link EInvoicingProviderRegistry}.
+ * Exemption explicitement configurée (mode {@link EInvoicingMode#NONE}).
+ * Un raccordement absent ou inconnu reste en attente dans le registre Baitly ;
+ * il ne doit jamais être converti en exemption par défaut.
  */
 @Component
 public class NoOpEInvoicingProvider implements EInvoicingProvider {
+    @Override public boolean configured() { return true; }
 
     public static final String CODE = "noop";
 

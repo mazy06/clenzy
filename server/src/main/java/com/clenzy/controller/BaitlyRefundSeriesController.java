@@ -43,8 +43,9 @@ public class BaitlyRefundSeriesController {
         var refund=refunds.resumeSeries(ref,org);
         if(refund.getStatus()!=TransactionStatus.COMPLETED && refund.getStatus()!=TransactionStatus.PROCESSING)
             throw new com.clenzy.exception.PaymentValidationException("Cette restitution doit être rapprochée avant toute nouvelle demande");
-        return ResponseEntity.status(refund.getStatus()==TransactionStatus.COMPLETED?200:202)
-                .body(Map.of("status",refund.getStatus().name(),"refundReference",ref,"message",
+        var status=store.status(org,ref);
+        return ResponseEntity.status("COMPLETED".equals(status.get("status"))?200:202)
+                .body(Map.of("status",status.get("status"),"refundReference",ref,"message",
                         "La restitution est suivie automatiquement jusqu'à sa confirmation et son rapprochement."));
     }
 }

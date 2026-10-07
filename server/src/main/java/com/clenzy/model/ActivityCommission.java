@@ -55,6 +55,17 @@ public class ActivityCommission {
     @Column(nullable = false, length = 20)
     private ActivityCommissionStatus status = ActivityCommissionStatus.PENDING;
 
+    @Column(name = "property_id")
+    private Long propertyId;
+    @Column(name = "beneficiary_owner_id")
+    private Long beneficiaryOwnerId;
+    @Column(name = "receipt_reference", length = 255)
+    private String receiptReference;
+    @Column(name = "received_at")
+    private LocalDateTime receivedAt;
+    @Column(name = "recorded_by", length = 255)
+    private String recordedBy;
+
     @CreationTimestamp
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
@@ -82,4 +93,14 @@ public class ActivityCommission {
     public ActivityCommissionStatus getStatus() { return status; }
     public void setStatus(ActivityCommissionStatus status) { this.status = status; }
     public LocalDateTime getCreatedAt() { return createdAt; }
+    public Long getPropertyId() { return propertyId; }
+    public void setPropertyId(Long value) { propertyId = value; }
+    public Long getBeneficiaryOwnerId() { return beneficiaryOwnerId; }
+    public void setBeneficiaryOwnerId(Long value) { beneficiaryOwnerId = value; }
+    public String getReceiptReference() { return receiptReference; }
+    public void setReceiptReference(String value) { receiptReference = value; }
+    public LocalDateTime getReceivedAt() { return receivedAt; }
+    public void setReceivedAt(LocalDateTime value) { receivedAt = value; }
+    public String getRecordedBy() { return recordedBy; }
+    public void setRecordedBy(String value) { recordedBy = value; }
 }

@@ -75,6 +75,13 @@ public class VoucherUsage {
     @Column(name = "applied_via", nullable = false, length = 20)
     private String appliedVia = "BOOKING_ENGINE";
 
+    /** Le quota est réservé pendant le paiement, puis consommé ou libéré sans effacer l'audit. */
+    @Column(name = "claim_status", nullable = false, length = 16)
+    private String claimStatus = "CONSUMED";
+
+    @Column(name = "released_at")
+    private Instant releasedAt;
+
     public VoucherUsage() {}
 
     @PrePersist
@@ -106,4 +113,8 @@ public class VoucherUsage {
     public void setCurrency(String currency) { this.currency = currency; }
     public String getAppliedVia() { return appliedVia; }
     public void setAppliedVia(String appliedVia) { this.appliedVia = appliedVia; }
+    public String getClaimStatus() { return claimStatus; }
+    public void setClaimStatus(String claimStatus) { this.claimStatus = claimStatus; }
+    public Instant getReleasedAt() { return releasedAt; }
+    public void setReleasedAt(Instant releasedAt) { this.releasedAt = releasedAt; }
 }

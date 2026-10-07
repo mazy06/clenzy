@@ -1,3 +1,4 @@
+import { useCommerceScope } from './useCommerceScope';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   whatsappTemplatesApi,
@@ -27,8 +28,10 @@ export const whatsappTemplatesKeys = {
  * par templateKey. Utilise par la tab "Templates WhatsApp" dans DocumentsPage.
  */
 export function useWhatsAppTemplatesList() {
+  const scope = useCommerceScope();
   return useQuery<WhatsAppTemplateGroup[]>({
-    queryKey: whatsappTemplatesKeys.list(),
+    queryKey: [...whatsappTemplatesKeys.list(), scope],
+    enabled: !!scope,
     queryFn: () => whatsappTemplatesApi.list(),
     staleTime: 60_000, // les templates changent rarement, evite les refetch a chaque mount
   });
@@ -42,10 +45,11 @@ export function useWhatsAppTemplatesList() {
  * @param enabled   permet de differer le fetch (ex: dialog pas encore ouvert)
  */
 export function useWhatsAppTemplateDetail(key: string | null, enabled = true) {
+  const scope = useCommerceScope();
   return useQuery<WhatsAppTemplateGroup>({
-    queryKey: whatsappTemplatesKeys.detail(key ?? ''),
+    queryKey: [...whatsappTemplatesKeys.detail(key ?? ''), scope],
     queryFn: () => whatsappTemplatesApi.getByKey(key!),
-    enabled: enabled && Boolean(key),
+    enabled: !!scope && enabled && Boolean(key),
     staleTime: 30_000,
   });
 }

@@ -90,6 +90,7 @@ export interface PropertyPhoto {
 // ─── Availability ────────────────────────────────────────────────────────────
 
 export interface AvailabilityRequest {
+  children?: number;
   propertyId: number;
   checkIn: string; // 'YYYY-MM-DD'
   checkOut: string; // 'YYYY-MM-DD'
@@ -126,6 +127,7 @@ export interface NightBreakdown {
 // ─── Reservation ─────────────────────────────────────────────────────────────
 
 export interface ReserveRequest {
+  children?: number;
   propertyId: number;
   checkIn: string; // 'YYYY-MM-DD'
   checkOut: string; // 'YYYY-MM-DD'
@@ -135,8 +137,8 @@ export interface ReserveRequest {
   /**
    * Voucher code optionnel saisi par le guest. Valide cote backend, applique
    * automatiquement au prix final si le voucher est valide. En cas de race
-   * condition sur le plafond {@code maxUsesTotal}, la reservation est
-   * conservee sans discount (degradation gracieuse).
+   * condition sur le plafond {@code maxUsesTotal}, la réservation est refusée
+   * sans créer de paiement au plein tarif.
    *
    * <p>Le frontend devrait appeler {@code validateVoucher()} AVANT le
    * {@code reserve()} pour montrer le discount en preview et eviter la
@@ -153,6 +155,8 @@ export interface GuestInfo {
 
 /** Un séjour du panier multi-séjours (multi-propriétés / multi-créneaux). */
 export interface BatchReserveItem {
+  children?: number;
+  voucherCode?: string;
   propertyId: number;
   checkIn: string; // 'YYYY-MM-DD'
   checkOut: string; // 'YYYY-MM-DD'
@@ -224,6 +228,10 @@ export type VoucherValidationError =
  * le total publie). Le backend appliquera le voucher sur ce montant.</p>
  */
 export interface VoucherValidationRequest {
+  checkIn: string;
+  checkOut: string;
+  guests: number;
+  children?: number;
   organizationId: number;
   code: string;
   propertyId: number;

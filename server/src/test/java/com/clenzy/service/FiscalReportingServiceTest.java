@@ -70,6 +70,40 @@ class FiscalReportingServiceTest {
         return invoice;
     }
 
+    @Test void fiscalCurrencyIgnoresDisplayPreferenceAndSeparatesIssuers() {
+        when(tenantContext.getRequiredOrganizationId()).thenReturn(1L);
+        when(tenantContext.getCountryCode()).thenReturn("FR");
+        org.mockito.Mockito.lenient().when(tenantContext.getDefaultCurrency()).thenReturn("SAR");
+        var first=createInvoice(InvoiceStatus.PAID,new BigDecimal("100"),new BigDecimal("20"),new BigDecimal("120"),"STANDARD",new BigDecimal("0.20"));
+        first.setSellerName("Société A");first.setSellerTaxId("FR-A");
+        var second=createInvoice(InvoiceStatus.PAID,new BigDecimal("200"),new BigDecimal("40"),new BigDecimal("240"),"STANDARD",new BigDecimal("0.20"));
+        second.setSellerName("Société B");second.setSellerTaxId("FR-B");
+        when(invoiceRepository.findByOrganizationIdAndDateRange(eq(1L),any(),any())).thenReturn(List.of(first,second));
+        var summary=reportingService.getVatSummary(LocalDate.of(2026,1,1),LocalDate.of(2026,1,31));
+        assertThat(summary.currency()).isEqualTo("EUR");assertThat(summary.issuers()).hasSize(2);
+        assertThat(summary.issuers()).extracting(VatSummaryDto.IssuerSummary::sellerName).containsExactlyInAnyOrder("Société A","Société B");
+        assertThat(summary.issuers()).allMatch(i->i.summary().invoiceCount()==1);
+        org.mockito.Mockito.verifyNoInteractions(currencyConverter);
+    }
+
+
+    @Test void countriesAndCurrenciesAreNeverAddedIntoTheSameDeclaration() {
+        when(tenantContext.getRequiredOrganizationId()).thenReturn(1L);
+        var fr=createInvoice(InvoiceStatus.PAID,new BigDecimal("100"),new BigDecimal("20"),new BigDecimal("120"),"STANDARD",new BigDecimal("0.20"));
+        var ma=createInvoice(InvoiceStatus.PAID,new BigDecimal("200"),new BigDecimal("40"),new BigDecimal("240"),"STANDARD",new BigDecimal("0.20"));ma.setCountryCode("MA");ma.setCurrency("MAD");
+        var sa=createInvoice(InvoiceStatus.CREDIT_NOTE,new BigDecimal("-50"),new BigDecimal("-7.50"),new BigDecimal("-57.50"),"STANDARD",new BigDecimal("0.15"));sa.setCountryCode("SA");sa.setCurrency("SAR");
+        when(invoiceRepository.findByOrganizationIdAndDateRange(eq(1L),any(),any())).thenReturn(List.of(fr,ma,sa));
+        var summaries=reportingService.getVatSummariesByCountry(LocalDate.of(2026,1,1),LocalDate.of(2026,1,31));
+        assertThat(summaries).hasSize(3);
+        assertThat(summaries.stream().map(VatSummaryDto::countryCode)).containsExactly("FR","MA","SA");
+        assertThat(summaries.get(0).totalTtc()).isEqualByComparingTo("120");
+        assertThat(summaries.get(1).totalTtc()).isEqualByComparingTo("240");
+        assertThat(summaries.get(2).totalTtc()).isEqualByComparingTo("-57.50");
+        org.mockito.Mockito.verifyNoInteractions(currencyConverter);
+        var selected=reportingService.getVatSummary(LocalDate.of(2026,1,1),LocalDate.of(2026,1,31),"MA");
+        assertThat(selected.invoiceCount()).isEqualTo(1);assertThat(selected.currency()).isEqualTo("MAD");
+    }
+
     @Nested
     class GetVatSummary {
 
@@ -77,7 +111,6 @@ class FiscalReportingServiceTest {
         void shouldReturnSummaryForPeriod() {
             when(tenantContext.getRequiredOrganizationId()).thenReturn(1L);
             when(tenantContext.getCountryCode()).thenReturn("FR");
-            when(tenantContext.getDefaultCurrency()).thenReturn("EUR");
 
             Invoice issued = createInvoice(InvoiceStatus.ISSUED,
                 new BigDecimal("100.00"), new BigDecimal("10.00"), new BigDecimal("110.00"),
@@ -105,10 +138,9 @@ class FiscalReportingServiceTest {
         }
 
         @Test
-        void shouldExcludeDraftAndCancelledInvoices() {
+        void shouldExcludeDraftButRetainCancelledOriginalAlongsideItsCreditNote() {
             when(tenantContext.getRequiredOrganizationId()).thenReturn(1L);
             when(tenantContext.getCountryCode()).thenReturn("FR");
-            when(tenantContext.getDefaultCurrency()).thenReturn("EUR");
 
             Invoice draft = createInvoice(InvoiceStatus.DRAFT,
                 new BigDecimal("50.00"), new BigDecimal("5.00"), new BigDecimal("55.00"),
@@ -122,24 +154,28 @@ class FiscalReportingServiceTest {
                 new BigDecimal("200.00"), new BigDecimal("20.00"), new BigDecimal("220.00"),
                 "ACCOMMODATION", new BigDecimal("0.1000"));
 
+            Invoice copy = createInvoice(InvoiceStatus.ISSUED,
+                new BigDecimal("200.00"), new BigDecimal("20.00"), new BigDecimal("220.00"),
+                "ACCOMMODATION", new BigDecimal("0.1000"));
+            copy.setDuplicateOfId(50L);
+
             LocalDate from = LocalDate.of(2026, 1, 1);
             LocalDate to = LocalDate.of(2026, 1, 31);
 
             when(invoiceRepository.findByOrganizationIdAndDateRange(1L, from, to))
-                .thenReturn(List.of(draft, cancelled, issued));
+                .thenReturn(List.of(draft, cancelled, issued, copy));
 
             VatSummaryDto summary = reportingService.getVatSummary(from, to);
 
-            // Only ISSUED is counted
-            assertThat(summary.invoiceCount()).isEqualTo(1);
-            assertThat(summary.totalHt()).isEqualByComparingTo("200.00");
+            // Une facture annulée reste comptée ; son avoir effectue la compensation.
+            assertThat(summary.invoiceCount()).isEqualTo(2);
+            assertThat(summary.totalHt()).isEqualByComparingTo("300.00");
         }
 
         @Test
         void shouldIncludeCreditNoteInvoices() {
             when(tenantContext.getRequiredOrganizationId()).thenReturn(1L);
             when(tenantContext.getCountryCode()).thenReturn("FR");
-            when(tenantContext.getDefaultCurrency()).thenReturn("EUR");
 
             Invoice creditNote = createInvoice(InvoiceStatus.CREDIT_NOTE,
                 new BigDecimal("-100.00"), new BigDecimal("-10.00"), new BigDecimal("-110.00"),
@@ -161,7 +197,6 @@ class FiscalReportingServiceTest {
         void shouldReturnEmptySummaryForNoInvoices() {
             when(tenantContext.getRequiredOrganizationId()).thenReturn(1L);
             when(tenantContext.getCountryCode()).thenReturn("FR");
-            when(tenantContext.getDefaultCurrency()).thenReturn("EUR");
 
             LocalDate from = LocalDate.of(2026, 1, 1);
             LocalDate to = LocalDate.of(2026, 1, 31);
@@ -182,7 +217,6 @@ class FiscalReportingServiceTest {
         void shouldGroupBreakdownByTaxCategoryAndRate() {
             when(tenantContext.getRequiredOrganizationId()).thenReturn(1L);
             when(tenantContext.getCountryCode()).thenReturn("FR");
-            when(tenantContext.getDefaultCurrency()).thenReturn("EUR");
 
             Invoice invoice = new Invoice();
             invoice.setOrganizationId(1L);
@@ -237,7 +271,6 @@ class FiscalReportingServiceTest {
         void shouldConvertForeignCurrencyInvoicesToBaseCurrency() {
             when(tenantContext.getRequiredOrganizationId()).thenReturn(1L);
             when(tenantContext.getCountryCode()).thenReturn("FR");
-            when(tenantContext.getDefaultCurrency()).thenReturn("EUR");
 
             // Invoice in EUR — no conversion needed
             Invoice eurInvoice = createInvoice(InvoiceStatus.ISSUED,
@@ -282,7 +315,6 @@ class FiscalReportingServiceTest {
         void shouldCalculateCorrectPeriodForMonth() {
             when(tenantContext.getRequiredOrganizationId()).thenReturn(1L);
             when(tenantContext.getCountryCode()).thenReturn("FR");
-            when(tenantContext.getDefaultCurrency()).thenReturn("EUR");
 
             when(invoiceRepository.findByOrganizationIdAndDateRange(
                 eq(1L),
@@ -304,7 +336,6 @@ class FiscalReportingServiceTest {
         void shouldCalculateQ1Period() {
             when(tenantContext.getRequiredOrganizationId()).thenReturn(1L);
             when(tenantContext.getCountryCode()).thenReturn("FR");
-            when(tenantContext.getDefaultCurrency()).thenReturn("EUR");
 
             when(invoiceRepository.findByOrganizationIdAndDateRange(
                 eq(1L),
@@ -322,7 +353,6 @@ class FiscalReportingServiceTest {
         void shouldCalculateQ4Period() {
             when(tenantContext.getRequiredOrganizationId()).thenReturn(1L);
             when(tenantContext.getCountryCode()).thenReturn("FR");
-            when(tenantContext.getDefaultCurrency()).thenReturn("EUR");
 
             when(invoiceRepository.findByOrganizationIdAndDateRange(
                 eq(1L),
@@ -344,7 +374,6 @@ class FiscalReportingServiceTest {
         void shouldCalculateFullYearPeriod() {
             when(tenantContext.getRequiredOrganizationId()).thenReturn(1L);
             when(tenantContext.getCountryCode()).thenReturn("FR");
-            when(tenantContext.getDefaultCurrency()).thenReturn("EUR");
 
             when(invoiceRepository.findByOrganizationIdAndDateRange(
                 eq(1L),

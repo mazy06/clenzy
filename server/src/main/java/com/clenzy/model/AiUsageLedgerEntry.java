@@ -92,7 +92,7 @@ public class AiUsageLedgerEntry {
     @Column(name = "provider_cost_micro_usd", nullable = false)
     private long providerCostMicroUsd;
 
-    @Column(name = "idempotency_key", nullable = false, length = 128, unique = true)
+    @Column(name = "idempotency_key", nullable = false, length = 288, unique = true)
     private String idempotencyKey;
 
     @Column(name = "created_at", nullable = false)

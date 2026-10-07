@@ -38,6 +38,7 @@ public record PayoutTransferInstruction(Long organizationId, PayoutTransfer.Sour
             case OWNER_PAYOUT -> "payout-" + sourceId;
             case INTERVENTION -> "payout-intervention-" + sourceId;
             case PROVIDER_EXPENSE -> "baitly-expense-" + sourceId;
+            case COMMERCE -> "baitly-commerce-payout-" + sourceId;
         };
     }
 

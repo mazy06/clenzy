@@ -92,16 +92,44 @@ public class InvoicePaymentCoordination {
     /** Appelé après les verrous des missions : racine de dette, puis facture, sans HTTP. */
     @Transactional(propagation = Propagation.MANDATORY)
     public void lockForPayment(Long org, PaymentOrchestrationRequest request) {
-        if (ReservationPaymentService.SOURCE_TYPE.equals(request.sourceType())) {
+        if (isReservationCheckout(request.sourceType())) {
             var stay = stay(request.sourceId(), org, true);
-            require(ReservationPaymentState.canCollect(stay) && stay.getPaidAt() == null
+            require(stay.getTotalPrice()!=null && stay.getTotalPrice().signum()>0, "Montant du séjour absent");
+            boolean balance = "BOOKING_BALANCE".equals(request.sourceType());
+            if (balance) BaitlyReservationPaymentProof.requireOutstandingBalance(stay);
+            else {
+                require(ReservationPaymentState.canCollect(stay) && stay.getPaidAt() == null
                     && (stay.getAmountPaid() == null || stay.getAmountPaid().signum() == 0), "Ce séjour ne peut plus être encaissé");
-            require(stay.getStripeSessionId() == null || stay.getStripeSessionId().isBlank(), "Une session existe pour ce séjour : rapprochement requis");
-            require(stay.getTotalPrice() != null && request.amount() != null && stay.getTotalPrice().compareTo(request.amount()) == 0
-                    && request.currency().equalsIgnoreCase(stay.getCurrency() == null ? "EUR" : stay.getCurrency()), "Le montant du séjour a changé");
-            require(payments.findByOrganizationIdAndSourceTypeAndSourceId(org, request.sourceType(), request.sourceId()).stream()
-                    .noneMatch(t -> t.getPaymentType() == TransactionType.CHECKOUT && t.getStatus() != TransactionStatus.CANCELLED),
-                    "Un paiement existe déjà pour ce séjour");
+                require(stay.getStripeSessionId() == null || stay.getStripeSessionId().isBlank(), "Une session existe pour ce séjour : rapprochement requis");
+            }
+            BigDecimal expected = balance ? stay.getAmountDue() : com.clenzy.booking.service.BaitlyReservationCredit.cash(stay);
+            if ("BOOKING_CHECKOUT".equals(request.sourceType())) {
+                require(stay.getCreditApplied() == null || stay.getCreditApplied().signum() == 0, "Acompte et crédit à rapprocher");
+                var metadata = request.metadata();
+                require(metadata != null && metadata.get("server_total") != null && metadata.get("deposit_balance") != null,
+                        "Répartition acompte/solde absente");
+                try {
+                    BigDecimal total = new BigDecimal(metadata.get("server_total"));
+                    BigDecimal remaining = new BigDecimal(metadata.get("deposit_balance"));
+                    require(total.compareTo(stay.getTotalPrice()) == 0 && remaining.signum() >= 0, "Répartition acompte/solde modifiée");
+                    expected = total.subtract(remaining);
+                } catch (NumberFormatException invalid) { throw invalid("Répartition acompte/solde invalide"); }
+            }
+            require(expected != null && expected.signum() > 0 && request.amount() != null && expected.compareTo(request.amount()) == 0
+                    && request.currency() != null && request.currency().equalsIgnoreCase(stay.getCurrency()), "Le montant du séjour a changé");
+            int depositProofs = 0;
+            for (String source : List.of("RESERVATION", "BOOKING_CHECKOUT", "BOOKING_BALANCE")) {
+                for (var payment : payments.findByOrganizationIdAndSourceTypeAndSourceId(org, source, request.sourceId())) {
+                    if (payment.getPaymentType() != TransactionType.CHECKOUT || payment.getStatus() == TransactionStatus.CANCELLED) continue;
+                    boolean provenDeposit = balance && "BOOKING_CHECKOUT".equals(source) && payment.getStatus() == TransactionStatus.COMPLETED
+                        && Objects.equals(stay.getStripeSessionId(), payment.getProviderTxId()) && Objects.equals(stay.getCurrency(), payment.getCurrency())
+                        && payment.getAmount() != null && payment.getAmount().compareTo(stay.getAmountPaid()) == 0 && !payment.hasDisputeRisk()
+                        && (payment.getMetadata() == null || !Boolean.TRUE.equals(payment.getMetadata().get("reviewRequired")));
+                    require(provenDeposit, "Un paiement existe déjà pour ce séjour");
+                    depositProofs++;
+                }
+            }
+            if (balance) require(depositProofs == 1, "L'acompte doit être rapproché avant d'encaisser le solde");
         }
         requireNoLegacyInvoicePayment(org, request);
         Long invoiceId = invoiceId(request.metadata());
@@ -121,7 +149,7 @@ public class InvoicePaymentCoordination {
 
     /** Les anciens liens INVOICE ne doivent pas être contournés par le bouton de la dette. */
     private void requireNoLegacyInvoicePayment(Long orgId, PaymentOrchestrationRequest request) {
-        boolean reservation = ReservationPaymentService.SOURCE_TYPE.equals(request.sourceType());
+        boolean reservation = isReservationCheckout(request.sourceType());
         var missions = InterventionPaymentCoordination.missionIds(request);
         if (!reservation && missions.isEmpty()) return;
         String origin = reservation ? "i.reservationId = :origin" : "i.interventionId in :origin";
@@ -134,6 +162,10 @@ public class InvoicePaymentCoordination {
                 .setParameter("cancelled", TransactionStatus.CANCELLED)
                 .setParameter("origin", reservation ? request.sourceId() : missions).getSingleResult();
         require(attempts == 0, "Un ancien paiement de facture doit être rapproché avant d'encaisser cette dette");
+    }
+
+    private static boolean isReservationCheckout(String source) {
+        return "RESERVATION".equals(source) || "BOOKING_CHECKOUT".equals(source) || "BOOKING_BALANCE".equals(source);
     }
 
     @Transactional(propagation = Propagation.MANDATORY)

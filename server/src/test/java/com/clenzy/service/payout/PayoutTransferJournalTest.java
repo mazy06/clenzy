@@ -19,7 +19,7 @@ class PayoutTransferJournalTest {
     private final BaitlyProviderPayoutGuard guard = mock(BaitlyProviderPayoutGuard.class);
     private final BaitlyOwnerPayoutGuard ownerGuard = mock(BaitlyOwnerPayoutGuard.class);
     private final BaitlyExpensePayoutStore expenses = mock(BaitlyExpensePayoutStore.class);
-    private final PayoutTransferJournal journal = new PayoutTransferJournal(transfers, events, guard, ownerGuard, mock(BaitlyOwnerPayoutDocuments.class), expenses);
+    private final PayoutTransferJournal journal = new PayoutTransferJournal(transfers, events, guard, ownerGuard, mock(BaitlyOwnerPayoutDocuments.class), expenses, org.mockito.Mockito.mock(BaitlyCommercePayoutStore.class));
     private final PayoutTransferInstruction instruction = new PayoutTransferInstruction(
             7L, PayoutTransfer.Source.OWNER_PAYOUT, 31L, 10L, new BigDecimal("80"), "eur", "acct_owner", "Payout #31");
     private PayoutTransfer row;

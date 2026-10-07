@@ -56,6 +56,7 @@
     "keycloak-js": "^23.0.7",
     "lucide-react": "^1.14.0",
     "mapbox-gl": "^3.19.0",
+    "pdfjs-dist": "5.4.624",
     "posthog-js": "^1.357.1",
     "radix-ui": "^1.6.5",
     "react": "^18.3.1",

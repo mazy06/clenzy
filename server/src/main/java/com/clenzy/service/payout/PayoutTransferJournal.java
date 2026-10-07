@@ -19,14 +19,16 @@ public class PayoutTransferJournal {
     private final BaitlyOwnerPayoutGuard ownerGuard;
     private final BaitlyOwnerPayoutDocuments documents;
     private final BaitlyExpensePayoutStore expenses;
+    private final BaitlyCommercePayoutStore commerce;
     public PayoutTransferJournal(PayoutTransferRepository transfers, PayoutTransferEventRepository events,
             BaitlyProviderPayoutGuard providerGuard, BaitlyOwnerPayoutGuard ownerGuard, BaitlyOwnerPayoutDocuments documents,
-            BaitlyExpensePayoutStore expenses) {
+            BaitlyExpensePayoutStore expenses, BaitlyCommercePayoutStore commerce) {
         this.transfers = transfers; this.events = events;
         this.providerGuard = providerGuard;
         this.ownerGuard = ownerGuard;
         this.documents = documents;
         this.expenses = expenses;
+        this.commerce = commerce;
     }
 
     /** Lecture avant précontrôle PSP. prepare reste l'arbitre atomique après ce contrôle. */
@@ -56,6 +58,7 @@ public class PayoutTransferJournal {
             }
         }
         if (instruction.source() == PayoutTransfer.Source.PROVIDER_EXPENSE) expenses.requireInstruction(instruction);
+        if (instruction.source() == PayoutTransfer.Source.COMMERCE) commerce.requireInstruction(instruction);
         int inserted = transfers.insertIfAbsent(instruction.organizationId(), instruction.source().name(),
                 instruction.sourceId(), instruction.beneficiaryUserId(), instruction.beneficiaryOrganizationId(), instruction.amount(), instruction.currency(),
                 instruction.destination(), instruction.description(), instruction.idempotencyKey());
@@ -83,6 +86,7 @@ public class PayoutTransferJournal {
         transfer.transferred(reference);
         documents.settle(transfer);
         expenses.settle(transfer);
+        commerce.settle(transfer);
         transfers.saveAndFlush(transfer);
         events.save(new PayoutTransferEvent(transfer));
     }

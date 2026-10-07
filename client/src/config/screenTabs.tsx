@@ -179,14 +179,10 @@ export const SCREEN_TABS: Record<string, ScreenTabDef[]> = {
   ],
 
   '/documents': [
-    { key: 'catalog', translationKey: 'documents.tabs.catalog', fallbackLabel: 'Catalogue', icon: <ViewList /> },
-    { key: 'message-templates', translationKey: 'documents.tabs.messageTemplates', fallbackLabel: 'Templates messages', icon: <ChatBubbleOutline /> },
-    { key: 'whatsapp-templates', translationKey: 'documents.tabs.whatsappTemplates', fallbackLabel: 'Templates WhatsApp', icon: <Forum /> },
-    { key: 'document-templates', translationKey: 'documents.tabs.documentTemplates', fallbackLabel: 'Templates documents', icon: <Description /> },
+    { key: 'catalog', translationKey: 'documentsWorkspace.tabs.catalog', fallbackLabel: 'Modèles', icon: <Description /> },
+    { key: 'message-templates', translationKey: 'documentsWorkspace.tabs.messages', fallbackLabel: 'Messages', icon: <ChatBubbleOutline /> },
     { key: 'history', translationKey: 'documents.tabs.history', fallbackLabel: 'Historique', icon: <History /> },
-    { key: 'variables', translationKey: 'documents.tabs.variablesAndTags', fallbackLabel: 'Variables & Tags', icon: <LocalOffer /> },
     { key: 'compliance', translationKey: 'documents.tabs.compliance', fallbackLabel: 'Conformité', icon: <GppGood /> },
-    { key: 'amendments', translationKey: 'amendmentLibrary.title', fallbackLabel: 'Avenants', icon: <Description /> },
   ],
 
   '/billing': [
@@ -227,6 +223,7 @@ export const SCREEN_TABS: Record<string, ScreenTabDef[]> = {
     { key: 'ai', translationKey: 'tabHeaders.settings.tabs.ai', fallbackLabel: 'IA', icon: <SmartToy />, isAccessible: (a) => has(a, 'ai:view') },
     { key: 'fiscal', translationKey: 'tabHeaders.settings.tabs.fiscal', fallbackLabel: 'Fiscal', icon: <AccountBalance />, isAccessible: (a) => hasRole(a, 'SUPER_ADMIN', 'SUPER_MANAGER') },
     { key: 'organization', translationKey: 'tabHeaders.settings.tabs.organization', fallbackLabel: 'Organisation', icon: <GroupAdd />, isAccessible: (a) => hasRole(a, 'SUPER_ADMIN', 'SUPER_MANAGER') },
+    { key: 'subscription', translationKey: 'monthlySubscription.tab', fallbackLabel: 'Abonnement', icon: <Payment />, isAccessible: (a) => hasRole(a, 'HOST', 'SUPER_ADMIN', 'SUPER_MANAGER') },
     { key: 'payment', translationKey: 'tabHeaders.settings.tabs.payment', fallbackLabel: 'Paiement', icon: <Payment />, isAccessible: (a) => hasRole(a, 'SUPER_ADMIN', 'SUPER_MANAGER') },
     { key: 'integrations', translationKey: 'tabHeaders.settings.tabs.integrations', fallbackLabel: 'Intégrations', icon: <Extension />, isAccessible: (a) => hasRole(a, 'SUPER_ADMIN', 'SUPER_MANAGER') },
     { key: 'payouts', translationKey: 'tabHeaders.settings.tabs.payouts', fallbackLabel: 'Reversements (plateforme)', icon: <CalendarMonth />, isAccessible: (a) => hasRole(a, 'SUPER_ADMIN') },

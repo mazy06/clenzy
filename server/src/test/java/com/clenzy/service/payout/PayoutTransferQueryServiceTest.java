@@ -12,7 +12,7 @@ class PayoutTransferQueryServiceTest {
     private final BankPayoutObservationRepository bank = mock(BankPayoutObservationRepository.class);
     private final UserRepository users = mock(UserRepository.class);
     private final OrganizationRepository organizations = mock(OrganizationRepository.class);
-    private final PayoutTransferQueryService service = new PayoutTransferQueryService(transfers,events,bank,users,organizations, org.mockito.Mockito.mock(com.clenzy.repository.BaitlyTransferRecoveryRepository.class));
+    private final PayoutTransferQueryService service = new PayoutTransferQueryService(transfers,events,bank,users,organizations, org.mockito.Mockito.mock(com.clenzy.repository.BaitlyTransferRecoveryRepository.class), org.mockito.Mockito.mock(com.clenzy.repository.BaitlyCommerceRecoveryRepository.class));
     @Test void missingOrForeignTransferDoesNotExposeItsEvents() {
         assertThatThrownBy(() -> service.detail(8L,1L)).isInstanceOf(NotFoundException.class);
         verify(transfers).findByIdAndOrganizationId(1L,8L);

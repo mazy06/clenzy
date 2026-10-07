@@ -75,7 +75,7 @@ class PaymentControllerTest {
                 new PaymentTransactionService(paymentTransactionRepository, tenantContext);
         PaymentQueryService paymentQueryService = new PaymentQueryService(
                 interventionRepository, reservationRepository, serviceRequestRepository,
-                userService, stripeService, tenantContext, serviceQuoteRepository, mock(com.clenzy.service.InterventionBatchCheckoutService.class), paymentTransactionRepository, mock(com.clenzy.service.BaitlyInterventionCheckoutExpiry.class));
+                userService, stripeService, tenantContext, serviceQuoteRepository, mock(com.clenzy.service.InterventionBatchCheckoutService.class), paymentTransactionRepository, mock(com.clenzy.service.BaitlyInterventionCheckoutExpiry.class), mock(com.clenzy.service.BaitlyMaintenanceDepositCheckout.class));
         InterventionPaymentService interventionPaymentService = new InterventionPaymentService(
                 interventionRepository, orchestrationService, stripeService,
                 paymentTransactionService, tenantContext,

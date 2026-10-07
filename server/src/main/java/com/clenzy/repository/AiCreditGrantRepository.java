@@ -22,17 +22,17 @@ public interface AiCreditGrantRepository extends JpaRepository<AiCreditGrant, Lo
     @Query("""
             select g from AiCreditGrant g
             where g.organizationId = :orgId
-              and g.expiresAt > :now
-              and g.millicreditsConsumed < g.millicreditsGranted
+              and g.fundingPending = false and g.expiresAt > :now
+              and g.millicreditsConsumed + g.millicreditsRevoked + g.millicreditsExpired < g.millicreditsGranted
             order by case when g.source = 'SUBSCRIPTION' then 0 else 1 end, g.expiresAt asc
             """)
     List<AiCreditGrant> lockActiveGrants(@Param("orgId") Long orgId, @Param("now") Instant now);
 
     /** Solde disponible (verite froide — recharge le compteur Redis). */
     @Query("""
-            select coalesce(sum(g.millicreditsGranted - g.millicreditsConsumed), 0)
+            select coalesce(sum(case when g.millicreditsGranted > g.millicreditsConsumed + g.millicreditsRevoked + g.millicreditsExpired then g.millicreditsGranted - g.millicreditsConsumed - g.millicreditsRevoked - g.millicreditsExpired else 0 end), 0)
             from AiCreditGrant g
-            where g.organizationId = :orgId and g.expiresAt > :now
+            where g.organizationId = :orgId and g.fundingPending = false and g.expiresAt > :now
             """)
     long availableMillicredits(@Param("orgId") Long orgId, @Param("now") Instant now);
 
@@ -50,10 +50,16 @@ public interface AiCreditGrantRepository extends JpaRepository<AiCreditGrant, Lo
     /** Poches echues avec du restant a journaliser en EXPIRY (job quotidien T-07). */
     @Query("""
             select g from AiCreditGrant g
-            where g.expiresAt <= :now
-              and g.millicreditsConsumed < g.millicreditsGranted
+            where g.fundingPending = false and g.expiresAt <= :now
+              and g.millicreditsConsumed + g.millicreditsRevoked + g.millicreditsExpired < g.millicreditsGranted
             """)
     List<AiCreditGrant> findExpiredWithRemaining(@Param("now") Instant now);
+
+    @Query("select distinct g.organizationId from AiCreditGrant g where g.fundingPending=false and g.expiresAt<=:now and g.millicreditsConsumed+g.millicreditsRevoked+g.millicreditsExpired<g.millicreditsGranted order by g.organizationId")
+    List<Long> findOrganizationsToExpire(@Param("now") Instant now);
+
+    @Query("from AiCreditGrant g where g.organizationId=:org and g.fundingPending=false and g.expiresAt<=:now and g.millicreditsConsumed+g.millicreditsRevoked+g.millicreditsExpired<g.millicreditsGranted")
+    List<AiCreditGrant> findExpiredForOrganization(@Param("org") Long org,@Param("now") Instant now);
 
     /** Poches actives d'une org (lecture solde detaille, sans verrou). */
     List<AiCreditGrant> findByOrganizationIdAndExpiresAtAfterOrderByExpiresAtAsc(

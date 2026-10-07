@@ -8,6 +8,8 @@ public record UpsertActivityConfigRequest(
     String apiKey,
     String affiliateId,
     boolean enabled,
-    /** Part Baitly (%) sur la commission de ce programme. null = rien retenu. */
+    /** Part Baitly (%) réservée au staff. null conserve le taux existant ; 0 supprime la retenue. */
+    @jakarta.validation.constraints.DecimalMin("0")
+    @jakarta.validation.constraints.DecimalMax("100")
     java.math.BigDecimal platformCommissionPct
 ) {}

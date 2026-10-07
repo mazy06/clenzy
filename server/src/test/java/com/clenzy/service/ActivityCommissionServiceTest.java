@@ -7,6 +7,7 @@ import com.clenzy.repository.ActivityAffiliateConfigRepository;
 import com.clenzy.repository.ActivityCommissionRepository;
 import com.clenzy.repository.PropertyRepository;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -37,10 +38,13 @@ class ActivityCommissionServiceTest {
     @Mock private WalletService walletService;
     @Mock private LedgerService ledgerService;
 
+    @Mock private com.clenzy.repository.OrganizationRepository organizations;
+    @BeforeEach void organization() { org.mockito.Mockito.lenient().when(organizations.lockById(ORG_ID)).thenReturn(Optional.of(new Organization())); }
+
     private ActivityCommissionService service() {
         return new ActivityCommissionService(
             commissionRepository, affiliateConfigRepository, propertyRepository,
-            walletService, ledgerService);
+            walletService, ledgerService, organizations);
     }
 
     @Test
@@ -53,8 +57,8 @@ class ActivityCommissionServiceTest {
 
         assertThat(dto.platformShare()).isEqualByComparingTo("20.00");
         assertThat(dto.hostShare()).isEqualByComparingTo("80.00");
-        verify(ledgerService).recordTransfer(any(), any(), eq(new BigDecimal("80.00")),
-            eq(LedgerReferenceType.COMMISSION), anyString(), anyString());
+        assertThat(dto.status()).isEqualTo("PENDING");
+        org.mockito.Mockito.verifyNoInteractions(ledgerService, walletService);
     }
 
     @Test
@@ -79,7 +83,7 @@ class ActivityCommissionServiceTest {
             ORG_ID, ActivityProvider.VIATOR, "VT-2", new BigDecimal("100.00"), "EUR", PROPERTY_ID);
 
         // Un seul transfert, vers le wallet OWNER : la conciergerie n'a pas de part.
-        verify(walletService).getOrCreateWallet(ORG_ID, WalletType.OWNER, OWNER_ID, "EUR");
+        verify(walletService, never()).getOrCreateWallet(ORG_ID, WalletType.OWNER, OWNER_ID, "EUR");
         verify(walletService, never()).getOrCreateWallet(eq(ORG_ID), eq(WalletType.CONCIERGE), any(), anyString());
     }
 
@@ -98,17 +102,12 @@ class ActivityCommissionServiceTest {
     }
 
     @Test
-    void recordAffiliateEarning_keepsTheRow_whenOwnerCannotBeResolved() {
+    void unresolvedPropertyIsRejected() {
         givenPlatformRate(new BigDecimal("10.00"));
         when(propertyRepository.findById(PROPERTY_ID)).thenReturn(Optional.empty());
-
-        ActivityCommissionDto dto = service().recordAffiliateEarning(
-            ORG_ID, ActivityProvider.GETYOURGUIDE, "GY-3", new BigDecimal("40.00"), "EUR", PROPERTY_ID);
-
-        // La ligne est la trace de ce que le programme a verse : on la garde.
-        assertThat(dto.hostShare()).isEqualByComparingTo("36.00");
-        verify(commissionRepository).save(any());
-        verify(ledgerService, never()).recordTransfer(any(), any(), any(), any(), anyString(), anyString());
+        assertThatThrownBy(() -> service().recordAffiliateEarning(ORG_ID, ActivityProvider.GETYOURGUIDE,
+            "GY-3", new BigDecimal("40.00"), "EUR", PROPERTY_ID)).isInstanceOf(IllegalArgumentException.class);
+        verify(commissionRepository, never()).save(any());
     }
 
     @Test
@@ -147,6 +146,7 @@ class ActivityCommissionServiceTest {
         owner.setId(OWNER_ID);
         Property property = new Property();
         property.setId(PROPERTY_ID);
+        property.setOrganizationId(ORG_ID);
         property.setOwner(owner);
         when(propertyRepository.findById(PROPERTY_ID)).thenReturn(Optional.of(property));
     }
@@ -158,6 +158,8 @@ class ActivityCommissionServiceTest {
         c.setHostShare(host);
         c.setPlatformShare(platform);
         c.setCurrency("EUR");
+        c.setPropertyId(PROPERTY_ID);
+        c.setStatus(ActivityCommissionStatus.RECEIVED);
         return c;
     }
 }

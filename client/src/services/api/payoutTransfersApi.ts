@@ -1,7 +1,7 @@
 import apiClient from '../apiClient';
 
 export type TransferState = 'SUBMITTING' | 'TRANSFERRED' | 'RECONCILIATION_REQUIRED';
-export type TransferSource = 'OWNER_PAYOUT' | 'INTERVENTION' | 'PROVIDER_EXPENSE';
+export type TransferSource = 'OWNER_PAYOUT' | 'INTERVENTION' | 'PROVIDER_EXPENSE' | 'COMMERCE';
 export interface TransferRecovery {
   state: 'WAITING_REFUND' | 'RECOVERING' | 'RECOVERED' | 'NO_RECOVERY_REQUIRED' | 'REVIEW_REQUIRED' | 'CANCELLED';
   amount: number; currency: string; updatedAt: string; reversalReference?: string | null;

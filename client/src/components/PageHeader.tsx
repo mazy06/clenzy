@@ -10,16 +10,10 @@ import { SidebarTrigger } from './ui/sidebar';
 import GlobalSearchField from './GlobalSearchField';
 import PageHeaderActions from './PageHeaderActions';
 import { cn } from '../utils/cn';
+import { usePageHeaderLayout } from '../hooks/usePageHeaderLayout';
 
-/**
- * Seuil au-dela duquel le header affiche `inlineControls` EN CLAIR (`xl`).
- *
- * <p>Exporte parce qu'un ecran qui alimente ce slot doit connaitre le meme
- * seuil : sous celui-ci le header replie les commandes dans son menu, et
- * l'ecran doit alors les dessiner lui-meme — sans quoi elles apparaissent deux
- * fois, ou pas du tout. Une valeur dupliquee des deux cotes divergerait au
- * premier ajustement.</p>
- */
+/** Seuil historique du planning pour choisir où porter les dates.
+ * Le header adapte ensuite leur affichage à sa largeur disponible réelle. */
 export const INLINE_CONTROLS_QUERY = '(min-width: 1280px)';
 
 interface PageHeaderProps {
@@ -44,8 +38,8 @@ interface PageHeaderProps {
    * ecrans n'ont aucun ancrage horizontal : le titre flotte sur le meme fond
    * que le contenu, et rien ne dit ou commence le plan de travail.</p>
    *
-   * <p>Le bandeau deborde le padding du conteneur de contenu — 9 px, 12 px a
-   * partir de 900 px — pour aller d'un bord a l'autre, puis le retablit a
+   * <p>Le bandeau mesure les marges des enveloppes pleine largeur
+   * pour aller d'un bord a l'autre, puis les retablit a
    * l'interieur. Sans ce debordement il resterait une carte flottante, pas une
    * bande.</p>
    *
@@ -89,8 +83,7 @@ interface PageHeaderProps {
    * derriere un declencheur unique : on ne lit plus quel mois est affiche sans
    * ouvrir le menu.
    *
-   * Elles ne restent en clair que tant que la barre a la place : sous `xl`
-   * (1280 px, cf. `canInlineControls`) elles rejoignent le repli du header — le
+   * Elles restent en clair tant que la barre a la place ; sinon elles rejoignent le repli du header — le
    * popover de filtres, puis le menu d'actions sous `lg` — au lieu d'ecraser le
    * titre.
    */
@@ -145,7 +138,7 @@ export default function PageHeader({
   className,
 }: PageHeaderProps) {
   const navigate = useNavigate();
-  const { pathname } = useLocation();
+  const { pathname, search } = useLocation();
   const { setTabsSlot } = useScreenChrome();
   // `lg` de Tailwind (1024 px) — le MEME seuil que toutes les autres bascules de
   // cette barre : declencheur de sidebar (`lg:hidden`), repli des actions.
@@ -157,11 +150,8 @@ export default function PageHeader({
   // seule ou rien ne se repliait.
   const isCompact = useMediaQuery('(max-width: 1023.98px)');
 
-  // Seuil PROPRE aux commandes en clair, plus haut que `lg` : le groupe type
-  // (navigation de periode + selecteur d'echelle) pese ~530 px et la barre
-  // porte deja la recherche (256 px) et ses icones. Sous `xl`, le titre — seul
-  // element elastique de la ligne — serait ecrase avant que le groupe ne cede.
-  const canInlineControls = useMediaQuery(INLINE_CONTROLS_QUERY);
+  // Tenir compte des marges, de la sidebar et du contenu réel de la barre.
+  const { headerRef, canInlineControls, compactSearch, compactActions } = usePageHeaderLayout(anchored, `${pathname}${search}:${title}`);
 
   const handleBack = () => {
     if (onBack) {
@@ -201,11 +191,19 @@ export default function PageHeader({
 
   return (
     <header
+      ref={headerRef}
       data-slot="page-header"
       /* Repere de la couture : le selecteur d'onglets mesure le bas de ce
          bandeau pour y accrocher son panneau (cf. PageTabsMenu). Sans bandeau
          ancre il n'y a pas de ligne a raccorder, d'ou l'attribut conditionnel. */
       data-anchored={anchored ? '' : undefined}
+      style={anchored ? {
+        marginInlineStart: 'calc(-1 * var(--page-header-gutter-start, 12px))',
+        marginInlineEnd: 'calc(-1 * var(--page-header-gutter-end, 12px))',
+        marginTop: 'calc(-1 * var(--page-header-gutter-top, 12px))',
+        paddingInlineStart: 'var(--page-header-gutter-start, 12px)',
+        paddingInlineEnd: 'var(--page-header-gutter-end, 12px)',
+      } : undefined}
       className={cn(
         'flex flex-col gap-1.5',
         selfSpaced && 'mb-1.5 lg:mb-3',
@@ -224,7 +222,7 @@ export default function PageHeader({
           lire ou il etait, puis revenait a gauche pour agir. Le titre absorbe
           desormais l'espace et se tronque ; les commandes ne se compriment
           jamais — ce sont deja des icones. */}
-      <div className="flex items-center gap-2">
+      <div data-header-row data-inline={canInlineControls} className="flex min-w-0 items-center gap-2">
         {/* Le bouton de la sidebar occupait une bande de 48 px a lui seul sous
             1024 px. Il rejoint la ligne du titre : le seuil du kit sidebar
             (SIDEBAR_SHEET_BREAKPOINT) vaut deja lg, les deux coincident. */}
@@ -254,7 +252,7 @@ export default function PageHeader({
             />
           }
           icon={
-            icon && (
+            icon && !compactActions && (
               <span
                 aria-hidden
                 className="flex size-8 shrink-0 items-center justify-center rounded-[9px] bg-[var(--bui-screen-icon-bg)] text-[var(--bui-screen-icon-fg)]"
@@ -273,15 +271,15 @@ export default function PageHeader({
           }
         />
 
-        <div className="flex shrink-0 items-center gap-2">
+        <div data-header-toolbar className="flex shrink-0 items-center gap-2">
           {/* Commandes en clair — AVANT la recherche : elles portent l'etat de
               l'ecran (la periode affichee), la recherche n'est qu'un point
-              d'entree. Sous `xl` elles rejoignent le repli (cf. foldedFilters). */}
+              d'entree. Si la place manque, elles rejoignent le repli (cf. foldedFilters). */}
           {canInlineControls && inlineControls}
 
-          <GlobalSearchField />
+          <GlobalSearchField compact={compactSearch} />
 
-          <PageHeaderActions filters={foldedFilters} actions={actions} narrow={isCompact} />
+          <PageHeaderActions filters={foldedFilters} actions={actions} narrow={isCompact || compactActions} />
 
           {showBack && (
             <Tooltip>

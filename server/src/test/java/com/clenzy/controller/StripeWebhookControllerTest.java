@@ -58,6 +58,10 @@ class StripeWebhookControllerTest {
     @Mock private SubscriptionService subscriptionService;
     @Mock private MobilePaymentService mobilePaymentService;
     @Mock private PaymentOrchestrationService orchestrationService;
+    @Mock private com.clenzy.service.BaitlyCheckoutJournal checkoutJournal;
+    @Mock private com.clenzy.service.BaitlyMonthlySubscriptionService monthlySubscriptions;
+    @Mock private com.clenzy.service.BaitlySubscriptionBilling subscriptionBilling;
+    @Mock private com.clenzy.service.BaitlyMaintenanceDepositCheckout maintenanceDeposit;
     @Mock private StripeConnectService stripeConnectService;
     @Mock private ShopService shopService;
     @Mock private PublicBookingService publicBookingService;
@@ -76,9 +80,11 @@ class StripeWebhookControllerTest {
     @org.mockito.Mock private com.clenzy.service.ManagedRefundReconciliation refunds;
     private StripeWebhookController controller;
 
+    @Mock com.clenzy.service.BaitlySubscriptionMoneyEvents subscriptionMoney;
+
     @BeforeEach
     void setUp() throws Exception {
-        controller = new StripeWebhookController(stripeService, inscriptionService, subscriptionService, mobilePaymentService, orchestrationService, stripeConnectService, shopService, publicBookingService, upsellService, stripeGateway, directBookingService, aiCreditGrantService, paymentFailedTriggerService, paymentEventActionRecorder, paymentConnectionStore, bankPayoutHandler, paymentTenantScope, batchCheckout, invoiceCheckout, refunds, mock(com.clenzy.service.BaitlyInterventionCheckoutExpiry.class));
+        controller = new StripeWebhookController(stripeService, inscriptionService, subscriptionService, mobilePaymentService, orchestrationService, stripeConnectService, shopService, publicBookingService, upsellService, stripeGateway, directBookingService, aiCreditGrantService, paymentFailedTriggerService, paymentEventActionRecorder, paymentConnectionStore, bankPayoutHandler, paymentTenantScope, batchCheckout, invoiceCheckout, refunds, mock(com.clenzy.service.BaitlyInterventionCheckoutExpiry.class), checkoutJournal, monthlySubscriptions, subscriptionBilling, maintenanceDeposit, subscriptionMoney);
         org.mockito.Mockito.lenient().doAnswer(invocation -> { ((Runnable) invocation.getArgument(1)).run(); return null; })
                 .when(paymentTenantScope).forIntervention(anyString(), any());
         org.mockito.Mockito.lenient().doAnswer(invocation -> { ((Runnable) invocation.getArgument(1)).run(); return null; })
@@ -135,7 +141,32 @@ class StripeWebhookControllerTest {
         org.mockito.Mockito.verifyNoInteractions(stripeService,orchestrationService);
     }
 
+    @org.junit.jupiter.params.ParameterizedTest
+    @org.junit.jupiter.params.provider.ValueSource(strings={"checkout.session.completed","checkout.session.async_payment_succeeded","checkout.session.async_payment_failed","checkout.session.expired"})
+    void depositEventsNeverFallThroughToFullMissionConfirmation(String type) throws Exception {
+        String payload="{\"id\":\"evt_deposit\",\"object\":\"event\",\"api_version\":\""+com.stripe.Stripe.API_VERSION
+                +"\",\"type\":\""+type+"\",\"data\":{\"object\":{\"id\":\"cs_deposit\",\"object\":\"checkout.session\",\"mode\":\"payment\",\"payment_status\":\"paid\"}}}";
+        when(maintenanceDeposit.handleWebhook(any(Session.class))).thenReturn(true);
+        assertThat(controller.handleStripeWebhook(payload,signature(payload)).getStatusCode().value()).isEqualTo(200);
+        org.mockito.Mockito.verifyNoInteractions(stripeService,paymentTenantScope,checkoutJournal,orchestrationService);
+    }
+
     // ─── Signature validation paths ───────────────────────────────────────────
+
+    @org.junit.jupiter.params.ParameterizedTest
+    @org.junit.jupiter.params.provider.ValueSource(strings={"checkout.session.completed", "checkout.session.async_payment_succeeded",
+            "checkout.session.async_payment_failed", "checkout.session.expired", "payment_intent.succeeded", "payment_intent.payment_failed"})
+    void connectedAccountCannotChangePlatformPaymentsOrSubscriptions(String type) throws Exception {
+        String object = type.startsWith("checkout.") ? "checkout.session" : "payment_intent";
+        String payload = "{\"id\":\"evt_foreign\",\"object\":\"event\",\"account\":\"acct_connected\",\"api_version\":\""
+                + com.stripe.Stripe.API_VERSION + "\",\"type\":\"" + type
+                + "\",\"data\":{\"object\":{\"id\":\"cs_foreign\",\"object\":\"" + object
+                + "\",\"payment_status\":\"paid\",\"metadata\":{\"type\":\"inscription\",\"transactionRef\":\"TX-platform\"}}}}";
+        assertThat(controller.handleStripeWebhook(payload, signature(payload)).getStatusCode().value()).isEqualTo(200);
+        org.mockito.Mockito.verifyNoInteractions(inscriptionService, monthlySubscriptions, subscriptionBilling,
+                stripeService, mobilePaymentService, checkoutJournal, maintenanceDeposit, batchCheckout, invoiceCheckout,
+                paymentTenantScope, orchestrationService, shopService, upsellService, directBookingService, paymentFailedTriggerService);
+    }
 
     private String refundPayload(String type, String account) {
         return "{\"id\":\"evt_refund\",\"object\":\"event\",\"api_version\":\"" + com.stripe.Stripe.API_VERSION
@@ -217,8 +248,9 @@ class StripeWebhookControllerTest {
                 + com.stripe.Stripe.API_VERSION + "\",\"type\":\"invoice.paid\","
                 + "\"data\":{\"object\":{\"id\":\"in_test\",\"object\":\"invoice\","
                 + "\"parent\":{\"type\":\"subscription_details\",\"subscription_details\":{\"subscription\":\"sub_test\"}}}}}";
+        var canonical=com.stripe.net.ApiResource.GSON.fromJson("{\"id\":\"in_test\",\"status\":\"paid\",\"amount_remaining\":0,\"parent\":{\"subscription_details\":{\"subscription\":\"sub_test\"}}}",com.stripe.model.Invoice.class);
         assertThat(controller.handleStripeWebhook(payload, signature(payload)).getStatusCode().value()).isEqualTo(200);
-        verify(aiCreditGrantService).grantForPaidInvoice("sub_test", "in_test");
+        verify(subscriptionMoney).invoice("in_test");
     }
 
     private static String signature(String payload) throws Exception {
@@ -497,7 +529,7 @@ class StripeWebhookControllerTest {
                 ResponseEntity<String> response = controller.handleStripeWebhook("payload", "sig");
 
                 assertThat(response.getStatusCode().value()).isEqualTo(200);
-                verify(orchestrationService).completeTransaction("TX-123");
+                verify(checkoutJournal).apply(s, true);
             }
         }
 
@@ -1006,7 +1038,7 @@ class StripeWebhookControllerTest {
         @DisplayName("returns 200 for unknown events without action")
         void whenUnknownEvent_thenReturns200() {
             Event event = mock(Event.class);
-            when(event.getType()).thenReturn("customer.subscription.updated");
+            when(event.getType()).thenReturn("customer.created");
 
             try (MockedStatic<Webhook> mockedWebhook = mockStatic(Webhook.class)) {
                 mockedWebhook.when(() -> Webhook.constructEvent(anyString(), anyString(), anyString()))

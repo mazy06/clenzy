@@ -1,3 +1,4 @@
+import BaitlyCreditPurchases from './components/BaitlyCreditPurchases';
 import React, { useState, useMemo, useCallback } from 'react';
 import { cn } from '../../utils/cn';
 import StatusChip from '../../components/StatusChip';
@@ -662,6 +663,7 @@ export default function AiSettingsSection() {
       {activeTab === 'consumption' && (
         <>
           <AiCreditsSection />
+          {mainHasAnyRole(['SUPER_ADMIN', 'SUPER_MANAGER']) && <BaitlyCreditPurchases />}
           <AiUsageTrendSection />
         </>
       )}

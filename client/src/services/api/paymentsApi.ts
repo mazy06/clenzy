@@ -35,6 +35,7 @@ export interface PaymentRecord {
   propertyName: string;
   amount: number;
   payableAmount?: number;
+  individualCheckout?: boolean;
   currency: string;
   status: 'UNKNOWN' | 'PARTIALLY_PAID' | 'NOT_REQUIRED' | 'PAID' | 'PENDING' | 'PROCESSING' | 'FAILED' | 'REFUNDED' | 'PARTIALLY_REFUNDED' | 'CANCELLED';
   refundedAmount?: number;
@@ -43,6 +44,7 @@ export interface PaymentRecord {
   refundReviewRequired?: boolean;
   paymentDisputed?: boolean;
   supportsPartialRefund?: boolean;
+  refundAcrossReceipts?: boolean;
   type?: 'INTERVENTION' | 'RESERVATION' | 'SERVICE_REQUEST';
   paymentCollection?: 'PMS' | 'CHANNEL' | 'UNKNOWN';
   canCollect?: boolean;

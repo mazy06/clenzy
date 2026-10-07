@@ -32,10 +32,15 @@ public class ReportService {
     private final TeamRepository teamRepository;
     private final TenantContext tenantContext;
 
+    private final BaitlyPdfEngine engine;
+    private final BaitlyDocumentIdentity identity;
+
     public ReportService(PropertyRepository propertyRepository,
                          InterventionRepository interventionRepository,
                          TeamRepository teamRepository,
-                         TenantContext tenantContext) {
+                         TenantContext tenantContext, BaitlyPdfEngine engine, BaitlyDocumentIdentity identity) {
+        this.engine=engine;
+        this.identity=identity;
         this.propertyRepository = propertyRepository;
         this.interventionRepository = interventionRepository;
         this.teamRepository = teamRepository;
@@ -47,134 +52,38 @@ public class ReportService {
      * Génère un rapport financier
      */
     public byte[] generateFinancialReport(String reportType, LocalDate startDate, LocalDate endDate) {
-        ByteArrayOutputStream baos = new ByteArrayOutputStream();
-        
-        try (PdfWriter writer = new PdfWriter(baos);
-             PdfDocument pdf = new PdfDocument(writer);
-             Document document = new Document(pdf, PageSize.A4)) {
-            
-            // En-tête professionnel avec logo Clenzy
-            PdfTemplateHelper.addProfessionalHeader(
-                document, 
-                "Rapport Financier - " + getFinancialReportTitle(reportType),
-                "Période: " + PdfTemplateHelper.formatDate(startDate) + " - " + PdfTemplateHelper.formatDate(endDate)
-            );
-            
-            // Données selon le type de rapport
-            Map<String, Object> data = getFinancialData(reportType, startDate, endDate);
-            
-            // Contenu du rapport avec style professionnel
-            addFinancialContent(document, reportType, data, startDate, endDate);
-            
-            // Pied de page professionnel
-            PdfTemplateHelper.addProfessionalFooter(document);
-            
-        } catch (Exception e) {
-            throw new RuntimeException("Erreur lors de la génération du rapport financier", e);
-        }
-        
-        return baos.toByteArray();
+        return engine.html(BaitlyReportHtml.render(issuerName(), "Rapport Financier - " + getFinancialReportTitle(reportType),
+                startDate, endDate, getFinancialData(reportType, startDate, endDate)));
     }
     
     /**
      * Génère un rapport d'interventions
      */
     public byte[] generateInterventionReport(String reportType, LocalDate startDate, LocalDate endDate) {
-        ByteArrayOutputStream baos = new ByteArrayOutputStream();
-        
-        try (PdfWriter writer = new PdfWriter(baos);
-             PdfDocument pdf = new PdfDocument(writer);
-             Document document = new Document(pdf, PageSize.A4)) {
-            
-            // En-tête professionnel avec logo Clenzy
-            PdfTemplateHelper.addProfessionalHeader(
-                document, 
-                "Rapport d'Interventions - " + getInterventionReportTitle(reportType),
-                "Période: " + PdfTemplateHelper.formatDate(startDate) + " - " + PdfTemplateHelper.formatDate(endDate)
-            );
-            
-            // Données
-            Map<String, Object> data = getInterventionData(reportType, startDate, endDate);
-            
-            // Contenu avec style professionnel
-            addInterventionContent(document, reportType, data, startDate, endDate);
-            
-            // Pied de page professionnel
-            PdfTemplateHelper.addProfessionalFooter(document);
-            
-        } catch (Exception e) {
-            throw new RuntimeException("Erreur lors de la génération du rapport d'interventions", e);
-        }
-        
-        return baos.toByteArray();
+        return engine.html(BaitlyReportHtml.render(issuerName(), "Rapport d'Interventions - " + getInterventionReportTitle(reportType),
+                startDate, endDate, getInterventionData(reportType, startDate, endDate)));
     }
     
     /**
      * Génère un rapport d'équipes
      */
     public byte[] generateTeamReport(String reportType, LocalDate startDate, LocalDate endDate) {
-        ByteArrayOutputStream baos = new ByteArrayOutputStream();
-        
-        try (PdfWriter writer = new PdfWriter(baos);
-             PdfDocument pdf = new PdfDocument(writer);
-             Document document = new Document(pdf, PageSize.A4)) {
-            
-            // En-tête professionnel avec logo Clenzy
-            PdfTemplateHelper.addProfessionalHeader(
-                document, 
-                "Rapport d'Équipes - " + getTeamReportTitle(reportType),
-                "Période: " + PdfTemplateHelper.formatDate(startDate) + " - " + PdfTemplateHelper.formatDate(endDate)
-            );
-            
-            // Données
-            Map<String, Object> data = getTeamData(reportType, startDate, endDate);
-            
-            // Contenu avec style professionnel
-            addTeamContent(document, reportType, data, startDate, endDate);
-            
-            // Pied de page professionnel
-            PdfTemplateHelper.addProfessionalFooter(document);
-            
-        } catch (Exception e) {
-            throw new RuntimeException("Erreur lors de la génération du rapport d'équipes", e);
-        }
-        
-        return baos.toByteArray();
+        return engine.html(BaitlyReportHtml.render(issuerName(), "Rapport d'Équipes - " + getTeamReportTitle(reportType),
+                startDate, endDate, getTeamData(reportType, startDate, endDate)));
     }
     
     /**
      * Génère un rapport de propriétés
      */
     public byte[] generatePropertyReport(String reportType, LocalDate startDate, LocalDate endDate) {
-        ByteArrayOutputStream baos = new ByteArrayOutputStream();
-        
-        try (PdfWriter writer = new PdfWriter(baos);
-             PdfDocument pdf = new PdfDocument(writer);
-             Document document = new Document(pdf, PageSize.A4)) {
-            
-            // En-tête professionnel avec logo Clenzy
-            PdfTemplateHelper.addProfessionalHeader(
-                document, 
-                "Rapport de Propriétés - " + getPropertyReportTitle(reportType),
-                "Période: " + PdfTemplateHelper.formatDate(startDate) + " - " + PdfTemplateHelper.formatDate(endDate)
-            );
-            
-            // Données
-            Map<String, Object> data = getPropertyData(reportType, startDate, endDate);
-            
-            // Contenu avec style professionnel
-            addPropertyContent(document, reportType, data, startDate, endDate);
-            
-            // Pied de page professionnel
-            PdfTemplateHelper.addProfessionalFooter(document);
-            
-        } catch (Exception e) {
-            throw new RuntimeException("Erreur lors de la génération du rapport de propriétés", e);
-        }
-        
-        return baos.toByteArray();
+        return engine.html(BaitlyReportHtml.render(issuerName(), "Rapport de Propriétés - " + getPropertyReportTitle(reportType),
+                startDate, endDate, getPropertyData(reportType, startDate, endDate)));
     }
     
+    private String issuerName() {
+        return identity.name(tenantContext.getOrganizationId(), tenantContext.getCountryCode());
+    }
+
     // Méthodes pour récupérer les données.
     // Agrégats SQL bornés à la fenêtre [startDate, endDate] et org-scopés via le
     // TenantContext (orgId null = platform staff cross-org) — remplacent les

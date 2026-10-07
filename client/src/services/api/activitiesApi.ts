@@ -34,24 +34,38 @@ export interface Activity {
 
 /** Synthèse des commissions d'activités (part hôte / plateforme). */
 export interface ActivityCommissionSummary {
-  totalGross: number;
-  totalHostShare: number;
-  totalPlatformShare: number;
+  totalGross: number | null;
+  totalHostShare: number | null;
+  totalPlatformShare: number | null;
   count: number;
-  currency: string;
+  currency: string | null;
+  totalsByCurrency: Array<{currency: string; expectedGross: number; receivedGross: number; hostShare: number; platformShare: number; count: number}>;
 }
 
 /** Une commission d'affiliation enregistree par l'import. */
 export interface ImportedAffiliateEarning {
+  id: number;
   provider: string;
   externalBookingId: string | null;
   grossCommission: number;
   hostShare: number;
   platformShare: number;
   currency: string;
+  propertyId: number | null;
+  status: 'PENDING' | 'CONFIRMED' | 'RECEIVED' | 'PAID' | 'CANCELLED';
+  receiptReference: string | null;
+  receivedAt: string | null;
 }
 
+export interface AffiliateAdjustment { id: number; beforeGross: number; afterGross: number; currency: string; proof: string; reason: string; createdAt: string }
 export const activitiesApi = {
+  commissionAdjustments: (id: number) => apiClient.get<AffiliateAdjustment[]>(`/activities/commissions/${id}/adjustments`),
+  adjustCommission: (id: number, body: { requestId: string; expectedGross: number; gross: number; currency: string; proof: string; reason: string }) =>
+    apiClient.post<AffiliateAdjustment>(`/activities/commissions/${id}/adjustments`, body),
+  listCommissions: () => apiClient.get<ImportedAffiliateEarning[]>('/activities/commissions'),
+  receiveCommission: (id: number, data: {amount: number; currency: string; propertyId: number; reference: string; receivedAt: string}) =>
+    apiClient.post<ImportedAffiliateEarning>(`/activities/commissions/${id}/receipt`, data),
+  cancelCommission: (id: number) => apiClient.post<ImportedAffiliateEarning>(`/activities/commissions/${id}/cancel`),
   /**
    * Importe un export de conversions telecharge depuis le tableau de bord du
    * programme. Idempotent par reference : reimporter un fichier qui chevauche

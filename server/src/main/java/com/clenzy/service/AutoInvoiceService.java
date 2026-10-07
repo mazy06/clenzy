@@ -52,7 +52,8 @@ public class AutoInvoiceService {
         Long orgId = reservation.getOrganizationId();
 
         // Idempotent : skip si facture de séjour existe deja (la facture de commission est distincte)
-        if (invoiceRepository.findByReservationIdAndInvoiceType(reservation.getId(), InvoiceType.GUEST).isPresent()) {
+        var existing=invoiceGeneratorService.findActiveGuestInvoice(reservation.getId());
+        if (existing.isPresent() && existing.get().getStatus()!=InvoiceStatus.DRAFT) {
             log.debug("Facture de séjour deja existante pour reservation {}, skip", reservation.getId());
             return null;
         }
@@ -65,10 +66,18 @@ public class AutoInvoiceService {
         }
 
         // Generer DRAFT
-        Invoice invoice = invoiceGeneratorService.generateFromReservation(reservation, orgId);
+        Invoice invoice = existing.map(i->invoiceGeneratorService.lockForIssuance(i.getId()))
+            .orElseGet(()->invoiceGeneratorService.generateFromReservation(reservation, orgId));
+        if(!java.util.Objects.equals(orgId,invoice.getOrganizationId())) throw new IllegalArgumentException("Facture inaccessible");
+        if(invoice.getStatus()!=InvoiceStatus.DRAFT)return null; // Réévaluer après l'attente du verrou.
+        invoice.setInvoiceDate(java.time.LocalDate.now());
+
+        invoice.setPaidAt(LocalDateTime.now());
+        invoice.setPaymentMethod("STRIPE");
+        if(!numberingService.checkAndRecord(invoice,"PAYMENT_RESERVATION")) return invoiceRepository.save(invoice);
 
         // Emettre et marquer PAID directement (paiement Stripe deja recu)
-        String number = numberingService.generateNextNumber(orgId);
+        String number = numberingService.generateNextNumberFor(invoice);
         invoice.setInvoiceNumber(number);
         invoice.setInvoiceDate(java.time.LocalDate.now());
         invoice.setStatus(InvoiceStatus.PAID);
@@ -80,6 +89,7 @@ public class AutoInvoiceService {
         linkDocumentGeneration(invoice, ReferenceType.RESERVATION, reservation.getId());
 
         invoice = invoiceRepository.save(invoice);
+        numberingService.checkAndRecord(invoice,"PAYMENT_RESERVATION");
         log.info("Auto-facture {} generee et payee pour reservation {} (totalTTC={})",
             number, reservation.getId(), invoice.getTotalTtc());
 
@@ -95,7 +105,8 @@ public class AutoInvoiceService {
         Long orgId = intervention.getOrganizationId();
 
         // Idempotent : skip si facture existe deja
-        if (invoiceRepository.findByInterventionId(intervention.getId()).isPresent()) {
+        var existing=invoiceGeneratorService.findActiveInterventionInvoice(intervention.getId());
+        if (existing.isPresent() && existing.get().getStatus()!=InvoiceStatus.DRAFT) {
             log.debug("Facture deja existante pour intervention {}, skip", intervention.getId());
             return null;
         }
@@ -108,10 +119,18 @@ public class AutoInvoiceService {
         }
 
         // Generer DRAFT
-        Invoice invoice = invoiceGeneratorService.generateFromIntervention(intervention, orgId);
+        Invoice invoice = existing.map(i->invoiceGeneratorService.lockForIssuance(i.getId()))
+            .orElseGet(()->invoiceGeneratorService.generateFromIntervention(intervention, orgId));
+        if(!java.util.Objects.equals(orgId,invoice.getOrganizationId())) throw new IllegalArgumentException("Facture inaccessible");
+        if(invoice.getStatus()!=InvoiceStatus.DRAFT)return null;
+        invoice.setInvoiceDate(java.time.LocalDate.now());
+
+        invoice.setPaidAt(LocalDateTime.now());
+        invoice.setPaymentMethod("STRIPE");
+        if(!numberingService.checkAndRecord(invoice,"PAYMENT_INTERVENTION")) return invoiceRepository.save(invoice);
 
         // Emettre et marquer PAID directement (paiement Stripe deja recu)
-        String number = numberingService.generateNextNumber(orgId);
+        String number = numberingService.generateNextNumberFor(invoice);
         invoice.setInvoiceNumber(number);
         invoice.setInvoiceDate(java.time.LocalDate.now());
         invoice.setStatus(InvoiceStatus.PAID);
@@ -122,6 +141,7 @@ public class AutoInvoiceService {
         linkDocumentGeneration(invoice, ReferenceType.INTERVENTION, intervention.getId());
 
         invoice = invoiceRepository.save(invoice);
+        numberingService.checkAndRecord(invoice,"PAYMENT_INTERVENTION");
         log.info("Auto-facture {} generee et payee pour intervention {} (totalTTC={})",
             number, intervention.getId(), invoice.getTotalTtc());
 
@@ -137,6 +157,8 @@ public class AutoInvoiceService {
                 .findByReferenceTypeAndReferenceIdOrderByCreatedAtDesc(refType, refId)
                 .stream()
                 .filter(dg -> dg.getDocumentType() == DocumentType.FACTURE)
+                .filter(dg -> java.util.Objects.equals(dg.getOrganizationId(),invoice.getOrganizationId())
+                    && java.util.Objects.equals(dg.getLegalNumber(),invoice.getInvoiceNumber()))
                 .findFirst()
                 .ifPresent(dg -> invoice.setDocumentGenerationId(dg.getId()));
         } catch (Exception e) {

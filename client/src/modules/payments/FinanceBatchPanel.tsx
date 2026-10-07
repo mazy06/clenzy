@@ -15,6 +15,7 @@ export interface FinanceBatchItem {
   label: string;
   amount: number;
   currency: string;
+  individualCheckout?: boolean;
   identity?: FinanceIdentitySource;
 }
 export interface FinanceBatchResult {

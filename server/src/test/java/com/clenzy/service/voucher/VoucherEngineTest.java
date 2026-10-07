@@ -1,4 +1,5 @@
 package com.clenzy.service.voucher;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.clenzy.model.BookingVoucher;
 import com.clenzy.model.VoucherPropertyScope;
@@ -54,6 +55,7 @@ class VoucherEngineTest {
     @Mock private BookingVoucherRepository voucherRepo;
     @Mock private VoucherPropertyScopeRepository scopeRepo;
     @Mock private VoucherUsageRepository usageRepo;
+    @Mock private jakarta.persistence.EntityManager em;
 
     private VoucherEngine engine;
 
@@ -67,7 +69,7 @@ class VoucherEngineTest {
 
     @BeforeEach
     void setUp() {
-        engine = new VoucherEngine(voucherRepo, scopeRepo, usageRepo, fixedClock);
+        engine = new VoucherEngine(voucherRepo, scopeRepo, usageRepo, em, fixedClock);
     }
 
     private BookingVoucher activeVoucher(String code) {
@@ -83,6 +85,7 @@ class VoucherEngineTest {
         v.setUsageCount(0);
         v.setMaxUsesPerGuest(null);
         v.setName("Test voucher");
+        when(voucherRepo.lockForClaim(VOUCHER_ID, ORG_ID)).thenReturn(Optional.of(v));
         return v;
     }
 
@@ -321,14 +324,12 @@ class VoucherEngineTest {
         }
 
         @Test
-        @DisplayName("FREE_NIGHTS renvoie 0 en V1 (degradation gracieuse)")
+        @DisplayName("FREE_NIGHTS exige le devis détaillé, sans remplacement silencieux par le plein tarif")
         void freeNightsV1() {
             BookingVoucher v = activeVoucher("X");
             v.setDiscountType(VoucherDiscountType.FREE_NIGHTS);
             v.setDiscountValue(new BigDecimal("2"));
-            VoucherApplyResult r = engine.apply(v, new BigDecimal("300"), 5);
-            assertThat(r.discountApplied()).isEqualByComparingTo("0.00");
-            assertThat(r.finalTotal()).isEqualByComparingTo("300.00");
+            assertThatThrownBy(()->engine.apply(v,new BigDecimal("300"),5)).hasMessageContaining("détail tarifaire");
         }
     }
 
@@ -550,8 +551,8 @@ class VoucherEngineTest {
         }
 
         @Test
-        @DisplayName("Pas de guestEmail : skip le re-check (defensif)")
-        void skipsCheckWhenNoGuestEmail() {
+        @DisplayName("Un quota par voyageur exige une identité vérifiable")
+        void missingGuestEmailCannotBypassQuota() {
             BookingVoucher v = activeVoucher("WELCOME20");
             v.setMaxUsesPerGuest(1);
             VoucherApplyResult applied = new VoucherApplyResult(
@@ -561,12 +562,13 @@ class VoucherEngineTest {
             when(voucherRepo.tryIncrementUsage(VOUCHER_ID)).thenReturn(1);
             when(usageRepo.save(any(VoucherUsage.class))).thenAnswer(inv -> inv.getArgument(0));
 
-            // guestEmail null → on ne peut pas compter, skip
+            // Sans email, refuser au lieu de contourner le plafond par voyageur.
             Optional<VoucherUsage> result = engine.recordUsage(
                 v, 999L, ORG_ID, PROPERTY_ID, applied, null, "BOOKING_ENGINE");
 
-            assertThat(result).isPresent();
-            verify(usageRepo, never()).countByVoucherIdAndGuestEmail(anyLong(), anyString());
+            assertThat(result).isEmpty();
+            verify(voucherRepo, never()).tryIncrementUsage(anyLong());
+            verify(usageRepo, never()).save(any());
         }
     }
 

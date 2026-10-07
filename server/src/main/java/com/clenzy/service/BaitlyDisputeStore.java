@@ -15,7 +15,8 @@ import java.util.*;
 public class BaitlyDisputeStore {
     private final EntityManager em;
     private final TenantContext tenant;
-    public BaitlyDisputeStore(EntityManager em,TenantContext tenant) { this.em=em; this.tenant=tenant; }
+    private final com.clenzy.service.ai.BaitlyCreditFunding credits;
+    public BaitlyDisputeStore(EntityManager em,TenantContext tenant,com.clenzy.service.ai.BaitlyCreditFunding credits) { this.em=em; this.tenant=tenant; this.credits=credits; }
     @Transactional
     public PaymentDispute observe(BaitlyDisputeProof proof) {
         require(Objects.equals(tenant.getRequiredOrganizationId(),proof.org()),"Litige hors organisation");
@@ -96,6 +97,7 @@ public class BaitlyDisputeStore {
             if(blocked) held=held.add(dispute.getAmount());
         }
         payment.setDisputedAmount(held.min(payment.getAmount()));
+        credits.sync(payment);
         return row;
     }
     private static void require(boolean ok,String message) { if(!ok) throw new IllegalStateException(message); }

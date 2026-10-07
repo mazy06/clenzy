@@ -47,11 +47,12 @@ class BaitlyOwnerPayoutDocumentsTest {
             return new TaxResult(amount,vat,amount.add(vat),new BigDecimal("0.20"),"TVA test","STANDARD");
         });
         when(invoices.save(any())).thenAnswer(c->{commission=c.getArgument(0);commission.setId(30L);return commission;});
-        when(numbers.generateNextNumber(7L)).thenReturn("TEST-COMMISSION-30");
+        when(numbers.generateNextNumberFor(org.mockito.ArgumentMatchers.any(com.clenzy.model.Invoice.class))).thenReturn("TEST-COMMISSION-30");
     }
 
     @Test void refundIsDeductedBeforeCommissionAndInvoiceVatIsIncludedInRetention() {
-        var stay=partiallyRefundedStay(); var original=receipt(1,"100");original.setTransactionRef("TX-original");
+        var stay=partiallyRefundedStay(); stay.getProperty().setCountryCode("FR");
+        var original=receipt(1,"100");original.setTransactionRef("TX-original");
         var refund=confirmedRefund();
         var transactions=mock(PaymentTransactionRepository.class);
         when(transactions.findReservationFunding(eq(7L),anyList(),anySet())).thenReturn(List.of(original,refund));

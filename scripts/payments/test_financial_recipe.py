@@ -21,6 +21,13 @@ class FinancialRecipeTest(unittest.TestCase):
         self.assertEqual(recipe.required_backend(["*Test"], files), {"OneTest", "TwoTest"})
         with self.assertRaises(ValueError): recipe.required_backend(["AbsentTest"], files)
 
+    def test_every_selected_frontend_suite_is_typechecked(self):
+        required = ["src/payments.test.tsx", "src/shop.integration.test.tsx"]
+        recipe.validate_frontend_typecheck(required, {"include": required, "exclude": []})
+        for config in ({"include": required[:1], "exclude": []}, {"include": required},
+                       {"include": required, "exclude": ["**/*.test.tsx"]}):
+            with self.assertRaises(ValueError): recipe.validate_frontend_typecheck(required, config)
+
     def verify(self, xml, required=("OneTest",), frontend=False):
         with tempfile.TemporaryDirectory() as directory:
             path = Path(directory) / "report.xml"; path.write_text(xml)

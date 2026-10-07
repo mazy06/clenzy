@@ -33,7 +33,7 @@ class RefundCreditNotePersistenceTest {
         xml.append("</entity-mappings>");
         factory = new Configuration().addPackage("com.clenzy.model").addAnnotatedClass(PaymentTransaction.class)
             .addAnnotatedClass(InterventionPaymentAllocation.class)
-            .addAnnotatedClass(Invoice.class).addAnnotatedClass(InvoiceLine.class).addAnnotatedClass(InvoiceNumberSequence.class)
+            .addAnnotatedClass(Invoice.class).addAnnotatedClass(InvoiceLine.class).addAnnotatedClass(InvoiceNumberSequence.class).addAnnotatedClass(BaitlyInvoiceIssuerSequence.class)
             .addInputStream(new ByteArrayInputStream(xml.toString().getBytes(StandardCharsets.UTF_8)))
             .setProperty("hibernate.connection.url", "jdbc:h2:mem:refundnotes;MODE=PostgreSQL;LOCK_TIMEOUT=5000")
             .setProperty("hibernate.hbm2ddl.auto", "create-drop").setProperty("jakarta.persistence.validation.mode", "none")
@@ -57,7 +57,7 @@ class RefundCreditNotePersistenceTest {
         when(tenant.getRequiredOrganizationId()).thenReturn(7L);
         try (var em = factory.createEntityManager()) {
             em.getTransaction().begin();
-            for (var name : List.of("InvoiceLine", "Invoice", "InterventionPaymentAllocation", "PaymentTransaction", "Intervention", "Reservation", "InvoiceNumberSequence"))
+            for (var name : List.of("InvoiceLine", "Invoice", "InterventionPaymentAllocation", "PaymentTransaction", "Intervention", "Reservation", "InvoiceNumberSequence","BaitlyInvoiceIssuerSequence"))
                 em.createQuery("delete from " + name).executeUpdate();
             em.persist(new InvoiceNumberSequence(7L, "FA", LocalDate.now().getYear()));
             var payment = transaction("TX-original", TransactionType.CHECKOUT); payment.setProviderTxId("cs_original"); em.persist(payment);
@@ -65,7 +65,7 @@ class RefundCreditNotePersistenceTest {
             refund.setMetadata(Map.of("originalTransactionRef", "TX-original", "managedRefund", true)); em.persist(refund);
             var mission = new Intervention(); mission.setId(364L); mission.setOrganizationId(7L); mission.setPaymentStatus(PaymentStatus.REFUNDED);
             mission.setEstimatedCost(new BigDecimal("45")); mission.setCurrency("EUR"); mission.setStripeSessionId("cs_original"); em.persist(mission);
-            var invoice = new Invoice(); invoice.setOrganizationId(7L); invoice.setInvoiceNumber("FA-ORIGINAL"); invoice.setInvoiceDate(LocalDate.of(2026, 3, 1));
+            var invoice = new Invoice();invoice.setSellerName("Émetteur test");invoice.setSellerAddress("1 rue de la Simulation, Paris");invoice.setSellerTaxId("FR-TEST-ONLY"); invoice.setOrganizationId(7L); invoice.setInvoiceNumber("FA-ORIGINAL"); invoice.setInvoiceDate(LocalDate.of(2026, 3, 1));
             invoice.setStatus(InvoiceStatus.PAID); invoice.setInvoiceType(InvoiceType.GUEST); invoice.setInterventionId(364L);
             invoice.setTotalHt(new BigDecimal("38.64")); invoice.setTotalTax(new BigDecimal("6.36")); invoice.setTotalTtc(new BigDecimal("45"));
             invoice.setSellerName("Prestataire Baitly"); invoice.setBuyerName("Client test");
@@ -309,7 +309,7 @@ class RefundCreditNotePersistenceTest {
         }
     }
     Invoice copyInvoice() {
-        var i = new Invoice(); i.setOrganizationId(7L); i.setInvoiceNumber("OTHER"); i.setInvoiceDate(LocalDate.now());
+        var i = new Invoice();i.setSellerName("Émetteur test");i.setSellerAddress("1 rue de la Simulation, Paris");i.setSellerTaxId("FR-TEST-ONLY"); i.setOrganizationId(7L); i.setInvoiceNumber("OTHER"); i.setInvoiceDate(LocalDate.now());
         i.setStatus(InvoiceStatus.PAID); i.setInvoiceType(InvoiceType.GUEST); i.setInterventionId(364L);
         i.setTotalHt(new BigDecimal("45")); i.setTotalTax(BigDecimal.ZERO); i.setTotalTtc(new BigDecimal("45")); return i;
     }

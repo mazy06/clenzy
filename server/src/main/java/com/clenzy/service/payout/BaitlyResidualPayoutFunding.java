@@ -36,16 +36,25 @@ public class BaitlyResidualPayoutFunding {
                 .filter(p -> !BaitlyExternalRefundStore.rejectedBeforeAccounting(p)).toList();
         var receipts = active.stream().filter(p -> p.getPaymentType() == TransactionType.CHECKOUT).toList();
         var refunds = active.stream().filter(p -> p.getPaymentType() == TransactionType.REFUND).toList();
+        com.clenzy.service.BaitlyMaintenanceReceipts maintenance=null;
+        if(receipts.size()==2) {
+            try {
+                var quotes=em.createQuery("from ServiceQuote where organizationId=:org and interventionId=:mission",ServiceQuote.class)
+                        .setParameter("org",mission.getOrganizationId()).setParameter("mission",mission.getId()).getResultList();
+                maintenance=com.clenzy.service.BaitlyMaintenanceReceipts.verify(mission,active,quotes);
+                maintenance.history(active);
+            } catch(RuntimeException inconsistent) { return Optional.empty(); }
+        }
         var allocations = em.createQuery("select a from InterventionPaymentAllocation a join fetch a.transaction p "
                 + "where a.organizationId=:org and a.interventionId=:mission and p.status<>com.clenzy.model.TransactionStatus.CANCELLED",
                 InterventionPaymentAllocation.class).setParameter("org",mission.getOrganizationId())
                 .setParameter("mission",mission.getId()).getResultList();
         boolean allocated = receipts.isEmpty() && allocations.size()==1;
-        if ((!allocated && (receipts.size()!=1 || !allocations.isEmpty())) || refunds.isEmpty()
-                || active.size()!=(allocated?0:1)+refunds.size()) return Optional.empty();
-        var receipt = allocated ? allocations.getFirst().getTransaction() : receipts.getFirst();
+        if ((!allocated && (receipts.size()!=(maintenance==null?1:2) || !allocations.isEmpty())) || refunds.isEmpty()
+                || active.size()!=(allocated?0:receipts.size())+refunds.size()) return Optional.empty();
+        var receipt = allocated ? allocations.getFirst().getTransaction() : maintenance==null?receipts.getFirst():maintenance.receipts().getFirst();
         em.refresh(receipt);
-        var paidBasis = allocated ? allocations.getFirst().getAmount() : receipt.getAmount();
+        var paidBasis = allocated ? allocations.getFirst().getAmount() : maintenance==null?receipt.getAmount():maintenance.gross();
         if (receipt.hasDisputeRisk() || !Objects.equals(receipt.getOrganizationId(),mission.getOrganizationId())
                 || receipt.getStatus()!=TransactionStatus.COMPLETED || receipt.getPaymentType()!=TransactionType.CHECKOUT
                 || receipt.getProviderType()!=PaymentProviderType.STRIPE || !"EUR".equals(receipt.getCurrency())
@@ -80,8 +89,9 @@ public class BaitlyResidualPayoutFunding {
                     || (BaitlyExternalRefundStore.external(refund) && (!BaitlyExternalRefundStore.confirmed(refund)
                         || !Boolean.FALSE.equals(refund.getMetadata().get("reviewRequired"))
                         || !"succeeded".equals(refund.getMetadata().get("stripeStatus"))))
-                    || !receipt.getTransactionRef().equals(refund.getMetadata().get("originalTransactionRef"))
-                    || (series ? com.clenzy.service.BaitlyRefundSeries.before(refund).compareTo(before)!=0
+                    || (maintenance==null && !receipt.getTransactionRef().equals(refund.getMetadata().get("originalTransactionRef")))
+                    || (maintenance!=null && !com.clenzy.service.BaitlyMaintenanceReceipts.aggregated(refund))
+                    || (series ? com.clenzy.service.BaitlyMaintenanceReceipts.before(refund).compareTo(before)!=0
                         : !BaitlyExternalRefundStore.confirmed(refund) || before.signum()!=0
                             || !Boolean.FALSE.equals(refund.getMetadata().get("reviewRequired"))
                             || !"succeeded".equals(refund.getMetadata().get("stripeStatus")))) return Optional.empty();

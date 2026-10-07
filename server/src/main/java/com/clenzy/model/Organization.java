@@ -37,6 +37,10 @@ public class Organization {
 
     // --- Champs billing (migres depuis User) ---
 
+    /** Pays du client de l'abonnement SaaS ; les biens conservent leurs propres pays fiscaux. */
+    @Column(name = "billing_country", length = 2)
+    private String billingCountry;
+
     @Column(name = "stripe_customer_id", unique = true)
     private String stripeCustomerId;
 
@@ -141,6 +145,9 @@ public class Organization {
 
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
+
+    public String getBillingCountry() { return billingCountry; }
+    public void setBillingCountry(String value) { billingCountry = value; }
 
     public String getName() { return name; }
     public void setName(String name) { this.name = name; }

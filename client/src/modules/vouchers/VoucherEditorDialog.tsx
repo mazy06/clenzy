@@ -34,6 +34,7 @@ interface FormState {
   type: VoucherType;
   discountType: VoucherDiscountType;
   discountValue: string;
+  currency: string;
   validFrom: string;
   validUntil: string;
   minStayNights: string;
@@ -58,6 +59,7 @@ function initFromVoucher(v: BookingVoucher | null): FormState {
     type: v?.type ?? 'MANUAL_CODE',
     discountType: v?.discountType ?? 'PERCENTAGE',
     discountValue: v?.discountValue ?? '10',
+    currency: v?.currency ?? '',
     validFrom: v?.validFrom ? v.validFrom.slice(0, 16) : '',
     validUntil: v?.validUntil ? v.validUntil.slice(0, 16) : '',
     minStayNights: v?.minStayNights?.toString() ?? '',
@@ -114,9 +116,9 @@ export default function VoucherEditorDialog({ voucher, open, onClose, onSaved }:
   const isAuto = form.type === 'AUTO_CAMPAIGN';
   const discountUnit = useMemo(() => {
     if (form.discountType === 'PERCENTAGE') return '%';
-    if (form.discountType === 'FIXED_AMOUNT') return '€';
+    if (form.discountType === 'FIXED_AMOUNT') return form.currency;
     return t('vouchers.editor.nights');
-  }, [form.discountType, t]);
+  }, [form.discountType, form.currency, t]);
 
   const update = <K extends keyof FormState>(key: K, value: FormState[K]) =>
     setForm((prev) => ({ ...prev, [key]: value }));
@@ -143,6 +145,12 @@ export default function VoucherEditorDialog({ voucher, open, onClose, onSaved }:
       setErrorMsg(t('vouchers.editor.errors.percentTooBig'));
       return;
     }
+    if ((form.discountType === 'FIXED_AMOUNT' || Number(form.minTotalAmount) > 0) && !form.currency) {
+      setErrorMsg(t('vouchers.editor.currencyRequired')); return;
+    }
+    if (form.discountType === 'FREE_NIGHTS' && !Number.isInteger(discountNumber)) {
+      setErrorMsg(t('vouchers.editor.errors.discountValueInvalid')); return;
+    }
     submittingRef.current = true;
 
     const payload: BookingVoucherCreateRequest = {
@@ -152,6 +160,7 @@ export default function VoucherEditorDialog({ voucher, open, onClose, onSaved }:
       type: form.type,
       discountType: form.discountType,
       discountValue: discountNumber,
+      currency: form.currency || null,
       validFrom: form.validFrom ? new Date(form.validFrom).toISOString() : null,
       validUntil: form.validUntil ? new Date(form.validUntil).toISOString() : null,
       minStayNights: form.minStayNights ? Number(form.minStayNights) : null,
@@ -291,8 +300,8 @@ export default function VoucherEditorDialog({ voucher, open, onClose, onSaved }:
               >
                 <NativeSelectOption value="PERCENTAGE">{t('vouchers.editor.discountPercentage')}</NativeSelectOption>
                 <NativeSelectOption value="FIXED_AMOUNT">{t('vouchers.editor.discountFixed')}</NativeSelectOption>
-                <NativeSelectOption value="FREE_NIGHTS" disabled>
-                  {t('vouchers.editor.discountFreeNights')} ({t('vouchers.editor.comingSoon')})
+                <NativeSelectOption value="FREE_NIGHTS">
+                  {t('vouchers.editor.discountFreeNights')}
                 </NativeSelectOption>
               </NativeSelect>
             </Field>
@@ -310,6 +319,16 @@ export default function VoucherEditorDialog({ voucher, open, onClose, onSaved }:
                 />
                 <InputGroupAddon align="inline-end">{discountUnit}</InputGroupAddon>
               </InputGroup>
+            </Field>
+          </div>
+          <div className="col-span-12 min-[900px]:col-span-4">
+            <Field>
+              <FieldLabel htmlFor="voucher-currency">{t('vouchers.editor.currency')}</FieldLabel>
+              <NativeSelect id="voucher-currency" value={form.currency} onChange={(event) => update('currency', event.target.value)}>
+                <NativeSelectOption value="">{t('vouchers.editor.currencyChoose')}</NativeSelectOption>
+                {['EUR', 'MAD', 'SAR', 'GBP', 'USD'].map((code) => <NativeSelectOption key={code} value={code}>{code}</NativeSelectOption>)}
+              </NativeSelect>
+              <FieldDescription>{t('vouchers.editor.lodgingOnly')}</FieldDescription>
             </Field>
           </div>
           <div className="col-span-12 min-[900px]:col-span-4">
@@ -421,7 +440,7 @@ export default function VoucherEditorDialog({ voucher, open, onClose, onSaved }:
                   value={form.minTotalAmount}
                   onChange={(e) => update('minTotalAmount', e.target.value)}
                 />
-                <InputGroupAddon align="inline-end">€</InputGroupAddon>
+                <InputGroupAddon align="inline-end">{form.currency}</InputGroupAddon>
               </InputGroup>
             </Field>
           </div>

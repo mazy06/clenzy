@@ -140,7 +140,7 @@ public class ReceivedFormTagResolver implements ReferenceTagResolver {
             String priorite;
             if ("DEVIS".equalsIgnoreCase(form.getFormType())) {
                 String forfaitLabel = quote != null ? quote.forfaitLabel() : "Essentiel";
-                typeService = "Forfait " + forfaitLabel + " — Gestion locative Clenzy";
+                typeService = "Forfait " + forfaitLabel + " · Gestion locative Baitly";
                 titre = safeStr(form.getSubject() != null ? form.getSubject() :
                         "Devis " + propertyType + " — " + safeStr(form.getCity()));
                 description = buildDevisDescription(payload);

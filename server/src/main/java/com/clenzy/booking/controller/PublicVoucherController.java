@@ -50,13 +50,16 @@ public class PublicVoucherController {
 
     private final VoucherEngine voucherEngine;
     private final BookingVoucherService voucherService;
+    private final com.clenzy.booking.service.PublicBookingService booking;
 
     public PublicVoucherController(
         VoucherEngine voucherEngine,
-        BookingVoucherService voucherService
+        BookingVoucherService voucherService,
+        com.clenzy.booking.service.PublicBookingService booking
     ) {
         this.voucherEngine = voucherEngine;
         this.voucherService = voucherService;
+        this.booking=booking;
     }
 
     @PostMapping("/validate")
@@ -77,12 +80,22 @@ public class PublicVoucherController {
                 VoucherValidationError.NOT_FOUND, "Code voucher inconnu pour cette org");
         }
 
+        if(request.checkIn()==null || request.checkOut()==null || request.guests()==null)
+            return VoucherValidationResponseDto.invalid(VoucherValidationError.INVALID_INPUT,"Renseignez les dates et les voyageurs pour calculer la promotion");
+        final com.clenzy.booking.dto.AvailabilityResponseDto quote;
+        try {
+            quote=booking.checkAvailability(booking.resolveOrgById(request.organizationId()),
+                    new com.clenzy.booking.dto.AvailabilityRequestDto(request.propertyId(),request.checkIn(),request.checkOut(),request.guests(),request.children()));
+        } catch(IllegalArgumentException | IllegalStateException error) {
+            return VoucherValidationResponseDto.invalid(VoucherValidationError.INVALID_INPUT,error.getMessage());
+        }
+        if(!quote.available())return VoucherValidationResponseDto.invalid(VoucherValidationError.INVALID_INPUT,"Ce séjour n'est pas disponible");
         VoucherValidationResult result = voucherEngine.validate(
             request.organizationId(),
             request.code(),
             request.propertyId(),
-            request.stayNights(),
-            request.subtotal(),
+            quote.nights(),
+            quote.subtotal(),
             request.guestEmail(),
             request.channel()
         );
@@ -94,7 +107,9 @@ public class PublicVoucherController {
         }
 
         VoucherValidationResult.Valid valid = (VoucherValidationResult.Valid) result;
-        VoucherApplyResult applied = voucherEngine.apply(valid.voucher(), request.subtotal(), request.stayNights());
+        final VoucherApplyResult applied;
+        try{applied=voucherEngine.apply(valid.voucher(),quote);}
+        catch(IllegalArgumentException error){return VoucherValidationResponseDto.invalid(VoucherValidationError.INVALID_INPUT,error.getMessage());}
 
         log.info("Voucher validated : orgId={}, code={}, discount={}",
             request.organizationId(), valid.voucher().getCode(), applied.discountApplied());

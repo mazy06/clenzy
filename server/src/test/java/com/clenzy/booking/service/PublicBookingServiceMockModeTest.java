@@ -95,7 +95,8 @@ class PublicBookingServiceMockModeTest {
                 org.mockito.Mockito.mock(com.clenzy.service.PaymentOrchestrationService.class),
                 org.mockito.Mockito.mock(org.springframework.transaction.PlatformTransactionManager.class),
                 org.mockito.Mockito.mock(com.clenzy.repository.PropertyLicenseRepository.class),
-                org.mockito.Mockito.mock(com.clenzy.service.regulatory.NightsCapService.class));
+                org.mockito.Mockito.mock(com.clenzy.service.regulatory.NightsCapService.class),
+                org.mockito.Mockito.mock(BaitlyBookingHoldLifecycle.class),org.mockito.Mockito.mock(com.clenzy.service.voucher.BaitlyVoucherClaims.class));
     }
 
     // ───────────────────── helpers ──────────────────────────────────────────────

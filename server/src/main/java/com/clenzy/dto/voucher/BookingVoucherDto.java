@@ -40,8 +40,11 @@ public record BookingVoucherDto(
     Long createdByUserId,
     Set<Long> propertyIds,
     Instant createdAt,
-    Instant updatedAt
+    Instant updatedAt,
+    String currency
 ) {
+    public BookingVoucherDto(Long id, Long organizationId, String name, String description, String code, VoucherType type, VoucherDiscountType discountType, BigDecimal discountValue, Instant validFrom, Instant validUntil, Integer minStayNights, BigDecimal minTotalAmount, Integer maxStayNights, Integer maxUsesTotal, Integer maxUsesPerGuest, Integer usageCount, VoucherChannelScope channelScope, VoucherStatus status, VoucherCreatorOrgType createdByOrgType, Long createdByUserId, Set<Long> propertyIds, Instant createdAt, Instant updatedAt) { this(id, organizationId, name, description, code, type, discountType, discountValue, validFrom, validUntil, minStayNights, minTotalAmount, maxStayNights, maxUsesTotal, maxUsesPerGuest, usageCount, channelScope, status, createdByOrgType, createdByUserId, propertyIds, createdAt, updatedAt, null); }
+
 
     /** Mapper depuis l'entite, avec injection separee des propertyIds (calcules par le service). */
     public static BookingVoucherDto from(BookingVoucher v, Set<Long> propertyIds) {
@@ -68,7 +71,7 @@ public record BookingVoucherDto(
             v.getCreatedByUserId(),
             propertyIds,
             v.getCreatedAt(),
-            v.getUpdatedAt()
+            v.getUpdatedAt(), v.getCurrency()
         );
     }
 }

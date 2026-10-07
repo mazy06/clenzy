@@ -20,6 +20,9 @@ export interface GrantInitialResult {
 
 export interface CreditBalance {
   totalMillicredits: number;
+  reservedMillicredits?: number;
+  pendingReconciliationMillicredits?: number;
+  debtMillicredits?: number;
   pockets: CreditPocket[];
 }
 
@@ -51,8 +54,8 @@ export const aiCreditsApi = {
     apiClient.get<CreditLedgerLine[]>('/ai/credits/ledger'),
 
   /** Crée la session Stripe Checkout d'un pack — rediriger vers checkoutUrl. */
-  createTopUp: (pack: string): Promise<{ checkoutUrl: string }> =>
-    apiClient.post<{ checkoutUrl: string }>('/ai/credits/topup', { pack }),
+  createTopUp: (pack: string, requestId: string): Promise<{ checkoutUrl: string }> =>
+    apiClient.post<{ checkoutUrl: string }>('/ai/credits/topup', { pack, requestId }),
 
   /**
    * [SUPER_ADMIN] Amorçage : dote toutes les orgs existantes de leur poche

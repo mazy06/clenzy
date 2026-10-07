@@ -42,11 +42,15 @@ public class InvoiceController {
     private final InvoicePaymentLinkService invoicePaymentLinkService;
     private final InvoiceQueryService invoiceQueryService;
     private final com.clenzy.service.PaymentAccessService paymentAccess;
+    private final com.clenzy.service.OrganizationService organizationAccess;
+    private final com.clenzy.tenant.TenantContext tenant;
 
     public InvoiceController(InvoiceGeneratorService invoiceGeneratorService,
                               InvoicePaymentService invoicePaymentService,
                               InvoicePaymentLinkService invoicePaymentLinkService,
-                              InvoiceQueryService invoiceQueryService, com.clenzy.service.PaymentAccessService paymentAccess) {
+                              InvoiceQueryService invoiceQueryService, com.clenzy.service.PaymentAccessService paymentAccess,
+                              com.clenzy.service.OrganizationService organizationAccess, com.clenzy.tenant.TenantContext tenant) {
+        this.organizationAccess=organizationAccess;this.tenant=tenant;
         this.paymentAccess = paymentAccess;
         this.invoiceGeneratorService = invoiceGeneratorService;
         this.invoicePaymentService = invoicePaymentService;
@@ -74,7 +78,8 @@ public class InvoiceController {
      * Genere une facture DRAFT a partir d'une reservation.
      */
     @PostMapping("/generate")
-    public ResponseEntity<InvoiceDto> generate(@RequestBody GenerateInvoiceRequest request) {
+    public ResponseEntity<InvoiceDto> generate(@RequestBody GenerateInvoiceRequest request, @AuthenticationPrincipal Jwt jwt) {
+        requireManager(jwt);
         InvoiceDto invoice = invoiceGeneratorService.generateFromReservation(request);
         return ResponseEntity.status(HttpStatus.CREATED).body(invoice);
     }
@@ -83,7 +88,8 @@ public class InvoiceController {
      * Emet une facture : attribue un numero sequentiel et passe en ISSUED.
      */
     @PostMapping("/{id}/issue")
-    public ResponseEntity<InvoiceDto> issue(@PathVariable Long id) {
+    public ResponseEntity<InvoiceDto> issue(@PathVariable Long id, @AuthenticationPrincipal Jwt jwt) {
+        requireManager(jwt);
         return ResponseEntity.ok(invoiceGeneratorService.issueInvoice(id));
     }
 
@@ -92,7 +98,8 @@ public class InvoiceController {
      */
     @PostMapping("/{id}/cancel")
     public ResponseEntity<InvoiceDto> cancel(@PathVariable Long id,
-                                              @RequestParam(required = false) String reason) {
+                                              @RequestParam(required = false) String reason, @AuthenticationPrincipal Jwt jwt) {
+        requireManager(jwt);
         return ResponseEntity.ok(invoiceGeneratorService.cancelInvoice(id, reason));
     }
 
@@ -117,7 +124,8 @@ public class InvoiceController {
      * Envoie une facture au client (DRAFT → SENT).
      */
     @PostMapping("/{id}/send")
-    public ResponseEntity<InvoiceDto> send(@PathVariable Long id) {
+    public ResponseEntity<InvoiceDto> send(@PathVariable Long id, @AuthenticationPrincipal Jwt jwt) {
+        requireManager(jwt);
         invoicePaymentService.sendInvoice(id);
         return ResponseEntity.ok(invoiceGeneratorService.getInvoice(id));
     }
@@ -168,8 +176,10 @@ public class InvoiceController {
      * Genere un duplicata d'une facture existante.
      */
     @PostMapping("/{id}/duplicate")
-    public ResponseEntity<InvoiceDto> duplicate(@PathVariable Long id) {
+    public ResponseEntity<InvoiceDto> duplicate(@PathVariable Long id, @AuthenticationPrincipal Jwt jwt) {
+        requireManager(jwt);
         InvoiceDto duplicate = invoiceGeneratorService.generateDuplicate(id);
         return ResponseEntity.status(HttpStatus.CREATED).body(duplicate);
     }
+    private void requireManager(Jwt jwt) { organizationAccess.validateOrgManagement(jwt.getSubject(),tenant.getRequiredOrganizationId()); }
 }

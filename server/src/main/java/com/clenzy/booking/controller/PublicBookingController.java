@@ -408,7 +408,7 @@ public class PublicBookingController {
             @Valid @RequestBody com.clenzy.booking.dto.BookingUpsellCheckoutRequest request,
             HttpServletRequest httpRequest) {
         OrgContext ctx = resolveContext(slug, httpRequest);
-        return ResponseEntity.ok(bookingService.createUpsellCheckout(ctx, request.reservationCode(), offerId, request.returnUrl()));
+        return ResponseEntity.ok(bookingService.createUpsellCheckout(ctx, request.reservationCode(), offerId, request.returnUrl(),request.requestId()));
     }
 
     /**

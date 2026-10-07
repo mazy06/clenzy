@@ -10,7 +10,7 @@ import java.time.Instant;
 @Table(name = "payout_transfers")
 @Filter(name = "organizationFilter", condition = "organization_id = :orgId")
 public class PayoutTransfer {
-    public enum Source { OWNER_PAYOUT, INTERVENTION, PROVIDER_EXPENSE }
+    public enum Source { OWNER_PAYOUT, INTERVENTION, PROVIDER_EXPENSE, COMMERCE }
     public enum State { SUBMITTING, TRANSFERRED, RECONCILIATION_REQUIRED }
 
     @Id @GeneratedValue(strategy = GenerationType.IDENTITY) private Long id;

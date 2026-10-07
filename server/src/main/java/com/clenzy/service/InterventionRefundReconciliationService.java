@@ -55,6 +55,9 @@ public class InterventionRefundReconciliationService {
                 && refund.getProviderType() == original.getProviderType(), "Remboursement et encaissement incohérents");
 
         if(series) {
+            if(BaitlyMaintenanceReceipts.aggregated(refund)) {
+                reconcileMaintenance(original,refund,orgId);return;
+            }
             var part=allocated ? batchRefunds.validate(refund,original) : null;
             var budget=allocated ? part.getAmount() : original.getAmount();
             var mission=allocated ? batchRefunds.lockMission(orgId,refund.getSourceId()) : coordination.lockMission(orgId,refund.getSourceId());
@@ -121,6 +124,27 @@ public class InterventionRefundReconciliationService {
         if (mission.getServiceRequest() != null) {
             require(Objects.equals(orgId, mission.getServiceRequest().getOrganizationId()), "Demande de service hors organisation");
             mission.getServiceRequest().setPaymentStatus(PaymentStatus.REFUNDED);
+        }
+    }
+
+    private void reconcileMaintenance(PaymentTransaction original,PaymentTransaction refund,Long org) {
+        var mission=coordination.lockMission(org,refund.getSourceId());
+        var rows=payments.findByOrganizationIdAndSourceTypeAndSourceId(org,"INTERVENTION",mission.getId());
+        var funding=coordination.maintenanceReceipts(mission,rows);
+        require(mission.getPaymentStatus()==PaymentStatus.PAID || mission.getPaymentStatus()==PaymentStatus.PARTIALLY_REFUNDED
+                || mission.getPaymentStatus()==PaymentStatus.REFUNDED,"État de paiement de maintenance incohérent");
+        var previous=funding.history(rows).stream().filter(p -> BaitlyRefundEvidence.order(p)<BaitlyRefundEvidence.order(refund)).toList();
+        var before=previous.stream().map(PaymentTransaction::getAmount).reduce(java.math.BigDecimal.ZERO,java.math.BigDecimal::add);
+        require(previous.stream().allMatch(p -> p.getStatus()==TransactionStatus.COMPLETED)
+                && before.compareTo(BaitlyMaintenanceReceipts.before(refund))==0
+                && before.add(refund.getAmount()).compareTo(funding.gross())<=0,"Cumul des restitutions de maintenance incohérent");
+        ledger.reverseMaintenanceEntries(original,refund,mission.getId(),funding.gross(),previous.stream().map(PaymentTransaction::getTransactionRef).toList());
+        var status=before.add(refund.getAmount()).compareTo(funding.gross())==0
+                || mission.getPaymentStatus()==PaymentStatus.REFUNDED?PaymentStatus.REFUNDED:PaymentStatus.PARTIALLY_REFUNDED;
+        mission.setPaymentStatus(status);
+        if(mission.getServiceRequest()!=null) {
+            require(Objects.equals(org,mission.getServiceRequest().getOrganizationId()),"Demande hors organisation");
+            mission.getServiceRequest().setPaymentStatus(status);
         }
     }
 

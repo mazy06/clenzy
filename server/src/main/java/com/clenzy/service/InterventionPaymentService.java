@@ -106,7 +106,7 @@ public class InterventionPaymentService {
      * Reste a payer : le cout de l'intervention, moins l'acompte encaisse.
      *
      * <p>L'acompte n'est deduit que s'il est REELLEMENT regle
-     * ({@code deposit_paid_at}) — un acompte exige mais impaye ne reduit rien.
+     * (date et référence d'encaissement vérifiée) ; un acompte exigé mais impayé ne réduit rien.
      * Un solde nul ou negatif signifie que tout est deja verse ; l'appelant le
      * traite comme un montant indisponible, et refuse le paiement.</p>
      */
@@ -136,6 +136,7 @@ public class InterventionPaymentService {
         if (serverAmount == null || serverAmount.compareTo(BigDecimal.ZERO) <= 0) {
             throw new PaymentValidationException(isDeposit
                     ? "Aucun acompte exigible sur cette intervention"
+                    : serverAmount == null ? "Le montant ou la preuve d'acompte doit être rapproché avant paiement"
                     : intervention.getEstimatedCost() != null
                         ? "Cette intervention est deja soldee par l'acompte"
                         : "Montant de l'intervention indisponible — paiement impossible");

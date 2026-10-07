@@ -53,6 +53,28 @@ public interface PaymentConnectionRepository extends JpaRepository<PaymentConnec
             @org.springframework.data.repository.query.Param("orgId") Long orgId,
             @org.springframework.data.repository.query.Param("beneficiaryOrgId") Long beneficiaryOrgId);
 
+    /** Projection limitée au bénéficiaire figé d'une vente ou commission réellement reçue. */
+    @org.springframework.data.jpa.repository.Query(value="""
+        SELECT c.provider_account_id AS "accountId",
+          (c.provider='STRIPE' AND c.country='FR' AND c.authorized AND c.details_submitted
+           AND c.payouts_enabled AND c.transfers_enabled) AS ready
+        FROM payment_connections c JOIN users u ON u.id=c.user_id
+        WHERE u.id=:userId AND c.beneficiary_key=concat('user:',u.id)
+          AND (c.organization_id=u.organization_id OR c.organization_id=:orgId)
+          AND ((:source='UPSELL' AND EXISTS(SELECT 1 FROM upsell_orders o
+                WHERE o.id=:sourceId AND o.organization_id=:orgId AND o.beneficiary_owner_id=u.id
+                  AND o.status IN ('PAID','REFUNDED')))
+            OR (:source='AFFILIATE' AND EXISTS(SELECT 1 FROM activity_commissions a
+                WHERE a.id=:sourceId AND a.organization_id=:orgId AND a.beneficiary_owner_id=u.id
+                  AND a.received_at IS NOT NULL)))
+        ORDER BY CASE WHEN c.organization_id=u.organization_id THEN 0 ELSE 1 END LIMIT 1
+        """,nativeQuery=true)
+    Optional<ProviderAccount> findCommerceOwnerAccount(
+        @org.springframework.data.repository.query.Param("orgId") Long orgId,
+        @org.springframework.data.repository.query.Param("source") String source,
+        @org.springframework.data.repository.query.Param("sourceId") Long sourceId,
+        @org.springframework.data.repository.query.Param("userId") Long userId);
+
     Optional<PaymentConnection> findByOrganizationIdAndBeneficiaryKey(Long orgId, String beneficiaryKey);
 
     /** Compte personnel du créancier nommé sur la dépense ; aucune résolution par le compte de l'opérateur. */

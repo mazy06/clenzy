@@ -77,7 +77,7 @@ class BaitlyCommissionInvoicePostgresTest {
             invoice.setTotalHt(new BigDecimal("200")); invoice.setTotalTax(new BigDecimal("40")); invoice.setTotalTtc(new BigDecimal("240"));
             em.persist(invoice); return invoice;
         });
-        var numbering = mock(InvoiceNumberingService.class); when(numbering.generateNextNumber(7L)).thenReturn("FA-test-1");
+        var numbering = mock(InvoiceNumberingService.class); when(numbering.generateNextNumberFor(org.mockito.ArgumentMatchers.any(com.clenzy.model.Invoice.class))).thenReturn("FA-test-1");
         var fiscal = mock(FiscalProfileRepository.class); when(fiscal.findByOrganizationId(7L)).thenReturn(Optional.of(new FiscalProfile()));
         var contract = new ManagementContract(); contract.setPaymentModel(model); contract.setCommissionRate(new BigDecimal("0.20"));
         var contracts = mock(ManagementContractService.class); when(contracts.getActiveContract(70L, 7L)).thenReturn(Optional.of(contract));

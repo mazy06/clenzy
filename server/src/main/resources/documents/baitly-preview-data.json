@@ -1,0 +1,73 @@
+{
+  "client": {
+    "nom_complet": "Camille Exemple", "nom": "Exemple", "prenom": "Camille",
+    "societe": "Les Jardins Démonstration", "email": "camille@example.invalid",
+    "telephone": "+33 0 00 00 00 00", "adresse": "12 allée des Nuages (adresse fictive)",
+    "ville": "Ville Exemple", "code_postal": "00000"
+  },
+  "entreprise": {
+    "nom": "Conciergerie Horizon (exemple)", "adresse": "8 avenue des Horizons, 00000 Ville Exemple",
+    "siret": "DÉMO · NON ATTRIBUÉ", "email": "contact@example.invalid", "telephone": "+33 0 00 00 00 00"
+  },
+  "property": {
+    "nom": "Appartement Les Étoiles (exemple)", "adresse": "12 allée des Nuages, bâtiment A, 2e étage",
+    "code_postal": "00000", "ville": "Ville Exemple", "pays": "France (exemple)", "type": "Appartement",
+    "surface": "78 m²", "chambres": "2", "salles_bain": "2", "capacite": "4 voyageurs",
+    "prix_nuit": "125,00 €", "check_in": "16:00", "check_out": "11:00",
+    "instructions_acces": "Accès fictif par le hall principal. Remise des clés par la conciergerie."
+  },
+  "intervention": {
+    "id": "EXEMPLE-001", "titre": "Préparation du logement et petites réparations",
+    "description": "Nettoyage complet du séjour, des deux chambres et des sanitaires. Remplacement des consommables, contrôle de la robinetterie et vérification des équipements avant l’arrivée des voyageurs.",
+    "type": "Entretien du logement", "statut": "Terminée (exemple)", "priorite": "Normale",
+    "date_planifiee": "15/06/2026", "date_debut": "15/06/2026 à 09:00", "date_fin": "15/06/2026 à 12:00",
+    "date_completion": "15/06/2026 à 12:00", "duree_estimee": "3 heures", "duree_reelle": "180 minutes",
+    "cout_estime": "180,00 €", "cout_reel": "180,00 €", "progression": "100 %",
+    "instructions": "Préparer quatre couchages, vérifier les détecteurs et remettre un jeu de serviettes par voyageur.",
+    "notes": "Séjour et cuisine nettoyés, linge remplacé, salle de bain contrôlée. Inventaire vérifié avant fermeture du logement.",
+    "notes_technicien": "Aucune anomalie constatée dans cet exemple. Consommables réapprovisionnés et contrôle final effectué.",
+    "lignes": [
+      {"description": "Nettoyage et préparation du logement", "quantite": "3", "prix_unitaire": "35,00 €", "total": "105,00 €"},
+      {"description": "Préparation des lits et du linge", "quantite": "2", "prix_unitaire": "15,00 €", "total": "30,00 €"},
+      {"description": "Réassort des produits d’accueil", "quantite": "1", "prix_unitaire": "15,00 €", "total": "15,00 €"}
+    ]
+  },
+  "technicien": {"nom_complet": "Alex Démonstration", "email": "intervenant@example.invalid", "telephone": "+33 0 00 00 00 00"},
+  "prestataire": {"nom_complet": "Atelier Démonstration", "email": "prestataire@example.invalid", "telephone": "+33 0 00 00 00 00"},
+  "demande": {
+    "titre": "Préparation du logement avant séjour", "description": "Entretien complet, préparation de quatre couchages et réassort des produits d’accueil.",
+    "type_service": "Entretien et accueil", "cout_estime": "180,00 €", "date_souhaitee": "15/06/2026", "creneau": "09:00 - 12:00", "priorite": "Normale"
+  },
+  "depense": {
+    "id": "EXEMPLE-002", "date": "15/06/2026", "description": "Lot de consommables : savon, papier toilette, café et produits d’entretien.",
+    "montant_ht": "150,00 €", "montant_tva": "30,00 €", "montant_ttc": "180,00 €", "taux_tva": "20 % (illustration)",
+    "notes": "Livraison fictive à la conciergerie, puis répartition dans le logement. Aucun achat n’est effectué."
+  },
+  "paiement": {"date_paiement": "16/06/2026", "montant": "180,00 €", "reference_stripe": "EXEMPLE · AUCUNE TRANSACTION", "statut": "Payé (simulation)"},
+  "reservation": {"prix_total": "875,00 €", "date_arrivee": "16/06/2026", "date_depart": "23/06/2026", "nuits": "7", "voyageurs": "4"},
+  "menage": {
+    "taux_horaire": "35,00 €", "decomposition": "Séjour et cuisine : 60 min · Chambres : 45 min · Sanitaires : 45 min · Linge et contrôle : 30 min",
+    "express_duree": "1 h 30", "express_fourchette": "1 h 15 à 1 h 45", "express_prix": "52,50 €",
+    "standard_duree": "3 h", "standard_fourchette": "2 h 30 à 3 h 30", "standard_prix": "105,00 €",
+    "deep_duree": "5 h", "deep_fourchette": "4 h 30 à 5 h 30", "deep_prix": "175,00 €"
+  },
+  "devis": {
+    "forfait": {"nom": "Gestion et accueil (exemple)"},
+    "abonnement": {"mensuel": "49,00 €", "annuel_sans_remise": "588,00 €", "remise_pct": "10", "annuel_avec_remise": "529,20 €", "economie_annuelle": "58,80 €"},
+    "menage": {"prix_intervention": "105,00 €", "interventions_par_mois": "4", "estimation_mensuelle": "420,00 €", "estimation_annuelle": "5 040,00 €"},
+    "total": {"mensuel": "469,00 €", "annuel_avec_remise": "5 569,20 €"}
+  },
+  "nf": {
+    "numero": "EXEMPLE-001", "numero_legal": "APERÇU · SANS NUMÉRO LÉGAL", "date": "15/06/2026", "validite": "30 jours (exemple)",
+    "conditions_paiement": "Exemple de règlement à 30 jours. Les modalités définitives sont fixées dans le document émis.",
+    "legal_mention_1": "Document fictif de présentation, sans valeur légale ni engagement.",
+    "legal_mention_2": "Les identités, coordonnées, montants et taxes sont uniquement illustratifs."
+  },
+  "system": {"date": "15/06/2026", "numero_auto": "EXEMPLE-001", "annee": "2026", "heure": "09:00", "ville": "Ville Exemple"},
+  "logo_prestataire": "",
+  "lignes": [
+    {"description": "Nettoyage et préparation du logement", "quantite": "3", "prix_unitaire": "35,00 €", "total": "105,00 €"},
+    {"description": "Préparation des lits et du linge", "quantite": "2", "prix_unitaire": "15,00 €", "total": "30,00 €"},
+    {"description": "Réassort des produits d’accueil", "quantite": "1", "prix_unitaire": "15,00 €", "total": "15,00 €"}
+  ]
+}

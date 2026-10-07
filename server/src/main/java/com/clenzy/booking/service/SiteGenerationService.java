@@ -455,29 +455,15 @@ public class SiteGenerationService {
         return parseGeneratedSite(content);
     }
 
-    /**
-     * Métering crédits T-07 d'une génération (transaction dédiée) : écrit le débit au ledger (canonique)
-     * ET décrémente le solde ({@link CreditBalanceService#applyConsumptionToGrants}). La génération n'utilise
-     * PAS {@code RunCreditGuard} → {@code meterLlmUsage} n'affecte pas les poches (onDebit no-op hors run),
-     * on applique donc le débit ici. No-op si le gate génération est off ou en BYOK (clé org). Best-effort.
-     */
-    @Transactional
+    /** Le même écrivain atomique comptabilise les crédits de génération et ceux des agents. */
     public void meterGenerationCredits(Long orgId, String provider, String model,
                                        int promptTokens, int completionTokens, boolean byok) {
         if (byok || !aiProperties.getSiteGeneration().isCreditEnforced()) {
             return;
         }
-        try {
-            String idem = "sitegen:" + orgId + ':' + java.util.UUID.randomUUID();
-            creditMeteringService.meterLlmUsage(orgId, null, null, null, "site-generation",
-                AiFeature.DESIGN.name(), provider, model, promptTokens, completionTokens, 0, false, idem);
-            long debit = creditMeteringService.computeClientDebit(provider, model, promptTokens, completionTokens, false);
-            if (debit > 0) {
-                creditBalanceService.applyConsumptionToGrants(orgId, debit);
-            }
-        } catch (RuntimeException e) {
-            log.warn("Métering crédits génération best-effort (org={}) : {}", orgId, e.getMessage());
-        }
+        creditMeteringService.meterLlmUsage(orgId, null, null, null, "site-generation",
+            AiFeature.DESIGN.name(), provider, model, promptTokens, completionTokens, 0, false,
+            "sitegen:" + orgId + ':' + java.util.UUID.randomUUID());
     }
 
     /** Parse la réponse JSON {@code {css, pages:[{path,type,title,html,seoTitle,seoDescription}]}}. */

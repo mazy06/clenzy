@@ -301,20 +301,13 @@ public class PaymentPersistence {
     public PaymentTransaction completeTransaction(String transactionRef) {
         int updated = transactionRepository.markCompleted(transactionRef);
         PaymentTransaction tx = requireTx(transactionRef);
+        // La preuve et son affectation au devis sont atomiques ; un rejeu répare aussi un ancien rattachement absent.
+        if(tx.getStatus()==TransactionStatus.COMPLETED)depositReconciler.onPaymentCompleted(tx);
         if (updated == 0) {
             log.info("Transaction {} already completed, skipping", transactionRef);
             return tx;
         }
         publishEvent(tx, "PAYMENT_COMPLETED", tx.getOrganizationId());
-        // Un acompte encaisse doit se lire sur le devis, pas se deviner a la
-        // cle d'idempotence. Best-effort : le paiement est acquis, une
-        // reconciliation qui echoue ne doit pas le remettre en cause.
-        try {
-            depositReconciler.onPaymentCompleted(tx);
-        } catch (Exception e) {
-            log.warn("Reconciliation d'acompte impossible sur {} : {}",
-                    transactionRef, e.getMessage());
-        }
         return tx;
     }
 

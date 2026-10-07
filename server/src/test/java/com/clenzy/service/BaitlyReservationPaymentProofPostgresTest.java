@@ -97,7 +97,7 @@ class BaitlyReservationPaymentProofPostgresTest {
                 mock(NotificationService.class),mock(ServiceRequestService.class),mock(WalletService.class),ledger,
                 mock(SplitPaymentService.class),mock(AutoInvoiceService.class),documents,
                 new PaymentStatusTransitionService(em,mock(InterventionRepository.class),documents),
-                mock(com.clenzy.service.email.BookingConfirmationEmailService.class),mock(WebhookEventPublisher.class), new BaitlyReservationCredit(credits(em),payments(em)));
+                mock(com.clenzy.service.email.BookingConfirmationEmailService.class),mock(WebhookEventPublisher.class), new BaitlyReservationCredit(credits(em),payments(em),mock(com.clenzy.service.voucher.BaitlyVoucherClaims.class)));
     }
     GuestCreditService credits(EntityManager em) {
         var factory=new JpaRepositoryFactory(em);

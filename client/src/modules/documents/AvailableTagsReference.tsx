@@ -1,44 +1,11 @@
-import React, { useState, useMemo } from 'react';
-import {
-  Accordion,
-  AccordionContent,
-  AccordionItem,
-  AccordionTrigger,
-  Alert,
-  AlertDescription,
-  Button,
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-  Tooltip,
-  TooltipContent,
-  TooltipTrigger,
-} from '../../components/ui';
-import StatusChip, { type ToneTokens } from '../../components/StatusChip';
-import { cn } from '../../utils/cn';
+import type React from 'react';
+import { useState } from 'react';
+import { Copy, Check } from 'lucide-react';
+import { Button, NativeSelect, NativeSelectOption } from '../../components/ui';
+import { Person, Home, Build, Assignment, Payment, Business, Computer, GppGood, Email } from '../../icons';
 import { useTranslation } from '../../hooks/useTranslation';
-import {
-  ContentCopy,
-  Info,
-  Person,
-  Home,
-  Build,
-  Assignment,
-  Payment,
-  Business,
-  Computer,
-  GppGood,
-  Email,
-} from '../../icons';
-// ─── Tons sémantiques (tokens Baitly UI — pattern TONES) ─────────────────────
-// L'encre est le jeton `-ink` : ces tons portent d'abord du TEXTE (puces de
-// type, icône de catégorie sur fond `-soft`). La couleur étant résolue à
-// l'exécution, elle reste une valeur CSS — une classe Tailwind construite
-// depuis une variable ne serait jamais émise à la compilation.
-
+import DocumentsHeaderControls from './components/DocumentsHeaderControls';
+import DocumentsWorkspace, { DOCUMENT_ART, DocumentFacts } from './components/DocumentsWorkspace';
 interface Tone { c: string; bg: string }
 
 const TONES: Record<'ok' | 'accent' | 'warn' | 'err' | 'info' | 'muted', Tone> = {
@@ -51,7 +18,7 @@ const TONES: Record<'ok' | 'accent' | 'warn' | 'err' | 'info' | 'muted', Tone> =
 };
 
 // Le ton local nomme son encre `c` ; la primitive attend `color`.
-const toneTokens = (tone: Tone): ToneTokens => ({ color: tone.c, bg: tone.bg });
+
 
 // ─── Définition de tous les tags disponibles (miroir de TagResolverService.java) ───
 
@@ -98,8 +65,8 @@ const TAG_CATEGORIES: TagCategory[] = [
       { tag: '{houseRules}', descriptionKey: 'docTags.houseRules', description: 'Règlement intérieur', example: 'Pas de bruit après 22h...', type: 'text' },
       { tag: '{emergencyContact}', descriptionKey: 'docTags.emergencyContact', description: 'Contact d\'urgence', example: '+33 6 12 34 56 78', type: 'text' },
       { tag: '{confirmationCode}', descriptionKey: 'docTags.confirmationCode', description: 'Code de confirmation de la réservation', example: 'RES-2025-001', type: 'text' },
-      { tag: '{checkInLink}', descriptionKey: 'docTags.checkInLink', description: 'Lien de check-in en ligne', example: 'https://app.clenzy.com/checkin/abc123', type: 'text' },
-      { tag: '{guideLink}', descriptionKey: 'docTags.guideLink', description: 'Lien du guide voyageur', example: 'https://app.clenzy.com/guide/abc123', type: 'text' },
+      { tag: '{checkInLink}', descriptionKey: 'docTags.checkInLink', description: 'Lien de check-in en ligne', example: 'https://exemple.invalid/checkin/abc123', type: 'text' },
+      { tag: '{guideLink}', descriptionKey: 'docTags.guideLink', description: 'Lien du guide voyageur', example: 'https://exemple.invalid/guide/abc123', type: 'text' },
     ],
   },
   {
@@ -118,14 +85,14 @@ const TAG_CATEGORIES: TagCategory[] = [
   {
     id: 'entreprise',
     label: 'Entreprise',
-    description: 'Informations de votre société (configurées dans application.yml)',
+    description: 'Identité de l’émetteur : organisation, prestataire ou Baitly selon le document',
     icon: <Business />,
     tone: TONES.accent,
     tags: [
       { tag: 'entreprise.nom', descriptionKey: 'docTags.entreprise_nom', description: 'Nom de la société', example: 'Baitly', type: 'text' },
       { tag: 'entreprise.adresse', descriptionKey: 'docTags.entreprise_adresse', description: 'Adresse complète', example: '12 rue de la Paix, 75002 Paris', type: 'text' },
       { tag: 'entreprise.siret', descriptionKey: 'docTags.entreprise_siret', description: 'Numéro SIRET', example: '123 456 789 00012', type: 'text' },
-      { tag: 'entreprise.email', descriptionKey: 'docTags.entreprise_email', description: 'Email de contact', example: 'info@clenzy.fr', type: 'text' },
+      { tag: 'entreprise.email', descriptionKey: 'docTags.entreprise_email', description: 'Email de contact', example: 'contact@exemple.invalid', type: 'text' },
       { tag: 'entreprise.telephone', descriptionKey: 'docTags.entreprise_telephone', description: 'Téléphone', example: '01 23 45 67 89', type: 'text' },
     ],
   },
@@ -157,7 +124,7 @@ const TAG_CATEGORIES: TagCategory[] = [
       { tag: 'technicien.nom', descriptionKey: 'docTags.technicien_nom', description: 'Nom de famille', example: 'Martin', type: 'text' },
       { tag: 'technicien.prenom', descriptionKey: 'docTags.technicien_prenom', description: 'Prénom', example: 'Pierre', type: 'text' },
       { tag: 'technicien.nom_complet', descriptionKey: 'docTags.technicien_nom_complet', description: 'Nom complet', example: 'Pierre Martin', type: 'text' },
-      { tag: 'technicien.email', descriptionKey: 'docTags.technicien_email', description: 'Adresse email', example: 'p.martin@clenzy.fr', type: 'text' },
+      { tag: 'technicien.email', descriptionKey: 'docTags.technicien_email', description: 'Adresse email', example: 'p.martin@exemple.invalid', type: 'text' },
       { tag: 'technicien.telephone', descriptionKey: 'docTags.technicien_telephone', description: 'Numéro de téléphone', example: '06 98 76 54 32', type: 'text' },
       { tag: 'technicien.societe', descriptionKey: 'docTags.technicien_societe', description: 'Société', example: 'Baitly', type: 'text' },
       { tag: 'technicien.ville', descriptionKey: 'docTags.technicien_ville', description: 'Ville', example: 'Lyon', type: 'text' },
@@ -289,203 +256,32 @@ const TAG_CATEGORIES: TagCategory[] = [
   },
 ];
 
-// Tons des types — sémantique tokens (texte = neutre, date = info, montant = ok, nombre = accent).
-const TYPE_TONES: Record<string, Tone> = {
-  text:   TONES.muted,
-  date:   TONES.info,
-  money:  TONES.ok,
-  number: TONES.accent,
-};
 
-const TYPE_LABELS: Record<string, string> = {
-  text: 'Texte',
-  date: 'Date',
-  money: 'Montant',
-  number: 'Nombre',
-};
-
-interface AvailableTagsReferenceProps {
-  search: string;
+export function documentVariableSyntax(tag: string) {
+  return tag.startsWith('{') || tag.startsWith('$' + '{') ? tag : '$' + '{' + tag + '}';
 }
-
-// Style cohérent partagé pour les chips ${...} (memes proportions que
-// TemplateCatalogAccordions : monospace, accent tinted, font 0.7rem).
-// Puce de code inline. La pile mono est posee en propriete arbitraire plutot
-// qu'avec `font-mono` : la classe Tailwind par defaut n'a pas la meme pile.
-const CODE_CHIP_CLASS =
-  'inline-block whitespace-nowrap rounded-[4px] border border-solid ' +
-  'border-primary/25 bg-primary-soft ' +
-  'px-[3.75px] py-[2px] text-[0.7rem] leading-normal text-primary ' +
-  "[font-family:'SF_Mono',_Menlo,_Consolas,_monospace]";
-
-const AvailableTagsReference: React.FC<AvailableTagsReferenceProps> = ({ search }) => {
+export default function AvailableTagsReference({ search }: { search: string }) {
   const { t } = useTranslation();
-  const [expandedCategory, setExpandedCategory] = useState<string | null>(null);
-  const [copiedTag, setCopiedTag] = useState<string | null>(null);
-
-  const handleCopyTag = (tag: string) => {
-    navigator.clipboard.writeText('${' + tag + '}');
-    setCopiedTag(tag);
-    setTimeout(() => setCopiedTag(null), 2000);
-  };
-
-  // Filtrer les catégories et tags selon la recherche
-  const filteredCategories = useMemo(() =>
-    TAG_CATEGORIES.flatMap((category) => {
-      const tags = category.tags.filter(
-        (t) =>
-          !search ||
-          t.tag.toLowerCase().includes(search.toLowerCase()) ||
-          t.description.toLowerCase().includes(search.toLowerCase())
-      );
-      return tags.length > 0 ? [{ ...category, tags }] : [];
-    }),
-  [search]);
-
-  const totalTags = TAG_CATEGORIES.reduce((sum, c) => sum + c.tags.length, 0);
-
-  return (
-    <div>
-      <p className="text-muted-foreground mb-3 text-[0.78rem] tabular-nums">
-        {totalTags} tags disponibles dans {TAG_CATEGORIES.length} catégories
-      </p>
-
-      {/* Instructions — icone lucide ContentCopy inline (plus d'emoji) */}
-      <Alert variant="info" className="mb-[18px]">
-        <Info />
-        <AlertDescription className="text-[0.8125rem] leading-[1.6]">
-          <strong className="font-semibold">{t('documents.tags.howTo')}</strong>{' '}
-          Dans votre fichier .odt, insérez les tags sous la forme{' '}
-          <code className={CODE_CHIP_CLASS}>{'${categorie.champ}'}</code>
-          . Par exemple{' '}
-          <code className={CODE_CHIP_CLASS}>{'${client.nom}'}</code>{' '}
-          sera remplacé par le nom du client. Cliquez sur l&apos;icône{' '}
-          <span className="inline-flex align-[middle] text-info-ink mx-[1.5px]">
-            <ContentCopy size={13} strokeWidth={1.75} />
-          </span>{' '}
-          à droite de chaque ligne pour copier un tag prêt à coller.
-        </AlertDescription>
-      </Alert>
-
-      {/* Catégories de tags — un seul Accordion pilote, une categorie ouverte a la fois */}
-      <Accordion
-        type="single"
-        collapsible
-        value={expandedCategory ?? ''}
-        onValueChange={(value) => setExpandedCategory(value || null)}
-      >
-      {filteredCategories.map((category) => (
-        <AccordionItem
-          key={category.id}
-          value={category.id}
-          className="mb-1.5 rounded-md border border-solid border-border transition-[border-color] duration-[180ms] ease-out-quart hover:border-faint"
-        >
-          <AccordionTrigger className="cursor-pointer rounded-md px-3 aria-expanded:rounded-b-none aria-expanded:border-b aria-expanded:border-solid aria-expanded:border-b-border">
-            <div className="flex items-center gap-2 w-full min-w-0">
-              {/* Badge icone Baitly (tile 26x26 tintee, icon 16px) */}
-              <div className="w-[26px] h-[26px] rounded-md inline-flex items-center justify-center shrink-0" style={{ backgroundColor: category.tone.bg, color: category.tone.c }}>
-                {React.isValidElement(category.icon)
-                  ? React.cloneElement(category.icon as React.ReactElement<{ size?: number; strokeWidth?: number }>, {
-                      size: 16,
-                      strokeWidth: 1.75,
-                    })
-                  : category.icon}
-              </div>
-              <div className="flex-1 min-w-0">
-                <p className="font-semibold text-[0.875rem] text-foreground">
-                  {t('docTagCategories.' + category.id + '.label', category.label)}
-                </p>
-                <span className="text-muted-foreground text-[0.7rem] block leading-[1.4]">
-                  {t('docTagCategories.' + category.id + '.description', category.description)}
-                </span>
-              </div>
-              <StatusChip
-                tokens={toneTokens(category.tone)}
-                label={`${category.tags.length} tags`}
-              />
-            </div>
-          </AccordionTrigger>
-          <AccordionContent className="p-0">
-            <div className="overflow-x-auto">
-              <Table>
-                {/* Header de table tres subtil (au lieu d'un survol agressif) */}
-                <TableHeader className="bg-background [&_th]:py-1.5 [&_th]:text-[0.7rem] [&_th]:font-semibold [&_th]:uppercase [&_th]:tracking-[0.02em] [&_th]:text-muted-foreground [&_th]:border-b [&_th]:border-solid [&_th]:border-b-border">
-                  <TableRow>
-                    <TableHead className="w-[30%]">Tag</TableHead>
-                    <TableHead className="w-[30%]">Description</TableHead>
-                    <TableHead className="w-[10%]">Type</TableHead>
-                    <TableHead className="w-[25%]">Exemple</TableHead>
-                    <TableHead className="w-[5%] text-center">Copier</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {category.tags.map((tagDef) => (
-                    <TableRow
-                      key={tagDef.tag}
-                      className="hover:bg-muted last:[&_td]:border-b-0"
-                    >
-                      <TableCell>
-                        <code className={CODE_CHIP_CLASS}>
-                          {'${' + tagDef.tag + '}'}
-                        </code>
-                      </TableCell>
-                      <TableCell>
-                        <p className="text-[0.8125rem]">
-                          {t(tagDef.descriptionKey, tagDef.description)}
-                        </p>
-                      </TableCell>
-                      <TableCell>
-                        <StatusChip
-                          tokens={toneTokens(TYPE_TONES[tagDef.type])}
-                          label={TYPE_LABELS[tagDef.type]}
-                        />
-                      </TableCell>
-                      <TableCell>
-                        <p className="text-muted-foreground italic text-[0.8125rem]">
-                          {tagDef.example}
-                        </p>
-                      </TableCell>
-                      <TableCell className="text-center">
-                        <Tooltip>
-                          <TooltipTrigger asChild>
-                            <Button
-                              variant="ghost"
-                              size="icon-sm"
-                              onClick={() => handleCopyTag(tagDef.tag)}
-                              aria-label={`Copier le tag ${tagDef.tag}`}
-                              className={cn(
-                                'transition-colors duration-[180ms] ease-out-quart',
-                                'hover:text-primary hover:bg-primary-soft',
-                                copiedTag === tagDef.tag ? 'text-success-ink' : 'text-muted-foreground',
-                              )}
-                            >
-                              <ContentCopy size={15} strokeWidth={1.75} />
-                            </Button>
-                          </TooltipTrigger>
-                          <TooltipContent>
-                            {copiedTag === tagDef.tag ? 'Copié !' : t('documents.copyTag')}
-                          </TooltipContent>
-                        </Tooltip>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </div>
-          </AccordionContent>
-        </AccordionItem>
-      ))}
-      </Accordion>
-
-      {filteredCategories.length === 0 && (
-        <div className="text-center py-6">
-          <p className="text-sm text-muted-foreground">
-            Aucun tag ne correspond à la recherche &quot;{search}&quot;
-          </p>
-        </div>
-      )}
-    </div>
-  );
-};
-
-export default AvailableTagsReference;
+  const [category, setCategory] = useState('all');
+  const [copied, setCopied] = useState(''); const [copyError, setCopyError] = useState(false);
+  const rows = TAG_CATEGORIES.filter(group => category === 'all' || group.id === category).flatMap(group => group.tags.map(tag => ({ ...tag, group })))
+    .filter(row => `${row.tag} ${t(row.descriptionKey, row.description)}`.toLocaleLowerCase().includes(search.toLocaleLowerCase()));
+  return <>
+    <DocumentsHeaderControls count={rows.length}><NativeSelect aria-label={t('documentsWorkspace.category')} value={category} onChange={event => setCategory(event.target.value)}>
+      <NativeSelectOption value="all">{t('documentsWorkspace.allCategories')}</NativeSelectOption>
+      {TAG_CATEGORIES.map(group => <NativeSelectOption key={group.id} value={group.id}>{t(`docTagCategories.${group.id}.label`, group.label)}</NativeSelectOption>)}
+    </NativeSelect></DocumentsHeaderControls>
+    {copyError && <p role="alert" className="mb-3 text-sm text-destructive-ink">{t('documentsWorkspace.copyError')}</p>}
+    <DocumentsWorkspace autoPaginate key={`${category}:${search}`} label={t('documentsWorkspace.views.variables')} records={rows.map(row => ({
+      id: `${row.group.id}-${row.tag}`, title: documentVariableSyntax(row.tag), subtitle: t(row.descriptionKey, row.description), image: DOCUMENT_ART.variables,
+      actions: <Button size="sm" onClick={async () => { setCopyError(false); try { await navigator.clipboard.writeText(documentVariableSyntax(row.tag)); setCopied(row.tag); } catch { setCopyError(true); } }}>
+        {copied === row.tag ? <Check size={15} /> : <Copy size={15} />}{t(copied === row.tag ? 'documentsWorkspace.copied' : 'documentsWorkspace.copy')}
+      </Button>,
+      detail: <><DocumentFacts items={[
+        { label: t('documentsWorkspace.category'), value: t(`docTagCategories.${row.group.id}.label`, row.group.label) },
+        { label: t('documentsWorkspace.example'), value: row.example },
+      ]} /><h3>{t('documentsWorkspace.views.variables')}</h3><div className="documents-preview" dir="ltr"><code>{documentVariableSyntax(row.tag)}</code></div>
+      <p className="mt-4 text-muted-foreground">{t(`docTagCategories.${row.group.id}.description`, row.group.description)}</p></>,
+    }))}  />
+  </>;
+}

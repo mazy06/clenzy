@@ -27,7 +27,8 @@ public class BaitlyStripeTransferRecovery {
                 && instruction.livemode() != null && instruction.livemode().equals(transfer.getLivemode()), "TRANSFER_MISMATCH");
         var reversals = stripe.listTransferReversals(instruction.transferReference());
         var ours = reversals.stream().filter(r -> r.getMetadata() != null
-                && instruction.id().toString().equals(r.getMetadata().get("baitly_recovery_id"))).toList();
+                && instruction.id().toString().equals(r.getMetadata().get("baitly_recovery_id"))
+                && instruction.commerce()=="COMMERCE".equals(r.getMetadata().get("baitly_recovery_kind"))).toList();
         require(ours.size() <= 1, "DUPLICATE_RECOVERY_PROOF");
         TransferReversal reversal;
         if (ours.isEmpty()) {

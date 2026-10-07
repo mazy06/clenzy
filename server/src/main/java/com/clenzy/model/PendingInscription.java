@@ -18,6 +18,15 @@ public class PendingInscription {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    @Column(name = "request_id", unique = true)
+    private java.util.UUID requestId;
+
+    @Column(name = "request_fingerprint", length = 64)
+    private String requestFingerprint;
+
+    @Column(name = "billing_country", length = 2)
+    private String billingCountry;
+
     @Column(name = "first_name", nullable = false)
     private String firstName;
 
@@ -127,6 +136,12 @@ public class PendingInscription {
     // Getters et Setters
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
+    public java.util.UUID getRequestId() { return requestId; }
+    public void setRequestId(java.util.UUID value) { requestId = value; }
+    public String getRequestFingerprint() { return requestFingerprint; }
+    public void setRequestFingerprint(String value) { requestFingerprint = value; }
+    public String getBillingCountry() { return billingCountry; }
+    public void setBillingCountry(String value) { billingCountry = value; }
 
     public String getFirstName() { return firstName; }
     public void setFirstName(String firstName) { this.firstName = firstName; }

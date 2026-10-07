@@ -48,6 +48,9 @@ class ReportServiceTest {
     @Mock
     private TenantContext tenantContext;
 
+    @Mock
+    private BaitlyDocumentIdentity identity;
+
     @InjectMocks
     private ReportService reportService;
 
@@ -56,6 +59,9 @@ class ReportServiceTest {
 
     @BeforeEach
     void setUp() {
+        reportService=new ReportService(propertyRepository,interventionRepository,teamRepository,tenantContext,
+            new BaitlyPdfTestEngine(), identity);
+        lenient().when(identity.name(any(), any())).thenReturn("Conciergerie TEST");
         startDate = LocalDate.now().minusMonths(1);
         endDate = LocalDate.now();
         lenient().when(tenantContext.getOrganizationId()).thenReturn(null);

@@ -106,7 +106,7 @@ const PropertyDevicesView = lazy(() => import('./connected-objects/PropertyDevic
 const DeviceDetail = lazy(() => import('./connected-objects/DeviceDetail'));
 const CamerasScreen = lazy(() => import('./connected-objects/cameras/CamerasScreen'));
 const ThermostatsScreen = lazy(() => import('./connected-objects/thermostats/ThermostatsScreen'));
-const TemplateDetails = lazy(() => import('./documents/TemplateDetails'));
+const TemplatePreviewRedirect = lazy(() => import('./documents/TemplatePreviewRedirect'));
 
 // Notifications
 const NotificationsPage = lazy(() => import('./notifications/NotificationsPage'));
@@ -527,7 +527,7 @@ const AuthenticatedApp: React.FC = () => {
         <Route path="/documents/templates/:id" element={
           <ProtectedRoute requiredPermission="documents:view">
             <ErrorBoundary>
-              <TemplateDetails />
+              <TemplatePreviewRedirect />
             </ErrorBoundary>
           </ProtectedRoute>
         } />

@@ -53,10 +53,12 @@ public class DocumentGenerationPipeline {
     private final DocumentGenerationRepository generationRepository;
     private final DocumentStorageService documentStorageService;
     private final TagResolverService tagResolverService;
-    private final LibreOfficeConversionService conversionService;
+    private final BaitlyPdfEngine conversionService;
     private final DocumentNumberingService numberingService;
     private final DocumentComplianceService complianceService;
     private final InvoiceGeneratorService invoiceGeneratorService;
+    private final InvoicePdfService invoicePdfService;
+    private final BaitlyInvoicePdfStore invoicePdfStore;
     private final NotificationService notificationService;
     private final AuditLogService auditLogService;
     private final TenantContext tenantContext;
@@ -95,10 +97,12 @@ public class DocumentGenerationPipeline {
             DocumentGenerationRepository generationRepository,
             DocumentStorageService documentStorageService,
             TagResolverService tagResolverService,
-            LibreOfficeConversionService conversionService,
+            BaitlyPdfEngine conversionService,
             DocumentNumberingService numberingService,
             DocumentComplianceService complianceService,
             InvoiceGeneratorService invoiceGeneratorService,
+            InvoicePdfService invoicePdfService,
+            BaitlyInvoicePdfStore invoicePdfStore,
             NotificationService notificationService,
             AuditLogService auditLogService,
             TenantContext tenantContext,
@@ -115,6 +119,8 @@ public class DocumentGenerationPipeline {
         this.numberingService = numberingService;
         this.complianceService = complianceService;
         this.invoiceGeneratorService = invoiceGeneratorService;
+        this.invoicePdfService = invoicePdfService;
+        this.invoicePdfStore = invoicePdfStore;
         this.notificationService = notificationService;
         this.auditLogService = auditLogService;
         this.tenantContext = tenantContext;
@@ -174,7 +180,7 @@ public class DocumentGenerationPipeline {
         // serait persistee avec organization_id = NULL : elle resterait invisible pour
         // les utilisateurs filtres par organisation (organizationFilter Hibernate) — donc
         // absente du bas de l'ecran "Messagerie OTA" — et la numerotation legale NF serait
-        // rattachee a une org nulle. On la rattache a l'org du template (= l'org Clenzy
+        // rattachee a une org nulle. On la rattache a l'org du template (= l'org Baitly
         // qui possede le template DEVIS seede), garantissant coherence et visibilite.
         Long resolvedOrgId = command.explicitOrgId() != null
                 ? command.explicitOrgId() : tenantContext.getOrganizationId();
@@ -202,42 +208,55 @@ public class DocumentGenerationPipeline {
         try {
             // 2.5 [NF] Generer le numero legal sequentiel (FACTURE/DEVIS)
             String legalNumber = null;
-            if (numberingService.requiresLegalNumber(template.getDocumentType(), countryCode)) {
-                legalNumber = numberingService.generateNextNumber(template.getDocumentType(), countryCode, orgId);
+            byte[] pdfBytes;
+            com.clenzy.model.Invoice canonicalInvoice = null;
+            if (template.getDocumentType() == DocumentType.FACTURE) {
+                canonicalInvoice = invoiceGeneratorService.createIssuedFromDocumentGeneration(
+                    referenceType, referenceId, orgId, null, null);
+                legalNumber = canonicalInvoice.getInvoiceNumber();
                 generation.setLegalNumber(legalNumber);
-                generationRepository.save(generation);
-                log.info("Numero legal attribue: {} pour generation #{}", legalNumber, generation.getId());
+                pdfBytes = invoicePdfStore.existing(orgId, canonicalInvoice.getId());
+                if (pdfBytes == null) pdfBytes = invoicePdfService.generatePdf(canonicalInvoice);
+                pdfBytes = invoicePdfStore.archive(orgId, canonicalInvoice.getId(),
+                    BaitlyInvoiceChecks.fingerprint(canonicalInvoice), pdfBytes);
+            } else {
+                if (numberingService.requiresLegalNumber(template.getDocumentType(), countryCode)) {
+                    legalNumber = numberingService.generateNextNumber(template.getDocumentType(), countryCode, orgId);
+                    generation.setLegalNumber(legalNumber);
+                    generationRepository.save(generation);
+                    log.info("Numero legal attribue: {} pour generation #{}", legalNumber, generation.getId());
+                }
+
+                // 2. Charger le modèle HTML
+                byte[] templateContent = renderer.resolveTemplateContent(template);
+
+                // 3. Resoudre les tags
+                Map<String, Object> context = tagResolverService.resolveTagsForDocument(
+                        template.getDocumentType(), referenceId,
+                        referenceType != null ? referenceType.name() : null, orgId, countryCode);
+
+                // 3.5 Injecter les tags de conformite reglementaire (numero legal, mentions legales)
+                if (legalNumber != null) {
+                    Map<String, Object> nfTags = complianceService.resolveComplianceTags(
+                            template.getDocumentType(), legalNumber);
+                    // Namespace "nf" conserve pour compatibilite avec les templates existants
+                    context.put("nf", nfTags);
+                }
+
+                // 3.9 Garantir que tous les tags du template ont un fallback vide
+                renderer.fillMissingTags(template, context, false); // tags optionnels : champ manquant -> vide, jamais d'echec
+
+                // 4. Remplir le template via XDocReport
+                byte[] filledHtml = renderer.fillTemplate(templateContent, context);
+
+                // 5. Convertir le HTML en PDF via le moteur Baitly
+                //    Appel HTTP volontairement garde DANS la transaction du caller : le numero
+                //    legal NF (etape 2.5) est alloue dans cette meme transaction et DOIT etre
+                //    rollback si la conversion echoue (sinon trou de numerotation), et le
+                //    rollback du caller pilote le retry Kafka (DocumentGenerationFailureRecorder).
+                //    Sortir la conversion imposerait de committer le numero avant l'appel.
+                pdfBytes = conversionService.html(new String(filledHtml, java.nio.charset.StandardCharsets.UTF_8));
             }
-
-            // 2. Charger le template .odt
-            byte[] templateContent = renderer.resolveTemplateContent(template);
-
-            // 3. Resoudre les tags
-            Map<String, Object> context = tagResolverService.resolveTagsForDocument(
-                    template.getDocumentType(), referenceId,
-                    referenceType != null ? referenceType.name() : null);
-
-            // 3.5 Injecter les tags de conformite reglementaire (numero legal, mentions legales)
-            if (legalNumber != null) {
-                Map<String, Object> nfTags = complianceService.resolveComplianceTags(
-                        template.getDocumentType(), legalNumber);
-                // Namespace "nf" conserve pour compatibilite avec les templates existants
-                context.put("nf", nfTags);
-            }
-
-            // 3.9 Garantir que tous les tags du template ont un fallback vide
-            renderer.fillMissingTags(template, context, false); // tags optionnels : champ manquant -> vide, jamais d'echec
-
-            // 4. Remplir le template via XDocReport
-            byte[] filledOdt = renderer.fillTemplate(templateContent, context);
-
-            // 5. Convertir en PDF via LibreOffice
-            //    Appel HTTP volontairement garde DANS la transaction du caller : le numero
-            //    legal NF (etape 2.5) est alloue dans cette meme transaction et DOIT etre
-            //    rollback si la conversion echoue (sinon trou de numerotation), et le
-            //    rollback du caller pilote le retry Kafka (DocumentGenerationFailureRecorder).
-            //    Sortir la conversion imposerait de committer le numero avant l'appel.
-            byte[] pdfBytes = conversionService.convertToPdf(filledOdt, template.getOriginalFilename());
 
             // 6. Construire le nom du fichier
             String pdfFilename = buildPdfFilename(template.getDocumentType(), referenceId);
@@ -255,17 +274,14 @@ public class DocumentGenerationPipeline {
             generation.setGenerationTimeMs(generationTimeMs);
 
             // 8.5 [NF] Verrouiller le document (hash SHA-256) pour FACTURE/DEVIS
-            if (numberingService.requiresLegalNumber(template.getDocumentType(), countryCode)) {
+            if (template.getDocumentType() == DocumentType.FACTURE || numberingService.requiresLegalNumber(template.getDocumentType(), countryCode)) {
                 complianceService.lockDocument(generation, pdfBytes);
             }
 
-            // 8.7 Creer l'Invoice correspondante (visible dans l'onglet Facturation)
-            if (template.getDocumentType() == DocumentType.FACTURE
-                    && referenceType != null && legalNumber != null) {
-                createInvoiceForFacture(referenceType, referenceId, legalNumber, generation.getId(), orgId);
-            }
+            // 8.7 Rattacher le fichier exact à la facture canonique après son archivage.
+            if (canonicalInvoice != null && canonicalInvoice.getDocumentGenerationId() == null)
+                canonicalInvoice.setDocumentGenerationId(generation.getId());
 
-            // 9. Envoyer par email si demande — avec dedup (1 envoi par destinataire/document).
             boolean deferEmailAfterCommit = false;
             if (command.sendEmail() && emailTo != null && !emailTo.isBlank()) {
                 // Garde d'idempotence : si ce document a deja ete envoye a ce destinataire
@@ -452,16 +468,7 @@ public class DocumentGenerationPipeline {
      * Cree un enregistrement Invoice quand une FACTURE DocumentGeneration est produite.
      * L'echec de cette etape ne bloque pas la generation du document.
      */
-    private void createInvoiceForFacture(ReferenceType referenceType, Long referenceId,
-                                         String legalNumber, Long documentGenerationId, Long orgId) {
-        try {
-            invoiceGeneratorService.createIssuedFromDocumentGeneration(
-                    referenceType, referenceId, orgId, legalNumber, documentGenerationId);
-            log.info("Invoice creee pour facture {} ({} #{})", legalNumber, referenceType, referenceId);
-        } catch (Exception e) {
-            log.warn("Impossible de creer l'Invoice pour la facture {} : {}", legalNumber, e.getMessage());
-        }
-    }
+
 
     static String buildPdfFilename(DocumentType type, Long referenceId) {
         String typeName = type.getLabel().replace(" ", "_");

@@ -310,7 +310,7 @@ const PaymentHistoryPage: React.FC<PaymentHistoryPageProps> = ({ embedded = fals
       }
       setRefundingPayment(refundTarget.referenceId);
       setRefundError(null);
-      const isSeries=(refundTarget.refundedAmount??0)>0 || amount!==refundTarget.amount;
+      const isSeries=refundTarget.refundAcrossReceipts || (refundTarget.refundedAmount??0)>0 || amount!==refundTarget.amount;
       const result = isSeries ? await paymentsApi.refundInstallment(refundTarget.referenceId,amount,refundRequestId.current)
         : await paymentsApi.refund(refundTarget.referenceId);
       if('refundReference' in result) setRefundSeries(current=>({...current,[refundTarget.referenceId]:String(result.refundReference)}));

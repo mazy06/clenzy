@@ -44,8 +44,11 @@ class ShopServiceTest {
 
     @Mock private HardwareOrderRepository hardwareOrderRepository;
     @Mock private StripeGateway stripeGateway;
+    @Mock private com.clenzy.repository.PaymentTransactionRepository payments;
     @Mock private PaymentOrchestrationService orchestrationService;
     @Mock private PlatformTransactionManager transactionManager;
+    @Mock private BaitlyPurchaseRequests requests;
+    @Mock private com.clenzy.repository.OrganizationRepository organizations;
 
     private TenantContext tenantContext;
     private ObjectMapper objectMapper;
@@ -56,12 +59,16 @@ class ShopServiceTest {
     private static final String EMAIL = "buyer@test.com";
 
     @BeforeEach
-    void setUp() {
+    void setUp() throws Exception {
         tenantContext = new TenantContext();
         tenantContext.setOrganizationId(ORG_ID);
         objectMapper = new ObjectMapper();
+        org.mockito.Mockito.lenient().when(stripeGateway.requireSubscriptionSellerCountry("FR")).thenReturn("acct_baitly");
+        var organization=new com.clenzy.model.Organization();organization.setBillingCountry("FR");org.mockito.Mockito.lenient().when(organizations.findById(ORG_ID)).thenReturn(java.util.Optional.of(organization));
+        org.mockito.Mockito.lenient().when(requests.prepare(any(),any(),any(),any(),any(),any())).thenAnswer(inv->((java.util.function.Supplier<Long>)inv.getArgument(5)).get());
+
         service = new ShopService(hardwareOrderRepository, tenantContext, objectMapper, stripeGateway,
-                orchestrationService, transactionManager);
+                orchestrationService, transactionManager, payments,org.mockito.Mockito.mock(BaitlyHardwareInventory.class),requests,organizations,org.mockito.Mockito.mock(BaitlyPlatformCommerce.class));
         ReflectionTestUtils.setField(service, "successUrl", "http://localhost/success");
         ReflectionTestUtils.setField(service, "cancelUrl", "http://localhost/cancel");
     }
@@ -75,6 +82,19 @@ class ShopServiceTest {
     @Nested
     @DisplayName("createCheckoutSession - validation errors")
     class Validation {
+
+        @Test void excessiveQuantityCannotOverflowTheChargedAmount() {
+            var req=new ShopCheckoutRequest(List.of(new ShopCheckoutRequest.CartItem("CLENZY-NM-01",Integer.MAX_VALUE)));
+            assertThatThrownBy(()->service.createCheckoutSession(req,EMAIL,USER_KC_ID)).isInstanceOf(IllegalArgumentException.class);
+            verify(hardwareOrderRepository,times(0)).save(any());
+        }
+
+        @Test void duplicateSkuCannotBypassPerProductLimit() {
+            var item=new ShopCheckoutRequest.CartItem("CLENZY-NM-01",100);
+            assertThatThrownBy(()->service.createCheckoutSession(new ShopCheckoutRequest(List.of(item,item)),EMAIL,USER_KC_ID))
+                    .isInstanceOf(IllegalArgumentException.class);
+            verify(hardwareOrderRepository,times(0)).save(any());
+        }
 
         @Test
         void whenItemsNull_thenThrows() {
@@ -143,15 +163,13 @@ class ShopServiceTest {
             when(transactionManager.getTransaction(any())).thenReturn(new SimpleTransactionStatus());
             when(hardwareOrderRepository.save(any(HardwareOrder.class))).thenAnswer(inv -> {
                 HardwareOrder o = inv.getArgument(0);
-                if (o.getId() == null) o.setId(42L);
+                if (o.getId() == null) {o.setId(42L);
+                o.setCreatedAt(java.time.LocalDateTime.now(java.time.Clock.systemUTC()));
+                when(hardwareOrderRepository.findById(42L)).thenReturn(Optional.of(o));}
                 return o;
             });
-            when(hardwareOrderRepository.findById(42L)).thenAnswer(inv -> {
-                HardwareOrder o = new HardwareOrder();
-                o.setId(42L);
-                return Optional.of(o);
-            });
-            when(orchestrationService.initiatePayment(any(PaymentOrchestrationRequest.class)))
+
+            when(orchestrationService.initiatePayment(eq(ORG_ID),eq("FR"),any(PaymentOrchestrationRequest.class)))
                     .thenReturn(new PaymentOrchestrationResult(null,
                             PaymentResult.success("cs_test_123", "https://checkout.stripe.com/cs_test_123"),
                             PaymentProviderType.STRIPE));
@@ -173,7 +191,7 @@ class ShopServiceTest {
             // SHIPPING_ADDRESS (resolver capability-aware), pas en preferredProvider.
             ArgumentCaptor<PaymentOrchestrationRequest> reqCaptor =
                     ArgumentCaptor.forClass(PaymentOrchestrationRequest.class);
-            verify(orchestrationService).initiatePayment(reqCaptor.capture());
+            verify(orchestrationService).initiatePayment(eq(ORG_ID),eq("FR"),reqCaptor.capture());
             PaymentOrchestrationRequest req = reqCaptor.getValue();
             assertThat(req.sourceType()).isEqualTo(ShopService.SOURCE_TYPE);
             assertThat(req.sourceId()).isEqualTo(42L);
@@ -190,9 +208,11 @@ class ShopServiceTest {
             when(hardwareOrderRepository.save(any(HardwareOrder.class))).thenAnswer(inv -> {
                 HardwareOrder o = inv.getArgument(0);
                 if (o.getId() == null) o.setId(1L);
+                o.setCreatedAt(java.time.LocalDateTime.now(java.time.Clock.systemUTC()));
+                when(hardwareOrderRepository.findById(1L)).thenReturn(Optional.of(o));
                 return o;
             });
-            when(orchestrationService.initiatePayment(any(PaymentOrchestrationRequest.class)))
+            when(orchestrationService.initiatePayment(eq(ORG_ID),eq("FR"),any(PaymentOrchestrationRequest.class)))
                     .thenReturn(new PaymentOrchestrationResult(null, PaymentResult.failure("Stripe down"), null));
 
             assertThatThrownBy(() -> service.createCheckoutSession(validRequest(), EMAIL, USER_KC_ID))
@@ -204,62 +224,79 @@ class ShopServiceTest {
     @Nested
     @DisplayName("completeOrder")
     class CompleteOrder {
-
-        @Test
-        void whenOrderMissing_thenNoop() {
-            when(hardwareOrderRepository.findByStripeSessionId("missing")).thenReturn(Optional.empty());
-
-            service.completeOrder("missing");
-
-            verify(hardwareOrderRepository, times(0)).save(any());
+        HardwareOrder order;
+        com.clenzy.model.PaymentTransaction tx;
+        Session session;
+        @BeforeEach void fixture() throws Exception {
+            order=new HardwareOrder();order.setId(3L);order.setOrganizationId(1L);order.setTotalAmount(12000);
+            order.setStripeSessionId("cs_order");
+            tx=new com.clenzy.model.PaymentTransaction();tx.setOrganizationId(1L);tx.setTransactionRef("TX-shop");
+            tx.setSourceType(ShopService.SOURCE_TYPE);tx.setSourceId(3L);tx.setProviderTxId("cs_order");
+            tx.setProviderType(PaymentProviderType.STRIPE);tx.setPaymentType(com.clenzy.model.TransactionType.CHECKOUT);
+            tx.setStatus(com.clenzy.model.TransactionStatus.PROCESSING);tx.setAmount(new java.math.BigDecimal("120"));tx.setCurrency("EUR");
+            session=new Session();session.setId("cs_order");session.setMode("payment");session.setStatus("complete");
+            session.setPaymentStatus("paid");session.setPaymentIntent("pi_order");session.setAmountTotal(12000L);session.setCurrency("eur");
+            session.setMetadata(new java.util.HashMap<>(Map.of("transactionRef","TX-shop","sourceType",ShopService.SOURCE_TYPE,"sourceId","3","orgId","1")));
+            var shipping=new Session.CollectedInformation.ShippingDetails();var address=new com.stripe.model.Address();
+            address.setCountry("FR");address.setLine1("1 rue de test");shipping.setAddress(address);shipping.setName("Acheteur test");
+            var collected=new Session.CollectedInformation();collected.setShippingDetails(shipping);session.setCollectedInformation(collected);
+            org.mockito.Mockito.lenient().when(transactionManager.getTransaction(any())).thenReturn(new SimpleTransactionStatus());
+            org.mockito.Mockito.lenient().when(hardwareOrderRepository.lockByStripeSessionId("cs_order")).thenReturn(Optional.of(order));
+            org.mockito.Mockito.lenient().when(payments.findByProviderTxId("cs_order")).thenReturn(Optional.of(tx));
+            when(stripeGateway.retrieveSession("cs_order")).thenReturn(session);
         }
-
-        @Test
-        void whenAlreadyPaid_thenIdempotentNoSave() {
-            HardwareOrder paid = new HardwareOrder();
-            paid.setId(1L);
-            paid.setStatus(OrderStatus.PAID);
-            when(hardwareOrderRepository.findByStripeSessionId("cs_x"))
-                    .thenReturn(Optional.of(paid));
-
-            service.completeOrder("cs_x");
-
-            verify(hardwareOrderRepository, times(0)).save(any());
+        @Test void verifiesBeforePaymentAndStoresShippingAndJournal() {
+            service.completeOrder("cs_order");
+            assertThat(order.getStatus()).isEqualTo(OrderStatus.PAID);assertThat(order.getStripePaymentIntentId()).isEqualTo("pi_order");
+            assertThat(order.getShippingAddress()).isEqualTo("1 rue de test");verify(orchestrationService).completeTransaction("TX-shop");
         }
-
-        @Test
-        void whenStripeRetrieveFails_thenStillMarksPaid() throws StripeException {
-            HardwareOrder pending = new HardwareOrder();
-            pending.setId(2L);
-            pending.setStatus(OrderStatus.PENDING);
-            when(hardwareOrderRepository.findByStripeSessionId("cs_y"))
-                    .thenReturn(Optional.of(pending));
-
-            when(stripeGateway.retrieveSession("cs_y")).thenThrow(new RuntimeException("stripe down"));
-
-            service.completeOrder("cs_y");
-
-            assertThat(pending.getStatus()).isEqualTo(OrderStatus.PAID);
-            verify(hardwareOrderRepository).save(pending);
+        @Test void confirmedPaymentRepairsTheReferenceLostAfterCheckoutCreation() {
+            order.setStripeSessionId(null);
+            when(hardwareOrderRepository.lockByStripeSessionId("cs_order")).thenReturn(Optional.empty());
+            when(hardwareOrderRepository.lockForOrganization(1L,3L)).thenReturn(Optional.of(order));
+            service.completeOrder("cs_order");
+            assertThat(order.getStripeSessionId()).isEqualTo("cs_order");
+            assertThat(order.getStatus()).isEqualTo(OrderStatus.PAID);
+            verify(orchestrationService).completeTransaction("TX-shop");
         }
-
-        @Test
-        void whenStripeRetrieveReturnsSessionWithPaymentIntent_thenStoresIt() throws StripeException {
-            HardwareOrder pending = new HardwareOrder();
-            pending.setId(3L);
-            pending.setStatus(OrderStatus.PENDING);
-            Session session = mock(Session.class);
-            when(session.getPaymentIntent()).thenReturn("pi_test_123");
-            when(session.getCollectedInformation()).thenReturn(null);
-            when(hardwareOrderRepository.findByStripeSessionId("cs_z"))
-                    .thenReturn(Optional.of(pending));
-
-            when(stripeGateway.retrieveSession("cs_z")).thenReturn(session);
-
-            service.completeOrder("cs_z");
-
-            assertThat(pending.getStatus()).isEqualTo(OrderStatus.PAID);
-            assertThat(pending.getStripePaymentIntentId()).isEqualTo("pi_test_123");
+        @Test void missingReferenceDoesNotBypassCanonicalAmountValidation() {
+            order.setStripeSessionId(null);session.setAmountTotal(1L);
+            when(hardwareOrderRepository.lockByStripeSessionId("cs_order")).thenReturn(Optional.empty());
+            when(hardwareOrderRepository.lockForOrganization(1L,3L)).thenReturn(Optional.of(order));
+            reject();assertThat(order.getStripeSessionId()).isNull();
+        }
+        @Test void lostReferenceCannotOverwriteAnotherCheckout() {
+            order.setStripeSessionId("cs_other");
+            when(hardwareOrderRepository.lockByStripeSessionId("cs_order")).thenReturn(Optional.empty());
+            when(hardwareOrderRepository.lockForOrganization(1L,3L)).thenReturn(Optional.of(order));
+            reject();assertThat(order.getStripeSessionId()).isEqualTo("cs_other");
+        }
+        @Test void missingOrderRemainsRetryableInsteadOfAcknowledgingPayment() {
+            when(hardwareOrderRepository.lockByStripeSessionId("cs_order")).thenReturn(Optional.empty());reject();
+        }
+        @Test void stripeUnavailableDoesNotMarkPaid() throws Exception {
+            when(stripeGateway.retrieveSession("cs_order")).thenThrow(new com.stripe.exception.ApiException("offline",null,null,503,null));reject();
+        }
+        @Test void rejectsUnpaid() { session.setPaymentStatus("unpaid");reject(); }
+        @Test void rejectsOtherAmount() { session.setAmountTotal(1L);reject(); }
+        @Test void rejectsOtherCurrency() { session.setCurrency("mad");reject(); }
+        @Test void rejectsOtherOrganization() { session.getMetadata().put("orgId","2");reject(); }
+        @Test void rejectsOtherSource() { tx.setSourceId(4L);reject(); }
+        @Test void rejectsOtherReference() { session.getMetadata().put("transactionRef","TX-other");reject(); }
+        @Test void rejectsMissingShipping() { session.setCollectedInformation(null);reject(); }
+        @Test void neverDemotesDeliveredOrderOnReplay() {
+            order.setStatus(OrderStatus.DELIVERED);service.completeOrder("cs_order");
+            assertThat(order.getStatus()).isEqualTo(OrderStatus.DELIVERED);verify(hardwareOrderRepository,times(0)).save(any());
+        }
+        @Test void neverReopensCancelledOrder() {
+            order.setStatus(OrderStatus.CANCELLED);
+            assertThatThrownBy(()->service.completeOrder("cs_order")).isInstanceOf(IllegalStateException.class);
+            assertThat(order.getStatus()).isEqualTo(OrderStatus.CANCELLED);verify(orchestrationService,times(0)).completeTransaction(any());
+        }
+        void reject() {
+            assertThatThrownBy(()->service.completeOrder("cs_order")).isInstanceOf(IllegalStateException.class);
+            assertThat(order.getStatus()).isEqualTo(OrderStatus.PENDING);verify(hardwareOrderRepository,times(0)).save(any());
+            verify(orchestrationService,times(0)).completeTransaction(any());
         }
     }
 

@@ -35,6 +35,7 @@ public class PaymentEventConsumer {
     private final InterventionBatchReconciliationService batchReconciliation;
     private final InvoicePaymentCoordination invoicePayments;
     private final RefundCreditNoteService refundCreditNotes;
+    private final BaitlyCommerceRefunds commerceRefunds;
 
     public PaymentEventConsumer(SplitPaymentService splitPaymentService,
                                  EscrowHoldRepository escrowHoldRepository,
@@ -47,7 +48,8 @@ public class PaymentEventConsumer {
                                  com.clenzy.tenant.KafkaTenantScope kafkaTenantScope,
                                  InterventionRefundReconciliationService interventionRefundReconciliationService,
                                  InterventionBatchReconciliationService batchReconciliation, InvoicePaymentCoordination invoicePayments,
-                                 RefundCreditNoteService refundCreditNotes) {
+                                 RefundCreditNoteService refundCreditNotes,BaitlyCommerceRefunds commerceRefunds) {
+        this.commerceRefunds=commerceRefunds;
         this.refundCreditNotes = refundCreditNotes;
         this.invoicePayments = invoicePayments;
         this.batchReconciliation = batchReconciliation;
@@ -82,9 +84,10 @@ public class PaymentEventConsumer {
         // Le payload ne choisit ni l'organisation, ni la mission, ni le résultat financier.
         if (tx == null || tx.getStatus() != com.clenzy.model.TransactionStatus.COMPLETED
                 || tx.getPaymentType() != com.clenzy.model.TransactionType.REFUND
-                || !"INTERVENTION".equals(tx.getSourceType())) return;
+                || !("INTERVENTION".equals(tx.getSourceType()) || BaitlyCommerceRefunds.supports(tx.getSourceType()))) return;
         kafkaTenantScope.run(KafkaConfig.TOPIC_PAYMENT_EVENTS, tx.getOrganizationId(),
             () -> {
+                if(BaitlyCommerceRefunds.supports(tx.getSourceType())) {commerceRefunds.reconcile(transactionRef);return;}
                 interventionRefundReconciliationService.reconcile(transactionRef);
                 // Transaction documentaire distincte : une panne PDF/facture ne défait pas un remboursement confirmé.
                 refundCreditNotes.reconcile(transactionRef);

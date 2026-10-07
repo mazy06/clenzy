@@ -213,6 +213,13 @@ public class PaymentLedgerReversalService {
     }
 
     @Transactional
+    public void reverseMaintenanceEntries(PaymentTransaction original,PaymentTransaction refund,Long missionId,
+                                          BigDecimal total,List<String> previousRefs) {
+        reverseCumulative(original,BaitlyMaintenanceReceipts.accounting(refund),missionId.toString(),
+                INTERVENTION_PAYMENT_DESCRIPTION_PREFIX,total,previousRefs);
+    }
+
+    @Transactional
     public void reverseCumulativeAllocatedPaymentEntries(PaymentTransaction original,PaymentTransaction refund,
             Long missionId,BigDecimal paidBasis,List<String> previousRefs) {
         if(!BaitlyBatchRefundPersistence.isAllocation(refund) || !Objects.equals(missionId,refund.getSourceId()))

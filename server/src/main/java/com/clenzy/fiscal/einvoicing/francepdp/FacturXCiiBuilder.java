@@ -10,12 +10,13 @@ import java.time.format.DateTimeFormatter;
 
 /**
  * Génère le XML Factur-X (CrossIndustryInvoice / CII, profil EN 16931 — sous-ensemble)
- * à partir d'une facture NF Clenzy (CLZ-P0-19).
+ * à partir d'une facture NF Baitly (CLZ-P0-19).
  *
  * <p>Le XML est destiné à être embarqué dans un PDF/A-3 (embarquement iText =
  * sous-tâche reportée, HORS-PERIMETRE) puis transmis via une PDP. Tous les champs
  * texte sont échappés (XML-safe). La conformité EN 16931 stricte (ordre/champs
- * obligatoires complets) sera durcie lors du branchement PDP réel.</p>
+ * obligatoires complets) n'est pas acquise : le contrôle préalable Iopole refuse
+ * ce sous-ensemble. Une émission exige un CII complet archivé et cohérent.</p>
  */
 @Component
 public class FacturXCiiBuilder {

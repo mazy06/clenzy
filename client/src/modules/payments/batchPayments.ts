@@ -9,6 +9,7 @@ export function payableItems(records: PaymentRecord[]): FinanceBatchItem[] {
     && Number.isFinite(record.payableAmount ?? record.amount) && (record.payableAmount ?? record.amount) > 0)
     .map(record => ({ key: `${record.type}:${record.referenceId}`, label: record.description,
       amount: record.payableAmount ?? record.amount, currency: record.currency || 'EUR',
+      individualCheckout: record.individualCheckout,
       identity: { propertyName: record.propertyName,
         interventionId: record.type === 'INTERVENTION' ? record.referenceId : undefined,
         serviceRequestId: record.type === 'SERVICE_REQUEST' ? record.referenceId : undefined },
@@ -19,7 +20,7 @@ export function payableItems(records: PaymentRecord[]): FinanceBatchItem[] {
 export async function prepareBatchPayments(items: FinanceBatchItem[]): Promise<FinanceBatchResult[]> {
   const groups = new Map<string, FinanceBatchItem[]>();
   for (const item of items) {
-    const group = item.key.startsWith('INTERVENTION:') ? item.currency : item.key;
+    const group = item.key.startsWith('INTERVENTION:') && !item.individualCheckout ? item.currency : item.key;
     groups.set(group, [...(groups.get(group) ?? []), item]);
   }
   const results: FinanceBatchResult[] = [];
@@ -40,7 +41,9 @@ export async function prepareBatchPayments(items: FinanceBatchItem[]): Promise<F
     try {
       const first = group[0];
       let url: string;
-      if (first.key.startsWith('INTERVENTION:')) {
+      if (first.key.startsWith('INTERVENTION:') && first.individualCheckout) {
+        url = (await paymentsApi.createSession({ interventionId: Number(first.key.split(':')[1]), amount: first.amount, purpose: 'FULL', returnUrl: `${window.location.origin}/billing?tab=payments` })).url;
+      } else if (first.key.startsWith('INTERVENTION:')) {
         const session = await paymentsApi.createBatchSession({
           interventionIds: group.map(item => Number(item.key.split(':')[1])),
           totalAmount: Math.round(group.reduce((sum, item) => sum + item.amount, 0) * 100) / 100,

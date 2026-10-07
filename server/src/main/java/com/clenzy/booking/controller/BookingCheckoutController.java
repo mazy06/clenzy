@@ -102,7 +102,7 @@ public class BookingCheckoutController {
             Reservation hold = publicBookingService.createEmbeddedCheckoutHold(
                 quote.ctx(), request.propertyId(), quote.checkIn(), quote.checkOut(), request.guests(),
                 request.customerEmail(), request.customerName(), quote.availability(),
-                quote.serviceOptionsTotal(), request.serviceOptions());
+                quote.serviceOptionsTotal(), request.serviceOptions(),request.voucherCode(),request.children());
 
             PaymentOrchestrationResult orchResult;
             try {
@@ -171,15 +171,11 @@ public class BookingCheckoutController {
 
         // P0.7 Acompte : si un % d'acompte (1–99) est configuré, ne charger QUE l'acompte ;
         // le solde (deposit_balance) est réclamé au voyageur plus tard (BookingBalanceService).
-        BigDecimal fullTotal = quote.totalAmount();
+        BigDecimal fullTotal = hold.getTotalPrice();
         Integer depositPercent = policy.depositPercent();
-        BigDecimal chargeNow = fullTotal;
-        BigDecimal depositBalance = BigDecimal.ZERO;
-        if (depositPercent != null && depositPercent >= 1 && depositPercent <= 99) {
-            chargeNow = fullTotal.multiply(BigDecimal.valueOf(depositPercent))
-                .divide(BigDecimal.valueOf(100), 2, RoundingMode.HALF_UP);
-            depositBalance = fullTotal.subtract(chargeNow);
-        }
+        var plan=com.clenzy.booking.service.BaitlyBookingPaymentPlan.of(fullTotal,depositPercent);
+        BigDecimal chargeNow = plan.now();
+        BigDecimal depositBalance = plan.balance();
         boolean isDeposit = depositBalance.compareTo(BigDecimal.ZERO) > 0;
         String description = isDeposit
             ? String.format("Acompte %d%% — %s, %s au %s, %d voyageur(s)",
@@ -208,7 +204,7 @@ public class BookingCheckoutController {
         metadata.put("service_options_total", quote.serviceOptionsTotal().toPlainString());
         // Z4A-BUGS-10 : selections d'options (id:qty) pour le fallback webhook.
         metadata.put("service_options", serializeServiceOptions(request.serviceOptions()));
-        metadata.put("server_total", quote.totalAmount().toPlainString());
+        metadata.put("server_total", fullTotal.toPlainString());
         // P0.7 : solde restant (>0 → le webhook passe la résa en PARTIALLY_PAID).
         metadata.put("deposit_balance", depositBalance.toPlainString());
         metadata.put("reservation_id", hold.getId().toString());

@@ -42,6 +42,7 @@ class AutoInvoiceServiceTest {
     @BeforeEach
     void setUp() {
         when(invoiceRepository.save(any(Invoice.class))).thenAnswer(inv -> inv.getArgument(0));
+        when(numberingService.checkAndRecord(any(), anyString())).thenReturn(true);
     }
 
     private Reservation reservation() {
@@ -71,36 +72,39 @@ class AutoInvoiceServiceTest {
         return i;
     }
 
+    private Invoice issuedInvoice() {var i=draftInvoice();i.setStatus(InvoiceStatus.ISSUED);return i;}
+
     // ----- generateForReservation -----
 
     @Test
     void generateForReservation_existingInvoice_skips() {
-        when(invoiceRepository.findByReservationIdAndInvoiceType(RES_ID, InvoiceType.GUEST)).thenReturn(Optional.of(new Invoice()));
+        when(invoiceGeneratorService.findActiveGuestInvoice(RES_ID)).thenReturn(Optional.of(issuedInvoice()));
 
         Invoice result = service.generateForReservation(reservation());
 
         assertThat(result).isNull();
-        verifyNoInteractions(invoiceGeneratorService, numberingService);
+        verifyNoInteractions(numberingService);
     }
 
     @Test
     void generateForReservation_noFiscalProfile_skips() {
-        when(invoiceRepository.findByReservationIdAndInvoiceType(RES_ID, InvoiceType.GUEST)).thenReturn(Optional.empty());
+        when(invoiceGeneratorService.findActiveGuestInvoice(RES_ID)).thenReturn(Optional.empty());
         when(fiscalProfileRepository.findByOrganizationId(ORG_ID)).thenReturn(Optional.empty());
 
         Invoice result = service.generateForReservation(reservation());
 
         assertThat(result).isNull();
-        verifyNoInteractions(invoiceGeneratorService);
+        verify(invoiceGeneratorService, never()).generateFromReservation(any(Reservation.class), any());
+        verify(invoiceGeneratorService, never()).generateFromIntervention(any(Intervention.class), any());
     }
 
     @Test
     void generateForReservation_success_assignsNumberStatusAndPaymentMethod() {
         Reservation reservation = reservation();
-        when(invoiceRepository.findByReservationIdAndInvoiceType(RES_ID, InvoiceType.GUEST)).thenReturn(Optional.empty());
+        when(invoiceGeneratorService.findActiveGuestInvoice(RES_ID)).thenReturn(Optional.empty());
         when(fiscalProfileRepository.findByOrganizationId(ORG_ID)).thenReturn(Optional.of(fiscalProfile()));
         when(invoiceGeneratorService.generateFromReservation(reservation, ORG_ID)).thenReturn(draftInvoice());
-        when(numberingService.generateNextNumber(ORG_ID)).thenReturn("FAC-2025-001");
+        when(numberingService.generateNextNumberFor(org.mockito.ArgumentMatchers.any(com.clenzy.model.Invoice.class))).thenReturn("FAC-2025-001");
         when(documentGenerationRepository.findByReferenceTypeAndReferenceIdOrderByCreatedAtDesc(
             ReferenceType.RESERVATION, RES_ID)).thenReturn(List.of());
 
@@ -119,13 +123,13 @@ class AutoInvoiceServiceTest {
     void generateForReservation_linksDocumentGenerationIfPresent() {
         Reservation reservation = reservation();
         DocumentGeneration dg = new DocumentGeneration();
-        dg.setId(55L);
+        dg.setId(55L); dg.setOrganizationId(ORG_ID); dg.setLegalNumber("FAC-001");
         dg.setDocumentType(DocumentType.FACTURE);
 
-        when(invoiceRepository.findByReservationIdAndInvoiceType(RES_ID, InvoiceType.GUEST)).thenReturn(Optional.empty());
+        when(invoiceGeneratorService.findActiveGuestInvoice(RES_ID)).thenReturn(Optional.empty());
         when(fiscalProfileRepository.findByOrganizationId(ORG_ID)).thenReturn(Optional.of(fiscalProfile()));
         when(invoiceGeneratorService.generateFromReservation(reservation, ORG_ID)).thenReturn(draftInvoice());
-        when(numberingService.generateNextNumber(ORG_ID)).thenReturn("FAC-001");
+        when(numberingService.generateNextNumberFor(org.mockito.ArgumentMatchers.any(com.clenzy.model.Invoice.class))).thenReturn("FAC-001");
         when(documentGenerationRepository.findByReferenceTypeAndReferenceIdOrderByCreatedAtDesc(
             ReferenceType.RESERVATION, RES_ID)).thenReturn(List.of(dg));
 
@@ -141,10 +145,10 @@ class AutoInvoiceServiceTest {
         devis.setId(33L);
         devis.setDocumentType(DocumentType.DEVIS);
 
-        when(invoiceRepository.findByReservationIdAndInvoiceType(RES_ID, InvoiceType.GUEST)).thenReturn(Optional.empty());
+        when(invoiceGeneratorService.findActiveGuestInvoice(RES_ID)).thenReturn(Optional.empty());
         when(fiscalProfileRepository.findByOrganizationId(ORG_ID)).thenReturn(Optional.of(fiscalProfile()));
         when(invoiceGeneratorService.generateFromReservation(reservation, ORG_ID)).thenReturn(draftInvoice());
-        when(numberingService.generateNextNumber(ORG_ID)).thenReturn("FAC-001");
+        when(numberingService.generateNextNumberFor(org.mockito.ArgumentMatchers.any(com.clenzy.model.Invoice.class))).thenReturn("FAC-001");
         when(documentGenerationRepository.findByReferenceTypeAndReferenceIdOrderByCreatedAtDesc(
             ReferenceType.RESERVATION, RES_ID)).thenReturn(List.of(devis));
 
@@ -156,10 +160,10 @@ class AutoInvoiceServiceTest {
     @Test
     void generateForReservation_documentGenLookupThrows_swallowedAndInvoiceReturned() {
         Reservation reservation = reservation();
-        when(invoiceRepository.findByReservationIdAndInvoiceType(RES_ID, InvoiceType.GUEST)).thenReturn(Optional.empty());
+        when(invoiceGeneratorService.findActiveGuestInvoice(RES_ID)).thenReturn(Optional.empty());
         when(fiscalProfileRepository.findByOrganizationId(ORG_ID)).thenReturn(Optional.of(fiscalProfile()));
         when(invoiceGeneratorService.generateFromReservation(reservation, ORG_ID)).thenReturn(draftInvoice());
-        when(numberingService.generateNextNumber(ORG_ID)).thenReturn("FAC-001");
+        when(numberingService.generateNextNumberFor(org.mockito.ArgumentMatchers.any(com.clenzy.model.Invoice.class))).thenReturn("FAC-001");
         when(documentGenerationRepository.findByReferenceTypeAndReferenceIdOrderByCreatedAtDesc(
             eq(ReferenceType.RESERVATION), eq(RES_ID))).thenThrow(new RuntimeException("DB down"));
 
@@ -169,36 +173,48 @@ class AutoInvoiceServiceTest {
         assertThat(result.getDocumentGenerationId()).isNull();
     }
 
+    @Test void incompleteInvoiceRemainsDraftWithoutConsumingNumberAndKeepsPaymentProof() {
+        var reservation=reservation(); var draft=draftInvoice();
+        when(fiscalProfileRepository.findByOrganizationId(ORG_ID)).thenReturn(Optional.of(fiscalProfile()));
+        when(invoiceGeneratorService.generateFromReservation(reservation,ORG_ID)).thenReturn(draft);
+        when(numberingService.checkAndRecord(any(),anyString())).thenReturn(false);
+        var result=service.generateForReservation(reservation);
+        assertThat(result.getStatus()).isEqualTo(InvoiceStatus.DRAFT);
+        assertThat(result.getPaidAt()).isNotNull();
+        verify(numberingService,never()).generateNextNumberFor(any());
+    }
+
     // ----- generateForIntervention -----
 
     @Test
     void generateForIntervention_existingInvoice_skips() {
-        when(invoiceRepository.findByInterventionId(INT_ID)).thenReturn(Optional.of(new Invoice()));
+        when(invoiceGeneratorService.findActiveInterventionInvoice(INT_ID)).thenReturn(Optional.of(issuedInvoice()));
 
         Invoice result = service.generateForIntervention(intervention());
 
         assertThat(result).isNull();
-        verifyNoInteractions(invoiceGeneratorService, numberingService);
+        verifyNoInteractions(numberingService);
     }
 
     @Test
     void generateForIntervention_noFiscalProfile_skips() {
-        when(invoiceRepository.findByInterventionId(INT_ID)).thenReturn(Optional.empty());
+        when(invoiceGeneratorService.findActiveInterventionInvoice(INT_ID)).thenReturn(Optional.empty());
         when(fiscalProfileRepository.findByOrganizationId(ORG_ID)).thenReturn(Optional.empty());
 
         Invoice result = service.generateForIntervention(intervention());
 
         assertThat(result).isNull();
-        verifyNoInteractions(invoiceGeneratorService);
+        verify(invoiceGeneratorService, never()).generateFromReservation(any(Reservation.class), any());
+        verify(invoiceGeneratorService, never()).generateFromIntervention(any(Intervention.class), any());
     }
 
     @Test
     void generateForIntervention_success_marksPaid() {
         Intervention intervention = intervention();
-        when(invoiceRepository.findByInterventionId(INT_ID)).thenReturn(Optional.empty());
+        when(invoiceGeneratorService.findActiveInterventionInvoice(INT_ID)).thenReturn(Optional.empty());
         when(fiscalProfileRepository.findByOrganizationId(ORG_ID)).thenReturn(Optional.of(fiscalProfile()));
         when(invoiceGeneratorService.generateFromIntervention(intervention, ORG_ID)).thenReturn(draftInvoice());
-        when(numberingService.generateNextNumber(ORG_ID)).thenReturn("FAC-INT-001");
+        when(numberingService.generateNextNumberFor(org.mockito.ArgumentMatchers.any(com.clenzy.model.Invoice.class))).thenReturn("FAC-INT-001");
         when(documentGenerationRepository.findByReferenceTypeAndReferenceIdOrderByCreatedAtDesc(
             ReferenceType.INTERVENTION, INT_ID)).thenReturn(List.of());
 
@@ -214,13 +230,13 @@ class AutoInvoiceServiceTest {
     void generateForIntervention_linksDocumentGenerationIfPresent() {
         Intervention intervention = intervention();
         DocumentGeneration dg = new DocumentGeneration();
-        dg.setId(88L);
+        dg.setId(88L); dg.setOrganizationId(ORG_ID); dg.setLegalNumber("FAC-INT-001");
         dg.setDocumentType(DocumentType.FACTURE);
 
-        when(invoiceRepository.findByInterventionId(INT_ID)).thenReturn(Optional.empty());
+        when(invoiceGeneratorService.findActiveInterventionInvoice(INT_ID)).thenReturn(Optional.empty());
         when(fiscalProfileRepository.findByOrganizationId(ORG_ID)).thenReturn(Optional.of(fiscalProfile()));
         when(invoiceGeneratorService.generateFromIntervention(intervention, ORG_ID)).thenReturn(draftInvoice());
-        when(numberingService.generateNextNumber(ORG_ID)).thenReturn("FAC-INT-001");
+        when(numberingService.generateNextNumberFor(org.mockito.ArgumentMatchers.any(com.clenzy.model.Invoice.class))).thenReturn("FAC-INT-001");
         when(documentGenerationRepository.findByReferenceTypeAndReferenceIdOrderByCreatedAtDesc(
             ReferenceType.INTERVENTION, INT_ID)).thenReturn(List.of(dg));
 

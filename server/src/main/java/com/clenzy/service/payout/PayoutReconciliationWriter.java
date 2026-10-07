@@ -17,12 +17,14 @@ public class PayoutReconciliationWriter {
     private final HousekeeperPayoutRecordRepository providers;
     private final BaitlyOwnerPayoutDocuments documents;
     private final BaitlyExpensePayoutStore expenses;
+    private final BaitlyCommercePayoutStore commerce;
     public PayoutReconciliationWriter(PayoutTransferRepository transfers, PayoutTransferEventRepository events,
             OwnerPayoutRepository owners, HousekeeperPayoutRecordRepository providers, BaitlyOwnerPayoutDocuments documents,
-            BaitlyExpensePayoutStore expenses) {
+            BaitlyExpensePayoutStore expenses, BaitlyCommercePayoutStore commerce) {
         this.transfers = transfers; this.events = events; this.owners = owners; this.providers = providers;
         this.documents = documents;
         this.expenses = expenses;
+        this.commerce = commerce;
     }
     @Transactional
     public PayoutTransferDto confirm(Long orgId, Long id, PayoutTransferEvidence proof, String actor) {
@@ -38,6 +40,7 @@ public class PayoutReconciliationWriter {
         transfer.transferred(proof.reference());
         documents.settle(transfer);
         expenses.settle(transfer);
+        commerce.settle(transfer);
         transfers.saveAndFlush(transfer);
         events.save(PayoutTransferEvent.reconciled(transfer, actor));
         return PayoutTransferDto.from(transfer);

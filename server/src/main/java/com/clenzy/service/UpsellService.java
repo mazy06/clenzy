@@ -49,7 +49,7 @@ import java.util.UUID;
 public class UpsellService {
 
     private static final Logger log = LoggerFactory.getLogger(UpsellService.class);
-    private static final BigDecimal HUNDRED = new BigDecimal("100");
+
 
     /** {@code sourceType} de la {@code PaymentTransaction} d'un achat d'upsell (livret ou booking). */
     public static final String SOURCE_TYPE = "UPSELL";
@@ -59,7 +59,10 @@ public class UpsellService {
     private final WelcomeGuideTokenRepository tokenRepository;
     private final WelcomeGuideRepository guideRepository;
     private final ReservationRepository reservationRepository;
-    private final StripeService stripeService;
+    private final com.clenzy.payment.StripeGateway stripeGateway;
+    private final BaitlyCheckoutJournal checkoutJournal;
+    private final BaitlyUpsellSettlement settlement;
+    private final BaitlyPurchaseRequests requests;
     private final WalletService walletService;
     private final LedgerService ledgerService;
     private final MonetizationConfigService monetizationConfigService;
@@ -86,13 +89,18 @@ public class UpsellService {
                          PaymentOrchestrationService orchestrationService,
                          PlatformTransactionManager transactionManager,
                          UpsellTypeDefRepository upsellTypeRepository,
-                         TenantContext tenantContext) {
+                         TenantContext tenantContext,
+                         com.clenzy.payment.StripeGateway stripeGateway,
+                         BaitlyCheckoutJournal checkoutJournal, BaitlyUpsellSettlement settlement,BaitlyPurchaseRequests requests) {
+        this.requests=requests;
         this.offerRepository = offerRepository;
         this.orderRepository = orderRepository;
         this.tokenRepository = tokenRepository;
         this.guideRepository = guideRepository;
         this.reservationRepository = reservationRepository;
-        this.stripeService = stripeService;
+        this.stripeGateway = stripeGateway;
+        this.checkoutJournal = checkoutJournal;
+        this.settlement = settlement;
         this.walletService = walletService;
         this.ledgerService = ledgerService;
         this.monetizationConfigService = monetizationConfigService;
@@ -325,7 +333,14 @@ public class UpsellService {
      * puis la réf de session est rattachée en transaction courte.</p>
      */
     public UpsellCheckoutDto createCheckout(UUID token, Long offerId) {
-        UpsellPrep prep = writeTx.execute(status -> prepareLivretOrder(token, offerId));
+        return createCheckout(token,offerId,UUID.randomUUID());
+    }
+    public UpsellCheckoutDto createCheckout(UUID token, Long offerId,UUID requestId) {
+        UpsellPrep prep = writeTx.execute(status -> {
+            var tok=validToken(token).orElseThrow(()->new IllegalArgumentException("Lien invalide ou expiré"));
+            Long id=requests.prepare(tok.getOrganizationId(),requestId,SOURCE_TYPE,"guide:"+token,"offer:"+offerId,()->prepareLivretOrder(token,offerId).orderId());
+            return persistedPrep(tok.getOrganizationId(),id);
+        });
         PaymentOrchestrationResult result = initiateUpsellPayment(prep, true, null);
         attachProviderSession(prep.orderId(), result.paymentResult().providerTxId());
         return new UpsellCheckoutDto(result.paymentResult().clientSecret(), prep.orderId());
@@ -337,6 +352,7 @@ public class UpsellService {
             .orElseThrow(() -> new IllegalArgumentException("Lien invalide ou expiré"));
         // Réservation optionnelle : un livret sans réservation (lien « par défaut ») peut vendre des
         // services — le logement est résolu via le livret (comme listForToken).
+        if (tok.getGuide() == null || !tok.getGuide().isPublished()) throw new IllegalArgumentException("Livret indisponible");
         Reservation reservation = tok.getReservation();
         Long propertyId = resolvePropertyId(tok);
 
@@ -345,6 +361,9 @@ public class UpsellService {
             .filter(o -> o.getPropertyId() == null || o.getPropertyId().equals(propertyId))
             .orElseThrow(() -> new IllegalArgumentException("Offre indisponible: " + offerId));
 
+        java.util.Set<Long> selected = parseOfferIds(tok.getGuide().getUpsellOfferIds());
+        if (!offer.isDiffuseOnLivret() || !matchesStayConditions(offer, reservation)
+                || (selected != null && !selected.contains(offerId))) throw new IllegalArgumentException("Offre indisponible");
         UpsellOrder order = new UpsellOrder();
         order.setOrganizationId(tok.getOrganizationId());
         order.setReservationId(reservation != null ? reservation.getId() : null);
@@ -355,6 +374,7 @@ public class UpsellService {
         order.setCurrency(offer.getCurrency());
         order.setGuestEmail(reservation != null ? guestEmail(reservation) : null);
         order.setStatus(UpsellOrderStatus.PENDING);
+        settlement.snapshot(order);
         order = orderRepository.save(order);
         return new UpsellPrep(order.getId(), order.getOrganizationId(), order.getAmount(),
             order.getCurrency(), order.getTitle(), order.getGuestEmail());
@@ -368,11 +388,23 @@ public class UpsellService {
      */
     public com.clenzy.dto.UpsellBookingCheckoutDto createBookingCheckout(
             Long orgId, Reservation reservation, Long offerId, String successUrl) {
+        return createBookingCheckout(orgId,reservation,offerId,successUrl,UUID.randomUUID());
+    }
+    public com.clenzy.dto.UpsellBookingCheckoutDto createBookingCheckout(
+            Long orgId, Reservation reservation, Long offerId, String successUrl,UUID requestId) {
         final Long reservationId = reservation.getId();
-        UpsellPrep prep = writeTx.execute(status -> prepareBookingOrder(orgId, reservationId, offerId));
+        UpsellPrep prep = writeTx.execute(status -> {
+            Long id=requests.prepare(orgId,requestId,SOURCE_TYPE,"stay:"+reservationId,"offer:"+offerId,()->prepareBookingOrder(orgId,reservationId,offerId).orderId());
+            return persistedPrep(orgId,id);
+        });
         PaymentOrchestrationResult result = initiateUpsellPayment(prep, false, successUrl);
         attachProviderSession(prep.orderId(), result.paymentResult().providerTxId());
         return new com.clenzy.dto.UpsellBookingCheckoutDto(result.paymentResult().redirectUrl(), prep.orderId());
+    }
+    private UpsellPrep persistedPrep(Long org,Long id) {
+        var order=orderRepository.findById(id).filter(o->org.equals(o.getOrganizationId())).orElseThrow();
+        if(order.getStatus()!=UpsellOrderStatus.PENDING)throw new IllegalArgumentException("Cette commande a déjà été traitée");
+        return new UpsellPrep(id,org,order.getAmount(),order.getCurrency(),order.getTitle(),order.getGuestEmail());
     }
 
     /** Validation + création de la commande booking (dans une transaction courte : lazy loads résa/property). */
@@ -386,6 +418,8 @@ public class UpsellService {
             .filter(o -> o.getPropertyId() == null || o.getPropertyId().equals(propertyId))
             .orElseThrow(() -> new IllegalArgumentException("Offre indisponible: " + offerId));
 
+        if (!orgId.equals(reservation.getOrganizationId()) || !matchesStayConditions(offer, reservation))
+            throw new IllegalArgumentException("Réservation ou offre indisponible");
         UpsellOrder order = new UpsellOrder();
         order.setOrganizationId(orgId);
         order.setReservationId(reservation.getId());
@@ -395,6 +429,7 @@ public class UpsellService {
         order.setCurrency(offer.getCurrency());
         order.setGuestEmail(guestEmail(reservation));
         order.setStatus(UpsellOrderStatus.PENDING);
+        settlement.snapshot(order);
         order = orderRepository.save(order);
         return new UpsellPrep(order.getId(), order.getOrganizationId(), order.getAmount(),
             order.getCurrency(), order.getTitle(), order.getGuestEmail());
@@ -448,98 +483,31 @@ public class UpsellService {
      * Stripe côté serveur et marque PAID si payé. Vérifie que la commande appartient
      * bien au token (org + réservation). Idempotent. Retourne le statut final.
      */
-    @Transactional
+    @Transactional(propagation = org.springframework.transaction.annotation.Propagation.NOT_SUPPORTED)
     public String confirmOrder(UUID token, Long orderId) {
-        WelcomeGuideToken tok = validToken(token).orElse(null);
-        UpsellOrder order = orderRepository.findById(orderId).orElse(null);
-        if (tok == null || order == null) {
-            return "INVALID";
-        }
-        if (!order.getOrganizationId().equals(tok.getOrganizationId()) || !orderBelongsToToken(order, tok)) {
-            return "INVALID";
-        }
-        if (order.getStatus() == UpsellOrderStatus.PAID) {
-            return "PAID";
-        }
-        if (order.getStripeSessionId() != null && stripeService.isCheckoutSessionPaid(order.getStripeSessionId())) {
-            markPaidBySession(order.getStripeSessionId());
-            return "PAID";
-        }
-        return order.getStatus().name();
-    }
-
-    // ─── Confirmation paiement (webhook) ────────────────────────────────────────
-
-    /**
-     * Confirme une commande à partir de la session Stripe (idempotent) et crédite la
-     * part hôte via le ledger ; la part plateforme reste sur le wallet plateforme.
-     */
-    @Transactional
-    public void markPaidBySession(String sessionId) {
-        UpsellOrder order = orderRepository.findByStripeSessionId(sessionId).orElse(null);
-        if (order == null) {
-            log.warn("Upsell payé : aucune commande pour la session {}", sessionId);
-            return;
-        }
-        if (order.getStatus() == UpsellOrderStatus.PAID) {
-            return; // idempotent
-        }
-
-        Long orgId = order.getOrganizationId();
-        BigDecimal amount = order.getAmount();
-        // 1) Commission plateforme. 2) Sur le reste, commission org/conciergerie. 3) Solde = hôte.
-        BigDecimal platformFeePct = monetizationConfigService.getEffectiveUpsellPlatformFeePct(orgId);
-        BigDecimal platformFee = amount.multiply(platformFeePct).divide(HUNDRED, 2, RoundingMode.HALF_UP);
-        BigDecimal remainder = amount.subtract(platformFee);
-        // Part conciergerie : taux du contrat de gestion du logement s'il existe, sinon défaut org.
-        BigDecimal orgPct = resolveUpsellConciergePct(orgId, order);
-        BigDecimal orgShare = remainder.multiply(orgPct).divide(HUNDRED, 2, RoundingMode.HALF_UP);
-        BigDecimal hostShare = remainder.subtract(orgShare);
-
-        order.setStatus(UpsellOrderStatus.PAID);
-        order.setPaidAt(LocalDateTime.now());
-        order.setPlatformFeeAmount(platformFee);
-        order.setHostAmount(hostShare);
-        orderRepository.save(order);
-
-        recordSplit(order, hostShare, orgShare);
-        log.info("Upsell payé order={} montant={} {} → hôte={} conciergerie={} plateforme={}",
-            order.getId(), amount, order.getCurrency(), hostShare, orgShare, platformFee);
-    }
-
-    /** Crédite part hôte (wallet OWNER) + part conciergerie (wallet CONCIERGE) via le ledger. Best-effort. */
-    private void recordSplit(UpsellOrder order, BigDecimal hostShare, BigDecimal orgShare) {
+        record Pending(String sessionId, String status) {}
+        Pending pending = writeTx.execute(status -> {
+            WelcomeGuideToken tok = validToken(token).orElse(null);
+            UpsellOrder order = orderRepository.findById(orderId).orElse(null);
+            if (tok == null || order == null || !order.getOrganizationId().equals(tok.getOrganizationId())
+                    || !orderBelongsToToken(order, tok)) return new Pending(null, "INVALID");
+            return new Pending(order.getStripeSessionId(), order.getStatus().name());
+        });
+        if (!"PENDING".equals(pending.status()) || pending.sessionId() == null) return pending.status();
         try {
-            Long orgId = order.getOrganizationId();
-            String currency = order.getCurrency();
-            Wallet platformWallet = walletService.getOrCreatePlatformWallet(orgId, currency);
-            String ref = "UPSELL-" + order.getId();
-
-            if (orgShare != null && orgShare.compareTo(BigDecimal.ZERO) > 0) {
-                Wallet conciergeWallet = walletService.getOrCreateWallet(orgId, WalletType.CONCIERGE, null, currency);
-                ledgerService.recordTransfer(platformWallet, conciergeWallet, orgShare,
-                    LedgerReferenceType.UPSELL, ref,
-                    "Part conciergerie upsell « " + order.getTitle() + " » (commande #" + order.getId() + ")");
-            }
-
-            if (hostShare == null || hostShare.compareTo(BigDecimal.ZERO) <= 0) {
-                return;
-            }
-            Long ownerId = ownerIdForOrder(order);
-            if (ownerId == null) {
-                log.warn("Upsell order={} : pas d'owner, part hôte non créditée au ledger", order.getId());
-                return;
-            }
-            Wallet ownerWallet = walletService.getOrCreateWallet(orgId, WalletType.OWNER, ownerId, currency);
-            ledgerService.recordTransfer(platformWallet, ownerWallet, hostShare,
-                LedgerReferenceType.UPSELL, ref,
-                "Part hôte upsell « " + order.getTitle() + " » (commande #" + order.getId() + ")");
-        } catch (Exception e) {
-            log.error("Echec crédit ledger split upsell order={}: {}", order.getId(), e.getMessage());
+            Session session = stripeGateway.retrieveSession(pending.sessionId());
+            if (!"complete".equals(session.getStatus()) || !"paid".equals(session.getPaymentStatus())) return pending.status();
+            checkoutJournal.apply(session, true);
+            settlement.settle(pending.sessionId());
+            return "PAID";
+        } catch (com.stripe.exception.StripeException unavailable) {
+            throw new IllegalStateException("Vérification du paiement temporairement indisponible", unavailable);
         }
     }
 
-    // ─── Helpers ────────────────────────────────────────────────────────────────
+    public void markPaidBySession(String sessionId) {
+        settlement.settle(sessionId);
+    }
 
     /** Token valide (fenêtre + non révoqué + résa non annulée) — réservation NON requise (lien manuel). */
     private Optional<WelcomeGuideToken> validToken(UUID token) {
@@ -561,66 +529,6 @@ public class UpsellService {
             ids.add(Long.parseLong(m.group()));
         }
         return ids;
-    }
-
-    /** Part conciergerie (%) sur les upsells : taux du contrat de gestion du logement, sinon défaut org. */
-    private BigDecimal resolveUpsellConciergePct(Long orgId, UpsellOrder order) {
-        Long propertyId = propertyIdForOrder(order);
-        if (propertyId != null) {
-            try {
-                Optional<ManagementContract> c = managementContractService.getActiveContract(propertyId, orgId);
-                if (c != null && c.isPresent() && c.get().getUpsellCommissionRate() != null) {
-                    return c.get().getUpsellCommissionRate().multiply(HUNDRED); // fraction (0.17) → pourcentage (17)
-                }
-            } catch (Exception ignored) {
-                // Résolution contrat best-effort → repli sur le défaut org ci-dessous.
-            }
-        }
-        return monetizationConfigService.getEffectiveUpsellOrgCommissionPct(orgId);
-    }
-
-    /** Logement de la commande : via la réservation, sinon via le livret. Défensif : null → défaut org. */
-    private Long propertyIdForOrder(UpsellOrder order) {
-        try {
-            if (order.getReservationId() != null) {
-                Long viaResa = reservationRepository.findById(order.getReservationId())
-                    .map(Reservation::getProperty).map(Property::getId).orElse(null);
-                if (viaResa != null) {
-                    return viaResa;
-                }
-            }
-            if (order.getGuideId() != null) {
-                return guideRepository.findById(order.getGuideId())
-                    .map(WelcomeGuide::getProperty).map(Property::getId).orElse(null);
-            }
-            return null;
-        } catch (Exception e) {
-            return null;
-        }
-    }
-
-    /** Propriétaire du logement de la commande : via la réservation, sinon via le livret. Null si non résoluble. */
-    private Long ownerIdForOrder(UpsellOrder order) {
-        try {
-            if (order.getReservationId() != null) {
-                Long viaResa = reservationRepository.findById(order.getReservationId())
-                    .map(Reservation::getProperty)
-                    .map(p -> p.getOwner() != null ? p.getOwner().getId() : null)
-                    .orElse(null);
-                if (viaResa != null) {
-                    return viaResa;
-                }
-            }
-            if (order.getGuideId() != null) {
-                return guideRepository.findById(order.getGuideId())
-                    .map(WelcomeGuide::getProperty)
-                    .map(p -> p.getOwner() != null ? p.getOwner().getId() : null)
-                    .orElse(null);
-            }
-        } catch (Exception e) {
-            // best-effort → null
-        }
-        return null;
     }
 
     /**

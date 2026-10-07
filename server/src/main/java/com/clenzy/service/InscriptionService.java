@@ -59,6 +59,7 @@ public class InscriptionService {
     private final BrevoContactService brevoContactService;
     private final StripeGateway stripeGateway;
     private final SubscriptionProviderRegistry subscriptionProviderRegistry;
+    private final BaitlySignupCheckout signupCheckout;
 
     @Value("${stripe.currency}")
     private String currency;
@@ -92,7 +93,7 @@ public class InscriptionService {
             PlatformPromoCodeService promoCodeService,
             BrevoContactService brevoContactService,
             StripeGateway stripeGateway,
-            SubscriptionProviderRegistry subscriptionProviderRegistry) {
+            SubscriptionProviderRegistry subscriptionProviderRegistry, BaitlySignupCheckout signupCheckout) {
         this.pendingInscriptionRepository = pendingInscriptionRepository;
         this.userRepository = userRepository;
         this.keycloakService = keycloakService;
@@ -104,6 +105,7 @@ public class InscriptionService {
         this.brevoContactService = brevoContactService;
         this.stripeGateway = stripeGateway;
         this.subscriptionProviderRegistry = subscriptionProviderRegistry;
+        this.signupCheckout = signupCheckout;
     }
 
     // ═══════════════════════════════════════════════════════════════════════════
@@ -118,172 +120,9 @@ public class InscriptionService {
      *
      * @return Le clientSecret de la session Stripe Embedded Checkout
      */
+    @org.springframework.transaction.annotation.Transactional(propagation=org.springframework.transaction.annotation.Propagation.NOT_SUPPORTED)
     public Map<String, Object> initiateInscription(InscriptionDto dto) throws StripeException {
-        logger.info("Initiation inscription pour email: {}, forfait: {}", dto.getEmail(), dto.getForfait());
-
-        // Defense en profondeur : verifier l'acceptation des CGU cote serveur,
-        // au cas ou le frontend serait contourne. @AssertTrue le fait deja via
-        // @Valid sur le controller, mais on log explicitement ici pour audit.
-        if (!dto.isAcceptedTerms()) {
-            logger.warn("Tentative d'inscription sans acceptation des CGU pour: {}", dto.getEmail());
-            throw new RuntimeException("Vous devez accepter les conditions generales pour creer un compte.");
-        }
-
-        // Verifier que l'email n'est pas deja utilise dans la table users
-        // Message generique pour eviter l'enumeration d'emails (AUTH-VULN-10)
-        if (userRepository.existsByEmailHash(StringUtils.computeEmailHash(dto.getEmail()))) {
-            throw new RuntimeException("Impossible de traiter cette inscription. Veuillez reessayer ou contacter le support.");
-        }
-
-        // Verifier s'il existe deja une inscription en attente pour cet email
-        // Si oui, la supprimer pour permettre une nouvelle tentative
-        pendingInscriptionRepository.findByEmailAndStatus(dto.getEmail(), PendingInscriptionStatus.PENDING_PAYMENT)
-                .ifPresent(existing -> {
-                    logger.info("Suppression de l'inscription en attente existante pour: {}", dto.getEmail());
-                    pendingInscriptionRepository.delete(existing);
-                });
-
-        // Valider le type d'organisation
-        OrganizationType orgType = dto.getOrganizationTypeEnum();
-        if (orgType == OrganizationType.SYSTEM) {
-            throw new RuntimeException("Type d'organisation non autorise.");
-        }
-        if (orgType != OrganizationType.INDIVIDUAL
-                && (dto.getCompanyName() == null || dto.getCompanyName().isBlank())) {
-            throw new RuntimeException("Le nom de la societe est requis pour une " + orgType.getDisplayName() + ".");
-        }
-
-        // Prix de base de l'abonnement PMS en centimes (source unique : PricingConfig)
-        // Utiliser le prix "synchro auto" si l'utilisateur a choisi la synchronisation calendrier
-        boolean isSyncMode = "sync".equalsIgnoreCase(dto.getCalendarSync());
-        int basePmsCents = isSyncMode
-                ? pricingConfigService.getPmsSyncPriceCents()
-                : pricingConfigService.getPmsMonthlyPriceCents();
-        // Supplément IA mensuel du forfait choisi (campagne X5) : porte la dotation
-        // de crédits IA incluse — le prix PMS de base reste inchangé.
-        int priceInCents = basePmsCents
-                + pricingConfigService.getAiMonthlySurchargeCents(dto.getForfait());
-
-        // Determiner l'intervalle et le montant selon la periode de facturation
-        BillingPeriod period = dto.getBillingPeriodEnum();
-        SubscriptionInterval interval;
-        long stripePriceAmount;
-        // Nombre de periodes par cycle de facturation : 1 an (annuel) ou 2 ans (bisannuel).
-        long intervalCount = 1L;
-        String billingDescription;
-
-        switch (period) {
-            case ANNUAL:
-                interval = SubscriptionInterval.YEAR;
-                // Total sur 12 mois au tarif annuel (computeTotalPriceCents = mensuel remise * mois).
-                stripePriceAmount = period.computeTotalPriceCents(priceInCents);
-                billingDescription = "Abonnement annuel (-20%)";
-                break;
-            case BIENNIAL:
-                interval = SubscriptionInterval.YEAR;
-                // Facture pour 2 ANS d'un coup : total sur 24 mois (mensuel remise * 24)
-                // + cycle de 2 ans (intervalCount=2), pas un montant annuel.
-                stripePriceAmount = period.computeTotalPriceCents(priceInCents);
-                intervalCount = 2L;
-                billingDescription = "Abonnement 2 ans (-35%), facture pour 2 ans";
-                break;
-            default: // MONTHLY
-                interval = SubscriptionInterval.MONTH;
-                stripePriceAmount = priceInCents;
-                billingDescription = "Abonnement mensuel";
-                break;
-        }
-
-        // Application du code promo si fourni et valide.
-        // Ordre critique : valider → consommer (CAS atomique) → creer le Coupon Stripe.
-        // Si la consommation echoue (quota epuise par race), on ignore le code et on
-        // continue sans discount (le code brut est tout de meme stocke pour audit).
-        String stripeCouponId = applyPromoCodeIfValid(dto.getPromoCode(), dto.getEmail());
-
-        // Checkout d'abonnement EMBARQUÉ via le port SubscriptionProvider (Vague 3).
-        // Metadata posées sur la session ET l'abonnement par l'adaptateur.
-        Map<String, String> metadata = new java.util.LinkedHashMap<>();
-        metadata.put("type", "inscription");
-        metadata.put("email", dto.getEmail());
-        metadata.put("forfait", dto.getForfait());
-        metadata.put("billingPeriod", period.name());
-
-        SubscriptionCheckoutRequest subRequest = new SubscriptionCheckoutRequest(
-                stripePriceAmount,
-                currency,
-                interval,
-                intervalCount,
-                "Baitly - Abonnement plateforme" + (isSyncMode ? " + Synchro auto" : ""),
-                billingDescription + " a la plateforme de gestion Baitly - Forfait "
-                        + dto.getForfaitDisplayName() + (isSyncMode ? " (avec synchronisation calendrier automatique)" : ""),
-                dto.getEmail(),
-                null,                                                       // pas de customer existant à l'inscription
-                true,                                                       // embarqué
-                inscriptionReturnUrl + "?session_id={CHECKOUT_SESSION_ID}",
-                null,                                                       // cancelUrl : N/A en embarqué
-                stripeCouponId,                                             // coupon (nullable)
-                metadata);
-
-        PaymentResult subResult = subscriptionProviderRegistry.resolve(currency).createSubscriptionCheckout(subRequest);
-        if (!subResult.success()) {
-            throw new RuntimeException("Echec de creation de la session d'abonnement: " + subResult.errorMessage());
-        }
-        final String sessionId = subResult.providerTxId();
-
-        // Sauvegarder l'inscription en attente (SANS le mot de passe)
-        PendingInscription pending = new PendingInscription();
-        pending.setFirstName(dto.getFirstName());
-        pending.setLastName(dto.getLastName());
-        pending.setEmail(dto.getEmail());
-        // Le mot de passe n'est plus stocke a l'inscription
-        pending.setPhoneNumber(dto.getPhone());
-        pending.setCompanyName(dto.getCompanyName());
-        pending.setOrganizationType(orgType.name());
-        pending.setForfait(dto.getForfait());
-        pending.setCity(dto.getCity());
-        pending.setPostalCode(dto.getPostalCode());
-        pending.setPropertyType(dto.getPropertyType());
-        pending.setPropertyCount(dto.getPropertyCount());
-        pending.setSurface(dto.getSurface());
-        pending.setGuestCapacity(dto.getGuestCapacity());
-        pending.setBookingFrequency(dto.getBookingFrequency());
-        pending.setCleaningSchedule(dto.getCleaningSchedule());
-        pending.setCalendarSync(dto.getCalendarSync());
-        // Stocker les listes de services en String separe par virgule
-        if (dto.getServices() != null && !dto.getServices().isEmpty()) {
-            pending.setServices(String.join(",", dto.getServices()));
-        }
-        if (dto.getServicesDevis() != null && !dto.getServicesDevis().isEmpty()) {
-            pending.setServicesDevis(String.join(",", dto.getServicesDevis()));
-        }
-        pending.setBillingPeriod(period.name());
-        // Consentement RGPD + attribution.
-        pending.setAcceptedTermsAt(LocalDateTime.now());
-        pending.setNewsletterOptIn(dto.isNewsletterOptIn());
-        // Le code promo brut est toujours stocke pour audit, meme s'il a ete refuse
-        // (code inconnu, expire, quota epuise). L'application reelle du discount Stripe
-        // est faite via applyPromoCodeIfValid() plus haut (coupon attache a la session).
-        pending.setPromoCode(dto.getPromoCode());
-        pending.setReferralSource(dto.getReferralSource());
-        pending.setStripeSessionId(sessionId);
-        pending.setStatus(PendingInscriptionStatus.PENDING_PAYMENT);
-        // Expiration apres 24h si non paye
-        pending.setExpiresAt(LocalDateTime.now().plusHours(24));
-
-        pendingInscriptionRepository.save(pending);
-
-        logger.info("Inscription en attente creee pour {}, session Stripe: {}", dto.getEmail(), sessionId);
-
-        // Retourner le clientSecret + les prix reels pour affichage coherent dans le frontend
-        int monthlyPriceCents = period.computeMonthlyPriceCents(priceInCents);
-        Map<String, Object> result = new java.util.LinkedHashMap<>();
-        result.put("clientSecret", subResult.clientSecret());
-        result.put("sessionId", sessionId);
-        result.put("pmsBaseCents", priceInCents);
-        result.put("monthlyPriceCents", monthlyPriceCents);
-        result.put("stripePriceAmount", stripePriceAmount);
-        result.put("billingPeriod", period.name());
-        return result;
+        return signupCheckout.start(dto);
     }
 
     // ═══════════════════════════════════════════════════════════════════════════
@@ -302,8 +141,15 @@ public class InscriptionService {
     public void confirmPayment(String stripeSessionId, String stripeCustomerId, String stripeSubscriptionId) {
         logger.info("Confirmation paiement pour la session Stripe: {}", stripeSessionId);
 
+        boolean monthly;
+        try { monthly = signupCheckout.confirm(stripeSessionId); }
+        catch (StripeException failure) { throw new IllegalStateException("Paiement à rapprocher auprès de Stripe", failure); }
+
         PendingInscription pending = pendingInscriptionRepository.findByStripeSessionId(stripeSessionId)
                 .orElseThrow(() -> new RuntimeException("Inscription en attente non trouvee pour la session: " + stripeSessionId));
+        if (monthly && (!java.util.Objects.equals(pending.getStripeCustomerId(), stripeCustomerId)
+                || !java.util.Objects.equals(pending.getStripeSubscriptionId(), stripeSubscriptionId)))
+            throw new IllegalStateException("Notification Stripe incompatible avec la preuve de paiement");
 
         if (pending.getStatus() == PendingInscriptionStatus.COMPLETED) {
             logger.warn("Inscription deja finalisee pour la session: {}", stripeSessionId);
@@ -311,6 +157,7 @@ public class InscriptionService {
         }
 
         if (pending.getStatus() == PendingInscriptionStatus.PAYMENT_CONFIRMED) {
+            if (monthly) return; // Un rejeu de webhook ne révoque pas le lien déjà envoyé.
             logger.warn("Paiement deja confirme pour la session: {}, re-envoi de l'email", stripeSessionId);
             // Re-envoyer l'email au cas ou (webhook doublon)
             sendConfirmationEmail(pending);
@@ -385,6 +232,7 @@ public class InscriptionService {
         }
 
         try {
+            signupCheckout.requireReadyToProvision(pending);
             // 1. Creer l'utilisateur dans Keycloak
             CreateUserDto keycloakUser = new CreateUserDto();
             keycloakUser.setFirstName(pending.getFirstName());
@@ -458,10 +306,11 @@ public class InscriptionService {
             String orgName = pending.getCompanyName() != null && !pending.getCompanyName().isBlank()
                     ? pending.getCompanyName()
                     : pending.getFirstName() + " " + pending.getLastName();
-            organizationService.createForUserWithBilling(
+            Organization organization = organizationService.createForUserWithBilling(
                     user, orgName, completionOrgType,
                     pending.getStripeCustomerId(), pending.getStripeSubscriptionId(),
                     pending.getForfait(), pending.getBillingPeriod());
+            signupCheckout.bind(pending, user, organization);
             logger.info("Organisation creee pour l'utilisateur: {}", user.getEmail());
 
             // 4. Marquer l'inscription comme terminee
@@ -559,6 +408,7 @@ public class InscriptionService {
     public void markInscriptionFailed(String stripeSessionId) {
         pendingInscriptionRepository.findByStripeSessionId(stripeSessionId)
                 .ifPresent(pending -> {
+                    if (pending.getRequestId() != null || pending.getStatus() != PendingInscriptionStatus.PENDING_PAYMENT) return;
                     pending.setStatus(PendingInscriptionStatus.PAYMENT_FAILED);
                     pendingInscriptionRepository.save(pending);
                     logger.info("Inscription marquee comme echouee pour: {}", pending.getEmail());
@@ -569,90 +419,23 @@ public class InscriptionService {
      * Nettoie les inscriptions expirees (appelable via un cron job)
      */
     public void cleanupExpiredInscriptions() {
-        pendingInscriptionRepository.deleteByStatusAndExpiresAtBefore(
-                PendingInscriptionStatus.PENDING_PAYMENT,
-                LocalDateTime.now()
-        );
-        logger.info("Nettoyage des inscriptions expirees effectue");
+        // Ne jamais supprimer une inscription possédant un paiement ou une commande à rapprocher.
+        for (var pending : pendingInscriptionRepository.findByStatusAndExpiresAtBefore(
+                PendingInscriptionStatus.PENDING_PAYMENT, LocalDateTime.now())) {
+            if (pending.getStripeSessionId() == null) continue;
+            try { signupCheckout.expire(pending.getStripeSessionId()); }
+            catch (Exception failure) { logger.warn("Inscription {} à rapprocher avant expiration", pending.getId()); }
+        }
+    }
+
+    @Transactional(propagation=org.springframework.transaction.annotation.Propagation.NOT_SUPPORTED)
+    public void expireInscription(String sessionId) throws StripeException {
+        signupCheckout.expire(sessionId);
     }
 
     // ═══════════════════════════════════════════════════════════════════════════
     // Methodes privees utilitaires
     // ═══════════════════════════════════════════════════════════════════════════
-
-    /**
-     * Valide le code promo, le consomme atomiquement (CAS), puis cree un Coupon
-     * Stripe a la volee pour le rattacher a la session Checkout.
-     *
-     * <p>Retourne l'ID du coupon Stripe a attacher a la session, ou {@code null}
-     * si :
-     * <ul>
-     *   <li>aucun code n'a ete fourni</li>
-     *   <li>le code est inconnu, expire, ou desactive</li>
-     *   <li>le quota a ete epuise (race condition sur la derniere utilisation)</li>
-     *   <li>la creation du coupon Stripe a echoue (on degrade silencieusement)</li>
-     * </ul>
-     * </p>
-     *
-     * <p>Politique d'application : <b>Duration.ONCE</b> — le discount s'applique
-     * uniquement sur la premiere facture (le premier mois pour MONTHLY, la premiere
-     * annee pour ANNUAL/BIENNIAL). Pas de discount recurrent.</p>
-     *
-     * <p>Le coupon Stripe est cree avec {@code maxRedemptions=1} pour que chaque
-     * utilisateur ait son propre coupon unique — evite le partage de coupon entre
-     * utilisateurs.</p>
-     */
-    private String applyPromoCodeIfValid(String rawCode, String emailForAudit) {
-        if (rawCode == null || rawCode.isBlank()) {
-            return null;
-        }
-        var validated = promoCodeService.validate(rawCode);
-        if (validated.isEmpty()) {
-            logger.info("Code promo invalide ou expire pour {}: {}", emailForAudit, rawCode);
-            return null;
-        }
-        var promo = validated.get();
-
-        // Consommation atomique (CAS) AVANT creation du coupon Stripe pour eviter
-        // qu'un coupon soit emis pour un code qui ne peut pas etre consomme.
-        if (!promoCodeService.tryConsume(promo.getId())) {
-            logger.warn("Code promo {} consomme entre validate et tryConsume (race condition)", promo.getCode());
-            return null;
-        }
-
-        try {
-            CouponCreateParams.Builder couponBuilder = CouponCreateParams.builder()
-                    .setDuration(CouponCreateParams.Duration.ONCE)
-                    .setMaxRedemptions(1L)
-                    .setName("Code promo Clenzy: " + promo.getCode())
-                    .putMetadata("clenzy_promo_code_id", String.valueOf(promo.getId()))
-                    .putMetadata("clenzy_promo_code", promo.getCode())
-                    .putMetadata("clenzy_email", emailForAudit);
-
-            if (promo.getDiscountType() == com.clenzy.model.PlatformPromoCode.DiscountType.PERCENTAGE) {
-                // PercentOff accepte un BigDecimal (1.0 a 100.0)
-                couponBuilder.setPercentOff(new java.math.BigDecimal(promo.getDiscountValue()));
-            } else {
-                // FIXED — montant en centimes + currency obligatoire
-                couponBuilder.setAmountOff((long) promo.getDiscountValue());
-                couponBuilder.setCurrency(currency.toLowerCase());
-            }
-
-            Coupon coupon = stripeGateway.createCoupon(couponBuilder.build());
-            logger.info("Coupon Stripe cree pour {}: {} ({}) -> coupon_id={}",
-                    emailForAudit, promo.getCode(), promo.getDiscountType(), coupon.getId());
-            return coupon.getId();
-        } catch (StripeException e) {
-            // Le code a ete consomme mais le coupon n'a pas pu etre cree.
-            // On loggue et on continue sans discount — l'utilisateur s'inscrit
-            // au prix plein. Le contrepoid est que le compteur used_count est
-            // legerement surestime, ce qui est acceptable.
-            logger.error("Echec de la creation du coupon Stripe pour {} (code={}): {}. "
-                    + "Le code est marque comme consomme mais le discount n'est pas applique.",
-                    emailForAudit, promo.getCode(), e.getMessage());
-            return null;
-        }
-    }
 
     /**
      * Genere un token UUID, stocke son hash SHA-256 dans l'inscription, et retourne le token brut.

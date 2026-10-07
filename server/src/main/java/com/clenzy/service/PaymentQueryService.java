@@ -60,6 +60,7 @@ public class PaymentQueryService {
     private final ServiceQuoteRepository serviceQuoteRepository;
     private final InterventionBatchCheckoutService batchCheckout;
     private final BaitlyInterventionCheckoutExpiry checkoutExpiry;
+    private final BaitlyMaintenanceDepositCheckout maintenanceDeposit;
     private final com.clenzy.repository.PaymentTransactionRepository transactions;
 
     public PaymentQueryService(InterventionRepository interventionRepository,
@@ -69,7 +70,9 @@ public class PaymentQueryService {
                                StripeService stripeService,
                                TenantContext tenantContext,
                                ServiceQuoteRepository serviceQuoteRepository, InterventionBatchCheckoutService batchCheckout,
-                               com.clenzy.repository.PaymentTransactionRepository transactions, BaitlyInterventionCheckoutExpiry checkoutExpiry) {
+                               com.clenzy.repository.PaymentTransactionRepository transactions, BaitlyInterventionCheckoutExpiry checkoutExpiry,
+                               BaitlyMaintenanceDepositCheckout maintenanceDeposit) {
+        this.maintenanceDeposit=maintenanceDeposit;
         this.checkoutExpiry = checkoutExpiry;
         this.transactions = transactions;
         this.batchCheckout = batchCheckout;
@@ -111,6 +114,8 @@ public class PaymentQueryService {
     public Optional<Map<String, Object>> getSessionStatus(String sessionId) {
         Long orgId = tenantContext.getRequiredOrganizationId();
 
+        var deposit=maintenanceDeposit.sessionStatus(sessionId,orgId);
+        if(deposit.isPresent())return deposit;
         var batch = batchCheckout.sessionStatus(sessionId, orgId);
         if (batch.isPresent()) return batch;
         if (checkoutExpiry.reconcile(sessionId, orgId))
@@ -247,6 +252,8 @@ public class PaymentQueryService {
         var partialRefundIds = missionIds.isEmpty() ? java.util.Set.<Long>of()
                 : new java.util.HashSet<>(transactions.findStandaloneRefundableMissionIds(orgId, missionIds));
         if (!missionIds.isEmpty()) partialRefundIds.addAll(transactions.findAllocatedRefundableMissionIds(orgId,missionIds));
+        var maintenanceIds=missionIds.isEmpty()?java.util.Set.<Long>of():new java.util.HashSet<>(transactions.findMaintenanceRefundCandidateMissionIds(orgId,missionIds));
+        pageContent.forEach(dto -> dto.refundAcrossReceipts="INTERVENTION".equals(dto.type) && maintenanceIds.contains(dto.referenceId));
         pageContent.forEach(dto -> dto.supportsPartialRefund = "INTERVENTION".equals(dto.type)
                 && partialRefundIds.contains(dto.referenceId));
         var bookingRefunds = sourceRefunds(orgId, pageContent.stream().filter(d -> "RESERVATION".equals(d.type))
@@ -457,6 +464,7 @@ public class PaymentQueryService {
             dto.payableAmount = InterventionPaymentAmounts.payable(i, serviceQuoteRepository
                     .findByInterventionIdAndOrganizationIdOrderByAmountAsc(i.getId(), i.getOrganizationId()), false);
             dto.canCollect = dto.payableAmount != null && dto.payableAmount.signum() > 0;
+            dto.individualCheckout = dto.canCollect && i.getEstimatedCost()!=null && dto.payableAmount.compareTo(i.getEstimatedCost())<0;
         }
         dto.type = "INTERVENTION";
         dto.stripeSessionId = i.getStripeSessionId();

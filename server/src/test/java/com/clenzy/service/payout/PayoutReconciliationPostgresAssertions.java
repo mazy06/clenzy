@@ -31,7 +31,7 @@ final class PayoutReconciliationPostgresAssertions {
             var events=factory.getRepository(PayoutTransferEventRepository.class);
             var owners=factory.getRepository(OwnerPayoutRepository.class);
             var providers=factory.getRepository(HousekeeperPayoutRecordRepository.class);
-            var writer=new PayoutReconciliationWriter(transfers,events,owners,providers,org.mockito.Mockito.mock(BaitlyOwnerPayoutDocuments.class), org.mockito.Mockito.mock(BaitlyExpensePayoutStore.class));
+            var writer=new PayoutReconciliationWriter(transfers,events,owners,providers,org.mockito.Mockito.mock(BaitlyOwnerPayoutDocuments.class), org.mockito.Mockito.mock(BaitlyExpensePayoutStore.class), org.mockito.Mockito.mock(BaitlyCommercePayoutStore.class));
             em.getTransaction().begin();
             transfers.insertIfAbsent(7L,"INTERVENTION",1000L,null,9L,instruction.amount(),"EUR","acct_company",instruction.description(),instruction.idempotencyKey());
             var row=transfers.lockBySource(7L,instruction.source(),1000L).orElseThrow();id=row.getId();row.requireReconciliation();
@@ -49,7 +49,7 @@ final class PayoutReconciliationPostgresAssertions {
             assertThat(audit).hasSize(1);assertThat(audit.getFirst().getActorSubject()).isEqualTo("staff-subject");
             assertThat(providers.findByInterventionId(1000L).orElseThrow().getStatus()).isEqualTo(HousekeeperPayoutRecord.Status.SENT);
             var query=new PayoutTransferQueryService(transfers,events,org.mockito.Mockito.mock(BankPayoutObservationRepository.class),
-                    org.mockito.Mockito.mock(UserRepository.class),org.mockito.Mockito.mock(OrganizationRepository.class), org.mockito.Mockito.mock(com.clenzy.repository.BaitlyTransferRecoveryRepository.class));
+                    org.mockito.Mockito.mock(UserRepository.class),org.mockito.Mockito.mock(OrganizationRepository.class), org.mockito.Mockito.mock(com.clenzy.repository.BaitlyTransferRecoveryRepository.class), org.mockito.Mockito.mock(com.clenzy.repository.BaitlyCommerceRecoveryRepository.class));
             assertThat(query.list(7L,0,12,PayoutTransfer.State.TRANSFERRED,PayoutTransfer.Source.INTERVENTION,"Maintenance #1000").getTotalElements()).isEqualTo(1);
             assertThat(query.list(8L,0,12,null,null,"Maintenance #1000").getTotalElements()).isZero();
             assertThat(query.list(7L,0,12,null,null,"%").getTotalElements()).isZero();

@@ -56,6 +56,14 @@ def verify_reports(paths, required, frontend=False):
     return totals
 
 
+def validate_frontend_typecheck(required, config):
+    # La compilation applicative exclut les tests. Chaque suite de recette doit donc
+    # figurer explicitement dans le second projet TypeScript, sans exclusions héritées.
+    missing = set(required) - set(config.get("include", []))
+    if missing or config.get("exclude") != []:
+        raise ValueError(f"Typage de la recette incomplet : {sorted(missing)} ; aucune exclusion n'est autorisée.")
+
+
 def run(command, cwd, log):
     # RTK local quand disponible ; les runners CI n'ont pas besoin de l'installer.
     import shutil
@@ -77,6 +85,7 @@ def main(argv=None):
     parser.add_argument("--list", action="store_true", help="Lister les suites sans les exécuter.")
     args = parser.parse_args(argv)
     manifest = json.loads(MANIFEST.read_text())
+    validate_frontend_typecheck(manifest["frontend"], json.loads((ROOT / "client/tsconfig.finance-tests.json").read_text()))
     backend = required_backend(manifest["backend"], (ROOT / "server/src/test").rglob("*.java"))
     for path in manifest["frontend"]:
         if not (ROOT / "client" / path).is_file():
@@ -104,7 +113,9 @@ def main(argv=None):
             run([node, "node_modules/typescript/bin/tsc", "--noEmit", "-p", "tsconfig.json"], ROOT / "client", output / "typecheck.log")
             run([node, "node_modules/typescript/bin/tsc", "--noEmit", "-p", "tsconfig.finance-tests.json"], ROOT / "client", output / "test-typecheck.log")
             report = output / "frontend.xml"
-            run([node, "node_modules/vitest/vitest.mjs", "run", *manifest["frontend"], "--reporter=default",
+            # Les suites HTTP/jsdom chargent de gros écrans ; borner les workers évite la saturation
+            # et les faux timeouts de rendu lorsque les vérifications mobiles tournent aussi.
+            run([node, "node_modules/vitest/vitest.mjs", "run", *manifest["frontend"], "--maxWorkers=2", "--reporter=default",
                  "--reporter=junit", "--outputFile=" + str(report)], ROOT / "client", output / "frontend.log")
             results["frontend"] = verify_reports([report], manifest["frontend"], frontend=True)
         results["status"] = "passed"

@@ -21,13 +21,13 @@ class LibreOfficeConversionServiceTest {
 
     @BeforeEach
     void setUp() {
-        service = new LibreOfficeConversionService("http://gotenberg:3000", restTemplate);
+        service = new LibreOfficeConversionService(new BaitlyPdfEngine("http://gotenberg:3000", restTemplate));
     }
 
     @Test
     void whenConvertSuccess_thenReturnsPdf() {
         byte[] odt = new byte[]{1, 2, 3};
-        byte[] pdf = new byte[]{4, 5, 6};
+        byte[] pdf = BaitlyPdfEngineTest.pdf("TEST conversion");
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_PDF);
         ResponseEntity<byte[]> response = new ResponseEntity<>(pdf, headers, HttpStatus.OK);

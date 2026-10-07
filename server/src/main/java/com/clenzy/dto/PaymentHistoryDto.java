@@ -14,6 +14,8 @@ import java.math.BigDecimal;
  * source de la reservation, etc.).</p>
  */
 public class PaymentHistoryDto {
+    /** Le solde d'un acompte conserve sa session distincte pour le remboursement multi-encaissements. */
+    public boolean individualCheckout;
     public Long id;
     public Long referenceId;          // ID de l'intervention ou de la reservation
     /**
@@ -41,6 +43,7 @@ public class PaymentHistoryDto {
     public boolean refundReviewRequired;
     public boolean paymentDisputed;
     public boolean supportsPartialRefund; // Capacité du circuit identifié, revalidée avant toute émission.
+    public boolean refundAcrossReceipts;
     public String currency = "EUR";
     public String status;             // PAID, PENDING, PROCESSING, FAILED, REFUNDED, CANCELLED
     public String paymentCollection;  // PMS / CHANNEL / UNKNOWN, réservations uniquement

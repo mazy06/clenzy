@@ -3,11 +3,9 @@ package com.clenzy.service.ai;
 import com.clenzy.model.AiCreditRateCard;
 import com.clenzy.model.AiUsageLedgerEntry;
 import com.clenzy.repository.AiCreditRateCardRepository;
-import com.clenzy.repository.AiUsageLedgerRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 
 import java.time.Instant;
@@ -19,10 +17,8 @@ import java.util.UUID;
  * Metering en credits IA (campagne T-06, ADR-005/006) : convertit l'usage
  * tokens d'un appel LLM en debit du ledger {@code ai_usage_ledger}.
  *
- * <p><b>Phase actuelle (T-06)</b> : le ledger ENREGISTRE — l'enforcement de
- * solde (poches, Redis, pre-vol) arrive au ticket suivant. Toute erreur de
- * metering est donc avalee (best-effort) ; quand l'enforcement arrivera, le
- * pre-vol deviendra bloquant, pas cette ecriture.</p>
+ * <p>Journal, réservations et poches sont écrits atomiquement. Une erreur
+ * arrête le parcours au lieu de laisser une consommation non comptabilisée.</p>
  *
  * <p>Regles ancrees :</p>
  * <ul>
@@ -48,7 +44,7 @@ public class CreditMeteringService {
     private static final long RATE_CACHE_TTL_MS = 5 * 60 * 1000L;
 
     private final AiCreditRateCardRepository rateCardRepository;
-    private final AiUsageLedgerRepository ledgerRepository;
+    private final BaitlyCreditDebit debitWriter;
     /** Garde de run (T-06b) — nullable en test ; no-op sans run garde actif. */
     private final RunCreditGuard runCreditGuard;
     private final double byokFactor;
@@ -59,19 +55,19 @@ public class CreditMeteringService {
     private final AutonomyContextHolder autonomyContextHolder;
 
     public CreditMeteringService(AiCreditRateCardRepository rateCardRepository,
-                                 AiUsageLedgerRepository ledgerRepository,
+                                 BaitlyCreditDebit debitWriter,
                                  RunCreditGuard runCreditGuard,
                                  AutonomyContextHolder autonomyContextHolder,
                                  @Value("${clenzy.ai.credits.byok-factor:0.30}") double byokFactor) {
         this.rateCardRepository = rateCardRepository;
-        this.ledgerRepository = ledgerRepository;
+        this.debitWriter = debitWriter;
         this.runCreditGuard = runCreditGuard;
         this.autonomyContextHolder = autonomyContextHolder;
         this.byokFactor = byokFactor;
     }
 
     /**
-     * Enregistre le debit d'un appel LLM au ledger. Best-effort : ne leve JAMAIS.
+     * Enregistre atomiquement le débit et les poches ; une erreur arrête le parcours.
      *
      * @param runId          run persiste (nullable — usage hors run trace quand meme)
      * @param stepSeq        sequence de metering dans le run (nullable)
@@ -88,7 +84,7 @@ public class CreditMeteringService {
         if (organizationId == null || (promptTokens <= 0 && completionTokens <= 0)) {
             return;
         }
-        try {
+        {
             AiCreditRateCard inputRate = resolveRate(provider, model, AiCreditRateCard.TYPE_INPUT);
             AiCreditRateCard outputRate = resolveRate(provider, model, AiCreditRateCard.TYPE_OUTPUT);
             if (inputRate == null && outputRate == null) {
@@ -110,36 +106,28 @@ public class CreditMeteringService {
             String bucket = autonomyContextHolder != null
                     ? autonomyContextHolder.current() : AiUsageLedgerEntry.BUCKET_INTERACTIVE;
             boolean socle = AiUsageLedgerEntry.BUCKET_SOCLE.equals(bucket);
-            long clientDebit = socle ? 0L : debit;
+            long clientDebit = socle || (runCreditGuard != null && runCreditGuard.isExempt()) ? 0L : debit;
 
             String key = idempotencyKey != null ? idempotencyKey
                     : "adhoc:" + UUID.randomUUID();
-            ledgerRepository.save(new AiUsageLedgerEntry(
+            boolean recorded = debitWriter.record(new AiUsageLedgerEntry(
                     organizationId, keycloakUserId, runId, stepSeq, agent, feature,
                     AiUsageLedgerEntry.TYPE_DEBIT, bucket,
                     provider, model,
                     promptTokens, completionTokens, cachedPromptTokens,
                     inputRate != null ? inputRate.getId() : null,
                     outputRate != null ? outputRate.getId() : null,
-                    -clientDebit, realCost, key));
+                    -clientDebit, realCost, key), runCreditGuard == null ? null : runCreditGuard.reservation(organizationId));
             // Enforcement (T-06b) : le socle ne consomme pas de solde (inclus) ;
             // interactif et premium appliquent aux poches + re-check inter-tours.
-            if (runCreditGuard != null && clientDebit > 0) {
+            if (recorded && runCreditGuard != null && clientDebit > 0) {
                 runCreditGuard.onDebit(organizationId, clientDebit);
             }
-        } catch (DataIntegrityViolationException e) {
-            // Retry du meme debit : la contrainte unique fait son travail — pas de double comptage.
-            log.debug("[CREDITS] Debit deja enregistre (idempotence) : {}", idempotencyKey);
-        } catch (Exception e) {
-            log.warn("[CREDITS] Echec d'ecriture ledger (best-effort, phase sans enforcement) : {}",
-                    e.getMessage());
         }
     }
 
     /**
-     * Débit client (millicredits) d'un appel LLM SANS écriture au ledger — pour les flux HORS « run »
-     * gardé (ex. génération de site) qui appliquent eux-mêmes le débit au solde via
-     * {@link CreditBalanceService#applyConsumptionToGrants}. Même barème que {@link #meterLlmUsage}
+     * Débit client estimé sans écriture au journal. Même barème que {@link #meterLlmUsage}
      * (rate card + facteur BYOK), hors bucket SOCLE.
      */
     public long computeClientDebit(String provider, String model, int promptTokens, int completionTokens, boolean byok) {

@@ -577,18 +577,17 @@ export const ExpensesTab: React.FC = () => {
     receiptTargetIdRef.current = null;
   }, [uploadReceiptMutation]);
 
-  const handleGeneratePo = useCallback(async (expense: ProviderExpense) => {
-    try {
-      await documentsApi.generateDocument({
+  const purchaseOrderMutation = useMutation({
+    mutationFn: async (expense: ProviderExpense) => {
+      const document = await documentsApi.generateDocument({
         documentType: 'BON_COMMANDE',
         referenceId: expense.id,
         referenceType: 'PROVIDER_EXPENSE',
         sendEmail: false,
       });
-    } catch {
-      // Template may not exist yet — silently fail
-    }
-  }, []);
+      await documentsApi.downloadGeneration(document.id, document.fileName || 'bon-de-commande.pdf');
+    },
+  });
 
   const helpAction = usePageHeaderActions(
     <HelpPopover
@@ -606,6 +605,11 @@ export const ExpensesTab: React.FC = () => {
   return (
     <>
       {helpAction}
+
+      {purchaseOrderMutation.isError && <BuiAlert variant="destructive" role="alert">
+        <TriangleAlert />
+        <AlertDescription>{t('accounting.expenses.purchaseOrderError', 'Impossible de générer ou télécharger le bon de commande. Réessayez ou vérifiez le modèle dans Documents.')}</AlertDescription>
+      </BuiAlert>}
 
       {/* Hidden file input for receipt upload */}
       <input
@@ -833,7 +837,8 @@ export const ExpensesTab: React.FC = () => {
                           variant="ghost"
                           size="icon-sm"
                           aria-label={t('accounting.expenses.generatePo', 'Bon de commande')}
-                          onClick={() => handleGeneratePo(expense)}
+                          onClick={() => purchaseOrderMutation.mutate(expense)}
+                          disabled={purchaseOrderMutation.isPending}
                         >
                           <PoIcon size={'1rem'} strokeWidth={1.75} />
                         </BuiButton>

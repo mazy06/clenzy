@@ -79,8 +79,8 @@ public class AiCreditGrantService {
      * l'invoice n'est pas un abonnement PMS connu.
      */
     @Transactional
-    public void grantForPaidInvoice(String stripeSubscriptionId, String invoiceId) {
-        if (stripeSubscriptionId == null || invoiceId == null) {
+    public void grantForPaidInvoice(String stripeSubscriptionId, com.stripe.model.Invoice invoice) {
+        if (stripeSubscriptionId == null || invoice == null) {
             return;
         }
         User payer = userRepository.findByStripeSubscriptionId(stripeSubscriptionId).orElse(null);
@@ -90,8 +90,17 @@ public class AiCreditGrantService {
             return;
         }
         long allotment = allotmentFor(payer.getForfait());
+        Instant paidUntil = balanceService.recordCoverage(payer,invoice);
+        if(paidUntil==null || !paidUntil.isAfter(Instant.now()))return;
+        boolean prepaid = List.of("ANNUAL","BIENNIAL").contains(java.util.Objects.toString(payer.getBillingPeriod(),""));
+        if (prepaid && grantRepository.existsByOrganizationIdAndSourceAndGrantedAtGreaterThanEqual(
+                payer.getOrganizationId(), AiCreditGrant.SOURCE_SUBSCRIPTION,
+                YearMonth.now(BILLING_ZONE).atDay(1).atStartOfDay(BILLING_ZONE).toInstant())) return;
+        Instant expiry=prepaid
+                ? YearMonth.now(BILLING_ZONE).plusMonths(1).atDay(1).atStartOfDay(BILLING_ZONE).toInstant()
+                : paidUntil;
         grant(payer.getOrganizationId(), AiCreditGrant.SOURCE_SUBSCRIPTION, allotment,
-                Instant.now().plus(SUBSCRIPTION_GRANT_TTL), invoiceId);
+                paidUntil.isBefore(expiry)?paidUntil:expiry, invoice.getId());
     }
 
     /**
@@ -111,6 +120,7 @@ public class AiCreditGrantService {
         if (organizationId == null) {
             return false;
         }
+        balanceService.lock(organizationId);
         YearMonth month = YearMonth.now(BILLING_ZONE);
         Instant monthStart = month.atDay(1).atStartOfDay(BILLING_ZONE).toInstant();
         boolean alreadyGrantedThisMonth = grantRepository
@@ -122,12 +132,24 @@ public class AiCreditGrantService {
         User payer = userRepository
                 .findFirstByOrganizationIdAndStripeSubscriptionIdIsNotNull(organizationId)
                 .orElse(null);
-        if (payer == null) {
+        if (payer == null || !List.of("ANNUAL","BIENNIAL").contains(payer.getBillingPeriod()==null?"":payer.getBillingPeriod())) {
             return false; // pas d'abonnement actif → non éligible aux crédits inclus
         }
+        Instant paidUntil=balanceService.paidUntil(organizationId,payer.getStripeSubscriptionId());
+        if(paidUntil==null || !paidUntil.isAfter(Instant.now()))return false;
+        String funding=balanceService.fundingInvoice(organizationId,payer.getStripeSubscriptionId());
+        if(funding==null)return false;
+        Instant expiry=month.plusMonths(1).atDay(1).atStartOfDay(BILLING_ZONE).toInstant();
         grant(organizationId, AiCreditGrant.SOURCE_SUBSCRIPTION, allotmentFor(payer.getForfait()),
-                Instant.now().plus(SUBSCRIPTION_GRANT_TTL), "monthly:" + organizationId + ":" + month);
+                paidUntil.isBefore(expiry)?paidUntil:expiry, "monthly:" + organizationId + ":" + month + ":" + funding);
         return true;
+    }
+
+    /** Dotation d'une échéance canonique vérifiée, rattachée à l'organisation du contrat. */
+    @Transactional
+    public void grantForVerifiedInvoice(Long organizationId,String forfait,String invoiceId,Instant periodEnd) {
+        if(periodEnd==null || !periodEnd.isAfter(Instant.now()))return;
+        grant(organizationId,AiCreditGrant.SOURCE_SUBSCRIPTION,allotmentFor(forfait),periodEnd,invoiceId);
     }
 
     /**
@@ -168,6 +190,7 @@ public class AiCreditGrantService {
         if (organizationId == null || millicredits <= 0) {
             return false;
         }
+        balanceService.lock(organizationId);
         boolean alreadyGranted = !grantRepository
                 .findByOrganizationIdAndExpiresAtAfterOrderByExpiresAtAsc(organizationId, Instant.now())
                 .isEmpty();
@@ -219,18 +242,22 @@ public class AiCreditGrantService {
      */
     @Transactional
     public int expireOverdueGrants() {
-        List<AiCreditGrant> overdue = grantRepository.findExpiredWithRemaining(Instant.now());
-        for (AiCreditGrant grant : overdue) {
+        int count=0;
+        for(Long org:grantRepository.findOrganizationsToExpire(Instant.now())) {
+            balanceService.lock(org);
+            List<AiCreditGrant> overdue = grantRepository.findExpiredForOrganization(org,Instant.now());
+            for (AiCreditGrant grant : overdue) {
             long remaining = grant.remaining();
             writeLedgerLine(grant.getOrganizationId(), AiUsageLedgerEntry.TYPE_EXPIRY,
                     -remaining, "expiry:grant:" + grant.getId());
-            grant.applyConsumption(remaining); // solde la poche → jamais re-expiree
+            grant.expireRemaining();
             balanceService.invalidate(grant.getOrganizationId());
             log.info("[CREDITS] Poche {} expiree : org={} source={} perdu={}mc",
                     grant.getId(), grant.getOrganizationId(), grant.getSource(), remaining);
+            }
+            grantRepository.saveAll(overdue);count+=overdue.size();
         }
-        grantRepository.saveAll(overdue);
-        return overdue.size();
+        return count;
     }
 
     /** Dernieres lignes du ledger de l'org (ecran credits, T-08) — libellees par agent/type. */
@@ -256,7 +283,7 @@ public class AiCreditGrantService {
     public Map<String, Object> getBalance(Long organizationId) {
         List<AiCreditGrant> active = grantRepository
                 .findByOrganizationIdAndExpiresAtAfterOrderByExpiresAtAsc(organizationId, Instant.now());
-        long total = active.stream().mapToLong(AiCreditGrant::remaining).sum();
+        var state = balanceService.snapshot(organizationId);
         List<Map<String, Object>> pockets = active.stream()
                 .filter(g -> g.remaining() > 0)
                 .map(g -> Map.<String, Object>of(
@@ -264,7 +291,9 @@ public class AiCreditGrantService {
                         "remainingMillicredits", g.remaining(),
                         "expiresAt", g.getExpiresAt()))
                 .toList();
-        return Map.of("totalMillicredits", total, "pockets", pockets);
+        return Map.of("totalMillicredits", state.availableMillicredits(), "debtMillicredits", state.debtMillicredits(),
+                "reservedMillicredits",state.reservedMillicredits(), "pockets", pockets,
+                "pendingReconciliationMillicredits",active.stream().filter(AiCreditGrant::isFundingPending).mapToLong(AiCreditGrant::unspent).sum());
     }
 
     private long allotmentFor(String forfait) {
@@ -281,14 +310,16 @@ public class AiCreditGrantService {
         if (organizationId == null || millicredits <= 0) {
             return;
         }
+        balanceService.lock(organizationId);
         // Idempotence : check explicite + contrainte unique DB en filet (une course
         // de double-livraison leve → 500 → retry Stripe → le check passe).
         if (stripeRef != null && grantRepository.existsByStripeRef(stripeRef)) {
             log.info("[CREDITS] Grant deja credite (stripeRef={}) — idempotence", stripeRef);
             return;
         }
-        grantRepository.save(new AiCreditGrant(organizationId, source, millicredits,
-                expiresAt, stripeRef));
+        var pocket=new AiCreditGrant(organizationId, source, millicredits,expiresAt, stripeRef);
+        balanceService.applyFunding(pocket);
+        grantRepository.save(pocket);
         writeLedgerLine(organizationId, AiUsageLedgerEntry.TYPE_GRANT, millicredits,
                 "grant:" + (stripeRef != null ? stripeRef : java.util.UUID.randomUUID()));
         balanceService.invalidate(organizationId);

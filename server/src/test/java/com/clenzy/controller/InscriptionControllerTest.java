@@ -26,7 +26,7 @@ class InscriptionControllerTest {
 
     @BeforeEach
     void setUp() {
-        controller = new InscriptionController(inscriptionService, platformSettings);
+        controller = new InscriptionController(inscriptionService, platformSettings, org.mockito.Mockito.mock(com.clenzy.service.BaitlySignupCheckout.class));
     }
 
     @Nested
