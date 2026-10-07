@@ -4445,3 +4445,11 @@ databaseChangeLog:
         - sqlFile:
             path: changes/0492__payment_connections.sql
             relativeToChangelogFile: true
+
+  - changeSet:
+      id: "0493-pms-migration-plans"
+      author: clenzy-team
+      changes:
+        - sqlFile:
+            path: changes/0493__pms_migration_plans.sql
+            relativeToChangelogFile: true

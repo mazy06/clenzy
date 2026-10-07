@@ -25,6 +25,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
@@ -166,6 +167,14 @@ public class ChannexBookingService {
             return own;
         }
 
+        // Sejour deja importe depuis l'ancien PMS (migration) : on l'adopte au lieu de le doubler.
+        // Les exports OTA ne portent souvent pas l'email du voyageur ; le flux Channex le complete ici.
+        Optional<Reservation> imported = adoptImported(booking, mapping.getClenzyPropertyId(), orgId, externalUid);
+        if (imported.isPresent()) {
+            metrics.recordBookingProcessed("pms_import_adopted");
+            return handleModification(booking).orElse(imported.get());
+        }
+
         Property property = propertyRepository.findById(mapping.getClenzyPropertyId())
             .orElseThrow(() -> new IllegalStateException(
                 "Property " + mapping.getClenzyPropertyId() + " mappee Channex mais introuvable en DB"));
@@ -298,6 +307,7 @@ public class ChannexBookingService {
         Optional<Reservation> opt = reservationRepository.findByExternalUidAndPropertyId(
             externalUid, mapping.getClenzyPropertyId()
         );
+        if (opt.isEmpty()) opt = adoptImported(booking, mapping.getClenzyPropertyId(), mapping.getOrganizationId(), externalUid);
         if (opt.isEmpty()) {
             log.warn("ChannexBooking: cancellation pour booking {} inconnu — skip", booking.stableBookingId());
             return Optional.empty();
@@ -340,6 +350,31 @@ public class ChannexBookingService {
     }
 
     // ─── Helpers ────────────────────────────────────────────────────────────
+
+    /**
+     * Rattache une reservation importee d'un autre PMS (externalUid {@code baitly-import:}) au booking
+     * Channex qui la decrit, par code de confirmation OTA dans le logement mappe. Un seul candidat exige :
+     * en cas d'ambiguite, le flux normal s'applique et le conflit calendrier reste visible.
+     * Le voyageur sans email (exports OTA) est complete avec les coordonnees transmises par Channex.
+     */
+    private Optional<Reservation> adoptImported(ChannexBookingDto booking, Long propertyId, Long orgId, String externalUid) {
+        String code = booking.otaReservationCode();
+        if (code == null || code.isBlank()) return Optional.empty();
+        List<Reservation> candidates = reservationRepository.findImportedByConfirmationCode(propertyId, code).stream()
+            .filter(r -> java.util.Objects.equals(r.getOrganizationId(), orgId)).toList();
+        if (candidates.size() != 1) return Optional.empty();
+        Reservation reservation = candidates.get(0);
+        reservation.setExternalUid(externalUid);
+        Guest guest = reservation.getGuest();
+        if (guest == null) {
+            reservation.setGuest(findOrCreateGuest(booking, orgId));
+        } else if (booking.customer() != null) {
+            if (guest.getEmail() == null && booking.customer().email() != null) guest.setEmail(booking.customer().email());
+            if (guest.getPhone() == null && booking.customer().phone() != null) guest.setPhone(booking.customer().phone());
+        }
+        log.info("ChannexBooking: booking {} rattache a la reservation importee #{}", booking.stableBookingId(), reservation.getId());
+        return Optional.of(reservationRepository.save(reservation));
+    }
 
     private void validateBookingPayload(ChannexBookingDto booking) {
         if (booking == null) {
