@@ -824,7 +824,7 @@
   color: var(--bm-muted);
 }
 .bm-pms-exit-facts {
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: repeat(auto-fit, minmax(14rem, 1fr));
 }
 .bm-pms-exit-facts small {
   display: block;

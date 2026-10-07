@@ -1,43 +1,43 @@
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import {
   cleanup,
   fireEvent,
   render,
   screen,
   within,
-} from "@testing-library/react";
-import { MemoryRouter } from "react-router-dom";
+} from '@testing-library/react';
+import { MemoryRouter } from 'react-router-dom';
 import {
   BaitlyPmsHomeSection,
   BaitlyPmsPortability,
   BaitlyPortabilityCommitment,
-} from "./BaitlyPmsPortability";
+} from './BaitlyPmsPortability';
 import {
   EXIT_CRITERIA,
   PMS_PORTABILITY,
   exitLevel,
-} from "../data/pmsPortability";
-import { PMS_PORTABILITY_MESSAGES } from "../lib/messages/pmsPortability";
-import { downloadText } from "../lib/downloadText";
+} from '../data/pmsPortability';
+import { PMS_PORTABILITY_MESSAGES } from '../lib/messages/pmsPortability';
+import { downloadText } from '../lib/downloadText';
 
-vi.mock("../lib/downloadText", () => ({ downloadText: vi.fn() }));
+vi.mock('../lib/downloadText', () => ({ downloadText: vi.fn() }));
 afterEach(() => {
   cleanup();
   vi.clearAllMocks();
 });
 
-describe("PMS portability evidence", () => {
-  it.each(["fr", "en", "ar"] as const)(
-    "shows scoped evidence, source links and unknown fallback in %s",
+describe('PMS portability evidence', () => {
+  it.each(['fr', 'en', 'ar'] as const)(
+    'shows scoped evidence, source links and unknown fallback in %s',
     (language) => {
       const m = PMS_PORTABILITY_MESSAGES[language];
       render(<BaitlyPmsPortability language={language} />);
-      const select = screen.getByRole("combobox", { name: m.label });
-      expect(screen.getByRole("heading", { name: m.emptyTitle })).toBeVisible();
+      const select = screen.getByRole('combobox', { name: m.label });
+      expect(screen.getByRole('heading', { name: m.emptyTitle })).toBeVisible();
       for (const provider of PMS_PORTABILITY) {
         fireEvent.change(select, { target: { value: provider.id } });
         expect(
-          screen.getByRole("heading", { name: provider.name }),
+          screen.getByRole('heading', { name: provider.name }),
         ).toBeVisible();
         expect(screen.getByText(provider.caution[language])).toBeVisible();
         expect(screen.getByText(provider.timing[language])).toBeVisible();
@@ -45,11 +45,14 @@ describe("PMS portability evidence", () => {
           screen.getByText(m.exitLevels[exitLevel(provider.exit)]),
         ).toBeVisible();
         expect(screen.getByText(provider.exitTerms[language])).toBeVisible();
-        const rows = within(screen.getByRole("table")).getAllByRole("row");
+        expect(
+          screen.getByText(m.baitlyImportModes[provider.baitlyImport]),
+        ).toBeVisible();
+        const rows = within(screen.getByRole('table')).getAllByRole('row');
         expect(rows).toHaveLength(EXIT_CRITERIA.length + 1);
         EXIT_CRITERIA.forEach((criterion) =>
           expect(
-            screen.getByRole("rowheader", { name: m.criteria[criterion] }),
+            screen.getByRole('rowheader', { name: m.criteria[criterion] }),
           ).toBeVisible(),
         );
         if (provider.feedback) {
@@ -60,39 +63,39 @@ describe("PMS portability evidence", () => {
         } else {
           expect(screen.queryByText(m.feedbackNote)).not.toBeInTheDocument();
         }
-        const links = within(screen.getByRole("navigation")).getAllByRole(
-          "link",
+        const links = within(screen.getByRole('navigation')).getAllByRole(
+          'link',
         );
-        expect(links.map((link) => link.getAttribute("href"))).toEqual(
+        expect(links.map((link) => link.getAttribute('href'))).toEqual(
           provider.sources.map((source) => source.url),
         );
         links.forEach((link) =>
-          expect(link.getAttribute("href")).toMatch(/^https:\/\//),
+          expect(link.getAttribute('href')).toMatch(/^https:\/\//),
         );
       }
-      fireEvent.change(select, { target: { value: "other" } });
+      fireEvent.change(select, { target: { value: 'other' } });
       expect(
-        screen.getByRole("heading", { name: m.unknownTitle }),
+        screen.getByRole('heading', { name: m.unknownTitle }),
       ).toBeVisible();
-      expect(screen.queryByRole("navigation")).not.toBeInTheDocument();
+      expect(screen.queryByRole('navigation')).not.toBeInTheDocument();
       expect(screen.getByText(m.methodology, { exact: false })).toBeVisible();
     },
   );
 
-  it("keeps the selected PMS when switching language and exports its limitations and sources", () => {
+  it('keeps the selected PMS when switching language and exports its limitations and sources', () => {
     const { rerender } = render(<BaitlyPmsPortability language="fr" />);
-    fireEvent.change(screen.getByRole("combobox"), {
-      target: { value: "superhote" },
+    fireEvent.change(screen.getByRole('combobox'), {
+      target: { value: 'superhote' },
     });
     rerender(<BaitlyPmsPortability language="ar" />);
-    expect(screen.getByRole("combobox")).toHaveValue("superhote");
+    expect(screen.getByRole('combobox')).toHaveValue('superhote');
     fireEvent.click(
-      screen.getByRole("button", {
+      screen.getByRole('button', {
         name: PMS_PORTABILITY_MESSAGES.ar.download,
       }),
     );
     expect(downloadText).toHaveBeenCalledWith(
-      "baitly-migration-superhote-ar.txt",
+      'baitly-migration-superhote-ar.txt',
       expect.stringContaining(PMS_PORTABILITY[0].caution.ar),
     );
     const text = vi.mocked(downloadText).mock.calls[0][1];
@@ -100,47 +103,47 @@ describe("PMS portability evidence", () => {
     expect(text).toContain(PMS_PORTABILITY_MESSAGES.ar.methodology);
   });
 
-  it("derives the exit level from documented criteria only", () => {
+  it('derives the exit level from documented criteria only', () => {
     expect(
       exitLevel({
-        export: "yes",
-        api: "yes",
-        afterExit: "yes",
-        freeToLeave: "no",
+        export: 'yes',
+        api: 'yes',
+        afterExit: 'yes',
+        freeToLeave: 'no',
       }),
-    ).toBe("smooth");
+    ).toBe('smooth');
     expect(
       exitLevel({
-        export: "partial",
-        api: "yes",
-        afterExit: "no",
-        freeToLeave: "partial",
+        export: 'partial',
+        api: 'yes',
+        afterExit: 'no',
+        freeToLeave: 'partial',
       }),
-    ).toBe("prepare");
+    ).toBe('prepare');
     expect(
       exitLevel({
-        export: "partial",
-        api: "yes",
-        afterExit: "unknown",
-        freeToLeave: "no",
+        export: 'partial',
+        api: 'yes',
+        afterExit: 'unknown',
+        freeToLeave: 'no',
       }),
-    ).toBe("constrained");
+    ).toBe('constrained');
     expect(
       exitLevel({
-        export: "yes",
-        api: "yes",
-        afterExit: "unknown",
-        freeToLeave: "unknown",
+        export: 'yes',
+        api: 'yes',
+        afterExit: 'unknown',
+        freeToLeave: 'unknown',
       }),
-    ).toBe("undocumented");
+    ).toBe('undocumented');
     for (const provider of PMS_PORTABILITY) {
       if (provider.feedback)
         expect(
           provider.sources.some(
             (s) =>
-              s.kind === "review" ||
-              s.kind === "community" ||
-              s.kind === "exit",
+              s.kind === 'review' ||
+              s.kind === 'community' ||
+              s.kind === 'exit',
           ),
         ).toBe(true);
     }
@@ -149,8 +152,8 @@ describe("PMS portability evidence", () => {
     );
   });
 
-  it.each(["fr", "en", "ar"] as const)(
-    "frames the picker on the home page with context and the commitment in %s",
+  it.each(['fr', 'en', 'ar'] as const)(
+    'frames the picker on the home page with context and the commitment in %s',
     (language) => {
       const m = PMS_PORTABILITY_MESSAGES[language];
       render(
@@ -158,22 +161,22 @@ describe("PMS portability evidence", () => {
           <BaitlyPmsHomeSection language={language} />
         </MemoryRouter>,
       );
-      expect(screen.getByRole("heading", { name: m.homeTitle })).toBeVisible();
-      expect(screen.getByRole("combobox", { name: m.label })).toBeVisible();
+      expect(screen.getByRole('heading', { name: m.homeTitle })).toBeVisible();
+      expect(screen.getByRole('combobox', { name: m.label })).toBeVisible();
       expect(screen.getByText(m.airbnbNote)).toBeVisible();
       expect(screen.getByText(m.dataAct)).toBeVisible();
-      expect(screen.getByRole("link", { name: m.homeLink })).toHaveAttribute(
-        "href",
+      expect(screen.getByRole('link', { name: m.homeLink })).toHaveAttribute(
+        'href',
         `/migration?lang=${language}`,
       );
       expect(
-        screen.getByRole("heading", { name: m.promiseTitle }),
+        screen.getByRole('heading', { name: m.promiseTitle }),
       ).toBeVisible();
     },
   );
 
-  it.each(["fr", "en", "ar"] as const)(
-    "labels full export as a pre-launch commitment in %s",
+  it.each(['fr', 'en', 'ar'] as const)(
+    'labels full export as a pre-launch commitment in %s',
     (language) => {
       render(<BaitlyPortabilityCommitment language={language} />);
       expect(

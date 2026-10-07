@@ -1,4 +1,4 @@
-import { useId, useState } from "react";
+import { useId, useState } from 'react';
 import {
   ArrowRightIcon,
   ArrowUpRightIcon,
@@ -9,8 +9,8 @@ import {
   FileCheck2Icon,
   MinusIcon,
   XIcon,
-} from "lucide-react";
-import { Link } from "react-router-dom";
+} from 'lucide-react';
+import { Link } from 'react-router-dom';
 import {
   EXIT_CRITERIA,
   PMS_PORTABILITY,
@@ -18,11 +18,11 @@ import {
   exitLevel,
   type ExitSignal,
   type PmsPortability,
-} from "../data/pmsPortability";
-import { PMS_PORTABILITY_MESSAGES } from "../lib/messages/pmsPortability";
-import type { SiteLanguage } from "../lib/siteLanguage";
-import { downloadText } from "../lib/downloadText";
-import type { PortabilityMessages } from "../lib/messages/pmsPortability";
+} from '../data/pmsPortability';
+import { PMS_PORTABILITY_MESSAGES } from '../lib/messages/pmsPortability';
+import type { SiteLanguage } from '../lib/siteLanguage';
+import { downloadText } from '../lib/downloadText';
+import type { PortabilityMessages } from '../lib/messages/pmsPortability';
 
 const SIGNAL_ICONS: Record<ExitSignal, typeof CheckIcon> = {
   yes: CheckIcon,
@@ -48,7 +48,7 @@ function ExitComparison({
         <p>
           <strong className={`bm-exit-level bm-exit-${level}`}>
             {m.exitLevels[level]}
-          </strong>{" "}
+          </strong>{' '}
           {m.exitHints[level]}
         </p>
       </div>
@@ -91,6 +91,10 @@ function ExitComparison({
           <dt>{m.exitTerms}</dt>
           <dd>{provider.exitTerms[language]}</dd>
         </div>
+        <div>
+          <dt>{m.baitlyImport}</dt>
+          <dd>{m.baitlyImportModes[provider.baitlyImport]}</dd>
+        </div>
         {provider.feedback ? (
           <div>
             <dt>{m.feedback}</dt>
@@ -108,14 +112,14 @@ function ExitComparison({
 export function BaitlyPmsPortability({ language }: { language: SiteLanguage }) {
   const id = useId();
   // Temporary exploration on a public page, not an account preference.
-  const [providerId, setProviderId] = useState("");
+  const [providerId, setProviderId] = useState('');
   const provider = PMS_PORTABILITY.find((item) => item.id === providerId);
   const m = PMS_PORTABILITY_MESSAGES[language];
   const reviewed = new Intl.DateTimeFormat(language, {
-    dateStyle: "long",
-    timeZone: "UTC",
-    calendar: "gregory",
-    numberingSystem: language === "ar" ? "arab" : "latn",
+    dateStyle: 'long',
+    timeZone: 'UTC',
+    calendar: 'gregory',
+    numberingSystem: language === 'ar' ? 'arab' : 'latn',
   }).format(new Date(`${PMS_RESEARCH_DATE}T12:00:00Z`));
 
   return (
@@ -148,7 +152,7 @@ export function BaitlyPmsPortability({ language }: { language: SiteLanguage }) {
           ? `${provider.name} : ${m.evidence[provider.evidence]}`
           : providerId
             ? m.unknownTitle
-            : ""}
+            : ''}
       </p>
       <div id={`${id}-details`} className="bm-pms-result">
         {provider ? (
@@ -192,7 +196,7 @@ export function BaitlyPmsPortability({ language }: { language: SiteLanguage }) {
                   >
                     {m.sourceKinds[source.kind]}
                     <span className="sr-only">
-                      {" "}
+                      {' '}
                       {provider.name} ({index + 1})
                     </span>
                     <ArrowUpRightIcon aria-hidden="true" />
@@ -211,20 +215,21 @@ export function BaitlyPmsPortability({ language }: { language: SiteLanguage }) {
                       `${m.coverage}\n${provider.coverage[language]}\n${provider.formats}`,
                       `${m.caution}\n${provider.caution[language]}`,
                       `${m.timing}\n${provider.timing[language]}`,
-                      `${m.exitTitle} : ${m.exitLevels[exitLevel(provider.exit)]}\n${EXIT_CRITERIA.map((criterion) => `- ${m.criteria[criterion]} : ${m.signals[provider.exit[criterion]]}`).join("\n")}`,
+                      `${m.exitTitle} : ${m.exitLevels[exitLevel(provider.exit)]}\n${EXIT_CRITERIA.map((criterion) => `- ${m.criteria[criterion]} : ${m.signals[provider.exit[criterion]]}`).join('\n')}`,
                       `${m.exitTerms}\n${provider.exitTerms[language]}`,
+                      `${m.baitlyImport}\n${m.baitlyImportModes[provider.baitlyImport]}`,
                       ...(provider.feedback
                         ? [
                             `${m.feedback}\n${provider.feedback[language]}\n${m.feedbackNote}`,
                           ]
                         : []),
-                      m.checklist.map((item) => `[ ] ${item}`).join("\n"),
+                      m.checklist.map((item) => `[ ] ${item}`).join('\n'),
                       m.methodology,
                       ...provider.sources.map(
                         (source) =>
                           `${m.sourceKinds[source.kind]} : ${source.url}`,
                       ),
-                    ].join("\n\n"),
+                    ].join('\n\n'),
                   )
                 }
               >
@@ -244,7 +249,7 @@ export function BaitlyPmsPortability({ language }: { language: SiteLanguage }) {
         )}
       </div>
       <p className="bm-pms-methodology">
-        {m.checked} <time dateTime={PMS_RESEARCH_DATE}>{reviewed}</time>.{" "}
+        {m.checked} <time dateTime={PMS_RESEARCH_DATE}>{reviewed}</time>.{' '}
         {m.methodology}
       </p>
     </div>

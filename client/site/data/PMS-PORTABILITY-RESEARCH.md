@@ -100,43 +100,27 @@ sortie » sont des engagements commerciaux nouveaux. « Mensuel, sans engagement
 reprend la FAQ fidélité existante. Le statut « pré-lancement » reste affiché tant que l'export
 intégral n'existe pas.
 
-## 5. Adapter Baitly pour anticiper la migration et exploiter toutes les données
+## 5. Adapter Baitly pour anticiper la migration : état au 7 octobre 2026
 
-Existant (`server/.../service/migration/README.md`) :
+Les six recommandations sont implémentées (détails techniques : `server/.../service/migration/README.md`) :
 
-- import CSV/TSV/XLSX/JSON/ZIP avec mapping et prévisualisation ;
-- idempotence par identifiant source ;
-- logements, voyageurs et réservations deviennent des entités ;
-- le reste est conservé en archive chiffrée.
+1. **Profils éditeurs** : la source choisie (Smoobu, Beds24, Hostaway, Guesty, Hospitable, OwnerRez,
+   Baitly) pré-remplit les correspondances à partir des noms de champs des API. Les exports écran
+   restent à valider sur des échantillons réels de prospects.
+2. **Connecteurs API (bêta)** pour ces six PMS, en lecture seule. Les identifiants ne sont jamais
+   stockés ; le résultat passe par le même aperçu que les fichiers.
+3. **Nouveaux types** : avis, tarifs par nuit et tâches deviennent des données Baitly ; frais de
+   ménage, taxe de séjour et taxes sont repris. Les demandes et refus sont comptés, pas bloquants.
+   Propriétaires et relevés restent en archive (les comptes propriétaires passent par invitation).
+4. **Réservations sans email** : le channel manager adopte la réservation importée (code OTA) au
+   lieu de la doubler, et complète email et téléphone.
+5. **Plan de bascule** dans Paramètres → Migration PMS : échéances de résiliation et d'export,
+   onze étapes cochables, l'import étant détecté automatiquement.
+6. **Export intégral Baitly** en libre-service : ZIP avec CSV réimportables, JSON complet, photos,
+   fichiers d'import d'origine et manifeste SHA-256.
 
-Recommandations, par ordre de valeur :
-
-1. **Préréglages par éditeur** : profils de colonnes pour les exports SuperHote, Smoobu,
-   Hostaway, Guesty, Beds24, OwnerRez, Lodgify et Hospitable. Ils doivent être construits à
-   partir d'échantillons réels fournis par des prospects, pas devinés. Le lecteur
-   reconnaîtrait la source automatiquement et pré-remplirait le mapping.
-2. **Import par API (OAuth / clé client)** pour les PMS dont l'API est publique (Smoobu,
-   Hostaway, Guesty, Beds24, OwnerRez, Hospitable). C'est le seul moyen de récupérer
-   l'historique complet, les montants détaillés et parfois les messages, sans dépendre de la
-   profondeur des rapports CSV. Prévoir la pagination, les quotas et la reprise.
-3. **Nouveaux types matérialisés** : propriétaires et relevés, tarifs/saisons, avis (en
-   lecture), tâches de ménage, taxes de séjour. Ils sont aujourd'hui archivés : les
-   matérialiser progressivement, avec rapprochement des totaux.
-4. **Les emails voyageurs Airbnb/Booking sont absents des exports** (SuperHote depuis mars
-   2026, Airbnb plus généralement). Les réservations doivent pouvoir s'importer sans email.
-   L'email sera reconstitué au premier message reçu via le channel manager.
-5. **Checklist de bascule** dans l'espace migration : date de fin d'accès chez l'ancien PMS
-   (calculée depuis le préavis saisi), exports cochés, contrôle des volumes et montants,
-   déconnexion OTA puis reconnexion.
-6. **Export intégral du compte Baitly**, nécessaire pour tenir la promesse affichée :
-   - un ZIP contenant un JSON par entité, avec le schéma publié ;
-   - des CSV à plat ;
-   - les fichiers (photos, documents) et un manifeste SHA-256 ;
-   - un réimport possible dans Baitly ;
-   - un accès en lecture/export maintenu au moins 30 jours après résiliation.
-
-   Le `GdprController` (`/api/gdpr/export`) ne couvre que les données personnelles de
-   l'utilisateur. Il ne suffit pas.
+Reste à faire : valider chaque connecteur sur un compte réel, et appliquer la fenêtre de 30 jours
+après résiliation quand le flux de résiliation d'organisation existera.
 
 ## Sources principales
 

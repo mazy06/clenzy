@@ -696,3 +696,167 @@
     transition: none !important;
   }
 }
+
+/* Import method: exported files or a read-only API pull. */
+.pms-import-mode {
+  grid-column: 1 / -1;
+  display: inline-flex;
+  justify-self: start;
+  gap: 0.25rem;
+  padding: 0.25rem;
+  border: 1px solid var(--bui-border);
+  border-radius: 0.6rem;
+}
+.pms-import-mode button {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  min-block-size: 2.5rem;
+  padding-inline: 0.9rem;
+  border: 0;
+  border-radius: 0.45rem;
+  background: transparent;
+  color: var(--bui-muted-foreground);
+  font: inherit;
+  font-weight: 500;
+  cursor: pointer;
+}
+.pms-import-mode button[aria-selected="true"] {
+  background: var(--bui-muted, rgba(0, 0, 0, 0.05));
+  color: var(--bui-foreground);
+}
+.pms-import-mode button:focus-visible {
+  outline: 2px solid var(--setup-blue-ink);
+  outline-offset: 2px;
+}
+.pms-import-api-guarantees {
+  display: grid;
+  gap: 0.45rem;
+  padding: 0;
+  margin-block: 1rem;
+  list-style: none;
+  color: var(--bui-muted-foreground);
+  font-size: 0.8125rem;
+}
+.pms-import-api-guarantees li {
+  display: flex;
+  gap: 0.5rem;
+  align-items: start;
+}
+.pms-import-api-guarantees svg {
+  flex: none;
+  margin-block-start: 0.2rem;
+  color: var(--setup-blue-ink);
+}
+.pms-import-api label > span {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+}
+
+/* Cutover plan and full export. */
+.pms-cutover {
+  display: grid;
+  grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr);
+  gap: 2rem 2.75rem;
+  margin-block-start: 3rem;
+  padding-block-start: 2rem;
+  border-block-start: 1px solid var(--bui-border);
+}
+.pms-cutover header {
+  display: flex;
+  gap: 0.85rem;
+  align-items: start;
+}
+.pms-cutover header > svg {
+  flex: none;
+  color: var(--setup-blue-ink);
+  margin-block-start: 0.1rem;
+}
+.pms-cutover header h3 {
+  margin-block-end: 0.25rem;
+}
+.pms-cutover header p {
+  margin-block: 0 1rem;
+  color: var(--bui-muted-foreground);
+}
+.pms-cutover-save {
+  display: flex;
+  align-items: end;
+}
+.pms-cutover-deadlines {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(12rem, 1fr));
+  gap: 1rem;
+  margin-block: 1.25rem;
+}
+.pms-cutover-deadlines dt {
+  font-size: 0.75rem;
+  color: var(--bui-muted-foreground);
+}
+.pms-cutover-deadlines dd {
+  margin: 0.2rem 0 0;
+  font-weight: 600;
+}
+.pms-cutover-deadlines small {
+  display: block;
+  font-weight: 400;
+}
+.pms-cutover-deadlines small[data-urgent] {
+  color: var(--bui-destructive, #b42318);
+}
+.pms-cutover-steps {
+  display: grid;
+  gap: 0.15rem;
+  padding: 0;
+  margin: 0;
+  list-style: none;
+}
+.pms-cutover-steps label {
+  display: flex;
+  gap: 0.65rem;
+  align-items: start;
+  min-block-size: 2.5rem;
+  padding-block: 0.5rem;
+  border-block-end: 1px solid var(--bui-border);
+  cursor: pointer;
+}
+.pms-cutover-steps input {
+  inline-size: 1.05rem;
+  block-size: 1.05rem;
+  margin-block-start: 0.15rem;
+  accent-color: var(--setup-blue-ink);
+}
+.pms-cutover-steps li[data-done] span {
+  color: var(--bui-muted-foreground);
+}
+.pms-cutover-steps small {
+  margin-inline-start: 0.5rem;
+  font-size: 0.75rem;
+}
+.pms-cutover-export ul {
+  display: grid;
+  gap: 0.5rem;
+  padding: 0;
+  margin-block: 0 1.25rem;
+  list-style: none;
+  font-size: 0.8125rem;
+}
+.pms-cutover-export li {
+  display: flex;
+  gap: 0.5rem;
+}
+.pms-cutover-export li svg {
+  flex: none;
+  margin-block-start: 0.2rem;
+  color: var(--setup-blue-ink);
+}
+.pms-cutover-export > small {
+  display: block;
+  margin-block-start: 0.85rem;
+}
+@media (max-width: 860px) {
+  .pms-cutover {
+    grid-template-columns: 1fr;
+  }
+}
