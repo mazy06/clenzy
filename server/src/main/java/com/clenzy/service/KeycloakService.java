@@ -272,6 +272,12 @@ public class KeycloakService {
                 && attributes != null && List.of(operationKey).equals(attributes.get(MARKETPLACE_OPERATION));
     }
 
+    /** Activation fournisseur : le lien d'invitation ne dispense jamais de vérifier l'adresse. */
+    public void sendSupplierActivation(String externalId) {
+        withTokenRetryVoid(() -> keycloak.realm(realm).users().get(externalId)
+            .executeActionsEmail(List.of("VERIFY_EMAIL", "UPDATE_PASSWORD")), "sendSupplierActivation");
+    }
+
     /** Mettre à jour un utilisateur dans Keycloak. */
     @CircuitBreaker(name = "keycloak-admin")
     public void updateUser(String externalId, UpdateUserDto updateUserDto) {

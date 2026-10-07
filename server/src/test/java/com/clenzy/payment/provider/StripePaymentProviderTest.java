@@ -47,7 +47,7 @@ class StripePaymentProviderTest {
 
     @BeforeEach
     void setUp() {
-        provider = new StripePaymentProvider();
+        provider = new StripePaymentProvider(new com.clenzy.payment.StripeGateway("sk_test_xxx"), org.mockito.Mockito.mock(com.clenzy.payment.ManagedStripeRefund.class));
         ReflectionTestUtils.setField(provider, "secretKey", "sk_test_xxx");
         ReflectionTestUtils.setField(provider, "webhookSecret", "whsec_xxx");
         ReflectionTestUtils.setField(provider, "defaultSuccessUrl", "https://default-success");
@@ -72,6 +72,136 @@ class StripePaymentProviderTest {
     // ── createPayment ─────────────────────────────────────────────────────
 
     @Nested
+    class ResumeEmbedded {
+        private Session openSession() {
+            Session session = new Session();
+            session.setId("cs_existing");
+            session.setStatus("open");
+            session.setPaymentStatus("unpaid");
+            session.setUiMode("embedded_page");
+            session.setCurrency("eur");
+            session.setAmountTotal(4500L);
+            session.setClientSecret("test-existing-secret");
+            return session;
+        }
+
+        @org.junit.jupiter.params.ParameterizedTest
+        @org.junit.jupiter.params.provider.ValueSource(strings = { "embedded_page", "embedded" })
+        void retrievesTheSameCheckoutWithoutCreatingOne(String uiMode) {
+            Session session = openSession();
+            session.setUiMode(uiMode);
+            try (MockedStatic<Session> sessions = mockStatic(Session.class)) {
+                sessions.when(() -> Session.retrieve(eq("cs_existing"), any(com.stripe.net.RequestOptions.class)))
+                    .thenReturn(session);
+                var result = provider.resumeEmbeddedPayment("cs_existing", new BigDecimal("45.00"), "EUR");
+                assertThat(result.success()).isTrue();
+                assertThat(result.clientSecret()).isEqualTo("test-existing-secret");
+                sessions.verify(() -> Session.retrieve(eq("cs_existing"), any(com.stripe.net.RequestOptions.class)));
+                sessions.verifyNoMoreInteractions();
+            }
+        }
+
+        @org.junit.jupiter.params.ParameterizedTest
+        @org.junit.jupiter.params.provider.ValueSource(strings = { "expired", "paid", "amount", "currency", "hosted", "secret" })
+        void rejectsAnUnusableOrMismatchedSession(String reason) {
+            Session session = openSession();
+            switch (reason) {
+                case "expired" -> session.setStatus("expired");
+                case "paid" -> session.setPaymentStatus("paid");
+                case "amount" -> session.setAmountTotal(4600L);
+                case "currency" -> session.setCurrency("sar");
+                case "hosted" -> session.setUiMode("hosted");
+                case "secret" -> session.setClientSecret(null);
+            }
+            try (MockedStatic<Session> sessions = mockStatic(Session.class)) {
+                sessions.when(() -> Session.retrieve(anyString(), any(com.stripe.net.RequestOptions.class))).thenReturn(session);
+                assertThat(provider.resumeEmbeddedPayment("cs_existing", new BigDecimal("45.00"), "EUR").success()).isFalse();
+            }
+        }
+
+        @Test
+        void stripeFailureDoesNotExposeASecretOrCreateAPayment() {
+            try (MockedStatic<Session> sessions = mockStatic(Session.class)) {
+                sessions.when(() -> Session.retrieve(anyString(), any(com.stripe.net.RequestOptions.class)))
+                    .thenThrow(new ApiException("test", "request", "code", 500, null));
+                assertThat(provider.resumeEmbeddedPayment("cs_existing", new BigDecimal("45.00"), "EUR").success()).isFalse();
+                sessions.verify(() -> Session.retrieve(anyString(), any(com.stripe.net.RequestOptions.class)));
+                sessions.verifyNoMoreInteractions();
+            }
+        }
+    }
+
+    @Nested
+    class ResumeHosted {
+        private Session openSession() {
+            Session session = new Session();
+            session.setId("cs_existing");
+            session.setStatus("open");
+            session.setPaymentStatus("unpaid");
+            session.setUiMode("hosted_page");
+            session.setCurrency("eur");
+            session.setAmountTotal(4500L);
+            session.setUrl("https://checkout.stripe.com/existing");
+            return session;
+        }
+
+        @org.junit.jupiter.params.ParameterizedTest
+        @org.junit.jupiter.params.provider.ValueSource(strings = { "hosted_page", "hosted" })
+        void returnsTheCanonicalLinkWithoutCreatingAnotherCheckout(String mode) {
+            var session = openSession();
+            session.setUiMode(mode);
+            try (MockedStatic<Session> sessions = mockStatic(Session.class)) {
+                sessions.when(() -> Session.retrieve(eq("cs_existing"), any(com.stripe.net.RequestOptions.class)))
+                        .thenReturn(session);
+                var result = provider.resumeHostedPayment("cs_existing", new BigDecimal("45"), "EUR");
+                assertThat(result.success()).isTrue();
+                assertThat(result.providerTxId()).isEqualTo("cs_existing");
+                assertThat(result.redirectUrl()).isEqualTo(session.getUrl());
+                assertThat(result.clientSecret()).isNull();
+                sessions.verify(() -> Session.retrieve(eq("cs_existing"), any(com.stripe.net.RequestOptions.class)));
+                sessions.verifyNoMoreInteractions();
+            }
+        }
+
+        @org.junit.jupiter.params.ParameterizedTest
+        @org.junit.jupiter.params.provider.ValueSource(strings = {
+                "expired", "complete", "paid", "amount", "currency", "embedded", "url", "blankUrl" })
+        void refusesAnUnusableSessionWithoutRecreatingIt(String reason) {
+            var session = openSession();
+            switch (reason) {
+                case "expired" -> session.setStatus("expired");
+                case "complete" -> session.setStatus("complete");
+                case "paid" -> session.setPaymentStatus("paid");
+                case "amount" -> session.setAmountTotal(4600L);
+                case "currency" -> session.setCurrency("sar");
+                case "embedded" -> session.setUiMode("embedded_page");
+                case "url" -> session.setUrl(null);
+                case "blankUrl" -> session.setUrl(" ");
+            }
+            try (MockedStatic<Session> sessions = mockStatic(Session.class)) {
+                sessions.when(() -> Session.retrieve(eq("cs_existing"), any(com.stripe.net.RequestOptions.class)))
+                        .thenReturn(session);
+                var result = provider.resumeHostedPayment("cs_existing", new BigDecimal("45"), "EUR");
+                assertThat(result.success()).isFalse();
+                assertThat(result.redirectUrl()).isNull();
+                sessions.verify(() -> Session.retrieve(eq("cs_existing"), any(com.stripe.net.RequestOptions.class)));
+                sessions.verifyNoMoreInteractions();
+            }
+        }
+
+        @Test
+        void readFailureDoesNotCreateAnotherCheckout() {
+            try (MockedStatic<Session> sessions = mockStatic(Session.class)) {
+                sessions.when(() -> Session.retrieve(eq("cs_existing"), any(com.stripe.net.RequestOptions.class)))
+                        .thenThrow(new ApiException("test", "request", "code", 500, null));
+                assertThat(provider.resumeHostedPayment("cs_existing", new BigDecimal("45"), "EUR").success()).isFalse();
+                sessions.verify(() -> Session.retrieve(eq("cs_existing"), any(com.stripe.net.RequestOptions.class)));
+                sessions.verifyNoMoreInteractions();
+            }
+        }
+    }
+
+    @Nested
     @DisplayName("createPayment")
     class CreatePayment {
         @Test
@@ -91,6 +221,8 @@ class StripePaymentProviderTest {
 
                 assertThat(result.success()).isTrue();
                 assertThat(result.providerTxId()).isEqualTo("cs_test_xxx");
+                sessionStatic.verify(() -> Session.create(any(SessionCreateParams.class),
+                        org.mockito.ArgumentMatchers.argThat((com.stripe.net.RequestOptions options) -> "idem-1".equals(options.getIdempotencyKey()))));
                 assertThat(result.redirectUrl()).isEqualTo("https://checkout.stripe.com/cs_test_xxx");
             }
         }
@@ -114,6 +246,8 @@ class StripePaymentProviderTest {
                 assertThat(result.success()).isTrue();
                 assertThat(result.providerTxId()).isEqualTo("cs_emb");
                 assertThat(result.clientSecret()).isEqualTo("cs_emb_secret");
+                sessionStatic.verify(() -> Session.create(any(SessionCreateParams.class),
+                        org.mockito.ArgumentMatchers.argThat((com.stripe.net.RequestOptions options) -> "idem-emb".equals(options.getIdempotencyKey()))));
                 assertThat(result.redirectUrl()).isNull();
                 assertThat(result.presentationMode())
                         .isEqualTo(com.clenzy.payment.PaymentPresentationMode.CLIENT_SECRET);
@@ -226,6 +360,7 @@ class StripePaymentProviderTest {
         void fullRefund_returnsResult() {
             Refund refund = mock(Refund.class);
             when(refund.getId()).thenReturn("rf_test");
+            when(refund.getStatus()).thenReturn("succeeded");
 
             try (MockedStatic<Refund> refundStatic = mockStatic(Refund.class)) {
                 refundStatic.when(() -> Refund.create(any(RefundCreateParams.class), any()))
@@ -243,6 +378,7 @@ class StripePaymentProviderTest {
         void partialRefund_succeeds() {
             Refund refund = mock(Refund.class);
             when(refund.getId()).thenReturn("rf_partial");
+            when(refund.getStatus()).thenReturn("succeeded");
 
             try (MockedStatic<Refund> refundStatic = mockStatic(Refund.class)) {
                 refundStatic.when(() -> Refund.create(any(RefundCreateParams.class), any()))
@@ -265,6 +401,56 @@ class StripePaymentProviderTest {
 
                 assertThat(result.success()).isFalse();
                 assertThat(result.errorMessage()).contains("Stripe refund error");
+            }
+        }
+
+        @Test
+        void checkoutRefundResolvesThePaymentIntentAndReusesAStableFullRefundKey() {
+            Session session = new Session();
+            session.setPaymentStatus("paid");
+            session.setPaymentIntent("pi_collected");
+            Refund refund = new Refund();
+            refund.setId("re_confirmed");
+            refund.setStatus("succeeded");
+            var context = new com.clenzy.payment.RefundContext(2L, "cs_test_checkout", "TX-test", "EUR", new BigDecimal("35.00"));
+            try (MockedStatic<Session> sessions = mockStatic(Session.class);
+                 MockedStatic<Refund> refunds = mockStatic(Refund.class)) {
+                sessions.when(() -> Session.retrieve(eq("cs_test_checkout"), any(com.stripe.net.RequestOptions.class))).thenReturn(session);
+                refunds.when(() -> Refund.create(any(RefundCreateParams.class), any(com.stripe.net.RequestOptions.class)))
+                    .thenAnswer(inv -> {
+                        RefundCreateParams params = inv.getArgument(0);
+                        com.stripe.net.RequestOptions options = inv.getArgument(1);
+                        assertThat(params.getPaymentIntent()).isEqualTo("pi_collected");
+                        assertThat(params.getAmount()).isEqualTo(3500L);
+                        assertThat(options.getIdempotencyKey()).isEqualTo("baitly-refund-full-TX-test");
+                        return refund;
+                    });
+                assertThat(provider.refundPayment(context, new BigDecimal("35.00"), "test").success()).isTrue();
+                assertThat(provider.refundPayment(context, new BigDecimal("35.00"), "test").success()).isTrue();
+            }
+        }
+
+        @Test
+        void unpaidCheckoutNeverCreatesARefund() {
+            Session session = new Session();
+            session.setPaymentStatus("unpaid");
+            try (MockedStatic<Session> sessions = mockStatic(Session.class);
+                 MockedStatic<Refund> refunds = mockStatic(Refund.class)) {
+                sessions.when(() -> Session.retrieve(eq("cs_test_unpaid"), any(com.stripe.net.RequestOptions.class))).thenReturn(session);
+                assertThat(provider.refundPayment("cs_test_unpaid", null, null).success()).isFalse();
+                refunds.verifyNoInteractions();
+            }
+        }
+
+        @Test
+        void pendingRefundIsNotReportedAsCompleted() {
+            Refund refund = new Refund();
+            refund.setId("re_pending");
+            refund.setStatus("pending");
+            try (MockedStatic<Refund> refunds = mockStatic(Refund.class)) {
+                refunds.when(() -> Refund.create(any(RefundCreateParams.class), any(com.stripe.net.RequestOptions.class))).thenReturn(refund);
+                refunds.when(() -> Refund.retrieve(eq("re_pending"), any(com.stripe.net.RequestOptions.class))).thenReturn(refund);
+                assertThat(provider.refundPayment("pi_test", null, null).success()).isFalse();
             }
         }
     }

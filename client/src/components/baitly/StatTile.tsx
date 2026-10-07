@@ -1,7 +1,7 @@
 import * as React from 'react';
 import { Skeleton } from '../ui';
 import { cn } from '../../utils/cn';
-import { useStatTileCompact } from './statTileCompact';
+import { StatTileOverviewContext, useStatTileCompact } from './statTileCompact';
 import { Delta } from '../stats/StatsBand';
 
 /**
@@ -30,6 +30,10 @@ interface StatTileBaseProps {
   loading?: boolean;
   onClick?: () => void;
   className?: string;
+  /** Optional photographic artwork for the overview presentation. */
+  artwork?: string;
+  expanded?: boolean;
+  controls?: string;
 }
 
 /**
@@ -111,9 +115,31 @@ export default function StatTile({
   loading = false,
   onClick,
   className,
+  artwork,
+  expanded,
+  controls,
 }: StatTileProps) {
   const Comp = onClick ? 'button' : 'div';
   const compact = useStatTileCompact();
+  const overview = React.useContext(StatTileOverviewContext);
+
+  if (overview) {
+    return <Comp type={onClick ? 'button' : undefined} onClick={onClick}
+      aria-expanded={onClick ? expanded : undefined} aria-controls={controls}
+      aria-haspopup={controls ? 'dialog' : undefined} disabled={onClick ? loading : undefined}
+      aria-busy={loading || undefined} className={cn('bui-stat-figure', className)}>
+      {artwork
+        ? <img className="bui-stat-figure__art" src={artwork} alt="" width={192} height={192} decoding="async" />
+        : <span aria-hidden="true">{icon}</span>}
+      <span className="bui-stat-figure__body">
+      <span className="bui-stat-figure__label">{label}</span>
+      <span className="bui-stat-figure__value">
+        <b>{loading ? <Skeleton className="h-[1em] w-[4ch]" /> : value}</b>
+        {unit && <span>{unit}</span>}
+      </span>
+      </span>
+    </Comp>;
+  }
 
   if (compact) {
     return (

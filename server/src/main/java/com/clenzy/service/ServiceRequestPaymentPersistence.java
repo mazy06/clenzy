@@ -5,6 +5,9 @@ import com.clenzy.model.PaymentStatus;
 import com.clenzy.model.RequestStatus;
 import com.clenzy.model.ServiceRequest;
 import com.clenzy.repository.ServiceRequestRepository;
+import com.clenzy.repository.InterventionRepository;
+import jakarta.persistence.EntityManager;
+import jakarta.persistence.LockModeType;
 import com.clenzy.service.access.OrganizationAccessGuard;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -43,11 +46,16 @@ public class ServiceRequestPaymentPersistence {
 
     private final ServiceRequestRepository serviceRequestRepository;
     private final OrganizationAccessGuard organizationAccessGuard;
+    private final InterventionRepository interventions;
+    private final EntityManager em;
 
     public ServiceRequestPaymentPersistence(ServiceRequestRepository serviceRequestRepository,
-                                            OrganizationAccessGuard organizationAccessGuard) {
+                                            OrganizationAccessGuard organizationAccessGuard,
+                                            InterventionRepository interventions, EntityManager em) {
         this.serviceRequestRepository = serviceRequestRepository;
         this.organizationAccessGuard = organizationAccessGuard;
+        this.interventions = interventions;
+        this.em = em;
     }
 
     /**
@@ -60,6 +68,10 @@ public class ServiceRequestPaymentPersistence {
     @Transactional(readOnly = true)
     public PayableServiceRequest loadPayable(Long serviceRequestId) {
         ServiceRequest sr = require(serviceRequestId);
+        requireUnsettled(sr);
+        if (sr.getConvertedInterventionId() != null || interventions.existsByServiceRequestId(sr.getId())) {
+            throw new IllegalStateException("Cette demande est déjà convertie : utilisez le paiement de l'intervention liée.");
+        }
         if (sr.getStatus() != RequestStatus.AWAITING_PAYMENT) {
             throw new IllegalStateException(
                 "La demande de service doit etre en statut AWAITING_PAYMENT pour proceder au paiement. "
@@ -92,9 +104,26 @@ public class ServiceRequestPaymentPersistence {
     @Transactional
     public void markProcessing(Long serviceRequestId, String providerTxId) {
         ServiceRequest sr = require(serviceRequestId);
+        em.refresh(sr, LockModeType.PESSIMISTIC_WRITE);
+        organizationAccessGuard.requireSameOrganization(sr.getOrganizationId(), "Demande hors de votre organisation");
+        if (providerTxId == null || providerTxId.isBlank()) throw new IllegalStateException("Référence de paiement absente");
+        // Un webhook rapide peut déjà avoir confirmé et converti la demande.
+        if (providerTxId.equals(sr.getStripeSessionId()) && sr.getPaymentStatus() == PaymentStatus.PAID) return;
+        requireUnsettled(sr);
+        if (sr.getStripeSessionId() != null && !providerTxId.equals(sr.getStripeSessionId())) {
+            throw new IllegalStateException("Une autre session est rattachée à cette demande ; rapprochement requis.");
+        }
         sr.setStripeSessionId(providerTxId);
         sr.setPaymentStatus(PaymentStatus.PROCESSING);
         serviceRequestRepository.save(sr);
+    }
+
+    static void requireUnsettled(ServiceRequest sr) {
+        if (sr.getPaidAt() != null || sr.getPaymentStatus() == PaymentStatus.PAID
+                || sr.getPaymentStatus() == PaymentStatus.PARTIALLY_PAID
+                || sr.getPaymentStatus() == PaymentStatus.REFUNDED) {
+            throw new IllegalStateException("Cette demande porte déjà un encaissement ; rapprochement requis.");
+        }
     }
 
     /**

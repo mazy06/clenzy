@@ -3,6 +3,8 @@ package com.clenzy.service;
 import com.clenzy.model.*;
 import com.clenzy.repository.FiscalProfileRepository;
 import com.clenzy.repository.InvoiceRepository;
+import jakarta.persistence.EntityManager;
+import jakarta.persistence.LockModeType;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -28,6 +30,7 @@ class CommissionInvoiceServiceTest {
     @Mock private InvoiceRepository invoiceRepository;
     @Mock private FiscalProfileRepository fiscalProfileRepository;
     @Mock private ManagementContractService managementContractService;
+    @Mock private EntityManager em;
 
     @InjectMocks private CommissionInvoiceService service;
 
@@ -47,6 +50,7 @@ class CommissionInvoiceServiceTest {
         r.setId(RES_ID);
         r.setOrganizationId(ORG_ID);
         r.setProperty(p);
+        when(em.find(Reservation.class, RES_ID, LockModeType.PESSIMISTIC_WRITE)).thenReturn(r);
         return r;
     }
 
@@ -140,7 +144,7 @@ class CommissionInvoiceServiceTest {
     }
 
     @Test
-    void conciergeCollects_producesPaidInvoice() {
+    void conciergeCollects_doesNotInventASettlementFromTheContractOrOtaImport() {
         Reservation r = reservation();
         ManagementContract c = contract(ManagementContract.PaymentModel.CONCIERGE_COLLECTS, "0.18");
         when(managementContractService.getActiveContract(PROP_ID, ORG_ID)).thenReturn(Optional.of(c));
@@ -153,8 +157,10 @@ class CommissionInvoiceServiceTest {
         Invoice result = service.generateForReservation(r);
 
         assertThat(result).isNotNull();
-        assertThat(result.getStatus()).isEqualTo(InvoiceStatus.PAID);
-        assertThat(result.getPaidAt()).isNotNull();
+        assertThat(result.getStatus()).isEqualTo(InvoiceStatus.ISSUED);
+        assertThat(result.getPaidAt()).isNull();
+        assertThat(result.getPaymentTransactionId()).isNull();
+        assertThat(result.getDueDate()).isNull();
         assertThat(result.getPaymentMethod()).isEqualTo("RETENUE_REVERSEMENT");
     }
 

@@ -30,6 +30,7 @@ vi.mock('../../services/api/exchangeRateApi', () => ({
 }));
 
 import { CurrencyProvider, useCurrency } from '../useCurrency';
+import i18n from '../../i18n/config';
 
 const wrapper = ({ children }: { children: React.ReactNode }) => (
   <CurrencyProvider>{children}</CurrencyProvider>
@@ -57,14 +58,33 @@ describe('useCurrency', () => {
     expect(result.current.currency).toBe('MAD');
   });
 
-  it('first-sync: pushes local to backend if backend = EUR and local != EUR (BUG-3)', async () => {
-    window.localStorage.setItem('clenzy_currency', 'MAD');
+  it('restores the saved euro preference instead of uploading a stale riyal cache', async () => {
+    window.localStorage.setItem('clenzy_currency', 'SAR');
     mockPreferences = { currency: 'EUR' };
     mockIsLoaded = true;
-    renderHook(() => useCurrency(), { wrapper });
+    const { result } = renderHook(() => useCurrency(), { wrapper });
     await waitFor(() => {
-      expect(updatePreferencesMock).toHaveBeenCalledWith({ currency: 'MAD' });
+      expect(result.current.currency).toBe('EUR');
     });
+    expect(window.localStorage.getItem('clenzy_currency')).toBe('EUR');
+    expect(updatePreferencesMock).not.toHaveBeenCalled();
+  });
+
+  it('keeps the chosen euro when the interface language becomes Arabic', async () => {
+    mockIsLoaded = true;
+    const { result } = renderHook(() => useCurrency(), { wrapper });
+    await act(async () => {
+      i18n.emit('languageChanged', 'fr');
+      i18n.emit('languageChanged', 'ar');
+    });
+    expect(result.current.currency).toBe('EUR');
+    expect(updatePreferencesMock).not.toHaveBeenCalled();
+  });
+
+  it('caches the loaded euro even if it matches the initial fallback', () => {
+    mockIsLoaded = true;
+    renderHook(() => useCurrency(), { wrapper });
+    expect(window.localStorage.getItem('clenzy_currency')).toBe('EUR');
   });
 
   it('syncs backend value to local when isLoaded and backend != local', async () => {

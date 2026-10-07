@@ -76,19 +76,12 @@ public class GuestReferralService {
             return null;
         }
         String mail = normalize(email);
-        GuestCreditAccount acc = accountRepository.findByOrganizationIdAndEmail(orgId, mail)
-            .orElseGet(() -> {
-                GuestCreditAccount a = new GuestCreditAccount();
-                a.setOrganizationId(orgId);
-                a.setEmail(mail);
-                a.setBalanceCents(0);
-                return accountRepository.save(a);
-            });
-        if (acc.getReferralCode() == null || acc.getReferralCode().isBlank()) {
-            acc.setReferralCode(generateUniqueCode(orgId));
-            acc = accountRepository.save(acc);
-        }
-        return acc.getReferralCode();
+        accountRepository.ensureAccount(orgId, mail, "EUR");
+        var account = accountRepository.lockBalance(orgId, mail).orElseThrow();
+        if (account.getReferralCode() != null && !account.getReferralCode().isBlank()) return account.getReferralCode();
+        String code = generateUniqueCode(orgId);
+        accountRepository.assignReferralCode(account.getId(), code);
+        return code;
     }
 
     /**
@@ -171,6 +164,11 @@ public class GuestReferralService {
     @Transactional
     public void grantOne(GuestReferral ref, int cents) {
         String code = ref.getReservationCode();
+        var stay = reservationRepository.lockCancellation(ref.getOrganizationId(), code)
+            .orElseThrow(() -> new IllegalStateException("Séjour du parrainage introuvable"));
+        if (!isCompletedDirectStay(stay, LocalDate.now()) || stay.getGuest() == null || stay.getGuest().getEmail() == null
+                || !normalize(stay.getGuest().getEmail()).equals(normalize(ref.getRefereeEmail())))
+            throw new IllegalStateException("Le séjour du parrainage doit être terminé et réglé");
         creditService.grant(ref.getOrganizationId(), ref.getReferrerEmail(), cents, "REF:" + code + ":referrer");
         creditService.grant(ref.getOrganizationId(), ref.getRefereeEmail(), cents, "REF:" + code + ":referee");
         ref.setStatus(GuestReferralStatus.GRANTED);
@@ -182,6 +180,7 @@ public class GuestReferralService {
         return r != null
             && "direct".equalsIgnoreCase(r.getSource())
             && "confirmed".equalsIgnoreCase(r.getStatus())
+            && r.getPaymentStatus() == com.clenzy.model.PaymentStatus.PAID && r.getCancelledAt() == null
             && r.getCheckOut() != null && r.getCheckOut().isBefore(cutoff);
     }
 

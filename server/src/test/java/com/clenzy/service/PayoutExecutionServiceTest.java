@@ -36,12 +36,37 @@ class PayoutExecutionServiceTest {
     @Mock private OwnerPayoutConfigRepository configRepository;
     @Mock private PayoutExecutorRegistry executorRegistry;
     @Mock private PayoutExecutor executor;
+    @Mock private com.clenzy.service.payout.OwnerPayoutFundingService fundingService;
 
     private PayoutExecutionService service;
 
+    @Mock private com.clenzy.service.payout.PayoutTransferJournal transferJournal;
+
     @BeforeEach
     void setUp() {
-        service = new PayoutExecutionService(payoutRepository, configRepository, executorRegistry);
+        lenient().when(payoutRepository.claimExecution(anyLong(), anyLong(), any(), any(), any())).thenReturn(1);
+        lenient().when(payoutRepository.claimRetry(anyLong(), anyLong(), any(), any())).thenReturn(1);
+        service = new PayoutExecutionService(payoutRepository, configRepository, executorRegistry, fundingService, transferJournal);
+    }
+
+    @Test
+    void missingFundingStopsBeforeAnyPaymentRailIsSelected() {
+        OwnerPayout payout = buildPayout(1L, PayoutStatus.APPROVED);
+        when(payoutRepository.findByIdAndOrgId(1L, 1L)).thenReturn(Optional.of(payout));
+        doThrow(new IllegalStateException("Rapprochement requis")).when(fundingService).validate(payout);
+        assertThatThrownBy(() -> service.executePayout(1L, 1L)).hasMessage("Rapprochement requis");
+        verifyNoInteractions(configRepository, executorRegistry, executor);
+    }
+
+    @Test
+    void missingFundingDoesNotResetFailedPayoutDuringRetry() {
+        OwnerPayout payout = buildPayout(1L, PayoutStatus.FAILED);
+        when(payoutRepository.findByIdAndOrgId(1L, 1L)).thenReturn(Optional.of(payout));
+        doThrow(new IllegalStateException("Rapprochement requis")).when(fundingService).validate(payout);
+        assertThatThrownBy(() -> service.retryPayout(1L, 1L)).hasMessage("Rapprochement requis");
+        assertThat(payout.getStatus()).isEqualTo(PayoutStatus.FAILED);
+        verify(payoutRepository, never()).save(any());
+        verifyNoInteractions(executorRegistry, executor);
     }
 
     private OwnerPayout buildPayout(Long id, PayoutStatus status) {
@@ -57,6 +82,40 @@ class PayoutExecutionServiceTest {
         return p;
     }
 
+    @Test
+    void losingConcurrentExecutionDoesNotCallProvider() {
+        var payout = buildPayout(1L, PayoutStatus.APPROVED);
+        var config = buildConfig(true, PayoutMethod.STRIPE_CONNECT);
+        when(payoutRepository.findByIdAndOrgId(1L,1L)).thenReturn(Optional.of(payout));
+        when(configRepository.findByOwnerIdAndOrgId(5L,1L)).thenReturn(Optional.of(config));
+        when(executorRegistry.get(PayoutMethod.STRIPE_CONNECT)).thenReturn(executor);
+        when(payoutRepository.claimExecution(anyLong(),anyLong(),any(),any(),any())).thenReturn(0);
+        assertThatThrownBy(() -> service.executePayout(1L,1L)).hasMessageContaining("déjà pris en charge");
+        verify(executor,never()).execute(any(),any());
+    }
+
+    @Test
+    void invalidConfigurationDoesNotReserveExecution() {
+        var payout = buildPayout(1L, PayoutStatus.APPROVED);
+        var config = buildConfig(true, PayoutMethod.STRIPE_CONNECT);
+        when(payoutRepository.findByIdAndOrgId(1L,1L)).thenReturn(Optional.of(payout));
+        when(configRepository.findByOwnerIdAndOrgId(5L,1L)).thenReturn(Optional.of(config));
+        when(executorRegistry.get(PayoutMethod.STRIPE_CONNECT)).thenReturn(executor);
+        doThrow(new PayoutExecutionException("Compte manquant")).when(executor).validate(payout,config);
+        assertThatThrownBy(() -> service.executePayout(1L,1L)).hasMessage("Compte manquant");
+        verify(payoutRepository,never()).claimExecution(anyLong(),anyLong(),any(),any(),any());
+        assertThat(payout.getStatus()).isEqualTo(PayoutStatus.APPROVED);
+    }
+
+    @Test
+    void cannotSwitchPreviouslySelectedPaymentRail() {
+        var payout = buildPayout(1L,PayoutStatus.APPROVED); payout.setPayoutMethod(PayoutMethod.STRIPE_CONNECT);
+        when(payoutRepository.findByIdAndOrgId(1L,1L)).thenReturn(Optional.of(payout));
+        when(configRepository.findByOwnerIdAndOrgId(5L,1L)).thenReturn(Optional.of(buildConfig(true,PayoutMethod.WISE)));
+        assertThatThrownBy(() -> service.executePayout(1L,1L)).hasMessageContaining("rail");
+        verifyNoInteractions(executor);
+    }
+
     private OwnerPayoutConfig buildConfig(boolean verified, PayoutMethod method) {
         OwnerPayoutConfig c = new OwnerPayoutConfig();
         c.setOrganizationId(1L);
@@ -64,6 +123,22 @@ class PayoutExecutionServiceTest {
         c.setVerified(verified);
         c.setPayoutMethod(method);
         return c;
+    }
+
+    @org.junit.jupiter.params.ParameterizedTest
+    @org.junit.jupiter.params.provider.EnumSource(value = PayoutMethod.class, names = { "MANUAL", "SEPA_TRANSFER" })
+    void legacyRailCannotStartOrRetryAPayout(PayoutMethod method) {
+        var payout = buildPayout(1L, PayoutStatus.APPROVED);
+        when(payoutRepository.findByIdAndOrgId(1L, 1L)).thenReturn(Optional.of(payout));
+        when(configRepository.findByOwnerIdAndOrgId(5L, 1L)).thenReturn(Optional.of(buildConfig(true, method)));
+        assertThatThrownBy(() -> service.executePayout(1L, 1L)).hasMessageContaining("désactivés");
+        assertThat(payout.getStatus()).isEqualTo(PayoutStatus.APPROVED);
+        payout.setStatus(PayoutStatus.FAILED);
+        assertThatThrownBy(() -> service.retryPayout(1L, 1L)).hasMessageContaining("désactivés");
+        assertThat(payout.getStatus()).isEqualTo(PayoutStatus.FAILED);
+        verify(payoutRepository, never()).claimExecution(anyLong(), anyLong(), any(), any(), any());
+        verify(payoutRepository, never()).claimRetry(anyLong(), anyLong(), any(), any());
+        verifyNoInteractions(executorRegistry, executor);
     }
 
     @Nested
@@ -117,19 +192,17 @@ class PayoutExecutionServiceTest {
         }
 
         @Test
-        @DisplayName("uses MANUAL when config method is null")
-        void nullMethod_defaultsToManual() {
+        @DisplayName("rejects a missing PSP method without reserving execution")
+        void nullMethod_doesNotFallBackToManualPayment() {
             OwnerPayout payout = buildPayout(1L, PayoutStatus.APPROVED);
             OwnerPayoutConfig config = buildConfig(true, null);
             when(payoutRepository.findByIdAndOrgId(1L, 1L)).thenReturn(Optional.of(payout));
             when(configRepository.findByOwnerIdAndOrgId(5L, 1L)).thenReturn(Optional.of(config));
-            when(executorRegistry.get(PayoutMethod.MANUAL)).thenReturn(executor);
-            when(executor.execute(payout, config)).thenReturn(payout);
 
-            OwnerPayout result = service.executePayout(1L, 1L);
-
-            assertThat(result).isSameAs(payout);
-            verify(executorRegistry).get(PayoutMethod.MANUAL);
+            assertThatThrownBy(() -> service.executePayout(1L, 1L))
+                    .hasMessageContaining("compte de versement PSP");
+            verify(payoutRepository, never()).claimExecution(anyLong(), anyLong(), any(), any(), any());
+            verify(executor, never()).execute(any(), any());
         }
 
         @Test
@@ -166,10 +239,10 @@ class PayoutExecutionServiceTest {
         @DisplayName("wraps executor exception as IllegalArgument")
         void executorThrows_wraps() {
             OwnerPayout payout = buildPayout(1L, PayoutStatus.APPROVED);
-            OwnerPayoutConfig config = buildConfig(true, PayoutMethod.SEPA_TRANSFER);
+            OwnerPayoutConfig config = buildConfig(true, PayoutMethod.STRIPE_CONNECT);
             when(payoutRepository.findByIdAndOrgId(1L, 1L)).thenReturn(Optional.of(payout));
             when(configRepository.findByOwnerIdAndOrgId(5L, 1L)).thenReturn(Optional.of(config));
-            when(executorRegistry.get(PayoutMethod.SEPA_TRANSFER)).thenReturn(executor);
+            when(executorRegistry.get(PayoutMethod.STRIPE_CONNECT)).thenReturn(executor);
             when(executor.execute(payout, config))
                     .thenThrow(new PayoutExecutionException("rejected upfront"));
 
@@ -222,19 +295,19 @@ class PayoutExecutionServiceTest {
             payout.setRetryCount(1);
             payout.setFailureReason("network blip");
 
-            OwnerPayoutConfig config = buildConfig(true, PayoutMethod.MANUAL);
+            OwnerPayoutConfig config = buildConfig(true, PayoutMethod.STRIPE_CONNECT);
 
             // First findByIdAndOrgId call for retry, second for executePayout
             when(payoutRepository.findByIdAndOrgId(1L, 1L)).thenReturn(Optional.of(payout));
             when(configRepository.findByOwnerIdAndOrgId(5L, 1L)).thenReturn(Optional.of(config));
-            when(executorRegistry.get(PayoutMethod.MANUAL)).thenReturn(executor);
+            when(executorRegistry.get(PayoutMethod.STRIPE_CONNECT)).thenReturn(executor);
             when(executor.execute(payout, config)).thenReturn(payout);
 
             service.retryPayout(1L, 1L);
 
-            assertThat(payout.getStatus()).isEqualTo(PayoutStatus.APPROVED);
+            assertThat(payout.getStatus()).isEqualTo(PayoutStatus.PROCESSING);
             assertThat(payout.getFailureReason()).isNull();
-            verify(payoutRepository).save(payout);
+            verify(payoutRepository).claimRetry(1L, 1L, PayoutStatus.FAILED, PayoutStatus.APPROVED);
             verify(executor).execute(payout, config);
         }
     }

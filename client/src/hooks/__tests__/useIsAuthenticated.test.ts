@@ -4,6 +4,8 @@ import { renderHook, act } from '@testing-library/react';
 // Mock keycloak module — controle keycloak.authenticated dans les tests
 vi.mock('../../keycloak', () => ({
   default: { authenticated: false },
+  authReadyPromise: new Promise(() => {}),
+  keycloakInitPromise: new Promise(() => {}),
 }));
 
 import keycloak from '../../keycloak';

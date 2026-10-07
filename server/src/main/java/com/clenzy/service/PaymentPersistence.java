@@ -46,17 +46,22 @@ public class PaymentPersistence {
     private final ObjectMapper objectMapper;
     private final DepositReconciler depositReconciler;
     private final InterventionPaymentCoordination interventionPayments;
+    private final InvoicePaymentCoordination invoicePayments;
+    private final com.clenzy.service.payout.BaitlyTransferRecoveryStore transferRecoveries;
 
     public PaymentPersistence(PaymentTransactionRepository transactionRepository,
                               OutboxPublisher outboxPublisher,
                               ObjectMapper objectMapper,
                               DepositReconciler depositReconciler,
-                              InterventionPaymentCoordination interventionPayments) {
+                              InterventionPaymentCoordination interventionPayments, InvoicePaymentCoordination invoicePayments,
+                              com.clenzy.service.payout.BaitlyTransferRecoveryStore transferRecoveries) {
         this.transactionRepository = transactionRepository;
         this.outboxPublisher = outboxPublisher;
         this.objectMapper = objectMapper;
         this.depositReconciler = depositReconciler;
         this.interventionPayments = interventionPayments;
+        this.invoicePayments = invoicePayments;
+        this.transferRecoveries = transferRecoveries;
     }
 
     // ─── Initiation ───────────────────────────────────────────────────────────
@@ -80,6 +85,22 @@ public class PaymentPersistence {
         }
         PaymentTransaction tx = existing.get();
         if (tx.getStatus() == TransactionStatus.FAILED) {
+            if ("INTERVENTION".equals(tx.getSourceType()) && !BaitlyInterventionCheckoutExpiryWriter.retryProven(tx))
+                return Optional.of(tx); // Une erreur réseau seule ne prouve jamais l'absence d'encaissement.
+            if (ServiceRequestPaymentService.SOURCE_TYPE.equals(tx.getSourceType())
+                    || InvoicePaymentCoordination.SOURCE_TYPE.equals(tx.getSourceType())
+                    || InvoicePaymentCoordination.invoiceId(tx.getMetadata()) != null
+                       && !Boolean.TRUE.equals(tx.getMetadata().get("batchRetryAllowed"))
+                       && !BaitlyInterventionCheckoutExpiryWriter.retryProven(tx)) {
+                // L'échec local ne prouve pas l'absence d'encaissement de la demande.
+                // Conserver la tentative pour rapprochement, même après conversion en mission.
+                return Optional.of(tx);
+            }
+            if (InterventionPaymentBatch.SOURCE_TYPE.equals(tx.getSourceType())
+                    && (tx.getMetadata() == null || !Boolean.TRUE.equals(tx.getMetadata().get("batchRetryAllowed")))) {
+                // Une erreur réseau ne prouve pas qu'aucune session n'a été créée chez Stripe.
+                return Optional.of(tx);
+            }
             log.info("Previous transaction {} with key={} was FAILED, allowing retry",
                 tx.getTransactionRef(), idempotencyKey);
             tx.setIdempotencyKey(null);
@@ -93,7 +114,8 @@ public class PaymentPersistence {
     @Transactional
     public PaymentTransaction createPending(Long orgId, PaymentProviderType providerType,
                                             PaymentOrchestrationRequest request, String idempotencyKey) {
-        interventionPayments.lockPaymentMissions(orgId, request);
+        var allocations = interventionPayments.lockPaymentMissions(orgId, request);
+        invoicePayments.lockForPayment(orgId, request);
         PaymentTransaction tx = new PaymentTransaction();
         tx.setOrganizationId(orgId);
         tx.setTransactionRef("TX-" + UUID.randomUUID().toString().substring(0, 12));
@@ -108,7 +130,10 @@ public class PaymentPersistence {
         if (request.metadata() != null) {
             tx.setMetadata(new HashMap<>(request.metadata()));
         }
-        return transactionRepository.save(tx);
+        tx = transactionRepository.save(tx);
+        interventionPayments.recordBatchAllocations(tx, allocations);
+        invoicePayments.bindPrepared(tx);
+        return tx;
     }
 
     /** Persiste le résultat de l'appel provider (PROCESSING/FAILED) + publie l'outbox, de façon atomique. */
@@ -118,6 +143,8 @@ public class PaymentPersistence {
         if (result.success()) {
             tx.setProviderTxId(result.providerTxId());
             tx.setStatus(TransactionStatus.PROCESSING);
+            interventionPayments.attachBatchSession(tx);
+            invoicePayments.attachReservation(tx);
         } else {
             tx.setStatus(TransactionStatus.FAILED);
             tx.setErrorMessage(result.errorMessage());
@@ -141,53 +168,122 @@ public class PaymentPersistence {
     /** Contexte minimal renvoyé au flux refund pour l'appel externe (hors tx). */
     public record RefundInit(String refundTransactionRef, PaymentProviderType providerType,
                              String originalProviderTxId, String originalTransactionRef,
-                             String currency, BigDecimal originalAmount) {}
+                             String currency, BigDecimal originalAmount, BigDecimal refundAmount,
+                             TransactionStatus status, String providerRefundId, java.time.LocalDateTime requestedAt) {}
 
     /** Valide l'ownership de la transaction d'origine et crée la transaction de remboursement {@code PROCESSING}. */
     @Transactional
     public RefundInit createRefundPending(Long orgId, String originalTransactionRef, BigDecimal amount) {
-        PaymentTransaction originalTx = requireTx(originalTransactionRef);
+        PaymentTransaction originalTx = transactionRepository.lockByReference(orgId, originalTransactionRef)
+            .orElseThrow(() -> new IllegalStateException("Transaction not found: " + originalTransactionRef));
         if (!originalTx.getOrganizationId().equals(orgId)) {
             throw new RuntimeException("Transaction not found: " + originalTransactionRef);
         }
-        interventionPayments.requireRefundOutsideCancellationCase(originalTx);
+        if (InterventionPaymentBatch.SOURCE_TYPE.equals(originalTx.getSourceType())) {
+            throw new IllegalStateException("Un paiement groupé doit être remboursé par allocation ; ce parcours n'est pas encore disponible.");
+        }
+        if (InvoicePaymentCoordination.SOURCE_TYPE.equals(originalTx.getSourceType())) {
+            throw new IllegalStateException("Le remboursement de facture nécessite un avoir et un rapprochement dédiés.");
+        }
+        if (originalTx.getPaymentType() != TransactionType.CHECKOUT || originalTx.getStatus() != TransactionStatus.COMPLETED
+                || originalTx.getProviderTxId() == null || originalTx.getAmount() == null || originalTx.getAmount().signum() <= 0) {
+            throw new IllegalStateException("Un encaissement confirmé est nécessaire au remboursement.");
+        }
+        if (originalTx.hasDisputeRisk()) throw new com.clenzy.exception.PaymentValidationException(
+                "Un litige bancaire concerne ce paiement. Rapprochez son issue avant de rembourser.");
+        BigDecimal requested = amount == null ? originalTx.getAmount() : amount;
+        if (requested.signum() <= 0 || requested.compareTo(originalTx.getAmount()) > 0) {
+            throw new IllegalArgumentException("Montant de remboursement hors du montant encaissé.");
+        }
+        // Les contre-écritures actuelles concernent une mission entière. Ne pas émettre
+        // de restitution partielle avant son allocation et son avoir dédiés.
+        if (!"INTERVENTION".equals(originalTx.getSourceType()) || requested.compareTo(originalTx.getAmount()) != 0) {
+            throw new IllegalStateException("Ce remboursement exige une répartition et un rapprochement dédiés.");
+        }
+        var previous = transactionRepository.findByOrganizationIdAndSourceTypeAndSourceId(
+                orgId, originalTx.getSourceType(), originalTx.getSourceId()).stream()
+            .filter(t -> t.getPaymentType() == TransactionType.REFUND && t.getMetadata() != null
+                && originalTransactionRef.equals(t.getMetadata().get("originalTransactionRef"))).toList();
+        if (!previous.isEmpty()) {
+            if (previous.size() != 1 || previous.get(0).getAmount().compareTo(requested) != 0) {
+                throw new com.clenzy.exception.PaymentValidationException(
+                    "Un remboursement existe déjà pour ce paiement. Vérifiez le montant remboursé et son rapprochement avant toute nouvelle demande.");
+            }
+            var existing = previous.get(0);
+            if (existing.getStatus() != TransactionStatus.COMPLETED && !managedRefund(existing)) {
+                throw new com.clenzy.exception.PaymentValidationException(
+                    "Un remboursement est déjà en cours ou à rapprocher. Aucun nouveau remboursement n'a été envoyé.");
+            }
+            return refundInit(existing, originalTx);
+        }
+        interventionPayments.requireStandaloneRefund(originalTx);
         PaymentTransaction refundTx = new PaymentTransaction();
         refundTx.setOrganizationId(orgId);
-        refundTx.setTransactionRef("REF-" + UUID.randomUUID().toString().substring(0, 8));
+        refundTx.setTransactionRef("REF-" + UUID.randomUUID());
         refundTx.setProviderType(originalTx.getProviderType());
         refundTx.setPaymentType(TransactionType.REFUND);
         refundTx.setStatus(TransactionStatus.PROCESSING);
-        refundTx.setAmount(amount != null ? amount : originalTx.getAmount());
+        refundTx.setAmount(requested);
         refundTx.setCurrency(originalTx.getCurrency());
         refundTx.setSourceType(originalTx.getSourceType());
         refundTx.setSourceId(originalTx.getSourceId());
+        refundTx.setMetadata(java.util.Map.of("originalTransactionRef", originalTransactionRef,
+                "managedRefund", originalTx.getProviderType() == PaymentProviderType.STRIPE));
+        refundTx.setIdempotencyKey("REFUND-" + orgId + "-" + originalTx.getId());
         refundTx = transactionRepository.save(refundTx);
-        return new RefundInit(refundTx.getTransactionRef(), originalTx.getProviderType(),
-            originalTx.getProviderTxId(), originalTx.getTransactionRef(),
-            originalTx.getCurrency(), originalTx.getAmount());
+        transferRecoveries.prepareFullInterventionRefund(refundTx, originalTx.getAmount());
+        return refundInit(refundTx, originalTx);
     }
 
-    /** Persiste le résultat du remboursement (COMPLETED/FAILED) + publie l'outbox, de façon atomique. */
+    private RefundInit refundInit(PaymentTransaction refund, PaymentTransaction original) {
+        return new RefundInit(refund.getTransactionRef(), original.getProviderType(), original.getProviderTxId(),
+                original.getTransactionRef(), original.getCurrency(), original.getAmount(), refund.getAmount(),
+                refund.getStatus(), refund.getProviderTxId(), refund.getCreatedAt());
+    }
+
+    public static boolean managedRefund(PaymentTransaction tx) {
+        return tx.getPaymentType() == TransactionType.REFUND && tx.getMetadata() != null
+                && Boolean.TRUE.equals(tx.getMetadata().get("managedRefund"));
+    }
+
+    /** Persiste la preuve du remboursement ; seul un succès confirmé publie l'outbox. */
     @Transactional
     public PaymentTransaction finalizeRefund(String refundTransactionRef, PaymentResult result, Long orgId) {
-        PaymentTransaction refundTx = requireTx(refundTransactionRef);
-        if (result.success()) {
+        PaymentTransaction refundTx = transactionRepository.lockByReference(orgId, refundTransactionRef).orElseThrow();
+        if (refundTx.getPaymentType() != TransactionType.REFUND) throw new IllegalStateException("Remboursement introuvable");
+        if (refundTx.getStatus() == TransactionStatus.COMPLETED) return refundTx;
+        if (!result.success() && refundTx.getStatus() == TransactionStatus.FAILED
+                && !"REFUND_REJECTED".equals(result.status())) return refundTx;
+        if (result.providerTxId() != null) {
+            if (refundTx.getProviderTxId() != null && !refundTx.getProviderTxId().equals(result.providerTxId())) {
+                throw new IllegalStateException("Preuve d'un autre remboursement");
+            }
             refundTx.setProviderTxId(result.providerTxId());
+        }
+        if (result.success()) {
+            if (managedRefund(refundTx) && (result.providerTxId() == null || !"REFUNDED".equals(result.status()))) {
+                throw new IllegalStateException("Remboursement non confirmé par le PSP");
+            }
             refundTx.setStatus(TransactionStatus.COMPLETED);
+            refundTx.setErrorMessage(null);
         } else {
-            refundTx.setStatus(TransactionStatus.FAILED);
+            // Un timeout ou pending ne libère jamais le montant réservé au remboursement.
+            refundTx.setStatus(managedRefund(refundTx) && !"REFUND_REJECTED".equals(result.status())
+                    ? TransactionStatus.PROCESSING : TransactionStatus.FAILED);
             refundTx.setErrorMessage(result.errorMessage());
         }
         refundTx = transactionRepository.save(refundTx);
-        publishEvent(refundTx, "PAYMENT_REFUNDED", orgId);
+        if (refundTx.getStatus() == TransactionStatus.COMPLETED) publishEvent(refundTx, "PAYMENT_REFUNDED", orgId);
         return refundTx;
     }
 
-    /** Marque le remboursement FAILED après une exception de l'appel provider (pas d'outbox). */
+    /** Conserve la décision Stripe ambiguë en traitement, sans événement de succès. */
     @Transactional
     public PaymentTransaction markRefundFailed(String refundTransactionRef, String errorMessage) {
-        PaymentTransaction refundTx = requireTx(refundTransactionRef);
-        refundTx.setStatus(TransactionStatus.FAILED);
+        var located = requireTx(refundTransactionRef);
+        PaymentTransaction refundTx = transactionRepository.lockByReference(located.getOrganizationId(), refundTransactionRef).orElseThrow();
+        if (refundTx.getStatus() == TransactionStatus.COMPLETED || refundTx.getStatus() == TransactionStatus.FAILED) return refundTx;
+        refundTx.setStatus(managedRefund(refundTx) ? TransactionStatus.PROCESSING : TransactionStatus.FAILED);
         refundTx.setErrorMessage(errorMessage);
         return transactionRepository.save(refundTx);
     }

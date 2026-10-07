@@ -10,7 +10,7 @@ import org.springframework.stereotype.Component;
  * Exécuteur "Manuel" : refuse explicitement l'exécution automatique.
  *
  * <p>La méthode {@code MANUAL} signifie que le propriétaire reçoit ses
- * paiements hors-Clenzy (espèces, chèque, virement perso, etc.). Il n'y a
+ * paiements hors-Baitly (espèces, chèque, virement perso, etc.). Il n'y a
  * rien à automatiser. L'admin doit changer la méthode du propriétaire en
  * SEPA / Stripe Connect / Wise / Open Banking avant d'exécuter.</p>
  */
@@ -24,6 +24,12 @@ public class ManualPayoutExecutor implements PayoutExecutor {
 
     @Override
     public OwnerPayout execute(OwnerPayout payout, OwnerPayoutConfig config) {
+        validate(payout, config);
+        return payout;
+    }
+
+    @Override
+    public void validate(OwnerPayout payout, OwnerPayoutConfig config) {
         throw new PayoutExecutionException(
             "Les reversements en mode MANUEL ne peuvent pas etre executes automatiquement. "
           + "Changez la methode de paiement du proprietaire en SEPA, Stripe Connect, Wise ou Open Banking.");

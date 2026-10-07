@@ -2,6 +2,7 @@ import { useInterventionState } from './useInterventionState';
 import { useInterventionPhotos } from './useInterventionPhotos';
 import { useInterventionProgress } from './useInterventionProgress';
 import { useInterventionNotes } from './useInterventionNotes';
+import { useRef } from 'react';
 
 /**
  * Thin orchestrator that composes the four focused hooks while preserving
@@ -48,6 +49,22 @@ export function useInterventionDetails(id: string | undefined) {
     initialLoadData: state.initialLoadData,
   });
 
+  const completingRef = useRef(false);
+  const handleCompleteIntervention = async () => {
+    if (completingRef.current || !progress.areAllStepsCompleted()) return;
+    completingRef.current = true;
+    state.setCompleting(true);
+    try {
+      await photos.persistCompletedSteps(new Set(photos.completedSteps).add('rooms'));
+      await state.handleCompleteIntervention();
+    } catch {
+      // Persisting the final steps failed. Its mutation exposes the error.
+    } finally {
+      completingRef.current = false;
+      state.setCompleting(false);
+    }
+  };
+
   // ---- Return the same flat API ----
   return {
     // State
@@ -76,6 +93,7 @@ export function useInterventionDetails(id: string | undefined) {
     beforePhotos: photos.beforePhotos,
     afterPhotos: photos.afterPhotos,
     validatedRooms: progress.validatedRooms,
+    savingRoom: progress.savingRoom,
     inspectionComplete: photos.inspectionComplete,
     allRoomsValidated: progress.allRoomsValidated,
     canViewInterventions: state.canViewInterventions,
@@ -98,7 +116,7 @@ export function useInterventionDetails(id: string | undefined) {
     // Handler functions
     handleStartIntervention: state.handleStartIntervention,
     handleUpdateProgress: progress.handleUpdateProgress,
-    handleCompleteIntervention: state.handleCompleteIntervention,
+    handleCompleteIntervention,
     handleReopenIntervention: progress.handleReopenIntervention,
     handleOpenNotesDialog: notes.handleOpenNotesDialog,
     handleUpdateNotes: notes.handleUpdateNotes,

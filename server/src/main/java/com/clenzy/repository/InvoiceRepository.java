@@ -15,6 +15,10 @@ import java.util.Optional;
 @Repository
 public interface InvoiceRepository extends JpaRepository<Invoice, Long> {
 
+    @org.springframework.data.jpa.repository.Lock(jakarta.persistence.LockModeType.PESSIMISTIC_WRITE)
+    @Query("SELECT i FROM Invoice i WHERE i.id = :id")
+    Optional<Invoice> findForUpdate(@Param("id") Long id);
+
     List<Invoice> findByOrganizationId(Long organizationId);
 
     List<Invoice> findByOrganizationIdAndStatus(Long organizationId, InvoiceStatus status);
@@ -34,11 +38,23 @@ public interface InvoiceRepository extends JpaRepository<Invoice, Long> {
     List<Invoice> findAllByReservationId(Long reservationId);
 
     /** Facture d'une réservation par nature (unicité GUEST / COMMISSION). */
-    Optional<Invoice> findByReservationIdAndInvoiceType(Long reservationId, InvoiceType invoiceType);
+    @Query("SELECT i FROM Invoice i WHERE i.reservationId = :reservationId AND i.invoiceType = :invoiceType "
+        + "AND i.status NOT IN (com.clenzy.model.InvoiceStatus.CREDIT_NOTE, com.clenzy.model.InvoiceStatus.CANCELLED) "
+        + "AND i.duplicateOfId IS NULL")
+    Optional<Invoice> findByReservationIdAndInvoiceType(@Param("reservationId") Long reservationId, @Param("invoiceType") InvoiceType invoiceType);
 
     Optional<Invoice> findByPayoutId(Long payoutId);
 
-    Optional<Invoice> findByInterventionId(Long interventionId);
+    List<Invoice> findAllByPayoutIdAndOrganizationIdOrderById(Long payoutId, Long organizationId);
+
+    @Query("SELECT i FROM Invoice i WHERE i.interventionId = :interventionId "
+        + "AND i.status NOT IN (com.clenzy.model.InvoiceStatus.CREDIT_NOTE, com.clenzy.model.InvoiceStatus.CANCELLED) "
+        + "AND i.duplicateOfId IS NULL")
+    Optional<Invoice> findByInterventionId(@Param("interventionId") Long interventionId);
+
+    Optional<Invoice> findByOrganizationIdAndRefundTransactionId(Long organizationId, Long refundTransactionId);
+
+    boolean existsByOrganizationIdAndOriginalInvoiceId(Long organizationId, Long originalInvoiceId);
 
     Optional<Invoice> findByDocumentGenerationId(Long documentGenerationId);
 

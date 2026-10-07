@@ -47,6 +47,7 @@ class InvoiceControllerTest {
     @Mock private InvoiceRepository invoiceRepository;
     @Mock private DocumentTemplateRepository documentTemplateRepository;
     @Mock private TenantContext tenantContext;
+    @Mock private com.clenzy.service.PaymentAccessService paymentAccess;
 
     private InvoiceController controller;
 
@@ -57,14 +58,14 @@ class InvoiceControllerTest {
         controller = new InvoiceController(invoiceGeneratorService, invoicePaymentService,
                 invoicePaymentLinkService,
                 new InvoiceQueryService(invoiceRepository, documentTemplateRepository,
-                        invoicePdfService, tenantContext));
+                        invoicePdfService, tenantContext), paymentAccess);
     }
 
     private InvoiceDto dto(Long id) {
         return new InvoiceDto(id, 1L, "INV-001", LocalDate.now(), LocalDate.now().plusDays(30),
                 "EUR", "FR", null, null, null, null, null, null, null, null, null,
                 null, null, null, null, null, InvoiceStatus.DRAFT, InvoiceType.GUEST, null, null, null,
-                List.of(), LocalDateTime.now());
+                List.of(), LocalDateTime.now(), null, null);
     }
 
     @Test
@@ -175,9 +176,10 @@ class InvoiceControllerTest {
                 .thenReturn(orchResult);
 
         ResponseEntity<PaymentOrchestrationResult> response = controller.pay(5L, PaymentProviderType.STRIPE,
-                "https://ok", "https://cancel");
+                "https://ok", "https://cancel", null);
         assertThat(response.getStatusCode().value()).isEqualTo(200);
         assertThat(response.getBody()).isEqualTo(orchResult);
+        verify(paymentAccess).requireInvoice(5L, null);
     }
 
     @Test
@@ -187,7 +189,7 @@ class InvoiceControllerTest {
         PaymentOrchestrationResult orchResult = new PaymentOrchestrationResult(txn, ok, PaymentProviderType.STRIPE);
         when(invoicePaymentService.payInvoice(5L, null, null, null)).thenReturn(orchResult);
 
-        ResponseEntity<PaymentOrchestrationResult> response = controller.pay(5L, null, null, null);
+        ResponseEntity<PaymentOrchestrationResult> response = controller.pay(5L, null, null, null, null);
         assertThat(response.getStatusCode().value()).isEqualTo(200);
     }
 

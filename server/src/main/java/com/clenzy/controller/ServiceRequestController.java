@@ -38,11 +38,14 @@ public class ServiceRequestController {
 
     private final ServiceRequestService service;
     private final ServiceRequestPaymentService serviceRequestPaymentService;
+    private final com.clenzy.service.PaymentAccessService paymentAccessService;
 
     public ServiceRequestController(ServiceRequestService service,
-                                    ServiceRequestPaymentService serviceRequestPaymentService) {
+                                    ServiceRequestPaymentService serviceRequestPaymentService,
+                                    com.clenzy.service.PaymentAccessService paymentAccessService) {
         this.service = service;
         this.serviceRequestPaymentService = serviceRequestPaymentService;
+        this.paymentAccessService = paymentAccessService;
     }
 
     @PostMapping
@@ -197,6 +200,7 @@ public class ServiceRequestController {
     public ResponseEntity<Map<String, String>> createPaymentSession(
             @PathVariable Long id,
             @AuthenticationPrincipal Jwt jwt) {
+        paymentAccessService.requireServiceRequest(id, jwt);
         try {
             String email = jwt.getClaimAsString("email");
             return ResponseEntity.ok(serviceRequestPaymentService.createPaymentSession(id, email));
@@ -212,6 +216,7 @@ public class ServiceRequestController {
     public ResponseEntity<?> createEmbeddedPaymentSession(
             @PathVariable Long id,
             @AuthenticationPrincipal Jwt jwt) {
+        paymentAccessService.requireServiceRequest(id, jwt);
         try {
             String email = jwt.getClaimAsString("email");
             return ResponseEntity.ok(serviceRequestPaymentService.createEmbeddedPaymentSession(id, email));
@@ -225,7 +230,8 @@ public class ServiceRequestController {
     @Operation(summary = "Verifier le statut du paiement Stripe pour une SR",
                description = "Verifie directement aupres de Stripe si le paiement a ete effectue. " +
                        "Confirme automatiquement + cree l'intervention si Stripe indique paid.")
-    public ResponseEntity<?> checkPaymentStatus(@PathVariable Long id) {
+    public ResponseEntity<?> checkPaymentStatus(@PathVariable Long id, @AuthenticationPrincipal Jwt jwt) {
+        paymentAccessService.requireServiceRequest(id, jwt);
         try {
             return ResponseEntity.ok(serviceRequestPaymentService.checkPaymentStatus(id));
         } catch (Exception e) {

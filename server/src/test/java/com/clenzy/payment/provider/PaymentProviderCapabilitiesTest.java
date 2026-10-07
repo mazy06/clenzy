@@ -20,7 +20,7 @@ class PaymentProviderCapabilitiesTest {
     @Test
     @DisplayName("Stripe couvre toutes les capacités (PAY, PREAUTH, REFUND, PAYOUT, CUSTOMER)")
     void stripeSupportsEverything() {
-        PaymentProvider stripe = new StripePaymentProvider();
+        PaymentProvider stripe = new StripePaymentProvider(new com.clenzy.payment.StripeGateway("sk_test_xxx"), org.mockito.Mockito.mock(com.clenzy.payment.ManagedStripeRefund.class));
 
         assertThat(stripe.getCapabilities()).containsExactlyInAnyOrder(
                 PaymentCapability.PAY, PaymentCapability.PREAUTH, PaymentCapability.REFUND,
@@ -81,7 +81,7 @@ class PaymentProviderCapabilitiesTest {
     @Test
     @DisplayName("Tout provider supporte au minimum PAY")
     void everyProviderSupportsPay() {
-        assertThat(new StripePaymentProvider().supports(PaymentCapability.PAY)).isTrue();
+        assertThat(new StripePaymentProvider(new com.clenzy.payment.StripeGateway("sk_test_xxx"), org.mockito.Mockito.mock(com.clenzy.payment.ManagedStripeRefund.class)).supports(PaymentCapability.PAY)).isTrue();
         assertThat(new PayzonePaymentProvider(null, null).supports(PaymentCapability.PAY)).isTrue();
         assertThat(new PayTabsPaymentProvider(null, null).supports(PaymentCapability.PAY)).isTrue();
         assertThat(new CmiPaymentProvider(null, null).supports(PaymentCapability.PAY)).isTrue();

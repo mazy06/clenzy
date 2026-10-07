@@ -31,6 +31,10 @@ public class PaymentEventConsumer {
     private final PeripheralPaymentReconciliationService peripheralPaymentReconciliationService;
     private final com.clenzy.repository.PaymentTransactionRepository transactionRepository;
     private final com.clenzy.tenant.KafkaTenantScope kafkaTenantScope;
+    private final InterventionRefundReconciliationService interventionRefundReconciliationService;
+    private final InterventionBatchReconciliationService batchReconciliation;
+    private final InvoicePaymentCoordination invoicePayments;
+    private final RefundCreditNoteService refundCreditNotes;
 
     public PaymentEventConsumer(SplitPaymentService splitPaymentService,
                                  EscrowHoldRepository escrowHoldRepository,
@@ -40,7 +44,13 @@ public class PaymentEventConsumer {
                                  com.clenzy.booking.service.BookingBalanceReconciliationService bookingBalanceReconciliationService,
                                  PeripheralPaymentReconciliationService peripheralPaymentReconciliationService,
                                  com.clenzy.repository.PaymentTransactionRepository transactionRepository,
-                                 com.clenzy.tenant.KafkaTenantScope kafkaTenantScope) {
+                                 com.clenzy.tenant.KafkaTenantScope kafkaTenantScope,
+                                 InterventionRefundReconciliationService interventionRefundReconciliationService,
+                                 InterventionBatchReconciliationService batchReconciliation, InvoicePaymentCoordination invoicePayments,
+                                 RefundCreditNoteService refundCreditNotes) {
+        this.refundCreditNotes = refundCreditNotes;
+        this.invoicePayments = invoicePayments;
+        this.batchReconciliation = batchReconciliation;
         this.splitPaymentService = splitPaymentService;
         this.escrowHoldRepository = escrowHoldRepository;
         this.reservationRepository = reservationRepository;
@@ -50,6 +60,7 @@ public class PaymentEventConsumer {
         this.peripheralPaymentReconciliationService = peripheralPaymentReconciliationService;
         this.transactionRepository = transactionRepository;
         this.kafkaTenantScope = kafkaTenantScope;
+        this.interventionRefundReconciliationService = interventionRefundReconciliationService;
     }
 
     @KafkaListener(topics = KafkaConfig.TOPIC_PAYMENT_EVENTS, groupId = "clenzy-payment-consumer")
@@ -59,8 +70,25 @@ public class PaymentEventConsumer {
         switch (eventType) {
             case "ESCROW_RELEASED" -> handleEscrowReleased(event);
             case "PAYMENT_COMPLETED" -> handlePaymentCompleted(event);
+            case "PAYMENT_REFUNDED" -> handlePaymentRefunded(event);
             default -> log.debug("Ignoring payment event type: {}", eventType);
         }
+    }
+
+    private void handlePaymentRefunded(Map<String, Object> event) {
+        Object ref = event.get("transactionRef");
+        if (!(ref instanceof String transactionRef) || transactionRef.isBlank()) return;
+        PaymentTransaction tx = transactionRepository.findByTransactionRef(transactionRef).orElse(null);
+        // Le payload ne choisit ni l'organisation, ni la mission, ni le résultat financier.
+        if (tx == null || tx.getStatus() != com.clenzy.model.TransactionStatus.COMPLETED
+                || tx.getPaymentType() != com.clenzy.model.TransactionType.REFUND
+                || !"INTERVENTION".equals(tx.getSourceType())) return;
+        kafkaTenantScope.run(KafkaConfig.TOPIC_PAYMENT_EVENTS, tx.getOrganizationId(),
+            () -> {
+                interventionRefundReconciliationService.reconcile(transactionRef);
+                // Transaction documentaire distincte : une panne PDF/facture ne défait pas un remboursement confirmé.
+                refundCreditNotes.reconcile(transactionRef);
+            });
     }
 
     /**
@@ -156,6 +184,12 @@ public class PaymentEventConsumer {
             log.warn("PAYMENT_COMPLETED tx={} introuvable — ignore", transactionRef);
             return;
         }
+        // Un événement rejoué ou mal nommé ne constitue pas une preuve d'encaissement.
+        if (tx.getStatus() != com.clenzy.model.TransactionStatus.COMPLETED
+                || tx.getPaymentType() != com.clenzy.model.TransactionType.CHECKOUT) {
+            log.warn("PAYMENT_COMPLETED tx={} sans encaissement confirmé — ignoré", transactionRef);
+            return;
+        }
         final String sourceType = tx.getSourceType() != null ? tx.getSourceType() : "";
         String payloadSourceType = String.valueOf(event.getOrDefault("sourceType", ""));
         if (!payloadSourceType.isBlank() && !payloadSourceType.equals(sourceType)) {
@@ -171,13 +205,18 @@ public class PaymentEventConsumer {
     }
 
     private void dispatchPaymentCompleted(String sourceType, String transactionRef) {
-        if (sourceType.startsWith(DeferredPaymentService.SOURCE_TYPE_PREFIX)) {
+        if (InvoicePaymentCoordination.SOURCE_TYPE.equals(sourceType)) {
+            invoicePayments.reconcile(transactionRef);
+        } else if (InterventionPaymentBatch.SOURCE_TYPE.equals(sourceType)) {
+            batchReconciliation.reconcile(transactionRef);
+        } else if (sourceType.startsWith(DeferredPaymentService.SOURCE_TYPE_PREFIX)) {
             log.info("PAYMENT_COMPLETED differe : tx={} sourceType={} → reconciliation interventions",
                     transactionRef, sourceType);
             deferredPaymentReconciliationService.reconcile(transactionRef);
         } else if (ReservationPaymentService.SOURCE_TYPE.equals(sourceType)) {
             log.info("PAYMENT_COMPLETED reservation : tx={} → reconciliation reservation", transactionRef);
             reservationPaymentReconciliationService.reconcile(transactionRef);
+            invoicePayments.reconcile(transactionRef);
         } else if (com.clenzy.booking.service.BookingBalanceService.SOURCE_TYPE.equals(sourceType)) {
             log.info("PAYMENT_COMPLETED solde booking : tx={} → reconciliation solde", transactionRef);
             bookingBalanceReconciliationService.reconcile(transactionRef);

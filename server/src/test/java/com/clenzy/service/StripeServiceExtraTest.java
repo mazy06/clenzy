@@ -73,7 +73,7 @@ class StripeServiceExtraTest {
             notificationService, serviceRequestService, walletService, ledgerService,
             splitPaymentService, autoInvoiceService, documentOutbox, paymentStatusTransitionService,
             org.mockito.Mockito.mock(com.clenzy.service.email.BookingConfirmationEmailService.class),
-            org.mockito.Mockito.mock(com.clenzy.service.WebhookEventPublisher.class));
+            org.mockito.Mockito.mock(com.clenzy.service.WebhookEventPublisher.class), org.mockito.Mockito.mock(com.clenzy.booking.service.BaitlyReservationCredit.class));
         StripeRefundService refundService = new StripeRefundService(stripeGateway,
             paymentStatusTransitionService, org.mockito.Mockito.mock(PaymentLedgerReversalService.class),
             notificationService);
@@ -184,6 +184,7 @@ class StripeServiceExtraTest {
         void nullPaymentLinkEmail_isOk() {
             Reservation r = buildReservation(2L);
             r.setPaymentLinkEmail(null);
+            r.setStripeSessionId("sess_n");
             when(reservationRepository.findByStripeSessionId("sess_n")).thenReturn(Optional.of(r));
             Wallet w = new Wallet();
             when(walletService.getOrCreatePlatformWallet(any(), any())).thenReturn(w);
@@ -259,6 +260,7 @@ class StripeServiceExtraTest {
         @DisplayName("notification fail -> reservation still FAILED")
         void notificationFails_reservationStillFailed() {
             Reservation r = buildReservation(3L);
+            r.setStripeSessionId("sess_x");
             when(reservationRepository.findByStripeSessionId("sess_x")).thenReturn(Optional.of(r));
             doThrow(new RuntimeException("notif err"))
                 .when(notificationService).notifyAdminsAndManagers(any(), any(), any(), any());
@@ -279,6 +281,7 @@ class StripeServiceExtraTest {
         @DisplayName("auto-invoice fails -> still PAID")
         void autoInvoiceFail_paidStill() {
             Reservation r = buildReservation(4L);
+            r.setStripeSessionId("sess_inv");
             when(reservationRepository.findByStripeSessionId("sess_inv")).thenReturn(Optional.of(r));
             Wallet w = new Wallet();
             when(walletService.getOrCreatePlatformWallet(any(), any())).thenReturn(w);
@@ -295,6 +298,7 @@ class StripeServiceExtraTest {
         @DisplayName("split reservation payment fails -> still PAID")
         void splitReservationFails_paidStill() {
             Reservation r = buildReservation(5L);
+            r.setStripeSessionId("sess_s");
             when(reservationRepository.findByStripeSessionId("sess_s")).thenReturn(Optional.of(r));
             Wallet w = new Wallet();
             when(walletService.getOrCreatePlatformWallet(any(), any())).thenReturn(w);
@@ -311,6 +315,7 @@ class StripeServiceExtraTest {
         @DisplayName("wallet creation fails -> still PAID")
         void walletCreationFails_paidStill() {
             Reservation r = buildReservation(6L);
+            r.setStripeSessionId("sess_w");
             when(reservationRepository.findByStripeSessionId("sess_w")).thenReturn(Optional.of(r));
             when(walletService.getOrCreatePlatformWallet(any(), any()))
                 .thenThrow(new RuntimeException("wallet fail"));

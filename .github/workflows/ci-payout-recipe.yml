@@ -1,0 +1,157 @@
+name: Baitly payout recipe
+
+on:
+  pull_request:
+    branches: [main, develop, production]
+    paths:
+      - 'server/**'
+      - 'pom.xml'
+      - 'scripts/payments/**'
+      - 'client/src/modules/payments/**'
+      - 'client/src/modules/accounting/**'
+      - 'client/src/modules/billing/**'
+      - 'client/src/modules/account/**'
+      - 'client/src/services/api/**'
+      - 'client/src/services/apiClient.ts'
+      - 'client/src/test/**'
+      - 'client/tests/**'
+      - 'client/src/components/**'
+      - 'client/src/hooks/**'
+      - 'client/src/config/**'
+      - 'client/src/keycloak.ts'
+      - 'client/src/utils/**'
+      - 'client/package*.json'
+      - 'client/vite.config.ts'
+      - 'client/tsconfig*.json'
+      - 'client/src/modules/booking-engine/**'
+      - 'client/src/modules/App.tsx'
+      - 'client/public/locales/**'
+      - '.github/workflows/ci-payout-recipe.yml'
+  push:
+    branches: [main, develop, production]
+    paths:
+      - 'server/**'
+      - 'pom.xml'
+      - 'scripts/payments/**'
+      - 'client/src/modules/payments/**'
+      - 'client/src/modules/accounting/**'
+      - 'client/src/modules/billing/**'
+      - 'client/src/modules/account/**'
+      - 'client/src/services/api/**'
+      - 'client/src/services/apiClient.ts'
+      - 'client/src/test/**'
+      - 'client/tests/**'
+      - 'client/src/components/**'
+      - 'client/src/hooks/**'
+      - 'client/src/config/**'
+      - 'client/src/keycloak.ts'
+      - 'client/src/utils/**'
+      - 'client/package*.json'
+      - 'client/vite.config.ts'
+      - 'client/tsconfig*.json'
+      - 'client/src/modules/booking-engine/**'
+      - 'client/src/modules/App.tsx'
+      - 'client/public/locales/**'
+      - '.github/workflows/ci-payout-recipe.yml'
+  workflow_dispatch:
+    inputs:
+      sandbox_preflight:
+        description: Vérifier les comptes Stripe test en lecture seule
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+concurrency:
+  group: payout-recipe-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  financial-contract:
+    name: Financial contract and real PostgreSQL
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    services:
+      postgres:
+        image: postgres:15-alpine
+        env:
+          POSTGRES_DB: baitly_payout_test
+          POSTGRES_USER: postgres
+          # Base éphémère du runner, jamais une base de l'application.
+          POSTGRES_HOST_AUTH_METHOD: trust
+        ports:
+          - 127.0.0.1:5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+          cache: maven
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Test sandbox guardrails without credentials
+        run: python3 -m unittest discover -s scripts/payments -p 'test_*.py' -v
+      - name: Financial tests, real PostgreSQL and mandatory report validation
+        run: python3 scripts/payments/financial_recipe.py --scope backend --jdbc jdbc:postgresql://127.0.0.1:5432/baitly_payout_test --output test-results/backend
+      - name: Retain test results
+        if: always()
+        continue-on-error: true
+        uses: actions/upload-artifact@v4
+        with:
+          name: payout-recipe-results
+          path: test-results/backend/
+          retention-days: 7
+
+  finance-interface:
+    name: Finance refund interactions
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: client/package-lock.json
+      - run: npm ci
+        working-directory: client
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Finance interactions and real HTTP contracts
+        run: python3 scripts/payments/financial_recipe.py --scope frontend --output test-results/frontend
+      - name: Retain interface test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: finance-interface-results
+          path: test-results/frontend/
+          retention-days: 7
+
+  sandbox-preflight:
+    name: Read-only Stripe sandbox preflight
+    if: github.event_name == 'workflow_dispatch' && inputs.sandbox_preflight
+    needs: [financial-contract, finance-interface]
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    # Configurer cet environnement avec approbation et branches autorisées avant usage.
+    environment: stripe-sandbox
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Verify test accounts only
+        env:
+          BAITLY_STRIPE_SANDBOX_KEY: ${{ secrets.BAITLY_STRIPE_SANDBOX_KEY }}
+          BAITLY_STRIPE_SANDBOX_PLATFORM: ${{ vars.BAITLY_STRIPE_SANDBOX_PLATFORM }}
+          BAITLY_STRIPE_SANDBOX_BENEFICIARIES: ${{ vars.BAITLY_STRIPE_SANDBOX_BENEFICIARIES }}
+        run: python3 scripts/payments/stripe_sandbox_preflight.py

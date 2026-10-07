@@ -1,0 +1,54 @@
+.bui-stat-overview { container: stat-overview / inline-size; min-inline-size: 0; }
+.bui-stat-overview__figures {
+  /* 370px drawer + two 14px concave shoulders. Leave room for neighbouring amounts and units. */
+  --stat-expanded-width: max(calc(100cqw / 6), min(398px, calc(100cqw - 900px)));
+  display: grid;
+  grid-template-columns: var(--stat-col-1, minmax(0, 1fr)) var(--stat-col-2, minmax(0, 1fr))
+    var(--stat-col-3, minmax(0, 1fr)) var(--stat-col-4, minmax(0, 1fr))
+    var(--stat-col-5, minmax(0, 1fr)) var(--stat-col-6, minmax(0, 1fr));
+}
+.bui-stat-overview__figures:has(> :nth-child(1)[data-expanded="true"]) { --stat-col-1: var(--stat-expanded-width); }
+.bui-stat-overview__figures:has(> :nth-child(2)[data-expanded="true"]) { --stat-col-2: var(--stat-expanded-width); }
+.bui-stat-overview__figures:has(> :nth-child(3)[data-expanded="true"]) { --stat-col-3: var(--stat-expanded-width); }
+.bui-stat-overview__figures:has(> :nth-child(4)[data-expanded="true"]) { --stat-col-4: var(--stat-expanded-width); }
+.bui-stat-overview__figures:has(> :nth-child(5)[data-expanded="true"]) { --stat-col-5: var(--stat-expanded-width); }
+.bui-stat-overview__figures:has(> :nth-child(6)[data-expanded="true"]) { --stat-col-6: var(--stat-expanded-width); }
+.bui-stat-overview__item { min-inline-size: 0; border-inline-end: 1px solid var(--bui-border); }
+.bui-stat-overview__item:last-child { border-inline-end: 0; }
+.bui-stat-figure {
+  inline-size: 100%; min-inline-size: 0; min-block-size: 78px; position: relative;
+  display: flex; align-items: center; gap: 10px; padding: 12px 14px; text-align: start;
+  color: var(--bui-foreground); background: transparent; border: 0; font-variant-numeric: tabular-nums;
+}
+button.bui-stat-figure { cursor: pointer; transition: background-color 180ms cubic-bezier(.22,1,.36,1); }
+button.bui-stat-figure:disabled { cursor: default; }
+button.bui-stat-figure:hover:not(:disabled), .bui-stat-figure[aria-expanded="true"] { background: var(--bui-muted); }
+.bui-stat-figure:focus-visible { outline: 2px solid var(--bui-ring); outline-offset: -3px; border-radius: 8px; }
+.bui-stat-figure__art { inline-size: 44px; block-size: 44px; flex-shrink: 0; object-fit: contain; }
+.bui-stat-figure__body { display: flex; flex-direction: column; min-inline-size: 0; gap: 4px; }
+.bui-stat-figure__label { font-size: .75rem; font-weight: 500; line-height: 1.3; color: var(--bui-muted-foreground); }
+.bui-stat-figure__value { display: flex; align-items: baseline; gap: 4px; flex-wrap: wrap; line-height: 1.15; }
+.bui-stat-figure__value b { font-family: var(--font-display); font-size: 1.25rem; font-weight: 650; letter-spacing: -.025em; overflow-wrap: anywhere; }
+.bui-stat-figure__value > span { font-size: .75rem; color: var(--bui-muted-foreground); }
+@container stat-overview (max-width: 1249px) {
+  .bui-stat-overview__figures {
+    --stat-expanded-width: max(calc(100cqw / 3), min(398px, calc(100cqw - 360px)));
+    grid-template-columns: var(--stat-tablet-col-1, minmax(0, 1fr))
+      var(--stat-tablet-col-2, minmax(0, 1fr)) var(--stat-tablet-col-3, minmax(0, 1fr));
+  }
+  .bui-stat-overview__figures:has(> :nth-child(3n+1)[data-expanded="true"]) { --stat-tablet-col-1: var(--stat-expanded-width); }
+  .bui-stat-overview__figures:has(> :nth-child(3n+2)[data-expanded="true"]) { --stat-tablet-col-2: var(--stat-expanded-width); }
+  .bui-stat-overview__figures:has(> :nth-child(3n)[data-expanded="true"]) { --stat-tablet-col-3: var(--stat-expanded-width); }
+  .bui-stat-overview__item:nth-child(3n) { border-inline-end: 0; }
+  .bui-stat-overview__item:nth-child(n+4) { border-block-start: 1px solid var(--bui-border); }
+}
+@container stat-overview (max-width: 639px) {
+  .bui-stat-overview__figures { grid-template-columns: minmax(0, 1fr); }
+  .bui-stat-overview__item:nth-child(n) { border-inline-end: 0; border-block-start: 1px solid var(--bui-border); }
+  .bui-stat-overview__item:first-child { border-block-start: 0; }
+  .bui-stat-figure { min-block-size: 64px; gap: 10px; padding: 10px 14px; }
+  .bui-stat-figure__art { inline-size: 38px; block-size: 38px; }
+  .bui-stat-figure__body { flex: 1; display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 12px; }
+  .bui-stat-figure__value { justify-content: end; }
+}
+@media (prefers-reduced-motion: reduce) { button.bui-stat-figure { transition: none; } }

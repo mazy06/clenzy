@@ -1,0 +1,99 @@
+.payment-record-detail { container: payment-detail / inline-size; display: flex; flex-direction: column; flex: 1; min-height: 0; }
+.payment-record-detail > :not(.payment-record-detail__mission) { flex-shrink: 0; }
+.payment-record-detail .finance-identity[data-variant="detail"] { padding-block: 12px; gap: 14px; align-items: flex-start; }
+.payment-record-detail .finance-identity__part { font-size: 13px; font-weight: 550; color: var(--bui-foreground); gap: 10px; }
+.payment-record-detail .finance-identity__part > span:last-child { white-space: nowrap; }
+.payment-record-detail .finance-identity__part small { display: block; font-size: 11px; font-weight: 400; color: var(--bui-muted-foreground); margin-block-end: 3px; }
+.payment-record-detail .bui-property-thumbnail { width: 44px; height: 44px; border-radius: 10px; }
+.payment-record-detail__settlement { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px; padding: 12px 16px; border-radius: 16px; background: color-mix(in srgb, var(--bui-navy) 7%, var(--bui-card)); }
+.payment-record-detail__settlement-summary { display: flex; align-items: center; flex-wrap: wrap; gap: 4px 16px; }
+.payment-record-detail__caption { display: block; font-size: 11px; color: var(--bui-muted-foreground); }
+.payment-record-detail__figure { display: flex; align-items: center; flex-wrap: wrap; gap: 6px 12px; }
+.payment-record-detail__amount { display: block; font-size: 23px; line-height: 1.2; font-weight: 650; font-variant-numeric: tabular-nums; color: var(--bui-navy); letter-spacing: -.02em; }
+.payment-record-detail__status { margin: 0; }
+.payment-record-detail__status p { max-width: 30ch; }
+.payment-record-detail__pay { display: flex; flex-direction: column; gap: 6px; align-items: center; }
+.payment-record-detail__pay small { font-size: 10px; color: var(--bui-muted-foreground); }
+.payment-record-detail .payment-record-detail__pay-button { min-height: 44px; min-width: 132px; padding-inline: 20px; gap: 9px; border-radius: 12px; background: var(--bui-navy); color: var(--bui-primary-foreground); cursor: pointer; transition: background-color 180ms ease-out; }
+.payment-record-detail .payment-record-detail__pay-button:hover:not(:disabled) { background: var(--bui-navy-deep); }
+.payment-record-detail button:focus-visible { outline: 2px solid var(--bui-navy); outline-offset: 3px; }
+.payment-record-detail__deposit { flex-basis: 100%; margin: 0; font-size: 11px; color: var(--bui-muted-foreground); }
+.payment-record-detail__tools { display: flex; gap: 6px; flex-shrink: 0; margin-inline-start: auto; }
+.payment-history-page .finance-workspace__header > div:not(.payment-record-detail__tools) { flex: 1; min-width: 0; }
+.payment-record-detail__tools button, .payment-record-detail__error button { color: var(--bui-navy); border-color: var(--bui-border); border-radius: 10px; background: var(--bui-card); cursor: pointer; }
+.payment-record-detail__tools button:hover, .payment-record-detail__error button:hover { background: var(--bui-navy-soft); }
+.payment-record-detail__mission { flex: 1; min-height: 0; display: flex; flex-direction: column; margin-block-start: 10px; }
+.payment-record-detail__section-heading { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px; }
+.payment-record-detail h3 { margin: 0; font-size: 15px; font-weight: 600; }
+.payment-record-detail__schedule { display: flex; flex-wrap: wrap; gap: 16px 32px; margin-block: 0; }
+.payment-record-detail__schedule > div { display: flex; align-items: center; gap: 10px; color: var(--bui-navy); }
+.payment-record-detail__schedule small { display: block; margin-block-end: 3px; color: var(--bui-muted-foreground); font-size: 11px; }
+.payment-record-detail__schedule strong { font-size: 13px; font-weight: 550; font-variant-numeric: tabular-nums; color: var(--bui-foreground); }
+.payment-record-detail__facts { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 18px 24px; margin: 0; padding-block: 6px 20px; }
+.payment-record-detail__facts dt { font-size: 11px; color: var(--bui-muted-foreground); margin-block-end: 5px; }
+.payment-record-detail__facts dd { margin: 0; font-size: 13px; color: var(--bui-foreground); font-variant-numeric: tabular-nums; }
+.payment-record-detail__text { border-block-start: 1px solid var(--bui-border); padding-block: 4px; }
+.payment-record-detail h4 { font-size: 12px; font-weight: 600; margin-block: 0 8px; }
+.payment-record-detail__text p { margin: 0; font-size: 13px; line-height: 1.65; white-space: pre-line; }
+.payment-record-detail__location { display: flex; align-items: center; justify-content: space-between; gap: 20px; padding-block: 18px; border-block-start: 1px solid var(--bui-border); }
+.payment-record-detail__location > div { min-width: 0; }
+.payment-record-detail__location p { display: flex; align-items: flex-start; gap: 8px; font-size: 12px; line-height: 1.65; color: var(--bui-muted-foreground); }
+.payment-record-detail__location p svg { flex-shrink: 0; margin-block-start: 3px; }
+.payment-record-detail__location > a { width: 190px; height: 104px; }
+.payment-record-detail__documents { display: flex; flex-wrap: wrap; gap: 10px; }
+.payment-record-detail__documents > button { display: flex; align-items: center; gap: 10px; text-align: start; min-width: 0; width: 100%; padding: 10px 12px; border: 1px solid var(--bui-border); border-radius: 12px; background: var(--bui-card); color: var(--bui-navy); cursor: pointer; transition: background-color 180ms ease-out; }
+.payment-record-detail__documents > button:hover { background: var(--bui-navy-soft); }
+.payment-record-detail__documents img { object-fit: contain; }
+.payment-record-detail__documents span { min-width: 0; }
+.payment-record-detail__documents strong { display: block; font-size: 12px; font-weight: 550; }
+.payment-record-detail__documents small { display: block; font-size: 11px; color: var(--bui-muted-foreground); margin-block-start: 3px; }
+.payment-record-detail__documents svg, .payment-record-detail__documents img { flex-shrink: 0; }
+.payment-record-detail__text .payment-record-detail__muted { font-size: 12px; color: var(--bui-muted-foreground); }
+.payment-record-detail__expense-totals { display: flex; flex-wrap: wrap; gap: 10px; color: var(--bui-navy); font-size: 14px; font-variant-numeric: tabular-nums; }
+.payment-record-detail__expense { display: flex; align-items: center; gap: 10px; padding-block: 12px; }
+.payment-record-detail__expense > div { flex: 1; min-width: 0; }
+.payment-record-detail__expense > img { object-fit: contain; }
+.payment-record-detail__expense strong { display: block; font-size: 12px; font-weight: 550; }
+.payment-record-detail__expense small { display: block; font-size: 11px; color: var(--bui-muted-foreground); margin-block: 3px 6px; }
+.payment-record-detail__expense-amount { flex-shrink: 0; font-size: 13px; font-weight: 550; font-variant-numeric: tabular-nums; }
+.payment-record-detail__document-link { display: inline-flex; align-items: center; gap: 8px; color: var(--bui-navy); font-size: 13px; }
+.payment-record-detail__loading { display: grid; gap: 16px; padding-block: 20px; }
+.payment-record-detail__error { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px; padding-block: 18px; font-size: 12px; color: var(--bui-destructive-ink); }
+@container payment-detail (max-width: 390px) {
+  .payment-record-detail__settlement-summary { flex-direction: column; align-items: flex-start; gap: 4px; }
+  .payment-record-detail .finance-identity[data-variant="detail"] { gap: 10px; padding-block: 10px; }
+  .payment-record-detail__settlement { padding: 10px 12px; }
+  .payment-record-detail .payment-record-detail__pay-button { min-width: 96px; padding-inline: 10px; }
+  .payment-record-detail .finance-identity__part { font-size: 11px; gap: 6px; }
+  .payment-record-detail__location { gap: 10px; }
+  .payment-record-detail__location > a { width: 100px; height: 92px; flex-shrink: 0; }
+  .payment-record-detail__expense { flex-wrap: wrap; }
+}
+@media (prefers-reduced-motion: reduce) { .payment-record-detail button { transition: none; } }
+
+.payment-record-detail__tabs { flex: 1; min-height: 0; gap: 0; }
+.payment-record-detail__tabs > [role="tablist"] { flex-shrink: 0; width: 100%; height: 38px; margin-block-end: 10px; border-block-end: 1px solid var(--bui-border); }
+.payment-record-detail__tabs [role="tab"] { padding: 6px 8px; font-size: 12px; cursor: pointer; }
+.payment-record-detail__tabs [role="tab"][data-state="active"] { color: var(--bui-navy); font-weight: 600; }
+.payment-record-detail__tabs [role="tabpanel"] { flex: 1; min-height: 0; display: flex; flex-direction: column; }
+.payment-record-detail__tabs [role="tabpanel"][hidden] { display: none; }
+.payment-record-detail__fact { margin: 0; display: flex; justify-content: space-between; align-items: center; gap: 16px; font-size: 12px; line-height: 1.5; }
+.payment-record-detail__fact dt { color: var(--bui-muted-foreground); }
+.payment-record-detail__fact dd { margin: 0; text-align: end; font-variant-numeric: tabular-nums; }
+.payment-record-detail__quote-line { display: flex; justify-content: space-between; gap: 14px; font-size: 12px; }
+.payment-record-detail__quote-line strong { white-space: nowrap; font-variant-numeric: tabular-nums; }
+.payment-record-detail__photo { display: flex; align-items: center; gap: 16px; font-size: 12px; color: var(--bui-muted-foreground); }
+.payment-record-detail__photo a { display: block; width: 140px; flex-shrink: 0; border-radius: 10px; overflow: hidden; }
+.payment-record-detail__photo img { width: 140px; height: 100px; object-fit: cover; }
+.payment-record-detail__muted { font-size: 12px; line-height: 1.6; color: var(--bui-muted-foreground); margin: 0; }
+.payment-detail-pager { display: flex; flex-direction: column; flex: 1; min-height: 0; }
+.payment-detail-pager__body { position: relative; flex: 1; min-height: 0; overflow: hidden; }
+.payment-detail-pager__item { width: 100%; padding-block: 7px; }
+.payment-detail-pager__item[data-visible="false"] { position: absolute; inset-block-start: 0; visibility: hidden; pointer-events: none; }
+.payment-detail-pager > :last-child { flex-shrink: 0; min-height: 48px; border-block-start: 1px solid var(--bui-border); }
+@media (max-height: 700px) {
+  .payment-record-detail .finance-identity[data-variant="detail"] { padding-block: 6px; }
+  .payment-record-detail__settlement { padding-block: 8px; }
+  .payment-record-detail__amount { font-size: 24px; }
+  .payment-record-detail__tabs > [role="tablist"] { margin-block-end: 4px; }
+}

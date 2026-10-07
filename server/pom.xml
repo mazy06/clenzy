@@ -28,6 +28,7 @@
         <maven.compiler.source>21</maven.compiler.source>
         <maven.compiler.target>21</maven.compiler.target>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <baitly.test.reportsDirectory>${project.build.directory}/surefire-reports</baitly.test.reportsDirectory>
         <spring-cloud.version>2024.0.0</spring-cloud.version>
         <aws.sdk.version>2.23.0</aws.sdk.version>
         <serverless.version>1.0.0</serverless.version>
@@ -333,7 +334,8 @@
         <dependency>
             <groupId>com.stripe</groupId>
             <artifactId>stripe-java</artifactId>
-            <version>24.16.0</version>
+            <!-- API 2026-08-26.dahlia : même contrat que le relais webhook de recette. -->
+            <version>33.4.0</version>
         </dependency>
         
         <!-- iCal4j - Parser iCalendar (.ics) pour import calendrier externe -->
@@ -592,6 +594,7 @@
                 <artifactId>maven-surefire-plugin</artifactId>
                 <version>3.1.2</version>
                 <configuration>
+                    <reportsDirectory>${baitly.test.reportsDirectory}</reportsDirectory>
                     <!-- @{argLine} injecte l'agent JaCoCo, puis on ouvre les modules pour Mockito -->
                     <argLine>
                         @{argLine}

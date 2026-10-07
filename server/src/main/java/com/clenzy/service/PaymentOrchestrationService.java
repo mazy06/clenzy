@@ -5,6 +5,7 @@ import com.clenzy.dto.PaymentOrchestrationResult;
 import com.clenzy.model.PaymentMethodConfig;
 import com.clenzy.model.PaymentProviderType;
 import com.clenzy.model.PaymentTransaction;
+import com.clenzy.model.TransactionStatus;
 import com.clenzy.payment.PaymentCapability;
 import com.clenzy.payment.PaymentProvider;
 import com.clenzy.payment.PaymentProviderRegistry;
@@ -85,10 +86,29 @@ public class PaymentOrchestrationService {
         Optional<PaymentTransaction> replay = paymentPersistence.consumeIdempotentReplay(request.idempotencyKey());
         if (replay.isPresent()) {
             PaymentTransaction existingTx = replay.get();
-            log.info("Idempotent request detected (key={}), returning existing transaction {}",
-                request.idempotencyKey(), existingTx.getTransactionRef());
-            return new PaymentOrchestrationResult(existingTx,
-                PaymentResult.success(existingTx.getProviderTxId(), null), existingTx.getProviderType());
+            // Le lien ou secret Checkout est relu chez le PSP après vérification
+            // de la dette. Une collision de clé ne donne jamais accès à un autre paiement.
+            if (!java.util.Objects.equals(orgId, existingTx.getOrganizationId())
+                    || !java.util.Objects.equals(request.sourceType(), existingTx.getSourceType())
+                    || !java.util.Objects.equals(request.sourceId(), existingTx.getSourceId())
+                    || request.currency() == null || !request.currency().equalsIgnoreCase(existingTx.getCurrency())
+                    || existingTx.getAmount() == null || request.amount() == null
+                    || request.amount().compareTo(existingTx.getAmount()) != 0) {
+                return new PaymentOrchestrationResult(null,
+                    PaymentResult.failure("Le paiement existant ne correspond pas à cette demande."), null);
+            }
+            if (existingTx.getStatus() != TransactionStatus.PROCESSING
+                    || existingTx.getProviderType() == null
+                    || existingTx.getProviderTxId() == null || existingTx.getProviderTxId().isBlank()) {
+                return new PaymentOrchestrationResult(existingTx,
+                    PaymentResult.failure("Ce paiement ne peut pas encore être repris. Actualisez son statut."),
+                    existingTx.getProviderType());
+            }
+            PaymentProvider provider = providerRegistry.get(existingTx.getProviderType());
+            PaymentResult resumed = request.embedded()
+                ? provider.resumeEmbeddedPayment(existingTx.getProviderTxId(), existingTx.getAmount(), existingTx.getCurrency())
+                : provider.resumeHostedPayment(existingTx.getProviderTxId(), existingTx.getAmount(), existingTx.getCurrency());
+            return new PaymentOrchestrationResult(existingTx, resumed, existingTx.getProviderType());
         }
 
         // 2. Résolution du provider (local — pas d'appel externe), capability-aware :
@@ -167,16 +187,26 @@ public class PaymentOrchestrationService {
 
         // 1. Ownership + création de la transaction de remboursement (tx courte)
         PaymentPersistence.RefundInit init = paymentPersistence.createRefundPending(orgId, transactionRef, amount);
+        if (init.status() == TransactionStatus.COMPLETED) {
+            var existing = paymentPersistence.finalizeRefund(init.refundTransactionRef(),
+                    PaymentResult.success(init.providerRefundId(), null, "REFUNDED"), orgId);
+            return new PaymentOrchestrationResult(existing,
+                    PaymentResult.success(init.providerRefundId(), null, "REFUNDED"), init.providerType());
+        }
+        if (init.status() == TransactionStatus.FAILED || init.status() == TransactionStatus.CANCELLED) {
+            throw new IllegalStateException("Ce remboursement a été refusé : rapprochement requis avant toute autre émission.");
+        }
         PaymentProvider provider = providerRegistry.get(init.providerType());
 
         // 2. Appel refund — HORS transaction. Contexte enrichi pour les providers
-        //    régionaux (PayTabs, Payzone) ; Stripe délègue à la signature historique.
+        //    régionaux (PayTabs, Payzone) et décision durable pour Stripe.
         PaymentResult result;
         try {
             var refundContext = new RefundContext(orgId, init.originalProviderTxId(),
-                init.originalTransactionRef(), init.currency(), init.originalAmount());
+                init.originalTransactionRef(), init.currency(), init.originalAmount(), init.refundTransactionRef(),
+                init.providerRefundId(), init.requestedAt());
             result = provider.refundPayment(refundContext,
-                amount != null ? amount : init.originalAmount(), reason);
+                init.refundAmount(), reason);
         } catch (Exception e) {
             PaymentTransaction failed = paymentPersistence.markRefundFailed(
                 init.refundTransactionRef(), e.getMessage());
@@ -193,6 +223,8 @@ public class PaymentOrchestrationService {
     @SuppressWarnings("unused")
     private PaymentOrchestrationResult processRefundFallback(String transactionRef,
                                                                BigDecimal amount, String reason, Throwable t) {
+        // Un refus métier n'est pas une indisponibilité réseau : conserver son explication.
+        if (t instanceof com.clenzy.exception.PaymentValidationException validation) throw validation;
         log.error("Refund circuit breaker open for {}: {}", transactionRef, t.getMessage());
         return new PaymentOrchestrationResult(null,
             PaymentResult.failure("Service de remboursement temporairement indisponible."), null);

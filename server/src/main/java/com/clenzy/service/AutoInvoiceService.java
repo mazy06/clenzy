@@ -73,7 +73,8 @@ public class AutoInvoiceService {
         invoice.setInvoiceDate(java.time.LocalDate.now());
         invoice.setStatus(InvoiceStatus.PAID);
         invoice.setPaidAt(LocalDateTime.now());
-        invoice.setPaymentMethod("STRIPE");
+        invoice.setPaymentMethod(com.clenzy.booking.service.BaitlyReservationCredit.applied(reservation).signum() > 0
+            ? "STRIPE + Crédit fidélité" : "STRIPE");
 
         // Lier au PDF DocumentGeneration (si deja genere)
         linkDocumentGeneration(invoice, ReferenceType.RESERVATION, reservation.getId());

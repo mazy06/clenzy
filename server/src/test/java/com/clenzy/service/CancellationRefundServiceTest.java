@@ -97,6 +97,11 @@ class CancellationRefundServiceTest {
                 .isInstanceOf(AccessDeniedException.class);
     }
 
+    @Test void previewUsesTheBookedCurrencyEvenAfterPropertyPreferenceChanges() {
+        var r = reservationInOrg(1L); r.setCurrency("EUR"); r.getProperty().setDefaultCurrency("SAR");
+        assertThat(service.computePreview(r, 1L).currency()).isEqualTo("EUR");
+    }
+
     @Test
     void preview_notFound() {
         when(reservationRepository.findById(404L)).thenReturn(Optional.empty());

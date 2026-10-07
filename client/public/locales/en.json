@@ -5257,6 +5257,7 @@
       "validateInspection": "Validate inspection",
       "roomValidation": "Room validation",
       "roomValidationDesc": "Click on each room to mark it as cleaned.",
+      "savingRoom": "Saving room…",
       "afterPhotosTitle": "After intervention photos",
       "afterPhotosDesc": "Take photos of the rooms after the intervention to finalize.",
       "completing": "Completing...",
@@ -5300,6 +5301,8 @@
       "completing": "Error completing intervention",
       "reopening": "Error reopening intervention",
       "updatingProgress": "Error updating progress",
+      "savingRooms": "The room could not be saved. Please try again.",
+      "savingSteps": "The steps could not be saved. Please try again before finishing.",
       "addingPhotos": "Error adding photos",
       "deletingPhoto": "Error deleting photo",
       "startSuccess": "Intervention started! A work order has been generated and sent by email.",
@@ -6666,6 +6669,8 @@
         "description": "Sync your contacts (waitlist, newsletter, quote leads) to your emailing platform for your campaigns."
       },
       "accounting": {
+        "otaFees": "OTA fees",
+        "approveError": "This payout could not be approved.",
         "title": "Accounting",
         "description": "Sync invoices and expenses to your accounting software.",
         "pennylane": "French accounting · OAuth2 · invoice sync",
@@ -7024,6 +7029,7 @@
       "language": "Language"
     },
     "workflow": {
+      "methodNotRecorded": "Payment method not recorded",
       "title": "Workflow",
       "description": "Orchestration rules for jobs and pricing",
       "cancellationDeadline": "Cancellation deadline",
@@ -8619,6 +8625,7 @@
       "pending": "Pending",
       "failed": "Failed",
       "refunded": "Refunded",
+      "partiallyRefunded": "Partially refunded",
       "date": "Date",
       "intervention": "Intervention",
       "property": "Property",
@@ -8641,8 +8648,13 @@
       "payment": "payment"
     },
     "sendLinkByEmail": "Send the payment link by email",
+    "refundAmount": "Refund amount",
+    "refundableBalance": "Refundable balance",
+    "refundFullOnly": "This service can only be refunded in full from this screen.",
+    "refundAmountInvalid": "Enter a positive amount with at most two decimal places, within the refundable balance.",
     "confirmRefund": "Confirm the refund",
     "refundIrreversible": "This cannot be undone. The amount is refunded through Stripe.",
+    "refundSynchronizing": "Stripe has confirmed the refund. Updating the payment and Baitly ledger.",
     "customerEmail": "Customer email",
     "noEmailHint": "No email address is recorded for this booking. Enter the customer email to send the payment link.",
     "sessionCreateFailed": "Unable to create the payment session.",
@@ -8660,7 +8672,23 @@
       "refund": "Error while refunding"
     },
     "payRequest": "Pay this request",
-    "payIntervention": "Pay this job"
+    "payIntervention": "Pay this job",
+    "collection": {
+      "verify": "Payment to verify",
+      "partial": "Deposit paid",
+      "notRequired": "Payment not required",
+      "paidToOta": "Paid to OTA",
+      "toCollect": "To collect",
+      "settlementUnverified": "OTA payout to beneficiary not verified",
+      "summary": "External and unverified payments",
+      "summaryHint": "These amounts are not an available Stripe balance."
+    },
+    "verification": {
+      "action": "Verify payment with Stripe",
+      "confirmed": "Payment verified, journal updated.",
+      "pending": "Status checked. No new payment confirmed.",
+      "unavailable": "Stripe evidence unavailable or inconsistent. History is preserved."
+    }
   },
   "aiAutonomy": {
     "loadError": "Unable to load the autonomy configuration.",
@@ -9847,7 +9875,14 @@
     "noTemplateWarning": "No active INVOICE template configured. PDFs will not be generated automatically on payment. Configure a template in the settings.",
     "pdfLoadError": "Failed to load the PDF",
     "pdfNotSupported": "Your browser does not support PDF viewing.",
-    "pdfPreview": "Document preview"
+    "pdfPreview": "Document preview",
+    "creditNote": {
+      "original": "Original invoice",
+      "downloadOriginal": "Download the original invoice",
+      "linked": "Linked credit note",
+      "download": "Download credit note"
+    },
+    "downloadError": "The PDF could not be downloaded. Please try again."
   },
   "notifications": {
     "title": "Notifications",
@@ -11018,6 +11053,19 @@
     }
   },
   "accounting": {
+    "generateFlow": {
+      "new": "New owner payout",
+      "title": "Calculate an owner payout",
+      "hint": "Only completed stays collected by Baitly are included. Review and approve the amount before any transfer.",
+      "loadError": "Unable to load property owners.",
+      "empty": "Assign an owner to a property to prepare their first payout.",
+      "chooseOwner": "Choose an owner",
+      "from": "Period start",
+      "to": "Period end",
+      "invalidRange": "The end date must be on or after the start date.",
+      "error": "Unable to calculate this payout.",
+      "calculate": "Calculate amount"
+    },
     "title": "Accounting",
     "subtitle": "Owner payouts, commissions, expenses and accounting exports",
     "payouts": {
@@ -11027,9 +11075,9 @@
         "step1Title": "Generate",
         "step1Desc": "Select an owner and a period to calculate the payout.",
         "step2Title": "Review",
-        "step2Desc": "The system calculates: revenue − commission − expenses = net amount.",
-        "step3Title": "Approve & Pay",
-        "step3Desc": "Approve the payout then mark it as paid after the bank transfer.",
+        "step2Desc": "Completed stays with confirmed collections: revenue − OTA fees − commission − expenses = net amount.",
+        "step3Title": "Approve and transfer",
+        "step3Desc": "Approve the amount, send the payout through the PSP, then track its automatic confirmation.",
         "dismiss": "Don't show again"
       },
       "emptyTitle": "No payouts found",
@@ -11105,8 +11153,8 @@
     },
     "housekeeperPayouts": {
       "help": {
-        "title": "Provider payouts (cleaning)",
-        "description": "Direct Stripe payouts to (cleaning) providers, triggered automatically on mission completion. Distinct from owner payouts and expense entry.",
+        "title": "Provider payouts",
+        "description": "Payouts to providers in all trades, individuals or organizations. Each task must be completed, fully paid and documented before its payout.",
         "dismiss": "Don't show again"
       },
       "col": {
@@ -11132,12 +11180,13 @@
       },
       "retry": "Retry payout",
       "retryTitle": "Retry payout",
+      "amountChanged": "The amount changed. Review the new preview before confirming.",
       "retryConfirm": "Retry the payout of {{amount}} to {{provider}}?",
       "retryConfirmBtn": "Retry",
       "retrySuccess": "Payout retry triggered",
       "retryError": "Payout conditions still not met (proof / onboarding).",
       "empty": "No provider payout",
-      "emptyDescription": "Payouts will appear here automatically when cleaning missions are completed.",
+      "emptyDescription": "Task payouts will appear here once their recipient is designated.",
       "error": "Error loading provider payouts"
     },
     "expenses": {
@@ -11265,6 +11314,69 @@
       "OPEN_BANKING": "Open Banking",
       "SEPA_TRANSFER": "SEPA transfer",
       "MANUAL": "Manual"
+    },
+    "workflow": {
+      "guide": "Calculate amount → Approve → Send through the PSP. Approval does not initiate a payment.",
+      "methodNotRecorded": "Payment method not recorded",
+      "approvedMessage": "Amount approved. No payout has been initiated.",
+      "recordedStatus": "Paid (historical)",
+      "paidFilter": "Transferred / paid",
+      "checkBlocker": "Understand the restriction",
+      "hints": {
+        "legacy": "Previous payment method",
+        "funding": "Historical record to verify",
+        "amount": "No amount to pay out",
+        "beneficiary": "PSP account needs attention",
+        "retryLimit": "Retry limit reached",
+        "tracking": "Existing transfer to verify",
+        "pending": "Amount to review",
+        "approved": "Not sent",
+        "processing": "Awaiting PSP confirmation",
+        "transferred": "Track the bank payout",
+        "recorded": "Payment recorded in Baitly",
+        "failed": "Check the failure reason",
+        "cancelled": "No transfer to initiate"
+      },
+      "details": {
+        "legacy": "This payout uses a previous payment method. Its status is kept for reference; it cannot be sent or retried through the PSP.",
+        "funding": "This historical payout is not linked to confirmed payments in Baitly. Its original status is preserved, but does not allow a transfer to the PSP. Reconcile the supporting payment records before proceeding.",
+        "amount": "The net amount must be greater than zero to approve or initiate a payout. Review the calculation below.",
+        "beneficiary": "The amount has been approved, but the beneficiary’s payout account is not ready. The beneficiary must connect or complete it in My payouts.",
+        "retryLimit": "The retry limit has been reached. Review the failure reason and PSP tracking before any further attempt.",
+        "tracking": "A transfer reference already exists. Check its outcome in tracking before any further action to avoid a duplicate payout.",
+        "pending": "Review the calculation, then approve the amount. This does not transfer any funds. Collected payments are checked again before sending.",
+        "approved": "The amount has been approved, but no payout has been initiated. “Pay out via Stripe” initiates the transfer after server checks.",
+        "processing": "The payout request is being processed. Wait for PSP confirmation and check tracking; do not create a second payout.",
+        "transferred": "The transfer to the beneficiary’s PSP account is confirmed. This does not confirm that funds have reached their bank account: check payout tracking.",
+        "recorded": "This payment was recorded in Baitly’s history. This status does not constitute PSP transfer confirmation.",
+        "failed": "The payout is not confirmed. Review the failure reason, resolve it, then use the retry action when available.",
+        "cancelled": "This payout has been cancelled. No transfer can be initiated from this record."
+      }
+    },
+    "psp": {
+      "failed": "Payout not completed. Review the reason before retrying.",
+      "transferred": "Transfer confirmed by the PSP. The bank payout is tracked separately.",
+      "processing": "Request sent to the PSP. Confirmation is pending.",
+      "legacy": "Previous method · read only",
+      "configure": "Set up PSP",
+      "retry": "Retry payout",
+      "send": "Transfer via Stripe",
+      "track": "Track",
+      "bankHint": "A confirmed PSP transfer does not by itself confirm receipt in the bank account. Check payout tracking.",
+      "settingsHint": "Payouts use the beneficiary's PSP. Account connection and bank details are managed through its secure flow.",
+      "availability": "Stripe Connect is offered in France. Other countries will be enabled with their dedicated PSPs.",
+      "noBeneficiaries": "No payout account connected. Beneficiaries can set one up in My payouts.",
+      "toConnect": "Not connected",
+      "ready": "Ready for payouts",
+      "toComplete": "Setup incomplete",
+      "activate": "Use Stripe",
+      "providerManaged": "Status confirmed by the PSP",
+      "beneficiarySetup": "The beneficiary must connect or complete their account in My payouts.",
+      "myAccount": "My payout account",
+      "sentState": "Transferred to PSP",
+      "fundingRequired": "Reconcile collected payments before payout",
+      "checkFunding": "Check collected payments",
+      "fundingHint": "This historical payout is not linked to confirmed payments in Baitly. Check the payments and reconcile them before initiating the payout."
     }
   },
   "shop": {
@@ -11632,9 +11744,9 @@
     "payment": {
       "beneficiary": "Who will receive payouts?",
       "PERSONAL": "My business",
-      "ORGANIZATION": "My management company",
+      "ORGANIZATION": "My organization",
       "personalHint": "The account will belong to your property owner or service provider business.",
-      "organizationHint": "The account will belong to your management company, even if its administrator changes.",
+      "organizationHint": "The account will belong to your organization (property management or service company), even if its administrator changes.",
       "country": "Beneficiary’s country of registration",
       "chooseCountry": "Choose a country",
       "countries": {
@@ -11656,7 +11768,7 @@
       "notConfigured": "Stripe connection will be available once Baitly activates the service.",
       "oauthPending": "Connecting an existing account will be available once Baitly activates this service.",
       "error": "The connection could not be completed. Try again or return later.",
-      "pending": "The account is not ready for payouts yet. Complete the information requested by Stripe, then check again.",
+      "pending": "Stripe has not confirmed payouts activation yet. If you have completed the form, validation may take a little time. You can continue in Baitly and check the status later.",
       "regionalTitle": "Payouts in your country",
       "regionalHint": "Connection from Baitly is being prepared. You can review the local providers under consideration below.",
       "regionalPending": "These providers are not connected to Baitly yet. Creating an account on their website will not complete this step.",
@@ -11667,7 +11779,7 @@
       "checking": "Checking your account",
       "returnReady": "Your payout account is ready",
       "returnReadyHint": "Stripe has confirmed that transfers and bank payouts are enabled. You can return to the guide.",
-      "returnPending": "One more step on Stripe",
+      "returnPending": "Account activation pending",
       "returnError": "Your connection still needs verification",
       "returnErrorHint": "Authorization was cancelled, expired or could not be verified. Resume the connection from the guide.",
       "backToGuide": "Back to the getting started guide",
@@ -11716,13 +11828,13 @@
         "general": "Identity, organization, regional preferences and display.",
         "notifications": "Configure your channels (in-app, email, push) and granularity per event type.",
         "messaging": "Guest messaging automations (check-in, welcome, pricing push) and templates.",
-        "myPayout": "Your bank transfer settings: IBAN, frequency, minimum threshold.",
+        "myPayout": "Connect your payout account with the PSP available in your country.",
         "ai": "Connect your OpenAI/Anthropic key or use the shared quota. Models assigned per feature.",
         "fiscal": "Your organization's fiscal profile: VAT regime, legal notices, NF 525 / ZATCA compliance.",
         "organization": "Legal information, branding, team and permissions for your organization.",
         "payment": "Payment providers (Stripe, PayPal, PayTabs, CMI…) and split rules.",
         "integrations": "Connect your third-party tools: e-signature, accounting, KYC, legal compliance, OTA channels.",
-        "payouts": "Schedule and calculation rules for owner payouts.",
+        "payouts": "Preparation schedule and beneficiary PSP accounts.",
         "amenitiesOta": "Map amenities detected on your OTA listings (Airbnb, Booking, etc.) to the Baitly reference. Create your own amenities if nothing matches.",
         "myRates": "Your hourly rate, per-property flat rates and quality score.",
         "myPayoutsPro": "Stripe payout account and history of your mission payouts.",
@@ -11823,9 +11935,9 @@
         "payments": "Guest payment history: status, payment method, refunds and reconciliation.",
         "invoices": "Issued invoices (stays, fees, services) and credit notes: PDF generation, sending and payment tracking.",
         "wallets": "Wallet balance per owner: movements, holds, withdrawals and detailed history.",
-        "payouts": "Owner payouts schedule: SEPA calculations, status, bank exports.",
+        "payouts": "Calculate, approve and track owner payouts through their PSP.",
         "expenses": "Tracking operational expenses by category and property: supplier invoices, rebilling.",
-        "housekeeperPayouts": "Direct Stripe payouts to (cleaning) providers, triggered on mission completion — distinct from owner payouts.",
+        "housekeeperPayouts": "Payouts to individual and company service providers across all trades after mission validation.",
         "reportsExports": "Fiscal report (VAT, taxes, NF 525) and accounting exports formatted for your third-party tools."
       }
     },
@@ -19298,5 +19410,621 @@
       "backMapping": "Review column matches",
       "completedNotice": "Your import is complete. Find your data in Baitly or download your original files."
     }
+  },
+  "paymentDetail": {
+    "refundBreakdown": "Refund breakdown",
+    "refundedAmount": "Refunded amount",
+    "retainedAmount": "Retained amount",
+    "refundReview": "Refund reconciliation required. Further requests are blocked to prevent a duplicate refund. Check the Stripe evidence and linked documents.",
+    "partialRefundHelp": "The amount already refunded is deducted from the available balance. Linked invoices and credit notes are available in Documents.",
+    "property": "Property",
+    "team": "Team",
+    "assignee": "Assignee",
+    "settlement": "Payment",
+    "amountDue": "Amount due",
+    "pay": "Pay",
+    "resume": "Resume payment",
+    "sendLink": "Send payment link",
+    "securePayment": "Secure payment",
+    "totalAndBalance": "Service total: {{amount}}. The deposit has already been deducted from the balance due.",
+    "reference": "Record #{{id}}",
+    "openRecord": "Open full record",
+    "refund": "Refund",
+    "intervention": "Intervention details",
+    "loading": "Loading intervention",
+    "loadError": "The intervention details could not be loaded.",
+    "scheduled": "Scheduled for",
+    "duration": "Estimated duration",
+    "actualDuration": "Actual duration",
+    "service": "Service",
+    "priority": "Priority",
+    "requestor": "Requested by",
+    "notProvided": "Not provided",
+    "completed": "Completed on",
+    "instructions": "Description and instructions",
+    "services": "Planned services",
+    "notes": "Intervention notes",
+    "before": "Before photos",
+    "after": "After photos",
+    "reservation": "Reservation",
+    "request": "Service request",
+    "stay": "Stay",
+    "address": "Address and directions",
+    "documents": "Quotes and invoices",
+    "invoice": "Invoice",
+    "quote": "Quote",
+    "documentsUnavailable": "Some documents are not accessible for this record.",
+    "noDocuments": "No quote or invoice available for this intervention.",
+    "restockExpenses": "Restocking and intervention expenses",
+    "expensesUnavailable": "Expenses could not be loaded.",
+    "noRestock": "No restocking or expense documented for this intervention.",
+    "restockNote": "Expenses linked to this intervention. Delivered quantities are not recorded and these expenses are not added to the amount due above.",
+    "receiptFor": "View receipt: {{name}}",
+    "receipt": "Receipt",
+    "documentError": "This document could not be opened.",
+    "openDocument": "Open document in a tab",
+    "started": "Start",
+    "ended": "End",
+    "noPhotos": "No photos recorded.",
+    "tabs": {
+      "overview": "Overview",
+      "photos": "Photos",
+      "documents": "Documents",
+      "restock": "Restocking"
+    },
+    "disputeHold": "Bank dispute: funds from this payment are excluded from payouts. Check its outcome and Stripe balance movements before taking further action."
+  },
+  "myTransfers": {
+    "title": "My payouts",
+    "intro": "View transfers addressed to you and track their bank payout status.",
+    "accessError": "We could not verify your payout account permissions.",
+    "organizationDenied": "Only authorized organization administrators can view these payouts.",
+    "personalOnly": "View my personal payouts",
+    "connection": "Payout account",
+    "configure": "Manage payout account",
+    "closeSetup": "Close settings",
+    "statusError": "Account status is unavailable. You can retry from the settings.",
+    "accountStates": {
+      "unknown": "Checking your account.",
+      "missing": "Connect an account to receive future payouts.",
+      "pending": "Your account is connected; verification still needs to be completed.",
+      "ready": "Your account is ready to receive payouts.",
+      "revoked": "Authorization has been revoked. Reconnect your account.",
+      "unavailable": "Account status unavailable."
+    },
+    "personalHistory": "These transfers are addressed to you personally, including those sent by other organizations.",
+    "organizationHistory": "These transfers belong to your organization, separately from payouts received personally by its members.",
+    "history": "Transfer history",
+    "loadError": "Your payouts could not be loaded.",
+    "empty": "No transfers recorded",
+    "emptyHint": "Transfers will appear here when processing starts. Missions and payouts awaiting approval remain in their usual screens.",
+    "select": "Track a payout",
+    "selectHint": "Select a transfer to view its history and available bank payout information.",
+    "transferStage": "Transfer to your payout account",
+    "states": {
+      "SUBMITTING": "Processing",
+      "TRANSFERRED": "Transferred to payout account",
+      "RECONCILIATION_REQUIRED": "Under platform review"
+    },
+    "advice": {
+      "SUBMITTING": "The platform is awaiting confirmation from the payment provider.",
+      "TRANSFERRED": "The transfer is confirmed. The payout to your bank is a separate step, tracked below.",
+      "RECONCILIATION_REQUIRED": "The platform needs to check this transfer. Bank receipt is not assumed; do not request a duplicate payment."
+    },
+    "bankFailed": "Check your payout account details with your payment provider and contact the platform about this transfer."
+  },
+  "dashboardKpis": {
+    "close": "Close details",
+    "confidence": {
+      "label": "Assessment confidence",
+      "indicative": "Indicative",
+      "insufficient": "Insufficient data",
+      "crossCheck": "Check against RevPAN"
+    },
+    "title": "Your performance at a glance",
+    "period": "Last {{days}} days",
+    "properties_one": "{{formatted}} active property",
+    "properties_other": "{{formatted}} active properties",
+    "instruction": "Select a metric to see the recommendation",
+    "recommendation": "Recommendation",
+    "thresholds": "Understand the levels",
+    "comparison": "Change against the previous period of the same length",
+    "points": "pp",
+    "nights": "{{sold}} nights sold / {{available}} available",
+    "reviews_one": "{{formatted}} review in the period",
+    "reviews_other": "{{formatted}} reviews in the period",
+    "labels": {
+      "occupancy": "Occupancy",
+      "revenue": "Revenue",
+      "adr": "Average nightly rate",
+      "revpan": "Revenue / available night",
+      "bookings": "Reservations",
+      "rating": "Guest rating"
+    },
+    "hints": {
+      "occupancy": "Sold nights out of available nights",
+      "revenue": "Accommodation, excluding fees and taxes",
+      "adr": "ADR · per sold night",
+      "revpan": "RevPAN · all available properties",
+      "bookings": "Stays starting during the period",
+      "rating": "Public reviews in the period"
+    },
+    "levels": {
+      "excellent": "Excellent",
+      "good": "Good",
+      "watch": "Watch",
+      "alarming": "Alarming",
+      "critical": "Catastrophic",
+      "unrated": "Not rated"
+    },
+    "basis": {
+      "occupancy": "Occupancy in the period, excluding closed, unsold nights.",
+      "rating": "Rating out of 5, based on at least 5 public reviews in the period.",
+      "trend": "Percentage change against the previous period of the same length. The level assesses the trend, not the absolute amount."
+    },
+    "caveat": "Indicative Baitly guideposts, not market benchmarks. Seasonality, location, closed dates and portfolio changes can affect interpretation.",
+    "sampleRule": "No rating without a positive baseline; reservations require at least 5 in the previous period. A rising ADR remains on watch when RevPAN falls or cannot be compared.",
+    "reasons": {
+      "noReviews": "No usable reviews in this period. Invite guests to share feedback after departure to start measuring satisfaction.",
+      "noData": "There is not enough usable data to assess this metric. Check active properties, open nights and data synchronisation.",
+      "noBaseline": "No positive, comparable baseline is available. Check imported history; starting from zero does not establish strong growth.",
+      "fewReviews": "This rating is based on fewer than 5 reviews. Read the feedback and invite guests to review their stay before drawing a trend.",
+      "fewBookings": "The previous period has fewer than 5 reservations. Compare a longer period before interpreting a significant rise or fall.",
+      "priceBalance": "Average prices are stable or rising, but revenue per available night does not confirm this trend. Check occupancy and unsold nights before raising rates."
+    },
+    "advice": {
+      "occupancy": {
+        "excellent": "Occupancy is high. Maintain service quality and compare ADR with RevPAN to identify dates where rates could be adjusted.",
+        "good": "Occupancy is solid. Find gaps between stays and review minimum stays to make better use of open nights.",
+        "watch": "Occupancy needs monitoring. Compare properties and channels, then check visibility for available dates.",
+        "alarming": "Many open nights remain unsold. Check channel connections, stay restrictions and rates for approaching dates.",
+        "critical": "Very few open nights are sold. First check listings and synchronisation, then examine each property before adjusting offers."
+      },
+      "revenue": {
+        "excellent": "Revenue is growing strongly. Identify the properties and channels driving growth, then check how costs are changing.",
+        "good": "Revenue is stable or growing. Compare occupancy with average rates to understand what supports this result.",
+        "watch": "Revenue is declining moderately. Compare sold nights and average rates, allowing for seasonality and portfolio changes.",
+        "alarming": "Revenue has fallen substantially. Identify affected properties and review the relevant reservations, cancellations and rates.",
+        "critical": "Revenue has dropped sharply. First check data quality and connections, then focus on the properties explaining the decline."
+      },
+      "adr": {
+        "excellent": "Average rates are rising with stable or higher RevPAN. Check that reservations and guest satisfaction support this change.",
+        "good": "Average rates are stable or rising. Compare properties to preserve a healthy balance between rates and occupancy.",
+        "watch": "Average rates are falling. Check discounts and property mix; lower rates can still help if occupancy and RevPAN improve.",
+        "alarming": "Average rates have fallen substantially. Check stacked promotions, channel rates and unusually cheap stays.",
+        "critical": "Average rates have dropped sharply. Check pricing errors, currencies and discounts before changing your strategy."
+      },
+      "revpan": {
+        "excellent": "Revenue per available night is growing strongly. Separate the effect of rates and occupancy, then repeat effective practices.",
+        "good": "Revenue per available night is stable or growing. Compare properties to identify room for improvement.",
+        "watch": "Revenue per available night is falling. Look at occupancy and ADR together to find the weakening factor.",
+        "alarming": "Revenue per available night has fallen substantially. Prioritise properties with the most unsold nights or steepest rate drops.",
+        "critical": "Revenue per available night has dropped sharply. Verify data, calendars and rates, then plan actions for each property."
+      },
+      "bookings": {
+        "excellent": "More stays are starting in the period. Plan arrivals and cleaning while monitoring stay length.",
+        "good": "Stay volume is stable or growing. Keep availability current and ensure your team can manage the arrivals.",
+        "watch": "Fewer stays are starting in the period. Check their length too: fewer reservations do not necessarily mean fewer sold nights.",
+        "alarming": "Stay volume has fallen substantially. Compare channels and stay length, then check listing visibility.",
+        "critical": "Stay volume has dropped sharply. Check synchronisation and booking restrictions before launching a sales initiative."
+      },
+      "rating": {
+        "excellent": "Guests appreciate their stay. Identify recurring strengths and maintain these standards with your team.",
+        "good": "Feedback is positive. Respond to reviews and address recurring minor issues to improve the experience.",
+        "watch": "Satisfaction needs monitoring. Group recurring comments and choose a concrete improvement for upcoming stays.",
+        "alarming": "Satisfaction is low. Address recurring problems promptly and check reported cleaning, arrival and amenity issues.",
+        "critical": "Satisfaction is severely degraded. Contact affected guests and prioritise resolving issues before new arrivals."
+      }
+    }
+  },
+  "providerPayoutBeneficiary": {
+    "title": "Payout recipient",
+    "organization": "Organization #{{id}}",
+    "companyHint": "Organization of the provider assigned to this task",
+    "loadError": "We could not verify the recipient. Reload the details before continuing.",
+    "selected": "This organization is the recorded recipient. Payment and completion checks still apply before the transfer.",
+    "locked": "The recipient has already been fixed for this payout. Any change requires reconciliation.",
+    "unassigned": "Assign a provider or a team to identify their organization.",
+    "explanation": "If this organization invoices the service, the payout must go to its account, even when a team member performs the task.",
+    "confirm": "I confirm that {{name}} is the contractual recipient for this task.",
+    "saving": "Saving…",
+    "save": "Pay this organization",
+    "effect": "This choice will be locked. Once the task is completed and checks pass, the payout may be sent.",
+    "saveError": "The choice could not be confirmed. Check the updated status before trying again."
+  },
+  "payoutTracking": {
+    "monitoring": {
+      "title": "Items to review",
+      "loading": "Loading payout alerts…",
+      "error": "Payout alerts are unavailable. Transfer tracking remains accessible.",
+      "enabled": "Automatic recovery enabled",
+      "disabled": "Automatic recovery disabled",
+      "unconfigured": "Recovery paused: Stripe is not configured",
+      "readOnly": "Read-only monitoring",
+      "empty": "No items to review based on recorded evidence. This does not confirm receipt of all payouts.",
+      "hint": "Alerts reflect the available evidence and disappear when their cause is resolved. Open a transfer to review it.",
+      "codes": {
+        "RECONCILIATION_REQUIRED": "Transfer needs reconciliation",
+        "TRANSFER_STALLED": "Transfer not confirmed",
+        "BANK_FAILED": "Bank payout failed or canceled",
+        "BANK_LATE": "Estimated arrival date exceeded",
+        "BANK_UNCONFIRMED": "Bank receipt needs verification",
+        "RECOVERY_FAILED": "Stripe read interrupted",
+        "FUNDING_DISPUTED": "Payment disputed after transfer",
+        "REFUND_RECOVERY_REQUIRED": "Refund recovery needs verification",
+        "RECOVERY_LATE": "Bank tracking needs updating"
+      },
+      "advice": {
+        "RECONCILIATION_REQUIRED": "Check the reference in Stripe, then reconcile this transfer.",
+        "TRANSFER_STALLED": "No confirmation for over 30 minutes. Do not resend the payment.",
+        "BANK_FAILED": "Check the failure reason and payout details with Stripe.",
+        "BANK_LATE": "The estimate was exceeded by more than 2 days. Check the status with Stripe.",
+        "BANK_UNCONFIRMED": "No receipt evidence after 7 days. A manual payout may require a separate review.",
+        "RECOVERY_FAILED": "Recovery will retry automatically. Previous evidence remains available.",
+        "FUNDING_DISPUTED": "A payment funding this transfer is disputed. Check the dispute and funds already transferred; recovery is not assumed.",
+        "REFUND_RECOVERY_REQUIRED": "The customer refund is recorded, but transfer recovery is not confirmed. Review its allocation and reversal evidence.",
+        "RECOVERY_LATE": "No recent completed cycle for over 24 hours. Ask the platform to check recovery."
+      }
+    },
+    "title": "Payout tracking",
+    "scope": "Organization: {{name}}",
+    "currentOrganization": "current organization",
+    "intro": "Track the transfer to the recipient, then the bank payout when matched.",
+    "search": "Search payouts or references…",
+    "filterState": "Status",
+    "filterSource": "Recipients",
+    "allStates": "All statuses",
+    "allSources": "All recipients",
+    "states": {
+      "SUBMITTING": "Transfer in progress",
+      "TRANSFERRED": "Transferred to recipient",
+      "RECONCILIATION_REQUIRED": "Reconciliation required"
+    },
+    "sources": {
+      "OWNER_PAYOUT": "Owner",
+      "INTERVENTION": "Service provider",
+      "PROVIDER_EXPENSE": "Provider expense"
+    },
+    "transfers": "Transfers",
+    "loadError": "Unable to load this information. Try again.",
+    "empty": "No transfers to display",
+    "emptyHint": "Check your filters. This journal contains transfers recorded for this organization.",
+    "select": "Follow each transfer",
+    "selectHint": "Select a transfer to view the recipient, Stripe evidence and event history.",
+    "back": "Back to transfers",
+    "beneficiary": "Recorded recipient",
+    "company": "Organization #{{id}}",
+    "person": "User #{{id}}",
+    "reference": "Transfer reference",
+    "noReference": "Unconfirmed",
+    "created": "Recorded on",
+    "bankTitle": "Bank payout",
+    "bankHint": "A Connect transfer and a bank credit are separate steps. Arrival dates are estimates provided by Stripe.",
+    "bankUnknown": "No matched bank payout yet. Receipt by the bank is not confirmed.",
+    "bankStates": {
+      "PENDING": "Pending at Stripe",
+      "IN_TRANSIT": "In transit to bank",
+      "PAID": "Paid according to Stripe",
+      "FAILED": "Payout failed",
+      "CANCELED": "Payout canceled"
+    },
+    "estimatedArrival": "Estimated arrival: {{date}}",
+    "failureCode": "Stripe reason: {{code}}",
+    "submittingHint": "The transfer is in progress or its response has not been recorded. Do not initiate another payment.",
+    "history": "Transfer history",
+    "reconciled": "Reconciliation confirmed by platform",
+    "operator": "Operator: {{id}}",
+    "reconcileTitle": "Verify and reconcile",
+    "reconcileHint": "Copy the transfer reference from Stripe. Baitly checks its amount, currency, recipient account and link to this record.",
+    "stripeReference": "Stripe reference",
+    "verify": "Verify reference",
+    "verifying": "Verifying…",
+    "verifyError": "The reference could not be verified: missing or mismatched evidence, or Stripe unavailable. The record is unchanged. Older transfers without a verifiable link require investigation.",
+    "verified": "Reference matches this record",
+    "evidence": "Amount, currency and recipient verified. Transfer created on {{date}}.",
+    "liveMode": "Live mode",
+    "testMode": "Test mode",
+    "agree": "I confirm linking this transfer to this record.",
+    "confirm": "Confirm reconciliation",
+    "confirming": "Confirming…",
+    "saved": "Reconciliation recorded.",
+    "confirmError": "Confirmation was not received. Data is being refreshed: check the status before retrying.",
+    "noTransfer": "This action records evidence. It does not send money or confirm receipt by the bank.",
+    "recovery": {
+      "title": "Recovery after refund",
+      "hint": "The original transfer amount stays in the history. Recovery from the recipient is tracked separately.",
+      "states": {
+        "WAITING_REFUND": "Awaiting refund",
+        "RECOVERING": "Recovery in progress",
+        "RECOVERED": "Funds recovered",
+        "REVIEW_REQUIRED": "Needs reconciliation",
+        "CANCELLED": "Recovery cancelled",
+        "NO_RECOVERY_REQUIRED": "No recovery required"
+      },
+      "advice": {
+        "WAITING_REFUND": "Recovery will start once the customer refund is confirmed.",
+        "RECOVERING": "The customer has been refunded. Confirmation of the recovered funds is pending.",
+        "RECOVERED": "Stripe confirms that these funds have returned to the platform balance.",
+        "REVIEW_REQUIRED": "The customer has been refunded, but recovery from the beneficiary is unconfirmed. Reconciliation is required; do not create another transfer.",
+        "CANCELLED": "The refund did not complete. No recovery of funds was initiated.",
+        "NO_RECOVERY_REQUIRED": "The refund is funded by the platform. No funds are taken back from the beneficiary."
+      },
+      "providerShare": "Amount to recover from the beneficiary",
+      "commissionShare": "Remainder funded by the platform",
+      "refundTotal": "Refund amount"
+    }
+  },
+  "financeBatch": {
+    "choose": "Choose multiple items",
+    "selectAll": "Select all eligible items matching the filter",
+    "selectItem": "Select {{name}}",
+    "selected": "{{count}} selected",
+    "reviewHint": "Review items and amounts before confirming. Ineligible items are excluded. The result will be shown for each item.",
+    "empty": "No eligible items in this selection.",
+    "failed": "Could not process this selection.",
+    "payments": "Batch payments",
+    "preparePayments": "Prepare selected payments",
+    "openCheckout": "Open secure checkout",
+    "ownerApprovals": "Batch approvals",
+    "ownerTransfers": "Batch owner transfers",
+    "providerTransfers": "Batch provider transfers",
+    "approve": "Approve amounts without sending transfers",
+    "transfer": "Send selected transfers",
+    "retryTransfers": "Retry selected transfers",
+    "results": {
+      "ready": "Checkout ready, awaiting payment",
+      "sent": "Request sent to the payment provider",
+      "approved": "Approved, no transfer initiated",
+      "blocked": "Not sent, check requirements",
+      "error": "Unconfirmed, check tracking before retrying"
+    },
+    "search": "Search records",
+    "toggleAll": "Select / clear all",
+    "noMatch": "No matching records."
+  },
+  "financeWorkspace": {
+    "records": "Financial records",
+    "back": "Back to list",
+    "choose": "One record, every detail",
+    "chooseHint": "Select an item to review its information, evidence and available actions.",
+    "indicators": "Financial indicators",
+    "filteredScope": "Records matching active filters",
+    "pageScope": "Records on the current page",
+    "recorded": "Recorded statuses",
+    "views": "Financial views",
+    "tabs": {
+      "payouts": "Payouts",
+      "reports": "Reports & accounting"
+    },
+    "viewsLabels": {
+      "owners": "Owners",
+      "providers": "Providers",
+      "tracking": "Tracking & reconciliation",
+      "fiscal": "Tax report",
+      "exports": "Accounting exports",
+      "ledger": "Financial ledger"
+    },
+    "kpis": {
+      "all": {
+        "label": "Records",
+        "description": "Records in the stated scope.",
+        "advice": "Select a record to examine its amounts and evidence."
+      },
+      "pending": {
+        "label": "To process",
+        "description": "Draft, pending, approved or processing records.",
+        "advice": "Check the recipient and collection evidence. Approval does not move money."
+      },
+      "done": {
+        "label": "Finalized",
+        "description": "Records marked paid or transferred. Bank receipt may remain unconfirmed.",
+        "advice": "Check tracking and references to confirm each payout stage."
+      },
+      "review": {
+        "label": "To verify",
+        "description": "Unknown, blocked, failed or unreconciled records.",
+        "advice": "Check missing information before retrying to avoid duplicate payments."
+      },
+      "ota": {
+        "advice": "Check the OTA payout statement for the beneficiary and the bank receipt date."
+      }
+    },
+    "ledgerBalance": "Baitly ledger balance in the account currency. This is not an available bank balance.",
+    "ledgerAdvice": "This ledger records Baitly entries. Verify PSP references and bank tracking before treating funds as received.",
+    "ledgerAccount": "Ledger account",
+    "balanceAfter": "Balance after entry",
+    "noProperty": "No linked property",
+    "noAssignee": "No assignee",
+    "unavailable": "Information unavailable",
+    "amounts": {
+      "payments": {
+        "all": "Total payments",
+        "pending": "To pay / collect",
+        "done": "Reported paid",
+        "review": "To verify",
+        "ota": "Paid to OTAs"
+      },
+      "invoices": {
+        "all": "Total invoiced incl. tax",
+        "pending": "Invoices to pay",
+        "done": "Paid invoices",
+        "review": "Overdue invoices"
+      },
+      "payouts": {
+        "all": "Total payouts",
+        "pending": "To transfer",
+        "done": "Completed payouts",
+        "review": "Payouts to verify"
+      },
+      "expenses": {
+        "all": "Total expenses",
+        "pending": "Expenses to pay",
+        "done": "Paid expenses",
+        "review": "Expenses to verify"
+      },
+      "tracking": {
+        "all": "Total transfers",
+        "pending": "Transfers in progress",
+        "done": "Transferred to beneficiary",
+        "review": "To reconcile"
+      },
+      "recordCount": "{{count}} record(s).",
+      "unavailable": "Amount or currency unavailable for {{count}} record(s), excluded from the total.",
+      "description": {
+        "all": "Amounts for active records matching the filters. Cancellations, refunds, credit notes and payments not required are excluded. Each currency is totalled separately.",
+        "pending": "Amounts pending according to recorded statuses. Payments use the remaining balance when known.",
+        "done": "Amounts recorded as paid or transferred. An OTA reporting a payment does not confirm receipt in Stripe; a transfer does not confirm a bank credit.",
+        "review": "Amounts requiring attention: unknown status, failure, block, overdue payment or missing reconciliation.",
+        "ota": "Amounts reported as paid to booking platforms, included in reported paid payments. They are not an available Stripe balance and do not confirm receipt in a bank account."
+      }
+    }
+  },
+  "expenseTransfer": {
+    "beneficiary": "Recipient:",
+    "chooseCompany": "Pay their company",
+    "companyConfirm": "Choose {{company}} as the recipient of this expense? This choice will be recorded and cannot be changed. No money will be sent at this step.",
+    "selectCompany": "Confirm company",
+    "confirmCompany": "Transfer {{amount}} to the company account of {{provider}} via Stripe?",
+    "changed": "The recipient has changed. Cancel this confirmation and review the expense again.",
+    "title": "Provider payment",
+    "prepare": "Prepare expense transfer",
+    "sent": "Transfer confirmed. Check payout tracking for bank receipt.",
+    "notRetained": "Once approved, this expense will be deducted from the owner payout. Pay the provider after the retained funds have been confirmed.",
+    "retained": "This expense is retained from the owner’s collections. Its payment is separate from the intervention payment.",
+    "confirm": "Transfer {{amount}} to {{provider}}’s personal account through Stripe?",
+    "provider": "this provider",
+    "sending": "Transferring…",
+    "pay": "Transfer {{amount}}",
+    "unavailable": "Payment cannot be checked right now.",
+    "tracking": "View payout tracking"
+  },
+  "otaSettlement": {
+    "title": "OTA payout",
+    "help": "Guest payment and bank receipt are tracked separately. These funds are not a Stripe balance.",
+    "add": "Match a payout",
+    "loadError": "Supporting documents are unavailable.",
+    "empty": "No bank receipt matched to supporting documents.",
+    "documented": "Matched to documents · {{date}}",
+    "voided": "Matching voided: {{reason}}",
+    "breakdown": "Gross {{gross}} · OTA fees {{fees}} · Refunds {{refunds}}",
+    "statement": "OTA statement",
+    "bank": "Bank receipt",
+    "correct": "Correct",
+    "reason": "Correction reason",
+    "confirmCorrection": "Void this matching",
+    "recipient": "Account that received the payout",
+    "fileLimit": "PDF, PNG or JPEG: up to 5 MB per file and 9 MB for both documents.",
+    "net": "Net received:",
+    "confirmHelp": "I confirm that I checked receipt, recipient and amounts against both documents. This action does not send money.",
+    "confirm": "Confirm matching",
+    "saving": "Saving…",
+    "fields": {
+      "ota": "OTA payout reference",
+      "bank": "Unique bank reference",
+      "date": "Date received",
+      "gross": "Gross amount",
+      "fees": "OTA fees",
+      "refunds": "Refunds deducted"
+    },
+    "batchHelp": "If the payout covers several stays, allocate all its lines before confirming.",
+    "stay": "Stay #{{id}}",
+    "removeStay": "Remove this stay",
+    "addStay": "Add a stay to the payout",
+    "chooseStay": "Choose a stay"
+  },
+  "supplierPurchase": {
+    "title": "Supplier purchases",
+    "search": "Search supplier, invoice or property",
+    "new": "Add supplier invoice",
+    "help": "Track purchase invoices, their beneficiary and payment route.",
+    "loadError": "The data could not be loaded.",
+    "empty": "No supplier invoice matches this search.",
+    "invoice": "Supplier invoice",
+    "invite": "Invite to Baitly",
+    "external": "Pay on the supplier’s website",
+    "inviteConfirm": "This route links the invoice to the supplier’s verified account. Payment then requires an approved expense and a ready payout account.",
+    "confirmInvite": "Create invitation",
+    "externalConfirm": "Payment will take place outside Baitly. This invoice will no longer be eligible for a Baitly payout.",
+    "site": "Supplier website HTTPS address",
+    "confirmExternal": "Choose external payment",
+    "acceptedHelp": "The supplier confirmed their identity. Prepare the expense for approval and payout.",
+    "invitedHelp": "The supplier must accept the invitation using their verified email address.",
+    "renew": "Create a new link",
+    "prepareExpense": "Prepare expense for approval",
+    "preparedHelp": "The expense is recorded. Preparing it does not mean it is paid.",
+    "openExpense": "View expense #{{id}}",
+    "link": "Invitation link",
+    "linkHelp": "Share this link with the supplier. It expires after 7 days; a new link invalidates the previous one.",
+    "externalRecorded": "External payment documented: {{reference}}",
+    "receipt": "Payment receipt",
+    "externalHelp": "Pay on the supplier’s website, then attach the PSP or bank receipt. Baitly does not execute payments on this website.",
+    "openSite": "Open supplier website",
+    "recordExternal": "Attach payment evidence",
+    "paymentReference": "Payment reference",
+    "paidOn": "Payment date",
+    "receiptConfirm": "You confirm this receipt documents payment of {{amount}}. It does not credit a Stripe balance or trigger an owner deduction.",
+    "confirmReceipt": "Record receipt",
+    "property": "Property",
+    "chooseProperty": "Choose a property",
+    "fields": {
+      "supplierName": "Supplier name",
+      "supplierEmail": "Supplier email",
+      "invoiceReference": "Invoice reference",
+      "description": "Purchase description",
+      "expenseDate": "Invoice date",
+      "amountHt": "Amount excluding tax in EUR",
+      "taxRate": "VAT rate (0.20 = 20%)"
+    },
+    "createHelp": "PDF, PNG or JPEG invoice, up to 5 MB. Choose the payment route in the record.",
+    "save": "Record invoice",
+    "states": {
+      "externalDocumented": "External documented",
+      "expensePrepared": "Expense prepared",
+      "accepted": "Invitation accepted",
+      "invited": "Invitation ready",
+      "externalPending": "Receipt expected",
+      "toChoose": "Choose route"
+    },
+    "invitationTitle": "Receive a payment with Baitly",
+    "invitationPrivacy": "This invitation confirms your supplier identity. It does not grant access to the client’s organization.",
+    "loginHelp": "Sign in with the invited supplier’s email address, then return to this page.",
+    "login": "Sign in",
+    "register": "Create account",
+    "refreshSession": "I have signed in",
+    "invitationAccepted": "Invitation accepted for {{name}}, invoice {{reference}} for {{amount}}.",
+    "connectAccount": "Set up my payout account",
+    "noTransferYet": "No money has been transferred. The client must approve the expense and initiate the payout.",
+    "acceptInvitation": "Accept invitation",
+    "invalidInvitation": "The invitation link is incomplete or invalid.",
+    "registerHelp": "Create your free beneficiary account. No PMS subscription or access to the client’s properties. Use the invited email address.",
+    "registration": {
+      "email": "Invited email address",
+      "firstName": "First name",
+      "lastName": "Last name"
+    },
+    "sendActivation": "Send activation link",
+    "activationSent": "Verify your email and set your password using the email you received. Then sign in and refresh this page to accept the invitation.",
+    "fileLimit": "PDF, PNG or JPEG: up to 5 MB per document."
+  },
+  "externalBatchRefund": {
+    "title": "External batch refunds",
+    "help": "Assign the refund observed in Stripe to the affected services. The total must match the bank evidence exactly.",
+    "loadError": "Batch refunds are unavailable.",
+    "choose": "Assign to this service",
+    "target": "Assign to {{label}} · #{{id}}",
+    "reason": "Reason for this assignment",
+    "confirmHelp": "Save the allocation and its reason. Baitly will verify the evidence before confirming entries and credit notes. No new refund will be sent.",
+    "confirm": "Confirm assignment",
+    "saving": "Saving…",
+    "pending": "Assignment saved, awaiting Stripe and accounting checks.",
+    "confirmed": "Refund reconciled with this service.",
+    "review": "Reconciliation blocked: the financial record needs review. No new refund will be sent.",
+    "awaitingStripe": "Awaiting Stripe confirmation.",
+    "single": "Assign only to this service",
+    "multiple": "Split between several services",
+    "allocationTitle": "Refund allocation",
+    "available": "Refundable balance: {{amount}}",
+    "portionAmount": "Amount for service {{id}}",
+    "remaining": "Remaining to allocate: {{amount}}"
   }
 }

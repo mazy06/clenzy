@@ -10,6 +10,8 @@ import com.clenzy.exception.PaymentValidationException;
 import com.clenzy.model.Intervention;
 import com.clenzy.model.InterventionStatus;
 import com.clenzy.model.PaymentStatus;
+import com.clenzy.model.TransactionStatus;
+import com.clenzy.model.TransactionType;
 import com.clenzy.repository.InterventionRepository;
 import com.clenzy.tenant.TenantContext;
 import com.stripe.exception.StripeException;
@@ -55,6 +57,8 @@ public class InterventionPaymentService {
     private final PaymentTransactionService paymentTransactionService;
     private final TenantContext tenantContext;
     private final com.clenzy.service.access.OrganizationAccessGuard organizationAccessGuard;
+    private final BaitlyBatchRefundPersistence batchRefunds;
+    private final ManagedRefundReconciliation managedRefunds;
 
     public InterventionPaymentService(InterventionRepository interventionRepository,
                                       PaymentOrchestrationService orchestrationService,
@@ -62,7 +66,10 @@ public class InterventionPaymentService {
                                       PaymentTransactionService paymentTransactionService,
                                       TenantContext tenantContext,
                                       com.clenzy.service.access.OrganizationAccessGuard organizationAccessGuard,
-            com.clenzy.repository.ServiceQuoteRepository serviceQuoteRepository) {
+            com.clenzy.repository.ServiceQuoteRepository serviceQuoteRepository,
+            BaitlyBatchRefundPersistence batchRefunds, ManagedRefundReconciliation managedRefunds) {
+        this.batchRefunds = batchRefunds;
+        this.managedRefunds = managedRefunds;
         this.interventionRepository = interventionRepository;
         this.serviceQuoteRepository = serviceQuoteRepository;
         this.orchestrationService = orchestrationService;
@@ -151,8 +158,8 @@ public class InterventionPaymentService {
      */
     // Pas de @Transactional : cette methode appelle Stripe, et la classe
     // documente la regle — jamais d'appel HTTP externe dans une transaction DB
-    // (regle audit n°2). Le `saveAll` final s'execute dans sa propre
-    // transaction courte, APRES l'appel externe.
+    // (regle audit n°2). Les associations sont persistées par PaymentPersistence
+    // dans une transaction courte après l’appel externe.
     public PaymentSessionResponse createBatchPaymentSession(
             BatchPaymentSessionRequest request, String customerEmail) {
         if (customerEmail == null || customerEmail.isEmpty()) {
@@ -166,7 +173,7 @@ public class InterventionPaymentService {
             throw new PaymentValidationException("Aucune intervention à régler");
         }
 
-        var blockedStatuses = EnumSet.of(InterventionStatus.CANCELLED, InterventionStatus.COMPLETED);
+        var blockedStatuses = EnumSet.of(InterventionStatus.CANCELLED);
         List<Intervention> interventions = new ArrayList<>();
         BigDecimal serverAmount = BigDecimal.ZERO;
         String currency = "EUR";
@@ -207,9 +214,9 @@ public class InterventionPaymentService {
                 .collect(java.util.stream.Collectors.joining("-"));
 
         PaymentOrchestrationRequest orchRequest = new PaymentOrchestrationRequest(
-                serverAmount, currency, "INTERVENTION", ids.get(0),
+                serverAmount, currency.toUpperCase(java.util.Locale.ROOT), InterventionPaymentBatch.SOURCE_TYPE, ids.get(0),
                 "Paiement de " + ids.size() + " intervention(s)", customerEmail,
-                null,
+                com.clenzy.model.PaymentProviderType.STRIPE,
                 appendPaymentOutcome(request.returnUrl(), "success"),
                 appendPaymentOutcome(request.returnUrl(), "cancelled"),
                 Map.of("interventionIds", ids.stream().map(String::valueOf)
@@ -224,15 +231,8 @@ public class InterventionPaymentService {
             throw new PaymentProcessingException("Erreur orchestration: " + errMsg);
         }
 
-        // Toutes les interventions du lot passent en cours de reglement : le
-        // paiement est unique, leur sort l'est aussi.
-        for (Intervention intervention : interventions) {
-            if (orchResult.paymentResult().providerTxId() != null) {
-                intervention.setStripeSessionId(orchResult.paymentResult().providerTxId());
-            }
-            intervention.setPaymentStatus(PaymentStatus.PROCESSING);
-        }
-        interventionRepository.saveAll(interventions);
+        // L'association des missions à la session est atomique dans finalizeInitiation.
+        // Aucun save détaché ici : un webhook rapide ne doit pas être réécrit en PROCESSING.
 
         PaymentSessionResponse response = new PaymentSessionResponse();
         response.setSessionId(orchResult.paymentResult().providerTxId());
@@ -248,8 +248,8 @@ public class InterventionPaymentService {
             .orElseThrow(() -> new RuntimeException("Intervention non trouvée"));
         requireSameOrganization(intervention);
 
-        // Vérifier que l'intervention n'est pas annulée ou déjà terminée sans paiement
-        var blockedStatuses = EnumSet.of(InterventionStatus.CANCELLED, InterventionStatus.COMPLETED);
+        // Une prestation terminée reste réglable ; seule une annulation bloque sa dette
+        var blockedStatuses = EnumSet.of(InterventionStatus.CANCELLED);
         if (blockedStatuses.contains(intervention.getStatus())) {
             throw new PaymentValidationException(
                 "Cette intervention ne peut pas être payée. Statut actuel: " + intervention.getStatus());
@@ -343,8 +343,8 @@ public class InterventionPaymentService {
             .orElseThrow(() -> new RuntimeException("Intervention non trouvee"));
         requireSameOrganization(intervention);
 
-        // Vérifier que l'intervention n'est pas annulée ou déjà terminée
-        var embeddedBlockedStatuses = EnumSet.of(InterventionStatus.CANCELLED, InterventionStatus.COMPLETED);
+        // Une prestation terminée reste réglable ; une annulation exige un traitement distinct
+        var embeddedBlockedStatuses = EnumSet.of(InterventionStatus.CANCELLED);
         if (embeddedBlockedStatuses.contains(intervention.getStatus())) {
             throw new PaymentValidationException(
                 "Cette intervention ne peut pas etre payee. Statut actuel: " + intervention.getStatus());
@@ -432,6 +432,24 @@ public class InterventionPaymentService {
             .orElseThrow(() -> new RuntimeException("Intervention non trouvée"));
         requireSameOrganization(intervention);
 
+        if (interventionRepository.hasAllocatedPayment(intervention.getOrganizationId(), interventionId, intervention.getStripeSessionId())) {
+            Long org = tenantContext.getRequiredOrganizationId();
+            final String ref;
+            try { ref = batchRefunds.prepare(org, interventionId); }
+            catch (IllegalStateException e) { throw new PaymentValidationException(e.getMessage()); }
+            var refund = managedRefunds.resumeAllocation(ref, org);
+            if (refund.getStatus() == TransactionStatus.PROCESSING) {
+                return Map.of("status", "PROCESSING", "message",
+                    "Remboursement de cette prestation en cours de vérification. Les autres prestations du paiement groupé restent réglées.");
+            }
+            if (refund.getStatus() != TransactionStatus.COMPLETED)
+                throw new PaymentValidationException("Ce remboursement a été refusé ; rapprochement requis avant toute autre émission.");
+            return Map.of("status", "COMPLETED", "message", "Cette prestation a été remboursée", "provider", "STRIPE");
+        }
+
+        if (intervention.getPaymentStatus() == PaymentStatus.PARTIALLY_REFUNDED) {
+            throw new PaymentValidationException("Ce paiement est déjà partiellement remboursé. Un nouveau remboursement intégral est bloqué pour éviter un double remboursement.");
+        }
         if (intervention.getPaymentStatus() != PaymentStatus.PAID) {
             throw new PaymentValidationException(
                 "Seuls les paiements confirmés peuvent être remboursés. Statut actuel: " + intervention.getPaymentStatus());
@@ -447,6 +465,11 @@ public class InterventionPaymentService {
         if (originalTx.isPresent()) {
             var result = orchestrationService.processRefund(
                 originalTx.get().getTransactionRef(), null, "Refund requested by admin");
+            if (result.transaction() != null && result.transaction().getPaymentType() == TransactionType.REFUND
+                    && result.transaction().getStatus() == TransactionStatus.PROCESSING) {
+                return Map.of("status", "PROCESSING", "message",
+                    "Remboursement en cours de vérification auprès de Stripe. Le suivi reprend automatiquement ; aucun nouvel envoi n'est nécessaire.");
+            }
             if (!result.isSuccess()) {
                 logger.error("Refund failed for intervention {} via {}: {}",
                     interventionId, result.providerUsed(), result.paymentResult().errorMessage());
@@ -454,6 +477,7 @@ public class InterventionPaymentService {
                     "Échec du remboursement: " + result.paymentResult().errorMessage());
             }
             return Map.of(
+                "status", "COMPLETED",
                 "message", "Remboursement effectué avec succès",
                 "provider", result.providerUsed() != null ? result.providerUsed().name() : "UNKNOWN");
         }

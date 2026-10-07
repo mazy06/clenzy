@@ -24,11 +24,14 @@ public class BookingBalanceReconciliationService {
 
     private final PaymentTransactionRepository transactionRepository;
     private final PublicBookingService publicBookingService;
+    private final com.clenzy.service.BaitlyReservationPaymentProof proof;
 
     public BookingBalanceReconciliationService(PaymentTransactionRepository transactionRepository,
-                                               PublicBookingService publicBookingService) {
+                                               PublicBookingService publicBookingService,
+                                               com.clenzy.service.BaitlyReservationPaymentProof proof) {
         this.transactionRepository = transactionRepository;
         this.publicBookingService = publicBookingService;
+        this.proof = proof;
     }
 
     /**
@@ -51,6 +54,7 @@ public class BookingBalanceReconciliationService {
                     + "reconciliation impossible, verification manuelle requise", transactionRef);
             return;
         }
+        if (!proof.requireConfirmation(tx, BookingBalanceService.SOURCE_TYPE)) return;
         publicBookingService.confirmBookingEngineBalanceById(reservationId, providerSessionId);
         log.info("Reconciliation solde OK : tx={} reservation={} providerSession={}",
                 transactionRef, reservationId, providerSessionId);

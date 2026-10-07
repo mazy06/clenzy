@@ -1,128 +1,108 @@
 package com.clenzy.booking.service;
 
-import com.clenzy.booking.model.GuestCreditAccount;
-import com.clenzy.booking.model.GuestCreditTransaction;
-import com.clenzy.booking.model.GuestCreditTxType;
-import com.clenzy.booking.repository.GuestCreditAccountRepository;
-import com.clenzy.booking.repository.GuestCreditTransactionRepository;
-import com.clenzy.repository.OrganizationRepository;
-import com.clenzy.repository.ReservationRepository;
-import org.junit.jupiter.api.Test;
+import com.clenzy.booking.model.*;
+import com.clenzy.booking.repository.*;
+import com.clenzy.repository.*;
+import org.junit.jupiter.api.*;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.ArgumentCaptor;
-import org.mockito.Mock;
+import org.mockito.*;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.beans.factory.ObjectProvider;
-
 import java.util.Optional;
-
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.never;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
+import static org.assertj.core.api.Assertions.*;
+import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
 class GuestCreditServiceTest {
-
-    @Mock private GuestCreditAccountRepository accountRepository;
-    @Mock private GuestCreditTransactionRepository txRepository;
-    @Mock private OrganizationRepository organizationRepository;
-    @Mock private ReservationRepository reservationRepository;
-    @Mock private ObjectProvider<GuestCreditService> self;
-
-    private GuestCreditService service() {
-        return new GuestCreditService(accountRepository, txRepository, organizationRepository, reservationRepository, self);
+    @Mock GuestCreditAccountRepository accounts;
+    @Mock GuestCreditTransactionRepository entries;
+    @Mock OrganizationRepository organizations;
+    @Mock ReservationRepository reservations;
+    @Mock ObjectProvider<GuestCreditService> self;
+    GuestCreditService service;
+    @BeforeEach void setup() { service=new GuestCreditService(accounts,entries,organizations,reservations,self); }
+    void lock(String currency, long balance) {
+        var row=mock(GuestCreditAccountRepository.LockedBalance.class);
+        lenient().when(row.getId()).thenReturn(9L);lenient().when(row.getCurrency()).thenReturn(currency);
+        lenient().when(row.getBalanceCents()).thenReturn(balance);
+        when(accounts.lockBalance(1L,"guest@x.fr")).thenReturn(Optional.of(row));
     }
-
-    @Test
-    void earn_newAccount_createsAccountIncrementsBalanceAndRecordsTransaction() {
-        when(txRepository.existsByOrganizationIdAndReservationCodeAndType(1L, "CODE-1", GuestCreditTxType.EARN)).thenReturn(false);
-        when(accountRepository.findByOrganizationIdAndEmail(1L, "guest@x.fr")).thenReturn(Optional.empty());
-        when(accountRepository.save(any())).thenAnswer(i -> i.getArgument(0));
-
-        service().earn(1L, "Guest@X.FR", 1500, "EUR", "CODE-1");
-
-        ArgumentCaptor<GuestCreditAccount> acc = ArgumentCaptor.forClass(GuestCreditAccount.class);
-        verify(accountRepository, org.mockito.Mockito.atLeastOnce()).save(acc.capture());
-        assertThat(acc.getValue().getBalanceCents()).isEqualTo(1500);
-        assertThat(acc.getValue().getEmail()).isEqualTo("guest@x.fr"); // normalisé
-
-        ArgumentCaptor<GuestCreditTransaction> tx = ArgumentCaptor.forClass(GuestCreditTransaction.class);
-        verify(txRepository).save(tx.capture());
-        assertThat(tx.getValue().getType()).isEqualTo(GuestCreditTxType.EARN);
-        assertThat(tx.getValue().getAmountCents()).isEqualTo(1500);
-        assertThat(tx.getValue().getReservationCode()).isEqualTo("CODE-1");
+    void previous(GuestCreditTxType type, long amount, long account) {
+        var row=new GuestCreditTransaction();row.setAccountId(account);row.setAmountCents(amount);
+        when(entries.findByOrganizationIdAndReservationCodeAndType(1L,"CODE",type)).thenReturn(Optional.of(row));
     }
-
-    @Test
-    void earn_alreadyCredited_isNoOp() {
-        when(txRepository.existsByOrganizationIdAndReservationCodeAndType(1L, "CODE-1", GuestCreditTxType.EARN)).thenReturn(true);
-
-        service().earn(1L, "guest@x.fr", 1500, "EUR", "CODE-1");
-
-        verify(accountRepository, never()).save(any());
-        verify(txRepository, never()).save(any());
+    @Test void earningsUseAtomicIncrementAndNormalizeEmail() {
+        lock("EUR",1000);service.earn(1L," Guest@X.FR ",500,"EUR","CODE");
+        verify(accounts).addBalance(9L,500);
+        verify(entries).saveAndFlush(argThat(t->t.getAmountCents()==500 && t.getAccountId()==9L && t.getType()==GuestCreditTxType.EARN));
     }
-
-    @Test
-    void earn_nonPositiveAmount_isNoOp() {
-        service().earn(1L, "guest@x.fr", 0, "EUR", "CODE-1");
-        verify(txRepository, never()).save(any());
-        verify(accountRepository, never()).save(any());
+    @Test void repeatedEarningDoesNotIncrementAgain() {
+        lock("EUR",1000);previous(GuestCreditTxType.EARN,500,9);
+        service.earn(1L,"guest@x.fr",500,"EUR","CODE");verify(accounts,never()).addBalance(any(),anyLong());
     }
-
-    @Test
-    void redeem_sufficient_deductsAtomicallyAndRecordsNegativeTransaction() {
-        when(accountRepository.deductIfSufficient(1L, "guest@x.fr", 1500)).thenReturn(1);
-        GuestCreditAccount acc = new GuestCreditAccount();
-        acc.setId(9L);
-        when(accountRepository.findByOrganizationIdAndEmail(1L, "guest@x.fr")).thenReturn(Optional.of(acc));
-
-        boolean ok = service().redeem(1L, "Guest@X.fr", 1500, "CODE-9");
-
-        assertThat(ok).isTrue();
-        ArgumentCaptor<GuestCreditTransaction> tx = ArgumentCaptor.forClass(GuestCreditTransaction.class);
-        verify(txRepository).save(tx.capture());
-        assertThat(tx.getValue().getType()).isEqualTo(GuestCreditTxType.REDEEM);
-        assertThat(tx.getValue().getAmountCents()).isEqualTo(-1500); // déduction = négatif
+    @Test void mismatchedReplayIsNotTreatedAsIdempotent() {
+        lock("EUR",1000);previous(GuestCreditTxType.EARN,499,9);
+        assertThatThrownBy(()->service.earn(1L,"guest@x.fr",500,"EUR","CODE")).isInstanceOf(IllegalStateException.class);
     }
-
-    @Test
-    void redeem_insufficient_returnsFalseAndRecordsNothing() {
-        when(accountRepository.deductIfSufficient(1L, "guest@x.fr", 9999)).thenReturn(0);
-
-        boolean ok = service().redeem(1L, "guest@x.fr", 9999, "CODE-9");
-
-        assertThat(ok).isFalse();
-        verify(txRepository, never()).save(any());
+    @Test void creditInAnotherCurrencyIsRejected() {
+        lock("MAD",1000);
+        assertThatThrownBy(()->service.earn(1L,"guest@x.fr",500,"EUR","CODE")).isInstanceOf(IllegalStateException.class);
+        verify(accounts,never()).addBalance(any(),anyLong());
     }
-
-    @Test
-    void clawback_reCreditsBalanceOnce() {
-        when(txRepository.existsByOrganizationIdAndReservationCodeAndType(1L, "CODE-9", GuestCreditTxType.CLAWBACK)).thenReturn(false);
-        GuestCreditAccount acc = new GuestCreditAccount();
-        acc.setBalanceCents(0);
-        when(accountRepository.findByOrganizationIdAndEmail(1L, "guest@x.fr")).thenReturn(Optional.of(acc));
-        when(accountRepository.save(any())).thenAnswer(i -> i.getArgument(0));
-
-        service().clawback(1L, "guest@x.fr", 1500, "CODE-9");
-
-        assertThat(acc.getBalanceCents()).isEqualTo(1500);
-        ArgumentCaptor<GuestCreditTransaction> tx = ArgumentCaptor.forClass(GuestCreditTransaction.class);
-        verify(txRepository).save(tx.capture());
-        assertThat(tx.getValue().getType()).isEqualTo(GuestCreditTxType.CLAWBACK);
-        assertThat(tx.getValue().getAmountCents()).isEqualTo(1500);
+    @Test void insufficientRedemptionDoesNotWriteReceipt() {
+        lock("EUR",0);assertThat(service.redeem(1L,"guest@x.fr",500,"CODE")).isFalse();
+        verify(entries,never()).saveAndFlush(any());
     }
-
-    @Test
-    void getBalanceCents_returnsAccountBalanceOrZero() {
-        GuestCreditAccount acc = new GuestCreditAccount();
-        acc.setBalanceCents(4200);
-        when(accountRepository.findByOrganizationIdAndEmail(1L, "guest@x.fr")).thenReturn(Optional.of(acc));
-        assertThat(service().getBalanceCents(1L, "Guest@X.fr")).isEqualTo(4200);
-
-        when(accountRepository.findByOrganizationIdAndEmail(2L, "none@x.fr")).thenReturn(Optional.empty());
-        assertThat(service().getBalanceCents(2L, "none@x.fr")).isZero();
+    @Test void successfulRedemptionRecordsNegativeAmount() {
+        lock("EUR",1000);when(accounts.deductIfSufficient(1L,"guest@x.fr",500)).thenReturn(1);
+        assertThat(service.redeem(1L,"guest@x.fr",500,"CODE")).isTrue();
+        verify(entries).saveAndFlush(argThat(t->t.getAmountCents()==-500 && t.getType()==GuestCreditTxType.REDEEM));
+    }
+    @Test void replayDoesNotDeductAgainEvenIfBalanceIsNowZero() {
+        lock("EUR",0);previous(GuestCreditTxType.REDEEM,-500,9);
+        assertThat(service.redeem(1L,"guest@x.fr",500,"CODE")).isTrue();
+        verify(accounts,never()).deductIfSufficient(any(),any(),anyLong());
+    }
+    @Test void changedAccountCannotConsumeIntent() {
+        lock("EUR",1000);
+        assertThatThrownBy(()->service.redeem(1L,"guest@x.fr",500,"EUR","CODE",8L)).isInstanceOf(IllegalStateException.class);
+        verify(accounts,never()).deductIfSufficient(any(),any(),anyLong());
+    }
+    @Test void clawbackRequiresExactHistoricalConsumption() {
+        lock("EUR",0);
+        assertThatThrownBy(()->service.clawback(1L,"guest@x.fr",500,"CODE")).isInstanceOf(IllegalStateException.class);
+        verify(accounts,never()).addBalance(any(),anyLong());
+    }
+    @Test void clawbackDoesNotReturnCreditToAnotherGuest() {
+        lock("EUR",0);previous(GuestCreditTxType.REDEEM,-500,10);
+        assertThatThrownBy(()->service.clawback(1L,"guest@x.fr",500,"CODE")).isInstanceOf(IllegalStateException.class);
+    }
+    @Test void exactClawbackIsIdempotent() {
+        lock("EUR",0);previous(GuestCreditTxType.REDEEM,-500,9);previous(GuestCreditTxType.CLAWBACK,500,9);
+        service.clawback(1L,"guest@x.fr",500,"CODE");verify(accounts,never()).addBalance(any(),anyLong());
+    }
+    @Test void previewDoesNotConvertCurrency() {
+        var account=new GuestCreditAccount();account.setCurrency("MAD");account.setBalanceCents(500);
+        when(accounts.findByOrganizationIdAndEmail(1L,"guest@x.fr")).thenReturn(Optional.of(account));
+        assertThat(service.getBalanceCents(1L,"guest@x.fr","EUR")).isZero();
+        assertThat(service.getBalanceCents(1L,"guest@x.fr","MAD")).isEqualTo(500);
+    }
+    @org.junit.jupiter.params.ParameterizedTest
+    @org.junit.jupiter.params.provider.EnumSource(value=com.clenzy.model.PaymentStatus.class,names="PAID",mode=org.junit.jupiter.params.provider.EnumSource.Mode.EXCLUDE)
+    void unpaidStayCannotEarnCreditEvenAfterSchedulerSelectedIt(com.clenzy.model.PaymentStatus status) {
+        var stay=new com.clenzy.model.Reservation();stay.setPaymentStatus(status);
+        when(reservations.lockCancellation(1L,"CODE")).thenReturn(Optional.of(stay));
+        assertThatThrownBy(()->service.earnCompletedStay(1L,"CODE",10,java.time.LocalDate.now())).isInstanceOf(IllegalStateException.class);
+        verifyNoInteractions(accounts,entries);
+    }
+    @Test void loyaltyIsEarnedOnTheCashPortionAndNotAgainOnConsumedCredit() {
+        var stay=new com.clenzy.model.Reservation();stay.setOrganizationId(1L);stay.setConfirmationCode("CODE");
+        stay.setPaymentStatus(com.clenzy.model.PaymentStatus.PAID);stay.setStatus("confirmed");stay.setSource("direct");
+        stay.setCheckOut(java.time.LocalDate.now().minusDays(1));stay.setTotalPrice(new java.math.BigDecimal("100"));
+        stay.setCreditApplied(new java.math.BigDecimal("20"));stay.setCurrency("EUR");
+        var guest=new com.clenzy.model.Guest();guest.setEmail("guest@x.fr");stay.setGuest(guest);
+        when(reservations.lockCancellation(1L,"CODE")).thenReturn(Optional.of(stay));lock("EUR",0);
+        service.earnCompletedStay(1L,"CODE",10,java.time.LocalDate.now());
+        verify(accounts).addBalance(9L,800);
     }
 }

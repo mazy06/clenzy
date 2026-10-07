@@ -23,6 +23,8 @@ import type { VatSummary } from '../../services/api/fiscalReportingApi';
 import type { DashboardPeriod } from '../dashboard/DashboardDateFilter';
 import { tiles, type TileOrNothing } from '../../components/stats';
 import type { ReportContent } from './reportShell';
+import FinanceKpis from '../billing/components/FinanceKpis';
+import FinanceWorkspace from '../billing/components/FinanceWorkspace';
 
 // ─── Constants ──────────────────────────────────────────────────────────────
 
@@ -324,8 +326,25 @@ const FiscalReportSection: React.FC = () => {
         />
       ) : (
         <>
-          <VatSummaryCards summary={summary} className="mb-3" />
-          {summary.breakdown?.length > 0 && <VatBreakdownTable summary={summary} />}
+          <FinanceKpis scope={summary.period} items={[
+            { key: 'invoices', label: t('reports.fiscal.cards.invoices'), value: summary.invoiceCount, artwork: 'documents' },
+            { key: 'ht', label: t('reports.fiscal.cards.totalHt'), value: new Intl.NumberFormat(activeIntlLocaleGregorian(), { style: 'currency', currency: summary.currency }).format(summary.totalHt), artwork: 'received' },
+            { key: 'tax', label: t('reports.fiscal.cards.totalTax'), value: new Intl.NumberFormat(activeIntlLocaleGregorian(), { style: 'currency', currency: summary.currency }).format(summary.totalTax), artwork: 'pending' },
+            { key: 'ttc', label: t('reports.fiscal.cards.totalTtc'), value: new Intl.NumberFormat(activeIntlLocaleGregorian(), { style: 'currency', currency: summary.currency }).format(summary.totalTtc), artwork: 'transfer' },
+          ].map(item => ({ ...item, artwork: item.artwork as 'documents' | 'received' | 'pending' | 'transfer',
+            description: t('accounting.fiscal.help.description'), advice: t('accounting.fiscal.help.step2Desc'),
+          }))} />
+          {summary.breakdown?.length > 0 && <FinanceWorkspace items={summary.breakdown.map(row => ({
+            id: `${row.taxCategory}-${row.taxName}-${row.taxRate}`, title: row.taxName, subtitle: row.taxCategory,
+            amount: new Intl.NumberFormat(activeIntlLocaleGregorian(), { style: 'currency', currency: summary.currency }).format(row.taxAmount),
+            status: formatTaxRate(row.taxRate), fields: [
+              { label: t('reports.fiscal.cols.category'), value: row.taxCategory },
+              { label: t('reports.fiscal.cols.rate'), value: formatTaxRate(row.taxRate) },
+              { label: t('reports.fiscal.cols.base'), value: new Intl.NumberFormat(activeIntlLocaleGregorian(), { style: 'currency', currency: summary.currency }).format(row.baseAmount) },
+              { label: t('reports.fiscal.cols.amount'), value: new Intl.NumberFormat(activeIntlLocaleGregorian(), { style: 'currency', currency: summary.currency }).format(row.taxAmount) },
+              { label: t('reports.fiscal.cols.lines'), value: row.lineCount },
+            ],
+          }))} />}
         </>
       )}
     </div>

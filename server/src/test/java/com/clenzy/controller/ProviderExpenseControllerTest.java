@@ -45,10 +45,11 @@ class ProviderExpenseControllerTest {
     private ProviderExpenseController controller;
 
     private static final Long ORG_ID = 1L;
+    private static final Jwt JWT = Jwt.withTokenValue("test").header("alg","none").subject("kc-admin").build();
 
     @BeforeEach
     void setUp() {
-        controller = new ProviderExpenseController(expenseService, receiptStorage, tenantContext);
+        controller = new ProviderExpenseController(expenseService, receiptStorage, tenantContext, new com.clenzy.service.BaitlyExpenseViews(expenseService));
     }
 
     private ProviderExpense buildExpense(Long id, ExpenseStatus status) {
@@ -78,9 +79,9 @@ class ProviderExpenseControllerTest {
         void withNoFilter_returnsAll() {
             when(tenantContext.getRequiredOrganizationId()).thenReturn(ORG_ID);
             ProviderExpense e = buildExpense(1L, ExpenseStatus.DRAFT);
-            when(expenseService.getAll(ORG_ID)).thenReturn(List.of(e));
+            when(expenseService.getVisible("kc-admin",ORG_ID,null,null,null,false)).thenReturn(List.of(e));
 
-            List<ProviderExpenseDto> result = controller.getAll(null, null, null, false, null);
+            List<ProviderExpenseDto> result = controller.getAll(null, null, null, false, JWT);
 
             assertThat(result).hasSize(1);
             assertThat(result.get(0).id()).isEqualTo(1L);
@@ -90,12 +91,12 @@ class ProviderExpenseControllerTest {
         void withProviderIdFilter_callsByProvider() {
             when(tenantContext.getRequiredOrganizationId()).thenReturn(ORG_ID);
             ProviderExpense e = buildExpense(1L, ExpenseStatus.DRAFT);
-            when(expenseService.getByProviderId(5L, ORG_ID)).thenReturn(List.of(e));
+            when(expenseService.getVisible("kc-admin",ORG_ID,5L,null,null,false)).thenReturn(List.of(e));
 
-            List<ProviderExpenseDto> result = controller.getAll(5L, null, null, false, null);
+            List<ProviderExpenseDto> result = controller.getAll(5L, null, null, false, JWT);
 
             assertThat(result).hasSize(1);
-            verify(expenseService).getByProviderId(5L, ORG_ID);
+            verify(expenseService).getVisible("kc-admin",ORG_ID,5L,null,null,false);
         }
 
         @Test
@@ -103,25 +104,25 @@ class ProviderExpenseControllerTest {
             when(tenantContext.getRequiredOrganizationId()).thenReturn(ORG_ID);
             Jwt jwt = Jwt.withTokenValue("t").header("alg", "none").subject("kc-42").build();
             ProviderExpense e = buildExpense(1L, ExpenseStatus.DRAFT);
-            when(expenseService.getMine("kc-42", ORG_ID)).thenReturn(List.of(e));
+            when(expenseService.getVisible("kc-42",ORG_ID,null,null,null,true)).thenReturn(List.of(e));
 
             List<ProviderExpenseDto> result = controller.getAll(null, null, null, true, jwt);
 
             assertThat(result).hasSize(1);
-            verify(expenseService).getMine("kc-42", ORG_ID);
+            verify(expenseService).getVisible("kc-42",ORG_ID,null,null,null,true);
         }
 
         @Test
         void withStatusFilter_callsByStatus() {
             when(tenantContext.getRequiredOrganizationId()).thenReturn(ORG_ID);
             ProviderExpense e = buildExpense(1L, ExpenseStatus.APPROVED);
-            when(expenseService.getByStatus(ExpenseStatus.APPROVED, ORG_ID))
+            when(expenseService.getVisible("kc-admin",ORG_ID,null,null,ExpenseStatus.APPROVED,false))
                 .thenReturn(List.of(e));
 
-            List<ProviderExpenseDto> result = controller.getAll(null, null, ExpenseStatus.APPROVED, false, null);
+            List<ProviderExpenseDto> result = controller.getAll(null, null, ExpenseStatus.APPROVED, false, JWT);
 
             assertThat(result).hasSize(1);
-            verify(expenseService).getByStatus(ExpenseStatus.APPROVED, ORG_ID);
+            verify(expenseService).getVisible("kc-admin",ORG_ID,null,null,ExpenseStatus.APPROVED,false);
         }
     }
 
@@ -131,9 +132,9 @@ class ProviderExpenseControllerTest {
         @Test
         void returnsExpense() {
             when(tenantContext.getRequiredOrganizationId()).thenReturn(ORG_ID);
-            when(expenseService.getById(1L, ORG_ID)).thenReturn(buildExpense(1L, ExpenseStatus.DRAFT));
+            when(expenseService.getReadable(1L, ORG_ID, "kc-admin")).thenReturn(buildExpense(1L, ExpenseStatus.DRAFT));
 
-            ProviderExpenseDto result = controller.getById(1L);
+            ProviderExpenseDto result = controller.getById(1L, JWT);
 
             assertThat(result.id()).isEqualTo(1L);
         }
@@ -272,13 +273,13 @@ class ProviderExpenseControllerTest {
             when(tenantContext.getRequiredOrganizationId()).thenReturn(ORG_ID);
             ProviderExpense existing = buildExpense(1L, ExpenseStatus.DRAFT);
             existing.setReceiptPath("path/abc12345-6789-1234-5678-123456789012_invoice.pdf");
-            when(expenseService.getById(1L, ORG_ID)).thenReturn(existing);
+            when(expenseService.getReadable(1L, ORG_ID, "kc-admin")).thenReturn(existing);
 
             Resource resource = new ByteArrayResource(new byte[]{1, 2, 3});
             when(receiptStorage.load("path/abc12345-6789-1234-5678-123456789012_invoice.pdf"))
                 .thenReturn(resource);
 
-            ResponseEntity<Resource> response = controller.downloadReceipt(1L);
+            ResponseEntity<Resource> response = controller.downloadReceipt(1L, JWT);
 
             assertThat(response.getStatusCode().value()).isEqualTo(200);
             assertThat(response.getHeaders().getFirst(HttpHeaders.CONTENT_DISPOSITION))
@@ -289,9 +290,9 @@ class ProviderExpenseControllerTest {
         void whenNoReceipt_returns404() {
             when(tenantContext.getRequiredOrganizationId()).thenReturn(ORG_ID);
             ProviderExpense existing = buildExpense(1L, ExpenseStatus.DRAFT);
-            when(expenseService.getById(1L, ORG_ID)).thenReturn(existing);
+            when(expenseService.getReadable(1L, ORG_ID, "kc-admin")).thenReturn(existing);
 
-            ResponseEntity<Resource> response = controller.downloadReceipt(1L);
+            ResponseEntity<Resource> response = controller.downloadReceipt(1L, JWT);
 
             assertThat(response.getStatusCode().value()).isEqualTo(404);
         }
@@ -301,10 +302,10 @@ class ProviderExpenseControllerTest {
             when(tenantContext.getRequiredOrganizationId()).thenReturn(ORG_ID);
             ProviderExpense existing = buildExpense(1L, ExpenseStatus.DRAFT);
             existing.setReceiptPath("filewithnoslash_real-name.pdf");
-            when(expenseService.getById(1L, ORG_ID)).thenReturn(existing);
+            when(expenseService.getReadable(1L, ORG_ID, "kc-admin")).thenReturn(existing);
             when(receiptStorage.load(any())).thenReturn(new ByteArrayResource(new byte[]{}));
 
-            ResponseEntity<Resource> response = controller.downloadReceipt(1L);
+            ResponseEntity<Resource> response = controller.downloadReceipt(1L, JWT);
 
             assertThat(response.getStatusCode().value()).isEqualTo(200);
         }
@@ -314,10 +315,10 @@ class ProviderExpenseControllerTest {
             when(tenantContext.getRequiredOrganizationId()).thenReturn(ORG_ID);
             ProviderExpense existing = buildExpense(1L, ExpenseStatus.DRAFT);
             existing.setReceiptPath("path/simple.pdf");
-            when(expenseService.getById(1L, ORG_ID)).thenReturn(existing);
+            when(expenseService.getReadable(1L, ORG_ID, "kc-admin")).thenReturn(existing);
             when(receiptStorage.load(any())).thenReturn(new ByteArrayResource(new byte[]{}));
 
-            ResponseEntity<Resource> response = controller.downloadReceipt(1L);
+            ResponseEntity<Resource> response = controller.downloadReceipt(1L, JWT);
 
             assertThat(response.getStatusCode().value()).isEqualTo(200);
             assertThat(response.getHeaders().getFirst(HttpHeaders.CONTENT_DISPOSITION))

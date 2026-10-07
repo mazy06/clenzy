@@ -1,5 +1,7 @@
 package com.clenzy.service;
 
+import static org.mockito.Mockito.mock;
+
 import com.clenzy.dto.PaymentOrchestrationRequest;
 import com.clenzy.model.PaymentProviderType;
 import com.clenzy.model.PaymentTransaction;
@@ -50,7 +52,7 @@ class PaymentPersistenceTest {
 
     @BeforeEach
     void setUp() {
-        persistence = new PaymentPersistence(transactionRepository, outboxPublisher, new ObjectMapper(), depositReconciler, interventionPayments);
+        persistence = new PaymentPersistence(transactionRepository, outboxPublisher, new ObjectMapper(), depositReconciler, interventionPayments, mock(InvoicePaymentCoordination.class), org.mockito.Mockito.mock(com.clenzy.service.payout.BaitlyTransferRecoveryStore.class));
     }
 
     private PaymentTransaction tx(String ref, TransactionStatus status, PaymentProviderType type) {
@@ -73,6 +75,45 @@ class PaymentPersistenceTest {
                 "desc", "e@x.com", null, "ok", "ko", Map.of("k", "v"), idempotencyKey);
     }
 
+
+    @Test void ambiguousFailedBatchKeepsItsIdempotencyKey() {
+        var tx = tx("TX-batch", TransactionStatus.FAILED, PaymentProviderType.STRIPE);
+        tx.setSourceType("INTERVENTION_BATCH"); tx.setIdempotencyKey("batch");
+        when(transactionRepository.findByIdempotencyKey("batch")).thenReturn(Optional.of(tx));
+        assertThat(persistence.consumeIdempotentReplay("batch")).contains(tx);
+        assertThat(tx.getIdempotencyKey()).isEqualTo("batch");
+        verify(transactionRepository,never()).save(any());
+    }
+    @Test void verifiedExpiredBatchCanBeRetried() {
+        var tx=tx("TX-batch",TransactionStatus.FAILED,PaymentProviderType.STRIPE);
+        tx.setSourceType("INTERVENTION_BATCH"); tx.setIdempotencyKey("batch"); tx.setMetadata(Map.of("batchRetryAllowed",true));
+        when(transactionRepository.findByIdempotencyKey("batch")).thenReturn(Optional.of(tx));
+        assertThat(persistence.consumeIdempotentReplay("batch")).isEmpty();
+        assertThat(tx.getIdempotencyKey()).isNull();
+    }
+    @Test void failedServiceRequestKeepsItsAttemptForReconciliation() {
+        var tx = tx("TX-request", TransactionStatus.FAILED, PaymentProviderType.STRIPE);
+        tx.setSourceType("SERVICE_REQUEST"); tx.setIdempotencyKey("request");
+        when(transactionRepository.findByIdempotencyKey("request")).thenReturn(Optional.of(tx));
+        assertThat(persistence.consumeIdempotentReplay("request")).contains(tx);
+        assertThat(tx.getIdempotencyKey()).isEqualTo("request");
+        verify(transactionRepository, never()).save(any());
+    }
+    @Test void failedIndividualWithoutExpirationProofKeepsItsAttempt() {
+        var tx = tx("TX-uncertain", TransactionStatus.FAILED, PaymentProviderType.STRIPE);
+        tx.setIdempotencyKey("individual");
+        when(transactionRepository.findByIdempotencyKey("individual")).thenReturn(Optional.of(tx));
+        assertThat(persistence.consumeIdempotentReplay("individual")).contains(tx);
+        assertThat(tx.getIdempotencyKey()).isEqualTo("individual");
+        verify(transactionRepository, never()).save(any());
+    }
+    @Test void batchRefundDoesNotCreateGenericFullSessionRefund() {
+        var tx=tx("TX-batch",TransactionStatus.COMPLETED,PaymentProviderType.STRIPE);
+        tx.setSourceType("INTERVENTION_BATCH");
+        when(transactionRepository.lockByReference(ORG_ID, "TX-batch")).thenReturn(Optional.of(tx));
+        assertThatThrownBy(()->persistence.createRefundPending(ORG_ID,"TX-batch",null)).hasMessageContaining("par allocation");
+        verify(transactionRepository,never()).save(any());
+    }
     @Nested
     @DisplayName("consumeIdempotentReplay")
     class ConsumeIdempotentReplay {
@@ -107,10 +148,11 @@ class PaymentPersistenceTest {
         }
 
         @Test
-        @DisplayName("existing FAILED → clears key, saves, returns empty (retry allowed)")
+        @DisplayName("expiration prouvée → libère la clé pour une nouvelle tentative")
         void existingFailed() {
             PaymentTransaction failed = tx("TX-FAILED", TransactionStatus.FAILED, PaymentProviderType.STRIPE);
             failed.setIdempotencyKey("K");
+            failed.setMetadata(Map.of("standaloneRetryAllowed", true));
             when(transactionRepository.findByIdempotencyKey("K")).thenReturn(Optional.of(failed));
             when(transactionRepository.save(any())).thenAnswer(i -> i.getArgument(0));
 
@@ -222,21 +264,23 @@ class PaymentPersistenceTest {
             PaymentTransaction original = tx("TX-ORIG", TransactionStatus.COMPLETED, PaymentProviderType.STRIPE);
             original.setProviderTxId("pi_orig");
             original.setAmount(BigDecimal.valueOf(200));
-            when(transactionRepository.findByTransactionRef("TX-ORIG")).thenReturn(Optional.of(original));
+            original.setProviderTxId("cs_orig");
+            when(transactionRepository.lockByReference(ORG_ID, "TX-ORIG")).thenReturn(Optional.of(original));
             ArgumentCaptor<PaymentTransaction> captor = ArgumentCaptor.forClass(PaymentTransaction.class);
             when(transactionRepository.save(captor.capture())).thenAnswer(i -> i.getArgument(0));
 
             PaymentPersistence.RefundInit init = persistence.createRefundPending(
-                    ORG_ID, "TX-ORIG", BigDecimal.valueOf(50));
+                    ORG_ID, "TX-ORIG", BigDecimal.valueOf(200));
 
             assertThat(init.providerType()).isEqualTo(PaymentProviderType.STRIPE);
-            assertThat(init.originalProviderTxId()).isEqualTo("pi_orig");
+            assertThat(init.originalProviderTxId()).isEqualTo("cs_orig");
             assertThat(init.originalAmount()).isEqualByComparingTo("200");
             assertThat(init.refundTransactionRef()).startsWith("REF-");
             PaymentTransaction saved = captor.getValue();
             assertThat(saved.getPaymentType()).isEqualTo(TransactionType.REFUND);
             assertThat(saved.getStatus()).isEqualTo(TransactionStatus.PROCESSING);
-            assertThat(saved.getAmount()).isEqualByComparingTo("50");
+            assertThat(saved.getAmount()).isEqualByComparingTo("200");
+            assertThat(saved.getMetadata()).containsEntry("originalTransactionRef", "TX-ORIG");
         }
 
         @Test
@@ -244,7 +288,8 @@ class PaymentPersistenceTest {
         void createRefundPendingNullAmount() {
             PaymentTransaction original = tx("TX-ORIG", TransactionStatus.COMPLETED, PaymentProviderType.STRIPE);
             original.setAmount(BigDecimal.valueOf(200));
-            when(transactionRepository.findByTransactionRef("TX-ORIG")).thenReturn(Optional.of(original));
+            original.setProviderTxId("cs_orig");
+            when(transactionRepository.lockByReference(ORG_ID, "TX-ORIG")).thenReturn(Optional.of(original));
             ArgumentCaptor<PaymentTransaction> captor = ArgumentCaptor.forClass(PaymentTransaction.class);
             when(transactionRepository.save(captor.capture())).thenAnswer(i -> i.getArgument(0));
 
@@ -256,7 +301,7 @@ class PaymentPersistenceTest {
         @Test
         @DisplayName("createRefundPending → throws when tx not found")
         void createRefundNotFound() {
-            when(transactionRepository.findByTransactionRef("NOPE")).thenReturn(Optional.empty());
+            when(transactionRepository.lockByReference(ORG_ID, "NOPE")).thenReturn(Optional.empty());
             assertThatThrownBy(() -> persistence.createRefundPending(ORG_ID, "NOPE", null))
                     .isInstanceOf(RuntimeException.class).hasMessageContaining("Transaction not found");
         }
@@ -266,7 +311,7 @@ class PaymentPersistenceTest {
         void createRefundWrongOrg() {
             PaymentTransaction other = tx("TX-OTHER", TransactionStatus.COMPLETED, PaymentProviderType.STRIPE);
             other.setOrganizationId(999L);
-            when(transactionRepository.findByTransactionRef("TX-OTHER")).thenReturn(Optional.of(other));
+            when(transactionRepository.lockByReference(ORG_ID, "TX-OTHER")).thenReturn(Optional.of(other));
             assertThatThrownBy(() -> persistence.createRefundPending(ORG_ID, "TX-OTHER", null))
                     .isInstanceOf(RuntimeException.class).hasMessageContaining("Transaction not found");
         }
@@ -276,7 +321,8 @@ class PaymentPersistenceTest {
         void finalizeRefundSuccess() {
             PaymentTransaction refund = tx("REF-1", TransactionStatus.PROCESSING, PaymentProviderType.STRIPE);
             refund.setPaymentType(TransactionType.REFUND);
-            when(transactionRepository.findByTransactionRef("REF-1")).thenReturn(Optional.of(refund));
+            refund.setPaymentType(TransactionType.REFUND);
+            when(transactionRepository.lockByReference(ORG_ID, "REF-1")).thenReturn(Optional.of(refund));
             when(transactionRepository.save(any())).thenAnswer(i -> i.getArgument(0));
 
             PaymentTransaction result = persistence.finalizeRefund("REF-1", PaymentResult.success("rf_1", null), ORG_ID);
@@ -290,22 +336,26 @@ class PaymentPersistenceTest {
         @DisplayName("finalizeRefund failure → FAILED + outbox")
         void finalizeRefundFailure() {
             PaymentTransaction refund = tx("REF-1", TransactionStatus.PROCESSING, PaymentProviderType.STRIPE);
-            when(transactionRepository.findByTransactionRef("REF-1")).thenReturn(Optional.of(refund));
+            refund.setPaymentType(TransactionType.REFUND);
+            when(transactionRepository.lockByReference(ORG_ID, "REF-1")).thenReturn(Optional.of(refund));
             when(transactionRepository.save(any())).thenAnswer(i -> i.getArgument(0));
 
             PaymentTransaction result = persistence.finalizeRefund("REF-1", PaymentResult.failure("Already refunded"), ORG_ID);
 
             assertThat(result.getStatus()).isEqualTo(TransactionStatus.FAILED);
-            verify(outboxPublisher).publish(any(), any(), eq("PAYMENT_REFUNDED"), any(), any(), any(), any());
+            verify(outboxPublisher, never()).publish(any(), any(), any(), any(), any(), any(), any());
         }
 
         @Test
         @DisplayName("markRefundFailed → FAILED, no publish")
         void markRefundFailed() {
+
             PaymentTransaction refund = tx("REF-1", TransactionStatus.PROCESSING, PaymentProviderType.STRIPE);
-            when(transactionRepository.findByTransactionRef("REF-1")).thenReturn(Optional.of(refund));
+            refund.setPaymentType(TransactionType.REFUND);
+            when(transactionRepository.lockByReference(ORG_ID, "REF-1")).thenReturn(Optional.of(refund));
             when(transactionRepository.save(any())).thenAnswer(i -> i.getArgument(0));
 
+            when(transactionRepository.findByTransactionRef("REF-1")).thenReturn(Optional.of(refund));
             PaymentTransaction result = persistence.markRefundFailed("REF-1", "boom");
 
             assertThat(result.getStatus()).isEqualTo(TransactionStatus.FAILED);
@@ -424,7 +474,7 @@ class PaymentPersistenceTest {
         void jsonErrorSwallowed() throws JsonProcessingException {
             ObjectMapper failingMapper = org.mockito.Mockito.mock(ObjectMapper.class);
             when(failingMapper.writeValueAsString(any())).thenThrow(new JsonProcessingException("boom") {});
-            PaymentPersistence failing = new PaymentPersistence(transactionRepository, outboxPublisher, failingMapper, depositReconciler, interventionPayments);
+            PaymentPersistence failing = new PaymentPersistence(transactionRepository, outboxPublisher, failingMapper, depositReconciler, interventionPayments, mock(InvoicePaymentCoordination.class), org.mockito.Mockito.mock(com.clenzy.service.payout.BaitlyTransferRecoveryStore.class));
 
             PaymentTransaction t = tx("TX-1", TransactionStatus.COMPLETED, PaymentProviderType.STRIPE);
             when(transactionRepository.markCompleted("TX-1")).thenReturn(1);

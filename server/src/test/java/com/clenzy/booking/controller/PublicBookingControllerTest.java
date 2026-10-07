@@ -53,6 +53,7 @@ class PublicBookingControllerTest {
     @Mock private PublicPropertyPhotoService photoService;
     @Mock private com.clenzy.booking.security.BookingPublicRateLimiter rateLimiter;
     @Mock private HttpServletRequest request;
+    @Mock private com.clenzy.booking.service.PublicCancellationService cancellations;
 
     private PublicBookingController controller;
     private OrgContext ctx;
@@ -66,7 +67,7 @@ class PublicBookingControllerTest {
             displayCurrencyService,
             org.mockito.Mockito.mock(com.clenzy.booking.service.PublicBookingCalendarService.class),
             org.mockito.Mockito.mock(com.clenzy.service.LeadCaptureService.class),
-            org.mockito.Mockito.mock(com.clenzy.booking.service.PublicCancellationService.class),
+            cancellations,
             org.mockito.Mockito.mock(com.clenzy.booking.service.PublicReviewService.class),
             org.mockito.Mockito.mock(com.clenzy.booking.service.BookingBalanceService.class),
             org.mockito.Mockito.mock(com.clenzy.booking.service.BookingGuestAuthService.class),
@@ -94,6 +95,24 @@ class PublicBookingControllerTest {
 
         ResponseEntity<BookingEngineConfigDto> response = controller.getConfig("slug", request);
         assertThat(response.getStatusCode().value()).isEqualTo(200);
+    }
+
+    @Test void refundStatusUsesResolvedOrgAndGuestCredentialsWithoutCancellingAgain() {
+        when(rateLimiter.tryAcquirePreview(request)).thenReturn(true);
+        when(bookingService.resolveOrg("widget")).thenReturn(ctx);
+        var result = new com.clenzy.booking.dto.CancellationResultDto("already_cancelled", BigDecimal.TEN,
+                "EUR", "FLEXIBLE", 100, "PENDING", BigDecimal.ZERO);
+        when(cancellations.status(1L, "ABC123", "guest@example.test")).thenReturn(result);
+        var response = controller.cancellationStatus("widget", "ABC123",
+                new com.clenzy.booking.dto.BookingCancellationRequest("guest@example.test", null), request);
+        assertThat(response.getBody()).isSameAs(result);
+        org.mockito.Mockito.verify(cancellations, org.mockito.Mockito.never()).cancel(any(), any(), any(), any());
+    }
+    @Test void refundStatusIsRateLimitedBeforeLookup() {
+        var response = controller.cancellationStatus("widget", "ABC123",
+                new com.clenzy.booking.dto.BookingCancellationRequest("guest@example.test", null), request);
+        assertThat(response.getStatusCode().value()).isEqualTo(429);
+        org.mockito.Mockito.verifyNoInteractions(cancellations, bookingService);
     }
 
     @Test

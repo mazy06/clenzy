@@ -29,7 +29,10 @@ public record OwnerPayoutDto(
     String failureReason,
     int retryCount,
     String notes,
-    Instant createdAt
+    Instant createdAt,
+    String currency,
+    BigDecimal otaFees,
+    int fundingVersion
 ) {
     public static OwnerPayoutDto from(OwnerPayout p) {
         return from(p, null);
@@ -42,7 +45,8 @@ public record OwnerPayoutDto(
             p.getExpenses(), p.getNetAmount(), p.getStatus(), p.getGenerationType(),
             p.getPayoutMethod(), p.getStripeTransferId(),
             p.getPaymentReference(), p.getPaidAt(), p.getFailureReason(),
-            p.getRetryCount(), p.getNotes(), p.getCreatedAt()
+            p.getRetryCount(), p.getNotes(), p.getCreatedAt(),
+            p.getCurrency(), p.getOtaFees(), p.getFundingVersion()
         );
     }
 }

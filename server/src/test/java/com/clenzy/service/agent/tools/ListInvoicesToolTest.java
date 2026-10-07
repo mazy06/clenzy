@@ -46,7 +46,7 @@ class ListInvoicesToolTest {
                 42L, null, null, null, null,
                 status, InvoiceType.GUEST,
                 "Mentions", "card", null,
-                List.of(), null);
+                List.of(), null, null, null);
     }
 
     @Test

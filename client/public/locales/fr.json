@@ -5243,6 +5243,7 @@
       "validateInspection": "Valider l'inspection",
       "roomValidation": "Validation des pièces",
       "roomValidationDesc": "Cliquez sur chaque pièce pour la marquer comme nettoyée.",
+      "savingRoom": "Enregistrement de la pièce…",
       "afterPhotosTitle": "Photos après intervention",
       "afterPhotosDesc": "Prenez des photos des pièces après l'intervention pour finaliser.",
       "completing": "Finalisation...",
@@ -5286,6 +5287,8 @@
       "completing": "Erreur lors de la finalisation de l'intervention",
       "reopening": "Erreur lors de la réouverture de l'intervention",
       "updatingProgress": "Erreur lors de la mise à jour de la progression",
+      "savingRooms": "La validation de la pièce n’a pas été enregistrée. Réessayez.",
+      "savingSteps": "Les étapes n’ont pas été enregistrées. Réessayez avant de terminer.",
       "addingPhotos": "Erreur lors de l'ajout des photos",
       "deletingPhoto": "Erreur lors de la suppression de la photo",
       "startSuccess": "Intervention démarrée ! Un bon d'intervention a été généré et envoyé par email.",
@@ -6652,6 +6655,8 @@
         "description": "Synchronisez vos contacts (waitlist, newsletter, leads devis) vers votre plateforme d'emailing pour vos campagnes."
       },
       "accounting": {
+        "otaFees": "Frais OTA",
+        "approveError": "Impossible d’approuver ce reversement.",
         "title": "Comptabilité",
         "description": "Synchronisez factures et dépenses vers votre logiciel comptable.",
         "pennylane": "Compta française · OAuth2 · sync factures",
@@ -7010,6 +7015,7 @@
       "language": "Langue"
     },
     "workflow": {
+      "methodNotRecorded": "Méthode non renseignée",
       "title": "Workflow",
       "description": "Règles d'orchestration des interventions et des prix",
       "cancellationDeadline": "Délai d'annulation",
@@ -8605,6 +8611,7 @@
       "pending": "En attente",
       "failed": "Échoué",
       "refunded": "Remboursé",
+      "partiallyRefunded": "Partiellement remboursé",
       "date": "Date",
       "intervention": "Intervention",
       "property": "Propriété",
@@ -8627,8 +8634,13 @@
       "payment": "paiement"
     },
     "sendLinkByEmail": "Envoyer le lien de paiement par email",
+    "refundAmount": "Montant à rembourser",
+    "refundableBalance": "Solde remboursable",
+    "refundFullOnly": "Cette prestation peut uniquement être remboursée en totalité depuis cet écran.",
+    "refundAmountInvalid": "Saisissez un montant positif, avec deux décimales maximum, inférieur ou égal au solde remboursable.",
     "confirmRefund": "Confirmer le remboursement",
     "refundIrreversible": "Cette action est irréversible. Le montant sera remboursé via Stripe.",
+    "refundSynchronizing": "Remboursement confirmé par Stripe. Mise à jour du paiement et du journal Baitly en cours.",
     "customerEmail": "Email du client",
     "noEmailHint": "Aucune adresse email n'est renseignée pour cette réservation. Saisissez l'email du client pour envoyer le lien de paiement.",
     "sessionCreateFailed": "Impossible de créer la session de paiement.",
@@ -8646,7 +8658,23 @@
       "refund": "Erreur lors du remboursement"
     },
     "payRequest": "Payer cette demande",
-    "payIntervention": "Payer cette intervention"
+    "payIntervention": "Payer cette intervention",
+    "collection": {
+      "verify": "Paiement à vérifier",
+      "partial": "Acompte payé",
+      "notRequired": "Paiement non requis",
+      "paidToOta": "Payé à l’OTA",
+      "toCollect": "À encaisser",
+      "settlementUnverified": "Versement OTA au bénéficiaire à vérifier",
+      "summary": "Paiements externes et à vérifier",
+      "summaryHint": "Ces montants ne constituent pas un solde Stripe disponible."
+    },
+    "verification": {
+      "action": "Vérifier l’encaissement chez Stripe",
+      "confirmed": "Encaissement vérifié, journal actualisé.",
+      "pending": "Statut vérifié. Aucun nouvel encaissement confirmé.",
+      "unavailable": "Preuve Stripe indisponible ou incompatible. L’historique est conservé."
+    }
   },
   "aiAutonomy": {
     "loadError": "Impossible de charger la configuration d'autonomie.",
@@ -9833,7 +9861,14 @@
     "noTemplateWarning": "Aucun modèle FACTURE actif configuré. Les PDF ne seront pas générés automatiquement lors des paiements. Configurez un modèle dans les paramètres.",
     "pdfLoadError": "Erreur lors du chargement du PDF",
     "pdfNotSupported": "Votre navigateur ne supporte pas la visualisation PDF.",
-    "pdfPreview": "Aperçu du document"
+    "pdfPreview": "Aperçu du document",
+    "creditNote": {
+      "original": "Facture d’origine",
+      "downloadOriginal": "Télécharger la facture d’origine",
+      "linked": "Avoir associé",
+      "download": "Télécharger l’avoir"
+    },
+    "downloadError": "Le PDF n’a pas pu être téléchargé. Réessayez."
   },
   "notifications": {
     "title": "Notifications",
@@ -11004,6 +11039,19 @@
     }
   },
   "accounting": {
+    "generateFlow": {
+      "new": "Nouveau reversement",
+      "title": "Calculer un reversement",
+      "hint": "Seuls les séjours terminés et encaissés par Baitly sont retenus. Le montant sera à vérifier puis à approuver avant tout transfert.",
+      "loadError": "Impossible de charger les propriétaires.",
+      "empty": "Associez un propriétaire à un logement pour préparer son premier reversement.",
+      "chooseOwner": "Choisir un propriétaire",
+      "from": "Début de période",
+      "to": "Fin de période",
+      "invalidRange": "La fin de période doit être égale ou postérieure au début.",
+      "error": "Impossible de calculer ce reversement.",
+      "calculate": "Calculer le montant"
+    },
     "title": "Comptabilité",
     "subtitle": "Payouts propriétaires, commissions, dépenses et exports comptables",
     "payouts": {
@@ -11013,9 +11061,9 @@
         "step1Title": "Générer",
         "step1Desc": "Sélectionnez un propriétaire et une période pour calculer le reversement.",
         "step2Title": "Vérifier",
-        "step2Desc": "Le système calcule : revenus − commission − dépenses = montant net.",
-        "step3Title": "Valider & Payer",
-        "step3Desc": "Approuvez le payout puis marquez-le comme payé après le virement.",
+        "step2Desc": "Séjours terminés avec encaissements confirmés : revenus − frais OTA − commission − dépenses = montant net.",
+        "step3Title": "Approuver et verser",
+        "step3Desc": "Approuvez le montant, lancez le versement via le PSP puis suivez sa confirmation automatique.",
         "dismiss": "Ne plus afficher"
       },
       "emptyTitle": "Aucun payout trouvé",
@@ -11091,8 +11139,8 @@
     },
     "housekeeperPayouts": {
       "help": {
-        "title": "Versements prestataires (ménage)",
-        "description": "Versements Stripe directs aux prestataires (ménage), déclenchés automatiquement à la validation de mission. Distincts des reversements propriétaires et de la saisie de dépenses.",
+        "title": "Versements prestataires",
+        "description": "Versements aux prestataires de tous les métiers, personnes ou organisations. Chaque mission doit être terminée, encaissée et justifiée avant son versement.",
         "dismiss": "Ne plus afficher"
       },
       "col": {
@@ -11118,12 +11166,13 @@
       },
       "retry": "Relancer le versement",
       "retryTitle": "Relancer le versement",
+      "amountChanged": "Le montant a changé. Vérifiez le nouvel aperçu avant de confirmer.",
       "retryConfirm": "Relancer le versement de {{amount}} à {{provider}} ?",
       "retryConfirmBtn": "Relancer",
       "retrySuccess": "Relance du versement effectuée",
       "retryError": "Conditions du versement toujours non réunies (preuve / onboarding).",
       "empty": "Aucun versement prestataire",
-      "emptyDescription": "Les versements apparaîtront ici automatiquement à la validation des missions de ménage.",
+      "emptyDescription": "Les versements des missions apparaîtront ici une fois leur bénéficiaire désigné.",
       "error": "Erreur lors du chargement des versements prestataires"
     },
     "expenses": {
@@ -11251,6 +11300,69 @@
       "OPEN_BANKING": "Open Banking",
       "SEPA_TRANSFER": "Virement SEPA",
       "MANUAL": "Manuel"
+    },
+    "workflow": {
+      "guide": "Calcul du montant → Approbation → Versement via le PSP. Approuver ne déclenche aucun paiement.",
+      "methodNotRecorded": "Méthode non renseignée",
+      "approvedMessage": "Montant approuvé. Aucun versement n’a été lancé.",
+      "recordedStatus": "Payé (historique)",
+      "paidFilter": "Transféré / payé",
+      "checkBlocker": "Comprendre le blocage",
+      "hints": {
+        "legacy": "Ancienne méthode",
+        "funding": "Historique à vérifier",
+        "amount": "Aucun montant à verser",
+        "beneficiary": "Compte PSP à compléter",
+        "retryLimit": "Relances épuisées",
+        "tracking": "Transfert existant à vérifier",
+        "pending": "Montant à valider",
+        "approved": "Non versé",
+        "processing": "Confirmation PSP attendue",
+        "transferred": "Virement bancaire à suivre",
+        "recorded": "Paiement déclaré dans Baitly",
+        "failed": "Consulter le motif",
+        "cancelled": "Aucun envoi à effectuer"
+      },
+      "details": {
+        "legacy": "Ce reversement utilise une ancienne méthode de paiement. Son statut est conservé pour consultation ; il ne peut pas être envoyé ou relancé via le PSP.",
+        "funding": "Ce reversement historique n’est pas relié à des encaissements confirmés dans Baitly. Son statut d’origine est conservé, mais il ne permet aucun envoi au PSP. Les justificatifs doivent être rapprochés avant de poursuivre.",
+        "amount": "Le montant net doit être supérieur à zéro pour approuver ou lancer un versement. Consultez le calcul ci-dessous.",
+        "beneficiary": "Le montant est validé, mais le compte de versement du bénéficiaire n’est pas prêt. Le bénéficiaire doit le connecter ou le compléter dans Mes versements.",
+        "retryLimit": "La limite de relances est atteinte. Consultez le motif d’échec et le suivi PSP avant toute nouvelle tentative.",
+        "tracking": "Une référence de transfert existe déjà. Vérifiez son résultat dans le suivi avant toute nouvelle opération pour éviter un double versement.",
+        "pending": "Vérifiez le calcul, puis approuvez le montant. Cette validation ne transfère aucun fonds. Les encaissements sont contrôlés à nouveau avant l’envoi.",
+        "approved": "Le montant a été approuvé, mais aucun versement n’a été lancé. L’action « Verser via Stripe » lance le transfert après les contrôles du serveur.",
+        "processing": "La demande de versement est en cours de traitement. Attendez la confirmation du PSP et consultez le suivi ; ne créez pas un second versement.",
+        "transferred": "Le transfert au compte PSP du bénéficiaire est confirmé. Cela ne confirme pas l’arrivée des fonds sur son compte bancaire : consultez le suivi des versements.",
+        "recorded": "Ce paiement a été déclaré dans l’historique Baitly. Ce statut ne constitue pas une confirmation de transfert par le PSP.",
+        "failed": "Le versement n’est pas confirmé. Consultez le motif d’échec, corrigez sa cause puis utilisez la relance proposée lorsqu’elle est disponible.",
+        "cancelled": "Ce reversement est annulé. Aucun envoi ne peut être lancé depuis cette ligne."
+      }
+    },
+    "psp": {
+      "failed": "Versement non effectué. Consultez le motif avant de réessayer.",
+      "transferred": "Transfert confirmé par le PSP. Le versement bancaire se suit séparément.",
+      "processing": "Demande transmise au PSP. La confirmation est en cours.",
+      "legacy": "Ancienne méthode · consultation",
+      "configure": "Configurer le PSP",
+      "retry": "Réessayer le versement",
+      "send": "Verser via Stripe",
+      "track": "Suivre",
+      "bankHint": "Le statut du transfert PSP ne confirme pas à lui seul le crédit sur le compte bancaire. Consultez le suivi des versements.",
+      "settingsHint": "Les versements passent par le PSP du bénéficiaire. La connexion et les coordonnées bancaires se gèrent sur son parcours sécurisé.",
+      "availability": "Stripe Connect est proposé pour la France. Les autres pays seront ouverts avec leurs PSP dédiés.",
+      "noBeneficiaries": "Aucun compte de versement connecté. Les bénéficiaires peuvent le configurer dans Mes versements.",
+      "toConnect": "À connecter",
+      "ready": "Prêt pour les versements",
+      "toComplete": "Configuration à terminer",
+      "activate": "Utiliser Stripe",
+      "providerManaged": "Statut confirmé par le PSP",
+      "beneficiarySetup": "Le bénéficiaire doit connecter ou compléter son compte dans Mes versements.",
+      "myAccount": "Mon compte de versement",
+      "sentState": "Transféré au PSP",
+      "fundingRequired": "Encaissements à rapprocher avant versement",
+      "checkFunding": "Vérifier les encaissements",
+      "fundingHint": "Ce reversement historique n’est pas relié à des encaissements confirmés dans Baitly. Vérifiez les paiements et leur rapprochement avant de lancer le versement."
     }
   },
   "onboarding": {
@@ -11449,9 +11561,9 @@
     "payment": {
       "beneficiary": "Qui recevra les versements ?",
       "PERSONAL": "Mon activité",
-      "ORGANIZATION": "Ma conciergerie",
+      "ORGANIZATION": "Mon organisation",
       "personalHint": "Le compte sera rattaché à votre activité de propriétaire ou de prestataire.",
-      "organizationHint": "Le compte appartiendra à la conciergerie, même si son administrateur change.",
+      "organizationHint": "Le compte appartiendra à votre organisation (conciergerie ou entreprise de services), même si son administrateur change.",
       "country": "Pays d’immatriculation du bénéficiaire",
       "chooseCountry": "Choisir un pays",
       "countries": {
@@ -11473,7 +11585,7 @@
       "notConfigured": "La connexion Stripe sera disponible après l’activation du service par Baitly.",
       "oauthPending": "La connexion d’un compte existant sera disponible après l’activation de ce service par Baitly.",
       "error": "La connexion n’a pas abouti. Réessayez ou revenez plus tard.",
-      "pending": "Le compte n’est pas encore prêt pour les reversements. Complétez les informations demandées par Stripe, puis vérifiez à nouveau.",
+      "pending": "Stripe n’a pas encore confirmé l’activation des reversements. Si vous avez terminé le formulaire, la validation peut prendre un peu de temps. Vous pouvez poursuivre dans Baitly et vérifier le statut plus tard.",
       "regionalTitle": "Les versements dans votre pays",
       "regionalHint": "La connexion depuis Baitly est en préparation. Vous pouvez consulter les solutions locales envisagées ci-dessous.",
       "regionalPending": "Ces fournisseurs ne sont pas encore connectés à Baitly. Un compte créé sur leur site ne valide pas cette étape.",
@@ -11484,7 +11596,7 @@
       "checking": "Vérification de votre compte",
       "returnReady": "Votre compte de versement est prêt",
       "returnReadyHint": "Stripe a confirmé l’activation des transferts et versements bancaires. Vous pouvez reprendre le guide.",
-      "returnPending": "Encore une étape chez Stripe",
+      "returnPending": "Activation du compte en attente",
       "returnError": "La connexion reste à vérifier",
       "returnErrorHint": "L’autorisation a été annulée, a expiré ou n’a pas pu être vérifiée. Reprenez la connexion depuis le guide.",
       "backToGuide": "Revenir au guide de démarrage",
@@ -11702,13 +11814,13 @@
         "general": "Identité, organisation, préférences régionales et affichage.",
         "notifications": "Configurez vos canaux (in-app, email, push) et la granularité par type d'événement.",
         "messaging": "Automatisations de messages voyageurs (check-in, bienvenue, push tarification) et templates.",
-        "myPayout": "Paramètres de vos virements bancaires : IBAN, fréquence, seuil minimum.",
+        "myPayout": "Connectez votre compte de versement auprès du PSP disponible dans votre pays.",
         "ai": "Connectez votre clé OpenAI/Anthropic ou utilisez le quota partagé. Modèles assignés par feature.",
         "fiscal": "Profil fiscal de votre organisation : régime TVA, mentions légales, conformité NF 525 / ZATCA.",
         "organization": "Informations légales, branding, équipe et permissions de votre organisation.",
         "payment": "Fournisseurs de paiement (Stripe, PayPal, PayTabs, CMI…) et règles de répartition.",
         "integrations": "Connectez vos outils tiers : signature électronique, comptabilité, KYC, conformité légale, channels OTA.",
-        "payouts": "Calendrier et règles de calcul des reversements aux propriétaires.",
+        "payouts": "Calendrier de préparation et comptes PSP des bénéficiaires.",
         "amenitiesOta": "Mappez les équipements détectés sur vos listings OTA (Airbnb, Booking, etc.) vers le référentiel Baitly. Créez vos propres commodités si rien ne correspond.",
         "myRates": "Votre taux horaire, vos forfaits par logement et votre score qualité.",
         "myPayoutsPro": "Compte de versement Stripe et historique de vos versements de missions.",
@@ -11809,9 +11921,9 @@
         "payments": "Historique des paiements voyageurs : statut, mode de règlement, remboursements et réconciliation.",
         "invoices": "Factures émises (séjours, frais, services) et avoirs : édition PDF, envoi et suivi des règlements.",
         "wallets": "Solde des portefeuilles par propriétaire : mouvements, blocages, retraits et historique détaillé.",
-        "payouts": "Calendrier des reversements aux propriétaires : calculs SEPA, statut, exports bancaires.",
+        "payouts": "Calculez, approuvez et suivez les reversements propriétaires via leur PSP.",
         "expenses": "Suivi des dépenses opérationnelles par catégorie et par bien : factures fournisseurs, refacturation.",
-        "housekeeperPayouts": "Versements Stripe directs aux prestataires (ménage), déclenchés à la validation de mission — distincts des reversements propriétaires.",
+        "housekeeperPayouts": "Versements aux prestataires de tous métiers, individuels ou en société, après validation de leur mission.",
         "reportsExports": "Rapport fiscal (TVA, taxes, NF 525) et exports comptables formatés pour vos outils tiers."
       }
     },
@@ -19284,5 +19396,621 @@
       "backMapping": "Revoir les correspondances",
       "completedNotice": "Votre import est terminé. Vous pouvez retrouver vos données dans Baitly ou télécharger vos fichiers sources."
     }
+  },
+  "paymentDetail": {
+    "refundBreakdown": "Suivi du remboursement",
+    "refundedAmount": "Montant remboursé",
+    "retainedAmount": "Montant conservé",
+    "refundReview": "Remboursement à rapprocher. Les nouvelles demandes sont bloquées pour éviter un double remboursement. Vérifiez la preuve Stripe et les documents liés.",
+    "partialRefundHelp": "Le montant déjà remboursé est déduit du solde disponible. Les factures et avoirs liés sont accessibles dans Documents.",
+    "property": "Logement",
+    "team": "Équipe",
+    "assignee": "Intervenant",
+    "settlement": "Règlement",
+    "amountDue": "Montant à régler",
+    "pay": "Payer",
+    "resume": "Reprendre le paiement",
+    "sendLink": "Envoyer le lien",
+    "securePayment": "Paiement sécurisé",
+    "totalAndBalance": "Total de la prestation : {{amount}}. Acompte déjà déduit du solde à régler.",
+    "reference": "Dossier #{{id}}",
+    "openRecord": "Ouvrir la fiche complète",
+    "refund": "Rembourser",
+    "intervention": "Détail de l’intervention",
+    "loading": "Chargement de l’intervention",
+    "loadError": "Le détail de l’intervention n’a pas pu être chargé.",
+    "scheduled": "Date prévue",
+    "duration": "Durée estimée",
+    "actualDuration": "Durée réelle",
+    "service": "Prestation",
+    "priority": "Priorité",
+    "requestor": "Demandeur",
+    "notProvided": "Non renseigné",
+    "completed": "Terminée le",
+    "instructions": "Description et consignes",
+    "services": "Prestations prévues",
+    "notes": "Notes de l’intervention",
+    "before": "Photos avant intervention",
+    "after": "Photos après intervention",
+    "reservation": "Réservation",
+    "request": "Demande de service",
+    "stay": "Séjour",
+    "address": "Adresse et itinéraire",
+    "documents": "Devis et factures",
+    "invoice": "Facture",
+    "quote": "Devis",
+    "documentsUnavailable": "Certaines pièces ne sont pas accessibles pour ce dossier.",
+    "noDocuments": "Aucun devis ou facture disponible pour cette intervention.",
+    "restockExpenses": "Réassorts et frais de l’intervention",
+    "expensesUnavailable": "Les dépenses n’ont pas pu être chargées.",
+    "noRestock": "Aucun réassort ni dépense documenté pour cette intervention.",
+    "restockNote": "Dépenses rattachées à cette intervention. Les quantités livrées ne sont pas renseignées et ces frais ne sont pas ajoutés au montant à régler ci-dessus.",
+    "receiptFor": "Voir le justificatif : {{name}}",
+    "receipt": "Justificatif",
+    "documentError": "Ce document n’a pas pu être ouvert.",
+    "openDocument": "Ouvrir le document dans un onglet",
+    "started": "Début",
+    "ended": "Fin",
+    "noPhotos": "Aucune photo enregistrée.",
+    "tabs": {
+      "overview": "Aperçu",
+      "photos": "Photos",
+      "documents": "Documents",
+      "restock": "Réassorts"
+    },
+    "disputeHold": "Litige bancaire : les fonds de ce paiement sont exclus des reversements. Vérifiez son issue et les mouvements Stripe avant toute nouvelle action."
+  },
+  "myTransfers": {
+    "title": "Mes versements",
+    "intro": "Retrouvez les transferts qui vous sont destinés et leur suivi bancaire.",
+    "accessError": "Impossible de vérifier vos droits sur le compte de versement.",
+    "organizationDenied": "Les versements de cette organisation sont réservés à ses administrateurs autorisés.",
+    "personalOnly": "Voir mes versements personnels",
+    "connection": "Compte de versement",
+    "configure": "Gérer mon compte de versement",
+    "closeSetup": "Fermer les réglages",
+    "statusError": "Le statut du compte est indisponible. Vous pouvez réessayer depuis les réglages.",
+    "accountStates": {
+      "unknown": "Vérification du compte en cours.",
+      "missing": "Connectez un compte pour recevoir vos prochains versements.",
+      "pending": "Votre compte est connecté ; sa vérification reste à terminer.",
+      "ready": "Votre compte est prêt à recevoir des versements.",
+      "revoked": "L’autorisation a été retirée. Reconnectez votre compte.",
+      "unavailable": "Statut du compte indisponible."
+    },
+    "personalHistory": "Ces transferts vous sont destinés personnellement, y compris ceux émis par d’autres organisations.",
+    "organizationHistory": "Ces transferts sont destinés à votre organisation, indépendamment de ceux reçus personnellement par ses membres.",
+    "history": "Historique du transfert",
+    "loadError": "Impossible de charger vos versements.",
+    "empty": "Aucun transfert enregistré",
+    "emptyHint": "Les transferts apparaîtront ici dès leur mise en traitement. Les missions et reversements qui attendent encore une validation restent dans leur écran habituel.",
+    "select": "Suivez un versement",
+    "selectHint": "Sélectionnez un transfert pour consulter ses étapes et les informations bancaires disponibles.",
+    "transferStage": "Transfert vers votre compte de versement",
+    "states": {
+      "SUBMITTING": "En cours de traitement",
+      "TRANSFERRED": "Transféré au compte de versement",
+      "RECONCILIATION_REQUIRED": "Vérification par la plateforme"
+    },
+    "advice": {
+      "SUBMITTING": "Le transfert est en cours. La plateforme attend la confirmation du prestataire de paiement.",
+      "TRANSFERRED": "Le transfert est confirmé. Le versement vers votre banque est une étape distincte, suivie ci-dessous.",
+      "RECONCILIATION_REQUIRED": "La plateforme doit vérifier ce transfert. Aucune réception bancaire n’est présumée ; il ne faut pas demander un second paiement."
+    },
+    "bankFailed": "Vérifiez les coordonnées de votre compte de versement avec votre PSP et contactez la plateforme pour ce dossier."
+  },
+  "dashboardKpis": {
+    "close": "Fermer les détails",
+    "confidence": {
+      "label": "Confiance de lecture",
+      "indicative": "Indicative",
+      "insufficient": "Données insuffisantes",
+      "crossCheck": "À croiser avec le RevPAN"
+    },
+    "title": "Votre activité en un regard",
+    "period": "{{days}} derniers jours",
+    "properties_one": "{{formatted}} logement actif",
+    "properties_other": "{{formatted}} logements actifs",
+    "instruction": "Sélectionnez un indicateur pour voir le conseil",
+    "recommendation": "Conseil",
+    "thresholds": "Comprendre les niveaux",
+    "comparison": "Évolution face à la période précédente de même durée",
+    "points": "pts",
+    "nights": "{{sold}} nuits vendues / {{available}} disponibles",
+    "reviews_one": "{{formatted}} avis sur la période",
+    "reviews_other": "{{formatted}} avis sur la période",
+    "labels": {
+      "occupancy": "Occupation",
+      "revenue": "Revenus",
+      "adr": "Prix moyen / nuit",
+      "revpan": "Revenu / nuit disponible",
+      "bookings": "Réservations",
+      "rating": "Note voyageurs"
+    },
+    "hints": {
+      "occupancy": "Nuits vendues sur les nuits disponibles",
+      "revenue": "Hébergement, hors frais et taxes",
+      "adr": "ADR · par nuit vendue",
+      "revpan": "RevPAN · tous logements disponibles",
+      "bookings": "Séjours débutant sur la période",
+      "rating": "Avis publics sur la période"
+    },
+    "levels": {
+      "excellent": "Excellent",
+      "good": "Bon",
+      "watch": "À surveiller",
+      "alarming": "Alarmant",
+      "critical": "Catastrophique",
+      "unrated": "Non évalué"
+    },
+    "basis": {
+      "occupancy": "Lecture du taux d’occupation sur la période, après exclusion des nuits fermées non vendues.",
+      "rating": "Lecture de la note sur 5, à partir de 5 avis publics sur la période.",
+      "trend": "Lecture de la variation en % face à la période précédente de même durée. Le niveau évalue la tendance, pas le montant absolu."
+    },
+    "caveat": "Repères Baitly indicatifs, pas des moyennes de marché. La saison, la ville, les blocages et les changements de portefeuille peuvent modifier leur interprétation.",
+    "sampleRule": "Pas de classement sans référence positive ; réservations : au moins 5 sur la période précédente. Un ADR en hausse reste à surveiller si le RevPAN baisse ou n’est pas comparable.",
+    "reasons": {
+      "noReviews": "Aucun avis exploitable sur cette période. Sollicitez les voyageurs après leur départ pour commencer à mesurer leur satisfaction.",
+      "noData": "Il manque des données exploitables pour évaluer ce niveau. Vérifiez les logements actifs, les nuits ouvertes et la synchronisation des données.",
+      "noBaseline": "Aucune référence positive comparable n’est disponible. Vérifiez l’historique importé ; un démarrage à zéro ne permet pas de conclure à une forte progression.",
+      "fewReviews": "La note repose sur moins de 5 avis. Lisez ces retours et sollicitez les voyageurs après leur séjour avant de tirer une tendance.",
+      "fewBookings": "La période précédente compte moins de 5 réservations. Comparez une période plus longue avant de conclure à une hausse ou une baisse significative.",
+      "priceBalance": "Le prix moyen se maintient ou augmente, mais le revenu par nuit disponible ne confirme pas cette tendance. Vérifiez l’occupation et les nuits invendues avant de relever les tarifs."
+    },
+    "advice": {
+      "occupancy": {
+        "excellent": "Le remplissage est élevé. Préservez la qualité d’accueil et comparez l’ADR au RevPAN pour identifier les dates où vos tarifs peuvent être ajustés.",
+        "good": "Le remplissage est solide. Repérez les trous entre deux séjours et vérifiez les durées minimales pour mieux utiliser les nuits ouvertes.",
+        "watch": "Le remplissage mérite un suivi. Comparez les logements et les canaux, puis vérifiez la visibilité des dates encore disponibles.",
+        "alarming": "Une part importante des nuits ouvertes reste invendue. Contrôlez les canaux, les restrictions de séjour et les tarifs des dates proches.",
+        "critical": "Très peu de nuits ouvertes sont vendues. Vérifiez d’abord les annonces et la synchronisation, puis examinez chaque logement avant d’adapter vos offres."
+      },
+      "revenue": {
+        "excellent": "Les revenus progressent nettement. Identifiez les logements et canaux qui contribuent à cette hausse, puis vérifiez l’évolution des coûts.",
+        "good": "Les revenus se maintiennent ou progressent. Comparez l’occupation et le prix moyen pour comprendre les leviers de cette stabilité.",
+        "watch": "Les revenus reculent modérément. Comparez les nuits vendues et le prix moyen, en tenant compte de la saison et du portefeuille.",
+        "alarming": "Le recul des revenus est marqué. Repérez les logements les plus touchés et vérifiez les réservations, annulations et tarifs concernés.",
+        "critical": "Les revenus chutent fortement. Vérifiez d’abord la qualité des données et les connexions, puis priorisez les logements qui expliquent la baisse."
+      },
+      "adr": {
+        "excellent": "Le prix moyen progresse avec un RevPAN stable ou en hausse. Vérifiez que cette évolution reste cohérente avec les réservations et la satisfaction.",
+        "good": "Le prix moyen est stable ou progresse. Comparez les résultats par logement pour préserver un bon équilibre entre prix et remplissage.",
+        "watch": "Le prix moyen baisse. Vérifiez les remises et le mix des logements ; une baisse peut rester utile si le remplissage et le RevPAN progressent.",
+        "alarming": "Le prix moyen recule nettement. Contrôlez les promotions cumulées, les tarifs par canal et les séjours à prix inhabituellement bas.",
+        "critical": "Le prix moyen s’effondre face à la période précédente. Vérifiez les erreurs de prix, les devises et les remises avant de modifier votre stratégie."
+      },
+      "revpan": {
+        "excellent": "Le revenu par nuit disponible progresse nettement. Identifiez ce qui vient du prix et du remplissage, puis reproduisez les pratiques efficaces.",
+        "good": "Le revenu par nuit disponible résiste ou progresse. Comparez les logements pour repérer ceux qui peuvent encore s’améliorer.",
+        "watch": "Le revenu par nuit disponible recule. Regardez ensemble l’occupation et l’ADR pour cibler le levier qui se dégrade.",
+        "alarming": "Le recul par nuit disponible est marqué. Priorisez les logements avec le plus de nuits invendues ou les plus fortes baisses de prix.",
+        "critical": "Le revenu par nuit disponible chute fortement. Vérifiez les données, les calendriers et les tarifs, puis construisez un plan d’action par logement."
+      },
+      "bookings": {
+        "excellent": "Davantage de séjours débutent sur la période. Anticipez les arrivées et les ménages tout en surveillant la durée des séjours.",
+        "good": "Le volume de séjours se maintient ou progresse. Gardez les disponibilités à jour et assurez-vous que l’équipe peut absorber les arrivées.",
+        "watch": "Moins de séjours débutent sur la période. Vérifiez aussi leur durée : moins de réservations ne signifie pas forcément moins de nuits vendues.",
+        "alarming": "Le nombre de séjours recule nettement. Comparez les canaux et la durée des séjours, puis contrôlez la visibilité de vos annonces.",
+        "critical": "Le volume de séjours chute fortement. Vérifiez la synchronisation et les restrictions de réservation avant de lancer une action commerciale."
+      },
+      "rating": {
+        "excellent": "Les voyageurs apprécient leur séjour. Identifiez les points forts récurrents et maintenez ces standards avec vos équipes.",
+        "good": "Les retours sont positifs. Répondez aux avis et traitez les petites irritations récurrentes pour améliorer encore l’expérience.",
+        "watch": "La satisfaction mérite un suivi. Regroupez les remarques récurrentes et choisissez une amélioration concrète pour les prochains séjours.",
+        "alarming": "La satisfaction est basse. Traitez rapidement les problèmes répétés et vérifiez la propreté, l’accueil et les équipements signalés.",
+        "critical": "La satisfaction est très dégradée. Contactez les voyageurs concernés et priorisez la résolution des problèmes avant de nouvelles arrivées."
+      }
+    }
+  },
+  "providerPayoutBeneficiary": {
+    "title": "Bénéficiaire du versement",
+    "organization": "Organisation #{{id}}",
+    "companyHint": "Organisation du prestataire affecté à cette mission",
+    "loadError": "Impossible de vérifier le bénéficiaire. Rechargez les informations avant de continuer.",
+    "selected": "Cette organisation est le bénéficiaire enregistré. Le versement reste soumis aux contrôles de paiement et de réalisation.",
+    "locked": "Le bénéficiaire est déjà fixé pour ce versement. Un rapprochement est nécessaire pour toute modification.",
+    "unassigned": "Affectez un prestataire ou une équipe pour identifier son organisation.",
+    "explanation": "Si la prestation est facturée par cette organisation, le versement doit arriver sur son compte, même si un membre de son équipe réalise la mission.",
+    "confirm": "Je confirme que {{name}} est le bénéficiaire contractuel de cette mission.",
+    "saving": "Enregistrement…",
+    "save": "Verser à cette organisation",
+    "effect": "Ce choix sera figé. Si la mission est terminée et les contrôles validés, le versement pourra être envoyé.",
+    "saveError": "Le choix n’a pas pu être confirmé. Vérifiez l’état actualisé avant de réessayer."
+  },
+  "payoutTracking": {
+    "monitoring": {
+      "title": "Points à vérifier",
+      "loading": "Chargement des alertes de versement…",
+      "error": "Les alertes sont indisponibles. Le suivi des transferts reste accessible.",
+      "enabled": "Rattrapage automatique activé",
+      "disabled": "Rattrapage automatique désactivé",
+      "unconfigured": "Rattrapage suspendu : Stripe non configuré",
+      "readOnly": "Surveillance en lecture seule",
+      "empty": "Aucun point à vérifier selon les données enregistrées. Cela ne confirme pas la réception de tous les versements.",
+      "hint": "Ces alertes reflètent les preuves disponibles et disparaissent lorsque leur cause est résolue. Ouvrez un dossier pour le vérifier.",
+      "codes": {
+        "RECONCILIATION_REQUIRED": "Transfert à rapprocher",
+        "TRANSFER_STALLED": "Émission sans confirmation",
+        "BANK_FAILED": "Versement bancaire en échec ou annulé",
+        "BANK_LATE": "Date d’arrivée estimée dépassée",
+        "BANK_UNCONFIRMED": "Réception bancaire à vérifier",
+        "FUNDING_DISPUTED": "Encaissement contesté après transfert",
+        "REFUND_RECOVERY_REQUIRED": "Récupération après remboursement à vérifier",
+        "RECOVERY_FAILED": "Lecture Stripe interrompue",
+        "RECOVERY_LATE": "Suivi bancaire à actualiser"
+      },
+      "advice": {
+        "RECONCILIATION_REQUIRED": "Vérifiez la référence dans Stripe, puis rapprochez le dossier.",
+        "TRANSFER_STALLED": "Aucune confirmation depuis plus de 30 minutes. Ne relancez pas le paiement.",
+        "BANK_FAILED": "Consultez le motif et les coordonnées de versement auprès de Stripe.",
+        "BANK_LATE": "L’estimation est dépassée de plus de 2 jours. Vérifiez le statut auprès de Stripe.",
+        "BANK_UNCONFIRMED": "Aucune preuve de réception après 7 jours. Un versement manuel peut nécessiter une vérification séparée.",
+        "FUNDING_DISPUTED": "Un encaissement qui finance ce versement est contesté. Vérifiez le litige et les fonds déjà transférés ; aucune récupération n’est présumée.",
+        "REFUND_RECOVERY_REQUIRED": "Le remboursement client est enregistré, mais la récupération du transfert reste à confirmer. Consultez la ventilation et la preuve de reprise.",
+        "RECOVERY_FAILED": "Le rattrapage réessaiera automatiquement. Les dernières preuves restent consultables.",
+        "RECOVERY_LATE": "Aucun cycle complet récent depuis plus de 24 heures. Faites vérifier le rattrapage par la plateforme."
+      }
+    },
+    "title": "Suivi des versements",
+    "scope": "Organisation : {{name}}",
+    "currentOrganization": "organisation courante",
+    "intro": "Suivez le transfert au bénéficiaire, puis son versement bancaire lorsqu’il est rapproché.",
+    "search": "Rechercher un versement ou une référence…",
+    "filterState": "Statut",
+    "filterSource": "Bénéficiaires",
+    "allStates": "Tous les statuts",
+    "allSources": "Tous les bénéficiaires",
+    "states": {
+      "SUBMITTING": "Émission en cours",
+      "TRANSFERRED": "Transféré au bénéficiaire",
+      "RECONCILIATION_REQUIRED": "À rapprocher"
+    },
+    "sources": {
+      "OWNER_PAYOUT": "Propriétaire",
+      "INTERVENTION": "Prestataire",
+      "PROVIDER_EXPENSE": "Dépense prestataire"
+    },
+    "transfers": "Transferts",
+    "loadError": "Impossible de charger ces informations. Réessayez.",
+    "empty": "Aucun transfert à afficher",
+    "emptyHint": "Vérifiez les filtres. Ce journal réunit les transferts enregistrés pour cette organisation.",
+    "select": "Chaque transfert, de bout en bout",
+    "selectHint": "Sélectionnez une ligne pour consulter le bénéficiaire, les preuves Stripe et l’historique des événements.",
+    "back": "Retour aux transferts",
+    "beneficiary": "Bénéficiaire enregistré",
+    "company": "Organisation #{{id}}",
+    "person": "Utilisateur #{{id}}",
+    "reference": "Référence du transfert",
+    "noReference": "Non confirmée",
+    "created": "Enregistré le",
+    "bankTitle": "Versement bancaire",
+    "bankHint": "Un transfert Connect et un crédit bancaire sont deux étapes distinctes. Les dates d’arrivée sont estimées par Stripe.",
+    "bankUnknown": "Aucun versement bancaire rapproché à ce jour. La réception en banque n’est pas confirmée.",
+    "bankStates": {
+      "PENDING": "En attente chez Stripe",
+      "IN_TRANSIT": "En route vers la banque",
+      "PAID": "Versé selon Stripe",
+      "FAILED": "Échec du versement",
+      "CANCELED": "Versement annulé"
+    },
+    "estimatedArrival": "Arrivée estimée : {{date}}",
+    "failureCode": "Motif Stripe : {{code}}",
+    "submittingHint": "L’émission est en cours ou sa réponse n’a pas encore été enregistrée. Ne lancez pas un second paiement.",
+    "history": "Historique du transfert",
+    "reconciled": "Rapprochement confirmé par la plateforme",
+    "operator": "Opérateur : {{id}}",
+    "reconcileTitle": "Vérifier et rapprocher",
+    "reconcileHint": "Copiez la référence du transfert depuis Stripe. Baitly vérifie le montant, la devise, le compte destinataire et le lien avec ce dossier.",
+    "stripeReference": "Référence Stripe",
+    "verify": "Vérifier la référence",
+    "verifying": "Vérification…",
+    "verifyError": "La référence n’a pas pu être validée : preuve absente, incompatible ou Stripe indisponible. Le dossier reste inchangé. Un transfert ancien sans lien vérifiable nécessite une investigation.",
+    "verified": "Référence et dossier concordants",
+    "evidence": "Montant, devise et bénéficiaire vérifiés. Transfert créé le {{date}}.",
+    "liveMode": "Mode réel",
+    "testMode": "Mode test",
+    "agree": "Je confirme le rattachement de ce transfert à ce dossier.",
+    "confirm": "Confirmer le rapprochement",
+    "confirming": "Confirmation…",
+    "saved": "Rapprochement enregistré.",
+    "confirmError": "Confirmation non reçue. Les données sont actualisées : vérifiez le statut avant de réessayer.",
+    "noTransfer": "Cette action enregistre une preuve. Elle n’envoie pas d’argent et ne confirme pas la réception bancaire.",
+    "recovery": {
+      "title": "Récupération après remboursement",
+      "hint": "Le montant du transfert initial est conservé dans l’historique. Sa récupération auprès du bénéficiaire est suivie séparément.",
+      "states": {
+        "WAITING_REFUND": "Remboursement en attente",
+        "RECOVERING": "Récupération en cours",
+        "RECOVERED": "Fonds récupérés",
+        "REVIEW_REQUIRED": "À rapprocher",
+        "CANCELLED": "Récupération annulée",
+        "NO_RECOVERY_REQUIRED": "Aucune récupération nécessaire"
+      },
+      "advice": {
+        "WAITING_REFUND": "La récupération commencera après confirmation du remboursement au client.",
+        "RECOVERING": "Le client est remboursé. La confirmation de récupération des fonds est attendue.",
+        "RECOVERED": "Stripe confirme le retour de ces fonds sur le solde de la plateforme.",
+        "REVIEW_REQUIRED": "Le client est remboursé, mais le retour des fonds du bénéficiaire n’est pas confirmé. Un rapprochement est nécessaire ; ne créez pas un second transfert.",
+        "CANCELLED": "Le remboursement n’a pas abouti. Aucune récupération de fonds n’a été lancée.",
+        "NO_RECOVERY_REQUIRED": "Le remboursement est financé par la plateforme. Aucun fonds n’est repris au bénéficiaire."
+      },
+      "providerShare": "Part à récupérer auprès du bénéficiaire",
+      "commissionShare": "Complément financé par la plateforme",
+      "refundTotal": "Montant du remboursement"
+    }
+  },
+  "financeBatch": {
+    "choose": "Choisir plusieurs lignes",
+    "selectAll": "Sélectionner tous les dossiers éligibles du filtre",
+    "selectItem": "Sélectionner {{name}}",
+    "selected": "{{count}} sélectionné(s)",
+    "reviewHint": "Vérifiez les dossiers et les montants avant de confirmer. Les dossiers non éligibles sont exclus. Le résultat sera affiché pour chaque dossier.",
+    "empty": "Aucun dossier éligible dans cette sélection.",
+    "failed": "Impossible de traiter la sélection.",
+    "payments": "Paiements groupés",
+    "preparePayments": "Préparer les paiements sélectionnés",
+    "openCheckout": "Ouvrir le paiement sécurisé",
+    "ownerApprovals": "Approbations groupées",
+    "ownerTransfers": "Reversements propriétaires groupés",
+    "providerTransfers": "Versements prestataires groupés",
+    "approve": "Approuver les montants sans déclencher de versement",
+    "transfer": "Lancer les reversements sélectionnés",
+    "retryTransfers": "Relancer les versements sélectionnés",
+    "results": {
+      "ready": "Lien prêt, paiement à effectuer",
+      "sent": "Demande transmise au PSP",
+      "approved": "Approuvé, aucun versement déclenché",
+      "blocked": "Non lancé, conditions à vérifier",
+      "error": "Non confirmé, consultez le suivi avant de réessayer"
+    },
+    "search": "Rechercher dans les dossiers",
+    "toggleAll": "Tout sélectionner / désélectionner",
+    "noMatch": "Aucun dossier ne correspond à la recherche."
+  },
+  "financeWorkspace": {
+    "records": "Dossiers financiers",
+    "back": "Retour à la liste",
+    "choose": "Un dossier, tous ses détails",
+    "chooseHint": "Sélectionnez un élément pour consulter ses informations, ses justificatifs et les actions disponibles.",
+    "indicators": "Indicateurs financiers",
+    "filteredScope": "Dossiers correspondant aux filtres actifs",
+    "pageScope": "Dossiers de la page affichée",
+    "recorded": "Statuts enregistrés",
+    "views": "Vues financières",
+    "tabs": {
+      "payouts": "Versements",
+      "reports": "Rapports & comptabilité"
+    },
+    "viewsLabels": {
+      "owners": "Propriétaires",
+      "providers": "Prestataires",
+      "tracking": "Suivi & rapprochement",
+      "fiscal": "Rapport fiscal",
+      "exports": "Exports comptables",
+      "ledger": "Journal financier"
+    },
+    "kpis": {
+      "all": {
+        "label": "Dossiers",
+        "description": "Nombre de dossiers dans le périmètre indiqué.",
+        "advice": "Sélectionnez un dossier pour examiner ses montants et justificatifs."
+      },
+      "pending": {
+        "label": "À traiter",
+        "description": "Dossiers en préparation, en attente, approuvés ou en cours.",
+        "advice": "Vérifiez le bénéficiaire et les preuves d’encaissement. Approuver ne déplace pas d’argent."
+      },
+      "done": {
+        "label": "Finalisés",
+        "description": "Dossiers marqués payés ou transférés. La réception bancaire peut rester à confirmer.",
+        "advice": "Consultez le suivi et les références pour confirmer chaque étape du versement."
+      },
+      "review": {
+        "label": "À vérifier",
+        "description": "Dossiers inconnus, bloqués, en échec ou à rapprocher.",
+        "advice": "Vérifiez les informations manquantes avant de relancer pour éviter un double paiement."
+      },
+      "ota": {
+        "advice": "Vérifiez le relevé de versement de l’OTA pour connaître le bénéficiaire et la date de réception bancaire."
+      }
+    },
+    "ledgerBalance": "Solde du journal Baitly, dans la devise du compte. Ce montant ne représente pas un solde bancaire disponible.",
+    "ledgerAdvice": "Le journal retrace les écritures Baitly. Vérifiez les références PSP et le suivi bancaire avant de considérer des fonds comme reçus.",
+    "ledgerAccount": "Compte du journal",
+    "balanceAfter": "Solde après écriture",
+    "noProperty": "Sans logement lié",
+    "noAssignee": "Sans intervenant",
+    "unavailable": "Information indisponible",
+    "amounts": {
+      "payments": {
+        "all": "Total des paiements",
+        "pending": "À régler / encaisser",
+        "done": "Paiements déclarés payés",
+        "review": "À vérifier",
+        "ota": "Payé aux OTA"
+      },
+      "invoices": {
+        "all": "Total facturé TTC",
+        "pending": "Factures à régler",
+        "done": "Factures payées",
+        "review": "Factures en retard"
+      },
+      "payouts": {
+        "all": "Total des reversements",
+        "pending": "À reverser",
+        "done": "Reversements effectués",
+        "review": "Reversements à vérifier"
+      },
+      "expenses": {
+        "all": "Total des dépenses",
+        "pending": "Dépenses à régler",
+        "done": "Dépenses payées",
+        "review": "Dépenses à vérifier"
+      },
+      "tracking": {
+        "all": "Total des transferts",
+        "pending": "Transferts en cours",
+        "done": "Transféré au bénéficiaire",
+        "review": "À rapprocher"
+      },
+      "recordCount": "{{count}} dossier(s).",
+      "unavailable": "Montant ou devise indisponible pour {{count}} dossier(s), exclus du calcul.",
+      "description": {
+        "all": "Montants des dossiers actifs du filtre. Les annulations, remboursements, avoirs et paiements non requis sont exclus. Chaque devise est totalisée séparément.",
+        "pending": "Montants en attente selon les statuts enregistrés. Pour les paiements, le solde restant est utilisé lorsqu’il est connu.",
+        "done": "Montants enregistrés comme payés ou transférés. Un paiement déclaré par une OTA ne confirme pas une réception sur Stripe ; un transfert ne confirme pas un crédit bancaire.",
+        "review": "Montants des dossiers à contrôler : statut inconnu, échec, blocage, retard ou rapprochement manquant.",
+        "ota": "Montants déclarés payés aux plateformes de réservation, inclus dans les paiements déclarés payés. Ils ne constituent pas un solde Stripe disponible et ne confirment pas leur réception en banque."
+      }
+    }
+  },
+  "expenseTransfer": {
+    "beneficiary": "Bénéficiaire :",
+    "chooseCompany": "Verser à sa société",
+    "companyConfirm": "Désigner {{company}} comme bénéficiaire de cette dépense ? Ce choix sera enregistré et ne pourra plus être modifié. Aucun argent ne sera envoyé à cette étape.",
+    "selectCompany": "Confirmer la société",
+    "confirmCompany": "Verser {{amount}} au compte de la société {{provider}} via Stripe ?",
+    "changed": "Le bénéficiaire a changé. Annulez cette confirmation et vérifiez à nouveau la dépense.",
+    "title": "Règlement du prestataire",
+    "prepare": "Préparer le versement de la dépense",
+    "sent": "Transfert confirmé. La réception bancaire se consulte dans le suivi des versements.",
+    "notRetained": "Après approbation, cette dépense sera déduite du reversement propriétaire. Le paiement au prestataire se lance une fois cette retenue financée et confirmée.",
+    "retained": "Cette dépense est retenue sur les encaissements du propriétaire. Son règlement est distinct du paiement de l’intervention.",
+    "confirm": "Verser {{amount}} au compte personnel de {{provider}} via Stripe ?",
+    "provider": "ce prestataire",
+    "sending": "Versement en cours…",
+    "pay": "Verser {{amount}}",
+    "unavailable": "Le règlement ne peut pas être vérifié pour le moment.",
+    "tracking": "Consulter le suivi des versements"
+  },
+  "otaSettlement": {
+    "title": "Versement OTA",
+    "help": "Le paiement du voyageur et le versement bancaire sont suivis séparément. Ces fonds ne constituent pas un solde Stripe.",
+    "add": "Rapprocher un versement",
+    "loadError": "Les justificatifs ne sont pas disponibles.",
+    "empty": "Aucun versement bancaire rapproché sur justificatifs.",
+    "documented": "Rapproché sur justificatifs · {{date}}",
+    "voided": "Rapprochement annulé : {{reason}}",
+    "breakdown": "Brut {{gross}} · Frais OTA {{fees}} · Remboursements {{refunds}}",
+    "statement": "Relevé OTA",
+    "bank": "Justificatif bancaire",
+    "correct": "Corriger",
+    "reason": "Motif de correction",
+    "confirmCorrection": "Annuler ce rapprochement",
+    "recipient": "Compte ayant reçu le versement",
+    "fileLimit": "PDF, PNG ou JPEG : 5 Mo maximum par fichier et 9 Mo pour les deux justificatifs.",
+    "net": "Net reçu :",
+    "confirmHelp": "Je confirme avoir vérifié la réception, le bénéficiaire et les montants sur les deux pièces. Cette action n’envoie pas d’argent.",
+    "confirm": "Confirmer le rapprochement",
+    "saving": "Enregistrement…",
+    "fields": {
+      "ota": "Référence du versement OTA",
+      "bank": "Référence bancaire unique",
+      "date": "Date de réception",
+      "gross": "Montant brut",
+      "fees": "Frais OTA",
+      "refunds": "Remboursements déduits"
+    },
+    "batchHelp": "Si le versement couvre plusieurs séjours, ventilez toutes ses lignes avant de confirmer.",
+    "stay": "Séjour n°{{id}}",
+    "removeStay": "Retirer ce séjour",
+    "addStay": "Ajouter un séjour au versement",
+    "chooseStay": "Choisir un séjour"
+  },
+  "supplierPurchase": {
+    "title": "Achats fournisseurs",
+    "search": "Rechercher un fournisseur, une facture ou un logement",
+    "new": "Ajouter une facture fournisseur",
+    "help": "Suivez les factures d’achat, leur bénéficiaire et leur mode de règlement.",
+    "loadError": "Les données n’ont pas pu être chargées.",
+    "empty": "Aucune facture fournisseur pour cette recherche.",
+    "invoice": "Facture fournisseur",
+    "invite": "Inviter sur Baitly",
+    "external": "Payer sur le site du fournisseur",
+    "inviteConfirm": "Ce choix lie la facture au compte vérifié du fournisseur. Le paiement nécessitera ensuite une dépense approuvée et un compte de versement prêt.",
+    "confirmInvite": "Créer l’invitation",
+    "externalConfirm": "Le règlement sera effectué hors Baitly. Cette facture ne pourra plus déclencher un versement Baitly.",
+    "site": "Adresse HTTPS du site fournisseur",
+    "confirmExternal": "Choisir le règlement externe",
+    "acceptedHelp": "Le fournisseur a confirmé son identité. Préparez la dépense pour la soumettre au circuit d’approbation et de versement.",
+    "invitedHelp": "L’invitation attend la confirmation du fournisseur avec son adresse email vérifiée.",
+    "renew": "Créer un nouveau lien",
+    "prepareExpense": "Préparer la dépense à approuver",
+    "preparedHelp": "La dépense est enregistrée. Sa préparation ne signifie pas qu’elle est payée.",
+    "openExpense": "Consulter la dépense n°{{id}}",
+    "link": "Lien d’invitation",
+    "linkHelp": "Transmettez ce lien au fournisseur. Il expire après 7 jours ; un nouveau lien invalide le précédent.",
+    "externalRecorded": "Règlement externe documenté : {{reference}}",
+    "receipt": "Justificatif du règlement",
+    "externalHelp": "Réglez la facture sur le site fournisseur, puis rattachez le justificatif PSP ou bancaire. Baitly n’exécute aucun paiement sur ce site.",
+    "openSite": "Ouvrir le site fournisseur",
+    "recordExternal": "Rattacher le règlement",
+    "paymentReference": "Référence du règlement",
+    "paidOn": "Date du règlement",
+    "receiptConfirm": "Vous attestez que ce justificatif correspond au règlement de {{amount}}. Il ne crédite aucun solde Stripe et ne déclenche aucune retenue propriétaire.",
+    "confirmReceipt": "Enregistrer le justificatif",
+    "property": "Logement",
+    "chooseProperty": "Choisir un logement",
+    "fields": {
+      "supplierName": "Nom du fournisseur",
+      "supplierEmail": "Email du fournisseur",
+      "invoiceReference": "Référence de facture",
+      "description": "Objet de l’achat",
+      "expenseDate": "Date de facture",
+      "amountHt": "Montant HT en EUR",
+      "taxRate": "Taux de TVA (0,20 = 20 %)"
+    },
+    "createHelp": "Facture PDF, PNG ou JPEG, 5 Mo maximum. Le mode de règlement sera choisi dans le dossier.",
+    "save": "Enregistrer la facture",
+    "states": {
+      "externalDocumented": "Externe documenté",
+      "expensePrepared": "Dépense préparée",
+      "accepted": "Invitation acceptée",
+      "invited": "Invitation envoyable",
+      "externalPending": "Justificatif attendu",
+      "toChoose": "Mode à choisir"
+    },
+    "invitationTitle": "Recevoir un règlement avec Baitly",
+    "invitationPrivacy": "Cette invitation confirme votre identité de fournisseur. Elle ne vous donne pas accès à l’organisation cliente.",
+    "loginHelp": "Connectez-vous avec l’adresse email du fournisseur invité, puis revenez sur cette page.",
+    "login": "Se connecter",
+    "register": "Créer un compte",
+    "refreshSession": "J’ai connecté mon compte",
+    "invitationAccepted": "Invitation acceptée pour {{name}}, facture {{reference}} de {{amount}}.",
+    "connectAccount": "Configurer mon compte de versement",
+    "noTransferYet": "Aucun argent n’a encore été transféré. Le client doit approuver la dépense et lancer le versement.",
+    "acceptInvitation": "Accepter l’invitation",
+    "invalidInvitation": "Le lien d’invitation est incomplet ou invalide.",
+    "registerHelp": "Créez gratuitement votre compte bénéficiaire. Aucun abonnement PMS ni accès aux logements du client. L’adresse doit être celle invitée.",
+    "registration": {
+      "email": "Adresse email invitée",
+      "firstName": "Prénom",
+      "lastName": "Nom"
+    },
+    "sendActivation": "Recevoir le lien d’activation",
+    "activationSent": "Vérifiez votre adresse et choisissez votre mot de passe depuis l’email reçu. Connectez-vous ensuite, puis actualisez cette page pour accepter l’invitation.",
+    "fileLimit": "PDF, PNG ou JPEG : 5 Mo maximum par justificatif."
+  },
+  "externalBatchRefund": {
+    "title": "Remboursements externes du lot",
+    "help": "Affectez le remboursement constaté chez Stripe aux prestations concernées. Le total doit correspondre exactement à la preuve bancaire.",
+    "loadError": "Les remboursements du lot ne sont pas disponibles.",
+    "choose": "Affecter à cette prestation",
+    "target": "Affectation à {{label}} · n°{{id}}",
+    "reason": "Motif de cette affectation",
+    "confirmHelp": "Enregistrez la répartition et son motif. Baitly vérifiera la preuve avant de confirmer les écritures et les avoirs. Aucun nouveau remboursement ne sera envoyé.",
+    "confirm": "Confirmer l’affectation",
+    "saving": "Enregistrement…",
+    "pending": "Affectation enregistrée, vérification Stripe et comptable en attente.",
+    "confirmed": "Remboursement rapproché sur cette prestation.",
+    "review": "Rapprochement bloqué : le dossier financier doit être vérifié. Aucun nouveau remboursement ne sera émis.",
+    "awaitingStripe": "Confirmation Stripe en attente.",
+    "single": "Affecter uniquement à cette prestation",
+    "multiple": "Répartir entre plusieurs prestations",
+    "allocationTitle": "Répartition du remboursement",
+    "available": "Solde remboursable : {{amount}}",
+    "portionAmount": "Montant pour la prestation {{id}}",
+    "remaining": "Reste à répartir : {{amount}}"
   }
 }

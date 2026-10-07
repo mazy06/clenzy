@@ -1,280 +1,53 @@
-import React, { useState, useEffect } from 'react';
+import { useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
+import { Button, Skeleton } from '../../components/ui';
 import StatusChip from '../../components/StatusChip';
-import { Card, Skeleton } from '../../components/ui';
-import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '../../components/ui';
-import { cn } from '../../utils/cn';
-import {
-  AccountBalanceWallet,
-  TrendingUp,
-  Lock,
-  Business,
-} from '../../icons';
-import { walletApi } from '../../services/api/walletApi';
-import { useCurrency } from '../../hooks/useCurrency';
-import { Money } from '../../components/Money';
-import type { WalletDto, LedgerEntryDto } from '../../types/payment';
-import PageHeader from '../../components/PageHeader';
-import StatTile from '../../components/baitly/StatTile';
-import StatTileRow from '../../components/baitly/StatTileRow';
-import EmptyState from '../../components/EmptyState';
 import PagePagination from '../../components/PagePagination';
-import { activeIntlLocale } from '../../utils/activeLocale';
+import { walletApi } from '../../services/api/walletApi';
 import { useTranslation } from '../../hooks/useTranslation';
+import { activeIntlLocale } from '../../utils/activeLocale';
+import FinanceWorkspace from '../billing/components/FinanceWorkspace';
+import FinanceKpis from '../billing/components/FinanceKpis';
 
-// Accents = palette Baitly validée (ESCROW : mauve désaturé, propre à cet écran)
-const WALLET_TYPE_LABELS: Record<string, { labelKey: string; icon: React.ReactNode; color: string }> = {
-  PLATFORM: { labelKey: 'finance.walletTypes.platform', icon: <Business size={16} strokeWidth={1.75} />, color: '#6B8A9A' },
-  OWNER: { labelKey: 'finance.walletTypes.owner', icon: <TrendingUp size={16} strokeWidth={1.75} />, color: '#4A9B8E' },
-  CONCIERGE: { labelKey: 'finance.walletTypes.concierge', icon: <AccountBalanceWallet size={16} strokeWidth={1.75} />, color: '#D4A574' },
-  ESCROW: { labelKey: 'finance.walletTypes.escrow', icon: <Lock size={16} strokeWidth={1.75} />, color: '#9A7FA3' },
-};
-
-// Neutre (ADJUSTMENT) : pas de token sémantique dédié — repli muted-foreground
-const REF_TYPE_LABELS: Record<string, { labelKey: string; color: string }> = {
-  PAYMENT: { labelKey: 'finance.refTypes.payment', color: '#6B8A9A' },
-  SPLIT: { labelKey: 'finance.refTypes.split', color: '#7BA3C2' },
-  ESCROW_HOLD: { labelKey: 'finance.refTypes.escrowHold', color: '#D4A574' },
-  ESCROW_RELEASE: { labelKey: 'finance.refTypes.escrowRelease', color: '#4A9B8E' },
-  REFUND: { labelKey: 'finance.refTypes.refund', color: '#C97A7A' },
-  PAYOUT: { labelKey: 'finance.refTypes.payout', color: '#4A9B8E' },
-  ADJUSTMENT: { labelKey: 'finance.refTypes.adjustment', color: 'var(--bui-muted-foreground)' },
-};
-
-/** Montants : display tabular-nums (jamais proportional) */
-const MONEY_CLASS = 'font-[family-name:var(--font-display)] tabular-nums';
-
-/** Encre du chip de sens : `-ink`, seule variante qui passe AA sur son fond doux. */
-const ENTRY_TYPE_TOKENS: Record<string, string> = {
-  CREDIT: 'var(--bui-success-ink)',
-  DEBIT: 'var(--bui-destructive-ink)',
-};
-
-interface WalletDashboardProps {
-  embedded?: boolean;
-}
-
-export default function WalletDashboard({ embedded = false }: WalletDashboardProps) {
+export default function WalletDashboard({ embedded = false }: { embedded?: boolean }) {
   const { t } = useTranslation();
-  const [wallets, setWallets] = useState<WalletDto[]>([]);
-  const [selectedWallet, setSelectedWallet] = useState<WalletDto | null>(null);
-  const [entries, setEntries] = useState<LedgerEntryDto[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [entriesLoading, setEntriesLoading] = useState(false);
+  const [walletId, setWalletId] = useState<number | null>(null);
   const [page, setPage] = useState(0);
-  const [totalEntries, setTotalEntries] = useState(0);
-  const { currency } = useCurrency();
-
-  useEffect(() => {
-    loadWallets();
-  }, []);
-
-  useEffect(() => {
-    if (selectedWallet) {
-      loadEntries(selectedWallet.id, page);
-    }
-  }, [selectedWallet, page]);
-
-  const loadWallets = async () => {
-    try {
-      setLoading(true);
-      let data = await walletApi.getWallets();
-
-      // Auto-initialize wallets if none exist (backfill from existing payments)
-      if (data.length === 0) {
-        try {
-          await walletApi.initialize();
-          data = await walletApi.getWallets();
-        } catch (initError) {
-          console.warn('Wallet initialization failed (may lack permissions):', initError);
-        }
-      }
-
-      setWallets(data);
-      if (data.length > 0) setSelectedWallet(data[0]);
-    } catch (error) {
-      console.error('Failed to load wallets:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const loadEntries = async (walletId: number, pageNum: number) => {
-    try {
-      setEntriesLoading(true);
-      const response = await walletApi.getEntries(walletId, pageNum, 10);
-      setEntries(response.content);
-      setTotalEntries(response.totalElements);
-    } catch (error) {
-      console.error('Failed to load entries:', error);
-      setEntries([]);
-    } finally {
-      setEntriesLoading(false);
-    }
-  };
-
-  if (loading) {
-    // Skeletons : 4 tuiles + panneau historique (cartes hairline plates)
-    return (
-      <div>
-        <div className="grid grid-cols-12 gap-3 mt-1.5">
-          {[1, 2, 3, 4].map((i) => (
-            <div className="col-span-12 min-[600px]:col-span-6 min-[900px]:col-span-3" key={i}>
-              <Card className="gap-0 py-0 p-3 border-border">
-                <div className="flex items-center gap-1.5 mb-1.5">
-                  <Skeleton className="size-[26px] rounded-lg" />
-                  <Skeleton className="h-4 w-1/2 rounded" />
-                </div>
-                <Skeleton className="h-7 w-3/5 rounded" />
-                <Skeleton className="h-3.5 w-[30%] rounded" />
-              </Card>
-            </div>
-          ))}
-        </div>
-        <Card className="gap-0 py-0 mt-4 p-3 border-border">
-          <Skeleton className="h-5 w-1/4 rounded mb-2.5" />
-          {Array.from({ length: 5 }).map((_, i) => (
-            <Skeleton key={i} className="h-9 rounded-lg mb-1.5" />
-          ))}
-        </Card>
-      </div>
-    );
-  }
-
-  return (
-    <div>
-      {!embedded && (
-        <PageHeader title="Portefeuilles" subtitle="Vue d'ensemble des portefeuilles et transactions" iconBadge={<AccountBalanceWallet />} backPath="/dashboard" />
-      )}
-
-      {wallets.length === 0 ? (
-        <div className="mt-3">
-          <EmptyState
-            icon={<AccountBalanceWallet />}
-            title="{t('finance.noWallet')}"
-            description="{t('finance.noWalletHint')}"
-          />
-        </div>
-      ) : (
-        <>
-          {/* Bandeau de soldes — même langage que les Rapports, à ceci près que
-              chaque chiffre reste SÉLECTIONNABLE : c'est lui qui commande
-              l'historique en dessous. StatTile rend alors un vrai <button>
-              (focus, Entrée et Espace natifs) et la sélection se dit par le
-              fond, jamais par un liseré. */}
-          <StatTileRow compact className="mt-1.5">
-            {wallets.map((wallet) => {
-              const typeInfo = WALLET_TYPE_LABELS[wallet.walletType] || WALLET_TYPE_LABELS.PLATFORM;
-              const isSelected = selectedWallet?.id === wallet.id;
-
-              return (
-                <StatTile
-                  key={wallet.id}
-                  icon={(
-                    <span className="inline-flex shrink-0" style={{ color: typeInfo.color }}>
-                      {typeInfo.icon}
-                    </span>
-                  )}
-                  label={t(typeInfo.labelKey)}
-                  value={<Money value={wallet.balance} from={wallet.currency} />}
-                  hint={wallet.currency}
-                  onClick={() => { setSelectedWallet(wallet); setPage(0); }}
-                  className={cn(isSelected && 'bg-primary-soft hover:bg-primary-soft')}
-                />
-              );
-            })}
-          </StatTileRow>
-
-          {/* Ledger entries table */}
-          {selectedWallet && (
-            <Card className="gap-0 py-0 mt-4 border-border overflow-hidden">
-              <div className="p-3 flex justify-between items-center">
-                <p className="font-[family-name:var(--font-display)] text-base font-semibold tracking-tight text-foreground">
-                  {t('finance.historyOf', {
-                    wallet: WALLET_TYPE_LABELS[selectedWallet.walletType]
-                      ? t(WALLET_TYPE_LABELS[selectedWallet.walletType].labelKey)
-                      : selectedWallet.walletType,
-                  })}
-                </p>
-              </div>
-
-              {entriesLoading ? (
-                <div className="px-3 pb-3">
-                  {Array.from({ length: 5 }).map((_, i) => (
-                    <Skeleton key={i} className="h-8 rounded-lg mb-1.5" />
-                  ))}
-                </div>
-              ) : entries.length === 0 ? (
-                <div className="px-3 pb-3">
-                  <EmptyState
-                    icon={<AccountBalanceWallet />}
-                    title="{t('finance.noTransaction')}"
-                    variant="transparent"
-                  />
-                </div>
-              ) : (
-                <>
-                  <div className="overflow-x-auto">
-                    <Table>
-                      <TableHeader>
-                        <TableRow>
-                          <TableHead>Date</TableHead>
-                          <TableHead>Description</TableHead>
-                          <TableHead>Type</TableHead>
-                          <TableHead>{t('common.reference')}</TableHead>
-                          <TableHead className="text-end">Montant</TableHead>
-                          <TableHead className="text-end">Solde</TableHead>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {entries.map((entry) => (
-                          <TableRow key={entry.id}>
-                            <TableCell className="text-muted-foreground tabular-nums">
-                              {new Date(entry.createdAt).toLocaleDateString(activeIntlLocale(), {
-                                day: '2-digit', month: '2-digit', year: 'numeric',
-                                hour: '2-digit', minute: '2-digit',
-                              })}
-                            </TableCell>
-                            <TableCell>{entry.description}</TableCell>
-                            <TableCell>
-                              <StatusChip color={ENTRY_TYPE_TOKENS[entry.entryType] ?? 'var(--bui-muted-foreground)'} label={entry.entryType} />
-                            </TableCell>
-                            <TableCell>
-                              <StatusChip color={REF_TYPE_LABELS[entry.referenceType]?.color ?? 'var(--bui-muted-foreground)'} label={REF_TYPE_LABELS[entry.referenceType] ? t(REF_TYPE_LABELS[entry.referenceType].labelKey) : entry.referenceType} />
-                            </TableCell>
-                            <TableCell className="text-end">
-                              {/* Montant signé : display tabular-nums, encre `-ink` (AA) */}
-                              <p
-                                className={cn(
-                                  MONEY_CLASS,
-                                  'text-[12.5px] font-semibold',
-                                  entry.entryType === 'CREDIT' ? 'text-success-ink' : 'text-destructive-ink',
-                                )}
-                              >
-                                {entry.entryType === 'CREDIT' ? '+' : '-'}
-                                <Money value={entry.amount} from={entry.currency} />
-                              </p>
-                            </TableCell>
-                            {/* chaine litterale : tailwind-merge rangerait font-[…] et font-semibold dans le meme groupe */}
-                            <TableCell className="font-[family-name:var(--font-display)] tabular-nums text-end text-foreground">
-                              <Money value={entry.balanceAfter} from={entry.currency} />
-                            </TableCell>
-                          </TableRow>
-                        ))}
-                      </TableBody>
-                    </Table>
-                  </div>
-                  <PagePagination
-                    count={totalEntries}
-                    page={page}
-                    onPageChange={(newPage) => setPage(newPage)}
-                    rowsPerPage={10}
-                  />
-                </>
-              )}
-            </Card>
-          )}
-        </>
-      )}
-    </div>
-  );
+  // Opening a ledger is read-only. Never initialize or backfill financial entries here.
+  const wallets = useQuery({ queryKey: ['finance-wallets'], queryFn: () => walletApi.getWallets() });
+  const selected = wallets.data?.find(w => w.id === walletId) ?? wallets.data?.[0];
+  const entries = useQuery({ queryKey: ['finance-ledger', selected?.id, page],
+    queryFn: () => walletApi.getEntries(selected!.id, page, 10), enabled: !!selected });
+  const money = (amount: number, currency: string) => new Intl.NumberFormat(activeIntlLocale(), { style: 'currency', currency }).format(amount);
+  const label = (type: string) => t(`finance.walletTypes.${type.toLowerCase()}`, type);
+  if (wallets.isPending) return <Skeleton className="h-56 w-full" />;
+  if (wallets.isError) return <div role="alert"><p>{t('common.error')}</p><Button variant="outline" onClick={() => void wallets.refetch()}>{t('common.retry')}</Button></div>;
+  return <div>
+    {!embedded && <h1>{t('financeWorkspace.viewsLabels.ledger')}</h1>}
+    {!!wallets.data?.length && <FinanceKpis items={wallets.data.map(wallet => ({
+      key: String(wallet.id), label: label(wallet.walletType), value: money(wallet.balance, wallet.currency),
+      artwork: 'documents', description: t('financeWorkspace.ledgerBalance'), advice: t('financeWorkspace.ledgerAdvice'),
+    }))} scope={t('financeWorkspace.viewsLabels.ledger')} />}
+    <label className="mb-4 flex flex-wrap items-center gap-3 text-sm">
+      {t('financeWorkspace.ledgerAccount')}
+      <select className="rounded-lg border border-border bg-card px-3 py-2 cursor-pointer" value={selected?.id ?? ''}
+        onChange={event => { setWalletId(Number(event.target.value)); setPage(0); }}>
+        {(wallets.data ?? []).map(wallet => <option key={wallet.id} value={wallet.id}>{label(wallet.walletType)} · {wallet.currency}</option>)}
+      </select>
+    </label>
+    <p className="mb-4 text-xs text-muted-foreground">{t('financeWorkspace.ledgerAdvice')}</p>
+    {entries.isError ? <div role="alert"><p>{t('common.error')}</p><Button variant="outline" onClick={() => void entries.refetch()}>{t('common.retry')}</Button></div>
+      : entries.isFetching ? <Skeleton className="h-64 w-full" />
+      : !selected || !entries.data?.content.length ? <p className="rounded-xl border border-border bg-card p-6 text-sm">{t('finance.noTransaction')}</p>
+      : <FinanceWorkspace key={selected.id} items={entries.data.content.map(entry => ({
+        id: entry.id, title: entry.description, amount: <span className={entry.entryType === 'CREDIT' ? 'text-success-ink' : 'text-destructive-ink'}>{entry.entryType === 'CREDIT' ? '+' : '−'}{money(entry.amount, entry.currency)}</span>,
+        status: <StatusChip tone={entry.entryType === 'CREDIT' ? 'ok' : 'neutral'} label={entry.entryType} />,
+        fields: [
+          { label: t('common.date'), value: new Date(entry.createdAt).toLocaleString(activeIntlLocale()) },
+          { label: t('common.reference'), value: entry.referenceId },
+          { label: t('common.type'), value: t(`finance.refTypes.${({ PAYMENT:'payment', SPLIT:'split', ESCROW_HOLD:'escrowHold', ESCROW_RELEASE:'escrowRelease', REFUND:'refund', PAYOUT:'payout', ADJUSTMENT:'adjustment' } as Record<string,string>)[entry.referenceType]}`,entry.referenceType) },
+          { label: t('financeWorkspace.balanceAfter'), value: money(entry.balanceAfter, entry.currency) },
+        ],
+      }))} pagination={<PagePagination count={entries.data.totalElements} page={page} onPageChange={setPage} rowsPerPage={10} />} />}
+  </div>;
 }

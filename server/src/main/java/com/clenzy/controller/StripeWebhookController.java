@@ -12,15 +12,11 @@ import com.clenzy.service.StripeConnectService;
 import com.clenzy.service.StripeService;
 import com.clenzy.service.SubscriptionService;
 import com.clenzy.service.UpsellService;
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.stripe.exception.SignatureVerificationException;
 import com.stripe.exception.StripeException;
 import com.stripe.model.Account;
 import com.stripe.model.Event;
-import com.stripe.model.EventDataObjectDeserializer;
 import com.stripe.model.PaymentIntent;
-import com.stripe.model.StripeObject;
 import com.stripe.model.Transfer;
 import com.stripe.model.checkout.Session;
 import com.stripe.net.Webhook;
@@ -43,10 +39,23 @@ import org.springframework.web.bind.annotation.*;
 public class StripeWebhookController {
 
     private static final Logger logger = LoggerFactory.getLogger(StripeWebhookController.class);
+    private static final java.util.Set<String> TYPED_EVENTS = java.util.Set.of(
+            "checkout.session.completed", "checkout.session.async_payment_succeeded",
+            "checkout.session.async_payment_failed", "checkout.session.expired",
+            "payment_intent.succeeded", "payment_intent.payment_failed", "account.updated",
+            "transfer.failed", "charge.dispute.created", "charge.dispute.updated",
+            "charge.dispute.closed", "charge.dispute.funds_withdrawn", "charge.dispute.funds_reinstated",
+            "invoice.paid", "refund.created", "refund.updated", "refund.failed");
 
     private final PaymentEventActionRecorder paymentEventActionRecorder;
     private final com.clenzy.service.paymentconnect.PaymentConnectionStore paymentConnectionStore;
+    private final com.clenzy.payment.payout.StripeBankPayoutHandler bankPayoutHandler;
     private final StripeService stripeService;
+    private final com.clenzy.service.InterventionBatchCheckoutService batchCheckout;
+    private final com.clenzy.service.InvoiceCheckoutService invoiceCheckout;
+    private final com.clenzy.service.ManagedRefundReconciliation refunds;
+    private final com.clenzy.service.BaitlyInterventionCheckoutExpiry checkoutExpiry;
+    private final com.clenzy.service.StripeWebhookTenantScope paymentTenantScope;
     private final InscriptionService inscriptionService;
     private final SubscriptionService subscriptionService;
     private final MobilePaymentService mobilePaymentService;
@@ -77,7 +86,19 @@ public class StripeWebhookController {
                                    com.clenzy.service.ai.AiCreditGrantService aiCreditGrantService,
                                    com.clenzy.service.automation.PaymentFailedTriggerService paymentFailedTriggerService,
                                    PaymentEventActionRecorder paymentEventActionRecorder,
-                                   com.clenzy.service.paymentconnect.PaymentConnectionStore paymentConnectionStore) {
+                                   com.clenzy.service.paymentconnect.PaymentConnectionStore paymentConnectionStore,
+                                   com.clenzy.payment.payout.StripeBankPayoutHandler bankPayoutHandler,
+                                   com.clenzy.service.StripeWebhookTenantScope paymentTenantScope,
+                                   com.clenzy.service.InterventionBatchCheckoutService batchCheckout,
+                                   com.clenzy.service.InvoiceCheckoutService invoiceCheckout,
+                                   com.clenzy.service.ManagedRefundReconciliation refunds,
+                                   com.clenzy.service.BaitlyInterventionCheckoutExpiry checkoutExpiry) {
+        this.checkoutExpiry = checkoutExpiry;
+        this.refunds = refunds;
+        this.invoiceCheckout = invoiceCheckout;
+        this.batchCheckout = batchCheckout;
+        this.paymentTenantScope = paymentTenantScope;
+        this.bankPayoutHandler = bankPayoutHandler;
         this.paymentConnectionStore = paymentConnectionStore;
         this.paymentEventActionRecorder = paymentEventActionRecorder;
         this.stripeService = stripeService;
@@ -122,10 +143,21 @@ public class StripeWebhookController {
         } catch (Exception e) {
             logger.error("Erreur lors du traitement du webhook Stripe", e);
             return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                .body("Erreur lors du traitement du webhook: " + e.getMessage());
+                .body("Evenement Stripe invalide");
         }
 
         logger.info("Webhook Stripe recu: type={}", event.getType());
+
+        // Un acquittement 200 ferait perdre l'événement. Ne jamais traiter un
+        // snapshot incompatible par désérialisation non vérifiée. Stripe réessaiera
+        // après l'alignement de la destination webhook avec le SDK.
+        if (event.getType() != null && TYPED_EVENTS.contains(event.getType())
+                && event.getDataObjectDeserializer().getObject().isEmpty()) {
+            logger.error("Webhook Stripe incompatible eventId={}, type={}, version={}, sdk={}",
+                    event.getId(), event.getType(), event.getApiVersion(), com.stripe.Stripe.API_VERSION);
+            return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE)
+                    .body("Version ou objet Stripe incompatible");
+        }
 
         // Traiter l'evenement. Un echec de traitement retourne 500 pour que Stripe
         // re-livre l'evenement (Z3-BUGS-10) : les handlers de confirmation sont
@@ -133,6 +165,22 @@ public class StripeWebhookController {
         // re-livraison ne produit donc pas de double effet.
         try {
             switch (event.getType()) {
+                case "refund.created":
+                case "refund.updated":
+                case "refund.failed":
+                    // Le circuit géré concerne les remboursements de la plateforme,
+                    // jamais ceux d'un compte connecté portant des métadonnées identiques.
+                    if (event.getAccount() == null) refunds.onWebhook((com.stripe.model.Refund)
+                            event.getDataObjectDeserializer().getObject().orElseThrow());
+                    break;
+                case "payout.created":
+                case "payout.updated":
+                case "payout.paid":
+                case "payout.failed":
+                case "payout.canceled":
+                case "payout.reconciliation_completed":
+                    bankPayoutHandler.handleVerifiedEvent(event);
+                    break;
                 case "checkout.session.completed":
                     handleCheckoutCompleted(event);
                     break;
@@ -169,11 +217,13 @@ public class StripeWebhookController {
 
                 case "charge.dispute.created":
                 case "charge.dispute.updated":
-                    handleDisputeOpened(event);
+                case "charge.dispute.funds_withdrawn":
+                case "charge.dispute.funds_reinstated":
+                    if (event.getAccount() == null) handleDisputeOpened(event);
                     break;
 
                 case "charge.dispute.closed":
-                    handleDisputeClosed(event);
+                    if (event.getAccount() == null) handleDisputeClosed(event);
                     break;
 
                 case "checkout.session.expired":
@@ -211,7 +261,9 @@ public class StripeWebhookController {
             logger.warn("invoice.paid indeserialisable (eventId={}) — ignore", event.getId());
             return;
         }
-        String subscriptionId = invoice.getSubscription();
+        String subscriptionId = invoice.getParent() != null
+                && invoice.getParent().getSubscriptionDetails() != null
+                ? invoice.getParent().getSubscriptionDetails().getSubscription() : null;
         if (subscriptionId == null || subscriptionId.isBlank()) {
             return; // invoice hors abonnement (one-shot) : pas de dotation
         }
@@ -225,54 +277,11 @@ public class StripeWebhookController {
      * - Intervention (mode PAYMENT, metadata.intervention_id) : paiement unique de l'intervention
      */
     private void handleCheckoutCompleted(Event event) {
-        EventDataObjectDeserializer deserializer = event.getDataObjectDeserializer();
-        Session session = null;
+        Session session = (Session) event.getDataObjectDeserializer().getObject()
+                .orElseThrow(() -> new IllegalStateException("Session Stripe incompatible"));
 
-        // Tentative 1 : deserialisation standard (fonctionne si les versions API correspondent)
-        if (deserializer.getObject().isPresent()) {
-            session = (Session) deserializer.getObject().get();
-            logger.info("Session deserialisee avec succes depuis l'evenement webhook");
-        }
-
-        // Tentative 2 : deserialisation unsafe (fonctionne meme avec des versions API differentes)
-        if (session == null) {
-            logger.warn("Deserialisation standard echouee, tentative avec deserializeUnsafe...");
-            try {
-                StripeObject obj = deserializer.deserializeUnsafe();
-                if (obj instanceof Session) {
-                    session = (Session) obj;
-                    logger.info("Session deserialisee avec deserializeUnsafe");
-                }
-            } catch (Exception e) {
-                logger.warn("deserializeUnsafe a echoue: {}", e.getMessage());
-            }
-        }
-
-        // Tentative 3 : extraire le session ID du JSON brut et recuperer via l'API Stripe
-        if (session == null) {
-            logger.warn("Toutes les deserialisations ont echoue, extraction du session ID depuis le JSON brut...");
-            try {
-                String rawJson = deserializer.getRawJson();
-                ObjectMapper mapper = new ObjectMapper();
-                JsonNode jsonNode = mapper.readTree(rawJson);
-                String sessionId = jsonNode.has("id") ? jsonNode.get("id").asText() : null;
-
-                if (sessionId == null) {
-                    // Payload sans id : une re-livraison du meme payload echouera pareil,
-                    // on acquitte (200) pour ne pas boucler inutilement.
-                    logger.error("Impossible d'extraire le session ID du JSON brut");
-                    return;
-                }
-                logger.info("Session ID extrait du JSON brut: {}", sessionId);
-                session = stripeGateway.retrieveSession(sessionId);
-                logger.info("Session recuperee via API Stripe: {}", sessionId);
-            } catch (Exception e) {
-                // Echec potentiellement transitoire (API Stripe) : propager pour
-                // retourner 500 et declencher la re-livraison Stripe.
-                throw new IllegalStateException(
-                        "Impossible de recuperer la session Stripe depuis le JSON brut", e);
-            }
-        }
+        if (invoiceCheckout.handleWebhook(session)) return;
+        if (batchCheckout.handleWebhook(session)) return;
 
         String sessionId = session.getId();
         String paymentStatus = session.getPaymentStatus();
@@ -343,11 +352,11 @@ public class StripeWebhookController {
             // Paiement groupe differe : confirmer toutes les interventions incluses
             String interventionIds = session.getMetadata().get("intervention_ids");
             logger.info("Paiement groupe differe reussi pour session: {}, interventions: {}", sessionId, interventionIds);
-            stripeService.confirmGroupedPayment(sessionId, interventionIds);
+            paymentTenantScope.forGroupedInterventions(sessionId, interventionIds, () -> stripeService.confirmGroupedPayment(sessionId, interventionIds));
         } else if ("reservation".equals(type)) {
             // Paiement de reservation (envoye par email au guest)
             logger.info("Paiement de reservation reussi pour session: {}", sessionId);
-            stripeService.confirmReservationPayment(sessionId);
+            paymentTenantScope.forReservation(sessionId, () -> stripeService.confirmReservationPayment(sessionId));
         } else if ("booking_engine".equals(type)) {
             // Paiement d'une reservation creee via le Booking Engine public (widget SDK).
             // Le webhook gere deux scenarios :
@@ -363,7 +372,7 @@ public class StripeWebhookController {
             // Paiement de demande de service → confirmation + creation intervention automatique
             String srId = session.getMetadata().get("service_request_id");
             logger.info("Paiement SR reussi pour session: {}, srId: {}", sessionId, srId);
-            stripeService.confirmServiceRequestPayment(sessionId);
+            paymentTenantScope.forServiceRequest(sessionId, () -> stripeService.confirmServiceRequestPayment(sessionId));
         } else if ("upsell".equals(type)) {
             // Paiement d'un upsell du livret (early check-in, ménage, transfert…)
             logger.info("Paiement upsell reussi pour session: {}", sessionId);
@@ -371,7 +380,7 @@ public class StripeWebhookController {
         } else {
             // Paiement d'intervention — paiement unique (flux existant)
             logger.info("Paiement d'intervention reussi pour session: {}", sessionId);
-            stripeService.confirmPayment(sessionId);
+            paymentTenantScope.forIntervention(sessionId, () -> stripeService.confirmPayment(sessionId));
         }
 
         // Update PaymentTransaction if the payment was routed through the orchestrator
@@ -425,6 +434,9 @@ public class StripeWebhookController {
 
         if (session == null) return;
 
+        if (invoiceCheckout.handleWebhook(session)) return;
+        if (batchCheckout.handleWebhook(session)) return;
+
         String sessionId = session.getId();
         String type = session.getMetadata() != null ? session.getMetadata().get("type") : null;
 
@@ -447,10 +459,10 @@ public class StripeWebhookController {
         } else if ("grouped_deferred".equals(type)) {
             String interventionIds = session.getMetadata() != null ? session.getMetadata().get("intervention_ids") : null;
             logger.info("Paiement groupe differe asynchrone reussi pour session: {}", sessionId);
-            stripeService.confirmGroupedPayment(sessionId, interventionIds);
+            paymentTenantScope.forGroupedInterventions(sessionId, interventionIds, () -> stripeService.confirmGroupedPayment(sessionId, interventionIds));
         } else if ("reservation".equals(type)) {
             logger.info("Paiement de reservation asynchrone reussi pour session: {}", sessionId);
-            stripeService.confirmReservationPayment(sessionId);
+            paymentTenantScope.forReservation(sessionId, () -> stripeService.confirmReservationPayment(sessionId));
         } else if ("booking_engine".equals(type)) {
             logger.info("Paiement Booking Engine asynchrone reussi pour session: {}", sessionId);
             publicBookingService.confirmBookingEngineCheckout(session);
@@ -459,9 +471,9 @@ public class StripeWebhookController {
             publicBookingService.confirmBookingEngineBalance(session);
         } else if ("service_request".equals(type)) {
             logger.info("Paiement SR asynchrone reussi pour session: {}", sessionId);
-            stripeService.confirmServiceRequestPayment(sessionId);
+            paymentTenantScope.forServiceRequest(sessionId, () -> stripeService.confirmServiceRequestPayment(sessionId));
         } else {
-            stripeService.confirmPayment(sessionId);
+            paymentTenantScope.forIntervention(sessionId, () -> stripeService.confirmPayment(sessionId));
         }
 
         // Update PaymentTransaction for async success
@@ -477,6 +489,9 @@ public class StripeWebhookController {
                 .orElse(null);
 
         if (session == null) return;
+
+        if (invoiceCheckout.handleWebhook(session)) return;
+        if (batchCheckout.handleWebhook(session)) return;
 
         String sessionId = session.getId();
         String type = session.getMetadata() != null ? session.getMetadata().get("type") : null;
@@ -495,15 +510,15 @@ public class StripeWebhookController {
         } else if ("grouped_deferred".equals(type)) {
             String interventionIds = session.getMetadata() != null ? session.getMetadata().get("intervention_ids") : null;
             logger.warn("Paiement groupe differe echoue pour session: {}", sessionId);
-            stripeService.markGroupedPaymentAsFailed(sessionId, interventionIds);
+            paymentTenantScope.forGroupedInterventions(sessionId, interventionIds, () -> stripeService.markGroupedPaymentAsFailed(sessionId, interventionIds));
         } else if ("reservation".equals(type)) {
             logger.warn("Paiement de reservation echoue pour session: {}", sessionId);
-            stripeService.markReservationPaymentFailed(sessionId);
+            paymentTenantScope.forReservation(sessionId, () -> stripeService.markReservationPaymentFailed(sessionId));
         } else if ("service_request".equals(type)) {
             logger.warn("Paiement SR echoue pour session: {}", sessionId);
-            stripeService.markServiceRequestPaymentFailed(sessionId);
+            paymentTenantScope.forServiceRequest(sessionId, () -> stripeService.markServiceRequestPaymentFailed(sessionId));
         } else {
-            stripeService.markPaymentAsFailed(sessionId);
+            paymentTenantScope.forIntervention(sessionId, () -> stripeService.markPaymentAsFailed(sessionId));
         }
 
         // Update PaymentTransaction for async failure
@@ -702,6 +717,9 @@ public class StripeWebhookController {
     private void handleSessionExpired(Event event) {
         final Session session = (Session) event.getDataObjectDeserializer().getObject().orElse(null);
         if (session == null) return;
+        if (invoiceCheckout.handleWebhook(session)) return;
+        if (batchCheckout.handleWebhook(session)) return;
+        if (checkoutExpiry.handleWebhook(session.getId())) return;
         paymentEventActionRecorder.recordSessionExpired(
                 session.getId(),
                 session.getAmountTotal() == null ? null : BigDecimal.valueOf(session.getAmountTotal(), 2),

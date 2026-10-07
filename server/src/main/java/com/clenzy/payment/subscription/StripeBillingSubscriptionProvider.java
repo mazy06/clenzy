@@ -42,10 +42,11 @@ public class StripeBillingSubscriptionProvider implements SubscriptionProvider {
         try {
             com.stripe.param.checkout.SessionCreateParams.Builder builder =
                 com.stripe.param.checkout.SessionCreateParams.builder()
+                    .setIntegrationIdentifier(com.clenzy.payment.StripeGateway.CHECKOUT_INTEGRATION_ID)
                     .setMode(com.stripe.param.checkout.SessionCreateParams.Mode.SUBSCRIPTION);
 
             if (request.embedded()) {
-                builder.setUiMode(com.stripe.param.checkout.SessionCreateParams.UiMode.EMBEDDED)
+                builder.setUiMode(com.stripe.param.checkout.SessionCreateParams.UiMode.EMBEDDED_PAGE)
                     .setReturnUrl(request.successOrReturnUrl());
             } else {
                 builder.setSuccessUrl(request.successOrReturnUrl())

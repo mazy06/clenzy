@@ -47,7 +47,7 @@ public class UserOnboardingService {
      * goes back to incomplete and the onboarding checklist reappears.
      */
     private static final Set<String> REVERTABLE_STEPS = Set.of(
-        "configure_org", "setup_fiscal", "setup_payment", "setup_general",
+        "configure_org", "setup_fiscal", "setup_general",
         "complete_profile", "create_property", "configure_details", "setup_assignment_contacts",
         "setup_payouts", "setup_payout_account"
     );
@@ -64,14 +64,18 @@ public class UserOnboardingService {
         "setup_rates"
     );
 
-    /** Ordered step keys per role — must match client-side onboardingConfig.ts */
+    /**
+     * Ordered step keys per role — must match client-side onboardingConfig.ts.
+     * Platform staff administer Baitly payments; their guide must not require
+     * a beneficiary's personal or organization Connect account.
+     */
     private static final Map<UserRole, List<String>> STEPS_BY_ROLE = Map.ofEntries(
         Map.entry(UserRole.SUPER_ADMIN, List.of(
-            "configure_org", "migrate_pms", "setup_fiscal", "invite_members", "setup_payment",
+            "configure_org", "migrate_pms", "setup_fiscal", "invite_members",
             "setup_notifications", "setup_messaging", "setup_general", "setup_integrations"
         )),
         Map.entry(UserRole.SUPER_MANAGER, List.of(
-            "configure_org", "migrate_pms", "setup_fiscal", "invite_members", "setup_payment",
+            "configure_org", "migrate_pms", "setup_fiscal", "invite_members",
             "setup_notifications", "setup_messaging", "setup_general", "setup_integrations"
         )),
         Map.entry(UserRole.HOST, List.of(
@@ -198,8 +202,11 @@ public class UserOnboardingService {
 
     @Transactional
     public void completeStep(Long userId, UserRole role, String stepKey, Long organizationId) {
-        if (Set.of("setup_payment", "setup_payouts", "setup_payout_account").contains(stepKey)
-                && !paymentReadiness.isReady(userId, organizationId, "setup_payment".equals(stepKey)))
+        // Reject stale guides and steps belonging to another role before any write.
+        if (!STEPS_BY_ROLE.getOrDefault(role, List.of()).contains(stepKey))
+            throw new IllegalArgumentException("Cette étape ne fait pas partie de votre guide de démarrage");
+        if (Set.of("setup_payouts", "setup_payout_account").contains(stepKey)
+                && !paymentReadiness.isReady(userId, organizationId, false))
             throw new IllegalStateException("Le fournisseur doit confirmer l’activation des reversements");
         if ("setup_assignment_contacts".equals(stepKey) && !contactPreferences.isConfigured(userId))
             throw new IllegalStateException("Enregistrez vos horaires de sollicitation avant de terminer cette étape");
@@ -247,7 +254,6 @@ public class UserOnboardingService {
                 case "configure_org" -> isOrganizationConfigured(organizationId);
                 case "setup_fiscal" -> isFiscalProfileConfigured(organizationId);
                 case "invite_members" -> hasInvitedMembers(organizationId);
-                case "setup_payment" -> paymentReadiness.isReady(userId, organizationId, true);
                 case "setup_notifications" -> hasNotificationPreferences(keycloakId);
                 case "setup_messaging" -> hasMessagingConfigured(organizationId);
                 case "setup_general" -> isGeneralConfigured(userOpt.orElse(null), organizationId);

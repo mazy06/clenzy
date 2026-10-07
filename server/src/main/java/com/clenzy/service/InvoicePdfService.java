@@ -154,7 +154,8 @@ public class InvoicePdfService {
         sb.append("</div>");
 
         sb.append("<div class=\"invoice-info\">");
-        sb.append("<h1>FACTURE</h1>");
+        sb.append(invoice.getStatus() == com.clenzy.model.InvoiceStatus.CREDIT_NOTE
+            ? "<h1>AVOIR</h1>" : "<h1>FACTURE</h1>");
         sb.append("<table class=\"info-table\">");
         sb.append("<tr><td>Numero</td><td><strong>").append(esc(invoice.getInvoiceNumber())).append("</strong></td></tr>");
         sb.append("<tr><td>Date</td><td>").append(formatDate(invoice.getInvoiceDate())).append("</td></tr>");
@@ -262,7 +263,8 @@ public class InvoicePdfService {
     }
 
     private String buildFilename(Invoice invoice) {
-        return "Facture_" + invoice.getInvoiceNumber().replace("/", "-")
+        return (invoice.getStatus() == com.clenzy.model.InvoiceStatus.CREDIT_NOTE ? "Avoir_" : "Facture_")
+            + invoice.getInvoiceNumber().replace("/", "-")
             + "_" + LocalDate.now().format(DateTimeFormatter.ofPattern("yyyyMMdd")) + ".pdf";
     }
 

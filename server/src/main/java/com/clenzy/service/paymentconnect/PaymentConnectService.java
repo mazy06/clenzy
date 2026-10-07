@@ -66,7 +66,8 @@ public class PaymentConnectService {
         Account account = c.getProviderAccountId() == null ? create(b, c) : stripe.retrieveAccount(c.getProviderAccountId());
         store.attach(b, account);
         // Standard account holders manage their own requirements in the official Stripe Dashboard.
-        if ("standard".equals(account.getType())) return "https://dashboard.stripe.com/";
+        // Resume Stripe-hosted onboarding for every account, including OAuth-linked Standard accounts.
+        // A generic Dashboard URL loses the beneficiary context and the return to Baitly.
         return stripe.createAccountLink(AccountLinkCreateParams.builder().setAccount(account.getId())
                 .setType(AccountLinkCreateParams.Type.ACCOUNT_ONBOARDING)
                 .setReturnUrl(returnUrl(scope, "return")).setRefreshUrl(returnUrl(scope, "refresh")).build()).getUrl();

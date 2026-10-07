@@ -66,17 +66,16 @@ class GuestReferralServiceTest {
 
     @Test
     void getOrCreateCode_generatesWhenMissing() {
-        GuestCreditAccount acc = new GuestCreditAccount();
-        acc.setOrganizationId(1L);
-        acc.setEmail("g@x.fr");
-        when(accountRepository.findByOrganizationIdAndEmail(1L, "g@x.fr")).thenReturn(Optional.of(acc));
+        var acc = mock(GuestCreditAccountRepository.LockedBalance.class);
+        when(acc.getId()).thenReturn(9L);
+        when(accountRepository.lockBalance(1L, "g@x.fr")).thenReturn(Optional.of(acc));
         when(accountRepository.findByOrganizationIdAndReferralCode(eq(1L), anyString())).thenReturn(Optional.empty());
-        when(accountRepository.save(any())).thenAnswer(i -> i.getArgument(0));
 
         String code = service().getOrCreateCode(1L, "G@X.FR");
 
         assertThat(code).isNotBlank().hasSize(8);
-        assertThat(acc.getReferralCode()).isEqualTo(code);
+        verify(accountRepository).assignReferralCode(9L,code);
+        verify(accountRepository,never()).save(any());
     }
 
     @Test
@@ -139,6 +138,11 @@ class GuestReferralServiceTest {
         ref.setReservationCode("CODE-9");
         ref.setStatus(GuestReferralStatus.PENDING);
 
+        var stay=new Reservation();stay.setStatus("confirmed");stay.setSource("direct");
+        stay.setPaymentStatus(com.clenzy.model.PaymentStatus.PAID);stay.setCheckOut(java.time.LocalDate.now().minusDays(1));
+        var guest=new Guest();guest.setEmail("filleul@x.fr");stay.setGuest(guest);
+        when(reservationRepository.lockCancellation(1L,"CODE-9")).thenReturn(Optional.of(stay));
+
         service().grantOne(ref, 1000);
 
         verify(creditService).grant(1L, "parrain@x.fr", 1000, "REF:CODE-9:referrer");
@@ -146,6 +150,16 @@ class GuestReferralServiceTest {
         assertThat(ref.getStatus()).isEqualTo(GuestReferralStatus.GRANTED);
         assertThat(ref.getGrantedAt()).isNotNull();
         verify(referralRepository).save(ref);
+    }
+
+    @org.junit.jupiter.params.ParameterizedTest
+    @org.junit.jupiter.params.provider.EnumSource(value=com.clenzy.model.PaymentStatus.class,names="PAID",mode=org.junit.jupiter.params.provider.EnumSource.Mode.EXCLUDE)
+    void unpaidOrRefundedStayDoesNotCreateSpendableReferralCredit(com.clenzy.model.PaymentStatus status) {
+        var ref=new GuestReferral();ref.setOrganizationId(1L);ref.setReservationCode("CODE");
+        var stay=new Reservation();stay.setSource("direct");stay.setStatus("confirmed");stay.setPaymentStatus(status);
+        when(reservationRepository.lockCancellation(1L,"CODE")).thenReturn(Optional.of(stay));
+        org.assertj.core.api.Assertions.assertThatThrownBy(()->service().grantOne(ref,1000)).isInstanceOf(IllegalStateException.class);
+        org.mockito.Mockito.verifyNoInteractions(creditService);
     }
 
     @Test

@@ -201,6 +201,22 @@ class InvoicePdfServiceTest {
     class HtmlRendering {
 
         @Test
+        void creditNoteUsesDedicatedTitleFilenameAndEscapesTheOriginalReference() {
+            var inv=buildBaseInvoice(); inv.setStatus(InvoiceStatus.CREDIT_NOTE);
+            inv.setOriginalInvoiceId(42L); inv.setRefundTransactionId(41L);
+            inv.setTotalHt(new BigDecimal("-250")); inv.setTotalTax(new BigDecimal("-50")); inv.setTotalTtc(new BigDecimal("-300"));
+            inv.setLegalMentions("Avoir sur facture <FA-original> du 2026-03-01");
+            ArgumentCaptor<HttpEntity<MultiValueMap<String,Object>>> captor=ArgumentCaptor.forClass(HttpEntity.class);
+            when(restTemplate.exchange(anyString(),eq(HttpMethod.POST),captor.capture(),eq(byte[].class)))
+                .thenReturn(ResponseEntity.ok("pdf".getBytes()));
+            when(documentStorageService.store(anyString(),anyString(),any(byte[].class))).thenReturn("path");
+            service.generatePdf(inv);
+            assertThat(extractHtmlFromMultipart(captor.getValue())).contains("AVOIR", "-300", "&lt;FA-original&gt;")
+                .doesNotContain("<FA-original>", "<h1>FACTURE</h1>");
+            verify(documentStorageService).store(eq("FACTURE"),org.mockito.ArgumentMatchers.startsWith("Avoir_"),any(byte[].class));
+        }
+
+        @Test
         void whenBuyerNameContainsXss_thenIsEscapedInHtml() {
             Invoice inv = buildBaseInvoice();
             inv.setBuyerName("<script>alert('xss')</script>");

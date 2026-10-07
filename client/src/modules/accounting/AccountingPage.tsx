@@ -1,3 +1,6 @@
+import { financeEventArtwork } from '../billing/components/financeEventArtwork';
+import FinanceWorkspace from '../billing/components/FinanceWorkspace';
+import { FinanceAmountKpis } from '../billing/components/FinanceKpis';
 import React, { useState, useCallback, useMemo, useRef, useEffect } from 'react';
 import { cn } from '../../utils/cn';
 import StatusChip from '../../components/StatusChip';
@@ -22,7 +25,6 @@ import {
 import {
   Add as AddIcon,
   CheckCircle as ApproveIcon,
-  Payment as PaidIcon,
   AccountBalance as AccountIcon,
   Cancel as CancelIcon,
   Description as PoIcon,
@@ -57,12 +59,13 @@ import type { Property } from '../../services/api/propertiesApi';
 import {
   usePayouts,
   useApprovePayout,
-  useMarkAsPaid,
   useExecutePayout,
   useRetryPayout,
 } from '../../hooks/useAccounting';
-import type { OwnerPayout, OwnerPayoutConfig, PayoutStatus } from '../../services/api/accountingApi';
+import type { OwnerPayout, PayoutStatus } from '../../services/api/accountingApi';
 import { PAYOUT_STATUS_COLORS, accountingApi } from '../../services/api/accountingApi';
+import { FinanceBatchPanel } from '../payments/FinanceBatchPanel';
+import { executeOwnerBatch, ownerBatchItems } from './batchPayouts';
 import {
   providerExpensesApi,
   EXPENSE_STATUS_COLORS,
@@ -78,12 +81,18 @@ import { documentsApi } from '../../services/api/documentsApi';
 import { usersApi } from '../../services/api/usersApi';
 import { accountingExportApi } from '../../services/api/accountingExportApi';
 import ExportPreviewDialog from './ExportPreviewDialog';
-import SepaTransferProcedureTooltip from './components/SepaTransferProcedureTooltip';
+import { useNavigate } from 'react-router-dom';
+import { useAllOwnerPayoutConfigs } from '../../hooks/useOwnerPayoutConfig';
+import PayoutActionResult from './components/PayoutActionResult';
+import { Archive, FileSearch, RefreshCw, Send, ExternalLink, Settings2 } from 'lucide-react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { useCurrency } from '../../hooks/useCurrency';
 import { Money } from '../../components/Money';
 import { useHighlightParam, useHighlightTarget } from '../../hooks/useHighlight';
 import { activeIntlLocale } from '../../utils/activeLocale';
+import GeneratePayoutForm from './components/GeneratePayoutForm';
+import { useAuth } from '../../hooks/useAuth';
+import BaitlyExpensePayment from './components/BaitlyExpensePayment';
+import { getPayoutWorkflow } from './payoutWorkflow';
 
 // ─── Constants ──────────────────────────────────────────────────────────────
 
@@ -97,7 +106,7 @@ const PANEL_CLASS = 'rounded-xl border border-solid border-border bg-card';
 // Tableaux : la typo / le padding / le filet viennent des primitifs du kit ;
 // il ne reste ici que ce que les cellules ajoutent EN PLUS.
 const CELL_CLASS = 'tabular-nums';
-// Tableau de detail (modale SEPA) : mise en page cle/valeur, donc plus serree et sans filet.
+// Tableau de détail du reversement : mise en page cle/valeur, donc plus serree et sans filet.
 const DETAIL_CELL_CLASS = 'py-[4.5px] border-b-0 tabular-nums';
 const DETAIL_LABEL_CLASS = `${DETAIL_CELL_CLASS} font-semibold text-muted-foreground`;
 // Conteneurs de tableau : meme surface que `PANEL_CLASS`, plus le defilement.
@@ -110,36 +119,50 @@ const fmtDate = (d: string | null) =>
 
 const fmtPercent = (n: number) => `${(n * 100).toFixed(1)}%`;
 
+function PayoutIconAction({ label, children, ...props }: Omit<React.ComponentProps<typeof BuiButton>, 'size' | 'variant' | 'aria-label'> & { label: string }) {
+  return (
+    <Tooltip>
+      <TooltipTrigger asChild>
+        <span className="inline-flex">
+          <BuiButton {...props} type="button" variant="ghost" size="icon-sm" aria-label={label}>
+            {children}
+          </BuiButton>
+        </span>
+      </TooltipTrigger>
+      <TooltipContent>{label}</TooltipContent>
+    </Tooltip>
+  );
+}
+
 // ═══════════════════════════════════════════════════════════════════════════
 //  Payouts Tab
 // ═══════════════════════════════════════════════════════════════════════════
 
 export const PayoutsTab: React.FC = () => {
   const { t } = useTranslation();
-  const { convertAndFormat } = useCurrency();
-  const fmtCurrency = (n: number, currency = 'EUR') => convertAndFormat(n, currency);
+  const navigate = useNavigate();
+  const { hasRole } = useAuth();
+  const payoutStatusLabel = (payout: OwnerPayout) => payout.status === 'PAID'
+    ? payout.payoutMethod === 'STRIPE_CONNECT' ? t('accounting.psp.sentState', 'Transféré au PSP')
+      : t('accounting.workflow.recordedStatus', 'Payé (historique)')
+    : t(`accounting.payoutStatuses.${payout.status}`, payout.status);
+  // Un ordre de virement affiche sa devise réelle, jamais une conversion d'affichage.
+  const fmtCurrency = (n: number, currency = 'EUR') =>
+    new Intl.NumberFormat(activeIntlLocale(), { style: 'currency', currency }).format(n);
 
   // Filters
   const [filterOwnerId, setFilterOwnerId] = useState<number | ''>('');
   const [filterStatus, setFilterStatus] = useState<PayoutStatus | ''>('');
-
-  // Dialogs
-  const [payOpen, setPayOpen] = useState(false);
-  const [payTarget, setPayTarget] = useState<OwnerPayout | null>(null);
-  const [payRef, setPayRef] = useState('');
+  const [generateOpen, setGenerateOpen] = useState(false);
 
   // Detail modal
   const [detailOpen, setDetailOpen] = useState(false);
   const [detailPayout, setDetailPayout] = useState<OwnerPayout | null>(null);
 
-  // Owner payout configs (IBAN, BIC, holder)
-  const { data: payoutConfigs = [] } = useQuery<OwnerPayoutConfig[]>({
-    queryKey: ['ownerPayoutConfigs'],
-    queryFn: () => accountingApi.getAllOwnerPayoutConfigs(),
-    staleTime: 5 * 60 * 1000,
-  });
+  // Même cache que les paramètres : un changement de PSP est immédiatement repris.
+  const { data: payoutConfigs = [] } = useAllOwnerPayoutConfigs();
   const configByOwnerId = useMemo(() => {
-    const map = new Map<number, OwnerPayoutConfig>();
+    const map = new Map<number, (typeof payoutConfigs)[number]>();
     for (const c of payoutConfigs) map.set(c.ownerId, c);
     return map;
   }, [payoutConfigs]);
@@ -147,19 +170,14 @@ export const PayoutsTab: React.FC = () => {
   // Data
   const ownerId = filterOwnerId === '' ? undefined : filterOwnerId;
   const status = filterStatus === '' ? undefined : filterStatus;
-  const { data: payouts = [], isLoading, isError } = usePayouts(ownerId, status);
+  const { data: payouts = [], isLoading, isError, refetch: refetchPayouts } = usePayouts(ownerId, status);
 
   // Deep-link notification (?highlight=<payoutId>) — surligne la ligne ciblee.
   const highlightId = useHighlightParam();
   useHighlightTarget(highlightId, !isLoading && payouts.length > 0);
 
-  // SEPA XML download
-  const [sepaDownloading, setSepaDownloading] = useState(false);
-  const [sepaError, setSepaError] = useState<string | null>(null);
-
   // Mutations
   const approveMutation = useApprovePayout();
-  const markPaidMutation = useMarkAsPaid();
   const executeMutation = useExecutePayout();
   const retryMutation = useRetryPayout();
 
@@ -178,58 +196,57 @@ export const PayoutsTab: React.FC = () => {
 
   // Handlers
   const handleApprove = useCallback(
-    (id: number) => approveMutation.mutate(id),
-    [approveMutation],
+    (id: number) => {
+      executeMutation.reset();
+      retryMutation.reset();
+      approveMutation.mutate(id);
+    },
+    [approveMutation, executeMutation, retryMutation],
   );
-
-  const handleMarkPaid = useCallback(async () => {
-    if (!payTarget || !payRef.trim()) return;
-    await markPaidMutation.mutateAsync({ id: payTarget.id, paymentReference: payRef.trim() });
-    setPayOpen(false);
-    setPayTarget(null);
-    setPayRef('');
-  }, [payTarget, payRef, markPaidMutation]);
-
-  const openPayDialog = useCallback((payout: OwnerPayout) => {
-    setPayTarget(payout);
-    setPayRef('');
-    setPayOpen(true);
-  }, []);
-
-  const processingSepaPayouts = useMemo(
-    () => payouts.filter((p) => p.status === 'PROCESSING' && p.payoutMethod === 'SEPA_TRANSFER'),
-    [payouts],
-  );
-
-  const handleDownloadSepaXml = useCallback(async (ids: number[]) => {
-    if (ids.length === 0) return;
-    setSepaDownloading(true);
-    setSepaError(null);
-    try {
-      await accountingExportApi.downloadSepaXml(ids);
-    } catch (err) {
-      setSepaError((err as Error)?.message || t('accounting.sepaDownloadError', 'Erreur lors du telechargement SEPA'));
-    } finally {
-      setSepaDownloading(false);
-    }
-  }, [t]);
 
   const helpAction = usePageHeaderActions(
+    <>
+    <BuiButton size="sm" variant="outline" aria-expanded={generateOpen} aria-controls="payout-generate-panel" onClick={() => setGenerateOpen(open => !open)}>
+      <AddIcon />{t('accounting.generateFlow.new', 'Nouveau reversement')}
+    </BuiButton>
     <HelpPopover
       label={t('common.help', 'Aide')}
       title={t('accounting.payouts.help.title', 'Comment fonctionnent les payouts ?')}
       description={t('accounting.payouts.help.description', 'Les payouts vous permettent de calculer et suivre les reversements dus a chaque proprietaire.')}
       steps={[
         { icon: <StepGenIcon size={14} strokeWidth={1.75} />, title: t('accounting.payouts.help.step1Title', 'Generer'), description: t('accounting.payouts.help.step1Desc', 'Selectionnez un proprietaire et une periode pour calculer le reversement.'), accent: 'primary' },
-        { icon: <StepCalcIcon size={14} strokeWidth={1.75} />, title: t('accounting.payouts.help.step2Title', 'Verifier'), description: t('accounting.payouts.help.step2Desc', 'Le systeme calcule : revenus - commission - depenses = montant net.'), accent: 'info' },
-        { icon: <StepValidIcon size={14} strokeWidth={1.75} />, title: t('accounting.payouts.help.step3Title', 'Valider & Payer'), description: t('accounting.payouts.help.step3Desc', 'Approuvez le payout puis marquez-le comme paye apres le virement.'), accent: 'success' },
+        { icon: <StepCalcIcon size={14} strokeWidth={1.75} />, title: t('accounting.payouts.help.step2Title', 'Vérifier'), description: t('accounting.payouts.help.step2Desc', 'Séjours terminés avec encaissements confirmés : revenus − frais OTA − commission − dépenses = montant net.'), accent: 'info' },
+        { icon: <StepValidIcon size={14} strokeWidth={1.75} />, title: t('accounting.payouts.help.step3Title', 'Approuver et verser'), description: t('accounting.payouts.help.step3Desc', 'Approuvez le montant, lancez le versement via le PSP puis suivez sa confirmation automatique.'), accent: 'success' },
       ]}
-    />,
+    />
+    </>,
   );
 
   return (
     <>
       {helpAction}
+      {!isError && <FinanceAmountKpis kind="payouts" records={payouts.map(row => ({ status: row.status, amount: row.netAmount, currency: row.currency || 'EUR' }))} loading={isLoading} />}
+
+      {[true, false].map(approve => <FinanceBatchPanel key={String(approve)}
+        title={t(approve ? 'financeBatch.ownerApprovals' : 'financeBatch.ownerTransfers')}
+        actionLabel={t(approve ? 'financeBatch.approve' : 'financeBatch.transfer')}
+        disabled={isLoading || isError || approveMutation.isPending || executeMutation.isPending || retryMutation.isPending}
+        items={ownerBatchItems(payouts, configByOwnerId, approve)}
+        onExecute={async items => {
+          const results = await executeOwnerBatch(items, approve);
+          await refetchPayouts(); return results;
+        }} />)}
+
+      {generateOpen && <div id="payout-generate-panel"><GeneratePayoutForm
+        onClose={() => setGenerateOpen(false)}
+        onGenerated={payout => {
+          setFilterOwnerId('');
+          setFilterStatus('');
+          setGenerateOpen(false);
+          setDetailPayout(payout);
+          setDetailOpen(true);
+        }}
+      /></div>}
 
       {/* ── Filters + Actions ── */}
       <div className={cn(PANEL_CLASS, 'p-3 mb-[9px] flex gap-3 items-center flex-wrap')}>
@@ -259,7 +276,7 @@ export const PayoutsTab: React.FC = () => {
             .filter((v): v is PayoutStatus => v !== '')
             .map((v) => ({
               value: v,
-              label: t(`accounting.payoutStatuses.${v}`, v),
+              label: v === 'PAID' ? t('accounting.workflow.paidFilter', 'Transféré / payé') : t(`accounting.payoutStatuses.${v}`, v),
               color: PAYOUT_STATUS_COLORS[v],
             }))}
           value={filterStatus}
@@ -268,44 +285,24 @@ export const PayoutsTab: React.FC = () => {
           size="compact"
         />
 
-        {sepaError && (
-          <BuiAlert variant="destructive" className="text-[0.8125rem]">
-            <TriangleAlert />
-            <AlertDescription>{sepaError}</AlertDescription>
-            <AlertAction>
-              <BuiButton variant="ghost" size="icon-xs" aria-label="Fermer" onClick={() => setSepaError(null)}>
-                <X />
-              </BuiButton>
-            </AlertAction>
-          </BuiAlert>
-        )}
-
-        <div className="ms-auto flex gap-1.5">
-          {processingSepaPayouts.length > 0 && (
-            <SepaTransferProcedureTooltip placement="bottom">
-              {/* Le Tooltip MUI pose une ref sur son enfant : le Button du kit
-                  ne la transmet pas, d'ou le span intermediaire. */}
-              <span className="inline-flex">
-                <BuiButton
-                  size="sm"
-                  variant="outline"
-                  onClick={() => handleDownloadSepaXml(processingSepaPayouts.map((p) => p.id))}
-                  disabled={sepaDownloading}
-                >
-                  {sepaDownloading ? <Spinner className="size-3.5" /> : <DownloadIcon />}
-                  {t('accounting.downloadSepaXml', 'SEPA XML')} ({processingSepaPayouts.length})
-                </BuiButton>
-              </span>
-            </SepaTransferProcedureTooltip>
-          )}
-        </div>
       </div>
 
+      <p className="mb-3 px-1 text-xs text-muted-foreground">
+        {t('accounting.workflow.guide', 'Calcul du montant → Approbation → Versement via le PSP. Approuver ne déclenche aucun paiement.')}
+      </p>
+
       {/* ── Alerts ── */}
+      {approveMutation.isError && (
+        <BuiAlert variant="destructive" className="mb-2 text-[0.8125rem]">
+          <TriangleAlert />
+          <AlertDescription>{approveMutation.error?.message
+            || t('accounting.approveError', 'Impossible d’approuver ce reversement.')}</AlertDescription>
+        </BuiAlert>
+      )}
       {approveMutation.isSuccess && (
         <BuiAlert variant="success" className="mb-2 text-[0.8125rem]">
           <CircleCheck />
-          <AlertDescription>{t('accounting.approveSuccess', 'Payout approuve')}</AlertDescription>
+          <AlertDescription>{t('accounting.workflow.approvedMessage', 'Montant approuvé. Aucun versement n’a été lancé.')}</AlertDescription>
           <AlertAction>
             <BuiButton variant="ghost" size="icon-xs" aria-label="Fermer" onClick={() => approveMutation.reset()}>
               <X />
@@ -313,17 +310,7 @@ export const PayoutsTab: React.FC = () => {
           </AlertAction>
         </BuiAlert>
       )}
-      {executeMutation.isSuccess && (
-        <BuiAlert variant="success" className="mb-2 text-[0.8125rem]">
-          <CircleCheck />
-          <AlertDescription>{t('accounting.executeSuccess', 'Virement execute avec succes')}</AlertDescription>
-          <AlertAction>
-            <BuiButton variant="ghost" size="icon-xs" aria-label="Fermer" onClick={() => executeMutation.reset()}>
-              <X />
-            </BuiButton>
-          </AlertAction>
-        </BuiAlert>
-      )}
+      {executeMutation.isSuccess && executeMutation.data && <PayoutActionResult status={executeMutation.data.status} reason={executeMutation.data.failureReason} onClose={() => executeMutation.reset()} />}
       {executeMutation.isError && (
         <BuiAlert variant="destructive" className="mb-2 text-[0.8125rem]">
           <TriangleAlert />
@@ -336,21 +323,12 @@ export const PayoutsTab: React.FC = () => {
           </AlertAction>
         </BuiAlert>
       )}
-      {retryMutation.isSuccess && (
-        <BuiAlert variant="success" className="mb-2 text-[0.8125rem]">
-          <CircleCheck />
-          <AlertDescription>{t('accounting.retrySuccess', 'Relance effectuee avec succes')}</AlertDescription>
-          <AlertAction>
-            <BuiButton variant="ghost" size="icon-xs" aria-label="Fermer" onClick={() => retryMutation.reset()}>
-              <X />
-            </BuiButton>
-          </AlertAction>
-        </BuiAlert>
-      )}
+      {retryMutation.isSuccess && retryMutation.data && <PayoutActionResult status={retryMutation.data.status} reason={retryMutation.data.failureReason} onClose={() => retryMutation.reset()} />}
       {retryMutation.isError && (
         <BuiAlert variant="destructive" className="mb-2 text-[0.8125rem]">
           <TriangleAlert />
-          <AlertDescription>{t('accounting.retryError', 'Erreur lors de la relance du virement')}</AlertDescription>
+          <AlertDescription>{retryMutation.error?.message
+            || t('accounting.retryError', 'Erreur lors de la relance du virement')}</AlertDescription>
           <AlertAction>
             <BuiButton variant="ghost" size="icon-xs" aria-label="Fermer" onClick={() => retryMutation.reset()}>
               <X />
@@ -358,18 +336,6 @@ export const PayoutsTab: React.FC = () => {
           </AlertAction>
         </BuiAlert>
       )}
-      {markPaidMutation.isSuccess && (
-        <BuiAlert variant="success" className="mb-2 text-[0.8125rem]">
-          <CircleCheck />
-          <AlertDescription>{t('accounting.paidSuccess', 'Payout marque comme paye')}</AlertDescription>
-          <AlertAction>
-            <BuiButton variant="ghost" size="icon-xs" aria-label="Fermer" onClick={() => markPaidMutation.reset()}>
-              <X />
-            </BuiButton>
-          </AlertAction>
-        </BuiAlert>
-      )}
-
       {/* ── Table ── */}
       {isLoading ? (
         <div className="flex flex-col gap-1.5">
@@ -394,327 +360,95 @@ export const PayoutsTab: React.FC = () => {
           variant="plain"
         />
       ) : (
-        <div className={CARD_CLASS}>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>{t('accounting.col.owner', 'Proprietaire')}</TableHead>
-                <TableHead>{t('accounting.col.period', 'Periode')}</TableHead>
-                <TableHead className="text-end">{t('accounting.col.gross', 'Revenu brut')}</TableHead>
-                <TableHead className="text-end">{t('accounting.col.commission', 'Commission')}</TableHead>
-                <TableHead className="text-end">{t('accounting.col.expenses', 'Depenses')}</TableHead>
-                <TableHead className="text-end">{t('accounting.col.net', 'Net')}</TableHead>
-                <TableHead className="text-center">{t('accounting.col.status', 'Status')}</TableHead>
-                <TableHead className="text-end">{t('common.actions', 'Actions')}</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {payouts.map((payout) => (
-                <TableRow key={payout.id} data-highlight-id={String(payout.id)}>
-                  <TableCell className={CELL_CLASS}>
+        <FinanceWorkspace artwork="transfer" selectedId={detailOpen ? detailPayout?.id : undefined} onSelect={id => { setDetailPayout(payouts.find(p => p.id === id) ?? null); setDetailOpen(id !== null); }} items={payouts.map((payout) => {
+                const workflow = getPayoutWorkflow(payout, configByOwnerId.get(payout.ownerId));
+                return (
+                { id: payout.id, eventImage: financeEventArtwork('', 'OWNER_PAYOUT'), title: <>
                     {payout.ownerName ?? `${t('accounting.owner', 'Proprietaire')} #${payout.ownerId}`}
-                  </TableCell>
-                  <TableCell className={`${CELL_CLASS} text-xs`}>
+                  </>, amount: <>
+                    {fmtCurrency(payout.netAmount, payout.currency)}
+                  </>, status: <>
+                    <StatusChip color={PAYOUT_STATUS_COLORS[payout.status] ?? 'var(--bui-muted-foreground)'} label={payoutStatusLabel(payout)} />
+                    <p className="mt-1 text-[0.6875rem] text-muted-foreground">
+                      {t(`accounting.workflow.hints.${workflow.hint}`)}
+                    </p>
+                  </>, subtitle: <>
                     {fmtDate(payout.periodStart)} → {fmtDate(payout.periodEnd)}
-                  </TableCell>
-                  <TableCell className={`${CELL_CLASS} text-end`}>{fmtCurrency(payout.grossRevenue)}</TableCell>
-                  <TableCell className={`${CELL_CLASS} text-end`}>
-                    {fmtCurrency(payout.commissionAmount)}{' '}
+                  </>,  actions: <>
+                    <div className="flex items-center justify-end gap-0.5">
+                      {(() => {
+                        const detailLabel = workflow.blocker === 'legacy'
+                          ? t('accounting.psp.legacy', 'Ancienne méthode · consultation')
+                          : workflow.blocker === 'funding' ? t('accounting.psp.checkFunding', 'Vérifier les encaissements')
+                          : workflow.blocker ? t('accounting.workflow.checkBlocker', 'Comprendre le blocage')
+                          : t('accounting.viewDetail', 'Voir le détail');
+
+                        return (
+                          <>
+                            {workflow.canApprove && (
+                              <PayoutIconAction label={t('accounting.approve', 'Approuver')}
+                                className="text-primary" onClick={() => handleApprove(payout.id)}
+                                disabled={approveMutation.isPending}>
+                                <ApproveIcon size={16} strokeWidth={1.75} />
+                              </PayoutIconAction>
+                            )}
+                            {workflow.blocker === 'beneficiary' && hasRole('SUPER_ADMIN') && (
+                              <PayoutIconAction label={t('accounting.psp.configure', 'Configurer le PSP')}
+                                onClick={() => navigate('/settings?tab=payouts')}>
+                                <Settings2 size={16} strokeWidth={1.75} />
+                              </PayoutIconAction>
+                            )}
+                            {(workflow.canSend || workflow.canRetry) && (
+                              <PayoutIconAction
+                                label={workflow.canRetry ? t('accounting.psp.retry', 'Réessayer le versement') : t('accounting.psp.send', 'Verser via Stripe')}
+                                className="text-primary"
+                                disabled={executeMutation.isPending || retryMutation.isPending}
+                                onClick={() => {
+                                  executeMutation.reset(); retryMutation.reset(); approveMutation.reset();
+                                  (workflow.canRetry ? retryMutation : executeMutation).mutate(payout.id);
+                                }}>
+                                {workflow.canRetry ? <RefreshCw size={16} strokeWidth={1.75} /> : <Send size={16} strokeWidth={1.75} />}
+                              </PayoutIconAction>
+                            )}
+                            {workflow.canTrack && (
+                              <PayoutIconAction label={t('accounting.psp.track', 'Suivre')}
+                                onClick={() => navigate('/billing?tab=payout-tracking')}>
+                                <ExternalLink size={16} strokeWidth={1.75} />
+                              </PayoutIconAction>
+                            )}
+                            {/* Un blocage ouvre son explication, sans déclencher de versement. */}
+                            <PayoutIconAction label={detailLabel}
+                              className={workflow.blocker ? 'text-warning-ink' : undefined}
+                              onClick={() => { setDetailPayout(payout); setDetailOpen(true); }}>
+                              {workflow.blocker === 'legacy' ? <Archive size={16} strokeWidth={1.75} />
+                                : workflow.blocker === 'funding' ? <FileSearch size={16} strokeWidth={1.75} />
+                                : workflow.blocker ? <TriangleAlert size={16} strokeWidth={1.75} />
+                                : <VisibilityIcon size={16} strokeWidth={1.75} />}
+                            </PayoutIconAction>
+                          </>
+                        );
+                      })()}
+                    </div>
+                  </>, fields: [{label: <>{t('accounting.col.period', 'Periode')}</>, value: <>
+                    {fmtDate(payout.periodStart)} → {fmtDate(payout.periodEnd)}
+                  </>},{label: <>{t('accounting.col.gross', 'Revenu brut')}</>, value: <>{fmtCurrency(payout.grossRevenue, payout.currency)}</>},{label: <>{t('accounting.col.commission', 'Commission')}</>, value: <>
+                    {fmtCurrency(payout.commissionAmount, payout.currency)}{' '}
                     <span className="text-[0.6875rem] text-muted-foreground">
                       ({fmtPercent(payout.commissionRate)})
                     </span>
-                  </TableCell>
-                  <TableCell className={`${CELL_CLASS} text-end`}>{fmtCurrency(payout.expenses)}</TableCell>
-                  <TableCell className={`${CELL_CLASS} text-end font-bold`}>
-                    {fmtCurrency(payout.netAmount)}
-                  </TableCell>
-                  <TableCell className="text-center">
-                    <StatusChip color={PAYOUT_STATUS_COLORS[payout.status] ?? 'var(--bui-muted-foreground)'} label={t(`accounting.payoutStatuses.${payout.status}`, payout.status)} />
-                  </TableCell>
-                  <TableCell className="text-end whitespace-nowrap">
-                    <div className="flex items-center justify-end gap-0.5">
-                    {payout.status === 'PENDING' && (
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <span className="inline-flex">
-                            <BuiButton
-                              variant="ghost"
-                              size="icon-sm"
-                              className="text-primary"
-                              aria-label={t('accounting.approve', 'Approuver')}
-                              onClick={() => handleApprove(payout.id)}
-                              disabled={approveMutation.isPending}
-                            >
-                              <ApproveIcon size={'1rem'} strokeWidth={1.75} />
-                            </BuiButton>
-                          </span>
-                        </TooltipTrigger>
-                        <TooltipContent>{t('accounting.approve', 'Approuver')}</TooltipContent>
-                      </Tooltip>
-                    )}
-                    {payout.status === 'APPROVED' && (
-                      <>
-                        <Tooltip>
-                          <TooltipTrigger asChild>
-                            <span className="inline-flex">
-                              <BuiButton
-                                variant="ghost"
-                                size="icon-sm"
-                                className="text-primary"
-                                aria-label={t('accounting.executePayout', 'Executer le virement')}
-                                onClick={() => executeMutation.mutate(payout.id)}
-                                disabled={executeMutation.isPending}
-                              >
-                                {executeMutation.isPending ? (
-                                  <Spinner className="size-3.5" />
-                                ) : (
-                                  <AccountIcon size={'1rem'} strokeWidth={1.75} />
-                                )}
-                              </BuiButton>
-                            </span>
-                          </TooltipTrigger>
-                          <TooltipContent>{t('accounting.executePayout', 'Executer le virement')}</TooltipContent>
-                        </Tooltip>
-                        <Tooltip>
-                          <TooltipTrigger asChild>
-                            <span className="inline-flex">
-                              <BuiButton
-                                variant="ghost"
-                                size="icon-sm"
-                                className="text-success"
-                                aria-label={t('accounting.markPaid', 'Marquer paye')}
-                                onClick={() => openPayDialog(payout)}
-                                disabled={markPaidMutation.isPending}
-                              >
-                                <PaidIcon size={'1rem'} strokeWidth={1.75} />
-                              </BuiButton>
-                            </span>
-                          </TooltipTrigger>
-                          <TooltipContent>{t('accounting.markPaid', 'Marquer paye')}</TooltipContent>
-                        </Tooltip>
-                      </>
-                    )}
-                    {payout.status === 'PROCESSING' && (
-                      <div className="flex items-center gap-0.5">
-                        <Tooltip>
-                          <TooltipTrigger asChild>
-                            <span className="inline-flex">
-                              <BuiButton
-                                variant="ghost"
-                                size="icon-sm"
-                                className="text-success"
-                                aria-label={t('accounting.markAsPaid', 'Marquer comme payé')}
-                                onClick={() => openPayDialog(payout)}
-                                disabled={markPaidMutation.isPending}
-                              >
-                                <PaidIcon size={'1rem'} strokeWidth={1.75} />
-                              </BuiButton>
-                            </span>
-                          </TooltipTrigger>
-                          <TooltipContent>{t('accounting.markAsPaid', 'Marquer comme payé')}</TooltipContent>
-                        </Tooltip>
-                        {payout.payoutMethod === 'SEPA_TRANSFER' && (
-                          <SepaTransferProcedureTooltip placement="left">
-                            {/* Le Tooltip MUI pose une ref sur son enfant : le
-                                Button du kit ne la transmet pas. */}
-                            <span className="inline-flex">
-                              <BuiButton
-                                variant="ghost"
-                                size="icon-sm"
-                                aria-label={t('accounting.downloadSepaXml', 'SEPA XML')}
-                                onClick={() => handleDownloadSepaXml([payout.id])}
-                                disabled={sepaDownloading}
-                              >
-                                <DownloadIcon size={'1rem'} strokeWidth={1.75} />
-                              </BuiButton>
-                            </span>
-                          </SepaTransferProcedureTooltip>
-                        )}
-                      </div>
-                    )}
-                    {payout.status === 'FAILED' && (
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <span className="inline-flex">
-                            <BuiButton
-                              variant="ghost"
-                              size="icon-sm"
-                              className="text-warning"
-                              aria-label={payout.failureReason ?? t('accounting.failedPayout', 'Echec du reversement')}
-                              onClick={() => retryMutation.mutate(payout.id)}
-                              disabled={retryMutation.isPending || payout.retryCount >= 3}
-                            >
-                              {retryMutation.isPending ? (
-                                <Spinner className="size-3.5" />
-                              ) : (
-                                <BuildIcon size={'1rem'} strokeWidth={1.75} />
-                              )}
-                            </BuiButton>
-                          </span>
-                        </TooltipTrigger>
-                        <TooltipContent>{payout.failureReason ?? t('accounting.failedPayout', 'Echec du reversement')}</TooltipContent>
-                      </Tooltip>
-                    )}
-                    {payout.status === 'PAID' && payout.paymentReference && (
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <span className="text-[0.6875rem] text-muted-foreground cursor-help">
-                            {payout.paymentReference}
-                          </span>
-                        </TooltipTrigger>
-                        <TooltipContent>{`Ref: ${payout.paymentReference}`}</TooltipContent>
-                      </Tooltip>
-                    )}
-                    {/* Detail button — all statuses except PENDING */}
-                    {payout.status !== 'PENDING' && (
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <BuiButton
-                            variant="ghost"
-                            size="icon-sm"
-                            aria-label={t('accounting.viewDetail', 'Voir le détail')}
-                            onClick={() => { setDetailPayout(payout); setDetailOpen(true); }}
-                          >
-                            <VisibilityIcon size={'1rem'} strokeWidth={1.75} />
-                          </BuiButton>
-                        </TooltipTrigger>
-                        <TooltipContent>{t('accounting.viewDetail', 'Voir le détail')}</TooltipContent>
-                      </Tooltip>
-                    )}
-                    </div>
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </div>
+                  </>},{label: <>{t('accounting.col.expenses', 'Depenses')}</>, value: <>{fmtCurrency(payout.expenses, payout.currency)}</>},{label: <>{t('accounting.col.net', 'Net')}</>, value: <>
+                    {fmtCurrency(payout.netAmount, payout.currency)}
+                  </>},
+                  {label: t('accounting.otaFees', 'Frais OTA'), value: fmtCurrency(payout.otaFees ?? 0, payout.currency)},
+                  {label: t('common.method'), value: payout.payoutMethod === 'STRIPE_CONNECT' ? 'Stripe Connect' : payout.payoutMethod ? t('accounting.psp.legacy') : t('accounting.workflow.methodNotRecorded')},
+                  {label: t('common.reference'), value: payout.stripeTransferId || payout.paymentReference || '—'},
+                  ], detail: <div className="rounded-xl bg-muted p-4 text-sm"><p>{t(`accounting.workflow.details.${workflow.hint}`)}</p><p className="mt-3 text-muted-foreground">{t('accounting.psp.bankHint')}</p>{payout.failureReason && <p className="mt-3 text-warning-ink">{payout.failureReason}</p>}</div>, }
+                );
+              })}  />
       )}
 
-      {/* ═══════════════════════════════════════════════════════════════════════
-          Mark as Paid Dialog
-          ═══════════════════════════════════════════════════════════════════════ */}
-      <Dialog open={payOpen} onOpenChange={setPayOpen}>
-        <DialogContent aria-describedby={undefined} className="sm:max-w-[444px]">
-          <DialogHeader>
-            <DialogTitle>
-              {t('accounting.payTitle', 'Marquer comme paye')}
-            </DialogTitle>
-          </DialogHeader>
-          {payTarget && (
-            <p className="text-[0.8125rem] text-muted-foreground">
-              {t('accounting.paySubtitle', 'Payout')} #{payTarget.id} — {fmtCurrency(payTarget.netAmount)}
-            </p>
-          )}
-          <Field>
-            <FieldLabel className="text-[0.8125rem]" htmlFor="payout-payment-ref">
-              {t('accounting.form.payRef', 'Reference de paiement')}
-            </FieldLabel>
-            <Input
-              id="payout-payment-ref"
-              className="w-full text-[0.8125rem]"
-              value={payRef}
-              onChange={(e) => setPayRef(e.target.value)}
-              placeholder="VIR-2024-001, CB-xxx..."
-            />
-          </Field>
-          <DialogFooter>
-            <BuiButton variant="ghost" size="sm" onClick={() => setPayOpen(false)}>
-              {t('common.cancel', 'Annuler')}
-            </BuiButton>
-            {/* `color="success"` d'origine restait decoratif : c'est l'action
-                principale de la modale, donc `default` et non une teinte --ok. */}
-            <BuiButton
-              size="sm"
-              onClick={handleMarkPaid}
-              disabled={markPaidMutation.isPending || !payRef.trim()}
-            >
-              {markPaidMutation.isPending ? <Spinner className="size-4" /> : t('accounting.confirmPaid', 'Confirmer paiement')}
-            </BuiButton>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      {/* Détail du calcul et résultat du PSP. */}
 
-      {/* ═══════════════════════════════════════════════════════════════════════
-          Detail SEPA Modal
-          ═══════════════════════════════════════════════════════════════════════ */}
-      <Dialog open={detailOpen} onOpenChange={setDetailOpen}>
-        <DialogContent aria-describedby={undefined} className="sm:max-w-[600px]">
-          <DialogHeader>
-            <DialogTitle className="flex flex-row items-center gap-1.5">
-              <span className="inline-flex text-primary"><AccountIcon size={'1.25rem'} strokeWidth={1.75} /></span>
-              {t('accounting.payoutDetail', 'Détail du reversement')}
-            </DialogTitle>
-          </DialogHeader>
-          {detailPayout && (() => {
-            const config = configByOwnerId.get(detailPayout.ownerId);
-            return (
-              <Table>
-                <TableBody>
-                  <TableRow>
-                    <TableCell className={`${DETAIL_LABEL_CLASS} w-[160px]`}>{t('accounting.beneficiary')}</TableCell>
-                    <TableCell className={DETAIL_CELL_CLASS}>{config?.bankAccountHolder || detailPayout.ownerName || '—'}</TableCell>
-                  </TableRow>
-                  <TableRow>
-                    <TableCell className={DETAIL_LABEL_CLASS}>IBAN</TableCell>
-                    <TableCell className={`${DETAIL_CELL_CLASS} font-mono tracking-[1px]`}>{config?.maskedIban || '—'}</TableCell>
-                  </TableRow>
-                  <TableRow>
-                    <TableCell className={DETAIL_LABEL_CLASS}>BIC</TableCell>
-                    <TableCell className={`${DETAIL_CELL_CLASS} font-mono`}>{config?.bic || '—'}</TableCell>
-                  </TableRow>
-                  <TableRow>
-                    <TableCell className={DETAIL_LABEL_CLASS}>{t('common.method')}</TableCell>
-                    <TableCell className={DETAIL_CELL_CLASS}>
-                      <StatusChip tone="info" label={detailPayout.payoutMethod === 'SEPA_TRANSFER' ? 'Virement SEPA' : detailPayout.payoutMethod === 'STRIPE_CONNECT' ? 'Stripe Connect' : 'Manuel'} />
-                    </TableCell>
-                  </TableRow>
-                  <TableRow><TableCell colSpan={2} className={`${DETAIL_CELL_CLASS} pt-[12px]`}><Separator /></TableCell></TableRow>
-                  <TableRow>
-                    <TableCell className={DETAIL_LABEL_CLASS}>{t('common.period')}</TableCell>
-                    <TableCell className={DETAIL_CELL_CLASS}>{detailPayout.periodStart} → {detailPayout.periodEnd}</TableCell>
-                  </TableRow>
-                  <TableRow>
-                    <TableCell className={DETAIL_LABEL_CLASS}>Revenu brut</TableCell>
-                    <TableCell className={DETAIL_CELL_CLASS}>{fmtCurrency(detailPayout.grossRevenue)}</TableCell>
-                  </TableRow>
-                  <TableRow>
-                    <TableCell className={DETAIL_LABEL_CLASS}>Commission ({(detailPayout.commissionRate * 100).toFixed(1)}%)</TableCell>
-                    <TableCell className={`${DETAIL_CELL_CLASS} text-destructive-ink`}>- {fmtCurrency(detailPayout.commissionAmount)}</TableCell>
-                  </TableRow>
-                  <TableRow>
-                    <TableCell className={DETAIL_LABEL_CLASS}>{t('common.expenses')}</TableCell>
-                    <TableCell className={detailPayout.expenses > 0 ? `${DETAIL_CELL_CLASS} text-destructive-ink` : `${DETAIL_CELL_CLASS} text-muted-foreground`}>
-                      {detailPayout.expenses > 0 ? `- ${fmtCurrency(detailPayout.expenses)}` : fmtCurrency(0)}
-                    </TableCell>
-                  </TableRow>
-                  <TableRow><TableCell colSpan={2} className={DETAIL_CELL_CLASS}><Separator /></TableCell></TableRow>
-                  <TableRow>
-                    <TableCell className={`${DETAIL_CELL_CLASS} font-bold text-sm`}>{t('accounting.netToTransfer')}</TableCell>
-                    <TableCell className={`${DETAIL_CELL_CLASS} font-[family-name:var(--font-display)] font-semibold text-sm text-success-ink`}>{fmtCurrency(detailPayout.netAmount)}</TableCell>
-                  </TableRow>
-                  {detailPayout.paymentReference && (
-                    <TableRow>
-                      <TableCell className={DETAIL_LABEL_CLASS}>{t('accounting.paymentRef')}</TableCell>
-                      <TableCell className={`${DETAIL_CELL_CLASS} font-mono`}>{detailPayout.paymentReference}</TableCell>
-                    </TableRow>
-                  )}
-                  <TableRow>
-                    <TableCell className={DETAIL_LABEL_CLASS}>Statut</TableCell>
-                    <TableCell className={DETAIL_CELL_CLASS}>
-                      <StatusChip color={PAYOUT_STATUS_COLORS[detailPayout.status] ?? 'var(--bui-muted-foreground)'} label={detailPayout.status} />
-                    </TableCell>
-                  </TableRow>
-                </TableBody>
-              </Table>
-            );
-          })()}
-          <DialogFooter>
-            <BuiButton variant="ghost" size="sm" onClick={() => setDetailOpen(false)}>
-              {t('common.close', 'Fermer')}
-            </BuiButton>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
     </>
   );
 };
@@ -739,15 +473,16 @@ const fmtCurrency = (n: number, currency = 'EUR') => <Money value={n} from={curr
 export const ExpensesTab: React.FC = () => {
   const { t } = useTranslation();
   const queryClient = useQueryClient();
+  const { user } = useAuth();
+  const highlightExpense = useHighlightParam();
+  const [selectedExpense, setSelectedExpense] = useState<string | number | null>(highlightExpense);
+  useEffect(() => { setSelectedExpense(highlightExpense); }, [highlightExpense]);
 
   // Filters
   const [filterStatus, setFilterStatus] = useState<ExpenseStatus | ''>('');
 
   // Dialog
   const [createOpen, setCreateOpen] = useState(false);
-  const [payOpen, setPayOpen] = useState(false);
-  const [payTarget, setPayTarget] = useState<ProviderExpense | null>(null);
-  const [payRef, setPayRef] = useState('');
 
   // Form
   const [form, setForm] = useState<Partial<CreateProviderExpenseRequest>>({
@@ -758,7 +493,7 @@ export const ExpensesTab: React.FC = () => {
 
   // Data
   const { data: expenses = [], isLoading, isError } = useQuery({
-    queryKey: ['provider-expenses', filterStatus || undefined],
+    queryKey: ['provider-expenses', user?.id, user?.organizationId, filterStatus || undefined],
     queryFn: () => providerExpensesApi.getAll(filterStatus ? { status: filterStatus } : undefined),
   });
 
@@ -795,16 +530,6 @@ export const ExpensesTab: React.FC = () => {
   const cancelMutation = useMutation({
     mutationFn: (id: number) => providerExpensesApi.cancel(id),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['provider-expenses'] }),
-  });
-
-  const payMutation = useMutation({
-    mutationFn: ({ id, ref }: { id: number; ref?: string }) => providerExpensesApi.markAsPaid(id, ref),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['provider-expenses'] });
-      setPayOpen(false);
-      setPayTarget(null);
-      setPayRef('');
-    },
   });
 
   const uploadReceiptMutation = useMutation({
@@ -865,17 +590,6 @@ export const ExpensesTab: React.FC = () => {
     }
   }, []);
 
-  const openPayDialog = useCallback((expense: ProviderExpense) => {
-    setPayTarget(expense);
-    setPayRef('');
-    setPayOpen(true);
-  }, []);
-
-  const handleMarkPaid = useCallback(() => {
-    if (!payTarget) return;
-    payMutation.mutate({ id: payTarget.id, ref: payRef.trim() || undefined });
-  }, [payTarget, payRef, payMutation]);
-
   const helpAction = usePageHeaderActions(
     <HelpPopover
       label={t('common.help', 'Aide')}
@@ -905,25 +619,7 @@ export const ExpensesTab: React.FC = () => {
       {/* ── Stats — primitive StatTile ──
           La teinte de statut porte desormais l'ICONE et non le nombre : une
           valeur chiffree est du texte, et la teinte vive n'y tient pas le 4,5:1. */}
-      <StatTileRow compact className="mb-2">
-        <StatTile
-          icon={<AttachMoneyIcon />}
-          label={t('accounting.expenses.totalExpenses', 'Total depenses')}
-          value={fmtCurrency(stats.total)}
-        />
-        <StatTile
-          icon={<StepCategoryIcon />}
-          label={t('accounting.expenses.pendingCount', 'En attente')}
-          value={stats.pending}
-          iconClassName="text-warning"
-        />
-        <StatTile
-          icon={<ApproveIcon />}
-          label={t('accounting.expenses.approvedCount', 'Approuvees')}
-          value={stats.approved}
-          iconClassName="text-success"
-        />
-      </StatTileRow>
+      {!isError && <FinanceAmountKpis kind="expenses" records={expenses.map(row => ({ status: row.status, amount: row.amountTtc, currency: row.currency }))} loading={isLoading} />}
 
       {/* ── Filters + Actions ── */}
       <div className={cn(PANEL_CLASS, 'p-3 mb-[9px] flex gap-3 items-center flex-wrap')}>
@@ -983,17 +679,6 @@ export const ExpensesTab: React.FC = () => {
           </AlertAction>
         </BuiAlert>
       )}
-      {payMutation.isSuccess && (
-        <BuiAlert variant="success" className="mb-2 text-[0.8125rem]">
-          <CircleCheck />
-          <AlertDescription>{t('accounting.expenses.paidSuccess', 'Depense marquee comme payee')}</AlertDescription>
-          <AlertAction>
-            <BuiButton variant="ghost" size="icon-xs" aria-label="Fermer" onClick={() => payMutation.reset()}>
-              <X />
-            </BuiButton>
-          </AlertAction>
-        </BuiAlert>
-      )}
       {uploadReceiptMutation.isSuccess && (
         <BuiAlert variant="success" className="mb-2 text-[0.8125rem]">
           <CircleCheck />
@@ -1036,41 +721,16 @@ export const ExpensesTab: React.FC = () => {
           variant="plain"
         />
       ) : (
-        <div className={CARD_CLASS}>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>{t('accounting.expenses.date', 'Date')}</TableHead>
-                <TableHead>{t('accounting.expenses.provider', 'Prestataire')}</TableHead>
-                <TableHead>{t('accounting.expenses.property', 'Logement')}</TableHead>
-                <TableHead>{t('accounting.expenses.description', 'Description')}</TableHead>
-                <TableHead className="text-center">{t('accounting.expenses.category', 'Categorie')}</TableHead>
-                <TableHead className="text-end">{t('accounting.expenses.amountTtc', 'Montant TTC')}</TableHead>
-                <TableHead className="text-center">{t('accounting.expenses.status', 'Statut')}</TableHead>
-                <TableHead className="text-end">{t('common.actions', 'Actions')}</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {expenses.map((expense) => (
-                <TableRow key={expense.id}>
-                  <TableCell className={`${CELL_CLASS} text-xs`}>
-                    {fmtDate(expense.expenseDate)}
-                  </TableCell>
-                  <TableCell className={CELL_CLASS}>{expense.providerName ?? '—'}</TableCell>
-                  <TableCell className={CELL_CLASS}>{expense.propertyName ?? '—'}</TableCell>
-                  <TableCell className={`${CELL_CLASS} max-w-[200px] overflow-hidden text-ellipsis whitespace-nowrap`}>
+        <FinanceWorkspace artwork="pending" selectedId={selectedExpense} onSelect={setSelectedExpense} items={expenses.map((expense) => (
+                { id: expense.id, eventImage: financeEventArtwork(expense.description), identity: { interventionId: expense.interventionId, propertyId: expense.propertyId, propertyName: expense.propertyName, propertyPhoto: properties.find(p => p.id === expense.propertyId)?.coverPhotoUrl, actorName: expense.providerName, actorPhoto: providers.find(p => p.id === expense.providerId)?.profilePictureUrl }, title: <>
                     {expense.description}
-                  </TableCell>
-                  <TableCell className="text-center">
-                    <StatusChip color={EXPENSE_CATEGORY_COLORS[expense.category] ?? 'var(--bui-muted-foreground)'} label={t(`accounting.expenses.categories.${expense.category}`, expense.category)} />
-                  </TableCell>
-                  <TableCell className={`${CELL_CLASS} text-end font-bold`}>
+                  </>, amount: <>
                     {fmtCurrency(expense.amountTtc, expense.currency)}
-                  </TableCell>
-                  <TableCell className="text-center">
+                  </>, status: <>
                     <StatusChip color={EXPENSE_STATUS_COLORS[expense.status] ?? 'var(--bui-muted-foreground)'} label={t(`accounting.expenses.statuses.${expense.status}`, expense.status)} />
-                  </TableCell>
-                  <TableCell className="text-end whitespace-nowrap">
+                  </>, subtitle: <>
+                    {fmtDate(expense.expenseDate)}
+                  </>, meta: <>{expense.providerName ?? '—'}</>, actions: <>
                     {expense.status === 'DRAFT' && (
                       <>
                         <Tooltip>
@@ -1107,25 +767,6 @@ export const ExpensesTab: React.FC = () => {
                           <TooltipContent>{t('accounting.expenses.cancel', 'Annuler')}</TooltipContent>
                         </Tooltip>
                       </>
-                    )}
-                    {(expense.status === 'APPROVED' || expense.status === 'INCLUDED') && (
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <span className="inline-flex">
-                            <BuiButton
-                              variant="ghost"
-                              size="icon-sm"
-                              className="text-success"
-                              aria-label={t('accounting.expenses.markPaid', 'Marquer paye')}
-                              onClick={() => openPayDialog(expense)}
-                              disabled={payMutation.isPending}
-                            >
-                              <PaidIcon size={'1rem'} strokeWidth={1.75} />
-                            </BuiButton>
-                          </span>
-                        </TooltipTrigger>
-                        <TooltipContent>{t('accounting.expenses.markPaid', 'Marquer paye')}</TooltipContent>
-                      </Tooltip>
                     )}
                     {expense.receiptPath ? (
                       <>
@@ -1199,12 +840,14 @@ export const ExpensesTab: React.FC = () => {
                       </TooltipTrigger>
                       <TooltipContent>{t('accounting.expenses.generatePo', 'Bon de commande')}</TooltipContent>
                     </Tooltip>
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </div>
+                  </>, fields: [{label: <>{t('accounting.expenses.date', 'Date')}</>, value: <>
+                    {fmtDate(expense.expenseDate)}
+                  </>},{label: <>{t('accounting.expenses.provider', 'Prestataire')}</>, value: <>{expense.providerName ?? '—'}</>},{label: <>{t('accounting.expenses.property', 'Logement')}</>, value: <>{expense.propertyName ?? '—'}</>},{label: <>{t('accounting.expenses.category', 'Categorie')}</>, value: <>
+                    <StatusChip color={EXPENSE_CATEGORY_COLORS[expense.category] ?? 'var(--bui-muted-foreground)'} label={t(`accounting.expenses.categories.${expense.category}`, expense.category)} />
+                  </>},{label: <>{t('accounting.expenses.amountTtc', 'Montant TTC')}</>, value: <>
+                    {fmtCurrency(expense.amountTtc, expense.currency)}
+                  </>}], detail: <BaitlyExpensePayment key={expense.id} expense={expense} />, }
+              ))}  />
       )}
 
       {/* ═══════════════════════════════════════════════════════════════════════
@@ -1379,45 +1022,6 @@ export const ExpensesTab: React.FC = () => {
         </DialogContent>
       </Dialog>
 
-      {/* ═══════════════════════════════════════════════════════════════════════
-          Mark as Paid Dialog
-          ═══════════════════════════════════════════════════════════════════════ */}
-      <Dialog open={payOpen} onOpenChange={setPayOpen}>
-        <DialogContent aria-describedby={undefined} className="sm:max-w-[444px]">
-          <DialogHeader>
-            <DialogTitle>
-              {t('accounting.expenses.markPaid', 'Marquer comme paye')}
-            </DialogTitle>
-          </DialogHeader>
-          {payTarget && (
-            <p className="text-[0.8125rem] text-muted-foreground">
-              {payTarget.description} — {fmtCurrency(payTarget.amountTtc, payTarget.currency)}
-            </p>
-          )}
-          <Field>
-            <FieldLabel className="text-[0.8125rem]" htmlFor="expense-payment-ref">
-              {t('accounting.expenses.paymentRef', 'Reference de paiement')}
-            </FieldLabel>
-            <Input
-              id="expense-payment-ref"
-              className="w-full text-[0.8125rem]"
-              value={payRef}
-              onChange={(e) => setPayRef(e.target.value)}
-              placeholder="VIR-2024-001, CB-xxx..."
-            />
-          </Field>
-          <DialogFooter>
-            <BuiButton variant="ghost" size="sm" onClick={() => setPayOpen(false)}>
-              {t('common.cancel', 'Annuler')}
-            </BuiButton>
-            {/* Idem : action principale de la modale, la teinte succes d'origine
-                n'apportait rien de plus que l'emphase. */}
-            <BuiButton size="sm" onClick={handleMarkPaid} disabled={payMutation.isPending}>
-              {payMutation.isPending ? <Spinner className="size-4" /> : t('accounting.expenses.markPaid', 'Confirmer paiement')}
-            </BuiButton>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
     </>
   );
 };
@@ -1593,53 +1197,13 @@ export const ExportsTab: React.FC = () => {
       )}
 
       {/* Export cards */}
-      <div className="grid grid-cols-12 gap-3">
-        {EXPORT_CARDS.map((card) => (
-          <div className="col-span-12 min-[600px]:col-span-6 min-[900px]:col-span-4" key={card.key}>
-            {/* Le sx d'origine ne faisait que redire le gabarit de la carte du
-                kit (surface, hairline, rayon) : supprime. */}
-            <Card className="h-full gap-0 py-0">
-              <CardContent className="flex flex-col h-full p-3">
-                <div className="flex items-center gap-2 mb-2">
-                  {card.icon}
-                  <p className="text-sm font-semibold text-foreground">
-                    {t(card.titleKey)}
-                  </p>
-                </div>
-                <p className="text-xs text-muted-foreground mb-3 flex-1">
-                  {t(card.descKey)}
-                </p>
-                <div className="flex gap-1.5">
-                  {/* Paire d'actions a poids egal (previsualiser / telecharger) :
-                      outline des deux cotes, aucune ne domine la carte. */}
-                  <BuiButton
-                    variant="outline"
-                    size="sm"
-                    className="flex-1"
-                    disabled={!from || !to || loadingKey !== null}
-                    onClick={() => handlePreview(card)}
-                  >
-                    <VisibilityIcon />
-                    {t('common.view')}
-                  </BuiButton>
-                  <BuiButton
-                    variant="outline"
-                    size="sm"
-                    className="flex-1"
-                    disabled={!from || !to || loadingKey !== null}
-                    onClick={() => handleDownload(card)}
-                  >
-                    {loadingKey === card.key ? <Spinner className="size-3.5" /> : <DownloadIcon />}
-                    {loadingKey === card.key
-                      ? t('accounting.exports.downloading', 'Telechargement...')
-                      : t('accounting.exports.download', 'Telecharger')}
-                  </BuiButton>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-        ))}
-      </div>
+      <FinanceWorkspace items={EXPORT_CARDS.map(card => ({ id: card.key, title: t(card.titleKey), status: <StatusChip label={card.format.toUpperCase()} tone="neutral" />, fields: [
+  { label: t('common.description', 'Description'), value: t(card.descKey) },
+  { label: t('common.period'), value: from + ' → ' + to },
+], actions: <>
+  <PayoutIconAction label={t('common.view')} disabled={!from || !to || from > to || loadingKey !== null} onClick={() => void handlePreview(card)}><VisibilityIcon size={17} /></PayoutIconAction>
+  <PayoutIconAction label={t('accounting.exports.download')} disabled={!from || !to || from > to || loadingKey !== null} onClick={() => void handleDownload(card)}>{loadingKey === card.key ? <Spinner className="size-4" /> : <DownloadIcon size={17} />}</PayoutIconAction>
+</> }))} />
 
       <ExportPreviewDialog
         open={previewOpen}

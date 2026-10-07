@@ -13,6 +13,9 @@ import * as React from 'react';
  */
 export const StatTileCompactContext = React.createContext(false);
 
+/** Rich overview remains opt-in: list/report bands keep their existing density. */
+export const StatTileOverviewContext = React.createContext(false);
+
 export function useStatTileCompact(): boolean {
   return React.useContext(StatTileCompactContext);
 }

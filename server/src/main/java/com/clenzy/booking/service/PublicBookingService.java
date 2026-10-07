@@ -58,6 +58,9 @@ public class PublicBookingService {
 
     private static final Logger log = LoggerFactory.getLogger(PublicBookingService.class);
 
+    @org.springframework.beans.factory.annotation.Value("${clenzy.base-url:https://app.clenzy.fr}")
+    private String publicBaseUrl = "https://app.clenzy.fr";
+
     /** Duree d'expiration d'une reservation PENDING (minutes). */
     private static final int PENDING_EXPIRATION_MINUTES = 30;
 
@@ -713,6 +716,7 @@ public class PublicBookingService {
     }
 
     /** Variante tarif membre (2.8) : recalcule le total (autoritatif) avec la remise membre si connecté. */
+    @Transactional
     public BookingReserveResponseDto reserve(OrgContext ctx, BookingReserveRequestDto req, boolean member) {
         if (isMock(ctx)) {
             // Mode démo : réservation SIMULÉE — aucun effet réel (ni Reservation, ni calendrier, ni Stripe).
@@ -754,7 +758,7 @@ public class PublicBookingService {
         reservation.setCheckOutTime(property.getDefaultCheckOutTime());
         reservation.setStatus("pending");
         reservation.setSource("direct");
-        reservation.setSourceName("Clenzy Booking Engine");
+        reservation.setSourceName("Baitly Booking Engine");
         reservation.setCurrency(property.getDefaultCurrency());
         reservation.setNotes(req.notes());
         reservation.setPaymentStatus(PaymentStatus.PENDING);
@@ -920,6 +924,7 @@ public class PublicBookingService {
     }
 
     /** Variante tarif membre (2.8) : applique la remise membre à chaque item du panier si connecté. */
+    @Transactional
     public BookingReserveBatchResponseDto reserveBatch(OrgContext ctx, BookingReserveBatchRequestDto req, boolean member) {
         Long orgId = ctx.orgId();
         BookingEngineConfig config = ctx.config();
@@ -998,7 +1003,7 @@ public class PublicBookingService {
             reservation.setCheckOutTime(property.getDefaultCheckOutTime());
             reservation.setStatus(autoConfirmed ? "confirmed" : "pending");
             reservation.setSource("direct");
-            reservation.setSourceName("Clenzy Booking Engine (batch)");
+            reservation.setSourceName("Baitly Booking Engine (batch)");
             reservation.setCurrency(property.getDefaultCurrency());
             reservation.setNotes(item.notes());
             reservation.setPaymentStatus(requiresPayment ? PaymentStatus.PENDING : PaymentStatus.NOT_REQUIRED);
@@ -1070,7 +1075,7 @@ public class PublicBookingService {
 
     // ─── Checkout (Stripe) ───────────────────────────────────────────────────────
 
-    @Transactional
+    @Transactional(propagation = org.springframework.transaction.annotation.Propagation.NOT_SUPPORTED)
     public BookingCheckoutResponseDto checkout(OrgContext ctx, BookingCheckoutRequestDto req) {
         return checkout(ctx, req, null);
     }
@@ -1080,9 +1085,9 @@ public class PublicBookingService {
      * être résolu par l'appelant via {@code ClientIpResolver} (jamais {@code X-Forwarded-For.split(",")[0]}).
      * {@code null} = pas de signal de vélocité IP (le scoring reste cohérent).
      */
-    // Pas de @Transactional : le checkout est dé-transactionalisé (l'appel orchestrateur, qui fait
-    // un HTTP externe et gère ses propres transactions courtes, DOIT être hors tx — règle money-safety
-    // #2). Les phases DB s'exécutent dans des transactions courtes via writeTx.
+    // Suspendre la transaction appelante : l'orchestrateur fait un HTTP externe et gère ses
+    // propres transactions courtes. Il DOIT être hors tx (règle money-safety #2).
+    // Les phases DB s'exécutent dans des transactions courtes via writeTx.
     @org.springframework.transaction.annotation.Transactional(
         propagation = org.springframework.transaction.annotation.Propagation.NOT_SUPPORTED)
     public BookingCheckoutResponseDto checkout(OrgContext ctx, BookingCheckoutRequestDto req, String clientIp) {
@@ -1108,6 +1113,7 @@ public class PublicBookingService {
         // (sourceType RESERVATION), pas par le webhook direct.
         java.util.Map<String, String> metadata = new java.util.LinkedHashMap<>();
         metadata.put("reservation_id", String.valueOf(prep.reservationId()));
+        metadata.putAll(prep.creditMetadata());
         if (prep.radarMetadata() != null) {
             metadata.putAll(prep.radarMetadata());
         }
@@ -1120,7 +1126,7 @@ public class PublicBookingService {
             prep.guestEmail(),
             null,                                                   // preferredProvider : résolu par l'orchestrateur
             prep.successUrl(),                                      // retour template-driven (déjà validé)
-            null,                                                   // cancelUrl : défaut provider
+            prep.cancelUrl(),                                       // retour public, sans annuler le séjour
             metadata,
             "BOOKING-CHECKOUT-" + prep.reservationId(),             // idempotence par réservation
             false,                                                  // embedded : non (hébergé, redirection)
@@ -1148,13 +1154,13 @@ public class PublicBookingService {
     /** Données du checkout capturées en transaction courte, consommées hors tx par l'orchestrateur. */
     private record CheckoutPrep(Long reservationId, String confirmationCode, BigDecimal chargeAmount,
                                 String currency, String countryCode, String guestEmail, String propertyName,
-                                String successUrl, Long expiresAtEpochSeconds,
-                                java.util.Map<String, String> radarMetadata) {}
+                                String successUrl, String cancelUrl, Long expiresAtEpochSeconds,
+                                java.util.Map<String, String> radarMetadata, java.util.Map<String, String> creditMetadata) {}
 
     /** Phase 1 du checkout (transaction courte) : charge, valide, applique crédit + scoring, capture les données. */
     private CheckoutPrep prepareCheckout(OrgContext ctx, BookingCheckoutRequestDto req, String clientIp, Long orgId) {
         Reservation reservation = reservationRepository
-            .findByConfirmationCodeAndOrganizationId(req.reservationCode(), orgId)
+            .lockCancellation(orgId, req.reservationCode())
             .orElseThrow(() -> new IllegalArgumentException("Reservation introuvable : " + req.reservationCode()));
 
         // Accepter "pending" ou "confirmed" (autoConfirm=true + collectPaymentOnBooking=true)
@@ -1162,8 +1168,9 @@ public class PublicBookingService {
         if (!"pending".equalsIgnoreCase(status) && !"confirmed".equalsIgnoreCase(status)) {
             throw new IllegalStateException("La reservation n'est pas en attente de paiement (statut: " + status + ")");
         }
-        if (reservation.getPaymentStatus() == PaymentStatus.PAID) {
-            throw new IllegalStateException("La reservation est deja payee");
+        if (reservation.getCancelledAt() != null || reservation.getPaymentStatus() == null || !java.util.Set.of(PaymentStatus.PENDING, PaymentStatus.PROCESSING, PaymentStatus.FAILED)
+                .contains(reservation.getPaymentStatus())) {
+            throw new IllegalStateException("La reservation est deja payee ou son état exige un rapprochement");
         }
 
         // Crédit fidélité (2.8) : on STOCKE l'intention (creditApplied) + on réduit le montant. La
@@ -1172,16 +1179,20 @@ public class PublicBookingService {
         // >= MIN_STRIPE à payer.
         String creditEmail = reservation.getGuest() != null ? reservation.getGuest().getEmail() : null;
         BigDecimal totalPrice = reservation.getTotalPrice() != null ? reservation.getTotalPrice() : BigDecimal.ZERO;
-        if (ctx.config().getDepositPercent() == null && reservation.getCreditApplied() == null && creditEmail != null) {
+        if (ctx.config().getDepositPercent() == null && reservation.getCreditApplied() == null && creditEmail != null
+                && "EUR".equalsIgnoreCase(reservation.getCurrency())) {
             long totalCents = StripeAmounts.toMinorUnits(totalPrice);
-            long balance = guestCreditService.getBalanceCents(orgId, creditEmail);
+            long balance = guestCreditService.getBalanceCents(orgId, creditEmail, reservation.getCurrency());
             long applyCents = Math.min(balance, Math.max(0, totalCents - MIN_STRIPE_CHARGE_CENTS));
             if (applyCents > 0) {
                 reservation.setCreditApplied(BigDecimal.valueOf(applyCents, 2));
             }
         }
-        BigDecimal creditApplied = reservation.getCreditApplied() != null ? reservation.getCreditApplied() : BigDecimal.ZERO;
-        BigDecimal chargeAmount = totalPrice.subtract(creditApplied);
+        if (reservation.getCreditApplied() == null) reservation.setCreditApplied(BigDecimal.ZERO);
+        BigDecimal creditApplied = reservation.getCreditApplied();
+        BigDecimal chargeAmount = BaitlyReservationCredit.cash(reservation);
+        var creditMetadata = BaitlyReservationCredit.metadata(reservation, creditApplied.signum() > 0
+            ? guestCreditService.accountId(orgId, creditEmail, reservation.getCurrency()) : null);
 
         // P2 — scoring de risque/fraude AVANT la création de session. Le montant scoré est le total
         // RECALCULÉ SERVEUR, jamais un montant client. Décision graduée (advisory par défaut → no-op).
@@ -1192,16 +1203,29 @@ public class PublicBookingService {
         String guestEmail = reservation.getGuest() != null ? reservation.getGuest().getEmail() : null;
         String currency = reservation.getCurrency() != null ? reservation.getCurrency() : "EUR";
 
-        // Retour template-driven (B3) : success_url = page confirmation du SITE de l'org, STRICTEMENT
-        // validée (HTTPS + host autorisé) ; sinon null → success_url par défaut du provider.
+        // Un site externe garde son retour validé. Sans site, rester dans le parcours voyageur :
+        // le défaut du provider est une page du PMS dédiée aux interventions.
         String successUrl = resolveCheckoutSuccessUrl(ctx.config(), req.returnUrl(), reservation.getConfirmationCode());
+        if (successUrl == null) {
+            successUrl = hostedBookingReturnUrl(ctx.config(), reservation.getConfirmationCode(), false);
+        }
+        String cancelUrl = hostedBookingReturnUrl(ctx.config(), reservation.getConfirmationCode(), true);
 
         // expires_at ~35 min : la session devient inutilisable peu après l'expiration du hold de 30 min.
         long expiresAt = java.time.Instant.now()
             .plus(java.time.Duration.ofMinutes(CHECKOUT_SESSION_LIFETIME_MINUTES)).getEpochSecond();
 
         return new CheckoutPrep(reservation.getId(), reservation.getConfirmationCode(), chargeAmount,
-            currency, countryCode, guestEmail, propertyName, successUrl, expiresAt, riskDecision.radarMetadata());
+            currency, countryCode, guestEmail, propertyName, successUrl, cancelUrl, expiresAt, riskDecision.radarMetadata(), creditMetadata);
+    }
+
+    /** Origine issue de la configuration serveur, jamais d'un Host ou returnUrl envoyé par le client. */
+    private String hostedBookingReturnUrl(BookingEngineConfig config, String reservationCode, boolean interrupted) {
+        return org.springframework.web.util.UriComponentsBuilder.fromHttpUrl(publicBaseUrl)
+            .pathSegment("booking", config.getApiKey(), "confirmation")
+            .queryParam("reservation", reservationCode)
+            .queryParam("flow", interrupted ? "cancel" : "return")
+            .build().encode().toUriString();
     }
 
     /** Phase 3 du checkout (transaction courte) : rattache la référence provider à la réservation. */
@@ -1523,7 +1547,7 @@ public class PublicBookingService {
         reservation.setCheckOutTime(property.getDefaultCheckOutTime());
         reservation.setStatus("pending");
         reservation.setSource("direct");
-        reservation.setSourceName("Clenzy Booking Engine");
+        reservation.setSourceName("Baitly Booking Engine");
         reservation.setCurrency(property.getDefaultCurrency());
         reservation.setPaymentStatus(PaymentStatus.PENDING);
         reservation.setRoomRevenue(availability.subtotal());
@@ -1723,19 +1747,8 @@ public class PublicBookingService {
             confirmReservationDeposit(session, reservation, balance);
         } else {
             stripeService.confirmReservationPayment(session.getId());
-            redeemAppliedCredit(reservation); // 2.8 : déduit le crédit fidélité (paiement complet confirmé)
         }
         scheduleCautionSetup(session, reservation);
-    }
-
-    /** Déduit le crédit fidélité « engagé » au checkout, une fois le paiement confirmé (2.8). Idempotent. */
-    private void redeemAppliedCredit(Reservation reservation) {
-        BigDecimal applied = reservation.getCreditApplied();
-        String email = reservation.getGuest() != null ? reservation.getGuest().getEmail() : null;
-        if (applied != null && applied.compareTo(BigDecimal.ZERO) > 0 && email != null) {
-            guestCreditService.redeem(reservation.getOrganizationId(), email,
-                StripeAmounts.toMinorUnits(applied), reservation.getConfirmationCode());
-        }
     }
 
     /**
@@ -1825,9 +1838,13 @@ public class PublicBookingService {
             return;
         }
         if (reservation.getPaymentStatus() == PaymentStatus.PAID) {
+            if (!Objects.equals(reservation.getStripeSessionId(), providerSessionId)) {
+                throw new IllegalStateException("Réservation déjà réglée par une autre session : rapprochement requis");
+            }
             log.info("Booking Engine balance: résa {} déjà soldée — skip (idempotence)", reservation.getConfirmationCode());
             return;
         }
+        BaitlyReservationPaymentProof.requireOutstandingBalance(reservation);
         // Rattache la session du solde puis délègue la confirmation COMPLÈTE (PARTIALLY_PAID → PAID
         // + ledger + facture) à confirmReservationPayment (keyé par stripeSessionId).
         reservation.setStripeSessionId(providerSessionId);

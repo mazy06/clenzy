@@ -38,6 +38,30 @@ class GlobalExceptionHandlerTest {
         handler = new GlobalExceptionHandler(syncMetrics);
     }
 
+    @Test
+    void paymentWithoutEvidenceReturnsConflictInsteadOfGenericServerError() throws Exception {
+        var mvc = org.springframework.test.web.servlet.setup.MockMvcBuilders
+                .standaloneSetup(new PaymentEvidenceEndpoint())
+                .setControllerAdvice(handler).build();
+
+        mvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders
+                        .post("/test/payment-confirmation"))
+                .andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers.status().isConflict())
+                .andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers
+                        .jsonPath("$.code").value("PAYMENT_EVIDENCE_REQUIRED"))
+                .andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers
+                        .jsonPath("$.message").value("Confirmation PSP requise"));
+    }
+
+    @org.springframework.web.bind.annotation.RestController
+    @org.springframework.security.access.prepost.PreAuthorize("isAuthenticated()")
+    static class PaymentEvidenceEndpoint {
+        @org.springframework.web.bind.annotation.PostMapping("/test/payment-confirmation")
+        void confirm() {
+            throw new PaymentEvidenceRequiredException("Confirmation PSP requise");
+        }
+    }
+
     @Nested
     @DisplayName("CalendarConflictException → 409")
     class CalendarConflict {

@@ -31,6 +31,20 @@ function activeLocale(): string {
  */
 const SIGN_DISPLAY = { currencyDisplay: 'narrowSymbol' } as const;
 
+const FRACTION_PATTERNS = new Map<string, RegExp>();
+
+/** Remove only the locale's decimal fraction, never its thousands separator. */
+export function stripCurrencyFraction(formatted: string, locale = activeLocale()): string {
+  let pattern = FRACTION_PATTERNS.get(locale);
+  if (!pattern) {
+    const decimal = new Intl.NumberFormat(locale).formatToParts(1.1).find((part) => part.type === 'decimal')?.value ?? '.';
+    const escaped = decimal.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    pattern = new RegExp(`${escaped}\\p{Number}+`, 'u');
+    FRACTION_PATTERNS.set(locale, pattern);
+  }
+  return formatted.replace(pattern, '');
+}
+
 /**
  * Le SIGNE de la devise tel qu'il sera rendu dans un montant — « € », « ر.س. »,
  * ou le code ISO quand `Intl` n'a pas mieux a proposer.

@@ -197,8 +197,9 @@ public class ShopService {
                 order.setStripePaymentIntentId(session.getPaymentIntent());
             }
             // Store shipping info if collected
-            if (session.getShippingDetails() != null) {
-                final var shipping = session.getShippingDetails();
+            if (session.getCollectedInformation() != null
+                    && session.getCollectedInformation().getShippingDetails() != null) {
+                final var shipping = session.getCollectedInformation().getShippingDetails();
                 order.setShippingName(shipping.getName());
                 if (shipping.getAddress() != null) {
                     final var addr = shipping.getAddress();

@@ -1,8 +1,8 @@
 import { StrictMode } from "react";
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { MemoryRouter } from "react-router-dom";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import fr from "../../../public/locales/fr.json";
 import SetupPayout from "./SetupPayout";
 import PaymentConnectReturn from "./PaymentConnectReturn";
@@ -12,6 +12,7 @@ import {
   type PaymentConnectionStatus,
 } from "../../services/api/paymentConnectApi";
 import { getOnboardingSteps } from "../../config/onboardingConfig";
+vi.mock("../../hooks/useAuth", () => ({ useAuth: () => ({ user: { id: 1, organizationId: 7 } }) }));
 
 vi.mock("../../hooks/useTranslation", () => ({
   useTranslation: () => ({
@@ -83,6 +84,10 @@ beforeEach(() => {
     ready: true,
   });
 });
+afterEach(() => { vi.useRealTimers(); });
+async function advance(ms: number) {
+  await act(async () => { await vi.advanceTimersByTimeAsync(ms); });
+}
 async function country(code: string) {
   fireEvent.change(
     await screen.findByLabelText(fr.onboarding.payment.country),
@@ -92,8 +97,6 @@ async function country(code: string) {
 describe("payment setup", () => {
   it("offers payout setup to every business role", () => {
     for (const role of [
-      "SUPER_ADMIN",
-      "SUPER_MANAGER",
       "HOST",
       "PROPERTY_OWNER",
       "HOUSEKEEPER",
@@ -253,6 +256,16 @@ describe("payment setup", () => {
       "PERSONAL",
     );
   });
+  it("keeps a reloadable return URL after OAuth without retaining or replaying its code", async () => {
+    const view = mount("/payment-connect/return?scope=ORGANIZATION&flow=oauth&state=one-use&code=code");
+    await screen.findByRole("heading", { name: fr.onboarding.payment.returnReady });
+    expect(window.location.search).toBe("?scope=ORGANIZATION&flow=return");
+    view.unmount();
+    mount(`/payment-connect/return${window.location.search}`);
+    await screen.findByRole("heading", { name: fr.onboarding.payment.returnPending });
+    expect(paymentConnectApi.complete).toHaveBeenCalledOnce();
+    expect(paymentConnectApi.refresh).toHaveBeenCalledExactlyOnceWith("ORGANIZATION");
+  });
   it("OAuth cancellation cannot validate the step", async () => {
     mount(
       "/payment-connect/return?scope=PERSONAL&flow=oauth&error=access_denied",
@@ -273,5 +286,90 @@ describe("payment setup", () => {
       ),
     );
     expect(done).not.toHaveBeenCalled();
+  });
+  it("ignores a hosted refresh redirect after leaving the return screen", async () => {
+    let resolve!: (value: { url: string }) => void;
+    vi.mocked(paymentConnectApi.start).mockReturnValue(new Promise((done) => { resolve = done; }));
+    const view = mount("/payment-connect/return?scope=PERSONAL&flow=refresh");
+    await waitFor(() => expect(paymentConnectApi.start).toHaveBeenCalledOnce());
+    view.unmount();
+    resolve({ url: "https://connect.stripe.com/setup" });
+    await new Promise((done) => setTimeout(done, 0));
+    expect(redirectToPaymentProvider).not.toHaveBeenCalled();
+  });
+  it("updates the return screen when Stripe activates after the first verification", async () => {
+    vi.useFakeTimers();
+    const pending = { ...initial, country: "FR", accountCreated: true };
+    vi.mocked(paymentConnectApi.refresh)
+      .mockResolvedValueOnce(pending)
+      .mockResolvedValue({ ...pending, ready: true });
+    mount("/payment-connect/return?scope=PERSONAL&flow=return");
+    await advance(0);
+    expect(screen.getByRole("heading", { name: fr.onboarding.payment.returnPending })).toBeVisible();
+    await advance(5_000);
+    expect(screen.getByRole("heading", { name: fr.onboarding.payment.returnReady })).toBeVisible();
+    await advance(60_000);
+    expect(paymentConnectApi.refresh).toHaveBeenCalledTimes(2);
+    expect(paymentConnectApi.start).not.toHaveBeenCalled();
+  });
+  it("automatically updates the guide and rechecks its completion after activation", async () => {
+    vi.useFakeTimers();
+    const pending = { ...initial, country: "FR", accountCreated: true };
+    vi.mocked(paymentConnectApi.status).mockResolvedValue(pending);
+    vi.mocked(paymentConnectApi.refresh).mockResolvedValue({ ...pending, ready: true, chargesEnabled: true, transfersEnabled: true, payoutsEnabled: true });
+    mount();
+    await advance(0);
+    await advance(5_000);
+    expect(check).toHaveBeenCalledOnce();
+    expect(screen.queryByRole("button", { name: fr.onboarding.payment.resume })).not.toBeInTheDocument();
+    await advance(60_000);
+    expect(paymentConnectApi.refresh).toHaveBeenCalledOnce();
+    expect(done).not.toHaveBeenCalled();
+  });
+  it("bounds automatic verification to one minute without treating a pending account as ready", async () => {
+    vi.useFakeTimers();
+    mount("/payment-connect/return?scope=PERSONAL&flow=return");
+    await advance(0);
+    await advance(120_000);
+    expect(paymentConnectApi.refresh).toHaveBeenCalledTimes(13);
+    expect(screen.getByRole("heading", { name: fr.onboarding.payment.returnPending })).toBeVisible();
+    expect(done).not.toHaveBeenCalled();
+  });
+  it("does not automatically query a revoked connection", async () => {
+    vi.useFakeTimers();
+    vi.mocked(paymentConnectApi.status).mockResolvedValue({ ...initial, country: "FR", accountCreated: true, reconnectRequired: true });
+    mount();
+    await advance(0);
+    await advance(60_000);
+    expect(paymentConnectApi.refresh).not.toHaveBeenCalled();
+  });
+  it("ignores an automatic verification that finishes after leaving the guide", async () => {
+    vi.useFakeTimers();
+    const pending = { ...initial, country: "FR", accountCreated: true };
+    vi.mocked(paymentConnectApi.status).mockResolvedValue(pending);
+    let resolve!: (status: PaymentConnectionStatus) => void;
+    vi.mocked(paymentConnectApi.refresh).mockReturnValue(new Promise((done) => { resolve = done; }));
+    const view = mount();
+    await advance(0);
+    await advance(5_000);
+    view.unmount();
+    await act(async () => { resolve({ ...pending, ready: true }); });
+    await advance(60_000);
+    expect(check).not.toHaveBeenCalled();
+    expect(paymentConnectApi.refresh).toHaveBeenCalledOnce();
+  });
+  it("keeps the last verified state on a network error and retries without restarting onboarding", async () => {
+    vi.useFakeTimers();
+    const pending = { ...initial, country: "FR", accountCreated: true };
+    vi.mocked(paymentConnectApi.status).mockResolvedValue(pending);
+    vi.mocked(paymentConnectApi.refresh).mockRejectedValueOnce(new Error("offline")).mockResolvedValue({ ...pending, ready: true });
+    mount();
+    await advance(0);
+    await advance(5_000);
+    expect(check).not.toHaveBeenCalled();
+    expect(screen.getByRole("button", { name: fr.onboarding.payment.resume })).toBeVisible();
+    await advance(5_000);
+    expect(check).toHaveBeenCalledOnce();
+    expect(paymentConnectApi.start).not.toHaveBeenCalled();
   });
 });

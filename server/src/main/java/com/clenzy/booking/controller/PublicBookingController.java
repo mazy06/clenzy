@@ -442,6 +442,15 @@ public class PublicBookingController {
         return ResponseEntity.ok(cancellationService.preview(ctx.orgId(), code, request.email()));
     }
 
+    /** Suivi en lecture seule, même authentification code/email et même limite que l'aperçu. */
+    @PostMapping("/booking/{code}/cancellation-status")
+    public ResponseEntity<?> cancellationStatus(@PathVariable String slug, @PathVariable String code,
+            @Valid @RequestBody BookingCancellationRequest request, HttpServletRequest httpRequest) {
+        if (!rateLimiter.tryAcquirePreview(httpRequest)) return tooManyReservationAttempts();
+        OrgContext ctx = resolveContext(slug, httpRequest);
+        return ResponseEntity.ok(cancellationService.status(ctx.orgId(), code, request.email()));
+    }
+
     /**
      * POST /{slug}/booking/{code}/cancel
      * Annulation self-service : libère le calendrier + émet le remboursement applicable (politique).

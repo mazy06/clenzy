@@ -88,6 +88,13 @@ class InterventionPaymentCoordinationPostgresTest {
                 jdbc.execute("UPDATE payment_transactions SET status='COMPLETED'");
                 assertThat(named.queryForObject(query, Map.of("orgId", 7L, "missionId", 2L), Boolean.class)).isTrue();
                 jdbc.execute("UPDATE payment_transactions SET status='FAILED'");
+                if (type.equals("INTERVENTION")) {
+                    assertThat(named.queryForObject(query, Map.of("orgId", 7L, "missionId", 2L), Boolean.class)).isTrue();
+                    String open = PaymentTransactionRepository.class.getMethod("hasOpenInterventionPayment", Long.class, Long.class).getAnnotation(Query.class).value();
+                    assertThat(named.queryForObject(open, Map.of("orgId", 7L, "missionId", 2L), Boolean.class)).isTrue();
+                    jdbc.execute("UPDATE payment_transactions SET metadata=metadata || '{\"standaloneRetryAllowed\":true}'::jsonb");
+                    assertThat(named.queryForObject(open, Map.of("orgId", 7L, "missionId", 2L), Boolean.class)).isFalse();
+                }
                 assertThat(named.queryForObject(query, Map.of("orgId", 7L, "missionId", 2L), Boolean.class)).isFalse();
             }
             jdbc.execute("INSERT INTO payment_transactions VALUES (7, 'INTERVENTION', 1, 'PROCESSING', NULL)");

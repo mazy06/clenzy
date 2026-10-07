@@ -54,6 +54,7 @@ public class StripePaymentConfirmationService {
     private final PaymentStatusTransitionService paymentStatusTransitionService;
     private final BookingConfirmationEmailService bookingConfirmationEmailService;
     private final WebhookEventPublisher webhookEventPublisher;
+    private final com.clenzy.booking.service.BaitlyReservationCredit reservationCredit;
 
     @Value("${stripe.currency}")
     private String currency;
@@ -70,7 +71,9 @@ public class StripePaymentConfirmationService {
                                             DocumentGenerationOutbox documentOutbox,
                                             PaymentStatusTransitionService paymentStatusTransitionService,
                                             BookingConfirmationEmailService bookingConfirmationEmailService,
-                                            WebhookEventPublisher webhookEventPublisher) {
+                                            WebhookEventPublisher webhookEventPublisher,
+                                            com.clenzy.booking.service.BaitlyReservationCredit reservationCredit) {
+        this.reservationCredit = reservationCredit;
         this.interventionRepository = interventionRepository;
         this.reservationRepository = reservationRepository;
         this.serviceRequestRepository = serviceRequestRepository;
@@ -242,10 +245,19 @@ public class StripePaymentConfirmationService {
         Reservation reservation = reservationRepository.findByStripeSessionId(sessionId)
             .orElseThrow(() -> new NotFoundException("Reservation non trouvee pour la session: " + sessionId));
 
+        paymentStatusTransitionService.lockReservationPayment(reservation);
+        if (!java.util.Objects.equals(sessionId, reservation.getStripeSessionId()))
+            throw new IllegalStateException("Session de réservation remplacée : rapprochement requis.");
         if (reservation.getPaymentStatus() == PaymentStatus.PAID) {
             log.info("Paiement reservation deja confirme pour la session {} — traitement ignore (idempotence)", sessionId);
             return;
         }
+        if (reservationCancelled(reservation)
+                || reservation.getPaymentStatus() == null
+                || !java.util.Set.of(PaymentStatus.PENDING, PaymentStatus.PROCESSING, PaymentStatus.FAILED, PaymentStatus.PARTIALLY_PAID)
+                    .contains(reservation.getPaymentStatus()))
+            throw new IllegalStateException("État financier de la réservation incompatible : rapprochement requis.");
+        reservationCredit.confirm(reservation);
         if (!paymentStatusTransitionService.markReservationPaid(reservation.getId())) {
             log.info("Confirmation concurrente detectee pour la reservation {} — traitement ignore",
                 reservation.getId());
@@ -254,6 +266,8 @@ public class StripePaymentConfirmationService {
 
         reservation.setPaymentStatus(PaymentStatus.PAID);
         reservation.setPaidAt(LocalDateTime.now());
+        reservation.setAmountPaid(com.clenzy.booking.service.BaitlyReservationCredit.cash(reservation));
+        reservation.setAmountDue(BigDecimal.ZERO);
         // Z4A-BUGS-05 : un paiement valide confirme la reservation — sans cette
         // transition une resa payee resterait "pending" indefiniment (PMS + guest).
         if ("pending".equalsIgnoreCase(reservation.getStatus())) {
@@ -271,6 +285,8 @@ public class StripePaymentConfirmationService {
         webhookData.put("status", reservation.getStatus());
         webhookData.put("paymentStatus", reservation.getPaymentStatus() != null ? reservation.getPaymentStatus().name() : null);
         webhookData.put("totalPrice", reservation.getTotalPrice());
+        webhookData.put("amountPaid", reservation.getAmountPaid());
+        webhookData.put("creditApplied", reservation.getCreditApplied());
         webhookData.put("propertyId", reservation.getProperty() != null ? reservation.getProperty().getId() : null);
         webhookEventPublisher.publish(com.clenzy.model.WebhookEventType.PAYMENT_CONFIRMED,
                 reservation.getOrganizationId(), webhookData);
@@ -293,7 +309,7 @@ public class StripePaymentConfirmationService {
                 ? reservation.getProperty().getOwner().getId() : null;
         ensureWalletsAndRecordPaymentForReservation(
             reservation.getOrganizationId(), ownerId,
-            reservation.getTotalPrice(),
+            com.clenzy.booking.service.BaitlyReservationCredit.cash(reservation),
             reservation.getCurrency(),
             reservation.getId(),
             String.valueOf(reservation.getId()),
@@ -308,7 +324,7 @@ public class StripePaymentConfirmationService {
                 "Le paiement pour la reservation de " + (reservation.getGuestName() != null ? reservation.getGuestName() : "guest")
                     + " (" + (reservation.getProperty() != null ? reservation.getProperty().getName() : "N/A") + ") a ete confirme."
                     + (reservation.getTotalPrice() != null
-                        ? " Montant: " + reservation.getTotalPrice().stripTrailingZeros().toPlainString() + " EUR."
+                        ? " Montant: " + reservation.getAmountPaid().stripTrailingZeros().toPlainString() + " " + reservation.getCurrency() + " encaissés."
                         : ""),
                 "/reservations?highlight=" + reservation.getId()
             );
@@ -351,6 +367,11 @@ public class StripePaymentConfirmationService {
             .orElse(null);
 
         if (reservation != null) {
+            paymentStatusTransitionService.lockReservationPayment(reservation);
+            // Un échec tardif ou une ancienne session ne dégrade jamais une preuve financière.
+            if (!java.util.Objects.equals(sessionId, reservation.getStripeSessionId()) || reservationCancelled(reservation)
+                    || (reservation.getPaymentStatus() != PaymentStatus.PENDING
+                        && reservation.getPaymentStatus() != PaymentStatus.PROCESSING)) return;
             reservation.setPaymentStatus(PaymentStatus.FAILED);
             reservationRepository.save(reservation);
             log.warn("Paiement de reservation echoue: reservationId={}, sessionId={}", reservation.getId(), sessionId);
@@ -369,6 +390,11 @@ public class StripePaymentConfirmationService {
         }
     }
 
+    private static boolean reservationCancelled(Reservation reservation) {
+        return reservation.getCancelledAt() != null || "cancelled".equalsIgnoreCase(reservation.getStatus())
+                || "canceled".equalsIgnoreCase(reservation.getStatus());
+    }
+
     /**
      * Confirme le paiement groupe de plusieurs interventions (paiement differe).
      * Chaque intervention incluse passe en PAID. Les interventions deja payees
@@ -380,6 +406,52 @@ public class StripePaymentConfirmationService {
         // Valider tout le lot avant la moindre écriture ou notification.
         missions.forEach(mission -> requireCurrentSession(mission, sessionId));
         missions.forEach(this::confirmGroupedIntervention);
+    }
+
+    /** Parts figées : aucun montant n'est recalculé depuis le devis ou le prix actuel. */
+    @org.springframework.transaction.annotation.Transactional(propagation = org.springframework.transaction.annotation.Propagation.MANDATORY)
+    public void confirmAllocatedPayment(com.clenzy.model.PaymentTransaction tx,
+            java.util.List<com.clenzy.model.InterventionPaymentAllocation> parts) {
+        InterventionPaymentBatch.validate(tx, parts);
+        InterventionPaymentBatch.require(tx.getStatus() == com.clenzy.model.TransactionStatus.COMPLETED,
+                "Encaissement du lot non confirmé");
+        var missions = parts.stream().map(part -> interventionRepository.findById(part.getInterventionId())
+                .orElseThrow(() -> new NotFoundException("Intervention du lot introuvable"))).toList();
+        paymentStatusTransitionService.lockInterventionPayments(missions);
+        for (int index = 0; index < parts.size(); index++) {
+            var mission = missions.get(index);
+            var part = parts.get(index);
+            InterventionPaymentBatch.require(java.util.Objects.equals(tx.getOrganizationId(), mission.getOrganizationId()),
+                    "Intervention hors organisation");
+            requireCurrentSession(mission, tx.getProviderTxId());
+            if (part.getConfirmedAt() == null) {
+                InterventionPaymentBatch.require(mission.getPaymentStatus() != PaymentStatus.PAID
+                        && mission.getPaymentStatus() != PaymentStatus.REFUNDED, "Paiement déjà enregistré sans allocation : rapprochement requis");
+            }
+        }
+        for (int index = 0; index < parts.size(); index++) {
+            var part = parts.get(index);
+            if (part.getConfirmedAt() != null) continue;
+            var mission = missions.get(index);
+            InterventionPaymentBatch.require(paymentStatusTransitionService.markInterventionPaid(mission.getId()),
+                    "État de paiement modifié pendant la confirmation");
+            mission.setPaymentStatus(PaymentStatus.PAID);
+            mission.setPaidAt(LocalDateTime.now());
+            settleWorkState(mission);
+            interventionRepository.save(mission);
+            var platform = walletService.getOrCreatePlatformWallet(tx.getOrganizationId(), part.getCurrency());
+            var escrow = walletService.getOrCreateEscrowWallet(tx.getOrganizationId(), part.getCurrency());
+            String ref = tx.getTransactionRef() + ":" + mission.getId();
+            // Une erreur comptable annule TOUT le lot et sera rejouée, jamais avalée.
+            ledgerService.recordTransfer(escrow, platform, part.getAmount(), LedgerReferenceType.PAYMENT,
+                    ref, "Paiement groupé : " + mission.getTitle());
+            Long owner = mission.getProperty() != null && mission.getProperty().getOwner() != null
+                    ? mission.getProperty().getOwner().getId() : null;
+            Long property = mission.getProperty() == null ? null : mission.getProperty().getId();
+            splitPaymentService.splitGenericPayment(part.getAmount(), part.getCurrency(), owner, property, "intervention", ref);
+            publishInterventionPaymentDocuments(mission);
+            part.confirm();
+        }
     }
 
     private void confirmGroupedIntervention(Intervention intervention) {

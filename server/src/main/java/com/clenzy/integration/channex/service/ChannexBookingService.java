@@ -33,7 +33,7 @@ import java.util.Optional;
  *
  * <p>Gere 3 evenements :</p>
  * <ul>
- *   <li><b>booking_new</b> : creer une Reservation Clenzy + bloquer le calendrier</li>
+ *   <li><b>booking_new</b> : creer une Reservation Baitly + bloquer le calendrier</li>
  *   <li><b>booking_modification</b> : retrouver la reservation existante + appliquer
  *     les changements (dates, prix, guest count)</li>
  *   <li><b>booking_cancellation</b> : passer la reservation en CANCELLED + liberer
@@ -114,7 +114,7 @@ public class ChannexBookingService {
     // ─── New booking ────────────────────────────────────────────────────────
 
     /**
-     * Cree une Reservation Clenzy depuis un payload Channex {@code booking_new}.
+     * Cree une Reservation Baitly depuis un payload Channex {@code booking_new}.
      *
      * <p>Idempotent : si une reservation existe deja avec l'externalUid attendu,
      * on retourne celle existante sans rien modifier.</p>
@@ -232,7 +232,7 @@ public class ChannexBookingService {
             externalUid, mapping.getClenzyPropertyId()
         );
         if (opt.isEmpty()) {
-            log.warn("ChannexBooking: modification recue pour booking {} introuvable cote Clenzy — "
+            log.warn("ChannexBooking: modification recue pour booking {} introuvable cote Baitly — "
                 + "creation a la volee", booking.stableBookingId());
             return Optional.of(handleNewBooking(booking));
         }
@@ -258,6 +258,7 @@ public class ChannexBookingService {
         // changer afficherait un chiffre perime comme s'il etait reel ; a null on
         // retombe sur l'estimation, qui elle est signalee comme telle.
         reservation.setOtaFeeAmount(resolveOtaFee(booking));
+        ChannexBookingPayment.apply(reservation, booking.paymentCollect());
 
         reservationRepository.save(reservation);
 
@@ -399,21 +400,10 @@ public class ChannexBookingService {
         r.setRoomRevenue(booking.amount());
         r.setOtaFeeAmount(resolveOtaFee(booking));
         r.setExternalUid(externalUid);
-        // Régime d'encaissement LU dans le payload quand Channex le donne : un séjour Booking.com
-        // sans « Payments by Booking » est encaissé par l'hôte — et c'est alors lui, pas la
-        // plateforme, qui collecte la taxe de séjour. Sans l'information, la déduction par
-        // canal (OtaPaidSources) s'applique à la persistance.
-        if (booking.paymentCollect() != null) {
-            r.setPaymentCollection(booking.collectedByProperty()
-                ? com.clenzy.model.PaymentCollection.PMS
-                : com.clenzy.model.PaymentCollection.CHANNEL);
-        }
+        ChannexBookingPayment.apply(r, booking.paymentCollect());
         // OTA reservation code (visible au guest) — utile pour le support
         r.setConfirmationCode(booking.otaReservationCode() != null
             ? booking.otaReservationCode() : ("CHX-" + booking.id().substring(0, Math.min(8, booking.id().length()))));
-        // Le guest a deja paye sur l'OTA — on marque PAID
-        r.setPaymentStatus(PaymentStatus.PAID);
-        r.setPaidAt(LocalDateTime.now());
         return r;
     }
 

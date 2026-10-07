@@ -1,4 +1,4 @@
-import { useId, useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   ArrowUpRight,
@@ -18,27 +18,48 @@ import {
 import type { SetupStepProps } from "./OnboardingStepContent";
 import RegionalPaymentProviders from "./RegionalPaymentProviders";
 import IntegrationLogo from "../integrations/IntegrationLogo";
+import { useAuth } from "../../hooks/useAuth";
+import { paymentConnectionKey } from "../../services/api/paymentConnectionKeys";
+import { usePaymentActivationPolling } from "./usePaymentActivationPolling";
 
 /** One onboarding surface for every beneficiary; account ownership is checked by the backend. */
-export default function SetupPayout({ onCheck }: SetupStepProps) {
+export default function SetupPayout(props: SetupStepProps & { beneficiaryScope?: PaymentScope }) {
+  const { user } = useAuth();
+  if (!user) return null;
+  const identity = `${user.id}:${user.organizationId}`;
+  return <PaymentSetup key={`${identity}:${props.beneficiaryScope ?? 'choice'}`} {...props} identity={identity} />;
+}
+
+function PaymentSetup({ onCheck, beneficiaryScope, identity }: SetupStepProps & { beneficiaryScope?: PaymentScope; identity: string }) {
   const { t } = useTranslation();
   const id = useId();
   const cache = useQueryClient();
-  const [scope, setScope] = useState<PaymentScope>(() =>
+  const mounted = useRef(true);
+  useEffect(() => { mounted.current = true; return () => { mounted.current = false; }; }, []);
+  const [selectedScope, setScope] = useState<PaymentScope>(() =>
     new URLSearchParams(window.location.search).get("paymentScope") ===
     "ORGANIZATION"
       ? "ORGANIZATION"
       : "PERSONAL",
   );
+  const scope = beneficiaryScope ?? selectedScope;
   const [countryChoice, setCountryChoice] = useState("");
   const [busy, setBusy] = useState(false);
   const [notice, setNotice] = useState("");
   const [error, setError] = useState(false);
   const query = useQuery({
-    queryKey: ["payment-connection", scope],
+    queryKey: paymentConnectionKey(identity, scope),
     queryFn: () => paymentConnectApi.status(scope),
+    refetchOnMount: "always",
   });
   const status = query.data;
+  usePaymentActivationPolling(identity, scope, status, async (result) => {
+    if (result.ready) {
+      setNotice("");
+      setError(false);
+      await onCheck();
+    }
+  });
   const country = status?.country ?? countryChoice;
   const needsConnection = !status?.accountCreated || status.reconnectRequired;
   const canStart = needsConnection
@@ -50,7 +71,7 @@ export default function SetupPayout({ onCheck }: SetupStepProps) {
     setError(false);
     try {
       const result = await paymentConnectApi.start(scope, country, intent);
-      redirectToPaymentProvider(result.url);
+      if (mounted.current) redirectToPaymentProvider(result.url);
     } catch {
       setError(true);
       setNotice(t("onboarding.payment.error"));
@@ -63,7 +84,8 @@ export default function SetupPayout({ onCheck }: SetupStepProps) {
     setError(false);
     try {
       const result = await paymentConnectApi.refresh(scope);
-      cache.setQueryData(["payment-connection", scope], result);
+      if (!mounted.current) return;
+      cache.setQueryData(paymentConnectionKey(identity, scope), result);
       await onCheck();
       if (!result.ready) setNotice(t("onboarding.payment.pending"));
     } catch {
@@ -85,7 +107,7 @@ export default function SetupPayout({ onCheck }: SetupStepProps) {
     );
   return (
     <section className="setup-payment" aria-busy={busy}>
-      {status?.canManageOrganization && (
+      {!beneficiaryScope && status?.canManageOrganization && (
         <fieldset className="setup-payment-beneficiary" disabled={busy}>
           <legend>{t("onboarding.payment.beneficiary")}</legend>
           {(["PERSONAL", "ORGANIZATION"] as const).map((value) => (

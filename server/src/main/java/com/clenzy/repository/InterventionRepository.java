@@ -18,6 +18,15 @@ import java.util.List;
 
 @Repository
 public interface InterventionRepository extends JpaRepository<Intervention, Long> {
+    @Query("select (count(a) > 0) from InterventionPaymentAllocation a join a.transaction t "
+            + "where a.organizationId=:org and a.interventionId=:mission and t.organizationId=:org and t.providerTxId=:session")
+    boolean hasAllocatedPayment(@Param("org") Long org, @Param("mission") Long mission, @Param("session") String session);
+
+
+
+    @Query("SELECT i FROM Intervention i LEFT JOIN FETCH i.assignedUser LEFT JOIN FETCH i.serviceRequest "
+            + "WHERE i.id = :id AND i.organizationId = :orgId")
+    java.util.Optional<Intervention> findForPayout(@Param("id") Long id, @Param("orgId") Long orgId);
 
     @org.springframework.data.jpa.repository.Lock(jakarta.persistence.LockModeType.PESSIMISTIC_WRITE)
     @Query("SELECT i FROM Intervention i WHERE i.id = :id AND i.organizationId = :orgId")
@@ -343,6 +352,9 @@ public interface InterventionRepository extends JpaRepository<Intervention, Long
     java.util.Optional<Intervention> findByStripeSessionId(@Param("sessionId") String sessionId);
 
     boolean existsByStripeSessionIdAndIdNot(String stripeSessionId, Long id);
+
+    @EntityGraph(attributePaths = {"requestor"})
+    List<Intervention> findAllByStripeSessionIdAndOrganizationId(String stripeSessionId, Long organizationId);
 
     /**
      * Interventions impayees d'un host (paymentStatus != PAID et estimatedCost > 0)

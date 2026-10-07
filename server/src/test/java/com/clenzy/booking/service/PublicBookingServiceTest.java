@@ -22,6 +22,8 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.ArgumentCaptor;
 import com.clenzy.dto.PaymentOrchestrationRequest;
 import com.clenzy.dto.PaymentOrchestrationResult;
@@ -33,6 +35,13 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
+import org.springframework.aop.framework.ProxyFactory;
+import org.springframework.jdbc.datasource.DataSourceTransactionManager;
+import org.springframework.jdbc.datasource.DriverManagerDataSource;
+import org.springframework.transaction.annotation.AnnotationTransactionAttributeSource;
+import org.springframework.transaction.interceptor.TransactionInterceptor;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
+import org.springframework.transaction.support.TransactionTemplate;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -63,6 +72,7 @@ class PublicBookingServiceTest {
     @Mock private com.clenzy.booking.security.BookingFraudScoringService fraudScoringService;
     @Mock private com.clenzy.service.PaymentOrchestrationService orchestrationService;
     @Mock private org.springframework.transaction.PlatformTransactionManager transactionManager;
+    @Mock private GuestCreditService guestCredits;
 
     private PublicBookingService service;
 
@@ -80,7 +90,7 @@ class PublicBookingServiceTest {
                 serviceOptionsService,
                 org.mockito.Mockito.mock(com.clenzy.service.email.BookingConfirmationEmailService.class),
                 org.mockito.Mockito.mock(com.clenzy.booking.service.BookingEngineDepositService.class),
-                org.mockito.Mockito.mock(com.clenzy.booking.service.GuestCreditService.class),
+                guestCredits,
                 org.mockito.Mockito.mock(com.clenzy.booking.repository.SiteRepository.class),
                 org.mockito.Mockito.mock(com.clenzy.booking.repository.SitePageRepository.class),
                 org.mockito.Mockito.mock(com.clenzy.booking.service.BookingDisplayCurrencyService.class),
@@ -112,6 +122,18 @@ class PublicBookingServiceTest {
     }
 
     // ───────────────────── helpers ──────────────────────────────────────────────
+
+    private DataSourceTransactionManager realTransactions() {
+        return new DataSourceTransactionManager(new DriverManagerDataSource(
+                "jdbc:h2:mem:booking-boundary-" + UUID.randomUUID(), "sa", ""));
+    }
+
+    /** Exerce les annotations via le proxy Spring, comme les appels du contrôleur public. */
+    private PublicBookingService transactionalService(DataSourceTransactionManager manager) {
+        ProxyFactory factory = new ProxyFactory(service);
+        factory.addAdvice(new TransactionInterceptor(manager, new AnnotationTransactionAttributeSource()));
+        return (PublicBookingService) factory.getProxy();
+    }
 
     private Organization buildOrg() {
         Organization o = new Organization();
@@ -492,6 +514,24 @@ class PublicBookingServiceTest {
                     });
         }
 
+        @ParameterizedTest
+        @ValueSource(booleans = {false, true})
+        void bothEntryPointsCreateGuestInWritableTransaction(boolean memberOverload) {
+            when(guestService.findOrCreate(anyString(), anyString(), anyString(), any(),
+                    eq(GuestChannel.DIRECT), any(), eq(ORG_ID))).thenAnswer(invocation -> {
+                assertThat(TransactionSynchronizationManager.isActualTransactionActive()).isTrue();
+                assertThat(TransactionSynchronizationManager.isCurrentTransactionReadOnly()).isFalse();
+                Guest guest = new Guest();
+                guest.setId(99L);
+                return guest;
+            });
+            PublicBookingService proxy = transactionalService(realTransactions());
+            BookingReserveResponseDto response = memberOverload
+                    ? proxy.reserve(buildCtx(), req, false) : proxy.reserve(buildCtx(), req);
+            assertThat(response.status()).isEqualTo("PENDING");
+            assertThat(TransactionSynchronizationManager.isActualTransactionActive()).isFalse();
+        }
+
         @Test
         @DisplayName("creates PENDING reservation when autoConfirm=false")
         void whenAutoConfirmFalse_thenPending() {
@@ -674,6 +714,27 @@ class PublicBookingServiceTest {
                     });
         }
 
+        @ParameterizedTest
+        @ValueSource(booleans = {false, true})
+        void bothBatchEntryPointsCreateGuestInWritableTransaction(boolean memberOverload) {
+            when(guestService.findOrCreate(anyString(), anyString(), anyString(), any(),
+                    eq(GuestChannel.DIRECT), any(), eq(ORG_ID))).thenAnswer(invocation -> {
+                assertThat(TransactionSynchronizationManager.isActualTransactionActive()).isTrue();
+                assertThat(TransactionSynchronizationManager.isCurrentTransactionReadOnly()).isFalse();
+                Guest guest = new Guest();
+                guest.setId(99L);
+                return guest;
+            });
+            BookingReserveBatchRequestDto req = new BookingReserveBatchRequestDto(
+                    List.of(new BookingReserveBatchRequestDto.Item(PROPERTY_ID, in, out, 2, null, null)),
+                    new BookingReserveRequestDto.GuestInfo("Test Baitly", "test@example.com", "+33000000000"));
+            PublicBookingService proxy = transactionalService(realTransactions());
+            BookingReserveBatchResponseDto response = memberOverload
+                    ? proxy.reserveBatch(buildCtx(), req, false) : proxy.reserveBatch(buildCtx(), req);
+            assertThat(response.reservations()).hasSize(1);
+            assertThat(TransactionSynchronizationManager.isActualTransactionActive()).isFalse();
+        }
+
         @Test
         @DisplayName("throws when items list is empty")
         void whenEmpty_thenThrows() {
@@ -736,6 +797,60 @@ class PublicBookingServiceTest {
     @Nested
     class Checkout {
 
+        @Test void creditIntentBindsAccountAndAmountWithoutConsumingBalanceAtCheckout() {
+            var r=new Reservation();r.setId(50L);r.setOrganizationId(ORG_ID);r.setConfirmationCode("CODE");
+            r.setStatus("pending");r.setPaymentStatus(PaymentStatus.PENDING);r.setCurrency("EUR");
+            r.setTotalPrice(new BigDecimal("100"));r.setProperty(buildProperty());
+            var guest=new Guest();guest.setEmail("guest@test.invalid");r.setGuest(guest);
+            when(reservationRepository.lockCancellation(ORG_ID,"CODE")).thenReturn(Optional.of(r));
+            when(guestCredits.getBalanceCents(ORG_ID,"guest@test.invalid","EUR")).thenReturn(2000L);
+            when(guestCredits.accountId(ORG_ID,"guest@test.invalid","EUR")).thenReturn(9L);
+            stubOrchestratorSuccess();
+            service.checkout(buildCtx(),new BookingCheckoutRequestDto("CODE",null));
+            ArgumentCaptor<PaymentOrchestrationRequest> request=ArgumentCaptor.forClass(PaymentOrchestrationRequest.class);
+            verify(orchestrationService).initiatePayment(eq(ORG_ID),any(),request.capture());
+            assertThat(request.getValue().amount()).isEqualByComparingTo("80");
+            assertThat(request.getValue().metadata()).containsEntry("baitlyCreditMinor","2000")
+                .containsEntry("baitlyCreditAccount","9").containsEntry("baitlyCreditCode","CODE");
+            verify(guestCredits,never()).redeem(any(),any(),anyLong(),any(),any(),any());
+        }
+
+        @Test void checkoutWithoutCreditFreezesZeroAcrossRetries() {
+            var r=new Reservation();r.setId(50L);r.setOrganizationId(ORG_ID);r.setConfirmationCode("CODE");
+            r.setStatus("pending");r.setPaymentStatus(PaymentStatus.PENDING);r.setCurrency("EUR");
+            r.setTotalPrice(new BigDecimal("100"));r.setProperty(buildProperty());
+            var guest=new Guest();guest.setEmail("guest@test.invalid");r.setGuest(guest);
+            when(reservationRepository.lockCancellation(ORG_ID,"CODE")).thenReturn(Optional.of(r));
+            when(guestCredits.getBalanceCents(ORG_ID,"guest@test.invalid","EUR")).thenReturn(0L,2000L);
+            stubOrchestratorSuccess();
+            service.checkout(buildCtx(),new BookingCheckoutRequestDto("CODE",null));
+            service.checkout(buildCtx(),new BookingCheckoutRequestDto("CODE",null));
+            assertThat(r.getCreditApplied()).isZero();
+            verify(guestCredits,times(1)).getBalanceCents(ORG_ID,"guest@test.invalid","EUR");
+        }
+
+        @ParameterizedTest
+        @ValueSource(booleans = {false, true})
+        void bothCheckoutEntryPointsSuspendCallerTransactionDuringPspCall(boolean ipOverload) throws StripeException {
+            PublicBookingService.OrgContext ctx = stubPayableReservationWithOrigins("https://book.example.com", false);
+            when(orchestrationService.initiatePayment(anyLong(), any(), any(PaymentOrchestrationRequest.class)))
+                    .thenAnswer(invocation -> {
+                        assertThat(TransactionSynchronizationManager.isActualTransactionActive()).isFalse();
+                        return new PaymentOrchestrationResult(null,
+                                PaymentResult.success("cs_test", "https://pay/checkout/cs_test"),
+                                PaymentProviderType.STRIPE);
+                    });
+            DataSourceTransactionManager manager = realTransactions();
+            PublicBookingService proxy = transactionalService(manager);
+            new TransactionTemplate(manager).executeWithoutResult(status -> {
+                BookingCheckoutRequestDto req = new BookingCheckoutRequestDto("CODE", null);
+                if (ipOverload) proxy.checkout(ctx, req, "127.0.0.1");
+                else proxy.checkout(ctx, req);
+                assertThat(TransactionSynchronizationManager.isActualTransactionActive()).isTrue();
+            });
+            verify(orchestrationService).initiatePayment(anyLong(), any(), any(PaymentOrchestrationRequest.class));
+        }
+
         @Test
         @DisplayName("throws if collectPaymentOnBooking=false")
         void whenPaymentNotEnabled_thenThrows() {
@@ -751,7 +866,7 @@ class PublicBookingServiceTest {
         @Test
         @DisplayName("throws if reservation not found")
         void whenReservationMissing_thenThrows() {
-            when(reservationRepository.findByConfirmationCodeAndOrganizationId("CODE", ORG_ID))
+            when(reservationRepository.lockCancellation(ORG_ID, "CODE"))
                     .thenReturn(Optional.empty());
             assertThatThrownBy(() -> service.checkout(buildCtx(), new BookingCheckoutRequestDto("CODE", null)))
                     .isInstanceOf(IllegalArgumentException.class)
@@ -764,7 +879,7 @@ class PublicBookingServiceTest {
             Reservation r = new Reservation();
             r.setStatus("cancelled");
             r.setOrganizationId(ORG_ID);
-            when(reservationRepository.findByConfirmationCodeAndOrganizationId("CODE", ORG_ID))
+            when(reservationRepository.lockCancellation(ORG_ID, "CODE"))
                     .thenReturn(Optional.of(r));
             assertThatThrownBy(() -> service.checkout(buildCtx(), new BookingCheckoutRequestDto("CODE", null)))
                     .isInstanceOf(IllegalStateException.class);
@@ -775,9 +890,10 @@ class PublicBookingServiceTest {
         void whenAlreadyPaid_thenThrows() {
             Reservation r = new Reservation();
             r.setStatus("pending");
+            r.setPaymentStatus(PaymentStatus.PENDING);
             r.setOrganizationId(ORG_ID);
             r.setPaymentStatus(PaymentStatus.PAID);
-            when(reservationRepository.findByConfirmationCodeAndOrganizationId("CODE", ORG_ID))
+            when(reservationRepository.lockCancellation(ORG_ID, "CODE"))
                     .thenReturn(Optional.of(r));
 
             assertThatThrownBy(() -> service.checkout(buildCtx(), new BookingCheckoutRequestDto("CODE", null)))
@@ -791,12 +907,13 @@ class PublicBookingServiceTest {
             Reservation r = new Reservation();
             r.setId(50L);
             r.setStatus("pending");
+            r.setPaymentStatus(PaymentStatus.PENDING);
             r.setOrganizationId(ORG_ID);
             r.setConfirmationCode("CODE");
             r.setTotalPrice(new BigDecimal("100.00"));
             r.setGuestName("Jane");
             r.setProperty(buildProperty());
-            when(reservationRepository.findByConfirmationCodeAndOrganizationId("CODE", ORG_ID))
+            when(reservationRepository.lockCancellation(ORG_ID, "CODE"))
                     .thenReturn(Optional.of(r));
             when(reservationRepository.findById(50L)).thenReturn(Optional.of(r));
 
@@ -818,10 +935,11 @@ class PublicBookingServiceTest {
             Reservation r = new Reservation();
             r.setId(50L);
             r.setStatus("pending");
+            r.setPaymentStatus(PaymentStatus.PENDING);
             r.setOrganizationId(ORG_ID);
             r.setTotalPrice(new BigDecimal("100.00"));
             r.setProperty(buildProperty());
-            when(reservationRepository.findByConfirmationCodeAndOrganizationId("CODE", ORG_ID))
+            when(reservationRepository.lockCancellation(ORG_ID, "CODE"))
                     .thenReturn(Optional.of(r));
             when(orchestrationService.initiatePayment(anyLong(), any(), any(PaymentOrchestrationRequest.class)))
                     .thenReturn(new PaymentOrchestrationResult(null, PaymentResult.failure("boom"), null));
@@ -834,17 +952,22 @@ class PublicBookingServiceTest {
 
         /** Réservation PENDING payable + stub de session ; renvoie le ctx avec `allowedOrigins` donné. */
         private PublicBookingService.OrgContext stubPayableReservationWithOrigins(String allowedOrigins) throws StripeException {
+            return stubPayableReservationWithOrigins(allowedOrigins, true);
+        }
+
+        private PublicBookingService.OrgContext stubPayableReservationWithOrigins(String allowedOrigins, boolean stubPayment) {
             Reservation r = new Reservation();
             r.setId(50L);
             r.setStatus("pending");
+            r.setPaymentStatus(PaymentStatus.PENDING);
             r.setOrganizationId(ORG_ID);
             r.setConfirmationCode("CODE");
             r.setTotalPrice(new BigDecimal("100.00"));
             r.setGuestName("Jane");
             r.setProperty(buildProperty());
-            when(reservationRepository.findByConfirmationCodeAndOrganizationId("CODE", ORG_ID))
+            when(reservationRepository.lockCancellation(ORG_ID, "CODE"))
                     .thenReturn(Optional.of(r));
-            stubOrchestratorSuccess();
+            if (stubPayment) stubOrchestratorSuccess();
 
             BookingEngineConfig cfg = buildConfig(true);
             cfg.setAllowedOrigins(allowedOrigins);
@@ -872,23 +995,23 @@ class PublicBookingServiceTest {
         }
 
         @Test
-        @DisplayName("returnUrl host arbitraire (≠ org) → IGNORÉ, success_url par défaut (null)")
+        @DisplayName("returnUrl host arbitraire → retour public Baitly, jamais le PMS")
         void whenReturnUrlHostNotAllowed_thenIgnored() throws StripeException {
             PublicBookingService.OrgContext ctx = stubPayableReservationWithOrigins("https://book.acme.com");
 
             service.checkout(ctx, new BookingCheckoutRequestDto("CODE", "https://evil.example.com/steal"));
 
-            assertThat(captureCheckoutRequest().successUrl()).isNull();
+            assertThat(captureCheckoutRequest().successUrl()).isEqualTo("https://app.clenzy.fr/booking/key/confirmation?reservation=CODE&flow=return");
         }
 
         @Test
-        @DisplayName("returnUrl en HTTP (non HTTPS) → IGNORÉ, success_url par défaut (null)")
+        @DisplayName("returnUrl en HTTP non autorisé → retour public Baitly")
         void whenReturnUrlNotHttps_thenIgnored() throws StripeException {
             PublicBookingService.OrgContext ctx = stubPayableReservationWithOrigins("https://book.acme.com");
 
             service.checkout(ctx, new BookingCheckoutRequestDto("CODE", "http://book.acme.com/merci"));
 
-            assertThat(captureCheckoutRequest().successUrl()).isNull();
+            assertThat(captureCheckoutRequest().successUrl()).isEqualTo("https://app.clenzy.fr/booking/key/confirmation?reservation=CODE&flow=return");
         }
 
         @Test
@@ -898,7 +1021,26 @@ class PublicBookingServiceTest {
 
             service.checkout(ctx, new BookingCheckoutRequestDto("CODE", "https://book.acme.com/merci"));
 
-            assertThat(captureCheckoutRequest().successUrl()).isNull();
+            assertThat(captureCheckoutRequest().successUrl()).isEqualTo("https://app.clenzy.fr/booking/key/confirmation?reservation=CODE&flow=return");
+        }
+
+        @Test
+        void absentReturnUrlUsesConfiguredPublicOriginForSuccessAndCancel() throws StripeException {
+            org.springframework.test.util.ReflectionTestUtils.setField(service, "publicBaseUrl", "http://localhost:3000/");
+            var ctx = stubPayableReservationWithOrigins(null);
+            service.checkout(ctx, new BookingCheckoutRequestDto("CODE", null));
+            var request = captureCheckoutRequest();
+            assertThat(request.successUrl()).isEqualTo("http://localhost:3000/booking/key/confirmation?reservation=CODE&flow=return");
+            assertThat(request.cancelUrl()).isEqualTo("http://localhost:3000/booking/key/confirmation?reservation=CODE&flow=cancel");
+        }
+
+        @Test
+        void externalSiteReturnKeepsPublicCancellationFallback() throws StripeException {
+            var ctx = stubPayableReservationWithOrigins("https://book.acme.com");
+            service.checkout(ctx, new BookingCheckoutRequestDto("CODE", "https://book.acme.com/merci"));
+            var request = captureCheckoutRequest();
+            assertThat(request.successUrl()).isEqualTo("https://book.acme.com/merci?reservation=CODE");
+            assertThat(request.cancelUrl()).isEqualTo("https://app.clenzy.fr/booking/key/confirmation?reservation=CODE&flow=cancel");
         }
     }
 
@@ -913,6 +1055,7 @@ class PublicBookingServiceTest {
             Reservation r = new Reservation();
             r.setId(50L);
             r.setStatus("pending");
+            r.setPaymentStatus(PaymentStatus.PENDING);
             r.setOrganizationId(ORG_ID);
             r.setConfirmationCode("CODE");
             r.setTotalPrice(new BigDecimal("100.00"));
@@ -929,7 +1072,7 @@ class PublicBookingServiceTest {
         @Test
         @DisplayName("scoring désactivé → service de scoring jamais appelé (no-op)")
         void whenScoringDisabled_thenServiceNotInvoked() throws StripeException {
-            when(reservationRepository.findByConfirmationCodeAndOrganizationId("CODE", ORG_ID))
+            when(reservationRepository.lockCancellation(ORG_ID, "CODE"))
                     .thenReturn(Optional.of(payableReservation()));
             stubStripeSession();
             when(fraudScoringService.isEnabled()).thenReturn(false);
@@ -943,7 +1086,7 @@ class PublicBookingServiceTest {
         @DisplayName("LOW → checkout normal, aucune note de revue, metadata Radar transmise")
         void whenLowRisk_thenNormalCheckout() throws StripeException {
             Reservation r = payableReservation();
-            when(reservationRepository.findByConfirmationCodeAndOrganizationId("CODE", ORG_ID))
+            when(reservationRepository.lockCancellation(ORG_ID, "CODE"))
                     .thenReturn(Optional.of(r));
             stubStripeSession();
             when(fraudScoringService.isEnabled()).thenReturn(true);
@@ -965,7 +1108,7 @@ class PublicBookingServiceTest {
         @DisplayName("MEDIUM + enforcement → réservation marquée pour revue (notes), paiement non bloqué")
         void whenMediumWithEnforcement_thenFlaggedForReview() throws StripeException {
             Reservation r = payableReservation();
-            when(reservationRepository.findByConfirmationCodeAndOrganizationId("CODE", ORG_ID))
+            when(reservationRepository.lockCancellation(ORG_ID, "CODE"))
                     .thenReturn(Optional.of(r));
             stubStripeSession();
             when(fraudScoringService.isEnabled()).thenReturn(true);
@@ -986,7 +1129,7 @@ class PublicBookingServiceTest {
         @DisplayName("HIGH + advisory (enforcement off) → ne bloque JAMAIS, pas de note de revue")
         void whenHighButAdvisory_thenNeverBlocks() throws StripeException {
             Reservation r = payableReservation();
-            when(reservationRepository.findByConfirmationCodeAndOrganizationId("CODE", ORG_ID))
+            when(reservationRepository.lockCancellation(ORG_ID, "CODE"))
                     .thenReturn(Optional.of(r));
             stubStripeSession();
             when(fraudScoringService.isEnabled()).thenReturn(true);
@@ -1004,7 +1147,7 @@ class PublicBookingServiceTest {
         @Test
         @DisplayName("HIGH + enforcement + refuse-high-risk → checkout refusé (409)")
         void whenHighWithRefuse_thenRejected() throws StripeException {
-            when(reservationRepository.findByConfirmationCodeAndOrganizationId("CODE", ORG_ID))
+            when(reservationRepository.lockCancellation(ORG_ID, "CODE"))
                     .thenReturn(Optional.of(payableReservation()));
             when(fraudScoringService.isEnabled()).thenReturn(true);
             when(fraudScoringService.isEnforcement()).thenReturn(true);
@@ -1026,7 +1169,7 @@ class PublicBookingServiceTest {
         void whenScoring_thenUsesServerSideTotal() throws StripeException {
             Reservation r = payableReservation();
             r.setTotalPrice(new BigDecimal("777.00")); // total serveur de référence
-            when(reservationRepository.findByConfirmationCodeAndOrganizationId("CODE", ORG_ID))
+            when(reservationRepository.lockCancellation(ORG_ID, "CODE"))
                     .thenReturn(Optional.of(r));
             stubStripeSession();
             when(fraudScoringService.isEnabled()).thenReturn(true);

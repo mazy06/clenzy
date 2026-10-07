@@ -105,6 +105,19 @@ public class ManagementCommissionCalculator {
             otaFeeBorneByOwner(reservation, contract));
     }
 
+    /** Commission du seul encaissement conservé après remboursement confirmé. */
+    public Commission ofRetained(Reservation reservation, ManagementContract contract, BigDecimal retained) {
+        BigDecimal gross = reservation.getTotalPrice();
+        if (gross == null || retained == null || retained.signum() <= 0 || retained.compareTo(gross) > 0)
+            throw new IllegalStateException("Assiette de commission à rapprocher.");
+        if (retained.compareTo(gross) == 0) return of(reservation, contract);
+        // Aucun prorata arbitraire des frais OTA : leur remboursement exige sa propre preuve.
+        if (reservation.getOtaFeeAmount() != null && reservation.getOtaFeeAmount().signum() != 0)
+            throw new IllegalStateException("Les frais OTA du séjour remboursé doivent être rapprochés.");
+        BigDecimal rate = rateOf(contract);
+        return new Commission(retained, rate, retained.multiply(rate).setScale(2, RoundingMode.HALF_UP), BigDecimal.ZERO);
+    }
+
     /**
      * Commission d'un lot de séjours, séjour par séjour.
      *

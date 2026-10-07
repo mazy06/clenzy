@@ -10,6 +10,8 @@ import com.clenzy.service.InvoicePaymentService;
 import com.clenzy.service.InvoiceQueryService;
 import org.springframework.http.*;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -39,11 +41,13 @@ public class InvoiceController {
     private final InvoicePaymentService invoicePaymentService;
     private final InvoicePaymentLinkService invoicePaymentLinkService;
     private final InvoiceQueryService invoiceQueryService;
+    private final com.clenzy.service.PaymentAccessService paymentAccess;
 
     public InvoiceController(InvoiceGeneratorService invoiceGeneratorService,
                               InvoicePaymentService invoicePaymentService,
                               InvoicePaymentLinkService invoicePaymentLinkService,
-                              InvoiceQueryService invoiceQueryService) {
+                              InvoiceQueryService invoiceQueryService, com.clenzy.service.PaymentAccessService paymentAccess) {
+        this.paymentAccess = paymentAccess;
         this.invoiceGeneratorService = invoiceGeneratorService;
         this.invoicePaymentService = invoicePaymentService;
         this.invoicePaymentLinkService = invoicePaymentLinkService;
@@ -122,11 +126,13 @@ public class InvoiceController {
      * Declenche le paiement d'une facture via l'orchestrateur.
      */
     @PostMapping("/{id}/pay")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN','SUPER_MANAGER','HOST')")
     public ResponseEntity<PaymentOrchestrationResult> pay(
             @PathVariable Long id,
             @RequestParam(required = false) PaymentProviderType preferredProvider,
             @RequestParam(required = false) String successUrl,
-            @RequestParam(required = false) String cancelUrl) {
+            @RequestParam(required = false) String cancelUrl, @AuthenticationPrincipal Jwt jwt) {
+        paymentAccess.requireInvoice(id, jwt);
         PaymentOrchestrationResult result = invoicePaymentService.payInvoice(
                 id, preferredProvider, successUrl, cancelUrl);
         return ResponseEntity.ok(result);
@@ -138,7 +144,9 @@ public class InvoiceController {
      * constellation. Retourne l'email destinataire pour confirmation UI.
      */
     @PostMapping("/{id}/send-payment-link")
-    public ResponseEntity<java.util.Map<String, String>> sendPaymentLink(@PathVariable Long id) {
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN','SUPER_MANAGER','HOST')")
+    public ResponseEntity<java.util.Map<String, String>> sendPaymentLink(@PathVariable Long id, @AuthenticationPrincipal Jwt jwt) {
+        paymentAccess.requireInvoice(id, jwt);
         String sentTo = invoicePaymentLinkService.sendPaymentLink(id);
         return ResponseEntity.ok(java.util.Map.of("sentTo", sentTo));
     }

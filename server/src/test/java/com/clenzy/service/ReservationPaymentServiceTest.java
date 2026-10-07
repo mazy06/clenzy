@@ -57,6 +57,7 @@ class ReservationPaymentServiceTest {
     @Mock private EmailService emailService;
     @Mock private GuestMessagingService guestMessagingService;
     @Mock private MessageTemplateRepository messageTemplateRepository;
+    @Mock private com.clenzy.booking.service.BaitlyReservationCredit credits;
 
     private TenantContext tenantContext;
     private ReservationPaymentService service;
@@ -70,7 +71,10 @@ class ReservationPaymentServiceTest {
 
         service = new ReservationPaymentService(reservationRepository, stripeService,
                 stripeGateway, orchestrationService, emailService, guestMessagingService,
-                messageTemplateRepository, tenantContext);
+                messageTemplateRepository, tenantContext,
+                new BaitlyReservationPaymentReturnUrls(
+                        mock(com.clenzy.booking.repository.BookingEngineConfigRepository.class),
+                        "https://app.example.test"), credits);
     }
 
     private PaymentOrchestrationResult orchSuccess(String providerTxId, String url) {
@@ -92,12 +96,26 @@ class ReservationPaymentServiceTest {
         r.setCheckIn(LocalDate.of(2026, 3, 1));
         r.setCheckOut(LocalDate.of(2026, 3, 4));
         r.setCurrency("EUR");
+        r.setPaymentCollection(com.clenzy.model.PaymentCollection.PMS);
         return r;
     }
 
     @Nested
     @DisplayName("sendPaymentLink")
     class SendPaymentLink {
+
+        @Test void paymentLinkPreservesTheReducedAmountAndCreditProof() {
+            var r=buildReservation();r.setTotalPrice(new BigDecimal("100"));r.setCreditApplied(new BigDecimal("20"));
+            when(credits.checkoutMetadata(r)).thenReturn(java.util.Map.of("baitlyCreditMinor","2000","baitlyCreditAccount","9","baitlyCreditCode","BOOK"));
+            when(orchestrationService.initiatePayment(any(PaymentOrchestrationRequest.class)))
+                .thenReturn(orchSuccess("sess_1","https://stripe.test/pay"));
+            when(reservationRepository.recordPaymentLinkSent(eq(10L),eq(ORG_ID),eq("sess_1"),any(),anyString())).thenReturn(1);
+            service.sendPaymentLink(r,"guest@test.invalid");
+            var captor=ArgumentCaptor.forClass(PaymentOrchestrationRequest.class);
+            verify(orchestrationService).initiatePayment(captor.capture());
+            assertThat(captor.getValue().amount()).isEqualByComparingTo("80");
+            assertThat(captor.getValue().metadata()).containsEntry("baitlyCreditMinor","2000").containsEntry("baitlyCreditAccount","9");
+        }
 
         @Test
         void whenNoEmailAndNoGuestEmail_thenThrowsIllegalArgument() {
@@ -123,6 +141,7 @@ class ReservationPaymentServiceTest {
         @Test
         void whenNoEmailProvided_thenFallsBackToGuestEmail() throws Exception {
             Reservation r = buildReservation();
+            when(reservationRepository.recordPaymentLinkSent(eq(10L), eq(ORG_ID), eq("sess_1"), any(), anyString())).thenReturn(1);
             Guest guest = new Guest();
             guest.setEmail("guest@mail.com");
             r.setGuest(guest);
@@ -136,7 +155,7 @@ class ReservationPaymentServiceTest {
             service.sendPaymentLink(r, null);
 
             verify(emailService).sendSimpleHtmlEmail(eq("guest@mail.com"), anyString(), anyString());
-            assertThat(r.getPaymentLinkEmail()).isEqualTo("guest@mail.com");
+            verify(reservationRepository).recordPaymentLinkSent(eq(10L), eq(ORG_ID), eq("sess_1"), any(), eq("guest@mail.com"));
             // La devise du guest pilote la résolution provider.
             ArgumentCaptor<PaymentOrchestrationRequest> reqCaptor =
                     ArgumentCaptor.forClass(PaymentOrchestrationRequest.class);
@@ -147,6 +166,7 @@ class ReservationPaymentServiceTest {
         @Test
         void whenTemplateConfigured_thenSendsViaMessagingChannel() throws Exception {
             Reservation r = buildReservation();
+            when(reservationRepository.recordPaymentLinkSent(eq(10L), eq(ORG_ID), eq("sess_2"), any(), anyString())).thenReturn(1);
             when(orchestrationService.initiatePayment(any(PaymentOrchestrationRequest.class)))
                     .thenReturn(orchSuccess("sess_2", "https://stripe.test/pay2"));
             MessageTemplate template = new MessageTemplate();
@@ -168,6 +188,7 @@ class ReservationPaymentServiceTest {
         @Test
         void whenSent_thenRoutesThroughOrchestratorAndPersists() throws Exception {
             Reservation r = buildReservation();
+            when(reservationRepository.recordPaymentLinkSent(eq(10L), eq(ORG_ID), eq("sess_3"), any(), anyString())).thenReturn(1);
             when(orchestrationService.initiatePayment(any(PaymentOrchestrationRequest.class)))
                     .thenReturn(orchSuccess("sess_3", "https://stripe.test/pay3"));
             when(messageTemplateRepository.findByOrganizationIdAndTypeAndIsActiveTrue(
@@ -177,11 +198,9 @@ class ReservationPaymentServiceTest {
 
             Reservation result = service.sendPaymentLink(r, "to@mail.com");
 
-            // La réf de session provider est stockée pour la traçabilité + le fallback checkPaymentStatus.
-            assertThat(r.getStripeSessionId()).isEqualTo("sess_3");
-            assertThat(r.getPaymentLinkEmail()).isEqualTo("to@mail.com");
-            assertThat(r.getPaymentLinkSentAt()).isNotNull();
-            verify(reservationRepository).save(r);
+            // Seul le suivi du lien est modifié ; aucun merge ne peut écraser le webhook.
+            verify(reservationRepository).recordPaymentLinkSent(eq(10L), eq(ORG_ID), eq("sess_3"), any(), eq("to@mail.com"));
+            verify(reservationRepository, never()).save(any());
             assertThat(result).isSameAs(reloaded);
 
             // Vague 2 : montant serveur + sourceType RESERVATION + devise résa portés par la requête.
@@ -209,6 +228,16 @@ class ReservationPaymentServiceTest {
                     .hasMessageContaining("Erreur lors de l'envoi du lien de paiement");
             verify(reservationRepository, never()).save(any());
         }
+    }
+
+    @Test void channelOrUnknownPaymentsCannotGenerateAnotherCheckout() {
+        for (var collection : List.of(com.clenzy.model.PaymentCollection.CHANNEL, com.clenzy.model.PaymentCollection.UNKNOWN)) {
+            var reservation = buildReservation(); reservation.setPaymentCollection(collection);
+            reservation.setPaymentStatus(PaymentStatus.PENDING);
+            assertThatThrownBy(() -> service.sendPaymentLink(reservation, "test@example.test"))
+                    .isInstanceOf(IllegalArgumentException.class).hasMessageContaining("Encaissement indisponible");
+        }
+        verifyNoInteractions(orchestrationService, emailService, guestMessagingService);
     }
 
     @Nested

@@ -62,7 +62,7 @@ class StripeBillingSubscriptionProviderTest {
             assertThat(result.redirectUrl()).isNull();
             SessionCreateParams captured = params.getValue();
             assertThat(captured.getMode()).isEqualTo(SessionCreateParams.Mode.SUBSCRIPTION);
-            assertThat(captured.getUiMode()).isEqualTo(SessionCreateParams.UiMode.EMBEDDED);
+            assertThat(captured.getUiMode()).isEqualTo(SessionCreateParams.UiMode.EMBEDDED_PAGE);
             assertThat(captured.getLineItems().get(0).getPriceData().getRecurring().getInterval())
                     .isEqualTo(SessionCreateParams.LineItem.PriceData.Recurring.Interval.MONTH);
             // Metadata posée sur session + subscription.

@@ -44,6 +44,8 @@ import org.springframework.stereotype.Component;
  */
 @Component
 public class StripeGateway {
+    // Identifiant stable de l'intégration : préserver les retries idempotents.
+    public static final String CHECKOUT_INTEGRATION_ID = "baitly-pms-vnjqksaf";
 
     private final String stripeSecretKey;
 
@@ -68,12 +70,40 @@ public class StripeGateway {
         return Session.retrieve(sessionId, requestOptions(null));
     }
 
+    /** Résout la session d'un remboursement externe sans se fier à ses métadonnées. */
+    public java.util.List<Session> sessionsForPaymentIntent(String intent) throws StripeException {
+        var params = com.stripe.param.checkout.SessionListParams.builder().setPaymentIntent(intent).setLimit(100L).build();
+        var sessions = new java.util.ArrayList<Session>();
+        for (var session : new com.stripe.StripeClient(stripeSecretKey).v1().checkout().sessions().list(params).autoPagingIterable()) {
+            sessions.add(session);
+        }
+        return java.util.List.copyOf(sessions);
+    }
+
     public Session expireSession(Session session, String idempotencyKey) throws StripeException {
         return session.expire(com.stripe.param.checkout.SessionExpireParams.builder().build(), requestOptions(idempotencyKey));
     }
 
     public com.stripe.model.Charge retrieveCharge(String chargeId) throws StripeException {
         return com.stripe.model.Charge.retrieve(chargeId, requestOptions(null));
+    }
+
+    public com.stripe.model.Dispute retrieveDispute(String disputeId) throws StripeException {
+        return new com.stripe.StripeClient(stripeSecretKey).v1().disputes().retrieve(disputeId);
+    }
+
+    /** Une page bornée ; les données métier sont ensuite relues par identifiant canonique. */
+    public com.stripe.model.StripeCollection<com.stripe.model.Dispute> listDisputePage(String after) throws StripeException {
+        var params = com.stripe.param.DisputeListParams.builder().setLimit(25L);
+        if (after != null) params.setStartingAfter(after);
+        return new com.stripe.StripeClient(stripeSecretKey).v1().disputes().list(params.build());
+    }
+
+    public java.util.List<com.stripe.model.Dispute> disputesForCharge(String chargeId) throws StripeException {
+        var params=com.stripe.param.DisputeListParams.builder().setCharge(chargeId).setLimit(100L).build();
+        var result=new java.util.ArrayList<com.stripe.model.Dispute>();
+        for(var dispute:new com.stripe.StripeClient(stripeSecretKey).v1().disputes().list(params).autoPagingIterable()) result.add(dispute);
+        return java.util.List.copyOf(result);
     }
 
     /**
@@ -95,6 +125,45 @@ public class StripeGateway {
         return Refund.retrieve(refundId, requestOptions(null));
     }
 
+    public java.util.List<Refund> listPaymentRefunds(String intent) throws StripeException {
+        var params = com.stripe.param.RefundListParams.builder().setPaymentIntent(intent).setLimit(100L).build();
+        var result = new java.util.ArrayList<Refund>();
+        for (var refund : new com.stripe.StripeClient(stripeSecretKey).v1().refunds().list(params).autoPagingIterable()) {
+            result.add(refund);
+        }
+        return java.util.List.copyOf(result);
+    }
+
+    /** Retrouve une émission après timeout, même au-delà de la durée des clés Stripe. */
+    public Refund findPaymentRefund(String intent, String ref) throws StripeException {
+        var params = com.stripe.param.RefundListParams.builder().setPaymentIntent(intent).setLimit(100L).build();
+        var client = new com.stripe.StripeClient(stripeSecretKey);
+        Refund found = null;
+        for (var refund : client.v1().refunds().list(params).autoPagingIterable()) {
+            if (refund.getMetadata() != null && ref.equals(refund.getMetadata().get("baitly_refund_ref"))) {
+                if (found != null) throw new IllegalStateException("Plusieurs remboursements portent la même référence Baitly");
+                found = refund;
+            }
+        }
+        return found;
+    }
+
+    /** Une annulation ne cumule jamais implicitement un ancien remboursement ou un geste commercial. */
+    public Refund findExclusivePaymentRefund(String intent, String ref) throws StripeException {
+        var params = com.stripe.param.RefundListParams.builder().setPaymentIntent(intent).setLimit(100L).build();
+        var client = new com.stripe.StripeClient(stripeSecretKey);
+        Refund found = null;
+        for (var refund : client.v1().refunds().list(params).autoPagingIterable()) {
+            if (refund.getMetadata() != null && ref.equals(refund.getMetadata().get("baitly_refund_ref"))) {
+                if (found != null) throw new IllegalStateException("Plusieurs remboursements portent la même référence Baitly");
+                found = refund;
+            } else if (!"failed".equals(refund.getStatus()) && !"canceled".equals(refund.getStatus())) {
+                throw new IllegalStateException("Un autre remboursement nécessite un rapprochement avant l'annulation financière");
+            }
+        }
+        return found;
+    }
+
     public Refund findFinancialRefund(String paymentIntent, String decisionId) throws StripeException {
         var params = com.stripe.param.RefundListParams.builder().setPaymentIntent(paymentIntent).setLimit(100L).build();
         for (Refund refund : Refund.list(params, requestOptions(null)).autoPagingIterable()) {
@@ -105,6 +174,58 @@ public class StripeGateway {
 
     public Transfer createTransfer(TransferCreateParams params, String idempotencyKey) throws StripeException {
         return Transfer.create(params, requestOptions(idempotencyKey));
+    }
+
+    public java.util.List<com.stripe.model.TransferReversal> listTransferReversals(String transferId) throws StripeException {
+        var params = com.stripe.param.TransferReversalListParams.builder().setLimit(100L).build();
+        var result = new java.util.ArrayList<com.stripe.model.TransferReversal>();
+        for (var reversal : new com.stripe.StripeClient(stripeSecretKey).v1().transfers().reversals()
+                .list(transferId, params).autoPagingIterable()) result.add(reversal);
+        return java.util.List.copyOf(result);
+    }
+
+    public com.stripe.model.TransferReversal createTransferReversal(String transferId,
+            com.stripe.param.TransferReversalCreateParams params, String key) throws StripeException {
+        return new com.stripe.StripeClient(stripeSecretKey).v1().transfers().reversals()
+                .create(transferId, params, RequestOptions.builder().setIdempotencyKey(key).build());
+    }
+
+    public com.stripe.model.TransferReversal retrieveTransferReversal(String transferId, String reversalId) throws StripeException {
+        return new com.stripe.StripeClient(stripeSecretKey).v1().transfers().reversals().retrieve(transferId, reversalId);
+    }
+
+    /** Preuve du transfert émis par la plateforme. */
+    public com.stripe.model.Transfer retrieveTransfer(String transferId) throws StripeException {
+        return new com.stripe.StripeClient(stripeSecretKey).transfers().retrieve(transferId);
+    }
+
+    public com.stripe.model.Balance retrievePlatformBalance() throws StripeException {
+        return new com.stripe.StripeClient(stripeSecretKey).balance().retrieve();
+    }
+
+    public com.stripe.model.Payout retrieveConnectedPayout(String accountId, String payoutId) throws StripeException {
+        return new com.stripe.StripeClient(stripeSecretKey).payouts().retrieve(payoutId, connectedOptions(accountId));
+    }
+
+    /** Fenêtre figée et pagination explicite pour reprendre un rattrapage après interruption. */
+    public com.stripe.model.StripeCollection<com.stripe.model.Payout> listConnectedPayouts(
+            String accountId, long from, long until, String after) throws StripeException {
+        var params = com.stripe.param.PayoutListParams.builder().setLimit(25L)
+                .setCreated(com.stripe.param.PayoutListParams.Created.builder().setGte(from).setLte(until).build());
+        if (after != null) params.setStartingAfter(after);
+        return new com.stripe.StripeClient(stripeSecretKey).payouts().list(params.build(), connectedOptions(accountId));
+    }
+
+    public com.stripe.model.StripeCollection<com.stripe.model.BalanceTransaction> listConnectedPayoutTransactions(
+            String accountId, String payoutId, String after) throws StripeException {
+        var params = com.stripe.param.BalanceTransactionListParams.builder().setPayout(payoutId).setLimit(100L);
+        if (after != null) params.setStartingAfter(after);
+        return new com.stripe.StripeClient(stripeSecretKey).balanceTransactions().list(params.build(), connectedOptions(accountId));
+    }
+
+    private RequestOptions connectedOptions(String accountId) {
+        if (accountId == null || !accountId.startsWith("acct_")) throw new IllegalArgumentException("Compte connecté requis.");
+        return RequestOptions.builder().setStripeAccount(accountId).build();
     }
 
     public Coupon createCoupon(CouponCreateParams params) throws StripeException {

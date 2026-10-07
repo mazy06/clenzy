@@ -30,6 +30,7 @@ import static org.mockito.Mockito.atLeastOnce;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 /**
@@ -67,11 +68,50 @@ class UserOnboardingServiceTest {
     private static final String KEYCLOAK_ID = "kc-42";
 
     @org.junit.jupiter.params.ParameterizedTest
-    @org.junit.jupiter.params.provider.ValueSource(strings={"setup_payment", "setup_payouts", "setup_payout_account"})
-    void paymentStepsCannotBeManuallyCompletedBeforeVerification(String key) {
-        org.assertj.core.api.Assertions.assertThatThrownBy(() -> service.completeStep(USER_ID, UserRole.HOST, key, ORG_ID))
+    @org.junit.jupiter.params.provider.CsvSource({"HOST,setup_payouts", "PROPERTY_OWNER,setup_payouts",
+        "HOUSEKEEPER,setup_payout_account", "TECHNICIAN,setup_payout_account",
+        "SUPERVISOR,setup_payout_account", "LAUNDRY,setup_payout_account", "EXTERIOR_TECH,setup_payout_account"})
+    void paymentStepsCannotBeManuallyCompletedBeforeVerification(UserRole role, String key) {
+        org.assertj.core.api.Assertions.assertThatThrownBy(() -> service.completeStep(USER_ID, role, key, ORG_ID))
                 .isInstanceOf(IllegalStateException.class);
         verify(repository, never()).save(any());
+    }
+
+    @org.junit.jupiter.params.ParameterizedTest
+    @org.junit.jupiter.params.provider.EnumSource(value = UserRole.class, names = {"SUPER_ADMIN", "SUPER_MANAGER"})
+    void platformStaffCannotCompleteLegacyBeneficiaryStep(UserRole role) {
+        org.assertj.core.api.Assertions.assertThatThrownBy(() ->
+                service.completeStep(USER_ID, role, "setup_payment", ORG_ID))
+            .isInstanceOf(IllegalArgumentException.class);
+        verifyNoInteractions(paymentReadiness, repository);
+    }
+
+    @org.junit.jupiter.params.ParameterizedTest
+    @org.junit.jupiter.params.provider.EnumSource(value = UserRole.class, names = {"SUPER_ADMIN", "SUPER_MANAGER"})
+    void legacyPendingPaymentDoesNotBlockCompletedPlatformGuide(UserRole role) {
+        var current = List.of("configure_org", "migrate_pms", "setup_fiscal", "invite_members",
+            "setup_notifications", "setup_messaging", "setup_general", "setup_integrations").stream().map(key -> {
+                var step = new UserOnboarding(USER_ID, role, key, ORG_ID);
+                step.markCompleted();
+                return step;
+            }).toList();
+        var legacyPayment = new UserOnboarding(USER_ID, role, "setup_payment", ORG_ID);
+        var stored = new java.util.ArrayList<>(current);
+        stored.add(legacyPayment);
+        when(repository.findByUserIdAndRole(USER_ID, role)).thenReturn(stored);
+        when(userRepository.findById(USER_ID)).thenReturn(Optional.of(buildUser("Salma", "Alaoui", null)));
+        var org = new Organization();
+        org.setName("Baitly");
+        when(organizationRepository.findById(ORG_ID)).thenReturn(Optional.of(org));
+        when(fiscalProfileRepository.existsByOrganizationId(ORG_ID)).thenReturn(true);
+
+        var status = service.getStatus(USER_ID, role, ORG_ID);
+
+        assertThat(status.steps()).hasSize(8).allMatch(OnboardingStatusDto.StepDto::completed);
+        assertThat(status.steps()).noneMatch(step -> step.key().equals("setup_payment"));
+        assertThat(legacyPayment.isCompleted()).isFalse();
+        verify(repository, never()).save(any());
+        verifyNoInteractions(paymentReadiness);
     }
 
     @BeforeEach
@@ -296,33 +336,33 @@ class UserOnboardingServiceTest {
         }
 
         @Test
-        @DisplayName("when no payment configured then setup_payment NOT completed (revertable)")
+        @DisplayName("when a beneficiary has no verified account then setup_payouts remains incomplete")
         void whenPaymentNotConfigured_thenNotCompleted() {
-            UserOnboarding step = new UserOnboarding(USER_ID, UserRole.SUPER_ADMIN, "setup_payment", ORG_ID);
-            when(repository.findByUserIdAndRole(USER_ID, UserRole.SUPER_ADMIN))
+            UserOnboarding step = new UserOnboarding(USER_ID, UserRole.HOST, "setup_payouts", ORG_ID);
+            when(repository.findByUserIdAndRole(USER_ID, UserRole.HOST))
                     .thenReturn(List.of(step));
             when(repository.save(any())).thenAnswer(inv -> inv.getArgument(0));
-            when(paymentReadiness.isReady(USER_ID, ORG_ID, true)).thenReturn(false);
+            when(paymentReadiness.isReady(USER_ID, ORG_ID, false)).thenReturn(false);
             when(userRepository.findById(USER_ID)).thenReturn(Optional.empty());
 
-            OnboardingStatusDto dto = service.getStatus(USER_ID, UserRole.SUPER_ADMIN, ORG_ID);
+            OnboardingStatusDto dto = service.getStatus(USER_ID, UserRole.HOST, ORG_ID);
 
-            assertThat(stepOf(dto, "setup_payment").completed()).isFalse();
+            assertThat(stepOf(dto, "setup_payouts").completed()).isFalse();
         }
 
         @Test
         @DisplayName("verified payout capabilities complete the payment step")
         void whenPaymentConfigured_thenAutoCompletes() {
-            UserOnboarding step = new UserOnboarding(USER_ID, UserRole.SUPER_ADMIN, "setup_payment", ORG_ID);
-            when(repository.findByUserIdAndRole(USER_ID, UserRole.SUPER_ADMIN))
+            UserOnboarding step = new UserOnboarding(USER_ID, UserRole.HOST, "setup_payouts", ORG_ID);
+            when(repository.findByUserIdAndRole(USER_ID, UserRole.HOST))
                     .thenReturn(List.of(step));
             when(repository.save(any())).thenAnswer(inv -> inv.getArgument(0));
-            when(paymentReadiness.isReady(USER_ID, ORG_ID, true)).thenReturn(true);
+            when(paymentReadiness.isReady(USER_ID, ORG_ID, false)).thenReturn(true);
             when(userRepository.findById(USER_ID)).thenReturn(Optional.empty());
 
-            OnboardingStatusDto dto = service.getStatus(USER_ID, UserRole.SUPER_ADMIN, ORG_ID);
+            OnboardingStatusDto dto = service.getStatus(USER_ID, UserRole.HOST, ORG_ID);
 
-            assertThat(stepOf(dto, "setup_payment").completed()).isTrue();
+            assertThat(stepOf(dto, "setup_payouts").completed()).isTrue();
         }
 
         @Test
@@ -604,11 +644,10 @@ class UserOnboardingServiceTest {
             UserOnboarding configureOrg = new UserOnboarding(USER_ID, UserRole.SUPER_ADMIN, "configure_org", null);
             UserOnboarding fiscal = new UserOnboarding(USER_ID, UserRole.SUPER_ADMIN, "setup_fiscal", null);
             UserOnboarding invite = new UserOnboarding(USER_ID, UserRole.SUPER_ADMIN, "invite_members", null);
-            UserOnboarding payment = new UserOnboarding(USER_ID, UserRole.SUPER_ADMIN, "setup_payment", null);
             UserOnboarding messaging = new UserOnboarding(USER_ID, UserRole.SUPER_ADMIN, "setup_messaging", null);
             UserOnboarding integrations = new UserOnboarding(USER_ID, UserRole.SUPER_ADMIN, "setup_integrations", null);
             when(repository.findByUserIdAndRole(USER_ID, UserRole.SUPER_ADMIN))
-                    .thenReturn(List.of(configureOrg, fiscal, invite, payment, messaging, integrations));
+                    .thenReturn(List.of(configureOrg, fiscal, invite, messaging, integrations));
             when(repository.save(any())).thenAnswer(inv -> inv.getArgument(0));
             when(userRepository.findById(USER_ID)).thenReturn(Optional.empty());
 
@@ -617,7 +656,6 @@ class UserOnboardingServiceTest {
             assertThat(stepOf(dto, "configure_org").completed()).isFalse();
             assertThat(stepOf(dto, "setup_fiscal").completed()).isFalse();
             assertThat(stepOf(dto, "invite_members").completed()).isFalse();
-            assertThat(stepOf(dto, "setup_payment").completed()).isFalse();
             assertThat(stepOf(dto, "setup_messaging").completed()).isFalse();
             assertThat(stepOf(dto, "setup_integrations").completed()).isFalse();
         }
@@ -706,12 +744,12 @@ class UserOnboardingServiceTest {
         @Test
         @DisplayName("when step does not exist then creates new completed step")
         void whenNotExisting_thenCreatesNew() {
-            when(repository.findByUserIdAndRoleAndStepKey(USER_ID, UserRole.HOST, "new_step"))
+            when(repository.findByUserIdAndRoleAndStepKey(USER_ID, UserRole.HOST, "define_pricing"))
                     .thenReturn(Optional.empty());
             when(repository.save(any(UserOnboarding.class)))
                     .thenAnswer(inv -> inv.getArgument(0));
 
-            service.completeStep(USER_ID, UserRole.HOST, "new_step", ORG_ID);
+            service.completeStep(USER_ID, UserRole.HOST, "define_pricing", ORG_ID);
 
             ArgumentCaptor<UserOnboarding> cap = ArgumentCaptor.forClass(UserOnboarding.class);
             verify(repository, times(2)).save(cap.capture());  // 1 create + 1 markCompleted

@@ -2,6 +2,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { invoicesApi } from '../services/api/invoicesApi';
 import type { InvoiceFilters } from '../services/api/invoicesApi';
 import { trackEvent } from '../providers/PostHogProvider';
+import { useTranslation } from './useTranslation';
 
 // ─── Query Keys ─────────────────────────────────────────────────────────────
 
@@ -32,10 +33,18 @@ export function useIssueInvoice() {
   });
 }
 
-export function useMarkInvoicePaid() {
+export function usePayInvoice() {
   const queryClient = useQueryClient();
+  const { t } = useTranslation();
   return useMutation({
-    mutationFn: (id: number) => invoicesApi.markPaid(id),
+    mutationFn: async (id: number) => {
+      const result = await invoicesApi.initiatePayment(id);
+      const url = result.paymentResult?.redirectUrl;
+      if (!result.paymentResult?.success || !url || !/^https:\/\//i.test(url)) {
+        throw new Error(result.paymentResult?.errorMessage || t('supervision.invoiceModal.payError', 'Lien de paiement non généré.'));
+      }
+      return url;
+    },
     onSuccess: (_data, id) => {
       queryClient.invalidateQueries({ queryKey: invoiceKeys.all });
       queryClient.invalidateQueries({ queryKey: invoiceKeys.detail(id) });

@@ -1,9 +1,20 @@
 import apiClient from '../apiClient';
+import type { PayoutTransfer } from './payoutTransfersApi';
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
 export type ExpenseStatus = 'DRAFT' | 'APPROVED' | 'INCLUDED' | 'PAID' | 'CANCELLED';
 export type ExpenseCategory = 'CLEANING' | 'MAINTENANCE' | 'LAUNDRY' | 'SUPPLIES' | 'LANDSCAPING' | 'OTHER';
+
+export interface ExpenseBeneficiary {
+  userId: number | null;
+  organizationId: number | null;
+  name: string;
+  companyId: number | null;
+  companyName: string | null;
+  locked: boolean;
+}
+export type ExpenseTransferConfirmation = Pick<ExpenseBeneficiary, 'userId' | 'organizationId'>;
 
 export interface ProviderExpense {
   id: number;
@@ -63,6 +74,9 @@ export const EXPENSE_CATEGORY_COLORS: Record<ExpenseCategory, string> = {
 // ─── API ────────────────────────────────────────────────────────────────────
 
 export const providerExpensesApi = {
+  previewTransfer: (id: number) => apiClient.get<{ eligible: boolean; reason: string | null; beneficiary: ExpenseBeneficiary }>(`/provider-expenses/${id}/transfer-preview`),
+  transfer: (id: number, confirmation: ExpenseTransferConfirmation) => apiClient.post<PayoutTransfer>(`/provider-expenses/${id}/transfer`, confirmation),
+  selectCompany: (id: number, organizationId: number) => apiClient.put<ExpenseBeneficiary>(`/provider-expenses/${id}/beneficiary`, { organizationId }),
   async getAll(params?: {
     providerId?: number;
     propertyId?: number;

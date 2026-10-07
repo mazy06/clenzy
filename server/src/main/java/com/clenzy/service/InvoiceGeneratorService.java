@@ -24,6 +24,7 @@ import java.time.temporal.ChronoUnit;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Optional;
+import java.util.Objects;
 
 /**
  * Service de generation de factures a partir des reservations.
@@ -164,7 +165,7 @@ public class InvoiceGeneratorService {
     public InvoiceDto cancelInvoice(Long invoiceId, String reason) {
         Long orgId = tenantContext.getRequiredOrganizationId();
 
-        Invoice original = invoiceRepository.findById(invoiceId)
+        Invoice original = invoiceRepository.findForUpdate(invoiceId)
             .orElseThrow(() -> new IllegalArgumentException("Facture introuvable: " + invoiceId));
 
         if (!original.getOrganizationId().equals(orgId)) {
@@ -176,6 +177,13 @@ public class InvoiceGeneratorService {
                 "Seules les factures ISSUED/PAID peuvent etre annulees");
         }
 
+        if (original.getPaymentTransactionId() != null) {
+            throw new IllegalStateException("Une tentative PSP est liée à cette facture : rapprochez le paiement et son remboursement avant de créer un avoir.");
+        }
+        if (invoiceRepository.existsByOrganizationIdAndOriginalInvoiceId(orgId, original.getId())) {
+            throw new IllegalStateException("Un avoir est déjà rattaché à cette facture.");
+        }
+
         // Marquer l'originale comme annulee
         original.setStatus(InvoiceStatus.CANCELLED);
         invoiceRepository.save(original);
@@ -183,6 +191,9 @@ public class InvoiceGeneratorService {
         // Creer l'avoir (montants negatifs)
         Invoice creditNote = new Invoice();
         creditNote.setOrganizationId(orgId);
+        creditNote.setOriginalInvoiceId(original.getId());
+        creditNote.setInvoiceType(original.getInvoiceType());
+        creditNote.setInterventionId(original.getInterventionId());
         creditNote.setInvoiceNumber(numberingService.generateNextNumber());
         creditNote.setInvoiceDate(LocalDate.now());
         creditNote.setCurrency(original.getCurrency());
@@ -293,6 +304,13 @@ public class InvoiceGeneratorService {
     @Transactional
     public Invoice generateCommissionFromReservation(Reservation reservation,
                                                      ManagementContract contract, Long orgId) {
+        return generateCommissionForPayout(reservation, commissionCalculator.of(reservation, contract), orgId);
+    }
+
+    /** Assiette déjà rapprochée, sans modifier le prix contractuel du séjour. */
+    @Transactional
+    public Invoice generateCommissionForPayout(Reservation reservation,
+            ManagementCommissionCalculator.Commission commission, Long orgId) {
         FiscalProfile fiscalProfile = fiscalProfileRepository.findByOrganizationId(orgId)
             .orElseThrow(() -> new IllegalStateException(
                 "Profil fiscal non configure pour l'organisation " + orgId));
@@ -303,13 +321,7 @@ public class InvoiceGeneratorService {
             ? reservation.getCurrency()
             : (fiscalProfile.getDefaultCurrency() != null ? fiscalProfile.getDefaultCurrency() : "EUR");
 
-        // Assiette et taux : même calcul que le virement propriétaire et le portail
-        // (cf. ManagementCommissionCalculator), pour que la facture émise et la
-        // commission retenue ne puissent pas diverger. Cette facture affirme d'ailleurs
-        // ce qui sera retenu sur le virement en CONCIERGE_COLLECTS : elle est émise PAID,
-        // mention « retenue reversement ».
-        ManagementCommissionCalculator.Commission commission =
-            commissionCalculator.of(reservation, contract);
+        // Le TTC de cette facture est la retenue réelle du reversement propriétaire.
         BigDecimal rate = commission.rate();
         BigDecimal commissionHt = commission.amount();
 
@@ -433,21 +445,20 @@ public class InvoiceGeneratorService {
         // Mentions legales
         invoice.setLegalMentions(fiscalProfile.getLegalMentions());
 
-        // Ligne unique : intervention
+        // Baitly encaisse estimatedCost TTC : ne pas ajouter une seconde fois la TVA.
         BigDecimal amount = intervention.getEstimatedCost() != null
             ? intervention.getEstimatedCost() : BigDecimal.ZERO;
 
         if (amount.compareTo(BigDecimal.ZERO) > 0) {
-            TaxResult tax = fiscalEngine.calculateTax(
-                countryCode,
-                new TaxableItem(amount, TaxCategory.STANDARD.name(),
-                    "Intervention: " + intervention.getTitle()),
+            TaxResult tax = decomposeTtcAmount(
+                countryCode, amount, TaxCategory.STANDARD,
+                "Intervention: " + intervention.getTitle(),
                 LocalDate.now()
             );
 
             invoice.addLine(createLine(1,
                 "Intervention: " + intervention.getTitle(),
-                BigDecimal.ONE, amount,
+                BigDecimal.ONE, tax.amountHT(),
                 TaxCategory.STANDARD.name(),
                 tax.taxRate(), tax.taxAmount(),
                 tax.amountHT(), tax.amountTTC()));
@@ -708,7 +719,29 @@ public class InvoiceGeneratorService {
         invoice.setLegalMentions(fiscalProfile.getLegalMentions());
 
         addStayLines(invoice, reservation, countryCode);
+        applyLoyaltyDiscount(invoice,reservation);
         return invoice;
+    }
+
+    /** La fidélité offerte réduit les lignes taxables, en conservant leur TVA et la taxe de séjour. */
+    private void applyLoyaltyDiscount(Invoice invoice,Reservation stay) {
+        var credit=com.clenzy.booking.service.BaitlyReservationCredit.applied(stay);
+        if(credit.signum()==0) return;
+        var lines=invoice.getLines().stream().filter(l->!TaxCategory.TOURIST_TAX.name().equals(l.getTaxCategory()))
+                .sorted(Comparator.comparing(InvoiceLine::getLineNumber)).toList();
+        var shares=BaitlyRefundSeries.apportion(lines.stream().map(InvoiceLine::getTotalTtc).toList(),credit);
+        for(int i=0;i<lines.size();i++) {
+            var line=lines.get(i);var discount=shares.get(i);
+            if(discount.signum()==0) continue;
+            var retained=line.getTotalTtc().subtract(discount);
+            // La remise est appliquée avant émission : recalcul au taux de la ligne, sans cumuler les arrondis initiaux.
+            var retainedHt=MoneyUtils.calculateHT(retained,line.getTaxRate());
+            line.setTotalTtc(retained);line.setTaxAmount(retained.subtract(retainedHt));line.setTotalHt(retainedHt);
+            line.setQuantity(BigDecimal.ONE);line.setUnitPriceHt(line.getTotalHt());
+            line.setDescription(line.getDescription()+" (remise fidélité : "+discount.toPlainString()+" "+stay.getCurrency()+")");
+        }
+        invoice.setLegalMentions(Objects.toString(invoice.getLegalMentions(),"")+"\nRemise fidélité offerte : "+credit.toPlainString()
+                +" "+stay.getCurrency()+". Cette remise ne constitue pas un encaissement bancaire.");
     }
 
     /**

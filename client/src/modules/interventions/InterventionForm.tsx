@@ -1,5 +1,5 @@
 import { serviceReferenceQuery } from '../../components/ServiceItemSelect';
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { Alert, AlertDescription } from '../../components/ui';
 import { TriangleAlert } from 'lucide-react';
 import { Spinner, Button } from '../../components/ui';
@@ -15,6 +15,9 @@ import { usersApi } from '../../services/api/usersApi';
 import { teamsApi } from '../../services/api/teamsApi';
 import apiClient from '../../services/apiClient';
 import { extractApiList } from '../../types';
+import { getErrorMessage } from '../../utils/getErrorMessage';
+import { parseApiDate } from '../../utils/formatUtils';
+import { format } from 'date-fns';
 import { InterventionType } from '../../types/interventionTypes';
 import { InterventionStatus, Priority } from '../../types/statusEnums';
 import { useTranslation } from '../../hooks/useTranslation';
@@ -126,6 +129,7 @@ const InterventionForm: React.FC<InterventionFormProps> = ({ onClose, onSuccess,
   // Separate date/time state for scheduled date
   const [scheduledDatePart, setScheduledDatePart] = useState('');
   const [scheduledTimePart, setScheduledTimePart] = useState('11:00');
+  const initializedInterventionId = useRef<number | null>(null);
 
   const { control, handleSubmit: rhfHandleSubmit, watch, setValue, reset, formState: { errors } } = useForm<InterventionFormValues>({
     // zodResolver v4 type mismatch with react-hook-form v7 — safe cast
@@ -197,10 +201,13 @@ const InterventionForm: React.FC<InterventionFormProps> = ({ onClose, onSuccess,
   // Populate form with intervention data when loaded (edit mode)
   useEffect(() => {
     if (!isEditMode || !interventionQuery.data) return;
+    if (initializedInterventionId.current === interventionId) return;
+    initializedInterventionId.current = interventionId!;
     const interventionData = interventionQuery.data;
 
     const isoDate = interventionData.scheduledDate
-      ? new Date(interventionData.scheduledDate).toISOString().slice(0, 16)
+      // L'API fournit de l'UTC sans suffixe ; les champs affichent l'heure locale.
+      ? format(parseApiDate(interventionData.scheduledDate), "yyyy-MM-dd'T'HH:mm")
       : '';
     // Split scheduledDate into date and time parts
     if (isoDate) {
@@ -226,7 +233,7 @@ const InterventionForm: React.FC<InterventionFormProps> = ({ onClose, onSuccess,
       photos: interventionData.photos || '',
       progressPercentage: interventionData.progressPercentage || 0
     });
-  }, [isEditMode, interventionQuery.data, reset]);
+  }, [isEditMode, interventionId, interventionQuery.data, reset]);
 
   // Sync separate date/time → scheduledDate hidden field
   useEffect(() => {
@@ -266,12 +273,18 @@ const InterventionForm: React.FC<InterventionFormProps> = ({ onClose, onSuccess,
   // ─── Mutation: create/update intervention ───────────────────────────────────
 
   const submitMutation = useMutation({
+    onMutate: () => setError(''),
     mutationFn: async (formData: InterventionFormValues) => {
+      const payload = {
+        ...formData,
+        propertyId: formData.propertyId || undefined,
+        scheduledDate: new Date(formData.scheduledDate).toISOString().slice(0, 19),
+      };
       if (isEditMode && interventionId) {
-        await interventionsApi.update(interventionId, { ...formData, propertyId: formData.propertyId || undefined });
+        await interventionsApi.update(interventionId, payload);
         return { type: 'update' as const, id: interventionId };
       } else {
-        const saved = await interventionsApi.create({ ...formData, propertyId: formData.propertyId || undefined });
+        const saved = await interventionsApi.create(payload);
         return { type: 'create' as const, id: saved.id, estimatedCost: formData.estimatedCost };
       }
     },
@@ -301,8 +314,10 @@ const InterventionForm: React.FC<InterventionFormProps> = ({ onClose, onSuccess,
         else navigate(`/service-requests/${result.id}`);
       }
     },
-    onError: () => {
-      setError(isEditMode ? (t('interventions.errors.updateError', 'Erreur lors de la mise a jour')) : t('interventions.errors.createError'));
+    onError: (failure) => {
+      setError(getErrorMessage(failure, isEditMode
+        ? t('interventions.errors.updateError', 'Erreur lors de la mise à jour')
+        : t('interventions.errors.createError')));
     },
   });
 

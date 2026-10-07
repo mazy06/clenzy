@@ -31,11 +31,14 @@ public class ReservationPaymentReconciliationService {
 
     private final PaymentTransactionRepository transactionRepository;
     private final StripePaymentConfirmationService paymentConfirmationService;
+    private final BaitlyReservationPaymentProof proof;
 
     public ReservationPaymentReconciliationService(PaymentTransactionRepository transactionRepository,
-                                                   StripePaymentConfirmationService paymentConfirmationService) {
+                                                   StripePaymentConfirmationService paymentConfirmationService,
+                                                   BaitlyReservationPaymentProof proof) {
         this.transactionRepository = transactionRepository;
         this.paymentConfirmationService = paymentConfirmationService;
+        this.proof = proof;
     }
 
     /**
@@ -61,6 +64,7 @@ public class ReservationPaymentReconciliationService {
             return;
         }
 
+        if (!proof.requireConfirmation(tx, ReservationPaymentService.SOURCE_TYPE)) return;
         paymentConfirmationService.confirmReservationPayment(providerSessionId);
         log.info("Reconciliation reservation OK : tx={} providerSession={}", transactionRef, providerSessionId);
     }

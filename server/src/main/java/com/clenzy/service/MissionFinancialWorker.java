@@ -51,7 +51,7 @@ public class MissionFinancialWorker {
             FROM service_quote_cancellations c LEFT JOIN interventions i ON i.id=c.intervention_id
             JOIN payment_transactions p ON p.organization_id=c.organization_id
             WHERE c.quote_id=? AND p.payment_type<>'REFUND' AND p.provider_tx_id IS NOT NULL AND (
-              (p.source_type='INTERVENTION' AND (p.source_id=c.intervention_id OR cast(c.intervention_id AS text)=ANY(string_to_array(replace(p.metadata->>'interventionIds',' ',''),','))))
+              (p.source_type IN ('INTERVENTION','INTERVENTION_BATCH') AND (p.source_id=c.intervention_id OR cast(c.intervention_id AS text)=ANY(string_to_array(replace(p.metadata->>'interventionIds',' ',''),','))))
               OR (p.source_type IN ('DEFERRED_INTERVENTIONS_HOST','DEFERRED_INTERVENTIONS_PROPERTY') AND cast(c.intervention_id AS text)=ANY(string_to_array(replace(p.metadata->>'intervention_ids',' ',''),',')))
               OR (p.source_type='SERVICE_REQUEST' AND p.source_id=i.service_request_id))
             ON CONFLICT (quote_id,provider,session_ref) DO NOTHING

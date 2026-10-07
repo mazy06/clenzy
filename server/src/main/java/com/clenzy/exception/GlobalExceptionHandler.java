@@ -265,6 +265,18 @@ public class GlobalExceptionHandler {
         return ResponseEntity.status(HttpStatus.FORBIDDEN).body(errorResponse);
     }
 
+    @ExceptionHandler(PaymentEvidenceRequiredException.class)
+    public ResponseEntity<Map<String, Object>> handlePaymentEvidenceRequired(PaymentEvidenceRequiredException ex) {
+        return ResponseEntity.status(HttpStatus.CONFLICT).body(Map.of(
+                "code", "PAYMENT_EVIDENCE_REQUIRED", "message", ex.getMessage(), "status", 409));
+    }
+
+    @ExceptionHandler(BaitlyPayoutNotReadyException.class)
+    public ResponseEntity<Map<String, Object>> handlePayoutNotReady(BaitlyPayoutNotReadyException ex) {
+        return ResponseEntity.status(HttpStatus.CONFLICT).body(Map.of(
+                "code", "PAYOUT_NOT_READY", "message", ex.getMessage(), "status", 409));
+    }
+
     @ExceptionHandler(RuntimeException.class)
     public ResponseEntity<Map<String, Object>> handleRuntimeException(RuntimeException ex) {
         logger.error("Erreur runtime non gérée", ex);

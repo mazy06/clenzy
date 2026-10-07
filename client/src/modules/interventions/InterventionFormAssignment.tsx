@@ -36,7 +36,7 @@ export interface InterventionFormAssignmentProps {
   watchedAssignedToType: 'user' | 'team' | undefined;
 }
 
-const ASSIGNABLE_ROLES = ['TECHNICIAN', 'EXTERIOR_TECH', 'LAUNDRY', 'SUPERVISOR', 'SUPER_MANAGER'];
+const ASSIGNABLE_ROLES = ['TECHNICIAN', 'HOUSEKEEPER', 'EXTERIOR_TECH', 'LAUNDRY', 'SUPERVISOR', 'SUPER_MANAGER'];
 
 const InterventionFormAssignment: React.FC<InterventionFormAssignmentProps> = React.memo(
   ({ control, errors, setValue, users, teams, watchedAssignedToType }) => {
@@ -96,7 +96,7 @@ const InterventionFormAssignment: React.FC<InterventionFormAssignmentProps> = Re
                         vide — le MUI Select, lui, laissait le champ blanc. */}
                     <NativeSelectOption value="">—</NativeSelectOption>
                     {users
-                      .filter((user) => ASSIGNABLE_ROLES.includes(user.role))
+                      .filter((user) => user.id === field.value || ASSIGNABLE_ROLES.includes(user.role))
                       .map((user) => (
                         <NativeSelectOption key={user.id} value={user.id}>
                           {user.firstName} {user.lastName} ({user.role})

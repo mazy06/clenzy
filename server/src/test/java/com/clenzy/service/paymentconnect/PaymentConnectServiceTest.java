@@ -63,12 +63,21 @@ class PaymentConnectServiceTest {
         service.start("subject", Scope.PERSONAL, "FR", CREATE);
         verify(stripe, never()).createAccount(any(), anyString());
     }
-    @Test void standardAccountsManageTheirRequirementsOnStripe() throws Exception {
+    @Test void standardAccountsResumeTheirOwnOnboardingAndReturnToBaitly() throws Exception {
         connection.setProviderAccountId("acct_standard");
         Account account = new Account(); account.setId("acct_standard"); account.setType("standard");
         when(stripe.retrieveAccount("acct_standard")).thenReturn(account);
-        assertThat(service.start("subject", Scope.PERSONAL, "FR", CREATE)).isEqualTo("https://dashboard.stripe.com/");
-        verify(stripe, never()).createAccountLink(any());
+        AccountLink link = new AccountLink(); link.setUrl("https://connect.stripe.com/setup/standard");
+        when(stripe.createAccountLink(any())).thenReturn(link);
+        assertThat(service.start("subject", Scope.PERSONAL, "FR", CREATE)).isEqualTo(link.getUrl());
+        var params = ArgumentCaptor.forClass(AccountLinkCreateParams.class);
+        verify(stripe).createAccountLink(params.capture());
+        assertThat(params.getValue().getAccount()).isEqualTo("acct_standard");
+        assertThat(params.getValue().getType()).isEqualTo(AccountLinkCreateParams.Type.ACCOUNT_ONBOARDING);
+        assertThat(params.getValue().getReturnUrl()).isEqualTo("https://app.example.test/payment-connect/return?scope=PERSONAL&flow=return");
+        assertThat(params.getValue().getRefreshUrl()).isEqualTo("https://app.example.test/payment-connect/return?scope=PERSONAL&flow=refresh");
+        verify(stripe, never()).createAccount(any(), anyString());
+        verifyNoInteractions(states);
     }
     @Test void connectionUsesBoundStateAndDoesNotCreateAnAccount() throws Exception {
         when(states.create(person)).thenReturn("one-time-state");

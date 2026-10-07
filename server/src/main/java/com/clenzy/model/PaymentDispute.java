@@ -20,7 +20,7 @@ import java.time.LocalDateTime;
 @Filter(name = "organizationFilter", condition = "organization_id = :orgId")
 public class PaymentDispute {
 
-    public enum Status { OPEN, SUBMITTED, WON, LOST }
+    public enum Status { OPEN, SUBMITTED, WON, LOST, CLOSED }
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -34,6 +34,11 @@ public class PaymentDispute {
 
     @Column(name = "charge_id", length = 120)
     private String chargeId;
+
+    @Column(name = "payment_transaction_id")
+    private Long paymentTransactionId;
+
+    @Transient private boolean fundingHeld = true;
 
     @Column(name = "reservation_id")
     private Long reservationId;
@@ -75,6 +80,10 @@ public class PaymentDispute {
     public void setProviderDisputeId(String providerDisputeId) { this.providerDisputeId = providerDisputeId; }
     public String getChargeId() { return chargeId; }
     public void setChargeId(String chargeId) { this.chargeId = chargeId; }
+    public Long getPaymentTransactionId() { return paymentTransactionId; }
+    public void setPaymentTransactionId(Long id) { this.paymentTransactionId = id; }
+    public boolean isFundingHeld() { return fundingHeld; }
+    public void setFundingHeld(boolean held) { this.fundingHeld = held; }
     public Long getReservationId() { return reservationId; }
     public void setReservationId(Long reservationId) { this.reservationId = reservationId; }
     public BigDecimal getAmount() { return amount; }

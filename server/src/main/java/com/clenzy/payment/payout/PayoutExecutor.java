@@ -29,6 +29,9 @@ public interface PayoutExecutor {
     /** La méthode de paiement gérée par cet exécuteur. */
     PayoutMethod getSupportedMethod();
 
+    /** Vérifications locales uniquement, avant de réserver l'émission. Aucun appel PSP. */
+    void validate(OwnerPayout payout, OwnerPayoutConfig config);
+
     /**
      * Exécute le payout et retourne l'entité mise à jour (statut, références
      * de transaction, dates). Les implémentations doivent persister le résultat

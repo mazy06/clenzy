@@ -61,7 +61,8 @@ public class InvoiceQueryService {
         }
 
         byte[] pdfBytes = invoicePdfService.generatePdf(invoice);
-        String filename = "Facture_" + invoice.getInvoiceNumber().replace("/", "-") + ".pdf";
+        String filename = (invoice.getStatus() == com.clenzy.model.InvoiceStatus.CREDIT_NOTE ? "Avoir_" : "Facture_")
+            + invoice.getInvoiceNumber().replace("/", "-") + ".pdf";
         return new InvoicePdfFile(filename, pdfBytes);
     }
 

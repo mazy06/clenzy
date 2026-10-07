@@ -1,0 +1,6 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": { "types": ["vite/client", "node", "vitest/globals", "@testing-library/jest-dom/vitest"] },
+  "include": ["src/modules/accounting/**/*.integration.test.tsx", "src/modules/payments/**/*.integration.test.tsx", "tests/fixtures/baitlyFinanceHttp.ts"],
+  "exclude": []
+}

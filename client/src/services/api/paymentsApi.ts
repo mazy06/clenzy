@@ -34,9 +34,19 @@ export interface PaymentRecord {
   subDescription?: string | null;
   propertyName: string;
   amount: number;
+  payableAmount?: number;
   currency: string;
-  status: 'PAID' | 'PENDING' | 'PROCESSING' | 'FAILED' | 'REFUNDED' | 'CANCELLED';
+  status: 'UNKNOWN' | 'PARTIALLY_PAID' | 'NOT_REQUIRED' | 'PAID' | 'PENDING' | 'PROCESSING' | 'FAILED' | 'REFUNDED' | 'PARTIALLY_REFUNDED' | 'CANCELLED';
+  refundedAmount?: number;
+  creditAppliedAmount?: number;
+  refundPendingAmount?: number;
+  refundReviewRequired?: boolean;
+  paymentDisputed?: boolean;
+  supportsPartialRefund?: boolean;
   type?: 'INTERVENTION' | 'RESERVATION' | 'SERVICE_REQUEST';
+  paymentCollection?: 'PMS' | 'CHANNEL' | 'UNKNOWN';
+  canCollect?: boolean;
+  settlementStatus?: 'EXTERNAL_UNVERIFIED' | null;
   paymentMethod?: string;
   stripeSessionId?: string;
   transactionDate: string;
@@ -51,6 +61,10 @@ export interface PaymentRecord {
 
 export interface PaymentSummary {
   totalPaid: number;
+  totalPaidByOta?: number;
+  totalToVerify?: number;
+  paidByOtaByCurrency?: Record<string, number>;
+  toVerifyByCurrency?: Record<string, number>;
   totalPending: number;
   totalRefunded: number;
   transactionCount: number;
@@ -109,82 +123,22 @@ export const paymentsApi = {
   },
 
   async getHistory(params?: PaymentHistoryParams): Promise<PaymentHistoryResponse> {
-    try {
-      return await apiClient.get<PaymentHistoryResponse>('/payments/history', { params: params as Record<string, string | number | boolean | undefined | null> });
-    } catch {
-      // Fallback: compute from interventions data
-      try {
-        const interventions = await apiClient.get<any>('/interventions?size=100');
-        const items = interventions.content || interventions || [];
-        let recordSeq = 0;
-        const records: PaymentRecord[] = items.flatMap((i: any) => {
-          if (!(i.estimatedCost && i.estimatedCost > 0)) return [];
-          recordSeq += 1;
-          return [{
-            id: recordSeq,
-            referenceId: i.id,
-            description: i.title || `Intervention #${i.id}`,
-            propertyName: i.propertyName || 'N/A',
-            amount: i.estimatedCost || 0,
-            currency: i.currency || i.propertyCurrency || 'EUR',
-            status: i.status === 'COMPLETED' ? 'PAID' as const :
-                    i.status === 'AWAITING_PAYMENT' ? 'PENDING' as const :
-                    i.status === 'CANCELLED' ? 'REFUNDED' as const : 'PAID' as const,
-            type: 'INTERVENTION' as const,
-            transactionDate: i.completedDate || i.scheduledDate || i.createdAt || new Date().toISOString(),
-            createdAt: i.createdAt || new Date().toISOString(),
-            hostName: i.requestorName || undefined,
-            hostId: i.requestorId || undefined,
-          }];
-        });
-
-        // Apply filters if provided
-        let filtered = records;
-        if (params?.status) {
-          filtered = filtered.filter(r => r.status === params.status);
-        }
-        if (params?.dateFrom) {
-          filtered = filtered.filter(r => r.transactionDate >= params.dateFrom!);
-        }
-        if (params?.dateTo) {
-          filtered = filtered.filter(r => r.transactionDate <= params.dateTo!);
-        }
-
-        // Apply pagination
-        const page = params?.page || 0;
-        const size = params?.size || 10;
-        const start = page * size;
-        const paged = filtered.slice(start, start + size);
-
-        return {
-          content: paged,
-          totalElements: filtered.length,
-          totalPages: Math.ceil(filtered.length / size),
-        };
-      } catch {
-        return { content: [], totalElements: 0, totalPages: 0 };
-      }
-    }
+    return apiClient.get<PaymentHistoryResponse>('/payments/history', { params: params as Record<string, string | number | boolean | undefined | null> });
   },
 
   async getSummary(): Promise<PaymentSummary> {
-    try {
-      return await apiClient.get<PaymentSummary>('/payments/summary');
-    } catch {
-      // Fallback: compute from history
-      try {
-        const history = await paymentsApi.getHistory({ size: 1000 });
-        const records = history.content;
-        return {
-          totalPaid: records.filter(r => r.status === 'PAID').reduce((sum, r) => sum + r.amount, 0),
-          totalPending: records.filter(r => r.status === 'PENDING').reduce((sum, r) => sum + r.amount, 0),
-          totalRefunded: records.filter(r => r.status === 'REFUNDED').reduce((sum, r) => sum + r.amount, 0),
-          transactionCount: records.length,
-        };
-      } catch {
-        return { totalPaid: 0, totalPending: 0, totalRefunded: 0, transactionCount: 0 };
-      }
+    return apiClient.get<PaymentSummary>('/payments/summary');
+  },
+
+  /** Toutes les pages du filtre, jamais seulement les dix lignes visibles. */
+  async getAllHistory(params?: Omit<PaymentHistoryParams, 'page' | 'size'>): Promise<PaymentRecord[]> {
+    const records = new Map<string, PaymentRecord>();
+    for (let page = 0; page < 1000; page++) {
+      const response = await paymentsApi.getHistory({ ...params, page, size: 100 });
+      response.content.forEach(item => records.set(`${item.type}:${item.referenceId}`, item));
+      if (page + 1 >= response.totalPages) return [...records.values()];
     }
+    throw new Error('La liste est trop volumineuse. Affinez les filtres avant de sélectionner les paiements.');
   },
 
   async getById(id: number): Promise<PaymentRecord> {
@@ -207,8 +161,17 @@ export const paymentsApi = {
     }
   },
 
-  async refund(interventionId: number): Promise<{ message: string }> {
-    return apiClient.post<{ message: string }>(`/payments/${interventionId}/refund`);
+  async refund(interventionId: number): Promise<{ message: string; status?: 'PROCESSING' | 'COMPLETED' }> {
+    return apiClient.post<{ message: string; status?: 'PROCESSING' | 'COMPLETED' }>(`/payments/${interventionId}/refund`);
+  },
+
+  refundInstallment(interventionId: number, amount: number, requestId: string) {
+    return apiClient.post<{ message: string; status: 'PROCESSING' | 'COMPLETED'; refundReference: string }>(
+      `/payments/${interventionId}/refund-installment`, { amount, requestId });
+  },
+
+  refundInstallmentStatus(reference: string) {
+    return apiClient.get<{ status: string; reconciled: boolean }>(`/payments/refund-installment/${encodeURIComponent(reference)}`);
   },
 
   async downloadInvoice(id: number): Promise<Blob> {

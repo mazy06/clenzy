@@ -1,0 +1,87 @@
+import { useId, useRef, useState, type ReactNode } from 'react';
+import { ArrowLeft, ChevronRight } from 'lucide-react';
+import { Button } from '../../../components/ui';
+import { useTranslation } from '../../../hooks/useTranslation';
+import './financeWorkspace.css';
+import FinanceIdentity, { type FinanceIdentitySource } from './FinanceIdentity';
+
+export interface FinanceRecord {
+  id: string | number;
+  title: ReactNode;
+  subtitle?: ReactNode;
+  amount?: ReactNode;
+  status?: ReactNode;
+  meta?: ReactNode;
+  fields: { label: ReactNode; value: ReactNode }[];
+  actions?: ReactNode;
+  headerActions?: ReactNode;
+  detail?: ReactNode;
+  /** Contenu métier à la place du résumé générique, après le titre accessible. */
+  detailBody?: ReactNode;
+  identity?: FinanceIdentitySource;
+  eventImage?: string;
+}
+
+/** A single record model drives both the list and detail. Actions exist only in the detail. */
+export default function FinanceWorkspace({ items, pagination, artwork = 'documents', selectedId, selectedRecord, onSelect }: {
+  items: FinanceRecord[];
+  pagination?: ReactNode;
+  artwork?: 'documents' | 'received' | 'pending' | 'transfer';
+  selectedId?: string | number | null;
+  /** Dossier recalculé depuis les données filtrées, même hors de la page visible. */
+  selectedRecord?: FinanceRecord;
+  onSelect?: (id: string | number | null) => void;
+}) {
+  const { t } = useTranslation();
+  const [localId, setLocalId] = useState<string | number | null>(null);
+  const activeId = selectedId === undefined ? localId : selectedId;
+  // Resolve every render: mutations and filters must never leave a stale financial snapshot.
+  const active = selectedRecord && String(selectedRecord.id) === String(activeId)
+    ? selectedRecord : items.find(item => String(item.id) === String(activeId));
+  const id = useId();
+  const heading = useRef<HTMLHeadingElement>(null);
+  const trigger = useRef<HTMLButtonElement | null>(null);
+  const select = (value: string | number | null) => { setLocalId(value); onSelect?.(value); };
+  return <section className="finance-workspace" data-selected={!!active}>
+    <div className="finance-workspace__list">
+      <ul aria-label={t('financeWorkspace.records')}>
+        {items.map(item => <li key={item.id} data-highlight-id={String(item.id)}>
+          <button type="button" className="finance-workspace__row" data-identity={!!item.identity} aria-pressed={active?.id === item.id}
+            aria-controls={`${id}-detail`} onClick={event => {
+              trigger.current = event.currentTarget; select(item.id);
+              if (window.matchMedia('(max-width: 767px)').matches) requestAnimationFrame(() => heading.current?.focus());
+            }}>
+            <div className="finance-workspace__event"><img src={item.eventImage || `/images/finance-kpis/${artwork}.png`} alt="" width={32} height={32} /><div className="finance-workspace__title">{item.title}</div></div>
+            {item.identity && <FinanceIdentity source={item.identity} />}
+            <div className="finance-workspace__amount">{item.amount}</div>
+            <div className="finance-workspace__row-status">{item.status}</div>
+            <ChevronRight size={15} aria-hidden="true" />
+          </button>
+        </li>)}
+      </ul>
+      {pagination && <div className="finance-workspace__pagination">{pagination}</div>}
+    </div>
+    <div className="finance-workspace__detail" id={`${id}-detail`} role="region" aria-label={t('common.details', 'Détails')}>
+      {active ? <>
+        <Button variant="ghost" size="sm" className="finance-workspace__back" onClick={() => {
+          select(null); requestAnimationFrame(() => trigger.current?.focus());
+        }}><ArrowLeft size={16} />{t('financeWorkspace.back')}</Button>
+        <header className="finance-workspace__header">
+          <img src={active.eventImage || `/images/finance-kpis/${artwork}.png`} alt="" width={56} height={56} />
+          <div><h2 ref={heading} tabIndex={-1}>{active.title}</h2><div className="finance-workspace__subtitle">{active.subtitle}</div></div>
+          {active.headerActions}
+        </header>
+        {active.detailBody ?? <>
+        {active.identity && <div className="finance-workspace__identity-detail"><FinanceIdentity source={active.identity} /></div>}
+        <div className="finance-workspace__balance"><strong>{active.amount}</strong><div>{active.status}</div></div>
+        {active.actions && <div className="finance-workspace__actions" aria-label={t('common.actions', 'Actions')}>{active.actions}</div>}
+        <dl className="finance-workspace__facts">{active.fields.map((field, index) => <div key={index}><dt>{field.label}</dt><dd>{field.value}</dd></div>)}</dl>
+        {active.detail}
+        </>}
+      </> : <div className="finance-workspace__empty">
+        <img src={`/images/finance-kpis/${artwork}.png`} alt="" width={88} height={88} />
+        <h2>{t('financeWorkspace.choose')}</h2><p>{t('financeWorkspace.chooseHint')}</p>
+      </div>}
+    </div>
+  </section>;
+}

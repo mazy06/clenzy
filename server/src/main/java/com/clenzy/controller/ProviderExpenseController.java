@@ -28,13 +28,15 @@ public class ProviderExpenseController {
     private final ProviderExpenseService expenseService;
     private final ReceiptStorageService receiptStorage;
     private final TenantContext tenantContext;
+    private final com.clenzy.service.BaitlyExpenseViews views;
 
     public ProviderExpenseController(ProviderExpenseService expenseService,
                                      ReceiptStorageService receiptStorage,
-                                     TenantContext tenantContext) {
+                                     TenantContext tenantContext, com.clenzy.service.BaitlyExpenseViews views) {
         this.expenseService = expenseService;
         this.receiptStorage = receiptStorage;
         this.tenantContext = tenantContext;
+        this.views = views;
     }
 
     @GetMapping
@@ -46,57 +48,47 @@ public class ProviderExpenseController {
             @AuthenticationPrincipal Jwt jwt) {
         Long orgId = tenantContext.getRequiredOrganizationId();
 
-        // « mine » resout le fournisseur depuis le JWT : un intervenant lit ses
-        // propres frais sans avoir a nommer son identifiant.
-        if (mine) {
-            return expenseService.getMine(jwt.getSubject(), orgId).stream()
-                    .map(ProviderExpenseDto::from).toList();
-        }
-        if (providerId != null) {
-            return expenseService.getByProviderId(providerId, orgId).stream()
-                    .map(ProviderExpenseDto::from).toList();
-        }
-        if (status != null) {
-            return expenseService.getByStatus(status, orgId).stream()
-                    .map(ProviderExpenseDto::from).toList();
-        }
-        return expenseService.getAll(orgId).stream()
-                .map(ProviderExpenseDto::from).toList();
+        return views.visible(jwt.getSubject(), orgId, providerId, propertyId, status, mine);
     }
 
     @GetMapping("/{id}")
-    public ProviderExpenseDto getById(@PathVariable Long id) {
+    public ProviderExpenseDto getById(@PathVariable Long id, @AuthenticationPrincipal Jwt jwt) {
         Long orgId = tenantContext.getRequiredOrganizationId();
-        return ProviderExpenseDto.from(expenseService.getById(id, orgId));
+        return views.readable(id, orgId, jwt.getSubject());
     }
 
     @PostMapping
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN','SUPER_MANAGER')")
     @ResponseStatus(HttpStatus.CREATED)
     public ProviderExpenseDto create(@RequestBody CreateProviderExpenseRequest request) {
         Long orgId = tenantContext.getRequiredOrganizationId();
-        return ProviderExpenseDto.from(expenseService.create(request, orgId));
+        return views.create(request, orgId);
     }
 
     @PutMapping("/{id}")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN','SUPER_MANAGER')")
     public ProviderExpenseDto update(@PathVariable Long id,
                                      @RequestBody CreateProviderExpenseRequest request) {
         Long orgId = tenantContext.getRequiredOrganizationId();
-        return ProviderExpenseDto.from(expenseService.update(id, request, orgId));
+        return views.update(id, request, orgId);
     }
 
     @PostMapping("/{id}/approve")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN','SUPER_MANAGER')")
     public ProviderExpenseDto approve(@PathVariable Long id) {
         Long orgId = tenantContext.getRequiredOrganizationId();
-        return ProviderExpenseDto.from(expenseService.approve(id, orgId));
+        return views.approve(id, orgId);
     }
 
     @PostMapping("/{id}/cancel")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN','SUPER_MANAGER')")
     public ProviderExpenseDto cancel(@PathVariable Long id) {
         Long orgId = tenantContext.getRequiredOrganizationId();
-        return ProviderExpenseDto.from(expenseService.cancel(id, orgId));
+        return views.cancel(id, orgId);
     }
 
     @PostMapping("/{id}/pay")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN','SUPER_MANAGER')")
     public ProviderExpenseDto markAsPaid(@PathVariable Long id,
                                          @RequestParam(required = false) String paymentReference) {
         Long orgId = tenantContext.getRequiredOrganizationId();
@@ -106,6 +98,7 @@ public class ProviderExpenseController {
     // ── Receipt endpoints ────────────────────────────────────────────────────
 
     @PostMapping(value = "/{id}/receipt", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN','SUPER_MANAGER')")
     public ProviderExpenseDto uploadReceipt(@PathVariable Long id,
                                             @RequestParam("file") MultipartFile file) {
         Long orgId = tenantContext.getRequiredOrganizationId();
@@ -117,13 +110,13 @@ public class ProviderExpenseController {
         }
 
         String storagePath = receiptStorage.store(orgId, file);
-        return ProviderExpenseDto.from(expenseService.attachReceipt(id, storagePath, orgId));
+        return views.attachReceipt(id, storagePath, orgId);
     }
 
     @GetMapping("/{id}/receipt")
-    public ResponseEntity<Resource> downloadReceipt(@PathVariable Long id) {
+    public ResponseEntity<Resource> downloadReceipt(@PathVariable Long id, @AuthenticationPrincipal Jwt jwt) {
         Long orgId = tenantContext.getRequiredOrganizationId();
-        ProviderExpense expense = expenseService.getById(id, orgId);
+        ProviderExpense expense = expenseService.getReadable(id, orgId, jwt.getSubject());
 
         if (expense.getReceiptPath() == null) {
             return ResponseEntity.notFound().build();
@@ -138,6 +131,7 @@ public class ProviderExpenseController {
     }
 
     @DeleteMapping("/{id}/receipt")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN','SUPER_MANAGER')")
     public ProviderExpenseDto deleteReceipt(@PathVariable Long id) {
         Long orgId = tenantContext.getRequiredOrganizationId();
         ProviderExpense expense = expenseService.getById(id, orgId);
@@ -146,7 +140,7 @@ public class ProviderExpenseController {
             receiptStorage.delete(expense.getReceiptPath());
         }
 
-        return ProviderExpenseDto.from(expenseService.removeReceipt(id, orgId));
+        return views.removeReceipt(id, orgId);
     }
 
     private String extractFilename(String storagePath) {

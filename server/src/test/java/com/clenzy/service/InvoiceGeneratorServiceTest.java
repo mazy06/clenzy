@@ -19,6 +19,8 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -456,7 +458,7 @@ class InvoiceGeneratorServiceTest {
             line.setTotalTtc(new BigDecimal("110.00"));
             issued.addLine(line);
 
-            when(invoiceRepository.findById(10L)).thenReturn(Optional.of(issued));
+            when(invoiceRepository.findForUpdate(10L)).thenReturn(Optional.of(issued));
             when(numberingService.generateNextNumber()).thenReturn("FA2026-00002");
             when(invoiceRepository.save(any(Invoice.class)))
                 .thenAnswer(invocation -> {
@@ -473,6 +475,7 @@ class InvoiceGeneratorServiceTest {
             assertThat(result.invoiceNumber()).isEqualTo("FA2026-00002");
             assertThat(result.legalMentions()).contains("FA2026-00001");
             assertThat(result.legalMentions()).contains("Erreur de facturation");
+            assertThat(result.originalInvoiceId()).isEqualTo(10L);
 
             // Original should be marked CANCELLED
             assertThat(issued.getStatus()).isEqualTo(InvoiceStatus.CANCELLED);
@@ -487,11 +490,23 @@ class InvoiceGeneratorServiceTest {
             draft.setOrganizationId(1L);
             draft.setStatus(InvoiceStatus.DRAFT);
 
-            when(invoiceRepository.findById(10L)).thenReturn(Optional.of(draft));
+            when(invoiceRepository.findForUpdate(10L)).thenReturn(Optional.of(draft));
 
             assertThatThrownBy(() -> service.cancelInvoice(10L, "test"))
                 .isInstanceOf(IllegalStateException.class)
                 .hasMessageContaining("ISSUED/PAID");
+        }
+
+        @Test
+        void shouldNotCancelPaidOriginalAlreadyCreditedByConfirmedRefund() {
+            when(tenantContext.getRequiredOrganizationId()).thenReturn(1L);
+            var original = new Invoice(); original.setId(10L); original.setOrganizationId(1L);
+            original.setStatus(InvoiceStatus.PAID);
+            when(invoiceRepository.findForUpdate(10L)).thenReturn(Optional.of(original));
+            when(invoiceRepository.existsByOrganizationIdAndOriginalInvoiceId(1L,10L)).thenReturn(true);
+            assertThatThrownBy(() -> service.cancelInvoice(10L,"test")).hasMessageContaining("déjà rattaché");
+            assertThat(original.getStatus()).isEqualTo(InvoiceStatus.PAID);
+            verify(invoiceRepository,never()).save(any());
         }
     }
 
@@ -1033,6 +1048,27 @@ class InvoiceGeneratorServiceTest {
             return intervention;
         }
 
+        @ParameterizedTest
+        @CsvSource({"35.00, 0.2000, 29.17, 5.83", "200.00, 0.2000, 166.67, 33.33", "35.00, 0, 35.00, 0.00"})
+        void invoiceTotalMustEqualTheInterventionAmountCollected(
+                BigDecimal paid, BigDecimal rate, BigDecimal expectedHt, BigDecimal expectedTax) {
+            when(fiscalProfileRepository.findByOrganizationId(1L))
+                .thenReturn(Optional.of(createTestFiscalProfile()));
+            when(fiscalEngine.calculateTax(eq("FR"), any(), any())).thenReturn(
+                new TaxResult(paid, paid.multiply(rate), paid.multiply(BigDecimal.ONE.add(rate)),
+                    rate, "TVA", "STANDARD"));
+            when(invoiceRepository.save(any(Invoice.class))).thenAnswer(inv -> inv.getArgument(0));
+
+            Invoice invoice = service.generateFromIntervention(
+                buildIntervention(405L, "Menage de depart", paid), 1L);
+
+            assertThat(invoice.getTotalTtc()).isEqualByComparingTo(paid);
+            assertThat(invoice.getTotalHt()).isEqualByComparingTo(expectedHt);
+            assertThat(invoice.getTotalTax()).isEqualByComparingTo(expectedTax);
+            assertThat(invoice.getLines().get(0).getUnitPriceHt()).isEqualByComparingTo(expectedHt);
+            assertThat(invoice.getTotalHt().add(invoice.getTotalTax())).isEqualByComparingTo(paid);
+        }
+
         @Test
         void shouldGenerateDraftFromInterventionWithStandardTaxLine() {
             FiscalProfile fp = createTestFiscalProfile();
@@ -1451,6 +1487,16 @@ class InvoiceGeneratorServiceTest {
     class CancelInvoiceExtra {
 
         @Test
+        void cannotCancelAnInvoiceWithAnOutstandingPspAttempt() {
+            when(tenantContext.getRequiredOrganizationId()).thenReturn(1L);
+            Invoice issued = new Invoice(); issued.setId(10L); issued.setOrganizationId(1L);
+            issued.setStatus(InvoiceStatus.ISSUED); issued.setPaymentTransactionId(9L);
+            when(invoiceRepository.findForUpdate(10L)).thenReturn(Optional.of(issued));
+            assertThatThrownBy(() -> service.cancelInvoice(10L, "test")).hasMessageContaining("tentative PSP");
+            assertThat(issued.getStatus()).isEqualTo(InvoiceStatus.ISSUED);
+        }
+
+        @Test
         void shouldCancelPaidInvoice() {
             when(tenantContext.getRequiredOrganizationId()).thenReturn(1L);
 
@@ -1466,7 +1512,7 @@ class InvoiceGeneratorServiceTest {
             paid.setTotalTax(BigDecimal.ZERO);
             paid.setTotalTtc(BigDecimal.ZERO);
 
-            when(invoiceRepository.findById(10L)).thenReturn(Optional.of(paid));
+            when(invoiceRepository.findForUpdate(10L)).thenReturn(Optional.of(paid));
             when(numberingService.generateNextNumber()).thenReturn("FA-2026-00002");
             when(invoiceRepository.save(any(Invoice.class)))
                 .thenAnswer(inv -> { Invoice i = inv.getArgument(0); if (i.getStatus() == InvoiceStatus.CREDIT_NOTE) i.setId(11L); return i; });
@@ -1487,7 +1533,7 @@ class InvoiceGeneratorServiceTest {
             other.setOrganizationId(2L); // different
             other.setStatus(InvoiceStatus.ISSUED);
 
-            when(invoiceRepository.findById(10L)).thenReturn(Optional.of(other));
+            when(invoiceRepository.findForUpdate(10L)).thenReturn(Optional.of(other));
 
             assertThatThrownBy(() -> service.cancelInvoice(10L, "test"))
                 .isInstanceOf(IllegalArgumentException.class);
@@ -1496,7 +1542,7 @@ class InvoiceGeneratorServiceTest {
         @Test
         void shouldThrowWhenCancelNonexistentInvoice() {
             when(tenantContext.getRequiredOrganizationId()).thenReturn(1L);
-            when(invoiceRepository.findById(99L)).thenReturn(Optional.empty());
+            when(invoiceRepository.findForUpdate(99L)).thenReturn(Optional.empty());
 
             assertThatThrownBy(() -> service.cancelInvoice(99L, "test"))
                 .isInstanceOf(IllegalArgumentException.class);
@@ -1511,7 +1557,7 @@ class InvoiceGeneratorServiceTest {
             cancelled.setOrganizationId(1L);
             cancelled.setStatus(InvoiceStatus.CANCELLED);
 
-            when(invoiceRepository.findById(10L)).thenReturn(Optional.of(cancelled));
+            when(invoiceRepository.findForUpdate(10L)).thenReturn(Optional.of(cancelled));
 
             assertThatThrownBy(() -> service.cancelInvoice(10L, "test"))
                 .isInstanceOf(IllegalStateException.class);
@@ -1625,6 +1671,26 @@ class InvoiceGeneratorServiceTest {
             res.setCleaningFee(new BigDecimal("50.00"));
             res.setTouristTaxAmount(new BigDecimal("30.00"));
             return res;
+        }
+
+        @Test
+        void offeredLoyaltyCreditReducesTaxableLinesButNeverTouristTax() {
+            var stay = manualReservation();
+            stay.setCreditApplied(new BigDecimal("35.00"));
+            stubFiscalProfile();
+            stubRatesByCategory();
+            var invoice = service.generateFromReservation(stay, 1L);
+            assertThat(invoice.getTotalTtc()).isEqualByComparingTo("345.00");
+            assertThat(linesOf(invoice, TaxCategory.ACCOMMODATION)).singleElement().satisfies(line -> {
+                assertThat(line.getTotalTtc()).isEqualByComparingTo("270.00");
+                assertThat(line.getTaxAmount()).isEqualByComparingTo("24.55");
+                assertThat(line.getTotalHt().add(line.getTaxAmount())).isEqualByComparingTo(line.getTotalTtc());
+            });
+            assertThat(linesOf(invoice, TaxCategory.CLEANING)).singleElement()
+                .satisfies(line -> assertThat(line.getTotalTtc()).isEqualByComparingTo("45.00"));
+            assertThat(linesOf(invoice, TaxCategory.TOURIST_TAX)).singleElement()
+                .satisfies(line -> assertThat(line.getTotalTtc()).isEqualByComparingTo("30.00"));
+            assertThat(invoice.getLegalMentions()).contains("fidélité");
         }
 
         @Test

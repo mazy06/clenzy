@@ -11,6 +11,7 @@ import com.clenzy.model.User;
 import com.clenzy.service.InterventionPaymentService;
 import com.clenzy.service.PaymentQueryService;
 import com.clenzy.service.PaymentTransactionService;
+import com.clenzy.service.PaymentAccessService;
 import com.stripe.exception.StripeException;
 import jakarta.validation.Valid;
 import org.slf4j.Logger;
@@ -43,13 +44,16 @@ public class PaymentController {
     private final InterventionPaymentService interventionPaymentService;
     private final PaymentQueryService paymentQueryService;
     private final PaymentTransactionService paymentTransactionService;
+    private final PaymentAccessService paymentAccessService;
 
     public PaymentController(InterventionPaymentService interventionPaymentService,
                              PaymentQueryService paymentQueryService,
-                             PaymentTransactionService paymentTransactionService) {
+                             PaymentTransactionService paymentTransactionService,
+                             PaymentAccessService paymentAccessService) {
         this.interventionPaymentService = interventionPaymentService;
         this.paymentQueryService = paymentQueryService;
         this.paymentTransactionService = paymentTransactionService;
+        this.paymentAccessService = paymentAccessService;
     }
 
     /**
@@ -61,6 +65,7 @@ public class PaymentController {
             @Valid @RequestBody PaymentSessionRequest request,
             @AuthenticationPrincipal Jwt jwt) {
         try {
+            paymentAccessService.requireInterventions(java.util.Collections.singletonList(request.getInterventionId()), jwt);
             String customerEmail = jwt.getClaimAsString("email");
             PaymentSessionResponse response = interventionPaymentService
                 .createPaymentSession(request, customerEmail);
@@ -91,6 +96,7 @@ public class PaymentController {
             @Valid @RequestBody BatchPaymentSessionRequest request,
             @AuthenticationPrincipal Jwt jwt) {
         try {
+            paymentAccessService.requireInterventions(request.interventionIds(), jwt);
             PaymentSessionResponse response = interventionPaymentService
                     .createBatchPaymentSession(request, jwt.getClaimAsString("email"));
             return ResponseEntity.ok(response);
@@ -113,6 +119,7 @@ public class PaymentController {
             @Valid @RequestBody PaymentSessionRequest request,
             @AuthenticationPrincipal Jwt jwt) {
         try {
+            paymentAccessService.requireInterventions(java.util.Collections.singletonList(request.getInterventionId()), jwt);
             String customerEmail = jwt.getClaimAsString("email");
             PaymentSessionResponse response = interventionPaymentService
                 .createEmbeddedPaymentSession(request, customerEmail);
@@ -137,7 +144,10 @@ public class PaymentController {
      */
     @GetMapping("/session-status/{sessionId}")
     @PreAuthorize("hasAnyRole('SUPER_ADMIN','SUPER_MANAGER','HOST')")
-    public ResponseEntity<?> getSessionStatus(@PathVariable String sessionId) {
+    public ResponseEntity<?> getSessionStatus(@PathVariable String sessionId, @AuthenticationPrincipal Jwt jwt) {
+        if (!paymentAccessService.canReadSession(sessionId, jwt)) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of("error", "Paiement introuvable"));
+        }
         return paymentQueryService.getSessionStatus(sessionId)
             .<ResponseEntity<?>>map(ResponseEntity::ok)
             .orElseGet(() -> ResponseEntity.status(HttpStatus.NOT_FOUND)
@@ -152,14 +162,14 @@ public class PaymentController {
      * frontend apres redirect doit utiliser cet endpoint avec le
      * {@code transactionRef} retourne par {@code /create-session}.</p>
      *
-     * <p>{@link #getSessionStatus(String)} reste disponible pour la
+     * <p>{@link #getSessionStatus(String, Jwt)} reste disponible pour la
      * compatibilite Stripe legacy (lookup par {@code stripeSessionId}).</p>
      */
     @GetMapping("/transaction-status/{transactionRef}")
     @PreAuthorize("hasAnyRole('SUPER_ADMIN','SUPER_MANAGER','HOST')")
-    public ResponseEntity<?> getTransactionStatus(@PathVariable String transactionRef) {
+    public ResponseEntity<?> getTransactionStatus(@PathVariable String transactionRef, @AuthenticationPrincipal Jwt jwt) {
         var tx = paymentTransactionService.findByTransactionRefInCurrentOrg(transactionRef).orElse(null);
-        if (tx == null) {
+        if (tx == null || !paymentAccessService.canReadTransaction(tx, jwt)) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND)
                 .body(Map.of("error", "Transaction introuvable: " + transactionRef));
         }
@@ -269,7 +279,9 @@ public class PaymentController {
     @PreAuthorize("hasAnyRole('SUPER_ADMIN','SUPER_MANAGER')")
     public ResponseEntity<?> refundPayment(@PathVariable Long interventionId) {
         try {
-            return ResponseEntity.ok(interventionPaymentService.refundIntervention(interventionId));
+            var result = interventionPaymentService.refundIntervention(interventionId);
+            return ResponseEntity.status("PROCESSING".equals(result.get("status"))
+                    ? HttpStatus.ACCEPTED : HttpStatus.OK).body(result);
         } catch (AccessDeniedException e) {
             throw e; // 403 via Spring Security — ne pas convertir en 500
         } catch (PaymentValidationException e) {

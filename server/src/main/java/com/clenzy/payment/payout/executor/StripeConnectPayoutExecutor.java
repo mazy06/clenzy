@@ -8,6 +8,9 @@ import com.clenzy.payment.payout.PayoutExecutor;
 import com.clenzy.payment.payout.PayoutNotifier;
 import com.clenzy.payment.payout.StripeConnectTransferClient;
 import com.clenzy.repository.OwnerPayoutRepository;
+import com.clenzy.model.PayoutTransfer;
+import com.clenzy.service.payout.PayoutTransferInstruction;
+import com.clenzy.service.payout.PayoutReconciliationRequiredException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
@@ -21,20 +24,12 @@ import java.time.Instant;
  * <p>Le propriétaire doit avoir complété l'onboarding Stripe Connect (Express)
  * et la config doit contenir un {@code stripeConnectedAccountId} valide.</p>
  *
- * <h2>Anti double-virement (Z3-BUGS-03)</h2>
- * <ul>
- *   <li>Le transfert est émis avec une idempotency key Stripe dérivée du payout
- *       ({@code payout-<id>}) : un re-essai après échec post-transfert renvoie
- *       le même transfert, jamais un second virement.</li>
- *   <li>Seul l'échec de {@code Transfer.create} marque le payout FAILED. Un
- *       échec de persistance APRÈS un transfert réussi n'est PAS traité comme
- *       un échec de virement : il déclenche une ALERTE de réconciliation
- *       structurée vers les admins/managers (en plus du log ERROR) et est
- *       remonté sans passer par {@code failPayout} (pas d'incrément de retry
- *       FAILED). Un humain est ainsi notifié de l'incohérence transfert-réussi
- *       / DB-non-persistée.</li>
- *   <li>Un échec de notification ne fait jamais échouer l'exécution.</li>
- * </ul>
+ * <p>Le journal commun fige l'instruction avant émission. Un transfert confirmé est
+ * rejoué localement ; tout résultat incertain impose un rapprochement. La clé Stripe
+ * historique est conservée, sans dépendre de sa durée de rétention.</p>
+ * <p>Un échec de persistance après émission alerte les équipes plateforme. Le statut
+ * métier PAID reste celui du flux historique ; le journal distingue le transfert PSP
+ * de la réception bancaire, qui n'est pas prouvée par un transfert Connect.</p>
  */
 @Component
 public class StripeConnectPayoutExecutor implements PayoutExecutor {
@@ -59,11 +54,17 @@ public class StripeConnectPayoutExecutor implements PayoutExecutor {
     }
 
     @Override
-    public OwnerPayout execute(OwnerPayout payout, OwnerPayoutConfig config) {
+    public void validate(OwnerPayout payout, OwnerPayoutConfig config) {
         if (config.getStripeConnectedAccountId() == null || config.getStripeConnectedAccountId().isBlank()) {
             throw new PayoutExecutionException(
                 "Stripe Connect : compte connecte manquant pour le proprietaire.");
         }
+
+    }
+
+    @Override
+    public OwnerPayout execute(OwnerPayout payout, OwnerPayoutConfig config) {
+        validate(payout, config);
 
         payout.setStatus(PayoutStatus.PROCESSING);
         payout.setPayoutMethod(PayoutMethod.STRIPE_CONNECT);
@@ -72,15 +73,18 @@ public class StripeConnectPayoutExecutor implements PayoutExecutor {
         String description = "Payout #" + payout.getId()
             + " - " + payout.getPeriodStart() + " to " + payout.getPeriodEnd();
 
-        // Le try est restreint au transfert lui-meme : seul un echec du virement
-        // doit conduire a FAILED (retryable). L'appel Stripe est encapsulé dans
-        // l'adaptateur partagé StripeConnectTransferClient.
+        // L'adaptateur distingue un refus avant émission d'un résultat PSP incertain.
         String transferId;
         try {
-            transferId = transferClient.createTransfer(
-                payout.getNetAmount(), payout.getCurrency(),
-                config.getStripeConnectedAccountId(), description,
-                "payout-" + payout.getId());
+            transferId = transferClient.createTransfer(new PayoutTransferInstruction(
+                payout.getOrganizationId(), PayoutTransfer.Source.OWNER_PAYOUT, payout.getId(), payout.getOwnerId(),
+                payout.getNetAmount(), payout.getCurrency(), config.getStripeConnectedAccountId(), description));
+        } catch (PayoutReconciliationRequiredException e) {
+            payout.setFailureReason(e.getMessage());
+            notifyReconciliationQuietly(payout, e.getTransferReference() != null ? e.getTransferReference() : "À rapprocher");
+            try { payoutRepository.save(payout); }
+            catch (RuntimeException persistenceFailure) { e.addSuppressed(persistenceFailure); }
+            throw e;
         } catch (Exception e) {
             return failPayout(payout, e.getMessage());
         }
@@ -96,7 +100,7 @@ public class StripeConnectPayoutExecutor implements PayoutExecutor {
      * payout FAILED (l'argent est parti) : log ERROR + ALERTE de reconciliation
      * structuree vers les admins/managers (un humain doit reconcilier, pas
      * seulement un log — regle audit n°7) puis propagation d'une exception
-     * explicite — le re-essai est sans risque grace a l'idempotency key Stripe.
+     * explicite. Le journal conserve la référence du transfert déjà émis.
      */
     private OwnerPayout persistTransferResult(OwnerPayout payout, String transferId) {
         try {
@@ -107,13 +111,13 @@ public class StripeConnectPayoutExecutor implements PayoutExecutor {
             return payoutRepository.save(payout);
         } catch (Exception e) {
             log.error("Transfert Stripe {} emis pour le payout {} mais la persistance a echoue — "
-                + "reconciliation requise (re-executer ce payout est sans risque : idempotency key payout-{}).",
-                transferId, payout.getId(), payout.getId(), e);
+                + "rapprochement requis, référence conservée dans le journal.",
+                transferId, payout.getId(), e);
             notifyReconciliationQuietly(payout, transferId);
             throw new PayoutExecutionException(
                 "Le virement Stripe a ete emis (ref " + transferId
                 + ") mais son enregistrement a echoue. Ne pas re-executer via un autre rail — "
-                + "relancer ce payout est sans risque (idempotence Stripe).", e);
+                + "rapprochez le statut métier avec la référence conservée dans le journal.", e);
         }
     }
 

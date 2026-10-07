@@ -161,6 +161,9 @@ public class ActionItemWriter {
         if (orgId == null || !orgId.equals(item.getOrganizationId())) {
             throw new AccessDeniedException("Action hors organisation");
         }
+        if ("EXTERNAL_REFUND".equals(item.getActionType())) {
+            throw new IllegalStateException("Ce remboursement se clôture après rapprochement financier confirmé.");
+        }
         if (ActionItem.SOURCE_DERIVED.equals(item.getSource())) {
             throw new IllegalStateException(
                     "Cette action disparaitra d'elle-meme lorsque sa cause aura ete traitee");

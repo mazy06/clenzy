@@ -58,6 +58,20 @@ class InterventionPaymentEventsTest {
         order.verify(interventionRepository).save(mission);
     }
 
+    @Test void paymentAfterCompletionKeepsTheCompletionAndNeverNotifiesANewStart() {
+        var mission = mission(1,PaymentStatus.PROCESSING);
+        mission.setStatus(InterventionStatus.COMPLETED);
+        var completed = java.time.LocalDateTime.of(2026,10,6,12,0);
+        mission.setCompletedAt(completed);
+        when(interventionRepository.findByStripeSessionId("session")).thenReturn(Optional.of(mission));
+        when(paymentStatusTransitionService.markInterventionPaid(1L)).thenReturn(true);
+        service.confirmPayment("session");
+        assertThat(mission.getPaymentStatus()).isEqualTo(PaymentStatus.PAID);
+        assertThat(mission.getStatus()).isEqualTo(InterventionStatus.COMPLETED);
+        assertThat(mission.getCompletedAt()).isEqualTo(completed);
+        verify(notificationService,never()).notifyAdminsAndManagers(eq(NotificationKey.INTERVENTION_AWAITING_VALIDATION),anyString(),anyString(),anyString());
+    }
+
     @ParameterizedTest @EnumSource(value = PaymentStatus.class, names = {"PAID", "PARTIALLY_PAID", "REFUNDED"})
     void lateFailurePreservesCollectedMoney(PaymentStatus status) {
         var mission = mission(1, status);

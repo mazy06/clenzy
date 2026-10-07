@@ -320,6 +320,12 @@ public interface ServiceRequestRepository extends JpaRepository<ServiceRequest, 
            "AND sr.organizationId = :orgId")
     List<ServiceRequest> findAllAwaitingPayment(@Param("orgId") Long orgId);
 
+    @Query("SELECT sr FROM ServiceRequest sr WHERE sr.organizationId = :orgId " +
+           "AND sr.status = com.clenzy.model.RequestStatus.AWAITING_PAYMENT " +
+           "AND sr.estimatedCost > 0 AND (:hostId IS NULL OR sr.user.id = :hostId)")
+    List<ServiceRequest> findAwaitingPaymentForHost(@Param("orgId") Long orgId,
+                                                   @Param("hostId") Long hostId);
+
     /**
      * SR d'une organisation par statut de paiement (backfill wallet : rejoue les
      * paiements PAID dans le ledger). Remplace le scan findAll() + filtre memoire

@@ -30,7 +30,9 @@ public final class ConsumerReconciledSourceTypes {
         if (sourceType == null) {
             return false;
         }
-        return sourceType.startsWith(DeferredPaymentService.SOURCE_TYPE_PREFIX)
+        return InvoicePaymentCoordination.SOURCE_TYPE.equals(sourceType)
+            || InterventionPaymentBatch.SOURCE_TYPE.equals(sourceType)
+            || sourceType.startsWith(DeferredPaymentService.SOURCE_TYPE_PREFIX)
             || ReservationPaymentService.SOURCE_TYPE.equals(sourceType)
             || BookingBalanceService.SOURCE_TYPE.equals(sourceType)
             || AiCreditPurchaseService.SOURCE_TYPE.equals(sourceType)

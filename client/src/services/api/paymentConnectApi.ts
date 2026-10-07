@@ -17,22 +17,22 @@ export interface PaymentConnectionStatus {
 export const paymentConnectApi = {
   status: (scope: PaymentScope) =>
     apiClient.get<PaymentConnectionStatus>(
-      `/payment-connections/me?scope=${scope}`,
+      `/me/payment-connections/me?scope=${scope}`,
     ),
   start: (scope: PaymentScope, country: string, intent: "CREATE" | "CONNECT") =>
-    apiClient.post<{ url: string }>("/payment-connections/stripe/start", {
+    apiClient.post<{ url: string }>("/me/payment-connections/stripe/start", {
       scope,
       country,
       intent,
     }),
   refresh: (scope: PaymentScope) =>
     apiClient.post<PaymentConnectionStatus>(
-      `/payment-connections/stripe/refresh?scope=${scope}`,
+      `/me/payment-connections/stripe/refresh?scope=${scope}`,
       {},
     ),
   complete: (scope: PaymentScope, state: string, code: string) =>
     apiClient.post<PaymentConnectionStatus>(
-      "/payment-connections/stripe/complete",
+      "/me/payment-connections/stripe/complete",
       { scope, state, code },
     ),
 };

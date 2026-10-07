@@ -1,0 +1,17 @@
+# Baitly : surcharge du Compose de développement, jamais du Compose de production.
+# Charger .env.baitly-stripe.local après clenzy-infra/.env.dev.
+services:
+  pms-server:
+    # Exécuter le JAR Maven validé, sans reconstruire l'image de production.
+    # Le chemin est relatif au project-directory ../clenzy-infra.
+    volumes:
+      - ../clenzy/server/target/clenzy-platform-1.0.0.jar:/app/app.jar:ro
+    environment:
+      STRIPE_SECRET_KEY: ${STRIPE_SECRET_KEY:?Configurer la clé Stripe de test Baitly}
+      STRIPE_PUBLISHABLE_KEY: ${STRIPE_PUBLISHABLE_KEY:?Configurer la clé publique de test Baitly}
+      STRIPE_WEBHOOK_SECRET: ${STRIPE_WEBHOOK_SECRET:?Configurer la signature du listener local}
+      STRIPE_CONNECT_CLIENT_ID: ${STRIPE_CONNECT_CLIENT_ID:?Configurer le client OAuth de test}
+      CLENZY_BASE_URL: http://localhost:3000
+  pms-client:
+    environment:
+      VITE_STRIPE_PUBLISHABLE_KEY: ${STRIPE_PUBLISHABLE_KEY:?Configurer la clé publique de test Baitly}

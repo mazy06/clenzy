@@ -3,6 +3,7 @@ import { useMutation } from '@tanstack/react-query';
 import { getAccessToken } from '../../keycloak';
 import { interventionsApi } from '../../services/api/interventionsApi';
 import { buildApiUrl } from '../../config/api';
+import { interventionExecutionScope } from './interventionExecutionScope';
 import {
   InterventionDetailsData,
   StepNotes,
@@ -61,6 +62,7 @@ export function useInterventionNotes({
   // ------------------------------------------------------------------
 
   const updateNotesMutation = useMutation({
+    scope: interventionExecutionScope(id),
     mutationFn: ({ interventionId, notes }: { interventionId: number; notes: string }) =>
       interventionsApi.updateNotes(interventionId, notes),
     onSuccess: (updated) => {

@@ -112,6 +112,9 @@ const has = (a: ScreenTabAccess, permission: string) => a.permissions.includes(p
 const hasRole = (a: ScreenTabAccess, ...roles: readonly string[]) =>
   roles.some((role) => a.roles.includes(role));
 
+export const canViewFinanceLedger = (a: ScreenTabAccess) => has(a, 'payments:manage');
+export const canViewFinanceReports = (a: ScreenTabAccess) => hasRole(a, 'SUPER_ADMIN', 'SUPER_MANAGER');
+
 /** Staff plateforme au sens de `platformRole` (cf. `ScreenTabAccess.platformRole`). */
 const isPlatformStaff = (a: ScreenTabAccess) =>
   a.platformRole === 'SUPER_ADMIN' || a.platformRole === 'SUPER_MANAGER';
@@ -189,11 +192,9 @@ export const SCREEN_TABS: Record<string, ScreenTabDef[]> = {
   '/billing': [
     { key: 'payments', translationKey: 'billing.tabs.payments', fallbackLabel: 'Paiements', icon: <Payment /> },
     { key: 'invoices', translationKey: 'billing.tabs.invoices', fallbackLabel: 'Factures', icon: <Receipt />, isAccessible: (a) => has(a, 'reports:view') },
-    { key: 'wallets', translationKey: 'navigation.wallets', fallbackLabel: 'Portefeuille', icon: <AccountBalanceWallet />, isAccessible: (a) => has(a, 'payments:manage') },
-    { key: 'payouts', translationKey: 'billing.tabs.payouts', fallbackLabel: 'Reversements', icon: <AccountBalance />, isAccessible: (a) => hasRole(a, 'SUPER_ADMIN', 'SUPER_MANAGER') },
+    { key: 'payouts', translationKey: 'financeWorkspace.tabs.payouts', fallbackLabel: 'Versements', icon: <AccountBalance />, isAccessible: canViewFinanceReports },
     { key: 'expenses', translationKey: 'billing.tabs.expenses', fallbackLabel: 'Dépenses', icon: <Category />, isAccessible: (a) => hasRole(a, 'SUPER_ADMIN', 'SUPER_MANAGER') },
-    { key: 'housekeeper-payouts', translationKey: 'billing.tabs.housekeeperPayouts', fallbackLabel: 'Versements prestataires', icon: <Payments />, isAccessible: (a) => hasRole(a, 'SUPER_ADMIN', 'SUPER_MANAGER') },
-    { key: 'reports', translationKey: 'billing.tabs.reportsExports', fallbackLabel: 'Rapports & Exports', icon: <Assessment />, isAccessible: (a) => hasRole(a, 'SUPER_ADMIN', 'SUPER_MANAGER') },
+    { key: 'reports', translationKey: 'financeWorkspace.tabs.reports', fallbackLabel: 'Rapports & comptabilité', icon: <Assessment />, isAccessible: (a) => canViewFinanceReports(a) || canViewFinanceLedger(a) },
   ],
 
   '/tarification': [

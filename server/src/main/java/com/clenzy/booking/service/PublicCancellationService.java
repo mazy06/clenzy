@@ -3,19 +3,13 @@ package com.clenzy.booking.service;
 import com.clenzy.booking.dto.CancellationResultDto;
 import com.clenzy.dto.CancellationRefundPreviewDto;
 import com.clenzy.exception.NotFoundException;
-import com.clenzy.model.PaymentStatus;
 import com.clenzy.model.Reservation;
 import com.clenzy.payment.StripeAmounts;
 import com.clenzy.repository.ReservationRepository;
 import com.clenzy.service.CalendarEngine;
 import com.clenzy.service.CancellationRefundService;
-import com.clenzy.service.StripeService;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.transaction.support.TransactionSynchronization;
-import org.springframework.transaction.support.TransactionSynchronizationManager;
 
 import java.math.BigDecimal;
 import java.util.Locale;
@@ -27,28 +21,26 @@ import java.util.Locale;
  *
  * Aperçu : lecture seule (réutilise le calculateur de politique).
  * Annulation : libère le calendrier + passe la réservation à "cancelled" (transaction), puis émet
- * le remboursement Stripe PARTIEL (selon politique) HORS transaction (#2 : afterCommit + idempotency).
+ * une décision durable de remboursement. Le worker vérifie Stripe hors transaction.
  */
 @Service
 public class PublicCancellationService {
 
-    private static final Logger log = LoggerFactory.getLogger(PublicCancellationService.class);
-
     private final ReservationRepository reservationRepository;
     private final CancellationRefundService cancellationRefundService;
     private final CalendarEngine calendarEngine;
-    private final StripeService stripeService;
+    private final BookingCancellationRefunds refunds;
     private final GuestCreditService guestCreditService;
 
     public PublicCancellationService(ReservationRepository reservationRepository,
                                      CancellationRefundService cancellationRefundService,
                                      CalendarEngine calendarEngine,
-                                     StripeService stripeService,
+                                     BookingCancellationRefunds refunds,
                                      GuestCreditService guestCreditService) {
         this.reservationRepository = reservationRepository;
         this.cancellationRefundService = cancellationRefundService;
         this.calendarEngine = calendarEngine;
-        this.stripeService = stripeService;
+        this.refunds = refunds;
         this.guestCreditService = guestCreditService;
     }
 
@@ -65,10 +57,12 @@ public class PublicCancellationService {
      */
     @Transactional
     public CancellationResultDto cancel(Long orgId, String confirmationCode, String email, String reason) {
-        Reservation reservation = requireOwnedReservation(orgId, confirmationCode, email);
+        Reservation reservation = reservationRepository.lockCancellation(orgId, confirmationCode)
+                .orElseThrow(() -> new NotFoundException("Réservation introuvable"));
+        if (!emailMatches(reservation, email)) throw new NotFoundException("Réservation introuvable");
 
         if ("cancelled".equalsIgnoreCase(reservation.getStatus())) {
-            return new CancellationResultDto("already_cancelled", BigDecimal.ZERO, null, null, 0);
+            return refunds.result(reservation, "already_cancelled");
         }
 
         CancellationRefundPreviewDto preview = cancellationRefundService.computePreview(reservation, orgId);
@@ -92,37 +86,24 @@ public class PublicCancellationService {
                 refundAmount = cashPaid;
             }
             if (guestCreditService.wasRedeemed(orgId, confirmationCode)) {
-                guestCreditService.clawback(orgId, email, StripeAmounts.toMinorUnits(creditApplied), confirmationCode);
+                // L'adresse du lien de paiement peut authentifier le payeur sans être le titulaire du crédit.
+                String creditEmail = reservation.getGuest() == null ? null : reservation.getGuest().getEmail();
+                if (creditEmail == null) throw new IllegalStateException("Titulaire du crédit introuvable : rapprochement requis");
+                guestCreditService.clawback(orgId, creditEmail, StripeAmounts.toMinorUnits(creditApplied), confirmationCode);
             }
         }
 
-        String sessionId = reservation.getStripeSessionId();
-        boolean willRefund = sessionId != null && !sessionId.isBlank()
-                && refundAmount != null && refundAmount.compareTo(BigDecimal.ZERO) > 0;
-        if (willRefund) {
-            reservation.setPaymentStatus(PaymentStatus.REFUNDED);
-        }
+        refunds.prepare(reservation, preview, refundAmount);
         reservationRepository.save(reservation);
+        return refunds.result(reservation, "cancelled");
+    }
 
-        // Remboursement Stripe HORS transaction (#2), idempotent (clé dérivée de la résa).
-        if (willRefund) {
-            final Long reservationId = reservation.getId();
-            final long amountMinor = StripeAmounts.toMinorUnits(refundAmount);
-            runAfterCommit(() -> {
-                try {
-                    stripeService.refundCheckoutSessionPartial(
-                            sessionId, amountMinor, "cancel-refund-" + reservationId, reason);
-                } catch (Exception e) {
-                    // Annulation déjà committée ; échec refund -> réconciliation requise (pas de swallow muet, #7).
-                    log.error("Annulation guest résa {} : remboursement Stripe en échec — réconciliation requise",
-                            reservationId, e);
-                }
-            });
-        }
-
-        return new CancellationResultDto("cancelled",
-                refundAmount != null ? refundAmount : BigDecimal.ZERO,
-                preview.currency(), preview.policyType(), preview.refundPercentage());
+    /** Lecture authentifiée par le même code/email, sans nouvelle annulation ni émission PSP. */
+    @Transactional(readOnly = true)
+    public CancellationResultDto status(Long orgId, String confirmationCode, String email) {
+        Reservation reservation = requireOwnedReservation(orgId, confirmationCode, email);
+        return refunds.result(reservation, "cancelled".equalsIgnoreCase(reservation.getStatus())
+                ? "already_cancelled" : reservation.getStatus());
     }
 
     /** Charge la réservation (org + code) et vérifie l'email guest. Échec → NotFound (anti-énumération). */
@@ -149,17 +130,4 @@ public class PublicCancellationService {
         return linkEmail != null && linkEmail.trim().toLowerCase(Locale.ROOT).equals(wanted);
     }
 
-    /** Exécute après commit si une transaction est active (#2), sinon inline (tests). */
-    private void runAfterCommit(Runnable action) {
-        if (TransactionSynchronizationManager.isSynchronizationActive()) {
-            TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
-                @Override
-                public void afterCommit() {
-                    action.run();
-                }
-            });
-        } else {
-            action.run();
-        }
-    }
 }

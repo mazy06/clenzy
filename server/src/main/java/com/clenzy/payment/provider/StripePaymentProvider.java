@@ -19,6 +19,13 @@ import java.util.Set;
 public class StripePaymentProvider implements PaymentProvider {
 
     private static final Logger log = LoggerFactory.getLogger(StripePaymentProvider.class);
+    private final StripeGateway stripeGateway;
+    private final ManagedStripeRefund managedRefund;
+
+    public StripePaymentProvider(StripeGateway stripeGateway, ManagedStripeRefund managedRefund) {
+        this.stripeGateway = stripeGateway;
+        this.managedRefund = managedRefund;
+    }
 
     @Value("${stripe.secret-key:}")
     private String secretKey;
@@ -97,6 +104,7 @@ public class StripePaymentProvider implements PaymentProvider {
 
             com.stripe.param.checkout.SessionCreateParams.Builder builder =
                 com.stripe.param.checkout.SessionCreateParams.builder()
+                    .setIntegrationIdentifier(com.clenzy.payment.StripeGateway.CHECKOUT_INTEGRATION_ID)
                     .setMode(com.stripe.param.checkout.SessionCreateParams.Mode.PAYMENT)
                     .setSuccessUrl(successUrl)
                     .setCancelUrl(cancelUrl)
@@ -149,9 +157,7 @@ public class StripePaymentProvider implements PaymentProvider {
                 builder.setExpiresAt(request.expiresAtEpochSeconds());
             }
 
-            com.stripe.model.checkout.Session session = com.stripe.model.checkout.Session.create(
-                builder.build(),
-                com.stripe.net.RequestOptions.builder().setApiKey(secretKey).build());
+            com.stripe.model.checkout.Session session = stripeGateway.createSession(builder.build(), request.idempotencyKey());
 
             return PaymentResult.success(session.getId(), session.getUrl());
         } catch (com.stripe.exception.StripeException e) {
@@ -173,11 +179,11 @@ public class StripePaymentProvider implements PaymentProvider {
 
             com.stripe.param.checkout.SessionCreateParams.Builder builder =
                 com.stripe.param.checkout.SessionCreateParams.builder()
+                    .setIntegrationIdentifier(com.clenzy.payment.StripeGateway.CHECKOUT_INTEGRATION_ID)
                     .setMode(com.stripe.param.checkout.SessionCreateParams.Mode.PAYMENT)
-                    .setUiMode(com.stripe.param.checkout.SessionCreateParams.UiMode.EMBEDDED)
+                    .setUiMode(com.stripe.param.checkout.SessionCreateParams.UiMode.EMBEDDED_PAGE)
                     .setRedirectOnCompletion(
                         com.stripe.param.checkout.SessionCreateParams.RedirectOnCompletion.NEVER)
-                    .addPaymentMethodType(com.stripe.param.checkout.SessionCreateParams.PaymentMethodType.CARD)
                     .addLineItem(
                         com.stripe.param.checkout.SessionCreateParams.LineItem.builder()
                             .setQuantity(1L)
@@ -212,14 +218,58 @@ public class StripePaymentProvider implements PaymentProvider {
                 builder.putAllMetadata(request.metadata());
             }
 
-            com.stripe.model.checkout.Session session = com.stripe.model.checkout.Session.create(
-                builder.build(),
-                com.stripe.net.RequestOptions.builder().setApiKey(secretKey).build());
+            com.stripe.model.checkout.Session session = stripeGateway.createSession(builder.build(), request.idempotencyKey());
 
             return PaymentResult.embedded(session.getId(), session.getClientSecret());
         } catch (com.stripe.exception.StripeException e) {
             log.error("Stripe embedded createPayment failed: {}", e.getMessage());
             return PaymentResult.failure("Stripe error: " + e.getMessage());
+        }
+    }
+
+    @Override
+    @CircuitBreaker(name = "stripe-api")
+    public PaymentResult resumeEmbeddedPayment(String providerTxId, BigDecimal amount, String currency) {
+        return resumeCheckout(providerTxId, amount, currency, true);
+    }
+
+    @Override
+    @CircuitBreaker(name = "stripe-api")
+    public PaymentResult resumeHostedPayment(String providerTxId, BigDecimal amount, String currency) {
+        return resumeCheckout(providerTxId, amount, currency, false);
+    }
+
+    private PaymentResult resumeCheckout(String providerTxId, BigDecimal amount, String currency, boolean embedded) {
+        if (providerTxId == null || !providerTxId.startsWith("cs_") || amount == null || currency == null) {
+            return PaymentResult.failure("Le paiement existant nécessite une vérification.");
+        }
+        try {
+            var session = stripeGateway.retrieveSession(providerTxId);
+            if (!"open".equals(session.getStatus()) || !"unpaid".equals(session.getPaymentStatus())) {
+                return PaymentResult.failure("Ce paiement est terminé ou expiré. Actualisez son statut avant de réessayer.");
+            }
+            if (!currency.equalsIgnoreCase(session.getCurrency())
+                    || !java.util.Objects.equals(session.getAmountTotal(), StripeAmounts.toMinorUnits(amount))) {
+                return PaymentResult.failure("La session existante ne correspond pas au montant à régler.");
+            }
+            if (embedded) {
+                // Dahlia nomme désormais ce mode embedded_page ; conserver les sessions antérieures.
+                boolean embeddedMode = com.stripe.param.checkout.SessionCreateParams.UiMode.EMBEDDED_PAGE
+                    .getValue().equals(session.getUiMode()) || "embedded".equals(session.getUiMode());
+                if (!embeddedMode || session.getClientSecret() == null || session.getClientSecret().isBlank()) {
+                    return PaymentResult.failure("Cette session ne peut pas être ouverte dans le formulaire de paiement.");
+                }
+                return PaymentResult.embedded(session.getId(), session.getClientSecret());
+            }
+            boolean hostedMode = com.stripe.param.checkout.SessionCreateParams.UiMode.HOSTED_PAGE
+                .getValue().equals(session.getUiMode()) || "hosted".equals(session.getUiMode());
+            if (!hostedMode || session.getUrl() == null || session.getUrl().isBlank()) {
+                return PaymentResult.failure("Cette session ne dispose pas de lien de paiement hébergé.");
+            }
+            return PaymentResult.success(session.getId(), session.getUrl());
+        } catch (com.stripe.exception.StripeException e) {
+            log.warn("Reprise du checkout Stripe impossible : {}", e.getClass().getSimpleName());
+            return PaymentResult.failure("Impossible de reprendre le paiement pour le moment. Réessayez sans créer un nouvel ordre.");
         }
     }
 
@@ -242,10 +292,37 @@ public class StripePaymentProvider implements PaymentProvider {
     @Override
     @CircuitBreaker(name = "stripe-api")
     public PaymentResult refundPayment(String providerTxId, BigDecimal amount, String reason) {
+        return refundPayment(providerTxId, amount, reason, null);
+    }
+
+    @Override
+    @CircuitBreaker(name = "stripe-api")
+    public PaymentResult refundPayment(RefundContext context, BigDecimal amount, String reason) {
+        if (context.refundTransactionRef() != null) {
+            try { return managedRefund.execute(context, amount); }
+            catch (Exception failure) { return PaymentResult.failure(failure.getMessage()); }
+        }
+        // Un remboursement total rejoue la même opération après une panne de persistance.
+        String key = (amount == null || amount.compareTo(context.originalAmount()) == 0)
+            ? "baitly-refund-full-" + context.originalTransactionRef() : null;
+        return refundPayment(context.providerTxId(), amount, reason, key);
+    }
+
+    private PaymentResult refundPayment(String providerTxId, BigDecimal amount, String reason, String key) {
         try {
+            var options = com.stripe.net.RequestOptions.builder().setApiKey(secretKey);
+            String paymentIntentId = providerTxId;
+            // createPayment renvoie une session Checkout, pas un PaymentIntent.
+            if (providerTxId.startsWith("cs_")) {
+                var session = com.stripe.model.checkout.Session.retrieve(providerTxId, options.build());
+                if (!"paid".equals(session.getPaymentStatus()) || session.getPaymentIntent() == null) {
+                    return PaymentResult.failure("Le paiement Stripe de cette session n'est pas confirmé");
+                }
+                paymentIntentId = session.getPaymentIntent();
+            }
             com.stripe.param.RefundCreateParams.Builder builder =
                 com.stripe.param.RefundCreateParams.builder()
-                    .setPaymentIntent(providerTxId);
+                    .setPaymentIntent(paymentIntentId);
 
             if (amount != null) {
                 builder.setAmount(StripeAmounts.toMinorUnits(amount));
@@ -256,7 +333,15 @@ public class StripePaymentProvider implements PaymentProvider {
 
             com.stripe.model.Refund refund = com.stripe.model.Refund.create(
                 builder.build(),
-                com.stripe.net.RequestOptions.builder().setApiKey(secretKey).build());
+                options.setIdempotencyKey(key).build());
+
+            if (refund.getId() != null && !"succeeded".equals(refund.getStatus())) {
+                refund = com.stripe.model.Refund.retrieve(refund.getId(),
+                    com.stripe.net.RequestOptions.builder().setApiKey(secretKey).build());
+            }
+            if (!"succeeded".equals(refund.getStatus())) {
+                return PaymentResult.failure("Remboursement non confirmé par Stripe : " + refund.getStatus());
+            }
 
             return PaymentResult.success(refund.getId(), null, "REFUNDED");
         } catch (com.stripe.exception.StripeException e) {

@@ -41,6 +41,8 @@ const segBtnClass = (on: boolean) =>
 /** Étape 4 : intention de paiement + email du lien (si demande de paiement) + récapitulatif. */
 const FinalizeStep: React.FC<Props> = ({ form }) => {
   const { t } = useTranslation();
+  const guestName = [form.newGuestFirstName, form.newGuestLastName]
+    .map((name) => name.trim()).filter(Boolean).join(' ') || form.selectedGuest?.fullName;
 
   const recapRows: Array<{ label: string; value: string }> = [
     { label: t('reservations.dialog.recapProperty'), value: form.propertyName || '—' },
@@ -48,7 +50,7 @@ const FinalizeStep: React.FC<Props> = ({ form }) => {
       label: t('reservations.dialog.recapDates'),
       value: form.startDate && form.endDate ? `${form.startDate} → ${form.endDate} · ${form.nightsText}` : '—',
     },
-    { label: t('reservations.dialog.recapGuest'), value: form.selectedGuest?.fullName || '—' },
+    { label: t('reservations.dialog.recapGuest'), value: guestName || '—' },
   ];
 
   return (

@@ -4445,3 +4445,213 @@ databaseChangeLog:
         - sqlFile:
             path: changes/0492__payment_connections.sql
             relativeToChangelogFile: true
+
+  - changeSet:
+      id: "0493-owner-payout-funding"
+      author: clenzy-team
+      changes:
+        - sqlFile:
+            path: changes/0493__owner_payout_funding.sql
+            relativeToChangelogFile: true
+
+  - changeSet:
+      id: "0494-payout-transfer-journal"
+      author: clenzy-team
+      changes:
+        - sqlFile:
+            path: changes/0494__payout_transfer_journal.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+            stripComments: false
+
+  - changeSet:
+      id: "0495-provider-payout-account-read-access"
+      author: clenzy-team
+      changes:
+        - sqlFile:
+            path: changes/0495__provider_payout_account_read_access.sql
+            relativeToChangelogFile: true
+
+  - changeSet:
+      id: "0496-provider-organization-beneficiaries"
+      author: clenzy-team
+      changes:
+        - sqlFile:
+            path: changes/0496__provider_organization_beneficiaries.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+            stripComments: false
+
+  - changeSet:
+      id: "0497-stripe-bank-payout-tracking"
+      author: clenzy-team
+      changes:
+        - sqlFile:
+            path: changes/0497__stripe_bank_payout_tracking.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+            stripComments: false
+
+  - changeSet:
+      id: "0498-payout-reconciliation-audit"
+      author: clenzy-team
+      changes:
+        - sqlFile:
+            path: changes/0498__payout_reconciliation_audit.sql
+            relativeToChangelogFile: true
+
+  - changeSet:
+      id: "0499-payout-recovery-jobs"
+      author: clenzy-team
+      changes:
+        - sqlFile:
+            path: changes/0499__payout_recovery_jobs.sql
+            relativeToChangelogFile: true
+
+  - changeSet:
+      id: "0500-beneficiary-transfer-read-indexes"
+      author: clenzy-team
+      changes:
+        - sqlFile:
+            path: changes/0500__beneficiary_transfer_read_indexes.sql
+            relativeToChangelogFile: true
+
+  - changeSet:
+      id: "0501-reservation-channel-payment-evidence"
+      author: clenzy-team
+      changes:
+        - sqlFile:
+            path: changes/0501__reservation_channel_payment_evidence.sql
+            relativeToChangelogFile: true
+
+  - changeSet:
+      id: "0502-intervention-payment-allocations"
+      author: clenzy-team
+      changes:
+        - sqlFile:
+            path: changes/0502__intervention_payment_allocations.sql
+            relativeToChangelogFile: true
+
+  - changeSet:
+      id: "0503-refund-credit-note-links"
+      author: clenzy-team
+      changes:
+        - sqlFile:
+            path: changes/0503__refund_credit_note_links.sql
+            relativeToChangelogFile: true
+
+  - changeSet:
+      id: "0504-residual-provider-account-read-access"
+      author: clenzy-team
+      changes:
+        - sqlFile:
+            path: changes/0504__residual_provider_account_read_access.sql
+            relativeToChangelogFile: true
+
+  - changeSet:
+      id: "0505-transfer-refund-recoveries"
+      author: clenzy-team
+      changes:
+        - sqlFile:
+            path: changes/0505__transfer_refund_recoveries.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+            stripComments: false
+
+  - changeSet:
+      id: "0506-canonical-payment-disputes"
+      author: clenzy-team
+      changes:
+        - sqlFile:
+            path: changes/0506__canonical_payment_disputes.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+            stripComments: false
+
+  - changeSet:
+      id: "0507-provider-expense-transfers"
+      author: clenzy-team
+      changes:
+        - sqlFile:
+            path: changes/0507__provider_expense_transfers.sql
+            relativeToChangelogFile: true
+
+  - changeSet:
+      id: "0508-commission-refund-allocations"
+      author: clenzy-team
+      changes:
+        - sqlFile:
+            path: changes/0508__commission_refund_allocations.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+            stripComments: false
+
+  - changeSet:
+      id: "0509-expense-organization-beneficiaries"
+      author: clenzy-team
+      changes:
+        - sqlFile:
+            path: changes/0509__expense_organization_beneficiaries.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+            stripComments: false
+
+  - changeSet:
+      id: "0510-ota-documentary-settlements"
+      author: clenzy-team
+      changes:
+        - sqlFile:
+            path: changes/0510__ota_documentary_settlements.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+            stripComments: false
+
+  - changeSet:
+      id: "0511-supplier-purchase-paths"
+      author: clenzy-team
+      changes:
+        - sqlFile:
+            path: changes/0511__supplier_purchase_paths.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+            stripComments: false
+
+  - changeSet:
+      id: "0512-refund-allocations"
+      author: clenzy-team
+      changes:
+        - sqlFile:
+            path: changes/0512__refund_allocations.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+            stripComments: false
+
+  - changeSet:
+      id: "0513-owner-refund-bases"
+      author: clenzy-team
+      changes:
+        - sqlFile:
+            path: changes/0513__owner_refund_bases.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+            stripComments: false
+
+  - changeSet:
+      id: "0514-loyalty-refund-rewards"
+      author: clenzy-team
+      changes:
+        - sqlFile:
+            path: changes/0514__loyalty_refund_rewards.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+            stripComments: false
+
+  - changeSet:
+      id: "0515-owner-refund-credit-notes"
+      author: clenzy-team
+      changes:
+        - sqlFile:
+            path: changes/0515__owner_refund_credit_notes.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+            stripComments: false

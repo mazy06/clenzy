@@ -1,0 +1,10 @@
+# Baitly : configuration sandbox locale, avec le JAR de l'image déjà construite.
+# Cette surcharge ne monte jamais server/target à la place du JAR testé.
+services:
+  pms-server:
+    environment:
+      STRIPE_SECRET_KEY: ${STRIPE_SECRET_KEY:?Configurer la clé Stripe de test Baitly}
+      STRIPE_PUBLISHABLE_KEY: ${STRIPE_PUBLISHABLE_KEY:?Configurer la clé publique de test Baitly}
+      STRIPE_WEBHOOK_SECRET: ${STRIPE_WEBHOOK_SECRET:?Configurer la signature du listener local}
+      STRIPE_CONNECT_CLIENT_ID: ${STRIPE_CONNECT_CLIENT_ID:?Configurer le client OAuth de test}
+      CLENZY_BASE_URL: http://localhost:3000

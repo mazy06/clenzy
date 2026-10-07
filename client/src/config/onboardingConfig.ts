@@ -43,6 +43,8 @@ const pmsMigrationStep: OnboardingStepConfig = {
 
 export const ONBOARDING_STEPS: Record<string, OnboardingStepConfig[]> = {
 
+  // Platform staff administer collection and redistribution. They are not
+  // payout beneficiaries merely because they have access to Baitly.
   // ── SUPER_ADMIN ──────────────────────────────────────────────────────
   SUPER_ADMIN: [
     {
@@ -64,12 +66,6 @@ export const ONBOARDING_STEPS: Record<string, OnboardingStepConfig[]> = {
       descriptionKey: 'onboarding.steps.inviteMembers.description',
       navigationPath: '/settings?tab=organization',
       skippable: true,
-    },
-    {
-      key: 'setup_payment',
-      labelKey: 'onboarding.steps.setupPayment.label',
-      descriptionKey: 'onboarding.steps.setupPayment.description',
-      navigationPath: '/settings?tab=payment',
     },
     {
       key: 'setup_notifications',
@@ -121,12 +117,6 @@ export const ONBOARDING_STEPS: Record<string, OnboardingStepConfig[]> = {
       descriptionKey: 'onboarding.steps.inviteMembers.description',
       navigationPath: '/settings?tab=organization',
       skippable: true,
-    },
-    {
-      key: 'setup_payment',
-      labelKey: 'onboarding.steps.setupPayment.label',
-      descriptionKey: 'onboarding.steps.setupPayment.description',
-      navigationPath: '/settings?tab=payment',
     },
     {
       key: 'setup_notifications',

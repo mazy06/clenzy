@@ -1,8 +1,7 @@
 import { useState, useEffect, useRef, type Dispatch, type SetStateAction } from 'react';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { getAccessToken } from '../../keycloak';
+import { useIsMutating, useMutation, useQueryClient } from '@tanstack/react-query';
 import { interventionsApi } from '../../services/api/interventionsApi';
-import { buildApiUrl } from '../../config/api';
+import { interventionExecutionScope } from './interventionExecutionScope';
 import { interventionsKeys } from './useInterventionsList';
 import {
   InterventionDetailsData,
@@ -54,7 +53,10 @@ export function useInterventionProgress({
   const [progressDialogOpen, setProgressDialogOpen] = useState(false);
   const [progressValue, setProgressValue] = useState(0);
   const [validatedRooms, setValidatedRooms] = useState<Set<number>>(new Set());
-  const [allRoomsValidated, setAllRoomsValidated] = useState(false);
+  const [savingRoom, setSavingRoom] = useState<number | null>(null);
+  const savingRoomRef = useRef(false);
+  const scope = interventionExecutionScope(id);
+  const pendingWrites = useIsMutating({ predicate: mutation => mutation.options.scope?.id === scope.id });
 
   const isInitialLoadRef = useRef<boolean>(true);
   const isReopeningRef = useRef<boolean>(false);
@@ -67,12 +69,11 @@ export function useInterventionProgress({
     if (!initialLoadData) return;
     // Only hydrate rooms on the FIRST initialLoadData.
     // Subsequent changes (from mutation onSuccess → queryClient.setQueryData)
-    // must NOT overwrite user-initiated room selections to avoid race conditions
-    // between updateRoomsMutation and updateProgressMutation running in parallel.
+    // must NOT overwrite the last confirmed room selection with a response
+    // from another field's save. Execution writes share one serial scope.
     if (!hasHydratedRoomsRef.current) {
       hasHydratedRoomsRef.current = true;
       setValidatedRooms(initialLoadData.validatedRooms);
-      setAllRoomsValidated(initialLoadData.allRoomsValidated);
     }
     // Mark initial load done after a short delay
     const timeoutId = setTimeout(() => {
@@ -122,7 +123,7 @@ export function useInterventionProgress({
   };
 
   const areAllStepsCompleted = (): boolean => {
-    if (!propertyDetails) return false;
+    if (!propertyDetails || savingRoomRef.current || pendingWrites > 0) return false;
     const totalRooms = getTotalRooms();
     const allRoomsDone = validatedRooms.size === totalRooms;
     const afterPhotosDone = completedSteps.has('after_photos') && afterPhotos.length > 0;
@@ -139,15 +140,18 @@ export function useInterventionProgress({
   // ------------------------------------------------------------------
 
   const updateProgressMutation = useMutation({
+    scope,
     mutationFn: ({ interventionId, progress }: { interventionId: number; progress: number }) =>
       interventionsApi.updateProgress(interventionId, progress),
     onSuccess: (updated) => {
       setIntervention(updated);
       if (id) queryClient.setQueryData(interventionsKeys.detail(String(id)), updated);
     },
+    onError: () => setError(t('interventions.detailErrors.updatingProgress')),
   });
 
   const updateRoomsMutation = useMutation({
+    scope,
     mutationFn: ({ interventionId, rooms }: { interventionId: number; rooms: string }) =>
       interventionsApi.updateValidatedRooms(interventionId, rooms),
     onSuccess: (updated) => {
@@ -157,6 +161,7 @@ export function useInterventionProgress({
   });
 
   const reopenMutation = useMutation({
+    scope,
     mutationFn: (interventionId: number) =>
       interventionsApi.reopen(interventionId),
     onSuccess: async (updated) => {
@@ -174,7 +179,6 @@ export function useInterventionProgress({
             const totalRooms = getTotalRooms();
             if (parsedRooms.length === totalRooms && totalRooms > 0) {
               shouldKeepRoomsValidated = true;
-              setAllRoomsValidated(true);
             }
           }
         } catch {
@@ -258,6 +262,10 @@ export function useInterventionProgress({
   };
 
   const handleRoomValidation = async (roomIndex: number) => {
+    if (!id || intervention?.status !== 'IN_PROGRESS' || !canUpdateProgressFn
+        || savingRoomRef.current || roomIndex < 0 || roomIndex >= getTotalRooms()) return;
+    savingRoomRef.current = true;
+    setSavingRoom(roomIndex);
     // Toggle: add if not present, remove if already validated
     const newValidatedRooms = new Set(validatedRooms);
     if (newValidatedRooms.has(roomIndex)) {
@@ -265,38 +273,27 @@ export function useInterventionProgress({
     } else {
       newValidatedRooms.add(roomIndex);
     }
-    setValidatedRooms(newValidatedRooms);
-
     const totalRooms = getTotalRooms();
     const allDone = newValidatedRooms.size === totalRooms && totalRooms > 0;
-    setAllRoomsValidated(allDone);
-
-    if (allDone) {
-      const newSteps = new Set(completedSteps).add('rooms');
-      setCompletedSteps(newSteps);
-      saveCompletedSteps(newSteps);
-    } else {
-      // If a room was deselected, remove 'rooms' from completed steps
+    try {
+      // A checked room is a persisted result, not a promise of a future save.
+      await updateRoomsMutation.mutateAsync({
+        interventionId: Number(id),
+        rooms: JSON.stringify(Array.from(newValidatedRooms).sort((a, b) => a - b)),
+      });
+      setValidatedRooms(newValidatedRooms);
       const newSteps = new Set(completedSteps);
-      newSteps.delete('rooms');
+      if (allDone) newSteps.add('rooms');
+      else newSteps.delete('rooms');
       setCompletedSteps(newSteps);
       saveCompletedSteps(newSteps);
+      setError(null);
+    } catch {
+      setError(t('interventions.detailErrors.savingRooms', 'La validation de la pièce n’a pas été enregistrée. Réessayez.'));
+    } finally {
+      savingRoomRef.current = false;
+      setSavingRoom(null);
     }
-
-    if (id) {
-      const arr = Array.from(newValidatedRooms).sort((a, b) => a - b);
-      const json = JSON.stringify(arr);
-      updateRoomsMutation.mutate({ interventionId: Number(id), rooms: json });
-    }
-
-    // Calculate progress using newValidatedRooms directly (not stale state)
-    const totalSteps = 2 + totalRooms;
-    let completedCount = 0;
-    if (inspectionComplete && beforePhotos.length > 0) completedCount++;
-    completedCount += newValidatedRooms.size;
-    if (completedSteps.has('after_photos') && afterPhotos.length > 0) completedCount++;
-    const newProgress = totalSteps > 0 ? Math.round((completedCount / totalSteps) * 100) : 0;
-    handleUpdateProgressValue(newProgress);
   };
 
   const handleReopenIntervention = async () => {
@@ -352,52 +349,18 @@ export function useInterventionProgress({
   // Note: validated rooms are saved immediately in handleRoomValidation
   // No debounced auto-save needed (avoids duplicate API calls)
 
-  // Save before unload — completed steps + validated rooms
+  // Never resend an older snapshot while writes are in flight or after completion.
+  // Warn only while a confirmed response is still missing.
   useEffect(() => {
-    const handleBeforeUnload = () => {
-      // Header conditionnel : sans token JS (session restauree via le cookie
-      // HttpOnly), un "Bearer null" court-circuiterait le repli cookie.
-      const token = getAccessToken();
-      const authHeader: Record<string, string> = token ? { Authorization: `Bearer ${token}` } : {};
-
-      if (completedSteps.size > 0 && id && intervention) {
-        const json = JSON.stringify(Array.from(completedSteps));
-        const formData = new URLSearchParams();
-        formData.append('completedSteps', json);
-        fetch(buildApiUrl(`/interventions/${id}/completed-steps`), {
-          method: 'PUT',
-          headers: {
-            ...authHeader,
-            'Content-Type': 'application/x-www-form-urlencoded'
-          },
-          body: formData.toString(),
-          keepalive: true,
-          credentials: 'include',
-        }).catch(() => { /* silent */ });
-      }
-
-      if (validatedRooms.size > 0 && id && intervention) {
-        const arr = Array.from(validatedRooms).sort((a, b) => a - b);
-        const json = JSON.stringify(arr);
-        const formData = new URLSearchParams();
-        formData.append('validatedRooms', json);
-        fetch(buildApiUrl(`/interventions/${id}/validated-rooms`), {
-          method: 'PUT',
-          headers: {
-            ...authHeader,
-            'Content-Type': 'application/x-www-form-urlencoded'
-          },
-          body: formData.toString(),
-          keepalive: true,
-          credentials: 'include',
-        }).catch(() => { /* silent */ });
-      }
+    const handleBeforeUnload = (event: BeforeUnloadEvent) => {
+      if (!pendingWrites && !savingRoomRef.current) return;
+      event.preventDefault();
+      event.returnValue = '';
     };
 
     window.addEventListener('beforeunload', handleBeforeUnload);
     return () => window.removeEventListener('beforeunload', handleBeforeUnload);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [completedSteps, validatedRooms, id, intervention]);
+  }, [pendingWrites]);
 
   return {
     updatingProgress,
@@ -406,8 +369,10 @@ export function useInterventionProgress({
     progressValue,
     setProgressValue,
     validatedRooms,
-    allRoomsValidated,
-    setAllRoomsValidated,
+    savingRoom,
+    // Property details can arrive after the mission: derive this flag from
+    // the confirmed rooms instead of freezing it during the first response.
+    allRoomsValidated: getTotalRooms() > 0 && validatedRooms.size === getTotalRooms(),
 
     // Handlers
     handleUpdateProgress,

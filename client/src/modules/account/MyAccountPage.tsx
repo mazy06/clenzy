@@ -4,7 +4,7 @@ import { PageHeaderActionsProvider, usePageHeaderActionsSlot } from '../../compo
 import MyProviderServices from './MyProviderServices';
 import React, { useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { Avatar, AvatarFallback, AvatarImage, Button, Card, CardContent, Spinner } from '../../components/ui';
+import { Avatar, AvatarFallback, AvatarImage, Button, Card, CardContent, Skeleton, Spinner } from '../../components/ui';
 import { Person, Notifications as NotificationsIcon, Save, AccountBalance, Description, Room } from '../../icons';
 import PageHeader from '../../components/PageHeader';
 import PageTabs from '../../components/PageTabs';
@@ -26,6 +26,7 @@ import MyCompanyCard from './MyCompanyCard';
 import { CLEANING_ROLES, FIELD_ROLES } from '../../utils/fieldRoles';
 import compactHeaderActions from '../../components/compactHeaderActions';
 
+const MyPayoutTransfers = React.lazy(() => import('../accounting/components/MyPayoutTransfers'));
 
 /**
  * « Mon compte » — profil et notifications, accessibles a TOUT utilisateur
@@ -45,13 +46,9 @@ export default function MyAccountPage() {
   // concernent tous. Ils vivaient dans /settings, hors de leur portee.
   const canReceiveProposals = hasAnyRole([...OPERATIONAL_ROLES]) && !hasAnyRole([...MANAGER_ROLES]);
   const isFieldWorker = hasAnyRole([...FIELD_ROLES]);
-  /**
-   * Seul le circuit MENAGE genere des versements automatiques :
-   * `HousekeeperPayoutService` sort immediatement sur un type maintenance. Un
-   * technicien se voyait donc proposer de configurer un compte Stripe qui ne
-   * recevrait jamais rien.
-   */
+  // Conserver l'historique métier existant, y compris les missions non encore émises.
   const hasPayouts = hasAnyRole([...CLEANING_ROLES]);
+  const hasBeneficiaryTransfers = hasAnyRole(['HOST', 'PROPERTY_OWNER', 'HOUSEKEEPER', 'TECHNICIAN', 'SUPERVISOR', 'LAUNDRY', 'EXTERIOR_TECH']);
   const notifRef = useRef<NotificationPreferencesHandle>(null);
   const { completeStep } = useOnboarding();
   // Le bouton d'enregistrement vit dans l'en-tete, mais son etat appartient a la
@@ -105,11 +102,17 @@ export default function MyAccountPage() {
         },
       ]
       : []),
+    ...(hasBeneficiaryTransfers ? [{
+      key: 'my-transfers',
+      label: t('myTransfers.title'),
+      icon: <AccountBalance />,
+      subtitle: t('myTransfers.intro'),
+    }] : []),
     ...(hasPayouts
       ? [
         {
           key: 'payouts',
-          label: t('account.tabs.payouts', 'Versements'),
+          label: t('settings.myProPayouts.tabLabel', 'Mes versements de missions'),
           icon: <AccountBalance />,
           subtitle: t('account.subtitles.payouts',
             'Le compte qui reçoit votre rémunération, et l’historique de ce qui vous a été versé.'),
@@ -152,6 +155,9 @@ export default function MyAccountPage() {
       </div>
 
       <div className="min-h-0 flex-1 overflow-auto pt-1.5">
+        {activeKey === 'my-transfers' && hasBeneficiaryTransfers && (
+          <React.Suspense fallback={<Skeleton className="h-64 w-full" />}><MyPayoutTransfers /></React.Suspense>
+        )}
         {activeKey === 'profile' && (
           <div className="flex flex-col gap-3">
             <Card size="sm" className="shadow-none">

@@ -35,7 +35,9 @@ export function createGuestForm(state: StateManager, i18n: I18n, onSubmit: () =>
   form.setAttribute('novalidate', '');
   form.addEventListener('submit', (e) => {
     e.preventDefault();
-    if (validateForm(state, i18n)) onSubmit();
+    if (state.get().loading || !validateForm(state, i18n)) return;
+    state.set({ error: null });
+    onSubmit();
   });
 
   // Name row
@@ -90,6 +92,15 @@ export function createGuestForm(state: StateManager, i18n: I18n, onSubmit: () =>
   );
   form.appendChild(message.el);
 
+  // L'erreur de réservation doit rester visible sur l'étape où elle survient.
+  const checkoutError = document.createElement('div');
+  checkoutError.className = 'cb-error-alert';
+  checkoutError.setAttribute('role', 'alert');
+  checkoutError.setAttribute('aria-atomic', 'true');
+  checkoutError.tabIndex = -1;
+  checkoutError.hidden = true;
+  form.appendChild(checkoutError);
+
   // Submit button
   const submitBtn = document.createElement('button');
   submitBtn.className = 'cb-cta';
@@ -99,13 +110,26 @@ export function createGuestForm(state: StateManager, i18n: I18n, onSubmit: () =>
 
   container.appendChild(form);
 
-  // Sync errors
-  state.on('*', (s: WidgetState) => {
+  // Le même état pilote les erreurs et empêche une seconde soumission en cours.
+  let previousError: string | null = null;
+  const syncForm = (s: WidgetState) => {
     firstName.setError(s.guestFormErrors.firstName);
     lastName.setError(s.guestFormErrors.lastName);
     email.setError(s.guestFormErrors.email);
     phone.setError(s.guestFormErrors.phone);
-  });
+    const newError = s.error !== previousError;
+    previousError = s.error;
+    checkoutError.textContent = /^API error 5\d\d:/.test(s.error || '')
+      ? i18n.t('common.checkoutUnavailable') : s.error || '';
+    checkoutError.hidden = !s.error;
+    submitBtn.disabled = s.loading;
+    back.disabled = s.loading;
+    form.setAttribute('aria-busy', String(s.loading));
+    submitBtn.textContent = i18n.t(s.loading ? 'common.processing' : 'common.continueToPayment');
+    if (s.error && newError && s.page === 'form') checkoutError.focus();
+  };
+  state.on('*', syncForm);
+  syncForm(state.get());
 
   return container;
 }

@@ -7,7 +7,7 @@ import java.time.LocalDateTime;
 import java.util.List;
 
 /**
- * DTOs du payout prestataire ménage (Moteur Ménage 3B — P9).
+ * DTOs des versements Baitly aux prestataires de tous les métiers.
  * Records immuables, mapping explicite — jamais d'entité exposée.
  */
 public final class HousekeeperPayoutDtos {
@@ -25,6 +25,7 @@ public final class HousekeeperPayoutDtos {
     public record PayoutRecordDto(
             Long id,
             Long userId,
+            Long beneficiaryOrganizationId,
             Long interventionId,
             BigDecimal amount,
             BigDecimal commissionAmount,
@@ -38,6 +39,7 @@ public final class HousekeeperPayoutDtos {
             return new PayoutRecordDto(
                     record.getId(),
                     record.getUserId(),
+                    record.getBeneficiaryOrganizationId(),
                     record.getInterventionId(),
                     record.getAmount(),
                     record.getCommissionAmount(),
@@ -55,4 +57,15 @@ public final class HousekeeperPayoutDtos {
 
     public record AccountSessionDto(String clientSecret) {
     }
+
+    /** Montants recalculés en lecture seule avant une décision de versement. */
+    public record RetryQuote(BigDecimal amount, BigDecimal commissionAmount) { }
+
+    public record RetryRequest(
+            @jakarta.validation.constraints.NotNull
+            @jakarta.validation.constraints.DecimalMin("0.01")
+            @jakarta.validation.constraints.Digits(integer = 12, fraction = 2) BigDecimal amount,
+            @jakarta.validation.constraints.NotNull
+            @jakarta.validation.constraints.DecimalMin("0.00")
+            @jakarta.validation.constraints.Digits(integer = 12, fraction = 2) BigDecimal commissionAmount) { }
 }

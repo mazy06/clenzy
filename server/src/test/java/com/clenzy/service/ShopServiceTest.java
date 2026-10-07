@@ -250,7 +250,7 @@ class ShopServiceTest {
             pending.setStatus(OrderStatus.PENDING);
             Session session = mock(Session.class);
             when(session.getPaymentIntent()).thenReturn("pi_test_123");
-            when(session.getShippingDetails()).thenReturn(null);
+            when(session.getCollectedInformation()).thenReturn(null);
             when(hardwareOrderRepository.findByStripeSessionId("cs_z"))
                     .thenReturn(Optional.of(pending));
 

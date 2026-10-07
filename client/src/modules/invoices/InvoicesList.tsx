@@ -1,3 +1,5 @@
+import FinanceWorkspace from '../billing/components/FinanceWorkspace';
+import { FinanceAmountKpis } from '../billing/components/FinanceKpis';
 import React, { useState, useMemo } from 'react';
 import StatusChip from '../../components/StatusChip';
 import { Button, Spinner } from '../../components/ui';
@@ -21,7 +23,7 @@ import {
   Receipt as ReceiptIcon,
   Download as DownloadIcon,
   Send as SendIcon,
-  CheckCircle as PaidIcon,
+  CreditCard as PaidIcon,
   Cancel as CancelIcon,
   Clear as ClearIcon,
   AttachMoney as MoneyIcon,
@@ -43,7 +45,7 @@ import { useTranslation } from '../../hooks/useTranslation';
 import {
   useInvoices,
   useIssueInvoice,
-  useMarkInvoicePaid,
+  usePayInvoice,
   useCancelInvoice,
   useTemplateStatus,
   useDuplicateInvoice,
@@ -109,20 +111,6 @@ const fmtDate = (d: string | null) =>
 
 // ─── Component ──────────────────────────────────────────────────────────────
 
-const handleDownloadPdf = async (id: number, invoiceNumber: string) => {
-  try {
-    const blob = await invoicesApi.downloadPdf(id);
-    const url = window.URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `${invoiceNumber}.pdf`;
-    a.click();
-    window.URL.revokeObjectURL(url);
-  } catch {
-    // Silently fail — could add snackbar
-  }
-};
-
 /** Determine le type de source : Reservation ou Intervention (accents palette Baitly) */
 const getSourceType = (inv: Invoice) => {
   if (inv.reservationId) return { label: 'Reservation', icon: <span className="inline-flex me-0.5"><HomeIcon size={14} strokeWidth={1.75} /></span>, color: '#7BA3C2' };
@@ -178,6 +166,25 @@ const InvoicesList: React.FC<InvoicesListProps> = ({ embedded = false }) => {
   const [pdfDialogOpen, setPdfDialogOpen] = useState(false);
   const [pdfUrl, setPdfUrl] = useState<string | null>(null);
   const [pdfLoading, setPdfLoading] = useState(false);
+  const [downloadingId, setDownloadingId] = useState<number | null>(null);
+  const [downloadError, setDownloadError] = useState(false);
+
+  const handleDownloadPdf = async (id: number, invoiceNumber: string) => {
+    setDownloadingId(id);
+    setDownloadError(false);
+    try {
+      const blob = await invoicesApi.downloadPdf(id);
+      const url = window.URL.createObjectURL(blob);
+      const anchor = document.createElement('a');
+      try {
+        anchor.href = url;
+        anchor.download = `${invoiceNumber}.pdf`;
+        anchor.click();
+      } finally { window.URL.revokeObjectURL(url); }
+    } catch { setDownloadError(true); }
+    finally { setDownloadingId(null); }
+  };
+
 
   // Seule la periode reste un filtre serveur. Le statut passe cote client :
   // la rangee de chips de la projection affiche le compte de CHAQUE statut,
@@ -204,7 +211,7 @@ const InvoicesList: React.FC<InvoicesListProps> = ({ embedded = false }) => {
 
   const { data: templateStatus } = useTemplateStatus();
   const issueMutation = useIssueInvoice();
-  const markPaidMutation = useMarkInvoicePaid();
+  const paymentMutation = usePayInvoice();
   const cancelMutation = useCancelInvoice();
   const duplicateMutation = useDuplicateInvoice();
 
@@ -333,31 +340,7 @@ const InvoicesList: React.FC<InvoicesListProps> = ({ embedded = false }) => {
 
       {/* ─── KPIs — les trois tuiles monetaires de la projection ─────────── */}
       {stats && (
-        <StatTileRow compact className="mb-3">
-          <StatTile
-            icon={<ReceiptIcon />}
-            label={t('invoices.stats.issuedTotal', 'Émis')}
-            value={<Money value={stats.emis} from={stats.currency} />}
-            hint={t('invoices.stats.count', { count: stats.total, defaultValue: '{{count}} factures' })}
-            loading={isLoading}
-          />
-          <StatTile
-            icon={<PaidIcon />}
-            label={t('invoices.stats.collected', 'Encaissé')}
-            value={<Money value={stats.encaisse} from={stats.currency} />}
-            iconClassName="text-success"
-            hint={t('invoices.stats.collectedShare', { rate: stats.tauxEncaisse, defaultValue: '{{rate}} % du montant émis' })}
-            loading={isLoading}
-          />
-          <StatTile
-            icon={<WarningIcon />}
-            label={t('invoices.stats.overdue', 'En retard')}
-            value={<Money value={stats.retardMontant} from={stats.currency} />}
-            iconClassName="text-destructive"
-            hint={t('invoices.stats.overdueCount', { count: stats.retardNb, defaultValue: '{{count}} factures' })}
-            loading={isLoading}
-          />
-        </StatTileRow>
+        <FinanceAmountKpis kind="invoices" records={displayedInvoices.map(row => ({ status: row.status, amount: row.totalTtc, currency: row.currency }))} />
       )}
 
       {/* ─── Chips de statut — comptes par statut, couleurs semantiques ──── */}
@@ -415,6 +398,17 @@ const InvoicesList: React.FC<InvoicesListProps> = ({ embedded = false }) => {
       </Card>
 
       {/* ─── Table ───────────────────────────────────────────────────────── */}
+      {downloadError && (
+        <Alert variant="destructive" className="mb-3" role="alert">
+          <AlertDescription>{t('invoices.downloadError', 'Le PDF n’a pas pu être téléchargé. Réessayez.')}</AlertDescription>
+        </Alert>
+      )}
+      {paymentMutation.error && (
+        <Alert variant="destructive" className="mb-3" role="alert">
+          <WarningIcon />
+          <AlertDescription>{paymentMutation.error.message}</AlertDescription>
+        </Alert>
+      )}
       {isLoading ? (
         /* Skeleton de table (carte hairline plate, lignes Skeleton) */
         <Card className="gap-0 py-0 border-border p-3">
@@ -437,30 +431,32 @@ const InvoicesList: React.FC<InvoicesListProps> = ({ embedded = false }) => {
           variant="plain"
         />
       ) : (
-        <div className="overflow-x-auto rounded-xl border border-solid border-border bg-card">
-          {/* py-[7.5px] : le `sx` d'origine resserrait les cellules (py: 1.25) par
-              rapport au gabarit du kit (6px en-tete / 8px corps). */}
-          <Table className="[&_th]:py-[7.5px] [&_td]:py-[7.5px]">
-            <TableHeader>
-              <TableRow>
-                <TableHead>{t('invoices.columns.number', 'N\u00B0')}</TableHead>
-                <TableHead>{t('invoices.columns.date', 'Date')}</TableHead>
-                <TableHead>{t('invoices.columns.type', 'Type')}</TableHead>
-                <TableHead>{t('invoices.columns.buyer', 'Client')}</TableHead>
-                <TableHead className="text-end">{t('invoices.columns.ht', 'HT')}</TableHead>
-                <TableHead className="text-end">{t('invoices.columns.tax', 'TVA')}</TableHead>
-                <TableHead className="text-end">{t('invoices.columns.ttc', 'TTC')}</TableHead>
-                <TableHead>{t('common.status', 'Statut')}</TableHead>
-                <TableHead className="text-end">{t('common.actions', 'Actions')}</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {displayedInvoices.map((inv: Invoice) => {
+        <FinanceWorkspace artwork="documents"  items={displayedInvoices.map((inv: Invoice) => {
                 const source = getSourceType(inv);
+                const original = invoices?.find(item => item.id === inv.originalInvoiceId);
+                const creditNotes = invoices?.filter(item => item.originalInvoiceId === inv.id) ?? [];
+                const documentLink = (id: number, number: string, label: string) => (
+                  <Button variant="link" size="sm" className="h-auto min-h-9 whitespace-normal text-start tabular-nums"
+                    disabled={downloadingId !== null} onClick={() => handleDownloadPdf(id, number)}
+                    aria-label={label}>
+                    <DownloadIcon size={15} aria-hidden="true" />{number}
+                  </Button>
+                );
+                const linkedDocuments = [
+                  ...(inv.originalInvoiceId ? [{
+                    label: t('invoices.creditNote.original', 'Facture d’origine'),
+                    value: documentLink(inv.originalInvoiceId, original?.invoiceNumber || `#${inv.originalInvoiceId}`,
+                      t('invoices.creditNote.downloadOriginal', 'Télécharger la facture d’origine')),
+                  }] : []),
+                  ...creditNotes.map(note => ({
+                    label: t('invoices.creditNote.linked', 'Avoir associé'),
+                    value: documentLink(note.id, note.invoiceNumber,
+                      t('invoices.creditNote.download', 'Télécharger l’avoir') + ' ' + note.invoiceNumber),
+                  })),
+                ];
+
                 return (
-                  <TableRow key={inv.id} data-highlight-id={String(inv.id)}>
-                    {/* ─── N° + DUPLICATA badge ─── */}
-                    <TableCell>
+                  { id: inv.id, identity: { interventionId: inv.interventionId, reservationId: inv.reservationId }, title: <>
                       <div className="flex items-center gap-1">
                         {/* Litteral et non `cn()` : tailwind-merge considere `font-[...]` et
                             `font-semibold` comme un meme groupe et supprimerait la police display. */}
@@ -471,39 +467,9 @@ const InvoicesList: React.FC<InvoicesListProps> = ({ embedded = false }) => {
                           <StatusChip tone="info" size="sm" label="DUP" />
                         )}
                       </div>
-                    </TableCell>
-
-                    {/* ─── Date ─── */}
-                    <TableCell className="text-muted-foreground tabular-nums">{fmtDate(inv.invoiceDate)}</TableCell>
-
-                    {/* ─── Type (Commission / Reservation / Intervention) ─── */}
-                    <TableCell>
-                      {inv.invoiceType === 'COMMISSION' ? (
-                        <StatusChip tokens={{ color: COMMISSION_COLOR, bg: `${COMMISSION_COLOR}18` }} label={t('invoices.type.commission', 'Commission')} icon={<span className="inline-flex me-0.5"><MoneyIcon size={14} strokeWidth={1.75} /></span>} />
-                      ) : source ? (
-                        <StatusChip tokens={{ color: source.color, bg: `${source.color}18` }} label={source.label} icon={source.icon} />
-                      ) : (
-                        <p className="text-[12.5px] text-muted-foreground">
-                          —
-                        </p>
-                      )}
-                    </TableCell>
-
-                    {/* ─── Client ─── */}
-                    <TableCell className="font-semibold text-foreground">{inv.buyerName}</TableCell>
-
-                    {/* ─── Montants (display tabular-nums) ─── */}
-                    <TableCell className={`text-end ${MONEY_CLASS}`}><Money value={inv.totalHt} from={inv.currency} /></TableCell>
-                    <TableCell className={`text-end ${MONEY_CLASS}`}><Money value={inv.totalTax} from={inv.currency} /></TableCell>
-                    <TableCell className={`text-end ${MONEY_CLASS} font-semibold text-foreground`}><Money value={inv.totalTtc} from={inv.currency} /></TableCell>
-
-                    {/* ─── Statut — ton semantique a point (projection) ─── */}
-                    <TableCell>
+                    </>, amount: <><Money value={inv.totalTtc} from={inv.currency} /></>, status: <>
                       <StatusChip tone={STATUS_TONE[inv.status]} label={STATUS_LABELS[inv.status]} dot size="sm" />
-                    </TableCell>
-
-                    {/* ─── Actions ─── */}
-                    <TableCell className="text-end">
+                    </>, subtitle: <>{inv.buyerName}</>, meta: <>{fmtDate(inv.invoiceDate)}</>, actions: <>
                       <div className="flex gap-0.5 justify-end">
                         {/* Voir PDF (document genere) */}
                         {inv.documentGenerationId && (
@@ -528,13 +494,13 @@ const InvoicesList: React.FC<InvoicesListProps> = ({ embedded = false }) => {
                           </RowAction>
                         )}
 
-                        {/* Marquer payee */}
-                        {inv.status === 'ISSUED' && (
+                        {/* Ouvrir le règlement PSP ; seul son retour confirmé règle la facture. */}
+                        {['SENT', 'ISSUED', 'OVERDUE'].includes(inv.status) && !inv.duplicateOfId && (
                           <RowAction
-                            label={t('invoices.actions.markPaid', 'Marquer payee')}
-                            className="text-success-ink hover:bg-success-soft hover:text-success-ink"
-                            onClick={() => markPaidMutation.mutate(inv.id)}
-                            disabled={markPaidMutation.isPending}
+                            label={t('common.pay', 'Payer')}
+                            className="text-primary hover:bg-primary-soft hover:text-primary"
+                            onClick={() => paymentMutation.mutate(inv.id, { onSuccess: (url) => window.location.assign(url) })}
+                            disabled={paymentMutation.isPending}
                           >
                             <PaidIcon size={18} strokeWidth={1.75} />
                           </RowAction>
@@ -568,26 +534,24 @@ const InvoicesList: React.FC<InvoicesListProps> = ({ embedded = false }) => {
                         <RowAction
                           label={t('invoices.actions.downloadPdf', 'Telecharger PDF')}
                           onClick={() => handleDownloadPdf(inv.id, inv.invoiceNumber)}
+                          disabled={downloadingId !== null}
                         >
                           <DownloadIcon size={18} strokeWidth={1.75} />
                         </RowAction>
                       </div>
-                    </TableCell>
-                  </TableRow>
+                    </>, fields: [...linkedDocuments, {label: <>{t('invoices.columns.date', 'Date')}</>, value: <>{fmtDate(inv.invoiceDate)}</>},{label: <>{t('invoices.columns.type', 'Type')}</>, value: <>
+                      {inv.invoiceType === 'COMMISSION' ? (
+                        <StatusChip tokens={{ color: COMMISSION_COLOR, bg: `${COMMISSION_COLOR}18` }} label={t('invoices.type.commission', 'Commission')} icon={<span className="inline-flex me-0.5"><MoneyIcon size={14} strokeWidth={1.75} /></span>} />
+                      ) : source ? (
+                        <StatusChip tokens={{ color: source.color, bg: `${source.color}18` }} label={source.label} icon={source.icon} />
+                      ) : (
+                        <p className="text-[12.5px] text-muted-foreground">
+                          —
+                        </p>
+                      )}
+                    </>},{label: <>{t('invoices.columns.buyer', 'Client')}</>, value: <>{inv.buyerName}</>},{label: <>{t('invoices.columns.ht', 'HT')}</>, value: <><Money value={inv.totalHt} from={inv.currency} /></>},{label: <>{t('invoices.columns.tax', 'TVA')}</>, value: <><Money value={inv.totalTax} from={inv.currency} /></>},{label: <>{t('invoices.columns.ttc', 'TTC')}</>, value: <><Money value={inv.totalTtc} from={inv.currency} /></>}],  }
                 );
-              })}
-            </TableBody>
-            <TableFooter>
-              <TableRow>
-                <TableCell colSpan={6}>{t('invoices.totalPeriod', 'Total période')}</TableCell>
-                <TableCell className={`text-end font-semibold ${MONEY_CLASS}`}>
-                  <Money value={displayedInvoices.reduce((sum, i) => sum + i.totalTtc, 0)} from={stats?.currency ?? 'EUR'} />
-                </TableCell>
-                <TableCell colSpan={2} />
-              </TableRow>
-            </TableFooter>
-          </Table>
-        </div>
+              })}  />
       )}
 
       {/* ─── PDF Preview Dialog ──────────────────────────────────────────── */}

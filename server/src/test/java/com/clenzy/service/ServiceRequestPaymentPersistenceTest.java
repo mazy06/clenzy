@@ -41,6 +41,8 @@ class ServiceRequestPaymentPersistenceTest {
 
     @Mock private ServiceRequestRepository serviceRequestRepository;
     @Mock private OrganizationAccessGuard organizationAccessGuard;
+    @Mock private com.clenzy.repository.InterventionRepository interventions;
+    @Mock private jakarta.persistence.EntityManager em;
 
     @InjectMocks private ServiceRequestPaymentPersistence persistence;
 
@@ -57,6 +59,21 @@ class ServiceRequestPaymentPersistenceTest {
     @Nested
     @DisplayName("loadPayable")
     class LoadPayable {
+
+        @org.junit.jupiter.params.ParameterizedTest
+        @org.junit.jupiter.params.provider.ValueSource(strings={"PAID","PARTIALLY_PAID","REFUNDED","paidAt","converted","legacyConverted"})
+        void refusesASecondPaymentForSettledOrConvertedDebt(String state) {
+            var sr = payableSr();
+            switch(state) {
+                case "paidAt" -> sr.setPaidAt(java.time.LocalDateTime.now());
+                case "converted" -> sr.setConvertedInterventionId(9L);
+                case "legacyConverted" -> when(interventions.existsByServiceRequestId(5L)).thenReturn(true);
+                default -> sr.setPaymentStatus(PaymentStatus.valueOf(state));
+            }
+            when(serviceRequestRepository.findById(5L)).thenReturn(Optional.of(sr));
+            assertThatThrownBy(() -> persistence.loadPayable(5L)).isInstanceOf(IllegalStateException.class);
+            verify(serviceRequestRepository, never()).save(any());
+        }
 
         @Test
         void whenPayable_thenReturnsServerSideSnapshot() {
@@ -145,6 +162,27 @@ class ServiceRequestPaymentPersistenceTest {
     @Nested
     @DisplayName("markProcessing")
     class MarkProcessing {
+
+        @Test void aFastWebhookCannotBeOverwrittenByCheckoutReturn() {
+            var sr = payableSr(); sr.setStripeSessionId("cs_sr");
+            when(serviceRequestRepository.findById(5L)).thenReturn(Optional.of(sr));
+            org.mockito.Mockito.doAnswer(call -> {
+                sr.setPaymentStatus(PaymentStatus.PAID);
+                sr.setPaidAt(java.time.LocalDateTime.now()); sr.setConvertedInterventionId(99L);
+                return null;
+            }).when(em).refresh(sr, jakarta.persistence.LockModeType.PESSIMISTIC_WRITE);
+            persistence.markProcessing(5L, "cs_sr");
+            assertThat(sr.getPaymentStatus()).isEqualTo(PaymentStatus.PAID);
+            verify(serviceRequestRepository, never()).save(any());
+        }
+
+        @Test void aDifferentSessionCannotReplaceAnExistingPayment() {
+            var sr = payableSr(); sr.setStripeSessionId("cs_other");
+            when(serviceRequestRepository.findById(5L)).thenReturn(Optional.of(sr));
+            assertThatThrownBy(() -> persistence.markProcessing(5L, "cs_sr"))
+                    .hasMessageContaining("autre session");
+            verify(serviceRequestRepository, never()).save(any());
+        }
 
         @Test
         void persistsProviderReferenceAndProcessingStatus() {

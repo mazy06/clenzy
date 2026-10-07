@@ -4,6 +4,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { MemoryRouter } from 'react-router-dom';
 import PaymentIncidentDialog from '../PaymentIncidentDialog';
 import { actionItemsApi } from '../../../services/api/actionItemsApi';
+import { CurrencyDisplayProvider } from '../../../hooks/currencyDisplayContext';
 
 /**
  * Un incident de règlement n'appelle pas le même geste selon son origine : un
@@ -25,7 +26,11 @@ function renderDialog(incident: Record<string, unknown>, onClose = vi.fn()) {
   render(
     <QueryClientProvider client={client}>
       <MemoryRouter>
+        <CurrencyDisplayProvider value={{ currency: 'EUR', currencySymbol: '€', currencyLabel: 'Euro',
+          setCurrency: vi.fn(), convert: (amount) => amount, convertAndFormat: (amount) => `${amount} €`,
+          isConverting: false, rateDate: null, rates: null, ratesLoading: false }}>
         <PaymentIncidentDialog incidentId={41} onClose={onClose} incident={incident} />
+        </CurrencyDisplayProvider>
       </MemoryRouter>
     </QueryClientProvider>,
   );
@@ -34,6 +39,14 @@ function renderDialog(incident: Record<string, unknown>, onClose = vi.fn()) {
 
 describe('PaymentIncidentDialog', () => {
   beforeEach(() => vi.clearAllMocks());
+
+  it('sends an external refund to Finance without allowing manual dismissal', () => {
+    renderDialog({ type: 'EXTERNAL_REFUND', title: 'Remboursement Stripe à rapprocher', amount: 5, currency: 'EUR' });
+    expect(screen.getByText(/directement chez Stripe/)).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /Voir les paiements/ })).toBeVisible();
+    expect(screen.queryByRole('button', { name: /traité/i })).not.toBeInTheDocument();
+    expect(actionItemsApi.resolve).not.toHaveBeenCalled();
+  });
 
   it('renvoie un litige vers les paiements, avec son échéance', () => {
     renderDialog({ type: 'DISPUTE_OPENED', title: 'Litige bancaire', badge: 'J-3' });

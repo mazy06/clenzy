@@ -46,8 +46,11 @@ export function useGeoDetection() {
         // Store raw detected country (used by FiscalProfileSection)
         setItem(STORAGE_KEYS.GEO_COUNTRY, countryCode);
 
-        // Apply currency
-        setCurrency(defaults.currency);
+        // La preference du compte ou un choix manuel peut arriver pendant
+        // la requete geo. Ces valeurs priment toujours sur la detection IP.
+        if (!getItem(STORAGE_KEYS.CURRENCY)) {
+          setCurrency(defaults.currency);
+        }
 
         // Apply language (only if i18next hasn't already picked one from browser)
         const existingLang = getItem(STORAGE_KEYS.LANGUAGE);

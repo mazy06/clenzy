@@ -61,6 +61,8 @@ interface PagePaginationProps {
    * loin de la grille qu'ils font défiler.
    */
   centerNav?: boolean;
+  /** Panneau étroit : précédent, page courante et suivant uniquement. */
+  compact?: boolean;
   className?: string;
 }
 
@@ -95,6 +97,7 @@ export default function PagePagination({
   hideTotal = false,
   hideOnSinglePage = true,
   centerNav = false,
+  compact = false,
   className,
 }: PagePaginationProps) {
   const { t } = useTranslation();
@@ -175,7 +178,7 @@ export default function PagePagination({
             />
           </PaginationItem>
 
-          {pages.map((entry, index) =>
+          {(compact ? [currentPage] : pages).map((entry, index) =>
             entry === null ? (
               <PaginationItem key={`ellipsis-${index}`}>
                 <PaginationEllipsis />
@@ -184,6 +187,7 @@ export default function PagePagination({
               <PaginationItem key={entry}>
                 <PaginationLink
                   href="#"
+                  size={compact ? 'default' : 'icon'}
                   isActive={entry === currentPage}
                   className="tabular-nums"
                   onClick={(event) => {
@@ -191,7 +195,7 @@ export default function PagePagination({
                     go(entry);
                   }}
                 >
-                  {entry}
+                  {compact ? `${entry} / ${totalPages}` : entry}
                 </PaginationLink>
               </PaginationItem>
             ),

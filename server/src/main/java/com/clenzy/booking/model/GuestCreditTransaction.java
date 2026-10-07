@@ -34,6 +34,8 @@ public class GuestCreditTransaction {
 
     @Column(name = "reservation_code", length = 100)
     private String reservationCode;
+    @Column(name = "source_credit_id", updatable = false)
+    private Long sourceCreditId;
 
     @CreationTimestamp
     @Column(name = "created_at", updatable = false)
@@ -56,6 +58,8 @@ public class GuestCreditTransaction {
 
     public String getReservationCode() { return reservationCode; }
     public void setReservationCode(String reservationCode) { this.reservationCode = reservationCode; }
+    public Long getSourceCreditId() { return sourceCreditId; }
+    public void setSourceCreditId(Long value) { sourceCreditId=value; }
 
     public LocalDateTime getCreatedAt() { return createdAt; }
 }

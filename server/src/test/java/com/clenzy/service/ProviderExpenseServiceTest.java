@@ -29,6 +29,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
@@ -38,6 +39,7 @@ class ProviderExpenseServiceTest {
     @Mock private UserRepository userRepository;
     @Mock private PropertyRepository propertyRepository;
     @Mock private InterventionRepository interventionRepository;
+    @Mock private com.clenzy.repository.OrganizationMemberRepository memberships;
 
     private ProviderExpenseService service;
 
@@ -45,12 +47,13 @@ class ProviderExpenseServiceTest {
 
     @BeforeEach
     void setUp() {
-        service = new ProviderExpenseService(expenseRepository, userRepository, propertyRepository, interventionRepository);
+        service = new ProviderExpenseService(expenseRepository, userRepository, propertyRepository, interventionRepository, memberships);
     }
 
     private User buildProvider(Long id) {
         User u = new User();
         u.setId(id);
+        u.setOrganizationId(ORG_ID);
         u.setFirstName("Provider");
         u.setLastName("Name");
         u.setEmail("p@x.com");
@@ -81,6 +84,57 @@ class ProviderExpenseServiceTest {
                 "Test expense", new BigDecimal("100"), new BigDecimal("0.2"),
                 ExpenseCategory.MAINTENANCE, LocalDate.now(),
                 "INV-001", "Notes");
+    }
+
+    @Test void staffCanReadOrganizationExpensesWhileProvidersAndOwnersUseTheirOwnScope() {
+        User me=buildProvider(10L); me.setRole(com.clenzy.model.UserRole.HOUSEKEEPER);
+        when(userRepository.findByKeycloakId("me")).thenReturn(Optional.of(me));
+        var mine=buildExpense(1L,ExpenseStatus.DRAFT); mine.setProvider(me); mine.setProperty(buildProperty(20L));
+        when(expenseRepository.findVisibleToUser(ORG_ID,10L)).thenReturn(List.of(mine));
+        assertThat(service.getVisible("me",ORG_ID,null,null,null,false)).containsExactly(mine);
+        assertThat(service.getVisible("me",ORG_ID,99L,null,null,false)).isEmpty();
+        verify(expenseRepository,never()).findAllByOrgId(any());
+        me.setRole(com.clenzy.model.UserRole.SUPER_ADMIN);
+        when(expenseRepository.findAllByOrgId(ORG_ID)).thenReturn(List.of(mine));
+        assertThat(service.getVisible("me",ORG_ID,null,null,null,false)).containsExactly(mine);
+    }
+    @Test void knowingAnExpenseIdDoesNotGrantAnotherProviderAccessToItsReceipt() {
+        User me=buildProvider(10L); when(userRepository.findByKeycloakId("me")).thenReturn(Optional.of(me));
+        var other=buildExpense(1L,ExpenseStatus.DRAFT); other.setProvider(buildProvider(11L)); other.setProperty(buildProperty(20L));
+        when(expenseRepository.findByIdAndOrgId(1L,ORG_ID)).thenReturn(Optional.of(other));
+        assertThatThrownBy(()->service.getReadable(1L,ORG_ID,"me")).isInstanceOf(org.springframework.security.access.AccessDeniedException.class);
+        other.getProperty().setOwner(me);
+        assertThat(service.getReadable(1L,ORG_ID,"me")).isSameAs(other);
+        other.getProperty().setOwner(null); other.setProvider(me);
+        assertThat(service.getReadable(1L,ORG_ID,"me")).isSameAs(other);
+    }
+    @Test void foreignPropertyCannotBeAttachedToAnExpenseInThisOrganization() {
+        when(userRepository.findById(10L)).thenReturn(Optional.of(buildProvider(10L)));
+        var property=buildProperty(20L); property.setOrganizationId(2L);
+        when(propertyRepository.findById(20L)).thenReturn(Optional.of(property));
+        assertThatThrownBy(()->service.create(buildRequest(),ORG_ID)).isInstanceOf(org.springframework.security.access.AccessDeniedException.class);
+        verify(expenseRepository,never()).save(any());
+    }
+    @Test void unrelatedForeignProviderCannotBeUsedButAnAssignedMarketplaceProviderCan() {
+        var provider=buildProvider(10L); provider.setOrganizationId(2L);
+        var property=buildProperty(20L);
+        when(userRepository.findById(10L)).thenReturn(Optional.of(provider));
+        when(propertyRepository.findById(20L)).thenReturn(Optional.of(property));
+        assertThatThrownBy(()->service.create(buildRequest(),ORG_ID)).isInstanceOf(org.springframework.security.access.AccessDeniedException.class);
+        var mission=new Intervention(); mission.setId(5L); mission.setOrganizationId(ORG_ID); mission.setProperty(property); mission.setAssignedUser(provider);
+        when(interventionRepository.findById(5L)).thenReturn(Optional.of(mission));
+        when(expenseRepository.save(any())).thenAnswer(c->c.getArgument(0));
+        var request=new CreateProviderExpenseRequest(10L,20L,5L,"Achat test",BigDecimal.TEN,BigDecimal.ZERO,ExpenseCategory.MAINTENANCE,LocalDate.now(),null,null);
+        assertThat(service.create(request,ORG_ID).getProvider()).isSameAs(provider);
+        mission.setProperty(buildProperty(21L));
+        assertThatThrownBy(()->service.create(request,ORG_ID)).isInstanceOf(org.springframework.security.access.AccessDeniedException.class);
+    }
+    @Test void invalidAmountsAreRejectedBeforeAnyBusinessLookup() {
+        for(var amount:List.of(new BigDecimal("-1"),BigDecimal.ZERO,new BigDecimal("1.001"))) {
+            var request=new CreateProviderExpenseRequest(10L,20L,null,"Test",amount,BigDecimal.ZERO,ExpenseCategory.OTHER,LocalDate.now(),null,null);
+            assertThatThrownBy(()->service.create(request,ORG_ID)).isInstanceOf(IllegalArgumentException.class);
+        }
+        verify(expenseRepository,never()).save(any()); verify(userRepository,never()).findById(any());
     }
 
     @Nested
@@ -214,6 +268,8 @@ class ProviderExpenseServiceTest {
             Property property = buildProperty(20L);
             Intervention intervention = new Intervention();
             intervention.setId(5L);
+            intervention.setOrganizationId(ORG_ID);
+            intervention.setProperty(property);
 
             when(userRepository.findById(10L)).thenReturn(Optional.of(provider));
             when(propertyRepository.findById(20L)).thenReturn(Optional.of(property));
@@ -238,7 +294,7 @@ class ProviderExpenseServiceTest {
         @Test
         void whenDraft_thenUpdates() {
             ProviderExpense existing = buildExpense(1L, ExpenseStatus.DRAFT);
-            when(expenseRepository.findByIdAndOrgId(1L, ORG_ID)).thenReturn(Optional.of(existing));
+            when(expenseRepository.lockByIdAndOrgId(1L, ORG_ID)).thenReturn(Optional.of(existing));
             when(userRepository.findById(10L)).thenReturn(Optional.of(buildProvider(10L)));
             when(propertyRepository.findById(20L)).thenReturn(Optional.of(buildProperty(20L)));
             when(expenseRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
@@ -251,7 +307,7 @@ class ProviderExpenseServiceTest {
         @Test
         void whenNotDraft_thenThrows() {
             ProviderExpense existing = buildExpense(1L, ExpenseStatus.APPROVED);
-            when(expenseRepository.findByIdAndOrgId(1L, ORG_ID)).thenReturn(Optional.of(existing));
+            when(expenseRepository.lockByIdAndOrgId(1L, ORG_ID)).thenReturn(Optional.of(existing));
 
             assertThatThrownBy(() -> service.update(1L, buildRequest(), ORG_ID))
                     .isInstanceOf(IllegalStateException.class);
@@ -265,7 +321,7 @@ class ProviderExpenseServiceTest {
         @Test
         void whenDraft_thenSetsApproved() {
             ProviderExpense expense = buildExpense(1L, ExpenseStatus.DRAFT);
-            when(expenseRepository.findByIdAndOrgId(1L, ORG_ID)).thenReturn(Optional.of(expense));
+            when(expenseRepository.lockByIdAndOrgId(1L, ORG_ID)).thenReturn(Optional.of(expense));
             when(expenseRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
 
             ProviderExpense result = service.approve(1L, ORG_ID);
@@ -275,7 +331,7 @@ class ProviderExpenseServiceTest {
         @Test
         void whenNotDraft_thenThrows() {
             ProviderExpense expense = buildExpense(1L, ExpenseStatus.APPROVED);
-            when(expenseRepository.findByIdAndOrgId(1L, ORG_ID)).thenReturn(Optional.of(expense));
+            when(expenseRepository.lockByIdAndOrgId(1L, ORG_ID)).thenReturn(Optional.of(expense));
 
             assertThatThrownBy(() -> service.approve(1L, ORG_ID))
                     .isInstanceOf(IllegalStateException.class);
@@ -289,7 +345,7 @@ class ProviderExpenseServiceTest {
         @Test
         void whenDraft_thenCancels() {
             ProviderExpense expense = buildExpense(1L, ExpenseStatus.DRAFT);
-            when(expenseRepository.findByIdAndOrgId(1L, ORG_ID)).thenReturn(Optional.of(expense));
+            when(expenseRepository.lockByIdAndOrgId(1L, ORG_ID)).thenReturn(Optional.of(expense));
             when(expenseRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
 
             ProviderExpense result = service.cancel(1L, ORG_ID);
@@ -299,7 +355,7 @@ class ProviderExpenseServiceTest {
         @Test
         void whenPaid_thenThrows() {
             ProviderExpense expense = buildExpense(1L, ExpenseStatus.PAID);
-            when(expenseRepository.findByIdAndOrgId(1L, ORG_ID)).thenReturn(Optional.of(expense));
+            when(expenseRepository.lockByIdAndOrgId(1L, ORG_ID)).thenReturn(Optional.of(expense));
 
             assertThatThrownBy(() -> service.cancel(1L, ORG_ID))
                     .isInstanceOf(IllegalStateException.class);
@@ -308,7 +364,7 @@ class ProviderExpenseServiceTest {
         @Test
         void whenIncluded_thenThrows() {
             ProviderExpense expense = buildExpense(1L, ExpenseStatus.INCLUDED);
-            when(expenseRepository.findByIdAndOrgId(1L, ORG_ID)).thenReturn(Optional.of(expense));
+            when(expenseRepository.lockByIdAndOrgId(1L, ORG_ID)).thenReturn(Optional.of(expense));
 
             assertThatThrownBy(() -> service.cancel(1L, ORG_ID))
                     .isInstanceOf(IllegalStateException.class);
@@ -320,26 +376,28 @@ class ProviderExpenseServiceTest {
     class MarkAsPaid {
 
         @Test
-        void whenApproved_thenMarksPaidWithReference() {
-            ProviderExpense expense = buildExpense(1L, ExpenseStatus.APPROVED);
-            when(expenseRepository.findByIdAndOrgId(1L, ORG_ID)).thenReturn(Optional.of(expense));
-            when(expenseRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+        void approvedExpenseRequiresPspEvidence() {
+        ProviderExpense expense = buildExpense(1L, ExpenseStatus.APPROVED);
+        when(expenseRepository.findByIdAndOrgId(1L, ORG_ID)).thenReturn(Optional.of(expense));
+        assertThatThrownBy(() -> service.markAsPaid(1L, "MANUAL-REF", ORG_ID))
+                .isInstanceOf(com.clenzy.exception.PaymentEvidenceRequiredException.class);
+        assertThat(expense.getStatus()).isEqualTo(ExpenseStatus.APPROVED);
+        assertThat(expense.getPaymentReference()).isNull();
+        verify(expenseRepository, never()).save(any());
 
-            ProviderExpense result = service.markAsPaid(1L, "PAY-REF-123", ORG_ID);
-
-            assertThat(result.getStatus()).isEqualTo(ExpenseStatus.PAID);
-            assertThat(result.getPaymentReference()).isEqualTo("PAY-REF-123");
-        }
+    }
 
         @Test
-        void whenIncluded_thenMarksPaid() {
-            ProviderExpense expense = buildExpense(1L, ExpenseStatus.INCLUDED);
-            when(expenseRepository.findByIdAndOrgId(1L, ORG_ID)).thenReturn(Optional.of(expense));
-            when(expenseRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+        void deductionIsNotAConfirmedExpensePayment() {
+        ProviderExpense expense = buildExpense(1L, ExpenseStatus.INCLUDED);
+        when(expenseRepository.findByIdAndOrgId(1L, ORG_ID)).thenReturn(Optional.of(expense));
+        assertThatThrownBy(() -> service.markAsPaid(1L, "MANUAL-REF", ORG_ID))
+                .isInstanceOf(com.clenzy.exception.PaymentEvidenceRequiredException.class);
+        assertThat(expense.getStatus()).isEqualTo(ExpenseStatus.INCLUDED);
+        assertThat(expense.getPaymentReference()).isNull();
+        verify(expenseRepository, never()).save(any());
 
-            ProviderExpense result = service.markAsPaid(1L, "REF", ORG_ID);
-            assertThat(result.getStatus()).isEqualTo(ExpenseStatus.PAID);
-        }
+    }
 
         @Test
         void whenDraft_thenThrows() {

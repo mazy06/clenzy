@@ -37,7 +37,7 @@ class ReservationServiceTest {
     @Mock private com.clenzy.repository.ServiceRequestRepository serviceRequestRepository;
     @Mock private NotificationService notificationService;
     @Mock private MinNightsOverrideRepository minNightsOverrideRepository;
-    @Mock private com.clenzy.service.messaging.AutomationEvaluationService automationEvaluationService;
+    @Mock private com.clenzy.service.messaging.BaitlyReservationAutomationStarter reservationAutomationStarter;
     @Mock private com.clenzy.repository.SmartLockDeviceRepository smartLockDeviceRepository;
     @Mock private com.clenzy.service.smartlock.SmartLockAccessCodeService smartLockAccessCodeService;
     @Mock private ReservationMapper reservationMapper;
@@ -67,7 +67,7 @@ class ReservationServiceTest {
                 reservationRepository, userRepository, tenantContext,
                 calendarEngine, guestService, syncMetrics,
                 serviceRequestRepository, notificationService,
-                minNightsOverrideRepository, automationEvaluationService,
+                minNightsOverrideRepository, reservationAutomationStarter,
                 smartLockDeviceRepository, smartLockAccessCodeService,
                 reservationMapper, interventionRepository,
                 propertyRepository, guestRepository, stripeService,

@@ -9,5 +9,9 @@ public enum GuestCreditTxType {
     /** Reprise : annulation d'un séjour ayant généré ou consommé du crédit. */
     CLAWBACK,
     /** Crédit accordé manuellement par l'hôte (geste commercial). */
-    GRANT
+    GRANT,
+    /** Annulation de la fraction d'une récompense correspondant à un remboursement confirmé. */
+    EARN_REVERSAL,
+    /** Restitution de la fraction de remise consommée correspondant au remboursement du séjour. */
+    REDEEM_RETURN
 }
