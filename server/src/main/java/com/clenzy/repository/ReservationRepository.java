@@ -717,4 +717,12 @@ public interface ReservationRepository extends JpaRepository<Reservation, Long> 
         BigDecimal getRealFeeTotal();
         BigDecimal getRealFeeGross();
     }
+
+    /**
+     * Reservation imported from a previous PMS for the same stay that the channel manager now reports.
+     * Matched on the OTA confirmation code within the mapped property, never on dates alone.
+     */
+    @Query("SELECT r FROM Reservation r WHERE r.property.id = :propertyId AND r.confirmationCode = :code "
+        + "AND r.externalUid LIKE 'baitly-import:%'")
+    List<Reservation> findImportedByConfirmationCode(@Param("propertyId") Long propertyId, @Param("code") String code);
 }

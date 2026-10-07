@@ -19318,7 +19318,10 @@
       "PROPERTY": "Properties",
       "GUEST": "Guests",
       "RESERVATION": "Reservations",
-      "ARCHIVE": "Keep in archive"
+      "ARCHIVE": "Keep in archive",
+      "REVIEW": "Reviews",
+      "RATE": "Nightly rates",
+      "TASK": "Tasks"
     },
     "status": {
       "DRAFT": "Draft",
@@ -19334,7 +19337,8 @@
       "ready": "Rows to integrate",
       "duplicates": "Duplicates skipped",
       "archived": "Archived items",
-      "issueCount": "Issues to resolve"
+      "issueCount": "Issues to resolve",
+      "skipped": "Requests and declines skipped"
     },
     "fields": {
       "sourceId": "Stable source ID",
@@ -19344,7 +19348,7 @@
       "bathrooms": "Bathrooms",
       "timezone": "Timezone",
       "currency": "Currency (ISO)",
-      "type": "Property type",
+      "type": "Type",
       "city": "City",
       "countryCode": "Country (2 letters)",
       "description": "Description",
@@ -19365,7 +19369,18 @@
       "guestCount": "Guest count",
       "amountPaid": "Amount paid",
       "confirmationCode": "Confirmation reference",
-      "amount": "Amount"
+      "amount": "Amount",
+      "cleaningFee": "Cleaning fee",
+      "touristTax": "Tourist tax",
+      "taxes": "Taxes",
+      "rating": "Rating",
+      "reviewDate": "Review date",
+      "channel": "Channel",
+      "text": "Review text",
+      "response": "Host reply",
+      "date": "Date",
+      "price": "Nightly price",
+      "title": "Title"
     },
     "errors": {
       "UNKNOWN": "Processing failed. Check your files and try again.",
@@ -19414,7 +19429,20 @@
       "CELL_TOO_LARGE": "A cell exceeds 16,000 characters.",
       "SHEETS_LIMIT": "Limit: 30 sheets per workbook.",
       "IMPORT_PROPERTY_ACCESS": "You do not have access to the selected property.",
-      "IMPORT_BATCH_ACCESS": "You do not have access to this import."
+      "IMPORT_BATCH_ACCESS": "You do not have access to this import.",
+      "RATING": "Invalid rating (1 to 5, or 1 to 10)",
+      "RATE_EXISTS": "A rate already exists for this night: it is not overwritten",
+      "REVIEW_EXISTS": "This review was already imported",
+      "API_AUTH": "Credentials rejected by the source software",
+      "API_UNAVAILABLE": "The source software is not responding. Try again later.",
+      "API_RATE_LIMITED": "Too many requests to the source software. Try again in a few minutes.",
+      "API_RESPONSE_TOO_LARGE": "Response too large: shorten the period",
+      "API_RESPONSE_UNEXPECTED": "Unexpected response from the source software: use file import and let us know",
+      "API_VENDOR_UNSUPPORTED": "This software has no connector yet",
+      "API_CREDENTIALS_REQUIRED": "Fill in every requested credential",
+      "API_WINDOW_INVALID": "Invalid period (5 years maximum)",
+      "SOURCE_REQUIRED": "Enter the source software and account",
+      "PLAN_INVALID": "Plan not saved: check the values"
     },
     "design": {
       "eyebrow": "PMS migration",
@@ -19436,7 +19464,10 @@
       "bring": {
         "PROPERTY": "Your properties and their essential details.",
         "GUEST": "Guest profiles and contact information.",
-        "RESERVATION": "Stays, their dates and amounts."
+        "RESERVATION": "Stays, their dates and amounts.",
+        "REVIEW": "Reviews received, with rating, date and reply.",
+        "RATE": "Nightly prices you already set.",
+        "TASK": "Cleanings and jobs, with their status."
       },
       "archiveTitle": "What about the other data?",
       "archiveBody": "Messages, invoices, attachments and extra fields stay in a downloadable archive. They are not yet integrated into the modules.",
@@ -19448,6 +19479,74 @@
       "reviewHelp": "Here are the validation results. Duplicates are skipped; existing data will not be replaced.",
       "backMapping": "Review column matches",
       "completedNotice": "Your import is complete. Find your data in Baitly or download your original files."
+    },
+    "api": {
+      "modeLabel": "Import method",
+      "tab": {
+        "files": "Exported files",
+        "api": "API connection"
+      },
+      "title": "Read your data through your PMS API",
+      "help": "Baitly reads your properties and bookings directly from your vendor, then shows you the result before anything is saved.",
+      "vendor": "Software",
+      "chooseVendor": "Choose…",
+      "from": "Arrivals from",
+      "to": "Arrivals until",
+      "credentials": {
+        "apiKey": "API key",
+        "token": "Access token",
+        "accountId": "Account ID",
+        "clientId": "Client ID",
+        "clientSecret": "Client secret",
+        "email": "Account email"
+      },
+      "docs": "Where to find these credentials",
+      "readOnly": "Read-only: nothing changes at your vendor.",
+      "notStored": "Credentials used for this read only, never stored.",
+      "beta": "Beta connector: file import remains available if anything differs.",
+      "submit": "Read my data",
+      "pulling": "Reading…"
+    },
+    "plan": {
+      "title": "Cutover plan",
+      "intro": "Most PMS cut access as soon as the account closes. Set your dates and tick each step.",
+      "sourcePms": "Previous PMS",
+      "contractEnd": "Access / contract end",
+      "noticeDays": "Notice (days)",
+      "save": "Save",
+      "saved": "Plan saved.",
+      "noticeDeadline": "Send the cancellation before",
+      "exportDeadline": "Finish exports before",
+      "daysLeft": "{{count}} days left",
+      "overdue": "Date passed: export now",
+      "derived": "Automatic",
+      "steps": {
+        "EXPORT_RESERVATIONS": "Export every reservation (past, future, cancelled)",
+        "EXPORT_GUESTS": "Export guests and their contact details",
+        "EXPORT_FINANCE": "Download invoices, statements and financial reports",
+        "EXPORT_REVIEWS": "Export reviews and tasks",
+        "EXPORT_MESSAGES_FILES": "Save messages, attachments and photos",
+        "IMPORT_COMMITTED": "Import into Baitly",
+        "TOTALS_RECONCILED": "Reconcile counts and amounts with the old PMS",
+        "NOTICE_SENT": "Send the cancellation within the notice period",
+        "OTA_DISCONNECTED_OLD": "Disconnect channels from the old PMS",
+        "OTA_CONNECTED_BAITLY": "Connect channels to Baitly",
+        "OLD_PMS_CLOSED": "Close the old account once everything is checked"
+      }
+    },
+    "accountExport": {
+      "title": "Export all my Baitly data",
+      "body": "Any time, without asking support and free of charge: your complete archive, re-importable into Baitly or another tool.",
+      "contents": {
+        "csv": "CSV: properties, guests, bookings, reviews, rates, tasks",
+        "json": "JSON: every column of your business tables",
+        "files": "Photos and the original files of your imports",
+        "manifest": "Manifest with counts and SHA-256 fingerprints"
+      },
+      "button": "Download the archive (ZIP)",
+      "working": "Preparing the archive…",
+      "failed": "Export unavailable right now. Try again or contact support.",
+      "note": "Excluded: technical secrets, payment identifiers, encrypted identity documents (on request)."
     }
   },
   "paymentDetail": {

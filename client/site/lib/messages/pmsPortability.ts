@@ -1,6 +1,64 @@
 import type { SiteLanguage } from '../siteLanguage';
 
 const fr = {
+  exitTitle: 'Facilité de départ, d’après les sources publiques',
+  exitLevels: {
+    smooth: 'Départ facilité',
+    prepare: 'Départ à préparer',
+    constrained: 'Départ contraignant',
+    undocumented: 'Conditions peu documentées',
+  },
+  exitHints: {
+    smooth:
+      'Exports et conditions de sortie documentés, sans verrou contractuel identifié.',
+    prepare:
+      'Les données sortent, mais plusieurs exports, délais ou clauses demandent de l’anticipation.',
+    constrained:
+      'Engagement, préavis ou perte d’accès rapide : planifiez la sortie avant de signer ailleurs.',
+    undocumented:
+      'Trop peu d’éléments publics : obtenez le périmètre et les délais par écrit.',
+  },
+  criteria: {
+    export: 'Export en autonomie',
+    api: 'API documentée',
+    afterExit: 'Accès après résiliation',
+    freeToLeave: 'Sans engagement long ni frais',
+  },
+  signals: {
+    yes: 'Oui',
+    partial: 'Partiel',
+    no: 'Non',
+    unknown: 'Non documenté',
+  },
+  yourPms: 'Votre PMS',
+  baitly: 'Baitly',
+  baitlyValues: {
+    export: 'Export intégral en libre-service : CSV, JSON, photos',
+    api: 'Schéma documenté, réimportable ailleurs',
+    afterExit: '30 jours minimum pour récupérer l’export',
+    freeToLeave: 'Mensuel, sans frais de sortie',
+  },
+  exitTerms: 'Conditions de sortie publiées',
+  baitlyImport: 'Reprise dans Baitly',
+  baitlyImportModes: {
+    api: 'Connecteur API en lecture seule (bêta) ou import des fichiers exportés.',
+    files:
+      'Import des fichiers exportés (CSV, Excel, JSON, ZIP), vérifiés avant tout enregistrement.',
+  },
+  feedback: 'Ce que rapportent des utilisateurs',
+  feedbackNote:
+    'Expériences individuelles publiées sur des sites d’avis et forums, non vérifiées par Baitly.',
+  terms: 'CGU / contrat',
+  review: 'Avis utilisateurs',
+  homeTag: 'Portabilité des données',
+  homeTitle: 'Changer de PMS sans perdre votre historique.',
+  homeIntro:
+    'Sélectionnez votre logiciel actuel : nous résumons ce qu’il permet d’exporter, ses conditions de sortie et les retours d’utilisateurs, avec les sources.',
+  airbnbNote:
+    'En septembre 2026, Airbnb a retiré l’export CSV opérationnel des réservations. Votre PMS est souvent la seule copie exploitable de votre historique : récupérez-la avant de partir.',
+  dataAct:
+    'Depuis le 12 septembre 2025, le Data Act européen encadre le changement de fournisseur cloud, y compris de nombreux logiciels SaaS : préavis de deux mois maximum, transition de 30 jours et frais de changement interdits à partir du 12 janvier 2027.',
+  homeLink: 'Préparer ma migration',
   label: 'Quel PMS utilisez-vous ?',
   intro:
     'Découvrez les exports documentés de votre logiciel et les points à vérifier avant de partir.',
@@ -28,11 +86,13 @@ const fr = {
     exit: 'Départ du PMS',
     plan: 'Offres et accès',
     timing: 'Délais',
-    community: 'Échange avec le support',
+    community: 'Forum utilisateurs',
+    terms: 'CGU / contrat',
+    review: 'Avis utilisateurs',
   },
   checked: 'Sources publiques consultées le',
   methodology:
-    'Ce repère décrit les possibilités documentées, sans noter la bonne volonté des éditeurs. Il ne garantit ni un export exhaustif ni un connecteur Baitly déjà disponible. Le contrat et un échantillon d’export restent à vérifier.',
+    'L’indicateur de départ est calculé à partir de quatre critères documentés (export, API, accès après résiliation, engagement) ; il ne juge pas les intentions des éditeurs. Les avis cités restent des expériences individuelles. Ce repère ne garantit ni un export exhaustif ni un connecteur Baitly déjà disponible. Le contrat et un échantillon d’export restent à vérifier.',
   download: 'Télécharger ma fiche de préparation',
   checklist: [
     'Exporter avant la fin des accès, avec toutes les périodes et tous les statuts.',
@@ -41,9 +101,9 @@ const fr = {
     'Comparer les volumes et les montants avant de résilier.',
   ],
   promiseTag: 'Notre engagement de réversibilité',
-  promiseTitle: 'Vous restez libre de partir.',
+  promiseTitle: 'Vous restez libre de partir, avec toutes vos données.',
   promise:
-    'Baitly s’engage à vous restituer l’ensemble des données de votre activité qu’il détient, dans des formats ouverts et réutilisables. Vos informations ne doivent jamais servir à vous retenir.',
+    'Baitly s’engage à vous restituer l’ensemble des données de votre activité qu’il détient, dans des formats ouverts et réutilisables. Baitly ne retient aucune donnée pour vous empêcher de partir : ni frais de sortie, ni export partiel, ni engagement annuel.',
   promiseItems: [
     [
       'Des données exploitables',
@@ -57,12 +117,74 @@ const fr = {
       'Un périmètre transparent',
       'Toute exception liée aux droits de tiers ou à une obligation légale sera explicitée, ainsi que les durées de conservation.',
     ],
+    [
+      'Le temps de partir',
+      'Au moins 30 jours après la résiliation pour télécharger votre export, sans frais, dans l’esprit du Data Act européen.',
+    ],
   ],
   promiseStatus:
-    'Engagement de pré-lancement : l’export intégral n’est pas encore disponible. Son périmètre, ses délais et ses modalités seront publiés avant sa mise en service.',
+    'Déjà dans le produit : l’export intégral se télécharge en libre-service depuis Paramètres → Migration PMS, sans demande au support. Le délai de 30 jours après résiliation est un engagement contractuel.',
 };
 export type PortabilityMessages = typeof fr;
 const en: PortabilityMessages = {
+  exitTitle: 'Ease of leaving, based on public sources',
+  exitLevels: {
+    smooth: 'Easy exit',
+    prepare: 'Exit needs planning',
+    constrained: 'Restrictive exit',
+    undocumented: 'Poorly documented terms',
+  },
+  exitHints: {
+    smooth:
+      'Exports and exit terms are documented, with no identified contractual lock.',
+    prepare:
+      'Your data can leave, but several exports, delays or clauses need planning.',
+    constrained:
+      'Commitment, notice or fast loss of access: plan your exit before signing elsewhere.',
+    undocumented:
+      'Too little public information: get the scope and timing in writing.',
+  },
+  criteria: {
+    export: 'Self-service export',
+    api: 'Documented API',
+    afterExit: 'Access after cancellation',
+    freeToLeave: 'No long commitment or fees',
+  },
+  signals: {
+    yes: 'Yes',
+    partial: 'Partial',
+    no: 'No',
+    unknown: 'Not documented',
+  },
+  yourPms: 'Your PMS',
+  baitly: 'Baitly',
+  baitlyValues: {
+    export: 'Self-service full export: CSV, JSON, photos',
+    api: 'Documented schema, reusable elsewhere',
+    afterExit: 'At least 30 days to retrieve the export',
+    freeToLeave: 'Monthly, no exit fees',
+  },
+  exitTerms: 'Published exit terms',
+  baitlyImport: 'Moving into Baitly',
+  baitlyImportModes: {
+    api: 'Read-only API connector (beta) or import of exported files.',
+    files:
+      'Import of exported files (CSV, Excel, JSON, ZIP), reviewed before anything is saved.',
+  },
+  feedback: 'What users report',
+  feedbackNote:
+    'Individual experiences published on review sites and forums, not verified by Baitly.',
+  terms: 'Terms / contract',
+  review: 'User reviews',
+  homeTag: 'Data portability',
+  homeTitle: 'Switch PMS without losing your history.',
+  homeIntro:
+    'Select your current software: we summarise what it lets you export, its exit terms and user feedback, with sources.',
+  airbnbNote:
+    'In September 2026, Airbnb removed its operational reservations CSV export. Your PMS is often the only usable copy of your history: retrieve it before you leave.',
+  dataAct:
+    'Since 12 September 2025, the EU Data Act governs switching between cloud providers, including many SaaS tools: at most two months’ notice, a 30-day transition, and switching charges banned from 12 January 2027.',
+  homeLink: 'Prepare my migration',
   label: 'Which PMS do you use?',
   intro:
     'Explore your software’s documented exports and what to check before leaving.',
@@ -90,11 +212,13 @@ const en: PortabilityMessages = {
     exit: 'Leaving the PMS',
     plan: 'Plans and access',
     timing: 'Timing',
-    community: 'Support discussion',
+    community: 'User forum',
+    terms: 'Terms / contract',
+    review: 'User reviews',
   },
   checked: 'Public sources checked on',
   methodology:
-    'This guide describes documented capabilities without rating vendors’ willingness to help. It guarantees neither a complete export nor an existing Baitly connector. Your contract and an export sample still need checking.',
+    'The exit indicator is computed from four documented criteria (export, API, access after cancellation, commitment); it does not judge vendors’ intentions. Quoted reviews remain individual experiences. This guide guarantees neither a complete export nor an existing Baitly connector. Your contract and an export sample still need checking.',
   download: 'Download my preparation sheet',
   checklist: [
     'Export all periods and statuses before access ends.',
@@ -103,9 +227,9 @@ const en: PortabilityMessages = {
     'Reconcile record counts and amounts before cancelling.',
   ],
   promiseTag: 'Our data portability commitment',
-  promiseTitle: 'You stay free to leave.',
+  promiseTitle: 'You stay free to leave, with all your data.',
   promise:
-    'Baitly commits to returning all the business data it holds for you, in open, reusable formats. Your information should never be used to make you stay.',
+    'Baitly commits to returning all the business data it holds for you, in open, reusable formats. Baitly holds back no data to keep you: no exit fees, no partial export, no annual commitment.',
   promiseItems: [
     [
       'Reusable data',
@@ -119,11 +243,71 @@ const en: PortabilityMessages = {
       'Transparent scope',
       'Any third-party rights or legal exceptions will be explained, along with retention periods.',
     ],
+    [
+      'Time to leave',
+      'At least 30 days after cancellation to download your export, free of charge, in line with the EU Data Act.',
+    ],
   ],
   promiseStatus:
-    'Pre-launch commitment: full account export is not yet available. Scope, turnaround and terms will be published before it goes live.',
+    'Already in the product: the full export is a self-service download from Settings → PMS migration, without asking support. The 30 days after cancellation are a contractual commitment.',
 };
 const ar: PortabilityMessages = {
+  exitTitle: 'سهولة المغادرة وفق المصادر العامة',
+  exitLevels: {
+    smooth: 'مغادرة ميسّرة',
+    prepare: 'مغادرة تحتاج إلى تحضير',
+    constrained: 'مغادرة مقيّدة',
+    undocumented: 'شروط غير موثّقة بما يكفي',
+  },
+  exitHints: {
+    smooth: 'التصدير وشروط المغادرة موثّقة دون قيد تعاقدي ظاهر.',
+    prepare:
+      'يمكن نقل البيانات، لكن تعدد الملفات أو المهل أو البنود يتطلب تخطيطاً.',
+    constrained:
+      'التزام أو إشعار مسبق أو فقدان سريع للوصول: خطّط للمغادرة قبل التعاقد مع غيره.',
+    undocumented: 'المعلومات العامة قليلة: احصل كتابياً على النطاق والمدة.',
+  },
+  criteria: {
+    export: 'تصدير ذاتي',
+    api: 'واجهة API موثّقة',
+    afterExit: 'الوصول بعد الإلغاء',
+    freeToLeave: 'دون التزام طويل أو رسوم',
+  },
+  signals: {
+    yes: 'نعم',
+    partial: 'جزئي',
+    no: 'لا',
+    unknown: 'غير موثّق',
+  },
+  yourPms: 'نظامك الحالي',
+  baitly: 'بيتلي',
+  baitlyValues: {
+    export: 'تصدير كامل ذاتي: CSV وJSON والصور',
+    api: 'مخطط موثّق قابل لإعادة الاستخدام',
+    afterExit: '٣٠ يوماً على الأقل لاسترجاع التصدير',
+    freeToLeave: 'اشتراك شهري دون رسوم مغادرة',
+  },
+  exitTerms: 'شروط المغادرة المنشورة',
+  baitlyImport: 'الانتقال إلى بيتلي',
+  baitlyImportModes: {
+    api: 'رابط API للقراءة فقط (تجريبي) أو استيراد الملفات المصدّرة.',
+    files:
+      'استيراد الملفات المصدّرة (CSV وExcel وJSON وZIP) مع مراجعتها قبل أي حفظ.',
+  },
+  feedback: 'ما يذكره المستخدمون',
+  feedbackNote:
+    'تجارب فردية منشورة على مواقع التقييم والمنتديات، لم يتحقق منها بيتلي.',
+  terms: 'الشروط / العقد',
+  review: 'تقييمات المستخدمين',
+  homeTag: 'قابلية نقل البيانات',
+  homeTitle: 'غيّر نظامك دون أن تفقد سجلك.',
+  homeIntro:
+    'اختر برنامجك الحالي: نلخّص ما يتيح تصديره وشروط المغادرة وتجارب المستخدمين مع المصادر.',
+  airbnbNote:
+    'في سبتمبر ٢٠٢٦ أزالت Airbnb تصدير CSV التشغيلي للحجوزات. غالباً ما يكون نظامك النسخة الوحيدة القابلة للاستخدام من سجلك: استرجعها قبل المغادرة.',
+  dataAct:
+    'منذ ١٢ سبتمبر ٢٠٢٥ ينظّم قانون البيانات الأوروبي تغيير مزوّد الخدمات السحابية، بما في ذلك كثير من برامج SaaS: إشعار لا يتجاوز شهرين، وفترة انتقال ٣٠ يوماً، وحظر رسوم التغيير ابتداءً من ١٢ يناير ٢٠٢٧.',
+  homeLink: 'تحضير انتقالي',
   label: 'ما نظام إدارة العقارات الذي تستخدمه؟',
   intro: 'تعرّف على خيارات التصدير الموثّقة وما يجب التحقق منه قبل المغادرة.',
   placeholder: 'اختر نظامك',
@@ -149,11 +333,13 @@ const ar: PortabilityMessages = {
     exit: 'مغادرة النظام',
     plan: 'الاشتراكات والوصول',
     timing: 'المدة',
-    community: 'نقاش مع الدعم',
+    community: 'منتدى المستخدمين',
+    terms: 'الشروط / العقد',
+    review: 'تقييمات المستخدمين',
   },
   checked: 'تاريخ مراجعة المصادر العامة:',
   methodology:
-    'يعرض هذا الدليل الإمكانات الموثّقة دون تقييم نوايا المزوّدين. لا يضمن تصديراً شاملاً ولا توفّر رابط استيراد جاهز في بيتلي. يبقى التحقق من العقد ونموذج التصدير ضرورياً.',
+    'يُحسب مؤشر المغادرة من أربعة معايير موثّقة (التصدير، API، الوصول بعد الإلغاء، الالتزام) ولا يحكم على نوايا المزوّدين. التقييمات المذكورة تجارب فردية. لا يضمن هذا الدليل تصديراً شاملاً ولا توفّر رابط استيراد جاهز في بيتلي. يبقى التحقق من العقد ونموذج التصدير ضرورياً.',
   download: 'تنزيل ورقة التحضير',
   checklist: [
     'صدّر جميع الفترات والحالات قبل انتهاء الوصول.',
@@ -162,9 +348,9 @@ const ar: PortabilityMessages = {
     'طابق أعداد السجلات والمبالغ قبل الإلغاء.',
   ],
   promiseTag: 'التزامنا بإمكانية نقل بياناتك',
-  promiseTitle: 'أنت حرّ في المغادرة.',
+  promiseTitle: 'أنت حرّ في المغادرة مع كل بياناتك.',
   promise:
-    'يلتزم بيتلي بإعادة جميع بيانات نشاطك التي يحتفظ بها، بصيغ مفتوحة وقابلة لإعادة الاستخدام. لن تكون معلوماتك وسيلة لإجبارك على البقاء.',
+    'يلتزم بيتلي بإعادة جميع بيانات نشاطك التي يحتفظ بها، بصيغ مفتوحة وقابلة لإعادة الاستخدام. لا يحتجز بيتلي أي بيانات لإبقائك: لا رسوم مغادرة ولا تصدير جزئي ولا التزام سنوي.',
   promiseItems: [
     [
       'بيانات قابلة للاستخدام',
@@ -178,9 +364,13 @@ const ar: PortabilityMessages = {
       'نطاق واضح',
       'توضيح أي استثناء مرتبط بحقوق الغير أو الالتزامات القانونية، وفترات الاحتفاظ بالبيانات.',
     ],
+    [
+      'وقت كافٍ للمغادرة',
+      '٣٠ يوماً على الأقل بعد الإلغاء لتنزيل التصدير مجاناً، وفق روح قانون البيانات الأوروبي.',
+    ],
   ],
   promiseStatus:
-    'التزام قبل الإطلاق: التصدير الشامل غير متاح بعد. سننشر نطاقه ومدته وشروطه قبل إتاحته.',
+    'متاح في المنتج: يُنزَّل التصدير الكامل ذاتياً من الإعدادات ← نقل نظام الإدارة دون طلب من الدعم. مهلة ٣٠ يوماً بعد الإلغاء التزام تعاقدي.',
 };
 export const PMS_PORTABILITY_MESSAGES: Record<
   SiteLanguage,

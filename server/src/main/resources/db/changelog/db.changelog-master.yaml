@@ -4455,6 +4455,14 @@ databaseChangeLog:
             relativeToChangelogFile: true
 
   - changeSet:
+      id: "0493-pms-migration-plans"
+      author: clenzy-team
+      changes:
+        - sqlFile:
+            path: changes/0493__pms_migration_plans.sql
+            relativeToChangelogFile: true
+
+  - changeSet:
       id: "0494-payout-transfer-journal"
       author: clenzy-team
       changes:

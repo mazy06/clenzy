@@ -17,8 +17,10 @@ import java.util.*;
 @PreAuthorize("hasAnyRole('SUPER_ADMIN','SUPER_MANAGER','HOST')")
 public class PmsImportController {
     private final PmsImportService service;
+    private final com.clenzy.service.migration.api.PmsApiImportService api;
     private final TenantContext tenant;
-    public PmsImportController(PmsImportService service, TenantContext tenant) { this.service = service; this.tenant = tenant; }
+    public PmsImportController(PmsImportService service, com.clenzy.service.migration.api.PmsApiImportService api,
+                               TenantContext tenant) { this.service = service; this.api = api; this.tenant = tenant; }
     public record CommitRequest(String token) {}
 
     @GetMapping("/schema")
@@ -29,6 +31,16 @@ public class PmsImportController {
         @RequestParam String account, @RequestParam(defaultValue = "UTF-8") String encoding,
         @AuthenticationPrincipal Jwt jwt) throws IOException {
         return service.upload(files, source, account, encoding, actor(jwt));
+    }
+
+    @GetMapping("/api-vendors")
+    public List<com.clenzy.service.migration.api.PmsApiConnectors.Vendor> apiVendors() { return api.vendors(); }
+
+    /** Read-only pull from the source PMS API into a draft; credentials are used once and never stored. */
+    @PostMapping(value = "/api", consumes = MediaType.APPLICATION_JSON_VALUE)
+    public PmsImportService.View pull(@RequestBody com.clenzy.service.migration.api.PmsApiImportService.PullRequest request,
+                                      @AuthenticationPrincipal Jwt jwt) {
+        return api.pull(request, actor(jwt));
     }
 
     @GetMapping

@@ -19304,7 +19304,10 @@
       "PROPERTY": "Logements",
       "GUEST": "Voyageurs",
       "RESERVATION": "Réservations",
-      "ARCHIVE": "Conserver en archive"
+      "ARCHIVE": "Conserver en archive",
+      "REVIEW": "Avis",
+      "RATE": "Tarifs par nuit",
+      "TASK": "Tâches"
     },
     "status": {
       "DRAFT": "Brouillon",
@@ -19320,7 +19323,8 @@
       "ready": "Lignes à intégrer",
       "duplicates": "Doublons ignorés",
       "archived": "Éléments archivés",
-      "issueCount": "Points à corriger"
+      "issueCount": "Points à corriger",
+      "skipped": "Demandes et refus ignorés"
     },
     "fields": {
       "sourceId": "Identifiant source stable",
@@ -19330,7 +19334,7 @@
       "bathrooms": "Salles de bain",
       "timezone": "Fuseau horaire",
       "currency": "Devise (ISO)",
-      "type": "Type de logement",
+      "type": "Type",
       "city": "Ville",
       "countryCode": "Pays (2 lettres)",
       "description": "Description",
@@ -19351,7 +19355,18 @@
       "guestCount": "Nombre de voyageurs",
       "amountPaid": "Montant payé",
       "confirmationCode": "Référence de confirmation",
-      "amount": "Montant"
+      "amount": "Montant",
+      "cleaningFee": "Frais de ménage",
+      "touristTax": "Taxe de séjour",
+      "taxes": "Taxes",
+      "rating": "Note",
+      "reviewDate": "Date de l’avis",
+      "channel": "Plateforme",
+      "text": "Texte de l’avis",
+      "response": "Réponse de l’hôte",
+      "date": "Date",
+      "price": "Prix par nuit",
+      "title": "Intitulé"
     },
     "errors": {
       "UNKNOWN": "Le traitement n’a pas abouti. Vérifiez vos fichiers puis réessayez.",
@@ -19400,7 +19415,20 @@
       "CELL_TOO_LARGE": "Une cellule dépasse 16 000 caractères.",
       "SHEETS_LIMIT": "Limite : 30 feuilles par classeur.",
       "IMPORT_PROPERTY_ACCESS": "Vous n’avez pas accès au logement sélectionné.",
-      "IMPORT_BATCH_ACCESS": "Vous n’avez pas accès à cet import."
+      "IMPORT_BATCH_ACCESS": "Vous n’avez pas accès à cet import.",
+      "RATING": "Note invalide (1 à 5, ou 1 à 10)",
+      "RATE_EXISTS": "Un tarif existe déjà pour cette nuit : il n’est pas écrasé",
+      "REVIEW_EXISTS": "Cet avis a déjà été importé",
+      "API_AUTH": "Identifiants refusés par le logiciel source",
+      "API_UNAVAILABLE": "Le logiciel source ne répond pas. Réessayez plus tard.",
+      "API_RATE_LIMITED": "Trop de requêtes pour le logiciel source. Réessayez dans quelques minutes.",
+      "API_RESPONSE_TOO_LARGE": "Réponse trop volumineuse : réduisez la période",
+      "API_RESPONSE_UNEXPECTED": "Réponse inattendue du logiciel source : utilisez l’import de fichiers et signalez-le-nous",
+      "API_VENDOR_UNSUPPORTED": "Ce logiciel n’a pas encore de connecteur",
+      "API_CREDENTIALS_REQUIRED": "Renseignez tous les identifiants demandés",
+      "API_WINDOW_INVALID": "Période invalide (5 ans maximum)",
+      "SOURCE_REQUIRED": "Indiquez le logiciel et le compte source",
+      "PLAN_INVALID": "Plan non enregistré : vérifiez les valeurs"
     },
     "design": {
       "eyebrow": "Migration PMS",
@@ -19422,7 +19450,10 @@
       "bring": {
         "PROPERTY": "Les logements et leurs informations essentielles.",
         "GUEST": "Les fiches et coordonnées de vos voyageurs.",
-        "RESERVATION": "Les séjours, leurs dates et leurs montants."
+        "RESERVATION": "Les séjours, leurs dates et leurs montants.",
+        "REVIEW": "Les avis reçus, avec note, date et réponse.",
+        "RATE": "Vos prix par nuit déjà fixés.",
+        "TASK": "Ménages et interventions, avec leur statut."
       },
       "archiveTitle": "Et les autres données ?",
       "archiveBody": "Messages, factures, pièces jointes et champs supplémentaires restent dans une archive téléchargeable. Ils ne sont pas encore intégrés aux modules.",
@@ -19434,6 +19465,74 @@
       "reviewHelp": "Voici le résultat du contrôle. Les doublons sont ignorés ; vos données existantes ne seront pas remplacées.",
       "backMapping": "Revoir les correspondances",
       "completedNotice": "Votre import est terminé. Vous pouvez retrouver vos données dans Baitly ou télécharger vos fichiers sources."
+    },
+    "api": {
+      "modeLabel": "Méthode d’import",
+      "tab": {
+        "files": "Fichiers exportés",
+        "api": "Connexion API"
+      },
+      "title": "Lire vos données par l’API de votre PMS",
+      "help": "Baitly lit vos logements et réservations directement chez votre éditeur, puis vous montre le résultat avant tout enregistrement.",
+      "vendor": "Logiciel",
+      "chooseVendor": "Choisir…",
+      "from": "Arrivées à partir du",
+      "to": "Arrivées jusqu’au",
+      "credentials": {
+        "apiKey": "Clé API",
+        "token": "Jeton d’accès",
+        "accountId": "Identifiant de compte",
+        "clientId": "Client ID",
+        "clientSecret": "Client secret",
+        "email": "Email du compte"
+      },
+      "docs": "Où trouver ces identifiants",
+      "readOnly": "Lecture seule : rien n’est modifié chez votre éditeur.",
+      "notStored": "Identifiants utilisés pour cette lecture uniquement, jamais enregistrés.",
+      "beta": "Connecteur bêta : en cas d’écart, l’import de fichiers reste disponible.",
+      "submit": "Lire mes données",
+      "pulling": "Lecture en cours…"
+    },
+    "plan": {
+      "title": "Plan de bascule",
+      "intro": "La plupart des PMS coupent l’accès dès la fermeture du compte. Fixez vos dates et cochez chaque étape.",
+      "sourcePms": "Ancien PMS",
+      "contractEnd": "Fin d’accès / fin de contrat",
+      "noticeDays": "Préavis (jours)",
+      "save": "Enregistrer",
+      "saved": "Plan enregistré.",
+      "noticeDeadline": "Envoyer la résiliation avant le",
+      "exportDeadline": "Terminer les exports avant le",
+      "daysLeft": "{{count}} jours restants",
+      "overdue": "Date dépassée : exportez sans attendre",
+      "derived": "Automatique",
+      "steps": {
+        "EXPORT_RESERVATIONS": "Exporter toutes les réservations (passées, futures, annulées)",
+        "EXPORT_GUESTS": "Exporter les voyageurs et leurs coordonnées",
+        "EXPORT_FINANCE": "Télécharger factures, relevés et rapports financiers",
+        "EXPORT_REVIEWS": "Exporter les avis et les tâches",
+        "EXPORT_MESSAGES_FILES": "Sauvegarder messages, pièces jointes et photos",
+        "IMPORT_COMMITTED": "Importer dans Baitly",
+        "TOTALS_RECONCILED": "Comparer volumes et montants avec l’ancien PMS",
+        "NOTICE_SENT": "Envoyer la résiliation dans le délai de préavis",
+        "OTA_DISCONNECTED_OLD": "Déconnecter les plateformes de l’ancien PMS",
+        "OTA_CONNECTED_BAITLY": "Connecter les plateformes à Baitly",
+        "OLD_PMS_CLOSED": "Fermer l’ancien compte après vérification"
+      }
+    },
+    "accountExport": {
+      "title": "Exporter toutes mes données Baitly",
+      "body": "À tout moment, sans demande au support et sans frais : votre archive complète, réimportable dans Baitly ou dans un autre logiciel.",
+      "contents": {
+        "csv": "CSV : logements, voyageurs, réservations, avis, tarifs, tâches",
+        "json": "JSON : toutes les colonnes des tables de votre activité",
+        "files": "Photos et fichiers d’origine de vos imports",
+        "manifest": "Manifeste avec volumes et empreintes SHA-256"
+      },
+      "button": "Télécharger l’archive (ZIP)",
+      "working": "Préparation de l’archive…",
+      "failed": "Export impossible pour le moment. Réessayez ou contactez le support.",
+      "note": "Exclus : secrets techniques, identifiants de paiement, pièces d’identité chiffrées (sur demande)."
     }
   },
   "paymentDetail": {

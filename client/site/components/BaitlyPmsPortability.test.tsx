@@ -6,11 +6,17 @@ import {
   screen,
   within,
 } from '@testing-library/react';
+import { MemoryRouter } from 'react-router-dom';
 import {
+  BaitlyPmsHomeSection,
   BaitlyPmsPortability,
   BaitlyPortabilityCommitment,
 } from './BaitlyPmsPortability';
-import { PMS_PORTABILITY } from '../data/pmsPortability';
+import {
+  EXIT_CRITERIA,
+  PMS_PORTABILITY,
+  exitLevel,
+} from '../data/pmsPortability';
 import { PMS_PORTABILITY_MESSAGES } from '../lib/messages/pmsPortability';
 import { downloadText } from '../lib/downloadText';
 
@@ -35,6 +41,28 @@ describe('PMS portability evidence', () => {
         ).toBeVisible();
         expect(screen.getByText(provider.caution[language])).toBeVisible();
         expect(screen.getByText(provider.timing[language])).toBeVisible();
+        expect(
+          screen.getByText(m.exitLevels[exitLevel(provider.exit)]),
+        ).toBeVisible();
+        expect(screen.getByText(provider.exitTerms[language])).toBeVisible();
+        expect(
+          screen.getByText(m.baitlyImportModes[provider.baitlyImport]),
+        ).toBeVisible();
+        const rows = within(screen.getByRole('table')).getAllByRole('row');
+        expect(rows).toHaveLength(EXIT_CRITERIA.length + 1);
+        EXIT_CRITERIA.forEach((criterion) =>
+          expect(
+            screen.getByRole('rowheader', { name: m.criteria[criterion] }),
+          ).toBeVisible(),
+        );
+        if (provider.feedback) {
+          expect(
+            screen.getByText(provider.feedback[language], { exact: false }),
+          ).toBeVisible();
+          expect(screen.getByText(m.feedbackNote)).toBeVisible();
+        } else {
+          expect(screen.queryByText(m.feedbackNote)).not.toBeInTheDocument();
+        }
         const links = within(screen.getByRole('navigation')).getAllByRole(
           'link',
         );
@@ -74,6 +102,78 @@ describe('PMS portability evidence', () => {
     expect(text).toContain(PMS_PORTABILITY[0].sources[0].url);
     expect(text).toContain(PMS_PORTABILITY_MESSAGES.ar.methodology);
   });
+
+  it('derives the exit level from documented criteria only', () => {
+    expect(
+      exitLevel({
+        export: 'yes',
+        api: 'yes',
+        afterExit: 'yes',
+        freeToLeave: 'no',
+      }),
+    ).toBe('smooth');
+    expect(
+      exitLevel({
+        export: 'partial',
+        api: 'yes',
+        afterExit: 'no',
+        freeToLeave: 'partial',
+      }),
+    ).toBe('prepare');
+    expect(
+      exitLevel({
+        export: 'partial',
+        api: 'yes',
+        afterExit: 'unknown',
+        freeToLeave: 'no',
+      }),
+    ).toBe('constrained');
+    expect(
+      exitLevel({
+        export: 'yes',
+        api: 'yes',
+        afterExit: 'unknown',
+        freeToLeave: 'unknown',
+      }),
+    ).toBe('undocumented');
+    for (const provider of PMS_PORTABILITY) {
+      if (provider.feedback)
+        expect(
+          provider.sources.some(
+            (s) =>
+              s.kind === 'review' ||
+              s.kind === 'community' ||
+              s.kind === 'exit',
+          ),
+        ).toBe(true);
+    }
+    expect(new Set(PMS_PORTABILITY.map((p) => p.id)).size).toBe(
+      PMS_PORTABILITY.length,
+    );
+  });
+
+  it.each(['fr', 'en', 'ar'] as const)(
+    'frames the picker on the home page with context and the commitment in %s',
+    (language) => {
+      const m = PMS_PORTABILITY_MESSAGES[language];
+      render(
+        <MemoryRouter>
+          <BaitlyPmsHomeSection language={language} />
+        </MemoryRouter>,
+      );
+      expect(screen.getByRole('heading', { name: m.homeTitle })).toBeVisible();
+      expect(screen.getByRole('combobox', { name: m.label })).toBeVisible();
+      expect(screen.getByText(m.airbnbNote)).toBeVisible();
+      expect(screen.getByText(m.dataAct)).toBeVisible();
+      expect(screen.getByRole('link', { name: m.homeLink })).toHaveAttribute(
+        'href',
+        `/migration?lang=${language}`,
+      );
+      expect(
+        screen.getByRole('heading', { name: m.promiseTitle }),
+      ).toBeVisible();
+    },
+  );
 
   it.each(['fr', 'en', 'ar'] as const)(
     'labels full export as a pre-launch commitment in %s',
