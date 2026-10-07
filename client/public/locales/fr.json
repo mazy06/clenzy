@@ -5517,7 +5517,13 @@
         "title": "Plafond annuel de nuitées dépassé",
         "hint": "Résidence principale : 120 nuits par an au plus. Vous pouvez déroger ; les gestionnaires de l’organisation en seront prévenus.",
         "override": "Déroger et créer"
-      }
+      },
+      "stayHint": "Dates du séjour et horaires d'accès",
+      "travelerHint": "Qui séjourne et comment le joindre",
+      "pricingHint": "Tarif du logement, remise et total",
+      "extrasSection": "Ménage, taxe et notes",
+      "extrasHint": "Prestations ajoutées, référence du canal et notes",
+      "modeLabel": "Type de saisie"
     },
     "compliance": {
       "title": "Fiche de police",
@@ -20630,5 +20636,146 @@
     "allCategories": "Toutes les catégories",
     "description": "Description",
     "total": "Montant TTC"
+  },
+  "reservationsWorkspace": {
+    "listTitle": "Réservations",
+    "detailLabel": "Détail de la réservation",
+    "allStatuses": "Toutes",
+    "noMatch": "Aucune réservation ne correspond à ces critères. Modifiez la recherche ou le filtre.",
+    "back": "Retour à la liste",
+    "chooseTitle": "Choisissez une réservation",
+    "chooseHint": "Le séjour, le voyageur, le logement et le paiement s'affichent ici. Modifiez ou annulez la réservation depuis ce panneau.",
+    "notFoundTitle": "Réservation introuvable",
+    "notFoundHint": "Elle a peut-être été supprimée, ou elle ne fait pas partie de votre organisation. Choisissez-en une autre dans la liste.",
+    "edit": "Modifier",
+    "cancel": "Annuler la réservation",
+    "cancelKeep": "Garder la réservation",
+    "cancelConfirm": "Oui, annuler",
+    "amount": "Montant du séjour",
+    "perNight": "par nuit en moyenne",
+    "arrivalFrom": "à partir de {{time}}",
+    "departureBy": "jusqu'à {{time}}",
+    "toast": {
+      "created": "Réservation créée",
+      "updated": "Réservation mise à jour",
+      "cancelled": "Réservation annulée"
+    },
+    "guest": {
+      "title": "Voyageur",
+      "hint": "Coordonnées et composition du groupe",
+      "profile": "Profil",
+      "noContact": "Aucune coordonnée transmise",
+      "adults": "Adultes",
+      "children": "Enfants",
+      "travellers": "Voyageurs"
+    },
+    "property": {
+      "title": "Logement",
+      "open": "Ouvrir la fiche",
+      "capacity": "Capacité : {{guests}} · Chambres : {{bedrooms}}"
+    },
+    "payment": {
+      "title": "Paiement",
+      "hint": "Encaissement, commission et lien de paiement",
+      "none": "Aucun paiement en ligne",
+      "collection": "Encaissement",
+      "byChannel": "Par {{channel}}",
+      "byYou": "Par vous, en direct",
+      "paidAt": "Payé le",
+      "link": "Lien de paiement",
+      "statuses": {
+        "UNKNOWN": "Paiement à vérifier",
+        "PENDING": "En attente de paiement",
+        "PROCESSING": "Paiement en cours",
+        "PARTIALLY_PAID": "Acompte payé, solde dû",
+        "PAID": "Payé",
+        "FAILED": "Échec du paiement",
+        "REFUNDED": "Remboursé",
+        "PARTIALLY_REFUNDED": "Partiellement remboursé",
+        "CANCELLED": "Annulé",
+        "NOT_REQUIRED": "Paiement non requis"
+      }
+    },
+    "notes": {
+      "title": "Notes",
+      "hint": "Notes internes de la réservation"
+    }
+  },
+  "propertyWorkspace": {
+    "form": {
+      "navLabel": "Sections",
+      "editSubtitle": "Modifiez le logement section par section, puis enregistrez.",
+      "gps": "Position sur la carte",
+      "gpsHelper": "Aucune coordonnée trouvée pour cette adresse. Cliquez sur la carte ou faites glisser le repère pour placer le logement.",
+      "identity": {
+        "title": "Identité",
+        "hint": "Nom, type et description du logement"
+      },
+      "address": {
+        "title": "Adresse",
+        "hint": "Pays, adresse, fuseau horaire et position"
+      },
+      "characteristics": {
+        "title": "Capacité et tarif",
+        "hint": "Chambres, surface, voyageurs, prix par nuit"
+      },
+      "amenities": {
+        "title": "Équipements",
+        "hint": "Ce que les voyageurs trouvent sur place"
+      },
+      "management": {
+        "title": "Gestion",
+        "hint": "Propriétaire, statut, visibilité et horaires"
+      },
+      "cleaning": {
+        "title": "Ménage",
+        "hint": "Estimation, tarif et prestations à la carte"
+      },
+      "touristTax": {
+        "title": "Taxe de séjour",
+        "hint": "Barème appliqué aux voyageurs"
+      }
+    },
+    "overview": {
+      "nightlyPrice": "Prix par nuit",
+      "cleaning": {
+        "title": "Ménage",
+        "hint": "Estimation, rythme et consignes pour l'équipe"
+      },
+      "description": {
+        "title": "Description",
+        "hint": "Le logement tel que le découvrent les voyageurs"
+      },
+      "amenities": {
+        "hint": "Ce que les voyageurs trouvent sur place",
+        "empty": "Aucun équipement renseigné. Ajoutez-les depuis la modification du logement."
+      },
+      "access": {
+        "title": "Accueil des voyageurs",
+        "hint": "Horaires, accès et règles de la maison",
+        "empty": "Aucune instruction d'arrivée. Ajoutez le code d'accès, le wifi et les règles de la maison.",
+        "notes": "Informations complémentaires"
+      },
+      "location": {
+        "title": "Localisation",
+        "city": "Ville",
+        "coordinates": "Coordonnées GPS",
+        "openGoogleMaps": "Ouvrir dans Google Maps"
+      },
+      "management": {
+        "title": "Gestion",
+        "hint": "Propriétaire et historique de la fiche",
+        "updatedAt": "Dernière modification"
+      },
+      "view": {
+        "label": "Affichage du bandeau",
+        "photos": "Voir les photos",
+        "map": "Voir sur la carte"
+      }
+    },
+    "channels": {
+      "title": "Canaux de diffusion",
+      "hint": "Où ce logement est proposé aux voyageurs"
+    }
   }
 }

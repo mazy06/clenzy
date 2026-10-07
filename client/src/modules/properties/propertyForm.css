@@ -1,0 +1,41 @@
+/*
+ * Formulaire de logement (création, édition) : un sommaire illustré à gauche,
+ * les sections en une seule colonne à droite. Un seul défilement — celui de la
+ * page — là où les deux panneaux défilaient chacun dans le leur.
+ * Jetons --bui-* uniquement ; propriétés logiques pour l'arabe.
+ */
+@layer base {
+  /* Sans preflight Tailwind, un paragraphe garde la marge du navigateur (1em). En
+     couche `base`, une marge Tailwind posée exprès (couche utilities) reste prioritaire. */
+  .pf p, .pf h3 { margin: 0; }
+}
+
+.pf { display: grid; grid-template-columns: 228px minmax(0, 1fr); align-items: start; gap: 20px; padding-block: 12px 28px; color: var(--bui-foreground); }
+
+.pf-nav { position: sticky; top: 12px; display: flex; flex-direction: column; gap: 2px; padding: 10px; border: 1px solid var(--bui-border); border-radius: 16px; background: var(--bui-card); }
+.pf-nav__title { padding: 4px 8px 8px; font-size: 12px; font-weight: 550; color: var(--bui-muted-foreground); }
+.pf-nav button { display: flex; align-items: center; gap: 10px; width: 100%; min-height: 44px; padding: 6px 8px; border: 0; border-radius: 10px; background: transparent; color: var(--bui-muted-foreground); font: inherit; font-size: 13px; text-align: start; cursor: pointer; transition: background-color 160ms cubic-bezier(0.25, 1, 0.5, 1), color 160ms cubic-bezier(0.25, 1, 0.5, 1); }
+.pf-nav button img { flex: none; width: 28px; height: 28px; border-radius: 8px; object-fit: cover; }
+.pf-nav button:hover { background: var(--bui-muted); color: var(--bui-foreground); }
+.pf-nav button[aria-current="location"] { background: var(--bui-primary-soft); color: var(--bui-foreground); font-weight: 600; }
+.pf-nav button:focus-visible { outline: 2px solid var(--bui-ring); outline-offset: -2px; }
+
+.pf-sections { display: flex; flex-direction: column; gap: 16px; min-width: 0; }
+.pf-section { display: flex; flex-direction: column; gap: 18px; min-width: 0; padding: 20px 22px 22px; border: 1px solid var(--bui-border); border-radius: 18px; background: var(--bui-card); scroll-margin-top: 12px; }
+
+/* Onboarding : le formulaire vit dans une carte d'étape, pas de sommaire ni de cartes. */
+.pf--embedded { display: block; padding: 0; }
+.pf--embedded .pf-section { padding: 0; border: 0; border-radius: 0; background: transparent; }
+.pf--embedded .pf-section + .pf-section { padding-top: 20px; border-top: 1px solid var(--bui-border); }
+
+@media (max-width: 1023px) {
+  .pf { grid-template-columns: minmax(0, 1fr); }
+  .pf-nav { z-index: 2; flex-direction: row; overflow-x: auto; padding: 6px; border-radius: 14px; scrollbar-width: none; }
+  .pf-nav__title { display: none; }
+  .pf-nav button { flex: none; width: auto; min-height: 40px; white-space: nowrap; }
+  .pf-section { scroll-margin-top: 72px; }
+}
+@media (max-width: 600px) {
+  .pf-section { padding: 16px; border-radius: 14px; }
+}
+@media (prefers-reduced-motion: reduce) { .pf-nav button { transition: none; } }

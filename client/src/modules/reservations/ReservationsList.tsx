@@ -1,126 +1,75 @@
-import React, { useState, useCallback, useEffect, useMemo } from 'react';
+import React, { useCallback, useEffect, useId, useMemo, useRef, useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
+import { ArrowLeft, TriangleAlert } from 'lucide-react';
 import ModuleFirstUsePage from '../../components/first-use/ModuleFirstUsePage';
-import { cn } from '../../utils/cn';
-import { Button, Spinner } from '../../components/ui';
 import {
   Alert,
   AlertDescription,
+  Button,
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogFooter,
   DialogHeader,
   DialogTitle,
-  Table,
-  TableHeader,
-  TableBody,
-  TableRow,
-  TableHead,
-  TableCell,
-  Tooltip,
-  TooltipContent,
-  TooltipTrigger,
+  Skeleton,
+  Spinner,
 } from '../../components/ui';
-import { TriangleAlert } from 'lucide-react';
-import {
-  Add as AddIcon,
-  Edit as EditIcon,
-  Cancel as CancelIcon,
-  EventNote as EventNoteIcon,
-} from '../../icons';
+import { Add as AddIcon, EventNote as EventNoteIcon } from '../../icons';
 import { useTranslation } from '../../hooks/useTranslation';
 import { useNotification } from '../../hooks/useNotification';
-import { useReservations } from '../../hooks/useReservations';
+import { reservationsKeys, useReservations } from '../../hooks/useReservations';
 import { usePropertiesList } from '../../hooks/usePropertiesList';
-import PropertyThumb from '../../components/PropertyThumb';
+import { reservationsApi } from '../../services/api/reservationsApi';
 import type { Reservation, ReservationStatus, ReservationSource } from '../../services/api/reservationsApi';
-import { ReservationStatusChip, ReservationSourceBadge } from './ReservationStatusChip';
 import ReservationDialog from '../../components/reservations/ReservationDialog';
+import { RESERVATION_ART } from '../../components/reservations/reservationArtwork';
 import GuestProfileDialog from '../channels/GuestProfileDialog';
 import PageHeader from '../../components/PageHeader';
 import EmptyState from '../../components/EmptyState';
-import ListSkeleton from '../../components/ListSkeleton';
+import FilterChipRow from '../../components/baitly/FilterChipRow';
 import { FilterSearchBar } from '../../components/FilterSearchBar';
-
-import { Money } from '../../components/Money';
+import PagePagination from '../../components/PagePagination';
 import { useDynamicPageSize } from '../../hooks/useDynamicPageSize';
 import { useHighlightParam, useHighlightTarget } from '../../hooks/useHighlight';
-import PagePagination from '../../components/PagePagination';
-import { activeIntlLocale } from '../../utils/activeLocale';
+import ReservationListItem from './ReservationListItem';
+import ReservationDetailPanel from './ReservationDetailPanel';
+import './reservationsWorkspace.css';
 
-// ─── Style Constants ────────────────────────────────────────────────────────
-
-const CARD_CLASS = 'border border-solid border-border shadow-none rounded-lg bg-card';
-
-const STATUS_OPTIONS: ReservationStatus[] = [
-  'pending',
-  'confirmed',
-  'checked_in',
-  'checked_out',
-  'cancelled',
-];
+const STATUS_OPTIONS: ReservationStatus[] = ['pending', 'confirmed', 'checked_in', 'checked_out', 'cancelled'];
 
 const SOURCE_OPTIONS: ReservationSource[] = [
-  'airbnb',
-  'booking',
-  'vrbo',
-  'expedia',
-  'agoda',
-  'hotels_com',
-  'hometogo',
-  'mabeet',
-  'rentelly',
-  'gathern',
-  'direct',
-  'other',
+  'airbnb', 'booking', 'vrbo', 'expedia', 'agoda', 'hotels_com', 'hometogo', 'mabeet', 'rentelly', 'gathern', 'direct', 'other',
 ];
 
-// ─── Date formatting helper ──────────────────────────────────────────────────
-
-function formatDate(dateStr: string): string {
-  if (!dateStr) return '-';
-  const d = new Date(dateStr + 'T00:00:00');
-  return d.toLocaleDateString(activeIntlLocale(), { day: '2-digit', month: 'short', year: 'numeric' });
-}
-
-const formatPrice = (price: number | undefined, currency = 'EUR') => {
-  if (price === undefined || price === null) return '-';
-  return <Money value={price} from={currency} />;
-};
-
-// ─── Component ───────────────────────────────────────────────────────────────
+/** Une seule colonne en dessous : la liste, puis le détail avec un retour. */
+const SINGLE_COLUMN_QUERY = '(max-width: 1023px)';
 
 const ReservationsList: React.FC = () => {
   const { t } = useTranslation();
   const { notify } = useNotification();
+  const detailId = useId();
 
-  // ─── Local UI state ──────────────────────────────────────────────
+  // ─── Liste paginée côté serveur (audit perf 2026-07-21, P1-6) ─────
+  // La page tient dans la hauteur de la colonne : pas de défilement, la
+  // pagination prend le relais (même règle que l'espace Finances).
   const [page, setPage] = useState(0);
-  const { containerRef: tableContainerRef, pageSize: rowsPerPage } = useDynamicPageSize({
-    rowHeight: 49,
-    headerHeight: 42,
-    bottomChrome: 72,
-    min: 5,
-    max: 50,
+  const { containerRef: listRef, pageSize } = useDynamicPageSize({
+    rowHeight: 69,
+    headerHeight: 45,
+    bottomChrome: 56,
+    min: 4,
+    max: 40,
   });
-  useEffect(() => { setPage(0); }, [rowsPerPage]);
-  const [formOpen, setFormOpen] = useState(false);
-  const [editingReservation, setEditingReservation] = useState<Reservation | null>(null);
-  const [cancelDialogOpen, setCancelDialogOpen] = useState(false);
-  const [cancelTarget, setCancelTarget] = useState<Reservation | null>(null);
-  const [guestDialogOpen, setGuestDialogOpen] = useState(false);
-  const [selectedGuestId, setSelectedGuestId] = useState<number | null>(null);
-  const [searchTerm, setSearchTerm] = useState('');
+  useEffect(() => { setPage(0); }, [pageSize]);
 
-  // Recherche débouncée (300 ms) : évite une requête serveur par frappe.
+  const [searchTerm, setSearchTerm] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
   useEffect(() => {
     const id = setTimeout(() => setDebouncedSearch(searchTerm.trim()), 300);
     return () => clearTimeout(id);
   }, [searchTerm]);
 
-  // ─── Pagination serveur (audit perf 2026-07-21, P1-6) ────────────
-  // Le serveur pagine, filtre (status/source en SQL) et cherche (guest,
-  // code de confirmation, logement) ; le client ne slice plus.
   const {
     reservations,
     totalElements,
@@ -131,55 +80,74 @@ const ReservationsList: React.FC = () => {
     setFilter,
     cancelReservation,
     isCancelling,
-  } = useReservations({
-    pagination: { page, size: rowsPerPage, search: debouncedSearch },
-  });
+  } = useReservations({ pagination: { page, size: pageSize, search: debouncedSearch } });
 
-  // Vignettes des logements. UNE requete pour la page — la liste des logements
-  // est deja en cache react-query (60 s), partagee avec l'ecran Proprietes : la
-  // reservation ne porte que `propertyId`, et une photo par ligne aurait coute
-  // une requete par ligne.
+  // Une requête pour toutes les vignettes : la liste des logements est déjà
+  // en cache (60 s), partagée avec l'écran Propriétés.
   const { properties } = usePropertiesList();
-  const photoByProperty = useMemo(() => {
-    const map = new Map<string, string | undefined>();
-    for (const property of properties) {
-      map.set(String(property.id), property.imageUrl ?? property.photoUrls?.[0]);
-    }
-    return map;
-  }, [properties]);
+  const propertyById = useMemo(() => new Map(properties.map((property) => [String(property.id), property])), [properties]);
+  const photoOf = (reservation: Reservation) => {
+    const property = propertyById.get(String(reservation.propertyId));
+    return property?.imageUrl ?? property?.photoUrls?.[0];
+  };
 
-  // ─── Handlers ────────────────────────────────────────────────────
+  // ─── Sélection ────────────────────────────────────────────────────
+  // Les liens profonds (notifications, messagerie) arrivent en
+  // `?highlight=<id>` : la réservation est ouverte même hors de la page
+  // visible, chargée par son id.
+  const highlightId = useHighlightParam();
+  const [selectedId, setSelectedId] = useState<number | null>(null);
+  useEffect(() => {
+    if (highlightId && /^\d+$/.test(highlightId)) setSelectedId(Number(highlightId));
+  }, [highlightId]);
+  useHighlightTarget(highlightId, !isLoading && reservations.length > 0);
+
+  const inPage = reservations.find((reservation) => reservation.id === selectedId);
+  const selectedQuery = useQuery({
+    queryKey: [...reservationsKeys.all, 'detail', selectedId],
+    queryFn: () => reservationsApi.getById(selectedId!),
+    enabled: selectedId != null && !inPage && !isLoading,
+    staleTime: 30_000,
+    retry: false,
+  });
+  const selected = inPage ?? selectedQuery.data ?? null;
+  const selectionPending = selectedId != null && !selected && (isLoading || selectedQuery.isFetching);
+
+  const heading = useRef<HTMLHeadingElement>(null);
+  const trigger = useRef<HTMLButtonElement | null>(null);
+  const handleSelect = useCallback((reservation: Reservation, button: HTMLButtonElement) => {
+    trigger.current = button;
+    setSelectedId(reservation.id);
+    if (window.matchMedia?.(SINGLE_COLUMN_QUERY)?.matches) requestAnimationFrame(() => heading.current?.focus());
+  }, []);
+  const handleBack = useCallback(() => {
+    setSelectedId(null);
+    requestAnimationFrame(() => trigger.current?.focus());
+  }, []);
+
+  // ─── Dialogues ────────────────────────────────────────────────────
+  const [formOpen, setFormOpen] = useState(false);
+  const [editingReservation, setEditingReservation] = useState<Reservation | null>(null);
+  const [cancelTarget, setCancelTarget] = useState<Reservation | null>(null);
+  const [guestId, setGuestId] = useState<number | null>(null);
 
   const handleCreate = useCallback(() => {
     setEditingReservation(null);
     setFormOpen(true);
   }, []);
 
-  const handleEdit = useCallback((reservation: Reservation) => {
-    setEditingReservation(reservation);
-    setFormOpen(true);
-  }, []);
-
-  const handleCancelClick = useCallback((reservation: Reservation) => {
-    setCancelTarget(reservation);
-    setCancelDialogOpen(true);
-  }, []);
-
   const handleConfirmCancel = useCallback(async () => {
     if (!cancelTarget) return;
     try {
       await cancelReservation(cancelTarget.id);
-      notify.success('Reservation annulee');
+      notify.success(t('reservationsWorkspace.toast.cancelled'));
     } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : t('reservations.cancelError');
-      notify.error(msg);
+      notify.error(err instanceof Error ? err.message : t('reservations.cancelError'));
     } finally {
-      setCancelDialogOpen(false);
       setCancelTarget(null);
     }
-  }, [cancelTarget, cancelReservation, notify]);
+  }, [cancelTarget, cancelReservation, notify, t]);
 
-  // Reset page when filters change
   const handleFilterChange = useCallback(
     <K extends keyof typeof filters>(key: K, value: (typeof filters)[K]) => {
       setPage(0);
@@ -192,73 +160,41 @@ const ReservationsList: React.FC = () => {
   // revient sur la dernière page valide.
   useEffect(() => {
     if (isLoading) return;
-    const maxPage = Math.max(0, Math.ceil(totalElements / rowsPerPage) - 1);
+    const maxPage = Math.max(0, Math.ceil(totalElements / pageSize) - 1);
     if (page > maxPage) setPage(maxPage);
-  }, [isLoading, totalElements, rowsPerPage, page]);
-
-  // ─── Deep-link notification (?highlight=<reservationId>) ─────────
-  // Pagination serveur : on ne connaît que la page courante, impossible de
-  // calculer la page cible d'un id absent. Le highlight s'applique si la
-  // réservation est visible sur la page courante (cas nominal : tri
-  // checkIn ASC + fenêtre par défaut → les résas actives sont en tête).
-  const highlightId = useHighlightParam();
-  useHighlightTarget(highlightId, !isLoading && reservations.length > 0);
-
-  // ─── Filter options for FilterSearchBar ─────────────────────────
-  const statusOptions = useMemo(() => [
-    { value: '', label: t('reservations.filters.allStatuses') },
-    ...STATUS_OPTIONS.map((s) => ({ value: s, label: t(`reservations.status.${s}`) })),
-  ], [t]);
+  }, [isLoading, totalElements, pageSize, page]);
 
   const sourceOptions = useMemo(() => [
     { value: '', label: t('reservations.filters.allSources') },
-    ...SOURCE_OPTIONS.map((s) => ({ value: s, label: t(`reservations.source.${s}`) })),
+    ...SOURCE_OPTIONS.map((source) => ({ value: source, label: t(`reservations.source.${source}`) })),
   ], [t]);
-
-  const actionButtons = (
-    <Button size="sm" onClick={handleCreate}>
-      <AddIcon strokeWidth={2} />
-      {t('reservations.create')}
-    </Button>
-  );
 
   const filterBar = (
     <FilterSearchBar
       bare
       searchTerm={searchTerm}
-      onSearchChange={(v) => { setSearchTerm(v); setPage(0); }}
+      onSearchChange={(value) => { setSearchTerm(value); setPage(0); }}
       searchPlaceholder={t('reservations.search', 'Rechercher une réservation...')}
       filters={{
-        status: {
-          value: filters.status ?? '',
-          options: statusOptions,
-          onChange: (v) => handleFilterChange('status', (v || null) as ReservationStatus | null),
-          label: t('reservations.fields.status'),
-        },
         source: {
           value: filters.source ?? '',
           options: sourceOptions,
-          onChange: (v) => handleFilterChange('source', (v || null) as ReservationSource | null),
+          onChange: (value) => handleFilterChange('source', (value || null) as ReservationSource | null),
           label: t('reservations.fields.source'),
         },
       }}
-      counter={{
-        label: t('reservations.reservation', 'réservation'),
-        count: totalElements,
-        singular: '',
-        plural: 's',
-      }}
+      counter={{ label: t('reservations.reservation', 'réservation'), count: totalElements, singular: '', plural: 's' }}
     />
   );
 
-  // ─── Render ──────────────────────────────────────────────────────
+  const hasCriteria = !!debouncedSearch || !!filters.status || !!filters.source;
+  const firstUse = !isLoading && !isError && totalElements === 0 && !hasCriteria;
+
   return (
     <>
-      {/* Le bandeau du header deborde du rembourrage du conteneur de contenu
-          (marges negatives). Il vit donc HORS de la colonne ci-dessous, dont le
-          `overflow-hidden` decoupait ce debordement sur les quatre cotes : le
-          bandeau s'arretait au bord du rembourrage, comme une carte. */}
-      {/* Header + Filters */}
+      {/* Le bandeau du header déborde du rembourrage du conteneur (marges
+          négatives) : il vit hors de la colonne, dont l'`overflow` le
+          découperait. */}
       <div className="shrink-0">
         <PageHeader
           title={t('reservations.title')}
@@ -266,28 +202,29 @@ const ReservationsList: React.FC = () => {
           iconBadge={<EventNoteIcon />}
           backPath="/dashboard"
           showBackButton={false}
-          actions={actionButtons}
+          actions={(
+            <Button size="sm" onClick={handleCreate}>
+              <AddIcon strokeWidth={2} />
+              {t('reservations.create')}
+            </Button>
+          )}
           filters={filterBar}
         />
       </div>
-      <div className="flex flex-col flex-1 min-h-0 overflow-hidden">
 
-        {/* Error */}
+      <div className="rsv-page">
         {isError && (
-          <Alert variant="destructive" className="mb-3 shrink-0">
+          <Alert variant="destructive" className="shrink-0">
             <TriangleAlert />
             <AlertDescription>{error ?? t('reservations.loadError')}</AlertDescription>
           </Alert>
         )}
 
-        {/* Loading */}
-        {isLoading ? (
-          <ListSkeleton rows={6} variant="row" />
-        ) : totalElements === 0 ? (
+        {firstUse ? (
           <EmptyState
             icon={<EventNoteIcon />}
             title={t('reservations.noReservations')}
-            description="{t('reservations.emptyHint')}"
+            description={t('reservations.emptyHint')}
             action={(
               <Button variant="outline" size="sm" onClick={handleCreate}>
                 <AddIcon strokeWidth={1.75} />
@@ -297,131 +234,96 @@ const ReservationsList: React.FC = () => {
             tip={t('reservations.icalTip')}
           />
         ) : (
-          /* Data table */
-          <div ref={tableContainerRef} className={cn(CARD_CLASS, 'flex-1 min-h-0 flex flex-col overflow-hidden')}>
-            <div className="flex-1 overflow-hidden">
-              <Table>
-                <TableHeader>
-                  <TableRow className="[&_th]:whitespace-nowrap">
-                    <TableHead>{t('reservations.fields.property')}</TableHead>
-                    <TableHead>{t('reservations.fields.guestName')}</TableHead>
-                    <TableHead>{t('reservations.fields.checkIn')}</TableHead>
-                    <TableHead>{t('reservations.fields.checkOut')}</TableHead>
-                    <TableHead>{t('reservations.fields.status')}</TableHead>
-                    <TableHead>{t('reservations.fields.source')}</TableHead>
-                    <TableHead className="text-end">{t('reservations.fields.totalPrice')}</TableHead>
-                    <TableHead className="text-center">Actions</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {reservations.map((r) => (
-                    <TableRow
-                      key={r.id}
-                      data-highlight-id={String(r.id)}
-                    >
-                      <TableCell>
-                        <div className="flex min-w-0 items-center gap-2.5">
-                          <PropertyThumb
-                            size="sm"
-                            seed={String(r.propertyId ?? r.propertyName)}
-                            photo={photoByProperty.get(String(r.propertyId))}
-                          />
-                          <p dir="auto" className="min-w-0 truncate text-xs font-medium text-foreground">
-                            {r.propertyName}
-                          </p>
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        <p className="text-xs text-foreground cursor-pointer hover:text-primary hover:underline" onClick={() => {
-                            setSelectedGuestId(r.id);
-                            setGuestDialogOpen(true);
-                          }}>
-                          {r.guestName}
-                        </p>
-                        <span className="text-xs text-muted-foreground">
-                          {r.guestCount} {r.guestCount > 1 ? 'voyageurs' : 'voyageur'}
-                        </span>
-                      </TableCell>
-                      <TableCell>
-                        <p className="text-xs text-foreground tabular-nums">
-                          {formatDate(r.checkIn)}
-                        </p>
-                        {r.checkInTime && (
-                          <span className="text-xs text-muted-foreground tabular-nums">
-                            {r.checkInTime}
-                          </span>
-                        )}
-                      </TableCell>
-                      <TableCell>
-                        <p className="text-xs text-foreground tabular-nums">
-                          {formatDate(r.checkOut)}
-                        </p>
-                        {r.checkOutTime && (
-                          <span className="text-xs text-muted-foreground tabular-nums">
-                            {r.checkOutTime}
-                          </span>
-                        )}
-                      </TableCell>
-                      <TableCell>
-                        <ReservationStatusChip status={r.status} />
-                      </TableCell>
-                      <TableCell>
-                        <ReservationSourceBadge source={r.source} />
-                      </TableCell>
-                      <TableCell className="text-end">
-                        {/* Montant : display (Space Grotesk) + tabular-nums (baseline §1 typo) */}
-                        <p className="text-xs font-semibold font-[family-name:var(--font-display)] tabular-nums text-foreground">
-                          {formatPrice(r.totalPrice)}
-                        </p>
-                      </TableCell>
-                      <TableCell className="text-center whitespace-nowrap">
-                        <Tooltip>
-                          <TooltipTrigger asChild>
-                            {/* span : TooltipTrigger asChild pose une ref DOM que le
-                                Button du kit (fonction, React 18) ne transmet pas. */}
-                            <span className="inline-flex">
-                              <Button variant="ghost" size="icon-sm" aria-label={t('reservations.edit')} onClick={() => handleEdit(r)}>
-                                <EditIcon size={18} strokeWidth={1.75} />
-                              </Button>
-                            </span>
-                          </TooltipTrigger>
-                          <TooltipContent>{t('reservations.edit')}</TooltipContent>
-                        </Tooltip>
-                        {r.status !== 'cancelled' && r.status !== 'checked_out' && (
-                          <Tooltip>
-                            <TooltipTrigger asChild>
-                              <span className="inline-flex">
-                                <Button
-                                  variant="ghost"
-                                  size="icon-sm"
-                                  aria-label={t('reservations.cancel')}
-                                  onClick={() => handleCancelClick(r)}
-                                  className="text-destructive hover:text-destructive"
-                                >
-                                  <CancelIcon size={18} strokeWidth={1.75} />
-                                </Button>
-                              </span>
-                            </TooltipTrigger>
-                            <TooltipContent>{t('reservations.cancel')}</TooltipContent>
-                          </Tooltip>
-                        )}
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </div>
-
-            <PagePagination
-              count={totalElements}
-              page={page}
-              onPageChange={(newPage) => setPage(newPage)}
-              rowsPerPage={rowsPerPage}
+          <>
+            <FilterChipRow
+              className="rsv-statuses"
+              allLabel={t('reservationsWorkspace.allStatuses')}
+              value={filters.status ?? ''}
+              onChange={(value) => handleFilterChange('status', (value || null) as ReservationStatus | null)}
+              options={STATUS_OPTIONS.map((status) => ({ value: status, label: t(`reservations.status.${status}`), color: '' }))}
             />
-          </div>
+
+            <section
+              className="rsv-workspace"
+              data-selected={selectedId != null}
+              aria-label={t('reservations.title')}
+            >
+              <div className="rsv-workspace__list" ref={listRef}>
+                <div className="rsv-workspace__list-head">
+                  <span>{t('reservationsWorkspace.listTitle')}</span>
+                  <span className="tabular-nums">{totalElements}</span>
+                </div>
+                {isLoading ? (
+                  <div className="rsv-workspace__loading" role="status" aria-label={t('common.loading')}>
+                    {[0, 1, 2, 3, 4].map((index) => <Skeleton key={index} className="h-14 w-full motion-reduce:animate-none" />)}
+                  </div>
+                ) : reservations.length ? (
+                  <ul>
+                    {reservations.map((reservation) => (
+                      <ReservationListItem
+                        key={reservation.id}
+                        reservation={reservation}
+                        photo={photoOf(reservation)}
+                        active={reservation.id === selectedId}
+                        detailId={detailId}
+                        onSelect={handleSelect}
+                      />
+                    ))}
+                  </ul>
+                ) : (
+                  <p className="rsv-workspace__empty">{t('reservationsWorkspace.noMatch')}</p>
+                )}
+                <div className="rsv-workspace__pagination">
+                  <PagePagination
+                    count={totalElements}
+                    page={page}
+                    onPageChange={setPage}
+                    rowsPerPage={pageSize}
+                    compact
+                  />
+                </div>
+              </div>
+
+              <div
+                className="rsv-workspace__detail"
+                data-status={selected?.status}
+                id={detailId}
+                role="region"
+                aria-label={t('reservationsWorkspace.detailLabel')}
+              >
+                {selectedId != null && (
+                  <Button variant="ghost" size="sm" className="rsv-workspace__back" onClick={handleBack}>
+                    <ArrowLeft size={15} className="cn-rtl-flip" />
+                    {t('reservationsWorkspace.back')}
+                  </Button>
+                )}
+                {selected ? (
+                  <ReservationDetailPanel
+                    reservation={selected}
+                    property={propertyById.get(String(selected.propertyId))}
+                    headingRef={heading}
+                    onEdit={() => { setEditingReservation(selected); setFormOpen(true); }}
+                    onCancel={() => setCancelTarget(selected)}
+                    onOpenGuest={selected.guestId ? () => setGuestId(selected.guestId ?? null) : undefined}
+                  />
+                ) : selectionPending ? (
+                  <div className="rsv-workspace__loading" role="status" aria-label={t('common.loading')}>
+                    <Skeleton className="h-14 w-2/3 motion-reduce:animate-none" />
+                    <Skeleton className="h-24 w-full motion-reduce:animate-none" />
+                    <Skeleton className="h-40 w-full motion-reduce:animate-none" />
+                  </div>
+                ) : (
+                  <div className="rsv-workspace__intro">
+                    <img src={RESERVATION_ART.reservation} alt="" width={88} height={88} />
+                    <h2>{t(selectedQuery.isError ? 'reservationsWorkspace.notFoundTitle' : 'reservationsWorkspace.chooseTitle')}</h2>
+                    <p>{t(selectedQuery.isError ? 'reservationsWorkspace.notFoundHint' : 'reservationsWorkspace.chooseHint')}</p>
+                  </div>
+                )}
+              </div>
+            </section>
+          </>
         )}
 
-        {/* Create/Edit dialog */}
         <ReservationDialog
           open={formOpen}
           mode={editingReservation ? 'edit' : 'create'}
@@ -430,52 +332,35 @@ const ReservationsList: React.FC = () => {
             setFormOpen(false);
             setEditingReservation(null);
           }}
-          onCreated={() => notify.success('Réservation créée')}
-          onUpdated={() => notify.success('Réservation mise à jour')}
+          onCreated={(created) => {
+            notify.success(t('reservationsWorkspace.toast.created'));
+            setSelectedId(created.id);
+          }}
+          onUpdated={() => notify.success(t('reservationsWorkspace.toast.updated'))}
         />
 
-        {/* Guest profile dialog */}
-        <GuestProfileDialog
-          guestId={selectedGuestId}
-          open={guestDialogOpen}
-          onClose={() => { setGuestDialogOpen(false); setSelectedGuestId(null); }}
-        />
+        <GuestProfileDialog guestId={guestId} open={guestId != null} onClose={() => setGuestId(null)} />
 
-        {/* Cancel confirmation dialog */}
-        <Dialog open={cancelDialogOpen} onOpenChange={(next) => { if (!next) setCancelDialogOpen(false); }}>
+        <Dialog open={cancelTarget != null} onOpenChange={(next) => { if (!next && !isCancelling) setCancelTarget(null); }}>
           <DialogContent>
-          <DialogHeader>
-            <DialogTitle>{t('reservations.cancel')}</DialogTitle>
-          </DialogHeader>
-          <div>
-            <p className="text-xs text-muted-foreground">
-              {t('reservations.cancelConfirm')}
-            </p>
+            <DialogHeader>
+              <DialogTitle>{t('reservations.cancel')}</DialogTitle>
+              <DialogDescription>{t('reservations.cancelConfirm')}</DialogDescription>
+            </DialogHeader>
             {cancelTarget && (
-              <p className="mt-1.5 text-xs font-semibold text-foreground">
+              <p className="text-xs font-semibold text-foreground" dir="auto">
                 {cancelTarget.guestName} · {cancelTarget.propertyName}
               </p>
             )}
-          </div>
-          <DialogFooter>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => setCancelDialogOpen(false)}
-              disabled={isCancelling}
-            >
-              Non
-            </Button>
-            <Button
-              variant="destructive"
-              size="sm"
-              onClick={handleConfirmCancel}
-              disabled={isCancelling}
-            >
-              {isCancelling ? <Spinner className="size-[18px]" /> : null}
-              Oui, annuler
-            </Button>
-          </DialogFooter>
+            <DialogFooter>
+              <Button variant="ghost" size="sm" onClick={() => setCancelTarget(null)} disabled={isCancelling}>
+                {t('reservationsWorkspace.cancelKeep')}
+              </Button>
+              <Button variant="destructive" size="sm" onClick={handleConfirmCancel} disabled={isCancelling}>
+                {isCancelling ? <Spinner className="size-[18px]" /> : null}
+                {t('reservationsWorkspace.cancelConfirm')}
+              </Button>
+            </DialogFooter>
           </DialogContent>
         </Dialog>
       </div>

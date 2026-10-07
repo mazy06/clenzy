@@ -6,6 +6,8 @@ import { Edit as EditIcon, RemoveCircleOutline as MinusCircleIcon, Percent } fro
 import { useTranslation } from '../../hooks/useTranslation';
 import { cn } from '../../utils/cn';
 import type { UseReservationFormResult } from './useReservationForm';
+import IllustratedHeading from '../IllustratedHeading';
+import { RESERVATION_ART } from './reservationArtwork';
 
 interface Props {
   form: UseReservationFormResult;
@@ -23,10 +25,6 @@ const segTabCls = (on: boolean) =>
       ? 'bg-card text-primary shadow-sm'
       : 'bg-transparent text-muted-foreground shadow-none',
   );
-
-// Transposition en classes de SEC_SX (.rm-sec) — la constante reste exportee
-// dans reservationDialogStyles pour les consommateurs sx eventuels.
-const SEC_CLS = 'text-2xs font-bold tracking-[0.08em] uppercase text-faint';
 
 // Ligne de detail du recap (override / menage / taxe de sejour).
 const RECAP_LINE_CLS = 'text-[12.5px] text-muted-foreground mt-[2px] tabular-nums';
@@ -86,7 +84,11 @@ const PricingSection: React.FC<Props> = ({ form }) => {
 
   return (
     <>
-      <p className={SEC_CLS}>{t('reservations.dialog.pricingSection')}</p>
+      <IllustratedHeading
+        art={RESERVATION_ART.pricing}
+        title={t('reservations.dialog.pricingSection')}
+        hint={t('reservations.dialog.pricingHint')}
+      />
 
       {/* Base /nuit (dynamique, lecture seule) + override */}
       <div className="grid grid-cols-[1fr_1fr] gap-3">

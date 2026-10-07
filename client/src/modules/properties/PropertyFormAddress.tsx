@@ -1,5 +1,4 @@
 import React, { useCallback } from 'react';
-import { cn } from '../../utils/cn';
 import {
   Badge,
   Field,
@@ -23,8 +22,8 @@ import type { PropertyFormValues } from '../../schemas';
 
 // ─── Stable class constants ─────────────────────────────────────────────────
 
-/** Titre de section (icone + texte) — echelle « overline » de Baitly UI. */
-const SECTION_TITLE_CLASS = 'text-2xs font-semibold uppercase tracking-wide text-muted-foreground mb-[9px] flex items-center gap-[3px]';
+/** Sous-titre d'un bloc de champs : lisible, sans capitales (le titre de section est posé par PropertyForm). */
+const SUBTITLE_CLASS = 'm-0 mb-2 flex items-center gap-1.5 text-xs font-semibold text-foreground';
 
 // Fuseaux pertinents pour les marchés Baitly (Europe + Maghreb + DOM-TOM). La
 // valeur courante est prepended si absente (édition d'un logement au fuseau exotique).
@@ -93,12 +92,7 @@ const PropertyFormAddress: React.FC<PropertyFormAddressProps> = React.memo(
 
     return (
       <div>
-        <p className={SECTION_TITLE_CLASS}>
-          <LocationOn size={14} strokeWidth={1.75} />
-          {t('properties.address')}
-        </p>
-
-        <div className="grid grid-cols-12 gap-[9px]">
+        <div className="grid grid-cols-12 gap-3">
           {/* Pays en premier — driver de l'autocomplete */}
           <div className="col-span-12 min-[900px]:col-span-4">
             <Controller
@@ -265,9 +259,9 @@ const PropertyFormAddress: React.FC<PropertyFormAddressProps> = React.memo(
 
           {/* ─── Position GPS sur la carte ────────────────────────────── */}
           <div className="col-span-12">
-            <p className={cn(SECTION_TITLE_CLASS, 'mt-0.5 mb-1.5')}>
-              <LocationOn size={14} strokeWidth={1.75} />
-              Position GPS
+            <p className={SUBTITLE_CLASS}>
+              <LocationOn size={14} strokeWidth={1.75} className="text-primary" />
+              {t('propertyWorkspace.form.gps')}
               {latitude != null && longitude != null && (
                 <Badge variant="success" className="ms-0.5 gap-0.5 rounded-full px-1 text-2xs font-semibold">
                   <Check size={10} strokeWidth={2.5} />
@@ -280,7 +274,7 @@ const PropertyFormAddress: React.FC<PropertyFormAddressProps> = React.memo(
               longitude={longitude}
               onChange={handleMapChange}
               height={260}
-              helperText="Aucune coordonnée GPS n'a été trouvée. Cliquez sur la carte ou faites glisser le pin pour positionner manuellement le logement."
+              helperText={t('propertyWorkspace.form.gpsHelper')}
             />
           </div>
         </div>

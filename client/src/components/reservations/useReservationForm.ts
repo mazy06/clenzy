@@ -247,6 +247,8 @@ export interface UseReservationFormResult {
   // Entête
   headerTitle: string;
   sourceKey: string;
+  /** Photo de couverture du logement (fiche fraîche déjà chargée pour le tarif). */
+  propertyPhoto?: string;
 }
 
 // ─── Hook ─────────────────────────────────────────────────────────────────────
@@ -1014,5 +1016,6 @@ export function useReservationForm(props: ReservationDialogProps): UseReservatio
 
     headerTitle,
     sourceKey,
+    propertyPhoto: freshProp?.coverPhotoUrl ?? freshProp?.photoUrls?.[0],
   };
 }

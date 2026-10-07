@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { cn } from '../../utils/cn';
-import { Dialog, DialogContent, DialogTitle } from '../ui';
+import { Button, Dialog, DialogContent, DialogTitle } from '../ui';
 import { Check, ArrowBack, ArrowForward } from '../../icons';
 import { useTranslation } from '../../hooks/useTranslation';
 import { useReservationForm } from './useReservationForm';
@@ -28,15 +28,14 @@ export type ReservationDialogEntryMode = 'reservation' | 'block';
 // ÉDITION = écran unique 2 colonnes. Soumission INTERNE : invalide planningKeys.all ET
 // reservationsKeys.all.
 
-// Equivalents en classes de FOOT_SX / BTN_GHOST_SX / BTN_PRIMARY_SX (reservationDialogStyles).
-// Les deux niveaux de bouton portent la hiérarchie du pied : `ghost` pour se retirer,
-// contour `primary` pour l'action qui engage.
+// Pied de modale : `ghost` pour se retirer, `default` pour l'action qui engage
+// — les boutons du kit, comme dans le reste de l'application.
 const FOOT_CLS =
   'flex items-center gap-2.5 px-[22px] py-[14px] border-t border-solid border-border bg-card shrink-0';
-const BTN_BASE_CLS =
-  'inline-flex items-center gap-2 h-[38px] px-[17px] rounded-[11px] font-[inherit] text-[12.5px] font-semibold cursor-pointer border border-solid border-transparent [transition:transform_.12s,background_.14s,border-color_.14s,color_.14s] active:enabled:scale-[.97] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary';
-const BTN_GHOST_CLS = `${BTN_BASE_CLS} bg-transparent text-muted-foreground hover:text-foreground`;
-const BTN_PRIMARY_CLS = `${BTN_BASE_CLS} bg-transparent border-primary text-primary hover:enabled:bg-primary-soft disabled:opacity-[.45] disabled:cursor-not-allowed`;
+
+// Une section de la modale : en-tête illustré + champs, séparée de la suivante
+// par un filet (pas de carte dans la carte).
+const SECTION_CLS = 'flex flex-col gap-3.5 border-t border-solid border-border pt-5 first:border-t-0 first:pt-0';
 
 // ─── Corps édition (écran unique, 2 colonnes) ─────────────────────────────────
 const EditBody: React.FC<{ form: UseReservationFormResult; onClose: () => void }> = ({ form, onClose }) => {
@@ -44,20 +43,20 @@ const EditBody: React.FC<{ form: UseReservationFormResult; onClose: () => void }
 
   return (
     <>
-      {/* max-width: 900px MUI => la 2e colonne apparait a partir de 901 px. */}
+      {/* La 2e colonne apparait a partir de 901 px. */}
       <div className="flex-1 overflow-y-auto grid gap-0 grid-cols-[1fr] min-[901px]:grid-cols-[1fr_1fr]">
         <div
           className={cn(
-            'flex flex-col gap-[18px] p-[22px] border-solid border-border',
-            'border-b min-[901px]:border-b-0 min-[901px]:border-r',
+            'flex flex-col gap-5 p-[22px] border-solid border-border',
+            'border-b min-[901px]:border-b-0 min-[901px]:border-e',
           )}
         >
-          <StaySection form={form} />
-          <GuestSection form={form} />
+          <section className={SECTION_CLS}><StaySection form={form} /></section>
+          <section className={SECTION_CLS}><GuestSection form={form} /></section>
         </div>
-        <div className="flex flex-col gap-[18px] p-[22px]">
-          <PricingSection form={form} />
-          <ExtrasSection form={form} />
+        <div className="flex flex-col gap-5 p-[22px]">
+          <section className={SECTION_CLS}><PricingSection form={form} /></section>
+          <section className={SECTION_CLS}><ExtrasSection form={form} /></section>
         </div>
 
         <ConflictAlert form={form} fullWidth />
@@ -73,14 +72,23 @@ const EditBody: React.FC<{ form: UseReservationFormResult; onClose: () => void }
         </p>
       )}
 
-      <div className={cn(FOOT_CLS, 'justify-end')}>
-        <button type="button" onClick={onClose} className={BTN_GHOST_CLS}>
-          {t('common.cancel')}
-        </button>
-        <button type="button" onClick={form.handleSubmit} disabled={form.submitDisabled} className={BTN_PRIMARY_CLS}>
-          <Check size={15} strokeWidth={2} />
-          {form.saving ? t('reservations.dialog.submitSaving') : t('common.save')}
-        </button>
+      <div className={FOOT_CLS}>
+        {/* Le séjour tel qu'il sera enregistré, en euros comme les champs du tarif. */}
+        {form.numberOfNights > 0 && (
+          <p className="min-w-0 truncate text-xs text-muted-foreground tabular-nums">
+            {form.nightsText} · {t('reservations.dialog.total')}{' '}
+            <span className="font-semibold text-foreground">{form.totalPrice.toFixed(2)} €</span>
+          </p>
+        )}
+        <div className="ms-auto flex gap-2">
+          <Button variant="ghost" size="sm" onClick={onClose}>
+            {t('common.cancel')}
+          </Button>
+          <Button size="sm" onClick={form.handleSubmit} disabled={form.submitDisabled}>
+            <Check size={15} strokeWidth={2} />
+            {form.saving ? t('reservations.dialog.submitSaving') : t('common.save')}
+          </Button>
+        </div>
       </div>
     </>
   );
@@ -161,41 +169,41 @@ const CreateWizard: React.FC<{
               'Résidence principale : 120 nuits par an au plus. Vous pouvez déroger ; les gestionnaires de l’organisation en seront prévenus.')}
           </p>
           <div className="flex justify-end gap-2">
-            <button type="button" onClick={form.dismissNightsCapOverrun} className={BTN_GHOST_CLS}>
+            <Button variant="ghost" size="sm" onClick={form.dismissNightsCapOverrun}>
               {t('common.cancel')}
-            </button>
-            <button type="button" onClick={form.confirmNightsCapDerogation} disabled={form.saving} className={BTN_PRIMARY_CLS}>
+            </Button>
+            <Button variant="destructive" size="sm" onClick={form.confirmNightsCapDerogation} disabled={form.saving}>
               {t('reservations.dialog.nightsCap.override', 'Déroger et créer')}
-            </button>
+            </Button>
           </div>
         </div>
       )}
 
       <div className={FOOT_CLS}>
-        <button type="button" onClick={onClose} className={BTN_GHOST_CLS}>
+        <Button variant="ghost" size="sm" onClick={onClose}>
           {t('common.cancel')}
-        </button>
-        <div className="ms-auto flex gap-2.5">
+        </Button>
+        <div className="ms-auto flex gap-2">
           {step > 1 && (
-            <button type="button" onClick={() => setStep((s) => s - 1)} className={BTN_GHOST_CLS}>
+            <Button variant="outline" size="sm" onClick={() => setStep((s) => s - 1)}>
               <ArrowBack className="cn-rtl-flip" size={15} strokeWidth={2} />
               {t('reservations.dialog.previous')}
-            </button>
+            </Button>
           )}
           {step < 4 ? (
-            <button type="button" onClick={() => canGoNext && setStep((s) => s + 1)} disabled={!canGoNext} className={BTN_PRIMARY_CLS}>
+            <Button size="sm" onClick={() => canGoNext && setStep((s) => s + 1)} disabled={!canGoNext}>
               {t('reservations.dialog.next')}
               <ArrowForward className="cn-rtl-flip" size={15} strokeWidth={2} />
-            </button>
+            </Button>
           ) : (
-            <button type="button" onClick={form.handleSubmit} disabled={finalizeDisabled} className={BTN_PRIMARY_CLS}>
+            <Button size="sm" onClick={form.handleSubmit} disabled={finalizeDisabled}>
               <Check size={15} strokeWidth={2} />
               {form.saving
                 ? t('reservations.dialog.submitCreating')
                 : form.requestPayment
                   ? t('reservations.dialog.submitCreatePayment')
                   : t('reservations.dialog.submitCreate')}
-            </button>
+            </Button>
           )}
         </div>
       </div>

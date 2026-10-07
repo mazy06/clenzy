@@ -12,6 +12,8 @@ import {
 import { CleaningServices, Receipt as ReceiptIcon, Numbers as HashIcon } from '../../icons';
 import { useTranslation } from '../../hooks/useTranslation';
 import type { UseReservationFormResult } from './useReservationForm';
+import IllustratedHeading from '../IllustratedHeading';
+import { RESERVATION_ART } from './reservationArtwork';
 
 interface Props {
   form: UseReservationFormResult;
@@ -24,6 +26,12 @@ const ExtrasSection: React.FC<Props> = ({ form }) => {
 
   return (
     <>
+      <IllustratedHeading
+        art={RESERVATION_ART.extras}
+        title={t('reservations.dialog.extrasSection')}
+        hint={t('reservations.dialog.extrasHint')}
+      />
+
       {/* Toggle ménage (.rm-toggle) */}
       <Field
         orientation="horizontal"

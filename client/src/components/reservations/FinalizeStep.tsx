@@ -14,9 +14,8 @@ import { CheckCircle, CreditCard, Mail } from '../../icons';
 import { useTranslation } from '../../hooks/useTranslation';
 import { cn } from '../../utils/cn';
 import type { UseReservationFormResult } from './useReservationForm';
-
-/** Transcription de `SEC_SX` (reservationDialogStyles) — overline de section .rm-sec. */
-const SEC_CLASS = 'text-2xs font-bold tracking-[0.08em] uppercase text-faint';
+import IllustratedHeading from '../IllustratedHeading';
+import { RESERVATION_ART } from './reservationArtwork';
 
 interface Props {
   form: UseReservationFormResult;
@@ -110,7 +109,7 @@ const FinalizeStep: React.FC<Props> = ({ form }) => {
 
       {/* Récapitulatif lecture seule */}
       <div className="flex flex-col gap-[10px] rounded-[12px] border border-solid border-border bg-card px-[18px] py-4">
-        <p className={SEC_CLASS}>{t('reservations.dialog.recapTitle')}</p>
+        <IllustratedHeading art={RESERVATION_ART.summary} title={t('reservations.dialog.recapTitle')} />
         {recapRows.map((row) => (
           <div className="flex items-baseline justify-between gap-3" key={row.label}>
             <p className="text-xs font-semibold text-muted-foreground shrink-0">{row.label}</p>

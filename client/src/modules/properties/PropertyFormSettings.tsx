@@ -36,11 +36,8 @@ import type { PropertyFormValues } from '../../schemas';
 
 // ─── Stable class constants ─────────────────────────────────────────────────
 
-/** Titre de section — echelle « overline » de Baitly UI. */
-const SECTION_TITLE_CLASS = 'text-2xs font-semibold uppercase tracking-wide text-muted-foreground mb-[9px]';
-
-/** Variante avec icone en tete de titre (gap 0.5 de l'ancien spacing MUI = 3 px). */
-const SECTION_TITLE_ICON_CLASS = `${SECTION_TITLE_CLASS} flex items-center gap-[3px]`;
+/** Sous-titre d'un bloc de champs : lisible, sans capitales (le titre de section est posé par PropertyForm). */
+const SUBTITLE_CLASS = 'm-0 mb-2 flex items-center gap-1.5 text-xs font-semibold text-foreground';
 
 /**
  * Encart d'interrupteur (fond + filet teintes quand l'option est active).
@@ -69,23 +66,22 @@ export interface PropertyFormSettingsProps {
   cleaningFrequencies: { value: string; label: string }[];
   isAdmin: () => boolean;
   isManager: () => boolean;
+  /** Bloc rendu : gestion (propriétaire, statut, horaires) ou ménage (tarif, prestations à la carte). */
+  part: 'configuration' | 'cleaning';
 }
 
 // ─── Component ──────────────────────────────────────────────────────────────
 
 const PropertyFormSettings: React.FC<PropertyFormSettingsProps> = React.memo(
-  ({ control, errors, users, propertyStatuses, cleaningFrequencies, isAdmin, isManager }) => {
+  ({ control, errors, users, propertyStatuses, cleaningFrequencies, isAdmin, isManager, part }) => {
     const { t } = useTranslation();
 
     return (
       <div className="flex flex-col gap-4">
         {/* ── Configuration ────────────────────────────────────────────── */}
+        {part === 'configuration' && (
         <div>
-          <p className={SECTION_TITLE_CLASS}>
-            {t('properties.configuration')}
-          </p>
-
-          <div className="grid grid-cols-12 gap-[9px]">
+          <div className="grid grid-cols-12 gap-3">
             <div className="col-span-12">
               <Controller
                 name="ownerId"
@@ -284,17 +280,18 @@ const PropertyFormSettings: React.FC<PropertyFormSettingsProps> = React.memo(
             </div>
           </div>
         </div>
-
-        <Separator />
+        )}
 
         {/* ── Tarification ménage ──────────────────────────────────────── */}
+        {part === 'cleaning' && (
+        <>
         <div>
-          <p className={SECTION_TITLE_ICON_CLASS}>
-            <CleaningServices size={14} strokeWidth={1.75} />
+          <p className={SUBTITLE_CLASS}>
+            <CleaningServices size={14} strokeWidth={1.75} className="text-primary" />
             {t('properties.cleaningPricing')}
           </p>
 
-          <div className="grid grid-cols-12 gap-[9px]">
+          <div className="grid grid-cols-12 gap-3">
             <div className="col-span-12">
               <Controller
                 name="cleaningFrequency"
@@ -462,12 +459,12 @@ const PropertyFormSettings: React.FC<PropertyFormSettingsProps> = React.memo(
 
         {/* ── Prestations à la carte ─────────────────────────────────────── */}
         <div>
-          <p className={SECTION_TITLE_ICON_CLASS}>
-            <Window width={14} />
+          <p className={SUBTITLE_CLASS}>
+            <Window width={14} className="text-primary" />
             {t('properties.addOnServices.title')}
           </p>
 
-          <div className="grid grid-cols-12 gap-[9px]">
+          <div className="grid grid-cols-12 gap-3">
             {/* Vitres */}
             <div className="col-span-4">
               <Controller
@@ -597,6 +594,8 @@ const PropertyFormSettings: React.FC<PropertyFormSettingsProps> = React.memo(
             </div>
           </div>
         </div>
+        </>
+        )}
       </div>
     );
   }

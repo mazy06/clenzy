@@ -5531,7 +5531,13 @@
         "title": "Yearly night cap exceeded",
         "hint": "Main residence: 120 nights a year at most. You may override; the organisation’s managers will be notified.",
         "override": "Override and create"
-      }
+      },
+      "stayHint": "Stay dates and access times",
+      "travelerHint": "Who is staying and how to reach them",
+      "pricingHint": "Property rate, discount and total",
+      "extrasSection": "Cleaning, tax and notes",
+      "extrasHint": "Added services, channel reference and notes",
+      "modeLabel": "Entry type"
     },
     "compliance": {
       "title": "Police record",
@@ -20644,5 +20650,146 @@
     "allCategories": "All categories",
     "description": "Description",
     "total": "Total including tax"
+  },
+  "reservationsWorkspace": {
+    "listTitle": "Reservations",
+    "detailLabel": "Reservation details",
+    "allStatuses": "All",
+    "noMatch": "No reservation matches these criteria. Change the search or the filter.",
+    "back": "Back to the list",
+    "chooseTitle": "Choose a reservation",
+    "chooseHint": "The stay, guest, property and payment appear here. Edit or cancel the reservation from this panel.",
+    "notFoundTitle": "Reservation not found",
+    "notFoundHint": "It may have been deleted, or it isn't part of your organisation. Choose another one from the list.",
+    "edit": "Edit",
+    "cancel": "Cancel reservation",
+    "cancelKeep": "Keep reservation",
+    "cancelConfirm": "Yes, cancel",
+    "amount": "Stay amount",
+    "perNight": "per night on average",
+    "arrivalFrom": "from {{time}}",
+    "departureBy": "until {{time}}",
+    "toast": {
+      "created": "Reservation created",
+      "updated": "Reservation updated",
+      "cancelled": "Reservation cancelled"
+    },
+    "guest": {
+      "title": "Guest",
+      "hint": "Contact details and party",
+      "profile": "Profile",
+      "noContact": "No contact details provided",
+      "adults": "Adults",
+      "children": "Children",
+      "travellers": "Guests"
+    },
+    "property": {
+      "title": "Property",
+      "open": "Open property",
+      "capacity": "Capacity: {{guests}} · Bedrooms: {{bedrooms}}"
+    },
+    "payment": {
+      "title": "Payment",
+      "hint": "Collection, commission and payment link",
+      "none": "No online payment",
+      "collection": "Collection",
+      "byChannel": "By {{channel}}",
+      "byYou": "By you, directly",
+      "paidAt": "Paid on",
+      "link": "Payment link",
+      "statuses": {
+        "UNKNOWN": "Payment to check",
+        "PENDING": "Awaiting payment",
+        "PROCESSING": "Payment in progress",
+        "PARTIALLY_PAID": "Deposit paid, balance due",
+        "PAID": "Paid",
+        "FAILED": "Payment failed",
+        "REFUNDED": "Refunded",
+        "PARTIALLY_REFUNDED": "Partially refunded",
+        "CANCELLED": "Cancelled",
+        "NOT_REQUIRED": "No payment required"
+      }
+    },
+    "notes": {
+      "title": "Notes",
+      "hint": "Internal notes for this reservation"
+    }
+  },
+  "propertyWorkspace": {
+    "form": {
+      "navLabel": "Sections",
+      "editSubtitle": "Edit the property section by section, then save.",
+      "gps": "Position on the map",
+      "gpsHelper": "No coordinates found for this address. Click the map or drag the pin to place the property.",
+      "identity": {
+        "title": "Identity",
+        "hint": "Name, type and description of the property"
+      },
+      "address": {
+        "title": "Address",
+        "hint": "Country, address, time zone and position"
+      },
+      "characteristics": {
+        "title": "Capacity and rate",
+        "hint": "Bedrooms, surface, guests, nightly rate"
+      },
+      "amenities": {
+        "title": "Amenities",
+        "hint": "What guests find on site"
+      },
+      "management": {
+        "title": "Management",
+        "hint": "Owner, status, visibility and times"
+      },
+      "cleaning": {
+        "title": "Cleaning",
+        "hint": "Estimate, rate and add-on services"
+      },
+      "touristTax": {
+        "title": "Tourist tax",
+        "hint": "Rates applied to guests"
+      }
+    },
+    "overview": {
+      "nightlyPrice": "Nightly rate",
+      "cleaning": {
+        "title": "Cleaning",
+        "hint": "Estimate, frequency and instructions for the team"
+      },
+      "description": {
+        "title": "Description",
+        "hint": "The property as guests discover it"
+      },
+      "amenities": {
+        "hint": "What guests find on site",
+        "empty": "No amenities yet. Add them when editing the property."
+      },
+      "access": {
+        "title": "Guest arrival",
+        "hint": "Times, access and house rules",
+        "empty": "No arrival instructions yet. Add the access code, wifi and house rules.",
+        "notes": "Additional information"
+      },
+      "location": {
+        "title": "Location",
+        "city": "City",
+        "coordinates": "GPS coordinates",
+        "openGoogleMaps": "Open in Google Maps"
+      },
+      "management": {
+        "title": "Management",
+        "hint": "Owner and record history",
+        "updatedAt": "Last modified"
+      },
+      "view": {
+        "label": "Banner view",
+        "photos": "Show photos",
+        "map": "Show on the map"
+      }
+    },
+    "channels": {
+      "title": "Distribution channels",
+      "hint": "Where this property is offered to guests"
+    }
   }
 }
