@@ -1,0 +1,37 @@
+# ===========================================
+# Clenzy - Contrôle des imports
+# ===========================================
+# Échoue si un import (JS/TS/CSS, relatif ou par alias @/ et @shared/) pointe vers un fichier
+# qui n'existe pas. `tsc` ne vérifie pas les imports CSS/assets : un fichier supprimé par erreur
+# (ex. documentStatusIcon.css) ne cassait que `vite build` ou le serveur de dev.
+# Aucune dépendance à installer : un script Python lit les sources (~1 s).
+#
+# Pas de filtre `paths:` : le contrôle est quasi gratuit et doit voir tout changement de fichier.
+
+name: CI Imports
+
+on:
+  push:
+    branches: [main, develop, production]
+  pull_request:
+    branches: [main, develop, production]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: imports-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  check-imports:
+    name: Imports resolve to existing files
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - name: Self-test of the checker
+        working-directory: scripts/ci
+        run: python3 -m unittest test_check_imports -v
+      - name: Check every import
+        run: python3 scripts/ci/check_imports.py
