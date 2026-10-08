@@ -16,6 +16,11 @@ class FinancialRecipeTest(unittest.TestCase):
                     "jdbc:postgresql://localhost:5432/postgres", "jdbc:postgresql://localhost:5432/test?password=secret"):
             with self.assertRaises(ValueError): recipe.validate_jdbc(url)
 
+    def test_only_a_local_pdf_engine_is_allowed(self):
+        self.assertEqual(recipe.validate_pdf_url("http://127.0.0.1:3000"), "http://127.0.0.1:3000")
+        for url in (None, "", "https://127.0.0.1:3000", "http://gotenberg:3000", "http://127.0.0.1:3000/forms", "http://example.com:3000"):
+            with self.assertRaises(ValueError): recipe.validate_pdf_url(url)
+
     def test_no_selector_may_disappear_silently(self):
         files = [Path("OneTest.java"), Path("TwoTest.java")]
         self.assertEqual(recipe.required_backend(["*Test"], files), {"OneTest", "TwoTest"})

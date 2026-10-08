@@ -25,6 +25,13 @@ def validate_jdbc(value):
     return value
 
 
+def validate_pdf_url(value):
+    # Moteur PDF (Gotenberg) éphémère du poste ou du runner : jamais un service partagé.
+    if not re.fullmatch(r"http://(?:127\.0\.0\.1|localhost):\d+", value or ""):
+        raise ValueError("Fournir --pdf-url : moteur PDF local de test (http://127.0.0.1:<port>), requis par les rendus réels.")
+    return value
+
+
 def required_backend(selectors, files):
     names = {path.stem for path in files}
     required = set()
@@ -81,6 +88,7 @@ def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--scope", choices=("all", "backend", "frontend"), default="all")
     parser.add_argument("--jdbc", help="Base PostgreSQL éphémère déjà démarrée ; aucun conteneur n'est géré.")
+    parser.add_argument("--pdf-url", help="Moteur PDF (Gotenberg) local déjà démarré, requis pour le backend.")
     parser.add_argument("--output", type=Path, help="Dossier de rapports neuf (doit ne pas exister).")
     parser.add_argument("--list", action="store_true", help="Lister les suites sans les exécuter.")
     args = parser.parse_args(argv)
@@ -95,6 +103,7 @@ def main(argv=None):
         return 0
     if args.scope != "frontend":
         validate_jdbc(args.jdbc)
+        validate_pdf_url(args.pdf_url)
     if args.output:
         output = args.output.resolve(); output.mkdir(parents=True, exist_ok=False)
     else:
@@ -105,7 +114,7 @@ def main(argv=None):
     try:
         if args.scope != "frontend":
             reports = output / "backend"
-            run(["mvn", "-B", "-Dtest=" + ",".join(manifest["backend"]), "-Dbaitly.test.jdbc=" + args.jdbc,
+            run(["mvn", "-B", "-Dtest=" + ",".join(manifest["backend"]), "-Dbaitly.test.jdbc=" + args.jdbc, "-Dbaitly.test.pdf-url=" + args.pdf_url,
                  "-Dbaitly.test.reportsDirectory=" + str(reports), "test"], ROOT / "server", output / "backend.log")
             results["backend"] = verify_reports(reports.glob("TEST-*.xml"), backend)
         if args.scope != "backend":
