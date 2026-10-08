@@ -86,7 +86,7 @@ class BaitlyMaintenanceRefundPostgresTest {
         var ledger=new LedgerService(repo(em,LedgerEntryRepository.class));ledger.recordTransfer(wallet(1L),wallet(2L),new BigDecimal("100"),LedgerReferenceType.PAYMENT,"364","Paiement intervention test");
         ledger.recordTransfer(wallet(2L),wallet(3L),new BigDecimal("90"),LedgerReferenceType.SPLIT,"SPLIT-INTERVENTION-364","Répartition test");
         em.persist(new InvoiceNumberSequence(7L,"FA",LocalDate.now().getYear()));
-        var invoice=new Invoice();invoice.setSellerName("Émetteur test");invoice.setSellerAddress("1 rue de la Simulation, Paris");invoice.setSellerTaxId("FR-TEST-ONLY");invoice.setOrganizationId(7L);invoice.setInvoiceNumber("FA-TEST");invoice.setInvoiceDate(LocalDate.now());invoice.setInvoiceType(InvoiceType.GUEST);
+        var invoice=new Invoice();invoice.setSellerName("Émetteur test");invoice.setSellerAddress("1 rue de la Simulation, Paris");invoice.setSellerTaxId("FR-TEST-ONLY");invoice.setBuyerName("Voyageur test");invoice.setOrganizationId(7L);invoice.setInvoiceNumber("FA-TEST");invoice.setInvoiceDate(LocalDate.now());invoice.setInvoiceType(InvoiceType.GUEST);
         invoice.setStatus(InvoiceStatus.PAID);invoice.setInterventionId(364L);invoice.setTotalHt(new BigDecimal("83.33"));invoice.setTotalTax(new BigDecimal("16.67"));invoice.setTotalTtc(new BigDecimal("100"));
         invoice.addLine(RefundCreditNotePersistenceTest.line(1,"83.33","16.67","100","0.20"));em.persist(invoice);return null;});}
     List<String> refundRefs(){return tx(em->rows(em).stream().filter(p->p.getPaymentType()==TransactionType.REFUND).sorted(Comparator.comparing(PaymentTransaction::getId)).map(PaymentTransaction::getTransactionRef).toList());}
