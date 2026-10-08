@@ -51,7 +51,17 @@
     "src/modules/invoices/BaitlyDocumentVerificationPanel.integration.test.tsx",
     "src/modules/documents/ComplianceDashboard.integration.test.tsx",
     "src/modules/documents/UnifiedHistoryTab.tsx",
-    "src/modules/reports/FiscalReportSection.tsx"
+    "src/modules/reports/FiscalReportSection.tsx",
+    "src/modules/documents/TemplatePdfPreview.integration.test.tsx",
+    "src/modules/documents/TemplatesList.integration.test.tsx",
+    "src/components/BaitlyPdfPreview.test.tsx",
+    "src/modules/documents/DocumentsWorkspace.test.tsx",
+    "src/modules/documents/DocumentMessages.integration.test.tsx",
+    "src/modules/documents/UnifiedHistoryTab.integration.test.tsx",
+    "src/modules/documents/AmendmentArchives.test.tsx",
+    "src/modules/documents/EmailTemplatePreview.integration.test.tsx",
+    "src/modules/documents/DocumentsAutoLayout.test.tsx",
+    "src/hooks/__tests__/usePageHeaderLayout.test.tsx"
   ],
   "exclude": []
 }
