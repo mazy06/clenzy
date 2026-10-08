@@ -1,7 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { View, Text, ScrollView, Pressable, RefreshControl, useWindowDimensions, LayoutAnimation, Platform, UIManager } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Ionicons } from '@expo/vector-icons';
+import { Reicon } from '@/icons';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useReservations } from '@/hooks/useReservations';
@@ -268,7 +268,7 @@ export function ReservationCalendarScreen() {
                   alignItems: 'center', justifyContent: 'center',
                 })}
               >
-                <Ionicons name="chevron-back" size={20} color={theme.colors.primary.main} />
+                <Reicon name="chevron-back" size={20} color={theme.colors.primary.main} />
               </Pressable>
               <View style={{ alignItems: 'center' }}>
                 <Text style={{ ...theme.typography.h3, color: theme.colors.text.primary }}>
@@ -287,7 +287,7 @@ export function ReservationCalendarScreen() {
                   alignItems: 'center', justifyContent: 'center',
                 })}
               >
-                <Ionicons name="chevron-forward" size={20} color={theme.colors.primary.main} />
+                <Reicon name="chevron-forward" size={20} color={theme.colors.primary.main} />
               </Pressable>
             </View>
           </Card>
@@ -313,7 +313,7 @@ export function ReservationCalendarScreen() {
                       borderColor: isActive ? f.color : theme.colors.border.main,
                     }}
                   >
-                    <Ionicons name={f.icon as any} size={14} color={isActive ? '#FFFFFF' : f.color} />
+                    <Reicon name={f.icon as any} size={14} color={isActive ? '#FFFFFF' : f.color} />
                     <Text style={{
                       ...theme.typography.caption,
                       fontWeight: '600',
@@ -449,7 +449,7 @@ export function ReservationCalendarScreen() {
                       {!isCompact && intIcons.length > 0 && (
                         <View style={{ flexDirection: 'row', gap: 3, marginTop: statusBars.length > 0 ? 1 : 3 }}>
                           {intIcons.map((cfg, i) => (
-                            <Ionicons
+                            <Reicon
                               key={i}
                               name={cfg.icon as any}
                               size={9}
@@ -504,7 +504,7 @@ export function ReservationCalendarScreen() {
                 alignItems: 'center', justifyContent: 'center',
                 marginBottom: theme.SPACING.md,
               }}>
-                <Ionicons name="hand-left-outline" size={22} color={theme.colors.primary.light} />
+                <Reicon name="hand-left-outline" size={22} color={theme.colors.primary.light} />
               </View>
               <Text style={{ ...theme.typography.body2, color: theme.colors.text.secondary, textAlign: 'center' }}>
                 Selectionnez un jour pour voir les details

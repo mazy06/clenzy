@@ -94,14 +94,11 @@ export default function AffiliateImportDialog({
     }
   };
 
-  const totals = (result ?? []).reduce(
-    (acc, row) => ({
-      gross: acc.gross + (row.grossCommission ?? 0),
-      platform: acc.platform + (row.platformShare ?? 0),
-      host: acc.host + (row.hostShare ?? 0),
-    }),
-    { gross: 0, platform: 0, host: 0 },
-  );
+  const totals = Object.entries((result ?? []).reduce<Record<string, {gross:number;platform:number;host:number}>>((acc, row) => {
+    const total = acc[row.currency] ?? {gross:0,platform:0,host:0};
+    acc[row.currency] = {gross:total.gross+row.grossCommission,platform:total.platform+row.platformShare,host:total.host+row.hostShare};
+    return acc;
+  }, {}));
 
   const providerLabel = provider ? PROVIDER_LABELS[provider] ?? provider : "";
 
@@ -167,24 +164,24 @@ export default function AffiliateImportDialog({
                     })}
                   </AlertDescription>
                 </Alert>
-                <div className="flex flex-col gap-[5.25px]">
+                {totals.map(([currency, total]) => <div key={currency} className="mb-3 flex flex-col gap-[5.25px]">
                   {[
                     {
                       key: "gross",
-                      label: t("settings.services.importGross", "Commission perçue"),
-                      value: totals.gross,
+                      label: t("settings.services.importGross", "Commission attendue"),
+                      value: total.gross,
                       strong: false,
                     },
                     {
                       key: "platform",
                       label: t("settings.split.platformShare"),
-                      value: totals.platform,
+                      value: total.platform,
                       strong: false,
                     },
                     {
                       key: "host",
                       label: t("settings.split.ownerShare"),
-                      value: totals.host,
+                      value: total.host,
                       strong: true,
                     },
                   ].map((line) => (
@@ -200,15 +197,15 @@ export default function AffiliateImportDialog({
                             : "font-medium text-muted-foreground",
                         )}
                       >
-                        {formatMoney(line.value)}
+                        {formatMoney(line.value)} {currency}
                       </p>
                     </div>
                   ))}
-                </div>
+                </div>)}
                 <p className="text-xs text-muted-foreground mt-2 leading-relaxed">
                   {t(
                     "settings.services.importIdempotent",
-                    "Les références déjà importées sont renvoyées sans être créditées une seconde fois.",
+                    "Un rapport ne confirme pas la réception des fonds. Rapprochez le règlement avec son justificatif.",
                   )}
                 </p>
               </>

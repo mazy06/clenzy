@@ -31,6 +31,8 @@ interface CartDrawerProps {
   onUpdateQuantity: (productId: string, delta: number) => void;
   onRemoveItem: (productId: string) => void;
   onCheckout: () => void;
+  busy?: boolean;
+  error?: string;
 }
 
 const CartDrawer: React.FC<CartDrawerProps> = ({
@@ -40,6 +42,8 @@ const CartDrawer: React.FC<CartDrawerProps> = ({
   onUpdateQuantity,
   onRemoveItem,
   onCheckout,
+  busy = false,
+  error,
 }) => {
   const { t } = useTranslation();
 
@@ -160,6 +164,7 @@ const CartDrawer: React.FC<CartDrawerProps> = ({
           )}
         </div>
 
+        {error && <p role="alert" className="px-3.5 py-2 text-sm text-destructive-ink">{error}</p>}
         {/* Footer */}
         {!isEmpty && (
           <div className="border-t border-solid border-border px-3.5 py-3 bg-card">
@@ -199,6 +204,7 @@ const CartDrawer: React.FC<CartDrawerProps> = ({
               className="w-full shrink"
               size="lg"
               onClick={onCheckout}
+              disabled={busy}
             >
               {t('shop.checkout')}
             </Button>

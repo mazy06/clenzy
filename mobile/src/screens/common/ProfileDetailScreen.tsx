@@ -2,7 +2,7 @@ import React, { useState, useCallback } from 'react';
 import { View, Text, ScrollView, Alert, Pressable, KeyboardAvoidingView, Platform } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
-import { Ionicons } from '@expo/vector-icons';
+import { Reicon } from '@/icons';
 import { useAuthStore, AuthUser } from '@/store/authStore';
 import { Card } from '@/components/ui/Card';
 import { Avatar } from '@/components/ui/Avatar';
@@ -124,7 +124,7 @@ export function ProfileDetailScreen() {
               ...theme.shadows.xs,
             })}
           >
-            <Ionicons name="arrow-back" size={20} color={theme.colors.text.primary} />
+            <Reicon name="arrow-back" size={20} color={theme.colors.text.primary} />
           </Pressable>
           <Text style={{ ...theme.typography.h3, color: theme.colors.text.primary, flex: 1 }}>
             Mon profil
@@ -301,7 +301,7 @@ export function ProfileDetailScreen() {
 function ReadOnlyField({ label, value, icon, theme, isLast = false, showChevron = false }: {
   label: string;
   value: string;
-  icon: keyof typeof Ionicons.glyphMap;
+  icon: keyof typeof Reicon.glyphMap;
   theme: ReturnType<typeof useTheme>;
   isLast?: boolean;
   showChevron?: boolean;
@@ -323,7 +323,7 @@ function ReadOnlyField({ label, value, icon, theme, isLast = false, showChevron 
         justifyContent: 'center',
         marginRight: theme.SPACING.md,
       }}>
-        <Ionicons name={icon} size={16} color={theme.colors.text.disabled} />
+        <Reicon name={icon} size={16} color={theme.colors.text.disabled} />
       </View>
       <View style={{ flex: 1 }}>
         <Text style={{ ...theme.typography.caption, color: theme.colors.text.disabled }}>
@@ -334,7 +334,7 @@ function ReadOnlyField({ label, value, icon, theme, isLast = false, showChevron 
         </Text>
       </View>
       {showChevron && (
-        <Ionicons name="chevron-forward" size={16} color={theme.colors.text.disabled} />
+        <Reicon name="chevron-forward" size={16} color={theme.colors.text.disabled} />
       )}
     </View>
   );

@@ -1,7 +1,7 @@
 import React, { useState, useCallback, useRef, useEffect } from 'react';
 import { View, Text, TextInput, ScrollView, Alert, StyleSheet, Pressable, AppState } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Ionicons } from '@expo/vector-icons';
+import { Reicon } from '@/icons';
 import { useRoute, useNavigation } from '@react-navigation/native';
 import type { RouteProp } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -64,7 +64,7 @@ function PartsListCard({
             backgroundColor: `${theme.colors.primary.main}10`,
           }}
         >
-          <Ionicons name="add" size={14} color={theme.colors.primary.main} />
+          <Reicon name="add" size={14} color={theme.colors.primary.main} />
           <Text style={{ ...theme.typography.caption, color: theme.colors.primary.main, fontWeight: '600' }}>Ajouter</Text>
         </Pressable>
       </View>
@@ -109,7 +109,7 @@ function PartsListCard({
                 style={[styles.partInput, { flex: 1.5, textAlign: 'center', borderColor: theme.colors.border.light, color: theme.colors.text.primary }]}
               />
               <Pressable onPress={() => onRemovePart(part.id)} hitSlop={6} style={{ width: 28, alignItems: 'center' }}>
-                <Ionicons name="close-circle-outline" size={18} color={theme.colors.error.main} />
+                <Reicon name="close-circle-outline" size={18} color={theme.colors.error.main} />
               </Pressable>
             </View>
           ))}
@@ -337,7 +337,7 @@ export function DiagnosticFormScreen() {
                   backgroundColor: `${theme.colors.primary.main}12`,
                   alignItems: 'center', justifyContent: 'center',
                 }}>
-                  <Ionicons name="timer-outline" size={18} color={theme.colors.primary.main} />
+                  <Reicon name="timer-outline" size={18} color={theme.colors.primary.main} />
                 </View>
                 <View>
                   <Text style={{ ...theme.typography.caption, color: theme.colors.text.secondary }}>Temps de travail</Text>
@@ -385,9 +385,9 @@ export function DiagnosticFormScreen() {
                   alignItems: 'center', justifyContent: 'center',
                 }}>
                   {isDone ? (
-                    <Ionicons name="checkmark" size={14} color="#fff" />
+                    <Reicon name="checkmark" size={14} color="#fff" />
                   ) : (
-                    <Ionicons name={step.icon} size={14} color={isActive ? '#fff' : theme.colors.text.disabled} />
+                    <Reicon name={step.icon} size={14} color={isActive ? '#fff' : theme.colors.text.disabled} />
                   )}
                 </View>
                 <Text style={{
@@ -398,7 +398,7 @@ export function DiagnosticFormScreen() {
                   {step.label}
                 </Text>
                 {isActive && (
-                  <Ionicons name="chevron-forward" size={14} color={theme.colors.primary.main} />
+                  <Reicon name="chevron-forward" size={14} color={theme.colors.primary.main} />
                 )}
               </Pressable>
             );
@@ -476,7 +476,7 @@ export function DiagnosticFormScreen() {
               backgroundColor: pressed ? `${theme.colors.info.main}12` : 'transparent',
             })}
           >
-            <Ionicons name="chatbubbles-outline" size={18} color={theme.colors.info.main} />
+            <Reicon name="chatbubbles-outline" size={18} color={theme.colors.info.main} />
             <Text style={{ ...theme.typography.body2, color: theme.colors.info.main, fontWeight: '600' }}>
               Demander validation
             </Text>
@@ -489,7 +489,7 @@ export function DiagnosticFormScreen() {
             <>
               <Button title="Documenter (photos)" variant="outlined" onPress={handleGoToPhotos} fullWidth />
               <Button title="Rapport final" variant="outlined" onPress={handleGoToReport} fullWidth />
-              <Button title="Signature client" color="success" onPress={handleGoToSignature} fullWidth icon={<Ionicons name="pencil-outline" size={16} color="#fff" />} />
+              <Button title="Signature client" color="success" onPress={handleGoToSignature} fullWidth icon={<Reicon name="pencil-outline" size={16} color="#fff" />} />
             </>
           )}
         </View>

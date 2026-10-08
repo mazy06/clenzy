@@ -1,7 +1,7 @@
 import React, { useMemo, useState } from 'react';
 import { cn } from '../../utils/cn';
 import { Alert as BuiAlert, AlertDescription, AlertAction, Button as BuiButton } from '../../components/ui';
-import { TriangleAlert, X } from 'lucide-react';
+import { TriangleAlert, X } from '../../icons/glyphs';
 import { Spinner } from '../../components/ui';
 import { Card } from '../../components/ui';
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '../../components/ui';
@@ -76,7 +76,7 @@ function discountLabel(promo: PromoCode): string {
   if (promo.discountType === 'PERCENTAGE') {
     return `-${promo.discountValue}%`;
   }
-  return `-${(promo.discountValue / 100).toFixed(2).replace('.', ',')}€`;
+  return `-${(promo.discountValue / 100).toFixed(2).replace('.', ',')} ${promo.currency ?? '?'}`;
 }
 
 function usageLabel(promo: PromoCode): string {
@@ -99,6 +99,7 @@ function CreateCodeDialog({ open, onClose, onCreated }: CreateDialogProps) {
   const [code, setCode] = useState('');
   const [discountType, setDiscountType] = useState<'PERCENTAGE' | 'FIXED'>('PERCENTAGE');
   const [discountValue, setDiscountValue] = useState('');
+  const [currency, setCurrency] = useState('EUR');
   const [maxUses, setMaxUses] = useState('');
   const [validFrom, setValidFrom] = useState('');
   const [validUntil, setValidUntil] = useState('');
@@ -147,6 +148,7 @@ function CreateCodeDialog({ open, onClose, onCreated }: CreateDialogProps) {
       code: code.trim().toUpperCase(),
       discountType,
       discountValue: valueNum,
+      currency: discountType === 'FIXED' ? currency : null,
       maxUses: maxUses ? parseInt(maxUses, 10) : null,
       validFrom: validFrom ? `${validFrom}T00:00:00` : null,
       validUntil: validUntil ? `${validUntil}T23:59:59` : null,
@@ -204,7 +206,7 @@ function CreateCodeDialog({ open, onClose, onCreated }: CreateDialogProps) {
                 onChange={(e) => setDiscountType(e.target.value as 'PERCENTAGE' | 'FIXED')}
               >
                 <option value="PERCENTAGE">Pourcentage (%)</option>
-                <option value="FIXED">Montant fixe (€)</option>
+                <option value="FIXED">{t('monthlySubscription.fixedDiscount')}</option>
               </NativeSelect>
             </Field>
 
@@ -224,10 +226,14 @@ function CreateCodeDialog({ open, onClose, onCreated }: CreateDialogProps) {
                 </InputGroupAddon>
               </InputGroup>
               <FieldDescription>
-                {discountType === 'PERCENTAGE' ? t('admin.promo.betweenOneHundred') : 'Centimes (500 = 5,00€)'}
+                {discountType === 'PERCENTAGE' ? t('admin.promo.betweenOneHundred') : `500 = 5,00 ${currency}`}
               </FieldDescription>
             </Field>
           </div>
+
+          {discountType === 'FIXED' && <Field><FieldLabel htmlFor="promo-currency">{t('monthlySubscription.currency')}</FieldLabel>
+            <NativeSelect id="promo-currency" value={currency} onChange={e => setCurrency(e.target.value)}><option>EUR</option><option>MAD</option><option>SAR</option></NativeSelect>
+          </Field>}
 
           <Field>
             <FieldLabel htmlFor="promo-max-uses">Nombre maximum d'utilisations</FieldLabel>

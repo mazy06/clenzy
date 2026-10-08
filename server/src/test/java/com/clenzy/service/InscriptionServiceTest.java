@@ -51,6 +51,7 @@ class InscriptionServiceTest {
     @Mock private com.clenzy.payment.subscription.SubscriptionProviderRegistry subscriptionProviderRegistry;
     @Mock private com.clenzy.payment.subscription.SubscriptionProvider subscriptionProvider;
 
+    @Mock private BaitlySignupCheckout signupCheckout;
     private InscriptionService inscriptionService;
 
     @BeforeEach
@@ -59,7 +60,7 @@ class InscriptionServiceTest {
                 pendingInscriptionRepository, userRepository,
                 keycloakService, organizationService, pricingConfigService,
                 emailService, restTemplate, promoCodeService, brevoContactService,
-                stripeGateway, subscriptionProviderRegistry);
+                stripeGateway, subscriptionProviderRegistry, signupCheckout);
 
         setField(inscriptionService, "currency", "EUR");
         setField(inscriptionService, "inscriptionReturnUrl", "http://localhost:3000/inscription/success");
@@ -91,238 +92,13 @@ class InscriptionServiceTest {
         return pending;
     }
 
-    // ===== INITIATE INSCRIPTION =====
-
-    @Nested
-    @DisplayName("initiateInscription")
-    class InitiateInscription {
-
-        @Test
-        @DisplayName("when CGU not accepted then throws RuntimeException")
-        void whenCguNotAccepted_thenThrows() {
-            // Arrange
-            com.clenzy.dto.InscriptionDto dto = new com.clenzy.dto.InscriptionDto();
-            dto.setFullName("Jean Dupont");
-            dto.setEmail("nocgu@test.com");
-            dto.setForfait("essentiel");
-            dto.setBillingPeriod("MONTHLY");
-            dto.setAcceptedTerms(false); // explicit refus
-
-            // Act & Assert
-            assertThatThrownBy(() -> inscriptionService.initiateInscription(dto))
-                    .isInstanceOf(RuntimeException.class)
-                    .hasMessageContaining("conditions generales");
-
-            // L'email check ne doit pas etre atteint
-            verify(userRepository, never()).existsByEmailHash(anyString());
-        }
-
-        @Test
-        @DisplayName("when email already exists then throws RuntimeException")
-        void whenEmailAlreadyExists_thenThrows() {
-            // Arrange
-            com.clenzy.dto.InscriptionDto dto = new com.clenzy.dto.InscriptionDto();
-            dto.setFullName("Jean Dupont");
-            dto.setEmail("existing@test.com");
-            dto.setForfait("essentiel");
-            dto.setBillingPeriod("MONTHLY");
-            dto.setAcceptedTerms(true);
-
-            String emailHash = StringUtils.computeEmailHash("existing@test.com");
-            when(userRepository.existsByEmailHash(emailHash)).thenReturn(true);
-
-            // Act & Assert
-            assertThatThrownBy(() -> inscriptionService.initiateInscription(dto))
-                    .isInstanceOf(RuntimeException.class)
-                    .hasMessageContaining("Impossible de traiter");
-        }
-
-        @Test
-        @DisplayName("when existing pending inscription then deletes old before creating new")
-        void whenExistingPending_thenDeletesOld() {
-            // Arrange
-            com.clenzy.dto.InscriptionDto dto = new com.clenzy.dto.InscriptionDto();
-            dto.setFullName("Jean Dupont");
-            dto.setEmail("jean@test.com");
-            dto.setForfait("essentiel");
-            dto.setBillingPeriod("MONTHLY");
-            dto.setAcceptedTerms(true);
-
-            String emailHash = StringUtils.computeEmailHash("jean@test.com");
-            when(userRepository.existsByEmailHash(emailHash)).thenReturn(false);
-            when(pricingConfigService.getPmsMonthlyPriceCents()).thenReturn(3000);
-
-            PendingInscription existing = buildPending("jean@test.com", "old-sess");
-            when(pendingInscriptionRepository.findByEmailAndStatus("jean@test.com", PendingInscriptionStatus.PENDING_PAYMENT))
-                    .thenReturn(Optional.of(existing));
-
-            // Note: le gateway mocke retourne null -> NPE apres la creation de session
-            assertThatThrownBy(() -> inscriptionService.initiateInscription(dto))
-                    .isInstanceOf(Exception.class);
-
-            verify(pendingInscriptionRepository).delete(existing);
-        }
-
-        @Test
-        @DisplayName("when calendarSync is sync then uses sync price from PricingConfig")
-        void whenSyncMode_thenUsesSyncPrice() {
-            // Arrange
-            com.clenzy.dto.InscriptionDto dto = new com.clenzy.dto.InscriptionDto();
-            dto.setFullName("Jean Dupont");
-            dto.setEmail("sync@test.com");
-            dto.setForfait("premium");
-            dto.setBillingPeriod("MONTHLY");
-            dto.setCalendarSync("sync");
-            dto.setAcceptedTerms(true);
-
-            String emailHash = StringUtils.computeEmailHash("sync@test.com");
-            when(userRepository.existsByEmailHash(emailHash)).thenReturn(false);
-            when(pricingConfigService.getPmsSyncPriceCents()).thenReturn(5000);
-
-            when(pendingInscriptionRepository.findByEmailAndStatus("sync@test.com", PendingInscriptionStatus.PENDING_PAYMENT))
-                    .thenReturn(Optional.empty());
-
-            assertThatThrownBy(() -> inscriptionService.initiateInscription(dto))
-                    .isInstanceOf(Exception.class);
-
-            verify(pricingConfigService).getPmsSyncPriceCents();
-            verify(pricingConfigService, never()).getPmsMonthlyPriceCents();
-        }
-
-        @Test
-        @DisplayName("when calendarSync is not sync then uses monthly price from PricingConfig")
-        void whenNonSyncMode_thenUsesMonthlyPrice() {
-            // Arrange
-            com.clenzy.dto.InscriptionDto dto = new com.clenzy.dto.InscriptionDto();
-            dto.setFullName("Jean Dupont");
-            dto.setEmail("nosync@test.com");
-            dto.setForfait("essentiel");
-            dto.setBillingPeriod("MONTHLY");
-            dto.setCalendarSync("manuel");
-            dto.setAcceptedTerms(true);
-
-            String emailHash = StringUtils.computeEmailHash("nosync@test.com");
-            when(userRepository.existsByEmailHash(emailHash)).thenReturn(false);
-            when(pricingConfigService.getPmsMonthlyPriceCents()).thenReturn(3500);
-
-            when(pendingInscriptionRepository.findByEmailAndStatus("nosync@test.com", PendingInscriptionStatus.PENDING_PAYMENT))
-                    .thenReturn(Optional.empty());
-
-            assertThatThrownBy(() -> inscriptionService.initiateInscription(dto))
-                    .isInstanceOf(Exception.class);
-
-            verify(pricingConfigService).getPmsMonthlyPriceCents();
-            verify(pricingConfigService, never()).getPmsSyncPriceCents();
-        }
-
-        @Test
-        @DisplayName("inclut le supplément IA du forfait choisi dans le montant Stripe (X5)")
-        void whenInitiate_thenAmountIncludesAiSurcharge() throws Exception {
-            // Arrange
-            com.clenzy.dto.InscriptionDto dto = new com.clenzy.dto.InscriptionDto();
-            dto.setFullName("Jean Dupont");
-            dto.setEmail("x5@test.com");
-            dto.setForfait("confort");
-            dto.setBillingPeriod("MONTHLY");
-            dto.setAcceptedTerms(true);
-
-            String emailHash = StringUtils.computeEmailHash("x5@test.com");
-            when(userRepository.existsByEmailHash(emailHash)).thenReturn(false);
-            when(pricingConfigService.getPmsMonthlyPriceCents()).thenReturn(3000);
-            when(pricingConfigService.getAiMonthlySurchargeCents("confort")).thenReturn(2900);
-            when(pendingInscriptionRepository.findByEmailAndStatus("x5@test.com", PendingInscriptionStatus.PENDING_PAYMENT))
-                    .thenReturn(Optional.empty());
-            when(subscriptionProviderRegistry.resolve(any())).thenReturn(subscriptionProvider);
-            when(subscriptionProvider.createSubscriptionCheckout(any()))
-                    .thenReturn(com.clenzy.payment.PaymentResult.embedded("cs_x", "secret"));
-
-            // Act
-            inscriptionService.initiateInscription(dto);
-
-            // Assert : montant = 30 € PMS + 29 € supplément IA Confort
-            ArgumentCaptor<com.clenzy.payment.subscription.SubscriptionCheckoutRequest> captor =
-                    ArgumentCaptor.forClass(com.clenzy.payment.subscription.SubscriptionCheckoutRequest.class);
-            verify(subscriptionProvider).createSubscriptionCheckout(captor.capture());
-            assertThat(captor.getValue().unitAmountMinor()).isEqualTo(5900L);
-        }
-
-        @Test
-        @DisplayName("when organizationType is SYSTEM then throws RuntimeException")
-        void whenSystemOrgType_thenThrows() {
-            // Arrange
-            com.clenzy.dto.InscriptionDto dto = new com.clenzy.dto.InscriptionDto();
-            dto.setFullName("Jean Dupont");
-            dto.setEmail("system@test.com");
-            dto.setForfait("essentiel");
-            dto.setBillingPeriod("MONTHLY");
-            dto.setOrganizationType("SYSTEM");
-            dto.setAcceptedTerms(true);
-
-            String emailHash = StringUtils.computeEmailHash("system@test.com");
-            when(userRepository.existsByEmailHash(emailHash)).thenReturn(false);
-            when(pendingInscriptionRepository.findByEmailAndStatus("system@test.com", PendingInscriptionStatus.PENDING_PAYMENT))
-                    .thenReturn(Optional.empty());
-
-            assertThatThrownBy(() -> inscriptionService.initiateInscription(dto))
-                    .isInstanceOf(RuntimeException.class)
-                    .hasMessageContaining("non autorise");
-        }
-
-        @Test
-        @DisplayName("when pro org type without companyName then throws RuntimeException")
-        void whenProTypeWithoutCompanyName_thenThrows() {
-            // Arrange
-            com.clenzy.dto.InscriptionDto dto = new com.clenzy.dto.InscriptionDto();
-            dto.setFullName("Jean Dupont");
-            dto.setEmail("prononame@test.com");
-            dto.setForfait("essentiel");
-            dto.setBillingPeriod("MONTHLY");
-            dto.setOrganizationType("CONCIERGE");
-            dto.setCompanyName("");
-            dto.setAcceptedTerms(true);
-
-            String emailHash = StringUtils.computeEmailHash("prononame@test.com");
-            when(userRepository.existsByEmailHash(emailHash)).thenReturn(false);
-            when(pendingInscriptionRepository.findByEmailAndStatus("prononame@test.com", PendingInscriptionStatus.PENDING_PAYMENT))
-                    .thenReturn(Optional.empty());
-
-            assertThatThrownBy(() -> inscriptionService.initiateInscription(dto))
-                    .isInstanceOf(RuntimeException.class)
-                    .hasMessageContaining("nom de la societe");
-        }
-
-        @Test
-        @DisplayName("MONTHLY billing uses month interval and no discount")
-        void whenMonthlyBilling_thenUsesMonthInterval() {
-            com.clenzy.dto.InscriptionDto dto = new com.clenzy.dto.InscriptionDto();
-            dto.setBillingPeriod("MONTHLY");
-            BillingPeriod period = dto.getBillingPeriodEnum();
-            assertThat(period).isEqualTo(BillingPeriod.MONTHLY);
-            assertThat(period.getDiscount()).isEqualTo(1.0);
-            assertThat(period.computeMonthlyPriceCents(500)).isEqualTo(500);
-        }
-
-        @Test
-        @DisplayName("ANNUAL billing applies 20 percent discount")
-        void whenAnnualBilling_thenAppliesDiscount() {
-            com.clenzy.dto.InscriptionDto dto = new com.clenzy.dto.InscriptionDto();
-            dto.setBillingPeriod("ANNUAL");
-            BillingPeriod period = dto.getBillingPeriodEnum();
-            assertThat(period).isEqualTo(BillingPeriod.ANNUAL);
-            assertThat(period.getDiscount()).isEqualTo(0.80);
-            assertThat(period.computeMonthlyPriceCents(500)).isEqualTo(400);
-        }
-
-        @Test
-        @DisplayName("BIENNIAL billing applies 35 percent discount")
-        void whenBiennialBilling_thenAppliesDiscount() {
-            com.clenzy.dto.InscriptionDto dto = new com.clenzy.dto.InscriptionDto();
-            dto.setBillingPeriod("BIENNIAL");
-            BillingPeriod period = dto.getBillingPeriodEnum();
-            assertThat(period).isEqualTo(BillingPeriod.BIENNIAL);
-            assertThat(period.getDiscount()).isEqualTo(0.65);
-            assertThat(period.computeMonthlyPriceCents(500)).isEqualTo(325);
-        }
+    @Test
+    void signupDelegatesToVersionedMonthlyCheckout() throws Exception {
+        var dto=new com.clenzy.dto.InscriptionDto();
+        var response=Map.<String,Object>of("sessionId","cs_signup");
+        when(signupCheckout.start(dto)).thenReturn(response);
+        assertThat(inscriptionService.initiateInscription(dto)).isEqualTo(response);
+        verify(signupCheckout).start(dto);
     }
 
     // ===== CONFIRM PAYMENT =====
@@ -492,20 +268,13 @@ class InscriptionServiceTest {
         }
     }
 
-    // ===== CLEANUP EXPIRED =====
-
-    @Nested
-    @DisplayName("cleanupExpiredInscriptions")
-    class CleanupExpired {
-
-        @Test
-        @DisplayName("when called then deletes expired PENDING_PAYMENT inscriptions")
-        void whenCalled_thenDeletesExpiredPendingInscriptions() {
-            inscriptionService.cleanupExpiredInscriptions();
-
-            verify(pendingInscriptionRepository).deleteByStatusAndExpiresAtBefore(
-                    eq(PendingInscriptionStatus.PENDING_PAYMENT), any());
-        }
+    @Test
+    void expiredSignupIsReconciledNotDeleted() throws Exception {
+        var pending=buildPending("guest@example.test","cs_expired");
+        when(pendingInscriptionRepository.findByStatusAndExpiresAtBefore(any(),any())).thenReturn(java.util.List.of(pending));
+        inscriptionService.cleanupExpiredInscriptions();
+        verify(signupCheckout).expire("cs_expired");
+        verify(pendingInscriptionRepository,never()).deleteByStatusAndExpiresAtBefore(any(),any());
     }
 
     // ===== COMPLETE INSCRIPTION WITH PASSWORD =====
@@ -738,212 +507,6 @@ class InscriptionServiceTest {
 
             verify(emailService, org.mockito.Mockito.never())
                     .sendInscriptionConfirmationEmail(anyString(), anyString(), anyString(), any());
-        }
-    }
-
-    // ===== INITIATE INSCRIPTION — additional billing periods =====
-
-    @Nested
-    @DisplayName("initiateInscription — additional branches")
-    class InitiateInscriptionAdditional {
-
-        @Test
-        @DisplayName("ANNUAL billing uses YEAR Stripe interval")
-        void whenAnnual_thenUsesYearInterval() {
-            com.clenzy.dto.InscriptionDto dto = new com.clenzy.dto.InscriptionDto();
-            dto.setFullName("Jean Dupont");
-            dto.setEmail("annual@test.com");
-            dto.setForfait("essentiel");
-            dto.setBillingPeriod("ANNUAL");
-            dto.setAcceptedTerms(true);
-
-            String emailHash = StringUtils.computeEmailHash("annual@test.com");
-            when(userRepository.existsByEmailHash(emailHash)).thenReturn(false);
-            when(pricingConfigService.getPmsMonthlyPriceCents()).thenReturn(3000);
-            when(pendingInscriptionRepository.findByEmailAndStatus(any(), any()))
-                    .thenReturn(Optional.empty());
-
-            // ANNUAL path : le gateway mocke retourne null -> echec apres createSession
-            assertThatThrownBy(() -> inscriptionService.initiateInscription(dto))
-                    .isInstanceOf(Exception.class);
-        }
-
-        @Test
-        @DisplayName("BIENNIAL billing uses YEAR Stripe interval")
-        void whenBiennial_thenUsesYearInterval() {
-            com.clenzy.dto.InscriptionDto dto = new com.clenzy.dto.InscriptionDto();
-            dto.setFullName("Jean Dupont");
-            dto.setEmail("biennial@test.com");
-            dto.setForfait("premium");
-            dto.setBillingPeriod("BIENNIAL");
-            dto.setAcceptedTerms(true);
-
-            when(userRepository.existsByEmailHash(anyString())).thenReturn(false);
-            when(pricingConfigService.getPmsMonthlyPriceCents()).thenReturn(3000);
-            when(pendingInscriptionRepository.findByEmailAndStatus(any(), any()))
-                    .thenReturn(Optional.empty());
-
-            assertThatThrownBy(() -> inscriptionService.initiateInscription(dto))
-                    .isInstanceOf(Exception.class);
-        }
-
-        @Test
-        @DisplayName("CONCIERGE with companyName -> path validated")
-        void whenConciergeWithName_thenPasses() {
-            com.clenzy.dto.InscriptionDto dto = new com.clenzy.dto.InscriptionDto();
-            dto.setFullName("Jean Dupont");
-            dto.setEmail("conc@test.com");
-            dto.setForfait("essentiel");
-            dto.setBillingPeriod("MONTHLY");
-            dto.setOrganizationType("CONCIERGE");
-            dto.setCompanyName("Acme Conciergerie");
-            dto.setAcceptedTerms(true);
-
-            when(userRepository.existsByEmailHash(anyString())).thenReturn(false);
-            when(pricingConfigService.getPmsMonthlyPriceCents()).thenReturn(3000);
-            when(pendingInscriptionRepository.findByEmailAndStatus(any(), any()))
-                    .thenReturn(Optional.empty());
-
-            // Should pass validation, fail at Stripe
-            assertThatThrownBy(() -> inscriptionService.initiateInscription(dto))
-                    .isNotInstanceOf(IllegalArgumentException.class);
-        }
-
-        @Test
-        @DisplayName("with promo code null - skip applyPromoCodeIfValid")
-        void whenPromoCodeNull_thenSkipsPromo() {
-            com.clenzy.dto.InscriptionDto dto = new com.clenzy.dto.InscriptionDto();
-            dto.setFullName("Jean Dupont");
-            dto.setEmail("nopromo@test.com");
-            dto.setForfait("essentiel");
-            dto.setBillingPeriod("MONTHLY");
-            dto.setPromoCode(null);
-            dto.setAcceptedTerms(true);
-
-            when(userRepository.existsByEmailHash(anyString())).thenReturn(false);
-            when(pricingConfigService.getPmsMonthlyPriceCents()).thenReturn(3000);
-            when(pendingInscriptionRepository.findByEmailAndStatus(any(), any()))
-                    .thenReturn(Optional.empty());
-
-            assertThatThrownBy(() -> inscriptionService.initiateInscription(dto))
-                    .isInstanceOf(Exception.class);
-
-            verify(promoCodeService, org.mockito.Mockito.never()).validate(anyString());
-        }
-
-        @Test
-        @DisplayName("with promo code blank - skip applyPromoCodeIfValid")
-        void whenPromoCodeBlank_thenSkipsPromo() {
-            com.clenzy.dto.InscriptionDto dto = new com.clenzy.dto.InscriptionDto();
-            dto.setFullName("Jean Dupont");
-            dto.setEmail("blankpromo@test.com");
-            dto.setForfait("essentiel");
-            dto.setBillingPeriod("MONTHLY");
-            dto.setPromoCode("   ");
-            dto.setAcceptedTerms(true);
-
-            when(userRepository.existsByEmailHash(anyString())).thenReturn(false);
-            when(pricingConfigService.getPmsMonthlyPriceCents()).thenReturn(3000);
-            when(pendingInscriptionRepository.findByEmailAndStatus(any(), any()))
-                    .thenReturn(Optional.empty());
-
-            assertThatThrownBy(() -> inscriptionService.initiateInscription(dto))
-                    .isInstanceOf(Exception.class);
-
-            verify(promoCodeService, org.mockito.Mockito.never()).validate(anyString());
-        }
-
-        @Test
-        @DisplayName("with promo code invalid -> validate returns empty -> skip discount")
-        void whenPromoCodeInvalid_thenSkipsDiscount() {
-            com.clenzy.dto.InscriptionDto dto = new com.clenzy.dto.InscriptionDto();
-            dto.setFullName("Jean Dupont");
-            dto.setEmail("badpromo@test.com");
-            dto.setForfait("essentiel");
-            dto.setBillingPeriod("MONTHLY");
-            dto.setPromoCode("INVALID_CODE");
-            dto.setAcceptedTerms(true);
-
-            when(userRepository.existsByEmailHash(anyString())).thenReturn(false);
-            when(pricingConfigService.getPmsMonthlyPriceCents()).thenReturn(3000);
-            when(pendingInscriptionRepository.findByEmailAndStatus(any(), any()))
-                    .thenReturn(Optional.empty());
-            when(promoCodeService.validate("INVALID_CODE")).thenReturn(Optional.empty());
-
-            assertThatThrownBy(() -> inscriptionService.initiateInscription(dto))
-                    .isInstanceOf(Exception.class);
-
-            verify(promoCodeService).validate("INVALID_CODE");
-            verify(promoCodeService, org.mockito.Mockito.never()).tryConsume(anyLong());
-        }
-
-        @Test
-        @DisplayName("with promo code valide mais consume echoue -> skip discount")
-        void whenPromoConsumeFails_thenSkipsDiscount() {
-            com.clenzy.dto.InscriptionDto dto = new com.clenzy.dto.InscriptionDto();
-            dto.setFullName("Jean Dupont");
-            dto.setEmail("racepromo@test.com");
-            dto.setForfait("essentiel");
-            dto.setBillingPeriod("MONTHLY");
-            dto.setPromoCode("RACE_CODE");
-            dto.setAcceptedTerms(true);
-
-            com.clenzy.model.PlatformPromoCode pc = new com.clenzy.model.PlatformPromoCode();
-            pc.setId(1L);
-            pc.setCode("RACE_CODE");
-            pc.setDiscountType(com.clenzy.model.PlatformPromoCode.DiscountType.PERCENTAGE);
-            pc.setDiscountValue(10);
-
-            when(userRepository.existsByEmailHash(anyString())).thenReturn(false);
-            when(pricingConfigService.getPmsMonthlyPriceCents()).thenReturn(3000);
-            when(pendingInscriptionRepository.findByEmailAndStatus(any(), any()))
-                    .thenReturn(Optional.empty());
-            when(promoCodeService.validate("RACE_CODE")).thenReturn(Optional.of(pc));
-            when(promoCodeService.tryConsume(1L)).thenReturn(false); // race lost
-
-            assertThatThrownBy(() -> inscriptionService.initiateInscription(dto))
-                    .isInstanceOf(Exception.class);
-
-            verify(promoCodeService).tryConsume(1L);
-        }
-
-        @Test
-        @DisplayName("happy path : la session Checkout est creee via StripeGateway (T-SOLID-3)")
-        void whenValidInscription_thenCreatesSessionViaGateway() throws Exception {
-            com.clenzy.dto.InscriptionDto dto = new com.clenzy.dto.InscriptionDto();
-            dto.setFullName("Jean Dupont");
-            dto.setEmail("gateway@test.com");
-            dto.setForfait("essentiel");
-            dto.setBillingPeriod("MONTHLY");
-            dto.setAcceptedTerms(true);
-
-            when(userRepository.existsByEmailHash(anyString())).thenReturn(false);
-            when(pricingConfigService.getPmsMonthlyPriceCents()).thenReturn(3000);
-            when(pendingInscriptionRepository.findByEmailAndStatus(any(), any()))
-                    .thenReturn(Optional.empty());
-
-            when(subscriptionProviderRegistry.resolve(any())).thenReturn(subscriptionProvider);
-            when(subscriptionProvider.createSubscriptionCheckout(any()))
-                    .thenReturn(com.clenzy.payment.PaymentResult.embedded("cs_insc_1", "cs_insc_1_secret"));
-
-            Map<String, Object> result = inscriptionService.initiateInscription(dto);
-
-            assertThat(result.get("clientSecret")).isEqualTo("cs_insc_1_secret");
-            assertThat(result.get("sessionId")).isEqualTo("cs_insc_1");
-
-            // Le checkout d'abonnement (embarqué) passe par le port SubscriptionProvider.
-            ArgumentCaptor<com.clenzy.payment.subscription.SubscriptionCheckoutRequest> paramsCaptor =
-                    ArgumentCaptor.forClass(com.clenzy.payment.subscription.SubscriptionCheckoutRequest.class);
-            verify(subscriptionProvider).createSubscriptionCheckout(paramsCaptor.capture());
-            assertThat(paramsCaptor.getValue().embedded()).isTrue();
-            assertThat(paramsCaptor.getValue().metadata())
-                    .containsEntry("type", "inscription")
-                    .containsEntry("email", "gateway@test.com");
-
-            ArgumentCaptor<PendingInscription> pendingCaptor =
-                    ArgumentCaptor.forClass(PendingInscription.class);
-            verify(pendingInscriptionRepository).save(pendingCaptor.capture());
-            assertThat(pendingCaptor.getValue().getStripeSessionId()).isEqualTo("cs_insc_1");
         }
     }
 

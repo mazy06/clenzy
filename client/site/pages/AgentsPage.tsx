@@ -18,7 +18,7 @@ import {
   StarIcon,
   TrendingUpIcon,
   WrenchIcon,
-} from 'lucide-react';
+} from '../../src/icons/glyphs';
 import {
   Accordion,
   AccordionContent,

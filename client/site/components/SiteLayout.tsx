@@ -5,7 +5,7 @@ import SiteCurrencyControl from './SiteCurrencyControl';
 import { Suspense, useEffect, useRef, useState, type ReactNode } from 'react';
 import { Link, Outlet, useLocation } from 'react-router-dom';
 import { useSiteAppUrl } from '../lib/useSiteAppUrl';
-import { ArrowRightIcon, MenuIcon, XIcon } from 'lucide-react';
+import { ArrowRightIcon, MenuIcon, XIcon } from '../../src/icons/glyphs';
 import { Button } from '../../src/components/ui/button';
 import {
   NavigationMenu,

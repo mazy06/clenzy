@@ -36,6 +36,16 @@ public interface PaymentProvider {
     /** Create a payment session/checkout */
     PaymentResult createPayment(PaymentRequest request);
 
+    /** Relit un checkout embarqué existant sans créer un second paiement. */
+    default PaymentResult resumeEmbeddedPayment(String providerTxId, BigDecimal amount, String currency) {
+        return PaymentResult.failure("La reprise de ce paiement nécessite une vérification.");
+    }
+
+    /** Relit le lien d'un checkout hébergé ouvert sans émettre un nouveau paiement. */
+    default PaymentResult resumeHostedPayment(String providerTxId, BigDecimal amount, String currency) {
+        return PaymentResult.failure("La reprise de ce paiement nécessite une vérification.");
+    }
+
     /** Capture a previously authorized payment */
     PaymentResult capturePayment(String providerTxId, BigDecimal amount);
 

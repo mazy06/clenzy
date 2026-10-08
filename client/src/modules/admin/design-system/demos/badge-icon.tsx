@@ -1,4 +1,4 @@
-import { BadgeCheck, BookmarkIcon } from "lucide-react"
+import { BadgeCheck, BookmarkIcon } from "../../../../icons/glyphs"
 
 import { Badge } from '../../../../components/ui'
 

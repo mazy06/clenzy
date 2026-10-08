@@ -150,13 +150,14 @@ public class PublicGuideController {
 
     /** Crée le paiement d'un upsell (Stripe embedded) — renvoie le clientSecret. */
     @PostMapping("/{token}/upsells/{offerId}/checkout")
-    public ResponseEntity<UpsellCheckoutDto> checkoutUpsell(@PathVariable UUID token, @PathVariable Long offerId) {
+    public ResponseEntity<UpsellCheckoutDto> checkoutUpsell(@PathVariable UUID token, @PathVariable Long offerId,@RequestBody @jakarta.validation.Valid UpsellAttempt attempt) {
         try {
-            return ResponseEntity.ok(upsellService.createCheckout(token, offerId));
+            return ResponseEntity.ok(upsellService.createCheckout(token, offerId,attempt.requestId()));
         } catch (IllegalArgumentException e) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
         }
     }
+    public record UpsellAttempt(@jakarta.validation.constraints.NotNull UUID requestId) {}
 
     /** Filet de secours post-paiement : re-vérifie la session Stripe + marque PAID. */
     @PostMapping("/{token}/upsells/orders/{orderId}/confirm")

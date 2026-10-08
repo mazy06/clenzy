@@ -1,5 +1,5 @@
 import * as React from "react"
-import { MaximizeIcon, MinimizeIcon } from "lucide-react"
+import { MaximizeIcon, MinimizeIcon } from "../../../../icons/glyphs"
 
 import { Button } from '../../../../components/ui'
 import {

@@ -17,12 +17,20 @@ import {
   SlidersHorizontal,
   FileSpreadsheet,
   CircleAlert,
-} from "lucide-react";
+  Star,
+  Tag,
+  ClipboardCheck,
+  PlugZap,
+  KeyRound,
+  ExternalLink,
+} from "../../icons/glyphs";
 import { Button, Input, NativeSelect, Skeleton } from "../../components/ui";
 import { useTranslation } from "../../hooks/useTranslation";
 import { propertiesApi, type Property } from "../../services/api/propertiesApi";
 import {
   pmsImportApi,
+  PROPERTY_SCOPED_KINDS,
+  type ApiVendor,
   type ImportKind,
   type ImportPlan,
   type ImportSchema,
@@ -31,6 +39,7 @@ import {
 } from "../../services/api/pmsImportApi";
 import "./pms-import.css";
 import SetupIllustration from "../../components/onboarding/SetupIllustration";
+import MigrationCutover from "./MigrationCutover";
 
 const providers = [
   "SuperHote",
@@ -44,7 +53,20 @@ const providers = [
   "Hospitable",
   "Avantio",
 ];
-const kinds: ImportKind[] = ["PROPERTY", "GUEST", "RESERVATION", "ARCHIVE"];
+const kinds: ImportKind[] = [
+  "PROPERTY",
+  "GUEST",
+  "RESERVATION",
+  "REVIEW",
+  "RATE",
+  "TASK",
+  "ARCHIVE",
+];
+const isoDay = (offsetYears: number) => {
+  const date = new Date();
+  date.setFullYear(date.getFullYear() + offsetYears);
+  return date.toISOString().slice(0, 10);
+};
 
 function download(value: unknown, filename: string) {
   const url = URL.createObjectURL(
@@ -75,6 +97,13 @@ export default function PmsImportWorkspace({
   const [account, setAccount] = useState("");
   const [encoding, setEncoding] = useState("UTF-8");
   const [files, setFiles] = useState<File[]>([]);
+  const [mode, setMode] = useState<"files" | "api">("files");
+  const [vendors, setVendors] = useState<ApiVendor[]>([]);
+  const [vendorId, setVendorId] = useState("");
+  // Held in memory for one request only; cleared as soon as the pull returns.
+  const [credentials, setCredentials] = useState<Record<string, string>>({});
+  const [from, setFrom] = useState(() => isoDay(-2));
+  const [to, setTo] = useState(() => isoDay(2));
   const [view, setView] = useState<ImportView | null>(null);
   const [plans, setPlans] = useState<ImportPlan[]>([]);
   const [dirty, setDirty] = useState(false);
@@ -109,6 +138,12 @@ export default function PmsImportWorkspace({
       .catch(() => {
         if (alive.current) setError(t("pmsImport.errors.LOAD"));
       });
+    pmsImportApi
+      .apiVendors()
+      .then((list) => {
+        if (alive.current) setVendors(list);
+      })
+      .catch(() => undefined);
     return () => {
       alive.current = false;
     };
@@ -219,158 +254,323 @@ export default function PmsImportWorkspace({
 
       {!view && schema && (
         <div className="pms-import-start-layout">
-          <form
-            className="pms-import-upload"
-            onSubmit={(event) => {
-              event.preventDefault();
-              void run(async () => {
-                if (files.length === 0) throw new Error("FILES_REQUIRED");
-                if (
-                  files.length > 20 ||
-                  files.reduce((sum, file) => sum + file.size, 0) >
-                    8 * 1024 * 1024
-                )
-                  throw new Error("FILES_TOO_LARGE");
-                apply(
-                  await pmsImportApi.upload(files, source, account, encoding),
-                );
-              });
-            }}
+          <div
+            className="pms-import-mode"
+            role="tablist"
+            aria-label={tr("api.modeLabel")}
           >
-            <h3>{tr("design.startTitle")}</h3>
-            <p className="pms-import-help">{tr("design.startHelp")}</p>
-            <div className="pms-import-form-grid">
-              <div>
-                <label>
-                  <span>{tr("source")}</span>
-                  <Input
-                    required
-                    list="pms-import-providers"
-                    value={source}
-                    maxLength={80}
-                    onChange={(event) => setSource(event.target.value)}
-                    placeholder={tr("sourcePlaceholder")}
-                  />
-                  <datalist id="pms-import-providers">
-                    {providers.map((provider) => (
-                      <option key={provider} value={provider} />
-                    ))}
-                  </datalist>
-                </label>
-                <span className="pms-import-provider-shortcuts">
-                  {["Guesty", "Smoobu", "Hostaway"].map((provider) => (
-                    <button
-                      type="button"
-                      key={provider}
-                      aria-pressed={source === provider}
-                      onClick={() => setSource(provider)}
-                    >
-                      {provider}
-                    </button>
-                  ))}
-                </span>
-              </div>
-              <label>
-                <span>{tr("account")}</span>
-                <Input
-                  required
-                  value={account}
-                  maxLength={120}
-                  onChange={(event) => setAccount(event.target.value)}
-                  placeholder={tr("accountPlaceholder")}
-                />
-                <small>{tr("accountHelp")}</small>
-              </label>
-            </div>
-            <label
-              className="pms-import-dropzone"
-              data-dragging={dragging || undefined}
-              onDragOver={(event) => {
+            {(["files", "api"] as const).map((key) => (
+              <button
+                key={key}
+                type="button"
+                role="tab"
+                aria-selected={mode === key}
+                onClick={() => setMode(key)}
+              >
+                {key === "files" ? (
+                  <UploadCloud size={16} aria-hidden="true" />
+                ) : (
+                  <PlugZap size={16} aria-hidden="true" />
+                )}
+                {tr(`api.tab.${key}`)}
+              </button>
+            ))}
+          </div>
+          {mode === "api" && (
+            <form
+              className="pms-import-upload pms-import-api"
+              autoComplete="off"
+              onSubmit={(event) => {
                 event.preventDefault();
-                setDragging(true);
-              }}
-              onDragLeave={() => setDragging(false)}
-              onDrop={(event) => {
-                event.preventDefault();
-                setDragging(false);
-                if (!busy) selectFiles(Array.from(event.dataTransfer.files));
+                const vendor = vendors.find((item) => item.id === vendorId);
+                if (!vendor) return;
+                void run(async () => {
+                  try {
+                    apply(
+                      await pmsImportApi.pull({
+                        vendor: vendor.id,
+                        account: account || vendor.name,
+                        credentials,
+                        from,
+                        to,
+                      }),
+                    );
+                  } finally {
+                    if (alive.current) setCredentials({});
+                  }
+                });
               }}
             >
-              <UploadCloud size={30} strokeWidth={1.5} aria-hidden="true" />
-              <strong>{tr("design.dropTitle")}</strong>
-              <span>{tr("design.dropBrowse")}</span>
-              <small dir="ltr">CSV, TSV, XLS, XLSX, JSON, ZIP</small>
-              <Input
-                type="file"
-                multiple
-                aria-label={tr("files")}
-                disabled={busy}
-                onChange={(event) => {
-                  selectFiles(Array.from(event.target.files ?? []));
-                  event.target.value = "";
-                }}
-              />
-            </label>
-            {files.length > 0 && (
-              <ul className="pms-import-file-list">
-                {files.map((file, i) => (
-                  <li key={`${file.name}-${i}`}>
-                    <FileSpreadsheet size={18} aria-hidden="true" />
-                    <bdi>{file.name}</bdi>
-                    <small>
-                      {n(Math.max(1, Math.round(file.size / 1024)))}{" "}
-                      {tr("design.kb")}
-                    </small>
-                    <button
-                      type="button"
-                      disabled={busy}
-                      aria-label={tr("design.removeFile", { name: file.name })}
-                      onClick={() =>
-                        setFiles((previous) =>
-                          previous.filter((_, at) => at !== i),
-                        )
-                      }
-                    >
-                      <X size={16} />
-                    </button>
+              <h3>{tr("api.title")}</h3>
+              <p className="pms-import-help">{tr("api.help")}</p>
+              <div className="pms-import-form-grid">
+                <label>
+                  <span>{tr("api.vendor")}</span>
+                  <NativeSelect
+                    required
+                    value={vendorId}
+                    onChange={(event) => {
+                      setVendorId(event.target.value);
+                      setCredentials({});
+                    }}
+                  >
+                    <option value="">{tr("api.chooseVendor")}</option>
+                    {vendors.map((vendor) => (
+                      <option key={vendor.id} value={vendor.id}>
+                        {vendor.name}
+                      </option>
+                    ))}
+                  </NativeSelect>
+                </label>
+                <label>
+                  <span>{tr("account")}</span>
+                  <Input
+                    value={account}
+                    maxLength={120}
+                    onChange={(event) => setAccount(event.target.value)}
+                    placeholder={tr("accountPlaceholder")}
+                  />
+                </label>
+                {vendors
+                  .find((vendor) => vendor.id === vendorId)
+                  ?.credentialFields.map((field) => (
+                    <label key={field}>
+                      <span>
+                        <KeyRound size={13} aria-hidden="true" />{" "}
+                        {tr(`api.credentials.${field}`)}
+                      </span>
+                      <Input
+                        required
+                        type={
+                          field === "email" || field === "accountId"
+                            ? "text"
+                            : "password"
+                        }
+                        autoComplete="off"
+                        spellCheck={false}
+                        value={credentials[field] ?? ""}
+                        onChange={(event) =>
+                          setCredentials((previous) => ({
+                            ...previous,
+                            [field]: event.target.value,
+                          }))
+                        }
+                      />
+                    </label>
+                  ))}
+                <label>
+                  <span>{tr("api.from")}</span>
+                  <Input
+                    type="date"
+                    required
+                    value={from}
+                    onChange={(event) => setFrom(event.target.value)}
+                  />
+                </label>
+                <label>
+                  <span>{tr("api.to")}</span>
+                  <Input
+                    type="date"
+                    required
+                    value={to}
+                    onChange={(event) => setTo(event.target.value)}
+                  />
+                </label>
+              </div>
+              {vendorId && (
+                <p className="pms-import-help">
+                  <a
+                    href={
+                      vendors.find((vendor) => vendor.id === vendorId)?.docsUrl
+                    }
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
+                    {tr("api.docs")}{" "}
+                    <ExternalLink size={13} aria-hidden="true" />
+                  </a>
+                </p>
+              )}
+              <ul className="pms-import-api-guarantees">
+                {["readOnly", "notStored", "beta"].map((key) => (
+                  <li key={key}>
+                    <Check size={14} aria-hidden="true" />
+                    {tr(`api.${key}`)}
                   </li>
                 ))}
               </ul>
-            )}
-            <details className="pms-import-advanced">
-              <summary>
-                <SlidersHorizontal size={15} />
-                {tr("design.advanced")}
-                <ChevronDown size={14} />
-              </summary>
-              <label>
-                <span>{tr("encoding")}</span>
-                <NativeSelect
-                  value={encoding}
-                  onChange={(event) => setEncoding(event.target.value)}
+              <div className="pms-import-upload-footer">
+                <small>
+                  <Check size={14} />
+                  {tr("design.noWriteYet")}
+                </small>
+                <Button
+                  className="setup-primary"
+                  type="submit"
+                  disabled={busy || !vendorId}
                 >
-                  <option value="UTF-8">UTF-8</option>
-                  <option value="windows-1252">Windows-1252</option>
-                  <option value="UTF-16">UTF-16</option>
-                </NativeSelect>
-              </label>
-              <small>{tr("limits")}</small>
-            </details>
-            <div className="pms-import-upload-footer">
-              <small>
-                <Check size={14} />
-                {tr("design.noWriteYet")}
-              </small>
-              <Button
-                className="setup-primary"
-                type="submit"
-                disabled={busy || files.length === 0}
+                  <PlugZap size={16} />
+                  {busy ? tr("api.pulling") : tr("api.submit")}
+                </Button>
+              </div>
+            </form>
+          )}
+          {mode === "files" && (
+            <form
+              className="pms-import-upload"
+              onSubmit={(event) => {
+                event.preventDefault();
+                void run(async () => {
+                  if (files.length === 0) throw new Error("FILES_REQUIRED");
+                  if (
+                    files.length > 20 ||
+                    files.reduce((sum, file) => sum + file.size, 0) >
+                      8 * 1024 * 1024
+                  )
+                    throw new Error("FILES_TOO_LARGE");
+                  apply(
+                    await pmsImportApi.upload(files, source, account, encoding),
+                  );
+                });
+              }}
+            >
+              <h3>{tr("design.startTitle")}</h3>
+              <p className="pms-import-help">{tr("design.startHelp")}</p>
+              <div className="pms-import-form-grid">
+                <div>
+                  <label>
+                    <span>{tr("source")}</span>
+                    <Input
+                      required
+                      list="pms-import-providers"
+                      value={source}
+                      maxLength={80}
+                      onChange={(event) => setSource(event.target.value)}
+                      placeholder={tr("sourcePlaceholder")}
+                    />
+                    <datalist id="pms-import-providers">
+                      {providers.map((provider) => (
+                        <option key={provider} value={provider} />
+                      ))}
+                    </datalist>
+                  </label>
+                  <span className="pms-import-provider-shortcuts">
+                    {["Guesty", "Smoobu", "Hostaway"].map((provider) => (
+                      <button
+                        type="button"
+                        key={provider}
+                        aria-pressed={source === provider}
+                        onClick={() => setSource(provider)}
+                      >
+                        {provider}
+                      </button>
+                    ))}
+                  </span>
+                </div>
+                <label>
+                  <span>{tr("account")}</span>
+                  <Input
+                    required
+                    value={account}
+                    maxLength={120}
+                    onChange={(event) => setAccount(event.target.value)}
+                    placeholder={tr("accountPlaceholder")}
+                  />
+                  <small>{tr("accountHelp")}</small>
+                </label>
+              </div>
+              <label
+                className="pms-import-dropzone"
+                data-dragging={dragging || undefined}
+                onDragOver={(event) => {
+                  event.preventDefault();
+                  setDragging(true);
+                }}
+                onDragLeave={() => setDragging(false)}
+                onDrop={(event) => {
+                  event.preventDefault();
+                  setDragging(false);
+                  if (!busy) selectFiles(Array.from(event.dataTransfer.files));
+                }}
               >
-                <FileInput size={16} />
-                {busy ? tr("working") : tr("analyze")}
-              </Button>
-            </div>
-          </form>
+                <UploadCloud size={30} strokeWidth={1.5} aria-hidden="true" />
+                <strong>{tr("design.dropTitle")}</strong>
+                <span>{tr("design.dropBrowse")}</span>
+                <small dir="ltr">CSV, TSV, XLS, XLSX, JSON, ZIP</small>
+                <Input
+                  type="file"
+                  multiple
+                  aria-label={tr("files")}
+                  disabled={busy}
+                  onChange={(event) => {
+                    selectFiles(Array.from(event.target.files ?? []));
+                    event.target.value = "";
+                  }}
+                />
+              </label>
+              {files.length > 0 && (
+                <ul className="pms-import-file-list">
+                  {files.map((file, i) => (
+                    <li key={`${file.name}-${i}`}>
+                      <FileSpreadsheet size={18} aria-hidden="true" />
+                      <bdi>{file.name}</bdi>
+                      <small>
+                        {n(Math.max(1, Math.round(file.size / 1024)))}{" "}
+                        {tr("design.kb")}
+                      </small>
+                      <button
+                        type="button"
+                        disabled={busy}
+                        aria-label={tr("design.removeFile", {
+                          name: file.name,
+                        })}
+                        onClick={() =>
+                          setFiles((previous) =>
+                            previous.filter((_, at) => at !== i),
+                          )
+                        }
+                      >
+                        <X size={16} />
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              )}
+              <details className="pms-import-advanced">
+                <summary>
+                  <SlidersHorizontal size={15} />
+                  {tr("design.advanced")}
+                  <ChevronDown size={14} />
+                </summary>
+                <label>
+                  <span>{tr("encoding")}</span>
+                  <NativeSelect
+                    value={encoding}
+                    onChange={(event) => setEncoding(event.target.value)}
+                  >
+                    <option value="UTF-8">UTF-8</option>
+                    <option value="windows-1252">Windows-1252</option>
+                    <option value="UTF-16">UTF-16</option>
+                  </NativeSelect>
+                </label>
+                <small>{tr("limits")}</small>
+              </details>
+              <div className="pms-import-upload-footer">
+                <small>
+                  <Check size={14} />
+                  {tr("design.noWriteYet")}
+                </small>
+                <Button
+                  className="setup-primary"
+                  type="submit"
+                  disabled={busy || files.length === 0}
+                >
+                  <FileInput size={16} />
+                  {busy ? tr("working") : tr("analyze")}
+                </Button>
+              </div>
+            </form>
+          )}
           <aside className="pms-import-explainer">
             <h3>{tr("design.bringTitle")}</h3>
             <ul>
@@ -379,6 +579,9 @@ export default function PmsImportWorkspace({
                   ["PROPERTY", House],
                   ["GUEST", Users],
                   ["RESERVATION", CalendarDays],
+                  ["REVIEW", Star],
+                  ["RATE", Tag],
+                  ["TASK", ClipboardCheck],
                 ] as const
               ).map(([kind, Icon]) => (
                 <li key={kind}>
@@ -543,7 +746,7 @@ export default function PmsImportWorkspace({
                                 ))}
                             </NativeSelect>
                           </label>
-                          {plan.kind === "RESERVATION" && (
+                          {PROPERTY_SCOPED_KINDS.includes(plan.kind) && (
                             <>
                               <label>
                                 <span>{tr("dateFormat")}</span>
@@ -572,7 +775,8 @@ export default function PmsImportWorkspace({
                                   onChange={(event) =>
                                     update(index, {
                                       decimalSeparator: event.target.value as
-                                        "." | ",",
+                                        | "."
+                                        | ",",
                                     })
                                   }
                                 >
@@ -699,7 +903,7 @@ export default function PmsImportWorkspace({
                                 </p>
                               </details>
                             )}
-                            {plan.kind === "RESERVATION" && (
+                            {PROPERTY_SCOPED_KINDS.includes(plan.kind) && (
                               <section className="pms-import-property-links">
                                 <h4>{tr("propertyLinks")}</h4>
                                 <p>{tr("propertyLinksHelp")}</p>
@@ -815,6 +1019,7 @@ export default function PmsImportWorkspace({
                     ["ready", report.ready],
                     ["duplicates", report.duplicates],
                     ["archived", report.archived],
+                    ...(report.skipped ? [["skipped", report.skipped]] : []),
                     ["issueCount", report.issueCount],
                   ].map(([key, count]) => (
                     <div key={key}>
@@ -906,6 +1111,7 @@ export default function PmsImportWorkspace({
             )}
         </>
       )}
+      {!embedded && !view && schema && <MigrationCutover />}
     </div>
   );
 }

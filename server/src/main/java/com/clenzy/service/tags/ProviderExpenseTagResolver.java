@@ -63,12 +63,12 @@ public class ProviderExpenseTagResolver implements ReferenceTagResolver {
         Map<String, Object> tags = new LinkedHashMap<>();
         tags.put("id", String.valueOf(expense.getId()));
         tags.put("description", safeStr(expense.getDescription()));
-        tags.put("montant_ht", formatMoney(expense.getAmountHt()));
+        tags.put("montant_ht", formatMoney(expense.getAmountHt(), expense.getCurrency()));
         tags.put("taux_tva", expense.getTaxRate() != null
                 ? expense.getTaxRate().multiply(java.math.BigDecimal.valueOf(100)).stripTrailingZeros().toPlainString() + " %"
                 : "0 %");
-        tags.put("montant_tva", formatMoney(expense.getTaxAmount()));
-        tags.put("montant_ttc", formatMoney(expense.getAmountTtc()));
+        tags.put("montant_tva", formatMoney(expense.getTaxAmount(), expense.getCurrency()));
+        tags.put("montant_ttc", formatMoney(expense.getAmountTtc(), expense.getCurrency()));
         tags.put("devise", safeStr(expense.getCurrency()));
         tags.put("categorie", expense.getCategory() != null ? expense.getCategory().getLabel() : "");
         tags.put("date", expense.getExpenseDate() != null

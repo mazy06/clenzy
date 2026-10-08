@@ -108,6 +108,15 @@ public class Invoice {
     @Column(name = "duplicate_of_id")
     private Long duplicateOfId;
 
+    @Column(name = "original_invoice_id")
+    private Long originalInvoiceId;
+
+    @Column(name = "refund_transaction_id", unique = true)
+    private Long refundTransactionId;
+
+    @Column(name = "owner_refund_transaction_id")
+    private Long ownerRefundTransactionId;
+
     @NotNull
     @Enumerated(EnumType.STRING)
     @Column(name = "status", nullable = false, length = 20)
@@ -186,8 +195,17 @@ public class Invoice {
         line.setInvoice(this);
     }
 
+    @Column(name="issuer_key",length=64)
+    private String issuerKey;
+    public String getIssuerKey(){return issuerKey;}
+    public void setIssuerKey(String key){
+        if(issuerKey!=null && !issuerKey.equals(key))throw new IllegalStateException("Émetteur de facture déjà figé");
+        issuerKey=key;
+    }
+
     public boolean isImmutable() {
-        return status == InvoiceStatus.ISSUED || status == InvoiceStatus.PAID;
+        return status == InvoiceStatus.ISSUED || status == InvoiceStatus.SENT || status == InvoiceStatus.OVERDUE
+            || status == InvoiceStatus.PAID || status == InvoiceStatus.CREDIT_NOTE || status == InvoiceStatus.CANCELLED;
     }
 
     public Long getId() { return id; }
@@ -252,6 +270,14 @@ public class Invoice {
 
     public Long getDuplicateOfId() { return duplicateOfId; }
     public void setDuplicateOfId(Long duplicateOfId) { this.duplicateOfId = duplicateOfId; }
+
+    public Long getOriginalInvoiceId() { return originalInvoiceId; }
+    public void setOriginalInvoiceId(Long originalInvoiceId) { this.originalInvoiceId = originalInvoiceId; }
+
+    public Long getRefundTransactionId() { return refundTransactionId; }
+    public void setRefundTransactionId(Long refundTransactionId) { this.refundTransactionId = refundTransactionId; }
+    public Long getOwnerRefundTransactionId() { return ownerRefundTransactionId; }
+    public void setOwnerRefundTransactionId(Long value) { ownerRefundTransactionId=value; }
 
     public InvoiceStatus getStatus() { return status; }
     public void setStatus(InvoiceStatus status) { this.status = status; }

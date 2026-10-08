@@ -107,6 +107,19 @@ class DocumentTemplateRendererTest {
         }
     }
 
+    @Test
+    void nestedOptionalFieldsAreFilledWithoutChangingResolverSnapshot() {
+        var template = new DocumentTemplate();
+        template.setTags(List.of(tag("devis.forfait.nom"), tag("devis.forfait.description")));
+        var snapshot = Map.of("forfait", Map.of("nom", "Ménage"));
+        Map<String, Object> context = new LinkedHashMap<>(Map.of("devis", snapshot));
+        renderer.fillMissingTags(template, context, true);
+        renderer.ensureTemplateTagsPresent(template, context);
+        var result = new String(renderer.fillTemplate("<html><body>${devis.forfait.nom} ${devis.forfait.description}</body></html>".getBytes(java.nio.charset.StandardCharsets.UTF_8), context), java.nio.charset.StandardCharsets.UTF_8);
+        assertThat(result).contains("Ménage —");
+        assertThat(snapshot.get("forfait")).doesNotContainKey("description");
+    }
+
     // ─── ensureTemplateTagsPresent ──────────────────────────────────────────
 
     @Nested

@@ -1,10 +1,5 @@
 import * as React from "react"
-import {
-  IconCheck,
-  IconCopy,
-  IconInfoCircle,
-  IconStar,
-} from "@tabler/icons-react"
+import { Check as IconCheck, Copy as IconCopy, Info as IconInfoCircle, Star as IconStar } from "../../../../icons/glyphs"
 
 import { useCopyToClipboard } from '../../../../hooks/use-copy-to-clipboard'
 import {
@@ -68,7 +63,8 @@ export default function InputGroupButtonExample() {
           >
             <IconStar
               data-favorite={isFavorite}
-              className="data-[favorite=true]:fill-blue-600 data-[favorite=true]:stroke-blue-600"
+              fill={isFavorite ? "currentColor" : "none"}
+              className="data-[favorite=true]:text-blue-600"
             />
           </InputGroupButton>
         </InputGroupAddon>

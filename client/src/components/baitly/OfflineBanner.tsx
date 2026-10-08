@@ -1,4 +1,4 @@
-import { WifiOffIcon } from 'lucide-react';
+import { WifiOffIcon } from '../../icons/glyphs';
 import { useOnlineStatus } from '../../hooks/useOnlineStatus';
 import { useTranslation } from '../../hooks/useTranslation';
 

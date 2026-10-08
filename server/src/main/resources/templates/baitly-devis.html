@@ -1,0 +1,182 @@
+<!doctype html><html lang="fr"><head><meta charset="UTF-8"><title>${entreprise.nom} · Document</title><style>@page { size: A4; margin: 16mm 14mm; }
+* { box-sizing: border-box; }
+body { color:#1b2a35; background:#fcfdff; font:10pt/1.5 Arial,sans-serif; margin:0; }
+h1 { color:#193d67; font-size:21pt; line-height:1.2; margin:0 0 8mm; }
+h2 { color:#193d67; font-size:13pt; margin:7mm 0 3mm; break-after:avoid; }
+h3 { font-size:11pt; break-after:avoid; }
+p { margin:0 0 3mm; overflow-wrap:anywhere; }
+table { border-collapse:collapse; width:100%; margin:3mm 0 5mm; font-size:9pt; }
+thead { display:table-header-group; }
+tr { break-inside:avoid; }
+th,td { padding:2.5mm; text-align:left; vertical-align:top; border-bottom:1px solid #d4dfe9; overflow-wrap:anywhere; }
+th { background:#e7eef4; font-weight:600; }
+img { max-width:100%; height:auto; }
+.muted,footer { color:#526879; font-size:8pt; }
+.page-break { break-before:page; }
+.amount { font-variant-numeric:tabular-nums; }
+</style></head><body>
+
+
+   <p style="background-color:#1f3a52;margin-bottom:0.5cm;padding:0.35cm;color:#ffffff;font-size:14pt;font-weight:bold;">${entreprise.nom}<span style="color:#6b7280;"> • Gestion locative professionnelle</span></p>
+
+
+   <p style="margin-bottom:0cm;margin-top:0.4cm;color:#1f3a52;font-size:26pt;font-weight:bold;">DEVIS</p>
+   <p style="margin-bottom:0.4cm;margin-top:0cm;color:#6b7280;font-size:10pt;">N° <span style="font-weight:bold;">${nf.numero_legal}</span> • Émis le ${system.date} • Valable 30 jours</p>
+
+
+   <table style="width:17cm;">
+    <col style="width:8.5cm;">
+    <col style="width:8.5cm;">
+    <tr>
+     <td style="padding:0.2cm;vertical-align:top;">
+      <p style="margin-bottom:0cm;margin-top:0.05cm;color:#9ca3af;font-size:8pt;font-weight:bold;">Émetteur</p>
+      <p style="margin-bottom:0.18cm;margin-top:0cm;color:#111827;font-size:10.5pt;font-weight:bold;">${entreprise.nom}</p>
+      <p style="margin-bottom:0.08cm;margin-top:0.08cm;color:#1f2937;font-size:10pt;">${entreprise.adresse}</p>
+      <p style="margin-bottom:0.05cm;margin-top:0.05cm;color:#6b7280;font-size:9pt;">SIRET ${entreprise.siret}</p>
+      <p style="margin-bottom:0.05cm;margin-top:0.05cm;color:#6b7280;font-size:9pt;">${entreprise.email} • ${entreprise.telephone}</p>
+     </td>
+     <td style="background-color:#f9fafb;padding:0.2cm;vertical-align:top;">
+      <p style="margin-bottom:0cm;margin-top:0.05cm;color:#9ca3af;font-size:8pt;font-weight:bold;">Destinataire</p>
+      <p style="margin-bottom:0.18cm;margin-top:0cm;color:#111827;font-size:10.5pt;font-weight:bold;">${client.nom_complet}</p>
+      [#if client.societe?? && client.societe?length > 0]<p style="margin-bottom:0.08cm;margin-top:0.08cm;color:#1f2937;font-size:10pt;">${client.societe}</p>[/#if]
+      <p style="margin-bottom:0.08cm;margin-top:0.08cm;color:#1f2937;font-size:10pt;">${client.code_postal} ${client.ville}</p>
+      <p style="margin-bottom:0.05cm;margin-top:0.05cm;color:#6b7280;font-size:9pt;">${client.email}</p>
+      <p style="margin-bottom:0.05cm;margin-top:0.05cm;color:#6b7280;font-size:9pt;">${client.telephone}</p>
+     </td>
+    </tr>
+   </table>
+
+
+   <p style="border-bottom:0.04cm solid #1f3a52;margin-bottom:0.25cm;margin-top:0.7cm;padding-bottom:0.08cm;color:#1f3a52;font-size:11pt;font-weight:bold;">Objet du devis</p>
+   <p style="margin-bottom:0.18cm;margin-top:0cm;color:#111827;font-size:10.5pt;font-weight:bold;">${demande.titre}</p>
+   [#if demande.type_service?? && demande.type_service?length > 0]<p style="margin-bottom:0.05cm;margin-top:0.05cm;color:#6b7280;font-size:9pt;">${demande.type_service}</p>[/#if]
+
+
+   <p style="border-bottom:0.04cm solid #1f3a52;margin-bottom:0.25cm;margin-top:0.7cm;padding-bottom:0.08cm;color:#1f3a52;font-size:11pt;font-weight:bold;">Logement concerné</p>
+   <p style="margin-bottom:0.18cm;margin-top:0cm;color:#111827;font-size:10.5pt;font-weight:bold;">${property.nom}</p>
+   [#if property.adresse?? && property.adresse?length > 0]<p style="margin-bottom:0.08cm;margin-top:0.08cm;color:#1f2937;font-size:10pt;">${property.adresse}</p>[/#if]
+   <p style="margin-bottom:0.08cm;margin-top:0.08cm;color:#1f2937;font-size:10pt;">${property.code_postal} ${property.ville}</p>
+   [#if property.type?? && property.type?length > 0]Type : <span style="font-weight:bold;">${property.type}</span>[/#if][#if property.surface?? && property.surface?length > 0] • Surface : <span style="font-weight:bold;">${property.surface}</span>[/#if]
+
+
+   <table style="margin-bottom:0.35cm;margin-top:0.3cm;width:6cm;">
+    <col style="width:6cm;">
+    <tr>
+     <td style="background-color:#eff6ff;border:0.02cm solid #93c5fd;padding:0.3cm;">
+      <p style="margin-bottom:0.08cm;color:#1e40af;font-size:8.5pt;font-weight:bold;">Forfait recommandé</p>
+      <p style="color:#1e40af;font-size:16pt;font-weight:bold;">${devis.forfait.nom}</p>
+     </td>
+    </tr>
+   </table>
+
+   <p style="margin-bottom:0.08cm;margin-top:0.08cm;color:#1f2937;font-size:10pt;">${demande.description}</p>
+
+
+   <p style="border-bottom:0.04cm solid #1f3a52;margin-bottom:0.25cm;margin-top:0.7cm;padding-bottom:0.08cm;color:#1f3a52;font-size:11pt;font-weight:bold;">Détail des prestations</p>
+   <table style="width:17cm;">
+    <col style="width:9cm;">
+    <col style="width:2cm;">
+    <col style="width:3cm;">
+    <col style="width:3cm;">
+    <thead>
+     <tr>
+      <td style="background-color:#1f3a52;padding:0.18cm;">
+       <p style="text-align:start;color:#ffffff;font-size:9pt;font-weight:bold;">Description</p>
+      </td>
+      <td style="background-color:#1f3a52;padding:0.18cm;">
+       <p style="text-align:center;color:#ffffff;font-size:9pt;font-weight:bold;">Qté</p>
+      </td>
+      <td style="background-color:#1f3a52;padding:0.18cm;">
+       <p style="text-align:end;color:#ffffff;font-size:9pt;font-weight:bold;">Prix unitaire</p>
+      </td>
+      <td style="background-color:#1f3a52;padding:0.18cm;">
+       <p style="text-align:end;color:#ffffff;font-size:9pt;font-weight:bold;">Total</p>
+      </td>
+     </tr>
+    </thead>
+    [#list intervention.lignes as ligne]
+    <tr>
+     <td style="border-bottom:0.02cm solid #e5e7eb;padding:0.15cm;">
+      <p style="color:#1f2937;font-size:9.5pt;">${ligne.description}</p>
+     </td>
+     <td style="border-bottom:0.02cm solid #e5e7eb;padding:0.15cm;">
+      <p style="text-align:center;color:#1f2937;font-size:9.5pt;">${ligne.quantite}</p>
+     </td>
+     <td style="border-bottom:0.02cm solid #e5e7eb;padding:0.15cm;">
+      <p style="text-align:end;color:#1f2937;font-size:9.5pt;font-weight:bold;">${ligne.prix_unitaire}</p>
+     </td>
+     <td style="border-bottom:0.02cm solid #e5e7eb;padding:0.15cm;">
+      <p style="text-align:end;color:#1f2937;font-size:9.5pt;font-weight:bold;">${ligne.total}</p>
+     </td>
+    </tr>
+    [/#list]
+   </table>
+
+
+   <p style="border-bottom:0.04cm solid #1f3a52;margin-bottom:0.25cm;margin-top:0.7cm;padding-bottom:0.08cm;color:#1f3a52;font-size:11pt;font-weight:bold;">Deux formules au choix</p>
+   <table style="width:17cm;">
+    <col style="width:8.5cm;">
+    <col style="width:8.5cm;">
+    <tr>
+     <td style="background-color:#ffffff;border:0.04cm solid #d1d5db;padding:0.4cm;vertical-align:top;">
+      <p style="margin-bottom:0cm;margin-top:0.05cm;color:#9ca3af;font-size:8pt;font-weight:bold;">Paiement mensuel</p>
+      <p style="margin-bottom:0cm;margin-top:0.4cm;color:#1f3a52;font-size:26pt;font-weight:bold;">${devis.total.mensuel}</p>
+      <p style="margin-bottom:0.05cm;margin-top:0.05cm;color:#6b7280;font-size:9pt;">par mois • sans engagement</p>
+      <p style="margin-bottom:0.15cm;margin-top:0.15cm;"></p>
+      <p style="margin-bottom:0.08cm;margin-top:0.08cm;color:#1f2937;font-size:10pt;">Dont abonnement : <span style="font-weight:bold;">${devis.abonnement.mensuel}/mois</span></p>
+      <p style="margin-bottom:0.08cm;margin-top:0.08cm;color:#1f2937;font-size:10pt;">Dont ménage estimé : <span style="font-weight:bold;">${devis.menage.estimation_mensuelle}/mois</span></p>
+      <p style="margin-bottom:0.05cm;margin-top:0.05cm;color:#6b7280;font-size:9pt;">(${devis.menage.interventions_par_mois} interventions × ${devis.menage.prix_intervention})</p>
+     </td>
+     <td style="background-color:#ecfdf5;border:0.06cm solid #10b981;padding:0.4cm;vertical-align:top;">
+      <p style="background-color:#10b981;margin-bottom:0.2cm;margin-top:0.2cm;padding:0.18cm;text-align:center;color:#ffffff;font-size:10pt;font-weight:bold;">★ Recommandé • -${devis.abonnement.remise_pct}</p>
+      <p style="margin-bottom:0cm;margin-top:0.05cm;color:#9ca3af;font-size:8pt;font-weight:bold;">Paiement annuel</p>
+      <p style="margin-bottom:0cm;margin-top:0.4cm;color:#1f3a52;font-size:26pt;font-weight:bold;">${devis.total.annuel_avec_remise}</p>
+      <p style="margin-bottom:0.05cm;margin-top:0.05cm;color:#6b7280;font-size:9pt;">par an • <span style="color:#10b981;font-weight:bold;">économisez ${devis.abonnement.economie_annuelle}</span></p>
+      <p style="margin-bottom:0.15cm;margin-top:0.15cm;"></p>
+      <p style="margin-bottom:0.08cm;margin-top:0.08cm;color:#1f2937;font-size:10pt;">Abonnement annuel : <span style="font-weight:bold;">${devis.abonnement.annuel_avec_remise}</span> <span style="color:#9ca3af;">${devis.abonnement.annuel_sans_remise}</span></p>
+      <p style="margin-bottom:0.08cm;margin-top:0.08cm;color:#1f2937;font-size:10pt;">Ménage estimé : <span style="font-weight:bold;">${devis.menage.estimation_annuelle}/an</span></p>
+      <p style="margin-bottom:0.05cm;margin-top:0.05cm;color:#6b7280;font-size:9pt;">Soit l&#39;équivalent de ~2 mois d&#39;abonnement offerts</p>
+     </td>
+    </tr>
+   </table>
+
+
+   <p style="border-bottom:0.04cm solid #1f3a52;margin-bottom:0.25cm;margin-top:0.7cm;padding-bottom:0.08cm;color:#1f3a52;font-size:11pt;font-weight:bold;">Conditions</p>
+   <p style="margin-bottom:0.08cm;margin-top:0.08cm;color:#1f2937;font-size:10pt;"><span style="font-weight:bold;">Validité :</span> ${nf.validite}</p>
+   <p style="margin-bottom:0.08cm;margin-top:0.08cm;color:#1f2937;font-size:10pt;"><span style="font-weight:bold;">Modalités de paiement :</span> ${nf.conditions_paiement}</p>
+   <p style="margin-bottom:0.15cm;margin-top:0.15cm;"></p>
+   <p style="margin-bottom:0.08cm;margin-top:0.08cm;color:#1f2937;font-size:10pt;">Acceptation : retournez ce devis signé, accompagné de la mention <span style="font-weight:bold;">« Bon pour accord »</span>, à <span style="font-weight:bold;">${entreprise.email}</span>.</p>
+
+
+   <p style="border-bottom:0.04cm solid #1f3a52;margin-bottom:0.25cm;margin-top:0.7cm;padding-bottom:0.08cm;color:#1f3a52;font-size:11pt;font-weight:bold;">Bon pour accord</p>
+   <table style="width:17cm;">
+    <col style="width:8.5cm;">
+    <col style="width:8.5cm;">
+    <tr>
+     <td style="border:0.02cm solid #e5e7eb;padding:0.4cm;vertical-align:top;">
+      <p style="margin-bottom:0cm;margin-top:0.05cm;color:#9ca3af;font-size:8pt;font-weight:bold;">Le client</p>
+      <p style="margin-bottom:0.05cm;margin-top:0.05cm;color:#6b7280;font-size:9pt;">Date et signature, précédées de la mention « Bon pour accord »</p>
+      <p style="margin-bottom:0.08cm;margin-top:0.08cm;color:#1f2937;font-size:10pt;"></p>
+      <p style="margin-bottom:0.08cm;margin-top:0.08cm;color:#1f2937;font-size:10pt;"></p>
+      <p style="margin-bottom:0.08cm;margin-top:0.08cm;color:#1f2937;font-size:10pt;"></p>
+      <p style="margin-bottom:0.05cm;margin-top:0.05cm;color:#6b7280;font-size:9pt;">${client.nom_complet}</p>
+     </td>
+     <td style="border:0.02cm solid #e5e7eb;padding:0.4cm;vertical-align:top;">
+      <p style="margin-bottom:0cm;margin-top:0.05cm;color:#9ca3af;font-size:8pt;font-weight:bold;">${entreprise.nom}</p>
+      <p style="margin-bottom:0.05cm;margin-top:0.05cm;color:#6b7280;font-size:9pt;">Établi le ${system.date}</p>
+      <p style="margin-bottom:0.08cm;margin-top:0.08cm;color:#1f2937;font-size:10pt;"></p>
+      <p style="margin-bottom:0.08cm;margin-top:0.08cm;color:#1f2937;font-size:10pt;"></p>
+      <p style="margin-bottom:0.08cm;margin-top:0.08cm;color:#1f2937;font-size:10pt;"></p>
+      <p style="margin-bottom:0.05cm;margin-top:0.05cm;color:#6b7280;font-size:9pt;">${entreprise.email}</p>
+     </td>
+    </tr>
+   </table>
+
+
+   <p style="border-top:0.02cm solid #e5e7eb;margin-bottom:0.2cm;margin-top:0.6cm;"></p>
+   [#if nf.legal_mention_1?? && nf.legal_mention_1?length > 0]<p style="margin-bottom:0.04cm;margin-top:0.08cm;color:#9ca3af;font-size:7.5pt;font-style:italic;">${nf.legal_mention_1}</p>[/#if]
+   [#if nf.legal_mention_2?? && nf.legal_mention_2?length > 0]<p style="margin-bottom:0.04cm;margin-top:0.08cm;color:#9ca3af;font-size:7.5pt;font-style:italic;">${nf.legal_mention_2}</p>[/#if]
+   <p style="margin-bottom:0.05cm;margin-top:0.1cm;text-align:center;color:#9ca3af;font-size:7.5pt;">${entreprise.nom} • ${entreprise.adresse} • SIRET ${entreprise.siret} • ${entreprise.email} • ${entreprise.telephone}</p>
+   <p style="margin-bottom:0.05cm;margin-top:0.1cm;text-align:center;color:#9ca3af;font-size:7.5pt;">Devis ${nf.numero_legal} • Généré le ${system.date} • Réf. ${system.numero_auto}</p>
+
+  </body></html>

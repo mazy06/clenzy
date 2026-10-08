@@ -58,7 +58,7 @@ class DefaultDocumentTemplateSeederTest {
     private static final DocumentType[] ALL_TYPES = {
             DocumentType.DEVIS, DocumentType.DEVIS_PRESTATAIRE, DocumentType.DEVIS_MENAGE,
             DocumentType.FACTURE,
-            DocumentType.AUTORISATION_TRAVAUX, DocumentType.BON_INTERVENTION,
+            DocumentType.AUTORISATION_TRAVAUX, DocumentType.BON_INTERVENTION, DocumentType.BON_COMMANDE,
             DocumentType.JUSTIFICATIF_PAIEMENT, DocumentType.JUSTIFICATIF_REMBOURSEMENT,
             DocumentType.MANDAT_GESTION, DocumentType.VALIDATION_FIN_MISSION
     };
@@ -131,8 +131,8 @@ class DefaultDocumentTemplateSeederTest {
         verify(templateRepository, atLeastOnce()).save(captor.capture());
         DocumentTemplate devis = captor.getAllValues().stream()
                 .filter(t -> t.getDocumentType() == DocumentType.DEVIS).findFirst().orElseThrow();
-        assertThat(devis.getName()).isEqualTo("Devis Clenzy");
-        assertThat(devis.getOriginalFilename()).isEqualTo("Devis Clenzy.odt");
+        assertThat(devis.getName()).isEqualTo("Devis Baitly");
+        assertThat(devis.getOriginalFilename()).isEqualTo("Devis Baitly.html");
         assertThat(devis.isActive()).isTrue();
         assertThat(devis.getFileContent()).isNotEmpty();
     }
@@ -213,7 +213,7 @@ class DefaultDocumentTemplateSeederTest {
     void run_sameContentStaleTags_reparses() throws Exception {
         byte[] bundled;
         try (java.io.InputStream is = new org.springframework.core.io.ClassPathResource(
-                "seed/document-templates/facture-clenzy.odt").getInputStream()) {
+                "seed/document-templates/facture-baitly.html").getInputStream()) {
             bundled = is.readAllBytes();
         }
         DocumentTemplate facture = new DocumentTemplate();

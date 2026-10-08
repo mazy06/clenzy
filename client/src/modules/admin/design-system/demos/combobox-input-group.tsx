@@ -1,4 +1,4 @@
-import { GlobeIcon } from "lucide-react"
+import { GlobeIcon } from "../../../../icons/glyphs"
 
 import { Combobox, ComboboxCollection, ComboboxContent, ComboboxEmpty, ComboboxGroup, ComboboxInput, ComboboxItem, ComboboxLabel, ComboboxList } from '../../../../components/ui/combobox';
 import { InputGroupAddon } from '../../../../components/ui'

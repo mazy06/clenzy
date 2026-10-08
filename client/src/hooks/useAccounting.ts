@@ -20,6 +20,17 @@ export function usePayouts(ownerId?: number, status?: PayoutStatus) {
   });
 }
 
+export function useGeneratePayout() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ ownerId, from, to }: { ownerId: number; from: string; to: string }) =>
+      accountingApi.generatePayout(ownerId, from, to),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: accountingKeys.payouts });
+    },
+  });
+}
+
 export function useApprovePayout() {
   const queryClient = useQueryClient();
   return useMutation({

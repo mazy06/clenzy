@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { CalendarClockIcon, MapPinIcon, MoreVerticalIcon, TimerIcon, UserIcon } from 'lucide-react';
+import { CalendarClockIcon, MapPinIcon, MoreVerticalIcon, TimerIcon, UserIcon } from '../../icons/glyphs';
 import { Button, Card } from '../ui';
 import StatusChip from './StatusChip';
 import GuestAvatar from './GuestAvatar';

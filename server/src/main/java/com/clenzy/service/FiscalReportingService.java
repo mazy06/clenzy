@@ -53,17 +53,50 @@ public class FiscalReportingService {
      * @return Resume avec ventilation par taux
      */
     public VatSummaryDto getVatSummary(LocalDate from, LocalDate to) {
+        String country=BaitlyFiscalJurisdictions.country(tenantContext.getCountryCode());
+        return getVatSummary(from,to,country,switch(country){case "MA"->"MAD";case "SA"->"SAR";default->"EUR";});
+    }
+
+    public VatSummaryDto getVatSummary(LocalDate from,LocalDate to,String country) {
+        if(country==null || country.isBlank())return getVatSummary(from,to);
+        country=BaitlyFiscalJurisdictions.country(country);
+        return getVatSummary(from,to,country,switch(country){case "MA"->"MAD";case "SA"->"SAR";default->"EUR";});
+    }
+
+    /** Ventilation sans addition de pays ni conversion implicite de leurs déclarations. */
+    public List<VatSummaryDto> getVatSummariesByCountry(LocalDate from,LocalDate to) {
+        var invoices=invoiceRepository.findByOrganizationIdAndDateRange(tenantContext.getRequiredOrganizationId(),from,to);
+        var scopes=new TreeMap<String,String[]>();
+        for(var invoice:invoices) {
+            if(!isCanonicalFiscalDocument(invoice))continue;
+            String country=BaitlyFiscalJurisdictions.country(invoice.getCountryCode());
+            String currency=invoice.getCurrency();
+            if(currency==null)throw new IllegalStateException("Devise de facture à rapprocher avant reporting");
+            currency=currency.toUpperCase(Locale.ROOT);
+            scopes.put(country+":"+currency,new String[]{country,currency});
+        }
+        return scopes.values().stream().map(scope->summarize(from,to,scope[0],scope[1],invoices.stream()
+                .filter(i->scope[1].equalsIgnoreCase(i.getCurrency())).toList())).toList();
+    }
+
+    public VatSummaryDto getVatSummary(LocalDate from,LocalDate to,String countryCode,String currency) {
         Long orgId = tenantContext.getRequiredOrganizationId();
-        String countryCode = tenantContext.getCountryCode();
-        String currency = tenantContext.getDefaultCurrency();
-
         List<Invoice> invoices = invoiceRepository.findByOrganizationIdAndDateRange(orgId, from, to);
+        return summarize(from,to,BaitlyFiscalJurisdictions.country(countryCode),currency,invoices);
+    }
 
-        // Filtrer : uniquement ISSUED et PAID (pas DRAFT ni CANCELLED)
+    private VatSummaryDto summarize(LocalDate from,LocalDate to,String countryCode,String currency,List<Invoice> invoices) {
+        return summarize(from,to,countryCode,currency,invoices,true);
+    }
+
+    private VatSummaryDto summarize(LocalDate from,LocalDate to,String countryCode,String currency,List<Invoice> invoices,boolean splitIssuers) {
+        Long orgId=tenantContext.getRequiredOrganizationId();
+        if(from==null || to==null || to.isBefore(from))throw new IllegalArgumentException("Période fiscale invalide");
+
+        // Pièces émises, originaux annulés et avoirs à leur date ; aucun duplicata.
         List<Invoice> activeInvoices = invoices.stream()
-            .filter(inv -> inv.getStatus() == InvoiceStatus.ISSUED
-                        || inv.getStatus() == InvoiceStatus.PAID
-                        || inv.getStatus() == InvoiceStatus.CREDIT_NOTE)
+            .filter(FiscalReportingService::isCanonicalFiscalDocument)
+            .filter(inv->countryCode.equals(BaitlyFiscalJurisdictions.country(inv.getCountryCode())))
             .toList();
 
         BigDecimal totalHt = BigDecimal.ZERO;
@@ -129,6 +162,19 @@ public class FiscalReportingService {
         log.info("VAT summary for org={}, period={}: {} invoices, totalTTC={}",
             orgId, period, activeInvoices.size(), MoneyUtils.round(totalTtc));
 
+        List<VatSummaryDto.IssuerSummary> issuers=List.of();
+        if(splitIssuers) {
+            var groups=new TreeMap<String,List<Invoice>>();
+            for(var invoice:activeInvoices) {
+                String key=issuerIdentity(invoice)+":"+invoice.getCurrency();
+                groups.computeIfAbsent(key,ignored->new ArrayList<>()).add(invoice);
+            }
+            issuers=groups.entrySet().stream().map(entry->{
+                var first=entry.getValue().getFirst();
+                return new VatSummaryDto.IssuerSummary(entry.getKey(),first.getSellerName(),
+                    summarize(from,to,countryCode,first.getCurrency(),entry.getValue(),false));
+            }).toList();
+        }
         return new VatSummaryDto(
             countryCode,
             currency,
@@ -137,8 +183,18 @@ public class FiscalReportingService {
             MoneyUtils.round(totalTax),
             MoneyUtils.round(totalTtc),
             activeInvoices.size(),
-            breakdown
+            breakdown,
+            issuers
         );
+    }
+
+    private static String issuerIdentity(Invoice invoice) {
+        if(invoice.getIssuerKey()!=null)return invoice.getIssuerKey();
+        // Anciennes pièces : identité figée dans le document, jamais celle du profil actuel.
+        String identity=invoice.getCountryCode()+":"+Objects.toString(invoice.getSellerTaxId(),"").replaceAll("[\\s.-]", "").toUpperCase(Locale.ROOT);
+        if(invoice.getSellerTaxId()==null || invoice.getSellerTaxId().isBlank())
+            identity+=":"+Objects.toString(invoice.getSellerName(),"")+":"+Objects.toString(invoice.getSellerAddress(),"");
+        return BaitlyInvoiceChecks.hash(identity.getBytes(java.nio.charset.StandardCharsets.UTF_8));
     }
 
     /**
@@ -170,6 +226,14 @@ public class FiscalReportingService {
     }
 
     // --- Helpers ---
+
+    /** L'annulation n'efface pas la vente : l'avoir compte à sa propre date. */
+    static boolean isCanonicalFiscalDocument(Invoice invoice) {
+        return invoice.getDuplicateOfId()==null && invoice.getInvoiceNumber()!=null
+            && !invoice.getInvoiceNumber().startsWith("DRAFT")
+            && Set.of(InvoiceStatus.ISSUED,InvoiceStatus.SENT,InvoiceStatus.OVERDUE,
+                InvoiceStatus.PAID,InvoiceStatus.CANCELLED,InvoiceStatus.CREDIT_NOTE).contains(invoice.getStatus());
+    }
 
     private String formatPeriod(LocalDate from, LocalDate to) {
         return from.toString() + " / " + to.toString();

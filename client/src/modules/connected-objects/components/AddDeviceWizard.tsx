@@ -1,7 +1,7 @@
 import { useState, type CSSProperties } from 'react';
 import { cn } from '../../../utils/cn';
 import { Alert, AlertDescription } from '../../../components/ui';
-import { Info, TriangleAlert } from 'lucide-react';
+import { Info, TriangleAlert } from '../../../icons/glyphs';
 import { Spinner } from '../../../components/ui';
 import { Button } from '../../../components/ui';
 import {

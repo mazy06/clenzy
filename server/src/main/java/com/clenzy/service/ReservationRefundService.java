@@ -52,10 +52,12 @@ public class ReservationRefundService {
     private final ReservationRepository reservationRepository;
     private final CancellationRefundService cancellationRefundService;
     private final StripeService stripeService;
+    private final ReservationRefundCoordination coordination;
 
     public ReservationRefundService(ReservationRepository reservationRepository,
                                     CancellationRefundService cancellationRefundService,
-                                    StripeService stripeService) {
+                                    StripeService stripeService, ReservationRefundCoordination coordination) {
+        this.coordination = coordination;
         this.reservationRepository = reservationRepository;
         this.cancellationRefundService = cancellationRefundService;
         this.stripeService = stripeService;
@@ -95,6 +97,7 @@ public class ReservationRefundService {
         // remboursement ne double jamais ; un second geste distinct (autre montant) passe.
         String idempotencyKey = "agent-refund-" + reservationId + "-"
                 + normalizedReason.toLowerCase(Locale.ROOT) + "-" + refundCents;
+        coordination.reserve(orgId, reservationId, sessionId, BigDecimal.valueOf(refundCents, 2), idempotencyKey);
         try {
             stripeService.refundCheckoutSessionPartial(sessionId, refundCents,
                     idempotencyKey, "agent:" + normalizedReason);

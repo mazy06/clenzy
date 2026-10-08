@@ -16,6 +16,7 @@ class ConsumerReconciledSourceTypesTest {
     @Test
     @DisplayName("les flux orchestrés « payer un total » + périphérie sont reconnus")
     void recognisesConsumerReconciledFlows() {
+        assertThat(ConsumerReconciledSourceTypes.isReconciledByConsumer(InterventionPaymentBatch.SOURCE_TYPE)).isTrue();
         assertThat(ConsumerReconciledSourceTypes.isReconciledByConsumer(
                 DeferredPaymentService.SOURCE_TYPE_PREFIX + "HOST")).isTrue();
         assertThat(ConsumerReconciledSourceTypes.isReconciledByConsumer(ReservationPaymentService.SOURCE_TYPE)).isTrue();

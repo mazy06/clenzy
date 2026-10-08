@@ -2,7 +2,7 @@ import { SiteCurrencySymbol } from '../components/SiteMoney';
 import type { SiteCurrency } from '../lib/siteCurrency';
 import { sitePhotoAlt } from '../data/baitlyPhotography';
 import { Link, useLocation } from 'react-router-dom';
-import { ArrowRightIcon } from 'lucide-react';
+import { ArrowRightIcon } from '../../src/icons/glyphs';
 import BaitlySolutionNavPreview from '../components/BaitlySolutionNavPreview';
 import {
   BAITLY_ACTIVITY_JOURNEYS,

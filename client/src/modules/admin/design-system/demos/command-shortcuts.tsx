@@ -1,5 +1,5 @@
 import * as React from "react"
-import { CreditCardIcon, SettingsIcon, UserIcon } from "lucide-react"
+import { CreditCardIcon, SettingsIcon, UserIcon } from "../../../../icons/glyphs"
 
 import { Button } from '../../../../components/ui'
 import { Command, CommandDialog, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList, CommandShortcut } from '../../../../components/ui/command';

@@ -1,7 +1,7 @@
 import React, { useState, useCallback } from 'react';
 import { View, Text, TextInput, Alert, ScrollView, StyleSheet, Pressable } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Ionicons } from '@expo/vector-icons';
+import { Reicon } from '@/icons';
 import { useRoute, useNavigation } from '@react-navigation/native';
 import type { RouteProp } from '@react-navigation/native';
 import { Button } from '@/components/ui/Button';
@@ -13,13 +13,13 @@ import { takePhoto, type CapturedPhoto } from '@/services/camera/cameraService';
 import { interventionsApi } from '@/api/endpoints/interventionsApi';
 import { issuesApi, type IssueSeverity } from '@/api/endpoints/issuesApi';
 
-type IoniconsName = keyof typeof Ionicons.glyphMap;
+type IconName = keyof typeof Reicon.glyphMap;
 
 type RouteParams = {
   AnomalyReport: { interventionId: number };
 };
 
-const ANOMALY_CATEGORIES: { value: string; icon: IoniconsName }[] = [
+const ANOMALY_CATEGORIES: { value: string; icon: IconName }[] = [
   { value: 'DAMAGE', icon: 'warning-outline' },
   { value: 'MISSING_ITEM', icon: 'search-outline' },
   { value: 'HYGIENE', icon: 'water-outline' },
@@ -30,10 +30,10 @@ const ANOMALY_CATEGORIES: { value: string; icon: IoniconsName }[] = [
 
 // 4 niveaux alignés sur IssueSeverity backend (CRITICAL n'est plus remappé sur HIGH).
 const SEVERITY_LEVELS = [
-  { value: 'LOW', color: '#059669', icon: 'information-circle-outline' as IoniconsName },
-  { value: 'MEDIUM', color: '#D97706', icon: 'alert-circle-outline' as IoniconsName },
-  { value: 'HIGH', color: '#EA580C', icon: 'warning-outline' as IoniconsName },
-  { value: 'CRITICAL', color: '#DC2626', icon: 'alert-outline' as IoniconsName },
+  { value: 'LOW', color: '#059669', icon: 'information-circle-outline' as IconName },
+  { value: 'MEDIUM', color: '#D97706', icon: 'alert-circle-outline' as IconName },
+  { value: 'HIGH', color: '#EA580C', icon: 'warning-outline' as IconName },
+  { value: 'CRITICAL', color: '#DC2626', icon: 'alert-outline' as IconName },
 ];
 
 export function AnomalyReportScreen() {
@@ -118,7 +118,7 @@ export function AnomalyReportScreen() {
             alignItems: 'center', justifyContent: 'center',
             marginBottom: theme.SPACING.lg,
           }}>
-            <Ionicons name="checkmark-circle" size={40} color={theme.colors.success.main} />
+            <Reicon name="checkmark-circle" size={40} color={theme.colors.success.main} />
           </View>
           <Text style={{ ...theme.typography.h3, color: theme.colors.text.primary, textAlign: 'center', marginBottom: 8 }}>
             {t('anomaly.successTitle')}
@@ -136,7 +136,7 @@ export function AnomalyReportScreen() {
                 backgroundColor: pressed ? theme.colors.primary.dark : theme.colors.primary.main,
               })}
             >
-              <Ionicons name="list-outline" size={18} color="#fff" />
+              <Reicon name="list-outline" size={18} color="#fff" />
               <Text style={{ ...theme.typography.body2, color: '#fff', fontWeight: '600' }}>
                 {t('anomaly.viewMyIssues')}
               </Text>
@@ -151,7 +151,7 @@ export function AnomalyReportScreen() {
                 backgroundColor: pressed ? `${theme.colors.primary.main}12` : 'transparent',
               })}
             >
-              <Ionicons name="chatbubbles-outline" size={18} color={theme.colors.primary.main} />
+              <Reicon name="chatbubbles-outline" size={18} color={theme.colors.primary.main} />
               <Text style={{ ...theme.typography.body2, color: theme.colors.primary.main, fontWeight: '600' }}>
                 {t('anomaly.contactManager')}
               </Text>
@@ -172,7 +172,7 @@ export function AnomalyReportScreen() {
         backgroundColor: theme.colors.background.paper, gap: theme.SPACING.md,
       }}>
         <Pressable onPress={() => navigation.goBack()} hitSlop={8}>
-          <Ionicons name="chevron-back" size={22} color={theme.colors.text.primary} />
+          <Reicon name="chevron-back" size={22} color={theme.colors.text.primary} />
         </Pressable>
         <View style={{ flex: 1 }}>
           <Text style={{ ...theme.typography.h3, color: theme.colors.text.primary }}>{t('anomaly.title')}</Text>
@@ -200,7 +200,7 @@ export function AnomalyReportScreen() {
                     borderColor: isSelected ? theme.colors.warning.main : `${theme.colors.warning.main}30`,
                   }}
                 >
-                  <Ionicons name={cat.icon} size={14} color={isSelected ? '#fff' : theme.colors.warning.main} />
+                  <Reicon name={cat.icon} size={14} color={isSelected ? '#fff' : theme.colors.warning.main} />
                   <Text style={{
                     ...theme.typography.caption, fontWeight: '600',
                     color: isSelected ? '#fff' : theme.colors.warning.main,
@@ -231,7 +231,7 @@ export function AnomalyReportScreen() {
                     borderColor: isSelected ? sev.color : `${sev.color}30`,
                   }}
                 >
-                  <Ionicons name={sev.icon} size={18} color={isSelected ? '#fff' : sev.color} />
+                  <Reicon name={sev.icon} size={18} color={isSelected ? '#fff' : sev.color} />
                   <Text style={{
                     ...theme.typography.caption, fontWeight: '600',
                     color: isSelected ? '#fff' : sev.color,
@@ -296,7 +296,7 @@ export function AnomalyReportScreen() {
           color="warning"
           fullWidth
           loading={submitting}
-          icon={<Ionicons name="send-outline" size={16} color="#fff" />}
+          icon={<Reicon name="send-outline" size={16} color="#fff" />}
         />
       </ScrollView>
     </SafeAreaView>

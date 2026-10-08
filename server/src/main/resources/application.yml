@@ -353,3 +353,9 @@ springdoc:
 # ─── KPI SLA Dashboard ────────────────────────────────────────────────────
 kpi:
   test-coverage-pct: ${KPI_TEST_COVERAGE_PCT:55.4}
+
+# Surveillance Baitly en lecture seule, à activer après validation en sandbox Stripe.
+baitly:
+  payout-monitoring:
+    enabled: ${BAITLY_PAYOUT_MONITORING_ENABLED:false}
+    interval-ms: ${BAITLY_PAYOUT_MONITORING_INTERVAL_MS:300000}

@@ -1,27 +1,27 @@
 import React from 'react';
 import { cn } from '../../utils/cn';
-import { Close, Home, Public as GlobeIcon, Schedule, CheckCircle } from '../../icons';
+import { Close, Public as GlobeIcon, Schedule, CheckCircle } from '../../icons';
 import { useTranslation } from '../../hooks/useTranslation';
 import StatusChip from '../StatusChip';
+import PropertyThumb from '../PropertyThumb';
 import type { ReservationStatus } from '../../services/api';
 import type { UseReservationFormResult } from './useReservationForm';
 import type { ReservationDialogEntryMode } from './ReservationDialog';
+import { RESERVATION_ART } from './reservationArtwork';
 
-// Transcriptions en classes de `SEG_WRAP_SX` / `segBtnSx` (reservationDialogStyles),
-// sur le meme modele que FinalizeStep et PricingSection. Le `background: none` du sx
-// devient `bg-transparent` : sans lui le <button> reprendrait le fond gris de l'UA.
-const SEG_WRAP_CLASS =
-  'inline-flex shrink-0 bg-field border border-solid border-field-line rounded-lg p-[3px] gap-[2px]';
+// Contrôle segmenté de la modale (mode, statut) : piste `bg-muted`, segment
+// actif en carte, comme les sous-vues des espaces Finances et Documents.
+const SEG_WRAP_CLASS = 'inline-flex shrink-0 gap-[2px] rounded-[10px] bg-muted p-[3px]';
 
 const segBtnClass = (on: boolean) =>
   cn(
-    'inline-flex items-center justify-center gap-[6px] border-0 rounded-[7px] px-3 py-1.5',
-    '[font-family:inherit] text-xs font-semibold whitespace-nowrap cursor-pointer',
-    'transition-[background-color,color] duration-[140ms]',
+    'inline-flex items-center justify-center gap-[6px] rounded-[8px] border border-solid px-3 py-1.5',
+    '[font-family:inherit] text-xs whitespace-nowrap cursor-pointer',
+    'transition-[background-color,color,border-color] duration-[160ms] ease-out',
     'focus-visible:outline-2 focus-visible:outline-primary focus-visible:outline-offset-1',
     on
-      ? 'bg-card text-primary shadow-sm'
-      : 'bg-transparent text-muted-foreground shadow-none',
+      ? 'border-border bg-card font-semibold text-foreground'
+      : 'border-transparent bg-transparent font-medium text-muted-foreground hover:text-foreground',
   );
 
 interface Props {
@@ -34,9 +34,19 @@ interface Props {
   showModeToggle: boolean;
 }
 
+/**
+ * En-tête de la modale : le logement (photo) et la personne concernés d'abord,
+ * puis les réglages qui qualifient la réservation (mode, canal, statut).
+ */
 const ReservationDialogHeader: React.FC<Props> = ({ form, onClose, entryMode, onEntryModeChange, showModeToggle }) => {
   const { t } = useTranslation();
   const isBlock = entryMode === 'block';
+  const guestName = form.selectedGuest?.fullName
+    || [form.newGuestFirstName, form.newGuestLastName].map((part) => part.trim()).filter(Boolean).join(' ');
+  const subtitle = [
+    isBlock ? '' : guestName,
+    form.propertyName || t('reservations.dialog.propertyPlaceholder'),
+  ].filter(Boolean).join(' · ');
 
   const renderStatusIcon = (s: ReservationStatus) => {
     if (form.isEdit) return null; // segmented compact (labels seuls) en édition
@@ -46,90 +56,91 @@ const ReservationDialogHeader: React.FC<Props> = ({ form, onClose, entryMode, on
   };
 
   return (
-    // `rowGap: '10px'` precedait `gap: '12px'` dans le sx : la shorthand `gap`,
-    // serialisee apres, ecrasait deja le row-gap. On garde le rendu reel (12px).
-    <div className="flex items-center flex-wrap gap-[12px] py-[18px] px-[22px] border-b border-solid border-border shrink-0">
-      <span className="font-[family-name:var(--font-display)] text-[18px] font-semibold text-foreground tracking-[-0.01em] whitespace-nowrap">
-        {isBlock ? t('reservations.dialog.blockTitle') : form.headerTitle}
-      </span>
-
-      {/* Toggle réservation / blocage (création uniquement) */}
-      {showModeToggle && (
-        <div className={SEG_WRAP_CLASS}>
-          {(['reservation', 'block'] as const).map((m) => (
-            <button
-              key={m}
-              type="button"
-              onClick={() => onEntryModeChange(m)}
-              className={segBtnClass(entryMode === m)}
-            >
-              {m === 'reservation' ? t('reservations.dialog.modeReservation') : t('reservations.dialog.modeBlock')}
-            </button>
-          ))}
+    <div className="shrink-0 border-b border-solid border-border px-[22px] pt-[18px] pb-[14px]">
+      <div className="flex items-center gap-3">
+        {form.effectivePropertyId ? (
+          <PropertyThumb
+            seed={String(form.effectivePropertyId)}
+            photo={form.propertyPhoto}
+            className="h-11 w-[66px] rounded-[10px]"
+          />
+        ) : (
+          <img
+            src={isBlock ? RESERVATION_ART.stay : RESERVATION_ART.reservation}
+            alt=""
+            width={44}
+            height={44}
+            className="size-11 shrink-0 rounded-[10px] object-cover"
+          />
+        )}
+        <div className="min-w-0 flex-1">
+          <p className="text-[17px] font-semibold leading-tight tracking-[-0.01em] text-foreground text-balance">
+            {isBlock ? t('reservations.dialog.blockTitle') : form.headerTitle}
+          </p>
+          <p className="mt-0.5 truncate text-xs text-muted-foreground" dir="auto">{subtitle}</p>
         </div>
-      )}
-
-      {/* Pilule canal (.rm-chan) — masquée en mode blocage (pas de canal).
-          Primitive partagée `StatusChip` plutôt qu'une pilule redessinée : elle
-          porte ici une provenance, pas un état, d'où les tokens explicites
-          (valeurs CSS — la prop `tokens` est lue à l'exécution). */}
-      {!isBlock && (
-        <StatusChip
-          pill
-          icon={<GlobeIcon size={13} strokeWidth={2} />}
-          label={t(`reservations.source.${form.sourceKey}`)}
-          tokens={{ color: 'var(--bui-primary)', bg: 'var(--bui-primary-soft)' }}
-          className="px-[11px]"
-        />
-      )}
-
-      {/* Édition : segmented STATUT (cycle de vie). Création : le statut dérive de
-          l'intention de paiement, choisie à l'étape « Finalisation » du wizard. */}
-      {form.isEdit && (
-        <div className={SEG_WRAP_CLASS}>
-          {form.statuses.map((s) => (
-            <button key={s} type="button" onClick={() => form.setStatus(s)} className={segBtnClass(form.status === s)}>
-              {renderStatusIcon(s)}
-              {t(`reservations.status.${s}`)}
-            </button>
-          ))}
-        </div>
-      )}
-
-      {/* Propriété (.rm-prop) — nom seul, uniquement quand le logement est verrouillé.
-          En création libre, le sélecteur vit dans le corps (étape 1 / blocage) → pas de doublon. */}
-      {!form.showPropertySelector && (
-        <div
+        <button
+          type="button"
+          aria-label={t('common.close', 'Fermer')}
+          onClick={onClose}
           className={cn(
-            'ms-auto inline-flex items-center gap-[7px] text-[13px] font-semibold min-w-0',
-            form.propertyName ? 'text-foreground' : 'text-faint',
+            'flex size-[34px] shrink-0 cursor-pointer items-center justify-center rounded-lg border border-solid border-border bg-card p-0 text-muted-foreground',
+            'transition-[color,border-color] duration-[160ms] ease-out hover:border-foreground/30 hover:text-foreground',
+            'focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary',
           )}
         >
-          <span className="inline-flex text-primary shrink-0">
-            <Home size={16} strokeWidth={1.75} />
-          </span>
-          <span className="overflow-hidden text-ellipsis whitespace-nowrap">
-            {form.propertyName || t('reservations.dialog.propertyPlaceholder')}
-          </span>
-        </div>
-      )}
+          <Close size={16} strokeWidth={1.75} />
+        </button>
+      </div>
 
-      {/* ✕ (.rm-x) */}
-      <button
-        type="button"
-        aria-label={t('common.cancel')}
-        onClick={onClose}
-        className={cn(
-          'w-[34px] h-[34px] rounded-lg border border-solid border-border bg-card text-muted-foreground',
-          'cursor-pointer flex items-center justify-center shrink-0 p-0',
-          'transition-[color,border-color] duration-[140ms] hover:text-destructive hover:border-destructive',
-          'focus-visible:outline-2 focus-visible:outline-primary focus-visible:outline-offset-2',
-          // Quand le bloc logement est masqué (création libre), le X reprend le push à droite.
-          form.showPropertySelector && 'ms-auto',
+      <div className="mt-3 flex flex-wrap items-center gap-2.5">
+        {/* Toggle réservation / blocage (création uniquement) */}
+        {showModeToggle && (
+          <div className={SEG_WRAP_CLASS} role="group" aria-label={t('reservations.dialog.modeLabel', 'Type de saisie')}>
+            {(['reservation', 'block'] as const).map((m) => (
+              <button
+                key={m}
+                type="button"
+                aria-pressed={entryMode === m}
+                onClick={() => onEntryModeChange(m)}
+                className={segBtnClass(entryMode === m)}
+              >
+                {m === 'reservation' ? t('reservations.dialog.modeReservation') : t('reservations.dialog.modeBlock')}
+              </button>
+            ))}
+          </div>
         )}
-      >
-        <Close size={16} strokeWidth={1.75} />
-      </button>
+
+        {/* Édition : statut (cycle de vie). Création : le statut dérive de
+            l'intention de paiement, choisie à l'étape « Finalisation ». */}
+        {form.isEdit && (
+          <div className={SEG_WRAP_CLASS} role="group" aria-label={t('reservations.fields.status')}>
+            {form.statuses.map((s) => (
+              <button
+                key={s}
+                type="button"
+                aria-pressed={form.status === s}
+                onClick={() => form.setStatus(s)}
+                className={segBtnClass(form.status === s)}
+              >
+                {renderStatusIcon(s)}
+                {t(`reservations.status.${s}`)}
+              </button>
+            ))}
+          </div>
+        )}
+
+        {/* Canal : une provenance, pas un état — masqué en blocage (pas de canal). */}
+        {!isBlock && (
+          <StatusChip
+            pill
+            icon={<GlobeIcon size={13} strokeWidth={2} />}
+            label={t(`reservations.source.${form.sourceKey}`)}
+            tokens={{ color: 'var(--bui-primary-deep)', bg: 'var(--bui-primary-soft)' }}
+            className="ms-auto px-[11px]"
+          />
+        )}
+      </div>
     </div>
   );
 };

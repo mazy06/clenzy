@@ -13,7 +13,7 @@ import org.springframework.stereotype.Component;
 
 /**
  * Exécuteur SEPA Transfer : génération du XML pain.001 par l'admin, virement
- * manuel sur le portail bancaire Clenzy, puis confirmation "Marquer comme paye".
+ * manuel sur le portail bancaire Baitly, puis confirmation "Marquer comme paye".
  *
  * <p>Cet exécuteur ne fait que marquer le payout en {@code PROCESSING} et
  * notifier les admins qu'il faut effectuer le virement à la main. Le passage
@@ -43,11 +43,17 @@ public class SepaTransferPayoutExecutor implements PayoutExecutor {
     }
 
     @Override
-    public OwnerPayout execute(OwnerPayout payout, OwnerPayoutConfig config) {
+    public void validate(OwnerPayout payout, OwnerPayoutConfig config) {
         if (config.getIban() == null || config.getIban().isBlank()) {
             throw new PayoutExecutionException(
                 "SEPA Transfer : IBAN du proprietaire absent.");
         }
+
+    }
+
+    @Override
+    public OwnerPayout execute(OwnerPayout payout, OwnerPayoutConfig config) {
+        validate(payout, config);
 
         payout.setStatus(PayoutStatus.PROCESSING);
         payout.setPayoutMethod(PayoutMethod.SEPA_TRANSFER);

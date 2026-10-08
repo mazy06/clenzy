@@ -14,7 +14,7 @@ import {
   Spinner,
 } from '../../../components/ui';
 import { useParams } from 'react-router-dom';
-import { AlertTriangle, CheckCircle2 } from 'lucide-react';
+import { AlertTriangle, CheckCircle2 } from '../../../icons/glyphs';
 import { API_CONFIG } from '../../../config/api';
 import { activeIntlLocale } from '../../../utils/activeLocale';
 import { createBookingI18n } from '../sdk/i18n';
@@ -49,6 +49,8 @@ interface CancelResult {
   status: string;
   refundAmount: number;
   currency: string | null;
+  refundStatus?: 'NONE' | 'PENDING' | 'CONFIRMED' | 'FAILED' | 'RECONCILIATION_REQUIRED' | 'UNKNOWN';
+  refundedAmount?: number;
 }
 
 type Step = 'form' | 'preview' | 'done';
@@ -91,6 +93,21 @@ export default function CancelBookingPage() {
       .then((data: CancelResult) => { setResult(data); setStep('done'); })
       .catch(() => setError('Annulation impossible. Réessayez ou contactez l’hôte.'))
       .finally(() => setLoading(false));
+  };
+
+  const refreshRefund = async () => {
+    setLoading(true); setError(null);
+    try {
+      const response = await fetch(`${base}/${encodeURIComponent(code.trim())}/cancellation-status`, {
+        method: 'POST', headers, body: JSON.stringify({ email: email.trim() }),
+      });
+      if (!response.ok) throw new Error(String(response.status));
+      setResult(await response.json());
+    } catch {
+      setError(t('page.refundStatusError'));
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -145,10 +162,19 @@ export default function CancelBookingPage() {
               <div className="text-base font-semibold text-balance mb-0.5">
                 {result.status === 'already_cancelled' ? t('page.alreadyCancelled') : t('page.cancelled')}
               </div>
-              {result.refundAmount > 0 && (
-                <div className="text-sm text-muted-foreground tabular-nums">
-                  Remboursement de {fmt(result.refundAmount, result.currency)} en cours de traitement.
-                </div>
+              <div role="status" aria-live="polite" className="text-sm text-muted-foreground tabular-nums mt-2">
+                {result.refundStatus === 'CONFIRMED'
+                  ? t('page.refundConfirmed').replace('{amount}', fmt(result.refundedAmount ?? 0, result.currency))
+                  : result.refundStatus === 'PENDING'
+                    ? t('page.refundPending').replace('{amount}', fmt(result.refundAmount, result.currency))
+                    : result.refundStatus === 'NONE'
+                      ? t('page.refundNone')
+                      : t('page.refundReview')}
+              </div>
+              {result.refundStatus !== 'NONE' && result.refundStatus !== 'CONFIRMED' && (
+                <Button variant="outline" className="mt-4 w-full" onClick={refreshRefund} disabled={loading}>
+                  {loading ? <Spinner className="size-4" /> : t('page.checkRefund')}
+                </Button>
               )}
             </div>
           )}

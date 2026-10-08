@@ -1,123 +1,33 @@
 package com.clenzy.service;
 
-import com.clenzy.dto.PaymentOrchestrationRequest;
 import com.clenzy.dto.PaymentOrchestrationResult;
 import com.clenzy.model.Invoice;
-import com.clenzy.model.InvoiceStatus;
 import com.clenzy.model.PaymentProviderType;
-import com.clenzy.repository.InvoiceRepository;
-import com.clenzy.service.access.OrganizationAccessGuard;
-import com.clenzy.tenant.TenantContext;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
-import java.time.LocalDateTime;
-import java.util.Map;
-
+/** Orchestration Baitly hors transaction SQL ; persistance courte et verrouillée. */
 @Service
-@Transactional
 public class InvoicePaymentService {
+    private final PaymentOrchestrationService orchestration;
+    private final InvoicePaymentCoordination invoices;
 
-    private static final Logger log = LoggerFactory.getLogger(InvoicePaymentService.class);
-
-    private final PaymentOrchestrationService paymentOrchestrationService;
-    private final InvoiceRepository invoiceRepository;
-    private final TenantContext tenantContext;
-    private final OrganizationAccessGuard organizationAccessGuard;
-
-    public InvoicePaymentService(PaymentOrchestrationService paymentOrchestrationService,
-                                   InvoiceRepository invoiceRepository,
-                                   TenantContext tenantContext,
-                                   OrganizationAccessGuard organizationAccessGuard) {
-        this.paymentOrchestrationService = paymentOrchestrationService;
-        this.invoiceRepository = invoiceRepository;
-        this.tenantContext = tenantContext;
-        this.organizationAccessGuard = organizationAccessGuard;
+    public InvoicePaymentService(PaymentOrchestrationService orchestration, InvoicePaymentCoordination invoices) {
+        this.orchestration = orchestration; this.invoices = invoices;
     }
 
-    /**
-     * Initiates payment for an invoice through the payment orchestrator.
-     */
-    public PaymentOrchestrationResult payInvoice(Long invoiceId,
-                                                   PaymentProviderType preferredProvider,
-                                                   String successUrl, String cancelUrl) {
-        Invoice invoice = invoiceRepository.findById(invoiceId)
-            .orElseThrow(() -> new RuntimeException("Invoice not found: " + invoiceId));
-        // findById contourne le filtre org (audit 2026-07 F1-03) : garde d'ownership fail-closed.
-        organizationAccessGuard.requireSameOrganization(
-            invoice.getOrganizationId(), "Facture hors de votre organisation");
-
-        // Verify invoice is payable
-        if (invoice.getStatus() != InvoiceStatus.SENT
-            && invoice.getStatus() != InvoiceStatus.ISSUED
-            && invoice.getStatus() != InvoiceStatus.OVERDUE) {
-            throw new IllegalStateException(
-                "Invoice cannot be paid in status: " + invoice.getStatus());
-        }
-
-        log.info("Initiating payment for invoice {} ({})", invoice.getInvoiceNumber(), invoice.getTotalTtc());
-
-        PaymentOrchestrationRequest request = new PaymentOrchestrationRequest(
-            invoice.getTotalTtc(),
-            invoice.getCurrency(),
-            "INVOICE",
-            invoiceId,
-            "Payment for invoice " + invoice.getInvoiceNumber(),
-            invoice.getBuyerName(),
-            preferredProvider,
-            successUrl,
-            cancelUrl,
-            Map.of("invoiceNumber", invoice.getInvoiceNumber())
-        );
-
-        PaymentOrchestrationResult result = paymentOrchestrationService.initiatePayment(request);
-
-        // Update invoice with payment info
-        if (result.isSuccess()) {
-            invoice.setPaymentTransactionId(result.transaction().getId());
-            invoice.setPaymentMethod(result.providerUsed().name());
-            invoiceRepository.save(invoice);
-        }
-
+    public PaymentOrchestrationResult payInvoice(Long invoiceId, PaymentProviderType preferredProvider,
+            String successUrl, String cancelUrl) {
+        if (preferredProvider != null && preferredProvider != PaymentProviderType.STRIPE)
+            throw new IllegalStateException("Le paiement des factures utilise le PSP Stripe configuré");
+        var result = orchestration.initiatePayment(invoices.prepare(invoiceId, successUrl, cancelUrl));
+        if (result.isSuccess()) invoices.bindExisting(invoiceId, result.transaction().getId());
         return result;
     }
 
-    /**
-     * Mark invoice as paid (called from webhook or manual confirmation).
-     */
+    /** Aucune déclaration manuelle ne peut remplacer la preuve du PSP. */
     public Invoice markAsPaid(Long invoiceId) {
-        Invoice invoice = invoiceRepository.findById(invoiceId)
-            .orElseThrow(() -> new RuntimeException("Invoice not found: " + invoiceId));
-
-        invoice.setStatus(InvoiceStatus.PAID);
-        invoice.setPaidAt(LocalDateTime.now());
-        invoice = invoiceRepository.save(invoice);
-
-        log.info("Invoice {} marked as paid", invoice.getInvoiceNumber());
-        return invoice;
+        throw new IllegalStateException("Le règlement de la facture doit être confirmé par le PSP");
     }
 
-    /**
-     * Send an invoice (change status from DRAFT to SENT).
-     */
-    public Invoice sendInvoice(Long invoiceId) {
-        Invoice invoice = invoiceRepository.findById(invoiceId)
-            .orElseThrow(() -> new RuntimeException("Invoice not found: " + invoiceId));
-        // findById contourne le filtre org (audit 2026-07 F1-04) : garde d'ownership fail-closed.
-        organizationAccessGuard.requireSameOrganization(
-            invoice.getOrganizationId(), "Facture hors de votre organisation");
-
-        if (invoice.getStatus() != InvoiceStatus.DRAFT) {
-            throw new IllegalStateException(
-                "Only DRAFT invoices can be sent. Current status: " + invoice.getStatus());
-        }
-
-        invoice.setStatus(InvoiceStatus.SENT);
-        invoice = invoiceRepository.save(invoice);
-
-        log.info("Invoice {} sent", invoice.getInvoiceNumber());
-        return invoice;
-    }
+    public Invoice sendInvoice(Long invoiceId) { return invoices.send(invoiceId); }
 }

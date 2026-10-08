@@ -28,7 +28,7 @@ import java.util.Map;
 public class AiCreditController {
 
     /** Corps du POST /topup — seul le pack est choisi par le client, jamais un montant. */
-    public record TopUpRequest(String pack) {}
+    public record TopUpRequest(String pack, java.util.UUID requestId) {}
 
     private final AiCreditGrantService grantService;
     private final AiCreditPurchaseService purchaseService;
@@ -97,8 +97,9 @@ public class AiCreditController {
 
     /** Cree une session de paiement (orchestrée) pour un pack. Retourne {checkoutUrl}. */
     @PostMapping("/topup")
+    @PreAuthorize("hasAnyRole('HOST','SUPER_ADMIN','SUPER_MANAGER')")
     public Map<String, String> topUp(@RequestBody TopUpRequest request,
                                      @AuthenticationPrincipal Jwt jwt) {
-        return purchaseService.createTopUpCheckout(jwt.getSubject(), request.pack());
+        return purchaseService.createTopUpCheckout(jwt.getSubject(), request.pack(), request.requestId());
     }
 }

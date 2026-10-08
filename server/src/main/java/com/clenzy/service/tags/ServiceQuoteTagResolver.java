@@ -92,9 +92,16 @@ public class ServiceQuoteTagResolver implements ReferenceTagResolver {
             }
 
             // Le prestataire signe de son enseigne.
+            if (quote.getProviderName() != null && !quote.getProviderName().isBlank()) {
+                context.put("emetteur_prestataire", Map.of("nom", quote.getProviderName(),
+                        "adresse", "", "siret", "", "email", "", "telephone", ""));
+            }
             if (quote.getProviderUserId() != null) {
                 userRepository.findById(quote.getProviderUserId()).ifPresent(provider -> {
                     context.put("technicien", builders.clientTags(provider));
+                    context.put("emetteur_prestataire", Map.of(
+                            "nom", safeStr(provider.getCompanyName()).isBlank() ? safeStr(provider.getFullName()) : provider.getCompanyName(),
+                            "adresse", "", "siret", "", "email", safeStr(provider.getEmail()), "telephone", safeStr(provider.getPhoneNumber())));
                     byte[] logo = builders.companyLogoBytes(provider);
                     if (logo != null) {
                         context.put("logo_prestataire", logo);

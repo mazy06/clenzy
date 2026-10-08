@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { View, Text, ScrollView, Pressable, Alert, TextInput, RefreshControl } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Ionicons } from '@expo/vector-icons';
+import { Reicon } from '@/icons';
 import { useNavigation, useRoute, type RouteProp } from '@react-navigation/native';
 import { useTheme } from '@/theme';
 import { Card } from '@/components/ui/Card';
@@ -16,7 +16,7 @@ import { useNoiseChartData } from '@/hooks/useNoiseMonitoring';
 import { useNoiseAlertConfig, useNoiseAlertConfigs, useSaveNoiseAlertConfig } from '@/hooks/useNoiseAlertConfig';
 import type { DashboardStackParamList } from '@/navigation/HostNavigator';
 
-type IoniconsName = keyof typeof Ionicons.glyphMap;
+type IconName = keyof typeof Reicon.glyphMap;
 
 /* ─── Types ─── */
 
@@ -101,7 +101,7 @@ function TabBar({ activeTab, onTabChange, theme }: {
   onTabChange: (tab: TabKey) => void;
   theme: ReturnType<typeof useTheme>;
 }) {
-  const tabs: { key: TabKey; label: string; icon: IoniconsName }[] = [
+  const tabs: { key: TabKey; label: string; icon: IconName }[] = [
     { key: 'chart', label: 'Graphique', icon: 'analytics-outline' },
     { key: 'config', label: 'Configuration', icon: 'settings-outline' },
   ];
@@ -133,7 +133,7 @@ function TabBar({ activeTab, onTabChange, theme }: {
               ...(isActive ? theme.shadows.sm : {}),
             }}
           >
-            <Ionicons
+            <Reicon
               name={tab.icon}
               size={16}
               color={isActive ? theme.colors.primary.main : theme.colors.text.disabled}
@@ -230,7 +230,7 @@ function ChartTab({
               alignItems: 'center',
               justifyContent: 'center',
             }}>
-              <Ionicons
+              <Reicon
                 name="mic-outline"
                 size={22}
                 color={hasData ? getDbColor(liveData!.currentLevel, theme) : theme.colors.primary.main}
@@ -284,7 +284,7 @@ function ChartTab({
                 borderRadius: theme.BORDER_RADIUS.md,
                 backgroundColor: `${getDbColor(liveData!.currentLevel, theme)}08`,
               }}>
-                <Ionicons name="volume-high-outline" size={20} color={getDbColor(liveData!.currentLevel, theme)} />
+                <Reicon name="volume-high-outline" size={20} color={getDbColor(liveData!.currentLevel, theme)} />
                 <Text style={{
                   ...theme.typography.h2,
                   color: getDbColor(liveData!.currentLevel, theme),
@@ -335,7 +335,7 @@ function ChartTab({
             </>
           ) : (
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, paddingVertical: 4 }}>
-              <Ionicons name="information-circle-outline" size={14} color={theme.colors.text.disabled} />
+              <Reicon name="information-circle-outline" size={14} color={theme.colors.text.disabled} />
               <Text style={{ ...theme.typography.caption, color: theme.colors.text.disabled }}>
                 En attente de donnees...
               </Text>
@@ -386,7 +386,7 @@ function TimeWindowCard({
             alignItems: 'center',
             justifyContent: 'center',
           }}>
-            <Ionicons name="time-outline" size={14} color={theme.colors.primary.main} />
+            <Reicon name="time-outline" size={14} color={theme.colors.primary.main} />
           </View>
           <Text style={{ ...theme.typography.body2, fontWeight: '600', color: theme.colors.text.primary }}>
             Creneau {index + 1}
@@ -397,7 +397,7 @@ function TimeWindowCard({
           hitSlop={12}
           style={({ pressed }) => ({ opacity: pressed ? 0.5 : 1 })}
         >
-          <Ionicons name="trash-outline" size={18} color={theme.colors.error.main} />
+          <Reicon name="trash-outline" size={18} color={theme.colors.error.main} />
         </Pressable>
       </View>
 
@@ -447,7 +447,7 @@ function TimeWindowCard({
             paddingHorizontal: 12,
             backgroundColor: `${theme.colors.warning.main}08`,
           }}>
-            <Ionicons name="warning-outline" size={14} color={theme.colors.warning.main} />
+            <Reicon name="warning-outline" size={14} color={theme.colors.warning.main} />
             <TextInput
               value={window.warningThresholdDb}
               onChangeText={(v) => onChange(index, 'warningThresholdDb', v)}
@@ -480,7 +480,7 @@ function TimeWindowCard({
             paddingHorizontal: 12,
             backgroundColor: `${theme.colors.error.main}08`,
           }}>
-            <Ionicons name="alert-circle-outline" size={14} color={theme.colors.error.main} />
+            <Reicon name="alert-circle-outline" size={14} color={theme.colors.error.main} />
             <TextInput
               value={window.criticalThresholdDb}
               onChangeText={(v) => onChange(index, 'criticalThresholdDb', v)}
@@ -704,7 +704,7 @@ function ConfigTab({
           opacity: pressed ? 0.7 : 1,
         })}
       >
-        <Ionicons name="add-circle-outline" size={18} color={theme.colors.primary.main} />
+        <Reicon name="add-circle-outline" size={18} color={theme.colors.primary.main} />
         <Text style={{ ...theme.typography.body2, color: theme.colors.primary.main, fontWeight: '600' }}>
           Ajouter un creneau
         </Text>
@@ -790,7 +790,7 @@ function ConfigTab({
         fullWidth
         loading={saveConfig.isPending}
         disabled={saveConfig.isPending}
-        icon={<Ionicons name="checkmark-circle-outline" size={18} color="#fff" />}
+        icon={<Reicon name="checkmark-circle-outline" size={18} color="#fff" />}
       />
     </ScrollView>
   );
@@ -830,7 +830,7 @@ export function NoiseDeviceDetailScreen() {
             ...theme.shadows.sm,
           })}
         >
-          <Ionicons name="arrow-back" size={20} color={theme.colors.text.primary} />
+          <Reicon name="arrow-back" size={20} color={theme.colors.text.primary} />
         </Pressable>
         <View style={{ flex: 1 }}>
           <Text style={{ ...theme.typography.h3, color: theme.colors.text.primary }} numberOfLines={1}>

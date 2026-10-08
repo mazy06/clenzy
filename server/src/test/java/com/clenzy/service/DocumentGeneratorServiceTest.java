@@ -52,7 +52,7 @@ class DocumentGeneratorServiceTest {
     @Mock private DocumentStorageService documentStorageService;
     @Mock private TemplateParserService templateParserService;
     @Mock private TagResolverService tagResolverService;
-    @Mock private LibreOfficeConversionService conversionService;
+    @Mock private BaitlyPdfEngine conversionService;
     @Mock private EmailService emailService;
     @Mock private NotificationService notificationService;
     @Mock private AuditLogService auditLogService;
@@ -85,14 +85,11 @@ class DocumentGeneratorServiceTest {
                 emailService, generationRepository);
         DocumentGenerationPipeline generationPipeline = new DocumentGenerationPipeline(
                 generationRepository, documentStorageService, tagResolverService, conversionService,
-                numberingService, complianceService, invoiceGeneratorService, notificationService,
+                numberingService, complianceService, invoiceGeneratorService, org.mockito.Mockito.mock(InvoicePdfService.class), org.mockito.Mockito.mock(BaitlyInvoicePdfStore.class), notificationService,
                 auditLogService, tenantContext, failureRecorder, emailDispatcher, renderer, meterRegistry,
                 org.mockito.Mockito.mock(org.springframework.transaction.PlatformTransactionManager.class));
         DocumentPreviewService previewService = new DocumentPreviewService(
-                tagResolverService, numberingService, complianceService, conversionService,
-                tenantContext, entityManager, renderer,
-                interventionRepository, receivedFormRepository, serviceRequestRepository,
-                reservationRepository, propertyRepository, providerExpenseRepository);
+                conversionService, renderer, new InvoicePdfService(conversionService));
         service = new DocumentGeneratorService(
                 templateManager, previewService, generationPipeline, emailDispatcher,
                 templateRepository, generationRepository, taxRulePreValidator,
@@ -148,11 +145,11 @@ class DocumentGeneratorServiceTest {
             assertThatThrownBy(() -> service.uploadTemplate(file, "Test", "Desc",
                     "FACTURE", "MANUAL", null, null, jwt))
                     .isInstanceOf(DocumentValidationException.class)
-                    .hasMessageContaining(".odt");
+                    .hasMessageContaining(".html");
         }
         @Test void whenPathTraversal_thenThrows() {
             MultipartFile file = mock(MultipartFile.class);
-            when(file.getOriginalFilename()).thenReturn("../../evil.odt");
+            when(file.getOriginalFilename()).thenReturn("../../evil.html");
 
             assertThatThrownBy(() -> service.uploadTemplate(file, "Test", "Desc",
                     "FACTURE", "MANUAL", null, null, jwt))
@@ -160,7 +157,7 @@ class DocumentGeneratorServiceTest {
         }
         @Test void whenInvalidDocumentType_thenThrows() {
             MultipartFile file = mock(MultipartFile.class);
-            when(file.getOriginalFilename()).thenReturn("template.odt");
+            when(file.getOriginalFilename()).thenReturn("template.html");
 
             assertThatThrownBy(() -> service.uploadTemplate(file, "Test", "Desc",
                     "INVALID_TYPE", "MANUAL", null, null, jwt))
@@ -188,6 +185,7 @@ class DocumentGeneratorServiceTest {
     class ActivateTemplate {
         @Test void whenCalled_thenActivates() {
             DocumentTemplate t = new DocumentTemplate();
+            t.setFileContent("<html><body>Test</body></html>".getBytes(java.nio.charset.StandardCharsets.UTF_8));
             t.setId(1L);
             t.setDocumentType(DocumentType.FACTURE);
             when(templateRepository.findByIdWithTags(1L)).thenReturn(Optional.of(t));
@@ -207,13 +205,13 @@ class DocumentGeneratorServiceTest {
             DocumentTemplate t = new DocumentTemplate();
             t.setId(1L);
             t.setName("Test");
-            t.setFilePath("/path/to/file.odt");
+            t.setFilePath("/path/to/file.html");
             when(templateRepository.findByIdWithTags(1L)).thenReturn(Optional.of(t));
 
             service.deleteTemplate(1L);
 
             verify(tagRepository).deleteByTemplateId(1L);
-            verify(templateStorageService).delete("/path/to/file.odt");
+            verify(templateStorageService).delete("/path/to/file.html");
             verify(templateRepository).delete(t);
         }
     }
@@ -321,10 +319,10 @@ class DocumentGeneratorServiceTest {
     class UploadTemplateHappy {
 
         @Test
-        void whenValidOdt_thenCreatesTemplateAndParsesTags() throws Exception {
+        void whenValidHtml_thenCreatesTemplateAndParsesTags() throws Exception {
             MultipartFile file = mock(MultipartFile.class);
-            when(file.getOriginalFilename()).thenReturn("template.odt");
-            byte[] content = new byte[]{1, 2, 3};
+            when(file.getOriginalFilename()).thenReturn("template.html");
+            byte[] content = "<html><body>Test</body></html>".getBytes(java.nio.charset.StandardCharsets.UTF_8);
             when(file.getBytes()).thenReturn(content);
 
             when(tenantContext.getOrganizationId()).thenReturn(7L);
@@ -361,7 +359,7 @@ class DocumentGeneratorServiceTest {
         @Test
         void whenFilenameContainsForwardSlash_thenThrows() {
             MultipartFile file = mock(MultipartFile.class);
-            when(file.getOriginalFilename()).thenReturn("dir/template.odt");
+            when(file.getOriginalFilename()).thenReturn("dir/template.html");
 
             assertThatThrownBy(() -> service.uploadTemplate(file, "T", "D", "FACTURE", "M", null, null, jwt))
                     .isInstanceOf(DocumentValidationException.class);
@@ -370,7 +368,7 @@ class DocumentGeneratorServiceTest {
         @Test
         void whenFilenameContainsBackslash_thenThrows() {
             MultipartFile file = mock(MultipartFile.class);
-            when(file.getOriginalFilename()).thenReturn("dir\\template.odt");
+            when(file.getOriginalFilename()).thenReturn("dir\\template.html");
 
             assertThatThrownBy(() -> service.uploadTemplate(file, "T", "D", "FACTURE", "M", null, null, jwt))
                     .isInstanceOf(DocumentValidationException.class);
@@ -379,7 +377,7 @@ class DocumentGeneratorServiceTest {
         @Test
         void whenFileGetBytesThrows_thenWrapsInStorageException() throws Exception {
             MultipartFile file = mock(MultipartFile.class);
-            when(file.getOriginalFilename()).thenReturn("template.odt");
+            when(file.getOriginalFilename()).thenReturn("template.html");
             when(file.getBytes()).thenThrow(new java.io.IOException("disk error"));
 
             assertThatThrownBy(() -> service.uploadTemplate(file, "T", "D", "FACTURE", "M", null, null, jwt))
@@ -429,22 +427,22 @@ class DocumentGeneratorServiceTest {
             DocumentTemplate t = new DocumentTemplate();
             t.setId(1L);
             t.setName("Test");
-            t.setOriginalFilename("old.odt");
+            t.setOriginalFilename("old.html");
             when(templateRepository.findByIdWithTags(1L)).thenReturn(Optional.of(t));
 
             MultipartFile file = mock(MultipartFile.class);
-            when(file.getOriginalFilename()).thenReturn("new.odt");
-            byte[] newContent = new byte[]{5, 6, 7};
+            when(file.getOriginalFilename()).thenReturn("new.html");
+            byte[] newContent = "<html><body>Nouveau</body></html>".getBytes(java.nio.charset.StandardCharsets.UTF_8);
             when(file.getBytes()).thenReturn(newContent);
 
             when(templateParserService.parseTemplate(newContent)).thenReturn(List.of());
 
             DocumentTemplate result = service.replaceTemplateFile(1L, file);
 
-            assertThat(result.getOriginalFilename()).isEqualTo("new.odt");
+            assertThat(result.getOriginalFilename()).isEqualTo("new.html");
             assertThat(result.getFileContent()).isEqualTo(newContent);
             verify(auditLogService).logUpdate(eq("DocumentTemplate"), anyString(),
-                    eq("old.odt"), eq("new.odt"), anyString());
+                    eq("old.html"), eq("new.html"), anyString());
         }
 
         @Test
@@ -480,7 +478,7 @@ class DocumentGeneratorServiceTest {
             when(templateRepository.findByIdWithTags(1L)).thenReturn(Optional.of(t));
 
             MultipartFile file = mock(MultipartFile.class);
-            when(file.getOriginalFilename()).thenReturn("../evil.odt");
+            when(file.getOriginalFilename()).thenReturn("../evil.html");
 
             assertThatThrownBy(() -> service.replaceTemplateFile(1L, file))
                     .isInstanceOf(DocumentValidationException.class);
@@ -490,11 +488,11 @@ class DocumentGeneratorServiceTest {
         void whenFileGetBytesThrows_thenWraps() throws Exception {
             DocumentTemplate t = new DocumentTemplate();
             t.setId(1L);
-            t.setOriginalFilename("old.odt");
+            t.setOriginalFilename("old.html");
             when(templateRepository.findByIdWithTags(1L)).thenReturn(Optional.of(t));
 
             MultipartFile file = mock(MultipartFile.class);
-            when(file.getOriginalFilename()).thenReturn("new.odt");
+            when(file.getOriginalFilename()).thenReturn("new.html");
             when(file.getBytes()).thenThrow(new java.io.IOException("io error"));
 
             assertThatThrownBy(() -> service.replaceTemplateFile(1L, file))
@@ -506,18 +504,18 @@ class DocumentGeneratorServiceTest {
             DocumentTemplate t = new DocumentTemplate();
             t.setId(1L);
             t.setName("Test");
-            t.setOriginalFilename("old.odt");
-            t.setFilePath("/tmp/old.odt");
+            t.setOriginalFilename("old.html");
+            t.setFilePath("/tmp/old.html");
             when(templateRepository.findByIdWithTags(1L)).thenReturn(Optional.of(t));
 
             MultipartFile file = mock(MultipartFile.class);
-            when(file.getOriginalFilename()).thenReturn("new.odt");
-            when(file.getBytes()).thenReturn(new byte[]{1});
+            when(file.getOriginalFilename()).thenReturn("new.html");
+            when(file.getBytes()).thenReturn("<html><body>Test</body></html>".getBytes(java.nio.charset.StandardCharsets.UTF_8));
             when(templateParserService.parseTemplate(any(byte[].class))).thenReturn(List.of());
 
             service.replaceTemplateFile(1L, file);
 
-            verify(templateStorageService).delete("/tmp/old.odt");
+            verify(templateStorageService).delete("/tmp/old.html");
         }
     }
 
@@ -528,6 +526,7 @@ class DocumentGeneratorServiceTest {
         @Test
         void whenAlreadyActive_thenStaysActiveAndOthersDeactivated() {
             DocumentTemplate t = new DocumentTemplate();
+            t.setFileContent("<html><body>Test</body></html>".getBytes(java.nio.charset.StandardCharsets.UTF_8));
             t.setId(2L);
             t.setDocumentType(DocumentType.DEVIS);
             t.setActive(true);
@@ -583,15 +582,15 @@ class DocumentGeneratorServiceTest {
             DocumentTemplate t = new DocumentTemplate();
             t.setId(1L);
             t.setFileContent(null);
-            t.setFilePath("/tmp/file.odt");
+            t.setFilePath("/tmp/file.html");
             when(templateRepository.findByIdWithTags(1L)).thenReturn(Optional.of(t));
-            when(templateStorageService.loadAsBytes("/tmp/file.odt")).thenReturn(new byte[]{1, 2});
+            when(templateStorageService.loadAsBytes("/tmp/file.html")).thenReturn(new byte[]{1, 2});
             when(templateParserService.parseTemplate(any(byte[].class))).thenReturn(List.of());
 
             DocumentTemplate result = service.reparseTemplate(1L);
 
             assertThat(result).isNotNull();
-            verify(templateStorageService).loadAsBytes("/tmp/file.odt");
+            verify(templateStorageService).loadAsBytes("/tmp/file.html");
         }
     }
 
@@ -733,7 +732,7 @@ class DocumentGeneratorServiceTest {
             template.setName("T");
             template.setDocumentType(DocumentType.BON_INTERVENTION); // not FACTURE → no tax pre-validation
             template.setFileContent(new byte[]{1, 2, 3, 4});
-            template.setOriginalFilename("template.odt");
+            template.setOriginalFilename("template.html");
 
             when(templateRepository.findByDocumentTypeAndActiveTrue(DocumentType.BON_INTERVENTION))
                     .thenReturn(Optional.of(template));
@@ -742,7 +741,7 @@ class DocumentGeneratorServiceTest {
             // Numbering not required for BON_INTERVENTION
             when(numberingService.requiresLegalNumber(eq(DocumentType.BON_INTERVENTION), eq("FR")))
                     .thenReturn(false);
-            when(tagResolverService.resolveTagsForDocument(any(), any(), any()))
+            when(tagResolverService.resolveTagsForDocument(any(), any(), any(), any(), any()))
                     .thenReturn(new java.util.HashMap<>());
             when(generationRepository.save(any(DocumentGeneration.class)))
                     .thenAnswer(inv -> { DocumentGeneration g = inv.getArgument(0); g.setId(100L); return g; });
@@ -752,7 +751,7 @@ class DocumentGeneratorServiceTest {
 
             // XDocReport.loadReport will fail on random bytes → DocumentGenerationException
             assertThatThrownBy(() -> service.generateDocument(req, jwt))
-                    .isInstanceOf(com.clenzy.exception.DocumentGenerationException.class);
+                    .isInstanceOf(com.clenzy.exception.DocumentValidationException.class);
 
             // Verify the failure was delegated to the REQUIRES_NEW recorder (durable FAILED row + notif)
             verify(failureRecorder).recordFailure(
@@ -767,14 +766,14 @@ class DocumentGeneratorServiceTest {
             template.setName("T");
             template.setDocumentType(DocumentType.BON_INTERVENTION);
             template.setFileContent(new byte[]{1, 2});
-            template.setOriginalFilename("template.odt");
+            template.setOriginalFilename("template.html");
 
             when(templateRepository.findByDocumentTypeAndActiveTrue(DocumentType.BON_INTERVENTION))
                     .thenReturn(Optional.of(template));
             when(tenantContext.getOrganizationId()).thenReturn(7L);
             when(tenantContext.getCountryCode()).thenReturn("FR");
             when(numberingService.requiresLegalNumber(any(), any())).thenReturn(false);
-            when(tagResolverService.resolveTagsForDocument(any(), any(), any()))
+            when(tagResolverService.resolveTagsForDocument(any(), any(), any(), any(), any()))
                     .thenThrow(new RuntimeException("tag resolution error"));
             when(generationRepository.save(any(DocumentGeneration.class)))
                     .thenAnswer(inv -> { DocumentGeneration g = inv.getArgument(0); g.setId(100L); return g; });
@@ -828,7 +827,7 @@ class DocumentGeneratorServiceTest {
             template.setDocumentType(DocumentType.BON_INTERVENTION);
             template.setFileContent(null);
             template.setFilePath(null);
-            template.setOriginalFilename("template.odt");
+            template.setOriginalFilename("template.html");
 
             when(templateRepository.findByDocumentTypeAndActiveTrue(DocumentType.BON_INTERVENTION))
                     .thenReturn(Optional.of(template));
@@ -867,14 +866,14 @@ class DocumentGeneratorServiceTest {
             template.setDocumentType(DocumentType.DEVIS);
             template.setOrganizationId(42L);                 // org proprietaire du template
             template.setFileContent(new byte[]{1, 2, 3});
-            template.setOriginalFilename("devis.odt");
+            template.setOriginalFilename("devis.html");
 
             when(templateRepository.findByDocumentTypeAndActiveTrue(DocumentType.DEVIS))
                     .thenReturn(Optional.of(template));
             // Contexte public : aucune org dans le TenantContext
             when(tenantContext.getOrganizationId()).thenReturn(null);
             when(numberingService.requiresLegalNumber(DocumentType.DEVIS, "FR")).thenReturn(false);
-            when(tagResolverService.resolveTagsForDocument(any(), any(), any()))
+            when(tagResolverService.resolveTagsForDocument(any(), any(), any(), any(), any()))
                     .thenReturn(new java.util.HashMap<>());
 
             org.mockito.ArgumentCaptor<DocumentGeneration> captor =
@@ -891,7 +890,7 @@ class DocumentGeneratorServiceTest {
             // (statut GENERATING) a deja persiste l'orgId resolu.
             assertThatThrownBy(() -> service.generateFromEvent(
                     DocumentType.DEVIS, 100L, ReferenceType.RECEIVED_FORM, null, null))
-                    .isInstanceOf(com.clenzy.exception.DocumentGenerationException.class);
+                    .isInstanceOf(com.clenzy.exception.DocumentValidationException.class);
 
             // Toutes les versions persistees portent l'org du template (42L), jamais null.
             assertThat(captor.getAllValues())
@@ -936,13 +935,13 @@ class DocumentGeneratorServiceTest {
             template.setDocumentType(DocumentType.DEVIS);
             template.setOrganizationId(42L);                 // org proprietaire du template
             template.setFileContent(new byte[]{1, 2, 3});    // bytes invalides → fillTemplate echoue
-            template.setOriginalFilename("devis.odt");
+            template.setOriginalFilename("devis.html");
 
             when(templateRepository.findByDocumentTypeAndActiveTrue(DocumentType.DEVIS))
                     .thenReturn(Optional.of(template));
             when(tenantContext.getOrganizationId()).thenReturn(null);
             when(numberingService.requiresLegalNumber(DocumentType.DEVIS, "FR")).thenReturn(false);
-            when(tagResolverService.resolveTagsForDocument(any(), any(), any()))
+            when(tagResolverService.resolveTagsForDocument(any(), any(), any(), any(), any()))
                     .thenReturn(new java.util.HashMap<>());
             when(generationRepository.save(any(DocumentGeneration.class)))
                     .thenAnswer(inv -> {
@@ -953,7 +952,7 @@ class DocumentGeneratorServiceTest {
 
             assertThatThrownBy(() -> service.generateFromEvent(
                     DocumentType.DEVIS, 100L, ReferenceType.RECEIVED_FORM, null, null))
-                    .isInstanceOf(com.clenzy.exception.DocumentGenerationException.class);
+                    .isInstanceOf(com.clenzy.exception.DocumentValidationException.class);
 
             // L'echec est persiste avec l'org du template (42L) et l'id du template (7L).
             verify(failureRecorder).recordFailure(
@@ -963,183 +962,33 @@ class DocumentGeneratorServiceTest {
     }
 
     @Nested
-    @DisplayName("generateTemplatePreview")
+    @DisplayName("generateTemplatePreview - données fictives uniquement")
     class GenerateTemplatePreview {
-
-        @org.mockito.Mock private org.hibernate.Session hibernateSession;
-        @org.mockito.Mock private org.hibernate.Filter hibernateFilter;
-
-        @org.junit.jupiter.api.BeforeEach
-        void initMocks() {
-            org.mockito.MockitoAnnotations.openMocks(this);
-        }
-
-        @Test
-        void whenNoCandidateEntitiesFound_thenStillRunsAndFailsAtFillTemplate() {
-            DocumentTemplate template = new DocumentTemplate();
-            template.setId(1L);
-            template.setName("Preview test");
-            template.setDocumentType(DocumentType.MANDAT_GESTION);
-            template.setFileContent(new byte[]{1, 2});
-            template.setOriginalFilename("preview.odt");
-
+        @Test void rendersWithoutReadingAnyBusinessData() {
+            var template = new DocumentTemplate(); template.setId(1L); template.setDocumentType(DocumentType.AUTORISATION_TRAVAUX);
+            template.setFileContent("<html><body><h1>Travaux</h1><p>${client.nom_complet}</p><p>${property.nom}</p></body></html>".getBytes(java.nio.charset.StandardCharsets.UTF_8));
             when(templateRepository.findByIdWithTags(1L)).thenReturn(Optional.of(template));
-            when(entityManager.unwrap(org.hibernate.Session.class)).thenReturn(hibernateSession);
-            // filter not enabled
-            when(hibernateSession.getEnabledFilter("organizationFilter")).thenReturn(null);
-
-            // Empty repository results → no candidate entity found
-            when(propertyRepository.findAll(any(org.springframework.data.domain.Pageable.class)))
-                    .thenReturn(org.springframework.data.domain.Page.empty());
-            when(interventionRepository.findAll(any(org.springframework.data.domain.Pageable.class)))
-                    .thenReturn(org.springframework.data.domain.Page.empty());
-
-            when(numberingService.requiresLegalNumber(any(), any())).thenReturn(false);
-            when(tenantContext.getCountryCode()).thenReturn("FR");
-
-            // XDocReport will fail on these random bytes → caught & rethrown as DocumentGenerationException
-            assertThatThrownBy(() -> service.generateTemplatePreview(1L))
-                    .isInstanceOf(com.clenzy.exception.DocumentGenerationException.class)
+            when(conversionService.html(anyString())).thenReturn(new byte[]{1,2,3});
+            assertThat(service.generateTemplatePreview(1L)).containsExactly(1,2,3);
+            verify(conversionService).html(argThat(html -> html.contains("Camille Exemple") && html.contains("Appartement Les Étoiles") && html.contains("APERÇU · DOCUMENT FICTIF")));
+            verifyNoInteractions(tagResolverService, numberingService, complianceService, entityManager,
+                    propertyRepository, interventionRepository, receivedFormRepository, serviceRequestRepository, reservationRepository, providerExpenseRepository);
+        }
+        @Test void malformedTemplateFailsExplicitly() {
+            var template = new DocumentTemplate(); template.setId(1L); template.setDocumentType(DocumentType.MANDAT_GESTION);
+            template.setFileContent(new byte[]{1,2});
+            when(templateRepository.findByIdWithTags(1L)).thenReturn(Optional.of(template));
+            assertThatThrownBy(() -> service.generateTemplatePreview(1L)).isInstanceOf(com.clenzy.exception.DocumentGenerationException.class)
                     .hasMessageContaining("previsualisation");
+            verifyNoInteractions(conversionService);
         }
-
-        @Test
-        void whenTagResolverFailsForCandidate_thenFallsBackToEmptyContext() {
-            DocumentTemplate template = new DocumentTemplate();
-            template.setId(1L);
-            template.setName("Preview test");
-            template.setDocumentType(DocumentType.BON_COMMANDE);
-            template.setFileContent(new byte[]{1, 2});
-            template.setOriginalFilename("preview.odt");
-
+        @Test void invoiceUsesCanonicalLayoutWithFictionalDataAndWatermark() {
+            var template = new DocumentTemplate(); template.setId(1L); template.setDocumentType(DocumentType.FACTURE);
             when(templateRepository.findByIdWithTags(1L)).thenReturn(Optional.of(template));
-            when(entityManager.unwrap(org.hibernate.Session.class)).thenReturn(hibernateSession);
-            when(hibernateSession.getEnabledFilter("organizationFilter")).thenReturn(null);
-
-            // provider_expense returns one entity
-            com.clenzy.model.ProviderExpense expense = new com.clenzy.model.ProviderExpense();
-            expense.setId(42L);
-            org.springframework.data.domain.Page<com.clenzy.model.ProviderExpense> pe =
-                    new org.springframework.data.domain.PageImpl<>(List.of(expense));
-            when(providerExpenseRepository.findAll(any(org.springframework.data.domain.Pageable.class)))
-                    .thenReturn(pe);
-            // intervention also returns empty (second candidate)
-            when(interventionRepository.findAll(any(org.springframework.data.domain.Pageable.class)))
-                    .thenReturn(org.springframework.data.domain.Page.empty());
-
-            // TagResolverService throws → fallback to empty context, log warn
-            when(tagResolverService.resolveTagsForDocument(eq(DocumentType.BON_COMMANDE),
-                    eq(42L), eq("provider_expense")))
-                    .thenThrow(new RuntimeException("resolution failed"));
-
-            when(numberingService.requiresLegalNumber(any(), any())).thenReturn(false);
-            when(tenantContext.getCountryCode()).thenReturn("FR");
-
-            // XDocReport still fails on random bytes but we exercise the fallback path
-            assertThatThrownBy(() -> service.generateTemplatePreview(1L))
-                    .isInstanceOf(com.clenzy.exception.DocumentGenerationException.class);
-        }
-
-        @Test
-        void whenLegalNumberRequired_thenInjectsComplianceTags() {
-            DocumentTemplate template = new DocumentTemplate();
-            template.setId(1L);
-            template.setName("Facture preview");
-            template.setDocumentType(DocumentType.FACTURE);
-            template.setFileContent(new byte[]{1, 2});
-            template.setOriginalFilename("preview.odt");
-
-            when(templateRepository.findByIdWithTags(1L)).thenReturn(Optional.of(template));
-            when(entityManager.unwrap(org.hibernate.Session.class)).thenReturn(hibernateSession);
-            when(hibernateSession.getEnabledFilter("organizationFilter")).thenReturn(null);
-
-            // No entities → empty preview context
-            when(interventionRepository.findAll(any(org.springframework.data.domain.Pageable.class)))
-                    .thenReturn(org.springframework.data.domain.Page.empty());
-            when(reservationRepository.findAll(any(org.springframework.data.domain.Pageable.class)))
-                    .thenReturn(org.springframework.data.domain.Page.empty());
-
-            when(tenantContext.getCountryCode()).thenReturn("FR");
-            when(numberingService.requiresLegalNumber(DocumentType.FACTURE, "FR")).thenReturn(true);
-            when(complianceService.resolveComplianceTags(eq(DocumentType.FACTURE), anyString()))
-                    .thenReturn(java.util.Map.of("number", "PREVIEW-FACTURE-0001"));
-
-            assertThatThrownBy(() -> service.generateTemplatePreview(1L))
-                    .isInstanceOf(com.clenzy.exception.DocumentGenerationException.class);
-
-            verify(complianceService).resolveComplianceTags(eq(DocumentType.FACTURE), anyString());
-        }
-
-        @Test
-        void whenFilterIsEnabled_thenDisabledThenReEnabled() {
-            DocumentTemplate template = new DocumentTemplate();
-            template.setId(1L);
-            template.setName("Preview test");
-            template.setDocumentType(DocumentType.BON_INTERVENTION);
-            template.setFileContent(new byte[]{1, 2});
-            template.setOriginalFilename("preview.odt");
-
-            when(templateRepository.findByIdWithTags(1L)).thenReturn(Optional.of(template));
-            when(entityManager.unwrap(org.hibernate.Session.class)).thenReturn(hibernateSession);
-
-            // Filter was enabled initially → returns non-null first call
-            when(hibernateSession.getEnabledFilter("organizationFilter"))
-                    .thenReturn(hibernateFilter)  // first call (wasFilterEnabled = true)
-                    .thenReturn(null);            // second call (finally checks again)
-
-            when(interventionRepository.findAll(any(org.springframework.data.domain.Pageable.class)))
-                    .thenReturn(org.springframework.data.domain.Page.empty());
-            when(reservationRepository.findAll(any(org.springframework.data.domain.Pageable.class)))
-                    .thenReturn(org.springframework.data.domain.Page.empty());
-
-            when(numberingService.requiresLegalNumber(any(), any())).thenReturn(false);
-            when(tenantContext.getCountryCode()).thenReturn("FR");
-
-            assertThatThrownBy(() -> service.generateTemplatePreview(1L))
-                    .isInstanceOf(com.clenzy.exception.DocumentGenerationException.class);
-
-            // disableFilter and enableFilter called
-            verify(hibernateSession).disableFilter("organizationFilter");
-            verify(hibernateSession).enableFilter("organizationFilter");
-        }
-
-        @Test
-        void whenTemplateHasTagsButContextEmpty_thenAddsPreviewPlaceholders() {
-            DocumentTemplate template = new DocumentTemplate();
-            template.setId(1L);
-            template.setName("Preview test");
-            template.setDocumentType(DocumentType.BON_INTERVENTION);
-            template.setFileContent(new byte[]{1, 2});
-            template.setOriginalFilename("preview.odt");
-
-            DocumentTemplateTag t1 = new DocumentTemplateTag();
-            t1.setTagName("intervention.title");
-            t1.setTagType(com.clenzy.model.TagType.SIMPLE);
-            DocumentTemplateTag t2 = new DocumentTemplateTag();
-            t2.setTagName("intervention.lignes");
-            t2.setTagType(com.clenzy.model.TagType.LIST);
-            DocumentTemplateTag t3 = new DocumentTemplateTag();
-            t3.setTagName("client.isPaid");
-            t3.setTagType(com.clenzy.model.TagType.CONDITIONAL);
-            DocumentTemplateTag t4 = new DocumentTemplateTag();
-            t4.setTagName("invalidName"); // No dot — skipped
-            t4.setTagType(com.clenzy.model.TagType.SIMPLE);
-            template.setTags(List.of(t1, t2, t3, t4));
-
-            when(templateRepository.findByIdWithTags(1L)).thenReturn(Optional.of(template));
-            when(entityManager.unwrap(org.hibernate.Session.class)).thenReturn(hibernateSession);
-            when(hibernateSession.getEnabledFilter("organizationFilter")).thenReturn(null);
-
-            when(interventionRepository.findAll(any(org.springframework.data.domain.Pageable.class)))
-                    .thenReturn(org.springframework.data.domain.Page.empty());
-            when(reservationRepository.findAll(any(org.springframework.data.domain.Pageable.class)))
-                    .thenReturn(org.springframework.data.domain.Page.empty());
-
-            when(numberingService.requiresLegalNumber(any(), any())).thenReturn(false);
-            when(tenantContext.getCountryCode()).thenReturn("FR");
-
-            assertThatThrownBy(() -> service.generateTemplatePreview(1L))
-                    .isInstanceOf(com.clenzy.exception.DocumentGenerationException.class);
+            when(conversionService.html(anyString())).thenReturn(new byte[]{1});
+            service.generateTemplatePreview(1L);
+            verify(conversionService).html(argThat(html -> html.contains("Camille Exemple") && html.contains("APERÇU · DOCUMENT FICTIF") && html.contains("Réassort")));
+            verifyNoInteractions(tagResolverService, numberingService, complianceService, entityManager);
         }
     }
 
@@ -1223,92 +1072,6 @@ class DocumentGeneratorServiceTest {
             DocumentGenerationDto result = service.generateFromEvent(
                     DocumentType.MANDAT_GESTION, 1L, ReferenceType.PROPERTY, "   ", 99L);
             assertThat(result).isNull();
-        }
-    }
-
-    @Nested
-    @DisplayName("preview - candidate type resolution")
-    class PreviewCandidateResolution {
-
-        @org.mockito.Mock private org.hibernate.Session hibernateSession;
-
-        @org.junit.jupiter.api.BeforeEach
-        void initMocks() {
-            org.mockito.MockitoAnnotations.openMocks(this);
-        }
-
-        @Test
-        void whenDevisAndReceivedFormExists_thenUsedAsContextSource() {
-            DocumentTemplate template = new DocumentTemplate();
-            template.setId(1L);
-            template.setName("Devis");
-            template.setDocumentType(DocumentType.DEVIS);
-            template.setFileContent(new byte[]{1});
-            template.setOriginalFilename("devis.odt");
-
-            when(templateRepository.findByIdWithTags(1L)).thenReturn(Optional.of(template));
-            when(entityManager.unwrap(org.hibernate.Session.class)).thenReturn(hibernateSession);
-            when(hibernateSession.getEnabledFilter("organizationFilter")).thenReturn(null);
-
-            // received_form returns one
-            com.clenzy.model.ReceivedForm rf = new com.clenzy.model.ReceivedForm();
-            rf.setId(100L);
-            when(receivedFormRepository.findAll(any(org.springframework.data.domain.Pageable.class)))
-                    .thenReturn(new org.springframework.data.domain.PageImpl<>(List.of(rf)));
-
-            when(tagResolverService.resolveTagsForDocument(eq(DocumentType.DEVIS),
-                    eq(100L), eq("received_form")))
-                    .thenReturn(java.util.Map.of("rf", "data"));
-
-            when(numberingService.requiresLegalNumber(any(), any())).thenReturn(false);
-            when(tenantContext.getCountryCode()).thenReturn("FR");
-
-            assertThatThrownBy(() -> service.generateTemplatePreview(1L))
-                    .isInstanceOf(com.clenzy.exception.DocumentGenerationException.class);
-
-            verify(receivedFormRepository).findAll(any(org.springframework.data.domain.Pageable.class));
-            // Should stop at the first candidate that returns a non-empty context
-            verify(serviceRequestRepository, never()).findAll(any(org.springframework.data.domain.Pageable.class));
-        }
-
-        @Test
-        void whenContextResolvesToEmpty_thenContinuesToNextCandidate() {
-            DocumentTemplate template = new DocumentTemplate();
-            template.setId(1L);
-            template.setName("Devis");
-            template.setDocumentType(DocumentType.DEVIS);
-            template.setFileContent(new byte[]{1});
-            template.setOriginalFilename("devis.odt");
-
-            when(templateRepository.findByIdWithTags(1L)).thenReturn(Optional.of(template));
-            when(entityManager.unwrap(org.hibernate.Session.class)).thenReturn(hibernateSession);
-            when(hibernateSession.getEnabledFilter("organizationFilter")).thenReturn(null);
-
-            com.clenzy.model.ReceivedForm rf = new com.clenzy.model.ReceivedForm();
-            rf.setId(100L);
-            when(receivedFormRepository.findAll(any(org.springframework.data.domain.Pageable.class)))
-                    .thenReturn(new org.springframework.data.domain.PageImpl<>(List.of(rf)));
-
-            // First resolver returns empty → fall through
-            when(tagResolverService.resolveTagsForDocument(eq(DocumentType.DEVIS),
-                    eq(100L), eq("received_form")))
-                    .thenReturn(java.util.Map.of());
-
-            // service_request also empty
-            when(serviceRequestRepository.findAll(any(org.springframework.data.domain.Pageable.class)))
-                    .thenReturn(org.springframework.data.domain.Page.empty());
-            // intervention also empty
-            when(interventionRepository.findAll(any(org.springframework.data.domain.Pageable.class)))
-                    .thenReturn(org.springframework.data.domain.Page.empty());
-            // reservation also empty
-            when(reservationRepository.findAll(any(org.springframework.data.domain.Pageable.class)))
-                    .thenReturn(org.springframework.data.domain.Page.empty());
-
-            when(numberingService.requiresLegalNumber(any(), any())).thenReturn(false);
-            when(tenantContext.getCountryCode()).thenReturn("FR");
-
-            assertThatThrownBy(() -> service.generateTemplatePreview(1L))
-                    .isInstanceOf(com.clenzy.exception.DocumentGenerationException.class);
         }
     }
 

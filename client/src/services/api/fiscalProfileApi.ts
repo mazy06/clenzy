@@ -5,7 +5,7 @@ import apiClient from '../apiClient';
 export type FiscalRegime = 'STANDARD' | 'MICRO_ENTERPRISE' | 'SIMPLIFIED';
 
 export interface FiscalProfile {
-  id: number;
+  id: number | null;
   organizationId: number;
   countryCode: string;
   defaultCurrency: string;
@@ -39,11 +39,11 @@ export interface FiscalProfileUpdate {
 // ─── API ────────────────────────────────────────────────────────────────────
 
 export const fiscalProfileApi = {
-  async get(): Promise<FiscalProfile> {
-    return apiClient.get<FiscalProfile>('/fiscal-profile');
+  async get(country?: string): Promise<FiscalProfile> {
+    return apiClient.get<FiscalProfile>(country ? `/fiscal-profile/countries/${encodeURIComponent(country)}` : '/fiscal-profile');
   },
 
-  async update(data: FiscalProfileUpdate): Promise<FiscalProfile> {
-    return apiClient.put<FiscalProfile>('/fiscal-profile', data);
+  async update(data: FiscalProfileUpdate, country?: string): Promise<FiscalProfile> {
+    return apiClient.put<FiscalProfile>(country ? `/fiscal-profile/countries/${encodeURIComponent(country)}` : '/fiscal-profile', data);
   },
 };

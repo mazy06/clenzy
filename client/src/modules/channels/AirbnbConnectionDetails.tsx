@@ -1,6 +1,6 @@
 import React from 'react';
 import { Alert, AlertDescription } from '../../components/ui';
-import { TriangleAlert } from 'lucide-react';
+import { TriangleAlert } from '../../icons/glyphs';
 import type { AirbnbConnectionStatus } from '../../services/api/airbnbApi';
 
 // Logo import (utilise dans la section "connecte" Airbnb)

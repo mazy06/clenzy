@@ -56,6 +56,8 @@ class PublicVoucherControllerTest {
     private PropertyRepository propertyRepository;
 
     private PublicVoucherController controller;
+    @Mock private com.clenzy.booking.service.PublicBookingService booking;
+    private final com.clenzy.booking.dto.AvailabilityResponseDto quote = new com.clenzy.booking.dto.AvailabilityResponseDto(true, 42L, "Test", java.time.LocalDate.now().plusDays(10), java.time.LocalDate.now().plusDays(13), 2, 3, java.util.List.of(), new BigDecimal("450"), BigDecimal.ZERO, BigDecimal.ZERO, new BigDecimal("450"), BigDecimal.ZERO, "EUR", 1, 2, null, null, java.util.List.of());
 
     @BeforeEach
     void setUp() {
@@ -66,14 +68,15 @@ class PublicVoucherControllerTest {
             mock(VoucherPropertyScopeRepository.class),
             propertyRepository,
             mock(OrganizationRepository.class));
-        controller = new PublicVoucherController(voucherEngine, voucherService);
+        org.mockito.Mockito.lenient().when(booking.checkAvailability(any(), any())).thenReturn(quote);
+        controller = new PublicVoucherController(voucherEngine, voucherService, booking);
     }
 
     private VoucherValidationRequestDto request(Long orgId, Long propertyId, String code) {
         return new VoucherValidationRequestDto(
                 orgId, code, propertyId, 3,
                 BigDecimal.valueOf(450), "guest@example.com",
-                VoucherChannelScope.BOOKING_ENGINE);
+                VoucherChannelScope.BOOKING_ENGINE, java.time.LocalDate.now().plusDays(10), java.time.LocalDate.now().plusDays(13), 2, 0);
     }
 
     private Property property(Long id, Long orgId) {
@@ -171,7 +174,7 @@ class PublicVoucherControllerTest {
                 any(), anyString(), any()))
                 .thenReturn(new VoucherValidationResult.Valid(v));
 
-        when(voucherEngine.apply(eq(v), eq(BigDecimal.valueOf(450)), eq(3)))
+        when(voucherEngine.apply(eq(v), any(com.clenzy.booking.dto.AvailabilityResponseDto.class)))
                 .thenReturn(new VoucherApplyResult(
                         11L, "SUMMER25",
                         BigDecimal.valueOf(450),
@@ -200,11 +203,11 @@ class PublicVoucherControllerTest {
 
         VoucherValidationRequestDto req = new VoucherValidationRequestDto(
                 1L, "CODE", 1L, 2, BigDecimal.TEN, null,
-                VoucherChannelScope.WHATSAPP);
+                VoucherChannelScope.WHATSAPP,java.time.LocalDate.of(2026,11,1),java.time.LocalDate.of(2026,11,4),2,0);
         VoucherValidationResponseDto resp = controller.validate(req);
 
         assertThat(resp.valid()).isFalse();
-        verify(voucherEngine).validate(eq(1L), eq("CODE"), eq(1L), eq(2),
-                eq(BigDecimal.TEN), eq(null), eq(VoucherChannelScope.WHATSAPP));
+        verify(voucherEngine).validate(eq(1L), eq("CODE"), eq(1L), eq(3),
+                eq(new BigDecimal("450")), eq(null), eq(VoucherChannelScope.WHATSAPP));
     }
 }

@@ -76,6 +76,14 @@ public class ServiceCatalogReference {
     public boolean isRemote(String code) {
         return flag(code, "execution_mode='REMOTE'");
     }
+
+    /** Une prestation archivée conserve sa catégorie pour le règlement de missions anciennes. */
+    public String categoryCode(String code) {
+        if (code == null) return null;
+        var categories = db.queryForList("SELECT c.code FROM marketplace_service_items i "
+                + "JOIN marketplace_service_categories c ON c.id=i.category_id WHERE i.code=?", String.class, code);
+        return categories.isEmpty() ? null : categories.getFirst();
+    }
     public boolean doesNotReserveSlot(String code) {
         return flag(code, "NOT slot_required");
     }

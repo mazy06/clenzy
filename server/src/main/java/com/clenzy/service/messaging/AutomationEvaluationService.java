@@ -236,8 +236,9 @@ public class AutomationEvaluationService implements AutomationEngine {
      * Amorce les automatisations du cycle de vie d'une reservation a sa creation.
      *
      * <p>F1b : le declencheur RESERVATION_CONFIRMED est evenementiel — il s'execute ici,
-     * immediatement et de facon synchrone (appele par {@code ReservationService} apres
-     * creation), pas au prochain tick du scheduler. Les declencheurs temporels sont
+     * de facon synchrone apres le commit de creation, via
+     * {@link BaitlyReservationAutomationStarter}, pas au prochain tick du scheduler.
+     * Les declencheurs temporels sont
      * planifies (PENDING) pour leur date cible et draines par
      * {@link #processScheduledExecutions()}. Les reservations creees hors de ce chemin
      * (import iCal / OTA) sont rattrapees par le sweep temporel de

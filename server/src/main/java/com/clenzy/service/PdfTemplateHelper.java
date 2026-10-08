@@ -14,11 +14,11 @@ import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 
 /**
- * Helper class pour créer des templates PDF professionnels avec le branding Clenzy
+ * Helper class pour créer des templates PDF professionnels avec le branding Baitly
  */
 public class PdfTemplateHelper {
     
-    // Couleurs Clenzy
+    // Couleurs Baitly
     private static final DeviceRgb CLENZY_PRIMARY = new DeviceRgb(107, 138, 154); // #6B8A9A
     private static final DeviceRgb CLENZY_SECONDARY = new DeviceRgb(166, 192, 206); // #A6C0CE
     private static final DeviceRgb CLENZY_LIGHT = new DeviceRgb(197, 213, 224); // #C5D5E0
@@ -28,7 +28,7 @@ public class PdfTemplateHelper {
     private static final DateTimeFormatter DATETIME_FORMATTER = DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm");
     
     /**
-     * Ajoute un en-tête professionnel avec logo Clenzy
+     * Ajoute un en-tête professionnel avec logo Baitly
      */
     public static void addProfessionalHeader(Document document, String title, String subtitle) throws IOException {
         // Container pour l'en-tête
@@ -42,8 +42,8 @@ public class PdfTemplateHelper {
             .setPadding(15)
             .setBackgroundColor(CLENZY_SECONDARY, 0.1f);
         
-        // Logo Clenzy (texte stylisé si pas d'image)
-        Paragraph logoText = new Paragraph("CLENZY")
+        // Logo Baitly (texte stylisé si pas d'image)
+        Paragraph logoText = new Paragraph("Baitly")
             .setFontSize(24)
             .setBold()
             .setFontColor(CLENZY_PRIMARY)
@@ -52,7 +52,7 @@ public class PdfTemplateHelper {
         headerCell.add(logoText);
         
         // Tagline
-        Paragraph tagline = new Paragraph("Propreté & Multiservices")
+        Paragraph tagline = new Paragraph("Gestion locative & services")
             .setFontSize(10)
             .setFontColor(CLENZY_DARK)
             .setTextAlignment(TextAlignment.LEFT)
@@ -205,16 +205,10 @@ public class PdfTemplateHelper {
             .setBackgroundColor(CLENZY_DARK, 0.1f)
             .setTextAlignment(TextAlignment.CENTER);
         
-        Paragraph footerText = new Paragraph("Clenzy Platform - Plateforme de gestion des services Airbnb")
+        Paragraph footerText = new Paragraph("Document généré par Baitly")
             .setFontSize(8)
             .setFontColor(new DeviceRgb(100, 100, 100));
         footerCell.add(footerText);
-        
-        Paragraph contactText = new Paragraph("www.clenzy.com | support@clenzy.com")
-            .setFontSize(7)
-            .setFontColor(new DeviceRgb(120, 120, 120))
-            .setMarginTop(3);
-        footerCell.add(contactText);
         
         footerTable.addCell(footerCell);
         document.add(footerTable);

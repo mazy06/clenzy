@@ -16,6 +16,18 @@ import java.util.List;
 import java.util.Optional;
 
 public interface ReservationRepository extends JpaRepository<Reservation, Long> {
+    @org.springframework.data.jpa.repository.Lock(jakarta.persistence.LockModeType.PESSIMISTIC_WRITE)
+    @Query("select r from Reservation r where r.organizationId=:org and r.confirmationCode=:code")
+    Optional<Reservation> lockCancellation(@Param("org") Long org, @Param("code") String code);
+
+    /** Ne fusionne jamais un ancien état de paiement après l'envoi du lien. */
+    @org.springframework.transaction.annotation.Transactional
+    @org.springframework.data.jpa.repository.Modifying(clearAutomatically = true, flushAutomatically = true)
+    @Query("UPDATE Reservation r SET r.paymentLinkSentAt = :sentAt, r.paymentLinkEmail = :email "
+        + "WHERE r.id = :id AND r.organizationId = :org AND r.stripeSessionId = :session")
+    int recordPaymentLinkSent(@Param("id") Long id, @Param("org") Long org, @Param("session") String session,
+            @Param("sentAt") java.time.LocalDateTime sentAt, @Param("email") String email);
+
     @Query(value = "SELECT r.row_key FROM jsonb_to_recordset(CAST(:ranges AS jsonb)) "
         + "AS r(row_key text, property_id bigint, date_from date, date_to date, status text, confirmation_code text) "
         + "WHERE EXISTS (SELECT 1 FROM reservations existing WHERE existing.organization_id = :org "
@@ -28,7 +40,8 @@ public interface ReservationRepository extends JpaRepository<Reservation, Long> 
      * confirmée, check-out passé (< cutoff). L'idempotence (déjà crédité) est vérifiée côté service.
      */
     @Query("SELECT r FROM Reservation r LEFT JOIN FETCH r.guest WHERE r.organizationId = :orgId "
-        + "AND r.source = 'direct' AND r.status = 'confirmed' AND r.checkOut < :cutoff")
+        + "AND r.source = 'direct' AND r.status = 'confirmed' AND r.checkOut < :cutoff "
+        + "AND r.paymentStatus = com.clenzy.model.PaymentStatus.PAID AND r.cancelledAt IS NULL")
     List<Reservation> findLoyaltyEligible(@Param("orgId") Long orgId, @Param("cutoff") LocalDate cutoff);
 
     /**
@@ -595,9 +608,11 @@ public interface ReservationRepository extends JpaRepository<Reservation, Long> 
     @Query("SELECT r FROM Reservation r JOIN FETCH r.property LEFT JOIN FETCH r.guest " +
            "WHERE r.totalPrice IS NOT NULL AND r.totalPrice > 0 " +
            "AND (:status IS NULL OR r.paymentStatus = :status) " +
+           "AND (:hostId IS NULL OR r.property.owner.id = :hostId) " +
            "AND r.organizationId = :orgId ORDER BY r.createdAt DESC")
     Page<Reservation> findPaymentHistory(
             @Param("status") PaymentStatus status,
+            @Param("hostId") Long hostId,
             Pageable pageable,
             @Param("orgId") Long orgId);
 
@@ -606,19 +621,9 @@ public interface ReservationRepository extends JpaRepository<Reservation, Long> 
      */
     @Query("SELECT r FROM Reservation r " +
            "WHERE r.totalPrice IS NOT NULL AND r.totalPrice > 0 " +
+           "AND (:hostId IS NULL OR r.property.owner.id = :hostId) " +
            "AND r.organizationId = :orgId")
-    List<Reservation> findAllWithPayment(@Param("orgId") Long orgId);
-
-    /**
-     * Reservations PAYEES avec property + owner fetch (backfill wallet).
-     * Le fetch join owner evite le lazy-load par reservation dans la boucle
-     * (Property.owner passe en LAZY) et le filtre PAID reduit le scan.
-     */
-    @Query("SELECT r FROM Reservation r LEFT JOIN FETCH r.property p LEFT JOIN FETCH p.owner " +
-           "WHERE r.totalPrice IS NOT NULL AND r.totalPrice > 0 " +
-           "AND r.paymentStatus = com.clenzy.model.PaymentStatus.PAID " +
-           "AND r.organizationId = :orgId")
-    List<Reservation> findPaidWithOwnerForWalletBackfill(@Param("orgId") Long orgId);
+    List<Reservation> findAllWithPayment(@Param("orgId") Long orgId, @Param("hostId") Long hostId);
 
     /**
      * Agregat par guest des sejours confirmes : nombre + montant total.
@@ -712,4 +717,12 @@ public interface ReservationRepository extends JpaRepository<Reservation, Long> 
         BigDecimal getRealFeeTotal();
         BigDecimal getRealFeeGross();
     }
+
+    /**
+     * Reservation imported from a previous PMS for the same stay that the channel manager now reports.
+     * Matched on the OTA confirmation code within the mapped property, never on dates alone.
+     */
+    @Query("SELECT r FROM Reservation r WHERE r.property.id = :propertyId AND r.confirmationCode = :code "
+        + "AND r.externalUid LIKE 'baitly-import:%'")
+    List<Reservation> findImportedByConfirmationCode(@Param("propertyId") Long propertyId, @Param("code") String code);
 }

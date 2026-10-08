@@ -2,7 +2,7 @@ import React, { useState, useCallback, useMemo } from 'react';
 import { View, Text, ScrollView, Pressable, RefreshControl, TextInput, FlatList } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
-import { Ionicons } from '@expo/vector-icons';
+import { Reicon } from '@/icons';
 import { useDocuments } from '@/hooks/useDocuments';
 import type { DocumentListItem } from '@/api/endpoints/documentsApi';
 import { Badge } from '@/components/ui/Badge';
@@ -11,7 +11,7 @@ import { EmptyState } from '@/components/ui/EmptyState';
 import { Skeleton } from '@/components/ui/Skeleton';
 import { useTheme } from '@/theme';
 
-type IoniconsName = keyof typeof Ionicons.glyphMap;
+type IconName = keyof typeof Reicon.glyphMap;
 
 type FilterType = 'all' | 'FACTURE' | 'CONTRAT' | 'RECU' | 'ATTESTATION';
 
@@ -23,7 +23,7 @@ const FILTER_OPTIONS: { key: FilterType; label: string }[] = [
   { key: 'ATTESTATION', label: 'Attestations' },
 ];
 
-const DOC_TYPE_CONFIG: Record<string, { icon: IoniconsName; color: string; label: string }> = {
+const DOC_TYPE_CONFIG: Record<string, { icon: IconName; color: string; label: string }> = {
   FACTURE: { icon: 'receipt-outline', color: '#2196F3', label: 'Facture' },
   CONTRAT: { icon: 'document-text-outline', color: '#9C27B0', label: 'Contrat' },
   RECU: { icon: 'card-outline', color: '#4CAF50', label: 'Recu' },
@@ -63,7 +63,7 @@ function DocumentRow({ doc, theme, onPress }: {
           alignItems: 'center', justifyContent: 'center',
           marginRight: theme.SPACING.md,
         }}>
-          <Ionicons name={typeConf.icon} size={22} color={typeConf.color} />
+          <Reicon name={typeConf.icon} size={22} color={typeConf.color} />
         </View>
 
         {/* Content */}
@@ -89,7 +89,7 @@ function DocumentRow({ doc, theme, onPress }: {
           </View>
         </View>
 
-        <Ionicons name="chevron-forward" size={16} color={theme.colors.text.disabled} style={{ marginLeft: theme.SPACING.sm }} />
+        <Reicon name="chevron-forward" size={16} color={theme.colors.text.disabled} style={{ marginLeft: theme.SPACING.sm }} />
       </View>
     </Card>
   );
@@ -151,7 +151,7 @@ export function DocumentsScreen() {
             marginRight: theme.SPACING.md,
           }}
         >
-          <Ionicons name="arrow-back" size={20} color={theme.colors.text.primary} />
+          <Reicon name="arrow-back" size={20} color={theme.colors.text.primary} />
         </Pressable>
         <Text style={{ ...theme.typography.h2, color: theme.colors.text.primary, flex: 1 }}>
           Documents
@@ -167,7 +167,7 @@ export function DocumentsScreen() {
           paddingHorizontal: theme.SPACING.md,
           ...theme.shadows.xs,
         }}>
-          <Ionicons name="search-outline" size={18} color={theme.colors.text.disabled} />
+          <Reicon name="search-outline" size={18} color={theme.colors.text.disabled} />
           <TextInput
             value={searchQuery}
             onChangeText={setSearchQuery}
@@ -183,7 +183,7 @@ export function DocumentsScreen() {
           />
           {searchQuery.length > 0 && (
             <Pressable onPress={() => setSearchQuery('')} hitSlop={8}>
-              <Ionicons name="close-circle" size={18} color={theme.colors.text.disabled} />
+              <Reicon name="close-circle" size={18} color={theme.colors.text.disabled} />
             </Pressable>
           )}
         </View>
@@ -278,7 +278,7 @@ export function DocumentsScreen() {
           ...theme.shadows.lg,
         })}
       >
-        <Ionicons name="add" size={28} color={theme.colors.primary.contrastText} />
+        <Reicon name="add" size={28} color={theme.colors.primary.contrastText} />
       </Pressable>
     </SafeAreaView>
   );

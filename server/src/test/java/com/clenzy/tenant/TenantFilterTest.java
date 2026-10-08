@@ -211,8 +211,9 @@ class TenantFilterTest {
         verify(filterChain, never()).doFilter(any(), any());
     }
 
-    @Test
-    void doFilter_userNotInDb_tenantOptionalPath_thenProceedsWithoutOrg() throws Exception {
+    @org.junit.jupiter.params.ParameterizedTest
+    @org.junit.jupiter.params.provider.ValueSource(strings={"/api/me","/api/me/supplier-invitations/accept","/api/invitations/register"})
+    void doFilter_userNotInDb_tenantOptionalPath_thenProceedsWithoutOrg(String path) throws Exception {
         // /api/me est tenant-optionnel (auto-provisioning premier login)
         String keycloakId = "first-login-user";
         setupJwtAuth(keycloakId);
@@ -222,7 +223,7 @@ class TenantFilterTest {
 
         MockHttpServletRequest request = new MockHttpServletRequest();
         MockHttpServletResponse response = new MockHttpServletResponse();
-        request.setRequestURI("/api/me");
+        request.setRequestURI(path);
 
         Long[] capturedOrgId = {-1L};
         doAnswer(inv -> {

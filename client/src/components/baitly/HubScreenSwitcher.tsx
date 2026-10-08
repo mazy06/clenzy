@@ -1,5 +1,5 @@
 import { useNavigate } from 'react-router-dom';
-import { ChevronDownIcon } from 'lucide-react';
+import { ChevronDownIcon } from '../../icons/glyphs';
 import {
   Button,
   DropdownMenu,

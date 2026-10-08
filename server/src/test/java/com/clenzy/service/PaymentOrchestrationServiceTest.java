@@ -58,6 +58,16 @@ class PaymentOrchestrationServiceTest {
 
     private static final Long ORG_ID = 42L;
 
+    @Test
+    void refundFallbackPreservesBusinessRejectionWithoutCallingProvider() {
+        var rejection = new com.clenzy.exception.PaymentValidationException("Remboursement déjà à rapprocher");
+        org.assertj.core.api.Assertions.assertThatThrownBy(() ->
+                org.springframework.test.util.ReflectionTestUtils.invokeMethod(service,
+                        "processRefundFallback", "TX-ORIG", new BigDecimal("35"), "Test", rejection))
+                .isSameAs(rejection);
+        org.mockito.Mockito.verifyNoInteractions(providerRegistry, paymentPersistence);
+    }
+
     @BeforeEach
     void setUp() {
         tenantContext = new TenantContext();
@@ -99,6 +109,43 @@ class PaymentOrchestrationServiceTest {
     @Nested
     @DisplayName("initiatePayment")
     class InitiatePayment {
+
+        @Test
+        void embeddedReplayRetrievesExistingCheckoutInsteadOfReturningAnEmptySecret() {
+            var request = new PaymentOrchestrationRequest(new BigDecimal("100"), "EUR", "INTERVENTION", 10L,
+                "Test", "owner@example.test", null, null, null, Map.of(), "INT-10", true, null, false);
+            var tx = buildTx("TX-existing", TransactionStatus.PROCESSING, PaymentProviderType.STRIPE);
+            tx.setSourceType("INTERVENTION"); tx.setSourceId(10L); tx.setProviderTxId("cs_existing");
+            when(paymentPersistence.consumeIdempotentReplay("INT-10")).thenReturn(Optional.of(tx));
+            when(providerRegistry.get(PaymentProviderType.STRIPE)).thenReturn(stripeProvider);
+            when(stripeProvider.resumeEmbeddedPayment("cs_existing", tx.getAmount(), "EUR"))
+                .thenReturn(PaymentResult.embedded("cs_existing", "test-existing-secret"));
+            var result = service.initiatePayment(request);
+            assertThat(result.paymentResult().clientSecret()).isEqualTo("test-existing-secret");
+            verify(paymentPersistence, never()).createPending(any(), any(), any(), any());
+            verify(stripeProvider, never()).createPayment(any());
+        }
+
+        @org.junit.jupiter.params.ParameterizedTest
+        @org.junit.jupiter.params.provider.ValueSource(strings = { "org", "source", "amount", "currency", "pending", "completed" })
+        void embeddedReplayMustMatchTheCanonicalPaymentAndBeInProgress(String mismatch) {
+            var request = new PaymentOrchestrationRequest(new BigDecimal("100"), "EUR", "INTERVENTION", 10L,
+                "Test", "owner@example.test", null, null, null, Map.of(), "INT-10", true, null, false);
+            var tx = buildTx("TX-existing", TransactionStatus.PROCESSING, PaymentProviderType.STRIPE);
+            tx.setSourceType("INTERVENTION"); tx.setSourceId(10L); tx.setProviderTxId("cs_existing");
+            switch (mismatch) {
+                case "org" -> tx.setOrganizationId(999L);
+                case "source" -> tx.setSourceId(999L);
+                case "amount" -> tx.setAmount(new BigDecimal("999"));
+                case "currency" -> tx.setCurrency("SAR");
+                case "pending" -> tx.setStatus(TransactionStatus.PENDING);
+                case "completed" -> tx.setStatus(TransactionStatus.COMPLETED);
+            }
+            when(paymentPersistence.consumeIdempotentReplay("INT-10")).thenReturn(Optional.of(tx));
+            assertThat(service.initiatePayment(request).isSuccess()).isFalse();
+            org.mockito.Mockito.verifyNoInteractions(providerRegistry, stripeProvider);
+            verify(paymentPersistence, never()).createPending(any(), any(), any(), any());
+        }
 
         @Test
         @DisplayName("delegates to persistence and returns PROCESSING on provider success")
@@ -166,20 +213,63 @@ class PaymentOrchestrationServiceTest {
         }
 
         @Test
-        @DisplayName("returns existing transaction on idempotent replay without resolving or calling provider")
+        @DisplayName("resumes the same hosted checkout without creating another payment")
         void whenIdempotentReplay_thenShortCircuits() {
             PaymentOrchestrationRequest req = buildRequest("EUR", PaymentProviderType.STRIPE, "IDEM-KEY-1");
             PaymentTransaction existing = buildTx("TX-OLD", TransactionStatus.PROCESSING, PaymentProviderType.STRIPE);
-            existing.setProviderTxId("pi_old");
+            existing.setSourceType("INTERVENTION");
+            existing.setSourceId(10L);
+            existing.setProviderTxId("cs_old");
             when(paymentPersistence.consumeIdempotentReplay("IDEM-KEY-1")).thenReturn(Optional.of(existing));
+            when(providerRegistry.get(PaymentProviderType.STRIPE)).thenReturn(stripeProvider);
+            when(stripeProvider.resumeHostedPayment("cs_old", existing.getAmount(), "EUR"))
+                    .thenReturn(PaymentResult.success("cs_old", "https://checkout.stripe.com/existing"));
 
             PaymentOrchestrationResult result = service.initiatePayment(req);
 
             assertThat(result.isSuccess()).isTrue();
-            assertThat(result.paymentResult().providerTxId()).isEqualTo("pi_old");
-            verify(providerRegistry, never()).get(any());
+            assertThat(result.paymentResult().providerTxId()).isEqualTo("cs_old");
+            assertThat(result.paymentResult().redirectUrl()).isEqualTo("https://checkout.stripe.com/existing");
             verify(stripeProvider, never()).createPayment(any());
             verify(paymentPersistence, never()).createPending(any(), any(), any(), any());
+        }
+
+        @org.junit.jupiter.params.ParameterizedTest
+        @org.junit.jupiter.params.provider.ValueSource(strings = {
+                "org", "sourceType", "sourceId", "amount", "currency", "pending", "completed", "providerId" })
+        void hostedReplayRefusesAnotherDebtOrAStateThatCannotResume(String mismatch) {
+            var request = buildRequest("EUR", PaymentProviderType.STRIPE, "INT-10");
+            var tx = buildTx("TX-existing", TransactionStatus.PROCESSING, PaymentProviderType.STRIPE);
+            tx.setSourceType("INTERVENTION"); tx.setSourceId(10L); tx.setProviderTxId("cs_existing");
+            switch (mismatch) {
+                case "org" -> tx.setOrganizationId(999L);
+                case "sourceType" -> tx.setSourceType("INVOICE");
+                case "sourceId" -> tx.setSourceId(999L);
+                case "amount" -> tx.setAmount(new BigDecimal("999"));
+                case "currency" -> tx.setCurrency("SAR");
+                case "pending" -> tx.setStatus(TransactionStatus.PENDING);
+                case "completed" -> tx.setStatus(TransactionStatus.COMPLETED);
+                case "providerId" -> tx.setProviderTxId(null);
+            }
+            when(paymentPersistence.consumeIdempotentReplay("INT-10")).thenReturn(Optional.of(tx));
+            assertThat(service.initiatePayment(request).isSuccess()).isFalse();
+            org.mockito.Mockito.verifyNoInteractions(providerRegistry, stripeProvider);
+            verify(paymentPersistence, never()).createPending(any(), any(), any(), any());
+        }
+
+        @Test
+        void failedHostedResumeDoesNotReleaseTheAttemptOrCreateAnotherPayment() {
+            var tx = buildTx("TX-existing", TransactionStatus.PROCESSING, PaymentProviderType.STRIPE);
+            tx.setSourceType("INTERVENTION"); tx.setSourceId(10L); tx.setProviderTxId("cs_existing");
+            when(paymentPersistence.consumeIdempotentReplay("INT-10")).thenReturn(Optional.of(tx));
+            when(providerRegistry.get(PaymentProviderType.STRIPE)).thenReturn(stripeProvider);
+            when(stripeProvider.resumeHostedPayment("cs_existing", tx.getAmount(), "EUR"))
+                    .thenReturn(PaymentResult.failure("Vérification PSP indisponible"));
+            assertThat(service.initiatePayment(buildRequest("EUR", null, "INT-10")).isSuccess()).isFalse();
+            verify(paymentPersistence, never()).createPending(any(), any(), any(), any());
+            verify(paymentPersistence, never()).markInitiationFailed(any(), any());
+            verify(stripeProvider, never()).createPayment(any());
+            assertThat(tx.getStatus()).isEqualTo(TransactionStatus.PROCESSING);
         }
 
         @Test
@@ -309,8 +399,8 @@ class PaymentOrchestrationServiceTest {
         @DisplayName("creates refund, calls provider out of tx, finalizes on success")
         void whenSuccess_thenFinalized() {
             PaymentPersistence.RefundInit init = new PaymentPersistence.RefundInit(
-                    "REF-1", PaymentProviderType.STRIPE, "pi_orig", "TX-ORIG", "EUR", BigDecimal.valueOf(100));
-            when(paymentPersistence.createRefundPending(ORG_ID, "TX-ORIG", BigDecimal.valueOf(50)))
+                    "REF-1", PaymentProviderType.STRIPE, "pi_orig", "TX-ORIG", "EUR", BigDecimal.valueOf(100), BigDecimal.valueOf(100), TransactionStatus.PROCESSING, null, java.time.LocalDateTime.now());
+            when(paymentPersistence.createRefundPending(ORG_ID, "TX-ORIG", BigDecimal.valueOf(100)))
                     .thenReturn(init);
             when(providerRegistry.get(PaymentProviderType.STRIPE)).thenReturn(stripeProvider);
             when(stripeProvider.refundPayment(any(RefundContext.class), any(BigDecimal.class), anyString()))
@@ -318,19 +408,32 @@ class PaymentOrchestrationServiceTest {
             when(paymentPersistence.finalizeRefund(eq("REF-1"), any(), eq(ORG_ID)))
                     .thenReturn(buildTx("REF-1", TransactionStatus.COMPLETED, PaymentProviderType.STRIPE));
 
-            PaymentOrchestrationResult result = service.processRefund("TX-ORIG", BigDecimal.valueOf(50), "reason");
+            PaymentOrchestrationResult result = service.processRefund("TX-ORIG", BigDecimal.valueOf(100), "reason");
 
             assertThat(result.isSuccess()).isTrue();
             assertThat(result.paymentResult().providerTxId()).isEqualTo("rf_123");
             verify(paymentPersistence).finalizeRefund(eq("REF-1"), any(), eq(ORG_ID));
             verify(paymentPersistence, never()).markRefundFailed(any(), any());
+            verify(stripeProvider).refundPayment(org.mockito.ArgumentMatchers.argThat((RefundContext context) -> "REF-1".equals(context.refundTransactionRef())
+                    && context.requestedAt() != null), eq(BigDecimal.valueOf(100)), eq("reason"));
+        }
+
+        @Test
+        void completedDecisionIsReturnedWithoutCallingProviderAgain() {
+            var init = new PaymentPersistence.RefundInit("REF-1", PaymentProviderType.STRIPE, "cs_orig", "TX-ORIG", "EUR",
+                    BigDecimal.valueOf(100), BigDecimal.valueOf(100), TransactionStatus.COMPLETED, "re_done", java.time.LocalDateTime.now());
+            when(paymentPersistence.createRefundPending(ORG_ID, "TX-ORIG", null)).thenReturn(init);
+            when(paymentPersistence.finalizeRefund(eq("REF-1"), any(), eq(ORG_ID)))
+                    .thenReturn(buildTx("REF-1", TransactionStatus.COMPLETED, PaymentProviderType.STRIPE));
+            assertThat(service.processRefund("TX-ORIG", null, "retry").isSuccess()).isTrue();
+            org.mockito.Mockito.verifyNoInteractions(providerRegistry, stripeProvider);
         }
 
         @Test
         @DisplayName("marks refund FAILED when provider throws")
         void whenProviderThrows_thenFailed() {
             PaymentPersistence.RefundInit init = new PaymentPersistence.RefundInit(
-                    "REF-1", PaymentProviderType.STRIPE, "pi_orig", "TX-ORIG", "EUR", BigDecimal.valueOf(100));
+                    "REF-1", PaymentProviderType.STRIPE, "pi_orig", "TX-ORIG", "EUR", BigDecimal.valueOf(100), BigDecimal.valueOf(100), TransactionStatus.PROCESSING, null, java.time.LocalDateTime.now());
             when(paymentPersistence.createRefundPending(eq(ORG_ID), eq("TX-ORIG"), any()))
                     .thenReturn(init);
             when(providerRegistry.get(PaymentProviderType.STRIPE)).thenReturn(stripeProvider);

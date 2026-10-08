@@ -1,6 +1,6 @@
 import React, { useMemo } from 'react';
 import { Alert, AlertDescription, Button } from '../../components/ui';
-import { TriangleAlert } from 'lucide-react';
+import { TriangleAlert } from '../../icons/glyphs';
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, Skeleton } from '../../components/ui';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../../components/ui';
 import { Article as ArticleIcon } from '../../icons';

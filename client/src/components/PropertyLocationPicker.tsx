@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { Alert as BuiAlert, AlertDescription, AlertAction, Button as BuiButton } from './ui';
-import { TriangleAlert, X } from 'lucide-react';
+import { TriangleAlert, X } from '../icons/glyphs';
 import { Spinner, Tooltip, TooltipContent, TooltipTrigger } from './ui';
 import { cn } from '../utils/cn';
 import mapboxgl from 'mapbox-gl';

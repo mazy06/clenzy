@@ -12,7 +12,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 
 /**
- * Service de stockage des templates de documents (.odt) sur le filesystem.
+ * Service de stockage des templates de documents (.html) sur le filesystem.
  * Les fichiers sont stockes sous : {templatesDir}/{uuid}_{filename}
  *
  * @deprecated Les nouveaux templates sont stockes en DB (BYTEA).
@@ -35,13 +35,13 @@ public class DocumentTemplateStorageService extends AbstractFileStorageService {
     }
 
     /**
-     * Stocke un template .odt sur le disque.
+     * Stocke un template .html sur le disque.
      */
     public String store(MultipartFile file) {
         try {
             String originalFilename = file.getOriginalFilename();
             if (originalFilename == null || originalFilename.isBlank()) {
-                originalFilename = "template.odt";
+                originalFilename = "template.html";
             }
 
             String diskFilename = generateDiskFilename(originalFilename);

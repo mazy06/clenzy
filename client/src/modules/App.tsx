@@ -39,6 +39,7 @@ const Privacy = lazy(() => import('./legal/Privacy'));
 // Troisieme document du corpus : le seul qui identifie l'editeur.
 const MentionsLegales = lazy(() => import('./legal/MentionsLegales'));
 const AcceptInvitationPage = lazy(() => import('./invitations/AcceptInvitationPage'));
+const BaitlySupplierInvitationPage = lazy(() => import('./invitations/BaitlySupplierInvitationPage'));
 const PublicKeyVerification = lazy(() => import('../pages/PublicKeyVerification'));
 const PublicGuide = lazy(() => import('./welcome-guide/PublicGuide'));
 const PublicStayTransfer = lazy(() => import('./stay-transfer/PublicStayTransfer'));
@@ -47,6 +48,7 @@ const PublicOwnerConstellation = lazy(() => import('./owner-portal/PublicOwnerCo
 const ContractSignPage = lazy(() => import('./contracts/public/ContractSignPage'));
 const PublicBookingPage = lazy(() => import('./booking-engine/public/PublicBookingPage'));
 const CancelBookingPage = lazy(() => import('./booking-engine/public/CancelBookingPage'));
+const BaitlyBookingReturnPage = lazy(() => import('./booking-engine/public/BaitlyBookingReturnPage'));
 const SupervisionDemo = lazy(() =>
   import('./supervision/components/SupervisionDemo').then((m) => ({ default: m.SupervisionDemo })),
 );
@@ -116,7 +118,7 @@ function AuthLoadingScreen() {
 }
 
 // Routes publiques accessibles sans authentification
-const PUBLIC_ROUTES = ['/login', '/inscription', '/inscription/success', '/inscription/confirm', '/forgot-password', '/support', '/accept-invitation', '/supervision-demo'];
+const PUBLIC_ROUTES = ['/login', '/inscription', '/inscription/success', '/inscription/confirm', '/forgot-password', '/support', '/accept-invitation', '/supplier-invitation', '/supervision-demo'];
 
 // Routes publiques avec paramètres (prefix match)
 const PUBLIC_ROUTE_PREFIXES = ['/verify-key/', '/guide/', '/sign/', '/booking/', '/owner-view/', '/transfer/', '/stay-change/'];
@@ -398,6 +400,7 @@ const App: React.FC = () => {
 
           {/* Route publique/semi-publique pour accepter une invitation */}
           <Route path="/accept-invitation" element={<AcceptInvitationPage />} />
+          <Route path="/supplier-invitation" element={<BaitlySupplierInvitationPage />} />
 
           {/* Route publique pour la verification de code par les commercants */}
           <Route path="/verify-key/:token" element={<PublicKeyVerification />} />
@@ -419,6 +422,8 @@ const App: React.FC = () => {
 
           {/* Route publique hebergee du booking engine (page composee dans le Studio) */}
           <Route path="/booking/:apiKey/cancel" element={<CancelBookingPage />} />
+          <Route path="/booking/:apiKey/confirmation" element={<BaitlyBookingReturnPage />} />
+          <Route path="/booking/payment-return" element={<BaitlyBookingReturnPage generic />} />
           <Route path="/booking/:apiKey" element={<PublicBookingPage />} />
 
           {/* Route publique de démo du Superviseur d'agents (front-first sur mock) */}

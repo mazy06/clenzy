@@ -45,11 +45,15 @@ class UpsellServiceTest {
     @Mock private com.clenzy.repository.UpsellTypeDefRepository upsellTypeRepository;
     @Mock private com.clenzy.tenant.TenantContext tenantContext;
 
+    @Mock private com.clenzy.payment.StripeGateway gateway;
+    @Mock private BaitlyCheckoutJournal journal;
+    @Mock private BaitlyUpsellSettlement settlement;
+
     private UpsellService service() {
         return new UpsellService(offerRepository, orderRepository, tokenRepository, guideRepository, reservationRepository,
             stripeService, walletService, ledgerService, monetizationConfigService, managementContractService,
             java.time.Clock.systemUTC(), orchestrationService, transactionManager,
-            upsellTypeRepository, tenantContext);
+            upsellTypeRepository, tenantContext, gateway, journal, settlement,org.mockito.Mockito.mock(BaitlyPurchaseRequests.class));
     }
 
     private WelcomeGuideToken validToken(Long propertyId) {
@@ -171,52 +175,8 @@ class UpsellServiceTest {
     }
 
     @Test
-    void markPaidBySession_computesFeeSplitAndCreditsHostShare() {
-        UpsellOrder order = new UpsellOrder();
-        order.setId(1L);
-        order.setOrganizationId(1L);
-        order.setReservationId(50L);
-        order.setTitle("Early check-in");
-        order.setAmount(new BigDecimal("100.00"));
-        order.setCurrency("EUR");
-        order.setStatus(UpsellOrderStatus.PENDING);
-        when(orderRepository.findByStripeSessionId("sess_1")).thenReturn(Optional.of(order));
-        when(monetizationConfigService.getEffectiveUpsellPlatformFeePct(1L)).thenReturn(new BigDecimal("10"));
-        when(monetizationConfigService.getEffectiveUpsellOrgCommissionPct(1L)).thenReturn(BigDecimal.ZERO);
-
-        User owner = new User();
-        owner.setId(5L);
-        Property property = new Property();
-        property.setOwner(owner);
-        Reservation reservation = new Reservation();
-        reservation.setProperty(property);
-        when(reservationRepository.findById(50L)).thenReturn(Optional.of(reservation));
-
-        Wallet platformWallet = new Wallet();
-        Wallet ownerWallet = new Wallet();
-        when(walletService.getOrCreatePlatformWallet(1L, "EUR")).thenReturn(platformWallet);
-        when(walletService.getOrCreateWallet(1L, WalletType.OWNER, 5L, "EUR")).thenReturn(ownerWallet);
-
-        service().markPaidBySession("sess_1");
-
-        assertThat(order.getStatus()).isEqualTo(UpsellOrderStatus.PAID);
-        assertThat(order.getPlatformFeeAmount()).isEqualByComparingTo("10.00"); // 10% défaut
-        assertThat(order.getHostAmount()).isEqualByComparingTo("90.00");
-
-        ArgumentCaptor<BigDecimal> amount = ArgumentCaptor.forClass(BigDecimal.class);
-        verify(ledgerService).recordTransfer(eq(platformWallet), eq(ownerWallet), amount.capture(),
-            eq(LedgerReferenceType.UPSELL), anyString(), anyString());
-        assertThat(amount.getValue()).isEqualByComparingTo("90.00");
-    }
-
-    @Test
-    void markPaidBySession_alreadyPaid_isIdempotent() {
-        UpsellOrder order = new UpsellOrder();
-        order.setStatus(UpsellOrderStatus.PAID);
-        when(orderRepository.findByStripeSessionId("sess_2")).thenReturn(Optional.of(order));
-
-        service().markPaidBySession("sess_2");
-
-        verify(ledgerService, never()).recordTransfer(any(), any(), any(), any(), anyString(), anyString());
+    void paidCallbackUsesAtomicSettlement() {
+        service().markPaidBySession("cs_test_1");
+        verify(settlement).settle("cs_test_1");
     }
 }

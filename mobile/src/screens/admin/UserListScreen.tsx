@@ -1,7 +1,7 @@
 import React, { useMemo, useState } from 'react';
 import { View, Text, ScrollView, RefreshControl, Pressable, TextInput } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Ionicons } from '@expo/vector-icons';
+import { Reicon } from '@/icons';
 import { useNavigation } from '@react-navigation/native';
 import { useQuery } from '@tanstack/react-query';
 import { useTheme } from '@/theme';
@@ -127,7 +127,7 @@ export function UserListScreen() {
             hitSlop={12}
             style={{ width: 36, height: 36, borderRadius: theme.BORDER_RADIUS.md, backgroundColor: theme.colors.background.paper, alignItems: 'center', justifyContent: 'center', marginRight: theme.SPACING.md }}
           >
-            <Ionicons name="arrow-back" size={20} color={theme.colors.text.primary} />
+            <Reicon name="arrow-back" size={20} color={theme.colors.text.primary} />
           </Pressable>
           <Text style={{ ...theme.typography.h2, color: theme.colors.text.primary }}>Utilisateurs</Text>
         </View>
@@ -159,7 +159,7 @@ export function UserListScreen() {
             marginRight: theme.SPACING.md,
           }}
         >
-          <Ionicons name="arrow-back" size={20} color={theme.colors.text.primary} />
+          <Reicon name="arrow-back" size={20} color={theme.colors.text.primary} />
         </Pressable>
         <Text style={{ ...theme.typography.h2, color: theme.colors.text.primary, flex: 1 }}>
           Utilisateurs
@@ -198,7 +198,7 @@ export function UserListScreen() {
           borderWidth: 1,
           borderColor: theme.colors.border.light,
         }}>
-          <Ionicons name="search-outline" size={18} color={theme.colors.text.disabled} />
+          <Reicon name="search-outline" size={18} color={theme.colors.text.disabled} />
           <TextInput
             placeholder="Rechercher un utilisateur..."
             placeholderTextColor={theme.colors.text.disabled}
@@ -214,7 +214,7 @@ export function UserListScreen() {
           />
           {search.length > 0 && (
             <Pressable onPress={() => setSearch('')} hitSlop={8}>
-              <Ionicons name="close-circle" size={18} color={theme.colors.text.disabled} />
+              <Reicon name="close-circle" size={18} color={theme.colors.text.disabled} />
             </Pressable>
           )}
         </View>
@@ -269,7 +269,7 @@ export function UserListScreen() {
           transform: pressed ? [{ scale: 0.95 }] : [],
         })}
       >
-        <Ionicons name="person-add" size={24} color={theme.colors.primary.contrastText} />
+        <Reicon name="person-add" size={24} color={theme.colors.primary.contrastText} />
       </Pressable>
     </SafeAreaView>
   );

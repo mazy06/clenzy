@@ -119,10 +119,15 @@ public class ActionItemQueryService {
                 .collect(Collectors.groupingBy(ActionItemDto::kind, LinkedHashMap::new,
                         Collectors.toList()));
 
-        final List<ActionItemDto> shown = withSubjectPhotos(orgId, byKind.values().stream()
-                .flatMap(rows -> rows.stream().limit(MAX_PER_KIND))
-                .limit(MAX_ROWS)
-                .toList());
+        // Réserver d'abord une place à chaque nature : quatre groupes chargés
+        // ne doivent pas masquer le premier incident financier du cinquième.
+        final List<ActionItemDto> selected = new java.util.ArrayList<>();
+        for (int rank=0; rank<MAX_PER_KIND && selected.size()<MAX_ROWS; rank++) {
+            for (var rows : byKind.values()) {
+                if (rank<rows.size() && selected.size()<MAX_ROWS) selected.add(rows.get(rank));
+            }
+        }
+        final List<ActionItemDto> shown = withSubjectPhotos(orgId, selected);
 
         // Les décomptes portent sur AVANT plafonnement : c'est ce qui permet à
         // l'écran d'écrire « Avis sans réponse (12) » en n'en affichant que trois.

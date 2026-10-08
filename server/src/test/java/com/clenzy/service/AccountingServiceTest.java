@@ -45,11 +45,84 @@ class AccountingServiceTest {
     /** Calculateur réel : c'est l'assiette du virement qu'on veut vérifier, pas un stub. */
     @Spy private ManagementCommissionCalculator commissionCalculator = new ManagementCommissionCalculator();
 
+    @Mock private com.clenzy.service.payout.OwnerPayoutFundingService fundingService;
+    @Mock private com.clenzy.service.payout.BaitlyOwnerPayoutDocuments payoutDocuments;
+    @Mock private org.springframework.beans.factory.ObjectProvider<AccountingService> self;
+
+    @BeforeEach
+    void fundedCalculationFixtures() {
+        // Ce groupe vérifie les assiettes contractuelles ; la fiscalité TTC a sa recette dédiée.
+        lenient().when(payoutDocuments.prepare(any(), any())).thenAnswer(call -> {
+            ManagementCommissionCalculator.Commission commission = call.getArgument(1);
+            if (commission.amount().signum() == 0) return null;
+            var invoice = new com.clenzy.model.Invoice(); invoice.setTotalTtc(commission.amount()); return invoice;
+        });
+        lenient().when(userRepository.lockPayoutOwner(anyLong(), anyLong()))
+            .thenReturn(Optional.of(new com.clenzy.model.User()));
+        lenient().when(self.getObject()).thenReturn(service);
+        // Les commissions sont testées ici ; le financement possède ses propres tests.
+        lenient().when(fundingService.select(anyLong(), anyLong(), anyList())).thenAnswer(inv -> {
+            List<Reservation> stays = inv.getArgument(2);
+            return stays.stream().filter(r -> r.getTotalPrice() != null)
+                .map(r -> new com.clenzy.service.payout.OwnerPayoutFundingService.FundedStay(r,
+                    new com.clenzy.service.payout.ReservationPayoutFunding.Evidence(
+                        r.getCurrency(), r.getTotalPrice(), List.of(1L)))).toList();
+        });
+    }
+
+    private List<Reservation> datedStays(List<Reservation> stays, LocalDate from) {
+        long fixtureId = 10000;
+        for (Reservation stay : stays) {
+            if (stay.getId() == null) stay.setId(fixtureId++);
+            if (stay.getCheckIn() == null) stay.setCheckIn(from);
+            if (stay.getCheckOut() == null) stay.setCheckOut(from.plusDays(2));
+        }
+        return stays;
+    }
+
     @InjectMocks
     private AccountingService service;
 
     private static final Long ORG_ID = 1L;
     private static final Long OWNER_ID = 10L;
+
+    @Test
+    void paidPayoutCannotBeApprovedAndExecutedAgain() {
+        OwnerPayout payout = new OwnerPayout(); payout.setStatus(PayoutStatus.PAID);
+        when(payoutRepository.findByIdAndOrgId(1L, ORG_ID)).thenReturn(Optional.of(payout));
+        assertThrows(IllegalStateException.class, () -> service.approvePayout(1L, ORG_ID));
+        verify(payoutRepository, never()).save(any());
+    }
+
+    @Test
+    void invalidPeriodIsRejectedBeforeAnyDatabaseMutation() {
+        assertThrows(IllegalArgumentException.class, () -> service.generatePayout(OWNER_ID, ORG_ID,
+                LocalDate.of(2025, 9, 30), LocalDate.of(2025, 9, 1)));
+        verifyNoInteractions(payoutRepository, reservationRepository);
+    }
+
+    @Test
+    void generationRefusesOwnerOutsideTheOrganization() {
+        when(userRepository.lockPayoutOwner(OWNER_ID, ORG_ID)).thenReturn(Optional.empty());
+        assertThrows(IllegalArgumentException.class, () -> service.generatePayout(OWNER_ID, ORG_ID,
+                LocalDate.of(2025, 9, 1), LocalDate.of(2025, 9, 30)));
+        verifyNoInteractions(payoutRepository, reservationRepository);
+    }
+
+    @Test
+    void sepaReferenceDoesNotProvePayout() {
+        OwnerPayout payout = new OwnerPayout(); payout.setId(1L);
+        payout.setStatus(PayoutStatus.PROCESSING);
+        when(payoutRepository.findByIdAndOrgId(1L, ORG_ID)).thenReturn(Optional.of(payout));
+        assertThrows(com.clenzy.exception.PaymentEvidenceRequiredException.class,
+                () -> service.markAsPaid(1L, ORG_ID, "BANK-SETTLED-1"));
+        assertEquals(PayoutStatus.PROCESSING, payout.getStatus());
+        assertNull(payout.getPaidAt());
+        assertNull(payout.getPaymentReference());
+        verify(payoutRepository, never()).save(any());
+        verifyNoInteractions(notificationService);
+
+    }
 
     @Test
     void generatePayout_calculatesCorrectly() {
@@ -74,7 +147,7 @@ class AccountingServiceTest {
         when(payoutRepository.findByOwnerAndPeriod(OWNER_ID, from, to, ORG_ID))
             .thenReturn(Optional.empty());
         when(reservationRepository.findByOwnerIdAndDateRange(OWNER_ID, from, to, ORG_ID))
-            .thenReturn(List.of(r1, r2));
+            .thenAnswer(inv -> datedStays(List.of(r1, r2), inv.getArgument(1)));
         // No ManagementContract → no commission (0%)
         when(managementContractService.getActiveContract(anyLong(), eq(ORG_ID)))
             .thenReturn(Optional.empty());
@@ -130,7 +203,7 @@ class AccountingServiceTest {
         when(payoutRepository.findByOwnerAndPeriod(OWNER_ID, from, to, ORG_ID))
             .thenReturn(Optional.empty());
         when(reservationRepository.findByOwnerIdAndDateRange(OWNER_ID, from, to, ORG_ID))
-            .thenReturn(List.of(withFee, withoutFee));
+            .thenAnswer(inv -> datedStays(List.of(withFee, withoutFee), inv.getArgument(1)));
         when(managementContractService.getActiveContract(100L, ORG_ID))
             .thenReturn(Optional.of(contract));
         when(providerExpenseRepository.findApprovedByPropertyOwnerAndPeriod(
@@ -178,19 +251,18 @@ class AccountingServiceTest {
     }
 
     @Test
-    void markAsPaid_setsStatusAndReference() {
-        OwnerPayout payout = new OwnerPayout();
-        payout.setId(1L);
+    void manualReferenceCannotConfirmPayout() {
+        OwnerPayout payout = new OwnerPayout(); payout.setId(1L);
         payout.setStatus(PayoutStatus.APPROVED);
-
         when(payoutRepository.findByIdAndOrgId(1L, ORG_ID)).thenReturn(Optional.of(payout));
-        when(payoutRepository.save(any(OwnerPayout.class))).thenAnswer(inv -> inv.getArgument(0));
+        assertThrows(com.clenzy.exception.PaymentEvidenceRequiredException.class,
+                () -> service.markAsPaid(1L, ORG_ID, "WIRE-123"));
+        assertEquals(PayoutStatus.APPROVED, payout.getStatus());
+        assertNull(payout.getPaidAt());
+        assertNull(payout.getPaymentReference());
+        verify(payoutRepository, never()).save(any());
+        verifyNoInteractions(notificationService);
 
-        OwnerPayout result = service.markAsPaid(1L, ORG_ID, "WIRE-123");
-
-        assertEquals(PayoutStatus.PAID, result.getStatus());
-        assertEquals("WIRE-123", result.getPaymentReference());
-        assertNotNull(result.getPaidAt());
     }
 
     @Test
@@ -324,7 +396,7 @@ class AccountingServiceTest {
             when(payoutRepository.findByOwnerAndPeriod(OWNER_ID, from, to, ORG_ID))
                 .thenReturn(Optional.empty());
             when(reservationRepository.findByOwnerIdAndDateRange(OWNER_ID, from, to, ORG_ID))
-                .thenReturn(List.of(r));
+                .thenAnswer(inv -> datedStays(List.of(r), inv.getArgument(1)));
             when(managementContractService.getActiveContract(200L, ORG_ID))
                 .thenReturn(Optional.of(contract));
             when(providerExpenseRepository.findApprovedByPropertyOwnerAndPeriod(any(), any(), any(), any()))
@@ -360,7 +432,7 @@ class AccountingServiceTest {
             when(payoutRepository.findByOwnerAndPeriod(OWNER_ID, from, to, ORG_ID))
                 .thenReturn(Optional.empty());
             when(reservationRepository.findByOwnerIdAndDateRange(OWNER_ID, from, to, ORG_ID))
-                .thenReturn(List.of(r));
+                .thenAnswer(inv -> datedStays(List.of(r), inv.getArgument(1)));
             when(managementContractService.getActiveContract(anyLong(), eq(ORG_ID)))
                 .thenReturn(Optional.empty());
             when(providerExpenseRepository.findApprovedByPropertyOwnerAndPeriod(any(), any(), any(), any()))
@@ -396,7 +468,7 @@ class AccountingServiceTest {
             when(payoutRepository.findByOwnerAndPeriod(OWNER_ID, from, to, ORG_ID))
                 .thenReturn(Optional.empty());
             when(reservationRepository.findByOwnerIdAndDateRange(OWNER_ID, from, to, ORG_ID))
-                .thenReturn(List.of(r1, r2));
+                .thenAnswer(inv -> datedStays(List.of(r1, r2), inv.getArgument(1)));
             when(managementContractService.getActiveContract(anyLong(), eq(ORG_ID)))
                 .thenReturn(Optional.empty());
             when(providerExpenseRepository.findApprovedByPropertyOwnerAndPeriod(any(), any(), any(), any()))
@@ -444,33 +516,23 @@ class AccountingServiceTest {
         }
 
         @org.junit.jupiter.api.Test
-        @org.junit.jupiter.api.Disabled("Exception not propagated as expected — skip pour debloquer.")
-        void whenOwnerThrows_thenContinuesWithOthers() {
+        void whenOwnerFails_thenCallsProxyForOthersAndReportsPartialFailure() {
             LocalDate from = LocalDate.of(2025, 8, 1);
             LocalDate to = LocalDate.of(2025, 8, 31);
             when(propertyRepository.findDistinctOwnerIdsByOrgId(ORG_ID))
                     .thenReturn(List.of(OWNER_ID, 20L));
+            AccountingService transactionalProxy = mock(AccountingService.class);
+            when(self.getObject()).thenReturn(transactionalProxy);
+            when(transactionalProxy.generatePayout(OWNER_ID, ORG_ID, from, to))
+                    .thenThrow(new IllegalStateException("Rapprochement requis"));
+            OwnerPayout successful = new OwnerPayout(); successful.setId(99L);
+            when(transactionalProxy.generatePayout(20L, ORG_ID, from, to)).thenReturn(successful);
 
-            // First owner throws, second succeeds
-            when(payoutRepository.findByOwnerAndPeriod(OWNER_ID, from, to, ORG_ID))
-                    .thenThrow(new RuntimeException("DB error"));
-            when(payoutRepository.findByOwnerAndPeriod(20L, from, to, ORG_ID))
-                    .thenReturn(Optional.empty());
-            when(reservationRepository.findByOwnerIdAndDateRange(20L, from, to, ORG_ID))
-                    .thenReturn(List.of());
-            when(managementContractService.getActiveContract(anyLong(), eq(ORG_ID)))
-                    .thenReturn(Optional.empty());
-            when(providerExpenseRepository.findApprovedByPropertyOwnerAndPeriod(any(), any(), any(), any()))
-                    .thenReturn(List.of());
-            when(payoutRepository.save(any(OwnerPayout.class))).thenAnswer(inv -> {
-                OwnerPayout p = inv.getArgument(0);
-                p.setId(99L);
-                return p;
-            });
-
-            List<OwnerPayout> result = service.generatePayoutsBatch(ORG_ID, from, to);
-
-            assertEquals(1, result.size()); // Only owner 20L succeeded
+            IllegalStateException failure = assertThrows(IllegalStateException.class,
+                    () -> service.generatePayoutsBatch(ORG_ID, from, to));
+            assertTrue(failure.getMessage().contains("[10]"));
+            assertTrue(failure.getMessage().contains("conservés"));
+            verify(transactionalProxy).generatePayout(20L, ORG_ID, from, to);
         }
     }
 
@@ -507,28 +569,19 @@ class AccountingServiceTest {
         }
 
         @org.junit.jupiter.api.Test
-        void markAsPaid_sendsAdminAndOwnerNotifications() {
-            OwnerPayout payout = new OwnerPayout();
-            payout.setId(1L);
-            payout.setStatus(PayoutStatus.APPROVED);
-            payout.setOwnerId(OWNER_ID);
-            payout.setOrganizationId(ORG_ID);
-            payout.setNetAmount(new BigDecimal("200"));
-            payout.setCurrency("EUR");
+        void manualConfirmationNeverSendsSuccessNotifications() {
+        OwnerPayout payout = new OwnerPayout(); payout.setId(1L);
+        payout.setStatus(PayoutStatus.APPROVED);
+        when(payoutRepository.findByIdAndOrgId(1L, ORG_ID)).thenReturn(Optional.of(payout));
+        assertThrows(com.clenzy.exception.PaymentEvidenceRequiredException.class,
+                () -> service.markAsPaid(1L, ORG_ID, "WIRE-200"));
+        assertEquals(PayoutStatus.APPROVED, payout.getStatus());
+        assertNull(payout.getPaidAt());
+        assertNull(payout.getPaymentReference());
+        verify(payoutRepository, never()).save(any());
+        verifyNoInteractions(notificationService);
 
-            com.clenzy.model.User owner = new com.clenzy.model.User();
-            owner.setKeycloakId("owner-kc");
-
-            when(payoutRepository.findByIdAndOrgId(1L, ORG_ID)).thenReturn(Optional.of(payout));
-            when(payoutRepository.save(any(OwnerPayout.class))).thenAnswer(inv -> inv.getArgument(0));
-            when(userRepository.findById(OWNER_ID)).thenReturn(Optional.of(owner));
-
-            service.markAsPaid(1L, ORG_ID, "WIRE-200");
-
-            verify(notificationService).notifyAdminsAndManagersByOrgId(
-                    eq(ORG_ID), eq(com.clenzy.model.NotificationKey.PAYOUT_EXECUTED),
-                    any(), any(), any());
-        }
+    }
 
         @org.junit.jupiter.api.Test
         void notifyOwner_silentlySkipsWhenOwnerMissing() {
@@ -594,7 +647,7 @@ class AccountingServiceTest {
             when(payoutRepository.findByOwnerAndPeriod(OWNER_ID, from, to, ORG_ID))
                 .thenReturn(Optional.empty());
             when(reservationRepository.findByOwnerIdAndDateRange(OWNER_ID, from, to, ORG_ID))
-                .thenReturn(reservations);
+                .thenAnswer(inv -> datedStays(reservations, inv.getArgument(1)));
             when(providerExpenseRepository.findApprovedByPropertyOwnerAndPeriod(any(), any(), any(), any()))
                 .thenReturn(List.of());
             when(payoutRepository.save(any(OwnerPayout.class))).thenAnswer(inv -> {

@@ -32,6 +32,9 @@ export interface OwnerPayout {
   retryCount: number;
   notes: string | null;
   createdAt: string;
+  currency?: string;
+  otaFees?: number;
+  fundingVersion?: number;
 }
 
 export interface OwnerPayoutConfig {

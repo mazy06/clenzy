@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html lang="fr"><head><meta charset="UTF-8"><title>${entreprise.nom} · Bon de commande</title>
+<style>
+@page { size: A4; margin: 16mm; }
+body { font-family: Arial, sans-serif; color: #20323f; font-size: 11pt; line-height: 1.5; }
+h1 { color: #234570; font-size: 24pt; margin-bottom: 4mm; }
+h2 { font-size: 12pt; color: #466374; margin-top: 8mm; }
+table { width: 100%; border-collapse: collapse; margin-top: 8mm; }
+th, td { padding: 3mm; border-bottom: 1px solid #cfdae4; text-align: left; }
+th { background: #e7eef3; } .amount { text-align: right; white-space: nowrap; }
+footer { margin-top: 12mm; border-top: 1px solid #cfdae4; padding-top: 4mm; color: #526979; font-size: 9pt; }
+</style></head><body>
+<h1>Bon de commande</h1>
+<p><strong>${entreprise.nom}</strong><br>${entreprise.adresse}</p>
+<p>Référence dépense ${depense.id} · ${depense.date}</p>
+<h2>Prestataire</h2><p>${prestataire.nom_complet}</p>
+<h2>Client et logement</h2><p>${client.nom_complet}<br>${property.nom}<br>${property.adresse}</p>
+<table><thead><tr><th>Description</th><th class="amount">Montant HT</th></tr></thead>
+<tbody><tr><td>${depense.description}</td><td class="amount">${depense.montant_ht}</td></tr></tbody></table>
+<table><tbody>
+<tr><td>TVA ${depense.taux_tva}</td><td class="amount">${depense.montant_tva}</td></tr>
+<tr><th>Total TTC</th><th class="amount">${depense.montant_ttc}</th></tr>
+</tbody></table>
+<#if depense.notes?has_content><h2>Précisions</h2><p>${depense.notes}</p></#if>
+<footer>Document généré par Baitly. Ce bon de commande ne constitue ni une facture ni une preuve de paiement.</footer>
+</body></html>

@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo, useEffect, useRef } from 'react';
 import { cn } from '../../utils/cn';
 import { Badge } from '../../components/ui';
 import { Spinner } from '../../components/ui';
@@ -28,7 +28,7 @@ import {
   ToggleGroup,
   ToggleGroupItem,
 } from '../../components/ui';
-import { TriangleAlert } from 'lucide-react';
+import { TriangleAlert } from '../../icons/glyphs';
 import {
   ShoppingCart as CartIcon,
   CreditCard as CreditCardIcon,
@@ -38,7 +38,9 @@ import { loadStripe } from '@stripe/stripe-js';
 import { EmbeddedCheckoutProvider, EmbeddedCheckout } from '@stripe/react-stripe-js';
 import apiClient, { ApiError } from '../../services/apiClient';
 import AuthLayout from './AuthLayout';
+import { readSignupDraft, saveSignupDraft } from './baitlySignupDraft';
 import OptionCard from './OptionCard';
+import BaitlySignupPricing, { signupQuoteKey, type SignupProposal } from './BaitlySignupPricing';
 
 import { runtimeEnv } from '../../config/runtimeConfig';
 // Ne PAS appeler loadStripe('') si la clef n'est pas configuree : ça log un
@@ -47,7 +49,6 @@ import { runtimeEnv } from '../../config/runtimeConfig';
 const stripePublishableKey = runtimeEnv('VITE_STRIPE_PUBLISHABLE_KEY');
 const stripePromise = stripePublishableKey ? loadStripe(stripePublishableKey) : null;
 
-// Resolveurs i18n pour les labels (gardent les cles centralisees mais traduisibles)
 const getPropertyTypeLabel = (t: TFunction, key: string): string => {
   const fallbacks: Record<string, string> = {
     studio: 'Studio',
@@ -59,36 +60,6 @@ const getPropertyTypeLabel = (t: TFunction, key: string): string => {
   };
   return t(`auth.inscription.propertyTypes.${key}`, fallbacks[key] || key);
 };
-
-const getForfaitLabel = (t: TFunction, key: string): string => {
-  const fallbacks: Record<string, string> = {
-    essentiel: 'Forfait Essentiel',
-    confort: 'Forfait Confort',
-    premium: 'Forfait Premium',
-  };
-  return t(`auth.inscription.forfaits.${key}`, fallbacks[key] || key);
-};
-
-const getForfaitShortLabel = (t: TFunction, key: string): string => {
-  const fallbacks: Record<string, string> = {
-    essentiel: 'Essentiel',
-    confort: 'Confort',
-    premium: 'Premium',
-  };
-  return t(`auth.inscription.forfaits.${key}Short`, fallbacks[key] || key);
-};
-
-const getForfaitTagline = (t: TFunction, key: string): string => {
-  const fallbacks: Record<string, string> = {
-    essentiel: 'Pour débuter sereinement',
-    confort: 'Le plus choisi',
-    premium: 'Tout inclus, sans limite',
-  };
-  return t(`auth.inscription.forfaitTaglines.${key}`, fallbacks[key] || key);
-};
-
-// Types d'organisation
-type OrganizationTypeKey = 'INDIVIDUAL' | 'CONCIERGE' | 'CLEANING_COMPANY';
 
 const getOrgTypeLabel = (t: TFunction, key: OrganizationTypeKey): string => {
   const fallbacks: Record<OrganizationTypeKey, string> = {
@@ -108,78 +79,10 @@ const getOrgTypeDescription = (t: TFunction, key: OrganizationTypeKey): string =
   return t(`auth.inscription.orgTypeDescriptions.${key}`, fallbacks[key]);
 };
 
-/** Prix de base par forfait (aligné avec la landing page) */
-const FORFAIT_BASE_PRICES: Record<string, number> = {
-  essentiel: 50,
-  confort: 75,
-  premium: 100,
-};
-
-type BillingPeriod = 'MONTHLY' | 'ANNUAL' | 'BIENNIAL';
-
-const getBillingPeriodLabel = (t: TFunction, key: BillingPeriod): string => {
-  const fallbacks: Record<BillingPeriod, string> = {
-    MONTHLY: 'Mensuel',
-    ANNUAL: 'Annuel',
-    BIENNIAL: '2 ans',
-  };
-  return t(`auth.inscription.billingPeriods.${key}`, fallbacks[key]);
-};
-
-const BILLING_PERIOD_DISCOUNT: Record<BillingPeriod, number> = {
-  MONTHLY: 1.0,
-  ANNUAL: 0.80,
-  BIENNIAL: 0.65,
-};
-
-const BILLING_PERIOD_MONTHS: Record<BillingPeriod, number> = {
-  MONTHLY: 1,
-  ANNUAL: 12,
-  BIENNIAL: 24,
-};
-
-// Plus de fallback hardcodé — les prix sont toujours chargés depuis l'API /pricing-info
-
-/** Formate un montant en centimes en euros (ex: 2275 → "22,75€", 3000 → "30€") */
-function formatCents(cents: number): string {
-  const euros = cents / 100;
-  return euros % 1 === 0 ? `${euros.toFixed(0)}€` : `${euros.toFixed(2).replace('.', ',')}€`;
-}
-
-function getPmsDisplayPrice(t: TFunction, period: BillingPeriod, baseCents: number | null): string {
-  if (baseCents === null) return '…';
-  const monthlyCents = Math.round(baseCents * BILLING_PERIOD_DISCOUNT[period]);
-  return `${formatCents(monthlyCents)}${t('auth.inscription.perMonth', ' / mois')}`;
-}
-
-function getPmsFirstPayment(t: TFunction, period: BillingPeriod, baseCents: number | null): string {
-  if (baseCents === null) return '…';
-  const monthlyCents = Math.round(baseCents * BILLING_PERIOD_DISCOUNT[period]);
-  if (period === 'MONTHLY') return formatCents(monthlyCents);
-  // Facture = mensuel remisé × nombre de mois de la période (12 pour l'annuel,
-  // 24 pour les 2 ans) — pas un ×12 codé en dur, sinon « 2 ans » facturait 1 an.
-  const totalCents = monthlyCents * BILLING_PERIOD_MONTHS[period];
-  const suffix = period === 'BIENNIAL'
-    ? t('auth.inscription.perBiennial', ' / 2 ans')
-    : t('auth.inscription.perYear', ' / an');
-  return `${formatCents(totalCents)}${suffix}`;
-}
-
-/** Libellé prix intervention : utilise le prix transmis par la landing page, sinon le prix de base */
-function getInterventionPriceLabel(t: TFunction, forfait: string, interventionPrice?: string): string {
-  const price = interventionPrice
-    ? parseInt(interventionPrice, 10)
-    : FORFAIT_BASE_PRICES[forfait];
-  if (!price) return '';
-  return t('auth.inscription.interventionPrice', `Interventions a partir de ${price}€`, { price });
-}
-
-/** Variante de `Badge` par forfait — la hierarchie se dit par le jeton, pas par un hex. */
-const FORFAIT_BADGE_VARIANTS: Record<string, 'default' | 'secondary' | 'info'> = {
-  essentiel: 'secondary',
-  confort: 'info',
-  premium: 'default',
-};
+const FORFAIT_BADGE_VARIANTS = { essential: 'secondary', pro: 'default' } as const;
+type OrganizationTypeKey = 'INDIVIDUAL' | 'CONCIERGE' | 'CLEANING_COMPANY';
+type BillingPeriod = 'MONTHLY';
+const getBillingPeriodLabel = (t: TFunction, _period: string) => t('auth.inscription.billingPeriods.MONTHLY', 'Mensuel');
 
 /**
  * Sources d'acquisition declarees a l'inscription (attribution marketing).
@@ -220,10 +123,11 @@ interface InscriptionResponse {
   monthlyPriceCents?: number;
   stripePriceAmount?: number;
   billingPeriod?: string;
+  currency: string;
 }
 
 export default function Inscription() {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
 
@@ -235,26 +139,34 @@ export default function Inscription() {
     [t],
   );
 
+  const [draft] = useState(() => {
+    const saved = readSignupDraft();
+    return searchParams.get('email') && saved?.payload.email !== searchParams.get('email') ? null : saved;
+  });
+  const restored = (key: string, fallback = '') => {
+    const value = draft?.payload[key];
+    return typeof value === 'string' || typeof value === 'number' ? String(value) : Array.isArray(value) ? value.join(',') : fallback;
+  };
   // Recuperer les donnees de la landing page (query params)
   const prefill = useMemo(() => ({
-    forfait: searchParams.get('forfait') || '',
+    forfait: searchParams.get('forfait') || restored('forfait'),
     billingPeriod: (searchParams.get('billingPeriod') || 'MONTHLY').toUpperCase() as BillingPeriod,
     interventionPrice: searchParams.get('interventionPrice') || '',
-    email: searchParams.get('email') || '',
-    fullName: searchParams.get('fullName') || '',
-    phone: searchParams.get('phone') || '',
-    city: searchParams.get('city') || '',
-    postalCode: searchParams.get('postalCode') || '',
-    propertyType: searchParams.get('propertyType') || '',
-    propertyCount: searchParams.get('propertyCount') || '',
-    surface: searchParams.get('surface') || '',
-    guestCapacity: searchParams.get('guestCapacity') || '',
-    bookingFrequency: searchParams.get('bookingFrequency') || '',
-    cleaningSchedule: searchParams.get('cleaningSchedule') || '',
-    calendarSync: searchParams.get('calendarSync') || '',
-    services: searchParams.get('services') || '',
-    servicesDevis: searchParams.get('servicesDevis') || '',
-  }), [searchParams]);
+    email: searchParams.get('email') || restored('email'),
+    fullName: searchParams.get('fullName') || restored('fullName'),
+    phone: searchParams.get('phone') || restored('phone'),
+    city: searchParams.get('city') || restored('city'),
+    postalCode: searchParams.get('postalCode') || restored('postalCode'),
+    propertyType: searchParams.get('propertyType') || restored('propertyType'),
+    propertyCount: searchParams.get('propertyCount') || restored('propertyCount'),
+    surface: searchParams.get('surface') || restored('surface'),
+    guestCapacity: searchParams.get('guestCapacity') || restored('guestCapacity'),
+    bookingFrequency: searchParams.get('bookingFrequency') || restored('bookingFrequency'),
+    cleaningSchedule: searchParams.get('cleaningSchedule') || restored('cleaningSchedule'),
+    calendarSync: searchParams.get('calendarSync') || restored('calendarSync'),
+    services: searchParams.get('services') || restored('services'),
+    servicesDevis: searchParams.get('servicesDevis') || restored('servicesDevis'),
+  }), [searchParams, draft]);
 
   const hasLandingData = !!prefill.forfait && !!prefill.email;
 
@@ -268,69 +180,30 @@ export default function Inscription() {
   const [fullName, setFullName] = useState(prefill.fullName);
   const [email, setEmail] = useState(prefill.email);
   const [phone, setPhone] = useState(prefill.phone);
-  const [companyName, setCompanyName] = useState('');
-  const [organizationType, setOrganizationType] = useState<OrganizationTypeKey>('INDIVIDUAL');
+  const [companyName, setCompanyName] = useState(restored('companyName'));
+  const [organizationType, setOrganizationType] = useState<OrganizationTypeKey>(() => ['INDIVIDUAL', 'CONCIERGE', 'CLEANING_COMPANY'].includes(restored('organizationType')) ? restored('organizationType') as OrganizationTypeKey : 'INDIVIDUAL');
   const isProType = organizationType !== 'INDIVIDUAL';
-  const [forfait, setForfait] = useState(prefill.forfait || 'essentiel');
-  const [billingPeriod, setBillingPeriod] = useState<BillingPeriod>(
-    (['MONTHLY', 'ANNUAL', 'BIENNIAL'].includes(prefill.billingPeriod) ? prefill.billingPeriod : 'MONTHLY') as BillingPeriod
-  );
-  // Prix PMS charges depuis l'API (pas de fallback — toujours depuis /pricing-info)
-  const [pmsMonthlyPriceCents, setPmsMonthlyPriceCents] = useState<number | null>(null);
-  const [pmsSyncPriceCents, setPmsSyncPriceCents] = useState<number | null>(null);
-  // Supplement IA mensuel par forfait (centimes) — campagne X5
-  const [aiSurchargeCentsByForfait, setAiSurchargeCentsByForfait] = useState<Record<string, number>>({});
-
+  const [forfait, setForfait] = useState(['pro', 'premium'].includes(prefill.forfait) ? 'pro' : 'essential');
+  const [billingCountry, setBillingCountry] = useState(searchParams.get('country') || restored('billingCountry', 'FR'));
+  const [propertyCount, setPropertyCount] = useState(Number(prefill.propertyCount) || 1);
+  const [proposal, setProposal] = useState<SignupProposal | null>(null);
+  const request = useRef<{ key: string; id: string } | null>(draft?.request ?? null);
+  const submitting = useRef(false);
+  const billingPeriod = 'MONTHLY';
   // Consentement RGPD + attribution (4 nouveaux champs)
   const [acceptedTerms, setAcceptedTerms] = useState(false);
-  const [newsletterOptIn, setNewsletterOptIn] = useState(false);
-  const [promoCode, setPromoCode] = useState('');
-  const [referralSource, setReferralSource] = useState<ReferralSource | ''>('');
-
-  // Determiner si l'utilisateur a choisi la synchronisation calendrier (venant de la landing page)
-  const isSyncMode = prefill.calendarSync === 'sync';
-
-  // Prix de base effectif selon le mode (sync ou standard) + supplement IA du
-  // forfait selectionne — aligne sur le montant facture par Stripe (backend X5)
-  const pmsCoreCents = isSyncMode ? pmsSyncPriceCents : pmsMonthlyPriceCents;
-  const pmsBaseCents = pmsCoreCents === null
-    ? null
-    : pmsCoreCents + (aiSurchargeCentsByForfait[forfait] ?? 0);
-
-  useEffect(() => {
-    apiClient
-      .get<{
-        pmsMonthlyPriceCents?: number;
-        pmsSyncPriceCents?: number;
-        aiSurchargeEssentielCents?: number;
-        aiSurchargeConfortCents?: number;
-        aiSurchargePremiumCents?: number;
-      }>(
-        '/public/pricing-info',
-        { skipAuth: true },
-      )
-      .then((data) => {
-        if (data.pmsMonthlyPriceCents) {
-          setPmsMonthlyPriceCents(data.pmsMonthlyPriceCents);
-        }
-        if (data.pmsSyncPriceCents) {
-          setPmsSyncPriceCents(data.pmsSyncPriceCents);
-        }
-        setAiSurchargeCentsByForfait({
-          essentiel: data.aiSurchargeEssentielCents ?? 0,
-          confort: data.aiSurchargeConfortCents ?? 0,
-          premium: data.aiSurchargePremiumCents ?? 0,
-        });
-      })
-      .catch(() => {});
-  }, []);
+  const [newsletterOptIn, setNewsletterOptIn] = useState(draft?.payload.newsletterOptIn === true);
+  const [promoCode, setPromoCode] = useState(restored('promoCode'));
+  const [referralSource, setReferralSource] = useState<ReferralSource | ''>(restored('referralSource') as ReferralSource | '');
 
   // Etats
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [clientSecret, setClientSecret] = useState<string | null>(null);
   // Prix confirmes par le backend (utilises dans le recap Step 3 pour coherence avec Stripe)
-  const [confirmedPmsBaseCents, setConfirmedPmsBaseCents] = useState<number | null>(null);
+  const [confirmed, setConfirmed] = useState<InscriptionResponse | null>(null);
+  const quoteReady = proposal?.key === signupQuoteKey(forfait, billingCountry, propertyCount, promoCode);
+  const money = (amount: number, currency: string) => new Intl.NumberFormat(i18n.language, { style: 'currency', currency }).format(amount / 100);
 
   // Afficher le message d'annulation si retour de Stripe
   useEffect(() => {
@@ -345,10 +218,10 @@ export default function Inscription() {
     const nameOk = nameParts.length >= 2;
     const emailOk = /^[A-Za-z0-9._%+\-]+@[A-Za-z0-9.\-]+\.[A-Za-z]{2,}$/.test(email);
     const phoneDigits = phone.replace(/[\s.\-]/g, '');
-    const phoneOk = !phone.trim() || /^(?:(?:\+33|0033)[1-9]\d{8}|0[1-9]\d{8})$/.test(phoneDigits);
+    const phoneOk = !phone.trim() || /^\+?[0-9]{7,15}$/.test(phoneDigits);
     const companyOk = !isProType || companyName.trim().length > 0;
     // RGPD : l'acceptation des CGU est obligatoire avant de continuer vers le paiement
-    return nameOk && emailOk && phoneOk && !!forfait && companyOk && acceptedTerms;
+    return nameOk && emailOk && phoneOk && !!forfait && companyOk && acceptedTerms && quoteReady;
   };
 
   const handleNext = () => {
@@ -362,6 +235,8 @@ export default function Inscription() {
   };
 
   const handleSubmit = async () => {
+    if (submitting.current) return;
+    submitting.current = true;
     setError(null);
     setLoading(true);
 
@@ -369,7 +244,7 @@ export default function Inscription() {
       // Stocker l'email pour la page InscriptionSuccess (renvoi d'email)
       sessionStorage.setItem('inscription_email', email);
 
-      const response = await apiClient.post<InscriptionResponse>('/public/inscription', {
+      const payload = {
         fullName,
         email,
         phone,
@@ -380,7 +255,8 @@ export default function Inscription() {
         city: prefill.city,
         postalCode: prefill.postalCode,
         propertyType: prefill.propertyType,
-        propertyCount: prefill.propertyCount ? parseInt(prefill.propertyCount) : undefined,
+        propertyCount,
+        billingCountry,
         surface: prefill.surface ? parseInt(prefill.surface) : undefined,
         guestCapacity: prefill.guestCapacity ? parseInt(prefill.guestCapacity) : undefined,
         bookingFrequency: prefill.bookingFrequency || undefined,
@@ -393,49 +269,35 @@ export default function Inscription() {
         newsletterOptIn,
         promoCode: promoCode.trim() || undefined,
         referralSource: referralSource || undefined,
-      }, { skipAuth: true });
+      };
+      const key = JSON.stringify(payload);
+      if (!request.current || request.current.key !== key) request.current = { key, id: crypto.randomUUID() };
+      saveSignupDraft(payload, request.current);
+      const response = await apiClient.post<InscriptionResponse>('/public/inscription', { ...payload, requestId: request.current.id }, { skipAuth: true });
 
       // Stocker le clientSecret + prix confirmes et passer au step Paiement
       if (response.clientSecret) {
         setClientSecret(response.clientSecret);
-        // Utiliser le prix reel du backend pour le recap (coherence avec Stripe)
-        if (response.pmsBaseCents) {
-          setConfirmedPmsBaseCents(response.pmsBaseCents);
-        }
+        setConfirmed(response);
         setActiveStep(1);
       } else {
         setError(t('auth.inscription.errors.createSessionFailed', 'Erreur lors de la creation de la session de paiement.'));
       }
     } catch (err) {
       const apiErr = err as ApiError;
-      if (apiErr.status === 409) {
-        setError(t('auth.inscription.errors.emailAlreadyExists', 'Un compte existe deja avec cette adresse email.'));
-      } else if (apiErr.message) {
+      if (apiErr.message) {
         setError(apiErr.message);
       } else {
         setError(t('auth.inscription.errors.generic', 'Une erreur est survenue. Veuillez reessayer.'));
       }
     } finally {
+      submitting.current = false;
       setLoading(false);
     }
   };
 
   return (
     <AuthLayout maxFormWidth={activeStep === 1 ? 880 : 560}>
-      {/* Badge forfait selectionne */}
-        {prefill.forfait && (
-          <div className="text-center mb-3">
-            <Badge variant={FORFAIT_BADGE_VARIANTS[prefill.forfait] ?? 'secondary'}>
-              {getForfaitLabel(t, prefill.forfait)}
-            </Badge>
-            <span className="block text-xs text-muted-foreground mt-0.5 tabular-nums">
-              {getInterventionPriceLabel(t, prefill.forfait, prefill.interventionPrice)} | {isSyncMode
-                ? t('auth.inscription.platformWithSync', 'Plateforme + Synchro')
-                : t('auth.inscription.platform', 'Plateforme')} : {getPmsDisplayPrice(t, billingPeriod, pmsBaseCents)}
-            </span>
-          </div>
-        )}
-
         {/* Stepper */}
         <Stepper activeStep={activeStep} className="mb-[18px]">
           {steps.map((label, index) => {
@@ -558,72 +420,8 @@ export default function Inscription() {
               </Field>
             )}
 
-            {/* Selection du forfait si non pre-rempli */}
-            {!prefill.forfait && (
-              <div>
-                <span className="block text-2xs font-semibold uppercase tracking-wide text-muted-foreground mb-1.5">
-                  {t('auth.inscription.choosePlan', 'Choisissez votre forfait *')}
-                </span>
-                <div className="grid grid-cols-[1fr] min-[600px]:grid-cols-[repeat(3,_1fr)] gap-[9px]">
-                  {(['essentiel', 'confort', 'premium'] as const).map((f) => (
-                    <OptionCard
-                      key={f}
-                      selected={forfait === f}
-                      onClick={() => setForfait(f)}
-                      label={getForfaitShortLabel(t, f)}
-                      description={getForfaitTagline(t, f)}
-                      hint={
-                        <span className="text-xs font-semibold text-inherit tabular-nums">
-                          {t('auth.inscription.forfaitHint', `dès ${FORFAIT_BASE_PRICES[f]}€/intervention`, { price: FORFAIT_BASE_PRICES[f] })}
-                        </span>
-                      }
-                    />
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {/* Selection de la periode de facturation */}
-            <Separator className="my-1.5" />
-            <span className="text-xs font-semibold text-muted-foreground">
-              {t('auth.inscription.billingPeriodLabel', 'Periode de facturation')}
-            </span>
-            {/* ToggleGroup rend une valeur vide quand on re-clique l'item actif :
-                on ignore ce cas, la periode doit toujours etre definie. */}
-            <ToggleGroup
-              type="single"
-              variant="outline"
-              size="sm"
-              spacing={0}
-              value={billingPeriod}
-              onValueChange={(val) => val && setBillingPeriod(val as BillingPeriod)}
-              className="mb-[3px] w-full [&>*]:flex-1"
-            >
-              <ToggleGroupItem value="MONTHLY" className="text-[0.78rem] font-semibold">
-                {getBillingPeriodLabel(t, 'MONTHLY')}
-              </ToggleGroupItem>
-              <ToggleGroupItem value="ANNUAL" className="text-[0.78rem] font-semibold">
-                {getBillingPeriodLabel(t, 'ANNUAL')}
-                <Badge variant="success" className="ms-0.5 h-[18px] text-[0.65rem] font-bold">-20%</Badge>
-              </ToggleGroupItem>
-              <ToggleGroupItem value="BIENNIAL" className="text-[0.78rem] font-semibold">
-                {getBillingPeriodLabel(t, 'BIENNIAL')}
-                <Badge variant="success" className="ms-0.5 h-[18px] text-[0.65rem] font-bold">-35%</Badge>
-              </ToggleGroupItem>
-            </ToggleGroup>
-            <span className="text-xs text-muted-foreground tabular-nums">
-              {t('auth.inscription.platform', 'Plateforme')} : {getPmsDisplayPrice(t, billingPeriod, pmsBaseCents)}
-              {billingPeriod !== 'MONTHLY' && pmsBaseCents !== null && (
-                <span className="ms-0.5 line-through text-muted-foreground opacity-60">
-                  {formatCents(pmsBaseCents)}{t('auth.inscription.perMonth', '/mois')}
-                </span>
-              )}
-              {billingPeriod !== 'MONTHLY' && (
-                <span className="ms-0.5 font-semibold text-success-ink">
-                  {' '}{t('auth.inscription.invoiced', `Facture ${getPmsFirstPayment(t, billingPeriod, pmsBaseCents)}`, { amount: getPmsFirstPayment(t, billingPeriod, pmsBaseCents) })}
-                </span>
-              )}
-            </span>
+            <BaitlySignupPricing plan={forfait} country={billingCountry} count={propertyCount} promo={promoCode} disabled={loading}
+              onPlan={setForfait} onCountry={setBillingCountry} onCount={setPropertyCount} onQuote={setProposal} />
 
             {/* Resume des donnees de la landing page */}
             {hasLandingData && (
@@ -785,12 +583,12 @@ export default function Inscription() {
                         {t('auth.inscription.summaryPlan', 'Forfait')}
                       </span>
                       <div className="flex items-center gap-1.5 mt-0.5">
-                        <Badge variant={FORFAIT_BADGE_VARIANTS[forfait] ?? 'secondary'}>
-                          {getForfaitLabel(t, forfait)}
+                        <Badge variant={forfait === 'pro' ? 'default' : 'secondary'}>
+                          {forfait === 'pro' ? 'Baitly Pro' : 'Baitly Essentiel'}
                         </Badge>
                       </div>
                       <span className="mt-0.5 block text-xs text-muted-foreground tabular-nums">
-                        {getInterventionPriceLabel(t, forfait, prefill.interventionPrice)}
+                        {t('monthlySubscription.properties', { count: propertyCount })}
                       </span>
                     </div>
 
@@ -798,12 +596,10 @@ export default function Inscription() {
 
                     <div>
                       <span className="text-xs font-semibold text-muted-foreground">
-                        {isSyncMode
-                          ? t('auth.inscription.summarySubscriptionWithSync', 'Abonnement plateforme + Synchro auto')
-                          : t('auth.inscription.summarySubscription', 'Abonnement plateforme')}
+                        {t('monthlySubscription.title')}
                       </span>
                       <p className="text-xs font-semibold text-primary tabular-nums">
-                        {getPmsDisplayPrice(t, billingPeriod, confirmedPmsBaseCents ?? pmsBaseCents)}
+                        {confirmed && money(confirmed.monthlyPriceCents ?? 0, confirmed.currency)} {t('signupMonthly.netPerMonth')}
                       </p>
                       <span className="text-xs text-muted-foreground">
                         {t('auth.inscription.summaryPeriod', 'Periode :')} {getBillingPeriodLabel(t, billingPeriod)}
@@ -815,15 +611,16 @@ export default function Inscription() {
                     <div className="rounded-lg border border-border bg-muted p-2">
                       <div className="flex justify-between items-center">
                         <p className="text-xs font-semibold">
-                          {t('auth.inscription.summaryTotal', 'Total a payer')}
+                          {t('signupMonthly.firstNet')}
                         </p>
                         <p className="text-sm font-bold text-primary tabular-nums">
-                          {getPmsFirstPayment(t, billingPeriod, confirmedPmsBaseCents ?? pmsBaseCents)}
+                          {confirmed && money(confirmed.stripePriceAmount ?? 0, confirmed.currency)}
                         </p>
                       </div>
                     </div>
                   </div>
 
+                  <p className="mt-3 text-xs text-muted-foreground">{t('monthlySubscription.tax')}</p>
                   <div className="mt-3 flex items-center gap-0.5">
                     <span className="inline-flex text-success-ink"><CheckCircleIcon size={14} strokeWidth={1.75} /></span>
                     <span className="text-xs text-muted-foreground">

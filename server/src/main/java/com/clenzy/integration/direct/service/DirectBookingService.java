@@ -365,13 +365,11 @@ public class DirectBookingService {
         log.info("confirmPaidBookingFromWebhook: bookingId={}, orgId={}", bookingId, orgId);
 
         Reservation reservation = findReservationByConfirmationCode(bookingId, orgId);
-        if ("confirmed".equals(reservation.getStatus())) {
+        if ("confirmed".equals(reservation.getStatus()) && reservation.getPaymentStatus()==com.clenzy.model.PaymentStatus.PAID) {
             log.debug("confirmPaidBookingFromWebhook: resa {} deja confirmee, no-op", bookingId);
             return;
         }
-        reservation.setStatus("confirmed");
-        reservationRepository.save(reservation);
-        log.info("Reservation directe {} confirmee via webhook Stripe (org={})", bookingId, orgId);
+        throw new IllegalStateException("Ancien paiement direct sans intention rapprochée : vérifier l'encaissement avant confirmation");
     }
 
     /**
@@ -557,22 +555,22 @@ public class DirectBookingService {
      */
     private BigDecimal applyPromoDiscount(String code, Long propertyId,
                                            BigDecimal totalPrice, int nights, Long orgId) {
-        Optional<PromoCode> promoOpt = promoCodeRepository.findByCodeAndOrganizationId(code, orgId);
+        Optional<PromoCode> promoOpt = promoCodeRepository.lockByCodeAndOrganizationId(code, orgId);
         if (promoOpt.isEmpty()) {
             log.warn("Code promo inconnu : {}", code);
-            return BigDecimal.ZERO;
+            throw new IllegalArgumentException("Code promo invalide pour ce séjour. Aucun paiement au prix plein ne sera créé.");
         }
 
         PromoCode promo = promoOpt.get();
         if (!promo.isValidAt(LocalDate.now()) || !promo.appliesTo(propertyId)) {
             log.warn("Code promo non applicable : {} (valid={}, appliesTo={})",
                     code, promo.isValidAt(LocalDate.now()), promo.appliesTo(propertyId));
-            return BigDecimal.ZERO;
+            throw new IllegalArgumentException("Code promo invalide pour ce séjour. Aucun paiement au prix plein ne sera créé.");
         }
 
         if (promo.getMinNights() > 0 && nights < promo.getMinNights()) {
             log.debug("Code promo {} : minimum {} nuits requis, {} reservees", code, promo.getMinNights(), nights);
-            return BigDecimal.ZERO;
+            throw new IllegalArgumentException("Code promo invalide pour ce séjour. Aucun paiement au prix plein ne sera créé.");
         }
 
         BigDecimal discount = promo.computeDiscount(totalPrice);

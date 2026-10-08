@@ -43,19 +43,16 @@ class MobilePaymentControllerTest {
     }
 
     @Test
-    void createPaymentSheet_validSubscription_returnsOk() throws StripeException {
-        Map<String, String> result = Map.of("paymentIntent", "pi_x", "ephemeralKey", "ek");
-        when(mobilePaymentService.createPaymentSheet(
-            eq("kc-user-1"), eq("subscription"), eq("confort"), any(), any())).thenReturn(result);
-
+    void legacySubscriptionCannotCancelOrCreateAContract() {
         Map<String, Object> body = new HashMap<>();
         body.put("type", "subscription");
         body.put("forfait", "confort");
 
         ResponseEntity<Map<String, String>> response = controller.createPaymentSheet(jwt, body);
 
-        assertEquals(HttpStatus.OK, response.getStatusCode());
-        assertEquals("pi_x", response.getBody().get("paymentIntent"));
+        assertEquals(HttpStatus.GONE, response.getStatusCode());
+        assertEquals("BAITLY_MONTHLY_CHECKOUT_REQUIRED", response.getBody().get("code"));
+        org.mockito.Mockito.verifyNoInteractions(mobilePaymentService);
     }
 
     @Test
@@ -97,7 +94,7 @@ class MobilePaymentControllerTest {
             .thenThrow(new IllegalArgumentException("bad input"));
 
         Map<String, Object> body = new HashMap<>();
-        body.put("type", "subscription");
+        body.put("type", "intervention");
         body.put("forfait", "confort");
 
         ResponseEntity<Map<String, String>> response = controller.createPaymentSheet(jwt, body);
@@ -112,7 +109,7 @@ class MobilePaymentControllerTest {
             .thenThrow(new ApiException("stripe down", null, null, 500, null));
 
         Map<String, Object> body = new HashMap<>();
-        body.put("type", "subscription");
+        body.put("type", "intervention");
         body.put("forfait", "premium");
 
         ResponseEntity<Map<String, String>> response = controller.createPaymentSheet(jwt, body);

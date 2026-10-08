@@ -53,6 +53,7 @@ class DocumentTemplateSyncServiceTest {
         t.setFileContent(content);
         t.setOriginalFilename("template.odt");
         t.setVersion(1);
+        t.setCreatedBy("system-seed");
         t.setTags(new ArrayList<>());
         return t;
     }
@@ -78,8 +79,8 @@ class DocumentTemplateSyncServiceTest {
 
             service.syncBundledTemplates();
 
-            // Only template_devis.odt -> DEVIS for now
-            verify(selfProxy).syncOne("template_devis.odt", "DEVIS");
+            // Only baitly-devis.html -> DEVIS for now
+            verify(selfProxy).syncOne("baitly-devis.html", "DEVIS");
         }
 
         @Test
@@ -101,6 +102,17 @@ class DocumentTemplateSyncServiceTest {
     class SyncOne {
 
         @Test
+        void customSourceIsNeverOverwrittenByBundledHtml() throws IOException {
+            var template = buildTemplate(7L, "Devis personnalisé", "custom source".getBytes(), DocumentType.DEVIS);
+            template.setCreatedBy("user-managed");
+            when(templateRepository.findAll()).thenReturn(List.of(template));
+            service.syncOne("baitly-devis.html", "DEVIS");
+            assertThat(template.getFileContent()).isEqualTo("custom source".getBytes());
+            verify(templateRepository, never()).save(any());
+            verifyNoInteractions(tagRepository, templateParserService);
+        }
+
+        @Test
         @DisplayName("returns silently when resource is missing on classpath")
         void resourceMissing_skips() throws IOException {
             service.syncOne("non_existent_template.odt", "DEVIS");
@@ -113,7 +125,7 @@ class DocumentTemplateSyncServiceTest {
         void noExistingTemplate_skips() throws IOException {
             when(templateRepository.findAll()).thenReturn(List.of());
 
-            service.syncOne("template_devis.odt", "DEVIS");
+            service.syncOne("baitly-devis.html", "DEVIS");
 
             verify(templateRepository).findAll();
             verify(templateRepository, never()).save(any());
@@ -126,7 +138,7 @@ class DocumentTemplateSyncServiceTest {
             DocumentTemplate existing = buildTemplate(1L, "Devis", bundled, DocumentType.DEVIS);
             when(templateRepository.findAll()).thenReturn(List.of(existing));
 
-            service.syncOne("template_devis.odt", "DEVIS");
+            service.syncOne("baitly-devis.html", "DEVIS");
 
             verify(templateRepository, never()).save(any());
             verifyNoInteractions(tagRepository, templateParserService);
@@ -142,7 +154,7 @@ class DocumentTemplateSyncServiceTest {
             when(templateParserService.parseTemplate(any(byte[].class)))
                     .thenReturn(List.of(buildTag("client.nom"), buildTag("client.email")));
 
-            service.syncOne("template_devis.odt", "DEVIS");
+            service.syncOne("baitly-devis.html", "DEVIS");
 
             ArgumentCaptor<DocumentTemplate> savedCaptor = ArgumentCaptor.forClass(DocumentTemplate.class);
             verify(templateRepository).save(savedCaptor.capture());
@@ -164,11 +176,11 @@ class DocumentTemplateSyncServiceTest {
             when(templateRepository.findAll()).thenReturn(List.of(existing));
             when(templateParserService.parseTemplate(any(byte[].class))).thenReturn(List.of());
 
-            service.syncOne("template_devis.odt", "DEVIS");
+            service.syncOne("baitly-devis.html", "DEVIS");
 
             ArgumentCaptor<DocumentTemplate> savedCaptor = ArgumentCaptor.forClass(DocumentTemplate.class);
             verify(templateRepository).save(savedCaptor.capture());
-            assertThat(savedCaptor.getValue().getOriginalFilename()).isEqualTo("template_devis.odt");
+            assertThat(savedCaptor.getValue().getOriginalFilename()).isEqualTo("baitly-devis.html");
         }
 
         @Test
@@ -180,7 +192,7 @@ class DocumentTemplateSyncServiceTest {
             when(templateRepository.findAll()).thenReturn(List.of(existing));
             when(templateParserService.parseTemplate(any(byte[].class))).thenReturn(List.of());
 
-            service.syncOne("template_devis.odt", "DEVIS");
+            service.syncOne("baitly-devis.html", "DEVIS");
 
             ArgumentCaptor<DocumentTemplate> savedCaptor = ArgumentCaptor.forClass(DocumentTemplate.class);
             verify(templateRepository).save(savedCaptor.capture());
@@ -199,7 +211,7 @@ class DocumentTemplateSyncServiceTest {
                     buildTag("client.nom"), // duplicate
                     buildTag("client.email")));
 
-            service.syncOne("template_devis.odt", "DEVIS");
+            service.syncOne("baitly-devis.html", "DEVIS");
 
             @SuppressWarnings("unchecked")
             ArgumentCaptor<List<DocumentTemplateTag>> tagCaptor =
@@ -219,7 +231,7 @@ class DocumentTemplateSyncServiceTest {
             when(tagRepository.findByTemplateId(1L)).thenReturn(oldTags);
             when(templateParserService.parseTemplate(any(byte[].class))).thenReturn(List.of());
 
-            service.syncOne("template_devis.odt", "DEVIS");
+            service.syncOne("baitly-devis.html", "DEVIS");
 
             verify(tagRepository).deleteAll(oldTags);
             verify(tagRepository, atLeastOnce()).flush();
@@ -232,7 +244,7 @@ class DocumentTemplateSyncServiceTest {
                     "anything".getBytes(), DocumentType.FACTURE);
             when(templateRepository.findAll()).thenReturn(List.of(facture));
 
-            service.syncOne("template_devis.odt", "DEVIS");
+            service.syncOne("baitly-devis.html", "DEVIS");
 
             verify(templateRepository, never()).save(any());
         }
@@ -244,7 +256,7 @@ class DocumentTemplateSyncServiceTest {
                     "anything".getBytes(), null);
             when(templateRepository.findAll()).thenReturn(List.of(weird));
 
-            service.syncOne("template_devis.odt", "DEVIS");
+            service.syncOne("baitly-devis.html", "DEVIS");
 
             verify(templateRepository, never()).save(any());
         }
@@ -252,7 +264,7 @@ class DocumentTemplateSyncServiceTest {
 
     /** Helper : read the actual bundled file. */
     private byte[] readBundled() throws IOException {
-        try (var is = getClass().getResourceAsStream("/templates/template_devis.odt")) {
+        try (var is = getClass().getResourceAsStream("/templates/baitly-devis.html")) {
             assertThat(is).isNotNull();
             return is.readAllBytes();
         }

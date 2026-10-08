@@ -1,18 +1,23 @@
+import { financeEventArtwork } from '../../billing/components/financeEventArtwork';
+import FinanceWorkspace from '../../billing/components/FinanceWorkspace';
+import { FinanceAmountKpis } from '../../billing/components/FinanceKpis';
 /* ============================================================
-   <HousekeeperPayoutsTab> — vue admin des versements PRESTATAIRES (ménage)
+   <HousekeeperPayoutsTab> — vue admin des versements PRESTATAIRES, tous métiers
 
    Versements Stripe directs aux prestataires (ménage), déclenchés à la
    validation de mission (Moteur Ménage 3B). À NE PAS confondre avec :
-     - « Reversements » (payouts PROPRIÉTAIRES, SEPA, OwnerPayout),
+     - « Reversements » (payouts PROPRIÉTAIRES via PSP, OwnerPayout),
      - « Dépenses prestataires » (saisie manuelle de dépenses, ProviderExpense).
    Endpoints : GET /housekeeper-payouts/org · POST /{id}/retry (staff plateforme).
    ============================================================ */
 
 import React, { useCallback, useMemo, useState } from 'react';
+import { getErrorMessage } from '../../../utils/getErrorMessage';
 import { cn } from '../../../utils/cn';
 import StatusChip, { STATUS_TONES, type StatusTone } from '../../../components/StatusChip';
 import { Alert as BuiAlert, AlertDescription, AlertAction, Button as BuiButton } from '../../../components/ui';
-import { CircleCheck, X, TriangleAlert } from 'lucide-react';
+import { X, TriangleAlert } from '../../../icons/glyphs';
+import PayoutActionResult from './PayoutActionResult';
 import { Spinner } from '../../../components/ui';
 import {
   Dialog,
@@ -31,6 +36,7 @@ import { Build as RetryIcon, AccountBalance as PayoutIcon } from '../../../icons
 import FilterChipRow from '../../../components/baitly/FilterChipRow';
 import HelpPopover from '../../../components/HelpPopover';
 import { usePageHeaderActions } from '../../../components/PageHeaderActionsContext';
+import { FinanceBatchPanel, type FinanceBatchResult } from '../../payments/FinanceBatchPanel';
 import EmptyState from '../../../components/EmptyState';
 import { useTranslation } from '../../../hooks/useTranslation';
 import { useCurrency } from '../../../hooks/useCurrency';
@@ -40,6 +46,7 @@ import {
   housekeeperPayoutsApi,
   type HousekeeperPayoutRecord,
   type HousekeeperPayoutStatus,
+  type PayoutRetryQuote,
 } from '../../../services/api/housekeeperPayoutsApi';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import PagePagination from '../../../components/PagePagination';
@@ -68,8 +75,7 @@ const fmtDate = (d: string | null) => (d ? new Date(d).toLocaleDateString(active
 
 export const HousekeeperPayoutsTab: React.FC = () => {
   const { t } = useTranslation();
-  const { convertAndFormat } = useCurrency();
-  const fmtCurrency = useCallback((n: number) => convertAndFormat(n, 'EUR'), [convertAndFormat]);
+  const fmtCurrency = (n: number) => new Intl.NumberFormat(activeIntlLocale(), { style: 'currency', currency: 'EUR' }).format(n);
   const queryClient = useQueryClient();
 
   const [filterStatus, setFilterStatus] = useState<HousekeeperPayoutStatus | ''>('');
@@ -82,6 +88,17 @@ export const HousekeeperPayoutsTab: React.FC = () => {
     queryKey: ['housekeeper-payouts-org'],
     queryFn: () => housekeeperPayoutsApi.listOrg(),
     staleTime: 30_000,
+  });
+
+  const candidates = records.filter(r => RETRYABLE.includes(r.status) && !r.stripeTransferId
+    && r.failureReason !== 'RECONCILIATION_REQUIRED');
+  const { data: quotes = [], isFetching: quotesLoading } = useQuery({
+    queryKey: ['provider-payout-retry-quotes', candidates.map(r => `${r.id}:${r.updatedAt}:${r.amount}`)],
+    queryFn: () => Promise.all(candidates.map(async r => {
+      try { return { id: r.id, quote: await housekeeperPayoutsApi.previewRetry(r.id), error: null }; }
+      catch (cause) { return { id: r.id, quote: null, error: getErrorMessage(cause, t('financeBatch.failed')) }; }
+    })),
+    enabled: candidates.length > 0,
   });
 
   // Résolution nom prestataire (userId → « Prénom Nom ») — même pattern que la vue Dépenses.
@@ -97,8 +114,11 @@ export const HousekeeperPayoutsTab: React.FC = () => {
   }, [users]);
 
   const retryMutation = useMutation({
-    mutationFn: (recordId: number) => housekeeperPayoutsApi.retry(recordId),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['housekeeper-payouts-org'] }),
+    mutationFn: ({ id, quote }: { id: number; quote: PayoutRetryQuote }) => housekeeperPayoutsApi.retry(id, quote),
+    onSettled: () => {
+      void queryClient.invalidateQueries({ queryKey: ['housekeeper-payouts-org'] });
+      void queryClient.invalidateQueries({ queryKey: ['provider-payout-retry-quotes'] });
+    },
   });
 
   const filtered = useMemo(
@@ -114,22 +134,25 @@ export const HousekeeperPayoutsTab: React.FC = () => {
   const highlightId = useHighlightParam();
   useHighlightTarget(highlightId, !isLoading && records.length > 0);
 
-  const providerName = (r: HousekeeperPayoutRecord) =>
-    nameByUserId.get(r.userId) ?? `${t('accounting.housekeeperPayouts.provider', 'Prestataire')} #${r.userId}`;
+  const providerName = (r: HousekeeperPayoutRecord) => r.beneficiaryOrganizationId != null
+    ? t('providerPayoutBeneficiary.organization', 'Organisation #{{id}}', { id: r.beneficiaryOrganizationId })
+    : r.userId != null
+      ? nameByUserId.get(r.userId) ?? `${t('accounting.housekeeperPayouts.provider', 'Prestataire')} #${r.userId}`
+      : t('providerPayoutBeneficiary.title', 'Bénéficiaire du versement');
 
   const handleConfirmRetry = useCallback(() => {
     if (!retryTarget) return;
-    retryMutation.mutate(retryTarget.id);
+    retryMutation.mutate({ id: retryTarget.id, quote: { amount: retryTarget.amount, commissionAmount: retryTarget.commissionAmount } });
     setRetryTarget(null);
   }, [retryTarget, retryMutation]);
 
   const helpAction = usePageHeaderActions(
     <HelpPopover
       label={t('common.help', 'Aide')}
-      title={t('accounting.housekeeperPayouts.help.title', 'Versements prestataires (ménage)')}
+      title={t('accounting.housekeeperPayouts.help.title', 'Versements prestataires')}
       description={t(
         'accounting.housekeeperPayouts.help.description',
-        'Versements Stripe directs aux prestataires (ménage), déclenchés automatiquement à la validation de mission. Distincts des reversements propriétaires et de la saisie de dépenses.',
+        'Versements aux prestataires de tous les métiers, personnes ou organisations. Chaque mission doit être terminée, encaissée et justifiée avant son versement.',
       )}
     />,
   );
@@ -137,6 +160,32 @@ export const HousekeeperPayoutsTab: React.FC = () => {
   return (
     <>
       {helpAction}
+
+      <FinanceBatchPanel title={t('financeBatch.providerTransfers')} actionLabel={t('financeBatch.retryTransfers')}
+        disabled={isLoading || isError || quotesLoading || retryMutation.isPending}
+        items={filtered.flatMap(record => {
+          const quote = quotes.find(q => q.id === record.id)?.quote;
+          return quote ? [{ key: String(record.id), label: `${providerName(record)} · #${record.interventionId}`, amount: quote.amount, currency: 'EUR' }] : [];
+        })}
+        onExecute={async items => {
+          const results: FinanceBatchResult[] = [];
+          for (const item of items) {
+            try {
+              const current = (await housekeeperPayoutsApi.listOrg()).find(record => String(record.id) === item.key);
+              if (!current || !RETRYABLE.includes(current.status) || current.stripeTransferId) {
+                results.push({ key: item.key, state: 'blocked' }); continue;
+              }
+              const quote = await housekeeperPayoutsApi.previewRetry(current.id);
+              if (quote.amount !== item.amount) { results.push({ key: item.key, state: 'blocked', message: t('accounting.housekeeperPayouts.amountChanged') }); continue; }
+              const result = await retryMutation.mutateAsync({ id: current.id, quote });
+              results.push({ key: item.key, state: result.status === 'SENT' || result.status === 'PENDING' ? 'sent' : 'blocked',
+                message: result.failureReason ? t(`accounting.housekeeperPayouts.reasons.${result.failureReason}`, result.failureReason) : undefined });
+            } catch (cause) {
+              results.push({ key: item.key, state: 'error', message: getErrorMessage(cause, t('financeBatch.failed')) });
+            }
+          }
+          return results;
+        }} />
 
       {/* ── Filtre statut ── */}
       <div className={cn(CARD_CLASS, 'p-3 mb-[9px] flex gap-3 items-center flex-wrap')}>
@@ -154,17 +203,11 @@ export const HousekeeperPayoutsTab: React.FC = () => {
       </div>
 
       {/* ── Feedback relance ── */}
-      {retryMutation.isSuccess && (
-        <BuiAlert variant="success" className="mb-2 text-[0.8125rem]">
-          <CircleCheck />
-          <AlertDescription>{t('accounting.housekeeperPayouts.retrySuccess', 'Relance du versement effectuée')}</AlertDescription>
-          <AlertAction>
-            <BuiButton variant="ghost" size="icon-xs" aria-label="Fermer" onClick={() => retryMutation.reset()}>
-              <X />
-            </BuiButton>
-          </AlertAction>
-        </BuiAlert>
-      )}
+      {retryMutation.isSuccess && retryMutation.data && <PayoutActionResult
+        status={retryMutation.data.status}
+        reason={retryMutation.data.failureReason ? t(`accounting.housekeeperPayouts.reasons.${retryMutation.data.failureReason}`, retryMutation.data.failureReason) : null}
+        onClose={() => retryMutation.reset()}
+      />}
       {retryMutation.isError && (
         <BuiAlert variant="destructive" className="mb-2 text-[0.8125rem]">
           <TriangleAlert />
@@ -178,7 +221,12 @@ export const HousekeeperPayoutsTab: React.FC = () => {
         </BuiAlert>
       )}
 
-      {/* ── Table ── */}
+      {!isError && <FinanceAmountKpis kind="payouts" records={filtered.map(row => ({
+        status: row.status,
+        amount: quotes.find(preview => preview.id === row.id)?.quote?.amount ?? row.amount,
+        currency: 'EUR',
+      }))} loading={isLoading || quotesLoading} />}
+      {/* Liste et détail */}
       {isLoading ? (
         <div className="flex flex-col gap-1.5">
           {[0, 1, 2, 3].map((i) => (
@@ -196,46 +244,19 @@ export const HousekeeperPayoutsTab: React.FC = () => {
           title={t('accounting.housekeeperPayouts.empty', 'Aucun versement prestataire')}
           description={t(
             'accounting.housekeeperPayouts.emptyDescription',
-            'Les versements apparaîtront ici automatiquement à la validation des missions de ménage.',
+            'Les versements des missions apparaîtront ici une fois leur bénéficiaire désigné.',
           )}
           variant="plain"
         />
       ) : (
-        <div className="overflow-x-auto rounded-xl border border-solid border-border bg-card">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>{t('accounting.housekeeperPayouts.col.provider', 'Prestataire')}</TableHead>
-                <TableHead>{t('accounting.housekeeperPayouts.col.mission', 'Mission')}</TableHead>
-                <TableHead className="text-end">{t('accounting.housekeeperPayouts.col.net', 'Montant net')}</TableHead>
-                <TableHead className="text-end">{t('accounting.housekeeperPayouts.col.commission', 'Commission')}</TableHead>
-                <TableHead className="text-center">{t('accounting.housekeeperPayouts.col.status', 'Statut')}</TableHead>
-                <TableHead>{t('accounting.housekeeperPayouts.col.date', 'Date')}</TableHead>
-                <TableHead className="text-end">{t('common.actions', 'Actions')}</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {paged.map((r) => {
+        <FinanceWorkspace artwork="transfer"  items={paged.map((r) => {
+                const preview = quotes.find(q => q.id === r.id);
                 const reason = r.failureReason
                   ? t(`accounting.housekeeperPayouts.reasons.${r.failureReason}`, r.failureReason)
                   : null;
                 const showReason = reason && (r.status === 'FAILED' || r.status === 'BLOCKED');
                 return (
-                  <TableRow key={r.id} data-highlight-id={String(r.id)}>
-                    <TableCell className="py-[7.5px] tabular-nums">{providerName(r)}</TableCell>
-                    <TableCell className="py-[7.5px] tabular-nums">
-                      <RouterLink
-                        to={`/interventions/${r.interventionId}`}
-                        className="text-xs text-primary no-underline tabular-nums hover:underline"
-                      >
-                        {t('accounting.housekeeperPayouts.missionRef', 'Mission')} #{r.interventionId}
-                      </RouterLink>
-                    </TableCell>
-                    <TableCell className="py-[7.5px] tabular-nums text-end font-bold">{fmtCurrency(r.amount)}</TableCell>
-                    <TableCell className="py-[7.5px] tabular-nums text-end">
-                      {r.commissionAmount > 0 ? fmtCurrency(r.commissionAmount) : '—'}
-                    </TableCell>
-                    <TableCell className="text-center">
+                  { id: r.id, eventImage: financeEventArtwork('', 'PROVIDER_PAYOUT'), identity: { interventionId: r.interventionId, actorName: providerName(r) }, title: <>{providerName(r)}</>, amount: <>{fmtCurrency(preview?.quote?.amount ?? r.amount)}</>, status: <>
                       <div className="inline-flex items-center gap-0.5">
                         <StatusChip tone={STATUS_TONE[r.status]} label={t(`accounting.housekeeperPayouts.statuses.${r.status}`, r.status)} />
                         {showReason && (
@@ -249,9 +270,7 @@ export const HousekeeperPayoutsTab: React.FC = () => {
                           </Tooltip>
                         )}
                       </div>
-                    </TableCell>
-                    <TableCell className="py-[7.5px] tabular-nums text-[0.75rem]">{fmtDate(r.createdAt)}</TableCell>
-                    <TableCell className="text-end whitespace-nowrap">
+                    </>,  meta: <>{fmtDate(r.createdAt)}</>, actions: <>
                       {RETRYABLE.includes(r.status) && (
                         <Tooltip>
                           {/* Le trigger enveloppe un <span> (element hote) : Radix y pose
@@ -261,37 +280,41 @@ export const HousekeeperPayoutsTab: React.FC = () => {
                               <BuiButton
                                 variant="ghost"
                                 size="icon-sm"
-                                className="text-warning"
+                                className="text-primary"
                                 aria-label={t('accounting.housekeeperPayouts.retry', 'Relancer le versement')}
-                                onClick={() => setRetryTarget(r)}
-                                disabled={retryMutation.isPending}
+                                onClick={() => preview?.quote && setRetryTarget({ ...r, ...preview.quote })}
+                                disabled={retryMutation.isPending || quotesLoading || !preview?.quote}
                               >
-                                {retryMutation.isPending && retryMutation.variables === r.id
+                                {retryMutation.isPending && retryMutation.variables?.id === r.id
                                   ? <Spinner className="size-3.5" />
                                   : <RetryIcon size={'1rem'} strokeWidth={1.75} />}
                               </BuiButton>
                             </span>
                           </TooltipTrigger>
                           <TooltipContent>
-                            {t('accounting.housekeeperPayouts.retry', 'Relancer le versement')}
+                            {preview?.error || t('accounting.housekeeperPayouts.retry', 'Relancer le versement')}
                           </TooltipContent>
                         </Tooltip>
                       )}
-                    </TableCell>
-                  </TableRow>
+                    </>, fields: [{label: <>{t('accounting.housekeeperPayouts.col.mission', 'Mission')}</>, value: <>
+                      <RouterLink
+                        to={`/interventions/${r.interventionId}`}
+                        className="text-xs text-primary no-underline tabular-nums hover:underline"
+                      >
+                        {t('accounting.housekeeperPayouts.missionRef', 'Mission')} #{r.interventionId}
+                      </RouterLink>
+                    </>}, ...(preview?.error ? [{label: <>{t('accounting.housekeeperPayouts.retry', 'Relancer le versement')}</>, value: <span className="text-warning-ink">{preview.error}</span>}] : []), {label: <>{t('accounting.housekeeperPayouts.col.net', 'Montant net')}</>, value: <>{fmtCurrency(preview?.quote?.amount ?? r.amount)}</>},{label: <>{t('accounting.housekeeperPayouts.col.commission', 'Commission')}</>, value: <>
+                      {r.commissionAmount > 0 ? fmtCurrency(r.commissionAmount) : '—'}
+                    </>},{label: <>{t('accounting.housekeeperPayouts.col.date', 'Date')}</>, value: <>{fmtDate(r.createdAt)}</>}],  }
                 );
-              })}
-            </TableBody>
-          </Table>
-          {filtered.length > ROWS_PER_PAGE && (
+              })} pagination={<>{filtered.length > ROWS_PER_PAGE && (
             <PagePagination
               count={filtered.length}
               page={page}
               onPageChange={(p) => setPage(p)}
               rowsPerPage={ROWS_PER_PAGE}
             />
-          )}
-        </div>
+          )}</>} />
       )}
 
       {/* ── Confirmation de relance (money-path) ── */}
@@ -313,13 +336,11 @@ export const HousekeeperPayoutsTab: React.FC = () => {
             <BuiButton variant="ghost" size="sm" onClick={() => setRetryTarget(null)}>
               {t('common.cancel', 'Annuler')}
             </BuiButton>
-            {/* Relance d'un versement (money-path) : le `color="warning"` d'origine
-                se reporte en outline teinte avertissement, faute de variante dediee. */}
             <BuiButton
-              variant="outline"
+              variant="default"
               size="sm"
-              className="text-warning-ink border-warning hover:bg-warning-soft"
               onClick={handleConfirmRetry}
+              disabled={retryMutation.isPending}
             >
               {t('accounting.housekeeperPayouts.retryConfirmBtn', 'Relancer')}
             </BuiButton>

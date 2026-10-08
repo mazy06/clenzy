@@ -1,4 +1,4 @@
-import { LayoutTemplate } from 'lucide-react';
+import { LayoutTemplate } from '../../../../icons/glyphs';
 import {
   Empty,
   EmptyDescription,

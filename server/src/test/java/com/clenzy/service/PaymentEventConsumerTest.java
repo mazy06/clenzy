@@ -35,9 +35,58 @@ class PaymentEventConsumerTest {
     @Mock private PeripheralPaymentReconciliationService peripheralPaymentReconciliationService;
     @Mock private com.clenzy.repository.PaymentTransactionRepository transactionRepository;
     @Mock private com.clenzy.tenant.KafkaTenantScope kafkaTenantScope;
+    @Mock private InterventionRefundReconciliationService interventionRefundReconciliationService;
 
+    @Mock private InterventionBatchReconciliationService batchReconciliation;
     private PaymentEventConsumer consumer;
+    @Mock private InvoicePaymentCoordination invoicePayments;
+    @Mock private RefundCreditNoteService refundCreditNotes;
 
+    @org.junit.jupiter.api.Test
+    void completedRefundUsesPersistedTenantAndDelegatesReconciliation() {
+        var refund = new com.clenzy.model.PaymentTransaction();
+        refund.setOrganizationId(7L);
+        refund.setSourceType("INTERVENTION");
+        refund.setPaymentType(com.clenzy.model.TransactionType.REFUND);
+        refund.setStatus(com.clenzy.model.TransactionStatus.COMPLETED);
+        when(transactionRepository.findByTransactionRef("REF-test")).thenReturn(Optional.of(refund));
+
+        consumer.handlePaymentEvent(Map.of("eventType", "PAYMENT_REFUNDED", "transactionRef", "REF-test"));
+
+        verify(kafkaTenantScope).run(eq(com.clenzy.config.KafkaConfig.TOPIC_PAYMENT_EVENTS), eq(7L), any(Runnable.class));
+        verify(interventionRefundReconciliationService).reconcile("REF-test");
+        var order = org.mockito.Mockito.inOrder(interventionRefundReconciliationService, refundCreditNotes);
+        order.verify(interventionRefundReconciliationService).reconcile("REF-test");
+        order.verify(refundCreditNotes).reconcile("REF-test");
+    }
+
+    @org.junit.jupiter.api.Test
+    void failedRefundEventCannotMarkAMissionRefunded() {
+        var refund = new com.clenzy.model.PaymentTransaction();
+        refund.setStatus(com.clenzy.model.TransactionStatus.FAILED);
+        when(transactionRepository.findByTransactionRef("REF-test")).thenReturn(Optional.of(refund));
+        consumer.handlePaymentEvent(Map.of("eventType", "PAYMENT_REFUNDED", "transactionRef", "REF-test"));
+        verifyNoInteractions(interventionRefundReconciliationService, refundCreditNotes);
+    }
+
+
+    @Test void persistedBatchIsReconciledByItsOwnHandler() {
+        var tx = new com.clenzy.model.PaymentTransaction(); tx.setOrganizationId(7L); tx.setSourceType("INTERVENTION_BATCH");
+        confirmed(tx);
+        when(transactionRepository.findByTransactionRef("TX-batch")).thenReturn(Optional.of(tx));
+        consumer.handlePaymentEvent(Map.of("eventType","PAYMENT_COMPLETED","transactionRef","TX-batch"));
+        verify(batchReconciliation).reconcile("TX-batch");
+        verifyNoInteractions(deferredPaymentReconciliationService);
+    }
+
+    @Test void persistedInvoiceIsReconciledWithoutReservationSplit() {
+        var tx = new com.clenzy.model.PaymentTransaction(); tx.setOrganizationId(7L); tx.setSourceType("INVOICE");
+        confirmed(tx);
+        when(transactionRepository.findByTransactionRef("TX-invoice")).thenReturn(Optional.of(tx));
+        consumer.handlePaymentEvent(Map.of("eventType","PAYMENT_COMPLETED","transactionRef","TX-invoice"));
+        verify(invoicePayments).reconcile("TX-invoice");
+        verifyNoInteractions(splitPaymentService, reservationPaymentReconciliationService);
+    }
     @BeforeEach
     void setUp() {
         // Contrat de KafkaTenantScope rejoue ici (teste isolement dans KafkaTenantScopeTest).
@@ -53,7 +102,7 @@ class PaymentEventConsumerTest {
         consumer = new PaymentEventConsumer(splitPaymentService, escrowHoldRepository, reservationRepository,
                 deferredPaymentReconciliationService, reservationPaymentReconciliationService,
                 bookingBalanceReconciliationService, peripheralPaymentReconciliationService,
-                transactionRepository, kafkaTenantScope);
+                transactionRepository, kafkaTenantScope, interventionRefundReconciliationService, batchReconciliation, invoicePayments, refundCreditNotes,org.mockito.Mockito.mock(BaitlyCommerceRefunds.class));
     }
 
     private EscrowHold escrow() {
@@ -233,6 +282,7 @@ class PaymentEventConsumerTest {
             tx.setTransactionRef(ref);
             tx.setOrganizationId(7L);
             tx.setSourceType(sourceType);
+            confirmed(tx);
             when(transactionRepository.findByTransactionRef(ref)).thenReturn(java.util.Optional.of(tx));
         }
 
@@ -271,6 +321,7 @@ class PaymentEventConsumerTest {
             consumer.handlePaymentEvent(event);
 
             verify(reservationPaymentReconciliationService).reconcile("TX-RES");
+            verify(invoicePayments).reconcile("TX-RES");
             verifyNoInteractions(deferredPaymentReconciliationService);
         }
 
@@ -383,6 +434,7 @@ class PaymentEventConsumerTest {
         tx.setTransactionRef("TX-RES-1");
         tx.setOrganizationId(7L);
         tx.setSourceType(ReservationPaymentService.SOURCE_TYPE);   // reellement une reservation
+        confirmed(tx);
         when(transactionRepository.findByTransactionRef("TX-RES-1")).thenReturn(java.util.Optional.of(tx));
 
         Map<String, Object> event = new HashMap<>();
@@ -410,5 +462,22 @@ class PaymentEventConsumerTest {
 
         verifyNoInteractions(reservationPaymentReconciliationService,
                 peripheralPaymentReconciliationService, deferredPaymentReconciliationService);
+    }
+    private static void confirmed(com.clenzy.model.PaymentTransaction tx) {
+        tx.setStatus(com.clenzy.model.TransactionStatus.COMPLETED);
+        tx.setPaymentType(com.clenzy.model.TransactionType.CHECKOUT);
+    }
+
+    @org.junit.jupiter.params.ParameterizedTest
+    @org.junit.jupiter.params.provider.CsvSource({"PENDING,CHECKOUT", "PROCESSING,CHECKOUT", "FAILED,CHECKOUT",
+            "CANCELLED,CHECKOUT", "REFUNDED,CHECKOUT", "COMPLETED,REFUND", "COMPLETED,TRANSFER", "COMPLETED,PAYOUT"})
+    void completionEventCannotPromoteAnUnconfirmedOrOutgoingTransaction(String status, String type) {
+        var tx = new com.clenzy.model.PaymentTransaction(); tx.setOrganizationId(7L); tx.setSourceType("RESERVATION");
+        tx.setStatus(com.clenzy.model.TransactionStatus.valueOf(status));
+        tx.setPaymentType(com.clenzy.model.TransactionType.valueOf(type));
+        when(transactionRepository.findByTransactionRef("TX-invalid")).thenReturn(Optional.of(tx));
+        consumer.handlePaymentEvent(Map.of("eventType", "PAYMENT_COMPLETED", "transactionRef", "TX-invalid"));
+        verifyNoInteractions(kafkaTenantScope, reservationPaymentReconciliationService, bookingBalanceReconciliationService,
+                peripheralPaymentReconciliationService, invoicePayments, batchReconciliation, deferredPaymentReconciliationService);
     }
 }

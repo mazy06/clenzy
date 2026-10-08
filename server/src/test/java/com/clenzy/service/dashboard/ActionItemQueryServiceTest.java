@@ -232,4 +232,31 @@ class ActionItemQueryServiceTest {
 
         assertThat(service.getActionItems(ORG, UserRole.SUPERVISOR, "kc").items()).hasSize(1);
     }
+
+    @Test
+    void severalBusyGroupsCannotHideTheOnlyFinancialIncident() {
+        var rows=new java.util.ArrayList<ActionItem>();
+        for(var kind:List.of(ActionItemKind.INTERVENTION_OVERDUE,ActionItemKind.REVIEW_UNANSWERED,
+                ActionItemKind.BALANCE_DUE,ActionItemKind.SERVICE_UNPAID,ActionItemKind.INTERVENTION_UNPAID)) {
+            for(int i=0;i<15;i++) rows.add(row(kind,kind.name()+i,300L));
+        }
+        rows.add(row(ActionItemKind.PAYMENT_INCIDENT,"re_partial",null));
+        when(actionItemRepository.findOpenForOrg(any(),any())).thenReturn(rows);
+        var result=service.getActionItems(ORG,UserRole.SUPER_ADMIN,"admin");
+        assertThat(result.items()).hasSize(40);
+        assertThat(result.items()).extracting(item -> item.id()).contains("re_partial");
+        assertThat(result.items()).extracting(item -> item.kind()).containsAll(result.totalsByKind().keySet());
+        assertThat(result.total()).isEqualTo(76);
+        assertThat(result.amountsByKind()).containsKey(ActionItemKind.PAYMENT_INCIDENT);
+    }
+
+    @Test void anExternalRefundAlertCannotBeDismissedBeforeFinancialReconciliation() {
+        var incident=row(ActionItemKind.PAYMENT_INCIDENT,"re_partial",null);
+        incident.setActionType("EXTERNAL_REFUND"); incident.setStatus("OPEN"); incident.setSource("EVENT");
+        when(actionItemRepository.findById(incident.getId())).thenReturn(java.util.Optional.of(incident));
+        var writer=new ActionItemWriter(actionItemRepository,mock(com.clenzy.service.NotificationService.class),Clock.fixed(NOW,ZoneOffset.UTC));
+        org.assertj.core.api.Assertions.assertThatThrownBy(() -> writer.resolveById(incident.getId(),ORG,"admin"))
+                .hasMessageContaining("rapprochement financier");
+        verify(actionItemRepository,never()).save(any());
+    }
 }

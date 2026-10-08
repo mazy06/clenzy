@@ -22,8 +22,8 @@ import {
   Rocket, PanelLeftClose, PanelLeftOpen,
   Undo2, Redo2, Eye, Maximize, Code, SquareDashed, FolderInput, Workflow, PaintBucket, Boxes, Trash2, Plus,
   Paintbrush, Layers, SlidersHorizontal, LayoutGrid, Pencil, Languages, ImagePlus,
-  type LucideIcon,
-} from 'lucide-react';
+  type IconComponent,
+} from '../../../../icons/glyphs';
 import grapesjs, { type Editor, type ProjectData } from 'grapesjs';
 import 'grapesjs/dist/css/grapes.min.css';
 import type { StudioConfigState } from '../useStudioConfig';
@@ -652,7 +652,7 @@ function rerenderBookingWidgets(editor: Editor): void {
 type EditorView = 'blocks' | 'composites' | 'styles' | 'layers' | 'traits';
 
 /** Onglets du sélecteur de vue (panneau droit). */
-const VIEW_TABS: { key: EditorView; icon: LucideIcon; label: string }[] = [
+const VIEW_TABS: { key: EditorView; icon: IconComponent; label: string }[] = [
   { key: 'blocks', icon: LayoutGrid, label: 'Blocs' },
   { key: 'composites', icon: Boxes, label: 'Composites' },
   { key: 'styles', icon: Paintbrush, label: 'Style' },
@@ -665,7 +665,7 @@ const VIEW_TABS: { key: EditorView; icon: LucideIcon; label: string }[] = [
  * état actif en accent). Remplace le mélange de boutons GrapesJS natifs / pills hétérogènes.
  */
 function ToolBtn({ icon: Icon, title, onClick, active = false, disabled = false, label }: {
-  icon: LucideIcon; title: string; onClick: () => void; active?: boolean; disabled?: boolean; label?: string;
+  icon: IconComponent; title: string; onClick: () => void; active?: boolean; disabled?: boolean; label?: string;
 }) {
   return (
     <Tooltip>

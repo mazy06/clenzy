@@ -15,6 +15,12 @@ import java.util.List;
 import java.util.Optional;
 
 public interface UserRepository extends JpaRepository<User, Long>, JpaSpecificationExecutor<User> {
+    /** Sérialise la génération des reversements d'un propriétaire présent dans cette organisation. */
+    @org.springframework.data.jpa.repository.Lock(jakarta.persistence.LockModeType.PESSIMISTIC_WRITE)
+    @Query("select u from User u where u.id = :ownerId and exists "
+         + "(select p.id from Property p where p.owner.id = u.id and p.organizationId = :orgId)")
+    Optional<User> lockPayoutOwner(@Param("ownerId") Long ownerId, @Param("orgId") Long orgId);
+
     Optional<User> findByEmailHash(String emailHash);
     boolean existsByEmailHash(String emailHash);
     Optional<User> findByKeycloakId(String keycloakId);

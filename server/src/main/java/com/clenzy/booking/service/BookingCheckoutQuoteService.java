@@ -60,7 +60,7 @@ public class BookingCheckoutQuoteService {
 
         PublicBookingService.OrgContext ctx = publicBookingService.resolveOrgById(orgId);
         AvailabilityResponseDto availability = publicBookingService.checkAvailability(
-            ctx, new AvailabilityRequestDto(request.propertyId(), checkIn, checkOut, request.guests()));
+            ctx, new AvailabilityRequestDto(request.propertyId(), checkIn, checkOut, request.guests(),request.children()));
         if (!availability.available()) {
             throw new IllegalStateException("Dates non disponibles");
         }
@@ -71,6 +71,11 @@ public class BookingCheckoutQuoteService {
         // (« calculee cote serveur ») : total complet OU subtotal + menage.
         BigDecimal serverTotal = availability.total();
         BigDecimal serverTotalExclTax = availability.subtotal().add(availability.cleaningFee());
+        if(request.voucherCode()!=null && !request.voucherCode().isBlank()) {
+            var applied=publicBookingService.previewVoucher(ctx,request.voucherCode(),request.customerEmail(),availability);
+            serverTotal=applied.finalTotal();
+            serverTotalExclTax=serverTotal.subtract(availability.touristTax());
+        }
         if (!isWithinTolerance(request.amount(), serverTotal)
             && !isWithinTolerance(request.amount(), serverTotalExclTax)) {
             log.warn("Booking engine checkout: montant client divergent du devis serveur (property={})",

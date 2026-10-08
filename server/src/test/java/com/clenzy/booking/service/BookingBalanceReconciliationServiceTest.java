@@ -22,12 +22,13 @@ class BookingBalanceReconciliationServiceTest {
 
     @Mock private PaymentTransactionRepository transactionRepository;
     @Mock private PublicBookingService publicBookingService;
+    @Mock private com.clenzy.service.BaitlyReservationPaymentProof proof;
 
     private BookingBalanceReconciliationService service;
 
     @BeforeEach
     void setUp() {
-        service = new BookingBalanceReconciliationService(transactionRepository, publicBookingService);
+        service = new BookingBalanceReconciliationService(transactionRepository, publicBookingService, proof);
     }
 
     private PaymentTransaction tx(String ref, Long sourceId, String providerTxId) {
@@ -41,10 +42,18 @@ class BookingBalanceReconciliationServiceTest {
     @Test
     void whenTransactionResolves_thenConfirmsBalanceById() {
         when(transactionRepository.findByTransactionRef("TX-1")).thenReturn(Optional.of(tx("TX-1", 55L, "cs_bal")));
+        when(proof.requireConfirmation(any(), org.mockito.ArgumentMatchers.eq("BOOKING_BALANCE"))).thenReturn(true);
 
         service.reconcile("TX-1");
 
         verify(publicBookingService).confirmBookingEngineBalanceById(55L, "cs_bal");
+    }
+
+    @Test void replayDoesNotReconfirm() {
+        when(transactionRepository.findByTransactionRef("TX-1")).thenReturn(Optional.of(tx("TX-1", 55L, "cs_bal")));
+        service.reconcile("TX-1");
+        verify(proof).requireConfirmation(any(), org.mockito.ArgumentMatchers.eq("BOOKING_BALANCE"));
+        org.mockito.Mockito.verifyNoInteractions(publicBookingService);
     }
 
     @Test

@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { View, Text, ScrollView, Pressable, Alert, RefreshControl } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Ionicons } from '@expo/vector-icons';
+import { Reicon } from '@/icons';
 import { useNavigation } from '@react-navigation/native';
 import { useTheme } from '@/theme';
 import { Card } from '@/components/ui/Card';
@@ -17,7 +17,7 @@ import { useServiceRequests, useCreateServiceRequest } from '@/hooks/useServiceR
 import { useAuthStore } from '@/store/authStore';
 import type { ServiceRequest } from '@/api/endpoints/serviceRequestsApi';
 
-type IoniconsName = keyof typeof Ionicons.glyphMap;
+type IconName = keyof typeof Reicon.glyphMap;
 type TabKey = 'new' | 'history';
 type CategoryKey = 'cleaning' | 'maintenance' | 'other';
 
@@ -26,7 +26,7 @@ type CategoryKey = 'cleaning' | 'maintenance' | 'other';
 const SERVICE_CATEGORIES: Array<{
   key: CategoryKey;
   label: string;
-  icon: IoniconsName;
+  icon: IconName;
   color: string;
   desc: string;
 }> = [
@@ -137,7 +137,7 @@ function TabBar({ activeTab, onTabChange, theme }: {
   onTabChange: (tab: TabKey) => void;
   theme: ReturnType<typeof useTheme>;
 }) {
-  const tabs: { key: TabKey; label: string; icon: IoniconsName }[] = [
+  const tabs: { key: TabKey; label: string; icon: IconName }[] = [
     { key: 'new', label: 'Nouvelle demande', icon: 'add-circle-outline' },
     { key: 'history', label: 'Historique', icon: 'time-outline' },
   ];
@@ -169,7 +169,7 @@ function TabBar({ activeTab, onTabChange, theme }: {
               ...(isActive ? theme.shadows.sm : {}),
             }}
           >
-            <Ionicons
+            <Reicon
               name={tab.icon}
               size={16}
               color={isActive ? theme.colors.primary.main : theme.colors.text.disabled}
@@ -320,7 +320,7 @@ function NewRequestTab({
                 justifyContent: 'center',
                 marginBottom: 8,
               }}>
-                <Ionicons name={cat.icon} size={22} color={cat.color} />
+                <Reicon name={cat.icon} size={22} color={cat.color} />
               </View>
               <Text style={{
                 ...theme.typography.body2,
@@ -453,7 +453,7 @@ function NewRequestTab({
               fullWidth
               loading={createRequest.isPending}
               disabled={createRequest.isPending}
-              icon={<Ionicons name="send-outline" size={16} color="#fff" />}
+              icon={<Reicon name="send-outline" size={16} color="#fff" />}
             />
           </Card>
         </>
@@ -607,21 +607,21 @@ function HistoryTab({
                 }}>
                   {formattedDate && (
                     <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
-                      <Ionicons name="calendar-outline" size={12} color={theme.colors.text.disabled} />
+                      <Reicon name="calendar-outline" size={12} color={theme.colors.text.disabled} />
                       <Text style={{ ...theme.typography.caption, color: theme.colors.text.secondary }}>
                         {formattedDate}
                       </Text>
                     </View>
                   )}
                   <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
-                    <Ionicons name="flag-outline" size={12} color={priorityColor} />
+                    <Reicon name="flag-outline" size={12} color={priorityColor} />
                     <Text style={{ ...theme.typography.caption, color: priorityColor, fontWeight: '600' }}>
                       {priorityLabel}
                     </Text>
                   </View>
                   {req.propertyName && (
                     <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, flex: 1 }}>
-                      <Ionicons name="home-outline" size={12} color={theme.colors.text.disabled} />
+                      <Reicon name="home-outline" size={12} color={theme.colors.text.disabled} />
                       <Text
                         style={{ ...theme.typography.caption, color: theme.colors.text.disabled }}
                         numberOfLines={1}
@@ -688,7 +688,7 @@ export function ServiceRequestScreen() {
             ...theme.shadows.sm,
           })}
         >
-          <Ionicons name="arrow-back" size={20} color={theme.colors.text.primary} />
+          <Reicon name="arrow-back" size={20} color={theme.colors.text.primary} />
         </Pressable>
         <Text style={{ ...theme.typography.h2, color: theme.colors.text.primary, flex: 1 }}>
           Demandes de service

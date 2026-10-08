@@ -1,13 +1,14 @@
 import apiClient from '../apiClient';
 
-// ─── Payout Stripe Connect des prestataires ménage (Moteur Ménage 3B) ─────────
+// Versements Baitly aux prestataires individuels et aux organisations, tous métiers.
 
 export type HousekeeperPayoutStatus = 'PENDING' | 'SENT' | 'FAILED' | 'BLOCKED';
 
 export interface HousekeeperPayoutRecord {
   id: number;
   /** users.id du prestataire bénéficiaire (résolu en nom côté écran admin). */
-  userId: number;
+  userId: number | null;
+  beneficiaryOrganizationId?: number | null;
   interventionId: number;
   /** Montant NET versé au prestataire (rémunération − commission). */
   amount: number;
@@ -24,6 +25,11 @@ export interface MyPayouts {
   accountCreated: boolean;
   onboardingCompleted: boolean;
   records: HousekeeperPayoutRecord[];
+}
+
+export interface PayoutRetryQuote {
+  amount: number;
+  commissionAmount: number;
 }
 
 export const housekeeperPayoutsApi = {
@@ -48,7 +54,11 @@ export const housekeeperPayoutsApi = {
   },
 
   /** Relance d'un versement FAILED/BLOCKED — staff plateforme. */
-  retry(recordId: number): Promise<HousekeeperPayoutRecord> {
-    return apiClient.post<HousekeeperPayoutRecord>(`/housekeeper-payouts/${recordId}/retry`, {});
+  previewRetry(recordId: number): Promise<PayoutRetryQuote> {
+    return apiClient.get<PayoutRetryQuote>(`/housekeeper-payouts/${recordId}/retry-preview`);
+  },
+
+  retry(recordId: number, quote: PayoutRetryQuote): Promise<HousekeeperPayoutRecord> {
+    return apiClient.post<HousekeeperPayoutRecord>(`/housekeeper-payouts/${recordId}/retry`, quote);
   },
 };

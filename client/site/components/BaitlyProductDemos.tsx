@@ -16,7 +16,7 @@ import {
   LockKeyholeIcon,
   ShieldCheckIcon,
   SparklesIcon,
-} from 'lucide-react';
+} from '../../src/icons/glyphs';
 import BaitlyMarkLogo from '../../src/components/BaitlyMarkLogo';
 import { BAITLY_PRODUCT_DEMO_MESSAGES } from '../lib/messages/baitlyProductDemos';
 import { MOCKUP_MESSAGES } from '../lib/messages/mockups';

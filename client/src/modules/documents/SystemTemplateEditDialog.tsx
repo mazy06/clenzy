@@ -1,8 +1,8 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Alert, AlertDescription, Button } from '../../components/ui';
-import { TriangleAlert } from 'lucide-react';
+import { TriangleAlert } from '../../icons/glyphs';
 import { Spinner } from '../../components/ui';
-import { Card } from '../../components/ui';
+import EmailTemplatePreview from './EmailTemplatePreview';
 import {
   Dialog,
   DialogContent,
@@ -15,7 +15,6 @@ import {
   Input,
   Textarea,
   NativeSelect,
-  Separator,
 } from '../../components/ui';
 import { cn } from '../../utils/cn';
 import { Save, Replay } from '../../icons';
@@ -178,15 +177,6 @@ const SystemTemplateEditDialog: React.FC<Props> = ({ templateKey, open, onClose 
     } catch { /* idem */ }
   };
 
-  // Preview : remplace les variables par des valeurs mock (pattern MessageTemplateEditor)
-  const getPreviewText = (text: string): string => {
-    let preview = text;
-    for (const v of availableVariables) {
-      preview = preview.replace(new RegExp(`\\{${v.key}\\}`, 'g'), v.example);
-    }
-    return preview;
-  };
-
   const friendlyName = t(`systemEmailTemplates.keys.${templateKey}`);
   const recipientLabel = group
     ? t(`systemEmailTemplates.recipientShort.${group.recipientType}`)
@@ -322,20 +312,9 @@ const SystemTemplateEditDialog: React.FC<Props> = ({ templateKey, open, onClose 
                 <h6 className="text-xs font-medium text-muted-foreground mb-[0.35em]">
                   {t('messaging.templates.editor.preview')}
                 </h6>
-                <Card className="gap-0 py-0 p-3">
-                  <h6 className="text-xs font-medium mb-[0.35em]">
-                    {t('messaging.templates.editor.previewSubject')}: {getPreviewText(subject) || '—'}
-                  </h6>
-                  <Separator className="my-1.5" />
-                  <p
-                    className={cn(
-                      'text-xs whitespace-pre-wrap font-[inherit]',
-                      language === 'ar' ? '[direction:rtl]' : '[direction:ltr]',
-                    )}
-                  >
-                    {getPreviewText(body) || '—'}
-                  </p>
-                </Card>
+                <div className="h-[560px] overflow-hidden rounded-xl border border-border">
+                  <EmailTemplatePreview subject={subject} body={body} language={language} wrapperStyle={currentTemplate?.wrapperStyle} />
+                </div>
                 <span className="text-xs text-muted-foreground opacity-60 block mt-0.5">
                   {t('systemEmailTemplates.dialog.previewNote')}
                 </span>

@@ -30,7 +30,7 @@ class OwnerPayoutDtoTest {
                 new BigDecimal("850.00"),
                 PayoutStatus.PAID, PayoutGenerationType.AUTO,
                 PayoutMethod.STRIPE_CONNECT, "tr_123",
-                "REF-001", paidAt, null, 0, "OK", createdAt
+                "REF-001", paidAt, null, 0, "OK", createdAt, "EUR", BigDecimal.ZERO, 1
         );
 
         assertEquals(1L, dto.id());
@@ -121,6 +121,19 @@ class OwnerPayoutDtoTest {
     }
 
     // --- Record equality ---
+
+    @org.junit.jupiter.params.ParameterizedTest
+    @org.junit.jupiter.params.provider.ValueSource(strings = {"EUR", "MAD", "SAR"})
+    void exposesOriginalCurrencyFeesAndFundingVersion(String currency) {
+        OwnerPayout payout = buildEntity();
+        payout.setCurrency(currency);
+        payout.setOtaFees(new BigDecimal("12.50"));
+        payout.setFundingVersion(1);
+        OwnerPayoutDto dto = OwnerPayoutDto.from(payout);
+        assertEquals(currency, dto.currency());
+        assertEquals(new BigDecimal("12.50"), dto.otaFees());
+        assertEquals(1, dto.fundingVersion());
+    }
 
     @Test
     void records_equalityByValue() {

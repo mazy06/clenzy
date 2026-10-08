@@ -11,7 +11,7 @@ import {
   DropdownMenuTrigger,
   Skeleton,
 } from '../../../components/ui';
-import { Sparkles, Rocket, AlertTriangle, ArrowLeft, Check, ArrowUp, Wand2, SquarePen, ChevronDown } from 'lucide-react';
+import { Sparkles, Rocket, AlertTriangle, ArrowLeft, Check, ArrowUp, Wand2, SquarePen, ChevronDown } from '../../../icons/glyphs';
 import { sitesApi, type Site, type SitePage } from '../../../services/api/sitesApi';
 import { SidebarTrigger, useSidebar } from '../../../components/ui/sidebar';
 import { useTranslation } from '../../../hooks/useTranslation';

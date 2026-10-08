@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from 'react';
-import { Alert as UiAlert, AlertDescription, Button, Card } from '../../components/ui';
-import { CircleCheck, TriangleAlert } from 'lucide-react';
+import React, { useState, useEffect, useId } from 'react';
+import { Alert as UiAlert, AlertDescription, Button } from '../../components/ui';
+import { CircleCheck, TriangleAlert } from '../../icons/glyphs';
 import { Spinner } from '../../components/ui';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
@@ -17,12 +17,11 @@ import PropertyFormDetails from './PropertyFormDetails';
 import PropertyFormSettings from './PropertyFormSettings';
 import PropertyFormTouristTax from './PropertyFormTouristTax';
 import CleaningPriceEstimator from './CleaningPriceEstimator';
-
-// ─── Stable classes ─────────────────────────────────────────────────────────
-
-// Panneau de formulaire : `Card` du kit, mis a plat (pas d'ombre) et cadre au
-// rayon xl (14 px) de l'echelle Baitly UI.
-const FORM_PANEL_CLASS = 'gap-0 py-0 rounded-xl border border-border bg-card shadow-none p-[15px] min-w-0 overflow-auto';
+import PropertyFormSectionNav from './PropertyFormSectionNav';
+import IllustratedHeading from '../../components/IllustratedHeading';
+import { PROPERTY_ART } from './propertyArtwork';
+import { cn } from '../../utils/cn';
+import './propertyForm.css';
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
@@ -43,6 +42,7 @@ const PropertyForm: React.FC<PropertyFormProps> = ({ onClose, onSuccess, propert
   const { t } = useTranslation();
   const navigate = useNavigate();
   const isEditMode = mode === 'edit' || !!propertyId;
+  const sectionPrefix = useId().replace(/:/g, '');
 
   // ─── React Query hook ─────────────────────────────────────────────────
   const {
@@ -137,58 +137,64 @@ const PropertyForm: React.FC<PropertyFormProps> = ({ onClose, onSuccess, propert
 
   // ─── Render ───────────────────────────────────────────────────────────
 
+  // Une section par sujet, chacune sous un en-tête illustré ; le sommaire (hors
+  // mode intégré de l'onboarding) mène de l'une à l'autre.
+  const settingsProps = { control, errors, users, propertyStatuses, cleaningFrequencies, isAdmin, isManager };
+  const sections = [
+    { key: 'identity', art: PROPERTY_ART.identity, body: <PropertyFormBasicInfo control={control} errors={errors} propertyTypes={propertyTypes} /> },
+    { key: 'address', art: PROPERTY_ART.location, body: <PropertyFormAddress control={control} errors={errors} setValue={setValue} /> },
+    { key: 'characteristics', art: PROPERTY_ART.characteristics, body: <PropertyFormDetails control={control} errors={errors} part="characteristics" /> },
+    { key: 'amenities', art: PROPERTY_ART.amenities, body: <PropertyFormDetails control={control} errors={errors} part="amenities" /> },
+    { key: 'management', art: PROPERTY_ART.management, body: <PropertyFormSettings {...settingsProps} part="configuration" /> },
+    {
+      key: 'cleaning',
+      art: PROPERTY_ART.cleaning,
+      body: (
+        <>
+          <CleaningPriceEstimator control={control} setValue={setValue} />
+          <PropertyFormSettings {...settingsProps} part="cleaning" />
+        </>
+      ),
+    },
+    // Création seulement : la taxe de séjour est déclarée et confirmée (France, Maroc).
+    ...(!isEditMode
+      ? [{ key: 'touristTax', art: PROPERTY_ART.touristTax, body: <PropertyFormTouristTax control={control} errors={errors} setValue={setValue} /> }]
+      : []),
+  ].map((section) => ({
+    ...section,
+    id: `${sectionPrefix}-${section.key}`,
+    title: t(`propertyWorkspace.form.${section.key}.title`),
+    hint: t(`propertyWorkspace.form.${section.key}.hint`),
+  }));
+
   return (
-    <div className="flex flex-col h-full min-h-0">
-      <div className="shrink-0">
-        <CleaningPriceEstimator control={control} setValue={setValue} />
-      </div>
-      <form
-        onSubmit={handleSubmit((data) => submitForm(data))}
-        className="flex flex-col flex-1 min-h-0"
-      >
-        <div className={embedded ? 'flex flex-col gap-4' : 'flex gap-3 flex-1 min-h-0'}>
-          {/* ── Colonne gauche : Infos principales ──────────────────── */}
-          {/* `flex: 7` / `flex: 5` MUI = flex-grow/shrink 1 avec basis 0 : la
-              repartition 7/5 des colonnes passe par un style (valeur numerique,
-              pas de classe Tailwind equivalente). */}
-          <Card className={FORM_PANEL_CLASS} style={{ flex: 7 }}>
-            <div className="flex flex-col gap-4">
-              <PropertyFormBasicInfo control={control} errors={errors} propertyTypes={propertyTypes} />
-              <PropertyFormAddress control={control} errors={errors} setValue={setValue} />
-              <PropertyFormDetails control={control} errors={errors} />
-              {/* Création seulement : la taxe de séjour est déclarée et confirmée (France, Maroc). */}
-              {!isEditMode && <PropertyFormTouristTax control={control} errors={errors} setValue={setValue} />}
-            </div>
-          </Card>
+    <form
+      onSubmit={handleSubmit((data) => submitForm(data))}
+      className={cn('pf', embedded && 'pf--embedded')}
+    >
+      {!embedded && <PropertyFormSectionNav sections={sections} label={t('propertyWorkspace.form.navLabel')} />}
 
-          {/* ── Colonne droite : Configuration & Ménage ─────────────── */}
-          <Card className={FORM_PANEL_CLASS} style={{ flex: 5 }}>
-            <PropertyFormSettings
-              control={control}
-              errors={errors}
-              users={users}
-              propertyStatuses={propertyStatuses}
-              cleaningFrequencies={cleaningFrequencies}
-              isAdmin={isAdmin}
-              isManager={isManager}
-            />
-          </Card>
-        </div>
+      <div className="pf-sections">
+        {sections.map((section) => (
+          <section key={section.key} id={section.id} className="pf-section">
+            <IllustratedHeading art={section.art} title={section.title} hint={section.hint} />
+            {section.body}
+          </section>
+        ))}
 
-        {/* Error message */}
         {submitError && (
-          <UiAlert variant="destructive" className="text-[0.8125rem] py-0.5 mt-2 shrink-0">
+          <UiAlert variant="destructive" className="text-[0.8125rem]">
             <TriangleAlert />
             <AlertDescription>{submitError}</AlertDescription>
           </UiAlert>
         )}
 
-        {/* Hidden submit button for PageHeader trigger */}
-        <Button type="submit" className={embedded ? 'setup-primary mt-4 self-start' : 'hidden'} data-submit-property disabled={isSubmitting}>
+        {/* Bouton de soumission déclenché par le PageHeader (masqué hors onboarding). */}
+        <Button type="submit" className={embedded ? 'setup-primary self-start' : 'hidden'} data-submit-property disabled={isSubmitting}>
           {t('common.save')}
         </Button>
-      </form>
-    </div>
+      </div>
+    </form>
   );
 };
 

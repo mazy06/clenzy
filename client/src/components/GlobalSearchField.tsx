@@ -1,4 +1,4 @@
-import { SearchIcon, XIcon } from 'lucide-react';
+import { SearchIcon, XIcon } from '../icons/glyphs';
 import { Button } from './ui';
 import { useTranslation } from '../hooks/useTranslation';
 import { useScreenChrome } from './ScreenChrome';
@@ -45,7 +45,7 @@ const FIELD_WIDTH = 'md:w-56 lg:w-64';
 const SHORTCUT_BADGE =
   'shrink-0 rounded border border-border px-1 font-sans text-2xs font-medium text-muted-foreground';
 
-export default function GlobalSearchField({ className }: { className?: string }) {
+export default function GlobalSearchField({ className, compact }: { className?: string; compact?: boolean }) {
   const { t } = useTranslation();
   const { search, setSearchValue } = useScreenChrome();
   const { openCenter } = useCommandCenter();
@@ -69,22 +69,22 @@ export default function GlobalSearchField({ className }: { className?: string })
 
   return (
     <>
-      {/* Sous 768 px la barre de titre n'a plus la place d'un libellé : loupe
-          seule, même action. */}
-      <Button
+      {/* Le header choisit selon sa place disponible ; hors header, conserver
+          le repli historique sous 768 px. Même recherche et nom accessible. */}
+      {compact !== false && <Button
         type="button"
         variant="outline"
         size="icon"
-        className={cn('shrink-0 md:hidden', hasFilter && 'border-primary text-primary')}
+        className={cn('shrink-0', compact === undefined && 'md:hidden', hasFilter && 'border-primary text-primary')}
         aria-label={ariaLabel}
         aria-keyshortcuts="Meta+K Control+K"
         onClick={open}
       >
         <SearchIcon />
-      </Button>
+      </Button>}
 
       {/* Filtre inactif : un simple bouton, tout l'objet est cliquable. */}
-      {!hasFilter && (
+      {!compact && !hasFilter && (
         <Button
           type="button"
           variant="outline"
@@ -93,7 +93,8 @@ export default function GlobalSearchField({ className }: { className?: string })
             FIELD_WIDTH,
             // Aucune hauteur imposee : le gabarit du kit (32 px) est deja celui
             // des boutons voisins de la barre de titre.
-            'hidden justify-start gap-2 px-2.5 font-normal text-muted-foreground md:flex',
+            'justify-start gap-2 px-2.5 font-normal text-muted-foreground',
+            compact === undefined ? 'hidden md:flex' : 'flex w-64',
             className,
           )}
           aria-label={ariaLabel}
@@ -112,10 +113,11 @@ export default function GlobalSearchField({ className }: { className?: string })
           par le HTML : c'est l'enveloppe qui porte la bordure, pas le bouton.
           Gabarit repris du kit (h-8, rounded-lg, border-border) pour rester
           aligné sur les boutons voisins de la barre de titre. */}
-      {hasFilter && (
+      {!compact && hasFilter && (
         <div
           className={cn(
-            'hidden h-8 items-center gap-2 rounded-lg border border-border bg-background bg-clip-padding ps-2.5 pe-1 md:flex dark:border-input dark:bg-input/30',
+            'h-8 items-center gap-2 rounded-lg border border-border bg-background bg-clip-padding ps-2.5 pe-1 dark:border-input dark:bg-input/30',
+            compact === undefined ? 'hidden md:flex' : 'flex w-64',
             FIELD_WIDTH,
             className,
           )}

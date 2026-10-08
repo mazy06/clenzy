@@ -30,5 +30,10 @@ public record AvailabilityRequestDto(
 
     @NotNull(message = "guests est obligatoire")
     @Min(value = 1, message = "guests doit etre >= 1")
-    Integer guests
-) {}
+    Integer guests,
+    @Min(0) Integer children
+) {
+    public AvailabilityRequestDto(Long propertyId,LocalDate checkIn,LocalDate checkOut,Integer guests) {
+        this(propertyId,checkIn,checkOut,guests,0);
+    }
+}

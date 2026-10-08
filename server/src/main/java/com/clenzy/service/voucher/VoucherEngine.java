@@ -88,6 +88,7 @@ public class VoucherEngine {
     private final VoucherPropertyScopeRepository scopeRepo;
     private final VoucherUsageRepository usageRepo;
     private final Clock clock;
+    private final jakarta.persistence.EntityManager em;
 
     // @Autowired explicite necessaire : 2 constructeurs (prod + tests) =>
     // Spring ne sait pas lequel choisir sans annotation. La regle CLAUDE.md
@@ -96,9 +97,9 @@ public class VoucherEngine {
     public VoucherEngine(
         BookingVoucherRepository voucherRepo,
         VoucherPropertyScopeRepository scopeRepo,
-        VoucherUsageRepository usageRepo
+        VoucherUsageRepository usageRepo, jakarta.persistence.EntityManager em
     ) {
-        this(voucherRepo, scopeRepo, usageRepo, Clock.systemUTC());
+        this(voucherRepo, scopeRepo, usageRepo, em, Clock.systemUTC());
     }
 
     /** Constructeur visible pour les tests (Clock mock). */
@@ -106,12 +107,13 @@ public class VoucherEngine {
         BookingVoucherRepository voucherRepo,
         VoucherPropertyScopeRepository scopeRepo,
         VoucherUsageRepository usageRepo,
-        Clock clock
+        jakarta.persistence.EntityManager em, Clock clock
     ) {
         this.voucherRepo = voucherRepo;
         this.scopeRepo = scopeRepo;
         this.usageRepo = usageRepo;
         this.clock = clock;
+        this.em = em;
     }
 
     // ─────────────────────────────────────────────────────────────────────────
@@ -325,16 +327,16 @@ public class VoucherEngine {
         );
     }
 
+    public VoucherApplyResult apply(BookingVoucher voucher,com.clenzy.booking.dto.AvailabilityResponseDto quote) {
+        return BaitlyStayDiscount.apply(voucher,quote);
+    }
+
     private BigDecimal computeDiscount(BookingVoucher v, BigDecimal subtotal, int stayNights) {
         return switch (v.getDiscountType()) {
             case PERCENTAGE -> subtotal.multiply(v.getDiscountValue()).divide(ONE_HUNDRED, 2, RoundingMode.HALF_UP);
             case FIXED_AMOUNT -> v.getDiscountValue();
             case FREE_NIGHTS -> {
-                // V1 fallback : pas d'access au per-night breakdown, on degrade
-                // gracieusement avec 0 (le caller verra discount=0 et pourra
-                // refuser l'application au besoin).
-                logger.warn("FREE_NIGHTS pas encore implemente, discount=0 pour voucher id={}", v.getId());
-                yield BigDecimal.ZERO;
+                throw new IllegalArgumentException("Le détail tarifaire des nuits est requis pour cette promotion");
             }
         };
     }
@@ -368,6 +370,33 @@ public class VoucherEngine {
         String guestEmail,
         String appliedVia
     ) {
+        return recordUsage(voucher,reservationId,organizationId,propertyId,applied,guestEmail,appliedVia,"EUR",false);
+    }
+
+    @Transactional
+    public Optional<VoucherUsage> recordUsage(BookingVoucher voucher,Long reservationId,Long organizationId,
+            Long propertyId,VoucherApplyResult applied,String guestEmail,String appliedVia,String currency,boolean hold) {
+        var pricedVersion = voucher.getUpdatedAt();
+        voucher=voucherRepo.lockForClaim(voucher.getId(),organizationId).orElseThrow(
+                ()->new IllegalArgumentException("Code promotionnel inaccessible"));
+        em.refresh(voucher,jakarta.persistence.LockModeType.PESSIMISTIC_WRITE);
+        if (!java.util.Objects.equals(pricedVersion, voucher.getUpdatedAt())) return Optional.empty();
+        Instant now=Instant.now(clock);
+        if(voucher.getStatus()!=VoucherStatus.ACTIVE || voucher.getValidFrom()!=null && voucher.getValidFrom().isAfter(now)
+                || voucher.getValidUntil()!=null && !voucher.getValidUntil().isAfter(now)) return Optional.empty();
+        var previous=usageRepo.findByReservationId(reservationId);
+        if(previous.isPresent()) {
+            var usage=previous.get();
+            if(!java.util.Objects.equals(usage.getOrganizationId(),organizationId)
+                    || !java.util.Objects.equals(usage.getVoucherId(),voucher.getId())
+                    || !java.util.Objects.equals(usage.getPropertyId(),propertyId) || "RELEASED".equals(usage.getClaimStatus())
+                    || !java.util.Objects.equals(usage.getCurrency(),currency)
+                    || usage.getDiscountApplied().compareTo(applied.discountApplied())!=0
+                    || usage.getFinalTotal().compareTo(applied.finalTotal())!=0)
+                throw new IllegalStateException("Promotion déjà liée à une autre décision");
+            return previous;
+        }
+        if(voucher.getMaxUsesPerGuest()!=null && (guestEmail==null || guestEmail.isBlank())) return Optional.empty();
         // Re-check max_uses_per_guest atomiquement (la validate() initiale a
         // pu etre faite il y a quelques secondes ; un autre booking
         // simultane du meme guest pourrait avoir consomme la place). Le
@@ -403,6 +432,8 @@ public class VoucherEngine {
         usage.setDiscountApplied(applied.discountApplied());
         usage.setFinalTotal(applied.finalTotal());
         usage.setAppliedVia(appliedVia != null ? appliedVia : "BOOKING_ENGINE");
+        usage.setCurrency(currency);
+        usage.setClaimStatus(hold ? "HELD" : "CONSUMED");
         VoucherUsage saved = usageRepo.save(usage);
         logger.info("Voucher applied : voucherId={}, reservationId={}, discount={}",
             voucher.getId(), reservationId, applied.discountApplied());

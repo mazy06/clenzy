@@ -36,6 +36,9 @@ public interface ServiceQuoteRepository extends JpaRepository<ServiceQuote, Long
             @Param("interventionId") Long interventionId, @Param("orgId") Long organizationId);
 
     Optional<ServiceQuote> findByIdAndOrganizationId(Long id, Long organizationId);
+    @org.springframework.data.jpa.repository.Lock(jakarta.persistence.LockModeType.PESSIMISTIC_WRITE)
+    @Query("select q from ServiceQuote q where q.id=:id and q.organizationId=:orgId")
+    Optional<ServiceQuote> lockByIdAndOrganizationId(@Param("id")Long id,@Param("orgId")Long organizationId);
 
     /** « Mes devis » — les plus recents d'abord, toujours borne a l'organisation. */
     List<ServiceQuote> findByProviderUserIdAndOrganizationIdOrderByCreatedAtDesc(

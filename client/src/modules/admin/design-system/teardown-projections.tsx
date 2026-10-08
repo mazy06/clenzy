@@ -9,7 +9,7 @@ import {
   SearchIcon,
   SettingsIcon,
   TrendingUpIcon,
-} from 'lucide-react';
+} from '../../../icons/glyphs';
 import {
   Badge,
   Button,

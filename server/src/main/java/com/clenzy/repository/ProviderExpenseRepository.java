@@ -12,11 +12,20 @@ import java.util.Optional;
 
 public interface ProviderExpenseRepository extends JpaRepository<ProviderExpense, Long> {
 
+    @Query("SELECT e FROM ProviderExpense e JOIN FETCH e.property p LEFT JOIN FETCH e.provider "
+            + "WHERE e.organizationId = :orgId AND p.organizationId = :orgId "
+            + "AND (e.provider.id = :userId OR p.owner.id = :userId) ORDER BY e.expenseDate DESC")
+    List<ProviderExpense> findVisibleToUser(@Param("orgId") Long orgId, @Param("userId") Long userId);
+
     @Query("SELECT e FROM ProviderExpense e WHERE e.organizationId = :orgId ORDER BY e.expenseDate DESC")
     List<ProviderExpense> findAllByOrgId(@Param("orgId") Long orgId);
 
     @Query("SELECT e FROM ProviderExpense e WHERE e.id = :id AND e.organizationId = :orgId")
     Optional<ProviderExpense> findByIdAndOrgId(@Param("id") Long id, @Param("orgId") Long orgId);
+
+    @org.springframework.data.jpa.repository.Lock(jakarta.persistence.LockModeType.PESSIMISTIC_WRITE)
+    @Query("SELECT e FROM ProviderExpense e WHERE e.id = :id AND e.organizationId = :orgId")
+    Optional<ProviderExpense> lockByIdAndOrgId(@Param("id") Long id, @Param("orgId") Long orgId);
 
     @Query("SELECT e FROM ProviderExpense e WHERE e.provider.id = :providerId AND e.organizationId = :orgId ORDER BY e.expenseDate DESC")
     List<ProviderExpense> findByProviderIdAndOrgId(@Param("providerId") Long providerId, @Param("orgId") Long orgId);
@@ -46,6 +55,7 @@ public interface ProviderExpenseRepository extends JpaRepository<ProviderExpense
      * Trouve les depenses APPROVED liees aux proprietes d'un owner sur une periode.
      * Utilisee lors de la generation du payout pour agreger les depenses.
      */
+    @org.springframework.data.jpa.repository.Lock(jakarta.persistence.LockModeType.PESSIMISTIC_WRITE)
     @Query("""
         SELECT e FROM ProviderExpense e
         JOIN e.property p
@@ -53,6 +63,9 @@ public interface ProviderExpenseRepository extends JpaRepository<ProviderExpense
           AND e.status = com.clenzy.model.ExpenseStatus.APPROVED
           AND e.expenseDate BETWEEN :from AND :to
           AND e.organizationId = :orgId
+          AND p.organizationId = :orgId
+          AND e.ownerPayout IS NULL
+          AND e.paymentReference IS NULL
         ORDER BY e.expenseDate
         """)
     List<ProviderExpense> findApprovedByPropertyOwnerAndPeriod(

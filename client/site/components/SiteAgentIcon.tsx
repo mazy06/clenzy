@@ -1,12 +1,3 @@
-import type { ComponentProps } from 'react';
-import { BroomFill } from '../../src/icons';
-import { AgentIcon } from '../../src/modules/supervision/renderers/agentIcon';
-
-/** Keep the locally registered PMS broom visible in the initial site HTML. */
-export default function SiteAgentIcon(props: ComponentProps<typeof AgentIcon>) {
-  return props.token === 'broom' ? (
-    <BroomFill size={props.size ?? 24} ssr />
-  ) : (
-    <AgentIcon {...props} />
-  );
-}
+// Les glyphes Reicon sont des SVG inline rendus de façon synchrone : le balai
+// des agents est donc déjà présent dans le HTML initial du site, sans wrapper.
+export { AgentIcon as default } from '../../src/modules/supervision/renderers/agentIcon';

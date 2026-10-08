@@ -1,5 +1,5 @@
 import { useEffect, useState, type FormEvent } from 'react';
-import { AlertTriangleIcon, CheckIcon, Loader2Icon } from 'lucide-react';
+import { AlertTriangleIcon, CheckIcon, Loader2Icon } from '../../src/icons/glyphs';
 import {
   Badge,
   Button,

@@ -8,8 +8,8 @@ import java.time.LocalDateTime;
 
 /**
  * Commande d'un upsell par un guest (liée à une réservation). Snapshot du titre/montant
- * au moment de l'achat. La répartition (part plateforme / part hôte) est calculée à la
- * confirmation du paiement et créditée via le ledger interne (cf. {@code UpsellService}).
+ * au moment de l'achat, y compris la répartition et le bénéficiaire. La confirmation
+ * crédite cette répartition figée via le ledger interne.
  */
 @Entity
 @Table(name = "upsell_orders", indexes = {
@@ -27,7 +27,7 @@ public class UpsellOrder {
     @Column(name = "organization_id", nullable = false)
     private Long organizationId;
 
-    @Column(name = "reservation_id", nullable = false)
+    @Column(name = "reservation_id")
     private Long reservationId;
 
     @Column(name = "guide_id")
@@ -51,6 +51,12 @@ public class UpsellOrder {
 
     @Column(name = "host_amount", precision = 12, scale = 2)
     private BigDecimal hostAmount;
+
+    @Column(name = "concierge_amount", precision = 12, scale = 2)
+    private BigDecimal conciergeAmount;
+
+    @Column(name = "beneficiary_owner_id")
+    private Long beneficiaryOwnerId;
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 20)
@@ -89,6 +95,10 @@ public class UpsellOrder {
     public void setPlatformFeeAmount(BigDecimal platformFeeAmount) { this.platformFeeAmount = platformFeeAmount; }
     public BigDecimal getHostAmount() { return hostAmount; }
     public void setHostAmount(BigDecimal hostAmount) { this.hostAmount = hostAmount; }
+    public BigDecimal getConciergeAmount() { return conciergeAmount; }
+    public void setConciergeAmount(BigDecimal value) { conciergeAmount = value; }
+    public Long getBeneficiaryOwnerId() { return beneficiaryOwnerId; }
+    public void setBeneficiaryOwnerId(Long value) { beneficiaryOwnerId = value; }
     public UpsellOrderStatus getStatus() { return status; }
     public void setStatus(UpsellOrderStatus status) { this.status = status; }
     public String getStripeSessionId() { return stripeSessionId; }

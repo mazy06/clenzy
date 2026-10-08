@@ -4,14 +4,12 @@ import { useTranslation } from '../../hooks/useTranslation';
 import type { UseReservationFormResult } from './useReservationForm';
 import { Field, FieldLabel, InputGroup, InputGroupAddon, InputGroupInput } from '../ui';
 import ReservationRangeCalendar from './ReservationRangeCalendar';
+import IllustratedHeading from '../IllustratedHeading';
+import { RESERVATION_ART } from './reservationArtwork';
 
 interface Props {
   form: UseReservationFormResult;
 }
-
-// Transposition en classes de SEC_SX (.rm-sec) — la constante reste exportee
-// dans reservationDialogStyles pour les consommateurs sx eventuels.
-const SEC_CLS = 'text-2xs font-bold tracking-[0.08em] uppercase text-faint';
 
 /** Dates du séjour : calendrier range (ou dates read-only si source externe) + heures. */
 const StaySection: React.FC<Props> = ({ form }) => {
@@ -19,7 +17,11 @@ const StaySection: React.FC<Props> = ({ form }) => {
 
   return (
     <>
-      <p className={SEC_CLS}>{t('reservations.dialog.stayDates')}</p>
+      <IllustratedHeading
+        art={RESERVATION_ART.stay}
+        title={t('reservations.dialog.stayDates')}
+        hint={t('reservations.dialog.stayHint')}
+      />
 
       {form.fieldsLocked ? (
         <div className="grid grid-cols-[1fr_1fr] gap-3">

@@ -3,7 +3,7 @@ package com.clenzy.service.ai;
 import com.clenzy.model.AiCreditRateCard;
 import com.clenzy.model.AiUsageLedgerEntry;
 import com.clenzy.repository.AiCreditRateCardRepository;
-import com.clenzy.repository.AiUsageLedgerRepository;
+
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
@@ -31,7 +31,7 @@ import static org.mockito.Mockito.when;
 class CreditMeteringServiceTest {
 
     @Mock private AiCreditRateCardRepository rateCardRepository;
-    @Mock private AiUsageLedgerRepository ledgerRepository;
+    @Mock private BaitlyCreditDebit ledgerRepository;
 
     private static AiCreditRateCard rate(String provider, String prefix, String type,
                                          int costMicroUsd, int millicredits) {
@@ -53,7 +53,7 @@ class CreditMeteringServiceTest {
 
     private AiUsageLedgerEntry lastSaved() {
         ArgumentCaptor<AiUsageLedgerEntry> captor = ArgumentCaptor.forClass(AiUsageLedgerEntry.class);
-        verify(ledgerRepository).save(captor.capture());
+        verify(ledgerRepository).record(captor.capture(), org.mockito.ArgumentMatchers.isNull());
         return captor.getValue();
     }
 
@@ -134,7 +134,7 @@ class CreditMeteringServiceTest {
     @Test
     void duplicateIdempotencyKey_isSwallowed() {
         CreditMeteringService svc = service();
-        when(ledgerRepository.save(any())).thenThrow(new DataIntegrityViolationException("dup"));
+        when(ledgerRepository.record(any(), org.mockito.ArgumentMatchers.isNull())).thenReturn(false);
 
         assertThatCode(() -> svc.meterLlmUsage(42L, "kc-1", UUID.randomUUID(), 1, "mono",
                 "ASSISTANT_CHAT", "anthropic", "claude-sonnet-4", 100, 10, 0, false, "same-key"))
@@ -150,6 +150,6 @@ class CreditMeteringServiceTest {
         svc.meterLlmUsage(null, "kc-1", null, null, "mono", "ASSISTANT_CHAT",
                 "anthropic", "claude-sonnet-4", 100, 10, 0, false, null);
 
-        verify(ledgerRepository, never()).save(any());
+        verify(ledgerRepository, never()).record(any(), org.mockito.ArgumentMatchers.isNull());
     }
 }

@@ -1,5 +1,5 @@
 import { Link, useLocation, useParams, useSearchParams } from 'react-router-dom';
-import { ArrowLeft, ArrowRight } from 'lucide-react';
+import { ArrowLeft, ArrowRight } from '../../src/icons/glyphs';
 import { useSiteLanguage } from '../lib/siteLanguage';
 import { BAITLY_RESOURCE_MESSAGES } from '../lib/messages/baitlyResources';
 import type { ResourceKind } from '../data/baitlyResources';

@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { cn } from '../../../utils/cn';
 import { useTranslation } from '../../../hooks/useTranslation';
 import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
-import { FileSearch, LayoutTemplate, PenLine, Palette, Check, type LucideIcon } from 'lucide-react';
+import { FileSearch, LayoutTemplate, PenLine, Palette, Check, type IconComponent } from '../../../icons/glyphs';
 
 /**
  * Vue « construction en cours » de la modale de génération de site IA. La génération est UN appel LLM
@@ -24,7 +24,7 @@ export default function SiteGenerationProgress({ brandLabel }: { brandLabel?: st
   const [step, setStep] = useState(0);
   const [tip, setTip] = useState(0);
 
-  const steps: { icon: LucideIcon; label: string }[] = [
+  const steps: { icon: IconComponent; label: string }[] = [
     { icon: FileSearch, label: k('step1', 'Analyse du brief') },
     { icon: LayoutTemplate, label: k('step2', 'Structure des pages') },
     { icon: PenLine, label: k('step3', 'Rédaction du contenu') },

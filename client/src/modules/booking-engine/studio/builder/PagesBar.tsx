@@ -4,7 +4,7 @@ import {
   Button, DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger,
   Input, Tooltip, TooltipContent, TooltipTrigger,
 } from '../../../../components/ui';
-import { Plus, Pencil, X, House, ChevronLeft, ChevronRight, RotateCcw, Check, Files, ChevronDown } from 'lucide-react';
+import { Plus, Pencil, X, House, ChevronLeft, ChevronRight, RotateCcw, Check, Files, ChevronDown } from '../../../../icons/glyphs';
 import type { SitePage } from '../../../../services/api/sitesApi';
 import { useTranslation } from '../../../../hooks/useTranslation';
 

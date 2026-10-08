@@ -1,4 +1,4 @@
-import { AlertTriangleIcon } from "lucide-react"
+import { AlertTriangleIcon } from "../../../../icons/glyphs"
 
 import {
   Alert,

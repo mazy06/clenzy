@@ -43,11 +43,11 @@ import java.util.Map;
  * 1. Trouver le template actif pour le type de document
  * 2. Creer un enregistrement DocumentGeneration (statut PENDING)
  * 2.5 [NF] Generer le numero legal sequentiel (FACTURE/DEVIS)
- * 3. Charger le fichier .odt du template
+ * 3. Charger le fichier .html du template
  * 3.5 [NF] Injecter les tags NF (numero legal, mentions legales)
  * 4. Resoudre les tags (TagResolverService)
  * 5. Remplir le template via XDocReport
- * 6. Convertir en PDF via LibreOffice
+ * 6. Convertir en PDF via le moteur HTML Baitly
  * 7. Stocker le PDF (DocumentStorageService)
  * 8. Mettre a jour l'enregistrement (statut COMPLETED)
  * 8.5 [NF] Verrouiller le document (hash SHA-256, locked=true)
@@ -126,7 +126,7 @@ public class DocumentGeneratorService {
     }
 
     /**
-     * Remplace le fichier source d'un template existant par un nouveau .odt,
+     * Remplace le fichier source d'un template existant par un nouveau .html,
      * sans changer son ID ni ses metadata. Voir {@link DocumentTemplateManager}.
      */
     @Transactional
@@ -142,7 +142,7 @@ public class DocumentGeneratorService {
     // ─── Download / Preview ─────────────────────────────────────────────────
 
     /**
-     * Retourne le contenu binaire du fichier source du template (.odt).
+     * Retourne le contenu binaire du fichier source du template (.html).
      */
     @Transactional(readOnly = true)
     public byte[] getTemplateOriginalContent(Long id) {
@@ -154,7 +154,7 @@ public class DocumentGeneratorService {
      * pas d'email, pas de numerotation legale reelle.
      * Voir {@link DocumentPreviewService#generatePreview}.
      */
-    @Transactional(readOnly = true)
+    @Transactional(propagation = org.springframework.transaction.annotation.Propagation.NOT_SUPPORTED)
     public byte[] generateTemplatePreview(Long id) {
         DocumentTemplate template = templateManager.getTemplate(id);
         return previewService.generatePreview(template);

@@ -1,11 +1,11 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { cn } from '../../utils/cn';
 import { Badge, Button } from '../../components/ui';
 import { Alert, AlertDescription } from '../../components/ui';
-import { CircleCheck, Info, TriangleAlert } from 'lucide-react';
+import { CircleCheck, Info, TriangleAlert } from '../../icons/glyphs';
 import { Card, Skeleton } from '../../components/ui';
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '../../components/ui';
-import { Coins, History } from 'lucide-react';
+import { Coins, History } from '../../icons/glyphs';
 import { useTranslation } from '../../hooks/useTranslation';
 import { useSearchParams } from 'react-router-dom';
 import {
@@ -50,6 +50,7 @@ export default function AiCreditsSection() {
   const [ledger, setLedger] = useState<CreditLedgerLine[]>([]);
   const [loading, setLoading] = useState(true);
   const [buying, setBuying] = useState<string | null>(null);
+  const purchaseAttempt = useRef<{ pack: string; id: string; pending: boolean } | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [replayRunId, setReplayRunId] = useState<string | null>(null);
 
@@ -74,13 +75,20 @@ export default function AiCreditsSection() {
 
   const handleBuy = useCallback(
     (packKey: string) => {
+      if (purchaseAttempt.current?.pending) return;
+      if (purchaseAttempt.current?.pack !== packKey) purchaseAttempt.current = { pack: packKey, id: crypto.randomUUID(), pending: false };
+      const attempt = purchaseAttempt.current!;
+      attempt.pending = true;
       setBuying(packKey);
       aiCreditsApi
-        .createTopUp(packKey)
+        .createTopUp(packKey, attempt.id)
         .then(({ checkoutUrl }) => {
+          const url = new URL(checkoutUrl);
+          if (url.protocol !== 'https:' || url.hostname !== 'checkout.stripe.com' || url.username || url.password) throw new Error('Checkout invalide');
           window.location.href = checkoutUrl;
         })
         .catch(() => {
+          attempt.pending = false;
           setError(t('aiCredits.topupError', 'Impossible de créer la session de paiement.'));
           setBuying(null);
         });
@@ -109,7 +117,7 @@ export default function AiCreditsSection() {
       {topupOutcome === 'success' && (
         <Alert variant="success">
           <CircleCheck />
-          <AlertDescription>{t('aiCredits.topupSuccess', 'Paiement confirmé — vos crédits seront visibles dans quelques instants.')}</AlertDescription>
+          <AlertDescription>{t('aiCredits.topupReturn', 'Retour du paiement. Les crédits apparaîtront après confirmation du prestataire de paiement.')}</AlertDescription>
         </Alert>
       )}
       {topupOutcome === 'cancelled' && (
@@ -122,6 +130,8 @@ export default function AiCreditsSection() {
         <TriangleAlert />
         <AlertDescription>{error}</AlertDescription>
       </Alert>}
+
+      {!balance ? <Button variant="outline" onClick={load}>{t('common.retry', 'Réessayer')}</Button> : <>
 
       {/* Solde + poches */}
       <Card className="gap-0 py-0 p-2.5">
@@ -154,7 +164,22 @@ export default function AiCreditsSection() {
             )}
           </div>
         </div>
+        {(balance?.reservedMillicredits ?? 0) > 0 && (
+          <p className="mt-2 text-xs text-muted-foreground tabular-nums" role="status">
+            {t('aiCredits.reserved', '{{credits}} crédits réservés pour les agents en cours. Le reliquat est libéré à la fin.', { credits: toCredits(balance!.reservedMillicredits!) })}
+          </p>
+        )}
       </Card>
+
+      {(balance?.pendingReconciliationMillicredits ?? 0) > 0 && <p role="status" className="text-sm text-warning-ink">{t('aiCredits.pendingReconciliation', { credits: toCredits(balance!.pendingReconciliationMillicredits!) })}</p>}
+      {(balance?.debtMillicredits ?? 0) > 0 && (
+        <Alert variant="warning">
+          <TriangleAlert aria-hidden />
+          <AlertDescription className="tabular-nums">
+            {t('aiCredits.debt', '{{credits}} crédits à régulariser après consommation ou retrait de crédits. Les prochaines dotations compensent ce solde. Aucun paiement automatique n’est déclenché.', { credits: toCredits(balance!.debtMillicredits!) })}
+          </AlertDescription>
+        </Alert>
+      )}
 
       {/* Packs de recharge */}
       <Card className="gap-0 py-0 p-2.5">
@@ -236,6 +261,7 @@ export default function AiCreditsSection() {
         open={replayRunId !== null}
         onClose={() => setReplayRunId(null)}
       />
+      </>}
     </div>
   );
 }

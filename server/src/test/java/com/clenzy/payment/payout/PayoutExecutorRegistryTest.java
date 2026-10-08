@@ -63,6 +63,8 @@ class PayoutExecutorRegistryTest {
     // ─── Helpers ───────────────────────────────────────────────────────────
 
     static class StubExecutor implements PayoutExecutor {
+        @Override
+        public void validate(OwnerPayout payout, OwnerPayoutConfig config) { }
         private final PayoutMethod method;
         StubExecutor(PayoutMethod method) { this.method = method; }
         @Override public PayoutMethod getSupportedMethod() { return method; }

@@ -72,7 +72,7 @@ class StripeServiceTest {
                 notificationService, serviceRequestService, walletService, ledgerService,
                 splitPaymentService, autoInvoiceService, documentOutbox, paymentStatusTransitionService,
                 org.mockito.Mockito.mock(com.clenzy.service.email.BookingConfirmationEmailService.class),
-                org.mockito.Mockito.mock(com.clenzy.service.WebhookEventPublisher.class));
+                org.mockito.Mockito.mock(com.clenzy.service.WebhookEventPublisher.class), org.mockito.Mockito.mock(com.clenzy.booking.service.BaitlyReservationCredit.class));
         StripeRefundService refundService = new StripeRefundService(stripeGateway,
                 paymentStatusTransitionService, org.mockito.Mockito.mock(PaymentLedgerReversalService.class),
                 notificationService);
@@ -383,7 +383,6 @@ class StripeServiceTest {
             // Arrange
             Intervention valid = buildIntervention(1L, InterventionStatus.PENDING, PaymentStatus.PROCESSING);
             valid.setStripeSessionId("sess");
-            valid.setStripeSessionId("sess");
             when(interventionRepository.findById(1L)).thenReturn(Optional.of(valid));
 
             // Act
@@ -398,7 +397,6 @@ class StripeServiceTest {
         void whenConfirmed_thenSetsPaidAt() {
             // Arrange
             Intervention i1 = buildIntervention(1L, InterventionStatus.PENDING, PaymentStatus.PROCESSING);
-            i1.setStripeSessionId("sess_group");
             i1.setStripeSessionId("sess_group");
             when(interventionRepository.findById(1L)).thenReturn(Optional.of(i1));
 
@@ -587,6 +585,7 @@ class StripeServiceTest {
         void whenSessionFound_thenSetsPaidAndSaves() {
             // Arrange
             Reservation r = buildReservation(1L, PaymentStatus.PROCESSING);
+            r.setStripeSessionId("sess_r");
             when(reservationRepository.findByStripeSessionId("sess_r")).thenReturn(Optional.of(r));
             Wallet plat = new Wallet();
             Wallet escrow = new Wallet();
@@ -599,6 +598,8 @@ class StripeServiceTest {
             // Assert
             assertThat(r.getPaymentStatus()).isEqualTo(PaymentStatus.PAID);
             assertThat(r.getPaidAt()).isNotNull();
+            assertThat(r.getAmountPaid()).isEqualByComparingTo(r.getTotalPrice());
+            assertThat(r.getAmountDue()).isZero();
             verify(reservationRepository).save(r);
         }
 
@@ -615,6 +616,7 @@ class StripeServiceTest {
         @DisplayName("sends Kafka events for FACTURE + JUSTIFICATIF_PAIEMENT")
         void whenConfirmed_thenSendsKafka() {
             Reservation r = buildReservation(1L, PaymentStatus.PROCESSING);
+            r.setStripeSessionId("sess_r");
             when(reservationRepository.findByStripeSessionId("sess_r")).thenReturn(Optional.of(r));
             Wallet plat = new Wallet();
             Wallet escrow = new Wallet();
@@ -630,6 +632,7 @@ class StripeServiceTest {
         @DisplayName("document scheduling failure propagates for retry")
         void whenDocumentSchedulingFails_thenPropagates() {
             Reservation r = buildReservation(1L, PaymentStatus.PROCESSING);
+            r.setStripeSessionId("sess_r");
             when(reservationRepository.findByStripeSessionId("sess_r")).thenReturn(Optional.of(r));
             doThrow(new RuntimeException("kafka down"))
                     .when(documentOutbox).requestPaymentDocuments(any(), any(), any(), any());
@@ -642,6 +645,7 @@ class StripeServiceTest {
         @DisplayName("payment still confirmed when auto-invoice fails")
         void whenAutoInvoiceFails_thenPaymentStillConfirmed() {
             Reservation r = buildReservation(1L, PaymentStatus.PROCESSING);
+            r.setStripeSessionId("sess_r");
             when(reservationRepository.findByStripeSessionId("sess_r")).thenReturn(Optional.of(r));
             doThrow(new RuntimeException("invoice err"))
                     .when(autoInvoiceService).generateForReservation(any());
@@ -655,6 +659,7 @@ class StripeServiceTest {
         @DisplayName("payment still confirmed when notification fails")
         void whenNotificationFails_thenPaymentStillConfirmed() {
             Reservation r = buildReservation(1L, PaymentStatus.PROCESSING);
+            r.setStripeSessionId("sess_r");
             when(reservationRepository.findByStripeSessionId("sess_r")).thenReturn(Optional.of(r));
             doThrow(new RuntimeException("notif err"))
                     .when(notificationService).notifyAdminsAndManagers(any(), any(), any(), any());
@@ -669,6 +674,7 @@ class StripeServiceTest {
         void whenPendingReservationPaid_thenStatusConfirmed() {
             Reservation r = buildReservation(1L, PaymentStatus.PENDING);
             r.setStatus("pending");
+            r.setStripeSessionId("sess_r");
             when(reservationRepository.findByStripeSessionId("sess_r")).thenReturn(Optional.of(r));
 
             stripeService.confirmReservationPayment("sess_r");
@@ -682,6 +688,7 @@ class StripeServiceTest {
         void whenAlreadyConfirmedReservationPaid_thenStatusUnchanged() {
             Reservation r = buildReservation(1L, PaymentStatus.PROCESSING);
             r.setStatus("confirmed");
+            r.setStripeSessionId("sess_r");
             when(reservationRepository.findByStripeSessionId("sess_r")).thenReturn(Optional.of(r));
 
             stripeService.confirmReservationPayment("sess_r");
@@ -834,6 +841,7 @@ class StripeServiceTest {
         @DisplayName("sets FAILED status when reservation found")
         void whenFound_thenStatusFailed() {
             Reservation r = buildReservation(1L, PaymentStatus.PROCESSING);
+            r.setStripeSessionId("sess_r");
             when(reservationRepository.findByStripeSessionId("sess_r")).thenReturn(Optional.of(r));
 
             stripeService.markReservationPaymentFailed("sess_r");
@@ -857,6 +865,7 @@ class StripeServiceTest {
         @DisplayName("still marks FAILED when notification fails")
         void whenNotificationFails_thenStatusStillFailed() {
             Reservation r = buildReservation(1L, PaymentStatus.PROCESSING);
+            r.setStripeSessionId("sess_r");
             when(reservationRepository.findByStripeSessionId("sess_r")).thenReturn(Optional.of(r));
             doThrow(new RuntimeException("notif"))
                     .when(notificationService).notifyAdminsAndManagers(any(), any(), any(), any());
@@ -1279,6 +1288,7 @@ class StripeServiceTest {
         void whenPaymentLinkEmailSet_thenUsedAsEmailTo() {
             Reservation r = buildReservation(1L, PaymentStatus.PROCESSING);
             r.setPaymentLinkEmail("custom@example.com");
+            r.setStripeSessionId("sess_em");
             when(reservationRepository.findByStripeSessionId("sess_em")).thenReturn(Optional.of(r));
             Wallet plat = new Wallet();
             Wallet escrow = new Wallet();
@@ -1361,6 +1371,7 @@ class StripeServiceTest {
         void whenReservationAlreadyPaid_thenSkips() {
             // Arrange
             Reservation r = buildReservation(1L, PaymentStatus.PAID);
+            r.setStripeSessionId("sess_dup_r");
             when(reservationRepository.findByStripeSessionId("sess_dup_r")).thenReturn(Optional.of(r));
 
             // Act
@@ -1421,6 +1432,7 @@ class StripeServiceTest {
             // Arrange
             Reservation r = buildReservation(1L, PaymentStatus.PROCESSING);
             r.setCurrency("mad");
+            r.setStripeSessionId("sess_mad");
             when(reservationRepository.findByStripeSessionId("sess_mad")).thenReturn(Optional.of(r));
             Wallet plat = new Wallet();
             Wallet escrow = new Wallet();

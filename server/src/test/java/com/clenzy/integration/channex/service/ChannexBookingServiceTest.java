@@ -158,7 +158,8 @@ class ChannexBookingServiceTest {
         assertThat(saved.getSourceName()).isEqualTo("Airbnb");
         assertThat(saved.getExternalUid()).isEqualTo("channex:book-1");
         assertThat(saved.getCurrency()).isEqualTo("EUR");
-        assertThat(saved.getPaymentStatus()).isEqualTo(PaymentStatus.PAID);
+        assertThat(saved.getPaymentStatus()).isEqualTo(PaymentStatus.UNKNOWN);
+        assertThat(saved.getPaidAt()).isNull();
         // OTA-CODE-book-1 venait du dto
         assertThat(saved.getConfirmationCode()).isEqualTo("OTA-CODE-book-1");
         // 2+1+0 = 3 guests

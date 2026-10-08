@@ -35,27 +35,28 @@ beforeEach(() => {
   });
 });
 afterEach(() => { cleanup(); client.clear(); });
+const selectFirst = async () => fireEvent.click((await screen.findAllByRole('button', { name: /amendmentLibrary.reference/ }))[0]);
 const mount = () => render(<QueryClientProvider client={client}><AmendmentArchives /></QueryClientProvider>);
 
 describe('AmendmentArchives', () => {
   it('downloads only ready archives and prevents duplicate clicks', async () => {
     vi.mocked(serviceQuotesApi.downloadAmendment).mockImplementation(() => new Promise(() => {}));
-    mount();
+    mount(); await selectFirst();
     const button = await screen.findByLabelText('amendmentLibrary.download');
     expect(screen.getAllByLabelText('amendmentLibrary.download')).toHaveLength(1);
-    expect(screen.getByText('amendmentLibrary.status.PREPARING')).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'amendmentLibrary.status.PREPARING' })).toBeTruthy();
     fireEvent.click(button); fireEvent.click(button);
     expect(serviceQuotesApi.downloadAmendment).toHaveBeenCalledExactlyOnceWith(4);
   });
   it('forwards pagination and resets it when the search changes', async () => {
-    mount(); await screen.findByText('Travaux');
+    mount(); await selectFirst(); await screen.findByText('Travaux');
     fireEvent.click(screen.getByText('next page'));
     await waitFor(() => expect(serviceQuotesApi.amendmentArchives).toHaveBeenCalledWith(1, 20, ''));
     act(() => search.change('Réparation'));
     await waitFor(() => expect(serviceQuotesApi.amendmentArchives).toHaveBeenCalledWith(0, 20, 'Réparation'));
   });
   it('hides previously loaded entries when refreshed access fails', async () => {
-    mount(); await screen.findByText('Travaux');
+    mount(); await selectFirst(); await screen.findByText('Travaux');
     vi.mocked(serviceQuotesApi.amendmentArchives).mockRejectedValue(new Error('Forbidden'));
     await act(async () => { await client.invalidateQueries({ queryKey: ['service-quotes', 'amendment-archives'] }); });
     await screen.findByText('amendmentLibrary.loadFailed');
@@ -64,12 +65,12 @@ describe('AmendmentArchives', () => {
   });
   it('reports a failed download without losing the list', async () => {
     vi.mocked(serviceQuotesApi.downloadAmendment).mockRejectedValue(new Error('Unavailable'));
-    mount(); fireEvent.click(await screen.findByLabelText('amendmentLibrary.download'));
+    mount(); await selectFirst(); fireEvent.click(await screen.findByLabelText('amendmentLibrary.download'));
     await screen.findByText('quoteAmendments.pdfFailed');
     expect(screen.getByText('Travaux')).toBeTruthy();
   });
   it('does not reuse another account or organization cached list', async () => {
-    const view = mount(); await screen.findByText('Travaux');
+    const view = mount(); await selectFirst(); await screen.findByText('Travaux');
     auth.user = { id: 'another-provider', organizationId: 9 };
     vi.mocked(serviceQuotesApi.amendmentArchives).mockImplementation(() => new Promise(() => {}));
     view.rerender(<QueryClientProvider client={client}><AmendmentArchives /></QueryClientProvider>);

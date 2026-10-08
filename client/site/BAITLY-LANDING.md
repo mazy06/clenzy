@@ -11,7 +11,7 @@ Un hôte consulte le site en journée, souvent entre deux arrivées, pour compre
 - Manrope, hébergée localement ; licence OFL dans `assets/fonts/OFL.txt`. Source : https://fonts.google.com/specimen/Manrope.
 - Échelle fluide : display 48–80 px, titres 32–50 px, sous-titres 25–36 px. Métadonnées et commandes à 12 px minimum.
 - Espacement des sections 64–112 px, contrôles de 44 px minimum pour les nouvelles interactions, rayon de contrôle 8 px et panneaux 16 px. Arches photographiques réservées aux images de lieux.
-- Icônes Lucide avec trait 1,7 px. États décrits par un libellé, pas uniquement par la couleur.
+- Icônes Reicon en duotone (contour si pas de duotone). États décrits par un libellé, pas uniquement par la couleur.
 
 ## Composition et mouvement
 

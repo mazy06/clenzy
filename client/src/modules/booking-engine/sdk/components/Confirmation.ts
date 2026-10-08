@@ -1,3 +1,5 @@
+import { check } from './icons';
+
 interface I18n {
   t: (key: string) => string;
 }
@@ -22,17 +24,7 @@ export function createConfirmationCard(i18n: I18n): ConfirmationCard {
 
   const icon = document.createElement('div');
   icon.className = 'cb-confirmation__icon';
-  const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
-  svg.setAttribute('viewBox', '0 0 24 24');
-  svg.setAttribute('fill', 'none');
-  svg.setAttribute('stroke', 'currentColor');
-  svg.setAttribute('stroke-width', '3');
-  svg.setAttribute('stroke-linecap', 'round');
-  svg.setAttribute('stroke-linejoin', 'round');
-  const polyline = document.createElementNS('http://www.w3.org/2000/svg', 'polyline');
-  polyline.setAttribute('points', '20 6 9 17 4 12');
-  svg.appendChild(polyline);
-  icon.appendChild(svg);
+  icon.appendChild(check());
 
   const title = document.createElement('h3');
   title.className = 'cb-text-lg cb-text-semibold cb-text-center cb-confirmation__title';

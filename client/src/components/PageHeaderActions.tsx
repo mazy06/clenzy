@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useHeaderSeam, HEADER_FLYOUT_CLASS } from '../hooks/useHeaderSeam';
-import { MoreHorizontal } from 'lucide-react';
+import { MoreHorizontal } from '../icons/glyphs';
 import {
   Button,
   DropdownMenu,
@@ -114,8 +114,8 @@ interface PageHeaderActionsProps {
   actions?: React.ReactNode;
   /**
    * Replier filtres et actions dans le menu ⋯. Le seuil n'est PAS decide ici :
-   * `PageHeader` le calcule (lg, 1024 px) pour rester aligne sur les autres
-   * bascules de la barre.
+   * `PageHeader` le calcule à partir du viewport mobile et de la place réelle
+   * disponible dans la barre.
    */
   narrow: boolean;
 }

@@ -64,11 +64,14 @@ public class PoliceFormPdfService {
     private final TenantContext tenantContext;
     private final AuditLogService auditLogService;
 
+    private final com.clenzy.service.BaitlyPdfEngine engine;
+
     public PoliceFormPdfService(GuestDeclarationRepository declarationRepository,
                                 PropertyLicenseRepository licenseRepository,
                                 OrganizationAccessGuard accessGuard,
                                 TenantContext tenantContext,
-                                AuditLogService auditLogService) {
+                                AuditLogService auditLogService, com.clenzy.service.BaitlyPdfEngine engine) {
+        this.engine=engine;
         this.declarationRepository = declarationRepository;
         this.licenseRepository = licenseRepository;
         this.accessGuard = accessGuard;
@@ -110,16 +113,11 @@ public class PoliceFormPdfService {
             }
             byReservation.computeIfAbsent(d.getReservation().getId(), k -> new ArrayList<>()).add(d);
         }
-        ByteArrayOutputStream out = new ByteArrayOutputStream();
-        try (PdfDocument pdf = new PdfDocument(new PdfWriter(out));
-             Document doc = new Document(pdf, PageSize.A4)) {
-            PdfFont regular = PdfFontFactory.createFont(StandardFonts.HELVETICA);
-            PdfFont bold = PdfFontFactory.createFont(StandardFonts.HELVETICA_BOLD);
-            doc.setFont(regular).setFontSize(10);
+        StringBuilder html = new StringBuilder();
             boolean first = true;
             if (byReservation.isEmpty()) {
-                doc.add(new Paragraph("Aucune fiche individuelle de police sur cette période "
-                        + "(voyageurs dispensés ou aucune déclaration).").setFont(bold));
+                html.append(com.clenzy.service.BaitlyDocumentHtml.paragraph("Aucune fiche individuelle de police sur cette période "
+                        + "(voyageurs dispensés ou aucune déclaration)."));
             }
             for (List<GuestDeclaration> stay : byReservation.values()) {
                 Reservation reservation = stay.get(0).getReservation();
@@ -132,17 +130,14 @@ public class PoliceFormPdfService {
                 }
                 for (int i = 0; i < adults.size(); i++) {
                     if (!first) {
-                        doc.add(new AreaBreak(AreaBreakType.NEXT_PAGE));
+                        html.append("<div class=\"page-break\"></div>");
                     }
                     first = false;
                     // Les mineurs vont sur la fiche du voyageur principal (ou du premier adulte).
-                    renderForm(doc, bold, reservation, adults.get(i), i == 0 ? minors : List.of());
+                    html.append(BaitlyPoliceFormHtml.render(reservation, adults.get(i), i == 0 ? minors : List.of(), registrationOf(reservation)));
                 }
             }
-        } catch (IOException e) {
-            throw new UncheckedIOException("Génération de la fiche de police impossible", e);
-        }
-        return out.toByteArray();
+        return engine.html(com.clenzy.service.BaitlyDocumentHtml.page("Fiche individuelle de police", html.toString()));
     }
 
     private void renderForm(Document doc, PdfFont bold, Reservation reservation,

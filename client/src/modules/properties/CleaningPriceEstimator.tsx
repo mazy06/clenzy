@@ -19,7 +19,8 @@ import type { PropertyFormValues } from '../../schemas';
 
 // ─── Gabarits (Baitly UI) ───────────────────────────────────────────────────
 
-const TITLE_CLASS = 'text-2xs font-semibold uppercase tracking-wide text-muted-foreground whitespace-nowrap';
+/** Sous-titre lisible : l'estimateur vit dans la section Ménage de PropertyForm, qui porte le titre illustré. */
+const TITLE_CLASS = 'm-0 text-xs font-semibold text-foreground whitespace-nowrap';
 
 const CARDS_ROW_CLASS = 'grid grid-cols-[1fr_1fr_1fr] gap-3 max-[700px]:grid-cols-[1fr]';
 
@@ -183,11 +184,12 @@ const CleaningPriceEstimator: React.FC<CleaningPriceEstimatorProps> = React.memo
   // ─── Render ─────────────────────────────────────────────────────────────
 
   return (
-    <div className="border border-solid border-border rounded-xl bg-card mb-3 px-[15px] py-3">
+    // Pas de carte propre : l'estimateur est un bloc de la section Ménage.
+    <div className="flex flex-col">
       {/* Header */}
       <div className="flex items-center justify-between mb-3">
-        <div className="flex items-center gap-[4.5px]">
-          <span className="inline-flex text-primary"><CleaningServices size={20} strokeWidth={1.75} /></span>
+        <div className="flex items-center gap-1.5">
+          <span className="inline-flex text-primary"><CleaningServices size={14} strokeWidth={1.75} /></span>
           <p className={TITLE_CLASS}>
             {t('properties.priceEstimation.title')}
           </p>
@@ -324,7 +326,7 @@ const CleaningPriceEstimator: React.FC<CleaningPriceEstimatorProps> = React.memo
           {breakdownEntries.length > 0 && (
             <div className={BREAKDOWN_CLASS}>
               <div className={cn(BREAKDOWN_ROW_CLASS, 'bg-muted')}>
-                <p className="text-2xs font-semibold uppercase tracking-wide text-muted-foreground">
+                <p className="text-xs font-semibold text-muted-foreground">
                   {t('properties.cleaningEstimator.breakdownTitle')}
                 </p>
                 <p className="text-2xs font-semibold text-muted-foreground tabular-nums">

@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { CalendarDays, Check, CheckCheck, FileText, Mail, Send, Wrench } from 'lucide-react';
+import { CalendarDays, Check, CheckCheck, FileText, Mail, Send, Wrench } from '../../icons/glyphs';
 import { Button } from '../ui';
 import { useTranslation } from '../../hooks/useTranslation';
 import { cn } from '../../utils/cn';

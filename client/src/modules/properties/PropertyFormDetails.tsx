@@ -19,49 +19,104 @@ import {
 import { Controller } from 'react-hook-form';
 import type { Control, FieldErrors } from 'react-hook-form';
 import { useTranslation } from '../../hooks/useTranslation';
+import { useAuth } from '../../hooks/useAuth';
+import { resolveAmenityIcon } from '../settings/amenity-mapping/amenityIcons';
+import { useAmenityIconOverrides } from '../settings/amenity-mapping/useAmenityIconOverrides';
+import { AMENITY_CATEGORIES, amenityTone } from './amenityCategories';
 import type { PropertyFormValues } from '../../schemas';
 
 // ─── Stable class constants ─────────────────────────────────────────────────
 
-/** Titre de section — echelle « overline » de Baitly UI. */
-const SECTION_TITLE_CLASS = 'text-2xs font-semibold uppercase tracking-wide text-muted-foreground mb-[9px]';
-
 /** Titre de categorie d'equipements. */
-const CATEGORY_TITLE_CLASS = 'text-xs font-semibold text-foreground mb-[4.5px]';
+const CATEGORY_TITLE_CLASS = 'm-0 mb-1.5 text-xs font-semibold text-foreground';
 
 /** Libelle de case a cocher — poids normal, contraste plein. */
-const CHECKBOX_LABEL_CLASS = 'text-[0.8125rem] font-normal';
-
-// ─── Amenities configuration ────────────────────────────────────────────────
-
-const AMENITIES_CATEGORIES = [
-  { key: 'comfort', items: ['WIFI', 'TV', 'AIR_CONDITIONING', 'HEATING'] },
-  { key: 'kitchen', items: ['EQUIPPED_KITCHEN', 'DISHWASHER', 'MICROWAVE', 'OVEN'] },
-  { key: 'appliances', items: ['WASHING_MACHINE', 'DRYER', 'IRON', 'HAIR_DRYER'] },
-  { key: 'outdoor', items: ['PARKING', 'POOL', 'JACUZZI', 'GARDEN_TERRACE', 'BARBECUE'] },
-  { key: 'safetyFamily', items: ['SAFE', 'BABY_BED', 'HIGH_CHAIR'] },
-] as const;
+const CHECKBOX_LABEL_CLASS = 'flex items-center gap-1.5 text-[0.8125rem] font-normal';
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
 export interface PropertyFormDetailsProps {
   control: Control<PropertyFormValues>;
   errors: FieldErrors<PropertyFormValues>;
+  /** Bloc rendu : capacité et tarif, ou équipements — deux sections distinctes de PropertyForm. */
+  part: 'characteristics' | 'amenities';
+}
+
+// ─── Équipements ────────────────────────────────────────────────────────────
+
+/** Icône d'une commodité, prise dans la bibliothèque (Paramètres › Commodités), à la couleur de sa famille. */
+function AmenityIcon({ code, overrides }: { code: string; overrides: Record<string, string> }) {
+  const Icon = resolveAmenityIcon(code, overrides);
+  return <Icon size={15} strokeWidth={1.75} aria-hidden="true" className="shrink-0" style={{ color: amenityTone(code).ink }} />;
+}
+
+/**
+ * Cases à cocher des équipements, chacune précédée de son icône : la même que
+ * sur la fiche et sur l'écran de mapping OTA (choix de l'organisation, sinon
+ * icône Baitly par défaut). Les icônes ne sont chargées que pour cette section.
+ */
+function AmenityFields({ control }: { control: Control<PropertyFormValues> }) {
+  const { t } = useTranslation();
+  const { user } = useAuth();
+  const { overrides } = useAmenityIconOverrides(user?.organizationId ?? null);
+  return (
+    <Controller
+      name="amenities"
+      control={control}
+      render={({ field }) => (
+        <div className="flex flex-col gap-3">
+          {AMENITY_CATEGORIES.map((category) => (
+            <div key={category.key}>
+              <p className={CATEGORY_TITLE_CLASS}>
+                {t(`properties.amenities.categories.${category.key}`)}
+              </p>
+              <div className="grid grid-cols-12 gap-[3px]">
+                {category.items.map((amenity) => {
+                  const checked = field.value?.includes(amenity) || false;
+                  return (
+                    <div className="col-span-6 min-[900px]:col-span-4" key={amenity}>
+                      <Field orientation="horizontal">
+                        <Checkbox
+                          id={`property-amenity-${amenity}`}
+                          checked={checked}
+                          onCheckedChange={(next) => {
+                            const newValue = next === true
+                              ? [...(field.value || []), amenity]
+                              : (field.value || []).filter((v: string) => v !== amenity);
+                            field.onChange(newValue);
+                          }}
+                        />
+                        <FieldLabel
+                          htmlFor={`property-amenity-${amenity}`}
+                          className={CHECKBOX_LABEL_CLASS}
+                        >
+                          <AmenityIcon code={amenity} overrides={overrides} />
+                          {t(`properties.amenities.items.${amenity}`)}
+                        </FieldLabel>
+                      </Field>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    />
+  );
 }
 
 // ─── Component ──────────────────────────────────────────────────────────────
 
 const PropertyFormDetails: React.FC<PropertyFormDetailsProps> = React.memo(
-  ({ control, errors }) => {
+  ({ control, errors, part }) => {
     const { t } = useTranslation();
 
+    // Les titres de section sont posés par PropertyForm (en-têtes illustrés).
     return (
       <div>
-        <p className={SECTION_TITLE_CLASS}>
-          {t('properties.characteristics')}
-        </p>
-
-        <div className="grid grid-cols-12 gap-[9px]">
+        {part === 'characteristics' && (
+        <div className="grid grid-cols-12 gap-3">
           <div className="col-span-6 min-[900px]:col-span-4">
             <Controller
               name="bedroomCount"
@@ -237,56 +292,9 @@ const PropertyFormDetails: React.FC<PropertyFormDetailsProps> = React.memo(
             />
           </div>
         </div>
+        )}
 
-        {/* ─── Amenities Section ─────────────────────────────────────────── */}
-        <div className="mt-4">
-          <p className={SECTION_TITLE_CLASS}>
-            {t('properties.amenities.title')}
-          </p>
-
-          <Controller
-            name="amenities"
-            control={control}
-            render={({ field }) => (
-              <div className="flex flex-col gap-3">
-                {AMENITIES_CATEGORIES.map((category) => (
-                  <div key={category.key}>
-                    <p className={CATEGORY_TITLE_CLASS}>
-                      {t(`properties.amenities.categories.${category.key}`)}
-                    </p>
-                    <div className="grid grid-cols-12 gap-[3px]">
-                      {category.items.map((amenity) => {
-                        const checked = field.value?.includes(amenity) || false;
-                        return (
-                          <div className="col-span-6 min-[900px]:col-span-4" key={amenity}>
-                            <Field orientation="horizontal">
-                              <Checkbox
-                                id={`property-amenity-${amenity}`}
-                                checked={checked}
-                                onCheckedChange={(next) => {
-                                  const newValue = next === true
-                                    ? [...(field.value || []), amenity]
-                                    : (field.value || []).filter((v: string) => v !== amenity);
-                                  field.onChange(newValue);
-                                }}
-                              />
-                              <FieldLabel
-                                htmlFor={`property-amenity-${amenity}`}
-                                className={CHECKBOX_LABEL_CLASS}
-                              >
-                                {t(`properties.amenities.items.${amenity}`)}
-                              </FieldLabel>
-                            </Field>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          />
-        </div>
+        {part === 'amenities' && <AmenityFields control={control} />}
       </div>
     );
   }

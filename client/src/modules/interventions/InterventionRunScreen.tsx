@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo } from 'react';
 import { Navigate, useNavigate, useParams } from 'react-router-dom';
 import { Alert as BuiAlert, AlertDescription, Button, Spinner } from '../../components/ui';
-import { TriangleAlert } from 'lucide-react';
+import { TriangleAlert } from '../../icons/glyphs';
 import { ArrowBack, Build as WrenchIcon, AccessTime } from '../../icons';
 import { useNotification } from '../../hooks/useNotification';
 import { useTranslation } from '../../hooks/useTranslation';
@@ -9,6 +9,7 @@ import { useInterventionDetails } from './useInterventionDetails';
 import InterventionProgressSteps from './InterventionProgressSteps';
 import { NotesDialog, PhotosDialog } from './InterventionDialogs';
 import IssueReportDialog from './IssueReportDialog';
+import { formatInterventionElapsedTime } from './interventionTime';
 
 /** Temps ecoule depuis le debut, rafraichi chaque minute. */
 function useElapsed(startTime?: string | null): string | null {
@@ -18,10 +19,7 @@ function useElapsed(startTime?: string | null): string | null {
     const id = window.setInterval(() => setNow(Date.now()), 60_000);
     return () => window.clearInterval(id);
   }, [startTime]);
-  if (!startTime) return null;
-  const minutes = Math.max(0, Math.floor((now - new Date(startTime).getTime()) / 60_000));
-  const h = Math.floor(minutes / 60);
-  return h > 0 ? `${h} h ${String(minutes % 60).padStart(2, '0')}` : `${minutes} min`;
+  return formatInterventionElapsedTime(startTime, now);
 }
 
 /**
@@ -52,7 +50,7 @@ export default function InterventionRunScreen() {
     photosDialogOpen, selectedPhotos, uploadingPhotos, deletingPhotoId, photoType,
     beforePhotoIds, afterPhotoIds,
     propertyDetails, completedSteps, beforePhotos, afterPhotos,
-    validatedRooms, inspectionComplete, allRoomsValidated,
+    validatedRooms, inspectionComplete, allRoomsValidated, savingRoom,
     canViewInterventions, permissionsLoaded,
     setNotesDialogOpen, setNotesValue, setCurrentStepForNotes,
     setPhotosDialogOpen, setSelectedPhotos, setPhotoType,
@@ -73,8 +71,8 @@ export default function InterventionRunScreen() {
 
   const roomsProps = useMemo(() => ({
     propertyDetails, getTotalRooms, getRoomNames,
-    validatedRooms, allRoomsValidated, handleRoomValidation,
-  }), [propertyDetails, getTotalRooms, getRoomNames, validatedRooms, allRoomsValidated, handleRoomValidation]);
+    validatedRooms, allRoomsValidated, savingRoom, handleRoomValidation,
+  }), [propertyDetails, getTotalRooms, getRoomNames, validatedRooms, allRoomsValidated, savingRoom, handleRoomValidation]);
 
   const stepsProps = useMemo(() => ({
     inspectionComplete, setInspectionComplete, completedSteps,

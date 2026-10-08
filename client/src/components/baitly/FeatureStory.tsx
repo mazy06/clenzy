@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { ArrowRightIcon, CheckIcon } from 'lucide-react';
+import { ArrowRightIcon, CheckIcon } from '../../icons/glyphs';
 import { Separator } from '../ui';
 import { cn } from '../../utils/cn';
 import Reveal from './Reveal';

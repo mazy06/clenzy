@@ -13,7 +13,7 @@ import {
   Input,
   Spinner,
 } from '../../../components/ui';
-import { Plus, TriangleAlert, X } from 'lucide-react';
+import { Plus, TriangleAlert, X } from '../../../icons/glyphs';
 import { getParsedAccessToken } from '../../../keycloak';
 import { cn } from '../../../utils/cn';
 import { useTranslation } from '../../../hooks/useTranslation';

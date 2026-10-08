@@ -1,7 +1,7 @@
 import ServiceItemSelect from '../../components/ServiceItemSelect';
 import React from 'react';
 import { Alert, AlertDescription, Button } from '../../components/ui';
-import { TriangleAlert } from 'lucide-react';
+import { TriangleAlert } from '../../icons/glyphs';
 import { Spinner } from '../../components/ui';
 import {
   Dialog,

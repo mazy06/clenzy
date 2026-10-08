@@ -11,16 +11,7 @@ import java.util.Map;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
-/**
- * Registry des {@link EInvoicingProvider} par code (CLZ-P0-04), sur le modele de
- * {@code TaxCalculatorRegistry}. Resout le provider d'un pays via
- * {@code Country.einvoicingProvider}.
- *
- * <p><b>Fail-safe</b> (et non fail-fast) : un pays sans provider configure, ou referencant un
- * code dont l'implementation n'existe pas encore (ex. {@code factur_x}/{@code zatca} avant
- * leur livraison), retombe sur le {@link NoOpEInvoicingProvider} — le flux de facturation
- * n'est jamais casse. Le cas "code configure mais sans impl" est logge (warn) pour visibilite.</p>
- */
+/** Résolution explicite : une configuration manquante reste en attente, jamais exemptée par défaut. */
 @Component
 public class EInvoicingProviderRegistry {
 
@@ -36,20 +27,20 @@ public class EInvoicingProviderRegistry {
         log.info("EInvoicingProviderRegistry: {} provider(s) enregistre(s): {}", byCode.size(), byCode.keySet());
     }
 
-    /** Resout le provider d'un pays ; NoOp si pays null. */
+    /** Resout le provider d'un pays ; En attente si pays absent. */
     public EInvoicingProvider resolve(Country country) {
-        return country == null ? noOp : resolveByCode(country.getEinvoicingProvider());
+        return country == null ? new BaitlyUnconfiguredEInvoicing() : resolveByCode(country.getEinvoicingProvider());
     }
 
-    /** Resout par code provider ; NoOp si code vide ou sans implementation. */
+    /** Resout par code provider ; En attente si code vide ou sans implémentation. */
     public EInvoicingProvider resolveByCode(String providerCode) {
         if (providerCode == null || providerCode.isBlank()) {
-            return noOp;
+            return new BaitlyUnconfiguredEInvoicing();
         }
         EInvoicingProvider provider = byCode.get(providerCode.trim().toLowerCase(Locale.ROOT));
         if (provider == null) {
-            log.warn("Aucun EInvoicingProvider pour le code '{}' — repli NoOp (provider a implementer)", providerCode);
-            return noOp;
+            log.warn("Aucun EInvoicingProvider pour le code '{}' — raccordement déclaratif non configuré", providerCode);
+            return new BaitlyUnconfiguredEInvoicing();
         }
         return provider;
     }

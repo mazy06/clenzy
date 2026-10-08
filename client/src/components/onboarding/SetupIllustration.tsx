@@ -19,7 +19,7 @@ import {
   SlidersHorizontal,
   ClipboardCheck,
   UserRound,
-} from "lucide-react";
+} from "../../icons/glyphs";
 import { useTranslation } from "../../hooks/useTranslation";
 import riadPhoto from "../../../site/assets/photos/baitly-riad.webp";
 import hostPhoto from "../../../site/assets/photos/host.jpg";

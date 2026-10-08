@@ -1,4 +1,4 @@
-import { CircleFadingPlusIcon } from "lucide-react"
+import { CircleFadingPlusIcon } from "../../../../icons/glyphs"
 
 import {
   AlertDialog,

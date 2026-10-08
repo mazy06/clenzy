@@ -9,7 +9,7 @@ import {
   Link2Icon,
   PlugIcon,
   UsersIcon,
-} from 'lucide-react';
+} from '../../src/icons/glyphs';
 import BaitlyMarkLogo from '../../src/components/BaitlyMarkLogo';
 import type { BaitlyMigrationMessages } from '../lib/messages/baitlyMigration';
 import airbnb from '../assets/brands/airbnb.svg';

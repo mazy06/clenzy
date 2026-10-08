@@ -1,7 +1,7 @@
 import React, { useMemo, useState } from 'react';
 import { View, Text, ScrollView, RefreshControl, Pressable } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Ionicons } from '@expo/vector-icons';
+import { Reicon } from '@/icons';
 import { useNavigation } from '@react-navigation/native';
 import { useTheme } from '@/theme';
 import { Card } from '@/components/ui/Card';
@@ -79,9 +79,9 @@ const TYPE_LABELS: Record<string, string> = {
   OTHER: 'Autre',
 };
 
-type IoniconsName = keyof typeof Ionicons.glyphMap;
+type IconName = keyof typeof Reicon.glyphMap;
 
-function getTypeIcon(type: string): IoniconsName {
+function getTypeIcon(type: string): IconName {
   if (type.includes('CLEANING') || type === 'DISINFECTION') return 'sparkles-outline';
   if (type.includes('REPAIR') || type === 'PREVENTIVE_MAINTENANCE' || type === 'EMERGENCY_REPAIR') return 'hammer-outline';
   if (type === 'GARDENING') return 'leaf-outline';
@@ -188,7 +188,7 @@ export function InterventionsListScreen() {
             marginRight: theme.SPACING.md,
           }}
         >
-          <Ionicons name="arrow-back" size={20} color={theme.colors.text.primary} />
+          <Reicon name="arrow-back" size={20} color={theme.colors.text.primary} />
         </Pressable>
         <Text style={{ ...theme.typography.h2, color: theme.colors.text.primary, flex: 1 }}>
           Interventions
@@ -318,7 +318,7 @@ export function InterventionsListScreen() {
                     justifyContent: 'center',
                     marginRight: theme.SPACING.sm,
                   }}>
-                    <Ionicons name={typeIcon} size={18} color={statusColor} />
+                    <Reicon name={typeIcon} size={18} color={statusColor} />
                   </View>
                   <View style={{ flex: 1, marginRight: theme.SPACING.sm }}>
                     <Text style={{ ...theme.typography.h5, color: theme.colors.text.primary }} numberOfLines={1}>

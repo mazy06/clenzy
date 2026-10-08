@@ -4,7 +4,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRoute, useNavigation } from '@react-navigation/native';
 import type { RouteProp } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { Ionicons } from '@expo/vector-icons';
+import { Reicon } from '@/icons';
 import { useProperty } from '@/hooks/useProperties';
 import { propertiesApi, PropertyPhotoMeta } from '@/api/endpoints/propertiesApi';
 import { API_CONFIG } from '@/config/api';
@@ -17,10 +17,10 @@ import { useTheme } from '@/theme';
 import { useAlurCompliance } from '@/hooks/useRegulatory';
 import { ProgressBar } from '@/components/ui/ProgressBar';
 
-type IoniconsName = keyof typeof Ionicons.glyphMap;
+type IconName = keyof typeof Reicon.glyphMap;
 
 /* ─── Amenity icon map ─── */
-const AMENITY_MAP: Record<string, { icon: IoniconsName; label: string }> = {
+const AMENITY_MAP: Record<string, { icon: IconName; label: string }> = {
   WIFI:              { icon: 'wifi-outline',           label: 'WiFi' },
   TV:                { icon: 'tv-outline',             label: 'TV' },
   AIR_CONDITIONING:  { icon: 'snow-outline',           label: 'Clim' },
@@ -148,7 +148,7 @@ function OsmTileMap({
         }}
         pointerEvents="none"
       >
-        <Ionicons name="location" size={36} color={theme.colors.error.main} />
+        <Reicon name="location" size={36} color={theme.colors.error.main} />
       </View>
 
       {/* "Open in Maps" badge */}
@@ -168,7 +168,7 @@ function OsmTileMap({
         }}
         pointerEvents="none"
       >
-        <Ionicons name="navigate-outline" size={14} color={theme.colors.primary.main} />
+        <Reicon name="navigate-outline" size={14} color={theme.colors.primary.main} />
         <Text style={{ ...theme.typography.caption, color: theme.colors.primary.main, fontWeight: '600' }}>
           Ouvrir dans Maps
         </Text>
@@ -221,11 +221,11 @@ const STATUS_MAP: Record<string, { label: string; color: 'success' | 'warning' |
 /* ─── Sub-components ─── */
 
 function StatItem({ icon, label, value, theme }: {
-  icon: IoniconsName; label: string; value: string; theme: ReturnType<typeof useTheme>;
+  icon: IconName; label: string; value: string; theme: ReturnType<typeof useTheme>;
 }) {
   return (
     <View style={{ flex: 1, alignItems: 'center', paddingVertical: theme.SPACING.md }}>
-      <Ionicons name={icon} size={18} color={theme.colors.primary.main} style={{ marginBottom: 6 }} />
+      <Reicon name={icon} size={18} color={theme.colors.primary.main} style={{ marginBottom: 6 }} />
       <Text style={{ ...theme.typography.h5, color: theme.colors.text.primary, marginBottom: 2 }}>{value}</Text>
       <Text style={{ ...theme.typography.caption, color: theme.colors.text.disabled }}>{label}</Text>
     </View>
@@ -233,7 +233,7 @@ function StatItem({ icon, label, value, theme }: {
 }
 
 interface MenuTileProps {
-  icon: IoniconsName;
+  icon: IconName;
   label: string;
   subtitle: string;
   color: string;
@@ -260,7 +260,7 @@ function MenuTile({ icon, label, subtitle, color, onPress, theme }: MenuTileProp
         alignItems: 'center', justifyContent: 'center',
         marginBottom: theme.SPACING.sm,
       }}>
-        <Ionicons name={icon} size={22} color={color} />
+        <Reicon name={icon} size={22} color={color} />
       </View>
       <Text style={{ ...theme.typography.body2, color: theme.colors.text.primary, fontWeight: '600', textAlign: 'center' }}>
         {label}
@@ -296,7 +296,7 @@ function AlurBadge({ propertyId, theme }: { propertyId: number; theme: ReturnTyp
     }}>
       <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-          <Ionicons
+          <Reicon
             name={isDanger ? 'warning' : isWarning ? 'alert-circle-outline' : 'shield-checkmark-outline'}
             size={18}
             color={textColor}
@@ -378,7 +378,7 @@ function PhotoViewerModal({
           }}
           hitSlop={{ top: 16, bottom: 16, left: 16, right: 16 }}
         >
-          <Ionicons name="close" size={28} color="#fff" />
+          <Reicon name="close" size={28} color="#fff" />
         </Pressable>
 
         {/* Photo counter */}
@@ -463,7 +463,7 @@ function PhotoGallery({
         backgroundColor: `${theme.colors.primary.main}08`,
         alignItems: 'center', justifyContent: 'center',
       }}>
-        <Ionicons name="camera-outline" size={48} color={theme.colors.primary.light} />
+        <Reicon name="camera-outline" size={48} color={theme.colors.primary.light} />
         <Text style={{ ...theme.typography.caption, color: theme.colors.text.disabled, marginTop: theme.SPACING.sm }}>
           Aucune photo
         </Text>
@@ -722,7 +722,7 @@ export function PropertyDetailScreen() {
             ...theme.shadows.md,
           }}
         >
-          <Ionicons name="chevron-back" size={20} color={theme.colors.text.primary} />
+          <Reicon name="chevron-back" size={20} color={theme.colors.text.primary} />
         </Pressable>
 
         {/* Hero: Photos gallery or placeholder */}
@@ -740,7 +740,7 @@ export function PropertyDetailScreen() {
             backgroundColor: `${theme.colors.primary.main}08`,
             alignItems: 'center', justifyContent: 'center',
           }}>
-            <Ionicons name="camera-outline" size={48} color={theme.colors.primary.light} />
+            <Reicon name="camera-outline" size={48} color={theme.colors.primary.light} />
             <Text style={{ ...theme.typography.caption, color: theme.colors.text.disabled, marginTop: theme.SPACING.sm }}>
               Aucune photo
             </Text>
@@ -762,7 +762,7 @@ export function PropertyDetailScreen() {
                 </View>
                 {fullAddress ? (
                   <View style={{ flexDirection: 'row', alignItems: 'center', gap: 3, flex: 1 }}>
-                    <Ionicons name="location-outline" size={13} color={theme.colors.text.secondary} />
+                    <Reicon name="location-outline" size={13} color={theme.colors.text.secondary} />
                     <Text style={{ ...theme.typography.caption, color: theme.colors.text.secondary }} numberOfLines={1}>
                       {fullAddress}
                     </Text>
@@ -841,7 +841,7 @@ export function PropertyDetailScreen() {
                 theme={theme}
               />
               <Pressable onPress={openInMaps} style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', padding: theme.SPACING.sm }}>
-                <Ionicons name="navigate-outline" size={16} color={theme.colors.primary.main} />
+                <Reicon name="navigate-outline" size={16} color={theme.colors.primary.main} />
                 <Text style={{ ...theme.typography.body2, color: theme.colors.primary.main, marginLeft: 6 }}>Ouvrir dans Maps</Text>
               </Pressable>
             </Card>
@@ -868,7 +868,7 @@ export function PropertyDetailScreen() {
                           alignItems: 'center', justifyContent: 'center',
                           marginBottom: 6,
                         }}>
-                          <Ionicons name={def.icon} size={18} color={theme.colors.primary.main} />
+                          <Reicon name={def.icon} size={18} color={theme.colors.primary.main} />
                         </View>
                         <Text
                           style={{ ...theme.typography.caption, color: theme.colors.text.secondary, textAlign: 'center', lineHeight: 14, fontSize: 10 }}

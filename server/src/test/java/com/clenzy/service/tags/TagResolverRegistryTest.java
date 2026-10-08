@@ -81,7 +81,7 @@ class TagResolverRegistryTest {
         // Arrange
         ReferenceTagResolver interventionResolver = mock(ReferenceTagResolver.class);
         when(interventionResolver.referenceType()).thenReturn("intervention");
-        TagResolverService service = new TagResolverService(List.of(interventionResolver));
+        TagResolverService service = new TagResolverService(List.of(interventionResolver), mock(com.clenzy.service.BaitlyDocumentIdentity.class), mock(com.clenzy.tenant.TenantContext.class));
 
         // Act
         service.resolveTagsForDocument(DocumentType.FACTURE, 42L, "INTERVENTION");
@@ -95,7 +95,7 @@ class TagResolverRegistryTest {
         // Arrange
         ReferenceTagResolver resolver = mock(ReferenceTagResolver.class);
         when(resolver.referenceType()).thenReturn("intervention");
-        TagResolverService service = new TagResolverService(List.of(resolver));
+        TagResolverService service = new TagResolverService(List.of(resolver), mock(com.clenzy.service.BaitlyDocumentIdentity.class), mock(com.clenzy.tenant.TenantContext.class));
 
         // Act
         Map<String, Object> context = service.resolveTagsForDocument(

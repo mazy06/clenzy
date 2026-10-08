@@ -2,7 +2,7 @@ import React, { useState, useCallback, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import StatusChip from '../../../components/StatusChip';
 import { Alert, AlertDescription } from '../../../components/ui';
-import { Info, TriangleAlert, CircleCheck } from 'lucide-react';
+import { Info, TriangleAlert, CircleCheck } from '../../../icons/glyphs';
 import { Button, Spinner } from '../../../components/ui';
 import { Checkbox, Field, FieldLabel, Progress } from '../../../components/ui';
 import { Stepper, Step, StepLabel } from '../../../components/ui';

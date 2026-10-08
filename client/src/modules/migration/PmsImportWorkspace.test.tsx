@@ -17,13 +17,21 @@ import {
 } from '../../services/api/pmsImportApi';
 import PmsImportWorkspace from './PmsImportWorkspace';
 
-const invalidateQueries = vi.hoisted(() => vi.fn().mockResolvedValue(undefined));
+const invalidateQueries = vi.hoisted(() =>
+  vi.fn().mockResolvedValue(undefined),
+);
 vi.mock('@tanstack/react-query', () => ({
   useQueryClient: () => ({ invalidateQueries }),
 }));
 
 vi.mock('../../services/api/pmsImportApi', () => ({
+  PROPERTY_SCOPED_KINDS: ['RESERVATION', 'REVIEW', 'RATE', 'TASK'],
   pmsImportApi: {
+    apiVendors: vi.fn(),
+    pull: vi.fn(),
+    plan: vi.fn(),
+    savePlan: vi.fn(),
+    downloadAccountExport: vi.fn(),
     schema: vi.fn(),
     recent: vi.fn(),
     get: vi.fn(),
@@ -62,7 +70,24 @@ const schema: ImportSchema = {
   ],
   PROPERTY: [],
   RESERVATION: [],
+  REVIEW: [],
+  RATE: [],
+  TASK: [],
   ARCHIVE: [],
+};
+const emptyPlan = {
+  sourcePms: null,
+  contractEndDate: null,
+  noticeDays: null,
+  noticeDeadline: null,
+  exportDeadline: null,
+  daysUntilExportDeadline: null,
+  steps: [
+    { key: 'EXPORT_RESERVATIONS', done: false, derived: false },
+    { key: 'IMPORT_COMMITTED', done: false, derived: true },
+  ],
+  nextStep: 'EXPORT_RESERVATIONS',
+  updatedAt: null,
 };
 const view: ImportView = {
   id: 'batch-1',
@@ -111,6 +136,15 @@ beforeEach(async () => {
   vi.mocked(pmsImportApi.schema).mockResolvedValue(schema);
   vi.mocked(pmsImportApi.recent).mockResolvedValue([view]);
   vi.mocked(pmsImportApi.get).mockResolvedValue(structuredClone(view));
+  vi.mocked(pmsImportApi.apiVendors).mockResolvedValue([
+    {
+      id: 'hostaway',
+      name: 'Hostaway',
+      credentialFields: ['accountId', 'apiKey'],
+      docsUrl: 'https://api.hostaway.com/documentation',
+    },
+  ]);
+  vi.mocked(pmsImportApi.plan).mockResolvedValue(structuredClone(emptyPlan));
 });
 async function open() {
   render(<PmsImportWorkspace />);
@@ -122,9 +156,11 @@ async function open() {
 describe('PMS import workflow', () => {
   it('invalidates approval after a mapping change and revalidates before commit', async () => {
     await open();
-    expect(screen.queryByRole('button', {
-      name: /Intégrer les données vérifiées/,
-    })).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', {
+        name: /Intégrer les données vérifiées/,
+      }),
+    ).not.toBeInTheDocument();
     fireEvent.change(screen.getByLabelText(/Prénom/), {
       target: { value: '' },
     });
@@ -139,7 +175,9 @@ describe('PMS import workflow', () => {
     fireEvent.click(
       screen.getByRole('button', { name: /Vérifier les correspondances/ }),
     );
-    const commit = await screen.findByRole('button', { name: /Intégrer les données vérifiées/ });
+    const commit = await screen.findByRole('button', {
+      name: /Intégrer les données vérifiées/,
+    });
     expect(commit).toBeEnabled();
     expect(screen.queryByLabelText(/Prénom/)).not.toBeInTheDocument();
     vi.mocked(pmsImportApi.commit).mockResolvedValue({
@@ -149,7 +187,9 @@ describe('PMS import workflow', () => {
     fireEvent.click(commit);
     await screen.findByText('Import terminé');
     expect(pmsImportApi.commit).toHaveBeenCalledWith('batch-1', 'new-approval');
-    expect(invalidateQueries).toHaveBeenCalledWith({ queryKey: ['onboarding', 'me'] });
+    expect(invalidateQueries).toHaveBeenCalledWith({
+      queryKey: ['onboarding', 'me'],
+    });
   });
   it('blocks integration when validation reports an error', async () => {
     vi.mocked(pmsImportApi.get).mockResolvedValue({
@@ -217,6 +257,63 @@ describe('PMS import workflow', () => {
     );
     expect(await screen.findByRole('alert')).toHaveTextContent('uniques');
     expect(screen.getByLabelText('PMS d’origine')).toHaveValue('PMS local');
+  });
+  it('pulls through a vendor API once and forgets the credentials', async () => {
+    vi.mocked(pmsImportApi.recent).mockResolvedValue([]);
+    vi.mocked(pmsImportApi.pull).mockResolvedValue({ ...view, report: null });
+    render(<PmsImportWorkspace />);
+    fireEvent.click(await screen.findByRole('tab', { name: /Connexion API/ }));
+    fireEvent.change(await screen.findByLabelText('Logiciel'), {
+      target: { value: 'hostaway' },
+    });
+    fireEvent.change(screen.getByLabelText(/Identifiant de compte/), {
+      target: { value: '123' },
+    });
+    fireEvent.change(screen.getByLabelText(/Clé API/), {
+      target: { value: 'secret' },
+    });
+    expect(screen.getByLabelText(/Clé API/)).toHaveAttribute(
+      'type',
+      'password',
+    );
+    fireEvent.click(screen.getByRole('button', { name: /Lire mes données/ }));
+    await waitFor(() =>
+      expect(pmsImportApi.pull).toHaveBeenCalledWith(
+        expect.objectContaining({
+          vendor: 'hostaway',
+          account: 'Hostaway',
+          credentials: { accountId: '123', apiKey: 'secret' },
+        }),
+      ),
+    );
+    await screen.findByText('guests.csv');
+  });
+  it('saves the cutover checklist and downloads the full account export', async () => {
+    vi.mocked(pmsImportApi.recent).mockResolvedValue([]);
+    vi.mocked(pmsImportApi.savePlan).mockImplementation(async (update) => ({
+      ...emptyPlan,
+      steps: emptyPlan.steps.map((step) => ({
+        ...step,
+        done: step.derived ? false : !!update.checklist[step.key],
+      })),
+    }));
+    render(<PmsImportWorkspace />);
+    const step = await screen.findByLabelText(
+      /Exporter toutes les réservations/,
+    );
+    expect(screen.getByLabelText(/Importer dans Baitly/)).toBeDisabled();
+    fireEvent.click(step);
+    await waitFor(() =>
+      expect(pmsImportApi.savePlan).toHaveBeenCalledWith(
+        expect.objectContaining({ checklist: { EXPORT_RESERVATIONS: true } }),
+      ),
+    );
+    fireEvent.click(
+      screen.getByRole('button', { name: /Télécharger l’archive/ }),
+    );
+    await waitFor(() =>
+      expect(pmsImportApi.downloadAccountExport).toHaveBeenCalled(),
+    );
   });
   it.each(['fr', 'en', 'ar'])(
     'has matching translation keys in %s',

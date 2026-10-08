@@ -21,10 +21,11 @@ import {
   DialogHeader,
   DialogTitle,
 } from '../../../components/ui';
-import { CircleCheck, TriangleAlert, Info } from 'lucide-react';
+import { CircleCheck, TriangleAlert, Info } from '../../../icons/glyphs';
 import { Spinner } from '../../../components/ui';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from '../../../hooks/useTranslation';
+import { usePayInvoice } from '../../../hooks/useInvoices';
 import { invoicesApi, INVOICE_STATUS_COLORS, type Invoice } from '../../../services/api/invoicesApi';
 import { Money } from '../../../components/Money';
 
@@ -46,6 +47,7 @@ const row = (label: string, value: ReactNode) => (
 export function FeedInvoiceModal({ invoiceId, onClose }: FeedInvoiceModalProps) {
   const { t } = useTranslation();
   const navigate = useNavigate();
+  const payment = usePayInvoice();
   const [loading, setLoading] = useState(false);
   const [invoice, setInvoice] = useState<Invoice | null>(null);
   const [paying, setPaying] = useState(false);
@@ -81,22 +83,17 @@ export function FeedInvoiceModal({ invoiceId, onClose }: FeedInvoiceModalProps) 
     };
   }, [invoiceId, t]);
 
-  const payable = invoice != null && ['SENT', 'ISSUED', 'OVERDUE'].includes(invoice.status);
+  const payable = invoice != null && !invoice.duplicateOfId && ['SENT', 'ISSUED', 'OVERDUE'].includes(invoice.status);
 
   const handlePay = async () => {
     if (invoiceId == null || paying) return;
     setPaying(true);
     setError(null);
     try {
-      const result = await invoicesApi.initiatePayment(invoiceId);
-      const url = result.paymentResult?.redirectUrl;
-      if (url) {
-        window.open(url, '_blank', 'noopener');
-      } else {
-        setError(t('supervision.invoiceModal.payError', 'Lien de paiement non généré.'));
-      }
-    } catch {
-      setError(t('supervision.invoiceModal.payError', 'Lien de paiement non généré.'));
+      const url = await payment.mutateAsync(invoiceId);
+      window.location.assign(url);
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : t('supervision.invoiceModal.payError', 'Lien de paiement non généré.'));
     } finally {
       setPaying(false);
     }

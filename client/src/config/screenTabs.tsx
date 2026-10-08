@@ -112,6 +112,9 @@ const has = (a: ScreenTabAccess, permission: string) => a.permissions.includes(p
 const hasRole = (a: ScreenTabAccess, ...roles: readonly string[]) =>
   roles.some((role) => a.roles.includes(role));
 
+export const canViewFinanceLedger = (a: ScreenTabAccess) => has(a, 'payments:manage');
+export const canViewFinanceReports = (a: ScreenTabAccess) => hasRole(a, 'SUPER_ADMIN', 'SUPER_MANAGER');
+
 /** Staff plateforme au sens de `platformRole` (cf. `ScreenTabAccess.platformRole`). */
 const isPlatformStaff = (a: ScreenTabAccess) =>
   a.platformRole === 'SUPER_ADMIN' || a.platformRole === 'SUPER_MANAGER';
@@ -176,24 +179,18 @@ export const SCREEN_TABS: Record<string, ScreenTabDef[]> = {
   ],
 
   '/documents': [
-    { key: 'catalog', translationKey: 'documents.tabs.catalog', fallbackLabel: 'Catalogue', icon: <ViewList /> },
-    { key: 'message-templates', translationKey: 'documents.tabs.messageTemplates', fallbackLabel: 'Templates messages', icon: <ChatBubbleOutline /> },
-    { key: 'whatsapp-templates', translationKey: 'documents.tabs.whatsappTemplates', fallbackLabel: 'Templates WhatsApp', icon: <Forum /> },
-    { key: 'document-templates', translationKey: 'documents.tabs.documentTemplates', fallbackLabel: 'Templates documents', icon: <Description /> },
+    { key: 'catalog', translationKey: 'documentsWorkspace.tabs.catalog', fallbackLabel: 'Modèles', icon: <Description /> },
+    { key: 'message-templates', translationKey: 'documentsWorkspace.tabs.messages', fallbackLabel: 'Messages', icon: <ChatBubbleOutline /> },
     { key: 'history', translationKey: 'documents.tabs.history', fallbackLabel: 'Historique', icon: <History /> },
-    { key: 'variables', translationKey: 'documents.tabs.variablesAndTags', fallbackLabel: 'Variables & Tags', icon: <LocalOffer /> },
     { key: 'compliance', translationKey: 'documents.tabs.compliance', fallbackLabel: 'Conformité', icon: <GppGood /> },
-    { key: 'amendments', translationKey: 'amendmentLibrary.title', fallbackLabel: 'Avenants', icon: <Description /> },
   ],
 
   '/billing': [
     { key: 'payments', translationKey: 'billing.tabs.payments', fallbackLabel: 'Paiements', icon: <Payment /> },
     { key: 'invoices', translationKey: 'billing.tabs.invoices', fallbackLabel: 'Factures', icon: <Receipt />, isAccessible: (a) => has(a, 'reports:view') },
-    { key: 'wallets', translationKey: 'navigation.wallets', fallbackLabel: 'Portefeuille', icon: <AccountBalanceWallet />, isAccessible: (a) => has(a, 'payments:manage') },
-    { key: 'payouts', translationKey: 'billing.tabs.payouts', fallbackLabel: 'Reversements', icon: <AccountBalance />, isAccessible: (a) => hasRole(a, 'SUPER_ADMIN', 'SUPER_MANAGER') },
+    { key: 'payouts', translationKey: 'financeWorkspace.tabs.payouts', fallbackLabel: 'Versements', icon: <AccountBalance />, isAccessible: canViewFinanceReports },
     { key: 'expenses', translationKey: 'billing.tabs.expenses', fallbackLabel: 'Dépenses', icon: <Category />, isAccessible: (a) => hasRole(a, 'SUPER_ADMIN', 'SUPER_MANAGER') },
-    { key: 'housekeeper-payouts', translationKey: 'billing.tabs.housekeeperPayouts', fallbackLabel: 'Versements prestataires', icon: <Payments />, isAccessible: (a) => hasRole(a, 'SUPER_ADMIN', 'SUPER_MANAGER') },
-    { key: 'reports', translationKey: 'billing.tabs.reportsExports', fallbackLabel: 'Rapports & Exports', icon: <Assessment />, isAccessible: (a) => hasRole(a, 'SUPER_ADMIN', 'SUPER_MANAGER') },
+    { key: 'reports', translationKey: 'financeWorkspace.tabs.reports', fallbackLabel: 'Rapports & comptabilité', icon: <Assessment />, isAccessible: (a) => canViewFinanceReports(a) || canViewFinanceLedger(a) },
   ],
 
   '/tarification': [
@@ -226,6 +223,7 @@ export const SCREEN_TABS: Record<string, ScreenTabDef[]> = {
     { key: 'ai', translationKey: 'tabHeaders.settings.tabs.ai', fallbackLabel: 'IA', icon: <SmartToy />, isAccessible: (a) => has(a, 'ai:view') },
     { key: 'fiscal', translationKey: 'tabHeaders.settings.tabs.fiscal', fallbackLabel: 'Fiscal', icon: <AccountBalance />, isAccessible: (a) => hasRole(a, 'SUPER_ADMIN', 'SUPER_MANAGER') },
     { key: 'organization', translationKey: 'tabHeaders.settings.tabs.organization', fallbackLabel: 'Organisation', icon: <GroupAdd />, isAccessible: (a) => hasRole(a, 'SUPER_ADMIN', 'SUPER_MANAGER') },
+    { key: 'subscription', translationKey: 'monthlySubscription.tab', fallbackLabel: 'Abonnement', icon: <Payment />, isAccessible: (a) => hasRole(a, 'HOST', 'SUPER_ADMIN', 'SUPER_MANAGER') },
     { key: 'payment', translationKey: 'tabHeaders.settings.tabs.payment', fallbackLabel: 'Paiement', icon: <Payment />, isAccessible: (a) => hasRole(a, 'SUPER_ADMIN', 'SUPER_MANAGER') },
     { key: 'integrations', translationKey: 'tabHeaders.settings.tabs.integrations', fallbackLabel: 'Intégrations', icon: <Extension />, isAccessible: (a) => hasRole(a, 'SUPER_ADMIN', 'SUPER_MANAGER') },
     { key: 'payouts', translationKey: 'tabHeaders.settings.tabs.payouts', fallbackLabel: 'Reversements (plateforme)', icon: <CalendarMonth />, isAccessible: (a) => hasRole(a, 'SUPER_ADMIN') },

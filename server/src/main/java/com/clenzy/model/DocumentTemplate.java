@@ -9,7 +9,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * Template de document (.odt) stocke sur le filesystem.
+ * Template de document (HTML ; sources historiques ODT conservées) stocke sur le filesystem.
  * Chaque template contient des tags dynamiques detectes automatiquement au moment de l'upload.
  */
 @Entity

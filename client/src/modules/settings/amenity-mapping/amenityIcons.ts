@@ -1,7 +1,7 @@
 /**
  * Catalogue d'icones pour les commodites Baitly.
  *
- * Source : lucide-react (1400+ icones disponibles). On expose ici un sous-ensemble
+ * Source : glyphes Reicon de `src/icons/glyphs` (noms historiques Lucide). On expose ici un sous-ensemble
  * curate pertinent pour les amenities, groupe par theme pour que le picker reste
  * navigable (50-80 icones, pas 1400).
  *
@@ -9,7 +9,8 @@
  * a une icone par defaut. L'utilisateur peut override via le picker — le choix
  * est persiste en localStorage cle par organisation (cf. useAmenityIconOverrides).
  *
- * Pour ajouter une icone : importer depuis 'lucide-react' et l'ajouter dans
+ * Pour ajouter une icone : l'ajouter a `scripts/reicon/glyph-map.json`, regenerer,
+ * l'importer depuis `src/icons/glyphs` et l'ajouter dans
  * la categorie appropriee de ICON_CATALOG ci-dessous.
  */
 
@@ -97,11 +98,11 @@ import {
   Briefcase,
   CalendarDays,
   MapPin,
-  type LucideIcon,
-} from 'lucide-react';
+  type IconComponent,
+} from '../../../icons/glyphs';
 
 /** Map nom → composant React, pour resoudre dynamiquement une icone par son nom. */
-export const ICON_REGISTRY: Record<string, LucideIcon> = {
+export const ICON_REGISTRY: Record<string, IconComponent> = {
   Wifi, WifiHigh, WifiOff, Tv, Tv2, Snowflake, Flame, Wind, Sun, Thermometer,
   Lightbulb, Lamp, Sofa, Armchair, Bed, BedDouble, BedSingle,
   ChefHat, UtensilsCrossed, Utensils, Refrigerator, Microwave, Coffee, Wine, Soup, Pizza,
@@ -198,7 +199,7 @@ export const DEFAULT_AMENITY_ICONS: Record<string, string> = {
  * Resout le composant icone pour une commodite (avec fallback Sparkles si nom
  * inconnu — robustesse en cas de renommage lucide ou override invalide).
  */
-export function resolveAmenityIcon(code: string, overrides?: Record<string, string>): LucideIcon {
+export function resolveAmenityIcon(code: string, overrides?: Record<string, string>): IconComponent {
   const name = overrides?.[code] ?? DEFAULT_AMENITY_ICONS[code] ?? 'Sparkles';
   return ICON_REGISTRY[name] ?? Sparkles;
 }

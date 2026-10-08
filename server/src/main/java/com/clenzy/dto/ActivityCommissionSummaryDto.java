@@ -8,4 +8,8 @@ public record ActivityCommissionSummaryDto(
         BigDecimal totalHostShare,
         BigDecimal totalPlatformShare,
         long count,
-        String currency) {}
+        String currency,
+        java.util.List<CurrencyTotal> totalsByCurrency) {
+    public record CurrencyTotal(String currency, BigDecimal expectedGross, BigDecimal receivedGross,
+            BigDecimal hostShare, BigDecimal platformShare, long count) {}
+}

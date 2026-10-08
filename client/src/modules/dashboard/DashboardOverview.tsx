@@ -10,7 +10,7 @@ import {
   TrendingUpIcon,
   WalletIcon,
   WrenchIcon,
-} from 'lucide-react';
+} from '../../icons/glyphs';
 import { Add, GridView } from '../../icons';
 import { useAuth } from '../../hooks/useAuth';
 import { useTranslation } from '../../hooks/useTranslation';

@@ -25,6 +25,7 @@ import static org.mockito.Mockito.*;
 class DirectBookingControllerTest {
 
     @Mock private DirectBookingService directBookingService;
+    @Mock private com.clenzy.integration.direct.service.BaitlyDirectBookingAdapter booking;
 
     private DirectBookingController controller;
 
@@ -33,7 +34,7 @@ class DirectBookingControllerTest {
 
     @BeforeEach
     void setUp() {
-        controller = new DirectBookingController(directBookingService);
+        controller = new DirectBookingController(directBookingService, booking);
     }
 
     // ===== CHECK AVAILABILITY =====
@@ -57,7 +58,7 @@ class DirectBookingControllerTest {
                     "EUR", 4, 1, 365, List.of()
             );
 
-            when(directBookingService.checkAvailability(request, ORG_ID)).thenReturn(expectedResponse);
+            when(booking.availability(request, ORG_ID)).thenReturn(expectedResponse);
 
             ResponseEntity<DirectAvailabilityResponse> response =
                     controller.checkAvailability(request, ORG_ID);
@@ -67,7 +68,7 @@ class DirectBookingControllerTest {
             assertThat(response.getBody().available()).isTrue();
             assertThat(response.getBody().totalPrice()).isEqualByComparingTo("400");
             assertThat(response.getBody().nights()).isEqualTo(4);
-            verify(directBookingService).checkAvailability(request, ORG_ID);
+            verify(booking).availability(request, ORG_ID);
         }
     }
 
@@ -102,7 +103,7 @@ class DirectBookingControllerTest {
                     BigDecimal.valueOf(400), "EUR", "Reservation confirmee"
             );
 
-            when(directBookingService.createBooking(request, ORG_ID)).thenReturn(expectedResponse);
+            when(booking.create(request, ORG_ID)).thenReturn(expectedResponse);
 
             ResponseEntity<DirectBookingResponse> response =
                     controller.createBooking(request, ORG_ID);
@@ -111,7 +112,7 @@ class DirectBookingControllerTest {
             assertThat(response.getBody()).isNotNull();
             assertThat(response.getBody().status()).isEqualTo("CONFIRMED");
             assertThat(response.getBody().bookingId()).isEqualTo("DB-ABC12345");
-            verify(directBookingService).createBooking(request, ORG_ID);
+            verify(booking).create(request, ORG_ID);
         }
 
         @Test
@@ -133,7 +134,7 @@ class DirectBookingControllerTest {
                     "EUR"
             );
 
-            when(directBookingService.createBooking(request, ORG_ID))
+            when(booking.create(request, ORG_ID))
                     .thenThrow(new IllegalArgumentException("La date de check-out doit etre apres le check-in"));
 
             assertThatThrownBy(() -> controller.createBooking(request, ORG_ID))
@@ -202,7 +203,7 @@ class DirectBookingControllerTest {
                     BigDecimal.valueOf(400), "EUR", "Reservation confirmee avec succes"
             );
 
-            when(directBookingService.confirmBooking(bookingId, ORG_ID)).thenReturn(expectedResponse);
+            when(booking.confirm(bookingId, ORG_ID)).thenReturn(expectedResponse);
 
             ResponseEntity<DirectBookingResponse> response =
                     controller.confirmBooking(bookingId, ORG_ID);

@@ -1,4 +1,4 @@
-import { MonitorDownIcon, XIcon } from 'lucide-react';
+import { MonitorDownIcon, XIcon } from '../../icons/glyphs';
 import { Button } from '../ui';
 import { usePWA } from '../../hooks/usePWA';
 import { useUserPreference } from '../../hooks/useUserPreference';

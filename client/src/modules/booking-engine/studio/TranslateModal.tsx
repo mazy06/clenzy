@@ -13,7 +13,7 @@ import {
   ToggleGroupItem,
 } from '../../../components/ui';
 import { useTranslation } from '../../../hooks/useTranslation';
-import { X, Languages, AlertTriangle } from 'lucide-react';
+import { X, Languages, AlertTriangle } from '../../../icons/glyphs';
 import type { AutoTranslateResult } from '../../../services/api/sitesApi';
 
 /**

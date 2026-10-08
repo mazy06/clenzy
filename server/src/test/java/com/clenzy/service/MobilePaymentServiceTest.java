@@ -353,9 +353,15 @@ class MobilePaymentServiceTest {
             when(createdPrice.getId()).thenReturn("price_xyz");
 
             Invoice invoice = mock(Invoice.class);
-            PaymentIntent piFromInvoice = mock(PaymentIntent.class);
-            when(piFromInvoice.getId()).thenReturn("pi_inv");
-            when(invoice.getPaymentIntentObject()).thenReturn(piFromInvoice);
+            var invoicePayment = new com.stripe.model.InvoicePayment();
+            invoicePayment.setIsDefault(true);
+            var payment = new com.stripe.model.InvoicePayment.Payment();
+            payment.setType("payment_intent");
+            payment.setPaymentIntent("pi_inv");
+            invoicePayment.setPayment(payment);
+            var payments = new com.stripe.model.InvoicePaymentCollection();
+            payments.setData(java.util.List.of(invoicePayment));
+            when(invoice.getPayments()).thenReturn(payments);
 
             Subscription createdSub = mock(Subscription.class);
             when(createdSub.getId()).thenReturn("sub_new");
@@ -397,9 +403,15 @@ class MobilePaymentServiceTest {
             Price createdPrice = mock(Price.class);
             when(createdPrice.getId()).thenReturn("price_xyz");
             Invoice invoice = mock(Invoice.class);
-            PaymentIntent piFromInvoice = mock(PaymentIntent.class);
-            when(piFromInvoice.getId()).thenReturn("pi_inv");
-            when(invoice.getPaymentIntentObject()).thenReturn(piFromInvoice);
+            var invoicePayment = new com.stripe.model.InvoicePayment();
+            invoicePayment.setIsDefault(true);
+            var payment = new com.stripe.model.InvoicePayment.Payment();
+            payment.setType("payment_intent");
+            payment.setPaymentIntent("pi_inv");
+            invoicePayment.setPayment(payment);
+            var payments = new com.stripe.model.InvoicePaymentCollection();
+            payments.setData(java.util.List.of(invoicePayment));
+            when(invoice.getPayments()).thenReturn(payments);
             Subscription createdSub = mock(Subscription.class);
             when(createdSub.getId()).thenReturn("sub_new");
             when(createdSub.getLatestInvoiceObject()).thenReturn(invoice);

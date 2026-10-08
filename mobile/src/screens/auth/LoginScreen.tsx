@@ -9,7 +9,7 @@ import {
   TouchableOpacity,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Ionicons } from '@expo/vector-icons';
+import { Reicon } from '@/icons';
 import Animated, {
   useSharedValue,
   useAnimatedStyle,
@@ -196,7 +196,7 @@ export function LoginScreen() {
                 paddingHorizontal: theme.SPACING.md,
               }}
             >
-              <Ionicons
+              <Reicon
                 name="person-outline"
                 size={20}
                 color={usernameActive ? SPARKLE_GOLD : theme.colors.text.disabled}
@@ -239,7 +239,7 @@ export function LoginScreen() {
                 paddingHorizontal: theme.SPACING.md,
               }}
             >
-              <Ionicons
+              <Reicon
                 name="lock-closed-outline"
                 size={20}
                 color={passwordActive ? SPARKLE_GOLD : theme.colors.text.disabled}
@@ -273,7 +273,7 @@ export function LoginScreen() {
                 onPress={() => setShowPassword(!showPassword)}
                 hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
               >
-                <Ionicons
+                <Reicon
                   name={showPassword ? 'eye-off-outline' : 'eye-outline'}
                   size={22}
                   color={passwordActive ? SPARKLE_GOLD : theme.colors.text.disabled}
@@ -295,7 +295,7 @@ export function LoginScreen() {
                 gap: theme.SPACING.sm,
               }}
             >
-              <Ionicons name="alert-circle" size={20} color={theme.colors.error.dark} />
+              <Reicon name="alert-circle" size={20} color={theme.colors.error.dark} />
               <Text
                 style={{
                   ...theme.typography.body2,
@@ -316,7 +316,7 @@ export function LoginScreen() {
             disabled={!canSubmit}
             fullWidth
             size="large"
-            icon={<Ionicons name="log-in-outline" size={20} color="#fff" />}
+            icon={<Reicon name="log-in-outline" size={20} color="#fff" />}
             style={{ backgroundColor: '#4A7C8E' }}
           />
         </ScrollView>

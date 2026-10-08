@@ -14,6 +14,9 @@ export interface Reservation {
   propertyId: number;
   propertyName: string;
   guestName: string;
+  /** Fiche voyageur (`ReservationDto.guestId`). Absente sur un séjour importé
+   *  sans fiche : ne jamais lui substituer l'id de la réservation. */
+  guestId?: number | null;
   guestEmail?: string;
   guestPhone?: string;
   /** Photo de profil du voyageur (avatar de la brique planning). Absente →

@@ -17,7 +17,7 @@ import java.time.Instant;
 
 /**
  * Exécuteur Open Banking PIS : initie un virement SEPA Credit Transfer
- * automatiquement depuis le compte Clenzy via la directive PSD2.
+ * automatiquement depuis le compte Baitly via la directive PSD2.
  *
  * <h2>Avantages vs SEPA_TRANSFER classique</h2>
  * <ul>
@@ -29,13 +29,13 @@ import java.time.Instant;
  *
  * <h2>Prérequis admin</h2>
  * <p>Une fois par période (90 jours typique), l'admin doit valider un SCA
- * (2FA banque) pour autoriser Clenzy à initier des virements depuis son
+ * (2FA banque) pour autoriser Baitly à initier des virements depuis son
  * compte. Le {@code consent_id} obtenu est stocké dans
  * {@code OwnerPayoutConfig.openBankingConsentId} — réutilisé pour tous les
  * virements jusqu'à expiration.</p>
  *
  * <h2>Note importante : un seul consent pour tous les owners</h2>
- * <p>Le consent autorise <strong>Clenzy</strong> à virer depuis SON compte,
+ * <p>Le consent autorise <strong>Baitly</strong> à virer depuis SON compte,
  * pas chaque owner individuellement. On stocke quand même le consent_id dans
  * {@code OwnerPayoutConfig} pour suivre quelle config est éligible
  * (= l'IBAN owner est connu + l'admin a complété le SCA). En pratique, tous
@@ -68,10 +68,10 @@ public class OpenBankingPayoutExecutor implements PayoutExecutor {
     }
 
     @Override
-    public OwnerPayout execute(OwnerPayout payout, OwnerPayoutConfig config) {
+    public void validate(OwnerPayout payout, OwnerPayoutConfig config) {
         if (!gocardlessClient.isEnabled()) {
             throw new PayoutExecutionException(
-                "Open Banking n'est pas configure cote Clenzy (gocardless.secret-id "
+                "Open Banking n'est pas configure cote Baitly (gocardless.secret-id "
               + "+ gocardless.debtor-account-id manquants).");
         }
 
@@ -112,6 +112,13 @@ public class OpenBankingPayoutExecutor implements PayoutExecutor {
             throw new PayoutExecutionException(
                 "Open Banking : IBAN du proprietaire absent.");
         }
+
+    }
+
+    @Override
+    public OwnerPayout execute(OwnerPayout payout, OwnerPayoutConfig config) {
+        validate(payout, config);
+        String consentId = config.getOpenBankingConsentId();
 
         payout.setStatus(PayoutStatus.PROCESSING);
         payout.setPayoutMethod(PayoutMethod.OPEN_BANKING);

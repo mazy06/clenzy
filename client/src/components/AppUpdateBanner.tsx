@@ -1,5 +1,5 @@
 import React, { useEffect } from 'react';
-import { Info } from 'lucide-react';
+import { Info } from '../icons/glyphs';
 import { Alert, AlertAction, AlertDescription, Button } from './ui';
 // Module virtuel injecte par vite-plugin-pwa au build. Types resolus via
 // /// <reference types="vite-plugin-pwa/react" /> dans vite-env.d.ts.

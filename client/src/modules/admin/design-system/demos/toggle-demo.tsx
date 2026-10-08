@@ -1,4 +1,4 @@
-import { BookmarkIcon } from "lucide-react"
+import { BookmarkIcon } from "../../../../icons/glyphs"
 
 import { Toggle } from '../../../../components/ui'
 
@@ -8,7 +8,7 @@ export default function ToggleDemo() {
       aria-label="Toggle bookmark"
       size="sm"
       variant="outline"
-      className="data-[state=on]:bg-transparent data-[state=on]:*:[svg]:fill-blue-500 data-[state=on]:*:[svg]:stroke-blue-500"
+      className="data-[state=on]:bg-transparent data-[state=on]:*:[svg]:text-blue-500"
     >
       <BookmarkIcon />
       Bookmark

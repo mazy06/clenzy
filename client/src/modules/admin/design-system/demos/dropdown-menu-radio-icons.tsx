@@ -1,5 +1,5 @@
 import * as React from "react"
-import { Building2Icon, CreditCardIcon, WalletIcon } from "lucide-react"
+import { Building2Icon, CreditCardIcon, WalletIcon } from "../../../../icons/glyphs"
 
 import { Button } from '../../../../components/ui'
 import {

@@ -11,5 +11,17 @@ import com.clenzy.model.Invoice;
  */
 public interface PdpTransmissionClient {
 
+    default boolean configured() { return false; }
+
+    /** Contrôles locaux avant de marquer la soumission comme commencée. Aucun appel réseau. */
+    default String readinessIssue(Invoice invoice, byte[] cii) { return null; }
+
+    default boolean supportsReconciliation() { return false; }
+
+    default EInvoiceResult reconcile(Invoice invoice, String externalRef) {
+        return new EInvoiceResult(com.clenzy.fiscal.einvoicing.EInvoiceStatus.PENDING, externalRef,
+            "Vérification auprès du partenaire requise");
+    }
+
     EInvoiceResult transmit(Invoice invoice, byte[] facturXXml);
 }

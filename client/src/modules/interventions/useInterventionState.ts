@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { interventionExecutionScope } from './interventionExecutionScope';
 import { useAuth } from '../../hooks/useAuth';
 import { interventionsApi } from '../../services/api/interventionsApi';
 import { propertiesApi } from '../../services/api/propertiesApi';
@@ -293,6 +294,7 @@ export function useInterventionState(id: string | undefined) {
   const [startSuccessMessage, setStartSuccessMessage] = useState<string | null>(null);
 
   const startMutation = useMutation({
+    scope: interventionExecutionScope(id),
     mutationFn: () => interventionsApi.start(Number(id)),
     onSuccess: (updated) => {
       setIntervention(updated);
@@ -307,6 +309,7 @@ export function useInterventionState(id: string | undefined) {
   });
 
   const completeMutation = useMutation({
+    scope: interventionExecutionScope(id),
     mutationFn: () => interventionsApi.complete(Number(id)),
     onSuccess: (updated) => {
       setIntervention(updated);
@@ -345,9 +348,13 @@ export function useInterventionState(id: string | undefined) {
   const handleCompleteIntervention = async () => {
     if (!id || !intervention) return;
     setCompleting(true);
-    completeMutation.mutate(undefined, {
-      onSettled: () => setCompleting(false),
-    });
+    try {
+      await completeMutation.mutateAsync();
+    } catch {
+      // The mutation displays the server error; leave the intervention open.
+    } finally {
+      setCompleting(false);
+    }
   };
 
   return {

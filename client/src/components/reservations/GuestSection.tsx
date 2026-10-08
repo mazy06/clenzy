@@ -8,10 +8,11 @@ import { useTranslation } from '../../hooks/useTranslation';
 import { cn } from '../../utils/cn';
 import type { UseReservationFormResult } from './useReservationForm';
 import type { GuestDto } from '../../services/api';
+import IllustratedHeading from '../IllustratedHeading';
+import { RESERVATION_ART } from './reservationArtwork';
 
-// Transposition en classes de SEC_SX (.rm-sec) — meme motif que STEP_BTN_CLS :
-// la constante sx reste exportee dans reservationDialogStyles.
-const SEC_CLS = 'text-2xs font-bold tracking-[0.08em] uppercase text-faint';
+// Sous-titre d'un bloc de champs : lisible (muted-foreground), sans capitales.
+const SUB_CLS = 'text-xs font-semibold text-muted-foreground';
 
 // Transposition en classes de STEP_BTN_SX (.rm-count) — la constante reste
 // exportee dans reservationDialogStyles pour les consommateurs sx eventuels.
@@ -146,7 +147,7 @@ const GuestSection: React.FC<Props> = ({ form }) => {
   const editableGuestForm = (
     <div className="flex flex-col gap-2.5">
       <div className="flex items-center gap-[10px] mt-[2px]">
-        <p className={cn(SEC_CLS, 'whitespace-nowrap')}>
+        <p className={cn(SUB_CLS, 'whitespace-nowrap')}>
           {form.selectedGuest ? t('reservations.dialog.editGuest') : t('reservations.dialog.newGuest')}
         </p>
         <div className="flex-1 h-[1px] bg-border" />
@@ -240,7 +241,11 @@ const GuestSection: React.FC<Props> = ({ form }) => {
 
   return (
     <>
-      <p className={cn(SEC_CLS, 'mt-[4px]')}>{t('reservations.dialog.traveler')}</p>
+      <IllustratedHeading
+        art={RESERVATION_ART.guest}
+        title={t('reservations.dialog.traveler')}
+        hint={t('reservations.dialog.travelerHint')}
+      />
 
       {form.isEdit ? (
         // ── ÉDITION : comportement inchangé — voyageur en lecture seule ──

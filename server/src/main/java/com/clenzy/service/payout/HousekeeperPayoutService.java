@@ -1,17 +1,16 @@
 package com.clenzy.service.payout;
 
 import com.clenzy.dto.PricingConfigDto;
+import com.clenzy.dto.HousekeeperPayoutDtos.RetryQuote;
 import com.clenzy.exception.NotFoundException;
 import com.clenzy.model.HousekeeperPayoutConfig;
 import com.clenzy.model.HousekeeperPayoutRecord;
 import com.clenzy.model.HousekeeperPayoutRecord.Status;
 import com.clenzy.model.Intervention;
 import com.clenzy.model.InterventionPhoto;
-import com.clenzy.model.InterventionType;
 import com.clenzy.model.NotificationKey;
-import com.clenzy.model.PaymentStatus;
 import com.clenzy.model.User;
-import com.clenzy.payment.StripeAmounts;
+import com.clenzy.model.PayoutBeneficiary;
 import com.clenzy.payment.StripeGateway;
 import com.clenzy.repository.HousekeeperPayoutConfigRepository;
 import com.clenzy.repository.HousekeeperPayoutRecordRepository;
@@ -44,25 +43,16 @@ import java.util.List;
 import java.util.Optional;
 
 /**
- * Payout Stripe Connect des prestataires ménage (Moteur Ménage 3B — P9).
+ * Versements Stripe Connect des prestataires de tous les métiers Baitly.
+ * Le nom technique historique reste conservé pour les intégrations existantes.
  *
- * <p><b>Money-path — règles d'audit appliquées strictement :</b>
- * <ul>
- *   <li>Tous les appels Stripe passent par {@link StripeGateway} (jamais statique) ;</li>
- *   <li>{@link StripeAmounts#toMinorUnits} pour la conversion centimes ;</li>
- *   <li>JAMAIS d'appel Stripe dans une transaction DB : préparation en transaction
- *       courte (record PENDING), transfert {@code afterCommit}, résultat persisté
- *       dans une NOUVELLE transaction ;</li>
- *   <li>check-then-act interdit : contrainte UNIQUE(intervention_id) + UPDATE
- *       conditionnel (CAS) {@code transitionStatus} ;</li>
- *   <li>aucun catch avaleur : échec → record FAILED + notification admins.</li>
- * </ul></p>
- *
- * <p><b>Gate</b> (à la complétion d'une intervention ménage) : paiement host acquis
- * (PAID) + preuve photo ({@link #isProofComplete}) + onboarding Connect complet.
- * Gate KO → record BLOCKED avec raison (jamais silencieux) + notif au pro pour
- * l'onboarding. <b>Commission</b> : catégorie « entretien » de
- * {@code commissionConfigs} (Tarification) — désactivée par défaut.</p>
+ * <p>Une mission doit être terminée, encaissée avec ses éventuels remboursements rapprochés et justifiée par une
+ * pièce de réalisation. Le compte du bénéficiaire doit être prêt. Les ordres sont
+ * uniques par intervention, puis émis après commit à travers le journal commun.
+ * Un résultat PSP incertain exige un rapprochement, sans nouvelle émission.</p>
+ * <p>La commission est celle de la catégorie du catalogue. Ce circuit conserve
+ * son périmètre EUR ; une organisation bénéficiaire doit être désignée explicitement,
+ * sans inventer un destinataire ni convertir le montant.</p>
  */
 @Service
 public class HousekeeperPayoutService {
@@ -90,6 +80,10 @@ public class HousekeeperPayoutService {
     private final PricingConfigService pricingConfigService;
     private final NotificationService notificationService;
     private final HousekeeperPayoutRecorder recorder;
+    private final ProviderPayoutPolicy payoutPolicy;
+    private final ProviderPayoutAccountResolver payoutAccounts;
+    private final ProviderPayoutBeneficiaryService beneficiaries;
+    private final ProviderPayoutMissionReader missionReader;
     private final com.clenzy.payment.payout.StripeConnectTransferClient transferClient;
     /** Execution post-commit HORS transaction (voir {@link #scheduleTransferAfterCommit}). */
     private final TransactionTemplate outsideTransaction;
@@ -103,6 +97,10 @@ public class HousekeeperPayoutService {
                                     PricingConfigService pricingConfigService,
                                     NotificationService notificationService,
                                     HousekeeperPayoutRecorder recorder,
+                                    ProviderPayoutPolicy payoutPolicy,
+                                    ProviderPayoutAccountResolver payoutAccounts,
+                                    ProviderPayoutBeneficiaryService beneficiaries,
+                                    ProviderPayoutMissionReader missionReader,
                                     com.clenzy.payment.payout.StripeConnectTransferClient transferClient,
                                     PlatformTransactionManager transactionManager) {
         this.configRepository = configRepository;
@@ -114,6 +112,10 @@ public class HousekeeperPayoutService {
         this.pricingConfigService = pricingConfigService;
         this.notificationService = notificationService;
         this.recorder = recorder;
+        this.payoutPolicy = payoutPolicy;
+        this.payoutAccounts = payoutAccounts;
+        this.beneficiaries = beneficiaries;
+        this.missionReader = missionReader;
         this.transferClient = transferClient;
         this.outsideTransaction = new TransactionTemplate(transactionManager);
         this.outsideTransaction.setPropagationBehavior(TransactionDefinition.PROPAGATION_NOT_SUPPORTED);
@@ -131,7 +133,7 @@ public class HousekeeperPayoutService {
      * Crée (ou récupère) le compte Connect Express du pro puis renvoie le
      * client_secret d'une Account Session pour l'onboarding EMBARQUÉ.
      * Les appels Stripe sont HORS transaction (méthode non transactionnelle,
-     * persistance déléguée à {@link #persistAccountId}).
+     * persistance déléguée à {@link HousekeeperPayoutRecorder#persistAccountId}).
      */
     public String createAccountSession(User user, Long orgId) throws StripeException {
         String accountId = ensureExpressAccount(user, orgId);
@@ -171,7 +173,7 @@ public class HousekeeperPayoutService {
         }
         Account account = stripeGateway.createAccount(params.build());
         recorder.persistAccountId(user.getId(), orgId, account.getId());
-        log.info("Compte Connect Express {} créé pour le housekeeper {}", account.getId(), user.getId());
+        log.info("Compte Connect Express {} créé pour le prestataire {}", account.getId(), user.getId());
         return account.getId();
     }
 
@@ -228,7 +230,7 @@ public class HousekeeperPayoutService {
             config.setOnboardingCompleted(nowComplete);
             configRepository.save(config);
             if (!wasComplete && nowComplete) {
-                log.info("Onboarding Connect housekeeper complété pour le compte {}", accountId);
+                log.info("Onboarding Connect prestataire complété pour le compte {}", accountId);
             }
         });
     }
@@ -254,39 +256,71 @@ public class HousekeeperPayoutService {
     // ─── Payout à la complétion validée ─────────────────────────────────────────
 
     /**
-     * Déclenché à la COMPLÉTION d'une intervention ménage (host déjà payé dans ce
-     * flux). Best-effort du point de vue de l'appelant : ne bloque jamais la
-     * complétion — mais chaque refus laisse un record BLOCKED motivé.
+     * Déclenché à la complétion d'une prestation, quel que soit son métier. Best-effort du point de vue de l'appelant : ne bloque jamais la
+     * complétion. Un refus laisse un record BLOCKED motivé quand le bénéficiaire
+     * est identifié ; sinon, la plateforme reçoit une alerte sans inventer de bénéficiaire.
      */
     public void processPayoutForIntervention(Intervention intervention) {
+        if (TransactionSynchronizationManager.isSynchronizationActive()) {
+            Long missionId = intervention.getId();
+            Long orgId = intervention.getOrganizationId();
+            TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+                @Override public void afterCommit() {
+                    outsideTransaction.executeWithoutResult(status -> processCompletedMission(missionId, orgId));
+                }
+            });
+            return;
+        }
+        processCommittedIntervention(intervention);
+    }
+
+    public void processCompletedMission(Long missionId, Long orgId) {
+        Intervention mission;
         try {
-            if (!isCleaningType(intervention) || intervention.getAssignedUser() == null) {
-                return; // pas un cas payout (équipe, maintenance…) — pas de record.
+            mission = missionReader.load(missionId, orgId);
+        } catch (RuntimeException failure) {
+            // La mission ou le choix du bénéficiaire est déjà commité : une lecture
+            // indisponible ne doit pas faire croire à l'appelant que sa validation a échoué.
+            log.error("Lecture du versement de l'intervention {} impossible après validation", missionId, failure);
+            notifyAdminsFailure(missionId, "#" + missionId, null,
+                    "Impossible de vérifier la mission après validation. Aucun transfert émis par cette tentative");
+            return;
+        }
+        if (mission.getStatus() == com.clenzy.model.InterventionStatus.COMPLETED) processCommittedIntervention(mission);
+    }
+
+    private void processCommittedIntervention(Intervention intervention) {
+        try {
+            var recipient = beneficiaries.resolve(intervention.getId(), intervention.getOrganizationId()).orElse(null);
+            if (recipient == null) {
+                notifyAdminsFailure(intervention.getId(), intervention.getTitle(), null,
+                        "Bénéficiaire de versement à désigner pour cette équipe. Aucun paiement envoyé à un membre par défaut");
+                return;
             }
-            if (intervention.getPaymentStatus() != PaymentStatus.PAID) {
-                log.info("Payout intervention {} différé : paiement host non acquis ({})",
-                        intervention.getId(), intervention.getPaymentStatus());
+            PayoutBeneficiary beneficiary = recipient.beneficiary();
+            String blockingReason = payoutPolicy.blockingReason(intervention);
+            if (blockingReason != null) {
+                recorder.insertRecord(intervention, beneficiary, BigDecimal.ZERO, BigDecimal.ZERO,
+                        Status.BLOCKED, blockingReason);
                 return;
             }
 
             Long orgId = intervention.getOrganizationId();
-            User pro = intervention.getAssignedUser();
 
             // Gate 1 : preuve photo.
             if (!isProofComplete(intervention)) {
-                recorder.insertRecord(intervention, pro, BigDecimal.ZERO, BigDecimal.ZERO,
+                recorder.insertRecord(intervention, beneficiary, BigDecimal.ZERO, BigDecimal.ZERO,
                         Status.BLOCKED, HousekeeperPayoutRecord.REASON_PROOF_MISSING);
                 return;
             }
 
             // Gate 2 : onboarding Connect complet.
-            HousekeeperPayoutConfig config = configRepository
-                    .findByUserIdAndOrganizationId(pro.getId(), orgId).orElse(null);
+            HousekeeperPayoutConfig config = payoutAccounts.resolve(intervention, beneficiary).orElse(null);
             if (config == null || config.getStripeAccountId() == null || !config.isOnboardingCompleted()) {
-                boolean created = recorder.insertRecord(intervention, pro, BigDecimal.ZERO, BigDecimal.ZERO,
+                boolean created = recorder.insertRecord(intervention, beneficiary, BigDecimal.ZERO, BigDecimal.ZERO,
                         Status.BLOCKED, HousekeeperPayoutRecord.REASON_ONBOARDING_INCOMPLETE);
-                if (created && pro.getKeycloakId() != null) {
-                    notificationService.send(pro.getKeycloakId(), NotificationKey.PAYOUT_BLOCKED_ONBOARDING,
+                if (created && recipient.notificationSubject() != null) {
+                    notificationService.send(recipient.notificationSubject(), NotificationKey.PAYOUT_BLOCKED_ONBOARDING,
                             "Versement en attente",
                             "Votre versement pour la mission '" + intervention.getTitle()
                                     + "' est en attente : configurez votre compte de versement dans Réglages > Mes versements.",
@@ -299,25 +333,24 @@ public class HousekeeperPayoutService {
                 return;
             }
 
-            // Montant : rémunération résolue (actualCost sinon estimatedCost) − commission.
-            BigDecimal gross = intervention.getActualCost() != null
-                    ? intervention.getActualCost() : intervention.getEstimatedCost();
+            // Après remboursement, la commission s'applique uniquement au montant conservé.
+            BigDecimal gross = payoutPolicy.payableGross(intervention);
             if (gross == null || gross.compareTo(BigDecimal.ZERO) <= 0) {
-                recorder.insertRecord(intervention, pro, BigDecimal.ZERO, BigDecimal.ZERO,
+                recorder.insertRecord(intervention, beneficiary, BigDecimal.ZERO, BigDecimal.ZERO,
                         Status.BLOCKED, "AMOUNT_NOT_POSITIVE");
                 return;
             }
-            BigDecimal commission = commissionFor(gross);
+            BigDecimal commission = commissionFor(gross, payoutPolicy.commissionCategory(intervention));
             BigDecimal net = gross.subtract(commission).setScale(2, RoundingMode.HALF_UP);
             if (net.compareTo(BigDecimal.ZERO) <= 0) {
-                recorder.insertRecord(intervention, pro, net.max(BigDecimal.ZERO), commission,
+                recorder.insertRecord(intervention, beneficiary, net.max(BigDecimal.ZERO), commission,
                         Status.BLOCKED, "AMOUNT_NOT_POSITIVE");
                 return;
             }
 
-            // Préparation en transaction courte : record PENDING. La contrainte UNIQUE
-            // est le verrou anti-double-payout (insert concurrent → violation → stop).
-            if (!recorder.insertRecord(intervention, pro, net, commission, Status.PENDING, null)) {
+            // Préparation en transaction courte : le verrou partagé fige le bénéficiaire
+            // avec la décision plateforme ; la contrainte UNIQUE protège aussi la mission.
+            if (!recorder.insertRecord(intervention, beneficiary, net, commission, Status.PENDING, null)) {
                 return; // déjà traité (SENT/PENDING/BLOCKED existant) — aucun nouvel appel Stripe.
             }
             HousekeeperPayoutRecord record = recordRepository
@@ -325,9 +358,9 @@ public class HousekeeperPayoutService {
                     .orElseThrow(() -> new IllegalStateException("Record payout introuvable après insert"));
 
             // Transfert Stripe APRÈS COMMIT — jamais dans la transaction appelante.
-            scheduleTransferAfterCommit(record.getId(), intervention.getId(),
+            executeTransfer(record.getId(), intervention.getId(),
                     intervention.getTitle(), net, config.getStripeAccountId(),
-                    pro.getKeycloakId(), orgId);
+                    recipient.notificationSubject(), orgId);
         } catch (Exception e) {
             // Jamais bloquer la complétion — mais tracer + alerter (pas de catch avaleur
             // silencieux : les admins sont notifiés qu'une réconciliation est requise).
@@ -336,47 +369,82 @@ public class HousekeeperPayoutService {
         }
     }
 
-    /** Relance manuelle admin d'un record FAILED ou BLOCKED (re-gate complet). */
-    public HousekeeperPayoutRecord retryPayout(Long recordId, Long orgId) {
-        HousekeeperPayoutRecord record = recordRepository.findById(recordId)
-                .orElseThrow(() -> new NotFoundException("Versement non trouvé"));
-        if (!record.getOrganizationId().equals(orgId)) {
-            throw new org.springframework.security.access.AccessDeniedException("Versement hors organisation");
-        }
-        if (record.getStatus() == Status.SENT || record.getStatus() == Status.PENDING) {
-            return record; // rien à relancer — aucun nouvel appel Stripe.
-        }
+    /** La lecture de cet aperçu ne réserve ni ne transfère aucun montant. */
+    public RetryQuote previewRetry(Long recordId, Long orgId) {
+        var plan = prepareRetry(requireRetryRecord(recordId, orgId), orgId);
+        return new RetryQuote(plan.net(), plan.commission());
+    }
 
-        Intervention intervention = interventionRepository.findById(record.getInterventionId())
-                .orElseThrow(() -> new NotFoundException("Intervention non trouvée"));
-        User pro = intervention.getAssignedUser();
-        HousekeeperPayoutConfig config = pro != null
-                ? configRepository.findByUserIdAndOrganizationId(pro.getId(), orgId).orElse(null) : null;
+    /** Relance interne avec revalidation complète (automatisations autorisées). */
+    public HousekeeperPayoutRecord retryPayout(Long recordId, Long orgId) {
+        return retryPayout(recordId, orgId, null);
+    }
+
+    /** Une décision interactive ne peut pas verser un montant différent de son aperçu. */
+    public HousekeeperPayoutRecord retryPayout(Long recordId, Long orgId, RetryQuote expected) {
+        var record = requireRetryRecord(recordId, orgId);
+        if (record.getStatus() == Status.SENT || record.getStatus() == Status.PENDING) return record;
+        var plan = prepareRetry(record, orgId);
+        if (expected != null && (expected.amount() == null || expected.commissionAmount() == null
+                || expected.amount().compareTo(plan.net()) != 0
+                || expected.commissionAmount().compareTo(plan.commission()) != 0)) {
+            throw new com.clenzy.exception.BaitlyPayoutNotReadyException(
+                    "Le montant a changé. Vérifiez le nouvel aperçu avant de confirmer.");
+        }
+        int updated = recorder.requeueRecord(record.getId(), record.getStatus(), plan.net(), plan.commission());
+        if (updated == 0) return recordRepository.findById(recordId).orElse(record);
+        scheduleTransferAfterCommit(record.getId(), plan.intervention().getId(), plan.intervention().getTitle(),
+                plan.net(), plan.config().getStripeAccountId(), plan.notificationSubject(), orgId);
+        return recordRepository.findById(recordId).orElse(record);
+    }
+
+    private HousekeeperPayoutRecord requireRetryRecord(Long recordId, Long orgId) {
+        var record = recordRepository.findById(recordId)
+                .orElseThrow(() -> new NotFoundException("Versement non trouvé"));
+        if (!orgId.equals(record.getOrganizationId()))
+            throw new org.springframework.security.access.AccessDeniedException("Versement hors organisation");
+        return record;
+    }
+
+    private record RetryPlan(Intervention intervention, HousekeeperPayoutConfig config,
+                             String notificationSubject, BigDecimal net, BigDecimal commission) { }
+
+    private RetryPlan prepareRetry(HousekeeperPayoutRecord record, Long orgId) {
+        if ((record.getStatus() != Status.BLOCKED && record.getStatus() != Status.FAILED)
+                || record.getStripeTransferId() != null || "RECONCILIATION_REQUIRED".equals(record.getFailureReason()))
+            throw new com.clenzy.exception.BaitlyPayoutNotReadyException("Le transfert existant doit être rapproché avant toute relance.");
+        // La décision s'appuie sur un état commité dont les relations nécessaires
+        // sont chargées avant de sortir de la transaction de lecture.
+        Intervention intervention = missionReader.load(record.getInterventionId(), orgId);
+        if (!orgId.equals(intervention.getOrganizationId())) {
+            throw new org.springframework.security.access.AccessDeniedException("Intervention hors organisation");
+        }
+        var recipient = beneficiaries.resolve(intervention.getId(), orgId).orElse(null);
+        if (recipient == null || !record.beneficiary().equals(recipient.beneficiary())) {
+            throw new com.clenzy.exception.BaitlyPayoutNotReadyException("Le bénéficiaire ou l'organisation de la mission a changé. Rapprochement requis.");
+        }
+        String blockingReason = payoutPolicy.blockingReason(intervention);
+        if (blockingReason != null) {
+            throw new com.clenzy.exception.BaitlyPayoutNotReadyException("Conditions de versement non réunies : " + blockingReason);
+        }
+        HousekeeperPayoutConfig config = payoutAccounts.resolve(intervention, recipient.beneficiary()).orElse(null);
 
         // Re-gate complet (la situation a pu évoluer : photo ajoutée, onboarding fini).
-        if (pro == null || !isProofComplete(intervention)
+        if (!isProofComplete(intervention)
                 || config == null || config.getStripeAccountId() == null || !config.isOnboardingCompleted()) {
-            throw new IllegalStateException("Conditions du versement toujours non réunies (preuve/onboarding)");
+            throw new com.clenzy.exception.BaitlyPayoutNotReadyException("Conditions du versement toujours non réunies (preuve/onboarding)");
         }
-        BigDecimal gross = intervention.getActualCost() != null
-                ? intervention.getActualCost() : intervention.getEstimatedCost();
+        BigDecimal gross = payoutPolicy.payableGross(intervention);
         if (gross == null || gross.compareTo(BigDecimal.ZERO) <= 0) {
-            throw new IllegalStateException("Montant de versement non positif");
+            throw new com.clenzy.exception.BaitlyPayoutNotReadyException("Montant de versement non positif");
         }
-        BigDecimal commission = commissionFor(gross);
+        BigDecimal commission = commissionFor(gross, payoutPolicy.commissionCategory(intervention));
         BigDecimal net = gross.subtract(commission).setScale(2, RoundingMode.HALF_UP);
         if (net.compareTo(BigDecimal.ZERO) <= 0) {
-            throw new IllegalStateException("Montant net non positif après commission");
+            throw new com.clenzy.exception.BaitlyPayoutNotReadyException("Montant net non positif après commission");
         }
 
-        // CAS FAILED|BLOCKED → PENDING (le montant est refixé au passage).
-        int updated = recorder.requeueRecord(record.getId(), record.getStatus(), net, commission);
-        if (updated == 0) {
-            return recordRepository.findById(recordId).orElse(record); // concurrent — état actuel.
-        }
-        scheduleTransferAfterCommit(record.getId(), intervention.getId(), intervention.getTitle(),
-                net, config.getStripeAccountId(), pro.getKeycloakId(), orgId);
-        return recordRepository.findById(recordId).orElse(record);
+        return new RetryPlan(intervention, config, recipient.notificationSubject(), net, commission);
     }
 
 
@@ -392,33 +460,29 @@ public class HousekeeperPayoutService {
 
     // ─── Internes ───────────────────────────────────────────────────────────────
 
-    private static boolean isCleaningType(Intervention intervention) {
-        String type = intervention.getType();
-        return type != null && (type.equals(InterventionType.CLEANING.name())
-                || type.equals(InterventionType.EXPRESS_CLEANING.name())
-                || type.equals(InterventionType.DEEP_CLEANING.name()));
-    }
 
     /**
      * Commission de la catégorie « entretien » du commissionConfigs (Tarification).
      * Désactivée par défaut : absente ou {@code enabled=false} → zéro.
      */
     BigDecimal commissionFor(BigDecimal gross) {
+        return commissionFor(gross, COMMISSION_CATEGORY);
+    }
+
+    BigDecimal commissionFor(BigDecimal gross, String category) {
         try {
             List<PricingConfigDto.CommissionConfig> configs =
                     pricingConfigService.getCurrentConfig().getCommissionConfigs();
             if (configs == null) return BigDecimal.ZERO;
             return configs.stream()
-                    .filter(c -> COMMISSION_CATEGORY.equals(c.getCategory()) && c.isEnabled()
+                    .filter(c -> category.equals(c.getCategory()) && c.isEnabled()
                             && c.getRate() != null && c.getRate() > 0)
                     .findFirst()
                     .map(c -> gross.multiply(BigDecimal.valueOf(c.getRate()))
                             .divide(BigDecimal.valueOf(100), 2, RoundingMode.HALF_UP))
                     .orElse(BigDecimal.ZERO);
         } catch (Exception e) {
-            // Une erreur de config ne doit pas surfacturer le pro : commission zéro + log.
-            log.warn("Lecture commissionConfigs impossible, commission ignorée : {}", e.getMessage());
-            return BigDecimal.ZERO;
+            throw new IllegalStateException("Commission indisponible, versement suspendu.", e);
         }
     }
 
@@ -450,19 +514,23 @@ public class HousekeeperPayoutService {
 
     /**
      * Exécute le transfert Stripe (HORS transaction) puis persiste le résultat par
-     * UPDATE CONDITIONNEL dans une nouvelle transaction. Idempotency key stable
-     * par intervention : un retry réseau ne crée jamais deux transferts.
+     * UPDATE CONDITIONNEL dans une nouvelle transaction. Le journal durable protège
+     * aussi les relances après expiration de la clé d'idempotence Stripe.
      */
     void executeTransfer(Long recordId, Long interventionId, String title, BigDecimal net,
                          String stripeAccountId, String proKeycloakId, Long orgId) {
         try {
             // Versement Stripe Connect via l'adaptateur partagé (plus de types Stripe ici).
-            // Le versement ménage reste Stripe-Connect-only par design (HousekeeperPayoutConfig
-            // ne porte que stripeAccountId) — cf. doc §7 flux Stripe-only.
-            String transferId = transferClient.createTransfer(
-                    net, "eur", stripeAccountId,
-                    "Versement mission ménage #" + interventionId,
-                    "payout-intervention-" + interventionId);
+            // Le circuit hérité est partagé par tous les prestataires, avec une devise EUR explicite.
+            HousekeeperPayoutRecord persisted = recordRepository.findById(recordId)
+                    .orElseThrow(() -> new IllegalStateException("Versement prestataire introuvable."));
+            if (!orgId.equals(persisted.getOrganizationId()) || !interventionId.equals(persisted.getInterventionId())
+                    || persisted.getAmount().compareTo(net) != 0) {
+                throw new IllegalStateException("Le versement prestataire ne correspond pas à la mission.");
+            }
+            String transferId = transferClient.createTransfer(new PayoutTransferInstruction(
+                    orgId, com.clenzy.model.PayoutTransfer.Source.INTERVENTION, interventionId, persisted.getUserId(),
+                    persisted.getBeneficiaryOrganizationId(), net, "EUR", stripeAccountId, "Versement prestation #" + interventionId));
 
             int updated = recorder.markSent(recordId, transferId);
             if (updated > 0 && proKeycloakId != null) {
@@ -477,10 +545,28 @@ public class HousekeeperPayoutService {
                                 .build());
             }
             log.info("Payout intervention {} : transfert {} envoyé ({} EUR)", interventionId, transferId, net);
+        } catch (PayoutFundsUnavailableException e) {
+            recorder.markFailed(recordId, e.getMessage());
+            notifyAdminsFailure(recordId, interventionId, title, net, e.getMessage());
+        } catch (PayoutReconciliationRequiredException e) {
+            notifyAdminsFailure(recordId, interventionId, title, net, e.getMessage());
+            try {
+                recorder.markReconciliationRequired(recordId);
+            } catch (RuntimeException persistenceFailure) {
+                // Le journal a déjà réservé l'ordre : même si ce statut local échoue,
+                // il interdit une nouvelle émission et l'alerte doit rester tentée.
+                e.addSuppressed(persistenceFailure);
+                throw e;
+            }
         } catch (StripeException e) {
             log.error("Payout intervention {} : transfert Stripe en échec : {}", interventionId, e.getMessage());
             recorder.markFailed(recordId, e.getMessage());
             notifyAdminsFailure(recordId, interventionId, title, net, e.getMessage());
+        } catch (RuntimeException e) {
+            // Le journal peut déjà contenir un transfert confirmé alors que markSent a échoué.
+            notifyAdminsFailure(recordId, interventionId, title, net,
+                    "Enregistrement du versement à rapprocher. Aucune réémission automatique.");
+            throw e;
         }
     }
 
@@ -503,10 +589,10 @@ public class HousekeeperPayoutService {
                     ? "/billing?tab=housekeeper-payouts&highlight=" + recordId
                     : "/interventions/" + interventionId;
             notificationService.notifyAdminsAndManagers(NotificationKey.PAYOUT_FAILED,
-                    "Versement prestataire en échec",
+                    "Versement prestataire à vérifier",
                     "Le versement" + (amount != null ? " de " + amount.stripTrailingZeros().toPlainString() + " EUR" : "")
                             + " pour la mission '" + title + "' (intervention #" + interventionId
-                            + ") a échoué : " + reason + ". Relance manuelle requise.",
+                            + ") nécessite une vérification : " + reason + ". Vérifiez son état avant toute relance.",
                     actionUrl);
         } catch (Exception e) {
             log.error("Notification PAYOUT_FAILED impossible pour l'intervention {} : {}", interventionId, e.getMessage());

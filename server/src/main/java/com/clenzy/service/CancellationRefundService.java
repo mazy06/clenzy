@@ -78,8 +78,8 @@ public class CancellationRefundService {
                 resolution.customRules()
         ));
 
-        String currency = property != null && property.getDefaultCurrency() != null
-                ? property.getDefaultCurrency() : "EUR";
+        String currency = reservation.getCurrency() != null ? reservation.getCurrency()
+                : property != null && property.getDefaultCurrency() != null ? property.getDefaultCurrency() : "EUR";
 
         return new CancellationRefundPreviewDto(
                 reservation.getId(),

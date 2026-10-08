@@ -22,7 +22,7 @@
 import React, { useState } from 'react';
 import { cn } from '../../../utils/cn';
 import { Alert as UiAlert, AlertDescription, Button } from '../../../components/ui';
-import { TriangleAlert } from 'lucide-react';
+import { TriangleAlert } from '../../../icons/glyphs';
 import { Spinner } from '../../../components/ui';
 import {
   Checkbox,
@@ -45,7 +45,7 @@ import {
   Loader2,
   ShieldAlert,
   Sparkles,
-} from 'lucide-react';
+} from '../../../icons/glyphs';
 
 import { channexApi } from '../../../services/api/channexApi';
 import { useTranslation } from '../../../hooks/useTranslation';

@@ -3,476 +3,90 @@ import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import Inscription from '../Inscription';
 
-// Ces tests lisent la copie FRANCAISE. La langue des pages publiques suit la
-// langue du navigateur : on la declare ici plutot que de dependre du defaut
-// jsdom (`en-US`), qui ne rendait le francais que par accident.
 Object.defineProperty(window.navigator, 'languages', { value: ['fr-FR'], configurable: true });
 Object.defineProperty(window.navigator, 'language', { value: 'fr-FR', configurable: true });
-
-
-// ─── Mocks ───────────────────────────────────────────────────────────────────
-
-// Mock apiClient
-const mockPost = vi.fn();
-const mockGet = vi.fn();
-vi.mock('../../../services/apiClient', () => ({
-  default: {
-    post: (...args: unknown[]) => mockPost(...args),
-    get: (...args: unknown[]) => mockGet(...args),
-  },
-  ApiError: class ApiError extends Error {
-    status: number;
-    constructor(message: string, status: number) {
-      super(message);
-      this.status = status;
-    }
-  },
-}));
-
-// Mock BaitlyMarkLogo
-vi.mock('../../../components/BaitlyMarkLogo', () => ({
-  default: () => <div data-testid="clenzy-logo">Logo</div>,
-}));
-
-// Mock Stripe
-vi.mock('@stripe/stripe-js', () => ({
-  loadStripe: vi.fn(() => Promise.resolve({})),
-}));
-
+const { post, get } = vi.hoisted(() => ({ post: vi.fn(), get: vi.fn() }));
+vi.mock('../../../services/apiClient', () => ({ default: { post, get }, ApiError: Error }));
+vi.mock('../../../components/BaitlyMarkLogo', () => ({ default: () => <span>Baitly</span> }));
+vi.mock('@stripe/stripe-js', () => ({ loadStripe: vi.fn(() => Promise.resolve({})) }));
 vi.mock('@stripe/react-stripe-js', () => ({
-  EmbeddedCheckoutProvider: ({ children }: { children: React.ReactNode }) => (
-    <div data-testid="stripe-checkout-provider">{children}</div>
-  ),
-  EmbeddedCheckout: () => <div data-testid="stripe-embedded-checkout">Stripe Checkout Form</div>,
+  EmbeddedCheckoutProvider: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
+  EmbeddedCheckout: () => <div data-testid="stripe-checkout">Stripe Checkout</div>,
 }));
-
-// Prix de test (arbitraires — volontairement differents pour distinguer sync vs standard)
-// Si les tarifs changent en prod, ces tests restent valides car ils utilisent ces mocks.
-const MOCK_PMS_MONTHLY_CENTS = 4200;  // 42€/mois — valeur arbitraire
-const MOCK_PMS_SYNC_CENTS = 7800;     // 78€/mois — valeur arbitraire
-
-// Helpers pour calculer le prix attendu a partir des mocks (meme logique que le composant)
-function expectedPriceEuros(cents: number): string {
-  const euros = cents / 100;
-  return euros % 1 === 0 ? `${euros}€` : `${euros.toFixed(2).replace('.', ',')}€`;
+const quote = {
+  phases: [14210, 12789, 11368, 9947].map((totalCents, index) => ({ totalCents, currency: 'EUR', properties: 5, subscriptionMonth: [1, 4, 7, 13][index] })),
+  firstInvoiceExcludingTaxCents: 14210, promoCode: null,
+};
+function view(query = '') { return render(<MemoryRouter initialEntries={[`/inscription?email=jean@test.invalid&fullName=Jean+Test&propertyCount=5${query}`]}><Inscription /></MemoryRouter>); }
+const submit = () => screen.getByRole('button', { name: /Continuer vers le paiement/i });
+async function ready() {
+  fireEvent.click(screen.getByRole('checkbox', { name: /conditions générales d'utilisation/i }));
+  await waitFor(() => expect(submit()).toBeEnabled());
 }
+beforeEach(() => {
+  vi.clearAllMocks(); sessionStorage.clear(); get.mockResolvedValue(quote);
+  post.mockResolvedValue({ clientSecret: 'cs_test_secret', sessionId: 'cs_test', monthlyPriceCents: 14210, stripePriceAmount: 14210, currency: 'EUR' });
+});
 
-// ─── Helpers ─────────────────────────────────────────────────────────────────
-
-function renderInscription(searchParams = '') {
-  return render(
-    <MemoryRouter initialEntries={[`/inscription${searchParams}`]}>
-      <Inscription />
-    </MemoryRouter>,
-  );
-}
-
-/** Helper : coche la checkbox CGU (obligatoire pour activer le bouton). */
-function acceptTerms() {
-  const cguCheckbox = screen.getByRole('checkbox', {
-    name: /conditions générales d'utilisation/i,
+describe('Inscription mensuelle Baitly', () => {
+  it('affiche les montants HT du serveur et supprime les anciennes périodes annuelles', async () => {
+    view('&billingPeriod=ANNUAL'); await ready();
+    expect(screen.getAllByText(/142,10/).length).toBeGreaterThan(0);
+    expect(screen.getByText(/127,89/)).toBeInTheDocument();
+    expect(screen.queryByText('Annuel')).not.toBeInTheDocument();
+    expect(screen.queryByText('2 ans')).not.toBeInTheDocument();
+    expect(get).toHaveBeenCalledWith(expect.stringContaining('/public/inscription/quote?plan=essential&country=FR&properties=5'), { skipAuth: true });
   });
-  fireEvent.click(cguCheckbox);
-}
-
-/** Helper : soumet le formulaire et attend la transition vers le step paiement */
-async function goToPaymentStep() {
-  mockPost.mockResolvedValueOnce({
-    clientSecret: 'cs_test_secret_123',
-    sessionId: 'cs_session_123',
+  it('envoie une demande mensuelle avec son identifiant et le pays, sans prix ni mot de passe client', async () => {
+    view(); await ready(); fireEvent.click(submit()); await screen.findByTestId('stripe-checkout');
+    const payload = post.mock.calls[0][1];
+    expect(payload).toMatchObject({ forfait: 'essential', billingPeriod: 'MONTHLY', billingCountry: 'FR', propertyCount: 5, acceptedTerms: true, newsletterOptIn: false });
+    expect(payload.requestId).toMatch(/^[a-f0-9-]{36}$/);
+    expect(payload.password).toBeUndefined(); expect(payload.amount).toBeUndefined();
+    expect(screen.getByText('Première échéance HT')).toBeInTheDocument();
   });
-
-  renderInscription('?email=jean@test.com&fullName=Jean+Dupont&forfait=essentiel');
-
-  // Accepter les CGU (obligatoire RGPD)
-  acceptTerms();
-
-  // Cliquer sur "Continuer vers le paiement" (soumission directe)
-  fireEvent.click(screen.getByRole('button', { name: /Continuer vers le paiement/i }));
-}
-
-// ─── Tests ───────────────────────────────────────────────────────────────────
-
-describe('Inscription', () => {
-  beforeEach(() => {
-    vi.clearAllMocks();
-    // Par defaut, mockGet retourne les prix de test pour /public/pricing-info
-    mockGet.mockResolvedValue({
-      pmsMonthlyPriceCents: MOCK_PMS_MONTHLY_CENTS,
-      pmsSyncPriceCents: MOCK_PMS_SYNC_CENTS,
-    });
+  it('attend un devis valide avant de permettre le paiement', async () => {
+    get.mockRejectedValue(new Error('Pays sur devis')); view();
+    fireEvent.click(screen.getByRole('checkbox', { name: /conditions générales d'utilisation/i }));
+    await screen.findByText('Pays sur devis'); expect(submit()).toBeDisabled(); expect(post).not.toHaveBeenCalled();
   });
-
-  describe('Stepper', () => {
-    it('affiche 2 etapes dans le stepper', () => {
-      renderInscription();
-      expect(screen.getByText('Vos informations')).toBeInTheDocument();
-      expect(screen.getByText('Paiement')).toBeInTheDocument();
-      // L etape mot de passe n existe plus
-      expect(screen.queryByText('Votre mot de passe')).not.toBeInTheDocument();
-    });
-
-    it('demarre a l etape 1 (informations)', () => {
-      renderInscription();
-      expect(screen.getByLabelText(/Nom complet/i)).toBeInTheDocument();
-      expect(screen.getByLabelText(/Email/i)).toBeInTheDocument();
-    });
+  it('refait le devis après changement de pays et bloque une promotion refusée', async () => {
+    view(); await ready();
+    get.mockRejectedValue(new Error('Devise du code promotionnel incompatible'));
+    fireEvent.change(screen.getByLabelText('Pays de facturation'), { target: { value: 'MA' } });
+    expect(submit()).toBeDisabled(); await screen.findByText('Devise du code promotionnel incompatible');
+    expect(get.mock.calls.at(-1)?.[0]).toContain('country=MA'); expect(post).not.toHaveBeenCalled();
   });
-
-  describe('Etape 1 - Informations', () => {
-    it('affiche les champs nom, email, telephone et les chips type orga', () => {
-      renderInscription();
-      expect(screen.getByLabelText(/Nom complet/i)).toBeInTheDocument();
-      expect(screen.getByLabelText(/Email/i)).toBeInTheDocument();
-      expect(screen.getByLabelText(/Telephone/i)).toBeInTheDocument();
-      // Chips type d'organisation
-      expect(screen.getByText('Particulier')).toBeInTheDocument();
-      expect(screen.getByText('Conciergerie')).toBeInTheDocument();
-      expect(screen.getByText('Societe de menage')).toBeInTheDocument();
-      // Champ societe cache par defaut (mode Particulier)
-      expect(screen.queryByLabelText(/Nom de la societe/i)).not.toBeInTheDocument();
-    });
-
-    it('affiche les periodes de facturation', () => {
-      renderInscription();
-      expect(screen.getByText('Mensuel')).toBeInTheDocument();
-      expect(screen.getByText('Annuel')).toBeInTheDocument();
-      expect(screen.getByText('2 ans')).toBeInTheDocument();
-    });
-
-    it('pre-remplit les champs depuis les query params', () => {
-      renderInscription('?email=jean@test.com&fullName=Jean+Dupont&forfait=essentiel&billingPeriod=MONTHLY');
-      expect(screen.getByDisplayValue('jean@test.com')).toBeInTheDocument();
-      expect(screen.getByDisplayValue('Jean Dupont')).toBeInTheDocument();
-    });
-
-    it('desactive le bouton si les champs obligatoires sont vides', () => {
-      renderInscription();
-      const btn = screen.getByRole('button', { name: /Continuer vers le paiement/i });
-      expect(btn).toBeDisabled();
-    });
-
-    it('active le bouton quand les champs obligatoires sont remplis ET les CGU acceptees', () => {
-      renderInscription('?email=jean@test.com&fullName=Jean+Dupont&forfait=essentiel');
-      // Sans CGU : bouton desactive
-      let btn = screen.getByRole('button', { name: /Continuer vers le paiement/i });
-      expect(btn).toBeDisabled();
-      // Avec CGU acceptees : bouton actif
-      acceptTerms();
-      btn = screen.getByRole('button', { name: /Continuer vers le paiement/i });
-      expect(btn).toBeEnabled();
-    });
-
-    it('affiche le badge forfait quand pre-rempli', () => {
-      renderInscription('?forfait=essentiel&email=jean@test.com');
-      expect(screen.getByText('Forfait Essentiel')).toBeInTheDocument();
-    });
+  it('garde le même identifiant quand une requête réseau doit être réessayée', async () => {
+    post.mockRejectedValueOnce(new Error('Connexion interrompue')); view(); await ready(); fireEvent.click(submit());
+    await screen.findByText('Connexion interrompue'); fireEvent.click(submit()); await screen.findByTestId('stripe-checkout');
+    expect(post.mock.calls[1][1].requestId).toEqual(post.mock.calls[0][1].requestId);
+  });
+  it('ne transforme pas une erreur fiscale 409 en fausse erreur de compte existant', async () => {
+    post.mockRejectedValue(Object.assign(new Error('Finaliser Stripe Tax'), { status: 409 })); view(); await ready(); fireEvent.click(submit());
+    await screen.findByText('Finaliser Stripe Tax'); expect(screen.queryByTestId('stripe-checkout')).not.toBeInTheDocument();
+  });
+  it('préserve les conditions, la confidentialité et le consentement newsletter distinct', async () => {
+    view(); expect(submit()).toBeDisabled();
+    expect(screen.getByRole('link', { name: /conditions générales d'utilisation/i })).toHaveAttribute('href', '/cgu');
+    expect(screen.getByRole('link', { name: /politique de confidentialité/i })).toHaveAttribute('href', '/confidentialite');
+    fireEvent.click(screen.getByRole('checkbox', { name: /newsletter Baitly/i })); await ready(); fireEvent.click(submit());
+    await screen.findByTestId('stripe-checkout'); expect(post.mock.calls[0][1].newsletterOptIn).toBe(true);
+  });
+  it('conserve le type de société et bloque la soumission sans raison sociale', async () => {
+    view(); fireEvent.click(screen.getByText('Conciergerie'));
+    fireEvent.click(screen.getByRole('checkbox', { name: /conditions générales d'utilisation/i }));
+    await screen.findByText(/127,89/); expect(submit()).toBeDisabled();
+    fireEvent.change(screen.getByLabelText(/Nom de la societe/i), { target: { value: 'Conciergerie Test' } });
+    await waitFor(() => expect(submit()).toBeEnabled()); fireEvent.click(submit()); await screen.findByTestId('stripe-checkout');
+    expect(post.mock.calls[0][1]).toMatchObject({ companyName: 'Conciergerie Test', organizationType: 'CONCIERGE' });
+  });
+  it('reprend le même Checkout après rechargement sans stocker le secret Stripe', async () => {
+    const first = view();await ready();fireEvent.click(submit());await screen.findByTestId('stripe-checkout');
+    const id = post.mock.calls[0][1].requestId;
+    expect(sessionStorage.getItem('baitly_signup_attempt')).not.toContain('cs_test_secret');
+    first.unmount();view();await ready();fireEvent.click(submit());await screen.findByTestId('stripe-checkout');
+    expect(post.mock.calls[1][1].requestId).toBe(id);
   });
 
-  describe('Soumission vers le paiement', () => {
-    it('appelle l API /public/inscription sans mot de passe', async () => {
-      await goToPaymentStep();
-
-      await waitFor(() => {
-        expect(mockPost).toHaveBeenCalledWith(
-          '/public/inscription',
-          expect.objectContaining({
-            fullName: 'Jean Dupont',
-            email: 'jean@test.com',
-            forfait: 'essentiel',
-            billingPeriod: 'MONTHLY',
-          }),
-          { skipAuth: true },
-        );
-        // Le mot de passe ne doit PAS etre envoye
-        const callArgs = mockPost.mock.calls[0][1];
-        expect(callArgs.password).toBeUndefined();
-      });
-    });
-
-    it('affiche le Stripe Embedded Checkout apres soumission', async () => {
-      await goToPaymentStep();
-
-      await waitFor(() => {
-        expect(screen.getByTestId('stripe-checkout-provider')).toBeInTheDocument();
-        expect(screen.getByTestId('stripe-embedded-checkout')).toBeInTheDocument();
-      });
-    });
-
-    it('affiche le recapitulatif de commande au step paiement', async () => {
-      await goToPaymentStep();
-
-      await waitFor(() => {
-        expect(screen.getByText('Paiement securise via Stripe')).toBeInTheDocument();
-        expect(screen.getByText('Total a payer')).toBeInTheDocument();
-      });
-    });
-
-    it('cache le bouton et le lien login au step paiement', async () => {
-      await goToPaymentStep();
-
-      await waitFor(() => {
-        expect(screen.getByTestId('stripe-embedded-checkout')).toBeInTheDocument();
-      });
-
-      expect(screen.queryByRole('button', { name: /Continuer vers le paiement/i })).not.toBeInTheDocument();
-      expect(screen.queryByText(/Deja un compte/i)).not.toBeInTheDocument();
-    });
-  });
-
-  describe('Gestion des erreurs', () => {
-    it('affiche une erreur si l API retourne 409 (email deja existant)', async () => {
-      const error = new Error('Email already exists');
-      (error as any).status = 409;
-      mockPost.mockRejectedValueOnce(error);
-
-      renderInscription('?email=jean@test.com&fullName=Jean+Dupont&forfait=essentiel');
-
-      // Accepter les CGU avant soumission
-      acceptTerms();
-      fireEvent.click(screen.getByRole('button', { name: /Continuer vers le paiement/i }));
-
-      await waitFor(() => {
-        expect(screen.getByText(/Un compte existe deja avec cette adresse email/i)).toBeInTheDocument();
-      });
-    });
-
-    it('affiche une erreur si la reponse ne contient pas de clientSecret', async () => {
-      mockPost.mockResolvedValueOnce({ sessionId: 'cs_test' });
-
-      renderInscription('?email=jean@test.com&fullName=Jean+Dupont&forfait=essentiel');
-      acceptTerms();
-      fireEvent.click(screen.getByRole('button', { name: /Continuer vers le paiement/i }));
-
-      await waitFor(() => {
-        expect(screen.getByText(/Erreur lors de la creation de la session de paiement/i)).toBeInTheDocument();
-      });
-    });
-  });
-
-  describe('Lien login', () => {
-    it('affiche le lien "Se connecter" a l etape informations', () => {
-      renderInscription();
-      expect(screen.getByText(/Se connecter/i)).toBeInTheDocument();
-    });
-  });
-
-  describe('Type d organisation', () => {
-    it('affiche le champ societe quand Conciergerie est selectionne', () => {
-      renderInscription();
-      // Par defaut, le champ societe n'est pas visible
-      expect(screen.queryByLabelText(/Nom de la societe/i)).not.toBeInTheDocument();
-      // Cliquer sur Conciergerie
-      fireEvent.click(screen.getByText('Conciergerie'));
-      expect(screen.getByLabelText(/Nom de la societe/i)).toBeInTheDocument();
-    });
-
-    it('cache le champ societe quand on revient a Particulier', () => {
-      renderInscription();
-      fireEvent.click(screen.getByText('Conciergerie'));
-      expect(screen.getByLabelText(/Nom de la societe/i)).toBeInTheDocument();
-      // Revenir a Particulier
-      fireEvent.click(screen.getByText('Particulier'));
-      expect(screen.queryByLabelText(/Nom de la societe/i)).not.toBeInTheDocument();
-    });
-
-    it('desactive le bouton si Conciergerie selectionne sans nom de societe', () => {
-      renderInscription('?email=jean@test.com&fullName=Jean+Dupont&forfait=essentiel');
-      fireEvent.click(screen.getByText('Conciergerie'));
-      const btn = screen.getByRole('button', { name: /Continuer vers le paiement/i });
-      expect(btn).toBeDisabled();
-    });
-
-    it('active le bouton quand Conciergerie + nom de societe rempli + CGU acceptees', () => {
-      renderInscription('?email=jean@test.com&fullName=Jean+Dupont&forfait=essentiel');
-      fireEvent.click(screen.getByText('Conciergerie'));
-      fireEvent.change(screen.getByLabelText(/Nom de la societe/i), { target: { value: 'Ma Conciergerie' } });
-      // Sans CGU : bouton desactive
-      let btn = screen.getByRole('button', { name: /Continuer vers le paiement/i });
-      expect(btn).toBeDisabled();
-      // Avec CGU : bouton actif
-      acceptTerms();
-      btn = screen.getByRole('button', { name: /Continuer vers le paiement/i });
-      expect(btn).toBeEnabled();
-    });
-
-    it('envoie organizationType dans l appel API', async () => {
-      mockPost.mockResolvedValueOnce({
-        clientSecret: 'cs_test_secret_123',
-        sessionId: 'cs_session_123',
-      });
-
-      renderInscription('?email=jean@test.com&fullName=Jean+Dupont&forfait=essentiel');
-      // Selectionner Conciergerie
-      fireEvent.click(screen.getByText('Conciergerie'));
-      // Remplir le nom de societe
-      fireEvent.change(screen.getByLabelText(/Nom de la societe/i), { target: { value: 'Ma Conciergerie' } });
-      // Accepter les CGU
-      acceptTerms();
-      // Soumettre
-      fireEvent.click(screen.getByRole('button', { name: /Continuer vers le paiement/i }));
-
-      await waitFor(() => {
-        expect(mockPost).toHaveBeenCalledWith(
-          '/public/inscription',
-          expect.objectContaining({
-            organizationType: 'CONCIERGE',
-            companyName: 'Ma Conciergerie',
-          }),
-          { skipAuth: true },
-        );
-      });
-    });
-
-    it('n envoie pas companyName en mode Particulier', async () => {
-      mockPost.mockResolvedValueOnce({
-        clientSecret: 'cs_test_secret_123',
-        sessionId: 'cs_session_123',
-      });
-
-      renderInscription('?email=jean@test.com&fullName=Jean+Dupont&forfait=essentiel');
-      // Rester en Particulier (defaut) — accepter CGU puis soumettre
-      acceptTerms();
-      fireEvent.click(screen.getByRole('button', { name: /Continuer vers le paiement/i }));
-
-      await waitFor(() => {
-        expect(mockPost).toHaveBeenCalledWith(
-          '/public/inscription',
-          expect.objectContaining({
-            organizationType: 'INDIVIDUAL',
-          }),
-          { skipAuth: true },
-        );
-        // companyName doit etre undefined (pas envoye)
-        const callArgs = mockPost.mock.calls[0][1];
-        expect(callArgs.companyName).toBeUndefined();
-      });
-    });
-  });
-
-  describe('Mode sync (calendarSync=sync)', () => {
-    it('affiche le label Synchro dans le badge forfait en mode sync', async () => {
-      renderInscription('?forfait=premium&email=jean@test.com&fullName=Jean+Dupont&calendarSync=sync');
-      expect(await screen.findByText(/Synchro/i)).toBeInTheDocument();
-    });
-
-    it('utilise le prix sync au lieu du prix standard en mode sync', async () => {
-      renderInscription('?forfait=premium&email=jean@test.com&fullName=Jean+Dupont&calendarSync=sync');
-      const expectedSync = expectedPriceEuros(MOCK_PMS_SYNC_CENTS);
-      const expectedStandard = expectedPriceEuros(MOCK_PMS_MONTHLY_CENTS);
-      // Le prix sync (derive du mock) doit apparaitre, pas le prix standard
-      await waitFor(() => {
-        const syncMatches = screen.getAllByText(new RegExp(expectedSync.replace('€', '€')));
-        expect(syncMatches.length).toBeGreaterThan(0);
-      });
-      // Le prix standard ne doit PAS apparaitre
-      expect(screen.queryAllByText(new RegExp(expectedStandard.replace('€', '€')))).toHaveLength(0);
-    });
-
-    it('utilise le prix standard en mode non-sync', async () => {
-      renderInscription('?forfait=premium&email=jean@test.com&fullName=Jean+Dupont&calendarSync=manuel');
-      const expectedSync = expectedPriceEuros(MOCK_PMS_SYNC_CENTS);
-      const expectedStandard = expectedPriceEuros(MOCK_PMS_MONTHLY_CENTS);
-      // Le prix standard (derive du mock) doit apparaitre, pas le prix sync
-      await waitFor(() => {
-        const standardMatches = screen.getAllByText(new RegExp(expectedStandard.replace('€', '€')));
-        expect(standardMatches.length).toBeGreaterThan(0);
-      });
-      // Le prix sync ne doit PAS apparaitre
-      expect(screen.queryAllByText(new RegExp(expectedSync.replace('€', '€')))).toHaveLength(0);
-    });
-  });
-
-  describe('Consentement RGPD + attribution', () => {
-    it('le bouton reste desactive tant que les CGU ne sont pas acceptees', () => {
-      renderInscription('?email=jean@test.com&fullName=Jean+Dupont&forfait=essentiel');
-      const btn = screen.getByRole('button', { name: /Continuer vers le paiement/i });
-      expect(btn).toBeDisabled();
-    });
-
-    it('affiche les liens CGU et politique de confidentialite', () => {
-      renderInscription();
-      expect(screen.getByRole('link', { name: /conditions générales d'utilisation/i })).toHaveAttribute('href', '/cgu');
-      expect(screen.getByRole('link', { name: /politique de confidentialité/i })).toHaveAttribute('href', '/confidentialite');
-    });
-
-    it('envoie acceptedTerms=true et newsletterOptIn=false par defaut dans l API', async () => {
-      mockPost.mockResolvedValueOnce({
-        clientSecret: 'cs_test_secret_123',
-        sessionId: 'cs_session_123',
-      });
-
-      renderInscription('?email=jean@test.com&fullName=Jean+Dupont&forfait=essentiel');
-      acceptTerms();
-      fireEvent.click(screen.getByRole('button', { name: /Continuer vers le paiement/i }));
-
-      await waitFor(() => {
-        expect(mockPost).toHaveBeenCalledWith(
-          '/public/inscription',
-          expect.objectContaining({
-            acceptedTerms: true,
-            newsletterOptIn: false,
-          }),
-          { skipAuth: true },
-        );
-      });
-    });
-
-    it('envoie newsletterOptIn=true quand l opt-in est coche', async () => {
-      mockPost.mockResolvedValueOnce({
-        clientSecret: 'cs_test_secret_123',
-        sessionId: 'cs_session_123',
-      });
-
-      renderInscription('?email=jean@test.com&fullName=Jean+Dupont&forfait=essentiel');
-      acceptTerms();
-      // Cocher la newsletter
-      fireEvent.click(screen.getByRole('checkbox', { name: /newsletter Baitly/i }));
-      fireEvent.click(screen.getByRole('button', { name: /Continuer vers le paiement/i }));
-
-      await waitFor(() => {
-        expect(mockPost).toHaveBeenCalledWith(
-          '/public/inscription',
-          expect.objectContaining({ newsletterOptIn: true }),
-          { skipAuth: true },
-        );
-      });
-    });
-
-    it('envoie le code promo normalise en majuscules', async () => {
-      mockPost.mockResolvedValueOnce({
-        clientSecret: 'cs_test_secret_123',
-        sessionId: 'cs_session_123',
-      });
-
-      renderInscription('?email=jean@test.com&fullName=Jean+Dupont&forfait=essentiel');
-      fireEvent.change(screen.getByLabelText(/Code promo/i), { target: { value: 'welcome2026' } });
-      acceptTerms();
-      fireEvent.click(screen.getByRole('button', { name: /Continuer vers le paiement/i }));
-
-      await waitFor(() => {
-        expect(mockPost).toHaveBeenCalledWith(
-          '/public/inscription',
-          expect.objectContaining({ promoCode: 'WELCOME2026' }),
-          { skipAuth: true },
-        );
-      });
-    });
-
-    it('n envoie pas promoCode quand le champ est vide', async () => {
-      mockPost.mockResolvedValueOnce({
-        clientSecret: 'cs_test_secret_123',
-        sessionId: 'cs_session_123',
-      });
-
-      renderInscription('?email=jean@test.com&fullName=Jean+Dupont&forfait=essentiel');
-      acceptTerms();
-      fireEvent.click(screen.getByRole('button', { name: /Continuer vers le paiement/i }));
-
-      await waitFor(() => {
-        const callArgs = mockPost.mock.calls[0][1];
-        expect(callArgs.promoCode).toBeUndefined();
-      });
-    });
-  });
 });

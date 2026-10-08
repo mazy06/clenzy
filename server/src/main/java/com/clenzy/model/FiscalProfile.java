@@ -11,11 +11,11 @@ import java.time.LocalDateTime;
 
 /**
  * Profil fiscal d'une organisation.
- * Relation 1:1 avec Organization - definit le pays, la devise,
- * le regime fiscal et les informations legales pour la facturation.
+ * Un profil par pays d'activité. Le profil principal conserve la compatibilité
+ * des écrans historiques ; il ne pilote pas le contrat SaaS Baitly.
  */
 @Entity
-@Table(name = "fiscal_profiles", indexes = {
+@Table(name = "fiscal_profiles", uniqueConstraints = @UniqueConstraint(columnNames={"organization_id","country_code"}), indexes = {
     @Index(name = "idx_fiscal_profile_country", columnList = "country_code"),
     @Index(name = "idx_fiscal_profile_org", columnList = "organization_id")
 })
@@ -26,8 +26,13 @@ public class FiscalProfile {
     private Long id;
 
     @NotNull
-    @Column(name = "organization_id", nullable = false, unique = true)
+    @Column(name = "organization_id", nullable = false)
     private Long organizationId;
+
+    @Column(name="primary_profile",nullable=false)
+    private boolean primaryProfile=true;
+    public boolean isPrimaryProfile(){return primaryProfile;}
+    public void setPrimaryProfile(boolean value){primaryProfile=value;}
 
     @NotBlank
     @Size(max = 3)

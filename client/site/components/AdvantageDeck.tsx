@@ -5,14 +5,14 @@ import {
   CalendarCheckIcon,
   LandmarkIcon,
   ShieldCheckIcon,
-  type LucideIcon,
-} from 'lucide-react';
+  type IconComponent,
+} from '../../src/icons/glyphs';
 import { useReducedMotion } from './mockupKit';
 import { useSiteLanguage } from '../lib/siteLanguage';
 import { MOCKUP_MESSAGES } from '../lib/messages/mockups';
 
 /** Une icone par carte, dans l'ordre du dictionnaire. */
-const CARD_ICONS: LucideIcon[] = [
+const CARD_ICONS: IconComponent[] = [
   ShieldCheckIcon,
   LandmarkIcon,
   BanknoteIcon,

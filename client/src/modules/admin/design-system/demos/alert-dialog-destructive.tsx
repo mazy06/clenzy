@@ -1,4 +1,4 @@
-import { Trash2Icon } from "lucide-react"
+import { Trash2Icon } from "../../../../icons/glyphs"
 
 import {
   AlertDialog,

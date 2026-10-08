@@ -62,6 +62,11 @@ public class MobilePaymentController {
             return ResponseEntity.badRequest()
                     .body(Map.of("error", "Le champ 'type' est requis (subscription ou intervention)"));
         }
+        if ("subscription".equals(type)) {
+            return ResponseEntity.status(410).body(Map.of("error",
+                    "L'abonnement utilise désormais la proposition mensuelle Baitly. Mettez l'application à jour pour continuer.",
+                    "code", "BAITLY_MONTHLY_CHECKOUT_REQUIRED"));
+        }
 
         String forfait = (String) body.get("forfait");
         Long interventionId = body.get("interventionId") != null

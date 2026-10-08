@@ -7,7 +7,7 @@ import { Money } from '../../../components/Money';
 import {
   Star, Plus, Check, Clock, Users, Globe, Calendar, Search, Store, Layers, ChevronRight,
   ShieldCheck, ArrowLeft, BookOpen, Boxes, Tag,
-} from 'lucide-react';
+} from '../../../icons/glyphs';
 import { type UpsellOffer } from '../../../services/api/upsellApi';
 import {
   MARKETPLACE_EXPERIENCES, PARTNER_COLOR, PARTNERS,

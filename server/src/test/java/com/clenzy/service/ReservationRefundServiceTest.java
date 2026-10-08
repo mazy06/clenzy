@@ -36,9 +36,10 @@ class ReservationRefundServiceTest {
     @Mock private ReservationRepository reservationRepository;
     @Mock private CancellationRefundService cancellationRefundService;
     @Mock private StripeService stripeService;
+    @Mock private ReservationRefundCoordination coordination;
 
     private ReservationRefundService service() {
-        return new ReservationRefundService(reservationRepository, cancellationRefundService, stripeService);
+        return new ReservationRefundService(reservationRepository, cancellationRefundService, stripeService, coordination);
     }
 
     private static Reservation reservation(Long orgId, String sessionId,

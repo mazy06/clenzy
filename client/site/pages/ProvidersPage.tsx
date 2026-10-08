@@ -5,7 +5,7 @@ import {
   CameraIcon,
   ClipboardListIcon,
   CircleCheckIcon,
-} from "lucide-react";
+} from "../../src/icons/glyphs";
 import Reveal from "../components/Reveal";
 import AnimatedOpsMockup from "../components/AnimatedOpsMockup";
 import { PROVIDER_CATEGORIES } from "../data/catalog";

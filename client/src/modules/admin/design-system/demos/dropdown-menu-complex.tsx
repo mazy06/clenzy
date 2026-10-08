@@ -25,7 +25,7 @@ import {
   ShieldIcon,
   SunIcon,
   UserIcon,
-} from "lucide-react"
+} from "../../../../icons/glyphs"
 
 import { Button } from '../../../../components/ui'
 import {

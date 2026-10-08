@@ -1,6 +1,6 @@
 import { useSiteCurrency } from '../lib/siteCurrency';
 import { useCallback, useState } from 'react';
-import { ArrowDownIcon, ArrowRightIcon, CheckIcon } from 'lucide-react';
+import { ArrowDownIcon, ArrowRightIcon, CheckIcon } from '../../src/icons/glyphs';
 import SiteAcquisitionLink from '../components/SiteAcquisitionLink';
 import BaitlyLoyaltySimulator, {
   type LoyaltySelection,

@@ -1,5 +1,5 @@
 import { Fragment, type ReactNode } from 'react';
-import { SaudiRiyal } from 'lucide-react';
+import { SaudiRiyal } from '../../src/icons/glyphs';
 import { MoroccanDirham } from '../../src/icons';
 import type { SiteLanguage } from '../lib/siteLanguage';
 import {

@@ -92,6 +92,13 @@ class KeycloakServiceTest {
         return response;
     }
 
+    @Test void supplierActivationRequiresEmailVerificationAndPasswordWithoutSettingEitherOnBehalfOfTheSupplier() {
+        when(usersResource.get("supplier")).thenReturn(userResource);
+        service.sendSupplierActivation("supplier");
+        verify(userResource).executeActionsEmail(List.of("VERIFY_EMAIL","UPDATE_PASSWORD"));
+        verify(userResource,never()).update(any());verify(userResource,never()).resetPassword(any());
+    }
+
     @Test
     void marketplaceOwnerProofRequiresTheCurrentVerifiedEnabledIdentity() {
         var owner = buildUserRepresentation("owner", "pro@example.com");

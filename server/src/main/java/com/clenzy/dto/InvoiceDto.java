@@ -40,7 +40,9 @@ public record InvoiceDto(
     String paymentMethod,
     LocalDateTime paidAt,
     List<InvoiceLineDto> lines,
-    LocalDateTime createdAt
+    LocalDateTime createdAt,
+    Long originalInvoiceId,
+    Long refundTransactionId
 ) {
     public static InvoiceDto from(Invoice invoice) {
         List<InvoiceLineDto> lineDtos = invoice.getLines() != null
@@ -75,7 +77,9 @@ public record InvoiceDto(
             invoice.getPaymentMethod(),
             invoice.getPaidAt(),
             lineDtos,
-            invoice.getCreatedAt()
+            invoice.getCreatedAt(),
+            invoice.getOriginalInvoiceId(),
+            invoice.getRefundTransactionId()
         );
     }
 }

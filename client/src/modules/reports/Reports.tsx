@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import ModuleFirstUsePage from '../../components/first-use/ModuleFirstUsePage';
 import { Alert, AlertDescription, Spinner } from '../../components/ui';
-import { Info, TriangleAlert } from 'lucide-react';
+import { Info, TriangleAlert } from '../../icons/glyphs';
 import { BarChart as BarChartIcon } from '../../icons';
 import PageHeader from '../../components/PageHeader';
 import PageTabs from '../../components/PageTabs';

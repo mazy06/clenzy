@@ -2,7 +2,7 @@ import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { cn } from '../utils/cn';
 import StatusChip, { STATUS_TONES, type StatusTone } from './StatusChip';
 import { Alert as BuiAlert, AlertDescription, AlertAction, Button as BuiButton } from './ui';
-import { TriangleAlert, X } from 'lucide-react';
+import { TriangleAlert, X } from '../icons/glyphs';
 import { Spinner } from './ui';
 import { Card } from '../components/ui';
 import {

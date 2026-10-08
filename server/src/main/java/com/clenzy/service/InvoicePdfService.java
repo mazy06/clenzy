@@ -1,22 +1,12 @@
 package com.clenzy.service;
 
-import com.clenzy.exception.DocumentGenerationException;
 import com.clenzy.model.Invoice;
 import com.clenzy.model.InvoiceLine;
-import io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker;
-import io.github.resilience4j.retry.annotation.Retry;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.core.io.ByteArrayResource;
-import org.springframework.http.*;
 import org.springframework.stereotype.Service;
-import org.springframework.util.LinkedMultiValueMap;
-import org.springframework.util.MultiValueMap;
-import org.springframework.web.client.RestTemplate;
 
 import java.math.BigDecimal;
-import java.nio.charset.StandardCharsets;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.util.Currency;
@@ -25,13 +15,8 @@ import java.util.Map;
 /**
  * Service de generation de PDF de factures.
  *
- * Utilise Gotenberg (endpoint Chromium) pour convertir le HTML genere en PDF.
- * Reutilise la meme instance Gotenberg que le moteur de documents existant.
- *
- * Pipeline :
- * 1. Rendre le HTML a partir des donnees de la facture
- * 2. POST /forms/chromium/convert/html → PDF
- * 3. Stocker via DocumentStorageService
+ * Fournit le contenu canonique au moteur PDF commun Baitly.
+ * L'archivage est assuré par BaitlyInvoicePdfStore, partagé avec Documents.
  */
 @Service
 public class InvoicePdfService {
@@ -42,91 +27,54 @@ public class InvoicePdfService {
         "EUR", "€", "MAD", "MAD", "SAR", "SAR", "USD", "$", "GBP", "£"
     );
 
-    private final String gotenbergUrl;
-    private final RestTemplate restTemplate;
-    private final DocumentStorageService documentStorageService;
-
-    public InvoicePdfService(
-            @Value("${clenzy.libreoffice.url:http://clenzy-libreoffice:3000}") String gotenbergUrl,
-            RestTemplate restTemplate,
-            DocumentStorageService documentStorageService) {
-        this.gotenbergUrl = gotenbergUrl;
-        this.restTemplate = restTemplate;
-        this.documentStorageService = documentStorageService;
-    }
+    private final BaitlyPdfEngine engine;
+    public InvoicePdfService(BaitlyPdfEngine engine) { this.engine=engine; }
 
     /**
-     * Genere le PDF d'une facture et le stocke.
+     * Rend la facture ; le demandeur archive ensuite ce fichier exact.
      *
      * @param invoice Facture avec ses lignes chargees
      * @return Contenu du PDF en bytes
      */
-    @CircuitBreaker(name = "gotenberg")
-    @Retry(name = "gotenberg")
     public byte[] generatePdf(Invoice invoice) {
         log.info("Generating PDF for invoice {} (id={})", invoice.getInvoiceNumber(), invoice.getId());
 
         String html = renderHtml(invoice);
-        byte[] pdfBytes = convertHtmlToPdf(html, invoice.getInvoiceNumber());
-
-        // Stocker le PDF
-        String filename = buildFilename(invoice);
-        String storagePath = documentStorageService.store("FACTURE", filename, pdfBytes);
-        log.info("Invoice PDF stored: {} ({} bytes, path={})",
-            filename, pdfBytes.length, storagePath);
-
-        return pdfBytes;
+        return engine.html(html);
     }
 
-    /**
-     * Convertit du HTML en PDF via Gotenberg Chromium.
-     */
-    private byte[] convertHtmlToPdf(String html, String identifier) {
-        try {
-            String url = gotenbergUrl + "/forms/chromium/convert/html";
-
-            HttpHeaders headers = new HttpHeaders();
-            headers.setContentType(MediaType.MULTIPART_FORM_DATA);
-
-            MultiValueMap<String, Object> body = new LinkedMultiValueMap<>();
-
-            // Fichier HTML principal
-            ByteArrayResource htmlResource = new ByteArrayResource(
-                    html.getBytes(StandardCharsets.UTF_8)) {
-                @Override
-                public String getFilename() {
-                    return "index.html";
-                }
-            };
-            body.add("files", htmlResource);
-
-            // Options Gotenberg
-            body.add("marginTop", "0.6");
-            body.add("marginBottom", "0.6");
-            body.add("marginLeft", "0.5");
-            body.add("marginRight", "0.5");
-            body.add("paperWidth", "8.27");  // A4
-            body.add("paperHeight", "11.69");
-            body.add("printBackground", "true");
-
-            HttpEntity<MultiValueMap<String, Object>> requestEntity = new HttpEntity<>(body, headers);
-            ResponseEntity<byte[]> response = restTemplate.exchange(
-                url, HttpMethod.POST, requestEntity, byte[].class);
-
-            if (response.getStatusCode().is2xxSuccessful() && response.getBody() != null) {
-                log.debug("PDF generated for {}: {} bytes", identifier, response.getBody().length);
-                return response.getBody();
-            }
-
-            throw new DocumentGenerationException(
-                "Gotenberg a retourne un statut non-200: " + response.getStatusCode());
-
-        } catch (DocumentGenerationException e) {
-            throw e;
-        } catch (Exception e) {
-            throw new DocumentGenerationException(
-                "Erreur lors de la conversion HTML vers PDF: " + e.getMessage(), e);
+    /** Aperçu sans lecture de dossier réel, sans numéro légal et sans archivage. */
+    public byte[] preview() {
+        Invoice invoice = new Invoice();
+        invoice.setInvoiceNumber("EXEMPLE-001");
+        invoice.setInvoiceDate(LocalDate.of(2026, 6, 15));
+        invoice.setDueDate(LocalDate.of(2026, 7, 15));
+        invoice.setSellerName("Conciergerie Horizon (exemple)");
+        invoice.setSellerAddress("8 avenue des Horizons\n00000 Ville Exemple (adresse fictive)");
+        invoice.setSellerTaxId("DÉMO · NON ATTRIBUÉ");
+        invoice.setBuyerName("Camille Exemple");
+        invoice.setBuyerAddress("12 allée des Nuages\n00000 Ville Exemple (adresse fictive)");
+        invoice.setCurrency("EUR");
+        var lines = new java.util.ArrayList<InvoiceLine>();
+        String[] descriptions = { "Nettoyage et préparation du logement", "Préparation des lits et du linge", "Réassort des produits d’accueil" };
+        String[] quantities = { "3", "2", "1" };
+        String[] prices = { "35.00", "15.00", "15.00" };
+        for (int index = 0; index < descriptions.length; index++) {
+            InvoiceLine line = new InvoiceLine();
+            line.setLineNumber(index + 1); line.setDescription(descriptions[index]);
+            line.setQuantity(new BigDecimal(quantities[index])); line.setUnitPriceHt(new BigDecimal(prices[index]));
+            line.setTaxRate(new BigDecimal("0.20"));
+            line.setTotalHt(line.getQuantity().multiply(line.getUnitPriceHt()));
+            line.setTaxAmount(line.getTotalHt().multiply(line.getTaxRate()));
+            line.setTotalTtc(line.getTotalHt().add(line.getTaxAmount()));
+            lines.add(line);
         }
+        invoice.setLines(lines);
+        invoice.setTotalHt(new BigDecimal("150.00"));
+        invoice.setTotalTax(new BigDecimal("30.00"));
+        invoice.setTotalTtc(new BigDecimal("180.00"));
+        invoice.setLegalMentions("APERÇU DE MISE EN PAGE · AUCUNE VALEUR LÉGALE. Identités, coordonnées, montants et taxes fictifs. Aucun paiement ni engagement.");
+        return engine.html(BaitlyPreviewData.watermark(renderHtml(invoice)));
     }
 
     /**
@@ -135,6 +83,9 @@ public class InvoicePdfService {
     private String renderHtml(Invoice invoice) {
         StringBuilder sb = new StringBuilder();
         sb.append("<!DOCTYPE html><html lang=\"fr\"><head><meta charset=\"UTF-8\">");
+        sb.append("<title>").append(esc(invoice.getSellerName())).append(" · ")
+                .append(invoice.getStatus() == com.clenzy.model.InvoiceStatus.CREDIT_NOTE ? "Avoir " : "Facture ")
+                .append(esc(invoice.getInvoiceNumber())).append("</title>");
         sb.append("<style>");
         sb.append(CSS);
         sb.append("</style></head><body>");
@@ -154,7 +105,8 @@ public class InvoicePdfService {
         sb.append("</div>");
 
         sb.append("<div class=\"invoice-info\">");
-        sb.append("<h1>FACTURE</h1>");
+        sb.append(invoice.getStatus() == com.clenzy.model.InvoiceStatus.CREDIT_NOTE
+            ? "<h1>AVOIR</h1>" : "<h1>FACTURE</h1>");
         sb.append("<table class=\"info-table\">");
         sb.append("<tr><td>Numero</td><td><strong>").append(esc(invoice.getInvoiceNumber())).append("</strong></td></tr>");
         sb.append("<tr><td>Date</td><td>").append(formatDate(invoice.getInvoiceDate())).append("</td></tr>");
@@ -230,7 +182,10 @@ public class InvoicePdfService {
 
     private String formatMoney(BigDecimal amount, String currencyCode) {
         if (amount == null) return "0,00 " + getCurrencySymbol(currencyCode);
-        String formatted = String.format("%,.2f", amount).replace(",", " ").replace(".", ",");
+        var formatter=java.text.NumberFormat.getNumberInstance(java.util.Locale.FRANCE);
+        formatter.setMinimumFractionDigits(2);
+        formatter.setMaximumFractionDigits(2);
+        String formatted = formatter.format(amount);
         return formatted + " " + getCurrencySymbol(currencyCode);
     }
 
@@ -257,13 +212,7 @@ public class InvoicePdfService {
 
     private String esc(String s) {
         if (s == null) return "";
-        return s.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
-                .replace("\"", "&quot;").replace("'", "&#39;");
-    }
-
-    private String buildFilename(Invoice invoice) {
-        return "Facture_" + invoice.getInvoiceNumber().replace("/", "-")
-            + "_" + LocalDate.now().format(DateTimeFormatter.ofPattern("yyyyMMdd")) + ".pdf";
+        return com.clenzy.util.StringUtils.escapeHtml(s);
     }
 
     // --- CSS ---
@@ -274,7 +223,7 @@ public class InvoicePdfService {
         .header { display: flex; justify-content: space-between; margin-bottom: 40px; }
         .seller h2 { font-size: 18px; color: #0f172a; margin-bottom: 6px; }
         .seller p { color: #475569; line-height: 1.5; }
-        .tax-id { font-size: 10px; color: #94a3b8; margin-top: 4px; }
+        .tax-id { font-size: 10px; color: #526979; margin-top: 4px; }
         .invoice-info { text-align: right; }
         .invoice-info h1 { font-size: 28px; color: #0f172a; letter-spacing: 2px; margin-bottom: 12px; }
         .info-table { margin-left: auto; }
@@ -282,7 +231,7 @@ public class InvoicePdfService {
         .info-table td:first-child { color: #64748b; padding-right: 16px; text-align: right; }
         .info-table td:last-child { text-align: right; }
         .buyer { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 6px; padding: 16px; margin-bottom: 30px; max-width: 300px; }
-        .buyer h3 { font-size: 10px; text-transform: uppercase; color: #94a3b8; letter-spacing: 1px; margin-bottom: 8px; }
+        .buyer h3 { font-size: 10px; text-transform: uppercase; color: #526979; letter-spacing: 1px; margin-bottom: 8px; }
         .buyer p { line-height: 1.5; }
         .lines { width: 100%; border-collapse: collapse; margin-bottom: 30px; }
         .lines thead { background: #0f172a; color: white; }
@@ -298,6 +247,6 @@ public class InvoicePdfService {
         .totals-table td:last-child { text-align: right; font-weight: 500; }
         .grand-total td { font-size: 16px; font-weight: 700; color: #0f172a; border-top: 2px solid #0f172a; padding-top: 10px; }
         .legal { border-top: 1px solid #e2e8f0; padding-top: 16px; margin-top: 20px; }
-        .legal p { font-size: 9px; color: #94a3b8; line-height: 1.5; }
+        .legal p { font-size: 9px; color: #526979; line-height: 1.5; }
     """;
 }

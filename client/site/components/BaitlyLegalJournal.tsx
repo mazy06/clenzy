@@ -1,5 +1,5 @@
 import { useSearchParams, Link } from 'react-router-dom';
-import { ArrowLeft, ArrowRight, ChevronDown, Search } from 'lucide-react';
+import { ArrowLeft, ArrowRight, ChevronDown, Search } from '../../src/icons/glyphs';
 import {
   legalArticle,
   articleLanguage,

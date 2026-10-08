@@ -15,6 +15,8 @@ import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Objects;
+import org.springframework.security.access.AccessDeniedException;
 
 @Service
 @Transactional(readOnly = true)
@@ -26,15 +28,18 @@ public class ProviderExpenseService {
     private final UserRepository userRepository;
     private final PropertyRepository propertyRepository;
     private final InterventionRepository interventionRepository;
+    private final com.clenzy.repository.OrganizationMemberRepository memberships;
 
     public ProviderExpenseService(ProviderExpenseRepository expenseRepository,
                                   UserRepository userRepository,
                                   PropertyRepository propertyRepository,
-                                  InterventionRepository interventionRepository) {
+                                  InterventionRepository interventionRepository,
+                                  com.clenzy.repository.OrganizationMemberRepository memberships) {
         this.expenseRepository = expenseRepository;
         this.userRepository = userRepository;
         this.propertyRepository = propertyRepository;
         this.interventionRepository = interventionRepository;
+        this.memberships = memberships;
     }
 
     // ── Read ────────────────────────────────────────────────────────────────
@@ -47,6 +52,33 @@ public class ProviderExpenseService {
         return expenseRepository.findByIdAndOrgId(id, orgId)
                 .orElseThrow(() -> new IllegalArgumentException("Depense introuvable : " + id));
     }
+
+    public List<ProviderExpense> getVisible(String subject, Long orgId, Long providerId, Long propertyId,
+            ExpenseStatus status, boolean mine) {
+        User me = requester(subject);
+        List<ProviderExpense> visible = mine ? getByProviderId(me.getId(), orgId)
+                : staff(me) ? getAll(orgId) : expenseRepository.findVisibleToUser(orgId, me.getId());
+        return visible.stream().filter(e -> providerId == null || e.getProvider() != null && providerId.equals(e.getProvider().getId()))
+                .filter(e -> propertyId == null || e.getProperty() != null && propertyId.equals(e.getProperty().getId()))
+                .filter(e -> status == null || status == e.getStatus()).toList();
+    }
+
+    public ProviderExpense getReadable(Long id, Long orgId, String subject) {
+        User me = requester(subject);
+        ProviderExpense expense = getById(id, orgId);
+        boolean ownExpense = expense.getProvider() != null && me.getId().equals(expense.getProvider().getId());
+        boolean ownProperty = expense.getProperty() != null && Objects.equals(orgId, expense.getProperty().getOrganizationId())
+                && expense.getProperty().getOwner() != null && me.getId().equals(expense.getProperty().getOwner().getId());
+        if (!staff(me) && !ownExpense && !ownProperty) throw new AccessDeniedException("Dépense inaccessible.");
+        return expense;
+    }
+
+    private User requester(String subject) {
+        if (subject == null || subject.isBlank()) throw new AccessDeniedException("Session utilisateur requise.");
+        return userRepository.findByKeycloakId(subject).orElseThrow(() -> new AccessDeniedException("Utilisateur inconnu."));
+    }
+
+    private boolean staff(User user) { return user.getRole() != null && user.getRole().isPlatformStaff(); }
 
     public List<ProviderExpense> getByProviderId(Long providerId, Long orgId) {
         return expenseRepository.findByProviderIdAndOrgId(providerId, orgId);
@@ -81,6 +113,7 @@ public class ProviderExpenseService {
      * Trouve les depenses APPROVED liees aux proprietes d'un owner sur une periode.
      * Utilisee par AccountingService lors de la generation du payout.
      */
+    @Transactional
     public List<ProviderExpense> getApprovedForPayout(Long ownerId, LocalDate from, LocalDate to, Long orgId) {
         return expenseRepository.findApprovedByPropertyOwnerAndPeriod(ownerId, from, to, orgId);
     }
@@ -89,10 +122,12 @@ public class ProviderExpenseService {
 
     @Transactional
     public ProviderExpense create(CreateProviderExpenseRequest request, Long orgId) {
+        validateRequest(request);
         User provider = userRepository.findById(request.providerId())
                 .orElseThrow(() -> new IllegalArgumentException("Prestataire introuvable : " + request.providerId()));
         Property property = propertyRepository.findById(request.propertyId())
                 .orElseThrow(() -> new IllegalArgumentException("Logement introuvable : " + request.propertyId()));
+        Intervention intervention = validateLinks(request, orgId, provider, property);
 
         ProviderExpense expense = new ProviderExpense();
         expense.setOrganizationId(orgId);
@@ -107,11 +142,7 @@ public class ProviderExpenseService {
         expense.setNotes(request.notes());
         expense.setStatus(ExpenseStatus.DRAFT);
 
-        // Link optional intervention
-        if (request.interventionId() != null) {
-            interventionRepository.findById(request.interventionId())
-                    .ifPresent(expense::setIntervention);
-        }
+        expense.setIntervention(intervention);
 
         computeTaxAndTtc(expense);
 
@@ -123,7 +154,8 @@ public class ProviderExpenseService {
 
     @Transactional
     public ProviderExpense update(Long id, CreateProviderExpenseRequest request, Long orgId) {
-        ProviderExpense expense = getById(id, orgId);
+        validateRequest(request);
+        ProviderExpense expense = lock(id, orgId);
         if (expense.getStatus() != ExpenseStatus.DRAFT) {
             throw new IllegalStateException("Seules les depenses en brouillon peuvent etre modifiees");
         }
@@ -132,6 +164,7 @@ public class ProviderExpenseService {
                 .orElseThrow(() -> new IllegalArgumentException("Prestataire introuvable : " + request.providerId()));
         Property property = propertyRepository.findById(request.propertyId())
                 .orElseThrow(() -> new IllegalArgumentException("Logement introuvable : " + request.propertyId()));
+        Intervention intervention = validateLinks(request, orgId, provider, property);
 
         expense.setProvider(provider);
         expense.setProperty(property);
@@ -143,12 +176,7 @@ public class ProviderExpenseService {
         expense.setInvoiceReference(request.invoiceReference());
         expense.setNotes(request.notes());
 
-        if (request.interventionId() != null) {
-            interventionRepository.findById(request.interventionId())
-                    .ifPresent(expense::setIntervention);
-        } else {
-            expense.setIntervention(null);
-        }
+        expense.setIntervention(intervention);
 
         computeTaxAndTtc(expense);
 
@@ -157,7 +185,7 @@ public class ProviderExpenseService {
 
     @Transactional
     public ProviderExpense approve(Long id, Long orgId) {
-        ProviderExpense expense = getById(id, orgId);
+        ProviderExpense expense = lock(id, orgId);
         if (expense.getStatus() != ExpenseStatus.DRAFT) {
             throw new IllegalStateException("Seules les depenses en brouillon peuvent etre approuvees");
         }
@@ -168,7 +196,7 @@ public class ProviderExpenseService {
 
     @Transactional
     public ProviderExpense cancel(Long id, Long orgId) {
-        ProviderExpense expense = getById(id, orgId);
+        ProviderExpense expense = lock(id, orgId);
         if (expense.getStatus() == ExpenseStatus.PAID || expense.getStatus() == ExpenseStatus.INCLUDED) {
             throw new IllegalStateException("Impossible d'annuler une depense deja incluse ou payee");
         }
@@ -179,14 +207,10 @@ public class ProviderExpenseService {
 
     @Transactional
     public ProviderExpense markAsPaid(Long id, String paymentReference, Long orgId) {
-        ProviderExpense expense = getById(id, orgId);
-        if (expense.getStatus() != ExpenseStatus.APPROVED && expense.getStatus() != ExpenseStatus.INCLUDED) {
-            throw new IllegalStateException("Seules les depenses approuvees ou incluses peuvent etre marquees comme payees");
-        }
-        expense.setStatus(ExpenseStatus.PAID);
-        expense.setPaymentReference(paymentReference);
-        log.info("Marked provider expense #{} as paid (ref: {})", id, paymentReference);
-        return expenseRepository.save(expense);
+        getById(id, orgId);
+        throw new com.clenzy.exception.PaymentEvidenceRequiredException(
+                "La confirmation manuelle est désactivée. Une dépense retenue sur un reversement "
+                + "ne prouve pas le règlement de son bénéficiaire.");
     }
 
     // ── Receipt ──────────────────────────────────────────────────────────────
@@ -208,6 +232,37 @@ public class ProviderExpenseService {
     }
 
     // ── Private helpers ─────────────────────────────────────────────────────
+
+    private ProviderExpense lock(Long id, Long orgId) {
+        return expenseRepository.lockByIdAndOrgId(id, orgId)
+                .orElseThrow(() -> new IllegalArgumentException("Dépense introuvable : " + id));
+    }
+
+    private void validateRequest(CreateProviderExpenseRequest request) {
+        if (request == null || request.providerId() == null || request.providerId() <= 0
+                || request.propertyId() == null || request.propertyId() <= 0 || request.category() == null
+                || request.expenseDate() == null || request.description() == null || request.description().isBlank()
+                || request.description().length() > 500 || request.amountHt() == null || request.amountHt().signum() <= 0
+                || request.amountHt().stripTrailingZeros().scale() > 2
+                || request.taxRate() != null && (request.taxRate().signum() < 0 || request.taxRate().compareTo(BigDecimal.ONE) > 0))
+            throw new IllegalArgumentException("Dépense incomplète : montant positif au centime et taux de taxe entre 0 et 1 requis.");
+    }
+
+    private Intervention validateLinks(CreateProviderExpenseRequest request, Long orgId, User provider, Property property) {
+        if (orgId == null || !Objects.equals(property.getOrganizationId(), orgId)) throw new AccessDeniedException("Logement hors organisation.");
+        Intervention mission = request.interventionId() == null ? null : interventionRepository.findById(request.interventionId())
+                .orElseThrow(() -> new IllegalArgumentException("Intervention introuvable."));
+        if (mission != null && (!Objects.equals(mission.getOrganizationId(), orgId) || mission.getProperty() == null
+                || !Objects.equals(mission.getProperty().getId(), property.getId())))
+            throw new AccessDeniedException("Intervention et logement incompatibles.");
+        boolean assigned = mission != null && (mission.getAssignedUser() != null && provider.getId().equals(mission.getAssignedUser().getId())
+                || provider.getId().equals(mission.getAssignedTechnicianId())
+                || "USER".equals(mission.getAssignedToType()) && provider.getId().equals(mission.getAssignedToId()));
+        if (!Objects.equals(provider.getOrganizationId(), orgId) && !assigned
+                && !memberships.existsByOrganizationIdAndUserId(orgId, provider.getId()))
+            throw new AccessDeniedException("Prestataire sans rattachement à cette organisation ou à cette mission.");
+        return mission;
+    }
 
     private void computeTaxAndTtc(ProviderExpense expense) {
         BigDecimal amountHt = expense.getAmountHt();

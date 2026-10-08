@@ -41,6 +41,7 @@ public class HardwareOrder {
     private String currency = "eur";
 
     @Column(name = "items_json", nullable = false, columnDefinition = "jsonb")
+    @org.hibernate.annotations.JdbcTypeCode(org.hibernate.type.SqlTypes.JSON)
     private String itemsJson;
 
     @Column(name = "shipping_name")

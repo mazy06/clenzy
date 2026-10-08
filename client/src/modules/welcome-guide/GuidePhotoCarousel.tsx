@@ -2,7 +2,7 @@ import React, { useMemo, useRef, useState } from 'react';
 import { cn } from '../../utils/cn';
 import { Skeleton } from '../../components/ui';
 import { useQuery } from '@tanstack/react-query';
-import { ChevronLeft, ChevronRight, ImageOff } from 'lucide-react';
+import { ChevronLeft, ChevronRight, ImageOff } from '../../icons/glyphs';
 import { propertyPhotosApi } from '../../services/api/propertyPhotosApi';
 import { themeAccent } from './welcomeBookThemes';
 

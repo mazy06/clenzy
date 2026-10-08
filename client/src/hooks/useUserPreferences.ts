@@ -63,16 +63,25 @@ export function useUserPreferences() {
   });
 
   const updateMutation = useMutation({
+    // Toutes les instances du hook partagent la file : les reponses completes
+    // de la langue/du theme ne doivent pas ecraser une devise juste sauvegardee.
+    scope: { id: 'user-preferences-me' },
     mutationFn: (data: Partial<UserPreferencesDto>) =>
       userPreferencesApi.updateMyPreferences(data),
+    onMutate: async () => {
+      // Une lecture demarree avant le choix utilisateur ne doit pas revenir
+      // apres sa sauvegarde et restaurer les anciennes preferences.
+      await queryClient.cancelQueries({ queryKey: QUERY_KEY });
+    },
     onSuccess: (updated) => {
       queryClient.setQueryData(QUERY_KEY, updated);
     },
   });
 
+  const { mutateAsync } = updateMutation;
   const updatePreferences = useCallback(
-    (data: Partial<UserPreferencesDto>) => updateMutation.mutateAsync(data),
-    [updateMutation],
+    (data: Partial<UserPreferencesDto>) => mutateAsync(data),
+    [mutateAsync],
   );
 
   return {

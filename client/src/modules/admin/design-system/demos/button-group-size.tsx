@@ -1,4 +1,4 @@
-import { PlusIcon } from "lucide-react"
+import { PlusIcon } from "../../../../icons/glyphs"
 
 import { Button } from '../../../../components/ui'
 import { ButtonGroup } from '../../../../components/ui'

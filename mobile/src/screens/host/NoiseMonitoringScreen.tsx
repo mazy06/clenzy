@@ -1,7 +1,7 @@
 import React, { useCallback, useMemo } from 'react';
 import { View, Text, ScrollView, RefreshControl, Pressable } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Ionicons } from '@expo/vector-icons';
+import { Reicon } from '@/icons';
 import { useNavigation } from '@react-navigation/native';
 import { useTheme } from '@/theme';
 import { Card } from '@/components/ui/Card';
@@ -96,7 +96,7 @@ function DeviceCard({
             alignItems: 'center',
             justifyContent: 'center',
           }}>
-            <Ionicons
+            <Reicon
               name="mic-outline"
               size={18}
               color={hasData ? getDbColor(liveData!.currentLevel, theme) : theme.colors.text.disabled}
@@ -128,7 +128,7 @@ function DeviceCard({
               )}
             </View>
           </View>
-          <Ionicons name="chevron-forward" size={16} color={theme.colors.text.disabled} />
+          <Reicon name="chevron-forward" size={16} color={theme.colors.text.disabled} />
         </View>
 
         {/* Bottom row: status/data + badge */}
@@ -153,13 +153,13 @@ function DeviceCard({
             {/* Stats row */}
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: theme.SPACING.md }}>
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
-                <Ionicons name="analytics-outline" size={12} color={theme.colors.text.disabled} />
+                <Reicon name="analytics-outline" size={12} color={theme.colors.text.disabled} />
                 <Text style={{ ...theme.typography.caption, color: theme.colors.text.secondary }}>
                   Moy: {Math.round(liveData!.averageLevel)} dB
                 </Text>
               </View>
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
-                <Ionicons name="arrow-up-outline" size={12} color={theme.colors.text.disabled} />
+                <Reicon name="arrow-up-outline" size={12} color={theme.colors.text.disabled} />
                 <Text style={{ ...theme.typography.caption, color: theme.colors.text.secondary }}>
                   Max: {Math.round(liveData!.maxLevel)} dB
                 </Text>
@@ -183,7 +183,7 @@ function DeviceCard({
           </>
         ) : (
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, paddingVertical: 4 }}>
-            <Ionicons name="information-circle-outline" size={14} color={theme.colors.text.disabled} />
+            <Reicon name="information-circle-outline" size={14} color={theme.colors.text.disabled} />
             <Text style={{ ...theme.typography.caption, color: theme.colors.text.disabled, flex: 1 }}>
               En attente de donnees...
             </Text>
@@ -233,7 +233,7 @@ function AlertItem({
           justifyContent: 'center',
           marginTop: 2,
         }}>
-          <Ionicons name={severityIcon} size={18} color={severityColor} />
+          <Reicon name={severityIcon} size={18} color={severityColor} />
         </View>
 
         {/* Content */}
@@ -295,7 +295,7 @@ function AlertItem({
                 marginTop: 4,
               })}
             >
-              <Ionicons name="checkmark" size={14} color="#fff" />
+              <Reicon name="checkmark" size={14} color="#fff" />
               <Text style={{ ...theme.typography.caption, color: '#fff', fontWeight: '600' }}>
                 Acquitter
               </Text>
@@ -304,7 +304,7 @@ function AlertItem({
 
           {alert.acknowledged && (
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 4 }}>
-              <Ionicons name="checkmark-circle" size={14} color={theme.colors.success.main} />
+              <Reicon name="checkmark-circle" size={14} color={theme.colors.success.main} />
               <Text style={{ ...theme.typography.caption, color: theme.colors.success.main }}>
                 Acquittee
               </Text>
@@ -414,7 +414,7 @@ export function NoiseMonitoringScreen() {
             ...theme.shadows.sm,
           })}
         >
-          <Ionicons name="arrow-back" size={20} color={theme.colors.text.primary} />
+          <Reicon name="arrow-back" size={20} color={theme.colors.text.primary} />
         </Pressable>
         <Text style={{ ...theme.typography.h2, color: theme.colors.text.primary, flex: 1 }}>
           Nuisance sonore
@@ -448,7 +448,7 @@ export function NoiseMonitoringScreen() {
             ...theme.shadows.sm,
           })}
         >
-          <Ionicons name="add" size={20} color="#fff" />
+          <Reicon name="add" size={20} color="#fff" />
         </Pressable>
       </View>
 

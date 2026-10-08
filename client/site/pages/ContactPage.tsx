@@ -8,7 +8,7 @@ import {
   LifeBuoyIcon,
   MailIcon,
   MapPinIcon,
-} from 'lucide-react';
+} from '../../src/icons/glyphs';
 import { useSiteLanguage } from '../lib/siteLanguage';
 import { BAITLY_CONTACT_MESSAGES } from '../lib/messages/baitlyContact';
 import {

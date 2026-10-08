@@ -1,0 +1,110 @@
+/*
+ * Fiche logement — vue d'ensemble. Même grammaire que les Réservations et
+ * les espaces Finances / Documents : cartes à 18 px, sections séparées par un
+ * filet, faits en lignes libellé / valeur, en-têtes illustrés.
+ * Jetons --bui-* uniquement ; propriétés logiques pour l'arabe.
+ */
+.pdo { display: flex; flex-direction: column; gap: 16px; padding-bottom: 24px; color: var(--bui-foreground); }
+/* Sans preflight Tailwind, titres et paragraphes gardent la marge du navigateur.
+   En couche `base` : une marge Tailwind posée exprès (couche utilities) reste prioritaire. */
+@layer base {
+  .pdo h2, .pdo h3, .pdo p, .pdo dl, .pdo dd { margin: 0; }
+}
+
+/* ── Identité ──────────────────────────────────────────────────────── */
+.pdo-hero { display: grid; grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr); border: 1px solid var(--bui-border); border-radius: 18px; background: var(--bui-card); overflow: clip; }
+/* Zone média : le carrousel et la carte remplissent le même cadre. Ils sont
+   posés en absolu pour ne jamais en dicter la hauteur : en flux, le carrousel
+   ajoutait la hauteur naturelle de sa photo, la carte non, et le bandeau
+   changeait de taille à la bascule. Le cadre suit donc le panneau
+   d'informations (340 px au moins) en deux colonnes, et une hauteur fixe en une. */
+.pdo-hero__media { position: relative; min-width: 0; min-height: 340px; }
+.pdo-hero__media > * { position: absolute; inset: 0; width: 100%; height: 100%; border-radius: 0; }
+.pdo-hero__body { display: flex; flex-direction: column; gap: 14px; min-width: 0; padding: 26px 28px; }
+.pdo-hero__panels { display: grid; flex: 1; }
+.pdo-hero__panel { display: flex; flex-direction: column; justify-content: center; gap: 14px; min-width: 0; grid-area: 1 / 1; }
+.pdo-hero__panel[data-active="false"] { visibility: hidden; }
+/* Ligne du haut : qualification du logement à gauche, bascule photos / carte à droite. */
+.pdo-hero__top { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.pdo-hero__eyebrow-label { display: inline-flex; align-items: center; gap: 6px; font-weight: 600; color: var(--bui-foreground); }
+.pdo-hero__eyebrow-label svg { color: var(--bui-primary); }
+.pdo-hero__switch { display: inline-flex; flex: none; gap: 2px; padding: 3px; border-radius: 10px; background: var(--bui-muted); }
+.pdo-hero__switch button { display: inline-flex; align-items: center; justify-content: center; width: 36px; height: 34px; border: 1px solid transparent; border-radius: 8px; background: transparent; color: var(--bui-muted-foreground); cursor: pointer; transition: background-color 160ms cubic-bezier(0.25, 1, 0.5, 1), color 160ms cubic-bezier(0.25, 1, 0.5, 1); }
+.pdo-hero__switch button:hover { color: var(--bui-foreground); }
+.pdo-hero__switch button[aria-pressed="true"] { border-color: var(--bui-border); background: var(--bui-card); color: var(--bui-foreground); }
+.pdo-hero__switch button:focus-visible { outline: 2px solid var(--bui-ring); outline-offset: 1px; }
+.pdo-hero__eyebrow { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; font-size: 12.5px; color: var(--bui-muted-foreground); }
+.pdo-hero h2 { font-size: 24px; font-weight: 650; line-height: 1.2; letter-spacing: -0.015em; overflow-wrap: anywhere; text-wrap: balance; }
+.pdo-hero__address { display: flex; align-items: flex-start; gap: 6px; font-size: 13px; line-height: 1.5; color: var(--bui-muted-foreground); }
+.pdo-hero__address svg { flex: none; margin-top: 2px; }
+.pdo-figures { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); border: 1px solid var(--bui-border); border-radius: 14px; }
+.pdo-figures > div { display: flex; flex-direction: column; gap: 6px; min-width: 0; padding: 12px 14px; }
+.pdo-figures > div + div { border-inline-start: 1px solid var(--bui-border); }
+.pdo-figures dt { display: flex; align-items: center; gap: 6px; overflow: hidden; font-size: 11.5px; color: var(--bui-muted-foreground); text-overflow: ellipsis; white-space: nowrap; }
+.pdo-figures dt svg { flex: none; color: var(--bui-primary); }
+.pdo-figures dd { font-size: 18px; font-weight: 650; letter-spacing: -0.01em; font-variant-numeric: tabular-nums; }
+.pdo-hero__price { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; padding-top: 12px; border-top: 1px solid var(--bui-border); font-size: 13px; color: var(--bui-muted-foreground); }
+.pdo-hero__price strong { font-size: 20px; font-weight: 650; color: var(--bui-foreground); font-variant-numeric: tabular-nums; }
+
+/* ── Colonnes de sections ──────────────────────────────────────────── */
+.pdo-columns { display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr); align-items: start; gap: 16px; }
+.pdo-column { display: flex; flex-direction: column; min-width: 0; padding: 4px 24px; border: 1px solid var(--bui-border); border-radius: 18px; background: var(--bui-card); }
+.pdo-section { display: flex; flex-direction: column; gap: 14px; min-width: 0; padding-block: 20px; }
+.pdo-section + .pdo-section { border-top: 1px solid var(--bui-border); }
+
+.pdo-amount { display: flex; flex-wrap: wrap; align-items: baseline; gap: 2px 12px; }
+.pdo-amount__label { flex-basis: 100%; font-size: 12px; color: var(--bui-muted-foreground); }
+.pdo-amount__value { font-size: 28px; font-weight: 650; line-height: 1.15; letter-spacing: -0.025em; font-variant-numeric: tabular-nums; }
+.pdo-amount__hint { flex: 1; min-width: 200px; font-size: 12px; line-height: 1.5; color: var(--bui-muted-foreground); }
+
+.pdo-facts > div { display: flex; justify-content: space-between; gap: 20px; padding-block: 9px; border-bottom: 1px solid var(--bui-border); font-size: 13px; }
+.pdo-facts > div:last-child { border-bottom: 0; }
+.pdo-facts dt { flex: 0 0 42%; color: var(--bui-muted-foreground); }
+.pdo-facts dd { min-width: 0; text-align: end; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+
+/* Équipements et prestations : icône sur tuile pastel + libellé, en grille. */
+.pdo-tiles { display: grid; grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); gap: 10px 18px; margin: 0; padding: 0; list-style: none; }
+.pdo-tiles li { display: flex; align-items: center; gap: 10px; min-width: 0; font-size: 13px; }
+/* Couleur et fond de la tuile : posés en ligne, depuis la famille. */
+.pdo-tiles__icon { display: grid; flex: none; place-items: center; inline-size: 32px; block-size: 32px; border-radius: 9px; }
+.pdo-tiles__text { display: flex; flex-direction: column; min-width: 0; overflow-wrap: anywhere; }
+.pdo-tiles__detail { font-size: 12px; color: var(--bui-muted-foreground); font-variant-numeric: tabular-nums; }
+.pdo-sublabel { display: block; margin-bottom: 8px; font-size: 12px; font-weight: 600; color: var(--bui-muted-foreground); }
+.pdo-prose, .pdo-text p { font-size: 13px; line-height: 1.6; white-space: pre-wrap; overflow-wrap: anywhere; }
+.pdo-text p { padding: 12px 14px; border-radius: 12px; background: var(--bui-muted); }
+.pdo-empty { font-size: 13px; line-height: 1.6; color: var(--bui-muted-foreground); }
+
+.pdo-times { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 10px; }
+.pdo-times > div { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: 8px; padding: 12px 14px; border-radius: 12px; background: var(--bui-muted); font-size: 12.5px; color: var(--bui-muted-foreground); }
+.pdo-times svg { color: var(--bui-primary); }
+.pdo-times strong { font-size: 15px; font-weight: 650; color: var(--bui-foreground); font-variant-numeric: tabular-nums; }
+
+/* ── Canaux ────────────────────────────────────────────────────────── */
+.pdo-channels { margin: 0; padding: 0; list-style: none; }
+.pdo-channels > li { display: grid; grid-template-columns: 28px minmax(0, 1fr) auto auto; align-items: center; gap: 14px; padding-block: 12px; border-bottom: 1px solid var(--bui-border); }
+.pdo-channels > li:last-child { border-bottom: 0; }
+.pdo-channels img { border-radius: 8px; object-fit: contain; }
+.pdo-channels li > div { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.pdo-channels strong { font-size: 13.5px; font-weight: 600; }
+.pdo-channels li > div > span { font-size: 12px; color: var(--bui-muted-foreground); overflow-wrap: anywhere; }
+
+@media (max-width: 1199px) {
+  .pdo-hero, .pdo-columns { grid-template-columns: minmax(0, 1fr); }
+  .pdo-hero__media { min-height: 0; height: 300px; }
+}
+@media (max-width: 600px) {
+  .pdo-hero__body { padding: 18px; }
+  .pdo-hero__media { height: 240px; }
+  .pdo-hero h2 { font-size: 20px; }
+  .pdo-figures { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .pdo-figures > div:nth-child(3) { border-inline-start: 0; }
+  .pdo-figures > div:nth-child(n + 3) { border-top: 1px solid var(--bui-border); }
+  .pdo-column { padding: 2px 16px; }
+  .pdo-times { grid-template-columns: minmax(0, 1fr); }
+  .pdo-facts > div { flex-wrap: wrap; gap: 4px; }
+  .pdo-facts dt { flex-basis: 100%; }
+  .pdo-facts dd { text-align: start; }
+  .pdo-channels > li { grid-template-columns: 28px minmax(0, 1fr) auto; }
+  .pdo-channels > li > button { grid-column: 2 / -1; justify-self: start; }
+}
+@media (prefers-reduced-motion: reduce) { .pdo-hero__switch button { transition: none; } }

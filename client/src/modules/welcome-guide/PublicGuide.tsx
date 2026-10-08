@@ -5,7 +5,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '../../componen
 import { cn } from '../../utils/cn';
 import { loadStripe } from '@stripe/stripe-js';
 import { EmbeddedCheckoutProvider, EmbeddedCheckout } from '@stripe/react-stripe-js';
-import { Send, X, Star, Sparkles, ArrowUp, Info, Heart } from 'lucide-react';
+import { Send, X, Star, Sparkles, ArrowUp, Info, Heart } from '../../icons/glyphs';
 import { type PublicUpsell } from '../../services/api/upsellApi';
 import {
   parseSections,
@@ -217,11 +217,13 @@ async function fetchUpsells(token: string): Promise<PublicUpsell[]> {
 async function startUpsellCheckout(
   token: string,
   offerId: number,
+  requestId: string,
 ): Promise<{ clientSecret: string; orderId: number } | null> {
   try {
     const response = await fetch(`${API_BASE}/api/public/guide/${token}/upsells/${offerId}/checkout`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ requestId }),
     });
     if (!response.ok) return null;
     const data = await response.json().catch(() => null);
@@ -314,6 +316,8 @@ const PublicGuide: React.FC = () => {
   const [payClientSecret, setPayClientSecret] = useState<string | null>(null);
   // Id de commande upsell lu uniquement dans le handler de confirmation : ref.
   const payOrderIdRef = useRef<number | null>(null);
+  const upsellAttempts = useRef(new Map<string, string>());
+  const upsellPending = useRef(false);
   const [paySuccess, setPaySuccess] = useState(false);
   const [payError, setPayError] = useState(false);
   const [conciergeOpen, setConciergeOpen] = useState(false);
@@ -542,13 +546,17 @@ const PublicGuide: React.FC = () => {
   };
 
   const payUpsell = async (u: PublicUpsell) => {
-    if (!token) return;
+    if (!token || upsellPending.current) return;
+    upsellPending.current = true;
     setPayingUpsell(u);
     setPayClientSecret(null);
     payOrderIdRef.current = null;
     setPaySuccess(false);
     setPayError(false);
-    const res = await startUpsellCheckout(token, u.offerId);
+    const key = `${token}:${u.offerId}`;
+    if (!upsellAttempts.current.has(key)) upsellAttempts.current.set(key, crypto.randomUUID());
+    const res = await startUpsellCheckout(token, u.offerId, upsellAttempts.current.get(key)!);
+    upsellPending.current = false;
     if (res) {
       setPayClientSecret(res.clientSecret);
       payOrderIdRef.current = res.orderId;
@@ -559,6 +567,7 @@ const PublicGuide: React.FC = () => {
 
   const onPayComplete = () => {
     setPaySuccess(true);
+    if (token && payingUpsell) upsellAttempts.current.delete(`${token}:${payingUpsell.offerId}`);
     const orderId = payOrderIdRef.current;
     if (token && orderId != null) confirmUpsellPayment(token, orderId);
   };

@@ -42,6 +42,12 @@ public class PaymentTransaction {
     @Column(name = "provider_tx_id", length = 255)
     private String providerTxId;
 
+    /** Une affectation comptable n'est pas un second remboursement envoyé au PSP. */
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "refund_parent_id", updatable = false)
+    @com.fasterxml.jackson.annotation.JsonIgnore
+    private PaymentTransaction refundParent;
+
     @NotNull
     @Enumerated(EnumType.STRING)
     @Column(name = "payment_type", nullable = false, length = 30)
@@ -55,6 +61,9 @@ public class PaymentTransaction {
     @NotNull
     @Column(nullable = false, precision = 12, scale = 2)
     private BigDecimal amount;
+
+    @Column(name = "disputed_amount", nullable = false, precision = 12, scale = 2)
+    private BigDecimal disputedAmount = BigDecimal.ZERO;
 
     @Column(length = 3, nullable = false)
     private String currency = "EUR";
@@ -103,12 +112,17 @@ public class PaymentTransaction {
     public void setProviderType(PaymentProviderType providerType) { this.providerType = providerType; }
     public String getProviderTxId() { return providerTxId; }
     public void setProviderTxId(String providerTxId) { this.providerTxId = providerTxId; }
+    public PaymentTransaction getRefundParent() { return refundParent; }
+    public void setRefundParent(PaymentTransaction parent) { this.refundParent = parent; }
     public TransactionType getPaymentType() { return paymentType; }
     public void setPaymentType(TransactionType paymentType) { this.paymentType = paymentType; }
     public TransactionStatus getStatus() { return status; }
     public void setStatus(TransactionStatus status) { this.status = status; }
     public BigDecimal getAmount() { return amount; }
     public void setAmount(BigDecimal amount) { this.amount = amount; }
+    public BigDecimal getDisputedAmount() { return disputedAmount; }
+    public void setDisputedAmount(BigDecimal amount) { this.disputedAmount = amount; }
+    public boolean hasDisputeRisk() { return disputedAmount == null || disputedAmount.signum() > 0; }
     public String getCurrency() { return currency; }
     public void setCurrency(String currency) { this.currency = currency; }
     public Map<String, Object> getMetadata() { return metadata; }

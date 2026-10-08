@@ -3,7 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { useDateFormat } from '../../../hooks/useDateFormat';
 import StatusChip from '../../../components/StatusChip';
 import { Alert, AlertDescription, Button } from '../../../components/ui';
-import { Info, TriangleAlert } from 'lucide-react';
+import { Info, TriangleAlert } from '../../../icons/glyphs';
 import { Spinner } from '../../../components/ui';
 import { Field, FieldLabel, Input } from '../../../components/ui';
 import {

@@ -3,7 +3,7 @@ package com.clenzy.service.payout;
 import com.clenzy.model.HousekeeperPayoutRecord;
 import com.clenzy.model.HousekeeperPayoutRecord.Status;
 import com.clenzy.model.Intervention;
-import com.clenzy.model.User;
+import com.clenzy.model.PayoutBeneficiary;
 import com.clenzy.repository.HousekeeperPayoutConfigRepository;
 import com.clenzy.repository.HousekeeperPayoutRecordRepository;
 import org.junit.jupiter.api.BeforeEach;
@@ -18,6 +18,7 @@ import java.math.BigDecimal;
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
@@ -30,6 +31,8 @@ class HousekeeperPayoutRecorderTest {
 
     @Mock private HousekeeperPayoutRecordRepository recordRepository;
     @Mock private HousekeeperPayoutConfigRepository configRepository;
+    @Mock private ProviderPayoutBeneficiaryService beneficiaries;
+    @Mock private BaitlyProviderPayoutGuard fundingGuard;
 
     private HousekeeperPayoutRecorder recorder;
 
@@ -40,15 +43,25 @@ class HousekeeperPayoutRecorderTest {
         return i;
     }
 
-    private User pro() {
-        User u = new User();
-        u.setId(42L);
-        return u;
+    private PayoutBeneficiary pro() {
+        return PayoutBeneficiary.user(42L);
     }
 
     @BeforeEach
     void setUp() {
-        recorder = new HousekeeperPayoutRecorder(recordRepository, configRepository);
+        recorder = new HousekeeperPayoutRecorder(recordRepository, configRepository, beneficiaries, fundingGuard);
+    }
+
+    @Test void refundReservedWhilePayoutWaitedForLockPreventsInsertion() {
+        doThrow(new IllegalStateException("Un remboursement doit être rapproché"))
+                .when(fundingGuard).requireFunding(eq(11L),eq(7L),eq(pro()),any(),any());
+        assertThatThrownBy(() -> recorder.insertRecord(intervention(),pro(),new BigDecimal("35"),BigDecimal.ZERO,Status.PENDING,null))
+                .hasMessageContaining("remboursement");
+        var order=inOrder(beneficiaries,recordRepository,fundingGuard);
+        order.verify(beneficiaries).lockAndRequireRecipient(11L,7L,pro());
+        order.verify(recordRepository).findByInterventionId(11L);
+        order.verify(fundingGuard).requireFunding(eq(11L),eq(7L),eq(pro()),any(),any());
+        verify(recordRepository,never()).saveAndFlush(any());
     }
 
     @Test
@@ -61,19 +74,27 @@ class HousekeeperPayoutRecorderTest {
                 BigDecimal.valueOf(95), BigDecimal.ZERO, Status.PENDING, null);
 
         assertThat(created).isFalse();
-        verify(recordRepository, never()).save(any());
+        verify(recordRepository, never()).saveAndFlush(any());
+        verify(beneficiaries).lockAndRequireRecipient(11L, 7L, pro());
     }
 
     @Test
-    @DisplayName("insert : violation de contrainte UNIQUE concurrente → false, pas d'exception")
-    void whenUniqueViolation_thenInsertReturnsFalse() {
+    @DisplayName("insert : erreur SQL après verrou → erreur visible, jamais de faux succès")
+    void whenPersistenceFails_thenFailurePropagates() {
         when(recordRepository.findByInterventionId(11L)).thenReturn(Optional.empty());
-        when(recordRepository.save(any())).thenThrow(new DataIntegrityViolationException("unique"));
+        when(recordRepository.saveAndFlush(any())).thenThrow(new DataIntegrityViolationException("constraint"));
 
-        boolean created = recorder.insertRecord(intervention(), pro(),
-                BigDecimal.valueOf(95), BigDecimal.ZERO, Status.PENDING, null);
+        assertThatThrownBy(() -> recorder.insertRecord(intervention(), pro(),
+                BigDecimal.valueOf(95), BigDecimal.ZERO, Status.PENDING, null))
+                .isInstanceOf(DataIntegrityViolationException.class);
+    }
 
-        assertThat(created).isFalse();
+    @Test void companyBeneficiaryIsPersistedWithoutInventingAUser() {
+        var company = PayoutBeneficiary.organization(9L);
+        recorder.insertRecord(intervention(), company, new BigDecimal("95"), BigDecimal.ZERO, Status.PENDING, null);
+        verify(beneficiaries).lockAndRequireRecipient(11L, 7L, company);
+        verify(recordRepository).saveAndFlush(argThat(r -> r.getUserId() == null
+                && r.getBeneficiaryOrganizationId().equals(9L)));
     }
 
     @Test

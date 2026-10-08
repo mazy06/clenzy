@@ -55,7 +55,7 @@ const baseState = () => ({
   steps: [
     makeStep('configure_org', { completed: true }),
     makeStep('setup_fiscal'),
-    makeStep('setup_payment', { locked: true }),
+    makeStep('setup_general', { locked: true }),
   ],
   completedCount: 1,
   totalCount: 3,
@@ -127,7 +127,7 @@ describe('OnboardingDockMount', () => {
   it('lets users understand locked steps without starting them', () => {
     render(<OnboardingDockMount />);
     fireEvent.click(screen.getByRole('button', { name: 'Ouvrir le guide de démarrage' }));
-    fireEvent.click(screen.getByRole('button', { name: /label.setup_payment/ }));
+    fireEvent.click(screen.getByRole('button', { name: /label.setup_general/ }));
     expect(screen.getByText('Terminez l’étape précédente pour continuer.')).toBeVisible();
     expect(screen.getByRole('button', { name: 'Configurer cette étape' })).toBeDisabled();
     expect(screen.queryByRole('form')).not.toBeInTheDocument();

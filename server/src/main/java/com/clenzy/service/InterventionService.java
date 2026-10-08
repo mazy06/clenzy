@@ -129,13 +129,21 @@ public class InterventionService {
             }
         }
 
+        // La replanification doit précéder le contrôle du créneau d'affectation.
+        // Le formulaire envoyait déjà scheduledDate, auparavant ignoré par le DTO.
+        applyScheduleUpdate(request.scheduledDate(), intervention, jwt);
         interventionMapper.applyUpdateDetails(request, intervention);
         if (request.assignedToId() != null && request.assignedToType() != null) {
             if (!"user".equals(request.assignedToType()) && !"team".equals(request.assignedToType())) {
                 throw new IllegalArgumentException("Type d'affectation inconnu");
             }
-            assign(id, "user".equals(request.assignedToType()) ? request.assignedToId() : null,
-                    "team".equals(request.assignedToType()) ? request.assignedToId() : null, jwt);
+            Long userId = "user".equals(request.assignedToType()) ? request.assignedToId() : null;
+            Long teamId = "team".equals(request.assignedToType()) ? request.assignedToId() : null;
+            Long currentUserId = intervention.getAssignedUser() == null ? null : intervention.getAssignedUser().getId();
+            if (!java.util.Objects.equals(userId, currentUserId)
+                    || !java.util.Objects.equals(teamId, intervention.getTeamId())) {
+                assign(id, userId, teamId, jwt);
+            }
         }
 
         log.debug("update - after: assignedTechnicianId={}, teamId={}", intervention.getAssignedTechnicianId(), intervention.getTeamId());
@@ -155,6 +163,27 @@ public class InterventionService {
         }
 
         return interventionMapper.convertToResponse(intervention);
+    }
+
+    private void applyScheduleUpdate(LocalDateTime date, Intervention intervention, Jwt jwt) {
+        if (date == null || date.equals(intervention.getScheduledDate())) return;
+        UserRole role = JwtRoleExtractor.extractUserRole(jwt);
+        // L'ownership a déjà été contrôlé ; un exécutant ne déplace pas seul sa mission.
+        if (!role.isPlatformStaff() && role != UserRole.HOST) {
+            throw new UnauthorizedException("Seul le gestionnaire peut replanifier cette intervention");
+        }
+        if (intervention.getStatus() == InterventionStatus.IN_PROGRESS
+                || intervention.getStatus() == InterventionStatus.COMPLETED
+                || intervention.getStatus() == InterventionStatus.CANCELLED) {
+            throw new IllegalStateException("Une intervention démarrée ou clôturée ne peut plus être replanifiée");
+        }
+        LocalDateTime oldStart = intervention.getStartTime();
+        LocalDateTime oldEnd = intervention.getEndTime();
+        long minutes = oldStart != null && oldEnd != null
+                ? java.time.Duration.between(oldStart, oldEnd).toMinutes() : 0;
+        intervention.setScheduledDate(date);
+        intervention.setStartTime(date);
+        intervention.setEndTime(minutes > 0 ? date.plusMinutes(minutes) : null);
     }
 
     @Transactional(readOnly = true)

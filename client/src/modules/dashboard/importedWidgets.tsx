@@ -1,6 +1,6 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { ArrowUpRight } from 'lucide-react';
+import { ArrowUpRight } from '../../icons/glyphs';
 import { ChartThumbnailContext, ChartTile, FiguresRow } from '../../components/stats';
 import { useTranslation } from '../../hooks/useTranslation';
 import type { DashboardPeriod } from './DashboardDateFilter';

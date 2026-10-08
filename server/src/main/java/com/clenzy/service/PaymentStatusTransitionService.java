@@ -62,6 +62,12 @@ public class PaymentStatusTransitionService {
         entityManager.refresh(request, jakarta.persistence.LockModeType.PESSIMISTIC_WRITE);
     }
 
+    /** Même verrou pour succès, échec et annulation ; recharge toute lecture antérieure à l'attente. */
+    @Transactional(propagation = org.springframework.transaction.annotation.Propagation.MANDATORY)
+    public void lockReservationPayment(com.clenzy.model.Reservation reservation) {
+        entityManager.refresh(reservation, jakarta.persistence.LockModeType.PESSIMISTIC_WRITE);
+    }
+
     /** Ordre commun : demandes triées, puis missions triées ; verrous conservés jusqu'au commit. */
     @Transactional(propagation = org.springframework.transaction.annotation.Propagation.MANDATORY)
     public void lockInterventionPayments(java.util.List<Intervention> missions) {
@@ -84,13 +90,25 @@ public class PaymentStatusTransitionService {
     private boolean markPaid(String entityName, Long id) {
         int updated = entityManager.createQuery(
                 "UPDATE " + entityName + " e SET e.paymentStatus = :paid, e.paidAt = :now "
-                + "WHERE e.id = :id AND (e.paymentStatus IS NULL OR (e.paymentStatus <> :paid AND e.paymentStatus <> :refunded))")
+                + "WHERE e.id = :id AND (e.paymentStatus IS NULL OR (e.paymentStatus <> :paid AND e.paymentStatus <> :refunded AND e.paymentStatus <> :partialRefund))")
             .setParameter("paid", PaymentStatus.PAID)
             .setParameter("refunded", PaymentStatus.REFUNDED)
+            .setParameter("partialRefund", PaymentStatus.PARTIALLY_REFUNDED)
             .setParameter("now", LocalDateTime.now())
             .setParameter("id", id)
             .executeUpdate();
         return updated == 1;
+    }
+
+    /** Le dossier est verrouillé par le rapprochement ; le CAS empêche tout faux succès. */
+    @Transactional
+    public void markReservationRefunded(Long orgId, Long id, boolean full) {
+        PaymentStatus target = full ? PaymentStatus.REFUNDED : PaymentStatus.PARTIALLY_REFUNDED;
+        int updated = entityManager.createQuery("update Reservation r set r.paymentStatus=:target "
+                        + "where r.organizationId=:org and r.id=:id and r.paymentStatus=:paid")
+                .setParameter("target", target).setParameter("org", orgId).setParameter("id", id)
+                .setParameter("paid", PaymentStatus.PAID).executeUpdate();
+        if (updated != 1) throw new IllegalStateException("État financier de la réservation à rapprocher");
     }
 
     // ════════════════════════════════════════════════════════════════════════
@@ -131,6 +149,10 @@ public class PaymentStatusTransitionService {
         if (sessionId == null || sessionId.isBlank()) {
             throw new IllegalStateException("Aucune session Stripe associee a cette intervention");
         }
+        if (interventionRepository.hasAllocatedPayment(intervention.getOrganizationId(), interventionId, intervention.getStripeSessionId())) {
+            throw new IllegalStateException("Un paiement groupé doit être remboursé par allocation ; ce parcours n'est pas encore disponible.");
+        }
+
         if (interventionRepository.existsByStripeSessionIdAndIdNot(sessionId, interventionId)) {
             throw new IllegalStateException("Paiement partagé entre plusieurs missions : rapprochement financier requis");
         }

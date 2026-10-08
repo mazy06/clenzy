@@ -17,7 +17,7 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.server.ResponseStatusException;
 
 @RestController
-@RequestMapping("/api/payment-connections")
+@RequestMapping({"/api/payment-connections", "/api/me/payment-connections"})
 @PreAuthorize("isAuthenticated()")
 public class PaymentConnectController {
     private final PaymentConnectService service;

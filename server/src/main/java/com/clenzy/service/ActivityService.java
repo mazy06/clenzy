@@ -107,15 +107,11 @@ public class ActivityService {
         }
         config.setAffiliateId(affiliateId);
         config.setEnabled(enabled);
-        config.setPlatformCommissionPct(clampPct(platformCommissionPct));
+        if (platformCommissionPct != null) {
+            if (platformCommissionPct.signum() < 0 || platformCommissionPct.compareTo(java.math.BigDecimal.valueOf(100)) > 0)
+                throw new IllegalArgumentException("La part Baitly doit être comprise entre 0 et 100 %");
+            config.setPlatformCommissionPct(platformCommissionPct);
+        }
         return ActivityConfigDto.from(configRepository.save(config));
-    }
-
-    /** Borne 0..100 ; null reste null (= aucune part retenue). */
-    private static java.math.BigDecimal clampPct(java.math.BigDecimal v) {
-        if (v == null) return null;
-        if (v.compareTo(java.math.BigDecimal.ZERO) < 0) return java.math.BigDecimal.ZERO;
-        java.math.BigDecimal hundred = java.math.BigDecimal.valueOf(100);
-        return v.compareTo(hundred) > 0 ? hundred : v;
     }
 }

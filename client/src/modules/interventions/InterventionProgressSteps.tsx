@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { cn } from '../../utils/cn';
 import { Badge, Button, Item } from '../../components/ui';
 import { Alert, AlertDescription } from '../../components/ui';
-import { TriangleAlert } from 'lucide-react';
+import { TriangleAlert } from '../../icons/glyphs';
 import { Spinner } from '../../components/ui';
 import {
   Dialog,
@@ -62,6 +62,7 @@ interface RoomProps {
   getRoomNames: () => string[];
   validatedRooms: Set<number>;
   allRoomsValidated: boolean;
+  savingRoom: number | null;
   handleRoomValidation: (roomIndex: number) => void;
 }
 
@@ -208,7 +209,7 @@ const InterventionProgressSteps: React.FC<InterventionProgressStepsProps> = ({
 }) => {
   // Destructure grouped props for internal usage
   const { beforePhotos, afterPhotos, beforePhotoIds, afterPhotoIds, deletingPhotoId, handleDeletePhoto, setPhotoType, setPhotosDialogOpen } = photos;
-  const { propertyDetails, getTotalRooms, getRoomNames, validatedRooms, allRoomsValidated, handleRoomValidation } = rooms;
+  const { propertyDetails, getTotalRooms, getRoomNames, validatedRooms, allRoomsValidated, savingRoom, handleRoomValidation } = rooms;
   const { inspectionComplete, setInspectionComplete, completedSteps, setCompletedSteps, getStepNote, handleOpenNotesDialog } = stepProps;
   const { calculateProgress, areAllStepsCompleted, canUpdateProgress, handleUpdateProgressValue } = progressProps;
 
@@ -420,7 +421,8 @@ const InterventionProgressSteps: React.FC<InterventionProgressStepsProps> = ({
                 outlined
                 selected={validated}
                 pressed={validated}
-                icon={validated
+                disabled={savingRoom !== null}
+                icon={savingRoom === idx ? <Spinner className="size-[18px]" /> : validated
                   ? <CheckCircleOutlineIcon size={18} strokeWidth={1.75} />
                   : <RoomIcon size={18} strokeWidth={1.75} />}
                 label={name}
@@ -446,6 +448,12 @@ const InterventionProgressSteps: React.FC<InterventionProgressStepsProps> = ({
           );
         })}
       </div>
+
+      {savingRoom !== null && (
+        <p role="status" className="mb-3 text-xs text-muted-foreground">
+          {t('interventions.progressSteps.savingRoom', 'Enregistrement de la pièce…')}
+        </p>
+      )}
 
       {getStepNote('rooms') && (
         <div className="mb-3">

@@ -3,7 +3,7 @@ import { View, Pressable, Text, ActivityIndicator, Alert, Platform } from 'react
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRoute, useNavigation } from '@react-navigation/native';
 import type { RouteProp } from '@react-navigation/native';
-import { Ionicons } from '@expo/vector-icons';
+import { Reicon } from '@/icons';
 import { WebView } from 'react-native-webview';
 import * as Sharing from 'expo-sharing';
 import { useTheme } from '@/theme';
@@ -82,7 +82,7 @@ export function PdfViewerScreen() {
             alignItems: 'center', justifyContent: 'center',
           }}
         >
-          <Ionicons name="close" size={22} color={theme.colors.text.primary} />
+          <Reicon name="close" size={22} color={theme.colors.text.primary} />
         </Pressable>
         <Text
           style={{
@@ -104,14 +104,14 @@ export function PdfViewerScreen() {
             alignItems: 'center', justifyContent: 'center',
           }}
         >
-          <Ionicons name="open-outline" size={20} color={theme.colors.text.primary} />
+          <Reicon name="open-outline" size={20} color={theme.colors.text.primary} />
         </Pressable>
       </View>
 
       {/* PDF content */}
       {hasError ? (
         <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 32 }}>
-          <Ionicons name="document-outline" size={48} color={theme.colors.text.disabled} />
+          <Reicon name="document-outline" size={48} color={theme.colors.text.disabled} />
           <Text style={{ ...theme.typography.body1, color: theme.colors.text.secondary, textAlign: 'center', marginTop: 16 }}>
             Impossible d'afficher le document dans l'application.
           </Text>

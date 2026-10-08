@@ -1,7 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { cn } from '../../utils/cn';
 import { Alert, AlertDescription } from '../../components/ui';
-import { TriangleAlert } from 'lucide-react';
+import { TriangleAlert } from '../../icons/glyphs';
 import { Skeleton, Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '../../components/ui';
 import { Field, FieldLabel, NativeSelect, NativeSelectOption } from '../../components/ui';
 import {
@@ -18,11 +18,12 @@ import { useTranslation } from '../../hooks/useTranslation';
 import { activeIntlLocaleGregorian } from '../../utils/activeLocale';
 import { useMonthlyVatSummary, useQuarterlyVatSummary, useAnnualVatSummary } from '../../hooks/useFiscalReporting';
 import { formatTaxRate } from '../../utils/currencyUtils';
-import { Money } from '../../components/Money';
 import type { VatSummary } from '../../services/api/fiscalReportingApi';
 import type { DashboardPeriod } from '../dashboard/DashboardDateFilter';
 import { tiles, type TileOrNothing } from '../../components/stats';
 import type { ReportContent } from './reportShell';
+import FinanceKpis from '../billing/components/FinanceKpis';
+import FinanceWorkspace from '../billing/components/FinanceWorkspace';
 
 // ─── Constants ──────────────────────────────────────────────────────────────
 
@@ -39,6 +40,7 @@ const PANEL_CLASS = 'border border-solid border-border shadow-none rounded-lg bg
 const PERIOD_MODES: PeriodMode[] = ['monthly', 'quarterly', 'annual'];
 
 const QUARTERS = [1, 2, 3, 4] as const;
+const fiscalMoney = (value: number, currency: string) => new Intl.NumberFormat(activeIntlLocaleGregorian(), { style: 'currency', currency }).format(value);
 
 
 // ─── Blocs reutilisables ────────────────────────────────────────────────────
@@ -52,15 +54,19 @@ export const VatSummaryCards: React.FC<{ summary: VatSummary; className?: string
   className,
 }) => {
   const { t } = useTranslation();
+  if (summary.issuers?.length) return <div className="space-y-4">{summary.issuers.map(issuer => <section key={issuer.issuerKey}>
+    <h3 className="mb-2 text-sm font-medium">{issuer.sellerName || t('documentVerification.unknownIssuer')} · {issuer.summary.countryCode} · {issuer.summary.currency}</h3>
+    <VatSummaryCards summary={issuer.summary} className={className} />
+  </section>)}</div>;
 
   return (
   <div className={cn('flex gap-3 flex-wrap', className)}>
     {[
       { label: t('reports.fiscal.cards.period', 'Période'), value: summary.period, isText: true },
       { label: t('reports.fiscal.cards.invoices', 'Factures'), value: String(summary.invoiceCount), isText: true },
-      { label: t('reports.fiscal.cards.totalHt', 'Total HT'), value: <Money value={summary.totalHt} from={summary.currency} /> },
-      { label: t('reports.fiscal.cards.totalTax', 'Total TVA'), value: <Money value={summary.totalTax} from={summary.currency} /> },
-      { label: t('reports.fiscal.cards.totalTtc', 'Total TTC'), value: <Money value={summary.totalTtc} from={summary.currency} />, primary: true },
+      { label: t('reports.fiscal.cards.totalHt', 'Total HT'), value: fiscalMoney(summary.totalHt, summary.currency) },
+      { label: t('reports.fiscal.cards.totalTax', 'Total TVA'), value: fiscalMoney(summary.totalTax, summary.currency) },
+      { label: t('reports.fiscal.cards.totalTtc', 'Total TTC'), value: fiscalMoney(summary.totalTtc, summary.currency), primary: true },
     ].map(card => (
       <div
         key={card.label}
@@ -86,6 +92,10 @@ export const VatSummaryCards: React.FC<{ summary: VatSummary; className?: string
 /** Ventilation de la TVA par categorie et par taux. */
 export const VatBreakdownTable: React.FC<{ summary: VatSummary }> = ({ summary }) => {
   const { t } = useTranslation();
+  if (summary.issuers?.length) return <div className="space-y-4">{summary.issuers.map(issuer => <section key={issuer.issuerKey}>
+    <h3 className="mb-2 text-sm font-medium">{issuer.sellerName || t('documentVerification.unknownIssuer')} · {issuer.summary.currency}</h3>
+    <VatBreakdownTable summary={issuer.summary} />
+  </section>)}</div>;
 
   return (
   <div className="overflow-x-auto rounded-lg border border-solid border-border bg-card">
@@ -106,8 +116,8 @@ export const VatBreakdownTable: React.FC<{ summary: VatSummary }> = ({ summary }
             <TableCell className={CELL_CLASS}>{row.taxCategory}</TableCell>
             <TableCell className={CELL_CLASS}>{row.taxName}</TableCell>
             <TableCell className={cn(CELL_CLASS, 'text-end')}>{formatTaxRate(row.taxRate)}</TableCell>
-            <TableCell className={cn(CELL_CLASS, 'text-end')}><Money value={row.baseAmount} from={summary.currency} /></TableCell>
-            <TableCell className={cn(CELL_CLASS, 'text-end font-semibold')}><Money value={row.taxAmount} from={summary.currency} /></TableCell>
+            <TableCell className={cn(CELL_CLASS, 'text-end')}>{fiscalMoney(row.baseAmount, summary.currency)}</TableCell>
+            <TableCell className={cn(CELL_CLASS, 'text-end font-semibold')}>{fiscalMoney(row.taxAmount, summary.currency)}</TableCell>
             <TableCell className={cn(CELL_CLASS, 'text-end')}>{row.lineCount}</TableCell>
           </TableRow>
         ))}
@@ -190,6 +200,8 @@ export function useFiscalReport(period: DashboardPeriod = 'month'): ReportConten
 
 const FiscalReportSection: React.FC = () => {
   const { t } = useTranslation();
+  const [country, setCountry] = useState('');
+  const [issuerKey, setIssuerKey] = useState('');
   const now = new Date();
   const [mode, setMode] = useState<PeriodMode>('monthly');
   const [year, setYear] = useState(now.getFullYear());
@@ -199,17 +211,19 @@ const FiscalReportSection: React.FC = () => {
   // Conditional queries based on mode
   const monthlyQuery = useMonthlyVatSummary(
     mode === 'monthly' ? year : 0,
-    mode === 'monthly' ? month : 0,
+    mode === 'monthly' ? month : 0, country || undefined,
   );
   const quarterlyQuery = useQuarterlyVatSummary(
     mode === 'quarterly' ? year : 0,
-    mode === 'quarterly' ? quarter : 0,
+    mode === 'quarterly' ? quarter : 0, country || undefined,
   );
-  const annualQuery = useAnnualVatSummary(mode === 'annual' ? year : 0);
+  const annualQuery = useAnnualVatSummary(mode === 'annual' ? year : 0, country || undefined);
 
   // Active query
   const activeQuery = mode === 'monthly' ? monthlyQuery : mode === 'quarterly' ? quarterlyQuery : annualQuery;
-  const summary: VatSummary | undefined = activeQuery.data;
+  const issuers = activeQuery.data?.issuers ?? [];
+  const issuer = issuers.find(value => value.issuerKey === issuerKey) ?? issuers[0];
+  const summary: VatSummary | undefined = issuer?.summary ?? activeQuery.data;
 
   const yearOptions = useMemo(() => {
     const currentYear = new Date().getFullYear();
@@ -240,6 +254,13 @@ const FiscalReportSection: React.FC = () => {
       {/* Period selector */}
       <div className={cn(PANEL_CLASS, 'p-3 mb-3')}>
         <div className="flex gap-3 flex-wrap items-center">
+          <Field className="w-[170px]">
+            <FieldLabel htmlFor="fiscal-report-country">{t('fiscal.profile.country')}</FieldLabel>
+            <NativeSelect id="fiscal-report-country" value={country} onChange={e => setCountry(e.target.value)}>
+              <NativeSelectOption value="">{t('fiscal.jurisdictions.primary')}</NativeSelectOption>
+              {['FR', 'MA', 'SA'].map(code => <NativeSelectOption key={code} value={code}>{t('countries.' + code)}</NativeSelectOption>)}
+            </NativeSelect>
+          </Field>
           <PeriodSegmented<PeriodMode>
             value={mode}
             onChange={setMode}
@@ -304,6 +325,11 @@ const FiscalReportSection: React.FC = () => {
         </div>
       </div>
 
+      {!!issuers.length && <Field className="mb-4 max-w-lg"><FieldLabel htmlFor="fiscal-issuer">{t('documentVerification.issuerScope')}</FieldLabel>
+        <NativeSelect id="fiscal-issuer" value={issuer?.issuerKey ?? ''} onChange={event => setIssuerKey(event.target.value)}>
+          {issuers.map(value => <NativeSelectOption key={value.issuerKey} value={value.issuerKey}>{value.sellerName || t('documentVerification.unknownIssuer')} · {value.summary.countryCode} · {value.summary.currency}</NativeSelectOption>)}
+        </NativeSelect>
+      </Field>}
       {/* Loading / Error */}
       {activeQuery.isLoading ? (
         <div className="flex flex-col gap-2">
@@ -324,8 +350,25 @@ const FiscalReportSection: React.FC = () => {
         />
       ) : (
         <>
-          <VatSummaryCards summary={summary} className="mb-3" />
-          {summary.breakdown?.length > 0 && <VatBreakdownTable summary={summary} />}
+          <FinanceKpis scope={summary.period} items={[
+            { key: 'invoices', label: t('reports.fiscal.cards.invoices'), value: summary.invoiceCount, artwork: 'documents' },
+            { key: 'ht', label: t('reports.fiscal.cards.totalHt'), value: new Intl.NumberFormat(activeIntlLocaleGregorian(), { style: 'currency', currency: summary.currency }).format(summary.totalHt), artwork: 'received' },
+            { key: 'tax', label: t('reports.fiscal.cards.totalTax'), value: new Intl.NumberFormat(activeIntlLocaleGregorian(), { style: 'currency', currency: summary.currency }).format(summary.totalTax), artwork: 'pending' },
+            { key: 'ttc', label: t('reports.fiscal.cards.totalTtc'), value: new Intl.NumberFormat(activeIntlLocaleGregorian(), { style: 'currency', currency: summary.currency }).format(summary.totalTtc), artwork: 'transfer' },
+          ].map(item => ({ ...item, artwork: item.artwork as 'documents' | 'received' | 'pending' | 'transfer',
+            description: t('accounting.fiscal.help.description'), advice: t('accounting.fiscal.help.step2Desc'),
+          }))} />
+          {summary.breakdown?.length > 0 && <FinanceWorkspace items={summary.breakdown.map(row => ({
+            id: `${row.taxCategory}-${row.taxName}-${row.taxRate}`, title: row.taxName, subtitle: row.taxCategory,
+            amount: new Intl.NumberFormat(activeIntlLocaleGregorian(), { style: 'currency', currency: summary.currency }).format(row.taxAmount),
+            status: formatTaxRate(row.taxRate), fields: [
+              { label: t('reports.fiscal.cols.category'), value: row.taxCategory },
+              { label: t('reports.fiscal.cols.rate'), value: formatTaxRate(row.taxRate) },
+              { label: t('reports.fiscal.cols.base'), value: new Intl.NumberFormat(activeIntlLocaleGregorian(), { style: 'currency', currency: summary.currency }).format(row.baseAmount) },
+              { label: t('reports.fiscal.cols.amount'), value: new Intl.NumberFormat(activeIntlLocaleGregorian(), { style: 'currency', currency: summary.currency }).format(row.taxAmount) },
+              { label: t('reports.fiscal.cols.lines'), value: row.lineCount },
+            ],
+          }))} />}
         </>
       )}
     </div>

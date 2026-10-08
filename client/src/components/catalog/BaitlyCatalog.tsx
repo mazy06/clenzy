@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react';
-import { LayoutGrid, List } from 'lucide-react';
+import { LayoutGrid, List } from '../../icons/glyphs';
 import { useTranslation } from '../../hooks/useTranslation';
 import { DirectoryLayout } from './DirectoryLayout';
 import { DirectoryToolbar, DirectorySegments, DirectorySegment } from './DirectoryToolbar';

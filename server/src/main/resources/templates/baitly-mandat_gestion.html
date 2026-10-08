@@ -1,0 +1,69 @@
+<!doctype html><html lang="fr"><head><meta charset="UTF-8"><title>${entreprise.nom} · Document</title><style>@page { size: A4; margin: 16mm 14mm; }
+* { box-sizing: border-box; }
+body { color:#1b2a35; background:#fcfdff; font:10pt/1.5 Arial,sans-serif; margin:0; }
+h1 { color:#193d67; font-size:21pt; line-height:1.2; margin:0 0 8mm; }
+h2 { color:#193d67; font-size:13pt; margin:7mm 0 3mm; break-after:avoid; }
+h3 { font-size:11pt; break-after:avoid; }
+p { margin:0 0 3mm; overflow-wrap:anywhere; }
+table { border-collapse:collapse; width:100%; margin:3mm 0 5mm; font-size:9pt; }
+thead { display:table-header-group; }
+tr { break-inside:avoid; }
+th,td { padding:2.5mm; text-align:left; vertical-align:top; border-bottom:1px solid #d4dfe9; overflow-wrap:anywhere; }
+th { background:#e7eef4; font-weight:600; }
+img { max-width:100%; height:auto; }
+.muted,footer { color:#526879; font-size:8pt; }
+.page-break { break-before:page; }
+.amount { font-variant-numeric:tabular-nums; }
+</style></head><body>
+
+      <p style="margin-bottom:0.5cm;text-align:center;font-size:18pt;font-weight:bold;">MANDAT DE GESTION LOCATIVE</p>
+      <p style="margin-bottom:0.3cm;text-align:center;color:#666666;font-size:12pt;">Ref: MG-${system.numero_auto} — ${system.date}</p>
+
+      <p style="margin-bottom:0.2cm;margin-top:0.4cm;color:#333333;font-size:13pt;font-weight:bold;">ENTRE LES SOUSSIGNES</p>
+
+      <p><span style="font-weight:bold;">Le Mandant (Proprietaire) :</span></p>
+      <p>Nom : ${client.nom_complet}</p>
+      <p>Societe : ${client.societe}</p>
+      <p>Email : ${client.email}</p>
+      <p>Telephone : ${client.telephone}</p>
+      <p>Adresse : ${client.ville} ${client.code_postal}</p>
+
+      <p><span style="font-weight:bold;">Le Mandataire (Gestionnaire) :</span></p>
+      <p>Societe : ${entreprise.nom}</p>
+      <p>Adresse : ${entreprise.adresse}</p>
+      <p>SIRET : ${entreprise.siret}</p>
+      <p>Email : ${entreprise.email}</p>
+      <p>Telephone : ${entreprise.telephone}</p>
+
+      <p style="margin-bottom:0.2cm;margin-top:0.4cm;color:#333333;font-size:13pt;font-weight:bold;">OBJET DU MANDAT</p>
+      <p>Le Mandant confie au Mandataire la gestion locative du bien suivant :</p>
+
+      <p><span style="font-weight:bold;">Bien concerne :</span></p>
+      <p>Designation : ${property.nom}</p>
+      <p>Type : ${property.type}</p>
+      <p>Adresse : ${property.adresse}, ${property.code_postal} ${property.ville}, ${property.pays}</p>
+      <p>Surface : ${property.surface}</p>
+      <p>Chambres : ${property.chambres} — Salles de bain : ${property.salles_bain}</p>
+      <p>Capacite maximale : ${property.capacite} personnes</p>
+      <p>Prix par nuit : ${property.prix_nuit}</p>
+
+      <p style="margin-bottom:0.2cm;margin-top:0.4cm;color:#333333;font-size:13pt;font-weight:bold;">MISSIONS DU MANDATAIRE</p>
+      <p>Le Mandataire est charge de :</p>
+      <p>- Mise en location sur les plateformes de reservation</p>
+      <p>- Gestion des arrivees (check-in : ${property.check_in}) et departs (check-out : ${property.check_out})</p>
+      <p>- Accueil des voyageurs et remise des cles</p>
+      <p>- Entretien et menage entre chaque sejour</p>
+      <p>- Gestion des interventions techniques et reparations</p>
+      <p>- Encaissement des loyers et reversement au Mandant</p>
+      <p>- Communication avec les voyageurs</p>
+
+      <p style="margin-bottom:0.2cm;margin-top:0.4cm;color:#333333;font-size:13pt;font-weight:bold;">DUREE</p>
+      <p>Le present mandat est conclu pour une duree indeterminee a compter du ${system.date}.</p>
+
+      <p style="margin-bottom:0.2cm;margin-top:0.4cm;color:#333333;font-size:13pt;font-weight:bold;">SIGNATURES</p>
+      <p>Fait en deux exemplaires originaux, a ${client.ville}, le ${system.date}.</p>
+      <p></p>
+      <p>Le Mandant :                                        Le Mandataire :</p>
+      <p>${client.nom_complet}                               ${entreprise.nom}</p>
+
+    </body></html>

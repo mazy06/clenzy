@@ -58,6 +58,10 @@ class StripeWebhookControllerTest {
     @Mock private SubscriptionService subscriptionService;
     @Mock private MobilePaymentService mobilePaymentService;
     @Mock private PaymentOrchestrationService orchestrationService;
+    @Mock private com.clenzy.service.BaitlyCheckoutJournal checkoutJournal;
+    @Mock private com.clenzy.service.BaitlyMonthlySubscriptionService monthlySubscriptions;
+    @Mock private com.clenzy.service.BaitlySubscriptionBilling subscriptionBilling;
+    @Mock private com.clenzy.service.BaitlyMaintenanceDepositCheckout maintenanceDeposit;
     @Mock private StripeConnectService stripeConnectService;
     @Mock private ShopService shopService;
     @Mock private PublicBookingService publicBookingService;
@@ -69,11 +73,26 @@ class StripeWebhookControllerTest {
     @Mock private com.clenzy.service.dashboard.PaymentEventActionRecorder paymentEventActionRecorder;
 
     @Mock private com.clenzy.service.paymentconnect.PaymentConnectionStore paymentConnectionStore;
+    @Mock private com.clenzy.payment.payout.StripeBankPayoutHandler bankPayoutHandler;
+    @Mock private com.clenzy.service.StripeWebhookTenantScope paymentTenantScope;
+    @Mock private com.clenzy.service.InterventionBatchCheckoutService batchCheckout;
+    @Mock private com.clenzy.service.InvoiceCheckoutService invoiceCheckout;
+    @org.mockito.Mock private com.clenzy.service.ManagedRefundReconciliation refunds;
     private StripeWebhookController controller;
+
+    @Mock com.clenzy.service.BaitlySubscriptionMoneyEvents subscriptionMoney;
 
     @BeforeEach
     void setUp() throws Exception {
-        controller = new StripeWebhookController(stripeService, inscriptionService, subscriptionService, mobilePaymentService, orchestrationService, stripeConnectService, shopService, publicBookingService, upsellService, stripeGateway, directBookingService, aiCreditGrantService, paymentFailedTriggerService, paymentEventActionRecorder, paymentConnectionStore);
+        controller = new StripeWebhookController(stripeService, inscriptionService, subscriptionService, mobilePaymentService, orchestrationService, stripeConnectService, shopService, publicBookingService, upsellService, stripeGateway, directBookingService, aiCreditGrantService, paymentFailedTriggerService, paymentEventActionRecorder, paymentConnectionStore, bankPayoutHandler, paymentTenantScope, batchCheckout, invoiceCheckout, refunds, mock(com.clenzy.service.BaitlyInterventionCheckoutExpiry.class), checkoutJournal, monthlySubscriptions, subscriptionBilling, maintenanceDeposit, subscriptionMoney);
+        org.mockito.Mockito.lenient().doAnswer(invocation -> { ((Runnable) invocation.getArgument(1)).run(); return null; })
+                .when(paymentTenantScope).forIntervention(anyString(), any());
+        org.mockito.Mockito.lenient().doAnswer(invocation -> { ((Runnable) invocation.getArgument(1)).run(); return null; })
+                .when(paymentTenantScope).forReservation(anyString(), any());
+        org.mockito.Mockito.lenient().doAnswer(invocation -> { ((Runnable) invocation.getArgument(1)).run(); return null; })
+                .when(paymentTenantScope).forServiceRequest(anyString(), any());
+        org.mockito.Mockito.lenient().doAnswer(invocation -> { ((Runnable) invocation.getArgument(2)).run(); return null; })
+                .when(paymentTenantScope).forGroupedInterventions(anyString(), org.mockito.ArgumentMatchers.nullable(String.class), any());
         setField("webhookSecret", "whsec_test_secret");
     }
 
@@ -103,7 +122,169 @@ class StripeWebhookControllerTest {
         return s;
     }
 
+
+    @org.junit.jupiter.params.ParameterizedTest
+    @org.junit.jupiter.params.provider.ValueSource(strings={"checkout.session.completed","checkout.session.async_payment_succeeded","checkout.session.async_payment_failed","checkout.session.expired"})
+    void batchEventsUseCanonicalHandlerWithoutLegacySingularLookup(String type) throws Exception {
+        String payload="{\"id\":\"evt_batch\",\"object\":\"event\",\"api_version\":\"" + com.stripe.Stripe.API_VERSION
+            + "\",\"type\":\"" + type + "\",\"data\":{\"object\":{\"id\":\"cs_batch\",\"object\":\"checkout.session\",\"mode\":\"payment\",\"payment_status\":\"paid\"}}}";
+        when(batchCheckout.handleWebhook(any(Session.class))).thenReturn(true);
+        assertThat(controller.handleStripeWebhook(payload,signature(payload)).getStatusCode().value()).isEqualTo(200);
+        org.mockito.Mockito.verifyNoInteractions(stripeService,paymentTenantScope,orchestrationService,paymentEventActionRecorder);
+    }
+
+    @Test void batchFailureReturns500ForRedelivery() throws Exception {
+        String payload="{\"id\":\"evt_batch\",\"object\":\"event\",\"api_version\":\"" + com.stripe.Stripe.API_VERSION
+            + "\",\"type\":\"checkout.session.completed\",\"data\":{\"object\":{\"id\":\"cs_batch\",\"object\":\"checkout.session\",\"mode\":\"payment\",\"payment_status\":\"paid\"}}}";
+        when(batchCheckout.handleWebhook(any(Session.class))).thenThrow(new IllegalStateException("Ledger unavailable"));
+        assertThat(controller.handleStripeWebhook(payload,signature(payload)).getStatusCode().value()).isEqualTo(500);
+        org.mockito.Mockito.verifyNoInteractions(stripeService,orchestrationService);
+    }
+
+    @org.junit.jupiter.params.ParameterizedTest
+    @org.junit.jupiter.params.provider.ValueSource(strings={"checkout.session.completed","checkout.session.async_payment_succeeded","checkout.session.async_payment_failed","checkout.session.expired"})
+    void depositEventsNeverFallThroughToFullMissionConfirmation(String type) throws Exception {
+        String payload="{\"id\":\"evt_deposit\",\"object\":\"event\",\"api_version\":\""+com.stripe.Stripe.API_VERSION
+                +"\",\"type\":\""+type+"\",\"data\":{\"object\":{\"id\":\"cs_deposit\",\"object\":\"checkout.session\",\"mode\":\"payment\",\"payment_status\":\"paid\"}}}";
+        when(maintenanceDeposit.handleWebhook(any(Session.class))).thenReturn(true);
+        assertThat(controller.handleStripeWebhook(payload,signature(payload)).getStatusCode().value()).isEqualTo(200);
+        org.mockito.Mockito.verifyNoInteractions(stripeService,paymentTenantScope,checkoutJournal,orchestrationService);
+    }
+
     // ─── Signature validation paths ───────────────────────────────────────────
+
+    @org.junit.jupiter.params.ParameterizedTest
+    @org.junit.jupiter.params.provider.ValueSource(strings={"checkout.session.completed", "checkout.session.async_payment_succeeded",
+            "checkout.session.async_payment_failed", "checkout.session.expired", "payment_intent.succeeded", "payment_intent.payment_failed"})
+    void connectedAccountCannotChangePlatformPaymentsOrSubscriptions(String type) throws Exception {
+        String object = type.startsWith("checkout.") ? "checkout.session" : "payment_intent";
+        String payload = "{\"id\":\"evt_foreign\",\"object\":\"event\",\"account\":\"acct_connected\",\"api_version\":\""
+                + com.stripe.Stripe.API_VERSION + "\",\"type\":\"" + type
+                + "\",\"data\":{\"object\":{\"id\":\"cs_foreign\",\"object\":\"" + object
+                + "\",\"payment_status\":\"paid\",\"metadata\":{\"type\":\"inscription\",\"transactionRef\":\"TX-platform\"}}}}";
+        assertThat(controller.handleStripeWebhook(payload, signature(payload)).getStatusCode().value()).isEqualTo(200);
+        org.mockito.Mockito.verifyNoInteractions(inscriptionService, monthlySubscriptions, subscriptionBilling,
+                stripeService, mobilePaymentService, checkoutJournal, maintenanceDeposit, batchCheckout, invoiceCheckout,
+                paymentTenantScope, orchestrationService, shopService, upsellService, directBookingService, paymentFailedTriggerService);
+    }
+
+    private String refundPayload(String type, String account) {
+        return "{\"id\":\"evt_refund\",\"object\":\"event\",\"api_version\":\"" + com.stripe.Stripe.API_VERSION
+            + "\",\"type\":\"" + type + "\"," + (account == null ? "" : "\"account\":\"" + account + "\",")
+            + "\"data\":{\"object\":{\"id\":\"re_test\",\"object\":\"refund\",\"status\":\"succeeded\"}}}";
+    }
+
+    @org.junit.jupiter.params.ParameterizedTest
+    @org.junit.jupiter.params.provider.ValueSource(strings={"refund.created", "refund.updated", "refund.failed"})
+    void signedRefundEventsTriggerCanonicalReconciliation(String type) throws Exception {
+        String payload = refundPayload(type, null);
+        assertThat(controller.handleStripeWebhook(payload, signature(payload)).getStatusCode().value()).isEqualTo(200);
+        verify(refunds).onWebhook(org.mockito.ArgumentMatchers.argThat(refund -> "re_test".equals(refund.getId())));
+        org.mockito.Mockito.verifyNoInteractions(stripeService, orchestrationService);
+    }
+
+    @Test void refundReconciliationFailureRequestsWebhookRedelivery() throws Exception {
+        String payload = refundPayload("refund.updated", null);
+        doThrow(new IllegalStateException("journal unavailable")).when(refunds).onWebhook(any());
+        assertThat(controller.handleStripeWebhook(payload, signature(payload)).getStatusCode().value()).isEqualTo(500);
+    }
+
+    @Test void connectedAccountRefundCannotConfirmPlatformPayment() throws Exception {
+        String payload = refundPayload("refund.updated", "acct_other");
+        assertThat(controller.handleStripeWebhook(payload, signature(payload)).getStatusCode().value()).isEqualTo(200);
+        org.mockito.Mockito.verifyNoInteractions(refunds);
+    }
+
+    @org.junit.jupiter.params.ParameterizedTest
+    @org.junit.jupiter.params.provider.ValueSource(strings={"checkout.session.completed","checkout.session.async_payment_succeeded","checkout.session.async_payment_failed","checkout.session.expired"})
+    void invoiceEventsUseCanonicalHandlerWithoutLegacyConfirmation(String type) throws Exception {
+        String payload="{\"id\":\"evt_invoice\",\"object\":\"event\",\"api_version\":\"" + com.stripe.Stripe.API_VERSION
+            + "\",\"type\":\"" + type + "\",\"data\":{\"object\":{\"id\":\"cs_invoice\",\"object\":\"checkout.session\",\"mode\":\"payment\",\"payment_status\":\"paid\"}}}";
+        when(invoiceCheckout.handleWebhook(any(Session.class))).thenReturn(true);
+        assertThat(controller.handleStripeWebhook(payload,signature(payload)).getStatusCode().value()).isEqualTo(200);
+        org.mockito.Mockito.verifyNoInteractions(batchCheckout, stripeService, orchestrationService);
+    }
+
+    @org.junit.jupiter.params.ParameterizedTest
+    @org.junit.jupiter.params.provider.ValueSource(strings = {
+            "checkout.session.completed", "checkout.session.async_payment_succeeded",
+            "checkout.session.async_payment_failed", "checkout.session.expired",
+            "payment_intent.succeeded", "payment_intent.payment_failed", "account.updated",
+            "transfer.failed", "refund.created", "refund.updated", "refund.failed", "charge.dispute.created", "charge.dispute.updated",
+            "charge.dispute.closed", "charge.dispute.funds_withdrawn", "charge.dispute.funds_reinstated", "invoice.paid"})
+    void incompatibleSignedSnapshotsAreRetriedInsteadOfAcknowledged(String type) throws Exception {
+        String payload = "{\"id\":\"evt_old\",\"object\":\"event\",\"api_version\":\"2023-10-16\","
+                + "\"type\":\"" + type + "\",\"data\":{\"object\":{\"id\":\"acct_test\",\"object\":\"account\"}}}";
+        assertThat(controller.handleStripeWebhook(payload, signature(payload)).getStatusCode().value()).isEqualTo(503);
+        org.mockito.Mockito.verifyNoInteractions(stripeService, stripeConnectService,
+                paymentConnectionStore, bankPayoutHandler, aiCreditGrantService);
+    }
+
+    @org.junit.jupiter.params.ParameterizedTest
+    @org.junit.jupiter.params.provider.ValueSource(strings={"charge.dispute.created","charge.dispute.updated","charge.dispute.closed","charge.dispute.funds_withdrawn","charge.dispute.funds_reinstated"})
+    void connectedAccountDisputeCannotMutatePlatformPayments(String type) throws Exception {
+        var dispute=new com.stripe.model.Dispute(); dispute.setId("dp_test");
+        var event=mockEvent(type,dispute); when(event.getAccount()).thenReturn("acct_other");
+        try(var webhook=mockStatic(Webhook.class)) {
+            webhook.when(()->Webhook.constructEvent(anyString(),anyString(),anyString())).thenReturn(event);
+            assertThat(controller.handleStripeWebhook("payload","signature").getStatusCode().value()).isEqualTo(200);
+            org.mockito.Mockito.verifyNoInteractions(paymentEventActionRecorder);
+        }
+    }
+
+    @Test
+    void currentSignedAccountSnapshotUpdatesTheBeneficiary() throws Exception {
+        String payload = "{\"id\":\"evt_current\",\"object\":\"event\",\"api_version\":\""
+                + com.stripe.Stripe.API_VERSION + "\",\"type\":\"account.updated\","
+                + "\"data\":{\"object\":{\"id\":\"acct_test\",\"object\":\"account\","
+                + "\"charges_enabled\":true,\"payouts_enabled\":true}}}";
+        assertThat(controller.handleStripeWebhook(payload, signature(payload)).getStatusCode().value()).isEqualTo(200);
+        verify(stripeConnectService).handleAccountUpdated("acct_test", true, true);
+    }
+
+    @Test
+    void currentSignedInvoiceReadsSubscriptionFromParent() throws Exception {
+        String payload = "{\"id\":\"evt_invoice\",\"object\":\"event\",\"api_version\":\""
+                + com.stripe.Stripe.API_VERSION + "\",\"type\":\"invoice.paid\","
+                + "\"data\":{\"object\":{\"id\":\"in_test\",\"object\":\"invoice\","
+                + "\"parent\":{\"type\":\"subscription_details\",\"subscription_details\":{\"subscription\":\"sub_test\"}}}}}";
+        var canonical=com.stripe.net.ApiResource.GSON.fromJson("{\"id\":\"in_test\",\"status\":\"paid\",\"amount_remaining\":0,\"parent\":{\"subscription_details\":{\"subscription\":\"sub_test\"}}}",com.stripe.model.Invoice.class);
+        assertThat(controller.handleStripeWebhook(payload, signature(payload)).getStatusCode().value()).isEqualTo(200);
+        verify(subscriptionMoney).invoice("in_test");
+    }
+
+    private static String signature(String payload) throws Exception {
+        long timestamp = java.time.Instant.now().getEpochSecond();
+        var mac = javax.crypto.Mac.getInstance("HmacSHA256");
+        mac.init(new javax.crypto.spec.SecretKeySpec("whsec_test_secret".getBytes(java.nio.charset.StandardCharsets.UTF_8), "HmacSHA256"));
+        return "t=" + timestamp + ",v1=" + java.util.HexFormat.of().formatHex(
+                mac.doFinal((timestamp + "." + payload).getBytes(java.nio.charset.StandardCharsets.UTF_8)));
+    }
+
+    @org.junit.jupiter.params.ParameterizedTest
+    @org.junit.jupiter.params.provider.ValueSource(strings={"payout.created","payout.updated","payout.paid","payout.failed","payout.canceled","payout.reconciliation_completed"})
+    void bankPayoutEventsAreDispatchedOnlyAfterSignatureVerification(String type) throws Exception {
+        var event=new Event();event.setType(type);
+        try(MockedStatic<Webhook> webhook=mockStatic(Webhook.class)) {
+            webhook.when(() -> Webhook.constructEvent(anyString(),anyString(),anyString())).thenReturn(event);
+            assertThat(controller.handleStripeWebhook("payload","signature").getStatusCode().value()).isEqualTo(200);
+            verify(bankPayoutHandler).handleVerifiedEvent(event);
+        }
+    }
+
+    @Test void failedBankReconciliationReturns500ForStripeRedelivery() throws Exception {
+        var event=new Event();event.setType("payout.paid");
+        doThrow(new IllegalStateException("Database unavailable")).when(bankPayoutHandler).handleVerifiedEvent(event);
+        try(MockedStatic<Webhook> webhook=mockStatic(Webhook.class)) {
+            webhook.when(() -> Webhook.constructEvent(anyString(),anyString(),anyString())).thenReturn(event);
+            assertThat(controller.handleStripeWebhook("payload","signature").getStatusCode().value()).isEqualTo(500);
+        }
+    }
+
+    @Test void invalidBankSignatureNeverReachesThePrivilegedHandler() {
+        assertThat(controller.handleStripeWebhook("{\"type\":\"payout.paid\"}","invalid").getStatusCode().value()).isEqualTo(400);
+        org.mockito.Mockito.verifyNoInteractions(bankPayoutHandler);
+    }
 
     @Nested
     @DisplayName("handleStripeWebhook - signature verification")
@@ -348,7 +529,7 @@ class StripeWebhookControllerTest {
                 ResponseEntity<String> response = controller.handleStripeWebhook("payload", "sig");
 
                 assertThat(response.getStatusCode().value()).isEqualTo(200);
-                verify(orchestrationService).completeTransaction("TX-123");
+                verify(checkoutJournal).apply(s, true);
             }
         }
 
@@ -679,8 +860,8 @@ class StripeWebhookControllerTest {
         }
 
         @Test
-        @DisplayName("handles null PaymentIntent gracefully")
-        void whenNullPaymentIntent_thenReturns200() {
+        @DisplayName("retries an unreadable PaymentIntent instead of losing the event")
+        void whenNullPaymentIntent_thenReturns503() {
             Event event = mock(Event.class);
             when(event.getType()).thenReturn("payment_intent.succeeded");
             EventDataObjectDeserializer des = mock(EventDataObjectDeserializer.class);
@@ -693,7 +874,7 @@ class StripeWebhookControllerTest {
 
                 ResponseEntity<String> response = controller.handleStripeWebhook("payload", "sig");
 
-                assertThat(response.getStatusCode().value()).isEqualTo(200);
+                assertThat(response.getStatusCode().value()).isEqualTo(503);
             }
         }
     }
@@ -857,7 +1038,7 @@ class StripeWebhookControllerTest {
         @DisplayName("returns 200 for unknown events without action")
         void whenUnknownEvent_thenReturns200() {
             Event event = mock(Event.class);
-            when(event.getType()).thenReturn("customer.subscription.updated");
+            when(event.getType()).thenReturn("customer.created");
 
             try (MockedStatic<Webhook> mockedWebhook = mockStatic(Webhook.class)) {
                 mockedWebhook.when(() -> Webhook.constructEvent(anyString(), anyString(), anyString()))

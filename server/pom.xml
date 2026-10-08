@@ -28,6 +28,7 @@
         <maven.compiler.source>21</maven.compiler.source>
         <maven.compiler.target>21</maven.compiler.target>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <baitly.test.reportsDirectory>${project.build.directory}/surefire-reports</baitly.test.reportsDirectory>
         <spring-cloud.version>2024.0.0</spring-cloud.version>
         <aws.sdk.version>2.23.0</aws.sdk.version>
         <serverless.version>1.0.0</serverless.version>
@@ -86,13 +87,19 @@
              chargement de modeles quand la recherche localisee est active
              (elle l'est par defaut). Publiee le 2026-09-10, elle couvre 2.2.0
              a 2.3.34 ; l'avis recommande explicitement 2.3.35. FreeMarker
-             arrive par xdocreport (generation de documents). -->
+             est une dépendance directe des modèles HTML Baitly. -->
         <freemarker.version>2.3.35</freemarker.version>
         <!-- httpcore5 / httpclient5 : plus d'override, ils ne sont plus dans
              l'arbre depuis le retrait de firebase-admin, qui les tirait seul. -->
     </properties>
 
     <dependencies>
+        <!-- Validation EN 16931 locale, sans service fiscal externe. -->
+        <dependency>
+            <groupId>net.sf.saxon</groupId>
+            <artifactId>Saxon-HE</artifactId>
+            <version>12.10</version>
+        </dependency>
         <!-- Lecteurs d'exports PMS : aucune evaluation de formule Excel. -->
         <dependency>
             <groupId>org.apache.poi</groupId>
@@ -333,7 +340,8 @@
         <dependency>
             <groupId>com.stripe</groupId>
             <artifactId>stripe-java</artifactId>
-            <version>24.16.0</version>
+            <!-- API 2026-08-26.dahlia : même contrat que le relais webhook de recette. -->
+            <version>33.4.0</version>
         </dependency>
         
         <!-- iCal4j - Parser iCalendar (.ics) pour import calendrier externe -->
@@ -343,7 +351,7 @@
             <version>3.2.14</version>
         </dependency>
 
-        <!-- iText pour la génération de PDF -->
+        <!-- iText pour le contrôle, l'assemblage et les annotations des PDF. -->
         <dependency>
             <groupId>com.itextpdf</groupId>
             <artifactId>itext7-core</artifactId>
@@ -354,42 +362,14 @@
             <groupId>com.itextpdf</groupId>
             <artifactId>html2pdf</artifactId>
             <version>5.0.2</version>
+            <scope>test</scope>
         </dependency>
 
-        <!-- XDocReport : traitement templates ODT avec Freemarker.
-
-             2.2.0 corrige CVE-2025-64087 (9.8) sur xdocreport.core.
-
-             Le module converter.odt.odfdom a ete RETIRE. Il n'etait utilise nulle
-             part — DocumentTemplateRenderer ne fait que du rendu de gabarit
-             (IXDocReport.process), sans aucun appel de conversion — et il tirait a
-             lui seul deux bibliotheques abandonnees depuis 2009 :
-             com.lowagie:itext 2.1.7 (CVE-2017-9096, XXE au parsing PDF, 8.8) et
-             xerces:xercesImpl 2.9.1 (7.5), via odfdom-java 0.8.7.
-
-             Monter en 2.2.0 ne les aurait PAS enlevees : la chaine de transitives
-             est identique dans cette version. Seule la suppression du module les
-             fait disparaitre.
-
-             Nos PDF ne passent pas par la : ils sont produits par iText 7
-             (com.itextpdf:itext7-core), sans rapport avec le com.lowagie:itext
-             2.1.7 dont il descend. -->
+        <!-- Modèles HTML autonomes, rendus PDF par Chromium dans BaitlyPdfEngine. -->
         <dependency>
-            <groupId>fr.opensagres.xdocreport</groupId>
-            <artifactId>fr.opensagres.xdocreport.document.odt</artifactId>
-            <version>2.2.0</version>
-        </dependency>
-        <dependency>
-            <groupId>fr.opensagres.xdocreport</groupId>
-            <artifactId>fr.opensagres.xdocreport.template.freemarker</artifactId>
-            <version>2.2.0</version>
-        </dependency>
-
-        <!-- JODConverter : conversion ODT vers PDF via LibreOffice headless -->
-        <dependency>
-            <groupId>org.jodconverter</groupId>
-            <artifactId>jodconverter-remote</artifactId>
-            <version>4.4.7</version>
+            <groupId>org.freemarker</groupId>
+            <artifactId>freemarker</artifactId>
+            <version>${freemarker.version}</version>
         </dependency>
 
         <!-- Logback JSON structured logging (prod/staging - ingestion Loki/ELK) -->
@@ -592,6 +572,7 @@
                 <artifactId>maven-surefire-plugin</artifactId>
                 <version>3.1.2</version>
                 <configuration>
+                    <reportsDirectory>${baitly.test.reportsDirectory}</reportsDirectory>
                     <!-- @{argLine} injecte l'agent JaCoCo, puis on ouvre les modules pour Mockito -->
                     <argLine>
                         @{argLine}

@@ -19,7 +19,7 @@ import org.springframework.web.server.ResponseStatusException;
 import java.util.List;
 
 /**
- * Payout Stripe Connect des prestataires ménage (Moteur Ménage 3B — P9).
+ * Versements Stripe Connect de tous les métiers. Route historique conservée.
  * /me et /account-session : le PRO (ownership par le JWT — jamais d'id client).
  * /org et /{id}/retry : staff plateforme. Controller mince (règle ArchUnit).
  */
@@ -108,11 +108,20 @@ public class HousekeeperPayoutController {
                 .toList());
     }
 
-    /** Relance manuelle d'un versement FAILED/BLOCKED — staff plateforme. */
+    /** Aperçu sans mouvement PSP, limité à l'organisation courante. */
+    @GetMapping("/{recordId}/retry-preview")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'SUPER_MANAGER')")
+    public com.clenzy.dto.HousekeeperPayoutDtos.RetryQuote previewRetry(@PathVariable Long recordId) {
+        return payoutService.previewRetry(recordId, tenantContext.getRequiredOrganizationId());
+    }
+
+    /** Relance manuelle d'un versement FAILED/BLOCKED avec les montants confirmés. */
     @PostMapping("/{recordId}/retry")
     @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'SUPER_MANAGER')")
-    public ResponseEntity<PayoutRecordDto> retryPayout(@PathVariable Long recordId) {
+    public ResponseEntity<PayoutRecordDto> retryPayout(@PathVariable Long recordId,
+            @jakarta.validation.Valid @RequestBody com.clenzy.dto.HousekeeperPayoutDtos.RetryRequest request) {
         Long orgId = tenantContext.getRequiredOrganizationId();
-        return ResponseEntity.ok(PayoutRecordDto.from(payoutService.retryPayout(recordId, orgId)));
+        return ResponseEntity.ok(PayoutRecordDto.from(payoutService.retryPayout(recordId, orgId,
+                new com.clenzy.dto.HousekeeperPayoutDtos.RetryQuote(request.amount(), request.commissionAmount()))));
     }
 }

@@ -21,6 +21,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.security.oauth2.jwt.Jwt;
 
 import java.math.BigDecimal;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -176,6 +177,105 @@ class InterventionServiceTest {
     @Nested
     @DisplayName("update(id, request, jwt)")
     class Update {
+
+        @Test
+        void reschedulingChecksNewSlotAndPreservesPaidAssignment() {
+            var intervention = buildIntervention(1L, InterventionStatus.PENDING);
+            intervention.setAssignedUser(technician);
+            intervention.setPaymentStatus(PaymentStatus.PARTIALLY_REFUNDED);
+            intervention.setEstimatedCost(new BigDecimal("35.00"));
+            intervention.setScheduledDate(LocalDateTime.parse("2026-10-19T13:00"));
+            intervention.setStartTime(intervention.getScheduledDate());
+            intervention.setEndTime(intervention.getStartTime().plusHours(3));
+            var date = LocalDateTime.parse("2026-10-06T05:00");
+            var request = new UpdateInterventionRequest(null, null, null, null, null, null, null,
+                    "user", technician.getId(), null, date);
+            when(interventionRepository.findById(1L)).thenReturn(Optional.of(intervention));
+            when(interventionRepository.save(intervention)).thenReturn(intervention);
+            doAnswer(inv -> {
+                assertThat(intervention.getScheduledDate()).isEqualTo(date);
+                assertThat(intervention.getStartTime()).isEqualTo(date);
+                assertThat(intervention.getEndTime()).isEqualTo(date.plusHours(3));
+                return null;
+            }).when(allocationGuard).requireAvailable(intervention);
+
+            service.update(1L, request, mockJwtWithRole("SUPER_ADMIN"));
+
+            assertThat(intervention.getAssignedUser()).isSameAs(technician);
+            assertThat(intervention.getPaymentStatus()).isEqualTo(PaymentStatus.PARTIALLY_REFUNDED);
+            assertThat(intervention.getEstimatedCost()).isEqualByComparingTo("35.00");
+            verify(allocationGuard).requireAvailable(intervention);
+            verifyNoInteractions(userRepository, teamRepository, missionAssignmentEmailComposer,
+                    cleaningPricingEngine, supervisionTriggerService);
+        }
+
+        @Test
+        void reschedulingConflictPreventsSaveAndNotification() {
+            var intervention = buildIntervention(1L, InterventionStatus.PENDING);
+            var date = LocalDateTime.parse("2026-10-06T05:00");
+            var request = new UpdateInterventionRequest(null, null, null, null, null, null, null,
+                    null, null, null, date);
+            when(interventionRepository.findById(1L)).thenReturn(Optional.of(intervention));
+            doThrow(new com.clenzy.exception.AssignmentConflictException())
+                    .when(allocationGuard).requireAvailable(intervention);
+
+            assertThatThrownBy(() -> service.update(1L, request, mockJwtWithRole("SUPER_ADMIN")))
+                    .isInstanceOf(com.clenzy.exception.AssignmentConflictException.class);
+            verify(interventionRepository, never()).save(any());
+            verifyNoInteractions(notificationService);
+        }
+
+        @Test
+        void assignedProviderCannotRescheduleEvenWhenMissionIsAccessible() {
+            var intervention = buildIntervention(1L, InterventionStatus.PENDING);
+            var request = new UpdateInterventionRequest(null, null, null, null, null, null, null,
+                    null, null, null, LocalDateTime.parse("2026-10-06T05:00"));
+            when(interventionRepository.findById(1L)).thenReturn(Optional.of(intervention));
+
+            assertThatThrownBy(() -> service.update(1L, request, mockJwtWithRole("HOUSEKEEPER")))
+                    .isInstanceOf(UnauthorizedException.class);
+            verify(accessPolicy).assertCanAccess(eq(intervention), any());
+            verifyNoInteractions(interventionMapper, allocationGuard, notificationService);
+            verify(interventionRepository, never()).save(any());
+        }
+
+        @org.junit.jupiter.params.ParameterizedTest
+        @org.junit.jupiter.params.provider.EnumSource(value = InterventionStatus.class,
+                names = {"IN_PROGRESS", "COMPLETED", "CANCELLED"})
+        void startedOrClosedMissionCannotBeRescheduled(InterventionStatus status) {
+            var intervention = buildIntervention(1L, status);
+            var start = LocalDateTime.parse("2026-10-05T13:00");
+            intervention.setScheduledDate(start);
+            intervention.setStartTime(start);
+            var request = new UpdateInterventionRequest(null, null, null, null, null, null, null,
+                    null, null, null, start.plusDays(1));
+            when(interventionRepository.findById(1L)).thenReturn(Optional.of(intervention));
+
+            assertThatThrownBy(() -> service.update(1L, request, mockJwtWithRole("SUPER_ADMIN")))
+                    .isInstanceOf(IllegalStateException.class);
+            assertThat(intervention.getStartTime()).isEqualTo(start);
+            verifyNoInteractions(interventionMapper, allocationGuard, notificationService);
+        }
+
+        @Test
+        void unchangedDateAndAssigneeDoNotResetCompletedMission() {
+            var intervention = buildIntervention(1L, InterventionStatus.COMPLETED);
+            intervention.setAssignedUser(technician);
+            var scheduled = LocalDateTime.parse("2026-10-05T13:00");
+            var actual = scheduled.plusMinutes(7);
+            intervention.setScheduledDate(scheduled);
+            intervention.setStartTime(actual);
+            var request = new UpdateInterventionRequest(null, null, null, null, null, null, "Note",
+                    "user", technician.getId(), null, scheduled);
+            when(interventionRepository.findById(1L)).thenReturn(Optional.of(intervention));
+            when(interventionRepository.save(intervention)).thenReturn(intervention);
+
+            service.update(1L, request, mockJwtWithRole("SUPER_ADMIN"));
+
+            assertThat(intervention.getStartTime()).isEqualTo(actual);
+            assertThat(intervention.getStatus()).isEqualTo(InterventionStatus.COMPLETED);
+            verifyNoInteractions(userRepository, missionAssignmentEmailComposer);
+        }
 
         @Test
         @DisplayName("when found and authorized - applies changes and saves")

@@ -209,6 +209,14 @@ public class Reservation {
     @Enumerated(EnumType.STRING)
     private PaymentCollection paymentCollection;
 
+    /** Valeur explicite du channel manager ; NULL ne constitue jamais une preuve de paiement. */
+    @Column(name = "channel_payment_collect", length = 20)
+    private String channelPaymentCollect;
+
+    /** Date de réception de l'information, distincte de la date réelle du paiement. */
+    @Column(name = "channel_payment_observed_at")
+    private LocalDateTime channelPaymentObservedAt;
+
     @Column(name = "paid_at")
     private LocalDateTime paidAt;
 
@@ -452,6 +460,11 @@ public class Reservation {
 
     public PaymentCollection getPaymentCollection() { return paymentCollection; }
     public void setPaymentCollection(PaymentCollection paymentCollection) { this.paymentCollection = paymentCollection; }
+
+    public String getChannelPaymentCollect() { return channelPaymentCollect; }
+    public void setChannelPaymentCollect(String value) { this.channelPaymentCollect = value; }
+    public LocalDateTime getChannelPaymentObservedAt() { return channelPaymentObservedAt; }
+    public void setChannelPaymentObservedAt(LocalDateTime value) { this.channelPaymentObservedAt = value; }
 
     /**
      * Le canal a-t-il deja encaisse ce sejour ?

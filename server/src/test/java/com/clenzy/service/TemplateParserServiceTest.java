@@ -37,7 +37,7 @@ class TemplateParserServiceTest {
         try (ZipOutputStream zos = new ZipOutputStream(new FileOutputStream(odtFile.toFile()))) {
             ZipEntry entry = new ZipEntry("content.xml");
             zos.putNextEntry(entry);
-            zos.write(xmlContent.getBytes(StandardCharsets.UTF_8));
+            zos.write(("<office:document-content xmlns:office=\"urn:oasis:names:tc:opendocument:xmlns:office:1.0\" xmlns:text=\"urn:oasis:names:tc:opendocument:xmlns:text:1.0\"><office:body><office:text>" + xmlContent + "</office:text></office:body></office:document-content>").getBytes(StandardCharsets.UTF_8));
             zos.closeEntry();
         }
         return odtFile;

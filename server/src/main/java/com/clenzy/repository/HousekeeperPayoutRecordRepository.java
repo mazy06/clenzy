@@ -11,6 +11,14 @@ import java.util.List;
 import java.util.Optional;
 
 public interface HousekeeperPayoutRecordRepository extends JpaRepository<HousekeeperPayoutRecord, Long> {
+    @Query(value = "SELECT EXISTS (SELECT 1 FROM payment_transactions WHERE organization_id=:org "
+            + "AND source_type='INTERVENTION' AND source_id=:mission AND payment_type='REFUND' "
+            + "AND status NOT IN ('FAILED','CANCELLED'))", nativeQuery = true)
+    boolean hasReservedRefund(@Param("org") Long org, @Param("mission") Long mission);
+
+    @org.springframework.data.jpa.repository.Lock(jakarta.persistence.LockModeType.PESSIMISTIC_WRITE)
+    @Query("select p from HousekeeperPayoutRecord p where p.interventionId = :id and p.organizationId = :orgId")
+    Optional<HousekeeperPayoutRecord> lockForReconciliation(@Param("id") Long id, @Param("orgId") Long orgId);
 
     Optional<HousekeeperPayoutRecord> findByInterventionId(Long interventionId);
 

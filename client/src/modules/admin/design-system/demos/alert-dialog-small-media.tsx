@@ -1,4 +1,4 @@
-import { BluetoothIcon } from "lucide-react"
+import { BluetoothIcon } from "../../../../icons/glyphs"
 
 import {
   AlertDialog,

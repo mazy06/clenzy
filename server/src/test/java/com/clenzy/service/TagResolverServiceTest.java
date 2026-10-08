@@ -74,8 +74,9 @@ class TagResolverServiceTest {
                 new ProviderExpenseTagResolver(providerExpenseRepository, builders),
                 new ReceivedFormTagResolver(receivedFormRepository, pricingConfigService, objectMapper),
                 new ManagementContractTagResolver(managementContractRepository,
-                        propertyRepository, userRepository, builders)));
-        ReflectionTestUtils.setField(service, "companyName", "Clenzy");
+                        propertyRepository, userRepository, builders)),
+                org.mockito.Mockito.mock(BaitlyDocumentIdentity.class), org.mockito.Mockito.mock(com.clenzy.tenant.TenantContext.class));
+        ReflectionTestUtils.setField(service, "companyName", "Baitly");
         ReflectionTestUtils.setField(service, "companyAddress", "10 rue de Paris");
         ReflectionTestUtils.setField(service, "companySiret", "12345678900001");
         ReflectionTestUtils.setField(service, "companyEmail", "info@clenzy.fr");
@@ -102,7 +103,7 @@ class TagResolverServiceTest {
 
             @SuppressWarnings("unchecked")
             Map<String, Object> entreprise = (Map<String, Object>) context.get("entreprise");
-            assertThat(entreprise.get("nom")).isEqualTo("Clenzy");
+            assertThat(entreprise.get("nom")).isEqualTo("Baitly");
             assertThat(entreprise.get("siret")).isEqualTo("12345678900001");
         }
     }

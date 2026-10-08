@@ -42,10 +42,12 @@ class DocumentGenerationPipelineTest {
     @Mock private DocumentGenerationRepository generationRepository;
     @Mock private DocumentStorageService documentStorageService;
     @Mock private TagResolverService tagResolverService;
-    @Mock private LibreOfficeConversionService conversionService;
+    @Mock private BaitlyPdfEngine conversionService;
     @Mock private DocumentNumberingService numberingService;
     @Mock private DocumentComplianceService complianceService;
     @Mock private InvoiceGeneratorService invoiceGeneratorService;
+    @Mock private InvoicePdfService invoicePdfService;
+    @Mock private BaitlyInvoicePdfStore invoicePdfStore;
     @Mock private NotificationService notificationService;
     @Mock private AuditLogService auditLogService;
     @Mock private TenantContext tenantContext;
@@ -62,9 +64,25 @@ class DocumentGenerationPipelineTest {
         meterRegistry = new SimpleMeterRegistry();
         pipeline = new DocumentGenerationPipeline(
                 generationRepository, documentStorageService, tagResolverService, conversionService,
-                numberingService, complianceService, invoiceGeneratorService, notificationService,
+                numberingService, complianceService, invoiceGeneratorService, invoicePdfService, invoicePdfStore, notificationService,
                 auditLogService, tenantContext, failureRecorder, emailDispatcher, renderer, meterRegistry,
                 transactionManager);
+    }
+
+    @Test void canonicalInvoiceArchiveIsUsedWithoutASecondNumberOrTemplateRender() {
+        var invoice=BaitlyDocumentVerificationTest.invoice();invoice.setId(8L);invoice.setOrganizationId(7L);
+        var template=new DocumentTemplate();template.setDocumentType(DocumentType.FACTURE);template.setOrganizationId(7L);
+        byte[] bytes=BaitlyPdfEngineTest.pdf("TEST facture canonique");
+        when(generationRepository.save(any())).thenAnswer(call->{DocumentGeneration g=call.getArgument(0);g.setId(99L);return g;});
+        when(invoiceGeneratorService.createIssuedFromDocumentGeneration(ReferenceType.RESERVATION,5L,7L,null,null)).thenReturn(invoice);
+        when(invoicePdfStore.existing(7L,8L)).thenReturn(bytes);
+        when(invoicePdfStore.archive(eq(7L),eq(8L),anyString(),eq(bytes))).thenReturn(bytes);
+        when(documentStorageService.store(anyString(),anyString(),eq(bytes))).thenReturn("archive/99.pdf");
+        var result=pipeline.execute(new DocumentGenerationPipeline.GenerationCommand(template,5L,ReferenceType.RESERVATION,null,false,"reviewer",null,7L,"FR",false,null,null));
+        assertThat(result.legalNumber()).isEqualTo(invoice.getInvoiceNumber());
+        assertThat(invoice.getDocumentGenerationId()).isEqualTo(99L);
+        org.mockito.Mockito.verifyNoInteractions(renderer,conversionService,invoicePdfService,tagResolverService,numberingService);
+        verify(complianceService).lockDocument(any(),eq(bytes));
     }
 
     // ─── recordMissingTemplateFailure ───────────────────────────────────────
@@ -168,9 +186,9 @@ class DocumentGenerationPipelineTest {
                 return g;
             });
             when(renderer.resolveTemplateContent(template)).thenReturn(new byte[] {1});
-            when(tagResolverService.resolveTagsForDocument(any(), any(), any())).thenReturn(new HashMap<>());
+            when(tagResolverService.resolveTagsForDocument(any(), any(), any(), any(), any())).thenReturn(new HashMap<>());
             when(renderer.fillTemplate(any(), any())).thenReturn(new byte[] {2});
-            when(conversionService.convertToPdf(any(), eq("devis.odt"))).thenReturn(new byte[] {3});
+            when(conversionService.html(anyString())).thenReturn(new byte[] {3});
             when(documentStorageService.store(any(), any(), any())).thenReturn("devis/DEVIS-5.pdf");
             when(generationRepository.findById(99L)).thenAnswer(inv -> Optional.of(saved[0]));
 
@@ -179,6 +197,7 @@ class DocumentGenerationPipelineTest {
                 pipeline.execute(new DocumentGenerationPipeline.GenerationCommand(template, 5L,
                         ReferenceType.RESERVATION, "guest@test.fr", true, "system", null, 7L, "FR",
                         false, null, null));
+                verify(tagResolverService).resolveTagsForDocument(DocumentType.DEVIS, 5L, "RESERVATION", 7L, "FR");
                 verify(emailDispatcher, never()).sendDocumentByEmail(any(), any(), any(), any(), any(), any());
 
                 TransactionSynchronizationManager.getSynchronizations()

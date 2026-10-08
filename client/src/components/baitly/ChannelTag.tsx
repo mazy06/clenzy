@@ -2,7 +2,7 @@ import React from 'react';
 import { channelLogo } from '../channelLogos';
 import { useTranslation } from '../../hooks/useTranslation';
 import { cn } from '../../utils/cn';
-import { GlobeIcon } from 'lucide-react';
+import { GlobeIcon } from '../../icons/glyphs';
 import { Tooltip, TooltipContent, TooltipTrigger } from '../ui';
 
 /**

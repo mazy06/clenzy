@@ -3,7 +3,7 @@ import { cn } from '../../utils/cn';
 import StatusChip, { type StatusTone } from '../../components/StatusChip';
 import { Badge, Button, Card } from '../../components/ui';
 import { Alert, AlertDescription } from '../../components/ui';
-import { Info, TriangleAlert } from 'lucide-react';
+import { Info, TriangleAlert } from '../../icons/glyphs';
 import { Skeleton, Tooltip, TooltipContent, TooltipTrigger } from '../../components/ui';
 import {
   AutoAwesome,

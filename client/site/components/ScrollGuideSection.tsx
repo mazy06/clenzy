@@ -11,7 +11,7 @@ import {
   ShieldCheckIcon,
   SparklesIcon,
   WifiIcon,
-} from 'lucide-react';
+} from '../../src/icons/glyphs';
 import { cn } from '../../src/utils/cn';
 import { useSiteLanguage } from '../lib/siteLanguage';
 import { GUIDE_MESSAGES } from '../lib/messages/guide';

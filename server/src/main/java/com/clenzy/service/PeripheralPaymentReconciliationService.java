@@ -30,15 +30,17 @@ public class PeripheralPaymentReconciliationService {
     private final AiCreditGrantService aiCreditGrantService;
     private final StripePaymentConfirmationService paymentConfirmationService;
     private final UpsellService upsellService;
+    private final com.clenzy.service.ai.BaitlyCreditFunding credits;
 
     public PeripheralPaymentReconciliationService(PaymentTransactionRepository transactionRepository,
                                                   AiCreditGrantService aiCreditGrantService,
                                                   StripePaymentConfirmationService paymentConfirmationService,
-                                                  UpsellService upsellService) {
+                                                  UpsellService upsellService, com.clenzy.service.ai.BaitlyCreditFunding credits) {
         this.transactionRepository = transactionRepository;
         this.aiCreditGrantService = aiCreditGrantService;
         this.paymentConfirmationService = paymentConfirmationService;
         this.upsellService = upsellService;
+        this.credits = credits;
     }
 
     /**
@@ -51,23 +53,10 @@ public class PeripheralPaymentReconciliationService {
         if (tx == null) {
             return;
         }
-        Long orgId = tx.getSourceId();
+        Long orgId = tx.getOrganizationId();
         String providerTxId = tx.getProviderTxId();
-        Map<String, Object> metadata = tx.getMetadata();
-        Object rawMillis = metadata != null ? metadata.get("millicredits") : null;
-        if (orgId == null || providerTxId == null || providerTxId.isBlank() || rawMillis == null) {
-            log.error("Reconciliation crédits IA : sourceId/providerTxId/millicredits absent sur tx {} — "
-                    + "reconciliation impossible, verification manuelle requise", transactionRef);
-            return;
-        }
-        long millicredits;
-        try {
-            millicredits = Long.parseLong(rawMillis.toString());
-        } catch (NumberFormatException e) {
-            log.error("Reconciliation crédits IA : millicredits invalide '{}' sur tx {}", rawMillis, transactionRef);
-            return;
-        }
-        aiCreditGrantService.grantTopUp(orgId, millicredits, providerTxId);
+        long millicredits = com.clenzy.service.ai.AiCreditPurchaseService.purchasedMillicredits(tx);
+        credits.completeTopUp(transactionRef);
         log.info("Reconciliation crédits IA OK : tx={} org={} millicredits={}", transactionRef, orgId, millicredits);
     }
 

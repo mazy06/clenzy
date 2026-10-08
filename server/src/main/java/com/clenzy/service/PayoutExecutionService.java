@@ -6,6 +6,8 @@ import com.clenzy.payment.payout.PayoutExecutor;
 import com.clenzy.payment.payout.PayoutExecutorRegistry;
 import com.clenzy.repository.OwnerPayoutConfigRepository;
 import com.clenzy.repository.OwnerPayoutRepository;
+import com.clenzy.service.payout.OwnerPayoutFundingService;
+import com.clenzy.service.payout.PayoutTransferJournal;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -33,9 +35,9 @@ import org.springframework.stereotype.Service;
  * réseau (Stripe Transfer, Wise, GoCardless PIS) et persistent eux-mêmes chaque
  * transition de statut (PROCESSING puis PAID/FAILED) via le repository, chacune
  * dans sa propre transaction courte. Aucune connexion DB ni verrou n'est donc
- * tenu pendant le virement. L'anti double-virement ne repose pas sur une
- * transaction englobante mais sur l'idempotency key du provider
- * ({@code payout-&lt;id&gt;}, cf. {@link PayoutExecutor}).</p>
+ * tenu pendant le virement. Une transition conditionnelle réserve l'émission ;
+ * le journal partagé protège les transferts Stripe au-delà de la durée de vie
+ * des clés d'idempotence du PSP.</p>
  */
 @Service
 public class PayoutExecutionService {
@@ -46,13 +48,19 @@ public class PayoutExecutionService {
     private final OwnerPayoutRepository payoutRepository;
     private final OwnerPayoutConfigRepository configRepository;
     private final PayoutExecutorRegistry executorRegistry;
+    private final OwnerPayoutFundingService fundingService;
+    private final PayoutTransferJournal transferJournal;
 
     public PayoutExecutionService(OwnerPayoutRepository payoutRepository,
                                    OwnerPayoutConfigRepository configRepository,
-                                   PayoutExecutorRegistry executorRegistry) {
+                                   PayoutExecutorRegistry executorRegistry,
+                                   OwnerPayoutFundingService fundingService,
+                                   PayoutTransferJournal transferJournal) {
         this.payoutRepository = payoutRepository;
         this.configRepository = configRepository;
         this.executorRegistry = executorRegistry;
+        this.fundingService = fundingService;
+        this.transferJournal = transferJournal;
     }
 
     /**
@@ -72,11 +80,12 @@ public class PayoutExecutionService {
             throw new IllegalStateException(
                 "Payout must be APPROVED before execution. Current: " + payout.getStatus());
         }
+        fundingService.validate(payout);
 
         OwnerPayoutConfig config = configRepository.findByOwnerIdAndOrgId(payout.getOwnerId(), orgId)
             .orElseThrow(() -> new IllegalArgumentException(
                 "Le proprietaire n'a pas encore configure sa methode de paiement. "
-              + "Il doit renseigner son IBAN, connecter Stripe, Wise ou Open Banking dans "
+              + "Il doit connecter son compte de versement auprès du prestataire de paiement dans "
               + "Parametres > Mes reversements."));
 
         if (!config.isVerified()) {
@@ -85,6 +94,11 @@ public class PayoutExecutionService {
         }
 
         PayoutMethod method = config.getPayoutMethod() != null ? config.getPayoutMethod() : PayoutMethod.MANUAL;
+        if (payout.getPayoutMethod() != null && payout.getPayoutMethod() != method) {
+            throw new IllegalStateException("Le rail de ce reversement a déjà été fixé. Rapprochement requis avant changement.");
+        }
+        requirePspMethod(method);
+        transferJournal.checkOwnerRoute(orgId, payoutId, method);
         log.info("Executing payout {} via {} for org {}", payoutId, method, orgId);
 
         PayoutExecutor executor;
@@ -94,6 +108,16 @@ public class PayoutExecutionService {
             throw new IllegalArgumentException(e.getMessage(), e);
         }
 
+        try {
+            executor.validate(payout, config);
+        } catch (PayoutExecutor.PayoutExecutionException e) {
+            throw new IllegalArgumentException(e.getMessage(), e);
+        }
+        if (payoutRepository.claimExecution(payoutId, orgId, method, PayoutStatus.APPROVED, PayoutStatus.PROCESSING) != 1) {
+            throw new IllegalStateException("Ce reversement est déjà pris en charge ou son état a changé.");
+        }
+        payout.setStatus(PayoutStatus.PROCESSING);
+        payout.setPayoutMethod(method);
         try {
             return executor.execute(payout, config);
         } catch (PayoutExecutor.PayoutExecutionException e) {
@@ -128,11 +152,25 @@ public class PayoutExecutionService {
             throw new IllegalStateException(
                 "Max retry count (" + MAX_RETRY_COUNT + ") reached for payout " + payoutId);
         }
+        fundingService.validate(payout);
 
+        PayoutMethod method = configRepository.findByOwnerIdAndOrgId(payout.getOwnerId(), orgId)
+                .map(OwnerPayoutConfig::getPayoutMethod).orElse(PayoutMethod.MANUAL);
+        requirePspMethod(method);
+        transferJournal.checkOwnerRoute(orgId, payoutId, method);
+        if (payoutRepository.claimRetry(payoutId, orgId, PayoutStatus.FAILED, PayoutStatus.APPROVED) != 1) {
+            throw new IllegalStateException("Ce reversement a déjà été relancé ou son état a changé.");
+        }
         payout.setStatus(PayoutStatus.APPROVED);
         payout.setFailureReason(null);
-        payoutRepository.save(payout);
 
         return executePayout(payoutId, orgId);
+    }
+
+    private void requirePspMethod(PayoutMethod method) {
+        if (method == null || method == PayoutMethod.MANUAL || method == PayoutMethod.SEPA_TRANSFER) {
+            throw new IllegalArgumentException(
+                    "Les virements manuels et les exports SEPA sont désactivés. Connectez un compte de versement PSP.");
+        }
     }
 }

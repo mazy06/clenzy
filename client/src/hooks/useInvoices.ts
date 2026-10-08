@@ -2,6 +2,8 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { invoicesApi } from '../services/api/invoicesApi';
 import type { InvoiceFilters } from '../services/api/invoicesApi';
 import { trackEvent } from '../providers/PostHogProvider';
+import { useTranslation } from './useTranslation';
+import { useCommerceScope } from './useCommerceScope';
 
 // ─── Query Keys ─────────────────────────────────────────────────────────────
 
@@ -13,8 +15,10 @@ export const invoiceKeys = {
 // ─── Hooks ──────────────────────────────────────────────────────────────────
 
 export function useInvoices(filters?: InvoiceFilters) {
+  const scope = useCommerceScope();
   return useQuery({
-    queryKey: [...invoiceKeys.all, filters] as const,
+    queryKey: [...invoiceKeys.all, scope, filters] as const,
+    enabled: !!scope,
     queryFn: () => invoicesApi.list(filters),
     staleTime: 60_000,
   });
@@ -32,10 +36,18 @@ export function useIssueInvoice() {
   });
 }
 
-export function useMarkInvoicePaid() {
+export function usePayInvoice() {
   const queryClient = useQueryClient();
+  const { t } = useTranslation();
   return useMutation({
-    mutationFn: (id: number) => invoicesApi.markPaid(id),
+    mutationFn: async (id: number) => {
+      const result = await invoicesApi.initiatePayment(id);
+      const url = result.paymentResult?.redirectUrl;
+      if (!result.paymentResult?.success || !url || !/^https:\/\//i.test(url)) {
+        throw new Error(result.paymentResult?.errorMessage || t('supervision.invoiceModal.payError', 'Lien de paiement non généré.'));
+      }
+      return url;
+    },
     onSuccess: (_data, id) => {
       queryClient.invalidateQueries({ queryKey: invoiceKeys.all });
       queryClient.invalidateQueries({ queryKey: invoiceKeys.detail(id) });
@@ -55,8 +67,10 @@ export function useCancelInvoice() {
 }
 
 export function useTemplateStatus() {
+  const scope = useCommerceScope();
   return useQuery({
-    queryKey: ['invoices', 'template-status'] as const,
+    queryKey: ['invoices', 'template-status', scope] as const,
+    enabled: !!scope,
     queryFn: () => invoicesApi.checkTemplateStatus(),
     staleTime: 5 * 60_000,
   });

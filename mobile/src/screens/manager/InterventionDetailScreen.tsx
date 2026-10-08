@@ -1,7 +1,7 @@
 import React, { useCallback, useState } from 'react';
 import { View, Text, ScrollView, Image, Alert, Pressable } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Ionicons } from '@expo/vector-icons';
+import { Reicon } from '@/icons';
 import { useRoute, useNavigation } from '@react-navigation/native';
 import type { RouteProp } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -196,7 +196,7 @@ export function InterventionDetailScreen() {
         {(intervention.estimatedCost != null || intervention.actualCost != null) && (
           <Card style={{ marginBottom: theme.SPACING.md }}>
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: theme.SPACING.md }}>
-              <Ionicons name="calculator-outline" size={18} color={theme.colors.primary.main} />
+              <Reicon name="calculator-outline" size={18} color={theme.colors.primary.main} />
               <Text style={{ ...theme.typography.h5, color: theme.colors.text.primary }}>Couts</Text>
             </View>
             <View style={{ gap: theme.SPACING.sm }}>
@@ -219,10 +219,10 @@ export function InterventionDetailScreen() {
                       containerStyle={{ width: 100 }}
                     />
                     <Pressable onPress={handleSaveCost} hitSlop={8}>
-                      <Ionicons name="checkmark-circle" size={24} color={theme.colors.success.main} />
+                      <Reicon name="checkmark-circle" size={24} color={theme.colors.success.main} />
                     </Pressable>
                     <Pressable onPress={() => setEditingCost(false)} hitSlop={8}>
-                      <Ionicons name="close-circle" size={24} color={theme.colors.error.main} />
+                      <Reicon name="close-circle" size={24} color={theme.colors.error.main} />
                     </Pressable>
                   </View>
                 ) : (
@@ -236,7 +236,7 @@ export function InterventionDetailScreen() {
                     <Text style={{ ...theme.typography.body1, fontWeight: '600', color: theme.colors.text.primary }}>
                       {intervention.actualCost != null ? `${formatAmount(intervention.actualCost)} €` : '—'}
                     </Text>
-                    <Ionicons name="create-outline" size={16} color={theme.colors.primary.main} />
+                    <Reicon name="create-outline" size={16} color={theme.colors.primary.main} />
                   </Pressable>
                 )}
               </View>
@@ -266,7 +266,7 @@ export function InterventionDetailScreen() {
         {intervention.estimatedCost != null && intervention.estimatedCost > 0 && (
           <Card style={{ marginBottom: theme.SPACING.md }}>
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: theme.SPACING.sm }}>
-              <Ionicons name="card-outline" size={18} color={theme.colors.primary.main} />
+              <Reicon name="card-outline" size={18} color={theme.colors.primary.main} />
               <Text style={{ ...theme.typography.h5, color: theme.colors.text.primary, flex: 1 }}>Paiement</Text>
               {(() => {
                 const paymentStatus = intervention.status === 'COMPLETED' ? 'PAID' : intervention.status === 'CANCELLED' ? 'REFUNDED' : 'PENDING';
@@ -287,7 +287,7 @@ export function InterventionDetailScreen() {
               onPress={handleStartIntervention}
               fullWidth
               loading={updateMutation.isPending}
-              icon={<Ionicons name="play-circle-outline" size={18} color={theme.colors.primary.contrastText} />}
+              icon={<Reicon name="play-circle-outline" size={18} color={theme.colors.primary.contrastText} />}
             />
           )}
           {intervention.status === 'IN_PROGRESS' && (
@@ -297,7 +297,7 @@ export function InterventionDetailScreen() {
               onPress={handleCompleteIntervention}
               fullWidth
               loading={updateMutation.isPending}
-              icon={<Ionicons name="checkmark-circle-outline" size={18} color={theme.colors.success.contrastText} />}
+              icon={<Reicon name="checkmark-circle-outline" size={18} color={theme.colors.success.contrastText} />}
             />
           )}
           {intervention.status === 'COMPLETED' && (
@@ -311,7 +311,7 @@ export function InterventionDetailScreen() {
               onPress={handleCancel}
               fullWidth
               loading={updateMutation.isPending}
-              icon={<Ionicons name="close-circle-outline" size={18} color={theme.colors.error.main} />}
+              icon={<Reicon name="close-circle-outline" size={18} color={theme.colors.error.main} />}
             />
           )}
         </View>

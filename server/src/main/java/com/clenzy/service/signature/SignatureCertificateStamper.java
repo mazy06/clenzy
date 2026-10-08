@@ -34,6 +34,9 @@ import java.time.format.DateTimeFormatter;
 @Component
 public class SignatureCertificateStamper {
 
+    private final com.clenzy.service.BaitlyPdfEngine engine;
+    public SignatureCertificateStamper(com.clenzy.service.BaitlyPdfEngine engine){this.engine=engine;}
+
     private static final Color BRAND = new DeviceRgb(107, 138, 154);   // #6B8A9A
     private static final Color TEXT_MUTED = new DeviceRgb(100, 116, 139);
     private static final DateTimeFormatter SIGNED_AT_FMT = DateTimeFormatter.ofPattern("dd/MM/yyyy 'à' HH:mm:ss");
@@ -55,65 +58,29 @@ public class SignatureCertificateStamper {
     public byte[] appendCertificate(byte[] originalPdf, CertificateData data) throws Exception {
         byte[] certificatePage = buildCertificatePage(data);
 
-        ByteArrayOutputStream out = new ByteArrayOutputStream();
-        try (PdfDocument merged = new PdfDocument(new PdfWriter(out))) {
-            PdfMerger merger = new PdfMerger(merged);
-            try (PdfDocument original = new PdfDocument(new PdfReader(new ByteArrayInputStream(originalPdf)))) {
-                merger.merge(original, 1, original.getNumberOfPages());
-            }
-            try (PdfDocument certificate = new PdfDocument(new PdfReader(new ByteArrayInputStream(certificatePage)))) {
-                merger.merge(certificate, 1, certificate.getNumberOfPages());
-            }
-        }
-        return out.toByteArray();
+        return engine.merge(java.util.List.of(originalPdf, certificatePage));
     }
 
     private byte[] buildCertificatePage(CertificateData data) {
-        ByteArrayOutputStream out = new ByteArrayOutputStream();
-        try (PdfDocument pdf = new PdfDocument(new PdfWriter(out));
-             Document doc = new Document(pdf, PageSize.A4)) {
-            doc.setMargins(60, 56, 60, 56);
+        String body = "<h1>Certificat de signature électronique</h1>"
+                + com.clenzy.service.BaitlyDocumentHtml.paragraph("Mandat de gestion " + safe(data.contractNumber()))
+                + com.clenzy.service.BaitlyDocumentHtml.paragraph("Ce document a été signé électroniquement via la plateforme Baitly. Signature électronique simple au sens de l'article 25 du règlement (UE) n°910/2014 (eIDAS) : le présent certificat constitue le dossier de preuve associé au document qui précède.")
+                + "<h2>Signataire</h2><table>"
+                + htmlRow("Nom saisi", data.signerName()) + htmlRow("Email", data.signerEmail())
+                + htmlRow("Date et heure (serveur)", data.signedAt() == null ? null : data.signedAt().format(SIGNED_AT_FMT))
+                + "</table><h2>Éléments de preuve</h2><table>"
+                + htmlRow("Référence de la demande", data.requestReference())
+                + htmlRow("Adresse IP", data.signerIp())
+                + htmlRow("Navigateur (user-agent)", truncate(safe(data.signerUserAgent()), 220))
+                + htmlRow("Empreinte SHA-256 du document original", data.documentSha256())
+                + "</table><h2>Consentement</h2>"
+                + com.clenzy.service.BaitlyDocumentHtml.paragraph(safe(data.consentText()))
+                + com.clenzy.service.BaitlyDocumentHtml.paragraph("Vérification d'intégrité : l'empreinte SHA-256 ci-dessus est celle du document original présenté au signataire (pages précédant ce certificat, avant son ajout).");
+        return engine.html(com.clenzy.service.BaitlyDocumentHtml.page("Certificat de signature", body));
+    }
 
-            doc.add(new Paragraph("Certificat de signature électronique")
-                    .setFontSize(18).setBold().setFontColor(BRAND).setMarginBottom(2));
-            doc.add(new Paragraph("Mandat de gestion " + safe(data.contractNumber()))
-                    .setFontSize(11).setFontColor(TEXT_MUTED).setMarginBottom(18));
-
-            doc.add(new Paragraph(
-                    "Ce document a été signé électroniquement via la plateforme Clenzy. "
-                    + "Signature électronique simple au sens de l'article 25 du règlement (UE) n°910/2014 (eIDAS) : "
-                    + "le présent certificat constitue le dossier de preuve associé au document qui précède.")
-                    .setFontSize(9.5f).setMarginBottom(16));
-
-            // ── Bloc signataire ──
-            doc.add(new Paragraph("Signataire").setFontSize(10).setBold().setFontColor(BRAND).setMarginBottom(4));
-            doc.add(proofTable(new String[][] {
-                    { "Nom saisi", safe(data.signerName()) },
-                    { "Email", safe(data.signerEmail()) },
-                    { "Date et heure (serveur)", data.signedAt() != null ? data.signedAt().format(SIGNED_AT_FMT) : "—" },
-            }));
-
-            // ── Bloc preuve technique ──
-            doc.add(new Paragraph("Éléments de preuve").setFontSize(10).setBold().setFontColor(BRAND)
-                    .setMarginTop(14).setMarginBottom(4));
-            doc.add(proofTable(new String[][] {
-                    { "Référence de la demande", safe(data.requestReference()) },
-                    { "Adresse IP", safe(data.signerIp()) },
-                    { "Navigateur (user-agent)", truncate(safe(data.signerUserAgent()), 220) },
-                    { "Empreinte SHA-256 du document original", safe(data.documentSha256()) },
-            }));
-
-            // ── Consentement ──
-            doc.add(new Paragraph("Consentement").setFontSize(10).setBold().setFontColor(BRAND)
-                    .setMarginTop(14).setMarginBottom(4));
-            doc.add(new Paragraph(safe(data.consentText())).setFontSize(8.5f).setFontColor(TEXT_MUTED));
-
-            doc.add(new Paragraph(
-                    "Vérification d'intégrité : l'empreinte SHA-256 ci-dessus est celle du document original "
-                    + "présenté au signataire (pages précédant ce certificat, avant son ajout). ")
-                    .setFontSize(8).setFontColor(TEXT_MUTED).setMarginTop(18));
-        }
-        return out.toByteArray();
+    private static String htmlRow(String label, String value) {
+        return com.clenzy.service.BaitlyDocumentHtml.row(label, safe(value));
     }
 
     private Table proofTable(String[][] rows) {

@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { cn } from '../../../utils/cn';
 import StatusChip from '../../../components/StatusChip';
-import { Info } from 'lucide-react';
+import { Info } from '../../../icons/glyphs';
 import {
   Accordion,
   AccordionItem,

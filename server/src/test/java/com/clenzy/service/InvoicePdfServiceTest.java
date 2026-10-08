@@ -41,17 +41,13 @@ class InvoicePdfServiceTest {
     @Mock
     private RestTemplate restTemplate;
 
-    @Mock
-    private DocumentStorageService documentStorageService;
 
     private InvoicePdfService service;
 
     @BeforeEach
     void setUp() {
         service = new InvoicePdfService(
-            "http://gotenberg:3000",
-            restTemplate,
-            documentStorageService
+            new BaitlyPdfEngine("http://gotenberg:3000", restTemplate)
         );
     }
 
@@ -100,17 +96,14 @@ class InvoicePdfServiceTest {
         @Test
         void whenInvoiceHasNoLines_thenStillGeneratesPdf() {
             Invoice inv = buildBaseInvoice();
-            byte[] fakePdf = "fake pdf content".getBytes();
+            byte[] fakePdf = BaitlyPdfEngineTest.pdf("TEST facture");
 
             when(restTemplate.exchange(anyString(), eq(HttpMethod.POST), any(), eq(byte[].class)))
                 .thenReturn(ResponseEntity.ok(fakePdf));
-            when(documentStorageService.store(anyString(), anyString(), any(byte[].class)))
-                .thenReturn("FACTURE/2026-03/uuid_Facture.pdf");
 
             byte[] result = service.generatePdf(inv);
 
             assertThat(result).isEqualTo(fakePdf);
-            verify(documentStorageService).store(eq("FACTURE"), anyString(), eq(fakePdf));
         }
 
         @Test
@@ -121,11 +114,9 @@ class InvoicePdfServiceTest {
             inv.addLine(line1);
             inv.addLine(line2);
 
-            byte[] fakePdf = "pdf-bytes".getBytes();
+            byte[] fakePdf = BaitlyPdfEngineTest.pdf("TEST facture");
             when(restTemplate.exchange(anyString(), eq(HttpMethod.POST), any(), eq(byte[].class)))
                 .thenReturn(ResponseEntity.ok(fakePdf));
-            when(documentStorageService.store(anyString(), anyString(), any(byte[].class)))
-                .thenReturn("FACTURE/2026-03/file.pdf");
 
             byte[] result = service.generatePdf(inv);
 
@@ -152,9 +143,7 @@ class InvoicePdfServiceTest {
 
             assertThatThrownBy(() -> service.generatePdf(inv))
                 .isInstanceOf(DocumentGenerationException.class)
-                .hasMessageContaining("non-200");
-
-            verify(documentStorageService, never()).store(anyString(), anyString(), any());
+                .hasMessageContaining("PDF");
         }
 
         @Test
@@ -177,23 +166,17 @@ class InvoicePdfServiceTest {
 
             assertThatThrownBy(() -> service.generatePdf(inv))
                 .isInstanceOf(DocumentGenerationException.class)
-                .hasMessageContaining("conversion");
+                .hasMessageContaining("PDF");
         }
 
         @Test
-        void whenStorageStoreThrows_thenPropagates() {
-            Invoice inv = buildBaseInvoice();
-            byte[] fakePdf = "pdf-bytes".getBytes();
-
+        void invalidPdfIsRejectedBeforeArchival() {
             when(restTemplate.exchange(anyString(), eq(HttpMethod.POST), any(), eq(byte[].class)))
-                .thenReturn(ResponseEntity.ok(fakePdf));
-            when(documentStorageService.store(anyString(), anyString(), any(byte[].class)))
-                .thenThrow(new RuntimeException("disk full"));
-
-            assertThatThrownBy(() -> service.generatePdf(inv))
-                .isInstanceOf(RuntimeException.class)
-                .hasMessageContaining("disk full");
+                .thenReturn(ResponseEntity.ok("%PDF-corrupt".getBytes()));
+            assertThatThrownBy(() -> service.generatePdf(buildBaseInvoice()))
+                .isInstanceOf(DocumentGenerationException.class);
         }
+
     }
 
     @Nested
@@ -201,16 +184,28 @@ class InvoicePdfServiceTest {
     class HtmlRendering {
 
         @Test
+        void creditNoteUsesDedicatedTitleFilenameAndEscapesTheOriginalReference() {
+            var inv=buildBaseInvoice(); inv.setStatus(InvoiceStatus.CREDIT_NOTE);
+            inv.setOriginalInvoiceId(42L); inv.setRefundTransactionId(41L);
+            inv.setTotalHt(new BigDecimal("-250")); inv.setTotalTax(new BigDecimal("-50")); inv.setTotalTtc(new BigDecimal("-300"));
+            inv.setLegalMentions("Avoir sur facture <FA-original> du 2026-03-01");
+            ArgumentCaptor<HttpEntity<MultiValueMap<String,Object>>> captor=ArgumentCaptor.forClass(HttpEntity.class);
+            when(restTemplate.exchange(anyString(),eq(HttpMethod.POST),captor.capture(),eq(byte[].class)))
+                .thenReturn(ResponseEntity.ok(BaitlyPdfEngineTest.pdf("TEST facture")));
+            service.generatePdf(inv);
+            assertThat(extractHtmlFromMultipart(captor.getValue())).contains("AVOIR", "-300", "&lt;FA-original&gt;")
+                .doesNotContain("<FA-original>", "<h1>FACTURE</h1>");
+        }
+
+        @Test
         void whenBuyerNameContainsXss_thenIsEscapedInHtml() {
             Invoice inv = buildBaseInvoice();
             inv.setBuyerName("<script>alert('xss')</script>");
 
-            byte[] fakePdf = "pdf".getBytes();
+            byte[] fakePdf = BaitlyPdfEngineTest.pdf("TEST facture");
             ArgumentCaptor<HttpEntity<MultiValueMap<String, Object>>> captor = ArgumentCaptor.forClass(HttpEntity.class);
             when(restTemplate.exchange(anyString(), eq(HttpMethod.POST), captor.capture(), eq(byte[].class)))
                 .thenReturn(ResponseEntity.ok(fakePdf));
-            when(documentStorageService.store(anyString(), anyString(), any(byte[].class)))
-                .thenReturn("path");
 
             service.generatePdf(inv);
 
@@ -233,9 +228,7 @@ class InvoicePdfServiceTest {
             inv.setLines(new ArrayList<>());
 
             when(restTemplate.exchange(anyString(), eq(HttpMethod.POST), any(), eq(byte[].class)))
-                .thenReturn(ResponseEntity.ok("pdf".getBytes()));
-            when(documentStorageService.store(anyString(), anyString(), any(byte[].class)))
-                .thenReturn("path");
+                .thenReturn(ResponseEntity.ok(BaitlyPdfEngineTest.pdf("TEST facture")));
 
             assertThat(service.generatePdf(inv)).isNotEmpty();
         }
@@ -246,9 +239,7 @@ class InvoicePdfServiceTest {
             inv.setLines(null);
 
             when(restTemplate.exchange(anyString(), eq(HttpMethod.POST), any(), eq(byte[].class)))
-                .thenReturn(ResponseEntity.ok("pdf".getBytes()));
-            when(documentStorageService.store(anyString(), anyString(), any(byte[].class)))
-                .thenReturn("path");
+                .thenReturn(ResponseEntity.ok(BaitlyPdfEngineTest.pdf("TEST facture")));
 
             byte[] result = service.generatePdf(inv);
             assertThat(result).isNotEmpty();
@@ -260,9 +251,7 @@ class InvoicePdfServiceTest {
             inv.setLegalMentions("   ");
 
             when(restTemplate.exchange(anyString(), eq(HttpMethod.POST), any(), eq(byte[].class)))
-                .thenReturn(ResponseEntity.ok("pdf".getBytes()));
-            when(documentStorageService.store(anyString(), anyString(), any(byte[].class)))
-                .thenReturn("path");
+                .thenReturn(ResponseEntity.ok(BaitlyPdfEngineTest.pdf("TEST facture")));
 
             assertThat(service.generatePdf(inv)).isNotEmpty();
         }
@@ -272,30 +261,26 @@ class InvoicePdfServiceTest {
             Invoice inv = buildBaseInvoice();
             inv.setLegalMentions("Mentions & avec \"guillemets\"");
 
-            byte[] fakePdf = "pdf".getBytes();
+            byte[] fakePdf = BaitlyPdfEngineTest.pdf("TEST facture");
             ArgumentCaptor<HttpEntity<MultiValueMap<String, Object>>> captor = ArgumentCaptor.forClass(HttpEntity.class);
             when(restTemplate.exchange(anyString(), eq(HttpMethod.POST), captor.capture(), eq(byte[].class)))
                 .thenReturn(ResponseEntity.ok(fakePdf));
-            when(documentStorageService.store(anyString(), anyString(), any(byte[].class)))
-                .thenReturn("path");
 
             service.generatePdf(inv);
 
             String html = extractHtmlFromMultipart(captor.getValue());
             assertThat(html).contains("&amp;");
-            assertThat(html).contains("&quot;");
+            assertThat(org.jsoup.Jsoup.parse(html).text()).contains("Mentions & avec \"guillemets\"");
         }
 
         @Test
         void whenAddressContainsNewlines_thenAreConvertedToBr() {
             Invoice inv = buildBaseInvoice();
             // Already uses \n in setUp — verify <br> conversion
-            byte[] fakePdf = "pdf".getBytes();
+            byte[] fakePdf = BaitlyPdfEngineTest.pdf("TEST facture");
             ArgumentCaptor<HttpEntity<MultiValueMap<String, Object>>> captor = ArgumentCaptor.forClass(HttpEntity.class);
             when(restTemplate.exchange(anyString(), eq(HttpMethod.POST), captor.capture(), eq(byte[].class)))
                 .thenReturn(ResponseEntity.ok(fakePdf));
-            when(documentStorageService.store(anyString(), anyString(), any(byte[].class)))
-                .thenReturn("path");
 
             service.generatePdf(inv);
 
@@ -314,12 +299,10 @@ class InvoicePdfServiceTest {
             inv.setCurrency("EUR");
             inv.addLine(buildLine(1, "test", new BigDecimal("100.00"), new BigDecimal("0.20")));
 
-            byte[] fakePdf = "pdf".getBytes();
+            byte[] fakePdf = BaitlyPdfEngineTest.pdf("TEST facture");
             ArgumentCaptor<HttpEntity<MultiValueMap<String, Object>>> captor = ArgumentCaptor.forClass(HttpEntity.class);
             when(restTemplate.exchange(anyString(), eq(HttpMethod.POST), captor.capture(), eq(byte[].class)))
                 .thenReturn(ResponseEntity.ok(fakePdf));
-            when(documentStorageService.store(anyString(), anyString(), any(byte[].class)))
-                .thenReturn("path");
 
             service.generatePdf(inv);
 
@@ -333,12 +316,10 @@ class InvoicePdfServiceTest {
             inv.setCurrency("MAD");
             inv.addLine(buildLine(1, "test", new BigDecimal("100.00"), new BigDecimal("0.20")));
 
-            byte[] fakePdf = "pdf".getBytes();
+            byte[] fakePdf = BaitlyPdfEngineTest.pdf("TEST facture");
             ArgumentCaptor<HttpEntity<MultiValueMap<String, Object>>> captor = ArgumentCaptor.forClass(HttpEntity.class);
             when(restTemplate.exchange(anyString(), eq(HttpMethod.POST), captor.capture(), eq(byte[].class)))
                 .thenReturn(ResponseEntity.ok(fakePdf));
-            when(documentStorageService.store(anyString(), anyString(), any(byte[].class)))
-                .thenReturn("path");
 
             service.generatePdf(inv);
 
@@ -352,12 +333,10 @@ class InvoicePdfServiceTest {
             inv.setCurrency("USD");
             inv.addLine(buildLine(1, "test", new BigDecimal("100.00"), new BigDecimal("0.10")));
 
-            byte[] fakePdf = "pdf".getBytes();
+            byte[] fakePdf = BaitlyPdfEngineTest.pdf("TEST facture");
             ArgumentCaptor<HttpEntity<MultiValueMap<String, Object>>> captor = ArgumentCaptor.forClass(HttpEntity.class);
             when(restTemplate.exchange(anyString(), eq(HttpMethod.POST), captor.capture(), eq(byte[].class)))
                 .thenReturn(ResponseEntity.ok(fakePdf));
-            when(documentStorageService.store(anyString(), anyString(), any(byte[].class)))
-                .thenReturn("path");
 
             service.generatePdf(inv);
 
@@ -371,12 +350,10 @@ class InvoicePdfServiceTest {
             inv.setCurrency("SAR");
             inv.addLine(buildLine(1, "test", new BigDecimal("100.00"), new BigDecimal("0.15")));
 
-            byte[] fakePdf = "pdf".getBytes();
+            byte[] fakePdf = BaitlyPdfEngineTest.pdf("TEST facture");
             ArgumentCaptor<HttpEntity<MultiValueMap<String, Object>>> captor = ArgumentCaptor.forClass(HttpEntity.class);
             when(restTemplate.exchange(anyString(), eq(HttpMethod.POST), captor.capture(), eq(byte[].class)))
                 .thenReturn(ResponseEntity.ok(fakePdf));
-            when(documentStorageService.store(anyString(), anyString(), any(byte[].class)))
-                .thenReturn("path");
 
             service.generatePdf(inv);
 
@@ -390,11 +367,9 @@ class InvoicePdfServiceTest {
             inv.setCurrency("JPY"); // JDK currency, not in CURRENCY_SYMBOLS map
             inv.addLine(buildLine(1, "test", new BigDecimal("100.00"), new BigDecimal("0.10")));
 
-            byte[] fakePdf = "pdf".getBytes();
+            byte[] fakePdf = BaitlyPdfEngineTest.pdf("TEST facture");
             when(restTemplate.exchange(anyString(), eq(HttpMethod.POST), any(), eq(byte[].class)))
                 .thenReturn(ResponseEntity.ok(fakePdf));
-            when(documentStorageService.store(anyString(), anyString(), any(byte[].class)))
-                .thenReturn("path");
 
             byte[] result = service.generatePdf(inv);
             assertThat(result).isNotEmpty();
@@ -406,11 +381,9 @@ class InvoicePdfServiceTest {
             inv.setCurrency("EUR"); // setter validates; we change after
             inv.addLine(buildLine(1, "test", new BigDecimal("100.00"), new BigDecimal("0.10")));
 
-            byte[] fakePdf = "pdf".getBytes();
+            byte[] fakePdf = BaitlyPdfEngineTest.pdf("TEST facture");
             when(restTemplate.exchange(anyString(), eq(HttpMethod.POST), any(), eq(byte[].class)))
                 .thenReturn(ResponseEntity.ok(fakePdf));
-            when(documentStorageService.store(anyString(), anyString(), any(byte[].class)))
-                .thenReturn("path");
 
             byte[] result = service.generatePdf(inv);
             assertThat(result).isNotEmpty();
@@ -423,12 +396,10 @@ class InvoicePdfServiceTest {
             InvoiceLine line = buildLine(1, "test", new BigDecimal("100.00"), new BigDecimal("0.20"));
             inv.addLine(line);
 
-            byte[] fakePdf = "pdf".getBytes();
+            byte[] fakePdf = BaitlyPdfEngineTest.pdf("TEST facture");
             ArgumentCaptor<HttpEntity<MultiValueMap<String, Object>>> captor = ArgumentCaptor.forClass(HttpEntity.class);
             when(restTemplate.exchange(anyString(), eq(HttpMethod.POST), captor.capture(), eq(byte[].class)))
                 .thenReturn(ResponseEntity.ok(fakePdf));
-            when(documentStorageService.store(anyString(), anyString(), any(byte[].class)))
-                .thenReturn("path");
 
             service.generatePdf(inv);
 
@@ -449,12 +420,10 @@ class InvoicePdfServiceTest {
             inv.setTotalTax(null);
             inv.setTotalTtc(null);
 
-            byte[] fakePdf = "pdf".getBytes();
+            byte[] fakePdf = BaitlyPdfEngineTest.pdf("TEST facture");
             ArgumentCaptor<HttpEntity<MultiValueMap<String, Object>>> captor = ArgumentCaptor.forClass(HttpEntity.class);
             when(restTemplate.exchange(anyString(), eq(HttpMethod.POST), captor.capture(), eq(byte[].class)))
                 .thenReturn(ResponseEntity.ok(fakePdf));
-            when(documentStorageService.store(anyString(), anyString(), any(byte[].class)))
-                .thenReturn("path");
 
             service.generatePdf(inv);
 
@@ -469,12 +438,10 @@ class InvoicePdfServiceTest {
             line.setTaxAmount(BigDecimal.ZERO);
             inv.addLine(line);
 
-            byte[] fakePdf = "pdf".getBytes();
+            byte[] fakePdf = BaitlyPdfEngineTest.pdf("TEST facture");
             ArgumentCaptor<HttpEntity<MultiValueMap<String, Object>>> captor = ArgumentCaptor.forClass(HttpEntity.class);
             when(restTemplate.exchange(anyString(), eq(HttpMethod.POST), captor.capture(), eq(byte[].class)))
                 .thenReturn(ResponseEntity.ok(fakePdf));
-            when(documentStorageService.store(anyString(), anyString(), any(byte[].class)))
-                .thenReturn("path");
 
             service.generatePdf(inv);
 
@@ -490,11 +457,9 @@ class InvoicePdfServiceTest {
             line.setTaxAmount(BigDecimal.ZERO);
             inv.addLine(line);
 
-            byte[] fakePdf = "pdf".getBytes();
+            byte[] fakePdf = BaitlyPdfEngineTest.pdf("TEST facture");
             when(restTemplate.exchange(anyString(), eq(HttpMethod.POST), any(), eq(byte[].class)))
                 .thenReturn(ResponseEntity.ok(fakePdf));
-            when(documentStorageService.store(anyString(), anyString(), any(byte[].class)))
-                .thenReturn("path");
 
             byte[] result = service.generatePdf(inv);
             assertThat(result).isNotEmpty();
@@ -507,12 +472,10 @@ class InvoicePdfServiceTest {
             line.setQuantity(null);
             inv.addLine(line);
 
-            byte[] fakePdf = "pdf".getBytes();
+            byte[] fakePdf = BaitlyPdfEngineTest.pdf("TEST facture");
             ArgumentCaptor<HttpEntity<MultiValueMap<String, Object>>> captor = ArgumentCaptor.forClass(HttpEntity.class);
             when(restTemplate.exchange(anyString(), eq(HttpMethod.POST), captor.capture(), eq(byte[].class)))
                 .thenReturn(ResponseEntity.ok(fakePdf));
-            when(documentStorageService.store(anyString(), anyString(), any(byte[].class)))
-                .thenReturn("path");
 
             service.generatePdf(inv);
 
@@ -527,62 +490,15 @@ class InvoicePdfServiceTest {
             InvoiceLine line = buildLine(1, "test", new BigDecimal("100"), new BigDecimal("0.1000"));
             inv.addLine(line);
 
-            byte[] fakePdf = "pdf".getBytes();
+            byte[] fakePdf = BaitlyPdfEngineTest.pdf("TEST facture");
             ArgumentCaptor<HttpEntity<MultiValueMap<String, Object>>> captor = ArgumentCaptor.forClass(HttpEntity.class);
             when(restTemplate.exchange(anyString(), eq(HttpMethod.POST), captor.capture(), eq(byte[].class)))
                 .thenReturn(ResponseEntity.ok(fakePdf));
-            when(documentStorageService.store(anyString(), anyString(), any(byte[].class)))
-                .thenReturn("path");
 
             service.generatePdf(inv);
 
             String html = extractHtmlFromMultipart(captor.getValue());
             assertThat(html).contains("10%");
-        }
-    }
-
-    @Nested
-    @DisplayName("Filename building")
-    class FilenameBuilding {
-
-        @Test
-        void whenInvoiceNumberContainsSlash_thenSanitized() {
-            Invoice inv = buildBaseInvoice();
-            inv.setInvoiceNumber("FA/2026/00001");
-
-            byte[] fakePdf = "pdf".getBytes();
-            when(restTemplate.exchange(anyString(), eq(HttpMethod.POST), any(), eq(byte[].class)))
-                .thenReturn(ResponseEntity.ok(fakePdf));
-
-            ArgumentCaptor<String> filenameCap = ArgumentCaptor.forClass(String.class);
-            when(documentStorageService.store(eq("FACTURE"), filenameCap.capture(), any(byte[].class)))
-                .thenReturn("path");
-
-            service.generatePdf(inv);
-
-            // Slashes replaced with dashes
-            assertThat(filenameCap.getValue()).contains("FA-2026-00001");
-            assertThat(filenameCap.getValue()).doesNotContain("FA/2026/00001");
-            assertThat(filenameCap.getValue()).endsWith(".pdf");
-        }
-
-        @Test
-        void whenInvoiceNumberHasNoSlash_thenUsedAsIs() {
-            Invoice inv = buildBaseInvoice();
-            inv.setInvoiceNumber("FA-2026-00042");
-
-            byte[] fakePdf = "pdf".getBytes();
-            when(restTemplate.exchange(anyString(), eq(HttpMethod.POST), any(), eq(byte[].class)))
-                .thenReturn(ResponseEntity.ok(fakePdf));
-
-            ArgumentCaptor<String> filenameCap = ArgumentCaptor.forClass(String.class);
-            when(documentStorageService.store(eq("FACTURE"), filenameCap.capture(), any(byte[].class)))
-                .thenReturn("path");
-
-            service.generatePdf(inv);
-
-            assertThat(filenameCap.getValue()).startsWith("Facture_FA-2026-00042_");
-            assertThat(filenameCap.getValue()).endsWith(".pdf");
         }
     }
 

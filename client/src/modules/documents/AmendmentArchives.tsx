@@ -1,14 +1,14 @@
 import { useEffect, useRef, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { Download, FileText, RefreshCw } from 'lucide-react';
-import { Alert, AlertDescription, Badge, Button, Skeleton } from '../../components/ui';
+import { Download, RefreshCw } from '../../icons/glyphs';
+import { Alert, AlertDescription, Button, Skeleton } from '../../components/ui';
 import PagePagination from '../../components/PagePagination';
-import EmptyState from '../../components/EmptyState';
 import { usePageHeaderActions } from '../../components/PageHeaderActionsContext';
 import { useScreenSearch } from '../../components/ScreenChrome';
 import { useTranslation } from '../../hooks/useTranslation';
 import { useAuth } from '../../contexts/AuthContext';
 import { serviceQuotesApi } from '../../services/api/serviceQuotesApi';
+import DocumentsWorkspace, { DOCUMENT_ART, DocumentFacts } from './components/DocumentsWorkspace';
 import { formatCurrency } from '../../utils/currencyUtils';
 import { intlLocale } from '../../utils/localeDate';
 
@@ -62,31 +62,24 @@ export default function AmendmentArchives() {
     </Alert> : pending ? <div role="status" aria-label={t('quoteAmendments.loading')} className="space-y-3">
       {[0, 1, 2].map(id => <Skeleton key={id} className="h-24 w-full motion-reduce:animate-none" />)}
     </div> : <>
-      {query.data?.content.length === 0 ? <EmptyState icon={<FileText />} title={t('amendmentLibrary.empty')} description={t('amendmentLibrary.emptyDescription')} />
-        : <ul className="m-0 list-none divide-y divide-border rounded-xl border border-solid border-border bg-card p-0" aria-label={t('amendmentLibrary.title')}>
-          {query.data?.content.map(entry => <li key={entry.id} className="grid min-w-0 gap-3 p-4 sm:grid-cols-[minmax(0,1fr)_auto]">
-            <div className="min-w-0 space-y-1">
-              <h3 className="text-sm font-semibold tabular-nums">{t('amendmentLibrary.reference', { id: entry.id })}</h3>
-              <p className="text-xs text-muted-foreground tabular-nums">{t('amendmentLibrary.references', { quote: entry.quoteId, mission: entry.interventionId })}</p>
-              <p className="flex flex-wrap gap-x-3 gap-y-1 text-sm tabular-nums">
-                <span>{t('amendmentLibrary.previousAmount')} <bdi>{formatCurrency(entry.originalAmount, entry.currency, currentLanguage)}</bdi></span>
-                <span>{t('amendmentLibrary.acceptedAmount')} <bdi>{formatCurrency(entry.proposedAmount, entry.currency, currentLanguage)}</bdi></span>
-              </p>
-              <p className="line-clamp-2 whitespace-pre-wrap break-words text-xs text-muted-foreground" title={entry.reason}>{entry.reason}</p>
-              <p className="text-xs text-muted-foreground tabular-nums">{t('amendmentLibrary.acceptedAt', { date: dates.format(new Date(entry.decidedAt)) })}</p>
-            </div>
-            <div className="flex flex-wrap items-center gap-2 sm:justify-end">
-              <Badge variant="secondary">{t(`amendmentLibrary.status.${entry.archiveStatus}`)}</Badge>
-              {entry.archiveStatus === 'READY' && <Button variant="ghost" size="sm" disabled={downloading !== null || query.isFetching}
-                aria-label={t('amendmentLibrary.download', { id: entry.id })} onClick={() => void download(entry.id)}>
-                <Download size={14} />{downloading === entry.id ? t('amendmentLibrary.downloading') : t('quoteAmendments.downloadPdf')}
-              </Button>}
-            </div>
-          </li>)}
-        </ul>}
-      <PagePagination page={page} onPageChange={setPage} count={query.data?.totalElements ?? 0}
+      <DocumentsWorkspace label={t('amendmentLibrary.title')} records={(query.data?.content ?? []).map(entry => ({
+        id: String(entry.id), title: t('amendmentLibrary.reference', { id: entry.id }), image: DOCUMENT_ART.contract,
+        subtitle: t('amendmentLibrary.references', { quote: entry.quoteId, mission: entry.interventionId }),
+        meta: formatCurrency(entry.proposedAmount, entry.currency, currentLanguage),
+        status: { value: entry.archiveStatus, label: t(`amendmentLibrary.status.${entry.archiveStatus}`) },
+        actions: entry.archiveStatus === 'READY' ? <Button size="sm" disabled={downloading !== null || query.isFetching}
+          aria-label={t('amendmentLibrary.download', { id: entry.id })} onClick={() => void download(entry.id)}>
+          <Download size={15} />{downloading === entry.id ? t('amendmentLibrary.downloading') : t('quoteAmendments.downloadPdf')}
+        </Button> : undefined,
+        detail: <><DocumentFacts items={[
+          { label: t('amendmentLibrary.previousAmount'), value: formatCurrency(entry.originalAmount, entry.currency, currentLanguage) },
+          { label: t('amendmentLibrary.acceptedAmount'), value: formatCurrency(entry.proposedAmount, entry.currency, currentLanguage) },
+          { label: t('documentsWorkspace.date'), value: dates.format(new Date(entry.decidedAt)) },
+        ]} /><h3>{t('documentsWorkspace.description')}</h3><p className="whitespace-pre-wrap">{entry.reason}</p></>,
+      }))} empty={t('amendmentLibrary.empty')}
+      pagination={<PagePagination page={page} onPageChange={setPage} count={query.data?.totalElements ?? 0}
         rowsPerPage={size} rowsPerPageOptions={[10, 20, 50]} hideOnSinglePage={false}
-        onRowsPerPageChange={value => { setSize(value); setPage(0); }} />
+        onRowsPerPageChange={value => { setSize(value); setPage(0); }} />} />
     </>}
   </>;
 }

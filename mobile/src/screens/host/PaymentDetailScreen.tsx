@@ -1,7 +1,7 @@
 import React, { useState, useCallback } from 'react';
 import { View, Text, ScrollView, Pressable, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Ionicons } from '@expo/vector-icons';
+import { Reicon } from '@/icons';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import type { RouteProp } from '@react-navigation/native';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
@@ -15,13 +15,13 @@ import { SectionHeader } from '@/components/ui/SectionHeader';
 import { apiClient } from '@/api/apiClient';
 import type { PaymentRecord } from '@/api/endpoints/paymentsApi';
 
-type IoniconsName = keyof typeof Ionicons.glyphMap;
+type IconName = keyof typeof Reicon.glyphMap;
 
 type RouteParams = {
   PaymentDetail: { paymentId: number; payment: PaymentRecord };
 };
 
-const STATUS_CONFIG: Record<string, { label: string; color: string; icon: IoniconsName; badgeColor: 'success' | 'warning' | 'error' | 'info' | 'neutral' }> = {
+const STATUS_CONFIG: Record<string, { label: string; color: string; icon: IconName; badgeColor: 'success' | 'warning' | 'error' | 'info' | 'neutral' }> = {
   PAID: { label: 'Paye', color: '#059669', icon: 'checkmark-circle', badgeColor: 'success' },
   PENDING: { label: 'En attente', color: '#D97706', icon: 'time-outline', badgeColor: 'warning' },
   PROCESSING: { label: 'En cours', color: '#3B82F6', icon: 'sync-outline', badgeColor: 'info' },
@@ -59,7 +59,7 @@ function formatAmount(amount: number): string {
 }
 
 function InfoRow({ icon, label, value, theme }: {
-  icon: IoniconsName;
+  icon: IconName;
   label: string;
   value: string;
   theme: ReturnType<typeof useTheme>;
@@ -74,7 +74,7 @@ function InfoRow({ icon, label, value, theme }: {
         alignItems: 'center',
         justifyContent: 'center',
       }}>
-        <Ionicons name={icon} size={16} color={theme.colors.primary.main} />
+        <Reicon name={icon} size={16} color={theme.colors.primary.main} />
       </View>
       <View style={{ flex: 1 }}>
         <Text style={{ ...theme.typography.caption, color: theme.colors.text.disabled }}>{label}</Text>
@@ -87,7 +87,7 @@ function InfoRow({ icon, label, value, theme }: {
 function TimelineEvent({ label, date, icon, color, isLast, theme }: {
   label: string;
   date: string;
-  icon: IoniconsName;
+  icon: IconName;
   color: string;
   isLast: boolean;
   theme: ReturnType<typeof useTheme>;
@@ -103,7 +103,7 @@ function TimelineEvent({ label, date, icon, color, isLast, theme }: {
           alignItems: 'center',
           justifyContent: 'center',
         }}>
-          <Ionicons name={icon} size={14} color={color} />
+          <Reicon name={icon} size={14} color={color} />
         </View>
         {!isLast && (
           <View style={{ width: 2, flex: 1, backgroundColor: theme.colors.border.light, marginVertical: 4 }} />
@@ -160,10 +160,10 @@ export function PaymentDetailScreen() {
   }, [refundAmount, payment.amount, refundMutation]);
 
   const timelineEvents = [
-    { label: 'Transaction creee', date: formatDateTime(payment.createdAt), icon: 'add-circle-outline' as IoniconsName, color: theme.colors.info.main },
-    ...(payment.status === 'PAID' ? [{ label: 'Paiement recu', date: formatDateTime(payment.transactionDate), icon: 'checkmark-circle' as IoniconsName, color: '#059669' }] : []),
-    ...(payment.status === 'REFUNDED' ? [{ label: 'Remboursement effectue', date: formatDateTime(payment.transactionDate), icon: 'arrow-undo-outline' as IoniconsName, color: '#EF4444' }] : []),
-    ...(payment.status === 'FAILED' ? [{ label: 'Paiement echoue', date: formatDateTime(payment.transactionDate), icon: 'close-circle' as IoniconsName, color: '#EF4444' }] : []),
+    { label: 'Transaction creee', date: formatDateTime(payment.createdAt), icon: 'add-circle-outline' as IconName, color: theme.colors.info.main },
+    ...(payment.status === 'PAID' ? [{ label: 'Paiement recu', date: formatDateTime(payment.transactionDate), icon: 'checkmark-circle' as IconName, color: '#059669' }] : []),
+    ...(payment.status === 'REFUNDED' ? [{ label: 'Remboursement effectue', date: formatDateTime(payment.transactionDate), icon: 'arrow-undo-outline' as IconName, color: '#EF4444' }] : []),
+    ...(payment.status === 'FAILED' ? [{ label: 'Paiement echoue', date: formatDateTime(payment.transactionDate), icon: 'close-circle' as IconName, color: '#EF4444' }] : []),
   ];
 
   return (
@@ -189,7 +189,7 @@ export function PaymentDetailScreen() {
             marginRight: theme.SPACING.md,
           }}
         >
-          <Ionicons name="arrow-back" size={20} color={theme.colors.text.primary} />
+          <Reicon name="arrow-back" size={20} color={theme.colors.text.primary} />
         </Pressable>
         <Text style={{ ...theme.typography.h2, color: theme.colors.text.primary, flex: 1 }}>
           Detail du paiement
@@ -211,7 +211,7 @@ export function PaymentDetailScreen() {
             justifyContent: 'center',
             marginBottom: theme.SPACING.md,
           }}>
-            <Ionicons name={statusCfg.icon} size={28} color={statusCfg.color} />
+            <Reicon name={statusCfg.icon} size={28} color={statusCfg.color} />
           </View>
           <Text style={{ ...theme.typography.h1, color: theme.colors.text.primary }}>
             {formatAmount(payment.amount)} €
@@ -291,14 +291,14 @@ export function PaymentDetailScreen() {
                   color="error"
                   onPress={() => setShowRefundInput(true)}
                   fullWidth
-                  icon={<Ionicons name="arrow-undo-outline" size={18} color={theme.colors.error.main} />}
+                  icon={<Reicon name="arrow-undo-outline" size={18} color={theme.colors.error.main} />}
                 />
                 <Button
                   title="Telecharger le recu"
                   variant="outlined"
                   onPress={() => Alert.alert('Info', 'Fonctionnalite a venir')}
                   fullWidth
-                  icon={<Ionicons name="download-outline" size={18} color={theme.colors.primary.main} />}
+                  icon={<Reicon name="download-outline" size={18} color={theme.colors.primary.main} />}
                 />
               </View>
             )}

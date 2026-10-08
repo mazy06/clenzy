@@ -59,6 +59,17 @@ class ActivityServiceTest {
         return token;
     }
 
+    @Test void updatingConnectionWithoutRatePreservesPlatformShare() {
+        var config=new ActivityAffiliateConfig();config.setProvider(ActivityProvider.KLOOK);config.setOrganizationId(7L);
+        config.setPlatformCommissionPct(new BigDecimal("12.5"));
+        when(configRepository.findByOrganizationIdAndProvider(7L,ActivityProvider.KLOOK)).thenReturn(Optional.of(config));
+        when(configRepository.save(any())).thenAnswer(call->call.getArgument(0));
+        service.upsertConfig(7L,ActivityProvider.KLOOK,null,"partner",true,null);
+        assertThat(config.getPlatformCommissionPct()).isEqualByComparingTo("12.5");
+        service.upsertConfig(7L,ActivityProvider.KLOOK,null,"partner",true,BigDecimal.ZERO);
+        assertThat(config.getPlatformCommissionPct()).isZero();
+    }
+
     @Test
     void searchForGuide_enabledProvider_returnsActivities() {
         UUID t = UUID.randomUUID();

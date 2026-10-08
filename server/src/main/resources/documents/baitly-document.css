@@ -1,0 +1,56 @@
+/* Charte documentaire Baitly : même rythme pour les modèles, factures, relevés et certificats. */
+@page { size: A4; margin: 16mm 14mm 18mm; }
+body.baitly-document { color: #243746; background: #fcfdff; font: 9.5pt/1.5 Arial, sans-serif; margin: 0; padding: 0; }
+.baitly-document * { box-sizing: border-box; font-family: Arial, sans-serif; }
+.baitly-document h1 { font-size: 23pt !important; line-height: 1.16 !important; font-weight: 700 !important; color: #193d67 !important; text-align: start !important; margin: 0 0 4mm !important; letter-spacing: -.4pt; break-after: avoid; }
+.baitly-document h2, .baitly-document .chapter-title { font-size: 11.5pt !important; line-height: 1.35 !important; font-weight: 700 !important; color: #193d67 !important; margin: 0 0 3mm !important; letter-spacing: 0; break-after: avoid; text-transform: none; }
+.baitly-document h3 { font-size: 10pt; line-height: 1.4; color: #193d67; margin: 3mm 0 2mm; break-after: avoid; }
+.baitly-document p { margin: 0 0 2mm; overflow-wrap: anywhere; orphans: 3; widows: 3; }
+.baitly-document header, .baitly-document .header, .baitly-doc-header { padding: 0 0 5mm; margin: 0 0 6mm; border-bottom: 1px solid #cad9e5; }
+.baitly-doc-header > p { text-align: start !important; color: #526879 !important; font-size: 9pt !important; }
+.baitly-doc-section { padding: 4mm 0; border-bottom: 1px solid #dce5ed; break-inside: avoid; }
+.baitly-doc-section > :last-child { margin-bottom: 0; }
+.baitly-doc-grid { display: grid; grid-template-columns: minmax(0,1fr) minmax(0,1fr); gap: 4mm; margin: 0 0 4mm; }
+.baitly-doc-grid > :only-child { grid-column: 1 / -1; }
+.baitly-doc-identity { padding: 4mm; background: #edf3f7; border: 1px solid #d5e1eb; border-radius: 3mm; break-inside: avoid; }
+.baitly-doc-field { display: grid; grid-template-columns: minmax(0, 32%) minmax(0, 1fr); gap: 3mm; font-size: 9pt; }
+.baitly-doc-label { color: #526879; }
+.baitly-document table { width: 100% !important; max-width: 100%; border-collapse: collapse; margin: 3mm 0 4mm; font-size: 9pt; table-layout: auto; }
+.baitly-document col { width: auto !important; }
+.baitly-document thead { display: table-header-group; }
+.baitly-document tr { break-inside: avoid; }
+.baitly-document th, .baitly-document td { padding: 2.5mm 3mm; vertical-align: top; border: 0; border-bottom: 1px solid #d5e1eb; overflow-wrap: anywhere; }
+.baitly-document th, .baitly-document thead td { background: #e7eef4; color: #193d67; font-size: 8.5pt; font-weight: 700; text-align: start; }
+.baitly-document table.baitly-doc-identities { border-collapse: separate; border-spacing: 3mm 0; margin: 0 -3mm; width: calc(100% + 6mm) !important; }
+.baitly-document .baitly-doc-identities td { width: 50%; border: 1px solid #d5e1eb; border-radius: 3mm; padding: 4mm; background: #edf3f7; }
+.baitly-document .baitly-doc-identities p { font-size: 9pt !important; margin-bottom: 1mm !important; }
+.baitly-document .baitly-doc-identities h1 { font-size: 20pt !important; }
+.baitly-document .baitly-doc-masthead { margin-top: 0; }
+.baitly-document .baitly-doc-masthead td { width: 50%; padding: 0 4mm 4mm 0; border: 0; }
+.baitly-document .baitly-doc-masthead td:last-child { padding-right: 0; text-align: end; }
+.baitly-document .baitly-doc-masthead h1 { text-align: end !important; }
+.baitly-document .baitly-doc-issuer { font-size: 14pt !important; line-height: 1.25; color: #193d67; font-weight: 700; }
+.baitly-document .baitly-doc-soft { background: #edf3f7; }
+.baitly-legacy-document p { margin-bottom: 2mm !important; font-size: 9pt; }
+.baitly-legacy-document td p:last-child { margin-bottom: 0 !important; }
+.baitly-legacy-document h2 { border: 0 !important; padding: 0 !important; }
+.baitly-document hr { border: 0; border-top: 1px solid #cad9e5; margin: 0; }
+.baitly-document .lines tbody tr:last-child td { border-bottom: 1px solid #a8bfd3; }
+.baitly-document .right, .baitly-document .amount, .baitly-document .v { text-align: end; font-variant-numeric: tabular-nums; }
+.baitly-document .center { text-align: center; }
+.baitly-document img { max-width: 100%; height: auto; }
+.baitly-document .seller h2 { font-size: 14pt !important; }
+.baitly-document .buyer { background: #edf3f7; border: 1px solid #d5e1eb; border-radius: 3mm; padding: 4mm; margin: 0 0 5mm; max-width: 85mm; }
+.baitly-document .invoice-info h1 { text-align: end !important; }
+.baitly-document .info-table { margin: 0; width: auto !important; }
+.baitly-document .info-table td { padding: 1mm 0 1mm 3mm; border: 0; }
+.baitly-document .totals { margin: 3mm 0 6mm; }
+.baitly-document .totals-table { width: 85mm !important; padding: 3mm; background: #edf3f7; }
+.baitly-document .totals-table td { padding: 2.5mm 4mm; }
+.baitly-document .grand-total td { color: #193d67; font-size: 13pt; font-weight: 700; border-top: 1px solid #a8bfd3; }
+.baitly-document .legal, .baitly-document footer, .baitly-document .colophon { color: #526879; font-size: 8pt; line-height: 1.5; padding-top: 3mm; border-top: 1px solid #d5e1eb; margin-top: 5mm; }
+.baitly-document .page-break { break-before: page; }
+.baitly-document .section, .baitly-document .chapter { padding-top: 3mm; }
+.baitly-document .cover h1 { font-size: 30pt !important; }
+.baitly-document .cover-kicker, .baitly-document .chapter-num { color: #526879; }
+.baitly-document [dir=rtl] { text-align: right; }

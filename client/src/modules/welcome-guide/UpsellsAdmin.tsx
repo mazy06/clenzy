@@ -1,7 +1,12 @@
+import { BaitlyCommerceEvidenceDisclosure } from '../payments/BaitlyCommerceEvidencePanel';
+import BaitlyCommerceOperationsPanel from '../payments/BaitlyCommerceOperationsPanel';
+import BaitlyCommerceRefundPanel from '../payments/BaitlyCommerceRefundPanel';
+import BaitlyCommercePayoutPanel from '../payments/BaitlyCommercePayoutPanel';
+import { useAuth } from '../../hooks/useAuth';
 import React, { useState, useEffect, useMemo } from 'react';
 import StatusChip from '../../components/StatusChip';
 import { Alert as UiAlert, AlertDescription } from '../../components/ui';
-import { Info } from 'lucide-react';
+import { Info } from '../../icons/glyphs';
 import {
   Spinner,
   Button,
@@ -39,7 +44,7 @@ import {
   LogIn, Clock, Coffee, Car, SquareParking,
   BookOpen, Network, ChevronRight, ArrowLeft, Eye, Home,
   MoreHorizontal, Power,
-} from 'lucide-react';
+} from '../../icons/glyphs';
 // Feuille de style « studio accueil » partagée (scopée .be-home ; l'accent du
 // module y est défini : bleu nuit, la teinte de la barre latérale relevée).
 import '../booking-engine/studio/studioHome.css';
@@ -212,6 +217,8 @@ const UpsellsAdmin: React.FC = () => {
 
   const [edit, setEdit] = useState<EditState>(emptyEdit);
   const [saving, setSaving] = useState(false);
+  const { hasAnyRole } = useAuth();
+  const [refundOrder, setRefundOrder] = useState<number | null>(null);
   const [ordersOpen, setOrdersOpen] = useState(false);
   const [commissionsOpen, setCommissionsOpen] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<UpsellOffer | null>(null);
@@ -715,7 +722,7 @@ const UpsellsAdmin: React.FC = () => {
                 <div className="text-end">
                   {/* Montant = TEXTE : `success-ink` (5,73:1), jamais la teinte vive. */}
                   <h6 className="text-sm font-bold tabular-nums text-success-ink leading-[1.15]">
-                    <Money value={commissionSummary.totalHostShare} from={commissionSummary.currency} />
+                    {commissionSummary.totalsByCurrency?.map(total => <span key={total.currency} className="block"><Money value={total.hostShare} from={total.currency} /></span>)}
                   </h6>
                   <span className="text-xs text-muted-foreground block">
                     {commissionSummary.count} {t('upsells.commissions.bookings', 'réservation(s)')}
@@ -1004,7 +1011,7 @@ const UpsellsAdmin: React.FC = () => {
           ) : (
             <ItemGroup className="gap-1.5">
               {orders.map((order: UpsellOrder) => (
-                <Item key={order.id} variant="outline" size="xs" className="items-start">
+                <Item key={order.id} variant="outline" size="xs" className="items-start flex-wrap">
                   <ItemContent>
                     <ItemTitle className="text-xs font-semibold">{order.title}</ItemTitle>
                     <ItemDescription className="text-xs">
@@ -1024,6 +1031,15 @@ const UpsellsAdmin: React.FC = () => {
                       ) : null}
                     </span>
                   </ItemActions>
+                  {hasAnyRole(['SUPER_ADMIN', 'SUPER_MANAGER']) && ['PAID', 'REFUNDED'].includes(order.status) && <div className="w-full">
+                    <Button variant="ghost" size="sm" onClick={() => setRefundOrder(refundOrder === order.id ? null : order.id)} aria-expanded={refundOrder === order.id}>{t('commerceRefunds.title')}</Button>
+                    {refundOrder === order.id && <div className="space-y-4">
+                      <BaitlyCommerceOperationsPanel key={`ops-${order.id}`} source="UPSELL" sourceId={order.id} canEdit />
+                      <BaitlyCommerceRefundPanel key={order.id} source="UPSELL" sourceId={order.id} />
+                      <BaitlyCommercePayoutPanel key={`payout-${order.id}`} source="UPSELL" sourceId={order.id} />
+                      <BaitlyCommerceEvidenceDisclosure key={`evidence-${order.id}`} source="UPSELL" sourceId={order.id} />
+                    </div>}
+                  </div>}
                 </Item>
               ))}
             </ItemGroup>

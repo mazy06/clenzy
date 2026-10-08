@@ -6,7 +6,7 @@ import { cn } from '../../../utils/cn';
 import StatusChip from '../../../components/StatusChip';
 import { Spinner, Field, FieldLabel, Input } from '../../../components/ui';
 import { Alert, AlertAction, AlertDescription, Button } from '../../../components/ui';
-import { TriangleAlert, X } from 'lucide-react';
+import { TriangleAlert, X } from '../../../icons/glyphs';
 import {
   CalendarMonth,
   Edit,

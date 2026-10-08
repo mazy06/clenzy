@@ -1,12 +1,12 @@
 import React from 'react';
 import { View, Text, ActivityIndicator } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
+import { Reicon } from '@/icons';
 import { useNavigation } from '@react-navigation/native';
 import { Card } from '@/components/ui/Card';
 import { useTheme } from '@/theme';
 import { useNoiseChartData, useUnacknowledgedAlertCount } from '@/hooks/useNoiseMonitoring';
 
-type IoniconsName = keyof typeof Ionicons.glyphMap;
+type IconName = keyof typeof Reicon.glyphMap;
 
 export const NoiseTrackingCard = React.memo(function NoiseTrackingCard() {
   const theme = useTheme();
@@ -34,7 +34,7 @@ export const NoiseTrackingCard = React.memo(function NoiseTrackingCard() {
       ? theme.colors.warning.main
       : theme.colors.error.main;
 
-  const statusIcon: IoniconsName = alertCount === 0
+  const statusIcon: IconName = alertCount === 0
     ? 'checkmark-circle'
     : alertCount <= 2
       ? 'warning'
@@ -66,7 +66,7 @@ export const NoiseTrackingCard = React.memo(function NoiseTrackingCard() {
             alignItems: 'center',
             justifyContent: 'center',
           }}>
-            <Ionicons name="volume-mute-outline" size={16} color={theme.colors.text.disabled} />
+            <Reicon name="volume-mute-outline" size={16} color={theme.colors.text.disabled} />
           </View>
         </View>
         <Text style={{ ...theme.typography.body2, color: theme.colors.text.secondary, marginTop: theme.SPACING.xs }}>
@@ -94,7 +94,7 @@ export const NoiseTrackingCard = React.memo(function NoiseTrackingCard() {
           alignItems: 'center',
           justifyContent: 'center',
         }}>
-          <Ionicons name="volume-high-outline" size={16} color={statusColor} />
+          <Reicon name="volume-high-outline" size={16} color={statusColor} />
         </View>
       </View>
 
@@ -103,7 +103,7 @@ export const NoiseTrackingCard = React.memo(function NoiseTrackingCard() {
         <Text style={{ ...theme.typography.display, color: theme.colors.text.primary, fontSize: 26 }}>
           {alertCount}
         </Text>
-        <Ionicons name={statusIcon} size={16} color={statusColor} />
+        <Reicon name={statusIcon} size={16} color={statusColor} />
       </View>
       <Text style={{ ...theme.typography.caption, color: theme.colors.text.secondary, marginBottom: theme.SPACING.sm }}>
         {alertCount === 0 ? 'Tout est calme' : alertCount === 1 ? 'alerte non acquittee' : 'alertes non acquittees'}
@@ -123,7 +123,7 @@ export const NoiseTrackingCard = React.memo(function NoiseTrackingCard() {
             {activeDevices} capteur{activeDevices > 1 ? 's' : ''} · Moy {avgLevel} dB · Max {maxLevel} dB
           </Text>
         </View>
-        <Ionicons name="chevron-forward" size={14} color={theme.colors.text.disabled} />
+        <Reicon name="chevron-forward" size={14} color={theme.colors.text.disabled} />
       </View>
     </Card>
   );

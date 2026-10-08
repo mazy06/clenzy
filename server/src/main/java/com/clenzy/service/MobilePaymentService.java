@@ -286,7 +286,7 @@ public class MobilePaymentService {
                         .setSaveDefaultPaymentMethod(
                                 SubscriptionCreateParams.PaymentSettings.SaveDefaultPaymentMethod.ON_SUBSCRIPTION)
                         .build())
-                .addExpand("latest_invoice.payment_intent")
+                .addExpand("latest_invoice.payments")
                 .putMetadata("type", "mobile_upgrade")
                 .putMetadata("userId", user.getId().toString())
                 .putMetadata("forfait", target)
@@ -295,9 +295,19 @@ public class MobilePaymentService {
 
         Subscription subscription = stripeGateway.createSubscription(subParams);
 
-        // Extraire le PaymentIntent de la derniere facture
+        // Depuis Basil, le PaymentIntent est porté par le paiement de la facture.
         Invoice invoice = subscription.getLatestInvoiceObject();
-        PaymentIntent paymentIntent = invoice.getPaymentIntentObject();
+        if (invoice == null || invoice.getPayments() == null || invoice.getPayments().getData() == null) {
+            throw new IllegalStateException("Paiement initial de l'abonnement indisponible");
+        }
+        String paymentIntentId = invoice.getPayments().getData().stream()
+                .filter(payment -> Boolean.TRUE.equals(payment.getIsDefault()))
+                .map(com.stripe.model.InvoicePayment::getPayment)
+                .filter(java.util.Objects::nonNull)
+                .filter(payment -> "payment_intent".equals(payment.getType()))
+                .map(com.stripe.model.InvoicePayment.Payment::getPaymentIntent)
+                .filter(id -> id != null && !id.isBlank())
+                .findFirst().orElseThrow(() -> new IllegalStateException("Paiement initial de l'abonnement absent"));
 
         // Ajouter les metadata au PaymentIntent pour le routing webhook
         PaymentIntentUpdateParams piUpdateParams = PaymentIntentUpdateParams.builder()
@@ -308,8 +318,8 @@ public class MobilePaymentService {
                 .putMetadata("subscriptionId", subscription.getId())
                 .build();
 
-        paymentIntent = stripeGateway.updatePaymentIntent(
-                stripeGateway.retrievePaymentIntent(paymentIntent.getId()), piUpdateParams);
+        PaymentIntent paymentIntent = stripeGateway.updatePaymentIntent(
+                stripeGateway.retrievePaymentIntent(paymentIntentId), piUpdateParams);
 
         log.info("Subscription {} creee (default_incomplete) avec PaymentIntent {} pour user {}",
                 subscription.getId(), paymentIntent.getId(), user.getEmail());

@@ -16,6 +16,17 @@ import java.util.Set;
  */
 public class InscriptionDto {
 
+    @jakarta.validation.constraints.NotNull
+    private java.util.UUID requestId;
+    @NotBlank
+    @jakarta.validation.constraints.Pattern(regexp = "[A-Z]{2}")
+    private String billingCountry;
+
+    public java.util.UUID getRequestId() { return requestId; }
+    public void setRequestId(java.util.UUID value) { requestId = value; }
+    public String getBillingCountry() { return billingCountry; }
+    public void setBillingCountry(String value) { billingCountry = value; }
+
     @NotBlank(message = "Le nom complet est requis")
     @Size(min = 3, max = 100, message = "Le nom complet doit contenir entre 3 et 100 caracteres")
     private String fullName;

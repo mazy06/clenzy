@@ -10,7 +10,7 @@ import {
   SendIcon,
   StarIcon,
   XIcon,
-} from 'lucide-react';
+} from '../../src/icons/glyphs';
 import {
   Dialog,
   DialogClose,

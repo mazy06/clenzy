@@ -1,4 +1,4 @@
-import { XIcon } from "lucide-react"
+import { XIcon } from "../../../../icons/glyphs"
 
 import {
   Attachment,

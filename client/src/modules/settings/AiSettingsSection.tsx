@@ -1,8 +1,9 @@
+import BaitlyCreditPurchases from './components/BaitlyCreditPurchases';
 import React, { useState, useMemo, useCallback } from 'react';
 import { cn } from '../../utils/cn';
 import StatusChip from '../../components/StatusChip';
 import { Alert as UiAlert, AlertDescription } from '../../components/ui';
-import { TriangleAlert } from 'lucide-react';
+import { TriangleAlert } from '../../icons/glyphs';
 import { Spinner } from '../../components/ui';
 import { useTabValueParam } from '../../components/tabKeyParam';
 import { Badge, Button, Card } from '../../components/ui';
@@ -662,6 +663,7 @@ export default function AiSettingsSection() {
       {activeTab === 'consumption' && (
         <>
           <AiCreditsSection />
+          {mainHasAnyRole(['SUPER_ADMIN', 'SUPER_MANAGER']) && <BaitlyCreditPurchases />}
           <AiUsageTrendSection />
         </>
       )}

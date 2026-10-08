@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { Alert, AlertDescription, Checkbox, Skeleton } from '../../../../components/ui';
 import EmptyState from '../../../../components/EmptyState';
-import { AlertTriangle, Home, Info } from 'lucide-react';
+import { AlertTriangle, Home, Info } from '../../../../icons/glyphs';
 import { propertiesApi, type Property } from '../../../../services/api/propertiesApi';
 import type { StudioConfigState } from '../useStudioConfig';
 import { SettingsPage, SettingCard, SettingRow, SaveBar, ToggleControl } from './settingsControls';

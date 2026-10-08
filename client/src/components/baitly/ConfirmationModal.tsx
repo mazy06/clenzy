@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { TriangleAlertIcon, InfoIcon, OctagonXIcon } from 'lucide-react';
+import { TriangleAlertIcon, InfoIcon, OctagonXIcon } from '../../icons/glyphs';
 import {
   AlertDialog,
   AlertDialogContent,

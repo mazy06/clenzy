@@ -1,7 +1,7 @@
 import * as React from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
-import { CheckIcon, ExternalLinkIcon, TriangleAlertIcon } from 'lucide-react';
+import { CheckIcon, ExternalLinkIcon, TriangleAlertIcon } from '../../icons/glyphs';
 import {
   Alert,
   AlertDescription,
@@ -46,6 +46,7 @@ export interface PaymentIncidentDialogProps {
     title?: string | null;
     detail?: string | null;
     amount?: number | null;
+    currency?: string | null;
     /** Échéance restante, déjà formatée par le serveur (« J-3 », « échue »). */
     badge?: string | null;
   };
@@ -116,7 +117,7 @@ export default function PaymentIncidentDialog({
 
         {incident?.amount != null && (
           <p className="text-lg font-semibold text-foreground tabular-nums">
-            <Money value={incident.amount} />
+            <Money value={incident.amount} from={incident.currency ?? 'EUR'} />
           </p>
         )}
 
@@ -144,10 +145,10 @@ export default function PaymentIncidentDialog({
             </Button>
           )}
 
-          <Button onClick={() => resolve.mutate()} disabled={resolve.isPending}>
+          {incident?.type !== 'EXTERNAL_REFUND' && <Button onClick={() => resolve.mutate()} disabled={resolve.isPending}>
             {resolve.isPending ? <Spinner /> : <CheckIcon />}
             {t('dashboard.incidentDialog.resolve', 'Marquer comme traité')}
-          </Button>
+          </Button>}
         </DialogFooter>
       </DialogContent>
     </Dialog>
@@ -164,6 +165,14 @@ function incidentGuidance(
   type: IncidentType | null | undefined,
   t: (key: string, fallback: string) => string,
 ): { what: string; todo: string; route?: string; routeLabel?: string } {
+  if (type === 'EXTERNAL_REFUND') {
+    return {
+      what: t('dashboard.incidentDialog.externalRefundWhat', 'Un remboursement a été effectué directement chez Stripe. Son rapprochement dans Baitly reste à vérifier.'),
+      todo: t('dashboard.incidentDialog.externalRefundTodo', 'Consultez les montants et les documents dans Finance. Aucun nouveau remboursement ni reversement ne doit être lancé pour contourner ce blocage. L’alerte se clôture après rapprochement confirmé.'),
+      route: '/billing?tab=payments',
+      routeLabel: t('dashboard.incidentDialog.seePayments', 'Voir les paiements'),
+    };
+  }
   if (type === 'DISPUTE_OPENED') {
     return {
       what: t(

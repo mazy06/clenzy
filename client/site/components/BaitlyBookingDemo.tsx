@@ -5,7 +5,7 @@ import {
   CheckIcon,
   PauseIcon,
   PlayIcon,
-} from 'lucide-react';
+} from '../../src/icons/glyphs';
 import { BAITLY_BOOKING_TEMPLATES } from '../data/baitlyBookingTemplates';
 import { BAITLY_BOOKING_MESSAGES } from '../lib/messages/baitlyBooking';
 import { useSiteLanguage } from '../lib/siteLanguage';

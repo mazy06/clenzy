@@ -453,10 +453,10 @@ export class BookingApi {
    * Achat d'un upsell (session Stripe HÉBERGÉE → redirection). Nécessite le code d'une réservation
    * existante. `returnUrl` optionnel (validé anti open-redirect côté serveur, comme le checkout).
    */
-  upsellCheckout(offerId: number, reservationCode: string, returnUrl?: string): Promise<ApiUpsellCheckout> {
+  upsellCheckout(offerId: number, reservationCode: string, returnUrl?: string, requestId = crypto.randomUUID()): Promise<ApiUpsellCheckout> {
     return this.request(`/upsells/${offerId}/checkout`, {
       method: 'POST',
-      body: JSON.stringify(returnUrl ? { reservationCode, returnUrl } : { reservationCode }),
+      body: JSON.stringify({ reservationCode, returnUrl, requestId }),
     });
   }
 

@@ -25,6 +25,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
@@ -33,7 +34,7 @@ import java.util.Optional;
  *
  * <p>Gere 3 evenements :</p>
  * <ul>
- *   <li><b>booking_new</b> : creer une Reservation Clenzy + bloquer le calendrier</li>
+ *   <li><b>booking_new</b> : creer une Reservation Baitly + bloquer le calendrier</li>
  *   <li><b>booking_modification</b> : retrouver la reservation existante + appliquer
  *     les changements (dates, prix, guest count)</li>
  *   <li><b>booking_cancellation</b> : passer la reservation en CANCELLED + liberer
@@ -114,7 +115,7 @@ public class ChannexBookingService {
     // ─── New booking ────────────────────────────────────────────────────────
 
     /**
-     * Cree une Reservation Clenzy depuis un payload Channex {@code booking_new}.
+     * Cree une Reservation Baitly depuis un payload Channex {@code booking_new}.
      *
      * <p>Idempotent : si une reservation existe deja avec l'externalUid attendu,
      * on retourne celle existante sans rien modifier.</p>
@@ -164,6 +165,14 @@ public class ChannexBookingService {
                 + "— adoptee, pas de doublon", booking.stableBookingId(), own.getId());
             metrics.recordBookingProcessed("crs_roundtrip_adopted");
             return own;
+        }
+
+        // Sejour deja importe depuis l'ancien PMS (migration) : on l'adopte au lieu de le doubler.
+        // Les exports OTA ne portent souvent pas l'email du voyageur ; le flux Channex le complete ici.
+        Optional<Reservation> imported = adoptImported(booking, mapping.getClenzyPropertyId(), orgId, externalUid);
+        if (imported.isPresent()) {
+            metrics.recordBookingProcessed("pms_import_adopted");
+            return handleModification(booking).orElse(imported.get());
         }
 
         Property property = propertyRepository.findById(mapping.getClenzyPropertyId())
@@ -232,7 +241,7 @@ public class ChannexBookingService {
             externalUid, mapping.getClenzyPropertyId()
         );
         if (opt.isEmpty()) {
-            log.warn("ChannexBooking: modification recue pour booking {} introuvable cote Clenzy — "
+            log.warn("ChannexBooking: modification recue pour booking {} introuvable cote Baitly — "
                 + "creation a la volee", booking.stableBookingId());
             return Optional.of(handleNewBooking(booking));
         }
@@ -258,6 +267,7 @@ public class ChannexBookingService {
         // changer afficherait un chiffre perime comme s'il etait reel ; a null on
         // retombe sur l'estimation, qui elle est signalee comme telle.
         reservation.setOtaFeeAmount(resolveOtaFee(booking));
+        ChannexBookingPayment.apply(reservation, booking.paymentCollect());
 
         reservationRepository.save(reservation);
 
@@ -298,6 +308,7 @@ public class ChannexBookingService {
         Optional<Reservation> opt = reservationRepository.findByExternalUidAndPropertyId(
             externalUid, mapping.getClenzyPropertyId()
         );
+        if (opt.isEmpty()) opt = adoptImported(booking, mapping.getClenzyPropertyId(), mapping.getOrganizationId(), externalUid);
         if (opt.isEmpty()) {
             log.warn("ChannexBooking: cancellation pour booking {} inconnu — skip", booking.stableBookingId());
             return Optional.empty();
@@ -340,6 +351,31 @@ public class ChannexBookingService {
     }
 
     // ─── Helpers ────────────────────────────────────────────────────────────
+
+    /**
+     * Rattache une reservation importee d'un autre PMS (externalUid {@code baitly-import:}) au booking
+     * Channex qui la decrit, par code de confirmation OTA dans le logement mappe. Un seul candidat exige :
+     * en cas d'ambiguite, le flux normal s'applique et le conflit calendrier reste visible.
+     * Le voyageur sans email (exports OTA) est complete avec les coordonnees transmises par Channex.
+     */
+    private Optional<Reservation> adoptImported(ChannexBookingDto booking, Long propertyId, Long orgId, String externalUid) {
+        String code = booking.otaReservationCode();
+        if (code == null || code.isBlank()) return Optional.empty();
+        List<Reservation> candidates = reservationRepository.findImportedByConfirmationCode(propertyId, code).stream()
+            .filter(r -> java.util.Objects.equals(r.getOrganizationId(), orgId)).toList();
+        if (candidates.size() != 1) return Optional.empty();
+        Reservation reservation = candidates.get(0);
+        reservation.setExternalUid(externalUid);
+        Guest guest = reservation.getGuest();
+        if (guest == null) {
+            reservation.setGuest(findOrCreateGuest(booking, orgId));
+        } else if (booking.customer() != null) {
+            if (guest.getEmail() == null && booking.customer().email() != null) guest.setEmail(booking.customer().email());
+            if (guest.getPhone() == null && booking.customer().phone() != null) guest.setPhone(booking.customer().phone());
+        }
+        log.info("ChannexBooking: booking {} rattache a la reservation importee #{}", booking.stableBookingId(), reservation.getId());
+        return Optional.of(reservationRepository.save(reservation));
+    }
 
     private void validateBookingPayload(ChannexBookingDto booking) {
         if (booking == null) {
@@ -399,21 +435,10 @@ public class ChannexBookingService {
         r.setRoomRevenue(booking.amount());
         r.setOtaFeeAmount(resolveOtaFee(booking));
         r.setExternalUid(externalUid);
-        // Régime d'encaissement LU dans le payload quand Channex le donne : un séjour Booking.com
-        // sans « Payments by Booking » est encaissé par l'hôte — et c'est alors lui, pas la
-        // plateforme, qui collecte la taxe de séjour. Sans l'information, la déduction par
-        // canal (OtaPaidSources) s'applique à la persistance.
-        if (booking.paymentCollect() != null) {
-            r.setPaymentCollection(booking.collectedByProperty()
-                ? com.clenzy.model.PaymentCollection.PMS
-                : com.clenzy.model.PaymentCollection.CHANNEL);
-        }
+        ChannexBookingPayment.apply(r, booking.paymentCollect());
         // OTA reservation code (visible au guest) — utile pour le support
         r.setConfirmationCode(booking.otaReservationCode() != null
             ? booking.otaReservationCode() : ("CHX-" + booking.id().substring(0, Math.min(8, booking.id().length()))));
-        // Le guest a deja paye sur l'OTA — on marque PAID
-        r.setPaymentStatus(PaymentStatus.PAID);
-        r.setPaidAt(LocalDateTime.now());
         return r;
     }
 

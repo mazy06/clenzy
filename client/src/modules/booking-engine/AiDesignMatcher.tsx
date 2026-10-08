@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { cn } from '../../utils/cn';
 import StatusChip from '../../components/StatusChip';
 import { Alert, AlertAction, AlertDescription, AlertTitle, Button, Spinner } from '../../components/ui';
-import { TriangleAlert } from 'lucide-react';
+import { TriangleAlert } from '../../icons/glyphs';
 import { Field, FieldLabel, FieldDescription, Input } from '../../components/ui';
 import { AutoFixHighRounded } from '../../icons';
 import { CheckCircleOutlineRounded } from '../../icons';

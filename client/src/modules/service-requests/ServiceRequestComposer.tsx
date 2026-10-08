@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { CalendarDays, Plus, Trash2 } from 'lucide-react';
+import { CalendarDays, Plus, Trash2 } from '../../icons/glyphs';
 import { Alert, AlertDescription, Button, Card, Field, FieldLabel, Input, Select, SelectContent, SelectItem, SelectTrigger, SelectValue, Skeleton, Textarea } from '../../components/ui';
 import { serviceReferenceQuery, type ServiceReferenceItem } from '../../components/ServiceItemSelect';
 import { propertiesApi } from '../../services/api/propertiesApi';

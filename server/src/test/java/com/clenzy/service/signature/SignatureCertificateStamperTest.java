@@ -24,7 +24,7 @@ import static org.assertj.core.api.Assertions.assertThatCode;
  */
 class SignatureCertificateStamperTest {
 
-    private final SignatureCertificateStamper stamper = new SignatureCertificateStamper();
+    private final SignatureCertificateStamper stamper = new SignatureCertificateStamper(new com.clenzy.service.BaitlyPdfTestEngine());
 
     // -- Helpers --------------------------------------------------------------
 

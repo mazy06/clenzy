@@ -72,6 +72,15 @@ public class EInvoiceSubmission {
     @UpdateTimestamp
     private LocalDateTime updatedAt;
 
+    @Column(name="invoice_id") private Long invoiceId;
+    @Column(name="document_hash",length=64) private String documentHash;
+    @Column(name="submission_started_at") private java.time.Instant submissionStartedAt;
+    @Column(name="retry_at") private java.time.Instant retryAt;
+    public Long getInvoiceId(){return invoiceId;} public void setInvoiceId(Long value){invoiceId=value;}
+    public String getDocumentHash(){return documentHash;} public void setDocumentHash(String value){documentHash=value;}
+    public java.time.Instant getSubmissionStartedAt(){return submissionStartedAt;} public void setSubmissionStartedAt(java.time.Instant value){submissionStartedAt=value;}
+    public java.time.Instant getRetryAt(){return retryAt;} public void setRetryAt(java.time.Instant value){retryAt=value;}
+
     public EInvoiceSubmission() {}
 
     public Long getId() { return id; }

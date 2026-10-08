@@ -434,13 +434,16 @@ class DocumentControllerTest {
         void whenDownloadOriginal_thenReturnsBytes() {
             com.clenzy.model.DocumentTemplate template = new com.clenzy.model.DocumentTemplate();
             template.setId(1L);
-            template.setOriginalFilename("template.odt");
+            template.setOriginalFilename("devis-clenzy.odt");
             when(generatorService.getTemplate(1L)).thenReturn(template);
             when(generatorService.getTemplateOriginalContent(1L)).thenReturn(new byte[]{1, 2, 3});
 
             ResponseEntity<byte[]> response = controller.downloadTemplateOriginal(1L);
             assertThat(response.getStatusCode().value()).isEqualTo(200);
             assertThat(response.getBody()).hasSize(3);
+            assertThat(response.getHeaders().getFirst("Content-Type")).isEqualTo("text/html; charset=UTF-8");
+            assertThat(response.getHeaders().getFirst("Content-Disposition")).contains("devis-baitly.html").doesNotContain("clenzy", ".odt");
+            assertThat(response.getHeaders().getCacheControl()).contains("no-store");
         }
 
         @Test

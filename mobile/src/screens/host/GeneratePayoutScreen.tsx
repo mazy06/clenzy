@@ -12,7 +12,7 @@
 import React, { useMemo, useState } from 'react';
 import { View, Text, ScrollView, Pressable, ActivityIndicator, TextInput, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Ionicons } from '@expo/vector-icons';
+import { Reicon } from '@/icons';
 import { useNavigation } from '@react-navigation/native';
 import { useQuery } from '@tanstack/react-query';
 import { useTheme } from '@/theme';
@@ -20,7 +20,7 @@ import { Skeleton } from '@/components/ui/Skeleton';
 import { useGeneratePayout, useGeneratePayoutsBatch } from '@/hooks/usePayouts';
 import { usersAdminApi, type UserDto } from '@/api/endpoints/usersAdminApi';
 
-type IoniconsName = keyof typeof Ionicons.glyphMap;
+type IconName = keyof typeof Reicon.glyphMap;
 
 type PeriodKey = 'this-month' | 'last-month' | 'this-quarter' | 'last-quarter' | 'year-to-date';
 
@@ -232,7 +232,7 @@ export function GeneratePayoutScreen() {
             marginRight: theme.SPACING.md,
           }}
         >
-          <Ionicons name="close" size={20} color={theme.colors.text.primary} />
+          <Reicon name="close" size={20} color={theme.colors.text.primary} />
         </Pressable>
         <Text style={{ ...theme.typography.h2, color: theme.colors.text.primary, flex: 1 }}>
           Nouveau reversement
@@ -250,8 +250,8 @@ export function GeneratePayoutScreen() {
           ...theme.shadows.sm,
         }}>
           {([
-            { key: 'single' as Mode, label: 'Un proprietaire', icon: 'person-outline' as IoniconsName },
-            { key: 'batch' as Mode, label: 'Tous (fin de mois)', icon: 'people-outline' as IoniconsName },
+            { key: 'single' as Mode, label: 'Un proprietaire', icon: 'person-outline' as IconName },
+            { key: 'batch' as Mode, label: 'Tous (fin de mois)', icon: 'people-outline' as IconName },
           ]).map((opt) => {
             const active = mode === opt.key;
             return (
@@ -269,7 +269,7 @@ export function GeneratePayoutScreen() {
                   backgroundColor: active ? theme.colors.primary.main : 'transparent',
                 }}
               >
-                <Ionicons
+                <Reicon
                   name={opt.icon}
                   size={14}
                   color={active ? theme.colors.primary.contrastText : theme.colors.text.secondary}
@@ -297,7 +297,7 @@ export function GeneratePayoutScreen() {
             borderLeftColor: '#4A9B8E',
           }}>
             <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 4 }}>
-              <Ionicons name="flash-outline" size={16} color="#3A8579" />
+              <Reicon name="flash-outline" size={16} color="#3A8579" />
               <Text style={{
                 ...theme.typography.caption,
                 color: '#3A8579',
@@ -341,7 +341,7 @@ export function GeneratePayoutScreen() {
             marginBottom: theme.SPACING.sm,
             ...theme.shadows.sm,
           }}>
-            <Ionicons name="search-outline" size={16} color={theme.colors.text.secondary} />
+            <Reicon name="search-outline" size={16} color={theme.colors.text.secondary} />
             <TextInput
               value={ownerSearch}
               onChangeText={setOwnerSearch}
@@ -359,7 +359,7 @@ export function GeneratePayoutScreen() {
             />
             {ownerSearch.length > 0 && (
               <Pressable onPress={() => setOwnerSearch('')} hitSlop={8}>
-                <Ionicons name="close-circle" size={16} color={theme.colors.text.disabled} />
+                <Reicon name="close-circle" size={16} color={theme.colors.text.disabled} />
               </Pressable>
             )}
           </View>
@@ -429,7 +429,7 @@ export function GeneratePayoutScreen() {
                       </Text>
                     </View>
                     {selected && (
-                      <Ionicons name="checkmark-circle" size={20} color={theme.colors.primary.contrastText} />
+                      <Reicon name="checkmark-circle" size={20} color={theme.colors.primary.contrastText} />
                     )}
                   </Pressable>
                 );
@@ -487,7 +487,7 @@ export function GeneratePayoutScreen() {
                     </Text>
                   </View>
                   {selected && (
-                    <Ionicons name="checkmark-circle" size={20} color={theme.colors.primary.contrastText} />
+                    <Reicon name="checkmark-circle" size={20} color={theme.colors.primary.contrastText} />
                   )}
                 </Pressable>
               );
@@ -545,7 +545,7 @@ export function GeneratePayoutScreen() {
             <ActivityIndicator color="#FFFFFF" size="small" />
           ) : (
             <>
-              <Ionicons
+              <Reicon
                 name={mode === 'batch' ? 'flash-outline' : 'add-circle-outline'}
                 size={20}
                 color="#FFFFFF"

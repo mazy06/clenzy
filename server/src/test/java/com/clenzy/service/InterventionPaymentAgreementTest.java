@@ -39,7 +39,7 @@ class InterventionPaymentAgreementTest {
     void setUp() {
         service = new InterventionPaymentService(interventions, orchestration,
                 mock(StripeService.class), mock(PaymentTransactionService.class), tenant,
-                new OrganizationAccessGuard(tenant), quotes);
+                new OrganizationAccessGuard(tenant), quotes, mock(BaitlyBatchRefundPersistence.class), mock(ManagedRefundReconciliation.class));
         mission = new Intervention();
         mission.setId(1L);
         mission.setOrganizationId(7L);
@@ -90,11 +90,33 @@ class InterventionPaymentAgreementTest {
 
     @ParameterizedTest @ValueSource(booleans = {false, true})
     void balanceDeductsPaidDeposit(boolean embedded) {
-        quote.setDepositPaidAt(LocalDateTime.now());
+        quote.setDepositPaidAt(LocalDateTime.now()); quote.setDepositTransactionRef("DEP-TEST");
         successfulPayment();
         pay(embedded, "FULL", "160");
         assertThat(sent().amount()).isEqualByComparingTo("160");
         assertThat(mission.getPaymentStatus()).isEqualTo(PaymentStatus.PROCESSING);
+    }
+
+    @ParameterizedTest @ValueSource(booleans = {false, true})
+    void deliveredMissionCanPayItsBalanceWithoutReopeningTheWork(boolean embedded) {
+        mission.setStatus(InterventionStatus.COMPLETED);
+        mission.setCompletedAt(LocalDateTime.of(2026,10,6,12,0));
+        quote.setDepositPaidAt(LocalDateTime.now()); quote.setDepositTransactionRef("DEP-TEST");
+        successfulPayment();
+        pay(embedded,"FULL","160");
+        assertThat(sent().amount()).isEqualByComparingTo("160");
+        assertThat(mission.getStatus()).isEqualTo(InterventionStatus.COMPLETED);
+        assertThat(mission.getCompletedAt()).isEqualTo(LocalDateTime.of(2026,10,6,12,0));
+    }
+
+    @org.junit.jupiter.api.Test
+    void deliveredMissionIsAlsoPayableInABatch() {
+        mission.setStatus(InterventionStatus.COMPLETED);
+        successfulPayment();
+        service.createBatchPaymentSession(new BatchPaymentSessionRequest(List.of(1L),new BigDecimal("200"),
+                "http://localhost:3000/billing?tab=payments"),"sandbox@example.invalid");
+        assertThat(sent().sourceType()).isEqualTo("INTERVENTION_BATCH");
+        assertThat(mission.getStatus()).isEqualTo(InterventionStatus.COMPLETED);
     }
 
     @ParameterizedTest @ValueSource(booleans = {false, true})
@@ -106,7 +128,7 @@ class InterventionPaymentAgreementTest {
 
     @ParameterizedTest @ValueSource(booleans = {false, true})
     void alreadyPaidDepositCannotBeChargedAgain(boolean embedded) {
-        quote.setDepositPaidAt(LocalDateTime.now());
+        quote.setDepositPaidAt(LocalDateTime.now()); quote.setDepositTransactionRef("DEP-TEST");
         assertThatThrownBy(() -> pay(embedded, "DEPOSIT", "40"))
                 .isInstanceOf(com.clenzy.exception.PaymentValidationException.class);
         verifyNoInteractions(orchestration);
@@ -115,7 +137,7 @@ class InterventionPaymentAgreementTest {
 
     @ParameterizedTest @ValueSource(booleans = {false, true})
     void totalCannotBeChargedAgainAfterDeposit(boolean embedded) {
-        quote.setDepositPaidAt(LocalDateTime.now());
+        quote.setDepositPaidAt(LocalDateTime.now()); quote.setDepositTransactionRef("DEP-TEST");
         assertThatThrownBy(() -> pay(embedded, "FULL", "200"))
                 .isInstanceOf(com.clenzy.exception.PaymentValidationException.class);
         verifyNoInteractions(orchestration);

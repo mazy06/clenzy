@@ -1,6 +1,6 @@
 import React, { useRef, useState, useCallback, useEffect, useMemo } from 'react';
 import { Alert, AlertDescription } from './ui';
-import { TriangleAlert } from 'lucide-react';
+import { TriangleAlert } from '../icons/glyphs';
 import { Button } from './ui';
 import {
   CloudUpload as CloudUploadIcon,

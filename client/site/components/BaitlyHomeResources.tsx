@@ -1,4 +1,4 @@
-import { ArrowRight, BookOpen, Check, FileCheck2 } from 'lucide-react';
+import { ArrowRight, BookOpen, Check, FileCheck2 } from '../../src/icons/glyphs';
 import { Link } from 'react-router-dom';
 import { SITE_PHOTOS, sitePhotoAlt } from '../data/baitlyPhotography';
 import { HOME_RESOURCE_MESSAGES } from '../lib/messages/homeResources';

@@ -1,6 +1,6 @@
 import * as React from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { CheckIcon, SendHorizonalIcon, TriangleAlertIcon } from 'lucide-react';
+import { CheckIcon, SendHorizonalIcon, TriangleAlertIcon } from '../../icons/glyphs';
 import {
   Alert,
   AlertDescription,

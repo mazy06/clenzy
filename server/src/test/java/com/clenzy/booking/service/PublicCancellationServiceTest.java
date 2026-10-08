@@ -8,7 +8,7 @@ import com.clenzy.model.Reservation;
 import com.clenzy.repository.ReservationRepository;
 import com.clenzy.service.CalendarEngine;
 import com.clenzy.service.CancellationRefundService;
-import com.clenzy.service.StripeService;
+import com.clenzy.model.PaymentStatus;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -38,7 +38,7 @@ class PublicCancellationServiceTest {
     @Mock private ReservationRepository reservationRepository;
     @Mock private CancellationRefundService cancellationRefundService;
     @Mock private CalendarEngine calendarEngine;
-    @Mock private StripeService stripeService;
+    @Mock private BookingCancellationRefunds refunds;
 
     private PublicCancellationService service;
 
@@ -47,7 +47,7 @@ class PublicCancellationServiceTest {
     @BeforeEach
     void setUp() {
         service = new PublicCancellationService(reservationRepository, cancellationRefundService,
-                calendarEngine, stripeService,
+                calendarEngine, refunds,
                 org.mockito.Mockito.mock(com.clenzy.booking.service.GuestCreditService.class));
     }
 
@@ -98,20 +98,21 @@ class PublicCancellationServiceTest {
     }
 
     @Test
-    void cancel_cancellableWithRefund_releasesCalendarMarksCancelledAndRefunds() throws Exception {
+    void cancel_cancellableWithRefund_queuesDecisionWithoutClaimingRefunded() throws Exception {
         Guest guest = mock(Guest.class);
         when(guest.getEmail()).thenReturn("alice@example.com");
         Reservation reservation = mock(Reservation.class);
         when(reservation.getGuest()).thenReturn(guest);
         when(reservation.getId()).thenReturn(1L);
         when(reservation.getStatus()).thenReturn("confirmed");
-        when(reservation.getStripeSessionId()).thenReturn("cs_x");
-        when(reservationRepository.findByConfirmationCodeAndOrganizationId("ABC123", ORG))
+        when(reservationRepository.lockCancellation(ORG, "ABC123"))
                 .thenReturn(Optional.of(reservation));
         CancellationRefundPreviewDto preview = new CancellationRefundPreviewDto(1L, "FLEXIBLE", 80,
                 BigDecimal.valueOf(80), BigDecimal.valueOf(20), "EUR", 10L, true, "80% remboursé");
         when(cancellationRefundService.computePreview(reservation, ORG)).thenReturn(preview);
 
+        var expected = new CancellationResultDto("cancelled", BigDecimal.valueOf(80), "EUR", "FLEXIBLE", 80, "PENDING", BigDecimal.ZERO);
+        when(refunds.result(reservation, "cancelled")).thenReturn(expected);
         CancellationResultDto result = service.cancel(ORG, "ABC123", "alice@example.com", "trop cher");
 
         assertThat(result.status()).isEqualTo("cancelled");
@@ -119,8 +120,11 @@ class PublicCancellationServiceTest {
         verify(calendarEngine).cancel(1L, ORG, null);
         verify(reservation).markCancelled();
         verify(reservationRepository).save(reservation);
-        // afterCommit inline (pas de transaction en test) → remboursement partiel 80€ = 8000 u.m.
-        verify(stripeService).refundCheckoutSessionPartial("cs_x", 8000L, "cancel-refund-1", "trop cher");
+        // La demande est figée ; aucune preuve de succès PSP ne provient de cette route.
+        verify(refunds).prepare(reservation, preview, BigDecimal.valueOf(80));
+        verify(reservation, never()).setPaymentStatus(PaymentStatus.REFUNDED);
+        assertThat(result.refundStatus()).isEqualTo("PENDING");
+        assertThat(result.refundedAmount()).isZero();
     }
 
     @Test
@@ -130,14 +134,25 @@ class PublicCancellationServiceTest {
         Reservation reservation = mock(Reservation.class);
         when(reservation.getGuest()).thenReturn(guest);
         when(reservation.getStatus()).thenReturn("cancelled");
-        when(reservationRepository.findByConfirmationCodeAndOrganizationId("ABC123", ORG))
+        when(reservationRepository.lockCancellation(ORG, "ABC123"))
                 .thenReturn(Optional.of(reservation));
 
+        when(refunds.result(reservation, "already_cancelled")).thenReturn(new CancellationResultDto(
+                "already_cancelled", BigDecimal.valueOf(80), "EUR", "FLEXIBLE", 80, "PENDING", BigDecimal.ZERO));
         CancellationResultDto result = service.cancel(ORG, "ABC123", "alice@example.com", "x");
 
         assertThat(result.status()).isEqualTo("already_cancelled");
         verify(calendarEngine, never()).cancel(anyLong(), anyLong(), any());
         verify(reservationRepository, never()).save(any());
-        verify(stripeService, never()).refundCheckoutSessionPartial(any(), anyLong(), any(), any());
+        verify(refunds, never()).prepare(any(), any(), any());
+        assertThat(result.refundAmount()).isEqualByComparingTo("80");
+        assertThat(result.refundStatus()).isEqualTo("PENDING");
+    }
+
+    @Test void refundStatusNeverExposesAnotherGuestsDecision() {
+        var reservation = new Reservation(); reservation.setPaymentLinkEmail("owner@example.test");
+        when(reservationRepository.findByConfirmationCodeAndOrganizationId("ABC123", ORG)).thenReturn(Optional.of(reservation));
+        assertThatThrownBy(() -> service.status(ORG, "ABC123", "other@example.test")).isInstanceOf(NotFoundException.class);
+        org.mockito.Mockito.verifyNoInteractions(refunds, calendarEngine);
     }
 }

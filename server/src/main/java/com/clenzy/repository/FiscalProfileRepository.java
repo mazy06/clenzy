@@ -10,7 +10,12 @@ import java.util.Optional;
 @Repository
 public interface FiscalProfileRepository extends JpaRepository<FiscalProfile, Long> {
 
-    Optional<FiscalProfile> findByOrganizationId(Long organizationId);
+    @org.springframework.data.jpa.repository.Query("select p from FiscalProfile p where p.organizationId=:organizationId and p.primaryProfile=true")
+    Optional<FiscalProfile> findByOrganizationId(@org.springframework.data.repository.query.Param("organizationId") Long organizationId);
+
+    Optional<FiscalProfile> findByOrganizationIdAndCountryCode(Long organizationId,String countryCode);
+
+    List<FiscalProfile> findByOrganizationIdOrderByCountryCode(Long organizationId);
 
     boolean existsByOrganizationId(Long organizationId);
 

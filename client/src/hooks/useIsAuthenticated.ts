@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import keycloak from '../keycloak';
+import keycloak, { authReadyPromise, keycloakInitPromise } from '../keycloak';
 
 /**
  * Hook reactif qui retourne l'etat d'authentification Keycloak courant.
@@ -27,8 +27,12 @@ export function useIsAuthenticated(): boolean {
   const [authed, setAuthed] = useState<boolean>(() => Boolean(keycloak.authenticated));
 
   useEffect(() => {
+    let active = true;
     const onSuccess = () => setAuthed(true);
     const onLogout = () => setAuthed(false);
+    const syncRestoredSession = () => {
+      if (active) setAuthed(Boolean(keycloak.authenticated));
+    };
 
     window.addEventListener('keycloak-auth-success', onSuccess);
     window.addEventListener('keycloak-auth-logout', onLogout);
@@ -37,7 +41,16 @@ export function useIsAuthenticated(): boolean {
     // du useState et le mount du useEffect (race init Keycloak), resynchroniser.
     setAuthed(Boolean(keycloak.authenticated));
 
+    // Le bootstrap par cookie HttpOnly ne declenche pas onAuthSuccess.
+    // Les providers montes avant sa resolution doivent aussi apprendre que
+    // la session est prete, sinon leurs choix ne sont jamais sauvegardes.
+    // Relire l'etat courant (pas la valeur de la promesse) respecte un logout
+    // intervenu entre-temps et la fin plus tardive du check-sso.
+    void authReadyPromise.then(syncRestoredSession, syncRestoredSession);
+    void keycloakInitPromise.then(syncRestoredSession, syncRestoredSession);
+
     return () => {
+      active = false;
       window.removeEventListener('keycloak-auth-success', onSuccess);
       window.removeEventListener('keycloak-auth-logout', onLogout);
     };

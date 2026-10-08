@@ -13,8 +13,16 @@ public record UpdateInterventionRequest(
     String notes,
     String assignedToType,
     Long assignedToId,
-    @Size(max = 60) String serviceItemCode
+    @Size(max = 60) String serviceItemCode,
+    java.time.LocalDateTime scheduledDate
 ) {
+    public UpdateInterventionRequest(String title, String description, String type, String priority,
+            Integer estimatedDurationHours, BigDecimal estimatedCost, String notes,
+            String assignedToType, Long assignedToId, String serviceItemCode) {
+        this(title, description, type, priority, estimatedDurationHours, estimatedCost, notes,
+                assignedToType, assignedToId, serviceItemCode, null);
+    }
+
     public UpdateInterventionRequest(String title, String description, String type, String priority,
             Integer estimatedDurationHours, BigDecimal estimatedCost, String notes,
             String assignedToType, Long assignedToId) {

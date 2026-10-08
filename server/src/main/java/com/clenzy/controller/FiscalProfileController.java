@@ -19,14 +19,19 @@ import org.springframework.web.bind.annotation.*;
 public class FiscalProfileController {
 
     private final FiscalProfileService fiscalProfileService;
+    private final com.clenzy.service.BaitlyFiscalJurisdictions jurisdictions;
+    private final com.clenzy.service.OrganizationService access;
+    private final com.clenzy.tenant.TenantContext tenant;
 
-    public FiscalProfileController(FiscalProfileService fiscalProfileService) {
+    public FiscalProfileController(FiscalProfileService fiscalProfileService,com.clenzy.service.BaitlyFiscalJurisdictions jurisdictions,
+            com.clenzy.service.OrganizationService access,com.clenzy.tenant.TenantContext tenant) {
         this.fiscalProfileService = fiscalProfileService;
+        this.jurisdictions=jurisdictions;this.access=access;this.tenant=tenant;
     }
 
     /**
      * Retourne le profil fiscal de l'organisation courante.
-     * Auto-cree le profil avec des valeurs par defaut s'il n'existe pas.
+     * Retourne un brouillon non enregistré si le profil n'existe pas.
      */
     @GetMapping
     public ResponseEntity<FiscalProfileDto> getCurrentProfile() {
@@ -37,7 +42,22 @@ public class FiscalProfileController {
      * Met a jour le profil fiscal de l'organisation courante.
      */
     @PutMapping
-    public ResponseEntity<FiscalProfileDto> updateProfile(@RequestBody FiscalProfileDto dto) {
-        return ResponseEntity.ok(fiscalProfileService.updateProfile(dto));
+    public ResponseEntity<FiscalProfileDto> updateProfile(@org.springframework.security.core.annotation.AuthenticationPrincipal org.springframework.security.oauth2.jwt.Jwt jwt,@RequestBody FiscalProfileDto dto) {
+        access.validateOrgManagement(jwt.getSubject(),tenant.getRequiredOrganizationId());
+        // Compatibilité des anciens clients : éditer le pays demandé sans déplacer le profil principal.
+        return ResponseEntity.ok(jurisdictions.update(dto.countryCode(),dto));
+    }
+
+    @GetMapping("/countries")
+    public java.util.List<FiscalProfileDto> countries(){return jurisdictions.list();}
+
+    @GetMapping("/countries/{country}")
+    public FiscalProfileDto country(@PathVariable String country){return jurisdictions.get(country);}
+
+    @PutMapping("/countries/{country}")
+    public FiscalProfileDto updateCountry(@org.springframework.security.core.annotation.AuthenticationPrincipal org.springframework.security.oauth2.jwt.Jwt jwt,
+            @PathVariable String country,@RequestBody FiscalProfileDto dto) {
+        access.validateOrgManagement(jwt.getSubject(),tenant.getRequiredOrganizationId());
+        return jurisdictions.update(country,dto);
     }
 }

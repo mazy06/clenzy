@@ -1,7 +1,8 @@
 import * as React from 'react';
 import { cn } from '../../utils/cn';
 import { StatsBandShell } from '../stats/StatsBand';
-import { StatTileCompactContext } from './statTileCompact';
+import { StatTileCompactContext, StatTileOverviewContext } from './statTileCompact';
+import './statTileOverview.css';
 
 /**
  * Rangée de tuiles KPI — surface UNIQUE des écrans qui en affichent.
@@ -50,6 +51,8 @@ export interface StatTileRowProps {
    * page sans en être le sujet.
    */
   compact?: boolean;
+  /** Illustrated, selectable figures on one shared surface. */
+  presentation?: 'default' | 'overview';
   /** Ligne complémentaire sous les chiffres, en mode compact. */
   footer?: React.ReactNode;
   /**
@@ -60,7 +63,17 @@ export interface StatTileRowProps {
   className?: string;
 }
 
-export default function StatTileRow({ children, columns, compact, footer, className }: StatTileRowProps) {
+export default function StatTileRow({ children, columns, compact, presentation = 'default', footer, className }: StatTileRowProps) {
+  if (presentation === 'overview') {
+    return <StatTileOverviewContext.Provider value>
+      <StatTileCompactContext.Provider value={false}>
+        <div className={cn('bui-stat-overview', className)}>
+          <div className="bui-stat-overview__figures">{children}</div>
+          {footer}
+        </div>
+      </StatTileCompactContext.Provider>
+    </StatTileOverviewContext.Provider>;
+  }
   if (compact) {
     return (
       <StatTileCompactContext.Provider value>

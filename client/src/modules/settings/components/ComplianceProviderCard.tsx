@@ -1,6 +1,6 @@
 import React from 'react';
 import { Alert, AlertDescription, Badge } from '../../../components/ui';
-import { TriangleAlert } from 'lucide-react';
+import { TriangleAlert } from '../../../icons/glyphs';
 import {
   complianceConnectionApi,
   COMPLIANCE_PROVIDER_META,

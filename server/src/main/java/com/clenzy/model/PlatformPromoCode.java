@@ -9,9 +9,8 @@ import java.util.Objects;
 /**
  * Code promo / cooptation valide a l'inscription.
  *
- * <p>Au lancement, seul le type {@link DiscountType#PERCENTAGE} est applique
- * (validation cote service + ecart Stripe coupon). Le type {@code FIXED} est
- * accepte par le schema mais l'application Stripe necessitera un coupon dedie.</p>
+ * <p>Les réductions en pourcentage et en montant fixe sont validées côté serveur
+ * puis matérialisées par un coupon Stripe sur la première échéance.</p>
  *
  * <p>Le compteur {@link #usedCount} est incremente via UPDATE atomique dans
  * {@code PlatformPromoCodeService} (pas de @Version necessaire — un UPDATE conditionnel
@@ -24,7 +23,7 @@ public class PlatformPromoCode {
     public enum DiscountType {
         /** Reduction en pourcentage (1-100). */
         PERCENTAGE,
-        /** Reduction fixe en centimes (non encore appliquee a Stripe). */
+        /** Réduction fixe en centimes. */
         FIXED
     }
 
@@ -43,6 +42,10 @@ public class PlatformPromoCode {
     /** PERCENTAGE : 1-100. FIXED : centimes. */
     @Column(name = "discount_value", nullable = false)
     private Integer discountValue;
+    /** Devise contractuelle des réductions fixes ; null pour les pourcentages ou les historiques à revoir. */
+    @Column(length=3) private String currency;
+    public String getCurrency(){return currency;}
+    public void setCurrency(String value){currency=value==null?null:value.trim().toUpperCase(java.util.Locale.ROOT);}
 
     /** Nombre maximum d'utilisations. NULL = illimite. */
     @Column(name = "max_uses")
@@ -102,8 +105,12 @@ public class PlatformPromoCode {
      * nouveau montant en centimes (toujours >= 0).
      */
     public int applyTo(int amountCents) {
+        if (amountCents < 0 || discountValue == null || discountValue <= 0 || discountType == null
+                || (discountType == DiscountType.PERCENTAGE && discountValue > 100))
+            throw new IllegalArgumentException("Réduction ou montant invalide");
         if (discountType == DiscountType.PERCENTAGE) {
-            int discount = Math.round(amountCents * (discountValue / 100f));
+            int discount = java.math.BigDecimal.valueOf(amountCents).multiply(java.math.BigDecimal.valueOf(discountValue))
+                    .divide(java.math.BigDecimal.valueOf(100), 0, java.math.RoundingMode.HALF_UP).intValueExact();
             return Math.max(0, amountCents - discount);
         }
         // FIXED

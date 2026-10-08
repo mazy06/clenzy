@@ -18,17 +18,15 @@ import java.util.regex.Pattern;
  *
  * <h3>Wrapper styles</h3>
  * <ul>
- *   <li>{@code NOTIFICATION_OWNER} : alerte au proprietaire — header colore selon
- *       severity ({severityColor} variable), titre "Notification Baitly"</li>
+ *   <li>{@code NOTIFICATION_OWNER} : alerte au propriétaire, en-tête bleu commun</li>
  *   <li>{@code NOTIFICATION_GUEST} : email voyageur — ton sobre, palette neutre,
  *       signature "L'equipe de gestion"</li>
  *   <li>{@code INVITATION} : email avec CTA — le {invitationLink} devient un
  *       bouton primary autogenere (le user ecrit juste {invitationLink} dans
  *       son texte plain, le wrapper transforme en bouton)</li>
  *   <li>{@code INTERNAL_FORM} : notification interne equipe (devis landing) —
- *       header degrade bleu/violet</li>
- *   <li>{@code INTERNAL_URGENT} : meme que INTERNAL_FORM mais header degrade
- *       orange (urgence)</li>
+ *       même en-tête bleu que les autres messages</li>
+ *   <li>{@code INTERNAL_URGENT} : meme que INTERNAL_FORM mais mention explicite de l’urgence</li>
  * </ul>
  *
  * <h3>Convention markdown plain text → HTML</h3>
@@ -49,7 +47,7 @@ import java.util.regex.Pattern;
 public class EmailWrapperService {
 
     private static final String BRAND_NAME = "Baitly";
-    private static final String BRAND_PRIMARY = "#6B8A9A";
+    private static final String BRAND_PRIMARY = "#193d67";
 
     /** Pattern pour le bouton CTA des emails invitation : [TEXTE → URL]. */
     private static final Pattern CTA_PATTERN = Pattern.compile("\\[([^\\]]+?)\\s*→\\s*(https?://[^\\]\\s]+)\\]");
@@ -177,14 +175,14 @@ public class EmailWrapperService {
 
     private void flushText(StringBuilder out, StringBuilder text) {
         if (text.length() == 0) return;
-        out.append("<p style=\"margin:0 0 12px 0;line-height:1.6;color:#334155;\">")
+        out.append("<p style=\"margin:0 0 12px 0;line-height:1.6;color:#243746;\">")
            .append(text).append("</p>\n");
         text.setLength(0);
     }
 
     private void flushList(StringBuilder out, StringBuilder items) {
         if (items.length() == 0) return;
-        out.append("<ul style=\"margin:0 0 14px 0;padding-left:22px;line-height:1.6;color:#334155;\">")
+        out.append("<ul style=\"margin:0 0 14px 0;padding-left:22px;line-height:1.6;color:#243746;\">")
            .append(items).append("</ul>\n");
         items.setLength(0);
     }
@@ -219,7 +217,7 @@ public class EmailWrapperService {
             + BRAND_PRIMARY + ";\">"
             + "<a href=\"" + StringUtils.escapeHtml(url) + "\""
             + " style=\"display:inline-block;padding:11px 22px;background:" + BRAND_PRIMARY
-            + ";color:#ffffff;text-decoration:none;border-radius:6px;font-size:14px;"
+            + ";color:#fcfdff;text-decoration:none;border-radius:6px;font-size:14px;"
             + "font-weight:600;letter-spacing:0.01em;\">"
             + StringUtils.escapeHtml(label) + "</a></td></tr></table>";
     }
@@ -277,37 +275,37 @@ public class EmailWrapperService {
             + "<meta name=\"color-scheme\" content=\"light\">"
             + "<meta name=\"supported-color-schemes\" content=\"light\">"
             + "</head>"
-            + "<body style=\"margin:0;padding:0;background:#f8fafc;"
-            + "font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-serif;"
-            + "color:#0f172a;-webkit-font-smoothing:antialiased;\">"
+            + "<body style=\"margin:0;padding:0;background:#edf3f7;"
+            + "font-family:Arial,sans-serif;"
+            + "color:#193d67;-webkit-font-smoothing:antialiased;\">"
             + "<table role=\"presentation\" cellpadding=\"0\" cellspacing=\"0\" border=\"0\""
-            + " width=\"100%\" style=\"background:#f8fafc;padding:48px 16px;\">"
+            + " width=\"100%\" style=\"background:#edf3f7;padding:24px 12px;\">"
             + "<tr><td align=\"center\">"
             + "<table role=\"presentation\" cellpadding=\"0\" cellspacing=\"0\" border=\"0\""
-            + " width=\"560\" style=\"max-width:560px;background:#ffffff;border-radius:8px;"
-            + "border:1px solid #e2e8f0;\">"
+            + " width=\"100%\" style=\"width:100%;max-width:600px;background:#fcfdff;border-radius:8px;"
+            + "border:1px solid #d5e1eb;\">"
 
             // Header : wordmark Baitly + sous-titre
-            + "<tr><td style=\"padding:36px 40px 24px 40px;border-bottom:1px solid #f1f5f9;\">"
-            + "<div style=\"font-size:22px;font-weight:700;letter-spacing:-0.02em;color:#0f172a;"
+            + "<tr><td style=\"padding:28px 28px 22px 28px;border-bottom:1px solid #d5e1eb;\">"
+            + "<div style=\"font-size:22px;font-weight:700;letter-spacing:-0.02em;color:#193d67;"
             + "line-height:1;\">"
             + BRAND_NAME
             + "<span style=\"color:" + BRAND_PRIMARY + ";\">.</span>"
             + "</div>"
             + "<div style=\"margin-top:6px;font-size:11px;font-weight:500;text-transform:uppercase;"
-            + "letter-spacing:0.12em;color:#94a3b8;\">"
+            + "letter-spacing:0.12em;color:#526879;\">"
             + StringUtils.escapeHtml(subtitle)
             + "</div>"
             + "</td></tr>"
 
             // Body : padding genereux, font-size 15px, line-height 1.6
-            + "<tr><td style=\"padding:32px 40px 12px 40px;font-size:15px;line-height:1.6;color:#334155;\">"
+            + "<tr><td style=\"padding:24px 28px 12px 28px;font-size:15px;line-height:1.6;color:#243746;\">"
             + bodyHtml
             + "</td></tr>"
 
-            // Footer : ultra-discret, font-size 11px, gris pale
-            + "<tr><td style=\"padding:20px 40px 28px 40px;border-top:1px solid #f1f5f9;\">"
-            + "<p style=\"margin:0;font-size:11px;color:#94a3b8;line-height:1.6;\">"
+            // Pied de page : 12px et contraste lisible sur fond clair
+            + "<tr><td style=\"padding:18px 28px 24px 28px;border-top:1px solid #d5e1eb;\">"
+            + "<p style=\"margin:0;font-size:12px;color:#526879;line-height:1.6;\">"
             + StringUtils.escapeHtml(footerText)
             + "</p>"
             + "</td></tr>"

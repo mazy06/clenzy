@@ -273,7 +273,7 @@ class DirectBookingServiceTest {
             PromoCode promo = new PromoCode(ORG_ID, "SUMMER10",
                     PromoCode.DiscountType.PERCENTAGE, new BigDecimal("10"));
             promo.setActive(true);
-            when(promoCodeRepository.findByCodeAndOrganizationId("SUMMER10", ORG_ID))
+            when(promoCodeRepository.lockByCodeAndOrganizationId("SUMMER10", ORG_ID))
                     .thenReturn(Optional.of(promo));
             when(promoCodeRepository.save(any(PromoCode.class))).thenReturn(promo);
 
@@ -790,7 +790,7 @@ class DirectBookingServiceTest {
         }
 
         @Test
-        @DisplayName("with promoCode but invalid -> no discount applied")
+        @DisplayName("invalid promo stops before booking and payment")
         void withInvalidPromoCode_noDiscount() {
             stubConfigDefaults();
             LocalDate checkIn = futureCheckIn();
@@ -807,17 +807,11 @@ class DirectBookingServiceTest {
                         checkIn.plusDays(1), new BigDecimal("100"),
                         checkIn.plusDays(2), new BigDecimal("100")
                     ));
-            when(promoCodeRepository.findByCodeAndOrganizationId("INVALID", ORG_ID))
+            when(promoCodeRepository.lockByCodeAndOrganizationId("INVALID", ORG_ID))
                     .thenReturn(Optional.empty());
-            when(reservationRepository.save(any(Reservation.class))).thenAnswer(inv -> {
-                Reservation r = inv.getArgument(0);
-                r.setId(103L);
-                return r;
-            });
-
-            DirectBookingResponse response = service.createBooking(request, ORG_ID);
-            // No discount applied → totalPrice = 300
-            assertThat(response.totalPrice()).isEqualByComparingTo("300");
+            assertThatThrownBy(() -> service.createBooking(request, ORG_ID))
+                    .isInstanceOf(IllegalArgumentException.class).hasMessageContaining("Code promo");
+            verify(reservationRepository, never()).save(any());
         }
     }
 
@@ -891,8 +885,8 @@ class DirectBookingServiceTest {
         }
 
         @Test
-        @DisplayName("I1-OTA-01 — webhook confirms paid booking")
-        void webhookConfirmsPaidBooking() {
+        @DisplayName("Un webhook historique sans preuve persistée reste à rapprocher")
+        void webhookWithoutPersistedReceiptCannotConfirmPaidBooking() {
             Property prop = activeProperty();
             prop.setOrganizationId(ORG_ID);
             Reservation r = new Reservation(prop, "Jean", futureCheckIn(), futureCheckOut(),
@@ -902,13 +896,8 @@ class DirectBookingServiceTest {
             r.setConfirmationCode("DB-PAID");
 
             when(reservationRepository.findAll()).thenReturn(List.of(r));
-            when(reservationRepository.save(any(Reservation.class))).thenReturn(r);
-
-            service.confirmPaidBookingFromWebhook("DB-PAID", ORG_ID);
-
-            ArgumentCaptor<Reservation> cap = ArgumentCaptor.forClass(Reservation.class);
-            verify(reservationRepository).save(cap.capture());
-            assertThat(cap.getValue().getStatus()).isEqualTo("confirmed");
+            assertThatThrownBy(()->service.confirmPaidBookingFromWebhook("DB-PAID", ORG_ID)).hasMessageContaining("rapprochée");
+            verify(reservationRepository,never()).save(any());assertThat(r.getStatus()).isEqualTo("pending");
         }
 
         @Test
@@ -920,6 +909,7 @@ class DirectBookingServiceTest {
             r.setId(100L);
             r.setOrganizationId(ORG_ID);
             r.setConfirmationCode("DB-PAID");
+            r.setPaymentStatus(com.clenzy.model.PaymentStatus.PAID);
 
             when(reservationRepository.findAll()).thenReturn(List.of(r));
 

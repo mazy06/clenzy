@@ -1,3 +1,4 @@
+import { Link } from 'react-router-dom';
 import React, { useState, useEffect, useImperativeHandle, forwardRef, useMemo } from 'react';
 import StatusChip from '../../components/StatusChip';
 import { Spinner } from '../../components/ui';
@@ -24,8 +25,6 @@ import { useFiscalProfile, useUpdateFiscalProfile } from '../../hooks/useFiscalP
 import { CURRENCY_OPTIONS, COUNTRY_OPTIONS } from '../../utils/currencyUtils';
 import { useNotification } from '../../hooks/useNotification';
 import { useTranslation } from '../../hooks/useTranslation';
-import { getCountryDefaults } from '../../utils/countryDefaults';
-import { STORAGE_KEYS, getItem } from '../../services/storageService';
 import type { FiscalProfileUpdate, FiscalRegime } from '../../services/api/fiscalProfileApi';
 import { AddressAutocomplete } from '../../components/AddressAutocomplete';
 import { useOnboarding } from '../../hooks/useOnboarding';
@@ -67,8 +66,9 @@ interface FiscalProfileSectionProps {
 const FiscalProfileSection = forwardRef<FiscalProfileHandle, FiscalProfileSectionProps>(function FiscalProfileSection({ onChangeState }, ref) {
   const { t } = useTranslation();
   const { notify } = useNotification();
-  const { data: profile, isLoading, error, refetch } = useFiscalProfile();
-  const updateMutation = useUpdateFiscalProfile();
+  const [selectedCountry, setSelectedCountry] = useState<string>();
+  const { data: profile, isLoading, error, refetch } = useFiscalProfile(selectedCountry);
+  const updateMutation = useUpdateFiscalProfile(selectedCountry ?? profile?.countryCode);
   const { completeStep, steps } = useOnboarding();
   const isConfigureOrgDone = steps.find((s) => s.key === 'configure_org')?.completed ?? false;
 
@@ -109,21 +109,6 @@ const FiscalProfileSection = forwardRef<FiscalProfileHandle, FiscalProfileSectio
       });
     }
   }, [profile]);
-
-  // Pre-fill with geo-detected country defaults on first setup
-  useEffect(() => {
-    if (!isFirstSetup) return;
-    const geoCountry = getItem(STORAGE_KEYS.GEO_COUNTRY);
-    if (!geoCountry) return;
-
-    const defaults = getCountryDefaults(geoCountry);
-    setForm(prev => ({
-      ...prev,
-      countryCode: defaults.fiscalCountry,
-      defaultCurrency: defaults.currency,
-      invoiceLanguage: defaults.language,
-    }));
-  }, [isFirstSetup]);
 
   const handleChange = (field: keyof FiscalProfileUpdate, value: string | boolean) => {
     setForm(prev => ({ ...prev, [field]: value }));
@@ -213,6 +198,7 @@ const FiscalProfileSection = forwardRef<FiscalProfileHandle, FiscalProfileSectio
 
   return (
     <div>
+      <p className="mb-4 max-w-3xl text-sm text-muted-foreground">{t('fiscal.jurisdictions.intro')}</p>
       {/* First-time setup banner */}
       {isFirstSetup && (
         <BuiAlert variant="info" className="mb-3">
@@ -253,15 +239,17 @@ const FiscalProfileSection = forwardRef<FiscalProfileHandle, FiscalProfileSectio
                     id="fiscal-country"
                     className="w-full"
                     value={form.countryCode}
-                    onChange={(e) => handleChange('countryCode', e.target.value)}
+                    onChange={(e) => setSelectedCountry(e.target.value)}
+                    disabled={updateMutation.isPending || hasChanges()}
                     required
                   >
-                    {COUNTRY_OPTIONS.map(c => (
+                    {COUNTRY_OPTIONS.filter(c => ['FR', 'MA', 'SA'].includes(c.code)).map(c => (
                       <NativeSelectOption key={c.code} value={c.code}>
                         {t(`countries.${c.code}`, c.label)}
                       </NativeSelectOption>
                     ))}
                   </NativeSelect>
+                  {hasChanges() && <FieldDescription>{t('fiscal.jurisdictions.saveFirst')}</FieldDescription>}
                 </Field>
               </div>
 
@@ -319,7 +307,7 @@ const FiscalProfileSection = forwardRef<FiscalProfileHandle, FiscalProfileSectio
                     id="fiscal-vat-number"
                     value={form.vatNumber ?? ''}
                     onChange={(e) => handleChange('vatNumber', e.target.value)}
-                    placeholder="FR 12 345678901"
+                    placeholder={form.countryCode === 'FR' ? 'FR 12 345678901' : undefined}
                   />
                 </Field>
               </div>
@@ -408,6 +396,8 @@ const FiscalProfileSection = forwardRef<FiscalProfileHandle, FiscalProfileSectio
               </div>
               <div className="col-span-12">
                 <AddressAutocomplete
+                  key={form.countryCode}
+                  countryCode={form.countryCode}
                   value={form.legalAddress ?? ''}
                   label={t('fiscal.profile.legalAddress')}
                   placeholder={t('settings.fiscal.searchAddress')}
@@ -424,7 +414,7 @@ const FiscalProfileSection = forwardRef<FiscalProfileHandle, FiscalProfileSectio
                     rows={4}
                     value={form.legalMentions ?? ''}
                     onChange={(e) => handleChange('legalMentions', e.target.value)}
-                    placeholder="{t('settings.fiscal.legalMentions')}"
+                    placeholder={t('settings.fiscal.legalMentions')}
                   />
                 </Field>
               </div>
@@ -432,6 +422,7 @@ const FiscalProfileSection = forwardRef<FiscalProfileHandle, FiscalProfileSectio
           </Card>
         </div>
       </div>
+      <Link className="inline-flex min-h-10 items-center text-sm text-primary underline underline-offset-4 focus-visible:outline-2 focus-visible:outline-ring" to="/documents?tab=compliance">{t('documentVerification.openHub')}</Link>
     </div>
   );
 });

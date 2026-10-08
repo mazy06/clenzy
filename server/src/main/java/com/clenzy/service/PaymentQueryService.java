@@ -3,7 +3,7 @@ package com.clenzy.service;
 import com.clenzy.dto.PaymentHistoryDto;
 import com.clenzy.dto.PaymentSummaryDto;
 import com.clenzy.model.Intervention;
-import com.clenzy.model.OtaPaidSources;
+import com.clenzy.model.ReservationPaymentState;
 import com.clenzy.model.PaymentStatus;
 import com.clenzy.model.Reservation;
 import com.clenzy.model.ServiceRequest;
@@ -12,6 +12,7 @@ import com.clenzy.model.UserRole;
 import com.clenzy.repository.InterventionRepository;
 import com.clenzy.repository.ReservationRepository;
 import com.clenzy.repository.ServiceRequestRepository;
+import com.clenzy.repository.ServiceQuoteRepository;
 import com.clenzy.tenant.TenantContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -56,19 +57,32 @@ public class PaymentQueryService {
     private final UserService userService;
     private final StripeService stripeService;
     private final TenantContext tenantContext;
+    private final ServiceQuoteRepository serviceQuoteRepository;
+    private final InterventionBatchCheckoutService batchCheckout;
+    private final BaitlyInterventionCheckoutExpiry checkoutExpiry;
+    private final BaitlyMaintenanceDepositCheckout maintenanceDeposit;
+    private final com.clenzy.repository.PaymentTransactionRepository transactions;
 
     public PaymentQueryService(InterventionRepository interventionRepository,
                                ReservationRepository reservationRepository,
                                ServiceRequestRepository serviceRequestRepository,
                                UserService userService,
                                StripeService stripeService,
-                               TenantContext tenantContext) {
+                               TenantContext tenantContext,
+                               ServiceQuoteRepository serviceQuoteRepository, InterventionBatchCheckoutService batchCheckout,
+                               com.clenzy.repository.PaymentTransactionRepository transactions, BaitlyInterventionCheckoutExpiry checkoutExpiry,
+                               BaitlyMaintenanceDepositCheckout maintenanceDeposit) {
+        this.maintenanceDeposit=maintenanceDeposit;
+        this.checkoutExpiry = checkoutExpiry;
+        this.transactions = transactions;
+        this.batchCheckout = batchCheckout;
         this.interventionRepository = interventionRepository;
         this.reservationRepository = reservationRepository;
         this.serviceRequestRepository = serviceRequestRepository;
         this.userService = userService;
         this.stripeService = stripeService;
         this.tenantContext = tenantContext;
+        this.serviceQuoteRepository = serviceQuoteRepository;
     }
 
     /**
@@ -99,6 +113,17 @@ public class PaymentQueryService {
      */
     public Optional<Map<String, Object>> getSessionStatus(String sessionId) {
         Long orgId = tenantContext.getRequiredOrganizationId();
+
+        var deposit=maintenanceDeposit.sessionStatus(sessionId,orgId);
+        if(deposit.isPresent())return deposit;
+        var batch = batchCheckout.sessionStatus(sessionId, orgId);
+        if (batch.isPresent()) return batch;
+        if (checkoutExpiry.reconcile(sessionId, orgId))
+            return Optional.of(Map.of("paymentStatus", "FAILED", "interventionStatus", "CHECKOUT_EXPIRED"));
+        // Les anciens lots sans allocation ne passent jamais dans un lookup unitaire.
+        if (interventionRepository.findAllByStripeSessionIdAndOrganizationId(sessionId, orgId).size() > 1) {
+            return Optional.of(Map.of("paymentStatus", "PROCESSING", "interventionStatus", "RECONCILIATION_REQUIRED"));
+        }
 
         // 1) Chercher dans les interventions (requete deja org-scope)
         var optIntervention = interventionRepository.findByStripeSessionId(sessionId, orgId);
@@ -174,7 +199,7 @@ public class PaymentQueryService {
         Pageable largePage = PageRequest.of(0, 10000, Sort.by(Sort.Direction.DESC, "createdAt"));
         Page<Intervention> interventionPage;
 
-        if (currentUser.getRole() == UserRole.HOST) {
+        if (currentUser.getRole().isOwnerScoped()) {
             interventionPage = interventionRepository.findPaymentHistoryByRequestor(
                     currentUser.getId(), paymentStatus, largePage, orgId);
         } else {
@@ -183,16 +208,13 @@ public class PaymentQueryService {
         }
 
         // ── 2) Charger les reservations ─────────────────────────────────────
-        // On charge TOUTES les reservations (paymentStatus=null) puis on filtre sur le statut
-        // EFFECTIF du DTO : une reservation OTA s'affiche "PAID" alors que son paymentStatus en
-        // base reste PENDING (cf. toReservationPaymentDto / isOtaPaidReservation). Filtrer en
-        // base sur paymentStatus rendrait le filtre incoherent avec le statut affiche.
+        // Le filtre porte sur le statut vérifié affiché, pas sur les anciens statuts déduits.
         Page<Reservation> reservationPage = reservationRepository.findPaymentHistory(
-                null, largePage, orgId);
+                null, currentUser.getRole().isOwnerScoped() ? currentUser.getId() : hostId, largePage, orgId);
 
         // ── 2b) Charger les SR AWAITING_PAYMENT ──────────────────────────────
         Page<ServiceRequest> srPage;
-        boolean isHost = currentUser.getRole() == UserRole.HOST;
+        boolean isHost = currentUser.getRole().isOwnerScoped();
         if (isHost) {
             srPage = serviceRequestRepository.findPaymentHistoryByUser(
                     currentUser.getId(), paymentStatus, largePage, orgId);
@@ -224,6 +246,36 @@ public class PaymentQueryService {
         int end = Math.min(start + size, merged.size());
         List<PaymentHistoryDto> pageContent = start < merged.size()
                 ? merged.subList(start, end) : List.of();
+        var refundRows = interventionRefunds(orgId, pageContent.stream().filter(d -> "INTERVENTION".equals(d.type))
+                .map(d -> d.referenceId).toList());
+        var missionIds = pageContent.stream().filter(d -> "INTERVENTION".equals(d.type)).map(d -> d.referenceId).toList();
+        var partialRefundIds = missionIds.isEmpty() ? java.util.Set.<Long>of()
+                : new java.util.HashSet<>(transactions.findStandaloneRefundableMissionIds(orgId, missionIds));
+        if (!missionIds.isEmpty()) partialRefundIds.addAll(transactions.findAllocatedRefundableMissionIds(orgId,missionIds));
+        var maintenanceIds=missionIds.isEmpty()?java.util.Set.<Long>of():new java.util.HashSet<>(transactions.findMaintenanceRefundCandidateMissionIds(orgId,missionIds));
+        pageContent.forEach(dto -> dto.refundAcrossReceipts="INTERVENTION".equals(dto.type) && maintenanceIds.contains(dto.referenceId));
+        pageContent.forEach(dto -> dto.supportsPartialRefund = "INTERVENTION".equals(dto.type)
+                && partialRefundIds.contains(dto.referenceId));
+        var bookingRefunds = sourceRefunds(orgId, pageContent.stream().filter(d -> "RESERVATION".equals(d.type))
+                .map(d -> d.referenceId).toList(), "BOOKING_CANCELLATION");
+        var externalStayRefunds = sourceRefunds(orgId, pageContent.stream().filter(d -> "RESERVATION".equals(d.type))
+                .map(d -> d.referenceId).toList(), "RESERVATION");
+        externalStayRefunds.forEach((id, refunds) -> bookingRefunds.computeIfAbsent(id, ignored -> new java.util.ArrayList<>()).addAll(refunds));
+        if (!pageContent.isEmpty()) {
+            var disputed = transactions.findDisputedSources(orgId, pageContent.stream().map(d -> d.referenceId).toList())
+                    .stream().map(row -> row[0] + ":" + row[1]).collect(java.util.stream.Collectors.toSet());
+            pageContent.forEach(dto -> dto.paymentDisputed = disputed.contains(dto.type + ":" + dto.referenceId));
+        }
+        pageContent.stream().filter(d -> "INTERVENTION".equals(d.type) || "RESERVATION".equals(d.type)).forEach(dto -> {
+            var refunds = "RESERVATION".equals(dto.type) ? bookingRefunds : refundRows;
+            for (var tx : refunds.getOrDefault(dto.referenceId,List.of())) {
+                if (!java.util.Objects.equals(dto.currency,tx.getCurrency())) { dto.refundReviewRequired=true; continue; }
+                if (tx.getStatus()==com.clenzy.model.TransactionStatus.COMPLETED) dto.refundedAmount=dto.refundedAmount.add(tx.getAmount());
+                else if (tx.getStatus()==com.clenzy.model.TransactionStatus.PROCESSING) dto.refundPendingAmount=dto.refundPendingAmount.add(tx.getAmount());
+                dto.refundReviewRequired |= tx.getStatus()==com.clenzy.model.TransactionStatus.PROCESSING
+                        || (tx.getMetadata()!=null && Boolean.TRUE.equals(tx.getMetadata().get("reviewRequired")));
+            }
+        });
 
         return Map.of(
             "content", pageContent,
@@ -241,7 +293,7 @@ public class PaymentQueryService {
     @Transactional(readOnly = true)
     public PaymentSummaryDto getPaymentSummary(User currentUser, Long hostId) {
         // HOST : force son propre ID
-        Long effectiveHostId = (currentUser.getRole() == UserRole.HOST) ? currentUser.getId() : hostId;
+        Long effectiveHostId = currentUser.getRole().isOwnerScoped() ? currentUser.getId() : hostId;
         Long orgId = tenantContext.getRequiredOrganizationId();
 
         // Requete avec toutes les interventions payantes, paginee large
@@ -255,6 +307,7 @@ public class PaymentQueryService {
 
         PaymentSummaryDto summary = new PaymentSummaryDto();
 
+        var interventionRefunds = interventionRefunds(orgId, interventions.getContent().stream().map(Intervention::getId).toList());
         // Additionner les interventions
         for (Intervention i : interventions.getContent()) {
             BigDecimal cost = i.getEstimatedCost() != null ? i.getEstimatedCost() : BigDecimal.ZERO;
@@ -263,30 +316,72 @@ public class PaymentQueryService {
                 summary.totalPaid = summary.totalPaid.add(cost);
             } else if (ps == PaymentStatus.REFUNDED) {
                 summary.totalRefunded = summary.totalRefunded.add(cost);
+            } else if (ps == PaymentStatus.PARTIALLY_REFUNDED) {
+                var returned = interventionRefunds.getOrDefault(i.getId(),List.of()).stream()
+                        .filter(tx -> tx.getStatus()==com.clenzy.model.TransactionStatus.COMPLETED
+                                && java.util.Objects.equals(i.getCurrency()==null?"EUR":i.getCurrency(),tx.getCurrency()))
+                        .map(com.clenzy.model.PaymentTransaction::getAmount).reduce(BigDecimal.ZERO,BigDecimal::add);
+                if(returned.signum()>0 && returned.compareTo(cost)<0) {
+                    summary.totalRefunded=summary.totalRefunded.add(returned);
+                    summary.totalPaid=summary.totalPaid.add(cost.subtract(returned));
+                } else {
+                    summary.totalToVerify=summary.totalToVerify.add(cost);
+                    summary.toVerifyByCurrency.merge(i.getCurrency()==null?"EUR":i.getCurrency(),cost,BigDecimal::add);
+                }
             } else {
                 summary.totalPending = summary.totalPending.add(cost);
             }
         }
 
         // Additionner les reservations
-        List<Reservation> reservations = reservationRepository.findAllWithPayment(orgId);
+        List<Reservation> reservations = reservationRepository.findAllWithPayment(orgId, effectiveHostId);
+        List<Long> refundedIds = reservations.stream().filter(r -> r.getPaymentStatus() == PaymentStatus.PARTIALLY_REFUNDED
+                || r.getPaymentStatus() == PaymentStatus.REFUNDED).map(Reservation::getId).toList();
+        Map<Long, BigDecimal> confirmedRefunds = new java.util.HashMap<>();
+        if (!refundedIds.isEmpty()) {
+            transactions.findReservationFunding(orgId, refundedIds, java.util.Set.of("BOOKING_CANCELLATION", "RESERVATION")).stream()
+                    .filter(tx -> tx.getPaymentType() == com.clenzy.model.TransactionType.REFUND
+                            && tx.getStatus() == com.clenzy.model.TransactionStatus.COMPLETED)
+                    .forEach(tx -> confirmedRefunds.merge(tx.getSourceId(), tx.getAmount(), BigDecimal::add));
+        }
         for (Reservation r : reservations) {
             BigDecimal cost = r.getTotalPrice() != null ? r.getTotalPrice() : BigDecimal.ZERO;
-            PaymentStatus ps = r.getPaymentStatus();
-            // Réservation OTA : déjà réglée sur le canal externe → comptée comme payée
-            // (cohérent avec le statut "PAID" renvoyé par toReservationPaymentDto). Les résas
-            // OTA ont paymentStatus=PENDING (le PMS n'encaisse pas) donc jamais REFUNDED ici.
-            if (ps == PaymentStatus.PAID || isOtaPaidReservation(r)) {
-                summary.totalPaid = summary.totalPaid.add(cost);
+            PaymentStatus ps = ReservationPaymentState.effectiveStatus(r);
+            BigDecimal cash = cost;
+            if (r.getPaymentCollection() == com.clenzy.model.PaymentCollection.PMS) {
+                var credit = r.getCreditApplied() == null ? BigDecimal.ZERO : r.getCreditApplied();
+                if (credit.signum() < 0 || (credit.signum() > 0 &&
+                        (credit.compareTo(cost) >= 0 || !"EUR".equalsIgnoreCase(r.getCurrency())))) ps = PaymentStatus.UNKNOWN;
+                else cash = cost.subtract(credit);
+            }
+            if (ps == PaymentStatus.UNKNOWN) {
+                summary.totalToVerify = summary.totalToVerify.add(cost);
+                summary.toVerifyByCurrency.merge(r.getCurrency() != null ? r.getCurrency() : "EUR", cost, BigDecimal::add);
+            } else if (ps == PaymentStatus.PAID && r.isCollectedByChannel()) {
+                summary.totalPaidByOta = summary.totalPaidByOta.add(cost);
+                summary.paidByOtaByCurrency.merge(r.getCurrency() != null ? r.getCurrency() : "EUR", cost, BigDecimal::add);
+            } else if (ps == PaymentStatus.PAID) {
+                summary.totalPaid = summary.totalPaid.add(cash);
             } else if (ps == PaymentStatus.REFUNDED) {
-                summary.totalRefunded = summary.totalRefunded.add(cost);
-            } else {
-                summary.totalPending = summary.totalPending.add(cost);
+                summary.totalRefunded = summary.totalRefunded.add(confirmedRefunds.getOrDefault(r.getId(), cash));
+            } else if (ps == PaymentStatus.PARTIALLY_REFUNDED) {
+                BigDecimal returned = confirmedRefunds.get(r.getId());
+                if (returned != null && returned.signum() > 0 && returned.compareTo(cash) <= 0) {
+                    summary.totalRefunded = summary.totalRefunded.add(returned);
+                    summary.totalPaid = summary.totalPaid.add(cash.subtract(returned));
+                } else {
+                    summary.totalToVerify = summary.totalToVerify.add(cash);
+                    summary.toVerifyByCurrency.merge(r.getCurrency() != null ? r.getCurrency() : "EUR", cash, BigDecimal::add);
+                }
+            } else if (ps != PaymentStatus.CANCELLED && ps != PaymentStatus.NOT_REQUIRED) {
+                BigDecimal due = ps == PaymentStatus.PARTIALLY_PAID && r.getAmountDue() != null
+                        ? r.getAmountDue().max(BigDecimal.ZERO) : cash;
+                summary.totalPending = summary.totalPending.add(due);
             }
         }
 
         // Additionner les SR AWAITING_PAYMENT au pending
-        List<ServiceRequest> awaitingSRs = serviceRequestRepository.findAllAwaitingPayment(orgId);
+        List<ServiceRequest> awaitingSRs = serviceRequestRepository.findAwaitingPaymentForHost(orgId, effectiveHostId);
         for (ServiceRequest sr : awaitingSRs) {
             summary.totalPending = summary.totalPending.add(
                 sr.getEstimatedCost() != null ? sr.getEstimatedCost() : BigDecimal.ZERO);
@@ -336,7 +431,19 @@ public class PaymentQueryService {
             return true;
         }
         Long orgId = tenantContext.getOrganizationId();
-        return orgId == null || entityOrganizationId == null || orgId.equals(entityOrganizationId);
+        return orgId != null && orgId.equals(entityOrganizationId);
+    }
+
+    /** Une requête bornée au périmètre déjà autorisé, sans lecture par ligne. */
+    private Map<Long,List<com.clenzy.model.PaymentTransaction>> interventionRefunds(Long org, List<Long> ids) {
+        return sourceRefunds(org, ids, "INTERVENTION");
+    }
+
+    private Map<Long,List<com.clenzy.model.PaymentTransaction>> sourceRefunds(Long org, List<Long> ids, String source) {
+        if(ids.isEmpty()) return Map.of();
+        return transactions.findReservationFunding(org,ids,java.util.Set.of(source)).stream()
+                .filter(tx -> tx.getPaymentType()==com.clenzy.model.TransactionType.REFUND && tx.getAmount()!=null && tx.getAmount().signum()>0)
+                .collect(java.util.stream.Collectors.groupingBy(com.clenzy.model.PaymentTransaction::getSourceId));
     }
 
     private PaymentHistoryDto toPaymentHistoryDto(Intervention i) {
@@ -349,7 +456,16 @@ public class PaymentQueryService {
         dto.description = stripPropertySuffix(i.getTitle(), propertyName);
         dto.propertyName = propertyName != null ? propertyName : "N/A";
         dto.amount = i.getEstimatedCost();
+        dto.currency = i.getCurrency() != null ? i.getCurrency() : "EUR";
         dto.status = i.getPaymentStatus() != null ? i.getPaymentStatus().name() : "PENDING";
+        dto.canCollect = java.util.Set.of("PENDING", "FAILED").contains(dto.status)
+                && i.getStatus() != null && i.getStatus() != com.clenzy.model.InterventionStatus.CANCELLED;
+        if (dto.canCollect) {
+            dto.payableAmount = InterventionPaymentAmounts.payable(i, serviceQuoteRepository
+                    .findByInterventionIdAndOrganizationIdOrderByAmountAsc(i.getId(), i.getOrganizationId()), false);
+            dto.canCollect = dto.payableAmount != null && dto.payableAmount.signum() > 0;
+            dto.individualCheckout = dto.canCollect && i.getEstimatedCost()!=null && dto.payableAmount.compareTo(i.getEstimatedCost())<0;
+        }
         dto.type = "INTERVENTION";
         dto.stripeSessionId = i.getStripeSessionId();
         // transactionDate : paidAt si PAID, sinon startTime ou createdAt
@@ -380,7 +496,10 @@ public class PaymentQueryService {
         dto.description = stripPropertySuffix(sr.getTitle(), propertyName);
         dto.propertyName = propertyName != null ? propertyName : "N/A";
         dto.amount = sr.getEstimatedCost();
+        dto.payableAmount = sr.getEstimatedCost();
         dto.status = sr.getPaymentStatus() != null ? sr.getPaymentStatus().name() : "PENDING";
+        dto.canCollect = sr.getStatus() != null && "AWAITING_PAYMENT".equals(sr.getStatus().name())
+                && java.util.Set.of("PENDING", "FAILED").contains(dto.status);
         dto.type = "SERVICE_REQUEST";
         dto.stripeSessionId = sr.getStripeSessionId();
         if (sr.getCreatedAt() != null) {
@@ -392,19 +511,6 @@ public class PaymentQueryService {
             dto.hostName = sr.getUser().getFirstName() + " " + sr.getUser().getLastName();
         }
         return dto;
-    }
-
-    /**
-     * Réservation déjà réglée sur le canal externe : le PMS n'encaisse rien, le
-     * séjour compte comme « payé » dans la facturation et les KPI.
-     *
-     * <p>Le régime est LU sur la réservation ({@code payment_collection}), il
-     * n'est plus déduit du nom du canal. C'est cette déduction, recopiée à cinq
-     * endroits avec des listes divergentes, qui avait laissé les séjours Channex
-     * comptés « reste à payer ».</p>
-     */
-    private static boolean isOtaPaidReservation(Reservation r) {
-        return r.isCollectedByChannel();
     }
 
     private PaymentHistoryDto toReservationPaymentDto(Reservation r) {
@@ -420,11 +526,12 @@ public class PaymentQueryService {
         dto.subDescription = buildReservationSubDescription(r);
         dto.propertyName = r.getProperty() != null ? r.getProperty().getName() : "N/A";
         dto.amount = r.getTotalPrice();
+        dto.creditAppliedAmount = r.getCreditApplied() == null ? BigDecimal.ZERO : r.getCreditApplied();
         dto.currency = r.getCurrency() != null ? r.getCurrency() : "EUR";
-        // Réservation OTA (Airbnb/Booking/iCal) : déjà payée sur le canal → "PAID" (sinon le statut
-        // brut resterait "PENDING" alors que le PMS n'a rien à encaisser).
-        dto.status = isOtaPaidReservation(r) ? "PAID"
-                : (r.getPaymentStatus() != null ? r.getPaymentStatus().name() : "PENDING");
+        dto.status = ReservationPaymentState.effectiveStatus(r).name();
+        dto.paymentCollection = r.getPaymentCollection() == null ? "UNKNOWN" : r.getPaymentCollection().name();
+        dto.canCollect = ReservationPaymentState.canCollect(r);
+        dto.settlementStatus = r.isCollectedByChannel() ? "EXTERNAL_UNVERIFIED" : null;
         dto.type = "RESERVATION";
         dto.stripeSessionId = r.getStripeSessionId();
         // transactionDate : paidAt si PAID, sinon createdAt

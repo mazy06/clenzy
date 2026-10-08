@@ -2,12 +2,8 @@ package com.clenzy.service;
 
 import com.clenzy.dto.PaymentOrchestrationResult;
 import com.clenzy.exception.NotFoundException;
-import com.clenzy.model.Intervention;
 import com.clenzy.model.Invoice;
-import com.clenzy.model.Reservation;
-import com.clenzy.repository.InterventionRepository;
 import com.clenzy.repository.InvoiceRepository;
-import com.clenzy.repository.ReservationRepository;
 import com.clenzy.service.access.OrganizationAccessGuard;
 import com.clenzy.util.StringUtils;
 import org.slf4j.Logger;
@@ -23,7 +19,7 @@ import java.util.List;
  *
  * <p>Volontairement SANS {@code @Transactional} de classe : la création de la
  * session de paiement (appel HTTP Stripe via l'orchestrateur) passe par le
- * proxy de {@link InvoicePaymentService} (sa propre transaction), puis l'email
+ * proxy de {@link InvoicePaymentService} hors transaction, puis l'email
  * part hors transaction (règle audit n°2 : pas d'appel externe en transaction).</p>
  */
 @Service
@@ -33,21 +29,18 @@ public class InvoicePaymentLinkService {
 
     private final InvoicePaymentService invoicePaymentService;
     private final InvoiceRepository invoiceRepository;
-    private final ReservationRepository reservationRepository;
-    private final InterventionRepository interventionRepository;
+    private final InvoicePaymentRecipient recipients;
     private final EmailService emailService;
     private final OrganizationAccessGuard organizationAccessGuard;
 
     public InvoicePaymentLinkService(InvoicePaymentService invoicePaymentService,
                                      InvoiceRepository invoiceRepository,
-                                     ReservationRepository reservationRepository,
-                                     InterventionRepository interventionRepository,
+                                     InvoicePaymentRecipient recipients,
                                      EmailService emailService,
                                      OrganizationAccessGuard organizationAccessGuard) {
         this.invoicePaymentService = invoicePaymentService;
         this.invoiceRepository = invoiceRepository;
-        this.reservationRepository = reservationRepository;
-        this.interventionRepository = interventionRepository;
+        this.recipients = recipients;
         this.emailService = emailService;
         this.organizationAccessGuard = organizationAccessGuard;
     }
@@ -67,7 +60,7 @@ public class InvoicePaymentLinkService {
         organizationAccessGuard.requireSameOrganization(
                 invoice.getOrganizationId(), "Facture hors de votre organisation");
 
-        Recipient recipient = resolveRecipient(invoice);
+        InvoicePaymentRecipient.Recipient recipient = recipients.resolve(invoice);
         if (recipient == null) {
             throw new IllegalStateException(
                     "Aucun email client résolvable pour la facture " + invoice.getInvoiceNumber());
@@ -93,40 +86,6 @@ public class InvoicePaymentLinkService {
         log.info("Lien de paiement envoyé pour la facture {} à {}", invoice.getInvoiceNumber(),
                 com.clenzy.util.PiiMasker.maskEmail(recipient.email()));
         return recipient.email();
-    }
-
-    private record Recipient(String email, String name) {}
-
-    /**
-     * Email du client : voyageur de la réservation liée, sinon demandeur de
-     * l'intervention liée. (Même résolution que InvoiceReminderExecutor — 2ᵉ
-     * occurrence, extraction différée à la 3ᵉ per règle DRY.)
-     */
-    private Recipient resolveRecipient(Invoice invoice) {
-        if (invoice.getReservationId() != null) {
-            Reservation reservation = reservationRepository.findById(invoice.getReservationId()).orElse(null);
-            if (reservation != null
-                    && invoice.getOrganizationId().equals(reservation.getOrganizationId())
-                    && reservation.getGuest() != null
-                    && reservation.getGuest().getEmail() != null
-                    && !reservation.getGuest().getEmail().isBlank()) {
-                return new Recipient(reservation.getGuest().getEmail(), reservation.getGuest().getFullName());
-            }
-        }
-        if (invoice.getInterventionId() != null) {
-            Intervention intervention = interventionRepository.findById(invoice.getInterventionId()).orElse(null);
-            if (intervention != null
-                    && invoice.getOrganizationId().equals(intervention.getOrganizationId())
-                    && intervention.getRequestor() != null
-                    && intervention.getRequestor().getEmail() != null
-                    && !intervention.getRequestor().getEmail().isBlank()) {
-                var requestor = intervention.getRequestor();
-                String name = ((requestor.getFirstName() != null ? requestor.getFirstName() : "") + " "
-                        + (requestor.getLastName() != null ? requestor.getLastName() : "")).trim();
-                return new Recipient(requestor.getEmail(), name.isBlank() ? null : name);
-            }
-        }
-        return null;
     }
 
     private static String buildSubject(Invoice invoice) {

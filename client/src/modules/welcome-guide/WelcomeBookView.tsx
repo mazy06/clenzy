@@ -24,7 +24,7 @@ import {
   Plus,
   Minus,
   X,
-} from 'lucide-react';
+} from '../../icons/glyphs';
 import type {
   GuideActivity,
   GuidePoi,

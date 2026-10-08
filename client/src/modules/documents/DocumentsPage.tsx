@@ -1,23 +1,12 @@
-import React, { useState, useRef, useCallback } from 'react';
-import { Badge, Button } from '../../components/ui';
-import {
-  Refresh,
-  Add,
-  Send,
-  Search,
-} from '../../icons';
-import { useTabKeyParam } from '../../components/tabKeyParam';
+import { useEffect, useRef, useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
+import { FileText, Plus, RefreshCw, Send } from '../../icons/glyphs';
+import { Button } from '../../components/ui';
 import { useScreenTabs } from '../../hooks/useScreenTabs';
-import { Description } from '../../icons';
 import PageHeader from '../../components/PageHeader';
 import PageTabs from '../../components/PageTabs';
 import HeaderSearchField from '../../components/HeaderSearchField';
-import {
-  PageHeaderActionsProvider,
-  usePageHeaderActionsSlot,
-  resolveTabHeader,
-  type TabHeaderMeta,
-} from '../../components/PageHeaderActionsContext';
+import { PageHeaderActionsProvider, usePageHeaderActionsSlot, usePageHeaderFiltersSlot } from '../../components/PageHeaderActionsContext';
 import { useTranslation } from '../../hooks/useTranslation';
 import { useTemplates } from './hooks/useDocuments';
 import TemplateCatalogAccordions from './TemplateCatalogAccordions';
@@ -29,247 +18,96 @@ import { useDocumentsFailedCount } from './useDocumentsFailedCount';
 import AvailableTagsReference from './AvailableTagsReference';
 import ComplianceDashboard, { type ComplianceDashboardRef } from './ComplianceDashboard';
 import AmendmentArchives from './AmendmentArchives';
+import BaitlyTemplateQuality from './BaitlyTemplateQuality';
+import { useAuth } from '../../hooks/useAuth';
+import { useCommerceScope } from '../../hooks/useCommerceScope';
+import { DOCUMENT_ART } from './components/DocumentsWorkspace';
+import { DOCUMENT_VIEWS, resolveDocumentsLocation, type DocumentsTab } from './documentsNavigation';
+import './documentsWorkspace.css';
 
-// ─── Tab indices ────────────────────────────────────────────────────────────
-
-// IMPORTANT : ajouter une tab decale TOUS les indices suivants. Toute logique
-// indexed-based (URL ?tab=N, switch case) doit etre relue. Les templates email
-// systeme sont fusionnees dans TAB_MSG_TEMPLATES (cf. MessageTemplatesSection).
-const TAB_CATALOG = 0;
-const TAB_MSG_TEMPLATES = 1;
-const TAB_WHATSAPP_TEMPLATES = 2;
-const TAB_DOC_TEMPLATES = 3;
-const TAB_HISTORY = 4;
-const TAB_VARIABLES = 5;
-const TAB_COMPLIANCE = 6;
-const TAB_AMENDMENTS = 7;
-
-// La metadata par tab (breadcrumb + subtitle) est construite dans le composant
-// via t() pour reagir au changement de langue (cf. documentsTabMeta plus bas).
-
-// ─── Component ──────────────────────────────────────────────────────────────
-
-const DocumentsPage: React.FC = () => {
+export default function DocumentsPage() {
   const { t } = useTranslation();
-  // Pastille « échecs récents » sur l'onglet Historique — même hook (et même poll
-  // react-query dédupliqué) que le badge du menu Documents : l'utilisateur suit le
-  // chemin menu → onglet jusqu'aux lignes en échec.
+  const { hasAnyRole } = useAuth();
+  const scope = useCommerceScope();
   const failedCount = useDocumentsFailedCount(true);
-  // Source de verite des tabs : `key` stable pour l'URL (?tab=<key>) + label pour le header.
-  // Defini ICI car activeTab/setActiveTab sont consommes tot (callbacks, inlineActions).
-  // Le registre (config/screenTabs.tsx) porte la liste ; la page n'y ajoute que
-  // ce qui ne peut venir que d'elle — la pastille d'echecs de l'Historique. Les
-  // constantes TAB_* ci-dessus restent le RANG dans cette liste : aucun onglet
-  // de cet ecran n'est masque par role, l'index visible est donc le rang.
-  const tabs = useScreenTabs('/documents').map((tab) =>
-    tab.key === 'history' && failedCount > 0
-      ? { ...tab, badge: failedCount, badgeColor: 'error' as const }
-      : tab,
-  );
-  const [activeTab, setActiveTab] = useTabKeyParam(tabs);
-
-  const [tagsSearch, setTagsSearch] = useState('');
-  const [complianceSearch, setComplianceSearch] = useState('');
-
-  const msgTemplatesRef = useRef<MessageTemplatesSectionRef>(null);
-  const whatsappTemplatesRef = useRef<WhatsAppTemplatesSectionRef>(null);
-  const docTemplatesRef = useRef<TemplatesListRef>(null);
+  const [params, setParams] = useSearchParams();
+  const { tab, view } = resolveDocumentsLocation(params);
+  // Canonical URLs also keep the shared sidebar and header on the correct merged tab.
+  useEffect(() => {
+    if (params.get('tab') && params.get('tab') !== tab) {
+      setParams(previous => {
+        const next = new URLSearchParams(previous);
+        next.set('tab', tab); next.set('view', view);
+        return next;
+      }, { replace: true });
+    }
+  }, [params, setParams, tab, view]);
+  const tabs = useScreenTabs('/documents').map(item => item.key === 'history' && failedCount > 0
+    ? { ...item, badge: failedCount, badgeColor: 'error' as const } : item);
+  const { slot, portalContainer } = usePageHeaderActionsSlot();
+  const { filtersSlot, filtersContainer } = usePageHeaderFiltersSlot();
+  const [search, setSearch] = useState('');
+  const [uploadRequested, setUploadRequested] = useState(false);
+  const msgRef = useRef<MessageTemplatesSectionRef>(null);
+  const whatsappRef = useRef<WhatsAppTemplatesSectionRef>(null);
+  const templatesRef = useRef<TemplatesListRef>(null);
   const historyRef = useRef<UnifiedHistoryTabRef>(null);
   const complianceRef = useRef<ComplianceDashboardRef>(null);
-
-  // Slot DOM pour que chaque tab puisse portaler ses actions dans le PageHeader.
-  // /!\ DOIT etre declare AVANT tout early return pour respecter Rules of Hooks.
-  const { slot: headerActionsSlot, portalContainer: headerActionsPortal } = usePageHeaderActionsSlot();
-
-  // Templates for the catalog tab
-  const { data: catalogTemplates = [] } = useTemplates();
-
-  // useTabKeyParam ecrit la cle de l'onglet dans l'URL (?tab=<key>) et derive activeTab de l'URL
-  // (source de verite) — plus besoin de useEffect de sync.
-  const handleTabChange = setActiveTab;
-
-  const switchToMessagingTab = useCallback(() => setActiveTab(TAB_MSG_TEMPLATES), [setActiveTab]);
-
-  // tabs (source unique) defini plus haut (avant les callbacks/inlineActions qui le consomment).
-  // Mapping label → subtitle reconstruit a chaque render pour suivre la langue.
-  const documentsTabMeta: Record<string, TabHeaderMeta> = {
-    [t('amendmentLibrary.title')]: { subtitle: t('amendmentLibrary.subtitle') },
-    [t('documents.tabs.catalog')]: {
-      subtitle: t('tabHeaders.documents.subtitle.catalog', 'Catalogue des templates par étape du parcours voyageur : messagerie, documents, communications.'),
-    },
-    [t('documents.tabs.messageTemplates')]: {
-      subtitle: t('tabHeaders.documents.subtitle.messageTemplates', 'Templates de messagerie automatique (check-in, bienvenue, push tarification) déclenchés par évènement.'),
-    },
-    [t('documents.tabs.whatsappTemplates')]: {
-      subtitle: t('tabHeaders.documents.subtitle.whatsappTemplates'),
-    },
-    [t('documents.tabs.documentTemplates')]: {
-      subtitle: t('tabHeaders.documents.subtitle.documentTemplates', 'Bibliothèque des templates PDF (factures, attestations, état des lieux) versionnés et réutilisables.'),
-    },
-    [t('documents.tabs.history')]: {
-      subtitle: t('tabHeaders.documents.subtitle.history', 'Historique unifié des messages envoyés et documents générés, filtrable par canal et statut.'),
-    },
-    [t('documents.tabs.variablesAndTags')]: {
-      subtitle: t('tabHeaders.documents.subtitle.variablesAndTags', 'Référence des variables disponibles ({{guest.name}}, {{property.address}}…) pour personnaliser vos templates.'),
-    },
-    [t('documents.tabs.compliance')]: {
-      subtitle: t('tabHeaders.documents.subtitle.compliance', 'Tableau de bord conformité : factures NF, attestations légales, recherche par numéro de document.'),
-    },
+  const templates = useTemplates();
+  const navigate = (nextTab: DocumentsTab, nextView?: string, template?: string) => {
+    setSearch('');
+    setParams(previous => {
+      const next = new URLSearchParams(previous);
+      next.set('tab', nextTab);
+      next.set('view', nextView || DOCUMENT_VIEWS[nextTab][0]);
+      ['invoice', 'generation', 'highlight', 'template'].forEach(key => next.delete(key));
+      if (template) next.set('template', template);
+      return next;
+    });
   };
-  const { title, subtitle } = resolveTabHeader(
-    t('tabHeaders.documents.title', 'Documents & Communications'),
-    t('tabHeaders.documents.default', 'Templates, historique et conformite reglementaire'),
-    tabs.map((tab) => tab.label),
-    activeTab,
-    documentsTabMeta,
-  );
-
-  // Actions de l'onglet actif. Elles vont dans le slot `actions` du PageHeader,
-  // et NON sur la rangee d'onglets : celle-ci passe a deux lignes des sept
-  // onglets, et des boutons poses dessus la rendaient illisible.
-  const tabActions = (() => {
-    if (activeTab === TAB_CATALOG) {
-      return (
-        <Button variant="ghost" size="sm" onClick={() => docTemplatesRef.current?.fetchTemplates()}>
-          <Refresh size={14} strokeWidth={1.75} />
-          {t('common.refresh')}
-        </Button>
-      );
-    }
-    if (activeTab === TAB_MSG_TEMPLATES) {
-      return (
-        <>
-          <Button variant="ghost" size="sm" onClick={() => msgTemplatesRef.current?.fetchTemplates()}>
-            <Refresh size={14} strokeWidth={1.75} />
-            {t('common.refresh')}
-          </Button>
-          <Button size="sm" onClick={() => msgTemplatesRef.current?.openEditor()}>
-            <Add size={14} strokeWidth={1.75} />
-            {t('messaging.templates.create')}
-          </Button>
-        </>
-      );
-    }
-    if (activeTab === TAB_WHATSAPP_TEMPLATES) {
-      return (
-        <Button variant="ghost" size="sm" onClick={() => whatsappTemplatesRef.current?.refresh()}>
-          <Refresh size={14} strokeWidth={1.75} />
-          {t('common.refresh')}
-        </Button>
-      );
-    }
-    if (activeTab === TAB_DOC_TEMPLATES) {
-      return (
-        <>
-          <Button variant="ghost" size="sm" onClick={() => docTemplatesRef.current?.fetchTemplates()}>
-            <Refresh size={14} strokeWidth={1.75} />
-            {t('common.refresh')}
-          </Button>
-          <Button size="sm" onClick={() => docTemplatesRef.current?.openUpload()}>
-            <Add size={14} strokeWidth={1.75} />
-            {t('documents.tabs.newDocTemplate')}
-          </Button>
-        </>
-      );
-    }
-    if (activeTab === TAB_HISTORY) {
-      return (
-        <>
-          <Button variant="ghost" size="sm" onClick={() => historyRef.current?.refresh()}>
-            <Refresh size={14} strokeWidth={1.75} />
-            {t('common.refresh')}
-          </Button>
-          <Button size="sm" onClick={() => historyRef.current?.openGenerate()}>
-            <Send size={14} strokeWidth={1.75} />
-            {t('documents.tabs.generateDoc')}
-          </Button>
-        </>
-      );
-    }
-    if (activeTab === TAB_COMPLIANCE) {
-      return (
-        <Button variant="ghost" size="sm" onClick={() => complianceRef.current?.fetchData()}>
-          <Refresh size={14} strokeWidth={1.75} />
-          {t('common.refresh')}
-        </Button>
-      );
-    }
-    return null;
-  })();
-
-  return (
-    <PageHeaderActionsProvider slot={headerActionsSlot}>
-      <div>
-        <PageHeader
-          title={title}
-          subtitle={subtitle}
-          iconBadge={<Description />}
-          // Le badge d'echecs de la projection, sur le titre : meme compteur
-          // que la pastille de l'onglet Historique, masque a zero.
-          titleAdornment={
-            failedCount > 0 ? (
-              <Badge variant="destructive">
-                {t('documents.failedBadge', { count: failedCount, defaultValue: '{{count}} échecs' })}
-              </Badge>
-            ) : undefined
-          }
-          backPath="/dashboard"
-          showBackButton={false}
-          actions={<>{tabActions}{headerActionsPortal}</>}
-        />
-
-        {/* Les deux recherches d'onglet passent par le champ UNIQUE du header
-            (useScreenSearch) au lieu d'un InputGroup dessine dans la page.
-            Montees conditionnellement : le champ ne doit apparaitre que sur
-            l'onglet qui sait quoi en faire. */}
-        {activeTab === TAB_VARIABLES && (
-          <HeaderSearchField
-            value={tagsSearch}
-            onChange={setTagsSearch}
-            placeholder={t('documents.tabs.searchTag')}
-          />
-        )}
-        {activeTab === TAB_COMPLIANCE && (
-          <HeaderSearchField
-            value={complianceSearch}
-            onChange={setComplianceSearch}
-            placeholder="Ex: FAC-2025-00001"
-            onSubmit={(v) => complianceRef.current?.searchByNumber(v)}
-          />
-        )}
-
-        <PageTabs
-          options={tabs}
-          value={activeTab}
-          onChange={handleTabChange}
-        />
-
-        {/* ── Tab content ── */}
-        {activeTab === TAB_CATALOG && (
-          <TemplateCatalogAccordions
-            templates={catalogTemplates}
-            onOpenUpload={() => {
-              setActiveTab(TAB_DOC_TEMPLATES);
-              setTimeout(() => docTemplatesRef.current?.openUpload(), 100);
-            }}
-            onSwitchToMessagingTab={switchToMessagingTab}
-            onOpenSystemEmail={() => {
-              // Les system templates sont desormais dans la tab "Templates messages".
-              // On switch dessus — l'user voit la liste fusionnee user+system.
-              setActiveTab(TAB_MSG_TEMPLATES);
-            }}
-          />
-        )}
-        {activeTab === TAB_MSG_TEMPLATES && <MessageTemplatesSection ref={msgTemplatesRef} />}
-        {activeTab === TAB_WHATSAPP_TEMPLATES && <WhatsAppTemplatesSection ref={whatsappTemplatesRef} />}
-        {activeTab === TAB_DOC_TEMPLATES && <TemplatesList ref={docTemplatesRef} />}
-        {activeTab === TAB_HISTORY && <UnifiedHistoryTab ref={historyRef} />}
-        {activeTab === TAB_VARIABLES && <AvailableTagsReference search={tagsSearch} />}
-        {activeTab === TAB_COMPLIANCE && <ComplianceDashboard ref={complianceRef} />}
-        {activeTab === TAB_AMENDMENTS && <AmendmentArchives />}
+  const refresh = () => {
+    if (tab === 'catalog') void templates.refetch();
+    else if (tab === 'message-templates') view === 'whatsapp' ? whatsappRef.current?.refresh() : msgRef.current?.fetchTemplates();
+    else if (tab === 'history') historyRef.current?.refresh();
+    else complianceRef.current?.fetchData();
+  };
+  const views: readonly string[] = DOCUMENT_VIEWS[tab].filter(item => item !== 'templates' || hasAnyRole(['SUPER_ADMIN']));
+  const currentView = views.includes(view) ? view : views[0];
+  const illustration = currentView === 'variables' ? DOCUMENT_ART.variables : tab === 'message-templates'
+    ? DOCUMENT_ART.message : tab === 'compliance' ? DOCUMENT_ART.compliance : tab === 'history' ? DOCUMENT_ART.history : DOCUMENT_ART.document;
+  return <PageHeaderActionsProvider slot={slot} filtersSlot={filtersSlot}>
+    <div className="documents-page">
+      <PageHeader title={t('tabHeaders.documents.title')}
+        inlineControls={tab === 'catalog' ? filtersContainer : undefined}
+        subtitle={t(`documentsWorkspace.hints.${currentView}`)} iconBadge={<FileText />} showBackButton={false}
+        actions={<>
+          {!['variables', 'amendments', 'templates'].includes(currentView) && <Button variant="ghost" size="icon-sm" aria-label={t('common.refresh')} title={t('common.refresh')} onClick={refresh}><RefreshCw size={17} /></Button>}
+          {tab === 'catalog' && currentView !== 'variables' && <Button size="sm" onClick={() => { navigate('catalog'); setUploadRequested(true); }}><Plus size={16} />{t('documentsWorkspace.import')}</Button>}
+          {tab === 'message-templates' && currentView === 'email' && <Button size="sm" onClick={() => msgRef.current?.openEditor()}><Plus size={16} />{t('messaging.templates.create')}</Button>}
+          {tab === 'history' && currentView === 'activity' && <Button size="sm" onClick={() => historyRef.current?.openGenerate()}><Send size={16} />{t('documents.tabs.generateDoc')}</Button>}
+          {portalContainer}
+        </>} />
+      <PageTabs options={tabs} value={tabs.findIndex(item => item.key === tab)} onChange={index => navigate(tabs[index].key as DocumentsTab)} />
+      <div className="documents-page__content" key={scope}>
+        {tab !== 'catalog' && <div className="documents-context"><img src={illustration} alt="" width={52} height={52} /><div>
+          <h2>{t(`documentsWorkspace.views.${currentView}`)}</h2><p>{t(`documentsWorkspace.hints.${currentView}`)}</p>
+        </div></div>}
+        <div className="documents-views" role="group" aria-label={t('documentsWorkspace.viewsLabel')}>
+          {views.map(item => <button type="button" key={item} aria-pressed={currentView === item} onClick={() => navigate(tab, item)}>{t(`documentsWorkspace.views.${item}`)}</button>)}
+        </div>
+        {currentView === 'library' && <TemplatesList ref={templatesRef} uploadRequested={uploadRequested} onUploadHandled={() => setUploadRequested(false)} />}
+        {currentView === 'guide' && <TemplateCatalogAccordions templates={templates.data ?? []}
+          onOpenUpload={() => { navigate('catalog'); setUploadRequested(true); }}
+          onSwitchToMessagingTab={() => navigate('message-templates')}
+          onOpenSystemEmail={key => navigate('message-templates', 'email', key)} />}
+        {currentView === 'variables' && <><HeaderSearchField value={search} onChange={setSearch} placeholder={t('documents.tabs.searchTag')} /><AvailableTagsReference search={search} /></>}
+        {currentView === 'email' && <MessageTemplatesSection ref={msgRef} />}
+        {currentView === 'whatsapp' && <WhatsAppTemplatesSection ref={whatsappRef} />}
+        {currentView === 'activity' && <UnifiedHistoryTab ref={historyRef} />}
+        {currentView === 'amendments' && <AmendmentArchives />}
+        {currentView === 'checks' && <><HeaderSearchField value={search} onChange={value => { setSearch(value); complianceRef.current?.searchByNumber(value); }} placeholder={t('documentsWorkspace.searchDocument')} /><ComplianceDashboard ref={complianceRef} /></>}
+        {currentView === 'templates' && <BaitlyTemplateQuality />}
       </div>
-    </PageHeaderActionsProvider>
-  );
-};
-
-export default DocumentsPage;
+    </div>
+  </PageHeaderActionsProvider>;
+}

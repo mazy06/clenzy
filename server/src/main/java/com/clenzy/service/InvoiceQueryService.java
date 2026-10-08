@@ -19,15 +19,18 @@ public class InvoiceQueryService {
     private final InvoiceRepository invoiceRepository;
     private final DocumentTemplateRepository documentTemplateRepository;
     private final InvoicePdfService invoicePdfService;
+    private final BaitlyInvoicePdfStore pdfStore;
     private final TenantContext tenantContext;
 
     public InvoiceQueryService(InvoiceRepository invoiceRepository,
                                DocumentTemplateRepository documentTemplateRepository,
                                InvoicePdfService invoicePdfService,
+                               BaitlyInvoicePdfStore pdfStore,
                                TenantContext tenantContext) {
         this.invoiceRepository = invoiceRepository;
         this.documentTemplateRepository = documentTemplateRepository;
         this.invoicePdfService = invoicePdfService;
+        this.pdfStore = pdfStore;
         this.tenantContext = tenantContext;
     }
 
@@ -60,8 +63,13 @@ public class InvoiceQueryService {
             throw new IllegalArgumentException("Facture introuvable: " + id);
         }
 
-        byte[] pdfBytes = invoicePdfService.generatePdf(invoice);
-        String filename = "Facture_" + invoice.getInvoiceNumber().replace("/", "-") + ".pdf";
+        if(invoice.getStatus()==com.clenzy.model.InvoiceStatus.DRAFT)
+            throw new IllegalStateException("Vérifiez puis émettez le brouillon avant de télécharger la facture");
+        byte[] pdfBytes = pdfStore.existing(orgId,id);
+        if(pdfBytes==null) pdfBytes=invoicePdfService.generatePdf(invoice);
+        pdfBytes=pdfStore.archive(orgId,id,BaitlyInvoiceChecks.fingerprint(invoice),pdfBytes);
+        String filename = (invoice.getStatus() == com.clenzy.model.InvoiceStatus.CREDIT_NOTE ? "Avoir_" : "Facture_")
+            + invoice.getInvoiceNumber().replace("/", "-") + ".pdf";
         return new InvoicePdfFile(filename, pdfBytes);
     }
 

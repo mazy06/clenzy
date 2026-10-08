@@ -62,7 +62,9 @@ class AiCreditGrantServiceTest {
         when(grantRepository.existsByStripeRef("in_1")).thenReturn(false);
         when(ledgerRepository.existsByIdempotencyKey("grant:in_1")).thenReturn(false);
 
-        service().grantForPaidInvoice("sub_1", "in_1");
+        var invoice=new com.stripe.model.Invoice();invoice.setId("in_1");
+        when(balanceService.recordCoverage(any(),eq(invoice))).thenReturn(Instant.now().plusSeconds(3600));
+        service().grantForPaidInvoice("sub_1", invoice);
 
         ArgumentCaptor<AiCreditGrant> captor = ArgumentCaptor.forClass(AiCreditGrant.class);
         verify(grantRepository).save(captor.capture());
@@ -83,9 +85,23 @@ class AiCreditGrantServiceTest {
     void unknownSubscription_isSilentlyIgnored() {
         when(userRepository.findByStripeSubscriptionId("sub_x")).thenReturn(Optional.empty());
 
-        service().grantForPaidInvoice("sub_x", "in_x");
+        service().grantForPaidInvoice("sub_x", new com.stripe.model.Invoice());
 
         verify(grantRepository, never()).save(any());
+    }
+
+    @org.junit.jupiter.params.ParameterizedTest
+    @org.junit.jupiter.params.provider.ValueSource(strings={"ANNUAL","BIENNIAL"})
+    void canonicalLegacyCoverageDoesNotDuplicateAnExistingMonthlyAllotment(String period) {
+        var owner=payer(42L,"premium");owner.setBillingPeriod(period);
+        when(userRepository.findByStripeSubscriptionId("sub_annual")).thenReturn(Optional.of(owner));
+        var invoice=new com.stripe.model.Invoice();invoice.setId("in_annual");
+        when(balanceService.recordCoverage(owner,invoice)).thenReturn(Instant.now().plusSeconds(86400));
+        when(grantRepository.existsByOrganizationIdAndSourceAndGrantedAtGreaterThanEqual(eq(42L),eq(AiCreditGrant.SOURCE_SUBSCRIPTION),any())).thenReturn(true);
+        service().grantForPaidInvoice("sub_annual",invoice);
+        var order=org.mockito.Mockito.inOrder(balanceService,grantRepository);order.verify(balanceService).recordCoverage(owner,invoice);
+        order.verify(grantRepository).existsByOrganizationIdAndSourceAndGrantedAtGreaterThanEqual(eq(42L),eq(AiCreditGrant.SOURCE_SUBSCRIPTION),any());
+        verify(grantRepository,never()).save(any());org.mockito.Mockito.verifyNoInteractions(ledgerRepository);
     }
 
     @Test
@@ -117,7 +133,8 @@ class AiCreditGrantServiceTest {
         AiCreditGrant stale = new AiCreditGrant(42L, AiCreditGrant.SOURCE_SUBSCRIPTION,
                 1000L, Instant.now().minusSeconds(60), "in_old");
         stale.applyConsumption(400L); // restant = 600
-        when(grantRepository.findExpiredWithRemaining(any())).thenReturn(List.of(stale));
+        when(grantRepository.findOrganizationsToExpire(any())).thenReturn(List.of(42L));
+        when(grantRepository.findExpiredForOrganization(eq(42L),any())).thenReturn(List.of(stale));
         when(ledgerRepository.existsByIdempotencyKey(anyString())).thenReturn(false);
 
         int expired = service().expireOverdueGrants();
@@ -161,6 +178,8 @@ class AiCreditGrantServiceTest {
         when(grantRepository.existsByStripeRef(anyString())).thenReturn(false);
         when(ledgerRepository.existsByIdempotencyKey(anyString())).thenReturn(false);
 
+        when(balanceService.paidUntil(7L,"sub_7")).thenReturn(Instant.now().plusSeconds(3600));
+        when(balanceService.fundingInvoice(7L,"sub_7")).thenReturn("in_annual");
         int refreshed = service().refreshMonthlyForPrepaidSubscribers();
 
         assertThat(refreshed).isEqualTo(1);

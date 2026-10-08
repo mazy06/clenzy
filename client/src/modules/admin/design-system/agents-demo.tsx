@@ -27,7 +27,7 @@ import {
   TrendingUpIcon,
   WrenchIcon,
   XIcon,
-} from 'lucide-react';
+} from '../../../icons/glyphs';
 import {
   Badge,
   Button,
@@ -298,9 +298,9 @@ const PENDING: PendingItem[] = [
       <>
         <p className="m-0 mt-2 flex items-center gap-1.5 text-xs text-muted-foreground">
           <span className="flex items-center gap-0.5 text-warning" aria-hidden>
-            <StarIcon className="size-3 fill-current" />
-            <StarIcon className="size-3 fill-current" />
-            <StarIcon className="size-3 fill-current" />
+            <StarIcon className="size-3" fill="currentColor" />
+            <StarIcon className="size-3" fill="currentColor" />
+            <StarIcon className="size-3" fill="currentColor" />
             <StarIcon className="size-3" />
             <StarIcon className="size-3" />
           </span>

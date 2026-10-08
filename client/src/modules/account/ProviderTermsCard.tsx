@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Alert, AlertDescription, Button, Card, CardContent, Spinner } from '../../components/ui';
-import { TriangleAlert } from 'lucide-react';
+import { TriangleAlert } from '../../icons/glyphs';
 import StatusChip from '../../components/StatusChip';
 import { Gavel } from '../../icons';
 import { useNotification } from '../../hooks/useNotification';

@@ -91,6 +91,12 @@ public class BookingVoucher {
     @Column(name = "discount_value", nullable = false, precision = 10, scale = 2)
     private BigDecimal discountValue;
 
+    @Column(name="currency",length=3)
+    private String currency;
+
+    public String getCurrency() { return currency; }
+    public void setCurrency(String currency) { this.currency=currency; }
+
     /** Periode d'eligibilite. NULL valid_from = effectif immediatement. */
     @Column(name = "valid_from")
     private Instant validFrom;

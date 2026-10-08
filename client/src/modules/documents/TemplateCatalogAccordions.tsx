@@ -1,35 +1,20 @@
-import React, { useState } from 'react';
-import StatusChip, { STATUS_TONES, type ToneTokens } from '../../components/StatusChip';
-import {
-  Accordion,
-  AccordionContent,
-  AccordionItem,
-  AccordionTrigger,
-  Button,
-  Separator,
-} from '../../components/ui';
-import {
-  EventAvailable,
-  Hotel,
-  ExitToApp,
-  Description,
-  AdminPanelSettings,
-  CloudUpload,
-  Visibility,
-  OpenInNew,
-  CheckCircle,
-  Warning,
-  Code,
-} from '../../icons';
-import { useNavigate } from 'react-router-dom';
+import { useState } from 'react';
+import type React from 'react';
+import { useQuery } from '@tanstack/react-query';
+import { Pencil, Upload } from '../../icons/glyphs';
+import { useCommerceScope } from '../../hooks/useCommerceScope';
+import { guestMessagingApi } from '../../services/api/guestMessagingApi';
+import { systemEmailTemplatesApi } from '../../services/api/systemEmailTemplatesApi';
+import TemplatePdfPreview from './TemplatePdfPreview';
+import EmailTemplatePreview from './EmailTemplatePreview';
+import { EventAvailable, Hotel, ExitToApp, Description, AdminPanelSettings } from '../../icons';
+import { STATUS_TONES, type ToneTokens } from '../../components/StatusChip';
+import { Alert, AlertDescription, Button, NativeSelect, NativeSelectOption, Skeleton } from '../../components/ui';
 import type { DocumentTemplate } from '../../services/api/documentsApi';
 import { useTranslation } from '../../hooks/useTranslation';
-
-// ─── Tons sémantiques (tokens StatusChip) ─────────────────────────────────────
-// Mapping : étapes du parcours → ok/accent/warn ; documents PDF → err (pastille
-// type), admin → muted. Les -soft viennent des tokens (dark mode automatique).
-
-
+import { useScreenSearch } from '../../components/ScreenChrome';
+import DocumentsWorkspace, { DOCUMENT_ART, documentArtwork } from './components/DocumentsWorkspace';
+import DocumentsHeaderControls from './components/DocumentsHeaderControls';
 // ─── Types ───────────────────────────────────────────────────────────────────
 
 interface CatalogItem {
@@ -53,7 +38,7 @@ interface CatalogItem {
    * "Templates email" sur le bon template.
    */
   systemEmailKey?: string;
-  /** DocumentType to match with uploaded .odt templates */
+  /** DocumentType to match with uploaded .html templates */
   documentType?: string;
   /** Link to message template management page */
   messageLink?: string;
@@ -123,24 +108,6 @@ const CATALOG_GROUPS: CatalogGroup[] = [
         recipient: 'Voyageur',
         channel: 'email',
         variables: ['guestName', 'guestFirstName', 'propertyName', 'propertyAddress', 'checkInDate', 'checkOutDate'],
-        templateKind: 'message',
-        messageLink: '/settings',
-      },
-      {
-        id: 'pricing-push',
-        nameKey: 'docCatalog.items.pricing-push.name',
-        name: 'Push tarification',
-        descriptionKey: 'docCatalog.items.pricing-push.description',
-        description:
-          'Envoi automatique des informations tarifaires au voyageur avant son arrivee. ' +
-          'Inclut le detail des prix et les conditions.',
-        trigger: 'auto',
-        triggerKey: 'docCatalog.items.pricing-push.trigger',
-        triggerDetail: 'Scheduler automatique (si active dans la configuration)',
-        recipientKey: 'docCatalog.items.pricing-push.recipient',
-        recipient: 'Voyageur',
-        channel: 'email',
-        variables: ['guestName', 'propertyName', 'checkInDate', 'checkOutDate'],
         templateKind: 'message',
         messageLink: '/settings',
       },
@@ -249,7 +216,7 @@ const CATALOG_GROUPS: CatalogGroup[] = [
         nameKey: 'docCatalog.items.doc-devis.name',
         name: 'Devis',
         descriptionKey: 'docCatalog.items.doc-devis.description',
-        description: 'Document de devis genere a partir d\'un template .odt et converti en PDF. Peut etre envoye par email au client.',
+        description: 'Document de devis genere a partir d\'un template .html et converti en PDF. Peut etre envoye par email au client.',
         trigger: 'auto+manual',
         triggerKey: 'docCatalog.items.doc-devis.trigger',
         triggerDetail: 'Manuel ou declencheur automatique (evenement metier)',
@@ -264,7 +231,7 @@ const CATALOG_GROUPS: CatalogGroup[] = [
         nameKey: 'docCatalog.items.doc-facture.name',
         name: 'Facture',
         descriptionKey: 'docCatalog.items.doc-facture.description',
-        description: 'Document de facturation genere a partir d\'un template .odt. Soumis a la conformite NF (numerotation legale, hash, verrouillage).',
+        description: 'Document de facturation genere a partir d\'un template .html. Soumis a la conformite NF (numerotation legale, hash, verrouillage).',
         trigger: 'auto+manual',
         triggerKey: 'docCatalog.items.doc-facture.trigger',
         triggerDetail: 'Manuel ou declencheur automatique (evenement metier)',
@@ -318,6 +285,27 @@ const CATALOG_GROUPS: CatalogGroup[] = [
         channel: 'document',
         templateKind: 'document',
         documentType: 'BON_INTERVENTION',
+      },
+      {
+        id: 'doc-bon-commande', name: 'Bon de commande',
+        description: 'Commande liée à une dépense prestataire, avec le logement et les montants dans leur devise. Ce document ne prouve pas un paiement.',
+        trigger: 'manual', triggerDetail: 'Depuis une dépense prestataire',
+        recipient: 'Fournisseur / Prestataire', channel: 'document',
+        templateKind: 'document', documentType: 'BON_COMMANDE',
+      },
+      {
+        id: 'doc-devis-prestataire', name: 'Devis prestataire',
+        description: 'Proposition détaillée du prestataire avec ses lignes, son logo et les conditions de la mission.',
+        trigger: 'auto+manual', triggerDetail: 'Depuis un devis prestataire',
+        recipient: 'Client / Propriétaire', channel: 'document',
+        templateKind: 'document', documentType: 'DEVIS_PRESTATAIRE',
+      },
+      {
+        id: 'doc-devis-menage', name: 'Devis ménage',
+        description: 'Estimation du ménage à partir du logement, des durées et des prestations retenues.',
+        trigger: 'manual', triggerDetail: 'Depuis la fiche du logement',
+        recipient: 'Propriétaire', channel: 'document',
+        templateKind: 'document', documentType: 'DEVIS_MENAGE',
       },
       {
         id: 'doc-validation-mission',
@@ -426,258 +414,59 @@ const CATALOG_GROUPS: CatalogGroup[] = [
   },
 ];
 
-// ─── Helpers ─────────────────────────────────────────────────────────────────
-
-// Chips meta en tons -soft semantiques :
-//   auto      = accent (action systeme reguliere)
-//   manual    = muted (action humaine)
-//   form      = warn (declenchement externe)
-//   document  = err (pastille type document, cf. pattern .fr-doc)
-const TRIGGER_CONFIG: Record<string, { label: string; tone: ToneTokens }> = {
-  auto: { label: 'Automatique', tone: STATUS_TONES.accent },
-  manual: { label: 'Manuel', tone: STATUS_TONES.neutral },
-  form: { label: 'Formulaire', tone: STATUS_TONES.warn },
-  'auto+manual': { label: 'Auto / Manuel', tone: STATUS_TONES.ok },
-};
-
-const CHANNEL_CONFIG: Record<string, { label: string; tone: ToneTokens }> = {
-  email: { label: 'Email', tone: STATUS_TONES.info },
-  'in-app': { label: 'In-app', tone: STATUS_TONES.ok },
-  'email+in-app': { label: 'Email + In-app', tone: STATUS_TONES.ok },
-  document: { label: 'Document .odt', tone: STATUS_TONES.err },
-};
-
-// ─── Component ───────────────────────────────────────────────────────────────
-
-interface TemplateCatalogAccordionsProps {
-  templates: DocumentTemplate[];
-  onOpenUpload: () => void;
-  onSwitchToMessagingTab?: () => void;
-  /**
-   * Callback invoque quand l'user clique "Personnaliser" sur un template
-   * system-email. Le parent (DocumentsPage) switch sur la tab "Templates email"
-   * et ouvre l'editeur sur la cle fournie.
-   */
-  onOpenSystemEmail?: (systemEmailKey: string) => void;
+interface Props {
+  templates: DocumentTemplate[]; onOpenUpload: () => void;
+  onSwitchToMessagingTab?: () => void; onOpenSystemEmail?: (key: string) => void;
 }
-
-const TemplateCatalogAccordions: React.FC<TemplateCatalogAccordionsProps> = ({ templates, onOpenUpload, onSwitchToMessagingTab, onOpenSystemEmail }) => {
-  const { t } = useTranslation();
-  const navigate = useNavigate();
-  const [expandedGroup, setExpandedGroup] = useState<string | false>(false);
-
-  const findLinkedTemplate = (item: CatalogItem): DocumentTemplate | undefined => {
-    if (!item.documentType) return undefined;
-    return templates.find(
-      (t) => t.documentType === item.documentType && t.active,
-    ) ?? templates.find((t) => t.documentType === item.documentType);
-  };
-
-  return (
-    <div className="mb-6">
-      {/* Section title — no forced uppercase, no aggressive letter-spacing (anti-pattern templated) */}
-      <h6 className="mb-2 text-muted-foreground text-[0.78rem] font-semibold">
-        {t('documents.catalog.title')}
-      </h6>
-
-      {/* Un seul Accordion « single » remplace les N Accordion MUI : c'est deja
-          la semantique de `expandedGroup` (un seul groupe ouvert a la fois). */}
-      <Accordion
-        type="single"
-        collapsible
-        value={expandedGroup === false ? '' : expandedGroup}
-        onValueChange={(v) => setExpandedGroup(v ? v : false)}
-        className="gap-0"
-      >
-      {CATALOG_GROUPS.map((group) => (
-        <AccordionItem
-          key={group.id}
-          value={group.id}
-          className="mb-1.5 border border-solid border-border rounded-md transition-[border-color] duration-[180ms] ease-out-quart hover:border-faint"
-        >
-          <AccordionTrigger className="px-3 py-2 rounded-md cursor-pointer data-[state=open]:rounded-b-none data-[state=open]:border-b data-[state=open]:border-solid data-[state=open]:border-b-border">
-            <div className="flex items-center gap-2 w-full">
-              {/* Badge icone Baitly (tile 26x26, accent color, contraste WCAG AA+) */}
-              <div className="w-[26px] h-[26px] rounded-md inline-flex items-center justify-center shrink-0" style={{ backgroundColor: group.tone.bg, color: group.tone.color }}>
-                {React.isValidElement(group.icon)
-                  ? React.cloneElement(group.icon as React.ReactElement<{ size?: number; strokeWidth?: number }>, {
-                      size: 16,
-                      strokeWidth: 1.75,
-                    })
-                  : group.icon}
-              </div>
-              <p className="font-semibold text-[0.875rem] flex-1 text-foreground">
-                {group.labelKey ? t(group.labelKey, group.label) : group.label}
-              </p>
-              <StatusChip tokens={group.tone} label={`${group.items.length} template${group.items.length > 1 ? 's' : ''}`} />
-            </div>
-          </AccordionTrigger>
-          <AccordionContent className="p-0">
-            {group.items.map((item, idx) => {
-              const linkedTemplate = findLinkedTemplate(item);
-              const trigger = TRIGGER_CONFIG[item.trigger] || TRIGGER_CONFIG.manual;
-              const channel = CHANNEL_CONFIG[item.channel] || CHANNEL_CONFIG.email;
-
-              return (
-                <div key={item.id}>
-                  {idx > 0 && <Separator />}
-                  <div className="p-3">
-                    {/* Header : titre + chips meta uniformes (toutes en softChipSx) */}
-                    <div className="flex items-center gap-1 mb-1.5 flex-wrap">
-                      <p className="font-semibold text-[0.8125rem] flex-1 min-w-0">
-                        {item.nameKey ? t(item.nameKey, item.name) : item.name}
-                      </p>
-                      <StatusChip tokens={trigger.tone} label={trigger.label} />
-                      <StatusChip tokens={channel.tone} label={channel.label} />
-                      <StatusChip tokens={STATUS_TONES.neutral} label={item.recipientKey ? t(item.recipientKey, item.recipient) : item.recipient} />
-                    </div>
-
-                    {/* Description */}
-                    <p className="text-muted-foreground text-[0.8125rem] mb-2 leading-[1.5]">
-                      {item.descriptionKey ? t(item.descriptionKey, item.description) : item.description}
-                    </p>
-
-                    {/* Trigger detail */}
-                    <span className="text-xs block text-muted-foreground mb-0.5">
-                      <strong className="text-foreground font-semibold">{t('documents.catalog.trigger')}</strong> {item.triggerKey ? t(item.triggerKey, item.triggerDetail) : item.triggerDetail}
-                    </span>
-
-                    {/* Variables — chips tres legeres (variant pure tag, font 10px, no border) */}
-                    {item.variables && item.variables.length > 0 && (
-                      <div className="mt-2">
-                        <div className="flex items-center gap-0.5 mb-1">
-                          <span className="inline-flex text-muted-foreground">
-                            <Code size={13} strokeWidth={1.75} />
-                          </span>
-                          <span className="font-semibold text-muted-foreground text-[0.7rem]">
-                            Variables disponibles
-                          </span>
-                        </div>
-                        <div className="flex flex-wrap gap-0.5">
-                          {item.variables.map((v) => (
-                            <code className="text-[0.6875rem] text-primary bg-primary-soft border border-solid border-primary/25 rounded-[4px] px-[3.75px] py-0.5 leading-[1.5] whitespace-nowrap" style={{ fontFamily: '"SF Mono", Menlo, Consolas, monospace' }} key={v}>
-                              {`{${v}}`}
-                            </code>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-
-                    {/* Footer status row — couleur tintee selon l'etat (palette Baitly) */}
-                    {(() => {
-                      // Etat = couleur d'accent + icone choisis selon le type de template
-                      const status =
-                        item.templateKind === 'document' && linkedTemplate
-                          ? { tone: STATUS_TONES.ok, icon: <CheckCircle size={16} strokeWidth={1.75} /> }
-                          : item.templateKind === 'document' && !linkedTemplate
-                          ? { tone: STATUS_TONES.warn, icon: <Warning size={16} strokeWidth={1.75} /> }
-                          : item.templateKind === 'message'
-                          ? { tone: STATUS_TONES.info, icon: <CheckCircle size={16} strokeWidth={1.75} /> }
-                          : { tone: STATUS_TONES.neutral, icon: <CheckCircle size={16} strokeWidth={1.75} /> };
-
-                      return (
-                        <div className="mt-[9px] px-[7.5px] py-1.5 rounded-[10px] border border-solid flex items-center gap-1.5" style={{ backgroundColor: status.tone.bg, borderColor: `color-mix(in srgb, ${status.tone.color} 24%, transparent)` }}>
-                          <span className="inline-flex shrink-0" style={{ color: status.tone.color }}>
-                            {status.icon}
-                          </span>
-
-                          {item.templateKind === 'document' && linkedTemplate && (
-                            <>
-                              <div className="flex-1 min-w-0">
-                                <p className="text-[0.75rem] font-semibold text-foreground overflow-hidden text-ellipsis whitespace-nowrap">
-                                  {linkedTemplate.originalFilename}
-                                </p>
-                                <span className="text-muted-foreground text-[0.6875rem]">
-                                  {linkedTemplate.active ? 'Actif' : 'Inactif'} · v{linkedTemplate.version}
-                                </span>
-                              </div>
-                              {/* Teinte calculee a l'execution (status.tone) : elle passe par
-                                  style, une classe Tailwind ne peut pas naitre d'une variable. */}
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                style={{ color: status.tone.color }}
-                                onClick={() => navigate(`/documents/templates/${linkedTemplate.id}`)}
-                              >
-                                <Visibility size={13} strokeWidth={1.75} />
-                                Voir
-                              </Button>
-                            </>
-                          )}
-
-                          {item.templateKind === 'document' && !linkedTemplate && (
-                            <>
-                              <p className="flex-1 text-[0.75rem] text-foreground font-medium">
-                                {t('documents.catalog.noTemplate')}
-                              </p>
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                style={{ color: status.tone.color, borderColor: status.tone.color }}
-                                onClick={onOpenUpload}
-                              >
-                                <CloudUpload size={13} strokeWidth={1.75} />
-                                {t('documents.catalog.uploadOdt')}
-                              </Button>
-                            </>
-                          )}
-
-                          {item.templateKind === 'message' && (
-                            <>
-                              <p className="flex-1 text-[0.75rem] text-foreground">
-                                {t('documents.catalog.messagingTemplate')} <span className="font-semibold">{t('documents.catalog.messagingTab')}</span>
-                              </p>
-                              {onSwitchToMessagingTab && (
-                                <Button
-                                  variant="ghost"
-                                  size="sm"
-                                  style={{ color: status.tone.color }}
-                                  onClick={onSwitchToMessagingTab}
-                                >
-                                  <OpenInNew size={13} strokeWidth={1.75} />
-                                  {t('documents.catalog.manage')}
-                                </Button>
-                              )}
-                            </>
-                          )}
-
-                          {item.templateKind === 'hardcoded' && (
-                            <p className="flex-1 text-[0.75rem] text-muted-foreground">
-                              {t('documents.catalog.builtIn')}
-                            </p>
-                          )}
-
-                          {item.templateKind === 'system-email' && (
-                            <>
-                              <p className="flex-1 text-[0.75rem] text-foreground">
-                                {t('documents.catalog.systemEmail')} <span className="font-semibold">{t('documents.catalog.emailTab')}</span>
-                              </p>
-                              {onOpenSystemEmail && item.systemEmailKey && (
-                                <Button
-                                  variant="ghost"
-                                  size="sm"
-                                  style={{ color: status.tone.color }}
-                                  onClick={() => onOpenSystemEmail(item.systemEmailKey!)}
-                                >
-                                  <OpenInNew size={13} strokeWidth={1.75} />
-                                  Personnaliser
-                                </Button>
-                              )}
-                            </>
-                          )}
-                        </div>
-                      );
-                    })()}
-                  </div>
-                </div>
-              );
-            })}
-          </AccordionContent>
-        </AccordionItem>
-      ))}
-      </Accordion>
-    </div>
-  );
+const MESSAGE_TYPES: Record<string, string> = {
+  'checkin-instructions': 'CHECK_IN', 'checkout-instructions': 'CHECK_OUT',
+  'welcome-message': 'WELCOME', 'custom-message': 'CUSTOM',
 };
 
-export default TemplateCatalogAccordions;
+export default function TemplateCatalogAccordions({ templates, onOpenUpload, onSwitchToMessagingTab, onOpenSystemEmail }: Props) {
+  const { t, currentLanguage } = useTranslation(); const scope = useCommerceScope();
+  const [group, setGroup] = useState('all'); const [search, setSearch] = useState('');
+  const users = useQuery({ queryKey: ['document-message-templates', scope], enabled: !!scope, queryFn: guestMessagingApi.getTemplates, retry: false });
+  const systems = useQuery({ queryKey: ['document-system-templates', scope], enabled: !!scope, queryFn: systemEmailTemplatesApi.list, retry: false });
+  useScreenSearch(search, setSearch, t('documentsWorkspace.searchTemplate'));
+  const items = CATALOG_GROUPS.filter(row => group === 'all' || row.id === group).flatMap(row => row.items)
+    .filter(row => t(row.nameKey || '', row.name).toLocaleLowerCase().includes(search.toLocaleLowerCase()));
+  const previews = new Map<string, React.ReactNode>();
+  const rows = items.map(item => {
+    const linked = templates.find(row => row.documentType === item.documentType && row.active)
+      || templates.find(row => row.documentType === item.documentType);
+    const messages = (users.data || []).filter(row => row.type === MESSAGE_TYPES[item.id] && row.isActive);
+    const message = messages.find(row => row.language === currentLanguage) || messages.find(row => row.language === 'fr') || messages[0];
+    const system = systems.data?.find(row => row.templateKey === item.systemEmailKey);
+    const systemContent = system?.languages[currentLanguage] || system?.languages.fr || Object.values(system?.languages || {})[0];
+    const email = item.systemEmailKey ? systemContent : message;
+    const loading = item.templateKind !== 'document' && (item.systemEmailKey ? systems.isPending : users.isPending);
+    previews.set(item.id, item.templateKind === 'document' && linked
+      ? <TemplatePdfPreview key={linked.id} id={linked.id} name={linked.name} version={linked.version} />
+      : email ? <EmailTemplatePreview key={item.id} subject={email.subject} body={email.body} language={email.language}
+          wrapperStyle={item.systemEmailKey ? systemContent?.wrapperStyle : 'NOTIFICATION_GUEST'} />
+      : loading ? <Skeleton className="m-4 h-96" /> : <p role="status" className="p-6 text-sm text-muted-foreground">{t('documents.catalog.noTemplate')}</p>);
+    const manage = () => item.templateKind === 'document' ? onOpenUpload()
+      : item.systemEmailKey ? onOpenSystemEmail?.(item.systemEmailKey) : onSwitchToMessagingTab?.();
+    return { id: item.id, title: t(item.nameKey || '', item.name),
+      image: item.templateKind === 'document' ? documentArtwork(item.documentType || '') : DOCUMENT_ART.message,
+      meta: item.channel === 'document' ? 'PDF' : 'Email',
+      status: item.templateKind === 'document' ? { value: linked?.active ? 'ACTIVE' : 'TO_CHECK',
+        label: linked ? t(linked.active ? 'messaging.templates.active' : 'messaging.templates.inactive') : t('documents.catalog.noTemplate') } : undefined,
+      listActions: item.templateKind !== 'document' || !linked ? <Button variant="ghost" size="icon-sm" onClick={manage}
+        aria-label={`${t('documents.catalog.manage')} · ${t(item.nameKey || '', item.name)}`} title={t('documents.catalog.manage')}>
+        {item.templateKind === 'document' ? <Upload size={16} /> : <Pencil size={16} />}</Button> : undefined,
+      detail: null,
+    };
+  });
+  return <>
+    <DocumentsHeaderControls count={items.length}>
+      <NativeSelect aria-label={t('documentsWorkspace.journey')} value={group} onChange={e => setGroup(e.target.value)}>
+        <NativeSelectOption value="all">{t('documentsWorkspace.allJourney')}</NativeSelectOption>
+        {CATALOG_GROUPS.map(row => <NativeSelectOption key={row.id} value={row.id}>{t(row.labelKey || '', row.label)}</NativeSelectOption>)}
+      </NativeSelect></DocumentsHeaderControls>
+    {(users.isError || systems.isError) && <Alert variant="destructive" role="alert" className="mb-3"><AlertDescription>{t('messaging.templates.loadError')}</AlertDescription>
+      <Button variant="ghost" onClick={() => { void users.refetch(); void systems.refetch(); }}>{t('common.retry')}</Button></Alert>}
+    <DocumentsWorkspace autoPaginate key={`${group}:${search}`} label={t('documentsWorkspace.views.guide')} records={rows} renderDetail={record => previews.get(record.id)} />
+  </>;
+}

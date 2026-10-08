@@ -12,7 +12,7 @@ import {
   NativeSelectOption,
   Textarea,
 } from '../../../../components/ui';
-import { AlertTriangle, ClipboardPaste } from 'lucide-react';
+import { AlertTriangle, ClipboardPaste } from '../../../../icons/glyphs';
 import type { Editor } from 'grapesjs';
 import { importToHtml } from './import/registry';
 import { IMPORTERS } from './import/registry';

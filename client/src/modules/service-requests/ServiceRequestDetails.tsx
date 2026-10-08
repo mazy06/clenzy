@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { ClipboardList, Pencil, TriangleAlert } from 'lucide-react';
+import { ClipboardList, Pencil, TriangleAlert } from '../../icons/glyphs';
 import { Alert, AlertDescription, Button, Skeleton } from '../../components/ui';
 import { useAuth } from '../../hooks/useAuth';
 import { useServiceRequestDetails } from '../../hooks/useServiceRequestDetails';

@@ -20,12 +20,13 @@ class ReservationPaymentReconciliationServiceTest {
 
     @Mock private PaymentTransactionRepository transactionRepository;
     @Mock private StripePaymentConfirmationService paymentConfirmationService;
+    @Mock private BaitlyReservationPaymentProof proof;
 
     private ReservationPaymentReconciliationService service;
 
     @BeforeEach
     void setUp() {
-        service = new ReservationPaymentReconciliationService(transactionRepository, paymentConfirmationService);
+        service = new ReservationPaymentReconciliationService(transactionRepository, paymentConfirmationService, proof);
     }
 
     private PaymentTransaction tx(String ref, String providerTxId) {
@@ -38,10 +39,18 @@ class ReservationPaymentReconciliationServiceTest {
     @Test
     void whenTransactionHasProviderSession_thenConfirmsReservationPayment() {
         when(transactionRepository.findByTransactionRef("TX-1")).thenReturn(Optional.of(tx("TX-1", "cs_res")));
+        when(proof.requireConfirmation(org.mockito.ArgumentMatchers.any(), org.mockito.ArgumentMatchers.eq("RESERVATION"))).thenReturn(true);
 
         service.reconcile("TX-1");
 
         verify(paymentConfirmationService).confirmReservationPayment("cs_res");
+    }
+
+    @Test void replayDoesNotReconfirm() {
+        when(transactionRepository.findByTransactionRef("TX-1")).thenReturn(Optional.of(tx("TX-1", "cs_res")));
+        service.reconcile("TX-1");
+        verify(proof).requireConfirmation(org.mockito.ArgumentMatchers.any(), org.mockito.ArgumentMatchers.eq("RESERVATION"));
+        org.mockito.Mockito.verifyNoInteractions(paymentConfirmationService);
     }
 
     @Test

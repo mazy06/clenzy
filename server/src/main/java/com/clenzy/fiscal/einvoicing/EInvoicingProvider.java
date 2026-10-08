@@ -24,6 +24,19 @@ public interface EInvoicingProvider {
     /** Mode d'e-invoicing pris en charge. */
     EInvoicingMode mode();
 
+    /** Un adaptateur doit déclarer explicitement son raccordement avant tout envoi. */
+    default boolean configured() { return false; }
+
+    /** Contrôles locaux uniquement, avant la réservation durable de l'envoi. */
+    default String readinessIssue(Invoice invoice) { return null; }
+
+    default boolean supportsReconciliation() { return false; }
+
+    /** Relit un dépôt identifié ; ne doit jamais réémettre la facture. */
+    default EInvoiceResult reconcile(Invoice invoice, String externalRef) {
+        return new EInvoiceResult(EInvoiceStatus.PENDING, externalRef, "Vérification auprès du partenaire requise");
+    }
+
     /** Clearance temps reel (validation par l'autorite avant remise). */
     EInvoiceResult clear(Invoice invoice);
 

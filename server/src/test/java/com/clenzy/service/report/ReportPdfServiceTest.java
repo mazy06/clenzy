@@ -34,7 +34,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 class ReportPdfServiceTest {
 
     private final ReportPdfService pdfService = new ReportPdfService(
-            new ReportHtmlRenderer(new SvgChartRenderer(), new ReportLogoResolver()));
+            new ReportHtmlRenderer(new SvgChartRenderer(), new ReportLogoResolver()),
+            new com.clenzy.service.BaitlyPdfTestEngine());
 
     @Test
     void whenRenderingAFullSnapshot_thenAValidPdfIsProduced() throws IOException {

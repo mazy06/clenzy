@@ -26,6 +26,9 @@ class PmsImportServiceTest {
     @Mock UserRepository users;
     @Mock CalendarDayRepository days;
     @Mock CalendarEngine calendar;
+    @Mock GuestReviewRepository reviews;
+    @Mock RateOverrideRepository rates;
+    @Mock InterventionRepository tasks;
     private final ObjectMapper json = new ObjectMapper().findAndRegisterModules();
     private final PmsImportService.Actor actor = new PmsImportService.Actor(1L, "owner", false);
     private PmsImportService service;
@@ -33,7 +36,7 @@ class PmsImportServiceTest {
 
     @BeforeEach void setup() {
         service = new PmsImportService(batches, bindings, properties, guests, reservations, users, days, calendar,
-            new PmsExportReader(json), json);
+            new PmsExportReader(json), json, reviews, rates, tasks);
         when(batches.save(any())).thenAnswer(call -> { batch = call.getArgument(0); return batch; });
     }
     private PmsImportService.View upload(String csv) throws Exception {
@@ -165,6 +168,91 @@ class PmsImportServiceTest {
         assertThatThrownBy(() -> service.validate(view.id(), List.of(link(view.plans().getFirst(), 42L)), actor))
             .isInstanceOf(AccessDeniedException.class);
         verifyNoInteractions(reservations, calendar);
+    }
+    @Test void requestsAndInquiriesAreCountedAsSkippedWithoutBlockingTheBatch() throws Exception {
+        var view = upload(BOOKING + "B2,P1,Karim,2026-10-11,2026-10-13,,EUR,inquiry\nB3,P1,Lina,2026-11-01,2026-11-03,90,EUR,declined\n");
+        var report = service.validate(view.id(), List.of(link(view.plans().getFirst(), 42L)), ownerProperty()).report();
+        assertThat(report.skipped()).isEqualTo(2);
+        assertThat(report.ready()).isEqualTo(1);
+        assertThat(report.issueCount()).isZero();
+    }
+    @Test void reservationFeesAndTaxesAreKept() throws Exception {
+        var view = upload("booking id,property id,guest name,arrival,departure,total,currency,status,cleaning fee,tourist tax,taxes\n"
+            + "B1,P1,Salma,2026-10-10,2026-10-12,120.30,EUR,confirmed,25,4.40,10\n");
+        var validated = service.validate(view.id(), List.of(link(view.plans().getFirst(), 42L)), ownerProperty());
+        when(days.acquirePropertyLock(42L)).thenReturn(true);
+        when(reservations.save(any())).thenAnswer(call -> { Reservation r = call.getArgument(0); r.setId(80L); return r; });
+        service.commit(view.id(), validated.report().token(), actor);
+        var reservation = ArgumentCaptor.forClass(Reservation.class);
+        verify(reservations).save(reservation.capture());
+        assertThat(reservation.getValue().getCleaningFee()).isEqualByComparingTo("25");
+        assertThat(reservation.getValue().getTouristTaxAmount()).isEqualByComparingTo("4.40");
+        assertThat(reservation.getValue().getTaxAmount()).isEqualByComparingTo("10");
+    }
+    @Test void reviewsRatesAndTasksBecomeBaitlyRecordsAfterValidation() throws Exception {
+        String reviewsCsv = "review id,property id,rating,review date,channel,guest name,review\nR1,P1,9,2026-08-02T10:00:00Z,Booking.com,Salma,Parfait\n";
+        String ratesCsv = "property id,date,price,currency\nP1,2026-12-24,180,EUR\n";
+        String tasksCsv = "task id,property id,title,due date,type,status\nT1,P1,Ménage départ,2026-10-12,Cleaning,done\n";
+        var view = service.upload(List.of(
+            new MockMultipartFile("files", "reviews.csv", "text/csv", reviewsCsv.getBytes(StandardCharsets.UTF_8)),
+            new MockMultipartFile("files", "rates.csv", "text/csv", ratesCsv.getBytes(StandardCharsets.UTF_8)),
+            new MockMultipartFile("files", "tasks.csv", "text/csv", tasksCsv.getBytes(StandardCharsets.UTF_8))),
+            "other pms", "agency", "UTF-8", actor);
+        when(batches.lockByIdAndOrg(view.id(), actor.orgId())).thenReturn(Optional.of(batch));
+        assertThat(view.plans()).extracting(ImportPlan::kind)
+            .containsExactly(ImportPlan.Kind.REVIEW, ImportPlan.Kind.RATE, ImportPlan.Kind.TASK);
+        var plans = view.plans().stream().map(p -> link(p, 42L)).toList();
+        var validated = service.validate(view.id(), plans, ownerProperty());
+        assertThat(validated.report().issueCount()).isZero();
+        assertThat(validated.report().ready()).isEqualTo(3);
+        verifyNoInteractions(tasks);
+        var owner = new User(); owner.setId(10L); owner.setOrganizationId(1L); owner.setKeycloakId("owner");
+        when(users.findByKeycloakId("owner")).thenReturn(Optional.of(owner));
+        when(days.acquirePropertyLock(42L)).thenReturn(true);
+        when(reviews.save(any())).thenAnswer(call -> { GuestReview r = call.getArgument(0); r.setId(1L); return r; });
+        when(rates.save(any())).thenAnswer(call -> { RateOverride r = call.getArgument(0); r.setId(2L); return r; });
+        when(tasks.save(any())).thenAnswer(call -> { Intervention t = call.getArgument(0); t.setId(3L); return t; });
+        service.commit(view.id(), validated.report().token(), actor);
+        var review = ArgumentCaptor.forClass(GuestReview.class);
+        verify(reviews).save(review.capture());
+        assertThat(review.getValue().getRating()).isEqualTo(5);
+        assertThat(review.getValue().getReviewDate()).isEqualTo(java.time.LocalDate.of(2026, 8, 2));
+        assertThat(review.getValue().getChannelName()).isEqualTo(com.clenzy.integration.channel.ChannelName.BOOKING);
+        var rate = ArgumentCaptor.forClass(RateOverride.class);
+        verify(rates).save(rate.capture());
+        assertThat(rate.getValue().getNightlyPrice()).isEqualByComparingTo("180");
+        assertThat(rate.getValue().getSource()).isEqualTo("PMS_IMPORT");
+        var task = ArgumentCaptor.forClass(Intervention.class);
+        verify(tasks).save(task.capture());
+        assertThat(task.getValue().getStatus()).isEqualTo(InterventionStatus.COMPLETED);
+        assertThat(task.getValue().getType()).isEqualTo("CLEANING");
+        verifyNoInteractions(calendar);
+    }
+    @Test void existingNightlyRateIsReportedNotOverwritten() throws Exception {
+        var view = service.upload(List.of(new MockMultipartFile("files", "rates.csv", "text/csv",
+            "property id,date,price,currency\nP1,2026-12-24,180,EUR\n".getBytes(StandardCharsets.UTF_8))), "x", "a", "UTF-8", actor);
+        when(batches.lockByIdAndOrg(view.id(), actor.orgId())).thenReturn(Optional.of(batch));
+        when(rates.findByPropertyIdAndDate(42L, java.time.LocalDate.of(2026, 12, 24), 1L)).thenReturn(Optional.of(new RateOverride()));
+        var report = service.validate(view.id(), List.of(link(view.plans().getFirst(), 42L)), ownerProperty()).report();
+        assertThat(report.issues()).extracting(PmsImportService.Issue::code).containsExactly("RATE_EXISTS");
+    }
+    @Test void vendorProfileMapsApiFieldNamesForTheChosenSource() throws Exception {
+        String hostaway = """
+            {"result":[{"id":991,"listingMapId":55,"guestName":"Salma","arrivalDate":"2026-10-10","departureDate":"2026-10-12",
+              "totalPrice":"120.30","currency":"EUR","status":"new","channelName":"airbnbOfficial","channelReservationId":"HM123"}]}
+            """;
+        var view = service.upload(List.of(new MockMultipartFile("files", "reservations.json", "application/json",
+            hostaway.getBytes(StandardCharsets.UTF_8))), "hostaway", "acct", "UTF-8", actor);
+        var plan = view.plans().getFirst();
+        assertThat(plan.kind()).isEqualTo(ImportPlan.Kind.RESERVATION);
+        assertThat(plan.fields()).containsEntry("checkIn", "arrivalDate").containsEntry("propertyRef", "listingMapId")
+            .containsEntry("confirmationCode", "channelReservationId").containsEntry("sourceId", "id");
+    }
+    private PmsImportService.Actor ownerProperty() {
+        var owner = new User(); owner.setKeycloakId("owner");
+        var property = new Property(); property.setId(42L); property.setOrganizationId(1L); property.setOwner(owner);
+        lenient().when(properties.findByIdWithOwner(42L, 1L)).thenReturn(Optional.of(property));
+        return actor;
     }
     private ImportPlan link(ImportPlan plan, long id) {
         return new ImportPlan(plan.documentId(), plan.kind(), plan.fields(), plan.defaults(), Map.of("P1", id), plan.dateFormat(), plan.decimalSeparator());

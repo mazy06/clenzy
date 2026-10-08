@@ -30,6 +30,10 @@ import { createSettledScheduler } from '../utils/layoutShift';
  */
 
 interface UseDynamicPageSizeOptions {
+  enabled?: boolean;
+  /** Sélecteurs alternatifs pour les listes compactes qui ne sont pas des tables. */
+  rowSelector?: string;
+  headerSelector?: string;
   /** Approximate height of one table body row in px (default: 49) */
   rowHeight?: number;
   /** Height of the table header row in px (default: 42) */
@@ -56,6 +60,9 @@ function findFooter(card: HTMLElement): HTMLElement | null {
 
 export function useDynamicPageSize(options: UseDynamicPageSizeOptions = {}) {
   const {
+    enabled = true,
+    rowSelector = 'tbody tr',
+    headerSelector = 'thead tr',
     rowHeight = 49,
     headerHeight = 42,
     bottomChrome = 72,
@@ -92,8 +99,8 @@ export function useDynamicPageSize(options: UseDynamicPageSizeOptions = {}) {
     // devenaient inatteignables — la pagination annonçait « 1-13 sur 25 » avec
     // 9 lignes visibles. Le défaut ne venait pas de l'étroitesse : il touchait
     // aussi le grand écran.
-    const bodyRow = el.querySelector('tbody tr');
-    const headRow = el.querySelector('thead tr');
+    const bodyRow = el.querySelector(rowSelector);
+    const headRow = el.querySelector(headerSelector);
     const measuredRow = bodyRow instanceof HTMLElement && bodyRow.offsetHeight > 0
       ? bodyRow.offsetHeight
       : rowHeight;
@@ -118,9 +125,10 @@ export function useDynamicPageSize(options: UseDynamicPageSizeOptions = {}) {
     const clamped = Math.max(min, Math.min(max, rows));
 
     setPageSize((prev) => (prev !== clamped ? clamped : prev));
-  }, [rowHeight, headerHeight, bottomChrome, min, max]);
+  }, [rowHeight, headerHeight, bottomChrome, min, max, rowSelector, headerSelector]);
 
   useEffect(() => {
+    if (!enabled) return undefined;
     const timer = setTimeout(compute, 50);
 
     const handleResize = () => {
@@ -160,7 +168,7 @@ export function useDynamicPageSize(options: UseDynamicPageSizeOptions = {}) {
       resizeObserver.disconnect();
       window.removeEventListener('resize', handleResize);
     };
-  }, [compute]);
+  }, [compute, enabled]);
 
   return { containerRef, pageSize };
 }

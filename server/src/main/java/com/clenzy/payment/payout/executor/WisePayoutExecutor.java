@@ -26,7 +26,7 @@ import org.springframework.stereotype.Component;
  *   <li>Création d'un quote Wise (devis avec frais) pour le couple
  *       (currency, montant, recipient).</li>
  *   <li>Création du transfer (référence le quote + recipient).</li>
- *   <li>Funding du transfer depuis le solde Wise Business de Clenzy.</li>
+ *   <li>Funding du transfer depuis le solde Wise Business de Baitly.</li>
  *   <li>Le payout passe en PROCESSING — le webhook Wise viendra ensuite
  *       le marquer PAID quand {@code OUTGOING_PAYMENT_SENT}.</li>
  * </ol>
@@ -72,15 +72,21 @@ public class WisePayoutExecutor implements PayoutExecutor {
     }
 
     @Override
-    public OwnerPayout execute(OwnerPayout payout, OwnerPayoutConfig config) {
+    public void validate(OwnerPayout payout, OwnerPayoutConfig config) {
         if (!wiseClient.isEnabled()) {
             throw new PayoutExecutionException(
-                "Wise n'est pas configure cote Clenzy (wise.api-token + wise.profile-id manquants).");
+                "Wise n'est pas configure cote Baitly (wise.api-token + wise.profile-id manquants).");
         }
         if (config.getIban() == null || config.getIban().isBlank()) {
             throw new PayoutExecutionException(
                 "Wise payout : IBAN du proprietaire absent dans la configuration.");
         }
+
+    }
+
+    @Override
+    public OwnerPayout execute(OwnerPayout payout, OwnerPayoutConfig config) {
+        validate(payout, config);
 
         payout.setStatus(PayoutStatus.PROCESSING);
         payout.setPayoutMethod(PayoutMethod.WISE);
@@ -91,18 +97,18 @@ public class WisePayoutExecutor implements PayoutExecutor {
             String recipientId = ensureRecipient(config, payout.getCurrency());
 
             // 2. Crée un quote pour le montant à transférer
-            // sourceCurrency = devise du compte Clenzy (EUR par défaut),
+            // sourceCurrency = devise du compte Baitly (EUR par défaut),
             // targetCurrency = devise du payout (MAD/SAR/EUR…)
             String sourceCurrency = "EUR";
             WiseClient.WiseQuote quote = wiseClient.createQuote(
                 payout.getNetAmount(), sourceCurrency, payout.getCurrency(), recipientId);
 
             // 3. Crée le transfer
-            String reference = "Clenzy " + payout.getPeriodStart() + " → " + payout.getPeriodEnd();
+            String reference = "Baitly " + payout.getPeriodStart() + " → " + payout.getPeriodEnd();
             String transferId = wiseClient.createTransfer(quote.quoteId(), recipientId,
                 payout.getId(), reference);
 
-            // 4. Funde le transfer depuis le solde Wise Business de Clenzy
+            // 4. Funde le transfer depuis le solde Wise Business de Baitly
             wiseClient.fundTransfer(transferId);
 
             payout.setPaymentReference("WISE:" + transferId);
@@ -132,14 +138,14 @@ public class WisePayoutExecutor implements PayoutExecutor {
         }
 
         // Le legalType (PRIVATE / BUSINESS) impacte les champs requis Wise.
-        // Par défaut PRIVATE = particulier (cas le plus fréquent pour Clenzy).
+        // Par défaut PRIVATE = particulier (cas le plus fréquent pour Baitly).
         String holderName = config.getBankAccountHolder();
         if (holderName == null || holderName.isBlank()) {
             // Fallback : nom complet de l'owner
             holderName = userRepository.findById(config.getOwnerId())
                 .map(u -> u.getFirstName() + " " + u.getLastName())
                 .map(String::trim)
-                .orElse("Clenzy Owner #" + config.getOwnerId());
+                .orElse("Baitly Owner #" + config.getOwnerId());
         }
 
         String recipientId = wiseClient.createRecipient(

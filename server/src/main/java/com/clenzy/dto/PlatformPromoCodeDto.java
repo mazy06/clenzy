@@ -25,7 +25,8 @@ public record PlatformPromoCodeDto(
     boolean active,
     String description,
     LocalDateTime createdAt,
-    String createdBy
+    String createdBy,
+    String currency
 ) {
 
     public static PlatformPromoCodeDto fromEntity(PlatformPromoCode promo) {
@@ -41,7 +42,8 @@ public record PlatformPromoCodeDto(
             promo.isActive(),
             promo.getDescription(),
             promo.getCreatedAt(),
-            promo.getCreatedBy()
+            promo.getCreatedBy(),
+            promo.getCurrency()
         );
     }
 }

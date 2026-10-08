@@ -15,8 +15,15 @@ public record VatSummaryDto(
     BigDecimal totalTax,
     BigDecimal totalTtc,
     int invoiceCount,
-    List<VatBreakdownDto> breakdown
+    List<VatBreakdownDto> breakdown,
+    List<IssuerSummary> issuers
 ) {
+    public VatSummaryDto(String countryCode,String currency,String period,BigDecimal totalHt,BigDecimal totalTax,BigDecimal totalTtc,int invoiceCount,List<VatBreakdownDto> breakdown) {
+        this(countryCode,currency,period,totalHt,totalTax,totalTtc,invoiceCount,breakdown,List.of());
+    }
+
+    /** Les déclarations se lisent par émetteur, pays et devise d'origine. */
+    public record IssuerSummary(String issuerKey,String sellerName,VatSummaryDto summary) {}
 
     /**
      * Ventilation par taux de TVA.

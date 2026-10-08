@@ -1,7 +1,7 @@
 package com.clenzy.model;
 
 /**
- * Qui a encaisse le sejour.
+ * Responsable de l'encaissement du séjour, sans preuve du paiement ni du versement.
  *
  * <p>Cette information etait jusqu'ici REDERIVEE du nom du canal, a cinq
  * endroits, par des listes en dur qui divergeaient — c'est ainsi que les sejours
@@ -18,8 +18,10 @@ public enum PaymentCollection {
     PMS,
 
     /**
-     * Le canal a deja encaisse pour le compte de l'hote : le PMS ne percoit
-     * rien et le sejour compte comme paye.
+     * Le canal gère l'encaissement. Son versement au bénéficiaire se suit séparément.
      */
-    CHANNEL
+    CHANNEL,
+
+    /** Le canal n'a pas précisé qui doit encaisser : aucune relance automatique. */
+    UNKNOWN
 }

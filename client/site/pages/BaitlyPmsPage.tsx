@@ -9,7 +9,7 @@ import {
   LockKeyholeIcon,
   RefreshCwIcon,
   SparklesIcon,
-} from 'lucide-react';
+} from '../../src/icons/glyphs';
 import { Link } from 'react-router-dom';
 import AnimatedPlanningMockup from '../components/AnimatedPlanningMockup';
 import BaitlyChannelFlow from '../components/BaitlyChannelFlow';

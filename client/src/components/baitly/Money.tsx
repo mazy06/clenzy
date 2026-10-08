@@ -1,6 +1,6 @@
 import { SaudiRiyal, MoroccanDirham } from '../../icons';
 import { useCurrency } from '../../hooks/currencyDisplayContext';
-import { CURRENCY_OPTIONS, currencyDisplayPart } from '../../utils/currencyUtils';
+import { CURRENCY_OPTIONS, currencyDisplayPart, stripCurrencyFraction } from '../../utils/currencyUtils';
 
 /**
  * Baitly — remaster de components/Money.tsx : même logique devise
@@ -52,8 +52,8 @@ export function Money({ value, from, compact, decimals, symbolSize = 13 }: Money
   if (renderAmount) return <>{renderAmount(value, { from, decimals: compact ? 0 : decimals, symbolSize })}</>;
 
   let s = convertAndFormat(value, from ?? currency);
-  if (compact) s = s.replace(/[.,]\d+/g, '').replace(/^≈\s*/, '~');
-  else if (decimals === 0) s = s.replace(/[.,]\d+/g, '');
+  if (compact) s = stripCurrencyFraction(s).replace(/^≈\s*/, '~');
+  else if (decimals === 0) s = stripCurrencyFraction(s);
 
   // L'icône remplace la devise LÀ OÙ `Intl` l'a mise : suffixe en français,
   // préfixe en anglais, glyphe arabe où le code ISO n'apparaît pas. Cf. le

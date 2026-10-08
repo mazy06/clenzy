@@ -25,6 +25,7 @@ export interface PaginatedResponse<T> {
 }
 
 export interface RequestOptions {
+  responseType?: 'blob';
   headers?: Record<string, string>;
   params?: Record<string, string | number | boolean | undefined | null>;
   signal?: AbortSignal;
@@ -166,18 +167,22 @@ function buildQueryString(params?: Record<string, string | number | boolean | un
 
 // ─── Response Handler ────────────────────────────────────────────────────────
 
-async function handleResponse<T>(response: Response): Promise<T> {
+async function handleResponse<T>(response: Response, responseType?: 'blob'): Promise<T> {
   if (!response.ok) {
     let message = `Erreur ${response.status}`;
     let details: unknown;
 
     try {
-      const errorBody = await response.json();
-      message = errorBody.message || errorBody.error || message;
+      // Garder le corps disponible si le serveur renvoie du texte brut
+      // (notamment les validations de paiement), pas un document JSON.
+      const errorBody = await response.clone().json();
+      message = typeof errorBody === 'string'
+        ? errorBody || message
+        : errorBody?.message || errorBody?.error || message;
       details = errorBody;
     } catch {
       try {
-        message = await response.text();
+        message = (await response.text()) || message;
       } catch {
         // Use default message
       }
@@ -191,6 +196,8 @@ async function handleResponse<T>(response: Response): Promise<T> {
   if (response.status === 204) {
     return undefined as T;
   }
+
+  if (responseType === 'blob') return response.blob() as Promise<T>;
 
   // Try to parse JSON, fallback to text
   const contentType = response.headers.get('content-type');
@@ -262,11 +269,11 @@ async function request<T>(
         retryConfig.body = body instanceof FormData ? body : JSON.stringify(body);
       }
       const retryResponse = await fetch(url, retryConfig);
-      return handleResponse<T>(retryResponse);
+      return handleResponse<T>(retryResponse, options.responseType);
     }
   }
 
-  return handleResponse<T>(response);
+  return handleResponse<T>(response, options.responseType);
 }
 
 // ─── Public API Methods ──────────────────────────────────────────────────────

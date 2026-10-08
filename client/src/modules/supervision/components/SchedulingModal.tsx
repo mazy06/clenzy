@@ -18,7 +18,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { Avatar, AvatarFallback, Button, Dialog, Field, FieldLabel, Input, Spinner } from '../../../components/ui';
 import { Calendar } from '../../../components/ui/calendar';
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList, CommandSeparator } from '../../../components/ui/command';
-import { Check, UserRound, UserRoundX } from 'lucide-react';
+import { Check, UserRound, UserRoundX } from '../../../icons/glyphs';
 import { useTranslation } from '../../../hooks/useTranslation';
 import type { Locale } from 'date-fns';
 import { cn } from '../../../utils/cn';

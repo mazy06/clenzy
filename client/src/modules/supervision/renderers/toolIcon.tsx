@@ -9,7 +9,7 @@
    est inconnu ou absent (entrées mock/résumé sans outil).
 
    Noms importés = alias ré-exportés par le barrel ../../../icons
-   (pas d'import direct lucide/iconify).
+   (pas d'import direct des glyphes / d'Iconify).
    ============================================================ */
 
 import type { ReactNode } from 'react';

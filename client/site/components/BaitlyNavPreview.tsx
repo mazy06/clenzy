@@ -11,7 +11,7 @@ import {
   PlayIcon,
   ShieldCheckIcon,
   WifiIcon,
-} from 'lucide-react';
+} from '../../src/icons/glyphs';
 import BaitlyMarkLogo from '../../src/components/BaitlyMarkLogo';
 import BaitlyChannelFlow from './BaitlyChannelFlow';
 import BaitlySolutionNavPreview, {

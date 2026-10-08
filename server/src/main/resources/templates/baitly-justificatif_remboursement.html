@@ -1,0 +1,63 @@
+<!doctype html><html lang="fr"><head><meta charset="UTF-8"><title>${entreprise.nom} · Document</title><style>@page { size: A4; margin: 16mm 14mm; }
+* { box-sizing: border-box; }
+body { color:#1b2a35; background:#fcfdff; font:10pt/1.5 Arial,sans-serif; margin:0; }
+h1 { color:#193d67; font-size:21pt; line-height:1.2; margin:0 0 8mm; }
+h2 { color:#193d67; font-size:13pt; margin:7mm 0 3mm; break-after:avoid; }
+h3 { font-size:11pt; break-after:avoid; }
+p { margin:0 0 3mm; overflow-wrap:anywhere; }
+table { border-collapse:collapse; width:100%; margin:3mm 0 5mm; font-size:9pt; }
+thead { display:table-header-group; }
+tr { break-inside:avoid; }
+th,td { padding:2.5mm; text-align:left; vertical-align:top; border-bottom:1px solid #d4dfe9; overflow-wrap:anywhere; }
+th { background:#e7eef4; font-weight:600; }
+img { max-width:100%; height:auto; }
+.muted,footer { color:#526879; font-size:8pt; }
+.page-break { break-before:page; }
+.amount { font-variant-numeric:tabular-nums; }
+</style></head><body>
+
+      <p style="margin-bottom:0.5cm;text-align:center;font-size:18pt;font-weight:bold;">JUSTIFICATIF DE REMBOURSEMENT</p>
+      <p style="margin-bottom:0.3cm;text-align:center;color:#666666;font-size:12pt;">Ref: JR-${system.numero_auto} — ${system.date}</p>
+
+      <p style="margin-bottom:0.2cm;margin-top:0.4cm;color:#333333;font-size:13pt;font-weight:bold;">EMETTEUR</p>
+      <p>${entreprise.nom} — SIRET : ${entreprise.siret}</p>
+      <p>${entreprise.adresse}</p>
+      <p>Email : ${entreprise.email} — Tel : ${entreprise.telephone}</p>
+
+      <p style="margin-bottom:0.2cm;margin-top:0.4cm;color:#333333;font-size:13pt;font-weight:bold;">BENEFICIAIRE DU REMBOURSEMENT</p>
+      <p>Nom : ${client.nom_complet}</p>
+      <p>Societe : ${client.societe}</p>
+      <p>Email : ${client.email}</p>
+      <p>Telephone : ${client.telephone}</p>
+
+      <p style="margin-bottom:0.2cm;margin-top:0.4cm;color:#333333;font-size:13pt;font-weight:bold;">BIEN CONCERNE</p>
+      <p>${property.nom} — ${property.adresse}, ${property.code_postal} ${property.ville}</p>
+
+      <p style="margin-bottom:0.2cm;margin-top:0.4cm;color:#333333;font-size:13pt;font-weight:bold;">INTERVENTION D&#39;ORIGINE</p>
+      <p>Intitule : ${intervention.titre}</p>
+      <p>Type : ${intervention.type}</p>
+      <p>Date : ${intervention.date_debut} au ${intervention.date_fin}</p>
+      <p>Description : ${intervention.description}</p>
+      <p>Statut : ${intervention.statut}</p>
+
+      <p style="margin-bottom:0.2cm;margin-top:0.4cm;color:#333333;font-size:13pt;font-weight:bold;">DETAILS DU REMBOURSEMENT</p>
+      <p>Statut : ${paiement.statut}</p>
+      <p>Montant rembourse : ${paiement.montant}</p>
+      <p>Date du remboursement : ${paiement.date_paiement}</p>
+      <p>Reference Stripe : ${paiement.reference_stripe}</p>
+
+      <p style="margin-bottom:0.2cm;margin-top:0.4cm;color:#333333;font-size:13pt;font-weight:bold;">MONTANTS</p>
+      <p>Montant initial paye : ${intervention.cout_reel}</p>
+      <p>Montant rembourse : ${paiement.montant}</p>
+
+      <p style="margin-bottom:0.2cm;margin-top:0.4cm;color:#333333;font-size:13pt;font-weight:bold;">MOTIF DU REMBOURSEMENT</p>
+      <p>${intervention.notes}</p>
+
+      <p style="margin-bottom:0.2cm;margin-top:0.4cm;color:#333333;font-size:13pt;font-weight:bold;">CERTIFICATION</p>
+      <p>${entreprise.nom} certifie avoir procede au remboursement de ${paiement.montant} en faveur de ${client.nom_complet} en date du ${paiement.date_paiement}, suite a l&#39;intervention &quot;${intervention.titre}&quot;.</p>
+
+      <p></p>
+      <p>Fait le ${system.date}.</p>
+      <p>${entreprise.nom}</p>
+
+    </body></html>

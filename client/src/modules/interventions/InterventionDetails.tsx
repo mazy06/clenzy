@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { Alert as BuiAlert, AlertDescription, AlertAction, Button as BuiButton, Card, CardContent } from '../../components/ui';
-import { Info, TriangleAlert, X } from 'lucide-react';
+import { Info, TriangleAlert, X } from '../../icons/glyphs';
 import { Spinner } from '../../components/ui';
 import { useNotification } from '../../hooks/useNotification';
 import {
@@ -22,6 +22,7 @@ import StatusChip from '../../components/StatusChip';
 import { useTranslation } from '../../hooks/useTranslation';
 import { formatDateTime } from '../../utils/formatUtils';
 import { useInterventionDetails } from './useInterventionDetails';
+import { interventionEndTime } from './interventionTime';
 import {
   getStatusLabel,
   getPriorityLabel,
@@ -29,6 +30,7 @@ import {
 } from './interventionUtils';
 import InterventionProgressSteps from './InterventionProgressSteps';
 import InterventionQuotesSection from './InterventionQuotesSection';
+import ProviderPayoutBeneficiarySection from './ProviderPayoutBeneficiarySection';
 import { useAuth } from '../../hooks/useAuth';
 import { interventionsApi } from '../../services/api/interventionsApi';
 import { TRADE_ROLES } from '../../utils/fieldRoles';
@@ -101,7 +103,7 @@ export default function InterventionDetailsPage() {
     photosDialogOpen, selectedPhotos, uploadingPhotos, deletingPhotoId, photoType,
     beforePhotoIds, afterPhotoIds,
     propertyDetails, completedSteps, beforePhotos, afterPhotos,
-    validatedRooms, inspectionComplete, allRoomsValidated,
+    validatedRooms, inspectionComplete, allRoomsValidated, savingRoom,
     canViewInterventions, canEditInterventions, permissionsLoaded,
     setNotesDialogOpen, setNotesValue, setCurrentStepForNotes,
     setPhotosDialogOpen, setSelectedPhotos, setPhotoType, setError,
@@ -126,8 +128,8 @@ export default function InterventionDetailsPage() {
 
   const roomsProps = useMemo(() => ({
     propertyDetails, getTotalRooms, getRoomNames,
-    validatedRooms, allRoomsValidated, handleRoomValidation,
-  }), [propertyDetails, getTotalRooms, getRoomNames, validatedRooms, allRoomsValidated, handleRoomValidation]);
+    validatedRooms, allRoomsValidated, savingRoom, handleRoomValidation,
+  }), [propertyDetails, getTotalRooms, getRoomNames, validatedRooms, allRoomsValidated, savingRoom, handleRoomValidation]);
 
   const stepsProps = useMemo(() => ({
     inspectionComplete, setInspectionComplete, completedSteps,
@@ -197,11 +199,12 @@ export default function InterventionDetailsPage() {
         value: formatDateTime(intervention.startTime),
       });
     }
-    if (intervention.endTime) {
+    const endTime = interventionEndTime(intervention);
+    if (endTime) {
       extraTimeRows.push({
         icon: <StopCircleIcon size={16} strokeWidth={1.75} />,
         label: t('interventions.detail.end'),
-        value: formatDateTime(intervention.endTime),
+        value: formatDateTime(endTime),
       });
     }
 
@@ -427,6 +430,9 @@ export default function InterventionDetailsPage() {
           }
           extraSection={
             <>
+              {hasAnyRole(['SUPER_ADMIN', 'SUPER_MANAGER']) && intervention.status !== 'CANCELLED' && (
+                <ProviderPayoutBeneficiarySection key={id} missionId={Number(id)} />
+              )}
               {/* Le suivi vit desormais sur l'ecran terrain
                   (/interventions/:id/suivi). Sur la fiche il ne reste que pour
                   une intervention TERMINEE : c'est alors un recapitulatif

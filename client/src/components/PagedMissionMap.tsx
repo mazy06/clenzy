@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { useNavigate } from "react-router-dom";
-import { AlertTriangle, Clock3, CircleCheck } from "lucide-react";
+import { AlertTriangle, Clock3, CircleCheck } from "../icons/glyphs";
 import { MapboxPropertyMap, type MapBounds } from "./MapboxPropertyMap";
 import MapWithSheet from "./baitly/MapWithSheet";
 import { Alert, AlertDescription, Button, Skeleton, Tooltip, TooltipContent, TooltipTrigger } from "./ui";

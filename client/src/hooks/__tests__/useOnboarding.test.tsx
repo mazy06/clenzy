@@ -12,6 +12,31 @@ vi.mock('../../services/api/onboardingApi', () => ({
 }));
 
 describe('optional PMS migration onboarding', () => {
+  it.each(['SUPER_ADMIN', 'SUPER_MANAGER'])('does not block %s on a legacy personal payout step', async role => {
+    vi.mocked(onboardingApi.getMyStatus).mockResolvedValue({ role, dismissed: false,
+      steps: [
+        ...getOnboardingSteps(role).map(step => ({ key: step.key, completed: true, completedAt: null })),
+        { key: 'setup_payment', completed: false, completedAt: null },
+      ] });
+    const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    const wrapper = ({ children }: PropsWithChildren) => <QueryClientProvider client={client}>{children}</QueryClientProvider>;
+    const hook = renderHook(useOnboarding, { wrapper });
+    await waitFor(() => expect(hook.result.current.isAllCompleted).toBe(true));
+    expect(hook.result.current.totalCount).toBe(8);
+    expect(hook.result.current.completedCount).toBe(8);
+    expect(hook.result.current.activeStep).toBeNull();
+    expect(hook.result.current.steps.some(step => step.key === 'setup_payment')).toBe(false);
+    hook.unmount(); client.clear();
+  });
+
+  it.each(['HOST', 'PROPERTY_OWNER', 'HOUSEKEEPER', 'TECHNICIAN', 'SUPERVISOR', 'LAUNDRY', 'EXTERIOR_TECH'])(
+    'keeps beneficiary payout setup required for %s', role => {
+      const step = getOnboardingSteps(role).find(step => ['setup_payouts', 'setup_payout_account'].includes(step.key));
+      expect(step).toBeDefined();
+      expect(step?.skippable).not.toBe(true);
+    },
+  );
+
   it('uses the server role to keep multi-role users on the same progression', async () => {
     vi.mocked(onboardingApi.getMyStatus).mockResolvedValue({ role: 'PROPERTY_OWNER', dismissed: false,
       steps: getOnboardingSteps('PROPERTY_OWNER').map(step => ({ key: step.key, completed: false, completedAt: null })) });

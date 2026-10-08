@@ -1,4 +1,4 @@
-import { ArrowUpRight } from "lucide-react";
+import { ArrowUpRight } from "../../icons/glyphs";
 import { useTranslation } from "../../hooks/useTranslation";
 import IntegrationLogo, {
   type IntegrationBrand,

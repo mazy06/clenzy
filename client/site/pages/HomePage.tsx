@@ -10,7 +10,7 @@ import {
   PlusIcon,
   ShieldCheckIcon,
   SparklesIcon,
-} from 'lucide-react';
+} from '../../src/icons/glyphs';
 import Reveal from '../components/Reveal';
 import AgentActionDeck from '../components/AgentActionDeck';
 import { useSiteLanguage } from '../lib/siteLanguage';
@@ -21,6 +21,7 @@ import { moduleText } from '../lib/messages/modules';
 import BaitlyAgentsPlanningDemo from '../components/BaitlyAgentsPlanningDemo';
 import { MOCKUP_MESSAGES } from '../lib/messages/mockups';
 import BaitlyHomeResources from '../components/BaitlyHomeResources';
+import { BaitlyPmsHomeSection } from '../components/BaitlyPmsPortability';
 import LandingPlanningMockup from '../components/LandingPlanningMockup';
 import BaitlyHeroPlanningPhoto from '../components/BaitlyHeroPlanningPhoto';
 import { BRANDS } from '../components/BrandLogos';
@@ -29,10 +30,7 @@ import { MODULES } from '../data/catalog';
 import interiorPhoto from '../assets/photos/bedroom.jpg';
 import { SITE_PHOTOS, sitePhotoAlt } from '../data/baitlyPhotography';
 
-const {
-  homeLocal: localPhoto,
-  homeClosing: poolPhoto,
-} = SITE_PHOTOS;
+const { homeLocal: localPhoto, homeClosing: poolPhoto } = SITE_PHOTOS;
 
 function Hero() {
   const { language } = useSiteLanguage();
@@ -320,6 +318,11 @@ function LocalSection() {
   );
 }
 
+function PortabilitySection() {
+  const { language } = useSiteLanguage();
+  return <BaitlyPmsHomeSection language={language} />;
+}
+
 function FaqSection() {
   const { language } = useSiteLanguage();
   const m = HOME_MESSAGES[language].faq;
@@ -400,6 +403,7 @@ export default function HomePage() {
       <PlatformSection />
       <AgentsSection />
       <LocalSection />
+      <PortabilitySection />
       <BaitlyHomeResources />
       <FaqSection />
       <FinalCta />

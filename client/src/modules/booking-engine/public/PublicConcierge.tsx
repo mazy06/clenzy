@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { cn } from '../../../utils/cn';
 import { useQuery } from '@tanstack/react-query';
 import { Spinner } from '../../../components/ui';
-import { MessageCircle, X, Send } from 'lucide-react';
+import { MessageCircle, X, Send } from '../../../icons/glyphs';
 import { API_CONFIG } from '../../../config/api';
 import { createBookingI18n } from '../sdk/i18n';
 

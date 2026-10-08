@@ -13,7 +13,7 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from '../../components/ui';
-import { Settings2 } from 'lucide-react';
+import { Settings2 } from '../../icons/glyphs';
 import { Link as LinkIcon, LinkOff as LinkOffIcon } from '../../icons';
 import ServiceGridCard from './components/ServiceGridCard';
 import IntegrationConfigDialog from './components/IntegrationConfigDialog';

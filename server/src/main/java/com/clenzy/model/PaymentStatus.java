@@ -1,12 +1,14 @@
 package com.clenzy.model;
 
 public enum PaymentStatus {
+    UNKNOWN("Paiement à vérifier"),
     PENDING("En attente de paiement"),
     PROCESSING("Paiement en cours"),
     PARTIALLY_PAID("Acompte payé (solde dû)"),
     PAID("Payé"),
     FAILED("Échec du paiement"),
     REFUNDED("Remboursé"),
+    PARTIALLY_REFUNDED("Partiellement remboursé"),
     CANCELLED("Annulé"),
     NOT_REQUIRED("Paiement non requis");
     

@@ -66,27 +66,30 @@ function occupiedBelow(element: HTMLElement): number {
  * cela l'element descend exactement au bas de la fenetre, ces rembourrages
  * depassent, et une barre de defilement apparait pour une dizaine de pixels.</p>
  */
-export function useViewportFill<T extends HTMLElement>() {
+export function useViewportFill<T extends HTMLElement>({
+  enabled = true, minWidth = SIDE_BY_SIDE, minHeight = 360,
+}: { enabled?: boolean; minWidth?: number; minHeight?: number } = {}) {
   const ref = useRef<T>(null);
   const [height, setHeight] = useState<number | undefined>(undefined);
 
   useEffect(() => {
     const element = ref.current;
-    if (!element) return undefined;
+    if (!element || !enabled) return undefined;
 
     const measure = () => {
-      if (window.innerWidth < SIDE_BY_SIDE) {
+      if (window.innerWidth < minWidth) {
         setHeight(undefined);
         return;
       }
       const rect = element.getBoundingClientRect();
       setHeight(
-        Math.max(360, Math.round(window.innerHeight - rect.top - occupiedBelow(element) - GUTTER)),
+        Math.max(minHeight, Math.round((window.visualViewport?.height ?? window.innerHeight) - rect.top - occupiedBelow(element) - GUTTER)),
       );
     };
 
     measure();
     window.addEventListener('resize', measure);
+    window.visualViewport?.addEventListener('resize', measure);
     // Observe `document.body`, donc reagit au repli de la navigation comme a
     // un redimensionnement de fenetre. La hauteur visee ne depend pourtant que
     // de la position finale : on ne mesure qu'une fois le deplacement fini.
@@ -95,10 +98,11 @@ export function useViewportFill<T extends HTMLElement>() {
     observer.observe(document.body);
     return () => {
       window.removeEventListener('resize', measure);
+      window.visualViewport?.removeEventListener('resize', measure);
       settled.cancel();
       observer.disconnect();
     };
-  }, []);
+  }, [enabled, minWidth, minHeight]);
 
   return [ref, height] as const;
 }

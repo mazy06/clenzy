@@ -12,7 +12,7 @@
 import React, { useState } from 'react';
 import { View, Text, ScrollView, Pressable, Alert, ActivityIndicator, TextInput } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Ionicons } from '@expo/vector-icons';
+import { Reicon } from '@/icons';
 import { useNavigation, useRoute, type RouteProp } from '@react-navigation/native';
 import { useTheme } from '@/theme';
 import { Skeleton } from '@/components/ui/Skeleton';
@@ -30,7 +30,7 @@ import {
   type OwnerPayoutDto,
 } from '@/api/endpoints/payoutsApi';
 
-type IoniconsName = keyof typeof Ionicons.glyphMap;
+type IconName = keyof typeof Reicon.glyphMap;
 
 type RouteParams = { OwnerPayoutDetail: { id: number } };
 
@@ -106,7 +106,7 @@ function ActionButton({
   theme,
 }: {
   label: string;
-  icon: IoniconsName;
+  icon: IconName;
   color: string;
   onPress: () => void;
   loading?: boolean;
@@ -131,7 +131,7 @@ function ActionButton({
         <ActivityIndicator color="#FFFFFF" size="small" />
       ) : (
         <>
-          <Ionicons name={icon} size={18} color="#FFFFFF" />
+          <Reicon name={icon} size={18} color="#FFFFFF" />
           <Text style={{ color: '#FFFFFF', fontWeight: '600', fontSize: 15 }}>{label}</Text>
         </>
       )}
@@ -255,7 +255,7 @@ export function OwnerPayoutDetailScreen() {
           ...theme.shadows.sm,
         }}>
           <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: theme.SPACING.sm }}>
-            <Ionicons name={statusMeta.icon as IoniconsName} size={18} color={statusMeta.color} />
+            <Reicon name={statusMeta.icon as IconName} size={18} color={statusMeta.color} />
             <Text style={{ ...theme.typography.caption, color: statusMeta.color, marginLeft: 6, fontWeight: '700', textTransform: 'uppercase', letterSpacing: 0.5 }}>
               {statusMeta.label}
             </Text>
@@ -358,7 +358,7 @@ export function OwnerPayoutDetailScreen() {
               </Text>
               {ownerConfig.verified && (
                 <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-                  <Ionicons name="shield-checkmark" size={14} color="#059669" />
+                  <Reicon name="shield-checkmark" size={14} color="#059669" />
                   <Text style={{ ...theme.typography.caption, color: '#059669', marginLeft: 4, fontWeight: '600', fontSize: 11 }}>
                     Verifie
                   </Text>
@@ -418,7 +418,7 @@ export function OwnerPayoutDetailScreen() {
             borderLeftColor: '#EF4444',
           }}>
             <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 4 }}>
-              <Ionicons name="alert-circle" size={16} color="#EF4444" />
+              <Reicon name="alert-circle" size={16} color="#EF4444" />
               <Text style={{ ...theme.typography.caption, color: '#EF4444', fontWeight: '700', marginLeft: 6, textTransform: 'uppercase' }}>
                 Erreur
               </Text>
@@ -520,7 +520,7 @@ export function OwnerPayoutDetailScreen() {
                 opacity: pressed ? 0.7 : 1,
               })}
             >
-              <Ionicons name="receipt-outline" size={16} color={theme.colors.text.primary} />
+              <Reicon name="receipt-outline" size={16} color={theme.colors.text.primary} />
               <Text style={{ color: theme.colors.text.primary, fontWeight: '500', fontSize: 14 }}>
                 Marquer comme paye manuellement
               </Text>
@@ -547,7 +547,7 @@ export function OwnerPayoutDetailScreen() {
               opacity: pressed ? 0.7 : 1,
             })}
           >
-            <Ionicons name="mail-outline" size={16} color={theme.colors.text.primary} />
+            <Reicon name="mail-outline" size={16} color={theme.colors.text.primary} />
             <Text style={{ color: theme.colors.text.primary, fontWeight: '500', fontSize: 14 }}>
               Envoyer un releve au proprietaire
             </Text>
@@ -649,7 +649,7 @@ function ScreenHeader({ theme, title, onBack }: { theme: ReturnType<typeof useTh
           marginRight: theme.SPACING.md,
         }}
       >
-        <Ionicons name="arrow-back" size={20} color={theme.colors.text.primary} />
+        <Reicon name="arrow-back" size={20} color={theme.colors.text.primary} />
       </Pressable>
       <Text style={{ ...theme.typography.h2, color: theme.colors.text.primary, flex: 1 }}>
         {title}

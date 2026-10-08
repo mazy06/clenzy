@@ -1,5 +1,5 @@
 import React from 'react';
-import type { LucideIcon } from 'lucide-react';
+import type { IconComponent } from '../../../icons/glyphs';
 import {
   Item,
   ItemActions,
@@ -12,7 +12,7 @@ import {
 import { cn } from '../../../utils/cn';
 
 interface SettingsToggleRowProps {
-  icon?: LucideIcon;
+  icon?: IconComponent;
   iconColor?: string;
   /** Libelle, ou noeud libre (label + pastilles de statut inline). */
   title: React.ReactNode;

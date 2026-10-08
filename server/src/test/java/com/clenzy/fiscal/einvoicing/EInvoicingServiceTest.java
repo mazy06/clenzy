@@ -1,95 +1,39 @@
 package com.clenzy.fiscal.einvoicing;
 
-import com.clenzy.model.Country;
-import com.clenzy.model.EInvoiceSubmission;
-import com.clenzy.model.Invoice;
-import com.clenzy.repository.EInvoiceSubmissionRepository;
+import com.clenzy.model.*;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.InjectMocks;
-import org.mockito.Mock;
-import org.mockito.junit.jupiter.MockitoExtension;
+import static org.assertj.core.api.Assertions.*;
+import static org.mockito.Mockito.*;
 
-import java.util.Optional;
-
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.never;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.verifyNoInteractions;
-import static org.mockito.Mockito.when;
-
-/**
- * Orchestration e-invoicing (CLZ-P0-04) : repli NoOp, idempotence, clearance.
- */
-@ExtendWith(MockitoExtension.class)
 class EInvoicingServiceTest {
-
-    @Mock EInvoicingProviderRegistry registry;
-    @Mock EInvoiceSubmissionRepository submissionRepository;
-    @Mock Invoice invoice;
-
-    @InjectMocks EInvoicingService service;
-
-    private final NoOpEInvoicingProvider noOp = new NoOpEInvoicingProvider();
-
-    private EInvoicingProvider clearanceProvider() {
-        return new EInvoicingProvider() {
-            @Override public String providerCode() { return "zatca"; }
-            @Override public EInvoicingMode mode() { return EInvoicingMode.ZATCA_CLEARANCE; }
-            @Override public EInvoiceResult clear(Invoice i) { return EInvoiceResult.cleared("Z-REF"); }
-            @Override public EInvoiceResult report(Invoice i) { return EInvoiceResult.reported("X"); }
-            @Override public byte[] renderCompliantArtifact(Invoice i) { return new byte[0]; }
-        };
+    @Test void doesNotSendAnUnconfiguredOrAlreadySubmittedInvoice(){
+        var registry=mock(EInvoicingProviderRegistry.class);var store=mock(BaitlyEInvoiceStore.class);var provider=mock(EInvoicingProvider.class);
+        var invoice=new Invoice();invoice.setId(8L);invoice.setOrganizationId(2L);var submission=new EInvoiceSubmission();submission.setStatus(EInvoiceStatus.PENDING);
+        when(registry.resolve(null)).thenReturn(provider);when(store.prepare(2L,8L,null,provider)).thenReturn(new BaitlyEInvoiceStore.Prepared(invoice,submission,false));
+        assertThat(new EInvoicingService(registry,store).process(invoice,null)).isSameAs(submission);verifyNoInteractions(provider);verify(store,never()).finish(any(),any(),any());
     }
-
-    @Test
-    void noOpProvider_persistsNotRequired() {
-        when(invoice.getOrganizationId()).thenReturn(1L);
-        when(invoice.getInvoiceNumber()).thenReturn("INV-1");
-        when(submissionRepository.findByOrganizationIdAndInvoiceNumber(1L, "INV-1")).thenReturn(Optional.empty());
-        when(registry.resolve(any())).thenReturn(noOp);
-        when(submissionRepository.save(any())).thenAnswer(a -> a.getArgument(0));
-
-        EInvoiceSubmission s = service.process(invoice, null);
-
-        assertThat(s.getStatus()).isEqualTo(EInvoiceStatus.NOT_REQUIRED);
-        assertThat(s.getMode()).isEqualTo(EInvoicingMode.NONE);
-        assertThat(s.getProviderCode()).isEqualTo("noop");
+    @Test void preparesBeforeNetworkAndPersistsCanonicalAcknowledgement(){
+        var registry=mock(EInvoicingProviderRegistry.class);var store=mock(BaitlyEInvoiceStore.class);var provider=mock(EInvoicingProvider.class);
+        var invoice=new Invoice();invoice.setId(8L);invoice.setOrganizationId(2L);var submission=new EInvoiceSubmission();submission.setId(4L);
+        when(registry.resolve(null)).thenReturn(provider);when(store.prepare(2L,8L,null,provider)).thenReturn(new BaitlyEInvoiceStore.Prepared(invoice,submission,true));
+        when(provider.mode()).thenReturn(EInvoicingMode.FACTURX_PDP);var result=EInvoiceResult.reported("ACK-test");when(provider.report(invoice)).thenReturn(result);
+        new EInvoicingService(registry,store).process(invoice,null);
+        var order=inOrder(store,provider);order.verify(store).prepare(2L,8L,null,provider);order.verify(provider).report(invoice);order.verify(store).finish(2L,4L,result);
     }
-
-    @Test
-    void idempotent_returnsExistingWithoutSaving() {
-        when(invoice.getOrganizationId()).thenReturn(1L);
-        when(invoice.getInvoiceNumber()).thenReturn("INV-1");
-        EInvoiceSubmission existing = new EInvoiceSubmission();
-        when(submissionRepository.findByOrganizationIdAndInvoiceNumber(1L, "INV-1"))
-                .thenReturn(Optional.of(existing));
-
-        EInvoiceSubmission s = service.process(invoice, null);
-
-        assertThat(s).isSameAs(existing);
-        verify(submissionRepository, never()).save(any());
-        verifyNoInteractions(registry);
+    @Test void aLostReplyRemainsPendingInsteadOfReportingSuccess(){
+        var registry=mock(EInvoicingProviderRegistry.class);var store=mock(BaitlyEInvoiceStore.class);var provider=mock(EInvoicingProvider.class);
+        var invoice=new Invoice();invoice.setId(8L);invoice.setOrganizationId(2L);var submission=new EInvoiceSubmission();submission.setId(4L);
+        when(registry.resolve(null)).thenReturn(provider);when(store.prepare(2L,8L,null,provider)).thenReturn(new BaitlyEInvoiceStore.Prepared(invoice,submission,true));
+        when(provider.mode()).thenReturn(EInvoicingMode.ZATCA_CLEARANCE);when(provider.clear(invoice)).thenThrow(new IllegalStateException("Timeout"));
+        new EInvoicingService(registry,store).process(invoice,null);verify(store).finish(eq(2L),eq(4L),argThat(r->r.status()==EInvoiceStatus.PENDING));
     }
-
-    @Test
-    void clearanceProvider_persistsCleared() {
-        when(invoice.getOrganizationId()).thenReturn(2L);
-        when(invoice.getInvoiceNumber()).thenReturn("INV-9");
-        when(submissionRepository.findByOrganizationIdAndInvoiceNumber(2L, "INV-9")).thenReturn(Optional.empty());
-        when(registry.resolve(any())).thenReturn(clearanceProvider());
-        when(submissionRepository.save(any())).thenAnswer(a -> a.getArgument(0));
-
-        Country sa = new Country();
-        sa.setCountryCode("SA");
-        sa.setEinvoicingProvider("zatca");
-
-        EInvoiceSubmission s = service.process(invoice, sa);
-
-        assertThat(s.getStatus()).isEqualTo(EInvoiceStatus.CLEARED);
-        assertThat(s.getExternalRef()).isEqualTo("Z-REF");
-        assertThat(s.getCountryCode()).isEqualTo("SA");
-        assertThat(s.getMode()).isEqualTo(EInvoicingMode.ZATCA_CLEARANCE);
+    @Test void knownReceiptUsesReadOnlyReconciliationWithoutSendingAgain(){
+        var registry=mock(EInvoicingProviderRegistry.class);var store=mock(BaitlyEInvoiceStore.class);var provider=mock(EInvoicingProvider.class);
+        var invoice=new Invoice();invoice.setId(8L);invoice.setOrganizationId(2L);var submission=new EInvoiceSubmission();submission.setId(4L);submission.setExternalRef("IOPOLE-TEST");
+        when(registry.resolve(null)).thenReturn(provider);when(store.prepare(2L,8L,null,provider)).thenReturn(new BaitlyEInvoiceStore.Prepared(invoice,submission,false,true));
+        var result=EInvoiceResult.reported("IOPOLE-TEST");when(provider.reconcile(invoice,"IOPOLE-TEST")).thenReturn(result);
+        new EInvoicingService(registry,store).process(invoice,null);
+        var order=inOrder(store,provider);order.verify(store).prepare(2L,8L,null,provider);order.verify(provider).reconcile(invoice,"IOPOLE-TEST");order.verify(store).finish(2L,4L,result);
+        verify(provider,never()).report(any());verify(provider,never()).clear(any());
     }
 }

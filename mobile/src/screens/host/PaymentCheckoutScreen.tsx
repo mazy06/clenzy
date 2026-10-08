@@ -1,7 +1,7 @@
 import React from 'react';
 import { View, Text, Pressable, ActivityIndicator, ScrollView, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Ionicons } from '@expo/vector-icons';
+import { Reicon } from '@/icons';
 import { useNavigation, useRoute, type RouteProp } from '@react-navigation/native';
 import { useTheme } from '@/theme';
 import { Card } from '@/components/ui/Card';
@@ -11,7 +11,7 @@ import { useIntervention } from '@/hooks/useInterventions';
 import { useNativePayment, type PaymentState } from '@/hooks/useNativePayment';
 import type { DashboardStackParamList } from '@/navigation/HostNavigator';
 
-type IoniconsName = keyof typeof Ionicons.glyphMap;
+type IconName = keyof typeof Reicon.glyphMap;
 
 function formatAmount(amount: number): string {
   return amount.toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -30,7 +30,7 @@ function formatDate(dateStr?: string): string {
   }
 }
 
-const PAYMENT_METHODS: Array<{ icon: IoniconsName; label: string; color: string }> = [
+const PAYMENT_METHODS: Array<{ icon: IconName; label: string; color: string }> = [
   { icon: 'card-outline', label: 'Carte bancaire', color: '#3B82F6' },
   { icon: 'logo-apple', label: 'Apple Pay', color: '#000000' },
   { icon: 'logo-google', label: 'Google Pay', color: '#4285F4' },
@@ -97,7 +97,7 @@ function StatusOverlay({
           alignItems: 'center',
           justifyContent: 'center',
         }}>
-          <Ionicons name="checkmark-circle" size={48} color="#059669" />
+          <Reicon name="checkmark-circle" size={48} color="#059669" />
         </View>
         <Text style={{ ...theme.typography.h2, color: '#059669', textAlign: 'center' }}>
           Paiement confirme
@@ -134,7 +134,7 @@ function StatusOverlay({
           alignItems: 'center',
           justifyContent: 'center',
         }}>
-          <Ionicons name="close-circle" size={48} color="#EF4444" />
+          <Reicon name="close-circle" size={48} color="#EF4444" />
         </View>
         <Text style={{ ...theme.typography.h2, color: '#EF4444', textAlign: 'center' }}>
           Paiement echoue
@@ -235,7 +235,7 @@ export function PaymentCheckoutScreen() {
               marginRight: theme.SPACING.md,
             }}
           >
-            <Ionicons name="arrow-back" size={20} color={theme.colors.text.primary} />
+            <Reicon name="arrow-back" size={20} color={theme.colors.text.primary} />
           </Pressable>
           <Text style={{ ...theme.typography.h2, color: theme.colors.text.primary, flex: 1 }}>
             Paiement
@@ -276,7 +276,7 @@ export function PaymentCheckoutScreen() {
             marginRight: theme.SPACING.md,
           }}
         >
-          <Ionicons name="arrow-back" size={20} color={theme.colors.text.primary} />
+          <Reicon name="arrow-back" size={20} color={theme.colors.text.primary} />
         </Pressable>
         <Text style={{ ...theme.typography.h2, color: theme.colors.text.primary, flex: 1 }}>
           Paiement
@@ -303,7 +303,7 @@ export function PaymentCheckoutScreen() {
               justifyContent: 'center',
               marginRight: theme.SPACING.md,
             }}>
-              <Ionicons name="construct-outline" size={22} color={theme.colors.primary.main} />
+              <Reicon name="construct-outline" size={22} color={theme.colors.primary.main} />
             </View>
             <View style={{ flex: 1 }}>
               <Text style={{ ...theme.typography.h4, color: theme.colors.text.primary }} numberOfLines={2}>
@@ -323,7 +323,7 @@ export function PaymentCheckoutScreen() {
           }}>
             {intervention?.propertyName && (
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: theme.SPACING.sm }}>
-                <Ionicons name="home-outline" size={16} color={theme.colors.text.disabled} />
+                <Reicon name="home-outline" size={16} color={theme.colors.text.disabled} />
                 <Text style={{ ...theme.typography.body2, color: theme.colors.text.secondary }}>
                   {intervention.propertyName}
                 </Text>
@@ -331,7 +331,7 @@ export function PaymentCheckoutScreen() {
             )}
             {intervention?.scheduledDate && (
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: theme.SPACING.sm }}>
-                <Ionicons name="calendar-outline" size={16} color={theme.colors.text.disabled} />
+                <Reicon name="calendar-outline" size={16} color={theme.colors.text.disabled} />
                 <Text style={{ ...theme.typography.body2, color: theme.colors.text.secondary }}>
                   Planifiee le {formatDate(intervention.scheduledDate)}
                 </Text>
@@ -339,7 +339,7 @@ export function PaymentCheckoutScreen() {
             )}
             {intervention?.description && (
               <View style={{ flexDirection: 'row', alignItems: 'flex-start', gap: theme.SPACING.sm }}>
-                <Ionicons name="document-text-outline" size={16} color={theme.colors.text.disabled} style={{ marginTop: 2 }} />
+                <Reicon name="document-text-outline" size={16} color={theme.colors.text.disabled} style={{ marginTop: 2 }} />
                 <Text style={{ ...theme.typography.body2, color: theme.colors.text.secondary, flex: 1 }} numberOfLines={3}>
                   {intervention.description}
                 </Text>
@@ -384,7 +384,7 @@ export function PaymentCheckoutScreen() {
                   gap: 6,
                 }}
               >
-                <Ionicons name={method.icon} size={24} color={method.color} />
+                <Reicon name={method.icon} size={24} color={method.color} />
                 <Text style={{ ...theme.typography.caption, color: theme.colors.text.secondary, fontSize: 10, textAlign: 'center' }}>
                   {method.label}
                 </Text>
@@ -395,7 +395,7 @@ export function PaymentCheckoutScreen() {
 
         {/* Security notice */}
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: theme.SPACING.sm, paddingHorizontal: theme.SPACING.sm }}>
-          <Ionicons name="shield-checkmark-outline" size={16} color={theme.colors.text.disabled} />
+          <Reicon name="shield-checkmark-outline" size={16} color={theme.colors.text.disabled} />
           <Text style={{ ...theme.typography.caption, color: theme.colors.text.disabled, flex: 1 }}>
             Paiement securise par Stripe. Vos donnees bancaires ne sont jamais stockees.
           </Text>
@@ -410,7 +410,7 @@ export function PaymentCheckoutScreen() {
           fullWidth
           disabled={amount <= 0}
           loading={false}
-          icon={<Ionicons name="lock-closed" size={18} color="#FFFFFF" />}
+          icon={<Reicon name="lock-closed" size={18} color="#FFFFFF" />}
         />
       </ScrollView>
     </SafeAreaView>

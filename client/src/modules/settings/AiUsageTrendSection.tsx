@@ -8,7 +8,7 @@
 
 import { useMemo, useState } from 'react';
 import { Alert, AlertDescription } from '../../components/ui';
-import { TriangleAlert, Info } from 'lucide-react';
+import { TriangleAlert, Info } from '../../icons/glyphs';
 import { Spinner } from '../../components/ui';
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '../../components/ui';
 import { Field, FieldLabel, InputGroup, InputGroupAddon, InputGroupInput } from '../../components/ui';

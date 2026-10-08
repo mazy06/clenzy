@@ -21,6 +21,8 @@ import {
 import { Save, Upload } from "../../../icons";
 import SplitBarEditor from "./SplitBarEditor";
 import AffiliateImportDialog from "./AffiliateImportDialog";
+import BaitlyAffiliateReceipts from './BaitlyAffiliateReceipts';
+import { useQueryClient } from '@tanstack/react-query';
 import type { SplitBarSegment } from "./SplitBarEditor";
 import { activitiesApi } from "../../../services/api/activitiesApi";
 import type {
@@ -28,6 +30,7 @@ import type {
   ActivityProvider,
 } from "../../../services/api/activitiesApi";
 import { useTranslation } from "../../../hooks/useTranslation";
+import { useAuth } from "../../../hooks/useAuth";
 
 // Teintes de la barre de repartition : aplats pleins, donc teinte vive.
 // Memes jetons que PaymentSettings, pour que les deux ecrans se lisent pareil.
@@ -109,6 +112,9 @@ export default function ServicesActivitiesPanel({
   renderInput,
 }: ServicesActivitiesPanelProps) {
   const { t } = useTranslation();
+  const { hasAnyRole } = useAuth();
+  const canConfigure = hasAnyRole(['SUPER_ADMIN', 'SUPER_MANAGER']);
+  const queryClient = useQueryClient();
   const [configs, setConfigs] = useState<ActivityConfig[]>([]);
   const [rates, setRates] = useState<Record<string, string>>({});
   const [savingProvider, setSavingProvider] = useState<string | null>(null);
@@ -150,6 +156,7 @@ export default function ServicesActivitiesPanel({
   };
 
   const saveRate = async (provider: string) => {
+    if (!canConfigure) return;
     const raw = rates[provider] ?? "";
     const parsed = raw.trim() === "" ? null : parseFloat(raw);
     if (parsed !== null && (isNaN(parsed) || parsed < 0 || parsed > 100)) return;
@@ -159,7 +166,7 @@ export default function ServicesActivitiesPanel({
       const saved = await activitiesApi.upsertConfig(provider as ActivityProvider, {
         affiliateId: existing?.affiliateId ?? null,
         enabled: existing?.enabled ?? false,
-        platformCommissionPct: parsed,
+        platformCommissionPct: parsed ?? 0,
       });
       setConfigs((prev) => {
         const others = prev.filter((c) => c.provider !== provider);
@@ -307,6 +314,7 @@ export default function ServicesActivitiesPanel({
                     <TableCell className="text-center">
                       <div className="relative inline-block w-[108px]">
                         <Input
+                          readOnly={!canConfigure}
                           type="number"
                           placeholder="0"
                           value={rates[provider] ?? ""}
@@ -332,7 +340,7 @@ export default function ServicesActivitiesPanel({
                       </p>
                     </TableCell>
                     <TableCell className="text-end">
-                      <div className="inline-flex gap-0.5">
+                      {canConfigure && <div className="inline-flex gap-0.5">
                       <Tooltip>
                         <TooltipTrigger asChild>
                           <Button
@@ -376,7 +384,7 @@ export default function ServicesActivitiesPanel({
                         </TooltipTrigger>
                         <TooltipContent>{t("common.save", "Enregistrer")}</TooltipContent>
                       </Tooltip>
-                      </div>
+                      </div>}
                     </TableCell>
                   </TableRow>
                 );
@@ -393,11 +401,13 @@ export default function ServicesActivitiesPanel({
         </p>
       </div>
 
-      <AffiliateImportDialog
+      {canConfigure && <AffiliateImportDialog
         open={importProvider !== null}
         provider={importProvider}
         onClose={() => setImportProvider(null)}
-      />
+        onImported={() => { void queryClient.invalidateQueries({queryKey:['affiliate-commissions']}); }}
+      />}
+      <BaitlyAffiliateReceipts />
     </>
   );
 }

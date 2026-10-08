@@ -18,6 +18,8 @@ import type { UseReservationFormResult } from './useReservationForm';
 import PropertySelectField from './PropertySelectField';
 import ReservationRangeCalendar from './ReservationRangeCalendar';
 import ConflictAlert from './ConflictAlert';
+import IllustratedHeading from '../IllustratedHeading';
+import { RESERVATION_ART } from './reservationArtwork';
 
 // Equivalent classes du BTN_BASE_SX de reservationDialogStyles (.s-btn) —
 // le .ts partage reste la source pour les autres ecrans du dialogue.
@@ -26,10 +28,6 @@ const BTN_BASE_CLS =
   + '[font-family:inherit] text-[12.5px] font-semibold '
   + '[transition:transform_.12s,background_.14s,border-color_.14s,color_.14s] enabled:active:scale-[.97] '
   + 'focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary';
-
-// Transposition en classes de SEC_SX (.rm-sec) — la constante reste exportee
-// dans reservationDialogStyles pour les consommateurs sx eventuels.
-const SEC_CLS = 'text-2xs font-bold tracking-[0.08em] uppercase text-faint';
 
 type BlockType = 'BLOCKED' | 'MAINTENANCE';
 
@@ -87,7 +85,7 @@ const BlockBody: React.FC<Props> = ({ form, onClose }) => {
         {form.showPropertySelector && <PropertySelectField form={form} />}
 
         <div className="flex flex-col gap-2.5">
-          <p className={SEC_CLS}>{t('reservations.dialog.stayDates')}</p>
+          <IllustratedHeading art={RESERVATION_ART.stay} title={t('reservations.dialog.stayDates')} />
           <ReservationRangeCalendar
             startDate={form.startDate}
             endDate={form.endDate}

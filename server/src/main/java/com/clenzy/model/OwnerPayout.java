@@ -66,6 +66,10 @@ public class OwnerPayout {
     @Column(name = "currency", nullable = false, length = 3, columnDefinition = "varchar(3) default 'EUR'")
     private String currency = "EUR";
 
+    /** 0 = historique sans preuves attribuées ; 1 = encaissements confirmés et figés. */
+    @Column(name = "funding_version", nullable = false)
+    private int fundingVersion;
+
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 20)
     private PayoutStatus status = PayoutStatus.PENDING;
@@ -162,6 +166,8 @@ public class OwnerPayout {
     public Instant getApprovalReminderSentAt() { return approvalReminderSentAt; }
     public void setApprovalReminderSentAt(Instant approvalReminderSentAt) { this.approvalReminderSentAt = approvalReminderSentAt; }
     public String getCurrency() { return currency; }
+    public int getFundingVersion() { return fundingVersion; }
+    public void setFundingVersion(int fundingVersion) { this.fundingVersion = fundingVersion; }
     public void setCurrency(String currency) { this.currency = currency; }
     public PayoutMethod getPayoutMethod() { return payoutMethod; }
     public void setPayoutMethod(PayoutMethod payoutMethod) { this.payoutMethod = payoutMethod; }

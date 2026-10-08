@@ -17,6 +17,10 @@ public interface PromoCodeRepository extends JpaRepository<PromoCode, Long> {
             @Param("code") String code,
             @Param("orgId") Long orgId);
 
+    @org.springframework.data.jpa.repository.Lock(jakarta.persistence.LockModeType.PESSIMISTIC_WRITE)
+    @Query("SELECT p FROM PromoCode p WHERE p.code = :code AND p.organizationId = :orgId")
+    Optional<PromoCode> lockByCodeAndOrganizationId(@Param("code") String code, @Param("orgId") Long orgId);
+
     /**
      * Codes promo actifs pour une propriete donnee :
      * - actif, dans la plage de validite, pas encore au max d'utilisations

@@ -58,7 +58,7 @@ import {
   UsersIcon,
   WrenchIcon,
   ZapIcon,
-} from 'lucide-react';
+} from '../../icons/glyphs';
 import { cn } from '../../utils/cn';
 import BaitlyMarkLogo from '../../components/BaitlyMarkLogo';
 import { useCommandCenter, openShortcutLabel } from '../../components/command-center';

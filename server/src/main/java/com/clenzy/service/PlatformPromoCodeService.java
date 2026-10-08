@@ -92,6 +92,18 @@ public class PlatformPromoCodeService {
      * valeurs (range %, type) est portee par les contraintes de l'entite.
      */
     public PlatformPromoCode create(PlatformPromoCode promo) {
+        if(promo.getCode()==null || !promo.getCode().matches("[A-Z0-9_-]{1,50}"))
+            throw new IllegalArgumentException("Code promotionnel invalide");
+        promo.applyTo(10000); // Valide le type et les bornes, sans calcul flottant.
+        if(promo.getMaxUses()!=null && promo.getMaxUses()<1)
+            throw new IllegalArgumentException("Le quota doit être positif");
+        if(promo.getValidFrom()!=null && promo.getValidUntil()!=null && promo.getValidUntil().isBefore(promo.getValidFrom()))
+            throw new IllegalArgumentException("Dates de validité incohérentes");
+        if(promo.getDiscountType()==PlatformPromoCode.DiscountType.FIXED) {
+            try {java.util.Currency.getInstance(promo.getCurrency());}
+            catch(RuntimeException invalid){throw new IllegalArgumentException("Devise requise pour une réduction fixe");}
+        }
+        promo.setUsedCount(0);
         return repository.save(promo);
     }
 

@@ -17,7 +17,7 @@ import {
   StarIcon,
   HouseIcon,
   SproutIcon,
-} from 'lucide-react';
+} from '../../src/icons/glyphs';
 import SiteAcquisitionLink from '../components/SiteAcquisitionLink';
 import Reveal from '../components/Reveal';
 import BaitlyProductDemo from '../components/BaitlyProductDemos';

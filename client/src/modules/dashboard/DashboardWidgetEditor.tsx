@@ -17,7 +17,7 @@ import {
   GripVerticalIcon,
   LayoutGridIcon as GridViewIcon,
   MoreHorizontalIcon,
-} from 'lucide-react';
+} from '../../icons/glyphs';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '../../components/ui';
 import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from '../../components/ui/resizable';
 import { cn } from '../../utils/cn';

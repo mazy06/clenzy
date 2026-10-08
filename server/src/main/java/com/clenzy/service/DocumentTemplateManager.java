@@ -78,8 +78,8 @@ public class DocumentTemplateManager {
                                            String documentTypeStr, String eventTrigger,
                                            String emailSubject, String emailBody, String createdBy) {
         String originalFilename = file.getOriginalFilename();
-        if (originalFilename == null || !originalFilename.toLowerCase().endsWith(".odt")) {
-            throw new DocumentValidationException("Seuls les fichiers .odt sont acceptes");
+        if (originalFilename == null || !originalFilename.toLowerCase(java.util.Locale.ROOT).endsWith(".html")) {
+            throw new DocumentValidationException("Seuls les modèles .html autonomes (UTF-8) sont acceptés");
         }
 
         // Validate filename to prevent path traversal
@@ -92,6 +92,7 @@ public class DocumentTemplateManager {
         byte[] fileContent;
         try {
             fileContent = file.getBytes();
+            BaitlyHtmlTemplates.source(fileContent);
         } catch (java.io.IOException e) {
             throw new DocumentStorageException("Failed to read uploaded file", e);
         }
@@ -150,6 +151,7 @@ public class DocumentTemplateManager {
     public DocumentTemplate activateTemplate(Long id) {
         DocumentTemplate template = getTemplate(id);
         templateRepository.deactivateAllByTypeExcept(template.getDocumentType(), id, tenantContext.getRequiredOrganizationId());
+        BaitlyHtmlTemplates.source(renderer.resolveTemplateContent(template));
         template.setActive(true);
         return templateRepository.save(template);
     }
@@ -170,7 +172,7 @@ public class DocumentTemplateManager {
     }
 
     /**
-     * Remplace le fichier source d'un template existant par un nouveau .odt,
+     * Remplace le fichier source d'un template existant par un nouveau fichier HTML,
      * sans changer son ID ni ses metadata (nom, description, documentType...).
      * Re-parse automatiquement les tags du nouveau fichier.
      *
@@ -184,8 +186,8 @@ public class DocumentTemplateManager {
 
         // ── Validation ──
         String filename = file.getOriginalFilename();
-        if (filename == null || !filename.toLowerCase().endsWith(".odt")) {
-            throw new DocumentValidationException("Seuls les fichiers .odt sont acceptes");
+        if (filename == null || !filename.toLowerCase(java.util.Locale.ROOT).endsWith(".html")) {
+            throw new DocumentValidationException("Seuls les modèles .html autonomes (UTF-8) sont acceptés");
         }
         if (filename.contains("..") || filename.contains("/") || filename.contains("\\")) {
             throw new DocumentValidationException("Nom de fichier invalide");
@@ -194,6 +196,7 @@ public class DocumentTemplateManager {
         byte[] fileContent;
         try {
             fileContent = file.getBytes();
+            BaitlyHtmlTemplates.source(fileContent);
         } catch (java.io.IOException e) {
             throw new DocumentStorageException("Failed to read uploaded file", e);
         }
@@ -212,6 +215,7 @@ public class DocumentTemplateManager {
         // ── Update fichier + filename (auto-flush au commit @Transactional) ──
         template.setFileContent(fileContent);
         template.setOriginalFilename(filename);
+        template.setCreatedBy("user-managed");
 
         // ── Remplacement des tags par MUTATION pure de la collection managee ──
         // L'entite DocumentTemplate a @OneToMany(cascade=ALL, orphanRemoval=true)
@@ -260,7 +264,7 @@ public class DocumentTemplateManager {
     }
 
     /**
-     * Retourne le contenu binaire du fichier source du template (.odt).
+     * Retourne le contenu binaire du fichier source HTML du modèle.
      * Utile pour exposer le template d'origine au PMS (telechargement,
      * inspection, archivage).
      */

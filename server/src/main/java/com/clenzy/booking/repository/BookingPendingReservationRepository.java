@@ -20,6 +20,10 @@ import java.util.List;
  * tous les holds courants puis calcule l'expiration par org.</p>
  */
 public interface BookingPendingReservationRepository extends Repository<Reservation, Long> {
+    @org.springframework.data.jpa.repository.Lock(jakarta.persistence.LockModeType.PESSIMISTIC_WRITE)
+    @Query("select r from Reservation r where r.id=:id and r.organizationId=:org")
+    java.util.Optional<Reservation> lockHold(@org.springframework.data.repository.query.Param("id") Long id,
+        @org.springframework.data.repository.query.Param("org") Long org);
 
     /**
      * Tous les holds 'pending' non payes (PENDING ou FAILED), property + guest charges.
@@ -30,8 +34,11 @@ public interface BookingPendingReservationRepository extends Repository<Reservat
      * echoue et le hold PENDING bloque le calendrier. LEFT car une resa peut ne pas avoir de guest.</p>
      */
     @Query("SELECT r FROM Reservation r JOIN FETCH r.property LEFT JOIN FETCH r.guest "
-         + "WHERE r.status = 'pending' "
-         + "AND r.paymentStatus IN (com.clenzy.model.PaymentStatus.PENDING, com.clenzy.model.PaymentStatus.FAILED)")
+         + "WHERE (r.status = 'pending' OR (r.status = 'cancelled' AND EXISTS "
+         + "(SELECT u.id FROM VoucherUsage u WHERE u.reservationId=r.id AND u.organizationId=r.organizationId AND u.claimStatus='HELD'))) "
+         + "AND r.paidAt IS NULL AND (r.amountPaid IS NULL OR r.amountPaid=0) "
+         + "AND r.paymentStatus IN (com.clenzy.model.PaymentStatus.PENDING, com.clenzy.model.PaymentStatus.PROCESSING, "
+         + "com.clenzy.model.PaymentStatus.FAILED, com.clenzy.model.PaymentStatus.CANCELLED)")
     List<Reservation> findUnpaidHolds();
 
     /** Persistance de l'annulation (signature CRUD standard de Spring Data). */

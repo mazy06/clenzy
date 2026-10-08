@@ -20,9 +20,6 @@ import { useTranslation } from '../../hooks/useTranslation';
 import type { PropertyFormValues } from '../../schemas';
 import { touristTaxReferenceApi, type TouristTaxSuggestion } from '../../services/api/touristTaxReferenceApi';
 
-/** Titre de section — échelle « overline » de Baitly UI (comme les autres sections). */
-const SECTION_TITLE_CLASS = 'text-2xs font-semibold uppercase tracking-wide text-muted-foreground mb-[9px]';
-
 const FR_CATEGORIES: [string, string, string][] = [
   ['UNCLASSIFIED', 'touristTax.reference.cat.unclassified', 'Non classé'],
   ['MEUBLE_1', 'touristTax.reference.cat.stars1', 'Meublé 1 étoile'],
@@ -147,7 +144,7 @@ export default function PropertyFormTouristTax({ control, errors, setValue }: Pr
 
   return (
     <div>
-      <p className={SECTION_TITLE_CLASS}>{t('properties.touristTax.title', 'Taxe de séjour')}</p>
+      {/* Le titre de section est posé par PropertyForm (en-tête illustré). */}
       <p className="m-0 mb-3 text-xs text-muted-foreground">
         {country === 'SA'
           ? t('properties.touristTax.introSa', 'Redevance municipale d’occupation (MOMAH) : 2,5 % du prix de la nuit, 5 % pour les établissements classés 4 étoiles et plus. Même taux dans toutes les villes, déclaré chaque mois sur Balady (avant le 5, payé avant le 15). La TVA de 15 % s’ajoute si vous êtes immatriculé à la TVA.')

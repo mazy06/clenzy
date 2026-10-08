@@ -2,7 +2,7 @@ import React, { useState, useCallback, useMemo } from 'react';
 import { View, Text, ScrollView, Pressable, Alert, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
-import { Ionicons } from '@expo/vector-icons';
+import { Reicon } from '@/icons';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { documentsApi, DocumentType } from '@/api/endpoints/documentsApi';
 import { reservationsApi } from '@/api/endpoints/reservationsApi';
@@ -13,11 +13,11 @@ import { EmptyState } from '@/components/ui/EmptyState';
 import { Skeleton } from '@/components/ui/Skeleton';
 import { useTheme } from '@/theme';
 
-type IoniconsName = keyof typeof Ionicons.glyphMap;
+type IconName = keyof typeof Reicon.glyphMap;
 
 type Step = 1 | 2 | 3;
 
-const DOC_TYPES: { key: DocumentType; label: string; icon: IoniconsName; color: string; description: string }[] = [
+const DOC_TYPES: { key: DocumentType; label: string; icon: IconName; color: string; description: string }[] = [
   { key: 'FACTURE', label: 'Facture', icon: 'receipt-outline', color: '#2196F3', description: 'Facture de sejour pour le voyageur' },
   { key: 'RECU', label: 'Recu', icon: 'card-outline', color: '#4CAF50', description: 'Recu de paiement' },
   { key: 'CONTRAT', label: 'Contrat', icon: 'document-text-outline', color: '#9C27B0', description: 'Contrat de location courte duree' },
@@ -64,7 +64,7 @@ function StepIndicator({ currentStep, theme }: { currentStep: Step; theme: Retur
                 alignItems: 'center', justifyContent: 'center',
               }}>
                 {isCompleted ? (
-                  <Ionicons name="checkmark" size={16} color="#fff" />
+                  <Reicon name="checkmark" size={16} color="#fff" />
                 ) : (
                   <Text style={{
                     ...theme.typography.caption,
@@ -185,7 +185,7 @@ export function DocumentGenerateScreen() {
             marginRight: theme.SPACING.md,
           }}
         >
-          <Ionicons name="arrow-back" size={20} color={theme.colors.text.primary} />
+          <Reicon name="arrow-back" size={20} color={theme.colors.text.primary} />
         </Pressable>
         <Text style={{ ...theme.typography.h2, color: theme.colors.text.primary, flex: 1 }}>
           Generer un document
@@ -223,7 +223,7 @@ export function DocumentGenerateScreen() {
                         alignItems: 'center', justifyContent: 'center',
                         marginRight: theme.SPACING.md,
                       }}>
-                        <Ionicons name={type.icon} size={24} color={type.color} />
+                        <Reicon name={type.icon} size={24} color={type.color} />
                       </View>
                       <View style={{ flex: 1 }}>
                         <Text style={{ ...theme.typography.body1, color: theme.colors.text.primary, fontWeight: '600' }}>
@@ -234,7 +234,7 @@ export function DocumentGenerateScreen() {
                         </Text>
                       </View>
                       {isSelected && (
-                        <Ionicons name="checkmark-circle" size={24} color={theme.colors.primary.main} />
+                        <Reicon name="checkmark-circle" size={24} color={theme.colors.primary.main} />
                       )}
                     </View>
                   </Card>
@@ -272,13 +272,13 @@ export function DocumentGenerateScreen() {
                   alignItems: 'center', justifyContent: 'center',
                   marginRight: theme.SPACING.md,
                 }}>
-                  <Ionicons name="remove-circle-outline" size={20} color={theme.colors.text.disabled} />
+                  <Reicon name="remove-circle-outline" size={20} color={theme.colors.text.disabled} />
                 </View>
                 <Text style={{ ...theme.typography.body2, color: theme.colors.text.secondary, flex: 1 }}>
                   Aucune reservation
                 </Text>
                 {selectedReservationId === null && (
-                  <Ionicons name="checkmark-circle" size={22} color={theme.colors.primary.main} />
+                  <Reicon name="checkmark-circle" size={22} color={theme.colors.primary.main} />
                 )}
               </View>
             </Card>
@@ -321,7 +321,7 @@ export function DocumentGenerateScreen() {
                           </Text>
                         </View>
                         {isSelected && (
-                          <Ionicons name="checkmark-circle" size={22} color={theme.colors.primary.main} />
+                          <Reicon name="checkmark-circle" size={22} color={theme.colors.primary.main} />
                         )}
                       </View>
                     </Card>
@@ -347,7 +347,7 @@ export function DocumentGenerateScreen() {
                     alignItems: 'center', justifyContent: 'center',
                     marginRight: theme.SPACING.md,
                   }}>
-                    <Ionicons name={selectedTypeConfig.icon} size={24} color={selectedTypeConfig.color} />
+                    <Reicon name={selectedTypeConfig.icon} size={24} color={selectedTypeConfig.color} />
                   </View>
                   <View style={{ flex: 1 }}>
                     <Text style={{ ...theme.typography.caption, color: theme.colors.text.disabled }}>Type</Text>
@@ -368,7 +368,7 @@ export function DocumentGenerateScreen() {
                   alignItems: 'center', justifyContent: 'center',
                   marginRight: theme.SPACING.md,
                 }}>
-                  <Ionicons name="bookmark-outline" size={24} color={theme.colors.info.main} />
+                  <Reicon name="bookmark-outline" size={24} color={theme.colors.info.main} />
                 </View>
                 <View style={{ flex: 1 }}>
                   <Text style={{ ...theme.typography.caption, color: theme.colors.text.disabled }}>Reservation</Text>
@@ -436,8 +436,8 @@ export function DocumentGenerateScreen() {
           style={{ flex: 1 }}
           icon={
             step === 3
-              ? <Ionicons name="document-outline" size={18} color="#fff" />
-              : <Ionicons name="arrow-forward" size={18} color="#fff" />
+              ? <Reicon name="document-outline" size={18} color="#fff" />
+              : <Reicon name="arrow-forward" size={18} color="#fff" />
           }
         />
       </View>

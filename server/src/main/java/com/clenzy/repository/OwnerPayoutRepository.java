@@ -14,6 +14,27 @@ import java.util.List;
 import java.util.Optional;
 
 public interface OwnerPayoutRepository extends JpaRepository<OwnerPayout, Long> {
+    @org.springframework.data.jpa.repository.Lock(jakarta.persistence.LockModeType.PESSIMISTIC_WRITE)
+    @Query("select p from OwnerPayout p where p.id = :id and p.organizationId = :orgId")
+    Optional<OwnerPayout> lockForReconciliation(@Param("id") Long id, @Param("orgId") Long orgId);
+
+    /** Une seule émission peut être réclamée, tous rails confondus. Transaction courte avant HTTP. */
+    @org.springframework.transaction.annotation.Transactional
+    @Modifying(clearAutomatically = true)
+    @Query("update OwnerPayout p set p.status = :processing, "
+         + "p.payoutMethod = :method where p.id = :id and p.organizationId = :orgId "
+         + "and p.status = :approved and (p.payoutMethod is null or p.payoutMethod = :method)")
+    int claimExecution(@Param("id") Long id, @Param("orgId") Long orgId,
+                       @Param("method") com.clenzy.model.PayoutMethod method,
+                       @Param("approved") PayoutStatus approved, @Param("processing") PayoutStatus processing);
+
+    @org.springframework.transaction.annotation.Transactional
+    @Modifying(clearAutomatically = true)
+    @Query("update OwnerPayout p set p.status = :approved, p.failureReason = null "
+         + "where p.id = :id and p.organizationId = :orgId "
+         + "and p.status = :failed and p.retryCount < 3")
+    int claimRetry(@Param("id") Long id, @Param("orgId") Long orgId,
+                   @Param("failed") PayoutStatus failed, @Param("approved") PayoutStatus approved);
 
     /**
      * Reversement identifié par son transfert Stripe.

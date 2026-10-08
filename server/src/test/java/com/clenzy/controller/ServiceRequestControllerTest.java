@@ -25,6 +25,7 @@ import java.util.Map;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 /**
@@ -57,7 +58,7 @@ class ServiceRequestControllerTest {
 
     @BeforeEach
     void setUp() {
-        controller = new ServiceRequestController(service, serviceRequestPaymentService);
+        controller = new ServiceRequestController(service, serviceRequestPaymentService, mock(com.clenzy.service.PaymentAccessService.class));
     }
 
     @Nested
@@ -271,7 +272,7 @@ class ServiceRequestControllerTest {
             when(serviceRequestPaymentService.checkPaymentStatus(99L))
                     .thenThrow(new RuntimeException("Demande de service non trouvee: 99"));
 
-            ResponseEntity<?> result = controller.checkPaymentStatus(99L);
+            ResponseEntity<?> result = controller.checkPaymentStatus(99L, createJwt());
             assertThat(result.getStatusCode()).isEqualTo(HttpStatus.INTERNAL_SERVER_ERROR);
         }
 
@@ -281,7 +282,7 @@ class ServiceRequestControllerTest {
                     "paymentStatus", "PAID",
                     "message", "Paiement deja confirme"));
 
-            ResponseEntity<?> result = controller.checkPaymentStatus(5L);
+            ResponseEntity<?> result = controller.checkPaymentStatus(5L, createJwt());
             assertThat(result.getStatusCode()).isEqualTo(HttpStatus.OK);
             @SuppressWarnings("unchecked")
             Map<String, String> body = (Map<String, String>) result.getBody();
@@ -294,7 +295,7 @@ class ServiceRequestControllerTest {
                     "paymentStatus", "NO_SESSION",
                     "message", "Aucune session de paiement Stripe associee"));
 
-            ResponseEntity<?> result = controller.checkPaymentStatus(5L);
+            ResponseEntity<?> result = controller.checkPaymentStatus(5L, createJwt());
             assertThat(result.getStatusCode()).isEqualTo(HttpStatus.OK);
             @SuppressWarnings("unchecked")
             Map<String, String> body = (Map<String, String>) result.getBody();
@@ -307,7 +308,7 @@ class ServiceRequestControllerTest {
                     "paymentStatus", "NO_SESSION",
                     "message", "Aucune session de paiement Stripe associee"));
 
-            ResponseEntity<?> result = controller.checkPaymentStatus(5L);
+            ResponseEntity<?> result = controller.checkPaymentStatus(5L, createJwt());
             assertThat(result.getStatusCode()).isEqualTo(HttpStatus.OK);
         }
     }

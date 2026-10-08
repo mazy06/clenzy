@@ -1,5 +1,5 @@
 import SiteMoney, { useSiteMoney } from './SiteMoney';
-import { ArrowRightIcon, CheckIcon, LockKeyholeIcon } from 'lucide-react';
+import { ArrowRightIcon, CheckIcon, LockKeyholeIcon } from '../../src/icons/glyphs';
 import {
   BAITLY_BOOKING_TEMPLATES,
   BOOKING_DEMO_DIRECT_DISCOUNT,

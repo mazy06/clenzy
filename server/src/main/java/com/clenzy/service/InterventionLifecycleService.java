@@ -280,8 +280,8 @@ public class InterventionLifecycleService {
         publishValidationFinMissionDocuments(intervention);
         notifyInterventionCompleted(intervention);
 
-        // Moteur Ménage 3B (P9) : payout du prestataire à la complétion validée par la
-        // preuve photo. Le service gère ses propres transactions + transfert post-commit ;
+        // Tous les métiers : versement après encaissement et preuve de réalisation.
+        // Le service gère ses transactions courtes et l'émission après commit ;
         // il ne bloque JAMAIS la complétion (gate KO → record BLOCKED motivé).
         housekeeperPayoutService.processPayoutForIntervention(intervention);
 

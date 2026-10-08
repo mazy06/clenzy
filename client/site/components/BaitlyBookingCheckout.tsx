@@ -8,7 +8,7 @@ import {
   MailIcon,
   UserRoundIcon,
   UsersIcon,
-} from 'lucide-react';
+} from '../../src/icons/glyphs';
 import { BAITLY_BOOKING_TEMPLATES } from '../data/baitlyBookingTemplates';
 import { BOOKING_CHECKOUT_COPY } from '../lib/messages/baitlyBookingCheckout';
 import { BOOKING_STOREFRONT_COPY } from '../lib/messages/baitlyBookingStorefront';

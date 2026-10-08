@@ -7,6 +7,7 @@ import com.clenzy.model.MessageTemplate;
 import com.clenzy.model.MessageTemplateType;
 import com.clenzy.model.PaymentStatus;
 import com.clenzy.model.Reservation;
+import com.clenzy.model.ReservationPaymentState;
 import com.clenzy.payment.StripeGateway;
 import com.clenzy.repository.MessageTemplateRepository;
 import com.clenzy.repository.ReservationRepository;
@@ -45,9 +46,11 @@ public class ReservationPaymentService {
     private final StripeGateway stripeGateway;
     private final PaymentOrchestrationService orchestrationService;
     private final EmailService emailService;
+    private final BaitlyReservationPaymentReturnUrls returnUrls;
     private final GuestMessagingService guestMessagingService;
     private final MessageTemplateRepository messageTemplateRepository;
     private final TenantContext tenantContext;
+    private final com.clenzy.booking.service.BaitlyReservationCredit credits;
 
     public ReservationPaymentService(ReservationRepository reservationRepository,
                                      StripeService stripeService,
@@ -56,7 +59,11 @@ public class ReservationPaymentService {
                                      EmailService emailService,
                                      GuestMessagingService guestMessagingService,
                                      MessageTemplateRepository messageTemplateRepository,
-                                     TenantContext tenantContext) {
+                                     TenantContext tenantContext,
+                                     BaitlyReservationPaymentReturnUrls returnUrls,
+                                     com.clenzy.booking.service.BaitlyReservationCredit credits) {
+        this.credits = credits;
+        this.returnUrls = returnUrls;
         this.reservationRepository = reservationRepository;
         this.stripeService = stripeService;
         this.stripeGateway = stripeGateway;
@@ -78,14 +85,21 @@ public class ReservationPaymentService {
      * @throws IllegalArgumentException si aucune adresse email ou montant invalide
      */
     public Reservation sendPaymentLink(Reservation reservation, String requestedEmail) {
+        if (!ReservationPaymentState.canCollect(reservation)) {
+            throw new IllegalArgumentException("Encaissement indisponible : vérifier le paiement et le responsable de l'encaissement de cette réservation.");
+        }
         String email = resolveRecipientEmail(reservation, requestedEmail);
 
-        BigDecimal amount = reservation.getTotalPrice();
+        BigDecimal amount = reservation.getTotalPrice() == null ? null
+            : com.clenzy.booking.service.BaitlyReservationCredit.cash(reservation);
         if (amount == null || amount.compareTo(BigDecimal.ZERO) <= 0) {
             throw new IllegalArgumentException("Le montant de la reservation doit etre superieur a 0");
         }
 
         String currency = reservation.getCurrency() != null ? reservation.getCurrency() : "EUR";
+        var returns = returnUrls.forReservation(reservation);
+        Map<String, String> metadata = new java.util.HashMap<>(credits.checkoutMetadata(reservation));
+        metadata.put("reservation_id", reservation.getId().toString());
 
         try {
             // Session de paiement via l'orchestrateur multi-provider (Stripe / PayZone / CMI
@@ -93,16 +107,16 @@ public class ReservationPaymentService {
             // le consumer PAYMENT_COMPLETED (sourceType RESERVATION), pas par le webhook direct.
             PaymentOrchestrationResult orchResult = orchestrationService.initiatePayment(
                     new PaymentOrchestrationRequest(
-                            amount,                               // Z3-SEC-01 : montant serveur (totalPrice de l'entité)
+                            amount,                               // Montant serveur en numéraire, hors crédit fidélité.
                             currency,
                             SOURCE_TYPE,
                             reservation.getId(),
                             "Paiement reservation " + reservation.getProperty().getName(),
                             email,
                             null,                                 // preferredProvider : résolu par l'orchestrateur
-                            null,                                 // successUrl : défauts provider
-                            null,                                 // cancelUrl : défauts provider
-                            Map.of("reservation_id", reservation.getId().toString()),
+                            returns.success(),                    // retour voyageur public
+                            returns.cancel(),                     // interruption != annulation
+                            metadata,
                             "RESERVATION-" + reservation.getId()  // idempotence par réservation
                     ));
             if (!orchResult.isSuccess()) {
@@ -146,11 +160,11 @@ public class ReservationPaymentService {
                 emailService.sendSimpleHtmlEmail(email, subject, htmlBody);
             }
 
-            // Update reservation tracking
-            reservation.setPaymentLinkSentAt(LocalDateTime.now());
-            reservation.setPaymentLinkEmail(email);
-            reservation.setStripeSessionId(providerSessionId);
-            reservationRepository.save(reservation);
+            // Le webhook peut avoir confirmé entre-temps : ne jamais fusionner l'ancien objet.
+            if (reservationRepository.recordPaymentLinkSent(reservation.getId(), orgId, providerSessionId,
+                    LocalDateTime.now(), email) != 1) {
+                throw new IllegalStateException("La session de la réservation a changé : rapprochement requis");
+            }
 
             // Re-load with all relations
             return reservationRepository.findByIdFetchAll(reservation.getId()).orElse(reservation);
@@ -170,11 +184,11 @@ public class ReservationPaymentService {
      */
     public Map<String, String> checkPaymentStatus(Reservation reservation) throws StripeException {
         // Already paid?
-        if (reservation.getPaymentStatus() == PaymentStatus.PAID) {
+        if (ReservationPaymentState.effectiveStatus(reservation) == PaymentStatus.PAID) {
             return Map.of(
                     "paymentStatus", "PAID",
                     "paidAt", reservation.getPaidAt() != null ? reservation.getPaidAt().toString() : "",
-                    "message", "Paiement deja confirme"
+                    "message", reservation.isCollectedByChannel() ? "Paiement confirmé auprès de l'OTA, versement à vérifier" : "Paiement deja confirme"
             );
         }
 

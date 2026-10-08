@@ -27,7 +27,7 @@ public class PmsImportService {
     }
     public record Issue(String documentId, int row, String code) {}
     public record Report(int ready, int duplicates, int archived, int issueCount, List<Issue> issues,
-                         Map<String, String> totals, String token) {}
+                         Map<String, String> totals, String token, int skipped) {}
     public record DocumentView(String id, String name, List<String> columns, int rowCount,
                                List<Map<String, String>> sample, boolean attachment,
                                List<String> propertyRefs, List<String> unmappedColumns) {}
@@ -50,33 +50,50 @@ public class PmsImportService {
     private final CalendarEngine calendar;
     private final PmsExportReader reader;
     private final ObjectMapper json;
+    private final GuestReviewRepository reviews;
+    private final RateOverrideRepository rates;
+    private final InterventionRepository tasks;
 
     public PmsImportService(PmsImportBatchRepository batches, PmsImportBindingRepository bindings,
                             PropertyRepository properties, GuestRepository guests,
                             ReservationRepository reservations, UserRepository users,
                             CalendarDayRepository days, CalendarEngine calendar,
-                            PmsExportReader reader, ObjectMapper json) {
+                            PmsExportReader reader, ObjectMapper json, GuestReviewRepository reviews,
+                            RateOverrideRepository rates, InterventionRepository tasks) {
         this.batches = batches; this.bindings = bindings; this.properties = properties; this.guests = guests;
         this.reservations = reservations; this.users = users; this.days = days; this.calendar = calendar;
-        this.reader = reader; this.json = json;
+        this.reader = reader; this.json = json; this.reviews = reviews; this.rates = rates; this.tasks = tasks;
     }
 
     public View upload(List<MultipartFile> files, String source, String account, String encoding, Actor actor) throws IOException {
-        source = required(source, 80).toLowerCase(Locale.ROOT);
-        account = required(account, 120);
         List<ImportDocument> documents = reader.read(files, encoding);
-        PmsImportBatch batch = new PmsImportBatch();
-        batch.setOrganizationId(actor.orgId()); batch.setCreatedBy(actor.subject());
-        batch.setSource(source); batch.setSourceAccount(account);
         List<OriginalFile> originals = new ArrayList<>();
         for (MultipartFile file : files) {
             byte[] bytes = file.getBytes();
             originals.add(new OriginalFile(file.getOriginalFilename(), hashBytes(bytes), Base64.getEncoder().encodeToString(bytes)));
         }
-        Payload payload = new Payload(documents, documents.stream().map(PmsImportSchema::suggest).toList(), null, originals);
+        return createDraft(documents, originals, source, account, actor);
+    }
+
+    /** Files and API pulls land in the same draft: nothing is written to business tables before commit. */
+    public View createDraft(List<ImportDocument> documents, List<OriginalFile> originals, String source,
+                            String account, Actor actor) {
+        source = required(source, 80).toLowerCase(Locale.ROOT);
+        account = required(account, 120);
+        if (documents.isEmpty()) throw bad("EMPTY_EXPORT");
+        PmsImportBatch batch = new PmsImportBatch();
+        batch.setOrganizationId(actor.orgId()); batch.setCreatedBy(actor.subject());
+        batch.setSource(source); batch.setSourceAccount(account);
+        var profile = PmsVendorProfiles.forSource(source);
+        Payload payload = new Payload(documents, documents.stream().map(d -> PmsImportSchema.suggest(d, profile)).toList(),
+            null, originals);
         batch.setPayload(write(payload));
         batches.save(batch);
         return view(batch, payload);
+    }
+
+    public static OriginalFile original(String name, byte[] bytes) {
+        return new OriginalFile(name, hashBytes(bytes), Base64.getEncoder().encodeToString(bytes));
     }
 
     public View get(UUID id, Actor actor) { var batch = owned(id, actor); return view(batch, read(batch)); }
@@ -122,6 +139,9 @@ public class PmsImportService {
                 case PROPERTY -> createProperty(row.values(), actor);
                 case GUEST -> createGuest(row.values(), actor);
                 case RESERVATION -> createReservation(row, batch, targets, actor);
+                case REVIEW -> createReview(row, batch, targets, actor);
+                case RATE -> createRate(row, batch, targets, actor);
+                case TASK -> createTask(row, batch, targets, actor);
                 case ARCHIVE -> throw new IllegalStateException("Archive has no materialized rows");
             };
             targets.put(row.key(), target);
@@ -149,21 +169,25 @@ public class PmsImportService {
         List<Candidate> rows = new ArrayList<>();
         Set<String> keys = new HashSet<>();
         int archived = 0;
+        int skipped = 0;
         for (ImportDocument document : documents) {
             ImportPlan plan = plans.stream().filter(p -> p.documentId().equals(document.id())).findFirst().orElseThrow();
             if (plan.kind() == Kind.ARCHIVE) { archived += Math.max(1, document.rows().size()); continue; }
             for (int i = 0; i < document.rows().size(); i++) {
                 try {
                     var values = PmsImportSchema.map(document.rows().get(i), plan);
+                    if (PmsImportSchema.SKIPPED_STATUS.equals(values.get("status")) && plan.kind() == Kind.RESERVATION) {
+                        skipped++;
+                        continue;
+                    }
                     String key = key(batch, plan.kind(), values.get("sourceId"));
                     String fingerprint = hash(write(List.of(new TreeMap<>(document.rows().get(i)), values,
-                        plan.kind() == Kind.RESERVATION ? Objects.toString(plan.propertyLinks().get(values.get("propertyRef")), "") : "")));
+                        plan.kind().propertyScoped() ? Objects.toString(plan.propertyLinks().get(values.get("propertyRef")), "") : "")));
                     rows.add(new Candidate(document, plan, i + 2, values, key, fingerprint, false));
                     keys.add(key);
-                    if (plan.kind() == Kind.RESERVATION) {
-                        keys.add(key(batch, Kind.PROPERTY, values.get("propertyRef")));
-                        if (!values.get("guestRef").isBlank()) keys.add(key(batch, Kind.GUEST, values.get("guestRef")));
-                    }
+                    if (plan.kind().propertyScoped()) keys.add(key(batch, Kind.PROPERTY, values.get("propertyRef")));
+                    if (plan.kind() == Kind.RESERVATION && !values.get("guestRef").isBlank())
+                        keys.add(key(batch, Kind.GUEST, values.get("guestRef")));
                 } catch (IllegalArgumentException e) { issues.add(new Issue(document.id(), i + 2, e.getMessage())); }
             }
         }
@@ -188,11 +212,18 @@ public class PmsImportService {
         Map<String, List<Candidate>> byProperty = new HashMap<>();
         List<Map<String, Object>> ranges = new ArrayList<>();
         for (Candidate row : checked) {
-            if (row.duplicate() || row.plan().kind() != Kind.RESERVATION) continue;
+            if (row.duplicate() || !row.plan().kind().propertyScoped()) continue;
             var v = row.values();
             String propertyKey = key(batch, Kind.PROPERTY, v.get("propertyRef"));
             Long propertyId = row.plan().propertyLinks().get(v.get("propertyRef"));
             if (propertyId == null && known.containsKey(propertyKey)) propertyId = known.get(propertyKey).getTargetId();
+            if (row.plan().kind() != Kind.RESERVATION) {
+                if (propertyId != null) {
+                    if (!propertyMap.containsKey(propertyId)) propertyMap.put(propertyId, property(propertyId, actor));
+                    checkExisting(row, propertyId, actor, issues);
+                } else if (!seen.containsKey(propertyKey)) issue(issues, row, "PROPERTY_LINK_REQUIRED");
+                continue;
+            }
             String calendarKey = propertyId == null ? propertyKey : propertyId.toString();
             if (propertyId != null) {
                 if (!propertyMap.containsKey(propertyId)) propertyMap.put(propertyId, property(propertyId, actor));
@@ -229,7 +260,7 @@ public class PmsImportService {
         int ready = (int) checked.stream().filter(r -> !r.duplicate()
             && !invalidRows.contains(r.document().id() + ":" + r.row())).count();
         var report = new Report(ready, duplicates, archived, issues.size(),
-            issues.stream().limit(100).toList(), formattedTotals, hash(write(plans)));
+            issues.stream().limit(100).toList(), formattedTotals, hash(write(plans)), skipped);
         return new Inspection(checked, known, propertyMap, report);
     }
 
@@ -270,6 +301,9 @@ public class PmsImportService {
         reservation.setGuestCount(v.get("guestCount").isBlank() ? 1 : Integer.valueOf(v.get("guestCount")));
         reservation.setConfirmationCode(emptyNull(v.get("confirmationCode")));
         reservation.setNotes(emptyNull(v.get("notes")));
+        if (!v.get("cleaningFee").isBlank()) reservation.setCleaningFee(new BigDecimal(v.get("cleaningFee")));
+        if (!v.get("touristTax").isBlank()) reservation.setTouristTaxAmount(new BigDecimal(v.get("touristTax")));
+        if (!v.get("taxes").isBlank()) reservation.setTaxAmount(new BigDecimal(v.get("taxes")));
         if (!v.get("guestRef").isBlank()) {
             Long guestId = targets.get(key(batch, Kind.GUEST, v.get("guestRef")));
             reservation.setGuest(guests.findByIdAndOrganizationId(guestId, actor.orgId())
@@ -285,6 +319,71 @@ public class PmsImportService {
         reservations.save(reservation);
         if (reservation.getStatus().equals("confirmed")) calendar.importReservation(reservation, actor.subject());
         return reservation.getId();
+    }
+
+    /** Rows that would collide with data already in Baitly are reported, never overwritten. */
+    private void checkExisting(Candidate row, Long propertyId, Actor actor, List<Issue> issues) {
+        var v = row.values();
+        switch (row.plan().kind()) {
+            case RATE -> {
+                if (rates.findByPropertyIdAndDate(propertyId, LocalDate.parse(v.get("date")), actor.orgId()).isPresent())
+                    issue(issues, row, "RATE_EXISTS");
+            }
+            case REVIEW -> {
+                if (reviews.findByExternalReviewIdAndOrganizationId(reviewId(row), actor.orgId()).isPresent())
+                    issue(issues, row, "REVIEW_EXISTS");
+            }
+            default -> { }
+        }
+    }
+
+    private Long resolveProperty(Candidate row, PmsImportBatch batch, Map<String, Long> targets) {
+        Long propertyId = row.plan().propertyLinks().get(row.values().get("propertyRef"));
+        return propertyId != null ? propertyId : targets.get(key(batch, Kind.PROPERTY, row.values().get("propertyRef")));
+    }
+
+    private static String reviewId(Candidate row) { return "baitly-import:" + row.key(); }
+
+    /** Imported as history: no sentiment analysis, response draft or channel push is triggered. */
+    private Long createReview(Candidate row, PmsImportBatch batch, Map<String, Long> targets, Actor actor) {
+        var v = row.values();
+        Property property = property(resolveProperty(row, batch, targets), actor);
+        var review = new GuestReview();
+        review.setOrganizationId(actor.orgId()); review.setPropertyId(property.getId());
+        review.setChannelName(com.clenzy.integration.channel.ChannelName.valueOf(v.get("channel")));
+        review.setGuestName(emptyNull(v.get("guestName"))); review.setRating(Integer.valueOf(v.get("rating")));
+        review.setReviewText(emptyNull(v.get("text"))); review.setHostResponse(emptyNull(v.get("response")));
+        review.setReviewDate(LocalDate.parse(v.get("reviewDate"))); review.setExternalReviewId(reviewId(row));
+        return reviews.save(review).getId();
+    }
+
+    private Long createRate(Candidate row, PmsImportBatch batch, Map<String, Long> targets, Actor actor) {
+        var v = row.values();
+        Property property = property(resolveProperty(row, batch, targets), actor);
+        var rate = new RateOverride(property, LocalDate.parse(v.get("date")), new BigDecimal(v.get("price")),
+            "PMS_IMPORT", actor.orgId());
+        rate.setCurrency(v.get("currency")); rate.setCreatedBy(actor.subject());
+        return rates.save(rate).getId();
+    }
+
+    /** Tasks keep their source status; no assignment, notification or payment flow is started. */
+    private Long createTask(Candidate row, PmsImportBatch batch, Map<String, Long> targets, Actor actor) {
+        var v = row.values();
+        Property property = property(resolveProperty(row, batch, targets), actor);
+        User requestor = users.findByKeycloakId(actor.subject()).filter(u -> Objects.equals(u.getOrganizationId(), actor.orgId()))
+            .orElseThrow(() -> new AccessDeniedException("IMPORT_OWNER_REQUIRED"));
+        var task = new Intervention();
+        task.setOrganizationId(actor.orgId()); task.setProperty(property); task.setRequestor(requestor);
+        task.setTitle(v.get("title")); task.setType(v.get("type")); task.setDescription(emptyNull(v.get("notes")));
+        task.setStatus(InterventionStatus.valueOf(v.get("status")));
+        LocalTime time = LocalTime.of(11, 0);
+        try { if (property.getDefaultCheckOutTime() != null) time = LocalTime.parse(property.getDefaultCheckOutTime()); }
+        catch (java.time.format.DateTimeParseException ignored) { /* keep the conventional check-out hour */ }
+        LocalDateTime start = LocalDate.parse(v.get("date")).atTime(time);
+        task.setStartTime(start); task.setScheduledDate(start);
+        if (task.getStatus() == InterventionStatus.COMPLETED) task.setCompletedAt(start);
+        task.setNotes("Importé depuis " + batch.getSource());
+        return tasks.save(task).getId();
     }
 
     private Property property(Long id, Actor actor) {
@@ -325,7 +424,7 @@ public class PmsImportService {
         List<DocumentView> documents = payload.documents().stream().map(document -> {
             ImportPlan plan = payload.plans().stream().filter(p -> p.documentId().equals(document.id())).findFirst().orElseThrow();
             String propertyColumn = plan.fields().get("propertyRef");
-            List<String> refs = plan.kind() != Kind.RESERVATION ? List.of() : document.rows().stream()
+            List<String> refs = !plan.kind().propertyScoped() ? List.of() : document.rows().stream()
                 .map(r -> propertyColumn == null ? plan.defaults().getOrDefault("propertyRef", "") : r.getOrDefault(propertyColumn, ""))
                 .map(String::trim).filter(s -> !s.isBlank()).distinct().sorted().toList();
             return new DocumentView(document.id(), document.name(), document.columns(), document.rows().size(),

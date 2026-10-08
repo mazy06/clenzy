@@ -1,5 +1,5 @@
 import Link from './_shims/next-link'
-import { SlashIcon } from "lucide-react"
+import { SlashIcon } from "../../../../icons/glyphs"
 
 import {
   Breadcrumb,

@@ -61,7 +61,7 @@ class DeferredPaymentServiceTest {
         var quote = new com.clenzy.model.ServiceQuote();
         quote.setStatus(com.clenzy.model.ServiceQuote.Status.APPROVED);
         quote.setDepositAmount(new BigDecimal("20"));
-        quote.setDepositPaidAt(LocalDateTime.now());
+        quote.setDepositPaidAt(LocalDateTime.now()); quote.setDepositTransactionRef("DEP-TEST");
         when(serviceQuotes.findByInterventionIdAndOrganizationIdOrderByAmountAsc(100L, ORG_ID)).thenReturn(List.of(quote));
         when(currencyConverter.convert(any(), any(), any(), any())).thenAnswer(call -> call.getArgument(0));
         when(orchestrationService.initiatePayment(any())).thenReturn(new PaymentOrchestrationResult(

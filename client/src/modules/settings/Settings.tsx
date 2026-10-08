@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Alert as BuiAlert, AlertDescription, AlertTitle } from '../../components/ui';
-import { Info } from 'lucide-react';
+import { Info } from '../../icons/glyphs';
 import { Spinner } from '../../components/ui';
 import {
   Button as UiButton,
@@ -73,12 +73,12 @@ import OrganizationSection from '../organization/OrganizationSection';
 import WhatsAppStatusBanner from '../messaging/WhatsAppStatusBanner';
 import FiscalProfileSection from './FiscalProfileSection';
 import type { FiscalProfileHandle } from './FiscalProfileSection';
-import SepaDebtorSettings, { type SepaDebtorHandle } from './SepaDebtorSettings';
 import PayoutScheduleSettings, { type PayoutScheduleHandle } from './PayoutScheduleSettings';
 import TaxRulesSection from './TaxRulesSection';
 import TouristTaxSection from './TouristTaxSection';
 import FrComplianceOverviewSection from './FrComplianceOverviewSection';
 import PaymentSettings from './PaymentSettings';
+import BaitlyMonthlySubscription from './BaitlyMonthlySubscription';
 import AiSettingsSection from './AiSettingsSection';
 import IntegrationsSection from './IntegrationsSection';
 import IntegrationsHeader from './components/IntegrationsHeader';
@@ -230,7 +230,6 @@ export default function Settings() {
   // Ref pour FiscalProfileSection (bouton Sauvegarder dans le PageHeader)
   const fiscalRef = useRef<FiscalProfileHandle>(null);
   // Refs pour l'onglet Reversements (bouton unifié dans le PageHeader)
-  const sepaRef = useRef<SepaDebtorHandle>(null);
   const scheduleRef = useRef<PayoutScheduleHandle>(null);
   // Force re-render quand les sections enfants signalent un changement pour mettre à jour le bouton
   const [, forceUpdate] = useState(0);
@@ -269,6 +268,7 @@ export default function Settings() {
     ai: tabIndexFromKey(settingsTabs, 'ai'),
     fiscal: tabIndexFromKey(settingsTabs, 'fiscal'),
     organization: tabIndexFromKey(settingsTabs, 'organization'),
+    subscription: tabIndexFromKey(settingsTabs, 'subscription'),
     payment: tabIndexFromKey(settingsTabs, 'payment'),
     integrations: tabIndexFromKey(settingsTabs, 'integrations'),
     migration: tabIndexFromKey(settingsTabs, 'migration'),
@@ -508,12 +508,9 @@ export default function Settings() {
     }
   };
 
-  // Sauvegarde unifiée Reversements : SEPA + Calendrier en parallèle (seulement ceux qui ont changé)
+  // Sauvegarde du calendrier de préparation des reversements PSP
   const handleReversementsSave = async () => {
     const promises: Promise<void>[] = [];
-    if (sepaRef.current?.hasChanges() && sepaRef.current?.isValid()) {
-      promises.push(sepaRef.current.save());
-    }
     if (scheduleRef.current?.hasChanges() && scheduleRef.current?.isValid()) {
       promises.push(scheduleRef.current.save());
     }
@@ -525,11 +522,10 @@ export default function Settings() {
   };
 
   const reversementsHasChanges =
-    (sepaRef.current?.hasChanges() ?? false) || (scheduleRef.current?.hasChanges() ?? false);
+    (scheduleRef.current?.hasChanges() ?? false);
   const reversementsIsSaving =
-    (sepaRef.current?.isSaving ?? false) || (scheduleRef.current?.isSaving ?? false);
+    (scheduleRef.current?.isSaving ?? false);
   const reversementsIsValid =
-    (sepaRef.current ? !sepaRef.current.hasChanges() || sepaRef.current.isValid() : true) &&
     (scheduleRef.current ? !scheduleRef.current.hasChanges() || scheduleRef.current.isValid() : true);
 
   // ─── Actions dynamiques selon l'onglet ────────────────────────────────────
@@ -614,7 +610,7 @@ export default function Settings() {
       subtitle: t('tabHeaders.settings.subtitle.messaging', 'Automatisations de messages voyageurs (check-in, bienvenue, push tarification) et templates.'),
     },
     [t('settings.myPayout.tabLabel', 'Reversements propriétaire')]: {
-      subtitle: t('tabHeaders.settings.subtitle.myPayout', 'Paramètres de vos virements bancaires : IBAN, fréquence, seuil minimum.'),
+      subtitle: t('tabHeaders.settings.subtitle.myPayout', 'Connectez votre compte de versement auprès du PSP disponible dans votre pays.'),
     },
     [t('settings.myRates.tabLabel', 'Mes tarifs')]: {
       subtitle: t('tabHeaders.settings.subtitle.myRates', 'Votre taux horaire, vos forfaits par logement et votre score qualité.'),
@@ -1086,6 +1082,8 @@ export default function Settings() {
         </TabPanel>
       )}
 
+      {tabIdx.subscription >= 0 && <TabPanel value={tabValue} index={tabIdx.subscription}><BaitlyMonthlySubscription /></TabPanel>}
+
       {/* ─── Onglet Paiement (ADMIN/MANAGER) ─────────────────────────── */}
       {hasAnyRole(['SUPER_ADMIN', 'SUPER_MANAGER']) && (
         <TabPanel value={tabValue} index={tabIdx.payment}>
@@ -1111,20 +1109,7 @@ export default function Settings() {
       {/* ─── Onglet Reversements (SUPER_ADMIN) ──────────────────────────── */}
       {hasAnyRole(['SUPER_ADMIN']) && (
         <TabPanel value={tabValue} index={tabIdx.payouts}>
-          <div className="grid grid-cols-12 gap-3">
-            <div className="col-span-12 min-[900px]:col-span-6">
-              <SepaDebtorSettings
-                ref={sepaRef}
-                onChangeState={() => forceUpdate(n => n + 1)}
-              />
-            </div>
-            <div className="col-span-12 min-[900px]:col-span-6">
-              <PayoutScheduleSettings
-                ref={scheduleRef}
-                onChangeState={() => forceUpdate(n => n + 1)}
-              />
-            </div>
-          </div>
+          <PayoutScheduleSettings ref={scheduleRef} onChangeState={() => forceUpdate(n => n + 1)} />
           <div className="mt-3">
             <OwnerPayoutSettings />
           </div>

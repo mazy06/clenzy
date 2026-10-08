@@ -19,6 +19,7 @@ import java.util.List;
  * @param parentTemplateId     si override, id du template systeme parent
  * @param variables            variables {nameVar} extraites du subject + body
  * @param updatedAt            derniere modification
+ * @param wrapperStyle         enveloppe visuelle partagée par l'envoi et l'aperçu
  */
 public record SystemEmailTemplateDto(
     Long id,
@@ -31,7 +32,8 @@ public record SystemEmailTemplateDto(
     boolean isSystem,
     Long parentTemplateId,
     List<String> variables,
-    LocalDateTime updatedAt
+    LocalDateTime updatedAt,
+    String wrapperStyle
 ) {
     public static SystemEmailTemplateDto fromEntity(SystemEmailTemplate entity, List<String> variables) {
         return new SystemEmailTemplateDto(
@@ -45,7 +47,8 @@ public record SystemEmailTemplateDto(
             entity.isSystem(),
             entity.getParentTemplateId(),
             variables,
-            entity.getUpdatedAt()
+            entity.getUpdatedAt(),
+            entity.getWrapperStyle()
         );
     }
 }

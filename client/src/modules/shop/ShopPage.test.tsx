@@ -3,6 +3,7 @@ import { afterEach, expect, it, vi } from 'vitest';
 import { act, cleanup, fireEvent, render, screen, within } from '@testing-library/react';
 import ShopPage from './ShopPage';
 
+vi.mock('../../hooks/useAuth', () => ({ useAuth: () => ({ hasAnyRole: () => false }) }));
 const search = vi.hoisted(() => ({ change: (_value: string) => {} }));
 vi.mock('../../hooks/useUserPreference', async () => {
   const { useState } = await import('react');
@@ -28,7 +29,7 @@ it('filters products through the shared header search and resets an empty result
 it('preserves quantities when changing catalog view and removes a product at zero', () => {
   render(<ShopPage />);
   fireEvent.click(screen.getByRole('button', { name: 'Ajouter au panier : Kit essentiel' }));
-  fireEvent.click(screen.getByRole('button', { name: 'Liste', exact: true }));
+  fireEvent.click(screen.getByRole('button', { name: 'Liste' }));
   const controls = screen.getByRole('group', { name: 'Kit essentiel' });
   expect(within(controls).getByText('1')).toBeInTheDocument();
   fireEvent.click(within(controls).getAllByRole('button')[0]);

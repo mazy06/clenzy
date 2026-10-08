@@ -200,6 +200,8 @@ class InscriptionDtoTest {
         dto.setPassword("securepass");
         dto.setForfait("essentiel");
         dto.setAcceptedTerms(true); // CGU obligatoires (validation @AssertTrue)
+        dto.setRequestId(java.util.UUID.randomUUID()); // idempotence de la demande (requis)
+        dto.setBillingCountry("FR"); // pays de facturation ISO-2 (requis)
         return dto;
     }
 

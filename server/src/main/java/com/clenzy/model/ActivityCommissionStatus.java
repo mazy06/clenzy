@@ -6,8 +6,10 @@ public enum ActivityCommissionStatus {
     PENDING,
     /** Confirmée par le fournisseur (réservation honorée). */
     CONFIRMED,
-    /** Part hôte versée. */
+    /** Ancien statut sans preuve de réception : à rapprocher, pas une preuve bancaire. */
     PAID,
+    /** Commission reçue du programme, part hôte attribuée au journal. Pas un virement bancaire à l'hôte. */
+    RECEIVED,
     /** Annulée / remboursée par le voyageur. */
     CANCELLED
 }

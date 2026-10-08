@@ -8,7 +8,7 @@ import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
 /**
- * Versement d'un prestataire ménage pour UNE intervention (Moteur Ménage 3B — P9).
+ * Versement Baitly d'un prestataire individuel ou d'une société pour UNE intervention.
  *
  * <p>Money-path : la contrainte UNIQUE(intervention_id) est le verrou
  * anti-double-payout (check-then-act interdit — audit règle 8) ; les transitions
@@ -38,8 +38,11 @@ public class HousekeeperPayoutRecord {
     @Column(name = "organization_id", nullable = false)
     private Long organizationId;
 
-    @Column(name = "user_id", nullable = false)
+    @Column(name = "user_id")
     private Long userId;
+
+    @Column(name = "beneficiary_organization_id")
+    private Long beneficiaryOrganizationId;
 
     @Column(name = "intervention_id", nullable = false)
     private Long interventionId;
@@ -90,6 +93,10 @@ public class HousekeeperPayoutRecord {
 
     public Long getUserId() { return userId; }
     public void setUserId(Long userId) { this.userId = userId; }
+
+    public Long getBeneficiaryOrganizationId() { return beneficiaryOrganizationId; }
+    public void setBeneficiaryOrganizationId(Long id) { this.beneficiaryOrganizationId = id; }
+    public PayoutBeneficiary beneficiary() { return new PayoutBeneficiary(userId, beneficiaryOrganizationId); }
 
     public Long getInterventionId() { return interventionId; }
     public void setInterventionId(Long interventionId) { this.interventionId = interventionId; }

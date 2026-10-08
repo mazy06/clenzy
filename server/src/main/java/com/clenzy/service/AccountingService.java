@@ -11,6 +11,10 @@ import com.clenzy.repository.ProviderExpenseRepository;
 import com.clenzy.repository.ReservationRepository;
 import com.clenzy.repository.UserRepository;
 import com.clenzy.service.commission.ManagementCommissionCalculator;
+import com.clenzy.service.payout.OwnerPayoutFundingService;
+import com.clenzy.service.payout.ReservationPayoutFunding;
+import com.clenzy.service.payout.BaitlyOwnerPayoutDocuments;
+import org.springframework.beans.factory.ObjectProvider;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -37,6 +41,9 @@ public class AccountingService {
     private final NotificationService notificationService;
     private final UserRepository userRepository;
     private final ManagementCommissionCalculator commissionCalculator;
+    private final OwnerPayoutFundingService fundingService;
+    private final BaitlyOwnerPayoutDocuments payoutDocuments;
+    private final ObjectProvider<AccountingService> self;
 
     public AccountingService(OwnerPayoutRepository payoutRepository,
                              ChannelCommissionRepository commissionRepository,
@@ -46,7 +53,10 @@ public class AccountingService {
                              ManagementContractService managementContractService,
                              NotificationService notificationService,
                              UserRepository userRepository,
-                             ManagementCommissionCalculator commissionCalculator) {
+                             ManagementCommissionCalculator commissionCalculator,
+                             OwnerPayoutFundingService fundingService,
+                             BaitlyOwnerPayoutDocuments payoutDocuments,
+                             ObjectProvider<AccountingService> self) {
         this.payoutRepository = payoutRepository;
         this.commissionRepository = commissionRepository;
         this.reservationRepository = reservationRepository;
@@ -56,6 +66,9 @@ public class AccountingService {
         this.notificationService = notificationService;
         this.userRepository = userRepository;
         this.commissionCalculator = commissionCalculator;
+        this.fundingService = fundingService;
+        this.payoutDocuments = payoutDocuments;
+        this.self = self;
     }
 
     // ── Owner Payouts ──────────────────────────────────────────────────────
@@ -78,14 +91,14 @@ public class AccountingService {
     }
 
     /**
-     * Génère le virement d'un propriétaire sur la période.
+     * Génère le virement d'un propriétaire sur la période, net des remboursements confirmés.
      *
      * <p>La commission vient de {@link ManagementCommissionCalculator}, partagé avec la
      * facture de commission et le portail propriétaire : elle est calculée séjour par
      * séjour, et honore {@code CommissionBase.NET_OF_OTA_FEE} — sans quoi le virement
      * retiendrait sur le brut ce que la facture calcule sur le net des frais OTA. C'est
-     * la facture qui fait foi : en {@code CONCIERGE_COLLECTS} elle est émise PAID avec la
-     * mention « retenue reversement », elle affirme donc le montant prélevé ici.</p>
+     * la facture TTC qui fait foi : elle reste ISSUED jusqu'à la preuve du transfert,
+     * puis le règlement par retenue est enregistré atomiquement avec cette preuve.</p>
      *
      * <p><b>Le contrat se résout par LOGEMENT.</b> Un propriétaire peut détenir plusieurs
      * biens sous des taux ou des assiettes différents, et ses factures sont émises avec
@@ -101,32 +114,67 @@ public class AccountingService {
      */
     @Transactional
     public OwnerPayout generatePayout(Long ownerId, Long orgId, LocalDate from, LocalDate to) {
-        // Check for existing payout
+        validatePeriod(from, to);
+        // Verrou commun aux périodes : deux générations concurrentes ne réutilisent aucun séjour.
+        userRepository.lockPayoutOwner(ownerId, orgId)
+                .orElseThrow(() -> new IllegalArgumentException("Propriétaire introuvable dans cette organisation."));
         Optional<OwnerPayout> existing = payoutRepository.findByOwnerAndPeriod(ownerId, from, to, orgId);
         if (existing.isPresent()) {
             return existing.get();
         }
 
-        List<Reservation> reservations = reservationRepository.findByOwnerIdAndDateRange(ownerId, from, to, orgId);
-
         // Un contrat par logement, resolu une seule fois : un proprietaire a souvent
         // plusieurs sejours sur le meme bien.
         Map<Long, Optional<ManagementContract>> contractsByProperty = new HashMap<>();
+        List<Reservation> candidates = reservationRepository.findByOwnerIdAndDateRange(ownerId, from, to, orgId)
+                .stream().filter(r -> ReservationPayoutFunding.belongsToPeriod(r, from, to))
+                .filter(r -> {
+                    ManagementContract contract = resolveContract(r, orgId, contractsByProperty);
+                    return contract == null || contract.getPaymentModel() == ManagementContract.PaymentModel.DIRECT;
+                }).toList();
+        List<OwnerPayoutFundingService.FundedStay> funded = fundingService.select(ownerId, orgId, candidates);
+        if (funded.isEmpty()) {
+            throw new IllegalStateException("Aucun séjour terminé avec encaissement plateforme confirmé et non déjà attribué sur cette période.");
+        }
+        Set<String> currencies = new HashSet<>();
+        funded.forEach(stay -> currencies.add(stay.evidence().currency()));
+        if (currencies.size() != 1) {
+            throw new IllegalStateException("Plusieurs devises sont présentes : un reversement par devise est nécessaire.");
+        }
+        String currency = currencies.iterator().next();
+        List<Reservation> reservations = funded.stream().map(OwnerPayoutFundingService.FundedStay::reservation).toList();
 
-        BigDecimal grossRevenue = reservations.stream()
-            .map(Reservation::getTotalPrice)
-            .filter(Objects::nonNull)
+        BigDecimal grossRevenue = funded.stream()
+            .map(stay -> stay.evidence().collectedAmount())
             .reduce(BigDecimal.ZERO, BigDecimal::add);
 
-        ManagementCommissionCalculator.Commission commission = commissionCalculator.ofAll(
-            reservations, r -> resolveContract(r, orgId, contractsByProperty));
-        BigDecimal commissionAmount = commission.amount();
-        BigDecimal otaFees = commission.otaFeeBorneByOwner();
+        List<Invoice> commissionInvoices = new ArrayList<>();
+        BigDecimal commissionAmount = BigDecimal.ZERO;
+        BigDecimal otaFees = BigDecimal.ZERO;
+        Map<Long,BigDecimal> retainedByStay=new HashMap<>();
+        for (var stay : funded) {
+            var commission = commissionCalculator.ofRetained(stay.reservation(),
+                    resolveContract(stay.reservation(), orgId, contractsByProperty), stay.evidence().collectedAmount());
+            Invoice invoice = payoutDocuments.prepare(stay.reservation(), commission);
+            if (invoice != null) {
+                commissionInvoices.add(invoice);
+                commissionAmount = commissionAmount.add(invoice.getTotalTtc());
+            }
+            otaFees = otaFees.add(commission.otaFeeBorneByOwner());
+            retainedByStay.put(stay.reservation().getId(),commission.otaFeeBorneByOwner()
+                    .add(invoice==null?BigDecimal.ZERO:invoice.getTotalTtc()));
+        }
         BigDecimal commissionRate = resolveCommissionRate(ownerId, orgId, reservations, contractsByProperty);
 
         // Aggregate APPROVED provider expenses for the owner's properties in this period
         List<ProviderExpense> approvedExpenses = providerExpenseRepository
                 .findApprovedByPropertyOwnerAndPeriod(ownerId, from, to, orgId);
+        for (ProviderExpense expense : approvedExpenses) {
+            if (!currency.equals(ReservationPayoutFunding.currency(expense.getCurrency()))
+                    || expense.getAmountTtc() == null || expense.getAmountTtc().signum() < 0) {
+                throw new IllegalStateException("Une dépense doit être rapprochée dans la devise du reversement.");
+            }
+        }
         BigDecimal totalExpenses = approvedExpenses.stream()
                 .map(ProviderExpense::getAmountTtc)
                 .filter(Objects::nonNull)
@@ -136,6 +184,9 @@ public class AccountingService {
             .subtract(otaFees)
             .subtract(commissionAmount)
             .subtract(totalExpenses);
+        if (netAmount.signum() <= 0 || commissionAmount.signum() < 0 || otaFees.signum() < 0) {
+            throw new IllegalStateException("Le montant net à reverser doit être positif ; rapprochez les retenues et dépenses.");
+        }
 
         OwnerPayout payout = new OwnerPayout();
         payout.setOrganizationId(orgId);
@@ -149,8 +200,19 @@ public class AccountingService {
         payout.setExpenses(totalExpenses);
         payout.setNetAmount(netAmount);
         payout.setStatus(PayoutStatus.PENDING);
+        payout.setCurrency(currency);
+        payout.setFundingVersion(1);
 
         OwnerPayout savedPayout = payoutRepository.save(payout);
+        // Les dépenses communes sont ventilées sur les soldes après les retenues propres à chaque séjour.
+        // Cette ventilation est figée : un remboursement ultérieur ne consulte pas les contrats courants.
+        var orderedStays=funded.stream().sorted(Comparator.comparing(s->s.reservation().getId())).toList();
+        var weights=orderedStays.stream().map(s->s.evidence().collectedAmount().subtract(retainedByStay.get(s.reservation().getId()))).toList();
+        var sharedExpenses=BaitlyRefundSeries.apportion(weights,totalExpenses);
+        Map<Long,BigDecimal> netShares=new HashMap<>();
+        for(int i=0;i<orderedStays.size();i++) netShares.put(orderedStays.get(i).reservation().getId(),weights.get(i).subtract(sharedExpenses.get(i)));
+        fundingService.record(savedPayout, funded,netShares);
+        payoutDocuments.bind(savedPayout, commissionInvoices);
 
         // Mark expenses as INCLUDED and link to this payout
         for (ProviderExpense expense : approvedExpenses) {
@@ -171,16 +233,17 @@ public class AccountingService {
      * Generate payouts for ALL eligible owners of the organization on a given period.
      *
      * <p>Idempotent : un proprietaire qui a deja un payout sur la periode voit son
-     * payout existant retourne (pas de doublon). Un proprietaire sans reservation
-     * payee sur la periode obtient un payout a 0 € (filtre cote frontend si non desire).</p>
+     * payout existant retourne (pas de doublon). Un propriétaire sans encaissement
+     * éligible ne produit jamais un reversement vide ou négatif.</p>
      *
      * <p>Critique pour le workflow fin de mois des conciergeries : un seul appel API
      * pour generer 5 a 50 reversements simultanement, au lieu de N appels manuels.</p>
      *
      * @return La liste des payouts crees ou existants, dans l'ordre des owner IDs.
      */
-    @Transactional
+    @Transactional(propagation = org.springframework.transaction.annotation.Propagation.NOT_SUPPORTED)
     public List<OwnerPayout> generatePayoutsBatch(Long orgId, LocalDate from, LocalDate to) {
+        validatePeriod(from, to);
         List<Long> ownerIds = propertyRepository.findDistinctOwnerIdsByOrgId(orgId);
         if (ownerIds.isEmpty()) {
             log.info("Batch payout generation: no eligible owners for org {} period {}-{}", orgId, from, to);
@@ -193,12 +256,14 @@ public class AccountingService {
         List<OwnerPayout> result = new ArrayList<>(ownerIds.size());
         int created = 0;
         int existing = 0;
+        List<Long> failedOwners = new ArrayList<>();
         for (Long ownerId : ownerIds) {
             try {
                 // generatePayout est idempotent : retourne l'existant ou cree.
                 // On compte les creations vs deja-existants via la presence d'un ID anterieur.
                 Optional<OwnerPayout> alreadyExists = payoutRepository.findByOwnerAndPeriod(ownerId, from, to, orgId);
-                OwnerPayout payout = generatePayout(ownerId, orgId, from, to);
+                // Une transaction par propriétaire via le proxy, jamais d'auto-invocation.
+                OwnerPayout payout = self.getObject().generatePayout(ownerId, orgId, from, to);
                 result.add(payout);
                 if (alreadyExists.isPresent()) {
                     existing++;
@@ -208,17 +273,27 @@ public class AccountingService {
             } catch (Exception e) {
                 // Log mais continue — un proprietaire en erreur ne doit pas bloquer les autres.
                 log.error("Batch payout generation failed for owner {} (org={}): {}", ownerId, orgId, e.getMessage());
+                failedOwners.add(ownerId);
             }
         }
 
         log.info("Batch payout generation done: org={}, created={}, existing={}, totalResult={}",
             orgId, created, existing, result.size());
+        if (!failedOwners.isEmpty()) {
+            throw new IllegalStateException("Génération incomplète pour les propriétaires " + failedOwners
+                    + ". Les reversements réussis sont conservés ; une relance ne les dupliquera pas.");
+        }
         return result;
     }
 
     @Transactional
     public OwnerPayout approvePayout(Long id, Long orgId) {
         OwnerPayout payout = getPayoutById(id, orgId);
+        if (payout.getStatus() != PayoutStatus.PENDING && payout.getStatus() != PayoutStatus.APPROVED) {
+            throw new IllegalStateException("Seul un reversement en attente peut être approuvé.");
+        }
+        fundingService.validate(payout);
+        if (payout.getStatus() == PayoutStatus.APPROVED) return payout;
         payout.setStatus(PayoutStatus.APPROVED);
         OwnerPayout saved = payoutRepository.save(payout);
 
@@ -241,27 +316,11 @@ public class AccountingService {
 
     @Transactional
     public OwnerPayout markAsPaid(Long id, Long orgId, String paymentReference) {
-        OwnerPayout payout = getPayoutById(id, orgId);
-        payout.setStatus(PayoutStatus.PAID);
-        payout.setPaymentReference(paymentReference);
-        payout.setPaidAt(Instant.now());
-        OwnerPayout saved = payoutRepository.save(payout);
-
-        String amount = saved.getNetAmount() + " " + saved.getCurrency();
-
-        notificationService.notifyAdminsAndManagersByOrgId(
-                orgId,
-                NotificationKey.PAYOUT_EXECUTED,
-                "Reversement execute",
-                "Le reversement #" + saved.getId() + " (" + amount + ") a ete paye. Ref: " + paymentReference,
-                "/billing?tab=payouts&highlight=" + saved.getId()
-        );
-
-        notifyOwner(saved, NotificationKey.PAYOUT_EXECUTED,
-                "Reversement effectue",
-                "Votre reversement de " + amount + " a ete effectue. Reference: " + paymentReference);
-
-        return saved;
+        getPayoutById(id, orgId);
+        // Garder un refus explicite pour les anciens clients, sans modifier les historiques.
+        throw new com.clenzy.exception.PaymentEvidenceRequiredException(
+                "La confirmation manuelle est désactivée. Lancez le reversement via le prestataire de paiement "
+                + "ou rapprochez un transfert existant dans le suivi des versements.");
     }
 
     // ── Channel Commissions ────────────────────────────────────────────────
@@ -297,6 +356,12 @@ public class AccountingService {
     }
 
     // ── Private Helpers ────────────────────────────────────────────────────
+
+    private void validatePeriod(LocalDate from, LocalDate to) {
+        if (from == null || to == null || from.isAfter(to)) {
+            throw new IllegalArgumentException("La période de reversement est invalide.");
+        }
+    }
 
     /**
      * Sends an in-app notification to the owner of a payout.

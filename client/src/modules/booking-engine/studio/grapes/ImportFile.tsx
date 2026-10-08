@@ -7,7 +7,7 @@ import {
   Button,
   Spinner,
 } from '../../../../components/ui';
-import { FileUp, FileText, TriangleAlert } from 'lucide-react';
+import { FileUp, FileText, TriangleAlert } from '../../../../icons/glyphs';
 import type { Editor } from 'grapesjs';
 import { loadHtmlIntoEditor } from './loadIntoEditor';
 import { importToHtml } from './import/registry';

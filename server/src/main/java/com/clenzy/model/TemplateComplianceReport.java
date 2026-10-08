@@ -44,6 +44,13 @@ public class TemplateComplianceReport {
     @Column
     private Integer score = 0;
 
+    @Column(name="country_code",length=2) private String countryCode;
+    @Column(name="source_hash",length=64) private String sourceHash;
+    public String getCountryCode(){return countryCode;}
+    public void setCountryCode(String countryCode){this.countryCode=countryCode;}
+    public String getSourceHash(){return sourceHash;}
+    public void setSourceHash(String sourceHash){this.sourceHash=sourceHash;}
+
     public TemplateComplianceReport() {}
 
     // ─── Getters / Setters ────────────────────────────────────────────────

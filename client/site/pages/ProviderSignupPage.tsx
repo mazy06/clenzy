@@ -4,7 +4,7 @@ import BaitlyTurnstile from '../../src/components/BaitlyTurnstile';
 import { runtimeEnvOr } from '../../src/config/runtimeConfig';
 import { useCallback, useEffect, useMemo, useState, type FormEvent } from 'react';
 import { Link } from 'react-router-dom';
-import { CheckIcon, ChevronDownIcon, Loader2Icon, PlusIcon, Trash2Icon, UploadIcon } from 'lucide-react';
+import { CheckIcon, ChevronDownIcon, Loader2Icon, PlusIcon, Trash2Icon, UploadIcon } from '../../src/icons/glyphs';
 import {
   Badge,
   Button,

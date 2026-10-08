@@ -20,7 +20,7 @@ import {
   PercentIcon,
   PlusIcon,
   WrenchIcon,
-} from 'lucide-react';
+} from '../../../icons/glyphs';
 import { Bar, BarChart, CartesianGrid, XAxis } from 'recharts';
 import { Badge, Button, Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious, Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../../../components/ui';
 import { type ChartConfig, ChartContainer, ChartTooltip, ChartTooltipContent } from '../../../components/ui/chart';
@@ -54,7 +54,7 @@ import {
   NavigationIcon,
   RefreshCwIcon,
   SearchIcon,
-} from 'lucide-react';
+} from '../../../icons/glyphs';
 import mapSaudiArabia from '../../../assets/map/osm-arabian-peninsula.jpg';
 import mapMorocco from '../../../assets/map/osm-morocco.jpg';
 /* Vignettes dediees : les images de `assets/images` sont des PNG de 2 Mo,
@@ -522,7 +522,7 @@ function DemoMapCanvas() {
           className="absolute -translate-x-1/2 -translate-y-full"
           style={{ left: `${pin.x}%`, top: `${pin.y}%` }}
         >
-          <MapPinIcon className="size-7 fill-[#2F6BE0] text-[#2F6BE0] drop-shadow-[0_2px_3px_rgba(21,36,45,.35)]" />
+          <MapPinIcon weight="filled" className="size-7 text-[#2F6BE0] drop-shadow-[0_2px_3px_rgba(21,36,45,.35)]" />
         </span>
       ))}
 

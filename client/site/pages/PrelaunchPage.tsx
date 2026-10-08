@@ -2,7 +2,7 @@ import { useEffect, useRef, useState, type FormEvent } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { readAcquisitionContext } from '../../src/services/publicAcquisitionContext';
 import AcquisitionSummary from '../components/AcquisitionSummary';
-import { ArrowRightIcon, CheckIcon, MailIcon } from 'lucide-react';
+import { ArrowRightIcon, CheckIcon, MailIcon } from '../../src/icons/glyphs';
 import { useSiteAppUrl } from '../lib/useSiteAppUrl';
 import {
   LaunchApiError,

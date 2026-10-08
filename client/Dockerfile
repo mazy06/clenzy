@@ -49,6 +49,9 @@ RUN npm config set fetch-retries 5 \
     fi
 
 COPY . .
+# Types partagés web/mobile (contexte nommé `shared`, cf. ci-frontend.yml) : les
+# imports `../../../../shared/src/...` depuis /app/src se résolvent en /shared/src.
+COPY --from=shared src /shared/src
 # Heap Node augmente : le bundle (SDK + app + module supervision) depasse la limite
 # par defaut → "JavaScript heap out of memory" au vite build (aligne sur la CI).
 ENV NODE_OPTIONS=--max-old-space-size=4096

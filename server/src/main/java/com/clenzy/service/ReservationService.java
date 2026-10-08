@@ -13,7 +13,7 @@ import com.clenzy.repository.ReservationRepository;
 import com.clenzy.repository.ServiceRequestRepository;
 import com.clenzy.repository.SmartLockDeviceRepository;
 import com.clenzy.repository.UserRepository;
-import com.clenzy.service.messaging.AutomationEvaluationService;
+import com.clenzy.service.messaging.BaitlyReservationAutomationStarter;
 import com.clenzy.service.smartlock.SmartLockAccessCodeService;
 import io.micrometer.core.instrument.Timer;
 import org.slf4j.Logger;
@@ -54,7 +54,7 @@ public class ReservationService {
     private final ServiceRequestRepository serviceRequestRepository;
     private final NotificationService notificationService;
     private final MinNightsOverrideRepository minNightsOverrideRepository;
-    private final AutomationEvaluationService automationEvaluationService;
+    private final BaitlyReservationAutomationStarter reservationAutomationStarter;
     private final SmartLockDeviceRepository smartLockDeviceRepository;
     private final SmartLockAccessCodeService smartLockAccessCodeService;
     private final ReservationMapper reservationMapper;
@@ -76,7 +76,7 @@ public class ReservationService {
                               ServiceRequestRepository serviceRequestRepository,
                               NotificationService notificationService,
                               MinNightsOverrideRepository minNightsOverrideRepository,
-                              AutomationEvaluationService automationEvaluationService,
+                              BaitlyReservationAutomationStarter reservationAutomationStarter,
                               SmartLockDeviceRepository smartLockDeviceRepository,
                               // @Lazy : casse un eventuel cycle (codes -> messaging -> ...).
                               @Lazy SmartLockAccessCodeService smartLockAccessCodeService,
@@ -99,7 +99,7 @@ public class ReservationService {
         this.serviceRequestRepository = serviceRequestRepository;
         this.notificationService = notificationService;
         this.minNightsOverrideRepository = minNightsOverrideRepository;
-        this.automationEvaluationService = automationEvaluationService;
+        this.reservationAutomationStarter = reservationAutomationStarter;
         this.smartLockDeviceRepository = smartLockDeviceRepository;
         this.smartLockAccessCodeService = smartLockAccessCodeService;
         this.reservationMapper = reservationMapper;
@@ -906,7 +906,7 @@ public class ReservationService {
      */
     private void seedAutomations(Reservation reservation, Long orgId) {
         try {
-            automationEvaluationService.onReservationCreated(reservation, orgId);
+            reservationAutomationStarter.schedule(reservation.getId(), orgId);
         } catch (Exception e) {
             log.warn("Erreur amorcage automatisations pour reservation {}: {}",
                     reservation.getId(), e.getMessage());

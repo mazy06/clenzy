@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useMemo, useEffect } from 'react';
+import React, { useState, useCallback, useMemo, useEffect, useRef } from 'react';
 import { Button, Spinner } from './ui';
 import {
   Alert,
@@ -9,7 +9,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from './ui';
-import { TriangleAlert, X } from 'lucide-react';
+import { TriangleAlert, X } from '../icons/glyphs';
 import {
   Close as CloseIcon,
   Lock as LockIcon,
@@ -39,6 +39,7 @@ export interface PaymentCheckoutModalProps {
   /** ID de la demande de service (paiement SR avant creation intervention) */
   serviceRequestId?: number;
   amount: number;
+  currency?: string;
   interventionTitle?: string;
 }
 
@@ -49,6 +50,7 @@ const PaymentCheckoutModal: React.FC<PaymentCheckoutModalProps> = ({
   interventionId,
   serviceRequestId,
   amount,
+  currency = 'EUR',
   interventionTitle,
 }) => {
   const { t } = useTranslation();
@@ -57,22 +59,44 @@ const PaymentCheckoutModal: React.FC<PaymentCheckoutModalProps> = ({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [paymentSuccess, setPaymentSuccess] = useState(false);
+  const sessionRequest = useRef<{
+    key: string;
+    promise: Promise<{ clientSecret?: string; sessionId?: string }>;
+    settled: boolean;
+  } | null>(null);
 
   // Fetch embedded session when modal opens
   useEffect(() => {
     if (!open || (!interventionId && !serviceRequestId) || !amount) return;
 
     let cancelled = false;
+    const requestKey = `${serviceRequestId ? 'service' : 'intervention'}:${serviceRequestId ?? interventionId}:${amount}`;
+    // StrictMode rejoue l'effet sans demonter les refs. Partager sa requete
+    // evite deux creations simultanees et une fausse erreur d'idempotence.
+    if (sessionRequest.current?.key !== requestKey) {
+      sessionRequest.current = {
+        key: requestKey,
+        settled: false,
+        promise: serviceRequestId
+          ? serviceRequestsApi.createEmbeddedSession(serviceRequestId)
+          : paymentsApi.createEmbeddedSession({ interventionId: interventionId!, amount }),
+      };
+    }
+    const request = sessionRequest.current;
+    void request.promise.then(
+      () => { request.settled = true; },
+      () => {
+        request.settled = true;
+        if (sessionRequest.current === request) sessionRequest.current = null;
+      },
+    );
     const fetchSession = async () => {
       setLoading(true);
       setError(null);
       setClientSecret(null);
       setPaymentSuccess(false);
       try {
-        // Utiliser l'endpoint SR si serviceRequestId est fourni, sinon l'endpoint intervention
-        const session = serviceRequestId
-          ? await serviceRequestsApi.createEmbeddedSession(serviceRequestId)
-          : await paymentsApi.createEmbeddedSession({ interventionId: interventionId!, amount });
+        const session = await request.promise;
         if (!cancelled) {
           if (session.clientSecret) {
             setClientSecret(session.clientSecret);
@@ -102,6 +126,9 @@ const PaymentCheckoutModal: React.FC<PaymentCheckoutModalProps> = ({
   // Reset state when modal closes
   useEffect(() => {
     if (!open) {
+      // Une fermeture rapide n'annule pas une creation deja partie au PSP.
+      // La reouverture partage cette requete tant qu'elle n'est pas terminee.
+      if (sessionRequest.current?.settled) sessionRequest.current = null;
       setClientSecret(null);
       setSessionId(null);
       setError(null);
@@ -169,7 +196,7 @@ const PaymentCheckoutModal: React.FC<PaymentCheckoutModalProps> = ({
               Paiement reussi !
             </DialogTitle>
             <p className="max-w-[360px] text-center text-[13px] text-muted-foreground">
-              {t('payment.amountOf')} <Money value={amount} from="EUR" /> pour{' '}
+              {t('payment.amountOf')} <Money value={amount} from={currency} /> pour{' '}
               <strong>{interventionTitle || 'l\'intervention'}</strong> a ete traite avec succes.
             </p>
             {/* Seule action de l'ecran de succes : elle est principale (default).
@@ -200,7 +227,7 @@ const PaymentCheckoutModal: React.FC<PaymentCheckoutModalProps> = ({
               </div>
               <div className="flex items-center gap-2">
                 <h6 className="font-[family-name:var(--font-display)] text-[1.125rem] font-semibold tabular-nums text-primary">
-                  <Money value={amount} from="EUR" />
+                  <Money value={amount} from={currency} />
                 </h6>
                 {/* ✕ : 34 px, filet de 1 px, encre destructive au survol. */}
                 <Button

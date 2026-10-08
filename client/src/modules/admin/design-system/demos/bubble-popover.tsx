@@ -1,4 +1,4 @@
-import { InfoIcon } from "lucide-react"
+import { InfoIcon } from "../../../../icons/glyphs"
 
 import {
   Bubble,

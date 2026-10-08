@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import StatusChip from '../../../components/StatusChip';
 import { Alert as UiAlert, AlertDescription, Button } from '../../../components/ui';
-import { TriangleAlert } from 'lucide-react';
+import { TriangleAlert } from '../../../icons/glyphs';
 import { Spinner } from '../../../components/ui';
 import { Card } from '../../../components/ui';
 import { Field, FieldLabel, Input, NativeSelect, NativeSelectOption, Separator, Switch } from '../../../components/ui';

@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { LayoutGridIcon, ListIcon, MapIcon } from 'lucide-react';
+import { LayoutGridIcon, ListIcon, MapIcon } from '../../icons/glyphs';
 import {
   Select,
   SelectContent,

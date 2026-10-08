@@ -1,7 +1,7 @@
 import React, { useState, useMemo, useCallback } from 'react';
 import StatusChip, { type ToneTokens } from '../../components/StatusChip';
 import { Alert as BuiAlert, AlertDescription, AlertAction, Button as BuiButton } from '../../components/ui';
-import { CircleCheck, X, TriangleAlert } from 'lucide-react';
+import { CircleCheck, X, TriangleAlert } from '../../icons/glyphs';
 import { Spinner } from '../../components/ui';
 import {
   Dialog,

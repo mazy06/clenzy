@@ -26,7 +26,7 @@ import {
   Spinner,
   Textarea,
 } from '../../../components/ui';
-import { ChevronLeft, ChevronRight, TriangleAlert } from 'lucide-react';
+import { ChevronLeft, ChevronRight, TriangleAlert } from '../../../icons/glyphs';
 import { useTranslation } from '../../../hooks/useTranslation';
 import { buildApiUrl } from '../../../config/api';
 import { getAccessToken } from '../../../keycloak';

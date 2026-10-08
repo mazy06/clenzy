@@ -1,5 +1,5 @@
 import { useId, useState, type ReactNode } from 'react';
-import { ChevronDown, SlidersHorizontal } from 'lucide-react';
+import { ChevronDown, SlidersHorizontal } from '../../icons/glyphs';
 import { Button } from '../ui/button';
 
 /** Structure de Prestataires, partagée par les catalogues Baitly. */

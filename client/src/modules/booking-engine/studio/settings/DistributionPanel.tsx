@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { cn } from '../../../../utils/cn';
 import { Alert, AlertDescription, Button, Input, Skeleton } from '../../../../components/ui';
-import { Copy, Check, ExternalLink, Eye, EyeOff, RefreshCw, AlertTriangle, Globe, Code2, Terminal } from 'lucide-react';
+import { Copy, Check, ExternalLink, Eye, EyeOff, RefreshCw, AlertTriangle, Globe, Code2, Terminal } from '../../../../icons/glyphs';
 import type { StudioConfigState } from '../useStudioConfig';
 import { SettingsPage, SettingCard, SettingRow, ToggleControl } from './settingsControls';
 import { useTranslation } from '../../../../hooks/useTranslation';

@@ -1,0 +1,207 @@
+<!doctype html><html lang="fr"><head><meta charset="UTF-8"><title>${entreprise.nom} · Document</title><style>@page { size: A4; margin: 16mm 14mm; }
+* { box-sizing: border-box; }
+body { color:#1b2a35; background:#fcfdff; font:10pt/1.5 Arial,sans-serif; margin:0; }
+h1 { color:#193d67; font-size:21pt; line-height:1.2; margin:0 0 8mm; }
+h2 { color:#193d67; font-size:13pt; margin:7mm 0 3mm; break-after:avoid; }
+h3 { font-size:11pt; break-after:avoid; }
+p { margin:0 0 3mm; overflow-wrap:anywhere; }
+table { border-collapse:collapse; width:100%; margin:3mm 0 5mm; font-size:9pt; }
+thead { display:table-header-group; }
+tr { break-inside:avoid; }
+th,td { padding:2.5mm; text-align:left; vertical-align:top; border-bottom:1px solid #d4dfe9; overflow-wrap:anywhere; }
+th { background:#e7eef4; font-weight:600; }
+img { max-width:100%; height:auto; }
+.muted,footer { color:#526879; font-size:8pt; }
+.page-break { break-before:page; }
+.amount { font-variant-numeric:tabular-nums; }
+</style></head><body>
+
+    <table style="width:170mm;">
+     <col style="width:85mm;">
+     <col style="width:85mm;">
+     <tr>
+      <td style="padding-right:6mm;vertical-align:top;">
+       <p style="margin-bottom:2mm;color:#211F1C;font-size:27pt;font-weight:bold;">${entreprise.nom}<span style="color:#B0714F;font-weight:bold;">.</span></p>
+       <p style="margin-bottom:8mm;margin-top:0pt;color:#6E6256;font-size:7.5pt;font-weight:bold;">Gestion locative &amp; services</p>
+      </td>
+      <td style="padding-right:6mm;vertical-align:top;">
+       <p style="margin-bottom:1mm;text-align:end;color:#6E6256;font-size:8pt;font-weight:bold;">Facture</p>
+       <p style="margin-bottom:2mm;text-align:end;color:#4A4138;font-size:22pt;font-weight:bold;">FACTURE</p>
+       <p style="margin-bottom:1mm;text-align:end;color:#6B645C;font-size:9pt;"><span style="color:#4A4138;font-weight:bold;">Facture n° :</span> ${system.numero_auto}</p>
+       <p style="margin-bottom:1mm;text-align:end;color:#6B645C;font-size:9pt;"><span style="color:#4A4138;font-weight:bold;">Date d&#39;émission :</span> ${system.date}</p>
+      </td>
+     </tr>
+    </table>
+    <p style="margin-bottom:3mm;margin-top:3mm;text-align:center;"><span style="display:inline-block;width:17.0cm;"><img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAABLAAAAAKCAIAAAArXTCYAAAAV0lEQVR4nO3XQQEAEADAQNQVQQWhxfDYXYJ9N+/ZAwAAgJ71OwAAAIA/DCEAAECUIQQAAIgyhAAAAFGGEAAAIMoQAgAARBlCAACAKEMIAAAQZQgBAACiHmJ+AYaTvPW+AAAAAElFTkSuQmCC" alt=""></span></p>
+
+    <table style="width:170mm;">
+     <col style="width:85mm;">
+     <col style="width:85mm;">
+     <tr>
+      <td style="padding-right:6mm;vertical-align:top;">
+       <p style="margin-bottom:1mm;color:#6E6256;font-size:7.5pt;font-weight:bold;">Émetteur</p>
+       <p style="margin-bottom:0.8mm;margin-top:0pt;color:#4A4138;font-size:14pt;font-weight:bold;">${entreprise.nom}</p>
+       <p style="margin-bottom:0.3mm;margin-top:0pt;color:#211F1C;font-size:9.5pt;">${entreprise.adresse}</p>
+       <p style="margin-bottom:0.3mm;margin-top:0pt;color:#6B645C;font-size:9pt;">SIRET ${entreprise.siret}</p>
+       <p style="margin-bottom:0.3mm;margin-top:0pt;color:#6B645C;font-size:9pt;">${entreprise.email}</p>
+       <p style="margin-bottom:0.3mm;margin-top:0pt;color:#6B645C;font-size:9pt;">${entreprise.telephone}</p>
+      </td>
+      <td style="padding-right:6mm;vertical-align:top;">
+       <p style="margin-bottom:1mm;color:#6E6256;font-size:7.5pt;font-weight:bold;">Facturé à</p>
+       <p style="margin-bottom:0.8mm;margin-top:0pt;color:#4A4138;font-size:14pt;font-weight:bold;">${client.nom_complet}</p>
+       [#if client.societe??]${client.societe}[/#if]
+       [#if client.email??]${client.email}[/#if]
+       [#if client.telephone??]${client.telephone}[/#if]
+       [#if client.code_postal??]${client.code_postal} ${client.ville}[/#if]
+      </td>
+     </tr>
+    </table>
+    <p style="border-bottom:0.5pt solid #8C7B6B;margin-bottom:2mm;margin-top:6mm;padding-bottom:1.5mm;color:#4A4138;font-size:9pt;font-weight:bold;">Bien concerné</p>
+
+    <table style="width:170mm;">
+     <col style="width:85mm;">
+     <col style="width:85mm;">
+     <tr>
+      <td style="background-color:#F1EBE2;border-bottom:0.5pt solid #E7E0D4;padding:2mm 3mm;"><p style="color:#6B645C;font-size:8.5pt;font-weight:bold;">Bien</p></td>
+      <td style="background-color:#FFFFFF;border-bottom:0.5pt solid #E7E0D4;padding:2mm 3mm;"><p style="color:#211F1C;font-size:10pt;">${property.nom}</p></td>
+     </tr>
+     <tr>
+      <td style="background-color:#F1EBE2;border-bottom:0.5pt solid #E7E0D4;padding:2mm 3mm;"><p style="color:#6B645C;font-size:8.5pt;font-weight:bold;">Adresse</p></td>
+      <td style="background-color:#FFFFFF;border-bottom:0.5pt solid #E7E0D4;padding:2mm 3mm;"><p style="color:#211F1C;font-size:10pt;">${property.adresse}, ${property.code_postal} ${property.ville}</p></td>
+     </tr>
+     <tr>
+      <td style="background-color:#F1EBE2;border-bottom:0.5pt solid #E7E0D4;padding:2mm 3mm;"><p style="color:#6B645C;font-size:8.5pt;font-weight:bold;">Type</p></td>
+      <td style="background-color:#FFFFFF;border-bottom:0.5pt solid #E7E0D4;padding:2mm 3mm;">[#if property.type??]${property.type}[/#if]</td>
+     </tr>
+     <tr>
+      <td style="background-color:#F1EBE2;border-bottom:0.5pt solid #E7E0D4;padding:2mm 3mm;"><p style="color:#6B645C;font-size:8.5pt;font-weight:bold;">Surface</p></td>
+      <td style="background-color:#FFFFFF;border-bottom:0.5pt solid #E7E0D4;padding:2mm 3mm;">[#if property.surface??]${property.surface} m²[/#if]</td>
+     </tr>
+    </table>
+    [#if has_intervention]<p style="border-bottom:0.5pt solid #8C7B6B;margin-bottom:2mm;margin-top:6mm;padding-bottom:1.5mm;color:#4A4138;font-size:9pt;font-weight:bold;">Intervention</p>
+
+    <table style="width:170mm;">
+     <col style="width:85mm;">
+     <col style="width:85mm;">
+     <tr>
+      <td style="background-color:#F1EBE2;border-bottom:0.5pt solid #E7E0D4;padding:2mm 3mm;"><p style="color:#6B645C;font-size:8.5pt;font-weight:bold;">Référence</p></td>
+      <td style="background-color:#FFFFFF;border-bottom:0.5pt solid #E7E0D4;padding:2mm 3mm;"><p style="color:#211F1C;font-size:10pt;">#${intervention.id}</p></td>
+     </tr>
+     <tr>
+      <td style="background-color:#F1EBE2;border-bottom:0.5pt solid #E7E0D4;padding:2mm 3mm;"><p style="color:#6B645C;font-size:8.5pt;font-weight:bold;">Objet</p></td>
+      <td style="background-color:#FFFFFF;border-bottom:0.5pt solid #E7E0D4;padding:2mm 3mm;">[#if intervention.titre??]${intervention.titre}[/#if]</td>
+     </tr>
+     <tr>
+      <td style="background-color:#F1EBE2;border-bottom:0.5pt solid #E7E0D4;padding:2mm 3mm;"><p style="color:#6B645C;font-size:8.5pt;font-weight:bold;">Type</p></td>
+      <td style="background-color:#FFFFFF;border-bottom:0.5pt solid #E7E0D4;padding:2mm 3mm;">[#if intervention.type??]${intervention.type}[/#if]</td>
+     </tr>
+     <tr>
+      <td style="background-color:#F1EBE2;border-bottom:0.5pt solid #E7E0D4;padding:2mm 3mm;"><p style="color:#6B645C;font-size:8.5pt;font-weight:bold;">Statut</p></td>
+      <td style="background-color:#FFFFFF;border-bottom:0.5pt solid #E7E0D4;padding:2mm 3mm;">[#if intervention.statut??]${intervention.statut}[/#if]</td>
+     </tr>
+     <tr>
+      <td style="background-color:#F1EBE2;border-bottom:0.5pt solid #E7E0D4;padding:2mm 3mm;"><p style="color:#6B645C;font-size:8.5pt;font-weight:bold;">Période</p></td>
+      <td style="background-color:#FFFFFF;border-bottom:0.5pt solid #E7E0D4;padding:2mm 3mm;">[#if intervention.date_debut??]${intervention.date_debut}[/#if][#if intervention.date_fin??] → ${intervention.date_fin}[/#if]</td>
+     </tr>
+     <tr>
+      <td style="background-color:#F1EBE2;border-bottom:0.5pt solid #E7E0D4;padding:2mm 3mm;"><p style="color:#6B645C;font-size:8.5pt;font-weight:bold;">Complétée le</p></td>
+      <td style="background-color:#FFFFFF;border-bottom:0.5pt solid #E7E0D4;padding:2mm 3mm;">[#if intervention.date_completion??]${intervention.date_completion}[/#if][#if intervention.duree_reelle??] · durée ${intervention.duree_reelle}[/#if]</td>
+     </tr>
+    </table>
+    [#if intervention.description??]Détail de l&#39;intervention[/#if]
+    [#if intervention.description??]${intervention.description}[/#if][/#if]
+
+    [#if has_technicien]
+    <p style="border-bottom:0.5pt solid #8C7B6B;margin-bottom:2mm;margin-top:6mm;padding-bottom:1.5mm;color:#4A4138;font-size:9pt;font-weight:bold;">Technicien / Prestataire</p>
+    <table style="width:170mm;">
+     <col style="width:85mm;">
+     <col style="width:85mm;">
+     <tr>
+      <td style="background-color:#F1EBE2;border-bottom:0.5pt solid #E7E0D4;padding:2mm 3mm;"><p style="color:#6B645C;font-size:8.5pt;font-weight:bold;">Nom</p></td>
+      <td style="background-color:#FFFFFF;border-bottom:0.5pt solid #E7E0D4;padding:2mm 3mm;"><p style="color:#211F1C;font-size:10pt;">${technicien.nom_complet}</p></td>
+     </tr>
+     <tr>
+      <td style="background-color:#F1EBE2;border-bottom:0.5pt solid #E7E0D4;padding:2mm 3mm;"><p style="color:#6B645C;font-size:8.5pt;font-weight:bold;">Contact</p></td>
+      <td style="background-color:#FFFFFF;border-bottom:0.5pt solid #E7E0D4;padding:2mm 3mm;">[#if technicien.email??]${technicien.email}[/#if][#if technicien.telephone??] · ${technicien.telephone}[/#if]</td>
+     </tr>
+    </table>
+    [/#if]
+
+    <p style="border-bottom:0.5pt solid #8C7B6B;margin-bottom:2mm;margin-top:6mm;padding-bottom:1.5mm;color:#4A4138;font-size:9pt;font-weight:bold;">Détail des prestations</p>
+
+    <table style="width:170mm;">
+     <col style="width:90mm;">
+     <col style="width:20mm;">
+     <col style="width:30mm;">
+     <col style="width:30mm;">
+     <thead>
+      <tr>
+       <td style="border-bottom:1.2pt solid #8C7B6B;padding:1mm 3mm 2mm 3mm;"><p style="text-align:start;color:#6E6256;font-size:8pt;font-weight:bold;">Désignation</p></td>
+       <td style="border-bottom:1.2pt solid #8C7B6B;padding:1mm 3mm 2mm 3mm;"><p style="text-align:end;color:#6E6256;font-size:8pt;font-weight:bold;">Qté</p></td>
+       <td style="border-bottom:1.2pt solid #8C7B6B;padding:1mm 3mm 2mm 3mm;"><p style="text-align:end;color:#6E6256;font-size:8pt;font-weight:bold;">Prix unitaire</p></td>
+       <td style="border-bottom:1.2pt solid #8C7B6B;padding:1mm 3mm 2mm 3mm;"><p style="text-align:end;color:#6E6256;font-size:8pt;font-weight:bold;">Total</p></td>
+      </tr>
+     </thead>
+     [#if lignes??]
+     [#list lignes as ligne]
+     <tr>
+      <td style="border-bottom:0.5pt solid #E7E0D4;padding:3mm;"><p style="color:#211F1C;font-size:9.5pt;">${ligne.description}</p></td>
+      <td style="border-bottom:0.5pt solid #E7E0D4;padding:3mm;"><p style="text-align:end;color:#211F1C;font-size:9.5pt;">${ligne.quantite}</p></td>
+      <td style="border-bottom:0.5pt solid #E7E0D4;padding:3mm;"><p style="text-align:end;color:#211F1C;font-size:9.5pt;">${ligne.prix_unitaire}</p></td>
+      <td style="border-bottom:0.5pt solid #E7E0D4;padding:3mm;"><p style="text-align:end;color:#211F1C;font-size:9.5pt;">${ligne.total}</p></td>
+     </tr>
+     [/#list]
+     [/#if]
+     <tr>
+      <td style="background-color:#F1EBE2;border-top:1pt solid #8C7B6B;padding:3mm;" colspan="3">
+       <p style="text-align:end;color:#4A4138;font-size:10pt;font-weight:bold;">Montant total</p>
+      </td>
+
+
+      <td style="background-color:#F1EBE2;border-top:1pt solid #8C7B6B;padding:3mm;">
+       [#if has_intervention]${intervention.cout_reel}[#else]${reservation.prix_total}[/#if]
+      </td>
+     </tr>
+    </table>
+    [#if has_intervention][#if intervention.cout_estime??]Estimation initiale : ${intervention.cout_estime}[/#if][/#if]
+    <p style="border-bottom:0.5pt solid #8C7B6B;margin-bottom:2mm;margin-top:6mm;padding-bottom:1.5mm;color:#4A4138;font-size:9pt;font-weight:bold;">Paiement</p>
+
+    <table style="width:170mm;">
+     <col style="width:85mm;">
+     <col style="width:85mm;">
+     <tr>
+      <td style="background-color:#F1EBE2;border-bottom:0.5pt solid #E7E0D4;padding:2mm 3mm;"><p style="color:#6B645C;font-size:8.5pt;font-weight:bold;">Statut</p></td>
+      <td style="background-color:#FFFFFF;border-bottom:0.5pt solid #E7E0D4;padding:2mm 3mm;">[#if paiement.statut??]${paiement.statut}[/#if]</td>
+     </tr>
+     <tr>
+      <td style="background-color:#F1EBE2;border-bottom:0.5pt solid #E7E0D4;padding:2mm 3mm;"><p style="color:#6B645C;font-size:8.5pt;font-weight:bold;">Montant réglé</p></td>
+      <td style="background-color:#FFFFFF;border-bottom:0.5pt solid #E7E0D4;padding:2mm 3mm;">[#if paiement.montant??]${paiement.montant}[/#if]</td>
+     </tr>
+     <tr>
+      <td style="background-color:#F1EBE2;border-bottom:0.5pt solid #E7E0D4;padding:2mm 3mm;"><p style="color:#6B645C;font-size:8.5pt;font-weight:bold;">Date de paiement</p></td>
+      <td style="background-color:#FFFFFF;border-bottom:0.5pt solid #E7E0D4;padding:2mm 3mm;">[#if paiement.date_paiement??]${paiement.date_paiement}[/#if]</td>
+     </tr>
+     <tr>
+      <td style="background-color:#F1EBE2;border-bottom:0.5pt solid #E7E0D4;padding:2mm 3mm;"><p style="color:#6B645C;font-size:8.5pt;font-weight:bold;">Référence</p></td>
+      <td style="background-color:#FFFFFF;border-bottom:0.5pt solid #E7E0D4;padding:2mm 3mm;">[#if paiement.reference_stripe??]${paiement.reference_stripe}[/#if]</td>
+     </tr>
+    </table>
+
+    [#if intervention.notes??]
+    <p style="margin-bottom:1mm;color:#6E6256;font-size:7.5pt;font-weight:bold;">Notes</p>
+    <p style="background-color:#FFFFFF;border-bottom:0.5pt solid #E7E0D4;border-left:3pt solid #8C7B6B;border-right:0.5pt solid #E7E0D4;border-top:0.5pt solid #E7E0D4;margin-top:1mm;padding:3.5mm;color:#211F1C;font-size:9.5pt;">${intervention.notes}</p>
+    [/#if]
+    [#if intervention.notes_technicien??]
+    <p style="margin-bottom:1mm;color:#6E6256;font-size:7.5pt;font-weight:bold;">Notes du technicien</p>
+    <p style="background-color:#FFFFFF;border-bottom:0.5pt solid #E7E0D4;border-left:3pt solid #8C7B6B;border-right:0.5pt solid #E7E0D4;border-top:0.5pt solid #E7E0D4;margin-top:1mm;padding:3.5mm;color:#211F1C;font-size:9.5pt;">${intervention.notes_technicien}</p>
+    [/#if]
+
+    [#if nf.conditions_paiement??]${nf.conditions_paiement}[/#if]
+    [#if nf??]${nf.legal_mention_1}[/#if]
+    [#if nf.legal_mention_2??]${nf.legal_mention_2}[/#if]
+    <p style="margin-bottom:1mm;margin-top:2mm;color:#6B645C;font-size:8.5pt;font-style:italic;">${entreprise.nom} — ${entreprise.adresse} — SIRET ${entreprise.siret}</p>
+    <p style="margin-bottom:1mm;margin-top:2mm;color:#6B645C;font-size:8.5pt;font-style:italic;">Document généré le ${system.date} — Réf. ${system.numero_auto}</p>
+
+  <footer>
+    <p style="margin-top:2mm;text-align:center;color:#6B645C;font-size:8pt;">${entreprise.nom} · ${entreprise.adresse} · SIRET ${entreprise.siret} · ${entreprise.email} · ${entreprise.telephone}</p>
+   </footer></body></html>

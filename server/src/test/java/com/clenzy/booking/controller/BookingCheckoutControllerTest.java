@@ -1,4 +1,5 @@
 package com.clenzy.booking.controller;
+import static org.mockito.ArgumentMatchers.isNull;
 
 import com.clenzy.booking.dto.AvailabilityRequestDto;
 import com.clenzy.booking.dto.AvailabilityResponseDto;
@@ -134,7 +135,7 @@ class BookingCheckoutControllerTest {
 
     private Reservation buildHold(Long id) {
         Reservation hold = new Reservation();
-        hold.setId(id);
+        hold.setId(id);hold.setTotalPrice(new BigDecimal("100.00"));
         hold.setConfirmationCode("RES-HOLD01");
         hold.setOrganizationId(ORG_ID);
         return hold;
@@ -221,7 +222,7 @@ class BookingCheckoutControllerTest {
             stubServerQuote("100.00");
             Reservation hold = buildHold(55L);
             when(publicBookingService.createEmbeddedCheckoutHold(
-                any(), eq(PROPERTY_ID), any(), any(), eq(2), any(), any(), any(), any(), any()))
+                any(), eq(PROPERTY_ID), any(), any(), eq(2), any(), any(), any(), any(), any(), any(), any()))
                 .thenReturn(hold);
             stubOrchestrator("cs_test_abc", "cs_test_abc_secret");
 
@@ -267,8 +268,9 @@ class BookingCheckoutControllerTest {
             when(publicBookingService.checkAvailability(any(), any(AvailabilityRequestDto.class)))
                 .thenReturn(quote);
             Reservation hold = buildHold(57L);
+            hold.setTotalPrice(new BigDecimal("105.00"));
             when(publicBookingService.createEmbeddedCheckoutHold(
-                any(), eq(PROPERTY_ID), any(), any(), eq(2), any(), any(), any(), any(), any()))
+                any(), eq(PROPERTY_ID), any(), any(), eq(2), any(), any(), any(), any(), any(), any(), any()))
                 .thenReturn(hold);
             stubOrchestrator("cs_tax", "cs_tax_secret");
 
@@ -290,7 +292,7 @@ class BookingCheckoutControllerTest {
         void whenHoldConflicts_thenReturns409() {
             stubServerQuote("100.00");
             when(publicBookingService.createEmbeddedCheckoutHold(
-                any(), eq(PROPERTY_ID), any(), any(), eq(2), any(), any(), any(), any(), any()))
+                any(), eq(PROPERTY_ID), any(), any(), eq(2), any(), any(), any(), any(), any(), any(), any()))
                 .thenThrow(new CalendarConflictException(PROPERTY_ID,
                     LocalDate.parse(CHECK_IN), LocalDate.parse(CHECK_OUT), 2));
 
@@ -308,7 +310,7 @@ class BookingCheckoutControllerTest {
             stubServerQuote("100.00");
             Reservation hold = buildHold(55L);
             when(publicBookingService.createEmbeddedCheckoutHold(
-                any(), eq(PROPERTY_ID), any(), any(), eq(2), any(), any(), any(), any(), any()))
+                any(), eq(PROPERTY_ID), any(), any(), eq(2), any(), any(), any(), any(), any(), any(), any()))
                 .thenReturn(hold);
             when(orchestrationService.initiatePayment(anyLong(), any(), any(PaymentOrchestrationRequest.class)))
                 .thenReturn(new PaymentOrchestrationResult(null, PaymentResult.failure("Stripe down"), null));
@@ -333,9 +335,10 @@ class BookingCheckoutControllerTest {
                 org.mockito.ArgumentMatchers.anyInt(), eq(ORG_ID)))
                 .thenReturn(new BigDecimal("30.00"));
             Reservation hold = buildHold(56L);
+            hold.setTotalPrice(new BigDecimal("130.00"));
             when(publicBookingService.createEmbeddedCheckoutHold(
                 any(), eq(PROPERTY_ID), any(), any(), eq(2), any(), any(), any(),
-                eq(new BigDecimal("30.00")), eq(services)))
+                eq(new BigDecimal("30.00")), eq(services),isNull(),eq(0)))
                 .thenReturn(hold);
             stubOrchestrator("cs_test_so", "cs_test_so_secret");
 
@@ -365,7 +368,7 @@ class BookingCheckoutControllerTest {
                 .thenReturn(availableQuote("100.00"));
             Reservation hold = buildHold(58L);
             when(publicBookingService.createEmbeddedCheckoutHold(
-                any(), eq(PROPERTY_ID), any(), any(), eq(2), any(), any(), any(), any(), any()))
+                any(), eq(PROPERTY_ID), any(), any(), eq(2), any(), any(), any(), any(), any(), any(), any()))
                 .thenReturn(hold);
             stubOrchestrator("cs_usd", "cs_usd_secret");
 
@@ -391,7 +394,7 @@ class BookingCheckoutControllerTest {
                 .thenReturn(availableQuote("100.00"));
             Reservation hold = buildHold(59L);
             when(publicBookingService.createEmbeddedCheckoutHold(
-                any(), eq(PROPERTY_ID), any(), any(), eq(2), any(), any(), any(), any(), any()))
+                any(), eq(PROPERTY_ID), any(), any(), eq(2), any(), any(), any(), any(), any(), any(), any()))
                 .thenReturn(hold);
             stubOrchestrator("cs_eur", "cs_eur_secret");
 

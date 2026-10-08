@@ -14,6 +14,8 @@ import java.math.BigDecimal;
  * source de la reservation, etc.).</p>
  */
 public class PaymentHistoryDto {
+    /** Le solde d'un acompte conserve sa session distincte pour le remboursement multi-encaissements. */
+    public boolean individualCheckout;
     public Long id;
     public Long referenceId;          // ID de l'intervention ou de la reservation
     /**
@@ -34,8 +36,19 @@ public class PaymentHistoryDto {
     public String subDescription;
     public String propertyName;
     public BigDecimal amount;
+    public BigDecimal payableAmount; // Solde exigible, déduction faite des acomptes confirmés.
+    public BigDecimal refundedAmount = BigDecimal.ZERO; // Remboursements rapprochés localement.
+    public BigDecimal creditAppliedAmount = BigDecimal.ZERO; // Crédit client utilisé, distinct de l'encaissement.
+    public BigDecimal refundPendingAmount = BigDecimal.ZERO; // Preuves en cours de rapprochement.
+    public boolean refundReviewRequired;
+    public boolean paymentDisputed;
+    public boolean supportsPartialRefund; // Capacité du circuit identifié, revalidée avant toute émission.
+    public boolean refundAcrossReceipts;
     public String currency = "EUR";
     public String status;             // PAID, PENDING, PROCESSING, FAILED, REFUNDED, CANCELLED
+    public String paymentCollection;  // PMS / CHANNEL / UNKNOWN, réservations uniquement
+    public Boolean canCollect;
+    public String settlementStatus;   // EXTERNAL_UNVERIFIED : le paiement OTA ne prouve pas le versement
     public String type = "INTERVENTION"; // INTERVENTION or RESERVATION or SERVICE_REQUEST
     public String stripeSessionId;
     public String transactionDate;    // paidAt si PAID, sinon startTime/createdAt

@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { ArrowDownToLine, ArrowRight, Check, ExternalLink } from 'lucide-react';
+import { ArrowDownToLine, ArrowRight, Check, ExternalLink } from '../../src/icons/glyphs';
 import {
   articlesForCountry,
   articlePath,

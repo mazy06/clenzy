@@ -30,7 +30,7 @@ import java.math.BigDecimal;
  * @param providerTxId identifiant du provider (tran_ref PayTabs, etc.) —
  *                     généralement stocké dans
  *                     {@code PaymentTransaction.providerTxId}
- * @param originalTransactionRef notre référence Clenzy
+ * @param originalTransactionRef notre référence Baitly
  *                               (= {@code PaymentTransaction.transactionRef})
  * @param currency devise alpha-3 de la transaction originale (MAD, EUR, SAR…)
  * @param originalAmount montant total de la transaction originale (peut être
@@ -42,8 +42,15 @@ public record RefundContext(
     String providerTxId,
     String originalTransactionRef,
     String currency,
-    BigDecimal originalAmount
+    BigDecimal originalAmount,
+    String refundTransactionRef,
+    String providerRefundId,
+    java.time.LocalDateTime requestedAt
 ) {
+    public RefundContext(Long orgId, String providerTxId, String originalTransactionRef,
+            String currency, BigDecimal originalAmount) {
+        this(orgId, providerTxId, originalTransactionRef, currency, originalAmount, null, null, null);
+    }
     public RefundContext {
         if (orgId == null) throw new IllegalArgumentException("orgId is required");
         if (providerTxId == null || providerTxId.isBlank()) {

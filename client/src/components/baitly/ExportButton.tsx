@@ -1,4 +1,4 @@
-import { DownloadIcon, FileTextIcon } from 'lucide-react';
+import { DownloadIcon, FileTextIcon } from '../../icons/glyphs';
 import { toast } from 'sonner';
 import {
   Button,

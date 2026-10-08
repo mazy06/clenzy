@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { View, Text, Modal, Pressable, TextInput, KeyboardAvoidingView, Platform } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
+import { Reicon } from '@/icons';
 import { Button } from '@/components/ui/Button';
 import { useTheme } from '@/theme';
 
@@ -57,7 +57,7 @@ export function ReservationCancelDialog({ visible, onCancel, onConfirm, isLoadin
                 alignItems: 'center', justifyContent: 'center',
                 marginBottom: theme.SPACING.md,
               }}>
-                <Ionicons name="warning-outline" size={28} color={theme.colors.error.main} />
+                <Reicon name="warning-outline" size={28} color={theme.colors.error.main} />
               </View>
               <Text style={{ ...theme.typography.h3, color: theme.colors.text.primary, textAlign: 'center' }}>
                 Annuler la reservation
@@ -107,7 +107,7 @@ export function ReservationCancelDialog({ visible, onCancel, onConfirm, isLoadin
                 color="error"
                 fullWidth
                 loading={isLoading}
-                icon={<Ionicons name="close-circle-outline" size={18} color="#fff" />}
+                icon={<Reicon name="close-circle-outline" size={18} color="#fff" />}
               />
               <Button
                 title="Retour"

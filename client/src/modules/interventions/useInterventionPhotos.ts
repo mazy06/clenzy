@@ -1,7 +1,8 @@
-import { useState, useEffect, type Dispatch, type SetStateAction } from 'react';
+import { useState, useEffect, useRef, type Dispatch, type SetStateAction } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { interventionsApi } from '../../services/api/interventionsApi';
 import { interventionsKeys } from './useInterventionsList';
+import { interventionExecutionScope } from './interventionExecutionScope';
 import {
   InterventionDetailsData,
   parsePhotos
@@ -54,17 +55,19 @@ export function useInterventionPhotos({
   const [deletingPhotoId, setDeletingPhotoId] = useState<number | null>(null);
   const [inspectionComplete, setInspectionComplete] = useState(false);
   const [completedSteps, setCompletedSteps] = useState<Set<string>>(new Set());
+  const hydratedMission = useRef<string | undefined>(undefined);
 
   // ------------------------------------------------------------------
   // Hydrate from initial load
   // ------------------------------------------------------------------
   useEffect(() => {
-    if (!initialLoadData) return;
+    if (!initialLoadData || hydratedMission.current === id) return;
+    hydratedMission.current = id;
     setBeforePhotos(initialLoadData.beforePhotos);
     setAfterPhotos(initialLoadData.afterPhotos);
     setInspectionComplete(initialLoadData.inspectionComplete);
     setCompletedSteps(initialLoadData.completedSteps);
-  }, [initialLoadData]);
+  }, [id, initialLoadData]);
 
   // Sync photo IDs from intervention data
   useEffect(() => {
@@ -78,18 +81,21 @@ export function useInterventionPhotos({
   // ------------------------------------------------------------------
 
   const saveStepsMutation = useMutation({
+    scope: interventionExecutionScope(id),
     mutationFn: ({ interventionId, steps }: { interventionId: number; steps: string }) =>
       interventionsApi.updateCompletedSteps(interventionId, steps),
     onSuccess: (updated) => {
       setIntervention(updated);
       if (id) queryClient.setQueryData(interventionsKeys.detail(String(id)), updated);
     },
+    onError: () => setError(t('interventions.detailErrors.savingSteps', 'Les étapes n’ont pas été enregistrées. Réessayez avant de terminer.')),
   });
 
   const uploadPhotosMutation = useMutation({
+    scope: interventionExecutionScope(id),
     mutationFn: ({ interventionId, photos, type }: { interventionId: number; photos: File[]; type: 'before' | 'after' }) =>
       interventionsApi.uploadPhotos(interventionId, photos, type),
-    onSuccess: (updated, variables) => {
+    onSuccess: async (updated, variables) => {
       setIntervention(updated);
       // Update detail cache so navigation away/back serves fresh data
       if (id) queryClient.setQueryData(interventionsKeys.detail(String(id)), updated);
@@ -124,7 +130,22 @@ export function useInterventionPhotos({
 
       setPhotosDialogOpen(false);
       setSelectedPhotos([]);
-      setError(null);
+      // Keep this write inside the upload's serial scope. Awaiting another
+      // scoped mutation here would deadlock behind the upload itself.
+      try {
+        const storedSteps: unknown = JSON.parse(updated.completedSteps || '[]');
+        const steps = new Set<string>(Array.isArray(storedSteps) ? storedSteps.filter((step): step is string => typeof step === 'string') : []);
+        if (parsePhotos(updated.beforePhotosUrls).length > 0) steps.add('inspection');
+        if (variables.type === 'after' && parsePhotos(updated.afterPhotosUrls).length > 0) steps.add('after_photos');
+        const persisted = await interventionsApi.updateCompletedSteps(variables.interventionId, JSON.stringify([...steps]));
+        setIntervention(persisted);
+        if (id) queryClient.setQueryData(interventionsKeys.detail(String(id)), persisted);
+        setError(null);
+      } catch {
+        // The photo is already stored: keep it visible and retry the steps at
+        // completion, without requiring a duplicate file upload.
+        setError(t('interventions.detailErrors.savingSteps', 'Les étapes n’ont pas été enregistrées. Réessayez avant de terminer.'));
+      }
     },
     onError: (err: Error) => {
       setError(err.message || t('interventions.detailErrors.addingPhotos'));
@@ -132,6 +153,7 @@ export function useInterventionPhotos({
   });
 
   const deletePhotoMutation = useMutation({
+    scope: interventionExecutionScope(id),
     mutationFn: ({ interventionId, photoId }: { interventionId: number; photoId: number }) =>
       interventionsApi.deletePhoto(interventionId, photoId),
     onSuccess: (updated) => {
@@ -185,6 +207,12 @@ export function useInterventionPhotos({
     saveStepsMutation.mutate({ interventionId: Number(id), steps: json });
   };
 
+  // Completion must wait for the final step selection to reach the server.
+  const persistCompletedSteps = async (steps: Set<string>) => {
+    if (!id || !intervention) throw new Error('Intervention unavailable');
+    return saveStepsMutation.mutateAsync({ interventionId: Number(id), steps: JSON.stringify(Array.from(steps)) });
+  };
+
   // ------------------------------------------------------------------
   // Handlers
   // ------------------------------------------------------------------
@@ -229,6 +257,7 @@ export function useInterventionPhotos({
     completedSteps,
     setCompletedSteps,
     saveCompletedSteps,
+    persistCompletedSteps,
 
     handlePhotoUpload,
     handleDeletePhoto,

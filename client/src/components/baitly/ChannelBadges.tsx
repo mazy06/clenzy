@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { CheckIcon } from 'lucide-react';
+import { CheckIcon } from '../../icons/glyphs';
 import { Tooltip, TooltipContent, TooltipTrigger } from '../ui';
 import { cn } from '../../utils/cn';
 import { useTranslation } from '../../hooks/useTranslation';

@@ -3,7 +3,7 @@ import { View, Text, ScrollView, Pressable, RefreshControl } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRoute, useNavigation } from '@react-navigation/native';
 import type { RouteProp } from '@react-navigation/native';
-import { Ionicons } from '@expo/vector-icons';
+import { Reicon } from '@/icons';
 import { useProperty } from '@/hooks/useProperties';
 import { Accordion } from '@/components/ui/Accordion';
 import { Card } from '@/components/ui/Card';
@@ -11,13 +11,13 @@ import { EmptyState } from '@/components/ui/EmptyState';
 import { Skeleton } from '@/components/ui/Skeleton';
 import { useTheme } from '@/theme';
 
-type IoniconsName = keyof typeof Ionicons.glyphMap;
+type IconName = keyof typeof Reicon.glyphMap;
 type RouteParams = { PropertyOverview: { propertyId: number } };
 
 /* ─── Amenity Config ─── */
 
 interface AmenityDef {
-  icon: IoniconsName;
+  icon: IconName;
   label: string;
   category: 'comfort' | 'kitchen' | 'appliances' | 'outdoor' | 'family';
 }
@@ -73,7 +73,7 @@ function AmenityTile({ def, color, theme }: {
         alignItems: 'center', justifyContent: 'center',
         marginBottom: 8,
       }}>
-        <Ionicons name={def.icon} size={20} color={color} />
+        <Reicon name={def.icon} size={20} color={color} />
       </View>
       <Text style={{
         ...theme.typography.caption,
@@ -129,7 +129,7 @@ function CleaningNotesSection({ notes, theme }: { notes?: string; theme: ReturnT
 /* ─── Cleaning Config Info Item ─── */
 
 function ConfigItem({ icon, label, value, color, theme }: {
-  icon: IoniconsName; label: string; value: string; color: string; theme: ReturnType<typeof useTheme>;
+  icon: IconName; label: string; value: string; color: string; theme: ReturnType<typeof useTheme>;
 }) {
   return (
     <View style={{
@@ -142,7 +142,7 @@ function ConfigItem({ icon, label, value, color, theme }: {
         backgroundColor: `${color}10`, alignItems: 'center', justifyContent: 'center',
         marginRight: theme.SPACING.md,
       }}>
-        <Ionicons name={icon} size={16} color={color} />
+        <Reicon name={icon} size={16} color={color} />
       </View>
       <Text style={{ ...theme.typography.body2, color: theme.colors.text.secondary, flex: 1 }}>{label}</Text>
       <Text style={{ ...theme.typography.body2, color: theme.colors.text.primary, fontWeight: '600' }}>{value}</Text>
@@ -224,7 +224,7 @@ export function PropertyOverviewScreen() {
         backgroundColor: theme.colors.background.paper,
       }}>
         <Pressable onPress={() => navigation.goBack()} hitSlop={8} style={{ marginRight: theme.SPACING.md }}>
-          <Ionicons name="chevron-back" size={22} color={theme.colors.text.primary} />
+          <Reicon name="chevron-back" size={22} color={theme.colors.text.primary} />
         </Pressable>
         <Text style={{ ...theme.typography.h3, color: theme.colors.text.primary, flex: 1 }} numberOfLines={1}>
           Vue d'ensemble
@@ -255,7 +255,7 @@ export function PropertyOverviewScreen() {
               marginBottom: theme.SPACING.sm,
             }}>
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: theme.SPACING.sm }}>
-                <Ionicons name="moon-outline" size={18} color={theme.colors.primary.main} />
+                <Reicon name="moon-outline" size={18} color={theme.colors.primary.main} />
                 <Text style={{ ...theme.typography.body2, color: theme.colors.text.primary }}>Prix par nuit</Text>
               </View>
               <Text style={{ ...theme.typography.h3, color: theme.colors.primary.main }}>{property.nightlyPrice}{'\u20AC'}</Text>
@@ -268,7 +268,7 @@ export function PropertyOverviewScreen() {
               backgroundColor: `${theme.colors.secondary.main}06`, borderRadius: theme.BORDER_RADIUS.md,
             }}>
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: theme.SPACING.sm }}>
-                <Ionicons name="sparkles-outline" size={18} color={theme.colors.secondary.main} />
+                <Reicon name="sparkles-outline" size={18} color={theme.colors.secondary.main} />
                 <Text style={{ ...theme.typography.body2, color: theme.colors.text.primary }}>Tarif menage</Text>
               </View>
               <Text style={{ ...theme.typography.h3, color: theme.colors.secondary.main }}>{property.cleaningBasePrice}{'\u20AC'}</Text>
@@ -281,7 +281,7 @@ export function PropertyOverviewScreen() {
 
         {/* Configuration menage */}
         {(() => {
-          const configItems: { icon: IoniconsName; label: string; value: string; color: string }[] = [];
+          const configItems: { icon: IconName; label: string; value: string; color: string }[] = [];
           if (property.numberOfFloors != null)
             configItems.push({ icon: 'layers-outline', label: 'Nombre d\'etages', value: `${property.numberOfFloors}`, color: theme.colors.info.main });
           if (property.cleaningDurationMinutes != null)
@@ -372,7 +372,7 @@ export function PropertyOverviewScreen() {
             alignItems: 'center', justifyContent: 'center',
             marginRight: theme.SPACING.md,
           }}>
-            <Ionicons name="wifi-outline" size={18} color={theme.colors.info.main} />
+            <Reicon name="wifi-outline" size={18} color={theme.colors.info.main} />
           </View>
           <Text style={{ ...theme.typography.h4, color: theme.colors.text.primary, flex: 1 }}>Equipements</Text>
           {hasAmenities && (
@@ -423,7 +423,7 @@ export function PropertyOverviewScreen() {
           })
         ) : (
           <Card variant="filled" style={{ alignItems: 'center', paddingVertical: theme.SPACING.xl }}>
-            <Ionicons name="wifi-outline" size={32} color={theme.colors.text.disabled} style={{ marginBottom: theme.SPACING.sm }} />
+            <Reicon name="wifi-outline" size={32} color={theme.colors.text.disabled} style={{ marginBottom: theme.SPACING.sm }} />
             <Text style={{ ...theme.typography.body2, color: theme.colors.text.disabled, fontStyle: 'italic' }}>
               Aucun equipement renseigne
             </Text>

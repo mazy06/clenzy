@@ -1,3 +1,4 @@
+import { useCommerceScope } from '../../../hooks/useCommerceScope';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { documentsApi, GenerateDocumentRequest } from '../../../services/api/documentsApi';
 
@@ -17,17 +18,20 @@ export const documentKeys = {
 // ─── Templates ──────────────────────────────────────────────────────────────
 
 export function useTemplates() {
+  const scope = useCommerceScope();
   return useQuery({
-    queryKey: documentKeys.templates(),
+    enabled: !!scope,
+    queryKey: [...documentKeys.templates(), scope],
     queryFn: () => documentsApi.getTemplates(),
   });
 }
 
 export function useTemplate(id: number) {
+  const scope = useCommerceScope();
   return useQuery({
-    queryKey: documentKeys.template(id),
+    queryKey: [...documentKeys.template(id), scope],
     queryFn: () => documentsApi.getTemplate(id),
-    enabled: !!id,
+    enabled: !!scope && !!id,
   });
 }
 
@@ -100,8 +104,10 @@ export function useReplaceTemplateFile() {
 // ─── Generations ────────────────────────────────────────────────────────────
 
 export function useGenerations(page: number, size: number) {
+  const scope = useCommerceScope();
   return useQuery({
-    queryKey: documentKeys.generations(page, size),
+    enabled: !!scope,
+    queryKey: [...documentKeys.generations(page, size), scope],
     queryFn: () => documentsApi.getGenerations({ page, size }),
   });
 }
@@ -117,10 +123,11 @@ export function useGenerateDocument() {
 }
 
 export function useGenerationsByReference(referenceType: string, referenceId: number) {
+  const scope = useCommerceScope();
   return useQuery({
-    queryKey: documentKeys.generationsByReference(referenceType, referenceId),
+    queryKey: [...documentKeys.generationsByReference(referenceType, referenceId), scope],
     queryFn: () => documentsApi.getGenerationsByReference(referenceType, referenceId),
-    enabled: !!referenceId,
+    enabled: !!scope && !!referenceId,
   });
 }
 
@@ -137,8 +144,10 @@ export function useDocumentTypes() {
 // ─── Compliance ─────────────────────────────────────────────────────────────
 
 export function useComplianceStats() {
+  const scope = useCommerceScope();
   return useQuery({
-    queryKey: documentKeys.complianceStats(),
+    enabled: !!scope,
+    queryKey: [...documentKeys.complianceStats(), scope],
     queryFn: () => documentsApi.getComplianceStats(),
   });
 }

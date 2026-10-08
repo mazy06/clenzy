@@ -4,12 +4,9 @@ import com.clenzy.model.HousekeeperPayoutConfig;
 import com.clenzy.model.HousekeeperPayoutRecord;
 import com.clenzy.model.HousekeeperPayoutRecord.Status;
 import com.clenzy.model.Intervention;
-import com.clenzy.model.User;
+import com.clenzy.model.PayoutBeneficiary;
 import com.clenzy.repository.HousekeeperPayoutConfigRepository;
 import com.clenzy.repository.HousekeeperPayoutRecordRepository;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
@@ -25,15 +22,18 @@ import java.math.BigDecimal;
 @Service
 public class HousekeeperPayoutRecorder {
 
-    private static final Logger log = LoggerFactory.getLogger(HousekeeperPayoutRecorder.class);
-
     private final HousekeeperPayoutRecordRepository recordRepository;
     private final HousekeeperPayoutConfigRepository configRepository;
+    private final ProviderPayoutBeneficiaryService beneficiaries;
+    private final BaitlyProviderPayoutGuard fundingGuard;
 
     public HousekeeperPayoutRecorder(HousekeeperPayoutRecordRepository recordRepository,
-                                     HousekeeperPayoutConfigRepository configRepository) {
+                                     HousekeeperPayoutConfigRepository configRepository,
+                                     ProviderPayoutBeneficiaryService beneficiaries, BaitlyProviderPayoutGuard fundingGuard) {
         this.recordRepository = recordRepository;
         this.configRepository = configRepository;
+        this.beneficiaries = beneficiaries;
+        this.fundingGuard = fundingGuard;
     }
 
     /**
@@ -43,23 +43,25 @@ public class HousekeeperPayoutRecorder {
      * @return true si inséré, false si un record existe déjà (anti-double-payout).
      */
     @Transactional(propagation = Propagation.REQUIRES_NEW)
-    public boolean insertRecord(Intervention intervention, User pro, BigDecimal amount,
+    public boolean insertRecord(Intervention intervention, PayoutBeneficiary beneficiary, BigDecimal amount,
                                 BigDecimal commission, Status status, String reason) {
+        beneficiaries.lockAndRequireRecipient(intervention.getId(), intervention.getOrganizationId(), beneficiary);
         if (recordRepository.findByInterventionId(intervention.getId()).isPresent()) {
             return false; // pré-check informatif ; la contrainte UNIQUE reste l'arbitre.
         }
-        try {
-            HousekeeperPayoutRecord record = new HousekeeperPayoutRecord(
-                    intervention.getOrganizationId(), pro.getId(), intervention.getId(),
+        // La décision de remboursement conserve ce même verrou jusqu'au commit.
+        // Revalider ici : le contrôle effectué avant d'obtenir le verrou peut être périmé.
+        if (status == Status.PENDING) fundingGuard.requireFunding(intervention.getId(), intervention.getOrganizationId(),
+                beneficiary, amount, commission);
+        HousekeeperPayoutRecord record = new HousekeeperPayoutRecord(
+                    intervention.getOrganizationId(), beneficiary.userId(), intervention.getId(),
                     amount, commission, status);
-            record.setFailureReason(reason);
-            recordRepository.save(record);
-            return true;
-        } catch (DataIntegrityViolationException e) {
-            log.info("Payout intervention {} : record concurrent détecté (unique) — aucun doublon",
-                    intervention.getId());
-            return false;
-        }
+        record.setBeneficiaryOrganizationId(beneficiary.organizationId());
+        record.setFailureReason(reason);
+        // Le verrou partagé sérialise les préparations. Une erreur DB doit rester visible,
+        // et non être avalée dans une transaction déjà marquée rollback-only.
+        recordRepository.saveAndFlush(record);
+        return true;
     }
 
     /** CAS PENDING → SENT (retour 0 = un concurrent a déjà transitionné → ne rien faire). */
@@ -75,16 +77,30 @@ public class HousekeeperPayoutRecorder {
         return recordRepository.transitionStatus(recordId, Status.PENDING, Status.FAILED, null, truncated);
     }
 
+    /** Une réponse PSP inconnue exige une vérification, jamais une nouvelle émission. */
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
+    public int markReconciliationRequired(Long recordId) {
+        return recordRepository.transitionStatus(recordId, Status.PENDING, Status.BLOCKED, null, "RECONCILIATION_REQUIRED");
+    }
+
     /** CAS FAILED|BLOCKED → PENDING (relance admin) + refixe le montant. */
     @Transactional
     public int requeueRecord(Long recordId, Status from, BigDecimal net, BigDecimal commission) {
+        if (from != Status.FAILED && from != Status.BLOCKED) throw new IllegalArgumentException("État non relançable.");
+        var before = recordRepository.findById(recordId).orElseThrow();
+        fundingGuard.requireFunding(before.getInterventionId(), before.getOrganizationId(), before.beneficiary(), net, commission);
+        var current = fundingGuard.lockRecord(before);
+        if (current.getStatus() != from) return 0;
+        if (current.getStripeTransferId() != null || "RECONCILIATION_REQUIRED".equals(current.getFailureReason()))
+            throw new IllegalStateException("Le transfert existant doit être rapproché avant toute relance.");
         int updated = recordRepository.transitionStatus(recordId, from, Status.PENDING, null, null);
         if (updated > 0) {
-            recordRepository.findById(recordId).ifPresent(r -> {
-                r.setAmount(net);
-                r.setCommissionAmount(commission);
-                recordRepository.save(r);
-            });
+            // Le CAS bulk n'actualise pas l'entité déjà chargée. Sans refresh, le flush
+            // du nouveau montant réécrirait son ancien statut BLOCKED/FAILED.
+            current = fundingGuard.lockRecord(current);
+            current.setAmount(net);
+            current.setCommissionAmount(commission);
+            recordRepository.save(current);
         }
         return updated;
     }

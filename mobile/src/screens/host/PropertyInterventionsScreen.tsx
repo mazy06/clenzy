@@ -3,7 +3,7 @@ import { View, Text, ScrollView, Pressable, RefreshControl } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRoute, useNavigation } from '@react-navigation/native';
 import type { RouteProp } from '@react-navigation/native';
-import { Ionicons } from '@expo/vector-icons';
+import { Reicon } from '@/icons';
 import { useInterventions } from '@/hooks/useInterventions';
 import { useProperty } from '@/hooks/useProperties';
 import { InterventionCard } from '@/components/domain/InterventionCard';
@@ -12,7 +12,7 @@ import { EmptyState } from '@/components/ui/EmptyState';
 import { Skeleton } from '@/components/ui/Skeleton';
 import { useTheme } from '@/theme';
 
-type IoniconsName = keyof typeof Ionicons.glyphMap;
+type IconName = keyof typeof Reicon.glyphMap;
 type RouteParams = { PropertyInterventions: { propertyId: number } };
 
 /* ─── Constants ─── */
@@ -40,7 +40,7 @@ type TabKey = 'cleaning' | 'maintenance' | 'other';
 interface TabDef {
   key: TabKey;
   label: string;
-  icon: IoniconsName;
+  icon: IconName;
 }
 
 const TABS: TabDef[] = [
@@ -62,11 +62,11 @@ function formatDuration(minutes: number): string {
 /* ─── Sub-components ─── */
 
 function InfoRow({ icon, label, value, theme, valueColor }: {
-  icon: IoniconsName; label: string; value: string; theme: ReturnType<typeof useTheme>; valueColor?: string;
+  icon: IconName; label: string; value: string; theme: ReturnType<typeof useTheme>; valueColor?: string;
 }) {
   return (
     <View style={{ flexDirection: 'row', alignItems: 'center', paddingVertical: 10 }}>
-      <Ionicons name={icon} size={16} color={theme.colors.text.disabled} style={{ marginRight: theme.SPACING.md, width: 20 }} />
+      <Reicon name={icon} size={16} color={theme.colors.text.disabled} style={{ marginRight: theme.SPACING.md, width: 20 }} />
       <Text style={{ ...theme.typography.body2, color: theme.colors.text.secondary, flex: 1 }}>{label}</Text>
       <Text style={{ ...theme.typography.body2, color: valueColor || theme.colors.text.primary, fontWeight: '600' }}>{value}</Text>
     </View>
@@ -74,7 +74,7 @@ function InfoRow({ icon, label, value, theme, valueColor }: {
 }
 
 function CleaningTaskRow({ icon, label, active, detail, theme }: {
-  icon: IoniconsName; label: string; active: boolean; detail?: string; theme: ReturnType<typeof useTheme>;
+  icon: IconName; label: string; active: boolean; detail?: string; theme: ReturnType<typeof useTheme>;
 }) {
   return (
     <View style={{ flexDirection: 'row', alignItems: 'center', paddingVertical: 10, opacity: active ? 1 : 0.45 }}>
@@ -83,13 +83,13 @@ function CleaningTaskRow({ icon, label, active, detail, theme }: {
         backgroundColor: active ? `${theme.colors.success.main}0C` : theme.colors.background.surface,
         alignItems: 'center', justifyContent: 'center', marginRight: theme.SPACING.md,
       }}>
-        <Ionicons name={icon} size={14} color={active ? theme.colors.success.main : theme.colors.text.disabled} />
+        <Reicon name={icon} size={14} color={active ? theme.colors.success.main : theme.colors.text.disabled} />
       </View>
       <Text style={{ ...theme.typography.body2, color: theme.colors.text.primary, flex: 1 }}>{label}</Text>
       {active ? (
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
           {detail && <Text style={{ ...theme.typography.caption, color: theme.colors.text.secondary }}>{detail}</Text>}
-          <Ionicons name="checkmark-circle" size={16} color={theme.colors.success.main} />
+          <Reicon name="checkmark-circle" size={16} color={theme.colors.success.main} />
         </View>
       ) : (
         <Text style={{ ...theme.typography.caption, color: theme.colors.text.disabled }}>Non inclus</Text>
@@ -139,7 +139,7 @@ function CleaningConfigSection({ theme, property }: {
           backgroundColor: `${theme.colors.secondary.main}0C`,
           alignItems: 'center', justifyContent: 'center',
         }}>
-          <Ionicons name="sparkles-outline" size={16} color={theme.colors.secondary.main} />
+          <Reicon name="sparkles-outline" size={16} color={theme.colors.secondary.main} />
         </View>
         <Text style={{ ...theme.typography.body1, color: theme.colors.text.primary, fontWeight: '600', flex: 1 }}>
           Consignes de menage
@@ -164,7 +164,7 @@ function CleaningConfigSection({ theme, property }: {
           paddingVertical: theme.SPACING.md, paddingHorizontal: theme.SPACING.sm, alignItems: 'center',
         }}>
           <View style={{ width: 36, height: 36, borderRadius: 18, backgroundColor: `${theme.colors.secondary.main}15`, alignItems: 'center', justifyContent: 'center', marginBottom: 8 }}>
-            <Ionicons name="repeat-outline" size={18} color={theme.colors.secondary.main} />
+            <Reicon name="repeat-outline" size={18} color={theme.colors.secondary.main} />
           </View>
           <Text style={{ ...theme.typography.caption, color: theme.colors.text.secondary, textAlign: 'center', fontWeight: '600' }}>Frequence</Text>
           <Text style={{ ...theme.typography.caption, color: theme.colors.secondary.main, textAlign: 'center', marginTop: 2, fontWeight: '700' }}>{freqLabel ?? 'Non defini'}</Text>
@@ -174,7 +174,7 @@ function CleaningConfigSection({ theme, property }: {
           paddingVertical: theme.SPACING.md, paddingHorizontal: theme.SPACING.sm, alignItems: 'center',
         }}>
           <View style={{ width: 36, height: 36, borderRadius: 18, backgroundColor: `${theme.colors.info.main}15`, alignItems: 'center', justifyContent: 'center', marginBottom: 8 }}>
-            <Ionicons name="time-outline" size={18} color={theme.colors.info.main} />
+            <Reicon name="time-outline" size={18} color={theme.colors.info.main} />
           </View>
           <Text style={{ ...theme.typography.caption, color: theme.colors.text.secondary, textAlign: 'center', fontWeight: '600' }}>Duree</Text>
           <Text style={{ ...theme.typography.caption, color: theme.colors.info.main, textAlign: 'center', marginTop: 2, fontWeight: '700' }}>
@@ -186,7 +186,7 @@ function CleaningConfigSection({ theme, property }: {
           paddingVertical: theme.SPACING.md, paddingHorizontal: theme.SPACING.sm, alignItems: 'center',
         }}>
           <View style={{ width: 36, height: 36, borderRadius: 18, backgroundColor: `${theme.colors.success.main}15`, alignItems: 'center', justifyContent: 'center', marginBottom: 8 }}>
-            <Ionicons name="cash-outline" size={18} color={theme.colors.success.main} />
+            <Reicon name="cash-outline" size={18} color={theme.colors.success.main} />
           </View>
           <Text style={{ ...theme.typography.caption, color: theme.colors.text.secondary, textAlign: 'center', fontWeight: '600' }}>Tarif</Text>
           <Text style={{ ...theme.typography.caption, color: theme.colors.success.main, textAlign: 'center', marginTop: 2, fontWeight: '700' }}>
@@ -220,7 +220,7 @@ function CleaningConfigSection({ theme, property }: {
             padding: theme.SPACING.md, backgroundColor: `${theme.colors.warning.main}08`,
             borderRadius: theme.BORDER_RADIUS.md, borderLeftWidth: 3, borderLeftColor: theme.colors.warning.main,
           }}>
-            <Ionicons name="alert-circle-outline" size={16} color={theme.colors.warning.main} style={{ marginTop: 2 }} />
+            <Reicon name="alert-circle-outline" size={16} color={theme.colors.warning.main} style={{ marginTop: 2 }} />
             <View style={{ flex: 1 }}>
               <Text style={{ ...theme.typography.caption, color: theme.colors.warning.dark, fontWeight: '700', marginBottom: 4 }}>Notes de menage</Text>
               <Text style={{ ...theme.typography.body2, color: theme.colors.text.secondary, lineHeight: 20 }}>{property.cleaningNotes}</Text>
@@ -271,7 +271,7 @@ export function PropertyInterventionsScreen() {
         backgroundColor: theme.colors.background.paper,
       }}>
         <Pressable onPress={() => navigation.goBack()} hitSlop={8} style={{ marginRight: theme.SPACING.md }}>
-          <Ionicons name="chevron-back" size={22} color={theme.colors.text.primary} />
+          <Reicon name="chevron-back" size={22} color={theme.colors.text.primary} />
         </Pressable>
         <Text style={{ ...theme.typography.h3, color: theme.colors.text.primary, flex: 1 }}>Interventions</Text>
         {interventions.length > 0 && (
@@ -313,7 +313,7 @@ export function PropertyInterventionsScreen() {
                 borderColor: theme.colors.border.light,
               }}
             >
-              <Ionicons
+              <Reicon
                 name={tab.icon}
                 size={16}
                 color={isActive ? theme.colors.primary.main : theme.colors.text.disabled}

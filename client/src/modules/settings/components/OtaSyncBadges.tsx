@@ -17,7 +17,7 @@
  */
 import React from 'react';
 import { Tooltip, TooltipContent, TooltipTrigger } from '../../../components/ui';
-import { Check } from 'lucide-react';
+import { Check } from '../../../icons/glyphs';
 
 import {
   CHANNEX_OTA_OPTIONS,

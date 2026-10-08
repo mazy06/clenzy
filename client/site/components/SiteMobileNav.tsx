@@ -1,5 +1,5 @@
 import { Link, useLocation } from 'react-router-dom';
-import { ArrowRightIcon } from 'lucide-react';
+import { ArrowRightIcon } from '../../src/icons/glyphs';
 import { runtimeEnvOr } from '../../src/config/runtimeConfig';
 import { useSiteLanguage } from '../lib/siteLanguage';
 import { LAYOUT_MESSAGES } from '../lib/messages/layout';

@@ -26,7 +26,7 @@
  */
 import React from 'react';
 import { cn } from '../../../utils/cn';
-import { Cable, Search, Check, ArrowRight } from 'lucide-react';
+import { Cable, Search, Check, ArrowRight } from '../../../icons/glyphs';
 import { useTranslation } from '../../../hooks/useTranslation';
 import type { TFunction } from 'i18next';
 

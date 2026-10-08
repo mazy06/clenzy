@@ -17,7 +17,7 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 /**
- * Service de parsing des templates .odt pour detection automatique des tags Freemarker.
+ * Service de parsing des modèles HTML pour detection automatique des tags Freemarker.
  * <p>
  * Detecte les tags du type : ${client.nom}, ${property.address}, ${intervention.date_fin},
  * ainsi que les directives [#list] et [#if].
@@ -45,8 +45,8 @@ public class TemplateParserService {
 
     // Pattern pour les variables Freemarker ${...} et les directives [#list ...] [#if ...]
     private static final Pattern FREEMARKER_VAR_PATTERN = Pattern.compile("\\$\\{([^}]+)}");
-    private static final Pattern FREEMARKER_LIST_PATTERN = Pattern.compile("\\[#list\\s+(\\S+)\\s+as\\s+(\\S+)]");
-    private static final Pattern FREEMARKER_IF_PATTERN = Pattern.compile("\\[#if\\s+([^]]+)]");
+    private static final Pattern FREEMARKER_LIST_PATTERN = Pattern.compile("(?:\\[|<)#list\\s+(\\S+)\\s+as\\s+([a-zA-Z_][a-zA-Z0-9_]*)[\\]>]");
+    private static final Pattern FREEMARKER_IF_PATTERN = Pattern.compile("(?:\\[|<)#if\\s+([^]\\>]+)[\\]>]");
 
     // Mapping prefixe → TagCategory
     private static final Map<String, TagCategory> PREFIX_CATEGORY_MAP = Map.of(
@@ -71,9 +71,9 @@ public class TemplateParserService {
     private static final Set<String> IMAGE_NAMES = Set.of("logo", "signature", "photo", "cachet");
 
     /**
-     * Parse un fichier template .odt et retourne la liste des tags detectes.
+     * Parse un fichier modèle HTML et retourne la liste des tags detectes.
      *
-     * @param templatePath Chemin absolu du fichier .odt
+     * @param templatePath Chemin absolu du fichier HTML
      * @return Liste des tags detectes (non persistes, sans template_id)
      */
     public List<DocumentTemplateTag> parseTemplate(Path templatePath) {
@@ -87,7 +87,7 @@ public class TemplateParserService {
     }
 
     /**
-     * Parse un template .odt a partir de son contenu binaire (byte[]).
+     * Parse un modèle HTML a partir de son contenu binaire (byte[]).
      */
     public List<DocumentTemplateTag> parseTemplate(byte[] content) {
         log.info("Parsing template from byte[] ({} bytes)", content.length);
@@ -103,7 +103,7 @@ public class TemplateParserService {
         Set<String> rawTags = new LinkedHashSet<>();
 
         try {
-            String xmlContent = extractOdtTextContent(inputStream);
+            String xmlContent = new String(BaitlyLegacyOdtImporter.html(inputStream.readNBytes(BaitlyHtmlTemplates.MAX_SOURCE_BYTES + 1)), java.nio.charset.StandardCharsets.UTF_8);
             extractFreemarkerTags(xmlContent, rawTags);
         } catch (Exception e) {
             log.warn("Failed to extract tags via regex from {}: {}", sourceName, e.getMessage());
@@ -122,41 +122,20 @@ public class TemplateParserService {
     }
 
     /**
-     * Extrait le contenu texte XML d'un .odt (format ZIP contenant content.xml).
-     */
-    private String extractOdtTextContent(InputStream odtStream) throws IOException {
-        StringBuilder content = new StringBuilder();
-        try (java.util.zip.ZipInputStream zis = new java.util.zip.ZipInputStream(odtStream)) {
-            java.util.zip.ZipEntry entry;
-            while ((entry = zis.getNextEntry()) != null) {
-                if ("content.xml".equals(entry.getName()) || "styles.xml".equals(entry.getName())) {
-                    long entrySize = entry.getSize();
-                    if (entrySize > MAX_ZIP_ENTRY_SIZE) {
-                        throw new SecurityException("ODT entry too large: " + entry.getName()
-                                + " (" + entrySize + " bytes, max " + MAX_ZIP_ENTRY_SIZE + ")");
-                    }
-                    byte[] bytes = zis.readAllBytes();
-                    if (bytes.length > MAX_ZIP_ENTRY_SIZE) {
-                        throw new SecurityException("ODT entry decompressed size exceeds limit: " + entry.getName());
-                    }
-                    content.append(new String(bytes, java.nio.charset.StandardCharsets.UTF_8));
-                }
-            }
-        }
-        return content.toString();
-    }
-
-    /**
      * Extrait les tags Freemarker du contenu XML brut.
      */
     private void extractFreemarkerTags(String xmlContent, Set<String> tags) {
         // Nettoyer les balises XML qui pourraient couper les expressions Freemarker
-        String cleaned = xmlContent
+        String cleaned = xmlContent.replaceAll("<(/?#.*?)>", "[$1]")
                 .replaceAll("<[^>]+>", " ")   // Supprimer les balises XML
                 .replaceAll("&lt;", "<")
                 .replaceAll("&gt;", ">")
                 .replaceAll("&amp;", "&")
                 .replaceAll("\\s+", " ");
+
+        Set<String> loopVariables = new HashSet<>();
+        Matcher loops = FREEMARKER_LIST_PATTERN.matcher(cleaned);
+        while (loops.find()) loopVariables.add(loops.group(2));
 
         // Extraire ${variable}
         Matcher varMatcher = FREEMARKER_VAR_PATTERN.matcher(cleaned);
@@ -164,7 +143,7 @@ public class TemplateParserService {
             String tag = varMatcher.group(1).trim();
             // Ignorer les expressions complexes (ternaires, methodes, etc.)
             if (!tag.contains("?") && !tag.contains("(") && !tag.contains("+")) {
-                tags.add(tag);
+                if (loopVariables.stream().noneMatch(v -> tag.equals(v) || tag.startsWith(v + "."))) tags.add(tag);
             }
         }
 
@@ -239,7 +218,7 @@ public class TemplateParserService {
 
         // Verifier LIST
         for (String listPrefix : LIST_PREFIXES) {
-            if (lowerField.equals(listPrefix) || lowerField.startsWith(listPrefix)) {
+            if (lowerField.equals(listPrefix)) {
                 return TagType.LIST;
             }
         }
@@ -254,7 +233,7 @@ public class TemplateParserService {
             case INTERVENTION -> "InterventionRepository";
             case DEVIS, FACTURE -> "ServiceRequestRepository / InterventionRepository";
             case PAIEMENT -> "Stripe / InterventionRepository";
-            case ENTREPRISE -> "Configuration application";
+            case ENTREPRISE -> "Organisation émettrice / profil fiscal / prestataire";
             case SYSTEM -> "System (date, numero auto)";
         };
     }

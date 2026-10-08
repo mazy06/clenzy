@@ -3,6 +3,8 @@ package com.clenzy.service;
 import com.clenzy.model.*;
 import com.clenzy.repository.FiscalProfileRepository;
 import com.clenzy.repository.InvoiceRepository;
+import jakarta.persistence.EntityManager;
+import jakarta.persistence.LockModeType;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -10,7 +12,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
-import java.time.LocalDateTime;
+import java.util.Objects;
 import java.util.Optional;
 
 /**
@@ -18,9 +20,9 @@ import java.util.Optional;
  * réservation OTA, selon le modèle de paiement du contrat de gestion :
  *
  * <ul>
- *   <li>{@code OWNER_COLLECTS} : l'OTA a versé au propriétaire → facture ISSUED = créance à recouvrer.</li>
- *   <li>{@code CONCIERGE_COLLECTS} : la conciergerie a encaissé → facture PAID = commission retenue
- *       sur le reversement.</li>
+ *   <li>{@code OWNER_COLLECTS} : facture ISSUED, règlement distinct à recouvrer.</li>
+ *   <li>{@code CONCIERGE_COLLECTS} : facture ISSUED, retenue à rapprocher avec les fonds reçus.
+ *       Le modèle contractuel et l'import OTA ne prouvent jamais le règlement.</li>
  *   <li>{@code DIRECT} / {@code OTA_COHOST_SPLIT} / pas de contrat : aucune facture
  *       (DIRECT = répartition Stripe via SplitPaymentService ; split = réglé à la source par l'OTA).</li>
  * </ul>
@@ -38,17 +40,19 @@ public class CommissionInvoiceService {
     private final InvoiceRepository invoiceRepository;
     private final FiscalProfileRepository fiscalProfileRepository;
     private final ManagementContractService managementContractService;
+    private final EntityManager em;
 
     public CommissionInvoiceService(InvoiceGeneratorService invoiceGeneratorService,
                                     InvoiceNumberingService numberingService,
                                     InvoiceRepository invoiceRepository,
                                     FiscalProfileRepository fiscalProfileRepository,
-                                    ManagementContractService managementContractService) {
+                                    ManagementContractService managementContractService, EntityManager em) {
         this.invoiceGeneratorService = invoiceGeneratorService;
         this.numberingService = numberingService;
         this.invoiceRepository = invoiceRepository;
         this.fiscalProfileRepository = fiscalProfileRepository;
         this.managementContractService = managementContractService;
+        this.em = em;
     }
 
     /**
@@ -59,6 +63,12 @@ public class CommissionInvoiceService {
     @Transactional
     public Invoice generateForReservation(Reservation reservation) {
         Long orgId = reservation.getOrganizationId();
+        if (reservation.getId() == null || orgId == null) return null;
+        // Sérialise les imports/rejeux et la préparation du reversement sur la même dette.
+        reservation = em.find(Reservation.class, reservation.getId(), LockModeType.PESSIMISTIC_WRITE);
+        if (reservation == null || !Objects.equals(orgId, reservation.getOrganizationId())) {
+            throw new IllegalStateException("Réservation de commission inaccessible.");
+        }
         Long propertyId = reservation.getProperty() != null ? reservation.getProperty().getId() : null;
         if (propertyId == null) {
             return null;
@@ -103,21 +113,20 @@ public class CommissionInvoiceService {
             return null;
         }
 
-        String number = numberingService.generateNextNumber(orgId);
+        if(!numberingService.checkAndRecord(invoice,"COMMISSION")) return invoiceRepository.save(invoice);
+        String number = numberingService.generateNextNumberFor(invoice);
         invoice.setInvoiceNumber(number);
         invoice.setInvoiceDate(LocalDate.now());
 
+        invoice.setStatus(InvoiceStatus.ISSUED);
         if (model == ManagementContract.PaymentModel.CONCIERGE_COLLECTS) {
-            // La conciergerie a encaissé l'OTA : commission retenue sur le reversement → réglée.
-            invoice.setStatus(InvoiceStatus.PAID);
-            invoice.setPaidAt(LocalDateTime.now());
+            // Intention de retenue seulement : aucun paidAt sans preuve de règlement.
             invoice.setPaymentMethod("RETENUE_REVERSEMENT");
-        } else {
-            // OWNER_COLLECTS : le propriétaire a encaissé l'OTA → créance à recouvrer.
-            invoice.setStatus(InvoiceStatus.ISSUED);
+            invoice.setDueDate(null);
         }
 
         invoice = invoiceRepository.save(invoice);
+        numberingService.checkAndRecord(invoice,"COMMISSION");
         log.info("Facture commission {} ({}) generee pour reservation {} (totalTTC={})",
             number, invoice.getStatus(), reservation.getId(), invoice.getTotalTtc());
         return invoice;

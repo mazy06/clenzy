@@ -18,7 +18,7 @@ import {
   Search,
   ChevronDown,
   RotateCcw,
-} from 'lucide-react';
+} from '../../src/icons/glyphs';
 import { BAITLY_RESOURCE_MESSAGES } from '../lib/messages/baitlyResources';
 import type { SiteLanguage } from '../lib/siteLanguage';
 import {

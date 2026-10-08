@@ -3,7 +3,7 @@ import { View, Text, ScrollView, Pressable, RefreshControl, Linking, Alert, Acti
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRoute, useNavigation } from '@react-navigation/native';
 import type { RouteProp } from '@react-navigation/native';
-import { Ionicons } from '@expo/vector-icons';
+import { Reicon } from '@/icons';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useReservation, useReservationInterventions } from '@/hooks/useReservations';
 import { reservationsApi } from '@/api/endpoints/reservationsApi';
@@ -18,13 +18,13 @@ import { InterventionCard } from '@/components/domain/InterventionCard';
 import { ReservationCancelDialog } from '@/screens/host/ReservationCancelDialog';
 import { useTheme } from '@/theme';
 
-type IoniconsName = keyof typeof Ionicons.glyphMap;
+type IconName = keyof typeof Reicon.glyphMap;
 
 type RouteParams = { ReservationDetail: { reservationId: number } };
 
 type TabKey = 'infos' | 'paiement' | 'operations' | 'communication';
 
-const TABS: { key: TabKey; label: string; icon: IoniconsName }[] = [
+const TABS: { key: TabKey; label: string; icon: IconName }[] = [
   { key: 'infos', label: 'Infos', icon: 'information-circle-outline' },
   { key: 'paiement', label: 'Paiement', icon: 'card-outline' },
   { key: 'operations', label: 'Operations', icon: 'construct-outline' },
@@ -56,7 +56,7 @@ const PAYMENT_STATUS_CONFIG: Record<string, { label: string; color: 'success' | 
  * entrée ne correspondait jamais et l'icône de repli s'appliquait à toutes les
  * réservations — la table était morte.
  */
-const SOURCE_ICONS: Record<string, IoniconsName> = {
+const SOURCE_ICONS: Record<string, IconName> = {
   airbnb: 'logo-no-smoking',
   booking: 'globe-outline',
   vrbo: 'globe-outline',
@@ -118,11 +118,11 @@ function formatCurrency(amount: number): string {
 /* --- Sub-components --- */
 
 function InfoRow({ icon, label, value, onPress, actionIcon, theme }: {
-  icon: IoniconsName;
+  icon: IconName;
   label: string;
   value: string;
   onPress?: () => void;
-  actionIcon?: IoniconsName;
+  actionIcon?: IconName;
   theme: ReturnType<typeof useTheme>;
 }) {
   const content = (
@@ -137,7 +137,7 @@ function InfoRow({ icon, label, value, onPress, actionIcon, theme }: {
         alignItems: 'center', justifyContent: 'center',
         marginRight: theme.SPACING.md,
       }}>
-        <Ionicons name={icon} size={16} color={theme.colors.primary.main} />
+        <Reicon name={icon} size={16} color={theme.colors.primary.main} />
       </View>
       <View style={{ flex: 1 }}>
         <Text style={{ ...theme.typography.caption, color: theme.colors.text.disabled }}>{label}</Text>
@@ -149,7 +149,7 @@ function InfoRow({ icon, label, value, onPress, actionIcon, theme }: {
           backgroundColor: `${theme.colors.primary.main}0A`,
           alignItems: 'center', justifyContent: 'center',
         }}>
-          <Ionicons name={actionIcon} size={16} color={theme.colors.primary.main} />
+          <Reicon name={actionIcon} size={16} color={theme.colors.primary.main} />
         </View>
       )}
     </View>
@@ -247,7 +247,7 @@ function TabInfos({ reservation, theme, openPhone, openEmail }: {
           </View>
         ) : (
           <View style={{ alignItems: 'center', paddingVertical: theme.SPACING.sm }}>
-            <Ionicons name="person-outline" size={24} color={theme.colors.text.disabled} />
+            <Reicon name="person-outline" size={24} color={theme.colors.text.disabled} />
             <Text style={{ ...theme.typography.caption, color: theme.colors.text.disabled, marginTop: theme.SPACING.xs }}>
               Aucune information voyageur
             </Text>
@@ -351,7 +351,7 @@ function TabInfos({ reservation, theme, openPhone, openEmail }: {
           </Text>
         ) : (
           <View style={{ alignItems: 'center', paddingVertical: theme.SPACING.sm }}>
-            <Ionicons name="document-text-outline" size={20} color={theme.colors.text.disabled} />
+            <Reicon name="document-text-outline" size={20} color={theme.colors.text.disabled} />
             <Text style={{ ...theme.typography.caption, color: theme.colors.text.disabled, marginTop: theme.SPACING.xs }}>
               Aucune note
             </Text>
@@ -476,7 +476,7 @@ function TabPaiement({ reservation, theme, onSendPaymentLink, isSendingLink }: {
           loading={isSendingLink}
           variant="outlined"
           fullWidth
-          icon={<Ionicons name="link-outline" size={18} color={theme.colors.primary.main} />}
+          icon={<Reicon name="link-outline" size={18} color={theme.colors.primary.main} />}
         />
       )}
     </View>
@@ -507,7 +507,7 @@ function TabOperations({ reservation, theme }: {
             borderRadius: theme.BORDER_RADIUS.sm,
             padding: theme.SPACING.md,
           }}>
-            <Ionicons
+            <Reicon
               name={isCheckedIn ? 'checkmark-circle' : 'ellipse-outline'}
               size={24}
               color={isCheckedIn ? theme.colors.success.main : theme.colors.text.disabled}
@@ -530,7 +530,7 @@ function TabOperations({ reservation, theme }: {
             borderRadius: theme.BORDER_RADIUS.sm,
             padding: theme.SPACING.md,
           }}>
-            <Ionicons
+            <Reicon
               name={isCheckedOut ? 'checkmark-circle' : 'ellipse-outline'}
               size={24}
               color={isCheckedOut ? theme.colors.success.main : theme.colors.text.disabled}
@@ -608,7 +608,7 @@ function TabCommunication({ reservation, theme }: {
                 alignItems: 'center', justifyContent: 'center',
                 marginRight: theme.SPACING.md,
               }}>
-                <Ionicons name="mail-outline" size={20} color={theme.colors.primary.main} />
+                <Reicon name="mail-outline" size={20} color={theme.colors.primary.main} />
               </View>
               <View style={{ flex: 1 }}>
                 <Text style={{ ...theme.typography.body2, color: theme.colors.text.primary, fontWeight: '600' }}>
@@ -618,7 +618,7 @@ function TabCommunication({ reservation, theme }: {
                   {reservation.guestEmail}
                 </Text>
               </View>
-              <Ionicons name="chevron-forward" size={16} color={theme.colors.text.disabled} />
+              <Reicon name="chevron-forward" size={16} color={theme.colors.text.disabled} />
             </Pressable>
           )}
 
@@ -638,7 +638,7 @@ function TabCommunication({ reservation, theme }: {
                 alignItems: 'center', justifyContent: 'center',
                 marginRight: theme.SPACING.md,
               }}>
-                <Ionicons name="chatbubble-ellipses-outline" size={20} color={theme.colors.success.main} />
+                <Reicon name="chatbubble-ellipses-outline" size={20} color={theme.colors.success.main} />
               </View>
               <View style={{ flex: 1 }}>
                 <Text style={{ ...theme.typography.body2, color: theme.colors.text.primary, fontWeight: '600' }}>
@@ -648,7 +648,7 @@ function TabCommunication({ reservation, theme }: {
                   {reservation.guestPhone}
                 </Text>
               </View>
-              <Ionicons name="chevron-forward" size={16} color={theme.colors.text.disabled} />
+              <Reicon name="chevron-forward" size={16} color={theme.colors.text.disabled} />
             </Pressable>
           )}
 
@@ -668,7 +668,7 @@ function TabCommunication({ reservation, theme }: {
                 alignItems: 'center', justifyContent: 'center',
                 marginRight: theme.SPACING.md,
               }}>
-                <Ionicons name="logo-whatsapp" size={20} color="#25D366" />
+                <Reicon name="logo-whatsapp" size={20} color="#25D366" />
               </View>
               <View style={{ flex: 1 }}>
                 <Text style={{ ...theme.typography.body2, color: theme.colors.text.primary, fontWeight: '600' }}>
@@ -678,7 +678,7 @@ function TabCommunication({ reservation, theme }: {
                   {reservation.guestPhone}
                 </Text>
               </View>
-              <Ionicons name="chevron-forward" size={16} color={theme.colors.text.disabled} />
+              <Reicon name="chevron-forward" size={16} color={theme.colors.text.disabled} />
             </Pressable>
           )}
 
@@ -815,7 +815,7 @@ export function ReservationDetailScreen() {
             ...theme.shadows.md,
           }}
         >
-          <Ionicons name="chevron-back" size={20} color={theme.colors.text.primary} />
+          <Reicon name="chevron-back" size={20} color={theme.colors.text.primary} />
         </Pressable>
         <View style={{ marginTop: 56 }}>
           <DetailSkeleton theme={theme} />
@@ -872,7 +872,7 @@ export function ReservationDetailScreen() {
               marginRight: theme.SPACING.md,
             }}
           >
-            <Ionicons name="arrow-back" size={20} color={theme.colors.text.primary} />
+            <Reicon name="arrow-back" size={20} color={theme.colors.text.primary} />
           </Pressable>
           <Text style={{ ...theme.typography.h2, color: theme.colors.text.primary, flex: 1 }}>
             Reservation
@@ -896,7 +896,7 @@ export function ReservationDetailScreen() {
                 borderRadius: theme.BORDER_RADIUS.sm,
                 backgroundColor: `${theme.colors.primary.main}0A`,
               }}>
-                <Ionicons name="document-text-outline" size={12} color={theme.colors.primary.main} />
+                <Reicon name="document-text-outline" size={12} color={theme.colors.primary.main} />
                 <Text style={{ ...theme.typography.caption, color: theme.colors.primary.main, fontWeight: '600' }}>
                   {reservation.confirmationCode}
                 </Text>
@@ -930,7 +930,7 @@ export function ReservationDetailScreen() {
                     backgroundColor: isActive ? theme.colors.primary.main : 'transparent',
                   }}
                 >
-                  <Ionicons
+                  <Reicon
                     name={tab.icon}
                     size={14}
                     color={isActive ? theme.colors.primary.contrastText : theme.colors.text.disabled}
@@ -992,7 +992,7 @@ export function ReservationDetailScreen() {
             size="medium"
             onPress={() => navigation.navigate('ReservationEdit', { reservationId })}
             style={{ flex: 1 }}
-            icon={<Ionicons name="create-outline" size={16} color={theme.colors.primary.main} />}
+            icon={<Reicon name="create-outline" size={16} color={theme.colors.primary.main} />}
           />
           <Button
             title="Annuler"
@@ -1002,7 +1002,7 @@ export function ReservationDetailScreen() {
             onPress={() => setShowCancelDialog(true)}
             loading={cancelMutation.isPending}
             style={{ flex: 1 }}
-            icon={<Ionicons name="close-circle-outline" size={16} color={theme.colors.error.main} />}
+            icon={<Reicon name="close-circle-outline" size={16} color={theme.colors.error.main} />}
           />
         </View>
       )}

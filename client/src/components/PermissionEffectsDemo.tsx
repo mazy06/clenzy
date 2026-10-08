@@ -1,6 +1,6 @@
 import React from 'react';
 import { Alert, AlertDescription, Card, CardContent } from './ui';
-import { Info } from 'lucide-react';
+import { Info } from '../icons/glyphs';
 import { cn } from '../utils/cn';
 import StatusChip from './StatusChip';
 import { useTranslation } from '../hooks/useTranslation';

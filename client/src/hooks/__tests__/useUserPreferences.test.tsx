@@ -19,8 +19,12 @@ let mockIsAuthed = false;
 vi.mock('../useIsAuthenticated', () => ({
   useIsAuthenticated: () => mockIsAuthed,
 }));
+vi.mock('../../services/api/exchangeRateApi', () => ({
+  exchangeRateApi: { getMatrix: vi.fn(async () => ({ date: '2026-10-05', rates: {} })) },
+}));
 
 import { useUserPreferences } from '../useUserPreferences';
+import { CurrencyProvider, useCurrency } from '../useCurrency';
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -120,6 +124,85 @@ describe('useUserPreferences', () => {
   });
 
   describe('updatePreferences mutation', () => {
+    it('keeps euro after a full remount even with an old riyal browser cache', async () => {
+      mockIsAuthed = true;
+      let stored = { ...SERVER_PREFS, currency: 'SAR' };
+      getMyPreferencesMock.mockImplementation(async () => ({ ...stored }));
+      updateMyPreferencesMock.mockImplementation(async (data) => {
+        stored = { ...stored, ...data };
+        return { ...stored };
+      });
+      const currencyWrapper = () => {
+        const PreferencesWrapper = makeWrapper();
+        return ({ children }: { children: React.ReactNode }) => (
+          <PreferencesWrapper><CurrencyProvider>{children}</CurrencyProvider></PreferencesWrapper>
+        );
+      };
+      const first = renderHook(() => useCurrency(), { wrapper: currencyWrapper() });
+      await waitFor(() => expect(first.result.current.currency).toBe('SAR'));
+      act(() => first.result.current.setCurrency('EUR'));
+      await waitFor(() => expect(stored.currency).toBe('EUR'));
+      first.unmount();
+      // Simule un ancien onglet encore en SAR au moment du rechargement.
+      window.localStorage.setItem('clenzy_currency', 'SAR');
+      const second = renderHook(() => useCurrency(), { wrapper: currencyWrapper() });
+      await waitFor(() => expect(second.result.current.currency).toBe('EUR'));
+      expect(stored.currency).toBe('EUR');
+      expect(updateMyPreferencesMock).toHaveBeenCalledTimes(1);
+      expect(window.localStorage.getItem('clenzy_currency')).toBe('EUR');
+    });
+
+    it('ignores a stale read that resolves after saving the new currency', async () => {
+      mockIsAuthed = true;
+      let finishOldRead!: (v: typeof SERVER_PREFS) => void;
+      getMyPreferencesMock.mockReturnValueOnce(new Promise((resolve) => { finishOldRead = resolve; }));
+      updateMyPreferencesMock.mockResolvedValueOnce({ ...SERVER_PREFS, currency: 'EUR' });
+      const { result } = renderHook(() => useUserPreferences(), { wrapper: makeWrapper() });
+      await waitFor(() => expect(getMyPreferencesMock).toHaveBeenCalledTimes(1));
+
+      await act(async () => { await result.current.updatePreferences({ currency: 'EUR' }); });
+      await waitFor(() => expect(result.current.preferences.currency).toBe('EUR'));
+      await act(async () => { finishOldRead({ ...SERVER_PREFS, currency: 'SAR' }); });
+      expect(result.current.preferences.currency).toBe('EUR');
+    });
+
+    it('serializes saves from separate preference controls to preserve both choices', async () => {
+      mockIsAuthed = true;
+      let stored = { ...SERVER_PREFS, currency: 'SAR' };
+      getMyPreferencesMock.mockResolvedValue(stored);
+      let finishCurrencySave!: () => void;
+      updateMyPreferencesMock.mockImplementationOnce((data) => new Promise((resolve) => {
+        finishCurrencySave = () => {
+          stored = { ...stored, ...data };
+          resolve(stored);
+        };
+      })).mockImplementationOnce(async (data) => {
+        stored = { ...stored, ...data };
+        return stored;
+      });
+      const { result } = renderHook(() => ({
+        currencyControl: useUserPreferences(),
+        themeControl: useUserPreferences(),
+      }), { wrapper: makeWrapper() });
+      await waitFor(() => expect(result.current.currencyControl.isLoaded).toBe(true));
+      let currencySave!: Promise<unknown>;
+      let themeSave!: Promise<unknown>;
+      act(() => {
+        currencySave = result.current.currencyControl.updatePreferences({ currency: 'EUR' });
+        themeSave = result.current.themeControl.updatePreferences({ themeMode: 'light' });
+      });
+      await waitFor(() => expect(updateMyPreferencesMock).toHaveBeenCalledTimes(1));
+      expect(updateMyPreferencesMock).toHaveBeenNthCalledWith(1, { currency: 'EUR' });
+      await act(async () => {
+        finishCurrencySave();
+        await Promise.all([currencySave, themeSave]);
+      });
+      await waitFor(() => expect(result.current.currencyControl.preferences).toEqual(
+        expect.objectContaining({ currency: 'EUR', themeMode: 'light' }),
+      ));
+      expect(updateMyPreferencesMock).toHaveBeenCalledTimes(2);
+    });
+
     it('calls API and updates cached preferences', async () => {
       mockIsAuthed = true;
       getMyPreferencesMock.mockResolvedValueOnce(SERVER_PREFS);

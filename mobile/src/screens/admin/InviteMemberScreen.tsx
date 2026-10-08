@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { View, Text, ScrollView, Pressable, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Ionicons } from '@expo/vector-icons';
+import { Reicon } from '@/icons';
 import { useNavigation } from '@react-navigation/native';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useTheme } from '@/theme';
@@ -100,7 +100,7 @@ export function InviteMemberScreen() {
             marginRight: theme.SPACING.md,
           }}
         >
-          <Ionicons name="arrow-back" size={20} color={theme.colors.text.primary} />
+          <Reicon name="arrow-back" size={20} color={theme.colors.text.primary} />
         </Pressable>
         <Text style={{ ...theme.typography.h2, color: theme.colors.text.primary, flex: 1 }}>
           Inviter un membre
@@ -145,7 +145,7 @@ export function InviteMemberScreen() {
               alignItems: 'flex-start',
               gap: theme.SPACING.sm,
             }}>
-              <Ionicons name="information-circle-outline" size={16} color={theme.colors.info.main} style={{ marginTop: 2 }} />
+              <Reicon name="information-circle-outline" size={16} color={theme.colors.info.main} style={{ marginTop: 2 }} />
               <Text style={{ ...theme.typography.caption, color: theme.colors.text.secondary, flex: 1 }}>
                 {selectedRoleDesc}
               </Text>
@@ -167,7 +167,7 @@ export function InviteMemberScreen() {
                   alignItems: 'center',
                   justifyContent: 'center',
                 }}>
-                  <Ionicons name="mail" size={20} color={theme.colors.primary.main} />
+                  <Reicon name="mail" size={20} color={theme.colors.primary.main} />
                 </View>
                 <View style={{ flex: 1 }}>
                   <Text style={{ ...theme.typography.body1, fontWeight: '600', color: theme.colors.text.primary }}>
@@ -193,7 +193,7 @@ export function InviteMemberScreen() {
           loading={inviteMutation.isPending}
           disabled={!email.trim() || !role}
           fullWidth
-          icon={<Ionicons name="send-outline" size={18} color={theme.colors.primary.contrastText} />}
+          icon={<Reicon name="send-outline" size={18} color={theme.colors.primary.contrastText} />}
         />
       </ScrollView>
     </SafeAreaView>

@@ -408,7 +408,7 @@ public class PublicBookingController {
             @Valid @RequestBody com.clenzy.booking.dto.BookingUpsellCheckoutRequest request,
             HttpServletRequest httpRequest) {
         OrgContext ctx = resolveContext(slug, httpRequest);
-        return ResponseEntity.ok(bookingService.createUpsellCheckout(ctx, request.reservationCode(), offerId, request.returnUrl()));
+        return ResponseEntity.ok(bookingService.createUpsellCheckout(ctx, request.reservationCode(), offerId, request.returnUrl(),request.requestId()));
     }
 
     /**
@@ -440,6 +440,15 @@ public class PublicBookingController {
         }
         OrgContext ctx = resolveContext(slug, httpRequest);
         return ResponseEntity.ok(cancellationService.preview(ctx.orgId(), code, request.email()));
+    }
+
+    /** Suivi en lecture seule, même authentification code/email et même limite que l'aperçu. */
+    @PostMapping("/booking/{code}/cancellation-status")
+    public ResponseEntity<?> cancellationStatus(@PathVariable String slug, @PathVariable String code,
+            @Valid @RequestBody BookingCancellationRequest request, HttpServletRequest httpRequest) {
+        if (!rateLimiter.tryAcquirePreview(httpRequest)) return tooManyReservationAttempts();
+        OrgContext ctx = resolveContext(slug, httpRequest);
+        return ResponseEntity.ok(cancellationService.status(ctx.orgId(), code, request.email()));
     }
 
     /**

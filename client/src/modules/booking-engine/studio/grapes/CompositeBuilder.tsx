@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { cn } from '../../../../utils/cn';
 import { Button, Input } from '../../../../components/ui';
-import { X, Plus, Save, Boxes, Eye } from 'lucide-react';
+import { X, Plus, Save, Boxes, Eye } from '../../../../icons/glyphs';
 import grapesjs, { type Editor, type ToolbarButtonProps, type Component } from 'grapesjs';
 import { registerBookingComponents, setupEditorInteraction, setCanvasInert, blockLabelHtml } from './bookingComponents';
 import { ensureStructuralStyles, STRUCTURAL_STYLE_ID } from '../../sdk/headless';

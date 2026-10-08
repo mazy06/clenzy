@@ -1,7 +1,7 @@
 import React, { useMemo, useState } from 'react';
 import { View, Text, ScrollView, RefreshControl, Pressable } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Ionicons } from '@expo/vector-icons';
+import { Reicon } from '@/icons';
 import { useNavigation } from '@react-navigation/native';
 import { useTheme } from '@/theme';
 import { KpiCard } from '@/components/domain/KpiCard';
@@ -20,7 +20,7 @@ import type { Property } from '@/api/endpoints/propertiesApi';
 import { useAiAnalytics } from '@/hooks/useAiAnalytics';
 import type { OccupancyForecast } from '@/api/endpoints/aiAnalyticsApi';
 
-type IoniconsName = keyof typeof Ionicons.glyphMap;
+type IconName = keyof typeof Reicon.glyphMap;
 type TabKey = 'overview' | 'revenue' | 'occupancy' | 'performance' | 'forecast';
 type PeriodKey = 'month' | 'quarter' | 'year';
 
@@ -32,7 +32,7 @@ const PERIODS: Array<{ value: PeriodKey; label: string }> = [
   { value: 'year', label: 'Annee' },
 ];
 
-const TABS: Array<{ key: TabKey; label: string; icon: IoniconsName }> = [
+const TABS: Array<{ key: TabKey; label: string; icon: IconName }> = [
   { key: 'overview', label: 'Synthèse', icon: 'grid-outline' },
   { key: 'revenue', label: 'Revenus', icon: 'cash-outline' },
   { key: 'occupancy', label: 'Occupation', icon: 'pie-chart-outline' },
@@ -582,7 +582,7 @@ function OccupancyTab({ data, theme }: { data: AnalyticsResult; theme: ReturnTyp
                         alignItems: 'center',
                         justifyContent: 'center',
                       }}>
-                        <Ionicons name="home-outline" size={16} color={propColorHex} />
+                        <Reicon name="home-outline" size={16} color={propColorHex} />
                       </View>
                       <Text style={{ ...theme.typography.body2, color: theme.colors.text.primary, fontWeight: '600', flex: 1 }} numberOfLines={1}>
                         {prop.name}
@@ -679,7 +679,7 @@ function PerformanceTab({ data, theme }: { data: AnalyticsResult; theme: ReturnT
                     justifyContent: 'center',
                   }}>
                     {isTop3 ? (
-                      <Ionicons name="medal-outline" size={16} color={medalColor} />
+                      <Reicon name="medal-outline" size={16} color={medalColor} />
                     ) : (
                       <Text style={{ ...theme.typography.caption, color: theme.colors.text.disabled, fontWeight: '700' }}>
                         #{rank}
@@ -1146,7 +1146,7 @@ export function AnalyticsScreen() {
             ...theme.shadows.sm,
           })}
         >
-          <Ionicons name="arrow-back" size={20} color={theme.colors.text.primary} />
+          <Reicon name="arrow-back" size={20} color={theme.colors.text.primary} />
         </Pressable>
         <Text style={{ ...theme.typography.h2, color: theme.colors.text.primary, flex: 1 }}>
           Analytics
@@ -1165,7 +1165,7 @@ export function AnalyticsScreen() {
             ...theme.shadows.sm,
           })}
         >
-          <Ionicons name="share-outline" size={20} color={theme.colors.primary.main} />
+          <Reicon name="share-outline" size={20} color={theme.colors.primary.main} />
         </Pressable>
       </View>
 

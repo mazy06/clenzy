@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Alert, AlertDescription, Button, Spinner } from '../../components/ui';
-import { CircleCheck, TriangleAlert } from 'lucide-react';
+import { CircleCheck, TriangleAlert } from '../../icons/glyphs';
 import { Lock, Security } from '../../icons';
 import apiClient from '../../services/apiClient';
 import SettingsSection from './components/SettingsSection';

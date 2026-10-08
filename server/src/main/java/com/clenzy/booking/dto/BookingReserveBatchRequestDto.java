@@ -62,6 +62,11 @@ public record BookingReserveBatchRequestDto(
          * Exonere les mineurs de la taxe de sejour (adultes = guests - children).
          */
         @Min(value = 0, message = "children doit etre >= 0")
-        Integer children
-    ) {}
+        Integer children,
+        @Size(max=64) String voucherCode
+    ) {
+        public Item(Long propertyId,LocalDate checkIn,LocalDate checkOut,Integer guests,String notes,Integer children) {
+            this(propertyId,checkIn,checkOut,guests,notes,children,null);
+        }
+    }
 }

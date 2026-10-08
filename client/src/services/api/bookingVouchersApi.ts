@@ -50,6 +50,7 @@ export interface BookingVoucher {
   discountType: VoucherDiscountType;
   /** Decimal en string pour eviter les pertes de precision JS. */
   discountValue: string;
+  currency?: string | null;
   validFrom: string | null;
   validUntil: string | null;
   minStayNights: number | null;
@@ -76,6 +77,7 @@ export interface BookingVoucherCreateRequest {
   type: VoucherType;
   discountType: VoucherDiscountType;
   discountValue: number | string;
+  currency?: string | null;
   validFrom?: string | null;
   validUntil?: string | null;
   minStayNights?: number | null;
@@ -94,6 +96,10 @@ export type BookingVoucherUpdateRequest = Partial<BookingVoucherCreateRequest>;
 // ─── Public endpoint (booking engine guest) ──────────────────────────────────
 
 export interface VoucherValidationRequest {
+  checkIn: string;
+  checkOut: string;
+  guests: number;
+  children?: number;
   organizationId: number;
   code: string;
   propertyId: number;

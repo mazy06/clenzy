@@ -1,6 +1,6 @@
 import React, { useState, useCallback } from 'react';
 import StatusChip from '../components/StatusChip';
-import { TriangleAlert, CircleCheck } from 'lucide-react';
+import { TriangleAlert, CircleCheck } from '../icons/glyphs';
 import {
   Alert,
   AlertDescription,
