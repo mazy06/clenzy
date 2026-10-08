@@ -122,6 +122,8 @@ class DtoValidationTest {
         dto.setPassword("securepass");
         dto.setForfait("essentiel");
         dto.setAcceptedTerms(true); // CGU obligatoires depuis 0151 (RGPD @AssertTrue)
+        dto.setRequestId(java.util.UUID.randomUUID()); // idempotence de la demande (requis)
+        dto.setBillingCountry("FR"); // pays de facturation ISO-2 (requis)
         Set<ConstraintViolation<InscriptionDto>> violations = validator.validate(dto);
         assertTrue(violations.isEmpty());
     }

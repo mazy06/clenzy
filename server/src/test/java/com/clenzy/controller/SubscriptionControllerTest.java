@@ -1,7 +1,6 @@
 package com.clenzy.controller;
 
 import com.clenzy.service.SubscriptionService;
-import com.stripe.exception.StripeException;
 import org.junit.jupiter.api.*;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
@@ -38,16 +37,27 @@ class SubscriptionControllerTest {
     @Nested
     @DisplayName("upgrade")
     class Upgrade {
+        // L'upgrade direct par Stripe Checkout est retiré : le changement de formule
+        // passe par la proposition d'abonnement mensuel (Paramètres > Abonnement).
         @Test
-        void whenValid_thenReturnsOk() throws StripeException {
+        void whenValid_thenGoneWithNextStep() {
             Map<String, String> body = Map.of("targetForfait", "PREMIUM");
-            when(subscriptionService.createUpgradeCheckout("user-123", "PREMIUM"))
-                    .thenReturn(Map.of("url", "https://checkout.stripe.com/xxx"));
 
             ResponseEntity<Map<String, String>> response = controller.upgrade(jwt, body);
 
-            assertThat(response.getStatusCode().value()).isEqualTo(200);
-            assertThat(response.getBody()).containsKey("url");
+            assertThat(response.getStatusCode().value()).isEqualTo(410);
+            assertThat(response.getBody()).containsEntry("next", "/settings?tab=subscription");
+            verifyNoInteractions(subscriptionService);
+        }
+
+        @Test
+        void whenUnknownForfait_thenGoneWithoutCheckout() {
+            Map<String, String> body = Map.of("targetForfait", "INVALID");
+
+            ResponseEntity<Map<String, String>> response = controller.upgrade(jwt, body);
+
+            assertThat(response.getStatusCode().value()).isEqualTo(410);
+            verifyNoInteractions(subscriptionService);
         }
 
         @Test
@@ -67,29 +77,6 @@ class SubscriptionControllerTest {
             ResponseEntity<Map<String, String>> response = controller.upgrade(jwt, body);
 
             assertThat(response.getStatusCode().value()).isEqualTo(400);
-        }
-
-        @Test
-        void whenIllegalArgument_thenBadRequest() throws StripeException {
-            Map<String, String> body = Map.of("targetForfait", "INVALID");
-            when(subscriptionService.createUpgradeCheckout("user-123", "INVALID"))
-                    .thenThrow(new IllegalArgumentException("Forfait invalide"));
-
-            ResponseEntity<Map<String, String>> response = controller.upgrade(jwt, body);
-
-            assertThat(response.getStatusCode().value()).isEqualTo(400);
-            assertThat(response.getBody()).containsEntry("error", "Forfait invalide");
-        }
-
-        @Test
-        void whenStripeException_thenServerError() throws StripeException {
-            Map<String, String> body = Map.of("targetForfait", "PREMIUM");
-            when(subscriptionService.createUpgradeCheckout("user-123", "PREMIUM"))
-                    .thenThrow(mock(StripeException.class));
-
-            ResponseEntity<Map<String, String>> response = controller.upgrade(jwt, body);
-
-            assertThat(response.getStatusCode().value()).isEqualTo(500);
         }
     }
 }

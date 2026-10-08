@@ -153,7 +153,7 @@ public class SepaXmlService {
         appendTextElement(doc, pmtId, "EndToEndId", "PAYOUT-" + payout.getId());
 
         Element amt = appendElement(doc, cdtTrfTxInf, "Amt");
-        Element instdAmt = doc.createElement("InstdAmt");
+        Element instdAmt = doc.createElementNS(NAMESPACE, "InstdAmt");
         instdAmt.setAttribute("Ccy", "EUR");
         instdAmt.setTextContent(payout.getNetAmount().setScale(2).toPlainString());
         amt.appendChild(instdAmt);
@@ -189,14 +189,17 @@ public class SepaXmlService {
         return writer.toString();
     }
 
+    // Tous les éléments vivent dans l'espace de noms pain.001 de la racine : un
+    // `createElement` sans espace de noms les sérialiserait avec `xmlns=""`, hors du
+    // schéma ISO 20022 — fichier rejeté par la banque.
     private Element appendElement(Document doc, Element parent, String name) {
-        Element el = doc.createElement(name);
+        Element el = doc.createElementNS(NAMESPACE, name);
         parent.appendChild(el);
         return el;
     }
 
     private void appendTextElement(Document doc, Element parent, String name, String text) {
-        Element el = doc.createElement(name);
+        Element el = doc.createElementNS(NAMESPACE, name);
         el.setTextContent(text);
         parent.appendChild(el);
     }
