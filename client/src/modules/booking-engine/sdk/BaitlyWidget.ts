@@ -31,6 +31,7 @@ import { HEADLESS_WIDGETS, ensureStructuralStyles } from './headless';
 import resetCSS from './styles/reset.css?raw';
 import baseCSS from './styles/base.css?raw';
 import componentsCSS from './styles/components.css?raw';
+import { check } from './components/icons';
 
 /**
  * Widget embarquable du Booking Engine — property-first, branché sur la VRAIE API publique
@@ -458,17 +459,7 @@ export class BaitlyWidget {
 
     const icon = document.createElement('div');
     icon.className = 'cb-confirmation__icon';
-    const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
-    svg.setAttribute('viewBox', '0 0 24 24');
-    svg.setAttribute('fill', 'none');
-    svg.setAttribute('stroke', 'currentColor');
-    svg.setAttribute('stroke-width', '3');
-    svg.setAttribute('stroke-linecap', 'round');
-    svg.setAttribute('stroke-linejoin', 'round');
-    const polyline = document.createElementNS('http://www.w3.org/2000/svg', 'polyline');
-    polyline.setAttribute('points', '20 6 9 17 4 12');
-    svg.appendChild(polyline);
-    icon.appendChild(svg);
+    icon.appendChild(check());
 
     const title = document.createElement('h3');
     title.className = 'cb-text-lg cb-text-semibold cb-text-center';

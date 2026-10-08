@@ -285,7 +285,7 @@
  * et pousse filtre/bouton à la ligne). */
 .sb__control { display: flex; align-items: center; gap: 8px; width: 100%; min-width: 0; min-height: var(--cb-control-h, 52px); cursor: text; }
 .sb__control > .cb-widget { flex: 1; min-width: 0; }
-.sb__control svg { flex: 0 0 auto; width: 18px; height: 18px; stroke: currentColor; fill: none; }
+.sb__control svg { flex: 0 0 auto; width: 18px; height: 18px; }
 .sb__chev { margin-inline-start: auto; }
 /* `display` + `align-items` en FONCTIONNEL `!important` : `.sb__cta` est AUSSI le mount du widget (porte
  * `[data-clenzy-widget]`/`.cb-widget` → `display:block` à même spécificité). Sans `!important`, une 2ᵉ copie
@@ -327,7 +327,7 @@
  * pilotées par le template. */
 .cb-filter-group { position: relative; }
 .cb-filter-group__toggle { display: inline-flex; align-items: center; gap: 6px; cursor: pointer; min-height: var(--cb-control-h, 52px); padding: 0 16px; background: transparent; color: var(--cb-accent, #6B8A9A); border: 1px solid var(--cb-border, rgba(0,0,0,.14)); border-radius: var(--cb-radius, 10px); font: inherit; }
-.cb-filter-group__toggle > svg { width: 18px; height: 18px; flex: 0 0 auto; stroke: currentColor; fill: currentColor; }
+.cb-filter-group__toggle > svg { width: 18px; height: 18px; flex: 0 0 auto; }
 .cb-filter-group__panel { display: flex; align-items: flex-end; gap: 12px; }
 /* Critères du groupe : largeur = contenu (flex content-based) → ni étirés ni tronqués. */
 .cb-filter-group__panel > .sb__field { flex: 0 1 auto; }
@@ -347,7 +347,7 @@
 
 /* Widget « Filtre » dans la barre = bouton ICÔNE (déclencheur du bloc `.sb__icon`). */
 .cb-filters__toggle { display: inline-flex; align-items: center; justify-content: center; gap: 6px; min-height: var(--cb-control-h, 52px); cursor: pointer; position: relative; }
-.cb-filters__toggle > svg { width: 18px; height: 18px; flex: 0 0 auto; stroke: currentColor; fill: none; }
+.cb-filters__toggle > svg { width: 18px; height: 18px; flex: 0 0 auto; }
 .cb-filters__badge { display: inline-flex; align-items: center; justify-content: center; min-width: 18px; height: 18px; padding: 0 5px; font-size: 0.7em; line-height: 1; font-variant-numeric: tabular-nums; }
 /* Chevron du filtre : haut/bas = ouvert/fermé. */
 .cb-filters__chevron { display: inline-flex; flex: 0 0 auto; transition: transform 200ms ease; }

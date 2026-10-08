@@ -700,9 +700,7 @@
 .cb-confirmation__icon svg {
   width: 32px;
   height: 32px;
-  stroke-dasharray: 24;
-  stroke-dashoffset: 0;
-  animation: cb-check-draw 400ms ease forwards;
+  animation: cb-check-pop 400ms ease forwards;
 }
 
 /* ─── Error Alert ─────────────────────────────────────────────────────────── */

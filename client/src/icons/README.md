@@ -72,4 +72,4 @@ Glyphes hors Reicon écrits à la main (listés dans `custom` de `glyph-map.json
 | Phase | Périmètre | Statut |
 |-------|-----------|--------|
 | 1-9 | Migration `@mui/icons-material` → Lucide + barrel `@/icons` | ✅ |
-| 10 | Lucide + Tabler → Reicon duotone (app, site vitrine, studio GrapesJS) | ✅ |
+| 10 | Lucide + Tabler → Reicon duotone (app, site vitrine, studio GrapesJS, widget de réservation) | ✅ |
