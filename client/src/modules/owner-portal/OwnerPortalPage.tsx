@@ -4,6 +4,7 @@ import StatusChip from '../../components/baitly/StatusChip';
 import StatTile from '../../components/baitly/StatTile';
 import StatTileRow from '../../components/baitly/StatTileRow';
 import ShowcaseEmpty from '../../components/baitly/ShowcaseEmpty';
+import { STAGE_IMAGES } from '../../components/baitly/stageImages';
 import EmptyState from '../../components/EmptyState';
 import { Badge, Button } from '../../components/ui';
 import { Alert, AlertDescription } from '../../components/ui';
@@ -160,8 +161,9 @@ const OwnerPortalPage: React.FC = () => {
         // projection, qui explique la feature au lieu de constater le vide.
         <ShowcaseEmpty
           eyebrow={{ icon: <BuildingIcon size={14} strokeWidth={1.75} />, label: t('ownerPortal.title', 'Portail Proprietaire') }}
-          title={t('ownerPortal.showcase.title', 'Vos propriétaires suivent leurs biens sans vous appeler')}
-          description={t('ownerPortal.showcase.description', 'Occupation, revenus, reversements et documents, dans un espace dédié que vous ouvrez bien par bien.')}
+          title={t('ownerPortal.showcase.title', 'Vos propriétaires suivent leurs biens en autonomie')}
+          description={t('ownerPortal.showcase.description', 'Occupation, revenus et reversements, dans un espace dédié.')}
+          image={STAGE_IMAGES.ownerReport}
           action={
             <Button onClick={() => navigate('/directory')}>
               {t('ownerPortal.showcase.action', 'Inviter un propriétaire')}

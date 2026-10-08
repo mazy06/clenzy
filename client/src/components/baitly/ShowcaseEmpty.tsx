@@ -1,21 +1,22 @@
 import * as React from 'react';
+import { FirstUseStage, Packshot } from './FirstUseStage';
 import { cn } from '../../utils/cn';
 
 /**
- * Baitly — état vide « vitrine », en deux colonnes.
+ * Baitly — état vide « vitrine », sur la scène des écrans de première arrivée
+ * (claire en thème clair, bleu nuit en thème sombre).
  *
  * Complément de components/baitly/EmptyState.tsx (icône + titre + CTA, centré),
- * réservé aux écrans **entièrement** vides avant configuration : messagerie sans
- * canal, planning sans logement, rapports sans données.
+ * réservé aux écrans **entièrement** vides avant configuration : voyageurs sans
+ * réservation, notifications sans règle, portail sans propriétaire.
  *
  * Trois règles qui le distinguent d'un état vide ordinaire :
  *  1. le **titre est la proposition de valeur de l'écran**, jamais « Aucun
  *     élément » — l'utilisateur qui arrive ici ne sait pas encore à quoi sert
  *     l'écran ;
- *  2. la colonne droite montre un **aperçu du produit rempli**, pour rendre la
- *     promesse tangible (convention : le texte secondaire de l'aperçu est en
- *     `Skeleton`, seuls les mots porteurs de sens restent lisibles — rien à
- *     traduire, aucune fausse donnée crédible à maintenir) ;
+ *  2. le **visuel** (illustration générée, ou aperçu du produit rempli) rend la
+ *     promesse tangible : on montre, on ne décrit pas — `description` tient en
+ *     une ligne ;
  *  3. `fallback` fournit une **sortie de secours** quand le CTA suppose un
  *     prérequis que l'utilisateur n'a pas — un état vide ne doit pas être un
  *     cul-de-sac.
@@ -23,11 +24,11 @@ import { cn } from '../../utils/cn';
  * Usage :
  *   <ShowcaseEmpty
  *     eyebrow={{ icon: <InboxIcon />, label: 'Messagerie unifiée' }}
- *     title="Répondez à vos voyageurs de tous les canaux depuis une seule boîte"
- *     description="Connectez un canal pour commencer à recevoir les messages."
+ *     title="Répondez à vos voyageurs depuis une seule boîte"
+ *     description="Connectez un canal pour recevoir les messages."
  *     action={<Button>Connecter un canal</Button>}
  *     fallback={<>Pas encore de canal ? <a href="…">Créer une réservation directe</a></>}
- *     preview={<MessagingPreview />}
+ *     image={STAGE_IMAGES.inbox}
  *   />
  */
 export interface ShowcaseEmptyProps {
@@ -35,11 +36,14 @@ export interface ShowcaseEmptyProps {
   eyebrow?: { icon?: React.ReactNode; label: React.ReactNode };
   /** La proposition de valeur de l'écran, pas un constat de vide. */
   title: React.ReactNode;
+  /** Une ligne — l'image et le titre portent le reste. */
   description?: React.ReactNode;
   action?: React.ReactNode;
   /** Sortie de secours quand le CTA suppose un prérequis absent. */
   fallback?: React.ReactNode;
-  /** Aperçu du produit rempli, affiché dans un panneau à droite. */
+  /** Illustration générée (voir `stageImages`), posée sur la scène. */
+  image?: string;
+  /** Aperçu du produit rempli, à droite — prioritaire sur `image`. */
   preview?: React.ReactNode;
   className?: string;
 }
@@ -50,47 +54,34 @@ export default function ShowcaseEmpty({
   description,
   action,
   fallback,
+  image,
   preview,
   className,
 }: ShowcaseEmptyProps) {
+  const visual = preview ? (
+    <div aria-hidden className="ns-card select-none">{preview}</div>
+  ) : image ? (
+    <div aria-hidden className="ns-art">
+      <Packshot src={image} size="2xl" />
+    </div>
+  ) : undefined;
+
   return (
-    <section
-      className={cn(
-        'grid items-center gap-8 py-10 lg:grid-cols-2 lg:gap-12',
-        className
-      )}
-    >
-      <div className="min-w-0">
-        {eyebrow && (
-          <p className="m-0 mb-3 flex items-center gap-2 text-sm font-medium text-muted-foreground">
-            {eyebrow.icon && (
-              <span className="inline-flex text-primary [&>svg]:size-4">{eyebrow.icon}</span>
-            )}
-            {eyebrow.label}
-          </p>
-        )}
-        <h2 className="cn-font-heading m-0 text-2xl leading-snug font-semibold text-balance text-foreground sm:text-3xl">
-          {title}
-        </h2>
-        {description && (
-          <p className="m-0 mt-3 text-sm text-muted-foreground">{description}</p>
-        )}
-        {action && <div className="mt-6 flex flex-wrap items-center gap-3">{action}</div>}
-        {fallback && (
-          <p className="m-0 mt-3 text-sm text-muted-foreground [&>a]:font-medium [&>a]:text-primary [&>a]:underline [&>a]:underline-offset-4">
+    <div className={cn('py-4', className)}>
+      <FirstUseStage
+        className="ns--compact"
+        icon={eyebrow?.icon}
+        eyebrow={eyebrow?.label}
+        title={title}
+        lede={description}
+        actions={action}
+        extra={fallback ? (
+          <p className="m-0 mt-4 text-sm text-[var(--ns-muted)] [&>a]:font-medium [&>a]:text-[var(--ns-ink)] [&>a]:underline [&>a]:underline-offset-4">
             {fallback}
           </p>
-        )}
-      </div>
-
-      {preview && (
-        <div
-          aria-hidden
-          className="overflow-hidden rounded-2xl bg-muted/60 p-6 select-none"
-        >
-          {preview}
-        </div>
-      )}
-    </section>
+        ) : undefined}
+        visual={visual}
+      />
+    </div>
   );
 }

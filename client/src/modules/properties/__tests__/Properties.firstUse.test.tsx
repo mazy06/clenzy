@@ -1,4 +1,4 @@
-import { act, cleanup, fireEvent, render, screen } from '@testing-library/react';
+import { act, cleanup, fireEvent, render, screen, within } from '@testing-library/react';
 import { MemoryRouter, useLocation } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -32,7 +32,7 @@ function renderPage(tab: PropertyIntroduction) {
   return { ...render(tree), client, tree };
 }
 function renderDemo(tab: PropertyIntroduction) { return render(<MemoryRouter><PropertiesEmptyShowcase screen={tab} onImport={vi.fn()} /></MemoryRouter>); }
-beforeEach(() => { state.properties = []; state.isLoading = false; state.isError = false; });
+beforeEach(async () => { state.properties = []; state.isLoading = false; state.isError = false; await i18n.changeLanguage('fr'); });
 afterEach(() => { cleanup(); clients.splice(0).forEach((client) => client.clear()); vi.useRealTimers(); vi.restoreAllMocks(); });
 
 describe('Première visite des écrans Propriétés', () => {
@@ -85,20 +85,23 @@ describe('Première visite des écrans Propriétés', () => {
 });
 
 describe('Démonstrations isolées du compte', () => {
+  const railButtons = (container: HTMLElement) => Array.from(container.querySelectorAll<HTMLButtonElement>('.ns-rail-btn'));
+  const roomImage = (container: HTMLElement) => container.querySelector('.ns-room-canvas > img')!.getAttribute('src');
+
   it('change la fiche lorsque l’on choisit un autre logement', () => {
     renderDemo('properties');
     fireEvent.click(screen.getByRole('button', { name: 'Villa des Oliviers' }));
-    expect(screen.getByRole('heading', { name: 'Villa des Oliviers' })).toBeVisible();
-    expect(screen.getByText('6 voyageurs')).toBeVisible();
+    expect(screen.getByText('Villa des Oliviers', { selector: 'strong' })).toBeVisible();
+    expect(screen.getByRole('img', { name: '6 voyageurs' })).toBeVisible();
     expect(screen.getByText('Marrakech')).toBeVisible();
   });
   it('reflète le prix essayé puis simule un envoi', () => {
     renderDemo('pricing');
     fireEvent.change(screen.getByRole('slider'), { target: { value: '145' } });
-    expect(screen.getByRole('slider')).toHaveAttribute('aria-valuetext', '145 €');
+    expect(screen.getByRole('slider')).toHaveAttribute('aria-valuetext', '145\u00a0€');
     expect(screen.getByRole('button', { name: /145.*ajuster/ })).toBeVisible();
     fireEvent.click(screen.getByRole('button', { name: 'Simuler l’envoi' }));
-    expect(screen.getByText('Envoi simulé, aucun tarif modifié')).toBeVisible();
+    expect(screen.getByText('Envoi simulé, aucun tarif modifié')).toBeInTheDocument();
   });
   it('calcule la remise sans créer de code réel', () => {
     renderDemo('vouchers');
@@ -108,38 +111,56 @@ describe('Démonstrations isolées du compte', () => {
     expect(screen.getByText(/−60\s*€/)).toBeVisible();
     expect(screen.getByRole('button', { name: 'Code appliqué' })).toBeDisabled();
   });
-  it('manipule une serrure et change le capteur affiché dans l’exemple', () => {
-    renderDemo('connected-objects');
-    fireEvent.click(screen.getByRole('button', { name: 'Déverrouiller l’exemple' }));
-    expect(screen.getByText('Déverrouillée dans l’exemple')).toBeVisible();
-    fireEvent.click(screen.getByRole('button', { name: 'Température' }));
-    expect(screen.getByText('22')).toBeVisible();
-    fireEvent.click(screen.getByRole('button', { name: /Repérer ce qui demande/ }));
-    expect(screen.getByText('Batterie faible · capteur du séjour')).toBeVisible();
+  it('ouvre la porte d’entrée avec la serrure, puis explore les vraies pièces', () => {
+    const view = renderDemo('connected-objects');
+    expect(roomImage(view.container)).toContain('baitly-entrance.webp');
+    fireEvent.click(screen.getAllByRole('button', { name: 'Serrure connectée' })[0]);
+    expect(roomImage(view.container)).toContain('baitly-entrance-door-open.webp');
+    // Les sept pièces livrées restent explorables, avec leurs appareils.
+    const rooms = within(screen.getByRole('group', { name: i18n.t('connectedObjects.title') }));
+    for (const room of ['Entrée', 'Salon', 'Chambre', 'Cuisine', 'Salle de bain', 'Couloir', 'Extérieur']) {
+      expect(rooms.getByRole('button', { name: room })).toBeVisible();
+    }
+    fireEvent.click(rooms.getByRole('button', { name: 'Chambre' }));
+    expect(roomImage(view.container)).toContain('baitly-bedroom.webp');
+    expect(screen.getAllByRole('button', { name: 'Détecteur de fumée' }).length).toBeGreaterThan(0);
+    // Le capteur de la fenêtre ouvre la variante « fenêtre ouverte » de la pièce.
+    fireEvent.click(screen.getAllByRole('button', { name: 'Capteur porte et fenêtre' })[1]);
+    expect(roomImage(view.container)).toContain('baitly-bedroom-window-open.webp');
   });
   it('anime les scènes puis laisse la lecture au visiteur dès une interaction', () => {
     vi.useFakeTimers(); renderDemo('pricing');
-    act(() => vi.advanceTimersByTime(6500));
-    expect(screen.getByRole('button', { name: /Adapter les nuits/ })).toHaveAttribute('aria-expanded', 'true');
-    fireEvent.click(screen.getByRole('button', { name: /Encadrer la durée/ }));
+    act(() => vi.advanceTimersByTime(5600));
+    expect(screen.getByRole('button', { name: /Ajustements/ })).toHaveAttribute('aria-current', 'step');
+    fireEvent.click(screen.getByRole('button', { name: /Minimum/ }));
     act(() => vi.advanceTimersByTime(13000));
-    expect(screen.getByRole('button', { name: /Encadrer la durée/ })).toHaveAttribute('aria-expanded', 'true');
+    expect(screen.getByRole('button', { name: /Minimum/ })).toHaveAttribute('aria-current', 'step');
   });
   it('respecte les préférences de mouvement réduit', () => {
     vi.useFakeTimers();
     vi.spyOn(window, 'matchMedia').mockImplementation((query) => ({ matches: true, media: query, onchange: null, addListener: vi.fn(), removeListener: vi.fn(), addEventListener: vi.fn(), removeEventListener: vi.fn(), dispatchEvent: vi.fn() }));
     renderDemo('properties'); act(() => vi.advanceTimersByTime(13000));
-    expect(screen.getByRole('button', { name: /Retrouver ses biens/ })).toHaveAttribute('aria-expanded', 'true');
+    expect(screen.getByRole('button', { name: /Fiche/ })).toHaveAttribute('aria-current', 'step');
+  });
+  it('porte chaque étape du rail par une illustration, et les objets connectés par leurs pièces', () => {
+    for (const tab of SCREENS) {
+      const view = renderDemo(tab);
+      const images = Array.from(view.container.querySelectorAll('.ns-rail-btn img')).map((image) => image.getAttribute('src'));
+      expect(images).toHaveLength(4);
+      if (tab === 'connected-objects') expect(images.every((src) => /connected-rooms\/baitly-\w+-thumb\.webp$/.test(src ?? ''))).toBe(true);
+      view.unmount();
+    }
   });
   it.each(['fr', 'en', 'ar'])('traduit les quatre présentations en %s', async (language) => {
     await i18n.changeLanguage(language);
     for (const tab of SCREENS) {
       const view = renderDemo(tab);
       expect(screen.getByRole('heading', { name: i18n.t(`propertiesFirstUse.${tab}.title`) })).toBeVisible();
-      expect(view.container.textContent).not.toMatch(/propertiesFirstUse\.|propertiesPage\.tabs\./);
-      const steps = screen.getAllByRole('button', { expanded: false });
-      for (const button of steps) fireEvent.click(button);
-      expect(view.container.textContent).not.toMatch(/propertiesFirstUse\./);
+      for (const button of railButtons(view.container)) {
+        expect(button.textContent?.trim().length).toBeGreaterThan(0);
+        fireEvent.click(button);
+      }
+      expect(view.container.textContent).not.toMatch(/propertiesFirstUse\.|propertiesPage\.tabs\.|connectedRooms\.|connectedObjects\./);
       view.unmount();
     }
   });

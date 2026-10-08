@@ -357,659 +357,346 @@
   },
   "moduleFirstUse": {
     "openWorkspace": "Accéder à cet espace",
-    "setupTitle": "Pour commencer",
-    "activation": "Ajoutez ou importez votre premier logement pour retrouver les outils de cet écran. Vous pouvez aussi ouvrir cet espace dès maintenant.",
     "preview": "Aperçu interactif : {{title}}",
-    "example": "Données d’illustration",
-    "safeDemo": "Explorez librement cet aperçu : aucune réservation, aucun message et aucune opération ne sont créés dans votre compte.",
     "demo": {
-      "issue": "Fuite signalée dans la salle de bains · Photo jointe · Maintenance à prévoir",
-      "teamIn": "Le ménage est terminé. Les photos sont jointes à la mission.",
-      "teamOut": "Merci, je vérifie la checklist avant l’arrivée.",
-      "teamSent": "Vérification terminée, le logement est prêt.",
-      "formType": "Formulaire de maintenance",
-      "formTitle": "Un problème à examiner",
-      "formBody": "Le robinet de la salle de bains fuit. Une photo accompagne la demande.",
-      "formDone": "Demande marquée comme traitée dans l’exemple.",
       "property": "Riad Azur",
-      "secondProperty": "Villa des Oliviers",
-      "thirdProperty": "Appartement Atlas",
-      "done": "Terminé dans l’exemple",
-      "toPrepare": "À préparer",
-      "draft": "Brouillon",
-      "stay": "Sofia L. · 3 nuits · 2 voyageurs",
-      "task": "Ménage de départ · Équipe A · Checklist et photos de fin de mission",
+      "owner": "Sofia L.",
       "day_one": "Jour {{count}}",
       "day_other": "Jour {{count}}",
       "channels": "Types de conversation",
-      "messageIn": "Bonjour, à quelle heure pouvons-nous arriver ?",
-      "messageOut": "Bonjour Sofia, votre logement sera prêt à partir de 15 h.",
-      "messageSent": "Les informations d’accès vous attendent dans votre livret.",
-      "owner": "Sofia L.",
-      "signature": "Signature en ligne",
-      "signed": "Signature simulée : Sofia L.",
-      "awaitingSignature": "Emplacement de la signature du propriétaire",
-      "total": "Total de l’exemple",
-      "reconciled": "Opération rapprochée dans l’exemple.",
-      "ledgerHint": "Sélectionnez une ligne pour suivre son traitement.",
       "indicators": "Indicateurs de l’exemple",
       "occupied_one": "{{count}} nuit occupée sur 28, données d’illustration.",
       "occupied_other": "{{count}} nuits occupées sur 28, données d’illustration.",
       "chartDescription": "Évolution de six valeurs fictives. La comparaison modifie les valeurs de l’exemple.",
       "referencePeriod": "Revenir à la période de référence",
       "comparePeriod": "Comparer une autre période",
-      "reset": "Réinitialiser l’exemple",
-      "send": "Simuler une réponse",
-      "sign": "Simuler la signature",
-      "advance": "Simuler le traitement",
-      "simulated": "Simulation terminée. Aucune donnée réelle modifiée.",
-      "interact": "Cliquez dans l’aperçu ou choisissez une étape pour explorer.",
-      "sectionReady": "Section incluse",
       "period": "Période",
-      "reportReady": "Document préparé dans l’exemple",
-      "unit": "Valeurs d’illustration"
-    },
-    "setup": {
-      "reservations": [
-        "Créez un logement avec ses capacités et ses horaires d’arrivée.",
-        "Importez vos séjours depuis un canal, ou saisissez une réservation directe.",
-        "Complétez les coordonnées du voyageur, le prix et le suivi du règlement."
-      ],
-      "interventions": [
-        "Ajoutez le logement où la mission doit avoir lieu.",
-        "Renseignez le service, sa date et les consignes utiles à l’équipe.",
-        "Affectez un intervenant et suivez la mission jusqu’à sa validation."
-      ],
-      "quotes": [
-        "Ajoutez le logement concerné par la prestation.",
-        "Choisissez un prestataire dans le catalogue et décrivez votre besoin.",
-        "Comparez sa proposition, puis acceptez-la ou demandez des précisions."
-      ],
-      "messaging": [
-        "Ajoutez vos logements et connectez les canaux utilisés avec vos voyageurs.",
-        "Réglez les canaux de messagerie disponibles dans les paramètres.",
-        "Ouvrez une conversation ou rédigez votre premier message. Les échanges internes restent accessibles sans logement."
-      ],
-      "contracts": [
-        "Ajoutez le logement et renseignez son propriétaire.",
-        "Définissez la commission, les services inclus et les dates du mandat.",
-        "Vérifiez le document, puis envoyez la demande de signature au propriétaire."
-      ],
-      "billing": [
-        "Renseignez vos logements et les coordonnées des parties facturées.",
-        "Complétez les paramètres de paiement et les informations fiscales selon vos droits.",
-        "Enregistrez les premières opérations pour alimenter les factures et les suivis."
-      ],
-      "reports": [
-        "Ajoutez ou importez votre portefeuille de logements.",
-        "Alimentez les réservations, les paiements, les dépenses et les missions.",
-        "Choisissez l’onglet utile à votre décision. Les analyses dépendent de l’historique disponible."
-      ]
+      "sectionReady": "Section incluse"
     },
     "screens": {
       "reservations": {
         "reservations": {
-          "title": "Suivez chaque séjour, de la réservation au départ",
-          "lede": "Retrouvez les séjours de tous vos canaux et les réservations directes dans une seule liste. Une fiche rassemble le voyageur, les dates, le logement et le statut.",
+          "title": "Chaque séjour, de la réservation au départ",
           "labels": [
-            "Arrivée à préparer",
-            "Séjour en cours",
-            "Départ prévu"
+            "Arrivée",
+            "Séjour",
+            "Départ"
           ],
           "steps": [
-            {
-              "title": "Retrouver un séjour",
-              "detail": "Filtrez par logement, canal ou statut, puis ouvrez la réservation concernée."
-            },
-            {
-              "title": "Préparer l’accueil",
-              "detail": "Vérifiez les voyageurs, les horaires et les informations utiles avant l’arrivée."
-            },
-            {
-              "title": "Suivre son avancement",
-              "detail": "Passez du séjour confirmé à l’arrivée puis au départ, et consultez son règlement."
-            }
+            "Retrouver",
+            "Accueillir",
+            "Suivre"
           ]
         }
       },
       "interventions": {
         "calendar": {
-          "title": "Voyez quand chaque mission doit avoir lieu",
-          "lede": "Le calendrier répartit les interventions dans le temps. Articulez ménage, maintenance et arrivées sans perdre la vue d’ensemble.",
+          "title": "Chaque mission, à sa date",
           "labels": [
             "Ménage",
             "Maintenance",
             "Contrôle"
           ],
           "steps": [
-            {
-              "title": "Lire la journée",
-              "detail": "Repérez les créneaux occupés et les interventions à venir."
-            },
-            {
-              "title": "Ouvrir une mission",
-              "detail": "Retrouvez le logement, l’équipe affectée et les consignes."
-            },
-            {
-              "title": "Organiser la suite",
-              "detail": "Consultez les autres périodes et ajustez vos missions depuis leur fiche."
-            }
+            "Journée",
+            "Mission",
+            "Suite"
           ]
         },
         "service-requests": {
-          "title": "Transformez un besoin en demande suivie",
-          "lede": "Une demande de service décrit ce qui doit être fait avant de devenir une mission organisée. Gardez la trace du demandeur, du besoin et de son traitement.",
+          "title": "Un besoin devient une demande suivie",
           "labels": [
             "À qualifier",
             "À planifier",
             "Prise en charge"
           ],
           "steps": [
-            {
-              "title": "Décrire le besoin",
-              "detail": "Indiquez le logement, le service souhaité et les informations nécessaires."
-            },
-            {
-              "title": "Qualifier la demande",
-              "detail": "Précisez la priorité, la date et les consignes avant de planifier."
-            },
-            {
-              "title": "Suivre la prise en charge",
-              "detail": "Retrouvez le statut et les interventions associées à la demande."
-            }
+            "Décrire",
+            "Qualifier",
+            "Suivre"
           ]
         },
         "interventions": {
           "title": "Du travail prévu au travail vérifié",
-          "lede": "La liste des interventions réunit les missions opérationnelles. Sachez ce qui reste à affecter, ce qui est en cours et ce qui attend une validation.",
           "labels": [
             "À affecter",
             "En cours",
             "À valider"
           ],
           "steps": [
-            {
-              "title": "Affecter la mission",
-              "detail": "Choisissez l’équipe ou le prestataire responsable et transmettez les consignes."
-            },
-            {
-              "title": "Suivre l’exécution",
-              "detail": "Consultez l’avancement, les notes, la checklist et les photos."
-            },
-            {
-              "title": "Vérifier le résultat",
-              "detail": "Contrôlez les éléments remontés avant de terminer ou valider l’intervention."
-            }
+            "Affecter",
+            "Exécuter",
+            "Vérifier"
           ]
         },
         "issues": {
-          "title": "Ne perdez aucun problème signalé",
-          "lede": "L’onglet Anomalies regroupe les problèmes relevés sur vos logements. Chaque signalement conserve son contexte pour faciliter la prise en charge.",
+          "title": "Aucun problème signalé ne se perd",
           "labels": [
             "À examiner",
             "À traiter",
             "Résolue"
           ],
           "steps": [
-            {
-              "title": "Comprendre le signalement",
-              "detail": "Consultez le logement concerné, la description et les éléments fournis."
-            },
-            {
-              "title": "Organiser la résolution",
-              "detail": "Évaluez la priorité et préparez la maintenance nécessaire."
-            },
-            {
-              "title": "Suivre jusqu’à la clôture",
-              "detail": "Vérifiez la résolution et conservez la trace du traitement."
-            }
+            "Comprendre",
+            "Organiser",
+            "Clôturer"
           ]
         }
       },
       "quotes": {
         "quotes": {
-          "title": "Un devis clair avant d’engager une prestation",
-          "lede": "Retrouvez les demandes envoyées à vos prestataires et leurs propositions. Montant, délai et décision restent réunis au même endroit.",
+          "title": "Un devis clair avant d’engager",
           "labels": [
             "Prestation hors taxes",
             "Taxes",
             "Montant proposé"
           ],
           "steps": [
-            {
-              "title": "Attendre la proposition",
-              "detail": "Suivez les demandes envoyées et retirez celles qui ne sont plus nécessaires."
-            },
-            {
-              "title": "Décider en connaissance de cause",
-              "detail": "Consultez le prix, la validité et le message du prestataire avant d’accepter."
-            },
-            {
-              "title": "Retrouver la mission",
-              "detail": "Suivez la prestation associée au devis accepté. La vue Reçus concerne votre activité de prestataire."
-            }
+            "Attendre",
+            "Décider",
+            "Suivre"
           ]
         }
       },
       "messaging": {
         "messaging": {
-          "title": "Le fil de vos échanges, au même endroit",
-          "lede": "La messagerie réunit conversations voyageurs, échanges internes et formulaires reçus selon vos droits. Sélectionnez un fil pour retrouver son contexte et répondre.",
+          "title": "Tous vos échanges, au même endroit",
           "labels": [
             "Voyageurs",
             "Équipe",
             "Formulaires"
           ],
           "steps": [
-            {
-              "title": "Retrouver les bons échanges",
-              "detail": "Les vues Tous et Non lus aident à repérer les conversations qui attendent votre attention."
-            },
-            {
-              "title": "Répondre avec le contexte",
-              "detail": "Ouvrez le fil, consultez l’historique et utilisez le canal disponible pour répondre."
-            },
-            {
-              "title": "Classer sans perdre la trace",
-              "detail": "Consultez les formulaires autorisés, archivez les échanges terminés et retrouvez-les dans les archives."
-            }
+            "Voyageurs",
+            "Équipe",
+            "Formulaires"
           ]
         }
       },
       "contracts": {
         "contracts": {
-          "title": "Posez le cadre de chaque gestion",
-          "lede": "Le contrat de gestion relie un logement à son propriétaire et définit votre mandat. Commission, période et signature restent consultables dans le dossier.",
+          "title": "Le cadre de chaque gestion",
           "labels": [
             "Propriétaire",
             "Commission",
             "Validation"
           ],
           "steps": [
-            {
-              "title": "Définir le mandat",
-              "detail": "Renseignez les parties, le logement, les dates et les conditions de gestion."
-            },
-            {
-              "title": "Faire signer le document",
-              "detail": "Vérifiez le mandat avant d’envoyer le lien de signature au propriétaire."
-            },
-            {
-              "title": "Suivre le contrat",
-              "detail": "Distinguez brouillons, contrats actifs, suspendus et terminés."
-            }
+            "Mandat",
+            "Signature",
+            "Suivi"
           ]
         }
       },
       "billing": {
         "payments": {
-          "title": "Retrouvez le parcours de chaque paiement",
-          "lede": "Suivez les règlements voyageurs, leurs statuts et les remboursements. Rapprochez ce qui était attendu de ce qui a été encaissé.",
+          "title": "Le parcours de chaque paiement",
           "labels": [
             "En attente",
             "Encaissé",
             "Remboursé"
           ],
           "steps": [
-            {
-              "title": "Identifier le règlement",
-              "detail": "Retrouvez la réservation, le montant et le mode de paiement."
-            },
-            {
-              "title": "Contrôler le statut",
-              "detail": "Distinguez les opérations en attente, réussies ou en échec."
-            },
-            {
-              "title": "Vérifier l’historique",
-              "detail": "Consultez les détails et les remboursements pour comprendre les mouvements."
-            }
+            "Identifier",
+            "Contrôler",
+            "Historique"
           ]
         },
         "invoices": {
-          "title": "Les pièces de chaque opération, prêtes à retrouver",
-          "lede": "Consultez les factures et les avoirs liés aux séjours et aux services. Retrouvez leurs montants, leurs destinataires et leurs statuts.",
+          "title": "Chaque pièce, prête à retrouver",
           "labels": [
             "Montant hors taxes",
             "Taxes",
             "Montant TTC"
           ],
           "steps": [
-            {
-              "title": "Retrouver une facture",
-              "detail": "Filtrez les documents par type, période et statut."
-            },
-            {
-              "title": "Consulter le document",
-              "detail": "Ouvrez le PDF et vérifiez les lignes ainsi que les coordonnées de facturation."
-            },
-            {
-              "title": "Suivre les règlements",
-              "detail": "Identifiez les factures réglées et celles qui demandent encore votre attention."
-            }
+            "Retrouver",
+            "Consulter",
+            "Règlements"
           ]
         },
         "wallets": {
-          "title": "Comprenez le solde de chaque propriétaire",
-          "lede": "Le portefeuille regroupe les mouvements financiers d’un propriétaire. Il explique comment se forme son solde et quelles opérations le font évoluer.",
+          "title": "Le solde de chaque propriétaire, expliqué",
           "labels": [
             "Crédit",
             "Réservation de fonds",
             "Retrait"
           ],
           "steps": [
-            {
-              "title": "Lire le solde",
-              "detail": "Consultez les fonds disponibles et les montants bloqués."
-            },
-            {
-              "title": "Retrouver un mouvement",
-              "detail": "Suivez les crédits et les débits dans l’historique du portefeuille."
-            },
-            {
-              "title": "Contrôler les sorties",
-              "detail": "Vérifiez les retraits et leur statut avant de rapprocher les montants."
-            }
+            "Solde",
+            "Mouvements",
+            "Sorties"
           ]
         },
         "payouts": {
-          "title": "Préparez les reversements aux propriétaires",
-          "lede": "Cet onglet suit les sommes à reverser aux propriétaires. Il relie les calculs, les échéances et les statuts.",
+          "title": "Les reversements, préparés à l’avance",
           "labels": [
             "À préparer",
             "Programmé",
             "Versé"
           ],
           "steps": [
-            {
-              "title": "Vérifier les montants",
-              "detail": "Contrôlez la période, le bénéficiaire et les sommes calculées."
-            },
-            {
-              "title": "Préparer le règlement",
-              "detail": "Renseignez les informations nécessaires et consultez les exports disponibles."
-            },
-            {
-              "title": "Suivre le versement",
-              "detail": "Retrouvez les reversements programmés et effectués dans leur historique."
-            }
+            "Montants",
+            "Règlement",
+            "Versement"
           ]
         },
         "expenses": {
-          "title": "Rattachez chaque dépense à son logement",
-          "lede": "Les dépenses complètent la lecture de votre activité. Classez les frais d’exploitation et conservez les informations nécessaires à leur suivi.",
+          "title": "Chaque dépense, à son logement",
           "labels": [
             "Entretien",
             "Fournitures",
             "Autres frais"
           ],
           "steps": [
-            {
-              "title": "Enregistrer un coût",
-              "detail": "Indiquez le montant, la catégorie, la date et le logement concerné."
-            },
-            {
-              "title": "Conserver les justificatifs",
-              "detail": "Associez les informations fournisseur et les pièces utiles."
-            },
-            {
-              "title": "Préparer le suivi comptable",
-              "detail": "Retrouvez les dépenses par bien et leur éventuelle refacturation."
-            }
+            "Enregistrer",
+            "Justifier",
+            "Comptabiliser"
           ]
         },
         "housekeeper-payouts": {
-          "title": "Suivez les versements des missions",
-          "lede": "Cette vue concerne les prestataires opérationnels. Suivez les versements liés aux missions validées, séparément des propriétaires.",
+          "title": "Les versements des missions, suivis",
           "labels": [
             "Mission validée",
             "Versement en cours",
             "Versement effectué"
           ],
           "steps": [
-            {
-              "title": "Vérifier la mission",
-              "detail": "Le versement s’appuie sur la mission et sa validation."
-            },
-            {
-              "title": "Contrôler le bénéficiaire",
-              "detail": "Le prestataire doit avoir terminé la configuration de son compte de versement."
-            },
-            {
-              "title": "Suivre le paiement",
-              "detail": "Consultez le statut Stripe et traitez les versements qui demandent une action."
-            }
+            "Mission",
+            "Bénéficiaire",
+            "Paiement"
           ]
         },
         "reports": {
-          "title": "Préparez vos données pour la comptabilité",
-          "lede": "Deux vues réunissent le rapport fiscal et les exports comptables. Vérifiez vos agrégats et transmettez les données dans le format attendu.",
+          "title": "Vos données prêtes pour la comptabilité",
           "labels": [
             "Rapport fiscal",
             "Taxes",
             "Export comptable"
           ],
           "steps": [
-            {
-              "title": "Lire le rapport fiscal",
-              "detail": "Consultez les montants et les taxes de la période à partir des opérations enregistrées."
-            },
-            {
-              "title": "Préparer les exports",
-              "detail": "Choisissez la période et le format adaptés à votre outil comptable."
-            },
-            {
-              "title": "Vérifier avant de transmettre",
-              "detail": "Contrôlez les données sources et les paramètres fiscaux de votre organisation."
-            }
+            "Rapport",
+            "Exports",
+            "Vérification"
           ]
         }
       },
       "reports": {
         "overview": {
-          "title": "Lisez l’essentiel de votre activité",
-          "lede": "La synthèse rapproche les revenus, l’occupation et les signaux à examiner. Elle sert de point de départ avant une analyse détaillée.",
+          "title": "L’essentiel de votre activité",
           "labels": [
             "Revenus",
             "Occupation",
             "Points à suivre"
           ],
           "steps": [
-            {
-              "title": "Choisir le recul",
-              "detail": "Sélectionnez une période cohérente avec la décision à prendre."
-            },
-            {
-              "title": "Repérer les écarts",
-              "detail": "Comparez les indicateurs et identifiez les points à approfondir."
-            },
-            {
-              "title": "Approfondir le bon sujet",
-              "detail": "Ouvrez Revenus, Occupation ou Biens pour comprendre les résultats."
-            }
+            "Période",
+            "Écarts",
+            "Détail"
           ]
         },
         "revenue": {
-          "title": "Comprenez d’où viennent vos revenus",
-          "lede": "Analysez les revenus par période, canal et logement. Les coûts disponibles complètent la lecture de la marge, au-delà du chiffre d’affaires.",
+          "title": "D’où viennent vos revenus",
           "labels": [
             "Par mois",
             "Par canal",
             "Par logement"
           ],
           "steps": [
-            {
-              "title": "Lire l’évolution",
-              "detail": "Repérez la répartition des revenus dans le temps."
-            },
-            {
-              "title": "Comparer les sources",
-              "detail": "Identifiez la contribution de chaque canal et de chaque logement."
-            },
-            {
-              "title": "Tenir compte des coûts",
-              "detail": "Consultez les postes de coût pour interpréter la marge calculée."
-            }
+            "Évolution",
+            "Sources",
+            "Coûts"
           ]
         },
         "occupancy": {
-          "title": "Voyez ce qui remplit votre calendrier",
-          "lede": "Ce rapport distingue les nuits occupées des nuits vacantes. Comparez les logements et comprenez la répartition des réservations.",
+          "title": "Ce qui remplit votre calendrier",
           "labels": [
             "Nuits occupées",
             "Nuits vacantes",
             "Par logement"
           ],
           "steps": [
-            {
-              "title": "Lire le remplissage",
-              "detail": "Consultez les nuits occupées sur la période retenue."
-            },
-            {
-              "title": "Comparer les logements",
-              "detail": "Repérez les différences de taux d’occupation entre vos biens."
-            },
-            {
-              "title": "Identifier les sources",
-              "detail": "Croisez les résultats avec les canaux qui apportent les séjours."
-            }
+            "Remplissage",
+            "Logements",
+            "Sources"
           ]
         },
         "pricing": {
-          "title": "Reliez vos prix à la performance",
-          "lede": "Tarifs & prévisions rapproche le prix moyen et les revenus par nuit disponible. Les scénarios éclairent vos choix à partir des données disponibles.",
+          "title": "Vos prix reliés à la performance",
           "labels": [
             "Prix moyen",
             "RevPAN",
             "Scénarios"
           ],
           "steps": [
-            {
-              "title": "Comparer les indicateurs",
-              "detail": "Distinguez le prix des nuits vendues du revenu par nuit disponible."
-            },
-            {
-              "title": "Étudier les pistes tarifaires",
-              "detail": "Consultez les repères et recommandations lorsqu’ils sont disponibles."
-            },
-            {
-              "title": "Explorer une projection",
-              "detail": "Comparez les scénarios. Une prévision reste une estimation, pas un revenu acquis."
-            }
+            "Indicateurs",
+            "Pistes",
+            "Projection"
           ]
         },
         "pace": {
-          "title": "Comprenez le rythme des réservations à venir",
-          "lede": "Le Pace regarde les nuits déjà réservées pour les prochains mois. Il compare leur progression à l’historique et montre les réservations gagnées récemment.",
+          "title": "Le rythme des réservations à venir",
           "labels": [
             "Réservé à date",
             "Année précédente",
             "Pickup"
           ],
           "steps": [
-            {
-              "title": "Lire les mois à venir",
-              "detail": "Consultez les nuits déjà réservées pour les futures périodes."
-            },
-            {
-              "title": "Comparer au même recul",
-              "detail": "La comparaison avec l’an dernier demande un historique suffisant."
-            },
-            {
-              "title": "Suivre le pickup",
-              "detail": "Repérez les nouvelles réservations enregistrées entre deux observations."
-            }
+            "Mois à venir",
+            "Comparaison",
+            "Pickup"
           ]
         },
         "properties": {
-          "title": "Comparez vos biens avec le même regard",
-          "lede": "Retrouvez la performance logement par logement : revenus, coûts et marge. Identifiez les biens à examiner en priorité.",
+          "title": "Vos biens comparés, d’un même regard",
           "labels": [
             "Revenus",
             "Coûts",
             "Marge"
           ],
           "steps": [
-            {
-              "title": "Choisir les biens à examiner",
-              "detail": "Parcourez les performances sur une période commune."
-            },
-            {
-              "title": "Comparer au portefeuille",
-              "detail": "Situez chaque logement par rapport aux repères du parc."
-            },
-            {
-              "title": "Comprendre les différences",
-              "detail": "Examinez l’occupation et les coûts avant de décider d’une action."
-            }
+            "Sélection",
+            "Portefeuille",
+            "Écarts"
           ]
         },
         "interventions": {
-          "title": "Mesurez le travail accompli et celui qui attend",
-          "lede": "Le rapport opérationnel regroupe le volume des missions, leurs statuts et les priorités. Repérez les retards et la charge restante.",
+          "title": "Le travail accompli et celui qui attend",
           "labels": [
             "Terminées",
             "En cours",
             "En attente"
           ],
           "steps": [
-            {
-              "title": "Lire le volume",
-              "detail": "Consultez la répartition des missions par type et par statut."
-            },
-            {
-              "title": "Repérer l’arriéré",
-              "detail": "Identifiez les interventions non terminées et les priorités à traiter."
-            },
-            {
-              "title": "Ajuster l’organisation",
-              "detail": "Revenez aux interventions pour affecter ou replanifier les missions concernées."
-            }
+            "Volume",
+            "Arriéré",
+            "Organisation"
           ]
         },
         "teams": {
-          "title": "Répartissez le travail avec une vue d’ensemble",
-          "lede": "Comparez la charge et le taux de réalisation des équipes. Les retards mettent en évidence les besoins de renfort ou de réorganisation.",
+          "title": "La charge de chaque équipe",
           "labels": [
             "Charge",
             "Réalisation",
             "Retards"
           ],
           "steps": [
-            {
-              "title": "Lire la charge",
-              "detail": "Retrouvez les missions réparties entre les équipes."
-            },
-            {
-              "title": "Suivre la réalisation",
-              "detail": "Comparez les missions terminées et celles qui restent ouvertes."
-            },
-            {
-              "title": "Repérer les difficultés",
-              "detail": "Examinez les retards avant d’ajuster les affectations."
-            }
+            "Charge",
+            "Réalisation",
+            "Retards"
           ]
         },
         "custom": {
-          "title": "Composez un rapport pour son destinataire",
-          "lede": "Créez un document d’analyse pour un propriétaire, votre équipe ou un prospect. Choisissez le contenu utile, puis préparez sa diffusion.",
+          "title": "Un rapport pour chaque destinataire",
           "labels": [
             "Destinataire",
             "Sections",
             "Document"
           ],
           "steps": [
-            {
-              "title": "Définir le cadre",
-              "detail": "Choisissez le destinataire, la période et le périmètre du rapport."
-            },
-            {
-              "title": "Composer les sections",
-              "detail": "Sélectionnez les analyses utiles et vérifiez leur aperçu."
-            },
-            {
-              "title": "Préparer le partage",
-              "detail": "Enregistrez le document, exportez-le en PDF ou utilisez les options d’envoi disponibles."
-            }
+            "Cadre",
+            "Sections",
+            "Partage"
           ]
         }
       }
@@ -3419,48 +3106,19 @@
   },
   "dashboard": {
     "firstUse": {
-      "title": "Votre activité, lisible en un coup d’œil",
-      "lede": "Qui arrive aujourd’hui ? Quels logements se remplissent ? Que faut-il traiter ? Votre tableau de bord réunit les réponses pour organiser la journée et suivre votre activité.",
+      "title": "Votre activité, en un coup d’œil",
+      "lede": "Arrivées, occupation, priorités : tout sur un seul écran.",
       "addProperty": "Ajouter un logement",
       "connectChannels": "Connecter mes canaux",
-      "activationNote": "Ajoutez un premier logement, ou importez-le depuis vos canaux, pour ouvrir votre tableau de bord.",
-      "setupTitle": "Vos premiers widgets, pas à pas",
-      "setup": {
-        "properties": {
-          "title": "Ajoutez vos logements",
-          "detail": "Créez une fiche ou importez vos annonces. Le tableau de bord utilise ce portefeuille pour réunir votre activité."
-        },
-        "bookings": {
-          "title": "Faites remonter vos réservations",
-          "detail": "Connectez un canal, importez un calendrier ou saisissez un séjour. Les arrivées, les départs et l’occupation se mettent en place."
-        },
-        "widgets": {
-          "title": "Adaptez la vue à votre quotidien",
-          "detail": "Les widgets de départ sont déjà prévus. Sur ordinateur, « Personnaliser » permet de les déplacer, d’en retirer ou d’en ajouter."
-        }
-      },
       "demoTitle": "Explorez votre futur tableau de bord",
       "scenes": {
-        "day": {
-          "title": "Préparer la journée",
-          "detail": "Arrivées, départs, ménages et prochains voyageurs : les opérations du jour se lisent ensemble."
-        },
-        "performance": {
-          "title": "Comprendre vos résultats",
-          "detail": "Occupation, revenus, prix moyen et canaux de réservation : comparez une période et repérez les tendances."
-        },
-        "priorities": {
-          "title": "Voir ce qui demande votre attention",
-          "detail": "Paiements à vérifier et interventions à organiser remontent ici. Essayez de traiter le ménage dans l’aperçu."
-        },
-        "customize": {
-          "title": "Composer une vue qui vous ressemble",
-          "detail": "Gardez les widgets utiles et ajoutez ceux des rapports. Essayez d’ajouter l’occupation dans l’aperçu."
-        }
+        "day": "Journée",
+        "performance": "Résultats",
+        "priorities": "Priorités",
+        "customize": "Widgets"
       },
       "demo": {
         "accessibleLabel": "Démonstration interactive du tableau de bord, avec des données d’exemple",
-        "example": "Données d’exemple",
         "occupancy": "Occupation",
         "revenue": "Revenus",
         "bookings": "Réservations",
@@ -3469,42 +3127,13 @@
         "departures": "Départs",
         "cleaning": "Ménages",
         "trend": "Revenus et versements",
-        "period": "Sur les 30 derniers jours",
         "priorities": "À traiter",
         "assignCleaning": "Un ménage à attribuer",
         "assigned": "Ménage attribué dans l’exemple",
-        "done": "Traité",
-        "tryAction": "Essayer",
-        "checkPayment": "Un versement à vérifier",
-        "yourWidgets": "Vos widgets",
         "addWidget": "Ajouter l’occupation",
-        "widgetAdded": "Widget ajouté",
-        "propertyOccupancy": "Occupation des logements",
-        "addHint": "Choisissez un indicateur pour compléter cette vue.",
-        "nextArrivals": "Prochaines arrivées",
-        "sampleProperty": "Appartement des Oliviers"
+        "propertyOccupancy": "Occupation des logements"
       },
-      "sourcesTitle": "Qu’est-ce qui alimente les widgets ?",
-      "sourcesLede": "Les informations arrivent progressivement. Un widget devient utile quand les données correspondantes sont renseignées.",
-      "sources": {
-        "stays": {
-          "title": "Vos logements et vos séjours",
-          "detail": "Ils alimentent l’occupation, le nombre de réservations et les listes d’arrivées et de départs."
-        },
-        "amounts": {
-          "title": "Les montants et les versements",
-          "detail": "Les montants des réservations alimentent les revenus et les prix moyens. Les versements complètent le suivi financier."
-        },
-        "operations": {
-          "title": "Les interventions et leur statut",
-          "detail": "Les ménages et les maintenances planifiés apparaissent dans les opérations. Les situations à résoudre rejoignent les priorités."
-        },
-        "reviews": {
-          "title": "Les avis de vos voyageurs",
-          "detail": "Les avis disponibles alimentent la note moyenne et les widgets de suivi de la satisfaction."
-        }
-      },
-      "liveNote": "Les chiffres présentés ici sont illustratifs. Vos données réelles les remplaceront après l’ajout de votre premier logement.",
+      "liveNote": "Vos vrais chiffres remplacent cet exemple dès le premier logement.",
       "retry": "Réessayer"
     },
     "title": "Tableau de bord",
@@ -8725,48 +8354,19 @@
   "propertiesFirstUse": {
     "add": "Ajouter un logement",
     "import": "Importer depuis un canal",
-    "activation": "Un logement ajouté ou importé suffit pour retrouver vos outils. La connexion à un canal reste facultative.",
-    "setupTitle": "Par où commencer ?",
-    "example": "Données d’exemple",
+    "note": "Un seul logement suffit pour commencer.",
     "exampleHome": "Appartement des Arts",
     "loadError": "Impossible de charger vos logements. Réessayez pour afficher cet écran.",
     "properties": {
       "title": "Chaque logement, une fiche de référence",
-      "lede": "Réunissez les photos, les équipements, les tarifs et les informations pratiques de vos biens. Le planning et les autres écrans s’appuient sur ces fiches.",
+      "lede": "Photos, pièces, tarifs et consignes au même endroit.",
       "preview": "Explorez votre future fiche logement",
-      "setup": [
-        {
-          "title": "Ajoutez ou importez votre premier bien",
-          "detail": "Créez sa fiche manuellement ou récupérez un logement depuis un canal."
-        },
-        {
-          "title": "Complétez les informations utiles",
-          "detail": "Adresse, capacité, chambres, photos et consignes : tout ce dont votre équipe a besoin."
-        },
-        {
-          "title": "Préparez la gestion au quotidien",
-          "detail": "Définissez le tarif de base et les horaires, puis connectez vos canaux si nécessaire."
-        }
-      ],
       "scenes": [
-        {
-          "title": "Retrouver ses biens en un coup d’œil",
-          "detail": "Choisissez un des deux logements de l’aperçu : sa capacité, son prix et sa fiche changent ensemble."
-        },
-        {
-          "title": "Centraliser les informations du logement",
-          "detail": "Photos, pièces et équipements restent rattachés au bon bien. Une fiche à compléter progressivement."
-        },
-        {
-          "title": "Préparer les arrivées et les interventions",
-          "detail": "Horaires et consignes donnent un point de référence aux personnes qui interviennent sur place."
-        },
-        {
-          "title": "Relier ses annonces au bon bien",
-          "detail": "Les connexions aux canaux et leur état de synchronisation se consultent depuis le logement."
-        }
+        "Fiche",
+        "Pièces",
+        "Arrivées",
+        "Canaux"
       ],
-      "note": "Commencez avec un seul logement. Vous pourrez enrichir sa fiche et développer votre portefeuille à votre rythme.",
       "demo": {
         "villa": "Villa des Oliviers",
         "active": "Actif",
@@ -8774,63 +8374,21 @@
         "guests": "{{count}} voyageurs",
         "rooms": "{{count}} chambres",
         "night": "/ nuit",
-        "focus": [
-          {
-            "label": "Une fiche, les informations essentielles",
-            "detail": "Capacité, adresse et prix de base réunis au même endroit."
-          },
-          {
-            "label": "Pièces et équipements renseignés",
-            "detail": "Chambres, cuisine et équipements décrits pour votre équipe."
-          },
-          {
-            "label": "Arrivée à partir de 15 h",
-            "detail": "Les consignes et les horaires sont disponibles dans la fiche."
-          },
-          {
-            "label": "Airbnb · Booking.com",
-            "detail": "Connexions et disponibilités synchronisées dans cet exemple."
-          }
-        ]
+        "baths": "{{count}} salles de bain",
+        "arrival": "Arrivée à partir de 15 h",
+        "channels": "Annonces reliées"
       }
     },
     "pricing": {
       "title": "Le bon tarif, au bon moment",
-      "lede": "Pilotez les prix par logement et par nuit. Ajustez les périodes clés, encadrez la durée des séjours et envoyez vos tarifs vers les canaux connectés.",
+      "lede": "Un prix par nuit, envoyé à tous vos canaux.",
       "preview": "Essayez votre futur calendrier tarifaire",
-      "setup": [
-        {
-          "title": "Ajoutez votre premier logement",
-          "detail": "Chaque grille tarifaire est liée à un bien, même si vous gérez vos réservations manuellement."
-        },
-        {
-          "title": "Définissez votre prix de référence",
-          "detail": "Renseignez un tarif de base puis adaptez les nuits et les périodes qui le nécessitent."
-        },
-        {
-          "title": "Choisissez les règles de séjour",
-          "detail": "Vérifiez les restrictions et vos plans tarifaires avant de les publier vers les canaux connectés."
-        }
-      ],
       "scenes": [
-        {
-          "title": "Partir d’un prix de référence",
-          "detail": "Un tarif de base facilite les ajustements. L’exemple démarre à 100 € par nuit."
-        },
-        {
-          "title": "Adapter les nuits qui comptent",
-          "detail": "Sélectionnez un jour puis déplacez le curseur pour essayer un prix. Le calendrier reflète votre choix."
-        },
-        {
-          "title": "Encadrer la durée des séjours",
-          "detail": "Les restrictions permettent, par exemple, de demander au moins deux nuits sur une période."
-        },
-        {
-          "title": "Publier vers les canaux connectés",
-          "detail": "Le bouton de l’aperçu simule un envoi. Dans votre compte, vous contrôlez la publication des tarifs."
-        }
+        "Base",
+        "Ajustements",
+        "Minimum",
+        "Canaux"
       ],
-      "note": "Les prix de l’aperçu sont fictifs. Les tarifs et les restrictions de vos biens se configurent après leur ajout.",
       "demo": {
         "base": "Tarif de base",
         "night": "/ nuit",
@@ -8839,7 +8397,6 @@
         "adjust": "Prix du {{day}}",
         "minimum": "Séjour minimum",
         "nights": "{{count}} nuits",
-        "channels": "Canaux connectés",
         "published": "Envoi simulé, aucun tarif modifié",
         "done": "Envoi simulé",
         "try": "Simuler l’envoi"
@@ -8847,112 +8404,29 @@
     },
     "vouchers": {
       "title": "Des offres pensées pour vos voyageurs",
-      "lede": "Créez vos codes promo, choisissez les logements concernés et gardez la main sur leurs conditions d’utilisation. Suivez ensuite les remises utilisées.",
+      "lede": "Un code, un logement, une remise : le calcul se voit tout de suite.",
       "preview": "Testez votre futur code promo",
-      "setup": [
-        {
-          "title": "Ajoutez les logements concernés",
-          "detail": "Vos offres pourront cibler un bien ou plusieurs logements de votre portefeuille."
-        },
-        {
-          "title": "Préparez votre première offre",
-          "detail": "Choisissez le code, une remise en pourcentage ou en montant, et sa période de validité."
-        },
-        {
-          "title": "Vérifiez les conditions avant d’activer",
-          "detail": "Définissez la portée et les limites d’utilisation, puis suivez les utilisations dans cet écran."
-        }
-      ],
       "scenes": [
-        {
-          "title": "Choisir une remise lisible",
-          "detail": "Essayez 10 % ou 20 % dans l’aperçu. Vous pourrez aussi créer des remises en montant fixe."
-        },
-        {
-          "title": "Définir les logements et les conditions",
-          "detail": "Une offre s’applique selon sa période, les logements choisis et les limites que vous définissez."
-        },
-        {
-          "title": "Comprendre l’effet sur un séjour",
-          "detail": "Appliquez le code fictif : la réduction et le total des nuitées se recalculent immédiatement."
-        },
-        {
-          "title": "Suivre l’utilisation de vos offres",
-          "detail": "Retrouvez le statut, les utilisations et les remises accordées pour piloter vos campagnes."
-        }
+        "Code",
+        "Logement",
+        "Séjour",
+        "Suivi"
       ],
-      "note": "Un code promo se gère ici ; sa diffusion aux voyageurs reste à votre initiative. L’aperçu ne crée aucune offre.",
       "demo": {
         "code": "Code promo",
-        "draft": "Brouillon",
         "discount": "Choisir la remise d’exemple",
-        "scope": "Logement concerné",
-        "conditions": "Exemple : séjour d’au moins 3 nuits, une utilisation par voyageur.",
-        "stay": "Simulation d’un séjour",
-        "subtotal": "3 nuits × 100 €",
-        "reduction": "Réduction sur les nuitées",
-        "total": "Total des nuitées",
+        "stay": "3 nuits",
+        "reduction": "Remise",
+        "total": "Total",
         "apply": "Tester le code",
         "applied": "Code appliqué",
-        "tracking": "Après activation : statut, utilisations et remises suivis ici.",
-        "note": "Hors frais et taxes, pour illustrer le calcul de la remise."
+        "uses": "Utilisations du code"
       }
     },
     "connected-objects": {
-      "title": "Vos logements connectés, sous vos yeux",
-      "lede": "Regroupez les serrures, capteurs et points de remise de clés par logement. Consultez leur état et repérez les appareils qui demandent votre attention.",
-      "preview": "Manipulez vos futurs objets connectés",
-      "setup": [
-        {
-          "title": "Ajoutez le logement à équiper",
-          "detail": "Chaque objet pourra être rattaché au bon bien pour faciliter sa supervision."
-        },
-        {
-          "title": "Connectez un service compatible",
-          "detail": "Ajoutez votre fournisseur puis associez ses appareils depuis le parcours d’ajout d’objet."
-        },
-        {
-          "title": "Vérifiez les appareils et leurs accès",
-          "detail": "Contrôlez l’état de connexion, les batteries et les actions proposées pour chaque équipement."
-        }
-      ],
-      "scenes": [
-        {
-          "title": "Contrôler une serrure à distance",
-          "detail": "Essayez le verrouillage dans l’aperçu. Dans votre compte, les actions dépendent de la serrure et de vos droits."
-        },
-        {
-          "title": "Lire les mesures de vos capteurs",
-          "detail": "Passez du bruit à la température pour découvrir les informations disponibles selon le type de capteur."
-        },
-        {
-          "title": "Repérer ce qui demande une intervention",
-          "detail": "Une batterie faible ou un objet hors ligne est signalé pour vous aider à prioriser vos vérifications."
-        },
-        {
-          "title": "Garder les objets rattachés au bon logement",
-          "detail": "Le regroupement par bien évite de confondre les appareils lorsque votre portefeuille grandit."
-        }
-      ],
-      "note": "Les équipements et commandes présentés sont fictifs. Les fonctions disponibles dépendent de vos appareils et de leur fournisseur.",
-      "demo": {
-        "online": "{{count}} objets en ligne",
-        "entrance": "Serrure de l’entrée",
-        "locked": "Verrouillée",
-        "unlocked": "Déverrouillée dans l’exemple",
-        "lock": "Verrouiller l’exemple",
-        "unlock": "Déverrouiller l’exemple",
-        "sensors": "Choisir un capteur",
-        "noise": "Bruit",
-        "climate": "Température",
-        "normal": "Mesure normale",
-        "batteryAlert": "Batterie faible · capteur du séjour",
-        "batteryDetail": "18 % restants. Prévoyez le remplacement de la pile.",
-        "monitoring": "État des équipements",
-        "monitoringDetail": "Connexion et batterie suivies pour chaque appareil.",
-        "grouping": "Serrure, capteurs et clés réunis sous le même logement.",
-        "simulation": "Simulation locale : aucune commande envoyée à un appareil."
-      }
+      "title": "Vos pièces connectées, d’un coup d’œil",
+      "lede": "Serrures, capteurs et alertes, pièce par pièce.",
+      "preview": "Manipulez vos futurs objets connectés"
     }
   },
   "propertiesPage": {
@@ -9134,8 +8608,8 @@
       "saveError": "Enregistrement impossible"
     },
     "showcase": {
-      "title": "Vos propriétaires suivent leurs biens sans vous appeler",
-      "description": "Occupation, revenus, reversements et documents, dans un espace dédié que vous ouvrez bien par bien.",
+      "title": "Vos propriétaires suivent leurs biens en autonomie",
+      "description": "Occupation, revenus et reversements, dans un espace dédié.",
       "action": "Inviter un propriétaire"
     },
     "propertiesCount_one": "{{count}} propriété",
@@ -10395,8 +9869,8 @@
     },
     "preferences": "Préférences de notifications",
     "showcase": {
-      "title": "Soyez prévenu de ce qui compte, pas du reste",
-      "description": "Nouvelle réservation, annulation, incident de paiement, alerte de bruit : vous choisissez le canal et la fréquence.",
+      "title": "Prévenu de ce qui compte, pas du reste",
+      "description": "Réservation, paiement, alerte : vous choisissez le canal.",
       "action": "Régler mes notifications"
     },
     "categories": {
@@ -13393,90 +12867,20 @@
       "filteredDesc": "Le filtre par logement masque tout le portefeuille du planning.",
       "clearFilters": "Réinitialiser les filtres",
       "showcase": {
+        "eyebrow": "Zéro double réservation",
+        "title": "Un seul calendrier pour tous vos canaux",
+        "lede": "Une nuit vendue se ferme partout, en moins d’une minute.",
         "milestones": {
-          "sync": {
-            "label": "Tous vos canaux sur une seule grille",
-            "detail": "Airbnb, Booking.com, Vrbo et tout flux iCal se déversent ici. Le canal d'origine se lit en bout de séjour."
-          },
-          "move": {
-            "label": "Déplacez un séjour, les canaux suivent",
-            "detail": "Glissez la brique sur d'autres nuits : les disponibilités repartent vers chaque canal connecté."
-          },
-          "ops": {
-            "label": "Le ménage s'intercale entre deux séjours",
-            "detail": "Ménages, maintenances et blocages vivent sur la même grille que les réservations, pas dans un autre écran."
-          },
-          "money": {
-            "label": "Prix par nuit et occupation, sous les yeux",
-            "detail": "Le tarif de chaque nuit libre et le taux d'occupation du jour s'affichent sans quitter le planning."
-          }
+          "sync": "Canaux",
+          "move": "Séjour",
+          "ops": "Ménage",
+          "money": "Tarifs"
         },
-        "pushedBack": "Disponibilités renvoyées à Airbnb, Booking.com et Vrbo",
-        "title": "Un seul calendrier pour tous vos logements et tous vos canaux",
-        "lede": "Les disponibilités se synchronisent dans les deux sens avec Airbnb, Booking.com et les autres. Plus de double réservation.",
         "addProperty": "Ajouter un logement",
         "importChannel": "Importer depuis un canal",
-        "alreadyOnline": "Vos biens sont déjà en ligne ailleurs ?",
-        "importWithCalendars": "Importez-les avec leurs calendriers",
-        "noDoubleBooking": "Plus de double réservation",
-        "bandTitle": "Une nuit vendue est fermée partout, dans la minute",
-        "bandLede": "Le calendrier fait foi : une réservation entrante ferme les mêmes nuits sur tous les autres canaux, sans que personne ait à y penser.",
-        "guarantees": {
-          "twoWay": "Synchronisation dans les deux sens",
-          "channels": "Airbnb, Booking.com, Vrbo et tout flux iCal",
-          "noDouble": "Aucune double saisie de disponibilité",
-          "history": "Historique des échanges avec chaque canal"
-        },
-        "flow": {
-          "announce": {
-            "label": "1 · Le canal annonce",
-            "text": "Airbnb, Booking.com, Vrbo ou un flux iCal remonte la réservation."
-          },
-          "decide": {
-            "label": "2 · Le calendrier tranche",
-            "text": "Les nuits vendues passent en indisponible dans Baitly."
-          },
-          "propagate": {
-            "label": "3 · Les canaux suivent",
-            "text": "La fermeture repart vers tous les autres canaux connectés."
-          },
-          "operate": {
-            "label": "4 · L'exploitation s'enclenche",
-            "text": "Ménage, arrivée et départ se placent sur les bonnes dates."
-          }
-        },
-        "sectionTitle": "Ce que la grille sait faire",
-        "sectionLede": "Tout se règle depuis le planning : c'est l'écran où l'on passe la journée, il n'a pas à renvoyer ailleurs.",
-        "points": {
-          "drag": {
-            "title": "Glisser-déposer un séjour",
-            "text": "Déplacez ou allongez une réservation à la souris ; les canaux sont mis à jour derrière."
-          },
-          "ops": {
-            "title": "Ménages et maintenances",
-            "text": "Les interventions se posent sur la même grille, à la nuit exacte, et s'assignent à une équipe."
-          },
-          "price": {
-            "title": "Tarif de chaque nuit",
-            "text": "Prix et minimum de nuits s'affichent dans les cellules libres, modifiables sur place."
-          },
-          "block": {
-            "title": "Blocage de dates",
-            "text": "Fermez une période pour travaux ou usage personnel : la fermeture part sur tous les canaux."
-          },
-          "occupancy": {
-            "title": "Occupation du jour",
-            "text": "Une bande en pied de grille donne le taux d'occupation, jour après jour, sur le portefeuille."
-          },
-          "agents": {
-            "title": "Actions à valider",
-            "text": "Les propositions des agents remontent sur la ligne du logement concerné, prêtes à accepter ou refuser."
-          }
-        },
-        "channelsTitle": "Vos canaux, au même endroit",
-        "channelsDescription": "Retrouvez les réservations de vos annonces dans un seul planning, une fois vos canaux connectés.",
+        "alreadyOnline": "Déjà en ligne ailleurs ?",
+        "importWithCalendars": "Importer mes calendriers iCal",
         "partnersLabel": "Partenaires de distribution",
-        "icalNote": "Déjà en ligne ailleurs ? Importez aussi vos calendriers iCal.",
         "demoLabel": "Un aperçu de votre futur planning"
       }
     },
@@ -16973,6 +16377,10 @@
     "emptyHint": "Les fiches se créent toutes seules à partir des réservations, quel que soit le canal d’origine.",
     "errors": {
       "load": "Erreur lors du chargement des voyageurs"
+    },
+    "showcase": {
+      "title": "Chaque voyageur, son historique au même endroit",
+      "description": "Les fiches naissent des réservations."
     }
   },
   "minNights": {

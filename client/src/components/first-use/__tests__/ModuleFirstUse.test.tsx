@@ -1,4 +1,4 @@
-import { act, cleanup, fireEvent, render, screen } from '@testing-library/react';
+import { act, cleanup, fireEvent, render, screen, within } from '@testing-library/react';
 import { MemoryRouter, useLocation } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -39,7 +39,7 @@ afterEach(() => { cleanup(); clients.splice(0).forEach((client) => client.clear(
 describe('Initialisation des espaces Baitly', () => {
   it.each(Object.keys(FIRST_USE_MODULES) as FirstUseModule[])('%s retrouve ses outils dès le premier logement', async (module) => {
     const view = renderEntry(module);
-    expect(await screen.findByText(i18n.t('moduleFirstUse.example'))).toBeVisible();
+    expect(await screen.findByRole('heading', { level: 2 })).toBeVisible();
     expect(screen.queryByTestId('live')).not.toBeInTheDocument();
     state.properties = [{ id: '1' }];
     view.rerender(<QueryClientProvider client={view.client}><MemoryRouter><ModuleFirstUsePage module={module}><div data-testid="live">Live tools</div></ModuleFirstUsePage></MemoryRouter></QueryClientProvider>);
@@ -50,7 +50,7 @@ describe('Initialisation des espaces Baitly', () => {
     state.isLoading = true;
     const view = renderEntry('reservations');
     expect(screen.getByRole('status', { name: i18n.t('common.loading') })).toBeVisible();
-    expect(screen.queryByText(i18n.t('moduleFirstUse.example'))).not.toBeInTheDocument();
+    expect(screen.queryByRole('heading', { level: 2 })).not.toBeInTheDocument();
     view.unmount(); state.isLoading = false; state.isError = true;
     const errorView = renderEntry('reservations');
     expect(screen.getByRole('alert')).toBeVisible();
@@ -91,6 +91,8 @@ describe('Initialisation des espaces Baitly', () => {
 });
 
 describe('Aperçus pédagogiques', () => {
+  const railButtons = (container: HTMLElement) => Array.from(container.querySelectorAll<HTMLButtonElement>('.ns-rail-btn'));
+
   it.each(['fr', 'en', 'ar'])('traduit les 24 présentations et leurs trois étapes en %s', async (language) => {
     await i18n.changeLanguage(language);
     for (const [module, definition] of Object.entries(FIRST_USE_MODULES)) {
@@ -98,45 +100,56 @@ describe('Aperçus pédagogiques', () => {
         const prefix = `moduleFirstUse.screens.${module}.${tab}`;
         const view = renderShowcase(module as FirstUseModule, tab);
         expect(screen.getByRole('heading', { name: i18n.t(`${prefix}.title`) })).toBeVisible();
-        for (const step of [0, 1, 2]) {
-          const button = screen.getAllByRole('button').find((item) => item.hasAttribute('aria-expanded') && item.textContent?.includes(i18n.t(`${prefix}.steps.${step}.title`)))!;
+        const steps = railButtons(view.container);
+        expect(steps).toHaveLength(3);
+        steps.forEach((button, step) => {
+          expect(button).toHaveTextContent(i18n.t(`${prefix}.steps.${step}`));
           fireEvent.click(button);
-          expect(screen.getByText(i18n.t(`${prefix}.steps.${step}.detail`))).toBeVisible();
-        }
+          expect(button).toHaveAttribute('aria-current', 'step');
+        });
         expect(view.container.textContent).not.toMatch(/moduleFirstUse\.|propertiesFirstUse\./);
         view.unmount();
       }
     }
   });
 
-  it('simule une réponse sans envoyer de message réel', () => {
-    renderShowcase('messaging', 'messaging');
-    fireEvent.click(screen.getByRole('button', { name: i18n.t('moduleFirstUse.demo.send') }));
-    expect(screen.getByRole('status')).toHaveTextContent(i18n.t('moduleFirstUse.demo.simulated'));
-    expect(screen.getByText(i18n.t('moduleFirstUse.demo.messageSent'))).toBeVisible();
-    fireEvent.click(screen.getByRole('button', { name: i18n.t('moduleFirstUse.demo.reset') }));
-    expect(screen.queryByText(i18n.t('moduleFirstUse.demo.messageSent'))).not.toBeInTheDocument();
+  it('montre un schéma et des illustrations plutôt que des paragraphes', () => {
+    const view = renderShowcase('reservations', 'reservations');
+    // Chaque étape du rail porte une illustration générée, décorative.
+    const images = Array.from(view.container.querySelectorAll('.ns-rail-btn img'));
+    expect(images).toHaveLength(3);
+    images.forEach((image) => expect(image.getAttribute('src')).toMatch(/^\/images\/.+\.webp$/));
+    // La scène est un îlot bleu nuit, et l'écran ne porte plus de bloc de texte long.
+    expect(view.container.querySelector('.ns')).not.toBeNull();
+    const paragraphs = Array.from(view.container.querySelectorAll('p')).map((node) => node.textContent ?? '');
+    expect(paragraphs.every((text) => text.length < 80)).toBe(true);
   });
 
-  it('distingue les échanges d’équipe et les formulaires de maintenance', () => {
+  it('suit la frise d’un séjour étape par étape', () => {
+    renderShowcase('reservations', 'reservations');
+    const stay = screen.getByRole('button', { name: new RegExp(i18n.t('moduleFirstUse.screens.reservations.reservations.labels.1')) });
+    fireEvent.click(stay);
+    expect(stay).toHaveAttribute('aria-pressed', 'true');
+    expect(screen.getByRole('button', { name: /Accueillir/ })).toHaveAttribute('aria-current', 'step');
+  });
+
+  it('distingue les échanges voyageurs, équipe et formulaires sans rien envoyer', () => {
     renderShowcase('messaging', 'messaging');
-    fireEvent.click(screen.getByRole('button', { name: 'Équipe', exact: true }));
-    expect(screen.getByText(i18n.t('moduleFirstUse.demo.teamIn'))).toBeVisible();
-    fireEvent.click(screen.getByRole('button', { name: i18n.t('moduleFirstUse.demo.send') }));
-    fireEvent.click(screen.getByRole('button', { name: 'Formulaires', exact: true }));
-    expect(screen.getByText(i18n.t('moduleFirstUse.demo.formBody'))).toBeVisible();
-    expect(screen.queryByText(i18n.t('moduleFirstUse.demo.formDone'))).not.toBeInTheDocument();
-    fireEvent.click(screen.getByRole('button', { name: i18n.t('moduleFirstUse.demo.advance') }));
-    expect(screen.getByText(i18n.t('moduleFirstUse.demo.formDone'))).toBeVisible();
+    const tabs = within(screen.getByRole('group', { name: i18n.t('moduleFirstUse.demo.channels') }));
+    for (const label of ['Équipe', 'Formulaires', 'Voyageurs']) {
+      const tab = tabs.getByRole('button', { name: label });
+      fireEvent.click(tab);
+      expect(tab).toHaveAttribute('aria-pressed', 'true');
+    }
   });
 
   it('anime les étapes puis laisse la main dès une interaction', () => {
     vi.useFakeTimers(); renderShowcase('reservations', 'reservations');
-    act(() => vi.advanceTimersByTime(6500));
-    expect(screen.getByRole('button', { expanded: true })).toHaveTextContent('Préparer l’accueil');
-    fireEvent.click(screen.getByRole('button', { name: /Retrouver un séjour/ }));
+    act(() => vi.advanceTimersByTime(5600));
+    expect(screen.getByRole('button', { name: /Accueillir/ })).toHaveAttribute('aria-current', 'step');
+    fireEvent.click(screen.getByRole('button', { name: /Retrouver/ }));
     act(() => vi.advanceTimersByTime(13000));
-    expect(screen.getByRole('button', { expanded: true })).toHaveTextContent('Retrouver un séjour');
+    expect(screen.getByRole('button', { name: /Retrouver/ })).toHaveAttribute('aria-current', 'step');
     expect(screen.queryByRole('button', { name: /Pause|Reprendre/ })).not.toBeInTheDocument();
   });
 
@@ -145,8 +158,8 @@ describe('Aperçus pédagogiques', () => {
     vi.spyOn(window, 'matchMedia').mockImplementation((query) => ({ matches: true, media: query, onchange: null, addListener: vi.fn(), removeListener: vi.fn(), addEventListener: vi.fn(), removeEventListener: vi.fn(), dispatchEvent: vi.fn() }));
     renderShowcase('reports', 'occupancy');
     act(() => vi.advanceTimersByTime(13000));
-    expect(screen.getByRole('button', { expanded: true })).toHaveTextContent('Lire le remplissage');
+    expect(screen.getByRole('button', { name: /Remplissage/ })).toHaveAttribute('aria-current', 'step');
     fireEvent.click(screen.getByRole('button', { name: i18n.t('moduleFirstUse.demo.comparePeriod') }));
-    expect(screen.getByText(i18n.t('moduleFirstUse.demo.occupied', { count: 21 }))).toBeVisible();
+    expect(screen.getByRole('img', { name: i18n.t('moduleFirstUse.demo.occupied', { count: 21 }) })).toBeVisible();
   });
 });
