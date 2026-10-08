@@ -67,29 +67,22 @@
   transition: transform 700ms cubic-bezier(.22, 1, .36, 1), opacity 400ms ease-out;
 }
 
-/* Seul le détail du jalon actif est visible ; son entrée ne déplace pas le mockup. */
-.pl-empty-detail:not([hidden]) { display: block; animation: plEmptyRise 200ms cubic-bezier(.25, 1, .5, 1); }
-
 @media (prefers-reduced-motion: reduce) {
   .pl-empty-bar,
   .pl-empty-pop,
   .pl-empty-rise,
-  .pl-empty-halo,
-  .pl-empty-detail { animation: none !important; }
+  .pl-empty-halo { animation: none !important; }
   .pl-empty-slide,
-  .pl-empty-occ,
-  .pl-empty-detail { transition: none !important; }
-}
-.pl-empty-showcase { container: planning-onboarding / inline-size; }
-
-@container planning-onboarding (min-width: 52rem) {
-  .pl-empty-intro {
-    grid-template-columns: minmax(0, .9fr) minmax(0, 1.1fr);
-    column-gap: 2.5rem;
-  }
+  .pl-empty-occ { transition: none !important; }
 }
 
-.pl-empty-partners { max-inline-size: 23rem; }
+/* Briques « Terre cuite » posées sur la scène bleu nuit : le brun foncé du
+   séjour sur place (#5C3A21) disparaîtrait sur le fond ; on reprend la teinte
+   que le thème sombre du planning lui donne, légèrement relevée. */
+.pl-empty-showcase {
+  --pl-st-checked-in: #7A4E2B;
+  --pl-st-confirmed: #B07A3F;
+}
 
-/* Réserve l'explication de synchronisation pour stabiliser les étapes. */
-.pl-empty-sync-note { min-block-size: 2rem; }
+/* La carte reprend de la hauteur : la grille seule laissait du vide sous elle. */
+.pl-empty-card { padding: 1.25rem; }

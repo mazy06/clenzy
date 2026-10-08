@@ -9,6 +9,7 @@ import { Button } from '../../components/ui';
 import FilterChipRow from '../../components/baitly/FilterChipRow';
 import GuestAvatar from '../../components/baitly/GuestAvatar';
 import ShowcaseEmpty from '../../components/baitly/ShowcaseEmpty';
+import { STAGE_IMAGES } from '../../components/baitly/stageImages';
 import { useScreenSearch } from '../../components/ScreenChrome';
 import { useNavigate } from 'react-router-dom';
 import {
@@ -208,8 +209,9 @@ const GuestsListPage: React.FC<GuestsListPageProps> = ({ embedded = false }) => 
           // les fiches naissent des reservations, on y oriente.
           <ShowcaseEmpty
             eyebrow={{ icon: <PeopleIcon size={14} strokeWidth={1.75} />, label: 'Voyageurs' }}
-            title="{t('guests.subtitle')}"
-            description="{t('guests.emptyHint')}"
+            title={t('guests.showcase.title')}
+            description={t('guests.showcase.description')}
+            image={STAGE_IMAGES.capacity}
             action={
               <Button onClick={() => navigate('/reservations')}>
                 {t('guests.importBookings')}
