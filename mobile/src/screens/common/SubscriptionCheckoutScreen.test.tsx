@@ -5,6 +5,8 @@ import { Select } from '@/components/ui/Select';
 import { SubscriptionCheckoutScreen } from './SubscriptionCheckoutScreen';
 import { baitlySubscriptionApi as api } from '@/api/endpoints/baitlySubscriptionApi';
 import * as WebBrowser from 'expo-web-browser';
+// Le premier rendu charge l'écran et ses dépendances à froid (cache jest vide en CI) : le délai par défaut de 5 s ne suffit pas.
+jest.setTimeout(30000);
 const renderer = require('react-test-renderer');
 const { act } = renderer;
 
