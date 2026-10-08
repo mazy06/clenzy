@@ -115,7 +115,7 @@ describe('Première visite du tableau de bord', () => {
 
   it('montre les indicateurs par leurs illustrations plutôt que par des paragraphes', () => {
     const { container } = renderDashboard();
-    expect(container.querySelector('[data-night]')).not.toBeNull();
+    expect(container.querySelector('.ns')).not.toBeNull();
     expect(container.querySelectorAll('.db-kpi img')).toHaveLength(3);
     expect(container.querySelectorAll('.ns-rail-btn img')).toHaveLength(4);
     const longest = Math.max(...Array.from(container.querySelectorAll('p')).map((node) => node.textContent?.length ?? 0));

@@ -2,7 +2,7 @@ import { useId } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { HomeIcon, TrendingUpIcon, TicketPercentIcon, BlocksIcon } from '../../icons/glyphs';
 import { Button } from '../../components/ui';
-import { NightStage, StageFoot, StageRail, useStageScene, type RailStep } from '../../components/baitly/NightStage';
+import { FirstUseStage, StageFoot, StageRail, useStageScene, type RailStep } from '../../components/baitly/FirstUseStage';
 import { STAGE_IMAGES } from '../../components/baitly/stageImages';
 import { useTranslation } from '../../hooks/useTranslation';
 import { PropertyDemo, PricingDemo, VoucherDemo, DevicesDemo } from './PropertyOnboardingDemos';
@@ -68,7 +68,7 @@ export default function PropertiesEmptyShowcase({ screen, onImport }: {
 
   return (
     <div className="mx-auto w-full max-w-6xl px-4 pt-5 pb-10 sm:px-6 sm:pt-7">
-      <NightStage
+      <FirstUseStage
         headingId={`${id}-title`}
         icon={<Icon aria-hidden />}
         eyebrow={t(`propertiesPage.tabs.${tabKey}`)}

@@ -76,10 +76,11 @@
   .pl-empty-occ { transition: none !important; }
 }
 
-/* Briques « Terre cuite » posées sur la scène bleu nuit : le brun foncé du
-   séjour sur place (#5C3A21) disparaîtrait sur le fond ; on reprend la teinte
-   que le thème sombre du planning lui donne, légèrement relevée. */
-.pl-empty-showcase {
+/* Thème sombre : le brun foncé du séjour sur place (#5C3A21) disparaîtrait sur
+   la scène bleu nuit ; on reprend la teinte que le thème sombre du planning lui
+   donne, légèrement relevée. En thème clair les briques gardent leurs couleurs
+   d'origine, posées sur une carte blanche. */
+:root[data-theme='dark'] .pl-empty-showcase {
   --pl-st-checked-in: #7A4E2B;
   --pl-st-confirmed: #B07A3F;
 }

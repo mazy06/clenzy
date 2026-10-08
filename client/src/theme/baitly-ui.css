@@ -300,14 +300,10 @@
 
 /* ---- Palette Baitly (dark) — navy profond #0A1120, primaire inversée ----
 
-   Ces declarations servent TROIS usages :
+   Ces declarations servent DEUX usages :
 
    1. le theme sombre de l'application, pose sur <html data-theme="dark"> ;
-   2. la barre laterale, qui reste sombre meme en theme clair ;
-   3. les scenes « bleu nuit » des ecrans de premiere arrivee
-      (components/baitly/NightStage), posees sur [data-night] : meme ilot que
-      la sidebar, donc Button, Card et jetons s'y resolvent en sombre sans
-      reprise composant par composant.
+   2. la barre laterale, qui reste sombre meme en theme clair.
 
    Pour (2) on ne bascule PAS seulement les tokens --bui-sidebar-* : tout ce
    qui vit dans la sidebar et lit un token de page (text-muted-foreground du
@@ -333,8 +329,7 @@
 [data-theme="dark"],
 [data-slot="sidebar"],
 .bui-sidebar-flyout,
-[data-assistant-launcher],
-[data-night] {
+[data-assistant-launcher] {
   --bui-background: #0A1120; /* bleu nuit prononcé */
   --bui-foreground: #D7E1EE;
 

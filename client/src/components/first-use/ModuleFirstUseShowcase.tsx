@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
 import { ArrowRight, SparklesIcon } from '../../icons/glyphs';
 import { Button } from '../ui';
-import { NightStage, StageFoot, StageRail, useStageScene, type RailStep } from '../baitly/NightStage';
+import { FirstUseStage, StageFoot, StageRail, useStageScene, type RailStep } from '../baitly/FirstUseStage';
 import { useTranslation } from '../../hooks/useTranslation';
 import { propertiesListKeys } from '../../hooks/usePropertiesList';
 import { demoKind, FIRST_USE_IMAGES, type FirstUseModule } from './catalog';
@@ -39,7 +39,7 @@ export default function ModuleFirstUseShowcase({ module, screen, title, onOpenWo
 
   return (
     <div className="mx-auto w-full max-w-6xl px-4 pt-5 pb-10 sm:px-6 sm:pt-7">
-      <NightStage
+      <FirstUseStage
         headingId={`${id}-title`}
         icon={<SparklesIcon aria-hidden />}
         eyebrow={title}

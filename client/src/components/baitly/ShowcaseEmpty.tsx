@@ -1,9 +1,10 @@
 import * as React from 'react';
-import { NightStage, Packshot } from './NightStage';
+import { FirstUseStage, Packshot } from './FirstUseStage';
 import { cn } from '../../utils/cn';
 
 /**
- * Baitly — état vide « vitrine », sur la scène bleu nuit.
+ * Baitly — état vide « vitrine », sur la scène des écrans de première arrivée
+ * (claire en thème clair, bleu nuit en thème sombre).
  *
  * Complément de components/baitly/EmptyState.tsx (icône + titre + CTA, centré),
  * réservé aux écrans **entièrement** vides avant configuration : voyageurs sans
@@ -40,7 +41,7 @@ export interface ShowcaseEmptyProps {
   action?: React.ReactNode;
   /** Sortie de secours quand le CTA suppose un prérequis absent. */
   fallback?: React.ReactNode;
-  /** Illustration générée (voir `stageImages`), posée sur le fond nuit. */
+  /** Illustration générée (voir `stageImages`), posée sur la scène. */
   image?: string;
   /** Aperçu du produit rempli, à droite — prioritaire sur `image`. */
   preview?: React.ReactNode;
@@ -67,7 +68,7 @@ export default function ShowcaseEmpty({
 
   return (
     <div className={cn('py-4', className)}>
-      <NightStage
+      <FirstUseStage
         className="ns--compact"
         icon={eyebrow?.icon}
         eyebrow={eyebrow?.label}
@@ -75,7 +76,7 @@ export default function ShowcaseEmpty({
         lede={description}
         actions={action}
         extra={fallback ? (
-          <p className="m-0 mt-4 text-sm text-[#9DB0C8] [&>a]:font-medium [&>a]:text-[#E8EEF5] [&>a]:underline [&>a]:underline-offset-4">
+          <p className="m-0 mt-4 text-sm text-[var(--ns-muted)] [&>a]:font-medium [&>a]:text-[var(--ns-ink)] [&>a]:underline [&>a]:underline-offset-4">
             {fallback}
           </p>
         ) : undefined}

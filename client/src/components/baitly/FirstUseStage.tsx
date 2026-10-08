@@ -2,24 +2,26 @@ import * as React from 'react';
 import { CheckIcon } from '../../icons/glyphs';
 import { cn } from '../../utils/cn';
 import { usePrefersReducedMotion } from './ShowcaseCycler';
-import './nightStage.css';
+import './firstUseStage.css';
 
 /**
- * Baitly — scène « bleu nuit » des écrans de première arrivée.
+ * Baitly — scène des écrans de première arrivée.
  *
  * Un écran vide a un seul travail : faire comprendre en un regard ce que
  * l'écran fera une fois rempli. Ce kit le fait avec l'image et le schéma — la
  * phrase se réduit au titre, à une ligne et aux deux gestes attendus.
  *
- *  - {@link NightStage}  : le décor (îlot sombre, même palette que la sidebar),
- *                          la promesse à gauche, le schéma à droite, le rail en pied ;
- *  - {@link StageCard}   : la carte sombre qui porte l'aperçu ;
- *  - {@link Packshot}    : une illustration générée, en tuile ou flottante ;
- *  - {@link StageRail}   : les étapes, en images, qui PILOTENT l'aperçu ;
- *  - {@link useStageScene}: la scène active, son défilement, sa reprise en main.
+ *  - {@link FirstUseStage}  : le décor, la promesse à gauche, le schéma à droite,
+ *                             le rail en pied ;
+ *  - {@link StageCard}      : la carte qui porte l'aperçu ;
+ *  - {@link Packshot}       : une illustration générée, en tuile ou flottante ;
+ *  - {@link StageRail}      : les étapes, en images, qui PILOTENT l'aperçu ;
+ *  - {@link useStageScene}  : la scène active, son défilement, sa reprise en main.
  *
- * La scène est un îlot `data-night` : tout ce qui vit dedans (Button, Card,
- * jetons) se résout en sombre sans reprise composant par composant.
+ * Deux thèmes : carte blanche aux textes bleu nuit en thème clair, îlot bleu nuit
+ * (celui de la sidebar) en thème sombre. Tout passe par les variables `--ns-*`
+ * de `firstUseStage.css` : un aperçu qui n'écrit aucune couleur en dur suit les
+ * deux thèmes sans règle dédiée.
  */
 
 // ─── Scène active ───────────────────────────────────────────────────────────
@@ -188,7 +190,7 @@ export function StageRail({ steps, scene, label }: StageRailProps) {
 
 // ─── Scène complète ─────────────────────────────────────────────────────────
 
-export interface NightStageProps {
+export interface FirstUseStageProps {
   icon?: React.ReactNode;
   eyebrow: React.ReactNode;
   /** La promesse de l'écran — une phrase courte, jamais un constat de vide. */
@@ -208,7 +210,7 @@ export interface NightStageProps {
   className?: string;
 }
 
-export function NightStage({
+export function FirstUseStage({
   icon,
   eyebrow,
   title,
@@ -220,10 +222,10 @@ export function NightStage({
   onVisualFocus,
   headingId,
   className,
-}: NightStageProps) {
+}: FirstUseStageProps) {
   return (
     <div className="ns-root">
-      <section data-night className={cn('ns', className)} aria-labelledby={headingId}>
+      <section data-stage className={cn('ns', className)} aria-labelledby={headingId}>
         <div className="ns-grid" data-solo={!visual || undefined}>
           <div className="ns-copy">
             {(eyebrow || icon) && (

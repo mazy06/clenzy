@@ -120,7 +120,7 @@ describe('Aperçus pédagogiques', () => {
     expect(images).toHaveLength(3);
     images.forEach((image) => expect(image.getAttribute('src')).toMatch(/^\/images\/.+\.webp$/));
     // La scène est un îlot bleu nuit, et l'écran ne porte plus de bloc de texte long.
-    expect(view.container.querySelector('[data-night]')).not.toBeNull();
+    expect(view.container.querySelector('.ns')).not.toBeNull();
     const paragraphs = Array.from(view.container.querySelectorAll('p')).map((node) => node.textContent ?? '');
     expect(paragraphs.every((text) => text.length < 80)).toBe(true);
   });

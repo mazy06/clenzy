@@ -5,7 +5,7 @@ import {
 } from '../../icons/glyphs';
 import { useTranslation } from '../../hooks/useTranslation';
 import { Button } from '../../components/ui';
-import { NightStage, Packshot, StageCard, StageFoot, StageRail, useStageScene, type RailStep } from '../../components/baitly/NightStage';
+import { FirstUseStage, Packshot, StageCard, StageFoot, StageRail, useStageScene, type RailStep } from '../../components/baitly/FirstUseStage';
 import { STAGE_IMAGES } from '../../components/baitly/stageImages';
 import './dashboardEmpty.css';
 
@@ -62,7 +62,7 @@ function DashboardDemo({ scene, onSelect }: DashboardDemoProps) {
 
       <div className="db-split">
         <div className="db-panel ns-hl" data-hl={scene === 'performance'}>
-          <button type="button" className="flex w-full items-center gap-1.5 text-start text-xs font-medium text-[#B8CBEE]" onClick={() => onSelect(index('performance'))}>
+          <button type="button" className="flex w-full items-center gap-1.5 text-start text-xs font-medium text-[var(--ns-soft)]" onClick={() => onSelect(index('performance'))}>
             <TrendingUpIcon className="size-3.5 shrink-0 text-[var(--ns-brass)]" aria-hidden />
             <span className="truncate">{t('dashboard.firstUse.demo.trend')}</span>
           </button>
@@ -76,7 +76,7 @@ function DashboardDemo({ scene, onSelect }: DashboardDemoProps) {
         </div>
 
         <div className="db-panel ns-hl" data-hl={scene === 'priorities'} data-active={scene === 'priorities'}>
-          <div className="flex items-center gap-2 text-xs font-medium text-[#B8CBEE]">
+          <div className="flex items-center gap-2 text-xs font-medium text-[var(--ns-soft)]">
             <Packshot src={STAGE_IMAGES.taskAssigned} size="xs" bare />
             <span className="min-w-0 flex-1 truncate">{t('dashboard.firstUse.demo.priorities')}</span>
             <span className="ns-chip tabular-nums" aria-hidden>{number(resolved ? 1 : 2)}</span>
@@ -118,7 +118,7 @@ function DashboardDemo({ scene, onSelect }: DashboardDemoProps) {
           <>
             <Packshot src={STAGE_IMAGES.occupancy} size="xs" bare />
             <span className="db-widget-track" role="img" aria-label={`${t('dashboard.firstUse.demo.propertyOccupancy')} ${number(73)} %`}><span /></span>
-            <span className="tabular-nums text-[#F3F7FC]">{number(73)} %</span>
+            <span className="tabular-nums text-[var(--ns-ink)]">{number(73)} %</span>
           </>
         ) : (
           <button type="button" className="db-go" aria-label={t('dashboard.firstUse.demo.addWidget')} onClick={() => { onSelect(index('customize')); setWidgetAdded(true); }}>
@@ -145,7 +145,7 @@ export default function DashboardEmptyShowcase({ onConnect }: DashboardEmptyShow
 
   return (
     <div className="mx-auto w-full max-w-6xl px-4 pt-5 pb-10 sm:px-6 sm:pt-7">
-      <NightStage
+      <FirstUseStage
         headingId={`${id}-title`}
         icon={<LayoutDashboardIcon aria-hidden />}
         eyebrow={t('dashboard.title')}

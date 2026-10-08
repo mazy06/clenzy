@@ -5,13 +5,13 @@ import { useNavigate } from 'react-router-dom';
 import { Button } from '../../components/ui';
 import { Block, CleaningServices, Build, SwapHoriz, TrendingUp, Check } from '../../icons';
 import {
-  NightStage,
+  FirstUseStage,
   StageCard,
   StageFoot,
   StageRail,
   useStageScene,
   type RailStep,
-} from '../../components/baitly/NightStage';
+} from '../../components/baitly/FirstUseStage';
 import { STAGE_IMAGES } from '../../components/baitly/stageImages';
 import {
   RESERVATION_STATUS_BAR_COLORS,
@@ -26,6 +26,7 @@ import airbnbPartner from '../../assets/channels/partners/airbnb-preferred-partn
 import bookingPartner from '../../assets/channels/partners/booking-premier-partner-2025.svg';
 import vrboPartner from '../../assets/channels/partners/vrbo-elite-partner-2025.svg';
 import expediaPartner from '../../assets/channels/partners/expedia-preferred-partner-2025.svg';
+import './planningUrgency.css';
 import './planningEmpty.css';
 
 /**
@@ -109,7 +110,7 @@ function DemoGrid({ scene }: { scene: number }) {
         <div className="flex w-16 shrink-0 flex-col gap-3 pt-6 sm:w-20">
           {DEMO_STAYS.map((_, row) => (
             <div key={row} className="flex h-7 items-center gap-1.5">
-              <span className="size-4 shrink-0 rounded-[4px] bg-[rgba(143,163,189,0.25)]" />
+              <span className="size-4 shrink-0 rounded-[4px] bg-[var(--ns-bar)]" />
               <span className="ns-bar flex-1" />
             </div>
           ))}
@@ -122,7 +123,7 @@ function DemoGrid({ scene }: { scene: number }) {
               <div
                 key={day}
                 className={`rounded-[3px] py-0.5 text-center text-[9px] leading-none font-medium tabular-nums ${
-                  WEEKEND_COLUMNS.has(day) ? 'bg-white/[0.07] text-[#B8CBEE]' : 'text-[#8FA3BD]'
+                  WEEKEND_COLUMNS.has(day) ? 'bg-[var(--ns-wash-2)] text-[var(--ns-soft)]' : 'text-[var(--ns-muted)]'
                 }`}
               >
                 {day + 12}
@@ -137,7 +138,7 @@ function DemoGrid({ scene }: { scene: number }) {
                 {Array.from({ length: DAY_COUNT }).map((_, day) => (
                   <div
                     key={day}
-                    className={`rounded-[3px] ${WEEKEND_COLUMNS.has(day) ? 'bg-white/[0.07]' : 'bg-white/[0.035]'}`}
+                    className={`rounded-[3px] ${WEEKEND_COLUMNS.has(day) ? 'bg-[var(--ns-wash-2)]' : 'bg-[var(--ns-wash)]'}`}
                   />
                 ))}
 
@@ -217,7 +218,7 @@ function DemoGrid({ scene }: { scene: number }) {
                     day < stay.start || day >= stay.start + stay.span ? (
                       <span
                         key={day}
-                        className="pl-empty-rise self-center text-center text-[8px] leading-none font-medium tabular-nums text-[#D7E1EE]"
+                        className="pl-empty-rise self-center text-center text-[8px] leading-none font-medium tabular-nums text-[var(--ns-text)]"
                         style={{ gridColumn: day + 1, gridRow: 1, animationDelay: `${day * 35}ms` }}
                       >
                         {price}
@@ -241,15 +242,15 @@ function DemoGrid({ scene }: { scene: number }) {
       </div>
 
       {/* Rangée d'occupation, en pied de grille comme dans le planning. */}
-      <div className="mt-3 flex items-end gap-2 border-t border-white/10 pt-2">
-        <span className="flex w-16 shrink-0 text-[#8FA3BD] sm:w-20" aria-hidden>
+      <div className="mt-3 flex items-end gap-2 border-t border-[var(--ns-line)] pt-2">
+        <span className="flex w-16 shrink-0 text-[var(--ns-muted)] sm:w-20" aria-hidden>
           <TrendingUp size={14} />
         </span>
         <div className="grid h-4 min-w-0 flex-1 items-end gap-[3px]" style={GRID_COLUMNS}>
           {DEMO_OCCUPANCY.map((rate, day) => (
             <span
               key={day}
-              className="pl-empty-occ h-full rounded-[2px] bg-[#8FB1F2]"
+              className="pl-empty-occ h-full rounded-[2px] bg-[var(--ns-blue)]"
               style={{
                 transform: `scaleY(${scene === 3 ? rate : 0.12})`,
                 opacity: scene === 3 ? 1 : 0.35,
@@ -264,12 +265,12 @@ function DemoGrid({ scene }: { scene: number }) {
           (c'est le schéma : le calendrier alimente les canaux) ; il s'allume et
           se coche à l'étape du déplacement, quand il veut dire quelque chose. */}
       <div
-        className="pl-empty-sync mt-4 flex items-center gap-2.5 rounded-xl border border-white/10 bg-white/[0.04] px-3 py-2"
+        className="pl-empty-sync mt-4 flex items-center gap-2.5 rounded-xl border border-[var(--ns-line)] bg-[var(--ns-wash)] px-3 py-2"
       >
         <SwapHoriz
           size={16}
           strokeWidth={2}
-          className={`transition-colors duration-300 ${moved ? 'text-[#E0B483]' : 'text-[#6F82A0]'}`}
+          className={`transition-colors duration-300 ${moved ? 'text-[var(--ns-brass)]' : 'text-[var(--ns-faint)]'}`}
         />
         <span className="ns-bar flex-1" />
         {CHANNEL_LOGOS.map((logo, index) => (
@@ -280,7 +281,7 @@ function DemoGrid({ scene }: { scene: number }) {
             <img src={logo} alt="" className="size-6 rounded-[6px] bg-white object-contain p-0.5" />
             {moved && (
               <span
-                className="ns-pop absolute -end-1 -bottom-1 flex size-3.5 items-center justify-center rounded-full bg-[#2DD4BF] text-[#0A1120]"
+                className="ns-pop absolute -end-1 -bottom-1 flex size-3.5 items-center justify-center rounded-full bg-[var(--ns-ok)] text-[var(--ns-on-ok)]"
                 style={{ '--d': `${200 + index * 140}ms` } as React.CSSProperties}
               >
                 <Check size={9} strokeWidth={3} />
@@ -314,7 +315,7 @@ export default function PlanningEmptyShowcase({ onImport }: PlanningEmptyShowcas
 
   return (
     <div className="pl-empty-showcase mx-auto w-full max-w-6xl px-4 pt-5 pb-10 sm:px-6 sm:pt-7">
-      <NightStage
+      <FirstUseStage
         headingId={`${id}-title`}
         icon={<Block size={14} strokeWidth={2} />}
         eyebrow={t('planning.empty.showcase.eyebrow')}

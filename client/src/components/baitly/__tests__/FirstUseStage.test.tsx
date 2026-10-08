@@ -1,7 +1,7 @@
 import { act, cleanup, fireEvent, render, screen } from '@testing-library/react';
 import { MemoryRouter, useLocation } from 'react-router-dom';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { NightStage, StageFoot, StageRail, useStageScene, type RailStep } from '../NightStage';
+import { FirstUseStage, StageFoot, StageRail, useStageScene, type RailStep } from '../FirstUseStage';
 import ShowcaseEmpty from '../ShowcaseEmpty';
 import { STAGE_IMAGES } from '../stageImages';
 import PlanningEmptyShowcase from '../../../modules/planning/PlanningEmptyShowcase';
@@ -17,7 +17,7 @@ const STEPS: RailStep[] = [
 function Harness() {
   const stage = useStageScene(STEPS.length, 1000);
   return (
-    <NightStage
+    <FirstUseStage
       eyebrow="Eyebrow" title="Titre" actions={<button>Go</button>}
       visual={<p data-testid="scene">{stage.scene}</p>}
       onVisualFocus={stage.takeOver}
@@ -35,15 +35,17 @@ const mockMotion = (reduced: boolean) => vi.spyOn(window, 'matchMedia').mockImpl
 beforeEach(async () => { await i18n.changeLanguage('fr'); mockMotion(false); });
 afterEach(() => { cleanup(); vi.useRealTimers(); vi.restoreAllMocks(); });
 
-describe('Scène bleu nuit', () => {
-  it('pose l’écran sur l’îlot sombre de la sidebar et nomme sa section par son titre', () => {
-    const { container } = render(<NightStage headingId="t" eyebrow="E" title="Un titre" visual={<span>v</span>} />);
-    expect(container.querySelector('section[data-night]')).not.toBeNull();
+describe('Scène de première arrivée', () => {
+  it('pose l’écran sur une scène nommée par son titre, sans forcer d’îlot sombre', () => {
+    const { container } = render(<FirstUseStage headingId="t" eyebrow="E" title="Un titre" visual={<span>v</span>} />);
+    expect(container.querySelector('section.ns')).not.toBeNull();
+    // Le thème décide : aucune palette n'est forcée sur la scène.
+    expect(container.querySelector('[data-theme]')).toBeNull();
     expect(screen.getByRole('heading', { name: 'Un titre' })).toHaveAttribute('id', 't');
   });
 
   it('occupe toute la largeur quand il n’y a pas de schéma', () => {
-    const { container } = render(<NightStage eyebrow="E" title="Seul" />);
+    const { container } = render(<FirstUseStage eyebrow="E" title="Seul" />);
     expect(container.querySelector('.ns-grid')).toHaveAttribute('data-solo', 'true');
     expect(container.querySelector('.ns-visual')).toBeNull();
   });
@@ -99,7 +101,7 @@ describe('ShowcaseEmpty en scène nuit', () => {
       <ShowcaseEmpty eyebrow={{ label: 'Voyageurs' }} title="Chaque voyageur" description="Une ligne."
         image={STAGE_IMAGES.capacity} action={<button>Importer</button>} fallback={<>Autrement ? <a href="#x">Créer</a></>} />,
     );
-    expect(container.querySelector('[data-night]')).not.toBeNull();
+    expect(container.querySelector('.ns')).not.toBeNull();
     expect(screen.getByRole('heading', { name: 'Chaque voyageur' })).toBeVisible();
     expect(screen.getByRole('button', { name: 'Importer' })).toBeVisible();
     expect(screen.getByRole('link', { name: 'Créer' })).toBeVisible();
@@ -125,7 +127,7 @@ describe('Planning sans logement', () => {
     fireEvent.click(screen.getByRole('button', { name: i18n.t('planning.empty.showcase.importWithCalendars') }));
     expect(onImport).toHaveBeenCalledTimes(2);
     expect(container.querySelectorAll('.ns-logos img')).toHaveLength(4);
-    expect(container.querySelector('[data-night]')).not.toBeNull();
+    expect(container.querySelector('.ns')).not.toBeNull();
   });
 
   it('est épuré : plus de blocs « mécanisme », « garde-fous » ni de liste de services', () => {

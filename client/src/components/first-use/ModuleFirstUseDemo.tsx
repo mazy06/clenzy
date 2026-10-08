@@ -3,7 +3,7 @@ import {
   Bed, Brush, CalendarDays, Check, CheckCheck, ClipboardCheck, DoorOpen, Download, FileText, GitCompare,
   Luggage, Mail, MessageSquare, Moon, Send, Users, Wrench, Euro,
 } from '../../icons/glyphs';
-import { StageCard } from '../baitly/NightStage';
+import { StageCard } from '../baitly/FirstUseStage';
 import { useTranslation } from '../../hooks/useTranslation';
 import airbnbLogo from '../../assets/logo/airbnb-logo-small.svg';
 import bookingLogo from '../../assets/logo/booking-logo-small.svg';
@@ -67,7 +67,7 @@ export default function ModuleFirstUseDemo({ kind, prefix, scene, onSelect }: {
           <div className="mt-3 flex items-center gap-2">
             <span className="ns-chip"><Euro aria-hidden />{money(450)}</span>
             <span className="ns-bar flex-1" />
-            <Check className="size-4 text-[#2DD4BF]" aria-hidden />
+            <Check className="size-4 text-[var(--ns-ok)]" aria-hidden />
           </div>
         </>}
 
@@ -88,7 +88,7 @@ export default function ModuleFirstUseDemo({ kind, prefix, scene, onSelect }: {
                     <span className="ns-bar w-3/4" />
                     <span className="flex items-center justify-between">
                       <span className="mu-avatar !size-5 !text-[0.5rem]" aria-hidden>{initials}</span>
-                      {col === 2 ? <Check className="size-4 text-[#2DD4BF]" aria-hidden /> : <ClipboardCheck className="size-4 text-[#8FA3BD]" aria-hidden />}
+                      {col === 2 ? <Check className="size-4 text-[var(--ns-ok)]" aria-hidden /> : <ClipboardCheck className="size-4 text-[var(--ns-muted)]" aria-hidden />}
                     </span>
                   </span>
                 ) : <span className="mu-ghost" />}
@@ -99,7 +99,7 @@ export default function ModuleFirstUseDemo({ kind, prefix, scene, onSelect }: {
 
         {/* ── Calendrier : un bloc par jour ── */}
         {kind === 'calendar' && <>
-          <div className="flex items-center gap-2 text-xs text-[#B8CBEE]"><CalendarDays className="size-4 text-[var(--ns-brass)]" aria-hidden /><span className="ns-bar w-1/4" /></div>
+          <div className="flex items-center gap-2 text-xs text-[var(--ns-soft)]"><CalendarDays className="size-4 text-[var(--ns-brass)]" aria-hidden /><span className="ns-bar w-1/4" /></div>
           <div className="mu-days">
             {ROWS.map((day) => <button key={day} type="button" className="mu-day" aria-pressed={scene === day} onClick={() => onSelect(day)}>
               <span>{t('moduleFirstUse.demo.day', { count: day + 1 })}</span>
@@ -125,12 +125,12 @@ export default function ModuleFirstUseDemo({ kind, prefix, scene, onSelect }: {
                 <span className="ns-bar w-1/3" />
                 <span className="ns-bar ns-bar--strong w-4/5" />
                 <span className="ns-bar w-3/5" />
-                <span className="mt-1 inline-flex items-center gap-1.5 self-end text-[#2DD4BF]"><Check className="size-4" aria-hidden /></span>
+                <span className="mt-1 inline-flex items-center gap-1.5 self-end text-[var(--ns-ok)]"><Check className="size-4" aria-hidden /></span>
               </div>
             ) : <>
               <div className="mu-bubble mu-bubble--in"><span className="ns-bar ns-bar--strong w-full" /><span className="ns-bar w-2/3" /></div>
               <div className="mu-bubble mu-bubble--out"><span className="ns-bar ns-bar--strong w-full" /><span className="ns-bar w-1/2" />
-                <span className="flex items-center justify-end gap-1.5"><img src={scene === 0 ? airbnbLogo : bookingLogo} alt="" className="size-4 rounded bg-white object-contain p-px" /><CheckCheck className="size-4 text-[#2DD4BF]" aria-hidden /></span>
+                <span className="flex items-center justify-end gap-1.5"><img src={scene === 0 ? airbnbLogo : bookingLogo} alt="" className="size-4 rounded bg-white object-contain p-px" /><CheckCheck className="size-4 text-[var(--ns-ok)]" aria-hidden /></span>
               </div>
             </>}
           </div>
@@ -165,9 +165,9 @@ export default function ModuleFirstUseDemo({ kind, prefix, scene, onSelect }: {
             <span className="mu-step-dot" aria-hidden><Euro /></span>
             <span className="mu-ledger-label">{label(row)}</span>
             <strong>{money([480, 360, 240][row])}</strong>
-            {scene === row && row === 2 ? <Check className="size-4 text-[#2DD4BF]" aria-hidden /> : <span className="size-4" />}
+            {scene === row && row === 2 ? <Check className="size-4 text-[var(--ns-ok)]" aria-hidden /> : <span className="size-4" />}
           </button>)}
-          <div className="flex items-center gap-2"><span className="ns-bar flex-1" /><Send className="size-4 text-[#8FA3BD] rtl:-scale-x-100" aria-hidden /></div>
+          <div className="flex items-center gap-2"><span className="ns-bar flex-1" /><Send className="size-4 text-[var(--ns-muted)] rtl:-scale-x-100" aria-hidden /></div>
         </div>}
 
         {/* ── Graphiques ── */}
@@ -192,8 +192,8 @@ export default function ModuleFirstUseDemo({ kind, prefix, scene, onSelect }: {
           <div className="mu-grid28" role="img" aria-label={t('moduleFirstUse.demo.occupied', { count: comparison ? 21 : 15 })}>
             {Array.from({ length: 28 }, (_, day) => (
               <span key={day} style={day < (comparison ? 21 : 15)
-                ? { background: scene === 1 && day >= 15 ? '#E0B483' : '#8FB1F2', color: '#0A1120' }
-                : { background: 'rgba(143, 163, 189, 0.14)', color: '#8FA3BD' }}>{number(day + 1)}</span>
+                ? { background: scene === 1 && day >= 15 ? 'var(--ns-brass-fill)' : 'var(--ns-blue)', color: scene === 1 && day >= 15 ? 'var(--ns-on-brass)' : 'var(--ns-on-blue)' }
+                : { background: 'var(--ns-bar)', color: 'var(--ns-muted)' }}>{number(day + 1)}</span>
             ))}
           </div>
         </>}

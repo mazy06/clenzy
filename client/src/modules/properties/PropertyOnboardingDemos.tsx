@@ -1,6 +1,6 @@
 import { useId, useState, type CSSProperties } from 'react';
 import { Check, Clock, Hourglass, MapPin, Send, TicketPercent, Key } from '../../icons/glyphs';
-import { Packshot, StageCard } from '../../components/baitly/NightStage';
+import { Packshot, StageCard } from '../../components/baitly/FirstUseStage';
 import { STAGE_IMAGES, apartmentPhoto, villaPhoto } from '../../components/baitly/stageImages';
 import { useTranslation } from '../../hooks/useTranslation';
 import airbnbLogo from '../../assets/logo/airbnb-logo-small.svg';
@@ -63,7 +63,7 @@ export function PropertyDemo({ scene, onSelect }: PropertyDemoProps) {
               <span key={logo}>
                 <img src={logo} alt="" />
                 {scene === 3 && (
-                  <span className="ns-pop absolute -end-1 -bottom-1 flex size-3.5 items-center justify-center rounded-full bg-[#2DD4BF] text-[#0A1120]" style={{ '--d': `${index * 160}ms` } as CSSProperties}>
+                  <span className="ns-pop absolute -end-1 -bottom-1 flex size-3.5 items-center justify-center rounded-full bg-[var(--ns-ok)] text-[var(--ns-on-ok)]" style={{ '--d': `${index * 160}ms` } as CSSProperties}>
                     <Check size={9} strokeWidth={3} />
                   </span>
                 )}
@@ -74,7 +74,7 @@ export function PropertyDemo({ scene, onSelect }: PropertyDemoProps) {
         <div className="pr-cover-bottom">
           <span className="min-w-0">
             <strong className="block truncate text-base font-semibold">{home.name}</strong>
-            <span className="flex items-center gap-1 text-xs text-[#B8CBEE]"><MapPin className="size-3" aria-hidden />{home.city}</span>
+            <span className="flex items-center gap-1 text-xs text-white/80"><MapPin className="size-3" aria-hidden />{home.city}</span>
           </span>
         </div>
       </div>
@@ -131,16 +131,16 @@ export function PricingDemo({ scene, onSelect }: PropertyDemoProps) {
               onClick={() => { setSelectedDay(index); setCustomPrice(null); setPublished(false); onSelect(1); }}>
               <span className="block text-[10px] opacity-70">{dateLabel(index)}</span>
               <span className="mt-0.5 block text-xs tabular-nums">{number(14 + index)}</span>
-              <span className={`mt-2 block text-xs font-semibold tabular-nums ${value > 100 ? 'text-[#E0B483]' : 'text-[#D7E1EE]'}`}>{number(value)}</span>
+              <span className={`mt-2 block text-xs font-semibold tabular-nums ${value > 100 ? 'text-[var(--ns-brass-ink)]' : 'text-[var(--ns-text)]'}`}>{number(value)}</span>
             </button>
           );
         })}
       </div>
 
       <div>
-        <label htmlFor={id} className="flex items-center justify-between gap-3 text-xs font-medium text-[#B8CBEE]">
+        <label htmlFor={id} className="flex items-center justify-between gap-3 text-xs font-medium text-[var(--ns-soft)]">
           <span>{dateLabel(selectedDay)}</span>
-          <output className="text-base tabular-nums text-[#F3F7FC]" htmlFor={id}>{money(price)}</output>
+          <output className="text-base tabular-nums text-[var(--ns-ink)]" htmlFor={id}>{money(price)}</output>
         </label>
         <input id={id} type="range" min={80} max={180} step={5} value={price} aria-valuetext={money(price)} aria-label={t(`${prefix}.adjust`, { day: dateLabel(selectedDay) })}
           className="pr-range mt-2 w-full cursor-pointer"
@@ -153,7 +153,7 @@ export function PricingDemo({ scene, onSelect }: PropertyDemoProps) {
         </span>
         <button type="button" className="pr-send ns-hl" data-hl={scene === 3} disabled={published}
           aria-label={t(`${prefix}.${published ? 'done' : 'try'}`)} onClick={() => { setPublished(true); onSelect(3); }}>
-          {published ? <Check className="size-4 text-[#2DD4BF]" aria-hidden /> : <Send className="size-4 rtl:-scale-x-100" aria-hidden />}
+          {published ? <Check className="size-4 text-[var(--ns-ok)]" aria-hidden /> : <Send className="size-4 rtl:-scale-x-100" aria-hidden />}
           {CHANNELS.map((logo) => <img key={logo} src={logo} alt="" />)}
         </button>
       </div>
@@ -175,7 +175,7 @@ export function VoucherDemo({ scene, onSelect }: PropertyDemoProps) {
       <div className="pr-ticket ns-hl" data-hl={scene === 0}>
         <Packshot src={STAGE_IMAGES.promotion} size="lg" />
         <div className="min-w-0">
-          <span className="block text-xs text-[#9DB0C8]"><TicketPercent className="me-1 inline size-3.5 align-[-2px] text-[var(--ns-brass)]" aria-hidden />{t(`${prefix}.code`)}</span>
+          <span className="block text-xs text-[var(--ns-muted)]"><TicketPercent className="me-1 inline size-3.5 align-[-2px] text-[var(--ns-brass)]" aria-hidden />{t(`${prefix}.code`)}</span>
           <span className="pr-ticket-code" dir="ltr">BIENVENUE{discount}</span>
         </div>
         <strong className="pr-ticket-value">−{number(discount)} %</strong>
@@ -190,7 +190,7 @@ export function VoucherDemo({ scene, onSelect }: PropertyDemoProps) {
 
       <div className="mt-3 flex items-center gap-3 rounded-xl p-2 ns-hl" data-hl={scene === 1}>
         <span className="relative block size-11 shrink-0 overflow-hidden rounded-lg"><img src={apartmentPhoto} alt="" className="size-full object-cover" /></span>
-        <span className="min-w-0 flex-1 truncate text-sm font-medium text-[#E8EEF5]">{t('propertiesFirstUse.exampleHome')}</span>
+        <span className="min-w-0 flex-1 truncate text-sm font-medium text-[var(--ns-ink)]">{t('propertiesFirstUse.exampleHome')}</span>
         <Packshot src={STAGE_IMAGES.calendar} size="sm" />
       </div>
 
@@ -201,7 +201,7 @@ export function VoucherDemo({ scene, onSelect }: PropertyDemoProps) {
           <div><dt>{t(`${prefix}.total`)}</dt><dd aria-live="polite">{money(300 - savings)}</dd></div>
         </dl>
         <button type="button" className="pr-send justify-center" disabled={applied} onClick={() => { setApplied(true); onSelect(2); }}>
-          {applied ? <Check className="size-4 text-[#2DD4BF]" aria-hidden /> : <TicketPercent className="size-4" aria-hidden />}
+          {applied ? <Check className="size-4 text-[var(--ns-ok)]" aria-hidden /> : <TicketPercent className="size-4" aria-hidden />}
           <span className="text-xs font-medium">{t(`${prefix}.${applied ? 'applied' : 'apply'}`)}</span>
         </button>
       </div>

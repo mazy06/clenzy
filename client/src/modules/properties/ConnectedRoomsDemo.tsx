@@ -3,7 +3,7 @@ import {
   Activity, Camera, DoorClosed, DoorOpen, Droplets, Key, LockKeyhole, LockKeyholeOpen,
   PanelsTopLeft, ShieldCheck, Thermometer, TriangleAlert, Volume2, Wifi,
 } from '../../icons/glyphs';
-import { StageCard } from '../../components/baitly/NightStage';
+import { StageCard } from '../../components/baitly/FirstUseStage';
 import { useTranslation } from '../../hooks/useTranslation';
 import { cn } from '../../utils/cn';
 import { ROOM_SCENES, roomArtwork, type OpeningVariant, type RoomDeviceSlot, type RoomScene } from '../connected-objects/roomModel';
