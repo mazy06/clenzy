@@ -35,7 +35,12 @@ beforeAll(async () => {
 });
 afterAll(async () => { vi.unstubAllGlobals(); await http.close(); });
 beforeEach(() => { context.staff = true; context.user = { id: 1, organizationId: 7 }; http.route(() => { throw new Error('Unexpected route'); }); });
-afterEach(() => { cleanup(); clients.splice(0).forEach(c => c.clear()); vi.restoreAllMocks(); expect(http.unexpected).toEqual([]); });
+afterEach(async () => {
+  // Une requête encore en vol (ex. lecture du bien après la sélection) ne doit pas atterrir dans le test suivant,
+  // dont le journal HTTP est remis à zéro : on attend qu'elles soient terminées avant de démonter.
+  await waitFor(() => clients.forEach(c => { expect(c.isFetching()).toBe(0); expect(c.isMutating()).toBe(0); }));
+  cleanup(); clients.splice(0).forEach(c => c.clear()); vi.restoreAllMocks(); expect(http.unexpected).toEqual([]);
+});
 it('propose les deux parcours sans créer une dette ou payer à la lecture', async () => {
   http.route((req, res) => read(req, res, row)); mount(); await select();
   expect(screen.getByRole('button', { name: 'Inviter sur Baitly' })).toBeVisible();
