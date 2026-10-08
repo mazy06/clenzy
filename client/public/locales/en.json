@@ -13766,7 +13766,7 @@
     "searchArchivedPlaceholder": "Search the archives…",
     "searchPlaceholder": "Search for a conversation…",
     "selectConversation": "Select a conversation",
-    "selectConversationHint": "Pick a conversation or a form from the list to see the details.",
+    "selectConversationHint": "Pick a conversation on the left.",
     "sendTemplate": "Send a WhatsApp template",
     "sendTemplateShort": "Send a template",
     "stayArrival": "arrival {{date}}",
@@ -13776,7 +13776,76 @@
     "stayUpcoming": "Upcoming",
     "title": "Messaging",
     "whatsappWindowExpired": "24-hour window expired — a template is required to reach this guest again.",
-    "whatsappWindowPlaceholder": "Free-form reply unavailable (template required)"
+    "whatsappWindowPlaceholder": "Free-form reply unavailable (template required)",
+    "ai": {
+      "draftTitle": "Suggested reply",
+      "hideTranslation": "Hide translation",
+      "regenerate": "Regenerate",
+      "retry": "Retry",
+      "reviewHint": "Review before sending",
+      "sentiment": {
+        "label": "Guest sentiment",
+        "negative": "Unhappy",
+        "positive": "Satisfied",
+        "neutral": "Neutral"
+      },
+      "suggest": "Suggest a reply",
+      "translate": "Translate",
+      "translationFailed": "Translation unavailable right now.",
+      "translationOf": "Translation · {{lang}}",
+      "translationSame": "The message is already in your language.",
+      "urgent": "Urgent",
+      "use": "Use",
+      "variant": "Variant {{n}}",
+      "variants": "Variants",
+      "writing": "Writing…",
+      "tones": {
+        "friendly": "Warm",
+        "professional": "Professional",
+        "empathetic": "Empathetic"
+      }
+    },
+    "anonymous": "Anonymous",
+    "composerHint": "Enter to send · Shift + Enter for a new line",
+    "composerMode": "Message type",
+    "context": {
+      "analysis": "AI reading",
+      "arrival": "Arrival",
+      "conversation": "Conversation",
+      "departure": "Departure",
+      "hide": "Hide context",
+      "messages": "Messages",
+      "openedOn": "Opened on",
+      "show": "Show context",
+      "stay": "Stay",
+      "title": "Context",
+      "unattached": "This conversation isn’t linked to any booking."
+    },
+    "delivery": {
+      "delivered": "Delivered",
+      "failed": "Failed to send",
+      "read": "Read",
+      "sent": "Sent"
+    },
+    "empty": {
+      "archivedHint": "Archived conversations show up here.",
+      "formsHint": "Quote and support requests land here.",
+      "searchHint": "Try another name, a property, or a word from the message.",
+      "unreadHint": "No messages waiting to be read.",
+      "unreadTitle": "You’re all caught up"
+    },
+    "filtersLabel": "Filter the inbox",
+    "groups": {
+      "today": "Today",
+      "yesterday": "Yesterday",
+      "week": "This week",
+      "older": "Older"
+    },
+    "noteHint": "Visible to your team only",
+    "saveNote": "Save note",
+    "scrollToLatest": "Jump to the latest message",
+    "tabNote": "Internal note",
+    "tabReply": "Reply"
   },
   "account": {
     "title": "My account",

@@ -263,4 +263,8 @@ export interface ThreadMessage {
    * Le fil reste générique — c'est l'appelant qui sait quoi afficher.
    */
   card?: React.ReactNode;
+  /** État de livraison renvoyé par le serveur (SENT, DELIVERED, READ, FAILED…). */
+  delivery?: string | null;
+  /** Contenu rendu SOUS la bulle (traduction, aide contextuelle), hors carte. */
+  extra?: React.ReactNode;
 }

@@ -261,7 +261,7 @@
   overflow: hidden;
   border-radius: calc(var(--s) * 0.28);
   background: linear-gradient(160deg, #F4F7FB, #D9E2EE);
-  box-shadow: 0 0 0 1px rgba(20, 33, 58, 0.08), 0 1px 0 rgba(255, 255, 255, 0.8) inset, 0 10px 20px -10px var(--ns-drop);
+  box-shadow: 0 0 0 1px rgba(20, 33, 58, 0.08), 0 1px 0 rgba(255, 255, 255, 0.8) inset, 0 10px 20px -10px var(--ns-drop, rgba(20, 33, 58, 0.3));
   transition: box-shadow 320ms cubic-bezier(0.22, 1, 0.36, 1);
 }
 .ns-pack > img { display: block; inline-size: 100%; block-size: 100%; object-fit: cover; }
@@ -273,7 +273,7 @@
 .ns-pack--2xl { --s: 9rem; }
 /* Sans tuile : l'objet flotte directement sur la scène. */
 .ns-pack[data-bare] { overflow: visible; background: none; box-shadow: none; }
-.ns-pack[data-bare] > img { object-fit: contain; padding: 0; filter: drop-shadow(0 14px 16px var(--ns-drop)); }
+.ns-pack[data-bare] > img { object-fit: contain; padding: 0; filter: drop-shadow(0 14px 16px var(--ns-drop, rgba(20, 33, 58, 0.3))); }
 
 .ns-float {
   position: absolute;

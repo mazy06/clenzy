@@ -46,6 +46,35 @@ export interface ConversationMessageDto {
   internalNote: boolean;
 }
 
+/**
+ * Brouillon de réponse généré par le copilote (POST /conversations/{id}/suggest-reply).
+ * Ancré sur le dernier message du voyageur et la base de connaissances ; il n'envoie rien.
+ */
+export interface AiReplySuggestion {
+  response: string;
+  /** Ton détecté : friendly, professional, empathetic… */
+  tone: string | null;
+  /** Langue de la réponse (déduite du message du voyageur). */
+  language: string | null;
+  /** Variantes proposées en plus de la réponse principale. */
+  alternatives: string[];
+}
+
+/** Analyse du dernier message voyageur (sentiment par mots-clés + urgence). */
+export interface ConversationAnalysis {
+  sentiment: 'POSITIVE' | 'NEUTRAL' | 'NEGATIVE' | string;
+  /** Négatif = mécontent, positif = satisfait. */
+  score: number;
+  urgent: boolean;
+}
+
+/** Traduction à la volée du dernier message voyageur. */
+export interface ConversationTranslation {
+  targetLanguage: string;
+  /** Texte original si la traduction n'est pas configurée côté serveur. */
+  translatedText: string;
+}
+
 export interface PageResponse<T> {
   content: T[];
   totalElements: number;
@@ -121,6 +150,18 @@ export const conversationApi = {
   /** Envoi proactif d'un template WhatsApp depuis une réservation (crée la conversation au besoin). */
   sendTemplateForReservation: (reservationId: number, templateKey: string): Promise<ConversationDto> =>
     apiClient.post(`${BASE}/reservation/${reservationId}/send-template`, { templateKey }),
+
+  /** Copilote IA : génère un brouillon de réponse (variantes incluses), sans l'envoyer. */
+  suggestReply: (conversationId: number): Promise<AiReplySuggestion> =>
+    apiClient.post(`${BASE}/${conversationId}/suggest-reply`),
+
+  /** Copilote IA : sentiment et urgence du dernier message du voyageur. */
+  getAnalysis: (conversationId: number): Promise<ConversationAnalysis> =>
+    apiClient.get(`${BASE}/${conversationId}/analysis`),
+
+  /** Copilote IA : traduit le dernier message du voyageur dans la langue cible. */
+  translateLastInbound: (conversationId: number, target: string): Promise<ConversationTranslation> =>
+    apiClient.post(`${BASE}/${conversationId}/translate`, undefined, { params: { target } }),
 
   /** Concierge IA : valide et envoie le brouillon suggéré au guest. */
   sendAiDraft: (conversationId: number): Promise<ConversationDto> =>

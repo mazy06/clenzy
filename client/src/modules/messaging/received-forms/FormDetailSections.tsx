@@ -32,8 +32,8 @@ import { useTranslation } from '../../../hooks/useTranslation';
  */
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
-    <section className="flex flex-col gap-2.5">
-      <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">{title}</h3>
+    <section className="flex flex-col gap-2.5 rounded-xl border border-border bg-card p-4">
+      <h3 className="m-0 text-xs font-semibold uppercase tracking-wide text-muted-foreground">{title}</h3>
       {children}
     </section>
   );

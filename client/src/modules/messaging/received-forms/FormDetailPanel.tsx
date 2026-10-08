@@ -205,37 +205,38 @@ export default function FormDetailPanel({ form, showBack = false, onBack }: Form
   const pill = STATUS_PILL[form.status] ?? STATUS_PILL.NEW;
 
   return (
-    <div className="flex min-h-0 flex-1 flex-col gap-5 overflow-y-auto rounded-xl border border-border bg-card p-4 min-[900px]:p-5">
+    <>
+    <div className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-2xl border border-border bg-card">
       {/* ── Entête : identité, contact, statut ─────────────────────────────
           Le statut et la date remontent SUR la ligne du nom plutôt que dans une
           colonne à droite : sur un volet étroit, cette colonne poussait le nom
           et l'objet à se tronquer alors qu'ils portent l'essentiel. */}
-      <header className="flex flex-col gap-3 border-b border-border pb-4">
+      <header className="flex shrink-0 flex-col gap-3 border-b border-border px-3 py-3 min-[900px]:px-4">
         <div className="flex items-start gap-3">
           {showBack && (
             <Button
               variant="ghost"
               size="icon-sm"
               onClick={onBack}
-              aria-label="Retour"
+              aria-label={t('messagingHub.back', 'Retour')}
               className="cursor-pointer"
             >
-              <ArrowBackIcon size={16} strokeWidth={1.75} />
+              <ArrowBackIcon size={16} strokeWidth={1.75} className="rtl:-scale-x-100" />
             </Button>
           )}
-          <ConversationAvatar name={form.fullName || 'Anonyme'} channel="FORM" size={44} />
+          <ConversationAvatar name={form.fullName || t('messagingHub.anonymous', 'Anonyme')} channel="FORM" size={44} />
 
           <div className="min-w-0 flex-1">
             <div className="flex flex-wrap items-center gap-2">
-              <h2 className="cn-font-heading truncate text-lg font-semibold text-foreground">
-                {form.fullName || 'Anonyme'}
+              <h2 dir="auto" className="cn-font-heading m-0 truncate text-lg font-semibold text-foreground">
+                {form.fullName || t('messagingHub.anonymous', 'Anonyme')}
               </h2>
               <Badge variant={pill.variant}>{t(pill.labelKey)}</Badge>
             </div>
-            <p className="mt-0.5 text-sm text-muted-foreground">
+            <p dir="auto" className="m-0 mt-0.5 text-sm text-muted-foreground">
               {form.subject || `Formulaire #${form.id}`}
             </p>
-            <p className="mt-0.5 text-xs text-faint tabular-nums">
+            <p className="m-0 mt-0.5 text-xs text-faint tabular-nums">
               {formatFormDate(form.createdAt)}
               {form.ipAddress && ` · IP ${form.ipAddress}`}
             </p>
@@ -244,10 +245,10 @@ export default function FormDetailPanel({ form, showBack = false, onBack }: Form
 
         {/* Contact : les coordonnées sont ACTIONNABLES (mailto / tel), pas du
             texte décoratif — c'est le premier geste après lecture. */}
-        <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5 text-sm">
+        <div className="flex flex-wrap items-center gap-1.5 text-xs">
           {form.email && (
             <a
-              className="inline-flex items-center gap-1.5 text-foreground no-underline transition-colors duration-150 hover:text-primary motion-reduce:transition-none"
+              className="inline-flex items-center gap-1.5 rounded-full bg-muted px-2.5 py-1 text-foreground no-underline transition-colors duration-150 hover:bg-primary-soft motion-reduce:transition-none"
               href={`mailto:${form.email}`}
             >
               <MailIcon size={14} strokeWidth={1.75} className="shrink-0 text-primary" />
@@ -256,7 +257,7 @@ export default function FormDetailPanel({ form, showBack = false, onBack }: Form
           )}
           {form.phone && (
             <a
-              className="inline-flex items-center gap-1.5 text-foreground no-underline transition-colors duration-150 hover:text-primary motion-reduce:transition-none"
+              className="inline-flex items-center gap-1.5 rounded-full bg-muted px-2.5 py-1 text-foreground no-underline transition-colors duration-150 hover:bg-primary-soft motion-reduce:transition-none"
               href={`tel:${form.phone.replace(/\s/g, '')}`}
             >
               <PhoneIcon size={14} strokeWidth={1.75} className="shrink-0 text-primary" />
@@ -264,7 +265,7 @@ export default function FormDetailPanel({ form, showBack = false, onBack }: Form
             </a>
           )}
           {(form.city || form.postalCode) && (
-            <span className="inline-flex items-center gap-1.5 text-muted-foreground">
+            <span className="inline-flex items-center gap-1.5 rounded-full bg-muted px-2.5 py-1 text-muted-foreground">
               <MapPinIcon size={14} strokeWidth={1.75} className="shrink-0 text-primary" />
               {[form.city, form.postalCode].filter(Boolean).join(' ')}
             </span>
@@ -272,148 +273,154 @@ export default function FormDetailPanel({ form, showBack = false, onBack }: Form
         </div>
       </header>
 
-      {/* Sections payload (aperçu du bien / services / planning) */}
-      <FormPayloadSections form={form} />
+      {/* Corps défilant : les sections du formulaire sont des cartes posées sur
+          le fond du fil, comme les bulles de la conversation. */}
+      <div className="flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto bg-muted/40 p-3 min-[900px]:p-5">
+        {/* Sections payload (aperçu du bien / services / planning) */}
+        <FormPayloadSections form={form} />
 
-      {/* ── Actions ───────────────────────────────────────────────────────── */}
-      <div className="flex flex-wrap items-center gap-2 border-t border-border pt-4">
-        {/* Un bouton desactive n'emet pas d'evenement de survol : l'enveloppe
-            porte le declencheur du Tooltip a sa place. */}
-        {tpl && (
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <span className="inline-flex">
-                <Button
-                  onClick={() => handleGeneratePdf()}
-                  disabled={generateDocumentMutation.isPending}
-                >
-                  {generateDocumentMutation.isPending
-                    ? <Spinner className="size-[13px]" />
-                    : <FileTextIcon size={15} strokeWidth={1.75} />}
-                  {generateDocumentMutation.isPending ? t('common.generating') : t('receivedForms.generatePdf')}
-                </Button>
-              </span>
-            </TooltipTrigger>
-            <TooltipContent side="top">
-              {`Génère un PDF à partir du template « ${tpl.name} »`}
-            </TooltipContent>
-          </Tooltip>
+        {/* ── Documents générés ─────────────────────────────────────────────── */}
+        {priorGenerations && priorGenerations.length > 0 && (
+          <section className="flex flex-col gap-2.5 rounded-xl border border-border bg-card p-4">
+            <h3 className="m-0 flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+              <HistoryIcon size={14} strokeWidth={1.75} />
+              Documents générés ({priorGenerations.length})
+            </h3>
+            <div className="flex flex-col gap-2">
+              {priorGenerations.slice(0, 5).map((gen) => {
+                const isFailed = gen.status === 'FAILED';
+                return (
+                  <Item
+                    key={gen.id}
+                    asChild
+                    variant="outline"
+                    size="sm"
+                    className={cn(
+                      'cursor-pointer transition-colors duration-150 motion-reduce:transition-none',
+                      isFailed
+                        ? 'border-destructive/40 bg-destructive-soft/40 hover:border-destructive/60'
+                        : 'hover:border-primary/40 hover:bg-accent',
+                    )}
+                  >
+                    <button
+                      type="button"
+                      className="text-start"
+                      onClick={isFailed
+                        ? () => setErrorDetail({ message: gen.errorMessage || 'Cause inconnue', date: gen.createdAt })
+                        : () => openPreview(gen)}
+                    >
+                      <ItemMedia variant="icon" className={cn(isFailed && 'bg-destructive-soft text-destructive-ink')}>
+                        {isFailed ? <AlertTriangleIcon size={16} strokeWidth={1.75} /> : <FileTextIcon size={16} strokeWidth={1.75} />}
+                      </ItemMedia>
+                      <ItemContent>
+                        <ItemTitle className={cn(isFailed && 'text-destructive-ink')}>
+                          {isFailed ? 'Échec de génération' : (gen.fileName || `document-${gen.id}.pdf`)}
+                        </ItemTitle>
+                        {/* Erreur : 1re ligne uniquement (tronquée) — détail complet dans la modale au clic. */}
+                        <ItemDescription>
+                          {isFailed
+                            ? `${gen.errorMessage || 'Cause inconnue'}${gen.createdAt ? ` · ${formatFormDate(gen.createdAt)}` : ''}`
+                            : [gen.legalNumber, gen.createdAt ? formatFormDate(gen.createdAt) : '']
+                                .filter(Boolean).join(' · ')}
+                        </ItemDescription>
+                      </ItemContent>
+                      <ItemActions>
+                        <span className={cn(
+                          'inline-flex shrink-0 items-center gap-1 whitespace-nowrap text-xs font-medium',
+                          isFailed ? 'text-destructive-ink' : 'text-primary',
+                        )}>
+                          {isFailed ? 'Détail' : 'Aperçu'}
+                          <ArrowRightIcon size={14} strokeWidth={1.75} />
+                        </span>
+                      </ItemActions>
+                    </button>
+                  </Item>
+                );
+              })}
+            </div>
+          </section>
         )}
-        {canResend && (
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <span className="inline-flex">
-                <Button
-                  variant="outline"
-                  onClick={openResendModal}
-                  disabled={generateDocumentMutation.isPending}
-                >
-                  <SendIcon size={15} strokeWidth={1.75} />
-                  Renvoyer
-                </Button>
-              </span>
-            </TooltipTrigger>
-            <TooltipContent side="top">{`Renvoyer le devis à ${form.email}`}</TooltipContent>
-          </Tooltip>
-        )}
-        {form.status !== 'PROCESSED' && form.status !== 'ARCHIVED' && (
-          <Button
-            variant="outline"
-            onClick={() => handleUpdateStatus('PROCESSED')}
-            disabled={updateStatusMutation.isPending}
-          >
-            <CheckCircleIcon size={15} strokeWidth={1.75} />
-            {t('receivedForms.markHandled')}
-          </Button>
-        )}
-        {form.status !== 'ARCHIVED' ? (
-          <Button
-            variant="ghost"
-            className="cursor-pointer text-muted-foreground hover:text-destructive-ink"
-            onClick={() => handleUpdateStatus('ARCHIVED')}
-            disabled={updateStatusMutation.isPending}
-          >
-            <ArchiveIcon size={15} strokeWidth={1.75} />
-            Archiver
-          </Button>
-        ) : (
-          <Button
-            variant="outline"
-            onClick={() => handleUpdateStatus('READ')}
-            disabled={updateStatusMutation.isPending}
-          >
-            <RestoreIcon size={15} strokeWidth={1.75} />
-            Restaurer
-          </Button>
-        )}
-        {!tpl && form.formType === 'DEVIS' && (
-          <p className="min-w-[200px] flex-1 text-xs italic text-faint">
-            {t('receivedForms.noQuoteTemplate')}
-          </p>
-        )}
+
       </div>
 
-      {/* ── Documents générés ─────────────────────────────────────────────── */}
-      {priorGenerations && priorGenerations.length > 0 && (
-        <section className="flex flex-col gap-2.5">
-          <h3 className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-            <HistoryIcon size={14} strokeWidth={1.75} />
-            Documents générés ({priorGenerations.length})
-          </h3>
-          <div className="flex flex-col gap-2">
-            {priorGenerations.slice(0, 5).map((gen) => {
-              const isFailed = gen.status === 'FAILED';
-              return (
-                <Item
-                  key={gen.id}
-                  asChild
-                  variant="outline"
-                  size="sm"
-                  className={cn(
-                    'cursor-pointer transition-colors duration-150 motion-reduce:transition-none',
-                    isFailed
-                      ? 'border-destructive/40 bg-destructive-soft/40 hover:border-destructive/60'
-                      : 'hover:border-primary/40 hover:bg-accent',
-                  )}
-                >
-                  <button
-                    type="button"
-                    className="text-start"
-                    onClick={isFailed
-                      ? () => setErrorDetail({ message: gen.errorMessage || 'Cause inconnue', date: gen.createdAt })
-                      : () => openPreview(gen)}
+      {/* ── Actions ───────────────────────────────────────────────────────── */}
+      <footer className="flex shrink-0 flex-wrap items-center gap-2 border-t border-border bg-card px-3 py-3 min-[900px]:px-4">
+          {/* Un bouton desactive n'emet pas d'evenement de survol : l'enveloppe
+              porte le declencheur du Tooltip a sa place. */}
+          {tpl && (
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <span className="inline-flex">
+                  <Button
+                    onClick={() => handleGeneratePdf()}
+                    disabled={generateDocumentMutation.isPending}
                   >
-                    <ItemMedia variant="icon" className={cn(isFailed && 'bg-destructive-soft text-destructive-ink')}>
-                      {isFailed ? <AlertTriangleIcon size={16} strokeWidth={1.75} /> : <FileTextIcon size={16} strokeWidth={1.75} />}
-                    </ItemMedia>
-                    <ItemContent>
-                      <ItemTitle className={cn(isFailed && 'text-destructive-ink')}>
-                        {isFailed ? 'Échec de génération' : (gen.fileName || `document-${gen.id}.pdf`)}
-                      </ItemTitle>
-                      {/* Erreur : 1re ligne uniquement (tronquée) — détail complet dans la modale au clic. */}
-                      <ItemDescription>
-                        {isFailed
-                          ? `${gen.errorMessage || 'Cause inconnue'}${gen.createdAt ? ` · ${formatFormDate(gen.createdAt)}` : ''}`
-                          : [gen.legalNumber, gen.createdAt ? formatFormDate(gen.createdAt) : '']
-                              .filter(Boolean).join(' · ')}
-                      </ItemDescription>
-                    </ItemContent>
-                    <ItemActions>
-                      <span className={cn(
-                        'inline-flex shrink-0 items-center gap-1 whitespace-nowrap text-xs font-medium',
-                        isFailed ? 'text-destructive-ink' : 'text-primary',
-                      )}>
-                        {isFailed ? 'Détail' : 'Aperçu'}
-                        <ArrowRightIcon size={14} strokeWidth={1.75} />
-                      </span>
-                    </ItemActions>
-                  </button>
-                </Item>
-              );
-            })}
-          </div>
-        </section>
-      )}
+                    {generateDocumentMutation.isPending
+                      ? <Spinner className="size-[13px]" />
+                      : <FileTextIcon size={15} strokeWidth={1.75} />}
+                    {generateDocumentMutation.isPending ? t('common.generating') : t('receivedForms.generatePdf')}
+                  </Button>
+                </span>
+              </TooltipTrigger>
+              <TooltipContent side="top">
+                {`Génère un PDF à partir du template « ${tpl.name} »`}
+              </TooltipContent>
+            </Tooltip>
+          )}
+          {canResend && (
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <span className="inline-flex">
+                  <Button
+                    variant="outline"
+                    onClick={openResendModal}
+                    disabled={generateDocumentMutation.isPending}
+                  >
+                    <SendIcon size={15} strokeWidth={1.75} />
+                    Renvoyer
+                  </Button>
+                </span>
+              </TooltipTrigger>
+              <TooltipContent side="top">{`Renvoyer le devis à ${form.email}`}</TooltipContent>
+            </Tooltip>
+          )}
+          {form.status !== 'PROCESSED' && form.status !== 'ARCHIVED' && (
+            <Button
+              variant="outline"
+              onClick={() => handleUpdateStatus('PROCESSED')}
+              disabled={updateStatusMutation.isPending}
+            >
+              <CheckCircleIcon size={15} strokeWidth={1.75} />
+              {t('receivedForms.markHandled')}
+            </Button>
+          )}
+          {form.status !== 'ARCHIVED' ? (
+            <Button
+              variant="ghost"
+              className="cursor-pointer text-muted-foreground hover:text-destructive-ink"
+              onClick={() => handleUpdateStatus('ARCHIVED')}
+              disabled={updateStatusMutation.isPending}
+            >
+              <ArchiveIcon size={15} strokeWidth={1.75} />
+              Archiver
+            </Button>
+          ) : (
+            <Button
+              variant="outline"
+              onClick={() => handleUpdateStatus('READ')}
+              disabled={updateStatusMutation.isPending}
+            >
+              <RestoreIcon size={15} strokeWidth={1.75} />
+              Restaurer
+            </Button>
+          )}
+          {!tpl && form.formType === 'DEVIS' && (
+            <p className="min-w-[200px] flex-1 text-xs italic text-faint">
+              {t('receivedForms.noQuoteTemplate')}
+            </p>
+          )}
+      </footer>
+    </div>
 
       {/* ── Aperçu PDF inline ── */}
       <Dialog open={Boolean(previewUrl)} onOpenChange={(next) => { if (!next) closePreview(); }}>
@@ -590,6 +597,6 @@ export default function FormDetailPanel({ form, showBack = false, onBack }: Form
           </div>
         </DialogContent>
       </Dialog>
-    </div>
+    </>
   );
 }
