@@ -53,7 +53,7 @@ afterEach(() => { cleanup(); vi.useRealTimers(); vi.restoreAllMocks(); });
 describe('Première visite du tableau de bord', () => {
   it('présente le démarrage sans monter les widgets ni leurs commandes', () => {
     renderDashboard();
-    expect(screen.getByRole('heading', { name: 'Votre activité, lisible en un coup d’œil' })).toBeVisible();
+    expect(screen.getByRole('heading', { name: 'Votre activité, en un coup d’œil' })).toBeVisible();
     expect(screen.queryByTestId('live-widgets')).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Réservation', exact: true })).not.toBeInTheDocument();
     expect(screen.queryByText('30j')).not.toBeInTheDocument();
@@ -65,7 +65,7 @@ describe('Première visite du tableau de bord', () => {
     state.loading = true;
     const view = renderDashboard();
     expect(screen.getByRole('status')).toHaveTextContent('Loading dashboard');
-    expect(screen.queryByRole('heading', { name: 'Votre activité, lisible en un coup d’œil' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('heading', { name: 'Votre activité, en un coup d’œil' })).not.toBeInTheDocument();
     expect(screen.queryByTestId('live-widgets')).not.toBeInTheDocument();
 
     state.loading = false;
@@ -84,7 +84,7 @@ describe('Première visite du tableau de bord', () => {
     expect(screen.getByTestId('live-widgets')).toBeVisible();
     expect(screen.getByRole('button', { name: /Réservation/ })).toBeVisible();
     expect(screen.getByText('30j')).toBeVisible();
-    expect(screen.queryByRole('heading', { name: 'Votre activité, lisible en un coup d’œil' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('heading', { name: 'Votre activité, en un coup d’œil' })).not.toBeInTheDocument();
   });
 
   it('préserve la vue des intervenants qui ne possèdent pas de logements', () => {
@@ -105,23 +105,31 @@ describe('Première visite du tableau de bord', () => {
   it('permet de traiter une priorité et ajouter un widget dans la démonstration seulement', () => {
     renderDashboard();
     const demo = screen.getByRole('group', { name: /Démonstration interactive/ });
-    fireEvent.click(within(demo).getByRole('button', { name: 'Essayer' }));
-    expect(within(demo).getByText('Ménage attribué dans l’exemple')).toBeVisible();
-    fireEvent.click(screen.getByRole('button', { name: /Composer une vue/ }));
+    fireEvent.click(within(demo).getByRole('button', { name: 'Un ménage à attribuer' }));
+    expect(within(demo).getByRole('button', { name: 'Ménage attribué dans l’exemple' })).toBeDisabled();
     fireEvent.click(within(demo).getByRole('button', { name: 'Ajouter l’occupation' }));
-    expect(within(demo).getByText('Occupation des logements')).toBeVisible();
+    expect(within(demo).getByRole('img', { name: /Occupation des logements/ })).toBeVisible();
     expect(state.refresh).not.toHaveBeenCalled();
     expect(screen.queryByTestId('live-widgets')).not.toBeInTheDocument();
+  });
+
+  it('montre les indicateurs par leurs illustrations plutôt que par des paragraphes', () => {
+    const { container } = renderDashboard();
+    expect(container.querySelector('[data-night]')).not.toBeNull();
+    expect(container.querySelectorAll('.db-kpi img')).toHaveLength(3);
+    expect(container.querySelectorAll('.ns-rail-btn img')).toHaveLength(4);
+    const longest = Math.max(...Array.from(container.querySelectorAll('p')).map((node) => node.textContent?.length ?? 0));
+    expect(longest).toBeLessThan(80);
   });
 
   it('anime automatiquement puis laisse la main au clic sur une étape', () => {
     vi.useFakeTimers();
     renderDashboard();
-    act(() => vi.advanceTimersByTime(6000));
-    expect(screen.getByRole('button', { name: /Comprendre vos résultats/ })).toHaveAttribute('aria-expanded', 'true');
-    fireEvent.click(screen.getByRole('button', { name: /Préparer la journée/ }));
+    act(() => vi.advanceTimersByTime(5600));
+    expect(screen.getByRole('button', { name: /Résultats/ })).toHaveAttribute('aria-current', 'step');
+    fireEvent.click(screen.getByRole('button', { name: /Journée/ }));
     act(() => vi.advanceTimersByTime(12000));
-    expect(screen.getByRole('button', { name: /Préparer la journée/ })).toHaveAttribute('aria-expanded', 'true');
+    expect(screen.getByRole('button', { name: /Journée/ })).toHaveAttribute('aria-current', 'step');
   });
 
   it('garde une démonstration manuelle lorsque les animations sont réduites', () => {
@@ -133,8 +141,8 @@ describe('Première visite du tableau de bord', () => {
     }));
     renderDashboard();
     act(() => vi.advanceTimersByTime(12000));
-    expect(screen.getByRole('button', { name: /Préparer la journée/ })).toHaveAttribute('aria-expanded', 'true');
-    fireEvent.click(screen.getByRole('button', { name: /Comprendre vos résultats/ }));
-    expect(screen.getByRole('button', { name: /Comprendre vos résultats/ })).toHaveAttribute('aria-expanded', 'true');
+    expect(screen.getByRole('button', { name: /Journée/ })).toHaveAttribute('aria-current', 'step');
+    fireEvent.click(screen.getByRole('button', { name: /Résultats/ }));
+    expect(screen.getByRole('button', { name: /Résultats/ })).toHaveAttribute('aria-current', 'step');
   });
 });
