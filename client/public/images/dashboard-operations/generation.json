@@ -1,0 +1,17 @@
+{
+  "tool": "image_gen built-in",
+  "useCase": "background-extraction",
+  "output": "192 × 192 WebP with alpha, quality 88",
+  "assets": [
+    {
+      "file": "cleanings.webp",
+      "reference": "../hitl/cleaning.webp",
+      "prompt": "Use case: background-extraction. Edit target: the supplied Baitly cleaning caddy illustration. Remove the entire blue-grey square background and floor, returning the same navy cleaning caddy with its brass handle, spray bottle, brush and folded ivory towel on a genuinely transparent alpha background. Preserve the original premium realistic 3D studio-packshot style, palette, objects, viewpoint and proportions. Center the complete object with a little padding. No checkerboard pixels, no text, no logo, no opaque backdrop. This is a compact 34px dashboard category illustration."
+    },
+    {
+      "file": "departures.webp",
+      "reference": "../hitl/late-checkout.webp",
+      "prompt": "Use case: background-extraction. Edit target: the supplied Baitly departure illustration. Remove the entire blue-grey square background and floor, returning the navy travel suitcase, ivory brass clock and brass keys on a genuinely transparent alpha background. Preserve the original premium realistic 3D studio-packshot style, palette, objects, viewpoint and proportions. Center the complete object with a little padding. No checkerboard pixels, no text, no logo, no opaque backdrop. This is a compact 34px dashboard category illustration."
+    }
+  ]
+}

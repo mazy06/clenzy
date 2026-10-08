@@ -7,11 +7,6 @@ import {
   ChevronDownIcon,
   EyeIcon,
   SparklesIcon,
-  TrendingUpIcon,
-  MessageSquareIcon,
-  ClipboardCheckIcon,
-  RefreshCwIcon,
-  WalletIcon,
   ShieldCheckIcon,
   HeartHandshakeIcon,
   StarIcon,
@@ -33,8 +28,10 @@ import { MODULES } from '../data/catalog';
 import airbnb from '../assets/brands/airbnb.svg';
 import booking from '../assets/brands/bookingdotcom.svg';
 import stripe from '../assets/brands/stripe.svg';
-import payzone from '../assets/brands/payzone.svg';
+import { SiteAgentPortrait } from '../components/SiteProductVisuals';
+import type { AgentId } from '../../src/modules/supervision/types';
 import { SITE_PHOTOS, sitePhotoAlt } from '../data/baitlyPhotography';
+import ConnectedHomeScenarios from '../components/ConnectedHomeScenarios';
 
 const PHOTO_KEYS = {
   agents: 'agentsWork',
@@ -60,27 +57,13 @@ const STORY_PHOTOS = {
 >;
 const APP_PREVIEWS = {
   operations: lazy(() => import('../components/AnimatedOpsMockup')),
-  devices: lazy(() => import('../components/AnimatedIotMockup')),
   owners: lazy(() => import('../components/AnimatedOwnerMockup')),
 };
-const AGENT_ICONS = [
-  TrendingUpIcon,
-  MessageSquareIcon,
-  ClipboardCheckIcon,
-  RefreshCwIcon,
-  WalletIcon,
-  ShieldCheckIcon,
-  HeartHandshakeIcon,
-  StarIcon,
-  HouseIcon,
-  SproutIcon,
-];
 
 function AgentDirectory({ language }: { language: SiteLanguage }) {
   const m = AGENTS_MESSAGES[language];
   const [selected, setSelected] = useState(0);
   const agent = m.agents[selected];
-  const Icon = AGENT_ICONS[selected];
   return (
     <section
       className="bps-directory site-shell"
@@ -96,7 +79,6 @@ function AgentDirectory({ language }: { language: SiteLanguage }) {
       <div className="bps-directory-layout">
         <div className="bps-agent-list" role="group" aria-label={m.agentsTitle}>
           {m.agents.map((item, index) => {
-            const AgentIcon = AGENT_ICONS[index];
             return (
               <button
                 type="button"
@@ -105,7 +87,7 @@ function AgentDirectory({ language }: { language: SiteLanguage }) {
                 aria-controls="bps-agent-detail"
                 onClick={() => setSelected(index)}
               >
-                <AgentIcon aria-hidden="true" />
+                <SiteAgentPortrait agent={item.id as AgentId} size={40} />
                 <span>{item.name}</span>
                 <ArrowRightIcon aria-hidden="true" />
               </button>
@@ -119,7 +101,7 @@ function AgentDirectory({ language }: { language: SiteLanguage }) {
           aria-label={agent.name}
         >
           <div className="bps-agent-detail-top">
-            <Icon aria-hidden="true" />
+            <SiteAgentPortrait agent={agent.id as AgentId} size={64} />
             <span>{m.agentBadge}</span>
           </div>
           <div key={agent.id} className="bps-enter">
@@ -207,9 +189,7 @@ function Ecosystem({
   const brands =
     kind === 'finance'
       ? [
-          { name: 'Payzone', src: payzone },
           { name: 'Stripe', src: stripe },
-          { name: 'PayTabs' },
         ]
       : kind === 'devices'
         ? [{ name: 'Nuki' }, { name: 'KeyNest' }, { name: 'Minut' }]
@@ -329,7 +309,9 @@ export default function BaitlyProductPage({
 
       {kind === 'agents' && <AgentDirectory language={language} />}
 
-      <section
+      {kind === 'devices' ? (
+        <ConnectedHomeScenarios language={language} />
+      ) : <section
         className="bps-features site-shell"
         id="fonctionnalites"
         aria-labelledby="bps-features-title"
@@ -368,10 +350,10 @@ export default function BaitlyProductPage({
             ))}
           </div>
         </div>
-        {(kind === 'operations' || kind === 'devices' || kind === 'owners') && (
+        {(kind === 'operations' || kind === 'owners') && (
           <AppPreview kind={kind} language={language} />
         )}
-      </section>
+      </section>}
 
       <section className="bps-workflow" aria-labelledby="bps-workflow-title">
         <div className="site-shell bps-workflow-layout">

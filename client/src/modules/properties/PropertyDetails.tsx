@@ -33,6 +33,7 @@ import { documentsApi } from '../../services/api/documentsApi';
 import { usePropertyDetails } from '../../hooks/usePropertyDetails';
 import type { PropertyDetailsData } from '../../hooks/usePropertyDetails';
 import PageHeader from '../../components/PageHeader';
+import { PageHeaderActionsProvider, usePageHeaderActionsSlot } from '../../components/PageHeaderActionsContext';
 import PageTabs from '../../components/PageTabs';
 import { useTranslation } from '../../hooks/useTranslation';
 import CheckInInstructionsForm from '../channels/CheckInInstructionsForm';
@@ -76,6 +77,7 @@ const PropertyDetails: React.FC = () => {
   const navigate = useNavigate();
   const { hasPermissionAsync } = useAuth();
   const { t } = useTranslation();
+  const { slot, portalContainer } = usePageHeaderActionsSlot();
 
   // ─── React Query ────────────────────────────────────────────────────────
   const { property, interventions, isLoading, isError, error } = usePropertyDetails(id);
@@ -163,7 +165,7 @@ const PropertyDetails: React.FC = () => {
   // ─── Render ─────────────────────────────────────────────────────────────
 
   return (
-    <div className="flex flex-col h-full min-h-0">
+    <PageHeaderActionsProvider slot={slot}><div className="flex flex-col h-full min-h-0">
       {/* ─── Header ──────────────────────────────────────────────────────── */}
       <div className="shrink-0">
         <PageHeader
@@ -173,6 +175,7 @@ const PropertyDetails: React.FC = () => {
           backPath="/properties"
           actions={
             <div className="flex items-center gap-1">
+              {portalContainer}
               {canEdit && (
                 <Button
                   variant="outline"
@@ -235,8 +238,8 @@ const PropertyDetails: React.FC = () => {
       {/* ─── Tab 1: Interventions ────────────────────────────────────────── */}
       {tabValue === 1 && (
         <div className="pt-2 flex-1 min-h-0 overflow-auto" role="tabpanel" id="property-tabpanel-1" aria-labelledby="property-tab-1">
-          <PropertyServiceTeams propertyId={Number(id)} />
-          <PropertyInterventionsTab interventions={interventions} propertyId={String(id)} />
+          <PropertyInterventionsTab key={id} interventions={interventions} propertyId={String(id)} />
+          <PropertyServiceTeams key={`teams-${id}`} propertyId={Number(id)} />
         </div>
       )}
 
@@ -250,35 +253,35 @@ const PropertyDetails: React.FC = () => {
       {/* ─── Tab 3: Instructions voyageur ─────────────────────────────── */}
       {tabValue === 3 && (
         <div className="pt-2 flex-1 min-h-0 overflow-auto" role="tabpanel" id="property-tabpanel-3" aria-labelledby="property-tab-3">
-          <CheckInInstructionsForm propertyId={Number(id)} />
+          <CheckInInstructionsForm key={id} propertyId={Number(id)} />
         </div>
       )}
 
       {/* ─── Tab 4: Photos ─────────────────────────────────────────────── */}
       {tabValue === 4 && (
         <div className="pt-2 flex-1 min-h-0 overflow-auto" role="tabpanel" id="property-tabpanel-4" aria-labelledby="property-tab-4">
-          <PropertyPhotosTab propertyId={Number(id)} />
+          <PropertyPhotosTab key={id} propertyId={Number(id)} canEdit={canEdit} />
         </div>
       )}
 
       {/* ─── Tab 5: Inventaire ───────────────────────────────────────────── */}
       {tabValue === 5 && (
         <div className="pt-2 flex-1 min-h-0 overflow-auto" role="tabpanel" id="property-tabpanel-5" aria-labelledby="property-tab-5">
-          <PropertyInventoryTab propertyId={Number(id)} canEdit={canEdit} />
+          <PropertyInventoryTab key={id} propertyId={Number(id)} canEdit={canEdit} />
         </div>
       )}
 
       {/* ─── Tab 6: Conformité (licences & autorisations, vague M-A) ─────── */}
       {tabValue === 6 && (
         <div className="pt-2 flex-1 min-h-0 overflow-auto" role="tabpanel" id="property-tabpanel-6" aria-labelledby="property-tab-6">
-          <PropertyComplianceTab propertyId={Number(id)} canEdit={canEdit} />
+          <PropertyComplianceTab key={id} propertyId={Number(id)} canEdit={canEdit} />
         </div>
       )}
 
       {/* ─── Tab 7: Avis voyageurs (même liste que /channels/reviews, filtrée) ─ */}
       {tabValue === 7 && (
         <div className="pt-2 flex-1 min-h-0 overflow-auto" role="tabpanel" id="property-tabpanel-7" aria-labelledby="property-tab-7">
-          <ReviewList propertyId={Number(id)} showStats />
+          <ReviewList key={id} propertyId={Number(id)} showStats />
         </div>
       )}
 
@@ -304,7 +307,7 @@ const PropertyDetails: React.FC = () => {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-    </div>
+    </div></PageHeaderActionsProvider>
   );
 };
 

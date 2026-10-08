@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import { Plug } from '../icons/glyphs';
 import { useAuth } from './useAuth';
 import { CLEANING_ROLES, FIELD_ROLES, TRADE_ROLES } from '../utils/fieldRoles';
 
@@ -34,6 +35,7 @@ import {
   RequestQuote,
   PersonSearch,
   Inventory2,
+  TrendingUp,
 } from '../icons';
 import {
   NAVIGATION_HUBS,
@@ -160,9 +162,19 @@ const MENU_ENTRIES: MenuEntryConfig[] = [
   // coutait un depliage pour atteindre les trois ecrans les plus frequentes de
   // la journee. Sa definition reste en place : c'est elle qui porte les
   // permissions de ces trois onglets et les routes qu'ils couvrent
-  // (/service-requests, /calendar, /connected-objects), qu'une entree simple
+  // (/service-requests, /calendar), qu'une entree simple
   // aurait fallu recopier a la main.
   { kind: 'hub-tabs', hubId: 'exploitation' },
+  { kind: 'item', item: {
+    icon: <TrendingUp />, path: '/dynamic-pricing', group: 'main',
+    roles: ['SUPER_ADMIN', 'SUPER_MANAGER', 'HOST'],
+    permission: 'pricing:view', translationKey: 'dynamicPricing.title',
+  } },
+  { kind: 'item', item: {
+    icon: <Plug />, path: '/connected-objects', group: 'main',
+    roles: ['SUPER_ADMIN', 'SUPER_MANAGER', 'HOST', 'SUPERVISOR'],
+    permission: 'properties:view', translationKey: 'navigation.connectedObjects',
+  } },
   { kind: 'item', item: {
     icon: <Inventory2 />, path: '/consumables', group: 'main',
     roles: ['SUPER_ADMIN', 'SUPER_MANAGER', 'HOST', 'SUPERVISOR'],

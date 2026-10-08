@@ -133,6 +133,32 @@
   border-radius: var(--radius-lg, 10px);
 }
 
+/* Hide widget scrollbars without disabling wheel, keyboard or touch scrolling.
+   The KPI drawer is portaled outside the widget, so include its scroll region. */
+.db-widget-content,
+.db-widget-content *,
+.db-kpis__drawer-scroll {
+  scrollbar-width: none;
+  scrollbar-gutter: auto;
+}
+
+.db-widget-content::-webkit-scrollbar,
+.db-widget-content *::-webkit-scrollbar,
+.db-kpis__drawer-scroll::-webkit-scrollbar {
+  display: none;
+  width: 0;
+  height: 0;
+}
+
+/* Imported widgets can use Radix's custom scrollbars instead of native ones. */
+.db-widget-content [data-slot="scroll-area-scrollbar"] {
+  display: none;
+}
+
+/* The KPI strip owns its outline, including the straight edge shared with its drawer.
+   A second rounded clip here would cut that edge even when the strip removes its radius. */
+.db-widget[data-widget-id="kpis"] > .db-widget-content { border-radius: 0; }
+
 .db-widget-content:focus-visible,
 .db-widget-content .db-widget-body:focus-visible {
   outline: 2px solid var(--bui-ring);
@@ -163,7 +189,6 @@
   min-block-size: 0;
   min-inline-size: 0;
   overflow: auto;
-  scrollbar-gutter: stable;
 }
 
 .db-widget-content .db-widget-chart {
@@ -187,51 +212,8 @@
   overflow-wrap: anywhere;
 }
 
-.db-arrivals-table { display: none; }
-.db-arrival-list { display: block; }
-@container dashboard-widget (min-width: 800px) {
-  .db-arrivals-table { display: block; }
-  .db-arrival-list { display: none; }
-}
-
-.db-arrivals-table table { table-layout: fixed; }
-.db-arrivals-table th { white-space: nowrap; font-size: 0.75rem; letter-spacing: 0.03em; }
-.db-arrivals-table td { white-space: normal; overflow-wrap: anywhere; padding-block: 0.75rem; }
-.db-arrivals-col-guest { inline-size: 27%; }
-.db-arrivals-col-date { inline-size: 120px; }
-.db-arrivals-col-nights,
-.db-arrivals-col-channel { inline-size: 64px; }
-.db-arrivals-col-status { inline-size: 88px; }
-.db-arrivals-col-total { inline-size: 104px; }
-.db-arrivals-table :is(th, td):nth-child(4),
-.db-arrivals-table :is(th, td):nth-child(5) { text-align: center; }
-.db-arrivals-table td:nth-child(3),
-.db-arrivals-table td:nth-child(7) { white-space: nowrap; }
-.db-arrivals-table :is(th, td):nth-child(6),
-.db-arrivals-table :is(th, td):nth-child(7) { text-align: end; }
-
 .db-widget-content [data-slot="badge"] {
   max-inline-size: 100%;
   block-size: auto;
   white-space: normal;
-}
-
-@container dashboard-widget (max-width: 420px) {
-  .db-action-row {
-    display: grid;
-    grid-template-columns: auto minmax(0, 1fr) auto;
-    align-items: start;
-    gap: 0.5rem;
-  }
-  .db-action-avatar { grid-column: 1; grid-row: 1 / span 2; }
-  .db-action-copy { grid-column: 2; grid-row: 1; }
-  .db-action-age { grid-column: 3; grid-row: 1; }
-  .db-action-control {
-    grid-column: 2 / -1;
-    grid-row: 2;
-    justify-self: start;
-    max-inline-size: 100%;
-    block-size: auto;
-    white-space: normal;
-  }
 }

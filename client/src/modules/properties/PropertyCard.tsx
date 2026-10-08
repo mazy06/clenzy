@@ -123,8 +123,8 @@ const CARD_ROOT_CLASS =
   + 'motion-reduce:transition-none motion-reduce:hover:translate-y-0';
 
 // Typographie de la carte et du dialogue, transcrite en classes.
-// `font-[family-name:var(...)]` et non `font-[var(...)]` : sur une valeur `var()`,
-// Tailwind ne peut pas trancher entre famille et graisse et emettrait un
+// Une variable de famille doit porter le préfixe de type « family-name » :
+// sans lui, Tailwind ne peut pas trancher entre famille et graisse et émettrait un
 // `font-weight` invalide, silencieusement ignore par le navigateur.
 // `my-0` / `mt-0` sont indispensables sur les <p>/<h6> natifs : le projet
 // n'active pas le preflight complet (coexistence historique MUI), les marges

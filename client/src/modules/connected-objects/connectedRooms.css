@@ -1,0 +1,134 @@
+.bir-page { min-width: 0; display: flex; flex: 1; flex-direction: column; gap: 14px; color: var(--bui-foreground); }
+.bir-header-controls { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.bir-header-controls select { max-width: 240px; }
+.bir-workspace { border: 1px solid var(--bui-border); background: var(--bui-card); border-radius: 16px; overflow: hidden; display: flex; flex-direction: column; min-width: 0; flex-shrink: 0; container-type: inline-size; }
+.bir-workspace-heading { display: flex; flex-direction: column; gap: 4px; border-bottom: 1px solid var(--bui-border); flex-shrink: 0; min-width: 0; }
+.bir-columns { display: grid; grid-template-columns: minmax(0, 1fr) minmax(310px, 35%); flex: 1; min-height: 0; }
+.bir-visual { display: flex; flex-direction: column; min-width: 0; min-height: 0; background: var(--bui-background); }
+.bir-room-heading { display: flex; align-items: center; flex-wrap: wrap; padding: 12px 18px 4px; gap: 10px 20px; }
+.bir-room-title { flex: 1; min-width: 150px; }
+.bir-room-heading h2 { margin: 0; font-size: 20px; font-weight: 650; }
+.bir-eyebrow { display: block; font-size: 12px; color: var(--bui-muted-foreground); }
+.bir-room-arrows { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+.bir-room-arrows button { min-width: 36px; }
+.bir-stage { container-type: size; flex: 1; min-height: 0; display: grid; place-items: center; overflow: hidden; }
+.bir-canvas { position: relative; width: min(100cqw, calc(100cqh * 4 / 3)); aspect-ratio: 4 / 3; background: transparent; }
+.bir-canvas > img { width: 100%; height: 100%; object-fit: contain; display: block; }
+.bir-canvas[data-ready="false"] { background: var(--bui-muted); }
+/* Physical coordinates are anchored to unmirrored artwork, including in RTL. */
+.bir-hotspot { position: absolute; transform: translate(-50%, -50%); display: grid; place-items: center; padding: 0; border: 0; outline: none; background: transparent; color: var(--bui-foreground); cursor: pointer; isolation: isolate; }
+.bir-hotspot[data-anchor="bottom"] { transform: translate(-50%, -100%); }
+/* Hit targets do not inflate the device's physical size inside the room. */
+.bir-hotspot::before { content: ''; position: absolute; width: max(100%, 30px); height: max(100%, 30px); left: 50%; top: 50%; transform: translate(-50%, -50%); }
+.bir-hotspot-art { display: block; width: 100%; height: 100%; overflow: visible; pointer-events: none; }
+.bir-hotspot[data-editing="true"] { touch-action: none; cursor: grab; }
+.bir-hotspot[data-editing="true"]:active { cursor: grabbing; }
+.bir-hotspot:is(:hover, :focus-visible, [aria-pressed="true"]) { z-index: 2; }
+.bir-mode-symbol { position: absolute; width: 20px; height: auto; top: -24px; left: 50%; transform: translateX(-50%); pointer-events: none; }
+.bir-hotspot-reading { position: absolute; top: calc(100% + 5px); inset-inline-start: 50%; transform: translateX(-50%); white-space: nowrap; padding: 2px 5px; border-radius: 5px; background: var(--bui-card); color: var(--bui-foreground); font-size: 11px; font-variant-numeric: tabular-nums; box-shadow: 0 2px 4px #20344a20; opacity: 0; visibility: hidden; transition: opacity 150ms ease-out; pointer-events: none; }
+.bir-hotspot:is(:hover, :focus-visible, [aria-pressed="true"]) .bir-hotspot-reading { opacity: 1; visibility: visible; }
+[dir="rtl"] .bir-hotspot-reading { transform: translateX(50%); }
+.bir-hotspot-indicator { position: absolute; right: -7px; top: -6px; width: 9px; height: 9px; border: 2px solid #f4f7fc; border-radius: 50%; background: #587089; pointer-events: none; transition: box-shadow 180ms ease-out; }
+.bir-hotspot[aria-pressed="true"] .bir-hotspot-indicator { box-shadow: 0 0 0 2px var(--bui-info); }
+.bir-hotspot:focus-visible .bir-hotspot-indicator { outline: 3px solid var(--bui-info); outline-offset: 3px; }
+.bir-hotspot[data-state="warning"] .bir-hotspot-indicator { background: #956422; }
+.bir-hotspot[data-state="critical"] .bir-hotspot-indicator { background: #b13840; }
+.bir-hotspot[data-state="offline"] .bir-hotspot-indicator { background: #6a7585; }
+.bir-room-nav button:focus-visible, .bir-device-list button:focus-visible { outline: 3px solid var(--bui-info); outline-offset: 4px; }
+.bir-layout-hint { font-size: 12px; color: var(--bui-muted-foreground); margin-inline-end: 6px; }
+.bir-workspace-heading > .bir-error { padding: 0 18px; }
+.bir-placement-editor { min-width: 0; padding: 16px 20px; border: 0; border-top: 1px solid var(--bui-border); }
+.bir-placement-editor legend { font-size: 12px; color: var(--bui-muted-foreground); padding-inline: 6px; }
+.bir-placement-editor > strong { display: block; font-size: 14px; font-weight: 600; }
+.bir-placement-editor p { color: var(--bui-muted-foreground); font-size: 12px; line-height: 1.6; margin: 8px 0 14px; }
+.bir-placement-pose { display: flex; align-items: center; gap: 10px; justify-content: space-between; font-size: 12px; }
+.bir-placement-pose select { max-width: 160px; }
+.bir-placement-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+.bir-placement-range { display: block; margin: 14px 0; font-size: 12px; }
+.bir-placement-range > span { display: flex; justify-content: space-between; gap: 8px; }
+.bir-placement-range output { font-variant-numeric: tabular-nums; color: var(--bui-muted-foreground); }
+.bir-placement-range input { display: block; width: 100%; height: 28px; accent-color: var(--bui-primary); cursor: pointer; direction: ltr; }
+.bir-placement-range input:focus-visible { outline: 2px solid var(--bui-info); outline-offset: 2px; border-radius: 5px; }
+.bir-placement-editor details { padding: 4px 0 12px; }
+.bir-placement-editor summary { cursor: pointer; font-size: 12px; color: var(--bui-muted-foreground); }
+.bir-placement-editor:disabled { opacity: 0.65; }
+.bir-room-nav { display: flex; overflow-x: auto; gap: 8px; padding: 12px 16px; border-top: 1px solid var(--bui-border); background: var(--bui-card); flex-shrink: 0; }
+.bir-room-nav button { display: grid; grid-template-columns: 1fr auto; gap: 4px; min-width: 106px; max-width: 124px; flex: 0 0 106px; padding: 5px; border-radius: 10px; border: 1px solid transparent; cursor: pointer; text-align: start; transition: background-color 180ms ease-out, border-color 180ms ease-out; }
+.bir-room-nav img, .bir-room-placeholder { grid-column: 1 / -1; border-radius: 6px; width: 100%; height: 58px; object-fit: contain; background: transparent; }
+.bir-room-placeholder { display: grid; place-items: center; color: #45617f; }
+.bir-room-nav button > span:not(.bir-room-placeholder) { font-size: 12px; font-weight: 500; white-space: nowrap; text-overflow: ellipsis; overflow: hidden; }
+.bir-room-nav small { font-size: 12px; font-variant-numeric: tabular-nums; color: var(--bui-muted-foreground); }
+.bir-room-nav button:hover { background: var(--bui-muted); }
+.bir-room-nav button[aria-current="true"] { background: var(--bui-info-soft); border-color: var(--bui-info); }
+.bir-side { min-height: 0; overflow: auto; border-inline-start: 1px solid var(--bui-border); display: flex; flex-direction: column; container: connected-panel / inline-size; }
+.bir-side-heading { padding: 14px 18px; display: flex; align-items: center; gap: 8px; justify-content: space-between; }
+.bir-side-heading h3 { margin: 0; font-size: 14px; font-weight: 600; }
+.bir-side-heading h3 > span { margin-inline-start: 8px; color: var(--bui-muted-foreground); font-weight: 400; font-variant-numeric: tabular-nums; }
+.bir-device-list { padding: 0 12px 14px; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px; }
+.bir-device-list > button { display: flex; align-items: center; text-align: start; gap: 10px; padding: 10px; border-radius: 8px; border: 1px solid transparent; cursor: pointer; transition: background-color 180ms ease-out; }
+.bir-device-list > button:hover { background: var(--bui-muted); }
+.bir-device-list > button[aria-pressed="true"] { background: var(--bui-info-soft); border-color: var(--bui-border); }
+.bir-device-list > button { min-width: 0; }
+.bir-list-symbol { color: var(--bui-muted-foreground); flex-shrink: 0; }
+.bir-list-name { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.bir-list-name strong { font-size: 13px; font-weight: 500; overflow-wrap: anywhere; }
+.bir-list-name > span { font-size: 12px; color: var(--bui-muted-foreground); }
+.bir-state { display: inline-flex; flex-shrink: 0; }
+.bir-inspector { padding: 20px; border-top: 1px solid var(--bui-border); }
+.bir-inspector > header { display: flex; align-items: center; gap: 12px; }
+.bir-inspector > header > div { flex: 1; min-width: 0; }
+.bir-inspector h3 { font-size: 16px; font-weight: 650; overflow-wrap: anywhere; margin: 3px 0 0; }
+.bir-device-symbol { width: 44px; height: 44px; display: grid; place-items: center; background: var(--bui-muted); border-radius: 12px; color: var(--bui-foreground); flex-shrink: 0; }
+.bir-device-status { margin: 12px 0; font-size: 13px; }
+.bir-device-facts { margin: 0; font-size: 12px; }
+.bir-device-facts > div { display: flex; justify-content: space-between; gap: 12px; padding: 8px 0; }
+.bir-device-facts dt { display: flex; align-items: center; gap: 6px; color: var(--bui-muted-foreground); }
+.bir-device-facts dd { margin: 0; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; text-align: end; }
+.bir-access-codes { padding: 16px 0; border-top: 1px solid var(--bui-border); margin-top: 12px; }
+.bir-device-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 16px; }
+.bir-device-actions button { min-height: 36px; }
+.bir-error { font-size: 13px; color: var(--bui-destructive-ink); padding: 12px 0; }
+.bir-empty-room { margin: auto; padding: 32px 24px; max-width: 360px; }
+.bir-empty-room h3 { font-size: 18px; font-weight: 600; margin: 16px 0 8px; }
+.bir-empty-room p, .bir-unassigned p { color: var(--bui-muted-foreground); font-size: 13px; line-height: 1.65; margin-bottom: 20px; }
+.bir-room-health { display: flex; flex-wrap: wrap; gap: 6px; font-size: 12px; color: var(--bui-muted-foreground); margin-top: auto; padding: 14px 20px; border-top: 1px solid var(--bui-border); }
+.bir-unassigned { padding: 30px; max-width: 390px; }
+.bir-unassigned h3 { font-size: 18px; font-weight: 600; margin: 12px 0; }
+.bir-image-error { padding: 32px; color: var(--bui-muted-foreground); font-size: 13px; }
+.bir-bedroom-art { display: flex; align-items: center; gap: 8px; font-size: 12px; color: var(--bui-muted-foreground); margin-inline-end: 8px; }
+.bir-bedroom-art select { max-width: 150px; }
+.bir-opening-status { display: flex; flex-wrap: wrap; gap: 4px 12px; margin-top: 2px; font-size: 11px; color: var(--bui-muted-foreground); }
+.bir-device-preference { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-top: 14px; font-size: 12px; color: var(--bui-muted-foreground); }
+.bir-device-preference select { max-width: 190px; }
+.bir-thermal-controls { margin-top: 18px; border-top: 1px solid var(--bui-border); padding-top: 14px; }
+.bir-thermal-reading, .bir-thermal-target { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; font-size: 12px; color: var(--bui-muted-foreground); }
+.bir-thermal-reading > div { margin-inline-end: auto; }
+.bir-thermal-reading strong { display: block; font-size: 22px; color: var(--bui-foreground); font-weight: 600; font-variant-numeric: tabular-nums; }
+.bir-thermal-target { margin-top: 12px; }
+.bir-thermal-target > span { margin-inline-end: auto; }
+.bir-thermal-target strong { color: var(--bui-foreground); font-variant-numeric: tabular-nums; min-width: 52px; text-align: center; }
+.bir-command-status { font-size: 12px; color: var(--bui-muted-foreground); padding-top: 8px; }
+@container connected-panel (max-width: 360px) {
+  .bir-device-list { grid-template-columns: minmax(0, 1fr); }
+}
+@container (max-width: 760px) {
+  .bir-columns { grid-template-columns: 1fr; overflow: auto; }
+  .bir-visual { min-height: 350px; }
+  .bir-stage { flex: none; height: 350px; }
+  .bir-side { border-inline-start: 0; border-top: 1px solid var(--bui-border); overflow: visible; }
+  .bir-room-heading h2 { font-size: 18px; }
+}
+@media (max-width: 1023px) {
+  .bir-workspace { height: auto !important; }
+  .bir-visual { min-height: 290px; }
+}
+@media (max-width: 600px) {
+  .bir-services { margin-inline-start: 0; }
+  .bir-room-heading { padding: 12px 12px 0; }
+  .bir-stage { height: auto; aspect-ratio: 4 / 3; min-height: 0; }
+  .bir-visual { min-height: 0; }
+  .bir-room-nav { padding: 10px; }
+  .bir-inspector { padding: 16px; }
+  .bir-room-heading { flex-wrap: wrap; }
+}
+@media (prefers-reduced-motion: reduce) { .bir-page *, .bir-workspace * { transition: none !important; animation: none !important; } }

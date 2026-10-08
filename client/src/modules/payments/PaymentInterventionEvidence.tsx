@@ -15,7 +15,7 @@ import { propertiesApi } from '../../services/api/propertiesApi';
 import type { InterventionDetailsData } from '../interventions/interventionUtils';
 import { MapTile } from '../notifications/NotificationFieldParts';
 import { StockThumbnail } from '../stock/StockThumbnail';
-import StatusChip from '../../components/StatusChip';
+import FinanceStatusIcon from '../billing/components/FinanceStatusIcon';
 
 import PaymentDetailPager from './PaymentDetailPager';
 
@@ -113,7 +113,7 @@ export default function PaymentInterventionEvidence({ intervention, view }: { in
       ...linkedExpenses.map(expense => <div className="payment-record-detail__expense">
         {expense.category === 'SUPPLIES' ? <StockThumbnail name={expense.description} size={44} /> : <img src="/images/finance-kpis/documents.png" alt="" width={44} height={44} />}
         <div><strong>{expense.description}</strong><small>{[expense.providerName, expense.invoiceReference].filter(Boolean).join(' · ')}</small>
-          <StatusChip label={t(`accounting.expenses.statuses.${expense.status}`, expense.status)} tone={expense.status === 'PAID' ? 'ok' : expense.status === 'APPROVED' || expense.status === 'INCLUDED' ? 'info' : 'neutral'} />
+          <FinanceStatusIcon value={expense.status} label={t(`accounting.expenses.statuses.${expense.status}`, expense.status)} />
         </div><span className="payment-record-detail__expense-amount">{money(expense.amountTtc, expense.currency)}</span>
         {expense.receiptPath && <Button variant="ghost" size="icon" aria-label={t('paymentDetail.receiptFor', { name: expense.description })} onClick={() => void openDocument({ key: `expense-${expense.id}`, title: t('paymentDetail.receipt'), caption: expense.description, path: `/provider-expenses/${expense.id}/receipt` })}><FileText size={17} /></Button>}
       </div>),

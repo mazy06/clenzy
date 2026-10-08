@@ -1,6 +1,6 @@
 import { readFile } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
-import type { Plugin, ResolvedConfig, ViteDevServer } from 'vite';
+import type { Plugin, ResolvedConfig } from 'vite';
 import { buildSiteRenderer, type SiteRenderer } from './baitlySiteRendering';
 import { discoveryCatalog } from './baitlySiteDiscovery';
 import {
@@ -252,7 +252,7 @@ export function metadataHtml(
 /** Small virtual data module for SPA navigation + prebuilt heads for non-JS crawlers. */
 export function baitlySiteSeo(): Plugin {
   let catalog: MetadataCatalog;
-  let server: ViteDevServer | undefined;
+  let devRenderer: SiteRenderer | undefined;
   let config: ResolvedConfig;
   const root = fileURLToPath(new URL('../', import.meta.url));
   const id = 'virtual:baitly-site-metadata';
@@ -276,8 +276,9 @@ export function baitlySiteSeo(): Plugin {
     configResolved(resolved) {
       config = resolved;
     },
-    configureServer(devServer) {
-      server = devServer;
+    async configureServer(devServer) {
+      const { createDevSiteRenderer } = await import('./baitlySiteDevRendering');
+      devRenderer = createDevSiteRenderer(devServer);
     },
     resolveId(source) {
       if (source === id) return '\0' + id;
@@ -298,12 +299,8 @@ export function baitlySiteSeo(): Plugin {
           ) ?? 'fr';
         const pages = (await loadCatalog())[language];
         const path = url.pathname.replace(/\/$/, '') || '/';
-        const rendered = server
-          ? await renderPage(
-              (await server.ssrLoadModule('/entry-server.tsx')).renderSite,
-              path,
-              language,
-            )
+        const rendered = devRenderer
+          ? await renderPage(devRenderer, path, language)
           : undefined;
         return metadataHtml(
           html,

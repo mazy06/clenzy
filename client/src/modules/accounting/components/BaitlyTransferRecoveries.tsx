@@ -1,4 +1,4 @@
-import { Badge } from '../../../components/ui';
+import FinanceStatusIcon from '../../billing/components/FinanceStatusIcon';
 import { useTranslation } from '../../../hooks/useTranslation';
 import type { TransferRecovery } from '../../../services/api/payoutTransfersApi';
 
@@ -15,7 +15,7 @@ export default function BaitlyTransferRecoveries({ recoveries = [] }: { recoveri
           <span className="text-sm">{t('payoutTracking.recovery.providerShare')}{' '}
             <strong className="tabular-nums">{new Intl.NumberFormat(currentLanguage, { style: 'currency', currency: row.currency }).format(row.amount)}</strong>
           </span>
-          <Badge variant={row.state === 'REVIEW_REQUIRED' ? 'warning' : 'secondary'}>{t(`payoutTracking.recovery.states.${row.state}`)}</Badge>
+          <FinanceStatusIcon value={row.state} label={t(`payoutTracking.recovery.states.${row.state}`)} />
         </div>
         {row.commissionRefundAmount != null && row.commissionRefundAmount > 0 && <dl className="flex flex-wrap gap-x-6 gap-y-2 text-xs text-muted-foreground">
           <div className="flex flex-wrap gap-x-2">

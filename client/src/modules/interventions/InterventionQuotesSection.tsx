@@ -8,6 +8,7 @@ import {
   AttachmentMedia,
   AttachmentTitle,
   AttachmentTrigger,
+  Alert, AlertDescription, Skeleton,
   Button,
   Dialog,
   DialogContent,
@@ -32,7 +33,9 @@ import { technicianPrestationsApi } from '../../services/api/technicianPrestatio
 import type { ServicePriceConfig } from '../../services/api/pricingConfigApi';
 import type { QuoteLine } from '../../services/api/interventionsApi';
 import { cn } from '../../utils/cn';
-import StatusChip from '../../components/StatusChip';
+import StatusIcon from '../../components/StatusIcon';
+import { Check, Clock3, XCircle, Ban } from '../../icons/glyphs';
+import { WorkOrderHeading, WORK_ORDER_ART } from '../work-orders/WorkOrderPresentation';
 import { useTranslation } from '../../hooks/useTranslation';
 import { formatCurrency } from '../../utils/currencyUtils';
 import { formatDate } from '../../utils/formatUtils';
@@ -117,11 +120,11 @@ function slugify(value: string | null | undefined): string {
     .toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
 }
 
-const STATUS_TONE: Record<ServiceQuote['status'], 'ok' | 'warn' | 'err' | 'neutral'> = {
-  RECEIVED: 'warn',
-  APPROVED: 'ok',
-  REJECTED: 'neutral',
-  EXPIRED: 'err',
+const STATUS_TONE: Record<ServiceQuote['status'], 'success' | 'warning' | 'destructive' | 'muted'> = {
+  RECEIVED: 'warning',
+  APPROVED: 'success',
+  REJECTED: 'muted',
+  EXPIRED: 'destructive',
 };
 
 /**
@@ -240,10 +243,21 @@ export default function InterventionQuotesSection({
   const [saving, setSaving] = useState(false);
   const [approvingId, setApprovingId] = useState<number | null>(null);
 
-  const reload = React.useCallback(() => {
-    serviceQuotesApi.list(interventionId)
-      .then((loaded) => { setQuotes(loaded); onQuotesLoaded?.(loaded); })
-      .catch(() => { setQuotes([]); onQuotesLoaded?.([]); });
+  const [loadError, setLoadError] = useState(false);
+  const [actionError, setActionError] = useState(false);
+  const [removingId, setRemovingId] = useState<number | null>(null);
+  const loadVersion = React.useRef(0);
+  const reload = React.useCallback(async () => {
+    const version = ++loadVersion.current;
+    setLoadError(false);
+    try {
+      const loaded = await serviceQuotesApi.list(interventionId);
+      if (version !== loadVersion.current) return;
+      setQuotes(loaded);
+      onQuotesLoaded?.(loaded);
+    } catch {
+      if (version === loadVersion.current) setLoadError(true);
+    }
   }, [interventionId, onQuotesLoaded]);
 
   // Tarifs travaux de l'intervenant : c'est SA grille qui chiffre, pas un
@@ -257,7 +271,7 @@ export default function InterventionQuotesSection({
   const [customLines, setCustomLines] = useState<QuoteLine[]>([]);
   const [newLine, setNewLine] = useState({ label: '', unitPrice: 0 });
 
-  useEffect(() => { reload(); }, [reload]);
+  useEffect(() => { setQuotes(null); void reload(); return () => { ++loadVersion.current; }; }, [reload]);
 
   const statusLabel = (status: ServiceQuote['status']) => t(
     `interventions.quotes.status.${status}`,
@@ -265,12 +279,13 @@ export default function InterventionQuotesSection({
   );
 
   const save = async () => {
-    if (!form || !(form.amount > 0)) return;
+    if (saving || !form || !(form.amount > 0)) return;
     // Un gestionnaire saisit un devis RECU : il nomme le prestataire. Un
     // intervenant soumet LE SIEN : son identite vient du compte connecte, et
     // le nom saisi ici serait au mieux redondant, au pire usurpe.
     if (!canSubmitOwn && !form.providerName.trim()) return;
     setSaving(true);
+    setActionError(false);
     try {
       if (canSubmitOwn) {
         await serviceQuotesApi.submitMine(interventionId, {
@@ -285,26 +300,36 @@ export default function InterventionQuotesSection({
         await serviceQuotesApi.create(interventionId, form);
       }
       setForm(null);
-      reload();
+      void reload();
+    } catch {
+      setActionError(true);
     } finally {
       setSaving(false);
     }
   };
 
   const approve = async (id: number) => {
+    if (approvingId !== null || removingId !== null) return;
+    setActionError(false);
     setApprovingId(id);
     try {
       await serviceQuotesApi.approve(id);
       reload();
       onQuoteApproved?.();
+    } catch {
+      setActionError(true);
     } finally {
       setApprovingId(null);
     }
   };
 
   const remove = async (id: number) => {
-    await serviceQuotesApi.remove(id);
-    reload();
+    if (removingId !== null || approvingId !== null) return;
+    setRemovingId(id);
+    setActionError(false);
+    try { await serviceQuotesApi.remove(id); await reload(); }
+    catch { setActionError(true); }
+    finally { setRemovingId(null); }
   };
 
   const setField = <K extends keyof ServiceQuoteRequest>(key: K, value: ServiceQuoteRequest[K]) =>
@@ -424,33 +449,20 @@ export default function InterventionQuotesSection({
   const eligibility = scanEligibility(interventionStatus, interventionCreatedAt);
 
   return (
-    <section className="mb-6">
-      {/* Plus de carte : la fiche n'en porte aucune, et ce bloc en etait la
-          derniere. Meme filet de titre que les sections voisines. */}
-      <div className="mb-2 flex items-center justify-between gap-3 border-b border-solid border-border pb-1.5">
-        <p className="m-0 flex items-center gap-1.5 text-2xs font-bold uppercase tracking-[.06em] text-faint">
-          <Receipt size={14} strokeWidth={1.75} />
-          {t('interventions.quotes.title', 'Devis prestataires')}
-          {(quotes?.length ?? 0) > 0 && (
-            <span className="font-normal tabular-nums normal-case">({quotes!.length})</span>
-          )}
-        </p>
-        {(canEdit || canSubmitOwn) && (
-          <Button variant="outline" size="xs" onClick={openForm}>
-            <Add size={14} />
-            {canSubmitOwn
-              ? t('interventions.quotes.submitMine', 'Chiffrer cette intervention')
-              : t('interventions.quotes.add', 'Saisir un devis')}
-          </Button>
-        )}
-      </div>
-
-      {quotes === null ? (
-        <div className="flex justify-center py-5">
-          <Spinner className="size-6" />
-        </div>
+    <section className="wo-section wo-quotes">
+      <WorkOrderHeading art={WORK_ORDER_ART.quotes}
+        title={t('interventions.quotes.title', 'Devis prestataires') + (quotes?.length ? ' (' + quotes.length + ')' : '')}
+        actions={(canEdit || canSubmitOwn) && <Button variant="outline" size="sm" onClick={openForm}>
+          <Add size={14} />
+          {canSubmitOwn ? t('interventions.quotes.submitMine', 'Chiffrer cette intervention') : t('interventions.quotes.add', 'Saisir un devis')}
+        </Button>} />
+      {actionError && !form && <Alert variant="destructive" className="mb-3"><AlertDescription>{t('workOrderDetails.actionError', 'L’action a échoué. Vos informations sont conservées, réessayez.')}</AlertDescription></Alert>}
+      {loadError ? <Alert variant="destructive"><AlertDescription>{t('workOrderDetails.quotesError', 'Impossible de charger les devis.')}</AlertDescription>
+        <Button variant="ghost" size="sm" onClick={() => { void reload(); }}>{t('common.retry', 'Réessayer')}</Button>
+      </Alert> : quotes === null ? (
+        <Skeleton className="h-20 w-full" />
       ) : quotes.length === 0 ? (
-        <p className="m-0 py-1 text-[13px] leading-[1.6] text-muted-foreground">
+        <div className="wo-empty-quotes"><p className="wo-muted">
           {eligibility === 'closed'
             ? t('interventions.quotes.emptyClosed',
                 "Aucun devis saisi. L'intervention n'étant plus ouverte, un devis enregistré ici ne remontera pas à l'agent Opérations.")
@@ -459,7 +471,7 @@ export default function InterventionQuotesSection({
                   "Aucun devis saisi. L'intervention date de plus de 60 jours : au-delà, l'agent Opérations ne la scanne plus.")
               : t('interventions.quotes.empty',
                   "Aucun devis saisi. Dès qu'un devis est enregistré ici, l'agent Opérations propose son approbation dans la constellation.")}
-        </p>
+        </p></div>
       ) : (
         <>
           {eligibility !== 'eligible' && eligibility !== 'unknown' && (
@@ -537,11 +549,10 @@ export default function InterventionQuotesSection({
                       <span dir="auto" className="truncate text-[13px] text-muted-foreground">
                         {quote.providerName}
                       </span>
-                      <StatusChip
+                      <StatusIcon
+                        icon={quote.status === 'APPROVED' ? Check : quote.status === 'RECEIVED' ? Clock3 : quote.status === 'EXPIRED' ? XCircle : Ban}
                         tone={STATUS_TONE[quote.status]}
                         label={statusLabel(quote.status)}
-                        size="sm"
-                        dot
                       />
                     </p>
                     {conditions && (
@@ -576,7 +587,7 @@ export default function InterventionQuotesSection({
                       Son intitule dit de quoi il s'agit — un fichier pose la
                       sans legende ne se rattache visuellement a rien. */}
                   {quote.documentGenerationId != null && (
-                    <div className="hidden shrink-0 flex-col items-end gap-1 min-[900px]:flex">
+                    <div className="flex w-full flex-col items-start gap-1">
                       <span className="text-2xs font-semibold uppercase tracking-[.05em] text-faint">
                         {t('interventions.quotes.documentLabel', 'Document')}
                       </span>
@@ -592,7 +603,7 @@ export default function InterventionQuotesSection({
                       {quote.status === 'RECEIVED' && !hasApproved && (
                         <Button
                           variant="outline" size="xs"
-                          disabled={approvingId != null}
+                          disabled={approvingId != null || removingId != null}
                           onClick={() => approve(quote.id)}
                         >
                           {approvingId === quote.id
@@ -606,6 +617,7 @@ export default function InterventionQuotesSection({
                           variant="ghost" size="icon-sm"
                           className="text-muted-foreground hover:text-destructive-ink"
                           aria-label={t('common.delete', 'Supprimer')}
+                          disabled={removingId != null || approvingId != null}
                           onClick={() => remove(quote.id)}
                         >
                           <DeleteOutline size={15} />
@@ -965,6 +977,7 @@ export default function InterventionQuotesSection({
                   />
                 </Field>
               </div>
+              {actionError && <Alert variant="destructive"><AlertDescription>{t('workOrderDetails.actionError', 'L’action a échoué. Vos informations sont conservées, réessayez.')}</AlertDescription></Alert>}
               <DialogFooter>
                 <Button variant="outline" disabled={saving} onClick={() => setForm(null)}>
                   {t('common.cancel', 'Annuler')}

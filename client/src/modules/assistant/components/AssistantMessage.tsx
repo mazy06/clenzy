@@ -3,12 +3,10 @@ import {
   Dialog,
   DialogContent,
   DialogTitle,
-  Message,
-  MessageAvatar,
-  MessageContent,
 } from '../../../components/ui';
 import { cn } from '../../../utils/cn';
-import { SmartToy as BotIcon } from '../../../icons';
+import { ContentCopy, Check } from '../../../icons';
+import { AssistantAvatar } from './AssistantAvatar';
 import { useTranslation } from '../../../hooks/useTranslation';
 import type { DisplayMessage } from '../../../hooks/useAgent';
 import { AssistantToolActivity } from './AssistantToolActivity';
@@ -20,36 +18,15 @@ interface AssistantMessageProps {
   message: DisplayMessage;
 }
 
-/**
- * Bulles de conversation — grammaire de la projection « Assistant Baitly »
- * (galerie design-system, {@code BAssistantSectionDemo}).
- *
- * <p>Les deux locuteurs se distinguent par la SURFACE, pas par la couleur :
- * teinte de marque diluée côté opérateur ({@code bg-primary-soft}), carte
- * bordée côté assistant. Le coin redressé du côté de l'interlocuteur fait
- * office d'amorce, sans queue dessinée — et il est posé en rayon LOGIQUE
- * ({@code rounded-ee-*} / {@code rounded-es-*}) pour rester juste en arabe.</p>
- *
- * <p>Les widgets riches (KPI, tableaux, graphiques) restent HORS bulle, en
- * pleine largeur de la colonne : ce sont des documents, pas de la parole.</p>
- */
-
-/** Bulle de l'opérateur : coin bas-fin redressé (droite en LTR, gauche en RTL). */
-const ASK_BUBBLE = 'w-fit max-w-[82%] rounded-2xl rounded-ee-md bg-primary-soft px-3 py-2 text-foreground';
-/** Bulle de l'assistant : carte bordée, coin bas-début redressé. */
-const BOT_BUBBLE = 'w-fit max-w-[88%] rounded-2xl rounded-es-md border border-border bg-card px-3 py-2';
-
-/** Avatar de l'assistant — badge rond teinte de marque, comme la projection. */
-const AssistantAvatar: React.FC = () => (
-  <MessageAvatar className="size-7 bg-primary-soft text-primary">
-    <BotIcon className="size-4" />
-  </MessageAvatar>
-);
+/** Replies leave the full column available for reports and tool widgets. */
+const ASK_BUBBLE = 'baitly-assistant-user-message';
+const BOT_BUBBLE = 'baitly-assistant-response';
 
 export const AssistantMessage: React.FC<AssistantMessageProps> = ({ message }) => {
   const { t } = useTranslation();
   const [fullSizeUrl, setFullSizeUrl] = useState<string | null>(null);
   const [fullSizeAlt, setFullSizeAlt] = useState<string>('');
+  const [copyState, setCopyState] = useState<'copy' | 'copied' | 'copyFailed'>('copy');
 
   // Les résultats d'outils ne sont pas des tours de parole : ils vivent dans
   // les pastilles d'activité et les widgets du message assistant.
@@ -66,8 +43,9 @@ export const AssistantMessage: React.FC<AssistantMessageProps> = ({ message }) =
     const arabicHeavy = isArabicHeavy(message.content);
     return (
       <>
-        <Message align="end">
-          <MessageContent className={ASK_BUBBLE}>
+        <div className="baitly-assistant-turn baitly-assistant-turn-user">
+          <span className="baitly-assistant-speaker">{t('assistant.thread.you')}</span>
+          <div className={ASK_BUBBLE}>
             {attachments.length > 0 && (
               <div className="flex flex-wrap gap-1">
                 {attachments.map((att) => (
@@ -102,8 +80,8 @@ export const AssistantMessage: React.FC<AssistantMessageProps> = ({ message }) =
                 {message.content}
               </p>
             )}
-          </MessageContent>
-        </Message>
+          </div>
+        </div>
 
         {/* Aperçu plein écran d'une pièce jointe */}
         <Dialog open={fullSizeUrl !== null} onOpenChange={(next) => { if (!next) setFullSizeUrl(null); }}>
@@ -125,8 +103,8 @@ export const AssistantMessage: React.FC<AssistantMessageProps> = ({ message }) =
   const hasNothingYet = !message.content && toolCalls.length === 0;
 
   return (
-    <Message>
-      <AssistantAvatar />
+    <div className="baitly-assistant-turn">
+      <div className="baitly-assistant-speaker"><AssistantAvatar /><span>Baitly</span></div>
       {/* Colonne de contenu : activité, widgets pleine largeur, puis la parole. */}
       <div className="flex min-w-0 flex-1 flex-col gap-1.5">
         {toolCalls.length > 0 && <AssistantToolActivity calls={toolCalls} />}
@@ -136,28 +114,28 @@ export const AssistantMessage: React.FC<AssistantMessageProps> = ({ message }) =
         ))}
 
         {message.content && (
-          <MessageContent className={BOT_BUBBLE}>
+          <div className={BOT_BUBBLE}>
             <AssistantMarkdown text={message.content} />
-          </MessageContent>
+          </div>
         )}
 
-        {/* « Réfléchit » : trois points qui rebondissent dans une bulle assistant
-            (projection), plutôt qu'un rouage — l'attente ressemble à quelqu'un
-            qui rédige, pas à un chargement. */}
         {isStreaming && hasNothingYet && (
-          <MessageContent className={BOT_BUBBLE}>
-            <span className="flex items-center gap-1 py-0.5" aria-label={t('assistant.thread.thinking')}>
-              {[0, 1, 2].map((dot) => (
-                <span
-                  key={dot}
-                  className="size-1.5 animate-bounce rounded-full bg-muted-foreground/60 motion-reduce:animate-none"
-                  style={{ animationDelay: `${dot * 140}ms` }}
-                />
-              ))}
+          <div className={BOT_BUBBLE}>
+            <span className="baitly-assistant-thinking" role="status">
+              {t('assistant.thread.thinking')}
             </span>
-          </MessageContent>
+          </div>
         )}
       </div>
-    </Message>
+      {message.content && !isStreaming && (
+        <button type="button" className="baitly-assistant-copy" aria-label={t('assistant.thread.' + copyState)} onClick={async () => {
+          try { await navigator.clipboard.writeText(message.content); setCopyState('copied'); }
+          catch { setCopyState('copyFailed'); }
+        }}>
+          {copyState === 'copied' ? <Check size={14} /> : <ContentCopy size={14} />}
+          <span role="status">{t(`assistant.thread.${copyState}`)}</span>
+        </button>
+      )}
+    </div>
   );
 };

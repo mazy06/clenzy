@@ -1,3 +1,4 @@
+import { COOKIE_POLICY } from './cookies';
 /**
  * Corpus juridique Baitly — version FRANCAISE, qui fait foi.
  *
@@ -85,7 +86,7 @@ export const LEGAL_DOCS_FR: LegalDoc[] = [
   {
     slug: 'confidentialite',
     title: 'Politique de confidentialité',
-    updated: '24 juillet 2026',
+    updated: '8 octobre 2026 (cookies)',
     intro:
       'La présente politique décrit comment Sinatech traite les données à caractère personnel, en conformité avec la loi marocaine n° 09-08 relative à la protection des personnes physiques à l’égard du traitement des données à caractère personnel et, lorsque le traitement relève de son champ d’application territorial, avec le Règlement (UE) 2016/679 (« RGPD »).',
     blocks: [
@@ -107,7 +108,7 @@ export const LEGAL_DOCS_FR: LegalDoc[] = [
         table: {
           headers: ['Catégorie', 'Exemples de données', 'Finalités', 'Base légale'],
           rows: [
-            ['Visiteurs du site', 'Données de navigation, cookies, mesure d’audience', 'Fonctionnement et amélioration du site, statistiques', 'Intérêt légitime / consentement (cookies non essentiels)'],
+            ['Visiteurs du site', 'Données techniques de navigation et stockages nécessaires', 'Fonctionnement et sécurité du site ; mémorisation des choix', 'Intérêt légitime ; exemption pour les stockages strictement nécessaires'],
             ['Prospects', 'Identité, coordonnées, taille du portefeuille, outil actuel', 'Réponse aux demandes de démo, prospection B2B', 'Mesures précontractuelles / intérêt légitime'],
             ['Clients & utilisateurs', 'Identité, coordonnées, rôle, journaux de connexion, facturation', 'Fourniture du Service, support, facturation, sécurité', 'Exécution du contrat / obligation légale (comptabilité)'],
             ['Voyageurs (pour le compte des clients)', 'Identité, coordonnées, pièce d’identité (fiche de police), séjours, communications', 'Gestion des réservations, obligations déclaratives (DGSN, taxe de séjour), messagerie', 'Instructions du client responsable de traitement'],
@@ -148,7 +149,7 @@ export const LEGAL_DOCS_FR: LegalDoc[] = [
           'Comptes clients : durée du contrat, puis archivage des données de facturation 10 ans (obligations comptables).',
           'Données voyageurs traitées en sous-traitance : selon les instructions et durées fixées par le client responsable de traitement ; suppression ou restitution en fin de contrat (clause de réversibilité des CGV).',
           'Journaux techniques et de sécurité : 12 mois.',
-          'Cookies : 13 mois maximum ; consentement re-sollicité au-delà.',
+          'Choix cookies du site vitrine : 6 mois ; stockages nécessaires selon les durées détaillées à la section 10.',
         ],
       },
       {
@@ -166,12 +167,7 @@ export const LEGAL_DOCS_FR: LegalDoc[] = [
           'Vous pouvez introduire une réclamation auprès de la CNDP (www.cndp.ma) ou, pour les personnes relevant du RGPD, auprès de l’autorité de contrôle de votre État membre (en France, la CNIL).',
         ],
       },
-      {
-        heading: '10. Cookies',
-        paragraphs: [
-          'Le site utilise des cookies strictement nécessaires (session, sécurité, préférences de consentement) exemptés de consentement, et, sous réserve de votre accord, des cookies de mesure d’audience. Aucun cookie publicitaire tiers n’est déposé. Vous pouvez retirer votre consentement à tout moment via le lien « Gérer les cookies » en pied de page.',
-        ],
-      },
+      COOKIE_POLICY.fr,
       {
         heading: '11. Mise à jour de la présente politique',
         paragraphs: [

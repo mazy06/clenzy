@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { Navigate, useLocation } from 'react-router-dom';
 import { useTabKeyParam } from '../../components/tabKeyParam';
 import { useScreenTabs } from '../../hooks/useScreenTabs';
 import { useTranslation } from '../../hooks/useTranslation';
@@ -12,9 +13,7 @@ import {
   type TabHeaderMeta,
 } from '../../components/PageHeaderActionsContext';
 import PropertiesList from './PropertiesList';
-import DynamicPricing from '../pricing/DynamicPricing';
 import VouchersPage from '../vouchers/VouchersPage';
-import ConnectedObjectsHub from '../connected-objects/ConnectedObjectsHub';
 import { useQueryClient } from '@tanstack/react-query';
 import { usePropertiesList, propertiesListKeys } from '../../hooks/usePropertiesList';
 import { Alert, AlertDescription, Button, Skeleton } from '../../components/ui';
@@ -33,6 +32,7 @@ const PORTAL_STYLE = { display: 'contents' } as const;
 // ─── Component ──────────────────────────────────────────────────────────────
 
 const PropertiesPage: React.FC = () => {
+  const location = useLocation();
   const { t } = useTranslation();
   const { properties, isLoading, isError } = usePropertiesList();
   const queryClient = useQueryClient();
@@ -70,9 +70,6 @@ const PropertiesPage: React.FC = () => {
     [t('propertiesPage.tabs.vouchers', 'Codes promo')]: {
       subtitle: t('tabHeaders.properties.subtitle.vouchers', 'Codes promo et campagnes auto applicables aux nuitées : remises pourcentage ou montant fixe, scope par bien.'),
     },
-    [t('propertiesPage.tabs.connectedObjects', 'Objets connectés')]: {
-      subtitle: t('tabHeaders.properties.subtitle.connectedObjects', 'Supervisez et pilotez vos serrures, capteurs et clés, logement par logement.'),
-    },
   };
   const { title, subtitle } = resolveTabHeader(
     t('tabHeaders.properties.title', 'Propriétés'),
@@ -81,6 +78,11 @@ const PropertiesPage: React.FC = () => {
     activeTab,
     propertiesTabMeta,
   );
+
+  if (new URLSearchParams(location.search).get('tab') === 'pricing') return <Navigate to="/dynamic-pricing" replace />;
+
+  // Keep historical links while exposing a single, standalone equipment workspace.
+  if (new URLSearchParams(location.search).get('tab') === 'connected-objects') return <Navigate to="/connected-objects" replace />;
 
   return (
     <PageHeaderActionsProvider slot={headerActionsSlot}>
@@ -127,14 +129,8 @@ const PropertiesPage: React.FC = () => {
         {hasProperties && activeKey === 'properties' && (
           <PropertiesList embedded actionsContainer={actionsContainer} filtersContainer={filtersContainer} />
         )}
-        {hasProperties && activeKey === 'pricing' && (
-          <DynamicPricing embedded actionsContainer={actionsContainer} filtersContainer={filtersContainer} tabInlineContainer={tabInlineContainer} />
-        )}
         {hasProperties && activeKey === 'vouchers' && (
           <VouchersPage embedded actionsContainer={actionsContainer} filtersContainer={filtersContainer} />
-        )}
-        {hasProperties && activeKey === 'connected-objects' && (
-          <ConnectedObjectsHub embedded actionsContainer={actionsContainer} />
         )}
       </div>
       {importOpen && <ChannexMappingDialog open guided onClose={() => {

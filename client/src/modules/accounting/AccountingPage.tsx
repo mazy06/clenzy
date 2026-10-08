@@ -1,3 +1,5 @@
+import FinanceStatusIcon from '../billing/components/FinanceStatusIcon';
+import FinanceHeaderFilters from '../billing/components/FinanceHeaderFilters';
 import { financeEventArtwork } from '../billing/components/financeEventArtwork';
 import FinanceWorkspace from '../billing/components/FinanceWorkspace';
 import { FinanceAmountKpis } from '../billing/components/FinanceKpis';
@@ -47,7 +49,6 @@ import {
   Inventory as StepFormatIcon,
   Visibility as VisibilityIcon,
 } from '../../icons';
-import FilterChipRow from '../../components/baitly/FilterChipRow';
 import StatTile from '../../components/baitly/StatTile';
 import StatTileRow from '../../components/baitly/StatTileRow';
 import HelpPopover from '../../components/HelpPopover';
@@ -227,15 +228,20 @@ export const PayoutsTab: React.FC = () => {
       {helpAction}
       {!isError && <FinanceAmountKpis kind="payouts" records={payouts.map(row => ({ status: row.status, amount: row.netAmount, currency: row.currency || 'EUR' }))} loading={isLoading} />}
 
-      {[true, false].map(approve => <FinanceBatchPanel key={String(approve)}
-        title={t(approve ? 'financeBatch.ownerApprovals' : 'financeBatch.ownerTransfers')}
-        actionLabel={t(approve ? 'financeBatch.approve' : 'financeBatch.transfer')}
+      <FinanceBatchPanel placement="header" title={t('financeBatch.ownerActions', 'Reversements groupés')}
         disabled={isLoading || isError || approveMutation.isPending || executeMutation.isPending || retryMutation.isPending}
-        items={ownerBatchItems(payouts, configByOwnerId, approve)}
-        onExecute={async items => {
-          const results = await executeOwnerBatch(items, approve);
-          await refetchPayouts(); return results;
-        }} />)}
+        operations={[
+          { key: 'approve', label: t('financeBatch.toApprove', 'À approuver'), actionLabel: t('financeBatch.approve'), hint: t('financeBatch.approvalHint', 'Vérifiez les montants et sélectionnez les dossiers à approuver. L’approbation ne déclenche aucun versement.'),
+            items: ownerBatchItems(payouts, configByOwnerId, true), onExecute: async items => {
+              const results = await executeOwnerBatch(items, true);
+              await refetchPayouts(); return results;
+            } },
+          { key: 'transfer', label: t('financeBatch.toTransfer', 'À verser'), actionLabel: t('financeBatch.transfer'), hint: t('financeBatch.transferHint', 'Sélectionnez les reversements approuvés et prêts à être envoyés au prestataire de paiement. Vérifiez les montants avant de confirmer.'),
+            items: ownerBatchItems(payouts, configByOwnerId, false), onExecute: async items => {
+              const results = await executeOwnerBatch(items, false);
+              await refetchPayouts(); return results;
+            } },
+        ]} />
 
       {generateOpen && <div id="payout-generate-panel"><GeneratePayoutForm
         onClose={() => setGenerateOpen(false)}
@@ -249,7 +255,7 @@ export const PayoutsTab: React.FC = () => {
       /></div>}
 
       {/* ── Filters + Actions ── */}
-      <div className={cn(PANEL_CLASS, 'p-3 mb-[9px] flex gap-3 items-center flex-wrap')}>
+      <FinanceHeaderFilters>
         <Field className="w-auto min-w-[180px]">
           <FieldLabel className="text-[0.8125rem]" htmlFor="accounting-filter-owner">
             {t('accounting.filterOwner', 'Proprietaire')}
@@ -271,25 +277,16 @@ export const PayoutsTab: React.FC = () => {
           </NativeSelect>
         </Field>
 
-        <FilterChipRow
-          options={PAYOUT_STATUS_VALUES
-            .filter((v): v is PayoutStatus => v !== '')
-            .map((v) => ({
-              value: v,
-              label: v === 'PAID' ? t('accounting.workflow.paidFilter', 'Transféré / payé') : t(`accounting.payoutStatuses.${v}`, v),
-              color: PAYOUT_STATUS_COLORS[v],
-            }))}
-          value={filterStatus}
-          onChange={(v) => setFilterStatus(v as PayoutStatus | '')}
-          allLabel={t('common.all', 'Tous')}
-          size="compact"
-        />
+        <label>{t('common.status', 'Statut')}
+          <NativeSelect value={filterStatus} onChange={e => setFilterStatus(e.target.value as PayoutStatus | '')}>
+            <option value="">{t('common.all', 'Tous')}</option>
+            {PAYOUT_STATUS_VALUES.filter(value => value !== '').map(value => <option key={value} value={value}>
+              {value === 'PAID' ? t('accounting.workflow.paidFilter', 'Transféré / payé') : t(`accounting.payoutStatuses.${value}`, value)}
+            </option>)}
+          </NativeSelect>
+        </label>
 
-      </div>
-
-      <p className="mb-3 px-1 text-xs text-muted-foreground">
-        {t('accounting.workflow.guide', 'Calcul du montant → Approbation → Versement via le PSP. Approuver ne déclenche aucun paiement.')}
-      </p>
+      </FinanceHeaderFilters>
 
       {/* ── Alerts ── */}
       {approveMutation.isError && (
@@ -360,7 +357,7 @@ export const PayoutsTab: React.FC = () => {
           variant="plain"
         />
       ) : (
-        <FinanceWorkspace artwork="transfer" selectedId={detailOpen ? detailPayout?.id : undefined} onSelect={id => { setDetailPayout(payouts.find(p => p.id === id) ?? null); setDetailOpen(id !== null); }} items={payouts.map((payout) => {
+        <FinanceWorkspace highlightId={highlightId} artwork="transfer" selectedId={detailOpen ? detailPayout?.id : undefined} onSelect={id => { setDetailPayout(payouts.find(p => p.id === id) ?? null); setDetailOpen(id !== null); }} items={payouts.map((payout) => {
                 const workflow = getPayoutWorkflow(payout, configByOwnerId.get(payout.ownerId));
                 return (
                 { id: payout.id, eventImage: financeEventArtwork('', 'OWNER_PAYOUT'), title: <>
@@ -368,10 +365,7 @@ export const PayoutsTab: React.FC = () => {
                   </>, amount: <>
                     {fmtCurrency(payout.netAmount, payout.currency)}
                   </>, status: <>
-                    <StatusChip color={PAYOUT_STATUS_COLORS[payout.status] ?? 'var(--bui-muted-foreground)'} label={payoutStatusLabel(payout)} />
-                    <p className="mt-1 text-[0.6875rem] text-muted-foreground">
-                      {t(`accounting.workflow.hints.${workflow.hint}`)}
-                    </p>
+                    <FinanceStatusIcon value={payout.status} label={`${payoutStatusLabel(payout)} · ${t(`accounting.workflow.hints.${workflow.hint}`)}`} />
                   </>, subtitle: <>
                     {fmtDate(payout.periodStart)} → {fmtDate(payout.periodEnd)}
                   </>,  actions: <>
@@ -590,6 +584,10 @@ export const ExpensesTab: React.FC = () => {
   });
 
   const helpAction = usePageHeaderActions(
+    <>
+    <BuiButton size="sm" variant="outline" onClick={() => setCreateOpen(true)}>
+      <AddIcon />{t('accounting.expenses.create', 'Nouvelle dépense')}
+    </BuiButton>
     <HelpPopover
       label={t('common.help', 'Aide')}
       title={t('accounting.expenses.help.title', 'Comment fonctionnent les depenses ?')}
@@ -599,7 +597,8 @@ export const ExpensesTab: React.FC = () => {
         { icon: <StepCategoryIcon size={14} strokeWidth={1.75} />, title: t('accounting.expenses.help.step2Title', 'Approuver'), description: t('accounting.expenses.help.step2Desc', 'Validez les depenses en brouillon. Joignez un justificatif (PDF, photo).'), accent: 'warning' },
         { icon: <StepCalcIcon size={14} strokeWidth={1.75} />, title: t('accounting.expenses.help.step3Title', 'Deduire'), description: t('accounting.expenses.help.step3Desc', 'Les depenses approuvees sont automatiquement deduites des payouts proprietaires.'), accent: 'success' },
       ]}
-    />,
+    />
+    </>,
   );
 
   return (
@@ -626,28 +625,14 @@ export const ExpensesTab: React.FC = () => {
       {!isError && <FinanceAmountKpis kind="expenses" records={expenses.map(row => ({ status: row.status, amount: row.amountTtc, currency: row.currency }))} loading={isLoading} />}
 
       {/* ── Filters + Actions ── */}
-      <div className={cn(PANEL_CLASS, 'p-3 mb-[9px] flex gap-3 items-center flex-wrap')}>
-        <FilterChipRow
-          options={EXPENSE_STATUS_OPTIONS
-            .filter((opt) => opt.value !== '')
-            .map((opt) => ({
-              value: opt.value as ExpenseStatus,
-              label: t(opt.labelKey, opt.label),
-              color: EXPENSE_STATUS_COLORS[opt.value as ExpenseStatus] ?? 'var(--bui-muted-foreground)',
-            }))}
-          value={filterStatus}
-          onChange={(v) => setFilterStatus(v as ExpenseStatus | '')}
-          allLabel={t('common.all', 'Tous')}
-          size="compact"
-        />
+      <FinanceHeaderFilters>
+        <label>{t('common.status', 'Statut')}
+          <NativeSelect value={filterStatus} onChange={e => setFilterStatus(e.target.value as ExpenseStatus | '')}>
+            {EXPENSE_STATUS_OPTIONS.map(option => <option key={option.value} value={option.value}>{t(option.labelKey, option.label)}</option>)}
+          </NativeSelect>
+        </label>
 
-        <div className="ms-auto">
-          <BuiButton size="sm" onClick={() => setCreateOpen(true)}>
-            <AddIcon />
-            {t('accounting.expenses.create', 'Nouvelle depense')}
-          </BuiButton>
-        </div>
-      </div>
+      </FinanceHeaderFilters>
 
       {/* ── Alerts ── */}
       {createMutation.isSuccess && (
@@ -725,13 +710,13 @@ export const ExpensesTab: React.FC = () => {
           variant="plain"
         />
       ) : (
-        <FinanceWorkspace artwork="pending" selectedId={selectedExpense} onSelect={setSelectedExpense} items={expenses.map((expense) => (
+        <FinanceWorkspace highlightId={highlightExpense} artwork="pending" selectedId={selectedExpense} onSelect={setSelectedExpense} items={expenses.map((expense) => (
                 { id: expense.id, eventImage: financeEventArtwork(expense.description), identity: { interventionId: expense.interventionId, propertyId: expense.propertyId, propertyName: expense.propertyName, propertyPhoto: properties.find(p => p.id === expense.propertyId)?.coverPhotoUrl, actorName: expense.providerName, actorPhoto: providers.find(p => p.id === expense.providerId)?.profilePictureUrl }, title: <>
                     {expense.description}
                   </>, amount: <>
                     {fmtCurrency(expense.amountTtc, expense.currency)}
                   </>, status: <>
-                    <StatusChip color={EXPENSE_STATUS_COLORS[expense.status] ?? 'var(--bui-muted-foreground)'} label={t(`accounting.expenses.statuses.${expense.status}`, expense.status)} />
+                    <FinanceStatusIcon value={expense.status} label={t(`accounting.expenses.statuses.${expense.status}`, expense.status)} />
                   </>, subtitle: <>
                     {fmtDate(expense.expenseDate)}
                   </>, meta: <>{expense.providerName ?? '—'}</>, actions: <>
@@ -1162,12 +1147,7 @@ export const ExportsTab: React.FC = () => {
     <div>
       {helpAction}
 
-      {/* Period selector */}
-      <div className={cn(PANEL_CLASS, 'p-3 mb-3')}>
-        <p className="mb-2 text-2xs font-semibold uppercase tracking-wide text-faint">
-          {t('accounting.exports.period', 'Periode d\'export')}
-        </p>
-        <div className="flex gap-3 flex-wrap items-center">
+      <FinanceHeaderFilters>
           <Field className="w-auto min-w-[160px]">
             <FieldLabel htmlFor="export-period-from">{t('accounting.exports.from', 'Du')}</FieldLabel>
             <Input
@@ -1186,8 +1166,7 @@ export const ExportsTab: React.FC = () => {
               onChange={(e) => setTo(e.target.value)}
             />
           </Field>
-        </div>
-      </div>
+      </FinanceHeaderFilters>
 
       {error && (
         <BuiAlert variant="destructive" className="mb-3">

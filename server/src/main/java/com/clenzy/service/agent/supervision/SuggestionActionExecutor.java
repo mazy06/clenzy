@@ -98,6 +98,7 @@ public class SuggestionActionExecutor {
     private final ObjectProvider<com.clenzy.scheduler.AbandonedBookingRecoveryScheduler> cartRecoveryScheduler;
     private final ObjectProvider<com.clenzy.service.WelcomeGuideService> welcomeGuideService;
     private final ObjectProvider<com.clenzy.service.payout.HousekeeperPayoutService> housekeeperPayoutService;
+    private final ObjectProvider<ProviderBeneficiarySupervision> providerBeneficiarySupervision;
     private final ObjectProvider<com.clenzy.service.ReservationService> reservationService;
     private final ObjectProvider<com.clenzy.integration.compliance.submission.ComplianceSubmissionService> complianceSubmissionService;
     private final com.clenzy.repository.ManagementContractRepository managementContractRepository;
@@ -157,6 +158,7 @@ public class SuggestionActionExecutor {
                                     ObjectProvider<com.clenzy.scheduler.AbandonedBookingRecoveryScheduler> cartRecoveryScheduler,
                                     ObjectProvider<com.clenzy.service.WelcomeGuideService> welcomeGuideService,
                                     ObjectProvider<com.clenzy.service.payout.HousekeeperPayoutService> housekeeperPayoutService,
+                                    ObjectProvider<ProviderBeneficiarySupervision> providerBeneficiarySupervision,
                                     ObjectProvider<com.clenzy.service.ReservationService> reservationService,
                                     ObjectProvider<com.clenzy.integration.compliance.submission.ComplianceSubmissionService> complianceSubmissionService,
                                     com.clenzy.repository.ManagementContractRepository managementContractRepository,
@@ -212,6 +214,7 @@ public class SuggestionActionExecutor {
         this.cartRecoveryScheduler = cartRecoveryScheduler;
         this.welcomeGuideService = welcomeGuideService;
         this.housekeeperPayoutService = housekeeperPayoutService;
+        this.providerBeneficiarySupervision = providerBeneficiarySupervision;
         this.reservationService = reservationService;
         this.complianceSubmissionService = complianceSubmissionService;
         this.managementContractRepository = managementContractRepository;
@@ -263,6 +266,7 @@ public class SuggestionActionExecutor {
                 || SupervisionActionType.GUIDE_SEND.equals(actionType)
                 || SupervisionActionType.REVIEW_REQUEST_SEND.equals(actionType)
                 || SupervisionActionType.CLEANING_PAYOUT.equals(actionType)
+                || SupervisionActionType.PROVIDER_PAYOUT_BENEFICIARY.equals(actionType)
                 || SupervisionActionType.POLICE_DECLARE.equals(actionType)
                 || SupervisionActionType.MANDATE_SIGN_SEND.equals(actionType)
                 || SupervisionActionType.OWNER_STATEMENT_SEND.equals(actionType)
@@ -294,6 +298,12 @@ public class SuggestionActionExecutor {
         final String type = suggestion.getActionType();
         if (type == null) {
             throw new IllegalStateException("Suggestion non actionnable (actionType absent)");
+        }
+        if (SupervisionActionType.PROVIDER_PAYOUT_BENEFICIARY.equals(type)) {
+            if (plan != null && !plan.safeParams().isEmpty())
+                throw new IllegalArgumentException("Le bénéficiaire proposé ne peut pas être remplacé depuis la carte.");
+            providerBeneficiarySupervision.getObject().apply(suggestion);
+            return;
         }
         overlayHumanParams(suggestion, plan);
         switch (type) {

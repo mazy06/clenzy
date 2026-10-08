@@ -3,7 +3,7 @@ import { cn } from '../../utils/cn';
 import {
   Button,
   Card,
-  Spinner,
+  Skeleton,
   Table,
   TableBody,
   TableCell,
@@ -25,6 +25,8 @@ import type { CalendarPricingDay } from '../../services/api/calendarPricingApi';
 import type { Property } from '../../services/api/propertiesApi';
 import { dynamicPricingKeys } from '../../hooks/useDynamicPricing';
 import { activeIntlLocaleGregorian } from '../../utils/activeLocale';
+import { PropertyThumbnail } from './BaitlyPricingPropertyMenu';
+import BaitlyPricingProposal, { BaitlyPricingProposalSkeleton, useBaitlyPricingProposals, proposalKey, type BaitlyPricingAiSelection } from './BaitlyPricingProposal';
 
 // ─── Style Constants ────────────────────────────────────────────────────────
 
@@ -58,6 +60,12 @@ interface PricingOverviewViewProps {
   to: string;
   onPrevMonth: () => void;
   onNextMonth: () => void;
+  toolbarControls?: React.ReactNode;
+  hideToolbar?: boolean;
+  aiEnabled?: boolean;
+  hiddenProposals?: Set<string>;
+  selectedProposal?: BaitlyPricingAiSelection | null;
+  onSelectProposal?: (selection: BaitlyPricingAiSelection) => void;
 }
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
@@ -93,7 +101,13 @@ const PropertyRow: React.FC<{
   days: number[];
   year: number;
   month: number;
-}> = ({ property, from, to, days, year, month }) => {
+  aiEnabled: boolean;
+  hiddenProposals?: Set<string>;
+  selectedProposal?: BaitlyPricingAiSelection | null;
+  onSelectProposal?: (selection: BaitlyPricingAiSelection) => void;
+}> = ({ property, from, to, days, year, month, aiEnabled, hiddenProposals, selectedProposal, onSelectProposal }) => {
+  const { t } = useTranslation();
+  const ai = useBaitlyPricingProposals(property.id, from, to, aiEnabled);
   const { data: pricing, isLoading } = useQuery<CalendarPricingDay[]>({
     queryKey: dynamicPricingKeys.calendarPricing(property.id, from, to),
     queryFn: () => calendarPricingApi.getPricing(property.id, from, to),
@@ -111,20 +125,27 @@ const PropertyRow: React.FC<{
 
   return (
     <TableRow>
-      <TableCell className={cn(STICKY_COL_CLASS, 'z-[5]')}>
-        <p dir="auto" className="text-sm font-semibold truncate">
-          {property.name}
-        </p>
+      <TableCell className={cn(STICKY_COL_CLASS, 'z-[5] max-w-[220px]')}>
+        <div className="bp-portfolio-property"><PropertyThumbnail key={property.coverPhotoUrl || property.id} property={property} /><div>
+          <p dir="auto" className="text-sm font-semibold">{property.name}</p>
+          <span className="text-xs text-muted-foreground">{pricing?.find((entry) => entry.currency)?.currency ?? 'EUR'}</span>
+          {aiEnabled && ai.isLoading && <span className="bp-ai-row-loading" role="status">{t('baitlyPricing.ai.preparingShort', 'Analyse IA en cours…')}</span>}
+          {aiEnabled && ai.isError && <Button size="xs" variant="ghost" onClick={() => void ai.refetch()}>{t('baitlyPricing.ai.retry', 'Réessayer l’IA')}</Button>}
+        </div></div>
       </TableCell>
       {days.map((day) => {
         const dateStr = toISO(year, month, day);
         const entry = pricingMap.get(dateStr);
+        const candidate = aiEnabled ? ai.proposals.get(dateStr) : undefined;
+        const recommendation = candidate && !hiddenProposals?.has(proposalKey(property.id, candidate))
+          && candidate.suggestedPrice !== entry?.nightlyPrice ? candidate : undefined;
+        const proposalSelected = selectedProposal?.propertyId === property.id && selectedProposal.recommendation.date === dateStr;
         const sourceColor = entry ? SOURCE_COLORS[entry.priceSource] ?? '#BDBDBD' : 'transparent';
 
         if (isLoading) {
           return (
             <TableCell key={day} className="text-center px-[3px]">
-              <Spinner className="size-3" />
+              <Skeleton className="h-5 w-8" />
             </TableCell>
           );
         }
@@ -132,7 +153,7 @@ const PropertyRow: React.FC<{
         return (
           <TableCell
             key={day}
-            className="text-center px-[3px] py-[3px] min-w-[44px]"
+            className={cn('text-center px-2 py-3 min-w-[84px]', proposalSelected && 'bg-primary-soft')}
             // Couleur calculee au runtime : une classe Tailwind ne peut pas
             // naitre d'une variable.
             style={{ borderBottom: `3px solid ${sourceColor}` }}
@@ -140,7 +161,7 @@ const PropertyRow: React.FC<{
             {entry && entry.nightlyPrice !== null ? (
               <Tooltip>
                 <TooltipTrigger asChild>
-                  <span className="text-xs font-semibold cursor-default tabular-nums" style={{ color: sourceColor }}>
+                  <span className="text-xs font-semibold cursor-default tabular-nums" >
                     {entry.nightlyPrice}
                   </span>
                 </TooltipTrigger>
@@ -151,6 +172,10 @@ const PropertyRow: React.FC<{
                 -
               </span>
             )}
+            {aiEnabled && ai.isLoading && !recommendation && <BaitlyPricingProposalSkeleton />}
+            {recommendation && onSelectProposal && <BaitlyPricingProposal active={proposalSelected}
+              selection={{ propertyId: property.id, propertyName: property.name, currency: entry?.currency ?? 'EUR', currentPrice: entry?.nightlyPrice ?? null, recommendation }}
+              onSelect={onSelectProposal} />}
           </TableCell>
         );
       })}
@@ -168,6 +193,12 @@ const PricingOverviewView: React.FC<PricingOverviewViewProps> = ({
   to,
   onPrevMonth,
   onNextMonth,
+  toolbarControls,
+  hideToolbar = false,
+  aiEnabled = false,
+  hiddenProposals,
+  selectedProposal,
+  onSelectProposal,
 }) => {
   const { t, isFrench } = useTranslation();
 
@@ -178,8 +209,8 @@ const PricingOverviewView: React.FC<PricingOverviewViewProps> = ({
   return (
     <div className="flex flex-col gap-2">
       {/* Month navigation */}
-      <Card className="gap-0 py-0 p-[9px]">
-        <div className="flex items-center justify-center gap-0.5">
+      {!hideToolbar && <Card className="bp-month-toolbar bp-calendar-toolbar gap-0 p-0">
+        <div className="bp-month-nav flex items-center gap-0.5">
           <Button variant="ghost" size="icon-sm" aria-label={t('common.previous', 'Précédent')} onClick={onPrevMonth}>
             <ChevronLeftIcon className="cn-rtl-flip" size={20} strokeWidth={1.75} />
           </Button>
@@ -190,12 +221,13 @@ const PricingOverviewView: React.FC<PricingOverviewViewProps> = ({
             <ChevronRightIcon className="cn-rtl-flip" size={20} strokeWidth={1.75} />
           </Button>
         </div>
-      </Card>
+        {toolbarControls}
+      </Card>}
 
       {/* Loading */}
       {propertiesLoading && (
         <Card className="gap-0 items-center px-[9px] py-6">
-          <Spinner className="size-7" />
+          <Skeleton className="h-40 w-full" />
         </Card>
       )}
 
@@ -212,17 +244,17 @@ const PricingOverviewView: React.FC<PricingOverviewViewProps> = ({
       {/* Overview table */}
       {!propertiesLoading && properties.length > 0 && (
         <Card className={cn('gap-0 py-0', TABLE_SCROLL_CLASS)}>
-          <Table>
+          <Table aria-label={t('baitlyPricing.portfolio', "Portefeuille")}>
             <TableHeader>
               <TableRow>
                 <TableHead className={cn(STICKY_COL_CLASS, 'top-0 z-20')}>
-                  <span className="text-2xs font-semibold uppercase tracking-wide text-faint">
+                  <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
                     {t('common.name')}
                   </span>
                 </TableHead>
                 {days.map((day) => (
                   <TableHead key={day} className="sticky top-0 z-10 bg-card text-center px-[3px] min-w-[40px]">
-                    <span className="text-2xs font-semibold text-faint tabular-nums">
+                    <span className="text-xs font-semibold text-muted-foreground tabular-nums">
                       {day}
                     </span>
                   </TableHead>
@@ -239,6 +271,10 @@ const PricingOverviewView: React.FC<PricingOverviewViewProps> = ({
                   days={days}
                   year={year}
                   month={month}
+                  aiEnabled={aiEnabled}
+                  hiddenProposals={hiddenProposals}
+                  selectedProposal={selectedProposal}
+                  onSelectProposal={onSelectProposal}
                 />
               ))}
             </TableBody>
@@ -253,7 +289,7 @@ const PricingOverviewView: React.FC<PricingOverviewViewProps> = ({
             {Object.entries(SOURCE_COLORS).map(([key, color]) => (
               <div className="flex items-center gap-0.5" key={key}>
                 <div className="w-[10px] h-[10px] rounded-full" style={{ backgroundColor: color }} />
-                <span className="text-2xs text-muted-foreground">
+                <span className="text-xs text-muted-foreground">
                   {t(`dynamicPricing.priceSource.${key}`)}
                 </span>
               </div>

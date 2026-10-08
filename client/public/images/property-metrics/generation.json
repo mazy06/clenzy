@@ -1,0 +1,32 @@
+{
+  "generator": "OpenAI built-in imagegen",
+  "created": "2026-10-08",
+  "format": "Transparent WebP, 256 × 256, quality 88",
+  "assets": [
+    {
+      "file": "bedrooms.webp",
+      "original": "exec-3d06e9a8-d32f-4083-942f-b3f3583511a0.png",
+      "prompt": "Use case: stylized-concept. Asset type: a small static 3D illustration for a property management app metric, matching Baitly's existing realistic miniature object illustrations. Square composition, one clearly readable subject centered occupying 78% of canvas. Materials ivory ceramic/textile, midnight navy, restrained warm brushed brass details. Soft studio light from upper left, realistic tactile rendering, clean silhouette readable at 44px, elevated three-quarter isometric view. Genuinely transparent background with alpha, no backdrop, no opaque tile, no text, letters, numbers, logo, frame, watermark, badges or interface. No extra decorations. Subject: one inviting double bed with an ivory padded headboard, two cream pillows, neat cream duvet and a midnight navy folded throw across its foot. Represents number of bedrooms."
+    },
+    {
+      "file": "bathrooms.webp",
+      "original": "exec-b7d06a1b-81de-4f16-81f8-f7197e2e56d6.png",
+      "prompt": "Use case: stylized-concept. Asset type: a small static 3D illustration for a property management app metric, matching Baitly's existing realistic miniature object illustrations. Square composition, one clearly readable subject centered occupying 78% of canvas. Materials ivory ceramic/textile, midnight navy, restrained warm brushed brass details. Soft studio light from upper left, realistic tactile rendering, clean silhouette readable at 44px, elevated three-quarter isometric view. Genuinely transparent background with alpha, no backdrop, no opaque tile, no text, letters, numbers, logo, frame, watermark, badges or interface. No extra decorations. Subject: one compact freestanding ivory bathtub with a midnight navy outer lower shell and a single brushed brass curved faucet at its end, a neatly folded ivory towel over the rim. Represents number of bathrooms."
+    },
+    {
+      "file": "surface.webp",
+      "original": "exec-3df13db3-69ce-4d63-9d6a-847508d16c10.png",
+      "prompt": "Use case: stylized-concept. Asset type: a small static 3D illustration for a property management app metric, matching Baitly's existing realistic miniature object illustrations. Square composition, one clearly readable subject centered occupying 78% of canvas. Materials ivory ceramic/textile, midnight navy, restrained warm brushed brass details. Soft studio light from upper left, realistic tactile rendering, clean silhouette readable at 44px, elevated three-quarter isometric view. Genuinely transparent background with alpha, no backdrop, no opaque tile, no text, letters, numbers, logo, frame, watermark, badges or interface. No extra decorations. Subject: a compact ivory architect's floor plan sheet, lying almost flat at a gentle isometric angle, with simple dark navy room outlines (no labels) and one brass measuring ruler along its lower edge. Represents floor area in square metres. Keep geometry simple and clearly legible at thumbnail size."
+    },
+    {
+      "file": "capacity.webp",
+      "original": "exec-97b534fa-96ca-4f3e-8d23-5ce1bc88439a.png",
+      "prompt": "Use case: stylized-concept. Asset type: a small static 3D illustration for a property management app metric, matching Baitly's existing realistic miniature object illustrations. Square composition, one clearly readable subject centered occupying 78% of canvas. Materials ivory ceramic/textile, midnight navy, restrained warm brushed brass details. Soft studio light from upper left, realistic tactile rendering, clean silhouette readable at 44px, elevated three-quarter isometric view. Genuinely transparent background with alpha, no backdrop, no opaque tile, no text, letters, numbers, logo, frame, watermark, badges or interface. No extra decorations. Subject: a small group of three simple elegant person figurines, two adults and one shorter figure, abstract round heads and smooth shoulders, one navy, one ivory and one muted sand, closely arranged as a single compact object. Represents guest capacity of a holiday home. No faces, no extra objects."
+    },
+    {
+      "file": "photos.webp",
+      "original": "exec-6cb6b906-c10a-4171-8134-1f7dfb73a7d3.png",
+      "prompt": "Use case: stylized-concept. Asset type: small static 3D illustration for Baitly property gallery UI. Subject: one compact midnight navy and ivory camera with a brushed brass lens ring, resting beside two small printed architectural interior photos, one showing an elegant living room. Single compact composition centered in square canvas occupying 80%, elevated three-quarter view. Realistic miniature tactile objects, soft studio lighting, coherent premium navy ivory brass palette. True transparent background alpha, no tile, no backdrop, no text, letters, brand logos, watermark, borders or interface. Strong silhouette readable at 48px."
+    }
+  ]
+}

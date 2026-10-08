@@ -1,7 +1,6 @@
 import React, { useState, useCallback, useEffect, useRef } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { Button, Tooltip, TooltipContent, TooltipTrigger } from './ui';
-import { cn } from '../utils/cn';
 import { Add as AddIcon, Close as CloseIcon, Fullscreen as FullscreenIcon } from '../icons';
 import { useAgent } from '../hooks/useAgent';
 import { useBriefingNotice } from '../hooks/useBriefingNotice';
@@ -53,6 +52,7 @@ const AssistantDockTab: React.FC = () => {
   const navigate = useNavigate();
   const { t } = useTranslation();
   const [open, setOpen] = useState(false);
+  const [draft, setDraft] = useState('');
   // Ancre du « clic exterieur » : remplace le ClickAwayListener de MUI.
   const dockRef = useRef<HTMLDivElement>(null);
   // Panneau docke au-dessus de l'encoche, ou plein ecran (+ historique).
@@ -196,99 +196,74 @@ const AssistantDockTab: React.FC = () => {
 
   return (
     <>
-      {/* Conteneur fixe bas-droite, monte UNIQUEMENT panneau ouvert : ferme,
-          l'assistant ne laisse plus rien a l'ecran (le point d'entree est le
-          logo de la barre laterale).
-          `pointer-events-none` : le conteneur ne doit pas bloquer les clics a
-          cote du panneau ; ses enfants les reprennent.
-          z-index = la valeur `modal` du theme MUI par defaut, que ce projet ne
-          surcharge pas (1300). Ecrit en litteral car une classe Tailwind ne peut
-          pas naitre d'une variable.
-
-          Demonte entierement en plein ecran : son z-index passait par dessus la
-          modale, et le panneau docke restait visible par dessus la conversation
-          agrandie. */}
+      {/* The dock follows the writing direction; fullscreen uses a separate dialog. */}
       {open && view === 'panel' && (
-      <div
-        ref={dockRef}
-        className="fixed bottom-0 right-0 z-[1300] flex flex-col items-end pointer-events-none [&>*]:pointer-events-auto"
-      >
-          {/* ── Panneau de discussion ─────────────────────────────────────
-              Mobile plein ecran ; desktop docke au bord droit sur toute la
-              hauteur, ou seul le coin haut-GAUCHE est arrondi. Ruptures ecrites
-              en pixels : le `sm` MUI vaut 600px, pas les 640px de Tailwind.
-              Largeur du panneau ecrite en dur (560px) : une classe Tailwind ne
-              peut pas naitre d'une constante JS. 560 et non 400 — en dessous,
-              l'en-tete se serrait, les amorces s'empilaient une par ligne et les
-              tableaux/graphiques rendus dans le fil n'avaient plus de place.
-              Le Grow de MUI (mountOnEnter/unmountOnExit) devient un montage
-              conditionnel + l'animation d'entree de tw-animate-css : meme fondu,
-              meme mise a l'echelle depuis le bas, meme duree. Seule la
-              transition de SORTIE disparait, le panneau se demontant aussitot. */}
-            <div
-              className={cn(
-                'w-screen max-w-[100vw] h-[100dvh] max-h-[100dvh] flex flex-col overflow-hidden bg-background',
-                'shadow-[0_20px_50px_-12px_color-mix(in_srgb,var(--bui-primary)_28%,transparent)]',
-                'min-[600px]:w-[560px] min-[600px]:rounded-tl-[22px]',
-                'min-[600px]:border min-[600px]:border-e-0 min-[600px]:border-b-0 min-[600px]:border-border',
-                'origin-bottom animate-in fade-in-0 zoom-in-75 duration-[220ms] motion-reduce:animate-none',
-              )}
-            >
-              <AssistantSurface
-                compact
-                messages={messages}
-                status={status}
-                error={error}
-                onSend={sendMessage}
-                onAbort={abort}
-                headerActions={
-                  <>
-                    {messages.length > 0 && (
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <span className="inline-flex">
-                            <Button variant="ghost" size="icon-sm" className="cursor-pointer" onClick={reset} aria-label={t('assistant.newConversation')}>
-                              <AddIcon size={16} />
-                            </Button>
-                          </span>
-                        </TooltipTrigger>
-                        <TooltipContent>{t('assistant.newConversation')}</TooltipContent>
-                      </Tooltip>
-                    )}
-                    <Tooltip>
-                      {/* Le trigger enveloppe un <span> (element hote) : Radix y pose
-                          sa ref d'ancrage, ce qu'un composant fonction React 18 ne
-                          peut pas recevoir. */}
-                      <TooltipTrigger asChild>
-                        <span className="inline-flex">
-                          <Button variant="ghost" size="icon-sm" className="cursor-pointer" onClick={handleExpand} aria-label={t('assistant.expand')}>
-                            <FullscreenIcon size={16} />
-                          </Button>
-                        </span>
-                      </TooltipTrigger>
-                      <TooltipContent>{t('assistant.expand')}</TooltipContent>
-                    </Tooltip>
+        <div
+          ref={dockRef}
+          className="baitly-assistant-dock"
+          role="region"
+          aria-label={t('assistant.dockLabel')}
+        >
+          <div className="baitly-assistant-shell">
+            <AssistantSurface
+              compact
+              draft={draft}
+              onDraftChange={setDraft}
+              messages={messages}
+              status={status}
+              error={error}
+              onSend={sendMessage}
+              onAbort={abort}
+              headerActions={
+                <>
+                  {messages.length > 0 && (
                     <Tooltip>
                       <TooltipTrigger asChild>
                         <span className="inline-flex">
-                          <Button variant="ghost" size="icon-sm" className="cursor-pointer" onClick={handleClose} aria-label={t('assistant.close')}>
-                            <CloseIcon size={16} />
+                          <Button variant="ghost" size="icon-sm" className="cursor-pointer" onClick={() => { reset(); setDraft(''); }} aria-label={t('assistant.newConversation')}>
+                            <AddIcon size={16} />
                           </Button>
                         </span>
                       </TooltipTrigger>
-                      <TooltipContent>{t('assistant.close')}</TooltipContent>
+                      <TooltipContent>{t('assistant.newConversation')}</TooltipContent>
                     </Tooltip>
-                  </>
-                }
-              />
-            </div>
-      </div>
+                  )}
+                  <Tooltip>
+                    {/* Le trigger enveloppe un <span> (element hote) : Radix y pose
+                        sa ref d'ancrage, ce qu'un composant fonction React 18 ne
+                        peut pas recevoir. */}
+                    <TooltipTrigger asChild>
+                      <span className="inline-flex">
+                        <Button variant="ghost" size="icon-sm" className="cursor-pointer" onClick={handleExpand} aria-label={t('assistant.expand')}>
+                          <FullscreenIcon size={16} />
+                        </Button>
+                      </span>
+                    </TooltipTrigger>
+                    <TooltipContent>{t('assistant.expand')}</TooltipContent>
+                  </Tooltip>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <span className="inline-flex">
+                        <Button variant="ghost" size="icon-sm" className="cursor-pointer" onClick={handleClose} aria-label={t('assistant.close')}>
+                          <CloseIcon size={16} />
+                        </Button>
+                      </span>
+                    </TooltipTrigger>
+                    <TooltipContent>{t('assistant.close')}</TooltipContent>
+                  </Tooltip>
+                </>
+              }
+            />
+          </div>
+        </div>
       )}
 
       {/* ── Vue plein ecran : meme surface + historique des conversations ── */}
       {open && view === 'expanded' && (
         <AssistantExpandedDialog
           open
+          draft={draft}
+          onDraftChange={setDraft}
           onMinimize={handleMinimize}
           onClose={handleClose}
           conversationId={conversationId}

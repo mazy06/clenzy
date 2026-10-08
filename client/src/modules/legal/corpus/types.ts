@@ -7,6 +7,7 @@
  * route : un document juridique ampute ne se voit pas a la lecture d'un ecran.</p>
  */
 export interface LegalBlock {
+  id?: string;
   heading: string;
   paragraphs?: string[];
   list?: string[];

@@ -1,6 +1,9 @@
 import { SiteMoneyText } from './SiteMoney';
 import {
   CalendarCheckIcon,
+  ChevronLeftIcon,
+  ChevronRightIcon,
+  SlidersHorizontalIcon,
   CheckIcon,
   CircleIcon,
   CreditCardIcon,
@@ -12,6 +15,9 @@ import { MOCKUP_MESSAGES } from '../lib/messages/mockups';
 import airbnbLogo from '../assets/brands/airbnb.svg';
 import bookingLogo from '../assets/brands/bookingdotcom.svg';
 import { SITE_PHOTOS } from '../data/baitlyPhotography';
+import guest1 from '../assets/guests/g1.jpg';
+import guest2 from '../assets/guests/g2.jpg';
+import guest3 from '../assets/guests/g3.jpg';
 
 const {
   homePlanningApartment: stayApartment,
@@ -32,9 +38,9 @@ const {
 
 /** Vignette du logement et avatar du voyageur, dans l'ordre du dictionnaire. */
 const ROW_MEDIA = [
-  { stay: stayApartment },
-  { stay: stayVilla },
-  { stay: stayHouse },
+  { stay: stayApartment, guest: guest1 },
+  { stay: stayVilla, guest: guest2 },
+  { stay: stayHouse, guest: guest3 },
 ];
 
 /**
@@ -67,18 +73,17 @@ const STAYS = [
 ] as const;
 
 export default function LandingPlanningMockup() {
-  const { language } = useSiteLanguage();
+  const { language, direction } = useSiteLanguage();
   const m = MOCKUP_MESSAGES[language].planning;
   return (
-    <div className="landing-planning" role="img" aria-label={m.label}>
+    <div className="landing-planning" dir={direction} role="img" aria-label={m.label}>
       <div className="landing-planning-topbar">
         <div className="landing-planning-heading">
-          <span className="landing-planning-kicker">
-            <CalendarCheckIcon /> {m.kicker}
-          </span>
+          <CalendarCheckIcon aria-hidden />
           <strong>{m.title}</strong>
         </div>
-        <span className="landing-planning-month">{m.month}</span>
+        <span className="landing-planning-month"><ChevronLeftIcon aria-hidden />{m.month}<ChevronRightIcon aria-hidden /></span>
+        <SlidersHorizontalIcon className="landing-planning-filter" size={16} aria-hidden />
       </div>
 
       <div className="landing-planning-board">
@@ -126,16 +131,14 @@ export default function LandingPlanningMockup() {
                     color: stay.foreground,
                   }}
                 >
-                  <span
+                  <img
                     className="landing-planning-stay-avatar"
-                    aria-hidden="true"
-                  >
-                    {row.guest
-                      .split(' ')
-                      .map((name) => name[0])
-                      .slice(0, 2)
-                      .join('')}
-                  </span>
+                    src={ROW_MEDIA[index].guest}
+                    alt=""
+                    width={26}
+                    height={26}
+                    loading="lazy"
+                  />
                   <span className="landing-planning-stay-copy">
                     <small>{m.nights(stay.nights)}</small>
                     <strong>{row.guest}</strong>

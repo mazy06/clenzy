@@ -4882,3 +4882,15 @@ databaseChangeLog:
             relativeToChangelogFile: true
             splitStatements: false
             stripComments: false
+
+  # --- 0543 : expediteur plateforme par defaut -> contact@baitly.fr (domaine ---
+  # authentifie dans Brevo). Conserve toute adresse deja personnalisee.
+  - changeSet:
+      id: "0543-platform-sender-email-baitly"
+      author: clenzy-team
+      changes:
+        - sqlFile:
+            path: changes/0543__platform_sender_email_baitly.sql
+            relativeToChangelogFile: true
+            splitStatements: true
+            stripComments: false

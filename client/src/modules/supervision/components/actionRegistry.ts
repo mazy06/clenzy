@@ -34,6 +34,7 @@ export type ModalFamily =
   | 'review'
   | 'confirm'
   | 'informative'
+  | 'beneficiary'
   /**
    * `inspection` : examiner des PIÈCES rendues, puis trancher dans un sens ou
    * dans l'autre. Deux issues, pas une — c'est ce qui la distingue de
@@ -116,6 +117,13 @@ const c = (key: string, fallback: string) => ({ key, fallback });
 // ─── Le registre ─────────────────────────────────────────────────────────────
 
 export const ACTION_REGISTRY: Record<string, ActionEntry> = {
+  PROVIDER_PAYOUT_BENEFICIARY: {
+    family: 'beneficiary',
+    titleKey: 'supervision.beneficiary.title',
+    titleFallback: 'Valider le bénéficiaire du versement',
+    ctaKey: 'supervision.beneficiary.cta',
+    ctaFallback: 'Désigner cette organisation',
+  },
   // ── Planification : quand, et par qui ─────────────────────────────────────
   LOCK_BATTERY_REPLACE: {
     family: 'schedule',

@@ -96,6 +96,16 @@ export function useViewportFill<T extends HTMLElement>({
     const settled = createSettledScheduler(measure);
     const observer = new ResizeObserver(settled.schedule);
     observer.observe(document.body);
+    // A header can wrap without changing a body's min-height: 100vh. Observe
+    // preceding layout blocks too, otherwise the workspace keeps a stale top
+    // offset and leaves a blank strip after the header becomes more compact.
+    for (let node: HTMLElement | null = element; node?.parentElement; node = node.parentElement) {
+      for (let sibling = node.previousElementSibling; sibling; sibling = sibling.previousElementSibling) {
+        const position = getComputedStyle(sibling).position;
+        if (position !== 'fixed' && position !== 'absolute') observer.observe(sibling);
+      }
+      if (node.parentElement === document.body) break;
+    }
     return () => {
       window.removeEventListener('resize', measure);
       window.visualViewport?.removeEventListener('resize', measure);

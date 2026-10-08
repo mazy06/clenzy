@@ -174,6 +174,8 @@ export interface DashboardActionItem {
    * front qui écrit la phrase, pour rester traduisible).
    */
   amount: number | null;
+  /** Devise du montant financier ; absente pour les actions non monétaires. */
+  currency?: string | null;
   /** Mention courte de fin de ligne (`4★`), quand ce n'est pas un montant. */
   badge: string | null;
   /**

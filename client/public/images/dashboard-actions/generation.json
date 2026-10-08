@@ -1,0 +1,13 @@
+{
+  "tool": "image_gen built-in",
+  "created": "2026-10-04",
+  "style": "Photographic inventory packshots, navy, ivory and brushed brass, matching the dashboard KPIs",
+  "background": "transparent alpha",
+  "size": { "width": 192, "height": 192 },
+  "assets": [
+    { "file": "intervention-overdue.webp", "subject": "Navy maintenance pouch with a large ivory and terracotta alarm clock" },
+    { "file": "service-payment.webp", "subject": "Matching maintenance pouch with an ivory invoice and brass coins" },
+    { "file": "intervention-assignment.webp", "subject": "Matching maintenance pouch with a blue-framed staff identification badge" },
+    { "file": "messages.webp", "subject": "Ivory envelopes and a pale blue letter in a navy correspondence tray" }
+  ]
+}

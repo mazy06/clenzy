@@ -114,18 +114,20 @@ function InputGroupText({ className, ...props }: React.ComponentProps<"span">) {
   )
 }
 
-function InputGroupInput({
+// Le sélecteur d'équipe doit pouvoir cibler le champ sous React 18.
+const InputGroupInput = React.forwardRef<HTMLInputElement, React.ComponentProps<"input">>(function InputGroupInput({
   className,
   ...props
-}: React.ComponentProps<"input">) {
+}, ref) {
   return (
     <Input
+      ref={ref}
       data-slot="input-group-control"
       className={cn("cn-input-group-input flex-1", className)}
       {...props}
     />
   )
-}
+})
 
 function InputGroupTextarea({
   className,

@@ -51,17 +51,37 @@ describe('Démonstrations des pages produit', () => {
 
   it('recalcule le séjour et réinitialise la simulation au changement de marché', () => {
     render(<FinanceDemo language="en" />);
-    expect(screen.getByLabelText('2,550 Moroccan dirham')).toBeVisible();
+    expect(within(screen.getByRole('region', { name: 'Payment details' })).getByLabelText('2,550 Moroccan dirham')).toBeVisible();
     fireEvent.click(screen.getByRole('button', { name: 'Simulate payment' }));
     expect(screen.getByText('Payment reconciled')).toBeVisible();
     fireEvent.click(
       screen.getByRole('button', { name: 'France', exact: true }),
     );
-    expect(screen.getByLabelText('285 Euro')).toBeVisible();
+    expect(within(screen.getByRole('region', { name: 'Payment details' })).getByLabelText('285 Euro')).toBeVisible();
     expect(
       screen.getByRole('button', { name: 'Simulate payment' }),
     ).toBeEnabled();
     expect(screen.queryByText('Payment reconciled')).not.toBeInTheDocument();
+  });
+
+  it('conserve le règlement par dossier et par marché et actualise les indicateurs', () => {
+    const { container } = render(<FinanceDemo language="en" />);
+    const list = screen.getByRole('group', { name: 'Demo bookings' });
+    const detail = screen.getByRole('region', { name: 'Payment details' });
+    expect(container.querySelector('.site-demo-kpis')).toHaveTextContent('5,100');
+    fireEvent.click(within(list).getByRole('button', { name: /BT-2410/ }));
+    expect(within(detail).getByText('Payment reconciled')).toBeVisible();
+    expect(within(detail).queryByRole('button', { name: 'Simulate payment' })).toBeNull();
+    fireEvent.click(within(list).getByRole('button', { name: /BT-2409/ }));
+    fireEvent.click(within(detail).getByRole('button', { name: 'Simulate payment' }));
+    expect(container.querySelector('.site-demo-kpis')).toHaveTextContent('7,650');
+    fireEvent.click(screen.getByRole('button', { name: 'France', exact: true }));
+    expect(within(detail).getByRole('button', { name: 'Simulate payment' })).toBeEnabled();
+    expect(within(detail).getByRole('img', { name: 'Stripe' })).toBeVisible();
+    fireEvent.click(screen.getByRole('button', { name: 'Morocco', exact: true }));
+    expect(within(detail).getByText('Payment reconciled')).toBeVisible();
+    expect(within(detail).getByText('Local provider to be selected')).toBeVisible();
+    expect(container.querySelector('img[alt="Payzone"]')).toBeNull();
   });
 
   it.each(['fr', 'en', 'ar'] as const)(
@@ -112,9 +132,9 @@ describe('Démonstrations des pages produit', () => {
       net: 13270,
     });
     render(<OwnersDemo language="en" />);
-    expect(screen.getByText(/13,840/)).toBeVisible();
+    expect(screen.getAllByText(/13,840/)).toHaveLength(2);
     fireEvent.click(screen.getByRole('button', { name: 'July' }));
-    expect(screen.getByText(/13,270/)).toBeVisible();
+    expect(screen.getAllByText(/13,270/)).toHaveLength(2);
     expect(screen.queryByText(/13,840/)).not.toBeInTheDocument();
   });
 

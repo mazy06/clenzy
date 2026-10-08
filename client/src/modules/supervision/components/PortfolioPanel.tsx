@@ -1,39 +1,27 @@
-/* ============================================================
-   <PortfolioPanel> — vue d'ensemble (portefeuille)
-
-   Le sujet de cet écran est le PARC, pas les agents. Il répond à une
-   question : « où dois-je agir ? ». La colonne de gauche est donc la liste
-   des logements, triée par ce qui presse ; la colonne de droite ouvre le
-   logement choisi.
-
-   La constellation a été retirée d'ici. En agrégat elle ne portait qu'un
-   compte de logements par agent, pour 1133 px de large et un bas qui passait
-   sous la ligne de flottaison ; les agents restent présents en rangée de
-   filtres, où ils servent enfin à quelque chose.
-   ============================================================ */
-
-import { useCallback, useMemo, useRef, useState } from 'react';
-import { cn } from '../../../utils/cn';
-
+import { useCallback, useEffect, useId, useMemo, useRef, useState } from 'react';
+import { ArrowLeft, ArrowRight, CheckCircle2, SlidersHorizontal, ChevronDown } from '../../../icons/glyphs';
 import { Badge, Skeleton, ToggleGroup, ToggleGroupItem } from '../../../components/ui';
-import StatTile from '../../../components/baitly/StatTile';
-import StatTileRow from '../../../components/baitly/StatTileRow';
-import EmptyState from '../../../components/baitly/EmptyState';
-import { Bolt, CheckCircle, HomeWork, Schedule } from '../../../icons';
+import EmptyState from '../../../components/EmptyState';
+import NavCountBadge from '../../../components/NavCountBadge';
+import { PropertyThumbnail } from '../../../components/baitly/PropertyThumbnail';
+import { useScreenSearch } from '../../../components/ScreenChrome';
+import { usePropertiesList } from '../../../hooks/usePropertiesList';
 import { useTranslation } from '../../../hooks/useTranslation';
 import { useSupervision } from '../core/useSupervision';
 import { useSupervisionReport } from '../core/useSupervisionReport';
 import { useResolutionToasts } from '../core/useResolutionToasts';
 import { PendingQueue } from './PendingQueue';
 import { ActivityFeed } from './ActivityFeed';
-import { SupervisionReportStrip } from './SupervisionReportStrip';
+import { SupervisionReportContent } from './SupervisionReportStrip';
 import { ResolutionToasts } from './ResolutionToasts';
-import { AgentDrawer, type AgentDetail } from './AgentDrawer';
 import { PriceAdjustmentModal } from './PriceAdjustmentModal';
 import { AGENT_META } from '../constants';
-import { AgentIcon } from '../renderers/agentIcon';
+import { AgentPortrait } from '../renderers/AgentPortrait';
 import type { SupervisionProvider } from '../provider/SupervisionProvider';
-import type { AgentId, PendingAction, PortfolioPendingAction, PortfolioSnapshot } from '../types';
+import type { AgentId, PendingAction, PortfolioPendingAction } from '../types';
+import '../supervision-surfaces.css';
+import '../../../components/baitly/widgetPanel.css';
+import './portfolio-panel.css';
 
 export interface PortfolioPanelProps {
   createProvider: () => SupervisionProvider;
@@ -41,136 +29,97 @@ export interface PortfolioPanelProps {
   onEditAction?: (actionId: string) => void;
 }
 
-/** Un logement du parc, tel que cet écran le regarde. */
 interface PropertyRow {
   id: string;
   name: string;
-  /** Ce qui attend une décision ici. */
+  city?: string;
+  photo?: string;
   actions: PortfolioPendingAction[];
-  /** Agents qui ont quelque chose en cours ou en attente sur ce logement. */
   agents: AgentId[];
-  /** Échéance la plus proche parmi les actions (ms), null si rien n'expire. */
   nextDeadline: number | null;
-  /** Ce qu'un agent y fait en ce moment, s'il se passe quelque chose. */
-  activity: string | null;
 }
 
-/** « dans 4 h », « dans 12 min », « expiré » — l'échéance en un coup d'œil. */
-function formatDeadline(
-  at: number | null,
-  now: number,
-  labels: { expired: string; in: string; min: string; hour: string; day: string },
-): string | null {
-  if (at == null) return null;
-  const minutes = Math.round((at - now) / 60000);
-  if (minutes <= 0) return labels.expired;
-  if (minutes < 60) return `${labels.in} ${minutes} ${labels.min}`;
-  const hours = Math.round(minutes / 60);
-  if (hours < 48) return `${labels.in} ${hours} ${labels.hour}`;
-  return `${labels.in} ${Math.round(hours / 24)} ${labels.day}`;
-}
+const searchText = (text: string) => text.normalize('NFD').replace(/\p{M}/gu, '').toLocaleLowerCase();
 
-/**
- * Attente : la FORME de l'écran, pas un logo qui tourne. Les tuiles, la rangée
- * de filtres et les deux colonnes sont déjà à leur place — rien ne saute quand
- * les données arrivent.
- */
 function PortfolioSkeleton() {
   const { t } = useTranslation();
-  return (
-    <div
-      role="status"
-      aria-live="polite"
-      aria-busy
-      aria-label={t('supervision.states.loading')}
-      className="flex h-full min-h-0 flex-col gap-3"
-    >
-      <div className="grid shrink-0 grid-cols-2 gap-3 min-[900px]:grid-cols-4">
-        {[0, 1, 2, 3].map((i) => (
-          <Skeleton key={i} className="h-[76px] rounded-xl" />
-        ))}
-      </div>
-      <div className="flex shrink-0 gap-1.5 overflow-hidden">
-        {[96, 128, 104, 112, 88, 120].map((w, i) => (
-          <Skeleton key={i} className="h-7 shrink-0 rounded-full" style={{ width: w }} />
-        ))}
-      </div>
-      <div className="grid min-h-0 flex-1 grid-cols-1 gap-3 min-[900px]:grid-cols-[minmax(260px,320px)_minmax(0,1fr)]">
-        <div className="flex min-h-0 flex-col gap-2 rounded-xl border border-solid border-border bg-card p-3">
-          {[0, 1, 2, 3, 4].map((i) => (
-            <Skeleton key={i} className="h-14 rounded-lg" />
-          ))}
-        </div>
-        <div className="flex min-h-0 flex-col gap-3 rounded-xl border border-solid border-border bg-card p-3">
-          {[0, 1].map((i) => (
-            <Skeleton key={i} className="h-32 rounded-lg" />
-          ))}
-        </div>
-      </div>
+  return <div role="status" aria-busy aria-label={t('supervision.states.loading')} className="baitly-portfolio__skeleton">
+    <Skeleton className="h-20 rounded-xl" />
+    <Skeleton className="h-12 rounded-xl" />
+    <div className="grid grid-cols-1 gap-4 min-[900px]:grid-cols-[320px_1fr]">
+      <div className="flex flex-col gap-3">{[0, 1, 2, 3].map(i => <Skeleton key={i} className="h-24 rounded-xl" />)}</div>
+      <Skeleton className="h-80 rounded-xl" />
     </div>
-  );
+  </div>;
 }
 
+/** A property-first workspace. Small screens drill into one property while
+ * selection, filtering and the shared action handlers remain identical. */
 export function PortfolioPanel({ createProvider, deps, onEditAction }: PortfolioPanelProps) {
-  const { t } = useTranslation();
+  const { t, currentLanguage } = useTranslation();
   const { toasts, markInFlight, onResolved } = useResolutionToasts();
-  const { status, snapshot, actions } = useSupervision(createProvider, deps, { onResolved });
-  const { report } = useSupervisionReport();
-  const rootRef = useRef<HTMLDivElement | null>(null);
-
-  const [selected, setSelected] = useState<AgentId | null>(null);
-  /** Filtre par agent — null = tout le parc. */
+  const { status, snapshot, actions, retry } = useSupervision(createProvider, deps, { onResolved });
+  const { report, loading: reportLoading } = useSupervisionReport();
+  // Reuse the collection cache, never one metadata request per property.
+  const { properties } = usePropertiesList();
+  const number = useMemo(() => new Intl.NumberFormat(currentLanguage, {
+    numberingSystem: currentLanguage.startsWith('ar') ? 'arab' : 'latn',
+  }), [currentLanguage]);
   const [agentFilter, setAgentFilter] = useState<AgentId | null>(null);
-  /** Logement ouvert à droite. */
   const [openProperty, setOpenProperty] = useState<string | null>(null);
   const [rightView, setRightView] = useState<'queue' | 'activity' | 'report'>('queue');
-
-  const handleValidate = useCallback(
-    (id: string) => {
-      markInFlight(id);
-      void actions.validatePending(id);
-    },
-    [actions, markInFlight],
-  );
-  const handleEdit = useCallback(
-    (id: string) => {
-      markInFlight(id);
-      void actions.editPending(id);
-      onEditAction?.(id);
-    },
-    [actions, markInFlight, onEditAction],
-  );
+  const [search, setSearch] = useState('');
+  const [detailVisible, setDetailVisible] = useState(false);
+  const [filtersExpanded, setFiltersExpanded] = useState(false);
   const [priceAction, setPriceAction] = useState<PortfolioPendingAction | null>(null);
-  const handleAdjustPrice = useCallback(
-    (a: PendingAction | PortfolioPendingAction) => setPriceAction(a as PortfolioPendingAction),
-    [],
-  );
+  const filtersId = useId();
+  const headingId = useId();
+  const detailHeadingRef = useRef<HTMLHeadingElement>(null);
+  const filterToggleRef = useRef<HTMLButtonElement>(null);
+  const propertyListRef = useRef<HTMLDivElement>(null);
+  const returnFocus = useRef(false);
+  useScreenSearch(search, setSearch, t('supervision.portfolio.searchPlaceholder'));
 
-  const detail: AgentDetail | null = useMemo(() => {
-    if (!selected || !snapshot || snapshot.scope !== 'portfolio') return null;
-    const rollup = snapshot.agents.find((a) => a.id === selected);
-    return rollup ? { id: rollup.id, status: rollup.status, task: rollup.task, items: rollup.items } : null;
-  }, [selected, snapshot]);
+  useEffect(() => {
+    if (!window.matchMedia('(max-width: 899px)').matches) return;
+    if (detailVisible) detailHeadingRef.current?.focus({ preventScroll: true });
+    else if (returnFocus.current) {
+      propertyListRef.current?.querySelector<HTMLButtonElement>('[aria-current="true"]')?.focus({ preventScroll: true });
+      returnFocus.current = false;
+    }
+  }, [detailVisible]);
 
-  const portfolio = snapshot && snapshot.scope === 'portfolio' ? snapshot : null;
+  const handleValidate = useCallback((id: string) => {
+    markInFlight(id);
+    void actions.validatePending(id);
+  }, [actions, markInFlight]);
+  const handleEdit = useCallback((id: string) => {
+    markInFlight(id);
+    void actions.editPending(id);
+    onEditAction?.(id);
+  }, [actions, markInFlight, onEditAction]);
+  const handleAdjustPrice = useCallback((action: PendingAction | PortfolioPendingAction) => {
+    setPriceAction(action as PortfolioPendingAction);
+  }, []);
 
-  /**
-   * Le parc, reconstruit logement par logement à partir des deux sources qui
-   * le mentionnent : la file d'actions et la ventilation de chaque agent.
-   * Trié par ce qui presse — nb de décisions, puis échéance la plus proche.
-   */
+  const portfolio = snapshot?.scope === 'portfolio' ? snapshot : null;
   const rows = useMemo<PropertyRow[]>(() => {
     if (!portfolio) return [];
     const byId = new Map<string, PropertyRow>();
     const touch = (id: string, name: string) => {
       let row = byId.get(id);
       if (!row) {
-        row = { id, name, actions: [], agents: [], nextDeadline: null, activity: null };
+        row = { id, name, actions: [], agents: [], nextDeadline: null };
         byId.set(id, row);
       }
       return row;
     };
-
+    // Include quiet properties too; absence of actions must not hide a home.
+    for (const property of properties) {
+      const row = touch(String(property.id), property.name);
+      row.city = property.city;
+      row.photo = property.imageUrl || property.photoUrls?.[0];
+    }
     for (const action of portfolio.pending) {
       const row = touch(action.propertyId, action.propertyName);
       row.actions.push(action);
@@ -180,333 +129,147 @@ export function PortfolioPanel({ createProvider, deps, onEditAction }: Portfolio
       for (const item of agent.items) {
         const row = touch(item.propertyId, item.propertyName);
         if (!row.agents.includes(agent.id)) row.agents.push(agent.id);
-        if (!row.activity && item.status !== 'veille') row.activity = item.task;
       }
     }
     for (const row of byId.values()) {
-      const times = row.actions
-        .map((a) => new Date(a.expiresAt).getTime())
-        .filter((n) => Number.isFinite(n));
-      row.nextDeadline = times.length > 0 ? Math.min(...times) : null;
+      const times = row.actions.map(a => new Date(a.expiresAt).getTime()).filter(Number.isFinite);
+      row.nextDeadline = times.length ? Math.min(...times) : null;
     }
+    return [...byId.values()].sort((a, b) => b.actions.length - a.actions.length
+      || (a.nextDeadline ?? Infinity) - (b.nextDeadline ?? Infinity)
+      || a.name.localeCompare(b.name));
+  }, [portfolio, properties]);
 
-    return [...byId.values()].sort(
-      (a, b) =>
-        b.actions.length - a.actions.length
-        || (a.nextDeadline ?? Number.POSITIVE_INFINITY) - (b.nextDeadline ?? Number.POSITIVE_INFINITY)
-        || a.name.localeCompare(b.name),
-    );
-  }, [portfolio]);
-
-  /** Nombre d'actions par agent — alimente les compteurs de la rangée de filtres. */
   const countByAgent = useMemo(() => {
     const counts = new Map<AgentId, number>();
-    for (const action of portfolio?.pending ?? []) {
-      counts.set(action.agentId, (counts.get(action.agentId) ?? 0) + 1);
-    }
+    for (const action of portfolio?.pending ?? []) counts.set(action.agentId, (counts.get(action.agentId) ?? 0) + 1);
     return counts;
   }, [portfolio]);
-
-  const visibleRows = useMemo(
-    () => (agentFilter ? rows.filter((r) => r.agents.includes(agentFilter)) : rows),
-    [rows, agentFilter],
-  );
-
-  // Sélection DÉRIVÉE, pas un effet : quand le filtre change, le logement ouvert
-  // peut sortir de la liste — on retombe alors sur le premier, sans re-rendu en
-  // deux temps ni état à resynchroniser.
-  const activeRow =
-    visibleRows.find((r) => r.id === openProperty) ?? visibleRows[0] ?? null;
-
+  const visibleRows = useMemo(() => {
+    const query = searchText(search.trim());
+    return rows.filter(row => (!agentFilter || row.agents.includes(agentFilter))
+      && (!query || searchText(row.name + ' ' + (row.city ?? '')).includes(query)));
+  }, [rows, agentFilter, search]);
+  const activeRow = visibleRows.find(row => row.id === openProperty) ?? visibleRows[0] ?? null;
   const activeActions = useMemo(() => {
-    if (!activeRow) return [];
-    return agentFilter ? activeRow.actions.filter((a) => a.agentId === agentFilter) : activeRow.actions;
+    const list = activeRow?.actions ?? [];
+    return agentFilter ? list.filter(action => action.agentId === agentFilter) : list;
   }, [activeRow, agentFilter]);
+  const activeFeed = useMemo(() => portfolio && activeRow
+    ? portfolio.feed.filter(entry => entry.propertyName === activeRow.name && (!agentFilter || entry.agentId === agentFilter)) : [], [portfolio, activeRow, agentFilter]);
 
-  const activeFeed = useMemo(
-    () => (portfolio && activeRow ? portfolio.feed.filter((e) => e.propertyName === activeRow.name) : []),
-    [portfolio, activeRow],
-  );
+  if (status === 'loading') return <PortfolioSkeleton />;
+  if (!portfolio) return <div className="baitly-supervision-surface baitly-portfolio__unavailable" role="status">
+    <h2>{t('supervision.portfolio.unavailable')}</h2>
+    <p>{t('supervision.portfolio.unavailableHelp')}</p>
+    <button type="button" className="baitly-hitl-primary" onClick={retry}>{t('common.retry', 'Réessayer')}</button>
+  </div>;
 
-  if (status === 'loading' || !portfolio) {
-    return <PortfolioSkeleton />;
-  }
-
-  const now = Date.now();
   const pendingTotal = portfolio.pending.length;
-  const deadlineLabels = {
-    expired: t('supervision.hitl.expired', 'expiré'),
-    in: t('supervision.portfolio.in', 'dans'),
-    min: t('supervision.hitl.unitMin', 'min'),
-    hour: t('supervision.hitl.unitHour', 'h'),
-    day: t('supervision.portfolio.dayUnit', 'j'),
+  const propertyTotal = Math.max(portfolio.propertyCount, rows.length);
+  const timeSaved = report ? '≈ ' + number.format(Math.floor(report.estimatedTimeSavedMinutes / 60))
+    + ' ' + t('supervision.hitl.unitHour') + ' ' + number.format(report.estimatedTimeSavedMinutes % 60) : '–';
+  const summary = [
+    { image: '/images/portfolio-metrics/pending-review.webp', label: t('supervision.portfolio.pendingLabel'), value: number.format(pendingTotal), note: t('supervision.portfolio.awaitingDecision') },
+    { image: '/images/portfolio-metrics/time-saved.webp', label: t('supervision.report.timeSaved'), value: timeSaved, note: t('supervision.portfolio.reportWindow', { displayCount: number.format(report?.windowDays ?? 30) }) },
+    { image: '/images/portfolio-metrics/automated-actions.webp', label: t('supervision.report.autoActions'), value: report ? number.format(report.autoActions) : '–', note: t('supervision.portfolio.reportWindow', { displayCount: number.format(report?.windowDays ?? 30) }) },
+  ];
+  const chooseAgent = (id: AgentId | null) => {
+    setAgentFilter(id);
+    setDetailVisible(false);
+    setFiltersExpanded(false);
+    if (id && window.matchMedia('(max-width: 899px)').matches) {
+      requestAnimationFrame(() => filterToggleRef.current?.focus({ preventScroll: true }));
+    }
   };
 
-  return (
-    <div className="flex h-full min-h-0 flex-col gap-3" ref={rootRef}>
-      {/* ── Ce que les agents ont fait gagner, en quatre nombres ────────────── */}
-      <StatTileRow compact className="shrink-0">
-        <StatTile
-          icon={<HomeWork />}
-          label={t('supervision.portfolio.properties', 'Logements pilotés')}
-          value={portfolio.propertyCount}
-        />
-        {/* La file d'attente de l'humain. Logements pilotés, temps gagné et
-            actions auto sont des résultats ; celui-là est un travail. */}
-        <StatTile
-          feature
-          icon={<CheckCircle />}
-          label={t('supervision.portfolio.pendingLabel', 'À valider')}
-          value={pendingTotal}
-          iconClassName={pendingTotal > 0 ? 'text-warning-ink' : 'text-success-ink'}
-        />
-        <StatTile
-          icon={<Schedule />}
-          label={t('supervision.report.timeSaved', 'Temps gagné')}
-          value={report?.estimatedTimeSaved ?? '—'}
-        />
-        <StatTile
-          icon={<Bolt />}
-          label={t('supervision.report.autoActions', 'Actions auto')}
-          value={report?.autoActions ?? '—'}
-        />
-      </StatTileRow>
-
-      {/* ── Alertes de niveau parc : elles ne visent aucun logement, elles
-             restent donc en bandeau, au-dessus de la liste. ───────────────── */}
-      {(portfolio.orgAlerts?.length ?? 0) > 0 && (
-        <div className="flex shrink-0 flex-col gap-1.5 rounded-xl border border-solid border-border bg-card px-3 py-2.5">
-          {portfolio.orgAlerts!.map((alert, i) => (
-            <div className="flex items-start gap-1.5" key={`${alert.title}-${i}`}>
-              <span
-                aria-hidden
-                className={cn(
-                  'mt-1 size-2 shrink-0 rounded-full',
-                  alert.severity === 'critical'
-                    ? 'bg-destructive'
-                    : alert.severity === 'warning'
-                      ? 'bg-warning'
-                      : 'bg-info',
-                )}
-              />
-              <div className="min-w-0">
-                <p className="m-0 text-xs leading-snug font-medium text-foreground">{alert.title}</p>
-                <p className="m-0 text-2xs leading-snug text-muted-foreground">{alert.description}</p>
-              </div>
-            </div>
-          ))}
-        </div>
-      )}
-
-      {/* ── Les agents en rangée de filtres. Ils ne dessinent plus un anneau :
-             ils découpent le parc. ─────────────────────────────────────────── */}
-      {/* Onze pastilles : en étroit elles occupaient CINQ lignes, 280 px sur un
-          écran de 812. Une seule rangée qui défile, comme la rangée de tuiles. */}
-      <div
-        className="flex shrink-0 snap-x items-center gap-1.5 overflow-x-auto pb-1 [&>button]:shrink-0 [&>button]:snap-start min-[900px]:flex-wrap min-[900px]:overflow-visible min-[900px]:pb-0"
-        role="group"
-        aria-label={t('supervision.hud.agents', 'agents')}
-      >
-        <button
-          type="button"
-          aria-pressed={agentFilter === null}
-          onClick={() => setAgentFilter(null)}
-          className={cn(
-            'inline-flex h-7 cursor-pointer items-center gap-1 rounded-full border px-2.5 text-xs font-medium transition-colors',
-            agentFilter === null
-              ? 'border-primary/35 bg-primary-soft text-primary'
-              : 'border-border bg-card text-muted-foreground hover:bg-muted hover:text-foreground',
-          )}
-        >
-          {t('supervision.portfolio.allAgents', 'Tous les agents')}
-          <span className="tabular-nums opacity-70">{pendingTotal}</span>
-        </button>
-        {portfolio.agents.map((agent) => {
-          const count = countByAgent.get(agent.id) ?? 0;
-          const on = agentFilter === agent.id;
-          return (
-            <button
-              key={agent.id}
-              type="button"
-              aria-pressed={on}
-              onClick={() => setAgentFilter(on ? null : agent.id)}
-              className={cn(
-                'inline-flex h-7 cursor-pointer items-center gap-1.5 rounded-full border px-2.5 text-xs font-medium transition-colors',
-                on
-                  ? 'border-primary/35 bg-primary-soft text-primary'
-                  : 'border-border bg-card text-muted-foreground hover:bg-muted hover:text-foreground',
-                agent.status === 'veille' && !on && 'opacity-70',
-              )}
-            >
-              <span style={{ color: AGENT_META[agent.id].color }} className="flex shrink-0">
-                <AgentIcon token={AGENT_META[agent.id].icon} size={13} />
-              </span>
-              {t(AGENT_META[agent.id].nameKey)}
-              {count > 0 && (
-                <span className="inline-flex h-4 min-w-4 items-center justify-center rounded-full bg-warning-soft px-1 text-2xs font-bold text-warning-ink tabular-nums">
-                  {count}
-                </span>
-              )}
-            </button>
-          );
-        })}
+  return <div className="baitly-supervision-surface baitly-portfolio" data-detail={detailVisible || undefined}>
+    <header className="baitly-portfolio__overview">
+      <div className="baitly-portfolio__identity">
+        <h2>{t('supervision.portfolio.overviewTitle')}</h2>
+        <p><strong>{number.format(propertyTotal)}</strong> {t('supervision.portfolio.propertiesShort')}
+          <span className="baitly-portfolio__connection" data-offline={status === 'offline' || undefined}>
+            <i aria-hidden="true" />{status === 'offline' ? t('supervision.states.offline') : t('supervision.toolbar.online')}
+          </span>
+        </p>
       </div>
+      <dl className="baitly-portfolio__metrics">{summary.map(item => <div key={item.label}>
+        <img src={item.image} width={40} height={40} alt="" decoding="async" />
+        <div><dt>{item.label}</dt><dd>{item.value}</dd><small>{item.note}</small></div>
+      </div>)}</dl>
+    </header>
 
-      {/* ── Le parc à gauche, le logement ouvert à droite. Chaque colonne défile
-             pour elle-même : l'écran entier tient dans sa hauteur. ─────────── */}
-      <div className="grid min-h-0 flex-1 grid-cols-1 gap-3 min-[900px]:grid-cols-[minmax(260px,320px)_minmax(0,1fr)]">
-        <aside className="flex min-h-0 flex-col overflow-hidden rounded-xl border border-solid border-border bg-card">
-          {/* « 5 sur 8 » et non « 5 » : la liste ne montre que les logements où
-              il se passe quelque chose, la tuile compte tout le parc. Sans le
-              total, l'écart entre les deux passerait pour une incohérence. */}
-          <p className="m-0 shrink-0 border-b border-solid border-border px-3 py-2 text-2xs font-semibold tracking-wide text-muted-foreground uppercase">
-            {visibleRows.length < portfolio.propertyCount
-              ? `${visibleRows.length} ${t('supervision.portfolio.outOf', 'sur')} ${portfolio.propertyCount} `
-              : `${visibleRows.length} `}
-            {t('supervision.portfolio.propertiesShort', 'logements')}
-          </p>
-          <div className="min-h-0 flex-1 overflow-y-auto" data-vertical-scroll>
-            {visibleRows.length === 0 ? (
-              <EmptyState
-                variant="transparent"
-                icon={<CheckCircle className="text-success" />}
-                title={t('supervision.portfolio.emptyList', 'Aucun logement concerné')}
-              />
-            ) : (
-              visibleRows.map((row) => {
-                const on = activeRow?.id === row.id;
-                const deadline = formatDeadline(row.nextDeadline, now, deadlineLabels);
-                return (
-                  <button
-                    key={row.id}
-                    type="button"
-                    aria-current={on}
-                    onClick={() => setOpenProperty(row.id)}
-                    className={cn(
-                      'flex w-full cursor-pointer items-start gap-2 border-b border-solid border-border px-3 py-2.5 text-start transition-colors last:border-b-0',
-                      on ? 'bg-primary-soft' : 'hover:bg-muted',
-                    )}
-                  >
-                    <div className="min-w-0 flex-1">
-                      <p dir="auto" className={cn('m-0 truncate text-xs font-semibold', on ? 'text-primary' : 'text-foreground')}>
-                        {row.name}
-                      </p>
-                      <p className="m-0 truncate text-2xs text-muted-foreground">
-                        {row.activity ?? t('supervision.states.idle', 'En veille')}
-                        {deadline && ` · ${deadline}`}
-                      </p>
-                      {/* Les agents concernés, en pastilles de marque : on voit
-                          d'un coup d'œil QUI travaille sur ce logement. */}
-                      {row.agents.length > 0 && (
-                        <span className="mt-1 flex flex-wrap items-center gap-1">
-                          {row.agents.slice(0, 5).map((id) => (
-                            <span
-                              key={id}
-                              title={t(AGENT_META[id].nameKey)}
-                              className="flex size-4 items-center justify-center rounded-full"
-                              style={{ background: `${AGENT_META[id].color}1F`, color: AGENT_META[id].color }}
-                            >
-                              <AgentIcon token={AGENT_META[id].icon} size={10} />
-                            </span>
-                          ))}
-                          {row.agents.length > 5 && (
-                            <span className="text-2xs text-muted-foreground tabular-nums">
-                              +{row.agents.length - 5}
-                            </span>
-                          )}
-                        </span>
-                      )}
-                    </div>
-                    {row.actions.length > 0 && (
-                      <Badge variant="warning" className="shrink-0 tabular-nums">
-                        {row.actions.length}
-                      </Badge>
-                    )}
-                  </button>
-                );
-              })
-            )}
-          </div>
-        </aside>
-
-        <section className="flex min-h-0 flex-col overflow-hidden rounded-xl border border-solid border-border bg-card">
-          <div className="flex shrink-0 flex-wrap items-center gap-2 border-b border-solid border-border px-3 py-2">
-            <p className="m-0 min-w-0 flex-1 truncate text-sm font-semibold text-foreground">
-              {activeRow?.name ?? t('supervision.portfolio.noProperty', 'Aucun logement')}
-            </p>
-            <ToggleGroup
-              type="single"
-              size="sm"
-              value={rightView}
-              onValueChange={(v) => v && setRightView(v as typeof rightView)}
-              className="shrink-0"
-            >
-              {/* Libellés COURTS : `supervision.queue.title` vaut « Attend ta
-                  validation », trop long pour un onglet. */}
-              <ToggleGroupItem value="queue" className="text-xs">
-                {t('supervision.board.queueTitle', 'À valider')}
-              </ToggleGroupItem>
-              <ToggleGroupItem value="activity" className="text-xs">
-                {t('supervision.board.activity', 'Activité')}
-              </ToggleGroupItem>
-              <ToggleGroupItem value="report" className="text-xs">
-                {t('supervision.report.titleBase', 'Bilan')}
-              </ToggleGroupItem>
-            </ToggleGroup>
-          </div>
-
-          <div className="min-h-0 flex-1 overflow-y-auto p-3" data-vertical-scroll data-tethers-viewport>
-            {rightView === 'queue' && (
-              <PendingQueue
-                actions={activeActions}
-                onValidate={handleValidate}
-                onEdit={handleEdit}
-                onAdjustPrice={handleAdjustPrice}
-                variant="panel"
-              />
-            )}
-            {rightView === 'activity' && (
-              activeFeed.length > 0 ? (
-                <ActivityFeed entries={activeFeed} pending={activeActions} />
-              ) : (
-                <EmptyState
-                  variant="transparent"
-                  icon={<CheckCircle className="text-muted-foreground" />}
-                  title={t('supervision.feed.emptyProperty', 'Rien à signaler sur ce logement')}
-                />
-              )
-            )}
-            {/* Le bilan reste de niveau PARC — le titre le dit, la colonne est
-                partagée. C'est la seule surface de cet écran qui ne parle pas
-                du logement ouvert. */}
-            {rightView === 'report' && <SupervisionReportStrip />}
-          </div>
-        </section>
+    <div className="baitly-portfolio__filters" data-expanded={filtersExpanded || undefined}>
+      <button type="button" className="baitly-portfolio__filter baitly-portfolio__all-agents" aria-pressed={agentFilter === null} onClick={() => chooseAgent(null)}>
+        {t('supervision.portfolio.allAgents')}<NavCountBadge count={pendingTotal} tone="warning" formatCount={number.format} />
+      </button>
+      <button ref={filterToggleRef} type="button" className="baitly-portfolio__filter-toggle" aria-expanded={filtersExpanded} aria-controls={filtersId} onClick={() => setFiltersExpanded(value => !value)}>
+        {agentFilter ? <span className="baitly-portfolio__filter-portrait"><AgentPortrait agentId={agentFilter} /></span> : <SlidersHorizontal size={16} />}
+        {agentFilter ? t(AGENT_META[agentFilter].nameKey) : t('supervision.portfolio.filterAgents')}<ChevronDown size={15} />
+      </button>
+      <div id={filtersId} className="baitly-portfolio__agent-filters" role="group" aria-label={t('supervision.portfolio.filterAgents')}>
+        {portfolio.agents.map(agent => <button key={agent.id} type="button" className="baitly-portfolio__filter" aria-pressed={agentFilter === agent.id} onClick={() => chooseAgent(agentFilter === agent.id ? null : agent.id)}>
+          <span className="baitly-portfolio__filter-portrait"><AgentPortrait agentId={agent.id} /></span>
+          <span>{t(AGENT_META[agent.id].nameKey)}</span><NavCountBadge count={countByAgent.get(agent.id)} tone="warning" formatCount={number.format} />
+        </button>)}
       </div>
-
-      {toasts.length > 0 && (
-        <div
-          className="absolute top-[16px] start-[50%] z-[8] flex flex-col items-center gap-1.5"
-          style={{ transform: 'translateX(-50%)' }}
-        >
-          <ResolutionToasts toasts={toasts} />
-        </div>
-      )}
-
-      <AgentDrawer open={Boolean(selected)} detail={detail} onClose={() => setSelected(null)} />
-
-      {priceAction && (
-        <PriceAdjustmentModal
-          suggestionId={priceAction.id}
-          propertyId={Number(priceAction.propertyId ?? 0)}
-          actionParams={priceAction.actionParams}
-          onClose={() => setPriceAction(null)}
-          onApplied={() => {
-            markInFlight(priceAction.id);
-            setPriceAction(null);
-          }}
-        />
-      )}
     </div>
-  );
+
+    <div className="baitly-portfolio__workspace">
+      <aside className="baitly-portfolio__properties" aria-label={t('supervision.portfolio.propertyList')}>
+        <header><h3>{t('supervision.portfolio.propertyList')}</h3><span className="baitly-portfolio__list-count">{number.format(visibleRows.length)} / {number.format(propertyTotal)}</span>
+          <p>{t('supervision.portfolio.sortedBy')}</p>
+        </header>
+        {search && <div className="baitly-portfolio__search-result"><span>{search}</span><button type="button" onClick={() => setSearch('')}>{t('supervision.portfolio.clearSearch')}</button></div>}
+        <div ref={propertyListRef} className="baitly-portfolio__property-list" data-vertical-scroll>
+          {visibleRows.length === 0 ? <div className="baitly-portfolio__empty"><CheckCircle2 size={24} /><p>{t('supervision.portfolio.emptyList')}</p></div> : visibleRows.map(row => {
+            const rowCount = agentFilter ? row.actions.filter(action => action.agentId === agentFilter).length : row.actions.length;
+            return <button key={row.id} type="button" aria-current={activeRow?.id === row.id} data-property-id={row.id} className="baitly-portfolio__property"
+              onClick={() => { setOpenProperty(row.id); setDetailVisible(true); }}>
+              <PropertyThumbnail name={row.name} src={row.photo} />
+              <span className="baitly-portfolio__property-info">
+                <strong dir="auto">{row.name}</strong>
+                {row.city && <span dir="auto" className="baitly-portfolio__city">{row.city}</span>}
+                <span className="baitly-portfolio__property-status" data-clear={rowCount === 0 || undefined}>
+                  {rowCount > 0 ? <><b>{number.format(rowCount)}</b> {t('supervision.board.toValidate')}</> : <><CheckCircle2 size={12} />{t('supervision.portfolio.noDecision')}</>}
+                  <ArrowRight className="baitly-portfolio__forward" size={14} aria-hidden="true" />
+                </span>
+              </span>
+            </button>;
+          })}
+        </div>
+      </aside>
+
+      <section className="baitly-portfolio__detail" aria-labelledby={headingId}>
+        <button type="button" className="baitly-portfolio__back" onClick={() => { returnFocus.current = true; setDetailVisible(false); }}><ArrowLeft size={17} />{t('supervision.portfolio.backToProperties')}</button>
+        <header className="baitly-portfolio__detail-heading">
+          {activeRow && rightView !== 'report' && <PropertyThumbnail name={activeRow.name} src={activeRow.photo} />}
+          <div><h3 ref={detailHeadingRef} tabIndex={-1} id={headingId} dir="auto">{rightView === 'report' ? t('supervision.portfolio.portfolioReport') : activeRow?.name ?? t('supervision.portfolio.noProperty')}</h3>
+            <p>{rightView === 'report' ? t('supervision.portfolio.reportScope') : <>{activeRow?.city && <><bdi>{activeRow.city}</bdi><span aria-hidden="true"> · </span></>}{t('supervision.portfolio.agentCount', { count: activeRow?.agents.length ?? 0, displayCount: number.format(activeRow?.agents.length ?? 0) })}</>}</p>
+          </div>
+          {activeRow && rightView !== 'report' && <div className="baitly-portfolio__assigned" aria-hidden="true">
+            {activeRow.agents.slice(0, 3).map(id => <span key={id}><AgentPortrait agentId={id} /></span>)}
+            {activeRow.agents.length > 3 && <small>+{number.format(activeRow.agents.length - 3)}</small>}
+          </div>}
+        </header>
+        <div className="baitly-portfolio__tabs">
+          <ToggleGroup type="single" value={rightView} onValueChange={value => value && setRightView(value as typeof rightView)} aria-label={t('supervision.portfolio.detailViews')}>
+            <ToggleGroupItem value="queue">{t('supervision.board.queueTitle')}<NavCountBadge count={activeActions.length} tone="warning" formatCount={number.format} /></ToggleGroupItem>
+            <ToggleGroupItem value="activity">{t('supervision.board.activity')}</ToggleGroupItem>
+            <ToggleGroupItem value="report">{t('supervision.report.titleBase')}</ToggleGroupItem>
+          </ToggleGroup>
+          {agentFilter && rightView !== 'report' && <Badge variant="info" className="baitly-portfolio__active-filter">{t(AGENT_META[agentFilter].nameKey)}</Badge>}
+        </div>
+        <div key={(activeRow?.id ?? 'empty') + ':' + rightView + ':' + (agentFilter ?? 'all')} className="baitly-portfolio__detail-scroll" data-vertical-scroll data-tethers-viewport>
+          {rightView === 'queue' && <PendingQueue actions={activeActions} onValidate={handleValidate} onEdit={handleEdit} onAdjustPrice={handleAdjustPrice} variant="panel" presentation="portfolio" />}
+          {rightView === 'activity' && (activeFeed.length > 0 ? <ActivityFeed entries={activeFeed} pending={activeActions} /> : <EmptyState icon={<CheckCircle2 />} title={t('supervision.feed.emptyProperty')} />)}
+          {rightView === 'report' && (reportLoading ? <Skeleton className="h-48 rounded-xl" /> : report ? <SupervisionReportContent report={report} /> : <p className="baitly-portfolio__empty">{t('supervision.portfolio.reportUnavailable')}</p>)}
+        </div>
+      </section>
+    </div>
+
+    {toasts.length > 0 && <div className="baitly-portfolio__toasts"><ResolutionToasts toasts={toasts} /></div>}
+    {priceAction && <PriceAdjustmentModal suggestionId={priceAction.id} propertyId={Number(priceAction.propertyId ?? 0)} actionParams={priceAction.actionParams}
+      onClose={() => setPriceAction(null)} onApplied={() => { markInFlight(priceAction.id); setPriceAction(null); }} />}
+  </div>;
 }

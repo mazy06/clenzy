@@ -2,16 +2,13 @@ import * as React from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { guestPhotoSrc } from '../../../services/api/guestsApi';
-import { resolveMediaUrl } from '../../../config/api';
 import { useNavigate } from 'react-router-dom';
 import {
   BanknoteIcon,
   BanknoteXIcon,
   BookOpenIcon,
-  BrushIcon,
   CalendarSyncIcon,
   CalendarXIcon,
-  ChevronDownIcon,
   ChevronRightIcon,
   ClockAlertIcon,
   LockIcon,
@@ -27,21 +24,13 @@ import {
   MessageCircleIcon,
   ShieldAlertIcon,
   LogInIcon,
-  LogOutIcon,
   StarIcon,
-  TriangleAlertIcon,
+  CircleCheckIcon,
   UserSearchIcon,
   WrenchIcon,
 } from '../../../icons/glyphs';
 import {
   Button,
-  buttonVariants,
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
 } from '../../../components/ui';
 import ConfirmationModal from '../../../components/ConfirmationModal';
 import GuestAvatar from '../../../components/baitly/GuestAvatar';
@@ -54,8 +43,6 @@ import PaymentIncidentDialog from '../../../components/baitly/PaymentIncidentDia
 import RetryDeliveryDialog from '../../../components/baitly/RetryDeliveryDialog';
 import StuckServiceDialog from '../../../components/baitly/StuckServiceDialog';
 import PaymentCheckoutModal from '../../../components/PaymentCheckoutModal';
-import StatusChip from '../../../components/baitly/StatusChip';
-import ChannelTag from '../../../components/baitly/ChannelTag';
 import { Money } from '../../../components/baitly/Money';
 import { cn } from '../../../utils/cn';
 import { getInterventionTypeLabel } from '../../../utils/statusUtils';
@@ -80,6 +67,11 @@ import type {
   DashboardUpcomingArrival,
 } from '../../../services/api/dashboardOperationsApi';
 import { DashboardWidgetState } from '../DashboardWidgetState';
+import { ActionGroup, ActionRow } from '../DashboardActionList';
+import { DashboardQueue, DashboardQueueToggle } from '../DashboardQueue';
+import { TodayOperationsView, type TodayReservation } from '../TodayOperationsView';
+import { UpcomingArrivalsView } from '../UpcomingArrivalsView';
+import { useDashboardPropertyPhotos } from '../useDashboardPropertyPhotos';
 import { activeIntlLocale } from '../../../utils/activeLocale';
 
 /** Type exact du `t` du projet — les helpers ci-dessous le reçoivent en paramètre. */
@@ -173,222 +165,22 @@ export function TodayOperationsSection() {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const { data, isLoading, isError, refetch } = useDashboardToday();
-  const [showAll, setShowAll] = React.useState(false);
-  // Le séjour s'ouvre sur place : `/reservations/:id` n'existe pas, et quitter
-  // le tableau de bord pour lire deux dates n'aide personne.
-  // ⚠️ Avant tout early return (règles des hooks).
-  const [openedReservation, setOpenedReservation] =
-    React.useState<{ id: number; guestName: string | null; propertyName: string | null } | null>(null);
+  const [openedReservation, setOpenedReservation] = React.useState<TodayReservation | null>(null);
 
   if (isLoading || isError) return <DashboardWidgetState title={t('dashboard.widgets.todayOperations', 'Opérations du jour')} error={isError} onRetry={() => { void refetch(); }} />;
 
-  const arrivals = data?.arrivals ?? [];
-  const departures = data?.departures ?? [];
-  const cleanings = data?.cleanings ?? [];
-
-  return (
-    <section className="db-widget-surface flex flex-col rounded-lg bg-card p-4 ring-1 ring-foreground/10">
-      <h3 className="m-0 mb-3 text-sm font-semibold text-foreground">
-        {t('dashboard.widgets.todayOperations', 'Opérations du jour')}
-      </h3>
-      <div className="db-widget-body space-y-5" tabIndex={0} role="region" aria-label={t('dashboard.widgets.todayOperations', 'Opérations du jour')}>
-      {/* 5.a Arrivées */}
-      <BlockCard
-        icon={<LogInIcon className="size-3.5 text-success" />}
-        title={t('dashboard.today.arrivals', 'Arrivées aujourd’hui')}
-        count={arrivals.length}
-        className="rounded-none bg-transparent p-0 ring-0"
-      >
-        {arrivals.length === 0 ? (
-          <BlockEmpty>{t('dashboard.today.noArrivals', 'Aucune arrivée aujourd’hui.')}</BlockEmpty>
-        ) : (
-          <div data-fit-list className="flex flex-col gap-2.5">
-            {(showAll ? arrivals : arrivals.slice(0, 3)).map((arrival) => (
-              <button
-                key={arrival.reservationId}
-                type="button"
-                onClick={() =>
-                  setOpenedReservation({
-                    id: arrival.reservationId,
-                    guestName: arrival.guestName,
-                    propertyName: arrival.propertyName,
-                  })
-                }
-                className="flex w-full cursor-pointer items-center gap-2.5 rounded-md p-1 text-start outline-none transition-colors duration-150 hover:bg-accent focus-visible:ring-[3px] focus-visible:ring-ring/50 motion-reduce:transition-none"
-              >
-                <GuestAvatar
-                  name={arrival.guestName ?? '?'}
-                  photoUrl={guestPhotoSrc(arrival.guestAvatarUrl)}
-                  size={30}
-                />
-                <span className="min-w-0 flex-1">
-                  <span className="flex items-center gap-1.5">
-                    <span dir="auto" className="truncate text-sm font-medium text-foreground">
-                      {arrival.guestName}
-                    </span>
-                    <StatusChip
-                      color={channelColor(arrival.source)}
-                      label={channelLabel(arrival.source, arrival.sourceName)}
-                      size="sm"
-                    />
-                  </span>
-                  <span className="block truncate text-xs text-muted-foreground">
-                    {[arrival.propertyName, arrival.note].filter(Boolean).join(' · ')}
-                  </span>
-                </span>
-                {arrival.checkInTime && (
-                  <span className="shrink-0 text-sm font-semibold text-foreground tabular-nums">
-                    {arrival.checkInTime}
-                  </span>
-                )}
-              </button>
-            ))}
-          </div>
-        )}
-      </BlockCard>
-
-      {/* 5.b Départs */}
-      <BlockCard
-        icon={<LogOutIcon className="size-3.5 text-info" />}
-        title={t('dashboard.today.departures', 'Départs aujourd’hui')}
-        count={departures.length}
-        className="rounded-none bg-transparent p-0 ring-0"
-      >
-        {departures.length === 0 ? (
-          <BlockEmpty>{t('dashboard.today.noDepartures', 'Aucun départ aujourd’hui.')}</BlockEmpty>
-        ) : (
-          <>
-            <div data-fit-list className="flex flex-col gap-2.5">
-              {(showAll ? departures : departures.slice(0, 3)).map((departure) => (
-                <button key={departure.reservationId} type="button"
-                  onClick={() => setOpenedReservation({ id: departure.reservationId, guestName: departure.guestName, propertyName: departure.propertyName })}
-                  className="flex w-full cursor-pointer items-center gap-2.5 rounded-md p-1 text-start outline-none transition-colors duration-150 hover:bg-accent focus-visible:ring-[3px] focus-visible:ring-ring/50 motion-reduce:transition-none">
-                  <GuestAvatar
-                    name={departure.guestName ?? '?'}
-                    photoUrl={guestPhotoSrc(departure.guestAvatarUrl)}
-                    size={30}
-                  />
-                  <span className="min-w-0 flex-1">
-                    <span dir="auto" className="block truncate text-sm font-medium text-foreground">
-                      {departure.guestName}
-                    </span>
-                    <span className="block truncate text-xs text-muted-foreground">
-                      {departure.propertyName}
-                      {departure.depositToRelease != null && (
-                        <> · {t('dashboard.today.depositToRelease', 'caution à libérer')}</>
-                      )}
-                    </span>
-                  </span>
-                  {departure.checkOutTime && (
-                    <span className="shrink-0 text-sm font-semibold text-foreground tabular-nums">
-                      {departure.checkOutTime}
-                    </span>
-                  )}
-                </button>
-              ))}
-            </div>
-            {/* L'action n'apparaît que s'il y a réellement une caution retenue. */}
-            {departures.some((d) => d.securityDepositId != null) && (
-              <Button
-                size="xs"
-                variant="outline"
-                className="mt-3"
-                onClick={() => navigate('/billing?tab=deposits')}
-              >
-                {t('dashboard.today.releaseDeposit', 'Libérer la caution')}
-              </Button>
-            )}
-          </>
-        )}
-      </BlockCard>
-
-      {/* 5.c Ménages */}
-      <BlockCard
-        icon={<BrushIcon className="size-3.5 text-primary" />}
-        title={t('dashboard.today.cleanings', 'Ménages du jour')}
-        count={cleanings.length}
-        className="rounded-none bg-transparent p-0 ring-0"
-      >
-        {cleanings.length === 0 ? (
-          <BlockEmpty>{t('dashboard.today.noCleanings', 'Aucun ménage planifié aujourd’hui.')}</BlockEmpty>
-        ) : (
-          <div data-fit-list className="flex flex-col gap-2.5">
-            {(showAll ? cleanings : cleanings.slice(0, 3)).map((cleaning) => (
-              <button key={cleaning.interventionId} type="button" onClick={() => navigate(`/interventions/${cleaning.interventionId}`)}
-                className="flex w-full cursor-pointer items-center gap-2.5 rounded-md p-1 text-start outline-none transition-colors duration-150 hover:bg-accent focus-visible:ring-[3px] focus-visible:ring-ring/50 motion-reduce:transition-none">
-                <GuestAvatar
-                  name={cleaning.assigneeName ?? '?'}
-                  photoUrl={resolveMediaUrl(cleaning.assigneeAvatarUrl)}
-                  size={30}
-                />
-                <span className="min-w-0 flex-1">
-                  <span dir="auto" className="block truncate text-sm font-medium text-foreground">
-                    {cleaning.propertyName}
-                  </span>
-                  <span className="block text-xs text-muted-foreground">
-                    <span className="block truncate">{cleaning.assigneeName}</span>
-                    <span className="block tabular-nums">{cleaningWindow(cleaning.windowStart, cleaning.windowEnd, t)}</span>
-                  </span>
-                </span>
-                <StatusChip
-                  tone={cleaning.status === 'IN_PROGRESS' ? 'warn' : 'neutral'}
-                  label={
-                    cleaning.status === 'IN_PROGRESS'
-                      ? t('dashboard.today.inProgress', 'En cours')
-                      : t('dashboard.today.planned', 'Planifié')
-                  }
-                  dot
-                  size="sm"
-                />
-              </button>
-            ))}
-          </div>
-        )}
-      </BlockCard>
-
-      </div>
-      {Math.max(arrivals.length, departures.length, cleanings.length) > 3 && <Button size="sm" variant="ghost" aria-expanded={showAll} onClick={() => setShowAll((value) => !value)}>
-        {showAll ? t('dashboard.actionItems.showLess', 'Réduire') : t('dashboard.today.showAll', 'Voir toute la journée')}
-      </Button>}
-
-      <ReservationActionDialog
-        reservationId={openedReservation?.id ?? null}
-        onClose={() => setOpenedReservation(null)}
-        preview={{
-          guestName: openedReservation?.guestName,
-          propertyName: openedReservation?.propertyName,
-        }}
-        invalidateKeys={[['dashboard', 'operations', 'today']]}
-      />
-    </section>
-  );
-}
-
-/** « 11:00 → 15:00 », « avant 15:00 », ou rien si aucune borne. */
-function cleaningWindow(start: string | null, end: string | null, t: TranslateFn): string | null {
-  if (start && end) return t('dashboard.today.window', 'Fenêtre : {{start}} à {{end}}', { start, end });
-  if (end) return t('dashboard.today.windowBefore', 'Avant {{end}}', { end });
-  if (start) return t('dashboard.today.windowAfter', 'À partir de {{start}}', { start });
-  return null;
+  return <>
+    <TodayOperationsView data={data} onOpenReservation={setOpenedReservation}
+      onOpenCleaning={(id) => navigate(`/interventions/${id}`)}
+      onOpenDeposits={() => navigate('/billing?tab=deposits')} />
+    <ReservationActionDialog reservationId={openedReservation?.reservationId ?? null}
+      onClose={() => setOpenedReservation(null)}
+      preview={{ guestName: openedReservation?.guestName, propertyName: openedReservation?.propertyName }}
+      invalidateKeys={[['dashboard', 'operations', 'today']]} />
+  </>;
 }
 
 // ─── §6 — À traiter ─────────────────────────────────────────────────────────
-
-/**
- * Lignes montrées d'emblée dans une rubrique dépliée.
- *
- * <p>Au-delà, on ne lit plus, on parcourt — et une rubrique de trente lignes
- * repousse hors de l'écran les onze autres rubriques. Le reste se déplie sur
- * demande, à l'intérieur de la rubrique.</p>
- */
-const GROUP_PREVIEW = 3;
-
-/** Pastille de gravité : la teinte vive porte l'aplat, jamais le texte. */
-const SEVERITY_DOT: Record<DashboardActionSeverity, string> = {
-  critical: 'bg-destructive',
-  warning: 'bg-warning',
-  info: 'bg-info',
-};
 
 /** Gravité la plus forte parmi les lignes reçues — celle que porte la rubrique. */
 function worstSeverity(rows: DashboardActionItem[]): DashboardActionSeverity {
@@ -675,7 +467,6 @@ export function ActionItemsCard() {
  */
 export function ActionItemsView({ data }: { data?: DashboardActionItems }) {
   const { t } = useTranslation();
-  const navigate = useNavigate();
   // Répondre est le geste attendu ici : on ouvre l'avis sur place. Quitter le
   // tableau de bord reste possible, mais c'est le rôle du lien « Voir les avis ».
   // ⚠️ Avant tout early return (règles des hooks).
@@ -736,23 +527,24 @@ export function ActionItemsView({ data }: { data?: DashboardActionItems }) {
   const open = openKind === undefined ? (groups[0]?.kind ?? null) : openKind;
 
   return (
-    <BlockCard
-      icon={<TriangleAlertIcon className="size-3.5 text-warning" />}
-      title={t('dashboard.actionItems.title', 'À traiter')}
-      count={total}
-      scrollable
-    >
+    <>
+      <DashboardQueue title={t('dashboard.actionItems.title', 'À traiter')} count={total}
+        caption={groups.length > 0 ? t('dashboard.actionItems.queueCaption', '{{count}} rubriques, par ordre de priorité', { count: groups.length }) : ''}
+        footer={groups.length > 6 ? <DashboardQueueToggle expanded={showAllGroups} onToggle={() => setShowAllGroups((value) => !value)}
+          moreLabel={t('dashboard.actionItems.showCategories', 'Voir les {{count}} autres rubriques', { count: groups.length - 6 })}
+          lessLabel={t('dashboard.actionItems.showLess', 'Réduire')} /> : undefined}>
       {groups.length === 0 ? (
-        <BlockEmpty>
-          {t('dashboard.actionItems.empty', 'Rien à traiter — tout est à jour.')}
-        </BlockEmpty>
+        <div className="db-queue__empty">
+          <CircleCheckIcon aria-hidden="true" />
+          <p>{t('dashboard.actionItems.empty', 'Rien à traiter. Tout est à jour.')}</p>
+        </div>
       ) : (
-        <div data-fit-list className="flex flex-col">
+        <div data-fit-list className="db-queue__list">
           {(showAllGroups ? groups : groups.slice(0, 6)).map((group) => (
             <ActionGroup
               key={group.kind}
               icon={group.icon}
-              tone={group.tone}
+              kind={group.kind}
               label={group.label}
               total={group.kindTotal}
               shown={group.rows.length}
@@ -832,10 +624,7 @@ export function ActionItemsView({ data }: { data?: DashboardActionItems }) {
         </div>
       )}
 
-      {/* Traiter fait disparaître la ligne : la carte se recharge. */}
-      {groups.length > 6 && <Button size="sm" variant="ghost" className="mt-2" aria-expanded={showAllGroups} onClick={() => setShowAllGroups((value) => !value)}>
-        {showAllGroups ? t('dashboard.actionItems.showLess', 'Réduire') : t('dashboard.actionItems.showCategories', 'Voir les {{count}} autres rubriques', { count: groups.length - 6 })}
-      </Button>}
+      </DashboardQueue>
 
       <ActionItemDialog item={active} onClose={() => setActive(null)} />
 
@@ -862,7 +651,7 @@ export function ActionItemsView({ data }: { data?: DashboardActionItems }) {
         })}
         confirmText={bulkTarget?.verb}
       />
-    </BlockCard>
+    </>
   );
 }
 
@@ -1058,6 +847,7 @@ function ActionItemDialog({
           title: item?.title,
           detail: item?.detail,
           amount: item?.amount,
+          currency: item?.currency,
           badge: item?.badge,
         }}
         invalidateKeys={invalidateKeys}
@@ -1105,397 +895,18 @@ function ActionItemDialog({
   );
 }
 
-/**
- * Rubrique de la file, repliée : une ligne de sommaire, dépliable sur place.
- *
- * <p>Vingt-sept rubriques déroulées d'un bloc ne se lisaient plus, elles se
- * parcouraient à l'ascenseur. Repliée, chaque rubrique dit en une ligne ce
- * qu'elle est, combien elle en compte et ce qu'elle pèse ; le sommaire tient
- * alors dans la carte, et c'est lui qui porte la comparaison entre natures.</p>
- *
- * <p>Une seule rubrique ouverte à la fois — l'état vit dans la carte, pas ici :
- * deux rubriques ouvertes ramènent le mur qu'on vient d'enlever.</p>
- *
- * <p>Les compteurs sont enfin réconciliés. Le sommaire annonce le décompte
- * <b>réel</b> du serveur ; une fois dépliée, la rubrique montre TOUT ce qui lui
- * a été transmis et dit à part combien elle en montre sur combien. L'ancien
- * enchaînement « (30) », trois lignes, « Voir les 7 autres » posait trois
- * nombres qui ne se recoupaient pas.</p>
- */
-function ActionGroup({
-  icon,
-  tone,
-  label,
-  total,
-  shown,
-  severity,
-  amount,
-  open,
-  onToggle,
-  shownOfLabel,
-  moreLabel,
-  lessLabel,
-  bulkLabel,
-  onBulk,
-  children,
-}: {
-  icon: React.ReactNode;
-  tone: string;
-  label: string;
-  /** Décompte réel de la rubrique, tel que compté par le serveur. */
-  total: number;
-  /** Nombre de lignes effectivement reçues — le serveur plafonne. */
-  shown: number;
-  /** Gravité la plus forte de la rubrique — porte la pastille du sommaire. */
-  severity: DashboardActionSeverity;
-  /** Cumul en jeu, quand il est exact et que la nature en a un. */
-  amount: number | null;
-  open: boolean;
-  onToggle: () => void;
-  shownOfLabel: (shown: number, total: number) => string;
-  /** « Voir les 7 autres » — les lignes reçues que l'aperçu ne montre pas. */
-  moreLabel: (count: number) => string;
-  lessLabel: string;
-  /** Verbe du geste de masse, quand la rubrique en porte un. */
-  bulkLabel?: string;
-  onBulk: () => void;
-  children: React.ReactNode;
-}) {
-  const panelId = React.useId();
-  /**
-   * Rubrique dépliée jusqu'au bout, ou réduite à son aperçu.
-   *
-   * <p>Refermée quand la rubrique se referme : la rouvrir doit la rendre telle
-   * qu'on l'ouvre pour la première fois, pas telle qu'on l'avait laissée trente
-   * lignes plus bas.</p>
-   */
-  const [showAll, setShowAll] = React.useState(false);
-  React.useEffect(() => {
-    if (!open) setShowAll(false);
-  }, [open]);
-
-  const rows = React.Children.toArray(children);
-  const hiddenHere = Math.max(0, rows.length - GROUP_PREVIEW);
-  if (total === 0) return null;
-
-  return (
-    <section className="border-b border-border last:border-b-0">
-      <button
-        type="button"
-        onClick={onToggle}
-        aria-expanded={open}
-        aria-controls={panelId}
-        className="flex w-full cursor-pointer items-center gap-2.5 rounded-md px-1.5 py-2 text-start outline-none transition-colors duration-150 hover:bg-accent focus-visible:ring-[3px] focus-visible:ring-ring/50 motion-reduce:transition-none"
-      >
-        {/* Pastille de gravité : 6 px d'aplat vif. Un liseré latéral coloré ou
-            un fond plein sur la ligne teindrait toute la rubrique du rouge de
-            sa pire ligne. */}
-        <span className={cn('size-1.5 shrink-0 rounded-full', SEVERITY_DOT[severity])} />
-        <span className={cn('inline-flex shrink-0 [&>svg]:size-3.5', tone)}>{icon}</span>
-        <span className="min-w-0 flex-1 truncate text-sm font-medium text-foreground">{label}</span>
-        <span className="shrink-0 text-xs tabular-nums text-muted-foreground">{total}</span>
-        {amount != null && (
-          <span className="shrink-0 text-xs font-semibold tabular-nums text-foreground">
-            <Money value={amount} decimals={0} />
-          </span>
-        )}
-        {/* Deux icônes plutôt qu'une rotation : `cn-rtl-flip` pose déjà un
-            `transform` en RTL, et un `rotate-90` par-dessus le remplacerait. */}
-        {open ? (
-          <ChevronDownIcon className="size-4 shrink-0 text-muted-foreground" />
-        ) : (
-          <ChevronRightIcon className="cn-rtl-flip size-4 shrink-0 text-muted-foreground" />
-        )}
-      </button>
-
-      {open && (
-        // Un retrait, pas un aplat : `accent` (le survol des lignes) et `muted`
-        // résolvent vers la MÊME teinte — un fond ici effacerait le survol des
-        // lignes qu'il contient. Le décalage suffit à dire la subordination.
-        <div id={panelId} className="mb-2 flex flex-col ps-4">
-          {showAll ? rows : rows.slice(0, GROUP_PREVIEW)}
-
-          {/* Pas de pied vide : une rubrique de deux lignes sans geste de masse
-              n'a rien à y mettre, et le creux se verrait. */}
-          {(hiddenHere > 0 || bulkLabel) && (
-          <div className="flex flex-wrap items-center justify-between gap-2 pt-1.5 pb-0.5">
-            <span className="flex min-w-0 items-baseline gap-2">
-              {hiddenHere > 0 && (
-                <button
-                  type="button"
-                  onClick={() => setShowAll((all) => !all)}
-                  aria-expanded={showAll}
-                  className="cursor-pointer rounded-md text-xs font-medium text-foreground underline-offset-2 outline-none hover:underline focus-visible:ring-[3px] focus-visible:ring-ring/50"
-                >
-                  {showAll ? lessLabel : moreLabel(hiddenHere)}
-                </button>
-              )}
-              {/* Dit ce qui n'a PAS été transmis, une fois tout déplié : le
-                  serveur plafonne, et « Voir les 7 autres » ne doit jamais
-                  promettre les vingt qu'il n'a pas envoyées. */}
-              {showAll && shown < total && (
-                <span className="text-xs tabular-nums text-muted-foreground">
-                  {shownOfLabel(shown, total)}
-                </span>
-              )}
-            </span>
-
-            {/* Le seul bouton plein de la rubrique. Les lignes ne visent
-                qu'elles-mêmes et restent en bouton clair ; ici, c'est toute la
-                rubrique qui bascule. */}
-            {bulkLabel && (
-              <Button size="xs" onClick={onBulk}>
-                {bulkLabel}
-              </Button>
-            )}
-          </div>
-          )}
-        </div>
-      )}
-    </section>
-  );
-}
-
-/**
- * Ligne d'action : contenu à gauche, geste attendu à droite, la ligne entière
- * est le bouton. Même geste que les blocs Arrivées, qui ouvrent aussi au clic.
- *
- * <p>Le chevron a laissé place au verbe : « ceci s'ouvre » ne disait pas ce
- * qu'on allait y faire, et une file de priorités se parcourt en lisant les
- * gestes, pas en devinant les destinations. Le montant vit <b>dans</b> le
- * bouton — « Encaisser 75 € » est une seule phrase, là où un chiffre posé à
- * côté du verbe obligeait à recoller les deux.</p>
- *
- * <p>Le verbe est rendu en <b>span</b> habillé par `buttonVariants`, pas en
- * `<Button>` : la ligne est déjà un bouton, et un bouton dans un bouton est du
- * HTML invalide. Le clic sur la pastille est donc exactement le clic sur la
- * ligne — un seul contrôle, un seul nom accessible (« … · Encaisser 75 € »),
- * aucune cible morte à côté de la cible utile.</p>
- */
-function ActionRow({
-  leading,
-  primary,
-  secondary,
-  age,
-  ageTone,
-  ageTitle,
-  value,
-  actionLabel,
-  onClick,
-}: {
-  /** Visuel d'entrée de ligne — avatar du voyageur pour les avis. */
-  leading?: React.ReactNode;
-  primary: React.ReactNode;
-  secondary: React.ReactNode;
-  /** Depuis combien de temps la ligne attend — « 4 h », « 2 j ». */
-  age?: string | null;
-  /** Couple `-ink` / `-soft` de la pastille d'ancienneté, selon la gravité. */
-  ageTone?: string;
-  /** Libellé complet de l'ancienneté — « En attente depuis 4 h ». */
-  ageTitle?: string;
-  /** Montant ou mention courte, rendu dans le bouton, après le verbe. */
-  value?: React.ReactNode;
-  /** Verbe du geste attendu, propre à la nature de l'action. */
-  actionLabel: string;
-  onClick: () => void;
-}) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      className="db-action-row group/row flex cursor-pointer items-center gap-2.5 rounded-md px-1.5 py-1.5 text-start outline-none transition-colors duration-150 hover:bg-accent focus-visible:ring-[3px] focus-visible:ring-ring/50 motion-reduce:transition-none"
-    >
-      {leading && <span className="db-action-avatar shrink-0">{leading}</span>}
-      <span className="db-action-copy min-w-0 flex-1">
-        <span className="block truncate text-sm text-foreground">{primary}</span>
-        <span className="block text-xs leading-snug text-muted-foreground">{secondary}</span>
-      </span>
-      {/* L'ancienneté avant le verbe : c'est ce qui fait décider si l'on agit
-          maintenant, et le verbe est le même sur toutes les lignes de la
-          rubrique. Texte en `-ink` sur fond `-soft` — la teinte vive en texte
-          plafonne à 2,2:1, et c'est justement le chiffre à voir de loin. */}
-      {age && (
-        <span
-          // La pastille ne dit qu'un nombre : le libellé complet est au survol
-          // et pour les lecteurs d'écran, faute de place sur une ligne dense.
-          title={ageTitle}
-          className={cn(
-            'db-action-age shrink-0 rounded-full px-1.5 py-0.5 text-xs font-semibold tabular-nums',
-            ageTone,
-          )}
-        >
-          {age}
-        </span>
-      )}
-      <span
-        className={cn(
-          buttonVariants({ variant: 'outline', size: 'xs' }),
-          // Bouton clair, et non plein : la ligne ne vise qu'elle-même. Le seul
-          // plein encrier de la rubrique est le geste de masse, en pied — trente
-          // pastilles noires en concurrence n'en laissaient plus aucune primaire.
-          'db-action-control shrink-0 bg-card',
-          'group-hover/row:bg-background',
-        )}
-      >
-        {actionLabel}
-        {value}
-      </span>
-    </button>
-  );
-}
-
 // ─── §8 — Prochaines arrivées ───────────────────────────────────────────────
 
 export function UpcomingArrivalsCard({ days = 7 }: { days?: number }) {
   const { t } = useTranslation();
-  const navigate = useNavigate();
   const { data, isLoading, isError, refetch } = useDashboardUpcomingArrivals(days);
-  // Même règle que partout ailleurs sur cet écran : la ligne ouvre le séjour,
-  // elle ne quitte pas le tableau de bord.
-  // ⚠️ Avant tout early return (règles des hooks).
+  const photos = useDashboardPropertyPhotos();
   const [opened, setOpened] = React.useState<DashboardUpcomingArrival | null>(null);
   if (isLoading || isError) return <DashboardWidgetState title={t('dashboard.upcomingArrivals.title', 'Prochaines arrivées')} error={isError} onRetry={() => { void refetch(); }} />;
-  const rows = data ?? [];
-
-  return (
-    <section className="db-widget-surface flex flex-col rounded-lg bg-card ring-1 ring-foreground/10">
-      <div className="flex shrink-0 flex-wrap items-center justify-between gap-2 px-4 pt-4 pb-2">
-        <h3 className="cn-font-heading m-0 text-[15px] font-semibold tracking-tight text-foreground">
-          {t('dashboard.upcomingArrivals.title', 'Prochaines arrivées')} ({days} j)
-        </h3>
-        <Button
-          size="xs"
-          variant="ghost"
-          className="text-muted-foreground"
-          onClick={() => navigate('/planning')}
-        >
-          {t('dashboard.upcomingArrivals.seePlanning', 'Tout le planning')}
-          <ChevronRightIcon className="cn-rtl-flip" />
-        </Button>
-      </div>
-
-      {rows.length === 0 ? (
-        <div className="px-4 pb-4">
-          <BlockEmpty>
-            {t('dashboard.upcomingArrivals.empty', 'Aucune arrivée sur la période.')}
-          </BlockEmpty>
-        </div>
-      ) : (
-        <div className="db-widget-body" tabIndex={0} role="region" aria-label={t('dashboard.upcomingArrivals.title', 'Prochaines arrivées')}>
-        <div className="db-arrivals-table">
-        <Table>
-          <colgroup>
-            <col className="db-arrivals-col-guest" />
-            <col />
-            <col className="db-arrivals-col-date" />
-            <col className="db-arrivals-col-nights" />
-            <col className="db-arrivals-col-channel" />
-            <col className="db-arrivals-col-status" />
-            <col className="db-arrivals-col-total" />
-          </colgroup>
-          <TableHeader>
-            <TableRow>
-              <TableHead>{t('dashboard.upcomingArrivals.guest', 'Voyageur')}</TableHead>
-              <TableHead>{t('dashboard.upcomingArrivals.property', 'Logement')}</TableHead>
-              <TableHead>{t('dashboard.upcomingArrivals.checkIn', 'Arrivée')}</TableHead>
-              <TableHead className="text-center">{t('dashboard.upcomingArrivals.nights', 'Nuits')}</TableHead>
-              <TableHead className="text-center">{t('dashboard.upcomingArrivals.channel', 'Canal')}</TableHead>
-              <TableHead className="text-end">{t('dashboard.upcomingArrivals.status', 'Statut')}</TableHead>
-              <TableHead className="text-end">{t('dashboard.upcomingArrivals.total', 'Total')}</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {rows.map((row) => (
-              <TableRow
-                key={row.reservationId}
-                className="cursor-pointer"
-                onClick={() => setOpened(row)}
-              >
-                <TableCell>
-                  <span className="flex items-center gap-2">
-                    <GuestAvatar name={row.guestName ?? '?'} photoUrl={guestPhotoSrc(row.guestAvatarUrl)} size={24} />
-                    <button type="button" onClick={(event) => { event.stopPropagation(); setOpened(row); }}
-                      className="cursor-pointer rounded-sm text-start font-medium outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50">{row.guestName}</button>
-                  </span>
-                </TableCell>
-                <TableCell>{row.propertyName}</TableCell>
-                <TableCell>{formatArrivalDate(row.checkIn)}</TableCell>
-                <TableCell className="text-center tabular-nums">{row.nights}</TableCell>
-                <TableCell className="text-center">
-                  <ChannelTag channel={row.source ?? 'other'} label={row.sourceName ?? undefined} iconOnly />
-                </TableCell>
-                <TableCell className="text-end">
-                  <StatusChip {...paymentChip(row, t)} dot size="sm" />
-                </TableCell>
-                <TableCell className="text-end tabular-nums">
-                  {row.totalPrice != null && <Money value={row.totalPrice} decimals={0} />}
-                </TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-        </div>
-        <ul className="db-arrival-list m-0 list-none divide-y divide-border px-4">
-          {rows.map((row) => (
-            <li key={row.reservationId} className="py-3">
-              <button type="button" onClick={() => setOpened(row)}
-                className="flex w-full cursor-pointer items-start gap-2 rounded-md text-start outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50">
-                <GuestAvatar name={row.guestName ?? '?'} photoUrl={guestPhotoSrc(row.guestAvatarUrl)} size={28} />
-                <span className="min-w-0 flex-1">
-                  <span className="block text-sm font-medium">{row.guestName}</span>
-                  <span className="block text-xs text-muted-foreground">{row.propertyName}</span>
-                </span>
-              </button>
-              <dl className="m-0 mt-2 grid grid-cols-2 gap-x-4 gap-y-2 text-xs">
-                {[
-                  [t('dashboard.upcomingArrivals.checkIn', 'Arrivée'), formatArrivalDate(row.checkIn)],
-                  [t('dashboard.upcomingArrivals.nights', 'Nuits'), row.nights],
-                  [t('dashboard.upcomingArrivals.channel', 'Canal'), <ChannelTag key="channel" channel={row.source ?? 'other'} label={row.sourceName ?? undefined} iconOnly />],
-                  [t('dashboard.upcomingArrivals.status', 'Statut'), <StatusChip key="status" {...paymentChip(row, t)} dot size="sm" />],
-                  [t('dashboard.upcomingArrivals.total', 'Total'), row.totalPrice != null ? <Money key="total" value={row.totalPrice} decimals={0} /> : '—'],
-                ].map(([label, value], index) => <div key={index} className="min-w-0">
-                  <dt className="text-muted-foreground">{label}</dt>
-                  <dd className="m-0 mt-0.5 font-medium tabular-nums">{value}</dd>
-                </div>)}
-              </dl>
-            </li>
-          ))}
-        </ul>
-        </div>
-      )}
-      <ReservationActionDialog
-        reservationId={opened?.reservationId ?? null}
-        onClose={() => setOpened(null)}
-        preview={{
-          guestName: opened?.guestName,
-          propertyName: opened?.propertyName,
-          amountDue: opened?.amountDue,
-        }}
-        invalidateKeys={[['dashboard', 'upcoming-arrivals', days]]}
-      />
-    </section>
-  );
-}
-
-/** « Ven. 25 juil. » — format court, dans la locale de l'utilisateur. */
-function formatArrivalDate(iso: string): string {
-  const date = new Date(`${iso}T00:00:00`);
-  return date.toLocaleDateString(activeIntlLocale(), { weekday: 'short', day: 'numeric', month: 'short' });
-}
-
-/**
- * Statut de paiement : un solde restant dû prime sur le statut brut — c'est
- * l'information qui appelle une action.
- */
-function paymentChip(
-  row: DashboardUpcomingArrival,
-  t: TranslateFn
-): { tone: 'warn' | 'ok' | 'neutral'; label: string } {
-  if (row.amountDue != null && row.amountDue > 0) {
-    return { tone: 'warn', label: t('dashboard.upcomingArrivals.balanceDue', 'Solde dû') };
-  }
-  if (row.paymentStatus === 'PAID') {
-    return { tone: 'ok', label: t('dashboard.upcomingArrivals.paid', 'Payée') };
-  }
-  return { tone: 'neutral', label: t('dashboard.upcomingArrivals.confirmed', 'Confirmée') };
+  return <>
+    <UpcomingArrivalsView rows={data ?? []} days={days} photos={photos} onOpen={setOpened} />
+    <ReservationActionDialog reservationId={opened?.reservationId ?? null} onClose={() => setOpened(null)}
+      preview={{ guestName: opened?.guestName, propertyName: opened?.propertyName, amountDue: opened?.amountDue }}
+      invalidateKeys={[[ 'dashboard', 'upcoming-arrivals', days ]]} />
+  </>;
 }

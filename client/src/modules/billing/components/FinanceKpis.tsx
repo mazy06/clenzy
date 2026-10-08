@@ -7,11 +7,18 @@ import { financeAmountGroups, type FinanceAmountKind, type FinanceAmountRecord }
 import '../../dashboard/dashboardKpis.css';
 import './financeWorkspace.css';
 
+export const FINANCE_KPI_ARTWORK = {
+  received: '/images/finance-kpis/received.png',
+  pending: '/images/finance-kpis/pending.png',
+  transfer: '/images/finance-kpis/transfer.png',
+  documents: '/images/finance-kpis/documents.png',
+} as const;
+
 export interface FinanceKpi {
   key: string;
   label: string;
   value: ReactNode;
-  artwork: 'received' | 'pending' | 'transfer' | 'documents';
+  artwork: keyof typeof FINANCE_KPI_ARTWORK;
   description: string;
   advice: string;
 }
@@ -22,7 +29,7 @@ export default function FinanceKpis({ items, loading, scope }: { items: FinanceK
   const [open, setOpen] = useState<string | null>(null);
   return <section className="db-kpis finance-kpis" data-count={items.length} aria-label={t('financeWorkspace.indicators')} aria-busy={loading}>
     <StatTileRow presentation="overview">{items.map(item => <DashboardKpiDetail key={item.key}
-      artwork={item.key === 'ota' ? '/images/hitl/channel-sync.webp' : `/images/finance-kpis/${item.artwork}.png`} label={item.label} value={item.value}
+      artwork={item.key === 'ota' ? '/images/hitl/channel-sync.webp' : FINANCE_KPI_ARTWORK[item.artwork]} label={item.label} value={item.value}
       open={open === item.key} onOpenChange={next => setOpen(current => next ? item.key : current === item.key ? null : current)} loading={loading}>
       <p className="db-kpis__period">{scope || t('financeWorkspace.filteredScope')}</p>
       <p className="db-kpis__hint">{item.description}</p>

@@ -59,6 +59,7 @@ describe('Bibliothèque des équipements du logement', () => {
     expect(searchInventoryCatalog('chaises').length).toBeGreaterThan(1);
     expect(searchInventoryCatalog('160', 'beds').map(entry => entry.key)).toEqual(['queen-bed']);
     expect(resolveInventoryCatalog(null, 'Télévision')?.key).toBe('television');
+    expect(resolveInventoryCatalog(null, 'Serviette de mains')?.key).toBe('hand-towel');
     expect(resolveInventoryCatalog('custom', 'Télévision')?.key).toBe('television');
     expect(resolveInventoryCatalog(null, 'Meuble familial inconnu')).toBeUndefined();
   });

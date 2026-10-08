@@ -3,7 +3,7 @@ import { renderToStaticMarkup } from 'react-dom/server';
 import Markdown from 'react-markdown';
 import type { SiteLanguage } from '../site/lib/siteLanguage';
 import { LAYOUT_MESSAGES } from '../site/lib/messages/layout';
-import { LEGAL_COUNTRIES, guidePath } from '../site/data/legal';
+import { LEGAL_COUNTRIES, guidePath } from '../site/data/legal/countries';
 import { canonicalUrl } from '../site/lib/siteSeo';
 import { academyEpisode } from '../site/data/baitlyAcademyVideos';
 import { academyVideoMetadata } from '../site/lib/academyStructuredData';

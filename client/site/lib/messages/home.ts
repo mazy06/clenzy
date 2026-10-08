@@ -59,7 +59,7 @@ const fr = {
       },
       {
         agent: 'Finance',
-        title: 'Encaissement CMI confirmé.',
+        title: 'Encaissement confirmé.',
         detail: '4 800 MAD reçus, facture émise.',
       },
       {
@@ -142,7 +142,7 @@ const fr = {
       ],
       [
         'Des paiements que vos voyageurs utilisent',
-        'PayTabs en riyals, CMI, PayZone et YouCan Pay en dirhams, Stripe en euros.',
+        'Stripe en France. Les prestataires de paiement pour le Maroc et l’Arabie saoudite sont en cours de sélection.',
       ],
       [
         'Des règles de location tenues',
@@ -243,7 +243,7 @@ const en: HomeMessages = {
       },
       {
         agent: 'Finance',
-        title: 'PayTabs payment confirmed.',
+        title: 'Payment confirmed.',
         detail: '1,850 SAR received, ZATCA invoice issued.',
       },
       {
@@ -325,7 +325,7 @@ const en: HomeMessages = {
       ],
       [
         'Payments your guests actually use',
-        'PayTabs in riyals, CMI, PayZone and YouCan Pay in dirhams, Stripe in euros.',
+        'Stripe in France. Payment providers for Morocco and Saudi Arabia are being selected.',
       ],
       [
         'Rental rules kept',
@@ -424,7 +424,7 @@ const ar: HomeMessages = {
       },
       {
         agent: 'المالية',
-        title: 'تأكّد التحصيل عبر PayTabs.',
+        title: 'تم تأكيد التحصيل.',
         detail: 'وصل 1٬850 ر.س، وصدرت الفاتورة الإلكترونية.',
       },
       {
@@ -505,7 +505,7 @@ const ar: HomeMessages = {
       ],
       [
         'وسائل دفع يستخدمها نزلاؤك فعلاً',
-        'PayTabs بالريال، وCMI وPayZone وYouCan Pay بالدرهم، وStripe باليورو.',
+        'Stripe في فرنسا. مزودو الدفع في المغرب والمملكة العربية السعودية قيد الاختيار.',
       ],
       [
         'قواعد إيجار محترمة',

@@ -100,6 +100,7 @@ export interface CreateRatePlanData {
 }
 
 export interface BulkRateOverrideData {
+  currency?: string;
   propertyId: number;
   from: string;
   to: string;

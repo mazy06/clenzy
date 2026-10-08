@@ -7,7 +7,6 @@ import {
   type MutableRefObject,
 } from 'react';
 import {
-  BuildingIcon,
   CalendarCheckIcon,
   CalendarIcon,
   ChevronDownIcon,
@@ -16,26 +15,23 @@ import {
   ChevronUpIcon,
   ClipboardCheckIcon,
   EditIcon,
-  HomeIcon,
-  LayoutGridIcon,
   LayoutListIcon,
   MessageSquareTextIcon,
   OrbitIcon,
   PauseIcon,
   PlayIcon,
-  SettingsIcon,
   ShieldCheckIcon,
   SlidersHorizontalIcon,
   StarIcon,
   UsersIcon,
   Volume2Icon,
   VolumeXIcon,
-  WalletIcon,
   WrenchIcon,
 } from '../../src/icons/glyphs';
 import { Label as TagIcon, WrenchFill } from '../../src/icons';
 import BaitlyMarkLogo from '../../src/components/BaitlyMarkLogo';
 import type { AgentId } from '../../src/modules/supervision/types';
+import { preloadAgentPortraits } from '../../src/modules/supervision/core/agentPortraitAssets';
 import { Cursor, useScriptedCursor } from './mockupKit';
 import { useBaitlyDemoVisibility } from './useBaitlyDemoVisibility';
 import { useBaitlyPlanningTimeline } from './useBaitlyPlanningTimeline';
@@ -62,6 +58,9 @@ import {
   TODAY_INDEX,
   TOKENS,
   Toolbar,
+  PlanningSidebar,
+  TOOLBAR_H,
+  PAGINATION_H,
   UNIT_COUNTS,
   isWeekend,
   usePlanningText,
@@ -102,12 +101,9 @@ import { demoNumber } from '../lib/planningDemoLocale';
 
 const FRAME_H = 740;
 export { FRAME_H as AGENTS_FRAME_HEIGHT };
-const TOOLBAR_H = 50;
-const FILTERS_H = 57;
-const PAGINATION_H = 50;
 const PLANNING_BODY_H =
-  FRAME_H - TOOLBAR_H - FILTERS_H - HEADER_H - 30 - 2 - PAGINATION_H;
-const BOARD_H = FRAME_H - TOOLBAR_H - 8 - HEADER_H - ROW_H - PAGINATION_H - 4;
+  FRAME_H - TOOLBAR_H - 8 - HEADER_H - 30 - 2 - PAGINATION_H;
+const BOARD_H = FRAME_H - TOOLBAR_H - 8 - HEADER_H - ROW_H - PAGINATION_H - 2;
 
 /* Voix off : un MP3 par étape et par langue, chargés à la demande. */
 const CLIPS = import.meta.glob('../assets/voice/agents-demo/*/*.mp3', {
@@ -354,13 +350,18 @@ export function AgentsScene({
   useEffect(() => {
     if (reduced) setExpanded(true);
   }, [reduced]);
+  useEffect(() => {
+    if (active || reduced) void preloadAgentPortraits();
+  }, [active, reduced]);
 
   useLayoutEffect(() => {
     const measure = () =>
       setScale((containerRef.current?.clientWidth ?? FRAME_WIDTH) / FRAME_WIDTH);
     measure();
+    const observer = typeof ResizeObserver === 'undefined' ? null : new ResizeObserver(measure);
+    if (containerRef.current) observer?.observe(containerRef.current);
     window.addEventListener('resize', measure);
-    return () => window.removeEventListener('resize', measure);
+    return () => { observer?.disconnect(); window.removeEventListener('resize', measure); };
   }, []);
 
   const find = (selector: string) =>
@@ -642,24 +643,10 @@ export function AgentsScene({
         aria-hidden="true"
         {...{ inert: '' }}
       >
-        <aside className="bpm-planning-sidebar">
-          <div className="bpm-planning-brand" data-playing={active}>
-            <BaitlyMarkLogo variant="mark" size={32} tone="dark" />
-          </div>
-          <LayoutGridIcon />
-          <HomeIcon />
-          <span>
-            <CalendarIcon />
-          </span>
-          <WrenchFill size={18} />
-          <WalletIcon />
-          <UsersIcon />
-          <BuildingIcon />
-          <SettingsIcon />
-        </aside>
+        <PlanningSidebar />
         <div className="bpm-planning-main">
           <Toolbar mutedChannel={null} agentAsk={expanded ? m.agentAsk : undefined} />
-          <div className="bpm-planning-grid" style={expanded ? { marginTop: 8 } : undefined}>
+          <div className="bpm-planning-grid">
             <div className="relative flex" style={{ width: DESIGN_WIDTH }}>
               <div style={{ width: PROP_W, flexShrink: 0 }}>
                 <div className="bad-props-head" style={{ height: HEADER_H }}>

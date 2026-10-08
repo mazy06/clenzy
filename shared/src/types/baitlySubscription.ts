@@ -1,3 +1,6 @@
+// Pays de facturation proposes a l'inscription. Le web en garde une copie dans client/src/config/baitlyBillingCountries.ts
+// (contexte de build du client) : baitlyBillingCountries.test.ts verifie que les deux listes restent identiques.
+export const BAITLY_BILLING_COUNTRIES = ['FR', 'MA', 'SA', 'BE', 'DE', 'ES', 'IT', 'PT', 'NL', 'LU', 'IE', 'AT', 'FI', 'GR', 'CY', 'MT', 'EE', 'LV', 'LT', 'SK', 'SI', 'HR'] as const;
 export type MonthlyPlan = 'essential' | 'pro';
 export interface SubscriptionChangeTerms {
   plan: MonthlyPlan; properties: number; currency: string; subscriptionMonth: number; effectiveAt: number;
@@ -5,7 +8,6 @@ export interface SubscriptionChangeTerms {
 }
 export interface SubscriptionChange { id: number; requestId: string; terms: SubscriptionChangeTerms; status: 'PREPARED' | 'SCHEDULED' | 'APPLIED' | 'CANCELLED' }
 export interface SubscriptionChangeProposal { terms: SubscriptionChangeTerms; chargeNowCents: number; reason: string }
-export const BAITLY_BILLING_COUNTRIES = ['FR', 'MA', 'SA', 'BE', 'DE', 'ES', 'IT', 'PT', 'NL', 'LU', 'IE', 'AT', 'FI', 'GR', 'CY', 'MT', 'EE', 'LV', 'LT', 'SK', 'SI', 'HR'] as const;
 export interface MonthlyBillingCountry { billingCountry: string | null; sellerCountry: string | null }
 export interface MonthlyQuote {
   version: string; plan: MonthlyPlan; market: string; currency: string; properties: number;

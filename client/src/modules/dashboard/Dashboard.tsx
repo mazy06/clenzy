@@ -235,7 +235,7 @@ const Dashboard: React.FC = () => {
               <UpgradeBanner currentForfait={user.forfait} />
             )}
             {!isFieldWorker && overviewLoading ? (
-              <div className="pt-2"><OverviewSkeleton /></div>
+              <div className="pt-2"><OverviewSkeleton period={period} /></div>
             ) : !isFieldWorker && overviewError && !hasProperties ? (
               <Alert className="mt-4">
                 <AlertDescription>{overviewError}</AlertDescription>

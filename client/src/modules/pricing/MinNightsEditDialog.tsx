@@ -43,7 +43,8 @@ const MinNightsEditDialog: React.FC<MinNightsEditDialogProps> = ({
       return;
     }
     setError('');
-    await onApply(n);
+    try { await onApply(n); }
+    catch { setError(t('common.error')); return; }
     setMinNights('');
     onClose();
   };

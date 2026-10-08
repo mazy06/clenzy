@@ -113,6 +113,7 @@ class SuggestionActionExecutorTest {
     private final Clock clock = Clock.fixed(Instant.parse("2026-07-02T10:00:00Z"), ZoneId.of("UTC"));
 
     private SuggestionActionExecutor executor;
+    @Mock private ProviderBeneficiarySupervision providerBeneficiarySupervision;
 
     /** ObjectProvider minimal (les vrais beans sont injectés paresseusement pour casser les cycles). */
     private static <T> org.springframework.beans.factory.ObjectProvider<T> provider(T bean) {
@@ -131,7 +132,7 @@ class SuggestionActionExecutorTest {
                 provider(icalImportService), provider(channexSyncService),
                 noiseAlertRepository, provider(noiseAlertNotificationService),
                 provider(cartRecoveryScheduler), provider(welcomeGuideService),
-                provider(housekeeperPayoutService), provider(reservationService),
+                provider(housekeeperPayoutService), provider(providerBeneficiarySupervision), provider(reservationService),
                 provider(complianceSubmissionService), managementContractRepository,
                 provider(contractSignatureService), provider(userRepository),
                 provider(organizationRepository), provider(ownerStatementService),
@@ -160,6 +161,21 @@ class SuggestionActionExecutorTest {
         s.setActionParams(params);
         s.setReservationId(RESERVATION_ID);
         return s;
+    }
+
+    @Test void beneficiaryCannotBeOverwrittenByHumanParams() {
+        var card = suggestion(SupervisionActionType.PROVIDER_PAYOUT_BENEFICIARY, "{\"missionId\":11}");
+        var request = new com.clenzy.dto.ApplySuggestionRequest(null, null, java.util.Map.of("organizationId", 999L));
+        org.assertj.core.api.Assertions.assertThatThrownBy(() -> executor.execute(card, request))
+                .isInstanceOf(IllegalArgumentException.class);
+        verifyNoInteractions(providerBeneficiarySupervision);
+    }
+
+    @Test void beneficiaryUsesSecuredHandlerOutsideFinancialTransaction() {
+        var card = suggestion(SupervisionActionType.PROVIDER_PAYOUT_BENEFICIARY, "{\"missionId\":11}");
+        org.assertj.core.api.Assertions.assertThat(executor.hasExternalEffect(card.getActionType())).isTrue();
+        executor.execute(card, null);
+        verify(providerBeneficiarySupervision).apply(card);
     }
 
     private static SecurityDeposit deposit(SecurityDepositStatus status) {

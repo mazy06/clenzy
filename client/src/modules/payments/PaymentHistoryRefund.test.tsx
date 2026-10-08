@@ -9,7 +9,7 @@ vi.mock('../../services/api/paymentsApi', () => ({ paymentsApi: api }));
 vi.mock('../../services/api/interventionsApi', () => ({ interventionsApi: interventions }));
 vi.mock('../../hooks/useAuth', () => ({ useAuth: () => ({ user: { roles: ['SUPER_ADMIN'] } }) }));
 vi.mock('../../components/Money', () => ({ Money: ({ value }: { value: number }) => <span>{value} EUR</span> }));
-vi.mock('../../components/PageHeaderActionsContext', () => ({ usePageHeaderActions: () => null }));
+vi.mock('../../components/PageHeaderActionsContext', () => ({ usePageHeaderFilters: (node: React.ReactNode) => node, usePageHeaderActions: () => null }));
 vi.mock('../billing/components/FinanceKpis', () => ({ FinanceAmountKpis: () => null }));
 vi.mock('./FinanceBatchPanel', () => ({ FinanceBatchPanel: () => null }));
 vi.mock('../../components/PagePagination', () => ({ default: () => null }));

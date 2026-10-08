@@ -29,6 +29,7 @@ import { useCountdown, type Countdown } from '../core/useCountdown';
 import { additionalActionReasoning } from '../core/actionReasoning';
 import { familyOf, opensModal } from './actionRegistry';
 import { AgentIcon } from '../renderers/agentIcon';
+import { AgentPortrait } from '../renderers/AgentPortrait';
 import type { AgentId, PendingAction, PortfolioPendingAction } from '../types';
 import '../supervision-surfaces.css';
 
@@ -51,6 +52,7 @@ export interface OpenReviewPayload {
 interface QueueBlockProps {
   action: AnyAction;
   compact?: boolean;
+  context?: 'constellation' | 'portfolio';
   onValidate: (id: string) => void;
   onEdit: (id: string) => void;
   onAdjustPrice?: (action: AnyAction) => void;
@@ -63,7 +65,7 @@ interface QueueBlockProps {
   onOpenReview?: (payload: OpenReviewPayload) => void;
 }
 
-function QueueBlock({ action, compact, onValidate, onEdit, onAdjustPrice, onSchedule, onOpenActionModal, onOpenReview }: QueueBlockProps) {
+export function SupervisionActionCard({ action, compact, context = 'constellation', onValidate, onEdit, onAdjustPrice, onSchedule, onOpenActionModal, onOpenReview }: QueueBlockProps) {
   const { t } = useTranslation();
   const cd = useCountdown(action.expiresAt);
   const [why, setWhy] = useState(false);
@@ -145,16 +147,19 @@ function QueueBlock({ action, compact, onValidate, onEdit, onAdjustPrice, onSche
       aria-labelledby={titleId}
       aria-busy={resolving}
       className="baitly-hitl-card"
+      data-context={context}
     >
       <div className="baitly-hitl-content">
         {!compact && <div className="flex flex-wrap items-center gap-x-3 gap-y-2 text-xs">
           <span className="baitly-hitl-agent inline-flex items-center gap-2 font-medium">
-            <span aria-hidden className="inline-flex shrink-0"><AgentIcon token={meta.icon} size={16} strokeWidth={1.75} /></span>
+            {context === 'portfolio'
+              ? <span className="baitly-portfolio__action-agent"><AgentPortrait agentId={action.agentId} /></span>
+              : <span aria-hidden className="inline-flex shrink-0"><AgentIcon token={meta.icon} size={16} strokeWidth={1.75} /></span>}
             {t(meta.nameKey)}
           </span>
           <span className="ms-auto inline-flex">{deadline}</span>
         </div>}
-        {propertyName && <p dir="auto" className="m-0 mt-2 text-xs text-muted-foreground [overflow-wrap:anywhere]">{propertyName}</p>}
+        {propertyName && context !== 'portfolio' && <p dir="auto" className="m-0 mt-2 text-xs text-muted-foreground [overflow-wrap:anywhere]">{propertyName}</p>}
 
         <ActionIllustratedHeading action={action}>
           <h3 id={titleId} dir="auto" className="m-0 text-[15px] leading-snug font-semibold text-foreground [overflow-wrap:anywhere] [text-wrap:pretty]">
@@ -305,7 +310,7 @@ export function ConstellationQueue({ agent, actions, compact = false, onValidate
       </header>
 
       {list.map((action) => (
-        <QueueBlock
+        <SupervisionActionCard
           key={action.id}
           action={action}
           compact={compact}

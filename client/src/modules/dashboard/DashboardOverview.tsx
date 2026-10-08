@@ -5,9 +5,7 @@ import {
   CalendarCheckIcon,
   FileTextIcon,
   ClipboardCheckIcon,
-  GaugeIcon,
   StarIcon,
-  TrendingUpIcon,
   WalletIcon,
   WrenchIcon,
 } from '../../icons/glyphs';
@@ -16,7 +14,6 @@ import { useAuth } from '../../hooks/useAuth';
 import { useTranslation } from '../../hooks/useTranslation';
 import { useDashboardOverview } from '../../hooks/useDashboardOverview';
 import { housekeeperRatesApi } from '../../services/api/housekeeperRatesApi';
-import { useDashboardUpcomingArrivals } from '../../hooks/useDashboardOperations';
 import { useDashboardLayout } from '../../hooks/useDashboardLayout';
 import {
   ImportedTileWidget,
@@ -58,6 +55,7 @@ import {
 import type { DashboardPeriod } from './DashboardDateFilter';
 import { DeferredDashboardWidget, DashboardWidgetState } from './DashboardWidgetState';
 import { DEFAULT_LAYOUT_ROWS } from './dashboardDefaults';
+import DashboardKpiSummary from './DashboardKpiSummary';
 
 const DashboardWidgetPicker = lazy(() => import('./DashboardWidgetPicker'));
 
@@ -83,14 +81,10 @@ interface DashboardOverviewProps {
 }
 
 /** Squelette de chargement — même trame que la grille finale, sans décalage. */
-export function OverviewSkeleton() {
+export function OverviewSkeleton({ period = 'month' }: { period?: DashboardPeriod } = {}) {
   return (
     <div className="flex flex-col gap-4">
-      <div className="grid grid-cols-2 gap-3 lg:grid-cols-3 xl:grid-cols-6">
-        {Array.from({ length: 6 }).map((_, index) => (
-          <Skeleton key={index} className="h-[88px] w-full rounded-xl" />
-        ))}
-      </div>
+      <DashboardKpiSummary period={period} loading />
       <div className="grid gap-3 lg:grid-cols-[1.4fr_1fr]">
         <Skeleton className="h-64 w-full rounded-xl" />
         <Skeleton className="h-64 w-full rounded-xl" />
@@ -109,12 +103,7 @@ const DashboardOverview: React.FC<DashboardOverviewProps> = React.memo(({ period
   const { t } = useTranslation();
 
   const { stats, financialKpis: kpis, financialContext, loading, error, refreshAll } = useDashboardOverview({ period, t });
-  // Déjà chargé par « Prochaines arrivées » : React Query dédoublonne, aucun
-  // appel supplémentaire.
-  // ─── Périmètre par rôle ─────────────────────────────────────────────────
-  // Résolu AVANT les requêtes : les arrivées à venir n'alimentent qu'une tuile
-  // de la vue gestionnaire, et les charger pour un intervenant est un appel
-  // pour rien.
+  // Les indicateurs financiers sont réservés à la vue gestionnaire.
   const roles = useMemo(() => user?.roles ?? [], [user?.roles]);
   const isOperational = FIELD_ROLES.some((role) => roles.includes(role));
   /**
@@ -126,9 +115,6 @@ const DashboardOverview: React.FC<DashboardOverviewProps> = React.memo(({ period
     && !CLEANING_ROLES.some((role) => roles.includes(role));
   /** La projection décrit la vue gestionnaire : elle ne s'applique qu'à ces rôles. */
   const showManagementView = !isOperational;
-
-  const { data: upcomingArrivals } = useDashboardUpcomingArrivals(7, showManagementView);
-  const upcomingCount = upcomingArrivals?.length ?? 0;
 
   // Les hooks restent stables ; seules les requêtes utiles au métier sont activées.
   const earnings = useMyEarnings(isOperational && !isTradeWorker);
@@ -152,74 +138,8 @@ const DashboardOverview: React.FC<DashboardOverviewProps> = React.memo(({ period
       label: t('dashboard.widgets.kpis', 'Indicateurs'),
       node: (
         <DashboardErrorBoundary widgetName="KPIs">
-          <StatTileRow compact>
-            <StatTile
-              // L'icone dit le SUJET (un taux de remplissage), pas l'unite :
-              // un « % » en pastille a cote d'un « 44,7 % » ne redit que lui-meme.
-              icon={<GaugeIcon />}
-              label={t('dashboard.analytics.occupancyShort', 'Occupation')}
-              value={
-                kpis
-                  ? kpis.occupancyRate.value.toLocaleString(undefined, { maximumFractionDigits: 1 })
-                  : '—'
-              }
-              unit="%"
-              loading={loading}
-              delta={kpis ? kpis.occupancyRate.growth : null}
-            />
-            <StatTile
-              icon={<WalletIcon />}
-              label={t('dashboard.analytics.revenueShort', 'Revenus')}
-              value={kpis ? <Money from={financialContext?.currency ?? 'EUR'} value={kpis.totalRevenue.value} decimals={0} /> : '—'}
-              iconClassName="text-success"
-              loading={loading}
-              delta={kpis ? kpis.totalRevenue.growth : null}
-            />
-            <StatTile
-              icon={<TrendingUpIcon />}
-              label="ADR"
-              value={kpis ? <Money from={financialContext?.currency ?? 'EUR'} value={kpis.adr.value} decimals={0} /> : '—'}
-              loading={loading}
-              hint={t('dashboard.analytics.adrHint', 'prix moyen par nuit vendue')}
-            />
-            <StatTile
-              icon={<BanknoteIcon />}
-              // Revenu par nuit-logement disponible, conformément au contrat serveur.
-              label="RevPAN"
-              value={kpis ? <Money from={financialContext?.currency ?? 'EUR'} value={kpis.revPAN.value} decimals={0} /> : '—'}
-              loading={loading}
-              hint={t('dashboard.analytics.revenuePerNight', 'revenu par nuit disponible')}
-            />
-            <StatTile
-              icon={<CalendarCheckIcon />}
-              label={t('dashboard.analytics.bookings', 'Réservations')}
-              value={kpis ? kpis.bookings.value : '—'}
-              loading={loading}
-              delta={upcomingCount > 0 || !kpis ? null : kpis.bookings.growth}
-              hint={
-                upcomingCount > 0
-                  ? `${t('dashboard.analytics.including', 'dont')} ${upcomingCount} ${t('dashboard.analytics.arrivalsThisWeek', 'arrivées cette semaine')}`
-                  : undefined
-              }
-            />
-            <StatTile
-              icon={<StarIcon />}
-              label={t('dashboard.analytics.guestRating', 'Note moyenne')}
-              value={
-                kpis && kpis.guestRating.count > 0
-                  ? kpis.guestRating.average.toFixed(1).replace('.', ',')
-                  : '—'
-              }
-              unit="/5"
-              iconClassName="text-warning"
-              loading={loading}
-              hint={
-                kpis
-                  ? `${kpis.guestRating.count} ${t('dashboard.analytics.reviewsOnPeriod', 'avis sur la période')}`
-                  : undefined
-              }
-            />
-          </StatTileRow>
+          <DashboardKpiSummary key={period} kpis={kpis} context={financialContext}
+            activeProperties={stats?.properties.active} period={period} loading={loading} />
         </DashboardErrorBoundary>
       ),
     });
@@ -229,7 +149,7 @@ const DashboardOverview: React.FC<DashboardOverviewProps> = React.memo(({ period
       label: t('dashboard.widgets.revenueSplit', 'Revenus mensuels'),
       node: (
         <DashboardErrorBoundary widgetName="MonthlyRevenueSplit">
-          <MonthlyRevenueSplitCard months={6} />
+          <MonthlyRevenueSplitCard />
         </DashboardErrorBoundary>
       ),
     });
@@ -558,7 +478,7 @@ const DashboardOverview: React.FC<DashboardOverviewProps> = React.memo(({ period
                 'flex flex-col gap-4 [&>*]:shrink-0',
               )}
             >
-              {layout.isLoading ? <OverviewSkeleton /> : <DashboardWidgetGrid
+              {layout.isLoading ? <OverviewSkeleton period={period} /> : <DashboardWidgetGrid
                 widgets={allWidgets}
                 rows={layout.rows}
                 editing={isEditingLayout}

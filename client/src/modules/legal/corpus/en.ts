@@ -1,3 +1,4 @@
+import { COOKIE_POLICY } from './cookies';
 /**
  * Baitly legal corpus — ENGLISH version.
  *
@@ -78,7 +79,7 @@ export const LEGAL_DOCS_EN: LegalDoc[] = [
   {
     slug: 'confidentialite',
     title: 'Privacy policy',
-    updated: '24 July 2026',
+    updated: '8 October 2026 (cookies)',
     intro:
       'This policy describes how Sinatech processes personal data, in compliance with Moroccan law no. 09-08 on the protection of individuals with regard to the processing of personal data and, where the processing falls within its territorial scope, with Regulation (EU) 2016/679 (“GDPR”).',
     blocks: [
@@ -100,7 +101,7 @@ export const LEGAL_DOCS_EN: LegalDoc[] = [
         table: {
           headers: ['Category', 'Examples of data', 'Purposes', 'Legal basis'],
           rows: [
-            ['Site visitors', 'Browsing data, cookies, audience measurement', 'Operating and improving the site, statistics', 'Legitimate interest / consent (non-essential cookies)'],
+            ['Site visitors', 'Technical browsing data and necessary storage', 'Site operation and security; remembering choices', 'Legitimate interest; exemption for strictly necessary storage'],
             ['Prospects', 'Identity, contact details, portfolio size, current tool', 'Answering demo requests, B2B prospecting', 'Pre-contractual measures / legitimate interest'],
             ['Clients & users', 'Identity, contact details, role, login logs, billing', 'Providing the Service, support, billing, security', 'Performance of the contract / legal obligation (accounting)'],
             ['Guests (on behalf of clients)', 'Identity, contact details, identity document (police record), stays, communications', 'Managing bookings, reporting obligations (DGSN, tourist tax), messaging', 'Instructions of the client acting as controller'],
@@ -141,7 +142,7 @@ export const LEGAL_DOCS_EN: LegalDoc[] = [
           'Client accounts: the term of the contract, then billing data archived for 10 years (accounting obligations).',
           'Guest data processed as a processor: according to the instructions and periods set by the client acting as controller; deletion or return at the end of the contract (reversibility clause of the Terms of sale).',
           'Technical and security logs: 12 months.',
-          'Cookies: 13 months maximum; consent sought again beyond that.',
+          'Public website cookie choice: 6 months; necessary storage follows the durations in section 10.',
         ],
       },
       {
@@ -159,12 +160,7 @@ export const LEGAL_DOCS_EN: LegalDoc[] = [
           'You may lodge a complaint with the CNDP (www.cndp.ma) or, for persons covered by the GDPR, with the supervisory authority of your Member State (in France, the CNIL).',
         ],
       },
-      {
-        heading: '10. Cookies',
-        paragraphs: [
-          'The site uses strictly necessary cookies (session, security, consent preferences) which are exempt from consent and, subject to your agreement, audience measurement cookies. No third-party advertising cookie is placed. You may withdraw your consent at any time through the “Manage cookies” link in the footer.',
-        ],
-      },
+      COOKIE_POLICY.en,
       {
         heading: '11. Updates to this policy',
         paragraphs: [

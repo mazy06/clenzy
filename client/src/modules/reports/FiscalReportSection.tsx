@@ -1,3 +1,4 @@
+import FinanceHeaderFilters from '../billing/components/FinanceHeaderFilters';
 import React, { useState, useMemo } from 'react';
 import { cn } from '../../utils/cn';
 import { Alert, AlertDescription } from '../../components/ui';
@@ -252,7 +253,7 @@ const FiscalReportSection: React.FC = () => {
       {helpAction}
 
       {/* Period selector */}
-      <div className={cn(PANEL_CLASS, 'p-3 mb-3')}>
+      <FinanceHeaderFilters>
         <div className="flex gap-3 flex-wrap items-center">
           <Field className="w-[170px]">
             <FieldLabel htmlFor="fiscal-report-country">{t('fiscal.profile.country')}</FieldLabel>
@@ -323,13 +324,13 @@ const FiscalReportSection: React.FC = () => {
             </Field>
           )}
         </div>
-      </div>
 
-      {!!issuers.length && <Field className="mb-4 max-w-lg"><FieldLabel htmlFor="fiscal-issuer">{t('documentVerification.issuerScope')}</FieldLabel>
+      {!!issuers.length && <Field className="max-w-lg"><FieldLabel htmlFor="fiscal-issuer">{t('documentVerification.issuerScope')}</FieldLabel>
         <NativeSelect id="fiscal-issuer" value={issuer?.issuerKey ?? ''} onChange={event => setIssuerKey(event.target.value)}>
           {issuers.map(value => <NativeSelectOption key={value.issuerKey} value={value.issuerKey}>{value.sellerName || t('documentVerification.unknownIssuer')} · {value.summary.countryCode} · {value.summary.currency}</NativeSelectOption>)}
         </NativeSelect>
       </Field>}
+      </FinanceHeaderFilters>
       {/* Loading / Error */}
       {activeQuery.isLoading ? (
         <div className="flex flex-col gap-2">

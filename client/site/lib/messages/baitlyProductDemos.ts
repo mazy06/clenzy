@@ -16,6 +16,7 @@ const fr = {
   },
   finance: {
     title: 'Un séjour, un paiement',
+    received: 'Encaissé', pending: 'À encaisser', list: 'Réservations de démonstration', detail: 'Détail du paiement', providerPending: 'PSP local à sélectionner',
     countries: ['Maroc', 'Arabie saoudite', 'France'],
     country: 'Marché de démonstration',
     stay: '3 nuits · 2 voyageurs',
@@ -25,7 +26,7 @@ const fr = {
     action: 'Simuler l’encaissement',
     done: 'Paiement rapproché',
     receipt: 'Le règlement est relié à la réservation.',
-    note: 'Exemple hors taxes et frais de paiement. Disponibilité selon votre compte et votre pays.',
+    note: 'Simulation sans transaction réelle, hors taxes et frais. Stripe en France ; PSP locaux en cours de sélection au Maroc et en Arabie saoudite.',
     steps: ['Réservation', 'Paiement', 'Rapprochement'],
   },
   operations: {
@@ -83,6 +84,7 @@ const en: typeof fr = {
   },
   finance: {
     title: 'One stay, one payment',
+    received: 'Received', pending: 'To collect', list: 'Demo bookings', detail: 'Payment details', providerPending: 'Local provider to be selected',
     countries: ['Morocco', 'Saudi Arabia', 'France'],
     country: 'Demo market',
     stay: '3 nights · 2 guests',
@@ -92,7 +94,7 @@ const en: typeof fr = {
     action: 'Simulate payment',
     done: 'Payment reconciled',
     receipt: 'The payment is linked to the booking.',
-    note: 'Example excludes taxes and payment fees. Availability depends on your country and account.',
+    note: 'Simulation only, excluding taxes and fees. Stripe in France; local providers are being selected for Morocco and Saudi Arabia.',
     steps: ['Booking', 'Payment', 'Reconciliation'],
   },
   operations: {
@@ -149,6 +151,7 @@ const ar: typeof fr = {
     status: 'الحد الأدنى محفوظ',
   },
   finance: {
+    received: 'تم التحصيل', pending: 'بانتظار التحصيل', list: 'حجوزات توضيحية', detail: 'تفاصيل الدفع', providerPending: 'مزود الدفع المحلي قيد الاختيار',
     title: 'إقامة واحدة، دفعة واحدة',
     countries: ['المغرب', 'السعودية', 'فرنسا'],
     country: 'سوق العرض التجريبي',
@@ -159,7 +162,7 @@ const ar: typeof fr = {
     action: 'حاكِ التحصيل',
     done: 'تمت مطابقة الدفعة',
     receipt: 'تم ربط الدفعة بالحجز.',
-    note: 'مثال لا يشمل الضرائب ورسوم الدفع. التوفّر حسب بلدك وحسابك.',
+    note: 'محاكاة دون معاملة حقيقية، ولا تشمل الضرائب والرسوم. Stripe في فرنسا؛ مزودو المغرب والسعودية قيد الاختيار.',
     steps: ['الحجز', 'الدفع', 'المطابقة'],
   },
   operations: {

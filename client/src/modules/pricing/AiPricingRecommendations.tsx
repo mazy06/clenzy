@@ -1,4 +1,5 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
+import PagePagination from '../../components/PagePagination';
 import { cn } from '../../utils/cn';
 import StatusChip, { type StatusTone } from '../../components/StatusChip';
 import { Badge, Button, Card } from '../../components/ui';
@@ -27,7 +28,7 @@ interface AiPricingRecommendationsProps {
 // ─── Constants ──────────────────────────────────────────────────────────────
 
 /** Densité de la carte : la surface vient de la primitive `Card`, le rythme d'ici. */
-const PANEL_CLASS = 'gap-0 py-0 p-[9px]';
+const PANEL_CLASS = 'bp-data-panel gap-0 p-5';
 
 function isAiNotConfiguredError(error: unknown): boolean {
   const apiErr = error as { details?: Record<string, unknown> } | undefined;
@@ -47,7 +48,7 @@ const PanelHeading: React.FC<{ title: string; count?: number }> = ({ title, coun
     <span className="inline-flex text-primary"><AutoAwesome size={18} strokeWidth={1.75} /></span>
     <h6 className="text-xs font-semibold tracking-tight">{title}</h6>
     {count != null && (
-      <Badge variant="default" className="h-5 text-2xs font-semibold tabular-nums">{`${count}`}</Badge>
+      <Badge variant="default" className="h-5 text-xs font-semibold tabular-nums">{`${count}`}</Badge>
     )}
   </div>
 );
@@ -58,6 +59,8 @@ const AiPricingRecommendations: React.FC<AiPricingRecommendationsProps> = React.
   ({ propertyId, from, to, enabled = true }) => {
     const { t } = useTranslation();
     const navigate = useNavigate();
+    const [page, setPage] = useState(0);
+    useEffect(() => { setPage(0); }, [propertyId, from, to]);
     const { data, isLoading, isError, error } = useAiPricingPredictions(
       propertyId,
       from,
@@ -116,11 +119,13 @@ const AiPricingRecommendations: React.FC<AiPricingRecommendationsProps> = React.
         <Card className={PANEL_CLASS}>
           <PanelHeading title={t('bookingEngine.ai.pricing.title')} />
           <p className="text-xs text-muted-foreground">
-            {t('bookingEngine.ai.pricing.loading')}
+            {t('baitlyPricing.aiEmpty', "Aucune recommandation pour cette période.")}
           </p>
         </Card>
       );
     }
+
+    const currentPage = Math.min(page, Math.max(0, Math.ceil(data.length / 7) - 1));
 
     // ── Content ───────────────────────────────────────────────────────
     return (
@@ -128,11 +133,11 @@ const AiPricingRecommendations: React.FC<AiPricingRecommendationsProps> = React.
         <PanelHeading title={t('bookingEngine.ai.pricing.title')} count={data.length} />
 
         <div className="flex flex-col gap-1.5">
-          {data.map((rec) => (
-            <div className="flex items-center gap-2 p-1.5 rounded-md bg-muted" key={rec.date}>
+          {data.slice(currentPage * 7, (currentPage + 1) * 7).map((rec) => (
+            <div className="flex flex-wrap items-center gap-3 p-3 rounded-md bg-muted" key={rec.date}>
               {/* Date */}
               <div className="min-w-[60px]">
-                <span className="text-[0.7rem] font-semibold tabular-nums">
+                <span className="text-xs font-semibold tabular-nums">
                   {rec.date}
                 </span>
               </div>
@@ -154,7 +159,7 @@ const AiPricingRecommendations: React.FC<AiPricingRecommendationsProps> = React.
                       tone={confidenceTone(rec.confidence)}
                       size="sm"
                       label={`${(rec.confidence * 100).toFixed(0)}%`}
-                      className="text-[0.6rem]"
+                      className="text-xs"
                     />
                   </span>
                 </TooltipTrigger>
@@ -164,17 +169,19 @@ const AiPricingRecommendations: React.FC<AiPricingRecommendationsProps> = React.
               </Tooltip>
 
               {/* Explanation */}
-              <span className="flex-1 truncate text-[0.7rem] text-muted-foreground">
+              <span className="flex-1 min-w-[120px] whitespace-normal text-xs text-muted-foreground">
                 {rec.explanation}
               </span>
             </div>
           ))}
         </div>
 
+        <PagePagination page={currentPage} onPageChange={setPage} count={data.length} rowsPerPage={7} />
+
         {/* Market comparison from first recommendation */}
         {data[0]?.marketComparison && (
           <div className="mt-2 pt-1.5 border-t border-border">
-            <span className="text-[0.7rem] text-muted-foreground">
+            <span className="text-xs text-muted-foreground">
               {t('bookingEngine.ai.pricing.marketComparison')}: {data[0].marketComparison}
             </span>
           </div>

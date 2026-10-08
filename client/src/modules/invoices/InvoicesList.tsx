@@ -1,6 +1,8 @@
+import FinanceStatusIcon from '../billing/components/FinanceStatusIcon';
+import FinanceHeaderFilters from '../billing/components/FinanceHeaderFilters';
 import FinanceWorkspace from '../billing/components/FinanceWorkspace';
 import BaitlyDocumentVerificationPanel from './BaitlyDocumentVerificationPanel';
-import { FinanceAmountKpis } from '../billing/components/FinanceKpis';
+import { FINANCE_KPI_ARTWORK, FinanceAmountKpis } from '../billing/components/FinanceKpis';
 import React, { useState, useMemo } from 'react';
 import StatusChip from '../../components/StatusChip';
 import { Button, Spinner } from '../../components/ui';
@@ -37,7 +39,6 @@ import {
 import PageHeader from '../../components/PageHeader';
 import StatTile from '../../components/baitly/StatTile';
 import StatTileRow from '../../components/baitly/StatTileRow';
-import FilterChipRow from '../../components/baitly/FilterChipRow';
 import DateRangePicker from '../../components/baitly/DateRangePicker';
 import ExportButton from '../../components/baitly/ExportButton';
 import { usePageHeaderActions } from '../../components/PageHeaderActionsContext';
@@ -70,6 +71,17 @@ const STATUS_LABELS: Record<InvoiceStatus, string> = {
   CREDIT_NOTE: 'Avoir',
 };
 
+/** Les factures reprennent les illustrations de leurs KPI, dans la liste et le détail. */
+const STATUS_ARTWORK: Record<InvoiceStatus, string> = {
+  DRAFT: FINANCE_KPI_ARTWORK.pending,
+  SENT: FINANCE_KPI_ARTWORK.pending,
+  ISSUED: FINANCE_KPI_ARTWORK.pending,
+  PAID: FINANCE_KPI_ARTWORK.transfer,
+  OVERDUE: FINANCE_KPI_ARTWORK.received,
+  CANCELLED: FINANCE_KPI_ARTWORK.documents,
+  CREDIT_NOTE: '/images/hitl/refund.webp',
+};
+
 const TYPE_OPTIONS: { value: InvoiceType | ''; label: string }[] = [
   { value: '', label: 'Toutes' },
   { value: 'GUEST', label: 'S\u00e9jour' },
@@ -78,30 +90,6 @@ const TYPE_OPTIONS: { value: InvoiceType | ''; label: string }[] = [
 
 /** Accent de la facture de commission (rose valid\u00e9 Baitly), distinct des couleurs de statut. */
 const COMMISSION_COLOR = '#C97A7A';
-
-/** Statut de facture \u2192 encre Baitly UI de sa puce de filtre. Toujours la variante
- *  `-ink` : la teinte vive plafonne \u00e0 ~2,2:1 en clair.
- *  Neutre (brouillon/annul\u00e9e) : pas de teinte s\u00e9mantique \u2014 repli muted-foreground. */
-const STATUS_INK: Record<InvoiceStatus, string> = {
-  DRAFT: 'var(--bui-muted-foreground)',
-  SENT: 'var(--bui-info-ink)',
-  ISSUED: 'var(--bui-warning-ink)',
-  PAID: 'var(--bui-success-ink)',
-  OVERDUE: 'var(--bui-destructive-ink)',
-  CANCELLED: 'var(--bui-muted-foreground)',
-  CREDIT_NOTE: 'var(--bui-info-ink)',
-};
-
-/** Statut → ton semantique du chip a point (dessin de la projection). */
-const STATUS_TONE: Record<InvoiceStatus, 'ok' | 'warn' | 'err' | 'info' | 'neutral'> = {
-  DRAFT: 'neutral',
-  SENT: 'info',
-  ISSUED: 'warn',
-  PAID: 'ok',
-  OVERDUE: 'err',
-  CANCELLED: 'neutral',
-  CREDIT_NOTE: 'info',
-};
 
 /** Montants : display tabular-nums (jamais proportional) */
 const MONEY_CLASS = 'font-[family-name:var(--font-display)] tabular-nums';
@@ -186,17 +174,15 @@ const InvoicesList: React.FC<InvoicesListProps> = ({ embedded = false }) => {
   };
 
 
-  // Seule la periode reste un filtre serveur. Le statut passe cote client :
-  // la rangee de chips de la projection affiche le compte de CHAQUE statut,
-  // ce qu'un filtre serveur rendrait faux (il ne rapporterait que le statut
-  // demande). Meme logique que le filtre par nature, deja client.
+  // Le filtre de statut reste local pour conserver les comptes de chaque
+  // statut dans le sélecteur du header. Seule la période filtre côté serveur.
   const filters = useMemo(() => ({
     ...(dateFrom ? { from: dateFrom } : {}),
     ...(dateTo ? { to: dateTo } : {}),
   }), [dateFrom, dateTo]);
 
   const { data: invoices, isLoading, error } = useInvoices(filters);
-  // Liste par nature (sejour / commission) — assiette des comptes de chips.
+  // La nature détermine l'assiette des compteurs de statut.
   const typedInvoices = useMemo(
     () => (invoices ?? []).filter((i) => !typeFilter || i.invoiceType === typeFilter),
     [invoices, typeFilter],
@@ -280,10 +266,8 @@ const InvoicesList: React.FC<InvoicesListProps> = ({ embedded = false }) => {
     />,
   );
 
-  // ─── Stats — les trois tuiles monetaires de la projection ────────────────
-  // L'assiette est la liste par nature AVANT filtre de statut : cliquer un chip
-  // filtre le tableau sans faire mentir les tuiles. Les comptes par statut
-  // (brouillons, emises…) vivent desormais sur les chips, plus en tuiles.
+  // Les KPI gardent la liste par nature avant filtre de statut.
+  // Les comptes détaillés restent dans le sélecteur du header.
   const stats = useMemo(() => {
     if (!invoices) return null;
     const list = typedInvoices;
@@ -308,10 +292,55 @@ const InvoicesList: React.FC<InvoicesListProps> = ({ embedded = false }) => {
     };
   }, [invoices, typedInvoices]);
 
+  const filterControls = <>
+      {/* ─── Chips de statut — comptes par statut, couleurs semantiques ──── */}
+      {stats && (
+        <label>{t('common.status', 'Statut')}
+          <NativeSelect value={statusFilter} onChange={e => setStatusFilter(e.target.value as InvoiceStatus | '')}>
+            <NativeSelectOption value="">{t('common.all', 'Toutes')} ({stats.total})</NativeSelectOption>
+            {(Object.keys(STATUS_LABELS) as InvoiceStatus[]).filter(value => stats.parStatut[value] > 0).map(value =>
+              <NativeSelectOption key={value} value={value}>{STATUS_LABELS[value]} ({stats.parStatut[value]})</NativeSelectOption>)}
+          </NativeSelect>
+        </label>
+      )}
+
+      <div className="finance-filter-fields">
+        <Field className="w-auto min-w-[150px]">
+          <FieldLabel className="sr-only" htmlFor="invoices-filter-type">{t('invoices.type.label', 'Type')}</FieldLabel>
+          <NativeSelect
+            id="invoices-filter-type"
+            className="w-full"
+            value={typeFilter}
+            onChange={(e) => setTypeFilter(e.target.value as InvoiceType | '')}
+          >
+            {TYPE_OPTIONS.map((opt) => (
+              <NativeSelectOption key={opt.value} value={opt.value}>
+                {opt.label}
+              </NativeSelectOption>
+            ))}
+          </NativeSelect>
+        </Field>
+        <DateRangePicker
+          startDate={dateFrom}
+          endDate={dateTo}
+          onChangeStart={setDateFrom}
+          onChangeEnd={setDateTo}
+        />
+        {hasActiveFilters && (
+          <Button variant="outline" size="sm" onClick={handleClearFilters}>
+            <ClearIcon size={16} strokeWidth={1.75} />
+            {t('payments.history.clearFilters')}
+          </Button>
+        )}
+      </div>
+
+  </>;
+
   return (
     <div>
       {!embedded && (
         <PageHeader
+          inlineControls={<div className="finance-header-filters">{filterControls}</div>}
           title={t('invoices.title', 'Factures')}
           subtitle={t('invoices.subtitle', 'Gestion des factures et documents fiscaux')}
           iconBadge={<ReceiptIcon />}
@@ -342,59 +371,7 @@ const InvoicesList: React.FC<InvoicesListProps> = ({ embedded = false }) => {
         <FinanceAmountKpis kind="invoices" records={displayedInvoices.map(row => ({ status: row.status, amount: row.totalTtc, currency: row.currency }))} />
       )}
 
-      {/* ─── Chips de statut — comptes par statut, couleurs semantiques ──── */}
-      {stats && (
-        <FilterChipRow
-          className="mb-3"
-          allLabel={t('common.all', 'Toutes')}
-          allCount={stats.total}
-          value={statusFilter}
-          onChange={(v) => setStatusFilter(v as InvoiceStatus | '')}
-          options={(Object.keys(STATUS_LABELS) as InvoiceStatus[])
-            .filter((st) => stats.parStatut[st] > 0)
-            .map((st) => ({
-              value: st,
-              label: STATUS_LABELS[st],
-              color: STATUS_INK[st],
-              count: stats.parStatut[st],
-            }))}
-        />
-      )}
-
-      {/* ─── Filters (panneau hairline plat) ─────────────────────────────── */}
-      {/* Le statut vit desormais dans la rangee de chips ci-dessus : ne
-          restent ici que la nature et la periode. */}
-      {/* `flex-row` explicite : la base du Card est flex-col, ou `items-center`
-          devient un centrage horizontal des champs. */}
-      <Card className="gap-0 py-0 p-2 mb-3 flex flex-row gap-2 flex-wrap items-end border-border bg-card">
-        <Field className="w-auto min-w-[150px]">
-          <FieldLabel htmlFor="invoices-filter-type">{t('invoices.type.label', 'Type')}</FieldLabel>
-          <NativeSelect
-            id="invoices-filter-type"
-            className="w-full"
-            value={typeFilter}
-            onChange={(e) => setTypeFilter(e.target.value as InvoiceType | '')}
-          >
-            {TYPE_OPTIONS.map((opt) => (
-              <NativeSelectOption key={opt.value} value={opt.value}>
-                {opt.label}
-              </NativeSelectOption>
-            ))}
-          </NativeSelect>
-        </Field>
-        <DateRangePicker
-          startDate={dateFrom}
-          endDate={dateTo}
-          onChangeStart={setDateFrom}
-          onChangeEnd={setDateTo}
-        />
-        {hasActiveFilters && (
-          <Button variant="outline" size="sm" onClick={handleClearFilters}>
-            <ClearIcon size={16} strokeWidth={1.75} />
-            {t('payments.history.clearFilters')}
-          </Button>
-        )}
-      </Card>
+      {embedded && <FinanceHeaderFilters>{filterControls}</FinanceHeaderFilters>}
 
       {/* ─── Table ───────────────────────────────────────────────────────── */}
       {downloadError && (
@@ -430,7 +407,7 @@ const InvoicesList: React.FC<InvoicesListProps> = ({ embedded = false }) => {
           variant="plain"
         />
       ) : (
-        <FinanceWorkspace artwork="documents"  items={displayedInvoices.map((inv: Invoice) => {
+        <FinanceWorkspace highlightId={highlightId} artwork="documents"  items={displayedInvoices.map((inv: Invoice) => {
                 const source = getSourceType(inv);
                 const original = invoices?.find(item => item.id === inv.originalInvoiceId);
                 const creditNotes = invoices?.filter(item => item.originalInvoiceId === inv.id) ?? [];
@@ -455,7 +432,7 @@ const InvoicesList: React.FC<InvoicesListProps> = ({ embedded = false }) => {
                 ];
 
                 return (
-                  { id: inv.id, detail: <BaitlyDocumentVerificationPanel invoice={inv} />, identity: { interventionId: inv.interventionId, reservationId: inv.reservationId }, title: <>
+                  { id: inv.id, eventImage: STATUS_ARTWORK[inv.status], detail: <BaitlyDocumentVerificationPanel invoice={inv} />, identity: { interventionId: inv.interventionId, reservationId: inv.reservationId }, title: <>
                       <div className="flex items-center gap-1">
                         {/* Litteral et non `cn()` : tailwind-merge considere `font-[...]` et
                             `font-semibold` comme un meme groupe et supprimerait la police display. */}
@@ -467,7 +444,7 @@ const InvoicesList: React.FC<InvoicesListProps> = ({ embedded = false }) => {
                         )}
                       </div>
                     </>, amount: <><Money value={inv.totalTtc} from={inv.currency} /></>, status: <>
-                      <StatusChip tone={STATUS_TONE[inv.status]} label={STATUS_LABELS[inv.status]} dot size="sm" />
+                      <FinanceStatusIcon value={inv.status} label={STATUS_LABELS[inv.status]} />
                     </>, subtitle: <>{inv.buyerName}</>, meta: <>{fmtDate(inv.invoiceDate)}</>, actions: <>
                       <div className="flex gap-0.5 justify-end">
                         {/* Voir PDF (document genere) */}

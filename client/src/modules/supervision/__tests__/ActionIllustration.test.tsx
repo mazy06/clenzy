@@ -45,6 +45,7 @@ describe('Bibliothèque des vignettes HITL', () => {
   it.each([
     ['NOSHOW_MARK', 'no-show'], ['TAX_MARK_FILED', 'tourist-tax'], ['GUIDE_SEND', 'welcome-guide'],
     ['OWNER_PAYOUT', 'owner-transfer'], ['CLEANING_PAYOUT', 'service-transfer'],
+    ['PROVIDER_PAYOUT_BENEFICIARY', 'service-transfer'],
     ['LOCK_BATTERY_REPLACE', 'maintenance'], ['PREVENTIVE_MAINTENANCE', 'property-maintenance'],
   ])('reconnaît %s indépendamment du texte ou de la langue', (applyActionType, visual) => {
     expect(actionIllustration(item({ applyActionType, title: 'عنوان', motif: 'Some other translated description.' }))).toBe(visual);

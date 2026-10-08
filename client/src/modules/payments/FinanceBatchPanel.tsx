@@ -25,17 +25,36 @@ export interface FinanceBatchResult {
   url?: string;
 }
 
-/** Sélection explicite et récapitulatif avant toute action financière, sans conversion de devise. */
-export function FinanceBatchPanel({ items, title, actionLabel, loadAll, onExecute, disabled = false, placement = 'inline' }: {
+interface FinanceBatchAction {
   items: FinanceBatchItem[];
-  title: string;
   actionLabel: string;
+  hint?: string;
   loadAll?: () => Promise<FinanceBatchItem[]>;
   onExecute: (items: FinanceBatchItem[]) => Promise<FinanceBatchResult[]>;
+}
+
+export interface FinanceBatchOperation extends FinanceBatchAction {
+  key: string;
+  label: string;
+}
+
+type FinanceBatchPanelProps = {
+  title: string;
   disabled?: boolean;
   placement?: 'inline' | 'header';
-}) {
+} & (FinanceBatchAction & { operations?: never } | {
+  operations: readonly [FinanceBatchOperation, ...FinanceBatchOperation[]];
+});
+
+const uniqueItems = (items: FinanceBatchItem[]) => [...new Map(items.map(item => [item.key, item])).values()];
+
+/** Sélection explicite et récapitulatif avant toute action financière, sans conversion de devise. */
+export function FinanceBatchPanel(props: FinanceBatchPanelProps) {
+  const { title, disabled = false, placement = 'inline', operations } = props;
   const { t } = useTranslation();
+  const [operationKey, setOperationKey] = useState(operations?.[0].key);
+  const action = operations ? operations.find(operation => operation.key === operationKey) ?? operations[0] : props;
+  const { items, actionLabel, loadAll, onExecute, hint } = action;
   const [open, setOpen] = useState(false);
   const [choices, setChoices] = useState<FinanceBatchItem[]>([]);
   const [selected, setSelected] = useState<Set<string>>(new Set());
@@ -60,12 +79,20 @@ export function FinanceBatchPanel({ items, title, actionLabel, loadAll, onExecut
     lock.current = true; setBusy(true); setError(null);
     try {
       const data = all && loadAll ? await loadAll() : items;
-      const unique = [...new Map(data.map(item => [item.key, item])).values()];
+      const unique = uniqueItems(data);
       setChoices(unique); setSelected(new Set(all ? unique.map(item => item.key) : []));
       setResults([]); setSearch(''); setPage(0); setOpen(true);
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : t('financeBatch.failed'));
     } finally { lock.current = false; setBusy(false); }
+  };
+
+  const changeOperation = (operation: FinanceBatchOperation) => {
+    if (lock.current || operation.key === operationKey) return;
+    setOperationKey(operation.key);
+    setChoices(uniqueItems(operation.items));
+    // Une approbation n'autorise jamais implicitement un versement : nouvelle sélection.
+    setSelected(new Set()); setResults([]); setError(null); setSearch(''); setPage(0);
   };
 
   const execute = async () => {
@@ -89,8 +116,8 @@ export function FinanceBatchPanel({ items, title, actionLabel, loadAll, onExecut
 
   const controls = <div className={placement === 'header' ? 'finance-batch-header' : 'finance-batch-launcher__controls'} role="group" aria-label={title}>
       {placement === 'inline' && <span className="text-xs font-medium text-muted-foreground">{title}</span>}
-      {iconAction(t('financeBatch.choose'), <ListChecks size={16} />, () => { void select(false); })}
-      {iconAction(t('financeBatch.selectAll'), <CheckCheck size={16} />, () => { void select(true); })}
+      {iconAction(operations ? title : t('financeBatch.choose'), <ListChecks size={16} />, () => { void select(false); })}
+      {!operations && iconAction(t('financeBatch.selectAll'), <CheckCheck size={16} />, () => { void select(true); })}
       {busy && <Spinner className="size-4" />}
     </div>;
   const headerActions = usePageHeaderActions(placement === 'header' ? controls : null);
@@ -102,9 +129,15 @@ export function FinanceBatchPanel({ items, title, actionLabel, loadAll, onExecut
         onEscapeKeyDown={event => { if (lock.current) event.preventDefault(); }} onInteractOutside={event => { if (lock.current) event.preventDefault(); }}>
         <DialogHeader className="finance-batch-modal__header">
           <img src="/images/finance-kpis/transfer.png" alt="" width={56} height={56} />
-          <div><DialogTitle>{title}</DialogTitle><DialogDescription>{t('financeBatch.reviewHint')}</DialogDescription></div>
+          <div><DialogTitle>{title}</DialogTitle><DialogDescription>{hint || t('financeBatch.reviewHint')}</DialogDescription></div>
           <Button className="finance-batch-modal__close" variant="ghost" size="icon-sm" aria-label={t('common.close', 'Fermer')} disabled={busy} onClick={() => setOpen(false)}><X size={18} /></Button>
         </DialogHeader>
+        {operations && <div className="finance-batch-modal__operations" role="group" aria-label={t('financeBatch.operation', 'Étape du reversement')}>
+          {operations.map(operation => <Button key={operation.key} variant="ghost" size="sm" disabled={busy}
+            aria-pressed={operation.key === operationKey} onClick={() => changeOperation(operation)}>
+            {operation.label}<span className="tabular-nums">{operation.items.length}</span>
+          </Button>)}
+        </div>}
         <div className="finance-batch-modal__toolbar">
           <label className="finance-batch-modal__search"><Search size={16} aria-hidden="true" /><Input value={search} onChange={event => { setSearch(event.target.value); setPage(0); }} placeholder={t('financeBatch.search')} aria-label={t('financeBatch.search')} /></label>
           <Button className="finance-batch-modal__select-all" variant="outline" size="sm" aria-pressed={shown.length > 0 && shown.every(item => selected.has(item.key))} disabled={busy || !!results.length || !shown.length} onClick={() => setSelected(new Set(shown.every(item => selected.has(item.key)) ? [] : shown.map(item => item.key)))}><CheckCheck size={16} />{t('financeBatch.toggleAll')}</Button>

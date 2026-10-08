@@ -20,6 +20,8 @@ import type { DashboardPeriod } from '../modules/dashboard/DashboardDateFilter';
  * compterait le même argent deux fois et donnerait un total sans signification.
  */
 export interface MonthlyRevenueSplit {
+  /** Source unit supplied by the report, independent of the display preference. */
+  currency?: string;
   /** Mois ISO (YYYY-MM), traduit au rendu pour suivre la langue sans recharger. */
   month: string;
   /** Total du mois — sert au libellé, pas au tracé. */
@@ -55,7 +57,7 @@ function monthKey(isoDate: string): string {
 }
 
 /**
- * Le revenu des N derniers mois, décomposé en ce qu'il est devenu.
+ * Le revenu de janvier à décembre d'une année civile, décomposé par mois.
  *
  * Un seul appel au moteur de rapports suffit : il expose REVENUE et FEES, et
  * {@code MARGIN = REVENUE − FEES − coûts d'intervention}. Les coûts
@@ -70,61 +72,63 @@ function monthKey(isoDate: string): string {
  * <p>La ventilation direct / OTA a été retirée : la carte « Revenus par canal »,
  * juste à côté, dit déjà cela — et bien mieux.</p>
  */
-export function useDashboardRevenueSplit(months = 6, enabled = true) {
-  const to = new Date();
-  const from = new Date(to.getFullYear(), to.getMonth() - (months - 1), 1);
-  // Local calendar dates must not move to the previous day through UTC conversion.
-  const iso = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+export function useDashboardRevenueSplit(year = new Date().getFullYear(), enabled = true) {
+  // Calendar-year boundaries are date strings, independent of UTC conversion.
+  const from = `${year}-01-01`;
+  const to = `${year}-12-31`;
 
   return useQuery<MonthlyRevenueSplit[]>({
-    queryKey: ['dashboard', 'revenue-split', months, iso(from), iso(to)],
+    queryKey: ['dashboard', 'revenue-split', 'year', year],
     queryFn: async () => {
       const [result, payouts] = await Promise.all([
         reportViewsApi.execute({
           dimensions: ['PERIOD'],
           metrics: ['REVENUE', 'FEES', 'MARGIN'],
           granularity: 'MONTH',
-          from: iso(from),
-          to: iso(to),
+          from,
+          to,
         }),
         // A failed payout request is unknown, never a zero financial amount.
         accountingApi.getPayouts(),
       ]);
 
       const periodIndex = result.dimensions.indexOf('PERIOD');
-      if (periodIndex < 0) return [];
+      if (periodIndex < 0) throw new Error('Monthly revenue report is missing the PERIOD dimension');
 
       const empty = (bucket: string): MonthlyRevenueSplit => ({
         month: bucket,
+        currency: result.currency,
         revenue: 0, fees: 0, interventions: 0, payout: 0, retained: 0,
       });
 
-      const byMonth = new Map<string, MonthlyRevenueSplit>();
+      // Keep every month visible, including empty months and those still ahead.
+      const byMonth = new Map<string, MonthlyRevenueSplit>(Array.from({ length: 12 }, (_, month) => {
+        const bucket = `${year}-${String(month + 1).padStart(2, '0')}`;
+        return [bucket, empty(bucket)];
+      }));
       for (const row of result.rows) {
         const bucket = row.dimensionValues[periodIndex];
+        const entry = byMonth.get(bucket);
+        if (!entry) continue;
         const revenue = row.metrics.REVENUE ?? 0;
         const fees = row.metrics.FEES ?? 0;
         const margin = row.metrics.MARGIN ?? revenue - fees;
 
-        const entry = byMonth.get(bucket) ?? empty(bucket);
         entry.revenue += revenue;
         entry.fees += fees;
         // Déduit, faute d'être exposé. Borné à zéro : un arrondi entre trois
         // métriques ne doit pas produire un coût négatif, qui n'existe pas.
         entry.interventions += Math.max(0, revenue - fees - margin);
         entry.retained += margin;
-        byMonth.set(bucket, entry);
       }
 
-      const fromKey = monthKey(iso(from));
       for (const payout of payouts) {
         if (!SETTLED_PAYOUT_STATUSES.has(payout.status)) continue;
         const bucket = monthKey(payout.periodStart);
         // Hors fenêtre : la liste n'est pas filtrée par date côté serveur.
-        if (bucket < fromKey || bucket > monthKey(iso(to))) continue;
-        const entry = byMonth.get(bucket) ?? empty(bucket);
+        const entry = byMonth.get(bucket);
+        if (!entry) continue;
         entry.payout += payout.netAmount ?? 0;
-        byMonth.set(bucket, entry);
       }
 
       // Le reversé sort de la marge : sans cette soustraction, les segments
@@ -133,10 +137,8 @@ export function useDashboardRevenueSplit(months = 6, enabled = true) {
         entry.retained -= entry.payout;
       }
 
-      // Tri sur la clé brute (`yyyy-MM`), pas sur le libellé traduit.
-      return [...byMonth.entries()]
-        .sort(([a], [b]) => a.localeCompare(b))
-        .map(([, value]) => value);
+      // Insertion order is January–December, independent of report row order.
+      return [...byMonth.values()];
     },
     staleTime: 10 * 60_000,
     enabled,

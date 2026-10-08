@@ -2,7 +2,7 @@
  * Texte de la projection « Interventions ».
  *
  * <p>Meme mecanique que les deux autres projections : dictionnaire local,
- * langue lue sur l'attribut `lang` du document — la landing n'initialise pas
+ * langue lue sur l'attribut `lang` du document · la landing n'initialise pas
  * i18next.</p>
  */
 const fr = {
@@ -49,7 +49,7 @@ const fr = {
       assignedToName: null as string | null,
     },
     {
-      title: 'Check-in accompagné — arrivée tardive',
+      title: 'Check-in accompagné · arrivée tardive',
       propertyName: 'Villa Palmeraie',
       propertyCity: 'Marrakech',
       dueDate: '22 juil., 21:30',
@@ -69,7 +69,7 @@ const fr = {
       subtitle: 'Ménage entre deux séjours',
       propertyName: 'Riad Bab Doukkala',
       address: '12 derb Sidi Bouloukat · Marrakech',
-      team: 'Équipe Entretien — Marrakech',
+      team: 'Équipe Entretien · Marrakech',
       date: '28 mars',
       slot: '11:00 – 16:00',
       status: 'pending' as const,
@@ -89,7 +89,7 @@ const fr = {
     },
     {
       kind: 'checkin' as const,
-      title: 'Check-in accompagné — arrivée tardive',
+      title: 'Check-in accompagné · arrivée tardive',
       subtitle: 'Accueil voyageur',
       propertyName: 'Villa Founty',
       address: 'Secteur Founty · Agadir',
@@ -150,7 +150,7 @@ const en: InterventionsDemoMessages = {
       assignedToName: null,
     },
     {
-      title: 'Accompanied check-in — late arrival',
+      title: 'Accompanied check-in · late arrival',
       propertyName: 'Villa Palmeraie',
       propertyCity: 'Marrakech',
       dueDate: '22 July, 21:30',
@@ -170,7 +170,7 @@ const en: InterventionsDemoMessages = {
       subtitle: 'Cleaning between two stays',
       propertyName: 'Al-Malqa istiraha',
       address: '7 Al-Urubah Road · Riyadh',
-      team: 'Housekeeping team — Riyadh',
+      team: 'Housekeeping team · Riyadh',
       date: '28 March',
       slot: '11:00 – 16:00',
       status: 'pending' as const,
@@ -190,7 +190,7 @@ const en: InterventionsDemoMessages = {
     },
     {
       kind: 'checkin' as const,
-      title: 'Accompanied check-in — late arrival',
+      title: 'Accompanied check-in · late arrival',
       subtitle: 'Guest welcome',
       propertyName: 'Al-Aqrabiyah villa',
       address: '9 King Faisal Road · Khobar',
@@ -249,7 +249,7 @@ const ar: InterventionsDemoMessages = {
       assignedToName: null,
     },
     {
-      title: 'استقبال مصحوب — وصول متأخر',
+      title: 'استقبال مصحوب · وصول متأخر',
       propertyName: 'فيلا النخيل',
       propertyCity: 'جدة',
       dueDate: '22 يوليو، 21:30',
@@ -269,7 +269,7 @@ const ar: InterventionsDemoMessages = {
       subtitle: 'تنظيف بين إقامتين',
       propertyName: 'استراحة الملقا',
       address: '7 طريق العروبة · الرياض',
-      team: 'فريق الصيانة — الرياض',
+      team: 'فريق الصيانة · الرياض',
       date: '28 مارس',
       slot: '11:00 – 16:00',
       status: 'pending' as const,
@@ -289,7 +289,7 @@ const ar: InterventionsDemoMessages = {
     },
     {
       kind: 'checkin' as const,
-      title: 'استقبال مصحوب — وصول متأخر',
+      title: 'استقبال مصحوب · وصول متأخر',
       subtitle: 'استقبال النزلاء',
       propertyName: 'فيلا العقربية',
       address: '9 طريق الملك فيصل · الخبر',

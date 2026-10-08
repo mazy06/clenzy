@@ -8,10 +8,7 @@ import { useId, useState, type ReactNode } from 'react';
 import {
   ArrowRightIcon,
   CheckIcon,
-  CheckCheckIcon,
   CircleCheckIcon,
-  CreditCardIcon,
-  FileTextIcon,
   KeyRoundIcon,
   LockKeyholeIcon,
   ShieldCheckIcon,
@@ -28,7 +25,9 @@ import {
 } from '../data/baitlyProductStories';
 import cleaner from '../assets/people/provider-1.jpg';
 import stripe from '../assets/brands/stripe.svg';
-import payzone from '../assets/brands/payzone.svg';
+import { SiteAgentPortrait, SiteDemoKpi, SiteDemoStatus } from './SiteProductVisuals';
+import { SITE_PRODUCT_ARTWORK } from '../data/productArtwork';
+import { SITE_ACTION_ARTWORK } from '../data/actionArtwork';
 import { SITE_PHOTOS } from '../data/baitlyPhotography';
 
 const {
@@ -92,7 +91,7 @@ export function RevenueDemo({ language }: DemoProps) {
   const money = useSiteMoney('MAD', language);
   return (
     <div className="bps-demo bps-revenue-demo">
-      <DemoHeader icon={<ShieldCheckIcon aria-hidden="true" />}>
+      <DemoHeader icon={<SiteAgentPortrait agent="rev" size={32} />}>
         {m.title}
       </DemoHeader>
       <div className="bps-demo-body">
@@ -163,10 +162,11 @@ export function RevenueDemo({ language }: DemoProps) {
 }
 
 const PAYMENT_EXAMPLES = [
-  { currency: 'MAD', price: 850, provider: 'Payzone', logo: payzone },
-  { currency: 'SAR', price: 350, provider: 'PayTabs', logo: undefined },
-  { currency: 'EUR', price: 95, provider: 'Stripe', logo: stripe },
+  { currency: 'MAD', price: 850 },
+  { currency: 'SAR', price: 350 },
+  { currency: 'EUR', price: 95 },
 ] as const;
+const DEMO_STAYS = [{ reference: 'BT-2409', nights: 3 }, { reference: 'BT-2410', nights: 2 }, { reference: 'BT-2411', nights: 4 }];
 
 export function FinanceDemo({ language }: DemoProps) {
   const m = BAITLY_PRODUCT_DEMO_MESSAGES[language];
@@ -176,96 +176,57 @@ export function FinanceDemo({ language }: DemoProps) {
   const country = currency.currency
     ? PAYMENT_EXAMPLES.findIndex((item) => item.currency === currency.currency)
     : selectedCountry;
-  const [paid, setPaid] = useState(false);
-  const sample = PAYMENT_EXAMPLES[country];
+  const [settled, setSettled] = useState<Record<string, boolean>>({});
+  const [selected, setSelected] = useState(0);
+  const sample = PAYMENT_EXAMPLES[Math.max(0, country)];
   const amount = useSiteMoney(sample.currency, language, sample.currency);
+  const stay = DEMO_STAYS[selected];
+  const isPaid = (index: number) => index > 0 || Boolean(settled[sample.currency + '-' + index]);
+  const paid = isPaid(selected);
+  const received = DEMO_STAYS.reduce((sum, item, index) => sum + (isPaid(index) ? item.nights * sample.price : 0), 0);
   return (
     <div className="bps-demo bps-finance-demo">
-      <DemoHeader icon={<CreditCardIcon aria-hidden="true" />}>
-        {f.title}
-      </DemoHeader>
-      <div className="bps-demo-body">
-        <Choices
-          label={f.country}
-          options={f.countries}
-          value={country}
-          onChange={(value) => {
-            setCountry(value);
-            currency.select(PAYMENT_EXAMPLES[value].currency);
-            setPaid(false);
-          }}
-        />
-        <div className="bps-booking-summary">
-          <img src={riad} alt="" width="72" height="72" />
-          <div>
-            <strong>{m.property}</strong>
-            <span>{f.stay}</span>
-          </div>
-          <span className="bps-booking-ref" dir="ltr">
-            #BT-2409
-          </span>
-        </div>
-        <dl className="bps-money-lines">
-          <div>
-            <dt>{f.nightly}</dt>
-            <dd>
-              <bdi>{amount(sample.price)}</bdi>
-            </dd>
-          </div>
-          <div className="bps-money-total">
-            <dt>{f.total}</dt>
-            <dd>
-              <bdi>{amount(sample.price * 3)}</bdi>
-            </dd>
-          </div>
-        </dl>
-        <div className="bps-payment-provider">
-          <span>{f.method}</span>
-          {sample.logo ? (
-            <img
-              src={sample.logo}
-              alt={sample.provider}
-              width="78"
-              height="24"
-            />
-          ) : (
-            <bdi>{sample.provider}</bdi>
-          )}
-        </div>
-        <div className="bps-payment-result" aria-live="polite">
-          {paid ? (
-            <div className="bps-success bps-enter">
-              <CircleCheckIcon aria-hidden="true" />
-              <div>
-                <strong>{f.done}</strong>
-                <span>{f.receipt}</span>
-              </div>
-            </div>
-          ) : (
-            <button
-              className="bps-demo-action"
-              type="button"
-              onClick={() => {
-                currency.pause();
-                setPaid(true);
-              }}
-            >
-              <LockKeyholeIcon aria-hidden="true" />
-              {f.action}
-              <ArrowRightIcon aria-hidden="true" />
-            </button>
-          )}
-        </div>
-        <ol className="bps-payment-steps">
-          {f.steps.map((step, index) => (
-            <li key={step} data-done={paid || index === 0}>
-              <CheckIcon aria-hidden="true" />
-              {step}
-            </li>
-          ))}
-        </ol>
-        <p className="bps-demo-note">{f.note}</p>
+      <DemoHeader icon={<SiteAgentPortrait agent="fin" size={32} />}>{f.title}</DemoHeader>
+      <div className="bps-demo-body" style={{ paddingBottom: 0 }}>
+        <Choices label={f.country} options={f.countries} value={country} onChange={(value) => {
+          setCountry(value); currency.select(PAYMENT_EXAMPLES[value].currency); setSelected(0);
+        }} />
       </div>
+      <div className="site-demo-kpis">
+        <SiteDemoKpi artwork="received" label={f.received} value={amount(received)} detail={f.receipt} />
+        <SiteDemoKpi artwork="pending" label={f.pending} value={amount(sample.price * 9 - received)} detail={f.note} />
+      </div>
+      <div className="site-finance-workspace">
+        <div className="site-finance-list" role="group" aria-label={f.list}>
+          {DEMO_STAYS.map((item, index) => <button key={item.reference} type="button" aria-pressed={selected === index}
+            onClick={() => { currency.pause(); setSelected(index); }}>
+            <img src={isPaid(index) ? SITE_PRODUCT_ARTWORK.received : SITE_PRODUCT_ARTWORK.pending} alt="" width={36} height={36} />
+            <span><strong dir="ltr">{item.reference}</strong><small>{amount(sample.price * item.nights)}</small></span>
+            <SiteDemoStatus done={isPaid(index)} label={isPaid(index) ? f.received : f.pending} focusable={false} />
+          </button>)}
+        </div>
+        <section className="site-finance-detail" aria-label={f.detail}>
+          <div className="bps-booking-summary">
+            <img src={riad} alt="" width={42} height={42} />
+            <div><strong>{m.property}</strong><span dir="ltr">#{stay.reference}</span></div>
+          </div>
+          <dl className="bps-money-lines">
+            <div><dt>{f.nightly}</dt><dd><bdi>{amount(sample.price)}</bdi></dd></div>
+            <div className="bps-money-total"><dt>{f.total}</dt><dd><bdi>{amount(sample.price * stay.nights)}</bdi></dd></div>
+          </dl>
+          <div className="bps-payment-provider"><span>{f.method}</span>
+            {sample.currency === 'EUR' ? <img src={stripe} alt="Stripe" width={60} height={24} /> : <span>{f.providerPending}</span>}
+          </div>
+          <div className="bps-payment-result" aria-live="polite">
+            {paid ? <div className="bps-success bps-enter"><CircleCheckIcon aria-hidden /><div><strong>{f.done}</strong><span>{f.receipt}</span></div></div>
+              : <button className="bps-demo-action" type="button" onClick={() => {
+                currency.pause(); setSettled(current => ({ ...current, [sample.currency + '-' + selected]: true }));
+              }}><LockKeyholeIcon aria-hidden />{f.action}<ArrowRightIcon aria-hidden /></button>}
+          </div>
+          <ol className="bps-payment-steps">{f.steps.map((step, index) => <li key={step} data-done={paid || index === 0}><CheckIcon aria-hidden />{step}</li>)}</ol>
+        </section>
+      </div>
+      <p className="bps-demo-note" style={{ padding: '0 18px 16px' }}>{f.note}</p>
     </div>
   );
 }
@@ -278,7 +239,7 @@ export function OperationsDemo({ language }: DemoProps) {
   const count = checks.filter(Boolean).length;
   return (
     <div className="bps-demo bps-operations-demo">
-      <DemoHeader icon={<CheckCheckIcon aria-hidden="true" />}>
+      <DemoHeader icon={<SiteAgentPortrait agent="ops" size={32} />}>
         {o.title}
       </DemoHeader>
       <div className="bps-mission-cover">
@@ -407,7 +368,7 @@ export function OwnersDemo({ language }: DemoProps) {
   const statement = demoOwnerStatement(month);
   return (
     <div className="bps-demo bps-owners-demo">
-      <DemoHeader icon={<FileTextIcon aria-hidden="true" />}>
+      <DemoHeader icon={<SiteAgentPortrait agent="own" size={32} />}>
         {o.title}
       </DemoHeader>
       <div className="bps-demo-body">
@@ -417,6 +378,10 @@ export function OwnersDemo({ language }: DemoProps) {
           value={month}
           onChange={setMonth}
         />
+        <div className="site-demo-kpis site-owner-kpis">
+          <SiteDemoKpi artwork="revenue" label={o.gross} value={<SiteMoney language={language} value={statement.gross} from="MAD" />} detail={o.note} />
+          <SiteDemoKpi artwork="transfer" label={o.net} value={<SiteMoney language={language} value={statement.net} from="MAD" />} detail={o.commission} />
+        </div>
         <div className="bps-statement">
           <div className="bps-statement-property">
             <div>
@@ -512,7 +477,7 @@ export function AgentsDemo({ language }: DemoProps) {
         <div className="bps-agent-proposal" key={selected}>
           <div className="bps-agent-signal">
             <span className="bps-agent-orbit">
-              <SparklesIcon aria-hidden="true" />
+              <SiteAgentPortrait agent={(['rev', 'com', 'ops'] as const)[selected]} size={48} />
             </span>
             <div>
               <strong>
@@ -523,7 +488,7 @@ export function AgentsDemo({ language }: DemoProps) {
               </span>
             </div>
           </div>
-          <h3>{scenario.title}</h3>
+          <div className="site-hitl-heading"><img src={[SITE_ACTION_ARTWORK.pricingOptimization, SITE_ACTION_ARTWORK.messageSent, SITE_ACTION_ARTWORK.cleaning][selected]} alt="" width={52} height={52} /><h3>{scenario.title}</h3></div>
           <p>
             <SiteMoneyText language={language}>{scenario.copy}</SiteMoneyText>
           </p>

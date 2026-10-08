@@ -1,11 +1,13 @@
 import * as React from 'react';
-import { Button, Card } from '../ui';
 import { Money } from './Money';
-import { cn } from '../../utils/cn';
+import ChannelTag from './ChannelTag';
+import { WidgetPanel, WidgetPanelToggle } from './WidgetPanel';
 import { useTranslation } from '../../hooks/useTranslation';
 import { activeIntlLocale } from '../../utils/activeLocale';
+import './revenueByChannel.css';
 
 export interface ChannelRevenue {
+  source?: string;
   name: string;
   pct: number;
   amount?: number;
@@ -33,49 +35,44 @@ export default function RevenueByChannelCard({
   const percent = (value: number) => value.toLocaleString(activeIntlLocale(), { maximumFractionDigits: 1 });
   const remaining = channels.slice(5);
   return (
-    <Card className={cn('db-widget-surface gap-0 rounded-lg p-4', className)}>
-      <div className="mb-2 flex items-start justify-between gap-2">
-        <div className="min-w-0">
-          <h3 className="m-0 text-sm font-semibold text-balance">{title ?? t('dashboard.widgets.revenueByChannel', 'Revenus par canal')}</h3>
-          {subtitle && <p className="m-0 mt-1 text-xs text-muted-foreground">{subtitle}</p>}
-        </div>
-        {headerAction}
-      </div>
-      {channels.length === 0 && <p className="m-0 py-3 text-sm text-muted-foreground">{t('revenueByChannel.empty')}</p>}
-      <ul id={listId} className="db-widget-body m-0 list-none divide-y divide-border p-0" tabIndex={0} aria-label={title ?? t('dashboard.widgets.revenueByChannel', 'Revenus par canal')}>
+    <WidgetPanel title={title ?? t('dashboard.widgets.revenueByChannel', 'Revenus par canal')}
+      caption={subtitle} action={headerAction} className={className}
+      footer={remaining.length > 0 ? <>
+        <WidgetPanelToggle expanded={expanded} onToggle={() => setExpanded((value) => !value)} controls={listId}
+          moreLabel={t('dashboard.revenueByChannel.showAll', 'Voir tous les canaux')}
+          lessLabel={t('dashboard.actionItems.showLess', 'Réduire')} />
+        {!expanded && <span className="tabular-nums" title={t('dashboard.revenueByChannel.otherShare', '{{count}} autres canaux : {{share}} %', { count: remaining.length, share: percent(remaining.reduce((sum, c) => sum + c.pct, 0)) })}>
+          +{remaining.length.toLocaleString(activeIntlLocale())} · {percent(remaining.reduce((sum, c) => sum + c.pct, 0))} %
+        </span>}
+      </> : undefined}>
+      {channels.length === 0 && <p className="bui-widget-panel__empty">{t('revenueByChannel.empty')}</p>}
+      <ul id={listId} className="bui-channel-list db-widget-body" tabIndex={0} aria-label={title ?? t('dashboard.widgets.revenueByChannel', 'Revenus par canal')}>
         {shown.map((channel) => {
           const delta = channel.comparePct == null ? null : Math.round((channel.pct - channel.comparePct) * 10) / 10;
           return (
-            <li key={channel.name} className="py-2.5">
-              <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1 text-sm">
-                <span dir="auto" className="min-w-0 font-medium" title={channel.name}>{channel.name}</span>
-                <span className="shrink-0 font-semibold tabular-nums">
+            <li key={channel.source ?? channel.name} className="bui-channel-row">
+              <div className="bui-channel-row__logo"><ChannelTag channel={channel.source ?? channel.name.toLowerCase()} label={channel.name} iconOnly /></div>
+              <div className="bui-channel-row__content">
+              <div className="bui-channel-row__heading">
+                <span dir="auto" className="bui-channel-row__name">{channel.name}</span>
+                <span className="bui-channel-row__amount">
                   {channel.amount != null ? <Money value={channel.amount} from={fromCurrency} decimals={0} /> : `${percent(channel.pct)} %`}
                 </span>
               </div>
-              <div className="mt-1.5 flex items-center gap-3">
-                <div aria-hidden="true" className="h-1.5 min-w-0 flex-1 overflow-hidden rounded-full bg-field">
+              <div className="bui-channel-row__distribution">
+                <div aria-hidden="true" className="bui-channel-row__track">
                   <div className="h-full rounded-full" style={{ width: `${Math.min(100, Math.max(0, channel.pct))}%`, backgroundColor: channel.color }} />
                 </div>
-                <span className="shrink-0 text-xs text-muted-foreground tabular-nums">
+                <span className="bui-channel-row__share">
                   {percent(channel.pct)} %
-                  {delta != null && delta !== 0 && <span title={t('dashboard.revenueByChannel.deltaHint', 'Écart de part par rapport à la période précédente')}> · {delta > 0 ? '+' : ''}{percent(delta)} pt</span>}
                 </span>
+              </div>
+              {delta != null && delta !== 0 && <span className="bui-channel-row__delta" title={t('dashboard.revenueByChannel.deltaHint', 'Écart de part par rapport à la période précédente')}>{delta > 0 ? '+' : ''}{percent(delta)} pt · {t('dashboard.revenueByChannel.previousPeriod', 'période précédente')}</span>}
               </div>
             </li>
           );
         })}
       </ul>
-      {remaining.length > 0 && (
-        <div className="mt-1 border-t border-border pt-2">
-          {!expanded && <p className="m-0 mb-1 text-xs text-muted-foreground tabular-nums">
-            {t('dashboard.revenueByChannel.otherShare', '{{count}} autres canaux : {{share}} %', { count: remaining.length, share: percent(remaining.reduce((sum, c) => sum + c.pct, 0)) })}
-          </p>}
-          <Button variant="ghost" size="sm" aria-expanded={expanded} aria-controls={listId} onClick={() => setExpanded((value) => !value)}>
-            {expanded ? t('dashboard.actionItems.showLess', 'Réduire') : t('dashboard.revenueByChannel.showAll', 'Voir tous les canaux')}
-          </Button>
-        </div>
-      )}
-    </Card>
+    </WidgetPanel>
   );
 }

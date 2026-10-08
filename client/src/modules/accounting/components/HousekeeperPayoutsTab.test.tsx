@@ -7,7 +7,7 @@ import { housekeeperPayoutsApi, type HousekeeperPayoutRecord } from '../../../se
 
 vi.mock('../../../services/api/housekeeperPayoutsApi', () => ({ housekeeperPayoutsApi: { listOrg: vi.fn(), previewRetry: vi.fn(), retry: vi.fn() } }));
 vi.mock('../../../services/api/usersApi', () => ({ usersApi: { getAll: vi.fn().mockResolvedValue([{ id: 3, firstName: 'Jean', lastName: 'Martin' }]) } }));
-vi.mock('../../../components/PageHeaderActionsContext', () => ({ usePageHeaderActions: () => null }));
+vi.mock('../../../components/PageHeaderActionsContext', () => ({ usePageHeaderFilters: (node: React.ReactNode) => node, usePageHeaderActions: () => null }));
 vi.mock('../../billing/components/FinanceKpis', () => ({ FinanceAmountKpis: ({ records }: { records: {amount: number}[] }) => <output aria-label="Montant KPI">{records.reduce((sum, row) => sum + row.amount, 0)}</output> }));
 vi.mock('../../billing/components/FinanceWorkspace', () => ({ default: ({ items }: { items: { id: number; actions: React.ReactNode; fields: {value: React.ReactNode}[] }[] }) => <>{items.map(i => <div key={i.id}>{i.actions}{i.fields?.map((f, index) => <div key={index}>{f.value}</div>)}</div>)}</> }));
 vi.mock('../../payments/FinanceBatchPanel', () => ({ FinanceBatchPanel: ({ items, onExecute }: { items: { key: string; amount: number }[]; onExecute: (items: { key: string; amount: number }[]) => Promise<unknown> }) => <button onClick={() => void onExecute(items)} disabled={!items.length}>Lot de test</button> }));

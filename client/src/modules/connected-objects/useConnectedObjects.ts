@@ -5,6 +5,7 @@ import { noiseDevicesApi, type NoiseDeviceDto } from '../../services/api/noiseAp
 import { keyExchangeApi, type KeyExchangePointDto } from '../../services/api/keyExchangeApi';
 import { devicesApi, type DeviceSummaryDto, type ProviderStatusDto } from '../../services/api/devicesApi';
 import { environmentSensorsApi, type EnvironmentSensorDto, type SensorType } from '../../services/api/environmentSensorsApi';
+import { thermostatsApi, type ThermostatDto } from '../../services/api/thermostatsApi';
 import type {
   ConnectedDevice,
   ConnectedObjectsKpis,
@@ -106,7 +107,7 @@ const SENSOR_KIND: Record<SensorType, DeviceKind> = {
 /** Projette un capteur d'environnement (DTO riche) sur le modèle unifié. La
  *  métrique principale + la sévérité dépendent du type (ouvert/fermé, mouvement,
  *  fumée, temp/humidité). Fumée détectée = critique, ouvert/mouvement = attention. */
-function mapSensor(d: EnvironmentSensorDto): ConnectedDevice {
+export function mapSensor(d: EnvironmentSensorDto): ConnectedDevice {
   const kind = SENSOR_KIND[d.sensorType];
   const known = d.online != null;
   const online = d.online === true;
@@ -127,21 +128,23 @@ function mapSensor(d: EnvironmentSensorDto): ConnectedDevice {
       ].filter(Boolean) as string[];
       metric = parts.length ? { label: i18n.t('connectedObjects.metrics.measure'), value: parts.join(' · ') } : null;
       if (parts.length) label = parts.join(' · ');
-    } else if (kind === 'contact') {
+    } else if (kind === 'contact' && d.contactOpen != null) {
       const open = d.contactOpen === true;
       metric = { label: i18n.t('connectedObjects.metrics.state'), value: open ? i18n.t('connectedObjects.state.open') : i18n.t('connectedObjects.state.closed') };
       level = open ? 'warning' : 'ok';
       label = open ? i18n.t('connectedObjects.state.open') : i18n.t('connectedObjects.state.closed');
-    } else if (kind === 'motion') {
+    } else if (kind === 'motion' && d.motionDetected != null) {
       const moving = d.motionDetected === true;
       metric = { label: i18n.t('connectedObjects.metrics.motion'), value: moving ? i18n.t('connectedObjects.state.detected') : i18n.t('connectedObjects.state.none') };
       if (moving) { level = 'warning'; alert = 1; }
       label = moving ? i18n.t('connectedObjects.state.motionDetected') : i18n.t('connectedObjects.state.noMotion');
-    } else if (kind === 'smoke') {
+    } else if (kind === 'smoke' && d.smokeDetected != null) {
       const smoke = d.smokeDetected === true;
       metric = { label: i18n.t('connectedObjects.metrics.smoke'), value: smoke ? i18n.t('connectedObjects.state.detectedF') : 'OK' };
       if (smoke) { level = 'critical'; alert = 1; }
       label = smoke ? i18n.t('connectedObjects.state.smokeDetected') : i18n.t('connectedObjects.state.noSmoke');
+    } else {
+      label = i18n.t('connectedObjects.status.unknown');
     }
   }
   // Batterie faible : dégrade en attention si rien de plus grave.
@@ -246,7 +249,7 @@ function computeKpis(devices: ConnectedDevice[]): ConnectedObjectsKpis {
   return {
     total: devices.length,
     online: devices.filter((d) => d.online).length,
-    offline: devices.filter((d) => !d.online).length,
+    offline: devices.filter((d) => !d.online && d.statusLevel !== 'unknown').length,
     alerts: devices.reduce((sum, d) => sum + (d.alertCount ?? 0), 0),
     lowBattery: devices.filter((d) => d.battery != null && d.battery <= LOW_BATTERY).length,
   };
@@ -279,6 +282,7 @@ async function fetchAllLegacy(): Promise<DevicesResult> {
  */
 async function fetchAll(): Promise<DevicesResult> {
   const sensorsPromise = environmentSensorsApi.getAll().catch(() => [] as EnvironmentSensorDto[]);
+  const thermostatsPromise = thermostatsApi.getAll().catch(() => null);
   let base: ConnectedDevice[];
   try {
     const summaries = await devicesApi.getAll();
@@ -287,7 +291,26 @@ async function fetchAll(): Promise<DevicesResult> {
     base = (await fetchAllLegacy()).devices;
   }
   const sensors = (await sensorsPromise).map(mapSensor);
+  const thermostats = await thermostatsPromise;
+  if (thermostats) {
+    base = [...base.filter(device => device.kind !== 'thermostat'), ...thermostats.map(mapThermostat)];
+  }
   return buildResult([...base, ...sensors]);
+}
+
+/** Keep the reported temperature and operating mode, which the summary DTO omits. */
+export function mapThermostat(d: ThermostatDto): ConnectedDevice {
+  const online = d.online === true;
+  return {
+    uid: `thermostat:${d.id}`, kind: 'thermostat', id: d.id, name: d.name,
+    propertyId: d.propertyId ?? null, propertyName: d.propertyName || i18n.t('connectedObjects.noProperty'), roomName: d.roomName,
+    provider: (d.brand as DeviceProvider) || 'UNKNOWN', online,
+    statusLevel: d.online == null ? 'unknown' : online ? 'ok' : 'offline',
+    statusLabel: d.online == null ? i18n.t('connectedObjects.status.unknown') : !online ? i18n.t('connectedObjects.status.offline')
+      : d.currentTempC != null ? `${d.currentTempC.toLocaleString(undefined, { maximumFractionDigits: 1 })} °C` : i18n.t('connectedObjects.status.online'),
+    primaryMetric: d.currentTempC != null ? { label: i18n.t('connectedObjects.metrics.measure'), value: `${d.currentTempC} °C` } : null,
+    battery: null, alertCount: 0, actions: ['view'], raw: d,
+  };
 }
 
 /** Statut providers backend ; null si indisponible (→ repli présence côté hook). */

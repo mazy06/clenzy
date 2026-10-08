@@ -1,0 +1,37 @@
+{
+  "tool": "image_gen built-in",
+  "created": "2026-10-04",
+  "style": "Photographic inventory packshots",
+  "size": {
+    "width": 192,
+    "height": 192
+  },
+  "assets": [
+    {
+      "file": "occupancy.webp",
+      "prompt": "Use case: product-mockup. Asset type: one square raster thumbnail for Baitly hospitality dashboard, matching a premium photographic home-inventory library. Photorealistic unbranded ecommerce studio packshot, NOT a flat icon or vector. Uniform pale blue-grey #f4f6f8 background, soft upper-left daylight, delicate contact shadow. Three-quarter front view, centered object group filling 80% of the square, readable at 64 pixels. Realistic materials, restrained navy, blue-grey, ivory and brushed brass palette. Minimal composition, no people, no room, no text, numbers, letters, logos, watermark, decorative particles or frame. Single image, not a contact sheet. Subject: a beautifully made miniature hotel double bed with ivory linen, two pillows and a folded muted blue-grey blanket at the foot. One bed only, strong recognizable silhouette."
+    },
+    {
+      "file": "revenue.webp",
+      "prompt": "Use case: product-mockup. Asset type: one square raster thumbnail for Baitly hospitality dashboard, matching a premium photographic home-inventory library. Photorealistic unbranded ecommerce studio packshot, NOT a flat icon or vector. Uniform pale blue-grey #f4f6f8 background, soft upper-left daylight, delicate contact shadow. Three-quarter front view, centered object group filling 80% of the square, readable at 64 pixels. Realistic materials, restrained navy, blue-grey, ivory and brushed brass palette. Minimal composition, no people, no room, no text, numbers, letters, logos, watermark, decorative particles or frame. Single image, not a contact sheet. Subject: an elegant closed navy leather wallet with two small neat stacks of plain brushed brass coins beside it. No currency marks."
+    },
+    {
+      "file": "adr.webp",
+      "prompt": "Use case: product-mockup. Asset type: one square raster thumbnail for Baitly hospitality dashboard, matching a premium photographic home-inventory library. Photorealistic unbranded ecommerce studio packshot, NOT a flat icon or vector. Uniform pale blue-grey #f4f6f8 background, soft upper-left daylight, delicate contact shadow. Three-quarter front view, centered object group filling 80% of the square, readable at 64 pixels. Realistic materials, restrained navy, blue-grey, ivory and brushed brass palette. Minimal composition, no people, no room, no text, numbers, letters, logos, watermark, decorative particles or frame. Single image, not a contact sheet. Subject: one brushed brass house key with an ivory rectangular paper price tag on a short navy cord. The price tag is completely blank. Both objects resting naturally on the surface."
+    },
+    {
+      "file": "revpan.webp",
+      "prompt": "Use case: product-mockup. Asset type: one square raster thumbnail for Baitly hospitality dashboard, matching a premium photographic home-inventory library. Photorealistic unbranded ecommerce studio packshot, NOT a flat icon or vector. Uniform pale blue-grey #f4f6f8 background, soft upper-left daylight, delicate contact shadow. Three-quarter front view, centered object group filling 80% of the square, readable at 64 pixels. Realistic materials, restrained navy, blue-grey, ivory and brushed brass palette. Minimal composition, no people, no room, no text, numbers, letters, logos, watermark, decorative particles or frame. Single image, not a contact sheet. Subject: a small solid ivory architectural house model with a navy pitched roof next to a neat low stack of three brushed brass coins. House has a realistic doorway and one window, no symbol printed on it."
+    },
+    {
+      "file": "bookings.webp",
+      "prompt": "Use case: product-mockup. Asset type: one square raster thumbnail for Baitly hospitality dashboard, matching a premium photographic home-inventory library. Photorealistic unbranded ecommerce studio packshot, NOT a flat icon or vector. Uniform pale blue-grey #f4f6f8 background, soft upper-left daylight, delicate contact shadow. Three-quarter front view, centered object group filling 80% of the square, readable at 64 pixels. Realistic materials, restrained navy, blue-grey, ivory and brushed brass palette. Minimal composition, no people, no room, no text, numbers, letters, logos, watermark, decorative particles or frame. Single image, not a contact sheet. Subject: a navy bound desktop flip calendar with two brass binding rings and an ivory page containing only a simple light-grey calendar grid with a single muted teal cell, absolutely no dates or words, with a small brass key lying in front."
+    },
+    {
+      "file": "rating.webp",
+      "prompt": "Use case: product-mockup. Asset type: one square raster thumbnail for Baitly hospitality dashboard, matching a premium photographic home-inventory library. Photorealistic unbranded ecommerce studio packshot, NOT a flat icon or vector. Uniform pale blue-grey #f4f6f8 background, soft upper-left daylight, delicate contact shadow. Three-quarter front view, centered object group filling 80% of the square, readable at 64 pixels. Realistic materials, restrained navy, blue-grey, ivory and brushed brass palette. Minimal composition, no people, no room, no text, numbers, letters, logos, watermark, decorative particles or frame. Single image, not a contact sheet. Subject: one polished brushed brass five-point star award standing upright on a small ivory stone rectangular base. Solid realistic tabletop award, subtle metal reflections, no writing or engraving."
+    }
+  ],
+  "background": "transparent alpha",
+  "editPrompt": "Use case: background-extraction. Input image is the edit target. Remove the entire pale studio backdrop and all floor/shadow outside the subject. Output a genuine transparent RGBA background (alpha=0), NOT a checkerboard painted into the image, no solid backdrop. Preserve the exact photographed object(s), their colors, materials, perspective, composition and fine edges, including the ivory/white surfaces. Keep all objects intact, centered, same square framing. Clean antialiased cutout suitable on both dark and light Baitly KPI tiles. No redesign, no new objects, no text, no border. Change only the background to actual transparency."
+}

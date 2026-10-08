@@ -1015,9 +1015,6 @@
   width: 32px;
   height: 32px;
 }
-.bpm-planning-brand[data-playing='false'] path {
-  animation-play-state: paused;
-}
 .bpm-planning-sidebar > span {
   display: grid;
   place-items: center;
@@ -1025,7 +1022,7 @@
   height: 31px;
   border-radius: 8px;
   background: #253851;
-  color: #e7c58f;
+  color: #e7eef5;
 }
 .bpm-planning-sidebar > svg:last-child {
   margin-top: auto;
@@ -1033,17 +1030,17 @@
 }
 .bpm-planning-main {
   margin-inline-start: 44px;
-  background: #e8eef5;
+  background: var(--bui-background, #e7eef3);
 }
 .bpm-planning-grid {
-  margin: 0 8px;
+  margin: 8px 8px 0;
   overflow: hidden;
   border: 1px solid #d0dce6;
   border-radius: 13px;
   background: #fcfdfd;
 }
 .bpm-planning-header {
-  height: 50px;
+  height: 56px;
   display: flex;
   align-items: center;
   gap: 7px;
@@ -1081,7 +1078,7 @@
   display: flex;
   align-items: center;
   gap: 7px;
-  width: 204px;
+  width: 230px;
   height: 30px;
   border-radius: 9px;
   padding: 0 10px;
@@ -1091,13 +1088,38 @@
   font-size: 11px;
   margin-inline-start: 5px;
 }
+.bpm-planning-search kbd {
+  margin-inline-start: auto;
+  flex-shrink: 0;
+  font: inherit;
+  font-size: 10px;
+  border: 1px solid #d5dfe8;
+  padding: 0 3px;
+}
+.bpm-planning-toolbar { position: relative; z-index: 8; }
+.bpm-planning-nav[data-open] { color: #193b65; background: #e4edf5; }
 .bpm-planning-filters {
+  position: absolute;
+  inset-block-start: calc(100% + 8px);
+  inset-inline-end: 12px;
   display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  width: 424px;
+  padding: 16px;
+  border: 1px solid var(--pl-line);
+  border-radius: 14px;
+  background: var(--pl-card);
+  box-shadow: 0 12px 32px #193b6524;
+}
+.bpm-planning-filters-heading {
+  display: flex;
+  justify-content: space-between;
   align-items: center;
-  gap: 6px;
-  padding: 15px 8px;
-  height: 57px;
-  overflow: hidden;
+  width: 100%;
+  margin-bottom: 8px;
+  font-size: 14px;
+  color: var(--pl-ink);
 }
 .bpm-property {
   display: flex;
@@ -1190,7 +1212,7 @@
 }
 .bpm-planning-pagination {
   height: 44px;
-  margin-top: 6px;
+  border-top: 1px solid var(--pl-line);
   padding-inline: 12px;
   display: flex;
   align-items: center;

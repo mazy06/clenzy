@@ -32,6 +32,7 @@ import { useResolutionToasts } from '../core/useResolutionToasts';
 import { spawnComet } from '../core/spawnComet';
 import { AGENT_META } from '../constants';
 import { ConstellationSkeleton } from './ConstellationSkeleton';
+import { ConstellationToolbar } from './ConstellationToolbar';
 import { AgentConstellation, normalizeSnapshot } from './AgentConstellation';
 import { OrbitConstellation, REPORT_WINDOWS } from '../renderers/OrbitConstellation';
 import { OrbitDiagram, busiestAgent } from '../renderers/OrbitDiagram';
@@ -46,6 +47,7 @@ import { SupervisionPendingAction } from './SupervisionPendingAction';
 import { PriceAdjustmentModal } from './PriceAdjustmentModal';
 import { SchedulingModal } from './SchedulingModal';
 import { ActionConfirmModal } from './ActionConfirmModal';
+import { ProviderBeneficiaryModal } from './ProviderBeneficiaryModal';
 import { ActionParamsModal } from './ActionParamsModal';
 import { ActionReviewModal } from './ActionReviewModal';
 import { ActionChoiceModal } from './ActionChoiceModal';
@@ -104,9 +106,10 @@ function ReportSummary({ report, window: activeWindow, onWindowChange }: ReportS
           type="button"
           aria-label={label}
           {...hoverProps}
-          className="inline-flex size-6 cursor-pointer items-center justify-center rounded-full text-muted-foreground transition-colors duration-200 hover:bg-muted hover:text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring min-[900px]:size-5"
+          className="baitly-constellation-tool"
         >
-          <Info size={14} strokeWidth={1.75} />
+          <Info size={16} strokeWidth={1.75} aria-hidden="true" />
+          <span>{label}</span>
         </button>
       </PopoverTrigger>
 
@@ -201,7 +204,7 @@ const COMPACT_MAX_WIDTH = 840;
 export const SUPERVISION_ASK_EVENT = 'supervision:ask';
 
 export function SupervisionPanel({ createProvider, deps, propertyId, reportWindowDays = 30, onSelectAgent, initialAgent, onActing, onEditAction, flush }: SupervisionPanelProps) {
-  const { t } = useTranslation();
+  const { t, isArabic } = useTranslation();
   const rootRef = useRef<HTMLDivElement | null>(null);
   // Largeur mesurée du panneau → mode compact. Callback ref (et non un effect
   // au mount) : le root n'existe pas pendant le skeleton (early return), le
@@ -490,9 +493,10 @@ export function SupervisionPanel({ createProvider, deps, propertyId, reportWindo
                 onClick={handleScan}
                 disabled={scanning}
                 aria-label={t('supervision.scan.button', 'Scanner')}
-                className="size-[26px] text-primary hover:bg-primary-soft hover:text-primary"
+                className="baitly-constellation-tool baitly-constellation-tool--scan"
               >
                 {scanning ? <Spinner className="size-3.5" aria-hidden aria-label={undefined} role={undefined} /> : <Radar size={16} />}
+                <span>{t('supervision.scan.button', 'Scanner')}</span>
               </Button>
             </span>
           </TooltipTrigger>
@@ -609,76 +613,57 @@ export function SupervisionPanel({ createProvider, deps, propertyId, reportWindo
            diagramme restent fixes, seules la file (cartes HITL) et l'activité
            défilent dans leur propre colonne. */
         <div className="flex-1 min-h-0 flex flex-col overflow-hidden p-3 min-[900px]:p-4">
-          <div className="flex flex-wrap items-center gap-2 shrink-0">
-            {/* Titre, badge et compteurs sur UNE ligne (ils ne se replient
-                qu'en cas de manque de place) : deux lignes empilaient de l'air
-                au-dessus de la constellation sans rien dire de plus. */}
-            <div className="flex min-w-0 flex-1 flex-wrap items-baseline gap-x-2.5 gap-y-1">
-              <h2 className="m-0 flex items-center gap-2 text-sm font-semibold text-foreground">
-                {t('supervision.board.title', "Constellation d'agents")}
-                {pendingCount > 0 && (
-                  <span className="rounded-full bg-warning-soft px-2 py-0.5 text-[11px] font-bold text-warning-ink tabular-nums">
-                    {pendingCount} {t('supervision.board.toValidate', 'à valider')}
-                  </span>
-                )}
-              </h2>
-              <p className="m-0 flex items-center gap-1.5 text-xs text-muted-foreground">
-                <span>
-                  {normalized?.hud.agentsCount} {t('supervision.hud.agents')} · {normalized?.hud.actingCount} {t('supervision.hud.acting')} ·{' '}
-                  {status === 'live' ? t('supervision.hud.active') : t('supervision.states.offline')}
-                </span>
-                {/* Le bilan vit ici, replié : il tenait une rangée entière sous
-                    la constellation pour des chiffres qu'on consulte rarement. */}
-                {hudReport && (
-                  <ReportSummary
-                    report={hudReport}
-                    window={reportWindow}
-                    onWindowChange={handleReportWindowChange}
-                  />
-                )}
-              </p>
-            </div>
-            {/* Segmenté cartes/constellation sur rail teinté (projection) +
-                règles d'autonomie (Paramètres > IA) + scanner. */}
+          <ConstellationToolbar
+            agentsCount={normalized?.hud.agentsCount ?? 0}
+            actingCount={normalized?.hud.actingCount ?? 0}
+            pendingCount={pendingCount}
+            online={status === "live"}
+            paused={snapshot.paused}
+          >
             <ToggleGroup
               type="single"
               size="sm"
               spacing={0}
+              dir={isArabic ? "rtl" : "ltr"}
+              aria-label={t("supervision.toolbar.views", "Affichage des agents")}
               value={boardView}
-              onValueChange={(next) => next && setBoardView(next as 'cards' | 'orbit' | 'feed')}
-              className="rounded-md bg-muted p-0.5"
+              onValueChange={(next) => next && setBoardView(next as "cards" | "orbit" | "feed")}
+              className="baitly-constellation-views"
             >
               <ToggleGroupItem
                 value="cards"
-                aria-label={t('supervision.board.cardsView', 'Vue cartes')}
-                title={t('supervision.board.cardsView', 'Vue cartes')}
-                className="data-[state=on]:bg-card"
+                aria-label={t("supervision.board.cardsView", "Vue agents")}
+                className="baitly-constellation-view"
               >
-                <GridView size={15} strokeWidth={1.75} />
+                <GridView size={15} strokeWidth={1.75} aria-hidden="true" />
+                <span>{t("supervision.board.agents", "Agents")}</span>
               </ToggleGroupItem>
               <ToggleGroupItem
                 value="orbit"
-                aria-label={t('supervision.board.orbitView', 'Vue constellation')}
-                title={t('supervision.board.orbitView', 'Vue constellation')}
-                className="data-[state=on]:bg-card"
+                aria-label={t("supervision.board.orbitView", "Vue constellation")}
+                className="baitly-constellation-view"
               >
-                <Orbit size={15} strokeWidth={1.75} />
+                <Orbit size={15} strokeWidth={1.75} aria-hidden="true" />
+                <span>{t("supervision.toolbar.constellation", "Constellation")}</span>
               </ToggleGroupItem>
               <ToggleGroupItem
                 value="feed"
-                aria-label={t('supervision.board.activity', 'Activité')}
-                title={t('supervision.board.activity', 'Activité')}
-                className="data-[state=on]:bg-card"
+                aria-label={t("supervision.board.activity", "Activité")}
+                className="baitly-constellation-view"
               >
-                <ViewList size={15} strokeWidth={1.75} />
+                <ViewList size={15} strokeWidth={1.75} aria-hidden="true" />
+                <span>{t("supervision.board.activity", "Activité")}</span>
               </ToggleGroupItem>
             </ToggleGroup>
-            {/* PAS de lien vers Paramètres > IA ici : cette page est réservée
-                au pilotage plateforme (budget, clés, comportements premium) et
-                tout le monde n'y a pas accès. Ce qui concerne l'exploitant —
-                l'autonomie de chaque agent — se règle dans la vue Agents. */}
+            {hudReport && (
+              <ReportSummary
+                report={hudReport}
+                window={reportWindow}
+                onWindowChange={handleReportWindowChange}
+              />
+            )}
             {headerAction}
-          </div>
+          </ConstellationToolbar>
 
           {boardView === 'orbit' ? (
             /* ── Vue constellation : diagramme + file reliés par les attaches,
@@ -871,6 +856,8 @@ export function SupervisionPanel({ createProvider, deps, propertyId, reportWindo
         const close = () => setConfirmAction(null);
         // Le registre a déjà tranché la famille : ici on ne fait que rendre.
         switch (familyOf(confirmAction.applyActionType)) {
+          case 'beneficiary':
+            return <ProviderBeneficiaryModal key={confirmAction.id} action={confirmAction} onClose={close} onConfirm={handleConfirmed} />;
           case 'inspection':
             // Deux issues : valider rend le solde exigible, refuser renvoie le
             // travail en reprise — par un endpoint distinct, car le motif y est

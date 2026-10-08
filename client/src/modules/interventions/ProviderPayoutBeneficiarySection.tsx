@@ -1,7 +1,8 @@
 import { useId, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Building2, Check, LockKeyhole } from '../../icons/glyphs';
-import { Alert, AlertDescription, Button, Card, CardContent, Skeleton } from '../../components/ui';
+import { Alert, AlertDescription, Button, Card, CardContent, Checkbox, Skeleton } from '../../components/ui';
+import { WorkOrderHeading, WORK_ORDER_ART } from '../work-orders/WorkOrderPresentation';
 import { useTranslation } from '../../hooks/useTranslation';
 import { providerPayoutBeneficiaryApi } from '../../services/api/providerPayoutBeneficiaryApi';
 import '../supervision/supervision-surfaces.css';
@@ -13,7 +14,7 @@ export default function ProviderPayoutBeneficiarySection({ missionId }: { missio
   const [confirmedOrganizationId, setConfirmedOrganizationId] = useState<number | null>(null);
   const queries = useQueryClient();
   const queryKey = ['provider-payout-beneficiary', missionId];
-  const choice = useQuery({ queryKey, queryFn: () => providerPayoutBeneficiaryApi.choice(missionId) });
+  const choice = useQuery({ queryKey, queryFn: () => providerPayoutBeneficiaryApi.choice(missionId), staleTime: 0, refetchOnMount: 'always' });
   const select = useMutation({
     mutationFn: (organizationId: number) => providerPayoutBeneficiaryApi.selectOrganization(missionId, organizationId),
     onSuccess: (value) => {
@@ -28,9 +29,9 @@ export default function ProviderPayoutBeneficiarySection({ missionId }: { missio
   const title = t('providerPayoutBeneficiary.title', 'Bénéficiaire du versement');
 
   return (
-    <Card size="sm" className="baitly-supervision-surface mb-3 shadow-none">
-      <CardContent className="space-y-3 text-start">
-        <h3 className="m-0 text-sm font-semibold text-foreground">{title}</h3>
+    <section className="wo-section wo-beneficiary">
+      <div className="space-y-3 text-start">
+        <WorkOrderHeading art={WORK_ORDER_ART['service-transfer']} title={title} />
         {choice.isPending ? <Skeleton className="h-20 w-full" aria-label={t('common.loading', 'Chargement…')} />
           : choice.isError ? (
             <Alert variant="destructive">
@@ -63,13 +64,14 @@ export default function ProviderPayoutBeneficiarySection({ missionId }: { missio
               ) : (
                 <>
                   <p className="m-0 max-w-prose text-sm text-muted-foreground">{t('providerPayoutBeneficiary.explanation', 'Si la prestation est facturée par cette organisation, le versement doit arriver sur son compte, même si un membre de son équipe réalise la mission.')}</p>
-                  <label htmlFor={confirmationId} className="flex cursor-pointer items-start gap-2 py-1 text-sm text-foreground">
-                    <input id={confirmationId} type="checkbox" checked={confirmed} disabled={select.isPending}
-                      onChange={(event) => setConfirmedOrganizationId(event.target.checked ? data.organizationId : null)}
-                      className="mt-0.5 size-4 shrink-0 cursor-pointer accent-[var(--bui-supervision-navy)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--bui-ring)]" />
+                  <div className="wo-beneficiary__confirmation">
+                    <Checkbox id={confirmationId} checked={confirmed} disabled={select.isPending}
+                      onCheckedChange={(checked) => setConfirmedOrganizationId(checked === true ? data.organizationId : null)} />
+                    <label htmlFor={confirmationId}>
                     {t('providerPayoutBeneficiary.confirm', 'Je confirme que {{name}} est le bénéficiaire contractuel de cette mission.', { name: data.organizationName || `#${data.organizationId}` })}
-                  </label>
-                  <div className="flex flex-wrap items-center gap-3">
+                    </label>
+                  </div>
+                  <div className="wo-beneficiary__footer">
                     <Button size="sm" className="baitly-hitl-primary" disabled={!confirmed || select.isPending || choice.isFetching}
                       onClick={() => { if (confirmed && data.organizationId !== null) select.mutate(data.organizationId); }}>
                       {select.isPending ? t('providerPayoutBeneficiary.saving', 'Enregistrement…') : t('providerPayoutBeneficiary.save', 'Verser à cette organisation')}
@@ -81,7 +83,7 @@ export default function ProviderPayoutBeneficiarySection({ missionId }: { missio
             </>
           ) : null}
         {select.isError && <Alert variant="destructive"><AlertDescription>{t('providerPayoutBeneficiary.saveError', 'Le choix n’a pas pu être confirmé. Vérifiez l’état actualisé avant de réessayer.')}</AlertDescription></Alert>}
-      </CardContent>
-    </Card>
+      </div>
+    </section>
   );
 }

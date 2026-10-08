@@ -1,0 +1,30 @@
+.bir-inspector-art { width: 58px; height: 58px; object-fit: contain; flex-shrink: 0; }
+.bir-inspector-state-row { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px; margin: 14px 0; }
+.bir-inspector-state-row .bir-device-status { margin: 0; font-weight: 500; font-size: 13px; }
+.bir-inspector-facts { display: grid; grid-template-columns: repeat(auto-fit, minmax(90px, 1fr)); gap: 12px; margin: 18px 0; padding: 14px 0; border-block: 1px solid var(--bui-border); }
+.bir-inspector-facts dt { display: flex; align-items: center; gap: 5px; font-size: 11px; color: var(--bui-muted-foreground); }
+.bir-inspector-facts dd { margin: 5px 0 0; font-size: 13px; font-weight: 550; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+.bir-lock-panel .bir-access-codes { margin: 0; padding: 14px 0; border: 0; display: flex; flex-direction: column; gap: 12px; }
+.bir-lock-panel .bir-access-codes > [data-slot="separator"] { display: none; }
+.bir-lock-panel .bir-access-codes > div:first-of-type { gap: 8px; min-height: 38px; }
+.bir-inspector-settings { border-top: 1px solid var(--bui-border); margin-top: 18px; }
+.bir-inspector-settings > summary { min-height: 44px; padding: 12px 0; display: flex; align-items: center; justify-content: space-between; font-size: 12px; font-weight: 500; cursor: pointer; list-style: none; }
+.bir-inspector-settings > summary::-webkit-details-marker { display: none; }
+.bir-inspector-settings > summary:focus-visible { outline: 2px solid var(--bui-ring); outline-offset: 2px; border-radius: 5px; }
+.bir-inspector-settings[open] > summary svg { transform: rotate(180deg); }
+.bir-inspector-footer { display: flex; justify-content: end; padding-top: 14px; margin-top: 16px; border-top: 1px solid var(--bui-border); }
+.bir-inspector-footer button { color: var(--bui-destructive-ink); }
+.bir-embedded-detail { min-width: 0; }
+.bir-embedded-detail [data-slot="card"] { border: 0; box-shadow: none; border-radius: 0; background: transparent; padding-inline: 0; }
+.bir-camera-controls { margin-top: 16px; min-width: 0; }
+.bir-camera-overview { display: grid; grid-template-columns: minmax(0, 240px) minmax(80px, 1fr); align-items: start; gap: 16px; margin-top: 16px; }
+.bir-camera-overview .bir-camera-controls { margin-top: 0; }
+.bir-camera-overview .bir-inspector-facts { grid-template-columns: 1fr; border: 0; padding: 0; margin: 0; gap: 16px; }
+.bir-camera-overview .bir-inspector-facts dd { font-size: 12px; }
+.bir-camera-caption { display: flex; align-items: center; justify-content: space-between; gap: 4px; padding-top: 4px; }
+.bir-camera-caption button { font-size: 11px; }
+.bir-camera-caption p { flex: 1; margin: 0; color: var(--bui-muted-foreground); font-size: 11px; line-height: 1.5; }
+.bir-camera-empty { display: grid; justify-items: center; gap: 10px; padding: 20px; background: var(--bui-muted); border-radius: 12px; font-size: 12px; color: var(--bui-muted-foreground); text-align: center; }
+.bir-noise-readings { display: flex; justify-content: space-between; flex-wrap: wrap; gap: 12px; margin-bottom: 16px; }
+.bir-noise-readings span { display: block; font-size: 11px; color: var(--bui-muted-foreground); }
+.bir-noise-readings strong { display: block; margin-top: 5px; font-size: 18px; font-weight: 600; font-variant-numeric: tabular-nums; }

@@ -58,7 +58,8 @@ const PricingEditDialog: React.FC<PricingEditDialogProps> = ({
       return;
     }
     setError('');
-    await onApply(numericPrice);
+    try { await onApply(numericPrice); }
+    catch { setError(t('common.error')); return; }
     setPrice('');
     onClose();
   };

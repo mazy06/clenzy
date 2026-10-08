@@ -1,5 +1,4 @@
 import React, { useState, useCallback, useMemo } from 'react';
-import { Badge } from '../../components/ui';
 import { Spinner } from '../../components/ui';
 import { Card, Button } from '../../components/ui';
 import { Alert, AlertDescription } from '../../components/ui';
@@ -7,7 +6,6 @@ import { Field, FieldLabel, Input } from '../../components/ui';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
   Switch,
-  Separator,
   Tooltip,
   TooltipTrigger,
   TooltipContent,
@@ -15,6 +13,8 @@ import {
 import StatusChip from '../../components/StatusChip';
 import EmptyState from '../../components/EmptyState';
 import { Plus, Pencil, Trash2, CalendarRange, TriangleAlert, X } from '../../icons/glyphs';
+import BaitlyStayRulesWorkspace from './BaitlyStayRulesWorkspace';
+import './baitlyStayRules.css';
 import { useTranslation } from '../../hooks/useTranslation';
 import {
   calendarPricingApi,
@@ -63,16 +63,18 @@ const EMPTY_FORM: FormState = {
 };
 
 const RestrictionsPanel: React.FC<RestrictionsPanelProps> = ({ propertyId }) => {
-  const { t } = useTranslation();
+  const { t, currentLanguage } = useTranslation();
+  const days = DOW.map((day, index) => ({ ...day, label: new Intl.DateTimeFormat(currentLanguage, { weekday: 'short' }).format(new Date(2024, 0, index + 1)) }));
   const queryClient = useQueryClient();
 
   const [form, setForm] = useState<FormState>(EMPTY_FORM);
+  const [formOpen, setFormOpen] = useState(false);
   const [editingId, setEditingId] = useState<number | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   const queryKey = useMemo(() => ['booking-restrictions', propertyId], [propertyId]);
 
-  const { data: restrictions = [], isLoading } = useQuery<BookingRestriction[]>({
+  const { data: restrictions = [], isLoading, isError, refetch } = useQuery<BookingRestriction[]>({
     queryKey,
     queryFn: () => calendarPricingApi.getBookingRestrictions(propertyId as number),
     enabled: propertyId != null,
@@ -85,6 +87,7 @@ const RestrictionsPanel: React.FC<RestrictionsPanelProps> = ({ propertyId }) => 
   const resetForm = useCallback(() => {
     setForm(EMPTY_FORM);
     setEditingId(null);
+    setFormOpen(false);
     setError(null);
   }, []);
 
@@ -104,6 +107,7 @@ const RestrictionsPanel: React.FC<RestrictionsPanelProps> = ({ propertyId }) => 
   const deleteMutation = useMutation({
     mutationFn: (id: number) => calendarPricingApi.deleteBookingRestriction(id),
     onSuccess: () => invalidate(),
+    onError: () => setError(t('common.error')),
   });
 
   const saving = createMutation.isPending || updateMutation.isPending;
@@ -119,6 +123,7 @@ const RestrictionsPanel: React.FC<RestrictionsPanelProps> = ({ propertyId }) => 
 
   const handleEdit = useCallback((r: BookingRestriction) => {
     setEditingId(r.id);
+    setFormOpen(true);
     setError(null);
     setForm({
       startDate: r.startDate,
@@ -143,21 +148,29 @@ const RestrictionsPanel: React.FC<RestrictionsPanelProps> = ({ propertyId }) => 
       setError(t('restrictions.endBeforeStart', 'La date de fin doit être après la date de début.'));
       return;
     }
-    const toInt = (s: string): number | null => (s.trim() === '' ? null : Number.parseInt(s, 10));
+    const toInt = (s: string): number | null => (s.trim() === '' ? null : Number(s));
+    const min = toInt(form.minStay), max = toInt(form.maxStay), priority = toInt(form.priority);
+    if ([min, max].some(value => value != null && (!Number.isSafeInteger(value) || value < 1))
+      || (priority != null && !Number.isSafeInteger(priority)) || (min != null && max != null && max < min)) {
+      setError(t('baitlyPricing.stay.invalidLength', 'Utilisez un nombre entier de nuits, avec un maximum supérieur ou égal au minimum.'));
+      return;
+    }
+    const existing = restrictions.find(rule => rule.id === editingId);
     const data: CreateBookingRestrictionData = {
       propertyId,
       startDate: form.startDate,
       endDate: form.endDate,
-      minStay: toInt(form.minStay),
-      maxStay: toInt(form.maxStay),
+      minStay: min,
+      maxStay: max,
       closedToArrival: form.closedToArrival,
       closedToDeparture: form.closedToDeparture,
       daysOfWeek: form.daysOfWeek.length ? form.daysOfWeek : null,
-      priority: toInt(form.priority),
+      priority,
+      ...(existing ? { gapDays: existing.gapDays, advanceNoticeDays: existing.advanceNoticeDays } : {}),
     };
     if (editingId != null) updateMutation.mutate({ id: editingId, data });
     else createMutation.mutate(data);
-  }, [propertyId, form, editingId, createMutation, updateMutation, t]);
+  }, [propertyId, form, editingId, createMutation, updateMutation, t, restrictions]);
 
   if (propertyId == null) {
     return (
@@ -169,17 +182,14 @@ const RestrictionsPanel: React.FC<RestrictionsPanelProps> = ({ propertyId }) => 
     );
   }
 
-  return (
-    <div className="flex gap-[9px] items-start flex-wrap min-[1200px]:flex-nowrap">
-      {/* ── Formulaire (création / édition) ── */}
-      <Card className="gap-0 p-3 flex-[5] min-w-[300px]">
+  const editor = formOpen ? <Card className="bs-editor gap-0 p-5 min-w-0">
         <div className="flex items-center justify-between mb-2">
           <p className="text-sm font-semibold tracking-tight">
             {editingId != null
               ? t('restrictions.editTitle', 'Modifier la restriction')
               : t('restrictions.newTitle', 'Nouvelle restriction')}
           </p>
-          {editingId != null && (
+          {(
             <Tooltip>
               <TooltipTrigger asChild>
                 <Button variant="ghost" size="icon-sm" onClick={resetForm} aria-label={t('common.cancel', 'Annuler')}>
@@ -192,11 +202,12 @@ const RestrictionsPanel: React.FC<RestrictionsPanelProps> = ({ propertyId }) => 
         </div>
 
         <div className="flex flex-col gap-[9px]">
-          <div className="flex gap-1.5">
+          <div className="bs-editor-fields">
             <Field>
               <FieldLabel htmlFor="restriction-start-date">{t('restrictions.start', 'Début')}</FieldLabel>
               <Input
                 id="restriction-start-date"
+                autoFocus
                 type="date"
                 value={form.startDate}
                 onChange={(e) => setForm((s) => ({ ...s, startDate: e.target.value }))}
@@ -213,7 +224,7 @@ const RestrictionsPanel: React.FC<RestrictionsPanelProps> = ({ propertyId }) => 
             </Field>
           </div>
 
-          <div className="flex gap-1.5">
+          <div className="bs-editor-fields">
             <Field>
               <FieldLabel htmlFor="restriction-min-stay">{t('restrictions.minStay', 'Séjour min (nuits)')}</FieldLabel>
               <Input
@@ -236,7 +247,7 @@ const RestrictionsPanel: React.FC<RestrictionsPanelProps> = ({ propertyId }) => 
             </Field>
           </div>
 
-          <div className="flex flex-row gap-3">
+          <div className="bs-editor-fields">
             <Field orientation="horizontal" className="w-auto">
               <Switch
                 id="restriction-cta"
@@ -245,7 +256,7 @@ const RestrictionsPanel: React.FC<RestrictionsPanelProps> = ({ propertyId }) => 
                 onCheckedChange={(checked) => setForm((s) => ({ ...s, closedToArrival: checked }))}
               />
               <FieldLabel htmlFor="restriction-cta" className="text-xs font-normal">
-                {t('restrictions.cta', 'Arrivée fermée (CTA)')}
+                {t('baitlyPricing.stay.arrivalBlocked', 'Arrivées bloquées')}
               </FieldLabel>
             </Field>
             <Field orientation="horizontal" className="w-auto">
@@ -256,7 +267,7 @@ const RestrictionsPanel: React.FC<RestrictionsPanelProps> = ({ propertyId }) => 
                 onCheckedChange={(checked) => setForm((s) => ({ ...s, closedToDeparture: checked }))}
               />
               <FieldLabel htmlFor="restriction-ctd" className="text-xs font-normal">
-                {t('restrictions.ctd', 'Départ fermé (CTD)')}
+                {t('baitlyPricing.stay.departureBlocked', 'Départs bloqués')}
               </FieldLabel>
             </Field>
           </div>
@@ -266,14 +277,15 @@ const RestrictionsPanel: React.FC<RestrictionsPanelProps> = ({ propertyId }) => 
               {t('restrictions.daysOfWeek', 'Jours concernés (vide = tous)')}
             </p>
             <div className="flex flex-row flex-wrap gap-[3px]">
-              {DOW.map((d) => (
+              <Button variant="ghost" size="sm" aria-pressed={!form.daysOfWeek.length} onClick={() => setForm(previous => ({ ...previous, daysOfWeek: [] }))}>{t('baitlyPricing.stay.everyDayShort', 'Tous les jours')}</Button>
+              {days.map((d) => (
                 <StatusChip
                   key={d.v}
                   label={d.label}
                   tone="accent"
                   outlined
-                  selected={form.daysOfWeek.includes(d.v)}
-                  pressed={form.daysOfWeek.includes(d.v)}
+                  selected={!form.daysOfWeek.length || form.daysOfWeek.includes(d.v)}
+                  pressed={!form.daysOfWeek.length || form.daysOfWeek.includes(d.v)}
                   onClick={() => toggleDow(d.v)}
                   className="border-solid text-[0.7rem] h-6"
                 />
@@ -310,82 +322,14 @@ const RestrictionsPanel: React.FC<RestrictionsPanelProps> = ({ propertyId }) => 
             </Button>
           </div>
         </div>
-      </Card>
+      </Card> : null;
 
-      {/* ── Liste des restrictions ── */}
-      <Card className="gap-0 p-3 flex-[7] min-w-[320px]">
-        <p className="text-sm font-semibold mb-2">
-          {t('restrictions.listTitle', 'Restrictions actives')}{' '}
-          <span className="text-xs text-muted-foreground tabular-nums">
-            ({restrictions.length})
-          </span>
-        </p>
-
-        {isLoading ? (
-          <div className="flex justify-center py-6"><Spinner className="size-[22px]" /></div>
-        ) : restrictions.length === 0 ? (
-          <EmptyState
-            icon={<CalendarRange />}
-            title={t('restrictions.empty', 'Aucune restriction pour ce logement.')}
-            variant="transparent"
-          />
-        ) : (
-          // Le `divider` du Stack MUI n'a pas d'equivalent declaratif : le filet
-          // est insere explicitement entre deux lignes.
-          <div className="flex flex-col">
-            {restrictions.map((r, idx) => (
-              <React.Fragment key={r.id}>
-                {idx > 0 && <Separator />}
-                <div className="flex items-center gap-1.5 py-1.5">
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-semibold tabular-nums">
-                    {r.startDate} → {r.endDate}
-                  </p>
-                  <div className="flex flex-row flex-wrap gap-[3px] mt-[3px]">
-                    {r.minStay != null && <Badge variant="secondary" className="text-[0.68rem] h-[20px]">{`min ${r.minStay}`}</Badge>}
-                    {r.maxStay != null && <Badge variant="secondary" className="text-[0.68rem] h-[20px]">{`max ${r.maxStay}`}</Badge>}
-                    {r.closedToArrival && <Badge variant="warning" className="text-[0.68rem] h-[20px]">CTA</Badge>}
-                    {r.closedToDeparture && <Badge variant="warning" className="text-[0.68rem] h-[20px]">CTD</Badge>}
-                    {!!r.daysOfWeek?.length && (
-                      <Badge variant="outline" className="text-[0.68rem] h-[20px]">{r.daysOfWeek.map((d) => DOW.find((x) => x.v === d)?.label).join(' ')}</Badge>
-                    )}
-                  </div>
-                </div>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Button variant="ghost" size="icon-sm" onClick={() => handleEdit(r)} aria-label={t('common.edit', 'Modifier')}>
-                      <Pencil size={14} />
-                    </Button>
-                  </TooltipTrigger>
-                  <TooltipContent>{t('common.edit', 'Modifier')}</TooltipContent>
-                </Tooltip>
-                {/* Le span garde l'infobulle atteignable quand le bouton est
-                    desactive (un bouton disabled n'emet plus d'evenement). */}
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <span className="inline-flex">
-                      <Button
-                        variant="ghost"
-                        size="icon-sm"
-                        onClick={() => deleteMutation.mutate(r.id)}
-                        disabled={deleteMutation.isPending}
-                        aria-label={t('common.delete', 'Supprimer')}
-                        className="text-destructive-ink hover:text-destructive-ink hover:bg-destructive-soft"
-                      >
-                        <Trash2 size={14} />
-                      </Button>
-                    </span>
-                  </TooltipTrigger>
-                  <TooltipContent>{t('common.delete', 'Supprimer')}</TooltipContent>
-                </Tooltip>
-                </div>
-              </React.Fragment>
-            ))}
-          </div>
-        )}
-      </Card>
-    </div>
-  );
+  return <div className="bs-controller">
+    {!formOpen && error && <Alert variant="destructive"><AlertDescription>{error}</AlertDescription></Alert>}
+    {isError && <Alert variant="destructive"><AlertDescription>{t('baitlyPricing.stay.loadError', 'Impossible de charger les règles de séjour. Réessayez.')} <Button variant="outline" onClick={() => void refetch()}>{t('common.retry')}</Button></AlertDescription></Alert>}
+    <BaitlyStayRulesWorkspace restrictions={restrictions} loading={isLoading} deleting={deleteMutation.isPending}
+      editor={editor} onCreate={() => { resetForm(); setFormOpen(true); }} onEdit={handleEdit} onDelete={rule => deleteMutation.mutate(rule.id)} />
+  </div>;
 };
 
 export default RestrictionsPanel;

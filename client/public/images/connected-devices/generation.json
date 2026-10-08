@@ -1,0 +1,103 @@
+{
+  "generator": "OpenAI imagegen (built-in)",
+  "generatedAt": "2026-10-08",
+  "description": "Baitly generated transparent IoT cutouts. Bulb on/off assets are prepared; the PMS currently has no lighting-control API.",
+  "assets": [
+    {
+      "key": "lock",
+      "prompt": "Use case: product-mockup. Asset type: ONE transparent-background IoT object cutout for Baitly's isometric interactive room interface. Premium realistic 3D product illustration, coherent warm off-white ceramic and matte midnight navy housing, small brushed-metal accents. Three-quarter front view, elevated slightly, object isolated and centered, fills 75% of square canvas. Soft studio light, crisp edges and detailed realistic materials, subtle object shading only, NO cast ground shadow. GENUINELY TRANSPARENT BACKGROUND WITH ALPHA. No floor, wall, pedestal, room, people, text, logos, numbers, brand, watermark, labels, arrows, surrounding decoration or extra objects. Display screens remain dark and blank (the UI shows real telemetry separately).\nSubject: A sleek vertical smart door lock: slim midnight navy keypad housing with small unnumbered physical button dots, short horizontal metallic door handle attached at bottom. Standalone lock mechanism ONLY, no door.",
+      "source": "exec-32790a4d-fd0b-44af-a0c9-4057970385f5.png",
+      "file": "baitly-lock.webp"
+    },
+    {
+      "key": "keybox",
+      "prompt": "Use case: product-mockup. Asset type: ONE transparent-background IoT object cutout for Baitly's isometric interactive room interface. Premium realistic 3D product illustration, coherent warm off-white ceramic and matte midnight navy housing, small brushed-metal accents. Three-quarter front view, elevated slightly, object isolated and centered, fills 75% of square canvas. Soft studio light, crisp edges and detailed realistic materials, subtle object shading only, NO cast ground shadow. GENUINELY TRANSPARENT BACKGROUND WITH ALPHA. No floor, wall, pedestal, room, people, text, logos, numbers, brand, watermark, labels, arrows, surrounding decoration or extra objects. Display screens remain dark and blank (the UI shows real telemetry separately).\nSubject: A compact wall mounted smart key safe / lockbox, midnight navy rectangular housing, closed front with four small unnumbered keypad buttons and tiny neutral indicator. Entire key safe, no keys, no wall.",
+      "source": "exec-06cd8a4b-b3c2-49ee-8c3d-c5ada47ae6f6.png",
+      "file": "baitly-keybox.webp"
+    },
+    {
+      "key": "camera",
+      "prompt": "Use case: product-mockup. Asset type: ONE transparent-background IoT object cutout for Baitly's isometric interactive room interface. Premium realistic 3D product illustration, coherent warm off-white ceramic and matte midnight navy housing, small brushed-metal accents. Three-quarter front view, elevated slightly, object isolated and centered, fills 75% of square canvas. Soft studio light, crisp edges and detailed realistic materials, subtle object shading only, NO cast ground shadow. GENUINELY TRANSPARENT BACKGROUND WITH ALPHA. No floor, wall, pedestal, room, people, text, logos, numbers, brand, watermark, labels, arrows, surrounding decoration or extra objects. Display screens remain dark and blank (the UI shows real telemetry separately).\nSubject: A small outdoor bullet security camera, off-white cylindrical body with matte navy lens front, short compact wall mount and circular base. Lens points slightly to viewer's left, whole mount visible. No background.",
+      "source": "exec-c13dfd12-affe-467d-8738-e8dc4c488d2e.png",
+      "file": "baitly-camera.webp"
+    },
+    {
+      "key": "noise",
+      "prompt": "Use case: product-mockup. Asset type: ONE transparent-background IoT object cutout for Baitly's isometric interactive room interface. Premium realistic 3D product illustration, coherent warm off-white ceramic and matte midnight navy housing, small brushed-metal accents. Three-quarter front view, elevated slightly, object isolated and centered, fills 75% of square canvas. Soft studio light, crisp edges and detailed realistic materials, subtle object shading only, NO cast ground shadow. GENUINELY TRANSPARENT BACKGROUND WITH ALPHA. No floor, wall, pedestal, room, people, text, logos, numbers, brand, watermark, labels, arrows, surrounding decoration or extra objects. Display screens remain dark and blank (the UI shows real telemetry separately).\nSubject: A round minimalist acoustic noise level sensor, low-profile off-white disk with matte navy fine perforated grille on front and a tiny subtle neutral indicator. It is a wall-mounted sensor disk, not a microphone, no stand.",
+      "source": "exec-56869638-3fef-41f2-b0e0-ba5c54271e04.png",
+      "file": "baitly-noise.webp"
+    },
+    {
+      "key": "thermostat",
+      "prompt": "Use case: product-mockup. Asset type: ONE transparent-background IoT object cutout for Baitly's isometric interactive room interface. Premium realistic 3D product illustration, coherent warm off-white ceramic and matte midnight navy housing, small brushed-metal accents. Three-quarter front view, elevated slightly, object isolated and centered, fills 75% of square canvas. Soft studio light, crisp edges and detailed realistic materials, subtle object shading only, NO cast ground shadow. GENUINELY TRANSPARENT BACKGROUND WITH ALPHA. No floor, wall, pedestal, room, people, text, logos, numbers, brand, watermark, labels, arrows, surrounding decoration or extra objects. Display screens remain dark and blank (the UI shows real telemetry separately).\nSubject: A square smart wall thermostat, soft off-white casing with slightly rounded corners, black blank inset display and small circular control dial at lower edge. No temperature digits, no text.",
+      "source": "exec-4ca38f44-f04b-46bf-a758-cb88cf613999.png",
+      "file": "baitly-thermostat.webp"
+    },
+    {
+      "key": "climate",
+      "prompt": "Use case: product-mockup. Asset type: ONE transparent-background IoT object cutout for Baitly's isometric interactive room interface. Premium realistic 3D product illustration, coherent warm off-white ceramic and matte midnight navy housing, small brushed-metal accents. Three-quarter front view, elevated slightly, object isolated and centered, fills 75% of square canvas. Soft studio light, crisp edges and detailed realistic materials, subtle object shading only, NO cast ground shadow. GENUINELY TRANSPARENT BACKGROUND WITH ALPHA. No floor, wall, pedestal, room, people, text, logos, numbers, brand, watermark, labels, arrows, surrounding decoration or extra objects. Display screens remain dark and blank (the UI shows real telemetry separately).\nSubject: A compact freestanding indoor temperature and humidity sensor, off-white small rounded rectangle with dark blank upper display, small ventilation slots along bottom, short integrated base. No digits.",
+      "source": "exec-ee0b9878-a536-411f-97d4-e1b73bd0139b.png",
+      "file": "baitly-climate.webp"
+    },
+    {
+      "key": "contact",
+      "prompt": "Use case: product-mockup. Asset type: ONE transparent-background IoT object cutout for Baitly's isometric interactive room interface. Premium realistic 3D product illustration, coherent warm off-white ceramic and matte midnight navy housing, small brushed-metal accents. Three-quarter front view, elevated slightly, object isolated and centered, fills 75% of square canvas. Soft studio light, crisp edges and detailed realistic materials, subtle object shading only, NO cast ground shadow. GENUINELY TRANSPARENT BACKGROUND WITH ALPHA. No floor, wall, pedestal, room, people, text, logos, numbers, brand, watermark, labels, arrows, surrounding decoration or extra objects. Display screens remain dark and blank (the UI shows real telemetry separately).\nSubject: A door/window opening sensor as TWO matching slim off-white rounded rectangular pieces placed close and parallel, one taller main sensor and a smaller magnet strip. No door or window.",
+      "source": "exec-f278252d-2083-4651-87a1-f5a560a08ecb.png",
+      "file": "baitly-contact.webp"
+    },
+    {
+      "key": "motion",
+      "prompt": "Use case: product-mockup. Asset type: ONE transparent-background IoT object cutout for Baitly's isometric interactive room interface. Premium realistic 3D product illustration, coherent warm off-white ceramic and matte midnight navy housing, small brushed-metal accents. Three-quarter front view, elevated slightly, object isolated and centered, fills 75% of square canvas. Soft studio light, crisp edges and detailed realistic materials, subtle object shading only, NO cast ground shadow. GENUINELY TRANSPARENT BACKGROUND WITH ALPHA. No floor, wall, pedestal, room, people, text, logos, numbers, brand, watermark, labels, arrows, surrounding decoration or extra objects. Display screens remain dark and blank (the UI shows real telemetry separately).\nSubject: A compact wall-mounted PIR motion sensor: off-white small rounded body, characteristic large frosted hemispherical lens on front, tiny rear articulated mount. No camera lens.",
+      "source": "exec-a2a81d36-b7b9-47a0-b121-329d77f79c7f.png",
+      "file": "baitly-motion.webp"
+    },
+    {
+      "key": "smoke",
+      "prompt": "Use case: product-mockup. Asset type: ONE transparent-background IoT object cutout for Baitly's isometric interactive room interface. Premium realistic 3D product illustration, coherent warm off-white ceramic and matte midnight navy housing, small brushed-metal accents. Three-quarter front view, elevated slightly, object isolated and centered, fills 75% of square canvas. Soft studio light, crisp edges and detailed realistic materials, subtle object shading only, NO cast ground shadow. GENUINELY TRANSPARENT BACKGROUND WITH ALPHA. No floor, wall, pedestal, room, people, text, logos, numbers, brand, watermark, labels, arrows, surrounding decoration or extra objects. Display screens remain dark and blank (the UI shows real telemetry separately).\nSubject: A ceiling smoke detector, round off-white disk with distinctive radial ventilation slots, slightly raised circular test button in middle, subtle navy trim ring. No alarms, smoke, lights, numbers.",
+      "source": "exec-484dd5c2-9edb-45d6-8577-61d37fc9e256.png",
+      "file": "baitly-smoke.webp"
+    },
+    {
+      "key": "split-cool",
+      "prompt": "Use case: product-mockup. Asset type: ONE transparent-background wall-mounted split air conditioner cutout for Baitly's interactive room interface. Premium realistic 3D product illustration, identical model across all modes: elegant long horizontal warm off-white rectangular indoor split AC unit, slim midnight navy slit display without numbers or writing, lower horizontal air vent with realistic louvers. Three-quarter front view with slight view of the right side, elevated camera, whole unit centered with ample margin, no wall, room, floor, person, logo, text, numbers or status labels. Genuinely transparent alpha background. No cast ground shadow. Soft natural studio lighting. Product must be very wide and clearly recognisable as a split air conditioner. Operating in COOLING: lower vent open, very subtle cool blue tint INSIDE the vent only, no clouds, no floating arrows, no glow outside the unit.",
+      "source": "exec-1b1b933c-7836-46c4-9a08-25aa95c5717c.png",
+      "file": "baitly-split-cool.webp"
+    },
+    {
+      "key": "split-heat",
+      "prompt": "Use case: product-mockup. Asset type: ONE transparent-background wall-mounted split air conditioner cutout for Baitly's interactive room interface. Premium realistic 3D product illustration, identical model across all modes: elegant long horizontal warm off-white rectangular indoor split AC unit, slim midnight navy slit display without numbers or writing, lower horizontal air vent with realistic louvers. Three-quarter front view with slight view of the right side, elevated camera, whole unit centered with ample margin, no wall, room, floor, person, logo, text, numbers or status labels. Genuinely transparent alpha background. No cast ground shadow. Soft natural studio lighting. Product must be very wide and clearly recognisable as a split air conditioner. Operating in HEATING: lower vent open, very subtle warm amber tint INSIDE the vent only, no flames, no floating arrows, no glow outside the unit.",
+      "source": "exec-d9c6387a-9be4-47c3-a505-589ca5d668e5.png",
+      "file": "baitly-split-heat.webp"
+    },
+    {
+      "key": "split-idle",
+      "prompt": "Use case: product-mockup. Asset type: ONE transparent-background wall-mounted split air conditioner cutout for Baitly's interactive room interface. Premium realistic 3D product illustration, identical model across all modes: elegant long horizontal warm off-white rectangular indoor split AC unit, slim midnight navy slit display without numbers or writing, lower horizontal air vent with realistic louvers. Three-quarter front view with slight view of the right side, elevated camera, whole unit centered with ample margin, no wall, room, floor, person, logo, text, numbers or status labels. Genuinely transparent alpha background. No cast ground shadow. Soft natural studio lighting. Product must be very wide and clearly recognisable as a split air conditioner. OFF / UNKNOWN MODE: vent closed, completely neutral unlit appearance, no blue or orange, blank dark display.",
+      "source": "exec-ede47973-3769-4a54-b33b-384a35f6894f.png",
+      "file": "baitly-split-idle.webp"
+    },
+    {
+      "key": "snowflake",
+      "prompt": "Use case: stylized-concept. Asset type: Baitly smart-home UI cooling-mode overlay, square cutout on genuinely transparent background. Generate a single large symmetrical SIX-arm snowflake, soft three-dimensional molded ceramic style, medium cobalt and ice blue with deeper blue edges, rounded sturdy branches, clean readable silhouette at 24 pixels. Front view, very slight thickness, centered, fills 85 percent of square with all arms fully visible. Soft neutral studio lighting. Premium restrained product illustration matching off-white smart home equipment. No text, no letters, no face, no circle behind it, no floor, no surroundings, no glow, no white background. Preserve true alpha transparency.",
+      "source": "exec-af5751d3-ad9a-4d9f-bf46-aadd44370cd5.png",
+      "file": "baitly-snowflake.webp"
+    },
+    {
+      "key": "sun",
+      "prompt": "Use case: stylized-concept. Asset type: Baitly smart-home UI heating-mode overlay, square cutout on genuinely transparent background. Generate a single large warm sun icon, soft three-dimensional molded ceramic style: amber orange circular center with eight thick rounded short rays, deeper orange edges and soft golden highlights, clean readable silhouette at 24 pixels. Front view, very slight thickness, centered, fills 85 percent of square with all rays fully visible. Soft neutral studio lighting. Premium restrained product illustration matching off-white smart home equipment. No text, no letters, no face, no circle behind it, no floor, no surroundings, no glow, no white background. Preserve true alpha transparency.",
+      "source": "exec-04ba0c5f-8a09-4f60-902e-ea084b0a4948.png",
+      "file": "baitly-sun.webp"
+    },
+    {
+      "key": "light-on",
+      "prompt": "Use case: product-mockup. Asset type: Baitly smart-home UI bulb cutout, square transparent background. One premium generic connected LED light bulb, classic rounded A60 pear shape with short silver screw base, isolated, upright front slightly three-quarter view. The frosted off-white diffuser is ON and shines a warm golden yellow, subtle yellow halo hugging the bulb only, warm lit core, clear silhouette at 40 pixels. Navy small seam on base, realistic elegant soft 3D product illustration. Centered fills 85 percent height, studio lighting, genuinely transparent background, no floor no room no text no letters no logo no switch. All bulb edges visible.",
+      "source": "exec-3bedffc9-fa4d-4435-b3bc-5d1b380dad5f.png",
+      "file": "baitly-light-on.webp"
+    },
+    {
+      "key": "light-off",
+      "prompt": "Use case: product-mockup. Asset type: Baitly smart-home UI bulb cutout, square transparent background. One premium generic connected LED light bulb, classic rounded A60 pear shape with short silver screw base, isolated, upright front slightly three-quarter view. The frosted off-white diffuser is OFF, cool pale gray matte glass with soft reflections, no glow or illumination. Navy small seam on base, realistic elegant soft 3D product illustration. Centered fills 85 percent height, studio lighting, genuinely transparent background, no floor no room no text no letters no logo no switch. All bulb edges visible.",
+      "source": "exec-563662ee-116b-40f9-a135-c07796f9457c.png",
+      "file": "baitly-light-off.webp"
+    }
+  ]
+}

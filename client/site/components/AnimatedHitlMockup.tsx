@@ -1,3 +1,6 @@
+import { SiteAgentPortrait, SiteDemoStatus } from './SiteProductVisuals';
+import { SITE_ACTION_ARTWORK } from '../data/actionArtwork';
+import type { AgentId } from '../../src/modules/supervision/types';
 import SiteMoney, { SiteMoneyText } from './SiteMoney';
 import { useEffect, useRef, useState, type ReactNode } from 'react';
 import {
@@ -68,6 +71,8 @@ function ActionButton({
 
 interface CardChromeProps {
   agent: string;
+  agentId: AgentId;
+  artwork: string;
   tag: string;
   done: boolean;
   doneLabel?: string;
@@ -77,6 +82,8 @@ interface CardChromeProps {
 
 function CardChrome({
   agent,
+  agentId,
+  artwork,
   tag,
   done,
   doneLabel,
@@ -88,23 +95,15 @@ function CardChrome({
     <div
       className={cn(
         'shadow-brand rounded-xl border bg-card p-4 transition-colors duration-300',
-        done ? 'border-success/50' : 'border-warning/50',
+        done ? 'border-success/50' : 'border-primary/30',
       )}
     >
-      <div className="flex flex-wrap items-center gap-1.5">
-        <Badge variant="secondary">{agent}</Badge>
-        <Badge variant="outline">{tag}</Badge>
-        {done ? (
-          <Badge variant="success" className="ms-auto">
-            <CheckIcon /> {doneLabel ?? m.approved}
-          </Badge>
-        ) : (
-          <Badge variant="warning" className="ms-auto">
-            {m.waiting}
-          </Badge>
-        )}
+      <div className="site-hitl-agent">
+        <SiteAgentPortrait agent={agentId} size={30} />
+        <span>{agent} · {tag}</span>
+        <SiteDemoStatus done={done} label={done ? (doneLabel ?? m.approved) : m.waiting} />
       </div>
-      <h3 className="mt-2.5 text-sm font-semibold">{title}</h3>
+      <div className="site-hitl-heading"><img src={artwork} alt="" width={52} height={52} /><h3>{title}</h3></div>
       {children}
     </div>
   );
@@ -185,7 +184,7 @@ function RevenueCard({
 
   return (
     <div className="relative" ref={containerRef}>
-      <CardChrome agent={t.agent} tag={t.tag} done={done} title={t.title}>
+      <CardChrome agentId="rev" artwork={SITE_ACTION_ARTWORK.pricingOptimization} agent={t.agent} tag={t.tag} done={done} title={t.title}>
         <p className="mt-1 text-xs text-muted-foreground">
           {t.copyBefore}
           <span className="font-semibold text-foreground">{t.copyDelta}</span>
@@ -353,6 +352,7 @@ function MessagingCard({
   return (
     <div className="relative" ref={containerRef}>
       <CardChrome
+        agentId="com" artwork={SITE_ACTION_ARTWORK.messageSent}
         agent={t.agent}
         tag={t.tag}
         done={done}
@@ -441,6 +441,7 @@ function OpsCard({
   return (
     <div className="relative" ref={containerRef}>
       <CardChrome
+        agentId="ops" artwork={SITE_ACTION_ARTWORK.cleaning}
         agent={t.agent}
         tag={t.tag}
         done={done}

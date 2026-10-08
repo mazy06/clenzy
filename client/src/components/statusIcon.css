@@ -1,0 +1,7 @@
+.baitly-status-icon { display: inline-flex; align-items: center; justify-content: center; width: 34px; height: 34px; flex: none; border-radius: 10px; color: var(--bui-muted-foreground); background: var(--bui-muted); cursor: pointer; transition: background 180ms ease-out; }
+.baitly-status-icon[data-tone=success] { color: var(--bui-success-ink); background: var(--bui-success-soft); }
+.baitly-status-icon[data-tone=warning] { color: var(--bui-warning-ink); background: var(--bui-warning-soft); }
+.baitly-status-icon[data-tone=destructive] { color: var(--bui-destructive-ink); background: var(--bui-destructive-soft); }
+.baitly-status-icon[data-tone=info] { color: var(--bui-info-ink); background: var(--bui-info-soft); }
+.baitly-status-icon:focus-visible { outline: 2px solid var(--bui-ring); outline-offset: 2px; }
+@media (prefers-reduced-motion: reduce) { .baitly-status-icon { transition: none; } }

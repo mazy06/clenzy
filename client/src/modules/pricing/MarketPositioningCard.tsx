@@ -22,7 +22,7 @@ const SOURCE_KEYS: Record<string, string> = {
 /**
  * Carte « double signal » (roadmap market data) : le RÉALISÉ du bien (prix publié
  * moyen, occupation à venir) face au MARCHÉ de sa zone, avec la provenance et la
- * confiance de la source — jamais un chiffre marché présenté comme sûr sans son
+ * confiance de la source · jamais un chiffre marché présenté comme sûr sans son
  * indice. Lecture seule ; alimente la décision tarifaire sans rien appliquer.
  */
 const MarketPositioningCard: React.FC<{ propertyId: number }> = ({ propertyId }) => {
@@ -46,15 +46,15 @@ const MarketPositioningCard: React.FC<{ propertyId: number }> = ({ propertyId })
 
   const noMarket = data.positioning === 'NO_MARKET_DATA';
   // Encre AA (`-ink`) et non la teinte vive : la meme valeur sert de couleur de
-  // TEXTE dans la puce et de base du fond `color-mix` — la teinte vive y serait
+  // TEXTE dans la puce et de base du fond `color-mix` · la teinte vive y serait
   // sous le seuil de contraste.
   const color = noMarket
-    ? 'var(--color-muted-foreground)'
+    ? 'var(--bui-muted-foreground)'
     : data.positioning === 'UNDERPRICED'
-      ? 'var(--color-success-ink)'
+      ? 'var(--bui-success-ink)'
       : data.positioning === 'OVERPRICED'
-        ? 'var(--color-warning-ink)'
-        : 'var(--color-primary)';
+        ? 'var(--bui-warning-ink)'
+        : 'var(--bui-primary)';
   const Icon = data.positioning === 'UNDERPRICED'
     ? TrendingUp
     : data.positioning === 'OVERPRICED'
@@ -69,11 +69,11 @@ const MarketPositioningCard: React.FC<{ propertyId: number }> = ({ propertyId })
         : t('marketPositioning.aligned', 'Aligné sur le marché');
 
   return (
-    <Card className="gap-0 py-0 p-2.5">
+    <Card className="bp-market gap-0 py-0 p-0">
       <div className="flex items-center gap-1.5 mb-2 flex-wrap">
         <h6 className="text-sm font-semibold tracking-tight text-balance">
           {t('marketPositioning.title', 'Positionnement marché')}
-          {data.area ? ` — ${data.area}` : ''}
+          {data.area ? ` · ${data.area}` : ''}
         </h6>
         {/* Teinte plus sourde que la recette `-soft` de la primitive (8 % au lieu
             de 12 %), cernee d'une hairline : la puce est un reperage de lecture,
@@ -138,7 +138,7 @@ const SignalBlock: React.FC<{
   occLabel: string;
   muted?: boolean;
 }> = ({ label, adr, occ, adrLabel, occLabel, muted }) => (
-  <div className={cn('p-[7.5px] rounded-md border border-solid border-border', muted ? 'bg-transparent' : 'bg-primary-soft')}>
+  <div className={cn('py-3 border-b border-border', 'bg-transparent')}>
     <span className="text-xs text-muted-foreground block mb-0.5">
       {label}
     </span>

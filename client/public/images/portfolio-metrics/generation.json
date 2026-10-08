@@ -1,0 +1,28 @@
+{
+  "tool": "image_gen built-in",
+  "created": "2026-10-04",
+  "style": "Baitly inventory packshots, navy, ivory and brushed brass",
+  "background": "transparent alpha",
+  "size": {
+    "width": 192,
+    "height": 192
+  },
+  "format": "lossless WebP",
+  "assets": [
+    {
+      "file": "pending-review.webp",
+      "prompt": "Use case: product-mockup. Asset type: a single square raster illustration for one small metric in Baitly hospitality software. Premium realistic inventory-library studio packshot, tactile miniature physical objects, softly rounded edges, not a flat icon or vector. Restrained matte midnight navy #233f68, warm ivory, blue-grey and small brushed brass details. Three-quarter front view with slight elevation, soft upper-left studio lighting, clear crisp silhouette, generous material detail without fine clutter. The grouped subject occupies 85% of the square and remains immediately legible at 40 pixels. GENUINELY TRANSPARENT RGBA background, no painted checkerboard, no floor, no backdrop, no shadow outside the object. No people, robots, text, letters, numbers, brand logo, watermark, panel, border, sparkle or extra decoration. Single centered composition, not a sheet of variants. Subject: a refined navy leather document IN-tray holding three slightly staggered upright ivory task sheets. The foremost sheet has two large empty recessed checkboxes with short embossed grey lines, no writing. A small round brass medallion bearing an engraved ellipsis of exactly three dark dots is attached to the front right of the tray. This must communicate decisions still awaiting human approval, not already completed. The tray, sheets and waiting medallion form one balanced compact object group.",
+      "source": "/Users/toufik/.codex/generated_images/01a0ff63-123f-7401-8c37-33cfb69e191b/exec-4053553c-4d31-4666-91e7-f6e85dcccd2e.png"
+    },
+    {
+      "file": "time-saved.webp",
+      "prompt": "Use case: product-mockup. Asset type: a single square raster illustration for one small metric in Baitly hospitality software. Premium realistic inventory-library studio packshot, tactile miniature physical objects, softly rounded edges, not a flat icon or vector. Restrained matte midnight navy #233f68, warm ivory, blue-grey and small brushed brass details. Three-quarter front view with slight elevation, soft upper-left studio lighting, clear crisp silhouette, generous material detail without fine clutter. The grouped subject occupies 85% of the square and remains immediately legible at 40 pixels. GENUINELY TRANSPARENT RGBA background, no painted checkerboard, no floor, no backdrop, no shadow outside the object. No people, robots, text, letters, numbers, brand logo, watermark, panel, border, sparkle or extra decoration. Single centered composition, not a sheet of variants. Subject: one elegant round ivory-faced stopwatch with a deep navy metal rim, a small brushed-brass top button, a single bold navy clock hand and four simple subtle tick marks, no numerals. In front of the lower right rim is one compact sculpted brushed-brass fast-forward symbol, two joined right-pointing triangular wedges. Communicate time saved and faster work. No document, no calendar, no gear, only the stopwatch and the fast-forward symbol as one compact object group.",
+      "source": "/Users/toufik/.codex/generated_images/01a0ff63-123f-7401-8c37-33cfb69e191b/exec-397b3e1e-8068-479f-b097-9d3adb8d2828.png"
+    },
+    {
+      "file": "automated-actions.webp",
+      "prompt": "Use case: product-mockup. Asset type: a single square raster illustration for one small metric in Baitly hospitality software. Premium realistic inventory-library studio packshot, tactile miniature physical objects, softly rounded edges, not a flat icon or vector. Restrained matte midnight navy #233f68, warm ivory, blue-grey and small brushed brass details. Three-quarter front view with slight elevation, soft upper-left studio lighting, clear crisp silhouette, generous material detail without fine clutter. The grouped subject occupies 85% of the square and remains immediately legible at 40 pixels. GENUINELY TRANSPARENT RGBA background, no painted checkerboard, no floor, no backdrop, no shadow outside the object. No people, robots, text, letters, numbers, brand logo, watermark, panel, border, sparkle or extra decoration. Single centered composition, not a sheet of variants. Subject: one substantial matte navy mechanical cogwheel standing at a slight angle, with a smaller warm brushed-brass cog visibly meshing with it. In front sits a small thick ivory task tile with one clear embossed muted teal checkmark. Communicate completed automated work. One compact sculptural object group, thick readable teeth on both gears, no tiny machinery, no robot, no clock, no calendar, no tray.",
+      "source": "/Users/toufik/.codex/generated_images/01a0ff63-123f-7401-8c37-33cfb69e191b/exec-28c87443-d8b8-4e16-b51a-e319a11b6d5d.png"
+    }
+  ]
+}

@@ -1,0 +1,153 @@
+@layer components {
+  .baitly-constellation-toolbar {
+    display: flex;
+    flex-shrink: 0;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px 20px;
+    padding: 12px 14px;
+    border: 1px solid var(--bui-supervision-line);
+    border-radius: 16px;
+    background: color-mix(in oklch, var(--bui-card) 80%, var(--bui-supervision-soft));
+    color: var(--bui-foreground);
+  }
+
+  .baitly-constellation-toolbar__identity { min-width: 0; }
+
+  .baitly-constellation-toolbar__heading,
+  .baitly-constellation-toolbar__meta,
+  .baitly-constellation-toolbar__controls {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+  }
+
+  .baitly-constellation-toolbar__heading { gap: 6px 12px; }
+
+  .baitly-constellation-toolbar h2 {
+    margin: 0;
+    font-size: 15px;
+    line-height: 1.35;
+    font-weight: 700;
+    letter-spacing: -.015em;
+    text-wrap: balance;
+  }
+
+  .baitly-constellation-toolbar__pending {
+    display: inline-flex;
+    align-items: baseline;
+    gap: 5px;
+    padding: 3px 9px;
+    border: 1px solid color-mix(in oklch, var(--bui-warning-ink) 18%, transparent);
+    border-radius: 8px;
+    background: var(--bui-warning-soft);
+    color: var(--bui-warning-ink);
+    font-size: 12px;
+    line-height: 1.4;
+    white-space: nowrap;
+  }
+
+  .baitly-constellation-toolbar b { font-weight: 650; font-variant-numeric: tabular-nums; }
+  .baitly-constellation-toolbar__pending b { font-weight: 750; }
+
+  .baitly-constellation-toolbar__meta {
+    margin-top: 5px;
+    gap: 5px 12px;
+    font-size: 12px;
+    line-height: 1.5;
+    color: var(--bui-muted-foreground);
+  }
+
+  .baitly-constellation-toolbar__meta > span { white-space: nowrap; }
+  .baitly-constellation-toolbar__meta > span + span {
+    padding-inline-start: 12px;
+    border-inline-start: 1px solid var(--bui-border);
+  }
+  .baitly-constellation-toolbar__meta b { color: var(--bui-foreground); }
+  .baitly-constellation-toolbar__state { display: inline-flex; align-items: center; gap: 6px; }
+  .baitly-constellation-toolbar__state i { width: 6px; height: 6px; border-radius: 50%; background: var(--bui-muted-foreground); }
+  .baitly-constellation-toolbar__state[data-state=online] i { background: var(--bui-success-ink); }
+  .baitly-constellation-toolbar__state[data-state=paused] i { background: var(--bui-warning-ink); }
+  .baitly-constellation-toolbar__controls { gap: 8px; }
+
+  .baitly-constellation-toolbar .baitly-constellation-views {
+    padding: 3px;
+    gap: 3px;
+    border: 1px solid var(--bui-border);
+    border-radius: 11px;
+    background: var(--bui-muted);
+  }
+
+  .baitly-constellation-toolbar .baitly-constellation-view,
+  .baitly-constellation-toolbar .baitly-constellation-tool {
+    display: inline-flex;
+    flex-shrink: 0;
+    align-items: center;
+    justify-content: center;
+    gap: 7px;
+    width: auto;
+    min-height: 34px;
+    height: auto;
+    padding: 7px 10px;
+    border: 1px solid transparent;
+    border-radius: 8px;
+    background: transparent;
+    color: var(--bui-muted-foreground);
+    font-size: 12px;
+    line-height: 18px;
+    font-weight: 600;
+    white-space: nowrap;
+    cursor: pointer;
+    transition: background-color 180ms ease-out, color 180ms ease-out, border-color 180ms ease-out;
+  }
+
+  .baitly-constellation-toolbar .baitly-constellation-view:hover,
+  .baitly-constellation-toolbar .baitly-constellation-tool:hover {
+    background: var(--bui-supervision-soft);
+    color: var(--bui-supervision-ink);
+  }
+
+  .baitly-constellation-toolbar .baitly-constellation-view[data-state=on] {
+    border-color: var(--bui-supervision-line);
+    background: var(--bui-card);
+    color: var(--bui-supervision-ink);
+    box-shadow: 0 1px 2px color-mix(in oklch, var(--bui-supervision-ink) 8%, transparent);
+  }
+
+  .baitly-constellation-toolbar .baitly-constellation-tool--scan {
+    border-color: var(--bui-supervision-line);
+    background: var(--bui-supervision-soft);
+    color: var(--bui-supervision-ink);
+  }
+
+  .baitly-constellation-toolbar .baitly-constellation-tool[data-pending] {
+    background: var(--bui-warning-soft);
+    color: var(--bui-warning-ink);
+  }
+  .baitly-constellation-toolbar .baitly-constellation-tool[data-active] {
+    border-color: currentColor;
+  }
+
+  .baitly-constellation-toolbar .baitly-constellation-tool:disabled { cursor: wait; opacity: .6; }
+  .baitly-constellation-toolbar button:focus-visible {
+    outline: 2px solid var(--bui-supervision-ink);
+    outline-offset: 3px;
+  }
+
+  .baitly-constellation-toolbar[data-compact] { margin: 8px; padding: 10px 12px; gap: 10px; }
+
+  @media (max-width: 480px) {
+    .baitly-constellation-toolbar[data-compact] .baitly-constellation-tool { min-width: 44px; min-height: 44px; }
+    .baitly-constellation-toolbar[data-compact] .baitly-constellation-tool:not([data-pending]) > span { display: none; }
+  }
+
+  @media (pointer: coarse) {
+    .baitly-constellation-toolbar .baitly-constellation-view,
+    .baitly-constellation-toolbar .baitly-constellation-tool { min-height: 44px; }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .baitly-constellation-toolbar button { transition: none; }
+  }
+}

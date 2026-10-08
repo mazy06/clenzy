@@ -32,7 +32,7 @@ export default function LegalDocPage({ slug }: { slug: LegalSlug }) {
       </p>
 
       {doc.blocks.map((block) => (
-        <section key={block.heading}>
+        <section key={block.heading} id={block.id}>
           <h2>{block.heading}</h2>
 
           {block.paragraphs?.map((paragraph) => (

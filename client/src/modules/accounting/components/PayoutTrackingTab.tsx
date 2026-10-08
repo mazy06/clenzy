@@ -1,5 +1,8 @@
+import FinanceStatusIcon from '../../billing/components/FinanceStatusIcon';
+import FinanceHeaderFilters from '../../billing/components/FinanceHeaderFilters';
+import { useFinanceLayout } from '../../billing/components/useFinanceLayout';
 import { useCallback, useEffect, useId, useRef, useState } from 'react';
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { ArrowLeft, Check, ChevronRight, RefreshCw, ShieldCheck } from '../../../icons/glyphs';
 import { Button, Input, Skeleton } from '../../../components/ui';
 import PagePagination from '../../../components/PagePagination';
@@ -24,7 +27,7 @@ export default function PayoutTrackingTab() {
 
 function TransferBadge({ state }: { state: TransferState }) {
   const { t } = useTranslation();
-  return <span className="payout-tracking__badge" data-state={state}>{t(`payoutTracking.states.${state}`)}</span>;
+  return <FinanceStatusIcon value={state} label={t(`payoutTracking.states.${state}`)} />;
 }
 
 function PayoutTracking({ scope, organizationName }: { scope: string; organizationName?: string }) {
@@ -35,9 +38,10 @@ function PayoutTracking({ scope, organizationName }: { scope: string; organizati
     const requested = new URLSearchParams(window.location.search).get('transfer');
     return requested && /^[1-9]\d{0,14}$/.test(requested) ? Number(requested) : null;
   });
+  const { workspaceRef, height, listRef, pageSize } = useFinanceLayout<HTMLDivElement>();
   const queries = useQueryClient();
   const key = ['payout-transfers', scope];
-  const list = useQuery({ queryKey: [...key, filters], queryFn: () => payoutTransfersApi.list(filters) });
+  const list = useQuery({ queryKey: [...key, filters, pageSize], queryFn: () => payoutTransfersApi.list({ ...filters, size: pageSize }), placeholderData: keepPreviousData });
   const amounts = useQuery({ queryKey: [...key, 'amounts', filters.state, filters.source, filters.search],
     queryFn: () => payoutTransfersApi.listAll({ state: filters.state, source: filters.source, search: filters.search }), staleTime: 30_000 });
   const detail = useQuery({ queryKey: [...key, 'detail', selected], queryFn: () => payoutTransfersApi.detail(selected!), enabled: selected !== null });
@@ -54,9 +58,9 @@ function PayoutTracking({ scope, organizationName }: { scope: string; organizati
   useEffect(() => {
     const totalPages = list.data?.totalPages;
     if (totalPages !== undefined && filters.page > 0 && filters.page >= totalPages) {
-      setFilters((value) => ({ ...value, page: Math.max(0, totalPages - 1) }));
+      if (!list.isPlaceholderData) setFilters((value) => ({ ...value, page: Math.max(0, totalPages - 1) }));
     }
-  }, [list.data, filters.page]);
+  }, [list.data, list.isPlaceholderData, filters.page]);
   const refresh = () => { void queries.invalidateQueries({ queryKey: key }); };
   const header = usePageHeaderActions(<Button variant="outline" size="sm" disabled={list.isFetching || detail.isFetching} onClick={refresh}>
     <RefreshCw size={15} aria-hidden="true" />{t('common.refresh', 'Actualiser')}
@@ -71,15 +75,7 @@ function PayoutTracking({ scope, organizationName }: { scope: string; organizati
     {header}
     {!amounts.isError && <FinanceAmountKpis kind="tracking" records={(amounts.data ?? []).map(row => ({ status: row.state, amount: row.amount, currency: row.currency }))} loading={amounts.isPending} />}
     {amounts.isError && <p role="alert">{t('payoutTracking.loadError')} <Button variant="ghost" onClick={() => { void amounts.refetch(); }}>{t('common.retry')}</Button></p>}
-    <div className="payout-tracking__intro">
-      <div><h2>{t('payoutTracking.title')}</h2><p>{t('payoutTracking.scope', { name: organizationName || t('payoutTracking.currentOrganization') })}</p></div>
-      <p className="payout-tracking__explanation">{t('payoutTracking.intro')}</p>
-    </div>
-    <PayoutMonitoringPanel scope={scope} onSelect={(id, button) => {
-      selectionButton.current = button; setSelected(id);
-      void queries.invalidateQueries({ queryKey: [...key, 'detail', id] });
-    }} />
-    <div className="payout-tracking__filters">
+    <FinanceHeaderFilters>
       <label>{t('payoutTracking.filterState')}<select value={filters.state} onChange={(event) => changeFilter({ state: event.target.value as TransferState | '' })}>
         <option value="">{t('payoutTracking.allStates')}</option>
         {(['RECONCILIATION_REQUIRED', 'SUBMITTING', 'TRANSFERRED'] as const).map((state) => <option key={state} value={state}>{t(`payoutTracking.states.${state}`)}</option>)}
@@ -88,21 +84,31 @@ function PayoutTracking({ scope, organizationName }: { scope: string; organizati
         <option value="">{t('payoutTracking.allSources')}</option>
         <option value="OWNER_PAYOUT">{t('payoutTracking.sources.OWNER_PAYOUT')}</option><option value="INTERVENTION">{t('payoutTracking.sources.INTERVENTION')}</option><option value="PROVIDER_EXPENSE">{t('payoutTracking.sources.PROVIDER_EXPENSE')}</option><option value="COMMERCE">{t('payoutTracking.sources.COMMERCE')}</option>
       </select></label>
-    </div>
-    <div className="payout-tracking__workspace" data-selected={selected !== null}>
-      <div className="payout-tracking__list">
+    </FinanceHeaderFilters>
+    <div ref={workspaceRef} style={{ height }} className="payout-tracking__workspace payout-tracking__workspace--fit" data-selected={selected !== null}>
+      <div ref={listRef} className="payout-tracking__list">
         {list.isPending ? <div className="payout-tracking__placeholder" aria-label={t('common.loading', 'Chargement…')}>{[0, 1, 2].map((i) => <Skeleton key={i} className="h-24 w-full mb-3" />)}</div>
           : list.isError ? <div role="alert" className="payout-tracking__placeholder"><p>{t('payoutTracking.loadError')}</p><Button variant="outline" onClick={() => { void list.refetch(); }}>{t('common.retry', 'Réessayer')}</Button></div>
           : !list.data?.content.length ? <div className="payout-tracking__placeholder"><h3>{t('payoutTracking.empty')}</h3><p>{t('payoutTracking.emptyHint')}</p></div>
           : <ul aria-label={t('payoutTracking.transfers')}>{list.data.content.map((row) => <li key={row.id}>
             <button className="payout-tracking__row" aria-label={`${row.description}. ${money(row)}. ${t(`payoutTracking.states.${row.state}`)}.`} aria-pressed={selected === row.id} onClick={(event) => { selectionButton.current = event.currentTarget; setSelected(row.id); }}>
               <span className="payout-tracking__row-title">{row.description}</span>
-              <strong>{money(row)}</strong><TransferBadge state={row.state} /><ChevronRight size={16} aria-hidden="true" />
+              <strong>{money(row)}</strong>
             </button>
+            <span className="payout-tracking__row-status"><TransferBadge state={row.state} /></span>
           </li>)}</ul>}
-        {list.data && !list.isError && <PagePagination page={filters.page} onPageChange={(page) => { setFilters((value) => ({ ...value, page })); setSelected(null); }} count={list.data.totalElements} rowsPerPage={12} hideOnSinglePage={false} className="payout-tracking__pagination" />}
+        {list.data && !list.isError && <PagePagination page={filters.page} onPageChange={(page) => { setFilters((value) => ({ ...value, page })); setSelected(null); }} count={list.data.totalElements} rowsPerPage={pageSize} hideOnSinglePage={false} compact className="payout-tracking__pagination" />}
       </div>
       <div className="payout-tracking__detail">
+    <div className="payout-tracking__intro">
+      <div><h2>{t('payoutTracking.title')}</h2><p>{t('payoutTracking.scope', { name: organizationName || t('payoutTracking.currentOrganization') })}</p></div>
+      <p className="payout-tracking__explanation">{t('payoutTracking.intro')}</p>
+    </div>
+    <PayoutMonitoringPanel scope={scope} onSelect={(id, button) => {
+      selectionButton.current = button; setSelected(id);
+      void queries.invalidateQueries({ queryKey: [...key, 'detail', id] });
+    }} />
+
         {selected === null ? <div className="payout-tracking__placeholder payout-tracking__choose"><ShieldCheck size={28} aria-hidden="true" /><h3>{t('payoutTracking.select')}</h3><p>{t('payoutTracking.selectHint')}</p></div>
           : <>
             <Button variant="ghost" size="sm" className="payout-tracking__back" onClick={close}><ArrowLeft size={16} aria-hidden="true" />{t('payoutTracking.back')}</Button>

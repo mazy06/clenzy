@@ -54,10 +54,10 @@ function HeroViewSwitch({ view, onChange }: { view: HeroView; onChange: (view: H
 function HeroIdentity({ property: p }: { property: PropertyDetailsData }) {
   const { t } = useTranslation();
   const figures = [
-    { icon: <BedDouble size={16} />, label: t('properties.bedrooms'), value: p.bedrooms },
-    { icon: <Bath size={16} />, label: t('properties.bathroomCount'), value: p.bathrooms },
-    { icon: <Ruler size={16} />, label: t('properties.surface'), value: p.surfaceArea ? `${p.surfaceArea} m²` : '—' },
-    { icon: <Users size={16} />, label: t('properties.maxCapacity'), value: p.maxGuests },
+    { art: PROPERTY_ART.bedrooms, label: t('properties.bedrooms'), value: p.bedrooms },
+    { art: PROPERTY_ART.bathrooms, label: t('properties.bathroomCount'), value: p.bathrooms },
+    { art: PROPERTY_ART.surface, label: t('properties.surface'), value: p.surfaceArea ? `${p.surfaceArea} m²` : '—' },
+    { art: PROPERTY_ART.capacity, label: t('properties.maxCapacity'), value: p.maxGuests },
   ];
   const address = [p.address, [p.postalCode, p.city].filter(Boolean).join(' '), p.country].filter(Boolean).join(', ');
   return (
@@ -72,7 +72,7 @@ function HeroIdentity({ property: p }: { property: PropertyDetailsData }) {
       <dl className="pdo-figures">
         {figures.map((figure) => (
           <div key={figure.label}>
-            <dt>{figure.icon}{figure.label}</dt>
+            <dt><img src={figure.art} alt="" width={40} height={40} decoding="async" /><span>{figure.label}</span></dt>
             <dd>{figure.value}</dd>
           </div>
         ))}

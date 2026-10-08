@@ -165,6 +165,8 @@ export function SupervisionTethers({ rootRef, headAgent, revision }: Supervision
       attributes: true,
       attributeFilter: ['data-behind', 'aria-pressed'],
     });
+    // Le centrage des libellés peut déplacer le carré sans le redimensionner.
+    if (constellation) mutations.observe(constellation, { attributes: true, attributeFilter: ['style'] });
 
     // La file peut défiler en interne → re-mesure au scroll (capture).
     root.addEventListener('scroll', queueMeasure, { capture: true, passive: true });

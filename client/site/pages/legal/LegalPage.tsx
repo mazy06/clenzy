@@ -1,8 +1,10 @@
-import { Link, useParams } from 'react-router-dom';
+import { useEffect } from 'react';
+import { Link, useLocation, useParams } from 'react-router-dom';
 import { useSiteLanguage } from '../../lib/siteLanguage';
 import { BAITLY_CONTACT_MESSAGES } from '../../lib/messages/baitlyContact';
 import NotFoundPage from '../NotFoundPage';
 import { Badge } from '../../../src/components/ui';
+import { SiteCookieSettingsButton } from '../../components/SiteCookieNotice';
 // Source UNIQUE, partagee avec le PMS : les deux applications portaient chacune
 // leur texte, et ils se contredisaient sur le droit applicable.
 import { legalDocs, getLegalDoc } from '../../../src/modules/legal/corpus';
@@ -13,6 +15,11 @@ export default function LegalPage() {
   const { language } = useSiteLanguage();
   const m = BAITLY_CONTACT_MESSAGES[language];
   const doc = getLegalDoc(slug, language);
+  const { hash } = useLocation();
+  useEffect(() => {
+    // This route is lazy: its anchor does not exist when the shell first navigates.
+    if (hash === '#cookies') document.getElementById('cookies')?.scrollIntoView?.({ behavior: 'instant' });
+  }, [hash, doc]);
   if (!doc) return <NotFoundPage />;
 
   return (
@@ -76,10 +83,11 @@ export default function LegalPage() {
         </p>
         <div className="mt-8 flex flex-col gap-8">
           {doc.blocks.map((block) => (
-            <section key={block.heading}>
+            <section key={block.heading} id={block.id} className="scroll-mt-24">
               <h2 className="text-lg font-semibold tracking-tight">
                 {block.heading}
               </h2>
+              {block.id === 'cookies' && <SiteCookieSettingsButton />}
               {block.paragraphs?.map((paragraph) => (
                 <p
                   key={paragraph.slice(0, 40)}

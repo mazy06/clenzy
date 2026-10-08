@@ -1,7 +1,6 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { BotIcon, CheckIcon, SendIcon, XIcon } from '../../src/icons/glyphs';
 import {
-  Badge,
   Button,
   InputGroup,
   InputGroupAddon,
@@ -12,7 +11,6 @@ import {
   MessageContent,
   MessageGroup,
 } from '../../src/components/ui';
-import StatusChip from '../../src/components/baitly/StatusChip';
 import Money from './SiteMoney';
 import { useSiteLanguage } from '../lib/siteLanguage';
 import {
@@ -28,14 +26,15 @@ import {
   useScriptedCursor,
   useTimeline,
 } from './mockupKit';
+import { SiteAssistantPortrait, SiteDemoStatus } from './SiteProductVisuals';
+import { SITE_ACTION_ARTWORK } from '../data/actionArtwork';
 import hostPhoto from '../assets/photos/host.jpg';
 
 /**
  * Mockup animé — Assistant Baitly. Rejoue une VRAIE conversation : questions
  * saisies au clavier, appels d'outils, réponses, et cartes HITL validées par le
- * curseur. Les composants sont ceux de la projection `BAssistantSectionDemo`
- * (Message/StatusChip/InputGroup/carte HITL) — rien n'est réinventé ; seul
- * l'enchaînement est scripté, ce que la projection statique ne peut pas faire.
+ * curseur. La conversation réutilise les primitives du PMS, son portrait
+ * d'assistant et les illustrations des actions HITL.
  *
  * Conteneur à hauteur fixe + défilement interne : la page ne bouge jamais.
  * prefers-reduced-motion → conversation complète affichée d'emblée, sans curseur.
@@ -75,7 +74,7 @@ function Avatar() {
   return (
     <MessageAvatar>
       <span className="inline-flex size-7 items-center justify-center rounded-full bg-primary-soft text-primary">
-        <BotIcon className="size-4" />
+        <SiteAssistantPortrait size={40} />
       </span>
     </MessageAvatar>
   );
@@ -122,12 +121,13 @@ function HitlBubble({
 }) {
   const { language } = useSiteLanguage();
   return (
-    <div className="ms-9 flex max-w-sm flex-col gap-2.5 rounded-xl border border-warning/40 bg-background p-3">
+    <div className="ms-9 flex max-w-sm flex-col gap-2.5 rounded-xl border border-primary/30 bg-background p-3">
       <div className="flex items-center justify-between gap-2">
+        <img src={id === 'yield' ? SITE_ACTION_ARTWORK.pricingOptimization : id === 'ops' ? SITE_ACTION_ARTWORK.cleaning : SITE_ACTION_ARTWORK.reviews} alt="" width={40} height={40} />
         <span className="text-xs font-semibold text-foreground">
           {hitl.title}
         </span>
-        <Badge variant="outline">{applied ? m.applied : m.pending}</Badge>
+        <SiteDemoStatus done={applied} label={applied ? m.applied : m.pending} />
       </div>
       <div className="flex items-center justify-between gap-3 text-xs text-muted-foreground">
         <span>
@@ -356,18 +356,14 @@ function AssistantScene({ onCycleEnd }: { onCycleEnd: () => void }) {
             {/* En-tête compact + chips de contexte (comme la projection) */}
             <div className="flex items-center gap-2.5">
               <span className="inline-flex size-8 items-center justify-center rounded-lg bg-primary-soft text-primary">
-                <BotIcon className="size-4" />
+                <SiteAssistantPortrait size={40} />
               </span>
               <div className="min-w-0">
                 <p className="text-sm font-semibold">{m.name}</p>
                 <p className="text-xs text-muted-foreground">{m.tagline}</p>
               </div>
             </div>
-            <div className="flex flex-wrap gap-1.5">
-              <StatusChip tone="accent" label={m.chips[0]} size="sm" />
-              <StatusChip tone="warn" label={m.chips[1]} size="sm" />
-              <StatusChip tone="info" label={m.chips[2]} size="sm" />
-            </div>
+
 
             {/* Fil de conversation — hauteur fixe, défilement interne */}
             <div

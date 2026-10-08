@@ -46,7 +46,7 @@ export default function InventoryItemsSection({ items, canEdit, onAdd, onAddMany
   };
   return <section className="inventory-surface" aria-label={t('inventoryLibrary.inventory')}>
     <header className="inventory-heading">
-      <div><h2 ref={headingRef} tabIndex={-1}>{t('inventoryLibrary.inventory')} <NavCountBadge count={items.length} /></h2>
+      <InventoryThumbnail name={t('inventoryLibrary.inventory')} catalogKey="sofa-two" size={48} /><div className="flex-1"><h2 ref={headingRef} tabIndex={-1}>{t('inventoryLibrary.inventory')} <NavCountBadge count={items.length} /></h2>
         <p>{t('inventoryLibrary.inventoryIntro', { count: items.reduce((sum, item) => sum + item.quantity, 0) })}</p></div>
       {canEdit && !library && !editing && <div className="inventory-actions">
         <Button variant="outline" size="sm" onClick={custom}><Plus size={16} />{t('inventoryLibrary.custom')}</Button>
@@ -60,7 +60,7 @@ export default function InventoryItemsSection({ items, canEdit, onAdd, onAddMany
         <span role="status">{notice || t('inventoryLibrary.results', { count: filtered.length })}</span>
       </div>
       {error && <p role="alert" className="inventory-error">{error}</p>}
-      {!filtered.length ? <div className="inventory-empty"><h3>{t(items.length ? 'inventoryLibrary.noResults' : 'inventoryLibrary.emptyTitle')}</h3>
+      {!filtered.length ? <div className="inventory-empty"><InventoryThumbnail name={t('inventoryLibrary.inventory')} catalogKey="sofa-two" size={72} /><h3>{t(items.length ? 'inventoryLibrary.noResults' : 'inventoryLibrary.emptyTitle')}</h3>
         <p>{t(items.length ? 'inventoryLibrary.filterHint' : 'inventoryLibrary.emptyHint')}</p>
         {items.length > 0 ? <Button variant="outline" onClick={() => { setSearch(''); setRoom(''); }}>{t('inventoryLibrary.reset')}</Button>
           : canEdit && <Button onClick={() => setLibrary(true)}><BookOpen size={16} />{t('inventoryLibrary.open')}</Button>}

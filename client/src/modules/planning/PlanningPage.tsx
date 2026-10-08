@@ -14,6 +14,7 @@ import {
 } from '../../components/ui';
 import { useSearchParams } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
+import { preloadAgentPortraits } from '../supervision/core/agentPortraitAssets';
 import { useMediaQuery } from '../../hooks/use-media-query';
 import { cn } from '../../utils/cn';
 import { CalendarMonth, Add, CloudDownload, Fullscreen, FilterList, MoreVert } from '../../icons';
@@ -112,6 +113,10 @@ const PlanningPage: React.FC = () => {
     }
     return map;
   }, [pendingByProperty]);
+  // Start decoding identities while planning data loads, before opening an orbit.
+  useEffect(() => {
+    if (canViewSupervision) void preloadAgentPortraits();
+  }, [canViewSupervision]);
   // Fenêtre du bilan de la constellation, alignée sur le zoom du planning.
   const reportWindowDays = nav.zoom === 'week' ? 7 : nav.zoom === 'fortnight' ? 15 : 30;
   const [supervisionScope, setSupervisionScope] = useState<SupervisionScope>('property');
@@ -1026,7 +1031,7 @@ const PlanningPage: React.FC = () => {
 
       {/* Vue d'ensemble (portefeuille) — plein largeur, masque la grille */}
       {isOverview ? (
-        <div className="flex-1 min-h-0 min-w-0 overflow-auto px-2">
+        <div className="baitly-portfolio-host flex-1 min-h-0 min-w-0 overflow-auto px-2">
           <PortfolioPanel createProvider={createPortfolioProvider} deps={['portfolio']} />
         </div>
       ) : loading ? (

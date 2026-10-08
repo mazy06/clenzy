@@ -31,6 +31,7 @@ import {
   MapPinIcon,
   PlusIcon,
   SearchIcon,
+  SlidersHorizontalIcon,
   UserIcon,
   UsersIcon,
   Volume2Icon,
@@ -51,7 +52,10 @@ import airbnbLogo from '../../src/assets/logo/airbnb-logo-small.svg';
 import bookingLogo from '../../src/assets/logo/booking-logo-small.svg';
 import GuestAvatar from '../../src/components/GuestAvatar';
 import { getBarContentLayout } from '../../src/modules/planning/utils/barContentLayout';
-import { BAR_FEE_PILL_MIN } from '../../src/modules/planning/constants';
+import {
+  BAR_FEE_PILL_MIN, PROPERTY_COL_WIDTH, DATE_HEADER_HEIGHT,
+  ROW_CONFIG, APP_HEADER_HEIGHT, PAGINATION_BAR_HEIGHT, OCCUPANCY_ROW_HEIGHT,
+} from '../../src/modules/planning/constants';
 import guest1 from '../assets/guests/g1.jpg';
 import guest2 from '../assets/guests/g2.jpg';
 import guest3 from '../assets/guests/g3.jpg';
@@ -106,12 +110,14 @@ const {
  */
 
 /* ─── Géométrie (miroir de planning/constants.ts) ───────────────────────────── */
-export const PROP_W = 188;
+export const PROP_W = PROPERTY_COL_WIDTH;
 export const DAY_W = 74;
-export const ROW_H = 54;
-export const HEADER_H = 44;
-const BAR_H = 36;
-const BAR_TOP = 9;
+export const ROW_H = ROW_CONFIG.normal.rowHeight;
+export const HEADER_H = DATE_HEADER_HEIGHT;
+export const TOOLBAR_H = APP_HEADER_HEIGHT;
+export const PAGINATION_H = PAGINATION_BAR_HEIGHT;
+const BAR_H = ROW_CONFIG.normal.reservationBarHeight;
+const BAR_TOP = ROW_CONFIG.normal.barPadding;
 /* Lignes vides de remplissage, comme le planning quand la page contient moins
    de logements que la hauteur disponible — elles donnent aussi la place
    qu'exige la fiche logement ouverte. */
@@ -128,21 +134,21 @@ export const PROPERTY_PHOTOS = [
   SITE_PHOTOS.planningStudio,
 ];
 export const PLANNING_FRAME_HEIGHT =
-  50 + 57 + HEADER_H + (PROPERTY_PHOTOS.length + FILLER_ROWS) * ROW_H + 30 + 50 + 2;
+  TOOLBAR_H + 8 + HEADER_H + (PROPERTY_PHOTOS.length + FILLER_ROWS) * ROW_H + OCCUPANCY_ROW_HEIGHT + PAGINATION_H + 2;
 
 /** Palette « Signature » du planning, portée localement : le site marketing
     n'expose que les tokens --bui-*, pas ceux de l'application. */
 export const TOKENS = {
-  '--pl-card': '#FCFDFD',
-  '--pl-surface2': '#FBFCFC',
-  '--pl-line': '#D5DFE8',
-  '--pl-line2': '#D5DFE8',
-  '--pl-ink': '#15242D',
-  '--pl-body': '#3B4951',
-  '--pl-muted': '#67757C',
-  '--pl-faint': '#71818D',
-  '--pl-accent': '#264672',
-  '--pl-accent-soft': 'rgba(38,70,114,.10)',
+  '--pl-card': 'var(--bui-card, #fbfcfe)',
+  '--pl-surface2': 'var(--bui-card, #fbfcfe)',
+  '--pl-line': 'var(--bui-border, #c9d7e3)',
+  '--pl-line2': 'var(--bui-border, #c9d7e3)',
+  '--pl-ink': 'var(--bui-foreground, #213443)',
+  '--pl-body': 'var(--bui-foreground, #213443)',
+  '--pl-muted': 'var(--bui-muted-foreground, #536b7d)',
+  '--pl-faint': 'var(--bui-muted-foreground, #536b7d)',
+  '--pl-accent': '#193b65',
+  '--pl-accent-soft': '#e4edf5',
   '--pl-we': '#F8FAFB',
   '--pl-field': '#EFF2F4',
   '--pl-err': '#E5484D',
@@ -649,6 +655,7 @@ export function PlanningScene({
 
   /* État piloté par la chorégraphie */
   const [mutedChannel, setMutedChannel] = useState<Channel | null>(null);
+  const [filtersOpen, setFiltersOpen] = useState(false);
   const [dragging, setDragging] = useState<{
     id: string;
     shift: number;
@@ -689,9 +696,12 @@ export function PlanningScene({
     measure();
     /* Deuxième passe : la première pose l'échelle, la géométrie ne vaut qu'après. */
     const raf = requestAnimationFrame(measure);
+    const observer = typeof ResizeObserver === 'undefined' ? null : new ResizeObserver(measure);
+    if (containerRef.current) observer?.observe(containerRef.current);
     window.addEventListener('resize', measure);
     return () => {
       cancelAnimationFrame(raf);
+      observer?.disconnect();
       window.removeEventListener('resize', measure);
     };
   }, [scale, direction]);
@@ -759,12 +769,18 @@ export function PlanningScene({
     step(1, (cue) => {
       at(t, () => {
         onSceneChange(1);
+        setFiltersOpen(true);
+        explain(1, '[data-planning-filters-trigger]');
+        moveTo(find('[data-planning-filters-trigger]'));
+      });
+      at(t + 300, () => {
         explain(1, '[data-chip="airbnb"]');
         moveTo(find('[data-chip="airbnb"]'));
       });
       at(cue('hide'), () => setMutedChannel('airbnb'));
       at(cue('show'), () => setMutedChannel(null));
     });
+    at(t - STEP_GAP_MS, () => setFiltersOpen(false));
 
     // 2 — Glisser sur des dates prises : le conflit apparaît, le séjour revient.
     step(2, (cue) => {
@@ -923,23 +939,9 @@ export function PlanningScene({
         role="img"
         aria-label={m.windowTitle}
       >
-        <aside className="bpm-planning-sidebar" aria-hidden="true">
-          <div className="bpm-planning-brand" data-playing={active}>
-            <BaitlyMarkLogo variant="mark" size={32} tone="dark" />
-          </div>
-          <LayoutGridIcon />
-          <HomeIcon />
-          <span>
-            <CalendarIcon />
-          </span>
-          <WrenchFill size={18} />
-          <WalletIcon />
-          <UsersIcon />
-          <BuildingIcon />
-          <SettingsIcon />
-        </aside>
+        <PlanningSidebar />
         <div className="bpm-planning-main">
-          <Toolbar mutedChannel={mutedChannel} />
+          <Toolbar mutedChannel={mutedChannel} filtersOpen={filtersOpen} />
           <div className="bpm-planning-grid">
             <div className="relative flex" style={{ width: DESIGN_WIDTH }}>
               {/* Colonne logements */}
@@ -1139,11 +1141,33 @@ export function PlanningScene({
 
 /* ─── Barre d'outils ────────────────────────────────────────────────────────── */
 
+/** Même navigation dans la démo guidée, le planning et l'écran du visuel hero. */
+export function PlanningSidebar() {
+  return (
+    <aside className="bpm-planning-sidebar" aria-hidden="true">
+      <div className="bpm-planning-brand">
+        <BaitlyMarkLogo variant="mark" size={32} tone="dark" disableAnimation />
+      </div>
+      <span><CalendarIcon /></span>
+      <LayoutGridIcon />
+      <HomeIcon />
+      <CalendarCheckIcon />
+      <WrenchFill size={18} />
+      <UsersIcon />
+      <WalletIcon />
+      <BuildingIcon />
+      <SettingsIcon />
+    </aside>
+  );
+}
+
 export function Toolbar({
   mutedChannel,
   agentAsk,
+  filtersOpen = false,
 }: {
   mutedChannel: Channel | null;
+  filtersOpen?: boolean;
   /** Constellation ouverte : le champ du header s'adresse aux agents et la
       légende migre dans la modale de filtres (comme PlanningPage). */
   agentAsk?: string;
@@ -1168,7 +1192,7 @@ export function Toolbar({
   });
 
   return (
-    <div>
+    <div className="bpm-planning-toolbar">
       <div className="bpm-planning-header">
         <span className="bpm-planning-heading">
           <CalendarIcon />
@@ -1213,12 +1237,16 @@ export function Toolbar({
         <span className="bpm-planning-search" data-agent-ask={agentAsk ? true : undefined}>
           <SearchIcon size={14} />
           {agentAsk ?? m.search}
-          {agentAsk && <kbd dir="ltr">⌘K</kbd>}
+          <kbd dir="ltr">⌘K</kbd>
         </span>
-        <BuildingIcon size={15} />
-        <MoreVerticalIcon size={15} />
+        <span className="bpm-planning-nav" data-planning-filters-trigger data-open={filtersOpen || undefined} title={m.filters}>
+          <SlidersHorizontalIcon size={15} />
+        </span>
+        <span className="bpm-planning-nav"><BuildingIcon size={15} /></span>
+        <span className="bpm-planning-nav"><MoreVerticalIcon size={15} /></span>
       </div>
-      {!agentAsk && <div className="bpm-planning-filters">
+      {filtersOpen && <div className="bpm-planning-filters" data-planning-panel="filters">
+        <div className="bpm-planning-filters-heading"><strong>{m.filters}</strong><XIcon size={16} /></div>
         {(Object.keys(CHANNELS) as Channel[]).map((channel) => (
           <span
             key={channel}

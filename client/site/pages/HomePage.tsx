@@ -97,7 +97,6 @@ const FEATURED_BRANDS = BRANDS.filter(({ name }) =>
     'Expedia',
     'Stripe',
     'WhatsApp',
-    'PayZone',
   ].includes(name),
 );
 function ChannelsBar() {

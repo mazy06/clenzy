@@ -54,6 +54,7 @@ public class SupervisionScanService {
     private final GuestMessageFailedScanner guestMessageFailedScanner;
     private final PostStayReviewScanner postStayReviewScanner;
     private final CleaningPayoutScanner cleaningPayoutScanner;
+    private final ProviderBeneficiarySupervision providerBeneficiarySupervision;
     private final ComplianceScanner complianceScanner;
     private final RevenuePlanScanner revenuePlanScanner;
     private final GuestUpsellScanner guestUpsellScanner;
@@ -79,6 +80,7 @@ public class SupervisionScanService {
                                   GuestMessageFailedScanner guestMessageFailedScanner,
                                   PostStayReviewScanner postStayReviewScanner,
                                   CleaningPayoutScanner cleaningPayoutScanner,
+                                  ProviderBeneficiarySupervision providerBeneficiarySupervision,
                                   ComplianceScanner complianceScanner,
                                   RevenuePlanScanner revenuePlanScanner,
                                   GuestUpsellScanner guestUpsellScanner,
@@ -103,6 +105,7 @@ public class SupervisionScanService {
         this.guestMessageFailedScanner = guestMessageFailedScanner;
         this.postStayReviewScanner = postStayReviewScanner;
         this.cleaningPayoutScanner = cleaningPayoutScanner;
+        this.providerBeneficiarySupervision = providerBeneficiarySupervision;
         this.complianceScanner = complianceScanner;
         this.revenuePlanScanner = revenuePlanScanner;
         this.guestUpsellScanner = guestUpsellScanner;
@@ -179,6 +182,7 @@ public class SupervisionScanService {
         guestMessageFailedScanner.scanProperty(orgId, propertyId);
         postStayReviewScanner.scanProperty(orgId, propertyId);
         cleaningPayoutScanner.scanProperty(orgId, propertyId);
+        providerBeneficiarySupervision.scanProperty(orgId, propertyId);
         complianceScanner.scanProperty(orgId, propertyId);
         revenuePlanScanner.scanProperty(orgId, propertyId);
         guestUpsellScanner.scanProperty(orgId, propertyId);
@@ -206,6 +210,7 @@ public class SupervisionScanService {
             guestMessageFailedScanner.scanProperty(orgId, propertyId);
             postStayReviewScanner.scanProperty(orgId, propertyId);
             cleaningPayoutScanner.scanProperty(orgId, propertyId);
+            providerBeneficiarySupervision.scanProperty(orgId, propertyId);
             complianceScanner.scanProperty(orgId, propertyId);
             revenuePlanScanner.scanProperty(orgId, propertyId);
         guestUpsellScanner.scanProperty(orgId, propertyId);

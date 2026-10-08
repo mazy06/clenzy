@@ -130,6 +130,8 @@ public class DashboardOverviewSummaryService {
         final KpiTrendDto revPan;
         final KpiTrendDto bookings;
         List<ChannelRevenueDto> channels = List.of();
+        long occupiedNights = 0L;
+        long availableNights = 0L;
         if (financial && propertiesActive > 0) {
             final List<Reservation> stays = reservationRepository.findOverlappingWindowForDashboard(
                     prevStart, curEndExclusive, orgId, ownerKc).stream()
@@ -142,11 +144,13 @@ public class DashboardOverviewSummaryService {
                     nightsPerWindow - closed.unsoldWithin(curStart, curEndExclusive));
             final FinancialWindow prev = aggregateWindow(stays, prevStart, curStart,
                     nightsPerWindow - closed.unsoldWithin(prevStart, curStart));
-            occupancy = new KpiTrendDto(cur.occupancyRate, growthPct(cur.occupancyRate, prev.occupancyRate));
-            revenue = new KpiTrendDto(cur.revenue, growthPct(cur.revenue, prev.revenue));
-            adr = new KpiTrendDto(cur.adr, growthPct(cur.adr, prev.adr));
-            revPan = new KpiTrendDto(cur.revPan, growthPct(cur.revPan, prev.revPan));
-            bookings = new KpiTrendDto(cur.bookings, growthPct(cur.bookings, prev.bookings));
+            occupancy = new KpiTrendDto(cur.occupancyRate, growthPct(cur.occupancyRate, prev.occupancyRate), prev.occupancyRate);
+            revenue = new KpiTrendDto(cur.revenue, growthPct(cur.revenue, prev.revenue), prev.revenue);
+            adr = new KpiTrendDto(cur.adr, growthPct(cur.adr, prev.adr), prev.adr);
+            revPan = new KpiTrendDto(cur.revPan, growthPct(cur.revPan, prev.revPan), prev.revPan);
+            bookings = new KpiTrendDto(cur.bookings, growthPct(cur.bookings, prev.bookings), (double) prev.bookings);
+            occupiedNights = cur.occupiedNights;
+            availableNights = cur.availableNights;
             channels = channelRevenue(cur, prev);
         } else {
             occupancy = new KpiTrendDto(0, 0);
@@ -192,7 +196,7 @@ public class DashboardOverviewSummaryService {
                 urgentCount,
                 pendingPayments,
                 new DashboardOverviewSummaryDto.FinancialContextDto(curStart, curEndExclusive,
-                        clock.getZone().getId(), "EUR", "ACCOMMODATION_REVENUE"),
+                        clock.getZone().getId(), "EUR", "ACCOMMODATION_REVENUE", occupiedNights, availableNights),
                 channels);
     }
 
@@ -236,7 +240,8 @@ public class DashboardOverviewSummaryService {
                 ? revenue.divide(BigDecimal.valueOf(availableNights), 2, RoundingMode.HALF_UP).doubleValue()
                 : 0.0;
         return new FinancialWindow(round1(occupancyRate),
-                revenue.setScale(2, RoundingMode.HALF_UP).doubleValue(), adr, revPan, bookings, byChannel);
+                revenue.setScale(2, RoundingMode.HALF_UP).doubleValue(), adr, revPan, bookings, byChannel,
+                occupiedNights, Math.max(0, availableNights));
     }
 
     private static List<ChannelRevenueDto> channelRevenue(FinancialWindow current, FinancialWindow previous) {
@@ -311,7 +316,8 @@ public class DashboardOverviewSummaryService {
     }
 
     private record FinancialWindow(double occupancyRate, double revenue, double adr, double revPan,
-                                   long bookings, Map<String, BigDecimal> byChannel) {}
+                                   long bookings, Map<String, BigDecimal> byChannel,
+                                   long occupiedNights, long availableNights) {}
 
     /**
      * Nuits fermées des logements actifs, logement par logement : une date bloquée sort des

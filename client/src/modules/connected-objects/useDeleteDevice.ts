@@ -4,6 +4,8 @@ import { smartLockApi } from '../../services/api/smartLockApi';
 import { noiseDevicesApi } from '../../services/api/noiseApi';
 import { keyExchangeApi } from '../../services/api/keyExchangeApi';
 import { environmentSensorsApi } from '../../services/api/environmentSensorsApi';
+import { camerasApi } from '../../services/api/camerasApi';
+import { thermostatsApi } from '../../services/api/thermostatsApi';
 import type { ConnectedDevice } from './types';
 
 /**
@@ -26,13 +28,19 @@ export function useDeleteDevice() {
         case 'lock': await smartLockApi.delete(device.id); break;
         case 'noise': await noiseDevicesApi.delete(device.id); break;
         case 'keybox': await keyExchangeApi.deletePoint(device.id); break;
+        case 'camera': await camerasApi.delete(device.id); break;
+        case 'thermostat': await thermostatsApi.delete(device.id); break;
         case 'climate':
         case 'contact':
         case 'motion':
         case 'smoke': await environmentSensorsApi.delete(device.id); break;
         default: throw new Error("La suppression n'est pas disponible pour ce type d'objet.");
       }
-      await qc.invalidateQueries({ queryKey: ['connected-objects'] });
+      await Promise.all([
+        qc.invalidateQueries({ queryKey: ['connected-objects'] }),
+        ...(device.kind === 'camera' ? [qc.invalidateQueries({ queryKey: ['cameras'] })] : []),
+        ...(device.kind === 'thermostat' ? [qc.invalidateQueries({ queryKey: ['thermostats'] }), qc.invalidateQueries({ queryKey: ['room-thermostat', device.id] })] : []),
+      ]);
     } finally {
       setRemoving(false);
     }

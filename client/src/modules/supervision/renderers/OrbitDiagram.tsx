@@ -13,24 +13,26 @@
    les attaches vers les cartes.
    ============================================================ */
 
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { useTranslation } from '../../../hooks/useTranslation';
 import { useMediaQuery } from '../../../hooks/use-media-query';
 import { useElementSize } from '../core/useElementSize';
 import {
   fitOrbitSide,
   orbitRadiusFor,
+  orbitVerticalLayout,
   ORBIT_NODE_SIZE as NODE_SIZE,
   ORBIT_LABEL_ROOM_PX as LABEL_ROOM_PX,
   ORBIT_EDGE_PX,
 } from '../core/orbitGeometry';
 import { DATA_FLOW_STYLES, FLOW_DASH, FLOW_STROKE, flowClockDelay, flowPacketStyle } from '../core/dataFlow';
-import { Tooltip, TooltipContent, TooltipTrigger } from '../../../components/ui';
-import { MARK_PATH, MARK_VIEWBOX, STROKE_WIDTH } from '../../../components/BaitlyMarkLogo';
-import { AccessTime, ErrorOutline, Home, MousePointerClick } from '../../../icons';
+import BaitlyMarkLogo from '../../../components/BaitlyMarkLogo';
+import { AccessTime, ErrorOutline, Home } from '../../../icons';
 import { cn } from '../../../utils/cn';
 import { AGENT_META, STATUS, STATUS_PRIORITY } from '../constants';
-import { AgentIcon } from './agentIcon';
+import { AgentPortrait } from './AgentPortrait';
+import { AgentSpeechContent } from './AgentSpeechContent';
+import { AgentSpeechBubble } from './AgentSpeechBubble';
 import type { ConstellationAgentView } from './ConstellationRenderer';
 import type { AgentId, PendingAction } from '../types';
 import '../supervision-surfaces.css';
@@ -42,11 +44,12 @@ import './orbit-diagram.css';
 const SLOT_ANGLE = -45;
 /**
  * Distance d'arc minimale entre deux nœuds voisins pour que TOUTES les légendes
- * tiennent. En dessous, seuls les agents qui demandent quelque chose gardent la
- * leur — un agent en veille n'a rien à dire, sa légende ne fait qu'entrer dans
- * celle du voisin.
+ * tiennent. En dessous, la sélection et les alertes gardent leur nom complet ;
+ * les autres spécialités restent nommées dans les boutons et infobulles.
  */
 const LABEL_MIN_ARC_PX = 140;
+/** Additional room for larger, two-line names and their optional status. */
+const LABEL_EXTRA_ROOM_PX = 20;
 /**
  * Écartement horizontal de la légende vers l'EXTÉRIEUR de l'anneau, quand il
  * est à l'étroit. Sur les flancs, une légende posée sous son nœud pointe vers
@@ -99,14 +102,16 @@ const ORBIT_STYLES = `
 ${DATA_FLOW_STYLES}
 /* Rotation de l'anneau à la sélection : l'anneau porte la rotation, chaque
    nœud la rotation inverse — les agents glissent le long de l'orbite. */
-.oc-ring, .oc-node { transition: transform ${ROTATION_MS}ms cubic-bezier(.25,1,.5,1); }
+.baitly-orbit[data-rotating] .oc-ring,
+.baitly-orbit[data-rotating] .oc-node { transition: transform ${ROTATION_MS}ms cubic-bezier(.25,1,.5,1); }
 
 .oc-packet { display: none; }
 .oc-flow[data-selected="true"] .oc-packet { display: inline; }
 
 @media (prefers-reduced-motion: reduce) {
   .oc-flow[data-selected="true"] .oc-packet { display: none; }
-  .oc-ring, .oc-node { transition: none; }
+  .baitly-orbit[data-rotating] .oc-ring,
+  .baitly-orbit[data-rotating] .oc-node { transition: none; }
 }
 `;
 
@@ -126,110 +131,9 @@ export interface OrbitDiagramProps {
   className?: string;
 }
 
-/** Nombre de lignes montrées dans l'infobulle avant de renvoyer vers la file —
- *  une infobulle qui déborde n'est plus une infobulle (règle projection). */
-const TOOLTIP_MAX_ITEMS = 3;
-
-/** « 5 h 20 » / « 40 min » / « < 1 min » — même vocabulaire que les cartes. */
-function tooltipRemaining(expiresAt: string, t: (k: string, o?: Record<string, unknown>) => string): string {
-  const ms = new Date(expiresAt).getTime() - Date.now();
-  if (ms <= 0) return t('supervision.hitl.expired');
-  const hours = Math.floor(ms / 3_600_000);
-  const minutes = Math.floor((ms % 3_600_000) / 60_000);
-  if (hours >= 1) return `${hours} ${t('supervision.hitl.unitHour')} ${String(minutes).padStart(2, '0')}`;
-  if (minutes >= 1) return `${minutes} ${t('supervision.hitl.unitMin')}`;
-  return t('supervision.hitl.lessThanMin');
-}
-
-/**
- * Infobulle enrichie (dessin projection) : identité de l'agent, puis un aperçu
- * BORNÉ de ce qu'il a en attente (titres + échéances) et de ce qu'il exécute.
- * Au-delà de trois lignes on ne déroule pas, on invite à ouvrir la file.
- */
-function AgentNodeTooltip({
-  agent,
-  waiting,
-  isSelected,
-}: {
-  agent: ConstellationAgentView;
-  waiting: readonly PendingAction[];
-  isSelected: boolean;
-}) {
-  const { t } = useTranslation();
-  const meta = AGENT_META[agent.id];
-  const rows = [
-    ...waiting.map((item) => ({
-      key: item.id,
-      label: item.title?.trim() || t('supervision.payment.fallbackTitle', 'Demande de service'),
-      hint: tooltipRemaining(item.expiresAt, t),
-      pending: true,
-    })),
-    ...(agent.task
-      ? [{ key: 'task', label: agent.task, hint: t('supervision.board.inProgress', 'en cours'), pending: false }]
-      : []),
-  ];
-  const shown = rows.slice(0, TOOLTIP_MAX_ITEMS);
-  const rest = rows.length - shown.length;
-
-  return (
-    <div className="flex flex-col gap-2 px-3 py-2.5">
-      <div>
-        <p className="m-0 text-xs font-medium">
-          {t('supervision.feed.agentLine', { name: t(meta.nameKey), defaultValue: 'Agent {{name}}' })}
-        </p>
-        <p className="m-0 text-xs opacity-70">{t(meta.roleKey)}</p>
-        {agent.badge != null && agent.badge > 0 && (
-          <p className="m-0 text-xs tabular-nums">
-            {agent.badge} {t('supervision.portfolio.propertiesShort')}
-          </p>
-        )}
-        {(agent.pendingCount ?? 0) > 0 && (
-          <p className="m-0 text-xs tabular-nums">
-            {agent.pendingCount} {t('supervision.board.toValidate', 'à valider')}
-          </p>
-        )}
-      </div>
-
-      {rows.length > 0 && (
-        <ul className="m-0 flex list-none flex-col gap-1.5 p-0">
-          {shown.map((row) => (
-            <li key={row.key} className="flex items-start gap-1.5 text-xs">
-              <span
-                aria-hidden
-                className={cn(
-                  'mt-1 size-1.5 shrink-0 rounded-[2px]',
-                  row.pending ? 'bg-warning' : 'bg-current opacity-50',
-                )}
-              />
-              <span className="min-w-0 flex-1">{row.label}</span>
-              <span className="shrink-0 tabular-nums opacity-70">{row.hint}</span>
-            </li>
-          ))}
-        </ul>
-      )}
-
-      <p className="m-0 flex items-center gap-1 text-xs opacity-70">
-        {isSelected ? (
-          t('supervision.board.tooltipQueueOpen', 'File ouverte à droite')
-        ) : (
-          <>
-            <MousePointerClick size={12} strokeWidth={1.75} className="shrink-0" />
-            {rest > 0
-              ? t('supervision.board.tooltipSeeMore', {
-                  count: rest,
-                  defaultValue: 'Cliquer pour voir {{count}} autre(s)',
-                })
-              : t('supervision.board.tooltipOpenQueue', 'Cliquer pour ouvrir la file')}
-          </>
-        )}
-      </p>
-    </div>
-  );
-}
-
 /** Mesure la traduction réelle pour garder la légende dans le cadre sans la
  * pousser inutilement sur le nœud voisin (notamment en arabe sur mobile). */
-function OrbitAgentLabel({ name, status, attention, above, preferredShift, x, frameWidth }: {
+function OrbitAgentLabel({ name, status, attention, above, preferredShift, x, frameWidth, maxWidth }: {
   name: string;
   status: string | null;
   attention: boolean;
@@ -237,6 +141,7 @@ function OrbitAgentLabel({ name, status, attention, above, preferredShift, x, fr
   preferredShift: number;
   x: number;
   frameWidth: number;
+  maxWidth: number;
 }) {
   const [labelRef, label] = useElementSize<HTMLSpanElement>();
   const halfWidth = label.width / 2;
@@ -248,12 +153,12 @@ function OrbitAgentLabel({ name, status, attention, above, preferredShift, x, fr
   return (
     <span
       ref={labelRef}
-      className={cn('absolute flex w-max flex-col items-center gap-0.5 leading-tight', above ? 'bottom-full mb-3' : 'top-full mt-2')}
+      className={cn('baitly-orbit-label absolute flex w-max flex-col items-center gap-1', above ? 'bottom-full mb-2' : 'top-full mt-1.5')}
       // Coordonnées physiques du diagramme : le texte garde sa direction RTL.
-      style={{ left: '50%', transform: `translateX(calc(-50% + ${shift}px))` }}
+      style={{ left: '50%', maxWidth, transform: `translateX(calc(-50% + ${shift}px))` }}
     >
-      <span className="baitly-orbit-name text-xs font-medium whitespace-nowrap">{name}</span>
-      {status && <span className={cn('text-xs whitespace-nowrap tabular-nums', attention ? 'font-medium text-destructive-ink' : 'text-muted-foreground')}>{status}</span>}
+      <span className="baitly-orbit-name">{name}</span>
+      {status && <span className={cn('baitly-orbit-status tabular-nums', attention ? 'text-destructive-ink' : 'text-muted-foreground')}>{status}</span>}
     </span>
   );
 }
@@ -275,13 +180,25 @@ export function OrbitDiagram({
   const selectedIndex = agents.findIndex((agent) => agent.id === selected);
   const agentCount = agents.length;
   const [rotation, setRotation] = useState(() => rotationFor(Math.max(0, selectedIndex), agentCount || 1, isArabic));
+  // Bake the settled angle into coordinates. Leaving opposite rotations on
+  // the ring and portrait forces video through two rasterised layers and can
+  // damage its fine edges at the small sizes used in the real planning.
+  const [settledRotation, setSettledRotation] = useState(rotation);
   const rotationRef = useRef(rotation);
   const [rotating, setRotating] = useState(false);
+  const [documentVisible, setDocumentVisible] = useState(() => !document.hidden);
+
+  useEffect(() => {
+    const updateVisibility = () => setDocumentVisible(!document.hidden);
+    document.addEventListener('visibilitychange', updateVisibility);
+    return () => document.removeEventListener('visibilitychange', updateVisibility);
+  }, []);
 
   // Sélection contrôlée : quand elle change, l'anneau pivote par le chemin le
   // plus court (angle cible « déroulé » autour de l'angle courant).
   useEffect(() => {
     if (selectedIndex < 0) {
+      setSettledRotation(rotationRef.current);
       setRotating(false);
       return;
     }
@@ -291,20 +208,29 @@ export function OrbitDiagram({
     if (Math.abs(target - rotationRef.current) < 0.5 || reducedMotion) {
       rotationRef.current = target;
       setRotation(target);
+      setSettledRotation(target);
       setRotating(false);
       return;
     }
     rotationRef.current = target;
     setRotation(target);
     setRotating(true);
-    const timer = window.setTimeout(() => setRotating(false), ROTATION_MS + 40);
+    const timer = window.setTimeout(() => {
+      setSettledRotation(target);
+      setRotating(false);
+    }, ROTATION_MS + 40);
     return () => window.clearTimeout(timer);
     // Les mises à jour de tâches ne doivent pas annuler le timer de rotation.
   }, [selectedIndex, agentCount, reducedMotion, isArabic]);
 
   // Le relais ne joue que l'agent arrivé en tête ; même condition pour les
   // attaches, annoncée au parent (positions stables uniquement).
-  const flowActive = flowEnabled && !rotating && selectedIndex >= 0;
+  // Check geometry as well as the timer: a new selection must not receive a
+  // packet for one render while the previous agent still occupies the slot.
+  const aligned = selectedIndex >= 0
+    && Math.abs((rotation - rotationFor(selectedIndex, agentCount, isArabic)) % 360) < 0.5;
+  const flowActive = flowEnabled && documentVisible && selectedIndex >= 0
+    && (reducedMotion || (!rotating && aligned));
   useEffect(() => {
     onHeadAgentSettled?.(flowActive && selected ? selected : null);
   }, [flowActive, selected, onHeadAgentSettled]);
@@ -320,35 +246,81 @@ export function OrbitDiagram({
   const CoreTag = onCoreClick ? 'button' : 'div';
 
   // Le DESSIN épouse la boîte offerte, pas le carré théorique : on dimensionne
-  // sur l'empreinte réelle (anneau + nœuds + la bande de libellés qui pend
-  // sous le dernier rang). Sans plafond : sur un grand écran le diagramme
+  // sur l'empreinte réelle (anneau, nœuds, badges et libellés visibles).
+  // Sans plafond : sur un grand écran le diagramme
   // respire — les libellés, eux, ne grandissent pas, donc plus le cercle est
   // large, moins ils se chevauchent. Repli tant que rien n'est mesuré (premier
   // rendu, jsdom).
   const [boxRef, box] = useElementSize<HTMLDivElement>();
-  const side = fitOrbitSide(box.width, box.height);
+  const squareRef = useRef<HTMLDivElement>(null);
+  const [verticalLayout, setVerticalLayout] = useState({
+    room: LABEL_ROOM_PX + LABEL_EXTRA_ROOM_PX,
+    offset: 0,
+  });
+  const side = fitOrbitSide(box.width, box.height, verticalLayout.room);
   const radius = orbitRadiusFor(side);
 
   // Anneau à l'étroit : distance d'arc entre deux nœuds voisins. En dessous de
   // LABEL_MIN_ARC_PX, les longues traductions (jusqu'à 130 px) peuvent toucher
   // le nœud voisin. Les noms restent accessibles dans les infobulles et les
   // libellés des boutons, sans rogner les traductions.
-  const arcPx = agents.length > 0 ? (2 * Math.PI * ((radius / 100) * side)) / agents.length : 0;
+  // La densité se décide sur un gabarit stable. La mesure des libellés ne doit
+  // pas les faire apparaître/disparaître en boucle près du seuil de densité.
+  const labelSide = fitOrbitSide(box.width, box.height, LABEL_ROOM_PX + LABEL_EXTRA_ROOM_PX);
+  const arcPx = agents.length > 0 ? (2 * Math.PI * ((orbitRadiusFor(labelSide) / 100) * labelSide)) / agents.length : 0;
   const crowded = arcPx > 0 && arcPx < LABEL_MIN_ARC_PX;
+  const visualRotation = rotation - settledRotation;
+
+  useLayoutEffect(() => {
+    const square = squareRef.current;
+    if (!square || side <= 0 || rotating) return;
+    const elements = [...square.querySelectorAll<HTMLElement>(
+      '.baitly-orbit-node, .baitly-orbit-count, .baitly-orbit-label, [data-core]',
+    )];
+    const measure = () => {
+      const origin = square.getBoundingClientRect();
+      // Les surfaces projetées peuvent être mises à l'échelle par leur parent.
+      const scale = origin.height / side;
+      if (scale <= 0) return;
+      const bounds = elements.map((element) => element.getBoundingClientRect()).filter((rect) => rect.height > 0);
+      if (!bounds.length) return;
+      const next = orbitVerticalLayout(
+        side,
+        (Math.min(...bounds.map((rect) => rect.top)) - origin.top) / scale,
+        (Math.max(...bounds.map((rect) => rect.bottom)) - origin.top) / scale,
+      );
+      setVerticalLayout((previous) => (
+        Math.abs(previous.room - next.room) < 0.5 && Math.abs(previous.offset - next.offset) < 0.5
+          ? previous
+          : next
+      ));
+    };
+    measure();
+    // Police, traduction, statut ou badge : la réserve suit le contenu rendu.
+    if (typeof ResizeObserver === 'undefined') return;
+    let frame = 0;
+    const observer = new ResizeObserver(() => {
+      cancelAnimationFrame(frame);
+      frame = requestAnimationFrame(measure);
+    });
+    elements.forEach((element) => observer.observe(element));
+    return () => {
+      observer.disconnect();
+      cancelAnimationFrame(frame);
+    };
+  }, [agents, selected, isArabic, side, crowded, rotating, settledRotation, box.width, box.height]);
 
   return (
-    <div ref={boxRef} className={cn('baitly-supervision-surface baitly-orbit flex min-h-0 items-center justify-center', className)}>
-      {/* marginBottom : le dessin n'est PAS centré dans son carré — les
-          libellés pendent sous le dernier rang de nœuds. Réserver cette bande
-          sous le carré remonte l'ensemble d'une demi-bande, et c'est le DESSIN
-          qui se retrouve centré dans la boîte (sans ça : un trou en haut, des
-          libellés collés en bas). */}
+    <div ref={boxRef} data-rotating={rotating || undefined} className={cn('baitly-supervision-surface baitly-orbit flex min-h-0 items-center justify-center', className)}>
+      {/* Centrer l'empreinte visible, avec ses badges et ses seuls libellés
+          affichés. Aucune bande vide fixe sous l'orbite sur les petits écrans. */}
       <div
+        ref={squareRef}
         data-supervision-constellation
-        className="relative aspect-square"
+        className="relative aspect-square shrink-0"
         style={
           side > 0
-            ? { width: side, height: side, marginBottom: LABEL_ROOM_PX }
+            ? { width: side, height: side, transform: `translateY(${verticalLayout.offset}px)` }
             : { width: '100%' }
         }
       >
@@ -367,10 +339,10 @@ export function OrbitDiagram({
           />
         </svg>
 
-        <div className="oc-ring absolute inset-0" style={{ transform: `rotate(${rotation}deg)` }}>
+        <div className="oc-ring absolute inset-0" style={{ transform: rotating ? `rotate(${visualRotation}deg)` : 'none' }}>
           <svg viewBox="0 0 100 100" className="absolute inset-0 size-full" aria-hidden>
             {agents.map((agent, index) => {
-              const angle = baseAngle(index, agents.length);
+              const angle = baseAngle(index, agents.length) + settledRotation;
               const from = polar(angle, FLOW_LEG_START);
               const to = polar(angle, flowLegEnd(radius));
               const segment = { x1: from.x, y1: from.y, x2: to.x, y2: to.y };
@@ -404,7 +376,7 @@ export function OrbitDiagram({
 
           {agents.map((agent, index) => {
             const meta = AGENT_META[agent.id];
-            const point = polar(baseAngle(index, agents.length), radius);
+            const point = polar(baseAngle(index, agents.length) + settledRotation, radius);
             const pending = agent.pendingCount ?? 0;
             // Actions en attente de CET agent, échéance la plus proche d'abord —
             // l'aperçu borné de l'infobulle.
@@ -455,13 +427,15 @@ export function OrbitDiagram({
                 data-attention={isAttention || undefined}
                 data-waiting={needsDecision || undefined}
                 data-working={working || undefined}
-                data-animating={(working && flowEnabled && !rotating) || undefined}
+                data-animating={(working && flowEnabled && documentVisible && !rotating && !reducedMotion) || undefined}
                 style={{
-                  left: `${point.x}%`,
-                  top: `${point.y}%`,
+                  left: `${point.x - NODE_SIZE / 2}%`,
+                  top: `${point.y - NODE_SIZE / 2}%`,
                   width: `${NODE_SIZE}%`,
                   height: `${NODE_SIZE}%`,
-                  transform: `translate(-50%, -50%) rotate(${-rotation}deg)`,
+                  transform: rotating
+                    ? `rotate(${-visualRotation}deg)`
+                    : 'none',
                 }}
               >
                 <svg className="baitly-orbit-rim" viewBox="0 0 100 100" aria-hidden>
@@ -475,54 +449,46 @@ export function OrbitDiagram({
                     />
                   )}
                 </svg>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <button
-                      type="button"
-                      data-agent={agent.id}
-                      data-status={agent.status}
-                      aria-pressed={isSelected}
-                      // Le lecteur d'écran, lui, ne voit pas la pastille : on
-                      // lui donne le compte que le texte ne porte plus.
-                      aria-label={[
-                        t(meta.nameKey),
-                        subLabel ?? statusLabel,
-                        pending > 0 ? `${pending} ${t('supervision.board.toValidate', 'à valider')}` : null,
-                        propertyCount != null ? `${propertyCount} ${t('supervision.portfolio.propertiesShort')}` : null,
-                      ].filter(Boolean).join(' · ')}
-                      onClick={() => onSelect(agent.id)}
-                      className="baitly-orbit-node"
-                    >
-                      <span className="baitly-orbit-icon" aria-hidden>
-                        <AgentIcon token={meta.icon} size={28} strokeWidth={1.6} />
-                      </span>
-                      {badgeCount != null ? (
-                        <span className="baitly-orbit-count" data-kind={propertyCount != null ? 'properties' : 'pending'} aria-hidden>
-                          {propertyCount != null && <Home size={11} strokeWidth={1.8} />}
-                          <bdi dir="ltr">{badgeCount > 99 ? '99+' : badgeCount}</bdi>
-                        </span>
-                      ) : (isAttention || needsDecision) && (
-                        <span className="baitly-orbit-count" data-kind="status" aria-hidden>
-                          {isAttention ? <ErrorOutline size={14} /> : <AccessTime size={13} />}
-                        </span>
-                      )}
-                      {working && <span className="baitly-orbit-activity-dot" aria-hidden />}
-                    </button>
-                  </TooltipTrigger>
-                  <TooltipContent className="max-w-[16rem] p-0">
-                    <AgentNodeTooltip agent={agent} waiting={waiting} isSelected={isSelected} />
-                  </TooltipContent>
-                </Tooltip>
-                {/* Anneau à l'étroit : une SEULE légende, celle de l'agent
-                    ouvert (plus une escalade, qui doit être nommée) — sinon les
-                    légendes se recouvrent. Les noms restent dans l'infobulle et
-                    dans `aria-label`. Le compte, lui, est toujours sur le nœud :
-                    attaché à l'icône, il ne peut recouvrir personne. */}
+                <AgentSpeechBubble
+                  agentId={agent.id}
+                  status={agent.status}
+                  selected={isSelected}
+                  rtl={isArabic}
+                  // Le lecteur d'écran ne voit pas la pastille : on lui donne
+                  // le compte que la légende ne répète plus.
+                  label={[
+                    t(meta.nameKey),
+                    subLabel ?? statusLabel,
+                    pending > 0 ? `${pending} ${t('supervision.board.toValidate', 'à valider')}` : null,
+                    propertyCount != null ? `${propertyCount} ${t('supervision.portfolio.propertiesShort')}` : null,
+                  ].filter(Boolean).join(' · ')}
+                  onSelect={() => onSelect(agent.id)}
+                  content={<AgentSpeechContent agent={agent} waiting={waiting} isSelected={isSelected} />}
+                  badge={badgeCount != null ? (
+                    <span className="baitly-orbit-count" data-kind={propertyCount != null ? 'properties' : 'pending'} aria-hidden>
+                      {propertyCount != null && <Home size={11} strokeWidth={1.8} />}
+                      <bdi dir="ltr">{badgeCount > 99 ? '99+' : badgeCount}</bdi>
+                    </span>
+                  ) : (isAttention || needsDecision) && (
+                    <span className="baitly-orbit-count" data-kind="status" aria-hidden>
+                      {isAttention ? <ErrorOutline size={14} /> : <AccessTime size={13} />}
+                    </span>
+                  )}
+                >
+                  <AgentPortrait
+                    agentId={agent.id}
+                    receiving={isSelected && flowActive && !reducedMotion}
+                  />
+                  {working && <span className="baitly-orbit-activity-dot" aria-hidden />}
+                </AgentSpeechBubble>
+                {/* Small orbits retain the full selected name and alerts:
+                    larger typography must not overlap neighbouring agents. */}
                 {(!crowded || isSelected || isAttention) && (
                   <OrbitAgentLabel
                     name={t(meta.nameKey)} status={subLabel} attention={isAttention}
                     above={labelAbove} preferredShift={crowded ? Math.sign(cos) * LABEL_SHIFT_PX : 0}
                     x={visualX} frameWidth={box.width}
+                    maxWidth={180}
                   />
                 )}
               </div>
@@ -545,15 +511,14 @@ export function OrbitDiagram({
           )}
           style={{ width: `${CORE_SIZE}%`, height: `${CORE_SIZE}%` }}
         >
-          <svg viewBox={MARK_VIEWBOX} className="size-1/2" fill="none" aria-hidden>
-            <path
-              d={MARK_PATH}
-              stroke="currentColor"
-              strokeWidth={STROKE_WIDTH}
-              strokeLinecap="round"
-              strokeLinejoin="round"
+          <span className="baitly-orbit-mark" aria-hidden="true">
+            <BaitlyMarkLogo
+              variant="mark"
+              colorMode="inherit"
+              size={side > 0 ? side * CORE_SIZE / 100 * 0.58 : 44}
+              disableAnimation={!flowActive || reducedMotion}
             />
-          </svg>
+          </span>
         </CoreTag>
       </div>
     </div>

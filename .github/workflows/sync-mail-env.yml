@@ -1,0 +1,107 @@
+name: Sync mail env (prod)
+
+# Pousse la configuration email (OVH MX Plan) dans .env.prod sur le serveur de
+# production via SSH. Lancement manuel uniquement.
+#
+# Secrets requis (Settings > Secrets and variables > Actions) :
+#   SSH_HOST, SSH_USER, SSH_PRIVATE_KEY, SSH_KNOWN_HOSTS  (known_hosts du serveur)
+#   MAIL_PASSWORD   mot de passe de la boite SMTP
+#   IMAP_PASSWORD   optionnel, par defaut MAIL_PASSWORD
+# Variable requise : DEPLOY_PATH (dossier contenant .env.prod et docker-compose.prod.yml)
+# Variables optionnelles (valeurs OVH par defaut) : MAIL_HOST, MAIL_PORT, MAIL_USERNAME,
+#   MAIL_FROM, MAIL_NOTIFICATION_TO, IMAP_HOST, IMAP_PORT, IMAP_USERNAME
+
+on:
+  workflow_dispatch:
+    inputs:
+      restart_server:
+        description: "Recreer le conteneur server apres la mise a jour"
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+concurrency:
+  group: sync-mail-env-prod
+  cancel-in-progress: false
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      DEPLOY_PATH: ${{ vars.DEPLOY_PATH }}
+      SSH_HOST: ${{ secrets.SSH_HOST }}
+      SSH_USER: ${{ secrets.SSH_USER }}
+      MAIL_PROVIDER: ovh
+      MAIL_HOST: ${{ vars.MAIL_HOST || 'ssl0.ovh.net' }}
+      MAIL_PORT: ${{ vars.MAIL_PORT || '465' }}
+      MAIL_SMTP_SSL_ENABLE: "true"
+      MAIL_SMTP_STARTTLS_ENABLE: "false"
+      MAIL_SMTP_STARTTLS_REQUIRED: "false"
+      MAIL_USERNAME: ${{ vars.MAIL_USERNAME || 'contact@baitly.fr' }}
+      MAIL_PASSWORD: ${{ secrets.MAIL_PASSWORD }}
+      MAIL_FROM: ${{ vars.MAIL_FROM || 'contact@baitly.fr' }}
+      MAIL_NOTIFICATION_TO: ${{ vars.MAIL_NOTIFICATION_TO || 'contact@baitly.fr' }}
+      IMAP_ENABLED: "true"
+      IMAP_HOST: ${{ vars.IMAP_HOST || 'ssl0.ovh.net' }}
+      IMAP_PORT: ${{ vars.IMAP_PORT || '993' }}
+      IMAP_USERNAME: ${{ vars.IMAP_USERNAME || 'contact@baitly.fr' }}
+      IMAP_PASSWORD: ${{ secrets.IMAP_PASSWORD || secrets.MAIL_PASSWORD }}
+    steps:
+      - name: Verifier la configuration
+        run: |
+          for v in DEPLOY_PATH SSH_HOST SSH_USER MAIL_PASSWORD; do
+            if [ -z "${!v}" ]; then
+              echo "::error::$v n'est pas defini (secret ou variable manquant)"
+              exit 1
+            fi
+          done
+
+      - name: Preparer SSH
+        env:
+          SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
+          SSH_KNOWN_HOSTS: ${{ secrets.SSH_KNOWN_HOSTS }}
+        run: |
+          install -m 700 -d ~/.ssh
+          printf '%s\n' "$SSH_PRIVATE_KEY" > ~/.ssh/id_deploy
+          chmod 600 ~/.ssh/id_deploy
+          printf '%s\n' "$SSH_KNOWN_HOSTS" > ~/.ssh/known_hosts
+
+      - name: Mettre a jour .env.prod sur le serveur
+        run: |
+          KEYS="MAIL_PROVIDER MAIL_HOST MAIL_PORT MAIL_SMTP_SSL_ENABLE MAIL_SMTP_STARTTLS_ENABLE MAIL_SMTP_STARTTLS_REQUIRED MAIL_USERNAME MAIL_PASSWORD MAIL_FROM MAIL_NOTIFICATION_TO IMAP_ENABLED IMAP_HOST IMAP_PORT IMAP_USERNAME IMAP_PASSWORD"
+
+          # Script execute sur le serveur : sauvegarde .env.prod, retire les anciennes
+          # lignes de ces cles puis ajoute les nouvelles (lues sur stdin).
+          REMOTE='set -euo pipefail
+          cd "$1"
+          [ -f .env.prod ] || { echo ".env.prod introuvable dans $1" >&2; exit 1; }
+          payload=$(mktemp); tmp=$(mktemp)
+          trap "rm -f \"$payload\" \"$tmp\" \"$tmp.n\"" EXIT
+          cat > "$payload"
+          keys=$(head -n 1 "$payload")
+          cp .env.prod ".env.prod.bak.$(date +%Y%m%d_%H%M%S)"
+          cp .env.prod "$tmp"
+          for k in $keys; do
+            grep -v "^${k}=" "$tmp" > "$tmp.n" || true
+            mv "$tmp.n" "$tmp"
+          done
+          if [ -s "$tmp" ] && [ -n "$(tail -c1 "$tmp")" ]; then echo >> "$tmp"; fi
+          tail -n +2 "$payload" >> "$tmp"
+          cat "$tmp" > .env.prod
+          echo "OK: $(echo $keys | wc -w) cles mises a jour dans $1/.env.prod"'
+
+          # Les valeurs transitent par stdin, jamais dans la ligne de commande.
+          {
+            echo "$KEYS"
+            for k in $KEYS; do printf '%s=%s\n' "$k" "${!k}"; done
+          } | ssh -i ~/.ssh/id_deploy -o IdentitiesOnly=yes "$SSH_USER@$SSH_HOST" \
+              "$(printf 'bash -c %q _ %q' "$REMOTE" "$DEPLOY_PATH")"
+
+      - name: Recreer le conteneur server
+        if: ${{ inputs.restart_server }}
+        run: |
+          ssh -i ~/.ssh/id_deploy -o IdentitiesOnly=yes "$SSH_USER@$SSH_HOST" \
+            "$(printf 'cd %q && docker-compose -f docker-compose.prod.yml up -d --force-recreate server' "$DEPLOY_PATH")"

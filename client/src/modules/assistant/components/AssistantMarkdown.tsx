@@ -33,7 +33,7 @@ export const AssistantMarkdown: React.FC<AssistantMarkdownProps> = ({ text }) =>
   const components: Components = React.useMemo(() => ({
     // Paragraphes : la taille vient de la bulle (.cn-message = text-sm)
     p: ({ children }) => (
-      <p className="mb-1.5 leading-relaxed last:mb-0">
+      <p className="mb-3 leading-[1.7] last:mb-0">
         {children}
       </p>
     ),
@@ -65,12 +65,12 @@ export const AssistantMarkdown: React.FC<AssistantMarkdownProps> = ({ text }) =>
     // `ps-` (logique) et non `pl-` : les classes Tailwind ne passent pas par le
     // plugin RTL d'Emotion qui retournait le `pl` du sx d'origine en arabe.
     ul: ({ children }) => (
-      <ul className="ps-[15px] my-1.5 [&_li]:mb-[1.5px]">
+      <ul className="ps-5 my-3 [&_li]:mb-1.5">
         {children}
       </ul>
     ),
     ol: ({ children }) => (
-      <ol className="ps-[15px] my-1.5 [&_li]:mb-[1.5px]">
+      <ol className="ps-5 my-3 [&_li]:mb-1.5">
         {children}
       </ol>
     ),
@@ -102,10 +102,10 @@ export const AssistantMarkdown: React.FC<AssistantMarkdownProps> = ({ text }) =>
       <h2 className="mt-2 mb-0.5 text-base font-semibold text-foreground">{children}</h2>
     ),
     h2: ({ children }) => (
-      <h3 className="mt-2 mb-0.5 text-sm font-semibold text-foreground">{children}</h3>
+      <h3 className="mt-2 mb-0.5 text-[16px] font-semibold text-foreground">{children}</h3>
     ),
     h3: ({ children }) => (
-      <h4 className="mt-2 mb-0.5 text-sm font-semibold text-foreground">{children}</h4>
+      <h4 className="mt-2 mb-0.5 text-[16px] font-semibold text-foreground">{children}</h4>
     ),
 
     // Citation

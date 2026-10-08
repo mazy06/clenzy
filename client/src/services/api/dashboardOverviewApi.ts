@@ -12,6 +12,8 @@ export interface KpiTrend {
   value: number;
   /** Variation % vs la fenêtre précédente de même durée. */
   growth: number;
+  /** Null/missing means no reliable baseline (including during a rolling deployment). */
+  previousValue?: number | null;
 }
 
 /** Note moyenne et volume d'avis publics **sur la période**. */
@@ -27,6 +29,8 @@ export interface DashboardFinancialContext {
   timezone: string;
   currency: string;
   metric: 'ACCOMMODATION_REVENUE';
+  occupiedNights?: number;
+  availableNights?: number;
 }
 
 export interface DashboardChannelRevenue {

@@ -1,6 +1,10 @@
 import React, { useEffect, useState } from 'react';
 import { Button, Card, Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, Field, FieldError, FieldLabel, Input, NativeSelect, NativeSelectOption, Spinner, Table, TableBody, TableCell, TableHead, TableHeader, TableRow, Tooltip, TooltipContent, TooltipTrigger } from '../../components/ui';
-import { TriangleAlert } from '../../icons/glyphs';
+import { TriangleAlert, CircleHelp, Clock3 } from '../../icons/glyphs';
+import StatusIcon from '../../components/StatusIcon';
+import { usePageHeaderActions } from '../../components/PageHeaderActionsContext';
+import { PropertyTabHeading, PropertyTabLoading, PropertyTabEmpty } from './PropertyTabPrimitives';
+import { PROPERTY_ART } from './propertyArtwork';
 import { cn } from '../../utils/cn';
 import { Add, DeleteOutline, Edit, GppGood } from '../../icons';
 import { useTranslation } from '../../hooks/useTranslation';
@@ -41,6 +45,11 @@ const EMPTY_FORM: PropertyLicenseRequest = {
  */
 export default function PropertyComplianceTab({ propertyId, canEdit }: Props) {
   const { t } = useTranslation();
+  const [selectedId, setSelectedId] = useState<number | null>(null);
+  const [loadError, setLoadError] = useState(false);
+  const [deleteTarget, setDeleteTarget] = useState<number | null>(null);
+  const [deleting, setDeleting] = useState(false);
+  const generation = React.useRef(0);
   const [licenses, setLicenses] = useState<PropertyLicense[] | null>(null);
   const [editing, setEditing] = useState<{ id: number | null; form: PropertyLicenseRequest } | null>(null);
   const [saving, setSaving] = useState(false);
@@ -49,11 +58,15 @@ export default function PropertyComplianceTab({ propertyId, canEdit }: Props) {
   const [profileRefresh, setProfileRefresh] = useState(0);
 
   const reload = React.useCallback(() => {
-    propertyLicensesApi.list(propertyId).then(setLicenses).catch(() => setLicenses([]));
+    const request = ++generation.current;
+    setLoadError(false);
+    propertyLicensesApi.list(propertyId).then(data => {
+      if (request === generation.current) setLicenses(data);
+    }).catch(() => { if (request === generation.current) setLoadError(true); });
     setProfileRefresh((n) => n + 1);
   }, [propertyId]);
 
-  useEffect(() => { reload(); }, [reload]);
+  useEffect(() => { setLicenses(null); setSelectedId(null); reload(); return () => { generation.current++; }; }, [reload]);
 
   const save = async () => {
     if (!editing) return;
@@ -76,140 +89,77 @@ export default function PropertyComplianceTab({ propertyId, canEdit }: Props) {
   };
 
   const remove = async (id: number) => {
-    await propertyLicensesApi.remove(propertyId, id);
-    reload();
+    setDeleting(true); setSaveError(null);
+    try { await propertyLicensesApi.remove(propertyId, id); setDeleteTarget(null); reload(); }
+    catch { setSaveError(t('common.error', 'Erreur')); }
+    finally { setDeleting(false); }
   };
 
   const setField = <K extends keyof PropertyLicenseRequest>(key: K, value: PropertyLicenseRequest[K]) =>
     setEditing((prev) => (prev ? { ...prev, form: { ...prev.form, [key]: value } } : prev));
 
-  if (licenses === null) {
-    return (
-      <div className="flex justify-center py-9">
-        <Spinner className="size-8" />
-      </div>
-    );
-  }
-
-  return (
-    <div className="flex flex-col gap-4">
+  const openEdit = (license: PropertyLicense) => {
+    setSaveError(null);
+    setEditing({ id: license.id, form: {
+      licenseType: license.licenseType, licenseNumber: license.licenseNumber, issuedBy: license.issuedBy,
+      issuedAt: license.issuedAt, expiresAt: license.expiresAt, renewalLeadDays: license.renewalLeadDays,
+      documentRef: license.documentRef, notes: license.notes,
+    } });
+  };
+  const add = () => { setSaveError(null); setEditing({ id: null, form: EMPTY_FORM }); };
+  const headerActions = usePageHeaderActions(canEdit ? <Button onClick={add}><Add size={16} />{t('properties.compliance.addTitle', 'Ajouter une licence')}</Button> : null);
+  const selected = licenses?.find(item => item.id === selectedId) ?? licenses?.[0];
+  const status = (license: PropertyLicense) => {
+    const malformed = ['MALFORMED','COMMUNE_MISMATCH'].includes(license.formatVerdict ?? '');
+    const expired = license.expiresAt && new Date(license.expiresAt + 'T23:59:59').getTime() < Date.now();
+    return malformed ? { icon: TriangleAlert, tone: 'destructive' as const, label: t('properties.compliance.formatSuspect') }
+      : expired ? { icon: Clock3, tone: 'destructive' as const, label: t('propertyTabs.expired', 'Échéance dépassée') }
+      : license.expiringSoon ? { icon: Clock3, tone: 'warning' as const, label: t('properties.compliance.expiringSoon') }
+      : { icon: CircleHelp, tone: 'muted' as const, label: t('propertyTabs.recordedLicense', 'Licence enregistrée, validité à vérifier') };
+  };
+  return (<div className="pdt-page">
+    {headerActions}
     <FrRegulatoryProfileCard propertyId={propertyId} canEdit={canEdit} refreshKey={profileRefresh} />
-    <Card className="p-4">
-      <div className="mb-3 flex items-center justify-between gap-3">
-        <div className="flex items-center gap-2">
-          <GppGood size={18} strokeWidth={1.75} className="text-muted-foreground" />
-          <h3 className="m-0 text-sm font-semibold tracking-tight text-foreground">
-            {t('properties.compliance.title', 'Licences & autorisations')}
-          </h3>
-        </div>
-        {canEdit && (
-          <Button size="sm" onClick={() => setEditing({ id: null, form: EMPTY_FORM })}>
-            <Add size={15} />
-            {t('properties.compliance.add', 'Ajouter')}
-          </Button>
-        )}
-      </div>
-
-      {licenses.length === 0 ? (
-        <p className="m-0 py-4 text-xs text-muted-foreground">
-          {t('properties.compliance.empty',
-            "Aucune licence enregistrée. L'échéance saisie ici alimente l'alerte de renouvellement de l'agent Conformité.")}
-        </p>
-      ) : (
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>{t('properties.compliance.type', 'Type')}</TableHead>
-              <TableHead>{t('properties.compliance.number', 'Numéro')}</TableHead>
-              <TableHead>{t('properties.compliance.issuedBy', 'Émise par')}</TableHead>
-              <TableHead>{t('properties.compliance.expiresAt', 'Échéance')}</TableHead>
-              <TableHead>{t('properties.compliance.lead', 'Alerte à J-')}</TableHead>
-              {canEdit && <TableHead aria-label="actions" />}
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {licenses.map((license) => (
-              <TableRow key={license.id}>
-                <TableCell>{t(TYPE_KEYS[license.licenseType])}</TableCell>
-                <TableCell className="tabular-nums">
-                  <span className="inline-flex items-center gap-1.5">
-                    {license.licenseNumber ?? '—'}
-                    {/* Le serveur ne se prononce que sur les formats qu'il connaît.
-                        Arabie saoudite : simple avertissement (règle de source
-                        secondaire). France : la saisie est refusée en amont, l'icône
-                        ne signale plus qu'un numéro ancien devenu incohérent (commune
-                        du logement modifiée depuis). */}
-                    {(license.formatVerdict === 'MALFORMED' || license.formatVerdict === 'COMMUNE_MISMATCH') && (
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <span className="inline-flex text-warning-ink">
-                            <TriangleAlert className="size-3.5" aria-hidden />
-                          </span>
-                        </TooltipTrigger>
-                        <TooltipContent>
-                          {t(
-                            'properties.compliance.formatSuspect',
-                            "Ce numéro ne suit pas le format attendu pour le pays du logement",
-                          )}
-                        </TooltipContent>
-                      </Tooltip>
-                    )}
-                  </span>
-                </TableCell>
-                <TableCell>{license.issuedBy ?? '—'}</TableCell>
-                <TableCell className="tabular-nums">
-                  <span
-                    className={cn(
-                      'inline-flex items-center gap-1.5',
-                      license.expiringSoon && 'font-medium text-warning-ink',
-                    )}
-                  >
-                    {license.expiresAt ?? '—'}
-                    {license.expiringSoon && (
-                      <span
-                        aria-label={t('properties.compliance.expiringSoon', 'Échéance proche')}
-                        className="size-[7px] shrink-0 rounded-full bg-warning-ink"
-                      />
-                    )}
-                  </span>
-                </TableCell>
-                <TableCell className="tabular-nums">{license.renewalLeadDays}</TableCell>
-                {canEdit && (
-                  <TableCell className="text-right">
-                    <Button
-                      variant="ghost" size="icon-sm"
-                      aria-label={t('common.edit', 'Modifier')}
-                      onClick={() => setEditing({
-                        id: license.id,
-                        form: {
-                          licenseType: license.licenseType,
-                          licenseNumber: license.licenseNumber,
-                          issuedBy: license.issuedBy,
-                          issuedAt: license.issuedAt,
-                          expiresAt: license.expiresAt,
-                          renewalLeadDays: license.renewalLeadDays,
-                          documentRef: license.documentRef,
-                          notes: license.notes,
-                        },
-                      })}
-                    >
-                      <Edit size={15} />
-                    </Button>
-                    <Button
-                      variant="ghost" size="icon-sm"
-                      aria-label={t('common.delete', 'Supprimer')}
-                      onClick={() => remove(license.id)}
-                    >
-                      <DeleteOutline size={15} />
-                    </Button>
-                  </TableCell>
-                )}
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-      )}
-
+    <section className="pdt-surface">
+      <PropertyTabHeading art={PROPERTY_ART.compliance} title={t('properties.compliance.title')}
+        description={t('propertyTabs.complianceHint', 'Autorisations, échéances et justificatifs du logement.')}
+        actions={canEdit && <Button variant="outline" size="sm" onClick={add}><Add size={16} />{t('properties.compliance.add')}</Button>} />
+      {loadError ? <div className="p-5" role="alert"><p>{t('propertyTabs.licensesLoadError', 'Impossible de charger les licences.')}</p><Button variant="outline" onClick={reload}>{t('common.retry', 'Réessayer')}</Button></div>
+        : licenses === null ? <PropertyTabLoading />
+        : licenses.length === 0 ? <PropertyTabEmpty art={PROPERTY_ART.compliance} title={t('properties.compliance.title')} description={t('properties.compliance.empty')} />
+        : <div className="pdt-split">
+          <div className="pdt-list">
+            {licenses.map(license => <div className="pdt-row" data-selected={selected?.id === license.id} key={license.id}>
+              <button type="button" className="pdt-row__button" aria-pressed={selected?.id === license.id} onClick={() => { setSelectedId(license.id); setDeleteTarget(null); }}>
+                <img src={PROPERTY_ART.compliance} alt="" />
+                <span className="pdt-row__copy"><strong>{t(TYPE_KEYS[license.licenseType])}</strong><small>{license.licenseNumber || t('properties.frProfile.useUnset', 'Non renseigné')}</small></span>
+              </button>
+              <StatusIcon {...status(license)} />
+            </div>)}
+          </div>
+          {selected && <div className="pdt-detail">
+            <PropertyTabHeading art={PROPERTY_ART.compliance} title={t(TYPE_KEYS[selected.licenseType])} actions={<StatusIcon {...status(selected)} />} />
+            <dl className="pdt-facts">
+              <div><dt>{t('properties.compliance.number')}</dt><dd>{selected.licenseNumber || '—'}</dd></div>
+              <div><dt>{t('properties.compliance.issuedBy')}</dt><dd>{selected.issuedBy || '—'}</dd></div>
+              <div><dt>{t('properties.compliance.issuedAt')}</dt><dd>{selected.issuedAt || '—'}</dd></div>
+              <div><dt>{t('properties.compliance.expiresAt')}</dt><dd>{selected.expiresAt || '—'}</dd></div>
+              <div><dt>{t('properties.compliance.lead')}</dt><dd>{selected.renewalLeadDays}</dd></div>
+              {selected.documentRef && <div><dt>{t('propertyTabs.documentRef', 'Justificatif')}</dt><dd>{selected.documentRef}</dd></div>}
+            </dl>
+            {selected.notes && <p className="pdt-copy mt-4">{selected.notes}</p>}
+            {canEdit && <div className="pdt-detail__actions">
+              <Button variant="outline" onClick={() => openEdit(selected)}><Edit size={16} />{t('common.edit')}</Button>
+              <Button variant="ghost" size="icon" aria-label={t('common.delete')} onClick={() => setDeleteTarget(selected.id)}><DeleteOutline size={16} /></Button>
+            </div>}
+            {deleteTarget === selected.id && <div className="pdt-reply">
+              <p className="text-sm mb-3">{t('propertyTabs.deleteLicense', 'Supprimer cette licence du logement ?')}</p>
+              <Button variant="outline" disabled={deleting} onClick={() => setDeleteTarget(null)}>{t('common.cancel')}</Button>
+              <Button className="ms-2" variant="destructive" disabled={deleting} onClick={() => void remove(selected.id)}>{t('common.delete')}</Button>
+              {saveError && <FieldError>{saveError}</FieldError>}
+            </div>}
+          </div>}
+        </div>}
       {editing && (
         <Dialog open onOpenChange={(next) => { if (!next && !saving) setEditing(null); }}>
           <DialogContent>
@@ -306,7 +256,7 @@ export default function PropertyComplianceTab({ propertyId, canEdit }: Props) {
           </DialogContent>
         </Dialog>
       )}
-    </Card>
+    </section>
     </div>
   );
 }

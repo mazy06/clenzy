@@ -1,0 +1,201 @@
+/* The mission panel and Mapbox surface come directly from the PMS. These
+   rules only frame the public projection and contain it within the landing. */
+.bim-demo {
+  container: interventions / inline-size;
+  display: flex;
+  min-inline-size: 0;
+  color: var(--bui-foreground);
+  background: var(--bui-background);
+  text-align: start;
+}
+.bim-sidebar {
+  display: flex;
+  flex: none;
+  flex-direction: column;
+  align-items: center;
+  gap: 13px;
+  inline-size: 46px;
+  padding-block: 12px;
+  background: #0d1627;
+  color: #c5d0df;
+}
+.bim-sidebar > span {
+  display: grid;
+  place-items: center;
+  inline-size: 32px;
+  block-size: 34px;
+  border-radius: 9px;
+}
+.bim-sidebar > [data-current="true"] {
+  background: #1a2740;
+  color: #e4ebf4;
+}
+.bim-sidebar > .bim-sidebar-settings {
+  margin-block-start: auto;
+}
+.bim-screen {
+  flex: 1;
+  min-inline-size: 0;
+}
+.bim-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-block-size: 64px;
+  padding: 12px 16px;
+  border-block-end: 1px solid var(--bui-border);
+  background: var(--bui-card);
+}
+.bim-header h2 {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 650;
+  letter-spacing: -0.025em;
+}
+.bim-screen-icon {
+  display: grid;
+  flex: none;
+  place-items: center;
+  inline-size: 34px;
+  block-size: 34px;
+  border-radius: 10px;
+  color: #264672;
+  background: #e1e7f0;
+}
+.bim-screen-switcher {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding-inline-start: 10px;
+  border-inline-start: 1px solid var(--bui-border);
+  color: var(--bui-muted-foreground);
+  font-size: 15px;
+}
+.bim-search {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  inline-size: 230px;
+  max-inline-size: 34%;
+  min-block-size: 36px;
+  margin-inline-start: auto;
+  padding-inline: 12px;
+  border: 1px solid var(--bui-border);
+  border-radius: 10px;
+  background: var(--bui-muted);
+  color: var(--bui-muted-foreground);
+}
+.bim-search svg {
+  flex: none;
+}
+.bim-search input {
+  min-inline-size: 0;
+  inline-size: 100%;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  color: var(--bui-foreground);
+  font: inherit;
+  font-size: 12px;
+}
+.bim-search input::placeholder {
+  color: var(--bui-muted-foreground);
+  opacity: 1;
+}
+.bim-search kbd {
+  font-size: 12px;
+}
+.bim-search:focus-within {
+  outline: 2px solid #264672;
+  outline-offset: 2px;
+}
+.bim-toolbar {
+  display: flex;
+  flex: none;
+  align-items: center;
+  gap: 18px;
+  color: var(--bui-muted-foreground);
+}
+.bim-workspace {
+  display: flex;
+  block-size: 580px;
+  padding: 14px;
+}
+.bim-shared-map {
+  inline-size: 100%;
+}
+.bim-map-loading {
+  block-size: 100%;
+  background: var(--bui-muted);
+}
+.bim-demo [data-demo-mission][aria-pressed="true"] {
+  background: var(--bui-muted);
+}
+.bim-demo .mapboxgl-marker {
+  cursor: pointer;
+}
+.bim-demo .mapboxgl-marker:focus-visible {
+  outline: 2px solid #264672;
+  outline-offset: 4px;
+}
+.bim-demo .mapboxgl-popup-content {
+  color: #1b2a35;
+  font-size: 13px;
+}
+@container interventions (max-width: 1000px) {
+  .bim-screen-switcher {
+    display: none;
+  }
+  .bim-toolbar {
+    gap: 10px;
+  }
+  .bim-search {
+    max-inline-size: 45%;
+  }
+}
+@container interventions (max-width: 720px) {
+  .bim-sidebar {
+    display: none;
+  }
+  .bim-toolbar {
+    display: none;
+  }
+  .bim-header {
+    padding: 12px;
+  }
+  .bim-header h2 {
+    font-size: 16px;
+  }
+  .bim-screen-icon {
+    inline-size: 30px;
+    block-size: 30px;
+  }
+  .bim-search {
+    inline-size: 210px;
+    max-inline-size: 50%;
+  }
+  .bim-search kbd {
+    display: none;
+  }
+  .bim-workspace {
+    block-size: 640px;
+    padding: 10px;
+  }
+  .bim-shared-map {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: 260px minmax(0, 1fr);
+  }
+}
+@container interventions (max-width: 400px) {
+  .bim-header {
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  .bim-search {
+    inline-size: 100%;
+    max-inline-size: none;
+  }
+  .bim-demo .text-xs {
+    font-size: 12px;
+  }
+}

@@ -7,6 +7,8 @@ import java.util.Optional;
 
 public interface ProviderPayoutBeneficiaryRepository extends JpaRepository<ProviderPayoutBeneficiary, Long> {
     interface Assignment {
+        Long getPropertyId();
+        String getStatus();
         Long getAssignedUserId();
         Long getTeamId();
         Long getRecipientUserId();
@@ -17,7 +19,8 @@ public interface ProviderPayoutBeneficiaryRepository extends JpaRepository<Provi
 
     /** L'association à la mission autorise cette projection étroite entre organisations. */
     @Query(value = """
-        SELECT i.assigned_user_id AS "assignedUserId", i.team_id AS "teamId",
+        SELECT i.property_id AS "propertyId", i.status AS "status",
+            i.assigned_user_id AS "assignedUserId", i.team_id AS "teamId",
             COALESCE(i.assigned_user_id,t.personal_user_id) AS "recipientUserId",
             CASE WHEN i.assigned_user_id IS NOT NULL THEN u.organization_id ELSE t.organization_id END AS "recipientOrganizationId",
             o.name AS "organizationName", u.keycloak_id AS "notificationSubject"
@@ -30,6 +33,10 @@ public interface ProviderPayoutBeneficiaryRepository extends JpaRepository<Provi
     Optional<Assignment> findAssignment(@Param("missionId") Long missionId, @Param("orgId") Long orgId);
 
     Optional<ProviderPayoutBeneficiary> findByInterventionIdAndOrganizationId(Long missionId, Long orgId);
+
+    /** Empêche une réaffectation de la mission entre la revue de la carte et l'enregistrement du choix. */
+    @Query(value = "SELECT id FROM interventions WHERE id=:missionId AND organization_id=:orgId FOR UPDATE", nativeQuery = true)
+    Optional<Long> lockAssignment(@Param("missionId") Long missionId, @Param("orgId") Long orgId);
 
     /** Même verrou pour la sélection et la préparation : le bénéficiaire est figé dès la réservation du versement. */
     @Query(value = "SELECT 1 FROM pg_advisory_xact_lock(hashtextextended('baitly-provider-payout:' || CAST(:missionId AS text),0))", nativeQuery = true)

@@ -45,7 +45,7 @@ function fmt(dt: string | null): string {
  * un bouton de rafraîchissement (lecture Tuya à la demande). Écrit directement
  * sur `environmentSensorsApi`, dans le langage visuel du hub.
  */
-export default function SensorDetail({ device }: { device: ConnectedDevice }) {
+export default function SensorDetail({ device, compact = false }: { device: ConnectedDevice; compact?: boolean }) {
   const { t } = useTranslation();
   const qc = useQueryClient();
   const sensor = device.raw as EnvironmentSensorDto;
@@ -102,7 +102,7 @@ export default function SensorDetail({ device }: { device: ConnectedDevice }) {
           </Button>
         </div>
 
-        {primary && <InfoRow label={primary.label} value={primary.node} />}
+        {!compact && primary && <InfoRow label={primary.label} value={primary.node} />}
         {sensor.sensorType === 'TEMP_HUMIDITY' && (
           <>
             <InfoRow label={t('connectedObjects.sensor.temperature')} value={sensor.temperatureC != null ? `${sensor.temperatureC.toFixed(1)} °C` : '—'} />
@@ -111,13 +111,13 @@ export default function SensorDetail({ device }: { device: ConnectedDevice }) {
             {sensor.noiseDb != null && <InfoRow label={t('connectedObjects.sensor.noise')} value={`${sensor.noiseDb} dB`} />}
           </>
         )}
-        <InfoRow
+        {!compact && <InfoRow
           label={t('connectedObjects.sensor.connection')}
           value={sensor.online == null
             ? t('connectedObjects.sensor.pending')
             : sensor.online ? t('connectedObjects.sensor.online') : t('connectedObjects.sensor.offline')}
-        />
-        {sensor.batteryLevel != null && (
+        />}
+        {!compact && sensor.batteryLevel != null && (
           <InfoRow label={t('connectedObjects.sensor.battery')} value={<BatteryIndicator level={sensor.batteryLevel} />} />
         )}
         <InfoRow label={t('connectedObjects.sensor.lastMeasure')} value={fmt(sensor.lastSeenAt)} />
@@ -126,12 +126,12 @@ export default function SensorDetail({ device }: { device: ConnectedDevice }) {
         )}
       </Card>
 
-      <Card className="gap-0 py-0 p-3">
+      {!compact && <Card className="gap-0 py-0 p-3">
         <h6 className="text-xs font-semibold mb-1.5">{t('connectedObjects.sensor.identity')}</h6>
         <InfoRow label={t('connectedObjects.sensor.room')} value={device.roomName || '—'} />
         <InfoRow label={t('connectedObjects.sensor.provider')} value={sensor.brand || '—'} />
         <InfoRow label={t('connectedObjects.sensor.property')} value={device.propertyName} />
-      </Card>
+      </Card>}
 
       {(sensor.sensorType === 'SMOKE' || sensor.sensorType === 'MOTION') && (
         <span className="text-xs text-muted-foreground px-0.5">

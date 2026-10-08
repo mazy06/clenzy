@@ -1,23 +1,41 @@
-import type { CSSProperties } from "react";
 import { Link } from "react-router-dom";
 import {
   ArrowRightIcon,
   CameraIcon,
   ClipboardListIcon,
   CircleCheckIcon,
+  CalendarDaysIcon,
+  Clock3Icon,
+  CheckIcon,
 } from "../../src/icons/glyphs";
 import Reveal from "../components/Reveal";
 import AnimatedOpsMockup from "../components/AnimatedOpsMockup";
-import { PROVIDER_CATEGORIES } from "../data/catalog";
-import { cn } from "../../src/utils/cn";
 import { useSiteLanguage } from "../lib/siteLanguage";
 import { PROVIDERS_MESSAGES } from "../lib/messages/providers";
+import { PROVIDER_MARKETPLACE_MESSAGES } from "../lib/providerMarketplaceMessages";
+import ProviderMarketplacePreview from "../components/ProviderMarketplacePreview";
+import cleaningArtwork from "../assets/providers/trades/cleaning.webp";
+import maintenanceArtwork from "../assets/providers/trades/maintenance.webp";
+import laundryArtwork from "../assets/providers/trades/laundry.webp";
+import gardenArtwork from "../assets/providers/trades/garden.webp";
+import welcomeArtwork from "../assets/providers/trades/welcome.webp";
+import chefArtwork from "../assets/providers/trades/chef.webp";
+import "../provider-marketplace.css";
 
+const TRADE_ARTWORK = [
+  cleaningArtwork,
+  maintenanceArtwork,
+  laundryArtwork,
+  gardenArtwork,
+  welcomeArtwork,
+  chefArtwork,
+];
 const MISSION_ICONS = [ClipboardListIcon, CameraIcon, CircleCheckIcon];
 
 export default function ProvidersPage() {
   const { language } = useSiteLanguage();
   const m = PROVIDERS_MESSAGES[language];
+  const marketplace = PROVIDER_MARKETPLACE_MESSAGES[language];
   return (
     <div className="baitly-provider-page">
       <section className="baitly-provider-hero site-shell">
@@ -28,6 +46,14 @@ export default function ProvidersPage() {
             <span>{m.titleAccent}</span>
           </h1>
           <p className="baitly-readiness-lead">{m.intro}</p>
+          <ul className="bpr-benefits">
+            {marketplace.benefits.map((benefit) => (
+              <li key={benefit}>
+                <CheckIcon size={16} aria-hidden="true" />
+                {benefit}
+              </li>
+            ))}
+          </ul>
           <div className="baitly-readiness-actions">
             <Link
               className="baitly-button"
@@ -43,115 +69,72 @@ export default function ProvidersPage() {
           </div>
           <p className="baitly-readiness-note">{m.openingNote}</p>
         </div>
-        <figure className="baitly-provider-preview">
-          <img
-            src={PROVIDER_CATEGORIES[0].photo}
-            alt=""
-            width={720}
-            height={540}
-          />
-          <figcaption>
-            <span>{m.previewLabel}</span>
-            <h2>{m.previewTitle}</h2>
-            <p>{m.previewCopy}</p>
-            <ol>
-              {m.previewSteps.map((step, index) => {
-                const Icon = MISSION_ICONS[index];
-                return (
-                  <li key={step}>
-                    <Icon size={18} aria-hidden="true" />
-                    <span>{step}</span>
-                  </li>
-                );
-              })}
-            </ol>
-          </figcaption>
-        </figure>
+        <ProviderMarketplacePreview language={language} />
+      </section>
+      <section className="site-shell bpr-opportunities">
+        <div className="bpr-opportunities-intro">
+          <p className="baitly-readiness-eyebrow">
+            {marketplace.opportunityEyebrow}
+          </p>
+          <h2>{marketplace.opportunityTitle}</h2>
+          <p>{marketplace.opportunityIntro}</p>
+        </div>
+        <div className="bpr-opportunity-list">
+          {[
+            {
+              Icon: CalendarDaysIcon,
+              title: marketplace.regularTitle,
+              copy: marketplace.regularCopy,
+              tag: marketplace.regularTag,
+            },
+            {
+              Icon: Clock3Icon,
+              title: marketplace.occasionalTitle,
+              copy: marketplace.occasionalCopy,
+              tag: marketplace.occasionalTag,
+            },
+          ].map(({ Icon, title, copy, tag }) => (
+            <article key={title}>
+              <Icon size={24} aria-hidden="true" />
+              <div>
+                <h3>{title}</h3>
+                <p>{copy}</p>
+                <span>{tag}</span>
+              </div>
+            </article>
+          ))}
+        </div>
       </section>
       <section className="site-shell py-16" id="prestataires-metiers">
         <div className="baitly-proof-heading">
           <h2>{m.categoriesTitle}</h2>
           <p>{m.categoriesCopy}</p>
         </div>
-        <div className="mt-8 grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
+        <div className="bpr-trade-directory">
           {m.categories.map((category, index) => {
-            const { photo, color } = PROVIDER_CATEGORIES[index];
-            /* Deux ancres en diagonale — la premiere famille et la derniere —
-               s'etendent sur deux colonnes : huit cellules, deux rangees
-               pleines, et une grille qui ne se repete pas a l'identique. */
-            const wide =
-              index === 0 || index === PROVIDER_CATEGORIES.length - 1;
             return (
-              <Reveal
-                key={category.name}
-                delay={((index % 4) + 1) as 1 | 2 | 3 | 4}
-                className={cn("flex", wide && "xl:col-span-2")}
-              >
-                <article
-                  className={cn(
-                    "partner-card service-tile group flex w-full flex-col overflow-hidden rounded-2xl border border-border bg-card",
-                    wide && "xl:flex-row",
-                  )}
-                  style={{ "--brand": color } as CSSProperties}
-                >
-                  <div
-                    className={cn(
-                      "relative shrink-0 overflow-hidden",
-                      wide
-                        ? "aspect-[16/9] xl:aspect-auto xl:w-[44%]"
-                        : "aspect-[16/9]",
-                    )}
+              <article key={category.name}>
+                <img
+                  className="bpr-trade-artwork"
+                  src={TRADE_ARTWORK[index]}
+                  alt=""
+                  width={384}
+                  height={384}
+                  loading="lazy"
+                  decoding="async"
+                />
+                <div>
+                  <h3>{category.name}</h3>
+                  <p>{category.copy}</p>
+                  <Link
+                    className="bpr-category-link"
+                    to={`/prestataires/inscription?lang=${language}`}
                   >
-                    <img
-                      src={photo}
-                      alt=""
-                      width="1000"
-                      height="560"
-                      loading="lazy"
-                      decoding="async"
-                      className="size-full object-cover"
-                    />
-                    {/* Le titre vit sur la photo pour les tuiles compactes — c'est
-                      l'image qui porte l'identite du metier. Les deux ancres le
-                      gardent dans leur colonne de texte : leur photo est a cote,
-                      pas au-dessus. */}
-                    {!wide && (
-                      <h3 className="service-tile-title absolute inset-x-0 bottom-0 px-4 pt-10 pb-3.5 text-base font-semibold text-white">
-                        {category.name}
-                      </h3>
-                    )}
-                  </div>
-                  <div className="flex flex-1 flex-col p-5">
-                    {wide && (
-                      <h3 className="text-lg font-semibold">{category.name}</h3>
-                    )}
-                    <p
-                      className={cn(
-                        "text-sm text-muted-foreground",
-                        wide && "mt-1.5",
-                      )}
-                    >
-                      {category.copy}
-                    </p>
-                    {/* Pastilles plutot que liste a coches : le fond porte la
-                      teinte du domaine, le texte garde l'encre sourde — une
-                      teinte vive en texte plafonne a 2,2:1 de contraste. */}
-                    <ul className="mt-4 flex flex-wrap gap-1.5">
-                      {category.examples.map((example) => (
-                        <li
-                          key={example}
-                          className="rounded-full px-2.5 py-1 text-xs text-muted-foreground"
-                          style={{
-                            backgroundColor: `color-mix(in srgb, ${color} 15%, var(--bui-card))`,
-                          }}
-                        >
-                          {example}
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-                </article>
-              </Reveal>
+                    {marketplace.offerService}
+                    <ArrowRightIcon size={16} aria-hidden="true" />
+                  </Link>
+                </div>
+              </article>
             );
           })}
         </div>
@@ -164,7 +147,10 @@ export default function ProvidersPage() {
             {m.steps.map((step, index) => (
               <li key={step.title}>
                 <span className="baitly-provider-step-number">
-                  {String(index + 1).padStart(2, "0")}
+                  {new Intl.NumberFormat(
+                    language === "ar" ? "ar-SA-u-nu-arab" : language,
+                    { minimumIntegerDigits: 2 },
+                  ).format(index + 1)}
                 </span>
                 <h3>{step.title}</h3>
                 <p>{step.copy}</p>
@@ -173,34 +159,29 @@ export default function ProvidersPage() {
           </ol>
         </div>
       </section>
-      <section className="baitly-provider-demo site-shell">
-        <div>
-          <p className="baitly-readiness-eyebrow">{m.appEyebrow}</p>
-          <h2>{m.appTitle}</h2>
-          <p className="baitly-readiness-lead">{m.appCopy}</p>
-          <ul>
-            {m.appPoints.map((point, index) => {
-              const Icon = MISSION_ICONS[index];
-              return (
-                <li key={point}>
-                  <Icon size={19} aria-hidden="true" />
-                  {point}
-                </li>
-              );
-            })}
-          </ul>
-          <Link
-            className="baitly-text-link"
-            to={`/produit/operations-menage?lang=${language}`}
-          >
-            {m.appAction}
-            <ArrowRightIcon size={17} aria-hidden="true" />
-          </Link>
+      <section className="bpr-operations-section site-shell" id="prestataires-operations">
+        <div className="bpr-operations-header">
+          <div>
+            <p className="baitly-readiness-eyebrow">{m.appEyebrow}</p>
+            <h2>{m.appTitle}</h2>
+          </div>
+          <div>
+            <p className="baitly-readiness-lead">{m.appCopy}</p>
+            <Link className="baitly-text-link" to={`/produit/operations-menage?lang=${language}`}>
+              {m.appAction}<ArrowRightIcon size={17} aria-hidden="true" />
+            </Link>
+          </div>
         </div>
-        <div>
+        <div className="bpr-operations-preview">
           <AnimatedOpsMockup />
-          <p className="baitly-readiness-note">{m.sampleNotice}</p>
         </div>
+        <ul className="bpr-operations-benefits">
+          {m.appPoints.map((point, index) => {
+            const Icon = MISSION_ICONS[index];
+            return <li key={point}><Icon size={19} aria-hidden="true" />{point}</li>;
+          })}
+        </ul>
+        <p className="baitly-readiness-note">{m.sampleNotice}</p>
       </section>
       <section className="site-shell baitly-provider-closing">
         <div className="baitly-compare-next">

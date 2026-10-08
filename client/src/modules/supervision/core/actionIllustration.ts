@@ -68,6 +68,7 @@ export const ACTION_TYPE_ILLUSTRATIONS: Readonly<Record<string, ActionIllustrati
   "GUIDE_SEND": "welcome-guide",
   "REVIEW_REQUEST_SEND": "reviews",
   "CLEANING_PAYOUT": "service-transfer",
+  "PROVIDER_PAYOUT_BENEFICIARY": "service-transfer",
   "FRAUD_BLOCK": "security",
   "POLICE_DECLARE": "traveler-form",
   "MANDATE_SIGN_SEND": "management-contract",
