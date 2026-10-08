@@ -1,6 +1,6 @@
 import React, { useId } from 'react';
-import { MARK_PATH, MARK_VIEWBOX, STROKE_WIDTH, FLOW_STROKE_WIDTH, FLOW_LENGTH, FLOW_END, FLOW_LEG_MS, WORDMARK_SIZE_RATIO, WORDMARK_GAP_RATIO, WORDMARK_OFFSET_RATIO } from '../../../shared/src/brand/baitlyLogo';
-export { MARK_PATH, MARK_VIEWBOX, STROKE_WIDTH } from '../../../shared/src/brand/baitlyLogo';
+import { MARK_PATH, MARK_VIEWBOX, STROKE_WIDTH, FLOW_STROKE_WIDTH, FLOW_LENGTH, FLOW_END, FLOW_LEG_MS, WORDMARK_SIZE_RATIO, WORDMARK_GAP_RATIO, WORDMARK_OFFSET_RATIO } from './baitlyLogoGeometry';
+export { MARK_PATH, MARK_VIEWBOX, STROKE_WIDTH } from './baitlyLogoGeometry';
 
 export interface BaitlyMarkLogoProps {
   scale?: number;
