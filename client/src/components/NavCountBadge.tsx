@@ -30,13 +30,15 @@ interface NavCountBadgeProps {
   count?: number | null;
   tone?: NavBadgeTone;
   className?: string;
+  /** Optional locale formatter; the shared 99+ cap stays identical. */
+  formatCount?: (count: number) => string;
 }
 
-export default function NavCountBadge({ count, tone = 'primary', className }: NavCountBadgeProps) {
+export default function NavCountBadge({ count, tone = 'primary', className, formatCount }: NavCountBadgeProps) {
   if (count == null || count <= 0) return null;
   return (
     <Badge variant={BADGE_VARIANT[tone]} className={cn('px-1.5 py-0 text-2xs tabular-nums', className)}>
-      {count > 99 ? '99+' : count}
+      {count > 99 ? (formatCount ? formatCount(99) + '+' : '99+') : (formatCount ? formatCount(count) : count)}
     </Badge>
   );
 }

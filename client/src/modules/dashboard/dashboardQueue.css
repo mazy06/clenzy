@@ -1,0 +1,108 @@
+/* The action queue shares the KPI's muted blue selection and photographic artwork. */
+.db-queue { container: dashboard-queue / inline-size; min-inline-size: 0; color: var(--bui-foreground); background: var(--bui-card); border-radius: 14px; padding: 0; }
+.db-queue__header { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 14px 20px 10px; }
+.db-queue__title { margin: 0; display: flex; align-items: center; gap: 10px; font-size: .9375rem; font-weight: 650; letter-spacing: -.02em; }
+.db-queue__title [data-slot="badge"] { font-size: .75rem; font-weight: 600; }
+.db-queue__caption { margin: 4px 0 0; color: var(--bui-muted-foreground); font-size: .75rem; line-height: 1.5; }
+.db-queue__body { padding: 0 12px 4px; }
+.db-queue__list { display: flex; flex-direction: column; gap: 2px; }
+.db-queue__footer { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 4px 20px; border-block-start: 1px solid var(--bui-border); }
+.db-queue__text-button { display: inline-flex; align-items: center; gap: 8px; min-block-size: 32px; padding: 0; border: 0; background: transparent; color: var(--bui-navy); cursor: pointer; font: inherit; font-size: .75rem; font-weight: 550; text-align: start; border-radius: 4px; transition: color 180ms cubic-bezier(.25,1,.5,1); }
+.db-queue__text-button:hover { color: var(--bui-navy-deep); text-decoration: underline; text-underline-offset: 3px; }
+.db-queue__text-button > svg { inline-size: 14px; block-size: 14px; }
+.db-queue__empty { display: flex; align-items: center; gap: 14px; padding: 22px 12px; }
+.db-queue__empty > svg { inline-size: 32px; block-size: 32px; flex-shrink: 0; color: var(--bui-success-ink); }
+.db-queue__empty p { margin: 0; font-size: .875rem; line-height: 1.6; }
+.db-queue-group { min-inline-size: 0; }
+.db-queue-group__heading { margin: 0; font: inherit; }
+.db-queue-group__trigger { display: grid; grid-template-columns: 34px minmax(0, 1fr) auto 16px; align-items: center; gap: 12px; width: 100%; min-block-size: 48px; padding: 6px 10px; border: 0; border-radius: 10px; background: transparent; color: inherit; font: inherit; text-align: start; cursor: pointer; transition: background-color 180ms cubic-bezier(.25,1,.5,1); }
+.db-queue-group__trigger:not(:disabled):hover { background: color-mix(in srgb, var(--bui-muted) 55%, var(--bui-card)); }
+.db-queue-group__trigger:disabled { cursor: default; }
+.db-queue-group__trigger:disabled .db-queue-group__art { opacity: .55; }
+.db-queue-group[data-open="true"] .db-queue-group__trigger { background: var(--bui-muted); border-end-start-radius: 0; border-end-end-radius: 0; }
+.db-queue-group__art { display: grid; place-items: center; inline-size: 34px; block-size: 34px; color: var(--bui-muted-foreground); }
+.db-queue-group__art img { inline-size: 100%; block-size: 100%; object-fit: contain; }
+.db-queue-group__art > svg { inline-size: 23px; block-size: 23px; stroke-width: 1.5; }
+.db-queue-group__copy { display: flex; flex-direction: column; gap: 3px; min-inline-size: 0; }
+.db-queue-group__label { font-size: .8125rem; font-weight: 550; line-height: 1.35; overflow-wrap: anywhere; }
+.db-queue-group__priority { display: inline-flex; align-items: center; gap: 5px; font-size: .75rem; line-height: 1.3; font-weight: 400; color: var(--bui-muted-foreground); }
+.db-queue-group__priority::before { content: ''; inline-size: 5px; block-size: 5px; border-radius: 50%; background: currentColor; }
+.db-queue-group__priority[data-severity="critical"] { color: var(--bui-destructive-ink); }
+.db-queue-group__priority[data-severity="warning"] { color: var(--bui-warning-ink); }
+.db-queue-group__figures { display: flex; flex-direction: column; align-items: flex-end; gap: 3px; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.db-queue-group__count { font-size: 1rem; line-height: 1.2; font-weight: 650; }
+.db-queue-group__amount { font-size: .75rem; line-height: 1.3; color: var(--bui-muted-foreground); }
+.db-queue-group__chevron { inline-size: 16px; block-size: 16px; color: var(--bui-muted-foreground); }
+.db-queue-group__panel { --action-shoulder: 12px; position: relative; margin: 0 var(--action-shoulder) 6px; padding: 2px 10px 6px; border-radius: 0 0 10px 10px; background: var(--bui-muted); }
+/* Physical positions describe the symmetric concave geometry, independent of reading direction. */
+.db-queue-group__panel::before, .db-queue-group__panel::after { content: ''; position: absolute; top: 0; inline-size: var(--action-shoulder); block-size: var(--action-shoulder); pointer-events: none; }
+.db-queue-group__panel::before { right: 100%; background: radial-gradient(circle at 0 100%, transparent calc(var(--action-shoulder) - .5px), var(--bui-muted) var(--action-shoulder)); }
+.db-queue-group__panel::after { left: 100%; background: radial-gradient(circle at 100% 100%, transparent calc(var(--action-shoulder) - .5px), var(--bui-muted) var(--action-shoulder)); }
+.db-queue-group__rows { display: flex; flex-direction: column; }
+.db-queue-group__footer { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 6px 12px; padding: 6px 4px 0; border-block-start: 1px solid var(--bui-border); }
+.db-queue-group__more { display: flex; flex-direction: column; font-size: .75rem; line-height: 1.5; color: var(--bui-muted-foreground); font-variant-numeric: tabular-nums; }
+.db-queue .db-queue__bulk,
+.db-queue .db-queue-control {
+  gap: 8px;
+  min-block-size: 32px;
+  block-size: auto;
+  padding: 6px 10px;
+  border-radius: 8px;
+  font-size: .75rem;
+  font-weight: 550;
+  line-height: 1.4;
+  white-space: normal;
+  transition: background-color 180ms cubic-bezier(.25,1,.5,1), color 180ms cubic-bezier(.25,1,.5,1), border-color 180ms cubic-bezier(.25,1,.5,1);
+}
+.db-queue .db-queue__bulk { max-inline-size: 100%; background: var(--bui-navy); color: var(--bui-card); border-color: var(--bui-navy); text-align: start; cursor: pointer; }
+.db-queue .db-queue__bulk:hover { background: var(--bui-navy-deep); border-color: var(--bui-navy-deep); }
+.db-queue .db-queue__bulk:active { transform: none; }
+.db-queue .db-queue-row { display: flex; align-items: center; min-inline-size: 0; gap: 10px; padding: 7px 4px; min-block-size: 48px; border: 0; border-radius: 6px; background: transparent; font: inherit; color: var(--bui-foreground); text-align: start; cursor: pointer; transition: background-color 180ms cubic-bezier(.25,1,.5,1); }
+.db-queue-row + .db-queue-row { border-block-start: 1px solid var(--bui-border); }
+.db-queue-avatar { flex-shrink: 0; }
+.db-queue-copy { min-inline-size: 0; flex: 1; }
+.db-queue-primary { display: block; font-size: .8125rem; font-weight: 500; line-height: 1.4; overflow-wrap: anywhere; }
+.db-queue-secondary { display: block; margin-block-start: 2px; color: var(--bui-muted-foreground); font-size: .75rem; line-height: 1.4; overflow-wrap: anywhere; }
+.db-queue-age { flex-shrink: 0; border-radius: 4px; padding: 2px 5px; font-size: .75rem; font-weight: 500; line-height: 1.35; font-variant-numeric: tabular-nums; }
+.db-queue-trailing { display: flex; align-items: center; justify-content: flex-end; flex-wrap: wrap; gap: 6px 10px; flex-shrink: 0; max-inline-size: 48%; }
+.db-queue-value { font-size: .75rem; line-height: 1.4; font-variant-numeric: tabular-nums; }
+.db-queue .db-queue-control { justify-content: space-between; min-inline-size: 104px; max-inline-size: 100%; background: var(--bui-navy-soft); color: var(--bui-navy); border-color: color-mix(in srgb, var(--bui-navy) 28%, transparent); text-align: start; }
+.db-queue .db-queue-control > span { min-inline-size: 0; overflow-wrap: anywhere; }
+.db-queue .db-queue-control > svg { inline-size: 14px; block-size: 14px; }
+/* The complete row is the target, so keyboard focus and pointer hover activate its visible action together. */
+.db-queue .db-queue-row:is(:focus-visible, :active) .db-queue-control { background: var(--bui-navy); border-color: var(--bui-navy); color: var(--bui-card); }
+.db-queue :is(.db-queue-group__trigger, .db-queue-row, .db-queue__text-button, .db-queue__bulk):focus-visible { outline: 2px solid var(--bui-navy); outline-offset: 2px; }
+@media (hover: hover) {
+  .db-queue .db-queue-row:hover { background: color-mix(in srgb, var(--bui-muted), var(--bui-card) 65%); }
+  .db-queue .db-queue-row:hover .db-queue-control { background: var(--bui-navy); border-color: var(--bui-navy); color: var(--bui-card); }
+}
+@container dashboard-queue (min-width: 560px) {
+  .db-queue-group__copy { flex-direction: row; align-items: center; gap: 12px; }
+  .db-queue-group__priority { flex-shrink: 0; }
+  .db-queue-group__label { flex: 1; }
+  .db-queue-group__figures { min-inline-size: 80px; }
+}
+@container dashboard-queue (max-width: 480px) {
+  .db-queue__header { padding: 14px 16px 12px; }
+  .db-queue__body { padding-inline: 6px; }
+  .db-queue-group__trigger { grid-template-columns: 34px minmax(0, 1fr) auto 14px; column-gap: 8px; padding-inline: 8px; }
+  .db-queue-group__art { inline-size: 34px; block-size: 34px; }
+  .db-queue-group__panel { --action-shoulder: 10px; padding-inline: 8px; }
+  .db-queue .db-queue-row { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 6px 8px; }
+  .db-queue .db-queue-row[data-has-avatar="true"] { grid-template-columns: 30px minmax(0, 1fr) auto; }
+  .db-queue .db-queue-avatar { grid-column: 1; grid-row: 1 / span 2; align-self: start; padding-block-start: 2px; }
+  .db-queue .db-queue-copy { grid-column: 1; grid-row: 1; }
+  .db-queue .db-queue-row[data-has-avatar="true"] .db-queue-copy { grid-column: 2; }
+  .db-queue .db-queue-age { grid-column: -2; grid-row: 1; align-self: start; justify-self: end; }
+  .db-queue-trailing { grid-column: 1 / -1; grid-row: 2; justify-self: end; max-inline-size: 100%; }
+  .db-queue .db-queue-row[data-has-avatar="true"] .db-queue-trailing { grid-column: 2 / -1; }
+}
+@media (pointer: coarse) {
+  .db-queue__text-button { min-block-size: 44px; }
+  .db-queue .db-queue-control, .db-queue .db-queue__bulk { min-block-size: 44px; }
+}
+@media (prefers-reduced-motion: no-preference) {
+  .db-queue-group__rows { animation: db-queue-reveal 180ms cubic-bezier(.25,1,.5,1); }
+  @keyframes db-queue-reveal { from { opacity: 0; transform: translateY(-4px); } to { opacity: 1; transform: translateY(0); } }
+}
+@media (prefers-reduced-motion: reduce) { .db-queue * { transition: none; } }

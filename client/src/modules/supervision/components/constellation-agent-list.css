@@ -42,7 +42,7 @@
 
   .baitly-agent-list-select {
     display: grid;
-    grid-template-columns: clamp(24px, 6cqh, 36px) minmax(0, 1fr) auto;
+    grid-template-columns: clamp(26px, 7cqh, 44px) minmax(0, 1fr) auto;
     gap: 10px;
     align-items: center;
     min-width: 0;
@@ -75,23 +75,14 @@
     transition: background-color 180ms cubic-bezier(.25, 1, .5, 1), color 180ms cubic-bezier(.25, 1, .5, 1);
   }
 
-  .baitly-agent-list-emblem::after {
-    content: '';
-    position: absolute;
-    inset: 3px;
-    border: 1px solid var(--bui-supervision-soft);
-    border-radius: inherit;
-    pointer-events: none;
+  .baitly-agent-list-emblem .baitly-agent-portrait {
+    inline-size: 96%;
   }
 
   .baitly-agent-list-row[data-selected] .baitly-agent-list-emblem {
     border-color: var(--bui-supervision-navy);
     background: var(--bui-supervision-navy);
     color: var(--bui-supervision-on-navy);
-  }
-
-  .baitly-agent-list-row[data-selected] .baitly-agent-list-emblem::after {
-    border-color: color-mix(in srgb, var(--bui-supervision-on-navy) 20%, transparent);
   }
 
   .baitly-agent-list-activity {

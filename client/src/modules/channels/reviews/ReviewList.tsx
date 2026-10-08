@@ -2,18 +2,20 @@ import React, { useCallback, useEffect, useState } from 'react';
 import {
   Alert,
   AlertDescription,
-  Badge,
   Button,
   Spinner,
   Textarea,
 } from '../../../components/ui';
-import { TriangleAlert } from 'lucide-react';
-import EmptyState from '../../../components/EmptyState';
+import { TriangleAlert, CheckCircle2, MessageCircle, RefreshCw } from 'lucide-react';
+import StatusIcon from '../../../components/StatusIcon';
+import PagePagination from '../../../components/PagePagination';
+import StatTileRow from '../../../components/baitly/StatTileRow';
+import { PROPERTY_ART } from '../../properties/propertyArtwork';
+import { PropertyTabHeading, PropertyTabEmpty, PropertyTabLoading } from '../../properties/PropertyTabPrimitives';
 import GuestAvatar from '../../../components/baitly/GuestAvatar';
 import { guestPhotoSrc } from '../../../services/api/guestsApi';
 import RatingStars from '../../../components/baitly/RatingStars';
 import StatTile from '../../../components/baitly/StatTile';
-import { cn } from '../../../utils/cn';
 import {
   Star as StarIcon,
   Reply as ReplyIcon,
@@ -48,6 +50,12 @@ export default function ReviewList({ propertyId, showStats = false }: ReviewList
   const { t } = useTranslation();
   const { notify } = useNotification();
 
+  const [pageIndex, setPageIndex] = useState(0);
+  const [total, setTotal] = useState(0);
+  const [average, setAverage] = useState<number | null>(null);
+  const [selectedId, setSelectedId] = useState<number | null>(null);
+  const [drafts, setDrafts] = useState<Record<number,string>>({});
+  const requestId = React.useRef(0);
   const [reviews, setReviews] = useState<GuestReview[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
@@ -56,30 +64,40 @@ export default function ReviewList({ propertyId, showStats = false }: ReviewList
   const [busyId, setBusyId] = useState<number | null>(null);
 
   const fetchReviews = useCallback(async () => {
+    const request = ++requestId.current;
     setLoading(true);
     setError(false);
     try {
-      const page = await reviewsApi.list({ propertyId });
+      const [page, stats] = await Promise.all([
+        reviewsApi.list({ propertyId, page: pageIndex, size: 8 }),
+        propertyId != null && showStats ? reviewsApi.getStats(propertyId).catch(() => null) : Promise.resolve(null),
+      ]);
+      if (request !== requestId.current) return;
       setReviews(page.content ?? []);
+      setTotal(page.totalElements ?? page.content?.length ?? 0);
+      setAverage(stats?.totalReviews ? stats.averageRating : null);
     } catch {
-      setError(true);
+      if (request === requestId.current) setError(true);
     } finally {
-      setLoading(false);
+      if (request === requestId.current) setLoading(false);
     }
-  }, [propertyId]);
+  }, [propertyId, pageIndex, showStats]);
 
-  useEffect(() => { void fetchReviews(); }, [fetchReviews]);
+  useEffect(() => { void fetchReviews(); return () => { requestId.current++; }; }, [fetchReviews]);
 
-  // Réponses déjà publiées vs en attente : c'est la seule lecture qui compte
-  // pour un hôte, bien avant la note moyenne.
-  const pending = reviews.filter((r) => !r.hostResponse).length;
-  const rated = reviews.filter((r) => typeof r.rating === 'number');
-  const average = rated.length > 0
-    ? rated.reduce((sum, r) => sum + (r.rating ?? 0), 0) / rated.length
-    : null;
+  const selected = reviews.find(review => review.id === selectedId) ?? reviews[0];
+  const selectReview = (review: GuestReview) => {
+    if (replyingTo != null) setDrafts(previous => ({ ...previous, [replyingTo]: replyText }));
+    setSelectedId(review.id);
+    setReplyingTo(null);
+    setReplyText(drafts[review.id] ?? review.hostResponseDraft ?? '');
+  };
 
   /** Brouillon de l'agent Réputation — proposé, jamais publié sans l'hôte. */
   const handleDraft = async (review: GuestReview) => {
+    if (review.hostResponseDraft || drafts[review.id] != null) {
+      setReplyingTo(review.id); setReplyText(drafts[review.id] ?? review.hostResponseDraft); return;
+    }
     setBusyId(review.id);
     try {
       const updated = await reviewsApi.draftReply(review.id);
@@ -100,6 +118,7 @@ export default function ReviewList({ propertyId, showStats = false }: ReviewList
       const updated = await reviewsApi.respond(review.id, replyText.trim());
       setReviews((prev) => prev.map((r) => (r.id === review.id ? updated : r)));
       setReplyingTo(null);
+      setDrafts(previous => { const next = { ...previous }; delete next[review.id]; return next; });
       setReplyText('');
     } catch {
       notify.error(t('channels.reviews.respondError', "Impossible de publier la réponse."));
@@ -108,13 +127,7 @@ export default function ReviewList({ propertyId, showStats = false }: ReviewList
     }
   };
 
-  if (loading) {
-    return (
-      <div className="flex justify-center py-8">
-        <Spinner className="size-6" />
-      </div>
-    );
-  }
+  if (loading) return <PropertyTabLoading />;
 
   if (error) {
     return (
@@ -122,55 +135,47 @@ export default function ReviewList({ propertyId, showStats = false }: ReviewList
         <TriangleAlert />
         <AlertDescription>
           {t('channels.reviews.errorLoading', 'Impossible de charger les avis.')}
-        </AlertDescription>
+        </AlertDescription><Button variant="outline" onClick={() => void fetchReviews()}><RefreshCw size={16} />{t('common.retry', 'Réessayer')}</Button>
       </Alert>
     );
   }
 
   return (
-    <div className="flex flex-col gap-4">
-      {showStats && reviews.length > 0 && (
-        <div className="grid grid-cols-2 gap-3 min-[900px]:grid-cols-3">
-          <StatTile
-            icon={<StarIcon />}
-            label={t('channels.reviews.avgRating', 'Note moyenne')}
-            value={average != null ? average.toFixed(1) : '—'}
-            unit={average != null ? '/ 5' : undefined}
-          />
-          <StatTile
-            icon={<CommentIcon />}
-            label={t('channels.reviews.totalReviews', 'Avis reçus')}
-            value={reviews.length}
-          />
-          {/* L'écran existe pour répondre : la note moyenne est une
-              conséquence, celle-ci est une action. */}
-          <StatTile
-            feature
-            icon={<ReplyIcon />}
-            label={t('channels.reviews.pending', 'Sans réponse')}
-            value={pending}
-            iconClassName={pending > 0 ? 'text-warning-ink' : undefined}
-          />
-        </div>
-      )}
-
-      {reviews.length === 0 ? (
-        <EmptyState
-          variant="transparent"
-          icon={<StarIcon />}
-          title={t('channels.reviews.emptyTitle', 'Aucun avis')}
-          description={t(
-            'channels.reviews.emptyHint',
-            'Les avis remontent automatiquement depuis les canaux connectés.',
-          )}
-        />
-      ) : (
-        <div className="flex flex-col gap-2.5">
-          {reviews.map((review) => {
+    <div className="pdt-page">
+      {showStats && total > 0 && <StatTileRow presentation="overview">
+        <StatTile icon={<StarIcon />} artwork={PROPERTY_ART.reviews} label={t('channels.reviews.avgRating', 'Note moyenne')} value={average != null ? average.toFixed(1) : '—'} unit={average != null ? '/ 5' : undefined} />
+        <StatTile icon={<CommentIcon />} artwork={PROPERTY_ART.messages} label={t('channels.reviews.totalReviews', 'Avis reçus')} value={total} />
+      </StatTileRow>}
+      <section className="pdt-surface">
+        <PropertyTabHeading art={PROPERTY_ART.reviews} title={t('properties.tabs.reviews', 'Avis')}
+          description={t('propertyTabs.reviewsHint', 'Consultez les retours voyageurs et préparez vos réponses.')} />
+        {reviews.length === 0 ? <PropertyTabEmpty art={PROPERTY_ART.reviews} title={t('channels.reviews.emptyTitle', 'Aucun avis')} description={t('channels.reviews.emptyHint')} />
+          : <div className="pdt-split">
+            <div className="pdt-list">
+              {reviews.map(review => <div key={review.id} className="pdt-row" data-selected={selected?.id === review.id}>
+                <button type="button" className="pdt-row__button" aria-pressed={selected?.id === review.id} disabled={busyId != null} onClick={() => selectReview(review)}>
+                  <GuestAvatar name={review.guestName || t('channels.reviews.anonymous', 'Voyageur')} photoUrl={guestPhotoSrc(review.guestAvatarUrl)} size={36} />
+                  <span className="pdt-row__copy"><strong>{review.guestName || t('channels.reviews.anonymous', 'Voyageur')}</strong>
+                    <small>{review.channelName}{review.reviewDate ? ' · ' + new Date(review.reviewDate).toLocaleDateString(activeIntlLocale()) : ''}</small>
+                    {review.reviewText && <span className="pdt-review-excerpt">{review.reviewText}</span>}
+                  </span>
+                  {review.rating != null && <span className="text-sm font-medium tabular-nums">{review.rating}/5</span>}
+                </button>
+                <StatusIcon icon={review.hostResponse ? CheckCircle2 : MessageCircle} tone={review.hostResponse ? 'success' : 'warning'}
+                  label={review.hostResponse ? t('propertyTabs.replied', 'Réponse publiée') : t('channels.reviews.awaitingReply', 'Sans réponse')} />
+              </div>)}
+              <PagePagination count={total} rowsPerPage={8} page={pageIndex} onPageChange={value => {
+                if (busyId != null) return;
+                if (replyingTo != null) setDrafts(previous => ({ ...previous, [replyingTo]: replyText }));
+                setPageIndex(value); setSelectedId(null); setReplyingTo(null);
+              }} />
+            </div>
+            <div className="pdt-detail">
+          {(selected ? [selected] : []).map((review) => {
             const isReplying = replyingTo === review.id;
             const busy = busyId === review.id;
             return (
-              <article key={review.id} className="rounded-xl border border-border bg-card p-3.5">
+              <article key={review.id} className="pdt-review-detail">
                 <header className="flex items-start gap-2.5">
                   {/* La route de liste sert desormais la photo : l'ecran des
                       avis n'a plus de raison de s'en tenir aux initiales. */}
@@ -185,15 +190,12 @@ export default function ReviewList({ propertyId, showStats = false }: ReviewList
                         {review.guestName || t('channels.reviews.anonymous', 'Voyageur')}
                       </span>
                       {typeof review.rating === 'number' && <RatingStars value={review.rating} />}
-                      {review.channelName && <Badge variant="secondary">{review.channelName}</Badge>}
-                      {!review.hostResponse && (
-                        <Badge variant="warning">
-                          {t('channels.reviews.awaitingReply', 'Sans réponse')}
-                        </Badge>
-                      )}
+                      {review.channelName && <span className="text-xs text-muted-foreground">{review.channelName}</span>}
+                      <StatusIcon icon={review.hostResponse ? CheckCircle2 : MessageCircle} tone={review.hostResponse ? 'success' : 'warning'}
+                        label={review.hostResponse ? t('propertyTabs.replied', 'Réponse publiée') : t('channels.reviews.awaitingReply', 'Sans réponse')} />
                     </div>
                     {review.reviewDate && (
-                      <p className="mt-0.5 text-xs tabular-nums text-faint">
+                      <p className="mt-0.5 text-xs tabular-nums text-muted-foreground">
                         {new Date(review.reviewDate).toLocaleDateString(activeIntlLocale())}
                       </p>
                     )}
@@ -209,8 +211,8 @@ export default function ReviewList({ propertyId, showStats = false }: ReviewList
                 {/* Réponse publiée : encart distinct, l'hôte doit voir d'un coup
                     d'œil ce qui est déjà public. */}
                 {review.hostResponse && (
-                  <div className="mt-2.5 rounded-lg border border-border bg-muted p-2.5">
-                    <p className="text-2xs font-semibold uppercase tracking-wide text-muted-foreground">
+                  <div className="pdt-reply">
+                    <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
                       {t('channels.reviews.yourReply', 'Votre réponse')}
                     </p>
                     <p className="mt-1 whitespace-pre-wrap text-sm text-foreground">
@@ -235,8 +237,9 @@ export default function ReviewList({ propertyId, showStats = false }: ReviewList
                           <Button
                             size="xs"
                             variant="ghost"
+                            disabled={busy}
                             className="cursor-pointer"
-                            onClick={() => { setReplyingTo(null); setReplyText(''); }}
+                            onClick={() => { setDrafts(previous => ({ ...previous, [review.id]: replyText })); setReplyingTo(null); }}
                           >
                             {t('common.cancel', 'Annuler')}
                           </Button>
@@ -256,8 +259,9 @@ export default function ReviewList({ propertyId, showStats = false }: ReviewList
                         <Button
                           size="xs"
                           variant="outline"
+                          disabled={busy}
                           className="cursor-pointer"
-                          onClick={() => { setReplyingTo(review.id); setReplyText(review.hostResponseDraft ?? ''); }}
+                          onClick={() => { setReplyingTo(review.id); setReplyText(drafts[review.id] ?? review.hostResponseDraft ?? ''); }}
                         >
                           <ReplyIcon size={13} strokeWidth={1.75} />
                           {t('channels.reviews.reply', 'Répondre')}
@@ -284,7 +288,8 @@ export default function ReviewList({ propertyId, showStats = false }: ReviewList
             );
           })}
         </div>
-      )}
+          </div>}
+      </section>
     </div>
   );
 }

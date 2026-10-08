@@ -2,6 +2,7 @@ import { useState, type ReactNode } from 'react';
 import { CalendarDays, Clock3, CreditCard, ExternalLink, RotateCcw, Send } from 'lucide-react';
 import { Alert, AlertDescription, Button, Skeleton, Spinner, Tabs, TabsContent, TabsList, TabsTrigger, Tooltip, TooltipContent, TooltipTrigger } from '../../components/ui';
 import StatusChip from '../../components/StatusChip';
+import FinanceStatusIcon from '../billing/components/FinanceStatusIcon';
 import { useTranslation } from '../../hooks/useTranslation';
 import { activeIntlLocale } from '../../utils/activeLocale';
 import { parseApiDate } from '../../utils/formatUtils';
@@ -10,7 +11,7 @@ import { resolveMediaUrl } from '../../config/api';
 import type { PaymentRecord } from '../../services/api/paymentsApi';
 import FinanceIdentity from '../billing/components/FinanceIdentity';
 import { useFinanceIntervention } from '../billing/components/useFinanceIntervention';
-import { getStatusLabel, getStatusTokens, getPriorityLabel, getPriorityTokens, getTypeLabel, formatDuration, parsePhotos } from '../interventions/interventionUtils';
+import { getStatusLabel, getPriorityLabel, getPriorityTokens, getTypeLabel, formatDuration, parsePhotos } from '../interventions/interventionUtils';
 import './paymentRecordDetail.css';
 import PaymentInterventionEvidence from './PaymentInterventionEvidence';
 import PaymentDetailPager from './PaymentDetailPager';
@@ -101,7 +102,7 @@ export default function PaymentRecordDetail({ payment, status, onPay, onSendLink
         </TabsList>
         <TabsContent value="overview">
           <PaymentDetailPager items={[
-            <div className="payment-record-detail__section-heading"><h3>{t('paymentDetail.intervention')}</h3><StatusChip label={getStatusLabel(intervention.status, t)} color={getStatusTokens(intervention.status).color} /></div>,
+            <div className="payment-record-detail__section-heading"><h3>{t('paymentDetail.intervention')}</h3><FinanceStatusIcon value={intervention.status} label={getStatusLabel(intervention.status, t)} /></div>,
             <div className="payment-record-detail__schedule">
               <div><CalendarDays size={17} /><span><small>{t('paymentDetail.scheduled')}</small><strong>{date(intervention.scheduledDate, true)}</strong></span></div>
               {intervention.estimatedDurationHours > 0 && <div><Clock3 size={17} /><span><small>{t('paymentDetail.duration')}</small><strong>{formatDuration(intervention.estimatedDurationHours)}</strong></span></div>}

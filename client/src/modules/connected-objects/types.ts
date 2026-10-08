@@ -30,12 +30,9 @@ export type DeviceProvider =
 export type DeviceAction = 'lock' | 'unlock' | 'view' | 'acknowledge';
 
 /**
- * Types d'objets que l'utilisateur peut retirer depuis le Hub. Limité aux types
- * « réels » disposant d'un endpoint de suppression (serrures, capteurs sonores,
- * points de remise). Les caméras / thermostats sont en aperçu (Phase 2) — non
- * supprimables tant qu'ils ne sont pas adossés à un vrai enregistrement.
+ * Types d'objets disposant d'un endpoint de suppression dans le Hub Baitly.
  */
-const DELETABLE_KINDS: DeviceKind[] = ['lock', 'noise', 'keybox', 'climate', 'contact', 'motion', 'smoke'];
+const DELETABLE_KINDS: DeviceKind[] = ['lock', 'noise', 'keybox', 'climate', 'contact', 'motion', 'smoke', 'camera', 'thermostat'];
 
 /** Vrai si l'objet expose une action « Supprimer » (cf. {@link DELETABLE_KINDS}). */
 export function isDeviceDeletable(kind: DeviceKind): boolean {

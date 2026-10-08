@@ -23,7 +23,7 @@ export interface TransferDetail {
 }
 export interface TransferPage { content: PayoutTransfer[]; totalElements: number; totalPages: number }
 export interface TransferVerification { reference: string; destination: string; livemode: boolean; createdAt: string }
-export interface TransferFilters { page: number; state: TransferState | ''; source: TransferSource | ''; search: string }
+export interface TransferFilters { page: number; size?: number; state: TransferState | ''; source: TransferSource | ''; search: string }
 export type PayoutAlertCode = 'RECONCILIATION_REQUIRED' | 'TRANSFER_STALLED' | 'FUNDING_DISPUTED' | 'REFUND_RECOVERY_REQUIRED' | 'BANK_FAILED' | 'BANK_LATE' | 'BANK_UNCONFIRMED' | 'RECOVERY_FAILED' | 'RECOVERY_LATE';
 export interface PayoutMonitoring {
   recoveryEnabled: boolean; providerConfigured: boolean;
@@ -32,8 +32,8 @@ export interface PayoutMonitoring {
 const base = '/accounting/payout-transfers';
 export const payoutTransfersApi = {
   monitoring: (page: number) => apiClient.get<PayoutMonitoring>(`${base}/monitoring?page=${page}`),
-  list: ({ page, state, source, search }: TransferFilters) => {
-    const query = new URLSearchParams({ page: String(page), size: '12', search });
+  list: ({ page, size = 12, state, source, search }: TransferFilters) => {
+    const query = new URLSearchParams({ page: String(page), size: String(size), search });
     if (state) query.set('state', state);
     if (source) query.set('source', source);
     return apiClient.get<TransferPage>(`${base}?${query}`);

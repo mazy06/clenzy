@@ -34,10 +34,12 @@ public record DashboardOverviewSummaryDto(
 
     /** Contrat commun aux KPI et à leur répartition par canal. Fin de fenêtre exclusive. */
     public record FinancialContextDto(LocalDate from, LocalDate toExclusive, String timezone,
-                                      String currency, String metric) {}
+                                      String currency, String metric, long occupiedNights, long availableNights) {}
 
     /** Valeur d'un KPI + variation (%) vs la fenêtre précédente de même durée. */
-    public record KpiTrendDto(double value, double growth) {}
+    public record KpiTrendDto(double value, double growth, Double previousValue) {
+        public KpiTrendDto(double value, double growth) { this(value, growth, null); }
+    }
 
     /**
      * Note moyenne et volume d'avis publics **sur la période**.

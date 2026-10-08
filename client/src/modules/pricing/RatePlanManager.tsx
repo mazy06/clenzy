@@ -26,7 +26,7 @@ import type { RatePlan, CreateRatePlanData } from '../../services/api/calendarPr
 // ─── Style Constants ────────────────────────────────────────────────────────
 
 /** Densité de la carte : la surface vient de `Card`, le rythme d'ici. */
-const PANEL_CLASS = 'gap-0 py-0 p-[9px]';
+const PANEL_CLASS = 'bp-data-panel gap-0 p-5';
 
 const TYPE_COLORS: Record<string, string> = {
   BASE: '#5CB8AA',
@@ -83,7 +83,7 @@ const RatePlanManager: React.FC<RatePlanManagerProps> = ({
   return (
     <Card className={PANEL_CLASS}>
       {/* Header — overline de section (pattern pcard) */}
-      <p className="text-2xs font-semibold uppercase tracking-wide text-faint mb-1.5">
+      <p className="text-xs font-semibold tracking-tight text-muted-foreground mb-1.5">
         {t('dynamicPricing.ratePlan.title')}
       </p>
 
@@ -108,19 +108,15 @@ const RatePlanManager: React.FC<RatePlanManagerProps> = ({
         <React.Fragment key={plan.id}>
           {idx > 0 && <Separator className="my-[4.5px]" />}
           <div className={cn(
-            'flex items-center gap-1.5 py-[4.5px]',
+            'bp-plan-row flex items-center gap-3 py-3',
             'transition-opacity duration-150 ease-out-quart motion-reduce:transition-none',
-            plan.isActive ? 'opacity-100' : 'opacity-50',
+            plan.isActive ? 'opacity-100' : 'text-muted-foreground',
           )}>
             {/* Type badge */}
-            {(() => { const c = TYPE_COLORS[plan.type] ?? '#8BA0B3'; return (
-            <StatusChip
-              color={c}
-              label={t(`dynamicPricing.ratePlan.types.${plan.type}`)}
-              className="border border-solid font-bold text-[0.625rem] min-w-20"
-              sx={{ borderColor: `${c}40` }}
-            />
-            ); })()}
+            <span className="bp-plan-type inline-flex min-w-24 items-center gap-2 text-xs text-foreground">
+              <span aria-hidden className="size-2 shrink-0 rounded-full" style={{ backgroundColor: TYPE_COLORS[plan.type] ?? '#8BA0B3' }} />
+              {t('dynamicPricing.ratePlan.types.' + plan.type)}
+            </span>
 
             {/* Name + date range */}
             <div className="flex-1 min-w-0">
@@ -128,14 +124,14 @@ const RatePlanManager: React.FC<RatePlanManagerProps> = ({
                 {plan.name}
               </p>
               {formatDateRange(plan) && (
-                <span className="text-2xs text-muted-foreground tabular-nums">
+                <span className="text-xs text-muted-foreground tabular-nums">
                   {formatDateRange(plan)}
                 </span>
               )}
             </div>
 
             {/* Price — display tabular-nums */}
-            <p className="text-sm font-semibold min-w-[60px] text-end font-[family-name:var(--font-display)] tabular-nums text-foreground">
+            <p className="text-sm font-semibold min-w-[60px] text-end tabular-nums text-foreground">
               <Money value={plan.nightlyPrice} from={plan.currency || 'EUR'} />
             </p>
 

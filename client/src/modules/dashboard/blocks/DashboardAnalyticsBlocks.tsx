@@ -1,6 +1,7 @@
 import * as React from 'react';
-import { Bar, BarChart, CartesianGrid, XAxis } from 'recharts';
-import { ChartBarBigIcon, ChartPieIcon } from 'lucide-react';
+import { Bar, BarChart, CartesianGrid, ReferenceLine, XAxis, YAxis } from 'recharts';
+import { ChartBarBigIcon, ChartPieIcon, ChevronRightIcon } from 'lucide-react';
+import { Link } from 'react-router-dom';
 import { ChartContainer, ChartTooltip, ChartTooltipContent, type ChartConfig } from '../../../components/ui/chart';
 import { cn } from '../../../utils/cn';
 import { useTranslation } from '../../../hooks/useTranslation';
@@ -11,9 +12,15 @@ import {
 import type { DashboardPeriod } from '../DashboardDateFilter';
 import { useDashboardOverview } from '../../../hooks/useDashboardOverview';
 import { DashboardWidgetState } from '../DashboardWidgetState';
-import { activeIntlLocale } from '../../../utils/activeLocale';
+import { activeIntlLocale, activeIntlLocaleGregorian } from '../../../utils/activeLocale';
 import RevenueByChannelCard from '../../../components/baitly/RevenueByChannelCard';
-import { channelColor, channelLabel } from './DashboardOperationsBlocks';
+import { channelLabel } from './DashboardOperationsBlocks';
+import { WidgetPanel } from '../../../components/baitly/WidgetPanel';
+import { PropertyThumbnail } from '../../../components/baitly/PropertyThumbnail';
+import { Money } from '../../../components/baitly/Money';
+import { useCurrency } from '../../../hooks/currencyDisplayContext';
+import { useDashboardPropertyPhotos } from '../useDashboardPropertyPhotos';
+import '../dashboardInsights.css';
 
 /**
  * Blocs analytiques du Dashboard portés depuis la projection
@@ -29,99 +36,78 @@ import { channelColor, channelLabel } from './DashboardOperationsBlocks';
  * segments suit le trajet de l'argent : ce que le canal prélève, ce que coûte
  * l'exploitation, ce qui part au propriétaire, ce qui reste.
  */
-const REVENUE_CHART_CONFIG = {
-  fees: { label: 'Commissions', color: 'var(--bui-chart-2)' },
-  interventions: { label: 'Interventions', color: 'var(--bui-chart-4)' },
-  payout: { label: 'Versements', color: 'var(--bui-chart-3)' },
-  retained: { label: 'Reste', color: 'var(--bui-chart-1)' },
-} satisfies ChartConfig;
+// ─── §3 · Revenus mensuels, direct vs OTA ───────────────────────────────────
 
-// ─── §3 — Revenus mensuels, direct vs OTA ───────────────────────────────────
-
-export function MonthlyRevenueSplitCard({ months = 6 }: { months?: number }) {
+export function MonthlyRevenueSplitCard({ year = new Date().getFullYear() }: { year?: number }) {
   const { t } = useTranslation();
-  const { data, isLoading, isError, refetch } = useDashboardRevenueSplit(months);
-
-  if (isLoading || isError) return <DashboardWidgetState title={t('dashboard.widgets.revenueSplit', 'Revenus mensuels')} error={isError} onRetry={() => { void refetch(); }} />;
+  const { currency } = useCurrency();
+  const { data, isLoading, isError, refetch } = useDashboardRevenueSplit(year);
+  const config = {
+    fees: { label: t('dashboard.revenueSplit.fees', 'Commissions'), color: 'var(--db-chart-teal)' },
+    interventions: { label: t('dashboard.revenueSplit.interventions', 'Interventions'), color: 'var(--bui-warning)' },
+    payout: { label: t('dashboard.revenueSplit.payouts', 'Versements'), color: 'var(--db-chart-slate)' },
+    retained: { label: t('dashboard.revenueSplit.retained', 'Reste'), color: 'var(--bui-navy)' },
+  } satisfies ChartConfig;
+  const title = t('dashboard.revenueSplit.title', 'Revenus et versements');
+  if (isLoading || isError) return <DashboardWidgetState title={title} error={isError} onRetry={() => { void refetch(); }} />;
   const rows = data ?? [];
+  const sourceCurrency = rows[0]?.currency ?? currency;
+  const total = rows.reduce((sum, row) => sum + row.revenue, 0);
+  const payouts = rows.reduce((sum, row) => sum + row.payout, 0);
+  return <WidgetPanel title={title} className="db-revenue-split"
+    caption={t('dashboard.revenueSplit.yearCaption', 'Janvier à décembre {{year}} · {{currency}}', { year: year.toLocaleString(activeIntlLocaleGregorian(), { useGrouping: false }), currency: sourceCurrency })}
+    footer={rows.length > 0 ? <>
+      <span>{t('dashboard.revenueSplit.total', 'Revenus')} <strong><Money value={total} from={sourceCurrency} decimals={0} /></strong></span>
+      <span>{t('dashboard.revenueSplit.payouts', 'Versements')} <strong><Money value={payouts} from={sourceCurrency} decimals={0} /></strong></span>
+    </> : undefined}>
+    <ul className="db-revenue-legend" aria-label={t('dashboard.revenueSplit.legend', 'Légende du graphique')}>
+      {Object.entries(config).map(([key, item]) => <li key={key}>
+        <span aria-hidden="true" style={{ background: item.color }} />{item.label}
+      </li>)}
+    </ul>
+    {rows.length === 0 ? <p className="bui-widget-panel__empty">{t('dashboard.revenueSplit.empty', 'Aucun revenu enregistré sur la période.')}</p> :
+      <ChartContainer config={config} className="db-widget-chart db-revenue-chart">
+        <BarChart accessibilityLayer data={rows} stackOffset="sign" maxBarSize={42} margin={{ top: 14, right: 16, bottom: 8, left: 0 }}>
+          <CartesianGrid vertical={false} stroke="var(--bui-border)" strokeDasharray="3 5" />
+          <XAxis dataKey="month" tickLine={false} tickMargin={10} axisLine={false} interval={0} height={60} tick={<RevenueMonthTick />} />
+          <YAxis width={48} tickLine={false} axisLine={false} tickCount={4}
+            tickFormatter={(value: number) => value.toLocaleString(activeIntlLocale(), { notation: 'compact', maximumFractionDigits: 1 })} />
+          <ReferenceLine y={0} stroke="var(--bui-border)" />
+          <ChartTooltip cursor={{ fill: 'var(--bui-navy-soft)' }}
+            content={<ChartTooltipContent labelFormatter={formatChartMonth}
+              formatter={(value, name, item) => <div className="db-revenue-tooltip-row">
+                <span aria-hidden="true" style={{ background: item.color }} />
+                <span>{config[name as keyof typeof config]?.label ?? name}</span>
+                <strong><Money value={Number(value)} from={sourceCurrency} decimals={0} /></strong>
+              </div>} />} />
+          <Bar dataKey="fees" stackId="m" fill="var(--color-fees)" isAnimationActive={false} />
+          <Bar dataKey="interventions" stackId="m" fill="var(--color-interventions)" isAnimationActive={false} />
+          <Bar dataKey="payout" stackId="m" fill="var(--color-payout)" isAnimationActive={false} />
+          <Bar dataKey="retained" stackId="m" fill="var(--color-retained)" radius={[4, 4, 0, 0]} isAnimationActive={false} />
+        </BarChart>
+      </ChartContainer>}
+  </WidgetPanel>;
+}
 
-  return (
-    // `ring-1` et non `border` — même métrique de boîte que le `Card` du design
-    // system, sinon cette carte se décale d'un pixel face à sa voisine de ligne
-    // (rationnel détaillé sur `BlockCard`, DashboardOperationsBlocks).
-    // La grille fournit une hauteur bornée, commune aux voisins.
-    <section className="db-widget-surface flex flex-col rounded-lg bg-card ring-1 ring-foreground/10 p-4">
-      <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
-        <h3 className="cn-font-heading m-0 text-[15px] font-semibold tracking-tight text-foreground">
-          {t('dashboard.revenueSplit.title', 'Revenus et versements')} · {months}{' '}
-          {t('dashboard.revenueSplit.lastMonths', 'derniers mois')}
-        </h3>
-        <span className="flex flex-wrap items-center gap-x-2.5 gap-y-1 text-xs text-muted-foreground">
-          {[
-            { key: 'fees', dot: 'bg-chart-2', label: t('dashboard.revenueSplit.fees', 'Commissions') },
-            { key: 'interventions', dot: 'bg-chart-4', label: t('dashboard.revenueSplit.interventions', 'Interventions') },
-            { key: 'payout', dot: 'bg-chart-3', label: t('dashboard.revenueSplit.payouts', 'Versements') },
-            { key: 'retained', dot: 'bg-chart-1', label: t('dashboard.revenueSplit.retained', 'Reste') },
-          ].map((item) => (
-            <span key={item.key} className="flex items-center gap-1">
-              <span className={cn('inline-block size-2 rounded-[3px]', item.dot)} />
-              {item.label}
-            </span>
-          ))}
-        </span>
-      </div>
-
-      {rows.length === 0 ? (
-        <p className="m-0 py-6 text-sm text-muted-foreground">
-          {t('dashboard.revenueSplit.empty', 'Aucun revenu enregistré sur la période.')}
-        </p>
-      ) : (
-        <ChartContainer config={REVENUE_CHART_CONFIG} className="db-widget-chart h-[280px] w-full aspect-auto">
-          <BarChart accessibilityLayer data={rows}>
-            <CartesianGrid vertical={false} />
-            <XAxis
-              dataKey="month"
-              tickLine={false}
-              tickMargin={8}
-              axisLine={false}
-              tickFormatter={formatChartMonth}
-            />
-            <ChartTooltip cursor={false} content={<ChartTooltipContent labelFormatter={formatChartMonth} />} />
-            {/* UN seul `stackId` : les quatre segments s'additionnent au revenu
-                du mois. C'est ce qui autorise l'empilement — mettre le revenu ET
-                ses sorties dans le même bâton compterait le même argent deux
-                fois. Seul le segment du bas porte l'arrondi bas, seul celui du
-                haut porte l'arrondi haut. */}
-            <Bar dataKey="fees" stackId="m" fill="var(--color-fees)" radius={[0, 0, 4, 4]} />
-            <Bar dataKey="interventions" stackId="m" fill="var(--color-interventions)" />
-            <Bar dataKey="payout" stackId="m" fill="var(--color-payout)" />
-            <Bar dataKey="retained" stackId="m" fill="var(--color-retained)" radius={[4, 4, 0, 0]} />
-          </BarChart>
-        </ChartContainer>
-      )}
-    </section>
-  );
+function RevenueMonthTick({ x = 0, y = 0, payload }: { x?: number; y?: number; payload?: { value: string } }) {
+  return <g transform={`translate(${x},${y})`}>
+    <text dy={12} textAnchor="middle" fill="var(--bui-muted-foreground)" className="db-revenue-month-label">{formatChartMonth(payload?.value ?? '')}</text>
+  </g>;
 }
 
 function formatChartMonth(value: unknown): string {
   const bucket = String(value);
   if (!/^\d{4}-\d{2}$/.test(bucket)) return bucket;
-  return new Date(`${bucket}-01T12:00:00`).toLocaleDateString(activeIntlLocale(), { month: 'short' });
+  return new Date(`${bucket}-01T12:00:00`).toLocaleDateString(activeIntlLocaleGregorian(), { month: 'short' });
 }
 
-// ─── §7 — Occupation par logement ───────────────────────────────────────────
+// ─── §7 · Occupation par logement ───────────────────────────────────────────
 
 /** Seuils de couleur repris de la projection : ≥ 70 % succès, ≥ 50 % primaire, sinon warning. */
-function occupancyTone(rate: number): string {
-  if (rate >= 70) return 'bg-success';
-  if (rate >= 50) return 'bg-primary';
-  return 'bg-warning';
-}
-
 /** Mêmes seuils, en valeur de couleur : Recharts peint en CSS, pas en classes. */
 function occupancyColor(rate: number): string {
-  if (rate >= 70) return 'var(--bui-success)';
-  if (rate >= 50) return 'var(--bui-primary)';
+  if (rate >= 70) return 'var(--db-chart-teal)';
+  if (rate >= 50) return 'var(--bui-navy)';
   return 'var(--bui-warning)';
 }
 
@@ -151,7 +137,7 @@ interface OccupancyRow {
 /* ─── Vue radiale ────────────────────────────────────────────────────────────
  *
  * Anneaux concentriques dessinés en SVG à la main, et non avec le `RadialBar`
- * de Recharts : ses secteurs n'émettent aucun évènement de souris ici — ni son
+ * de Recharts : ses secteurs n'émettent aucun évènement de souris ici · ni son
  * infobulle ni un `onMouseEnter` posé dessus ne s'arment. Or le survol est
  * précisément ce qu'on demande à cette vue. Un anneau de progression n'est
  * qu'un cercle à `stroke-dasharray` : le tracer directement coûte moins de code
@@ -166,7 +152,7 @@ const RADIAL_INNER_MIN = 30;
  * Bornes du disque à l'écran, en pixels.
  *
  * <p>Le tracé est en unités de `viewBox` : il s'étire donc sans rien recalculer.
- * Ce qui a besoin de bornes, c'est le résultat — sous 140 px les anneaux
+ * Ce qui a besoin de bornes, c'est le résultat · sous 140 px les anneaux
  * deviennent des cheveux, et au-delà de 300 px un camembert de la hauteur d'une
  * colonne n'informe pas mieux, il occupe.</p>
  */
@@ -179,7 +165,7 @@ const RADIAL_MAX_PX = 300;
  *
  * <p>Des constantes et non une seconde mesure : mesurer l'encart <i>dans</i> le
  * conteneur qu'on mesure déjà ferait dépendre la taille du disque d'une place
- * que le disque détermine — la vue rétrécirait d'elle-même à chaque passe. Ses
+ * que le disque détermine · la vue rétrécirait d'elle-même à chaque passe. Ses
  * deux lignes courtes ne varient pas.</p>
  */
 const LABEL_WIDTH_PX = 220;
@@ -192,7 +178,7 @@ function OccupancyRadial({
 }: {
   rows: OccupancyRow[];
   averageLabel: string;
-  /** Rendu « 12 nuits sur 30 » — la formulation vient de l'appelant (i18n). */
+  /** Rendu « 12 nuits sur 30 » · la formulation vient de l'appelant (i18n). */
   nightsLabel: (occupied: number, total: number) => string;
 }) {
   const [hovered, setHovered] = React.useState<number | null>(null);
@@ -203,7 +189,7 @@ function OccupancyRadial({
    * Le disque est carré : c'est le plus petit des deux côtés qui le borne, une
    * fois la place de l'encart retirée.
    *
-   * L'encart se met à CÔTÉ dès que la largeur le permet — le tableau de bord
+   * L'encart se met à CÔTÉ dès que la largeur le permet · le tableau de bord
    * est large et la carte haute, poser deux lignes de texte sous un disque y
    * gaspille de la hauteur que le disque pourrait prendre. En dessous du seuil
    * (colonne étroite, mobile), il repasse sous le disque plutôt que de l'écraser.
@@ -273,7 +259,7 @@ function OccupancyRadial({
         <svg
           viewBox={`0 0 ${RADIAL_SIZE} ${RADIAL_SIZE}`}
           className="size-full"
-          role="img"
+          role="group"
           aria-label={averageLabel}
         >
           {data.map((row, index) => {
@@ -283,7 +269,14 @@ function OccupancyRadial({
               <g
                 key={row.propertyId}
                 onMouseEnter={() => setHovered(index)}
-                className="cursor-default"
+                onFocus={() => setHovered(index)}
+                onBlur={() => setHovered(null)}
+                onClick={() => setHovered(index)}
+                onKeyDown={(event) => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); setHovered(index); } }}
+                tabIndex={0}
+                role="button"
+                aria-label={`${row.name}, ${row.rate.toLocaleString(activeIntlLocale())} %`}
+                className="cursor-pointer"
               >
                 {/* La piste porte le survol : elle couvre toute la circonférence,
                     donc un logement à 5 % reste survolable sur tout son anneau. */}
@@ -303,12 +296,12 @@ function OccupancyRadial({
                   stroke={occupancyColor(row.rate)}
                   strokeWidth={stroke}
                   strokeLinecap="round"
-                  strokeDasharray={`${(circumference * row.rate) / 100} ${circumference}`}
+                  strokeDasharray={`${(circumference * Math.min(100, row.rate)) / 100} ${circumference}`}
                   transform={`rotate(-90 ${centre} ${centre})`}
                   className="pointer-events-none"
                 />
                 {/* Repli natif : le nom reste accessible même sans notre infobulle. */}
-                <title>{`${row.name} — ${row.rate}%`}</title>
+                <title>{`${row.name} · ${row.rate}%`}</title>
               </g>
             );
           })}
@@ -323,13 +316,13 @@ function OccupancyRadial({
             className="font-semibold tracking-tight tabular-nums"
             style={{ fontSize: Math.round(side * 0.14) }}
           >
-            {boxRate}%
+            {boxRate.toLocaleString(activeIntlLocale())}%
           </span>
         </div>
 
       </div>
 
-      {/* Encart À CÔTÉ du disque, dans le flux — sous lui quand la largeur
+      {/* Encart À CÔTÉ du disque, dans le flux · sous lui quand la largeur
           manque. Superposé, il masquait le bas des anneaux, c'est-à-dire les
           logements les moins occupés : ceux qu'on regarde. Sa place est réservée
           au moment de la mesure, elle ne se prend donc pas sur le graphique.
@@ -342,10 +335,10 @@ function OccupancyRadial({
         className={cn(
           // Largeur FIXE, et non `w-max` : le contenu change au survol (« Moyenne
           // du portefeuille » puis le nom du logement), et une boîte qui suit son
-          // texte fait bouger tout ce que le conteneur centre — le disque se
+          // texte fait bouger tout ce que le conteneur centre · le disque se
           // déplaçait sous la souris. Le nom est tronqué plutôt que la boîte
           // élargie ; la première ligne reste donc unique, et la hauteur aussi.
-          'pointer-events-none w-52 rounded-lg border border-border bg-card px-2.5 py-1',
+          'pointer-events-none w-52 px-2.5 py-1',
           // Aligné à gauche quand il est posé de côté : centré, ses deux lignes
           // de longueurs différentes dessinaient un axe qui ne correspond à rien.
           beside ? 'text-start' : 'text-center',
@@ -372,113 +365,47 @@ function OccupancyRadial({
 export function OccupancyByPropertyCard({ period }: { period: DashboardPeriod }) {
   const { t } = useTranslation();
   const { data, isLoading, isError, refetch } = useDashboardOccupancyByProperty(period);
-  // `null` tant que rien n'a été choisi : la vue par défaut suit alors le nombre
-  // de logements. Dès que l'utilisateur bascule, son choix prime. ⚠️ Déclaré
-  // avant tout early return (règles des hooks).
+  const photos = useDashboardPropertyPhotos();
   const [chosenView, setChosenView] = React.useState<OccupancyView | null>(null);
-
-  if (isLoading || isError) return <DashboardWidgetState title={t('dashboard.occupancyByProperty.title', 'Occupation par logement')} error={isError} onRetry={() => { void refetch(); }} />;
+  const title = t('dashboard.occupancyByProperty.title', 'Occupation par logement');
+  if (isLoading || isError) return <DashboardWidgetState title={title} error={isError} onRetry={() => { void refetch(); }} />;
   const rows = (data ?? []).map((row) => ({ ...row, rate: clampRate(row.rate) }));
-  const single = rows.length === 1;
-  // Une barre solitaire ne compare rien : à un seul logement, l'anneau dit mieux
-  // « 90 % de rempli » qu'une piste remplie aux neuf dixièmes.
-  const view: OccupancyView = chosenView ?? (single ? 'radial' : 'bars');
-
-  return (
-    <section className="db-widget-surface flex flex-col rounded-lg bg-card ring-1 ring-foreground/10 p-4">
-      <div className="mb-3 flex items-center justify-between gap-2">
-        <h3 className="m-0 text-sm font-semibold text-foreground">
-          {t('dashboard.occupancyByProperty.title', 'Occupation par logement')}
-        </h3>
-        {/* La bascule n'apparaît qu'à partir de deux logements : sur un seul, les
-            deux vues diraient la même chose et le choix serait décoratif. */}
-        {rows.length > 1 && (
-          <div className="flex items-center gap-0.5">
-            {(
-              [
-                { key: 'bars', Icon: ChartBarBigIcon,
-                  label: t('dashboard.occupancyByProperty.viewBars', 'Vue en barres') },
-                { key: 'radial', Icon: ChartPieIcon,
-                  label: t('dashboard.occupancyByProperty.viewRadial', 'Vue en anneaux') },
-              ] as const
-            ).map(({ key, Icon, label }) => (
-              <button
-                key={key}
-                type="button"
-                onClick={() => setChosenView(key)}
-                aria-pressed={view === key}
-                aria-label={label}
-                title={label}
-                className={cn(
-                  'flex size-6 cursor-pointer items-center justify-center rounded-md',
-                  'transition-colors duration-150 motion-reduce:transition-none',
-                  view === key ? 'bg-accent text-foreground' : 'text-muted-foreground hover:bg-accent',
-                )}
-              >
-                <Icon className="size-3.5" />
-              </button>
-            ))}
+  const view = chosenView ?? (rows.length === 1 ? 'radial' : 'bars');
+  const nightsLabel = (occupied: number, total: number) => t('dashboard.occupancyByProperty.nights', {
+    occupied: occupied.toLocaleString(activeIntlLocale()), total: total.toLocaleString(activeIntlLocale()),
+    defaultValue: '{{occupied}} nuits sur {{total}}',
+  });
+  return <WidgetPanel title={title} count={rows.length} className="db-occupancy"
+    caption={t('dashboard.occupancyByProperty.caption', 'Nuits réservées sur la période sélectionnée')}
+    action={rows.length > 1 && <div className="bui-widget-panel__switch">
+      {([
+        { key: 'bars', Icon: ChartBarBigIcon, label: t('dashboard.occupancyByProperty.viewBars', 'Vue en barres') },
+        { key: 'radial', Icon: ChartPieIcon, label: t('dashboard.occupancyByProperty.viewRadial', 'Vue en anneaux') },
+      ] as const).map(({ key, Icon, label }) => <button key={key} type="button" onClick={() => setChosenView(key)}
+        aria-pressed={view === key} aria-label={label} title={label}><Icon aria-hidden="true" /></button>)}
+    </div>}
+    footer={rows.length > 0 && <Link className="bui-widget-panel__link" to="/properties">
+      {t('dashboard.occupancyByProperty.seeProperties', 'Voir les logements')}<ChevronRightIcon className="cn-rtl-flip" aria-hidden="true" />
+    </Link>}>
+    <div className="db-widget-body db-occupancy__body" tabIndex={0} role="region" aria-label={title}>
+      {rows.length === 0 ? <p className="bui-widget-panel__empty">{t('dashboard.occupancyByProperty.empty', 'Aucun logement sur la période.')}</p>
+        : view === 'radial' ? <OccupancyRadial rows={rows} averageLabel={t('dashboard.occupancyByProperty.average', 'Moyenne du portefeuille')} nightsLabel={nightsLabel} />
+        : <ul className="db-occupancy-list">{rows.map((row) => <li key={row.propertyId} className="db-occupancy-row">
+          <PropertyThumbnail name={row.name} src={photos.get(row.propertyId)} />
+          <div className="db-occupancy-row__content">
+            <div className="db-occupancy-row__heading"><span dir="auto">{row.name}</span><strong>{row.rate.toLocaleString(activeIntlLocale())}<small> %</small></strong></div>
+            <div className="db-occupancy-row__track" role="progressbar" aria-label={row.name} aria-valuemin={0} aria-valuemax={100}
+              aria-valuenow={Math.min(100, row.rate)} aria-valuetext={nightsLabel(row.occupiedNights, row.totalNights)}>
+              <div style={{ width: `${Math.min(100, row.rate)}%`, background: occupancyColor(row.rate) }} />
+            </div>
+            <span className="db-occupancy-row__nights">{nightsLabel(row.occupiedNights, row.totalNights)}</span>
           </div>
-        )}
-      </div>
-
-      <div className="db-widget-body flex flex-col" tabIndex={0} role="region" aria-label={t('dashboard.occupancyByProperty.title', 'Occupation par logement')}>
-      {rows.length === 0 ? (
-        <p className="m-0 py-2 text-sm text-muted-foreground">
-          {t('dashboard.occupancyByProperty.empty', 'Aucun logement sur la période.')}
-        </p>
-      ) : view === 'radial' ? (
-        /* Le composant porte lui-même son `flex-1` et se mesure : il réclame ce
-           qui reste sous l'en-tête, puis y dessine le plus grand disque que cet
-           espace admet. La carte est étirée à la hauteur de sa voisine de ligne,
-           et cette hauteur n'est connue qu'à l'exécution. */
-        <OccupancyRadial
-          rows={rows}
-          averageLabel={t('dashboard.occupancyByProperty.average', 'Moyenne du portefeuille')}
-          nightsLabel={(occupied, total) =>
-            t('dashboard.occupancyByProperty.nights', {
-              occupied,
-              total,
-              defaultValue: '{{occupied}} nuits sur {{total}}',
-            })
-          }
-        />
-      ) : (
-        <div className="flex flex-col gap-2.5">
-          {rows.map((row) => {
-            const rate = row.rate;
-            return (
-              <div key={row.propertyId} className="flex items-center gap-2.5">
-                <span dir="auto" className="w-32 shrink-0 text-xs font-medium text-foreground" title={row.name}>
-                  {row.name}
-                </span>
-                <div
-                  role="progressbar"
-                  aria-valuemin={0}
-                  aria-valuemax={100}
-                  aria-valuenow={rate}
-                  aria-label={row.name}
-                  className="h-2 flex-1 overflow-hidden rounded-full bg-field"
-                >
-                  <div
-                    className={cn('h-full rounded-full', occupancyTone(rate))}
-                    style={{ width: `${Math.min(100, Math.max(0, rate))}%` }}
-                  />
-                </div>
-                <span className="w-9 shrink-0 text-end text-xs text-muted-foreground tabular-nums">
-                  {rate}%
-                </span>
-              </div>
-            );
-          })}
-        </div>
-      )}
-      </div>
-    </section>
-  );
+        </li>)}</ul>}
+    </div>
+  </WidgetPanel>;
 }
 
-// ─── §4 — Répartition du revenu par canal ───────────────────────────────────
+// ─── §4 · Répartition du revenu par canal ───────────────────────────────────
 
 /** Même définition, période et devise que les KPI, sans nouvelle requête. */
 export function RevenueByChannelBlock({ period }: { period: DashboardPeriod }) {
@@ -496,10 +423,11 @@ export function RevenueByChannelBlock({ period }: { period: DashboardPeriod }) {
   });
   return <RevenueByChannelCard title={title} subtitle={subtitle} fromCurrency={financialContext.currency}
     channels={revenueByChannel.map((channel) => ({
+      source: channel.source,
       name: channelLabel(channel.source, channel.label === channel.source ? null : channel.label),
       pct: channel.pct,
       amount: channel.amount,
       comparePct: channel.comparePct ?? undefined,
-      color: channelColor(channel.source),
+      color: 'var(--bui-navy)',
     }))} />;
 }

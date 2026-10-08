@@ -1,4 +1,5 @@
 import React from 'react';
+import { Plug } from 'lucide-react';
 import {
   RequestQuote,
   PersonSearch,
@@ -28,6 +29,7 @@ import {
   CalendarViewWeek,
   Bolt,
   Inventory2,
+  TrendingUp,
 } from '../icons';
 
 /**
@@ -51,6 +53,8 @@ export const HUB_ICON: Record<string, React.ReactNode> = {
 
 /** Icône par écran (onglet de hub ou écran autonome), clé = route canonique. */
 export const SCREEN_ICON: Record<string, React.ReactNode> = {
+  '/dynamic-pricing': <TrendingUp />,
+  '/connected-objects': <Plug />,
   '/consumables': <Inventory2 />,
   '/properties': <Home />,
   '/reservations': <EventNote />,

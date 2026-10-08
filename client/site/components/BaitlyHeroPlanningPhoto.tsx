@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, type SyntheticEvent } from 'react';
 import { createPortal } from 'react-dom';
-import { CalendarDaysIcon, PauseIcon, PlayIcon } from 'lucide-react';
+import { CalendarDaysIcon } from 'lucide-react';
 import { SITE_PHOTOS, sitePhotoAlt } from '../data/baitlyPhotography';
 import heroPhotoSmall from '../assets/photos/editorial/homeReceptionBaitly-720.webp';
 import { HOME_MESSAGES } from '../lib/messages/home';
@@ -36,12 +36,11 @@ export default function BaitlyHeroPlanningPhoto() {
   const m = HOME_MESSAGES[language].hero;
   const { visibilityRef, active, reduced } = useBaitlyDemoVisibility();
   const [started, setStarted] = useState(false);
-  const [paused, setPaused] = useState(false);
   const [mode, setMode] = useState<ScreenMode>('planning');
   const [frameDocument, setFrameDocument] = useState<Document | null>(null);
   const preparing = useRef<Document | null>(null);
   const clockRef = useRef(() => 0);
-  const playing = active && !paused;
+  const playing = active;
   const height = mode === 'planning' ? PLANNING_FRAME_HEIGHT : AGENTS_FRAME_HEIGHT;
 
   useEffect(() => {
@@ -153,19 +152,7 @@ export default function BaitlyHeroPlanningPhoto() {
       )}
       <div className="baitly-photo-location">
         <CalendarDaysIcon aria-hidden="true" />
-        {frameDocument && !reduced ? (
-          <div className="baitly-hero-screen-controls" role="group" aria-label={m.screenLabel}>
-            {(['planning', 'agents'] as const).map((value) => (
-              <button key={value} type="button" aria-pressed={mode === value} onClick={() => setMode(value)}>
-                {value === 'planning' ? m.screenPlanning : m.screenAgents}
-              </button>
-            ))}
-            <button type="button" className="baitly-hero-screen-pause" aria-label={paused ? m.screenPlay : m.screenPause}
-              title={paused ? m.screenPlay : m.screenPause} onClick={() => setPaused((value) => !value)}>
-              {paused ? <PlayIcon aria-hidden="true" /> : <PauseIcon aria-hidden="true" />}
-            </button>
-          </div>
-        ) : m.photoCaption}
+        {m.photoCaption}
       </div>
     </div>
   );

@@ -1,355 +1,103 @@
-import { useMemo, useState, type CSSProperties } from 'react';
-import { cn } from '../../utils/cn';
-import StatusChip from '../../components/StatusChip';
-import { Badge } from '../../components/ui';
-import { Button as BuiButton } from '../../components/ui';
-import { Card, Skeleton, Tooltip, TooltipContent, TooltipTrigger } from '../../components/ui';
-import { createPortal } from 'react-dom';
-import { useNavigate } from 'react-router-dom';
-import { useNotification } from '../../hooks/useNotification';
-import { useTranslation } from '../../hooks/useTranslation';
-import { Inventory2, Add, MonitorHeart, WifiOff, BatteryAlert, Warning, Home, ChevronRight } from '../../icons';
+import { useMemo, useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
+import { useNavigate, useSearchParams } from 'react-router-dom';
+import { Plus, RefreshCw, Settings2, Plug } from 'lucide-react';
+import { Button, NativeSelect, NativeSelectOption, Skeleton } from '../../components/ui';
 import PageHeader from '../../components/PageHeader';
-import StatTile from '../../components/baitly/StatTile';
-import StatTileRow from '../../components/baitly/StatTileRow';
-import EmptyState from '../../components/EmptyState';
-import FilterChipRow from '../../components/baitly/FilterChipRow';
-import { useConnectedObjects } from './useConnectedObjects';
-import { DEVICE_KINDS, DEVICE_KIND_ORDER } from './deviceRegistry';
-import DeviceCard from './components/DeviceCard';
-import PropertyAccessCodeChip from './components/PropertyAccessCodeChip';
-import AddDeviceWizard from './components/AddDeviceWizard';
+import { usePageHeaderActions } from '../../components/PageHeaderActionsContext';
+import { useTranslation } from '../../hooks/useTranslation';
+import { useNotification } from '../../hooks/useNotification';
+import { propertiesApi } from '../../services/api/propertiesApi';
 import { netatmoApi } from '../../services/api/netatmoApi';
-import type { DeviceAction, DeviceKind } from './types';
-import compactHeaderActions from '../../components/compactHeaderActions';
+import { useConnectedObjects } from './useConnectedObjects';
 import { useDeviceEventStream } from './useDeviceEventStream';
+import { DEVICE_KINDS, DEVICE_KIND_ORDER } from './deviceRegistry';
+import type { DeviceAction, PropertyDeviceGroup } from './types';
+import ConnectedRoomExplorer, { type AddRoomDeviceContext } from './components/ConnectedRoomExplorer';
+import AddDeviceWizard from './components/AddDeviceWizard';
+import ConnectedObjectsSummary from './components/ConnectedObjectsSummary';
+import './connectedRooms.css';
 
-const GRID = 'grid grid-cols-[repeat(auto-fill,_minmax(248px,_1fr))] gap-1.5';
-
-const PROVIDER_LABELS: Record<string, string> = {
-  MINUT: 'Minut', TUYA: 'Tuya', NUKI: 'Nuki', KEYNEST: 'KeyNest', CLENZY_KEYVAULT: 'KeyVault',
-  // Banc d'essai (hors production) : affiche comme tel, jamais propose a la creation.
-  SIMULATION: 'Simulation',
-};
-
-// Types « à venir » disposant d'un écran d'aperçu (Phase 2, UI-first).
-const PREVIEW_ROUTES: Partial<Record<DeviceKind, string>> = {
-  camera: '/connected-objects/cameras',
-  thermostat: '/connected-objects/thermostats',
-};
-
-interface ConnectedObjectsHubProps {
-  /**
-   * Mode « embedded » : le hub est rendu comme onglet de {@link PropertiesPage}
-   * (4e tab, conceptuellement lie aux biens). Dans ce mode il ne rend PAS son
-   * propre {@code PageHeader} ; le bouton « Ajouter un objet » est porte dans le
-   * slot actions du parent via React Portal.
-   */
-  embedded?: boolean;
-  actionsContainer?: HTMLElement | null;
-}
-
-export default function ConnectedObjectsHub({
-  embedded = false,
-  actionsContainer,
-}: ConnectedObjectsHubProps = {}) {
+export default function ConnectedObjectsHub({ embedded = false, propertyId }: { embedded?: boolean; propertyId?: number } = {}) {
   const { t } = useTranslation();
   const navigate = useNavigate();
-  const { groups, devices, kpis, providers, loading, act, actingUid, refetch } = useConnectedObjects();
-  const [kindFilter, setKindFilter] = useState<DeviceKind | ''>('');
-  const [wizardOpen, setWizardOpen] = useState(false);
-
-  // Le serveur pousse les changements du parc tant que ce hub est ouvert. Rien
-  // n'est demandé au repos : c'est l'activité des appareils qui déclenche, pas
-  // l'affichage de l'écran.
+  const [params, setParams] = useSearchParams();
+  const { notify } = useNotification();
+  const { groups, devices, providers, loading, error, act, actingUid, refetch } = useConnectedObjects();
+  const propertiesQuery = useQuery({ queryKey: ['co-properties'], queryFn: () => propertiesApi.getAll(), staleTime: 60_000 });
+  const selectedProperty = params.get('property');
+  const selectedUid = params.get('device');
+  const kindFilter = DEVICE_KIND_ORDER.find(kind => kind === params.get('kind')) ?? '';
+  const selectDevice = (uid: string | null) => setParams(current => {
+    const next = new URLSearchParams(current);
+    if (uid) {
+      next.set('device', uid); next.delete('kind');
+      const device = devices.find(item => item.uid === uid);
+      if (device) next.set('property', String(device.propertyId ?? 'none'));
+    }
+    else next.delete('device');
+    return next;
+  }, { replace: true });
+  const [adding, setAdding] = useState<AddRoomDeviceContext | null>(null);
+  const [refreshing, setRefreshing] = useState(false);
   useDeviceEventStream(true);
 
-  // Services reliés : statut réel des providers (backend), repli présence sinon.
-  // On masque le bruit (provider ni connecté ni porteur d'objets).
-  const visibleProviders = providers.filter((p) => p.connected || p.deviceCount > 0);
-  // Au moins un service relié → l'invite passe de « connecter un service » à « ajouter un objet ».
-  const hasConnectedService = providers.some((p) => p.connected);
-
-  // Netatmo = modèle par-hôte : chaque hôte connecte SON compte depuis le hub (l'onglet
-  // Intégrations est réservé aux SUPER_ADMIN/MANAGER). La config de l'app reste admin.
-  const netatmoConnected = providers.some((p) => p.provider === 'NETATMO' && p.connected);
-  const { notify } = useNotification();
+  // Unequipped properties remain available. IDs, never display names, define the device boundary.
+  const availableGroups = useMemo(() => {
+    const result: PropertyDeviceGroup[] = [...groups];
+    for (const property of propertiesQuery.data ?? []) if (!result.some(group => group.propertyId === property.id)) {
+      result.push({ propertyId: property.id, propertyName: property.name, devices: [] });
+    }
+    return result.sort((a, b) => a.propertyId == null ? 1 : b.propertyId == null ? -1 : a.propertyName.localeCompare(b.propertyName));
+  }, [groups, propertiesQuery.data]);
+  const linkedDevice = devices.find(device => device.uid === selectedUid);
+  const group = propertyId != null ? availableGroups.find(item => item.propertyId === propertyId)
+    : linkedDevice ? availableGroups.find(item => item.propertyId === linkedDevice.propertyId)
+    : availableGroups.find(item => String(item.propertyId ?? 'none') === selectedProperty) ?? availableGroups[0];
+  const property = propertiesQuery.data?.find(item => item.id === group?.propertyId);
+  const refresh = async () => { setRefreshing(true); try { await Promise.all([refetch(), propertiesQuery.refetch()]); } finally { setRefreshing(false); } };
+  const onAction = async (uid: string, action: DeviceAction) => {
+    if (action === 'lock' || action === 'unlock') { await act(uid, action); return; }
+    selectDevice(uid);
+  };
   const connectNetatmo = async () => {
     try {
-      const res = await netatmoApi.connect();
-      if (res.authorization_url) { window.location.href = res.authorization_url; return; }
-      if (res.status === 'already_connected') { void refetch(); }
-    } catch {
-      notify.info(t('connectedObjects.netatmo.notEnabled'), 6000);
-    }
+      const result = await netatmoApi.connect();
+      if (result.authorization_url) window.location.href = result.authorization_url;
+      else if (result.status === 'already_connected') await refresh();
+    } catch { notify.info(t('connectedObjects.netatmo.notEnabled'), 6000); }
   };
-
-  // Types présents → options du filtre.
-  const kindsPresent = useMemo(() => {
-    const set = new Set(devices.map((d) => d.kind));
-    return DEVICE_KIND_ORDER.filter((k) => set.has(k));
-  }, [devices]);
-
-  const filteredGroups = useMemo(() => {
-    if (!kindFilter) return groups;
-    return groups.flatMap((g) => {
-      const devices = g.devices.filter((d) => d.kind === kindFilter);
-      return devices.length > 0 ? [{ ...g, devices }] : [];
-    });
-  }, [groups, kindFilter]);
-
-  const comingSoon = DEVICE_KIND_ORDER.filter((k) => !DEVICE_KINDS[k].available);
-
-  const handleAction = (uid: string, action: DeviceAction) => {
-    if (action === 'lock' || action === 'unlock') {
-      void act(uid, action);
-      return;
-    }
-    // « Gérer » / clic sur la carte → détail unifié de l'objet.
-    const dev = devices.find((d) => d.uid === uid);
-    if (dev) navigate(`/connected-objects/device/${dev.kind}/${dev.id}`);
-  };
-
-  // Action « Ajouter un objet » : rendue dans le PageHeader propre (standalone)
-  // ou portee dans le slot actions du parent (embedded, cf. PropertiesPage).
-  const headerAction = (
-    <BuiButton size="sm" onClick={() => setWizardOpen(true)}>
-      <Add size={16} strokeWidth={2} />
-      {t('connectedObjects.addDevice')}
-    </BuiButton>
-  );
-
-  return (
-    <div>
-      {!embedded && (
-        <PageHeader
-          title={t('connectedObjects.title')}
-          subtitle={t('connectedObjects.subtitle')}
-          iconBadge={<Inventory2 />}
-          backPath="/dashboard"
-          backLabel="Tableau de bord"
-          actions={headerAction}
-        />
-      )}
-      {embedded && actionsContainer ? createPortal(compactHeaderActions(headerAction), actionsContainer) : null}
-
-      {/* Bandeau de connexion — pont vers les Settings */}
-      {/* `flex-row` EXPLICITE : Card est `flex flex-col` a la base, et ajouter
-          `flex` ne change pas la direction. Sans lui, `items-center` centrait
-          HORIZONTALEMENT — d'ou les pastilles empilees au milieu, et « Connecter
-          Netatmo » seul a droite puisque `ms-auto` poussait sur l'axe croise
-          d'une colonne au lieu de chasser en fin de rangee. */}
-      <Card className="mb-2 flex flex-row flex-wrap items-center gap-x-2 gap-y-1.5 border-border p-1.5">
-        {/* `text-faint` plafonne a 2,48:1 (contrat UI) : sous le seuil AA meme
-            pour du grand texte, et ici applique a des capitales minuscules.
-            `text-muted-foreground` monte a 4,80:1. */}
-        <span className="text-2xs font-semibold uppercase tracking-wide text-muted-foreground">
-          {t('connectedObjects.linkedServices')}
-        </span>
-        {visibleProviders.length === 0 && !loading ? (
-          <span className="text-xs text-muted-foreground opacity-60">{t('connectedObjects.noLinkedService')}</span>
-        ) : (
-          visibleProviders.map((p) => (
-            <Tooltip key={p.provider}>
-              {/* Le declencheur pose une ref sur son enfant, que StatusChip ne transmet
-                  pas (React 18, composant fonction) : sans ce span, l'infobulle ne s'ancre pas. */}
-              <TooltipTrigger asChild>
-                <span className="inline-flex">
-                  {/* Ton sémantique du kit : connecté = succès, à reconnecter = avertissement.
-                      Le couple `-ink` / `-soft` de StatusChip tient l'AA dans les deux thèmes. */}
-                  <StatusChip
-                    tone={p.connected ? 'ok' : 'warn'}
-                    label={(
-                      <span className="inline-flex items-center gap-1">
-                        {/* Sur un rang de pastilles, la teinte seule ne dit pas
-                            LAQUELLE pose probleme a qui ne distingue pas le vert
-                            de l'ambre. L'icone ne parait que sur l'exception. */}
-                        {!p.connected && <Warning size={11} strokeWidth={2} />}
-                        <span>{PROVIDER_LABELS[p.provider] ?? p.provider}</span>
-                        {/* Le compteur est la donnee qu'on vient lire : contraste
-                            de graisse plutot qu'un « · » qui mettait le nom et le
-                            nombre sur le meme plan. */}
-                        <span className="font-semibold tabular-nums">{p.deviceCount}</span>
-                      </span>
-                    )}
-                    className="h-[24px]"
-                  />
-                </span>
-              </TooltipTrigger>
-              <TooltipContent>{p.connected ? 'Connecté' : t('connectedObjects.disconnectedHint')}</TooltipContent>
-            </Tooltip>
-          ))
-        )}
-        {/* Action du bandeau, pas de l'ecran : `outline` pour ne pas concurrencer
-            « Ajouter un objet » qui reste l'action principale de la page. */}
-        {!netatmoConnected && (
-          <BuiButton variant="outline" size="sm" onClick={() => { void connectNetatmo(); }} className="ms-auto">
-            Connecter Netatmo
-          </BuiButton>
-        )}
-        <BuiButton
-          variant="ghost"
-          size="sm"
-          onClick={() => navigate('/settings?tab=integrations')}
-          className={cn('text-muted-foreground', netatmoConnected ? 'ms-auto' : 'ms-1.5')}
-        >
-          {t('connectedObjects.manageIntegrations')}
-          <ChevronRight size={14} strokeWidth={1.75} />
-        </BuiButton>
-      </Card>
-
-      {/* KPIs — les tuiles de la projection : la teinte ne porte que sur
-          l'icone, et seulement la ou elle dit quelque chose. */}
-      <StatTileRow compact className="mb-[9px]">
-        <StatTile icon={<Inventory2 />} label="Objets" value={String(kpis.total)} loading={loading} />
-        <StatTile
-          icon={<MonitorHeart />}
-          label="En ligne"
-          value={String(kpis.online)}
-          unit={`/ ${kpis.total}`}
-          iconClassName="text-success"
-          hint={kpis.total ? `${Math.round((kpis.online / kpis.total) * 100)} % du parc` : undefined}
-          loading={loading}
-        />
-        <StatTile icon={<WifiOff />} label="Hors ligne" value={String(kpis.offline)} iconClassName={kpis.offline > 0 ? 'text-destructive' : undefined} loading={loading} />
-        <StatTile icon={<Warning />} label="Alertes" value={String(kpis.alerts)} iconClassName={kpis.alerts > 0 ? 'text-warning' : undefined} loading={loading} />
-        <StatTile icon={<BatteryAlert />} label="Batterie faible" value={String(kpis.lowBattery)} iconClassName={kpis.lowBattery > 0 ? 'text-warning' : undefined} loading={loading} />
-      </StatTileRow>
-
-      {/* Filtre par type */}
-      {kindsPresent.length > 1 && (
-        <div className="mb-2">
-          <FilterChipRow<DeviceKind>
-            value={kindFilter}
-            onChange={setKindFilter}
-            allLabel="Tous les objets"
-            allCount={devices.length}
-            options={kindsPresent.map((k) => ({
-              value: k,
-              label: t(DEVICE_KINDS[k].labelKey),
-              color: DEVICE_KINDS[k].color,
-              count: devices.filter((d) => d.kind === k).length,
-            }))}
-          />
-        </div>
-      )}
-
-      {/* Contenu : grille groupée par logement */}
-      {loading ? (
-        <div className={GRID}>
-          {Array.from({ length: 6 }).map((_, i) => (
-            <Skeleton key={i} className="h-[132px] rounded-xl" />
-          ))}
-        </div>
-      ) : filteredGroups.length === 0 ? (
-        <EmptyState
-          icon={<Inventory2 />}
-          title={t('connectedObjects.empty.title')}
-          description={hasConnectedService
-            ? t('connectedObjects.empty.linked')
-            : t('connectedObjects.empty.notLinked')}
-          action={hasConnectedService
-            ? <BuiButton onClick={() => setWizardOpen(true)}><Add size={16} strokeWidth={2} />{t('connectedObjects.addDevice')}</BuiButton>
-            : <BuiButton variant="outline" onClick={() => navigate('/settings?tab=integrations')}><Add size={16} strokeWidth={2} />{t('connectedObjects.connectService')}</BuiButton>}
-          tip={t('connectedObjects.empty.tip')}
-        />
-      ) : (
-        filteredGroups.map((group) => (
-          <div className="mb-3" key={group.propertyId ?? 'none'}>
-            <div className="mb-[5.25px] flex flex-wrap items-center gap-x-3 gap-y-1">
-              <div
-                onClick={group.propertyId != null ? () => navigate(`/connected-objects/property/${group.propertyId}`) : undefined}
-                className={cn(
-                  'group flex items-center gap-[4.5px] w-fit',
-                  group.propertyId != null ? 'cursor-pointer' : 'cursor-default',
-                )}
-              >
-                <span className="text-muted-foreground inline-flex">
-                  <Home size={15} strokeWidth={1.75} />
-                </span>
-                <p
-                  className={cn(
-                    'text-[0.9375rem] font-semibold text-foreground transition-colors duration-150',
-                    group.propertyId != null && 'group-hover:text-primary',
-                  )}
-                >{group.propertyName}</p>
-                <span className="text-xs text-muted-foreground opacity-60">· {group.devices.length} objet{group.devices.length > 1 ? 's' : ''}</span>
-                {group.propertyId != null && (
-                  <span className="text-muted-foreground opacity-60 inline-flex ms-0.5">
-                    <ChevronRight size={15} strokeWidth={1.75} />
-                  </span>
-                )}
-              </div>
-
-              {/* Le digicode appartient au LOGEMENT : une seule fois ici, plutôt
-                  qu'une fois par serrure. Rendu hors de la rangée cliquable
-                  (qui navigue), et seulement si le groupe porte au moins une
-                  serrure — c'est le code qui complète leurs codes de séjour. */}
-              {group.propertyId != null && group.devices.some((d) => d.kind === 'lock') && (
-                <PropertyAccessCodeChip propertyId={group.propertyId} />
-              )}
-            </div>
-            <div className={GRID}>
-              {group.devices.map((d) => (
-                <DeviceCard key={d.uid} device={d} onAction={handleAction} acting={actingUid === d.uid} />
-              ))}
-            </div>
-          </div>
-        ))
-      )}
-
-      {/* Types à venir (caméras, thermostats) — place réservée */}
-      {comingSoon.length > 0 && (
-        <div className="mt-1.5">
-          <span className="text-2xs font-semibold uppercase tracking-wide text-faint block mb-1">
-            {t('connectedObjects.comingSoon')}
-          </span>
-          <div className="flex gap-1.5 flex-wrap">
-            {comingSoon.map((k) => {
-              const meta = DEVICE_KINDS[k];
-              const previewRoute = PREVIEW_ROUTES[k];
-              return (
-                <Tooltip key={k}>
-                  <TooltipTrigger asChild>
-                    <div
-                      onClick={previewRoute ? () => navigate(previewRoute) : undefined}
-                      className={cn(
-                        'inline-flex items-center gap-[5.25px] px-[7.5px] py-[5.25px]',
-                        'rounded-lg border border-dashed border-border bg-card',
-                        'transition-[border-color,background-color] duration-200',
-                        previewRoute
-                          ? 'opacity-100 cursor-pointer hover:border-[var(--co-preview)] hover:bg-[var(--co-preview-soft)]'
-                          : 'opacity-70 cursor-default',
-                      )}
-                      // Teintes derivees de la couleur du type d'objet, connue a
-                      // l'execution : variables CSS plutot que classes.
-                      style={{
-                        '--co-preview': meta.color,
-                        '--co-preview-soft': `color-mix(in srgb, ${meta.color} 5%, transparent)`,
-                      } as CSSProperties}
-                    >
-                      <span className="inline-flex" style={{ color: meta.color }}>{meta.icon(16)}</span>
-                      <p className="text-xs text-muted-foreground font-medium">{t(meta.labelKey)}</p>
-                      {previewRoute ? (
-                        <>
-                          {/* Couleur de TYPE (hex du registre) : `color` compose lui-même le fond doux. */}
-                          <StatusChip size="sm" color={meta.color} label={t('connectedObjects.previewBadge')} className="text-[0.65rem]" />
-                          <span className="text-muted-foreground opacity-60 inline-flex"><ChevronRight size={14} strokeWidth={1.75} /></span>
-                        </>
-                      ) : (
-                        <Badge variant="secondary" className="h-[18px] text-[0.65rem]">{t('connectedObjects.comingSoonShort')}</Badge>
-                      )}
-                    </div>
-                  </TooltipTrigger>
-                  <TooltipContent>{previewRoute ? t('connectedObjects.previewOf', { kind: t(meta.labelKey) }) : t('common.comingSoon')}</TooltipContent>
-                </Tooltip>
-              );
-            })}
-          </div>
-        </div>
-      )}
-
-      <AddDeviceWizard open={wizardOpen} onClose={() => setWizardOpen(false)} onAdded={() => { void refetch(); }} />
-    </div>
-  );
+  const actions = <div className="bir-header-controls">
+    {propertyId == null && <NativeSelect aria-label={t('connectedRooms.chooseProperty')} value={group ? String(group.propertyId ?? 'none') : ''}
+      onChange={event => setParams({ property: event.target.value }, { replace: true })}>
+      {!availableGroups.length && <NativeSelectOption value="">{t('connectedRooms.chooseProperty')}</NativeSelectOption>}
+      {availableGroups.map(item => <NativeSelectOption key={item.propertyId ?? 'none'} value={String(item.propertyId ?? 'none')}>{item.propertyName}</NativeSelectOption>)}
+    </NativeSelect>}
+    <NativeSelect aria-label={t('connectedRooms.filterKind')} value={kindFilter} onChange={event => setParams(current => {
+      const next = new URLSearchParams(current); next.delete('device');
+      if (event.target.value) next.set('kind', event.target.value); else next.delete('kind');
+      return next;
+    }, { replace: true })}>
+      <NativeSelectOption value="">{t('connectedRooms.allDevices')}</NativeSelectOption>
+      {DEVICE_KIND_ORDER.map(kind => <NativeSelectOption key={kind} value={kind}>{t(DEVICE_KINDS[kind].labelKey)}</NativeSelectOption>)}
+    </NativeSelect>
+    <Button size="icon" variant="ghost" aria-label={t('common.refresh')} title={t('common.refresh')} disabled={refreshing} onClick={() => { void refresh(); }}><RefreshCw size={17} /></Button>
+    <Button size="icon" variant="ghost" aria-label={t('connectedObjects.manageIntegrations')} title={t('connectedObjects.manageIntegrations')} onClick={() => navigate('/settings?tab=integrations')}><Settings2 size={17} /></Button>
+    <Button size="sm" onClick={() => setAdding({ propertyId: group?.propertyId ?? null })}><Plus size={17} />{t('connectedObjects.addDevice')}</Button>
+  </div>;
+  const headerActions = usePageHeaderActions(embedded ? actions : null);
+  return <div className="bir-page">
+    {embedded ? headerActions : <PageHeader title={propertyId != null ? group?.propertyName ?? t('connectedObjects.title') : t('connectedObjects.title')}
+      iconBadge={<Plug />} showBackButton={false} actions={actions} />}
+    <ConnectedObjectsSummary key={`summary-${group?.propertyId ?? 'none'}`} group={group} providers={providers} loading={loading}
+      onViewDevice={uid => { void onAction(uid, 'view'); }} onConnectNetatmo={connectNetatmo}
+      onManageServices={() => navigate('/settings?tab=integrations')} />
+    {error && <p role="alert" className="bir-error">{t('connectedRooms.loadError')} <Button variant="outline" onClick={() => { void refresh(); }}>{t('common.retry')}</Button></p>}
+    {loading || (!group && propertiesQuery.isLoading) ? <Skeleton className="h-[540px] w-full rounded-2xl" aria-label={t('common.loading')} />
+      : group ? <ConnectedRoomExplorer key={group.propertyId ?? 'none'} group={group} property={property} kindFilter={kindFilter} actingUid={actingUid} onAction={onAction} onAdd={setAdding}
+        selectedDeviceUid={selectedUid} onDeviceSelect={selectDevice} />
+        : <div className="bir-empty-room"><img src="/images/notifications/property.webp" width={80} height={80} alt="" /><h2>{t('connectedObjects.empty.title')}</h2>
+          <p>{t('connectedRooms.noPropertyHint')}</p><Button onClick={() => setAdding({ propertyId: null })}><Plus size={16} />{t('connectedObjects.addDevice')}</Button></div>}
+    {adding && <AddDeviceWizard open onClose={() => setAdding(null)} onAdded={() => { void refetch(); }} defaultPropertyId={adding.propertyId} defaultRoomName={adding.roomName} />}
+  </div>;
 }

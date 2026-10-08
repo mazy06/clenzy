@@ -1,4 +1,4 @@
-import { useLayoutEffect, useMemo, useRef, useState, type ReactNode } from 'react';
+import { useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { CheckIcon, SearchIcon, SendIcon, StarIcon } from 'lucide-react';
 import {
   AccessTime,
@@ -23,11 +23,12 @@ import {
   NativeSelectOption,
 } from '../../src/components/ui/native-select';
 import { AGENT_IDS, AGENT_META } from '../../src/modules/supervision/constants';
-import { AgentIcon } from '../../src/modules/supervision/renderers/agentIcon';
+import AgentIcon from './SiteAgentIcon';
 import { useElementSize } from '../../src/modules/supervision/core/useElementSize';
 import {
   fitOrbitSide,
   orbitRadiusFor,
+  orbitVerticalLayout,
   ORBIT_NODE_SIZE as NODE_SIZE,
   ORBIT_LABEL_ROOM_PX as LABEL_ROOM_PX,
 } from '../../src/modules/supervision/core/orbitGeometry';
@@ -54,6 +55,7 @@ import '../../src/modules/supervision/components/action-description.css';
 import '../../src/modules/supervision/components/action-illustration.css';
 import '../../src/modules/supervision/components/action-modal.css';
 import '../../src/modules/supervision/components/constellation-agent-list.css';
+import '../../src/modules/supervision/components/constellation-toolbar.css';
 import reviewsVisual from '../../public/images/hitl/reviews.webp';
 import maintenanceVisual from '../../public/images/hitl/maintenance.webp';
 import preventiveVisual from '../../public/images/hitl/property-maintenance.webp';
@@ -232,32 +234,36 @@ export function AgentsBoard({
       style={{ height }}
     >
       <style>{DATA_FLOW_STYLES}</style>
-      <div className="bad-board-head" data-board-header>
-        <h2>
-          {m.board.title}
-          <span className="bad-board-pending">
-            {demoNumber(total, language)} {m.board.toValidate}
+      <header className="baitly-constellation-toolbar" data-board-header>
+        <div className="baitly-constellation-toolbar__identity">
+          <div className="baitly-constellation-toolbar__heading">
+            <h2>{m.board.title}</h2>
+            <span className="baitly-constellation-toolbar__pending bad-board-pending">
+              <b>{demoNumber(total, language)}</b> {m.board.toValidate}
+            </span>
+          </div>
+          <div className="baitly-constellation-toolbar__meta">
+            <span><b>{demoNumber(10, language)}</b> {m.board.agents}</span>
+            <span><b>{demoNumber(1, language)}</b> {m.board.acting}</span>
+            <span className="baitly-constellation-toolbar__state" data-state="online"><i />{m.board.active}</span>
+          </div>
+        </div>
+        <div className="baitly-constellation-toolbar__controls">
+          <span className="baitly-constellation-views flex" role="group">
+            <span className="baitly-constellation-view" data-view-toggle="cards" data-state={state.view === 'cards' ? 'on' : 'off'} title={m.board.cardsView}>
+              <GridView size={15} strokeWidth={1.75} />{m.board.cardsLabel}
+            </span>
+            <span className="baitly-constellation-view" data-view-toggle="orbit" data-state={state.view === 'orbit' ? 'on' : 'off'} title={m.board.orbitView}>
+              <Orbit size={15} strokeWidth={1.75} />{m.board.orbitLabel}
+            </span>
+            <span className="baitly-constellation-view" data-state="off">
+              <ViewList size={15} strokeWidth={1.75} />{m.board.activity}
+            </span>
           </span>
-        </h2>
-        <p>
-          {demoNumber(10, language)} {m.board.agents} · {demoNumber(1, language)} {m.board.acting} · {m.board.active}
-          <Info size={14} strokeWidth={1.75} />
-        </p>
-        <span className="bad-toggle" role="group">
-          <span data-view-toggle="cards" data-on={state.view === 'cards'} title={m.board.cardsView}>
-            <GridView size={15} strokeWidth={1.75} />
-          </span>
-          <span data-view-toggle="orbit" data-on={state.view === 'orbit'} title={m.board.orbitView}>
-            <Orbit size={15} strokeWidth={1.75} />
-          </span>
-          <span data-on={false} title={m.board.activity}>
-            <ViewList size={15} strokeWidth={1.75} />
-          </span>
-        </span>
-        <span className="bad-radar">
-          <Radar size={15} strokeWidth={1.75} />
-        </span>
-      </div>
+          <span className="baitly-constellation-tool"><Info size={15} />{m.board.report}</span>
+          <span className="baitly-constellation-tool baitly-constellation-tool--scan"><Radar size={15} />{m.board.scan}</span>
+        </div>
+      </header>
 
       <div className="bad-board-content">
         {state.view === 'orbit' ? (
@@ -316,34 +322,83 @@ function OrbitView({
   const angleFor = (slot: number) => rtl ? 180 - slot * 36 : slot * 36;
   const slotAngle = rtl ? -135 : -45;
   const [orbitRef, box] = useElementSize<HTMLDivElement>();
-  const side = fitOrbitSide(box.width, box.height);
+  const squareRef = useRef<HTMLDivElement>(null);
+  const [vertical, setVertical] = useState({ room: LABEL_ROOM_PX, offset: 0 });
+  const side = fitOrbitSide(box.width, box.height, vertical.room);
   const radius = orbitRadiusFor(side);
   const index = AGENT_IDS.indexOf(selected);
-  /* Rotation « déroulée » au plus court chemin, comme le diagramme réel. */
+  // Comme dans le PMS, les portraits ne gardent aucune couche tournée au repos.
   const rotationRef = useRef(slotAngle - angleFor(index));
-  let target = slotAngle - angleFor(index);
-  while (target - rotationRef.current > 180) target -= 360;
-  while (target - rotationRef.current < -180) target += 360;
-  rotationRef.current = target;
-  const rotation = target;
+  const [rotation, setRotation] = useState(rotationRef.current);
+  const [settledRotation, setSettledRotation] = useState(rotationRef.current);
+  const [rotating, setRotating] = useState(false);
+  useEffect(() => {
+    let target = slotAngle - (rtl ? 180 - index * 36 : index * 36);
+    while (target - rotationRef.current > 180) target -= 360;
+    while (target - rotationRef.current < -180) target += 360;
+    const changed = Math.abs(target - rotationRef.current) > 0.5;
+    rotationRef.current = target;
+    setRotation(target);
+    if (!changed || !playing) {
+      setSettledRotation(target);
+      setRotating(false);
+      return;
+    }
+    setRotating(true);
+    const timer = window.setTimeout(() => {
+      setSettledRotation(target);
+      setRotating(false);
+    }, 600);
+    return () => window.clearTimeout(timer);
+  }, [index, rtl, slotAngle, playing]);
+  const visualRotation = rotation - settledRotation;
+
+  useLayoutEffect(() => {
+    const square = squareRef.current;
+    if (!square || side <= 0 || rotating) return;
+    const elements = [...square.querySelectorAll<HTMLElement>(
+      '.baitly-orbit-node, .baitly-orbit-count, .bad-orbit-label, .baitly-orbit-core',
+    )];
+    const measure = () => {
+      const origin = square.getBoundingClientRect();
+      const scale = origin.height / side;
+      if (scale <= 0) return;
+      const bounds = elements.map(element => element.getBoundingClientRect()).filter(rect => rect.height > 0);
+      if (!bounds.length) return;
+      const next = orbitVerticalLayout(side,
+        (Math.min(...bounds.map(rect => rect.top)) - origin.top) / scale,
+        (Math.max(...bounds.map(rect => rect.bottom)) - origin.top) / scale);
+      setVertical(previous => Math.abs(previous.room - next.room) < .5 && Math.abs(previous.offset - next.offset) < .5 ? previous : next);
+    };
+    measure();
+    if (typeof ResizeObserver === 'undefined') return;
+    let frame = 0;
+    const observer = new ResizeObserver(() => {
+      cancelAnimationFrame(frame);
+      frame = requestAnimationFrame(measure);
+    });
+    elements.forEach(element => observer.observe(element));
+    return () => { observer.disconnect(); cancelAnimationFrame(frame); };
+  }, [side, selected, counts, language, rotating, settledRotation, box.width, box.height]);
 
   return (
-    <div ref={orbitRef} className="baitly-supervision-surface baitly-orbit bad-orbit" data-orbit>
+    <div ref={orbitRef} className="baitly-supervision-surface baitly-orbit bad-orbit" data-orbit data-rotating={rotating || undefined}>
       <div
+        ref={squareRef}
         data-supervision-constellation
         className="relative aspect-square shrink-0"
         style={side > 0
-          ? { width: side, height: side, marginBottom: LABEL_ROOM_PX }
+          ? { width: side, height: side, transform: `translateY(${vertical.offset}px)` }
           : { width: '100%' }}
       >
         <svg viewBox="0 0 100 100" className="absolute inset-0 size-full" aria-hidden>
           <circle cx="50" cy="50" r={radius} fill="none" className="baitly-orbit-track" vectorEffect="non-scaling-stroke" strokeWidth="1" />
         </svg>
-        <div className="oc-ring absolute inset-0" style={{ transform: `rotate(${rotation}deg)` }}>
+        <div className="oc-ring absolute inset-0" style={{ transform: rotating ? `rotate(${visualRotation}deg)` : 'none' }}>
           <svg viewBox="0 0 100 100" className="absolute inset-0 size-full" aria-hidden>
             {AGENT_IDS.map((id, i) => {
-              const from = polar(angleFor(i), FLOW_LEG_START);
-              const to = polar(angleFor(i), radius - NODE_SIZE / 2 - 0.6);
+              const from = polar(angleFor(i) + settledRotation, FLOW_LEG_START);
+              const to = polar(angleFor(i) + settledRotation, radius - NODE_SIZE / 2 - 0.6);
               const length = radius - NODE_SIZE / 2 - 0.6 - FLOW_LEG_START;
               const focused = id === selected;
               return (
@@ -363,7 +418,7 @@ function OrbitView({
             })}
           </svg>
           {AGENT_IDS.map((id, i) => {
-            const point = polar(angleFor(i), radius);
+            const point = polar(angleFor(i) + settledRotation, radius);
             const pending = counts[id];
             const isSelected = id === selected;
             const working = id === 'gro';
@@ -382,7 +437,7 @@ function OrbitView({
                   top: `${point.y}%`,
                   width: `${NODE_SIZE}%`,
                   height: `${NODE_SIZE}%`,
-                  transform: `translate(-50%, -50%) rotate(${-rotation}deg)`,
+                  transform: rotating ? `translate(-50%, -50%) rotate(${-visualRotation}deg)` : 'translate(-50%, -50%)',
                 }}
               >
                 <svg className="baitly-orbit-rim" viewBox="0 0 100 100" aria-hidden>

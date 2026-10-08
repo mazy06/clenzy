@@ -1,14 +1,16 @@
 import { useEffect, useState } from 'react';
 import { SiteMoneyText } from './SiteMoney';
 import { CircleCheckIcon } from 'lucide-react';
-import { useReducedMotion } from './mockupKit';
+import { useBaitlyDemoVisibility } from './useBaitlyDemoVisibility';
+import { SiteAgentPortrait } from './SiteProductVisuals';
+import type { AgentId } from '../../src/modules/supervision/types';
 import { useSiteLanguage } from '../lib/siteLanguage';
 import { HOME_MESSAGES } from '../lib/messages/home';
 import { SITE_ACTION_ARTWORK } from '../data/actionArtwork';
 
 /**
  * Actions des agents dans le visuel d'accueil : une scène concrète par scénario.
- * Les images appartiennent au site et les cartes conservent leur rythme de lecture.
+ * Les illustrations sont partagées avec le PMS ; les cartes gardent leur rythme de lecture.
  */
 
 /** Une scène par action, dans l'ordre commun aux trois dictionnaires de l'accueil. */
@@ -29,29 +31,35 @@ const AGENT_ARTWORK = [
 /** Temps de lecture d'une carte : deux lignes courtes, sans se sentir presse. */
 const INTERVAL_MS = 4200;
 const LEAVE_MS = 460;
+const AGENT_IDS = ['com', 'rev', 'ops', 'cmp', 'sync', 'fin', 'gst', 'rep', 'own', 'gro', 'gst'] satisfies AgentId[];
 
 export default function AgentActionDeck() {
   const { language } = useSiteLanguage();
   const m = HOME_MESSAGES[language].hero;
   const cards = m.agentDeck;
-  const reduced = useReducedMotion();
+  const { visibilityRef, active, reduced } = useBaitlyDemoVisibility();
   const [top, setTop] = useState(0);
   const [leaving, setLeaving] = useState(false);
 
   useEffect(() => {
-    if (reduced) return;
+    setLeaving(false);
+    if (!active || reduced) return;
+    let leaveTimer: number | undefined;
     const timer = window.setInterval(() => {
       setLeaving(true);
-      window.setTimeout(() => {
+      leaveTimer = window.setTimeout(() => {
         setTop((current) => (current + 1) % cards.length);
         setLeaving(false);
       }, LEAVE_MS);
     }, INTERVAL_MS);
-    return () => window.clearInterval(timer);
-  }, [reduced, cards.length]);
+    return () => {
+      window.clearInterval(timer);
+      window.clearTimeout(leaveTimer);
+    };
+  }, [active, reduced, cards.length]);
 
   return (
-    <div className="baitly-agent-deck">
+    <div className="baitly-agent-deck" ref={visibilityRef}>
       {cards.map((card, index) => {
         /* Position dans la pile : 0 = dessus. Au-dela de deux cartes, plus
            rien n'est visible — les rendre couterait sans se voir. */
@@ -80,7 +88,7 @@ export default function AgentActionDeck() {
             />
             <div>
               <span className="baitly-note-label">
-                {m.noteLabel} · {card.agent}
+                <SiteAgentPortrait agent={AGENT_IDS[index]} size={26} /> {card.agent}
               </span>
               <strong>{card.title}</strong>
               <p>

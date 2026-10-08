@@ -1,4 +1,4 @@
-import { defineConfig } from 'vite';
+import { defineConfig, loadEnv } from 'vite';
 import react from '@vitejs/plugin-react';
 import tailwindcss from '@tailwindcss/vite';
 import { fileURLToPath } from 'node:url';
@@ -10,12 +10,19 @@ import { baitlySiteSeo } from './tooling/baitlySiteSeo';
  * Réutilise la bibliothèque Baitly UI (client/src/components/ui + theme) sans
  * MUI ni le runtime applicatif. Dev : `npm run dev:site` → http://localhost:3005.
  */
-export default defineConfig({
+export default defineConfig(({ mode }) => ({
   root: fileURLToPath(new URL('./site', import.meta.url)),
   // Cache de pré-bundling SÉPARÉ de celui de l'app PMS : partager
   // node_modules/.vite entre les deux roots produit deux copies de React
   // (« Invalid hook call » au boot).
   cacheDir: fileURLToPath(new URL('./node_modules/.vite-site', import.meta.url)),
+  // Reuse only the public map token from the PMS env, not its auth/API settings.
+  // Runtime deployment config continues to take precedence over this dev/build fallback.
+  define: {
+    'import.meta.env.VITE_MAPBOX_TOKEN': JSON.stringify(
+      loadEnv(mode, fileURLToPath(new URL('.', import.meta.url)), 'VITE_MAPBOX_TOKEN').VITE_MAPBOX_TOKEN ?? '',
+    ),
+  },
   resolve: {
     dedupe: ['react', 'react-dom'],
     alias: {
@@ -35,4 +42,4 @@ export default defineConfig({
     outDir: fileURLToPath(new URL('./dist-site', import.meta.url)),
     emptyOutDir: true,
   },
-});
+}));

@@ -1,6 +1,5 @@
 import { memo, useCallback, useEffect, useRef, useState } from 'react';
 import { cn } from '../../../utils/cn';
-import StatusChip from '../../../components/StatusChip';
 import { Button, Tooltip, TooltipContent, TooltipTrigger } from '../../../components/ui';
 import { PlayArrow, StopCircle, FiberManualRecord, Fullscreen, FullscreenExit, WifiOff, PhotoCamera, Delete } from '../../../icons';
 import type { CameraDto } from '../../../services/api/camerasApi';
@@ -21,6 +20,7 @@ interface CameraTileProps {
   onToggle: (id: number) => void;
   onDelete?: (id: number) => void;
   acting?: boolean;
+  compact?: boolean;
 }
 
 /**
@@ -32,12 +32,13 @@ interface CameraTileProps {
  * go2rtc maintenue active côté serveur). Démonter l'iframe ferme la connexion et libère
  * la source. Mémoïsée : seules les tuiles dont une prop change re-rendent à chaque bascule.
  */
-function CameraTile({ camera, active, onToggle, onDelete, acting = false }: CameraTileProps) {
+function CameraTile({ camera, active, onToggle, onDelete, acting = false, compact = false }: CameraTileProps) {
   const { t } = useTranslation();
   const feedRef = useRef<HTMLDivElement>(null);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [posterOk, setPosterOk] = useState(true);
   const { id, name, roomName, brand, online, recording } = camera;
+  const canPlay = online && !!camera.webrtcUrl && !acting;
 
   // Poster : image fixe du flux (go2rtc frame.jpeg) affichée avant lecture, à la place de la
   // dalle noire. Null si hors ligne / en lecture / pas de snapshot / image en erreur.
@@ -64,17 +65,18 @@ function CameraTile({ camera, active, onToggle, onDelete, acting = false }: Came
       {/* ── Zone feed 16:9 ── */}
       <div
         ref={feedRef}
-        role={online ? 'button' : undefined}
-        tabIndex={online ? 0 : undefined}
-        onClick={() => online && onToggle(id)}
+        role={canPlay && !active ? 'button' : undefined}
+        aria-label={canPlay && !active ? t('connectedObjects.camera.play') : undefined}
+        tabIndex={canPlay && !active ? 0 : undefined}
+        onClick={() => canPlay && !active && onToggle(id)}
         onKeyDown={(e) => {
-          if (online && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); onToggle(id); }
+          if (canPlay && !active && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); onToggle(id); }
         }}
         style={{ backgroundColor: FEED_BG }}
         className={cn(
           'group/feed relative aspect-[16/9] flex items-center justify-center outline-none',
           'focus-visible:shadow-[inset_0_0_0_2px_#C97A7A]',
-          online ? 'cursor-pointer' : 'cursor-default',
+          canPlay && !active ? 'cursor-pointer' : 'cursor-default',
         )}
       >
         {/* Fond : poster (snapshot du flux) si dispo, sinon dégradé radial sombre. Le poster
@@ -89,9 +91,9 @@ function CameraTile({ camera, active, onToggle, onDelete, acting = false }: Came
         {/* Pills haut */}
         <div className="absolute top-[8px] start-[8px] end-[8px] flex items-center justify-between z-[2]">
           {online ? (
-            <StatusChip tokens={{ color: OVERLAY_INK, bg: 'color-mix(in srgb, #4A9B8E 92%, transparent)' }} label="EN DIRECT" icon={<FiberManualRecord size={9} />} className="h-[20px] text-2xs tracking-[0.06em]" />
+            <span className="inline-flex items-center gap-1.5 text-xs" style={{ color: OVERLAY_INK }}><FiberManualRecord size={8} />{t(active ? 'connectedRooms.inspector.videoPlaying' : 'connectedRooms.inspector.videoPreview')}</span>
           ) : (
-            <StatusChip tokens={{ color: OVERLAY_INK, bg: 'color-mix(in srgb, #9CA3AF 85%, transparent)' }} label="Hors ligne" className="h-[20px] text-2xs" />
+            <span className="inline-flex items-center gap-1.5 text-xs" style={{ color: OVERLAY_INK }}><WifiOff size={12} />{t('connectedRooms.offline')}</span>
           )}
           {recording && (
             <Tooltip>
@@ -104,7 +106,7 @@ function CameraTile({ camera, active, onToggle, onDelete, acting = false }: Came
         </div>
 
         {/* Centre : play à la demande / état flux / injoignable */}
-        {online ? (
+        {online && camera.webrtcUrl ? (
           active ? (
             camera.webrtcUrl ? (
               <iframe
@@ -127,8 +129,8 @@ function CameraTile({ camera, active, onToggle, onDelete, acting = false }: Came
           )
         ) : (
           <div className="relative z-[2] flex flex-col items-center gap-[3px] text-[color-mix(in_srgb,#F4F7F9_45%,transparent)]">
-            <WifiOff size={22} />
-            <p className="text-2xs">{t('connectedObjects.cameras.unreachable')}</p>
+            <PhotoCamera size={22} />
+            <p className="text-xs text-center px-4">{t(online ? 'connectedObjects.cameras.streamUnavailable' : 'connectedObjects.cameras.unreachable')}</p>
           </div>
         )}
 
@@ -154,14 +156,14 @@ function CameraTile({ camera, active, onToggle, onDelete, acting = false }: Came
         )}
 
         {/* Overlay bas : nom + pièce */}
-        <div className="absolute start-[10px] end-[10px] bottom-[8px] z-[2]">
+        {!compact && <div className="absolute start-[10px] end-[10px] bottom-[8px] z-[2]">
           <p dir="auto" className="text-[#F4F7F9] font-bold text-[0.8rem] leading-[1.2] overflow-hidden text-ellipsis whitespace-nowrap" style={{ textShadow: '0 1px 4px rgba(12,18,22,0.7)' }}>
             {name}
           </p>
           {roomName && (
             <p className="text-2xs text-[color-mix(in_srgb,#F4F7F9_78%,transparent)]" style={{ textShadow: '0 1px 3px rgba(12,18,22,0.7)' }}>{roomName}</p>
           )}
-        </div>
+        </div>}
       </div>
 
       {/* ── Footer : marque + actions ── */}
@@ -170,7 +172,7 @@ function CameraTile({ camera, active, onToggle, onDelete, acting = false }: Came
         <span className="text-xs text-muted-foreground font-semibold">{brand || 'Caméra'}</span>
         <div className="ms-auto flex gap-0.5">
           {/* Lecture/Arrêt — contrôle fiable au-dessus de l'iframe (le clic sur le feed est capté par l'iframe une fois lancée). */}
-          {online && (
+          {online && camera.webrtcUrl && (
             <Tooltip>
               <TooltipTrigger asChild>
                 <span className="inline-flex">
@@ -178,6 +180,7 @@ function CameraTile({ camera, active, onToggle, onDelete, acting = false }: Came
                     variant="ghost"
                     size="icon-sm"
                     aria-label={active ? t('connectedObjects.camera.stop') : t('connectedObjects.camera.play')}
+                    disabled={acting}
                     onClick={() => onToggle(id)}
                     className={cn('hover:text-[#C97A7A]', active ? 'text-[#C97A7A]' : 'text-muted-foreground')}
                   >

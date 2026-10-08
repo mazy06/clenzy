@@ -3,6 +3,9 @@ import { cn } from '../../utils/cn';
 import StatusChip from '../../components/StatusChip';
 import { Alert as UiAlert, AlertDescription, Button as BuiButton } from '../../components/ui';
 import { TriangleAlert } from 'lucide-react';
+import { usePageHeaderActions } from '../../components/PageHeaderActionsContext';
+import { PropertyTabHeading, PropertyTabLoading } from '../properties/PropertyTabPrimitives';
+import { PROPERTY_ART } from '../properties/propertyArtwork';
 import { Spinner } from '../../components/ui';
 import {
   Field,
@@ -25,14 +28,8 @@ import {
   TooltipContent,
 } from '../../components/ui';
 import {
-  VpnKey as KeyIcon,
   Wifi as WifiIcon,
-  LocalParking as ParkingIcon,
-  FlightLand as ArrivalIcon,
-  FlightTakeoff as DepartureIcon,
-  Gavel as RulesIcon,
   Phone as PhoneIcon,
-  Notes as NotesIcon,
   Save as SaveIcon,
   Visibility,
   VisibilityOff,
@@ -84,69 +81,20 @@ const slugify = (label: string) =>
 // ─── Section card ───────────────────────────────────────────────────────────
 
 interface SectionCardProps {
-  icon: React.ReactElement;
-  accentColor: string;
+  art: string;
+  active: boolean;
   title: string;
   description?: string;
   children: React.ReactNode;
   filledCount?: number;
   totalCount?: number;
 }
-
-function SectionCard({ icon, accentColor, title, description, children, filledCount, totalCount }: SectionCardProps) {
-  const showProgress = filledCount !== undefined && totalCount !== undefined;
-  const allFilled = showProgress && filledCount === totalCount;
-
-  return (
-    // La teinte d'accent est connue a l'execution : elle passe par des variables
-    // CSS inline, ce qui permet aux classes de survol (litterales, donc emises a
-    // la compilation) de la consommer. L'accent de section vit dans la pastille
-    // d'icone — pas de bande laterale coloree (interdit produit).
-    <div
-      className="relative p-[15px] rounded-xl border border-border bg-card overflow-hidden transition-[border-color,box-shadow] duration-200 motion-reduce:transition-none hover:border-[var(--section-accent)] hover:shadow-[0_1px_2px_var(--section-accent-shadow)]"
-      style={{
-        '--section-accent': accentColor,
-        '--section-accent-shadow': `color-mix(in srgb, ${accentColor} 10%, transparent)`,
-      } as React.CSSProperties}
-    >
-      <div className="flex items-start gap-2 mb-3">
-        <div className="w-[36px] h-[36px] rounded-lg flex items-center justify-center shrink-0" style={{ color: accentColor, backgroundColor: `color-mix(in srgb, ${accentColor} 12%, transparent)` }}>
-          {React.cloneElement(icon as React.ReactElement<{ size?: number; strokeWidth?: number }>, {
-            size: 18,
-            strokeWidth: 1.75,
-          })}
-        </div>
-        <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-1.5">
-            <p className="text-base font-semibold tracking-tight leading-[1.2]">
-              {title}
-            </p>
-            {showProgress && (
-              <StatusChip
-                size="sm"
-                tokens={{
-                  color: allFilled ? accentColor : 'var(--bui-muted-foreground)',
-                  bg: allFilled ? `color-mix(in srgb, ${accentColor} 12%, transparent)` : 'transparent',
-                }}
-                icon={allFilled ? <CheckCircle size={12} strokeWidth={2} /> : undefined}
-                label={`${filledCount}/${totalCount}`}
-                // La teinte de bordure derive de `accentColor`, connu a
-                // l'execution : style inline, une classe ne peut pas la porter.
-                sx={{ borderColor: allFilled ? `color-mix(in srgb, ${accentColor} 25%, transparent)` : 'var(--bui-border)' }}
-                className="border border-solid"
-              />
-            )}
-          </div>
-          {description && (
-            <p className="text-xs text-muted-foreground mt-0.5">
-              {description}
-            </p>
-          )}
-        </div>
-      </div>
-      {children}
-    </div>
-  );
+function SectionCard({ art, active, title, description, children, filledCount, totalCount }: SectionCardProps) {
+  return <section className="pdt-checkin-section" hidden={!active}>
+    <PropertyTabHeading art={art} title={title} description={description}
+      actions={totalCount !== undefined && <span className="text-xs tabular-nums text-muted-foreground">{filledCount}/{totalCount}</span>} />
+    {children}
+  </section>;
 }
 
 // ─── Component ──────────────────────────────────────────────────────────────
@@ -154,8 +102,11 @@ function SectionCard({ icon, accentColor, title, description, children, filledCo
 const CheckInInstructionsForm: React.FC<CheckInInstructionsFormProps> = ({ propertyId }) => {
   const { t } = useTranslation();
   const queryClient = useQueryClient();
+  const [activeSection, setActiveSection] = useState(0);
   const [instructions, setInstructions] = useState<CheckInInstructions | null>(null);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState(false);
+  const [retry, setRetry] = useState(0);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
@@ -193,10 +144,15 @@ const CheckInInstructionsForm: React.FC<CheckInInstructionsFormProps> = ({ prope
 
   // Fetch existing instructions
   useEffect(() => {
+    let active = true;
     setLoading(true);
+    setLoadError(false);
     setError(null);
+    setDirty(false);
+    setSuccess(false);
     airbnbApi.getCheckInInstructions(propertyId)
       .then((data) => {
+        if (!active) return;
         setInstructions(data);
         setForm({
           accessCode: data.accessCode,
@@ -231,11 +187,20 @@ const CheckInInstructionsForm: React.FC<CheckInInstructionsFormProps> = ({ prope
           setExtraCodes([]);
         }
       })
-      .catch(() => {
-        // No instructions yet — form stays empty
+      .catch((error: { status?: number }) => {
+        if (!active) return;
+        if (error.status === 404) {
+          setInstructions(null);
+          setForm({ accessCode: null, wifiName: null, wifiPassword: null, parkingInfo: null,
+            arrivalInstructions: null, departureInstructions: null, houseRules: null,
+            emergencyContact: null, additionalNotes: null });
+          setAccessPhotos([]); setExtraCodes([]); setAutoRotate(false); setGuestUnlock(false);
+          setCodeFormat(inferFormat(null));
+        } else setLoadError(true);
       })
-      .finally(() => setLoading(false));
-  }, [propertyId]);
+      .finally(() => { if (active) setLoading(false); });
+    return () => { active = false; };
+  }, [propertyId, retry]);
 
   // Détecte une serrure connectée → propose de récupérer le code généré par la serrure.
   useEffect(() => {
@@ -378,73 +343,54 @@ const CheckInInstructionsForm: React.FC<CheckInInstructionsFormProps> = ({ prope
     };
   }, [form]);
 
-  if (loading) {
-    return (
-      <div className="flex justify-center py-9">
-        <Spinner className="size-7" />
-      </div>
-    );
-  }
-
+  const sections = [
+    { label: t('channels.checkIn.accessSection'), art: PROPERTY_ART.access, count: stats.access, total: 3 },
+    { label: t('channels.checkIn.parkingSection'), art: PROPERTY_ART.location, count: stats.parking, total: 1 },
+    { label: t('channels.checkIn.arrivalSection'), art: PROPERTY_ART.arrival, count: stats.arrival, total: 1 },
+    { label: t('channels.checkIn.accessPhotosSection', "Photos d'accès"), art: PROPERTY_ART.photos, count: accessPhotos.length ? 1 : 0, total: 1 },
+    { label: t('channels.checkIn.departureSection'), art: PROPERTY_ART.departure, count: stats.departure, total: 1 },
+    { label: t('channels.checkIn.rulesSection'), art: PROPERTY_ART.compliance, count: stats.rules, total: 1 },
+    { label: t('channels.checkIn.emergencySection'), art: PROPERTY_ART.messages, count: stats.emergency, total: 1 },
+    { label: t('channels.checkIn.additionalSection'), art: PROPERTY_ART.description, count: stats.additional, total: 1 },
+  ];
+  const headerActions = usePageHeaderActions(<BuiButton onClick={handleSave} disabled={loading || loadError || saving || !dirty}>
+    {saving ? <Spinner className="size-4" /> : <SaveIcon size={16} />}{t('common.save')}
+  </BuiButton>);
+  if (loading) return <PropertyTabLoading />;
+  if (loadError) return <UiAlert variant="destructive"><TriangleAlert />
+    <AlertDescription>{t('propertyTabs.instructionsLoadError', 'Impossible de charger les instructions voyageurs.')}</AlertDescription>
+    <BuiButton variant="outline" onClick={() => setRetry(value => value + 1)}>{t('common.retry', 'Réessayer')}</BuiButton>
+  </UiAlert>;
   return (
-    <div className="pb-14">
-      {/* ─── Header with progress ─────────────────────────────────────── */}
-      <div className="mb-[18px] p-[15px] rounded-xl border border-border bg-primary-soft">
-        <div className="flex items-start justify-between gap-3 flex-wrap">
-          <div className="min-w-0 flex-1">
-            <p className="text-base font-semibold tracking-tight text-balance mb-0.5">
-              {t('channels.checkIn.title')}
-            </p>
-            <p className="text-sm text-muted-foreground">
-              {t('channels.checkIn.subtitle')}
-            </p>
-          </div>
-          <div className="flex flex-col gap-[4.5px] items-end min-w-[200px]">
-            <div className="flex items-center gap-1.5">
-              <p className="text-2xs font-semibold uppercase tracking-wide text-muted-foreground">
-                {t('channels.checkIn.completeness')}
-              </p>
-              <StatusChip
-                tokens={stats.filled === stats.total
-                  ? { color: 'var(--bui-success-ink)', bg: 'var(--bui-success-soft)' }
-                  : { color: 'var(--bui-primary-foreground)', bg: 'var(--bui-primary)' }}
-                label={`${stats.filled}/${stats.total}`}
-                className="h-[20px] tabular-nums"
-              />
-            </div>
-            {/* Teinte de la barre : deux branches litterales (jamais un objet),
-                sinon la classe ne serait pas emise a la compilation. */}
-            <Progress
-              value={stats.percentage}
-              className={cn(
-                'w-full bg-muted',
-                stats.percentage === 100
-                  ? '[&>[data-slot=progress-indicator]]:bg-success'
-                  : '[&>[data-slot=progress-indicator]]:bg-primary',
-              )}
-            />
-            {instructions?.updatedAt && (
-              <p className="text-xs text-muted-foreground opacity-60 tabular-nums">
-                {t('channels.checkIn.lastUpdated')} : {new Date(instructions.updatedAt).toLocaleString(activeIntlLocale(), { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })}
-              </p>
-            )}
-          </div>
+    <div className="pdt-page">
+      {headerActions}
+      <section className="pdt-surface">
+        <PropertyTabHeading art={PROPERTY_ART.description} title={t('channels.checkIn.title')} description={t('channels.checkIn.subtitle')} />
+        <div className="pdt-checkin-progress">
+          <span>{t('channels.checkIn.completeness')} <b className="tabular-nums">{stats.filled}/{stats.total}</b></span>
+          <Progress value={stats.percentage} aria-label={t('channels.checkIn.completeness')} />
+          {instructions?.updatedAt && <span className="hidden sm:block">{t('channels.checkIn.lastUpdated')} : {new Date(instructions.updatedAt).toLocaleDateString(activeIntlLocale())}</span>}
         </div>
-      </div>
-
+      </section>
+      <div className="pdt-nav-layout">
+        <nav className="pdt-nav" aria-label={t('channels.checkIn.title')}>
+          {sections.map((section,index) => <button key={index} type="button" aria-current={activeSection === index ? 'step' : undefined} onClick={() => setActiveSection(index)}>
+            <img src={section.art} alt="" /><span>{section.label}</span><small>{section.count}/{section.total}</small>
+          </button>)}
+        </nav>
       {/* ─── Section cards grid ────────────────────────────────────────── */}
-      <div className="grid gap-3 grid-cols-[1fr] min-[900px]:grid-cols-[1fr_1fr]">
+      <div className="pdt-checkin-panels">
         {/* Accès & WiFi */}
         <div className="col-span-[1] min-[900px]:col-span-[1_/_-1]">
           <SectionCard
-            icon={<KeyIcon />}
-            accentColor="var(--bui-warning)"
+            art={PROPERTY_ART.access}
+          active={activeSection === 0}
             title={t('channels.checkIn.accessSection')}
-            description="Code d'entrée et identifiants WiFi"
+            description={t('propertyTabs.accessHint', "Code d’entrée et identifiants Wi-Fi")}
             filledCount={stats.access}
             totalCount={3}
           >
-            <div className="grid gap-[9px] grid-cols-[1fr] min-[600px]:grid-cols-[1fr_1fr_1fr]">
+            <div className="pdt-access-fields">
               <Field>
                 <FieldLabel htmlFor="checkin-access-code">{t('channels.checkIn.accessCode')}</FieldLabel>
                 <InputGroup>
@@ -687,8 +633,8 @@ const CheckInInstructionsForm: React.FC<CheckInInstructionsFormProps> = ({ prope
 
         {/* Parking */}
         <SectionCard
-          icon={<ParkingIcon />}
-          accentColor="var(--bui-info)"
+          art={PROPERTY_ART.location}
+          active={activeSection === 1}
           title={t('channels.checkIn.parkingSection')}
           description={t('channels.checkIn.parkingDesc')}
           filledCount={stats.parking}
@@ -708,8 +654,8 @@ const CheckInInstructionsForm: React.FC<CheckInInstructionsFormProps> = ({ prope
 
         {/* Arrivée */}
         <SectionCard
-          icon={<ArrivalIcon />}
-          accentColor="var(--bui-success)"
+          art={PROPERTY_ART.arrival}
+          active={activeSection === 2}
           title={t('channels.checkIn.arrivalSection')}
           description={t('channels.checkIn.arrivalDesc')}
           filledCount={stats.arrival}
@@ -730,8 +676,8 @@ const CheckInInstructionsForm: React.FC<CheckInInstructionsFormProps> = ({ prope
         {/* Photos d'accès */}
         <div className="col-span-[1] min-[900px]:col-span-[1_/_-1]">
           <SectionCard
-            icon={<PhotoIcon />}
-            accentColor="var(--bui-primary)"
+            art={PROPERTY_ART.photos}
+          active={activeSection === 3}
             title={t('channels.checkIn.accessPhotosSection', "Photos d'accès")}
             description={t('channels.checkIn.accessPhotosDesc', 'Aidez le voyageur à trouver et accéder au logement (entrée, parcours, boîte à clés…)')}
             filledCount={accessPhotos.length > 0 ? 1 : 0}
@@ -799,8 +745,8 @@ const CheckInInstructionsForm: React.FC<CheckInInstructionsFormProps> = ({ prope
 
         {/* Départ */}
         <SectionCard
-          icon={<DepartureIcon />}
-          accentColor="var(--bui-info)"
+          art={PROPERTY_ART.departure}
+          active={activeSection === 4}
           title={t('channels.checkIn.departureSection')}
           description={t('channels.checkIn.departureDesc')}
           filledCount={stats.departure}
@@ -820,8 +766,8 @@ const CheckInInstructionsForm: React.FC<CheckInInstructionsFormProps> = ({ prope
 
         {/* Règlement */}
         <SectionCard
-          icon={<RulesIcon />}
-          accentColor="var(--bui-primary)"
+          art={PROPERTY_ART.compliance}
+          active={activeSection === 5}
           title={t('channels.checkIn.rulesSection')}
           description={t('channels.checkIn.rulesDesc')}
           filledCount={stats.rules}
@@ -842,10 +788,10 @@ const CheckInInstructionsForm: React.FC<CheckInInstructionsFormProps> = ({ prope
         {/* Urgence — full width, alert-styled */}
         <div className="col-span-[1] min-[900px]:col-span-[1_/_-1]">
           <SectionCard
-            icon={<PhoneIcon />}
-            accentColor="var(--bui-destructive)"
+            art={PROPERTY_ART.messages}
+          active={activeSection === 6}
             title={t('channels.checkIn.emergencySection')}
-            description="À contacter en cas d'incident — affiché en évidence pour le voyageur"
+            description={t('propertyTabs.emergencyHint', 'Le contact à joindre en cas d’incident pendant le séjour.')}
             filledCount={stats.emergency}
             totalCount={1}
           >
@@ -871,8 +817,8 @@ const CheckInInstructionsForm: React.FC<CheckInInstructionsFormProps> = ({ prope
         {/* Compléments — full width */}
         <div className="col-span-[1] min-[900px]:col-span-[1_/_-1]">
           <SectionCard
-            icon={<NotesIcon />}
-            accentColor="var(--bui-muted-foreground)"
+            art={PROPERTY_ART.description}
+          active={activeSection === 7}
             title={t('channels.checkIn.additionalSection')}
             description={t('channels.checkIn.additionalDesc')}
             filledCount={stats.additional}
@@ -892,8 +838,9 @@ const CheckInInstructionsForm: React.FC<CheckInInstructionsFormProps> = ({ prope
         </div>
       </div>
 
+      </div>
       {/* ─── Sticky save bar ──────────────────────────────────────────── */}
-      <div className="sticky bottom-0 mt-[18px] -mx-[18px] px-[18px] py-[9px] bg-card border-t border-border flex items-center justify-between gap-3 z-[2]">
+      <div className="pdt-checkin-save">
         <div className="min-w-0 flex-1">
           {error && (
             <UiAlert variant="destructive" className="text-xs py-0.5">
@@ -909,7 +856,7 @@ const CheckInInstructionsForm: React.FC<CheckInInstructionsFormProps> = ({ prope
           )}
           {!error && !success && dirty && (
             <p className="text-xs font-semibold text-warning-ink">
-              ● Modifications non enregistrées
+              {t('propertyTabs.unsaved', 'Modifications non enregistrées')}
             </p>
           )}
           {!error && !success && !dirty && instructions?.updatedAt && (

@@ -1,11 +1,11 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import PayoutTrackingTab, { ReconciliationForm } from './PayoutTrackingTab';
 import { payoutTransfersApi, type PayoutTransfer } from '../../../services/api/payoutTransfersApi';
 
 vi.mock('../../../services/api/payoutTransfersApi', () => ({ payoutTransfersApi: { list: vi.fn(), listAll: vi.fn(), detail: vi.fn(), verify: vi.fn(), confirm: vi.fn(), monitoring: vi.fn() } }));
-vi.mock('../../../components/PageHeaderActionsContext', () => ({ usePageHeaderActions: (node: React.ReactNode) => node }));
+vi.mock('../../../components/PageHeaderActionsContext', () => ({ usePageHeaderFilters: (node: React.ReactNode) => node, usePageHeaderActions: (node: React.ReactNode) => node }));
 vi.mock('../../../components/ScreenChrome', () => ({ useScreenSearch: vi.fn() }));
 const auth = vi.hoisted(() => ({ user: { id: 1, organizationId: 7, organizationName: 'Baitly France' } }));
 vi.mock('../../../hooks/useAuth', () => ({ useAuth: () => auth }));
@@ -60,7 +60,7 @@ describe('Suivi des versements Baitly', () => {
     expect(recovery).toHaveTextContent('Complément financé par la plateforme');
     expect(recovery).toHaveTextContent('Montant du remboursement');
     expect(recovery).toHaveTextContent(allocation.total);
-    expect(recovery).toHaveTextContent(allocation.label);
+    expect(within(recovery).getByRole('button', { name: allocation.label })).toBeVisible();
     if (allocation.state === 'NO_RECOVERY_REQUIRED') {
       expect(recovery).toHaveTextContent('Aucun fonds n’est repris au bénéficiaire');
       expect(recovery).not.toHaveTextContent('Fonds récupérés');
@@ -74,7 +74,7 @@ describe('Suivi des versements Baitly', () => {
     mount(); fireEvent.click(await screen.findByRole('button', { name: /Maintenance de la Villa Atlas/ }));
     const recovery = await screen.findByRole('region', { name: 'Récupération après remboursement' });
     expect(recovery).toHaveTextContent('30,00');
-    if (state === 'RECOVERED') expect(recovery).toHaveTextContent('Fonds récupérés');
+    if (state === 'RECOVERED') expect(within(recovery).getByRole('button', { name: 'Fonds récupérés' })).toBeVisible();
     else {
       expect(recovery).toHaveTextContent('Le client est remboursé, mais le retour des fonds du bénéficiaire n’est pas confirmé');
       expect(recovery).not.toHaveTextContent('Fonds récupérés');
@@ -139,7 +139,7 @@ describe('Suivi des versements Baitly', () => {
   it('filtre côté serveur et conserve des caches distincts par organisation', async () => {
     const view = mount();await screen.findByText(row.description);
     fireEvent.change(screen.getByLabelText('Statut'), { target: { value: 'RECONCILIATION_REQUIRED' } });
-    await waitFor(() => expect(payoutTransfersApi.list).toHaveBeenLastCalledWith({ page: 0, state: 'RECONCILIATION_REQUIRED', source: '', search: '' }));
+    await waitFor(() => expect(payoutTransfersApi.list).toHaveBeenLastCalledWith({ page: 0, size: 10, state: 'RECONCILIATION_REQUIRED', source: '', search: '' }));
     auth.user.organizationId = 8;
     vi.mocked(payoutTransfersApi.list).mockResolvedValue({ content: [], totalElements: 0, totalPages: 0 });
     view.rerender(<QueryClientProvider client={view.client}><PayoutTrackingTab /></QueryClientProvider>);
@@ -157,6 +157,6 @@ describe('Suivi des versements Baitly', () => {
     mount(); await screen.findByText(row.description);
     fireEvent.click(screen.getByText('Suivant'));
     await waitFor(() => expect(payoutTransfersApi.list).toHaveBeenCalledTimes(3));
-    expect(payoutTransfersApi.list).toHaveBeenLastCalledWith({ page: 0, state: '', source: '', search: '' });
+    expect(payoutTransfersApi.list).toHaveBeenLastCalledWith({ page: 0, size: 10, state: '', source: '', search: '' });
   });
 });

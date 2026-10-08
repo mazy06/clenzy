@@ -1,9 +1,9 @@
 import { financeEventArtwork } from '../billing/components/financeEventArtwork';
-import { usePageHeaderActions } from '../../components/PageHeaderActionsContext';
+import FinanceHeaderFilters from '../billing/components/FinanceHeaderFilters';
 import FinanceWorkspace from '../billing/components/FinanceWorkspace';
 import { FinanceAmountKpis } from '../billing/components/FinanceKpis';
-import React, { useState, useEffect, useLayoutEffect, useCallback, useRef, useMemo } from 'react';
-import StatusChip, { type StatusTone } from '../../components/StatusChip';
+import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
+import FinanceStatusIcon from '../billing/components/FinanceStatusIcon';
 import { Alert as UiAlert, AlertAction, AlertDescription } from '../../components/ui';
 import { TriangleAlert, X } from 'lucide-react';
 import { Spinner } from '../../components/ui';
@@ -42,20 +42,6 @@ import BaitlyVerifyPayment from './BaitlyVerifyPayment';
 interface PaymentHistoryPageProps {
   embedded?: boolean;
 }
-
-// ── Statuts → ton sémantique Baitly UI (la puce applique le couple -soft / -ink) ──
-const STATUS_TONE: Record<string, StatusTone> = {
-  UNKNOWN: 'warn',
-  PARTIALLY_PAID: 'warn',
-  NOT_REQUIRED: 'neutral',
-  PAID: 'ok',
-  PENDING: 'warn',
-  PROCESSING: 'info',
-  FAILED: 'err',
-  REFUNDED: 'info',
-  PARTIALLY_REFUNDED: 'info',
-  CANCELLED: 'neutral',
-};
 
 const PaymentHistoryPage: React.FC<PaymentHistoryPageProps> = ({ embedded = false }) => {
   const { t } = useTranslation();
@@ -115,7 +101,6 @@ const PaymentHistoryPage: React.FC<PaymentHistoryPageProps> = ({ embedded = fals
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(10);
   const [selectedId, setSelectedId] = useState<string | number | null>(null);
-  const pageRoot = useRef<HTMLDivElement>(null);
   const filteredPayments = useMemo(() => {
     const query = search.trim().toLocaleLowerCase();
     return query ? allPayments.filter(record => [record.description, record.propertyName, record.hostName]
@@ -195,25 +180,6 @@ const PaymentHistoryPage: React.FC<PaymentHistoryPageProps> = ({ embedded = fals
 
   useEffect(() => { setPage(0); }, [search, statusFilter, dateFrom, dateTo, hostFilter]);
   useEffect(() => { setPage(current => Math.min(current, Math.max(0, Math.ceil(totalElements / rowsPerPage) - 1))); }, [totalElements, rowsPerPage]);
-  useLayoutEffect(() => {
-    const root = pageRoot.current;
-    const workspace = root?.querySelector<HTMLElement>('.finance-workspace');
-    if (!root || !workspace) return;
-    const measure = () => {
-      const row = workspace.querySelector<HTMLElement>('.finance-workspace__row');
-      const pagination = workspace.querySelector<HTMLElement>('.finance-workspace__pagination');
-      if (!row?.offsetHeight) return;
-      const capacity = Math.max(1, Math.floor((workspace.clientHeight - Math.max(56, pagination?.offsetHeight ?? 0)) / (row.offsetHeight + 1)));
-      setRowsPerPage(current => current === capacity ? current : capacity);
-    };
-    measure();
-    const observer = new ResizeObserver(measure);
-    observer.observe(workspace);
-    const pagination = workspace.querySelector('.finance-workspace__pagination');
-    if (pagination) observer.observe(pagination);
-    return () => observer.disconnect();
-  }, [loading, totalElements]);
-
   // ─── Handlers ─────────────────────────────────────────────────────────────
 
   const handleChangePage = (newPage: number) => {
@@ -339,20 +305,16 @@ const PaymentHistoryPage: React.FC<PaymentHistoryPageProps> = ({ embedded = fals
     CANCELLED: t('payments.history.cancelled'),
   };
 
-  const getStatusChip = (payment: PaymentRecord) => {
+  const getStatusIcon = (payment: PaymentRecord) => {
     const paidToOta = payment.status === 'PAID' && payment.paymentCollection === 'CHANNEL';
     const label = paidToOta ? t('payments.collection.paidToOta')
       : payment.type === 'RESERVATION' && payment.status === 'PENDING' ? t('payments.collection.toCollect')
       : STATUS_LABEL[payment.status] || payment.status;
-    return <div className="flex flex-col items-start gap-1">
-      <StatusChip tone={paidToOta ? 'info' : STATUS_TONE[payment.status] ?? 'neutral'} label={label} />
-      {payment.settlementStatus === 'EXTERNAL_UNVERIFIED' && <span className="max-w-48 text-xs text-muted-foreground whitespace-normal">
-        {t('payments.collection.settlementUnverified')}
-      </span>}
-    </div>;
+    return <FinanceStatusIcon value={paidToOta ? 'CHANNEL' : payment.status}
+      label={[label, payment.settlementStatus === 'EXTERNAL_UNVERIFIED' ? t('payments.collection.settlementUnverified') : null].filter(Boolean).join(' · ')} />;
   };
 
-  const filterActions = usePageHeaderActions(<FilterSearchBar
+  const filterControls = <FilterSearchBar
               bare
               searchTerm={search}
               onSearchChange={(v) => { setSearch(v); setPage(0); }}
@@ -392,7 +354,7 @@ const PaymentHistoryPage: React.FC<PaymentHistoryPageProps> = ({ embedded = fals
                 singular: '',
                 plural: 's',
               }}
-            />);
+            />;
 
   // ─── Render ───────────────────────────────────────────────────────────────
 
@@ -412,7 +374,7 @@ const PaymentHistoryPage: React.FC<PaymentHistoryPageProps> = ({ embedded = fals
         serviceRequestId: payment.type === 'SERVICE_REQUEST' ? payment.referenceId : undefined,
       },
       amount: new Intl.NumberFormat(activeIntlLocale(), { style: 'currency', currency: payment.currency || 'EUR' }).format(payment.amount),
-      status: getStatusChip(payment),
+      status: getStatusIcon(payment),
       fields: [],
       headerActions: <PaymentRecordActions onView={() => navigate(detailPath)}
         onRefund={() => handleRefundClick(payment)} canRefund={isAdminOrManager && payment.type === 'INTERVENTION' && ['PAID','PARTIALLY_REFUNDED'].includes(payment.status)
@@ -422,7 +384,7 @@ const PaymentHistoryPage: React.FC<PaymentHistoryPageProps> = ({ embedded = fals
           {isAdminOrManager && payment.type === 'INTERVENTION' && payment.stripeSessionId && ['PAID','PROCESSING'].includes(payment.status)
             && <BaitlyVerifyPayment key={payment.stripeSessionId} session={payment.stripeSessionId} onVerified={() => { void loadData(true); }} />}
         </PaymentRecordActions>,
-      detailBody: <PaymentRecordDetail key={`${payment.type}-${payment.id}`} payment={payment} status={getStatusChip(payment)}
+      detailBody: <PaymentRecordDetail key={`${payment.type}-${payment.id}`} payment={payment} status={getStatusIcon(payment)}
         onPay={() => handlePay(payment)}
         onSendLink={() => handleSendPaymentLink(payment)}
         sending={sendingPaymentLink === payment.referenceId}
@@ -432,11 +394,12 @@ const PaymentHistoryPage: React.FC<PaymentHistoryPageProps> = ({ embedded = fals
   const selectedPayment = filteredPayments.find(payment => `${payment.type}-${payment.id}` === String(selectedId));
 
   return (
-    <div className="payment-history-page" ref={pageRoot}>
-      {filterActions}
+    <div className="payment-history-page">
+      {embedded && <FinanceHeaderFilters>{filterControls}</FinanceHeaderFilters>}
       {/* Header + Filters */}
       {!embedded && (
         <PageHeader
+          inlineControls={filterControls}
           title={t('payments.history.title')}
           subtitle={t('payments.history.subtitle')}
           iconBadge={<ReceiptLongIcon />}
@@ -487,7 +450,7 @@ const PaymentHistoryPage: React.FC<PaymentHistoryPageProps> = ({ embedded = fals
         }
       >
         <FinanceWorkspace artwork="received" items={payments.map(makePaymentRecord)}
-          selectedId={selectedId} onSelect={setSelectedId}
+          onPageSizeChange={setRowsPerPage} selectedId={selectedId} onSelect={setSelectedId}
           selectedRecord={selectedPayment ? makePaymentRecord(selectedPayment) : undefined}
           pagination={<><PagePagination
             count={totalElements}

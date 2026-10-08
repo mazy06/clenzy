@@ -55,7 +55,7 @@ const fr: Record<string, ModuleText> = {
     ],
     faq: [
       { q: 'Puis-je utiliser mon site existant ?', a: 'Oui — le widget s’intègre en une balise script sur WordPress, Wix ou tout site HTML.' },
-      { q: 'Le paiement est-il inclus ?', a: 'Oui, via le provider adapté à votre pays : PayTabs en Arabie saoudite, CMI/PayZone ou YouCan Pay au Maroc, Stripe ailleurs.' },
+      { q: 'Le paiement est-il inclus ?', a: 'Stripe est raccordé pour la France. Les prestataires de paiement pour le Maroc et l’Arabie saoudite sont en cours de sélection.' },
     ],
   },
   'livret-accueil': {
@@ -106,19 +106,19 @@ const fr: Record<string, ModuleText> = {
   },
   'paiements-finances': {
     name: 'Paiements & finances',
-    menuCopy: 'Encaissement local (PayTabs, CMI, PayZone, YouCan Pay), facturation conforme.',
+    menuCopy: 'Encaissements, factures et versements réunis dans un même espace.',
     heroTitle: 'Encaissez sur vos marchés. Facturez dans les règles.',
     heroCopy:
-      'Là où Stripe s’arrête, Baitly continue : PayTabs pour encaisser en riyals, CMI/PayZone et YouCan Pay pour les dirhams, numérotation de factures inaltérable, TVA et taxes locales calculées par territoire.',
+      'Retrouvez les encaissements, les factures et les versements dans Baitly. Stripe est raccordé pour la France ; les PSP locaux du Maroc et de l’Arabie saoudite restent à sélectionner.',
     metricLabel: 'providers d’encaissement selon votre pays',
     features: [
-      { title: 'Multi-providers', copy: 'PayTabs, CMI/PayZone, YouCan Pay, Stripe — résolus automatiquement selon le pays et la capacité.' },
+      { title: 'Multi-providers', copy: 'Stripe pour la France. Le raccordement des PSP locaux du Maroc et de l’Arabie saoudite sera confirmé après leur sélection.' },
       { title: 'Facturation conforme', copy: 'Numérotation séquentielle, facture électronique ZATCA, mentions légales, factures de commission pour vos mandants.' },
       { title: 'Fiscalité locale', copy: 'TVA 15 % et frais municipaux en Arabie saoudite, barèmes de taxe de séjour par commune au Maroc et en France.' },
-      { title: 'Versements', copy: 'Open Banking, virement SEPA ou Wise pour vos payouts propriétaires et prestataires.' },
+      { title: 'Versements', copy: 'Suivez la validation du bénéficiaire, le transfert via le PSP et la confirmation du versement bancaire.' },
     ],
     faq: [
-      { q: 'Stripe suffit-il sur vos marchés ?', a: 'Non : Stripe ne couvre ni les sociétés marocaines ni tous les moyens de paiement du Golfe. C’est pourquoi Baitly intègre PayTabs, CMI/PayZone et YouCan Pay en natif.' },
+      { q: 'Stripe suffit-il sur vos marchés ?', a: 'Stripe est le PSP retenu pour la France. Les PSP du Maroc et de l’Arabie saoudite ne sont pas encore choisis ; leurs moyens de paiement seront précisés après raccordement.' },
       { q: 'Gérez-vous la caution ?', a: 'Oui, par pré-autorisation sur les providers qui la supportent.' },
     ],
   },
@@ -155,7 +155,7 @@ const fr: Record<string, ModuleText> = {
     ],
     faq: [
       { q: 'Quelles marques sont supportées ?', a: 'Nuki et KeyNest pour les serrures, Minut pour le bruit ; le catalogue s’étend en continu.' },
-      { q: 'Et la vie privée des voyageurs ?', a: 'Les caméras intérieures sont interdites par conception ; le bruit est mesuré en décibels, jamais enregistré.' },
+      { q: 'Et la vie privée des voyageurs ?', a: 'Prévoyez uniquement des caméras extérieures autorisées et déclarées, et des sonomètres sans enregistrement audio. Vérifiez les règles locales et celles de votre plateforme de réservation. Le gestionnaire reste responsable de l’installation et de son usage.' },
     ],
   },
   'portail-proprietaire': {
@@ -212,7 +212,7 @@ const en: Record<string, ModuleText> = {
     ],
     faq: [
       { q: 'Can I use my existing site?', a: 'Yes — the widget drops in as a single script tag on WordPress, Wix or any HTML site.' },
-      { q: 'Is payment included?', a: 'Yes, through the provider that fits your country: PayTabs in Saudi Arabia, CMI/PayZone or YouCan Pay in Morocco, Stripe elsewhere.' },
+      { q: 'Is payment included?', a: 'Stripe is connected for France. Payment providers for Morocco and Saudi Arabia are being selected.' },
     ],
   },
   'livret-accueil': {
@@ -263,19 +263,19 @@ const en: Record<string, ModuleText> = {
   },
   'paiements-finances': {
     name: 'Payments & finance',
-    menuCopy: 'Local collection (PayTabs, CMI, PayZone, YouCan Pay), compliant invoicing.',
+    menuCopy: 'Collections, invoices and payouts in one workspace.',
     heroTitle: 'Collect in your markets. Invoice by the book.',
     heroCopy:
-      'Where Stripe stops, Baitly carries on: PayTabs to collect in riyals, CMI/PayZone and YouCan Pay for dirhams, tamper-proof invoice numbering, VAT and local taxes computed by territory.',
+      'Track collections, invoices and payouts in Baitly. Stripe is connected for France; local providers for Morocco and Saudi Arabia are still to be selected.',
     metricLabel: 'collection providers, depending on your country',
     features: [
-      { title: 'Multi-provider', copy: 'PayTabs, CMI/PayZone, YouCan Pay, Stripe — resolved automatically by country and capability.' },
+      { title: 'Multi-provider', copy: 'Stripe for France. Local integrations for Morocco and Saudi Arabia will be confirmed after provider selection.' },
       { title: 'Compliant invoicing', copy: 'Sequential numbering, ZATCA electronic invoicing, legal statements, commission invoices for your owners.' },
       { title: 'Local taxation', copy: '15% VAT and municipality fees in Saudi Arabia, tourist tax schedules by municipality in Morocco and France.' },
-      { title: 'Payouts', copy: 'Open Banking, SEPA transfer or Wise for your owner and provider payouts.' },
+      { title: 'Payouts', copy: 'Track beneficiary approval, the PSP transfer and confirmation of the bank payout.' },
     ],
     faq: [
-      { q: 'Is Stripe enough in your markets?', a: 'No: Stripe covers neither Moroccan companies nor every Gulf payment method. That is why Baitly integrates PayTabs, CMI/PayZone and YouCan Pay natively.' },
+      { q: 'Is Stripe enough in your markets?', a: 'Stripe is the selected provider for France. Providers for Morocco and Saudi Arabia have not yet been chosen; their payment methods will be specified after integration.' },
       { q: 'Do you handle deposits?', a: 'Yes, through pre-authorisation on the providers that support it.' },
     ],
   },
@@ -312,7 +312,7 @@ const en: Record<string, ModuleText> = {
     ],
     faq: [
       { q: 'Which brands are supported?', a: 'Nuki and KeyNest for locks, Minut for noise; the catalogue keeps growing.' },
-      { q: 'What about guest privacy?', a: 'Indoor cameras are forbidden by design; noise is measured in decibels, never recorded.' },
+      { q: 'What about guest privacy?', a: 'Use only permitted, disclosed exterior cameras and noise monitors without audio recording. Check local law and your booking platform’s rules. The manager remains responsible for installation and use.' },
     ],
   },
   'portail-proprietaire': {
@@ -369,7 +369,7 @@ const ar: Record<string, ModuleText> = {
     ],
     faq: [
       { q: 'هل يمكنني استخدام موقعي الحالي؟', a: 'نعم — تُضاف الأداة بوسم برمجي واحد على WordPress أو Wix أو أي موقع HTML.' },
-      { q: 'هل الدفع مشمول؟', a: 'نعم، عبر المزوّد المناسب لبلدك: PayTabs في السعودية، وCMI/PayZone أو YouCan Pay في المغرب، وStripe في غيرهما.' },
+      { q: 'هل الدفع مشمول؟', a: 'Stripe متصل لفرنسا. مزودو الدفع للمغرب والمملكة العربية السعودية قيد الاختيار.' },
     ],
   },
   'livret-accueil': {
@@ -420,19 +420,19 @@ const ar: Record<string, ModuleText> = {
   },
   'paiements-finances': {
     name: 'المدفوعات والمالية',
-    menuCopy: 'تحصيل محلي (PayTabs وCMI وPayZone وYouCan Pay)، وفوترة مطابقة.',
+    menuCopy: 'التحصيل والفواتير والتحويلات في مساحة واحدة.',
     heroTitle: 'حصّل في أسواقك. وفوتر وفق الأصول.',
     heroCopy:
-      'حيث يتوقف Stripe، تواصل بيتلي: PayTabs للتحصيل بالريال، وCMI/PayZone وYouCan Pay للدرهم، وترقيم فواتير غير قابل للتلاعب، وضرائب محلية محسوبة حسب الإقليم.',
+      'تابع التحصيل والفواتير والتحويلات في Baitly. Stripe متصل لفرنسا؛ مزودو المغرب والسعودية قيد الاختيار.',
     metricLabel: 'مزوّدي تحصيل بحسب بلدك',
     features: [
-      { title: 'تعدّد المزوّدين', copy: 'PayTabs وCMI/PayZone وYouCan Pay وStripe — تُحدَّد تلقائياً حسب البلد والإمكانات.' },
+      { title: 'تعدّد المزوّدين', copy: 'Stripe لفرنسا. سيُؤكَّد ربط مزودي المغرب والسعودية بعد اختيارهم.' },
       { title: 'فوترة مطابقة', copy: 'ترقيم تسلسلي، وفاتورة إلكترونية عبر هيئة الزكاة والضريبة والجمارك، وبيانات قانونية، وفواتير عمولة لملّاكك.' },
       { title: 'ضرائب محلية', copy: 'ضريبة قيمة مضافة 15 % ورسوم بلدية في السعودية، وجداول رسم الإقامة حسب البلدية في المغرب وفرنسا.' },
-      { title: 'التحويلات', copy: 'الخدمات المصرفية المفتوحة، أو تحويل SEPA، أو Wise لتحويلاتك إلى الملاك والمزوّدين.' },
+      { title: 'التحويلات', copy: 'تابع اعتماد المستفيد والتحويل عبر مزود الدفع وتأكيد الإيداع البنكي.' },
     ],
     faq: [
-      { q: 'هل يكفي Stripe في أسواقكم؟', a: 'لا: فهو لا يغطي الشركات المغربية ولا كل وسائل الدفع الخليجية. لذلك تدمج بيتلي PayTabs وCMI/PayZone وYouCan Pay أصلياً.' },
+      { q: 'هل يكفي Stripe في أسواقكم؟', a: 'Stripe هو المزود المختار لفرنسا. لم يُختر بعد مزودو المغرب والسعودية؛ ستُحدَّد وسائل الدفع بعد الربط.' },
       { q: 'هل تديرون مبلغ التأمين؟', a: 'نعم، بالحجز المسبق لدى المزوّدين الذين يدعمونه.' },
     ],
   },
@@ -469,7 +469,7 @@ const ar: Record<string, ModuleText> = {
     ],
     faq: [
       { q: 'ما العلامات المدعومة؟', a: 'Nuki وKeyNest للأقفال، وMinut للضجيج؛ والكتالوج يتوسّع باستمرار.' },
-      { q: 'وماذا عن خصوصية النزلاء؟', a: 'الكاميرات الداخلية ممنوعة بحكم التصميم؛ ويُقاس الضجيج بالديسيبل دون أي تسجيل.' },
+      { q: 'وماذا عن خصوصية النزلاء؟', a: 'استخدم فقط كاميرات خارجية مسموحاً بها ومعلناً عنها ومستشعرات ضوضاء دون تسجيل صوتي. تحقق من القواعد المحلية وشروط منصة الحجز. ويظل المدير مسؤولاً عن التركيب والاستخدام.' },
     ],
   },
   'portail-proprietaire': {

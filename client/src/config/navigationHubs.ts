@@ -49,7 +49,6 @@ export const NAVIGATION_HUBS: HubDef[] = [
     tabs: [
       {
         path: '/properties',
-        matchPrefixes: ['/connected-objects'],
         translationKey: 'navigation.properties',
         fallbackLabel: 'Propriétés',
         isAccessible: (a) => has(a, 'properties:view'),
@@ -248,6 +247,8 @@ export interface StandaloneScreen {
 }
 
 export const STANDALONE_SCREENS: StandaloneScreen[] = [
+  { path: '/dynamic-pricing', translationKey: 'dynamicPricing.title', fallbackLabel: 'Prix dynamiques' },
+  { path: '/connected-objects', translationKey: 'navigation.connectedObjects', fallbackLabel: 'Objets connectés' },
   { path: '/planning', translationKey: 'navigation.planning', fallbackLabel: 'Planning' },
   { path: '/dashboard', translationKey: 'navigation.dashboard', fallbackLabel: 'Tableau de bord' },
   { path: '/reports', translationKey: 'navigation.reports', fallbackLabel: 'Rapports' },

@@ -1,6 +1,10 @@
 import React, { useEffect, useState } from 'react';
-import { Badge, Button, Card, Field, FieldDescription, FieldError, FieldLabel, Input, NativeSelect, NativeSelectOption, Progress, Spinner, Switch } from '../../components/ui';
-import { Download, GppGood } from '../../icons';
+import { Button, Card, Field, FieldDescription, FieldError, FieldLabel, Input, NativeSelect, NativeSelectOption, Progress, Spinner, Switch } from '../../components/ui';
+import { Download } from '../../icons';
+import StatusIcon from '../../components/StatusIcon';
+import { CheckCircle2, CircleHelp, TriangleAlert } from 'lucide-react';
+import { PropertyTabHeading } from './PropertyTabPrimitives';
+import { PROPERTY_ART } from './propertyArtwork';
 import { complianceConnectionApi } from '../../services/api/complianceConnectionApi';
 import { useTranslation } from '../../hooks/useTranslation';
 import {
@@ -125,13 +129,8 @@ export default function FrRegulatoryProfileCard({ propertyId, canEdit, refreshKe
   const set = <K extends keyof Form>(key: K, value: Form[K]) => setForm((prev) => (prev ? { ...prev, [key]: value } : prev));
 
   return (
-    <Card className="p-4">
-      <div className="mb-3 flex items-center gap-2">
-        <GppGood size={18} strokeWidth={1.75} className="text-muted-foreground" />
-        <h3 className="m-0 text-sm font-semibold tracking-tight text-foreground">
-          {t('properties.frProfile.title', 'Profil réglementaire France')}
-        </h3>
-      </div>
+    <Card className="pdt-surface pdt-regulatory gap-0 p-5 shadow-none">
+      <PropertyTabHeading art={PROPERTY_ART.touristTax} title={t('properties.frProfile.title', 'Profil réglementaire France')} />
 
       {/* Numéro d'enregistrement : la donnée la plus exposée (affichée sur les annonces). */}
       <div className="mb-4 flex flex-wrap items-center gap-2 rounded-md border border-border px-3 py-2">
@@ -142,7 +141,8 @@ export default function FrRegulatoryProfileCard({ propertyId, canEdit, refreshKe
           {profile.registrationNumber ?? '—'}
         </span>
         {profile.registrationRequired && (
-          <Badge variant={verdict.variant}>{t(verdict.key, verdict.fallback)}</Badge>
+          <StatusIcon tone={profile.registrationVerdict === 'VALID' ? 'success' : profile.registrationVerdict === 'UNCHECKED' ? 'muted' : 'warning'}
+            icon={profile.registrationVerdict === 'VALID' ? CheckCircle2 : profile.registrationVerdict === 'UNCHECKED' ? CircleHelp : TriangleAlert} label={t(verdict.key, verdict.fallback)} />
         )}
         {profile.registrationRequired && profile.registrationVerdict !== 'VALID' && (
           <span className="basis-full text-xs text-muted-foreground">

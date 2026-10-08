@@ -41,19 +41,19 @@ import compactHeaderActions from './compactHeaderActions';
 
 interface PageHeaderActionsApi {
   slot: HTMLElement | null;
-  filtersSlot: HTMLElement | null;
+  filtersSlot?: HTMLElement | null;
 }
 
-const PageHeaderActionsContext = createContext<PageHeaderActionsApi>({ slot: null, filtersSlot: null });
+const PageHeaderActionsContext = createContext<PageHeaderActionsApi>({ slot: null });
 
 interface PageHeaderActionsProviderProps {
   children: ReactNode;
   slot: HTMLElement | null;
-  /** Slot DOM de la barre filtres (sous le titre). Optionnel : null = pas de barre filtres. */
+  /** undefined = aucun hôte ; null = hôte prévu, mais pas encore monté (header replié). */
   filtersSlot?: HTMLElement | null;
 }
 
-export function PageHeaderActionsProvider({ children, slot, filtersSlot = null }: PageHeaderActionsProviderProps) {
+export function PageHeaderActionsProvider({ children, slot, filtersSlot }: PageHeaderActionsProviderProps) {
   const value = useMemo(() => ({ slot, filtersSlot }), [slot, filtersSlot]);
   return (
     <PageHeaderActionsContext.Provider value={value}>{children}</PageHeaderActionsContext.Provider>
@@ -100,8 +100,9 @@ export function usePageHeaderActionsSlot(): {
  * barre filtres dediee du PageHeader (sous le titre). Retourne un ReactNode a
  * inclure dans le JSX. Null au premier render (slot pas encore monte).
  */
-export function usePageHeaderFilters(filters: ReactNode): ReactNode {
+export function usePageHeaderFilters(filters: ReactNode, options?: { fallbackWithoutHeader?: ReactNode }): ReactNode {
   const { filtersSlot } = useContext(PageHeaderActionsContext);
+  if (filtersSlot === undefined) return options?.fallbackWithoutHeader ?? null;
   if (!filtersSlot) return null;
   return createPortal(filters, filtersSlot);
 }

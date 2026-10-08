@@ -1,8 +1,9 @@
 import React from 'react';
 import { Button, Skeleton } from '../../components/ui';
-import PageTabs from '../../components/PageTabs';
+import { PROPERTY_ART } from './propertyArtwork';
+import { InventoryThumbnail } from './inventory/InventoryThumbnail';
+import './propertyTabs.css';
 import { useTranslation } from '../../hooks/useTranslation';
-import { Inventory2, LocalLaundryService, Receipt } from '../../icons';
 import { useTabKeyParam } from '../../components/tabKeyParam';
 import { usePropertyInventory } from '../../hooks/usePropertyInventory';
 import InventoryItemsSection from './inventory/InventoryItemsSection';
@@ -23,10 +24,10 @@ export default function PropertyInventoryTab({ propertyId, canEdit }: Props) {
   const { t } = useTranslation();
   const [subTab, setSubTab] = useTabKeyParam(INVENTORY_SUBTABS, { param: 'subtab' });
   const subtabs = [
-    { label: t('inventoryLibrary.inventory'), icon: <Inventory2 size={15} strokeWidth={1.75} /> },
-    { label: t('inventoryLibrary.laundry'), icon: <LocalLaundryService size={15} strokeWidth={1.75} /> },
-    { label: t('inventoryLibrary.quotes'), icon: <Receipt size={15} strokeWidth={1.75} /> },
-    { label: t('inventoryLibrary.stock'), icon: <Inventory2 size={15} strokeWidth={1.75} /> },
+    { label: t('inventoryLibrary.inventory'), catalogKey: 'sofa-two' },
+    { label: t('inventoryLibrary.laundry'), catalogKey: 'bath-towel' },
+    { label: t('inventoryLibrary.quotes'), art: PROPERTY_ART.quotes },
+    { label: t('inventoryLibrary.stock'), art: PROPERTY_ART.stock },
   ];
 
   const {
@@ -39,8 +40,13 @@ export default function PropertyInventoryTab({ propertyId, canEdit }: Props) {
 
   const loading = subTab === 0 ? loadingItems : subTab === 1 ? loadingLaundry : subTab === 2 ? loadingQuotes : false;
   return (
-    <div>
-      <PageTabs options={subtabs} value={subTab} onChange={setSubTab} trail={false} size="compact" />
+    <div className="pdt-nav-layout">
+      <nav className="pdt-nav" aria-label={t('inventoryLibrary.inventory')}>
+        {subtabs.map((tab,index) => <button key={index} type="button" aria-pressed={subTab === index} onClick={() => setSubTab(index)}>
+          {tab.catalogKey ? <InventoryThumbnail name={tab.label} catalogKey={tab.catalogKey} size={32} /> : <img src={tab.art} alt="" />}<span>{tab.label}</span>
+        </button>)}
+      </nav>
+      <div className="pdt-inventory-content">
       {loading && <div className="inventory-loading" role="status" aria-label={t('inventoryLibrary.loading')}>
         {[0, 1, 2].map(key => <Skeleton key={key} className="h-20 w-full" />)}
       </div>}
@@ -84,6 +90,7 @@ export default function PropertyInventoryTab({ propertyId, canEdit }: Props) {
       {subTab === 3 && (
         <PropertyStockSection propertyId={propertyId} canEdit={canEdit} />
       )}
+      </div>
     </div>
   );
 }

@@ -46,6 +46,7 @@ export interface GuestReview {
 
 interface Page<T> {
   content: T[];
+  totalElements?: number;
 }
 
 export const reviewsApi = {
@@ -65,8 +66,9 @@ export const reviewsApi = {
    * qui permet à l'écran global et à l'onglet d'un logement de partager la même
    * source, et donc d'afficher les mêmes avis.
    */
-  list(params: { propertyId?: number; size?: number } = {}): Promise<Page<GuestReview>> {
+  list(params: { propertyId?: number; size?: number; page?: number } = {}): Promise<Page<GuestReview>> {
     const search = new URLSearchParams({ size: String(params.size ?? 50) });
+    if (params.page != null) search.set('page', String(params.page));
     if (params.propertyId != null) search.set('propertyId', String(params.propertyId));
     return apiClient.get<Page<GuestReview>>(`/reviews?${search.toString()}`);
   },

@@ -27,6 +27,8 @@ const LEGACY_TOKEN_KEYS = [
 ] as const;
 
 export const STORAGE_KEYS = {
+  // Anonymous, browser-specific cookie choice; never an account preference or identifier.
+  SITE_COOKIE_CHOICE: 'baitly_site_cookie_choice',
   // Brouillon de parcours public : sessionStorage uniquement, aucun secret Stripe.
   SIGNUP_ATTEMPT: 'baitly_signup_attempt',
   // App Settings (per-device UI : compactMode, showAvatars, theme)

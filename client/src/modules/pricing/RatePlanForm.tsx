@@ -2,6 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { Spinner } from '../../components/ui';
 import { cn } from '../../utils/cn';
 import {
+  Alert,
+  AlertDescription,
   Button,
   Card,
   Field,
@@ -16,7 +18,6 @@ import {
 } from '../../components/ui';
 import { Close as CloseIcon } from '../../icons';
 import { useTranslation } from '../../hooks/useTranslation';
-import { useCurrency } from '../../hooks/useCurrency';
 import { CurrencySymbol } from '../../components/Money';
 import MiniDateRangePicker from '../../components/MiniDateRangePicker';
 import type { RatePlan, CreateRatePlanData } from '../../services/api/calendarPricingApi';
@@ -24,7 +25,7 @@ import type { RatePlan, CreateRatePlanData } from '../../services/api/calendarPr
 // ─── Style Constants ────────────────────────────────────────────────────────
 
 /** Densité de la carte : la surface vient de `Card`, le rythme d'ici. */
-const PANEL_CLASS = 'gap-0 py-0 p-[9px]';
+const PANEL_CLASS = 'bp-plan-form gap-0 p-5';
 
 const PLAN_TYPES = ['BASE', 'SEASONAL', 'PROMOTIONAL', 'LAST_MINUTE'] as const;
 
@@ -32,6 +33,7 @@ const PLAN_TYPES = ['BASE', 'SEASONAL', 'PROMOTIONAL', 'LAST_MINUTE'] as const;
 
 interface RatePlanFormProps {
   propertyId: number;
+  currency: string;
   editingPlan?: RatePlan | null;
   onSave: (data: CreateRatePlanData) => Promise<unknown>;
   onCancel: () => void;
@@ -42,14 +44,16 @@ interface RatePlanFormProps {
 
 const RatePlanForm: React.FC<RatePlanFormProps> = ({
   propertyId,
+  currency,
   editingPlan,
   onSave,
   onCancel,
   loading,
 }) => {
-  const { t, isFrench } = useTranslation();
+  const { t, currentLanguage } = useTranslation();
 
-  const { currency: activeCurrency } = useCurrency();
+  const activeCurrency = editingPlan?.currency || currency;
+  const [error, setError] = useState<string | null>(null);
   const [name, setName] = useState('');
   const [type, setType] = useState<string>('BASE');
   const [nightlyPrice, setNightlyPrice] = useState<string>('');
@@ -61,6 +65,7 @@ const RatePlanForm: React.FC<RatePlanFormProps> = ({
 
   // Reset form when editingPlan changes
   useEffect(() => {
+    setError(null);
     if (editingPlan) {
       setName(editingPlan.name);
       setType(editingPlan.type);
@@ -82,9 +87,7 @@ const RatePlanForm: React.FC<RatePlanFormProps> = ({
     }
   }, [editingPlan]);
 
-  const dayLabels = isFrench
-    ? ['Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam', 'Dim']
-    : ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+  const dayLabels = Array.from({ length: 7 }, (_, index) => new Intl.DateTimeFormat(currentLanguage, { weekday: 'short' }).format(new Date(2024, 0, 1 + index)));
 
   const toggleDay = (day: number) => {
     setDaysOfWeek((prev) =>
@@ -105,19 +108,23 @@ const RatePlanForm: React.FC<RatePlanFormProps> = ({
       daysOfWeek: daysOfWeek.length > 0 ? daysOfWeek : undefined,
       isActive,
     };
-    await onSave(data);
+    setError(null);
+    try { await onSave(data); }
+    catch { setError(t('baitlyPricing.saveError', "Le plan n’a pas pu être enregistré. Réessayez.")); }
   };
 
-  const isValid = name.trim() !== '' && nightlyPrice !== '' && !isNaN(parseFloat(nightlyPrice));
+  const isValid = name.trim() !== '' && nightlyPrice.trim() !== '' && Number.isFinite(Number(nightlyPrice)) && Number(nightlyPrice) >= 0
+    && priority.trim() !== '' && Number.isInteger(Number(priority)) && Number(priority) >= 0
+    && (!startDate || !endDate || endDate >= startDate);
 
   return (
     <Card className={PANEL_CLASS}>
       {/* Header */}
       <div className="flex justify-between items-center mb-2">
-        <p className="text-2xs font-semibold uppercase tracking-wide text-faint">
+        <p className="text-base font-semibold tracking-tight text-foreground">
           {editingPlan ? t('dynamicPricing.ratePlan.edit') : t('dynamicPricing.ratePlan.create')}
         </p>
-        {editingPlan && (
+        {(
           <Button
             variant="ghost"
             size="icon-xs"
@@ -135,6 +142,7 @@ const RatePlanForm: React.FC<RatePlanFormProps> = ({
           <FieldLabel htmlFor="rate-plan-name">{t('dynamicPricing.ratePlan.name')}</FieldLabel>
           <Input
             id="rate-plan-name"
+            autoFocus
             className="w-full"
             value={name}
             onChange={(e) => setName(e.target.value)}
@@ -159,7 +167,7 @@ const RatePlanForm: React.FC<RatePlanFormProps> = ({
         </Field>
 
         {/* Price + Currency + Priority row */}
-        <div className="flex gap-1.5">
+        <div className="grid grid-cols-[minmax(0,1fr)_90px] gap-3">
           <Field className="flex-1 min-w-0">
             <FieldLabel htmlFor="rate-plan-nightly-price">
               {t('dynamicPricing.ratePlan.nightlyPrice')}
@@ -185,7 +193,7 @@ const RatePlanForm: React.FC<RatePlanFormProps> = ({
               <InputGroupInput id="rate-plan-currency" value={activeCurrency} disabled />
             </InputGroup>
           </Field>
-          <Field className="w-[100px] shrink-0">
+          <Field className="col-span-2">
             <FieldLabel htmlFor="rate-plan-priority">
               {t('dynamicPricing.ratePlan.priority')}
             </FieldLabel>
@@ -203,7 +211,7 @@ const RatePlanForm: React.FC<RatePlanFormProps> = ({
 
         {/* Date range — shared mini calendar */}
         <div>
-          <span className="text-2xs text-muted-foreground mb-0.5 block">
+          <span className="text-xs text-muted-foreground mb-0.5 block">
             {t('dynamicPricing.ratePlan.dateRange')}
           </span>
           <MiniDateRangePicker
@@ -216,7 +224,7 @@ const RatePlanForm: React.FC<RatePlanFormProps> = ({
 
         {/* Days of week */}
         <div>
-          <span className="text-2xs text-muted-foreground mb-0.5 block">
+          <span className="text-xs text-muted-foreground mb-0.5 block">
             {t('dynamicPricing.ratePlan.daysOfWeek')}
           </span>
           {/* Bascules : de vrais `button`, donc atteignables au clavier et
@@ -234,7 +242,7 @@ const RatePlanForm: React.FC<RatePlanFormProps> = ({
                   onClick={() => toggleDay(dayValue)}
                   aria-pressed={selected}
                   className={cn(
-                    'flex-1 text-center py-[3px] rounded-md cursor-pointer border border-solid',
+                    'flex-1 text-center py-2 rounded-md cursor-pointer border border-solid',
                     'transition-[border-color,background-color] duration-150 ease-out-quart motion-reduce:transition-none',
                     'outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50',
                     selected
@@ -242,7 +250,7 @@ const RatePlanForm: React.FC<RatePlanFormProps> = ({
                       : 'border-field-line bg-field hover:border-faint',
                   )}
                 >
-                  <span className={cn('text-[0.5625rem]', selected ? 'font-semibold text-primary' : 'font-medium text-muted-foreground')}>
+                  <span className={cn('text-xs', selected ? 'font-semibold text-primary' : 'font-medium text-muted-foreground')}>
                     {label}
                   </span>
                 </button>
@@ -265,6 +273,7 @@ const RatePlanForm: React.FC<RatePlanFormProps> = ({
           </FieldLabel>
         </Field>
 
+        {error && <Alert variant="destructive"><AlertDescription>{error}</AlertDescription></Alert>}
         {/* Actions */}
         <div className="flex gap-1.5 justify-end">
           {editingPlan && (

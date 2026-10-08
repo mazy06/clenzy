@@ -1,4 +1,5 @@
-import { useState, useCallback, useMemo } from 'react';
+import { useCallback, useMemo } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { calendarPricingApi } from '../services/api/calendarPricingApi';
 import type {
@@ -46,22 +47,38 @@ export function useDynamicPricing() {
   const queryClient = useQueryClient();
 
   // ── State ──
-  const [selectedPropertyId, setSelectedPropertyId] = useState<number | null>(null);
-  const [currentMonth, setCurrentMonth] = useState<Date>(
-    new Date(new Date().getFullYear(), new Date().getMonth(), 1),
-  );
+  const [searchParams, setSearchParams] = useSearchParams();
+  const propertyParam = Number(searchParams.get('property'));
+  const selectedPropertyId = Number.isSafeInteger(propertyParam) && propertyParam > 0 ? propertyParam : null;
+  const setSelectedPropertyId = useCallback((id: number | null) => setSearchParams((previous) => {
+    const next = new URLSearchParams(previous);
+    if (id) next.set('property', String(id)); else next.delete('property');
+    return next;
+  }, { replace: true }), [setSearchParams]);
+  const monthParam = searchParams.get('month');
+  const currentMonth = useMemo(() => {
+    if (monthParam && /^\d{4}-(0[1-9]|1[0-2])$/.test(monthParam)) {
+      const [year, month] = monthParam.split('-').map(Number);
+      return new Date(year, month - 1, 1);
+    }
+    const now = new Date();
+    return new Date(now.getFullYear(), now.getMonth(), 1);
+  }, [monthParam]);
 
   // ── Derived dates ──
   const { from, to } = useMemo(() => getMonthRange(currentMonth), [currentMonth]);
 
   // ── Month navigation ──
-  const goToPrevMonth = useCallback(() => {
-    setCurrentMonth((prev) => new Date(prev.getFullYear(), prev.getMonth() - 1, 1));
-  }, []);
-
-  const goToNextMonth = useCallback(() => {
-    setCurrentMonth((prev) => new Date(prev.getFullYear(), prev.getMonth() + 1, 1));
-  }, []);
+  const changeMonth = useCallback((offset: number) => {
+    const month = new Date(currentMonth.getFullYear(), currentMonth.getMonth() + offset, 1);
+    setSearchParams((previous) => {
+      const next = new URLSearchParams(previous);
+      next.set('month', toISODate(month).slice(0, 7));
+      return next;
+    }, { replace: true });
+  }, [currentMonth, setSearchParams]);
+  const goToPrevMonth = useCallback(() => changeMonth(-1), [changeMonth]);
+  const goToNextMonth = useCallback(() => changeMonth(1), [changeMonth]);
 
   // ── Properties query ──
   // propertiesApi.getAll() peut renvoyer Page<Property> ou Property[] selon la route
@@ -132,6 +149,8 @@ export function useDynamicPricing() {
     // Properties
     properties: propertiesQuery.data ?? [],
     propertiesLoading: propertiesQuery.isLoading,
+    propertiesError: propertiesQuery.isError,
+    refetchProperties: propertiesQuery.refetch,
 
     // Selected property
     selectedPropertyId,
@@ -147,10 +166,14 @@ export function useDynamicPricing() {
     // Calendar pricing data
     calendarPricing: calendarPricingQuery.data ?? [],
     calendarPricingLoading: calendarPricingQuery.isLoading,
+    calendarPricingError: calendarPricingQuery.isError,
+    refetchCalendarPricing: calendarPricingQuery.refetch,
 
     // Rate plans
     ratePlans: ratePlansQuery.data ?? [],
     ratePlansLoading: ratePlansQuery.isLoading,
+    ratePlansError: ratePlansQuery.isError,
+    refetchRatePlans: ratePlansQuery.refetch,
 
     // Mutations
     updatePrice: updatePriceMutation.mutateAsync,

@@ -2,7 +2,7 @@ import apiClient from '../apiClient';
 import type { SubscriptionChange, SubscriptionChangeProposal, SubscriptionChangeTerms } from '../../../../shared/src/types/baitlySubscription';
 
 import type { MonthlyPlan, MonthlyProposal, MonthlyContract, SubscriptionBill, MonthlyBillingCountry } from "../../../../shared/src/types/baitlySubscription";
-export { BAITLY_BILLING_COUNTRIES } from "../../../../shared/src/types/baitlySubscription";
+export { BAITLY_BILLING_COUNTRIES } from '../../config/baitlyBillingCountries';
 export type { MonthlyPlan, MonthlyQuote, MonthlyProposal, MonthlyContract, SubscriptionBill } from "../../../../shared/src/types/baitlySubscription";
 const root = '/subscription/monthly';
 export const baitlySubscriptionApi = {

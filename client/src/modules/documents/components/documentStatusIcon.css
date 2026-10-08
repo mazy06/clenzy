@@ -1,7 +1,0 @@
-.documents-status { display: inline-flex; align-items: center; justify-content: center; width: 34px; height: 34px; flex: none; border-radius: 10px; color: var(--bui-muted-foreground); background: var(--bui-muted); cursor: help; transition: background 180ms ease-out; }
-.documents-status[data-tone=success] { color: var(--bui-success-ink); background: var(--bui-success-soft); }
-.documents-status[data-tone=warning] { color: var(--bui-warning-ink); background: var(--bui-warning-soft); }
-.documents-status[data-tone=destructive] { color: var(--bui-destructive-ink); background: var(--bui-destructive-soft); }
-.documents-status[data-tone=info] { color: var(--bui-info-ink); background: var(--bui-info-soft); }
-.documents-status:focus-visible { outline: 2px solid var(--bui-ring); outline-offset: 2px; }
-@media (prefers-reduced-motion: reduce) { .documents-status { transition: none; } }

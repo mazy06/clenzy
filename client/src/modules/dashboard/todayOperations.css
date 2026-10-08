@@ -1,0 +1,11 @@
+.db-today__section-hint { color: var(--bui-muted-foreground); font-size: .75rem; line-height: 1.4; }
+.db-today__identity { display: flex; align-items: center; gap: 8px; }
+.db-today__identity > bdi { min-inline-size: 0; overflow-wrap: anywhere; }
+.db-today__channel { flex-shrink: 0; inline-size: 18px; block-size: 18px; object-fit: contain; border-radius: 4px; }
+.db-today__note { display: block; margin-block-start: 3px; }
+.db-today__deposit { display: block; margin-block-start: 3px; color: var(--bui-warning-ink); }
+.db-today__cleaning-status { display: block; margin-block-start: 4px; }
+.db-today__time { display: block; font-size: .8125rem; font-weight: 550; line-height: 1.4; font-variant-numeric: tabular-nums; text-align: end; }
+.db-today .db-queue-trailing { gap: 8px 12px; }
+.db-today .db-queue-row { min-block-size: 58px; }
+.db-today__deposit-footer { justify-content: flex-end; }

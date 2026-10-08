@@ -11,6 +11,14 @@ import java.util.List;
 import java.util.Optional;
 
 public interface SupervisionSuggestionRepository extends JpaRepository<SupervisionSuggestion, Long> {
+    List<SupervisionSuggestion> findByOrganizationIdAndPropertyIdAndActionTypeAndStatus(
+            Long organizationId, Long propertyId, String actionType, String status);
+
+    /** Retrait technique, distinct d'un refus humain et de son délai anti-relance. */
+    @Modifying
+    @Query("UPDATE SupervisionSuggestion s SET s.status = 'DISMISSED', s.dismissedAt = NULL "
+            + "WHERE s.id = :id AND s.organizationId = :orgId AND s.status = 'PENDING'")
+    int retireObsolete(@Param("id") Long id, @Param("orgId") Long orgId);
     String STOCK_OVERVIEW_FILTER = " FROM SupervisionSuggestion s JOIN Property p ON p.id = s.propertyId "
             + "AND p.organizationId = s.organizationId WHERE s.organizationId = :orgId AND s.status = :status "
             + "AND (s.actionType = 'LINEN_STOCK_ORDER' OR (:status = 'PENDING' AND s.toolName = 'stock_low')) "

@@ -137,6 +137,11 @@ const canViewIssues = (a: ScreenTabAccess) =>
  * barre : il n'ouvre alors aucun tiroir.</p>
  */
 export const SCREEN_TABS: Record<string, ScreenTabDef[]> = {
+  '/dynamic-pricing': [
+    { key: 'calendar', translationKey: 'baitlyPricing.tabs.calendar', fallbackLabel: 'Calendrier des prix', icon: <CalendarMonth /> },
+    { key: 'strategy', translationKey: 'baitlyPricing.tabs.strategy', fallbackLabel: 'Stratégie tarifaire', icon: <TrendingUp /> },
+    { key: 'restrictions', translationKey: 'baitlyPricing.tabs.restrictions', fallbackLabel: 'Règles de séjour', icon: <Tune /> },
+  ],
   '/consumables': [
     { key: 'pending', translationKey: 'tabHeaders.consumables.pending', fallbackLabel: 'En attente de commande', icon: <Schedule /> },
     { key: 'ordered', translationKey: 'tabHeaders.consumables.ordered', fallbackLabel: 'Commandés', icon: <Outbox /> },
@@ -156,9 +161,7 @@ export const SCREEN_TABS: Record<string, ScreenTabDef[]> = {
 
   '/properties': [
     { key: 'properties', translationKey: 'propertiesPage.tabs.properties', fallbackLabel: 'Propriétés', icon: <Home /> },
-    { key: 'pricing', translationKey: 'propertiesPage.tabs.pricing', fallbackLabel: 'Prix dynamique', icon: <TrendingUp /> },
     { key: 'vouchers', translationKey: 'propertiesPage.tabs.vouchers', fallbackLabel: 'Codes promo', icon: <LocalOffer /> },
-    { key: 'connected-objects', translationKey: 'propertiesPage.tabs.connectedObjects', fallbackLabel: 'Objets connectés', icon: <Inventory2 /> },
   ],
 
   // Le calendrier est en tête : c'est la vue d'entrée de l'écran (URL sans `?tab=`).

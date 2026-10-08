@@ -1,0 +1,15 @@
+.bui-channel-list { margin: 0; padding: 0 20px 6px; list-style: none; }
+.bui-channel-row { display: flex; align-items: center; gap: 12px; padding: 12px 0; }
+.bui-channel-row + .bui-channel-row { border-block-start: 1px solid var(--bui-border); }
+.bui-channel-row__logo { flex-shrink: 0; inline-size: 40px; display: grid; place-items: center; }
+.bui-channel-row__logo [role="img"] { inline-size: 40px; block-size: 32px; background: #F3F6FA; }
+.bui-channel-row__logo img { inline-size: 36px; block-size: 28px; }
+.bui-channel-row__content { flex: 1; min-inline-size: 0; }
+.bui-channel-row__heading { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 2px 12px; }
+.bui-channel-row__name { font-size: .8125rem; font-weight: 500; overflow-wrap: anywhere; }
+.bui-channel-row__amount { font-size: .875rem; font-weight: 600; font-variant-numeric: tabular-nums; }
+.bui-channel-row__distribution { display: flex; align-items: center; gap: 12px; margin-block-start: 5px; }
+.bui-channel-row__track { block-size: 5px; min-inline-size: 0; flex: 1; overflow: hidden; border-radius: 8px; background: var(--bui-muted); }
+.bui-channel-row__share { min-inline-size: 45px; text-align: end; font-size: .75rem; color: var(--bui-muted-foreground); font-variant-numeric: tabular-nums; }
+.bui-channel-row__delta { display: block; margin-block-start: 3px; font-size: .6875rem; color: var(--bui-muted-foreground); font-variant-numeric: tabular-nums; }
+@container widget-panel (max-width: 480px) { .bui-channel-list { padding-inline: 16px; } }

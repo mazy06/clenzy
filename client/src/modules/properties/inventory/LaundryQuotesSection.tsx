@@ -1,4 +1,7 @@
 import React, { useState } from 'react';
+import { PROPERTY_ART } from '../propertyArtwork';
+import StatusIcon from '../../../components/StatusIcon';
+import { FileCheck2, FileClock, ReceiptText } from 'lucide-react';
 import {
   Alert,
   AlertDescription,
@@ -17,12 +20,12 @@ import {
 } from '../../../components/ui';
 import { cn } from '../../../utils/cn';
 import {
-  Receipt, Add, CheckCircle, ExpandMore, ExpandLess,
+  Add, CheckCircle, ExpandMore, ExpandLess,
 } from '../../../icons';
 import type { LaundryQuote, GenerateLaundryQuoteRequest } from '../../../services/api/propertyInventoryApi';
 import { Money } from '../../../components/Money';
 import EmptyState from '../../../components/EmptyState';
-import StatusChip, { type StatusTone } from '../../../components/StatusChip';
+import type { StatusTone } from '../../../components/StatusChip';
 import { activeIntlLocale } from '../../../utils/activeLocale';
 import { useTranslation } from '../../../hooks/useTranslation';
 
@@ -66,12 +69,12 @@ export default function LaundryQuotesSection({ quotes, hasLaundryItems, canEdit,
   };
 
   return (
-    <div>
-      <div className="flex items-center justify-between mb-3">
+    <div className="pdt-surface p-5">
+      <div className="flex items-center justify-between mb-5 gap-3">
         <div className="flex items-center gap-1.5">
-          <span className="inline-flex text-warning"><Receipt size={22} strokeWidth={1.75} /></span>
+          <img src={PROPERTY_ART.quotes} alt="" width={48} height={48} className="object-contain" />
           <div>
-            <h6 className="text-sm font-semibold tracking-tight">{t('properties.laundryQuotes.title')}</h6>
+            <h2 className="text-sm font-semibold tracking-tight">{t('properties.laundryQuotes.title')}</h2>
             <p className="text-xs text-muted-foreground">
               {t('properties.laundryQuotes.subtitle')}
             </p>
@@ -95,7 +98,7 @@ export default function LaundryQuotesSection({ quotes, hasLaundryItems, canEdit,
 
       {quotes.length === 0 ? (
         <EmptyState
-          icon={<Receipt />}
+          icon={<img src={PROPERTY_ART.quotes} alt="" width={64} height={64} />}
           title={t('properties.laundryQuotes.empty')}
         />
       ) : (
@@ -120,16 +123,15 @@ export default function LaundryQuotesSection({ quotes, hasLaundryItems, canEdit,
                   <React.Fragment key={quote.id}>
                     <TableRow className="cursor-pointer" onClick={() => toggleExpand(quote.id)}>
                       <TableCell>
-                        {/* La ligne entiere porte deja le toggle : ce bouton est
-                            l'affordance visuelle, d'ou tabIndex -1 et aria-hidden. */}
-                        <Button variant="ghost" size="icon-sm" tabIndex={-1} aria-hidden>
+                        {/* Le bouton permet aussi d'ouvrir le détail au clavier. */}
+                        <Button variant="ghost" size="icon-sm" aria-expanded={isExpanded} aria-label={t('properties.laundryQuotes.title') + ' #' + quote.id}>
                           {isExpanded ? <ExpandLess size={16} strokeWidth={1.75} /> : <ExpandMore size={16} strokeWidth={1.75} />}
                         </Button>
                       </TableCell>
                       <TableCell className="font-medium">#{quote.id}</TableCell>
                       <TableCell>{formatDate(quote.generatedAt)}</TableCell>
                       <TableCell>
-                        <StatusChip tone={statusConf.tone} label={statusConf.label} />
+                        <StatusIcon tone={quote.status === 'CONFIRMED' ? 'success' : quote.status === 'INVOICED' ? 'info' : 'warning'} icon={quote.status === 'CONFIRMED' ? FileCheck2 : quote.status === 'INVOICED' ? ReceiptText : FileClock} label={statusConf.label} />
                       </TableCell>
                       <TableCell className="text-end font-semibold">
                         <Money value={Number(quote.totalHt)} from={quote.currency ?? 'EUR'} />

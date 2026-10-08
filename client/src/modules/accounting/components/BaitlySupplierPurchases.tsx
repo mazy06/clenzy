@@ -1,3 +1,4 @@
+import FinanceStatusIcon from '../../billing/components/FinanceStatusIcon';
 import { useRef, useState, type FormEvent } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
@@ -7,7 +8,6 @@ import { useAuth } from '../../../hooks/useAuth';
 import { useTranslation } from '../../../hooks/useTranslation';
 import { usePageHeaderActions } from '../../../components/PageHeaderActionsContext';
 import { useScreenSearch } from '../../../components/ScreenChrome';
-import PagePagination from '../../../components/PagePagination';
 import FinanceWorkspace from '../../billing/components/FinanceWorkspace';
 import { baitlySupplierPurchasesApi as api, type SupplierPurchase } from '../../../services/api/baitlySupplierPurchasesApi';
 import { propertiesApi } from '../../../services/api/propertiesApi';
@@ -20,27 +20,26 @@ export default function BaitlySupplierPurchases() {
 }
 function Purchases({ scope }: { scope: string }) {
   const { t, currentLanguage } = useTranslation(); const queries = useQueryClient();
-  const [creating, setCreating] = useState(false); const [search, setSearch] = useState(''); const [page, setPage] = useState(0);
+  const [creating, setCreating] = useState(false); const [search, setSearch] = useState('');
   const key = ['supplier-purchases', scope];
   const list = useQuery({ queryKey: key, queryFn: api.list });
-  useScreenSearch(search, value => { setSearch(value); setPage(0); }, t('supplierPurchase.search'));
+  useScreenSearch(search, value => { setSearch(value); }, t('supplierPurchase.search'));
   const actions = usePageHeaderActions(<Button variant="outline" size="icon" aria-label={t('supplierPurchase.new')} onClick={() => setCreating(true)}><Plus size={18} /></Button>);
   const refresh = async () => { await Promise.all([queries.invalidateQueries({ queryKey: key }), queries.invalidateQueries({ queryKey: ['provider-expenses'] })]); };
   const rows = (list.data ?? []).filter(r => `${r.supplier_name} ${r.invoice_reference} ${r.property_name}`.toLocaleLowerCase().includes(search.toLocaleLowerCase()));
   const status = (r: SupplierPurchase) => r.external_reference ? 'externalDocumented' : r.expense_id ? 'expensePrepared'
     : r.beneficiary_user_id ? 'accepted' : r.mode === 'BAITLY' ? 'invited' : r.mode === 'EXTERNAL' ? 'externalPending' : 'toChoose';
   return <div className="space-y-3">{actions}
-    <p className="text-sm text-muted-foreground">{t('supplierPurchase.help')}</p>
     {creating && <PurchaseForm scope={scope} onCancel={() => setCreating(false)} onSaved={async () => { setCreating(false); await refresh(); }} />}
     {list.isPending && <Skeleton className="h-32 w-full" />}
     {list.isError && <Alert><AlertDescription>{t('supplierPurchase.loadError')} <Button variant="ghost" onClick={() => void list.refetch()}>{t('common.retry')}</Button></AlertDescription></Alert>}
     {!list.isPending && !list.isError && rows.length === 0 && <p className="py-4 text-sm">{t('supplierPurchase.empty')}</p>}
-    {!list.isError && rows.length > 0 && <FinanceWorkspace items={rows.slice(page * 10, (page + 1) * 10).map(row => ({
+    {!list.isError && rows.length > 0 && <FinanceWorkspace items={rows.map(row => ({
       id: row.id, title: row.supplier_name, subtitle: row.invoice_reference, identity: { propertyId: row.property_id, propertyName: row.property_name, actorName: row.supplier_name },
       amount: new Intl.NumberFormat(currentLanguage, { style: 'currency', currency: row.currency }).format(row.amount_ttc),
-      status: t(`supplierPurchase.states.${status(row)}`), fields: [],
+      status: <FinanceStatusIcon value={status(row)} label={t(`supplierPurchase.states.${status(row)}`)} />, fields: [],
       detailBody: <PurchaseDetail key={row.id} row={row} refresh={refresh} />,
-    }))} pagination={<PagePagination page={page} rowsPerPage={10} count={rows.length} onPageChange={setPage} />} />}
+    }))} />}
   </div>;
 }
 function PurchaseDetail({ row, refresh }: { row: SupplierPurchase; refresh: () => Promise<void> }) {

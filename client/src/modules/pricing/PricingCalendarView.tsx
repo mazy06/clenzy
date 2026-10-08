@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useCallback, useEffect, useRef } from 'react';
-import { Spinner, Button, Card } from '../../components/ui';
+import { Skeleton, Button, Card } from '../../components/ui';
 import { cn } from '../../utils/cn';
 import { ChevronPrev as ChevronPrevIcon } from '../../icons';
 import { ChevronNext as ChevronNextIcon } from '../../icons';
@@ -17,11 +17,13 @@ import { useDateFormat } from '../../hooks/useDateFormat';
 import { buildMonthGrid, toLocalISODate } from '../../utils/monthGrid';
 import { weekdayHeaders } from '../../utils/localeDate';
 import './pricingCalendar.css';
+import BaitlyPricingProposal, { BaitlyPricingProposalSkeleton, type BaitlyPricingAiSelection } from './BaitlyPricingProposal';
+import type { AiPricingRecommendation } from '../../services/api/aiApi';
 
 // ─── Style Constants ────────────────────────────────────────────────────────
 
 /** Densité de carte partagée : la surface vient de `Card`, le rythme d'ici. */
-const PANEL_CLASS = 'gap-0 py-0 p-[9px]';
+const PANEL_CLASS = 'bp-calendar-panel gap-0 p-4';
 
 const SOURCE_COLORS: Record<string, string> = {
   OVERRIDE: '#D98E8E',
@@ -46,6 +48,13 @@ interface PricingCalendarViewProps {
   onUpdatePrice: (data: { propertyId: number; from: string; to: string; nightlyPrice: number; source?: string }) => Promise<void>;
   updatePriceLoading: boolean;
   currency?: string;
+  toolbarControls?: React.ReactNode;
+  hideToolbar?: boolean;
+  propertyName?: string;
+  proposalsLoading?: boolean;
+  proposals?: Map<string, AiPricingRecommendation>;
+  selectedProposalDate?: string;
+  onSelectProposal?: (selection: BaitlyPricingAiSelection) => void;
 }
 
 // ─── Calendar Helpers ───────────────────────────────────────────────────────
@@ -74,6 +83,13 @@ const PricingCalendarView: React.FC<PricingCalendarViewProps> = ({
   onUpdatePrice,
   updatePriceLoading,
   currency = 'EUR',
+  toolbarControls,
+  hideToolbar = false,
+  propertyName = '',
+  proposals,
+  proposalsLoading = false,
+  selectedProposalDate,
+  onSelectProposal,
 }) => {
   const { t } = useTranslation();
   // Premier jour de semaine et week-end suivent la LANGUE : dimanche→samedi et
@@ -204,13 +220,18 @@ const PricingCalendarView: React.FC<PricingCalendarViewProps> = ({
     [minNightsMutation],
   );
 
+  useEffect(() => {
+    setSelectedDates([]);
+    selectionAnchorRef.current = null;
+  }, [selectedPropertyId, currentMonth]);
+
   const selectedDatesSet = new Set(selectedDates);
 
   return (
     <div className="flex flex-col gap-2 flex-1">
       {/* ── Month navigation ── */}
-      <Card className={PANEL_CLASS}>
-        <div className="flex items-center justify-center gap-0.5">
+      {!hideToolbar && <Card className="bp-month-toolbar bp-calendar-toolbar gap-0 p-0">
+        <div className="bp-month-nav flex items-center gap-0.5">
           <Button variant="ghost" size="icon-sm" onClick={onPrevMonth} aria-label={t('common.previous', 'Précédent')}>
             <ChevronPrevIcon size={20} strokeWidth={1.75} />
           </Button>
@@ -221,7 +242,8 @@ const PricingCalendarView: React.FC<PricingCalendarViewProps> = ({
             <ChevronNextIcon size={20} strokeWidth={1.75} />
           </Button>
         </div>
-      </Card>
+        {toolbarControls}
+      </Card>}
 
       {/* ── No property selected — état vide standardisé ── */}
       {!selectedPropertyId && (
@@ -229,6 +251,7 @@ const PricingCalendarView: React.FC<PricingCalendarViewProps> = ({
           icon={<CalendarMonthIcon />}
           title={t('dynamicPricing.calendar.noProperty')}
           description={t('dynamicPricing.calendar.noPropertyHint')}
+          variant="plain"
           minHeight={260}
         />
       )}
@@ -237,9 +260,10 @@ const PricingCalendarView: React.FC<PricingCalendarViewProps> = ({
           `pc-grid` porte le jeton de teinte du week-end (pricingCalendar.css). */}
       {selectedPropertyId && (
         <Card className={cn(PANEL_CLASS, 'pc-grid relative flex flex-1 flex-col')}>
+          <p className="bp-calendar-unit">{t('baitlyPricing.priceUnit', { currency, defaultValue: 'Prix par nuit ({{currency}})' })}</p>
           {calendarPricingLoading && (
             <div className="absolute inset-0 flex items-center justify-center bg-card/70 z-[2] rounded-xl">
-              <Spinner className="size-7" />
+              <Skeleton className="h-full w-full" />
             </div>
           )}
 
@@ -251,8 +275,8 @@ const PricingCalendarView: React.FC<PricingCalendarViewProps> = ({
               <div className="text-center py-0.5" key={index}>
                 <span
                   className={cn(
-                    'text-2xs font-semibold uppercase tracking-wide',
-                    header.weekend ? 'text-muted-foreground' : 'text-faint',
+                    'text-xs font-semibold uppercase tracking-wide',
+                    'text-muted-foreground',
                   )}
                 >
                   {header.label}
@@ -270,49 +294,50 @@ const PricingCalendarView: React.FC<PricingCalendarViewProps> = ({
               const weekend = isWeekend(cell.date);
               const sourceColor = pricing ? getSourceColor(pricing.priceSource) : '#8BA0B3';
 
+              const recommendation = cell.inMonth ? proposals?.get(cell.dateStr) : undefined;
+              const proposalSelected = selectedProposalDate === cell.dateStr;
               return (
-                <div
-                  key={cell.dateStr}
-                  onMouseDown={(e) => cell.inMonth && handleCellMouseDown(cell.dateStr, e)}
-                  onMouseEnter={() => cell.inMonth && handleCellMouseEnter(cell.dateStr)}
-                  onDoubleClick={() => {
-                    if (cell.inMonth && selectedPropertyId) {
-                      setSelectedDates([cell.dateStr]);
-                      setEditDialogOpen(true);
-                    }
-                  }}
+                <div key={cell.dateStr}
+                  onMouseEnter={() => !calendarPricingLoading && cell.inMonth && handleCellMouseEnter(cell.dateStr)}
                   className={cn(
-                    'min-h-[64px] p-[3px] rounded-md select-none border border-solid flex flex-col',
+                    'bp-day min-h-[80px] p-2 rounded-md select-none border border-solid flex flex-col',
                     'transition-[border-color,background-color] duration-150 ease-out-quart motion-reduce:transition-none',
-                    cell.inMonth ? 'cursor-pointer opacity-100' : 'cursor-default opacity-30',
-                    isSelected
-                      ? 'bg-primary-soft border-primary shadow-[inset_0_0_0_1px_var(--color-primary)]'
-                      : weekend
-                        ? 'border-border shadow-none bg-[var(--pc-cell-we)]'
-                        : 'bg-transparent border-border shadow-none',
+                    cell.inMonth ? 'opacity-100' : 'opacity-30',
+                    isSelected || proposalSelected
+                      ? 'bg-primary-soft border-primary shadow-[inset_0_0_0_1px_var(--bui-primary)]'
+                      : weekend ? 'border-border shadow-none bg-[var(--pc-cell-we)]' : 'bg-transparent border-border shadow-none',
                     cell.inMonth && !isSelected && 'hover:border-primary/40 hover:bg-muted',
-                  )}
-                >
-                  {/* Pastille « aujourd'hui » — pattern planning (carré accent r8) */}
-                  {isToday ? (
-                    <span className="inline-flex items-center justify-center w-[20px] h-[20px] rounded-[7px] bg-primary text-primary-foreground font-[family-name:var(--font-display)] font-semibold text-2xs leading-none self-start tabular-nums">
-                      {cell.date.getDate()}
-                    </span>
-                  ) : (
-                    <span className="text-2xs font-semibold leading-none tabular-nums">
-                      {cell.date.getDate()}
-                    </span>
-                  )}
-
-                  {pricing && pricing.nightlyPrice !== null && (
-                    <p className="text-sm font-semibold flex-1 flex items-center justify-center tabular-nums" style={{ color: sourceColor, fontFamily: 'var(--font-display)' }}>
-                      {pricing.nightlyPrice}
-                    </p>
-                  )}
-
-                  {pricing && (
-                    <div className="h-[3px] rounded-md mt-auto" style={{ backgroundColor: sourceColor }} />
-                  )}
+                    (recommendation || (proposalsLoading && cell.inMonth)) && 'bp-day-with-ai',
+                  )}>
+                  <button type="button" className="bp-day-select" disabled={!cell.inMonth || calendarPricingLoading}
+                    aria-pressed={cell.inMonth ? isSelected : undefined}
+                    aria-label={cell.dateStr + ', ' + (pricing?.nightlyPrice ?? '–') + ' ' + currency}
+                    onKeyDown={(e) => {
+                      if (!cell.inMonth || calendarPricingLoading) return;
+                      if (e.key === 'Enter' || e.key === ' ') {
+                        e.preventDefault();
+                        if (e.shiftKey && selectionAnchorRef.current) setSelectedDates(rangeBetween(selectionAnchorRef.current, cell.dateStr));
+                        else { selectionAnchorRef.current = cell.dateStr; setSelectedDates([cell.dateStr]); }
+                      }
+                    }}
+                    onTouchStart={() => { if (cell.inMonth && !calendarPricingLoading) {
+                      selectionAnchorRef.current = cell.dateStr; setSelectedDates([cell.dateStr]);
+                    } }}
+                    onMouseDown={(e) => !calendarPricingLoading && cell.inMonth && handleCellMouseDown(cell.dateStr, e)}
+                    onClick={() => { if (!isDragging && selectedDates.length === 0) {
+                      selectionAnchorRef.current = cell.dateStr; setSelectedDates([cell.dateStr]);
+                    } }}
+                    onDoubleClick={() => { setSelectedDates([cell.dateStr]); setEditDialogOpen(true); }}>
+                    {isToday ? <span className="inline-flex items-center justify-center w-[20px] h-[20px] rounded-[7px] bg-primary text-primary-foreground font-semibold text-xs leading-none self-start tabular-nums">{cell.date.getDate()}</span>
+                      : <span className="text-xs font-semibold leading-none tabular-nums">{cell.date.getDate()}</span>}
+                    {cell.inMonth && <span className="bp-price text-base font-semibold text-foreground flex-1 flex items-center justify-center tabular-nums">{pricing?.nightlyPrice ?? '–'}</span>}
+                  </button>
+                  {proposalsLoading && cell.inMonth && !recommendation && <BaitlyPricingProposalSkeleton />}
+                  {recommendation && selectedPropertyId && onSelectProposal && <BaitlyPricingProposal
+                    selection={{ propertyId: selectedPropertyId, propertyName, currency: pricing?.currency ?? currency,
+                      currentPrice: pricing?.nightlyPrice ?? null, recommendation }}
+                    active={proposalSelected} onSelect={(selection) => { setSelectedDates([]); onSelectProposal(selection); }} />}
+                  {pricing && <div className="h-[3px] rounded-md mt-auto" style={{ backgroundColor: sourceColor }} />}
                 </div>
               );
             })}
@@ -320,15 +345,16 @@ const PricingCalendarView: React.FC<PricingCalendarViewProps> = ({
 
           {/* Legend */}
           <div className="flex flex-wrap items-center gap-2 mt-2 pt-1.5 border-t border-border">
-            {Object.entries(SOURCE_COLORS).map(([key, color]) => (
+            {Object.entries(SOURCE_COLORS).filter(([key]) => calendarPricing.some(day => day.priceSource === key)).map(([key, color]) => (
               <div className="flex items-center gap-0.5" key={key}>
                 <div className="w-[10px] h-[10px] rounded-full" style={{ backgroundColor: color }} />
-                <span className="text-2xs text-muted-foreground">
+                <span className="text-xs text-muted-foreground">
                   {t(`dynamicPricing.priceSource.${key}`)}
                 </span>
               </div>
             ))}
-            <span className="text-2xs text-muted-foreground ms-auto italic">
+            {proposals && proposals.size > 0 && <span className="bp-ai-legend"><span>{t('baitlyPricing.ai.short', 'IA')}</span>{t('baitlyPricing.ai.pending', 'À valider')}</span>}
+            <span className="text-xs text-muted-foreground ms-auto italic">
               {t('dynamicPricing.calendar.rangeHint', 'Cliquez-glissez pour sélectionner une plage')}
             </span>
           </div>
@@ -360,7 +386,7 @@ const PricingCalendarView: React.FC<PricingCalendarViewProps> = ({
               onClick={() => setMinNightsDialogOpen(true)}
             >
               <NightsStay size={14} strokeWidth={1.75} />
-              Min-nights
+              {t('baitlyPricing.minNights', "Séjour minimum")}
             </Button>
             <Button
               size="sm"

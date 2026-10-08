@@ -30,10 +30,9 @@ import {
   TooltipTrigger,
 } from '../../../components/ui';
 import { useTranslation } from '../../../hooks/useTranslation';
-import { useIconSize } from '../../../hooks/useResponsiveSize';
 import { ErrorOutline, Lock } from '../../../icons';
 import { AGENT_META, STATUS, STATUS_PRIORITY, autonomyChoicesFor } from '../constants';
-import { AgentIcon } from '../renderers/agentIcon';
+import { AgentPortrait } from '../renderers/AgentPortrait';
 import type { ConstellationAgentView } from '../renderers/ConstellationRenderer';
 import type { AgentId, AutonomyLevel, FeedEntry, PortfolioFeedEntry } from '../types';
 import '../supervision-surfaces.css';
@@ -65,7 +64,6 @@ export function ConstellationAgentCards({
 }: ConstellationAgentCardsProps) {
   const { t } = useTranslation();
   const headingId = useId();
-  const iconSize = useIconSize('badge');
 
   // Passage en PLEINE autonomie : l'agent agira seul et en silence. On ne le
   // fait pas glisser d'un sélecteur — l'exploitant doit voir ce qu'il engage et
@@ -141,7 +139,7 @@ export function ConstellationAgentCards({
                 ].filter(Boolean).join('\n')}
               >
                 <span className="baitly-agent-list-emblem" aria-hidden="true">
-                  <AgentIcon token={meta.icon} size={iconSize} strokeWidth={1.75} />
+                  <AgentPortrait agentId={agent.id} receiving={false} />
                   {working && <span className="baitly-agent-list-activity" />}
                 </span>
 

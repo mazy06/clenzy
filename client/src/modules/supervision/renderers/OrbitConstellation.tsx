@@ -6,10 +6,9 @@
    ConstellationRenderer (portefeuille, mode compact) :
 
    - canvas aux jetons du thème, carte arrondie hors flush ;
-   - HUD « Orchestrateur » haut-gauche en large (compteurs, bilan,
-     escalades) — le mode focus l'efface ;
-   - mode COMPACT : en-tête sur UNE ligne (identité + effectif à
-     gauche, bascules en icônes à droite) + tiroir bas, un seul
+   - barre d'identité partagée avec le planning (compteurs, bilan,
+     escalades), masquée en mode focus ;
+   - mode compact : commandes adaptatives et tiroir bas, un seul
      ouvert à la fois.
 
    La vue LARGE par logement (accordéon Planning) n'utilise PLUS ce
@@ -23,6 +22,7 @@ import { useTranslation } from '../../../hooks/useTranslation';
 import { Checklist, Close, Info, Timeline } from '../../../icons';
 import { cn } from '../../../utils/cn';
 import { AGENT_META, STATUS } from '../constants';
+import { ConstellationToolbar } from '../components/ConstellationToolbar';
 import { OrbitDiagram, busiestAgent } from './OrbitDiagram';
 import type { ConstellationRendererProps } from './ConstellationRenderer';
 import type { AgentId } from '../types';
@@ -148,16 +148,8 @@ export function OrbitConstellation({
         ? t('supervision.feed.title')
         : t('supervision.compact.hitl', 'À traiter');
 
-  /**
-   * Bascule de tiroir du mode compact, réduite à son ICÔNE.
-   *
-   * <p>Le rail portait deux pastilles pleine largeur, sous les compteurs, eux
-   * sous l'identité : trois rangées pour dire ce qui tient en une, et autant de
-   * hauteur prise à la constellation — la seule chose qu'on soit venu voir. Le
-   * libellé passe en `aria-label`, comme les actions de la barre de titre
-   * (cf. compactHeaderActions) ; le compte, lui, reste écrit : c'est lui qui
-   * appelle.</p>
-   */
+  /** Commandes de tiroir : sur téléphone, seuls le libellé et le compte
+   *  des demandes restent visibles ; les autres gardent leur nom accessible. */
   const toggleTiroir = (
     key: 'live' | 'hitl',
     label: string,
@@ -169,88 +161,34 @@ export function OrbitConstellation({
       aria-label={badge != null ? `${label} — ${badge}` : label}
       aria-expanded={sheet === key}
       onClick={() => toggleSheet(key)}
-      className={cn(
-        'inline-flex h-7 min-w-7 shrink-0 cursor-pointer items-center justify-center gap-1 rounded-full px-1.5',
-        'transition-colors duration-150 focus-visible:ring-[3px] focus-visible:ring-ring/50 focus-visible:outline-none',
-        badge != null
-          ? sheet === key
-            ? 'bg-warning-soft text-warning-ink'
-            : 'text-warning-ink hover:bg-warning-soft'
-          : sheet === key
-            ? 'bg-primary-soft text-primary'
-            : 'text-muted-foreground hover:bg-muted hover:text-foreground',
-      )}
+      className="baitly-constellation-tool"
+      data-active={sheet === key || undefined}
+      data-pending={badge != null || undefined}
     >
       {icon}
-      {badge != null && <b className="text-[11px] font-bold tabular-nums">{badge}</b>}
+      <span>{label}</span>
+      {badge != null && <b className="tabular-nums">{badge}</b>}
     </button>
   );
 
-  // ── Fragments de l'en-tête, écrits UNE fois et composés différemment selon
-  //    la largeur. Les dupliquer aurait garanti que les deux versions divergent.
-
-  /** « ● Orchestrateur » — identité et état de la liaison. */
-  const identite = (
-    <span className="flex min-w-0 items-center gap-1.5 text-xs font-semibold text-foreground">
-      <span
-        aria-hidden
-        className={cn('size-1.5 shrink-0 rounded-full', online ? 'bg-success' : 'bg-muted-foreground/50')}
-      />
-      <span className="truncate">{t('supervision.hud.orchestrator')}</span>
-    </span>
-  );
-
-  /**
-   * Les trois compteurs. `whitespace-nowrap` sur CHAQUE unité : sans lui, en
-   * étroit, le nombre se séparait de son libellé (« 10 » sur une ligne,
-   * « agents » sur la suivante) — une valeur orpheline ne veut plus rien dire.
-   */
-  const compteurs = (
-    <>
-      <span className="whitespace-nowrap">
-        <b className="font-semibold text-foreground tabular-nums">{hud.agentsCount}</b> {t('supervision.hud.agents')}
-      </span>
-      <span className="whitespace-nowrap">
-        <b className="font-semibold text-foreground tabular-nums">{hud.actingCount}</b> {t('supervision.hud.acting')}
-      </span>
-      <span className={cn('whitespace-nowrap', hud.awaitingCount > 0 && 'text-warning-ink')}>
-        <b className="font-semibold tabular-nums">{hud.awaitingCount}</b> {t('supervision.hud.awaiting')}
-      </span>
-    </>
-  );
-
-  /**
-   * Le bilan, réduit à une icône sur la ligne des compteurs.
-   *
-   * <p>Il tenait une pastille pleine largeur dans le rail, à égalité avec
-   * « À traiter » — une information qu'on consulte de loin en loin au même
-   * rang que celle sur laquelle on agit. Le rail ne porte plus que les deux
-   * surfaces actionnables.</p>
-   *
-   * <p>Le tiroir reste sa surface : en étroit l'écran est tactile, et un
-   * panneau qui monte du bas se lit et se ferme au pouce, là où une bulle
-   * ancrée à une icône de 24 px se manipule mal.</p>
-   */
+  // Le bilan compact reste un tiroir, accessible au toucher et au clavier.
   const bilan = report && (
     <button
       type="button"
       aria-label={t('supervision.report.titleBase', 'Bilan')}
       aria-expanded={sheet === 'hud'}
       onClick={() => toggleSheet('hud')}
-      className={cn(
-        // 24 px de cible tactile : en dessous, le pouce manque l'icône.
-        'inline-flex size-6 shrink-0 cursor-pointer items-center justify-center rounded-full transition-colors duration-200',
-        'focus-visible:ring-[3px] focus-visible:ring-ring/50 focus-visible:outline-none',
-        sheet === 'hud' ? 'bg-primary-soft text-primary' : 'text-muted-foreground hover:bg-muted hover:text-foreground',
-      )}
+      className="baitly-constellation-tool"
+      data-active={sheet === 'hud' || undefined}
     >
-      <Info size={14} strokeWidth={1.75} />
+      <Info size={16} strokeWidth={1.75} aria-hidden="true" />
+      <span>{t('supervision.report.titleBase', 'Bilan')}</span>
     </button>
   );
 
   /** L'exception, nommée — jamais masquée, jamais tassée. */
   const exception = attention.length > 0 && (
-    <span className="flex min-w-0 items-center gap-1.5 text-destructive">
+    <span className="flex min-w-0 items-center gap-1.5 text-destructive-ink">
       <span aria-hidden className="size-1.5 shrink-0 rounded-full bg-destructive" />
       <span className="truncate">{attention.map((agent) => t(AGENT_META[agent.id].nameKey)).join(', ')}</span>
     </span>
@@ -277,61 +215,23 @@ export function OrbitConstellation({
     >
       <style>{SHEET_STYLES}</style>
 
-      {/* ── En-tête sur UNE ligne (masqué en mode focus) : identité et
-             compteurs à gauche, contrôles alignés à droite — même grammaire
-             que l'en-tête du panneau large. Plus de carte flottante ni de rail
-             posés SUR le canvas : la surface entière revient au diagramme. */}
-      {!focused && (compact ? (
-        /* ── Étroit : UNE ligne. Trois rangées empilées — qui parle, ce qu'il en
-              est, ce qu'on peut ouvrir — mangeaient une centaine de pixels de
-              haut au seul écran où la hauteur manque, et c'est la constellation
-              qui payait. Ce qui tient sur la ligne : l'identité et l'effectif
-              en toutes lettres ; ce qui n'y tient pas devient une icône dont le
-              libellé passe en `aria-label`, ou disparaît quand il ne dit rien.
-              « En attente » n'est PAS perdu : la bascule « À traiter » porte le
-              même nombre — il s'écrivait deux fois. */
-        <div className="flex shrink-0 flex-col gap-1 px-3 pt-3">
-          <div className="flex items-center gap-2">
-            <p className="m-0 flex min-w-0 flex-1 items-baseline gap-1.5 text-xs text-muted-foreground">
-              {identite}
-              <span aria-hidden className="text-faint">·</span>
-              <span className="whitespace-nowrap">
-                <b className="font-semibold text-foreground tabular-nums">{hud.agentsCount}</b>{' '}
-                {t('supervision.hud.agents')}
-              </span>
-              {/* L'activité en cours n'apparaît que lorsqu'il y en a : « 0
-                  agissent » occupait une place fixe pour ne rien annoncer. */}
-              {hud.actingCount > 0 && (
-                <span className="whitespace-nowrap text-primary">
-                  <b className="font-semibold tabular-nums">{hud.actingCount}</b>{' '}
-                  {t('supervision.hud.acting')}
-                </span>
-              )}
-            </p>
-
-            <span className="flex shrink-0 items-center gap-0.5">
-              {bascules}
-              {bilan}
-              {headerAction}
-            </span>
-          </div>
-
-          {/* L'exception garde sa ligne : elle est rare, et c'est une alerte —
-              la tasser entre deux nombres serait la faire disparaître. */}
-          {exception && <p className="m-0 text-xs">{exception}</p>}
-        </div>
-      ) : (
-        /* ── Large : tout tient sur une ligne, l'espace ne manque pas. */
-        <div className="flex shrink-0 flex-wrap items-center gap-x-3 gap-y-2 px-3 pt-3">
-          <p className="m-0 flex min-w-0 flex-1 flex-wrap items-center gap-x-2.5 gap-y-0.5 text-xs text-muted-foreground">
-            {identite}
-            {compteurs}
+      {!focused && (
+        <>
+          <ConstellationToolbar
+            agentsCount={hud.agentsCount}
+            actingCount={hud.actingCount}
+            pendingCount={compact ? 0 : hud.awaitingCount}
+            online={online}
+            paused={paused}
+            compact
+          >
+            {bascules}
             {bilan}
-            {exception}
-          </p>
-          {headerAction && <span className="shrink-0">{headerAction}</span>}
-        </div>
-      ))}
+            {headerAction}
+          </ConstellationToolbar>
+          {exception && <p className="m-0 px-3 pb-1 text-xs">{exception}</p>}
+        </>
+      )}
 
       {/* Contenu optionnel sous l'en-tête (feed en large) — le compact le sert
           dans son tiroir « En direct ». */}

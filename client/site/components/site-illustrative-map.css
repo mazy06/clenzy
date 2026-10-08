@@ -1,0 +1,9 @@
+.site-illustrative-map { position: relative; height: 100%; min-height: 240px; overflow: hidden; background: var(--bui-muted); }
+.site-illustrative-map > svg { position: absolute; inset: 0; width: 100%; height: 100%; }
+/* Physical coordinates belong to the illustration; only text mirrors in RTL. */
+.site-illustrative-map > button { position: absolute; transform: translate(-50%, -50%); display: grid; place-items: center; width: 44px; height: 44px; border-radius: 50%; background: var(--bui-card); color: var(--bui-primary); border: 1px solid var(--bui-border); cursor: pointer; font: inherit; font-variant-numeric: tabular-nums; }
+.site-illustrative-map > button[aria-pressed='true'] { background: var(--bui-primary); color: var(--bui-primary-foreground); z-index: 1; }
+.site-illustrative-map > button span { position: absolute; inset-block-start: calc(100% + 6px); white-space: nowrap; border: 1px solid var(--bui-border); padding: 5px 8px; border-radius: 6px; font-size: 12px; color: var(--bui-foreground); background: var(--bui-card); opacity: 0; pointer-events: none; }
+.site-illustrative-map > button:is([aria-pressed='true'], :focus-visible, :hover) span { opacity: 1; }
+.site-illustrative-map > button:focus-visible { outline: 2px solid var(--bui-primary); outline-offset: 3px; }
+.site-illustrative-map > p { position: absolute; inset-inline: 12px; inset-block-end: 12px; width: fit-content; max-width: calc(100% - 24px); background: var(--bui-card); color: var(--bui-muted-foreground); padding: 6px 10px; border-radius: 6px; font-size: 12px; }

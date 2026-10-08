@@ -1,0 +1,92 @@
+.bs-workspace { container-type: inline-size; display: flex; flex-direction: column; gap: 20px; min-width: 0; font-variant-numeric: tabular-nums; }
+.bs-controller { min-width: 0; }
+.bs-controller > [role='alert'] { margin-bottom: 16px; }
+.bs-toolbar { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px; min-height: 36px; }
+.bs-toolbar > span { font-size: 13px; color: var(--bui-muted-foreground); }
+.bs-toolbar > span strong { display: inline-block; margin-inline-start: 8px; color: var(--bui-foreground); font-weight: 550; }
+.bs-toolbar > button { border-radius: 7px; min-height: 36px; }
+.bs-periods { display: flex; gap: 10px; overflow-x: auto; padding-bottom: 6px; scrollbar-width: thin; scroll-snap-type: x proximity; }
+.bs-period { flex: 1 0 220px; display: flex; align-items: center; gap: 14px; padding: 14px; text-align: start; border: 1px solid var(--bui-border); border-radius: 8px; color: var(--bui-foreground); background: var(--bui-card); cursor: pointer; scroll-snap-align: start; transition: background-color 180ms cubic-bezier(.25,1,.5,1), border-color 180ms cubic-bezier(.25,1,.5,1); }
+.bs-period:hover { background: var(--bui-muted); }
+.bs-period[aria-pressed='true'] { background: var(--bui-primary-soft); border-color: var(--bui-primary); }
+.bs-period:focus-visible { outline: 2px solid var(--bui-ring); outline-offset: -3px; }
+.bs-period-date { display: flex; flex-direction: column; align-items: center; gap: 2px; min-width: 38px; color: var(--bui-primary); }
+.bs-period-date strong { font-size: 27px; line-height: 1.1; font-weight: 550; }
+.bs-period-date > span { font-size: 12px; text-transform: capitalize; }
+.bs-period-range { display: flex; align-items: center; flex-wrap: wrap; gap: 5px; font-size: 12px; line-height: 1.5; }
+.bs-period > span:last-child small { display: block; font-size: 12px; color: var(--bui-muted-foreground); margin-top: 4px; }
+.bs-period-detail { border: 1px solid var(--bui-border); border-radius: 10px; background: var(--bui-card); min-width: 0; }
+.bs-period-heading { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 14px; padding: 20px 24px; border-bottom: 1px solid var(--bui-border); }
+.bs-period-heading h2 { display: flex; align-items: center; flex-wrap: wrap; gap: 10px; font-size: 18px; font-weight: 550; letter-spacing: -.02em; text-wrap: balance; }
+.bs-period-heading h2 svg { color: var(--bui-muted-foreground); }
+.bs-period-heading > span { font-size: 12px; color: var(--bui-muted-foreground); }
+.bs-detail-layout { display: grid; grid-template-columns: minmax(250px, .8fr) minmax(0,1.5fr); align-items: start; }
+.bs-calendar { padding: 24px; min-width: 0; }
+.bs-month { display: flex; align-items: center; justify-content: space-between; gap: 6px; margin-bottom: 18px; }
+.bs-month h3 { font-size: 14px; font-weight: 550; text-transform: capitalize; }
+.bs-week-labels, .bs-month-grid { display: grid; grid-template-columns: repeat(7,minmax(0,1fr)); gap: 4px; }
+.bs-week-labels { margin-bottom: 10px; font-size: 12px; color: var(--bui-muted-foreground); text-align: center; }
+.bs-calendar-day { min-height: 32px; display: flex; justify-content: center; align-items: center; border-radius: 4px; font-size: 12px; }
+.bs-other-month { color: var(--bui-muted-foreground); opacity: .4; }
+.bs-covered-day { color: var(--bui-primary); background: var(--bui-primary-soft); }
+.bs-boundary-day { background: var(--bui-primary); color: var(--bui-primary-foreground); font-weight: 550; }
+.bs-calendar-legend { display: flex; align-items: center; gap: 8px; margin-top: 16px !important; font-size: 12px; color: var(--bui-muted-foreground); }
+.bs-calendar-legend > span { width: 12px; height: 12px; background: var(--bui-primary-soft); border: 1px solid var(--bui-primary); border-radius: 3px; }
+.bs-calendar-note { font-size: 12px; line-height: 1.65; color: var(--bui-muted-foreground); margin-top: 10px !important; max-width: 40ch; }
+.bs-rule-explanations { padding: 8px 24px 12px; border-inline-start: 1px solid var(--bui-border); min-width: 0; }
+.bs-rule { padding: 16px 0 20px; }
+.bs-rule + .bs-rule { border-top: 1px solid var(--bui-border); }
+.bs-rule-heading { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px; margin-bottom: 18px; }
+.bs-rule-heading > span { font-size: 12px; color: var(--bui-muted-foreground); }
+.bs-rule-heading > div { display: flex; gap: 4px; align-items: center; }
+.bs-rule-heading button { border-radius: 6px; }
+.bs-stay-length { display: flex; align-items: center; gap: 12px; }
+.bs-stay-length > svg { color: var(--bui-primary); flex-shrink: 0; }
+.bs-stay-length > div:nth-child(2) { display: flex; flex-direction: column; gap: 6px; }
+.bs-stay-length small { font-size: 12px; color: var(--bui-muted-foreground); }
+.bs-stay-length strong { font-size: 27px; line-height: 1.25; font-weight: 550; color: var(--bui-primary); letter-spacing: -.02em; }
+.bs-night-strip { display: flex; gap: 3px; align-items: center; margin-inline-start: auto; padding-inline-start: 8px; }
+.bs-night-strip i { width: 8px; height: 24px; border-radius: 2px; background: var(--bui-primary-soft); border: 1px solid var(--bui-primary); }
+.bs-night-strip > span { font-size: 12px; color: var(--bui-muted-foreground); }
+.bs-unbounded { font-size: 13px; line-height: 1.6; color: var(--bui-muted-foreground); }
+.bs-access-rules { margin-top: 18px; padding: 12px 14px; background: var(--bui-warning-soft); border-radius: 6px; }
+.bs-access-rules p { display: flex; align-items: center; gap: 10px; color: var(--bui-warning-ink); font-size: 13px; }
+.bs-access-rules p + p { margin-top: 8px; }
+.bs-access-rules strong { font-weight: 550; }
+.bs-access-rules small { display: block; margin-top: 8px; font-size: 12px; line-height: 1.6; color: var(--bui-muted-foreground); }
+.bs-week-scope { margin-top: 20px; }
+.bs-week-scope > span { color: var(--bui-muted-foreground); font-size: 12px; }
+.bs-week-scope > div { display: grid; grid-template-columns: repeat(7,minmax(0,1fr)); gap: 4px; margin-top: 10px; }
+.bs-week-scope > div > span { display: flex; align-items: center; justify-content: center; min-height: 30px; padding: 3px; border: 1px solid var(--bui-border); border-radius: 4px; font-size: 12px; color: var(--bui-muted-foreground); }
+.bs-week-scope > div > .bs-week-covered { background: var(--bui-primary-soft); color: var(--bui-primary); border-color: transparent; }
+.bs-priority { margin-top: 12px !important; font-size: 12px; color: var(--bui-muted-foreground); }
+.bs-empty { display: flex; align-items: center; gap: 24px; padding: 28px 8px; }
+.bs-empty img { width: 90px; height: 90px; object-fit: contain; }
+.bs-empty h2 { font-size: 17px; font-weight: 550; text-wrap: balance; }
+.bs-empty p { margin-top: 8px; font-size: 13px; line-height: 1.65; color: var(--bui-muted-foreground); max-width: 60ch; }
+.bs-loading-periods { display: flex; gap: 10px; }
+.bs-editor { background: var(--bui-card); border: 1px solid var(--bui-primary); border-radius: 8px; }
+.bs-editor-fields { display: flex; flex-wrap: wrap; align-items: start; gap: 14px; }
+.bs-editor-fields > [data-slot='field'] { flex: 1 1 170px; min-width: 0; }
+.bs-editor [data-slot='field-label'] { font-size: 12px; }
+.bs-editor input { width: 100%; font-variant-numeric: tabular-nums; }
+@container (max-width: 740px) {
+  .bs-detail-layout { grid-template-columns: minmax(0,1fr); }
+  .bs-calendar { max-width: 440px; width: 100%; margin-inline: auto; }
+  .bs-rule-explanations { border-inline-start: 0; border-top: 1px solid var(--bui-border); }
+  .bs-period-heading { padding: 18px; }
+  .bs-period-heading h2 { font-size: 16px; }
+}
+@media (max-width: 767px) {
+  .bs-period { flex-basis: 215px; }
+  .bs-period-heading { padding: 16px; }
+  .bs-period-heading h2 { font-size: 15px; }
+  .bs-calendar { padding: 18px 16px; }
+  .bs-rule-explanations { padding-inline: 16px; }
+  .bs-stay-length { flex-wrap: wrap; }
+  .bs-stay-length strong { font-size: 23px; }
+  .bs-night-strip { margin-inline-start: 30px; }
+  .bs-empty { align-items: start; gap: 14px; }
+  .bs-empty img { width: 58px; height: 58px; }
+}
+@media (prefers-reduced-motion: reduce) { .bs-period { transition: none; } }

@@ -1,9 +1,10 @@
+import { SiteAgentPortrait } from './SiteProductVisuals';
+import { SITE_PRODUCT_ARTWORK } from '../data/productArtwork';
 import SiteMoney, { SiteMoneyText } from './SiteMoney';
 import type { CSSProperties, ReactNode } from 'react';
 import {
   ArrowRightIcon,
   CheckIcon,
-  CreditCardIcon,
   FileTextIcon,
   GlobeIcon,
   KeyRoundIcon,
@@ -190,7 +191,7 @@ export default function BaitlyNavPreview({
       scene = (
         <Window title={`${agent.agentPrefix} ${agent.scenarios[0].name}`}>
           <div className="bnv-agent">
-            <small>{agent.propertyName}</small>
+            <SiteAgentPortrait agent="rev" size={48} /><small>{agent.propertyName}</small>
             <strong>{agent.scenarios[0].title}</strong>
             <div className="bnv-rate-change">
               <s>
@@ -249,7 +250,7 @@ export default function BaitlyNavPreview({
         <Window title={m.finance.steps[1]}>
           <div className="bnv-receipt">
             <div className="bnv-receipt-heading">
-              <CreditCardIcon />
+              <img src={SITE_PRODUCT_ARTWORK.received} width={40} height={40} alt="" />
               <span>
                 {m.property}
                 <small dir="ltr">#BT-2409</small>

@@ -1,0 +1,45 @@
+/* Baitly agent portraits: shared by the orbit, speech bubbles and agent list. */
+@layer components {
+  .baitly-agent-portrait {
+    position: relative;
+    display: grid;
+    place-items: center;
+    inline-size: 88%;
+    aspect-ratio: 1;
+    overflow: hidden;
+    pointer-events: none;
+  }
+
+  .baitly-agent-portrait__image {
+    display: block;
+    inline-size: 100%;
+    block-size: 100%;
+    object-fit: contain;
+    user-select: none;
+    opacity: 0;
+  }
+  .baitly-agent-portrait__image[data-ready] { opacity: 1; }
+  .baitly-agent-portrait__placeholder { position: absolute; inset: 0; display: grid; place-items: center; }
+
+  .baitly-agent-portrait__motion {
+    position: absolute;
+    inset: 0;
+    display: block;
+    inline-size: 100%;
+    block-size: 100%;
+    object-fit: contain;
+    opacity: 0;
+    user-select: none;
+  }
+
+  .baitly-agent-portrait__motion[data-ready] {
+    opacity: 1;
+  }
+
+  /* Keep the decoded poster mounted: switching agents must never flash an
+     empty circle while the browser reloads a lazy image. */
+  .baitly-agent-portrait:has(.baitly-agent-portrait__motion[data-ready]) > .baitly-agent-portrait__image,
+  .baitly-agent-portrait:has(.baitly-agent-portrait__motion[data-ready]) > svg {
+    visibility: hidden;
+  }
+}

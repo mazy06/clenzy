@@ -17,9 +17,11 @@
 // Préfixe de route → import() du chunk de page (mêmes modules que les lazy()
 // d'AuthenticatedApp — garder les deux listes alignées quand une route bouge).
 const ROUTE_IMPORTS: Record<string, () => Promise<unknown>> = {
+  '/dynamic-pricing': () => import('./pricing/DynamicPricing'),
   '/planning': () => import('./planning/PlanningPage'),
   '/dashboard': () => import('./dashboard/Dashboard'),
   '/properties': () => import('./properties/PropertiesPage'),
+  '/connected-objects': () => import('./connected-objects/ConnectedObjectsHub'),
   '/reservations': () => import('./reservations/ReservationsList'),
   '/interventions': () => import('./work-orders/WorkOrdersPage'),
   '/contact': () => import('./messaging/MessagingHubPage'),

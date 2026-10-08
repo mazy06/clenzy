@@ -2,6 +2,7 @@ import SiteAcquisitionLink from './SiteAcquisitionLink';
 import SiteMetadata from './SiteMetadata';
 import { SiteCurrencyProvider } from '../lib/siteCurrency';
 import SiteCurrencyControl from './SiteCurrencyControl';
+import SiteCookieNoticeProvider, { SiteCookieSettingsButton } from './SiteCookieNotice';
 import { Suspense, useEffect, useRef, useState, type ReactNode } from 'react';
 import { Link, Outlet, useLocation } from 'react-router-dom';
 import { useSiteAppUrl } from '../lib/useSiteAppUrl';
@@ -27,11 +28,12 @@ import PublicLanguagePicker from '../../src/components/PublicLanguagePicker';
 import { useSiteLanguage, type SiteLanguage } from '../lib/siteLanguage';
 import { useSiteLaunch } from '../lib/siteLaunch';
 import { PRELAUNCH_MESSAGES } from '../lib/messages/prelaunch';
+import { PROVIDERS_MESSAGES } from '../lib/messages/providers';
 import { LAYOUT_MESSAGES } from '../lib/messages/layout';
 import { moduleText } from '../lib/messages/modules';
 import { resourceText, solutionText } from '../lib/messages/solutions';
 import { MODULES, RESOURCES, SOLUTIONS } from '../data/catalog';
-import { LEGAL_COUNTRIES, guidePath } from '../data/legal';
+import { LEGAL_COUNTRIES, guidePath } from '../data/legal/countries';
 
 function DesktopNav({ entries }: { entries: readonly BaitlySiteNavEntry[] }) {
   const { language } = useSiteLanguage();
@@ -210,11 +212,19 @@ export function SiteHeader() {
               {h.login}
             </a>
           </Button>
-          <Button size="sm" className="site-header-cta" asChild>
-            <SiteAcquisitionLink to="/demo">
-              {h.demo} <ArrowRightIcon />
-            </SiteAcquisitionLink>
-          </Button>
+          {!location.pathname.startsWith('/prestataires/') && (
+            <Button size="sm" className="site-header-cta" asChild>
+              {location.pathname === '/prestataires' ? (
+                <Link to={`/prestataires/inscription?lang=${language}`}>
+                  {PROVIDERS_MESSAGES[language].ctaJoin} <ArrowRightIcon />
+                </Link>
+              ) : (
+                <SiteAcquisitionLink to="/demo">
+                  {h.demo} <ArrowRightIcon />
+                </SiteAcquisitionLink>
+              )}
+            </Button>
+          )}
           <Button
             variant="ghost"
             size="icon-sm"
@@ -352,6 +362,7 @@ function SiteFooter() {
         <div className="mt-10 flex flex-wrap items-center justify-between gap-3 border-t border-border pt-6 text-xs text-muted-foreground">
           <span>{m.rights}</span>
           <span className="flex flex-wrap items-center gap-x-4 gap-y-1">
+            <SiteCookieSettingsButton />
             {[
               { label: m.legal.notice, to: '/legal/mentions-legales' },
               { label: m.legal.privacy, to: '/legal/confidentialite' },
@@ -406,9 +417,11 @@ function ScrollRestore() {
 
 export default function SiteLayout(): ReactNode {
   const { language } = useSiteLanguage();
+  const { pathname } = useLocation();
   const m = LAYOUT_MESSAGES[language].shell;
   return (
     <SiteCurrencyProvider>
+      <SiteCookieNoticeProvider>
       <div className="baitly-marketing min-h-screen">
         <a href="#site-content" className="site-skip-link">
           {m.skip}
@@ -430,8 +443,9 @@ export default function SiteLayout(): ReactNode {
           </Suspense>
         </main>
         <SiteFooter />
-        <SiteCurrencyControl />
+        {!pathname.startsWith('/prestataires/') && <SiteCurrencyControl />}
       </div>
+      </SiteCookieNoticeProvider>
     </SiteCurrencyProvider>
   );
 }

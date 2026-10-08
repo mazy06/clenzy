@@ -1,0 +1,272 @@
+{
+  "noise-left": {
+    "width": 384,
+    "height": 384,
+    "viewBox": [
+      66,
+      30,
+      264,
+      308
+    ]
+  },
+  "thermostat-right": {
+    "width": 384,
+    "height": 384,
+    "viewBox": [
+      54,
+      33,
+      278,
+      324
+    ]
+  },
+  "noise-right": {
+    "width": 384,
+    "height": 384,
+    "viewBox": [
+      54,
+      34,
+      274,
+      297
+    ]
+  },
+  "thermostat-left": {
+    "width": 384,
+    "height": 384,
+    "viewBox": [
+      60,
+      30,
+      270,
+      311
+    ]
+  },
+  "contact-left": {
+    "width": 384,
+    "height": 391,
+    "viewBox": [
+      108,
+      25,
+      193,
+      339
+    ]
+  },
+  "contact-right": {
+    "width": 384,
+    "height": 404,
+    "viewBox": [
+      100,
+      24,
+      187,
+      344
+    ]
+  },
+  "keybox-left": {
+    "width": 384,
+    "height": 357,
+    "viewBox": [
+      91,
+      16,
+      209,
+      321
+    ]
+  },
+  "keybox-right": {
+    "width": 384,
+    "height": 384,
+    "viewBox": [
+      87,
+      21,
+      218,
+      343
+    ]
+  },
+  "motion-left": {
+    "width": 384,
+    "height": 384,
+    "viewBox": [
+      39,
+      47,
+      289,
+      282
+    ]
+  },
+  "motion-right": {
+    "width": 384,
+    "height": 384,
+    "viewBox": [
+      32,
+      28,
+      333,
+      320
+    ]
+  },
+  "split-idle-left": {
+    "width": 384,
+    "height": 192,
+    "viewBox": [
+      13,
+      28,
+      361,
+      140
+    ]
+  },
+  "split-idle-right": {
+    "width": 384,
+    "height": 192,
+    "viewBox": [
+      13,
+      28,
+      358,
+      144
+    ]
+  },
+  "camera-left": {
+    "width": 384,
+    "height": 288,
+    "viewBox": [
+      38,
+      34,
+      310,
+      230
+    ]
+  },
+  "camera-right": {
+    "width": 384,
+    "height": 288,
+    "viewBox": [
+      54,
+      44,
+      292,
+      204
+    ]
+  },
+  "lock-left": {
+    "width": 384,
+    "height": 389,
+    "viewBox": [
+      90,
+      26,
+      266,
+      341
+    ]
+  },
+  "lock-right": {
+    "width": 384,
+    "height": 384,
+    "viewBox": [
+      94,
+      12,
+      216,
+      346
+    ]
+  },
+  "smoke-left": {
+    "width": 384,
+    "height": 288,
+    "viewBox": [
+      79,
+      22,
+      238,
+      239
+    ]
+  },
+  "smoke-right": {
+    "width": 384,
+    "height": 288,
+    "viewBox": [
+      64,
+      14,
+      252,
+      257
+    ]
+  },
+  "lock-front": {
+    "width": 384,
+    "height": 412,
+    "viewBox": [
+      111,
+      19,
+      259,
+      362
+    ]
+  },
+  "contact-front": {
+    "width": 384,
+    "height": 399,
+    "viewBox": [
+      101,
+      21,
+      184,
+      356
+    ]
+  },
+  "keybox-front": {
+    "width": 384,
+    "height": 384,
+    "viewBox": [
+      72,
+      16,
+      240,
+      352
+    ]
+  },
+  "camera-front": {
+    "width": 384,
+    "height": 288,
+    "viewBox": [
+      39,
+      45,
+      322,
+      212
+    ]
+  },
+  "climate-left": {
+    "width": 384,
+    "height": 384,
+    "viewBox": [
+      59,
+      15,
+      284,
+      350
+    ]
+  },
+  "climate-right": {
+    "width": 384,
+    "height": 384,
+    "viewBox": [
+      44,
+      12,
+      296,
+      359
+    ]
+  },
+  "lock-right-lever-left": {
+    "width": 384,
+    "height": 395,
+    "viewBox": [
+      22,
+      25,
+      268,
+      339
+    ]
+  },
+  "lock-left-lever-left": {
+    "width": 384,
+    "height": 384,
+    "viewBox": [
+      55,
+      12,
+      223,
+      351
+    ]
+  },
+  "lock-front-lever-left": {
+    "width": 384,
+    "height": 412,
+    "viewBox": [
+      26,
+      22,
+      264,
+      358
+    ]
+  }
+}

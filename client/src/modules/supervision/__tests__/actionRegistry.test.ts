@@ -12,8 +12,8 @@ import { ACTION_REGISTRY, consequencesOf, entryOf, familyOf, opensModal, type Mo
  * ne portent plus que sur la complétude des entrées.
  */
 describe('registre des actions', () => {
-  it('couvre 48 entrees : 45 types serveur, 2 ajoutes, 1 porte par le front', () => {
-    expect(Object.keys(ACTION_REGISTRY)).toHaveLength(48);
+  it('couvre les 49 actions connues, dont la désignation du bénéficiaire', () => {
+    expect(Object.keys(ACTION_REGISTRY)).toHaveLength(49);
   });
 
   it('declare les types a editeur SANS les router vers une modale generique', () => {
@@ -103,6 +103,7 @@ describe('registre des actions', () => {
 
     const expected: Record<ModalFamily, number> = {
       schedule: 2, choice: 4, params: 11, review: 12, confirm: 17, informative: 1, inspection: 1,
+      beneficiary: 1,
     };
     for (const [family, n] of Object.entries(expected)) {
       expect(counts[family] ?? 0, family).toBe(n);

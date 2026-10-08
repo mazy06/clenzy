@@ -1,36 +1,24 @@
 import React from 'react';
-import StatusChip from '../../../components/baitly/StatusChip';
 import { useTranslation } from '../../../hooks/useTranslation';
 import { useCanSuperviseAgents } from '../../supervision/useCanSuperviseAgents';
 import { useSupervisionPendingCounts } from '../../supervision/useSupervisionPendingCounts';
 
-/**
- * Chips de contexte de l'en-tête — ce qui attend l'opérateur, posé sur la MÊME
- * ligne que le titre (une rangée dédiée coûtait un étage d'en-tête entier pour
- * une seule pastille).
- *
- * <p>Règle : une chip n'existe QUE si la donnée existe. Pas de valeur de
- * démonstration en dur — un chiffre inventé dans l'en-tête de l'assistant
- * serait pire que pas de chiffre du tout. Aujourd'hui une seule source est
- * branchée (les validations en attente, {@code useSupervisionPendingCounts}) ;
- * les autres viendront avec les chantiers correspondants.</p>
- *
- * <p>Le hook partage sa clé react-query avec la sidebar et le planning : aucun
- * appel réseau supplémentaire n'est déclenché par l'assistant.</p>
- */
+/** Real pending counts, using the same query cache as the supervision panel. */
 export const AssistantContextChips: React.FC = () => {
-  const { t } = useTranslation();
+  const { t, currentLanguage } = useTranslation();
   const { canView } = useCanSuperviseAgents();
   const { total } = useSupervisionPendingCounts(canView);
+  const formattedCount = new Intl.NumberFormat(currentLanguage, {
+    numberingSystem: currentLanguage.startsWith('ar') ? 'arab' : undefined,
+  }).format(total);
 
   if (total <= 0) return null;
 
   return (
-    <StatusChip
-      tone="warn"
-      size="sm"
-      label={t('assistant.context.pending', { count: total })}
-      className="hidden shrink-0 min-[420px]:inline-flex"
-    />
+    <div className="baitly-assistant-context">
+      <span className="baitly-assistant-context-dot" aria-hidden="true" />
+      <span>{t('assistant.context.pending', { count: total, formattedCount })}</span>
+      <span className="baitly-assistant-context-caption">{t('assistant.context.caption')}</span>
+    </div>
   );
 };

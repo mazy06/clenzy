@@ -30,6 +30,8 @@ interface UserUiPreferencesContextValue {
   isLoaded: boolean;
   /** Update local + queue debounced PUT to server. */
   setPref: <T>(key: string, value: T) => void;
+  /** Explicit save, acknowledged by the server; rejects on failure. */
+  savePref: <T>(key: string, value: T) => Promise<void>;
   /** Delete locally + DELETE on server. */
   deletePref: (key: string) => void;
 }
@@ -112,6 +114,14 @@ export function UserUiPreferencesProvider({ children }: { children: React.ReactN
     debounceTimers.current.set(key, timer);
   }, []);
 
+  const savePref = useCallback(async <T,>(key: string, value: T) => {
+    const pending = debounceTimers.current.get(key);
+    if (pending) clearTimeout(pending);
+    debounceTimers.current.delete(key);
+    await userUiPreferencesApi.upsert(key, value);
+    setPrefs(prev => ({ ...prev, [key]: value }));
+  }, []);
+
   const deletePref = useCallback((key: string) => {
     // Optimistic local delete
     setPrefs((prev) => {
@@ -130,8 +140,8 @@ export function UserUiPreferencesProvider({ children }: { children: React.ReactN
   }, []);
 
   const value = useMemo<UserUiPreferencesContextValue>(
-    () => ({ prefs, isLoading, isLoaded, setPref, deletePref }),
-    [prefs, isLoading, isLoaded, setPref, deletePref],
+    () => ({ prefs, isLoading, isLoaded, setPref, savePref, deletePref }),
+    [prefs, isLoading, isLoaded, setPref, savePref, deletePref],
   );
 
   return (

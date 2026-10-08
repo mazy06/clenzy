@@ -37,9 +37,9 @@ export function useUserPreference<T>(
 ): [
   T,
   (next: T) => void,
-  { isLoading: boolean; isLoaded: boolean; reset: () => void },
+  { isLoading: boolean; isLoaded: boolean; reset: () => void; save: (value: T) => Promise<void> },
 ] {
-  const { prefs, isLoading, isLoaded, setPref, deletePref } = useUserUiPreferences();
+  const { prefs, isLoading, isLoaded, setPref, savePref, deletePref } = useUserUiPreferences();
 
   const raw = prefs[key];
   const value = (raw === undefined ? defaultValue : raw) as T;
@@ -55,5 +55,6 @@ export function useUserPreference<T>(
     deletePref(key);
   }, [key, deletePref]);
 
-  return [value, setValue, { isLoading, isLoaded, reset }];
+  const save = useCallback((next: T) => savePref(key, next), [key, savePref]);
+  return [value, setValue, { isLoading, isLoaded, reset, save }];
 }

@@ -11,7 +11,7 @@ vi.mock('../../../services/api/accountingApi', async (original) => ({
     getPayouts: vi.fn(), getAllOwnerPayoutConfigs: vi.fn(), approvePayout: vi.fn(), executePayout: vi.fn(), retryPayout: vi.fn(),
   },
 }));
-vi.mock('../../../components/PageHeaderActionsContext', () => ({ usePageHeaderActions: () => null }));
+vi.mock('../../../components/PageHeaderActionsContext', () => ({ usePageHeaderFilters: (node: React.ReactNode) => node, usePageHeaderActions: () => null }));
 vi.mock('../../../hooks/useAuth', () => ({ useAuth: () => ({ hasRole: () => true }) }));
 // Une préférence de conversion EUR ne doit jamais réécrire le montant du virement.
 vi.mock('../../../hooks/useCurrency', () => ({
@@ -126,8 +126,7 @@ describe('Montants et validation des reversements', () => {
     vi.mocked(accountingApi.getPayouts).mockResolvedValue([{ ...payout('EUR'), status: 'APPROVED', fundingVersion: 0 }]);
     await mount();
     const row = await screen.findByRole('button', { name: /Nadia Martin/ });
-    expect(row).toHaveTextContent('Approuvé');
-    expect(row).toHaveTextContent('Historique à vérifier');
+    expect(within(row.closest('li')!).getByRole('button', { name: /Approuvé.*Historique à vérifier/ })).toBeVisible();
     expect(within(row).queryByRole('button', { name: 'Suivre' })).not.toBeInTheDocument();
     expect(within(row).queryByRole('button', { name: 'Verser via Stripe' })).not.toBeInTheDocument();
   });
@@ -139,7 +138,7 @@ describe('Montants et validation des reversements', () => {
     vi.mocked(accountingApi.getPayouts).mockResolvedValue([{ ...payout('EUR'), status, payoutMethod }]);
     await mount();
     const row = await screen.findByRole('button', { name: /Nadia Martin/ });
-    expect(row).toHaveTextContent(label);
+    expect(within(row.closest('li')!).getByRole('button', { name: name => name.startsWith(label) })).toBeVisible();
     expect(within(screen.getByRole('region', { name: 'Détails' })).queryByRole('button', { name: 'Suivre' }) !== null).toBe(tracks);
   });
 

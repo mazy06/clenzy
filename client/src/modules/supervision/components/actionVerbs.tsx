@@ -51,6 +51,7 @@ const VERBS: Record<string, ActionVerb> = {
   REVIEW_REQUEST_SEND: { labelKey: 'supervision.verbs.send', fallback: 'Envoyer', Icon: Send },
   // Opérations / Finance (Phase 2)
   CLEANING_PAYOUT: { labelKey: 'supervision.verbs.pay', fallback: 'Verser', Icon: Payments },
+  PROVIDER_PAYOUT_BENEFICIARY: { labelKey: 'supervision.beneficiary.review', fallback: 'Vérifier le bénéficiaire', Icon: Check },
   FRAUD_BLOCK: { labelKey: 'supervision.verbs.block', fallback: 'Bloquer', Icon: GppBad },
   // Conformité / Propriétaire (Phase 2)
   POLICE_DECLARE: { labelKey: 'supervision.verbs.declare', fallback: 'Télédéclarer', Icon: Check },

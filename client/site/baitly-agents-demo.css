@@ -115,70 +115,8 @@
   }
 }
 
-.bad-board-head {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  min-height: 32px;
-  flex-shrink: 0;
-}
-
-.bad-demo .bad-board-head h2 {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin: 0;
-  color: var(--bui-foreground);
-  font-size: 14px;
-  font-weight: 600;
-  letter-spacing: 0;
-}
-
-.bad-board-pending {
-  border-radius: 999px;
-  padding: 2px 8px;
-  background: var(--bui-warning-soft);
-  color: var(--bui-warning-ink);
-  font-size: 11px;
-  font-weight: 700;
-  font-variant-numeric: tabular-nums;
-}
-
-.bad-board-head p {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  margin: 0;
-  margin-inline-end: auto;
-  color: var(--bui-muted-foreground);
-  font-size: 12px;
-  font-variant-numeric: tabular-nums;
-}
-
-.bad-toggle {
-  display: flex;
-  gap: 0;
-  padding: 2px;
-  border-radius: 8px;
-  background: var(--bui-muted);
-}
-
-.bad-toggle > span,
-.bad-radar {
-  display: grid;
-  place-items: center;
-  width: 30px;
-  height: 28px;
-  border-radius: 6px;
-  color: var(--bui-muted-foreground);
-  transition: background-color 180ms ease-out, color 180ms ease-out;
-}
-
-.bad-toggle > span[data-on='true'] {
-  background: var(--bui-card);
-  color: var(--bui-foreground);
-  box-shadow: 0 1px 2px #193b6514;
-}
+/* Le header reprend la feuille constellation-toolbar.css du PMS. */
+.bad-demo .baitly-constellation-toolbar h2 { font-size: 15px; line-height: 1.35; letter-spacing: -.015em; }
 
 .bad-board-content {
   position: relative;
@@ -199,8 +137,8 @@
 }
 
 /* Rotation de l'anneau (ORBIT_STYLES du diagramme réel). */
-.bad-orbit .oc-ring,
-.bad-orbit .oc-node {
+.bad-orbit[data-rotating] .oc-ring,
+.bad-orbit[data-rotating] .oc-node {
   transition: transform 560ms cubic-bezier(0.25, 1, 0.5, 1);
 }
 

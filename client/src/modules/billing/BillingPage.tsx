@@ -7,7 +7,7 @@ import { useTranslation } from '../../hooks/useTranslation';
 import { AccountBalance } from '../../icons';
 import PageHeader from '../../components/PageHeader';
 import PageTabs from '../../components/PageTabs';
-import { PageHeaderActionsProvider, usePageHeaderActionsSlot } from '../../components/PageHeaderActionsContext';
+import { PageHeaderActionsProvider, usePageHeaderActionsSlot, usePageHeaderFiltersSlot } from '../../components/PageHeaderActionsContext';
 import PaymentHistoryPage from '../payments/PaymentHistoryPage';
 import InvoicesList from '../invoices/InvoicesList';
 import WalletDashboard from '../finance/WalletDashboard';
@@ -25,6 +25,7 @@ function BillingPage() {
   const { hasRole } = useAuth();
   const access = useScreenTabAccess();
   const { slot, portalContainer } = usePageHeaderActionsSlot();
+  const { filtersSlot, filtersContainer } = usePageHeaderFiltersSlot();
   const tabs = useScreenTabs('/billing');
   const visible = tabs.filter(tab => !tab.hidden);
   const [params, setParams] = useSearchParams();
@@ -46,16 +47,20 @@ function BillingPage() {
   const changeView = (value: string) => setParams(prev => {
     const next = canonicalFinanceParams(prev); next.set('view', value); next.delete('highlight'); return next;
   });
-  return <PageHeaderActionsProvider slot={slot}>
+  return <PageHeaderActionsProvider slot={slot} filtersSlot={filtersSlot}>
     <PageHeader title={active?.label ?? t('tabHeaders.billing.title')} iconBadge={<AccountBalance />}
-      backPath="/dashboard" showBackButton={false} actions={portalContainer} />
+      backPath="/dashboard" showBackButton={false} actions={portalContainer}
+      inlineControls={<div className="finance-header-controls">
+      {views.length > 1 && <nav className="finance-subviews" aria-label={t('financeWorkspace.views')}>
+        {views.map(key => <button type="button" key={key} aria-pressed={view === key} onClick={() => changeView(key)}>{key === 'suppliers' ? t('supplierPurchase.title') : t(`financeWorkspace.viewsLabels.${key}`)}</button>)}
+      </nav>}
+        {filtersContainer}
+      </div>} />
     <PageTabs options={tabs} value={activePos} onChange={index => setParams(prev => {
       const next = new URLSearchParams(prev); next.set('tab', visible[index].key); next.delete('view'); next.delete('highlight'); return next;
     })} />
     <div className="finance-page">
-      {views.length > 1 && <nav className="finance-subviews" aria-label={t('financeWorkspace.views')}>
-        {views.map(key => <button type="button" key={key} aria-pressed={view === key} onClick={() => changeView(key)}>{key === 'suppliers' ? t('supplierPurchase.title') : t(`financeWorkspace.viewsLabels.${key}`)}</button>)}
-      </nav>}
+
       {active?.key === 'payments' && <PaymentHistoryPage embedded />}
       {active?.key === 'invoices' && <InvoicesList embedded />}
       {active?.key === 'expenses' && view === 'providers' && <ExpensesTab />}

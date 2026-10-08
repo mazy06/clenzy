@@ -11,13 +11,17 @@
 
 import { cn } from '../../../utils/cn';
 import { useTranslation } from '../../../hooks/useTranslation';
-import { useSupervisionReport } from '../core/useSupervisionReport';
+import { useSupervisionReport, type SupervisionReport } from '../core/useSupervisionReport';
 
 export function SupervisionReportStrip() {
-  const { t } = useTranslation();
   const { report, loading } = useSupervisionReport();
-
   if (loading || !report) return null;
+  return <SupervisionReportContent report={report} />;
+}
+
+/** Reuse an already loaded report without a second request in the portfolio. */
+export function SupervisionReportContent({ report }: { report: SupervisionReport }) {
+  const { t } = useTranslation();
 
   const stats = [
     { label: t('supervision.report.timeSaved', 'Temps gagné'), value: report.estimatedTimeSaved },

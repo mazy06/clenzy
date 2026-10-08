@@ -1,15 +1,15 @@
 import type { SiteLanguage } from "../siteLanguage";
 
 const fr = {
-  eyebrow: "Réseau prestataires · En préparation",
-  titleBefore: "Votre savoir-faire. ",
-  titleAccent: "Sa place dans Baitly.",
+  eyebrow: "Marketplace de services · Inscriptions ouvertes",
+  titleBefore: "Proposez vos services. ",
+  titleAccent: "Trouvez de nouvelles missions.",
   intro:
-    "Ménage, maintenance, accueil : découvrez comment vos services pourront accompagner les hôtes et leurs voyageurs. Préparez votre profil pour le lancement.",
-  ctaJoin: "Préparer mon profil",
+    "Rejoignez la marketplace Baitly pour proposer vos services aux propriétaires, conciergeries et voyageurs. Développez votre activité ou cherchez un revenu complémentaire, avec des missions régulières ou ponctuelles.",
+  ctaJoin: "Rejoindre la marketplace",
   ctaExplore: "Découvrir les métiers",
   openingNote:
-    "Le réseau se prépare. Les zones couvertes, les frais et les conditions des missions seront précisés avant tout engagement.",
+    "Inscrivez-vous dès maintenant pour le lancement du réseau. Les zones d’ouverture, les frais et les conditions vous seront précisés avant toute mission.",
   previewLabel: "Aperçu produit · Mission fictive",
   previewTitle: "Un logement prêt pour l’arrivée.",
   previewCopy:
@@ -17,8 +17,8 @@ const fr = {
   previewSteps: ["Consignes", "Photos", "Validation"],
   categoriesTitle: "À chaque séjour, les bons savoir-faire.",
   categoriesCopy:
-    "Six familles de services à découvrir. Les visuels illustrent les métiers, sans représenter des prestataires déjà inscrits.",
-  howTitle: "Un parcours à préparer, étape par étape.",
+    "De la préparation des logements aux expériences voyageurs : choisissez les services que vous souhaitez proposer.",
+  howTitle: "De votre inscription à votre prochaine mission.",
   howBadge: "Au lancement",
   steps: [
     {
@@ -49,9 +49,9 @@ const fr = {
   ],
   sampleNotice: "Démonstration avec des données fictives.",
   appAction: "Explorer la démo des opérations",
-  finalTitle: "Construisons la suite avec votre métier.",
+  finalTitle: "Votre prochain chapitre commence par votre profil.",
   finalCopy:
-    "Préparez votre profil. L’ouverture du réseau et les conditions d’accès seront communiquées au lancement.",
+    "Indépendant ou entreprise, activité principale ou complémentaire : présentez vos services et rejoignez les candidats au lancement de la marketplace Baitly.",
   finalQuestion: "Comprendre les étapes",
   categories: [
     {
@@ -110,12 +110,12 @@ const fr = {
 export type ProvidersMessages = typeof fr;
 
 const en: ProvidersMessages = {
-  eyebrow: "Provider network · In preparation",
-  titleBefore: "Your expertise. ",
-  titleAccent: "A place for it in Baitly.",
+  eyebrow: "Services marketplace · Applications open",
+  titleBefore: "Offer your services. ",
+  titleAccent: "Find new opportunities.",
   intro:
-    "Cleaning, maintenance, guest arrivals: discover how your services could support hosts and their guests. Prepare your profile for launch.",
-  ctaJoin: "Prepare my profile",
+    "Join the Baitly marketplace to offer your services to property owners, rental managers and guests. Grow your business or earn additional income through regular or occasional jobs.",
+  ctaJoin: "Join the marketplace",
   ctaExplore: "Explore the services",
   openingNote:
     "The network is being prepared. Coverage, fees and job terms will be clarified before any commitment.",
@@ -125,8 +125,8 @@ const en: ProvidersMessages = {
   previewSteps: ["Instructions", "Photos", "Approval"],
   categoriesTitle: "The right skills for every stay.",
   categoriesCopy:
-    "Explore six service categories. Images illustrate the trades, not providers already registered.",
-  howTitle: "Prepare your journey, step by step.",
+    "From property preparation to guest experiences: choose the services you would like to offer.",
+  howTitle: "From your application to your next job.",
   howBadge: "At launch",
   steps: [
     {
@@ -157,9 +157,9 @@ const en: ProvidersMessages = {
   ],
   sampleNotice: "Demonstration with fictional data.",
   appAction: "Explore the operations demo",
-  finalTitle: "Help shape what comes next.",
+  finalTitle: "Your next chapter starts with your profile.",
   finalCopy:
-    "Prepare your profile. Network opening and access terms will be communicated at launch.",
+    "Independent professional or company, full-time business or side activity: introduce your services and apply to join the Baitly marketplace at launch.",
   finalQuestion: "Understand the steps",
   categories: [
     {
@@ -204,12 +204,12 @@ const en: ProvidersMessages = {
 };
 
 const ar: ProvidersMessages = {
-  eyebrow: "شبكة مقدّمي الخدمات · قيد الإعداد",
-  titleBefore: "خبرتك. ",
-  titleAccent: "لها مكان في بيتلي.",
+  eyebrow: "سوق الخدمات · التسجيل مفتوح",
+  titleBefore: "قدّم خدماتك. ",
+  titleAccent: "واكتشف فرص عمل جديدة.",
   intro:
-    "النظافة والصيانة واستقبال الضيوف: اكتشف كيف يمكن لخدماتك مساعدة المضيفين وضيوفهم. جهّز ملفك للإطلاق.",
-  ctaJoin: "تحضير ملفي",
+    "انضم إلى سوق خدمات بيتلي لتقديم خدماتك للمالكين ومديري العقارات وضيوفهم. طوّر نشاطك أو ابحث عن دخل إضافي من خلال مهام منتظمة أو عرضية.",
+  ctaJoin: "الانضمام إلى سوق الخدمات",
   ctaExplore: "اكتشاف المهن",
   openingNote:
     "الشبكة قيد الإعداد. سيتم توضيح المناطق والرسوم وشروط المهام قبل أي التزام.",
@@ -219,8 +219,8 @@ const ar: ProvidersMessages = {
   previewSteps: ["التعليمات", "الصور", "الاعتماد"],
   categoriesTitle: "المهارات المناسبة لكل إقامة.",
   categoriesCopy:
-    "اكتشف ست فئات من الخدمات. الصور توضيحية للمهن ولا تمثّل مقدّمي خدمات مسجّلين بالفعل.",
-  howTitle: "جهّز مسارك، خطوة بخطوة.",
+    "من تجهيز الوحدات إلى تجارب الضيوف: اختر الخدمات التي ترغب في تقديمها.",
+  howTitle: "من تسجيلك إلى مهمتك المقبلة.",
   howBadge: "عند الإطلاق",
   steps: [
     {
@@ -251,9 +251,9 @@ const ar: ProvidersMessages = {
   ],
   sampleNotice: "عرض توضيحي ببيانات افتراضية.",
   appAction: "استكشاف عرض العمليات",
-  finalTitle: "لنعدّ الخطوة التالية بخبرتك.",
+  finalTitle: "خطوتك القادمة تبدأ بملفك.",
   finalCopy:
-    "جهّز ملفك. سيتم الإعلان عن فتح الشبكة وشروط الانضمام عند الإطلاق.",
+    "مستقل أو شركة، نشاط أساسي أو إضافي: قدّم خدماتك وترشّح للانضمام إلى سوق خدمات بيتلي عند الإطلاق.",
   finalQuestion: "فهم الخطوات",
   categories: [
     {

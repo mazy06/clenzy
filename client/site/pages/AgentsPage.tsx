@@ -1,23 +1,15 @@
 import SiteAcquisitionLink from '../components/SiteAcquisitionLink';
-import type { ComponentType, ReactNode } from 'react';
+import type { ReactNode } from 'react';
 import { Link } from 'react-router-dom';
 import {
   ArrowRightIcon,
-  BanknoteIcon,
   BotIcon,
   CheckIcon,
-  ConciergeBellIcon,
   EyeIcon,
-  HandshakeIcon,
-  MegaphoneIcon,
-  MessageCircleIcon,
   ScaleIcon,
-  Share2Icon,
+  MessageCircleIcon,
   ShieldCheckIcon,
   SparklesIcon,
-  StarIcon,
-  TrendingUpIcon,
-  WrenchIcon,
 } from 'lucide-react';
 import {
   Accordion,
@@ -39,21 +31,9 @@ import AnimatedAssistantMockup from '../components/AnimatedAssistantMockup';
 import { useSiteLanguage } from '../lib/siteLanguage';
 import { AGENTS_MESSAGES, type AgentsMessages } from '../lib/messages/agents';
 import { PRICING_MESSAGES, type PricingMessages } from '../lib/messages/pricing';
+import { SiteAgentPortrait } from '../components/SiteProductVisuals';
+import type { AgentId } from '../../src/modules/supervision/types';
 import { AGENT_IDS } from '../../src/modules/supervision/constants';
-
-/** Icone par agent — le jeton `icon` du PMS rendu en lucide, cote landing. */
-const AGENT_ICONS: Record<string, ComponentType<{ className?: string }>> = {
-  rev: TrendingUpIcon,
-  com: MessageCircleIcon,
-  ops: WrenchIcon,
-  sync: Share2Icon,
-  fin: BanknoteIcon,
-  cmp: ShieldCheckIcon,
-  gst: ConciergeBellIcon,
-  rep: StarIcon,
-  own: HandshakeIcon,
-  gro: MegaphoneIcon,
-};
 
 /* ─── Hero ─────────────────────────────────────────────────────────────────── */
 
@@ -136,7 +116,6 @@ function AgentsSection({ m }: { m: AgentsMessages }) {
       </div>
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 2xl:grid-cols-4">
         {m.agents.map((agent) => {
-          const Icon = AGENT_ICONS[agent.id] ?? BotIcon;
           return (
           <div
             key={agent.name}
@@ -144,7 +123,7 @@ function AgentsSection({ m }: { m: AgentsMessages }) {
           >
             <div className="flex items-center gap-3">
               <span className="flex size-9 items-center justify-center rounded-lg bg-primary-soft text-primary">
-                <Icon className="size-4.5" />
+                <SiteAgentPortrait agent={agent.id as AgentId} size={42} />
               </span>
               <span className="text-base font-semibold">{agent.name}</span>
               <Badge variant="secondary" className="ms-auto">

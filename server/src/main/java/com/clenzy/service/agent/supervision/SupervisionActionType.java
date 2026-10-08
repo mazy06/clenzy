@@ -144,6 +144,8 @@ public final class SupervisionActionType {
      * (transfert Stripe) → hors transaction. Params : {@code recordId}.
      */
     public static final String CLEANING_PAYOUT = "CLEANING_PAYOUT";
+    /** Désignation contractuelle du bénéficiaire, validation humaine du staff uniquement. */
+    public static final String PROVIDER_PAYOUT_BENEFICIARY = "PROVIDER_PAYOUT_BENEFICIARY";
 
     /**
      * Bloque une réservation signalée à risque par le scoring de fraude (agent

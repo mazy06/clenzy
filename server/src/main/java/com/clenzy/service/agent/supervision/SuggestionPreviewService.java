@@ -81,6 +81,7 @@ public class SuggestionPreviewService {
     private final com.clenzy.service.InterventionPhotoService interventionPhotoService;
     private final java.time.Clock clock;
     private final ObjectMapper objectMapper;
+    private final org.springframework.beans.factory.ObjectProvider<ProviderBeneficiarySupervision> providerBeneficiarySupervision;
 
     public SuggestionPreviewService(SupervisionSuggestionRepository suggestionRepository,
                                     ReservationRepository reservationRepository,
@@ -97,7 +98,9 @@ public class SuggestionPreviewService {
                                     com.clenzy.repository.UserRepository userRepository,
                                     com.clenzy.service.InterventionPhotoService interventionPhotoService,
                                     java.time.Clock clock,
-                                    ObjectMapper objectMapper) {
+                                    ObjectMapper objectMapper,
+                                    org.springframework.beans.factory.ObjectProvider<ProviderBeneficiarySupervision> providerBeneficiarySupervision) {
+        this.providerBeneficiarySupervision = providerBeneficiarySupervision;
         this.suggestionRepository = suggestionRepository;
         this.reservationRepository = reservationRepository;
         this.interventionRepository = interventionRepository;
@@ -135,6 +138,8 @@ public class SuggestionPreviewService {
         // Simulation : on regarde l'effet des valeurs en cours de saisie. La
         // superposition se fait sur l'instance chargée en lecture seule — rien
         // n'est écrit, et la carte garde ses propres paramètres.
+        if (SupervisionActionType.PROVIDER_PAYOUT_BENEFICIARY.equals(suggestion.getActionType()))
+            return providerBeneficiarySupervision.getObject().preview(suggestion);
         overlayDraft(suggestion, draft);
         try {
             return switch (suggestion.getActionType()) {

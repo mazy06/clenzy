@@ -161,6 +161,21 @@ class DashboardOverviewSummaryServiceTest {
         assertThat(dto.occupancyRate().value()).isEqualTo(16.7);
         assertThat(dto.adr().value()).isEqualTo(100.0);
         assertThat(dto.revPan().value()).isEqualTo(16.67);
+        assertThat(dto.totalRevenue().previousValue()).isEqualTo(500.0);
+        assertThat(dto.financialContext().occupiedNights()).isEqualTo(5);
+        assertThat(dto.financialContext().availableNights()).isEqualTo(30);
+    }
+
+    @Test
+    void whenNoPreviousActivity_thenExposesZeroBaselineWithoutInventingAComparison() {
+        stubActiveProperties(1);
+        when(reservationRepository.findOverlappingWindowForDashboard(any(), any(), eq(ORG_ID), isNull()))
+                .thenReturn(List.of(reservation(CUR_START, CUR_START.plusDays(3), "300", "confirmed")));
+        DashboardOverviewSummaryDto dto = service.getSummary(ORG_ID, DAYS, UserRole.SUPER_ADMIN, KC_ID);
+        assertThat(dto.totalRevenue().value()).isEqualTo(300);
+        assertThat(dto.totalRevenue().previousValue()).isZero();
+        assertThat(dto.bookings().previousValue()).isZero();
+        assertThat(dto.occupancyRate().previousValue()).isZero();
     }
 
     @Test

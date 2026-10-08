@@ -5,6 +5,7 @@ import { useTranslation } from '../../hooks/useTranslation';
 import { propertyTeamsApi, propertyTeamsKeys } from '../../services/api/propertyTeamsApi';
 import ServiceItemSelect, { serviceReferenceQuery } from '../../components/ServiceItemSelect';
 import { Button, Input, Skeleton } from '../../components/ui';
+import { PROPERTY_ART } from './propertyArtwork';
 
 export default function PropertyServiceTeams({ propertyId }: { propertyId: number }) {
   const { hasRole } = useAuth();
@@ -31,8 +32,8 @@ function Editor({ propertyId }: { propertyId: number }) {
     onSuccess: () => { void client.invalidateQueries({ queryKey: propertyTeamsKeys.all }); },
   });
   const candidates = teams.data ?? [];
-  return <section className="mb-6 flex flex-col gap-3 border-b border-border pb-4">
-    <h2 className="text-sm font-semibold">{t('serviceReference.propertyTeams')}</h2>
+  return <details className="pdt-team-settings">
+    <summary><img src={PROPERTY_ART.teams} alt="" />{t('serviceReference.propertyTeams')}</summary>
     {mappings.isPending ? <Skeleton className="h-16 w-full" /> : mappings.isError
       ? <p role="alert">{t('serviceReference.loadError')}</p>
       : <ul className="divide-y divide-border">{mappings.data?.map(row => {
@@ -59,5 +60,5 @@ function Editor({ propertyId }: { propertyId: number }) {
     <Button type="button" variant="outline" className="self-start" disabled={!code || !teamId || !Number.isInteger(priority) || priority < 0 || mutation.isPending || mappings.isError}
       onClick={() => mutation.mutate(undefined)}>{t('serviceReference.addAssociation')}</Button>
     {(mutation.isError || teams.isError) && <p role="alert" className="text-sm text-destructive-ink">{mutation.error?.message || t('serviceReference.loadError')}</p>}
-  </section>;
+  </details>;
 }

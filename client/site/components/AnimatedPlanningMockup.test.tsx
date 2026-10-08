@@ -12,6 +12,8 @@ import { SiteLanguageProvider } from '../lib/siteLanguage';
 let intersection: IntersectionObserverCallback;
 beforeEach(() => {
   vi.useFakeTimers();
+  vi.spyOn(HTMLMediaElement.prototype, 'play').mockResolvedValue();
+  vi.spyOn(HTMLMediaElement.prototype, 'pause').mockImplementation(() => {});
   sessionStorage.clear();
   vi.stubGlobal('navigator', {
     ...navigator,
@@ -37,6 +39,7 @@ beforeEach(() => {
 afterEach(() => {
   cleanup();
   vi.useRealTimers();
+  vi.restoreAllMocks();
   vi.unstubAllGlobals();
 });
 const tick = (ms: number) => act(() => vi.advanceTimersByTime(ms));
@@ -57,6 +60,7 @@ const renderDemo = () =>
 describe('planning marketing preview', () => {
   it('autoplays only in view and preserves the scene when paused or offscreen', () => {
     const { container } = renderDemo();
+    expect(container.querySelector('[data-planning-panel="filters"]')).toBeNull();
     tick(10000);
     expect(container.querySelector('.bpm-demo-controls')).toHaveTextContent(
       'Vos logements',
@@ -64,6 +68,7 @@ describe('planning marketing preview', () => {
     show(true);
     // Le rythme suit la voix off française (repères de PLANNING_VOICE_CUES).
     tick(13000);
+    expect(container.querySelector('[data-planning-panel="filters"] [data-chip="airbnb"]')).not.toBeNull();
     expect(container.querySelector('.bpm-demo-controls')).toHaveTextContent(
       'Isoler un canal',
     );
@@ -89,6 +94,8 @@ describe('planning marketing preview', () => {
     expect(container.querySelector('[data-bar="r9"]')).toHaveStyle({
       opacity: '1',
     });
+    tick(3000);
+    expect(container.querySelector('[data-planning-panel="filters"]')).toBeNull();
   });
 
   it('creates the direct booking and loops back to a clean planning', () => {

@@ -1,0 +1,9 @@
+{
+  "mode": "built-in image_gen",
+  "use": "Static Baitly assistant avatar",
+  "prompt": "Use case: precise-object-edit. Edit image 1, the static Baitly assistant robot avatar. Image 2 is the EXACT official Baitly house mark to reproduce as a small lapel pin. Change only these details: (1) add a small tasteful side-swept tuft of short dark chestnut hair on top of the ceramic head, subtly stylized to match the refined 3D materials, not a full human haircut. (2) Replace the current generic house pin on the navy suit with the EXACT image-2 mark: continuous house outline whose two lower inward stems end in round loops. Preserve the whole distinctive mark, do not simplify it into a plain house. Render it as an ivory/light champagne metal enamel lapel badge at a readable small size; do not copy the navy square background from reference 2. Keep the robot's cream ceramic head, friendly eye shapes, head/body proportions, navy suit, tablet, gold pen, hands, pose and lighting unchanged. Clean up all stray isolated white pixels above/around the head. Output a square static PNG on a genuine TRANSPARENT alpha background, with clean antialiased edges and no background shadows. No text, no additional logos, no animation.",
+  "source": "exec-3faaf747-3ffc-4d05-81e8-af161065ed39.png",
+  "asset": "baitly-assistant.webp",
+  "referenceLogo": "client/src/components/BaitlyMarkLogo.tsx MARK_PATH",
+  "encoding": "WebP 512px, quality 94, alpha 100"
+}

@@ -12,7 +12,8 @@ class ProviderPayoutBeneficiaryServiceTest {
     private final ProviderPayoutBeneficiaryRepository beneficiaries = mock(ProviderPayoutBeneficiaryRepository.class);
     private final HousekeeperPayoutRecordRepository records = mock(HousekeeperPayoutRecordRepository.class);
     private final UserRepository users = mock(UserRepository.class);
-    private final ProviderPayoutBeneficiaryService service = new ProviderPayoutBeneficiaryService(beneficiaries, records, users);
+    private final org.springframework.context.ApplicationEventPublisher events = mock(org.springframework.context.ApplicationEventPublisher.class);
+    private final ProviderPayoutBeneficiaryService service = new ProviderPayoutBeneficiaryService(beneficiaries, records, users, events);
     private final ProviderPayoutBeneficiaryRepository.Assignment assignment = mock(ProviderPayoutBeneficiaryRepository.Assignment.class);
 
     @BeforeEach void setup() {
@@ -78,6 +79,52 @@ class ProviderPayoutBeneficiaryServiceTest {
         assertThatThrownBy(() -> service.lockAndRequireRecipient(11L,7L,PayoutBeneficiary.user(42L)))
                 .isInstanceOf(IllegalStateException.class);
         verify(beneficiaries).lockMission(11L);
+    }
+    @Test void reviewedSelectionRejectsAnotherWorkerEvenInTheSameOrganization() {
+        reviewable();
+        var review = service.review(11L, 7L).orElseThrow();
+        when(assignment.getAssignedUserId()).thenReturn(43L);
+        assertThatThrownBy(() -> service.selectReviewedOrganization(7L, review, "admin"))
+                .isInstanceOf(IllegalStateException.class).hasMessageContaining("affectation");
+        verify(beneficiaries, never()).saveAndFlush(any());
+        verifyNoInteractions(events);
+    }
+    @Test void reviewedSelectionRejectsAnotherProperty() {
+        reviewable();
+        var review = service.review(11L, 7L).orElseThrow();
+        when(assignment.getPropertyId()).thenReturn(76L);
+        assertThatThrownBy(() -> service.selectReviewedOrganization(7L, review, "admin"))
+                .isInstanceOf(IllegalStateException.class);
+    }
+    @Test void reviewedSelectionRejectsLockedOrCancelledMission() {
+        reviewable();
+        var review = service.review(11L, 7L).orElseThrow();
+        when(assignment.getStatus()).thenReturn("CANCELLED");
+        assertThat(service.review(11L, 7L)).isEmpty();
+        assertThatThrownBy(() -> service.selectReviewedOrganization(7L, review, "admin"))
+                .isInstanceOf(IllegalStateException.class);
+        assertThatThrownBy(() -> service.selectOrganization(11L, 7L, 9L, "admin"))
+                .isInstanceOf(IllegalStateException.class);
+        when(assignment.getStatus()).thenReturn("COMPLETED");
+        when(records.findByInterventionId(11L)).thenReturn(Optional.of(new HousekeeperPayoutRecord()));
+        assertThat(service.review(11L, 7L)).isEmpty();
+        verify(beneficiaries, never()).saveAndFlush(any());
+    }
+    @Test void reviewedSelectionUsesCanonicalDecisionAndPublishesSynchronizationEvent() {
+        reviewable();
+        var actor = new User(); actor.setId(43L);
+        when(users.findByKeycloakId("admin")).thenReturn(Optional.of(actor));
+        service.selectReviewedOrganization(7L, service.review(11L, 7L).orElseThrow(), "admin");
+        verify(beneficiaries).saveAndFlush(argThat(value -> value.getBeneficiaryOrganizationId().equals(9L)
+                && value.getAssignedUserId().equals(42L)));
+        verify(events).publishEvent(new ProviderPayoutBeneficiaryService.Selected(11L, 7L, 75L));
+    }
+    private void reviewable() {
+        when(assignment.getPropertyId()).thenReturn(75L);
+        when(assignment.getStatus()).thenReturn("PENDING");
+        when(assignment.getAssignedUserId()).thenReturn(42L);
+        when(assignment.getRecipientOrganizationId()).thenReturn(9L);
+        when(assignment.getRecipientUserId()).thenReturn(42L);
     }
     private void selectedTeam() {
         when(assignment.getTeamId()).thenReturn(99L);

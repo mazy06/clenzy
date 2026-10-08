@@ -36,7 +36,7 @@ function levelAccent(level: number): string {
  *     bouton « Sauvegarder » piloté par l'état réel du panneau (pas de lecture de ref en render).
  * Réutilise les composants riches existants en variante `device`/`embedded`.
  */
-export default function NoiseDetail({ device }: { device: ConnectedDevice }) {
+export default function NoiseDetail({ device, compact = false }: { device: ConnectedDevice; compact?: boolean }) {
   const { t } = useTranslation();
   const { data, combinedChartData, loading } = useNoiseDeviceDetail(device);
   const [activeThresholds, setActiveThresholds] = useState<ActiveThresholds | null>(null);
@@ -62,7 +62,11 @@ export default function NoiseDetail({ device }: { device: ConnectedDevice }) {
   return (
     <div className="flex flex-col gap-3">
       {/* 1. Lecture live du capteur — remplace la tuile « Connexion » orpheline */}
-      <div className="grid grid-cols-[repeat(auto-fit,_minmax(150px,_1fr))] gap-1.5">
+      {compact ? <div className="bir-noise-readings">
+        <div><span>{t('connectedRooms.inspector.noiseNow')}</span><strong>{reading(sensor?.currentLevel ?? 0)}</strong></div>
+        <div><span>{t('connectedRooms.inspector.noiseAverage')}</span><strong>{reading(sensor?.averageLevel ?? 0)}</strong></div>
+        <div><span>{t('connectedRooms.inspector.noisePeak')}</span><strong>{reading(sensor?.maxLevel ?? 0)}</strong></div>
+      </div> : <div className="grid grid-cols-[repeat(auto-fit,_minmax(150px,_1fr))] gap-1.5">
         <StatTile
           icon={device.online ? <Wifi /> : <WifiOff />}
           label="Connexion"
@@ -87,10 +91,10 @@ export default function NoiseDetail({ device }: { device: ConnectedDevice }) {
           value={reading(sensor?.maxLevel ?? 0)}
           iconClassName={hasData ? levelAccent(sensor?.maxLevel ?? 0) : NEUTRAL}
         />
-      </div>
+      </div>}
 
       {/* 2. Monitoring — pleine largeur, hauteur fixe pour amorcer le graphique */}
-      <div className="w-full h-[320px] min-[900px]:h-[380px]">
+      <div className={compact ? 'w-full h-[220px]' : 'w-full h-[320px] min-[900px]:h-[380px]'}>
         <NoiseMonitorChart
           variant="device"
           data={data}
@@ -102,7 +106,7 @@ export default function NoiseDetail({ device }: { device: ConnectedDevice }) {
 
       {/* 3. Configuration | Historique */}
       <div>
-        <div className="flex items-center justify-between border-b border-solid border-border">
+        <div className="flex flex-wrap items-center justify-between gap-2 border-b border-solid border-border">
           <PageTabs
             options={[
               { label: 'Configuration', icon: <Settings /> },

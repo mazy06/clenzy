@@ -1,0 +1,246 @@
+{
+  "tool": "image_gen.imagegen (built-in)",
+  "purpose": "Baitly room scene perspective sprites. Transparent WebP, source PNGs retained. Smoke detectors mounted vertically on visible walls.",
+  "assets": [
+    {
+      "key": "noise-left",
+      "product": "noise",
+      "scene": "living",
+      "direction": "Mount this circular flat noise monitor flush to the LEFT BACK WALL of image 2, the wall above the sofa. Its wall plane recedes toward screen upper-right: horizontal edges run UP 18 degrees from left to right, all vertical edges stay vertical. Camera sees its front and a little LEFT side thickness and its top rim. The circular front projects as a slightly narrow ellipse, never a face-on circle.",
+      "prompt": "Use case: product-mockup. Create ONE isolated smart-home object sprite for compositing into a miniature room. Image 1 is the product identity reference; Image 2 is the room perspective and lighting reference ONLY. Do not render the room or any wall, table or backing rectangle. Keep the device materials, geometry and identity but render it as installed, not as a catalogue icon. Orthographic architectural camera elevated 25 degrees looking downward. Soft warm daylight from upper left, low contrast, subtle self-shadow only, no exterior drop shadow. True transparent alpha background. Tight framing with 5% margin, whole object fully visible. No text, labels, UI, badge, numbers, watermark, colored glow or outline.\nMount this circular flat noise monitor flush to the LEFT BACK WALL of image 2, the wall above the sofa. Its wall plane recedes toward screen upper-right: horizontal edges run UP 18 degrees from left to right, all vertical edges stay vertical. Camera sees its front and a little LEFT side thickness and its top rim. The circular front projects as a slightly narrow ellipse, never a face-on circle.",
+      "path": "exec-2bb25523-0320-47d9-8b6c-6d8cd828a416.png",
+      "file": "baitly-noise-left.webp"
+    },
+    {
+      "key": "thermostat-right",
+      "product": "thermostat",
+      "scene": "hallway",
+      "direction": "Mount this square flat thermostat flush to the RIGHT BACK WALL of image 2, the wall with the right-hand door. Its wall plane recedes toward screen upper-left: horizontal top and bottom edges run DOWN 18 degrees from left to right, all vertical edges stay vertical. Camera sees the front and a little RIGHT side thickness and top rim. No pedestal or stand.",
+      "prompt": "Use case: product-mockup. Create ONE isolated smart-home object sprite for compositing into a miniature room. Image 1 is the product identity reference; Image 2 is the room perspective and lighting reference ONLY. Do not render the room or any wall, table or backing rectangle. Keep the device materials, geometry and identity but render it as installed, not as a catalogue icon. Orthographic architectural camera elevated 25 degrees looking downward. Soft warm daylight from upper left, low contrast, subtle self-shadow only, no exterior drop shadow. True transparent alpha background. Tight framing with 5% margin, whole object fully visible. No text, labels, UI, badge, numbers, watermark, colored glow or outline.\nMount this square flat thermostat flush to the RIGHT BACK WALL of image 2, the wall with the right-hand door. Its wall plane recedes toward screen upper-left: horizontal top and bottom edges run DOWN 18 degrees from left to right, all vertical edges stay vertical. Camera sees the front and a little RIGHT side thickness and top rim. No pedestal or stand.",
+      "path": "exec-2937cc65-18d8-4023-a500-dda373c1a50c.png",
+      "file": "baitly-thermostat-right.webp"
+    },
+    {
+      "key": "noise-right",
+      "product": "noise",
+      "scene": "hallway",
+      "direction": "Mounted flush to the RIGHT BACK WALL of the reference room, the wall with the right door. Wall horizontal edges run DOWN 18 degrees from left to right, all vertical edges stay vertical. Show front and a little RIGHT side thickness and top surface. No pedestal, no wall fragment.",
+      "prompt": "Use case: product-mockup. Create ONE isolated smart-home object sprite for compositing into a miniature room. Image 1 is the product identity reference; Image 2 is the room perspective and lighting reference ONLY. Do not render the room or any wall, table or backing rectangle. Keep the device materials, geometry and identity but render it as installed, not as a catalogue icon. Orthographic architectural camera elevated 25 degrees looking downward. Soft warm daylight from upper left, low contrast, subtle self-shadow only, no exterior drop shadow. True transparent alpha background. Tight framing with 5% margin, whole object fully visible. No text, labels, UI, badge, numbers, watermark, colored glow or outline.\nMounted flush to the RIGHT BACK WALL of the reference room, the wall with the right door. Wall horizontal edges run DOWN 18 degrees from left to right, all vertical edges stay vertical. Show front and a little RIGHT side thickness and top surface. No pedestal, no wall fragment.",
+      "path": "exec-cb8255a6-877e-481e-a245-846b57306a0b.png",
+      "file": "baitly-noise-right.webp"
+    },
+    {
+      "key": "thermostat-left",
+      "product": "thermostat",
+      "scene": "living",
+      "direction": "Mounted flush to the LEFT BACK WALL of the reference room, above the sofa or left door. Wall horizontal edges run UP 18 degrees from left to right, all vertical edges stay vertical. Show front and a little LEFT side thickness and top surface. No pedestal, no wall fragment.",
+      "prompt": "Use case: product-mockup. Create ONE isolated smart-home object sprite for compositing into a miniature room. Image 1 is the product identity reference; Image 2 is the room perspective and lighting reference ONLY. Do not render the room or any wall, table or backing rectangle. Keep the device materials, geometry and identity but render it as installed, not as a catalogue icon. Orthographic architectural camera elevated 25 degrees looking downward. Soft warm daylight from upper left, low contrast, subtle self-shadow only, no exterior drop shadow. True transparent alpha background. Tight framing with 5% margin, whole object fully visible. No text, labels, UI, badge, numbers, watermark, colored glow or outline.\nMounted flush to the LEFT BACK WALL of the reference room, above the sofa or left door. Wall horizontal edges run UP 18 degrees from left to right, all vertical edges stay vertical. Show front and a little LEFT side thickness and top surface. No pedestal, no wall fragment.",
+      "path": "exec-417a61b2-f277-4199-9fec-23ccfb1fafe8.png",
+      "file": "baitly-thermostat-left.webp"
+    },
+    {
+      "key": "contact-left",
+      "product": "contact",
+      "scene": "living",
+      "direction": "Mounted flush to the LEFT BACK WALL of the reference room, above the sofa or left door. Wall horizontal edges run UP 18 degrees from left to right, all vertical edges stay vertical. Show front and a little LEFT side thickness and top surface. No pedestal, no wall fragment.",
+      "prompt": "Use case: product-mockup. Create ONE isolated smart-home object sprite for compositing into a miniature room. Image 1 is the product identity reference; Image 2 is the room perspective and lighting reference ONLY. Do not render the room or any wall, table or backing rectangle. Keep the device materials, geometry and identity but render it as installed, not as a catalogue icon. Orthographic architectural camera elevated 25 degrees looking downward. Soft warm daylight from upper left, low contrast, subtle self-shadow only, no exterior drop shadow. True transparent alpha background. Tight framing with 5% margin, whole object fully visible. No text, labels, UI, badge, numbers, watermark, colored glow or outline.\nMounted flush to the LEFT BACK WALL of the reference room, above the sofa or left door. Wall horizontal edges run UP 18 degrees from left to right, all vertical edges stay vertical. Show front and a little LEFT side thickness and top surface. No pedestal, no wall fragment.",
+      "path": "exec-7976988e-62ab-467c-8af2-64e82de542f3.png",
+      "file": "baitly-contact-left.webp"
+    },
+    {
+      "key": "contact-right",
+      "product": "contact",
+      "scene": "hallway",
+      "direction": "Mounted flush to the RIGHT BACK WALL of the reference room, the wall with the right door. Wall horizontal edges run DOWN 18 degrees from left to right, all vertical edges stay vertical. Show front and a little RIGHT side thickness and top surface. No pedestal, no wall fragment.",
+      "prompt": "Use case: product-mockup. Create ONE isolated smart-home object sprite for compositing into a miniature room. Image 1 is the product identity reference; Image 2 is the room perspective and lighting reference ONLY. Do not render the room or any wall, table or backing rectangle. Keep the device materials, geometry and identity but render it as installed, not as a catalogue icon. Orthographic architectural camera elevated 25 degrees looking downward. Soft warm daylight from upper left, low contrast, subtle self-shadow only, no exterior drop shadow. True transparent alpha background. Tight framing with 5% margin, whole object fully visible. No text, labels, UI, badge, numbers, watermark, colored glow or outline.\nMounted flush to the RIGHT BACK WALL of the reference room, the wall with the right door. Wall horizontal edges run DOWN 18 degrees from left to right, all vertical edges stay vertical. Show front and a little RIGHT side thickness and top surface. No pedestal, no wall fragment.",
+      "path": "exec-9bd0c967-0e71-4bf0-89c9-99fe5406c428.png",
+      "file": "baitly-contact-right.webp"
+    },
+    {
+      "key": "keybox-left",
+      "product": "keybox",
+      "scene": "living",
+      "direction": "Mounted flush to the LEFT BACK WALL of the reference room, above the sofa or left door. Wall horizontal edges run UP 18 degrees from left to right, all vertical edges stay vertical. Show front and a little LEFT side thickness and top surface. No pedestal, no wall fragment.",
+      "prompt": "Use case: product-mockup. Create ONE isolated smart-home object sprite for compositing into a miniature room. Image 1 is the product identity reference; Image 2 is the room perspective and lighting reference ONLY. Do not render the room or any wall, table or backing rectangle. Keep the device materials, geometry and identity but render it as installed, not as a catalogue icon. Orthographic architectural camera elevated 25 degrees looking downward. Soft warm daylight from upper left, low contrast, subtle self-shadow only, no exterior drop shadow. True transparent alpha background. Tight framing with 5% margin, whole object fully visible. No text, labels, UI, badge, numbers, watermark, colored glow or outline.\nMounted flush to the LEFT BACK WALL of the reference room, above the sofa or left door. Wall horizontal edges run UP 18 degrees from left to right, all vertical edges stay vertical. Show front and a little LEFT side thickness and top surface. No pedestal, no wall fragment.",
+      "path": "exec-bd622cfb-d483-4abe-8b78-af5a0d4c04d2.png",
+      "file": "baitly-keybox-left.webp"
+    },
+    {
+      "key": "keybox-right",
+      "product": "keybox",
+      "scene": "hallway",
+      "direction": "Mounted flush to the RIGHT BACK WALL of the reference room, the wall with the right door. Wall horizontal edges run DOWN 18 degrees from left to right, all vertical edges stay vertical. Show front and a little RIGHT side thickness and top surface. No pedestal, no wall fragment.",
+      "prompt": "Use case: product-mockup. Create ONE isolated smart-home object sprite for compositing into a miniature room. Image 1 is the product identity reference; Image 2 is the room perspective and lighting reference ONLY. Do not render the room or any wall, table or backing rectangle. Keep the device materials, geometry and identity but render it as installed, not as a catalogue icon. Orthographic architectural camera elevated 25 degrees looking downward. Soft warm daylight from upper left, low contrast, subtle self-shadow only, no exterior drop shadow. True transparent alpha background. Tight framing with 5% margin, whole object fully visible. No text, labels, UI, badge, numbers, watermark, colored glow or outline.\nMounted flush to the RIGHT BACK WALL of the reference room, the wall with the right door. Wall horizontal edges run DOWN 18 degrees from left to right, all vertical edges stay vertical. Show front and a little RIGHT side thickness and top surface. No pedestal, no wall fragment.",
+      "path": "exec-4de3fea7-749d-4cb8-b3b9-470cad999ce1.png",
+      "file": "baitly-keybox-right.webp"
+    },
+    {
+      "key": "motion-left",
+      "product": "motion",
+      "scene": "living",
+      "direction": "Mounted flush to the LEFT BACK WALL of the reference room, above the sofa or left door. Wall horizontal edges run UP 18 degrees from left to right, all vertical edges stay vertical. Show front and a little LEFT side thickness and top surface. No pedestal, no wall fragment.",
+      "prompt": "Use case: product-mockup. Create ONE isolated smart-home object sprite for compositing into a miniature room. Image 1 is the product identity reference; Image 2 is the room perspective and lighting reference ONLY. Do not render the room or any wall, table or backing rectangle. Keep the device materials, geometry and identity but render it as installed, not as a catalogue icon. Orthographic architectural camera elevated 25 degrees looking downward. Soft warm daylight from upper left, low contrast, subtle self-shadow only, no exterior drop shadow. True transparent alpha background. Tight framing with 5% margin, whole object fully visible. No text, labels, UI, badge, numbers, watermark, colored glow or outline.\nMounted flush to the LEFT BACK WALL of the reference room, above the sofa or left door. Wall horizontal edges run UP 18 degrees from left to right, all vertical edges stay vertical. Show front and a little LEFT side thickness and top surface. No pedestal, no wall fragment.",
+      "path": "exec-efac1003-42a5-4bf0-9c91-df2187899b69.png",
+      "file": "baitly-motion-left.webp"
+    },
+    {
+      "key": "motion-right",
+      "product": "motion",
+      "scene": "hallway",
+      "direction": "Mounted flush to the RIGHT BACK WALL of the reference room, the wall with the right door. Wall horizontal edges run DOWN 18 degrees from left to right, all vertical edges stay vertical. Show front and a little RIGHT side thickness and top surface. No pedestal, no wall fragment.",
+      "prompt": "Use case: product-mockup. Create ONE isolated smart-home object sprite for compositing into a miniature room. Image 1 is the product identity reference; Image 2 is the room perspective and lighting reference ONLY. Do not render the room or any wall, table or backing rectangle. Keep the device materials, geometry and identity but render it as installed, not as a catalogue icon. Orthographic architectural camera elevated 25 degrees looking downward. Soft warm daylight from upper left, low contrast, subtle self-shadow only, no exterior drop shadow. True transparent alpha background. Tight framing with 5% margin, whole object fully visible. No text, labels, UI, badge, numbers, watermark, colored glow or outline.\nMounted flush to the RIGHT BACK WALL of the reference room, the wall with the right door. Wall horizontal edges run DOWN 18 degrees from left to right, all vertical edges stay vertical. Show front and a little RIGHT side thickness and top surface. No pedestal, no wall fragment.",
+      "path": "exec-d299a8d2-e046-4bf4-bf0a-166b1ec54163.png",
+      "file": "baitly-motion-right.webp"
+    },
+    {
+      "key": "split-idle-left",
+      "product": "split-idle",
+      "scene": "living",
+      "direction": "Mounted flush to the LEFT BACK WALL of the reference room, above the sofa or left door. Wall horizontal edges run UP 18 degrees from left to right, all vertical edges stay vertical. Show front and a little LEFT side thickness and top surface. No pedestal, no wall fragment. Long horizontal wall split air conditioner. Panel closed, no colored airflow, no red or blue effects. Wide landscape cutout of the full unit.",
+      "prompt": "Use case: product-mockup. Create ONE isolated smart-home object sprite for compositing into a miniature room. Image 1 is the product identity reference; Image 2 is the room perspective and lighting reference ONLY. Do not render the room or any wall, table or backing rectangle. Keep the device materials, geometry and identity but render it as installed, not as a catalogue icon. Orthographic architectural camera elevated 25 degrees looking downward. Soft warm daylight from upper left, low contrast, subtle self-shadow only, no exterior drop shadow. True transparent alpha background. Tight framing with 5% margin, whole object fully visible. No text, labels, UI, badge, numbers, watermark, colored glow or outline.\nMounted flush to the LEFT BACK WALL of the reference room, above the sofa or left door. Wall horizontal edges run UP 18 degrees from left to right, all vertical edges stay vertical. Show front and a little LEFT side thickness and top surface. No pedestal, no wall fragment. Long horizontal wall split air conditioner. Panel closed, no colored airflow, no red or blue effects. Wide landscape cutout of the full unit.",
+      "path": "exec-be9e217b-c15a-42c8-85d5-834566730cd8.png",
+      "file": "baitly-split-idle-left.webp"
+    },
+    {
+      "key": "split-idle-right",
+      "product": "split-idle",
+      "scene": "hallway",
+      "direction": "Mounted flush to the RIGHT BACK WALL of the reference room, the wall with the right door. Wall horizontal edges run DOWN 18 degrees from left to right, all vertical edges stay vertical. Show front and a little RIGHT side thickness and top surface. No pedestal, no wall fragment. Long horizontal wall split air conditioner. Panel closed, no colored airflow, no red or blue effects. Wide landscape cutout of the full unit.",
+      "prompt": "Use case: product-mockup. Create ONE isolated smart-home object sprite for compositing into a miniature room. Image 1 is the product identity reference; Image 2 is the room perspective and lighting reference ONLY. Do not render the room or any wall, table or backing rectangle. Keep the device materials, geometry and identity but render it as installed, not as a catalogue icon. Orthographic architectural camera elevated 25 degrees looking downward. Soft warm daylight from upper left, low contrast, subtle self-shadow only, no exterior drop shadow. True transparent alpha background. Tight framing with 5% margin, whole object fully visible. No text, labels, UI, badge, numbers, watermark, colored glow or outline.\nMounted flush to the RIGHT BACK WALL of the reference room, the wall with the right door. Wall horizontal edges run DOWN 18 degrees from left to right, all vertical edges stay vertical. Show front and a little RIGHT side thickness and top surface. No pedestal, no wall fragment. Long horizontal wall split air conditioner. Panel closed, no colored airflow, no red or blue effects. Wide landscape cutout of the full unit.",
+      "path": "exec-aaa445be-86da-4ebd-afb6-7925e02211cc.png",
+      "file": "baitly-split-idle-right.webp"
+    },
+    {
+      "key": "camera-left",
+      "product": "camera",
+      "scene": "living",
+      "direction": "Mounted flush to the LEFT BACK WALL of the reference room, above the sofa or left door. Wall horizontal edges run UP 18 degrees from left to right, all vertical edges stay vertical. Show front and a little LEFT side thickness and top surface. No pedestal, no wall fragment. Camera mounting base flush against the wall, short arm, camera barrel points diagonally into the room and slightly downward. No floating rear mounting plate.",
+      "prompt": "Use case: product-mockup. Create ONE isolated smart-home object sprite for compositing into a miniature room. Image 1 is the product identity reference; Image 2 is the room perspective and lighting reference ONLY. Do not render the room or any wall, table or backing rectangle. Keep the device materials, geometry and identity but render it as installed, not as a catalogue icon. Orthographic architectural camera elevated 25 degrees looking downward. Soft warm daylight from upper left, low contrast, subtle self-shadow only, no exterior drop shadow. True transparent alpha background. Tight framing with 5% margin, whole object fully visible. No text, labels, UI, badge, numbers, watermark, colored glow or outline.\nMounted flush to the LEFT BACK WALL of the reference room, above the sofa or left door. Wall horizontal edges run UP 18 degrees from left to right, all vertical edges stay vertical. Show front and a little LEFT side thickness and top surface. No pedestal, no wall fragment. Camera mounting base flush against the wall, short arm, camera barrel points diagonally into the room and slightly downward. No floating rear mounting plate.",
+      "path": "exec-27c2f62c-a076-4e73-9a5c-19ca908f9557.png",
+      "file": "baitly-camera-left.webp"
+    },
+    {
+      "key": "camera-right",
+      "product": "camera",
+      "scene": "hallway",
+      "direction": "Mounted flush to the RIGHT BACK WALL of the reference room, the wall with the right door. Wall horizontal edges run DOWN 18 degrees from left to right, all vertical edges stay vertical. Show front and a little RIGHT side thickness and top surface. No pedestal, no wall fragment. Camera mounting base flush against the wall, short arm, camera barrel points diagonally into the room and slightly downward. No floating rear mounting plate.",
+      "prompt": "Use case: product-mockup. Create ONE isolated smart-home object sprite for compositing into a miniature room. Image 1 is the product identity reference; Image 2 is the room perspective and lighting reference ONLY. Do not render the room or any wall, table or backing rectangle. Keep the device materials, geometry and identity but render it as installed, not as a catalogue icon. Orthographic architectural camera elevated 25 degrees looking downward. Soft warm daylight from upper left, low contrast, subtle self-shadow only, no exterior drop shadow. True transparent alpha background. Tight framing with 5% margin, whole object fully visible. No text, labels, UI, badge, numbers, watermark, colored glow or outline.\nMounted flush to the RIGHT BACK WALL of the reference room, the wall with the right door. Wall horizontal edges run DOWN 18 degrees from left to right, all vertical edges stay vertical. Show front and a little RIGHT side thickness and top surface. No pedestal, no wall fragment. Camera mounting base flush against the wall, short arm, camera barrel points diagonally into the room and slightly downward. No floating rear mounting plate.",
+      "path": "exec-ea8798e0-2c56-4f86-947d-cb68e1b18474.png",
+      "file": "baitly-camera-right.webp"
+    },
+    {
+      "key": "lock-left",
+      "product": "lock",
+      "scene": "living",
+      "direction": "Mounted flush to the LEFT BACK WALL of the reference room, above the sofa or left door. Wall horizontal edges run UP 18 degrees from left to right, all vertical edges stay vertical. Show front and a little LEFT side thickness and top surface. No pedestal, no wall fragment. Smart door lever lock on the matching door plane; slim backplate, handle follows that same wall horizontal direction.",
+      "prompt": "Use case: product-mockup. Create ONE isolated smart-home object sprite for compositing into a miniature room. Image 1 is the product identity reference; Image 2 is the room perspective and lighting reference ONLY. Do not render the room or any wall, table or backing rectangle. Keep the device materials, geometry and identity but render it as installed, not as a catalogue icon. Orthographic architectural camera elevated 25 degrees looking downward. Soft warm daylight from upper left, low contrast, subtle self-shadow only, no exterior drop shadow. True transparent alpha background. Tight framing with 5% margin, whole object fully visible. No text, labels, UI, badge, numbers, watermark, colored glow or outline.\nMounted flush to the LEFT BACK WALL of the reference room, above the sofa or left door. Wall horizontal edges run UP 18 degrees from left to right, all vertical edges stay vertical. Show front and a little LEFT side thickness and top surface. No pedestal, no wall fragment. Smart door lever lock on the matching door plane; slim backplate, handle follows that same wall horizontal direction.",
+      "path": "exec-b4030e35-8301-4e75-903c-c8201407c16a.png",
+      "file": "baitly-lock-left.webp"
+    },
+    {
+      "key": "lock-right",
+      "product": "lock",
+      "scene": "hallway",
+      "direction": "Mounted flush to the RIGHT BACK WALL of the reference room, the wall with the right door. Wall horizontal edges run DOWN 18 degrees from left to right, all vertical edges stay vertical. Show front and a little RIGHT side thickness and top surface. No pedestal, no wall fragment. Smart door lever lock on the matching door plane; slim backplate, handle follows that same wall horizontal direction.",
+      "prompt": "Use case: product-mockup. Create ONE isolated smart-home object sprite for compositing into a miniature room. Image 1 is the product identity reference; Image 2 is the room perspective and lighting reference ONLY. Do not render the room or any wall, table or backing rectangle. Keep the device materials, geometry and identity but render it as installed, not as a catalogue icon. Orthographic architectural camera elevated 25 degrees looking downward. Soft warm daylight from upper left, low contrast, subtle self-shadow only, no exterior drop shadow. True transparent alpha background. Tight framing with 5% margin, whole object fully visible. No text, labels, UI, badge, numbers, watermark, colored glow or outline.\nMounted flush to the RIGHT BACK WALL of the reference room, the wall with the right door. Wall horizontal edges run DOWN 18 degrees from left to right, all vertical edges stay vertical. Show front and a little RIGHT side thickness and top surface. No pedestal, no wall fragment. Smart door lever lock on the matching door plane; slim backplate, handle follows that same wall horizontal direction.",
+      "path": "exec-ce886e33-a32a-4541-ab1b-aeaaa64f662c.png",
+      "file": "baitly-lock-right.webp"
+    },
+    {
+      "key": "smoke-left",
+      "product": "smoke",
+      "scene": "living",
+      "direction": "Mounted flush to the LEFT BACK WALL of the reference room, above the sofa or left door. Wall horizontal edges run UP 18 degrees from left to right, all vertical edges stay vertical. Show front and a little LEFT side thickness and top surface. No pedestal, no wall fragment. A shallow round smoke alarm viewed on the high vertical wall, keep the vented front clearly visible and project circle as ellipse.",
+      "prompt": "Edit target: image 1 smoke detector. Image 2 is ONLY a perspective reference. Correct the installation orientation: a smoke detector MOUNTED VERTICALLY FLUSH ON A WALL, with its circular grille/test button facing out horizontally into the room, like a wall clock. NOT mounted on a ceiling, NOT viewed from underneath. Camera is ABOVE the detector looking down, so the TOP edge and curved top rim are visible, NEVER the underside. The back plate is vertical, the circular front appears as a tall oval in perspective. Match the LEFT back wall above the sofa (wall runs upward 18 degrees left to right) in reference 2. Output ONLY the detector isolated on genuine transparent alpha, no wall or room or supports. Cream plastic, dark narrow vent slots, central circular test button. Soft warm upper-left daylight, delicate self-shadow, no drop shadow, no outline, no UI, no text. Tight framing with a small margin. Critical: VERTICAL wall installation, face pointing outward, visible TOP rim.",
+      "path": "exec-a137899b-6a10-42e1-8aef-739c53d3bcbb.png",
+      "file": "baitly-smoke-left.webp"
+    },
+    {
+      "key": "smoke-right",
+      "product": "smoke",
+      "scene": "hallway",
+      "direction": "Mounted flush to the RIGHT BACK WALL of the reference room, the wall with the right door. Wall horizontal edges run DOWN 18 degrees from left to right, all vertical edges stay vertical. Show front and a little RIGHT side thickness and top surface. No pedestal, no wall fragment. A shallow round smoke alarm viewed on the high vertical wall, keep the vented front clearly visible and project circle as ellipse.",
+      "prompt": "Edit target: image 1 smoke detector. Image 2 is ONLY a perspective reference. Correct the installation orientation: a smoke detector MOUNTED VERTICALLY FLUSH ON A WALL, with its circular grille/test button facing out horizontally into the room, like a wall clock. NOT mounted on a ceiling, NOT viewed from underneath. Camera is ABOVE the detector looking down, so the TOP edge and curved top rim are visible, NEVER the underside. The back plate is vertical, the circular front appears as a tall oval in perspective. Match the RIGHT back wall above the bookcase (wall runs downward 18 degrees left to right) in reference 2. Output ONLY the detector isolated on genuine transparent alpha, no wall or room or supports. Cream plastic, dark narrow vent slots, central circular test button. Soft warm upper-left daylight, delicate self-shadow, no drop shadow, no outline, no UI, no text. Tight framing with a small margin. Critical: VERTICAL wall installation, face pointing outward, visible TOP rim.",
+      "path": "exec-651f4ebd-dbb0-4547-8b82-c28d0e2b0380.png",
+      "file": "baitly-smoke-right.webp"
+    },
+    {
+      "key": "lock-front",
+      "product": "lock",
+      "scene": "entrance",
+      "direction": "Mounted flush to the rear ENTRANCE DOOR or surrounding stone rear wall of the reference image. Match this near-front wall perspective exactly: horizontal edges slope DOWN only about 5 degrees from left to right, verticals vertical. Camera elevated 25 degrees. Do not draw any door, stone, background or backing.",
+      "prompt": "Use case: product-mockup. Create ONE isolated smart-home object sprite for compositing into a miniature room. Image 1 is the product identity reference; Image 2 is the room perspective and lighting reference ONLY. Do not render the room or any wall, table or backing rectangle. Keep the device materials, geometry and identity but render it as installed, not as a catalogue icon. Orthographic architectural camera elevated 25 degrees looking downward. Soft warm daylight from upper left, low contrast, subtle self-shadow only, no exterior drop shadow. True transparent alpha background. Tight framing with 5% margin, whole object fully visible. No text, labels, UI, badge, numbers, watermark, colored glow or outline.\nMounted flush to the rear ENTRANCE DOOR or surrounding stone rear wall of the reference image. Match this near-front wall perspective exactly: horizontal edges slope DOWN only about 5 degrees from left to right, verticals vertical. Camera elevated 25 degrees. Do not draw any door, stone, background or backing.",
+      "path": "exec-172f24ce-15c5-4626-b0c6-c0e0cb956084.png",
+      "file": "baitly-lock-front.webp"
+    },
+    {
+      "key": "contact-front",
+      "product": "contact",
+      "scene": "entrance",
+      "direction": "Mounted flush to the rear ENTRANCE DOOR or surrounding stone rear wall of the reference image. Match this near-front wall perspective exactly: horizontal edges slope DOWN only about 5 degrees from left to right, verticals vertical. Camera elevated 25 degrees. Do not draw any door, stone, background or backing.",
+      "prompt": "Use case: product-mockup. Create ONE isolated smart-home object sprite for compositing into a miniature room. Image 1 is the product identity reference; Image 2 is the room perspective and lighting reference ONLY. Do not render the room or any wall, table or backing rectangle. Keep the device materials, geometry and identity but render it as installed, not as a catalogue icon. Orthographic architectural camera elevated 25 degrees looking downward. Soft warm daylight from upper left, low contrast, subtle self-shadow only, no exterior drop shadow. True transparent alpha background. Tight framing with 5% margin, whole object fully visible. No text, labels, UI, badge, numbers, watermark, colored glow or outline.\nMounted flush to the rear ENTRANCE DOOR or surrounding stone rear wall of the reference image. Match this near-front wall perspective exactly: horizontal edges slope DOWN only about 5 degrees from left to right, verticals vertical. Camera elevated 25 degrees. Do not draw any door, stone, background or backing.",
+      "path": "exec-57734db0-a061-4b2b-adbd-7dc229cc0aa0.png",
+      "file": "baitly-contact-front.webp"
+    },
+    {
+      "key": "keybox-front",
+      "product": "keybox",
+      "scene": "entrance",
+      "direction": "Mounted flush to the rear ENTRANCE DOOR or surrounding stone rear wall of the reference image. Match this near-front wall perspective exactly: horizontal edges slope DOWN only about 5 degrees from left to right, verticals vertical. Camera elevated 25 degrees. Do not draw any door, stone, background or backing.",
+      "prompt": "Use case: product-mockup. Create ONE isolated smart-home object sprite for compositing into a miniature room. Image 1 is the product identity reference; Image 2 is the room perspective and lighting reference ONLY. Do not render the room or any wall, table or backing rectangle. Keep the device materials, geometry and identity but render it as installed, not as a catalogue icon. Orthographic architectural camera elevated 25 degrees looking downward. Soft warm daylight from upper left, low contrast, subtle self-shadow only, no exterior drop shadow. True transparent alpha background. Tight framing with 5% margin, whole object fully visible. No text, labels, UI, badge, numbers, watermark, colored glow or outline.\nMounted flush to the rear ENTRANCE DOOR or surrounding stone rear wall of the reference image. Match this near-front wall perspective exactly: horizontal edges slope DOWN only about 5 degrees from left to right, verticals vertical. Camera elevated 25 degrees. Do not draw any door, stone, background or backing.",
+      "path": "exec-4cdc1cdd-d6a1-4433-8a3b-cf7a444c458b.png",
+      "file": "baitly-keybox-front.webp"
+    },
+    {
+      "key": "camera-front",
+      "product": "camera",
+      "scene": "entrance",
+      "direction": "Mounted flush to the rear ENTRANCE DOOR or surrounding stone rear wall of the reference image. Match this near-front wall perspective exactly: horizontal edges slope DOWN only about 5 degrees from left to right, verticals vertical. Camera elevated 25 degrees. Do not draw any door, stone, background or backing. Camera barrel points into the porch and downward.",
+      "prompt": "Use case: product-mockup. Create ONE isolated smart-home object sprite for compositing into a miniature room. Image 1 is the product identity reference; Image 2 is the room perspective and lighting reference ONLY. Do not render the room or any wall, table or backing rectangle. Keep the device materials, geometry and identity but render it as installed, not as a catalogue icon. Orthographic architectural camera elevated 25 degrees looking downward. Soft warm daylight from upper left, low contrast, subtle self-shadow only, no exterior drop shadow. True transparent alpha background. Tight framing with 5% margin, whole object fully visible. No text, labels, UI, badge, numbers, watermark, colored glow or outline.\nMounted flush to the rear ENTRANCE DOOR or surrounding stone rear wall of the reference image. Match this near-front wall perspective exactly: horizontal edges slope DOWN only about 5 degrees from left to right, verticals vertical. Camera elevated 25 degrees. Do not draw any door, stone, background or backing. Camera barrel points into the porch and downward.",
+      "path": "exec-1372480d-0573-4949-913a-f54d5601e727.png",
+      "file": "baitly-camera-front.webp"
+    },
+    {
+      "key": "climate-left",
+      "product": "climate",
+      "scene": "bedroom",
+      "direction": "Small tabletop climate monitor standing on its integrated short foot, with bottom surface resting on an invisible horizontal oak table plane in this room. Camera elevation 25 degrees. Front screen horizontal edges slope UP 18 degrees towards the right; show left side and top. No table or wall included; only the monitor. Tight entire cutout.",
+      "prompt": "Use case: product-mockup. Create ONE isolated smart-home object sprite for compositing into a miniature room. Image 1 is the product identity reference; Image 2 is the room perspective and lighting reference ONLY. Do not render the room or any wall, table or backing rectangle. Keep the device materials, geometry and identity but render it as installed, not as a catalogue icon. Orthographic architectural camera elevated 25 degrees looking downward. Soft warm daylight from upper left, low contrast, subtle self-shadow only, no exterior drop shadow. True transparent alpha background. Tight framing with 5% margin, whole object fully visible. No text, labels, UI, badge, numbers, watermark, colored glow or outline.\nSmall tabletop climate monitor standing on its integrated short foot, with bottom surface resting on an invisible horizontal oak table plane in this room. Camera elevation 25 degrees. Front screen horizontal edges slope UP 18 degrees towards the right; show left side and top. No table or wall included; only the monitor. Tight entire cutout.",
+      "path": "exec-e6807d19-c52a-481c-b836-cf59fb15aa6d.png",
+      "file": "baitly-climate-left.webp"
+    },
+    {
+      "key": "climate-right",
+      "product": "climate",
+      "scene": "living",
+      "direction": "Small tabletop climate monitor standing on its integrated short foot, with bottom surface resting on an invisible horizontal oak table plane in this room. Camera elevation 25 degrees. Front screen horizontal edges slope DOWN 18 degrees towards the right; show right side and top. No table or wall included; only the monitor. Tight entire cutout.",
+      "prompt": "Use case: product-mockup. Create ONE isolated smart-home object sprite for compositing into a miniature room. Image 1 is the product identity reference; Image 2 is the room perspective and lighting reference ONLY. Do not render the room or any wall, table or backing rectangle. Keep the device materials, geometry and identity but render it as installed, not as a catalogue icon. Orthographic architectural camera elevated 25 degrees looking downward. Soft warm daylight from upper left, low contrast, subtle self-shadow only, no exterior drop shadow. True transparent alpha background. Tight framing with 5% margin, whole object fully visible. No text, labels, UI, badge, numbers, watermark, colored glow or outline.\nSmall tabletop climate monitor standing on its integrated short foot, with bottom surface resting on an invisible horizontal oak table plane in this room. Camera elevation 25 degrees. Front screen horizontal edges slope DOWN 18 degrees towards the right; show right side and top. No table or wall included; only the monitor. Tight entire cutout.",
+      "path": "exec-9b871699-1551-4478-a4cd-f9d39c450267.png",
+      "file": "baitly-climate-right.webp"
+    },
+    {
+      "key": "lock-right-lever-left",
+      "product": "lock",
+      "scene": "living",
+      "path": "exec-eabf0eec-1ff0-4e01-acd0-ca8f3c8ff275.png",
+      "prompt": "Edit the supplied isolated smart lock sprite. Preserve EXACTLY its upright camera angle, lighting, navy and brass materials, keypad and mounting plate. Change ONLY the lever handing: the horizontal handle must extend to the LEFT of the vertical keypad, never to the right. It attaches at the same lower pivot and projects leftward in the same mounting plane. This lock installs on the right edge of a door with its hinges on the left. Do NOT mirror the lighting or camera. Keep true transparent background, no wall or UI or outline or cast shadow. Entire object with small margins.",
+      "file": "baitly-lock-right-lever-left.webp"
+    },
+    {
+      "key": "lock-left-lever-left",
+      "product": "lock",
+      "scene": "living",
+      "path": "exec-00d0683b-2827-4e4d-8114-e6164bd6109c.png",
+      "prompt": "Edit the supplied isolated smart lock sprite. Preserve EXACTLY its upright camera angle, lighting, navy and brass materials, keypad and mounting plate. Change ONLY the lever handing: the horizontal handle must extend to the LEFT of the vertical keypad, never to the right. It attaches at the same lower pivot and projects leftward in the same mounting plane. This lock installs on the right edge of a door with its hinges on the left. Do NOT mirror the lighting or camera. Keep true transparent background, no wall or UI or outline or cast shadow. Entire object with small margins.",
+      "file": "baitly-lock-left-lever-left.webp"
+    },
+    {
+      "key": "lock-front-lever-left",
+      "product": "lock",
+      "scene": "living",
+      "path": "exec-142ca65b-42f3-4df4-a29e-a18209f38e86.png",
+      "prompt": "Edit the supplied isolated smart lock sprite. Preserve EXACTLY its upright camera angle, lighting, navy and brass materials, keypad and mounting plate. Change ONLY the lever handing: the horizontal handle must extend to the LEFT of the vertical keypad, never to the right. It attaches at the same lower pivot and projects leftward in the same mounting plane. This lock installs on the right edge of a door with its hinges on the left. Do NOT mirror the lighting or camera. Keep true transparent background, no wall or UI or outline or cast shadow. Entire object with small margins.",
+      "file": "baitly-lock-front-lever-left.webp"
+    }
+  ]
+}

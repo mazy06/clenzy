@@ -1,0 +1,28 @@
+/* Local chart accents leave OTA identities and the application's semantic palette intact. */
+.db-revenue-split, .db-occupancy { --db-chart-teal: #4A9B8E; --db-chart-slate: #7BA3C2; }
+.db-revenue-legend { display: flex; flex-wrap: wrap; gap: 6px 16px; list-style: none; padding: 0 20px 10px; margin: 0; color: var(--bui-muted-foreground); font-size: .75rem; }
+.db-revenue-legend li { display: flex; align-items: center; gap: 6px; }
+.db-revenue-legend li > span, .db-revenue-tooltip-row > span:first-child { inline-size: 7px; block-size: 7px; border-radius: 2px; flex-shrink: 0; }
+.db-revenue-chart { inline-size: 100%; block-size: 280px; aspect-ratio: auto; padding-inline: 4px; }
+.db-revenue-chart .recharts-wrapper:focus-visible { outline: 2px solid var(--bui-navy); outline-offset: -3px; }
+.db-revenue-month-label { font-size: .75rem; }
+@container widget-panel (max-width: 640px) {
+  .db-revenue-month-label { transform: rotate(-50deg); text-anchor: end; }
+}
+.db-revenue-tooltip-row { display: flex; align-items: center; gap: 8px; font-size: .75rem; }
+.db-revenue-tooltip-row strong { margin-inline-start: auto; font-weight: 600; font-variant-numeric: tabular-nums; }
+.db-occupancy__body { display: flex; flex-direction: column; padding: 0 20px 6px; }
+.db-occupancy-list { list-style: none; padding: 0; margin: 0; }
+.db-occupancy-row { display: flex; align-items: center; gap: 12px; padding: 10px 0; }
+.db-occupancy-row + .db-occupancy-row { border-block-start: 1px solid var(--bui-border); }
+.db-occupancy-row__content { flex: 1; min-inline-size: 0; }
+.db-occupancy-row__heading { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; font-size: .8125rem; font-weight: 500; }
+.db-occupancy-row__heading strong { flex-shrink: 0; font-size: .9375rem; font-weight: 600; font-variant-numeric: tabular-nums; }
+.db-occupancy-row__heading small { font-size: .75rem; font-weight: 400; color: var(--bui-muted-foreground); }
+.db-occupancy-row__track { margin-block: 5px; block-size: 5px; border-radius: 8px; overflow: hidden; background: var(--bui-muted); }
+.db-occupancy-row__track > div { block-size: 100%; border-radius: inherit; }
+.db-occupancy-row__nights { display: block; font-size: .6875rem; color: var(--bui-muted-foreground); font-variant-numeric: tabular-nums; }
+@container widget-panel (max-width: 480px) {
+  .db-occupancy__body { padding-inline: 16px; }
+  .db-revenue-legend { padding-inline: 16px; gap: 6px 12px; }
+}

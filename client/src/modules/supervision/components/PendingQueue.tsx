@@ -3,7 +3,7 @@
 
    Pile de PendingActionCard. Deux dispositions :
    - 'floating' : superposée en haut-droite de la constellation (par logement)
-   - 'panel'    : colonne pleine hauteur avec état vide (vue d'ensemble, Phase 6)
+   - 'panel'    : panneau pleine hauteur avec état vide ; grille pour le portefeuille
    ============================================================ */
 
 import { useState } from 'react';
@@ -13,7 +13,7 @@ import { useTranslation } from '../../../hooks/useTranslation';
 import EmptyState from '../../../components/baitly/EmptyState';
 import ReviewReplyDialog from '../../../components/baitly/ReviewReplyDialog';
 import { PendingActionCard } from './PendingActionCard';
-import type { OpenReviewPayload } from './ConstellationQueue';
+import { SupervisionActionCard, type OpenReviewPayload } from './ConstellationQueue';
 import type { PendingAction, PortfolioPendingAction } from '../types';
 
 export interface PendingQueueProps {
@@ -22,9 +22,10 @@ export interface PendingQueueProps {
   onEdit: (id: string) => void;
   onAdjustPrice?: (action: PendingAction | PortfolioPendingAction) => void;
   variant?: 'floating' | 'panel';
+  presentation?: 'default' | 'portfolio';
 }
 
-export function PendingQueue({ actions, onValidate, onEdit, onAdjustPrice, variant = 'floating' }: PendingQueueProps) {
+export function PendingQueue({ actions, onValidate, onEdit, onAdjustPrice, variant = 'floating', presentation = 'default' }: PendingQueueProps) {
   const { t } = useTranslation();
 
   // Modale de réponse à un avis (composant du dashboard, réutilisé tel quel).
@@ -61,13 +62,17 @@ export function PendingQueue({ actions, onValidate, onEdit, onAdjustPrice, varia
       data-pending-queue
       data-vertical-scroll
       className={cn(
-        'flex flex-col gap-[7.5px] overscroll-contain',
+        'overscroll-contain',
+        presentation === 'portfolio' ? 'baitly-portfolio__queue' : 'flex flex-col gap-[7.5px]',
         variant === 'floating'
           ? 'w-[300px] max-h-[max(220px,calc(100vh-300px))] overflow-y-auto pb-3 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden'
           : 'w-full overflow-y-visible',
       )}
     >
-      {actions.map((action) => (
+      {actions.map((action) => presentation === 'portfolio' ? (
+        <SupervisionActionCard key={action.id} action={action} context="portfolio"
+          onValidate={onValidate} onEdit={onEdit} onAdjustPrice={onAdjustPrice} onOpenReview={setOpenReview} />
+      ) : (
         <PendingActionCard
           key={action.id}
           action={action}

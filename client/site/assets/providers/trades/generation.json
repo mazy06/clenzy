@@ -1,0 +1,51 @@
+{
+  "generator": "Built-in image_gen",
+  "created": "2026-10-04",
+  "usage": "Original photographic service-category packshots for the Baitly provider recruitment page, matching the inventory library visual language.",
+  "prompts": {
+    "cleaning": "Use case: product-mockup. Asset type: one original square photographic category image for Baitly's service provider directory, matching a premium home inventory product-image library. Photorealistic unbranded ecommerce packshot, not an icon or drawing. Seamless uniform pale blue-grey #f4f6f8 studio background, soft upper-left daylight and delicate contact shadow. Three-quarter front view, grounded realistic materials and proportions, elegant uncluttered grouping centered within the middle 78% of the canvas, generous empty margin, readable as a 140-pixel thumbnail. Restrained navy, blue-grey, natural wood and ivory materials. No people, no room scene, no frame, no typography, letters, numbers, logos or watermarks. Create a single image, not a contact sheet. Subject: A compact blue-grey professional cleaning caddy holding two unlabeled cleaning spray bottles, with a neatly folded ivory microfiber cloth draped over its edge and one small wooden scrub brush beside it. Clean, practical, high-quality domestic housekeeping equipment.",
+    "maintenance": "Use case: product-mockup. Asset type: one original square photographic category image for Baitly's service provider directory, matching a premium home inventory product-image library. Photorealistic unbranded ecommerce packshot, not an icon or drawing. Seamless uniform pale blue-grey #f4f6f8 studio background, soft upper-left daylight and delicate contact shadow. Three-quarter front view, grounded realistic materials and proportions, elegant uncluttered grouping centered within the middle 78% of the canvas, generous empty margin, readable as a 140-pixel thumbnail. Restrained navy, blue-grey, natural wood and ivory materials. No people, no room scene, no frame, no typography, letters, numbers, logos or watermarks. Create a single image, not a contact sheet. Subject: An open compact navy fabric tool bag with a silver adjustable wrench and blue-handled screwdriver visible upright, a pair of pliers and small cordless screwdriver resting neatly beside the bag. A believable complete small repairs toolkit, no loose clutter.",
+    "laundry": "Use case: product-mockup. Asset type: one original square photographic category image for Baitly's service provider directory, matching a premium home inventory product-image library. Photorealistic unbranded ecommerce packshot, not an icon or drawing. Seamless uniform pale blue-grey #f4f6f8 studio background, soft upper-left daylight and delicate contact shadow. Three-quarter front view, grounded realistic materials and proportions, elegant uncluttered grouping centered within the middle 78% of the canvas, generous empty margin, readable as a 140-pixel thumbnail. Restrained navy, blue-grey, natural wood and ivory materials. No people, no room scene, no frame, no typography, letters, numbers, logos or watermarks. Create a single image, not a contact sheet. Subject: A small natural wicker laundry basket with a neatly folded stack of ivory bath towels rising above the rim, one folded muted blue linen cloth and a modern compact steam iron placed beside the basket. Crisp tactile cotton, warm wicker and clean metal details.",
+    "garden": "Use case: product-mockup. Asset type: one original square photographic category image for Baitly's service provider directory, matching a premium home inventory product-image library. Photorealistic unbranded ecommerce packshot, not an icon or drawing. Seamless uniform pale blue-grey #f4f6f8 studio background, soft upper-left daylight and delicate contact shadow. Three-quarter front view, grounded realistic materials and proportions, elegant uncluttered grouping centered within the middle 78% of the canvas, generous empty margin, readable as a 140-pixel thumbnail. Restrained navy, blue-grey, natural wood and ivory materials. No people, no room scene, no frame, no typography, letters, numbers, logos or watermarks. Create a single image, not a contact sheet. Subject: A compact attractive group of real garden and pool maintenance equipment: a small terracotta pot with fresh leafy greenery, a muted blue metal watering can, pruning shears and a blue swimming-pool skimmer net with its short telescopic handle laid diagonally behind the group, fully in frame. All objects full scale and coherent, balanced composition.",
+    "welcome": "Use case: product-mockup. Asset type: one original square photographic category image for Baitly's service provider directory, matching a premium home inventory product-image library. Photorealistic unbranded ecommerce packshot, not an icon or drawing. Seamless uniform pale blue-grey #f4f6f8 studio background, soft upper-left daylight and delicate contact shadow. Three-quarter front view, grounded realistic materials and proportions, elegant uncluttered grouping centered within the middle 78% of the canvas, generous empty margin, readable as a 140-pixel thumbnail. Restrained navy, blue-grey, natural wood and ivory materials. No people, no room scene, no frame, no typography, letters, numbers, logos or watermarks. Create a single image, not a contact sheet. Subject: A polished brushed-brass reception service bell beside a pair of real house keys on a plain navy leather fob, with a simple ivory welcome envelope standing in a small oak holder behind. No writing or numbers on any object. Welcoming hospitality materials, clearly recognizable keys and bell.",
+    "chef": "Use case: product-mockup. Asset type: one original square photographic category image for Baitly's service provider directory, matching a premium home inventory product-image library. Photorealistic unbranded ecommerce packshot, not an icon or drawing. Seamless uniform pale blue-grey #f4f6f8 studio background, soft upper-left daylight and delicate contact shadow. Three-quarter front view, grounded realistic materials and proportions, elegant uncluttered grouping centered within the middle 78% of the canvas, generous empty margin, readable as a 140-pixel thumbnail. Restrained navy, blue-grey, natural wood and ivory materials. No people, no room scene, no frame, no typography, letters, numbers, logos or watermarks. Create a single image, not a contact sheet. Subject: A polished stainless steel serving cloche tilted beside a ceramic plate containing an elegant small vegetable dish with fresh herbs, a neatly folded navy linen napkin and a single wooden serving spoon. Real food and hospitality equipment, natural appetizing colors, restrained elegant composition."
+  },
+  "assets": [
+    {
+      "category": "cleaning",
+      "file": "cleaning.webp",
+      "width": 384,
+      "height": 384
+    },
+    {
+      "category": "maintenance",
+      "file": "maintenance.webp",
+      "width": 384,
+      "height": 384
+    },
+    {
+      "category": "laundry",
+      "file": "laundry.webp",
+      "width": 384,
+      "height": 384
+    },
+    {
+      "category": "garden",
+      "file": "garden.webp",
+      "width": 384,
+      "height": 384
+    },
+    {
+      "category": "welcome",
+      "file": "welcome.webp",
+      "width": 384,
+      "height": 384
+    },
+    {
+      "category": "chef",
+      "file": "chef.webp",
+      "width": 384,
+      "height": 384
+    }
+  ]
+}

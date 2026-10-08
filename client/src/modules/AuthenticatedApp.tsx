@@ -100,12 +100,9 @@ const ContactCreatePage = lazy(() => import('./contact/ContactCreatePage'));
 
 // Documents
 const DocumentsPage = lazy(() => import('./documents/DocumentsPage'));
-// ConnectedObjectsHub : plus de route standalone — rendu comme onglet de PropertiesPage.
-// /connected-objects redirige desormais vers /properties?tab=connected-objects.
+const ConnectedObjectsHub = lazy(() => import('./connected-objects/ConnectedObjectsHub'));
 const PropertyDevicesView = lazy(() => import('./connected-objects/PropertyDevicesView'));
 const DeviceDetail = lazy(() => import('./connected-objects/DeviceDetail'));
-const CamerasScreen = lazy(() => import('./connected-objects/cameras/CamerasScreen'));
-const ThermostatsScreen = lazy(() => import('./connected-objects/thermostats/ThermostatsScreen'));
 const TemplatePreviewRedirect = lazy(() => import('./documents/TemplatePreviewRedirect'));
 
 // Notifications
@@ -131,6 +128,7 @@ const SupervisionAgUiSpike = lazy(() => import('./supervision/agui/SupervisionAg
 // Guests (main list is inside DirectoryPage)
 
 // Dynamic Pricing
+const DynamicPricing = lazy(() => import('./pricing/DynamicPricing'));
 
 
 // Admin pages
@@ -208,11 +206,8 @@ const AuthenticatedApp: React.FC = () => {
         <Dashboard />
       } />
 
-        {/* Hub des objets connectés : integre comme onglet "connected-objects"
-            dans Propriétés (conceptuellement lie aux biens). On garde un redirect
-            pour les bookmarks et les "retour" des sous-ecrans (property/:id, noise,
-            locks, keys, cameras, thermostats). */}
-        <Route path="/connected-objects" element={<Navigate to="/properties?tab=connected-objects" replace />} />
+        {/* One room workspace; former detail links resolve to its selected device. */}
+        <Route path="/connected-objects" element={<ErrorBoundary><ConnectedObjectsHub /></ErrorBoundary>} />
         <Route path="/connected-objects/property/:id" element={
           <ErrorBoundary>
             <PropertyDevicesView />
@@ -224,22 +219,11 @@ const AuthenticatedApp: React.FC = () => {
             <DeviceDetail />
           </ErrorBoundary>
         } />
-        {/* Anciens écrans de gestion par type → remplacés par le détail unifié
-            (/connected-objects/device/:kind/:id). Redirect des bookmarks. */}
-        <Route path="/connected-objects/noise" element={<Navigate to="/properties?tab=connected-objects" replace />} />
-        <Route path="/connected-objects/locks" element={<Navigate to="/properties?tab=connected-objects" replace />} />
-        <Route path="/connected-objects/keys" element={<Navigate to="/properties?tab=connected-objects" replace />} />
-        {/* Aperçus Phase 2 (UI-first — données simulées) */}
-        <Route path="/connected-objects/cameras" element={
-          <ErrorBoundary>
-            <CamerasScreen />
-          </ErrorBoundary>
-        } />
-        <Route path="/connected-objects/thermostats" element={
-          <ErrorBoundary>
-            <ThermostatsScreen />
-          </ErrorBoundary>
-        } />
+        <Route path="/connected-objects/noise" element={<Navigate to="/connected-objects?kind=noise" replace />} />
+        <Route path="/connected-objects/locks" element={<Navigate to="/connected-objects?kind=lock" replace />} />
+        <Route path="/connected-objects/keys" element={<Navigate to="/connected-objects?kind=keybox" replace />} />
+        <Route path="/connected-objects/cameras" element={<Navigate to="/connected-objects?kind=camera" replace />} />
+        <Route path="/connected-objects/thermostats" element={<Navigate to="/connected-objects?kind=thermostat" replace />} />
 
         {/* Assistant : page dediee supprimee (remplacee par le panneau docke +
             plein ecran accessible partout). Redirects pour les anciens bookmarks
@@ -420,7 +404,7 @@ const AuthenticatedApp: React.FC = () => {
         {/* Backward-compat redirects for old URLs */}
         <Route path="/guests" element={<Navigate to="/directory?tab=guests" replace />} />
 
-        <Route path="/dynamic-pricing" element={<Navigate to="/properties?tab=pricing" replace />} />
+        <Route path="/dynamic-pricing" element={<ProtectedRoute requiredPermission="pricing:view"><ErrorBoundary><DynamicPricing /></ErrorBoundary></ProtectedRoute>} />
 
         <Route path="/billing" element={
           <ProtectedRoute requiredPermission="payments:view">

@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useState } from 'react';
 import {
   Button,
   Dialog,
@@ -9,7 +9,7 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from '../../../components/ui';
-import { Close as CloseIcon, FullscreenExit as MinimizeIcon } from '../../../icons';
+import { Close as CloseIcon, FullscreenExit as MinimizeIcon, History } from '../../../icons';
 import { AssistantSurface } from './AssistantSurface';
 import { ConversationSidebar } from './ConversationSidebar';
 import { AssistantUsageBadge } from './AssistantUsageBadge';
@@ -18,23 +18,7 @@ import { useConversations } from '../hooks/useConversations';
 import { useAssistantUsage } from '../hooks/useAssistantUsage';
 import type { UseAgentResult } from '../../../hooks/useAgent';
 
-/**
- * Vue plein écran de l'assistant : la même surface de conversation que le
- * panneau docké, plus l'historique des conversations à droite.
- *
- * <p>Alimentée par le MÊME {@code useAgent} que le panneau (passé en props) :
- * la conversation se poursuit sans rupture quand on agrandit ou réduit. Les
- * hooks d'historique ({@link useConversations}) et d'usage ({@link
- * useAssistantUsage}) ne tournent que lorsque cette vue est montée, pour ne pas
- * interroger le serveur depuis chaque page.</p>
- *
- * <p><b>Mise en page</b> : le contenu est borné en largeur et centré. Sans
- * cette borne, sur un écran large la colonne de conversation s'étirait sur
- * toute la dalle — des lignes interminables et un composeur d'un mètre de long.
- * L'historique occupe une colonne fixe de 280 px au DÉBUT de la ligne (à gauche
- * en LTR, à droite en arabe — c'est l'ordre du DOM qui s'en charge), masquée en
- * dessous de 900 px ; la conversation prend le reste.</p>
- */
+/** Same conversation and draft in fullscreen, with accessible history on every screen size. */
 type AgentProps = Pick<
   UseAgentResult,
   'conversationId' | 'messages' | 'status' | 'error' | 'sendMessage' | 'abort' | 'reset' | 'loadConversation'
@@ -42,6 +26,8 @@ type AgentProps = Pick<
 
 interface AssistantExpandedDialogProps extends AgentProps {
   open: boolean;
+  draft: string;
+  onDraftChange: (value: string) => void;
   /** Revenir au panneau docké, sans perdre la conversation. */
   onMinimize: () => void;
   /** Fermer entièrement l'assistant. */
@@ -50,6 +36,8 @@ interface AssistantExpandedDialogProps extends AgentProps {
 
 const AssistantExpandedDialog: React.FC<AssistantExpandedDialogProps> = ({
   open,
+  draft,
+  onDraftChange,
   onMinimize,
   onClose,
   conversationId,
@@ -62,6 +50,7 @@ const AssistantExpandedDialog: React.FC<AssistantExpandedDialogProps> = ({
   loadConversation,
 }) => {
   const { t } = useTranslation();
+  const [historyOpen, setHistoryOpen] = useState(false);
 
   // Granularité de rafraîchissement = nombre de messages assistant (augmente à
   // chaque tour LLM terminé).
@@ -84,12 +73,13 @@ const AssistantExpandedDialog: React.FC<AssistantExpandedDialogProps> = ({
   });
 
   const handleSelect = (id: number) => {
-    if (id !== conversationId) void loadConversation(id);
+    if (id !== conversationId) { void loadConversation(id); onDraftChange(''); }
+    setHistoryOpen(false);
   };
 
   const handleArchive = async (id: number) => {
     await archive(id);
-    if (id === conversationId) reset();
+    if (id === conversationId) { reset(); onDraftChange(''); }
   };
 
   return (
@@ -102,7 +92,7 @@ const AssistantExpandedDialog: React.FC<AssistantExpandedDialogProps> = ({
           le meme groupe et neutralise les deux ancrages d'un coup. */}
       <DialogContent
         showCloseButton={false}
-        className="inset-0 flex h-screen w-screen max-w-none translate-x-0 translate-y-0 flex-col gap-0 rounded-none bg-background p-0"
+        className="baitly-supervision-surface inset-0 flex h-[100dvh] w-screen max-w-none translate-x-0 translate-y-0 flex-col gap-0 rounded-none bg-background p-0"
       >
         {/* Le gabarit de modale exige un titre et une description accessibles :
             l'en-tête visible vit dans AssistantSurface, on les pose donc hors
@@ -110,27 +100,23 @@ const AssistantExpandedDialog: React.FC<AssistantExpandedDialogProps> = ({
         <DialogTitle className="sr-only">{t('assistant.dockLabel')}</DialogTitle>
         <DialogDescription className="sr-only">{t('assistant.subtitle')}</DialogDescription>
 
-        <div className="mx-auto flex min-h-0 w-full max-w-[1280px] flex-1 gap-4 px-2 min-[900px]:px-4">
-          {/* Historique EN PREMIER dans le DOM — masqué sur mobile pour ne pas
-              voler l'espace au fil. Le seuil md de MUI vaut 900 px, pas les
-              768 px de Tailwind.
-
-              L'ordre du DOM suffit à le placer à gauche en LTR et à droite en
-              RTL : un `flex-row` suit le sens d'écriture du document. Pas de
-              `order-*` ni de variante `rtl:` à maintenir. */}
-          <div className="hidden w-[280px] shrink-0 py-4 min-[900px]:block">
+        <div className="baitly-assistant-expanded-layout">
+          <div className="baitly-assistant-history-panel" data-open={historyOpen || undefined} id="baitly-assistant-history">
             <ConversationSidebar
               conversations={conversations}
               activeConversationId={conversationId}
               loading={conversationsLoading}
               onSelect={handleSelect}
-              onNew={reset}
+              onNew={() => { reset(); onDraftChange(''); setHistoryOpen(false); }}
               onArchive={handleArchive}
             />
+            <AssistantUsageBadge usage={usage} loading={usageLoading} error={usageError} />
           </div>
 
           <AssistantSurface
             autoFocus
+            draft={draft}
+            onDraftChange={onDraftChange}
             messages={messages}
             status={status}
             error={error}
@@ -138,7 +124,7 @@ const AssistantExpandedDialog: React.FC<AssistantExpandedDialogProps> = ({
             onAbort={abort}
             headerActions={
               <>
-                <AssistantUsageBadge usage={usage} loading={usageLoading} error={usageError} />
+                <Button variant="ghost" size="icon-sm" className="baitly-assistant-history-toggle min-[900px]:hidden" aria-label={t('assistant.history.title')} aria-expanded={historyOpen} aria-controls="baitly-assistant-history" onClick={() => setHistoryOpen(!historyOpen)}><History size={18} /></Button>
                 <Tooltip>
                   <TooltipTrigger asChild>
                     {/* span : TooltipTrigger asChild pose une ref DOM que le Button

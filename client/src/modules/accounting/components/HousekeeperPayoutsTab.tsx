@@ -1,3 +1,5 @@
+import FinanceStatusIcon from '../../billing/components/FinanceStatusIcon';
+import FinanceHeaderFilters from '../../billing/components/FinanceHeaderFilters';
 import { financeEventArtwork } from '../../billing/components/financeEventArtwork';
 import FinanceWorkspace from '../../billing/components/FinanceWorkspace';
 import { FinanceAmountKpis } from '../../billing/components/FinanceKpis';
@@ -14,7 +16,6 @@ import { FinanceAmountKpis } from '../../billing/components/FinanceKpis';
 import React, { useCallback, useMemo, useState } from 'react';
 import { getErrorMessage } from '../../../utils/getErrorMessage';
 import { cn } from '../../../utils/cn';
-import StatusChip, { STATUS_TONES, type StatusTone } from '../../../components/StatusChip';
 import { Alert as BuiAlert, AlertDescription, AlertAction, Button as BuiButton } from '../../../components/ui';
 import { X, TriangleAlert } from 'lucide-react';
 import PayoutActionResult from './PayoutActionResult';
@@ -33,7 +34,6 @@ import {
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '../../../components/ui';
 import { Link as RouterLink } from 'react-router-dom';
 import { Build as RetryIcon, AccountBalance as PayoutIcon } from '../../../icons';
-import FilterChipRow from '../../../components/baitly/FilterChipRow';
 import HelpPopover from '../../../components/HelpPopover';
 import { usePageHeaderActions } from '../../../components/PageHeaderActionsContext';
 import { FinanceBatchPanel, type FinanceBatchResult } from '../../payments/FinanceBatchPanel';
@@ -49,21 +49,12 @@ import {
   type PayoutRetryQuote,
 } from '../../../services/api/housekeeperPayoutsApi';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import PagePagination from '../../../components/PagePagination';
 import { activeIntlLocale } from '../../../utils/activeLocale';
 
 // Cartes/tableaux : hairline Baitly UI, r14, pas d'ombre (baseline §2, aligné AccountingPage).
 const CARD_CLASS = 'border border-solid border-border rounded-xl bg-card';
 
-// Statuts : SENT vert doux, PENDING neutre, FAILED/BLOCKED ambre (jamais rouge criard).
-// Un SEUL mapping domaine → ton sémantique : la puce le consomme tel quel, la
-// rangée de filtres en dérive sa teinte via STATUS_TONES.
-const STATUS_TONE: Record<HousekeeperPayoutStatus, StatusTone> = {
-  SENT: 'ok',
-  PENDING: 'neutral',
-  FAILED: 'warn',
-  BLOCKED: 'warn',
-};
+// Les icônes et leurs teintes sont partagées avec les autres onglets Finance.
 const STATUS_VALUES: HousekeeperPayoutStatus[] = ['PENDING', 'SENT', 'FAILED', 'BLOCKED'];
 
 // Le backend re-gate à la relance (photo/onboarding/montant) : FAILED ET BLOCKED
@@ -79,10 +70,8 @@ export const HousekeeperPayoutsTab: React.FC = () => {
   const queryClient = useQueryClient();
 
   const [filterStatus, setFilterStatus] = useState<HousekeeperPayoutStatus | ''>('');
-  const [page, setPage] = useState(0);
   const [retryTarget, setRetryTarget] = useState<HousekeeperPayoutRecord | null>(null);
 
-  const ROWS_PER_PAGE = 20;
 
   const { data: records = [], isLoading, isError } = useQuery({
     queryKey: ['housekeeper-payouts-org'],
@@ -125,10 +114,7 @@ export const HousekeeperPayoutsTab: React.FC = () => {
     () => (filterStatus ? records.filter((r) => r.status === filterStatus) : records),
     [records, filterStatus],
   );
-  const paged = useMemo(
-    () => filtered.slice(page * ROWS_PER_PAGE, page * ROWS_PER_PAGE + ROWS_PER_PAGE),
-    [filtered, page],
-  );
+
 
   // Deep-link notification (?highlight=<recordId>) — surligne la ligne ciblée.
   const highlightId = useHighlightParam();
@@ -161,7 +147,7 @@ export const HousekeeperPayoutsTab: React.FC = () => {
     <>
       {helpAction}
 
-      <FinanceBatchPanel title={t('financeBatch.providerTransfers')} actionLabel={t('financeBatch.retryTransfers')}
+      <FinanceBatchPanel placement="header" title={t('financeBatch.providerTransfers')} actionLabel={t('financeBatch.retryTransfers')}
         disabled={isLoading || isError || quotesLoading || retryMutation.isPending}
         items={filtered.flatMap(record => {
           const quote = quotes.find(q => q.id === record.id)?.quote;
@@ -188,19 +174,14 @@ export const HousekeeperPayoutsTab: React.FC = () => {
         }} />
 
       {/* ── Filtre statut ── */}
-      <div className={cn(CARD_CLASS, 'p-3 mb-[9px] flex gap-3 items-center flex-wrap')}>
-        <FilterChipRow
-          options={STATUS_VALUES.map((v) => ({
-            value: v,
-            label: t(`accounting.housekeeperPayouts.statuses.${v}`, v),
-            color: STATUS_TONES[STATUS_TONE[v]].color,
-          }))}
-          value={filterStatus}
-          onChange={(v) => { setFilterStatus(v as HousekeeperPayoutStatus | ''); setPage(0); }}
-          allLabel={t('common.all', 'Tous')}
-          size="compact"
-        />
-      </div>
+      <FinanceHeaderFilters>
+        <label>{t('common.status', 'Statut')}
+          <select value={filterStatus} onChange={e => setFilterStatus(e.target.value as HousekeeperPayoutStatus | '')}>
+            <option value="">{t('common.all', 'Tous')}</option>
+            {STATUS_VALUES.map(value => <option key={value} value={value}>{t(`accounting.housekeeperPayouts.statuses.${value}`, value)}</option>)}
+          </select>
+        </label>
+      </FinanceHeaderFilters>
 
       {/* ── Feedback relance ── */}
       {retryMutation.isSuccess && retryMutation.data && <PayoutActionResult
@@ -249,7 +230,7 @@ export const HousekeeperPayoutsTab: React.FC = () => {
           variant="plain"
         />
       ) : (
-        <FinanceWorkspace artwork="transfer"  items={paged.map((r) => {
+        <FinanceWorkspace highlightId={highlightId} artwork="transfer"  items={filtered.map((r) => {
                 const preview = quotes.find(q => q.id === r.id);
                 const reason = r.failureReason
                   ? t(`accounting.housekeeperPayouts.reasons.${r.failureReason}`, r.failureReason)
@@ -257,19 +238,8 @@ export const HousekeeperPayoutsTab: React.FC = () => {
                 const showReason = reason && (r.status === 'FAILED' || r.status === 'BLOCKED');
                 return (
                   { id: r.id, eventImage: financeEventArtwork('', 'PROVIDER_PAYOUT'), identity: { interventionId: r.interventionId, actorName: providerName(r) }, title: <>{providerName(r)}</>, amount: <>{fmtCurrency(preview?.quote?.amount ?? r.amount)}</>, status: <>
-                      <div className="inline-flex items-center gap-0.5">
-                        <StatusChip tone={STATUS_TONE[r.status]} label={t(`accounting.housekeeperPayouts.statuses.${r.status}`, r.status)} />
-                        {showReason && (
-                          <Tooltip>
-                            <TooltipTrigger asChild>
-                              <span className="text-[0.6875rem] text-warning-ink cursor-help">
-                                ({reason})
-                              </span>
-                            </TooltipTrigger>
-                            <TooltipContent>{reason}</TooltipContent>
-                          </Tooltip>
-                        )}
-                      </div>
+                      <FinanceStatusIcon value={r.status === 'SENT' ? 'TRANSFERRED' : r.status}
+                        label={[t(`accounting.housekeeperPayouts.statuses.${r.status}`, r.status), showReason ? reason : null].filter(Boolean).join(' · ')} />
                     </>,  meta: <>{fmtDate(r.createdAt)}</>, actions: <>
                       {RETRYABLE.includes(r.status) && (
                         <Tooltip>
@@ -307,14 +277,7 @@ export const HousekeeperPayoutsTab: React.FC = () => {
                       {r.commissionAmount > 0 ? fmtCurrency(r.commissionAmount) : '—'}
                     </>},{label: <>{t('accounting.housekeeperPayouts.col.date', 'Date')}</>, value: <>{fmtDate(r.createdAt)}</>}],  }
                 );
-              })} pagination={<>{filtered.length > ROWS_PER_PAGE && (
-            <PagePagination
-              count={filtered.length}
-              page={page}
-              onPageChange={(p) => setPage(p)}
-              rowsPerPage={ROWS_PER_PAGE}
-            />
-          )}</>} />
+              })} />
       )}
 
       {/* ── Confirmation de relance (money-path) ── */}

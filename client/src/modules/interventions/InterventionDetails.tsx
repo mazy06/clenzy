@@ -1,13 +1,12 @@
 import React, { useEffect, useMemo } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
-import { Alert as BuiAlert, AlertDescription, AlertAction, Button as BuiButton, Card, CardContent } from '../../components/ui';
-import { Info, TriangleAlert, X } from 'lucide-react';
+import { Alert as BuiAlert, AlertDescription, AlertAction, Button as BuiButton, Skeleton } from '../../components/ui';
+import { Info, TriangleAlert, X, Flag } from 'lucide-react';
 import { Spinner } from '../../components/ui';
 import { useNotification } from '../../hooks/useNotification';
 import {
   Edit as EditIcon,
   Build as WrenchIcon,
-  PriorityHigh as PriorityHighIcon,
   PlayCircleOutline as PlayCircleOutlineIcon,
   PlayArrow as PlayArrowIcon,
   StopCircle as StopCircleIcon,
@@ -18,7 +17,8 @@ import PageHeader from '../../components/PageHeader';
 import { getInterventionTypeLabel } from '../../utils/statusUtils';
 import type { ServiceQuote } from '../../services/api/serviceQuotesApi';
 import type { WorkOrderAssignmentState } from '../work-orders/WorkOrderDetailLayout';
-import StatusChip from '../../components/StatusChip';
+import StatusIcon from '../../components/StatusIcon';
+import { WorkOrderHeading, WORK_ORDER_ART, workOrderArt } from '../work-orders/WorkOrderPresentation';
 import { useTranslation } from '../../hooks/useTranslation';
 import { formatDateTime } from '../../utils/formatUtils';
 import { useInterventionDetails } from './useInterventionDetails';
@@ -26,7 +26,6 @@ import { interventionEndTime } from './interventionTime';
 import {
   getStatusLabel,
   getPriorityLabel,
-  getPriorityTokens,
 } from './interventionUtils';
 import InterventionProgressSteps from './InterventionProgressSteps';
 import InterventionQuotesSection from './InterventionQuotesSection';
@@ -161,9 +160,7 @@ export default function InterventionDetailsPage() {
 
   if (!permissionsLoaded || loading) {
     return (
-      <div className="flex justify-center py-12">
-        <Spinner className="size-10" />
-      </div>
+      <div className="space-y-4 p-4" aria-busy="true"><Skeleton className="h-48 w-full" /><Skeleton className="h-96 w-full" /></div>
     );
   }
 
@@ -263,6 +260,7 @@ export default function InterventionDetailsPage() {
         : undefined,
       assignee: {
         name: intervention.assignedToName,
+        avatarUrl: intervention.assignedToAvatarUrl,
         type: intervention.assignedToType,
         typeLabel: intervention.assignedToName ? assignedTypeLabel : undefined,
       },
@@ -322,24 +320,21 @@ export default function InterventionDetailsPage() {
           subtitle={intervention
             ? `${t('interventions.detail.contextLabel', 'Intervention')} · ${intervention.propertyName}`
             : t('interventions.detail.subtitle')}
-          iconBadge={<WrenchIcon />}
+          iconBadge={intervention ? <img src={workOrderArt(intervention.type)} alt="" className="size-8 object-contain" /> : <WrenchIcon />}
           titleAdornment={intervention ? (
-            <StatusChip
-              color={getPriorityTokens(intervention.priority).color}
-              icon={<PriorityHighIcon size={14} strokeWidth={1.75} />}
-              label={getPriorityLabel(intervention.priority, t)}
-              size="sm"
-            />
+            <StatusIcon icon={Flag}
+              tone={['URGENT', 'CRITICAL'].includes(intervention.priority) ? 'destructive' : intervention.priority === 'HIGH' ? 'warning' : 'muted'}
+              label={getPriorityLabel(intervention.priority, t)} />
           ) : undefined}
           backPath="/interventions"
           backLabel={t('interventions.detail.backToList')}
           actions={
             canEditInterventions ? (
-              <BuiButton variant="outline" size="sm"
+              <BuiButton variant="outline" size="icon-sm"
+                aria-label={t('interventions.detail.editButton')}
                 onClick={() => navigate(`/interventions/${id}/edit`)}
                 title={t('interventions.detail.editButton')}>
                 <EditIcon strokeWidth={1.75} />
-                {t('interventions.detail.editButton')}
               </BuiButton>
             ) : undefined
           }
@@ -350,7 +345,7 @@ export default function InterventionDetailsPage() {
         <TriangleAlert />
         <AlertDescription>{error}</AlertDescription>
         <AlertAction>
-          <BuiButton variant="ghost" size="icon-xs" aria-label="Fermer" onClick={() => setError(null)}>
+          <BuiButton variant="ghost" size="icon-xs" aria-label={t('common.close', 'Fermer')} onClick={() => setError(null)}>
             <X />
           </BuiButton>
         </AlertAction>
@@ -370,7 +365,7 @@ export default function InterventionDetailsPage() {
                 <AlertDescription className="flex flex-wrap items-center justify-between gap-2">
                   <span>
                     {t('interventions.detail.toConfirm',
-                      'Cette mission vous est proposée — elle attend votre réponse.')}
+                      'Cette mission vous est proposée et attend votre réponse.')}
                   </span>
                   <span className="flex items-center gap-1.5">
                     <BuiButton
@@ -410,7 +405,7 @@ export default function InterventionDetailsPage() {
                         'Votre devis est soumis : le propriétaire ou la conciergerie doit encore l’approuver.')
                     : intervention.status === 'IN_PROGRESS'
                       ? t('interventions.detail.acceptedRunning',
-                          'Intervention en cours — pensez aux photos avant/après.')
+                          'Intervention en cours. Pensez aux photos avant/après.')
                       : t('interventions.detail.acceptedHint',
                           'Vous êtes engagé sur cette intervention. Démarrez-la une fois sur place.')}
                 </p>
@@ -428,42 +423,11 @@ export default function InterventionDetailsPage() {
               {t('serviceRequests.details.viewProperty')}
             </BuiButton>
           }
-          extraSection={
-            <>
-              {hasAnyRole(['SUPER_ADMIN', 'SUPER_MANAGER']) && intervention.status !== 'CANCELLED' && (
-                <ProviderPayoutBeneficiarySection key={id} missionId={Number(id)} />
-              )}
-              {/* Le suivi vit desormais sur l'ecran terrain
-                  (/interventions/:id/suivi). Sur la fiche il ne reste que pour
-                  une intervention TERMINEE : c'est alors un recapitulatif
-                  (pieces validees, photos, documents) et le bouton Rouvrir. */}
-              {intervention.status === 'COMPLETED' && (
-              <Card size="sm" className="mb-[9px] shadow-none">
-                <CardContent>
-                  <p className={WORKFLOW_TITLE_CLASS}>
-                    {t('interventions.detail.workflowTitle', 'Suivi de l\'intervention')}
-                  </p>
-                  <InterventionProgressSteps
-                    intervention={intervention}
-                    photos={photosProps}
-                    rooms={roomsProps}
-                    steps={stepsProps}
-                    progress={progressProps}
-                    handleStartIntervention={handleStartIntervention}
-                    handleCompleteIntervention={handleCompleteIntervention}
-                    handleReopenIntervention={handleReopenIntervention}
-                    starting={starting}
-                    completing={completing}
-                    canStartIntervention={canStartIntervention}
-                    canStartOrUpdateIntervention={canStartOrUpdateIntervention}
-                    isBeforeScheduledDate={isBeforeScheduledDate}
-                  />
-                </CardContent>
-              </Card>
-              )}
-              {/* Devis prestataires (M4) — l'approbation reporte le montant sur le
-                  coût estimé : on invalide la query détail pour rafraîchir les KPI. */}
+          asideSection={hasAnyRole(['SUPER_ADMIN', 'SUPER_MANAGER']) && intervention.status !== 'CANCELLED'
+            ? <ProviderPayoutBeneficiarySection key={id} missionId={Number(id)} /> : undefined}
+          detailsSection={
               <InterventionQuotesSection
+                key={id}
                 interventionId={Number(id)}
                 canEdit={canEditInterventions}
                 // Chiffrer sa propre mission est le geste economique du
@@ -487,6 +451,34 @@ export default function InterventionDetailsPage() {
                   lines: intervention.quoteLines,
                 }}
               />
+          }
+          extraSection={
+            <>
+              {/* Le suivi vit desormais sur l'ecran terrain
+                  (/interventions/:id/suivi). Sur la fiche il ne reste que pour
+                  une intervention TERMINEE : c'est alors un recapitulatif
+                  (pieces validees, photos, documents) et le bouton Rouvrir. */}
+              {intervention.status === 'COMPLETED' && (
+              <section className="wo-section wo-completed">
+                  <WorkOrderHeading art={WORK_ORDER_ART['work-review']} title={t('interventions.detail.workflowTitle', "Suivi de l’intervention")} />
+                  <InterventionProgressSteps
+                    intervention={intervention}
+                    photos={photosProps}
+                    rooms={roomsProps}
+                    steps={stepsProps}
+                    progress={progressProps}
+                    handleStartIntervention={handleStartIntervention}
+                    handleCompleteIntervention={handleCompleteIntervention}
+                    handleReopenIntervention={handleReopenIntervention}
+                    starting={starting}
+                    completing={completing}
+                    canStartIntervention={canStartIntervention}
+                    canStartOrUpdateIntervention={canStartOrUpdateIntervention}
+                    isBeforeScheduledDate={isBeforeScheduledDate}
+                  />
+              </section>
+              )}
+
             </>
           }
         />
@@ -520,6 +512,3 @@ export default function InterventionDetailsPage() {
     </div>
   );
 }
-
-/** Surtitre de la section « suivi » : capitales espacées, encre pâle. */
-const WORKFLOW_TITLE_CLASS = 'text-2xs font-bold uppercase tracking-wider text-faint mb-[9px]';

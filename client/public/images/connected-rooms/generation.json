@@ -1,0 +1,240 @@
+{
+  "generator": "OpenAI imagegen (built-in)",
+  "generatedAt": "2026-10-08",
+  "description": "Baitly illustrative room scenes, transparent alpha outside the architecture. Opening variants follow reported contact states. Original generated PNGs are retained.",
+  "transparencyPrompt": "Background extraction edit only. Remove the entire pale blue background OUTSIDE this isometric dollhouse room and replace it with genuinely transparent alpha. Preserve the full room including floor slab, ALL walls, windows, door, furniture, plants and every interior detail exactly. Preserve original dimensions, framing, camera angle, geometry, lighting, object positions, opening states, materials and colors. Clean anti-aliased silhouette edge. No blue/white matte fringe. Exterior cast shadows may remain softly translucent. DO NOT remove walls, the floor or ceiling edges. DO NOT change anything within the room. Output a PNG with true transparency, not a checkerboard or white background.",
+  "assets": [
+    {
+      "key": "entrance",
+      "file": "baitly-entrance.webp",
+      "thumbnail": "baitly-entrance-thumb.webp",
+      "prompt": "Use case: stylized-concept. Asset type: room background for Baitly property management app. Premium photorealistic 3D architectural miniature / isometric dollhouse, single cutaway room with two rear walls, no ceiling, seen from above at 30 degrees. Match a cohesive series: warm off-white plaster, light natural oak, muted navy blue accents, cream linen, pale blue-grey studio background #e8f0f5, soft daylight, fine realistic materials, no people. Landscape 4:3 composition, complete room centered, generous margins, room occupies about 85% of frame. No text, numbers, labels, logo, watermark, UI. IMPORTANT: no IoT or electronics mounted on walls, no sensors, no cameras, no smart locks, no thermostats. Smart devices will be separately overlaid interactively by code. Leave uncluttered wall surfaces above furniture and on both sides of doors/windows.\nScene: EXTERIOR PRIVATE ENTRANCE PORCH only, outside a warm stone home. A large closed natural oak front door on the rear wall slightly right of center, plain mechanical navy door lever visible on right side of door at mid-height. Cream stone paving, a simple bench with navy cushion on left, olive plant in pot far right, low privacy wall. Generous clear stone wall above door and beside door for future camera and keybox overlays. Do not include any camera or keypad or smart device.",
+      "source": "exec-8713a7ee-55e6-4280-8956-84cc22c2a2c0.png",
+      "transparentSource": "exec-bb6d89de-c98b-412f-a4d4-9211f109bc57.png"
+    },
+    {
+      "key": "living",
+      "file": "baitly-living.webp",
+      "thumbnail": "baitly-living-thumb.webp",
+      "prompt": "Use case: stylized-concept. Asset type: room background for Baitly property management app. Premium photorealistic 3D architectural miniature / isometric dollhouse, single cutaway room with two rear walls, no ceiling, seen from above at 30 degrees. Match a cohesive series: warm off-white plaster, light natural oak, muted navy blue accents, cream linen, pale blue-grey studio background #e8f0f5, soft daylight, fine realistic materials, no people. Landscape 4:3 composition, complete room centered, generous margins, room occupies about 85% of frame. No text, numbers, labels, logo, watermark, UI. IMPORTANT: no IoT or electronics mounted on walls, no sensors, no cameras, no smart locks, no thermostats. Smart devices will be separately overlaid interactively by code. Leave uncluttered wall surfaces above furniture and on both sides of doors/windows.\nScene: LIVING ROOM: cream three-seat sofa against left rear wall, navy accent armchair, oval oak coffee table with book and plant, cream woven rug, low oak bookcase on right rear wall, simple large window on right wall. Keep most upper left wall blank above the sofa for later sensor overlay. A warm quiet rental interior, no TV and no electronic devices.",
+      "source": "exec-deacd95b-b238-41cb-9ae3-1b3a6f5a1712.png",
+      "previousSource": "exec-52cd118d-bea2-40d0-85ce-30ae4e35ad40.png",
+      "revisionPrompt": "Edit this Baitly isometric room illustration for an interactive smart-home configurator. Preserve the same room identity, furniture, number and type of beds where present, oak/cream/navy materials, lighting, dollhouse perspective and 4:3 framing. Recompose only as needed to make mounting space genuinely available: taller visible walls with a broad empty upper-left wall strip suitable for a wall-mounted split AC; a clearly visible closed wooden interior entry door along the far-left edge of the left wall, with room around its handle and frame; retain an unobstructed window with visible frame on the right wall. Remove framed paintings/decorative wall art that occupy those mounting spaces. Leave multiple distinct clear wall patches for small sensor overlays, away from the furniture, mirrors, curtains and window; keep the center-upper rear corner clear for a ceiling sensor overlay. Add ONE simple unlit frosted wall sconce on a clear area above the door for a smart light overlay. DO NOT add any smart device, split unit, sensors, camera, label, marker, wiring, numbers or text. These will be overlaid separately in software. All furniture remains complete and naturally placed. Keep a pale blue opaque background matching #e8f0f5, not transparent. Full room should fit with a small 3 percent margin; high-quality warm photorealistic 3D, consistent across the set.",
+      "transparentSource": "exec-ce0edf21-e40a-460a-afcb-308e71d3ecca.png"
+    },
+    {
+      "key": "bedroom",
+      "file": "baitly-bedroom.webp",
+      "thumbnail": "baitly-bedroom-thumb.webp",
+      "prompt": "Use case: stylized-concept. Asset type: room background for Baitly property management app. Premium photorealistic 3D architectural miniature / isometric dollhouse, single cutaway room with two rear walls, no ceiling, seen from above at 30 degrees. Match a cohesive series: warm off-white plaster, light natural oak, muted navy blue accents, cream linen, pale blue-grey studio background #e8f0f5, soft daylight, fine realistic materials, no people. Landscape 4:3 composition, complete room centered, generous margins, room occupies about 85% of frame. No text, numbers, labels, logo, watermark, UI. IMPORTANT: no IoT or electronics mounted on walls, no sensors, no cameras, no smart locks, no thermostats. Smart devices will be separately overlaid interactively by code. Leave uncluttered wall surfaces above furniture and on both sides of doors/windows.\nScene: BEDROOM: inviting cream double bed with navy folded throw and oak headboard against left rear wall, two oak bedside tables, simple lamp, pale curtains framing a large closed window on right wall, small oak wardrobe. Upper walls mostly bare. No camera and no electronics or sensors whatsoever.",
+      "source": "exec-313256f1-399d-429f-a207-b82bdd01a8b5.png",
+      "previousSource": "exec-cedab58b-a027-40fa-bcc3-8bf279e267d0.png",
+      "revisionPrompt": "Edit this Baitly isometric room illustration for an interactive smart-home configurator. Preserve the same room identity, furniture, number and type of beds where present, oak/cream/navy materials, lighting, dollhouse perspective and 4:3 framing. Recompose only as needed to make mounting space genuinely available: taller visible walls with a broad empty upper-left wall strip suitable for a wall-mounted split AC; a clearly visible closed wooden interior entry door along the far-left edge of the left wall, with room around its handle and frame; retain an unobstructed window with visible frame on the right wall. Remove framed paintings/decorative wall art that occupy those mounting spaces. Leave multiple distinct clear wall patches for small sensor overlays, away from the furniture, mirrors, curtains and window; keep the center-upper rear corner clear for a ceiling sensor overlay. Add ONE simple unlit frosted wall sconce on a clear area above the door for a smart light overlay. DO NOT add any smart device, split unit, sensors, camera, label, marker, wiring, numbers or text. These will be overlaid separately in software. All furniture remains complete and naturally placed. Keep a pale blue opaque background matching #e8f0f5, not transparent. Full room should fit with a small 3 percent margin; high-quality warm photorealistic 3D, consistent across the set.",
+      "transparentSource": "exec-7ebbfed5-6f51-47ac-9075-239ef4449a2b.png"
+    },
+    {
+      "key": "kitchen",
+      "file": "baitly-kitchen.webp",
+      "thumbnail": "baitly-kitchen-thumb.webp",
+      "prompt": "Use case: stylized-concept. Asset type: room background for Baitly property management app. Premium photorealistic 3D architectural miniature / isometric dollhouse, single cutaway room with two rear walls, no ceiling, seen from above at 30 degrees. Match a cohesive series: warm off-white plaster, light natural oak, muted navy blue accents, cream linen, pale blue-grey studio background #e8f0f5, soft daylight, fine realistic materials, no people. Landscape 4:3 composition, complete room centered, generous margins, room occupies about 85% of frame. No text, numbers, labels, logo, watermark, UI. IMPORTANT: no IoT or electronics mounted on walls, no sensors, no cameras, no smart locks, no thermostats. Smart devices will be separately overlaid interactively by code. Leave uncluttered wall surfaces above furniture and on both sides of doors/windows.\nScene: KITCHEN: compact L-shaped light oak lower cabinets and stone countertop along two rear walls, navy cabinet details, sink and simple stove, two stools near a short peninsula, plant and ceramic bowl. Upper left wall mostly open plaster, a plain window on right wall, pale stone tile floor. No wall mounted electronic devices, no detector.",
+      "source": "exec-fc85fc7f-dd41-4fcb-80bb-169bfc70b66d.png",
+      "previousSource": "exec-529491d7-4e13-4916-b2f3-cebd37c50d45.png",
+      "revisionPrompt": "Edit this Baitly isometric room illustration for an interactive smart-home configurator. Preserve the same room identity, furniture, number and type of beds where present, oak/cream/navy materials, lighting, dollhouse perspective and 4:3 framing. Recompose only as needed to make mounting space genuinely available: taller visible walls with a broad empty upper-left wall strip suitable for a wall-mounted split AC; a clearly visible closed wooden interior entry door along the far-left edge of the left wall, with room around its handle and frame; retain an unobstructed window with visible frame on the right wall. Remove framed paintings/decorative wall art that occupy those mounting spaces. Leave multiple distinct clear wall patches for small sensor overlays, away from the furniture, mirrors, curtains and window; keep the center-upper rear corner clear for a ceiling sensor overlay. Add ONE simple unlit frosted wall sconce on a clear area above the door for a smart light overlay. DO NOT add any smart device, split unit, sensors, camera, label, marker, wiring, numbers or text. These will be overlaid separately in software. All furniture remains complete and naturally placed. Keep a pale blue opaque background matching #e8f0f5, not transparent. Full room should fit with a small 3 percent margin; high-quality warm photorealistic 3D, consistent across the set.",
+      "transparentSource": "exec-396a8173-0325-4e10-b94e-d2baec7ef10e.png"
+    },
+    {
+      "key": "bathroom",
+      "file": "baitly-bathroom.webp",
+      "thumbnail": "baitly-bathroom-thumb.webp",
+      "prompt": "Use case: stylized-concept. Asset type: room background for Baitly property management app. Premium photorealistic 3D architectural miniature / isometric dollhouse, single cutaway room with two rear walls, no ceiling, seen from above at 30 degrees. Match a cohesive series: warm off-white plaster, light natural oak, muted navy blue accents, cream linen, pale blue-grey studio background #e8f0f5, soft daylight, fine realistic materials, no people. Landscape 4:3 composition, complete room centered, generous margins, room occupies about 85% of frame. No text, numbers, labels, logo, watermark, UI. IMPORTANT: no IoT or electronics mounted on walls, no sensors, no cameras, no smart locks, no thermostats. Smart devices will be separately overlaid interactively by code. Leave uncluttered wall surfaces above furniture and on both sides of doors/windows.\nScene: BATHROOM: elegant warm cream stone tiles, floating oak vanity with round mirror along left wall, walk-in shower with glass panel on right, folded towels and a small plant, simple frosted window. Complete room cutaway with bare clear upper walls for later humidity sensor overlays. No camera, no electronics, no sensors.",
+      "source": "exec-43f898cd-22fc-4e43-b793-edfc4dbe6ef3.png",
+      "previousSource": "exec-83f2d602-761e-465d-8e7c-7ce73eb12613.png",
+      "revisionPrompt": "Edit this Baitly isometric room illustration for an interactive smart-home configurator. Preserve the same room identity, furniture, number and type of beds where present, oak/cream/navy materials, lighting, dollhouse perspective and 4:3 framing. Recompose only as needed to make mounting space genuinely available: taller visible walls with a broad empty upper-left wall strip suitable for a wall-mounted split AC; a clearly visible closed wooden interior entry door along the far-left edge of the left wall, with room around its handle and frame; retain an unobstructed window with visible frame on the right wall. Remove framed paintings/decorative wall art that occupy those mounting spaces. Leave multiple distinct clear wall patches for small sensor overlays, away from the furniture, mirrors, curtains and window; keep the center-upper rear corner clear for a ceiling sensor overlay. Add ONE simple unlit frosted wall sconce on a clear area above the door for a smart light overlay. DO NOT add any smart device, split unit, sensors, camera, label, marker, wiring, numbers or text. These will be overlaid separately in software. All furniture remains complete and naturally placed. Keep a pale blue opaque background matching #e8f0f5, not transparent. Full room should fit with a small 3 percent margin; high-quality warm photorealistic 3D, consistent across the set.",
+      "transparentSource": "exec-0492a1e7-9b05-478c-b442-178cc920dba0.png"
+    },
+    {
+      "key": "hallway",
+      "file": "baitly-hallway.webp",
+      "thumbnail": "baitly-hallway-thumb.webp",
+      "prompt": "Use case: stylized-concept. Asset type: room background for Baitly property management app. Premium photorealistic 3D architectural miniature / isometric dollhouse, single cutaway room with two rear walls, no ceiling, seen from above at 30 degrees. Match a cohesive series: warm off-white plaster, light natural oak, muted navy blue accents, cream linen, pale blue-grey studio background #e8f0f5, soft daylight, fine realistic materials, no people. Landscape 4:3 composition, complete room centered, generous margins, room occupies about 85% of frame. No text, numbers, labels, logo, watermark, UI. IMPORTANT: no IoT or electronics mounted on walls, no sensors, no cameras, no smart locks, no thermostats. Smart devices will be separately overlaid interactively by code. Leave uncluttered wall surfaces above furniture and on both sides of doors/windows.\nScene: INTERIOR HALLWAY / LANDING: two light oak closed doors on two rear walls with simple mechanical handles, cream plaster walls, oak floor, small entry console with navy ceramic bowl, round mirror, small plant, clear upper walls and a corner for future smoke and motion sensors. No smart devices. Opaque pale blue-grey background.",
+      "source": "exec-e0323dd1-7867-4118-93eb-6ed100292656.png",
+      "transparentSource": "exec-b0f38b77-0601-4d16-92ad-9428f271c20a.png"
+    },
+    {
+      "key": "outdoor",
+      "file": "baitly-outdoor.webp",
+      "thumbnail": "baitly-outdoor-thumb.webp",
+      "prompt": "Use case: stylized-concept. Asset type: room background for Baitly property management app. Premium photorealistic 3D architectural miniature / isometric dollhouse, single cutaway room with two rear walls, no ceiling, seen from above at 30 degrees. Match a cohesive series: warm off-white plaster, light natural oak, muted navy blue accents, cream linen, pale blue-grey studio background #e8f0f5, soft daylight, fine realistic materials, no people. Landscape 4:3 composition, complete room centered, generous margins, room occupies about 85% of frame. No text, numbers, labels, logo, watermark, UI. IMPORTANT: no IoT or electronics mounted on walls, no sensors, no cameras, no smart locks, no thermostats. Smart devices will be separately overlaid interactively by code. Leave uncluttered wall surfaces above furniture and on both sides of doors/windows.\nScene: PRIVATE TERRACE / GARDEN: cream stone patio and low privacy walls, private wood garden gate in rear right wall, olive tree in pot, small oak outdoor dining table and two navy cushioned chairs on left, plants. Clear walls beside gate for future smart devices. No cameras, sensors, electronics. Opaque pale blue-grey background.",
+      "source": "exec-f0b22e4b-91b7-45f8-ac8f-b42c261ec427.png",
+      "transparentSource": "exec-efde0b2e-290f-404f-aadc-ab41dcab5a0a.png"
+    },
+    {
+      "key": "bedroom-twin",
+      "file": "baitly-bedroom-twin.webp",
+      "thumbnail": "baitly-bedroom-twin-thumb.webp",
+      "prompt": "Use case: stylized-concept. Asset type: room background for Baitly property management app. Premium photorealistic 3D architectural miniature / isometric dollhouse, single cutaway room with two rear walls, no ceiling, seen from above at 30 degrees. Match a cohesive series: warm off-white plaster, light natural oak, muted navy blue accents, cream linen, pale blue-grey studio background #e8f0f5, soft daylight, fine realistic materials, no people. Landscape 4:3 composition, complete room centered, generous margins, room occupies about 85% of frame. No text, numbers, labels, logo, watermark, UI. IMPORTANT: no IoT or electronics mounted on walls, no sensors, no cameras, no smart locks, no thermostats. Smart devices will be separately overlaid interactively by code. Leave uncluttered wall surfaces above furniture and on both sides of doors/windows.\nScene: TWIN BEDROOM: TWO clearly separate single beds side by side, separated by one oak bedside table, cream linen and navy throws, headboards against the left rear wall, large closed window with linen curtains on right wall, small oak wardrobe. Both full beds visible with space between them. Clear upper walls. No IoT, no camera, no sensors. Opaque pale blue grey background.",
+      "source": "exec-9650a2b1-522c-42a6-8848-99fdbebfd0f5.png",
+      "previousSource": "exec-b0e20982-6eb0-43b9-868c-c72059029ded.png",
+      "revisionPrompt": "Edit this Baitly isometric room illustration for an interactive smart-home configurator. Preserve the same room identity, furniture, number and type of beds where present, oak/cream/navy materials, lighting, dollhouse perspective and 4:3 framing. Recompose only as needed to make mounting space genuinely available: taller visible walls with a broad empty upper-left wall strip suitable for a wall-mounted split AC; a clearly visible closed wooden interior entry door along the far-left edge of the left wall, with room around its handle and frame; retain an unobstructed window with visible frame on the right wall. Remove framed paintings/decorative wall art that occupy those mounting spaces. Leave multiple distinct clear wall patches for small sensor overlays, away from the furniture, mirrors, curtains and window; keep the center-upper rear corner clear for a ceiling sensor overlay. Add ONE simple unlit frosted wall sconce on a clear area above the door for a smart light overlay. DO NOT add any smart device, split unit, sensors, camera, label, marker, wiring, numbers or text. These will be overlaid separately in software. All furniture remains complete and naturally placed. Keep a pale blue opaque background matching #e8f0f5, not transparent. Full room should fit with a small 3 percent margin; high-quality warm photorealistic 3D, consistent across the set.",
+      "transparentSource": "exec-af6eee0a-fe90-4372-b28b-0ba203abfb77.png"
+    },
+    {
+      "key": "bedroom-bunk",
+      "file": "baitly-bedroom-bunk.webp",
+      "thumbnail": "baitly-bedroom-bunk-thumb.webp",
+      "prompt": "Use case: stylized-concept. Asset type: room background for Baitly property management app. Premium photorealistic 3D architectural miniature / isometric dollhouse, single cutaway room with two rear walls, no ceiling, seen from above at 30 degrees. Match a cohesive series: warm off-white plaster, light natural oak, muted navy blue accents, cream linen, pale blue-grey studio background #e8f0f5, soft daylight, fine realistic materials, no people. Landscape 4:3 composition, complete room centered, generous margins, room occupies about 85% of frame. No text, numbers, labels, logo, watermark, UI. IMPORTANT: no IoT or electronics mounted on walls, no sensors, no cameras, no smart locks, no thermostats. Smart devices will be separately overlaid interactively by code. Leave uncluttered wall surfaces above furniture and on both sides of doors/windows.\nScene: BUNK BEDROOM: one beautiful sturdy natural oak bunk bed with TWO sleeping levels stacked vertically, with safe guard rail and ladder, cream linens and muted navy blankets. Bunk against left rear wall, clear separate open play/reading area with small desk on right, large closed window on right wall, woven rug, warm rental interior. Entire bunk bed fits in frame and both sleeping levels visible. No IoT, no camera, no sensors, no people. Opaque pale blue grey background.",
+      "source": "exec-bc340fbe-e3eb-412f-b276-dea126e3d594.png",
+      "previousSource": "exec-11829a04-6112-4b4a-beb1-94cab01939f7.png",
+      "revisionPrompt": "Edit this Baitly isometric room illustration for an interactive smart-home configurator. Preserve the same room identity, furniture, number and type of beds where present, oak/cream/navy materials, lighting, dollhouse perspective and 4:3 framing. Recompose only as needed to make mounting space genuinely available: taller visible walls with a broad empty upper-left wall strip suitable for a wall-mounted split AC; a clearly visible closed wooden interior entry door along the far-left edge of the left wall, with room around its handle and frame; retain an unobstructed window with visible frame on the right wall. Remove framed paintings/decorative wall art that occupy those mounting spaces. Leave multiple distinct clear wall patches for small sensor overlays, away from the furniture, mirrors, curtains and window; keep the center-upper rear corner clear for a ceiling sensor overlay. Add ONE simple unlit frosted wall sconce on a clear area above the door for a smart light overlay. DO NOT add any smart device, split unit, sensors, camera, label, marker, wiring, numbers or text. These will be overlaid separately in software. All furniture remains complete and naturally placed. Keep a pale blue opaque background matching #e8f0f5, not transparent. Full room should fit with a small 3 percent margin; high-quality warm photorealistic 3D, consistent across the set.",
+      "transparentSource": "exec-e9fafb21-23d2-47d6-ae5e-84c22a284001.png"
+    },
+    {
+      "key": "living-door-open",
+      "file": "baitly-living-door-open.webp",
+      "prompt": "Precise object edit of the attached Baitly isometric room image. Preserve EXACTLY the framing, camera angle, geometry, furniture positions, all objects, colors and lighting. Change ONLY the opening state of the following architectural element(s): OPEN the wooden door / gate (the left door if two doors are visible) inward by about 55 degrees, showing its thickness and a small neutral passage behind it. Leave all windows CLOSED. Do not move the frame, surrounding walls, furniture or any other objects. No people, IoT equipment, overlays, text, labels, arrows or indicators. These are alternate state images for the same interactive scene: all positions MUST match the reference. Output same 4:3 image and background.",
+      "source": "exec-cb17f0af-8391-4e44-9d0f-e0c6875fda5f.png",
+      "transparentSource": "exec-d2bc8820-cc29-407b-8459-a2d93258d36c.png"
+    },
+    {
+      "key": "living-window-open",
+      "file": "baitly-living-window-open.webp",
+      "prompt": "Precise object edit of the attached Baitly isometric room image. Preserve EXACTLY the framing, camera angle, geometry, furniture positions, all objects, colors and lighting. Change ONLY the opening state of the following architectural element(s): OPEN one sash of the window inward by about 45 degrees, revealing the opening and angled glass sash clearly. Leave the wooden door CLOSED. Do not move the frame, surrounding walls, furniture or any other objects. No people, IoT equipment, overlays, text, labels, arrows or indicators. These are alternate state images for the same interactive scene: all positions MUST match the reference. Output same 4:3 image and background.",
+      "source": "exec-8eb8c34a-b55a-4401-aa2a-a73a8b976a0b.png",
+      "transparentSource": "exec-6223afcf-33b8-4aa3-8f5e-e785223e63e4.png"
+    },
+    {
+      "key": "living-both-open",
+      "file": "baitly-living-both-open.webp",
+      "prompt": "Precise object edit of the attached Baitly isometric room image. Preserve EXACTLY the framing, camera angle, geometry, furniture positions, all objects, colors and lighting. Change ONLY the opening state of the following architectural element(s): OPEN the wooden door inward by about 55 degrees and OPEN one sash of the window inward by about 45 degrees. Show both openings clearly. Do not move the frame, surrounding walls, furniture or any other objects. No people, IoT equipment, overlays, text, labels, arrows or indicators. These are alternate state images for the same interactive scene: all positions MUST match the reference. Output same 4:3 image and background.",
+      "source": "exec-6e84d575-31c4-4839-ab55-fa218272fae9.png",
+      "transparentSource": "exec-995bcd32-2277-4918-8e5d-88d23ff75ff0.png"
+    },
+    {
+      "key": "bedroom-door-open",
+      "file": "baitly-bedroom-door-open.webp",
+      "prompt": "Precise object edit of the attached Baitly isometric room image. Preserve EXACTLY the framing, camera angle, geometry, furniture positions, all objects, colors and lighting. Change ONLY the opening state of the following architectural element(s): OPEN the wooden door / gate (the left door if two doors are visible) inward by about 55 degrees, showing its thickness and a small neutral passage behind it. Leave all windows CLOSED. Do not move the frame, surrounding walls, furniture or any other objects. No people, IoT equipment, overlays, text, labels, arrows or indicators. These are alternate state images for the same interactive scene: all positions MUST match the reference. Output same 4:3 image and background.",
+      "source": "exec-f231e08d-48f9-419f-a96c-41e5e751bba1.png",
+      "transparentSource": "exec-d81fc105-6451-45ce-b4df-716c22bb4e16.png"
+    },
+    {
+      "key": "bedroom-window-open",
+      "file": "baitly-bedroom-window-open.webp",
+      "prompt": "Precise object edit of the attached Baitly isometric room image. Preserve EXACTLY the framing, camera angle, geometry, furniture positions, all objects, colors and lighting. Change ONLY the opening state of the following architectural element(s): OPEN one sash of the window inward by about 45 degrees, revealing the opening and angled glass sash clearly. Leave the wooden door CLOSED. Do not move the frame, surrounding walls, furniture or any other objects. No people, IoT equipment, overlays, text, labels, arrows or indicators. These are alternate state images for the same interactive scene: all positions MUST match the reference. Output same 4:3 image and background.",
+      "source": "exec-2910899f-521c-40ab-bf1c-f25599fead96.png",
+      "transparentSource": "exec-766ced56-9dac-4906-9ac3-0c9e12a15b8d.png"
+    },
+    {
+      "key": "bedroom-both-open",
+      "file": "baitly-bedroom-both-open.webp",
+      "prompt": "Precise object edit of the attached Baitly isometric room image. Preserve EXACTLY the framing, camera angle, geometry, furniture positions, all objects, colors and lighting. Change ONLY the opening state of the following architectural element(s): OPEN the wooden door inward by about 55 degrees and OPEN one sash of the window inward by about 45 degrees. Show both openings clearly. Do not move the frame, surrounding walls, furniture or any other objects. No people, IoT equipment, overlays, text, labels, arrows or indicators. These are alternate state images for the same interactive scene: all positions MUST match the reference. Output same 4:3 image and background.",
+      "source": "exec-4173decc-e8e6-42af-9dd7-5040cd032b61.png",
+      "transparentSource": "exec-6502531c-7daa-49aa-9c02-59c0693088fa.png"
+    },
+    {
+      "key": "bedroom-twin-door-open",
+      "file": "baitly-bedroom-twin-door-open.webp",
+      "prompt": "Precise object edit of the attached Baitly isometric room image. Preserve EXACTLY the framing, camera angle, geometry, furniture positions, all objects, colors and lighting. Change ONLY the opening state of the following architectural element(s): OPEN the wooden door / gate (the left door if two doors are visible) inward by about 55 degrees, showing its thickness and a small neutral passage behind it. Leave all windows CLOSED. Do not move the frame, surrounding walls, furniture or any other objects. No people, IoT equipment, overlays, text, labels, arrows or indicators. These are alternate state images for the same interactive scene: all positions MUST match the reference. Output same 4:3 image and background.",
+      "source": "exec-9e86c9cf-1f42-494f-8762-2523925c30f7.png",
+      "transparentSource": "exec-a456823c-0678-4e79-af95-b6800783cb10.png"
+    },
+    {
+      "key": "bedroom-twin-window-open",
+      "file": "baitly-bedroom-twin-window-open.webp",
+      "prompt": "Precise object edit of the attached Baitly isometric room image. Preserve EXACTLY the framing, camera angle, geometry, furniture positions, all objects, colors and lighting. Change ONLY the opening state of the following architectural element(s): OPEN one sash of the window inward by about 45 degrees, revealing the opening and angled glass sash clearly. Leave the wooden door CLOSED. Do not move the frame, surrounding walls, furniture or any other objects. No people, IoT equipment, overlays, text, labels, arrows or indicators. These are alternate state images for the same interactive scene: all positions MUST match the reference. Output same 4:3 image and background.",
+      "source": "exec-165983b6-356c-4b43-850d-654c05aa43dd.png",
+      "transparentSource": "exec-5fb15672-11c9-4739-80f8-16c353c3598c.png"
+    },
+    {
+      "key": "bedroom-twin-both-open",
+      "file": "baitly-bedroom-twin-both-open.webp",
+      "prompt": "Precise object edit of the attached Baitly isometric room image. Preserve EXACTLY the framing, camera angle, geometry, furniture positions, all objects, colors and lighting. Change ONLY the opening state of the following architectural element(s): OPEN the wooden door inward by about 55 degrees and OPEN one sash of the window inward by about 45 degrees. Show both openings clearly. Do not move the frame, surrounding walls, furniture or any other objects. No people, IoT equipment, overlays, text, labels, arrows or indicators. These are alternate state images for the same interactive scene: all positions MUST match the reference. Output same 4:3 image and background.",
+      "source": "exec-10424d18-8f3b-4bec-92bf-9bb2c20c9f2e.png",
+      "transparentSource": "exec-8dbc932d-b04b-44ad-a899-72fc1943f8a0.png"
+    },
+    {
+      "key": "bedroom-bunk-door-open",
+      "file": "baitly-bedroom-bunk-door-open.webp",
+      "prompt": "Precise object edit of the attached Baitly isometric room image. Preserve EXACTLY the framing, camera angle, geometry, furniture positions, all objects, colors and lighting. Change ONLY the opening state of the following architectural element(s): OPEN the wooden door / gate (the left door if two doors are visible) inward by about 55 degrees, showing its thickness and a small neutral passage behind it. Leave all windows CLOSED. Do not move the frame, surrounding walls, furniture or any other objects. No people, IoT equipment, overlays, text, labels, arrows or indicators. These are alternate state images for the same interactive scene: all positions MUST match the reference. Output same 4:3 image and background.",
+      "source": "exec-12b530c8-f97a-4340-9604-ebe4596ee691.png",
+      "transparentSource": "exec-837150d2-3f82-4d4d-896e-549bd09577cd.png"
+    },
+    {
+      "key": "bedroom-bunk-window-open",
+      "file": "baitly-bedroom-bunk-window-open.webp",
+      "prompt": "Precise object edit of the attached Baitly isometric room image. Preserve EXACTLY the framing, camera angle, geometry, furniture positions, all objects, colors and lighting. Change ONLY the opening state of the following architectural element(s): OPEN one sash of the window inward by about 45 degrees, revealing the opening and angled glass sash clearly. Leave the wooden door CLOSED. Do not move the frame, surrounding walls, furniture or any other objects. No people, IoT equipment, overlays, text, labels, arrows or indicators. These are alternate state images for the same interactive scene: all positions MUST match the reference. Output same 4:3 image and background.",
+      "source": "exec-9079f3ee-ec88-4506-9602-c0d756189cfb.png",
+      "transparentSource": "exec-a83aa341-fc8f-4cd1-9a8f-5c875010277e.png"
+    },
+    {
+      "key": "bedroom-bunk-both-open",
+      "file": "baitly-bedroom-bunk-both-open.webp",
+      "prompt": "Precise object edit of the attached Baitly isometric room image. Preserve EXACTLY the framing, camera angle, geometry, furniture positions, all objects, colors and lighting. Change ONLY the opening state of the following architectural element(s): OPEN the wooden door inward by about 55 degrees and OPEN one sash of the window inward by about 45 degrees. Show both openings clearly. Do not move the frame, surrounding walls, furniture or any other objects. No people, IoT equipment, overlays, text, labels, arrows or indicators. These are alternate state images for the same interactive scene: all positions MUST match the reference. Output same 4:3 image and background.",
+      "source": "exec-05671470-4085-4c02-a823-366e68e37b24.png",
+      "transparentSource": "exec-7d599686-1c66-473d-9ba8-62225485f9d5.png"
+    },
+    {
+      "key": "kitchen-door-open",
+      "file": "baitly-kitchen-door-open.webp",
+      "prompt": "Precise object edit of the attached Baitly isometric room image. Preserve EXACTLY the framing, camera angle, geometry, furniture positions, all objects, colors and lighting. Change ONLY the opening state of the following architectural element(s): OPEN the wooden door / gate (the left door if two doors are visible) inward by about 55 degrees, showing its thickness and a small neutral passage behind it. Leave all windows CLOSED. Do not move the frame, surrounding walls, furniture or any other objects. No people, IoT equipment, overlays, text, labels, arrows or indicators. These are alternate state images for the same interactive scene: all positions MUST match the reference. Output same 4:3 image and background.",
+      "source": "exec-f02aa0f4-4768-4139-8411-2ec82e6f7e93.png",
+      "transparentSource": "exec-f4d2d0eb-8779-4382-8aea-76624931ed7f.png"
+    },
+    {
+      "key": "kitchen-window-open",
+      "file": "baitly-kitchen-window-open.webp",
+      "prompt": "Precise object edit of the attached Baitly isometric room image. Preserve EXACTLY the framing, camera angle, geometry, furniture positions, all objects, colors and lighting. Change ONLY the opening state of the following architectural element(s): OPEN one sash of the window inward by about 45 degrees, revealing the opening and angled glass sash clearly. Leave the wooden door CLOSED. Do not move the frame, surrounding walls, furniture or any other objects. No people, IoT equipment, overlays, text, labels, arrows or indicators. These are alternate state images for the same interactive scene: all positions MUST match the reference. Output same 4:3 image and background.",
+      "source": "exec-2f4bfc37-7bab-47f9-87d7-f0992a1d94fe.png",
+      "transparentSource": "exec-a6a747b7-373f-437f-8be0-cd5bfed2e321.png"
+    },
+    {
+      "key": "kitchen-both-open",
+      "file": "baitly-kitchen-both-open.webp",
+      "prompt": "Precise object edit of the attached Baitly isometric room image. Preserve EXACTLY the framing, camera angle, geometry, furniture positions, all objects, colors and lighting. Change ONLY the opening state of the following architectural element(s): OPEN the wooden door inward by about 55 degrees and OPEN one sash of the window inward by about 45 degrees. Show both openings clearly. Do not move the frame, surrounding walls, furniture or any other objects. No people, IoT equipment, overlays, text, labels, arrows or indicators. These are alternate state images for the same interactive scene: all positions MUST match the reference. Output same 4:3 image and background.",
+      "source": "exec-89e9522b-d45b-4ef2-8331-595e60a9ef98.png",
+      "transparentSource": "exec-142926d7-ebe3-447b-bd45-d886538c79cf.png"
+    },
+    {
+      "key": "bathroom-door-open",
+      "file": "baitly-bathroom-door-open.webp",
+      "prompt": "Precise object edit of the attached Baitly isometric room image. Preserve EXACTLY the framing, camera angle, geometry, furniture positions, all objects, colors and lighting. Change ONLY the opening state of the following architectural element(s): OPEN the wooden door / gate (the left door if two doors are visible) inward by about 55 degrees, showing its thickness and a small neutral passage behind it. Leave all windows CLOSED. Do not move the frame, surrounding walls, furniture or any other objects. No people, IoT equipment, overlays, text, labels, arrows or indicators. These are alternate state images for the same interactive scene: all positions MUST match the reference. Output same 4:3 image and background.",
+      "source": "exec-2ae30665-a969-4018-9e68-1355f61852e2.png",
+      "transparentSource": "exec-60fd17b1-422a-4665-829d-e384236695d9.png",
+      "cleanupPrompt": "Clean precision background removal for a production PNG cutout. Keep the exact bathroom illustration and open door unchanged. Remove EVERY pixel of studio background and EVERY exterior shadow/halo outside the architecture silhouette, including all the wide grey regions above, to left and right, and below the room. Outside the room's wall/floor silhouette must be FULLY TRANSPARENT with alpha 0. No cast shadow on any backdrop. Preserve the architecture edge, all walls, flooring, furniture, mirror, door, shower glass, plants and window as visible. Preserve identical 1448x1086 canvas and object positions. Do not zoom or recompose. The output is an isolated bathroom PNG, true transparent background, clean anti-aliasing only within 1 pixel of silhouette."
+    },
+    {
+      "key": "bathroom-window-open",
+      "file": "baitly-bathroom-window-open.webp",
+      "prompt": "Precise object edit of the attached Baitly isometric room image. Preserve EXACTLY the framing, camera angle, geometry, furniture positions, all objects, colors and lighting. Change ONLY the opening state of the following architectural element(s): OPEN one sash of the window inward by about 45 degrees, revealing the opening and angled glass sash clearly. Leave the wooden door CLOSED. Do not move the frame, surrounding walls, furniture or any other objects. No people, IoT equipment, overlays, text, labels, arrows or indicators. These are alternate state images for the same interactive scene: all positions MUST match the reference. Output same 4:3 image and background.",
+      "source": "exec-e8c34dfb-9128-4c83-ab5a-cbd2bfee1832.png",
+      "transparentSource": "exec-357077e2-7656-44e7-bc13-4f96d155740a.png"
+    },
+    {
+      "key": "bathroom-both-open",
+      "file": "baitly-bathroom-both-open.webp",
+      "prompt": "Precise object edit of the attached Baitly isometric room image. Preserve EXACTLY the framing, camera angle, geometry, furniture positions, all objects, colors and lighting. Change ONLY the opening state of the following architectural element(s): OPEN the wooden door inward by about 55 degrees and OPEN one sash of the window inward by about 45 degrees. Show both openings clearly. Do not move the frame, surrounding walls, furniture or any other objects. No people, IoT equipment, overlays, text, labels, arrows or indicators. These are alternate state images for the same interactive scene: all positions MUST match the reference. Output same 4:3 image and background.",
+      "source": "exec-0d916c3b-2e0c-4b40-94d5-126d90a6a781.png",
+      "transparentSource": "exec-65d36522-fd76-4518-8136-7fb1cc6a48e7.png"
+    },
+    {
+      "key": "entrance-door-open",
+      "file": "baitly-entrance-door-open.webp",
+      "prompt": "Precise object edit of the attached Baitly isometric room image. Preserve EXACTLY the framing, camera angle, geometry, furniture positions, all objects, colors and lighting. Change ONLY the opening state of the following architectural element(s): OPEN the wooden door / gate (the left door if two doors are visible) inward by about 55 degrees, showing its thickness and a small neutral passage behind it. Leave all windows CLOSED. Do not move the frame, surrounding walls, furniture or any other objects. No people, IoT equipment, overlays, text, labels, arrows or indicators. These are alternate state images for the same interactive scene: all positions MUST match the reference. Output same 4:3 image and background.",
+      "source": "exec-c486bfba-ab8c-4a86-aaec-5545d53def47.png",
+      "transparentSource": "exec-747c24ac-ceda-41da-83b8-ac475f4d7c10.png"
+    },
+    {
+      "key": "hallway-door-open",
+      "file": "baitly-hallway-door-open.webp",
+      "prompt": "Precise object edit of the attached Baitly isometric room image. Preserve EXACTLY the framing, camera angle, geometry, furniture positions, all objects, colors and lighting. Change ONLY the opening state of the following architectural element(s): OPEN the wooden door / gate (the left door if two doors are visible) inward by about 55 degrees, showing its thickness and a small neutral passage behind it. Leave all windows CLOSED. Do not move the frame, surrounding walls, furniture or any other objects. No people, IoT equipment, overlays, text, labels, arrows or indicators. These are alternate state images for the same interactive scene: all positions MUST match the reference. Output same 4:3 image and background.",
+      "source": "exec-c7191f8d-0c02-4f68-b52d-fb222092c75b.png",
+      "transparentSource": "exec-2d175111-ac71-44d4-9d91-e269d469ee98.png"
+    },
+    {
+      "key": "outdoor-door-open",
+      "file": "baitly-outdoor-door-open.webp",
+      "prompt": "Precise object edit of the attached Baitly isometric room image. Preserve EXACTLY the framing, camera angle, geometry, furniture positions, all objects, colors and lighting. Change ONLY the opening state of the following architectural element(s): OPEN the wooden door / gate (the left door if two doors are visible) inward by about 55 degrees, showing its thickness and a small neutral passage behind it. Leave all windows CLOSED. Do not move the frame, surrounding walls, furniture or any other objects. No people, IoT equipment, overlays, text, labels, arrows or indicators. These are alternate state images for the same interactive scene: all positions MUST match the reference. Output same 4:3 image and background.",
+      "source": "exec-49b7f717-2b4e-4470-9afe-cfe5c2e2a660.png",
+      "transparentSource": "exec-f3d9c59e-7a8a-4c2c-a1cf-3444add1a44b.png"
+    }
+  ]
+}

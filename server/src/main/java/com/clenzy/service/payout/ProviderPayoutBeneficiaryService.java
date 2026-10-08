@@ -17,13 +17,40 @@ public class ProviderPayoutBeneficiaryService {
     public record Recipient(PayoutBeneficiary beneficiary, String notificationSubject) {}
     public record Choice(Long organizationId, String organizationName, boolean selected, boolean locked,
                          Instant selectedAt) {}
+    /** Identité de l'affectation réellement présentée à l'opérateur, sans compte PSP fourni par le client. */
+    public record Review(Long missionId, Long propertyId, Long organizationId,
+                         Long assignedUserId, Long teamId, Long recipientUserId) {}
+    public record Selected(Long missionId, Long organizationId, Long propertyId) {}
     private final ProviderPayoutBeneficiaryRepository beneficiaries;
     private final HousekeeperPayoutRecordRepository records;
     private final UserRepository users;
+    private final org.springframework.context.ApplicationEventPublisher events;
 
     public ProviderPayoutBeneficiaryService(ProviderPayoutBeneficiaryRepository beneficiaries,
-            HousekeeperPayoutRecordRepository records, UserRepository users) {
+            HousekeeperPayoutRecordRepository records, UserRepository users,
+            org.springframework.context.ApplicationEventPublisher events) {
         this.beneficiaries = beneficiaries; this.records = records; this.users = users;
+        this.events = events;
+    }
+
+    public Optional<Review> review(Long missionId, Long orgId) {
+        var assignment = assignment(missionId, orgId);
+        if ("CANCELLED".equals(assignment.getStatus()) || assignment.getRecipientOrganizationId() == null
+                || (assignment.getAssignedUserId() == null && assignment.getTeamId() == null)
+                || choice(missionId, orgId).locked()) return Optional.empty();
+        return Optional.of(new Review(missionId, assignment.getPropertyId(), assignment.getRecipientOrganizationId(),
+                assignment.getAssignedUserId(), assignment.getTeamId(), assignment.getRecipientUserId()));
+    }
+
+    @Transactional
+    public Choice selectReviewedOrganization(Long orgId, Review expected, String actorSubject) {
+        beneficiaries.lockMission(expected.missionId());
+        beneficiaries.lockAssignment(expected.missionId(), orgId);
+        var current = review(expected.missionId(), orgId)
+                .orElseThrow(() -> new IllegalStateException("Le bénéficiaire n'est plus à valider. Actualisez la constellation."));
+        if (!current.equals(expected))
+            throw new IllegalStateException("L'affectation a changé. Examinez la nouvelle proposition avant de valider.");
+        return selectOrganization(expected.missionId(), orgId, expected.organizationId(), actorSubject);
     }
 
     public Choice choice(Long missionId, Long orgId) {
@@ -38,7 +65,10 @@ public class ProviderPayoutBeneficiaryService {
     @Transactional
     public Choice selectOrganization(Long missionId, Long orgId, Long expectedOrgId, String actorSubject) {
         beneficiaries.lockMission(missionId);
+        beneficiaries.lockAssignment(missionId, orgId);
         var assignment = assignment(missionId, orgId);
+        if ("CANCELLED".equals(assignment.getStatus()))
+            throw new IllegalStateException("Une mission annulée ne peut plus recevoir de bénéficiaire.");
         if (expectedOrgId == null || !expectedOrgId.equals(assignment.getRecipientOrganizationId())) {
             throw new IllegalArgumentException("L'organisation choisie ne correspond pas au prestataire affecté.");
         }
@@ -53,6 +83,7 @@ public class ProviderPayoutBeneficiaryService {
         var actor = users.findByKeycloakId(actorSubject).orElseThrow(() -> new NotFoundException("Utilisateur non trouvé"));
         beneficiaries.saveAndFlush(new ProviderPayoutBeneficiary(missionId, orgId, expectedOrgId,
                 assignment.getAssignedUserId(), assignment.getTeamId(), actor.getId()));
+        events.publishEvent(new Selected(missionId, orgId, assignment.getPropertyId()));
         return choice(missionId, orgId);
     }
 

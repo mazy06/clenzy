@@ -40,6 +40,8 @@ interface AddDeviceWizardProps {
   defaultPropertyId?: number | null;
   /** Pré-sélectionne un type (ajout depuis un écran dédié) et saute l'étape 1. */
   defaultKind?: DeviceKind;
+  /** Pièce du parcours visuel, enregistrée par l'API avec l'appareil. */
+  defaultRoomName?: string;
 }
 
 /** Types ajoutables + providers proposés (un seul flux pour tous). */
@@ -74,14 +76,14 @@ const PROVIDERS: Record<DeviceKind, { value: string; label?: string; labelKey?: 
   smoke: [{ value: 'TUYA', label: 'Tuya' }, { value: 'NETATMO', label: 'Netatmo' }],
 };
 
-export default function AddDeviceWizard({ open, onClose, onAdded, defaultPropertyId, defaultKind }: AddDeviceWizardProps) {
+export default function AddDeviceWizard({ open, onClose, onAdded, defaultPropertyId, defaultKind, defaultRoomName }: AddDeviceWizardProps) {
   const { t } = useTranslation();
   const [step, setStep] = useState(defaultKind ? 1 : 0);
   const [kind, setKind] = useState<DeviceKind | null>(defaultKind ?? null);
   const [provider, setProvider] = useState('');
   const [propertyId, setPropertyId] = useState<number | ''>(defaultPropertyId ?? '');
   const [name, setName] = useState('');
-  const [roomName, setRoomName] = useState('');
+  const [roomName, setRoomName] = useState(defaultRoomName ?? '');
   const [externalDeviceId, setExternalDeviceId] = useState('');
   const [accessCodeMode, setAccessCodeMode] = useState<SmartLockAccessCodeMode>('PMS_GENERATED');
   const [rtspUrl, setRtspUrl] = useState('');
@@ -96,7 +98,7 @@ export default function AddDeviceWizard({ open, onClose, onAdded, defaultPropert
 
   const reset = () => {
     setStep(defaultKind ? 1 : 0); setKind(defaultKind ?? null); setProvider(''); setPropertyId(defaultPropertyId ?? '');
-    setName(''); setRoomName(''); setExternalDeviceId(''); setRtspUrl(''); setError(null); setSubmitting(false);
+    setName(''); setRoomName(defaultRoomName ?? ''); setExternalDeviceId(''); setRtspUrl(''); setError(null); setSubmitting(false);
   };
   const handleClose = () => { reset(); onClose(); };
 
@@ -168,7 +170,7 @@ export default function AddDeviceWizard({ open, onClose, onAdded, defaultPropert
                       : 'border-border bg-transparent',
                   )}
                 >
-                  <span className="inline-flex text-[var(--kind-color)]">{meta.icon(22)}</span>
+                  <img src={`/images/connected-devices/baitly-${k}.webp`} alt="" width={54} height={54} className="size-[54px] object-contain" />
                   <span className="text-xs font-semibold">{t(meta.labelKey)}</span>
                 </button>
               );

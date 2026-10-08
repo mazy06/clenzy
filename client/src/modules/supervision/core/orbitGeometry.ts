@@ -19,10 +19,10 @@ export function orbitRadiusFor(side: number): number {
  * cadres. Seuls les coins vides du carré peuvent dépasser de la colonne.
  * Les dimensions reçues sont celles du layout, avant tout transform: scale.
  */
-export function fitOrbitSide(width: number, height: number): number {
+export function fitOrbitSide(width: number, height: number, verticalRoom = ORBIT_LABEL_ROOM_PX): number {
   const availableWidth = Math.max(0, width - ORBIT_EDGE_PX * 2);
   const availableHeight = Math.max(0, height - ORBIT_EDGE_PX * 2);
-  const room = availableHeight - ORBIT_LABEL_ROOM_PX;
+  const room = availableHeight - Math.max(0, verticalRoom);
   if (availableWidth <= 0 || room <= 0) return 0;
   let low = 0;
   let high = Math.max(availableWidth, availableHeight) * 3;
@@ -33,4 +33,14 @@ export function fitOrbitSide(width: number, height: number): number {
     else high = mid;
   }
   return low;
+}
+
+/** Décorations réellement visibles, mesurées dans le repère du carré orbital. */
+export function orbitVerticalLayout(side: number, top: number, bottom: number) {
+  const radius = ((orbitRadiusFor(side) + ORBIT_NODE_SIZE / 2) / 100) * side;
+  return {
+    // Le rayon réserve déjà la place des nœuds : ne compter que ce qui dépasse.
+    room: Math.max(0, side / 2 - radius - top) + Math.max(0, bottom - side / 2 - radius),
+    offset: side / 2 - (top + bottom) / 2,
+  };
 }

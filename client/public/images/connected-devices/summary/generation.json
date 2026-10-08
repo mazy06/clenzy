@@ -1,0 +1,14 @@
+[
+  {
+    "file": "baitly-wifi-online.webp",
+    "tool": "image_gen.imagegen (built-in)",
+    "prompt": "Use case: 3D UI illustration. Create a single premium tactile 3D Wi-Fi connected symbol for the Baitly PMS KPI bar, isolated on genuinely transparent background. Three chunky nested curved wireless signal arcs above a small round dot, slightly turned 15 degrees to the right, mostly frontal and easily legible at 42 pixels. Deep desaturated navy blue enamel arcs, ivory ceramic dot with a restrained teal inset light, tiny champagne-brass side surfaces, soft studio light from upper left. Warm elegant miniature object, realistic subtle depth, balanced square composition, symbol fills 82% canvas. No router, no house, no base or pedestal, no text, no logo, no background, no circular badge, no cast floor shadow, no glow. A coherent standalone Wi-Fi status image for ONLINE.",
+    "source": "exec-dfafb56d-a655-4dbd-8033-bf0613a29069.png"
+  },
+  {
+    "file": "baitly-wifi-offline.webp",
+    "tool": "image_gen.imagegen (built-in)",
+    "prompt": "Use case: 3D UI illustration. Create a single premium tactile 3D Wi-Fi disconnected symbol for the Baitly PMS KPI bar, isolated on genuinely transparent background. Three chunky nested curved wireless signal arcs above a small round dot, crossed by one neat diagonal warm muted amber ceramic slash. Slightly turned 15 degrees to the right, mostly frontal and easily legible at 42 pixels. Desaturated slate-blue enamel arcs, ivory ceramic dot, restrained muted amber slash, tiny champagne-brass side surfaces, soft studio light from upper left. Warm elegant miniature object, realistic subtle depth, balanced square composition, symbol fills 82% canvas. No router, no house, no base or pedestal, no text, no logo, no background, no circular badge, no cast floor shadow, no glow. A coherent standalone Wi-Fi status image for OFFLINE.",
+    "source": "exec-348fac2c-3691-4f38-ac2a-072083304a78.png"
+  }
+]

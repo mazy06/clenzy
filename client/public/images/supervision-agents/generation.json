@@ -1,0 +1,151 @@
+{
+  "tool": "image_gen built-in",
+  "created": "2026-10-04",
+  "reference": "Baitly specialized AI agent concept sheet",
+  "background": "transparent alpha",
+  "delivery": "256x256 WebP resting portraits, quality 94, alpha preserved; poster matches the motion's first frame",
+  "prompt": "Use case: precise-object-edit. Produce ONE square production UI asset from the reference sheet, ONLY the specified character. Preserve this exact Baitly AI agent's character design, costume, equipment and soft photographic 3D materials. Keep entire head, torso, both hands and professional props fully visible, isolated and centered within a square with 8% empty margin on all sides. No other characters. Remove all captions and all text. Actual transparent RGBA background with clean antialiased alpha, no floor or shadow outside the character, no fake checkerboard or solid backdrop. Output a single 512x512 cutout. The navy/ivory/brass specialist must be immediately recognizable in a small 64px circular UI node. Do not add any new details, logos, glow or decoration.",
+  "assets": [
+    {
+      "file": "ops.webp",
+      "subject": "TOP row FIRST character, Opérations, the navy work vest and cleaning/tool caddy"
+    },
+    {
+      "file": "fin.webp",
+      "subject": "TOP row SECOND character, Finance, navy waistcoat and tie with calculator and ivory accounting ledger"
+    },
+    {
+      "file": "rev.webp",
+      "subject": "TOP row THIRD character, Revenue, analyst holding tablet chart and blank price tag"
+    },
+    {
+      "file": "rep.webp",
+      "subject": "TOP row FOURTH character, Avis & Réputation, holding brass star and feedback card"
+    },
+    {
+      "file": "sync.webp",
+      "subject": "TOP row FIFTH character, Synchronisation, technical vest and two connected calendars"
+    },
+    {
+      "file": "cmp.webp",
+      "subject": "BOTTOM row FIRST character, Conformité, formal suit with verified document and protective shield"
+    },
+    {
+      "file": "gst.webp",
+      "subject": "BOTTOM row SECOND character, Voyageur, concierge cap and uniform with brass room key and small travel suitcase"
+    },
+    {
+      "file": "own.webp",
+      "subject": "BOTTOM row THIRD character, Propriétaire, blazer with an ivory house miniature and property folder"
+    },
+    {
+      "file": "gro.webp",
+      "subject": "BOTTOM row FOURTH character, Croissance, holding the professional megaphone and brass upward arrow"
+    },
+    {
+      "file": "com.webp",
+      "subject": "BOTTOM row FIFTH character, Communication, the headset and microphone agent holding an ivory envelope"
+    }
+  ],
+  "motion": {
+    "delivery": "256x256 transparent VP9 WebM (lossless), 60fps, 3.2s loop; lossless animated WebP fallback, 192 frames",
+    "playback": "Native playback loaded only for the aligned agent; on decode completion seek to shared 3.2s performance clock; stop/unmount on pause, rotation, hidden tab or reduced motion. WebP fallback when video decoding, autoplay or transparent alpha is unsupported.",
+    "assets": [
+      {
+        "file": "gro.webm",
+        "fallback": "gro-animated.webp",
+        "poster": "gro.webp",
+        "source": "exec-bc5c2db3-48db-4b7c-b9fa-e33b67ca2f5f.png",
+        "gesture": "With its right hand the agent brings its existing megaphone up toward its face and addresses it as if speaking, then lowers it back. The other hand keeps its brass growth arrow. The megaphone is ALWAYS held with the same hand.",
+        "prompt": "Use case: precise-object-edit. Make one production ANIMATION SPRITE SHEET of this exact Baitly AI specialist. The input cutout is the identity and costume reference. Keep its face, clothing, colors, physical hands and tools exactly consistent. With its right hand the agent brings its existing megaphone up toward its face and addresses it as if speaking, then lowers it back. The other hand keeps its brass growth arrow. The megaphone is ALWAYS held with the same hand.\nREQUIRED OUTPUT: transparent PNG, 2048px wide by 1024px high. EXACT 4 columns x 2 rows, eight equal 512x512 cells, edge-to-edge grid with NO gutters, NO labels, NO borders, NO background or floor. Each cell contains the SAME complete character at the SAME camera distance, same scale, same centered head and fixed body location, with 10% transparent margins. Never cross cell edges. Only its arms, hands, props and eyelids change between cells; the head must not drift or rescale. Genuine transparent alpha background. Render all eight separate full frames.\nFrame order is left to right top row then left to right bottom row. Frame 1: original rest pose, eyes open. Frame 2: same rest pose, BOTH eyes CLOSED as two thin curved pale eyelid slits. Frame 3: eyes open, begin the described hand/tool gesture. Frame 4: eyes open, half-way to the action pose. Frame 5: action pose at its peak, eyes open. Frame 6: same peak action pose, BOTH eyes closed in a natural blink. Frame 7: eyes open, arms/props half-way returning to rest. Frame 8: return EXACTLY to frame 1 rest pose, eyes open. A readable sequence with clear physical movement of the held equipment, not eight identical figures. No motion blur, no speed lines, no effects. Premium photographic 3D materials, navy, warm ivory and brass, consistent soft studio lighting, no captions or text."
+      },
+      {
+        "file": "fin.webm",
+        "fallback": "fin-animated.webp",
+        "poster": "fin.webp",
+        "source": "exec-3b268201-b355-403c-b95a-a0b52b53b387.png",
+        "gesture": "The agent tilts its calculator toward itself and uses one finger to press two buttons, then presents the calculator again. Its other hand securely keeps the ivory account ledger. Never exchange, duplicate or drop props.",
+        "prompt": "Use case: precise-object-edit. Make one production ANIMATION SPRITE SHEET of this exact Baitly AI specialist. The input cutout is the identity and costume reference. Keep its face, clothing, colors, physical hands and tools exactly consistent. The agent tilts its calculator toward itself and uses one finger to press two buttons, then presents the calculator again. Its other hand securely keeps the ivory account ledger. Never exchange, duplicate or drop props.\nREQUIRED OUTPUT: transparent PNG, 2048px wide by 1024px high. EXACT 4 columns x 2 rows, eight equal 512x512 cells, edge-to-edge grid with NO gutters, NO labels, NO borders, NO background or floor. Each cell contains the SAME complete character at the SAME camera distance, same scale, same centered head and fixed body location, with 10% transparent margins. Never cross cell edges. Only its arms, hands, props and eyelids change between cells; the head must not drift or rescale. Genuine transparent alpha background. Render all eight separate full frames.\nFrame order is left to right top row then left to right bottom row. Frame 1: original rest pose, eyes open. Frame 2: same rest pose, BOTH eyes CLOSED as two thin curved pale eyelid slits. Frame 3: eyes open, begin the described hand/tool gesture. Frame 4: eyes open, half-way to the action pose. Frame 5: action pose at its peak, eyes open. Frame 6: same peak action pose, BOTH eyes closed in a natural blink. Frame 7: eyes open, arms/props half-way returning to rest. Frame 8: return EXACTLY to frame 1 rest pose, eyes open. A readable sequence with clear physical movement of the held equipment, not eight identical figures. No motion blur, no speed lines, no effects. Premium photographic 3D materials, navy, warm ivory and brass, consistent soft studio lighting, no captions or text."
+      },
+      {
+        "file": "ops.webm",
+        "fallback": "ops-animated.webp",
+        "poster": "ops.webp",
+        "source": "exec-ffdfe98d-277c-4194-ad2f-d581ced9a40f.png",
+        "gesture": "The agent grasps the blue folded cleaning cloth in its tool caddy, lifts it and makes a short wiping gesture across the caddy rim, then folds it back. The other hand holds the caddy steadily. Keep screwdriver and spray bottle in place.",
+        "prompt": "Use case: precise-object-edit. Make one production ANIMATION SPRITE SHEET of this exact Baitly AI specialist. The input cutout is the identity and costume reference. Keep its face, clothing, colors, physical hands and tools exactly consistent. The agent grasps the blue folded cleaning cloth in its tool caddy, lifts it and makes a short wiping gesture across the caddy rim, then folds it back. The other hand holds the caddy steadily. Keep screwdriver and spray bottle in place.\nREQUIRED OUTPUT: transparent PNG, 2048px wide by 1024px high. EXACT 4 columns x 2 rows, eight equal 512x512 cells, edge-to-edge grid with NO gutters, NO labels, NO borders, NO background or floor. Each cell contains the SAME complete character at the SAME camera distance, same scale, same centered head and fixed body location, with 10% transparent margins. Never cross cell edges. Only its arms, hands, props and eyelids change between cells; the head must not drift or rescale. Genuine transparent alpha background. Render all eight separate full frames.\nFrame order is left to right top row then left to right bottom row. Frame 1: original rest pose, eyes open. Frame 2: same rest pose, BOTH eyes CLOSED as two thin curved pale eyelid slits. Frame 3: eyes open, begin the described hand/tool gesture. Frame 4: eyes open, half-way to the action pose. Frame 5: action pose at its peak, eyes open. Frame 6: same peak action pose, BOTH eyes closed in a natural blink. Frame 7: eyes open, arms/props half-way returning to rest. Frame 8: return EXACTLY to frame 1 rest pose, eyes open. A readable sequence with clear physical movement of the held equipment, not eight identical figures. No motion blur, no speed lines, no effects. Premium photographic 3D materials, navy, warm ivory and brass, consistent soft studio lighting, no captions or text."
+      },
+      {
+        "file": "rev.webm",
+        "fallback": "rev-animated.webp",
+        "poster": "rev.webp",
+        "source": "exec-2fd5a205-f295-477c-84af-fd189aeb1d2e.png",
+        "gesture": "The analyst tilts its existing chart tablet toward the viewer, pointing to its rising bars with a finger, and then brings it back to its chest. The other hand keeps the ivory price tag. Do not duplicate the tablet or tag.",
+        "prompt": "Use case: precise-object-edit. Make one production ANIMATION SPRITE SHEET of this exact Baitly AI specialist. The input cutout is the identity and costume reference. Keep its face, clothing, colors, physical hands and tools exactly consistent. The analyst tilts its existing chart tablet toward the viewer, pointing to its rising bars with a finger, and then brings it back to its chest. The other hand keeps the ivory price tag. Do not duplicate the tablet or tag.\nREQUIRED OUTPUT: transparent PNG, 2048px wide by 1024px high. EXACT 4 columns x 2 rows, eight equal 512x512 cells, edge-to-edge grid with NO gutters, NO labels, NO borders, NO background or floor. Each cell contains the SAME complete character at the SAME camera distance, same scale, same centered head and fixed body location, with 10% transparent margins. Never cross cell edges. Only its arms, hands, props and eyelids change between cells; the head must not drift or rescale. Genuine transparent alpha background. Render all eight separate full frames.\nFrame order is left to right top row then left to right bottom row. Frame 1: original rest pose, eyes open. Frame 2: same rest pose, BOTH eyes CLOSED as two thin curved pale eyelid slits. Frame 3: eyes open, begin the described hand/tool gesture. Frame 4: eyes open, half-way to the action pose. Frame 5: action pose at its peak, eyes open. Frame 6: same peak action pose, BOTH eyes closed in a natural blink. Frame 7: eyes open, arms/props half-way returning to rest. Frame 8: return EXACTLY to frame 1 rest pose, eyes open. A readable sequence with clear physical movement of the held equipment, not eight identical figures. No motion blur, no speed lines, no effects. Premium photographic 3D materials, navy, warm ivory and brass, consistent soft studio lighting, no captions or text."
+      },
+      {
+        "file": "rep.webm",
+        "fallback": "rep-animated.webp",
+        "poster": "rep.webp",
+        "source": "exec-6de5d875-dfe7-4eec-99a8-ab50cf7f62f3.png",
+        "gesture": "The reputation specialist lifts the brass star award proudly and turns it slightly toward the viewer, then lowers it. The other hand holds the feedback card steadily. No new tools.",
+        "prompt": "Use case: precise-object-edit. Make one production ANIMATION SPRITE SHEET of this exact Baitly AI specialist. The input cutout is the identity and costume reference. Keep its face, clothing, colors, physical hands and tools exactly consistent. The reputation specialist lifts the brass star award proudly and turns it slightly toward the viewer, then lowers it. The other hand holds the feedback card steadily. No new tools.\nREQUIRED OUTPUT: transparent PNG, 2048px wide by 1024px high. EXACT 4 columns x 2 rows, eight equal 512x512 cells, edge-to-edge grid with NO gutters, NO labels, NO borders, NO background or floor. Each cell contains the SAME complete character at the SAME camera distance, same scale, same centered head and fixed body location, with 10% transparent margins. Never cross cell edges. Only its arms, hands, props and eyelids change between cells; the head must not drift or rescale. Genuine transparent alpha background. Render all eight separate full frames.\nFrame order is left to right top row then left to right bottom row. Frame 1: original rest pose, eyes open. Frame 2: same rest pose, BOTH eyes CLOSED as two thin curved pale eyelid slits. Frame 3: eyes open, begin the described hand/tool gesture. Frame 4: eyes open, half-way to the action pose. Frame 5: action pose at its peak, eyes open. Frame 6: same peak action pose, BOTH eyes closed in a natural blink. Frame 7: eyes open, arms/props half-way returning to rest. Frame 8: return EXACTLY to frame 1 rest pose, eyes open. A readable sequence with clear physical movement of the held equipment, not eight identical figures. No motion blur, no speed lines, no effects. Premium photographic 3D materials, navy, warm ivory and brass, consistent soft studio lighting, no captions or text."
+      },
+      {
+        "file": "sync.webm",
+        "fallback": "sync-animated.webp",
+        "poster": "sync.webp",
+        "source": "exec-90943828-229d-4c7f-b2ff-dcb5e906019b.png",
+        "gesture": "The systems agent slightly raises the two connected calendars, uses its hand to flip a page of one calendar while the other stays visible, then presents both matching calendars again. Keep the two physical blue sync arrows.",
+        "prompt": "Use case: precise-object-edit. Make one production ANIMATION SPRITE SHEET of this exact Baitly AI specialist. The input cutout is the identity and costume reference. Keep its face, clothing, colors, physical hands and tools exactly consistent. The systems agent slightly raises the two connected calendars, uses its hand to flip a page of one calendar while the other stays visible, then presents both matching calendars again. Keep the two physical blue sync arrows.\nREQUIRED OUTPUT: transparent PNG, 2048px wide by 1024px high. EXACT 4 columns x 2 rows, eight equal 512x512 cells, edge-to-edge grid with NO gutters, NO labels, NO borders, NO background or floor. Each cell contains the SAME complete character at the SAME camera distance, same scale, same centered head and fixed body location, with 10% transparent margins. Never cross cell edges. Only its arms, hands, props and eyelids change between cells; the head must not drift or rescale. Genuine transparent alpha background. Render all eight separate full frames.\nFrame order is left to right top row then left to right bottom row. Frame 1: original rest pose, eyes open. Frame 2: same rest pose, BOTH eyes CLOSED as two thin curved pale eyelid slits. Frame 3: eyes open, begin the described hand/tool gesture. Frame 4: eyes open, half-way to the action pose. Frame 5: action pose at its peak, eyes open. Frame 6: same peak action pose, BOTH eyes closed in a natural blink. Frame 7: eyes open, arms/props half-way returning to rest. Frame 8: return EXACTLY to frame 1 rest pose, eyes open. A readable sequence with clear physical movement of the held equipment, not eight identical figures. No motion blur, no speed lines, no effects. Premium photographic 3D materials, navy, warm ivory and brass, consistent soft studio lighting, no captions or text."
+      },
+      {
+        "file": "cmp.webm",
+        "fallback": "cmp-animated.webp",
+        "poster": "cmp.webp",
+        "source": "exec-60807e39-e5a4-42cd-84cc-81b766d6a11e.png",
+        "gesture": "The compliance agent brings the verification document closer, carefully points to its existing checkmark and then presents the validated document. Its other hand holds the protective shield throughout. Keep original props, no stamps or extra objects.",
+        "prompt": "Use case: precise-object-edit. Make one production ANIMATION SPRITE SHEET of this exact Baitly AI specialist. The input cutout is the identity and costume reference. Keep its face, clothing, colors, physical hands and tools exactly consistent. The compliance agent brings the verification document closer, carefully points to its existing checkmark and then presents the validated document. Its other hand holds the protective shield throughout. Keep original props, no stamps or extra objects.\nREQUIRED OUTPUT: transparent PNG, 2048px wide by 1024px high. EXACT 4 columns x 2 rows, eight equal 512x512 cells, edge-to-edge grid with NO gutters, NO labels, NO borders, NO background or floor. Each cell contains the SAME complete character at the SAME camera distance, same scale, same centered head and fixed body location, with 10% transparent margins. Never cross cell edges. Only its arms, hands, props and eyelids change between cells; the head must not drift or rescale. Genuine transparent alpha background. Render all eight separate full frames.\nFrame order is left to right top row then left to right bottom row. Frame 1: original rest pose, eyes open. Frame 2: same rest pose, BOTH eyes CLOSED as two thin curved pale eyelid slits. Frame 3: eyes open, begin the described hand/tool gesture. Frame 4: eyes open, half-way to the action pose. Frame 5: action pose at its peak, eyes open. Frame 6: same peak action pose, BOTH eyes closed in a natural blink. Frame 7: eyes open, arms/props half-way returning to rest. Frame 8: return EXACTLY to frame 1 rest pose, eyes open. A readable sequence with clear physical movement of the held equipment, not eight identical figures. No motion blur, no speed lines, no effects. Premium photographic 3D materials, navy, warm ivory and brass, consistent soft studio lighting, no captions or text."
+      },
+      {
+        "file": "gst.webm",
+        "fallback": "gst-animated.webp",
+        "poster": "gst.webp",
+        "source": "exec-365036df-b77d-4242-8314-8f511971a225.png",
+        "gesture": "The concierge agent lifts the brass room key toward the viewer with a welcoming gesture and lowers it again. Its other hand holds the suitcase throughout. Its cap and head stay steady.",
+        "prompt": "Use case: precise-object-edit. Make one production ANIMATION SPRITE SHEET of this exact Baitly AI specialist. The input cutout is the identity and costume reference. Keep its face, clothing, colors, physical hands and tools exactly consistent. The concierge agent lifts the brass room key toward the viewer with a welcoming gesture and lowers it again. Its other hand holds the suitcase throughout. Its cap and head stay steady.\nREQUIRED OUTPUT: transparent PNG, 2048px wide by 1024px high. EXACT 4 columns x 2 rows, eight equal 512x512 cells, edge-to-edge grid with NO gutters, NO labels, NO borders, NO background or floor. Each cell contains the SAME complete character at the SAME camera distance, same scale, same centered head and fixed body location, with 10% transparent margins. Never cross cell edges. Only its arms, hands, props and eyelids change between cells; the head must not drift or rescale. Genuine transparent alpha background. Render all eight separate full frames.\nFrame order is left to right top row then left to right bottom row. Frame 1: original rest pose, eyes open. Frame 2: same rest pose, BOTH eyes CLOSED as two thin curved pale eyelid slits. Frame 3: eyes open, begin the described hand/tool gesture. Frame 4: eyes open, half-way to the action pose. Frame 5: action pose at its peak, eyes open. Frame 6: same peak action pose, BOTH eyes closed in a natural blink. Frame 7: eyes open, arms/props half-way returning to rest. Frame 8: return EXACTLY to frame 1 rest pose, eyes open. A readable sequence with clear physical movement of the held equipment, not eight identical figures. No motion blur, no speed lines, no effects. Premium photographic 3D materials, navy, warm ivory and brass, consistent soft studio lighting, no captions or text."
+      },
+      {
+        "file": "own.webm",
+        "fallback": "own-animated.webp",
+        "poster": "own.webp",
+        "source": "exec-70bad399-d720-4a3d-b47a-99e111b7dcdf.png",
+        "gesture": "The owner-relations agent gently extends its open palm supporting the little house to present it to the viewer, turns the house a little, then returns it. Its other hand keeps the property folder throughout.",
+        "prompt": "Use case: precise-object-edit. Make one production ANIMATION SPRITE SHEET of this exact Baitly AI specialist. The input cutout is the identity and costume reference. Keep its face, clothing, colors, physical hands and tools exactly consistent. The owner-relations agent gently extends its open palm supporting the little house to present it to the viewer, turns the house a little, then returns it. Its other hand keeps the property folder throughout.\nREQUIRED OUTPUT: transparent PNG, 2048px wide by 1024px high. EXACT 4 columns x 2 rows, eight equal 512x512 cells, edge-to-edge grid with NO gutters, NO labels, NO borders, NO background or floor. Each cell contains the SAME complete character at the SAME camera distance, same scale, same centered head and fixed body location, with 10% transparent margins. Never cross cell edges. Only its arms, hands, props and eyelids change between cells; the head must not drift or rescale. Genuine transparent alpha background. Render all eight separate full frames.\nFrame order is left to right top row then left to right bottom row. Frame 1: original rest pose, eyes open. Frame 2: same rest pose, BOTH eyes CLOSED as two thin curved pale eyelid slits. Frame 3: eyes open, begin the described hand/tool gesture. Frame 4: eyes open, half-way to the action pose. Frame 5: action pose at its peak, eyes open. Frame 6: same peak action pose, BOTH eyes closed in a natural blink. Frame 7: eyes open, arms/props half-way returning to rest. Frame 8: return EXACTLY to frame 1 rest pose, eyes open. A readable sequence with clear physical movement of the held equipment, not eight identical figures. No motion blur, no speed lines, no effects. Premium photographic 3D materials, navy, warm ivory and brass, consistent soft studio lighting, no captions or text."
+      },
+      {
+        "file": "com.webm",
+        "fallback": "com-animated.webp",
+        "poster": "com.webp",
+        "source": "exec-b0905c4e-8be5-4157-ad3a-179dde1db0d0.png",
+        "gesture": "The communications agent keeps its envelope in one hand, frees the other hand and brings it up to the headset earcup as if answering a call, listens briefly, and returns the hand to the envelope. The headset stays fixed on its head.",
+        "prompt": "Use case: precise-object-edit. Make one production ANIMATION SPRITE SHEET of this exact Baitly AI specialist. The input cutout is the identity and costume reference. Keep its face, clothing, colors, physical hands and tools exactly consistent. The communications agent keeps its envelope in one hand, frees the other hand and brings it up to the headset earcup as if answering a call, listens briefly, and returns the hand to the envelope. The headset stays fixed on its head.\nREQUIRED OUTPUT: transparent PNG, 2048px wide by 1024px high. EXACT 4 columns x 2 rows, eight equal 512x512 cells, edge-to-edge grid with NO gutters, NO labels, NO borders, NO background or floor. Each cell contains the SAME complete character at the SAME camera distance, same scale, same centered head and fixed body location, with 10% transparent margins. Never cross cell edges. Only its arms, hands, props and eyelids change between cells; the head must not drift or rescale. Genuine transparent alpha background. Render all eight separate full frames.\nFrame order is left to right top row then left to right bottom row. Frame 1: original rest pose, eyes open. Frame 2: same rest pose, BOTH eyes CLOSED as two thin curved pale eyelid slits. Frame 3: eyes open, begin the described hand/tool gesture. Frame 4: eyes open, half-way to the action pose. Frame 5: action pose at its peak, eyes open. Frame 6: same peak action pose, BOTH eyes closed in a natural blink. Frame 7: eyes open, arms/props half-way returning to rest. Frame 8: return EXACTLY to frame 1 rest pose, eyes open. A readable sequence with clear physical movement of the held equipment, not eight identical figures. No motion blur, no speed lines, no effects. Premium photographic 3D materials, navy, warm ivory and brass, consistent soft studio lighting, no captions or text."
+      }
+    ],
+    "processing": "Premultiplied-alpha pose transitions at 60fps, no block motion compensation; full-range alpha restored before compositing; return along the same open-eye poses, short blinks at rest and at the gesture peak.",
+    "buildScript": "scripts/build-baitly-agent-motion.mjs",
+    "framesUsedOneBased": [
+      1,
+      2,
+      1,
+      3,
+      4,
+      5,
+      6,
+      5,
+      4,
+      3,
+      1
+    ]
+  }
+}

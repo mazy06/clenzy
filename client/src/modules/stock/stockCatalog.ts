@@ -35,7 +35,7 @@ export const STOCK_CATALOG: StockCatalogEntry[] = [
   {"key":"duvet","category":"LINEN","names":{"fr":"Couette","en":"Duvet","ar":"لحاف"},"image":{"sheet":"linen","slot":6},"family":"linen"},
   {"key":"blanket","category":"LINEN","names":{"fr":"Couverture","en":"Blanket","ar":"بطانية"},"image":{"sheet":"linen","slot":7},"family":"linen"},
   {"key":"bath-towel","category":"LINEN","names":{"fr":"Drap de bain","en":"Bath towel","ar":"منشفة حمام كبيرة"},"image":{"sheet":"linen","slot":8},"aliases":["Serviette de bain"],"family":"linen"},
-  {"key":"hand-towel","category":"LINEN","names":{"fr":"Serviette de toilette","en":"Hand towel","ar":"منشفة يد"},"image":{"sheet":"linen","slot":9},"family":"linen"},
+  {"key":"hand-towel","category":"LINEN","names":{"fr":"Serviette de toilette","en":"Hand towel","ar":"منشفة يد"},"image":{"sheet":"linen","slot":9},"aliases":["Serviette de mains", "Serviette à mains"],"family":"linen"},
   {"key":"bath-mat","category":"LINEN","names":{"fr":"Tapis de bain","en":"Bath mat","ar":"حصيرة حمام"},"image":{"sheet":"linen","slot":10},"family":"linen"},
   {"key":"bathrobe","category":"LINEN","names":{"fr":"Peignoir","en":"Bathrobe","ar":"رداء حمام"},"image":{"sheet":"linen","slot":11},"family":"linen"},
   {"key":"slippers","category":"LINEN","names":{"fr":"Chaussons","en":"Slippers","ar":"نعال"},"image":{"sheet":"linen","slot":12},"family":"linen"},

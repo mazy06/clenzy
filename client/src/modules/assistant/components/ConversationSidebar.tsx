@@ -6,7 +6,6 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from '../../../components/ui';
-import { cn } from '../../../utils/cn';
 import { Delete, History as HistoryIcon } from '../../../icons';
 import { useTranslation } from '../../../hooks/useTranslation';
 import type { ConversationSummary } from '../../../services/api/assistantApi';
@@ -20,15 +19,7 @@ interface ConversationSidebarProps {
   onArchive: (conversationId: number) => Promise<void>;
 }
 
-/**
- * Panneau « Conversations récentes » — reprise fidèle de la projection :
- * carte bordée, titre en capitales discrètes, items en pilules (l'actif en
- * teinte de marque), et le bouton « Nouvelle conversation » en pied de carte.
- *
- * <p>Les conversations restent groupées par période : la projection n'a que
- * quatre lignes de démonstration, l'usage réel en accumule des dizaines et
- * l'ancrage temporel est ce qui permet de s'y retrouver.</p>
- */
+/** Conversations grouped by recency, with separate selection and archive actions. */
 export const ConversationSidebar: React.FC<ConversationSidebarProps> = ({
   conversations,
   activeConversationId,
@@ -41,8 +32,8 @@ export const ConversationSidebar: React.FC<ConversationSidebarProps> = ({
   const grouped = useMemo(() => groupByPeriod(conversations), [conversations]);
 
   return (
-    <div className="flex h-full flex-col rounded-xl border border-border bg-card p-4">
-      <h3 className="m-0 mb-3 flex shrink-0 items-center gap-1.5 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+    <div className="baitly-assistant-history">
+      <h3 className="m-0 mb-4 flex shrink-0 items-center gap-2 text-sm font-semibold">
         <HistoryIcon className="size-3.5" /> {t('assistant.history.title')}
       </h3>
 
@@ -52,13 +43,13 @@ export const ConversationSidebar: React.FC<ConversationSidebarProps> = ({
         {!loading && conversations.length === 0 && (
           <div className="px-2 py-6 text-center text-xs text-muted-foreground">
             <p>{t('assistant.history.empty')}</p>
-            <p className="mt-0.5 text-faint">{t('assistant.history.emptyHint')}</p>
+            <p className="mt-1 text-muted-foreground">{t('assistant.history.emptyHint')}</p>
           </div>
         )}
 
         {grouped.map((group) => (
           <div className="mb-3 flex flex-col gap-1" key={group.labelKey}>
-            <p className="px-2.5 text-2xs font-semibold uppercase tracking-wide text-faint">
+            <p className="px-2.5 text-xs font-medium text-muted-foreground">
               {t(`assistant.history.${group.labelKey}`)}
             </p>
             {group.items.map((conversation) => (
@@ -74,7 +65,7 @@ export const ConversationSidebar: React.FC<ConversationSidebarProps> = ({
         ))}
       </div>
 
-      <Button size="xs" variant="outline" className="mt-3 w-full shrink-0 cursor-pointer" onClick={onNew}>
+      <Button size="xs" variant="outline" className="mt-3 min-h-11 w-full shrink-0 cursor-pointer text-[var(--bui-supervision-ink)]" onClick={onNew}>
         {t('assistant.newConversation')}
       </Button>
     </div>
@@ -117,13 +108,12 @@ const ConversationItem: React.FC<ConversationItemProps> = ({
 
   return (
     <div
-      onClick={() => onSelect(conversation.id)}
-      className={cn(
-        'group/conv flex cursor-pointer items-center gap-2 rounded-lg px-2.5 py-2 text-start text-xs outline-none transition-colors duration-150 motion-reduce:transition-none',
-        active ? 'bg-primary-soft font-medium text-primary' : 'text-foreground hover:bg-accent',
-      )}
+      className="baitly-assistant-history-item"
+      data-active={active || undefined}
     >
-      <span className="min-w-0 flex-1 truncate">{title}</span>
+      <button type="button" className="baitly-assistant-history-select" onClick={() => onSelect(conversation.id)} aria-current={active ? 'true' : undefined}>
+        <span className="block truncate">{title}</span>
+      </button>
 
       <Tooltip delayDuration={400}>
         <TooltipTrigger asChild>
@@ -136,7 +126,7 @@ const ConversationItem: React.FC<ConversationItemProps> = ({
               size="icon-xs"
               onClick={handleArchive}
               disabled={archiving}
-              className="cursor-pointer text-muted-foreground opacity-0 transition-opacity duration-150 hover:bg-destructive-soft hover:text-destructive-ink focus-visible:opacity-100 group-hover/conv:opacity-100 motion-reduce:transition-none"
+              className="size-9 cursor-pointer text-muted-foreground hover:bg-destructive-soft hover:text-destructive-ink"
               aria-label={t('assistant.history.archive', { title })}
             >
               <Delete size={13} strokeWidth={1.75} />
