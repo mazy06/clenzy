@@ -1,5 +1,5 @@
-import { IconBell } from "@tabler/icons-react"
-import { RefreshCcwIcon } from "lucide-react"
+import { Bell as IconBell } from "../../../../icons/glyphs"
+import { RefreshCcwIcon } from "../../../../icons/glyphs"
 
 import { Button } from '../../../../components/ui'
 import {

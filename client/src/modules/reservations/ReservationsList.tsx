@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useId, useMemo, useRef, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { ArrowLeft, TriangleAlert } from 'lucide-react';
+import { ArrowLeft, TriangleAlert } from '../../icons/glyphs';
 import ModuleFirstUsePage from '../../components/first-use/ModuleFirstUsePage';
 import {
   Alert,

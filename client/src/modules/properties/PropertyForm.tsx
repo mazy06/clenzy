@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useId } from 'react';
 import { Alert as UiAlert, AlertDescription, Button } from '../../components/ui';
-import { CircleCheck, TriangleAlert } from 'lucide-react';
+import { CircleCheck, TriangleAlert } from '../../icons/glyphs';
 import { Spinner } from '../../components/ui';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';

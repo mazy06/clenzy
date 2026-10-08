@@ -22,7 +22,7 @@ import {
   TriangleAlertIcon,
   UserPlusIcon,
   UsersIcon,
-} from 'lucide-react';
+} from '../../../icons/glyphs';
 import {
   Attachment,
   AttachmentContent,

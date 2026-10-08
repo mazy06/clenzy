@@ -1,4 +1,4 @@
-import type { LucideIcon } from 'lucide-react';
+import type { IconComponent } from '../../icons/glyphs';
 import {
   Coffee,
   ThermometerSun,
@@ -54,7 +54,7 @@ import {
   Landmark,
   Waves,
   Cross,
-} from 'lucide-react';
+} from '../../icons/glyphs';
 
 /**
  * Registre d'icônes lucide du livret (sections, équipements, règles, transports…).
@@ -62,7 +62,7 @@ import {
  * (stockées dans le JSON des sections), valeurs = composant lucide. Curé pour
  * éviter d'importer toute la librairie (bundle). Fallback = FileText.
  */
-const GUIDE_ICONS: Record<string, LucideIcon> = {
+const GUIDE_ICONS: Record<string, IconComponent> = {
   // Équipements / logement
   coffee: Coffee,
   'thermometer-sun': ThermometerSun,
@@ -125,7 +125,7 @@ const GUIDE_ICONS: Record<string, LucideIcon> = {
 };
 
 /** Composant lucide pour un nom d'icône (fallback FileText). */
-export function guideIcon(name?: string | null): LucideIcon {
+export function guideIcon(name?: string | null): IconComponent {
   return (name && GUIDE_ICONS[name]) || FileText;
 }
 

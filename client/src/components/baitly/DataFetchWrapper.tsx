@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react';
-import { RefreshCwIcon, XIcon } from 'lucide-react';
+import { RefreshCwIcon, XIcon } from '../../icons/glyphs';
 import { Alert, AlertDescription, AlertTitle, Button, Spinner } from '../ui';
 import ListSkeleton from './ListSkeleton';
 import { cn } from '../../utils/cn';

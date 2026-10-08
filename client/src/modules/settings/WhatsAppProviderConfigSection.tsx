@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Badge } from '../../components/ui';
 import { Alert as BuiAlert, AlertDescription, AlertAction, Button as BuiButton } from '../../components/ui';
-import { Check, Minus, TriangleAlert, X, CircleCheck } from 'lucide-react';
+import { Check, Minus, TriangleAlert, X, CircleCheck } from '../../icons/glyphs';
 import { Spinner } from '../../components/ui';
 import {
   Field,

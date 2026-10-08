@@ -1,5 +1,5 @@
 import { lazy, Suspense, useEffect, useState } from 'react';
-import { RefreshCw } from 'lucide-react';
+import { RefreshCw } from '../../icons/glyphs';
 import { Alert, AlertDescription, Button, Skeleton } from '../../components/ui';
 import { documentsApi, InvalidDocumentPdfError } from '../../services/api/documentsApi';
 import { useTranslation } from '../../hooks/useTranslation';

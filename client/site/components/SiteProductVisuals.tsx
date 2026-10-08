@@ -1,4 +1,4 @@
-import { CircleCheckIcon, Clock3Icon } from 'lucide-react';
+import { CircleCheckIcon, Clock3Icon } from '../../src/icons/glyphs';
 import type { ReactNode } from 'react';
 import type { AgentId } from '../../src/modules/supervision/types';
 import { SITE_AGENT_PORTRAITS, SITE_PRODUCT_ARTWORK } from '../data/productArtwork';

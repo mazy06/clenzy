@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { cn } from '../../utils/cn';
 import StatusChip from '../../components/StatusChip';
 import { Alert as UiAlert, AlertDescription, Button as BuiButton } from '../../components/ui';
-import { TriangleAlert } from 'lucide-react';
+import { TriangleAlert } from '../../icons/glyphs';
 import { usePageHeaderActions } from '../../components/PageHeaderActionsContext';
 import { PropertyTabHeading, PropertyTabLoading } from '../properties/PropertyTabPrimitives';
 import { PROPERTY_ART } from '../properties/propertyArtwork';

@@ -1,7 +1,7 @@
 import React, { useMemo, useState } from 'react';
 import { View, Text, ScrollView, RefreshControl, Pressable } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Ionicons } from '@expo/vector-icons';
+import { Reicon } from '@/icons';
 import { useNavigation } from '@react-navigation/native';
 import { useTheme } from '@/theme';
 import { Card } from '@/components/ui/Card';
@@ -12,7 +12,7 @@ import { SectionHeader } from '@/components/ui/SectionHeader';
 import { usePaymentHistory, usePaymentSummary } from '@/hooks/usePayments';
 import type { PaymentRecord } from '@/api/endpoints/paymentsApi';
 
-type IoniconsName = keyof typeof Ionicons.glyphMap;
+type IconName = keyof typeof Reicon.glyphMap;
 type FilterKey = 'all' | 'PAID' | 'PENDING' | 'REFUNDED';
 
 const FILTERS: Array<{ key: FilterKey; label: string }> = [
@@ -22,7 +22,7 @@ const FILTERS: Array<{ key: FilterKey; label: string }> = [
   { key: 'REFUNDED', label: 'Rembourses' },
 ];
 
-const STATUS_CONFIG: Record<string, { label: string; color: string; icon: IoniconsName }> = {
+const STATUS_CONFIG: Record<string, { label: string; color: string; icon: IconName }> = {
   PAID: { label: 'Paye', color: '#059669', icon: 'checkmark-circle' },
   PENDING: { label: 'En attente', color: '#D97706', icon: 'time-outline' },
   PROCESSING: { label: 'En cours', color: '#3B82F6', icon: 'sync-outline' },
@@ -126,7 +126,7 @@ export function PaymentHistoryScreen() {
             marginRight: theme.SPACING.md,
           }}
         >
-          <Ionicons name="arrow-back" size={20} color={theme.colors.text.primary} />
+          <Reicon name="arrow-back" size={20} color={theme.colors.text.primary} />
         </Pressable>
         <Text style={{ ...theme.typography.h2, color: theme.colors.text.primary, flex: 1 }}>
           Paiements
@@ -148,7 +148,7 @@ export function PaymentHistoryScreen() {
           alignItems: 'center',
           ...theme.shadows.sm,
         }}>
-          <Ionicons name="checkmark-circle" size={18} color="#059669" style={{ marginBottom: 4 }} />
+          <Reicon name="checkmark-circle" size={18} color="#059669" style={{ marginBottom: 4 }} />
           <Text style={{ ...theme.typography.h4, color: '#059669' }}>
             {formatAmount(summary?.totalPaid ?? 0)}€
           </Text>
@@ -162,7 +162,7 @@ export function PaymentHistoryScreen() {
           alignItems: 'center',
           ...theme.shadows.sm,
         }}>
-          <Ionicons name="time-outline" size={18} color="#D97706" style={{ marginBottom: 4 }} />
+          <Reicon name="time-outline" size={18} color="#D97706" style={{ marginBottom: 4 }} />
           <Text style={{ ...theme.typography.h4, color: '#D97706' }}>
             {formatAmount(summary?.totalPending ?? 0)}€
           </Text>
@@ -176,7 +176,7 @@ export function PaymentHistoryScreen() {
           alignItems: 'center',
           ...theme.shadows.sm,
         }}>
-          <Ionicons name="arrow-undo-outline" size={18} color="#4A7C8E" style={{ marginBottom: 4 }} />
+          <Reicon name="arrow-undo-outline" size={18} color="#4A7C8E" style={{ marginBottom: 4 }} />
           <Text style={{ ...theme.typography.h4, color: '#4A7C8E' }}>
             {formatAmount(summary?.totalRefunded ?? 0)}€
           </Text>
@@ -190,7 +190,7 @@ export function PaymentHistoryScreen() {
         marginBottom: theme.SPACING.md,
       }}>
         <Card variant="filled" style={{ flexDirection: 'row', alignItems: 'center', paddingVertical: theme.SPACING.sm }}>
-          <Ionicons name="receipt-outline" size={16} color={theme.colors.primary.main} style={{ marginRight: theme.SPACING.sm }} />
+          <Reicon name="receipt-outline" size={16} color={theme.colors.primary.main} style={{ marginRight: theme.SPACING.sm }} />
           <Text style={{ ...theme.typography.body2, color: theme.colors.text.secondary }}>
             {summary?.transactionCount ?? 0} transaction{(summary?.transactionCount ?? 0) > 1 ? 's' : ''} au total
           </Text>
@@ -250,7 +250,7 @@ export function PaymentHistoryScreen() {
             const config = STATUS_CONFIG[payment.status] ?? {
               label: payment.status,
               color: theme.colors.text.disabled,
-              icon: 'help-circle-outline' as IoniconsName,
+              icon: 'help-circle-outline' as IconName,
             };
 
             return (
@@ -266,7 +266,7 @@ export function PaymentHistoryScreen() {
                     justifyContent: 'center',
                     marginRight: theme.SPACING.sm,
                   }}>
-                    <Ionicons name={config.icon} size={20} color={config.color} />
+                    <Reicon name={config.icon} size={20} color={config.color} />
                   </View>
 
                   <View style={{ flex: 1, marginRight: theme.SPACING.sm }}>
@@ -335,7 +335,7 @@ export function PaymentHistoryScreen() {
                         gap: 4,
                       })}
                     >
-                      <Ionicons name="card-outline" size={14} color="#FFFFFF" />
+                      <Reicon name="card-outline" size={14} color="#FFFFFF" />
                       <Text style={{ ...theme.typography.caption, color: '#FFFFFF', fontWeight: '700', fontSize: 11 }}>
                         Payer
                       </Text>

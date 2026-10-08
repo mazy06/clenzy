@@ -1,4 +1,4 @@
-import { CheckIcon, ArrowUpRightIcon, PlusIcon } from 'lucide-react';
+import { CheckIcon, ArrowUpRightIcon, PlusIcon } from '../../src/icons/glyphs';
 import { Link } from 'react-router-dom';
 import { BaitlyOptionVisual } from './BaitlyPricingVisual';
 import { useSiteLanguage } from '../lib/siteLanguage';

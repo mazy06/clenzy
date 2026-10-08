@@ -28,7 +28,7 @@ import {
   ToggleGroup,
   ToggleGroupItem,
 } from '../../components/ui';
-import { TriangleAlert } from 'lucide-react';
+import { TriangleAlert } from '../../icons/glyphs';
 import {
   ShoppingCart as CartIcon,
   CreditCard as CreditCardIcon,

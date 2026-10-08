@@ -3,7 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { useDateFormat } from '../../../hooks/useDateFormat';
 import { cn } from '../../../utils/cn';
 import { Alert as UiAlert, AlertDescription } from '../../../components/ui';
-import { Info } from 'lucide-react';
+import { Info } from '../../../icons/glyphs';
 import { Button, Spinner } from '../../../components/ui';
 import { useQueryClient } from '@tanstack/react-query';
 import PaymentCheckoutModal from '../../../components/PaymentCheckoutModal';

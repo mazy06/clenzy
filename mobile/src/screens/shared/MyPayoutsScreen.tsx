@@ -1,7 +1,7 @@
 import React, { useCallback } from 'react';
 import { View, Text, ScrollView, Pressable, RefreshControl } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Ionicons } from '@expo/vector-icons';
+import { Reicon } from '@/icons';
 import { useNavigation } from '@react-navigation/native';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
@@ -87,7 +87,7 @@ export function MyPayoutsScreen() {
         {/* Header */}
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: theme.SPACING.md, marginBottom: theme.SPACING.lg }}>
           <Pressable onPress={() => navigation.goBack()} hitSlop={12}>
-            <Ionicons name="chevron-back" size={24} color={theme.colors.text.primary} />
+            <Reicon name="chevron-back" size={24} color={theme.colors.text.primary} />
           </Pressable>
           <Text style={{ ...theme.typography.h3, color: theme.colors.text.primary }}>{t('myPayouts.title')}</Text>
         </View>
@@ -106,7 +106,7 @@ export function MyPayoutsScreen() {
             {/* ── Compte de versement (onboarding) ── */}
             <Card style={{ marginBottom: theme.SPACING.md }}>
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: theme.SPACING.md, marginBottom: theme.SPACING.sm }}>
-                <Ionicons
+                <Reicon
                   name={onboardingState === 'complete' ? 'checkmark-circle' : 'card-outline'}
                   size={22}
                   color={onboardingState === 'complete' ? theme.colors.success.main : theme.colors.primary.main}

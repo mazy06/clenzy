@@ -1,5 +1,5 @@
 import * as React from "react"
-import { ArrowRightIcon } from "lucide-react"
+import { ArrowRightIcon } from "../../../../icons/glyphs"
 
 import { Button } from '../../../../components/ui'
 import { ButtonGroup } from '../../../../components/ui'

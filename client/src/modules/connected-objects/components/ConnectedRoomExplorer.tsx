@@ -1,5 +1,5 @@
 import { useId, useMemo, useState } from 'react';
-import { ArrowLeft, ArrowRight, CircleHelp, MapPin, Move, Plus, Save, Wifi, WifiOff } from 'lucide-react';
+import { ArrowLeft, ArrowRight, CircleHelp, MapPin, MoveHorizontal, Plus, Save, Wifi, WifiOff } from '../../../icons/glyphs';
 import { Button, NativeSelect, NativeSelectOption, Tooltip, TooltipContent, TooltipTrigger } from '../../../components/ui';
 import { useUserPreference } from '../../../hooks/useUserPreference';
 import { useTranslation } from '../../../hooks/useTranslation';
@@ -102,7 +102,7 @@ export default function ConnectedRoomExplorer({ group, property, kindFilter, act
           <Tooltip><TooltipTrigger asChild><Button size="icon" variant="ghost" aria-label={t('connectedRooms.illustrationHint')}><CircleHelp size={16} /></Button></TooltipTrigger>
             <TooltipContent className="max-w-xs">{t('connectedRooms.illustrationHint')} {t('connectedRooms.sensorHint')}</TooltipContent>
           </Tooltip>
-          {!editing && artwork && roomDevices.length > 0 && <Button variant="outline" size="sm" disabled={!placementMeta.isLoaded} onClick={() => { setDraft({}); setSaveError(false); }}><Move size={16} />{t('connectedRooms.placement.edit')}</Button>}
+          {!editing && artwork && roomDevices.length > 0 && <Button variant="outline" size="sm" disabled={!placementMeta.isLoaded} onClick={() => { setDraft({}); setSaveError(false); }}><MoveHorizontal size={16} />{t('connectedRooms.placement.edit')}</Button>}
           {editing && <>
             <span className="bir-layout-hint">{t('connectedRooms.placement.visualOnly')}</span>
             <Button size="sm" variant="ghost" disabled={saving} onClick={() => { setDraft(null); setSaveError(false); }}>{t('common.cancel')}</Button>

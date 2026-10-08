@@ -1,6 +1,6 @@
 import React, { useState, useCallback, useRef, useEffect } from 'react';
 import { Alert, AlertDescription } from '../../components/ui';
-import { ImagePlus, Trash2 } from 'lucide-react';
+import { ImagePlus, Info, Trash2 } from '../../icons/glyphs';
 import { Spinner } from '../../components/ui';
 import { usePageHeaderActions } from '../../components/PageHeaderActionsContext';
 import { PROPERTY_ART } from './propertyArtwork';

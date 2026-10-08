@@ -6,7 +6,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { randomUUID } from 'expo-crypto';
 import * as WebBrowser from 'expo-web-browser';
-import { Ionicons } from '@expo/vector-icons';
+import { Reicon } from '@/icons';
 import { useAuthStore } from '@/store/authStore';
 import { Button } from '@/components/ui/Button';
 import { Select } from '@/components/ui/Select';
@@ -93,7 +93,7 @@ export function SubscriptionCheckoutScreen() {
     <SafeAreaView style={[styles.screen, { backgroundColor: theme.colors.background.default }]} edges={['top', 'bottom']}>
       <View style={styles.header}>
         <Pressable accessibilityRole="button" accessibilityLabel={t('monthlySubscription.back')} onPress={() => navigation.goBack()} hitSlop={12} style={styles.back}>
-          <Ionicons name="arrow-back" size={22} color={theme.colors.text.primary} />
+          <Reicon name="arrow-back" size={22} color={theme.colors.text.primary} />
         </Pressable>
         <Text style={[theme.typography.h3, text]}>{t('monthlySubscription.title')}</Text>
       </View>

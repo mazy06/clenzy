@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { Button, Card, Field, FieldDescription, FieldError, FieldLabel, Input, NativeSelect, NativeSelectOption, Progress, Spinner, Switch } from '../../components/ui';
 import { Download } from '../../icons';
 import StatusIcon from '../../components/StatusIcon';
-import { CheckCircle2, CircleHelp, TriangleAlert } from 'lucide-react';
+import { CheckCircle2, CircleHelp, TriangleAlert } from '../../icons/glyphs';
 import { PropertyTabHeading } from './PropertyTabPrimitives';
 import { PROPERTY_ART } from './propertyArtwork';
 import { complianceConnectionApi } from '../../services/api/complianceConnectionApi';

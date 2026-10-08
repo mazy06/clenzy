@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { Info, RefreshCw } from 'lucide-react';
+import { Info, RefreshCw } from '../../../icons/glyphs';
 import { Button, Skeleton, Tooltip, TooltipContent, TooltipTrigger } from '../../../components/ui';
 import { camerasApi } from '../../../services/api/camerasApi';
 import { useTranslation } from '../../../hooks/useTranslation';

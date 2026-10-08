@@ -1,9 +1,4 @@
-import {
-  IconBrandJavascript,
-  IconCopy,
-  IconCornerDownLeft,
-  IconRefresh,
-} from "@tabler/icons-react"
+import { CodeXml as IconBrandJavascript, Copy as IconCopy, CornerDownLeft as IconCornerDownLeft, RefreshCw as IconRefresh } from "../../../../icons/glyphs"
 
 import {
   InputGroup,

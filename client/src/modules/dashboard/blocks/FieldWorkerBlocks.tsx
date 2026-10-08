@@ -15,7 +15,7 @@ import {
   ReceiptTextIcon,
   TriangleAlertIcon,
   UserIcon,
-} from 'lucide-react';
+} from '../../../icons/glyphs';
 import {
   Alert,
   AlertDescription,

@@ -13,7 +13,6 @@
     "postinstall": "patch-package"
   },
   "dependencies": {
-    "@expo/vector-icons": "^15.0.3",
     "@expo-google-fonts/poppins": "^0.4.1",
     "@hookform/resolvers": "^5.0.0",
     "@react-native-community/netinfo": "^11.4.0",

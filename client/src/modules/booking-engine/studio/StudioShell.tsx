@@ -12,8 +12,8 @@ import {
   Wand2,
   Sparkles,
   SlidersHorizontal,
-  type LucideIcon,
-} from 'lucide-react';
+  type IconComponent,
+} from '../../../icons/glyphs';
 
 /**
  * Baitly Studio — coquille structurelle (F0) : topbar (projet + preview controls + Publier) +
@@ -26,7 +26,7 @@ export type Breakpoint = 'desktop' | 'tablet' | 'mobile';
 export interface StudioSection {
   key: string;
   labelKey: string;
-  icon: LucideIcon;
+  icon: IconComponent;
 }
 
 export interface StudioShellProps {
@@ -213,7 +213,7 @@ const RAIL_BTN_CLASS =
   + 'transition-colors duration-150 ease-out-quart hover:text-foreground '
   + 'focus-visible:outline-2 focus-visible:outline-primary focus-visible:outline-offset-2';
 
-const items: { key: Breakpoint; icon: LucideIcon; label: string }[] = [
+const items: { key: Breakpoint; icon: IconComponent; label: string }[] = [
   { key: 'desktop', icon: Monitor, label: 'Bureau' },
   { key: 'tablet', icon: Tablet, label: 'Tablette' },
   { key: 'mobile', icon: Smartphone, label: 'Mobile' },

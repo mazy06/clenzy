@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { ExternalLink, Images, Map as MapIcon, MapPin } from 'lucide-react';
+import { Bath, BedDouble, ExternalLink, Images, Map as MapIcon, MapPin, Ruler, Users } from '../../../icons/glyphs';
 import { Button } from '../../../components/ui';
 import { MapboxPropertyMap } from '../../../components/MapboxPropertyMap';
 import StatusChip from '../../../components/StatusChip';

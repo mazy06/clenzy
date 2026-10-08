@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { FileText } from 'lucide-react';
+import { FileText } from '../../icons/glyphs';
 import { Button, Skeleton } from '../../components/ui';
 import { useTranslation } from '../../hooks/useTranslation';
 import { useCommerceScope } from '../../hooks/useCommerceScope';

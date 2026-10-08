@@ -1,4 +1,4 @@
-import type { LucideIcon } from 'lucide-react';
+import type { IconComponent } from '../../icons/glyphs';
 import {
   Utensils,
   Coffee,
@@ -11,7 +11,7 @@ import {
   ShoppingBag,
   Stethoscope,
   MapPin,
-} from 'lucide-react';
+} from '../../icons/glyphs';
 
 /**
  * Catalogue des catégories de points d'intérêt « autour de moi ».
@@ -24,7 +24,7 @@ export type PoiLang = 'fr' | 'en' | 'ar';
 export interface PoiCategoryDef {
   id: string;
   color: string;
-  Icon: LucideIcon;
+  Icon: IconComponent;
   labels: Record<PoiLang, string>;
 }
 

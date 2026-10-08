@@ -1,5 +1,5 @@
 import React from 'react';
-import { Check, Clock3, MapPin, Play, TriangleAlert, XCircle } from 'lucide-react';
+import { Check, Clock3, MapPin, Play, TriangleAlert, XCircle } from '../../icons/glyphs';
 import { Avatar, AvatarFallback, AvatarImage, Tooltip, TooltipContent, TooltipTrigger } from '../../components/ui';
 import ServiceReferenceLabels from '../../components/ServiceReferenceLabels';
 import StatusIcon from '../../components/StatusIcon';

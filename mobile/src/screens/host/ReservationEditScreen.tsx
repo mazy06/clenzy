@@ -3,7 +3,7 @@ import { View, Text, ScrollView, Pressable, Alert, KeyboardAvoidingView, Platfor
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRoute, useNavigation } from '@react-navigation/native';
 import type { RouteProp } from '@react-navigation/native';
-import { Ionicons } from '@expo/vector-icons';
+import { Reicon } from '@/icons';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useReservation } from '@/hooks/useReservations';
 import { reservationsApi, ReservationUpdatePayload } from '@/api/endpoints/reservationsApi';
@@ -155,7 +155,7 @@ export function ReservationEditScreen() {
               marginRight: theme.SPACING.md,
             }}
           >
-            <Ionicons name="arrow-back" size={20} color={theme.colors.text.primary} />
+            <Reicon name="arrow-back" size={20} color={theme.colors.text.primary} />
           </Pressable>
           <Text style={{ ...theme.typography.h2, color: theme.colors.text.primary, flex: 1 }}>
             Modifier la reservation
@@ -286,7 +286,7 @@ export function ReservationEditScreen() {
             onPress={handleSave}
             loading={updateMutation.isPending}
             style={{ flex: 1 }}
-            icon={<Ionicons name="checkmark-outline" size={18} color="#fff" />}
+            icon={<Reicon name="checkmark-outline" size={18} color="#fff" />}
           />
         </View>
       </KeyboardAvoidingView>

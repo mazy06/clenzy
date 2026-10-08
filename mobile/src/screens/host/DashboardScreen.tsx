@@ -1,7 +1,7 @@
 import { useState, useMemo } from 'react';
 import { View, Text, ScrollView, RefreshControl, ActivityIndicator, Pressable } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Ionicons } from '@expo/vector-icons';
+import { Reicon } from '@/icons';
 import { useNavigation } from '@react-navigation/native';
 import { useDashboardKpis } from '@/hooks/useKpi';
 import { useProperties } from '@/hooks/useProperties';
@@ -34,9 +34,9 @@ function getFirstName(user: any): string {
   return '';
 }
 
-type IoniconsName = keyof typeof Ionicons.glyphMap;
+type IconName = keyof typeof Reicon.glyphMap;
 
-const QUICK_ACTIONS: Array<{ label: string; icon: IoniconsName; tab: string; color: string }> = [
+const QUICK_ACTIONS: Array<{ label: string; icon: IconName; tab: string; color: string }> = [
   { label: 'Bruit', icon: 'volume-high-outline', tab: 'NoiseMonitoring', color: '#4A7C8E' },
   { label: 'Avis', icon: 'star-outline', tab: 'Reviews', color: '#C8924A' },
   { label: 'Tarifs', icon: 'pricetag-outline', tab: 'Pricing', color: '#D97706' },
@@ -195,7 +195,7 @@ export function DashboardScreen() {
                 justifyContent: 'center',
                 marginBottom: 8,
               }}>
-                <Ionicons name={action.icon} size={20} color={action.color} />
+                <Reicon name={action.icon} size={20} color={action.color} />
               </View>
               <Text style={{ ...theme.typography.caption, color: theme.colors.text.secondary }}>
                 {action.label}
@@ -220,7 +220,7 @@ export function DashboardScreen() {
               })}
             >
               <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 6 }}>
-                <Ionicons name="cash-outline" size={16} color="#D97706" />
+                <Reicon name="cash-outline" size={16} color="#D97706" />
                 <Text style={{
                   ...theme.typography.caption,
                   color: '#D97706',
@@ -232,7 +232,7 @@ export function DashboardScreen() {
                   Reversements en attente
                 </Text>
                 <View style={{ flex: 1 }} />
-                <Ionicons name="chevron-forward" size={16} color={theme.colors.text.disabled} />
+                <Reicon name="chevron-forward" size={16} color={theme.colors.text.disabled} />
               </View>
               <Text style={{
                 ...theme.typography.h2,
@@ -302,7 +302,7 @@ export function DashboardScreen() {
                       borderLeftColor: alertColor,
                     }}
                   >
-                    <Ionicons
+                    <Reicon
                       name={isDanger ? 'warning' : 'alert-circle-outline'}
                       size={20}
                       color={alertColor}
@@ -334,8 +334,8 @@ export function DashboardScreen() {
             marginBottom: theme.SPACING.md,
           }}>
             {([
-              { key: 'today' as PeriodFilter, label: "Aujourd'hui", icon: 'today-outline' as IoniconsName },
-              { key: 'week' as PeriodFilter, label: 'Cette semaine', icon: 'calendar-outline' as IoniconsName },
+              { key: 'today' as PeriodFilter, label: "Aujourd'hui", icon: 'today-outline' as IconName },
+              { key: 'week' as PeriodFilter, label: 'Cette semaine', icon: 'calendar-outline' as IconName },
             ]).map((f) => {
               const active = periodFilter === f.key;
               return (
@@ -354,7 +354,7 @@ export function DashboardScreen() {
                     borderColor: active ? theme.colors.primary.main : theme.colors.border.light,
                   }}
                 >
-                  <Ionicons
+                  <Reicon
                     name={f.icon}
                     size={13}
                     color={active ? theme.colors.primary.main : theme.colors.text.disabled}
@@ -385,7 +385,7 @@ export function DashboardScreen() {
               {filteredReservations.length > 0 && (
                 <>
                   <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: theme.SPACING.sm }}>
-                    <Ionicons name="bed-outline" size={14} color={theme.colors.text.secondary} />
+                    <Reicon name="bed-outline" size={14} color={theme.colors.text.secondary} />
                     <Text style={{ ...theme.typography.caption, color: theme.colors.text.secondary, fontWeight: '600' }}>
                       Sejours ({filteredReservations.length})
                     </Text>
@@ -400,7 +400,7 @@ export function DashboardScreen() {
               {filteredInterventions.length > 0 && (
                 <>
                   <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: filteredReservations.length > 0 ? theme.SPACING.md : 0, marginBottom: theme.SPACING.sm }}>
-                    <Ionicons name="construct-outline" size={14} color={theme.colors.text.secondary} />
+                    <Reicon name="construct-outline" size={14} color={theme.colors.text.secondary} />
                     <Text style={{ ...theme.typography.caption, color: theme.colors.text.secondary, fontWeight: '600' }}>
                       Interventions ({filteredInterventions.length})
                     </Text>

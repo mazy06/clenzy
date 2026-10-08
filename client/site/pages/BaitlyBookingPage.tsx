@@ -3,7 +3,7 @@ import {
   ArrowRightIcon,
   CheckIcon,
   GlobeIcon,
-} from 'lucide-react';
+} from '../../src/icons/glyphs';
 import { Link } from 'react-router-dom';
 import SiteAcquisitionLink from '../components/SiteAcquisitionLink';
 import BaitlyBookingDemo from '../components/BaitlyBookingDemo';

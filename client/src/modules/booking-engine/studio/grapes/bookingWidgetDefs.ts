@@ -74,9 +74,9 @@ export interface BookingTrait {
  * `BOOKING_WIDGET_DEFS` — sans toucher à `bookingComponents.ts`.
  */
 
-/** Géométrie d'une icône SVG (style lucide) sérialisable en DOM sûr (aucun innerHTML). */
+/** Géométrie d'une icône SVG (glyphe Reicon, en aplats) sérialisable en DOM sûr (aucun innerHTML). */
 export interface BookingIconShape {
-  /** Nœuds enfants du `<svg>` (rect, path, circle, line…). */
+  /** Nœuds enfants du `<svg>` (path, circle, ellipse…), remplis en `currentColor`. */
   paths: { tag: string; attrs: Record<string, string> }[];
 }
 
@@ -119,135 +119,135 @@ const CAT_CART = 'studioBlocks.categories.cart';
 const CAT_CHECKOUT = 'studioBlocks.categories.checkout';
 const CAT_ACCOUNT = 'studioBlocks.categories.account';
 
-/* ── Icônes SVG statiques (alignées sur lucide-react, mêmes glyphes que `widgetRegistry`) ──
- * Chaque icône est un DOM 100 % statique (aucun innerHTML) construit par `bookingComponents.buildIcon`. */
+/* ── Icônes SVG statiques (glyphes Reicon, mêmes graisses que le reste de l'app) ──
+ * Chaque icône est un DOM 100 % statique (aucun innerHTML) construit par `bookingComponents.buildIcon`.
+ * Géométrie en APLATS (fill = currentColor), duotone quand Reicon le fournit : les
+ * sous-tracés `opacity=".5"` forment le second ton. */
 
-/** Loupe — recherche ville (lucide `Search`). */
+/** Loupe — recherche ville (Reicon `search`). */
 const SEARCH_ICON: BookingIconShape = {
   paths: [
-    { tag: 'circle', attrs: { cx: '11', cy: '11', r: '8' } },
-    { tag: 'path', attrs: { d: 'm21 21-4.3-4.3' } },
+    { tag: 'path', attrs: { 'fill-rule': 'evenodd', d: 'M11.5 2.75a8.75 8.75 0 1 0 0 17.5a8.75 8.75 0 0 0 0-17.5M1.25 11.5c0-5.66 4.59-10.25 10.25-10.25S21.75 5.84 21.75 11.5c0 2.56-.939 4.902-2.491 6.698l3.271 3.272a.75.75 0 1 1-1.06 1.06l-3.272-3.271A10.2 10.2 0 0 1 11.5 21.75c-5.66 0-10.25-4.59-10.25-10.25', 'clip-rule': 'evenodd' } },
   ],
 };
 
-/** Calendrier — sélecteur de dates (lucide `CalendarDays`). */
+/** Calendrier — sélecteur de dates (Reicon `calendar2-duotone`). */
 const CALENDAR_DAYS_ICON: BookingIconShape = {
   paths: [
-    { tag: 'rect', attrs: { x: '3', y: '4', width: '18', height: '18', rx: '2' } },
-    { tag: 'path', attrs: { d: 'M16 2v4M8 2v4M3 10h18' } },
-    { tag: 'path', attrs: { d: 'M8 14h.01M12 14h.01M16 14h.01M8 18h.01M12 18h.01M16 18h.01' } },
+    { tag: 'path', attrs: { d: 'M6.94 2c.416 0 .753.324.753.724v1.46c.668-.012 1.417-.012 2.26-.012h4.015c.842 0 1.591 0 2.259.013v-1.46c0-.4.337-.725.753-.725s.753.324.753.724V4.25c1.445.111 2.394.384 3.09 1.055c.698.67.982 1.582 1.097 2.972L22 9H2v-.724c.116-1.39.4-2.302 1.097-2.972s1.645-.944 3.09-1.055V2.724c0-.4.337-.724.753-.724' } },
+    { tag: 'path', attrs: { d: 'M22 14v-2c0-.839-.004-2.335-.017-3H2.01c-.013.665-.01 2.161-.01 3v2c0 3.771 0 5.657 1.172 6.828S6.228 22 10 22h4c3.77 0 5.656 0 6.828-1.172S22 17.772 22 14', opacity: '.5' } },
   ],
 };
 
-/** Groupe de personnes — voyageurs (lucide `Users`). */
+/** Groupe de personnes — voyageurs (Reicon `users-duotone`). */
 const USERS_ICON: BookingIconShape = {
   paths: [
-    { tag: 'path', attrs: { d: 'M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2' } },
-    { tag: 'circle', attrs: { cx: '9', cy: '7', r: '4' } },
-    { tag: 'path', attrs: { d: 'M22 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75' } },
+    { tag: 'circle', attrs: { cx: '15', cy: '6', r: '3', opacity: '.4' } },
+    { tag: 'ellipse', attrs: { cx: '16', cy: '17', opacity: '.4', rx: '5', ry: '3' } },
+    { tag: 'circle', attrs: { cx: '9.001', cy: '6', r: '4' } },
+    { tag: 'ellipse', attrs: { cx: '9.001', cy: '17.001', rx: '7', ry: '4' } },
   ],
 };
 
-/** Maison — type de logement (lucide `Home`). */
+/** Maison — type de logement (Reicon `home-duotone`). */
 const HOME_ICON: BookingIconShape = {
   paths: [
-    { tag: 'path', attrs: { d: 'm3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z' } },
-    { tag: 'path', attrs: { d: 'M9 22V12h6v10' } },
+    { tag: 'path', attrs: { d: 'M2 12.204c0-2.289 0-3.433.52-4.381c.518-.949 1.467-1.537 3.364-2.715l2-1.241C9.889 2.622 10.892 2 12 2s2.11.622 4.116 1.867l2 1.241c1.897 1.178 2.846 1.766 3.365 2.715S22 9.915 22 12.203v1.522c0 3.9 0 5.851-1.172 7.063S17.771 22 14 22h-4c-3.771 0-5.657 0-6.828-1.212S2 17.626 2 13.725z', opacity: '.5' } },
+    { tag: 'path', attrs: { d: 'M9 17.25a.75.75 0 0 0 0 1.5h6a.75.75 0 0 0 0-1.5z' } },
   ],
 };
 
-/** Curseurs — filtre (lucide `SlidersHorizontal`). */
+/** Curseurs — filtre (Reicon `tuning2-duotone`). */
 const SLIDERS_ICON: BookingIconShape = {
   paths: [
-    { tag: 'path', attrs: { d: 'M21 4h-7M10 4H3M21 12h-9M8 12H3M21 20h-5M12 20H3' } },
-    { tag: 'path', attrs: { d: 'M14 2v4M8 10v4M16 18v4' } },
+    { tag: 'path', attrs: { d: 'M9.25 14a3 3 0 1 1 0 6a3 3 0 0 1 0-6m5-10a3 3 0 1 0 0 6a3 3 0 0 0 0-6' } },
+    { tag: 'path', attrs: { d: 'M17.166 7.709a3 3 0 0 0-.021-1.5h4.605a.75.75 0 0 1 0 1.5zm-5.81-1.5a3 3 0 0 0-.022 1.5H1.75a.75.75 0 0 1 0-1.5zm-5 10H1.75a.75.75 0 0 0 0 1.5h4.584a3 3 0 0 1 .022-1.5m5.81 1.5h9.584a.75.75 0 0 0 0-1.5h-9.605a3 3 0 0 1 .02 1.5', opacity: '.5' } },
   ],
 };
 
-/** Pièces — devise (lucide `Coins`). */
+/** Billets — devise (Reicon `money-stack-duotone`). */
 const COINS_ICON: BookingIconShape = {
   paths: [
-    { tag: 'circle', attrs: { cx: '8', cy: '8', r: '6' } },
-    { tag: 'path', attrs: { d: 'M18.09 10.37A6 6 0 1 1 10.34 18M7 6h1v4M16.71 13.88l.7.71-2.82 2.82' } },
+    { tag: 'path', attrs: { d: 'M14.25 19h1.5c2.317-.005 3.558-.062 4.472-.674a4 4 0 0 0 1.104-1.103C22 16.213 22 14.809 22 12s0-4.213-.674-5.222a4 4 0 0 0-1.104-1.103c-.915-.612-2.155-.669-4.472-.674h-1.5V9H15a3 3 0 1 1 0 6h-.75zm-4.5 0v-4H9a3 3 0 1 1 0-6h.75V5.001h-1.5c-2.317.005-3.557.062-4.472.674a4 4 0 0 0-1.104 1.103C2 7.787 2 9.192 2 12c0 2.81 0 4.214.674 5.223a4 4 0 0 0 1.104 1.103c.915.612 2.155.669 4.472.674z' } },
+    { tag: 'path', attrs: { d: 'M9.75 19h4.5V5h-4.5z', opacity: '.5' } },
   ],
 };
 
-/** Flèche droite — bouton Rechercher (lucide `ArrowRight`). */
+/** Flèche droite — bouton Rechercher (Reicon `arrow-right-duotone`). */
 const ARROW_RIGHT_ICON: BookingIconShape = {
   paths: [
-    { tag: 'path', attrs: { d: 'M5 12h14M12 5l7 7-7 7' } },
+    { tag: 'path', attrs: { 'fill-rule': 'evenodd', d: 'M3.25 12a.75.75 0 0 1 .75-.75h9.25v1.5H4a.75.75 0 0 1-.75-.75', 'clip-rule': 'evenodd', opacity: '.5' } },
+    { tag: 'path', attrs: { d: 'M13.25 12.75V18a.75.75 0 0 0 1.28.53l6-6a.75.75 0 0 0 0-1.06l-6-6a.75.75 0 0 0-1.28.53z' } },
   ],
 };
 
-/** Immeuble — liste des logements (lucide `Building2`). */
+/** Immeubles — liste des logements (Reicon `buildings-duotone`). */
 const BUILDING_ICON: BookingIconShape = {
   paths: [
-    { tag: 'path', attrs: { d: 'M6 22V4a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v18' } },
-    { tag: 'path', attrs: { d: 'M6 12H4a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2h2M18 9h2a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2h-2' } },
-    { tag: 'path', attrs: { d: 'M10 6h4M10 10h4M10 14h4M10 18h4' } },
+    { tag: 'path', attrs: { 'fill-rule': 'evenodd', d: 'M7 5h4c1.886 0 2.828 0 3.414.586S15 7.114 15 9v12.25h7a.75.75 0 0 1 0 1.5H2a.75.75 0 0 1 0-1.5h1V9c0-1.886 0-2.828.586-3.414S5.114 5 7 5M5.25 8A.75.75 0 0 1 6 7.25h6a.75.75 0 0 1 0 1.5H6A.75.75 0 0 1 5.25 8m0 3a.75.75 0 0 1 .75-.75h6a.75.75 0 0 1 0 1.5H6a.75.75 0 0 1-.75-.75m0 3a.75.75 0 0 1 .75-.75h6a.75.75 0 0 1 0 1.5H6a.75.75 0 0 1-.75-.75M9 18.25a.75.75 0 0 1 .75.75v2.25h-1.5V19a.75.75 0 0 1 .75-.75', 'clip-rule': 'evenodd' } },
+    { tag: 'path', attrs: { d: 'M15 2h2c1.886 0 2.828 0 3.414.586S21 4.114 21 6v15.25h-6V9c0-1.886 0-2.828-.586-3.414C13.842 5.013 12.928 5 11.126 5V3.5c.084-.387.225-.68.46-.914C12.17 2 13.114 2 15 2', opacity: '.5' } },
   ],
 };
 
-/** Reçu — récap prix (lucide `ReceiptText`). */
+/** Reçu — récap prix (Reicon `bill-list-duotone`). */
 const RECEIPT_ICON: BookingIconShape = {
   paths: [
-    { tag: 'path', attrs: { d: 'M4 2v20l2-1 2 1 2-1 2 1 2-1 2 1 2-1 2 1V2l-2 1-2-1-2 1-2-1-2 1-2-1-2 1Z' } },
-    { tag: 'path', attrs: { d: 'M8 7h8M8 11h8M8 15h5' } },
+    { tag: 'path', attrs: { d: 'M7.245 2h9.51c1.159 0 1.738 0 2.206.163a3.05 3.05 0 0 1 1.881 1.936C21 4.581 21 5.177 21 6.37v14.004c0 .858-.985 1.314-1.608.744a.946.946 0 0 0-1.284 0l-.483.442a1.657 1.657 0 0 1-2.25 0a1.657 1.657 0 0 0-2.25 0a1.657 1.657 0 0 1-2.25 0a1.657 1.657 0 0 0-2.25 0a1.657 1.657 0 0 1-2.25 0l-.483-.442a.946.946 0 0 0-1.284 0c-.623.57-1.608.114-1.608-.744V6.37c0-1.193 0-1.79.158-2.27c.3-.913.995-1.629 1.881-1.937C5.507 2 6.086 2 7.245 2', opacity: '.5' } },
+    { tag: 'path', attrs: { d: 'M7 6.75a.75.75 0 0 0 0 1.5h.5a.75.75 0 0 0 0-1.5zm3.5 0a.75.75 0 0 0 0 1.5H17a.75.75 0 0 0 0-1.5zM7 10.25a.75.75 0 0 0 0 1.5h.5a.75.75 0 0 0 0-1.5zm3.5 0a.75.75 0 0 0 0 1.5H17a.75.75 0 0 0 0-1.5zM7 13.75a.75.75 0 0 0 0 1.5h.5a.75.75 0 0 0 0-1.5zm3.5 0a.75.75 0 0 0 0 1.5H17a.75.75 0 0 0 0-1.5z' } },
   ],
 };
 
-/** Caddie — panier (lucide `ShoppingCart`). */
+/** Caddie — panier (Reicon `cart-duotone`). */
 const CART_ICON: BookingIconShape = {
   paths: [
-    { tag: 'circle', attrs: { cx: '8', cy: '21', r: '1' } },
-    { tag: 'circle', attrs: { cx: '19', cy: '21', r: '1' } },
-    { tag: 'path', attrs: { d: 'M2.05 2.05h2l2.66 12.42a2 2 0 0 0 2 1.58h9.78a2 2 0 0 0 1.95-1.57l1.65-7.43H5.12' } },
+    { tag: 'path', attrs: { d: 'M10.023 2a1.75 1.75 0 0 0 0 3.5h4a1.75 1.75 0 1 0 0-3.5zM3.887 16.205C3.029 12.773 2.6 11.058 3.5 9.904S6.17 8.75 9.708 8.75h4.63c3.538 0 5.306 0 6.207 1.154s.472 2.87-.386 6.301c-.546 2.183-.818 3.274-1.632 3.91c-.814.635-1.939.635-4.189.635h-4.63c-2.25 0-3.375 0-4.189-.635c-.814-.636-1.087-1.727-1.632-3.91', opacity: '.5' } },
+    { tag: 'path', attrs: { d: 'M15.604 4.502a1.74 1.74 0 0 0 .002-1.501c.683.005 1.216.036 1.691.222a3.25 3.25 0 0 1 1.426 1.09c.367.494.54 1.127.777 1.999l.046.17l.513 2.963c-.409-.282-.936-.45-1.618-.55l-.36-2.087c-.285-1.04-.388-1.367-.562-1.601a1.75 1.75 0 0 0-.768-.587c-.22-.086-.485-.11-1.147-.118M8.441 3.001a1.74 1.74 0 0 0 .002 1.501c-.662.007-.927.032-1.147.118a1.75 1.75 0 0 0-.768.587c-.174.234-.277.561-.561 1.6l-.361 2.089c-.682.1-1.209.267-1.618.548l.513-2.962l.046-.17c.237-.872.41-1.505.777-2A3.25 3.25 0 0 1 6.75 3.224c.475-.186 1.008-.217 1.691-.222' } },
   ],
 };
 
-/** Plus — ajouter au panier (lucide `Plus`). */
+/** Plus — ajouter au panier (Reicon `plus`). */
 const PLUS_ICON: BookingIconShape = {
   paths: [
-    { tag: 'path', attrs: { d: 'M5 12h14M12 5v14' } },
+    { tag: 'path', attrs: { d: 'M11.25 20a.75.75 0 0 0 1.5 0v-7.25H20a.75.75 0 0 0 0-1.5h-7.25V4a.75.75 0 0 0-1.5 0v7.25H4a.75.75 0 0 0 0 1.5h7.25z' } },
   ],
 };
 
-/** Étincelles — options & extras (lucide `Sparkles`). */
+/** Étincelles — options & extras (Reicon `stars-duotone`). */
 const SPARKLES_ICON: BookingIconShape = {
   paths: [
-    { tag: 'path', attrs: { d: 'M9.94 14.34 12 21l2.06-6.66L21 12l-6.94-2.34L12 3 9.94 9.66 3 12z' } },
-    { tag: 'path', attrs: { d: 'M20 3v4M22 5h-4M4 17v2M5 18H3' } },
+    { tag: 'path', attrs: { d: 'M7.453 2.713c.375-.95 1.72-.95 2.094 0l1.162 2.944c.114.29.344.52.634.634l2.944 1.162c.95.375.95 1.72 0 2.094l-2.944 1.162c-.29.114-.52.344-.634.634l-1.162 2.944c-.375.95-1.72.95-2.094 0L6.29 11.343a1.13 1.13 0 0 0-.634-.634L2.713 9.547c-.95-.375-.95-1.72 0-2.094L5.657 6.29c.29-.114.52-.344.634-.634z' } },
+    { tag: 'path', attrs: { d: 'M16.925 13.392a.619.619 0 0 1 1.15 0l.901 2.283a.62.62 0 0 0 .349.349l2.283.9a.619.619 0 0 1 0 1.152l-2.283.9a.62.62 0 0 0-.349.349l-.9 2.283a.619.619 0 0 1-1.152 0l-.9-2.283a.62.62 0 0 0-.349-.349l-2.283-.9a.619.619 0 0 1 0-1.152l2.283-.9a.62.62 0 0 0 .349-.349z', opacity: '.5' } },
   ],
 };
 
-/** Liste cochée — étapes / progression (lucide `ListChecks`). */
+/** Liste cochée — étapes / progression (Reicon `list-check-duotone`). */
 const STEPS_ICON: BookingIconShape = {
   paths: [
-    { tag: 'path', attrs: { d: 'm3 17 2 2 4-4M3 7l2 2 4-4M13 6h8M13 12h8M13 18h8' } },
+    { tag: 'path', attrs: { 'fill-rule': 'evenodd', d: 'M2 5.75A.75.75 0 0 1 2.75 5h18a.75.75 0 0 1 0 1.5h-18A.75.75 0 0 1 2 5.75m0 4A.75.75 0 0 1 2.75 9h18a.75.75 0 0 1 0 1.5h-18A.75.75 0 0 1 2 9.75m0 4a.75.75 0 0 1 .75-.75h7a.75.75 0 0 1 0 1.5h-7a.75.75 0 0 1-.75-.75m0 4a.75.75 0 0 1 .75-.75h7a.75.75 0 0 1 0 1.5h-7a.75.75 0 0 1-.75-.75', 'clip-rule': 'evenodd', opacity: '.5' } },
+    { tag: 'path', attrs: { d: 'M20.211 12.659a.75.75 0 0 1 .13 1.052l-3.9 5a.75.75 0 0 1-1.165.021l-2.1-2.5a.75.75 0 0 1 1.148-.964l1.504 1.79l3.33-4.27a.75.75 0 0 1 1.053-.13' } },
   ],
 };
 
-/** Personne — coordonnées voyageur (lucide `UserRound`). */
+/** Personne — coordonnées voyageur (Reicon `user-duotone`). */
 const USER_ROUND_ICON: BookingIconShape = {
   paths: [
-    { tag: 'circle', attrs: { cx: '12', cy: '8', r: '5' } },
-    { tag: 'path', attrs: { d: 'M20 21a8 8 0 0 0-16 0' } },
+    { tag: 'circle', attrs: { cx: '12', cy: '6', r: '4' } },
+    { tag: 'path', attrs: { d: 'M20 17.5c0 2.485 0 4.5-8 4.5s-8-2.015-8-4.5S7.582 13 12 13s8 2.015 8 4.5', opacity: '.5' } },
   ],
 };
 
-/** Connexion — bouton compte (lucide `LogIn`). */
+/** Connexion — bouton compte (Reicon `login-duotone`). */
 const LOGIN_ICON: BookingIconShape = {
   paths: [
-    { tag: 'path', attrs: { d: 'M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4' } },
-    { tag: 'path', attrs: { d: 'M10 17l5-5-5-5M15 12H3' } },
+    { tag: 'path', attrs: { 'fill-rule': 'evenodd', d: 'M10.47 8.47a.75.75 0 0 0 0 1.06l1.72 1.72H4a.75.75 0 0 0 0 1.5h8.19l-1.72 1.72a.75.75 0 1 0 1.06 1.06l3-3a.75.75 0 0 0 0-1.06l-3-3a.75.75 0 0 0-1.06 0', 'clip-rule': 'evenodd' } },
+    { tag: 'path', attrs: { d: 'M12 20a8 8 0 1 0 0-16z', opacity: '.5' } },
   ],
 };
 
-/** Flèche circulaire — réserver à nouveau (lucide `RotateCcw`). */
+/** Flèche circulaire — réserver à nouveau (Reicon `rotate-left`). */
 const ROTATE_ICON: BookingIconShape = {
   paths: [
-    { tag: 'path', attrs: { d: 'M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8' } },
-    { tag: 'path', attrs: { d: 'M3 3v5h5' } },
+    { tag: 'path', attrs: { stroke: 'currentColor', 'stroke-linecap': 'round', 'stroke-linejoin': 'round', 'stroke-width': '1.5', d: 'M9.11 5.08c.87-.26 1.83-.43 2.89-.43c4.79 0 8.67 3.88 8.67 8.67s-3.88 8.67-8.67 8.67s-8.67-3.88-8.67-8.67c0-1.78.54-3.44 1.46-4.82m3.08-3.18L10.76 2M7.87 5.32l3.37 2.46' } },
   ],
 };
 

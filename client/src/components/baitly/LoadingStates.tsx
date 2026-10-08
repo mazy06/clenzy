@@ -1,4 +1,4 @@
-import { RefreshCwIcon, XIcon } from 'lucide-react';
+import { RefreshCwIcon, XIcon } from '../../icons/glyphs';
 import { Alert, AlertDescription, AlertTitle, Button, Spinner } from '../ui';
 import { useTranslation } from '../../hooks/useTranslation';
 

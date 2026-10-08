@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 
-import { LayoutGrid, Plus } from 'lucide-react';
+import { LayoutGrid, Plus } from '../../../icons/glyphs';
 import { Badge } from '../../../components/ui';
 import PageHeader from '../../../components/PageHeader';
 import { bookingEngineApi } from '../../../services/api/bookingEngineApi';

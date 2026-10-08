@@ -1,4 +1,4 @@
-import { GitBranchIcon, SearchIcon } from "lucide-react"
+import { GitBranchIcon, SearchIcon } from "../../../../icons/glyphs"
 
 import {
   Marker,

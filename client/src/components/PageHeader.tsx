@@ -1,7 +1,7 @@
 import React from 'react';
 import { useMediaQuery } from '../hooks/use-media-query';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { ArrowLeftIcon } from 'lucide-react';
+import { ArrowLeftIcon } from '../icons/glyphs';
 import { Button, Tooltip, TooltipContent, TooltipTrigger } from './ui';
 import { screenIconFor, sizedIcon } from '../config/navigationIcons';
 import PageTitle from './PageTitle';

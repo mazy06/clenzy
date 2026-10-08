@@ -14,8 +14,8 @@ import {
   FieldLabel,
   Input,
 } from '../../../components/ui';
-import { TriangleAlert } from 'lucide-react';
-import { KeyRound } from 'lucide-react';
+import { TriangleAlert } from '../../../icons/glyphs';
+import { KeyRound } from '../../../icons/glyphs';
 import { netatmoApi, type NetatmoConfigStatus } from '../../../services/api/netatmoApi';
 import { useTranslation } from '../../../hooks/useTranslation';
 

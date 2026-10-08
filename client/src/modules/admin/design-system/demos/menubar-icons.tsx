@@ -5,7 +5,7 @@ import {
   SaveIcon,
   SettingsIcon,
   TrashIcon,
-} from "lucide-react"
+} from "../../../../icons/glyphs"
 
 import {
   Menubar,

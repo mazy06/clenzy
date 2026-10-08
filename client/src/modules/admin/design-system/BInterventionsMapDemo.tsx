@@ -14,7 +14,7 @@ import {
   SearchIcon,
   SettingsIcon,
   WrenchIcon,
-} from "lucide-react";
+} from "../../../icons/glyphs";
 import { useDemoLanguage } from "./demoLanguage";
 import { interventionsDemoText } from "./interventionsDemoMessages";
 import { interventionsMapCopy } from "./interventionsMapCopy";

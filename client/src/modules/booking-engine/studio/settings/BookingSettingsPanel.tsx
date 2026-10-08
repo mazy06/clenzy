@@ -1,6 +1,6 @@
 import { useTranslation } from '../../../../hooks/useTranslation';
 import { Alert, AlertDescription, Skeleton } from '../../../../components/ui';
-import { AlertTriangle } from 'lucide-react';
+import { AlertTriangle } from '../../../../icons/glyphs';
 import type { BookingEngineConfig } from '../../../../services/api/bookingEngineApi';
 import {
   SettingsPage, SettingCard, SettingRow, SaveBar,

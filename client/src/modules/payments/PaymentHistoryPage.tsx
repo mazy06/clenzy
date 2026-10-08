@@ -5,7 +5,7 @@ import { FinanceAmountKpis } from '../billing/components/FinanceKpis';
 import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import FinanceStatusIcon from '../billing/components/FinanceStatusIcon';
 import { Alert as UiAlert, AlertAction, AlertDescription } from '../../components/ui';
-import { TriangleAlert, X } from 'lucide-react';
+import { TriangleAlert, X } from '../../icons/glyphs';
 import { Spinner } from '../../components/ui';
 import {
   Dialog,

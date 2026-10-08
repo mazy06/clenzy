@@ -205,7 +205,10 @@ export default defineConfig({
             '@emotion/styled',
             '@emotion/cache',
           ],
-          'vendor-icons': ['lucide-react', '@iconify/react'],
+          // Les glyphes Reicon (`@iconify-icons/reicon/<glyphe>`) restent hors de
+          // ce chunk : un module par glyphe, découpés avec les routes qui les
+          // utilisent. Seul le runtime Iconify (fallbacks mdi:) est mutualisé ici.
+          'vendor-icons': ['@iconify/react'],
           // clsx + tailwind-merge sont les deux briques de `utils/cn`, donc
           // presents dans a peu pres CHAQUE composant. Sans cette entree, Rollup
           // les rangeait avec recharts (qui depend de clsx) : le chunk d'entree

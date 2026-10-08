@@ -2,7 +2,7 @@ import React, { useState, useCallback } from 'react';
 import { cn } from '../../utils/cn';
 import { Badge } from '../../components/ui';
 import { Alert as BuiAlert, AlertDescription, AlertAction, Button as BuiButton } from '../../components/ui';
-import { TriangleAlert, X } from 'lucide-react';
+import { TriangleAlert, X } from '../../icons/glyphs';
 import { Spinner } from '../../components/ui';
 import { ASSIGNABLE_ORG_ROLES } from '../../utils/orgRoleLabels';
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, Field, FieldLabel, FieldDescription, Input, InputGroup, InputGroupAddon, InputGroupInput, NativeSelect, NativeSelectOption, ToggleGroup, ToggleGroupItem, Tooltip, TooltipContent, TooltipTrigger } from '../../components/ui';

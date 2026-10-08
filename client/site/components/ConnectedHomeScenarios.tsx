@@ -1,5 +1,5 @@
 import { useState, type ReactNode } from 'react';
-import { ArrowUpRight, Check, ChevronDown, KeyRound, ShieldCheck, Volume2, Video } from 'lucide-react';
+import { ArrowUpRight, Check, ChevronDown, KeyRound, ShieldCheck, Volume2, Video } from '../../src/icons/glyphs';
 import type { SiteLanguage } from '../lib/siteLanguage';
 import { CONNECTED_HOME_MESSAGES, type ConnectedHomeScenario } from '../lib/messages/connectedHome';
 import { SiteAssistantPortrait } from './SiteProductVisuals';

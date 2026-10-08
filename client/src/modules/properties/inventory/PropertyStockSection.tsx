@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { PROPERTY_ART } from '../propertyArtwork';
-import { TriangleAlert } from 'lucide-react';
+import { TriangleAlert } from '../../../icons/glyphs';
 import StatusIcon from '../../../components/StatusIcon';
 import { Alert, AlertDescription, Button, Card, Spinner, Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../../../components/ui';
 import { Add, DeleteOutline, Edit } from '../../../icons';

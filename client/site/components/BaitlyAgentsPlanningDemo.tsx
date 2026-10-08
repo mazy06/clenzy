@@ -27,8 +27,9 @@ import {
   Volume2Icon,
   VolumeXIcon,
   WrenchIcon,
-} from 'lucide-react';
-import { Label as TagIcon } from '../../src/icons';
+} from '../../src/icons/glyphs';
+import { Label as TagIcon, WrenchFill } from '../../src/icons';
+import BaitlyMarkLogo from '../../src/components/BaitlyMarkLogo';
 import type { AgentId } from '../../src/modules/supervision/types';
 import { preloadAgentPortraits } from '../../src/modules/supervision/core/agentPortraitAssets';
 import { Cursor, useScriptedCursor } from './mockupKit';

@@ -7,7 +7,7 @@ import {
   PlusIcon,
   ShoppingBagIcon,
   XIcon,
-} from 'lucide-react';
+} from '../../src/icons/glyphs';
 import { useSiteLanguage } from '../lib/siteLanguage';
 import {
   BAITLY_BOOKING_UPSELL_MESSAGES,

@@ -6,7 +6,7 @@ import {
   SettingsIcon,
   SmileIcon,
   UserIcon,
-} from "lucide-react"
+} from "../../../../icons/glyphs"
 
 import { Button } from '../../../../components/ui'
 import { Command, CommandDialog, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList, CommandSeparator, CommandShortcut } from '../../../../components/ui/command';

@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { View, Text, ScrollView, Pressable, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Ionicons } from '@expo/vector-icons';
+import { Reicon } from '@/icons';
 import { useNavigation } from '@react-navigation/native';
 import { useTheme } from '@/theme';
 import { Card } from '@/components/ui/Card';
@@ -166,7 +166,7 @@ export function AddNoiseDeviceScreen() {
             ...theme.shadows.sm,
           })}
         >
-          <Ionicons name="arrow-back" size={20} color={theme.colors.text.primary} />
+          <Reicon name="arrow-back" size={20} color={theme.colors.text.primary} />
         </Pressable>
         <Text style={{ ...theme.typography.h2, color: theme.colors.text.primary, flex: 1 }}>
           Ajouter un capteur
@@ -239,7 +239,7 @@ export function AddNoiseDeviceScreen() {
         {/* External IDs (advanced) */}
         <Card style={{ marginBottom: theme.SPACING['2xl'] }}>
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: theme.SPACING.md }}>
-            <Ionicons name="settings-outline" size={16} color={theme.colors.text.secondary} />
+            <Reicon name="settings-outline" size={16} color={theme.colors.text.secondary} />
             <Text style={{ ...theme.typography.body2, fontWeight: '500', color: theme.colors.text.secondary }}>
               Configuration avancee
             </Text>
@@ -268,7 +268,7 @@ export function AddNoiseDeviceScreen() {
           fullWidth
           loading={createDevice.isPending}
           disabled={createDevice.isPending}
-          icon={<Ionicons name="add-circle-outline" size={18} color="#fff" />}
+          icon={<Reicon name="add-circle-outline" size={18} color="#fff" />}
         />
       </ScrollView>
     </SafeAreaView>

@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { CheckCircle2, Info, TriangleAlert } from 'lucide-react';
+import { CheckCircle2, Info, TriangleAlert } from '../../icons/glyphs';
 import { Alert, AlertDescription, AlertTitle, Spinner } from '../../components/ui';
 import { useTranslation } from '../../hooks/useTranslation';
 import { whatsAppConfigApi, type WhatsAppConfig } from '../../services/api/whatsAppConfigApi';

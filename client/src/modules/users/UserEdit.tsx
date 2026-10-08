@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import StatusChip, { type StatusTone } from '../../components/StatusChip';
 import { Alert as BuiAlert, AlertDescription, AlertAction, Button as BuiButton } from '../../components/ui';
-import { Info, TriangleAlert, X, CircleCheck } from 'lucide-react';
+import { Info, TriangleAlert, X, CircleCheck } from '../../icons/glyphs';
 import { Spinner } from '../../components/ui';
 import { Field, FieldDescription, FieldLabel, Input, InputGroup, InputGroupAddon, InputGroupButton, InputGroupInput, Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../components/ui';
 import { Combobox, ComboboxContent, ComboboxEmpty, ComboboxInput, ComboboxItem, ComboboxList } from '../../components/ui/combobox';

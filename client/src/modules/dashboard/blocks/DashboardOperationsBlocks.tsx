@@ -28,7 +28,7 @@ import {
   CircleCheckIcon,
   UserSearchIcon,
   WrenchIcon,
-} from 'lucide-react';
+} from '../../../icons/glyphs';
 import {
   Button,
 } from '../../../components/ui';

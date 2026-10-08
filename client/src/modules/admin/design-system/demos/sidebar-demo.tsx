@@ -4,7 +4,7 @@ import {
   InboxIcon,
   SearchIcon,
   SettingsIcon,
-} from "lucide-react"
+} from "../../../../icons/glyphs"
 
 import {
   Sidebar,

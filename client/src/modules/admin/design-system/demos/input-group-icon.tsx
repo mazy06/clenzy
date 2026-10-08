@@ -5,7 +5,7 @@ import {
   MailIcon,
   SearchIcon,
   StarIcon,
-} from "lucide-react"
+} from "../../../../icons/glyphs"
 
 import {
   InputGroup,

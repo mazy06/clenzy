@@ -16,7 +16,7 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from '../../../components/ui';
-import { X } from 'lucide-react';
+import { X } from '../../../icons/glyphs';
 import { Button } from '../../../components/ui';
 import {
   CheckCircle as CheckCircleIcon,

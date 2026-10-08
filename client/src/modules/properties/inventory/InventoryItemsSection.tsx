@@ -1,5 +1,5 @@
 import { useRef, useState } from 'react';
-import { BookOpen, Pencil, Plus, Trash2 } from 'lucide-react';
+import { BookOpen, Pencil, Plus, Trash2 } from '../../../icons/glyphs';
 import { Button } from '../../../components/ui';
 import PagePagination from '../../../components/PagePagination';
 import NavCountBadge from '../../../components/NavCountBadge';

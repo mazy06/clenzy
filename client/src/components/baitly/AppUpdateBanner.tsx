@@ -1,5 +1,5 @@
 import { useRegisterSW } from 'virtual:pwa-register/react';
-import { RefreshCwIcon, XIcon } from 'lucide-react';
+import { RefreshCwIcon, XIcon } from '../../icons/glyphs';
 import { Button } from '../ui';
 import { useTranslation } from '../../hooks/useTranslation';
 

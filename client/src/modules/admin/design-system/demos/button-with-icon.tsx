@@ -1,4 +1,4 @@
-import { IconGitBranch } from "@tabler/icons-react"
+import { GitBranch as IconGitBranch } from "../../../../icons/glyphs"
 
 import { Button } from '../../../../components/ui'
 

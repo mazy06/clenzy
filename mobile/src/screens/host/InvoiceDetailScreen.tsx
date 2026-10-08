@@ -1,7 +1,7 @@
 import React from 'react';
 import { View, Text, ScrollView, Pressable, Alert, Share } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Ionicons } from '@expo/vector-icons';
+import { Reicon } from '@/icons';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import type { RouteProp } from '@react-navigation/native';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
@@ -14,7 +14,7 @@ import { SectionHeader } from '@/components/ui/SectionHeader';
 import { apiClient } from '@/api/apiClient';
 import type { Invoice } from './InvoiceListScreen';
 
-type IoniconsName = keyof typeof Ionicons.glyphMap;
+type IconName = keyof typeof Reicon.glyphMap;
 
 type RouteParams = {
   InvoiceDetail: { invoiceId: number; invoice: Invoice };
@@ -42,7 +42,7 @@ function formatAmount(amount: number): string {
 }
 
 function InfoRow({ icon, label, value, theme }: {
-  icon: IoniconsName;
+  icon: IconName;
   label: string;
   value: string;
   theme: ReturnType<typeof useTheme>;
@@ -57,7 +57,7 @@ function InfoRow({ icon, label, value, theme }: {
         alignItems: 'center',
         justifyContent: 'center',
       }}>
-        <Ionicons name={icon} size={16} color={theme.colors.primary.main} />
+        <Reicon name={icon} size={16} color={theme.colors.primary.main} />
       </View>
       <View style={{ flex: 1 }}>
         <Text style={{ ...theme.typography.caption, color: theme.colors.text.disabled }}>{label}</Text>
@@ -154,7 +154,7 @@ export function InvoiceDetailScreen() {
             marginRight: theme.SPACING.md,
           }}
         >
-          <Ionicons name="arrow-back" size={20} color={theme.colors.text.primary} />
+          <Reicon name="arrow-back" size={20} color={theme.colors.text.primary} />
         </Pressable>
         <Text style={{ ...theme.typography.h2, color: theme.colors.text.primary, flex: 1 }}>
           Facture
@@ -242,7 +242,7 @@ export function InvoiceDetailScreen() {
             variant="outlined"
             onPress={handleDownloadPdf}
             fullWidth
-            icon={<Ionicons name="download-outline" size={18} color={theme.colors.primary.main} />}
+            icon={<Reicon name="download-outline" size={18} color={theme.colors.primary.main} />}
           />
           {invoice.status !== 'PAID' && invoice.status !== 'CANCELLED' && (
             <>
@@ -252,7 +252,7 @@ export function InvoiceDetailScreen() {
                 onPress={handleSendEmail}
                 loading={sendEmailMutation.isPending}
                 fullWidth
-                icon={<Ionicons name="mail-outline" size={18} color={theme.colors.primary.main} />}
+                icon={<Reicon name="mail-outline" size={18} color={theme.colors.primary.main} />}
               />
               <Button
                 title="Marquer comme payee"
@@ -260,7 +260,7 @@ export function InvoiceDetailScreen() {
                 onPress={handleMarkPaid}
                 loading={markPaidMutation.isPending}
                 fullWidth
-                icon={<Ionicons name="checkmark-circle-outline" size={18} color={theme.colors.success.contrastText} />}
+                icon={<Reicon name="checkmark-circle-outline" size={18} color={theme.colors.success.contrastText} />}
               />
             </>
           )}

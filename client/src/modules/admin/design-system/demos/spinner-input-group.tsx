@@ -1,4 +1,4 @@
-import { ArrowUpIcon } from "lucide-react"
+import { ArrowUpIcon } from "../../../../icons/glyphs"
 
 import {
   InputGroup,

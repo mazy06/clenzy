@@ -18,7 +18,7 @@ import {
   Button,
   Dialog,
 } from '../../../components/ui';
-import { TriangleAlert } from 'lucide-react';
+import { TriangleAlert } from '../../../icons/glyphs';
 import { useTranslation } from '../../../hooks/useTranslation';
 import { buildApiUrl } from '../../../config/api';
 import { getAccessToken } from '../../../keycloak';

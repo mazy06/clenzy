@@ -14,7 +14,7 @@ import {
   Spinner,
 } from '../../../components/ui';
 import { useParams } from 'react-router-dom';
-import { AlertTriangle, CheckCircle2 } from 'lucide-react';
+import { AlertTriangle, CheckCircle2 } from '../../../icons/glyphs';
 import { API_CONFIG } from '../../../config/api';
 import { activeIntlLocale } from '../../../utils/activeLocale';
 import { createBookingI18n } from '../sdk/i18n';

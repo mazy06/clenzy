@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Search, X, RotateCcw } from 'lucide-react';
+import { Search, X, RotateCcw } from '../../../icons/glyphs';
 import {
   Button,
   Dialog,

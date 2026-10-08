@@ -17,8 +17,8 @@ import {
   DialogTitle,
   Separator,
 } from '../../../components/ui';
-import { TriangleAlert } from 'lucide-react';
-import { KeyRound } from 'lucide-react';
+import { TriangleAlert } from '../../../icons/glyphs';
+import { KeyRound } from '../../../icons/glyphs';
 import { tuyaApi, type TuyaConfigStatus } from '../../../services/api/noiseApi';
 import { useTranslation } from '../../../hooks/useTranslation';
 

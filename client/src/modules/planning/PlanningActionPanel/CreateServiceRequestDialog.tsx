@@ -6,7 +6,7 @@ import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react'
 import { cn } from '../../../utils/cn';
 import StatusChip from '../../../components/StatusChip';
 import { Alert as UiAlert, AlertTitle, AlertDescription, Button } from '../../../components/ui';
-import { TriangleAlert, CircleCheck, Info } from 'lucide-react';
+import { TriangleAlert, CircleCheck, Info } from '../../../icons/glyphs';
 import { Spinner } from '../../../components/ui';
 import {
   Dialog,

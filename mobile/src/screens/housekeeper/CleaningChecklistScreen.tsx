@@ -1,7 +1,7 @@
 import React, { useState, useCallback, useMemo, useEffect, useRef } from 'react';
 import { View, Text, ScrollView, Alert, Pressable, AppState } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Ionicons } from '@expo/vector-icons';
+import { Reicon } from '@/icons';
 import { useRoute, useNavigation } from '@react-navigation/native';
 import { useTranslation } from 'react-i18next';
 import type { RouteProp } from '@react-navigation/native';
@@ -107,7 +107,7 @@ function TimerCard({ elapsed, estimatedHours, theme }: {
             backgroundColor: isOvertime ? `${theme.colors.warning.main}12` : `${theme.colors.primary.main}12`,
             alignItems: 'center', justifyContent: 'center',
           }}>
-            <Ionicons
+            <Reicon
               name="timer-outline"
               size={18}
               color={isOvertime ? theme.colors.warning.main : theme.colors.primary.main}
@@ -415,7 +415,7 @@ export function CleaningChecklistScreen() {
                 backgroundColor: pressed ? `${theme.colors.primary.main}12` : 'transparent',
               })}
             >
-              <Ionicons name="chatbubbles-outline" size={18} color={theme.colors.primary.main} />
+              <Reicon name="chatbubbles-outline" size={18} color={theme.colors.primary.main} />
               <Text style={{ ...theme.typography.body2, color: theme.colors.primary.main, fontWeight: '600' }}>
                 Contacter le manager
               </Text>

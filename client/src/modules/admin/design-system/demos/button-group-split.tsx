@@ -1,4 +1,4 @@
-import { IconPlus } from "@tabler/icons-react"
+import { Plus as IconPlus } from "../../../../icons/glyphs"
 
 import { Button } from '../../../../components/ui'
 import {

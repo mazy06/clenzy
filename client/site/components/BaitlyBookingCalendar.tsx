@@ -4,7 +4,7 @@ import {
   CheckIcon,
   ChevronLeftIcon,
   ChevronRightIcon,
-} from 'lucide-react';
+} from '../../src/icons/glyphs';
 import {
   dateISO,
   formatBookingDate,

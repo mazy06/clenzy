@@ -1,7 +1,7 @@
 import React, { useMemo, useState } from 'react';
 import { Badge } from '../../components/ui';
 import { Alert as BuiAlert, AlertDescription, AlertAction, Button as BuiButton } from '../../components/ui';
-import { TriangleAlert, X, Info } from 'lucide-react';
+import { TriangleAlert, X, Info } from '../../icons/glyphs';
 import { Spinner } from '../../components/ui';
 import { Tooltip, TooltipContent, TooltipTrigger } from '../../components/ui';
 import { Card, Field, FieldLabel, Input } from '../../components/ui';

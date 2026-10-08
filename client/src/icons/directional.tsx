@@ -13,7 +13,7 @@
  * qui désigne une vraie direction physique (ouvrir un sous-menu vers la droite de
  * l'écran) garde `ChevronLeft` / `ChevronRight`.</p>
  */
-import { ChevronLeft, ChevronRight } from 'lucide-react';
+import { ChevronLeft, ChevronRight } from './glyphs';
 import type { ComponentProps } from 'react';
 import { useTranslation } from '../hooks/useTranslation';
 import { isRtlLanguage } from '../utils/localeDate';

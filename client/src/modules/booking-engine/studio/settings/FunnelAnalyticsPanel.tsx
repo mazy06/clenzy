@@ -1,9 +1,9 @@
 import { useEffect, useState } from 'react';
 import { Alert, AlertDescription } from '../../../../components/ui';
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '../../../../components/ui';
-import { TriangleAlert } from 'lucide-react';
+import { TriangleAlert } from '../../../../icons/glyphs';
 import { Skeleton, ToggleGroup, ToggleGroupItem } from '../../../../components/ui';
-import { CalendarX2, Eye, MousePointerClick, Search, ShoppingCart } from 'lucide-react';
+import { CalendarX2, Eye, MousePointerClick, Search, ShoppingCart } from '../../../../icons/glyphs';
 import StatTile from '../../../../components/baitly/StatTile';
 import EmptyState from '../../../../components/EmptyState';
 import { useTranslation } from '../../../../hooks/useTranslation';

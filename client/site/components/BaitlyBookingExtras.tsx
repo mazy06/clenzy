@@ -3,7 +3,7 @@ import {
   CarFrontIcon,
   CheckIcon,
   ShoppingBagIcon,
-} from 'lucide-react';
+} from '../../src/icons/glyphs';
 import {
   getBookingDemoExtras,
   getBookingDemoExtraTotal,

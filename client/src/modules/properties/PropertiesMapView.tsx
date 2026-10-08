@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { AlertTriangle, CircleCheck, Wrench } from 'lucide-react';
+import { AlertTriangle, CircleCheck, Wrench } from '../../icons/glyphs';
 import { Button, Tooltip, TooltipContent, TooltipTrigger } from '../../components/ui';
 import { Home } from '../../icons';
 import { useTranslation } from '../../hooks/useTranslation';

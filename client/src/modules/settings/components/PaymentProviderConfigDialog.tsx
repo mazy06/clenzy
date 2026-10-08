@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from '../../../hooks/useTranslation';
 import { Alert, AlertDescription, Button } from '../../../components/ui';
-import { Info, TriangleAlert } from 'lucide-react';
+import { Info, TriangleAlert } from '../../../icons/glyphs';
 import { Spinner } from '../../../components/ui';
 import {
   Dialog,

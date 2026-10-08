@@ -5,7 +5,7 @@ import {
   Maximize2Icon,
   Minimize2Icon,
   PartyPopperIcon,
-} from 'lucide-react';
+} from '../../icons/glyphs';
 import { Button } from '../ui';
 import { cn } from '../../utils/cn';
 import { STORAGE_KEYS } from '../../services/storageService';

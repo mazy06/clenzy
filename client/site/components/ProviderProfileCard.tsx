@@ -1,4 +1,4 @@
-import { MapPinIcon, StarIcon, UserRoundIcon } from "lucide-react";
+import { MapPinIcon, StarIcon, UserRoundIcon } from "../../src/icons/glyphs";
 import type { ReactNode } from "react";
 
 /** Shared presentation for illustrative marketplace listings and the applicant's draft. */

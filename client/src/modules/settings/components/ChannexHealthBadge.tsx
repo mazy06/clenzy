@@ -17,7 +17,7 @@
  * <p>Le badge est cliquable (curseur pointer) si {@code onClick} est fourni.</p>
  */
 import React from 'react';
-import { Cable, AlertCircle, Pause, Clock, CheckCircle2 } from 'lucide-react';
+import { Cable, AlertCircle, Pause, Clock, CheckCircle2 } from '../../../icons/glyphs';
 import { Tooltip, TooltipContent, TooltipTrigger } from '../../../components/ui';
 
 import { cn } from '../../../utils/cn';

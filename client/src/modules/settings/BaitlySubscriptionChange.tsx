@@ -1,7 +1,7 @@
 import { useRef, useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
-import { CalendarClock, CreditCard } from 'lucide-react';
+import { CalendarClock, CreditCard } from '../../icons/glyphs';
 import { Button, NativeSelect, Skeleton } from '../../components/ui';
 import { baitlySubscriptionApi as api, type MonthlyContract, type MonthlyPlan } from '../../services/api/baitlySubscriptionApi';
 import type { SubscriptionChangeProposal } from '../../../../shared/src/types/baitlySubscription';

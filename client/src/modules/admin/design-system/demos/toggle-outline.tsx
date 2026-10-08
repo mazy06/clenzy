@@ -1,4 +1,4 @@
-import { Italic } from "lucide-react"
+import { Italic } from "../../../../icons/glyphs"
 
 import { Toggle } from '../../../../components/ui'
 

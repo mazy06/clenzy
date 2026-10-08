@@ -1,7 +1,7 @@
 import React from 'react';
 import { cn } from '../../utils/cn';
 import { Alert as UiAlert, AlertDescription, Button } from '../../components/ui';
-import { CircleCheck, Info } from 'lucide-react';
+import { CircleCheck, Info } from '../../icons/glyphs';
 import {
   Dialog,
   DialogContent,

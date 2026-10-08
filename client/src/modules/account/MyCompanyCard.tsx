@@ -10,7 +10,7 @@ import {
   Input,
   Spinner,
 } from '../../components/ui';
-import { TriangleAlert } from 'lucide-react';
+import { TriangleAlert } from '../../icons/glyphs';
 import { Business, DeleteOutline, Save, UploadFile } from '../../icons';
 import { useNotification } from '../../hooks/useNotification';
 import { useTranslation } from '../../hooks/useTranslation';

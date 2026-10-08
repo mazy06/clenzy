@@ -1,6 +1,6 @@
 import * as React from 'react';
 import { Bar, BarChart, CartesianGrid, ReferenceLine, XAxis, YAxis } from 'recharts';
-import { ChartBarBigIcon, ChartPieIcon, ChevronRightIcon } from 'lucide-react';
+import { ChartBarBigIcon, ChartPieIcon, ChevronRightIcon } from '../../../icons/glyphs';
 import { Link } from 'react-router-dom';
 import { ChartContainer, ChartTooltip, ChartTooltipContent, type ChartConfig } from '../../../components/ui/chart';
 import { cn } from '../../../utils/cn';

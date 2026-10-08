@@ -8,7 +8,7 @@
  *   - Cochee par defaut : "Appliquer aux X propriete(s)"
  */
 import React, { useEffect, useMemo, useState } from 'react';
-import { X, Sparkles } from 'lucide-react';
+import { X, Sparkles } from '../../../icons/glyphs';
 import { Button } from '../../../components/ui';
 import { Alert, AlertDescription, Checkbox, Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, Field, FieldDescription, FieldLabel, Input, NativeSelect, NativeSelectOption } from '../../../components/ui';
 import { Combobox, ComboboxCollection, ComboboxContent, ComboboxEmpty, ComboboxGroup, ComboboxInput, ComboboxItem, ComboboxLabel, ComboboxList } from '../../../components/ui/combobox';

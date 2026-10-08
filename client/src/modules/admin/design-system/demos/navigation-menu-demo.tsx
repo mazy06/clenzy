@@ -1,6 +1,6 @@
 import * as React from "react"
 import Link from './_shims/next-link'
-import { CircleCheckIcon, CircleHelpIcon, CircleIcon } from "lucide-react"
+import { CircleCheckIcon, CircleHelpIcon, CircleIcon } from "../../../../icons/glyphs"
 
 import { useIsMobile } from '../../../../hooks/use-mobile'
 import {

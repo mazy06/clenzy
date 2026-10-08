@@ -1,5 +1,5 @@
 import { Children, lazy, Suspense, useState } from 'react';
-import { Battery, CheckCircle2, ChevronDown, CircleHelp, History, KeyRound, LockKeyhole, LockKeyholeOpen, Trash2, TriangleAlert, WifiOff } from 'lucide-react';
+import { Battery, CheckCircle2, ChevronDown, CircleHelp, History, KeyRound, LockKeyhole, LockKeyholeOpen, Trash2, TriangleAlert, WifiOff } from '../../../icons/glyphs';
 import { Button, Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, Skeleton } from '../../../components/ui';
 import PageTabs from '../../../components/PageTabs';
 import { useTranslation } from '../../../hooks/useTranslation';

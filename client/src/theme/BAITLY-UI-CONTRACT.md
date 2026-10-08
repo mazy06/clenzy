@@ -205,7 +205,7 @@ repointer un import vers `baitly/` sans comparer les API prop par prop.
 ## 6. Interdits produit
 
 Bande latérale colorée > 1 px · texte en dégradé · glassmorphism décoratif · hero-metric ·
-grille de cartes identiques · modale en premier réflexe · emoji comme icône (lucide via
+grille de cartes identiques · modale en premier réflexe · emoji comme icône (Reicon via
 `src/icons`) · `#000` / `#fff` purs · `scale()` au survol · tous les boutons en `variant="default"`.
 
 ---

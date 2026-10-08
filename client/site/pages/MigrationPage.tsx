@@ -11,7 +11,7 @@ import {
   MessageSquareIcon,
   MoveRightIcon,
   StarIcon,
-} from 'lucide-react';
+} from '../../src/icons/glyphs';
 import { Link } from 'react-router-dom';
 import SiteAcquisitionLink from '../components/SiteAcquisitionLink';
 import Reveal from '../components/Reveal';

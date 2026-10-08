@@ -4,7 +4,7 @@ import { cn } from '../../../utils/cn';
 import StatusChip from '../../../components/StatusChip';
 import { Badge } from '../../../components/ui';
 import { Alert as UiAlert, AlertAction, AlertDescription } from '../../../components/ui';
-import { TriangleAlert, Info, CircleCheck, X } from 'lucide-react';
+import { TriangleAlert, Info, CircleCheck, X } from '../../../icons/glyphs';
 import { Spinner, Button } from '../../../components/ui';
 import {
   Checkbox,

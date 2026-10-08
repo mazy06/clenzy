@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from 'react';
-import { ShieldCheck, UserPlus, Trash2, ArrowRight, Lock, AlertCircle } from 'lucide-react';
+import { ShieldCheck, UserPlus, Trash2, ArrowRight, Lock, AlertCircle } from '../../icons/glyphs';
 import type { GuideLabels, Lang } from './WelcomeBookView';
 import { normalizeTheme } from './welcomeBookThemes';
 import type { DeclarationRules, GuestDeclarant } from '../../services/api/welcomeGuideApi';

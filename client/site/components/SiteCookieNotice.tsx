@@ -1,6 +1,6 @@
 import { createContext, startTransition, useCallback, useContext, useEffect, useRef, useState, type ReactNode } from 'react';
 import { Link } from 'react-router-dom';
-import { ShieldCheck, X } from 'lucide-react';
+import { ShieldCheck, X } from '../../src/icons/glyphs';
 import assistantPortrait from '../../public/images/assistant/baitly-assistant.webp';
 import { STORAGE_KEYS } from '../../src/services/storageService';
 import { useSiteLanguage } from '../lib/siteLanguage';

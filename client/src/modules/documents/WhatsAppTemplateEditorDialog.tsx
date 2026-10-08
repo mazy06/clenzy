@@ -16,7 +16,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '../../components/ui';
-import { TriangleAlert } from 'lucide-react';
+import { TriangleAlert } from '../../icons/glyphs';
 import { Spinner } from '../../components/ui';
 import { cn } from '../../utils/cn';
 import { Save, Replay } from '../../icons';

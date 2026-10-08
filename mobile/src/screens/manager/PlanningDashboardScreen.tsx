@@ -1,7 +1,7 @@
 import React, { useMemo } from 'react';
 import { View, Text, ScrollView, RefreshControl, ActivityIndicator, Pressable } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Ionicons } from '@expo/vector-icons';
+import { Reicon } from '@/icons';
 import { useNavigation } from '@react-navigation/native';
 import { useInterventions } from '@/hooks/useInterventions';
 import { useUnreadConversationCount } from '@/hooks/useConversations';
@@ -147,11 +147,11 @@ export function PlanningDashboardScreen() {
               borderLeftColor: theme.colors.primary.main,
             })}
           >
-            <Ionicons name="chatbubbles" size={20} color={theme.colors.primary.main} />
+            <Reicon name="chatbubbles" size={20} color={theme.colors.primary.main} />
             <Text style={{ ...theme.typography.body2, color: theme.colors.primary.main, fontWeight: '600', flex: 1 }}>
               {unreadCount} message{unreadCount > 1 ? 's' : ''} non lu{unreadCount > 1 ? 's' : ''}
             </Text>
-            <Ionicons name="chevron-forward" size={16} color={theme.colors.primary.main} />
+            <Reicon name="chevron-forward" size={16} color={theme.colors.primary.main} />
           </Pressable>
         )}
 

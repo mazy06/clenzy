@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { ChevronDown } from 'lucide-react';
+import { ChevronDown } from '../../icons/glyphs';
 import { Button, Skeleton } from '../../components/ui';
 import { useTranslation } from '../../hooks/useTranslation';
 import { useMediaQuery } from '../../hooks/use-media-query';

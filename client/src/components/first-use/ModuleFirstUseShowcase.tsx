@@ -1,7 +1,7 @@
 import { lazy, Suspense, useEffect, useId, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
-import { ArrowRight, Check } from 'lucide-react';
+import { ArrowRight, Check } from '../../icons/glyphs';
 import { Button } from '../ui';
 import { StoryPage } from '../baitly/FeatureStory';
 import { usePrefersReducedMotion } from '../baitly/ShowcaseCycler';

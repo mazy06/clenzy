@@ -2,14 +2,14 @@ import React, { useCallback } from 'react';
 import { View, Text, Pressable, FlatList, RefreshControl, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
-import { Ionicons } from '@expo/vector-icons';
+import { Reicon } from '@/icons';
 import { useNotifications, useMarkNotificationRead, useMarkAllRead, useDismissNotification } from '@/hooks/useNotifications';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { Skeleton } from '@/components/ui/Skeleton';
 import { useTheme } from '@/theme';
 import type { Notification } from '@/api/endpoints/notificationsApi';
 
-type IoniconsName = keyof typeof Ionicons.glyphMap;
+type IconName = keyof typeof Reicon.glyphMap;
 
 /* ─── Helpers ─── */
 
@@ -32,14 +32,14 @@ function formatRelativeDate(dateStr: string): string {
   }
 }
 
-const TYPE_CONFIG: Record<string, { icon: IoniconsName; color: string }> = {
+const TYPE_CONFIG: Record<string, { icon: IconName; color: string }> = {
   info: { icon: 'information-circle', color: '#4F8EF7' },
   success: { icon: 'checkmark-circle', color: '#4A9B8E' },
   warning: { icon: 'alert-circle', color: '#D97706' },
   error: { icon: 'close-circle', color: '#C97A7A' },
 };
 
-const CATEGORY_ICONS: Record<string, IoniconsName> = {
+const CATEGORY_ICONS: Record<string, IconName> = {
   intervention: 'construct-outline',
   service_request: 'clipboard-outline',
   payment: 'card-outline',
@@ -108,7 +108,7 @@ function NotificationItem({ item, onRead, onDismiss, theme }: {
         justifyContent: 'center',
         marginTop: 2,
       }}>
-        <Ionicons name={categoryIcon} size={18} color={typeCfg.color} />
+        <Reicon name={categoryIcon} size={18} color={typeCfg.color} />
       </View>
 
       {/* Content */}
@@ -217,7 +217,7 @@ export function NotificationsScreen() {
         gap: theme.SPACING.md,
       }}>
         <Pressable onPress={() => navigation.goBack()} hitSlop={8}>
-          <Ionicons name="chevron-back" size={22} color={theme.colors.text.primary} />
+          <Reicon name="chevron-back" size={22} color={theme.colors.text.primary} />
         </Pressable>
         <Text style={{ ...theme.typography.h3, color: theme.colors.text.primary, flex: 1 }}>
           Notifications

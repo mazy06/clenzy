@@ -1,7 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { View, Text, ScrollView, Pressable, Alert, Share } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Ionicons } from '@expo/vector-icons';
+import { Reicon } from '@/icons';
 import { useNavigation } from '@react-navigation/native';
 import { useTheme } from '@/theme';
 import { Card } from '@/components/ui/Card';
@@ -13,7 +13,7 @@ import { SectionHeader } from '@/components/ui/SectionHeader';
 import { useProperties } from '@/hooks/useProperties';
 import type { Property } from '@/api/endpoints/propertiesApi';
 
-type IoniconsName = keyof typeof Ionicons.glyphMap;
+type IconName = keyof typeof Reicon.glyphMap;
 
 const PERIOD_OPTIONS = [
   { label: 'Ce mois', value: 'month' },
@@ -33,7 +33,7 @@ const FORMAT_OPTIONS = [
 interface MetricOption {
   key: string;
   label: string;
-  icon: IoniconsName;
+  icon: IconName;
   selected: boolean;
 }
 
@@ -116,7 +116,7 @@ export function AnalyticsExportScreen() {
             marginRight: theme.SPACING.md,
           }}
         >
-          <Ionicons name="arrow-back" size={20} color={theme.colors.text.primary} />
+          <Reicon name="arrow-back" size={20} color={theme.colors.text.primary} />
         </Pressable>
         <Text style={{ ...theme.typography.h2, color: theme.colors.text.primary, flex: 1 }}>
           Exporter les donnees
@@ -172,7 +172,7 @@ export function AnalyticsExportScreen() {
                   alignItems: 'center',
                   justifyContent: 'center',
                 }}>
-                  <Ionicons
+                  <Reicon
                     name={metric.icon}
                     size={16}
                     color={metric.selected ? theme.colors.primary.main : theme.colors.text.disabled}
@@ -186,7 +186,7 @@ export function AnalyticsExportScreen() {
                 }}>
                   {metric.label}
                 </Text>
-                <Ionicons
+                <Reicon
                   name={metric.selected ? 'checkbox' : 'square-outline'}
                   size={22}
                   color={metric.selected ? theme.colors.primary.main : theme.colors.text.disabled}
@@ -216,7 +216,7 @@ export function AnalyticsExportScreen() {
                   gap: 4,
                 }}
               >
-                <Ionicons
+                <Reicon
                   name={f.value === 'pdf' ? 'document-text-outline' : 'grid-outline'}
                   size={24}
                   color={format === f.value ? theme.colors.primary.main : theme.colors.text.disabled}
@@ -240,7 +240,7 @@ export function AnalyticsExportScreen() {
           loading={isGenerating}
           disabled={selectedMetricCount === 0}
           fullWidth
-          icon={<Ionicons name="share-outline" size={18} color={theme.colors.primary.contrastText} />}
+          icon={<Reicon name="share-outline" size={18} color={theme.colors.primary.contrastText} />}
         />
       </ScrollView>
     </SafeAreaView>

@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { CalendarDays, List, ChevronLeft, ChevronRight, CheckCircle2, Clock3, Play, XCircle, ExternalLink } from 'lucide-react';
+import { CalendarDays, List, ChevronLeft, ChevronRight, CheckCircle2, Clock3, Play, XCircle, ExternalLink } from '../../icons/glyphs';
 import { Button, ToggleGroup, ToggleGroupItem } from '../../components/ui';
 import StatusIcon, { type StatusIconTone } from '../../components/StatusIcon';
 import StatTile from '../../components/baitly/StatTile';

@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from 'react';
-import { ArrowRight, ChevronDown, History, Pencil, Plus, ShieldCheck, Trash2 } from 'lucide-react';
+import { ArrowRight, ChevronDown, History, Pencil, Plus, ShieldCheck, Trash2 } from '../../icons/glyphs';
 import { Button, Field, FieldLabel, Input, Switch } from '../../components/ui';
 import PagePagination from '../../components/PagePagination';
 import { useTranslation } from '../../hooks/useTranslation';

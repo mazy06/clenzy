@@ -19,7 +19,7 @@ import {
   PercentIcon,
   PlusIcon,
   WrenchIcon,
-} from 'lucide-react';
+} from '../../../icons/glyphs';
 import { Bar, BarChart, CartesianGrid, XAxis } from 'recharts';
 import { Badge, Button, Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious, Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../../../components/ui';
 import { type ChartConfig, ChartContainer, ChartTooltip, ChartTooltipContent } from '../../../components/ui/chart';

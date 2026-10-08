@@ -1,25 +1,10 @@
-import BaitlyTurnstile from "../../src/components/BaitlyTurnstile";
-import { runtimeEnvOr } from "../../src/config/runtimeConfig";
-import {
-  useCallback,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-  type FormEvent,
-} from "react";
-import { Link } from "react-router-dom";
-import {
-  ArrowLeftIcon,
-  ArrowRightIcon,
-  CheckIcon,
-  ChevronDownIcon,
-  Loader2Icon,
-  PlusIcon,
-  SearchIcon,
-  Trash2Icon,
-  UploadIcon,
-} from "lucide-react";
+import { SiteCurrencySymbol } from "../components/SiteMoney";
+import { SITE_CURRENCIES, type SiteCurrency } from "../lib/siteCurrency";
+import BaitlyTurnstile from '../../src/components/BaitlyTurnstile';
+import { runtimeEnvOr } from '../../src/config/runtimeConfig';
+import { useCallback, useEffect, useMemo, useRef, useState, type FormEvent } from 'react';
+import { Link } from 'react-router-dom';
+import { ArrowLeftIcon, ArrowRightIcon, CheckIcon, ChevronDownIcon, Loader2Icon, PlusIcon, SearchIcon, Trash2Icon, UploadIcon } from '../../src/icons/glyphs';
 import {
   Badge,
   Button,

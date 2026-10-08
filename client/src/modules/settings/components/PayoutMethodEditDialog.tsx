@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import StatusChip, { type StatusTone } from '../../../components/StatusChip';
 import { Alert, AlertDescription } from '../../../components/ui';
-import { Check, Info, CircleCheck, TriangleAlert } from 'lucide-react';
+import { Check, Info, CircleCheck, TriangleAlert } from '../../../icons/glyphs';
 import { Spinner, Button } from '../../../components/ui';
 import {
   Dialog,

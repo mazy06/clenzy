@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { Plus, RefreshCw, Settings2, Plug } from 'lucide-react';
+import { Plus, RefreshCw, Settings2, Plug } from '../../icons/glyphs';
 import { Button, NativeSelect, NativeSelectOption, Skeleton } from '../../components/ui';
 import PageHeader from '../../components/PageHeader';
 import { usePageHeaderActions } from '../../components/PageHeaderActionsContext';

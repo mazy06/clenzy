@@ -1,6 +1,6 @@
 import React from 'react';
 import { View, Text } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
+import { Reicon } from '@/icons';
 import { Card } from '@/components/ui/Card';
 import { useTheme } from '@/theme';
 
@@ -9,7 +9,7 @@ interface KpiCardProps {
   value: string | number;
   unit?: string;
   trend?: number;
-  iconName?: keyof typeof Ionicons.glyphMap;
+  iconName?: keyof typeof Reicon.glyphMap;
   color?: 'primary' | 'secondary' | 'success' | 'warning' | 'error' | 'info';
   compact?: boolean;
   onPress?: () => void;
@@ -47,7 +47,7 @@ export const KpiCard = React.memo(function KpiCard({ label, value, unit, trend, 
             justifyContent: 'center',
             marginLeft: 4,
           }}>
-            <Ionicons name={iconName} size={compact ? 14 : 16} color={palette.main} />
+            <Reicon name={iconName} size={compact ? 14 : 16} color={palette.main} />
           </View>
         )}
       </View>
@@ -63,7 +63,7 @@ export const KpiCard = React.memo(function KpiCard({ label, value, unit, trend, 
 
       {trend != null && trend !== 0 && (
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: theme.SPACING.sm }}>
-          {trendIcon && <Ionicons name={trendIcon as any} size={14} color={trendColor} />}
+          {trendIcon && <Reicon name={trendIcon as any} size={14} color={trendColor} />}
           <Text style={{ ...theme.typography.caption, color: trendColor, fontWeight: '700' }}>
             {trendPrefix}{trend}%
           </Text>

@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Link2 } from 'lucide-react';
+import { Link2 } from '../../../icons/glyphs';
 import { Button } from '../../../components/ui';
 import StatusChip from '../../../components/StatusChip';
 import IllustratedHeading from '../../../components/IllustratedHeading';

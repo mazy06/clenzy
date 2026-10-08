@@ -1,4 +1,4 @@
-import { SearchIcon, XIcon } from 'lucide-react';
+import { SearchIcon, XIcon } from '../../icons/glyphs';
 import { InputGroup, InputGroupAddon, InputGroupButton, InputGroupInput } from '../ui';
 
 /**

@@ -11,7 +11,7 @@ import {
   TooltipTrigger,
 } from '../../../components/ui';
 import { useQuery } from '@tanstack/react-query';
-import { Settings2 } from 'lucide-react';
+import { Settings2 } from '../../../icons/glyphs';
 import OAuthProviderCard, { type OAuthApiAdapter } from './OAuthProviderCard';
 import TuyaProjectConfigDialog from './TuyaProjectConfigDialog';
 import NetatmoProjectConfigDialog from './NetatmoProjectConfigDialog';

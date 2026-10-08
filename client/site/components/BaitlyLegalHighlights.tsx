@@ -1,4 +1,4 @@
-import { ArrowRight } from 'lucide-react';
+import { ArrowRight } from '../../src/icons/glyphs';
 import { Link } from 'react-router-dom';
 import { legalArticleImage } from '../data/legal/articleImages';
 import { LEGAL_MESSAGES } from '../lib/messages/baitlyLegal';

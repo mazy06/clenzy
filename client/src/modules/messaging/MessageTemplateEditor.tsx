@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Alert as BuiAlert, AlertDescription, AlertAction, Button as BuiButton } from '../../components/ui';
-import { TriangleAlert, X } from 'lucide-react';
+import { TriangleAlert, X } from '../../icons/glyphs';
 import { Spinner } from '../../components/ui';
 import {
   Dialog,

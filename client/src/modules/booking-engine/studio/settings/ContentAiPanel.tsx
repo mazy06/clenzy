@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Alert, AlertDescription, Button, Skeleton } from '../../../../components/ui';
 import EmptyState from '../../../../components/EmptyState';
-import { Wand2, Search, Copy, Check, AlertTriangle, Sparkles } from 'lucide-react';
+import { Wand2, Search, Copy, Check, AlertTriangle, Sparkles } from '../../../../icons/glyphs';
 import { propertiesApi, type Property } from '../../../../services/api/propertiesApi';
 import { propertyContentAiApi, type GeneratedContent } from '../../../../services/api/propertyContentAiApi';
 import { SettingsPage, SettingCard, SettingRow, SelectControl } from './settingsControls';

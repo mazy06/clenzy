@@ -2,7 +2,7 @@ import React, { useCallback } from 'react';
 import { View, Text, ScrollView, Alert, Pressable } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
-import { Ionicons } from '@expo/vector-icons';
+import { Reicon } from '@/icons';
 import { useAuthStore } from '@/store/authStore';
 import { useTranslation } from 'react-i18next';
 import { Card } from '@/components/ui/Card';
@@ -10,7 +10,7 @@ import { Avatar } from '@/components/ui/Avatar';
 import { NotificationBell } from '@/components/ui/NotificationBell';
 import { useTheme } from '@/theme';
 
-type IoniconsName = keyof typeof Ionicons.glyphMap;
+type IconName = keyof typeof Reicon.glyphMap;
 
 function getDisplayName(user: any): string {
   if (user?.fullName) return user.fullName;
@@ -34,7 +34,7 @@ function getRoleName(role: string): string {
 }
 
 function MenuRow({ icon, label, onPress, theme, color, showChevron = true }: {
-  icon: IoniconsName;
+  icon: IconName;
   label: string;
   onPress: () => void;
   theme: ReturnType<typeof useTheme>;
@@ -62,7 +62,7 @@ function MenuRow({ icon, label, onPress, theme, color, showChevron = true }: {
         justifyContent: 'center',
         marginRight: theme.SPACING.md,
       }}>
-        <Ionicons name={icon} size={18} color={color || theme.colors.primary.main} />
+        <Reicon name={icon} size={18} color={color || theme.colors.primary.main} />
       </View>
       <Text style={{
         ...theme.typography.body1,
@@ -72,7 +72,7 @@ function MenuRow({ icon, label, onPress, theme, color, showChevron = true }: {
         {label}
       </Text>
       {showChevron && (
-        <Ionicons name="chevron-forward" size={16} color={theme.colors.text.disabled} />
+        <Reicon name="chevron-forward" size={16} color={theme.colors.text.disabled} />
       )}
     </Pressable>
   );
@@ -146,7 +146,7 @@ export function ProfileScreen() {
             )}
 
             <View style={{ position: 'absolute', top: theme.SPACING.md, right: theme.SPACING.md }}>
-              <Ionicons name="chevron-forward" size={16} color={theme.colors.text.disabled} />
+              <Reicon name="chevron-forward" size={16} color={theme.colors.text.disabled} />
             </View>
           </Card>
 
@@ -162,7 +162,7 @@ export function ProfileScreen() {
                   alignItems: 'center',
                   justifyContent: 'center',
                 }}>
-                  <Ionicons name="business-outline" size={20} color={theme.colors.secondary.main} />
+                  <Reicon name="business-outline" size={20} color={theme.colors.secondary.main} />
                 </View>
                 <View style={{ flex: 1 }}>
                   <Text style={{ ...theme.typography.caption, color: theme.colors.text.disabled }}>Organisation</Text>
@@ -282,7 +282,7 @@ export function ProfileScreen() {
           {/* App version */}
           <View style={{ alignItems: 'center', paddingVertical: theme.SPACING.lg }}>
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-              <Ionicons name="phone-portrait-outline" size={14} color={theme.colors.text.disabled} />
+              <Reicon name="phone-portrait-outline" size={14} color={theme.colors.text.disabled} />
               <Text style={{ ...theme.typography.caption, color: theme.colors.text.disabled }}>
                 Clenzy Mobile v1.0.0
               </Text>

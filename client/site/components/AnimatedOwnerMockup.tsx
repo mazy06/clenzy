@@ -1,7 +1,9 @@
-import { useState } from 'react';
-import { PauseIcon, PlayIcon } from 'lucide-react';
+import { useLayoutEffect, useRef, useState } from 'react';
+import { CheckIcon, DownloadIcon, PauseIcon, PlayIcon } from '../../src/icons/glyphs';
 import { OwnersDemo } from './BaitlyProductDemos';
-import { Cursor, useScriptedCursor, useTimeline } from './mockupKit';
+import { BOwnerPortalSectionDemo } from '../../src/modules/admin/design-system/screens-demos-2';
+import ProjectionRuntime from './ProjectionRuntime';
+import { Cursor, useReducedMotion, useScriptedCursor, useTimeline } from './mockupKit';
 import { useBaitlyDemoVisibility } from './useBaitlyDemoVisibility';
 import { useSiteLanguage } from '../lib/siteLanguage';
 import { BAITLY_PRODUCT_DEMO_MESSAGES } from '../lib/messages/baitlyProductDemos';

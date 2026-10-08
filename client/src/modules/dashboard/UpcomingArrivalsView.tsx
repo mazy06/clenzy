@@ -1,4 +1,4 @@
-import { ChevronRightIcon } from 'lucide-react';
+import { ChevronRightIcon } from '../../icons/glyphs';
 import { Link } from 'react-router-dom';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../../components/ui';
 import GuestAvatar from '../../components/baitly/GuestAvatar';

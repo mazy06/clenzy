@@ -9,7 +9,7 @@ import {
   Input,
   Spinner,
 } from '../../components/ui';
-import { TriangleAlert } from 'lucide-react';
+import { TriangleAlert } from '../../icons/glyphs';
 import StatusChip from '../../components/StatusChip';
 import { Room, Add, DeleteOutline, Save } from '../../icons';
 import { useNotification } from '../../hooks/useNotification';

@@ -3,7 +3,7 @@ import { View, Text, Pressable, Image, Alert, FlatList, ActivityIndicator, Platf
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRoute, useNavigation } from '@react-navigation/native';
 import type { RouteProp } from '@react-navigation/native';
-import { Ionicons } from '@expo/vector-icons';
+import { Reicon } from '@/icons';
 import * as ImagePicker from 'expo-image-picker';
 import { usePropertyPhotos, useUploadPropertyPhoto, useDeletePropertyPhoto } from '@/hooks/useProperties';
 import { propertiesApi, type PropertyPhotoMeta } from '@/api/endpoints/propertiesApi';
@@ -62,7 +62,7 @@ function PhotoCard({
         {isDeleting ? (
           <ActivityIndicator size="small" color="#fff" />
         ) : (
-          <Ionicons name="close" size={18} color="#fff" />
+          <Reicon name="close" size={18} color="#fff" />
         )}
       </Pressable>
       {photo.caption ? (
@@ -230,7 +230,7 @@ export function PropertyPhotosManageScreen() {
         paddingVertical: theme.SPACING.md, gap: theme.SPACING.md,
       }}>
         <Pressable onPress={() => navigation.goBack()} hitSlop={12}>
-          <Ionicons name="arrow-back" size={24} color={theme.colors.text.primary} />
+          <Reicon name="arrow-back" size={24} color={theme.colors.text.primary} />
         </Pressable>
         <Text style={{ ...theme.typography.h3, color: theme.colors.text.primary, flex: 1 }}>
           Gerer les photos
@@ -293,7 +293,7 @@ export function PropertyPhotosManageScreen() {
           onPress={handleAddPhoto}
           loading={uploadMutation.isPending}
           fullWidth
-          icon={<Ionicons name="camera-outline" size={20} color={theme.colors.primary.contrastText} />}
+          icon={<Reicon name="camera-outline" size={20} color={theme.colors.primary.contrastText} />}
         />
       </View>
     </SafeAreaView>

@@ -1,5 +1,5 @@
 import React from 'react';
-import { LogIn, LogOut, SquarePen } from 'lucide-react';
+import { LogIn, LogOut, SquarePen } from '../../../icons/glyphs';
 import { Button } from '../../../components/ui';
 import IllustratedHeading from '../../../components/IllustratedHeading';
 import { useTranslation } from '../../../hooks/useTranslation';

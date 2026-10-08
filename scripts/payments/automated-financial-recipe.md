@@ -9,13 +9,15 @@ Le lanceur ne démarre, n'arrête et ne recharge aucun conteneur.
 Prérequis : Java 21, Maven, Python 3, Node 22 ou supérieur, dépendances frontend installées,
 et PostgreSQL éphémère de test déjà disponible. La base accepte l'utilisateur `postgres`
 sans mot de passe sur le réseau isolé de recette. Ne jamais utiliser la base applicative.
+Le backend exige aussi un moteur PDF Gotenberg éphémère (rendus réels des aperçus) :
+`docker run --rm -p 127.0.0.1:3000:3000 gotenberg/gotenberg:8`.
 
 ```sh
 rtk proxy python3 scripts/payments/financial_recipe.py --list
-rtk proxy python3 scripts/payments/financial_recipe.py --scope all --jdbc jdbc:postgresql://127.0.0.1:5432/baitly_payout_test --output tmp/financial-recipe-run-01
+rtk proxy python3 scripts/payments/financial_recipe.py --scope all --jdbc jdbc:postgresql://127.0.0.1:5432/baitly_payout_test --pdf-url http://127.0.0.1:3000 --output tmp/financial-recipe-run-01
 ```
 
-Pour exécuter seulement le frontend, PostgreSQL n'est pas nécessaire :
+Pour exécuter seulement le frontend, ni PostgreSQL ni Gotenberg ne sont nécessaires :
 
 ```sh
 rtk proxy python3 scripts/payments/financial_recipe.py --scope frontend --output tmp/financial-interface-run-01

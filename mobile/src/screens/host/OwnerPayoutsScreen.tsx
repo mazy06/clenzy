@@ -16,7 +16,7 @@
 import React, { useMemo, useState } from 'react';
 import { View, Text, ScrollView, RefreshControl, Pressable } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Ionicons } from '@expo/vector-icons';
+import { Reicon } from '@/icons';
 import { useNavigation } from '@react-navigation/native';
 import { useTheme } from '@/theme';
 import { Skeleton } from '@/components/ui/Skeleton';
@@ -29,7 +29,7 @@ import {
   type PayoutStatus,
 } from '@/api/endpoints/payoutsApi';
 
-type IoniconsName = keyof typeof Ionicons.glyphMap;
+type IconName = keyof typeof Reicon.glyphMap;
 type FilterKey = 'all' | 'pending' | 'paid' | 'issues';
 
 interface FilterDef {
@@ -122,7 +122,7 @@ function PayoutCard({ payout, onPress }: { payout: OwnerPayoutDto; onPress: () =
         borderTopWidth: 1,
         borderTopColor: theme.colors.border.light,
       }}>
-        <Ionicons name={statusMeta.icon as IoniconsName} size={14} color={statusMeta.color} />
+        <Reicon name={statusMeta.icon as IconName} size={14} color={statusMeta.color} />
         <Text style={{ ...theme.typography.caption, color: statusMeta.color, marginLeft: 4, fontWeight: '600' }}>
           {statusMeta.label}
         </Text>
@@ -135,7 +135,7 @@ function PayoutCard({ payout, onPress }: { payout: OwnerPayoutDto; onPress: () =
           </Text>
         )}
         <View style={{ flex: 1 }} />
-        <Ionicons name="chevron-forward" size={14} color={theme.colors.text.disabled} />
+        <Reicon name="chevron-forward" size={14} color={theme.colors.text.disabled} />
       </View>
 
       {/* Optional failure reason */}
@@ -178,7 +178,7 @@ function FloatingActionButton({ onPress, theme }: { onPress: () => void; theme: 
       hitSlop={12}
       accessibilityLabel="Nouveau reversement"
     >
-      <Ionicons name="add" size={28} color={theme.colors.primary.contrastText} />
+      <Reicon name="add" size={28} color={theme.colors.primary.contrastText} />
     </Pressable>
   );
 }
@@ -252,7 +252,7 @@ export function OwnerPayoutsScreen() {
             ...theme.shadows.sm,
           }}>
             <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: theme.SPACING.xs }}>
-              <Ionicons name="cash-outline" size={18} color="#D97706" style={{ marginRight: 8 }} />
+              <Reicon name="cash-outline" size={18} color="#D97706" style={{ marginRight: 8 }} />
               <Text style={{ ...theme.typography.caption, color: theme.colors.text.secondary, textTransform: 'uppercase', letterSpacing: 0.5, fontSize: 11 }}>
                 A verser ce mois
               </Text>
@@ -354,7 +354,7 @@ function ScreenHeader({
   theme: ReturnType<typeof useTheme>;
   title: string;
   onBack: () => void;
-  rightAction?: { icon: IoniconsName; onPress: () => void; accessibilityLabel: string };
+  rightAction?: { icon: IconName; onPress: () => void; accessibilityLabel: string };
 }) {
   return (
     <View style={{
@@ -377,7 +377,7 @@ function ScreenHeader({
           marginRight: theme.SPACING.md,
         }}
       >
-        <Ionicons name="arrow-back" size={20} color={theme.colors.text.primary} />
+        <Reicon name="arrow-back" size={20} color={theme.colors.text.primary} />
       </Pressable>
       <Text style={{ ...theme.typography.h2, color: theme.colors.text.primary, flex: 1 }}>
         {title}
@@ -396,7 +396,7 @@ function ScreenHeader({
             justifyContent: 'center',
           }}
         >
-          <Ionicons name={rightAction.icon} size={20} color={theme.colors.primary.main} />
+          <Reicon name={rightAction.icon} size={20} color={theme.colors.primary.main} />
         </Pressable>
       )}
     </View>

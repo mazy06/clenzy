@@ -28,7 +28,7 @@ import {
   VolumeXIcon,
   WrenchIcon,
   XIcon,
-} from 'lucide-react';
+} from '../../../icons/glyphs';
 import {
   Accordion,
   AccordionContent,

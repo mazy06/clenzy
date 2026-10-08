@@ -1,5 +1,5 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from 'react';
-import { CheckIcon, SearchIcon, SendIcon, StarIcon } from 'lucide-react';
+import { CheckIcon, SearchIcon, SendIcon, StarIcon } from '../../src/icons/glyphs';
 import {
   AccessTime,
   Check,

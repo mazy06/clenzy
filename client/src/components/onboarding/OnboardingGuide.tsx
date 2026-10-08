@@ -6,7 +6,7 @@ import {
   CircleHelp,
   LockKeyhole,
   X,
-} from "lucide-react";
+} from "../../icons/glyphs";
 import {
   Dialog,
   DialogContent,

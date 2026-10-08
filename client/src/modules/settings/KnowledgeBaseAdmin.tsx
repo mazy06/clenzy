@@ -2,7 +2,7 @@ import React, { useEffect, useState, useCallback, useRef } from 'react';
 import { cn } from '../../utils/cn';
 import StatusChip from '../../components/StatusChip';
 import { Alert, AlertDescription } from '../../components/ui';
-import { TriangleAlert, CircleCheck } from 'lucide-react';
+import { TriangleAlert, CircleCheck } from '../../icons/glyphs';
 import { Spinner } from '../../components/ui';
 import { Button } from '../../components/ui';
 import { Separator, Tooltip, TooltipContent, TooltipTrigger } from '../../components/ui';

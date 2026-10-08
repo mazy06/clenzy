@@ -1,7 +1,7 @@
 import React, { useState, useCallback, useMemo } from 'react';
 import { View, Text, ScrollView, RefreshControl, Pressable, Alert, ActivityIndicator, Modal, TextInput } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Ionicons } from '@expo/vector-icons';
+import { Reicon } from '@/icons';
 import { useNavigation } from '@react-navigation/native';
 import { useTheme } from '@/theme';
 import { Card } from '@/components/ui/Card';
@@ -14,14 +14,14 @@ import { useSmartLocks, useSmartLockStatus, useCreateSmartLock, useDeleteSmartLo
 import { useProperties } from '@/hooks/useProperties';
 import type { SmartLockDeviceDto } from '@/api/endpoints/smartLockApi';
 
-type IoniconsName = keyof typeof Ionicons.glyphMap;
+type IconName = keyof typeof Reicon.glyphMap;
 
 /* ─── Lock Card ─── */
 
 function BatteryIcon({ level, theme }: { level: number | null; theme: ReturnType<typeof useTheme> }) {
   if (level == null) return null;
 
-  let iconName: IoniconsName = 'battery-full-outline';
+  let iconName: IconName = 'battery-full-outline';
   let color = theme.colors.success.main;
 
   if (level <= 10) {
@@ -37,7 +37,7 @@ function BatteryIcon({ level, theme }: { level: number | null; theme: ReturnType
 
   return (
     <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
-      <Ionicons name={iconName} size={16} color={color} />
+      <Reicon name={iconName} size={16} color={color} />
       <Text style={{ ...theme.typography.caption, color }}>{level}%</Text>
     </View>
   );
@@ -93,7 +93,7 @@ function SmartLockCard({ lock, onDelete }: { lock: SmartLockDeviceDto; onDelete:
           justifyContent: 'center',
           marginRight: theme.SPACING.md,
         }}>
-          <Ionicons
+          <Reicon
             name={isLocked ? 'lock-closed' : 'lock-open'}
             size={22}
             color={isOnline ? theme.colors.primary.main : theme.colors.text.disabled}
@@ -115,7 +115,7 @@ function SmartLockCard({ lock, onDelete }: { lock: SmartLockDeviceDto; onDelete:
         </View>
 
         <Pressable onPress={handleDelete} hitSlop={10} style={{ padding: 4 }}>
-          <Ionicons name="trash-outline" size={18} color={theme.colors.text.disabled} />
+          <Reicon name="trash-outline" size={18} color={theme.colors.text.disabled} />
         </Pressable>
       </View>
 
@@ -159,7 +159,7 @@ function SmartLockCard({ lock, onDelete }: { lock: SmartLockDeviceDto; onDelete:
           <ActivityIndicator size="small" color={theme.colors.primary.main} />
         ) : (
           <>
-            <Ionicons
+            <Reicon
               name={isLocked ? 'lock-open-outline' : 'lock-closed-outline'}
               size={18}
               color={isLocked ? theme.colors.warning.main : theme.colors.success.main}
@@ -375,7 +375,7 @@ export function SmartLockScreen() {
         gap: theme.SPACING.md,
       }}>
         <Pressable onPress={() => navigation.goBack()} hitSlop={8}>
-          <Ionicons name="chevron-back" size={22} color={theme.colors.text.primary} />
+          <Reicon name="chevron-back" size={22} color={theme.colors.text.primary} />
         </Pressable>
         <Text style={{ ...theme.typography.h3, color: theme.colors.text.primary, flex: 1 }}>
           Serrures connectees
@@ -388,7 +388,7 @@ export function SmartLockScreen() {
             alignItems: 'center', justifyContent: 'center',
           }}
         >
-          <Ionicons name="add" size={20} color="#fff" />
+          <Reicon name="add" size={20} color="#fff" />
         </Pressable>
       </View>
 

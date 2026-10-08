@@ -3,7 +3,7 @@ import { View, Text, ScrollView, Pressable, Alert, KeyboardAvoidingView, Platfor
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRoute, useNavigation } from '@react-navigation/native';
 import type { RouteProp } from '@react-navigation/native';
-import { Ionicons } from '@expo/vector-icons';
+import { Reicon } from '@/icons';
 import { useProperty, useUpdateProperty } from '@/hooks/useProperties';
 import { Card } from '@/components/ui/Card';
 import { Input } from '@/components/ui/Input';
@@ -97,7 +97,7 @@ export function PropertyEditScreen() {
         paddingVertical: theme.SPACING.md, gap: theme.SPACING.md,
       }}>
         <Pressable onPress={() => navigation.goBack()} hitSlop={12}>
-          <Ionicons name="arrow-back" size={24} color={theme.colors.text.primary} />
+          <Reicon name="arrow-back" size={24} color={theme.colors.text.primary} />
         </Pressable>
         <Text style={{ ...theme.typography.h3, color: theme.colors.text.primary, flex: 1 }}>
           Modifier la propriete
@@ -122,7 +122,7 @@ export function PropertyEditScreen() {
                 backgroundColor: `${theme.colors.primary.main}0C`,
                 alignItems: 'center', justifyContent: 'center',
               }}>
-                <Ionicons name="home-outline" size={17} color={theme.colors.primary.main} />
+                <Reicon name="home-outline" size={17} color={theme.colors.primary.main} />
               </View>
               <Text style={{ ...theme.typography.body1, color: theme.colors.text.primary, fontWeight: '600' }}>
                 Informations generales
@@ -164,7 +164,7 @@ export function PropertyEditScreen() {
                 backgroundColor: `${theme.colors.info.main}0C`,
                 alignItems: 'center', justifyContent: 'center',
               }}>
-                <Ionicons name="location-outline" size={17} color={theme.colors.info.main} />
+                <Reicon name="location-outline" size={17} color={theme.colors.info.main} />
               </View>
               <Text style={{ ...theme.typography.body1, color: theme.colors.text.primary, fontWeight: '600' }}>
                 Adresse
@@ -214,7 +214,7 @@ export function PropertyEditScreen() {
                 backgroundColor: `${theme.colors.success.main}0C`,
                 alignItems: 'center', justifyContent: 'center',
               }}>
-                <Ionicons name="people-outline" size={17} color={theme.colors.success.main} />
+                <Reicon name="people-outline" size={17} color={theme.colors.success.main} />
               </View>
               <Text style={{ ...theme.typography.body1, color: theme.colors.text.primary, fontWeight: '600' }}>
                 Capacite
@@ -272,7 +272,7 @@ export function PropertyEditScreen() {
           loading={updateMutation.isPending}
           disabled={!hasChanges || updateMutation.isPending}
           fullWidth
-          icon={<Ionicons name="checkmark" size={20} color={theme.colors.primary.contrastText} />}
+          icon={<Reicon name="checkmark" size={20} color={theme.colors.primary.contrastText} />}
         />
       </View>
     </SafeAreaView>

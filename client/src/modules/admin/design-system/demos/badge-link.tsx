@@ -1,4 +1,4 @@
-import { ArrowUpRightIcon } from "lucide-react"
+import { ArrowUpRightIcon } from "../../../../icons/glyphs"
 
 import { Badge } from '../../../../components/ui'
 

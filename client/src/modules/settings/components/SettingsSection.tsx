@@ -1,6 +1,6 @@
 import React from 'react';
-import { Info } from 'lucide-react';
-import type { LucideIcon } from 'lucide-react';
+import { Info } from '../../../icons/glyphs';
+import type { IconComponent } from '../../../icons/glyphs';
 import {
   Avatar,
   AvatarFallback,
@@ -34,7 +34,7 @@ const ACCENT_TOKEN: Record<SettingsSectionAccent, string> = {
 interface SettingsSectionProps {
   title: string;
   /** Icone fallback (utilise si `avatar` non fourni ou que l'image ne charge pas). */
-  icon: LucideIcon;
+  icon: IconComponent;
   accent?: SettingsSectionAccent;
   description?: string;
   /**

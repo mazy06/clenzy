@@ -1,7 +1,7 @@
 import React, { useCallback } from 'react';
 import { View, Text, ScrollView, RefreshControl, Pressable, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Ionicons } from '@expo/vector-icons';
+import { Reicon } from '@/icons';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import type { RouteProp } from '@react-navigation/native';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -15,7 +15,7 @@ import { Divider } from '@/components/ui/Divider';
 import { SectionHeader } from '@/components/ui/SectionHeader';
 import { apiClient } from '@/api/apiClient';
 
-type IoniconsName = keyof typeof Ionicons.glyphMap;
+type IconName = keyof typeof Reicon.glyphMap;
 
 interface UserDetail {
   id: number;
@@ -70,7 +70,7 @@ function formatDateTime(dateStr?: string): string {
 }
 
 function InfoRow({ icon, label, value, theme }: {
-  icon: IoniconsName;
+  icon: IconName;
   label: string;
   value: string;
   theme: ReturnType<typeof useTheme>;
@@ -85,7 +85,7 @@ function InfoRow({ icon, label, value, theme }: {
         alignItems: 'center',
         justifyContent: 'center',
       }}>
-        <Ionicons name={icon} size={16} color={theme.colors.primary.main} />
+        <Reicon name={icon} size={16} color={theme.colors.primary.main} />
       </View>
       <View style={{ flex: 1 }}>
         <Text style={{ ...theme.typography.caption, color: theme.colors.text.disabled }}>{label}</Text>
@@ -167,7 +167,7 @@ export function UserDetailScreen() {
       <SafeAreaView style={{ flex: 1, backgroundColor: theme.colors.background.default }} edges={['top']}>
         <View style={{ flexDirection: 'row', alignItems: 'center', paddingHorizontal: theme.SPACING.lg, paddingTop: theme.SPACING.lg, paddingBottom: theme.SPACING.md }}>
           <Pressable onPress={() => navigation.goBack()} hitSlop={12} style={{ width: 36, height: 36, borderRadius: theme.BORDER_RADIUS.md, backgroundColor: theme.colors.background.paper, alignItems: 'center', justifyContent: 'center', marginRight: theme.SPACING.md }}>
-            <Ionicons name="arrow-back" size={20} color={theme.colors.text.primary} />
+            <Reicon name="arrow-back" size={20} color={theme.colors.text.primary} />
           </Pressable>
           <Text style={{ ...theme.typography.h2, color: theme.colors.text.primary }}>Utilisateur</Text>
         </View>
@@ -181,7 +181,7 @@ export function UserDetailScreen() {
       <SafeAreaView style={{ flex: 1, backgroundColor: theme.colors.background.default }} edges={['top']}>
         <View style={{ flexDirection: 'row', alignItems: 'center', paddingHorizontal: theme.SPACING.lg, paddingTop: theme.SPACING.lg, paddingBottom: theme.SPACING.md }}>
           <Pressable onPress={() => navigation.goBack()} hitSlop={12} style={{ width: 36, height: 36, borderRadius: theme.BORDER_RADIUS.md, backgroundColor: theme.colors.background.paper, alignItems: 'center', justifyContent: 'center', marginRight: theme.SPACING.md }}>
-            <Ionicons name="arrow-back" size={20} color={theme.colors.text.primary} />
+            <Reicon name="arrow-back" size={20} color={theme.colors.text.primary} />
           </Pressable>
           <Text style={{ ...theme.typography.h2, color: theme.colors.text.primary }}>Utilisateur</Text>
         </View>
@@ -212,7 +212,7 @@ export function UserDetailScreen() {
             marginRight: theme.SPACING.md,
           }}
         >
-          <Ionicons name="arrow-back" size={20} color={theme.colors.text.primary} />
+          <Reicon name="arrow-back" size={20} color={theme.colors.text.primary} />
         </Pressable>
         <Text style={{ ...theme.typography.h2, color: theme.colors.text.primary, flex: 1 }}>
           Utilisateur
@@ -279,7 +279,7 @@ export function UserDetailScreen() {
                   alignItems: 'center',
                   justifyContent: 'center',
                 }}>
-                  <Ionicons name="business" size={20} color={theme.colors.secondary.main} />
+                  <Reicon name="business" size={20} color={theme.colors.secondary.main} />
                 </View>
                 <View style={{ flex: 1 }}>
                   <Text style={{ ...theme.typography.body1, fontWeight: '600', color: theme.colors.text.primary }}>
@@ -299,7 +299,7 @@ export function UserDetailScreen() {
             variant="outlined"
             onPress={() => navigation.navigate('UserEdit', { userId: user.id })}
             fullWidth
-            icon={<Ionicons name="create-outline" size={18} color={theme.colors.primary.main} />}
+            icon={<Reicon name="create-outline" size={18} color={theme.colors.primary.main} />}
           />
           <Button
             title={user.enabled ? 'Desactiver' : 'Reactiver'}
@@ -308,7 +308,7 @@ export function UserDetailScreen() {
             onPress={handleDisable}
             loading={disableMutation.isPending}
             fullWidth
-            icon={<Ionicons name={user.enabled ? 'pause-circle-outline' : 'play-circle-outline'} size={18} color={user.enabled ? theme.colors.warning.main : theme.colors.success.main} />}
+            icon={<Reicon name={user.enabled ? 'pause-circle-outline' : 'play-circle-outline'} size={18} color={user.enabled ? theme.colors.warning.main : theme.colors.success.main} />}
           />
           <Button
             title="Supprimer"
@@ -317,7 +317,7 @@ export function UserDetailScreen() {
             onPress={handleDelete}
             loading={deleteMutation.isPending}
             fullWidth
-            icon={<Ionicons name="trash-outline" size={18} color={theme.colors.error.main} />}
+            icon={<Reicon name="trash-outline" size={18} color={theme.colors.error.main} />}
           />
         </View>
       </ScrollView>

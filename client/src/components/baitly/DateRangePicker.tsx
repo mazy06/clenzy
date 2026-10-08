@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { CalendarIcon } from 'lucide-react';
+import { CalendarIcon } from '../../icons/glyphs';
 import { format, parseISO, isValid } from 'date-fns';
 import type { DateRange } from 'react-day-picker';
 import { Button, Label, Popover, PopoverContent, PopoverTrigger } from '../ui';

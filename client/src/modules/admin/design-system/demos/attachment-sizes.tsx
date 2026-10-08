@@ -1,4 +1,4 @@
-import { FileTextIcon } from "lucide-react"
+import { FileTextIcon } from "../../../../icons/glyphs"
 
 import {
   Attachment,

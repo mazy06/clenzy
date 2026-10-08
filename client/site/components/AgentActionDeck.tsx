@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { SiteMoneyText } from './SiteMoney';
-import { CircleCheckIcon } from 'lucide-react';
+import { CircleCheckIcon } from '../../src/icons/glyphs';
+import { useReducedMotion } from './mockupKit';
 import { useBaitlyDemoVisibility } from './useBaitlyDemoVisibility';
 import { SiteAgentPortrait } from './SiteProductVisuals';
 import type { AgentId } from '../../src/modules/supervision/types';

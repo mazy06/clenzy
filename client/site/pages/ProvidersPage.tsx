@@ -7,7 +7,8 @@ import {
   CalendarDaysIcon,
   Clock3Icon,
   CheckIcon,
-} from "lucide-react";
+} from "../../src/icons/glyphs";
+import Reveal from "../components/Reveal";
 import AnimatedOpsMockup from "../components/AnimatedOpsMockup";
 import { useSiteLanguage } from "../lib/siteLanguage";
 import { PROVIDERS_MESSAGES } from "../lib/messages/providers";

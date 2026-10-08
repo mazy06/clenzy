@@ -2,7 +2,7 @@ import { createElement, useEffect, useMemo, useRef, useState } from 'react';
 import { Spinner } from '../../../components/ui';
 import { useParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
-import { AlertTriangle, Star } from 'lucide-react';
+import { AlertTriangle, Star } from '../../../icons/glyphs';
 import { BaitlyWidget } from '../sdk/BaitlyWidget';
 import BaitlyBooking from '../sdk';
 import { sanitizeHtml, sanitizeCss } from '../studio/grapes/import/sanitizeHtml';

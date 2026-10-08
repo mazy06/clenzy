@@ -145,8 +145,9 @@ class EnumCoverageTest {
     @DisplayName("PaymentStatus")
     class PaymentStatusTests {
         @Test void allValues() {
-            // 8 statuts : PENDING, PROCESSING, PARTIALLY_PAID (acompte), PAID, FAILED, REFUNDED, CANCELLED, NOT_REQUIRED.
-            assertThat(PaymentStatus.values()).hasSize(8);
+            // 10 statuts : UNKNOWN (à vérifier), PENDING, PROCESSING, PARTIALLY_PAID (acompte), PAID, FAILED,
+            // REFUNDED, PARTIALLY_REFUNDED, CANCELLED, NOT_REQUIRED.
+            assertThat(PaymentStatus.values()).hasSize(10);
         }
         @Test void displayNames() {
             for (PaymentStatus s : PaymentStatus.values()) {

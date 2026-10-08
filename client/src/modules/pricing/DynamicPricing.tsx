@@ -2,7 +2,7 @@ import { useIsFetching } from '@tanstack/react-query';
 import React, { useState, useCallback, useMemo, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { useSearchParams } from 'react-router-dom';
-import { Plus, CalendarDays, LayoutList, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Plus, CalendarDays, LayoutList, ChevronLeft, ChevronRight } from '../../icons/glyphs';
 import { Alert, AlertDescription } from '../../components/ui';
 import { useScreenTabs } from '../../hooks/useScreenTabs';
 import { useTabKeyParam, useTabValueParam } from '../../components/tabKeyParam';

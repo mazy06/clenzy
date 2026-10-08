@@ -3,7 +3,7 @@ import { cn } from '../../utils/cn';
 import StatusChip from '../../components/StatusChip';
 import { Badge } from '../../components/ui';
 import { Alert, AlertDescription } from '../../components/ui';
-import { TriangleAlert } from 'lucide-react';
+import { TriangleAlert } from '../../icons/glyphs';
 import { Spinner } from '../../components/ui';
 import { Card } from '../../components/ui';
 import { Button } from '../../components/ui';

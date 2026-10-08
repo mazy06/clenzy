@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import StatusChip, { type StatusTone } from '../../components/StatusChip';
 import { Alert, AlertDescription } from '../../components/ui';
-import { TriangleAlert } from 'lucide-react';
+import { TriangleAlert } from '../../icons/glyphs';
 import { Spinner } from '../../components/ui';
 import { getOrgRoleLabel, getOrgRoleLabelKey, getOrgRoleHex, getOrgRoleIcon } from '../../utils/orgRoleLabels';
 import { Button, Tooltip, TooltipContent, TooltipTrigger } from '../../components/ui';
@@ -15,11 +15,11 @@ import {
   CheckCircle,
   HourglassEmpty,
 } from '../../icons';
-import type { LucideIcon } from 'lucide-react';
+import type { IconComponent } from '../../icons/glyphs';
 
 // Statut d'invitation → ton sémantique de la primitive. Le couple fond doux /
 // encre est porté par StatusChip : on n'en redéclare pas les teintes ici.
-const STATUS_STYLE: Record<string, { label: string; tone: StatusTone; Icon?: LucideIcon }> = {
+const STATUS_STYLE: Record<string, { label: string; tone: StatusTone; Icon?: IconComponent }> = {
   PENDING: { label: 'En attente', tone: 'info', Icon: ClockIcon },
   ACCEPTED: { label: 'Acceptée', tone: 'ok', Icon: CheckCircle },
   EXPIRED: { label: 'Expirée', tone: 'neutral', Icon: HourglassEmpty },
@@ -51,7 +51,7 @@ interface Props {
 }
 
 const getStatusChip = (status: string) => {
-  const fallback: { label: string; tone: StatusTone; Icon?: LucideIcon } = { label: status, tone: 'neutral' };
+  const fallback: { label: string; tone: StatusTone; Icon?: IconComponent } = { label: status, tone: 'neutral' };
   const { Icon, tone, label } = STATUS_STYLE[status] ?? fallback;
   return (
     <StatusChip tone={tone} label={label} icon={Icon ? <Icon size={11} strokeWidth={2} /> : undefined} />

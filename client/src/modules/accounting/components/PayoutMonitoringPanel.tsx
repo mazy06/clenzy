@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { ChevronDown, ChevronRight } from 'lucide-react';
+import { ChevronDown, ChevronRight } from '../../../icons/glyphs';
 import { Button, Skeleton } from '../../../components/ui';
 import PagePagination from '../../../components/PagePagination';
 import { useTranslation } from '../../../hooks/useTranslation';

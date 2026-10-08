@@ -10,7 +10,6 @@ import com.clenzy.tenant.TenantContext;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
@@ -47,7 +46,9 @@ class ReportServiceExtendedTest {
     @Mock
     private TenantContext tenantContext;
 
-    @InjectMocks
+    @Mock
+    private BaitlyDocumentIdentity identity;
+
     private ReportService reportService;
 
     private LocalDate startDate;
@@ -58,6 +59,10 @@ class ReportServiceExtendedTest {
         startDate = LocalDate.now().minusMonths(1);
         endDate = LocalDate.now();
         lenient().when(tenantContext.getOrganizationId()).thenReturn(null);
+        // Même câblage que ReportServiceTest : moteur PDF de test + émetteur simulé.
+        reportService = new ReportService(propertyRepository, interventionRepository, teamRepository, tenantContext,
+                new BaitlyPdfTestEngine(), identity);
+        lenient().when(identity.name(any(), any())).thenReturn("Conciergerie TEST");
     }
 
     // --- Intervention report: completion subtype ---

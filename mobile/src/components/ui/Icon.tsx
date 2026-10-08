@@ -1,25 +1,25 @@
 import React from 'react';
-import { Ionicons } from '@expo/vector-icons';
+import { Reicon } from '@/icons';
 import { useTheme } from '@/theme';
 
-type IoniconsName = keyof typeof Ionicons.glyphMap;
+type IconName = keyof typeof Reicon.glyphMap;
 
 interface IconProps {
-  name: IoniconsName;
+  name: IconName;
   size?: number;
   color?: string;
   style?: object;
 }
 
 /**
- * Theme-aware icon wrapper around Ionicons.
+ * Theme-aware icon wrapper around Reicon (duotone par défaut pour les noms `-outline`).
  * Defaults to text.secondary color and 24px size.
  */
 export function Icon({ name, size = 24, color, style }: IconProps) {
   const theme = useTheme();
   const iconColor = color || theme.colors.text.secondary;
 
-  return <Ionicons name={name} size={size} color={iconColor} style={style} />;
+  return <Reicon name={name} size={size} color={iconColor} style={style} />;
 }
 
-export type { IoniconsName };
+export type { IconName };

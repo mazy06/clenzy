@@ -5,7 +5,7 @@ import {
   Settings,
   Smile,
   User,
-} from "lucide-react"
+} from "../../../../icons/glyphs"
 
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList, CommandSeparator, CommandShortcut } from '../../../../components/ui/command';
 

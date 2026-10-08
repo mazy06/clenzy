@@ -3,7 +3,7 @@ import {
   RefreshCcwIcon,
   ThumbsDownIcon,
   ThumbsUpIcon,
-} from "lucide-react"
+} from "../../../../icons/glyphs"
 
 import { Bubble, BubbleContent } from '../../../../components/ui'
 import { Button } from '../../../../components/ui'

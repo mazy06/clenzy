@@ -1,7 +1,7 @@
 import { useId, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { Building2, Check, LockKeyhole } from 'lucide-react';
-import { Alert, AlertDescription, Button, Checkbox, Skeleton } from '../../components/ui';
+import { Building2, Check, LockKeyhole } from '../../icons/glyphs';
+import { Alert, AlertDescription, Button, Card, CardContent, Checkbox, Skeleton } from '../../components/ui';
 import { WorkOrderHeading, WORK_ORDER_ART } from '../work-orders/WorkOrderPresentation';
 import { useTranslation } from '../../hooks/useTranslation';
 import { providerPayoutBeneficiaryApi } from '../../services/api/providerPayoutBeneficiaryApi';

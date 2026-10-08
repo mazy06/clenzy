@@ -1,6 +1,6 @@
 import React from 'react';
 import { View, Text } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
+import { Reicon } from '@/icons';
 import { Card } from '@/components/ui/Card';
 import { StatusBadge } from './StatusBadge';
 import { PriorityBadge } from './PriorityBadge';
@@ -81,7 +81,7 @@ export const InterventionCard = React.memo(function InterventionCard({ intervent
             paddingVertical: 2,
             borderRadius: theme.BORDER_RADIUS.full,
           }}>
-            <Ionicons name="flash" size={10} color={theme.colors.error.main} />
+            <Reicon name="flash" size={10} color={theme.colors.error.main} />
             <Text style={{ fontSize: 10, color: theme.colors.error.main, fontWeight: '700' }}>URGENT</Text>
           </View>
         )}
@@ -90,7 +90,7 @@ export const InterventionCard = React.memo(function InterventionCard({ intervent
       {/* Property */}
       {intervention.propertyName && (
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 4 }}>
-          <Ionicons name="home-outline" size={13} color={theme.colors.text.secondary} />
+          <Reicon name="home-outline" size={13} color={theme.colors.text.secondary} />
           <Text style={{ ...theme.typography.body2, color: theme.colors.text.secondary }} numberOfLines={1}>
             {intervention.propertyName}
           </Text>
@@ -100,14 +100,14 @@ export const InterventionCard = React.memo(function InterventionCard({ intervent
       {/* Bottom metadata */}
       <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: theme.SPACING.sm }}>
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
-          <Ionicons name="time-outline" size={13} color={theme.colors.text.disabled} />
+          <Reicon name="time-outline" size={13} color={theme.colors.text.disabled} />
           <Text style={{ ...theme.typography.caption, color: theme.colors.text.disabled }}>
             {formatTime(intervention.startTime) || formatTime(intervention.createdAt)}
           </Text>
         </View>
         {intervention.estimatedDurationHours != null && (
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
-            <Ionicons name="hourglass-outline" size={13} color={theme.colors.text.disabled} />
+            <Reicon name="hourglass-outline" size={13} color={theme.colors.text.disabled} />
             <Text style={{ ...theme.typography.caption, color: theme.colors.text.disabled }}>
               {formatDuration(intervention.estimatedDurationHours)}
             </Text>

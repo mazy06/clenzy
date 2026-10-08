@@ -4,7 +4,7 @@ import {
   BookOpenIcon,
   MapPinIcon,
   ShoppingBagIcon,
-} from 'lucide-react';
+} from '../../src/icons/glyphs';
 import SiteAcquisitionLink from '../components/SiteAcquisitionLink';
 import ScrollGuideSection from '../components/ScrollGuideSection';
 import { BAITLY_JOURNEY_MESSAGES } from '../lib/messages/baitlyJourneys';

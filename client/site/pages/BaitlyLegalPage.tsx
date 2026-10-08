@@ -4,7 +4,7 @@ import {
   useParams,
   useSearchParams,
 } from 'react-router-dom';
-import { ArrowLeft, ArrowRight, ExternalLink } from 'lucide-react';
+import { ArrowLeft, ArrowRight, ExternalLink } from '../../src/icons/glyphs';
 import {
   articlesForCountry,
   articleLanguage,

@@ -21,7 +21,7 @@ import {
   VideoOffIcon,
   Volume2Icon,
   WifiOffIcon,
-} from 'lucide-react';
+} from '../../../icons/glyphs';
 import { Area, AreaChart, CartesianGrid, ReferenceLine, XAxis, YAxis } from 'recharts';
 import { Badge, Button, Dialog, DialogContent, DialogTitle, Input, Label, NativeSelect, NativeSelectOption, Progress, Slider, Switch } from '../../../components/ui';
 import { type ChartConfig, ChartContainer, ChartTooltip, ChartTooltipContent } from '../../../components/ui/chart';

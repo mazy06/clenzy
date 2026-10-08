@@ -10,11 +10,11 @@ import {
   Security,
   AllInclusive,
 } from '../../icons';
-import type { LucideIcon } from 'lucide-react';
+import type { IconComponent } from '../../icons/glyphs';
 import type { ShopProduct } from './shopProducts';
 import { useTranslation } from '../../hooks/useTranslation';
 
-const ICON_MAP: Record<string, LucideIcon> = {
+const ICON_MAP: Record<string, IconComponent> = {
   VolumeUp,
   Lock,
   Thermostat,

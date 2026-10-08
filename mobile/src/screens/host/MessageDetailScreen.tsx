@@ -4,7 +4,7 @@ import * as ImagePicker from 'expo-image-picker';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRoute, useNavigation } from '@react-navigation/native';
 import type { RouteProp } from '@react-navigation/native';
-import { Ionicons } from '@expo/vector-icons';
+import { Reicon } from '@/icons';
 import { File as ExpoFile, Paths } from 'expo-file-system';
 import { useReplyMessage, useMarkAsRead } from '@/hooks/useMessages';
 import { useSuggestResponse } from '@/hooks/useAiMessaging';
@@ -14,7 +14,7 @@ import { contactApi } from '@/api/endpoints/contactApi';
 import { useTheme } from '@/theme';
 import type { ContactMessage, ContactAttachment } from '@/api/endpoints/contactApi';
 
-type IoniconsName = keyof typeof Ionicons.glyphMap;
+type IconName = keyof typeof Reicon.glyphMap;
 
 type RouteParams = {
   MessageDetail: {
@@ -53,13 +53,13 @@ function formatFileSize(bytes: number): string {
   return `${(bytes / (1024 * 1024)).toFixed(1)} Mo`;
 }
 
-const PRIORITY_CONFIG: Record<string, { label: string; color: string; icon: IoniconsName }> = {
+const PRIORITY_CONFIG: Record<string, { label: string; color: string; icon: IconName }> = {
   HIGH: { label: 'Haute', color: '#D97706', icon: 'alert-circle' },
   MEDIUM: { label: 'Moyenne', color: '#6B8A9A', icon: 'remove-circle' },
   LOW: { label: 'Basse', color: '#64748B', icon: 'arrow-down-circle' },
 };
 
-const STATUS_CONFIG: Record<string, { label: string; color: string; icon: IoniconsName }> = {
+const STATUS_CONFIG: Record<string, { label: string; color: string; icon: IconName }> = {
   SENT: { label: 'Envoye', color: '#6B8A9A', icon: 'paper-plane-outline' },
   DELIVERED: { label: 'Remis', color: '#4A9B8E', icon: 'checkmark-done-outline' },
   READ: { label: 'Lu', color: '#4A9B8E', icon: 'eye-outline' },
@@ -79,7 +79,7 @@ const CATEGORY_LABELS: Record<string, string> = {
 /* ─── Sub-components ─── */
 
 function MetadataRow({ icon, label, value, valueColor, theme }: {
-  icon: IoniconsName;
+  icon: IconName;
   label: string;
   value: string;
   valueColor?: string;
@@ -87,7 +87,7 @@ function MetadataRow({ icon, label, value, valueColor, theme }: {
 }) {
   return (
     <View style={{ flexDirection: 'row', alignItems: 'center', paddingVertical: 8 }}>
-      <Ionicons name={icon} size={16} color={theme.colors.text.disabled} style={{ marginRight: 10, width: 20 }} />
+      <Reicon name={icon} size={16} color={theme.colors.text.disabled} style={{ marginRight: 10, width: 20 }} />
       <Text style={{ ...theme.typography.caption, color: theme.colors.text.disabled, width: 80 }}>{label}</Text>
       <Text style={{ ...theme.typography.body2, color: valueColor ?? theme.colors.text.primary, flex: 1 }}>{value}</Text>
     </View>
@@ -184,7 +184,7 @@ function ImageAttachmentItem({ attachment, messageId, theme }: {
             onPress={() => setFullscreen(false)}
             style={{ position: 'absolute', top: 56, right: 20, zIndex: 10, width: 40, height: 40, borderRadius: 20, backgroundColor: 'rgba(255,255,255,0.15)', alignItems: 'center', justifyContent: 'center' }}
           >
-            <Ionicons name="close" size={24} color="#fff" />
+            <Reicon name="close" size={24} color="#fff" />
           </Pressable>
           {localUri && (
             <Image
@@ -211,7 +211,7 @@ function FileAttachmentItem({ attachment, messageId, theme }: {
   const [downloaded, setDownloaded] = useState(false);
 
   const ext = attachment.originalName?.split('.').pop()?.toUpperCase() ?? '';
-  const iconName: IoniconsName = ext === 'PDF' ? 'document-outline'
+  const iconName: IconName = ext === 'PDF' ? 'document-outline'
     : ['JPG', 'JPEG', 'PNG', 'GIF', 'WEBP'].includes(ext) ? 'image-outline'
     : 'attach-outline';
 
@@ -286,9 +286,9 @@ function FileAttachmentItem({ attachment, messageId, theme }: {
         {downloading ? (
           <ActivityIndicator size="small" color={theme.colors.info.main} />
         ) : downloaded ? (
-          <Ionicons name="checkmark-circle" size={18} color={theme.colors.success.main} />
+          <Reicon name="checkmark-circle" size={18} color={theme.colors.success.main} />
         ) : (
-          <Ionicons name={iconName} size={18} color={theme.colors.info.main} />
+          <Reicon name={iconName} size={18} color={theme.colors.info.main} />
         )}
       </View>
 
@@ -305,7 +305,7 @@ function FileAttachmentItem({ attachment, messageId, theme }: {
       </View>
 
       {!downloading && (
-        <Ionicons
+        <Reicon
           name={downloaded ? 'open-outline' : 'download-outline'}
           size={18}
           color={downloaded ? theme.colors.success.main : theme.colors.info.main}
@@ -487,7 +487,7 @@ export function MessageDetailScreen() {
           gap: theme.SPACING.md,
         }}>
           <Pressable onPress={() => navigation.goBack()} hitSlop={8}>
-            <Ionicons name="chevron-back" size={22} color={theme.colors.text.primary} />
+            <Reicon name="chevron-back" size={22} color={theme.colors.text.primary} />
           </Pressable>
 
           {/* Contact avatar + name */}
@@ -529,7 +529,7 @@ export function MessageDetailScreen() {
               borderRadius: theme.BORDER_RADIUS.full,
               backgroundColor: `${statusCfg.color}12`,
             }}>
-              <Ionicons name={statusCfg.icon} size={12} color={statusCfg.color} />
+              <Reicon name={statusCfg.icon} size={12} color={statusCfg.color} />
               <Text style={{ fontSize: 10, color: statusCfg.color, fontWeight: '600' }}>{statusCfg.label}</Text>
             </View>
           )}
@@ -572,7 +572,7 @@ export function MessageDetailScreen() {
                   marginTop: 2,
                 }}
               >
-                <Ionicons
+                <Reicon
                   name="information-circle-outline"
                   size={20}
                   color={showDetails ? theme.colors.primary.main : theme.colors.text.disabled}
@@ -637,7 +637,7 @@ export function MessageDetailScreen() {
           {message.attachments && message.attachments.length > 0 && (
             <View style={{ paddingHorizontal: theme.SPACING.lg, marginBottom: theme.SPACING.lg }}>
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: theme.SPACING.sm }}>
-                <Ionicons name="attach" size={16} color={theme.colors.text.secondary} />
+                <Reicon name="attach" size={16} color={theme.colors.text.secondary} />
                 <Text style={{ ...theme.typography.body2, fontWeight: '600', color: theme.colors.text.secondary }}>
                   Pieces jointes ({message.attachments.length})
                 </Text>
@@ -663,7 +663,7 @@ export function MessageDetailScreen() {
               borderLeftWidth: 3,
               borderLeftColor: theme.colors.success.main,
             }}>
-              <Ionicons name="checkmark-circle" size={18} color={theme.colors.success.main} />
+              <Reicon name="checkmark-circle" size={18} color={theme.colors.success.main} />
               <Text style={{ ...theme.typography.body2, color: theme.colors.success.main, fontWeight: '500' }}>
                 Reponse envoyee avec succes
               </Text>
@@ -714,7 +714,7 @@ export function MessageDetailScreen() {
                         justifyContent: 'center',
                       }}
                     >
-                      <Ionicons name="close" size={12} color="#fff" />
+                      <Reicon name="close" size={12} color="#fff" />
                     </Pressable>
                   </View>
                 ))}
@@ -751,7 +751,7 @@ export function MessageDetailScreen() {
                 {suggestMutation.isPending ? (
                   <ActivityIndicator size="small" color={theme.colors.secondary.main} />
                 ) : (
-                  <Ionicons name="sparkles" size={20} color={theme.colors.secondary.main} />
+                  <Reicon name="sparkles" size={20} color={theme.colors.secondary.main} />
                 )}
               </Pressable>
 
@@ -771,7 +771,7 @@ export function MessageDetailScreen() {
                   opacity: replyAttachments.length >= MAX_ATTACHMENTS ? 0.4 : 1,
                 })}
               >
-                <Ionicons
+                <Reicon
                   name="attach-outline"
                   size={22}
                   color={replyAttachments.length > 0 ? theme.colors.primary.main : theme.colors.text.disabled}
@@ -820,9 +820,9 @@ export function MessageDetailScreen() {
                 })}
               >
                 {replyMutation.isPending ? (
-                  <Ionicons name="hourglass-outline" size={18} color="#FFFFFF" />
+                  <Reicon name="hourglass-outline" size={18} color="#FFFFFF" />
                 ) : (
-                  <Ionicons name="send" size={18} color="#FFFFFF" />
+                  <Reicon name="send" size={18} color="#FFFFFF" />
                 )}
               </Pressable>
             </View>

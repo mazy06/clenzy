@@ -1,7 +1,7 @@
 import React, { useState, useCallback, useRef } from 'react';
 import { View, Text, ScrollView, Pressable, Alert, StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Ionicons } from '@expo/vector-icons';
+import { Reicon } from '@/icons';
 import { useRoute, useNavigation } from '@react-navigation/native';
 import type { RouteProp } from '@react-navigation/native';
 import { useIntervention, useUpdateIntervention } from '@/hooks/useInterventions';
@@ -39,7 +39,7 @@ function SignaturePlaceholder({ hasSigned, onSign, theme }: {
     >
       {hasSigned ? (
         <>
-          <Ionicons name="checkmark-circle" size={32} color={theme.colors.success.main} />
+          <Reicon name="checkmark-circle" size={32} color={theme.colors.success.main} />
           <Text style={{ ...theme.typography.body2, color: theme.colors.success.main, fontWeight: '600' }}>
             Signature enregistree
           </Text>
@@ -49,7 +49,7 @@ function SignaturePlaceholder({ hasSigned, onSign, theme }: {
         </>
       ) : (
         <>
-          <Ionicons name="pencil-outline" size={28} color={theme.colors.text.disabled} />
+          <Reicon name="pencil-outline" size={28} color={theme.colors.text.disabled} />
           <Text style={{ ...theme.typography.body2, color: theme.colors.text.secondary }}>
             Appuyez pour signer
           </Text>
@@ -90,7 +90,7 @@ function WorkSummary({ intervention, theme }: {
             borderBottomColor: theme.colors.border.light,
           }}
         >
-          <Ionicons name={item.icon as any} size={16} color={theme.colors.text.secondary} style={{ marginTop: 2, marginRight: 10 }} />
+          <Reicon name={item.icon as any} size={16} color={theme.colors.text.secondary} style={{ marginTop: 2, marginRight: 10 }} />
           <View style={{ flex: 1 }}>
             <Text style={{ ...theme.typography.caption, color: theme.colors.text.disabled }}>{item.label}</Text>
             <Text style={{ ...theme.typography.body2, color: theme.colors.text.primary, marginTop: 2 }}>{item.value}</Text>
@@ -185,7 +185,7 @@ export function TechSignatureScreen() {
         backgroundColor: theme.colors.background.paper, gap: theme.SPACING.md,
       }}>
         <Pressable onPress={() => navigation.goBack()} hitSlop={8}>
-          <Ionicons name="chevron-back" size={22} color={theme.colors.text.primary} />
+          <Reicon name="chevron-back" size={22} color={theme.colors.text.primary} />
         </Pressable>
         <View style={{ flex: 1 }}>
           <Text style={{ ...theme.typography.h3, color: theme.colors.text.primary }}>Signature client</Text>
@@ -219,7 +219,7 @@ export function TechSignatureScreen() {
           <View style={{ flexDirection: 'row', justifyContent: 'center', gap: theme.SPACING.md }}>
             {[1, 2, 3, 4, 5].map((star) => (
               <Pressable key={star} onPress={() => setRating(star)} hitSlop={4}>
-                <Ionicons
+                <Reicon
                   name={star <= rating ? 'star' : 'star-outline'}
                   size={32}
                   color={star <= rating ? theme.colors.secondary.main : theme.colors.border.main}
@@ -262,7 +262,7 @@ export function TechSignatureScreen() {
           color="success"
           fullWidth
           loading={updateMutation.isPending}
-          icon={<Ionicons name="checkmark-circle-outline" size={18} color="#fff" />}
+          icon={<Reicon name="checkmark-circle-outline" size={18} color="#fff" />}
         />
       </ScrollView>
     </SafeAreaView>

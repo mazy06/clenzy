@@ -1,4 +1,4 @@
-import { ArrowRightIcon, CheckIcon, MapPinIcon } from 'lucide-react';
+import { ArrowRightIcon, CheckIcon, MapPinIcon } from '../../src/icons/glyphs';
 import {
   formatBookingNights,
   formatBookingRange,

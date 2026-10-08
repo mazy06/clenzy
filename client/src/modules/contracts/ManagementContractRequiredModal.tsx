@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { Alert, AlertDescription, Button } from '../../components/ui';
-import { TriangleAlert } from 'lucide-react';
+import { TriangleAlert } from '../../icons/glyphs';
 import { Spinner } from '../../components/ui';
 import { useQueryClient } from '@tanstack/react-query';
 import {

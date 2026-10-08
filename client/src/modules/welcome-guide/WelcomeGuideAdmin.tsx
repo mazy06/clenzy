@@ -74,7 +74,7 @@ import {
   Home as HomeIcon,
   ChevronDown,
   MoreHorizontal,
-} from 'lucide-react';
+} from '../../icons/glyphs';
 // Feuille de style « studio accueil » partagée (scopée .be-home ; l'accent du
 // module y est défini : bleu nuit, la teinte de la barre latérale relevée)
 // avec l'onglet Booking Engine — hero, champ IA, éventail, thèmes, cartes.

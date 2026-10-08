@@ -17,7 +17,7 @@ import React, { useCallback, useMemo, useState } from 'react';
 import { getErrorMessage } from '../../../utils/getErrorMessage';
 import { cn } from '../../../utils/cn';
 import { Alert as BuiAlert, AlertDescription, AlertAction, Button as BuiButton } from '../../../components/ui';
-import { X, TriangleAlert } from 'lucide-react';
+import { X, TriangleAlert } from '../../../icons/glyphs';
 import PayoutActionResult from './PayoutActionResult';
 import { Spinner } from '../../../components/ui';
 import {

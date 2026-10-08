@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { PROPERTY_ART } from '../propertyArtwork';
 import StatusIcon from '../../../components/StatusIcon';
-import { FileCheck2, FileClock, ReceiptText } from 'lucide-react';
+import { FileCheck2, FileSearch, ReceiptText } from '../../../icons/glyphs';
 import {
   Alert,
   AlertDescription,
@@ -131,7 +131,7 @@ export default function LaundryQuotesSection({ quotes, hasLaundryItems, canEdit,
                       <TableCell className="font-medium">#{quote.id}</TableCell>
                       <TableCell>{formatDate(quote.generatedAt)}</TableCell>
                       <TableCell>
-                        <StatusIcon tone={quote.status === 'CONFIRMED' ? 'success' : quote.status === 'INVOICED' ? 'info' : 'warning'} icon={quote.status === 'CONFIRMED' ? FileCheck2 : quote.status === 'INVOICED' ? ReceiptText : FileClock} label={statusConf.label} />
+                        <StatusIcon tone={quote.status === 'CONFIRMED' ? 'success' : quote.status === 'INVOICED' ? 'info' : 'warning'} icon={quote.status === 'CONFIRMED' ? FileCheck2 : quote.status === 'INVOICED' ? ReceiptText : FileSearch} label={statusConf.label} />
                       </TableCell>
                       <TableCell className="text-end font-semibold">
                         <Money value={Number(quote.totalHt)} from={quote.currency ?? 'EUR'} />

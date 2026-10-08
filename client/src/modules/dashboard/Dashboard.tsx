@@ -19,7 +19,7 @@ import DashboardEmptyShowcase from './DashboardEmptyShowcase';
 import UpgradeBanner from './UpgradeBanner';
 import { getVisibleTabs } from '../../config/dashboardConfig';
 import { useNavigate } from 'react-router-dom';
-import { PlusIcon } from 'lucide-react';
+import { PlusIcon } from '../../icons/glyphs';
 import ChannexMappingDialog from '../settings/components/ChannexMappingDialog';
 import type { DashboardPeriod, DateFilterOption } from './DashboardDateFilter';
 import { useDashboardOverview } from '../../hooks/useDashboardOverview';

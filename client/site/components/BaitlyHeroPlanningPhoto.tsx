@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, type SyntheticEvent } from 'react';
 import { createPortal } from 'react-dom';
-import { CalendarDaysIcon } from 'lucide-react';
+import { CalendarDaysIcon, PauseIcon, PlayIcon } from '../../src/icons/glyphs';
 import { SITE_PHOTOS, sitePhotoAlt } from '../data/baitlyPhotography';
 import heroPhotoSmall from '../assets/photos/editorial/homeReceptionBaitly-720.webp';
 import { HOME_MESSAGES } from '../lib/messages/home';

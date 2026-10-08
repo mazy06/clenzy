@@ -1,6 +1,6 @@
 import { useEffect, useId, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { CheckIcon, HomeIcon, TrendingUpIcon, TicketPercentIcon, BlocksIcon } from 'lucide-react';
+import { CheckIcon, HomeIcon, TrendingUpIcon, TicketPercentIcon, BlocksIcon } from '../../icons/glyphs';
 import { Button } from '../../components/ui';
 import { StoryPage } from '../../components/baitly/FeatureStory';
 import { usePrefersReducedMotion } from '../../components/baitly/ShowcaseCycler';

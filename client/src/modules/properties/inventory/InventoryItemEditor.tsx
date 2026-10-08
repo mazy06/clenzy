@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { ArrowLeft, ImagePlus } from 'lucide-react';
+import { ArrowLeft, ImagePlus } from '../../../icons/glyphs';
 import { Button, Input, Textarea } from '../../../components/ui';
 import { useTranslation } from '../../../hooks/useTranslation';
 import type { InventoryItemInput } from '../../../services/api/propertyInventoryApi';

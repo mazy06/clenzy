@@ -1,5 +1,5 @@
 import { useState, type RefObject } from "react";
-import { PauseIcon, PlayIcon } from "lucide-react";
+import { PauseIcon, PlayIcon } from "../../src/icons/glyphs";
 import BInterventionsMapDemo from "../../src/modules/admin/design-system/BInterventionsMapDemo";
 import SiteIllustrativeMissionMap from './SiteIllustrativeMissionMap';
 import { interventionsMapCopy } from "../../src/modules/admin/design-system/interventionsMapCopy";

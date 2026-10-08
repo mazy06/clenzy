@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useHeaderSeam, HEADER_FLYOUT_CLASS } from '../hooks/useHeaderSeam';
-import { MoreHorizontal } from 'lucide-react';
+import { MoreHorizontal } from '../icons/glyphs';
 import {
   Button,
   DropdownMenu,

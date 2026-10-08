@@ -14,7 +14,7 @@ import {
   TreesIcon,
   UsersIcon,
   WavesIcon,
-} from 'lucide-react';
+} from '../../src/icons/glyphs';
 import {
   BAITLY_BOOKING_TEMPLATES,
   getBookingDemoRate,

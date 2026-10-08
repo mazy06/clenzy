@@ -2,10 +2,10 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { cn } from '../../utils/cn';
 import { Badge, Button } from '../../components/ui';
 import { Alert, AlertDescription } from '../../components/ui';
-import { CircleCheck, Info, TriangleAlert } from 'lucide-react';
+import { CircleCheck, Info, TriangleAlert } from '../../icons/glyphs';
 import { Card, Skeleton } from '../../components/ui';
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '../../components/ui';
-import { Coins, History } from 'lucide-react';
+import { Coins, History } from '../../icons/glyphs';
 import { useTranslation } from '../../hooks/useTranslation';
 import { useSearchParams } from 'react-router-dom';
 import {

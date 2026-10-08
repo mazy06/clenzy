@@ -5,7 +5,7 @@ import {
   FileWarningIcon,
   RefreshCwIcon,
   XIcon,
-} from "lucide-react"
+} from "../../../../icons/glyphs"
 
 import {
   Attachment,

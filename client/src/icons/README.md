@@ -1,42 +1,56 @@
-# Clenzy — Icônes
+# Baitly — Icônes
 
-Stack icônes moderne (migration depuis `@mui/icons-material` terminée en phase 9) :
+Stack icônes (migration Lucide → Reicon) :
 
-- **[Lucide](https://lucide.dev)** (primaire) — strokes 2px, ~1600 icônes, look "Linear/Notion/shadcn"
-- **[Iconify](https://icon-sets.iconify.design)** (fallback) — méta-aggrégateur 150+ sets, lazy-loadé
+- **[Reicon](https://reicon.dev)** (primaire) — glyphes 24 px dessinés en aplats, graisse **duotone privilégiée** (aplat à 50 % + trait plein). Contour quand Reicon n'a pas de duotone pour le glyphe, variante pleine sur demande (`fill`).
+- **[Iconify](https://icon-sets.iconify.design)** (fallback) — pour les rares pictos absents de Reicon (fer à repasser, escalier, porte coulissante, logos de marque).
 
-Toutes les icônes sont ré-exportées depuis `client/src/icons/index.ts` avec des **noms sémantiques stables**, indépendants de la lib source.
+Les données SVG viennent de [`@iconify-icons/reicon`](https://www.npmjs.com/package/@iconify-icons/reicon) (un module par glyphe : tree-shaking et découpage par route préservés). Les paquets `reicon-react` officiels n'exposent que Outline/Filled : le duotone n'est disponible que dans le jeu Iconify.
 
 ## Usage côté composant
 
 ```tsx
 import { Edit, Delete, Save, ChevronRight } from '../../icons';
 
-<Edit size={16} strokeWidth={1.75} />
-<Delete size={16} />
+<Edit size={16} />
+<Delete size={16} color="var(--danger)" />
 <Save size={18} />
 <ChevronRight size={14} />
 ```
 
-### Props standards (Lucide)
+Les écrans qui importaient directement `lucide-react` importent désormais `src/icons/glyphs` : ce module expose les **noms historiques Lucide** (`Trash2`, `CheckCircle`, `XIcon`, `Loader2`…) branchés sur des glyphes Reicon, pour que la migration n'ait rien changé au JSX.
 
-| Prop | Défaut | Equivalent MUI |
-|------|--------|----------------|
-| `size={16}` | 24 | `sx={{ fontSize: 16 }}` |
-| `strokeWidth={1.75}` | 2 | — |
-| `color="#f59e0b"` | currentColor | `htmlColor` |
-| `className` | — | idem |
+### Props
 
-### Props standards (Iconify, via `IconifyIcon`)
+| Prop | Défaut | Rôle |
+|------|--------|------|
+| `size` | 24 | largeur + hauteur |
+| `color` | `currentColor` | teinte du glyphe |
+| `weight` | `duotone` | `'duotone' \| 'outline' \| 'filled'` — repli automatique si la variante n'existe pas |
+| `fill` | — | compat Lucide : `"none"`/`"transparent"` → contour, toute autre valeur → variante pleine (teintée de cette valeur si ≠ `currentColor`) |
+| `strokeWidth` | — | compat Lucide, **sans effet** (glyphes en aplats) |
+| `className`, `style`, props SVG | — | relayés sur le `<svg>` |
+
+Types : `IconComponent` (ex-`LucideIcon`) et `IconProps` (ex-`LucideProps`), exportés par `src/icons/glyphs`.
+
+Les classes Tailwind `fill-*` / `stroke-*` n'ont pas d'effet sur un glyphe Reicon : utiliser `text-*` (teinte) et `fill` / `weight` (graisse).
+
+### Fallback Iconify
 
 ```tsx
 import { IconifyIcon } from '../../icons';
 
-<IconifyIcon icon="mdi:stairs" width={18} />
-<IconifyIcon icon="solar:bed-bold-duotone" width={20} color="#3b82f6" />
+<IconifyIcon icon="mdi:hot-tub" width={16} />
 ```
 
-Le set `mdi:` (Material Design Icons community) est le filet de sécurité quand Lucide manque (ex : `mdi:iron`, `mdi:stairs`, `mdi:hot-tub`).
+## Ajouter une icône
+
+1. Chercher le glyphe sur https://reicon.dev (préférer un glyphe qui existe en `-duotone`).
+2. L'ajouter à `client/scripts/reicon/glyph-map.json` (`"NomComposant": "nom-reicon"`, sans suffixe).
+3. Régénérer : `node scripts/reicon/generate-glyphs.mjs` (depuis `client/`). Le script échoue si le glyphe n'existe pas.
+4. Exporter un nom sémantique depuis `index.ts` si l'icône a vocation à être partagée.
+
+Glyphes hors Reicon écrits à la main (listés dans `custom` de `glyph-map.json`, conservés par le générateur) : `SaudiRiyal`.
 
 ## Conventions
 
@@ -48,41 +62,14 @@ Le set `mdi:` (Material Design Icons community) est le filet de sécurité quand
 - **22-24** : headers, tabs principaux
 - **40+** : empty states, hero illustrations
 
-### `strokeWidth`
-- **1.5** : icônes décoratives (ne portent pas le sens principal)
-- **1.75** : valeur par défaut produit Clenzy (légèrement plus fin que le défaut Lucide)
-- **2** : actions critiques (delete, danger)
+### Graisse
+- **duotone** (défaut) : toute l'interface.
+- **filled** : notation (étoiles, cœurs) et pastilles très petites (`BroomFill`, `CreditCardFill`…).
+- **outline** : états « vides » (étoile non cochée) ou glyphes sans duotone.
 
-## Ajouter une nouvelle icône
-
-1. **Vérifier d'abord Lucide** : https://lucide.dev/icons/
-2. Si présent → ajouter un export dans `index.ts` avec le nom sémantique :
-   ```ts
-   export { LineChart as ShowChart } from 'lucide-react';
-   ```
-3. Si absent → utiliser Iconify directement dans le composant :
-   ```tsx
-   import { IconifyIcon } from '../../icons';
-   <IconifyIcon icon="mdi:hot-tub" width={16} />
-   ```
-   Ou créer un wrapper dans `index.ts` (pattern `Iron` actuel) si l'icône est utilisée à plusieurs endroits.
-
-## Pourquoi pas un wrapper `<AppIcon name="..." />` ?
-
-Un wrapper runtime perdrait le tree-shaking : tout le bundle Lucide finirait dans le build. Avec le barrel d'exports nommés, chaque import individuel `import { Edit } from '@/icons'` ne tire que l'icône `Edit` dans le bundle final.
-
-## Historique de migration
+## Historique
 
 | Phase | Périmètre | Statut |
 |-------|-----------|--------|
-| 1 | Setup (libs + barrel + 30 icônes communes) | ✅ |
-| 2 | Composants partagés (PageHeader, FilterSearchBar, dialogs) | ✅ |
-| 3 | Properties (18 fichiers) | ✅ |
-| 4 | Interventions + Service Requests (23 fichiers) | ✅ |
-| 5 | Planning (22 fichiers, ~290 icônes) | ✅ |
-| 6 | Dashboard (40 fichiers, ~260 icônes) | ✅ |
-| 7 | Settings + Organization + Users + Teams (33 fichiers) | ✅ |
-| 8 | Reste — Documents/Booking Engine/Channels/Tarification/etc. (117 fichiers) | ✅ |
-| 9 | Drop `@mui/icons-material` + code-splitting bundle | ✅ |
-
-Tous les fichiers utilisent désormais `@/icons` — aucun import `@mui/icons-material` ne subsiste dans `src/`.
+| 1-9 | Migration `@mui/icons-material` → Lucide + barrel `@/icons` | ✅ |
+| 10 | Lucide + Tabler → Reicon duotone (app, site vitrine, studio GrapesJS, widget de réservation) | ✅ |

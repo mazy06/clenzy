@@ -10,7 +10,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '../../components/ui';
-import { TriangleAlert } from 'lucide-react';
+import { TriangleAlert } from '../../icons/glyphs';
 import type { OtaChannel } from '../../services/channels/otaChannels';
 
 interface ChannelDisconnectDialogProps {

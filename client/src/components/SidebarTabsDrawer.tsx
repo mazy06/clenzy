@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
-import { ChevronRightIcon } from 'lucide-react';
+import { ChevronRightIcon } from '../icons/glyphs';
 import {
   Popover,
   PopoverAnchor,

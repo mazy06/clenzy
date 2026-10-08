@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { MousePointer2Icon } from 'lucide-react';
+import { MousePointer2Icon } from '../../src/icons/glyphs';
 import { cn } from '../../src/utils/cn';
 
 /** Boîte à outils partagée des mockups animés (curseur scripté, timelines). */

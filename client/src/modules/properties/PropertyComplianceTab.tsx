@@ -1,11 +1,12 @@
 import React, { useEffect, useState } from 'react';
-import { Button, Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, Field, FieldError, FieldLabel, Input, NativeSelect, NativeSelectOption, Spinner } from '../../components/ui';
-import { TriangleAlert, CircleHelp, Clock3 } from 'lucide-react';
+import { Button, Card, Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, Field, FieldError, FieldLabel, Input, NativeSelect, NativeSelectOption, Spinner, Table, TableBody, TableCell, TableHead, TableHeader, TableRow, Tooltip, TooltipContent, TooltipTrigger } from '../../components/ui';
+import { TriangleAlert, CircleHelp, Clock3 } from '../../icons/glyphs';
 import StatusIcon from '../../components/StatusIcon';
 import { usePageHeaderActions } from '../../components/PageHeaderActionsContext';
 import { PropertyTabHeading, PropertyTabLoading, PropertyTabEmpty } from './PropertyTabPrimitives';
 import { PROPERTY_ART } from './propertyArtwork';
-import { Add, DeleteOutline, Edit } from '../../icons';
+import { cn } from '../../utils/cn';
+import { Add, DeleteOutline, Edit, GppGood } from '../../icons';
 import { useTranslation } from '../../hooks/useTranslation';
 import {
   propertyLicensesApi,

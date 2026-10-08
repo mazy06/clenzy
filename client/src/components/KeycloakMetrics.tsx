@@ -13,7 +13,7 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from './ui';
-import { TriangleAlert } from 'lucide-react';
+import { TriangleAlert } from '../icons/glyphs';
 import { cn } from '../utils/cn';
 import {
   TrendingUp,

@@ -3,7 +3,7 @@ import { View, Text, Pressable, RefreshControl, FlatList, Animated, Alert, TextI
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { Ionicons } from '@expo/vector-icons';
+import { Reicon } from '@/icons';
 import { Swipeable } from 'react-native-gesture-handler';
 import { useInbox, useSentMessages, useGuestMessageHistory, useArchiveMessage, useDeleteMessage, useContactThreads } from '@/hooks/useMessages';
 import { EmptyState } from '@/components/ui/EmptyState';
@@ -18,7 +18,7 @@ import { ConversationScreen } from '@/screens/shared/ConversationScreen';
 
 type MessagingNavProp = NativeStackNavigationProp<MessagingStackParamList, 'MessageList'>;
 
-type IoniconsName = keyof typeof Ionicons.glyphMap;
+type IconName = keyof typeof Reicon.glyphMap;
 
 /* ─── Helpers ─── */
 
@@ -72,7 +72,7 @@ const ROLE_LABELS: Record<string, string> = {
   EXTERIOR_TECH: 'Ext. technique',
 };
 
-const PRIORITY_CONFIG: Record<string, { color: string; icon: IoniconsName }> = {
+const PRIORITY_CONFIG: Record<string, { color: string; icon: IconName }> = {
   HIGH: { color: '#D97706', icon: 'alert-circle' },
   MEDIUM: { color: '#6B8A9A', icon: 'remove-circle' },
   LOW: { color: '#64748B', icon: 'arrow-down-circle' },
@@ -86,13 +86,13 @@ const STATUS_CONFIG: Record<string, { label: string; color: string }> = {
   FAILED: { label: 'Echoue', color: '#C97A7A' },
 };
 
-const GUEST_MSG_STATUS: Record<string, { label: string; color: string; icon: IoniconsName }> = {
+const GUEST_MSG_STATUS: Record<string, { label: string; color: string; icon: IconName }> = {
   SENT: { label: 'Envoye', color: '#4A9B8E', icon: 'checkmark-circle' },
   PENDING: { label: 'En attente', color: '#D4A574', icon: 'time' },
   FAILED: { label: 'Echoue', color: '#C97A7A', icon: 'close-circle' },
 };
 
-const TEMPLATE_TYPE_ICONS: Record<string, { icon: IoniconsName; color: string }> = {
+const TEMPLATE_TYPE_ICONS: Record<string, { icon: IconName; color: string }> = {
   CHECK_IN: { icon: 'log-in-outline', color: '#4A9B8E' },
   CHECK_OUT: { icon: 'log-out-outline', color: '#D97706' },
   WELCOME: { icon: 'hand-left-outline', color: '#6B8A9A' },
@@ -108,7 +108,7 @@ function TabBar({ activeTab, onTabChange, theme }: {
   onTabChange: (tab: TabKey) => void;
   theme: ReturnType<typeof useTheme>;
 }) {
-  const tabs: { key: TabKey; label: string; icon: IoniconsName }[] = [
+  const tabs: { key: TabKey; label: string; icon: IconName }[] = [
     { key: 'interne', label: 'Interne', icon: 'people-outline' },
     { key: 'voyageurs', label: 'Voyageurs', icon: 'airplane-outline' },
     { key: 'conversations', label: 'Conversations', icon: 'chatbubbles-outline' },
@@ -141,7 +141,7 @@ function TabBar({ activeTab, onTabChange, theme }: {
               ...(isActive ? theme.shadows.sm : {}),
             }}
           >
-            <Ionicons
+            <Reicon
               name={tab.icon}
               size={16}
               color={isActive ? theme.colors.primary.main : theme.colors.text.disabled}
@@ -266,7 +266,7 @@ function InternalMessageCard({ message, isSent, onPress, theme }: {
             {/* Priority */}
             {priorityCfg && (
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 3 }}>
-                <Ionicons name={priorityCfg.icon} size={12} color={priorityCfg.color} />
+                <Reicon name={priorityCfg.icon} size={12} color={priorityCfg.color} />
                 <Text style={{ fontSize: 10, color: priorityCfg.color, fontWeight: '600' }}>
                   {message.priority}
                 </Text>
@@ -288,7 +288,7 @@ function InternalMessageCard({ message, isSent, onPress, theme }: {
             {/* Attachments count */}
             {message.attachments && message.attachments.length > 0 && (
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 2 }}>
-                <Ionicons name="attach" size={12} color={theme.colors.text.disabled} />
+                <Reicon name="attach" size={12} color={theme.colors.text.disabled} />
                 <Text style={{ fontSize: 10, color: theme.colors.text.disabled }}>
                   {message.attachments.length}
                 </Text>
@@ -342,7 +342,7 @@ function SwipeableMessageCard({ message, isSent, onPress, onArchive, onDelete, t
               borderBottomLeftRadius: theme.BORDER_RADIUS.lg,
             }}
           >
-            <Ionicons name="archive-outline" size={22} color="#fff" />
+            <Reicon name="archive-outline" size={22} color="#fff" />
             <Text style={{ color: '#fff', fontSize: 10, fontWeight: '600', marginTop: 2 }}>Archiver</Text>
           </Pressable>
         </Animated.View>
@@ -369,7 +369,7 @@ function SwipeableMessageCard({ message, isSent, onPress, onArchive, onDelete, t
               borderBottomRightRadius: theme.BORDER_RADIUS.lg,
             }}
           >
-            <Ionicons name="trash-outline" size={22} color="#fff" />
+            <Reicon name="trash-outline" size={22} color="#fff" />
             <Text style={{ color: '#fff', fontSize: 10, fontWeight: '600', marginTop: 2 }}>Supprimer</Text>
           </Pressable>
         </Animated.View>
@@ -413,7 +413,7 @@ function GuestMessageCard({ log, theme }: {
           alignItems: 'center',
           justifyContent: 'center',
         }}>
-          <Ionicons name={typeCfg.icon} size={20} color={typeCfg.color} />
+          <Reicon name={typeCfg.icon} size={20} color={typeCfg.color} />
         </View>
 
         {/* Content */}
@@ -438,7 +438,7 @@ function GuestMessageCard({ log, theme }: {
           {/* Template name */}
           {log.templateName && (
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, marginBottom: 4 }}>
-              <Ionicons name="document-text-outline" size={11} color={theme.colors.text.disabled} />
+              <Reicon name="document-text-outline" size={11} color={theme.colors.text.disabled} />
               <Text style={{ fontSize: 11, color: theme.colors.text.disabled }}>
                 {log.templateName}
               </Text>
@@ -449,7 +449,7 @@ function GuestMessageCard({ log, theme }: {
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 2 }}>
             {/* Channel */}
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 3 }}>
-              <Ionicons name="mail-outline" size={11} color={theme.colors.text.disabled} />
+              <Reicon name="mail-outline" size={11} color={theme.colors.text.disabled} />
               <Text style={{ fontSize: 10, color: theme.colors.text.disabled, fontWeight: '500' }}>
                 {log.channel}
               </Text>
@@ -464,7 +464,7 @@ function GuestMessageCard({ log, theme }: {
               borderRadius: theme.BORDER_RADIUS.full,
               backgroundColor: `${statusCfg.color}12`,
             }}>
-              <Ionicons name={statusCfg.icon} size={10} color={statusCfg.color} />
+              <Reicon name={statusCfg.icon} size={10} color={statusCfg.color} />
               <Text style={{ fontSize: 10, color: statusCfg.color, fontWeight: '600' }}>
                 {statusCfg.label}
               </Text>
@@ -638,7 +638,7 @@ function InterneTab({ theme, navigation }: { theme: ReturnType<typeof useTheme>;
         </View>
 
         {/* Chevron */}
-        <Ionicons name="chevron-forward" size={16} color={theme.colors.text.disabled} />
+        <Reicon name="chevron-forward" size={16} color={theme.colors.text.disabled} />
       </Pressable>
     );
   }, [theme, handleOpenThread]);
@@ -660,7 +660,7 @@ function InterneTab({ theme, navigation }: { theme: ReturnType<typeof useTheme>;
           height: 40,
           gap: 8,
         }}>
-          <Ionicons name="search" size={16} color={theme.colors.text.disabled} />
+          <Reicon name="search" size={16} color={theme.colors.text.disabled} />
           <TextInput
             value={search}
             onChangeText={setSearch}
@@ -675,7 +675,7 @@ function InterneTab({ theme, navigation }: { theme: ReturnType<typeof useTheme>;
           />
           {search.length > 0 && (
             <Pressable onPress={() => setSearch('')} hitSlop={8}>
-              <Ionicons name="close-circle" size={16} color={theme.colors.text.disabled} />
+              <Reicon name="close-circle" size={16} color={theme.colors.text.disabled} />
             </Pressable>
           )}
         </View>

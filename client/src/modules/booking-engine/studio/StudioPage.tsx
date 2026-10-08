@@ -11,7 +11,7 @@ import {
   Newspaper,
   Globe,
   Filter,
-} from 'lucide-react';
+} from '../../../icons/glyphs';
 import StudioShell, { type Breakpoint, type StudioSection } from './StudioShell';
 import {
   useCommandCenter,

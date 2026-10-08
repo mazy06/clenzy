@@ -1,7 +1,7 @@
 import React from 'react';
 import { cn } from '../../utils/cn';
 import { Alert, AlertDescription } from '../../components/ui';
-import { TriangleAlert, Info } from 'lucide-react';
+import { TriangleAlert, Info } from '../../icons/glyphs';
 import { Spinner } from '../../components/ui';
 import { Input, NativeSelect, Separator, Switch } from '../../components/ui';
 import AiSettingsCard from './AiSettingsCard';

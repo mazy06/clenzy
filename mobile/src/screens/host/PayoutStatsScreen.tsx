@@ -14,7 +14,7 @@
 import React, { useMemo } from 'react';
 import { View, Text, ScrollView, RefreshControl, Pressable, Dimensions } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Ionicons } from '@expo/vector-icons';
+import { Reicon } from '@/icons';
 import { useNavigation } from '@react-navigation/native';
 import { BarChart } from 'react-native-gifted-charts';
 import { useTheme } from '@/theme';
@@ -27,7 +27,7 @@ import {
   type PayoutMethod,
 } from '@/api/endpoints/payoutsApi';
 
-type IoniconsName = keyof typeof Ionicons.glyphMap;
+type IconName = keyof typeof Reicon.glyphMap;
 
 const SCREEN_WIDTH = Dimensions.get('window').width;
 
@@ -170,7 +170,7 @@ export function PayoutStatsScreen() {
             marginRight: theme.SPACING.md,
           }}
         >
-          <Ionicons name="arrow-back" size={20} color={theme.colors.text.primary} />
+          <Reicon name="arrow-back" size={20} color={theme.colors.text.primary} />
         </Pressable>
         <Text style={{ ...theme.typography.h2, color: theme.colors.text.primary, flex: 1 }}>
           Statistiques reversements
@@ -262,7 +262,7 @@ export function PayoutStatsScreen() {
             ...theme.shadows.sm,
           }}>
             <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: theme.SPACING.sm }}>
-              <Ionicons name="bar-chart-outline" size={16} color={theme.colors.text.secondary} />
+              <Reicon name="bar-chart-outline" size={16} color={theme.colors.text.secondary} />
               <Text style={{
                 ...theme.typography.caption,
                 color: theme.colors.text.secondary,
@@ -313,7 +313,7 @@ export function PayoutStatsScreen() {
             ...theme.shadows.sm,
           }}>
             <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: theme.SPACING.md }}>
-              <Ionicons name="trophy-outline" size={16} color={theme.colors.text.secondary} />
+              <Reicon name="trophy-outline" size={16} color={theme.colors.text.secondary} />
               <Text style={{
                 ...theme.typography.caption,
                 color: theme.colors.text.secondary,
@@ -400,7 +400,7 @@ export function PayoutStatsScreen() {
               ...theme.shadows.sm,
             }}>
               <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: theme.SPACING.sm }}>
-                <Ionicons name="card-outline" size={16} color={theme.colors.text.secondary} />
+                <Reicon name="card-outline" size={16} color={theme.colors.text.secondary} />
                 <Text style={{
                   ...theme.typography.caption,
                   color: theme.colors.text.secondary,
@@ -414,7 +414,7 @@ export function PayoutStatsScreen() {
 
               {stats.methods.map((m, idx) => {
                 const label = m.method === 'UNDEFINED' ? 'Non defini' : PAYOUT_METHOD_LABELS[m.method as PayoutMethod];
-                const iconByMethod: Record<string, IoniconsName> = {
+                const iconByMethod: Record<string, IconName> = {
                   STRIPE_CONNECT: 'card-outline',
                   WISE: 'globe-outline',
                   OPEN_BANKING: 'shield-checkmark-outline',
@@ -450,7 +450,7 @@ export function PayoutStatsScreen() {
                       alignItems: 'center', justifyContent: 'center',
                       marginRight: theme.SPACING.md,
                     }}>
-                      <Ionicons name={icon} size={16} color={color} />
+                      <Reicon name={icon} size={16} color={color} />
                     </View>
                     <View style={{ flex: 1 }}>
                       <Text style={{ ...theme.typography.body2, color: theme.colors.text.primary, fontWeight: '600' }}>

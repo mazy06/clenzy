@@ -172,6 +172,11 @@ jobs:
         with:
           context: client
           file: client/Dockerfile
+          # Types partagés web/mobile (`shared/src/types/*`) importés par le client
+          # via `../../../../shared/src/...` : hors du contexte `client`, ils sont
+          # fournis en contexte nommé (cf. `COPY --from=shared` du Dockerfile).
+          build-contexts: |
+            shared=shared
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}

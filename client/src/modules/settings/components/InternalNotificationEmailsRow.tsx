@@ -2,7 +2,7 @@ import React, { useMemo, useState } from 'react';
 import { cn } from '../../../utils/cn';
 import { Alert, AlertDescription, Field, FieldError, Spinner } from '../../../components/ui';
 import { Combobox, ComboboxChip, ComboboxChips, ComboboxChipsInput, ComboboxContent, ComboboxEmpty, ComboboxItem, ComboboxList, ComboboxValue, useComboboxAnchor } from '../../../components/ui/combobox';
-import { AlertTriangle, BellRing } from 'lucide-react';
+import { AlertTriangle, BellRing } from '../../../icons/glyphs';
 import { useTranslation } from '../../../hooks/useTranslation';
 
 const EMAIL_RE = /^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$/;

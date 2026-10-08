@@ -11,7 +11,7 @@ import {
   InputGroupButton,
   InputGroupInput,
 } from '../../components/ui';
-import { CircleCheck } from 'lucide-react';
+import { CircleCheck } from '../../icons/glyphs';
 import { Spinner } from '../../components/ui';
 import { useSearchParams, Link as RouterLink } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';

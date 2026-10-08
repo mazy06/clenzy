@@ -78,6 +78,8 @@ class BaitlyCommissionInvoicePostgresTest {
             em.persist(invoice); return invoice;
         });
         var numbering = mock(InvoiceNumberingService.class); when(numbering.generateNextNumberFor(org.mockito.ArgumentMatchers.any(com.clenzy.model.Invoice.class))).thenReturn("FA-test-1");
+        // Contrôle documentaire (BaitlyInvoiceChecks) hors périmètre de ce test : document réputé complet.
+        when(numbering.checkAndRecord(any(Invoice.class), eq("COMMISSION"))).thenReturn(true);
         var fiscal = mock(FiscalProfileRepository.class); when(fiscal.findByOrganizationId(7L)).thenReturn(Optional.of(new FiscalProfile()));
         var contract = new ManagementContract(); contract.setPaymentModel(model); contract.setCommissionRate(new BigDecimal("0.20"));
         var contracts = mock(ManagementContractService.class); when(contracts.getActiveContract(70L, 7L)).thenReturn(Optional.of(contract));

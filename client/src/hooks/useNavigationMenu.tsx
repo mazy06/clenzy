@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
-import { Plug } from 'lucide-react';
+import { Plug } from '../icons/glyphs';
 import { useAuth } from './useAuth';
 import { CLEANING_ROLES, FIELD_ROLES, TRADE_ROLES } from '../utils/fieldRoles';
 

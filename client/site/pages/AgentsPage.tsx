@@ -10,7 +10,10 @@ import {
   MessageCircleIcon,
   ShieldCheckIcon,
   SparklesIcon,
-} from 'lucide-react';
+  StarIcon,
+  TrendingUpIcon,
+  WrenchIcon,
+} from '../../src/icons/glyphs';
 import {
   Accordion,
   AccordionContent,

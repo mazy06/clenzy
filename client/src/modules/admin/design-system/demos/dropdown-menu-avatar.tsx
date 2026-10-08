@@ -3,7 +3,7 @@ import {
   BellIcon,
   CreditCardIcon,
   LogOutIcon,
-} from "lucide-react"
+} from "../../../../icons/glyphs"
 
 import {
   Avatar,

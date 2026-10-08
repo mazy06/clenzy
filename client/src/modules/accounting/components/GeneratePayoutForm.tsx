@@ -1,6 +1,6 @@
 import { useMemo, useState, type FormEvent } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { Calculator, TriangleAlert } from 'lucide-react';
+import { Calculator, TriangleAlert } from '../../../icons/glyphs';
 import { Alert, AlertDescription, Button, Field, FieldLabel, Input, NativeSelect, Skeleton, Spinner } from '../../../components/ui';
 import { useTranslation } from '../../../hooks/useTranslation';
 import { useGeneratePayout } from '../../../hooks/useAccounting';

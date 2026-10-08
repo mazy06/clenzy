@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { ChevronDownIcon, ChevronRightIcon } from 'lucide-react';
+import { ChevronDownIcon, ChevronRightIcon } from '../../icons/glyphs';
 import { Badge, buttonVariants } from '../../components/ui';
 import { activeIntlLocale } from '../../utils/activeLocale';
 import { cn } from '../../utils/cn';

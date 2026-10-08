@@ -1,7 +1,7 @@
 import DocumentStatusIcon from '../documents/components/DocumentStatusIcon';
 import { useId, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { ExternalLink, FileCheck2 } from 'lucide-react';
+import { ExternalLink, FileCheck2 } from '../../icons/glyphs';
 import { Link } from 'react-router-dom';
 import { Alert, AlertDescription, Button, Field, FieldLabel, Input, Skeleton, Textarea } from '../../components/ui';
 import { useAuth } from '../../hooks/useAuth';

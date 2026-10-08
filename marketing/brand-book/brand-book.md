@@ -243,7 +243,7 @@ réservée aux photos de lieux ; rayon 16 px pour le reste. Dans les maquettes d
 voyageur montre sa photo, comme dans le produit (portraits de `assets/guests/`). Scène générée par IA = mention « Scène illustrative ». Catalogue et
 licences : `client/site/assets/photos/` et `sources.json`. Sélection dans `assets/photos/`.
 
-**Icônes** : Lucide, trait 1,7 px, Bleu nuit (Papier ou Bleu lune sur nuit, Sable pour l'icône mise en avant) ; 20–24 px en interface, 48–64 px en vidéo.
+**Icônes** : Reicon (reicon.dev), graisse duotone privilégiée, Bleu nuit (Papier ou Bleu lune sur nuit, Sable pour l'icône mise en avant) ; 20–24 px en interface, 48–64 px en vidéo.
 Aucun emoji comme icône. Un état n'est jamais porté par la couleur seule. Logos partenaires :
 `client/site/assets/brands/`, petits, jamais en élément principal.
 

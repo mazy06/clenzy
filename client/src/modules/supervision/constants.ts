@@ -3,7 +3,7 @@
 
    Données pures (pas de JSX) → testables et réutilisables par le
    cœur headless comme par le renderer. Les libellés sont des CLÉS
-   i18n (jamais de chaîne en dur) ; le rendu en composant lucide-react
+   i18n (jamais de chaîne en dur) ; le rendu en composant d'icône (Reicon)
    est fait par le renderer (Phase 2).
    ============================================================ */
 
@@ -11,7 +11,7 @@ import type { AgentId, AgentStatus, AutonomyLevel } from './types';
 
 // ─── Métadonnées agents ──────────────────────────────────────────────────────
 // `color` = couleur de domaine (handoff §2). Les dégradés sont une affaire de rendu.
-// `icon`  = jeton sémantique → mappé sur lucide-react dans le renderer.
+// `icon`  = jeton sémantique → mappé sur un glyphe Reicon dans le renderer.
 
 export type AgentIconToken =
   | 'chat' | 'trend-up' | 'broom' | 'bank' | 'star'

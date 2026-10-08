@@ -1,4 +1,4 @@
-import { ChevronRightIcon, FileIcon, FolderIcon } from "lucide-react"
+import { ChevronRightIcon, FileIcon, FolderIcon } from "../../../../icons/glyphs"
 
 import { Button } from '../../../../components/ui'
 import { Card, CardContent, CardHeader } from '../../../../components/ui'

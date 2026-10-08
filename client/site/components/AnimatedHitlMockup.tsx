@@ -13,7 +13,7 @@ import {
   SendIcon,
   SlidersHorizontalIcon,
   XIcon,
-} from 'lucide-react';
+} from '../../src/icons/glyphs';
 import { Badge, Progress, Separator } from '../../src/components/ui';
 import {
   Cursor,

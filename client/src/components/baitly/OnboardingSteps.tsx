@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { CheckIcon, ChevronDownIcon, LockIcon } from 'lucide-react';
+import { CheckIcon, ChevronDownIcon, LockIcon } from '../../icons/glyphs';
 import { Button } from '../ui';
 import { cn } from '../../utils/cn';
 

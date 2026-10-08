@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { LockOpenIcon } from 'lucide-react';
+import { LockOpenIcon } from '../../icons/glyphs';
 import { Button } from '../../components/ui';
 import GuestAvatar from '../../components/baitly/GuestAvatar';
 import StatusChip from '../../components/baitly/StatusChip';

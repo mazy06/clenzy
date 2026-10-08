@@ -1,9 +1,9 @@
-import type { LucideIcon } from 'lucide-react';
+import type { IconComponent } from '../../../icons/glyphs';
 import type { AmenityTone } from '../amenityCategories';
 
 export interface ToneTile {
   key: string;
-  icon: LucideIcon;
+  icon: IconComponent;
   tone: AmenityTone;
   label: string;
   /** Précision sous le libellé (ex. le détail des vitres). */

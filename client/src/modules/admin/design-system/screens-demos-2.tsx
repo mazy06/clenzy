@@ -29,7 +29,7 @@ import {
   TrendingDownIcon,
   TrendingUpIcon,
   UploadIcon,
-} from 'lucide-react';
+} from '../../../icons/glyphs';
 import { Area, AreaChart, CartesianGrid, Pie, PieChart, XAxis } from 'recharts';
 import type { DateRange } from 'react-day-picker';
 import { Alert, AlertDescription, AlertTitle, Badge, Button, Field, FieldDescription, FieldGroup, FieldLabel, Input, NativeSelect, NativeSelectOption, Progress, Switch, Table, TableBody, TableCell, TableFooter, TableHead, TableHeader, TableRow } from '../../../components/ui';

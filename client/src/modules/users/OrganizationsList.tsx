@@ -1,7 +1,7 @@
 import React, { useState, useEffect, forwardRef, useImperativeHandle } from 'react';
 import StatusChip, { softBackground, type StatusTone } from '../../components/StatusChip';
 import { Alert, AlertDescription, Button } from '../../components/ui';
-import { TriangleAlert } from 'lucide-react';
+import { TriangleAlert } from '../../icons/glyphs';
 import { createPortal } from 'react-dom';
 import {
   Card,
@@ -49,7 +49,7 @@ import type { OrganizationDto } from '../../services/api';
 import MembersList from '../organization/MembersList';
 
 import type { ChipColor } from '../../types';
-import type { LucideIcon } from 'lucide-react';
+import type { IconComponent } from '../../icons/glyphs';
 import compactHeaderActions from '../../components/compactHeaderActions';
 import { activeIntlLocale } from '../../utils/activeLocale';
 
@@ -59,7 +59,7 @@ import { activeIntlLocale } from '../../utils/activeLocale';
 // s'exprime pas : `cssColor` pour les aplats calcules a l'execution (une classe
 // Tailwind ne peut pas naitre d'une variable), `iconClass` pour l'icone des
 // tuiles KPI, `tone` pour la pastille, qui porte deja le couple `-ink`/`-soft`.
-const orgTypes: Array<{ value: string; label: string; Icon: LucideIcon; color: ChipColor; cssColor: string; iconClass: string; tone: StatusTone }> = [
+const orgTypes: Array<{ value: string; label: string; Icon: IconComponent; color: ChipColor; cssColor: string; iconClass: string; tone: StatusTone }> = [
   { value: 'INDIVIDUAL', label: 'Particulier', Icon: Person, color: 'info', cssColor: 'var(--bui-info)', iconClass: 'text-info', tone: 'info' },
   { value: 'CONCIERGE', label: 'Conciergerie', Icon: Business, color: 'primary', cssColor: 'var(--bui-primary)', iconClass: 'text-primary', tone: 'accent' },
   { value: 'CLEANING_COMPANY', label: 'Societe de menage', Icon: CleaningServices, color: 'success', cssColor: 'var(--bui-success)', iconClass: 'text-success', tone: 'ok' },

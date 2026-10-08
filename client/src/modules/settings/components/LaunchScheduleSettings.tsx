@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { CalendarDays, Clock3, Pause } from 'lucide-react';
+import { CalendarDays, Clock3, Pause } from '../../../icons/glyphs';
 import { Button, Field, FieldLabel, Input } from '../../../components/ui';
 import { useTranslation } from '../../../hooks/useTranslation';
 import { useSetLaunchSettings } from '../../../hooks/usePlatformSettings';

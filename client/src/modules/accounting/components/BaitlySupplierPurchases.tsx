@@ -2,7 +2,7 @@ import FinanceStatusIcon from '../../billing/components/FinanceStatusIcon';
 import { useRef, useState, type FormEvent } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
-import { Plus, ExternalLink, Download, Link2 } from 'lucide-react';
+import { Plus, ExternalLink, Download, Link2 } from '../../../icons/glyphs';
 import { Button, Input, Skeleton, Alert, AlertDescription } from '../../../components/ui';
 import { useAuth } from '../../../hooks/useAuth';
 import { useTranslation } from '../../../hooks/useTranslation';

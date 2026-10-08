@@ -46,7 +46,7 @@ import {
   CheckCircle2,
   RefreshCw,
   AlertTriangle,
-} from 'lucide-react';
+} from '../../../icons/glyphs';
 
 import { channexApi } from '../../../services/api/channexApi';
 import { useTranslation } from '../../../hooks/useTranslation';

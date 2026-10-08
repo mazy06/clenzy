@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { ChevronDownIcon } from 'lucide-react';
+import { ChevronDownIcon } from '../../icons/glyphs';
 import { useTranslation } from '../../hooks/useTranslation';
 import type { FinancialKpis } from '../../hooks/useDashboardOverview';
 import type { DashboardFinancialContext } from '../../services/api/dashboardOverviewApi';

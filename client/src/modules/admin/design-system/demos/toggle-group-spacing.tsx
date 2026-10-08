@@ -1,4 +1,4 @@
-import { BookmarkIcon, HeartIcon, StarIcon } from "lucide-react"
+import { BookmarkIcon, HeartIcon, StarIcon } from "../../../../icons/glyphs"
 
 import {
   ToggleGroup,
@@ -11,7 +11,7 @@ export default function ToggleGroupSpacing() {
       <ToggleGroupItem
         value="star"
         aria-label="Toggle star"
-        className="data-[state=on]:bg-transparent data-[state=on]:*:[svg]:fill-yellow-500 data-[state=on]:*:[svg]:stroke-yellow-500"
+        className="data-[state=on]:bg-transparent data-[state=on]:*:[svg]:text-yellow-500"
       >
         <StarIcon />
         Star
@@ -19,7 +19,7 @@ export default function ToggleGroupSpacing() {
       <ToggleGroupItem
         value="heart"
         aria-label="Toggle heart"
-        className="data-[state=on]:bg-transparent data-[state=on]:*:[svg]:fill-red-500 data-[state=on]:*:[svg]:stroke-red-500"
+        className="data-[state=on]:bg-transparent data-[state=on]:*:[svg]:text-red-500"
       >
         <HeartIcon />
         Heart
@@ -27,7 +27,7 @@ export default function ToggleGroupSpacing() {
       <ToggleGroupItem
         value="bookmark"
         aria-label="Toggle bookmark"
-        className="data-[state=on]:bg-transparent data-[state=on]:*:[svg]:fill-blue-500 data-[state=on]:*:[svg]:stroke-blue-500"
+        className="data-[state=on]:bg-transparent data-[state=on]:*:[svg]:text-blue-500"
       >
         <BookmarkIcon />
         Bookmark

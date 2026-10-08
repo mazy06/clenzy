@@ -1,7 +1,7 @@
 import React, { useMemo, useState } from 'react';
 import { View, Text, ScrollView, RefreshControl, Pressable } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Ionicons } from '@expo/vector-icons';
+import { Reicon } from '@/icons';
 import { useNavigation } from '@react-navigation/native';
 import { useTheme } from '@/theme';
 import { Card } from '@/components/ui/Card';
@@ -13,7 +13,7 @@ import { SectionHeader } from '@/components/ui/SectionHeader';
 import { usePaymentHistory, usePaymentSummary } from '@/hooks/usePayments';
 import type { PaymentRecord } from '@/api/endpoints/paymentsApi';
 
-type IoniconsName = keyof typeof Ionicons.glyphMap;
+type IconName = keyof typeof Reicon.glyphMap;
 type FilterKey = 'all' | 'PAID' | 'PENDING' | 'REFUNDED';
 
 const FILTERS: Array<{ key: FilterKey; label: string }> = [
@@ -23,7 +23,7 @@ const FILTERS: Array<{ key: FilterKey; label: string }> = [
   { key: 'REFUNDED', label: 'Remboursements' },
 ];
 
-const STATUS_CONFIG: Record<string, { label: string; color: string; icon: IoniconsName; badgeColor: 'success' | 'warning' | 'error' | 'info' | 'neutral' }> = {
+const STATUS_CONFIG: Record<string, { label: string; color: string; icon: IconName; badgeColor: 'success' | 'warning' | 'error' | 'info' | 'neutral' }> = {
   PAID: { label: 'Paye', color: '#059669', icon: 'checkmark-circle', badgeColor: 'success' },
   PENDING: { label: 'En attente', color: '#D97706', icon: 'time-outline', badgeColor: 'warning' },
   PROCESSING: { label: 'En cours', color: '#3B82F6', icon: 'sync-outline', badgeColor: 'info' },
@@ -93,7 +93,7 @@ function TransactionCard({ payment, onPress }: { payment: PaymentRecord; onPress
           alignItems: 'center',
           justifyContent: 'center',
         }}>
-          <Ionicons name={statusCfg.icon} size={20} color={statusCfg.color} />
+          <Reicon name={statusCfg.icon} size={20} color={statusCfg.color} />
         </View>
         <View style={{ flex: 1 }}>
           <Text
@@ -156,7 +156,7 @@ export function BillingDashboardScreen() {
       <SafeAreaView style={{ flex: 1, backgroundColor: theme.colors.background.default }} edges={['top']}>
         <View style={{ flexDirection: 'row', alignItems: 'center', paddingHorizontal: theme.SPACING.lg, paddingTop: theme.SPACING.lg, paddingBottom: theme.SPACING.md }}>
           <Pressable onPress={() => navigation.goBack()} hitSlop={12} style={{ width: 36, height: 36, borderRadius: theme.BORDER_RADIUS.md, backgroundColor: theme.colors.background.paper, alignItems: 'center', justifyContent: 'center', marginRight: theme.SPACING.md }}>
-            <Ionicons name="arrow-back" size={20} color={theme.colors.text.primary} />
+            <Reicon name="arrow-back" size={20} color={theme.colors.text.primary} />
           </Pressable>
           <Text style={{ ...theme.typography.h2, color: theme.colors.text.primary }}>Facturation</Text>
         </View>
@@ -188,7 +188,7 @@ export function BillingDashboardScreen() {
             marginRight: theme.SPACING.md,
           }}
         >
-          <Ionicons name="arrow-back" size={20} color={theme.colors.text.primary} />
+          <Reicon name="arrow-back" size={20} color={theme.colors.text.primary} />
         </Pressable>
         <Text style={{ ...theme.typography.h2, color: theme.colors.text.primary, flex: 1 }}>
           Facturation
@@ -205,7 +205,7 @@ export function BillingDashboardScreen() {
             justifyContent: 'center',
           }}
         >
-          <Ionicons name="document-text-outline" size={20} color={theme.colors.primary.main} />
+          <Reicon name="document-text-outline" size={20} color={theme.colors.primary.main} />
         </Pressable>
       </View>
 
@@ -219,7 +219,7 @@ export function BillingDashboardScreen() {
             padding: theme.SPACING.md,
             ...theme.shadows.sm,
           }}>
-            <Ionicons name="checkmark-circle" size={18} color="#059669" style={{ marginBottom: 4 }} />
+            <Reicon name="checkmark-circle" size={18} color="#059669" style={{ marginBottom: 4 }} />
             <Text style={{ ...theme.typography.h4, color: '#059669' }}>
               {formatAmount(summary?.totalPaid ?? 0)} €
             </Text>
@@ -234,7 +234,7 @@ export function BillingDashboardScreen() {
             padding: theme.SPACING.md,
             ...theme.shadows.sm,
           }}>
-            <Ionicons name="time-outline" size={18} color="#D97706" style={{ marginBottom: 4 }} />
+            <Reicon name="time-outline" size={18} color="#D97706" style={{ marginBottom: 4 }} />
             <Text style={{ ...theme.typography.h4, color: '#D97706' }}>
               {formatAmount(summary?.totalPending ?? 0)} €
             </Text>
@@ -251,7 +251,7 @@ export function BillingDashboardScreen() {
             padding: theme.SPACING.md,
             ...theme.shadows.sm,
           }}>
-            <Ionicons name="arrow-undo-outline" size={18} color="#EF4444" style={{ marginBottom: 4 }} />
+            <Reicon name="arrow-undo-outline" size={18} color="#EF4444" style={{ marginBottom: 4 }} />
             <Text style={{ ...theme.typography.h4, color: '#EF4444' }}>
               {formatAmount(summary?.totalRefunded ?? 0)} €
             </Text>
@@ -266,7 +266,7 @@ export function BillingDashboardScreen() {
             padding: theme.SPACING.md,
             ...theme.shadows.sm,
           }}>
-            <Ionicons name="receipt-outline" size={18} color={theme.colors.primary.main} style={{ marginBottom: 4 }} />
+            <Reicon name="receipt-outline" size={18} color={theme.colors.primary.main} style={{ marginBottom: 4 }} />
             <Text style={{ ...theme.typography.h4, color: theme.colors.primary.main }}>
               {summary?.transactionCount ?? 0}
             </Text>

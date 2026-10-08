@@ -17,7 +17,7 @@ import {
   ToggleGroup,
   ToggleGroupItem,
 } from '../../components/ui';
-import { TriangleAlert } from 'lucide-react';
+import { TriangleAlert } from '../../icons/glyphs';
 import EmptyState from '../../components/EmptyState';
 import StatusChip from '../../components/StatusChip';
 import { AccessTime, Add, Close, DeleteOutline, EventAvailable, Save, Tune } from '../../icons';

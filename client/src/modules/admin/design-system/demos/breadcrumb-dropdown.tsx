@@ -1,5 +1,5 @@
 import Link from './_shims/next-link'
-import { ChevronDownIcon, SlashIcon } from "lucide-react"
+import { ChevronDownIcon, SlashIcon } from "../../../../icons/glyphs"
 
 import {
   Breadcrumb,

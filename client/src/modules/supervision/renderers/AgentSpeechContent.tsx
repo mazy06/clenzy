@@ -1,5 +1,5 @@
 import { useMemo } from 'react';
-import { ArrowRight, Clock, Check } from 'lucide-react';
+import { ArrowRight, Clock, Check } from '../../../icons/glyphs';
 import { useTranslation } from '../../../hooks/useTranslation';
 import { intlLocale } from '../../../utils/localeDate';
 import { StockActionThumbnail } from '../../stock/StockActionThumbnail';

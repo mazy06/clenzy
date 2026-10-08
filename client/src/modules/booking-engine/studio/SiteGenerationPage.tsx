@@ -14,7 +14,7 @@ import {
   ToggleGroup,
   ToggleGroupItem,
 } from '../../../components/ui';
-import { Sparkles, AlertTriangle, Globe, FileText, SlidersHorizontal, Plus, ArrowRight, ArrowLeft, Check, LayoutGrid } from 'lucide-react';
+import { Sparkles, AlertTriangle, Globe, FileText, SlidersHorizontal, Plus, ArrowRight, ArrowLeft, Check, LayoutGrid } from '../../../icons/glyphs';
 import EmptyState from '../../../components/EmptyState';
 import { bookingEngineApi, type BookingEngineConfigUpdate } from '../../../services/api/bookingEngineApi';
 import { sitesApi, type SiteGenerationBrief } from '../../../services/api/sitesApi';

@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { Alert, AlertDescription } from '../../../components/ui';
-import { TriangleAlert } from 'lucide-react';
+import { TriangleAlert } from '../../../icons/glyphs';
 import { Skeleton, Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '../../../components/ui';
 import StatusChip from '../../../components/StatusChip';
 import { syncAdminApi, MappingSummary } from '../../../services/api/syncAdminApi';

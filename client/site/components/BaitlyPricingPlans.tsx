@@ -1,5 +1,5 @@
 import { useSiteMoney } from './SiteMoney';
-import { ArrowRightIcon, CheckIcon } from 'lucide-react';
+import { ArrowRightIcon, CheckIcon } from '../../src/icons/glyphs';
 import SiteAcquisitionLink from './SiteAcquisitionLink';
 import { acquisitionSearch } from '../../src/services/publicAcquisitionContext';
 import BaitlyPricingVisual from './BaitlyPricingVisual';

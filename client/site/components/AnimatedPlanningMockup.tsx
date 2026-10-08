@@ -37,7 +37,7 @@ import {
   Volume2Icon,
   VolumeXIcon,
   XIcon,
-} from 'lucide-react';
+} from '../../src/icons/glyphs';
 /* Icônes EXACTES de la brique planning (src/icons, corps Iconify embarqués). */
 import {
   Label as TagIcon,

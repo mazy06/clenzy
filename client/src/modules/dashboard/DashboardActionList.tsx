@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { ListChecksIcon } from 'lucide-react';
+import { ListChecksIcon } from '../../icons/glyphs';
 import { Button } from '../../components/ui';
 import { Money } from '../../components/baitly/Money';
 import { useTranslation } from '../../hooks/useTranslation';

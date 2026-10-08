@@ -1,4 +1,4 @@
-import { FlipHorizontal2, RotateCcw } from 'lucide-react';
+import { ArrowLeftRight, RotateCcw } from '../../../icons/glyphs';
 import { Button, NativeSelect, NativeSelectOption } from '../../../components/ui';
 import { useTranslation } from '../../../hooks/useTranslation';
 import { normalizePlacement, PLACEMENT_LIMITS, sceneDevicePoses, type PlacementNumber, type SceneDevicePlacement, type SceneDevicePose } from '../roomSceneLayout';
@@ -28,7 +28,7 @@ export default function RoomPlacementEditor({ name, slot, value, disabled, onCha
     {range('width', '%', 0.1)}{range('rotation', '°')}
     <details><summary>{t('connectedRooms.placement.perspective')}</summary>
       {range('tiltX', '°')}{range('tiltY', '°')}{range('skewY', '°')}
-      <Button variant="outline" size="sm" aria-pressed={value.mirrored} onClick={() => change({ mirrored: !value.mirrored })}><FlipHorizontal2 size={15} />{t('connectedRooms.placement.mirror')}</Button>
+      <Button variant="outline" size="sm" aria-pressed={value.mirrored} onClick={() => change({ mirrored: !value.mirrored })}><ArrowLeftRight size={15} />{t('connectedRooms.placement.mirror')}</Button>
     </details>
     <Button variant="ghost" size="sm" onClick={onReset}><RotateCcw size={15} />{t('connectedRooms.placement.reset')}</Button>
   </fieldset>;

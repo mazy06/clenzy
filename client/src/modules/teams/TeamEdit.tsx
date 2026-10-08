@@ -4,7 +4,7 @@ import { resolveMediaUrl } from '../../config/api';
 import React, { useState, useEffect } from 'react';
 import { Badge } from '../../components/ui';
 import { Alert as BuiAlert, AlertDescription, AlertAction, Button as BuiButton } from '../../components/ui';
-import { TriangleAlert, X, CircleCheck } from 'lucide-react';
+import { TriangleAlert, X, CircleCheck } from '../../icons/glyphs';
 import { Spinner } from '../../components/ui';
 import { Field, FieldLabel, Input, Textarea } from '../../components/ui';
 import { Avatar, AvatarImage, AvatarFallback, Card, CardContent, NativeSelect, NativeSelectOption, Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../components/ui';

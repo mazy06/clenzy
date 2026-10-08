@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import type React from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { Pencil, Upload } from 'lucide-react';
+import { Pencil, Upload } from '../../icons/glyphs';
 import { useCommerceScope } from '../../hooks/useCommerceScope';
 import { guestMessagingApi } from '../../services/api/guestMessagingApi';
 import { systemEmailTemplatesApi } from '../../services/api/systemEmailTemplatesApi';

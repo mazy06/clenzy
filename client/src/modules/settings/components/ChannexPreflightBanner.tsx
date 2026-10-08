@@ -34,7 +34,7 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from '../../../components/ui';
-import { TriangleAlert } from 'lucide-react';
+import { TriangleAlert } from '../../../icons/glyphs';
 import {
   CheckCircle2,
   AlertTriangle,
@@ -43,7 +43,7 @@ import {
   ChevronDown,
   ChevronUp,
   Stethoscope,
-} from 'lucide-react';
+} from '../../../icons/glyphs';
 
 import { channexApi } from '../../../services/api/channexApi';
 import { useTranslation } from '../../../hooks/useTranslation';

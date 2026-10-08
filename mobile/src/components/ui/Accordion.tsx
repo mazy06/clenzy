@@ -1,17 +1,17 @@
 import React, { useState, useRef, useCallback } from 'react';
 import { View, Text, Pressable, Animated, LayoutAnimation, Platform, UIManager, ViewStyle } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
+import { Reicon } from '@/icons';
 import { useTheme } from '@/theme';
 
 if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
   UIManager.setLayoutAnimationEnabledExperimental(true);
 }
 
-type IoniconsName = keyof typeof Ionicons.glyphMap;
+type IconName = keyof typeof Reicon.glyphMap;
 
 interface AccordionProps {
   title: string;
-  iconName?: IoniconsName;
+  iconName?: IconName;
   iconColor?: string;
   children: React.ReactNode;
   defaultOpen?: boolean;
@@ -66,7 +66,7 @@ export function Accordion({ title, iconName, iconColor, children, defaultOpen = 
             justifyContent: 'center',
             marginRight: theme.SPACING.md,
           }}>
-            <Ionicons name={iconName} size={16} color={iconColor || theme.colors.primary.main} />
+            <Reicon name={iconName} size={16} color={iconColor || theme.colors.primary.main} />
           </View>
         )}
         <Text style={{ ...theme.typography.body1, color: theme.colors.text.primary, fontWeight: '600', flex: 1 }}>
@@ -86,7 +86,7 @@ export function Accordion({ title, iconName, iconColor, children, defaultOpen = 
           </View>
         )}
         <Animated.View style={{ transform: [{ rotate: rotateInterpolate }] }}>
-          <Ionicons name="chevron-down" size={18} color={theme.colors.text.disabled} />
+          <Reicon name="chevron-down" size={18} color={theme.colors.text.disabled} />
         </Animated.View>
       </Pressable>
 

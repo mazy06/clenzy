@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Alert as BuiAlert, AlertDescription, AlertTitle } from '../../components/ui';
-import { Info } from 'lucide-react';
+import { Info } from '../../icons/glyphs';
 import { Spinner } from '../../components/ui';
 import {
   Button as UiButton,

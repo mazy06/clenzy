@@ -1,10 +1,10 @@
 import React from 'react';
 import { View, Text, ViewStyle } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
+import { Reicon } from '@/icons';
 import { useTheme } from '@/theme';
 import { Button } from './Button';
 
-type IoniconsName = keyof typeof Ionicons.glyphMap;
+type IconName = keyof typeof Reicon.glyphMap;
 
 interface EmptyStateProps {
   title: string;
@@ -12,7 +12,7 @@ interface EmptyStateProps {
   actionLabel?: string;
   onAction?: () => void;
   icon?: React.ReactNode;
-  iconName?: IoniconsName;
+  iconName?: IconName;
   style?: ViewStyle;
   compact?: boolean;
 }
@@ -44,7 +44,7 @@ export function EmptyState({
             marginBottom: theme.SPACING.lg,
           }}
         >
-          <Ionicons name={iconName} size={compact ? 24 : 28} color={theme.colors.primary.light} />
+          <Reicon name={iconName} size={compact ? 24 : 28} color={theme.colors.primary.light} />
         </View>
       );
     }

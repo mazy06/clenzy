@@ -1,7 +1,7 @@
 import React, { useMemo, useState } from 'react';
 import { cn } from '../../utils/cn';
 import { Alert as BuiAlert, AlertDescription, AlertAction, Button as BuiButton } from '../../components/ui';
-import { TriangleAlert, X } from 'lucide-react';
+import { TriangleAlert, X } from '../../icons/glyphs';
 import { Spinner } from '../../components/ui';
 import { Card } from '../../components/ui';
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '../../components/ui';

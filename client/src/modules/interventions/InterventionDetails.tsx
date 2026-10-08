@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
-import { Alert as BuiAlert, AlertDescription, AlertAction, Button as BuiButton, Skeleton } from '../../components/ui';
-import { Info, TriangleAlert, X, Flag } from 'lucide-react';
+import { Alert as BuiAlert, AlertDescription, AlertAction, Button as BuiButton, Card, CardContent, Skeleton } from '../../components/ui';
+import { Info, TriangleAlert, X, Flag } from '../../icons/glyphs';
 import { Spinner } from '../../components/ui';
 import { useNotification } from '../../hooks/useNotification';
 import {

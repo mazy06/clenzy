@@ -16,7 +16,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRoute, useNavigation } from '@react-navigation/native';
 import type { RouteProp } from '@react-navigation/native';
-import { Ionicons } from '@expo/vector-icons';
+import { Reicon } from '@/icons';
 import * as ImagePicker from 'expo-image-picker';
 import { useTheme } from '@/theme';
 import { Skeleton } from '@/components/ui/Skeleton';
@@ -26,7 +26,7 @@ import { useAuthStore } from '@/store/authStore';
 import { contactApi } from '@/api/endpoints/contactApi';
 import type { ContactMessage, ContactAttachment, ContactThreadSummary } from '@/api/endpoints/contactApi';
 
-type IoniconsName = keyof typeof Ionicons.glyphMap;
+type IconName = keyof typeof Reicon.glyphMap;
 
 type RouteParams = {
   InternalChat: { thread: ContactThreadSummary };
@@ -141,7 +141,7 @@ function ImageLightbox({ visible, uri, onClose }: {
             justifyContent: 'center',
           }}
         >
-          <Ionicons name="close" size={22} color="#fff" />
+          <Reicon name="close" size={22} color="#fff" />
         </Pressable>
         <Image
           source={{ uri }}
@@ -272,7 +272,7 @@ function MessageBubble({
                     borderWidth: isMine ? 0 : 0.5,
                     borderColor: isMine ? 'transparent' : theme.colors.border.light,
                   }}>
-                    <Ionicons
+                    <Reicon
                       name="document-outline"
                       size={14}
                       color={isMine ? 'rgba(255,255,255,0.8)' : theme.colors.text.secondary}
@@ -542,7 +542,7 @@ export function InternalChatScreen() {
         }}>
           {/* Back */}
           <Pressable onPress={() => navigation.goBack()} hitSlop={8}>
-            <Ionicons name="chevron-back" size={22} color={theme.colors.text.primary} />
+            <Reicon name="chevron-back" size={22} color={theme.colors.text.primary} />
           </Pressable>
 
           {/* Avatar */}
@@ -620,7 +620,7 @@ export function InternalChatScreen() {
                 justifyContent: 'center',
                 paddingVertical: 60,
               }}>
-                <Ionicons name="chatbubble-outline" size={40} color={theme.colors.text.disabled} />
+                <Reicon name="chatbubble-outline" size={40} color={theme.colors.text.disabled} />
                 <Text style={{
                   ...theme.typography.body2,
                   color: theme.colors.text.disabled,
@@ -663,12 +663,12 @@ export function InternalChatScreen() {
                 borderWidth: 0.5,
                 borderColor: theme.colors.border.light,
               }}>
-                <Ionicons name="image-outline" size={12} color={theme.colors.primary.main} />
+                <Reicon name="image-outline" size={12} color={theme.colors.primary.main} />
                 <Text style={{ fontSize: 10, color: theme.colors.text.secondary, maxWidth: 80 }} numberOfLines={1}>
                   {file.name}
                 </Text>
                 <Pressable onPress={() => removeAttachment(i)} hitSlop={4}>
-                  <Ionicons name="close-circle" size={14} color={theme.colors.text.disabled} />
+                  <Reicon name="close-circle" size={14} color={theme.colors.text.disabled} />
                 </Pressable>
               </View>
             ))}
@@ -702,7 +702,7 @@ export function InternalChatScreen() {
                 marginBottom: 4,
               })}
             >
-              <Ionicons name="attach" size={22} color={theme.colors.text.secondary} />
+              <Reicon name="attach" size={22} color={theme.colors.text.secondary} />
             </Pressable>
 
             {/* Text input */}
@@ -751,7 +751,7 @@ export function InternalChatScreen() {
               {replyMutation.isPending ? (
                 <ActivityIndicator size="small" color="#FFFFFF" />
               ) : (
-                <Ionicons name="send" size={18} color="#FFFFFF" />
+                <Reicon name="send" size={18} color="#FFFFFF" />
               )}
             </Pressable>
           </View>

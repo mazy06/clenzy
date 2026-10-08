@@ -1,7 +1,7 @@
 import { useEffect, useId, useLayoutEffect, useRef, useState, type ReactNode } from 'react';
 import PagePagination from '../../../components/PagePagination';
 import { useFinanceLayout } from './useFinanceLayout';
-import { ArrowLeft } from 'lucide-react';
+import { ArrowLeft, ChevronRight } from '../../../icons/glyphs';
 import { Button } from '../../../components/ui';
 import { useTranslation } from '../../../hooks/useTranslation';
 import './financeWorkspace.css';

@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { ArrowUpRight, CheckCircle2, Copy, Eye, EyeOff, Link2, Plus } from 'lucide-react';
+import { ArrowUpRight, CheckCircle2, Copy, Eye, EyeOff, Link2, Plus } from '../../../icons/glyphs';
 import { Button } from '../../../components/ui';
 import StatTileRow from '../../../components/baitly/StatTileRow';
 import DashboardKpiDetail from '../../dashboard/DashboardKpiDetail';

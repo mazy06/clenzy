@@ -7,7 +7,7 @@ import {
   CreditCard,
   Landmark,
   UserRound,
-} from "lucide-react";
+} from "../../icons/glyphs";
 import { Button, Skeleton } from "../ui";
 import { useTranslation } from "../../hooks/useTranslation";
 import {

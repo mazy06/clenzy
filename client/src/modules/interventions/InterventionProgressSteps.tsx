@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { cn } from '../../utils/cn';
 import { Badge, Button, Item } from '../../components/ui';
 import { Alert, AlertDescription } from '../../components/ui';
-import { TriangleAlert } from 'lucide-react';
+import { TriangleAlert } from '../../icons/glyphs';
 import { Spinner } from '../../components/ui';
 import {
   Dialog,

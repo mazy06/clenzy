@@ -2,7 +2,7 @@ import FinanceHeaderFilters from '../billing/components/FinanceHeaderFilters';
 import React, { useState, useMemo } from 'react';
 import { cn } from '../../utils/cn';
 import { Alert, AlertDescription } from '../../components/ui';
-import { TriangleAlert } from 'lucide-react';
+import { TriangleAlert } from '../../icons/glyphs';
 import { Skeleton, Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '../../components/ui';
 import { Field, FieldLabel, NativeSelect, NativeSelectOption } from '../../components/ui';
 import {

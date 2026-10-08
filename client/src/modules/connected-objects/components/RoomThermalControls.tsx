@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { Minus, Plus, RefreshCw } from 'lucide-react';
+import { Minus, Plus, RefreshCw } from '../../../icons/glyphs';
 import { Button } from '../../../components/ui';
 import { useTranslation } from '../../../hooks/useTranslation';
 import { thermostatsApi } from '../../../services/api/thermostatsApi';

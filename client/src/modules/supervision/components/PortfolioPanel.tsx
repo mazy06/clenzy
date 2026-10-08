@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useId, useMemo, useRef, useState } from 'react';
-import { ArrowLeft, ArrowRight, CheckCircle2, SlidersHorizontal, ChevronDown } from 'lucide-react';
+import { ArrowLeft, ArrowRight, CheckCircle2, SlidersHorizontal, ChevronDown } from '../../../icons/glyphs';
 import { Badge, Skeleton, ToggleGroup, ToggleGroupItem } from '../../../components/ui';
 import EmptyState from '../../../components/EmptyState';
 import NavCountBadge from '../../../components/NavCountBadge';

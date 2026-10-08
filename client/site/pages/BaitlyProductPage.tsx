@@ -8,7 +8,11 @@ import {
   EyeIcon,
   SparklesIcon,
   ShieldCheckIcon,
-} from 'lucide-react';
+  HeartHandshakeIcon,
+  StarIcon,
+  HouseIcon,
+  SproutIcon,
+} from '../../src/icons/glyphs';
 import SiteAcquisitionLink from '../components/SiteAcquisitionLink';
 import Reveal from '../components/Reveal';
 import BaitlyProductDemo from '../components/BaitlyProductDemos';

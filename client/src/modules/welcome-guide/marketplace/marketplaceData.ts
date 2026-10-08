@@ -1,4 +1,4 @@
-import { Sailboat, Sunrise, Wine, ChefHat, Landmark, Tent, Bike, type LucideIcon } from 'lucide-react';
+import { Sailboat, Sunrise, Wine, ChefHat, Landmark, Tent, Bike, type IconComponent } from '../../../icons/glyphs';
 
 /**
  * Données de la « Marketplace partenaire ». FIXTURES DE DÉMO — à remplacer par le flux réel de l'API marketplace
@@ -22,7 +22,7 @@ export interface MarketplaceExperience {
   cancel: string;
   long: string;        // description longue (détail)
   includes: string[];  // « ce qui est inclus »
-  icon: LucideIcon;    // icône de catégorie pour le placeholder (en attendant imageUrl)
+  icon: IconComponent;    // icône de catégorie pour le placeholder (en attendant imageUrl)
   imageUrl?: string;
 }
 

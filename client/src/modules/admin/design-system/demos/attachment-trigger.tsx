@@ -1,4 +1,4 @@
-import { CopyIcon, FileSearchIcon, XIcon } from "lucide-react"
+import { CopyIcon, FileSearchIcon, XIcon } from "../../../../icons/glyphs"
 
 import {
   Attachment,

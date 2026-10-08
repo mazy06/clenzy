@@ -1,5 +1,5 @@
 import { useLayoutEffect, useMemo, useRef, useState } from 'react';
-import { ArrowLeft, ChevronRight, ImagePlus, Plus, Search } from 'lucide-react';
+import { ArrowLeft, ChevronRight, ImagePlus, Plus, Search } from '../../icons/glyphs';
 import { Alert, AlertDescription, Button, Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, Field, FieldLabel, Input, NativeSelect, NativeSelectOption, Spinner } from '../../components/ui';
 import { useTranslation } from '../../hooks/useTranslation';
 import type { PropertyStockItemRequest } from '../../services/api/propertyStockApi';

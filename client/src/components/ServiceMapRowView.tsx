@@ -1,6 +1,6 @@
 import type { ReactNode } from "react";
 import { Link } from "react-router-dom";
-import { ChevronRight } from "lucide-react";
+import { ChevronRight } from "../icons/glyphs";
 
 /** The real PMS row, with data and translated labels supplied by its caller. */
 export default function ServiceMapRowView({

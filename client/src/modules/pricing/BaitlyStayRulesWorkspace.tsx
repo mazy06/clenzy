@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from 'react';
-import { ArrowRight, ChevronLeft, ChevronRight, LogIn, LogOut, Moon, Pencil, Plus, Trash2 } from 'lucide-react';
+import { ArrowRight, ChevronLeft, ChevronRight, LogIn, LogOut, Moon, Pencil, Plus, Trash2 } from '../../icons/glyphs';
 import { Button, Skeleton } from '../../components/ui';
 import { useTranslation } from '../../hooks/useTranslation';
 import { useDateFormat } from '../../hooks/useDateFormat';

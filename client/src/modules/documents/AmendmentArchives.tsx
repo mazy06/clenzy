@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { Download, RefreshCw } from 'lucide-react';
+import { Download, RefreshCw } from '../../icons/glyphs';
 import { Alert, AlertDescription, Button, Skeleton } from '../../components/ui';
 import PagePagination from '../../components/PagePagination';
 import { usePageHeaderActions } from '../../components/PageHeaderActionsContext';

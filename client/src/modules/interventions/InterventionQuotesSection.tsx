@@ -34,7 +34,7 @@ import type { ServicePriceConfig } from '../../services/api/pricingConfigApi';
 import type { QuoteLine } from '../../services/api/interventionsApi';
 import { cn } from '../../utils/cn';
 import StatusIcon from '../../components/StatusIcon';
-import { Check, Clock3, XCircle, CircleSlash } from 'lucide-react';
+import { Check, Clock3, XCircle, Ban } from '../../icons/glyphs';
 import { WorkOrderHeading, WORK_ORDER_ART } from '../work-orders/WorkOrderPresentation';
 import { useTranslation } from '../../hooks/useTranslation';
 import { formatCurrency } from '../../utils/currencyUtils';
@@ -550,7 +550,7 @@ export default function InterventionQuotesSection({
                         {quote.providerName}
                       </span>
                       <StatusIcon
-                        icon={quote.status === 'APPROVED' ? Check : quote.status === 'RECEIVED' ? Clock3 : quote.status === 'EXPIRED' ? XCircle : CircleSlash}
+                        icon={quote.status === 'APPROVED' ? Check : quote.status === 'RECEIVED' ? Clock3 : quote.status === 'EXPIRED' ? XCircle : Ban}
                         tone={STATUS_TONE[quote.status]}
                         label={statusLabel(quote.status)}
                       />

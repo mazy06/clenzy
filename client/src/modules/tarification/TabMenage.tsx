@@ -1,6 +1,6 @@
 import React, { useMemo, useState } from 'react';
 import { Alert as UiAlert, AlertDescription } from '../../components/ui';
-import { TriangleAlert } from 'lucide-react';
+import { TriangleAlert } from '../../icons/glyphs';
 import {
   Accordion,
   AccordionContent,

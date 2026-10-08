@@ -1,4 +1,4 @@
-import { AppWindow, SprayCan } from 'lucide-react';
+import { AppWindow, SprayCan } from '../../../icons/glyphs';
 import IllustratedHeading from '../../../components/IllustratedHeading';
 import { Money } from '../../../components/Money';
 import { useAuth } from '../../../hooks/useAuth';

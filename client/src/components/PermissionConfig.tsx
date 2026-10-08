@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { cn } from '../utils/cn';
 import StatusChip from './StatusChip';
 import { Alert as UiAlert, AlertDescription, Button } from './ui';
-import { TriangleAlert, Info } from 'lucide-react';
+import { TriangleAlert, Info } from '../icons/glyphs';
 import { Spinner } from './ui';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger, Card, CardContent } from './ui';
 import {

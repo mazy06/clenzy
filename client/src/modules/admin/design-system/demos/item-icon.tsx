@@ -1,4 +1,4 @@
-import { ShieldAlertIcon } from "lucide-react"
+import { ShieldAlertIcon } from "../../../../icons/glyphs"
 
 import { Button } from '../../../../components/ui'
 import {

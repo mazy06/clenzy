@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { View, Text, ScrollView, Pressable, Alert, Switch } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Ionicons } from '@expo/vector-icons';
+import { Reicon } from '@/icons';
 import { useNavigation } from '@react-navigation/native';
 import { useTheme } from '@/theme';
 import { Card } from '@/components/ui/Card';
@@ -25,7 +25,7 @@ import { useAiPricing } from '@/hooks/useAiPricing';
 import type { PricePrediction } from '@/api/endpoints/aiPricingApi';
 import { ProgressBar } from '@/components/ui/ProgressBar';
 
-type IoniconsName = keyof typeof Ionicons.glyphMap;
+type IconName = keyof typeof Reicon.glyphMap;
 type TabKey = 'calendar' | 'plans' | 'ai';
 
 /* ─── Constants ─── */
@@ -146,7 +146,7 @@ function TabBar({ activeTab, onTabChange, theme }: {
   onTabChange: (tab: TabKey) => void;
   theme: ReturnType<typeof useTheme>;
 }) {
-  const tabs: { key: TabKey; label: string; icon: IoniconsName }[] = [
+  const tabs: { key: TabKey; label: string; icon: IconName }[] = [
     { key: 'calendar', label: 'Calendrier', icon: 'calendar-outline' },
     { key: 'plans', label: 'Plans', icon: 'pricetags-outline' },
     { key: 'ai', label: 'IA', icon: 'sparkles-outline' },
@@ -179,7 +179,7 @@ function TabBar({ activeTab, onTabChange, theme }: {
               ...(isActive ? theme.shadows.sm : {}),
             }}
           >
-            <Ionicons
+            <Reicon
               name={tab.icon}
               size={16}
               color={isActive ? theme.colors.primary.main : theme.colors.text.disabled}
@@ -283,7 +283,7 @@ function CalendarTab({
               opacity: pressed ? 0.7 : 1,
             })}
           >
-            <Ionicons name="chevron-back" size={18} color={theme.colors.text.secondary} />
+            <Reicon name="chevron-back" size={18} color={theme.colors.text.secondary} />
           </Pressable>
           <Text style={{ ...theme.typography.h3, color: theme.colors.text.primary }}>
             {MONTH_NAMES[month]} {year}
@@ -301,7 +301,7 @@ function CalendarTab({
               opacity: pressed ? 0.7 : 1,
             })}
           >
-            <Ionicons name="chevron-forward" size={18} color={theme.colors.text.secondary} />
+            <Reicon name="chevron-forward" size={18} color={theme.colors.text.secondary} />
           </Pressable>
         </View>
 
@@ -623,7 +623,7 @@ function RatePlanForm({
             fullWidth
             loading={isSaving}
             disabled={isSaving}
-            icon={<Ionicons name="checkmark-circle-outline" size={16} color="#fff" />}
+            icon={<Reicon name="checkmark-circle-outline" size={16} color="#fff" />}
           />
         </View>
       </View>
@@ -824,7 +824,7 @@ function PlansTab({
 
                 {/* Date range */}
                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 4 }}>
-                  <Ionicons name="calendar-outline" size={12} color={theme.colors.text.disabled} />
+                  <Reicon name="calendar-outline" size={12} color={theme.colors.text.disabled} />
                   <Text style={{ ...theme.typography.caption, color: theme.colors.text.secondary }}>
                     {formatDateRange(plan.startDate, plan.endDate)}
                   </Text>
@@ -833,7 +833,7 @@ function PlansTab({
                 {/* Days of week */}
                 {plan.daysOfWeek && plan.daysOfWeek.length > 0 && plan.daysOfWeek.length < 7 && (
                   <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 4 }}>
-                    <Ionicons name="repeat-outline" size={12} color={theme.colors.text.disabled} />
+                    <Reicon name="repeat-outline" size={12} color={theme.colors.text.disabled} />
                     <Text style={{ ...theme.typography.caption, color: theme.colors.text.secondary }}>
                       {plan.daysOfWeek.map((d) => DAY_LABELS[d - 1]).join(', ')}
                     </Text>
@@ -842,7 +842,7 @@ function PlansTab({
 
                 {/* Priority */}
                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: theme.SPACING.sm }}>
-                  <Ionicons name="flag-outline" size={12} color={theme.colors.text.disabled} />
+                  <Reicon name="flag-outline" size={12} color={theme.colors.text.disabled} />
                   <Text style={{ ...theme.typography.caption, color: theme.colors.text.disabled }}>
                     Priorite: {plan.priority}
                   </Text>
@@ -882,7 +882,7 @@ function PlansTab({
                         opacity: pressed ? 0.7 : 1,
                       })}
                     >
-                      <Ionicons name="pencil-outline" size={16} color={theme.colors.primary.main} />
+                      <Reicon name="pencil-outline" size={16} color={theme.colors.primary.main} />
                     </Pressable>
                     <Pressable
                       onPress={() => handleDelete(plan)}
@@ -897,7 +897,7 @@ function PlansTab({
                         opacity: pressed ? 0.7 : 1,
                       })}
                     >
-                      <Ionicons name="trash-outline" size={16} color={theme.colors.error.main} />
+                      <Reicon name="trash-outline" size={16} color={theme.colors.error.main} />
                     </Pressable>
                   </View>
                 </View>
@@ -934,7 +934,7 @@ function PlansTab({
             opacity: pressed ? 0.7 : 1,
           })}
         >
-          <Ionicons name="add-circle-outline" size={18} color={theme.colors.primary.main} />
+          <Reicon name="add-circle-outline" size={18} color={theme.colors.primary.main} />
           <Text style={{ ...theme.typography.body2, color: theme.colors.primary.main, fontWeight: '600' }}>
             Nouveau plan tarifaire
           </Text>
@@ -1040,13 +1040,13 @@ function AiPricingTab({
 
         <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-            <Ionicons name="shield-checkmark-outline" size={16} color={theme.colors.info.main} />
+            <Reicon name="shield-checkmark-outline" size={16} color={theme.colors.info.main} />
             <Text style={{ ...theme.typography.caption, color: theme.colors.text.secondary }}>
               Confiance: {getConfidenceLabel(avgConfidence)} ({Math.round(avgConfidence * 100)}%)
             </Text>
           </View>
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-            <Ionicons name="trending-up" size={16} color={theme.colors.success.main} />
+            <Reicon name="trending-up" size={16} color={theme.colors.success.main} />
             <Text style={{ ...theme.typography.caption, color: theme.colors.text.secondary }}>
               {highDemandDays} jours forte demande
             </Text>
@@ -1226,7 +1226,7 @@ export function PricingScreen() {
             ...theme.shadows.sm,
           })}
         >
-          <Ionicons name="arrow-back" size={20} color={theme.colors.text.primary} />
+          <Reicon name="arrow-back" size={20} color={theme.colors.text.primary} />
         </Pressable>
         <Text style={{ ...theme.typography.h2, color: theme.colors.text.primary, flex: 1 }}>
           Prix dynamiques

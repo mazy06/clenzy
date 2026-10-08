@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Clock3 } from 'lucide-react';
+import { Clock3 } from '../../icons/glyphs';
 import { useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from '../../hooks/useTranslation';
 import { invalidateMissionWorkflow } from '../../hooks/invalidateMissionWorkflow';

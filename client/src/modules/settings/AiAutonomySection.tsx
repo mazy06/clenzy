@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Alert, AlertDescription } from '../../components/ui';
-import { TriangleAlert } from 'lucide-react';
+import { TriangleAlert } from '../../icons/glyphs';
 import { Button, Card, Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '../../components/ui';
 import {
   Field,
@@ -15,7 +15,7 @@ import {
   Skeleton,
   Switch,
 } from '../../components/ui';
-import { ShieldCheck, Gauge } from 'lucide-react';
+import { ShieldCheck, Gauge } from '../../icons/glyphs';
 import { cn } from '../../utils/cn';
 import { useTranslation } from '../../hooks/useTranslation';
 import StatusChip, { type StatusTone } from '../../components/StatusChip';

@@ -1,7 +1,7 @@
 import React from 'react';
 import { View, Text, ScrollView, RefreshControl, Pressable } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Ionicons } from '@expo/vector-icons';
+import { Reicon } from '@/icons';
 import { useNavigation } from '@react-navigation/native';
 import { useTheme } from '@/theme';
 import { useTeams } from '@/hooks/useTeams';
@@ -83,7 +83,7 @@ function TeamCard({ team }: { team: Team }) {
               justifyContent: 'center',
             }}
           >
-            <Ionicons name="people" size={18} color={theme.colors.primary.main} />
+            <Reicon name="people" size={18} color={theme.colors.primary.main} />
           </View>
           <Text
             style={{ ...theme.typography.h5, color: theme.colors.text.primary, flex: 1 }}
@@ -114,7 +114,7 @@ function TeamCard({ team }: { team: Team }) {
 
       {team.coverageZone ? (
         <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: theme.SPACING.xs, paddingLeft: 48, gap: 4 }}>
-          <Ionicons name="location-outline" size={14} color={theme.colors.text.disabled} />
+          <Reicon name="location-outline" size={14} color={theme.colors.text.disabled} />
           <Text style={{ ...theme.typography.caption, color: theme.colors.text.secondary }}>
             {team.coverageZone}
           </Text>
@@ -178,7 +178,7 @@ export function TeamManagementScreen() {
             hitSlop={12}
             style={{ width: 36, height: 36, borderRadius: theme.BORDER_RADIUS.md, backgroundColor: theme.colors.background.paper, alignItems: 'center', justifyContent: 'center', marginRight: theme.SPACING.md }}
           >
-            <Ionicons name="arrow-back" size={20} color={theme.colors.text.primary} />
+            <Reicon name="arrow-back" size={20} color={theme.colors.text.primary} />
           </Pressable>
           <Text style={{ ...theme.typography.h2, color: theme.colors.text.primary }}>Gestion d'equipe</Text>
         </View>
@@ -211,7 +211,7 @@ export function TeamManagementScreen() {
             marginRight: theme.SPACING.md,
           }}
         >
-          <Ionicons name="arrow-back" size={20} color={theme.colors.text.primary} />
+          <Reicon name="arrow-back" size={20} color={theme.colors.text.primary} />
         </Pressable>
         <Text style={{ ...theme.typography.h2, color: theme.colors.text.primary, flex: 1 }}>
           Gestion d'equipe
@@ -237,7 +237,7 @@ export function TeamManagementScreen() {
               ...theme.shadows.sm,
             }}
           >
-            <Ionicons name="people" size={18} color={theme.colors.primary.main} style={{ marginBottom: 4 }} />
+            <Reicon name="people" size={18} color={theme.colors.primary.main} style={{ marginBottom: 4 }} />
             <Text style={{ ...theme.typography.h4, color: theme.colors.primary.main }}>
               {teams?.length ?? 0}
             </Text>
@@ -255,7 +255,7 @@ export function TeamManagementScreen() {
               ...theme.shadows.sm,
             }}
           >
-            <Ionicons name="person" size={18} color={theme.colors.secondary.main} style={{ marginBottom: 4 }} />
+            <Reicon name="person" size={18} color={theme.colors.secondary.main} style={{ marginBottom: 4 }} />
             <Text style={{ ...theme.typography.h4, color: theme.colors.secondary.main }}>
               {totalMembers}
             </Text>

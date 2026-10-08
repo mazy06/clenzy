@@ -1,4 +1,4 @@
-import { PencilIcon, ShareIcon, TrashIcon } from "lucide-react"
+import { PencilIcon, ShareIcon, TrashIcon } from "../../../../icons/glyphs"
 
 import { Button } from '../../../../components/ui'
 import {

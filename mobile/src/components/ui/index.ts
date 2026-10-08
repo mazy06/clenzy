@@ -11,7 +11,7 @@ export { Chip } from './Chip';
 export { Divider } from './Divider';
 export { ProgressBar } from './ProgressBar';
 export { Icon } from './Icon';
-export type { IoniconsName } from './Icon';
+export type { IconName } from './Icon';
 export { SectionHeader } from './SectionHeader';
 export { BaitlyAnimatedLogo } from './BaitlyAnimatedLogo';
 // Ancien logo (goutte + « PROPRETÉ & MULTISERVICES ») — conservé, ne plus utiliser.

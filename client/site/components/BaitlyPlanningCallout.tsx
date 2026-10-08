@@ -13,7 +13,7 @@ import {
   MoveHorizontalIcon,
   ShieldCheckIcon,
   UserRoundCheckIcon,
-} from 'lucide-react';
+} from '../../src/icons/glyphs';
 import airbnbLogo from '../../src/assets/logo/airbnb-logo-small.svg';
 import { useSiteLanguage } from '../lib/siteLanguage';
 import { PLANNING_MOCKUP_MESSAGES } from '../lib/messages/planningMockup';

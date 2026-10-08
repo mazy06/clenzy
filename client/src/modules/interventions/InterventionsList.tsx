@@ -1,7 +1,7 @@
 import { fetchMissionMapExport, useMissionMapFilters, useMissionMapOverview } from '../../hooks/useMissionMap';
 import React, { useState, useMemo, useCallback, useEffect, useRef } from 'react';
 import { Alert as UiAlert, AlertDescription } from '../../components/ui';
-import { TriangleAlert, Info } from 'lucide-react';
+import { TriangleAlert, Info } from '../../icons/glyphs';
 import { Spinner } from '../../components/ui';
 import { createPortal } from 'react-dom';
 import {

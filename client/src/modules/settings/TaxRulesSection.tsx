@@ -1,7 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import StatusChip, { type StatusTone } from '../../components/StatusChip';
 import { Alert as UiAlert, AlertAction, AlertDescription } from '../../components/ui';
-import { Info } from 'lucide-react';
+import { Info } from '../../icons/glyphs';
 import { Spinner } from '../../components/ui';
 import {
   Dialog,
@@ -28,7 +28,7 @@ import {
   Add, Edit, Delete, Gavel, Info as InfoIcon,
   Hotel, Percent, CleaningServices, Restaurant,
 } from '../../icons';
-import type { LucideIcon } from 'lucide-react';
+import type { IconComponent } from '../../icons/glyphs';
 import { useTaxRules, useCreateTaxRule, useUpdateTaxRule, useDeleteTaxRule } from '../../hooks/useTaxRules';
 import { useFiscalProfile } from '../../hooks/useFiscalProfile';
 import { useAuth } from '../../hooks/useAuth';
@@ -51,14 +51,14 @@ const CATEGORY_LABELS: Record<TaxCategoryType, string> = {
  * Categorie de taxe → icone + ton semantique du kit. Le ton porte deja le
  * couple fond doux / encre conforme AA : plus de `color-mix` a la volee.
  */
-const CATEGORY_STYLE: Record<TaxCategoryType, { Icon: LucideIcon; tone: StatusTone }> = {
+const CATEGORY_STYLE: Record<TaxCategoryType, { Icon: IconComponent; tone: StatusTone }> = {
   ACCOMMODATION: { Icon: Hotel, tone: 'ok' },
   STANDARD: { Icon: Percent, tone: 'accent' },
   CLEANING: { Icon: CleaningServices, tone: 'info' },
   FOOD: { Icon: Restaurant, tone: 'warn' },
 };
 
-const DEFAULT_CATEGORY_STYLE: { Icon: LucideIcon; tone: StatusTone } = { Icon: Percent, tone: 'neutral' };
+const DEFAULT_CATEGORY_STYLE: { Icon: IconComponent; tone: StatusTone } = { Icon: Percent, tone: 'neutral' };
 
 const EMPTY_FORM: TaxRuleRequest = {
   countryCode: 'FR',

@@ -1,5 +1,5 @@
 import React from 'react';
-import { Plug } from 'lucide-react';
+import { Plug } from '../icons/glyphs';
 import {
   RequestQuote,
   PersonSearch,
