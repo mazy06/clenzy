@@ -6,7 +6,7 @@ import {
   type CSSProperties,
 } from 'react';
 import { Link } from 'react-router-dom';
-import { ArrowRightIcon, CheckIcon } from 'lucide-react';
+import { ArrowRightIcon, CheckIcon } from '../../src/icons/glyphs';
 import { NavigationMenuLink } from '../../src/components/ui/navigation-menu';
 import type { BaitlyNavPreviewKind } from './BaitlyNavPreview';
 

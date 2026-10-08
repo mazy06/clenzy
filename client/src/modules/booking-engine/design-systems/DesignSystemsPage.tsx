@@ -5,7 +5,7 @@ import { Spinner } from '../../../components/ui';
 import { Field, FieldLabel, Input, Textarea } from '../../../components/ui';
 import { useNavigate } from 'react-router-dom';
 import { Skeleton, ToggleGroup, ToggleGroupItem } from '../../../components/ui';
-import { Plus, Globe, FileText, Sparkles, SlidersHorizontal, AlertTriangle, Trash2 } from 'lucide-react';
+import { Plus, Globe, FileText, Sparkles, SlidersHorizontal, AlertTriangle, Trash2 } from '../../../icons/glyphs';
 import PageHeader from '../../../components/PageHeader';
 import EmptyState from '../../../components/EmptyState';
 import {

@@ -1,14 +1,14 @@
 import React from 'react';
 import { View, Text, Image } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
+import { Reicon } from '@/icons';
 import { Card } from '@/components/ui/Card';
 import { Badge } from '@/components/ui/Badge';
 import { useTheme } from '@/theme';
 import type { Property } from '@/api/endpoints/propertiesApi';
 
-type IoniconsName = keyof typeof Ionicons.glyphMap;
+type IconName = keyof typeof Reicon.glyphMap;
 
-const PROPERTY_TYPE_ICON: Record<string, IoniconsName> = {
+const PROPERTY_TYPE_ICON: Record<string, IconName> = {
   APARTMENT: 'business-outline',
   HOUSE: 'home-outline',
   STUDIO: 'cube-outline',
@@ -21,7 +21,7 @@ const PROPERTY_TYPE_ICON: Record<string, IoniconsName> = {
   OTHER: 'ellipsis-horizontal-circle-outline',
 };
 
-function getPropertyIcon(type?: string): IoniconsName {
+function getPropertyIcon(type?: string): IconName {
   if (!type) return 'home-outline';
   return PROPERTY_TYPE_ICON[type.toUpperCase()] ?? 'home-outline';
 }
@@ -68,7 +68,7 @@ export const PropertyCard = React.memo(function PropertyCard({ property, onPress
               alignItems: 'center',
             }}
           >
-            <Ionicons name={getPropertyIcon(property.type)} size={28} color={theme.colors.primary.light} />
+            <Reicon name={getPropertyIcon(property.type)} size={28} color={theme.colors.primary.light} />
           </View>
         )}
 
@@ -83,7 +83,7 @@ export const PropertyCard = React.memo(function PropertyCard({ property, onPress
 
           {property.address && (
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, marginBottom: 8 }}>
-              <Ionicons name="location-outline" size={12} color={theme.colors.text.secondary} />
+              <Reicon name="location-outline" size={12} color={theme.colors.text.secondary} />
               <Text style={{ ...theme.typography.caption, color: theme.colors.text.secondary, flex: 1 }} numberOfLines={1}>
                 {property.address}{property.city ? `, ${property.city}` : ''}
               </Text>
@@ -93,7 +93,7 @@ export const PropertyCard = React.memo(function PropertyCard({ property, onPress
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: theme.SPACING.lg }}>
             {property.bedroomCount != null && (
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
-                <Ionicons name="bed-outline" size={13} color={theme.colors.text.disabled} />
+                <Reicon name="bed-outline" size={13} color={theme.colors.text.disabled} />
                 <Text style={{ ...theme.typography.caption, color: theme.colors.text.disabled }}>
                   {property.bedroomCount}
                 </Text>
@@ -101,7 +101,7 @@ export const PropertyCard = React.memo(function PropertyCard({ property, onPress
             )}
             {property.maxGuests != null && (
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
-                <Ionicons name="people-outline" size={13} color={theme.colors.text.disabled} />
+                <Reicon name="people-outline" size={13} color={theme.colors.text.disabled} />
                 <Text style={{ ...theme.typography.caption, color: theme.colors.text.disabled }}>
                   {property.maxGuests}
                 </Text>

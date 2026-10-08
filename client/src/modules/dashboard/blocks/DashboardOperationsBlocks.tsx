@@ -32,7 +32,7 @@ import {
   TriangleAlertIcon,
   UserSearchIcon,
   WrenchIcon,
-} from 'lucide-react';
+} from '../../../icons/glyphs';
 import {
   Button,
   buttonVariants,

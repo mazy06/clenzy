@@ -1,4 +1,4 @@
-import { CircleFadingArrowUpIcon } from "lucide-react"
+import { CircleFadingArrowUpIcon } from "../../../../icons/glyphs"
 
 import { Button } from '../../../../components/ui'
 

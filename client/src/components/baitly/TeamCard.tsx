@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { BrushIcon, CalendarIcon, MoreVerticalIcon, UsersIcon, WrenchIcon } from 'lucide-react';
+import { BrushIcon, CalendarIcon, MoreVerticalIcon, UsersIcon, WrenchIcon } from '../../icons/glyphs';
 import { Button, Card } from '../ui';
 import StatusChip from './StatusChip';
 import GuestAvatar from './GuestAvatar';

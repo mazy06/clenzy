@@ -1,5 +1,5 @@
 import type { SiteMoneyFormatter } from './SiteMoney';
-import { ArrowRightIcon, CheckIcon } from 'lucide-react';
+import { ArrowRightIcon, CheckIcon } from '../../src/icons/glyphs';
 import airbnb from '../assets/brands/airbnb.svg';
 import booking from '../assets/brands/bookingdotcom.svg';
 import {

@@ -18,7 +18,7 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from '../../../../components/ui';
-import { X, Plus, Trash2, ChevronUp, ChevronDown, ChevronRight, Check, Save, Workflow, Pencil, RotateCcw, AlertTriangle, Info } from 'lucide-react';
+import { X, Plus, Trash2, ChevronUp, ChevronDown, ChevronRight, Check, Save, Workflow, Pencil, RotateCcw, AlertTriangle, Info } from '../../../../icons/glyphs';
 import {
   BUILTIN_FUNNEL_PRESETS,
   widgetLabel,
@@ -443,13 +443,17 @@ function Panel({ title, pill, children }: { title: string; pill: string; childre
   );
 }
 
-/** Rend l'icône SVG d'un widget du registre (DOM statique, paths lucide). */
+/** `fill-rule` → `fillRule` : React attend les attributs SVG en camelCase. */
+const reactSvgAttrs = (attrs: Record<string, string>) =>
+  Object.fromEntries(Object.entries(attrs).map(([k, v]) => [k.replace(/-([a-z])/g, (_, c: string) => c.toUpperCase()), v]));
+
+/** Rend l'icône SVG d'un widget du registre (DOM statique, glyphe Reicon en aplats). */
 function WidgetGlyph({ id, size = 17 }: { id: string; size?: number }) {
   const def = BOOKING_WIDGET_DEFS.find((d) => d.id === id);
   if (!def) return null;
   return (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
-      {def.icon.paths.map((node, i) => createElement(node.tag, { key: i, ...node.attrs }))}
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="currentColor">
+      {def.icon.paths.map((node, i) => createElement(node.tag, { key: i, ...reactSvgAttrs(node.attrs) }))}
     </svg>
   );
 }

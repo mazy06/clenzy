@@ -2,7 +2,7 @@ import ServiceReferenceLabels from '../../components/ServiceReferenceLabels';
 import React, { useState, useEffect } from 'react';
 import StatusChip from '../../components/StatusChip';
 import { Alert, AlertDescription, Button, Card, CardContent } from '../../components/ui';
-import { TriangleAlert } from 'lucide-react';
+import { TriangleAlert } from '../../icons/glyphs';
 import { Spinner } from '../../components/ui';
 import {
   Group,

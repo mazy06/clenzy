@@ -5,7 +5,7 @@ import {
   CircleIcon,
   CreditCardIcon,
   GlobeIcon,
-} from 'lucide-react';
+} from '../../src/icons/glyphs';
 import { useSiteLanguage } from '../lib/siteLanguage';
 import { BAITLY_PLANNING_STATUS } from '../data/baitlyPlanningAppearance';
 import { MOCKUP_MESSAGES } from '../lib/messages/mockups';

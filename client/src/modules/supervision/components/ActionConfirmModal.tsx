@@ -26,7 +26,7 @@ import {
   Input,
   Spinner,
 } from '../../../components/ui';
-import { TriangleAlert } from 'lucide-react';
+import { TriangleAlert } from '../../../icons/glyphs';
 import { useTranslation } from '../../../hooks/useTranslation';
 import { ActionDescription } from './ActionDescription';
 import { entryOf } from './actionRegistry';

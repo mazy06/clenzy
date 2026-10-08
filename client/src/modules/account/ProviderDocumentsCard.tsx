@@ -14,7 +14,7 @@ import {
   ItemTitle,
   Spinner,
 } from '../../components/ui';
-import { TriangleAlert } from 'lucide-react';
+import { TriangleAlert } from '../../icons/glyphs';
 import StatusChip from '../../components/StatusChip';
 import type { StatusTone } from '../../components/StatusChip';
 import { Description, UploadFile, DeleteOutline, Preview } from '../../icons';

@@ -1,6 +1,6 @@
 import React, { useState, useCallback } from 'react';
 import { Alert as UiAlert, AlertDescription, Button } from '../../components/ui';
-import { TriangleAlert } from 'lucide-react';
+import { TriangleAlert } from '../../icons/glyphs';
 import {
   Dialog,
   DialogContent,

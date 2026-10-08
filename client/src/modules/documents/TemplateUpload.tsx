@@ -10,7 +10,7 @@ import {
   NativeSelectOption,
   Textarea,
 } from '../../components/ui';
-import { TriangleAlert } from 'lucide-react';
+import { TriangleAlert } from '../../icons/glyphs';
 import { Spinner } from '../../components/ui';
 import {
   Dialog,

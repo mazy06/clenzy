@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import StatusChip from '../../components/StatusChip';
 import { Alert, AlertDescription } from '../../components/ui';
-import { TriangleAlert } from 'lucide-react';
+import { TriangleAlert } from '../../icons/glyphs';
 import { Skeleton } from '../../components/ui';
 import { cn } from '../../utils/cn';
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '../../components/ui';

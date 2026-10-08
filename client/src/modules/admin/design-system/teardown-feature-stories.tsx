@@ -19,7 +19,7 @@ import {
   TriangleAlertIcon,
   UsersIcon,
   VolumeXIcon,
-} from 'lucide-react';
+} from '../../../icons/glyphs';
 import { Badge, Button } from '../../../components/ui';
 import MockupSlot from '../../../components/baitly/MockupSlot';
 import {

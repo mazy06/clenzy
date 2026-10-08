@@ -1,7 +1,7 @@
 import React, { useMemo, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { ChevronRightIcon } from 'lucide-react';
+import { ChevronRightIcon } from '../icons/glyphs';
 import NavCountBadge, { NavCornerCountBadge } from './NavCountBadge';
 import {
   ChevronsLeft,

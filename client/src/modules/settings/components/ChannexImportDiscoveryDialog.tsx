@@ -17,7 +17,7 @@ import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import StatusChip from '../../../components/StatusChip';
 import { Badge, Button } from '../../../components/ui';
 import { Alert as UiAlert, AlertDescription } from '../../../components/ui';
-import { TriangleAlert } from 'lucide-react';
+import { TriangleAlert } from '../../../icons/glyphs';
 import { Spinner } from '../../../components/ui';
 import {
   Checkbox,
@@ -35,7 +35,7 @@ import {
   TooltipTrigger,
 } from '../../../components/ui';
 import { cn } from '../../../utils/cn';
-import { ArrowRight, Download, RefreshCw, CheckCircle2, AlertCircle, Info, Sparkles, Trash2, Link2, Image as ImageIcon } from 'lucide-react';
+import { ArrowRight, Download, RefreshCw, CheckCircle2, AlertCircle, Info, Sparkles, Trash2, Link2, Image as ImageIcon } from '../../../icons/glyphs';
 
 import {
   channexApi,

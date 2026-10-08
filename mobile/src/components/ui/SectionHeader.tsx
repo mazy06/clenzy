@@ -1,13 +1,13 @@
 import React from 'react';
 import { View, Text, Pressable, ViewStyle } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
+import { Reicon } from '@/icons';
 import { useTheme } from '@/theme';
 
-type IoniconsName = keyof typeof Ionicons.glyphMap;
+type IconName = keyof typeof Reicon.glyphMap;
 
 interface SectionHeaderProps {
   title: string;
-  iconName?: IoniconsName;
+  iconName?: IconName;
   actionLabel?: string;
   onAction?: () => void;
   style?: ViewStyle;
@@ -39,7 +39,7 @@ export function SectionHeader({ title, iconName, actionLabel, onAction, style }:
             alignItems: 'center',
             justifyContent: 'center',
           }}>
-            <Ionicons name={iconName} size={16} color={theme.colors.primary.main} />
+            <Reicon name={iconName} size={16} color={theme.colors.primary.main} />
           </View>
         )}
         <Text style={{ ...theme.typography.h4, color: theme.colors.text.primary }}>{title}</Text>

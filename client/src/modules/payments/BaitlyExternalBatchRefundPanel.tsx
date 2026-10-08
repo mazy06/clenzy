@@ -1,6 +1,6 @@
 import { useRef, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { Link2 } from 'lucide-react';
+import { Link2 } from '../../icons/glyphs';
 import { Alert, AlertDescription, Button, Input, Skeleton } from '../../components/ui';
 import { useAuth } from '../../hooks/useAuth';
 import { useTranslation } from '../../hooks/useTranslation';

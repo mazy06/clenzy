@@ -1,6 +1,6 @@
 import { Link } from "react-router-dom";
 import { useTranslation } from "react-i18next";
-import { ArrowRight } from "lucide-react";
+import { ArrowRight } from "../../icons/glyphs";
 import { Button } from "../../components/ui";
 
 interface UpgradeBannerProps { currentForfait?: string; onUpgradeComplete?: () => void }

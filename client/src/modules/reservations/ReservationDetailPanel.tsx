@@ -1,6 +1,6 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { Mail, Phone, SquarePen, UserRound, CircleX } from 'lucide-react';
+import { Mail, Phone, SquarePen, UserRound, CircleX } from '../../icons/glyphs';
 import { Button } from '../../components/ui';
 import GuestAvatar from '../../components/GuestAvatar';
 import PropertyThumb from '../../components/PropertyThumb';

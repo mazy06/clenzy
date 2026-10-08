@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useId, useLayoutEffect, useRef, useState, type CSSProperties, type ReactNode } from 'react';
-import { X } from 'lucide-react';
+import { X } from '../../icons/glyphs';
 import { Popover, PopoverAnchor, PopoverContent } from '../../components/ui/popover';
 import StatTile from '../../components/baitly/StatTile';
 import { useTranslation } from '../../hooks/useTranslation';

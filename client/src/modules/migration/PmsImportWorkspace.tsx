@@ -23,7 +23,7 @@ import {
   PlugZap,
   KeyRound,
   ExternalLink,
-} from "lucide-react";
+} from "../../icons/glyphs";
 import { Button, Input, NativeSelect, Skeleton } from "../../components/ui";
 import { useTranslation } from "../../hooks/useTranslation";
 import { propertiesApi, type Property } from "../../services/api/propertiesApi";

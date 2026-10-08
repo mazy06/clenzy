@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import StatusChip from '../../components/StatusChip';
 import { Alert, AlertDescription } from '../../components/ui';
-import { TriangleAlert } from 'lucide-react';
+import { TriangleAlert } from '../../icons/glyphs';
 import { Spinner, Button } from '../../components/ui';
 import { Field, FieldDescription, FieldLabel } from '../../components/ui';
 import { Combobox, ComboboxContent, ComboboxEmpty, ComboboxInput, ComboboxItem, ComboboxList } from '../../components/ui/combobox';
@@ -20,7 +20,7 @@ import BillingSummaryCard from './BillingSummaryCard';
 import SettingsSection from '../settings/components/SettingsSection';
 import LaunchSettingsSection from '../settings/LaunchSettingsSection';
 import PageTabs from '../../components/PageTabs';
-import { Building2, Rocket } from 'lucide-react';
+import { Building2, Rocket } from '../../icons/glyphs';
 import { useTranslation } from '../../hooks/useTranslation';
 
 const ORG_TYPE_LABELS: Record<string, string> = {

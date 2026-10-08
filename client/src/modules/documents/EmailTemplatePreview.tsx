@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { RefreshCw } from 'lucide-react';
+import { RefreshCw } from '../../icons/glyphs';
 import { Alert, AlertDescription, Button, Skeleton } from '../../components/ui';
 import apiClient from '../../services/apiClient';
 import { useCommerceScope } from '../../hooks/useCommerceScope';

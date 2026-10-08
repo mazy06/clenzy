@@ -1,5 +1,5 @@
 import { useId, useLayoutEffect, useRef, useState, type ReactNode } from 'react';
-import { ArrowLeft, ChevronRight, FileText } from 'lucide-react';
+import { ArrowLeft, ChevronRight, FileText } from '../../../icons/glyphs';
 import { Button, Skeleton } from '../../../components/ui';
 import { useTranslation } from '../../../hooks/useTranslation';
 import DocumentStatusIcon from './DocumentStatusIcon';

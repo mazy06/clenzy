@@ -1,4 +1,4 @@
-import { SearchIcon, XIcon } from 'lucide-react';
+import { SearchIcon, XIcon } from '../icons/glyphs';
 import { Button } from './ui';
 import { useTranslation } from '../hooks/useTranslation';
 import { useScreenChrome } from './ScreenChrome';

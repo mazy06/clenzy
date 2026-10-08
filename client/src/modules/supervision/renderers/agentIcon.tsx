@@ -1,9 +1,9 @@
 /* ============================================================
-   Mapping jeton d'icône → composant (lucide-react / Iconify)
+   Mapping jeton d'icône → composant (glyphes Reicon / Iconify)
 
    AGENT_META porte un jeton sémantique ; le rendu concret vit ici,
    dans la couche de rendu. Tout passe par le barrel ../../../icons
-   (pas d'import direct lucide-react, cf. icons/README).
+   (pas d'import direct des glyphes, cf. icons/README).
    ============================================================ */
 
 import {
@@ -25,7 +25,7 @@ export function AgentIcon({ token, size = 24, strokeWidth = 2 }: AgentIconProps)
     case 'trend-up':
       return <TrendingUp size={size} strokeWidth={strokeWidth} />;
     case 'broom':
-      return <BroomFill size={size} />; // glyphe Phosphor (Iconify) — pas de stroke
+      return <BroomFill size={size} />; // variante pleine Reicon
     case 'bank':
       return <Payments size={size} strokeWidth={strokeWidth} />;
     case 'star':

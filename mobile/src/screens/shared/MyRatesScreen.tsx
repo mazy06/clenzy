@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { View, Text, TextInput, ScrollView, Pressable } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Ionicons } from '@expo/vector-icons';
+import { Reicon } from '@/icons';
 import { useNavigation } from '@react-navigation/native';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
@@ -112,7 +112,7 @@ export function MyRatesScreen() {
         {/* Header */}
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: theme.SPACING.md, marginBottom: theme.SPACING.lg }}>
           <Pressable onPress={() => navigation.goBack()} hitSlop={12}>
-            <Ionicons name="chevron-back" size={24} color={theme.colors.text.primary} />
+            <Reicon name="chevron-back" size={24} color={theme.colors.text.primary} />
           </Pressable>
           <Text style={{ ...theme.typography.h3, color: theme.colors.text.primary }}>{t('myRates.title')}</Text>
         </View>

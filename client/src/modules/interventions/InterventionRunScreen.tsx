@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo } from 'react';
 import { Navigate, useNavigate, useParams } from 'react-router-dom';
 import { Alert as BuiAlert, AlertDescription, Button, Spinner } from '../../components/ui';
-import { TriangleAlert } from 'lucide-react';
+import { TriangleAlert } from '../../icons/glyphs';
 import { ArrowBack, Build as WrenchIcon, AccessTime } from '../../icons';
 import { useNotification } from '../../hooks/useNotification';
 import { useTranslation } from '../../hooks/useTranslation';

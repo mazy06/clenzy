@@ -1,5 +1,5 @@
-import { IconFolderCode } from "@tabler/icons-react"
-import { ArrowUpRightIcon } from "lucide-react"
+import { FileCode as IconFolderCode } from "../../../../icons/glyphs"
+import { ArrowUpRightIcon } from "../../../../icons/glyphs"
 
 import { Button } from '../../../../components/ui'
 import {

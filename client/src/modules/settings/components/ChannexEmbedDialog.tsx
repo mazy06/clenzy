@@ -17,7 +17,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { cn } from '../../../utils/cn';
 import { Alert, AlertDescription } from '../../../components/ui';
-import { TriangleAlert } from 'lucide-react';
+import { TriangleAlert } from '../../../icons/glyphs';
 import { Spinner } from '../../../components/ui';
 import {
   Button,
@@ -31,7 +31,7 @@ import {
   TooltipTrigger,
   TooltipContent,
 } from '../../../components/ui';
-import { X, Link2, Info, RefreshCw } from 'lucide-react';
+import { X, Link2, Info, RefreshCw } from '../../../icons/glyphs';
 import { useTranslation } from '../../../hooks/useTranslation';
 
 import {

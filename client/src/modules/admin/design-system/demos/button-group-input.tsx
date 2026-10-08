@@ -1,4 +1,4 @@
-import { SearchIcon } from "lucide-react"
+import { SearchIcon } from "../../../../icons/glyphs"
 
 import { Button } from '../../../../components/ui'
 import { ButtonGroup } from '../../../../components/ui'

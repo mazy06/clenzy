@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { XIcon } from 'lucide-react';
+import { XIcon } from '../../icons/glyphs';
 import { Button } from '../ui';
 import { useUserPreference } from '../../hooks/useUserPreference';
 import { useTranslation } from '../../hooks/useTranslation';

@@ -1,6 +1,6 @@
 import React, { useMemo, useState } from 'react';
 import { useViewportFill } from '../../../hooks/useViewportFill';
-import { Download, Eye, Trash2 } from 'lucide-react';
+import { Download, Eye, Trash2 } from '../../../icons/glyphs';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Button, Spinner } from '../../../components/ui';
 import StatusChip from '../../../components/StatusChip';

@@ -3,7 +3,7 @@ import {
   CopyIcon,
   ScissorsIcon,
   TrashIcon,
-} from "lucide-react"
+} from "../../../../icons/glyphs"
 
 import {
   ContextMenu,

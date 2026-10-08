@@ -5,7 +5,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '../../componen
 import { cn } from '../../utils/cn';
 import { loadStripe } from '@stripe/stripe-js';
 import { EmbeddedCheckoutProvider, EmbeddedCheckout } from '@stripe/react-stripe-js';
-import { Send, X, Star, Sparkles, ArrowUp, Info, Heart } from 'lucide-react';
+import { Send, X, Star, Sparkles, ArrowUp, Info, Heart } from '../../icons/glyphs';
 import { type PublicUpsell } from '../../services/api/upsellApi';
 import {
   parseSections,

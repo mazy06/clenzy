@@ -1,5 +1,5 @@
 import { useState, type ReactNode } from 'react';
-import { CalendarDays, Clock3, CreditCard, ExternalLink, RotateCcw, Send } from 'lucide-react';
+import { CalendarDays, Clock3, CreditCard, ExternalLink, RotateCcw, Send } from '../../icons/glyphs';
 import { Alert, AlertDescription, Button, Skeleton, Spinner, Tabs, TabsContent, TabsList, TabsTrigger, Tooltip, TooltipContent, TooltipTrigger } from '../../components/ui';
 import StatusChip from '../../components/StatusChip';
 import { useTranslation } from '../../hooks/useTranslation';

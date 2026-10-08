@@ -3,7 +3,7 @@ import { View, Text, ScrollView, Pressable, Alert, KeyboardAvoidingView, Platfor
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRoute, useNavigation } from '@react-navigation/native';
 import type { RouteProp } from '@react-navigation/native';
-import { Ionicons } from '@expo/vector-icons';
+import { Reicon } from '@/icons';
 import * as Clipboard from 'expo-clipboard';
 import { useProperty, useUpdatePropertyInstructions } from '@/hooks/useProperties';
 import { Card } from '@/components/ui/Card';
@@ -13,7 +13,7 @@ import { Skeleton } from '@/components/ui/Skeleton';
 import { useTheme } from '@/theme';
 import type { UpdateInstructionsData } from '@/api/endpoints/propertiesApi';
 
-type IoniconsName = keyof typeof Ionicons.glyphMap;
+type IconName = keyof typeof Reicon.glyphMap;
 type RouteParams = { PropertyInstructionsEdit: { propertyId: number } };
 
 /* ─── Copy button ─── */
@@ -39,7 +39,7 @@ function CopyButton({ value, theme }: { value: string; theme: ReturnType<typeof 
         alignItems: 'center', justifyContent: 'center',
       }}
     >
-      <Ionicons
+      <Reicon
         name={copied ? 'checkmark' : 'copy-outline'}
         size={18}
         color={copied ? theme.colors.success.main : theme.colors.primary.main}
@@ -51,7 +51,7 @@ function CopyButton({ value, theme }: { value: string; theme: ReturnType<typeof 
 /* ─── Section header ─── */
 
 function SectionHeader({ icon, iconColor, label, theme }: {
-  icon: IoniconsName;
+  icon: IconName;
   iconColor: string;
   label: string;
   theme: ReturnType<typeof useTheme>;
@@ -63,7 +63,7 @@ function SectionHeader({ icon, iconColor, label, theme }: {
         backgroundColor: `${iconColor}0C`,
         alignItems: 'center', justifyContent: 'center',
       }}>
-        <Ionicons name={icon} size={17} color={iconColor} />
+        <Reicon name={icon} size={17} color={iconColor} />
       </View>
       <Text style={{ ...theme.typography.body1, color: theme.colors.text.primary, fontWeight: '600' }}>
         {label}
@@ -178,7 +178,7 @@ export function PropertyInstructionsEditScreen() {
         paddingVertical: theme.SPACING.md, gap: theme.SPACING.md,
       }}>
         <Pressable onPress={() => navigation.goBack()} hitSlop={12}>
-          <Ionicons name="arrow-back" size={24} color={theme.colors.text.primary} />
+          <Reicon name="arrow-back" size={24} color={theme.colors.text.primary} />
         </Pressable>
         <Text style={{ ...theme.typography.h3, color: theme.colors.text.primary, flex: 1 }}>
           Modifier les instructions
@@ -332,7 +332,7 @@ export function PropertyInstructionsEditScreen() {
           loading={updateMutation.isPending}
           disabled={!hasChanges || updateMutation.isPending}
           fullWidth
-          icon={<Ionicons name="checkmark" size={20} color={theme.colors.primary.contrastText} />}
+          icon={<Reicon name="checkmark" size={20} color={theme.colors.primary.contrastText} />}
         />
       </View>
     </SafeAreaView>

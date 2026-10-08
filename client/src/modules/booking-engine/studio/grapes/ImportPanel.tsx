@@ -8,7 +8,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '../../../../components/ui';
-import { X, ClipboardPaste, FileUp, LayoutTemplate } from 'lucide-react';
+import { X, ClipboardPaste, FileUp, LayoutTemplate } from '../../../../icons/glyphs';
 import type { Editor } from 'grapesjs';
 import type { GalleryTemplate } from './import/galleryTemplates';
 import ImportPaste from './ImportPaste';

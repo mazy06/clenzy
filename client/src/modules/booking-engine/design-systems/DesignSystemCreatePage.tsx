@@ -13,7 +13,7 @@ import {
 } from '../../../components/ui';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { cn } from '../../../utils/cn';
-import { ArrowLeft, ArrowRight, AlertTriangle, Sparkles, Upload, LayoutGrid } from 'lucide-react';
+import { ArrowLeft, ArrowRight, AlertTriangle, Sparkles, Upload, LayoutGrid } from '../../../icons/glyphs';
 import { designSystemsApi, type DesignSystem, type DesignSystemCreateRequest } from '../../../services/api/designSystemsApi';
 import { bookingEngineApi, type BookingEngineConfigUpdate } from '../../../services/api/bookingEngineApi';
 import { buildConfigPayload } from '../studio/StudioHome';

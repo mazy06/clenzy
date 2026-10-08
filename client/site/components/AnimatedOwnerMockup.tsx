@@ -1,5 +1,5 @@
 import { useLayoutEffect, useRef, useState } from 'react';
-import { CheckIcon, DownloadIcon } from 'lucide-react';
+import { CheckIcon, DownloadIcon } from '../../src/icons/glyphs';
 import { BOwnerPortalSectionDemo } from '../../src/modules/admin/design-system/screens-demos-2';
 import ProjectionRuntime from './ProjectionRuntime';
 import { Cursor, useReducedMotion, useScriptedCursor, useTimeline } from './mockupKit';

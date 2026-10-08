@@ -14,7 +14,7 @@ import {
   TrendingUpIcon,
   UsersIcon,
   WrenchIcon,
-} from 'lucide-react';
+} from '../../../icons/glyphs';
 import { Button, Skeleton } from '../../../components/ui';
 import ShowcaseEmpty from '../../../components/baitly/ShowcaseEmpty';
 import ShowcaseCycler, { usePrefersReducedMotion } from '../../../components/baitly/ShowcaseCycler';

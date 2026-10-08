@@ -2,7 +2,7 @@ import React from 'react';
 import { Platform, StyleSheet, View, Text } from 'react-native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
-import { Ionicons } from '@expo/vector-icons';
+import { Reicon } from '@/icons';
 import { useTheme } from '@/theme';
 import { useUnreadConversationCount } from '@/hooks/useConversations';
 
@@ -123,7 +123,7 @@ export function TechnicianNavigator() {
         options={{
           tabBarLabel: 'Tickets',
           tabBarIcon: ({ color, size }) => (
-            <Ionicons name="ticket-outline" size={size} color={color} />
+            <Reicon name="ticket-outline" size={size} color={color} />
           ),
         }}
       />
@@ -134,7 +134,7 @@ export function TechnicianNavigator() {
           tabBarLabel: 'Messages',
           tabBarIcon: ({ color, size }) => (
             <View>
-              <Ionicons name="chatbubbles-outline" size={size} color={color} />
+              <Reicon name="chatbubbles-outline" size={size} color={color} />
               {unreadCount > 0 && (
                 <View style={{
                   position: 'absolute',
@@ -163,7 +163,7 @@ export function TechnicianNavigator() {
         options={{
           tabBarLabel: 'Historique',
           tabBarIcon: ({ color, size }) => (
-            <Ionicons name="time-outline" size={size} color={color} />
+            <Reicon name="time-outline" size={size} color={color} />
           ),
         }}
       />
@@ -173,7 +173,7 @@ export function TechnicianNavigator() {
         options={{
           tabBarLabel: 'Profil',
           tabBarIcon: ({ color, size }) => (
-            <Ionicons name="person-outline" size={size} color={color} />
+            <Reicon name="person-outline" size={size} color={color} />
           ),
         }}
       />

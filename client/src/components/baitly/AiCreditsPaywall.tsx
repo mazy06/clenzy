@@ -1,5 +1,5 @@
 import { useNavigate } from 'react-router-dom';
-import { SparklesIcon } from 'lucide-react';
+import { SparklesIcon } from '../../icons/glyphs';
 import {
   Button,
   Dialog,

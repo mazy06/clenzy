@@ -9,7 +9,7 @@ import {
   FileCheck2Icon,
   MinusIcon,
   XIcon,
-} from 'lucide-react';
+} from '../../src/icons/glyphs';
 import { Link } from 'react-router-dom';
 import {
   EXIT_CRITERIA,

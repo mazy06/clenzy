@@ -16,7 +16,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRoute, useNavigation } from '@react-navigation/native';
 import type { RouteProp } from '@react-navigation/native';
-import { Ionicons } from '@expo/vector-icons';
+import { Reicon } from '@/icons';
 import { useTheme } from '@/theme';
 import { Skeleton } from '@/components/ui/Skeleton';
 import {
@@ -33,7 +33,7 @@ import type {
   ConversationStatus,
 } from '@/api/endpoints/conversationApi';
 
-type IoniconsName = keyof typeof Ionicons.glyphMap;
+type IconName = keyof typeof Reicon.glyphMap;
 
 type RouteParams = {
   ConversationDetail: {
@@ -43,7 +43,7 @@ type RouteParams = {
 
 /* ─── Channel config ─── */
 
-const CHANNEL_CONFIG: Record<string, { icon: IoniconsName; label: string; color: string }> = {
+const CHANNEL_CONFIG: Record<string, { icon: IconName; label: string; color: string }> = {
   AIRBNB: { icon: 'logo-no-smoking', label: 'Airbnb', color: '#FF5A5F' },
   BOOKING: { icon: 'bed-outline', label: 'Booking', color: '#003580' },
   WHATSAPP: { icon: 'logo-whatsapp', label: 'WhatsApp', color: '#25D366' },
@@ -52,7 +52,7 @@ const CHANNEL_CONFIG: Record<string, { icon: IoniconsName; label: string; color:
   INTERNAL: { icon: 'people-outline', label: 'Interne', color: '#059669' },
 };
 
-const STATUS_CONFIG: Record<string, { label: string; color: string; icon: IoniconsName }> = {
+const STATUS_CONFIG: Record<string, { label: string; color: string; icon: IconName }> = {
   OPEN: { label: 'Ouverte', color: '#059669', icon: 'radio-button-on' },
   CLOSED: { label: 'Fermee', color: '#6B7280', icon: 'checkmark-circle' },
   ARCHIVED: { label: 'Archivee', color: '#9CA3AF', icon: 'archive' },
@@ -390,7 +390,7 @@ export function ConversationDetailScreen() {
         }}>
           {/* Back */}
           <Pressable onPress={() => navigation.goBack()} hitSlop={8}>
-            <Ionicons name="chevron-back" size={22} color={theme.colors.text.primary} />
+            <Reicon name="chevron-back" size={22} color={theme.colors.text.primary} />
           </Pressable>
 
           {/* Avatar */}
@@ -423,7 +423,7 @@ export function ConversationDetailScreen() {
               {/* Property */}
               {conversation?.propertyName && (
                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: 2 }}>
-                  <Ionicons name="home-outline" size={10} color={theme.colors.text.disabled} />
+                  <Reicon name="home-outline" size={10} color={theme.colors.text.disabled} />
                   <Text style={{ fontSize: 10, color: theme.colors.text.disabled }} numberOfLines={1}>
                     {conversation.propertyName}
                   </Text>
@@ -439,7 +439,7 @@ export function ConversationDetailScreen() {
                 borderRadius: 4,
                 backgroundColor: `${channelCfg.color}10`,
               }}>
-                <Ionicons name={channelCfg.icon} size={9} color={channelCfg.color} />
+                <Reicon name={channelCfg.icon} size={9} color={channelCfg.color} />
                 <Text style={{ fontSize: 9, color: channelCfg.color, fontWeight: '600' }}>
                   {channelCfg.label}
                 </Text>
@@ -460,11 +460,11 @@ export function ConversationDetailScreen() {
               backgroundColor: `${statusCfg.color}12`,
             }}
           >
-            <Ionicons name={statusCfg.icon} size={12} color={statusCfg.color} />
+            <Reicon name={statusCfg.icon} size={12} color={statusCfg.color} />
             <Text style={{ fontSize: 10, color: statusCfg.color, fontWeight: '700' }}>
               {statusCfg.label}
             </Text>
-            <Ionicons name="chevron-down" size={10} color={statusCfg.color} />
+            <Reicon name="chevron-down" size={10} color={statusCfg.color} />
           </Pressable>
         </View>
 
@@ -502,7 +502,7 @@ export function ConversationDetailScreen() {
                       : 'transparent',
                   })}
                 >
-                  <Ionicons name={cfg.icon} size={14} color={cfg.color} />
+                  <Reicon name={cfg.icon} size={14} color={cfg.color} />
                   <Text style={{
                     ...theme.typography.body2,
                     color: cfg.color,
@@ -511,7 +511,7 @@ export function ConversationDetailScreen() {
                     {cfg.label}
                   </Text>
                   {isActive && (
-                    <Ionicons name="checkmark" size={14} color={cfg.color} />
+                    <Reicon name="checkmark" size={14} color={cfg.color} />
                   )}
                 </Pressable>
               );
@@ -542,7 +542,7 @@ export function ConversationDetailScreen() {
             }
             ListEmptyComponent={
               <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', paddingVertical: 60 }}>
-                <Ionicons name="chatbubble-outline" size={40} color={theme.colors.text.disabled} />
+                <Reicon name="chatbubble-outline" size={40} color={theme.colors.text.disabled} />
                 <Text style={{
                   ...theme.typography.body2,
                   color: theme.colors.text.disabled,
@@ -604,7 +604,7 @@ export function ConversationDetailScreen() {
                 marginBottom: 4,
               })}
             >
-              <Ionicons name="clipboard-outline" size={20} color={theme.colors.info.main} />
+              <Reicon name="clipboard-outline" size={20} color={theme.colors.info.main} />
             </Pressable>
 
             {/* Schedule button */}
@@ -621,7 +621,7 @@ export function ConversationDetailScreen() {
                 marginBottom: 4,
               })}
             >
-              <Ionicons name="time-outline" size={20} color={theme.colors.warning.main} />
+              <Reicon name="time-outline" size={20} color={theme.colors.warning.main} />
             </Pressable>
 
             {/* AI Suggest button */}
@@ -646,7 +646,7 @@ export function ConversationDetailScreen() {
               {suggestMutation.isPending ? (
                 <ActivityIndicator size="small" color={theme.colors.secondary.main} />
               ) : (
-                <Ionicons name="sparkles" size={20} color={theme.colors.secondary.main} />
+                <Reicon name="sparkles" size={20} color={theme.colors.secondary.main} />
               )}
             </Pressable>
 
@@ -696,7 +696,7 @@ export function ConversationDetailScreen() {
               {sendMutation.isPending ? (
                 <ActivityIndicator size="small" color="#FFFFFF" />
               ) : (
-                <Ionicons name="send" size={18} color="#FFFFFF" />
+                <Reicon name="send" size={18} color="#FFFFFF" />
               )}
             </Pressable>
           </View>
@@ -750,7 +750,7 @@ export function ConversationDetailScreen() {
                   })}
                 >
                   <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 4 }}>
-                    <Ionicons name="document-text-outline" size={16} color={theme.colors.primary.main} />
+                    <Reicon name="document-text-outline" size={16} color={theme.colors.primary.main} />
                     <Text style={{ ...theme.typography.body2, fontWeight: '600', color: theme.colors.text.primary }}>
                       {template.title}
                     </Text>

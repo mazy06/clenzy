@@ -1,7 +1,7 @@
 import { useEffect, useState, forwardRef, useImperativeHandle } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
-import { Download, Eye, Fingerprint, Pencil, Send } from 'lucide-react';
+import { Download, Eye, Fingerprint, Pencil, Send } from '../../icons/glyphs';
 import { Alert, AlertDescription, Button, Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, Input, Field, FieldLabel, NativeSelect, NativeSelectOption, Skeleton } from '../../components/ui';
 import { useAuth } from '../../hooks/useAuth';
 import { useCommerceScope } from '../../hooks/useCommerceScope';

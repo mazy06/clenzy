@@ -12,7 +12,7 @@ import {
   DialogTitle,
   Spinner,
 } from '../../../components/ui';
-import { TriangleAlert } from 'lucide-react';
+import { TriangleAlert } from '../../../icons/glyphs';
 import { SwapHoriz, OpenInNew, WhatsApp, Cancel, Warning } from '../../../icons';
 import type { PlanningEvent, PlanningProperty } from '../types';
 import GuestCardDialog from './GuestCardDialog';

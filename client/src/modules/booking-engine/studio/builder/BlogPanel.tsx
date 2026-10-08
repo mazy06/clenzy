@@ -17,7 +17,7 @@ import {
   Textarea,
 } from '../../../../components/ui';
 import EmptyState from '../../../../components/EmptyState';
-import { Plus, Wand2, Trash2, ArrowLeft, Check, AlertTriangle, FileText, Languages } from 'lucide-react';
+import { Plus, Wand2, Trash2, ArrowLeft, Check, AlertTriangle, FileText, Languages } from '../../../../icons/glyphs';
 import { sitesApi, type BlogPost, type BlogPostUpsert } from '../../../../services/api/sitesApi';
 import { useNotification } from '../../../../hooks/useNotification';
 import TranslateModal from '../TranslateModal';

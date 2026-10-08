@@ -1,7 +1,7 @@
 import * as React from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
-import { CheckIcon, ExternalLinkIcon, TriangleAlertIcon } from 'lucide-react';
+import { CheckIcon, ExternalLinkIcon, TriangleAlertIcon } from '../../icons/glyphs';
 import {
   Alert,
   AlertDescription,

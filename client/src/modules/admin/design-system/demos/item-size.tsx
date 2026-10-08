@@ -1,4 +1,4 @@
-import { BadgeCheckIcon, ChevronRightIcon } from "lucide-react"
+import { BadgeCheckIcon, ChevronRightIcon } from "../../../../icons/glyphs"
 
 import { Button } from '../../../../components/ui'
 import {

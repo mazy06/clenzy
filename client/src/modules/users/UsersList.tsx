@@ -28,7 +28,7 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from '../../components/ui';
-import { Info } from 'lucide-react';
+import { Info } from '../../icons/glyphs';
 import { createPortal } from 'react-dom';
 import {
   MoreVert,
@@ -66,7 +66,7 @@ import apiClient from '../../services/apiClient';
 import { UserStatus, USER_STATUS_OPTIONS } from '../../types/statusEnums';
 import type { ExportColumn } from '../../utils/exportUtils';
 import type { ChipColor } from '../../types';
-import type { LucideIcon } from 'lucide-react';
+import type { IconComponent } from '../../icons/glyphs';
 import compactHeaderActions from '../../components/compactHeaderActions';
 import { activeIntlLocale } from '../../utils/activeLocale';
 
@@ -91,7 +91,7 @@ interface User {
 // vive est admise. Baitly UI n'expose pas de sixieme teinte : le violet et le
 // gris chaud de l'ancienne palette Baitly retombent respectivement sur
 // `warning` et `neutral`, ce qui garde les roles distincts deux a deux.
-const userRoles: Array<{ value: string; labelKey: string; label: string; Icon: LucideIcon; color: ChipColor; tone: StatusTone; iconClass: string }> = [
+const userRoles: Array<{ value: string; labelKey: string; label: string; Icon: IconComponent; color: ChipColor; tone: StatusTone; iconClass: string }> = [
   { value: 'SUPER_ADMIN', labelKey: 'roles.platform.SUPER_ADMIN', label: 'Super Admin', Icon: AdminPanelSettings, color: 'error', tone: 'err', iconClass: 'text-destructive' },
   { value: 'SUPER_MANAGER', labelKey: 'roles.platform.SUPER_MANAGER', label: 'Super Manager', Icon: SupervisorAccount, color: 'secondary', tone: 'warn', iconClass: 'text-warning' },
   { value: 'SUPERVISOR', labelKey: 'roles.platform.SUPERVISOR', label: 'Superviseur', Icon: SupervisorAccount, color: 'info', tone: 'info', iconClass: 'text-info' },
@@ -105,7 +105,7 @@ const userRoles: Array<{ value: string; labelKey: string; label: string; Icon: L
 // Libellés/visuels des rôles d'ORGANISATION (OrgMemberRole), affichés dans
 // l'Annuaire pour les membres d'org. Distinct de userRoles (rôles plateforme) :
 // un Manager/Admin d'org a le rôle plateforme HOST, mais on veut afficher son rôle réel.
-const orgRoleDisplay: Record<string, { labelKey: string; label: string; Icon: LucideIcon; color: ChipColor; tone: StatusTone }> = {
+const orgRoleDisplay: Record<string, { labelKey: string; label: string; Icon: IconComponent; color: ChipColor; tone: StatusTone }> = {
   OWNER: { labelKey: 'roles.org.OWNER', label: 'Propriétaire', Icon: Home, color: 'success', tone: 'ok' },
   ADMIN: { labelKey: 'roles.org.ADMIN', label: 'Administrateur', Icon: AdminPanelSettings, color: 'error', tone: 'err' },
   MANAGER: { labelKey: 'roles.org.MANAGER', label: 'Manager', Icon: SupervisorAccount, color: 'warning', tone: 'warn' },

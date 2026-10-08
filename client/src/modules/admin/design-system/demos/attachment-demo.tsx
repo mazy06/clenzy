@@ -1,4 +1,4 @@
-import { FileCodeIcon, XIcon } from "lucide-react"
+import { FileCodeIcon, XIcon } from "../../../../icons/glyphs"
 
 import {
   Attachment,

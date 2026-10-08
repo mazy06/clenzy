@@ -3,7 +3,7 @@ import React, { useState, useMemo, useCallback } from 'react';
 import { cn } from '../../utils/cn';
 import StatusChip from '../../components/StatusChip';
 import { Alert as UiAlert, AlertDescription } from '../../components/ui';
-import { TriangleAlert } from 'lucide-react';
+import { TriangleAlert } from '../../icons/glyphs';
 import { Spinner } from '../../components/ui';
 import { useTabValueParam } from '../../components/tabKeyParam';
 import { Badge, Button, Card } from '../../components/ui';

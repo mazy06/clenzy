@@ -1,5 +1,5 @@
 import * as React from "react"
-import { PlusIcon } from "lucide-react"
+import { PlusIcon } from "../../../../icons/glyphs"
 
 import {
   Avatar,

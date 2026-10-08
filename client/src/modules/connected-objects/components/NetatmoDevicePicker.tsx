@@ -1,7 +1,7 @@
 import { useId } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Alert, AlertDescription } from '../../../components/ui';
-import { TriangleAlert, Info } from 'lucide-react';
+import { TriangleAlert, Info } from '../../../icons/glyphs';
 import { Spinner } from '../../../components/ui';
 import {
   Field,

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { TriangleAlert } from 'lucide-react';
+import { TriangleAlert } from '../../icons/glyphs';
 import { Alert, AlertDescription, Button, Spinner, Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, Field, FieldLabel, InputGroupAddon } from '../../components/ui';
 import { Combobox, ComboboxContent, ComboboxEmpty, ComboboxInput, ComboboxItem, ComboboxList } from '../../components/ui/combobox';
 import { reservationsApi, type Reservation } from '../../services/api/reservationsApi';

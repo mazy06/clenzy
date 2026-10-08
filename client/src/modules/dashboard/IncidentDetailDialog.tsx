@@ -2,7 +2,7 @@ import React, { useMemo, useState } from 'react';
 import { cn } from '../../utils/cn';
 import { Badge, Button } from '../../components/ui';
 import { Alert as UiAlert, AlertAction, AlertDescription } from '../../components/ui';
-import { Info } from 'lucide-react';
+import { Info } from '../../icons/glyphs';
 import { Spinner } from '../../components/ui';
 import {
   Dialog,

@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { CalendarClock, Check, Download, PackageCheck } from "lucide-react";
+import { CalendarClock, Check, Download, PackageCheck } from "../../icons/glyphs";
 import { Button, Input } from "../../components/ui";
 import { useTranslation } from "../../hooks/useTranslation";
 import {

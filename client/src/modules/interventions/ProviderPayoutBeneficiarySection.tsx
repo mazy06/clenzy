@@ -1,6 +1,6 @@
 import { useId, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { Building2, Check, LockKeyhole } from 'lucide-react';
+import { Building2, Check, LockKeyhole } from '../../icons/glyphs';
 import { Alert, AlertDescription, Button, Card, CardContent, Skeleton } from '../../components/ui';
 import { useTranslation } from '../../hooks/useTranslation';
 import { providerPayoutBeneficiaryApi } from '../../services/api/providerPayoutBeneficiaryApi';

@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { cn } from '../../utils/cn';
 import StatusChip from '../../components/StatusChip';
 import { Alert, AlertDescription } from '../../components/ui';
-import { TriangleAlert } from 'lucide-react';
+import { TriangleAlert } from '../../icons/glyphs';
 import { Spinner, Button } from '../../components/ui';
 import {
   Dialog,

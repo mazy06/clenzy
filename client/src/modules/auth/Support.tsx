@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { Alert, AlertDescription } from '../../components/ui';
-import { TriangleAlert } from 'lucide-react';
+import { TriangleAlert } from '../../icons/glyphs';
 import { Spinner } from '../../components/ui';
 import { Card } from '../../components/ui';
 import { Button, Field, FieldLabel, Input, NativeSelect, NativeSelectOption, Textarea } from '../../components/ui';

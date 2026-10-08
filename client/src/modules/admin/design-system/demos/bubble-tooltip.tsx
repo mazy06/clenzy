@@ -1,4 +1,4 @@
-import { CheckIcon } from "lucide-react"
+import { CheckIcon } from "../../../../icons/glyphs"
 
 import {
   Bubble,

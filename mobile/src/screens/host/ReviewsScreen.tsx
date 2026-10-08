@@ -1,7 +1,7 @@
 import React, { useState, useCallback } from 'react';
 import { View, Text, ScrollView, RefreshControl, Pressable, TextInput, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Ionicons } from '@expo/vector-icons';
+import { Reicon } from '@/icons';
 import { useNavigation } from '@react-navigation/native';
 import { useTheme } from '@/theme';
 import { Card } from '@/components/ui/Card';
@@ -12,7 +12,7 @@ import { useReviews, useReviewStats, useRespondToReview } from '@/hooks/useRevie
 import type { GuestReview } from '@/api/endpoints/reviewsApi';
 import type { Property } from '@/api/endpoints/propertiesApi';
 
-type IoniconsName = keyof typeof Ionicons.glyphMap;
+type IconName = keyof typeof Reicon.glyphMap;
 
 /* ─── Helpers ─── */
 
@@ -26,7 +26,7 @@ const CHANNEL_LABELS: Record<string, string> = {
   OTHER: 'Autre',
 };
 
-const SENTIMENT_CONFIG: Record<string, { label: string; color: string; icon: IoniconsName }> = {
+const SENTIMENT_CONFIG: Record<string, { label: string; color: string; icon: IconName }> = {
   POSITIVE: { label: 'Positif', color: '#4A9B8E', icon: 'happy-outline' },
   NEUTRAL: { label: 'Neutre', color: '#6B8A9A', icon: 'remove-circle-outline' },
   NEGATIVE: { label: 'Negatif', color: '#C97A7A', icon: 'sad-outline' },
@@ -42,7 +42,7 @@ function renderStars(rating: number, size: number, color: string) {
   return (
     <View style={{ flexDirection: 'row', gap: 2 }}>
       {[1, 2, 3, 4, 5].map((i) => (
-        <Ionicons key={i} name={i <= rating ? 'star' : 'star-outline'} size={size} color={color} />
+        <Reicon key={i} name={i <= rating ? 'star' : 'star-outline'} size={size} color={color} />
       ))}
     </View>
   );
@@ -96,7 +96,7 @@ function StatsBanner({ propertyId, theme }: { propertyId: number; theme: ReturnT
             return (
               <View key={r} style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
                 <Text style={{ ...theme.typography.caption, color: theme.colors.text.disabled, width: 14, textAlign: 'right' }}>{r}</Text>
-                <Ionicons name="star" size={10} color={theme.colors.secondary.main} />
+                <Reicon name="star" size={10} color={theme.colors.secondary.main} />
                 <View style={{ flex: 1, height: 6, backgroundColor: theme.colors.background.surface, borderRadius: 3 }}>
                   <View style={{
                     width: `${Math.max(pct * 100, 2)}%`,
@@ -174,7 +174,7 @@ function ReviewCard({ review, theme, onRespond }: {
             </Text>
             {sentimentCfg && (
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 3 }}>
-                <Ionicons name={sentimentCfg.icon} size={12} color={sentimentCfg.color} />
+                <Reicon name={sentimentCfg.icon} size={12} color={sentimentCfg.color} />
                 <Text style={{ fontSize: 10, color: sentimentCfg.color }}>{sentimentCfg.label}</Text>
               </View>
             )}
@@ -232,7 +232,7 @@ function ReviewCard({ review, theme, onRespond }: {
               marginTop: 10, paddingVertical: 8,
             }}
           >
-            <Ionicons name="chatbubble-outline" size={16} color={theme.colors.primary.main} />
+            <Reicon name="chatbubble-outline" size={16} color={theme.colors.primary.main} />
             <Text style={{ ...theme.typography.body2, color: theme.colors.primary.main, fontWeight: '500' }}>
               Repondre
             </Text>
@@ -283,7 +283,7 @@ function ReviewCard({ review, theme, onRespond }: {
         {/* Expand indicator */}
         {!expanded && (
           <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', marginTop: 6 }}>
-            <Ionicons name="chevron-down" size={16} color={theme.colors.text.disabled} />
+            <Reicon name="chevron-down" size={16} color={theme.colors.text.disabled} />
           </View>
         )}
       </Pressable>
@@ -339,9 +339,9 @@ export function ReviewsScreen() {
         gap: theme.SPACING.md,
       }}>
         <Pressable onPress={() => navigation.goBack()} hitSlop={8}>
-          <Ionicons name="chevron-back" size={22} color={theme.colors.text.primary} />
+          <Reicon name="chevron-back" size={22} color={theme.colors.text.primary} />
         </Pressable>
-        <Ionicons name="star" size={22} color={theme.colors.secondary.main} />
+        <Reicon name="star" size={22} color={theme.colors.secondary.main} />
         <Text style={{ ...theme.typography.h3, color: theme.colors.text.primary, flex: 1 }}>
           Avis voyageurs
         </Text>
@@ -421,7 +421,7 @@ export function ReviewsScreen() {
                 backgroundColor: filterRating === r ? theme.colors.primary.main : theme.colors.background.surface,
               }}
             >
-              {r !== null && <Ionicons name="star" size={12} color={filterRating === r ? '#fff' : theme.colors.secondary.main} />}
+              {r !== null && <Reicon name="star" size={12} color={filterRating === r ? '#fff' : theme.colors.secondary.main} />}
               <Text style={{
                 fontSize: 12, fontWeight: '600',
                 color: filterRating === r ? '#fff' : theme.colors.text.secondary,

@@ -2,7 +2,7 @@ import React, { useMemo, useState } from 'react';
 import { cn } from '../../utils/cn';
 import StatusChip, { type ToneTokens } from '../../components/StatusChip';
 import { Alert as UiAlert, AlertDescription, Button } from '../../components/ui';
-import { TriangleAlert } from 'lucide-react';
+import { TriangleAlert } from '../../icons/glyphs';
 import { Spinner } from '../../components/ui';
 import { createPortal } from 'react-dom';
 import {

@@ -1,5 +1,5 @@
 import * as React from "react"
-import { BellIcon, MailIcon, MessageSquareIcon } from "lucide-react"
+import { BellIcon, MailIcon, MessageSquareIcon } from "../../../../icons/glyphs"
 
 import { Button } from '../../../../components/ui'
 import {

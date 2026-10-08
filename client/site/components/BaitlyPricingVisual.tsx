@@ -5,7 +5,7 @@ import {
   LockKeyholeIcon,
   MapPinIcon,
   MessageCircleIcon,
-} from 'lucide-react';
+} from '../../src/icons/glyphs';
 import { useSiteLanguage } from '../lib/siteLanguage';
 import { BAITLY_LOYALTY_MESSAGES } from '../lib/messages/baitlyLoyalty';
 import type { BaitlyPlan } from '../data/baitlyLoyaltyPricing';

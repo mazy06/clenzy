@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Badge } from '../../components/ui';
 import { Alert, AlertDescription, Button } from '../../components/ui';
-import { TriangleAlert } from 'lucide-react';
+import { TriangleAlert } from '../../icons/glyphs';
 import {
   Dialog,
   DialogContent,
@@ -15,7 +15,7 @@ import {
 } from '../../components/ui';
 import { cn } from '../../utils/cn';
 import { Field, FieldLabel, Input } from '../../components/ui';
-import { Brain, Wrench, GitBranch, PauseCircle, FileText } from 'lucide-react';
+import { Brain, Wrench, GitBranch, PauseCircle, FileText } from '../../icons/glyphs';
 import { useTranslation } from '../../hooks/useTranslation';
 import { agentRunApi, type AgentRunReplay, type AgentRunStep } from '../../services/api/agentRunApi';
 

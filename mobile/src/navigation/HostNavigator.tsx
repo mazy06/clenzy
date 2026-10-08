@@ -2,7 +2,7 @@ import React from 'react';
 import { Platform, StyleSheet } from 'react-native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
-import { Ionicons } from '@expo/vector-icons';
+import { Reicon } from '@/icons';
 import { useTheme } from '@/theme';
 
 import { DashboardScreen } from '@/screens/host/DashboardScreen';
@@ -302,7 +302,7 @@ export function HostNavigator() {
         options={{
           tabBarLabel: 'Dashboard',
           tabBarIcon: ({ color, size }) => (
-            <Ionicons name="grid-outline" size={size} color={color} />
+            <Reicon name="grid-outline" size={size} color={color} />
           ),
         }}
       />
@@ -312,7 +312,7 @@ export function HostNavigator() {
         options={{
           tabBarLabel: 'Proprietes',
           tabBarIcon: ({ color, size }) => (
-            <Ionicons name="home-outline" size={size} color={color} />
+            <Reicon name="home-outline" size={size} color={color} />
           ),
         }}
       />
@@ -322,7 +322,7 @@ export function HostNavigator() {
         options={{
           tabBarLabel: 'Calendrier',
           tabBarIcon: ({ color, size }) => (
-            <Ionicons name="calendar-outline" size={size} color={color} />
+            <Reicon name="calendar-outline" size={size} color={color} />
           ),
         }}
       />
@@ -332,7 +332,7 @@ export function HostNavigator() {
         options={{
           tabBarLabel: 'Messages',
           tabBarIcon: ({ color, size }) => (
-            <Ionicons name="chatbubble-outline" size={size} color={color} />
+            <Reicon name="chatbubble-outline" size={size} color={color} />
           ),
         }}
       />
@@ -342,7 +342,7 @@ export function HostNavigator() {
         options={{
           tabBarLabel: 'Plus',
           tabBarIcon: ({ color, size }) => (
-            <Ionicons name="ellipsis-horizontal-circle-outline" size={size} color={color} />
+            <Reicon name="ellipsis-horizontal-circle-outline" size={size} color={color} />
           ),
         }}
       />

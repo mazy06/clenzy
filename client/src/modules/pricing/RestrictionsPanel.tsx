@@ -14,7 +14,7 @@ import {
 } from '../../components/ui';
 import StatusChip from '../../components/StatusChip';
 import EmptyState from '../../components/EmptyState';
-import { Plus, Pencil, Trash2, CalendarRange, TriangleAlert, X } from 'lucide-react';
+import { Plus, Pencil, Trash2, CalendarRange, TriangleAlert, X } from '../../icons/glyphs';
 import { useTranslation } from '../../hooks/useTranslation';
 import {
   calendarPricingApi,

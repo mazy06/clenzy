@@ -3,18 +3,18 @@ import { View, Text, ScrollView, Pressable, Alert, Platform } from 'react-native
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRoute, useNavigation } from '@react-navigation/native';
 import type { RouteProp } from '@react-navigation/native';
-import { Ionicons } from '@expo/vector-icons';
+import { Reicon } from '@/icons';
 import { useProperty, useUpdatePropertyAmenities } from '@/hooks/useProperties';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { Skeleton } from '@/components/ui/Skeleton';
 import { useTheme } from '@/theme';
 
-type IoniconsName = keyof typeof Ionicons.glyphMap;
+type IconName = keyof typeof Reicon.glyphMap;
 type RouteParams = { PropertyAmenitiesEdit: { propertyId: number } };
 
 interface AmenityDef {
-  icon: IoniconsName;
+  icon: IconName;
   label: string;
   category: 'comfort' | 'kitchen' | 'appliances' | 'outdoor' | 'family';
 }
@@ -85,9 +85,9 @@ function AmenityCheckbox({
         backgroundColor: checked ? catColor : 'transparent',
         alignItems: 'center', justifyContent: 'center',
       }}>
-        {checked && <Ionicons name="checkmark" size={14} color="#fff" />}
+        {checked && <Reicon name="checkmark" size={14} color="#fff" />}
       </View>
-      <Ionicons name={def.icon} size={18} color={checked ? catColor : theme.colors.text.secondary} />
+      <Reicon name={def.icon} size={18} color={checked ? catColor : theme.colors.text.secondary} />
       <Text style={{
         ...theme.typography.body2,
         color: checked ? theme.colors.text.primary : theme.colors.text.secondary,
@@ -174,7 +174,7 @@ export function PropertyAmenitiesEditScreen() {
         paddingVertical: theme.SPACING.md, gap: theme.SPACING.md,
       }}>
         <Pressable onPress={() => navigation.goBack()} hitSlop={12}>
-          <Ionicons name="arrow-back" size={24} color={theme.colors.text.primary} />
+          <Reicon name="arrow-back" size={24} color={theme.colors.text.primary} />
         </Pressable>
         <Text style={{ ...theme.typography.h3, color: theme.colors.text.primary, flex: 1 }}>
           Equipements
@@ -227,7 +227,7 @@ export function PropertyAmenitiesEditScreen() {
           loading={updateMutation.isPending}
           disabled={!hasChanges || updateMutation.isPending}
           fullWidth
-          icon={<Ionicons name="checkmark" size={20} color={theme.colors.primary.contrastText} />}
+          icon={<Reicon name="checkmark" size={20} color={theme.colors.primary.contrastText} />}
         />
       </View>
     </SafeAreaView>

@@ -1,5 +1,5 @@
 import { useRef, useState } from 'react';
-import { CheckCircle, Download, MoreHorizontal, Pencil, RefreshCw, Trash2, Upload } from 'lucide-react';
+import { CheckCircle, Download, MoreHorizontal, Pencil, RefreshCw, Trash2, Upload } from '../../icons/glyphs';
 import { Alert, AlertDescription, Button, Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle,
   DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger, Field, FieldLabel, Input, Textarea } from '../../components/ui';
 import ConfirmationModal from '../../components/ConfirmationModal';

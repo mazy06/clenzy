@@ -6,7 +6,7 @@ import { getErrorMessage } from "../../utils/getErrorMessage";
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { cn } from '../../utils/cn';
 import { Alert, AlertDescription, Button } from '../../components/ui';
-import { Info, TriangleAlert, CircleCheck } from 'lucide-react';
+import { Info, TriangleAlert, CircleCheck } from '../../icons/glyphs';
 import { Spinner } from '../../components/ui';
 import { Card } from '../../components/ui';
 import { ArrowBack } from "../../icons";

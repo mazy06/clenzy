@@ -7,7 +7,7 @@ import {
   Spinner,
   Textarea,
 } from '../../../components/ui';
-import { TriangleAlert } from 'lucide-react';
+import { TriangleAlert } from '../../../icons/glyphs';
 import EmptyState from '../../../components/EmptyState';
 import GuestAvatar from '../../../components/baitly/GuestAvatar';
 import { guestPhotoSrc } from '../../../services/api/guestsApi';

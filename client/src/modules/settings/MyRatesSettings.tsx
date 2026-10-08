@@ -1,7 +1,7 @@
 import type { PublishedPricingModel } from '../../services/api/housekeeperRatesApi';
 import React, { useEffect, useRef, useState } from 'react';
 import { Alert as UiAlert, AlertDescription } from '../../components/ui';
-import { TriangleAlert } from 'lucide-react';
+import { TriangleAlert } from '../../icons/glyphs';
 import { Spinner } from '../../components/ui';
 import { Card, Button, Skeleton } from '../../components/ui';
 import {

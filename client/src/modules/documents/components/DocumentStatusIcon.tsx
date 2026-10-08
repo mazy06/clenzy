@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Archive, CircleCheck, CircleDashed, CircleHelp, Clock3, FileCheck2, LoaderCircle, LockKeyhole, Pause, Send, ShieldAlert, XCircle } from 'lucide-react';
+import { Archive, CircleCheck, CircleDashed, CircleHelp, Clock3, FileCheck2, LoaderCircle, LockKeyhole, Pause, Send, ShieldAlert, XCircle } from '../../../icons/glyphs';
 import { Tooltip, TooltipContent, TooltipTrigger } from '../../../components/ui/tooltip';
 import './documentStatusIcon.css';
 

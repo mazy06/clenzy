@@ -30,7 +30,7 @@ export function getOrgRoleLabelKey(role: string): string {
   return ORG_ROLE_LABELS[role] ? 'roles.org.' + role : '';
 }
 
-import type { LucideIcon } from 'lucide-react';
+import type { IconComponent } from '../icons/glyphs';
 import {
   StarRate,
   VerifiedUser,
@@ -68,7 +68,7 @@ export function getOrgRoleHex(role: string): string {
 
 // ─── Icones lucide par role ─────────────────────────────────────────────────
 
-const ORG_ROLE_ICONS: Record<string, LucideIcon> = {
+const ORG_ROLE_ICONS: Record<string, IconComponent> = {
   OWNER: StarRate,
   ADMIN: VerifiedUser,
   MANAGER: BusinessCenter,
@@ -83,7 +83,7 @@ const ORG_ROLE_ICONS: Record<string, LucideIcon> = {
   SUPER_MANAGER: SupervisorAccount,
 };
 
-export function getOrgRoleIcon(role: string): LucideIcon {
+export function getOrgRoleIcon(role: string): IconComponent {
   return ORG_ROLE_ICONS[role] || Person;
 }
 
@@ -128,7 +128,7 @@ export function getPlatformRoleHex(role: string): string {
 }
 
 /** Icone plateforme — reutilise la table d'icones partagee. */
-export function getPlatformRoleIcon(role: string): LucideIcon {
+export function getPlatformRoleIcon(role: string): IconComponent {
   return ORG_ROLE_ICONS[role] || Person;
 }
 

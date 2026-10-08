@@ -1,7 +1,7 @@
 import PropertyServiceTeams from './PropertyServiceTeams';
 import React, { useState, useEffect, useMemo } from 'react';
 import { Alert as UiAlert, AlertDescription } from '../../components/ui';
-import { TriangleAlert } from 'lucide-react';
+import { TriangleAlert } from '../../icons/glyphs';
 import {
   Spinner,
   Button,

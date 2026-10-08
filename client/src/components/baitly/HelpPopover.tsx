@@ -1,4 +1,4 @@
-import { CircleHelpIcon } from 'lucide-react';
+import { CircleHelpIcon } from '../../icons/glyphs';
 import {
   Button,
   Popover,

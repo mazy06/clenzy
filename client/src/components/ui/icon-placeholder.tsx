@@ -16,16 +16,16 @@ import {
   SearchIcon,
   TriangleAlertIcon,
   XIcon,
-  type LucideIcon,
-  type LucideProps,
-} from 'lucide-react';
+  type IconComponent,
+  type IconProps,
+} from '../../icons/glyphs';
 
 /**
  * Baitly UI — shim du IconPlaceholder du site shadcn (abstraction
  * multi-bibliothèques d'icônes). Chez nous : lucide uniquement, via un
  * mapping statique (pas d'import namespace → bundle tree-shakeable).
  */
-const LUCIDE_MAP: Record<string, LucideIcon> = {
+const LUCIDE_MAP: Record<string, IconComponent> = {
   ArrowDownIcon,
   CheckIcon,
   ChevronDownIcon,
@@ -44,7 +44,7 @@ const LUCIDE_MAP: Record<string, LucideIcon> = {
   XIcon,
 };
 
-export interface IconPlaceholderProps extends LucideProps {
+export interface IconPlaceholderProps extends IconProps {
   lucide: string;
   tabler?: string;
   hugeicons?: string;

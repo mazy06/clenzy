@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { View, Text, ScrollView, RefreshControl } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Ionicons } from '@expo/vector-icons';
+import { Reicon } from '@/icons';
 import { useRevenueKpis, useOccupancyKpis } from '@/hooks/useKpi';
 import { KpiCard } from '@/components/domain/KpiCard';
 import { Card } from '@/components/ui/Card';
@@ -136,7 +136,7 @@ export function RevenueReportsScreen() {
                           alignItems: 'center',
                           justifyContent: 'center',
                         }}>
-                          <Ionicons name="stats-chart-outline" size={16} color={colorMap[occupancyColor]} />
+                          <Reicon name="stats-chart-outline" size={16} color={colorMap[occupancyColor]} />
                         </View>
                         <Text style={{ ...theme.typography.body2, color: theme.colors.text.primary, fontWeight: '600' }}>
                           {kpi.label}

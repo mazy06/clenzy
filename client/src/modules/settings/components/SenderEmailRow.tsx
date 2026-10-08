@@ -1,6 +1,6 @@
 import React, { useMemo, useState } from 'react';
 import { Alert, AlertDescription, Button, Field, FieldLabel, Input } from '../../../components/ui';
-import { Info, Send } from 'lucide-react';
+import { Info, Send } from '../../../icons/glyphs';
 import { useTranslation } from '../../../hooks/useTranslation';
 
 const EMAIL_RE = /^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$/;

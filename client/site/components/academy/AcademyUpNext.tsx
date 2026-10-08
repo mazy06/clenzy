@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Play, RotateCcw } from 'lucide-react';
+import { Play, RotateCcw } from '../../../src/icons/glyphs';
 import { academyPosterUrl, type AcademyEpisode } from '../../data/baitlyAcademyVideos';
 import { BAITLY_ACADEMY_MESSAGES, fillAcademyText } from '../../lib/messages/baitlyAcademy';
 import type { SiteLanguage } from '../../lib/siteLanguage';

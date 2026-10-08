@@ -25,8 +25,8 @@ import {
   Trash2Icon,
   UploadIcon,
   XIcon,
-  type LucideIcon,
-} from 'lucide-react';
+  type IconComponent,
+} from '../icons/glyphs';
 
 /**
  * Vocabulaire d'icônes des actions d'en-tête.
@@ -72,7 +72,6 @@ export type HeaderActionKind =
   | 'notify'
   | 'back';
 
-type IconComponent = LucideIcon;
 
 /**
  * Épaisseur de trait du chrome Baitly. Le défaut de lucide (2) donne des

@@ -28,7 +28,7 @@ import {
   Plus, LayoutDashboard, ArrowUp, Search, Home, Layers, Sparkles, Languages, Feather, X,
   ArrowRight, List as ListIcon, LayoutGrid, AlertTriangle, ChevronDown, Trash2,
   Users, Target, Gem, MapPin, Coins, BadgeCheck, Files,
-} from 'lucide-react';
+} from '../../../icons/glyphs';
 import { bookingEngineApi, type BookingEngineConfig, type BookingEngineConfigUpdate } from '../../../services/api/bookingEngineApi';
 import type { SiteGenerationBrief } from '../../../services/api/sitesApi';
 import { BUILTIN_FUNNEL_PRESETS } from './grapes/funnelPresets';

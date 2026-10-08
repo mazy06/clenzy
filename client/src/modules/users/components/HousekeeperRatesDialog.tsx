@@ -1,7 +1,7 @@
 import type { PublishedPricingModel } from '../../../services/api/housekeeperRatesApi';
 import React, { useEffect, useState } from 'react';
 import { Alert, AlertDescription, Button } from '../../../components/ui';
-import { TriangleAlert, CircleCheck } from 'lucide-react';
+import { TriangleAlert, CircleCheck } from '../../../icons/glyphs';
 import { Spinner } from '../../../components/ui';
 import {
   Field,

@@ -10,7 +10,7 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from '../../../components/ui';
-import { TriangleAlert } from 'lucide-react';
+import { TriangleAlert } from '../../../icons/glyphs';
 import ConversationAvatar from './ConversationAvatar';
 import HeaderSearchField from '../../../components/HeaderSearchField';
 import {

@@ -7,7 +7,7 @@ import {
   Button,
   Spinner,
 } from '../../../components/ui';
-import { X } from 'lucide-react';
+import { X } from '../../../icons/glyphs';
 import { CheckCircle, ErrorOutline } from '../../../icons';
 import { useTranslation } from '../../../hooks/useTranslation';
 import {

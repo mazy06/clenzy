@@ -12,7 +12,7 @@ jest.mock('@react-navigation/native', () => ({ useNavigation: () => ({ goBack: j
 jest.mock('react-i18next', () => ({ useTranslation: () => ({ t: (key: string) => key, i18n: { language: 'fr' } }) }));
 jest.mock('expo-web-browser', () => ({ openBrowserAsync: jest.fn() }));
 jest.mock('expo-crypto', () => ({ randomUUID: () => '7cb32af0-8991-45f0-98d5-cf5341ea12dd' }));
-jest.mock('@expo/vector-icons', () => ({ Ionicons: () => null }));
+jest.mock('@/icons', () => ({ Reicon: () => null }));
 jest.mock('react-native-safe-area-context', () => ({ SafeAreaView: require('react-native').View }));
 jest.mock('@/store/authStore', () => ({ useAuthStore: (select: (state: unknown) => unknown) => select({ user: { id: '2', organizationId: 3 }, loadUser: jest.fn().mockResolvedValue(undefined) }) }));
 jest.mock('@/theme', () => ({ useTheme: () => ({

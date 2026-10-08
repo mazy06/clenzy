@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { View, Text, ScrollView, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Ionicons } from '@expo/vector-icons';
+import { Reicon } from '@/icons';
 import { useNavigation } from '@react-navigation/native';
 import { useTheme } from '@/theme';
 import { Card } from '@/components/ui/Card';
@@ -42,7 +42,7 @@ export default function TuyaPairingScreen() {
     <SafeAreaView style={{ flex: 1, backgroundColor: theme.colors.background.default }} edges={['top']}>
       <ScrollView contentContainerStyle={{ padding: 16, gap: 12 }}>
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-          <Ionicons name="hardware-chip-outline" size={22} color={theme.colors.primary.main} />
+          <Reicon name="hardware-chip-outline" size={22} color={theme.colors.primary.main} />
           <Text style={{ ...theme.typography.h2, color: theme.colors.text.primary }}>Appairer un appareil Tuya</Text>
         </View>
         <Text style={{ ...theme.typography.body2, color: theme.colors.text.secondary }}>
@@ -54,7 +54,7 @@ export default function TuyaPairingScreen() {
         {!nativeAvailable && (
           <Card>
             <View style={{ flexDirection: 'row', gap: 8 }}>
-              <Ionicons name="construct-outline" size={20} color={theme.colors.warning.main} />
+              <Reicon name="construct-outline" size={20} color={theme.colors.warning.main} />
               <View style={{ flex: 1 }}>
                 <Text style={{ ...theme.typography.h5, color: theme.colors.text.primary }}>
                   Module d'appairage non disponible
@@ -72,7 +72,7 @@ export default function TuyaPairingScreen() {
         {(accountError || schemaMissing) && (
           <Card>
             <View style={{ flexDirection: 'row', gap: 8 }}>
-              <Ionicons name="alert-circle-outline" size={20} color={theme.colors.error.main} />
+              <Reicon name="alert-circle-outline" size={20} color={theme.colors.error.main} />
               <View style={{ flex: 1 }}>
                 <Text style={{ ...theme.typography.h5, color: theme.colors.text.primary }}>
                   Tuya non configuré
@@ -90,7 +90,7 @@ export default function TuyaPairingScreen() {
         {status === 'success' && (
           <Card>
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 8 }}>
-              <Ionicons name="checkmark-circle" size={22} color={theme.colors.success.main} />
+              <Reicon name="checkmark-circle" size={22} color={theme.colors.success.main} />
               <Text style={{ ...theme.typography.h4, color: theme.colors.text.primary }}>
                 {devices.length} appareil{devices.length > 1 ? 's' : ''} appairé{devices.length > 1 ? 's' : ''}
               </Text>

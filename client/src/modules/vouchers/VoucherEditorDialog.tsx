@@ -3,7 +3,7 @@ import { Alert, AlertDescription } from '../../components/ui';
 import { Button } from '../../components/ui';
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, Field, FieldDescription, FieldLabel, Input, InputGroup, InputGroupAddon, InputGroupInput, NativeSelect, NativeSelectOption, Switch, Textarea } from '../../components/ui';
 import { Combobox, ComboboxChip, ComboboxChips, ComboboxChipsInput, ComboboxContent, ComboboxEmpty, ComboboxItem, ComboboxList, ComboboxValue, useComboboxAnchor } from '../../components/ui/combobox';
-import { TriangleAlert } from 'lucide-react';
+import { TriangleAlert } from '../../icons/glyphs';
 import { useTranslation } from '../../hooks/useTranslation';
 import { usePropertiesList, type PropertyListItem } from '../../hooks/usePropertiesList';
 import {

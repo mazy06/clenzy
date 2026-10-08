@@ -1,9 +1,9 @@
 import React from 'react';
 import { View, Text, Switch } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
+import { Reicon } from '@/icons';
 import { useTheme } from '@/theme';
 
-type IoniconsName = keyof typeof Ionicons.glyphMap;
+type IconName = keyof typeof Reicon.glyphMap;
 
 interface ToggleRowProps {
   label: string;
@@ -11,7 +11,7 @@ interface ToggleRowProps {
   value: boolean;
   onValueChange: (value: boolean) => void;
   disabled?: boolean;
-  iconName?: IoniconsName;
+  iconName?: IconName;
   iconColor?: string;
 }
 
@@ -36,7 +36,7 @@ export function ToggleRow({ label, description, value, onValueChange, disabled, 
           justifyContent: 'center',
           marginRight: theme.SPACING.md,
         }}>
-          <Ionicons name={iconName} size={18} color={resolvedColor} />
+          <Reicon name={iconName} size={18} color={resolvedColor} />
         </View>
       )}
 

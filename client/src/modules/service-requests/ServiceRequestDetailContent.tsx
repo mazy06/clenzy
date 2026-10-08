@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react';
 import { Link } from 'react-router-dom';
-import { Home, MapPin, Navigation, CalendarDays, Clock3, Check, UserRound, Mail, Phone, KeyRound, ClipboardList, ArrowUpRight, BedDouble, Bath, Users, Ruler } from 'lucide-react';
+import { Home, MapPin, Navigation, CalendarDays, Clock3, Check, UserRound, Mail, Phone, KeyRound, ClipboardList, ArrowUpRight, BedDouble, Bath, Users, Ruler } from '../../icons/glyphs';
 import { Avatar, AvatarImage, AvatarFallback, Button, Card, CardContent } from '../../components/ui';
 import StatusChip from '../../components/StatusChip';
 import { useTranslation } from '../../hooks/useTranslation';

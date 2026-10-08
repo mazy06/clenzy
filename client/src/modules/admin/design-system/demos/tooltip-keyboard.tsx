@@ -1,4 +1,4 @@
-import { SaveIcon } from "lucide-react"
+import { SaveIcon } from "../../../../icons/glyphs"
 
 import { Button } from '../../../../components/ui'
 import { Kbd } from '../../../../components/ui'

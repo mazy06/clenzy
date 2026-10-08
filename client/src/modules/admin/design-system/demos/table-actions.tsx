@@ -1,4 +1,4 @@
-import { MoreHorizontalIcon } from "lucide-react"
+import { MoreHorizontalIcon } from "../../../../icons/glyphs"
 
 import { Button } from '../../../../components/ui'
 import {

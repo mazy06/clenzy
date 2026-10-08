@@ -1,6 +1,6 @@
 import type React from 'react';
 import { useState } from 'react';
-import { Copy, Check } from 'lucide-react';
+import { Copy, Check } from '../../icons/glyphs';
 import { Button, NativeSelect, NativeSelectOption } from '../../components/ui';
 import { Person, Home, Build, Assignment, Payment, Business, Computer, GppGood, Email } from '../../icons';
 import { useTranslation } from '../../hooks/useTranslation';

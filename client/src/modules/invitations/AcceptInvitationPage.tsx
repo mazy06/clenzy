@@ -14,7 +14,7 @@ import {
   InputGroupButton,
   InputGroupInput,
 } from '../../components/ui';
-import { TriangleAlert, X } from 'lucide-react';
+import { TriangleAlert, X } from '../../icons/glyphs';
 import { Spinner } from '../../components/ui';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { cn } from '../../utils/cn';

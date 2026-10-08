@@ -1,5 +1,5 @@
 import { useId, useState, type ReactNode } from 'react';
-import { BedDoubleIcon, UsersIcon, MapPinIcon, CheckIcon, LinkIcon, LockKeyholeIcon, LockKeyholeOpenIcon, Volume2Icon, ThermometerIcon, BatteryIcon, ArrowRightIcon } from 'lucide-react';
+import { BedDoubleIcon, UsersIcon, MapPinIcon, CheckIcon, LinkIcon, LockKeyholeIcon, LockKeyholeOpenIcon, Volume2Icon, ThermometerIcon, BatteryIcon, ArrowRightIcon } from '../../icons/glyphs';
 import { Button, Card } from '../../components/ui';
 import { useTranslation } from '../../hooks/useTranslation';
 import apartmentImage from '../../assets/images/appartement.png';

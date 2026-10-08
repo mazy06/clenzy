@@ -1,4 +1,4 @@
-import { AlertCircleIcon, BadgeCheckIcon, CheckIcon } from "lucide-react"
+import { AlertCircleIcon, BadgeCheckIcon, CheckIcon } from "../../../../icons/glyphs"
 
 import { Badge } from '../../../../components/ui'
 

@@ -1,6 +1,6 @@
 import React, { useEffect } from 'react';
 import { Alert, AlertDescription } from '../../components/ui';
-import { Info, TriangleAlert } from 'lucide-react';
+import { Info, TriangleAlert } from '../../icons/glyphs';
 import { Spinner, Button } from '../../components/ui';
 import { Edit } from '../../icons';
 import { useParams, useNavigate } from 'react-router-dom';

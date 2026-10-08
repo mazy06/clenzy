@@ -1,4 +1,4 @@
-import { PauseIcon, PlayIcon } from 'lucide-react';
+import { PauseIcon, PlayIcon } from '../../src/icons/glyphs';
 import { useSiteLanguage } from '../lib/siteLanguage';
 import {
   CURRENCY_NAMES,

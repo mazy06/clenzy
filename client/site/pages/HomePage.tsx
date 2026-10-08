@@ -10,7 +10,7 @@ import {
   PlusIcon,
   ShieldCheckIcon,
   SparklesIcon,
-} from 'lucide-react';
+} from '../../src/icons/glyphs';
 import Reveal from '../components/Reveal';
 import AgentActionDeck from '../components/AgentActionDeck';
 import { useSiteLanguage } from '../lib/siteLanguage';

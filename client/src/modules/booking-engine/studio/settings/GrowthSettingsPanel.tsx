@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Alert, AlertDescription, Skeleton } from '../../../../components/ui';
 import StatTile from '../../../../components/baitly/StatTile';
-import { AlertTriangle, Users, ShoppingCart, Info } from 'lucide-react';
+import { AlertTriangle, Users, ShoppingCart, Info } from '../../../../icons/glyphs';
 import { growthSettingsApi, type GrowthSettings } from '../../../../services/api/growthSettingsApi';
 import { SettingsPage, SettingCard, SettingRow, SaveBar, ToggleControl, NumberControl } from './settingsControls';
 import { useTranslation } from '../../../../hooks/useTranslation';

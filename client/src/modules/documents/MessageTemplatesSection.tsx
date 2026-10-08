@@ -1,7 +1,7 @@
 import { useState, forwardRef, useImperativeHandle } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useSearchParams } from 'react-router-dom';
-import { Pencil, Trash2 } from 'lucide-react';
+import { Pencil, Trash2 } from '../../icons/glyphs';
 import { Alert, AlertDescription, Button, NativeSelect, NativeSelectOption } from '../../components/ui';
 import { useTranslation } from '../../hooks/useTranslation';
 import { useCommerceScope } from '../../hooks/useCommerceScope';

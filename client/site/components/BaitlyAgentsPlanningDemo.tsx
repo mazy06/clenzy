@@ -32,7 +32,7 @@ import {
   VolumeXIcon,
   WalletIcon,
   WrenchIcon,
-} from 'lucide-react';
+} from '../../src/icons/glyphs';
 import { Label as TagIcon, WrenchFill } from '../../src/icons';
 import BaitlyMarkLogo from '../../src/components/BaitlyMarkLogo';
 import type { AgentId } from '../../src/modules/supervision/types';

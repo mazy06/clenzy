@@ -1,7 +1,7 @@
 import React, { useState, useCallback, useMemo } from 'react';
 import { View, Text, ScrollView, Pressable, Alert, KeyboardAvoidingView, Platform, TextInput } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Ionicons } from '@expo/vector-icons';
+import { Reicon } from '@/icons';
 import { useNavigation } from '@react-navigation/native';
 import { useTheme } from '@/theme';
 import { Card } from '@/components/ui/Card';
@@ -127,7 +127,7 @@ export function CreateInterventionScreen() {
         backgroundColor: theme.colors.background.paper, gap: theme.SPACING.md,
       }}>
         <Pressable onPress={() => navigation.goBack()} hitSlop={8}>
-          <Ionicons name="chevron-back" size={22} color={theme.colors.text.primary} />
+          <Reicon name="chevron-back" size={22} color={theme.colors.text.primary} />
         </Pressable>
         <Text style={{ ...theme.typography.h3, color: theme.colors.text.primary, flex: 1 }}>
           Nouvelle intervention
@@ -313,7 +313,7 @@ export function CreateInterventionScreen() {
             onPress={handleSubmit}
             fullWidth
             loading={createMutation.isPending}
-            icon={<Ionicons name="add-circle-outline" size={18} color="#fff" />}
+            icon={<Reicon name="add-circle-outline" size={18} color="#fff" />}
           />
         </ScrollView>
       </KeyboardAvoidingView>

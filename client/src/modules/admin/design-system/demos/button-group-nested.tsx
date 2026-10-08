@@ -1,4 +1,4 @@
-import { ArrowLeftIcon, ArrowRightIcon } from "lucide-react"
+import { ArrowLeftIcon, ArrowRightIcon } from "../../../../icons/glyphs"
 
 import { Button } from '../../../../components/ui'
 import { ButtonGroup } from '../../../../components/ui'

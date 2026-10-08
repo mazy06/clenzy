@@ -1,7 +1,7 @@
 import type { ReactNode } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
-import { CalendarDays, ChevronRight, Clock3, UserRound } from 'lucide-react';
+import { CalendarDays, ChevronRight, Clock3, UserRound } from '../../icons/glyphs';
 import { Avatar, AvatarFallback, AvatarImage } from '../../components/ui';
 import { propertiesApi } from '../../services/api/propertiesApi';
 import { usersApi, userAvatarSrc } from '../../services/api/usersApi';

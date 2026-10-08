@@ -2,7 +2,7 @@ import { useServiceReferenceLabel } from '../ServiceReferenceLabels';
 import * as React from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
-import { CheckIcon, ClockIcon, ExternalLinkIcon, TriangleAlertIcon } from 'lucide-react';
+import { CheckIcon, ClockIcon, ExternalLinkIcon, TriangleAlertIcon } from '../../icons/glyphs';
 import { Alert, AlertDescription, Attachment, AttachmentContent, AttachmentGroup, AttachmentMedia, AttachmentTitle, Badge, Button, Card, CardContent, CardFooter, Field, FieldLabel, InputGroup, InputGroupAddon, InputGroupInput, Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, Input, Item, ItemContent, ItemDescription, ItemGroup, ItemTitle, Spinner, Tooltip, TooltipContent, TooltipTrigger } from '../ui';
 import { Calendar } from '../ui/calendar';
 import { Money } from '../Money';

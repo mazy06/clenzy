@@ -1,5 +1,5 @@
 import * as React from "react"
-import { AudioLinesIcon, PlusIcon } from "lucide-react"
+import { AudioLinesIcon, PlusIcon } from "../../../../icons/glyphs"
 
 import { Button } from '../../../../components/ui'
 import { ButtonGroup } from '../../../../components/ui'

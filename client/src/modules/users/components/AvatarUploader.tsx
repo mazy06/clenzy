@@ -1,6 +1,6 @@
 import React, { useRef, useState } from 'react';
 import { Alert as BuiAlert, AlertDescription, AlertAction, Button as BuiButton } from '../../../components/ui';
-import { TriangleAlert, X } from 'lucide-react';
+import { TriangleAlert, X } from '../../../icons/glyphs';
 import { Avatar, AvatarFallback, AvatarImage, Spinner } from '../../../components/ui';
 import { cn } from '../../../utils/cn';
 import { Upload, Delete } from '../../../icons';

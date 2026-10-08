@@ -1,5 +1,5 @@
 import { useImperativeHandle, useState, forwardRef } from 'react';
-import { Pencil } from 'lucide-react';
+import { Pencil } from '../../icons/glyphs';
 import { Alert, AlertDescription, Button, NativeSelect, NativeSelectOption } from '../../components/ui';
 import { useTranslation } from '../../hooks/useTranslation';
 import { useWhatsAppTemplatesList } from '../../hooks/useWhatsAppTemplates';

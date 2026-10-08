@@ -16,7 +16,7 @@ import { getErrorMessage } from '../../../utils/getErrorMessage';
 import { cn } from '../../../utils/cn';
 import StatusChip, { STATUS_TONES, type StatusTone } from '../../../components/StatusChip';
 import { Alert as BuiAlert, AlertDescription, AlertAction, Button as BuiButton } from '../../../components/ui';
-import { X, TriangleAlert } from 'lucide-react';
+import { X, TriangleAlert } from '../../../icons/glyphs';
 import PayoutActionResult from './PayoutActionResult';
 import { Spinner } from '../../../components/ui';
 import {

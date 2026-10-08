@@ -1,5 +1,5 @@
 import * as React from "react"
-import { Minus, Plus } from "lucide-react"
+import { Minus, Plus } from "../../../../icons/glyphs"
 import { Bar, BarChart, ResponsiveContainer } from "recharts"
 
 import { Button } from '../../../../components/ui'

@@ -1,7 +1,7 @@
 import React, { useState, useCallback } from 'react';
 import StatusChip from '../../components/StatusChip';
 import { Alert as BuiAlert, AlertDescription, AlertAction, Button as BuiButton } from '../../components/ui';
-import { CircleCheck, X, TriangleAlert } from 'lucide-react';
+import { CircleCheck, X, TriangleAlert } from '../../icons/glyphs';
 import { Spinner } from '../../components/ui';
 import { Card } from '../../components/ui';
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '../../components/ui';

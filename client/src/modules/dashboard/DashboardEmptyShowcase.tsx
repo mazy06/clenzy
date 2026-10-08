@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import {
   ArrowRightIcon, BrushIcon, CheckIcon, CircleCheckIcon, LayoutDashboardIcon,
   LogInIcon, LogOutIcon, PlusIcon, TrendingUpIcon,
-} from 'lucide-react';
+} from '../../icons/glyphs';
 import { useTranslation } from '../../hooks/useTranslation';
 import { Button, Card } from '../../components/ui';
 import { StoryPage, StorySection } from '../../components/baitly/FeatureStory';

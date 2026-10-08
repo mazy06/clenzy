@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { SiteMoneyText } from './SiteMoney';
-import { CircleCheckIcon } from 'lucide-react';
+import { CircleCheckIcon } from '../../src/icons/glyphs';
 import { useReducedMotion } from './mockupKit';
 import { useSiteLanguage } from '../lib/siteLanguage';
 import { HOME_MESSAGES } from '../lib/messages/home';

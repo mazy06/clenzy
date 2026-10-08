@@ -1,5 +1,5 @@
 import { Link } from "react-router-dom";
-import { ArrowRightIcon } from "lucide-react";
+import { ArrowRightIcon } from "../../src/icons/glyphs";
 import { useSiteLanguage } from "../lib/siteLanguage";
 import { BAITLY_READINESS_MESSAGES } from "../lib/messages/baitlyReadiness";
 import BaitlyNavPreview from "./BaitlyNavPreview";

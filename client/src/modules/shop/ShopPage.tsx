@@ -16,7 +16,7 @@ import { useScreenSearch } from '../../components/ScreenChrome';
 import { useUserPreference } from '../../hooks/useUserPreference';
 import EmptyState from '../../components/EmptyState';
 import NavCountBadge from '../../components/NavCountBadge';
-import { PackageSearch, Package, AudioLines, LockKeyhole, Thermometer, Boxes } from 'lucide-react';
+import { PackageSearch, Package, AudioLines, LockKeyhole, Thermometer, Boxes } from '../../icons/glyphs';
 
 const CATEGORY_ICONS = { all: Package, kit: Boxes, noise: AudioLines, lock: LockKeyhole, environment: Thermometer };
 type Sort = 'catalog' | 'priceAsc' | 'priceDesc';

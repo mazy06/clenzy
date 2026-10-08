@@ -1,40 +1,30 @@
 /**
  * Barrel d'icones centralise — Baitly PMS
  *
- * Source par defaut : Lucide React (look moderne, stroke 2px, ~1600 icones)
- * Fallback : Iconify (acces a 150+ sets d'icones via lazy-loading)
+ * Source par defaut : Reicon (https://reicon.dev), graisse DUOTONE privilegiee
+ * (aplat a 50 % + trait plein) ; contour quand Reicon n'a pas de duotone pour
+ * le glyphe. Fallback : Iconify pour les rares pictos absents de Reicon.
  *
  * Pourquoi ce fichier :
- *   1. Tree-shaking preserve : chaque icone est importee individuellement
- *      depuis sa lib source, pas via un wrapper runtime.
- *   2. Noms semantiques stables : si on change la lib source d'une icone
+ *   1. Tree-shaking preserve : chaque glyphe est un module (`./glyphs/<Nom>.ts`)
+ *      qui n'importe que ses donnees SVG depuis `@iconify-icons/reicon`.
+ *   2. Noms semantiques stables : si on change le glyphe source d'une icone
  *      donnee, les composants consommateurs ne bougent pas.
- *   3. Source de verite unique pour les conventions (taille, stroke).
+ *   3. Source de verite unique pour les conventions (taille, graisse).
  *
  * Convention d'usage cote composants :
  *   import { Edit, Delete, Save } from '@/icons';
- *   <Edit size={16} strokeWidth={1.75} />
+ *   <Edit size={16} />
+ *   <Star size={14} fill="currentColor" />   // variante pleine (notation)
+ *   <Home size={18} weight="outline" />       // forcer le contour
  *
- * Pour ajouter une icone manquante :
- *   - Verifier d'abord dans Lucide : https://lucide.dev/icons/
- *   - Sinon, ajouter via Iconify (cf. README.md de ce dossier)
- *   - Ajouter l'export ici avec un nom semantique stable
+ * `./glyphs` expose aussi les noms historiques Lucide (`Trash2`, `CheckCircle`,
+ * `XIcon`…) : la table nom → glyphe Reicon vit dans
+ * `scripts/reicon/glyph-map.json`, regeneree par
+ * `node scripts/reicon/generate-glyphs.mjs`.
  *
- * /!\ VERSION PIN : lucide-react@^1.14.0
- *
- * Le pin est important — Lucide renomme regulierement ses icones entre
- * versions majeures (ex: `Home` -> `House`, `Tv2` -> `TvMinimal`,
- * `Waves` -> `WavesHorizontal`, `AlertTriangle` -> `TriangleAlert`,
- * `ParkingCircle` -> `CircleParking`). En v1.14 les anciens noms sont
- * toujours exposes comme aliases ; un bump vers une version future peut
- * casser les imports.
- *
- * Avant tout bump de lucide-react :
- *   1. Verifier le CHANGELOG : https://github.com/lucide-icons/lucide/blob/main/CHANGELOG.md
- *   2. Run `grep -rh "from 'lucide-react'" client/src | grep -oE '[A-Z][a-zA-Z0-9]+' | sort -u`
- *      pour lister TOUS les noms utilises, et croiser avec les exports
- *      de la nouvelle version.
- *   3. Lancer `npm run build` puis Vitest pour detecter les imports casses.
+ * Pour ajouter une icone : chercher le glyphe sur https://reicon.dev, l'ajouter
+ * a `glyph-map.json`, regenerer, puis exporter ici avec un nom semantique.
  */
 
 // ─── Actions CRUD ───────────────────────────────────────────────────────────
@@ -51,7 +41,7 @@ export {
   RefreshCw as Refresh,
   Send,
   Minus as Remove,
-} from 'lucide-react';
+} from './glyphs';
 
 // ─── Navigation ─────────────────────────────────────────────────────────────
 export {
@@ -71,7 +61,7 @@ export {
   MoreHorizontal as MoreHoriz,
   MoreVertical as MoreVert,
   ExternalLink as OpenInNew,
-} from 'lucide-react';
+} from './glyphs';
 
 // ─── Statuts / feedback ─────────────────────────────────────────────────────
 export {
@@ -111,7 +101,7 @@ export {
   CalendarCheck as EventAvailable,
   Zap as Bolt,
   Clock as AccessTime,
-} from 'lucide-react';
+} from './glyphs';
 
 // ─── Vue / visibilite ───────────────────────────────────────────────────────
 export {
@@ -125,7 +115,7 @@ export {
   List as ViewList,
   Orbit,
   MousePointerClick,
-} from 'lucide-react';
+} from './glyphs';
 
 // ─── Utilisateurs / auth ────────────────────────────────────────────────────
 export {
@@ -141,7 +131,7 @@ export {
   ShieldAlert as AdminPanelSettings,
   Briefcase as BusinessCenter,
   Building as Business,
-} from 'lucide-react';
+} from './glyphs';
 
 // ─── Property / domaine PMS ─────────────────────────────────────────────────
 export {
@@ -177,15 +167,22 @@ export {
   SprayCan as Sanitizer,
   Gavel,
   Scale,
-} from 'lucide-react';
+} from './glyphs';
 
-// Pas d'equivalent Lucide pour le fer a repasser → fallback Iconify.
+// Pas d'equivalent Reicon pour le fer a repasser → fallback Iconify.
 // Usage : import { Iron } from '@/icons'; <Iron width={16} /> ou <Iron size={16} />
 import { Icon as _IronifyIcon, addIcon } from '@iconify/react';
 import { createElement, type FC, type ComponentProps } from 'react';
+import { createIcon } from './createIcon';
+import broomFilled from '@iconify-icons/reicon/broom-filled';
+import setting2Filled from '@iconify-icons/reicon/setting2-filled';
+import cardFilled from '@iconify-icons/reicon/card-filled';
+import checkFilled from '@iconify-icons/reicon/check-filled';
+import tuning2Duotone from '@iconify-icons/reicon/tuning2-duotone';
+import windowDuotone from '@iconify-icons/reicon/window-duotone';
 
 // Les wrappers Iconify acceptent aussi `size` (mappé à width/height) et `strokeWidth`
-// (ignoré silencieusement) pour rester compatibles avec l'API Lucide.
+// (ignoré silencieusement) pour rester compatibles avec l'API des glyphes Reicon.
 type IconifyBaseProps = Omit<ComponentProps<typeof _IronifyIcon>, 'icon'>;
 type IconifyProps = IconifyBaseProps & {
   size?: number | string;
@@ -201,72 +198,40 @@ const buildIconifyProps = (icon: string, { size, strokeWidth: _sw, ...rest }: Ic
 export const Iron: FC<IconifyProps> = (props) =>
   createElement(_IronifyIcon, buildIconifyProps('mdi:iron', props));
 
-// Window (fenetre) — pas dans Lucide
-export const Window: FC<IconifyProps> = (props) =>
-  createElement(_IronifyIcon, buildIconifyProps('mdi:window-closed', props));
+// Window (fenetre)
+export const Window = createIcon('Window', { duotone: windowDuotone });
 
-// Stairs (escaliers) — pas dans Lucide
+// Stairs (escaliers) — pas dans Reicon
 export const Stairs: FC<IconifyProps> = (props) =>
   createElement(_IronifyIcon, buildIconifyProps('mdi:stairs', props));
 
-// DoorSliding (porte coulissante / baie vitree) — pas dans Lucide
+// DoorSliding (porte coulissante / baie vitree) — pas dans Reicon
 export const DoorSliding: FC<IconifyProps> = (props) =>
   createElement(_IronifyIcon, buildIconifyProps('mdi:door-sliding', props));
 
-// ─── Pictos Phosphor (Iconify) — planning + préférences barre latérale ───────
-// Langage de la brique planning : balai (ménage) et clé à molette (maintenance)
-// pour le tarif de prestation, carte bancaire (non réglé) et check (payé) pour
-// le prix de réservation. Lucide n'a pas de balai et ses traits sont trop fins
-// pour ces pastilles 21px → variantes « fill » de Phosphor. `Faders` habille le
-// menu de préférences (apparence + langue + devise) de la barre latérale.
-//
-// Données enregistrées EN LOCAL via addIcon : pas de fetch runtime vers
-// api.iconify.design, rendu synchrone (et visible en test jsdom hors réseau).
-// Glyphes Phosphor stables, viewBox 256 (extraits de @iconify-json/ph).
-addIcon('ph:broom-fill', {
-  width: 256, height: 256,
-  body: '<path fill="currentColor" d="M235.29 216.7C212.86 205.69 200 182.12 200 152v-17.31a15.94 15.94 0 0 0-10.09-14.87l-28.65-11.46A8 8 0 0 1 156.79 98l22.32-56.67C184 28.79 178 14.21 165.34 9.51a24 24 0 0 0-30.7 13.71l-22.39 56.86a8 8 0 0 1-10.41 4.5l-28.73-11.5a15.91 15.91 0 0 0-17.38 3.66C34.68 98.4 24 123.71 24 152a111.53 111.53 0 0 0 31.15 77.53A8.06 8.06 0 0 0 61 232h171a8 8 0 0 0 8-7.51a8.21 8.21 0 0 0-4.71-7.79m-120.18-.7a87.5 87.5 0 0 1-24.26-41.71a8.21 8.21 0 0 0-9.25-6.18a8 8 0 0 0-6.32 9.89a105.3 105.3 0 0 0 18.36 38h-29.2A95.62 95.62 0 0 1 40 152a85.9 85.9 0 0 1 7.73-36.3l137.8 55.13c3 18.06 10.55 33.5 21.89 45.19Z"/>',
-});
-addIcon('ph:wrench-fill', {
-  width: 256, height: 256,
-  body: '<path fill="currentColor" d="M232 96a72 72 0 0 1-100.94 66L79 222.22c-.12.14-.26.29-.39.42a32 32 0 0 1-45.26-45.26c.14-.13.28-.27.43-.39L94 124.94a72.07 72.07 0 0 1 83.54-98.78a8 8 0 0 1 3.93 13.19L144 80l5.66 26.35L176 112l40.65-37.52a8 8 0 0 1 13.19 3.93A72.6 72.6 0 0 1 232 96"/>',
-});
-addIcon('ph:credit-card-fill', {
-  width: 256, height: 256,
-  body: '<path fill="currentColor" d="M224 48H32a16 16 0 0 0-16 16v128a16 16 0 0 0 16 16h192a16 16 0 0 0 16-16V64a16 16 0 0 0-16-16m-88 128h-16a8 8 0 0 1 0-16h16a8 8 0 0 1 0 16m64 0h-32a8 8 0 0 1 0-16h32a8 8 0 0 1 0 16M32 88V64h192v24Z"/>',
-});
-addIcon('ph:check-bold', {
-  width: 256, height: 256,
-  body: '<path fill="currentColor" d="m232.49 80.49l-128 128a12 12 0 0 1-17 0l-56-56a12 12 0 1 1 17-17L96 183L215.51 63.51a12 12 0 0 1 17 17Z"/>',
-});
-addIcon('ph:faders', {
-  width: 256, height: 256,
-  body: '<path fill="currentColor" d="M136 120v96a8 8 0 0 1-16 0v-96a8 8 0 0 1 16 0m64 72a8 8 0 0 0-8 8v16a8 8 0 0 0 16 0v-16a8 8 0 0 0-8-8m24-32h-16V40a8 8 0 0 0-16 0v120h-16a8 8 0 0 0 0 16h48a8 8 0 0 0 0-16m-168 0a8 8 0 0 0-8 8v48a8 8 0 0 0 16 0v-48a8 8 0 0 0-8-8m24-32H64V40a8 8 0 0 0-16 0v88H32a8 8 0 0 0 0 16h48a8 8 0 0 0 0-16m72-48h-16V40a8 8 0 0 0-16 0v40h-16a8 8 0 0 0 0 16h48a8 8 0 0 0 0-16"/>',
-});
-
-// Wrappers compat-Lucide (acceptent size/strokeWidth).
-export const BroomFill: FC<IconifyProps> = (props) =>
-  createElement(_IronifyIcon, buildIconifyProps('ph:broom-fill', props));
-export const WrenchFill: FC<IconifyProps> = (props) =>
-  createElement(_IronifyIcon, buildIconifyProps('ph:wrench-fill', props));
-export const CreditCardFill: FC<IconifyProps> = (props) =>
-  createElement(_IronifyIcon, buildIconifyProps('ph:credit-card-fill', props));
-export const CheckBold: FC<IconifyProps> = (props) =>
-  createElement(_IronifyIcon, buildIconifyProps('ph:check-bold', props));
-export const Faders: FC<IconifyProps> = (props) =>
-  createElement(_IronifyIcon, buildIconifyProps('ph:faders', props));
+// ─── Pastilles pleines — planning + préférences barre latérale ───────────────
+// Langage de la brique planning : balai (ménage) et outil (maintenance) pour le
+// tarif de prestation, carte bancaire (non réglé) et check (payé) pour le prix
+// de réservation. Pastilles de 21px → variantes PLEINES de Reicon, plus lisibles
+// que le duotone a cette taille. `Faders` habille le menu de préférences
+// (apparence + langue + devise) de la barre latérale.
+export const BroomFill = createIcon('BroomFill', { filled: broomFilled });
+export const WrenchFill = createIcon('WrenchFill', { filled: setting2Filled });
+export const CreditCardFill = createIcon('CreditCardFill', { filled: cardFilled });
+export const CheckBold = createIcon('CheckBold', { filled: checkFilled });
+export const Faders = createIcon('Faders', { duotone: tuning2Duotone });
 
 // Symbole officiel du riyal saoudien (U+20C1, Unicode 17.0 — pas encore
 // supporté par les polices courantes, donc rendu en icône plutôt qu'en
-// caractère). Glyphe Lucide « saudi-riyal » (≥ 1.x), inspiré du symbole SAMA.
-export { SaudiRiyal } from 'lucide-react';
+// caractère). Tracé « saudi-riyal » inspiré du symbole SAMA (cf. glyphs/SaudiRiyal.ts).
+export { SaudiRiyal } from './glyphs';
 
 // « Scanner » (revue proactive) — balayage radar, métaphore de scan la plus
-// parlante ; stroke Lucide cohérent avec le reste du HUD.
-export { Radar } from 'lucide-react';
+// parlante.
+export { Radar } from './glyphs';
 
 // Symbole du dirham marocain — pas de code Unicode rendu par les polices ni
-// d'icône lucide/Iconify dédiée (symbole récent). Glyphe vectoriel (deux barres
+// d'icône Reicon/Iconify dédiée (symbole récent). Glyphe vectoriel (deux barres
 // verticales + swash calligraphique) enregistré EN LOCAL ; viewBox carré centré
 // sur la glyphe (bbox réelle x≈[261,346] y≈[17,143]) pour un rendu sans
 // déformation à taille carrée.
@@ -313,7 +278,7 @@ export {
   RotateCw as Sync,
   RadioTower as SettingsInputAntenna,
   ReceiptText as Receipt,
-} from 'lucide-react';
+} from './glyphs';
 
 // ─── Localisation / map ─────────────────────────────────────────────────────
 export {
@@ -322,7 +287,7 @@ export {
   Building2 as LocationCity,
   Globe as Public,
   Flag,
-} from 'lucide-react';
+} from './glyphs';
 
 // ─── Media / fichiers ───────────────────────────────────────────────────────
 export {
@@ -337,7 +302,7 @@ export {
   Paperclip as AttachFile,
   Folder,
   File,
-} from 'lucide-react';
+} from './glyphs';
 
 // ─── Communication ──────────────────────────────────────────────────────────
 export {
@@ -354,7 +319,7 @@ export {
   Languages as Language,
   Mic,
   MicOff,
-} from 'lucide-react';
+} from './glyphs';
 
 // ─── Meteo (Open-Meteo widget) ───────────────────────────────────────────────
 export {
@@ -367,7 +332,7 @@ export {
   CloudLightning as WeatherStorm,
   CloudFog as WeatherFog,
   Droplets as WeatherDroplets,
-} from 'lucide-react';
+} from './glyphs';
 
 // ─── Reglages / parametres ──────────────────────────────────────────────────
 export {
@@ -403,7 +368,7 @@ export {
   CircleCheckBig as TaskAlt,
   AlignLeft as Notes,
   BadgeCheck as Verified,
-} from 'lucide-react';
+} from './glyphs';
 
 // ─── Dashboard / analytics / monitoring ─────────────────────────────────────
 export {
@@ -436,7 +401,7 @@ export {
   RefreshCwOff as SyncProblem,
   SlidersHorizontal as Tune,
   Volume2 as VolumeUp,
-} from 'lucide-react';
+} from './glyphs';
 
 // ─── Settings / org / users / teams ─────────────────────────────────────────
 export {
@@ -454,7 +419,7 @@ export {
   ArrowDownAZ as SortByAlpha,
   Star as StarRate,
   UserCog as SupervisorAccount,
-} from 'lucide-react';
+} from './glyphs';
 
 // ─── Phase 8 : booking / documents / channels / messaging / admin / misc ────
 export {
@@ -516,7 +481,7 @@ export {
   Thermometer as Thermostat,
   ArchiveRestore as Unarchive,
   PanelLeft as ViewSidebar,
-  // Booking-engine Design tokens (Rounded variants → modern Lucide equivalents)
+  // Booking-engine Design tokens (variantes MUI « Rounded » → glyphes Reicon)
   ChevronDown as ExpandMoreRounded,
   Palette as PaletteRounded,
   Type as TextFieldsRounded,
@@ -558,9 +523,9 @@ export {
   Shirt as RoleLaundry,
   Leaf as RoleExteriorTech,
   Home as RoleHost,
-} from 'lucide-react';
+} from './glyphs';
 
-// LinkedIn — pas dans Lucide → Iconify
+// LinkedIn — logo de marque, pas dans Reicon → Iconify
 /**
  * Types de logement (`PROPERTY_TYPES` de `utils/statusUtils.ts`) — une forme
  * par type, pour les surfaces ou le libelle ne tient pas : colonne logements
@@ -582,14 +547,17 @@ export {
   BedDouble as PropertyGuestRoom,
   Sailboat as PropertyBoat,
   KeyRound as PropertyOther,
-} from 'lucide-react';
+} from './glyphs';
 
 export const LinkedIn: FC<IconifyProps> = (props) =>
   createElement(_IronifyIcon, buildIconifyProps('mdi:linkedin', props));
 
-// WhatsApp — pas de variante officielle dans Lucide → fallback Iconify
-export const WhatsApp: FC<IconifyProps> = (props) =>
-  createElement(_IronifyIcon, buildIconifyProps('mdi:whatsapp', props));
+// WhatsApp — logo de marque, tracé repris de `reicon-brands` (MIT).
+export const WhatsApp = createIcon('WhatsApp', {
+  filled: {
+    body: '<path fill="currentColor" d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413Z"/>',
+  },
+});
 
 // ─── Re-export du composant Iconify pour les cas exotiques ──────────────────
 // Usage : <Icon icon="mdi:stairs" width={16} />

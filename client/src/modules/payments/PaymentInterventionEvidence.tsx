@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { Download, ExternalLink, FileText, MapPin } from 'lucide-react';
+import { Download, ExternalLink, FileText, MapPin } from '../../icons/glyphs';
 import { Button, Dialog, DialogContent, DialogHeader, DialogTitle, Skeleton, Spinner } from '../../components/ui';
 import { useAuth } from '../../hooks/useAuth';
 import { useTranslation } from '../../hooks/useTranslation';

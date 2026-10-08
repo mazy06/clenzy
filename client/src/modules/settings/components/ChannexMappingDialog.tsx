@@ -18,7 +18,7 @@ import { cn } from '../../../utils/cn';
 import StatusChip from '../../../components/StatusChip';
 import { Badge, Button } from '../../../components/ui';
 import { Alert as UiAlert, AlertDescription } from '../../../components/ui';
-import { TriangleAlert, Info } from 'lucide-react';
+import { TriangleAlert, Info } from '../../../icons/glyphs';
 import { Spinner } from '../../../components/ui';
 import {
   Dialog,
@@ -32,7 +32,7 @@ import {
   TooltipTrigger,
 } from '../../../components/ui';
 import { Field, FieldLabel, FieldDescription, Input } from '../../../components/ui';
-import { Plus, RefreshCw, Trash2, CheckCircle2, AlertCircle, Clock, PauseCircle, ExternalLink, Download, Link2, ArrowLeft, ChevronRight, Globe, Home, Sparkles, Settings as SettingsIcon } from 'lucide-react';
+import { Plus, RefreshCw, Trash2, CheckCircle2, AlertCircle, Clock, PauseCircle, ExternalLink, Download, Link2, ArrowLeft, ChevronRight, Globe, Home, Sparkles, Settings as SettingsIcon } from '../../../icons/glyphs';
 
 import { useTranslation } from '../../../hooks/useTranslation';
 import { useAuth } from '../../../hooks/useAuth';

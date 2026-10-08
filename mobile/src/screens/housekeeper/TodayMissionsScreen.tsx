@@ -5,7 +5,7 @@ import { FlashList } from '@shopify/flash-list';
 import { useNavigation } from '@react-navigation/native';
 import { useTranslation } from 'react-i18next';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { Ionicons } from '@expo/vector-icons';
+import { Reicon } from '@/icons';
 import { useMissionsForDate, useMissionsForRange } from '@/hooks/useInterventions';
 import { useTeams } from '@/hooks/useTeams';
 import { useAuthStore } from '@/store/authStore';
@@ -15,7 +15,7 @@ import { NotificationBell } from '@/components/ui/NotificationBell';
 import { useTheme } from '@/theme';
 import type { Intervention } from '@/api/endpoints/interventionsApi';
 
-type IoniconsName = keyof typeof Ionicons.glyphMap;
+type IconName = keyof typeof Reicon.glyphMap;
 
 type TodayStackNav = NativeStackNavigationProp<{
   TodayMissions: undefined;
@@ -66,7 +66,7 @@ function getWeekEnd(today: Date): Date {
 // ─── KPI Card component ───────────────────────────────────────────────
 
 function KpiCard({ icon, label, value, sub, color, theme }: {
-  icon: IoniconsName;
+  icon: IconName;
   label: string;
   value: string | number;
   sub?: string;
@@ -87,7 +87,7 @@ function KpiCard({ icon, label, value, sub, color, theme }: {
         backgroundColor: `${color}14`,
         alignItems: 'center', justifyContent: 'center',
       }}>
-        <Ionicons name={icon} size={16} color={color} />
+        <Reicon name={icon} size={16} color={color} />
       </View>
       <Text style={{ ...theme.typography.h3, color: theme.colors.text.primary }}>
         {value}

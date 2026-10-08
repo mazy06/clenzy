@@ -21,7 +21,7 @@ import HeaderSearchField from '../../../components/HeaderSearchField';
 import { cn } from '../../../utils/cn';
 import { Badge, Button } from '../../../components/ui';
 import { Alert, AlertDescription } from '../../../components/ui';
-import { TriangleAlert, Info } from 'lucide-react';
+import { TriangleAlert, Info } from '../../../icons/glyphs';
 import {
   Checkbox,
   Dialog,
@@ -56,7 +56,7 @@ import {
   Link2,
   Building2,
   CheckCheck,
-} from 'lucide-react';
+} from '../../../icons/glyphs';
 import AmenityIconPicker from './AmenityIconPicker';
 import { resolveAmenityIcon, getCurrentIconName, DEFAULT_AMENITY_ICONS } from './amenityIcons';
 import { useAmenityIconOverrides } from './useAmenityIconOverrides';

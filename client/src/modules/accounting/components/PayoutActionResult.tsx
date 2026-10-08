@@ -1,4 +1,4 @@
-import { CircleCheck, Info, TriangleAlert, X } from 'lucide-react';
+import { CircleCheck, Info, TriangleAlert, X } from '../../../icons/glyphs';
 import { Alert, AlertAction, AlertDescription, Button } from '../../../components/ui';
 import { useTranslation } from '../../../hooks/useTranslation';
 

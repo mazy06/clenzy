@@ -1,7 +1,7 @@
 import React from 'react';
 import { View, Text, Pressable } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
-import { Ionicons } from '@expo/vector-icons';
+import { Reicon } from '@/icons';
 import { useNotificationStore } from '@/store/notificationStore';
 import { useUnreadCount } from '@/hooks/useNotifications';
 import { useTheme } from '@/theme';
@@ -32,7 +32,7 @@ export function NotificationBell() {
         justifyContent: 'center',
       })}
     >
-      <Ionicons name="notifications-outline" size={22} color={theme.colors.text.primary} />
+      <Reicon name="notifications-outline" size={22} color={theme.colors.text.primary} />
 
       {/* Badge */}
       {unreadCount > 0 && (

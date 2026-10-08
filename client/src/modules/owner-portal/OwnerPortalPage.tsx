@@ -7,7 +7,7 @@ import ShowcaseEmpty from '../../components/baitly/ShowcaseEmpty';
 import EmptyState from '../../components/EmptyState';
 import { Badge, Button } from '../../components/ui';
 import { Alert, AlertDescription } from '../../components/ui';
-import { TriangleAlert } from 'lucide-react';
+import { TriangleAlert } from '../../icons/glyphs';
 import { Card, Skeleton, Spinner } from '../../components/ui';
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '../../components/ui';
 import { Field, FieldLabel, FieldDescription, Input } from '../../components/ui';

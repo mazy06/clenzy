@@ -1,7 +1,7 @@
 import React, { useState, useMemo, useCallback } from 'react';
 import { View, Text, FlatList, Pressable, RefreshControl } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Ionicons } from '@expo/vector-icons';
+import { Reicon } from '@/icons';
 import { useNavigation } from '@react-navigation/native';
 import { useTheme } from '@/theme';
 import { Skeleton } from '@/components/ui/Skeleton';
@@ -9,11 +9,11 @@ import { EmptyState } from '@/components/ui/EmptyState';
 import { useConversations, useMyConversations } from '@/hooks/useConversations';
 import type { ConversationDto, ConversationStatus, ConversationChannel } from '@/api/endpoints/conversationApi';
 
-type IoniconsName = keyof typeof Ionicons.glyphMap;
+type IconName = keyof typeof Reicon.glyphMap;
 
 /* ─── Channel config ─── */
 
-const CHANNEL_CONFIG: Record<string, { icon: IoniconsName; label: string; color: string }> = {
+const CHANNEL_CONFIG: Record<string, { icon: IconName; label: string; color: string }> = {
   AIRBNB: { icon: 'logo-no-smoking', label: 'Airbnb', color: '#FF5A5F' },
   BOOKING: { icon: 'bed-outline', label: 'Booking', color: '#003580' },
   WHATSAPP: { icon: 'logo-whatsapp', label: 'WhatsApp', color: '#25D366' },
@@ -141,7 +141,7 @@ function ConversationCard({
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 3 }}>
           {conversation.propertyName && (
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 3 }}>
-              <Ionicons name="home-outline" size={10} color={theme.colors.text.disabled} />
+              <Reicon name="home-outline" size={10} color={theme.colors.text.disabled} />
               <Text style={{ fontSize: 10, color: theme.colors.text.disabled }} numberOfLines={1}>
                 {conversation.propertyName}
               </Text>
@@ -156,7 +156,7 @@ function ConversationCard({
             borderRadius: 4,
             backgroundColor: `${channelCfg.color}10`,
           }}>
-            <Ionicons name={channelCfg.icon} size={9} color={channelCfg.color} />
+            <Reicon name={channelCfg.icon} size={9} color={channelCfg.color} />
             <Text style={{ fontSize: 9, color: channelCfg.color, fontWeight: '600' }}>
               {channelCfg.label}
             </Text>
@@ -277,10 +277,10 @@ export function ConversationScreen({
         }}>
           {showBack && (
             <Pressable onPress={() => navigation.goBack()} hitSlop={8}>
-              <Ionicons name="chevron-back" size={22} color={theme.colors.text.primary} />
+              <Reicon name="chevron-back" size={22} color={theme.colors.text.primary} />
             </Pressable>
           )}
-          <Ionicons name="chatbubbles" size={22} color={theme.colors.primary.main} />
+          <Reicon name="chatbubbles" size={22} color={theme.colors.primary.main} />
           <Text style={{ ...theme.typography.h3, color: theme.colors.text.primary, flex: 1 }}>
             {title}
           </Text>

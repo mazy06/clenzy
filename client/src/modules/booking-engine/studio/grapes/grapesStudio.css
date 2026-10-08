@@ -59,7 +59,8 @@
 /* Icône à gauche : neutre au repos, accent au survol. */
 .clenzy-grapes .gjs-block__media { color: var(--muted); line-height: 0; display: flex; align-items: center; transition: color var(--duration-fast) var(--ease-out); }
 .clenzy-grapes .gjs-block:hover .gjs-block__media { color: var(--accent); }
-.clenzy-grapes .gjs-block svg { fill: none; stroke: currentColor; width: 18px; height: 18px; }
+/* Icônes de bloc : glyphes Reicon en aplats (cf. bookingWidgetDefs) → remplissage, pas de trait. */
+.clenzy-grapes .gjs-block svg { fill: currentColor; stroke: none; width: 18px; height: 18px; }
 /* Texte (titre + description) au centre. */
 .clenzy-grapes .gjs-block-label { display: flex; flex-direction: column; gap: 1px; min-width: 0; text-align: left; }
 .clenzy-grapes .cz-bk-title { font-size: var(--text-sm); font-weight: var(--fw-medium); color: var(--ink); line-height: 1.3; }

@@ -1,5 +1,5 @@
 import { useRef, useState } from 'react';
-import { Check, CheckCheck, ListChecks, Play, X, Search } from 'lucide-react';
+import { Check, CheckCheck, ListChecks, Play, X, Search } from '../../icons/glyphs';
 import { Button, Checkbox, Spinner, Tooltip, TooltipContent, TooltipTrigger, Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, Input } from '../../components/ui';
 import { useTranslation } from '../../hooks/useTranslation';
 import { activeIntlLocale } from '../../utils/activeLocale';

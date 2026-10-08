@@ -1,6 +1,6 @@
 import * as React from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeftIcon } from 'lucide-react';
+import { ArrowLeftIcon } from '../../icons/glyphs';
 import { Button } from '../ui';
 import { cn } from '../../utils/cn';
 

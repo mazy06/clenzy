@@ -1,5 +1,5 @@
 import React from 'react';
-import { ChevronRight } from 'lucide-react';
+import { ChevronRight } from '../../icons/glyphs';
 import PropertyThumb from '../../components/PropertyThumb';
 import { Money } from '../../components/Money';
 import { useTranslation } from '../../hooks/useTranslation';

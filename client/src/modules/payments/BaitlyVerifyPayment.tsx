@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { RefreshCw } from 'lucide-react';
+import { RefreshCw } from '../../icons/glyphs';
 import { Button, Spinner, Tooltip, TooltipContent, TooltipTrigger } from '../../components/ui';
 import { useTranslation } from '../../hooks/useTranslation';
 import { paymentsApi } from '../../services/api/paymentsApi';

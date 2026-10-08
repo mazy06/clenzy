@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { FileText, Plus, RefreshCw, Send } from 'lucide-react';
+import { FileText, Plus, RefreshCw, Send } from '../../icons/glyphs';
 import { Button } from '../../components/ui';
 import { useScreenTabs } from '../../hooks/useScreenTabs';
 import PageHeader from '../../components/PageHeader';

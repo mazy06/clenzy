@@ -2,7 +2,7 @@ import React, { useCallback, useMemo, useState } from 'react';
 import { View, Text, ScrollView, Pressable, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
-import { Ionicons } from '@expo/vector-icons';
+import { Reicon } from '@/icons';
 import { useTheme } from '@/theme';
 import { useAuthStore } from '@/store/authStore';
 import { useSettingsStore, type ThemeMode, type AppLanguage } from '@/store/settingsStore';
@@ -13,13 +13,13 @@ import { Divider } from '@/components/ui/Divider';
 import { useNotificationPreferences, useUpdateNotificationPreference, useUpdateCategoryPreferences } from '@/hooks/useNotificationPreferences';
 import { useMessagingAutomation, useUpdateMessagingAutomation } from '@/hooks/useMessagingAutomation';
 
-type IoniconsName = keyof typeof Ionicons.glyphMap;
+type IconName = keyof typeof Reicon.glyphMap;
 
 /* ─── Notification categories config ─── */
 
 interface CategoryConfig {
   label: string;
-  icon: IoniconsName;
+  icon: IconName;
   keys: string[];
 }
 
@@ -236,7 +236,7 @@ const ORG_TYPE_LABELS: Record<string, string> = {
 interface TabDef {
   key: string;
   label: string;
-  icon: IoniconsName;
+  icon: IconName;
 }
 
 const BASE_TABS: TabDef[] = [
@@ -360,7 +360,7 @@ function GeneralTab({ theme, configLoading, automationConfig, updateAutomation, 
               backgroundColor: `${theme.colors.primary.main}0C`,
               alignItems: 'center', justifyContent: 'center', marginRight: theme.SPACING.md,
             }}>
-              <Ionicons name={theme.isDark ? 'moon-outline' : 'sunny-outline'} size={18} color={theme.colors.primary.main} />
+              <Reicon name={theme.isDark ? 'moon-outline' : 'sunny-outline'} size={18} color={theme.colors.primary.main} />
             </View>
             <Text style={{ ...theme.typography.body2, color: theme.colors.text.primary, fontWeight: '500' }}>
               Apparence
@@ -389,7 +389,7 @@ function GeneralTab({ theme, configLoading, automationConfig, updateAutomation, 
               backgroundColor: `${theme.colors.primary.main}0C`,
               alignItems: 'center', justifyContent: 'center', marginRight: theme.SPACING.md,
             }}>
-              <Ionicons name="language-outline" size={18} color={theme.colors.primary.main} />
+              <Reicon name="language-outline" size={18} color={theme.colors.primary.main} />
             </View>
             <Text style={{ ...theme.typography.body2, color: theme.colors.text.primary, fontWeight: '500' }}>
               Langue
@@ -507,7 +507,7 @@ function OrganisationTab({ theme, user, navigation }: {
             backgroundColor: `${theme.colors.secondary.main}0C`,
             alignItems: 'center', justifyContent: 'center', marginRight: theme.SPACING.md,
           }}>
-            <Ionicons name="business-outline" size={18} color={theme.colors.secondary.main} />
+            <Reicon name="business-outline" size={18} color={theme.colors.secondary.main} />
           </View>
           <View style={{ flex: 1 }}>
             <Text style={{ ...theme.typography.caption, color: theme.colors.text.disabled }}>
@@ -528,7 +528,7 @@ function OrganisationTab({ theme, user, navigation }: {
             backgroundColor: `${theme.colors.secondary.main}0C`,
             alignItems: 'center', justifyContent: 'center', marginRight: theme.SPACING.md,
           }}>
-            <Ionicons name="briefcase-outline" size={18} color={theme.colors.secondary.main} />
+            <Reicon name="briefcase-outline" size={18} color={theme.colors.secondary.main} />
           </View>
           <View style={{ flex: 1 }}>
             <Text style={{ ...theme.typography.caption, color: theme.colors.text.disabled }}>
@@ -558,12 +558,12 @@ function OrganisationTab({ theme, user, navigation }: {
             backgroundColor: `${theme.colors.secondary.main}0C`,
             alignItems: 'center', justifyContent: 'center', marginRight: theme.SPACING.md,
           }}>
-            <Ionicons name="people-outline" size={18} color={theme.colors.secondary.main} />
+            <Reicon name="people-outline" size={18} color={theme.colors.secondary.main} />
           </View>
           <Text style={{ ...theme.typography.body2, color: theme.colors.text.primary, fontWeight: '500', flex: 1 }}>
             Gestion d'equipe
           </Text>
-          <Ionicons name="chevron-forward" size={16} color={theme.colors.text.disabled} />
+          <Reicon name="chevron-forward" size={16} color={theme.colors.text.disabled} />
         </Pressable>
       </Card>
     </ScrollView>
@@ -672,7 +672,7 @@ export function HostSettingsScreen() {
         gap: theme.SPACING.md,
       }}>
         <Pressable onPress={() => navigation.goBack()} hitSlop={8}>
-          <Ionicons name="chevron-back" size={22} color={theme.colors.text.primary} />
+          <Reicon name="chevron-back" size={22} color={theme.colors.text.primary} />
         </Pressable>
         <Text style={{ ...theme.typography.h3, color: theme.colors.text.primary, flex: 1 }}>
           Parametres
@@ -701,7 +701,7 @@ export function HostSettingsScreen() {
                 borderBottomColor: isActive ? theme.colors.primary.main : 'transparent',
               }}
             >
-              <Ionicons
+              <Reicon
                 name={tab.icon}
                 size={18}
                 color={isActive ? theme.colors.primary.main : theme.colors.text.disabled}

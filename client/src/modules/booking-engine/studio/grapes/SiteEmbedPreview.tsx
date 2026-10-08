@@ -7,7 +7,7 @@ import {
   EmptyMedia,
   Spinner,
 } from '../../../../components/ui';
-import { TriangleAlert, Wand2 } from 'lucide-react';
+import { TriangleAlert, Wand2 } from '../../../../icons/glyphs';
 import { BaitlyWidget } from '../../sdk/BaitlyWidget';
 import { widgetThemeFromTokens } from '../../widgetTheme';
 import { API_CONFIG } from '../../../../config/api';

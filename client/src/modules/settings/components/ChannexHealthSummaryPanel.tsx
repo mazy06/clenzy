@@ -35,7 +35,7 @@ import {
   Activity,
   ChevronRight,
   TriangleAlert,
-} from 'lucide-react';
+} from '../../../icons/glyphs';
 
 import { channexApi, CHANNEX_STATUS_META } from '../../../services/api/channexApi';
 import { useTranslation } from '../../../hooks/useTranslation';

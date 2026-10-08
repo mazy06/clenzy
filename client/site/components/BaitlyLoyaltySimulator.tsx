@@ -7,7 +7,7 @@ import {
   RotateCcwIcon,
   ArrowDownRightIcon,
   PlusIcon,
-} from 'lucide-react';
+} from '../../src/icons/glyphs';
 import { useSiteLanguage } from '../lib/siteLanguage';
 import { PRICING_MESSAGES } from '../lib/messages/pricing';
 import { BAITLY_LOYALTY_MESSAGES } from '../lib/messages/baitlyLoyalty';

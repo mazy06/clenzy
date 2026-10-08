@@ -9,7 +9,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from './ui';
-import { TriangleAlert, X } from 'lucide-react';
+import { TriangleAlert, X } from '../icons/glyphs';
 import {
   Close as CloseIcon,
   Lock as LockIcon,

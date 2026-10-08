@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Button, Input, Spinner } from '../../components/ui';
-import { Wallet } from 'lucide-react';
+import { Wallet } from '../../icons/glyphs';
 import SettingsSection from './components/SettingsSection';
 import {
   usePlatformSettings,

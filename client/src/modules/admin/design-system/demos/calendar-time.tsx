@@ -1,5 +1,5 @@
 import * as React from "react"
-import { Clock2Icon } from "lucide-react"
+import { Clock2Icon } from "../../../../icons/glyphs"
 
 import { Calendar } from '../../../../components/ui/calendar';
 import { Card, CardContent, CardFooter } from '../../../../components/ui'

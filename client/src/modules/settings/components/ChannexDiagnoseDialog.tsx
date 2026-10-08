@@ -48,7 +48,7 @@ import {
   ExternalLink,
   Stethoscope,
   X,
-} from 'lucide-react';
+} from '../../../icons/glyphs';
 
 import { channexApi, CHANNEX_STATUS_META } from '../../../services/api/channexApi';
 import type {

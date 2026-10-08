@@ -6,7 +6,7 @@ import { useAuth } from '../../hooks/useAuth';
 import React, { useState, useEffect, useMemo } from 'react';
 import StatusChip from '../../components/StatusChip';
 import { Alert as UiAlert, AlertDescription } from '../../components/ui';
-import { Info } from 'lucide-react';
+import { Info } from '../../icons/glyphs';
 import {
   Spinner,
   Button,
@@ -44,7 +44,7 @@ import {
   LogIn, Clock, Coffee, Car, SquareParking,
   BookOpen, Network, ChevronRight, ArrowLeft, Eye, Home,
   MoreHorizontal, Power,
-} from 'lucide-react';
+} from '../../icons/glyphs';
 // Feuille de style « studio accueil » partagée (scopée .be-home ; l'accent du
 // module y est défini : bleu nuit, la teinte de la barre latérale relevée).
 import '../booking-engine/studio/studioHome.css';

@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState, type CSSProperties } from 'react';
 import { cn } from '../utils/cn';
 import { Alert, AlertDescription, Button, Dialog, DialogContent, DialogHeader, DialogTitle, Spinner } from './ui';
-import { Sparkles, X, Wallet, AlertTriangle, ArrowRight, Check } from 'lucide-react';
+import { Sparkles, X, Wallet, AlertTriangle, ArrowRight, Check } from '../icons/glyphs';
 import { aiCreditsApi, toCredits, type CreditPack } from '../services/api/aiCreditsApi';
 import { useTranslation } from '../hooks/useTranslation';
 

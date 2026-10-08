@@ -14,7 +14,7 @@ import {
   ItemTitle,
   Separator,
 } from '../../components/ui';
-import { Mail, Rocket, Users, ChevronDown, ChevronUp, UserPlus } from 'lucide-react';
+import { Mail, Rocket, Users, ChevronDown, ChevronUp, UserPlus } from '../../icons/glyphs';
 import SettingsSection from './components/SettingsSection';
 import SettingsToggleRow from './components/SettingsToggleRow';
 import { usePlatformSettings, useSetProspectDevisEmails, useSetDevisLeadsToWaitlist, useSetInternalNotificationEmails, useSetSender } from '../../hooks/usePlatformSettings';

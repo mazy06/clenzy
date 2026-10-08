@@ -3,7 +3,7 @@ import { View, Text, ScrollView, Pressable, RefreshControl } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRoute, useNavigation } from '@react-navigation/native';
 import type { RouteProp } from '@react-navigation/native';
-import { Ionicons } from '@expo/vector-icons';
+import { Reicon } from '@/icons';
 import * as Clipboard from 'expo-clipboard';
 import { useProperty } from '@/hooks/useProperties';
 import { Card } from '@/components/ui/Card';
@@ -11,7 +11,7 @@ import { EmptyState } from '@/components/ui/EmptyState';
 import { Skeleton } from '@/components/ui/Skeleton';
 import { useTheme } from '@/theme';
 
-type IoniconsName = keyof typeof Ionicons.glyphMap;
+type IconName = keyof typeof Reicon.glyphMap;
 type RouteParams = { PropertyInstructions: { propertyId: number } };
 
 /* ─── Copiable field ─── */
@@ -44,7 +44,7 @@ function CopyableField({ label, value, theme }: {
           alignItems: 'center', justifyContent: 'center',
         }}
       >
-        <Ionicons
+        <Reicon
           name={copied ? 'checkmark' : 'copy-outline'}
           size={18}
           color={copied ? theme.colors.success.main : theme.colors.primary.main}
@@ -57,7 +57,7 @@ function CopyableField({ label, value, theme }: {
 /* ─── Instruction section card ─── */
 
 function InstructionSection({ icon, iconColor, label, children, theme }: {
-  icon: IoniconsName;
+  icon: IconName;
   iconColor: string;
   label: string;
   children: React.ReactNode;
@@ -71,7 +71,7 @@ function InstructionSection({ icon, iconColor, label, children, theme }: {
           backgroundColor: `${iconColor}0C`,
           alignItems: 'center', justifyContent: 'center',
         }}>
-          <Ionicons name={icon} size={17} color={iconColor} />
+          <Reicon name={icon} size={17} color={iconColor} />
         </View>
         <Text style={{ ...theme.typography.body1, color: theme.colors.text.primary, fontWeight: '600' }}>
           {label}
@@ -124,7 +124,7 @@ export function PropertyInstructionsScreen() {
           backgroundColor: theme.colors.background.paper,
         }}>
           <Pressable onPress={() => navigation.goBack()} hitSlop={8} style={{ marginRight: theme.SPACING.md }}>
-            <Ionicons name="chevron-back" size={22} color={theme.colors.text.primary} />
+            <Reicon name="chevron-back" size={22} color={theme.colors.text.primary} />
           </Pressable>
           <Text style={{ ...theme.typography.h3, color: theme.colors.text.primary }}>Instructions voyageurs</Text>
         </View>
@@ -159,7 +159,7 @@ export function PropertyInstructionsScreen() {
         backgroundColor: theme.colors.background.paper,
       }}>
         <Pressable onPress={() => navigation.goBack()} hitSlop={8} style={{ marginRight: theme.SPACING.md }}>
-          <Ionicons name="chevron-back" size={22} color={theme.colors.text.primary} />
+          <Reicon name="chevron-back" size={22} color={theme.colors.text.primary} />
         </Pressable>
         <Text style={{ ...theme.typography.h3, color: theme.colors.text.primary, flex: 1 }}>Instructions voyageurs</Text>
       </View>
@@ -185,7 +185,7 @@ export function PropertyInstructionsScreen() {
                 alignItems: 'center', justifyContent: 'center',
                 marginBottom: theme.SPACING.sm,
               }}>
-                <Ionicons name="log-in-outline" size={22} color={theme.colors.success.main} />
+                <Reicon name="log-in-outline" size={22} color={theme.colors.success.main} />
               </View>
               <Text style={{ ...theme.typography.caption, color: theme.colors.text.secondary, marginBottom: 4 }}>Check-in</Text>
               <Text style={{ ...theme.typography.h2, color: theme.colors.success.main }}>
@@ -204,7 +204,7 @@ export function PropertyInstructionsScreen() {
                 alignItems: 'center', justifyContent: 'center',
                 marginBottom: theme.SPACING.sm,
               }}>
-                <Ionicons name="log-out-outline" size={22} color={theme.colors.error.main} />
+                <Reicon name="log-out-outline" size={22} color={theme.colors.error.main} />
               </View>
               <Text style={{ ...theme.typography.caption, color: theme.colors.text.secondary, marginBottom: 4 }}>Check-out</Text>
               <Text style={{ ...theme.typography.h2, color: theme.colors.error.main }}>
@@ -325,7 +325,7 @@ export function PropertyInstructionsScreen() {
                 backgroundColor: `${theme.colors.error.main}12`,
                 alignItems: 'center', justifyContent: 'center',
               }}>
-                <Ionicons name="call-outline" size={20} color={theme.colors.error.main} />
+                <Reicon name="call-outline" size={20} color={theme.colors.error.main} />
               </View>
               <View style={{ flex: 1 }}>
                 {(instructions?.emergencyContact || property.emergencyContact) && (

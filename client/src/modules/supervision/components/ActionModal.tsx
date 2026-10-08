@@ -2,7 +2,7 @@ import type { ComponentProps, ReactNode } from 'react';
 import {
   Button, DialogClose, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, Skeleton,
 } from '../../../components/ui';
-import { X } from 'lucide-react';
+import { X } from '../../../icons/glyphs';
 import { useTranslation } from '../../../hooks/useTranslation';
 import { cn } from '../../../utils/cn';
 import { AGENT_META } from '../constants';

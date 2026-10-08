@@ -1,7 +1,7 @@
 import React, { useMemo, useState } from 'react';
 import { View, Text, ScrollView, RefreshControl, Pressable } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Ionicons } from '@expo/vector-icons';
+import { Reicon } from '@/icons';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import type { RouteProp } from '@react-navigation/native';
 import { useQuery } from '@tanstack/react-query';
@@ -31,7 +31,7 @@ type RouteParams = {
 
 type FilterKey = 'all' | TemplateCategory;
 
-const CATEGORY_CONFIG: Record<string, { label: string; icon: keyof typeof Ionicons.glyphMap; color: string; badgeColor: 'primary' | 'success' | 'info' | 'warning' | 'secondary' }> = {
+const CATEGORY_CONFIG: Record<string, { label: string; icon: keyof typeof Reicon.glyphMap; color: string; badgeColor: 'primary' | 'success' | 'info' | 'warning' | 'secondary' }> = {
   CHECK_IN: { label: 'Check-in', icon: 'log-in-outline', color: '#059669', badgeColor: 'success' },
   CHECK_OUT: { label: 'Check-out', icon: 'log-out-outline', color: '#D97706', badgeColor: 'warning' },
   WELCOME: { label: 'Bienvenue', icon: 'happy-outline', color: '#3B82F6', badgeColor: 'info' },
@@ -119,7 +119,7 @@ function TemplateCard({ template, onSelect }: { template: MessageTemplate; onSel
           justifyContent: 'center',
           marginTop: 2,
         }}>
-          <Ionicons name={catCfg.icon} size={18} color={catCfg.color} />
+          <Reicon name={catCfg.icon} size={18} color={catCfg.color} />
         </View>
         <View style={{ flex: 1 }}>
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 4 }}>
@@ -178,7 +178,7 @@ export function MessageTemplatesScreen() {
       <SafeAreaView style={{ flex: 1, backgroundColor: theme.colors.background.default }} edges={['top']}>
         <View style={{ flexDirection: 'row', alignItems: 'center', paddingHorizontal: theme.SPACING.lg, paddingTop: theme.SPACING.lg, paddingBottom: theme.SPACING.md }}>
           <Pressable onPress={() => navigation.goBack()} hitSlop={12} style={{ width: 36, height: 36, borderRadius: theme.BORDER_RADIUS.md, backgroundColor: theme.colors.background.paper, alignItems: 'center', justifyContent: 'center', marginRight: theme.SPACING.md }}>
-            <Ionicons name="arrow-back" size={20} color={theme.colors.text.primary} />
+            <Reicon name="arrow-back" size={20} color={theme.colors.text.primary} />
           </Pressable>
           <Text style={{ ...theme.typography.h2, color: theme.colors.text.primary }}>Modeles</Text>
         </View>
@@ -210,7 +210,7 @@ export function MessageTemplatesScreen() {
             marginRight: theme.SPACING.md,
           }}
         >
-          <Ionicons name="arrow-back" size={20} color={theme.colors.text.primary} />
+          <Reicon name="arrow-back" size={20} color={theme.colors.text.primary} />
         </Pressable>
         <Text style={{ ...theme.typography.h2, color: theme.colors.text.primary, flex: 1 }}>
           Modeles de messages

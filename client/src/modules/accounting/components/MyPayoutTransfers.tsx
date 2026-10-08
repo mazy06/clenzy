@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { ArrowLeft, ChevronDown, ChevronRight, RefreshCw } from 'lucide-react';
+import { ArrowLeft, ChevronDown, ChevronRight, RefreshCw } from '../../../icons/glyphs';
 import { Badge, Button, Skeleton } from '../../../components/ui';
 import PagePagination from '../../../components/PagePagination';
 import { usePageHeaderActions } from '../../../components/PageHeaderActionsContext';

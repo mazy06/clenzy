@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useId, useRef, useState } from 'react';
 import StatusChip from '../../../components/StatusChip';
 import { Alert as UiAlert, AlertAction, AlertDescription } from '../../../components/ui';
-import { Info, TriangleAlert, CircleCheck, X } from 'lucide-react';
+import { Info, TriangleAlert, CircleCheck, X } from '../../../icons/glyphs';
 import { Spinner } from '../../../components/ui';
 import { Button, Card, Field, FieldLabel, Input } from '../../../components/ui';
 import {

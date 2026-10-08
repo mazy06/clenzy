@@ -1,6 +1,6 @@
 import React from 'react';
 import { NativeSelect, NativeSelectOption, Spinner } from '../../components/ui';
-import { Bot, PenLine, Send, Gem } from 'lucide-react';
+import { Bot, PenLine, Send, Gem } from '../../icons/glyphs';
 import SettingsSection from './components/SettingsSection';
 import SettingsToggleRow from './components/SettingsToggleRow';
 import { usePlatformSettings, useSetConciergeSettings } from '../../hooks/usePlatformSettings';

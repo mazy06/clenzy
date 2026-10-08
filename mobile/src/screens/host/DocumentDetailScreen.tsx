@@ -3,7 +3,7 @@ import { View, Text, ScrollView, Pressable, RefreshControl, Alert, Linking } fro
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRoute, useNavigation } from '@react-navigation/native';
 import type { RouteProp } from '@react-navigation/native';
-import { Ionicons } from '@expo/vector-icons';
+import { Reicon } from '@/icons';
 import * as WebBrowser from 'expo-web-browser';
 import * as FileSystem from 'expo-file-system/legacy';
 import * as Sharing from 'expo-sharing';
@@ -18,10 +18,10 @@ import { Skeleton } from '@/components/ui/Skeleton';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { useTheme } from '@/theme';
 
-type IoniconsName = keyof typeof Ionicons.glyphMap;
+type IconName = keyof typeof Reicon.glyphMap;
 type RouteParams = { DocumentDetail: { documentId: number } };
 
-const DOC_TYPE_CONFIG: Record<string, { icon: IoniconsName; color: string; label: string }> = {
+const DOC_TYPE_CONFIG: Record<string, { icon: IconName; color: string; label: string }> = {
   FACTURE: { icon: 'receipt-outline', color: '#2196F3', label: 'Facture' },
   CONTRAT: { icon: 'document-text-outline', color: '#9C27B0', label: 'Contrat' },
   RECU: { icon: 'card-outline', color: '#4CAF50', label: 'Recu' },
@@ -48,7 +48,7 @@ function formatCurrency(amount: number): string {
 }
 
 function InfoRow({ icon, label, value, theme }: {
-  icon: IoniconsName;
+  icon: IconName;
   label: string;
   value: string;
   theme: ReturnType<typeof useTheme>;
@@ -64,7 +64,7 @@ function InfoRow({ icon, label, value, theme }: {
         alignItems: 'center', justifyContent: 'center',
         marginRight: theme.SPACING.md,
       }}>
-        <Ionicons name={icon} size={16} color={theme.colors.primary.main} />
+        <Reicon name={icon} size={16} color={theme.colors.primary.main} />
       </View>
       <View style={{ flex: 1 }}>
         <Text style={{ ...theme.typography.caption, color: theme.colors.text.disabled }}>{label}</Text>
@@ -193,7 +193,7 @@ export function DocumentDetailScreen() {
             ...theme.shadows.md,
           }}
         >
-          <Ionicons name="chevron-back" size={20} color={theme.colors.text.primary} />
+          <Reicon name="chevron-back" size={20} color={theme.colors.text.primary} />
         </Pressable>
         <View style={{ marginTop: 56 }}>
           <DetailSkeleton theme={theme} />
@@ -244,7 +244,7 @@ export function DocumentDetailScreen() {
               marginRight: theme.SPACING.md,
             }}
           >
-            <Ionicons name="arrow-back" size={20} color={theme.colors.text.primary} />
+            <Reicon name="arrow-back" size={20} color={theme.colors.text.primary} />
           </Pressable>
           <Text style={{ ...theme.typography.h2, color: theme.colors.text.primary, flex: 1 }}>
             Document
@@ -260,7 +260,7 @@ export function DocumentDetailScreen() {
               borderRadius: theme.BORDER_RADIUS.full,
               backgroundColor: `${typeConf.color}14`,
             }}>
-              <Ionicons name={typeConf.icon} size={14} color={typeConf.color} />
+              <Reicon name={typeConf.icon} size={14} color={typeConf.color} />
               <Text style={{ ...theme.typography.caption, fontWeight: '600', color: typeConf.color }}>
                 {typeConf.label}
               </Text>
@@ -276,7 +276,7 @@ export function DocumentDetailScreen() {
               alignItems: 'center', justifyContent: 'center',
               marginBottom: theme.SPACING.md,
             }}>
-              <Ionicons name={typeConf.icon} size={32} color={typeConf.color} />
+              <Reicon name={typeConf.icon} size={32} color={typeConf.color} />
             </View>
             <Text style={{ ...theme.typography.h3, color: theme.colors.text.primary, textAlign: 'center' }}>
               {document.legalNumber ?? document.fileName ?? `Document #${document.id}`}
@@ -311,14 +311,14 @@ export function DocumentDetailScreen() {
               onPress={handleViewPdf}
               variant="contained"
               fullWidth
-              icon={<Ionicons name="eye-outline" size={18} color="#fff" />}
+              icon={<Reicon name="eye-outline" size={18} color="#fff" />}
             />
             <Button
               title="Telecharger PDF"
               onPress={handleDownload}
               variant="soft"
               fullWidth
-              icon={<Ionicons name="download-outline" size={18} color={theme.colors.primary.main} />}
+              icon={<Reicon name="download-outline" size={18} color={theme.colors.primary.main} />}
             />
             <Button
               title="Envoyer par email"
@@ -326,7 +326,7 @@ export function DocumentDetailScreen() {
               variant="outlined"
               fullWidth
               loading={false}
-              icon={<Ionicons name="mail-outline" size={18} color={theme.colors.primary.main} />}
+              icon={<Reicon name="mail-outline" size={18} color={theme.colors.primary.main} />}
             />
             {document.status !== 'PAID' && (
               <Button
@@ -336,7 +336,7 @@ export function DocumentDetailScreen() {
                 color="success"
                 fullWidth
                 loading={false}
-                icon={<Ionicons name="checkmark-circle-outline" size={18} color={theme.colors.success.main} />}
+                icon={<Reicon name="checkmark-circle-outline" size={18} color={theme.colors.success.main} />}
               />
             )}
           </View>

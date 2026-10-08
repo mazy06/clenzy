@@ -1,6 +1,6 @@
 import { useId, useMemo, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { Search } from 'lucide-react';
+import { Search } from '../../icons/glyphs';
 import { Button, Checkbox, Input, Field, FieldLabel, Skeleton, Alert, AlertDescription, Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../components/ui';
 import { serviceReferenceQuery, type ServiceReferenceItem } from '../../components/ServiceItemSelect';
 import { marketplaceProvidersApi } from '../../services/api/marketplaceProvidersApi';

@@ -15,7 +15,7 @@ import {
   SparklesIcon,
   TrendingUpIcon,
   WrenchIcon,
-} from 'lucide-react';
+} from '../../../icons/glyphs';
 import {
   Badge,
   Button,

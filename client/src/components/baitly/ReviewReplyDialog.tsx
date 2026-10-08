@@ -1,7 +1,7 @@
 import * as React from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
-import { BotIcon, CheckIcon, StarIcon, TriangleAlertIcon } from 'lucide-react';
+import { BotIcon, CheckIcon, StarIcon, TriangleAlertIcon } from '../../icons/glyphs';
 import {
   Badge,
   Button,

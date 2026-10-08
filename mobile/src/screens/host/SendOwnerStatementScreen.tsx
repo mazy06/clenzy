@@ -14,7 +14,7 @@
 import React, { useMemo, useState } from 'react';
 import { View, Text, ScrollView, Pressable, ActivityIndicator, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Ionicons } from '@expo/vector-icons';
+import { Reicon } from '@/icons';
 import { useNavigation, useRoute, type RouteProp } from '@react-navigation/native';
 import { useTheme } from '@/theme';
 import { useSendOwnerStatement } from '@/hooks/usePayouts';
@@ -160,7 +160,7 @@ export function SendOwnerStatementScreen() {
             marginRight: theme.SPACING.md,
           }}
         >
-          <Ionicons name="close" size={20} color={theme.colors.text.primary} />
+          <Reicon name="close" size={20} color={theme.colors.text.primary} />
         </Pressable>
         <Text style={{ ...theme.typography.h2, color: theme.colors.text.primary, flex: 1 }}>
           Envoyer un releve
@@ -190,7 +190,7 @@ export function SendOwnerStatementScreen() {
           </Text>
           {ownerEmail && (
             <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 4 }}>
-              <Ionicons name="mail-outline" size={14} color={theme.colors.text.secondary} />
+              <Reicon name="mail-outline" size={14} color={theme.colors.text.secondary} />
               <Text style={{ ...theme.typography.body2, color: theme.colors.text.secondary, marginLeft: 6 }}>
                 {ownerEmail}
               </Text>
@@ -244,7 +244,7 @@ export function SendOwnerStatementScreen() {
                   </Text>
                 </View>
                 {selected && (
-                  <Ionicons name="checkmark-circle" size={20} color={theme.colors.primary.contrastText} />
+                  <Reicon name="checkmark-circle" size={20} color={theme.colors.primary.contrastText} />
                 )}
               </Pressable>
             );
@@ -278,7 +278,7 @@ export function SendOwnerStatementScreen() {
           borderLeftColor: '#4A9B8E',
         }}>
           <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 4 }}>
-            <Ionicons name="information-circle-outline" size={16} color="#3A8579" />
+            <Reicon name="information-circle-outline" size={16} color="#3A8579" />
             <Text style={{ ...theme.typography.caption, color: '#3A8579', fontWeight: '700', marginLeft: 6, textTransform: 'uppercase' }}>
               Contenu de l'email
             </Text>
@@ -322,7 +322,7 @@ export function SendOwnerStatementScreen() {
             <ActivityIndicator color="#FFFFFF" size="small" />
           ) : (
             <>
-              <Ionicons name="paper-plane-outline" size={20} color="#FFFFFF" />
+              <Reicon name="paper-plane-outline" size={20} color="#FFFFFF" />
               <Text style={{ color: '#FFFFFF', fontWeight: '600', fontSize: 16 }}>
                 Envoyer le releve
               </Text>

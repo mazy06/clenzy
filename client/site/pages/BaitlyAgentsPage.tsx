@@ -8,7 +8,7 @@ import {
   PauseIcon,
   PlayIcon,
   ShieldCheckIcon,
-} from 'lucide-react';
+} from '../../src/icons/glyphs';
 import BaitlyMarkLogo from '../../src/components/BaitlyMarkLogo';
 import {
   AGENT_META,

@@ -18,7 +18,7 @@ import {
 } from '../../components/ui';
 import StatusChip from '../../components/StatusChip';
 import type { StatusTone } from '../../components/StatusChip';
-import { TriangleAlert } from 'lucide-react';
+import { TriangleAlert } from '../../icons/glyphs';
 import { DeleteOutline, PhotoCamera } from '../../icons';
 import { useNotification } from '../../hooks/useNotification';
 import { useTranslation } from '../../hooks/useTranslation';

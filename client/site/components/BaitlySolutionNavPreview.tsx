@@ -8,7 +8,7 @@ import {
   MessageSquareTextIcon,
   ShieldCheckIcon,
   UsersIcon,
-} from 'lucide-react';
+} from '../../src/icons/glyphs';
 import BaitlyMarkLogo from '../../src/components/BaitlyMarkLogo';
 import type { SiteLanguage } from '../lib/siteLanguage';
 import { BAITLY_SOLUTION_PREVIEW_MESSAGES } from '../lib/messages/baitlySolutionPreviews';

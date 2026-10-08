@@ -12,7 +12,7 @@ import {
   Switch,
   Textarea,
 } from '../../../../components/ui';
-import { Check } from 'lucide-react';
+import { Check } from '../../../../icons/glyphs';
 import { useTranslation } from '../../../../hooks/useTranslation';
 
 /**

@@ -15,7 +15,7 @@ import {
   Input,
   Spinner,
 } from '../../../components/ui';
-import { House, TrendingUp, TriangleAlert, Users, type LucideIcon } from 'lucide-react';
+import { House, TrendingUp, TriangleAlert, Users, type IconComponent } from '../../../icons/glyphs';
 import StatusChip from '../../../components/StatusChip';
 import PeriodSegmented from '../../../components/baitly/PeriodSegmented';
 import { ChartTile, StatsLayout } from '../../../components/stats';
@@ -124,7 +124,7 @@ const AUDIENCES: Array<{
    */
   nature: string;
   descriptionKey: string;
-  icon: LucideIcon;
+  icon: IconComponent;
   sections: string[];
 }> = [
   {
@@ -693,7 +693,7 @@ const ReportComposer: React.FC = () => {
  * produire est annonce des la carte — c'est le choix qui le determine.</p>
  */
 const AudienceCard: React.FC<{
-  icon: LucideIcon;
+  icon: IconComponent;
   label: string;
   nature: string;
   description: string;

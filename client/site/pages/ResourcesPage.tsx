@@ -1,7 +1,7 @@
 import SiteMoney from '../components/SiteMoney';
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { ArrowRight, Search, BookOpen, Play, TrendingUp } from 'lucide-react';
+import { ArrowRight, Search, BookOpen, Play, TrendingUp } from '../../src/icons/glyphs';
 import Reveal from '../components/Reveal';
 import SiteAcquisitionLink from '../components/SiteAcquisitionLink';
 import { useSiteLanguage } from '../lib/siteLanguage';

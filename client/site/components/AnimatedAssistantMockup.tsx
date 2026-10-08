@@ -1,5 +1,5 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
-import { BotIcon, CheckIcon, SendIcon, XIcon } from 'lucide-react';
+import { BotIcon, CheckIcon, SendIcon, XIcon } from '../../src/icons/glyphs';
 import {
   Badge,
   Button,

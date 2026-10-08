@@ -5,7 +5,7 @@ import React, { useState, useCallback, useMemo, useRef, useEffect } from 'react'
 import { cn } from '../../utils/cn';
 import StatusChip from '../../components/StatusChip';
 import { Alert as BuiAlert, AlertDescription, AlertAction, Button as BuiButton } from '../../components/ui';
-import { TriangleAlert, X, CircleCheck } from 'lucide-react';
+import { TriangleAlert, X, CircleCheck } from '../../icons/glyphs';
 import { Spinner, Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '../../components/ui';
 import { Field, FieldLabel, Input, NativeSelect, Textarea } from '../../components/ui';
 import {
@@ -84,7 +84,7 @@ import ExportPreviewDialog from './ExportPreviewDialog';
 import { useNavigate } from 'react-router-dom';
 import { useAllOwnerPayoutConfigs } from '../../hooks/useOwnerPayoutConfig';
 import PayoutActionResult from './components/PayoutActionResult';
-import { Archive, FileSearch, RefreshCw, Send, ExternalLink, Settings2 } from 'lucide-react';
+import { Archive, FileSearch, RefreshCw, Send, ExternalLink, Settings2 } from '../../icons/glyphs';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Money } from '../../components/Money';
 import { useHighlightParam, useHighlightTarget } from '../../hooks/useHighlight';

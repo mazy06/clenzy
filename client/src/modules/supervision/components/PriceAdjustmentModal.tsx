@@ -19,7 +19,7 @@ import {
   ToggleGroup,
   ToggleGroupItem,
 } from '../../../components/ui';
-import { TriangleAlert } from 'lucide-react';
+import { TriangleAlert } from '../../../icons/glyphs';
 import { ChevronLeft, ChevronRight, Close } from '../../../icons';
 import { useTranslation } from '../../../hooks/useTranslation';
 import { cn } from '../../../utils/cn';

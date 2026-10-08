@@ -1,5 +1,5 @@
 import { useMemo, useRef, useState, useEffect } from 'react';
-import { ArrowLeft, Check, Plus, Search } from 'lucide-react';
+import { ArrowLeft, Check, Plus, Search } from '../../../icons/glyphs';
 import { Button, Input, NativeSelect, NativeSelectOption } from '../../../components/ui';
 import PagePagination from '../../../components/PagePagination';
 import { useTranslation } from '../../../hooks/useTranslation';

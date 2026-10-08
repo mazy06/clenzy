@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { Landmark, RefreshCw, TriangleAlert } from 'lucide-react';
+import { Landmark, RefreshCw, TriangleAlert } from '../../icons/glyphs';
 import { Alert, AlertDescription, Button, Skeleton, Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../../components/ui';
 import StatusChip from '../../components/StatusChip';
 import IntegrationLogo from '../../components/integrations/IntegrationLogo';

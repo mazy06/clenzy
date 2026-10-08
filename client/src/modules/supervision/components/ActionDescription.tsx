@@ -1,5 +1,5 @@
 import { memo, useMemo, type ReactNode } from 'react';
-import { CalendarDays, CircleAlert, Star } from 'lucide-react';
+import { CalendarDays, CircleAlert, Star } from '../../../icons/glyphs';
 import { StockActionThumbnail } from '../../stock/StockActionThumbnail';
 import { Money } from '../../../components/Money';
 import { useTranslation } from '../../../hooks/useTranslation';

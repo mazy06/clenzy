@@ -7,7 +7,7 @@ import {
   FlatList,
   ViewStyle,
 } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
+import { Reicon } from '@/icons';
 import { useTheme } from '@/theme';
 
 interface SelectOption {
@@ -75,7 +75,7 @@ export function Select({
         >
           {selected?.label || placeholder}
         </Text>
-        <Ionicons name="chevron-down" size={18} color={theme.colors.text.secondary} />
+        <Reicon name="chevron-down" size={18} color={theme.colors.text.secondary} />
       </TouchableOpacity>
 
       {error && (

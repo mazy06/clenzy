@@ -30,7 +30,7 @@ import {
   Upload,
   Download,
   Sparkles,
-} from 'lucide-react';
+} from '../../../icons/glyphs';
 
 import { channexApi } from '../../../services/api/channexApi';
 import { useTranslation } from '../../../hooks/useTranslation';

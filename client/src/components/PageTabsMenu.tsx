@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { ChevronDown, Check } from 'lucide-react';
+import { ChevronDown, Check } from '../icons/glyphs';
 import { useTranslation } from '../hooks/useTranslation';
 import { useLocation } from 'react-router-dom';
 import { useScreenTabs } from '../hooks/useScreenTabs';

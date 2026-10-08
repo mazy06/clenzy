@@ -2,7 +2,7 @@ import BaitlySaleDocuments from '../payments/BaitlySaleDocuments';
 import { useRef, useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
-import { ArrowRight, FileText, RefreshCw } from 'lucide-react';
+import { ArrowRight, FileText, RefreshCw } from '../../icons/glyphs';
 import { Button, Input, NativeSelect, Skeleton } from '../../components/ui';
 import { baitlySubscriptionApi as api, type MonthlyPlan } from '../../services/api/baitlySubscriptionApi';
 import { useAuth } from '../../hooks/useAuth';

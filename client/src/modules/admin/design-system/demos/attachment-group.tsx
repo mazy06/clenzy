@@ -3,8 +3,8 @@ import {
   FileTextIcon,
   TableIcon,
   XIcon,
-  type LucideIcon,
-} from "lucide-react"
+  type IconComponent,
+} from "../../../../icons/glyphs"
 
 import {
   Attachment,
@@ -20,7 +20,7 @@ import {
 type Item = {
   name: string
   meta: string
-  icon?: LucideIcon
+  icon?: IconComponent
   src?: string
 }
 

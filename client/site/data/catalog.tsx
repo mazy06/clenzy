@@ -20,7 +20,7 @@ import {
   StarIcon,
   UsersIcon,
   WrenchIcon,
-} from 'lucide-react';
+} from '../../src/icons/glyphs';
 
 export interface ModuleDef {
   slug: string;

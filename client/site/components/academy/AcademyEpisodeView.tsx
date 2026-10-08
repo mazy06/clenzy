@@ -1,5 +1,5 @@
 import { useRef, useState } from 'react';
-import { ArrowRight, Check } from 'lucide-react';
+import { ArrowRight, Check } from '../../../src/icons/glyphs';
 import type { AcademyEpisode } from '../../data/baitlyAcademyVideos';
 import { BAITLY_ACADEMY_MESSAGES } from '../../lib/messages/baitlyAcademy';
 import type { SiteLanguage } from '../../lib/siteLanguage';

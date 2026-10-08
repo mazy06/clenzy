@@ -1,7 +1,7 @@
 import { serviceReferenceQuery } from '../../components/ServiceItemSelect';
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { Alert, AlertDescription } from '../../components/ui';
-import { TriangleAlert } from 'lucide-react';
+import { TriangleAlert } from '../../icons/glyphs';
 import { Spinner, Button } from '../../components/ui';
 
 import { useForm } from 'react-hook-form';

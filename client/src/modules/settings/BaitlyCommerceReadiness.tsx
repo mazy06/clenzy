@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { ClipboardCheck } from 'lucide-react';
+import { ClipboardCheck } from '../../icons/glyphs';
 import { Button, Skeleton } from '../../components/ui';
 import PageTabs from '../../components/PageTabs';
 import StatusChip, { type StatusTone } from '../../components/StatusChip';

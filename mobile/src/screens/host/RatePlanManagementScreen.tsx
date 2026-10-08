@@ -1,7 +1,7 @@
 import React, { useState, useCallback, useMemo } from 'react';
 import { View, Text, ScrollView, Pressable, Alert, ActivityIndicator, Modal } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Ionicons } from '@expo/vector-icons';
+import { Reicon } from '@/icons';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import type { RouteProp } from '@react-navigation/native';
 import { useTheme } from '@/theme';
@@ -20,7 +20,7 @@ type RouteParams = {
   RatePlanManagement: { propertyId: number; propertyName: string };
 };
 
-type IoniconsName = keyof typeof Ionicons.glyphMap;
+type IconName = keyof typeof Reicon.glyphMap;
 
 /* ─── Constants ─── */
 
@@ -31,7 +31,7 @@ const PLAN_TYPE_OPTIONS = [
   { value: 'LAST_MINUTE', label: 'Derniere minute' },
 ];
 
-const PLAN_TYPE_ICONS: Record<string, { icon: IoniconsName; color: string }> = {
+const PLAN_TYPE_ICONS: Record<string, { icon: IconName; color: string }> = {
   BASE: { icon: 'pricetag-outline', color: '#4A7C8E' },
   SEASONAL: { icon: 'leaf-outline', color: '#059669' },
   PROMOTIONAL: { icon: 'flash-outline', color: '#D97706' },
@@ -85,7 +85,7 @@ function RatePlanCard({
           alignItems: 'center', justifyContent: 'center',
           marginRight: theme.SPACING.md,
         }}>
-          <Ionicons name={typeConfig.icon} size={20} color={typeConfig.color} />
+          <Reicon name={typeConfig.icon} size={20} color={typeConfig.color} />
         </View>
 
         {/* Content */}
@@ -136,7 +136,7 @@ function RatePlanCard({
             backgroundColor: pressed ? theme.colors.background.surface : `${theme.colors.primary.main}06`,
           })}
         >
-          <Ionicons name="create-outline" size={16} color={theme.colors.primary.main} />
+          <Reicon name="create-outline" size={16} color={theme.colors.primary.main} />
           <Text style={{ ...theme.typography.caption, color: theme.colors.primary.main, fontWeight: '600' }}>
             Modifier
           </Text>
@@ -149,7 +149,7 @@ function RatePlanCard({
             backgroundColor: pressed ? `${theme.colors.error.main}12` : `${theme.colors.error.main}06`,
           })}
         >
-          <Ionicons name="trash-outline" size={16} color={theme.colors.error.main} />
+          <Reicon name="trash-outline" size={16} color={theme.colors.error.main} />
           <Text style={{ ...theme.typography.caption, color: theme.colors.error.main, fontWeight: '600' }}>
             Supprimer
           </Text>
@@ -518,7 +518,7 @@ export function RatePlanManagementScreen() {
         backgroundColor: theme.colors.background.paper, gap: theme.SPACING.md,
       }}>
         <Pressable onPress={() => navigation.goBack()} hitSlop={8}>
-          <Ionicons name="chevron-back" size={22} color={theme.colors.text.primary} />
+          <Reicon name="chevron-back" size={22} color={theme.colors.text.primary} />
         </Pressable>
         <View style={{ flex: 1 }}>
           <Text style={{ ...theme.typography.h3, color: theme.colors.text.primary }}>Tarifs</Text>
@@ -532,7 +532,7 @@ export function RatePlanManagementScreen() {
             alignItems: 'center', justifyContent: 'center',
           }}
         >
-          <Ionicons name="add" size={20} color="#fff" />
+          <Reicon name="add" size={20} color="#fff" />
         </Pressable>
       </View>
 

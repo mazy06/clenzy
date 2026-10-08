@@ -1,4 +1,4 @@
-import { CheckSquareIcon, EllipsisIcon, ListChecksIcon, WrenchIcon } from 'lucide-react';
+import { CheckSquareIcon, EllipsisIcon, ListChecksIcon, WrenchIcon } from '../../icons/glyphs';
 import { cn } from '../../utils/cn';
 import { useTranslation } from '../../hooks/useTranslation';
 

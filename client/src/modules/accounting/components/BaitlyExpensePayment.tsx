@@ -1,6 +1,6 @@
 import { useRef, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { Send } from 'lucide-react';
+import { Send } from '../../../icons/glyphs';
 import { Link } from 'react-router-dom';
 import { Button, Skeleton, Tooltip, TooltipContent, TooltipTrigger } from '../../../components/ui';
 import { useAuth } from '../../../hooks/useAuth';

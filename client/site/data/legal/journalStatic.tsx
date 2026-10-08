@@ -1,6 +1,6 @@
 import { renderToStaticMarkup } from 'react-dom/server';
 import { createPath, Router, type Navigator } from 'react-router-dom';
-import { ArrowRight, ChevronDown, Menu } from 'lucide-react';
+import { ArrowRight, ChevronDown, Menu } from '../../../src/icons/glyphs';
 import BaitlyMarkLogo from '../../../src/components/BaitlyMarkLogo';
 import { Button } from '../../../src/components/ui/button';
 import { navigationMenuTriggerStyle } from '../../../src/components/ui/navigation-menu';

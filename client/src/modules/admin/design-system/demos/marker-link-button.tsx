@@ -1,4 +1,4 @@
-import { GitBranchIcon, RotateCcwIcon } from "lucide-react"
+import { GitBranchIcon, RotateCcwIcon } from "../../../../icons/glyphs"
 import { toast } from "sonner"
 
 import {

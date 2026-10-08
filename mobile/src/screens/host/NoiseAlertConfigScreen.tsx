@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { View, Text, ScrollView, Pressable, Alert, TextInput } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Ionicons } from '@expo/vector-icons';
+import { Reicon } from '@/icons';
 import { useNavigation, useRoute, type RouteProp } from '@react-navigation/native';
 import { useTheme } from '@/theme';
 import { Card } from '@/components/ui/Card';
@@ -57,7 +57,7 @@ function TimeWindowCard({
             alignItems: 'center',
             justifyContent: 'center',
           }}>
-            <Ionicons name="time-outline" size={14} color={theme.colors.primary.main} />
+            <Reicon name="time-outline" size={14} color={theme.colors.primary.main} />
           </View>
           <Text style={{ ...theme.typography.body2, fontWeight: '600', color: theme.colors.text.primary }}>
             Creneau {index + 1}
@@ -68,7 +68,7 @@ function TimeWindowCard({
           hitSlop={12}
           style={({ pressed }) => ({ opacity: pressed ? 0.5 : 1 })}
         >
-          <Ionicons name="trash-outline" size={18} color={theme.colors.error.main} />
+          <Reicon name="trash-outline" size={18} color={theme.colors.error.main} />
         </Pressable>
       </View>
 
@@ -118,7 +118,7 @@ function TimeWindowCard({
             paddingHorizontal: 12,
             backgroundColor: `${theme.colors.warning.main}08`,
           }}>
-            <Ionicons name="warning-outline" size={14} color={theme.colors.warning.main} />
+            <Reicon name="warning-outline" size={14} color={theme.colors.warning.main} />
             <TextInput
               value={window.warningThresholdDb}
               onChangeText={(v) => onChange(index, 'warningThresholdDb', v)}
@@ -151,7 +151,7 @@ function TimeWindowCard({
             paddingHorizontal: 12,
             backgroundColor: `${theme.colors.error.main}08`,
           }}>
-            <Ionicons name="alert-circle-outline" size={14} color={theme.colors.error.main} />
+            <Reicon name="alert-circle-outline" size={14} color={theme.colors.error.main} />
             <TextInput
               value={window.criticalThresholdDb}
               onChangeText={(v) => onChange(index, 'criticalThresholdDb', v)}
@@ -351,7 +351,7 @@ export function NoiseAlertConfigScreen() {
             ...theme.shadows.sm,
           })}
         >
-          <Ionicons name="arrow-back" size={20} color={theme.colors.text.primary} />
+          <Reicon name="arrow-back" size={20} color={theme.colors.text.primary} />
         </Pressable>
         <View style={{ flex: 1 }}>
           <Text style={{ ...theme.typography.h3, color: theme.colors.text.primary }} numberOfLines={1}>
@@ -411,7 +411,7 @@ export function NoiseAlertConfigScreen() {
             opacity: pressed ? 0.7 : 1,
           })}
         >
-          <Ionicons name="add-circle-outline" size={18} color={theme.colors.primary.main} />
+          <Reicon name="add-circle-outline" size={18} color={theme.colors.primary.main} />
           <Text style={{ ...theme.typography.body2, color: theme.colors.primary.main, fontWeight: '600' }}>
             Ajouter un creneau
           </Text>
@@ -497,7 +497,7 @@ export function NoiseAlertConfigScreen() {
           fullWidth
           loading={saveConfig.isPending}
           disabled={saveConfig.isPending}
-          icon={<Ionicons name="checkmark-circle-outline" size={18} color="#fff" />}
+          icon={<Reicon name="checkmark-circle-outline" size={18} color="#fff" />}
         />
       </ScrollView>
     </SafeAreaView>

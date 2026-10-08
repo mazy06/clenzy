@@ -3,7 +3,7 @@ import { userAvatarSrc } from '../../services/api/usersApi';
 import React, { useState, useEffect } from 'react';
 import { Badge, Button, Field, FieldLabel, FieldError, Input, Textarea } from '../../components/ui';
 import { Alert, AlertDescription } from '../../components/ui';
-import { TriangleAlert, CircleCheck } from 'lucide-react';
+import { TriangleAlert, CircleCheck } from '../../icons/glyphs';
 import { Spinner } from '../../components/ui';
 import { Avatar, AvatarImage, AvatarFallback, Card, CardContent, NativeSelect, NativeSelectOption, Select, SelectContent, SelectItem, SelectTrigger, SelectValue, Separator } from '../../components/ui';
 import { Combobox, ComboboxContent, ComboboxEmpty, ComboboxInput, ComboboxItem, ComboboxList } from '../../components/ui/combobox';

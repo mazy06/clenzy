@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { cn } from '../../utils/cn';
 import { Badge } from '../../components/ui';
 import { Alert, AlertDescription } from '../../components/ui';
-import { TriangleAlert } from 'lucide-react';
+import { TriangleAlert } from '../../icons/glyphs';
 import { Separator, Skeleton } from '../../components/ui';
 import {
   Receipt as ReceiptIcon,

@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom';
-import { Bath, BedDouble, ChevronRight, Users } from 'lucide-react';
+import { Bath, BedDouble, ChevronRight, Users } from '../../icons/glyphs';
 import StatusChip from '../../components/StatusChip';
 import { Money } from '../../components/Money';
 import { useTranslation } from '../../hooks/useTranslation';

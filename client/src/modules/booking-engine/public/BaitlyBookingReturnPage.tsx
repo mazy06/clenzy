@@ -1,7 +1,7 @@
 import { useMemo } from 'react';
 import { Link, useParams, useSearchParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
-import { CheckCircle2, Clock3, RefreshCw } from 'lucide-react';
+import { CheckCircle2, Clock3, RefreshCw } from '../../../icons/glyphs';
 import { Alert, AlertDescription, Button, Card, CardContent, Skeleton } from '../../../components/ui';
 import { API_CONFIG } from '../../../config/api';
 import { createBookingI18n } from '../sdk/i18n';

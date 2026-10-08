@@ -27,7 +27,7 @@ import {
   CreditCard,
   Public,
 } from "../../icons";
-import { Info, TriangleAlert } from "lucide-react";
+import { Info, TriangleAlert } from "../../icons/glyphs";
 import {
   Alert as UiAlert,
   AlertDescription as UiAlertDescription,

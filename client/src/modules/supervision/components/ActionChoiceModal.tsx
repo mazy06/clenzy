@@ -23,7 +23,7 @@ import {
   Dialog,
   Spinner,
 } from '../../../components/ui';
-import { TriangleAlert } from 'lucide-react';
+import { TriangleAlert } from '../../../icons/glyphs';
 import { useTranslation } from '../../../hooks/useTranslation';
 import { DescriptionNarrative } from './ActionDescription';
 import { buildApiUrl } from '../../../config/api';

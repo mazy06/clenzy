@@ -29,7 +29,7 @@ import {
   Input,
   Label,
 } from '../../../components/ui';
-import { ArrowLeft, ChevronRight } from 'lucide-react';
+import { ArrowLeft, ChevronRight } from '../../../icons/glyphs';
 import { useTranslation } from '../../../hooks/useTranslation';
 
 import {

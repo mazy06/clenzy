@@ -1,5 +1,5 @@
 import { Link } from "react-router-dom";
-import { ArrowRightIcon, HistoryIcon, RadioIcon } from "lucide-react";
+import { ArrowRightIcon, HistoryIcon, RadioIcon } from "../../src/icons/glyphs";
 import BaitlyMarkLogo from "../../src/components/BaitlyMarkLogo";
 import { useSiteLanguage } from "../lib/siteLanguage";
 import { useSiteLaunch } from "../lib/siteLaunch";

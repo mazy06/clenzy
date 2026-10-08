@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { Wifi, Sparkles, WashingMachine } from 'lucide-react';
+import { Wifi, Sparkles, WashingMachine } from '../../../../icons/glyphs';
 import {
   DEFAULT_AMENITY_ICONS,
   ICON_CATALOG,

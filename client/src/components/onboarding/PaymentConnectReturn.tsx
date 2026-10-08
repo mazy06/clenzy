@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useQueryClient } from "@tanstack/react-query";
-import { Check, CreditCard } from "lucide-react";
+import { Check, CreditCard } from "../../icons/glyphs";
 import { Button, Skeleton } from "../ui";
 import { useTranslation } from "../../hooks/useTranslation";
 import {

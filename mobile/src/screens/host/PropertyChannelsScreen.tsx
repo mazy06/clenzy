@@ -2,7 +2,7 @@ import { View, Text, ScrollView, Pressable, RefreshControl } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRoute, useNavigation } from '@react-navigation/native';
 import type { RouteProp } from '@react-navigation/native';
-import { Ionicons } from '@expo/vector-icons';
+import { Reicon } from '@/icons';
 import { useProperty, usePropertyChannels } from '@/hooks/useProperties';
 import { Badge } from '@/components/ui/Badge';
 import { Card } from '@/components/ui/Card';
@@ -30,7 +30,7 @@ export function PropertyChannelsScreen() {
         backgroundColor: theme.colors.background.paper,
       }}>
         <Pressable onPress={() => navigation.goBack()} hitSlop={8} style={{ marginRight: theme.SPACING.md }}>
-          <Ionicons name="chevron-back" size={22} color={theme.colors.text.primary} />
+          <Reicon name="chevron-back" size={22} color={theme.colors.text.primary} />
         </Pressable>
         <Text style={{ ...theme.typography.h3, color: theme.colors.text.primary, flex: 1 }}>Channels & Integrations</Text>
       </View>
@@ -55,7 +55,7 @@ export function PropertyChannelsScreen() {
                   backgroundColor: '#FF585D10', alignItems: 'center', justifyContent: 'center',
                   marginRight: theme.SPACING.md,
                 }}>
-                  <Ionicons name="logo-no-smoking" size={24} color="#FF585D" />
+                  <Reicon name="logo-no-smoking" size={24} color="#FF585D" />
                 </View>
                 <View style={{ flex: 1 }}>
                   <Text style={{ ...theme.typography.h4, color: theme.colors.text.primary }}>Airbnb</Text>
@@ -104,7 +104,7 @@ export function PropertyChannelsScreen() {
                 }}>
                   <Text style={{ ...theme.typography.caption, color: theme.colors.text.disabled, marginBottom: 4 }}>URL de l'annonce</Text>
                   <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-                    <Ionicons name="link-outline" size={14} color={theme.colors.primary.main} />
+                    <Reicon name="link-outline" size={14} color={theme.colors.primary.main} />
                     <Text style={{ ...theme.typography.body2, color: theme.colors.primary.main, flex: 1 }} numberOfLines={2}>
                       {property.airbnbUrl}
                     </Text>
@@ -127,7 +127,7 @@ export function PropertyChannelsScreen() {
                   backgroundColor: `${theme.colors.neutral.main}08`, alignItems: 'center', justifyContent: 'center',
                   marginRight: theme.SPACING.md,
                 }}>
-                  <Ionicons name="document-text-outline" size={24} color={theme.colors.neutral.main} />
+                  <Reicon name="document-text-outline" size={24} color={theme.colors.neutral.main} />
                 </View>
                 <View style={{ flex: 1 }}>
                   <Text style={{ ...theme.typography.h4, color: theme.colors.text.primary }}>Contrat maintenance</Text>
@@ -151,7 +151,7 @@ export function PropertyChannelsScreen() {
                   backgroundColor: `${theme.colors.info.main}08`, alignItems: 'center', justifyContent: 'center',
                   marginRight: theme.SPACING.md,
                 }}>
-                  <Ionicons name="globe-outline" size={24} color={theme.colors.info.main} />
+                  <Reicon name="globe-outline" size={24} color={theme.colors.info.main} />
                 </View>
                 <View style={{ flex: 1 }}>
                   <Text style={{ ...theme.typography.h4, color: theme.colors.text.primary }}>Booking.com, VRBO...</Text>

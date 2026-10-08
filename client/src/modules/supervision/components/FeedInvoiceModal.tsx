@@ -21,7 +21,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '../../../components/ui';
-import { CircleCheck, TriangleAlert, Info } from 'lucide-react';
+import { CircleCheck, TriangleAlert, Info } from '../../../icons/glyphs';
 import { Spinner } from '../../../components/ui';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from '../../../hooks/useTranslation';

@@ -1,4 +1,4 @@
-import { CheckCircle2Icon } from "lucide-react"
+import { CheckCircle2Icon } from "../../../../icons/glyphs"
 
 import {
   Alert,

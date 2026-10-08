@@ -1,6 +1,6 @@
 import { useRef, useState, type FormEvent } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { Download, Plus, RotateCcw } from 'lucide-react';
+import { Download, Plus, RotateCcw } from '../../icons/glyphs';
 import { Button, Input, Skeleton, Alert, AlertDescription } from '../../components/ui';
 import { useAuth } from '../../hooks/useAuth';
 import { useTranslation } from '../../hooks/useTranslation';

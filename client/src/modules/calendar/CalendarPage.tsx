@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import { Alert, AlertDescription } from '../../components/ui';
-import { TriangleAlert } from 'lucide-react';
+import { TriangleAlert } from '../../icons/glyphs';
 import { Card, Button } from '../../components/ui';
 import { Skeleton, NativeSelect, NativeSelectOption } from '../../components/ui';
 import { useIsMobile } from '../../hooks/use-mobile';

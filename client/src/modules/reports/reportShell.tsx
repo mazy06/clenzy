@@ -1,6 +1,6 @@
 import React from 'react';
 import { Alert, AlertDescription, Button, Spinner } from '../../components/ui';
-import { TriangleAlert } from 'lucide-react';
+import { TriangleAlert } from '../../icons/glyphs';
 import { cn } from '../../utils/cn';
 import { useCurrency } from '../../hooks/useCurrency';
 import { useTranslation } from '../../hooks/useTranslation';

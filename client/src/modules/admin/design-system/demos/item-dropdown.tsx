@@ -1,4 +1,4 @@
-import { ChevronDownIcon } from "lucide-react"
+import { ChevronDownIcon } from "../../../../icons/glyphs"
 
 import {
   Avatar,

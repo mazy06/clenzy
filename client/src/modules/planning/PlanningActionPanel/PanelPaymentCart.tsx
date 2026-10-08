@@ -1,7 +1,7 @@
 import React from 'react';
 import { useTranslation } from 'react-i18next';
 import { Alert as UiAlert, AlertDescription } from '../../../components/ui';
-import { TriangleAlert } from 'lucide-react';
+import { TriangleAlert } from '../../../icons/glyphs';
 import { Button, Checkbox, Separator, Spinner } from '../../../components/ui';
 import {
   ShoppingCart,

@@ -1,6 +1,6 @@
 import { forwardRef, type ComponentProps } from 'react';
 import { Link } from 'react-router-dom';
-import { ArrowLeftIcon, ArrowRightIcon } from 'lucide-react';
+import { ArrowLeftIcon, ArrowRightIcon } from '../../src/icons/glyphs';
 import { useSiteLaunch } from '../lib/siteLaunch';
 import { useSiteLanguage } from '../lib/siteLanguage';
 import { PRELAUNCH_MESSAGES } from '../lib/messages/prelaunch';

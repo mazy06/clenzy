@@ -2,7 +2,7 @@ import React from 'react';
 import { Badge, Card } from '../../../components/ui';
 import { cn } from '../../../utils/cn';
 import { CheckCircle as CheckCircleIcon, ErrorOutline } from '../../../icons';
-import { Settings2 } from 'lucide-react';
+import { Settings2 } from '../../../icons/glyphs';
 import ProviderLogo, { type ProviderId } from './ProviderLogos';
 import ServiceTooltip from './ServiceTooltip';
 import type { ServiceTooltipData } from '../../../services/integrations/serviceTooltips';
