@@ -41,7 +41,7 @@ class PayoutTransferJournalLiquibaseTest {
                 try (Connection c = DriverManager.getConnection(scoped, user, ""); Statement s = c.createStatement()) {
                     s.execute("CREATE TABLE organizations(id bigint PRIMARY KEY, name text, type text DEFAULT 'CLEANING_COMPANY')");
                     s.execute("CREATE TABLE users(id bigint PRIMARY KEY, organization_id bigint, keycloak_id text)");
-                    s.execute("CREATE TABLE interventions(id bigint PRIMARY KEY, organization_id bigint, assigned_user_id bigint, status text, payment_status text, team_id bigint)");
+                    s.execute("CREATE TABLE interventions(id bigint PRIMARY KEY, organization_id bigint, property_id bigint, assigned_user_id bigint, status text, payment_status text, team_id bigint)");
                     s.execute("CREATE TABLE teams(id bigint PRIMARY KEY,organization_id bigint,personal_user_id bigint)");
                     s.execute("CREATE TABLE owner_payouts(id bigint PRIMARY KEY,organization_id bigint,owner_id bigint,net_amount numeric(12,2),currency text,payout_method text,stripe_transfer_id text,period_start date,period_end date,retry_count int,status text,created_at timestamptz)");
                     s.execute("CREATE TABLE housekeeper_payout_records(id bigint PRIMARY KEY,organization_id bigint,intervention_id bigint,user_id bigint,amount numeric(12,2),stripe_transfer_id text,status text,created_at timestamptz)");

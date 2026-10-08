@@ -162,6 +162,9 @@ jobs:
           python-version: '3.12'
       - name: Finance interactions and real HTTP contracts
         run: python3 scripts/payments/financial_recipe.py --scope frontend --output test-results/frontend
+      - name: Show failing frontend suites
+        if: failure()
+        run: grep -nE "FAIL|Error:|AssertionError|Test Files|Tests |Timed out|timeout" test-results/frontend/frontend.log | head -80 || true
       - name: Retain interface test results
         if: always()
         uses: actions/upload-artifact@v4
