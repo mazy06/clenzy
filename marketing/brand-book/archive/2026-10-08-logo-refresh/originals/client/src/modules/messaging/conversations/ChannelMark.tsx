@@ -11,7 +11,7 @@
 
 import React from 'react';
 import { CHANNEL_LOGOS } from '../../../components/channelLogos';
-import { MARK_PATH, MARK_VIEWBOX, STROKE_WIDTH } from '../../../components/BaitlyMarkLogo';
+import { MARK_VIEWBOX } from '../../../components/BaitlyMarkLogo';
 import {
   Email as EmailIcon,
   Sms as SmsIcon,
@@ -59,6 +59,17 @@ export function channelLabel(channel: string): string {
   return LABELS[channel] ?? channel;
 }
 
+/**
+ * Contour de la maison du mark Baitly, tiges de flux exclues : à 14 px, le
+ * trait de 21/1024 du mark complet disparaît et les deux boucles se réduisent
+ * à des taches. Même géométrie (mêmes rayons, même pente de toit), trait épais,
+ * plus une porte qui reprend la verticale centrale du flux.
+ */
+const HOUSE_PATH =
+  'M303 675 V441.8 A28 28 0 0 1 313.9 419.6 L478.2 294.1 A54 54 0 0 1 543.8 294.1 ' +
+  'L708.1 419.6 A28 28 0 0 1 719 441.8 V675 A65 65 0 0 1 654 740 H368 A65 65 0 0 1 303 675 Z';
+const DOOR_PATH = 'M511 740 V600';
+
 export interface ChannelMarkProps {
   /** Valeur de `ConversationChannel` (+ `FORM`, propre à l'inbox unifiée). */
   channel: string;
@@ -96,16 +107,17 @@ export default function ChannelMark({ channel, size = 18, ring = false, classNam
       <span className={cn(shell, 'bg-primary text-primary-foreground')} style={box} title={label}>
         <svg
           viewBox={MARK_VIEWBOX}
-          width={inner}
-          height={inner}
+          width={Math.round(inner * 0.72)}
+          height={Math.round(inner * 0.72)}
           fill="none"
           stroke="currentColor"
-          strokeWidth={STROKE_WIDTH}
+          strokeWidth={64}
           strokeLinecap="round"
           strokeLinejoin="round"
           aria-hidden="true"
         >
-          <path d={MARK_PATH} />
+          <path d={HOUSE_PATH} />
+          <path d={DOOR_PATH} />
         </svg>
       </span>
     );

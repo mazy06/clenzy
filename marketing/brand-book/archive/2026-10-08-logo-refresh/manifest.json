@@ -74,23 +74,38 @@
     },
     {
       "path": "client/src/components/BaitlyMarkLogo.tsx",
-      "action": "archive-reference-only",
+      "action": "replace-component",
       "originalSha256": "acf480282f9cd0cc442d083d9aab6148da1520fec5619a7f71f734693004f18b"
     },
     {
       "path": "client/src/components/BaitlyMarkLogoLegacy.tsx",
-      "action": "archive-reference-only",
+      "action": "replace-component",
       "originalSha256": "0d5cf4b09d2437443072278f72222c59a44f30db1e8ef87080e92981646bfb30"
     },
     {
       "path": "mobile/src/components/ui/BaitlyAnimatedLogo.tsx",
-      "action": "archive-reference-only",
+      "action": "replace-component",
       "originalSha256": "d580454709d539db769c5c9ab911e7b70d4a1837d84ec1dc7649553b431e838f"
     },
     {
       "path": "mobile/src/components/ui/ClenzyAnimatedLogo.tsx",
-      "action": "archive-reference-only",
+      "action": "replace-component",
       "originalSha256": "89082ad39f5d1504ceed4646239cfb7fad6c65d8e63432da636ed697a154cefb"
+    },
+    {
+      "path": "client/site/components/BaitlyMark.tsx",
+      "action": "replace-component",
+      "originalSha256": "da83a209b70421a8fba3a1f5a44c5d95b8d7787b7908364294637bda94af7ff3"
+    },
+    {
+      "path": "client/src/modules/messaging/conversations/ChannelMark.tsx",
+      "action": "replace-component",
+      "originalSha256": "e68e675db51573a11ae0278f9a84305d0e5b0085a2876f34cfc24de883f89ad4"
+    },
+    {
+      "path": "server/src/main/java/com/clenzy/service/report/render/BaitlyMark.java",
+      "action": "replace-component",
+      "originalSha256": "bd926bc1d320cf801508110fb0ddfd330c2ec7bb3fa982246bf4f3c6e198dad9"
     }
   ]
 }

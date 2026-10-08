@@ -146,11 +146,11 @@ const SidebarAssistantLauncher: React.FC<SidebarAssistantLauncherProps> = ({ sid
                   (`[&_svg]:size-4`) : le `!` rétablit la taille voulue, réduite en
                   mode icônes où le bouton n'est plus qu'un carré de 32 px. */}
               <span className="relative flex size-10 shrink-0 items-center justify-center [&_svg]:size-10! group-data-[collapsible=icon]:size-8 group-data-[collapsible=icon]:[&_svg]:size-8!">
-                <BaitlyMarkLogo variant="mark" size={40} />
+                <BaitlyMarkLogo variant="mark" size={40} colorMode="inherit" />
                 {notice && <NavCornerCountBadge count={1} tone="primary" />}
               </span>
               <span className="grid flex-1 text-start leading-tight">
-                <span className="truncate text-sm font-semibold">Baitly</span>
+                <BaitlyMarkLogo variant="wordmark" size={40} colorMode="inherit" disableAnimation />
                 {/* L'ancienne seconde ligne annonçait le produit (« Property
                     Management ») ; le bouton ne mène plus au tableau de bord mais
                     à l'assistant, elle annonce donc ce qu'il fait. */}
