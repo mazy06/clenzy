@@ -15,6 +15,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
@@ -78,8 +79,19 @@ public class GuestService {
      * @return la photo, ou {@link Optional#empty()} si le voyageur n'existe pas,
      *         appartient a une autre organisation, n'a pas de photo, ou si
      *         l'objet a disparu du stockage
+     *
+     * <p><b>Volontairement SANS transaction englobante.</b> La classe est
+     * {@code readOnly = true}, or {@code loadForDisplay} range la vignette au
+     * premier affichage : cet {@code INSERT} rejoignait la transaction en lecture
+     * seule, Postgres le refusait, et la transaction partait en rollback-only
+     * alors meme que l'echec etait avale — le GET finissait en
+     * {@code UnexpectedRollbackException}, donc en 500. Sans transaction
+     * englobante, la lecture du voyageur et chaque acces au stockage ont la
+     * leur : l'echec eventuel de l'ecriture reste local et la photo est servie.
+     * L'appartenance a l'organisation est verifiee explicitement ci-dessous, pas
+     * par la transaction.</p>
      */
-    @Transactional(readOnly = true)
+    @Transactional(propagation = Propagation.NOT_SUPPORTED)
     public Optional<GuestPhoto> streamPhoto(Long guestId, Long organizationId) {
         return guestRepository.findById(guestId)
                 .filter(g -> organizationId == null || organizationId.equals(g.getOrganizationId()))
