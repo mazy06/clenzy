@@ -243,6 +243,8 @@ function NavEntry({ item, isActive, isSubActive, onNavigate, tooltipSide }: NavE
   const iconOnly = state === 'collapsed' && !isMobile;
   const hasChildren = (item.children?.length ?? 0) > 0;
   const [flyoutOpen, setFlyoutOpen] = useState(false);
+  // Sous-menu déplié d'un hub : piloté ici pour que le clic puisse aussi ouvrir son premier écran.
+  const [subMenuOpen, setSubMenuOpen] = useState(isActive);
   // Les onglets de l'écran, pour une entrée SANS parent : elle est alors le
   // seuil du tiroir d'onglets, exactement comme la ligne d'écran d'un hub.
   // Appelé sans condition — un hub le laisse simplement de côté.
@@ -331,7 +333,11 @@ function NavEntry({ item, isActive, isSubActive, onNavigate, tooltipSide }: NavE
                 tooltip={{ children: item.text, side: tooltipSide }}
                 className={cn(flyoutOpen && 'bg-sidebar-accent text-sidebar-accent-foreground')}
               >
-                <PopoverTrigger onMouseEnter={prefetch} onFocus={prefetch}>
+                <PopoverTrigger
+                  onMouseEnter={prefetch}
+                  onFocus={prefetch}
+                  onClick={() => onNavigate(item.path)}
+                >
                   {label}
                   <NavBadge item={item} />
                 </PopoverTrigger>
@@ -364,7 +370,7 @@ function NavEntry({ item, isActive, isSubActive, onNavigate, tooltipSide }: NavE
   }
 
   return (
-    <Collapsible asChild defaultOpen={isActive} className="group/collapsible">
+    <Collapsible asChild open={subMenuOpen} onOpenChange={setSubMenuOpen} className="group/collapsible">
       <SidebarMenuItem>
         <CollapsibleTrigger asChild>
           <SidebarMenuButton
@@ -372,6 +378,18 @@ function NavEntry({ item, isActive, isSubActive, onNavigate, tooltipSide }: NavE
             tooltip={{ children: item.text, side: tooltipSide }}
             onMouseEnter={prefetch}
             onFocus={prefetch}
+            onClick={(event) => {
+              // Le déclencheur Radix basculerait l'état de son côté : on le court-circuite.
+              event.preventDefault();
+              // Déjà sur ce hub et déplié : le clic replie. Sinon il déplie ET ouvre
+              // le premier écran (`item.path` pointe sur le premier onglet accessible).
+              if (subMenuOpen && isActive) {
+                setSubMenuOpen(false);
+                return;
+              }
+              setSubMenuOpen(true);
+              onNavigate(item.path);
+            }}
             className="max-lg:h-10"
           >
             {label}
