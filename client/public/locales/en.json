@@ -3026,6 +3026,7 @@
   },
   "navigation": {
     "consumables": "Consumables",
+    "bookingVouchers": "Promo codes",
     "dashboard": "Dashboard",
     "assistant": "Assistant",
     "properties": "Properties",

@@ -3016,6 +3016,7 @@
   },
   "navigation": {
     "consumables": "Consommables",
+    "bookingVouchers": "Codes promo",
     "dashboard": "Tableau de bord",
     "assistant": "Assistant",
     "properties": "Propriétés",

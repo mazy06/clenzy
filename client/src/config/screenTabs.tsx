@@ -161,7 +161,6 @@ export const SCREEN_TABS: Record<string, ScreenTabDef[]> = {
 
   '/properties': [
     { key: 'properties', translationKey: 'propertiesPage.tabs.properties', fallbackLabel: 'Propriétés', icon: <Home /> },
-    { key: 'vouchers', translationKey: 'propertiesPage.tabs.vouchers', fallbackLabel: 'Codes promo', icon: <LocalOffer /> },
   ],
 
   // Le calendrier est en tête : c'est la vue d'entrée de l'écran (URL sans `?tab=`).

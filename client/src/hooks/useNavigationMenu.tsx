@@ -36,6 +36,7 @@ import {
   PersonSearch,
   Inventory2,
   TrendingUp,
+  LocalOffer,
 } from '../icons';
 import {
   NAVIGATION_HUBS,
@@ -165,6 +166,13 @@ const MENU_ENTRIES: MenuEntryConfig[] = [
   // (/service-requests, /calendar), qu'une entree simple
   // aurait fallu recopier a la main.
   { kind: 'hub-tabs', hubId: 'exploitation' },
+  // Codes promo : ex-onglet de Propriétés, désormais un écran à part entière
+  // juste sous Propriétés (mêmes permissions que l'écran Propriétés).
+  { kind: 'item', item: {
+    icon: <LocalOffer />, path: '/vouchers', group: 'main',
+    roles: ['SUPER_ADMIN', 'SUPER_MANAGER', 'HOST'],
+    permission: 'properties:view', translationKey: 'navigation.bookingVouchers',
+  } },
   { kind: 'item', item: {
     icon: <TrendingUp />, path: '/dynamic-pricing', group: 'main',
     roles: ['SUPER_ADMIN', 'SUPER_MANAGER', 'HOST'],

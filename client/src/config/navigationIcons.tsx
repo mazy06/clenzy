@@ -56,6 +56,7 @@ export const SCREEN_ICON: Record<string, React.ReactNode> = {
   '/dynamic-pricing': <TrendingUp />,
   '/connected-objects': <Plug />,
   '/consumables': <Inventory2 />,
+  '/vouchers': <LocalOffer />,
   '/properties': <Home />,
   '/reservations': <EventNote />,
   '/interventions': <Build />,
