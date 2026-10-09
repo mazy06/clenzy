@@ -248,7 +248,7 @@ function NavEntry({ item, isActive, isSubActive, onNavigate, tooltipSide }: NavE
   // Appelé sans condition — un hub le laisse simplement de côté.
   const screenTabs = useVisibleScreenTabs(item.path);
 
-  const prefetch = () => prefetchRoute(item.path);
+  const prefetch = () => prefetchRoute(item.path.split('?')[0]);
 
   const label = (
     <>
@@ -477,7 +477,22 @@ export default function AppSidebar({
     location.pathname === exact
     || paths.some((p) => location.pathname === p || location.pathname.startsWith(`${p}/`));
 
-  const isActive = (item: MenuItem) => matches(item.matchPaths ?? [], item.path);
+  // Onglet affiché quand l'URL n'en porte pas : le premier visible de l'écran.
+  const guestExperienceTabs = useVisibleScreenTabs('/booking-engine');
+
+  /**
+   * Une entrée `/ecran?tab=cle` désigne UN onglet : elle ne s'allume que sur
+   * celui-là, sinon les trois entrées de « Réservation & accueil » seraient
+   * actives ensemble. Sans paramètre dans l'URL, c'est l'onglet par défaut.
+   */
+  const isActive = (item: MenuItem) => {
+    const [pathname, query] = item.path.split('?');
+    const wantedTab = query ? new URLSearchParams(query).get('tab') : null;
+    if (!wantedTab) return matches(item.matchPaths ?? [], item.path);
+    if (location.pathname !== pathname) return false;
+    const currentTab = new URLSearchParams(location.search).get('tab') ?? guestExperienceTabs[0]?.key;
+    return currentTab === wantedTab;
+  };
 
   const handleLogout = async () => {
     try {

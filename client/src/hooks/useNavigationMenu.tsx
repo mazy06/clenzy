@@ -27,7 +27,6 @@ import {
   AccessTime,
   Description,
   AdminPanelSettings,
-  Hub,
   CalendarViewWeek,
   Contacts,
   Bolt,
@@ -37,6 +36,8 @@ import {
   Inventory2,
   TrendingUp,
   LocalOffer,
+  Public,
+  StorefrontOutlined,
 } from '../icons';
 import {
   NAVIGATION_HUBS,
@@ -239,8 +240,31 @@ const MENU_ENTRIES: MenuEntryConfig[] = [
     roles: ['SUPER_ADMIN', 'SUPER_MANAGER', 'HOST'],
     permission: 'properties:view', translationKey: 'navigation.bookingVouchers',
   } },
-  // Distribution = Channels · Réservation & accueil · Boutique
-  { kind: 'hub', hubId: 'distribution', icon: <Hub /> },
+  // Les trois écrans de « Réservation & accueil » (onglets de /booking-engine)
+  // et la Boutique sont des entrées de premier niveau : l'ancien hub
+  // Distribution n'apparaît plus dans la sidebar, Channels non plus. L'écran
+  // /channels reste joignable par ses liens (onboarding, palette, alertes).
+  // Booking Engine reste réservé au staff plateforme, comme son onglet.
+  { kind: 'item', item: {
+    icon: <Public />, path: '/booking-engine?tab=booking-engine', group: 'sales',
+    roles: ['SUPER_ADMIN', 'SUPER_MANAGER'],
+    permission: 'properties:view', translationKey: 'guestExperience.tabs.bookingEngine',
+  } },
+  { kind: 'item', item: {
+    icon: <Description />, path: '/booking-engine?tab=welcome-guide', group: 'sales',
+    roles: ['SUPER_ADMIN', 'SUPER_MANAGER', 'HOST', 'SUPERVISOR'],
+    permission: 'properties:view', translationKey: 'guestExperience.tabs.welcomeGuide',
+  } },
+  { kind: 'item', item: {
+    icon: <LocalOffer />, path: '/booking-engine?tab=upsells', group: 'sales',
+    roles: ['SUPER_ADMIN', 'SUPER_MANAGER', 'HOST', 'SUPERVISOR'],
+    permission: 'properties:view', translationKey: 'guestExperience.tabs.upsells',
+  } },
+  { kind: 'item', item: {
+    icon: <StorefrontOutlined />, path: '/shop', group: 'sales',
+    roles: ['SUPER_ADMIN', 'SUPER_MANAGER', 'HOST', 'SUPERVISOR'],
+    permission: 'properties:view', translationKey: 'navigation.shop',
+  } },
   // ── Prestations ──
   /*
    * Devis et Prestataires quittent le regroupement « Contacts » pour le premier
