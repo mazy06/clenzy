@@ -1,0 +1,80 @@
+.baitly-vouchers-workspace { container: vouchers / inline-size; }
+.baitly-voucher-editor-preview { display:flex; align-items:center; gap:12px; padding:16px; margin-bottom:20px; background:var(--bui-muted); border-radius:10px; }
+.baitly-voucher-editor-preview > div { flex:1; min-width:0; }
+.baitly-voucher-editor-preview span,.baitly-voucher-editor-preview p { display:block; color:var(--bui-muted-foreground); font-size:12px; }
+.baitly-voucher-editor-preview strong { display:block; margin-block:4px; color:var(--bui-foreground); font-weight:500; overflow-wrap:anywhere; }
+.baitly-voucher-editor-preview b { color:var(--bui-foreground); font-size:20px; font-weight:600; font-variant-numeric:tabular-nums; }
+.baitly-vouchers-layout { display:grid; grid-template-columns:minmax(0,1fr) 310px; align-items:start; gap:24px; }
+.baitly-vouchers-list { min-width:0; container: voucher-offers / inline-size; }
+.baitly-vouchers-filters { margin-bottom:16px; }
+.baitly-vouchers-offers,.baitly-vouchers-loading { display:grid; grid-template-columns:minmax(0,1fr); align-items:start; gap:12px; }
+.baitly-voucher-offer { display:grid; grid-template-columns:128px minmax(0,1fr); border:1px solid var(--bui-border); border-radius:12px; background:var(--bui-card); overflow:hidden; }
+.baitly-voucher-ticket { display:flex; flex-direction:column; align-items:center; justify-content:center; gap:5px; padding:20px 12px; background:var(--bui-muted); border-inline-end:1px dashed var(--bui-border); text-align:center; font-variant-numeric:tabular-nums; }
+.baitly-voucher-ticket strong { font-size:22px; line-height:1.25; font-weight:600; color:var(--bui-foreground); overflow-wrap:anywhere; }
+.baitly-voucher-ticket > span { font-size:12px; color:var(--bui-muted-foreground); }
+.baitly-voucher-ticket img { object-fit:contain; }
+.baitly-voucher-content { min-width:0; padding:18px 20px; }
+.baitly-voucher-heading { display:flex; justify-content:space-between; align-items:start; gap:12px; }
+.baitly-voucher-heading h3 { font-size:15px; font-weight:600; line-height:1.4; color:var(--bui-foreground); overflow-wrap:anywhere; text-wrap:balance; }
+.baitly-voucher-heading > *:last-child { flex-shrink:0; }
+.baitly-voucher-code-row { display:flex; align-items:center; flex-wrap:wrap; gap:10px; margin-top:10px; font-size:12px; color:var(--bui-muted-foreground); }
+.baitly-voucher-code { max-width:100%; font-family:ui-monospace,monospace; font-size:12px; }
+.baitly-voucher-code bdi { min-width:0; overflow-wrap:anywhere; white-space:normal; user-select:text; }
+.baitly-voucher-auto { color:var(--bui-info-ink); }
+.baitly-voucher-meta { display:flex; flex-wrap:wrap; gap:6px 16px; margin-top:12px; font-size:12px; color:var(--bui-muted-foreground); font-variant-numeric:tabular-nums; }
+.baitly-voucher-bottom { display:flex; flex-wrap:wrap; align-items:end; justify-content:space-between; gap:12px; margin-top:16px; }
+.baitly-voucher-usage { min-width:100px; font-size:12px; color:var(--bui-muted-foreground); font-variant-numeric:tabular-nums; }
+.baitly-voucher-usage strong { color:var(--bui-foreground); font-weight:500; }
+.baitly-voucher-usage [role=meter] { height:4px; border-radius:2px; overflow:hidden; background:var(--bui-border); margin-top:6px; }
+.baitly-voucher-usage i { display:block; height:100%; background:var(--bui-primary); transform-origin:left; }
+[dir=rtl] .baitly-voucher-usage i { transform-origin:right; }
+.baitly-voucher-actions,.baitly-voucher-management { display:flex; flex-wrap:wrap; gap:6px; }
+.baitly-voucher-offer { position:relative; }
+.baitly-voucher-offer[data-expanded=true] { overflow:visible; z-index:10; border-end-start-radius:0; border-end-end-radius:0; }
+.baitly-voucher-offer[data-expanded=true] .baitly-voucher-ticket { border-start-start-radius:11px; }
+.baitly-voucher-details { position:absolute; inset-inline:-1px; top:100%; background:var(--bui-card); border:1px solid var(--bui-border); border-radius:0 0 12px 12px; padding:18px 20px; max-height: min(480px, 65dvh); overflow-y:auto; box-shadow:0 12px 24px color-mix(in srgb, var(--bui-foreground) 14%, transparent); }
+.baitly-voucher-details p { margin-bottom:16px; max-width:65ch; font-size:14px; line-height:1.6; color:var(--bui-muted-foreground); }
+.baitly-voucher-details dl { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:16px; margin-bottom:20px; font-size:12px; }
+.baitly-voucher-details dt { color:var(--bui-muted-foreground); margin-bottom:4px; }
+.baitly-voucher-details dd { color:var(--bui-foreground); font-weight:500; font-variant-numeric:tabular-nums; }
+.baitly-voucher-performance { border:1px solid var(--bui-border); border-radius:12px; background:var(--bui-card); overflow:hidden; }
+.baitly-voucher-performance-title { display:flex; align-items:center; gap:12px; padding:18px; border-bottom:1px solid var(--bui-border); }
+.baitly-voucher-performance-title h2 { font-size:16px; font-weight:600; color:var(--bui-foreground); }
+.baitly-voucher-performance-title p { margin-top:4px; font-size:12px; color:var(--bui-muted-foreground); font-variant-numeric:tabular-nums; }
+.baitly-voucher-performance-empty { padding:20px; }
+.baitly-voucher-performance-empty img { margin-bottom:12px; }
+.baitly-voucher-performance-empty h3 { font-size:15px; font-weight:500; color:var(--bui-foreground); }
+.baitly-voucher-performance-empty p,.baitly-voucher-performance-note { font-size:12px; line-height:1.6; color:var(--bui-muted-foreground); }
+.baitly-voucher-performance-empty p { margin-top:8px; }
+.baitly-voucher-performance-note { border-top:1px solid var(--bui-border); padding:14px 18px; }
+.baitly-voucher-performance-stats .bui-stat-overview__figures { grid-template-columns:repeat(2,minmax(0,1fr)); }
+.baitly-voucher-performance-stats .bui-stat-figure__body { display:flex; flex-direction:column; align-items:start; }
+.baitly-voucher-performance-stats .bui-stat-figure { min-block-size:90px; padding:14px; }
+.baitly-voucher-top { border-top:1px solid var(--bui-border); padding:18px; }
+.baitly-voucher-top h3 { font-size:13px; font-weight:500; color:var(--bui-muted-foreground); margin-bottom:12px; }
+.baitly-voucher-top li { display:flex; align-items:start; justify-content:space-between; gap:12px; padding:12px 0; border-bottom:1px solid var(--bui-border); font-size:12px; color:var(--bui-foreground); }
+.baitly-voucher-top li:last-child { border:0; padding-bottom:0; }
+.baitly-voucher-top strong { display:block; font-weight:500; overflow-wrap:anywhere; }
+.baitly-voucher-top span { display:block; margin-top:4px; color:var(--bui-muted-foreground); }
+.baitly-voucher-top b { flex-shrink:0; font-weight:600; font-variant-numeric:tabular-nums; }
+.baitly-voucher-offer button { cursor:pointer; transition:background-color 180ms cubic-bezier(.22,1,.36,1); }
+@container voucher-offers (min-width:820px) {
+ .baitly-vouchers-offers,.baitly-vouchers-loading { grid-template-columns:repeat(2,minmax(0,1fr)); }
+ .baitly-voucher-offer { grid-template-columns:92px minmax(0,1fr); }
+ .baitly-voucher-content { padding:16px; }
+ .baitly-voucher-ticket { padding:16px 8px; }
+ .baitly-voucher-ticket img { width:52px; height:52px; }
+ .baitly-voucher-ticket strong { font-size:20px; }
+ .baitly-voucher-actions { margin-inline-start:auto; }
+}
+@container voucher-offers (min-width:1280px) {
+ .baitly-vouchers-offers,.baitly-vouchers-loading { grid-template-columns:repeat(3,minmax(0,1fr)); }
+}
+@container vouchers (max-width:1050px) { .baitly-vouchers-layout { grid-template-columns:minmax(0,1fr); } .baitly-vouchers-insights { max-width:100%; } }
+@container vouchers (max-width:650px) {
+ .baitly-voucher-offer { grid-template-columns:82px minmax(0,1fr); } .baitly-voucher-ticket { padding:16px 8px; } .baitly-voucher-ticket img { width:48px; height:48px; } .baitly-voucher-ticket strong { font-size:18px; }
+ .baitly-voucher-content { padding:14px; } .baitly-voucher-heading { flex-direction:column; gap:6px; } .baitly-voucher-bottom { align-items:start; flex-direction:column; }
+ .baitly-voucher-actions button,.baitly-voucher-management button,.baitly-voucher-code { min-height:44px; }
+ .baitly-voucher-details dl { grid-template-columns:repeat(2,minmax(0,1fr)); }
+}
+@media (prefers-reduced-motion:reduce) { .baitly-voucher-offer button { transition:none; } }

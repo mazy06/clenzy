@@ -1,9 +1,8 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { cn } from '../../utils/cn';
-import StatusChip, { type ToneTokens } from '../../components/StatusChip';
 import { Alert as UiAlert, AlertDescription, Button } from '../../components/ui';
 import { TriangleAlert } from '../../icons/glyphs';
-import { Spinner } from '../../components/ui';
+import { Skeleton } from '../../components/ui';
 import { createPortal } from 'react-dom';
 import {
   Dialog,
@@ -12,14 +11,11 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-  ToggleGroup,
-  ToggleGroupItem,
   Tooltip,
   TooltipContent,
   TooltipTrigger,
 } from '../../components/ui';
-import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '../../components/ui';
-import { Add, Edit, Pause, PlayArrow as Play, Refresh, Delete as Trash, LocalOffer } from '../../icons';
+import { Add, Refresh, LocalOffer } from '../../icons';
 import PageHeader from '../../components/PageHeader';
 import EmptyState from '../../components/EmptyState';
 import { useTranslation } from '../../hooks/useTranslation';
@@ -32,34 +28,17 @@ import {
 } from '../../hooks/useBookingVouchers';
 import type {
   BookingVoucher,
-  VoucherDiscountType,
   VoucherStatus,
 } from '../../services/api/bookingVouchersApi';
 import VoucherAnalyticsPanel from './VoucherAnalyticsPanel';
 import VoucherEditorDialog from './VoucherEditorDialog';
 import compactHeaderActions from '../../components/compactHeaderActions';
-import { intlLocale } from '../../utils/localeDate';
-
-// ─── Tons Baitly UI : chips -soft par statut (§2.4) ──────────────────────────
-
-/** Fond pastel `-soft` + texte `-ink` : la teinte vive ne passe pas AA en clair. */
-const TONE_INFO: ToneTokens = { color: 'var(--bui-info-ink)', bg: 'var(--bui-info-soft)' };
-const TONE_NEUTRAL: ToneTokens = { color: 'var(--bui-muted-foreground)', bg: 'var(--bui-field)' };
-
-const STATUS_TOKENS: Record<VoucherStatus, ToneTokens> = {
-  ACTIVE: { color: 'var(--bui-success-ink)', bg: 'var(--bui-success-soft)' },
-  PAUSED: { color: 'var(--bui-warning-ink)', bg: 'var(--bui-warning-soft)' },
-  DRAFT: TONE_INFO,
-  EXPIRED: TONE_NEUTRAL,
-};
-
-/**
- * Code voucher — pattern .fr-dip (IP mono de la messagerie) :
- * mono display, fond de champ, rayon md.
- */
-const CODE_CLASS =
-  'inline-block font-[family-name:var(--font-display)] text-[11.5px] tracking-[0.04em] tabular-nums ' +
-  'text-foreground bg-field border border-solid border-field-line rounded-md px-2 py-[3px]';
+import FilterChipRow from "../../components/FilterChipRow";
+import PagePagination from "../../components/PagePagination";
+import { useScreenSearch } from "../../components/ScreenChrome";
+import VoucherOfferRow from "./VoucherOfferRow";
+import { useIsMobile } from '../../hooks/use-mobile';
+import "./baitlyVouchers.css";
 
 type FilterMode = 'all' | VoucherStatus;
 
@@ -81,7 +60,7 @@ interface VouchersPageProps {
  * Page de gestion des {@link BookingVoucher} pour l'org courante.
  *
  * <h3>Architecture</h3>
- * Pattern table + dialog d'edition mutuelle (create/update). Le statut
+ * Liste d’offres avec conditions dépliables et aperçu d’édition. Le statut
  * controle visuellement la disponibilite (chips colores). Les pause/resume
  * sont des actions inline rapides (raccourci sans full edit).
  */
@@ -90,7 +69,7 @@ export default function VouchersPage({
   actionsContainer,
   filtersContainer,
 }: VouchersPageProps = {}) {
-  const { t, currentLanguage } = useTranslation();
+  const { t } = useTranslation();
   const { notify } = useNotification();
   const [filter, setFilter] = useState<FilterMode>('all');
   const [editing, setEditing] = useState<BookingVoucher | null>(null);
@@ -99,8 +78,12 @@ export default function VouchersPage({
   // en iframe, non accessible, non i18n).
   const [pendingDelete, setPendingDelete] = useState<BookingVoucher | null>(null);
 
-  const statusFilter = filter === 'all' ? undefined : filter;
-  const { data: vouchers = [], isLoading, error, refetch } = useBookingVouchersList(statusFilter);
+  const [search, setSearch] = useState("");
+  const [page, setPage] = useState(0);
+  const rowsPerPage = useIsMobile(640) ? 4 : 8;
+  useScreenSearch(search, setSearch, t("vouchers.workspace.search"));
+  useEffect(() => { setPage(0); }, [filter, search, rowsPerPage]);
+  const { data: vouchers = [], isLoading, isFetching, error, refetch } = useBookingVouchersList();
 
   const pauseMutation = usePauseBookingVoucher();
   const resumeMutation = useResumeBookingVoucher();
@@ -111,12 +94,14 @@ export default function VouchersPage({
     const statusOrder: Record<VoucherStatus, number> = {
       ACTIVE: 0, DRAFT: 1, PAUSED: 2, EXPIRED: 3,
     };
-    return [...vouchers].sort((a, b) => {
+    return vouchers.filter(v => (filter === "all" || v.status === filter) && [v.name,v.code,v.description].some(text => text?.toLocaleLowerCase().includes(search.toLocaleLowerCase().trim()))).sort((a, b) => {
       const so = statusOrder[a.status] - statusOrder[b.status];
       if (so !== 0) return so;
       return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
     });
-  }, [vouchers]);
+  }, [vouchers, filter, search]);
+  const currentPage = Math.min(page, Math.max(0, Math.ceil(sortedVouchers.length / rowsPerPage) - 1));
+  const busy = pauseMutation.isPending || resumeMutation.isPending || deleteMutation.isPending;
 
   const handlePause = async (v: BookingVoucher) => {
     try {
@@ -147,9 +132,9 @@ export default function VouchersPage({
   const confirmDelete = async () => {
     if (!pendingDelete) return;
     const target = pendingDelete;
-    setPendingDelete(null);
     try {
       await deleteMutation.mutateAsync(target.id);
+      setPendingDelete(null);
       notify.success(t('vouchers.deleteSuccess'));
     } catch (e: any) {
       notify.error(e?.message ?? t('vouchers.deleteError'));
@@ -169,6 +154,7 @@ export default function VouchersPage({
               variant="ghost"
               size="icon-sm"
               onClick={() => refetch()}
+              disabled={isFetching}
               aria-label={t('common.refresh')}
               className="cursor-pointer"
             >
@@ -185,22 +171,10 @@ export default function VouchersPage({
     </div>
   );
 
-  const filterBar = (
-    <ToggleGroup
-      type="single"
-      value={filter}
-      onValueChange={(v) => v && setFilter(v as FilterMode)}
-      variant="outline"
-      size="sm"
-      spacing={0}
-    >
-      <ToggleGroupItem value="all">{t('vouchers.filter.all')}</ToggleGroupItem>
-      <ToggleGroupItem value="ACTIVE">{t('vouchers.filter.active')}</ToggleGroupItem>
-      <ToggleGroupItem value="DRAFT">{t('vouchers.filter.draft')}</ToggleGroupItem>
-      <ToggleGroupItem value="PAUSED">{t('vouchers.filter.paused')}</ToggleGroupItem>
-      <ToggleGroupItem value="EXPIRED">{t('vouchers.filter.expired')}</ToggleGroupItem>
-    </ToggleGroup>
-  );
+  const filterBar = <FilterChipRow value={filter === "all" ? "" : filter} onChange={value => setFilter(value || "all")}
+    allLabel={t("vouchers.filter.all")} allCount={vouchers.length}
+    options={(["ACTIVE","DRAFT","PAUSED","EXPIRED"] as const).map(value => ({value,
+      label:t("vouchers.filter."+value.toLowerCase()),color:"var(--bui-primary)",count:vouchers.filter(v=>v.status===value).length}))} />;
 
   return (
     <div className={cn(embedded ? 'p-0' : 'p-[18px]')}>
@@ -218,65 +192,21 @@ export default function VouchersPage({
       {embedded && actionsContainer ? createPortal(compactHeaderActions(actions), actionsContainer) : null}
       {embedded && filtersContainer ? createPortal(filterBar, filtersContainer) : null}
 
-      <div className={cn(embedded ? 'p-[18px]' : 'p-0')}>
-        <VoucherAnalyticsPanel />
-
-        {/* Mode standalone : filter inline sous l'analytics panel. */}
-        {!embedded && <div className="mb-3">{filterBar}</div>}
-
-        {error && (
-          <UiAlert variant="destructive" className="mb-3">
-            <TriangleAlert />
-            <AlertDescription>{t('vouchers.loadError')}</AlertDescription>
-          </UiAlert>
-        )}
-
-        {isLoading ? (
-          <div className="flex justify-center p-9">
-            <Spinner className="size-10" />
-          </div>
-        ) : sortedVouchers.length === 0 ? (
-          <EmptyState
-            icon={<LocalOffer />}
-            title={t('vouchers.empty')}
-            action={(
-              <Button size="sm" onClick={() => setCreating(true)}>
-                <Add size={16} strokeWidth={2} />
-                {t('vouchers.createButton')}
-              </Button>
-            )}
-          />
-        ) : (
-          <div className="overflow-x-auto rounded-xl bg-card">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>{t('vouchers.table.name')}</TableHead>
-                  <TableHead>{t('vouchers.table.code')}</TableHead>
-                  <TableHead>{t('vouchers.table.type')}</TableHead>
-                  <TableHead>{t('vouchers.table.discount')}</TableHead>
-                  <TableHead>{t('vouchers.table.validity')}</TableHead>
-                  <TableHead className="text-center">{t('vouchers.table.usage')}</TableHead>
-                  <TableHead className="text-center">{t('vouchers.table.status')}</TableHead>
-                  <TableHead className="text-end">{t('common.actions')}</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {sortedVouchers.map((v) => (
-                  <VoucherRow
-                    key={v.id}
-                    voucher={v}
-                    locale={currentLanguage}
-                    onEdit={() => setEditing(v)}
-                    onPause={() => handlePause(v)}
-                    onResume={() => handleResume(v)}
-                    onDelete={() => handleDelete(v)}
-                  />
-                ))}
-              </TableBody>
-            </Table>
-          </div>
-        )}
+      <div className={cn("baitly-vouchers-workspace", embedded ? "p-[18px]" : "p-0")}>
+        <div className="baitly-vouchers-layout">
+          <section className="baitly-vouchers-list">
+            {(!embedded || !filtersContainer) && <div className="baitly-vouchers-filters">{filterBar}</div>}
+            {error && <UiAlert variant="destructive"><TriangleAlert /><AlertDescription>{t("vouchers.loadError")}</AlertDescription><Button variant="outline" size="sm" onClick={()=>refetch()}>{t("common.refresh")}</Button></UiAlert>}
+            {isLoading ? <div className="baitly-vouchers-loading" aria-busy="true">{Array.from({length:4},(_,i)=><Skeleton key={i} className="h-[180px] w-full" />)}</div> : !error && sortedVouchers.length === 0 ?
+              <EmptyState icon={<LocalOffer />} title={t(vouchers.length ? "vouchers.workspace.noResults" : "vouchers.empty")}
+                description={t(vouchers.length ? "vouchers.workspace.clearHint" : "vouchers.workspace.emptyHint")}
+                action={<Button variant="outline" onClick={()=>{if(vouchers.length){setSearch("");setFilter("all");}else setCreating(true);}}>{t(vouchers.length ? "vouchers.workspace.clear" : "vouchers.createButton")}</Button>} /> :
+              <div className="baitly-vouchers-offers">{sortedVouchers.slice(currentPage*rowsPerPage,(currentPage+1)*rowsPerPage).map(v=><VoucherOfferRow key={v.id} voucher={v} busy={busy}
+                onEdit={()=>setEditing(v)} onPause={()=>handlePause(v)} onResume={()=>handleResume(v)} onDelete={()=>handleDelete(v)} />)}</div>}
+            {!isLoading && !error && <PagePagination page={currentPage} onPageChange={setPage} count={sortedVouchers.length} rowsPerPage={rowsPerPage} />}
+          </section>
+          <aside className="baitly-vouchers-insights"><VoucherAnalyticsPanel /></aside>
+        </div>
       </div>
 
       {(creating || editing) && (
@@ -294,7 +224,7 @@ export default function VouchersPage({
 
       <Dialog
         open={pendingDelete !== null}
-        onOpenChange={(next) => !next && setPendingDelete(null)}
+        onOpenChange={(next) => !next && !deleteMutation.isPending && setPendingDelete(null)}
       >
         <DialogContent>
           <DialogHeader>
@@ -304,12 +234,13 @@ export default function VouchersPage({
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setPendingDelete(null)}>
+            <Button variant="outline" disabled={deleteMutation.isPending} onClick={() => setPendingDelete(null)}>
               {t('common.cancel')}
             </Button>
             <Button
               variant="destructive"
               onClick={confirmDelete}
+              disabled={deleteMutation.isPending}
               autoFocus
             >
               {t('common.delete')}
@@ -319,175 +250,4 @@ export default function VouchersPage({
       </Dialog>
     </div>
   );
-}
-
-// ─── Row component ───────────────────────────────────────────────────────────
-
-interface RowProps {
-  voucher: BookingVoucher;
-  locale: string;
-  onEdit: () => void;
-  onPause: () => void;
-  onResume: () => void;
-  onDelete: () => void;
-}
-
-const VoucherRow: React.FC<RowProps> = ({ voucher, locale, onEdit, onPause, onResume, onDelete }) => {
-  const { t } = useTranslation();
-  // Cast pour s'aligner sur la signature `(key, opts?) => string`. Le retour
-  // de i18next peut etre object | string mais nos usages sont tous string.
-  const formatDiscount = makeFormatDiscount(t as unknown as (...args: any[]) => string);
-  const v = voucher;
-  const isAuto = v.type === 'AUTO_CAMPAIGN';
-  const canPause = v.status === 'ACTIVE';
-  const canResume = v.status === 'PAUSED';
-  const canDelete = v.usageCount === 0;
-
-  return (
-    <TableRow>
-      <TableCell>
-        <div className="flex flex-col gap-[1.5px]">
-          <p className="text-xs font-semibold">{v.name}</p>
-          {v.description && (
-            <span className="text-[0.7rem] text-muted-foreground">
-              {v.description.slice(0, 80)}{v.description.length > 80 ? '…' : ''}
-            </span>
-          )}
-        </div>
-      </TableCell>
-      <TableCell>
-        {v.code ? (
-          <span className={CODE_CLASS}>
-            {v.code}
-          </span>
-        ) : (
-          <StatusChip label={t('vouchers.autoCampaign')} tokens={TONE_INFO} className="text-2xs font-semibold" />
-        )}
-      </TableCell>
-      <TableCell>
-        <StatusChip
-          label={isAuto ? t('vouchers.typeAuto') : t('vouchers.typeManual')}
-          tokens={isAuto ? TONE_INFO : TONE_NEUTRAL}
-          className="text-2xs font-semibold"
-        />
-      </TableCell>
-      <TableCell>
-        <p className="text-xs font-medium tabular-nums">
-          {formatDiscount(v.discountType, v.discountValue)}
-        </p>
-      </TableCell>
-      <TableCell>
-        <span className="text-xs text-muted-foreground">
-          {formatValidity(v.validFrom, v.validUntil, locale)}
-        </span>
-      </TableCell>
-      <TableCell className="text-center">
-        <p className="text-xs tabular-nums">
-          {v.usageCount}
-          {/* Dénominateur en retrait : la valeur lue est le compteur d'usages. */}
-          {v.maxUsesTotal !== null && (
-            <span className="text-2xs text-muted-foreground"> / {v.maxUsesTotal}</span>
-          )}
-        </p>
-      </TableCell>
-      <TableCell className="text-center">
-        <StatusChip
-          label={t(`vouchers.status.${v.status}`)}
-          tokens={STATUS_TOKENS[v.status]}
-          className="text-2xs font-semibold"
-        />
-      </TableCell>
-      <TableCell className="text-end">
-        <div className="flex flex-row justify-end gap-[3px]">
-          {canPause && (
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <span className="inline-flex">
-                  <Button variant="ghost" size="icon-sm" onClick={onPause} aria-label={t('vouchers.pause')} className="cursor-pointer">
-                    <Pause size={16} strokeWidth={1.75} />
-                  </Button>
-                </span>
-              </TooltipTrigger>
-              <TooltipContent>{t('vouchers.pause')}</TooltipContent>
-            </Tooltip>
-          )}
-          {canResume && (
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <span className="inline-flex">
-                  <Button variant="ghost" size="icon-sm" onClick={onResume} aria-label={t('vouchers.resume')} className="cursor-pointer">
-                    <Play size={16} strokeWidth={1.75} />
-                  </Button>
-                </span>
-              </TooltipTrigger>
-              <TooltipContent>{t('vouchers.resume')}</TooltipContent>
-            </Tooltip>
-          )}
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <span className="inline-flex">
-                <Button
-                  variant="ghost"
-                  size="icon-sm"
-                  onClick={onEdit}
-                  aria-label={t('common.edit')}
-                  className="cursor-pointer hover:text-primary"
-                >
-                  <Edit size={16} strokeWidth={1.75} />
-                </Button>
-              </span>
-            </TooltipTrigger>
-            <TooltipContent>{t('common.edit')}</TooltipContent>
-          </Tooltip>
-          {canDelete && (
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <span className="inline-flex">
-                  <Button
-                    variant="ghost"
-                    size="icon-sm"
-                    onClick={onDelete}
-                    aria-label={t('common.delete')}
-                    className="cursor-pointer hover:text-destructive"
-                  >
-                    <Trash size={16} strokeWidth={1.75} />
-                  </Button>
-                </span>
-              </TooltipTrigger>
-              <TooltipContent>{t('common.delete')}</TooltipContent>
-            </Tooltip>
-          )}
-        </div>
-      </TableCell>
-    </TableRow>
-  );
-};
-
-// ─── Format helpers ──────────────────────────────────────────────────────────
-
-/**
- * Format helper pour le discount selon le type. Le mot "nuit/nuits" passe par
- * une closure i18n pour eviter le hardcode FR (fix M4 review).
- *
- * Signature de {@code t} typee comme {@code (...args: any[]) => string} pour
- * accepter la signature i18next sans casser nos call-sites.
- */
-function makeFormatDiscount(t: (...args: any[]) => string) {
-  return (type: VoucherDiscountType, value: string): string => {
-    const n = Number(value);
-    if (type === 'PERCENTAGE') return `−${n}%`;
-    if (type === 'FIXED_AMOUNT') return `−${n.toFixed(2).replace('.', ',')} €`;
-    // FREE_NIGHTS : la pluralisation est gerée par i18n
-    return `−${n} ${t('vouchers.editor.nights', { count: n })}`;
-  };
-}
-
-function formatValidity(from: string | null, until: string | null, locale: string): string {
-  // Utilise la langue active (FR/EN/AR) pour le formatage Intl, pas un hardcode.
-  const df = new Intl.DateTimeFormat(intlLocale(locale), { dateStyle: 'short' });
-  const fmt = (iso: string) => df.format(new Date(iso));
-  if (from && until) return `${fmt(from)} → ${fmt(until)}`;
-  if (until) return `→ ${fmt(until)}`;
-  if (from) return `${fmt(from)} → ∞`;
-  return '—';
 }
