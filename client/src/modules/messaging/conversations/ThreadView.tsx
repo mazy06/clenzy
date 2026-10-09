@@ -1,45 +1,23 @@
-import React, { useEffect, useMemo, useRef } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
-  Attachment,
-  AttachmentContent,
-  AttachmentDescription,
-  AttachmentMedia,
-  AttachmentTitle,
-  Badge,
   Button,
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
-  InputGroup,
-  InputGroupAddon,
-  InputGroupButton,
-  InputGroupTextarea,
-  Bubble,
-  BubbleContent,
-  Message,
-  MessageAvatar,
-  MessageContent,
-  MessageFooter,
-  MessageHeader,
-  MessageGroup,
-  Spinner,
-  Switch,
+  Skeleton,
   Tooltip,
   TooltipContent,
   TooltipTrigger,
 } from '../../../components/ui';
 import GuestAvatar from '../../../components/baitly/GuestAvatar';
-import { cn } from '../../../utils/cn';
-import {
-  ArrowBack as ArrowBackIcon,
-  MoreHoriz as MoreHorizIcon,
-  Send as SendIcon,
-  Description as FileIcon,
-  Note as NoteIcon,
-} from '../../../icons';
+import { ArrowDown, ArrowLeft, Ellipsis, MessageSquare, PanelsTopLeft } from '../../../icons/glyphs';
 import { useTranslation } from '../../../hooks/useTranslation';
-import { type ThreadMessage, dayLabel, formatMsgTime } from './unified';
+import { cn } from '../../../utils/cn';
+import Composer from './Composer';
+import MessageBubble from './MessageBubble';
+import { groupMessages } from './messagingModel';
+import { type ThreadMessage, dayLabel } from './unified';
 
 // ─── Props ───────────────────────────────────────────────────────────────────
 
@@ -56,18 +34,17 @@ export interface ThreadMenuItem {
   icon?: React.ReactNode;
   onClick: () => void;
   disabled?: boolean;
+  /** Entrée qui n'existe que dans le menu étroit : l'action a un bouton d'icône au-delà de `sm`. */
+  narrowOnly?: boolean;
 }
 
 interface ThreadViewProps {
   title: string;
-  /** Sous-titre entête : « canal · logement » (icône canal colorée incluse par l'appelant). */
+  /** Sous-titre de l'entête : « canal · logement » (marque du canal incluse par l'appelant). */
   subtitle: React.ReactNode;
-  /**
-   * Avatar de l'entête. Les fils le fournissent marqué du canal
-   * ({@code ConversationAvatar}) ; à défaut, initiales du titre.
-   */
+  /** Avatar de l'entête, marqué du canal ; à défaut, initiales du titre. */
   avatar?: React.ReactNode;
-  /** Pastille de statut à droite du nom (ex. « Confirmée » pour une réservation). */
+  /** Pastilles à droite du nom (état du séjour, urgence). */
   statusBadge?: React.ReactNode;
   /** Lien contextuel de l'entête (ex. « Voir la réservation »). */
   contextAction?: { label: string; onClick: () => void };
@@ -75,6 +52,8 @@ interface ThreadViewProps {
   actions?: ThreadAction[];
   /** Entrées du menu « ⋯ » (Archiver…). */
   menuItems?: ThreadMenuItem[];
+  /** Ouvre / ferme le panneau de contexte quand il n'est pas affiché en permanence. */
+  contextToggle?: { open: boolean; onToggle: () => void; label: string };
   messages: ThreadMessage[];
   loading: boolean;
   /** Brouillon contrôlé par le container (pré-remplissage IA). */
@@ -84,16 +63,17 @@ interface ThreadViewProps {
   sending: boolean;
   composePlaceholder: string;
   composeDisabled?: boolean;
-  /** Bandeau au-dessus du compose (ex : fenêtre WhatsApp 24h dépassée). */
+  /** Bandeau au-dessus de la composition (fenêtre WhatsApp 24h dépassée). */
   composeNotice?: React.ReactNode;
-  /** Chips fichiers joints au-dessus du champ. */
+  /** Zone du copilote IA, entre le fil et la composition. */
+  copilot?: React.ReactNode;
+  /** Chips de fichiers joints. */
   composeExtra?: React.ReactNode;
-  /** Boutons dans la boîte de composition (trombone, étincelles IA). */
+  /** Outils de la barre de composition (trombone, template, suggestion). */
   composeTools?: React.ReactNode;
   /**
-   * Bascule « note interne ». Fournie uniquement par les fils où le serveur sait
-   * consigner une note sans la transmettre (conversations voyageur) : la boîte
-   * s'ambre et le message part en note d'équipe.
+   * Onglet « Note interne ». Fourni uniquement par les fils où le serveur sait
+   * consigner une note sans la transmettre (conversations voyageur).
    */
   internalNote?: boolean;
   onInternalNoteChange?: (value: boolean) => void;
@@ -102,18 +82,12 @@ interface ThreadViewProps {
   onBack?: () => void;
 }
 
+/** Distance du bas en dessous de laquelle on considère qu'on lit « en direct ». */
+const NEAR_BOTTOM_PX = 96;
+
 /**
- * Fil de conversation — reprise de la projection « Messagerie » de la galerie
- * design-system ({@code BMessagingSectionDemo}).
- *
- * <p>Carte bordée unique : entête contextuelle (avatar, nom, statut, réservation),
- * fil bâti sur les primitives {@code Message*}, réponses suggérées, puis boîte de
- * composition {@code InputGroup}.</p>
- *
- * <p><b>Fil sans bulles</b>, comme la projection : l'émetteur se lit à l'avatar
- * (présent en réception, absent en émission) et à l'alignement. Sur un fil
- * professionnel qui mélange email, SMS et WhatsApp, l'empilement de bulles
- * colorées écrasait la lisibilité de messages souvent longs.</p>
+ * Fil de conversation : entête contextuelle, messages en séries par auteur et
+ * par jour, zone du copilote IA, boîte de composition.
  *
  * <p>Purement présentationnel — les données viennent des containers
  * (ChannelThread / InternalThread).</p>
@@ -126,6 +100,7 @@ export default function ThreadView({
   contextAction,
   actions = [],
   menuItems = [],
+  contextToggle,
   messages,
   loading,
   draft,
@@ -135,6 +110,7 @@ export default function ThreadView({
   composePlaceholder,
   composeDisabled = false,
   composeNotice,
+  copilot,
   composeExtra,
   composeTools,
   internalNote = false,
@@ -144,36 +120,76 @@ export default function ThreadView({
 }: ThreadViewProps) {
   const { t } = useTranslation();
   const scrollRef = useRef<HTMLDivElement>(null);
+  const [atBottom, setAtBottom] = useState(true);
+  // Miroir de `atBottom` pour l'observateur de taille, qui ne doit pas être
+  // recréé à chaque défilement.
+  const atBottomRef = useRef(true);
+  const days = useMemo(() => groupMessages(messages), [messages]);
 
-  // Auto-scroll en bas à l'arrivée de messages.
+  // Sur un écran étroit, les boutons d'icône de l'entête (template, fiche
+  // voyageur…) ne laissent plus de place au nom : ils passent dans le menu « ⋯ ».
+  const overflowItems: ThreadMenuItem[] = useMemo(
+    () => [
+      ...actions.map((action) => ({
+        key: `action-${action.key}`,
+        label: action.title,
+        icon: action.icon,
+        onClick: action.onClick,
+        narrowOnly: true,
+      })),
+      ...menuItems,
+    ],
+    [actions, menuItems],
+  );
+
+  const scrollToEnd = useCallback((behavior: ScrollBehavior = 'auto') => {
+    const el = scrollRef.current;
+    if (!el) return;
+    if (typeof el.scrollTo === 'function') el.scrollTo({ top: el.scrollHeight, behavior });
+    else el.scrollTop = el.scrollHeight;
+  }, []);
+
+  // Un nouveau message ramène en bas SEULEMENT si on lisait déjà « en direct » :
+  // quelqu'un qui relit l'historique ne doit pas être arraché à sa lecture.
+  useEffect(() => {
+    if (atBottom) scrollToEnd();
+    // `atBottom` n'est volontairement pas une dépendance : c'est l'arrivée d'un
+    // message qui déclenche le défilement, pas le fait d'avoir remonté.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [messages.length]);
+
+  // Quand la zone du copilote ou de la composition grandit (suggestion IA, saisie
+  // multiligne), le fil rétrécit : sans ce recalage, le dernier message passerait
+  // sous la carte alors qu'on le lisait.
   useEffect(() => {
     const el = scrollRef.current;
-    if (el) el.scrollTo({ top: el.scrollHeight });
-  }, [messages.length, title]);
+    if (!el || typeof ResizeObserver === 'undefined') return;
+    const observer = new ResizeObserver(() => {
+      if (atBottomRef.current) scrollToEnd();
+    });
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [scrollToEnd]);
 
-  // Groupes par jour pour les pilules séparateurs.
-  const grouped = useMemo(() => {
-    const sorted = [...messages].sort((a, b) => new Date(a.at).getTime() - new Date(b.at).getTime());
-    const groups: Array<{ day: string; msgs: ThreadMessage[] }> = [];
-    for (const msg of sorted) {
-      const day = dayLabel(msg.at);
-      const last = groups[groups.length - 1];
-      if (last && last.day === day) last.msgs.push(msg);
-      else groups.push({ day, msgs: [msg] });
-    }
-    return groups;
-  }, [messages]);
+  // Changer de fil repart du bas.
+  useEffect(() => {
+    scrollToEnd();
+    atBottomRef.current = true;
+    setAtBottom(true);
+  }, [title, scrollToEnd]);
 
-  const canSend = draft.trim().length > 0 && !sending && !composeDisabled;
-
-  const handleSend = () => {
-    if (canSend) onSend();
+  const handleScroll = () => {
+    const el = scrollRef.current;
+    if (!el) return;
+    const near = el.scrollHeight - el.scrollTop - el.clientHeight < NEAR_BOTTOM_PX;
+    atBottomRef.current = near;
+    setAtBottom(near);
   };
 
   return (
-    <div className="flex min-h-0 flex-1 flex-col gap-3 overflow-hidden rounded-xl border border-border bg-card p-3 min-[900px]:p-4">
+    <div className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-2xl border border-border bg-card">
       {/* ── Entête contextuelle ─────────────────────────────────────────── */}
-      <div className="flex shrink-0 items-center justify-between gap-2 border-b border-border pb-3">
+      <header className="flex shrink-0 items-center justify-between gap-2 border-b border-border px-3 py-2.5 min-[900px]:px-4">
         <div className="flex min-w-0 items-center gap-2.5">
           {showBack && (
             <Button
@@ -183,38 +199,30 @@ export default function ThreadView({
               aria-label={t('messagingHub.back', 'Retour')}
               className="cursor-pointer"
             >
-              <ArrowBackIcon size={16} strokeWidth={1.75} />
+              <ArrowLeft className="size-4 rtl:-scale-x-100" aria-hidden />
             </Button>
           )}
-          {avatar ?? <GuestAvatar name={title} size={32} />}
+          {avatar ?? <GuestAvatar name={title} size={36} />}
           <div className="min-w-0">
-            <div className="flex items-center gap-1.5">
-              <span className="truncate text-sm font-semibold text-foreground">{title}</span>
+            <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5">
+              <h2 dir="auto" className="m-0 max-w-full truncate text-sm font-semibold text-foreground">{title}</h2>
               {statusBadge}
             </div>
-            <div className="flex items-center gap-1 truncate text-xs text-muted-foreground">
-              {subtitle}
-            </div>
+            <div className="flex items-center gap-1 truncate text-xs text-muted-foreground">{subtitle}</div>
           </div>
         </div>
 
         <div className="flex shrink-0 items-center gap-0.5">
           {contextAction && (
-            <Button size="xs" variant="ghost" className="cursor-pointer" onClick={contextAction.onClick}>
+            <Button size="xs" variant="ghost" className="hidden cursor-pointer sm:inline-flex" onClick={contextAction.onClick}>
               {contextAction.label}
             </Button>
           )}
           {actions.map((action) => (
             <Tooltip key={action.key}>
               <TooltipTrigger asChild>
-                <span className="inline-flex">
-                  <Button
-                    variant="ghost"
-                    size="icon-sm"
-                    onClick={action.onClick}
-                    aria-label={action.title}
-                    className="cursor-pointer"
-                  >
+                <span className="hidden sm:inline-flex">
+                  <Button variant="ghost" size="icon-sm" onClick={action.onClick} aria-label={action.title} className="cursor-pointer">
                     {action.icon}
                   </Button>
                 </span>
@@ -222,31 +230,48 @@ export default function ThreadView({
               <TooltipContent>{action.title}</TooltipContent>
             </Tooltip>
           ))}
-          {menuItems.length > 0 && (
+          {contextToggle && (
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <span className="inline-flex">
+                  <Button
+                    variant={contextToggle.open ? 'secondary' : 'ghost'}
+                    size="icon-sm"
+                    aria-pressed={contextToggle.open}
+                    aria-label={contextToggle.label}
+                    onClick={contextToggle.onToggle}
+                    className="cursor-pointer"
+                  >
+                    <PanelsTopLeft className="size-4" aria-hidden />
+                  </Button>
+                </span>
+              </TooltipTrigger>
+              <TooltipContent>{contextToggle.label}</TooltipContent>
+            </Tooltip>
+          )}
+          {overflowItems.length > 0 && (
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button
                   variant="ghost"
                   size="icon-sm"
-                  aria-label={t('messagingHub.moreActions', "Plus d'actions")}
-                  className="cursor-pointer"
+                  aria-label={t('messagingHub.moreActions', 'Plus d’actions')}
+                  className={cn('cursor-pointer', menuItems.length === 0 && 'sm:hidden')}
                 >
-                  <MoreHorizIcon size={16} strokeWidth={1.75} />
+                  <Ellipsis className="size-4" aria-hidden />
                 </Button>
               </DropdownMenuTrigger>
               {/* `w-auto` : le gabarit cale sinon la largeur du menu sur celle du
-                  declencheur, ici un bouton d'icone. */}
+                  déclencheur, ici un bouton d'icône. */}
               <DropdownMenuContent align="end" className="w-auto min-w-[180px]">
-                {menuItems.map((item) => (
+                {overflowItems.map((item) => (
                   <DropdownMenuItem
                     key={item.key}
                     disabled={item.disabled}
                     onSelect={() => item.onClick()}
-                    className="gap-1.5 text-xs"
+                    className={cn('gap-1.5 text-xs', item.narrowOnly && 'sm:hidden')}
                   >
-                    {item.icon && (
-                      <span className="inline-flex min-w-[24px] items-center text-muted-foreground">{item.icon}</span>
-                    )}
+                    {item.icon && <span className="inline-flex min-w-[24px] items-center text-muted-foreground">{item.icon}</span>}
                     {item.label}
                   </DropdownMenuItem>
                 ))}
@@ -254,183 +279,78 @@ export default function ThreadView({
             </DropdownMenu>
           )}
         </div>
-      </div>
+      </header>
 
       {/* ── Messages ────────────────────────────────────────────────────── */}
-      <div className="min-h-0 flex-1 overflow-y-auto" ref={scrollRef}>
-        {loading ? (
-          <div className="flex justify-center py-6">
-            <Spinner className="size-5" />
-          </div>
-        ) : grouped.length === 0 ? (
-          <p className="py-6 text-center text-xs text-muted-foreground">
-            {t('messagingHub.noMessages', 'Aucun message dans cette conversation')}
-          </p>
-        ) : (
-          <MessageGroup>
-            {grouped.map((group) => (
-              <React.Fragment key={group.day}>
-                <div className="my-1 flex justify-center">
-                  <Badge variant="secondary" className="text-2xs">{group.day}</Badge>
+      <div className="relative min-h-0 flex-1">
+        <div
+          ref={scrollRef}
+          onScroll={handleScroll}
+          className="h-full overflow-y-auto bg-muted/40 px-3 py-4 min-[900px]:px-5"
+          aria-live="polite"
+          aria-busy={loading}
+        >
+          {loading ? (
+            <div className="flex flex-col gap-3" role="status" aria-label={t('messagingHub.loading', 'Chargement…')}>
+              <Skeleton className="h-10 w-2/3 rounded-2xl" />
+              <Skeleton className="ms-auto h-8 w-1/2 rounded-2xl" />
+              <Skeleton className="h-14 w-3/4 rounded-2xl" />
+            </div>
+          ) : days.length === 0 ? (
+            <div className="flex h-full flex-col items-center justify-center gap-2 py-8 text-center">
+              <span className="inline-flex size-10 items-center justify-center rounded-full bg-primary-soft text-primary">
+                <MessageSquare className="size-5" aria-hidden />
+              </span>
+              <p className="m-0 text-sm text-muted-foreground">
+                {t('messagingHub.noMessages', 'Aucun message dans cette conversation')}
+              </p>
+            </div>
+          ) : (
+            days.map((day) => (
+              <section key={day.key} aria-label={dayLabel(day.at)} className="mt-4 first:mt-0">
+                <div className="sticky top-0 z-10 mb-2 flex justify-center">
+                  <span className="rounded-full border border-border bg-card/90 px-2.5 py-0.5 text-2xs font-medium text-muted-foreground backdrop-blur">
+                    {dayLabel(day.at)}
+                  </span>
                 </div>
-                {group.msgs.map((msg) => (
-                  <Message key={msg.id} align={msg.out ? 'end' : 'start'}>
-                    {/* L'avatar marque la RECEPTION : son absence, cote emission,
-                        suffit a distinguer les deux sens sans colorer de bulle. */}
-                    {!msg.out && (
-                      <MessageAvatar>
-                        <GuestAvatar name={msg.sender || title} size={28} />
-                      </MessageAvatar>
-                    )}
-                    <MessageContent>
-                      {/* Qui parle. Indispensable des qu'un fil reunit plus de
-                          deux personnes : le prenom ne se deduit plus du cote
-                          de la bulle. */}
-                      {!msg.out && msg.sender && (
-                        <MessageHeader className="mb-0.5 text-2xs font-semibold text-muted-foreground">
-                          {msg.sender}
-                        </MessageHeader>
-                      )}
-
-                      {/* Une note interne DOIT se distinguer d'un message envoyé :
-                          l'opérateur qui relit le fil doit voir d'un coup d'œil ce
-                          que le voyageur a reçu et ce qu'il n'a pas reçu. */}
-                      {msg.internalNote && (
-                        <Badge variant="warning" className="w-fit">
-                          <NoteIcon size={11} strokeWidth={2} />
-                          {t('messagingHub.internalNoteBadge', 'Note interne')}
-                        </Badge>
-                      )}
-
-                      {/* La BULLE, que ce fil n'utilisait pas : le texte se
-                          rendait a plat, sur toute la largeur, et rien ne
-                          rattachait visuellement un contenu a son auteur.
-                          `.cn-bubble` borne a 80 % et se colle au bon cote. */}
-                      {msg.text && (
-                        <Bubble
-                          variant={msg.internalNote ? 'outline' : msg.out ? 'default' : 'muted'}
-                          align={msg.out ? 'end' : 'start'}
-                        >
-                          <BubbleContent
-                            className={cn(
-                              'whitespace-pre-wrap',
-                              msg.internalNote && 'border-warning/40 bg-warning-soft/30',
-                            )}
-                          >
-                            {msg.text}
-                          </BubbleContent>
-                        </Bubble>
-                      )}
-
-                      {/* Une carte est un contenu de message : meme colonne,
-                          meme cote, meme largeur bornee. */}
-                      {msg.card && (
-                        <Bubble variant="outline" align={msg.out ? 'end' : 'start'} className="mt-1">
-                          <BubbleContent className="p-0">{msg.card}</BubbleContent>
-                        </Bubble>
-                      )}
-
-                      {msg.attachments && msg.attachments.length > 0 && (
-                        <span className="flex flex-col gap-1.5">
-                          {msg.attachments.map((name) => (
-                            <Attachment key={name} className="max-w-64">
-                              <AttachmentMedia>
-                                <FileIcon size={16} strokeWidth={1.75} />
-                              </AttachmentMedia>
-                              <AttachmentContent>
-                                <AttachmentTitle>{name}</AttachmentTitle>
-                                <AttachmentDescription>
-                                  {t('messagingHub.attachment', 'Pièce jointe')}
-                                </AttachmentDescription>
-                              </AttachmentContent>
-                            </Attachment>
-                          ))}
-                        </span>
-                      )}
-
-                      <MessageFooter className="text-2xs tabular-nums text-faint">
-                        {formatMsgTime(msg.at)}
-                      </MessageFooter>
-                    </MessageContent>
-                  </Message>
+                {day.runs.map((run) => (
+                  <MessageBubble key={run.message.id} run={run} fallbackSender={title} />
                 ))}
-              </React.Fragment>
-            ))}
-          </MessageGroup>
+              </section>
+            ))
+          )}
+        </div>
+
+        {!atBottom && !loading && days.length > 0 && (
+          <button
+            type="button"
+            onClick={() => scrollToEnd('smooth')}
+            aria-label={t('messagingHub.scrollToLatest', 'Aller au dernier message')}
+            className={cn(
+              'absolute bottom-3 end-4 inline-flex size-8 cursor-pointer items-center justify-center rounded-full border border-border bg-card text-foreground shadow-md transition-colors hover:bg-accent motion-reduce:transition-none',
+            )}
+          >
+            <ArrowDown className="size-4" aria-hidden />
+          </button>
         )}
       </div>
 
-      {/* ── Compose ─────────────────────────────────────────────────────── */}
-      <div className="shrink-0">
-        {composeNotice}
-        {composeExtra}
-
-        {onInternalNoteChange && (
-          <div className="mb-1.5 flex items-center gap-2">
-            <Switch
-              id="msg-internal-note"
-              checked={internalNote}
-              onCheckedChange={onInternalNoteChange}
-              className="cursor-pointer"
-            />
-            <label
-              htmlFor="msg-internal-note"
-              className={cn(
-                'flex cursor-pointer items-center gap-1 text-xs',
-                internalNote ? 'text-warning-ink' : 'text-muted-foreground',
-              )}
-            >
-              <NoteIcon size={13} strokeWidth={1.75} />
-              {t('messagingHub.internalNote', 'Note interne (invisible pour le voyageur)')}
-            </label>
-          </div>
-        )}
-
-        {/* La teinte ambre est le SEUL rappel que le message ne partira pas au
-            voyageur : sans elle, rien ne distingue une note d'une reponse. */}
-        <InputGroup className={cn(internalNote && 'border-warning/50 bg-warning-soft/30')}>
-          <InputGroupTextarea
-            rows={2}
-            placeholder={
-              internalNote
-                ? t('messagingHub.internalNotePlaceholder', "Note pour l'équipe…")
-                : composePlaceholder
-            }
-            value={draft}
-            disabled={composeDisabled}
-            onChange={(e) => onDraftChange(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter' && !e.shiftKey) {
-                e.preventDefault();
-                handleSend();
-              }
-            }}
-            className="max-h-[6lh]"
-          />
-          <InputGroupAddon align="block-end">
-            {composeTools}
-            <InputGroupButton
-              size="icon-xs"
-              onClick={handleSend}
-              disabled={!canSend}
-              aria-label={t('messagingHub.send', 'Envoyer')}
-              className={cn(
-                'ms-auto rounded-full',
-                canSend && 'bg-primary text-primary-foreground hover:bg-primary/90',
-              )}
-            >
-              {sending ? (
-                <Spinner className="size-3.5" />
-              ) : (
-                <SendIcon
-                  size={14}
-                  strokeWidth={1.75}
-                  className="translate-x-[0.5px] -translate-y-[0.5px] rtl:-translate-x-[0.5px]"
-                />
-              )}
-            </InputGroupButton>
-          </InputGroupAddon>
-        </InputGroup>
+      {/* ── Copilote + composition ──────────────────────────────────────── */}
+      <div className="flex shrink-0 flex-col gap-2 border-t border-border bg-card p-3 min-[900px]:px-4">
+        {copilot}
+        <Composer
+          value={draft}
+          onChange={onDraftChange}
+          onSend={onSend}
+          sending={sending}
+          placeholder={composePlaceholder}
+          disabled={composeDisabled}
+          notice={composeNotice}
+          extra={composeExtra}
+          tools={composeTools}
+          internalNote={internalNote}
+          onInternalNoteChange={onInternalNoteChange}
+        />
       </div>
     </div>
   );

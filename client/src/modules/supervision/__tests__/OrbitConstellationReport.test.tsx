@@ -10,8 +10,9 @@ import { buildPropertySnapshot } from '../provider/mockData';
  *
  * <p>Il tenait une pastille pleine largeur dans le rail, à égalité avec
  * « À traiter » — une information qu'on consulte de loin en loin au même rang
- * que celle sur laquelle on agit. Il passe sur la ligne des compteurs, réduit
- * à une icône, et le rail ne porte plus que les surfaces actionnables.</p>
+ * que celle sur laquelle on agit. Il passe dans la barre d'outils, comme un
+ * outil parmi les autres (même famille que « Fil »), et le rail ne porte plus
+ * que les surfaces actionnables.</p>
  *
  * <p>Sa surface reste le TIROIR, pas une bulle : en étroit l'écran est
  * tactile, et un panneau qui monte du bas se lit et se ferme au pouce.</p>
@@ -40,11 +41,14 @@ describe('le bilan en étroit', () => {
   it('n’occupe plus une pastille du rail', () => {
     open();
 
-    // Le rail ne garde que ce sur quoi on agit : plus de bouton pleine
-    // largeur intitulé « Bilan ».
+    // Le rail ne garde que ce sur quoi on agit : un seul « Bilan », rangé dans
+    // la barre d'outils avec les autres outils, jamais une pastille pleine
+    // largeur dans le rail.
     const pills = screen.queryAllByRole('button', { name: 'Bilan' });
     expect(pills).toHaveLength(1);
-    expect(pills[0].className).toContain('size-6');
+    expect(pills[0].className).toContain('baitly-constellation-tool');
+    expect(pills[0].className).not.toMatch(/\bw-full\b/);
+    expect(pills[0].closest('.baitly-constellation-toolbar')).not.toBeNull();
   });
 
   it('l’icône ouvre le tiroir, qui porte les chiffres', async () => {

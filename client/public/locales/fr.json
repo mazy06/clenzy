@@ -13757,7 +13757,7 @@
     "searchArchivedPlaceholder": "Rechercher dans les archives…",
     "searchPlaceholder": "Rechercher une conversation…",
     "selectConversation": "Sélectionnez une conversation",
-    "selectConversationHint": "Choisissez une conversation ou un formulaire à gauche pour afficher le détail.",
+    "selectConversationHint": "Choisissez une conversation à gauche.",
     "sendTemplate": "Envoyer un template WhatsApp",
     "sendTemplateShort": "Envoyer un template",
     "stayArrival": "arrivée {{date}}",
@@ -13767,7 +13767,76 @@
     "stayUpcoming": "À venir",
     "title": "Messagerie",
     "whatsappWindowExpired": "Fenêtre de 24h dépassée — un template est requis pour relancer ce voyageur.",
-    "whatsappWindowPlaceholder": "Réponse libre indisponible (template requis)"
+    "whatsappWindowPlaceholder": "Réponse libre indisponible (template requis)",
+    "ai": {
+      "draftTitle": "Réponse suggérée",
+      "hideTranslation": "Masquer la traduction",
+      "regenerate": "Régénérer",
+      "retry": "Réessayer",
+      "reviewHint": "À relire avant l’envoi",
+      "sentiment": {
+        "label": "Sentiment du voyageur",
+        "negative": "Mécontent",
+        "positive": "Satisfait",
+        "neutral": "Neutre"
+      },
+      "suggest": "Suggérer une réponse",
+      "translate": "Traduire",
+      "translationFailed": "Traduction indisponible pour le moment.",
+      "translationOf": "Traduction · {{lang}}",
+      "translationSame": "Le message est déjà dans votre langue.",
+      "urgent": "Urgent",
+      "use": "Utiliser",
+      "variant": "Variante {{n}}",
+      "variants": "Variantes",
+      "writing": "Rédaction en cours…",
+      "tones": {
+        "friendly": "Chaleureux",
+        "professional": "Professionnel",
+        "empathetic": "Empathique"
+      }
+    },
+    "anonymous": "Anonyme",
+    "composerHint": "Entrée pour envoyer · Maj + Entrée pour un saut de ligne",
+    "composerMode": "Type de message",
+    "context": {
+      "analysis": "Lecture de l’IA",
+      "arrival": "Arrivée",
+      "conversation": "Conversation",
+      "departure": "Départ",
+      "hide": "Masquer le contexte",
+      "messages": "Messages",
+      "openedOn": "Ouverte le",
+      "show": "Afficher le contexte",
+      "stay": "Séjour",
+      "title": "Contexte",
+      "unattached": "Cette conversation n’est rattachée à aucune réservation."
+    },
+    "delivery": {
+      "delivered": "Remis",
+      "failed": "Échec de l’envoi",
+      "read": "Lu",
+      "sent": "Envoyé"
+    },
+    "empty": {
+      "archivedHint": "Les conversations archivées apparaissent ici.",
+      "formsHint": "Les demandes de devis et de support arrivent ici.",
+      "searchHint": "Essayez un autre nom, un logement ou un mot du message.",
+      "unreadHint": "Aucun message en attente de lecture.",
+      "unreadTitle": "Vous êtes à jour"
+    },
+    "filtersLabel": "Filtrer la boîte",
+    "groups": {
+      "today": "Aujourd’hui",
+      "yesterday": "Hier",
+      "week": "Cette semaine",
+      "older": "Plus ancien"
+    },
+    "noteHint": "Visible par l’équipe uniquement",
+    "saveNote": "Enregistrer la note",
+    "scrollToLatest": "Aller au dernier message",
+    "tabNote": "Note interne",
+    "tabReply": "Répondre"
   },
   "account": {
     "title": "Mon compte",

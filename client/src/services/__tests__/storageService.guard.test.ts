@@ -13,8 +13,11 @@ import { STORAGE_KEYS } from '../storageService';
  *       equivalent dans {@link STORAGE_KEYS} echouera ici → forcera une
  *       discussion d'architecture (cookie HttpOnly via backend, in-memory).</li>
  *   <li><b>Format des cles centralise</b>. Toute cle de prod doit etre
- *       prefixee {@code clenzy_*} (sauf {@code i18nextLng} qui est standard
- *       i18next library).</li>
+ *       prefixee {@code clenzy_*} (cles historiques) ou {@code baitly_*}
+ *       (cles creees depuis le changement de marque : le nom de la cle du
+ *       choix de cookies est publie dans la notice legale, la renommer
+ *       invaliderait le choix deja enregistre). Seule exception :
+ *       {@code i18nextLng}, standard de la lib i18next.</li>
  *   <li><b>Pas de duplication.</b> Chaque cle doit etre unique.</li>
  * </ul>
  *
@@ -73,13 +76,17 @@ describe('storageService — architectural guards', () => {
       expect(set.size).toBe(allKeys.length);
     });
 
-    it('all keys use clenzy_ prefix or are well-known third-party names', () => {
+    it('all keys use a project prefix or are well-known third-party names', () => {
+      // `clenzy_` : cles historiques. `baitly_` : cles de la nouvelle marque.
+      const ALLOWED_PREFIXES = ['clenzy_', 'baitly_'];
       // Exceptions documentees : libs externes qui gerent leur propre cle.
       const ALLOWED_NON_PREFIXED = new Set<string>([
         'i18nextLng', // i18next-browser-languagedetector standard
       ]);
       const offenders = allKeys.filter(
-        (k) => !k.startsWith('clenzy_') && !ALLOWED_NON_PREFIXED.has(k as string),
+        (k) =>
+          !ALLOWED_PREFIXES.some((prefix) => (k as string).startsWith(prefix)) &&
+          !ALLOWED_NON_PREFIXED.has(k as string),
       );
       expect(offenders).toEqual([]);
     });

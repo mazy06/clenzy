@@ -1,11 +1,7 @@
 import React, { useMemo, useRef, useState } from 'react';
 import { Tooltip, TooltipContent, TooltipTrigger } from '../../../components/ui';
 import StatusChip from '../../../components/StatusChip';
-import {
-  Archive as ArchiveIcon,
-  AttachFile as AttachFileIcon,
-  AutoAwesome as SparklesIcon,
-} from '../../../icons';
+import { Archive, Paperclip } from '../../../icons/glyphs';
 import { useTranslation } from '../../../hooks/useTranslation';
 import { useAuth } from '../../../hooks/useAuth';
 import {
@@ -22,10 +18,11 @@ import ThreadView from './ThreadView';
 import { type ThreadMessage } from './unified';
 import ChannelMark from './ChannelMark';
 import ConversationAvatar from './ConversationAvatar';
+import { AiDraftCard, AiDraftError, AiDraftSkeleton, CopilotBar } from './AiCopilot';
 
-/** Equivalent classes de `composeToolSx` (toujours exporte par ThreadView pour ChannelThread). */
+/** Bouton d'outil de la barre de composition (trombone). */
 const COMPOSE_TOOL_CLASS =
-  'flex size-6 shrink-0 cursor-pointer items-center justify-center rounded-md border-0 bg-transparent p-0 text-muted-foreground transition-colors duration-150 hover:bg-accent hover:text-primary disabled:cursor-default disabled:opacity-45 motion-reduce:transition-none';
+  'inline-flex size-8 shrink-0 cursor-pointer items-center justify-center rounded-full border-0 bg-transparent p-0 text-muted-foreground transition-colors duration-150 hover:bg-muted hover:text-foreground disabled:cursor-default disabled:opacity-45 motion-reduce:transition-none';
 
 interface InternalThreadProps {
   thread: ContactThreadSummary;
@@ -45,6 +42,8 @@ export default function InternalThread({ thread, onArchived, showBack, onBack }:
   const { user } = useAuth();
   const [draft, setDraft] = useState('');
   const [attachments, setAttachments] = useState<File[]>([]);
+  const [suggestion, setSuggestion] = useState<string | null>(null);
+  const [suggestionFailed, setSuggestionFailed] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const { data: rawMessages, isLoading } = useThreadMessages(thread.counterpartKeycloakId);
@@ -114,12 +113,26 @@ export default function InternalThread({ thread, onArchived, showBack, onBack }:
     );
   };
 
+  // La suggestion s'affiche dans une carte à relire (comme sur les fils voyageur),
+  // elle n'écrase plus ce que l'opérateur a déjà commencé à taper.
   const handleAiSuggest = () => {
     if (!lastInbound) return;
+    setSuggestionFailed(false);
     aiSuggestMutation.mutate(
       { message: lastInbound.text },
-      { onSuccess: (result) => setDraft(result.response) },
+      {
+        onSuccess: (result) => setSuggestion(result.response),
+        onError: () => {
+          setSuggestion(null);
+          setSuggestionFailed(true);
+        },
+      },
     );
+  };
+
+  const handleUseSuggestion = (text: string) => {
+    setDraft(text);
+    setSuggestion(null);
   };
 
   return (
@@ -150,7 +163,7 @@ export default function InternalThread({ thread, onArchived, showBack, onBack }:
           {
             key: 'archive',
             label: t('messagingHub.archive', 'Archiver'),
-            icon: <ArchiveIcon size={15} strokeWidth={1.75} />,
+            icon: <Archive className="size-4" aria-hidden />,
             onClick: () =>
               archiveThreadMutation.mutate(thread.counterpartKeycloakId, { onSuccess: onArchived }),
             disabled: archiveThreadMutation.isPending,
@@ -165,7 +178,7 @@ export default function InternalThread({ thread, onArchived, showBack, onBack }:
         composePlaceholder={t('messagingHub.replyTo', 'Répondre à {{name}}…', { name: counterpartName })}
         composeExtra={
           attachments.length > 0 ? (
-            <div className="flex flex-wrap gap-0.5 pb-1.5">
+            <div className="flex flex-wrap gap-1 pb-1.5">
               {attachments.map((file, idx) => (
                 <StatusChip
                   key={`${file.name}-${idx}`}
@@ -182,37 +195,35 @@ export default function InternalThread({ thread, onArchived, showBack, onBack }:
             <Tooltip>
               <TooltipTrigger asChild>
                 <button
+                  type="button"
                   onClick={() => fileInputRef.current?.click()}
                   aria-label={t('messagingHub.attachFile', 'Joindre un fichier')}
                   className={COMPOSE_TOOL_CLASS}
                 >
-                  <AttachFileIcon size={15} strokeWidth={1.75} />
+                  <Paperclip className="size-4" aria-hidden />
                 </button>
               </TooltipTrigger>
               <TooltipContent>{t('messagingHub.attachFile', 'Joindre un fichier')}</TooltipContent>
             </Tooltip>
-            {lastInbound && (
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  {/* Le span porte le declencheur : un bouton desactive n'emet
-                      plus d'evenement de survol. */}
-                  <span className="inline-flex">
-                    <button
-                      onClick={handleAiSuggest}
-                      disabled={aiSuggestMutation.isPending}
-                      aria-label={t('messagingHub.aiSuggest', 'Suggérer une réponse (IA)')}
-                      className={COMPOSE_TOOL_CLASS}
-                    >
-                      <SparklesIcon size={15} strokeWidth={1.75} />
-                    </button>
-                  </span>
-                </TooltipTrigger>
-                <TooltipContent>
-                  {aiSuggestMutation.isError
-                    ? t('messagingHub.aiUnavailable', 'Suggestion IA indisponible')
-                    : t('messagingHub.aiSuggest', 'Suggérer une réponse (IA)')}
-                </TooltipContent>
-              </Tooltip>
+          </>
+        }
+        copilot={
+          <>
+            {aiSuggestMutation.isPending && <AiDraftSkeleton />}
+            {suggestionFailed && !aiSuggestMutation.isPending && (
+              <AiDraftError onRetry={handleAiSuggest} onDismiss={() => setSuggestionFailed(false)} />
+            )}
+            {suggestion && !aiSuggestMutation.isPending && (
+              <AiDraftCard
+                kind="suggestion"
+                text={suggestion}
+                onUse={handleUseSuggestion}
+                onRegenerate={handleAiSuggest}
+                onDismiss={() => setSuggestion(null)}
+              />
+            )}
+            {lastInbound && !suggestion && !aiSuggestMutation.isPending && !suggestionFailed && (
+              <CopilotBar onSuggest={handleAiSuggest} suggesting={aiSuggestMutation.isPending} />
             )}
           </>
         }

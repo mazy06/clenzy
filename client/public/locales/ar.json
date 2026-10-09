@@ -13696,7 +13696,7 @@
     "searchArchivedPlaceholder": "ابحث في الأرشيف…",
     "searchPlaceholder": "ابحث عن محادثة…",
     "selectConversation": "اختر محادثة",
-    "selectConversationHint": "اختر محادثة أو نموذجًا من القائمة لعرض التفاصيل.",
+    "selectConversationHint": "اختر محادثة من القائمة.",
     "sendTemplate": "إرسال قالب واتساب",
     "sendTemplateShort": "إرسال قالب",
     "stayArrival": "الوصول {{date}}",
@@ -13706,7 +13706,76 @@
     "stayUpcoming": "قادمة",
     "title": "المراسلة",
     "whatsappWindowExpired": "انتهت نافذة الـ24 ساعة — يلزم قالب لمعاودة مراسلة هذا الضيف.",
-    "whatsappWindowPlaceholder": "الرد الحر غير متاح (القالب مطلوب)"
+    "whatsappWindowPlaceholder": "الرد الحر غير متاح (القالب مطلوب)",
+    "ai": {
+      "draftTitle": "رد مقترح",
+      "hideTranslation": "إخفاء الترجمة",
+      "regenerate": "إعادة الصياغة",
+      "retry": "إعادة المحاولة",
+      "reviewHint": "راجعه قبل الإرسال",
+      "sentiment": {
+        "label": "انطباع الضيف",
+        "negative": "غير راضٍ",
+        "positive": "راضٍ",
+        "neutral": "محايد"
+      },
+      "suggest": "اقتراح رد",
+      "translate": "ترجمة",
+      "translationFailed": "الترجمة غير متاحة حاليًا.",
+      "translationOf": "ترجمة · {{lang}}",
+      "translationSame": "الرسالة بلغتك بالفعل.",
+      "urgent": "عاجل",
+      "use": "استخدام",
+      "variant": "الصيغة {{n}}",
+      "variants": "الصيغ",
+      "writing": "جارٍ الكتابة…",
+      "tones": {
+        "friendly": "ودّي",
+        "professional": "مهني",
+        "empathetic": "متعاطف"
+      }
+    },
+    "anonymous": "مجهول",
+    "composerHint": "Enter للإرسال · Shift + Enter لسطر جديد",
+    "composerMode": "نوع الرسالة",
+    "context": {
+      "analysis": "قراءة الذكاء الاصطناعي",
+      "arrival": "الوصول",
+      "conversation": "المحادثة",
+      "departure": "المغادرة",
+      "hide": "إخفاء السياق",
+      "messages": "الرسائل",
+      "openedOn": "فُتحت في",
+      "show": "عرض السياق",
+      "stay": "الإقامة",
+      "title": "السياق",
+      "unattached": "هذه المحادثة غير مرتبطة بأي حجز."
+    },
+    "delivery": {
+      "delivered": "تم التسليم",
+      "failed": "فشل الإرسال",
+      "read": "مقروءة",
+      "sent": "أُرسلت"
+    },
+    "empty": {
+      "archivedHint": "تظهر المحادثات المؤرشفة هنا.",
+      "formsHint": "تصل طلبات عروض الأسعار والدعم إلى هنا.",
+      "searchHint": "جرّب اسمًا آخر أو عقارًا أو كلمة من الرسالة.",
+      "unreadHint": "لا توجد رسائل بانتظار القراءة.",
+      "unreadTitle": "لا شيء متأخر"
+    },
+    "filtersLabel": "تصفية صندوق الرسائل",
+    "groups": {
+      "today": "اليوم",
+      "yesterday": "أمس",
+      "week": "هذا الأسبوع",
+      "older": "أقدم"
+    },
+    "noteHint": "مرئية للفريق فقط",
+    "saveNote": "حفظ الملاحظة",
+    "scrollToLatest": "الانتقال إلى آخر رسالة",
+    "tabNote": "ملاحظة داخلية",
+    "tabReply": "رد"
   },
   "account": {
     "title": "حسابي",

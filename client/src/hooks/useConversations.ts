@@ -10,6 +10,8 @@ export const conversationKeys = {
   messages: (conversationId: number, page?: number) =>
     [...conversationKeys.all, 'messages', conversationId, { page }] as const,
   unreadCount: () => [...conversationKeys.all, 'unread-count'] as const,
+  analysis: (conversationId: number, lastMessageAt: string | null) =>
+    [...conversationKeys.all, 'analysis', conversationId, lastMessageAt] as const,
 };
 
 // ─── Queries ────────────────────────────────────────────────────────────────
@@ -147,5 +149,42 @@ export function useSendTemplateForReservation() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: conversationKeys.all });
     },
+  });
+}
+
+// ─── Copilote IA ────────────────────────────────────────────────────────────
+
+/**
+ * Sentiment et urgence du dernier message voyageur. La clé porte la date du
+ * dernier message : un nouveau message relance l'analyse, une simple
+ * navigation entre conversations non. Gratuit côté serveur (mots-clés), mais
+ * on évite tout appel tant que la conversation n'est pas ouverte.
+ */
+export function useConversationAnalysis(
+  conversationId: number | null,
+  lastMessageAt: string | null,
+  enabled = true,
+) {
+  return useQuery({
+    queryKey: conversationKeys.analysis(conversationId ?? -1, lastMessageAt),
+    queryFn: () => conversationApi.getAnalysis(conversationId!),
+    enabled: enabled && conversationId != null,
+    staleTime: 5 * 60_000,
+    retry: false,
+  });
+}
+
+/** Génère un brouillon de réponse (jamais envoyé : l'opérateur le relit et l'utilise). */
+export function useSuggestReply() {
+  return useMutation({
+    mutationFn: (conversationId: number) => conversationApi.suggestReply(conversationId),
+  });
+}
+
+/** Traduit le dernier message du voyageur (langue cible = langue de l'interface). */
+export function useTranslateLastInbound() {
+  return useMutation({
+    mutationFn: ({ conversationId, target }: { conversationId: number; target: string }) =>
+      conversationApi.translateLastInbound(conversationId, target),
   });
 }
