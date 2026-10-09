@@ -196,7 +196,7 @@ export const NAVIGATION_HUBS: HubDef[] = [
       {
         path: '/admin/promo-codes',
         translationKey: 'navigation.promoCodes',
-        fallbackLabel: 'Codes promo',
+        fallbackLabel: 'Codes promo plateforme',
         isAccessible: (a) => has(a, 'users:manage'),
       },
     ],

@@ -338,7 +338,7 @@ const MENU_ENTRIES: MenuEntryConfig[] = [
       group: 'admin',
     },
   },
-  // Outils plateforme = Sync · KPI · Taux de change · Base de données · Codes promo
+  // Outils plateforme = Sync · KPI · Taux de change · Base de données · Codes promo plateforme
   { kind: 'hub', hubId: 'platform-tools', icon: <Build /> },
 ];
 
