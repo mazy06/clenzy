@@ -44,7 +44,7 @@ function DashboardDemo({ scene, onSelect }: DashboardDemoProps) {
 
   return (
     <StageCard icon={<LayoutDashboardIcon />} title={t('dashboard.title')} className="db-card">
-      <dl className="db-kpis m-0" role="group" aria-label={t('dashboard.firstUse.demoTitle')}>
+      <dl className="db-empty-kpis m-0" role="group" aria-label={t('dashboard.firstUse.demoTitle')}>
         {[
           { label: t('dashboard.firstUse.demo.occupancy'), value: `${number(73)} %`, image: STAGE_IMAGES.occupancy },
           { label: t('dashboard.firstUse.demo.revenue'), value: money, image: STAGE_IMAGES.revenue },
@@ -100,7 +100,7 @@ function DashboardDemo({ scene, onSelect }: DashboardDemoProps) {
         </div>
       </div>
 
-      <div className="db-today" role="group" aria-label={t('dashboard.firstUse.demo.today')}>
+      <div className="db-empty-today" role="group" aria-label={t('dashboard.firstUse.demo.today')}>
         {[
           { key: 'arrivals', icon: LogInIcon, count: 3 },
           { key: 'departures', icon: LogOutIcon, count: 2 },
@@ -113,11 +113,11 @@ function DashboardDemo({ scene, onSelect }: DashboardDemoProps) {
         ))}
       </div>
 
-      <div className="db-widget ns-hl" data-hl={scene === 'customize'} data-filled={widgetAdded}>
+      <div className="db-empty-widget ns-hl" data-hl={scene === 'customize'} data-filled={widgetAdded}>
         {widgetAdded ? (
           <>
             <Packshot src={STAGE_IMAGES.occupancy} size="xs" bare />
-            <span className="db-widget-track" role="img" aria-label={`${t('dashboard.firstUse.demo.propertyOccupancy')} ${number(73)} %`}><span /></span>
+            <span className="db-empty-widget-track" role="img" aria-label={`${t('dashboard.firstUse.demo.propertyOccupancy')} ${number(73)} %`}><span /></span>
             <span className="tabular-nums text-[var(--ns-ink)]">{number(73)} %</span>
           </>
         ) : (

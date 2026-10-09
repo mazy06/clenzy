@@ -1,6 +1,6 @@
 /* Baitly : aperçu des widgets du tableau de bord, posé sur la scène bleu nuit.
  * Exemples isolés du compte. */
-.db-kpis { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 0.5rem; }
+.db-empty-kpis { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 0.5rem; }
 .db-kpi { display: flex; align-items: center; gap: 0.5rem; min-inline-size: 0; padding: 0.4rem 0.5rem 0.4rem 0.35rem; border-radius: 0.85rem; background: var(--ns-wash); }
 .db-kpi > .ns-pack { --s: 2.5rem; background: none; box-shadow: none; }
 .db-kpi dt { margin: 0; color: var(--ns-muted); font-size: 0.6875rem; line-height: 1.2; }
@@ -25,20 +25,20 @@
 .db-go:focus-visible { outline: 2px solid var(--bui-ring); outline-offset: 2px; }
 .db-go > svg { inline-size: 0.95rem; block-size: 0.95rem; }
 
-.db-today { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 0.5rem; margin-top: 0.5rem; }
+.db-empty-today { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 0.5rem; margin-top: 0.5rem; }
 .db-today-item { display: flex; align-items: center; gap: 0.45rem; padding: 0.55rem 0.6rem; border: 0; border-radius: 0.85rem; background: var(--ns-wash); color: var(--ns-ink); font-size: 1rem; font-weight: 600; font-variant-numeric: tabular-nums; text-align: start; cursor: pointer; transition: background-color 180ms; }
 .db-today-item:hover { background: var(--ns-wash-2); }
 .db-today-item:focus-visible { outline: 2px solid var(--bui-ring); outline-offset: 2px; }
 .db-today-item > svg { inline-size: 1rem; block-size: 1rem; color: var(--ns-brass); flex: none; }
 .db-today-item small { display: block; color: var(--ns-muted); font-size: 0.6875rem; font-weight: 500; line-height: 1.1; }
 
-.db-widget { display: flex; align-items: center; gap: 0.75rem; margin-top: 0.5rem; min-block-size: 3.25rem; padding: 0.55rem 0.7rem; border-radius: 0.85rem; border: 1px dashed var(--ns-line-strong); color: var(--ns-soft); font-size: 0.75rem; }
-.db-widget[data-filled='true'] { border-style: solid; border-color: var(--ns-line); background: var(--ns-wash); }
-.db-widget-track { flex: 1; block-size: 0.4rem; overflow: hidden; border-radius: 999px; background: var(--ns-bar); }
-.db-widget-track > span { display: block; inline-size: 73%; block-size: 100%; border-radius: inherit; background: var(--ns-blue); transform-origin: left; animation: dbFill 700ms cubic-bezier(.22, 1, .36, 1) both; }
-[dir='rtl'] .db-widget-track > span { transform-origin: right; }
+.db-empty-widget { display: flex; align-items: center; gap: 0.75rem; margin-top: 0.5rem; min-block-size: 3.25rem; padding: 0.55rem 0.7rem; border-radius: 0.85rem; border: 1px dashed var(--ns-line-strong); color: var(--ns-soft); font-size: 0.75rem; }
+.db-empty-widget[data-filled='true'] { border-style: solid; border-color: var(--ns-line); background: var(--ns-wash); }
+.db-empty-widget-track { flex: 1; block-size: 0.4rem; overflow: hidden; border-radius: 999px; background: var(--ns-bar); }
+.db-empty-widget-track > span { display: block; inline-size: 73%; block-size: 100%; border-radius: inherit; background: var(--ns-blue); transform-origin: left; animation: dbFill 700ms cubic-bezier(.22, 1, .36, 1) both; }
+[dir='rtl'] .db-empty-widget-track > span { transform-origin: right; }
 @keyframes dbFill { from { transform: scaleX(0.05); } to { transform: none; } }
 
 @media (prefers-reduced-motion: reduce) {
-  .db-panel .db-bars > span > i, .db-widget-track > span { animation: none !important; }
+  .db-panel .db-bars > span > i, .db-empty-widget-track > span { animation: none !important; }
 }
