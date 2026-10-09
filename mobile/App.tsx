@@ -128,6 +128,7 @@ function MaybeStripeProvider({ children }: { children: React.ReactNode }) {
 
 export default function App() {
   const [fontsLoaded] = useFonts({
+    BaitlyWordmark: require('./assets/fonts/baitly-wordmark-600.ttf'),
     Poppins_400Regular,
     Poppins_500Medium,
     Poppins_600SemiBold,

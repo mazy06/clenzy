@@ -20,6 +20,8 @@ import {
   type PmsPortability,
 } from '../data/pmsPortability';
 import { PMS_PORTABILITY_MESSAGES } from '../lib/messages/pmsPortability';
+import { HOME_HIGHLIGHT_MESSAGES } from '../lib/messages/homeHighlights';
+import '../baitly-home-highlights.css';
 import type { SiteLanguage } from '../lib/siteLanguage';
 import { downloadText } from '../lib/downloadText';
 import type { PortabilityMessages } from '../lib/messages/pmsPortability';
@@ -287,34 +289,30 @@ export function BaitlyPortabilityCommitment({
   );
 }
 
-/** Home page entry point: the same sourced picker, framed for visitors who already run a PMS. */
+/** Short Baitly migration overview; provider evidence lives in the guide. */
 export function BaitlyPmsHomeSection({ language }: { language: SiteLanguage }) {
-  const m = PMS_PORTABILITY_MESSAGES[language];
+  const m = HOME_HIGHLIGHT_MESSAGES[language].migration;
   return (
-    <div className="bm-page bm-home-portability">
-      <section
-        className="site-shell bm-home-portability-guide"
-        aria-labelledby="home-portability-title"
-      >
-        <div className="bm-section-heading">
-          <span className="bm-label">{m.homeTag}</span>
-          <h2 id="home-portability-title">{m.homeTitle}</h2>
-          <p>{m.homeIntro}</p>
-        </div>
-        <BaitlyPmsPortability language={language} />
-        <ul className="bm-home-portability-context">
-          <li>{m.airbnbNote}</li>
-          <li>{m.dataAct}</li>
-        </ul>
-        <Link
-          to={`/migration?lang=${language}`}
-          className="bm-button bm-home-portability-link"
-        >
-          {m.homeLink}
-          <ArrowRightIcon aria-hidden="true" />
+    <section className="site-shell bh-migration" aria-labelledby="home-portability-title">
+      <div className="bh-migration-copy">
+        <p className="baitly-section-label">{m.label}</p>
+        <h2 id="home-portability-title">{m.title}</h2>
+        <p className="bh-intro">{m.intro}</p>
+        <Link to={`/migration?lang=${language}`} className="baitly-button">
+          {m.link}<ArrowRightIcon aria-hidden="true" />
         </Link>
-      </section>
-      <BaitlyPortabilityCommitment language={language} />
-    </div>
+      </div>
+      <div className="bh-migration-guide">
+        <ol className="bh-migration-steps">
+          {m.steps.map(([title, copy], index) => (
+            <li key={title}>
+              <span className="bh-step-number" aria-hidden="true">0{index + 1}</span>
+              <div><h3>{title}</h3><p>{copy}</p></div>
+            </li>
+          ))}
+        </ol>
+        <p className="bh-migration-note"><CheckIcon aria-hidden="true" />{m.note}</p>
+      </div>
+    </section>
   );
 }

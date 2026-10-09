@@ -1,68 +1,44 @@
-/* Baitly : un aperçu des vrais widgets, avec des exemples isolés du compte. */
-.db-empty-showcase { container: dashboard-onboarding / inline-size; }
+/* Baitly : aperçu des widgets du tableau de bord, posé sur la scène bleu nuit.
+ * Exemples isolés du compte. */
+.db-empty-kpis { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 0.5rem; }
+.db-kpi { display: flex; align-items: center; gap: 0.5rem; min-inline-size: 0; padding: 0.4rem 0.5rem 0.4rem 0.35rem; border-radius: 0.85rem; background: var(--ns-wash); }
+.db-kpi > .ns-pack { --s: 2.5rem; background: none; box-shadow: none; }
+.db-kpi dt { margin: 0; color: var(--ns-muted); font-size: 0.6875rem; line-height: 1.2; }
+.db-kpi dd { margin: 0.1rem 0 0; color: var(--ns-ink); font-size: 1.05rem; font-weight: 600; font-variant-numeric: tabular-nums; line-height: 1.1; }
 
-@container dashboard-onboarding (min-width: 52rem) {
-  .db-empty-intro {
-    grid-template-columns: minmax(0, .9fr) minmax(0, 1.1fr);
-    column-gap: 2.5rem;
-  }
-  .db-empty-sources { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-}
+.db-split { display: grid; grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr); gap: 0.5rem; margin-top: 0.5rem; }
+.db-panel { min-inline-size: 0; padding: 0.7rem; border-radius: 0.85rem; background: var(--ns-wash); }
 
-.db-empty-demo-grid { grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr); }
-.db-empty-panel {
-  gap: 0;
-  transition: box-shadow 220ms cubic-bezier(.22, 1, .36, 1);
-}
-.db-empty-panel[data-active="true"] {
-  box-shadow: 0 0 0 1px var(--bui-muted-foreground);
-}
-.db-empty-day[data-active="true"] { background: var(--bui-card); }
-.db-empty-label {
-  display: flex;
-  align-items: center;
-  gap: .375rem;
-  width: 100%;
-  min-height: 1.5rem;
-  padding: 0;
-  border-radius: .25rem;
-  background: transparent;
-  color: var(--bui-foreground);
-  text-align: start;
-  font-size: .75rem;
-  font-weight: 500;
-  line-height: 1.4;
-  cursor: pointer;
-  transition: color 180ms cubic-bezier(.22, 1, .36, 1);
-}
-.db-empty-label:hover { color: var(--bui-muted-foreground); }
-.db-empty-label:focus-visible { outline: 2px solid var(--bui-ring); outline-offset: 3px; }
-.db-empty-bottom { min-block-size: 6.25rem; }
+.db-bars { display: flex; align-items: flex-end; gap: 0.3rem; block-size: 4.5rem; margin-top: 0.6rem; border-block-end: 1px solid var(--ns-line); }
+.db-bars > span { position: relative; flex: 1; block-size: 100%; min-inline-size: 0; }
+.db-bars > span > i { position: absolute; inset: 0; border-radius: 0.25rem 0.25rem 0 0; background: linear-gradient(to top, var(--ns-ok-line), var(--ns-ok)); transform: scaleY(var(--bar-height)); transform-origin: bottom; }
+.db-panel[data-hl='true'] .db-bars > span > i { animation: dbBar 650ms cubic-bezier(.22, 1, .36, 1) var(--bar-delay) both; }
+@keyframes dbBar { from { transform: scaleY(0.04); } to { transform: scaleY(var(--bar-height)); } }
 
-/* Les valeurs restent stables ; seul le dessin des barres révèle la tendance. */
-.db-empty-revenue-bar {
-  transform: scaleY(var(--bar-height));
-  transform-origin: bottom;
-}
-.db-empty-panel[data-active="true"] .db-empty-revenue-bar {
-  animation: dbEmptyBar 650ms cubic-bezier(.22, 1, .36, 1) var(--bar-delay) both;
-}
-.db-empty-appear,
-.db-empty-detail:not([hidden]) { animation: dbEmptyAppear 220ms cubic-bezier(.22, 1, .36, 1); }
-.db-empty-detail:not([hidden]) { display: block; }
+.db-task { display: flex; align-items: center; gap: 0.5rem; min-block-size: 2rem; }
+.db-task > .ns-bar { flex: 1; }
+.db-task-icon { display: inline-flex; align-items: center; justify-content: center; inline-size: 1.6rem; block-size: 1.6rem; border-radius: 0.5rem; background: var(--ns-line); color: var(--ns-soft); flex: none; }
+.db-task-icon > svg { inline-size: 0.9rem; block-size: 0.9rem; }
+.db-go { display: inline-flex; align-items: center; justify-content: center; inline-size: 1.75rem; block-size: 1.75rem; border: 1px solid var(--ns-line-strong); border-radius: 0.55rem; background: var(--ns-wash); color: var(--ns-ink); cursor: pointer; flex: none; transition: background-color 180ms; }
+.db-go:hover:not(:disabled) { background: var(--ns-wash-2); }
+.db-go:disabled { cursor: default; border-color: var(--ns-ok-line); color: var(--ns-ok); }
+.db-go:focus-visible { outline: 2px solid var(--bui-ring); outline-offset: 2px; }
+.db-go > svg { inline-size: 0.95rem; block-size: 0.95rem; }
 
-@keyframes dbEmptyBar {
-  from { transform: scaleY(.04); }
-  to { transform: scaleY(var(--bar-height)); }
-}
-@keyframes dbEmptyAppear {
-  from { opacity: 0; transform: translateY(4px); }
-  to { opacity: 1; transform: none; }
-}
+.db-empty-today { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 0.5rem; margin-top: 0.5rem; }
+.db-today-item { display: flex; align-items: center; gap: 0.45rem; padding: 0.55rem 0.6rem; border: 0; border-radius: 0.85rem; background: var(--ns-wash); color: var(--ns-ink); font-size: 1rem; font-weight: 600; font-variant-numeric: tabular-nums; text-align: start; cursor: pointer; transition: background-color 180ms; }
+.db-today-item:hover { background: var(--ns-wash-2); }
+.db-today-item:focus-visible { outline: 2px solid var(--bui-ring); outline-offset: 2px; }
+.db-today-item > svg { inline-size: 1rem; block-size: 1rem; color: var(--ns-brass); flex: none; }
+.db-today-item small { display: block; color: var(--ns-muted); font-size: 0.6875rem; font-weight: 500; line-height: 1.1; }
+
+.db-empty-widget { display: flex; align-items: center; gap: 0.75rem; margin-top: 0.5rem; min-block-size: 3.25rem; padding: 0.55rem 0.7rem; border-radius: 0.85rem; border: 1px dashed var(--ns-line-strong); color: var(--ns-soft); font-size: 0.75rem; }
+.db-empty-widget[data-filled='true'] { border-style: solid; border-color: var(--ns-line); background: var(--ns-wash); }
+.db-empty-widget-track { flex: 1; block-size: 0.4rem; overflow: hidden; border-radius: 999px; background: var(--ns-bar); }
+.db-empty-widget-track > span { display: block; inline-size: 73%; block-size: 100%; border-radius: inherit; background: var(--ns-blue); transform-origin: left; animation: dbFill 700ms cubic-bezier(.22, 1, .36, 1) both; }
+[dir='rtl'] .db-empty-widget-track > span { transform-origin: right; }
+@keyframes dbFill { from { transform: scaleX(0.05); } to { transform: none; } }
 
 @media (prefers-reduced-motion: reduce) {
-  .db-empty-showcase *, .db-empty-showcase *::before, .db-empty-showcase *::after {
-    animation: none !important;
-    transition: none !important;
-  }
+  .db-panel .db-bars > span > i, .db-empty-widget-track > span { animation: none !important; }
 }

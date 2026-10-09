@@ -526,12 +526,11 @@ function AuthLayoutInner({ children, maxFormWidth, language, onChooseLanguage }:
   );
 }
 
-/** Assemblage du logo identique a la landing, sans modifier celui du PMS. */
+/** Logo complet Baitly partagé avec la landing et le PMS. */
 function AuthBrandLogo({ onDark = false }: { onDark?: boolean }) {
   return (
     <div className="baitly-auth-logo" data-on-dark={onDark}>
-      <BaitlyMarkLogo variant="mark" size={30} colorMode="inherit" />
-      <span className="baitly-auth-wordmark">baitly</span>
+      <BaitlyMarkLogo variant="full" size={30} tone={onDark ? 'dark' : 'light'} disableAnimation />
     </div>
   );
 }

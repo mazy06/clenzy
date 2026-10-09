@@ -55,15 +55,8 @@ export function journalStaticHtml(language: SiteLanguage): string {
               className="flex items-center gap-2.5"
               aria-label={m.header.homeAria}
             >
-              <span className="text-primary">
-                <BaitlyMarkLogo
-                  variant="mark"
-                  size={30}
-                  colorMode="inherit"
-                />
-              </span>
-              <span className="site-wordmark text-lg font-semibold tracking-tight">
-                baitly
+              <span className="site-wordmark">
+                <BaitlyMarkLogo variant="full" size={30} disableAnimation />
               </span>
             </a>
             <nav

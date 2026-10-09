@@ -18,6 +18,7 @@ import {
   exitLevel,
 } from '../data/pmsPortability';
 import { PMS_PORTABILITY_MESSAGES } from '../lib/messages/pmsPortability';
+import { HOME_HIGHLIGHT_MESSAGES } from '../lib/messages/homeHighlights';
 import { downloadText } from '../lib/downloadText';
 
 vi.mock('../lib/downloadText', () => ({ downloadText: vi.fn() }));
@@ -153,25 +154,22 @@ describe('PMS portability evidence', () => {
   });
 
   it.each(['fr', 'en', 'ar'] as const)(
-    'frames the picker on the home page with context and the commitment in %s',
+    'summarises migration on the home page and links to the guide in %s',
     (language) => {
-      const m = PMS_PORTABILITY_MESSAGES[language];
+      const m = HOME_HIGHLIGHT_MESSAGES[language].migration;
       render(
         <MemoryRouter>
           <BaitlyPmsHomeSection language={language} />
         </MemoryRouter>,
       );
-      expect(screen.getByRole('heading', { name: m.homeTitle })).toBeVisible();
-      expect(screen.getByRole('combobox', { name: m.label })).toBeVisible();
-      expect(screen.getByText(m.airbnbNote)).toBeVisible();
-      expect(screen.getByText(m.dataAct)).toBeVisible();
-      expect(screen.getByRole('link', { name: m.homeLink })).toHaveAttribute(
+      expect(screen.getByRole('heading', { name: m.title })).toBeVisible();
+      expect(screen.queryByRole('combobox')).not.toBeInTheDocument();
+      expect(screen.getAllByRole('listitem')).toHaveLength(3);
+      expect(screen.getByText(m.note)).toBeVisible();
+      expect(screen.getByRole('link', { name: m.link })).toHaveAttribute(
         'href',
         `/migration?lang=${language}`,
       );
-      expect(
-        screen.getByRole('heading', { name: m.promiseTitle }),
-      ).toBeVisible();
     },
   );
 

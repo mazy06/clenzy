@@ -1,0 +1,111 @@
+{
+  "product": "Baitly",
+  "date": "2026-10-08",
+  "files": [
+    {
+      "path": "client/src/assets/logo/baitly-mark.svg",
+      "action": "replace-asset",
+      "originalSha256": "3640a41fd66fa6f39a1cdc1c8eccffda129fe158d6a5b96ae946d28467b86ad5"
+    },
+    {
+      "path": "client/src/assets/logo/clenzy-logo.svg",
+      "action": "replace-asset",
+      "originalSha256": "56a743e4ae6bc5aef8620b942784e2e76c78127c9ad652b160996409fbde6142"
+    },
+    {
+      "path": "client/src/assets/Baitly_logo.png",
+      "action": "replace-asset",
+      "originalSha256": "14acc9aed506f0065ef77dc4403badfeddaec07be7d4c4691170374217905219"
+    },
+    {
+      "path": "client/public/icons/icon.svg",
+      "action": "replace-asset",
+      "originalSha256": "0deedbb4266065863da962551b5ab5f48758cc6c89d7441e41ce79e644cf0f2e"
+    },
+    {
+      "path": "marketing/brand-book/assets/baitly-mark.svg",
+      "action": "replace-asset",
+      "originalSha256": "3640a41fd66fa6f39a1cdc1c8eccffda129fe158d6a5b96ae946d28467b86ad5"
+    },
+    {
+      "path": "marketing/brand-book/assets/avatars/baitly-avatar-clair.svg",
+      "action": "replace-asset",
+      "originalSha256": "a3f61bc2fed1cb222e662a8d029cd23e029fb2b9f9464e6be980f17bac653cc9"
+    },
+    {
+      "path": "marketing/brand-book/assets/avatars/baitly-avatar-clair.png",
+      "action": "replace-asset",
+      "originalSha256": "c6faf7aa41386806f1cc3ecbb6c4afbbccd12ce7efe022d5e572460290d7f119"
+    },
+    {
+      "path": "marketing/brand-book/assets/avatars/baitly-avatar-nuit.svg",
+      "action": "replace-asset",
+      "originalSha256": "b1e286ceb746e62a3495d8dc6496d6d0a7962e0b762c89b5a018c072b8fca634"
+    },
+    {
+      "path": "marketing/brand-book/assets/avatars/baitly-avatar-nuit.png",
+      "action": "replace-asset",
+      "originalSha256": "6b1dd1d2da91eca178887fd5f82e1c80037db3cf572ee20f03e83755db412661"
+    },
+    {
+      "path": "mobile/assets/icon.png",
+      "action": "replace-asset",
+      "originalSha256": "74c64047eb557b1341bba7a2831eedde9ddb705e6451a9ad9f5552bf558f13de"
+    },
+    {
+      "path": "mobile/assets/adaptive-icon.png",
+      "action": "replace-asset",
+      "originalSha256": "5f4c0a732b6325bf4071d9124d2ae67e037cb24fcc9c482ef82bea742109a3b8"
+    },
+    {
+      "path": "mobile/assets/splash-icon.png",
+      "action": "replace-asset",
+      "originalSha256": "5f4c0a732b6325bf4071d9124d2ae67e037cb24fcc9c482ef82bea742109a3b8"
+    },
+    {
+      "path": "mobile/assets/favicon.png",
+      "action": "replace-asset",
+      "originalSha256": "24272cdaeff82cc5facdaccd982a6f05b60c4504704bbf94c19a6388659880bb"
+    },
+    {
+      "path": "client/public/icons/icon-legacy.svg",
+      "action": "archive-reference-only",
+      "originalSha256": "a1600208bec0bb1351212bdd31997aa9fb2ea1730529d5cd10108cc83fd7b269"
+    },
+    {
+      "path": "client/src/components/BaitlyMarkLogo.tsx",
+      "action": "replace-component",
+      "originalSha256": "acf480282f9cd0cc442d083d9aab6148da1520fec5619a7f71f734693004f18b"
+    },
+    {
+      "path": "client/src/components/BaitlyMarkLogoLegacy.tsx",
+      "action": "replace-component",
+      "originalSha256": "0d5cf4b09d2437443072278f72222c59a44f30db1e8ef87080e92981646bfb30"
+    },
+    {
+      "path": "mobile/src/components/ui/BaitlyAnimatedLogo.tsx",
+      "action": "replace-component",
+      "originalSha256": "d580454709d539db769c5c9ab911e7b70d4a1837d84ec1dc7649553b431e838f"
+    },
+    {
+      "path": "mobile/src/components/ui/ClenzyAnimatedLogo.tsx",
+      "action": "replace-component",
+      "originalSha256": "89082ad39f5d1504ceed4646239cfb7fad6c65d8e63432da636ed697a154cefb"
+    },
+    {
+      "path": "client/site/components/BaitlyMark.tsx",
+      "action": "replace-component",
+      "originalSha256": "da83a209b70421a8fba3a1f5a44c5d95b8d7787b7908364294637bda94af7ff3"
+    },
+    {
+      "path": "client/src/modules/messaging/conversations/ChannelMark.tsx",
+      "action": "replace-component",
+      "originalSha256": "e68e675db51573a11ae0278f9a84305d0e5b0085a2876f34cfc24de883f89ad4"
+    },
+    {
+      "path": "server/src/main/java/com/clenzy/service/report/render/BaitlyMark.java",
+      "action": "replace-component",
+      "originalSha256": "bd926bc1d320cf801508110fb0ddfd330c2ec7bb3fa982246bf4f3c6e198dad9"
+    }
+  ]
+}

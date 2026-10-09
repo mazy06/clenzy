@@ -136,9 +136,9 @@ const TokenMonitoringPage = lazy(() => import('./admin/TokenMonitoringPage'));
 const MonitoringPage = lazy(() => import('./admin/MonitoringPage'));
 const SyncAdminPage = lazy(() => import('./admin/SyncAdminPage'));
 const PromoCodesPage = lazy(() => import('./admin/PromoCodesPage'));
-// VouchersPage est desormais monte comme tab dans PropertiesPage
-// (cf. /properties?tab=vouchers). L'ancienne route /vouchers est conservee
-// en redirection pour preserver les bookmarks.
+// Codes promo : ecran autonome sous /vouchers (entree de premier niveau de la
+// sidebar). /properties?tab=vouchers redirige ici pour preserver les bookmarks.
+const VouchersPage = lazy(() => import('./vouchers/VouchersPage'));
 const KpiReadinessPage = lazy(() => import('./admin/KpiReadinessPage'));
 const DatabaseAdminPage = lazy(() => import('./admin/DatabaseAdminPage'));
 const ExchangeRateHistoryPage = lazy(() => import('./admin/ExchangeRateHistoryPage'));
@@ -581,7 +581,11 @@ const AuthenticatedApp: React.FC = () => {
         {/* Vouchers : la page a ete integree comme tab #3 dans Propriétés
             (depuis qu'elle est conceptuellement liee aux biens). On garde
             un redirect pour les bookmarks existants. */}
-        <Route path="/vouchers" element={<Navigate to="/properties?tab=vouchers" replace />} />
+        <Route path="/vouchers" element={
+          <ProtectedRoute requiredPermission="properties:view" requiredRoles={['SUPER_ADMIN', 'SUPER_MANAGER', 'HOST']}>
+            <ErrorBoundary><VouchersPage /></ErrorBoundary>
+          </ProtectedRoute>
+        } />
 
         {/* Bibliothèque Baitly UI — galerie du design system (super admin). */}
         <Route path="/admin/design-system" element={

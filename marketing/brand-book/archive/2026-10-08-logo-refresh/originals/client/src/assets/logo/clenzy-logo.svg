@@ -1,0 +1,30 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 64 64">
+  <!-- Tile brand : utilise comme channel logo "direct" (reservation Clenzy)
+       dans ServiceRequestCard / DashboardPlanning / ServiceRequestDetails. -->
+  <rect width="64" height="64" rx="10" fill="#6B8A9A"/>
+  <!-- Mark "orchestration" 8 nodes + centre. Coordonnees normalisees pour
+       viewBox 64 : centre (32,32), rayon octogone = 18, node periph r=3, centre r=5.5. -->
+  <g transform="translate(32 32)">
+    <g stroke="white" stroke-width="0.75" opacity="0.45">
+      <line x1="0" y1="0" x2="0"      y2="-18"/>
+      <line x1="0" y1="0" x2="12.73"  y2="-12.73"/>
+      <line x1="0" y1="0" x2="18"     y2="0"/>
+      <line x1="0" y1="0" x2="12.73"  y2="12.73"/>
+      <line x1="0" y1="0" x2="0"      y2="18"/>
+      <line x1="0" y1="0" x2="-12.73" y2="12.73"/>
+      <line x1="0" y1="0" x2="-18"    y2="0"/>
+      <line x1="0" y1="0" x2="-12.73" y2="-12.73"/>
+    </g>
+    <g fill="white">
+      <circle cx="0"       cy="-18"    r="3"/>
+      <circle cx="12.73"   cy="-12.73" r="3"/>
+      <circle cx="18"      cy="0"      r="3"/>
+      <circle cx="12.73"   cy="12.73"  r="3"/>
+      <circle cx="0"       cy="18"     r="3"/>
+      <circle cx="-12.73"  cy="12.73"  r="3"/>
+      <circle cx="-18"     cy="0"      r="3"/>
+      <circle cx="-12.73"  cy="-12.73" r="3"/>
+    </g>
+    <circle cx="0" cy="0" r="5.5" fill="white"/>
+  </g>
+</svg>

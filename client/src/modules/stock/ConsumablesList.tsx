@@ -10,12 +10,13 @@ import './consumables.css';
 
 export const propertyStockPath = (id: number) => `/properties/${id}?tab=inventory&subtab=stock`;
 
-export function ConsumablesList({ rows, view, filtered, onReset, canOpenPlanning = false }: {
+export function ConsumablesList({ rows, view, filtered, onReset, canOpenPlanning = false, compact = false }: {
   rows: ConsumableRow[];
   view: ConsumablesView;
   filtered: boolean;
   onReset: () => void;
   canOpenPlanning?: boolean;
+  compact?: boolean;
 }) {
   const { t, currentLanguage } = useTranslation();
   const formatDate = (date: string | null) => {
@@ -25,13 +26,13 @@ export function ConsumablesList({ rows, view, filtered, onReset, canOpenPlanning
   const quantityLabel = t(`consumables.quantity.${view}`);
   const dateLabel = t(`consumables.date.${view}`);
 
-  if (!rows.length) return <EmptyState icon={<Inventory2 />} variant="transparent" minHeight={280}
+  if (!rows.length) return <EmptyState icon={<Inventory2 />} variant="transparent" minHeight={compact ? 180 : 280}
     title={t(filtered ? 'consumables.empty.filteredTitle' : `consumables.empty.${view}Title`)}
     description={t(filtered ? 'consumables.empty.filteredDescription' : `consumables.empty.${view}Description`)}
     action={filtered ? <Button variant="outline" onClick={onReset}>{t('consumables.reset')}</Button>
       : <Button asChild variant="outline"><Link to="/properties">{t('consumables.openProperties')}</Link></Button>} />;
 
-  return <div className="baitly-consumables-list">
+  return <div className={`baitly-consumables-list${compact ? ' baitly-consumables-queue' : ''}`}>
     <div className="baitly-consumables-columns" aria-hidden="true">
       <span>{t('consumables.itemProperty')}</span><span>{quantityLabel}</span>
       <span>{t('properties.stock.supplier')}</span><span>{dateLabel}</span><span />

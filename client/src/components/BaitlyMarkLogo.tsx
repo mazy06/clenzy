@@ -1,315 +1,50 @@
 import React, { useId } from 'react';
+import { MARK_PATH, MARK_VIEWBOX, STROKE_WIDTH, FLOW_STROKE_WIDTH, FLOW_LENGTH, FLOW_END, FLOW_LEG_MS, WORDMARK_SIZE_RATIO, WORDMARK_GAP_RATIO, WORDMARK_OFFSET_RATIO } from './baitlyLogoGeometry';
+export { MARK_PATH, MARK_VIEWBOX, STROKE_WIDTH } from './baitlyLogoGeometry';
 
-/**
- * Logo Baitly SaaS — nouveau mark « maison + flux » + wordmark Space Grotesk.
- *
- * <h3>Concept</h3>
- * Une maison stylisée (le logement géré) tracée en un seul trait continu, sur
- * laquelle circulent deux « packets » de données : un aller <b>request</b>
- * (bleu {@code #2563EB}) et un retour <b>response</b> (teal {@code #14B8A6}).
- * Le va-et-vient évoque la synchronisation permanente entre le logement et les
- * canaux (OTA, channel manager, guests) — cœur du PMS. Ce mark remplace
- * l'ancien « 8 nodes orchestration », préservé dans {@link BaitlyMarkLogoLegacy}.
- *
- * <h3>Typo</h3>
- * Wordmark « baitly » en <b>Space Grotesk 600</b> (inchangé — pairing
- * « Tech Startup », skill {@code ui-ux-pro-max}).
- *
- * <h3>Animation</h3>
- * <ul>
- *   <li><b>Idle infini</b> : le packet request avance le long du tracé (première
- *       moitié du cycle) puis le packet response revient (seconde moitié).
- *       Cycle {@code --bl-cycle} = 5s, linéaire, jamais statique.</li>
- *   <li><b>prefers-reduced-motion</b> : les packets sont masqués, seul le mark
- *       (trait maison) reste — logo parfaitement lisible et immobile.</li>
- * </ul>
- *
- * <h3>Compat API</h3>
- * L'interface de props est identique à l'ancien composant : tous les
- * consommateurs (Sidebar, AuthLayout, AssistantDockTab, Inscription…) continuent
- * de fonctionner sans changement. Le mapping des props :
- * <ul>
- *   <li>{@code variant} : {@code mark} (maison) / {@code wordmark} (typo) /
- *       {@code full} (les deux).</li>
- *   <li>{@code size} / {@code scale} : dimensionnement (mark carré + wordmark
- *       proportionnel), identique à l'ancien.</li>
- *   <li>{@code tone} / {@code colorMode} : couleur du trait du mark (accent /
- *       inherit / tone forcé), identique à l'ancien. Les packets gardent leurs
- *       teintes signature bleu/teal quelle que soit la teinte.</li>
- *   <li>{@code active} / {@code idleAnimation} / {@code disableAnimation} :
- *       {@code disableAnimation} ou {@code idleAnimation=false} figent le logo
- *       (packets masqués, trait seul). {@code active} est accepté (compat) mais
- *       n'a pas d'effet distinct : le flux tourne déjà en continu.</li>
- * </ul>
- */
 export interface BaitlyMarkLogoProps {
-  /** Facteur d'echelle multiplicatif. {@code 1} = icone 56px + wordmark 32px. */
   scale?: number;
-  /**
-   * Taille explicite en pixels pour l'icone (et le wordmark proportionnel).
-   * Override scale s'il est defini. Utile quand un parent (ex: Sidebar) injecte
-   * une size via {@code React.cloneElement} a la maniere des icones lucide.
-   */
-  size?: number;
-  /** {@code "full"} (defaut) / {@code "mark"} (icone) / {@code "wordmark"} (typo). */
+  size?: number | string;
   variant?: 'full' | 'mark' | 'wordmark';
-  /** {@code "auto"} suit le theme de l'app. {@code "light"} / {@code "dark"} force. */
   tone?: 'auto' | 'light' | 'dark';
-  /**
-   * Compat API (ancien logo) : signalait « l'IA travaille » en déclenchant
-   * l'animation hover. Le nouveau mark anime son flux en continu ; ce prop est
-   * accepté mais sans effet distinct.
-   */
+  /** Conservé pour les consommateurs existants. */
   active?: boolean;
-  /**
-   * Si false, fige le logo : les packets sont masqués, seul le trait maison
-   * reste. Utile quand le mark est rendu en grande quantité (avatar de chaque
-   * message chat, sidebar toujours visible) pour éviter le mouvement constant.
-   */
   idleAnimation?: boolean;
-  /**
-   * Desactive TOUTE animation (equivalent a {@code idleAnimation=false} ici :
-   * trait maison seul, packets masques). Utile pour screenshots / tests visuels.
-   */
   disableAnimation?: boolean;
-  /**
-   * Source de couleur du <b>trait de la maison</b> :
-   *   - {@code "accent"} (defaut) : suit la teinte selectionnee
-   *     ({@code var(--accent)}) — le logo se reteinte au changement d'accent.
-   *   - {@code "inherit"} : suit la couleur du parent ({@code currentColor}).
-   *     A utiliser sur fond colore qui impose sa couleur de texte (ex : item de
-   *     menu ACTIF a fond accent → trait blanc).
-   * Les packets request/response gardent leurs teintes bleu/teal signature.
-   */
   colorMode?: 'accent' | 'inherit';
 }
 
-/**
- * Tracé de la maison en un trait continu, dessiné dans un viewBox 1024.
- * Les deux packets réutilisent exactement ce même path (ils circulent dessus).
- */
-export const MARK_PATH =
-  'M463 590.25 A30.25 30.25 0 0 1 463 529.75 A30.25 30.25 0 0 1 463 590.25 V710 ' +
-  'A30 30 0 0 1 433 740 H368 A65 65 0 0 1 303 675 V441.8 A28 28 0 0 1 313.9 419.6 ' +
-  'L478.2 294.1 A54 54 0 0 1 543.8 294.1 L708.1 419.6 A28 28 0 0 1 719 441.8 V675 ' +
-  'A65 65 0 0 1 654 740 H589 A30 30 0 0 1 559 710 V590.25 A30.25 30.25 0 0 1 559 529.75 ' +
-  'A30.25 30.25 0 0 1 559 590.25';
-
-// viewBox resserré sur les limites du tracé (maison ~x[293,730] y[273,751] avec
-// demi-épaisseur de trait) pour que le mark remplisse la boîte comme l'ancien
-// octogone, sans padding excessif hérité du canvas 1024 d'origine.
-export const MARK_VIEWBOX = '251 251 522 522';
-
-// Épaisseur de trait en unités du viewBox 1024 (identique au SVG source).
-export const STROKE_WIDTH = 21;
-
-/**
- * Teintes signature du flux de données (request bleu / response ambre —
- * complémentaire du bleu, jamais confondable avec le trait vert-gris de la
- * maison), déclinées PAR token de couleur du trait pour rester lisibles :
- *  - `light`  : trait #6B8A9A (ou accent) sur fond clair → paire foncée et
- *    saturée, qui se détache du trait ET du fond clair.
- *  - `dark`   : trait #89B1C2 sur fond sombre → paire claire et vive, qui
- *    ressort du fond sombre sans se confondre avec le trait pastel.
- *  - `inherit`: trait currentColor (typiquement blanc sur fond accent) →
- *    même paire vive que `dark` : distincte du blanc et du fond mi-teinte.
- */
-const PACKET_COLORS: Record<'light' | 'dark' | 'inherit', { request: string; response: string }> = {
-  light: { request: '#2563EB', response: '#D97706' },
-  dark: { request: '#60A5FA', response: '#FBBF24' },
-  inherit: { request: '#60A5FA', response: '#FBBF24' },
-};
-const CYCLE_MS = 5000;
-
-export default function BaitlyMarkLogo({
-  scale = 1,
-  size,
-  variant = 'full',
-  tone = 'auto',
-  active: _active = false,
-  idleAnimation = true,
-  disableAnimation = false,
-  colorMode = 'accent',
-}: BaitlyMarkLogoProps) {
-  const uid = useId().replace(/:/g, '-');
-
-  // Le mode clair/sombre n'est plus lu en JS : il est porte par les jetons CSS
-  // (`[data-theme]`), si bien que le logo se reteinte au basculement sans que le
-  // composant se re-rende — et sans dependre d'un provider de theme.
-  //
-  // Couleur du trait de la maison — même logique que l'ancien logo pour garder
-  // la compat des props tone/colorMode :
-  //  - colorMode 'inherit' → currentColor (suit le parent : fond accent → blanc).
-  //  - tone 'auto' → var(--brand-ink), le noir de marque, qui s'inverse avec le thème.
-  //  - tone FORCÉ (login photo-hero sombre) → valeur fixe à fort contraste.
-  const inherit = colorMode === 'inherit';
-  const followAccent = tone === 'auto';
-  const fixedDark = tone === 'dark';
-  // Le mark est NOIR, plus teinte par l'accent : la marque et les commandes ne
-  // parlent plus la meme langue — le noir dit « Baitly », la terracotta dit
-  // « ceci s'actionne ». `--brand-ink` s'inverse avec le theme (un logo noir
-  // sur fond sombre ne se voit pas), et n'est pas un #000 pur : un noir neutre
-  // jure avec une palette chaude.
-  //
-  // `tone` reste honore pour les fonds imposes (hero photo de la page de
-  // connexion), ou aucun theme ne peut etre deduit du contexte.
-  const markColor = inherit
-    ? 'currentColor'
-    : fixedDark ? '#F0EBE6' : (tone === 'light' ? '#171310' : 'var(--brand-ink)');
-  // En mode 'auto', l'encre suit `--bui-foreground` : le mot-logo doit suivre le
-  // MEME systeme que la surface sur laquelle il est pose, or toutes les surfaces
-  // du PMS sont desormais peintes par Baitly UI.
-  //
-  // Il lisait `var(--ink)` (tokens Signature), et cela le rendait INVISIBLE sur
-  // les pages d'authentification : `AuthLayout` force `data-theme="light"` sur sa
-  // racine pour remettre les jetons Signature en clair, mais la variante sombre
-  // de Baitly UI est definie `[data-theme="dark"] *` — l'attribut porte par
-  // <html> continue donc de matcher et les surfaces restent SOMBRES. Resultat :
-  // encre bleu nuit du theme clair sur une carte sombre, mesure a 1,08:1.
-  const wordmarkColor = inherit
-    ? 'currentColor'
-    : (fixedDark ? '#FFFFFF' : 'var(--bui-foreground)');
-
-  // size override scale s'il est defini (API icone-style / injection Sidebar).
-  const iconSize = size ?? (56 * scale);
-  const effectiveScale = iconSize / 56;
-  const fontSize = 32 * effectiveScale;
-  const gap = 14 * effectiveScale;
-
-  // Les packets ne s'animent que si les animations idle sont actives.
-  const animated = !disableAnimation && idleAnimation;
-
-  // Paire request/response adaptée au token de couleur du trait :
-  //  - trait qui suit l'accent (tone auto) → variables --accent-flow-* définies
-  //    PAR teinte dans tokens.css (accent indigo → request cyan, etc.), avec la
-  //    paire statique du tone résolu en repli.
-  //  - inherit (fond accent) ou tone forcé → paire statique PACKET_COLORS.
-  //    Le repli lui-meme passe par une variable posee plus bas en CSS, pour
-  //    rester correct dans les deux themes sans lire le mode en JS.
-  const staticColors = PACKET_COLORS[inherit ? 'inherit' : (fixedDark ? 'dark' : 'light')];
-  const packetColors = !inherit && followAccent
-    ? {
-        request: 'var(--accent-flow-request, var(--bl-packet-request))',
-        response: 'var(--accent-flow-response, var(--bl-packet-response))',
-      }
-    : staticColors;
-
-  const cls = {
-    root: `baitly-mark-root-${uid}`,
-    mark: `baitly-mark-stroke-${uid}`,
-    packet: `baitly-mark-packet-${uid}`,
-    request: `baitly-mark-request-${uid}`,
-    response: `baitly-mark-response-${uid}`,
-  };
-
-  const strokeBase: React.CSSProperties = {
-    fill: 'none',
-    strokeWidth: STROKE_WIDTH,
-    strokeLinecap: 'round',
-    strokeLinejoin: 'round',
-  };
-
-  const mark = (
-    <svg
-      className={cls.root}
-      width={iconSize}
-      height={iconSize}
-      viewBox={MARK_VIEWBOX}
-      fill="none"
-      role="img"
-      aria-label="Baitly"
-      style={{ flexShrink: 0, overflow: 'visible', color: markColor }}
-    >
-      {animated && (
-        <style>{`
-          .${cls.root} {
-            --bl-packet-request:  ${PACKET_COLORS.light.request};
-            --bl-packet-response: ${PACKET_COLORS.light.response};
-          }
-          [data-theme="dark"] .${cls.root} {
-            --bl-packet-request:  ${PACKET_COLORS.dark.request};
-            --bl-packet-response: ${PACKET_COLORS.dark.response};
-          }
-          .${cls.packet} {
-            fill: none;
-            /* Legerement plus epais que le trait maison : le packet "chevauche"
-               le trace et reste lisible aux petites tailles (18-24px). */
-            stroke-width: ${STROKE_WIDTH + 6};
-            stroke-linecap: round;
-            stroke-linejoin: round;
-            stroke-dasharray: 9 400;
-            stroke-dashoffset: 10;
-          }
-          .${cls.request}  { stroke: ${packetColors.request}; }
-          .${cls.response} { stroke: ${packetColors.response}; }
-          @keyframes ${cls.request}-forward {
-            0%   { stroke-dashoffset: 10; }
-            45%  { stroke-dashoffset: -100; }
-            100% { stroke-dashoffset: -100; }
-          }
-          @keyframes ${cls.response}-backward {
-            0%   { stroke-dashoffset: -100; }
-            50%  { stroke-dashoffset: -100; }
-            95%  { stroke-dashoffset: 10; }
-            100% { stroke-dashoffset: 10; }
-          }
-          @media (prefers-reduced-motion: no-preference) {
-            .${cls.request}  { animation: ${cls.request}-forward  ${CYCLE_MS}ms linear infinite; }
-            .${cls.response} { animation: ${cls.response}-backward ${CYCLE_MS}ms linear infinite; }
-          }
-          @media (prefers-reduced-motion: reduce) {
-            .${cls.packet} { display: none; }
-          }
-        `}</style>
-      )}
-
-      {/* Trait maison — couleur pilotée par `color` inline (currentColor). */}
-      <path className={cls.mark} d={MARK_PATH} style={{ ...strokeBase, stroke: 'currentColor' }} />
-
-      {/* Packets de données (masqués si animations désactivées). */}
-      {animated && (
-        <>
-          <path
-            className={`${cls.packet} ${cls.request}`}
-            pathLength={100}
-            d={MARK_PATH}
-          />
-          <path
-            className={`${cls.packet} ${cls.response}`}
-            pathLength={100}
-            d={MARK_PATH}
-          />
-        </>
-      )}
-    </svg>
-  );
-
-  const wordmark = (
-    <span
-      style={{
-        fontFamily: '"Space Grotesk", "Plus Jakarta Sans", -apple-system, "Segoe UI", sans-serif',
-        fontWeight: 600,
-        fontSize: `${fontSize}px`,
-        letterSpacing: '-0.015em',
-        lineHeight: 1,
-        color: wordmarkColor,
-        direction: 'ltr',
-        whiteSpace: 'nowrap',
-      }}
-    >
-      baitly
-    </span>
-  );
-
-  const content =
-    variant === 'mark' ? mark :
-    variant === 'wordmark' ? wordmark :
-    <>{mark}{wordmark}</>;
-
+/** Logo approuvé : symbole et baitly., flux monochrome uniquement en animation. */
+export default function BaitlyMarkLogo({ scale = 1, size, variant = 'full', tone = 'auto', idleAnimation = true, disableAnimation = false, colorMode = 'accent' }: BaitlyMarkLogoProps) {
+  const uid = useId().replace(/[^a-zA-Z0-9_-]/g, '-');
+  const iconSize = size ?? 56 * scale;
+  const proportionalSize = (ratio: number) => typeof iconSize === 'number'
+    ? iconSize * ratio
+    : `calc(${iconSize} * ${ratio})`;
+  const wordmarkOffset = proportionalSize(WORDMARK_OFFSET_RATIO);
+  const animated = idleAnimation && !disableAnimation;
+  const cls = `baitly-logo-${uid}-${animated ? 'animated' : 'static'}`;
+  const color = colorMode === 'inherit' ? 'inherit' : tone === 'dark' ? '#FFFFFF' : tone === 'light' ? '#1B2A35' : undefined;
   return (
-    // `gap` est calcule a l'execution : il passe par `style`, pas par une classe.
-    <div className="inline-flex items-center" style={{ gap: variant === 'full' ? `${gap}px` : 0 }}>
-      {content}
+    <div className={cls} role="img" aria-label="Baitly" style={{ display: 'inline-flex', alignItems: 'center', flexShrink: 0, direction: 'ltr', gap: variant === 'full' ? proportionalSize(WORDMARK_GAP_RATIO) : 0, color }}>
+      <style>{`
+        .${cls} { color: #1B2A35; }
+        [data-theme="dark"] .${cls} { color: #FFFFFF; }
+        .${cls} .baitly-logo-base { opacity: ${animated ? '.42' : '1'}; }
+        .${cls} .baitly-logo-flow { animation: ${cls}-flow ${FLOW_LEG_MS}ms cubic-bezier(.37,0,.63,1) infinite alternate; }
+        @keyframes ${cls}-flow { from { stroke-dashoffset: 0; } to { stroke-dashoffset: ${FLOW_END}; } }
+        @media (prefers-reduced-motion: reduce) {
+          .${cls} .baitly-logo-flow { display: none; animation: none; }
+          .${cls} .baitly-logo-base { opacity: 1; }
+        }
+      `}</style>
+      {variant !== 'wordmark' && (
+        <svg width={typeof iconSize === 'number' ? iconSize : undefined} height={typeof iconSize === 'number' ? iconSize : undefined} viewBox={MARK_VIEWBOX} fill="none" aria-hidden="true" style={{ flexShrink: 0, width: iconSize, height: iconSize }}>
+          <path className="baitly-logo-base" d={MARK_PATH} stroke="currentColor" strokeWidth={STROKE_WIDTH} strokeLinecap="round" strokeLinejoin="round" />
+          {animated && <path className="baitly-logo-flow" d={MARK_PATH} pathLength={100} stroke="currentColor" strokeWidth={FLOW_STROKE_WIDTH} strokeLinecap="round" strokeLinejoin="round" strokeDasharray={`${FLOW_LENGTH} 400`} />}
+        </svg>
+      )}
+      {variant !== 'mark' && <span style={{ fontFamily: '"Space Grotesk", sans-serif', fontWeight: 600, fontSize: proportionalSize(WORDMARK_SIZE_RATIO), letterSpacing: '-.025em', lineHeight: 1, whiteSpace: 'nowrap', transform: `translateY(${typeof wordmarkOffset === 'number' ? `${wordmarkOffset}px` : wordmarkOffset})` }}>baitly.</span>}
     </div>
   );
 }

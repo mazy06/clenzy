@@ -12,6 +12,7 @@ import { useQuery } from '@tanstack/react-query';
 
 import { buildApiUrl } from '../config/api';
 import { getAccessToken } from '../keycloak';
+import { useAuth } from './useAuth';
 
 const QUERY_KEY = ['contact', 'unread-count'] as const;
 
@@ -32,10 +33,11 @@ async function fetchUnreadCount(): Promise<number> {
  *   les rôles qui n'y ont pas accès n'ont pas à déclencher un 403.
  */
 export function useContactUnreadCount(enabled: boolean): number {
+  const { user } = useAuth();
   const { data } = useQuery({
-    queryKey: QUERY_KEY,
+    queryKey: [...QUERY_KEY, user?.id, user?.organizationId],
     queryFn: fetchUnreadCount,
-    enabled,
+    enabled: enabled && !!user,
     refetchInterval: 60_000,
     staleTime: 30_000,
     refetchOnWindowFocus: false,

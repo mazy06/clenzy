@@ -36,6 +36,7 @@ import {
   PersonSearch,
   Inventory2,
   TrendingUp,
+  LocalOffer,
 } from '../icons';
 import {
   NAVIGATION_HUBS,
@@ -58,11 +59,14 @@ import i18n from '../i18n/config';
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
-export type NavGroup = 'main' | 'management' | 'admin';
+export type NavGroup = 'pilotage' | 'operations' | 'sales' | 'services' | 'management' | 'admin';
 
 /** i18n keys for nav group section headers */
 export const NAV_GROUP_TRANSLATION_KEYS: Record<NavGroup, string> = {
-  main: 'navigation.groups.main',
+  pilotage: 'navigation.groups.pilotage',
+  operations: 'navigation.groups.operations',
+  sales: 'navigation.groups.sales',
+  services: 'navigation.groups.services',
   management: 'navigation.groups.management',
   admin: 'navigation.groups.admin',
 };
@@ -131,7 +135,7 @@ type MenuEntryConfig =
   | { kind: 'hub-tabs'; hubId: string };
 
 const MENU_ENTRIES: MenuEntryConfig[] = [
-  // ── Main ──
+  // ── Pilotage : l'ecran d'ouverture de la journee ──
   {
     kind: 'item',
     item: {
@@ -140,7 +144,7 @@ const MENU_ENTRIES: MenuEntryConfig[] = [
       roles: ['SUPER_ADMIN', 'SUPER_MANAGER', 'HOST', 'SUPERVISOR'],
       permission: 'reservations:view',
       translationKey: 'navigation.planning',
-      group: 'main',
+      group: 'pilotage',
     },
   },
   {
@@ -151,9 +155,21 @@ const MENU_ENTRIES: MenuEntryConfig[] = [
       roles: ['all'],
       permission: 'dashboard:view',
       translationKey: 'navigation.dashboard',
-      group: 'main',
+      group: 'pilotage',
     },
   },
+  {
+    kind: 'item',
+    item: {
+      icon: <Assessment />,
+      path: '/reports',
+      roles: ['SUPER_ADMIN', 'SUPER_MANAGER'],
+      permission: 'reports:view',
+      translationKey: 'navigation.reports',
+      group: 'pilotage',
+    },
+  },
+  // ── Exploitation ──
   // Assistant : plus d'entree de menu — accessible via le widget bulle (logo
   // flottant) present sur toutes les pages, qui s'agrandit en plein ecran avec
   // l'historique. L'ancienne page dediee /assistant a ete supprimee.
@@ -166,20 +182,66 @@ const MENU_ENTRIES: MenuEntryConfig[] = [
   // aurait fallu recopier a la main.
   { kind: 'hub-tabs', hubId: 'exploitation' },
   { kind: 'item', item: {
-    icon: <TrendingUp />, path: '/dynamic-pricing', group: 'main',
-    roles: ['SUPER_ADMIN', 'SUPER_MANAGER', 'HOST'],
-    permission: 'pricing:view', translationKey: 'dynamicPricing.title',
-  } },
-  { kind: 'item', item: {
-    icon: <Plug />, path: '/connected-objects', group: 'main',
+    icon: <Plug />, path: '/connected-objects', group: 'operations',
     roles: ['SUPER_ADMIN', 'SUPER_MANAGER', 'HOST', 'SUPERVISOR'],
     permission: 'properties:view', translationKey: 'navigation.connectedObjects',
   } },
   { kind: 'item', item: {
-    icon: <Inventory2 />, path: '/consumables', group: 'main',
+    icon: <Inventory2 />, path: '/consumables', group: 'operations',
     roles: ['SUPER_ADMIN', 'SUPER_MANAGER', 'HOST', 'SUPERVISOR'],
     permission: 'properties:view', translationKey: 'navigation.consumables',
   } },
+  // ── Ecrans de l'intervenant ──
+  // Tarifs et disponibilites sont des gestes du QUOTIDIEN : ils meritent leur
+  // entree, pas une carte au fond de « Mon compte ». Reserves aux executants —
+  // un gestionnaire gere le catalogue de l'organisation, pas SES tarifs.
+  {
+    kind: 'item',
+    item: {
+      icon: <Euro />,
+      path: '/mes-tarifs',
+      roles: [...CLEANING_ROLES],
+      translationKey: 'navigation.myRates',
+      group: 'operations',
+    },
+  },
+  {
+    kind: 'item',
+    item: {
+      icon: <AccessTime />,
+      path: '/mes-disponibilites',
+      roles: [...FIELD_ROLES],
+      translationKey: 'navigation.myAvailability',
+      group: 'operations',
+    },
+  },
+  {
+    kind: 'item',
+    item: {
+      icon: <Build />,
+      path: '/mes-tarifs-travaux',
+      roles: ['SUPER_ADMIN', 'SUPER_MANAGER', 'SUPERVISOR', ...TRADE_ROLES],
+      permission: 'technician-prestations:manage',
+      translationKey: 'navigation.technicianPrestations',
+      group: 'operations',
+    },
+  },
+  // ── Ventes & distribution ──
+  { kind: 'item', item: {
+    icon: <TrendingUp />, path: '/dynamic-pricing', group: 'sales',
+    roles: ['SUPER_ADMIN', 'SUPER_MANAGER', 'HOST'],
+    permission: 'pricing:view', translationKey: 'dynamicPricing.title',
+  } },
+  // Codes promo : ex-onglet de Propriétés, désormais un écran à part entière
+  // (mêmes permissions que l'écran Propriétés).
+  { kind: 'item', item: {
+    icon: <LocalOffer />, path: '/vouchers', group: 'sales',
+    roles: ['SUPER_ADMIN', 'SUPER_MANAGER', 'HOST'],
+    permission: 'properties:view', translationKey: 'navigation.bookingVouchers',
+  } },
+  // Distribution = Channels · Réservation & accueil · Boutique
+  { kind: 'hub', hubId: 'distribution', icon: <Hub /> },
+  // ── Prestations ──
   /*
    * Devis et Prestataires quittent le regroupement « Contacts » pour le premier
    * niveau : ce ne sont pas des carnets d'adresses, ce sont deux gestes de
@@ -202,7 +264,7 @@ const MENU_ENTRIES: MenuEntryConfig[] = [
       matchPaths: ['/devis'],
       roles: ['all'],
       translationKey: 'navigation.quoteRequests',
-      group: 'main',
+      group: 'services',
     },
   },
   {
@@ -213,30 +275,17 @@ const MENU_ENTRIES: MenuEntryConfig[] = [
       matchPaths: ['/prestataires', '/marketplace'],
       roles: ['all'],
       translationKey: 'navigation.providerCatalog',
-      group: 'main',
+      group: 'services',
     },
   },
-  // ── Management ──
+  // ── Gestion ──
   // Contacts = Messagerie · Annuaire
   { kind: 'hub', hubId: 'contacts', icon: <Contacts /> },
   // Documents = Documents · Contrats de gestion
   { kind: 'hub', hubId: 'documents', icon: <Description /> },
   // Finances = Facturation · Tarification
   { kind: 'hub', hubId: 'finances', icon: <Euro /> },
-  // Distribution = Channels · Réservation & accueil · Boutique
-  { kind: 'hub', hubId: 'distribution', icon: <Hub /> },
-  {
-    kind: 'item',
-    item: {
-      icon: <Assessment />,
-      path: '/reports',
-      roles: ['SUPER_ADMIN', 'SUPER_MANAGER'],
-      permission: 'reports:view',
-      translationKey: 'navigation.reports',
-      group: 'management',
-    },
-  },
-  // ── Admin ──
+  // ── Administration ──
   {
     kind: 'item',
     item: {
@@ -257,41 +306,6 @@ const MENU_ENTRIES: MenuEntryConfig[] = [
       permission: 'automation:view',
       translationKey: 'navigation.automationRules',
       group: 'admin',
-    },
-  },
-  // ── Ecrans de l'intervenant ──
-  // Tarifs et disponibilites sont des gestes du QUOTIDIEN : ils meritent leur
-  // entree, pas une carte au fond de « Mon compte ». Reserves aux executants —
-  // un gestionnaire gere le catalogue de l'organisation, pas SES tarifs.
-  {
-    kind: 'item',
-    item: {
-      icon: <Euro />,
-      path: '/mes-tarifs',
-      roles: [...CLEANING_ROLES],
-      translationKey: 'navigation.myRates',
-      group: 'main',
-    },
-  },
-  {
-    kind: 'item',
-    item: {
-      icon: <AccessTime />,
-      path: '/mes-disponibilites',
-      roles: [...FIELD_ROLES],
-      translationKey: 'navigation.myAvailability',
-      group: 'main',
-    },
-  },
-  {
-    kind: 'item',
-    item: {
-      icon: <Build />,
-      path: '/mes-tarifs-travaux',
-      roles: ['SUPER_ADMIN', 'SUPER_MANAGER', 'SUPERVISOR', ...TRADE_ROLES],
-      permission: 'technician-prestations:manage',
-      translationKey: 'navigation.technicianPrestations',
-      group: 'main',
     },
   },
   {
@@ -324,7 +338,7 @@ const MENU_ENTRIES: MenuEntryConfig[] = [
       group: 'admin',
     },
   },
-  // Outils plateforme = Sync · KPI · Taux de change · Base de données · Codes promo
+  // Outils plateforme = Sync · KPI · Taux de change · Base de données · Codes promo plateforme
   { kind: 'hub', hubId: 'platform-tools', icon: <Build /> },
 ];
 
@@ -332,7 +346,10 @@ const MENU_ENTRIES: MenuEntryConfig[] = [
 
 export function groupMenuItems(items: MenuItem[]): Record<NavGroup, MenuItem[]> {
   return {
-    main: items.filter((i) => i.group === 'main'),
+    pilotage: items.filter((i) => i.group === 'pilotage'),
+    operations: items.filter((i) => i.group === 'operations'),
+    sales: items.filter((i) => i.group === 'sales'),
+    services: items.filter((i) => i.group === 'services'),
     management: items.filter((i) => i.group === 'management'),
     admin: items.filter((i) => i.group === 'admin'),
   };
@@ -541,7 +558,7 @@ export const useNavigationMenu = (): UseNavigationMenuReturn => {
         path: '/dashboard',
         roles: ['all'],
         translationKey: 'navigation.dashboard',
-        group: 'main',
+        group: 'pilotage',
       }];
     } finally {
       setLoading(false);

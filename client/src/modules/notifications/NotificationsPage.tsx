@@ -18,6 +18,7 @@ import PageTabs from '../../components/PageTabs';
 import { useTabValueParam } from '../../components/tabKeyParam';
 import EmptyState from '../../components/EmptyState';
 import ShowcaseEmpty from '../../components/baitly/ShowcaseEmpty';
+import { STAGE_IMAGES } from '../../components/baitly/stageImages';
 import DataFetchWrapper from '../../components/DataFetchWrapper';
 import PagePagination from '../../components/PagePagination';
 import NotificationDetailCard from './NotificationDetailCard';
@@ -271,6 +272,7 @@ export default function NotificationsPage() {
                     eyebrow={{ icon: <NotificationsNone size={14} strokeWidth={1.75} />, label: t('notifications.title') }}
                     title={t('notifications.showcase.title')}
                     description={t('notifications.showcase.description')}
+                    image={STAGE_IMAGES.messageReceived}
                     action={
                       <Button onClick={() => navigate('/settings?tab=notifications')}>
                         {t('notifications.showcase.action')}

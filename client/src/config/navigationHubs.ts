@@ -34,7 +34,7 @@ export interface HubDef {
   /** Clé i18n du libellé sidebar. */
   translationKey: string;
   fallbackLabel: string;
-  group: 'main' | 'management' | 'admin';
+  group: 'pilotage' | 'operations' | 'sales' | 'services' | 'management' | 'admin';
   tabs: HubTab[];
 }
 
@@ -45,7 +45,7 @@ export const NAVIGATION_HUBS: HubDef[] = [
     id: 'exploitation',
     translationKey: 'navigation.exploitation',
     fallbackLabel: 'Exploitation',
-    group: 'main',
+    group: 'operations',
     tabs: [
       {
         path: '/properties',
@@ -135,7 +135,7 @@ export const NAVIGATION_HUBS: HubDef[] = [
     id: 'distribution',
     translationKey: 'navigation.distribution',
     fallbackLabel: 'Distribution',
-    group: 'management',
+    group: 'sales',
     // Ordre d'affichage : Réservation & accueil, puis Boutique, puis Channels.
     // tabs[0] est aussi la cible par défaut de l'entrée sidebar du hub (useNavigationMenu).
     tabs: [
@@ -196,7 +196,7 @@ export const NAVIGATION_HUBS: HubDef[] = [
       {
         path: '/admin/promo-codes',
         translationKey: 'navigation.promoCodes',
-        fallbackLabel: 'Codes promo',
+        fallbackLabel: 'Codes promo plateforme',
         isAccessible: (a) => has(a, 'users:manage'),
       },
     ],

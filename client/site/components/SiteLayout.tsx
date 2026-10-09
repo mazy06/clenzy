@@ -190,14 +190,11 @@ export function SiteHeader() {
       <div className="site-shell site-header-inner flex h-16 items-center gap-5">
         <Link
           to="/"
-          className="flex items-center gap-2.5"
+          className="site-header-brand flex items-center gap-2.5"
           aria-label={h.homeAria}
         >
-          <span className="text-primary">
-            <BaitlyMarkLogo variant="mark" size={30} colorMode="inherit" />
-          </span>
-          <span className="site-wordmark text-lg font-semibold tracking-tight">
-            baitly
+          <span className="site-wordmark">
+            <BaitlyMarkLogo variant="full" size="var(--site-logo-size, 40px)" />
           </span>
         </Link>
         <DesktopNav entries={entries} />
@@ -315,10 +312,9 @@ function SiteFooter() {
         <div className="grid grid-cols-2 gap-8 md:grid-cols-[1.2fr_repeat(4,1fr)]">
           <div className="col-span-2 md:col-span-1">
             <Link to="/" className="flex items-center gap-2.5">
-              <span className="text-primary">
-                <BaitlyMarkLogo variant="mark" size={26} colorMode="inherit" />
+              <span className="site-wordmark">
+                <BaitlyMarkLogo variant="full" size={26} disableAnimation />
               </span>
-              <span className="site-wordmark font-semibold">baitly</span>
             </Link>
             <p className="mt-3 max-w-xs text-xs text-muted-foreground">
               {m.pitch}

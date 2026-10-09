@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
+import { render, screen } from '@testing-library/react';
 
-import { computePortfolioAggregates } from '../PropertiesPortfolioTiles';
+import PropertiesPortfolioTiles, { computePortfolioAggregates } from '../PropertiesPortfolioTiles';
 import type { PropertyListItem } from '../../../hooks/usePropertiesList';
 import type { PropertyKpiSummary } from '../../../services/api/propertyKpiApi';
 
@@ -18,6 +19,13 @@ const makeKpi = (overrides: Partial<PropertyKpiSummary> & { propertyId: number }
 });
 
 describe('computePortfolioAggregates', () => {
+  it('keeps the summary visible while the first figures are loading', () => {
+    const { container } = render(<PropertiesPortfolioTiles properties={[makeProperty(1)]} kpiMap={new Map()} loading />);
+    expect(screen.getByText('Occupation moyenne')).toBeInTheDocument();
+    expect(screen.getByText('Revenu du mois')).toBeInTheDocument();
+    expect(container.querySelectorAll('[aria-busy="true"]')).toHaveLength(5);
+    expect(screen.queryByText('0')).toBeNull();
+  });
   it('whenTwoProperties_thenOccupancyIsSimpleMean_andRevenueIsSum', () => {
     const kpiMap = new Map([
       [1, makeKpi({ propertyId: 1, occupancyRate: 0.8, adr: 100, revenue: 1000 })],
@@ -59,7 +67,7 @@ describe('computePortfolioAggregates', () => {
   it('whenNoKpiAtAll_thenAllNull', () => {
     const aggregates = computePortfolioAggregates([makeProperty(1)], new Map());
 
-    expect(aggregates).toEqual({ occupancyPct: null, adr: null, revenue: null, covered: 0 });
+    expect(aggregates).toEqual({ occupancyPct: null, adr: null, revenue: null, covered: 0, occupied: 0, interventions: 0 });
   });
 
   it('whenNoNightsSold_thenAdrIsNull', () => {
@@ -71,5 +79,16 @@ describe('computePortfolioAggregates', () => {
 
     expect(aggregates.adr).toBeNull();
     expect(aggregates.occupancyPct).toBe(0);
+  });
+  it('counts current operations only within the filtered, covered properties', () => {
+    const kpiMap = new Map([
+      [1, makeKpi({ propertyId: 1, operationalStatus: 'occupied' })],
+      [2, makeKpi({ propertyId: 2, activeInterventionType: 'cleaning' })],
+      [3, makeKpi({ propertyId: 3, operationalStatus: 'occupied', activeInterventionType: 'maintenance' })],
+    ]);
+    const aggregates = computePortfolioAggregates([makeProperty(1), makeProperty(2), makeProperty(99)], kpiMap);
+    expect(aggregates.occupied).toBe(1);
+    expect(aggregates.interventions).toBe(1);
+    expect(aggregates.covered).toBe(2);
   });
 });

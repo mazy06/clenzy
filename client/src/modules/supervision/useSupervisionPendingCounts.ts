@@ -13,6 +13,7 @@ import { useQuery } from '@tanstack/react-query';
 
 import { buildApiUrl } from '../../config/api';
 import { getAccessToken } from '../../keycloak';
+import { useAuth } from '../../hooks/useAuth';
 
 export interface SupervisionPendingCounts {
   /** Total de suggestions en attente de l'organisation (badge menu). */
@@ -23,6 +24,7 @@ export interface SupervisionPendingCounts {
 
 const EMPTY: SupervisionPendingCounts = { total: 0, byProperty: {} };
 const QUERY_KEY = ['supervision', 'pending-counts'] as const;
+// Le cache est scope utilisateur + org : jamais de chiffres d'un autre tenant.
 
 async function fetchPendingCounts(): Promise<SupervisionPendingCounts> {
   const token = getAccessToken();
@@ -40,10 +42,11 @@ async function fetchPendingCounts(): Promise<SupervisionPendingCounts> {
  *   org qui a activé la constellation (évite tout fetch inutile).
  */
 export function useSupervisionPendingCounts(enabled: boolean): SupervisionPendingCounts {
+  const { user } = useAuth();
   const { data } = useQuery({
-    queryKey: QUERY_KEY,
+    queryKey: [...QUERY_KEY, user?.id, user?.organizationId],
     queryFn: fetchPendingCounts,
-    enabled,
+    enabled: enabled && !!user,
     refetchInterval: 30_000,
     staleTime: 15_000,
     refetchOnWindowFocus: false,

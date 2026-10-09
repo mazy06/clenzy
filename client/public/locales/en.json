@@ -282,6 +282,35 @@
     "bankFailed": "Check your payout account details with your payment provider and contact the platform about this transfer."
   },
   "consumables": {
+    "workspace": {
+      "intro": "Inventory, replenishment and orders in one workspace.",
+      "title": "Ready for the next stay.",
+      "subtitle": "Spot what is missing, prepare orders and confirm deliveries.",
+      "flow": "Your supplies workflow",
+      "stock": "In your properties",
+      "pending": "To order",
+      "ordered": "Orders sent",
+      "stockHint": "Available quantities and the reorder threshold for each item.",
+      "pendingHint": "Suggestions from the Operations agent to review.",
+      "orderedHint": "The history of orders sent to suppliers.",
+      "manage": "Manage items",
+      "receiptNote": "Sent does not mean received. Confirm delivery on the item in your inventory.",
+      "out": "Out of stock",
+      "available": "Available",
+      "noThreshold": "Set a threshold",
+      "noThresholdHint": "Set a threshold to plan replenishment.",
+      "level": "Stock level for {{name}}",
+      "levelText": "{{quantity}} {{unit}} available, reorder threshold {{threshold}}",
+      "details": "Details for {{name}}",
+      "noReceipt": "No delivery recorded.",
+      "configure": "Edit item and rules",
+      "receive": "Received a delivery?",
+      "receiveHint": "Enter only the quantity actually received. It will be added to stock.",
+      "receivedQuantity": "Quantity received",
+      "confirmReceipt": "Confirm receipt",
+      "receiveError": "The delivery was not recorded. Try again.",
+      "received": "Delivery recorded: {{count}} units added."
+    },
     "intro": {
       "pending": "Replenishment proposals to review before sending to the supplier.",
       "ordered": "Orders sent from agent cards. Sending an order does not confirm delivery.",
@@ -357,659 +386,346 @@
   },
   "moduleFirstUse": {
     "openWorkspace": "Open this workspace",
-    "setupTitle": "Get started",
-    "activation": "Add or import your first property to reveal the tools on this screen. You can also open this workspace now.",
     "preview": "Interactive preview: {{title}}",
-    "example": "Illustrative data",
-    "safeDemo": "Explore freely: this preview creates no bookings, messages or transactions in your account.",
     "demo": {
-      "issue": "Bathroom leak reported · Photo attached · Maintenance needed",
-      "teamIn": "Cleaning is complete. Photos are attached to the job.",
-      "teamOut": "Thanks, I will check the checklist before arrival.",
-      "teamSent": "Review complete, the property is ready.",
-      "formType": "Maintenance form",
-      "formTitle": "A problem to review",
-      "formBody": "The bathroom tap is leaking. A photo is attached to the request.",
-      "formDone": "Request marked as handled in the example.",
       "property": "Riad Azur",
-      "secondProperty": "Olive Villa",
-      "thirdProperty": "Atlas Apartment",
-      "done": "Completed in the example",
-      "toPrepare": "To prepare",
-      "draft": "Draft",
-      "stay": "Sofia L. · 3 nights · 2 guests",
-      "task": "Departure cleaning · Team A · Checklist and completion photos",
+      "owner": "Sofia L.",
       "day_one": "Day {{count}}",
       "day_other": "Day {{count}}",
       "channels": "Conversation types",
-      "messageIn": "Hello, what time can we check in?",
-      "messageOut": "Hello Sofia, your property will be ready from 3 pm.",
-      "messageSent": "Your access instructions are in the welcome guide.",
-      "owner": "Sofia L.",
-      "signature": "Online signature",
-      "signed": "Simulated signature: Sofia L.",
-      "awaitingSignature": "Owner signature area",
-      "total": "Example total",
-      "reconciled": "Transaction reconciled in the example.",
-      "ledgerHint": "Select an entry to follow its progress.",
       "indicators": "Example indicators",
       "occupied_one": "{{count}} occupied night out of 28, illustrative data.",
       "occupied_other": "{{count}} occupied nights out of 28, illustrative data.",
       "chartDescription": "Six fictional values over time. Comparing periods changes the example values.",
       "referencePeriod": "Return to the reference period",
       "comparePeriod": "Compare another period",
-      "reset": "Reset example",
-      "send": "Simulate a reply",
-      "sign": "Simulate signing",
-      "advance": "Simulate processing",
-      "simulated": "Simulation complete. No real data changed.",
-      "interact": "Click the preview or choose a step to explore.",
-      "sectionReady": "Section included",
       "period": "Period",
-      "reportReady": "Document prepared in the example",
-      "unit": "Illustrative values"
-    },
-    "setup": {
-      "reservations": [
-        "Create a property with its capacity and check-in times.",
-        "Import stays from a channel or enter a direct booking.",
-        "Complete guest details, pricing and payment information."
-      ],
-      "interventions": [
-        "Add the property where the job will take place.",
-        "Specify the service, date and instructions for the team.",
-        "Assign a team member and follow the job through validation."
-      ],
-      "quotes": [
-        "Add the property that needs the service.",
-        "Choose a provider in the catalogue and describe your needs.",
-        "Review the proposal, then accept it or ask for clarification."
-      ],
-      "messaging": [
-        "Add properties and connect the channels used with your guests.",
-        "Configure available messaging channels in settings.",
-        "Open a conversation or write your first message. Internal conversations remain available without a property."
-      ],
-      "contracts": [
-        "Add the property and identify its owner.",
-        "Set the commission, included services and mandate dates.",
-        "Review the document, then send the signature request to the owner."
-      ],
-      "billing": [
-        "Enter properties and billing contact details.",
-        "Complete payment and tax settings according to your permissions.",
-        "Record the first transactions to populate invoices and tracking."
-      ],
-      "reports": [
-        "Add or import your property portfolio.",
-        "Populate bookings, payments, expenses and jobs.",
-        "Choose the tab that supports your decision. Analyses depend on the available history."
-      ]
+      "sectionReady": "Section included"
     },
     "screens": {
       "reservations": {
         "reservations": {
-          "title": "Follow every stay, from booking to departure",
-          "lede": "Find stays from all your channels alongside direct bookings. Each record brings together the guest, dates, property and status.",
+          "title": "Every stay, from booking to departure",
           "labels": [
-            "Arrival to prepare",
-            "Stay in progress",
-            "Upcoming departure"
+            "Arrival",
+            "Stay",
+            "Departure"
           ],
           "steps": [
-            {
-              "title": "Find a stay",
-              "detail": "Filter by property, channel or status and open the relevant booking."
-            },
-            {
-              "title": "Prepare the welcome",
-              "detail": "Check guests, times and useful information before arrival."
-            },
-            {
-              "title": "Track progress",
-              "detail": "Follow confirmation, check-in and check-out, and review payment status."
-            }
+            "Find",
+            "Welcome",
+            "Track"
           ]
         }
       },
       "interventions": {
         "calendar": {
-          "title": "See when every job is due",
-          "lede": "The calendar arranges jobs over time. Coordinate cleaning, maintenance and arrivals while keeping the schedule in view.",
+          "title": "Every task, on its date",
           "labels": [
             "Cleaning",
             "Maintenance",
             "Inspection"
           ],
           "steps": [
-            {
-              "title": "Read the day",
-              "detail": "Identify occupied time slots and upcoming jobs."
-            },
-            {
-              "title": "Open a job",
-              "detail": "Find the property, assigned team and instructions."
-            },
-            {
-              "title": "Plan ahead",
-              "detail": "Browse other periods and adjust jobs from their detail page."
-            }
+            "Day",
+            "Task",
+            "Next"
           ]
         },
         "service-requests": {
-          "title": "Turn a need into a tracked request",
-          "lede": "A service request records what needs doing before it becomes a scheduled job. Keep track of the requester, the need and its handling.",
+          "title": "A need becomes a tracked request",
           "labels": [
             "To review",
             "To schedule",
             "Assigned"
           ],
           "steps": [
-            {
-              "title": "Describe the need",
-              "detail": "Specify the property, requested service and relevant information."
-            },
-            {
-              "title": "Qualify the request",
-              "detail": "Set the priority, date and instructions before scheduling."
-            },
-            {
-              "title": "Follow the response",
-              "detail": "Review the status and jobs associated with the request."
-            }
+            "Describe",
+            "Qualify",
+            "Follow"
           ]
         },
         "interventions": {
-          "title": "From planned work to verified results",
-          "lede": "The intervention list brings together operational jobs. See what needs assigning, what is underway and what awaits validation.",
+          "title": "From planned work to verified work",
           "labels": [
             "To assign",
             "In progress",
             "To validate"
           ],
           "steps": [
-            {
-              "title": "Assign the job",
-              "detail": "Choose the responsible team or provider and share instructions."
-            },
-            {
-              "title": "Follow execution",
-              "detail": "Review progress, notes, checklists and job photos."
-            },
-            {
-              "title": "Verify the result",
-              "detail": "Check submitted evidence before completing or validating the job."
-            }
+            "Assign",
+            "Perform",
+            "Verify"
           ]
         },
         "issues": {
-          "title": "Keep every reported problem in view",
-          "lede": "The Issues tab gathers problems reported at your properties. Each report retains its context to support resolution.",
+          "title": "No reported issue gets lost",
           "labels": [
             "To review",
             "To resolve",
             "Resolved"
           ],
           "steps": [
-            {
-              "title": "Understand the report",
-              "detail": "Review the property, description and supporting information."
-            },
-            {
-              "title": "Organise resolution",
-              "detail": "Assess priority and prepare the required maintenance."
-            },
-            {
-              "title": "Follow through to closure",
-              "detail": "Verify resolution and keep a record of the response."
-            }
+            "Understand",
+            "Organise",
+            "Close"
           ]
         }
       },
       "quotes": {
         "quotes": {
-          "title": "Review the quote before committing to a service",
-          "lede": "Find requests sent to providers and their proposals. Price, timing and decisions remain together.",
+          "title": "A clear quote before you commit",
           "labels": [
             "Service before tax",
             "Tax",
             "Proposed amount"
           ],
           "steps": [
-            {
-              "title": "Await the proposal",
-              "detail": "Track sent requests and withdraw those no longer needed."
-            },
-            {
-              "title": "Make an informed decision",
-              "detail": "Review price, validity and the provider message before accepting."
-            },
-            {
-              "title": "Find the resulting job",
-              "detail": "Follow the service associated with an accepted quote. Received quotes relate to your provider activity."
-            }
+            "Wait",
+            "Decide",
+            "Follow"
           ]
         }
       },
       "messaging": {
         "messaging": {
-          "title": "Your conversations, together",
-          "lede": "Messaging brings together guest conversations, internal discussions and received forms according to your permissions. Select a thread to see context and reply.",
+          "title": "All your conversations, in one place",
           "labels": [
             "Guests",
             "Team",
             "Forms"
           ],
           "steps": [
-            {
-              "title": "Find the right exchanges",
-              "detail": "All and Unread views help identify conversations needing attention."
-            },
-            {
-              "title": "Reply with context",
-              "detail": "Open the thread, review its history and reply through the available channel."
-            },
-            {
-              "title": "Keep an organised history",
-              "detail": "Read authorised forms, archive completed exchanges and find them in archives."
-            }
+            "Guests",
+            "Team",
+            "Forms"
           ]
         }
       },
       "contracts": {
         "contracts": {
-          "title": "Define the terms of every management agreement",
-          "lede": "A management contract connects a property to its owner and defines your mandate. Commission, dates and signature stay in one record.",
+          "title": "The framework of every management",
           "labels": [
             "Owner",
             "Commission",
             "Approval"
           ],
           "steps": [
-            {
-              "title": "Define the mandate",
-              "detail": "Enter the parties, property, dates and management terms."
-            },
-            {
-              "title": "Request the signature",
-              "detail": "Review the mandate before sending the signing link to the owner."
-            },
-            {
-              "title": "Track the contract",
-              "detail": "Distinguish drafts, active, suspended and terminated agreements."
-            }
+            "Mandate",
+            "Signature",
+            "Tracking"
           ]
         }
       },
       "billing": {
         "payments": {
-          "title": "Trace every payment",
-          "lede": "Follow guest payments, statuses and refunds. Compare expected payments with collected amounts.",
+          "title": "The journey of every payment",
           "labels": [
             "Pending",
             "Collected",
             "Refunded"
           ],
           "steps": [
-            {
-              "title": "Identify the payment",
-              "detail": "Find the booking, amount and payment method."
-            },
-            {
-              "title": "Check its status",
-              "detail": "Distinguish pending, successful and failed transactions."
-            },
-            {
-              "title": "Review the history",
-              "detail": "Inspect details and refunds to understand movements."
-            }
+            "Identify",
+            "Check",
+            "History"
           ]
         },
         "invoices": {
-          "title": "Find the document behind each transaction",
-          "lede": "Browse invoices and credit notes for stays and services. Find amounts, recipients and statuses.",
+          "title": "Every document, ready to find",
           "labels": [
             "Before tax",
             "Tax",
             "Including tax"
           ],
           "steps": [
-            {
-              "title": "Find an invoice",
-              "detail": "Filter documents by type, period and status."
-            },
-            {
-              "title": "Review the document",
-              "detail": "Open the PDF and check its lines and billing details."
-            },
-            {
-              "title": "Track settlement",
-              "detail": "Identify settled invoices and those still requiring attention."
-            }
+            "Find",
+            "View",
+            "Payments"
           ]
         },
         "wallets": {
-          "title": "Understand each owner balance",
-          "lede": "The wallet gathers financial movements for an owner. It explains the balance and the transactions affecting it.",
+          "title": "Each owner’s balance, explained",
           "labels": [
             "Credit",
             "Reserved funds",
             "Withdrawal"
           ],
           "steps": [
-            {
-              "title": "Read the balance",
-              "detail": "Review available and blocked funds."
-            },
-            {
-              "title": "Find a movement",
-              "detail": "Follow credits and debits in wallet history."
-            },
-            {
-              "title": "Check outflows",
-              "detail": "Review withdrawals and their status before reconciling amounts."
-            }
+            "Balance",
+            "Movements",
+            "Outflows"
           ]
         },
         "payouts": {
-          "title": "Prepare owner payouts",
-          "lede": "Track amounts due to owners. Connect calculations, payment dates and payout statuses.",
+          "title": "Payouts, prepared in advance",
           "labels": [
             "To prepare",
             "Scheduled",
             "Paid"
           ],
           "steps": [
-            {
-              "title": "Verify amounts",
-              "detail": "Check the period, beneficiary and calculated amounts."
-            },
-            {
-              "title": "Prepare payment",
-              "detail": "Enter required information and review available exports."
-            },
-            {
-              "title": "Follow the payout",
-              "detail": "Find scheduled and completed payouts in the history."
-            }
+            "Amounts",
+            "Settlement",
+            "Payment"
           ]
         },
         "expenses": {
-          "title": "Connect each expense to its property",
-          "lede": "Expenses complete the picture of your activity. Categorise operating costs and retain the information needed to track them.",
+          "title": "Every expense, tied to its property",
           "labels": [
             "Maintenance",
             "Supplies",
             "Other costs"
           ],
           "steps": [
-            {
-              "title": "Record a cost",
-              "detail": "Enter the amount, category, date and relevant property."
-            },
-            {
-              "title": "Keep supporting records",
-              "detail": "Associate supplier details and supporting documents."
-            },
-            {
-              "title": "Prepare accounting follow-up",
-              "detail": "Find expenses by property and any amounts to rebill."
-            }
+            "Record",
+            "Justify",
+            "Account"
           ]
         },
         "housekeeper-payouts": {
-          "title": "Follow service provider payouts",
-          "lede": "This view covers operational providers. Follow payouts for validated jobs separately from owner payouts.",
+          "title": "Task payments, tracked",
           "labels": [
             "Validated job",
             "Payout pending",
             "Paid out"
           ],
           "steps": [
-            {
-              "title": "Check the job",
-              "detail": "The payout depends on the job and its validation."
-            },
-            {
-              "title": "Verify the beneficiary",
-              "detail": "The provider must complete payout account setup."
-            },
-            {
-              "title": "Track payment",
-              "detail": "Review Stripe status and address payouts requiring action."
-            }
+            "Task",
+            "Payee",
+            "Payment"
           ]
         },
         "reports": {
-          "title": "Prepare your data for accounting",
-          "lede": "Two views bring together tax reporting and accounting exports. Review aggregates and share data in the expected format.",
+          "title": "Your data, ready for accounting",
           "labels": [
             "Tax report",
             "Taxes",
             "Accounting export"
           ],
           "steps": [
-            {
-              "title": "Read the tax report",
-              "detail": "Review period amounts and taxes from recorded transactions."
-            },
-            {
-              "title": "Prepare exports",
-              "detail": "Choose a period and format matching your accounting tool."
-            },
-            {
-              "title": "Review before sharing",
-              "detail": "Check source data and your organisation tax settings."
-            }
+            "Report",
+            "Exports",
+            "Check"
           ]
         }
       },
       "reports": {
         "overview": {
-          "title": "See the essentials of your activity",
-          "lede": "The overview connects revenue, occupancy and points to review. Start here before opening a detailed analysis.",
+          "title": "The essentials of your activity",
           "labels": [
             "Revenue",
             "Occupancy",
             "Follow-up"
           ],
           "steps": [
-            {
-              "title": "Choose a time frame",
-              "detail": "Select a period suited to the decision you need to make."
-            },
-            {
-              "title": "Spot differences",
-              "detail": "Compare indicators and identify areas needing a closer look."
-            },
-            {
-              "title": "Explore the right topic",
-              "detail": "Open Revenue, Occupancy or Properties to understand results."
-            }
+            "Period",
+            "Gaps",
+            "Detail"
           ]
         },
         "revenue": {
-          "title": "Understand where your revenue comes from",
-          "lede": "Analyse revenue by period, channel and property. Available costs complete the margin picture beyond gross revenue.",
+          "title": "Where your revenue comes from",
           "labels": [
             "By month",
             "By channel",
             "By property"
           ],
           "steps": [
-            {
-              "title": "Read the trend",
-              "detail": "See how revenue is distributed over time."
-            },
-            {
-              "title": "Compare sources",
-              "detail": "Identify each channel and property contribution."
-            },
-            {
-              "title": "Account for costs",
-              "detail": "Review cost categories to interpret the calculated margin."
-            }
+            "Trend",
+            "Sources",
+            "Costs"
           ]
         },
         "occupancy": {
-          "title": "See what fills your calendar",
-          "lede": "This report separates occupied and vacant nights. Compare properties and understand booking distribution.",
+          "title": "What fills your calendar",
           "labels": [
             "Occupied nights",
             "Vacant nights",
             "By property"
           ],
           "steps": [
-            {
-              "title": "Read occupancy",
-              "detail": "Review occupied nights for the selected period."
-            },
-            {
-              "title": "Compare properties",
-              "detail": "Spot differences in occupancy rates between properties."
-            },
-            {
-              "title": "Identify sources",
-              "detail": "Cross-reference results with channels bringing in stays."
-            }
+            "Fill rate",
+            "Properties",
+            "Sources"
           ]
         },
         "pricing": {
-          "title": "Connect pricing to performance",
-          "lede": "Pricing and forecasts compares average prices and revenue per available night. Scenarios support decisions using available data.",
+          "title": "Your rates tied to performance",
           "labels": [
             "Average price",
             "RevPAN",
             "Scenarios"
           ],
           "steps": [
-            {
-              "title": "Compare indicators",
-              "detail": "Distinguish the price of sold nights from revenue per available night."
-            },
-            {
-              "title": "Review pricing options",
-              "detail": "Consult benchmarks and recommendations when available."
-            },
-            {
-              "title": "Explore projections",
-              "detail": "Compare scenarios. A forecast is an estimate, not guaranteed revenue."
-            }
+            "Indicators",
+            "Options",
+            "Forecast"
           ]
         },
         "pace": {
-          "title": "Understand the pace of future bookings",
-          "lede": "Pace looks at nights already booked for upcoming months. Compare progress with history and see recently gained bookings.",
+          "title": "The pace of upcoming bookings",
           "labels": [
             "On the books",
             "Previous year",
             "Pickup"
           ],
           "steps": [
-            {
-              "title": "Read future months",
-              "detail": "Review nights already booked for upcoming periods."
-            },
-            {
-              "title": "Compare equal lead times",
-              "detail": "Comparison with last year requires sufficient history."
-            },
-            {
-              "title": "Follow pickup",
-              "detail": "See new bookings recorded between two observations."
-            }
+            "Coming months",
+            "Comparison",
+            "Pickup"
           ]
         },
         "properties": {
-          "title": "Compare properties on equal terms",
-          "lede": "Review revenue, costs and margin for each property. Identify properties that need closer attention.",
+          "title": "Your properties, side by side",
           "labels": [
             "Revenue",
             "Costs",
             "Margin"
           ],
           "steps": [
-            {
-              "title": "Choose properties to review",
-              "detail": "Browse performance over a common period."
-            },
-            {
-              "title": "Compare with the portfolio",
-              "detail": "Position each property against portfolio benchmarks."
-            },
-            {
-              "title": "Understand differences",
-              "detail": "Examine occupancy and costs before deciding on an action."
-            }
+            "Selection",
+            "Portfolio",
+            "Gaps"
           ]
         },
         "interventions": {
-          "title": "Measure completed and outstanding work",
-          "lede": "This operational report groups job volumes, statuses and priorities. Identify delays and remaining workload.",
+          "title": "Work done and work waiting",
           "labels": [
             "Completed",
             "In progress",
             "Pending"
           ],
           "steps": [
-            {
-              "title": "Read volumes",
-              "detail": "Review jobs by type and status."
-            },
-            {
-              "title": "Spot the backlog",
-              "detail": "Identify unfinished interventions and priorities to address."
-            },
-            {
-              "title": "Adjust operations",
-              "detail": "Return to interventions to assign or reschedule the relevant jobs."
-            }
+            "Volume",
+            "Backlog",
+            "Planning"
           ]
         },
         "teams": {
-          "title": "Balance work with an overall view",
-          "lede": "Compare team workload and completion rates. Delays highlight where reinforcement or reorganisation may be needed.",
+          "title": "Each team’s workload",
           "labels": [
             "Workload",
             "Completion",
             "Delays"
           ],
           "steps": [
-            {
-              "title": "Read workload",
-              "detail": "See how jobs are distributed across teams."
-            },
-            {
-              "title": "Track completion",
-              "detail": "Compare completed and still-open jobs."
-            },
-            {
-              "title": "Spot difficulties",
-              "detail": "Examine delays before adjusting assignments."
-            }
+            "Workload",
+            "Completion",
+            "Delays"
           ]
         },
         "custom": {
-          "title": "Build a report for its recipient",
-          "lede": "Create an analysis document for an owner, your team or a prospect. Choose useful content and prepare to share it.",
+          "title": "A report for every recipient",
           "labels": [
             "Recipient",
             "Sections",
             "Document"
           ],
           "steps": [
-            {
-              "title": "Define the scope",
-              "detail": "Choose recipient, period and report scope."
-            },
-            {
-              "title": "Compose sections",
-              "detail": "Select useful analyses and check their preview."
-            },
-            {
-              "title": "Prepare sharing",
-              "detail": "Save the document, export to PDF or use available delivery options."
-            }
+            "Scope",
+            "Sections",
+            "Sharing"
           ]
         }
       }
@@ -3339,6 +3055,7 @@
   },
   "navigation": {
     "consumables": "Consumables",
+    "bookingVouchers": "Promo codes",
     "dashboard": "Dashboard",
     "assistant": "Assistant",
     "properties": "Properties",
@@ -3366,7 +3083,7 @@
     "kpiReadiness": "KPI Readiness",
     "exchangeRates": "Exchange Rates",
     "database": "Database",
-    "promoCodes": "Promo Codes",
+    "promoCodes": "Platform promo codes",
     "shop": "Shop",
     "documents": "Documents & Communications",
     "myProfile": "My Profile",
@@ -3402,6 +3119,10 @@
     "messageTemplates": "Templates",
     "messageHistory": "History",
     "groups": {
+      "pilotage": "Overview",
+      "operations": "Operations",
+      "sales": "Sales & distribution",
+      "services": "Services",
       "main": "Main",
       "management": "Management",
       "admin": "Administration"
@@ -3429,48 +3150,19 @@
   },
   "dashboard": {
     "firstUse": {
-      "title": "Your activity, clear at a glance",
-      "lede": "Who arrives today? Which properties are filling up? What needs attention? Your dashboard brings the answers together so you can plan the day and keep track of your business.",
+      "title": "Your activity at a glance",
+      "lede": "Arrivals, occupancy, priorities: all on one screen.",
       "addProperty": "Add a property",
       "connectChannels": "Connect my channels",
-      "activationNote": "Add your first property, or import it from your channels, to open your dashboard.",
-      "setupTitle": "Your first widgets, step by step",
-      "setup": {
-        "properties": {
-          "title": "Add your properties",
-          "detail": "Create a property or import your listings. The dashboard uses this portfolio to bring your activity together."
-        },
-        "bookings": {
-          "title": "Bring in your bookings",
-          "detail": "Connect a channel, import a calendar or enter a stay. Arrivals, departures and occupancy start taking shape."
-        },
-        "widgets": {
-          "title": "Adapt the view to your day",
-          "detail": "The starter widgets are already selected. On desktop, use “Customize” to move, remove or add widgets."
-        }
-      },
       "demoTitle": "Explore your future dashboard",
       "scenes": {
-        "day": {
-          "title": "Prepare for the day",
-          "detail": "Arrivals, departures, cleaning and upcoming guests: see the day’s operations together."
-        },
-        "performance": {
-          "title": "Understand your results",
-          "detail": "Occupancy, revenue, average rates and booking channels: compare a period and spot trends."
-        },
-        "priorities": {
-          "title": "See what needs your attention",
-          "detail": "Payments to check and services to organize appear here. Try handling the cleaning task in the preview."
-        },
-        "customize": {
-          "title": "Build a view that works for you",
-          "detail": "Keep the widgets you need and add others from reports. Try adding occupancy in the preview."
-        }
+        "day": "Today",
+        "performance": "Results",
+        "priorities": "Priorities",
+        "customize": "Widgets"
       },
       "demo": {
         "accessibleLabel": "Interactive dashboard demonstration with sample data",
-        "example": "Sample data",
         "occupancy": "Occupancy",
         "revenue": "Revenue",
         "bookings": "Bookings",
@@ -3479,42 +3171,13 @@
         "departures": "Departures",
         "cleaning": "Cleaning",
         "trend": "Revenue and payouts",
-        "period": "Over the last 30 days",
         "priorities": "To handle",
         "assignCleaning": "Cleaning to assign",
         "assigned": "Cleaning assigned in the example",
-        "done": "Handled",
-        "tryAction": "Try it",
-        "checkPayment": "A payout to check",
-        "yourWidgets": "Your widgets",
         "addWidget": "Add occupancy",
-        "widgetAdded": "Widget added",
-        "propertyOccupancy": "Property occupancy",
-        "addHint": "Choose an indicator to complete this view.",
-        "nextArrivals": "Upcoming arrivals",
-        "sampleProperty": "Olive Tree Apartment"
+        "propertyOccupancy": "Property occupancy"
       },
-      "sourcesTitle": "What feeds your widgets?",
-      "sourcesLede": "Information builds up gradually. Each widget becomes useful when its source data is available.",
-      "sources": {
-        "stays": {
-          "title": "Your properties and stays",
-          "detail": "They feed occupancy, booking counts and your arrival and departure lists."
-        },
-        "amounts": {
-          "title": "Booking amounts and payouts",
-          "detail": "Booking amounts feed revenue and average rates. Payouts complete the financial picture."
-        },
-        "operations": {
-          "title": "Services and their status",
-          "detail": "Scheduled cleaning and maintenance appear in operations. Issues that need resolving join your priorities."
-        },
-        "reviews": {
-          "title": "Your guest reviews",
-          "detail": "Available reviews feed the average rating and guest satisfaction widgets."
-        }
-      },
-      "liveNote": "The figures shown here are illustrative. Your real data will replace them after you add your first property.",
+      "liveNote": "Your real figures replace this example as soon as you add a property.",
       "retry": "Try again"
     },
     "title": "Dashboard",
@@ -5091,6 +4754,10 @@
       "addressSet": "SET"
     },
     "tiles": {
+      "occupiedToday": "Properties occupied today",
+      "activeInterventions": "Ongoing interventions",
+      "partialCoverage_one": "{{count}} property without data",
+      "partialCoverage_other": "{{count}} properties without data",
       "monthRevenue": "Revenue this month",
       "monthRevenueHint": "allocated to the current month, pro rata of the nights",
       "avgOccupancy": "Average occupancy",
@@ -8739,48 +8406,19 @@
   "propertiesFirstUse": {
     "add": "Add a property",
     "import": "Import from a channel",
-    "activation": "Add or import one property to access your tools. Connecting a channel is optional.",
-    "setupTitle": "Where to start",
-    "example": "Example data",
+    "note": "One property is enough to get started.",
     "exampleHome": "Arts Apartment",
     "loadError": "Unable to load your properties. Try again to display this screen.",
     "properties": {
       "title": "One place for every property detail",
-      "lede": "Keep photos, amenities, rates and practical information together. Your calendar and other screens use these property records.",
+      "lede": "Photos, rooms, rates and instructions in one place.",
       "preview": "Explore your future property record",
-      "setup": [
-        {
-          "title": "Add or import your first property",
-          "detail": "Create its record manually or import a property from a channel."
-        },
-        {
-          "title": "Complete the useful details",
-          "detail": "Address, capacity, bedrooms, photos and instructions: everything your team needs."
-        },
-        {
-          "title": "Prepare for day-to-day management",
-          "detail": "Set the base rate and arrival times, then connect your channels if needed."
-        }
-      ],
       "scenes": [
-        {
-          "title": "Find your properties at a glance",
-          "detail": "Choose either sample property: its capacity, rate and details update together."
-        },
-        {
-          "title": "Keep property information together",
-          "detail": "Photos, rooms and amenities stay linked to the right property. Complete the record as you go."
-        },
-        {
-          "title": "Prepare arrivals and service visits",
-          "detail": "Times and instructions give the people working on site a shared reference."
-        },
-        {
-          "title": "Link listings to the right property",
-          "detail": "Review channel connections and their synchronization status from the property record."
-        }
+        "Listing",
+        "Rooms",
+        "Arrivals",
+        "Channels"
       ],
-      "note": "Start with one property. Add more detail and grow your portfolio at your own pace.",
       "demo": {
         "villa": "Olive Grove Villa",
         "active": "Active",
@@ -8788,63 +8426,21 @@
         "guests": "{{count}} guests",
         "rooms": "{{count}} bedrooms",
         "night": "/ night",
-        "focus": [
-          {
-            "label": "The essentials in one record",
-            "detail": "Capacity, address and base rate in the same place."
-          },
-          {
-            "label": "Rooms and amenities recorded",
-            "detail": "Bedrooms, kitchen and amenities described for your team."
-          },
-          {
-            "label": "Check-in from 3 pm",
-            "detail": "Instructions and arrival times are available in the record."
-          },
-          {
-            "label": "Airbnb · Booking.com",
-            "detail": "Connections and availability synchronized in this example."
-          }
-        ]
+        "baths": "{{count}} bathrooms",
+        "arrival": "Check-in from 3 pm",
+        "channels": "Linked listings"
       }
     },
     "pricing": {
       "title": "The right rate for each night",
-      "lede": "Manage nightly rates for each property. Adjust key dates, set length-of-stay rules and send rates to your connected channels.",
+      "lede": "One rate per night, sent to every channel.",
       "preview": "Try your future pricing calendar",
-      "setup": [
-        {
-          "title": "Add your first property",
-          "detail": "Each pricing calendar belongs to a property, even when you manage bookings manually."
-        },
-        {
-          "title": "Set your reference rate",
-          "detail": "Enter a base rate, then adjust the nights and periods that need it."
-        },
-        {
-          "title": "Choose your stay rules",
-          "detail": "Review restrictions and rate plans before publishing to connected channels."
-        }
-      ],
       "scenes": [
-        {
-          "title": "Start with a reference rate",
-          "detail": "A base rate makes adjustments easier. This example starts at €100 per night."
-        },
-        {
-          "title": "Adjust the nights that matter",
-          "detail": "Select a day and move the slider to try a rate. The calendar reflects your choice."
-        },
-        {
-          "title": "Set length-of-stay rules",
-          "detail": "Restrictions can require a stay of at least two nights for a given period."
-        },
-        {
-          "title": "Publish to connected channels",
-          "detail": "The preview button simulates sending rates. In your account, you control when they are published."
-        }
+        "Base",
+        "Tweaks",
+        "Minimum",
+        "Channels"
       ],
-      "note": "Preview rates are fictional. Configure actual rates and restrictions after adding your properties.",
       "demo": {
         "base": "Base rate",
         "night": "/ night",
@@ -8853,7 +8449,6 @@
         "adjust": "Rate for {{day}}",
         "minimum": "Minimum stay",
         "nights": "{{count}} nights",
-        "channels": "Connected channels",
         "published": "Simulated send, no rates changed",
         "done": "Send simulated",
         "try": "Simulate sending"
@@ -8861,112 +8456,29 @@
     },
     "vouchers": {
       "title": "Offers tailored to your guests",
-      "lede": "Create promo codes, choose eligible properties and control their conditions. Then track the discounts used.",
+      "lede": "One code, one property, one discount: the maths shows instantly.",
       "preview": "Test your future promo code",
-      "setup": [
-        {
-          "title": "Add the eligible properties",
-          "detail": "Offers can target one or more properties in your portfolio."
-        },
-        {
-          "title": "Prepare your first offer",
-          "detail": "Choose a code, a percentage or fixed discount, and a validity period."
-        },
-        {
-          "title": "Review conditions before activating",
-          "detail": "Set the scope and usage limits, then track redemptions on this screen."
-        }
-      ],
       "scenes": [
-        {
-          "title": "Choose a clear discount",
-          "detail": "Try 10% or 20% in the preview. You can also create fixed-amount discounts."
-        },
-        {
-          "title": "Define properties and conditions",
-          "detail": "An offer applies according to its dates, selected properties and the limits you set."
-        },
-        {
-          "title": "See the effect on a stay",
-          "detail": "Apply the sample code: the discount and nightly total update immediately."
-        },
-        {
-          "title": "Track your offers",
-          "detail": "Review status, redemptions and discounts granted to manage your campaigns."
-        }
+        "Code",
+        "Property",
+        "Stay",
+        "Tracking"
       ],
-      "note": "Manage promo codes here; you choose how to share them with guests. This preview creates no real offer.",
       "demo": {
         "code": "Promo code",
-        "draft": "Draft",
         "discount": "Choose the sample discount",
-        "scope": "Eligible property",
-        "conditions": "Example: at least 3 nights, one use per guest.",
-        "stay": "Sample stay",
-        "subtotal": "3 nights × €100",
-        "reduction": "Discount on nights",
-        "total": "Nightly total",
+        "stay": "3 nights",
+        "reduction": "Discount",
+        "total": "Total",
         "apply": "Test the code",
         "applied": "Code applied",
-        "tracking": "After activation: track status, redemptions and discounts here.",
-        "note": "Excluding fees and taxes, to illustrate the discount calculation."
+        "uses": "Code redemptions"
       }
     },
     "connected-objects": {
-      "title": "Your connected properties, in view",
-      "lede": "Group locks, sensors and key exchange points by property. Check their status and spot devices that need your attention.",
-      "preview": "Try your future connected devices",
-      "setup": [
-        {
-          "title": "Add the property to equip",
-          "detail": "Each device can be linked to the right property for easier monitoring."
-        },
-        {
-          "title": "Connect a compatible service",
-          "detail": "Add your provider, then link its devices using the add-device flow."
-        },
-        {
-          "title": "Check devices and access",
-          "detail": "Review connectivity, battery levels and the actions available for each device."
-        }
-      ],
-      "scenes": [
-        {
-          "title": "Control a lock remotely",
-          "detail": "Try the sample lock. In your account, available actions depend on the device and your permissions."
-        },
-        {
-          "title": "Read sensor measurements",
-          "detail": "Switch between noise and temperature to explore readings for different sensor types."
-        },
-        {
-          "title": "Spot devices that need attention",
-          "detail": "Low batteries and offline devices are flagged to help you prioritize checks."
-        },
-        {
-          "title": "Keep devices linked to their property",
-          "detail": "Grouping by property helps you tell devices apart as your portfolio grows."
-        }
-      ],
-      "note": "These devices and controls are fictional. Available features depend on your hardware and provider.",
-      "demo": {
-        "online": "{{count}} devices online",
-        "entrance": "Entrance lock",
-        "locked": "Locked",
-        "unlocked": "Unlocked in the example",
-        "lock": "Lock the example",
-        "unlock": "Unlock the example",
-        "sensors": "Choose a sensor",
-        "noise": "Noise",
-        "climate": "Temperature",
-        "normal": "Normal reading",
-        "batteryAlert": "Low battery · living room sensor",
-        "batteryDetail": "18% remaining. Plan to replace the battery.",
-        "monitoring": "Device status",
-        "monitoringDetail": "Connectivity and battery tracked for each device.",
-        "grouping": "Locks, sensors and keys grouped under the same property.",
-        "simulation": "Local simulation: no commands sent to a device."
-      }
+      "title": "Your connected rooms at a glance",
+      "lede": "Locks, sensors and alerts, room by room.",
+      "preview": "Try your future connected devices"
     }
   },
   "propertiesPage": {
@@ -9148,8 +8660,8 @@
       "saveError": "Could not save"
     },
     "showcase": {
-      "title": "Your owners follow their properties without calling you",
-      "description": "Occupancy, revenue, payouts and documents, in a dedicated space you open property by property.",
+      "title": "Your owners follow their properties on their own",
+      "description": "Occupancy, revenue and payouts in a dedicated space.",
       "action": "Invite an owner"
     },
     "propertiesCount_one": "{{count}} property",
@@ -10409,8 +9921,8 @@
     },
     "preferences": "Notification preferences",
     "showcase": {
-      "title": "Be told about what matters, not the rest",
-      "description": "New booking, cancellation, payment incident, noise alert: you choose the channel and the frequency.",
+      "title": "Told about what matters, not the rest",
+      "description": "Booking, payment, alert: you choose the channel.",
       "action": "Set up my notifications"
     },
     "categories": {
@@ -13407,90 +12919,20 @@
       "filteredDesc": "The property filter hides the whole portfolio from the planning.",
       "clearFilters": "Reset the filters",
       "showcase": {
+        "eyebrow": "No more double bookings",
+        "title": "One calendar for all your channels",
+        "lede": "A night sold closes everywhere in under a minute.",
         "milestones": {
-          "sync": {
-            "label": "Every channel on one grid",
-            "detail": "Airbnb, Booking.com, Vrbo and any iCal feed land here. The source channel shows at the end of each stay."
-          },
-          "move": {
-            "label": "Move a stay, the channels follow",
-            "detail": "Drag the block onto other nights: availability goes back out to every connected channel."
-          },
-          "ops": {
-            "label": "Cleaning slots in between two stays",
-            "detail": "Cleanings, maintenance and blocks live on the same grid as the bookings, not on another screen."
-          },
-          "money": {
-            "label": "Nightly price and occupancy, in plain sight",
-            "detail": "The rate of every free night and the day's occupancy show without leaving the planning."
-          }
+          "sync": "Channels",
+          "move": "Stay",
+          "ops": "Cleaning",
+          "money": "Rates"
         },
-        "pushedBack": "Availability pushed back to Airbnb, Booking.com and Vrbo",
-        "title": "One calendar for every property and every channel",
-        "lede": "Availability syncs both ways with Airbnb, Booking.com and the rest. No more double bookings.",
         "addProperty": "Add a property",
         "importChannel": "Import from a channel",
-        "alreadyOnline": "Your properties already listed elsewhere?",
-        "importWithCalendars": "Import them with their calendars",
-        "noDoubleBooking": "No more double bookings",
-        "bandTitle": "A night sold closes everywhere, within the minute",
-        "bandLede": "The calendar is the reference: an incoming booking closes the same nights on every other channel, with nobody having to think about it.",
-        "guarantees": {
-          "twoWay": "Two-way sync",
-          "channels": "Airbnb, Booking.com, Vrbo and any iCal feed",
-          "noDouble": "No double entry of availability",
-          "history": "A history of the exchanges with each channel"
-        },
-        "flow": {
-          "announce": {
-            "label": "1 · The channel announces",
-            "text": "Airbnb, Booking.com, Vrbo or an iCal feed reports the booking."
-          },
-          "decide": {
-            "label": "2 · The calendar decides",
-            "text": "The sold nights turn unavailable in Baitly."
-          },
-          "propagate": {
-            "label": "3 · The channels follow",
-            "text": "The closure goes back out to every other connected channel."
-          },
-          "operate": {
-            "label": "4 · Operations kick in",
-            "text": "Cleaning, arrival and departure land on the right dates."
-          }
-        },
-        "sectionTitle": "What the grid can do",
-        "sectionLede": "Everything is settled from the planning: it is the screen you spend the day on, it should not send you elsewhere.",
-        "points": {
-          "drag": {
-            "title": "Drag and drop a stay",
-            "text": "Move or extend a booking with the mouse; the channels update behind it."
-          },
-          "ops": {
-            "title": "Cleanings and maintenance",
-            "text": "Interventions land on the same grid, on the exact night, and get assigned to a team."
-          },
-          "price": {
-            "title": "Rate for every night",
-            "text": "Price and minimum nights show in the free cells, editable on the spot."
-          },
-          "block": {
-            "title": "Blocking dates",
-            "text": "Close a period for works or personal use: the closure goes out on every channel."
-          },
-          "occupancy": {
-            "title": "Occupancy of the day",
-            "text": "A band at the foot of the grid gives the occupancy rate, day after day, across the portfolio."
-          },
-          "agents": {
-            "title": "Actions to approve",
-            "text": "The agents' proposals show on the row of the property concerned, ready to accept or decline."
-          }
-        },
-        "channelsTitle": "Your channels, in one place",
-        "channelsDescription": "See bookings from all your listings in one calendar once your channels are connected.",
+        "alreadyOnline": "Already listed elsewhere?",
+        "importWithCalendars": "Import my iCal calendars",
         "partnersLabel": "Distribution partners",
-        "icalNote": "Already listed elsewhere? You can also import your iCal calendars.",
         "demoLabel": "A preview of your future calendar"
       }
     },
@@ -14362,7 +13804,7 @@
     "searchArchivedPlaceholder": "Search the archives…",
     "searchPlaceholder": "Search for a conversation…",
     "selectConversation": "Select a conversation",
-    "selectConversationHint": "Pick a conversation or a form from the list to see the details.",
+    "selectConversationHint": "Pick a conversation on the left.",
     "sendTemplate": "Send a WhatsApp template",
     "sendTemplateShort": "Send a template",
     "stayArrival": "arrival {{date}}",
@@ -14372,7 +13814,76 @@
     "stayUpcoming": "Upcoming",
     "title": "Messaging",
     "whatsappWindowExpired": "24-hour window expired — a template is required to reach this guest again.",
-    "whatsappWindowPlaceholder": "Free-form reply unavailable (template required)"
+    "whatsappWindowPlaceholder": "Free-form reply unavailable (template required)",
+    "ai": {
+      "draftTitle": "Suggested reply",
+      "hideTranslation": "Hide translation",
+      "regenerate": "Regenerate",
+      "retry": "Retry",
+      "reviewHint": "Review before sending",
+      "sentiment": {
+        "label": "Guest sentiment",
+        "negative": "Unhappy",
+        "positive": "Satisfied",
+        "neutral": "Neutral"
+      },
+      "suggest": "Suggest a reply",
+      "translate": "Translate",
+      "translationFailed": "Translation unavailable right now.",
+      "translationOf": "Translation · {{lang}}",
+      "translationSame": "The message is already in your language.",
+      "urgent": "Urgent",
+      "use": "Use",
+      "variant": "Variant {{n}}",
+      "variants": "Variants",
+      "writing": "Writing…",
+      "tones": {
+        "friendly": "Warm",
+        "professional": "Professional",
+        "empathetic": "Empathetic"
+      }
+    },
+    "anonymous": "Anonymous",
+    "composerHint": "Enter to send · Shift + Enter for a new line",
+    "composerMode": "Message type",
+    "context": {
+      "analysis": "AI reading",
+      "arrival": "Arrival",
+      "conversation": "Conversation",
+      "departure": "Departure",
+      "hide": "Hide context",
+      "messages": "Messages",
+      "openedOn": "Opened on",
+      "show": "Show context",
+      "stay": "Stay",
+      "title": "Context",
+      "unattached": "This conversation isn’t linked to any booking."
+    },
+    "delivery": {
+      "delivered": "Delivered",
+      "failed": "Failed to send",
+      "read": "Read",
+      "sent": "Sent"
+    },
+    "empty": {
+      "archivedHint": "Archived conversations show up here.",
+      "formsHint": "Quote and support requests land here.",
+      "searchHint": "Try another name, a property, or a word from the message.",
+      "unreadHint": "No messages waiting to be read.",
+      "unreadTitle": "You’re all caught up"
+    },
+    "filtersLabel": "Filter the inbox",
+    "groups": {
+      "today": "Today",
+      "yesterday": "Yesterday",
+      "week": "This week",
+      "older": "Older"
+    },
+    "noteHint": "Visible to your team only",
+    "saveNote": "Save note",
+    "scrollToLatest": "Jump to the latest message",
+    "tabNote": "Internal note",
+    "tabReply": "Reply"
   },
   "account": {
     "title": "My account",
@@ -16987,6 +16498,10 @@
     "emptyHint": "Records are created on their own from the bookings, whatever the source channel.",
     "errors": {
       "load": "Error while loading the guests"
+    },
+    "showcase": {
+      "title": "Every guest, their history in one place",
+      "description": "Records are born from bookings."
     }
   },
   "minNights": {

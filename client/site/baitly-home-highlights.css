@@ -1,0 +1,91 @@
+/* Baitly home: brief overviews leading to the detailed product guides. */
+.bh-connected,
+.bh-migration {
+  display: grid;
+  grid-template-columns: minmax(0, 1.08fr) minmax(0, 1fr);
+  align-items: center;
+  gap: clamp(2rem, 5vw, 5rem);
+  padding-block: var(--bl-space-section);
+}
+.bh-connected h2,
+.bh-migration h2 {
+  font-size: var(--bl-type-title);
+  line-height: 1.14;
+  letter-spacing: -0.035em;
+  max-width: 20ch;
+  text-wrap: balance;
+}
+.bh-intro {
+  margin-block: 1.4rem 2rem;
+  max-width: 52ch;
+  font-size: 1.05rem;
+  line-height: 1.75;
+  color: var(--bl-muted);
+}
+.bh-connected-visual a {
+  display: block;
+  position: relative;
+  border-radius: var(--bl-radius-panel);
+  background: var(--bl-blue);
+}
+.bh-connected-visual img {
+  width: 100%;
+  height: auto;
+  border-radius: inherit;
+}
+.bh-image-arrow {
+  position: absolute;
+  inset-inline-end: 1rem;
+  inset-block-end: 1rem;
+  display: grid;
+  place-items: center;
+  width: 3rem;
+  height: 3rem;
+  border-radius: var(--bl-radius-control);
+  background: var(--bl-paper);
+  color: var(--bl-ink);
+  transition: background 200ms var(--bl-ease);
+}
+.bh-connected-visual a:hover .bh-image-arrow {
+  background: var(--bl-blue);
+}
+.bh-image-arrow svg { width: 1.25rem; height: 1.25rem; }
+.bh-device-benefits { margin-block-end: 2rem; }
+.bh-device-benefits li,
+.bh-migration-steps li {
+  display: flex;
+  align-items: start;
+  gap: 1rem;
+  padding-block: 1.1rem;
+  border-block-start: 1px solid var(--bl-line);
+}
+.bh-device-benefits svg {
+  flex-shrink: 0;
+  width: 1.25rem;
+  height: 1.25rem;
+  margin-block-start: 0.2rem;
+  color: var(--bl-accent);
+}
+.bh-device-benefits h3,
+.bh-migration-steps h3 { font-size: 1.05rem; font-weight: 700; line-height: 1.5; }
+.bh-device-benefits p,
+.bh-migration-steps p { margin-block-start: 0.3rem; font-size: 0.95rem; color: var(--bl-muted); line-height: 1.65; }
+.bh-migration { border-block-start: 1px solid var(--bl-line); }
+.bh-migration-guide {
+  background: var(--bl-surface);
+  padding: clamp(1.25rem, 3vw, 2.5rem);
+  border-radius: var(--bl-radius-panel);
+}
+.bh-migration-steps li:first-child { border: 0; padding-block-start: 0; }
+.bh-step-number { font-variant-numeric: tabular-nums; color: var(--bl-accent); font-size: 0.85rem; padding-block-start: 0.3rem; }
+.bh-migration-note { display: flex; gap: 0.75rem; border-block-start: 1px solid var(--bl-line); padding-block-start: 1.25rem; margin-block-start: 0.5rem; font-size: 0.9rem; line-height: 1.65; color: var(--bl-muted); }
+.bh-migration-note svg { flex-shrink: 0; width: 1.1rem; height: 1.1rem; margin-block-start: 0.2rem; }
+[dir='rtl'] .bh-image-arrow svg { transform: rotate(180deg); }
+@media (max-width: 900px) {
+  .bh-connected, .bh-migration { grid-template-columns: minmax(0, 1fr); gap: 2rem; }
+  .bh-connected-visual { order: 1; }
+  .bh-connected h2, .bh-migration h2 { max-width: 24ch; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .bh-image-arrow { transition: none; }
+}

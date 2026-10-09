@@ -4,6 +4,7 @@ import { MemoryRouter } from 'react-router-dom';
 import { SiteLanguageProvider, SITE_LANGUAGES } from '../lib/siteLanguage';
 import { HOME_MESSAGES } from '../lib/messages/home';
 import { HOME_RESOURCE_MESSAGES } from '../lib/messages/homeResources';
+import { HOME_HIGHLIGHT_MESSAGES } from '../lib/messages/homeHighlights';
 import HomePage from './HomePage';
 
 vi.mock('../lib/siteLaunch', () => ({
@@ -44,6 +45,20 @@ afterEach(() => {
 });
 
 describe('Accueil du site public', () => {
+  it.each(SITE_LANGUAGES)('ouvre les guides depuis les aperçus en %s', (language) => {
+    mount(`?lang=${language}`);
+    const m = HOME_HIGHLIGHT_MESSAGES[language];
+    const migration = within(screen.getByRole('region', { name: m.migration.title }));
+    expect(migration.getByRole('link', { name: m.migration.link })).toHaveAttribute('href', `/migration?lang=${language}`);
+    expect(migration.queryByRole('combobox')).not.toBeInTheDocument();
+    const connected = within(screen.getByRole('region', { name: m.connected.title }));
+    const links = connected.getAllByRole('link', { name: m.connected.link });
+    expect(links).toHaveLength(2);
+    for (const link of links) {
+      expect(link).toHaveAttribute('href', `/produit/objets-connectes?lang=${language}`);
+    }
+    expect(connected.getByRole('img')).toHaveAttribute('src', expect.stringContaining('baitlyConnectedHome.webp'));
+  });
   it.each(SITE_LANGUAGES)(
     'ouvre les ressources et leurs outils dans la langue %s',
     (language) => {

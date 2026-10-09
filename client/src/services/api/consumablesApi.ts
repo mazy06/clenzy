@@ -31,8 +31,8 @@ export const consumablesApi = {
   properties(): Promise<{ id: number; name: string }[]> {
     return apiClient.get('/consumables/properties');
   },
-  list(view: ConsumablesView, propertyId: string, search: string, page: number): Promise<ConsumablesOverview> {
-    const params = new URLSearchParams({ view, search, page: String(page), size: '20' });
+  list(view: ConsumablesView, propertyId: string, search: string, page: number, size = 20): Promise<ConsumablesOverview> {
+    const params = new URLSearchParams({ view, search, page: String(page), size: String(size) });
     if (propertyId !== 'all') params.set('propertyId', propertyId);
     return apiClient.get(`/consumables?${params}`);
   },

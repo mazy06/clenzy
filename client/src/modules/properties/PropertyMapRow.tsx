@@ -15,6 +15,7 @@ import {
   getPropertyTypeHex,
 } from '../../utils/statusUtils';
 import { propertyStatusTokens } from './propertiesListConstants';
+import './baitlyPropertyMap.css';
 
 /**
  * Une ligne de la vue carte des logements, dans la langue des deux autres
@@ -23,8 +24,7 @@ import { propertyStatusTokens } from './propertiesListConstants';
  * porte capacite a gauche / statut a droite.
  *
  * <h2>Pourquoi le lien est etire et non enveloppant</h2>
- * <p>La sante Channex et le contrat manquant se lisent AVEC le nom : ce sont
- * des alertes sur l'identite du logement, pas des mentions de bas de fiche.
+ * <p>La sante Channex et le contrat manquant sont des actions indépendantes.
  * Or ce sont de vrais `<button>` — `StatusChip onClick` et
  * `ChannexHealthBadge` en rendent un — et un bouton imbrique dans une ancre
  * est invalide : le navigateur y reagit de facon imprevisible.</p>
@@ -60,13 +60,23 @@ export default function PropertyMapRow({
   return (
     <article
       className={cn(
-        'group relative p-4 text-foreground',
+        'baitly-property-map-row group relative text-foreground',
         'transition-colors duration-150 motion-reduce:transition-none hover:bg-muted',
         'focus-within:outline-2 focus-within:outline-primary focus-within:-outline-offset-2',
       )}
     >
-      <div className="flex items-start justify-between gap-3">
-        <div className="flex min-w-0 items-center gap-1.5">
+      <PropertyThumb
+        property={{ id: property.id, coverPhotoUrl: property.imageUrl, photoUrls: property.photoUrls }}
+        name={property.name}
+        className="baitly-property-map-photo"
+      />
+      <div className="baitly-property-map-identity">
+        <span className="baitly-property-map-type">
+          <span aria-hidden className="size-2 shrink-0 rounded-[2.5px]"
+            style={{ backgroundColor: getPropertyTypeHex(property.type) }} />
+          {getPropertyTypeLabel(property.type, t)}
+        </span>
+        <div className="flex min-w-0 flex-wrap items-center gap-1.5">
           {channexMapping && (
             <span className="relative z-10 inline-flex">
               <ChannexHealthBadge
@@ -81,74 +91,38 @@ export default function PropertyMapRow({
             to={`/properties/${property.id}`}
             dir="auto"
             className={cn(
-              'min-w-0 truncate text-sm font-semibold leading-snug text-foreground no-underline',
+              'baitly-property-map-name min-w-0 text-foreground no-underline',
               "cursor-pointer outline-none after:absolute after:inset-0 after:content-['']",
             )}
           >
             {property.name}
           </Link>
-          {showMissingContract && (
-            <span className="relative z-10 inline-flex">
-              <MissingContractChip onClick={() => onMissingContractClick(id)} />
-            </span>
-          )}
         </div>
-        <ChevronRight className="size-4 shrink-0 text-muted-foreground" aria-hidden />
-      </div>
-
-      <div className="mt-3 mb-3 grid grid-cols-[minmax(0,1fr)_minmax(90px,34%)] gap-3">
-        <div className="flex min-w-0 items-start gap-2">
-          {/* Vignette : la primitive partagee, qui absolutise le chemin relatif
-              rendu par l'API et retombe sur le degrade d'identite si l'image
-              manque ou casse. */}
-          <PropertyThumb
-            property={{
-              id: property.id,
-              coverPhotoUrl: property.imageUrl,
-              photoUrls: property.photoUrls,
-            }}
-            name={property.name}
-            /* Trois lignes tiennent desormais a cote : adresse, lieu, type. La
-               vignette monte d'autant pour que le bloc se lise d'un seul tenant. */
-            className="h-14 w-16"
-          />
-          <div className="min-w-0">
-            <span className="block truncate text-sm font-medium">{property.address}</span>
-            <span className="mt-0.5 block truncate text-xs text-muted-foreground">
-              {[property.postalCode, property.city].filter(Boolean).join(' ')}
-            </span>
-            {/* Le TYPE se lit avec le LIEU, pas avec le nom : il qualifie le bien
-                qu'on a sous les yeux. Il garde sa couleur d'identite sur la
-                pastille, celle des autres vues. */}
-            <span className="mt-1 flex items-center gap-1.5 text-xs text-muted-foreground">
-              <span
-                aria-hidden
-                className="size-2 shrink-0 rounded-[2.5px]"
-                style={{ backgroundColor: getPropertyTypeHex(property.type) }}
-              />
-              <span className="truncate">{getPropertyTypeLabel(property.type, t)}</span>
-            </span>
-          </div>
-        </div>
-
-        <div className="flex min-w-0 flex-col items-start gap-1.5 border-s border-border ps-3">
-          <span className="text-xs text-muted-foreground">{t('properties.nightlyPrice')}</span>
-          {property.nightlyPrice > 0 ? (
-            <span className="font-[family-name:var(--font-display)] text-sm font-semibold tabular-nums">
-              <Money value={property.nightlyPrice} from="EUR" decimals={0} />
-              <span className="text-2xs font-normal text-muted-foreground">
-                {t('properties.perNight')}
-              </span>
-            </span>
-          ) : (
-            <span className="text-sm text-muted-foreground">—</span>
-          )}
+        <div className="baitly-property-map-address">
+          <span className="baitly-property-map-street">{property.address}</span>
+          <span className="baitly-property-map-place">
+            {[property.postalCode, property.city].filter(Boolean).join(' ')}
+          </span>
         </div>
       </div>
+      <div className="baitly-property-map-price">
+        <span className="baitly-property-map-price-label">{t('properties.nightlyPrice')}</span>
+        {property.nightlyPrice > 0 ? (
+          <span className="baitly-property-map-amount tabular-nums">
+            <Money value={property.nightlyPrice} from="EUR" decimals={0} />
+            <span className="baitly-property-map-unit">
+              {t('properties.perNight')}
+            </span>
+          </span>
+        ) : (
+          <span className="text-sm text-muted-foreground">—</span>
+        )}
+      </div>
+      <ChevronRight className="baitly-property-map-chevron size-4 text-muted-foreground" aria-hidden />
 
       <div
         className={cn(
-          'flex flex-wrap items-center gap-2 border-t border-border pt-2',
+          'baitly-property-map-footer flex flex-wrap items-center gap-2',
           capacity.length > 0 ? 'justify-between' : 'justify-end',
         )}
       >
@@ -163,11 +137,15 @@ export default function PropertyMapRow({
             ))}
           </div>
         )}
-        <StatusChip
-          pill
-          tokens={propertyStatusTokens(property.status)}
-          label={getPropertyStatusLabel(property.status, t)}
-        />
+        <div className="baitly-property-map-states">
+          {showMissingContract && (
+            <span className="baitly-property-map-contract relative z-10 inline-flex">
+              <MissingContractChip onClick={() => onMissingContractClick(id)} />
+            </span>
+          )}
+          <StatusChip pill tokens={propertyStatusTokens(property.status)}
+            label={getPropertyStatusLabel(property.status, t)} />
+        </div>
       </div>
     </article>
   );

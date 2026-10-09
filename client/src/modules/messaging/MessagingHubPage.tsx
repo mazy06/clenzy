@@ -4,9 +4,8 @@ import { cn } from '../../utils/cn';
 import { Button } from '../../components/ui';
 import { useIsMobile } from '../../hooks/use-mobile';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { Edit as EditIcon, Forum as ForumIcon, Message as MessageIcon } from '../../icons';
+import { Edit as EditIcon, Message as MessageIcon } from '../../icons';
 import PageHeader from '../../components/PageHeader';
-import EmptyState from '../../components/EmptyState';
 import { useTranslation } from '../../hooks/useTranslation';
 import { useHighlightParam, useHighlightTarget } from '../../hooks/useHighlight';
 import { useAuth } from '../../hooks/useAuth';
@@ -18,6 +17,7 @@ import { useUnifiedInbox, useArchivedInbox, conversationRawId, type UnifiedConve
 import ConversationList, { type InboxFilter } from './conversations/ConversationList';
 import ChannelThread from './conversations/ChannelThread';
 import InternalThread from './conversations/InternalThread';
+import ThreadEmptyState from './conversations/ThreadEmptyState';
 import FormDetailPanel from './received-forms/FormDetailPanel';
 
 /**
@@ -33,12 +33,12 @@ const LEGACY_TAB_FILTERS: Record<string, InboxFilter> = {
 };
 
 /**
- * Écran Messagerie unifié — UN SEUL visuel 3 volets (référence .mg- / .fr-) :
- * la liste de gauche agrège TOUS les flux (chat interne, conversations canal
- * Email / SMS / WhatsApp, conversations OTA, formulaires reçus), différenciés
- * par la pastille de flux (.mg-chn) et triés par dernière activité. Le volet
- * droit s'adapte à la sélection : fil + compose (conversations) ou détail
- * .fr-* (formulaires). Monté sur la route /contact.
+ * Écran Messagerie unifié : une boîte de réception à gauche, un poste de travail
+ * à droite. La liste agrège TOUS les flux (chat interne, conversations canal
+ * Email / SMS / WhatsApp, conversations OTA, formulaires reçus), différenciés par
+ * la pastille de canal, groupés par jour et triés par dernière activité. Le volet
+ * droit s'adapte à la sélection : fil, copilote IA et contexte (conversations),
+ * ou détail (formulaires). Monté sur la route /contact.
  */
 export default function MessagingHubPage() {
   const { t } = useTranslation();
@@ -235,7 +235,7 @@ export default function MessagingHubPage() {
             liste et le fil sont deux objets, la projection les separe par une
             gouttiere. Le seuil 900 px est le `md` de MUI, celui du reste de
             l'ecran (master-detail mobile). */}
-        <div className="grid min-h-0 flex-1 grid-cols-1 gap-3 min-[900px]:grid-cols-[300px_1fr]">
+        <div className="grid min-h-0 flex-1 grid-cols-1 gap-3 min-[900px]:grid-cols-[330px_minmax(0,1fr)] min-[1280px]:grid-cols-[360px_minmax(0,1fr)]">
           <div className={cn('min-h-0 min-[900px]:flex min-[900px]:flex-col', selected ? 'hidden' : 'flex flex-col')}>
             <ConversationList
               items={source.items}
@@ -255,6 +255,9 @@ export default function MessagingHubPage() {
           <div className={cn('min-w-0 min-h-0 min-[900px]:flex min-[900px]:flex-col', selected ? 'flex flex-col' : 'hidden')}>
             {selected?.kind === 'channel' && selected.conv ? (
               <ChannelThread
+                // key = conversation : brouillon, suggestion IA et traduction
+                // repartent à zéro d'une conversation à l'autre.
+                key={selected.conv.id}
                 conv={selected.conv}
                 onArchived={() => setSelectedKey(null)}
                 showBack={isMobile}
@@ -277,17 +280,7 @@ export default function MessagingHubPage() {
                 onBack={() => setSelectedKey(null)}
               />
             ) : (
-              <div className="flex flex-1 items-center justify-center rounded-xl border border-border bg-card p-4">
-                <EmptyState
-                  variant="transparent"
-                  icon={<ForumIcon />}
-                  title={t('messagingHub.selectConversation', 'Sélectionnez une conversation')}
-                  description={t(
-                    'messagingHub.selectConversationHint',
-                    'Choisissez une conversation ou un formulaire à gauche pour afficher le détail.',
-                  )}
-                />
-              </div>
+              <ThreadEmptyState total={source.items.length} unread={unreadCount} />
             )}
           </div>
         </div>
