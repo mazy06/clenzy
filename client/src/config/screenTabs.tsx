@@ -142,11 +142,7 @@ export const SCREEN_TABS: Record<string, ScreenTabDef[]> = {
     { key: 'strategy', translationKey: 'baitlyPricing.tabs.strategy', fallbackLabel: 'Stratégie tarifaire', icon: <TrendingUp /> },
     { key: 'restrictions', translationKey: 'baitlyPricing.tabs.restrictions', fallbackLabel: 'Règles de séjour', icon: <Tune /> },
   ],
-  '/consumables': [
-    { key: 'pending', translationKey: 'tabHeaders.consumables.pending', fallbackLabel: 'En attente de commande', icon: <Schedule /> },
-    { key: 'ordered', translationKey: 'tabHeaders.consumables.ordered', fallbackLabel: 'Commandés', icon: <Outbox /> },
-    { key: 'stock', translationKey: 'tabHeaders.consumables.stock', fallbackLabel: 'Dans les logements', icon: <Inventory2 /> },
-  ],
+  '/consumables': [],
   '/automation-rules': [
     { key: 'rules', translationKey: 'tabHeaders.automation.rules', fallbackLabel: 'Règles', icon: <Bolt /> },
     { key: 'system', translationKey: 'tabHeaders.automation.system', fallbackLabel: 'Système', icon: <Tune /> },
