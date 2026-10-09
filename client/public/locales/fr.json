@@ -3080,6 +3080,10 @@
     "messageTemplates": "Templates",
     "messageHistory": "Historique",
     "groups": {
+      "pilotage": "Pilotage",
+      "operations": "Exploitation",
+      "sales": "Ventes & distribution",
+      "services": "Prestations",
       "main": "Principal",
       "management": "Gestion",
       "admin": "Administration"

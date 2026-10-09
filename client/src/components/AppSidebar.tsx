@@ -86,7 +86,7 @@ import { cn } from '../utils/cn';
  *    (cf. `SidebarFlyout`), le même que les préférences du pied.
  */
 
-const GROUP_ORDER: NavGroup[] = ['main', 'management', 'admin'];
+const GROUP_ORDER: NavGroup[] = ['pilotage', 'operations', 'sales', 'services', 'management', 'admin'];
 
 
 /**

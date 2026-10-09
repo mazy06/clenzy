@@ -3135,6 +3135,10 @@
     "messageHistory": "السجل",
     "shop": "المتجر",
     "groups": {
+      "pilotage": "القيادة",
+      "operations": "التشغيل",
+      "sales": "المبيعات والتوزيع",
+      "services": "الخدمات",
       "main": "الرئيسية",
       "management": "الإدارة",
       "admin": "الإدارة العامة"

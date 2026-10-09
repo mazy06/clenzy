@@ -3090,6 +3090,10 @@
     "messageTemplates": "Templates",
     "messageHistory": "History",
     "groups": {
+      "pilotage": "Overview",
+      "operations": "Operations",
+      "sales": "Sales & distribution",
+      "services": "Services",
       "main": "Main",
       "management": "Management",
       "admin": "Administration"
