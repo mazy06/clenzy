@@ -62,9 +62,12 @@ function firstVisibleIndex(offset: number, dayWidth: number): number {
  * defilement pres d'un bord faisait sauter la grille d'une fenetre entiere,
  * en boucle : d'ou les sauts de plusieurs mois et le defilement fige.</p>
  */
+/** Colonnes de marge laissees avant le jour vise (« aujourd'hui » s'affiche en 7e colonne). */
+const TARGET_DAY_LEADING_COLUMNS = 6;
+
 /**
  * Decalage horizontal LOGIQUE (0 = debut du buffer, cf. `utils/inlineScroll`)
- * qui pose `targetDate` en 3e colonne de la grille, ou `null` si ce jour n'est
+ * qui pose `targetDate` en 7e colonne de la grille, ou `null` si ce jour n'est
  * pas dans le buffer.
  *
  * <p>Pur et exporte : le squelette de chargement s'ouvre sur cette meme
@@ -78,8 +81,8 @@ export function inlineScrollForDateIn(days: Date[], targetDate: Date, dayWidth: 
       d.getDate() === targetDate.getDate(),
   );
   if (targetIndex < 0) return null;
-  // Le jour vise se pose en 3e colonne (2 colonnes de marge en amont).
-  return Math.max(0, (targetIndex - 2) * dayWidth);
+  // Le jour vise se pose en 7e colonne (6 colonnes de marge en amont).
+  return Math.max(0, (targetIndex - TARGET_DAY_LEADING_COLUMNS) * dayWidth);
 }
 
 export function useInfiniteTimeline({

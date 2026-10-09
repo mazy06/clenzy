@@ -12,6 +12,7 @@ import { useQuery } from '@tanstack/react-query';
 
 import { buildApiUrl } from '../../config/api';
 import { getAccessToken } from '../../keycloak';
+import { useAuth } from '../../hooks/useAuth';
 
 const QUERY_KEY = ['documents', 'failed-count'] as const;
 
@@ -32,10 +33,11 @@ async function fetchFailedCount(): Promise<number> {
  *   pour l'utilisateur (évite tout fetch inutile / 403 des rôles terrain).
  */
 export function useDocumentsFailedCount(enabled: boolean): number {
+  const { user } = useAuth();
   const { data } = useQuery({
-    queryKey: QUERY_KEY,
+    queryKey: [...QUERY_KEY, user?.id, user?.organizationId],
     queryFn: fetchFailedCount,
-    enabled,
+    enabled: enabled && !!user,
     refetchInterval: 60_000,
     staleTime: 30_000,
     refetchOnWindowFocus: false,

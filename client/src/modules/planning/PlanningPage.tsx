@@ -810,7 +810,7 @@ const PlanningPage: React.FC = () => {
     }
   }, [loading, filteredProperties.length, timeline]);
 
-  // ── Auto-scroll: always position selected reservation at 3rd column ─────────
+  // ── Auto-scroll: always position selected reservation at 7th column ─────────
   useEffect(() => {
     if (!selectedEvent || !selection.panelOpen) return;
 

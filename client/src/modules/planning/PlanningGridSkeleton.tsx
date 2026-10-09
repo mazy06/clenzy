@@ -73,7 +73,7 @@ export default function PlanningGridSkeleton({
   dayWidth: number;
   zoom: ZoomLevel;
   density: DensityMode;
-  /** Jour que la grille pose en 3e colonne — le squelette s'ouvre dessus. */
+  /** Jour que la grille pose en 7e colonne — le squelette s'ouvre dessus. */
   anchorDate: Date;
   propertyColWidth: number;
   totalGridWidth: number;
