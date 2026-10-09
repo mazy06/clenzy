@@ -4711,6 +4711,10 @@
       "addressSet": "DÉFINIE"
     },
     "tiles": {
+      "occupiedToday": "Logements occupés aujourd’hui",
+      "activeInterventions": "Interventions en cours",
+      "partialCoverage_one": "{{count}} logement sans données",
+      "partialCoverage_other": "{{count}} logements sans données",
       "monthRevenue": "Revenu du mois",
       "monthRevenueHint": "alloué au mois courant, au prorata des nuits",
       "avgOccupancy": "Occupation moyenne",

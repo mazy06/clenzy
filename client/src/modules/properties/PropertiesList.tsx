@@ -178,7 +178,7 @@ export default function PropertiesList({ embedded = false, actionsContainer, fil
     () => properties.map((p) => Number(p.id)),
     [properties],
   );
-  const kpiMap = usePropertyKpiSummaries(allPropertyIds);
+  const { map: kpiMap, isLoading: kpiLoading } = usePropertyKpiSummaries(allPropertyIds);
 
   // ─── Filtering ────────────────────────────────────────────────────
 
@@ -421,7 +421,7 @@ export default function PropertiesList({ embedded = false, actionsContainer, fil
 
         {/* Tuiles portefeuille (projection) — l'agrégat suit les filtres. */}
         {filteredProperties.length > 0 && (
-          <PropertiesPortfolioTiles properties={filteredProperties} kpiMap={kpiMap} />
+          <PropertiesPortfolioTiles properties={filteredProperties} kpiMap={kpiMap} loading={kpiLoading} />
         )}
 
         {/* Liste des propriétés */}

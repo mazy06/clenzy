@@ -4725,6 +4725,10 @@
       "addressSet": "SET"
     },
     "tiles": {
+      "occupiedToday": "Properties occupied today",
+      "activeInterventions": "Ongoing interventions",
+      "partialCoverage_one": "{{count}} property without data",
+      "partialCoverage_other": "{{count}} properties without data",
       "monthRevenue": "Revenue this month",
       "monthRevenueHint": "allocated to the current month, pro rata of the nights",
       "avgOccupancy": "Average occupancy",

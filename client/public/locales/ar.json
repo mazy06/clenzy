@@ -4771,6 +4771,14 @@
       "addressSet": "محدَّد"
     },
     "tiles": {
+      "occupiedToday": "العقارات المشغولة اليوم",
+      "activeInterventions": "التدخلات الجارية",
+      "partialCoverage_one": "{{count}} عقار بدون بيانات",
+      "partialCoverage_zero": "{{count}} عقارات بدون بيانات",
+      "partialCoverage_two": "{{count}} عقارات بدون بيانات",
+      "partialCoverage_few": "{{count}} عقارات بدون بيانات",
+      "partialCoverage_many": "{{count}} عقارات بدون بيانات",
+      "partialCoverage_other": "{{count}} عقارات بدون بيانات",
       "monthRevenue": "إيراد الشهر",
       "monthRevenueHint": "مُوزَّع على الشهر الحالي بالتناسب مع الليالي",
       "avgOccupancy": "متوسط الإشغال",

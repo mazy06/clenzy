@@ -113,7 +113,7 @@ const PropertiesMapView: React.FC<PropertiesMapViewProps> = ({
   return (
     <MapWithSheet
       desktopLayout="split"
-      className="min-h-[480px]"
+      className="baitly-properties-map min-h-[480px]"
       listResetKey={`${viewportProperties.length}:${viewportProperties[0]?.id ?? ''}`}
       map={
         <MapboxPropertyMap

@@ -1,0 +1,38 @@
+.baitly-portfolio-summary {
+  margin-block-end: 12px;
+  border: 1px solid var(--bui-border);
+  border-radius: 12px;
+  background: var(--bui-card);
+  overflow: hidden;
+}
+.baitly-portfolio-summary .bui-stat-overview__figures { grid-template-columns: repeat(5,minmax(0,1fr)); }
+.baitly-portfolio-summary .bui-stat-figure { min-block-size: 94px; gap: 12px; padding: 16px; }
+.baitly-portfolio-summary .bui-stat-figure__art { inline-size: 56px; block-size: 56px; }
+.baitly-portfolio-summary-revenue { background: var(--bui-muted); }
+.baitly-portfolio-summary-scope {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 6px 16px;
+  padding: 8px 16px;
+  border-block-start: 1px solid var(--bui-border);
+  font-size: 12px;
+  color: var(--bui-muted-foreground);
+  font-variant-numeric: tabular-nums;
+}
+@container stat-overview (min-width: 640px) and (max-width: 1099px) {
+  .baitly-portfolio-summary .bui-stat-overview__figures { grid-template-columns: repeat(3,minmax(0,1fr)); }
+  .baitly-portfolio-summary .bui-stat-overview__item:nth-child(n) { border-block-start: 0; border-inline-end: 1px solid var(--bui-border); }
+  .baitly-portfolio-summary .bui-stat-overview__item:nth-child(3n),
+  .baitly-portfolio-summary .bui-stat-overview__item:last-child { border-inline-end: 0; }
+  .baitly-portfolio-summary .bui-stat-overview__item:nth-child(n+4) { border-block-start: 1px solid var(--bui-border); }
+}
+@container stat-overview (min-width: 1100px) {
+  .baitly-portfolio-summary .bui-stat-overview__item:nth-child(n) { border-block-start: 0; border-inline-end: 1px solid var(--bui-border); }
+  .baitly-portfolio-summary .bui-stat-overview__item:last-child { border-inline-end: 0; }
+}
+@container stat-overview (max-width: 639px) {
+  .baitly-portfolio-summary .bui-stat-overview__figures { grid-template-columns: minmax(0,1fr); }
+  .baitly-portfolio-summary .bui-stat-figure { min-block-size: 64px; padding: 10px 14px; }
+  .baitly-portfolio-summary .bui-stat-figure__art { inline-size: 40px; block-size: 40px; }
+}
