@@ -101,8 +101,9 @@ const GROUP_ORDER: NavGroup[] = ['main', 'management', 'admin'];
  * l'information alors que le backend la fournit déjà.
  */
 function UnreadNotificationsBadge() {
+  const { user } = useAuth();
   const { data } = useQuery({
-    queryKey: ['notifications', 'unread-count'],
+    queryKey: ['notifications', 'unread-count', user?.id, user?.organizationId],
     queryFn: () => notificationsApi.getUnreadCount(),
     refetchInterval: () => (notificationsApi._endpointAvailable ? 30_000 : false),
     staleTime: 15_000,
