@@ -190,11 +190,11 @@ export function SiteHeader() {
       <div className="site-shell site-header-inner flex h-16 items-center gap-5">
         <Link
           to="/"
-          className="flex items-center gap-2.5"
+          className="site-header-brand flex items-center gap-2.5"
           aria-label={h.homeAria}
         >
           <span className="site-wordmark">
-            <BaitlyMarkLogo variant="full" size={30} disableAnimation />
+            <BaitlyMarkLogo variant="full" size="var(--site-logo-size, 40px)" />
           </span>
         </Link>
         <DesktopNav entries={entries} />

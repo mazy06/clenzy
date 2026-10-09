@@ -208,7 +208,16 @@
 /* En-tête compact au défilement : il rend de la hauteur au contenu, et une
    ombre teintée le détache de la page qui passe dessous. */
 .baitly-marketing .site-header {
+  --site-logo-size: clamp(34px, calc(28px + 1.4vw), 48px);
   transition: box-shadow 240ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+.baitly-marketing .site-header-brand {
+  flex-shrink: 0;
+  min-height: 44px;
+}
+.baitly-marketing .site-header-brand .site-wordmark {
+  display: flex;
+  align-items: center;
 }
 .baitly-marketing .site-header-inner {
   transition: height 240ms cubic-bezier(0.22, 1, 0.36, 1);
@@ -219,6 +228,7 @@
     min-height 240ms cubic-bezier(0.22, 1, 0.36, 1);
 }
 .baitly-marketing .site-header[data-compact] {
+  --site-logo-size: clamp(32px, calc(26px + 1vw), 40px);
   --site-header-height: 64px;
   box-shadow: 0 8px 24px -16px color-mix(in srgb, #193b65 45%, transparent);
 }

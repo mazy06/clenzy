@@ -4,7 +4,7 @@ export { MARK_PATH, MARK_VIEWBOX, STROKE_WIDTH } from './baitlyLogoGeometry';
 
 export interface BaitlyMarkLogoProps {
   scale?: number;
-  size?: number;
+  size?: number | string;
   variant?: 'full' | 'mark' | 'wordmark';
   tone?: 'auto' | 'light' | 'dark';
   /** Conservé pour les consommateurs existants. */
@@ -18,11 +18,15 @@ export interface BaitlyMarkLogoProps {
 export default function BaitlyMarkLogo({ scale = 1, size, variant = 'full', tone = 'auto', idleAnimation = true, disableAnimation = false, colorMode = 'accent' }: BaitlyMarkLogoProps) {
   const uid = useId().replace(/[^a-zA-Z0-9_-]/g, '-');
   const iconSize = size ?? 56 * scale;
+  const proportionalSize = (ratio: number) => typeof iconSize === 'number'
+    ? iconSize * ratio
+    : `calc(${iconSize} * ${ratio})`;
+  const wordmarkOffset = proportionalSize(WORDMARK_OFFSET_RATIO);
   const animated = idleAnimation && !disableAnimation;
   const cls = `baitly-logo-${uid}-${animated ? 'animated' : 'static'}`;
   const color = colorMode === 'inherit' ? 'inherit' : tone === 'dark' ? '#FFFFFF' : tone === 'light' ? '#1B2A35' : undefined;
   return (
-    <div className={cls} role="img" aria-label="Baitly" style={{ display: 'inline-flex', alignItems: 'center', flexShrink: 0, direction: 'ltr', gap: variant === 'full' ? iconSize * WORDMARK_GAP_RATIO : 0, color }}>
+    <div className={cls} role="img" aria-label="Baitly" style={{ display: 'inline-flex', alignItems: 'center', flexShrink: 0, direction: 'ltr', gap: variant === 'full' ? proportionalSize(WORDMARK_GAP_RATIO) : 0, color }}>
       <style>{`
         .${cls} { color: #1B2A35; }
         [data-theme="dark"] .${cls} { color: #FFFFFF; }
@@ -35,12 +39,12 @@ export default function BaitlyMarkLogo({ scale = 1, size, variant = 'full', tone
         }
       `}</style>
       {variant !== 'wordmark' && (
-        <svg width={iconSize} height={iconSize} viewBox={MARK_VIEWBOX} fill="none" aria-hidden="true" style={{ flexShrink: 0 }}>
+        <svg width={typeof iconSize === 'number' ? iconSize : undefined} height={typeof iconSize === 'number' ? iconSize : undefined} viewBox={MARK_VIEWBOX} fill="none" aria-hidden="true" style={{ flexShrink: 0, width: iconSize, height: iconSize }}>
           <path className="baitly-logo-base" d={MARK_PATH} stroke="currentColor" strokeWidth={STROKE_WIDTH} strokeLinecap="round" strokeLinejoin="round" />
           {animated && <path className="baitly-logo-flow" d={MARK_PATH} pathLength={100} stroke="currentColor" strokeWidth={FLOW_STROKE_WIDTH} strokeLinecap="round" strokeLinejoin="round" strokeDasharray={`${FLOW_LENGTH} 400`} />}
         </svg>
       )}
-      {variant !== 'mark' && <span style={{ fontFamily: '"Space Grotesk", sans-serif', fontWeight: 600, fontSize: iconSize * WORDMARK_SIZE_RATIO, letterSpacing: '-.025em', lineHeight: 1, whiteSpace: 'nowrap', transform: `translateY(${iconSize * WORDMARK_OFFSET_RATIO}px)` }}>baitly.</span>}
+      {variant !== 'mark' && <span style={{ fontFamily: '"Space Grotesk", sans-serif', fontWeight: 600, fontSize: proportionalSize(WORDMARK_SIZE_RATIO), letterSpacing: '-.025em', lineHeight: 1, whiteSpace: 'nowrap', transform: `translateY(${typeof wordmarkOffset === 'number' ? `${wordmarkOffset}px` : wordmarkOffset})` }}>baitly.</span>}
     </div>
   );
 }

@@ -22,6 +22,7 @@ import BaitlyAgentsPlanningDemo from '../components/BaitlyAgentsPlanningDemo';
 import { MOCKUP_MESSAGES } from '../lib/messages/mockups';
 import BaitlyHomeResources from '../components/BaitlyHomeResources';
 import { BaitlyPmsHomeSection } from '../components/BaitlyPmsPortability';
+import BaitlyHomeConnectedSection from '../components/BaitlyHomeConnectedSection';
 import LandingPlanningMockup from '../components/LandingPlanningMockup';
 import BaitlyHeroPlanningPhoto from '../components/BaitlyHeroPlanningPhoto';
 import { BRANDS } from '../components/BrandLogos';
@@ -401,6 +402,7 @@ export default function HomePage() {
       <ChannelsBar />
       <PlatformSection />
       <AgentsSection />
+      <BaitlyHomeConnectedSection />
       <LocalSection />
       <PortabilitySection />
       <BaitlyHomeResources />
