@@ -13,7 +13,6 @@ import {
   type TabHeaderMeta,
 } from '../../components/PageHeaderActionsContext';
 import PropertiesList from './PropertiesList';
-import VouchersPage from '../vouchers/VouchersPage';
 import { useQueryClient } from '@tanstack/react-query';
 import { usePropertiesList, propertiesListKeys } from '../../hooks/usePropertiesList';
 import { Alert, AlertDescription, Button, Skeleton } from '../../components/ui';
@@ -67,9 +66,6 @@ const PropertiesPage: React.FC = () => {
     [t('propertiesPage.tabs.pricing')]: {
       subtitle: t('tabHeaders.properties.subtitle.pricing', 'Configuration de la tarification dynamique par bien : prix de base, saisonnalité, ajustements.'),
     },
-    [t('propertiesPage.tabs.vouchers', 'Codes promo')]: {
-      subtitle: t('tabHeaders.properties.subtitle.vouchers', 'Codes promo et campagnes auto applicables aux nuitées : remises pourcentage ou montant fixe, scope par bien.'),
-    },
   };
   const { title, subtitle } = resolveTabHeader(
     t('tabHeaders.properties.title', 'Propriétés'),
@@ -78,6 +74,8 @@ const PropertiesPage: React.FC = () => {
     activeTab,
     propertiesTabMeta,
   );
+
+  if (new URLSearchParams(location.search).get('tab') === 'vouchers') return <Navigate to="/vouchers" replace />;
 
   if (new URLSearchParams(location.search).get('tab') === 'pricing') return <Navigate to="/dynamic-pricing" replace />;
 
@@ -128,9 +126,6 @@ const PropertiesPage: React.FC = () => {
         ) : null}
         {hasProperties && activeKey === 'properties' && (
           <PropertiesList embedded actionsContainer={actionsContainer} filtersContainer={filtersContainer} />
-        )}
-        {hasProperties && activeKey === 'vouchers' && (
-          <VouchersPage embedded actionsContainer={actionsContainer} filtersContainer={filtersContainer} />
         )}
       </div>
       {importOpen && <ChannexMappingDialog open guided onClose={() => {

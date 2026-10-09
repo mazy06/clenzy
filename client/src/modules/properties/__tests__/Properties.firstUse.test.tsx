@@ -12,17 +12,16 @@ vi.mock('../../../hooks/usePropertiesList', () => ({
   propertiesListKeys: { all: ['properties-list'] },
 }));
 vi.mock('../../../hooks/useScreenTabs', () => ({
-  useScreenTabs: () => ['properties', 'pricing', 'vouchers'].map((key) => ({ key, label: key, hidden: false })),
+  useScreenTabs: () => ['properties', 'pricing'].map((key) => ({ key, label: key, hidden: false })),
 }));
 vi.mock('../../../components/PageHeader', () => ({ default: ({ title, actions, filters }: { title: string; actions: React.ReactNode; filters: React.ReactNode }) => <header><h1>{title}</h1>{actions}{filters}</header> }));
 vi.mock('../../../components/PageTabs', () => ({ default: () => null }));
 vi.mock('../PropertiesList', () => ({ default: () => <div data-testid="live-properties">Properties and filters</div> }));
 vi.mock('../../pricing/DynamicPricing', () => ({ default: () => <div data-testid="live-pricing">Pricing and filters</div> }));
-vi.mock('../../vouchers/VouchersPage', () => ({ default: () => <div data-testid="live-vouchers">Vouchers and filters</div> }));
 vi.mock('../../connected-objects/ConnectedObjectsHub', () => ({ default: () => <div data-testid="live-connected-objects">Devices and filters</div> }));
 vi.mock('../../settings/components/ChannexMappingDialog', () => ({ default: ({ onClose }: { onClose: () => void }) => <div role="dialog" aria-label="Import"><button onClick={onClose}>Close import</button></div> }));
 
-const SCREENS = ['properties', 'vouchers', 'connected-objects'] as const;
+const SCREENS = ['properties', 'connected-objects'] as const;
 const clients: QueryClient[] = [];
 function Location() { return <output data-testid="location">{useLocation().pathname}</output>; }
 function renderPage(tab: PropertyIntroduction) {
@@ -39,6 +38,10 @@ describe('Première visite des écrans Propriétés', () => {
   it('redirige l’ancien onglet objets connectés vers son espace dédié', () => {
     renderPage('connected-objects');
     expect(screen.getByTestId('location')).toHaveTextContent('/connected-objects');
+  });
+  it('redirige l’ancien onglet codes promo vers son écran dédié', () => {
+    renderPage('vouchers');
+    expect(screen.getByTestId('location')).toHaveTextContent('/vouchers');
   });
   it.each(SCREENS.filter(tab => tab !== 'connected-objects'))('%s : présente le module puis retrouve ses outils au premier logement, même inactif', (tab) => {
     const view = renderPage(tab);
@@ -67,8 +70,8 @@ describe('Première visite des écrans Propriétés', () => {
 
   it('conserve les outils si le cache contient déjà un logement malgré une erreur de rafraîchissement', () => {
     state.properties = [{ id: '1', status: 'active' }]; state.isError = true;
-    renderPage('vouchers');
-    expect(screen.getByTestId('live-vouchers')).toBeVisible();
+    renderPage('properties');
+    expect(screen.getByTestId('live-properties')).toBeVisible();
     expect(screen.queryByRole('alert')).not.toBeInTheDocument();
   });
 
