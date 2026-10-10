@@ -1,5 +1,5 @@
-import React, { useMemo, useRef, useState, useEffect } from 'react';
-import { createSettledScheduler } from '../../utils/layoutShift';
+import React, { useMemo } from 'react';
+import { useBaitlyPlanningViewport } from './hooks/useBaitlyPlanningViewport';
 import { Card } from '../../components/ui';
 import { DndContext, DragOverlay } from '@dnd-kit/core';
 import PlanningDateHeaders from './PlanningDateHeaders';
@@ -133,34 +133,7 @@ const PlanningTimeline: React.FC<PlanningTimelineProps> = React.memo(({
   // d'accordéon (sticky-left) ; la hauteur dimensionne ce panneau pour qu'il
   // remplisse EXACTEMENT l'espace restant → aucun débordement vertical, donc
   // pas de scroll vertical en conflit avec le scroll horizontal de la grille.
-  const [viewport, setViewport] = useState({ width: 0, height: 0 });
-  useEffect(() => {
-    const el = scrollRef.current;
-    if (!el) return;
-    const measure = () => setViewport({ width: el.clientWidth, height: el.clientHeight });
-    measure();
-    if (typeof ResizeObserver === 'undefined') return;
-    // Le repli de la navigation fait varier `clientWidth` a chaque frame. Sans
-    // ce report, chacune declenchait un rendu complet de la grille (rangs,
-    // vignettes, pastilles) : la mesure est repoussee a la fin du deplacement,
-    // seule valeur qui compte.
-    const settled = createSettledScheduler(measure);
-    const ro = new ResizeObserver(settled.schedule);
-    ro.observe(el);
-    return () => {
-      settled.cancel();
-      ro.disconnect();
-    };
-  }, [scrollRef]);
-
-  // Publication au parent. Effet separe et callback tenue dans une ref : la
-  // lambda du parent est recreee a chaque rendu, la mettre en dependance de
-  // l'effet de mesure rebrancherait le ResizeObserver a chaque fois.
-  const onViewportHeightRef = useRef(onViewportHeight);
-  onViewportHeightRef.current = onViewportHeight;
-  useEffect(() => {
-    if (viewport.height > 0) onViewportHeightRef.current?.(viewport.height);
-  }, [viewport.height]);
+  const viewport = useBaitlyPlanningViewport(scrollRef, onViewportHeight);
 
   // Plus de price line dediee : les prix sont desormais affiches dans
   // chaque cellule de jour, centres et masques sous les bars.
