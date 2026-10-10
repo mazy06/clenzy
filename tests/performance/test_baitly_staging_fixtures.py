@@ -12,6 +12,21 @@ spec.loader.exec_module(fixture)
 
 class StagingFixturesTest(unittest.TestCase):
     @patch.dict(os.environ, {"APP_DOMAIN": "app.clenzy.fr"})
+    def test_provision_uses_the_application_profile_route(self):
+        ops = Mock()
+        ops.api.return_value = {"id": 1, "subject": "test-subject", "role": "SUPER_ADMIN"}
+        def portfolio(ops, slug, count, *args):
+            return {"propertyIds": list(range(count)), "reservations": count * 4, "interventions": count}
+        with patch.object(fixture, "ensure_client", return_value=("test-subject", "test-secret")), \
+                patch.object(fixture, "ensure_organization", return_value={"organizationId": 1}), \
+                patch.object(fixture, "fill_portfolio", side_effect=portfolio), \
+                patch.object(fixture.time, "sleep"), patch("builtins.print"):
+            actors = fixture.provision(ops, 1, "2026-10-01", "2026-10-31")
+        self.assertEqual(len(actors), 3)
+        for call in ops.api.call_args_list:
+            self.assertEqual(call.args[0], "/api/me")
+
+    @patch.dict(os.environ, {"APP_DOMAIN": "app.clenzy.fr"})
     def test_marked_client_gets_the_required_api_audience(self):
         ops = Mock()
         client_id = "00000000-0000-0000-0000-000000000001"
