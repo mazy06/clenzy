@@ -5,6 +5,7 @@ import { planningDataApi, type PlanningData } from '../../../services/api/planni
 import { planningKeys, dedup } from './usePlanningData';
 import { DATA_CHUNK_SIZE_DAYS } from '../constants';
 import { getOverlappingChunks, toDateStr } from '../utils/dateUtils';
+import type { BaitlyLoadedReservationWindow } from '../utils/baitlyHydratedEvents';
 
 function combineDetails(results: UseQueryResult<PlanningData, Error>[]) {
   return { reservations: dedup(results.flatMap((r) => r.data ? [r.data.reservations] : [])),
@@ -35,6 +36,11 @@ export function useBaitlyReservationDetails(propertyIds: number[], from: Date, t
   });
   const combine = useCallback((results: UseQueryResult<PlanningData, Error>[]) => ({
     ...combineDetails(results),
+    loadedWindows: results.flatMap((result, index): BaitlyLoadedReservationWindow[] => {
+      const request = requests[index];
+      return result.data !== undefined && request
+        ? [{ propertyIds: request.ids, from: request.chunk.from, to: request.chunk.to }] : [];
+    }),
     priorityReady: enabled && results.every((result, index) => !requests[index]?.priority
       || result.isSuccess || result.isError),
   }), [enabled, requests]);

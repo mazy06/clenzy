@@ -1,4 +1,5 @@
 import { useBaitlyReservationDetails, mergeBaitlyReservationDetails } from './hooks/useBaitlyReservationDetails';
+import { selectBaitlyHydratedEvents } from './utils/baitlyHydratedEvents';
 import { reservationToEvent } from './hooks/usePlanningData';
 import { useBaitlyInterventionLifecycle } from './hooks/useBaitlyInterventionLifecycle';
 import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
@@ -376,12 +377,9 @@ const PlanningPage: React.FC = () => {
     return indexEvents.map((event) => event.reservation && hydrated.has(event.reservation.id)
       ? reservationToEvent(hydrated.get(event.reservation.id)!, defaults.get(event.propertyId)) : event);
   }, [indexEvents, details.reservations, properties]);
-  const visibleEvents = useMemo(() => {
-    const hydratedIds = new Set(details.reservations.map((r) => `res-${r.id}`));
-    const visibleIds = new Set(filteredEvents.map((event) => event.id));
-    // Aucun faux e-mail manquant : une brique attend sa vraie fiche voyageur.
-    return events.filter((event) => visibleIds.has(event.id) && (event.type !== 'reservation' || hydratedIds.has(event.id)));
-  }, [events, filteredEvents, details.reservations]);
+  const visibleEvents = useMemo(() => selectBaitlyHydratedEvents(
+    events, filteredEvents, indexReservations, details.reservations, details.loadedWindows,
+  ), [events, filteredEvents, indexReservations, details.reservations, details.loadedWindows]);
   const selectedEventCandidate = selectedIndexEvent
     ? events.find((event) => event.id === selectedIndexEvent.id) ?? null : null;
   const selectedEvent = selectedEventCandidate?.type === 'reservation'
