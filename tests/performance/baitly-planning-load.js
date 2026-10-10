@@ -68,6 +68,18 @@ const errors = new Rate('planning_errors');
 const throttled = new Rate('planning_throttled');
 const duration = new Trend('planning_window_duration', true);
 const responseBytes = new Counter('planning_response_bytes');
+// Phases fixes uniquement : ne jamais publier les descriptions du header serveur.
+const serverPhases = Object.fromEntries(['authz', 'details', 'rows', 'contacts', 'decrypt', 'mapping']
+  .map((phase) => [phase, new Trend(`planning_server_${phase}_duration`, true)]));
+
+function recordServerTiming(response) {
+  const header = Object.entries(response.headers || {}).find(([name]) => name.toLowerCase() === 'server-timing')?.[1];
+  if (typeof header !== 'string') return;
+  for (const item of header.split(',')) {
+    const match = /^\s*(authz|details|rows|contacts|decrypt|mapping)\s*;\s*dur=(\d+(?:\.\d+)?)\s*(?:;.*)?$/.exec(item);
+    if (match && Number.isFinite(Number(match[2]))) serverPhases[match[1]].add(Number(match[2]));
+  }
+}
 export const options = {
   systemTags: ['method', 'name', 'status', 'scenario', 'expected_response', 'check', 'error_code'],
   summaryTrendStats: ['med', 'p(95)', 'p(99)', 'max'],
@@ -156,6 +168,7 @@ export default function (identities) {
   ]);
   duration.add(Date.now() - started);
   responses.forEach((response, index) => {
+    recordServerTiming(response);
     throttled.add(response.status === 429);
     let body;
     try { body = response.json(); } catch { body = null; }
