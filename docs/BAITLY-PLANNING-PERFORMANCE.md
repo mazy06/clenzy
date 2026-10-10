@@ -262,6 +262,27 @@ identifiants voyageurs viennent uniquement des réservations déjà autorisées.
 Aucun cache de coordonnées n'est conservé entre requêtes. Les paramètres AES,
 la clé et le comportement strict en cas de déchiffrement invalide sont inchangés.
 
+Le convertisseur utilise désormais le pool Jasypt de la même implémentation
+`StandardPBEStringEncryptor`, avec l'algorithme et le générateur d'IV configurés
+par `AES256TextEncryptor`. Le pool est borné au nombre de processeurs disponibles,
+avec un maximum de quatre instances ; aucun thread de travail supplémentaire
+n'est créé. Les clés, la dérivation, les sels, les IV et le format stocké restent
+compatibles. Les tests vérifient la lecture des anciens chiffrés par le pool,
+la lecture des nouvelles écritures par l'ancien lecteur, et les lectures et
+écritures simultanées de huit utilisateurs synthétiques.
+
+Le probe local sur des valeurs synthétiques montre que le lecteur unique
+sérialise quatre requêtes de 182 champs (environ 290 ms au total après chauffe,
+contre environ 80 ms avec quatre lecteurs indépendants sur cette machine).
+Ce résultat identifie une contention, sans prédire le temps sur le staging ni
+certifier une capacité utilisateurs. Le pool vise la concurrence entre requêtes ;
+il ne divise pas le coût cryptographique d'une requête isolée et reste limité
+par les ressources CPU du serveur.
+Le même probe exécuté avec le pool Jasypt configuré comme le convertisseur
+mesure environ 106 à 178 ms pour les quatre lectures, contre 297 à 389 ms pour
+le lecteur partagé, selon la chauffe et la charge locale. Ces chiffres restent
+des mesures synthétiques de déchiffrement, pas des latences HTTP.
+
 `Server-Timing` conserve `authz` et `details`, avec quatre repères supplémentaires :
 
 | Repère | Périmètre |

@@ -27,6 +27,37 @@ class EncryptedFieldConverterTest {
         converter.setFailOnDecryptError(true);
     }
 
+    @Test void pooledConverterReadsExistingCiphertextsAndLegacyReaderReadsNewWrites() {
+        var legacy = new org.jasypt.util.text.AES256TextEncryptor();
+        legacy.setPassword("test-encryption-password-for-unit-tests");
+        for (String value : new String[] { "guest@example.test", "+33612345678", "Données éàü العربية" }) {
+            assertThat(converter.convertToEntityAttribute(legacy.encrypt(value))).isEqualTo(value);
+            assertThat(legacy.decrypt(converter.convertToDatabaseColumn(value))).isEqualTo(value);
+        }
+    }
+
+    @Test void concurrentReadsAndWritesKeepValuesIsolated() throws Exception {
+        var executor = java.util.concurrent.Executors.newFixedThreadPool(8);
+        try {
+            var tasks = new java.util.ArrayList<java.util.concurrent.Callable<Void>>();
+            for (int user = 0; user < 8; user++) {
+                final int id = user;
+                tasks.add(() -> {
+                    var legacy = new org.jasypt.util.text.AES256TextEncryptor();
+                    legacy.setPassword("test-encryption-password-for-unit-tests");
+                    for (int field = 0; field < 20; field++) {
+                        String value = "synthetic-" + id + "-" + field;
+                        String encrypted = converter.convertToDatabaseColumn(value);
+                        assertThat(converter.convertToEntityAttribute(encrypted)).isEqualTo(value);
+                        assertThat(legacy.decrypt(encrypted)).isEqualTo(value);
+                    }
+                    return null;
+                });
+            }
+            for (var result : executor.invokeAll(tasks)) result.get(30, java.util.concurrent.TimeUnit.SECONDS);
+        } finally { executor.shutdownNow(); }
+    }
+
     @Nested
     @DisplayName("convertToDatabaseColumn")
     class ConvertToDatabaseColumn {
