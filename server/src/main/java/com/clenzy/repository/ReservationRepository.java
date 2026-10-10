@@ -576,6 +576,12 @@ public interface ReservationRepository extends JpaRepository<Reservation, Long> 
         @Param("interventionIds") List<Long> interventionIds,
         @Param("orgId") Long orgId);
 
+    @Query("SELECT new com.clenzy.dto.BaitlyPlanningInterventionLink(r.intervention.id, MIN(r.id)) "
+            + "FROM Reservation r WHERE r.intervention.id IN :interventionIds AND r.organizationId = :orgId "
+            + "GROUP BY r.intervention.id")
+    List<com.clenzy.dto.BaitlyPlanningInterventionLink> findBaitlyPlanningInterventionLinks(
+            @Param("interventionIds") List<Long> interventionIds, @Param("orgId") Long orgId);
+
     /**
      * Compte les reservations dont le guestName commence par un prefix donne, sur une propriete.
      * Utilise par ICalImportService pour incrementer les noms generiques (Reserved #1, #2...).

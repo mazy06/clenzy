@@ -60,6 +60,32 @@ public class InterventionPlanningService {
         this.tenantContext = tenantContext;
     }
 
+    /** Index Baitly : périmètre logement déjà autorisé par le controller, tenant explicite. */
+    public List<Map<String, Object>> getBaitlyPlanningInterventions(List<Long> propertyIds, LocalDate from, LocalDate to) {
+        Long orgId = tenantContext.getRequiredOrganizationId();
+        if (propertyIds.isEmpty()) return List.of();
+        var rows = interventionRepository.findBaitlyPlanningRows(propertyIds, from.atStartOfDay(),
+                to.atTime(LocalTime.MAX), orgId);
+        Map<Long, Long> links = new HashMap<>();
+        var ids = rows.stream().map(com.clenzy.dto.BaitlyPlanningInterventionRow::id).toList();
+        for (int offset = 0; offset < ids.size(); offset += 500) {
+            for (var link : reservationRepository.findBaitlyPlanningInterventionLinks(
+                    ids.subList(offset, Math.min(offset + 500, ids.size())), orgId)) {
+                links.put(link.interventionId(), link.reservationId());
+            }
+        }
+        Map<Long, String> assignees = new HashMap<>();
+        var assigneeIds = rows.stream().map(com.clenzy.dto.BaitlyPlanningInterventionRow::assigneeId)
+                .filter(java.util.Objects::nonNull).distinct().toList();
+        for (int offset = 0; offset < assigneeIds.size(); offset += 500) {
+            for (var assignee : userRepository.findBaitlyPlanningAssignees(
+                    assigneeIds.subList(offset, Math.min(offset + 500, assigneeIds.size())), orgId)) {
+                assignees.put(assignee.id(), assignee.displayName());
+            }
+        }
+        return rows.stream().map(row -> row.toPlanningMap(links.get(row.id()), assignees.get(row.assigneeId()))).toList();
+    }
+
     public List<Map<String, Object>> getPlanningInterventions(Jwt jwt, List<Long> propertyIds,
                                                                LocalDate from, LocalDate to, String type) {
         if (from == null) from = LocalDate.now().minusMonths(3);

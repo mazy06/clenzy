@@ -53,7 +53,7 @@ export const planningDataApi = {
   },
 
   async getReservationDetails(propertyIds: number[], from: string, to: string, signal?: AbortSignal): Promise<PlanningData> {
-    const reservations = await baitlyPlanningReadQueue.run(signal, () => apiClient.get<Reservation[]>('/planning/reservations', {
+    const reservations = await baitlyPlanningReadQueue.run(signal, () => apiClient.get<Reservation[]>('/planning/reservation-cards', {
       signal, params: { propertyIds: propertyIds.join(','), from, to },
     }));
     return { reservations, interventions: [], awaitingPayment: [], blocked: [] };

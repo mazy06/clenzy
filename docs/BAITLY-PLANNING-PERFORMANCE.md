@@ -427,3 +427,29 @@ deux lectures. Les modes `schema`, `baseline`, `cards` et `disable` n'effectuent
 aucun redémarrage de container. Les seuils k6 restent des objectifs : un workflow
 rouge peut signaler une mesure terminée avec des seuils dépassés, pas un échec
 du déploiement.
+
+### Lectures applicatives préparées pour la comparaison
+
+- `/planning/reservation-cards` applique les mêmes gardes logement/organisation,
+  limites et `Server-Timing` que la lecture complète, mais ne sélectionne pas le
+  téléphone. L'email et l'avatar restent disponibles pour les briques et l'alerte
+  d'email manquant. `/planning/reservations` conserve son contrat complet.
+- Le panneau demande la réservation complète à son ouverture. La requête est
+  annulable et appartient à la même famille de cache que le planning, pour être
+  invalidée après une modification. La grille reste consultable pendant cette
+  lecture et en cas d'erreur du panneau.
+- L'index utilise une projection des interventions et une lecture groupée de
+  leurs liens explicites vers les réservations. Les noms chiffrés des intervenants
+  sont lus séparément, par identifiant distinct et par lots de 500 : la répétition
+  d'une personne ne multiplie pas ses déchiffrements. Le repli via la demande de
+  service et les fins après minuit sont conservés.
+
+Le contrôle `schema` du staging a réussi (workflow infra `38036790728`). Il
+confirme les index `(organization_id, scheduled_date)` et
+`(property_id, scheduled_date)` des interventions. Aucun index supplémentaire
+n'est encore décidé : il faut les plans et les mesures sur les fixtures.
+Le premier provisioning a reçu un HTTP 401 avant le lancement de la charge ;
+les clients ont été désactivés à la sortie. La PR 428 ajoute uniquement aux
+clients de test l'audience `clenzy-api` exigée par la sécurité JWT existante.
+La nouvelle référence est lancée par le workflow `38037278661` ; aucune valeur
+de capacité n'est déclarée avant examen de ses résultats.

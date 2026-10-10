@@ -32,6 +32,7 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.times;
 
 @ExtendWith(MockitoExtension.class)
 class InterventionPlanningServiceTest {
@@ -56,6 +57,32 @@ class InterventionPlanningServiceTest {
     }
 
     // ── Helpers ──────────────────────────────────────────────────────────────
+
+    @Test
+    void scalarIndexBatchesLinksAndReadsEachAssigneeOnceForThousandInterventions() {
+        LocalDate from = LocalDate.of(2026, 10, 1), to = LocalDate.of(2026, 10, 31);
+        var rows = java.util.stream.LongStream.rangeClosed(1, 1001).mapToObj(id ->
+                new com.clenzy.dto.BaitlyPlanningInterventionRow(id, 1L, "Logement", null,
+                        "CLEANING", InterventionStatus.PENDING, "MEDIUM", "Intervention", null,
+                        from.atTime(11, 0), 3, null, 7L, null, null, null, null, null, null, null)).toList();
+        when(interventionRepository.findBaitlyPlanningRows(eq(List.of(1L)), any(), any(), eq(ORG_ID)))
+                .thenReturn(rows);
+        when(reservationRepository.findBaitlyPlanningInterventionLinks(anyList(), eq(ORG_ID)))
+                .thenAnswer(invocation -> {
+                    List<Long> ids = invocation.getArgument(0);
+                    assertThat(ids).hasSizeLessThanOrEqualTo(500);
+                    return List.of(new com.clenzy.dto.BaitlyPlanningInterventionLink(ids.getFirst(), 99L));
+                });
+        when(userRepository.findBaitlyPlanningAssignees(List.of(7L), ORG_ID))
+                .thenReturn(List.of(new com.clenzy.dto.BaitlyPlanningAssignee(7L, "Alice", "Martin")));
+        var result = service.getBaitlyPlanningInterventions(List.of(1L), from, to);
+        assertThat(result).hasSize(1001).allSatisfy(row -> assertThat(row.get("assigneeName")).isEqualTo("Alice Martin"));
+        assertThat(result.getFirst().get("linkedReservationId")).isEqualTo(99L);
+        verify(reservationRepository, times(3)).findBaitlyPlanningInterventionLinks(anyList(), eq(ORG_ID));
+        verify(userRepository).findBaitlyPlanningAssignees(List.of(7L), ORG_ID);
+        verify(userRepository, never()).findByKeycloakId(any());
+        verify(teamRepository, never()).findAllById(any());
+    }
 
     private Jwt jwt(String sub) {
         Jwt jwt = mock(Jwt.class);

@@ -450,6 +450,24 @@ public interface InterventionRepository extends JpaRepository<Intervention, Long
             @Param("toDate") LocalDateTime toDate,
             @Param("orgId") Long orgId);
 
+    @Query("SELECT new com.clenzy.dto.BaitlyPlanningInterventionRow(i.id, p.id, p.name, "
+            + "i.serviceItemCode, i.type, i.status, i.priority, i.title, i.description, "
+            + "i.scheduledDate, i.estimatedDurationHours, i.notes, u.id, "
+            + "i.teamId, t.name, s.reservationId, i.paymentStatus, i.estimatedCost, i.actualCost, i.paidAt) "
+            + "FROM Intervention i JOIN i.property p "
+            + "LEFT JOIN i.assignedUser u ON u.organizationId = :orgId "
+            + "LEFT JOIN i.serviceRequest s ON s.organizationId = :orgId "
+            + "LEFT JOIN Team t ON t.id = i.teamId AND t.organizationId = :orgId "
+            + "WHERE p.id IN :propertyIds AND p.organizationId = :orgId AND i.organizationId = :orgId "
+            + "AND i.scheduledDate >= :fromDate AND i.scheduledDate <= :toDate "
+            + "AND NOT EXISTS (SELECT 1 FROM Reservation r WHERE r.intervention.id = i.id "
+            + "AND r.organizationId = :orgId AND r.hiddenFromPlanning = true AND r.status = 'cancelled') "
+            + "ORDER BY i.scheduledDate ASC")
+    List<com.clenzy.dto.BaitlyPlanningInterventionRow> findBaitlyPlanningRows(
+            @Param("propertyIds") List<Long> propertyIds,
+            @Param("fromDate") LocalDateTime fromDate, @Param("toDate") LocalDateTime toDate,
+            @Param("orgId") Long orgId);
+
     /**
      * Toutes les interventions pour le planning dans une plage de dates (admin/manager).
      * Exclut les interventions liees a une reservation masquee du planning.

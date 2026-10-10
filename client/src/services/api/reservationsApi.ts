@@ -355,8 +355,8 @@ export const reservationsApi = {
     }
   },
 
-  async getById(id: number): Promise<Reservation> {
-    return apiClient.get<Reservation>(`/reservations/${id}`);
+  async getById(id: number, signal?: AbortSignal): Promise<Reservation> {
+    return apiClient.get<Reservation>(`/reservations/${id}`, { signal });
   },
 
   /** Recherche réservations par nom de guest ou de logement (autocomplete rattachement « à trier »). */
