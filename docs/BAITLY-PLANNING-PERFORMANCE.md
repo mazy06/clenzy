@@ -674,7 +674,8 @@ les contrôles de propriété et d'organisation.
 Exécution réussie le 10 octobre sur `app.clenzy.fr`, outils au SHA
 `5d72fa5c140e79a25b3bc2b912fb1f5a76eb6837`, backend inchangé au SHA `d860c6e`.
 La chauffe puis les six répétitions ont terminé ; les objectifs k6 de latence,
-erreurs, limitations et fenêtres non démarrées sont tous respectés.
+erreurs, limitations et fenêtres non démarrées sont tous respectés dans les
+six répétitions retenues après chauffe.
 Les comptes sont désactivés par le nettoyage final.
 
 P95 en millisecondes : la colonne précédente correspond à une seule exécution
@@ -696,6 +697,14 @@ identique, la chauffe et les répétitions qualifient la stabilité.
 La lenteur ponctuelle des prix à 649 ms ne se reproduit pas dans ces trois
 passages. Cela soutient une stabilité au débit testé, pas une preuve que la
 lenteur précédente ne pourra plus survenir ni une capacité à forte concurrence.
+
+**Le premier passage de chauffe reste lent** : sur 10 logements, fenêtre
+P95 1 483 ms, prix 644 ms, catalogue 648 ms, index 685 ms, briques 803 ms
+et nuits minimales 667 ms. Les cinq endpoints dépassent alors l'objectif
+P95 de 500 ms, avec zéro erreur, 429 ou fenêtre perdue. La chauffe 100
+qui suit est à 774 ms par fenêtre et respecte ses seuils. La lenteur initiale
+mérite donc une investigation distincte : l'origine (chauffe JVM/caches,
+trafic ambiant ou transport) n'est pas isolée par ces résumés.
 
 Phases des briques, médiane des trois P95, en millisecondes :
 
