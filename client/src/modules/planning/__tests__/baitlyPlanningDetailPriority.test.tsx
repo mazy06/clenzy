@@ -6,6 +6,8 @@ import { planningDataApi, type PlanningData } from '../../../services/api/planni
 import { useBaitlyReservationDetails } from '../hooks/useBaitlyReservationDetails';
 import { getOverlappingChunks } from '../utils/dateUtils';
 import { DATA_CHUNK_SIZE_DAYS } from '../constants';
+import { selectBaitlyHydratedEvents } from '../utils/baitlyHydratedEvents';
+import type { PlanningEvent } from '../types';
 
 vi.mock('../../../services/api/planningDataApi', () => ({ planningDataApi: {
   getReservationDetails: vi.fn(),
@@ -68,6 +70,32 @@ describe('priorité des détails de réservation Baitly', () => {
     const hook = renderHook(() => useBaitlyReservationDetails(ids, from, to, true, visible), { wrapper });
     await waitFor(() => expect(planningDataApi.getReservationDetails).toHaveBeenCalledTimes(3));
     expect(hook.result.current.error).toBe('lecture impossible');
+    expect(hook.result.current.loadedWindows.some((window) => window.from === '2026-09-26')).toBe(false);
+    hook.unmount(); client.clear();
+  });
+
+  it('publie les interventions libres avec les séjours de chaque réponse, pas avec l’index', async () => {
+    const chunks = getOverlappingChunks(from, to, DATA_CHUNK_SIZE_DAYS);
+    const current = chunks.find((chunk) => chunk.from <= '2026-10-04' && chunk.to >= '2026-11-08')!;
+    const finishes = new Map<string, (data: PlanningData) => void>();
+    vi.mocked(planningDataApi.getReservationDetails).mockImplementation((_ids, start) =>
+      new Promise((resolve) => finishes.set(start, resolve)));
+    const { client, wrapper } = setup();
+    const currentEvent = { id: 'int-current', type: 'cleaning', propertyId: 1,
+      startDate: '2026-10-10', endDate: '2026-10-10' } as PlanningEvent;
+    const pastEvent = { ...currentEvent, id: 'int-past', startDate: '2026-08-10', endDate: '2026-08-10' };
+    const events = [currentEvent, pastEvent];
+    const hook = renderHook(() => {
+      const details = useBaitlyReservationDetails(ids, from, to, true, visible);
+      return selectBaitlyHydratedEvents(events, events, [], details.reservations, details.loadedWindows);
+    }, { wrapper });
+    await waitFor(() => expect(finishes.has(current.from)).toBe(true));
+    expect(hook.result.current).toEqual([]);
+    await act(async () => finishes.get(current.from)!(empty));
+    await waitFor(() => expect(finishes.size).toBe(chunks.length));
+    expect(hook.result.current).toEqual([currentEvent]);
+    await act(async () => finishes.get(chunks[0].from)!(empty));
+    await waitFor(() => expect(hook.result.current).toEqual(events));
     hook.unmount(); client.clear();
   });
 });
