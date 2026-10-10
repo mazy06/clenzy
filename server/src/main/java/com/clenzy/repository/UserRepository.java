@@ -21,9 +21,8 @@ public interface UserRepository extends JpaRepository<User, Long>, JpaSpecificat
             @Param("ids") java.util.Collection<Long> ids, @Param("orgId") Long orgId);
 
     /** Le nom suit les logements autorisés, même si le propriétaire appartient à plusieurs organisations. */
-    @Query("SELECT new com.clenzy.dto.BaitlyPlanningPersonName(u.id, u.firstName, u.lastName) "
-            + "FROM User u WHERE EXISTS (SELECT 1 FROM Property p WHERE p.id IN :propertyIds "
-            + "AND p.organizationId = :orgId AND p.owner.id = u.id)")
+    @Query("SELECT DISTINCT new com.clenzy.dto.BaitlyPlanningPersonName(u.id, u.firstName, u.lastName) "
+            + "FROM Property p JOIN p.owner u WHERE p.id IN :propertyIds AND p.organizationId = :orgId")
     List<com.clenzy.dto.BaitlyPlanningPersonName> findBaitlyPlanningPropertyOwners(
             @Param("propertyIds") java.util.Collection<Long> propertyIds, @Param("orgId") Long orgId);
 
