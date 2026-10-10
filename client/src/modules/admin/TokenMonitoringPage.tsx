@@ -16,8 +16,8 @@ const TokenMonitoringPage: React.FC = () => {
           rien. */}
       <PageHeader
         anchored={false}
-        title="{t('admin.tokens.title')}"
-        subtitle="{t('admin.tokens.subtitle')}"
+        title={t('admin.tokens.title')}
+        subtitle={t('admin.tokens.subtitle')}
         iconBadge={<Shield />}
         backPath="/admin"
         showBackButton={false}

@@ -68,10 +68,10 @@ export default function MarketingPreferencesCard() {
 
   return (
     <SettingsSection
-      title="{t('settings.marketing.title')}"
+      title={t('settings.marketing.title')}
       icon={Mail}
       accent="info"
-      description="{t('settings.marketing.subtitle')}"
+      description={t('settings.marketing.subtitle')}
       help="Vous pouvez retirer votre consentement à tout moment, conformément à l'article 7-3 du RGPD."
     >
       {loadError && (
@@ -88,7 +88,7 @@ export default function MarketingPreferencesCard() {
       ) : (
         <SettingsToggleRow
           title="Newsletter Baitly"
-          description="{t('settings.marketing.newsletterHint')}"
+          description={t('settings.marketing.newsletterHint')}
           checked={!!newsletterOptIn}
           onChange={(checked) => handleToggle(checked)}
           disabled={saving}

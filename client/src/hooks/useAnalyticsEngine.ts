@@ -2,9 +2,8 @@ import { useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { reservationsApi } from '../services/api/reservationsApi';
 import { propertiesApi } from '../services/api/propertiesApi';
-import { serviceRequestsApi } from '../services/api/serviceRequestsApi';
+import { propertiesListQuery } from './usePropertiesList';
 import { portfolioAnalyticsQuery } from '../services/api/portfolioAnalyticsApi';
-import type { Property } from '../services/api/propertiesApi';
 import type { DashboardPeriod } from '../modules/dashboard/DashboardDateFilter';
 import type { AnalyticsData, InterventionLike, PropertyPerformanceItem } from '../types/analytics';
 import { periodToDays } from './analyticsUtils';
@@ -88,26 +87,30 @@ export function useAnalyticsEngine({ period, interventions: _interventions, enab
     enabled,
   });
   const propertiesQuery = useQuery({
-    queryKey: ['analytics-properties'],
-    queryFn: () => propertiesApi.getAll({ size: 1000 }).then((res) => {
-      if (Array.isArray(res)) return res;
-      if (res && typeof res === 'object' && 'content' in (res as Record<string, unknown>)) {
-        return (res as unknown as { content: Property[] }).content || [];
-      }
-      return [];
-    }),
-    staleTime: 60_000,
+    ...propertiesListQuery(),
     enabled,
   });
 
   const reservations = useMemo(() => reservationsQuery.data || [], [reservationsQuery.data]);
   const properties = useMemo(() => propertiesQuery.data || [], [propertiesQuery.data]);
+  // Les réponses portfolio/performance arrivent séparément. Ne pas recalculer
+  // les projections lourdes à chaque arrivée quand leurs sources sont identiques.
+  const pricing = useMemo(() => enabled ? computePricingMetrics(reservations, properties, days) : null, [enabled, reservations, properties, days]);
+  const forecast = useMemo(() => enabled ? computeForecast(reservations, properties) : null, [enabled, reservations, properties]);
+  const clients = useMemo(() => {
+    if (!enabled) return null;
+    const today = new Date();
+    const cutoff = new Date(today);
+    cutoff.setDate(cutoff.getDate() - days);
+    const dateKey = (date: Date) => `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+    return computeClientMetrics(reservations, { from: dateKey(cutoff), to: dateKey(today) });
+  }, [enabled, reservations, days]);
   const loading = enabled
     && (portfolioQuery.isLoading || performanceQuery.isLoading
       || reservationsQuery.isLoading || propertiesQuery.isLoading);
 
   const analytics = useMemo<AnalyticsData | null>(() => {
-    if (!enabled) return null;
+    if (!enabled || !pricing || !forecast || !clients) return null;
     const portfolio = portfolioQuery.data;
     if (!portfolio) return null;
 
@@ -124,9 +127,6 @@ export function useAnalyticsEngine({ period, interventions: _interventions, enab
       score: p.score,
     }));
 
-    const pricing = computePricingMetrics(reservations, properties, days);
-    const forecast = computeForecast(reservations, properties);
-    const clients = computeClientMetrics(reservations);
     const benchmark = computeBenchmark(propertyPerf);
     const recommendations = computeRecommendations(global, occupancy, revenue, properties);
     const alerts = computeBusinessAlerts(global, occupancy, propertyPerf);
@@ -143,7 +143,7 @@ export function useAnalyticsEngine({ period, interventions: _interventions, enab
       benchmark,
       alerts,
     };
-  }, [enabled, portfolioQuery.data, performanceQuery.data, reservations, properties, days]);
+  }, [enabled, portfolioQuery.data, performanceQuery.data, properties, pricing, forecast, clients]);
 
   return { analytics, loading };
 }
