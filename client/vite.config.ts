@@ -91,8 +91,10 @@ export default defineConfig({
         // Workbox cherchait /index.html dans son precache (vide pour html), plantait
         // sur toutes les navigations -> SW casse -> logout freeze + warnings preload.
         //
-        // Sans navigateFallback, c'est le runtimeCaching `mode === 'navigate'`
-        // ci-dessous qui gere les navigations (NetworkFirst, fallback cache offline).
+        // Le plugin ajoute « index.html » par défaut : il faut désactiver
+        // explicitement ce repli, puisque HTML est exclu du précache.
+        // runtimeCaching `mode === 'navigate'` gère les navigations ci-dessous.
+        navigateFallback: null,
         navigationPreload: true,
         // index.html EXCLUS du precache (pas de `html` dans globPatterns) — sinon
         // le SW pre-cache l'ancien index.html au build, et meme NetworkFirst
@@ -276,5 +278,4 @@ export default defineConfig({
     testTimeout: 20_000,
   },
 })
-
 

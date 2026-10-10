@@ -166,6 +166,25 @@ describe('useInfiniteTimeline', () => {
     expect(hook.result.current.visibleRange.end).toEqual(hook.result.current.days[first + 10]);
   });
 
+  it('ne programme aucun rendu supplémentaire quand les dates visibles sont inchangées', () => {
+    let renders = 0;
+    const { dayWidth } = ZOOM_CONFIGS.month;
+    const hook = renderHook(() => {
+      renders++;
+      return useInfiniteTimeline({ anchorDate: ANCHOR, zoom: 'month', dayWidth, propertyColWidth: PROPERTY_COL });
+    });
+    attachScroller(hook.result.current.scrollRef, {
+      clientWidth: PROPERTY_COL + dayWidth * 10,
+      scrollLeft: 50 * dayWidth,
+    });
+    hook.rerender();
+    const range = hook.result.current.visibleRange;
+    const before = renders;
+    for (let i = 0; i < 10; i++) hook.rerender();
+    expect(hook.result.current.visibleRange).toBe(range);
+    expect(renders - before).toBe(10);
+  });
+
   // ── Cible hors fenetre ────────────────────────────────────────────────────
 
   describe('scrollToDate hors fenetre', () => {

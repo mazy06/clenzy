@@ -124,6 +124,7 @@ export function useInfiniteTimeline({
     start: subDays(anchorDate, TARGET_DAY_LEADING_COLUMNS),
     end: addDays(anchorDate, config.visibleDays),
   }));
+  const publishedVisibleRange = useRef(visibleRange);
   const updateVisibleRange = useCallback(() => {
     const el = scrollRef.current;
     if (!el || el.clientWidth <= propertyColWidth) return;
@@ -133,8 +134,13 @@ export function useInfiniteTimeline({
       Math.ceil((offset + el.clientWidth - propertyColWidth) / dayWidth) - 1);
     const start = days[first];
     const end = days[Math.max(first, last)];
-    setVisibleRange((previous) => previous.start.getTime() === start.getTime()
-      && previous.end.getTime() === end.getTime() ? previous : { start, end });
+    const previous = publishedVisibleRange.current;
+    // Un setter appelé dans chaque effet de mise en page peut entretenir une
+    // boucle React, même si son updater retourne parfois la valeur précédente.
+    if (previous.start.getTime() === start.getTime() && previous.end.getTime() === end.getTime()) return;
+    const next = { start, end };
+    publishedVisibleRange.current = next;
+    setVisibleRange(next);
   }, [days, dayWidth, propertyColWidth]);
   /** Pixels a rendre au scrollLeft une fois le nouveau buffer peint. */
   const pendingCompensation = useRef(0);
