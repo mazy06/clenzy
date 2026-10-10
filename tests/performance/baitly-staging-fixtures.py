@@ -269,7 +269,7 @@ def provision(ops, per_cohort, start, end):
             name = f"baitly-perf-{count}-{ordinal:02d}"
             subject, secret = ensure_client(ops, name)
             token = ops.token(name, secret)
-            profile = ops.api("/api/auth/me", token)
+            profile = ops.api("/api/me", token)
             if profile.get("role") != "SUPER_ADMIN" or profile.get("subject") != subject or not profile.get("id"):
                 raise FixtureError("Profil applicatif de fixture absent ou inattendu")
             org = ensure_organization(ops, name, profile["id"], subject)
