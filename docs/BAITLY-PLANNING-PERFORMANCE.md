@@ -705,6 +705,11 @@ P95 de 500 ms, avec zéro erreur, 429 ou fenêtre perdue. La chauffe 100
 qui suit est à 774 ms par fenêtre et respecte ses seuils. La lenteur initiale
 mérite donc une investigation distincte : l'origine (chauffe JVM/caches,
 trafic ambiant ou transport) n'est pas isolée par ces résumés.
+Durant cette première chauffe, le service de détails reste à 235 ms P95
+et le déchiffrement des contacts à 122 ms, proches des répétitions.
+La dégradation HTTP apparaît donc sans hausse comparable de ces phases
+mesurées : instrumenter aussi les traitements avant le controller et le
+transport, sans déduire un résidu par soustraction de percentiles.
 
 Phases des briques, médiane des trois P95, en millisecondes :
 
