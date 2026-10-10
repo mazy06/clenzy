@@ -360,3 +360,70 @@ Le repère `baitly.planning.ready` attend maintenant aussi les prix visibles.
 Il mesure donc une grille initiale plus complète. Au prochain relevé, comparer
 les réponses, ce repère et les captures visuelles, avec les mêmes conditions
 de cache et plusieurs rechargements pour confirmer la reproductibilité.
+
+## Investigation des quatre chantiers prioritaires
+
+1. **Coordonnées.** Préparer une lecture des briques sans téléphone, avec email
+   et avatar conservés pour l'indicateur d'email manquant. Le panneau récupère
+   la fiche complète à son ouverture. Comparer cette lecture à l'endpoint
+   complet, avec les mêmes voyageurs et `Server-Timing`.
+2. **Multi-comptes.** Le workflow infra `Baitly planning staging benchmark`
+   prépare douze comptes machine répartis dans douze organisations de test.
+   Il propose 1, puis 5 et éventuellement 10 fenêtres/s ; un palier échoué
+   empêche toute augmentation supplémentaire. Aucun test réseau n'est validé
+   tant que les résultats du workflow n'ont pas été examinés.
+3. **Portefeuilles.** Quatre comptes pour chacune des tailles 10, 100 et
+   1 000 logements. Le scénario peut parcourir toutes les pages du catalogue,
+   découpe l'index en lots de 500 et garde détails/prix sur la première page.
+   Il vérifie le catalogue complet et le périmètre de chaque réponse.
+4. **SQL et interventions.** Recueillir schéma/index et plans PostgreSQL
+   `EXPLAIN (ANALYZE, BUFFERS)` sur ces fixtures, avant tout nouvel index.
+   Préparer la projection des interventions et de leurs rattachements, avec
+   isolation de l'organisation et conservation des fins après minuit.
+
+### Fixtures staging et périmètre des mesures
+
+Le workflow n'est dispatchable que depuis `main`, avec le domaine fixe
+`app.clenzy.fr`, contrôlé sur le VPS avant tout appel Keycloak, SQL ou API.
+L'environnement GitHub `production` est son **nom historique pour le staging**,
+comme dans le CD ; `production-baitly` n'est jamais une cible de ce workflow.
+Il partage la file de déploiement staging pour éviter un déploiement pendant
+la mesure. Le mode `schema` ne lit que les métadonnées, sans créer de compte.
+
+Les clients `baitly-perf-*` sont des identités machine applicatives de test,
+avec rôle `SUPER_ADMIN` et profil rattaché à leur organisation dédiée : cela
+inclut les interventions comme dans le parcours de l'administrateur observé.
+Ils n'ont aucun rôle d'administration Keycloak. Ils sont marqués explicitement,
+désactivés à la sortie du workflow et n'ont pas de connexion interactive.
+Un client existant non marqué est refusé. Un jeton déjà émis peut rester valide
+jusqu'à son expiration de cinq minutes ; aucun secret ni jeton n'est publié.
+
+Chaque logement contient quatre séjours de quatre nuits, sans chevauchement,
+avec quatre IDs voyageurs distincts, et une intervention. Les coordonnées
+chiffrées proviennent d'un voyageur synthétique créé par l'API et sont copiées
+uniquement dans les fixtures : même texte fictif, IDs distincts pour conserver
+le travail de déchiffrement. Les réservations ont leurs automatisations
+suspendues. Les organisations/données restent disponibles pour refaire une
+mesure ; les comptes machine sont désactivés entre les exécutions.
+
+Les acteurs et secrets sont conservés dans des fichiers privés temporaires
+en mode 0600, hors des artifacts. Ceux-ci contiennent uniquement les métriques,
+plans, métadonnées, SHA du code de mesure et échantillons CPU/RSS Docker,
+connexions/buffers PostgreSQL. Les métriques excluent le tag URL ; leurs labels
+de route sont fixes. `planning_response_bytes` mesure le corps UTF-8 décompressé,
+pas les octets effectivement transférés sur le réseau.
+
+Le scénario mesure les lectures API : les lots d'index sont proposés en
+parallèle, sans reproduire toute la file du navigateur. Il ne mesure pas le
+temps d'affichage React, les écritures, les OTA ou un environnement de production.
+Les plans SQL utilisent des lectures représentatives sur les données synthétiques ;
+ils ne constituent pas une capture automatique de toutes les requêtes Hibernate.
+La RSS Docker n'est pas la heap/GC Java et les connexions PostgreSQL ne remplacent
+pas les métriques d'attente Hikari. Ces limites doivent accompagner les résultats.
+
+Le mode `baseline` utilise `/planning/reservations`, et le mode `cards`
+`/planning/reservation-cards`. Les fixtures sont réutilisées pour comparer les
+deux lectures. Les modes `schema`, `baseline`, `cards` et `disable` n'effectuent
+aucun redémarrage de container. Les seuils k6 restent des objectifs : un workflow
+rouge peut signaler une mesure terminée avec des seuils dépassés, pas un échec
+du déploiement.

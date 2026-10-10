@@ -1,0 +1,23 @@
+name: Baitly planning benchmark tools
+on:
+  pull_request:
+    paths:
+      - 'tests/performance/baitly-planning-load.js'
+      - 'tests/performance/baitly-staging-fixtures.py'
+      - 'tests/performance/test_baitly_staging_fixtures.py'
+      - 'tests/performance/baitly-planning-load.test.mjs'
+      - '.github/workflows/ci-planning-benchmark-tools.yml'
+permissions:
+  contents: read
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Verify staging guards and SQL scopes
+        run: python3 -B -m unittest discover -s tests/performance -p test_baitly_staging_fixtures.py -v
+      - name: Verify planning load workload and isolation checks
+        run: node --test tests/performance/baitly-planning-load.test.mjs
