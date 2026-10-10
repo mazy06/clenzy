@@ -8,6 +8,7 @@ import PlanningDateHeaders from './PlanningDateHeaders';
 import PlanningRowBackdrop from './PlanningRowBackdrop';
 import { BAR_BORDER_RADIUS, PAGINATION_BAR_HEIGHT, ROW_CONFIG } from './constants';
 import { inlineScrollForDateIn } from './hooks/useInfiniteTimeline';
+import { useBaitlyPlanningViewport } from './hooks/useBaitlyPlanningViewport';
 import type { DensityMode, ZoomLevel } from './types';
 
 /**
@@ -68,6 +69,8 @@ export default function PlanningGridSkeleton({
   propertyColWidth,
   totalGridWidth,
   collapsed = false,
+  layoutReady = true,
+  onViewportHeight,
 }: {
   days: Date[];
   dayWidth: number;
@@ -78,10 +81,14 @@ export default function PlanningGridSkeleton({
   propertyColWidth: number;
   totalGridWidth: number;
   collapsed?: boolean;
+  layoutReady?: boolean;
+  onViewportHeight?: (height: number) => void;
 }) {
   const { t, i18n } = useTranslation();
   const isRtl = isRtlLanguage(i18n.language);
   const { rowHeight, reservationBarHeight, barPadding } = ROW_CONFIG[density];
+  const scrollRef = React.useRef<HTMLDivElement | null>(null);
+  useBaitlyPlanningViewport(scrollRef, onViewportHeight, layoutReady);
 
   // Le defileur s'ouvre sur la MEME fenetre de dates que la grille reelle, qui
   // se recale sur son ancre des qu'elle est peinte. Sans cela, le squelette
@@ -89,6 +96,7 @@ export default function PlanningGridSkeleton({
   // grille sauterait lateralement en apparaissant.
   const openAt = React.useCallback(
     (el: HTMLDivElement | null) => {
+      scrollRef.current = el;
       if (!el) return;
       const offset = inlineScrollForDateIn(days, anchorDate, dayWidth);
       if (offset !== null) setInlineScroll(el, offset, isRtl);
@@ -115,7 +123,7 @@ export default function PlanningGridSkeleton({
       >
         <div
           className="min-w-full flex flex-col min-h-full [&>*]:shrink-0"
-          style={{ width: propertyColWidth + totalGridWidth }}
+          style={{ width: propertyColWidth + totalGridWidth, visibility: layoutReady ? 'visible' : 'hidden' }}
         >
           {/* La rangée des dates est la VRAIE : les jours sont connus avant les
               données, il n'y a donc rien à simuler. */}

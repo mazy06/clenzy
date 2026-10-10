@@ -2,7 +2,7 @@ import { useBaitlyReservationDetails, mergeBaitlyReservationDetails } from './ho
 import { selectBaitlyHydratedEvents } from './utils/baitlyHydratedEvents';
 import { reservationToEvent } from './hooks/usePlanningData';
 import { useBaitlyInterventionLifecycle } from './hooks/useBaitlyInterventionLifecycle';
-import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useLayoutEffect, useRef, useCallback, useMemo } from 'react';
 import {
   Alert,
   AlertDescription,
@@ -98,6 +98,12 @@ const PlanningPage: React.FC = () => {
 
   // Navigation (dates, zoom, density)
   const nav = usePlanningNavigation();
+  const [initialLayoutReady, setInitialLayoutReady] = useState(false);
+  useLayoutEffect(() => {
+    // Let the timeline recenter its buffer on the saved zoom before starting queries.
+    if (nav.preferencesReady) setInitialLayoutReady(true);
+  }, [nav.preferencesReady]);
+  const planningLayoutReady = nav.preferencesReady && initialLayoutReady;
 
   // Superviseur d'agents : portée (par logement / vue d'ensemble) + gate RBAC.
   const { canView: canViewSupervision } = useCanSuperviseAgents();
@@ -186,7 +192,7 @@ const PlanningPage: React.FC = () => {
     }
   }, [expandedPropertyId, setExpandedPropertyId, resetExpandedProperty]);
   // Largeur de la colonne logements : breakpoint-based + redimensionnable
-  // par l'utilisateur (persiste dans localStorage).
+  // par l'utilisateur (preference persistee cote backend).
   const { width: propertyColWidth, setWidth: setPropertyColWidth } = useResizablePropertyColWidth();
 
   // Repli de la colonne logements — MOBILE uniquement : elle y mange la moitie
@@ -215,16 +221,19 @@ const PlanningPage: React.FC = () => {
   // Fenetre de CHARGEMENT : celle du rendu, une fois posee. Un defilement
   // rapide traverse plusieurs fenetres ; sans ce palier, chacune declenchait un
   // lot complet de requetes aussitot jete — de quoi epuiser le quota de l'API.
-  const fetchRange = useSettledRange(timeline.bufferStart, timeline.bufferEnd);
+  const fetchRange = useSettledRange(timeline.bufferStart, timeline.bufferEnd, planningLayoutReady);
 
   // Data fetching (chunked by 30-day aligned windows)
   const { properties, events: indexEvents, reservations: indexReservations, interventions, loading, settled, error } = usePlanningData(
     fetchRange.start,
     fetchRange.end,
+    planningLayoutReady,
   );
   // Le portefeuille réel pilote les commandes, jamais la liste filtrée :
   // un filtre sans résultat doit toujours pouvoir être effacé.
   const hasProperties = properties.length > 0;
+  // Reserve the same chrome while the properties/index load.
+  const hasPlanningSurface = hasProperties || loading || !nav.preferencesReady;
   const isOverview = hasProperties && canSupervise && supervisionScope === 'portfolio';
   const isFullscreen = hasProperties && nav.isFullscreen;
 
@@ -316,7 +325,7 @@ const PlanningPage: React.FC = () => {
     ];
   }, [filteredProperties, supervisorExpanded, expandedPropertyId]);
 
-  // Hauteur reelle de la grille, mesuree par PlanningTimeline. Le nombre de
+  // Hauteur reelle de la grille, mesuree des le squelette. Le nombre de
   // logements par page en decoule : l'estimation par constantes est taillee pour
   // le chrome du desktop et perdait une a deux lignes sur telephone.
   const [gridHeight, setGridHeight] = useState(0);
@@ -357,13 +366,13 @@ const PlanningPage: React.FC = () => {
   // Tant que la taille de page vient de l'ESTIMATION, cette liste va encore
   // changer : l'estimation donnait 8 logements là où la grille mesurée en tient
   // 10, et tout ce qui en dépend partait donc DEUX fois. On attend la mesure,
-  // qui arrive dès le premier effet suivant le montage de la grille.
-  const pageScopedFetchReady = pagination.isPageSizeMeasured;
+  // qui arrive avant l'index, dans le squelette aux memes dimensions.
+  const pageScopedFetchReady = planningLayoutReady && pagination.isPageSizeMeasured;
 
   const detailsPropertyIds = useMemo(() => selectedIndexEvent
     ? [...paginatedPropertyIds, selectedIndexEvent.propertyId] : paginatedPropertyIds,
     [paginatedPropertyIds, selectedIndexEvent?.propertyId]);
-  const priorityRange = useSettledRange(timeline.visibleRange.start, timeline.visibleRange.end);
+  const priorityRange = useSettledRange(timeline.visibleRange.start, timeline.visibleRange.end, planningLayoutReady);
   const details = useBaitlyReservationDetails(detailsPropertyIds, fetchRange.start, fetchRange.end,
     pageScopedFetchReady, priorityRange);
   useEffect(() => {
@@ -448,7 +457,7 @@ const PlanningPage: React.FC = () => {
   // porteuse.
   const canInlineDateNav = useMediaQuery(INLINE_CONTROLS_QUERY);
   const dateNavInHeader =
-    hasProperties && !isOverview && !isFullscreen && (canInlineDateNav || supervisorExpanded);
+    hasPlanningSurface && !isOverview && !isFullscreen && (canInlineDateNav || supervisorExpanded);
 
   // Source UNIQUE des entrées d'action : la même liste alimente le menu ⋯ propre
   // au planning (desktop) et les lignes à plat du menu du header (mobile).
@@ -762,7 +771,7 @@ const PlanningPage: React.FC = () => {
               pilotera. Il vivait dans le slot `filters` du PageHeader — le seul
               qui restait a y passer, et qui suffisait a y faire dessiner un
               entonnoir pour un panneau vide. */}
-          {hasProperties && !isOverview && (
+          {hasPlanningSurface && !isOverview && (
             supervisorExpanded ? (
               <HeaderSearchField
                 value={agentAsk}
@@ -791,18 +800,20 @@ const PlanningPage: React.FC = () => {
                `inlineControls`), jusqu'au menu ⋯ sur mobile. */
             inlineControls={
               dateNavInHeader ? (
-                <PlanningDateNav
-                  currentDate={visibleMonthDate}
-                  zoom={nav.zoom}
-                  onGoPrev={nav.goPrev}
-                  onGoToday={handleGoToday}
-                  onGoNext={nav.goNext}
-                  onZoomChange={nav.setZoom}
-                />
+                <div style={{ visibility: nav.preferencesReady ? 'visible' : 'hidden' }}>
+                  <PlanningDateNav
+                    currentDate={visibleMonthDate}
+                    zoom={nav.zoom}
+                    onGoPrev={nav.goPrev}
+                    onGoToday={handleGoToday}
+                    onGoNext={nav.goNext}
+                    onZoomChange={nav.setZoom}
+                  />
+                </div>
               ) : undefined
             }
             actions={
-              hasProperties ? (
+              hasPlanningSurface ? (
                 <>
                 {/* Portee de supervision — remplace le declencheur « Filtres »,
                     qui n'ouvrait plus qu'un panneau a un seul reglage. Rendue a
@@ -848,6 +859,7 @@ const PlanningPage: React.FC = () => {
                               variant="ghost"
                               size="icon"
                               aria-label={t('planning.grid.actions', 'Actions du planning')}
+                              disabled={!nav.preferencesReady}
                               className="relative"
                             >
                               <MoreVert size={18} strokeWidth={1.85} />
@@ -907,8 +919,8 @@ const PlanningPage: React.FC = () => {
           alors dans le PageHeader, en clair puis repliée dans son menu selon la
           largeur) — SAUF en plein écran, où le header n'existe pas : la toolbar
           reste la seule porteuse de la navigation. */}
-      {hasProperties && !isOverview && (!supervisorExpanded || isFullscreen) && (
-        <div className="shrink-0 mb-1.5">
+      {hasPlanningSurface && !isOverview && (!supervisorExpanded || isFullscreen) && (
+        <div className="shrink-0 mb-1.5" style={{ visibility: nav.preferencesReady ? 'visible' : 'hidden' }}>
           <PlanningToolbar
             currentDate={visibleMonthDate}
             zoom={nav.zoom}
@@ -944,7 +956,7 @@ const PlanningPage: React.FC = () => {
         <div className="baitly-portfolio-host flex-1 min-h-0 min-w-0 overflow-auto px-2">
           <PortfolioPanel createProvider={createPortfolioProvider} deps={['portfolio']} />
         </div>
-      ) : loading ? (
+      ) : loading || !planningLayoutReady ? (
         /* Pas un sursis tournant : la grille a venir, vide. Elle occupe deja sa
            place — memes largeurs de colonne, meme hauteur de rangee —, donc
            rien ne se deplace quand les donnees arrivent. */
@@ -958,6 +970,8 @@ const PlanningPage: React.FC = () => {
             propertyColWidth={effectivePropertyColWidth}
             totalGridWidth={totalGridWidth}
             collapsed={propertyColCollapsed}
+            layoutReady={planningLayoutReady}
+            onViewportHeight={setGridHeight}
           />
         </div>
       ) : properties.length === 0 ? (

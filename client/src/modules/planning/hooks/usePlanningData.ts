@@ -437,6 +437,7 @@ export interface UsePlanningDataReturn {
 export function usePlanningData(
   bufferStart: Date,
   bufferEnd: Date,
+  rangeReady = true,
 ): UsePlanningDataReturn {
   const { user } = useAuth();
 
@@ -502,7 +503,7 @@ export function usePlanningData(
     });
 
   const chunkEnabled = (chunk: { from: string }) =>
-    propertyIds.length > 0 && (priorityFroms.has(chunk.from) || prioritySettled);
+    rangeReady && propertyIds.length > 0 && (priorityFroms.has(chunk.from) || prioritySettled);
 
   // UNE requete par tranche, et `combine` pour en deriver les quatre listes.
   //
