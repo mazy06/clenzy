@@ -1,4 +1,4 @@
-import { describe, it, expect } from 'vitest';
+import { afterEach, describe, it, expect, vi } from 'vitest';
 import { render } from '@testing-library/react';
 
 import PlanningGridSkeleton from '../PlanningGridSkeleton';
@@ -11,6 +11,7 @@ import { ROW_CONFIG, DATE_HEADER_HEIGHT, PAGINATION_BAR_HEIGHT } from '../consta
  */
 
 const DAY_WIDTH = 80;
+afterEach(() => vi.restoreAllMocks());
 
 function days(count: number, from = new Date(2026, 8, 1)): Date[] {
   return Array.from({ length: count }, (_, i) => {
@@ -71,8 +72,26 @@ describe('PlanningGridSkeleton — la grille avant ses donnees', () => {
     const { container } = renderSkeleton();
     const hairlines = Array.from(container.querySelectorAll<HTMLElement>('[aria-hidden]'))
       .filter((el) => el.style.backgroundImage.includes('repeating-linear-gradient'));
-    expect(hairlines.length).toBeGreaterThan(0);
+    // A single shared backdrop covers every row instead of duplicating columns.
+    expect(hairlines).toHaveLength(1);
     expect(hairlines[0].style.backgroundImage).toContain(`${DAY_WIDTH - 1}px`);
+  });
+
+  it('ne construit pas les colonnes du zoom par défaut avant les préférences', () => {
+    const timeline = days(30);
+    const { container } = render(<PlanningGridSkeleton days={timeline} dayWidth={80} zoom="fortnight"
+      density="normal" anchorDate={timeline[10]} propertyColWidth={188} totalGridWidth={2400} layoutReady={false} />);
+    expect(container.querySelector('[aria-busy]')).not.toBeNull();
+    expect(container.querySelector('[style*="repeating-linear-gradient"]')).toBeNull();
+    expect(container.querySelector('[style*="inset-inline-start"]')).toBeNull();
+  });
+
+  it('construit uniquement les lignes tenant dans la hauteur mesurée', () => {
+    vi.spyOn(HTMLElement.prototype, 'clientHeight', 'get')
+      .mockReturnValue(DATE_HEADER_HEIGHT + 4 * ROW_CONFIG.normal.rowHeight);
+    const { container } = renderSkeleton();
+    const rows = container.querySelectorAll(`[style*="height: ${ROW_CONFIG.normal.rowHeight}px"]`);
+    expect(rows).toHaveLength(8); // Four property cells and four calendar tracks.
   });
 
   it('whenABrickIsDrawn_thenItSnapsToWholeDayColumns', () => {

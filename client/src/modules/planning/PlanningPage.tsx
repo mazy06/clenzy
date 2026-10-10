@@ -1,5 +1,6 @@
 import { useBaitlyReservationDetails, mergeBaitlyReservationDetails } from './hooks/useBaitlyReservationDetails';
 import { selectBaitlyHydratedEvents } from './utils/baitlyHydratedEvents';
+import { useBaitlyPlanningReady } from './hooks/useBaitlyPlanningReady';
 import { reservationToEvent } from './hooks/usePlanningData';
 import { useBaitlyInterventionLifecycle } from './hooks/useBaitlyInterventionLifecycle';
 import React, { useState, useEffect, useLayoutEffect, useRef, useCallback, useMemo } from 'react';
@@ -375,9 +376,11 @@ const PlanningPage: React.FC = () => {
   const priorityRange = useSettledRange(timeline.visibleRange.start, timeline.visibleRange.end, planningLayoutReady);
   const details = useBaitlyReservationDetails(detailsPropertyIds, fetchRange.start, fetchRange.end,
     pageScopedFetchReady, priorityRange);
-  useEffect(() => {
-    if (details.priorityReady) warmHotRoutes();
-  }, [details.priorityReady]);
+  const planningReady = planningLayoutReady && !loading && settled && !error && !details.error
+    && (!hasProperties || filteredProperties.length === 0
+      || (!isOverview && pageScopedFetchReady && details.priorityReady));
+  // Warm other screens only after the committed planning has had a paint opportunity.
+  useBaitlyPlanningReady(planningReady, warmHotRoutes);
   const reservations = useMemo(() => mergeBaitlyReservationDetails(indexReservations, details.reservations),
     [indexReservations, details.reservations]);
   const events = useMemo(() => {

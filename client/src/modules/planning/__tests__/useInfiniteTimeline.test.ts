@@ -185,6 +185,32 @@ describe('useInfiniteTimeline', () => {
     expect(renders - before).toBe(10);
   });
 
+  it('réutilise la largeur entre rendus et la remesure au redimensionnement', () => {
+    let notify!: ResizeObserverCallback;
+    const disconnect = vi.fn();
+    vi.stubGlobal('ResizeObserver', class {
+      constructor(callback: ResizeObserverCallback) { notify = callback; }
+      observe() {}
+      disconnect = disconnect;
+    });
+    const { hook, dayWidth } = setup('month');
+    let width = PROPERTY_COL + dayWidth * 10;
+    const element = attachScroller(hook.result.current.scrollRef, { clientWidth: width, scrollLeft: 50 * dayWidth });
+    const read = vi.fn(() => width);
+    Object.defineProperty(element, 'clientWidth', { get: read });
+    hook.rerender();
+    const reads = read.mock.calls.length;
+    for (let i = 0; i < 10; i++) hook.rerender();
+    expect(read).toHaveBeenCalledTimes(reads);
+    const oldEnd = hook.result.current.visibleRange.end;
+    width += dayWidth * 5;
+    act(() => notify([], {} as ResizeObserver));
+    expect(read).toHaveBeenCalledTimes(reads + 1);
+    expect(hook.result.current.visibleRange.end.getTime()).toBeGreaterThan(oldEnd.getTime());
+    hook.unmount();
+    expect(disconnect).toHaveBeenCalledOnce();
+  });
+
   // ── Cible hors fenetre ────────────────────────────────────────────────────
 
   describe('scrollToDate hors fenetre', () => {

@@ -210,3 +210,23 @@ La capacité sera le dernier palier soutenu respectant ces seuils sur cette
 infrastructure et ce jeu de données. Un nombre d'utilisateurs inscrits seul ne
 permet pas de la déduire : il faut sessions actives, fréquence de lecture,
 taille des portefeuilles et débit des écritures.
+
+## Mesurer l’affichage du planning Baitly
+
+Une réponse réseau terminée et un LCP rapide ne disent pas quand les réservations sont affichées. Le planning expose des entrées User Timing, visibles dans la trace Chrome Performance :
+
+| Entrée | Signification |
+| --- | --- |
+| `baitly.planning.mount` | Montage de la page, après les étapes de démarrage et d’authentification. |
+| `baitly.planning.data-ready` | Commit React avec préférences résolues, index initial réglé et détails de la période visible disponibles. Une erreur de lecture empêche la publication d’un succès. |
+| `baitly.planning.ready` | Le contenu prêt a traversé deux callbacks de frame dans un document visible. |
+| `baitly.planning.mount-to-ready` | Durée entre le montage de la page et ce repère d’affichage. |
+| `baitly.planning.navigation-to-ready` | Durée depuis le début du document, uniquement au premier montage quand le document a été chargé directement sur `/planning`. Inclut le démarrage et le SSO. |
+
+Ces repères sont publiés une fois par montage. Une navigation ou un démontage annule les callbacks en attente. Le repère `ready` marque une occasion de peinture du contenu commité, pas la fin des animations, le chargement de toutes les photos ou une preuve que chaque pixel a été peint. La bande de captures de la trace reste la vérification visuelle.
+
+Le préchargement des écrans fréquents démarre après ce repère, pendant l’inactivité du navigateur. Les périodes voisines continuent de charger en arrière-plan. Les prix et indicateurs complémentaires ne conditionnent pas ce repère : le planning peut afficher les réservations avant ces compléments.
+
+Pour comparer deux versions, utiliser le même compte, la même période, le même zoom et les mêmes logements. Conserver le même réglage de cache et refaire plusieurs mesures. Une capture avec un profil de navigateur sans extensions aide à distinguer le coût du produit de celui des outils. Comparer le CLS, les tâches longues et `mount-to-ready` avec l’arrivée des réponses API et la bande de captures. Ces mesures à un utilisateur ne remplacent pas un test de charge multi-comptes.
+
+Les marqueurs ne contiennent aucun identifiant utilisateur ou de logement. Ils restent dans les API Performance du navigateur et ne déclenchent pas de nouvelle requête de télémétrie.
