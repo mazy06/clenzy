@@ -11,7 +11,6 @@ import { CustomPermissionsProvider } from '../hooks/useCustomPermissions';
 import { UserUiPreferencesProvider } from '../providers/UserUiPreferencesProvider';
 import { usePostHogIdentify, usePostHogPageTracking } from '../providers/PostHogProvider';
 import { useCrispIdentify } from '../hooks/useCrispIdentify';
-import Login from './auth/Login';
 import MainLayoutFull from './layout/MainLayoutFull';
 import { prefetchRoute } from './routePrefetch';
 import AuthenticatedApp from './AuthenticatedApp';
@@ -29,6 +28,7 @@ import { clearTokens } from '../services/storageService';
 // elle importait `@stripe/react-stripe-js` + `@stripe/stripe-js`, qui
 // atterrissaient dans le chunk d'entrée et se faisaient préloader au boot de
 // TOUS les utilisateurs du PMS — dont aucun ne repasse jamais par l'inscription.
+const Login = lazy(() => import('./auth/Login'));
 const Inscription = lazy(() => import('./auth/RegistrationEntry'));
 const InscriptionSuccess = lazy(() => import('./auth/InscriptionSuccess'));
 const InscriptionConfirm = lazy(() => import('./auth/InscriptionConfirm'));

@@ -175,11 +175,13 @@ class PlanningDataControllerTest {
     }
 
     @Test void detailsValidateOwnershipBeforeDedicatedRead() {
-        when(detailService.details(IDS, FROM, TO)).thenReturn(List.of());
+        when(detailService.details(IDS, FROM, TO)).thenReturn(
+                new com.clenzy.service.BaitlyPlanningReservationService.Details(List.of(), 2_000_000, 5_000_000, 1_000_000, 4_000_000));
         var response = controller.reservationDetails(jwt, IDS, FROM, TO);
         assertThat(response.getBody()).isEmpty();
         assertThat(response.getHeaders().getFirst("Server-Timing"))
-                .matches("authz;dur=[0-9]+\\.[0-9]{3}, details;dur=[0-9]+\\.[0-9]{3}");
+                .matches("authz;dur=[0-9]+\\.[0-9]{3}, details;dur=[0-9]+\\.[0-9]{3}, "
+                        + "rows;dur=2.000, contacts;dur=5.000, decrypt;dur=4.000, mapping;dur=1.000");
         var order = org.mockito.Mockito.inOrder(reservationService, detailService);
         order.verify(reservationService).validatePropertyAccessBatch(IDS, "user-123");
         order.verify(detailService).details(IDS, FROM, TO);

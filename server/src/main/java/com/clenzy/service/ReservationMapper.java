@@ -71,9 +71,11 @@ public class ReservationMapper {
     }
 
     /** Même contrat et mêmes calculs, sans accès aux proxies des relations. */
-    public ReservationDto toPlanningDto(BaitlyPlanningReservationRow row) {
+    public ReservationDto toPlanningDto(BaitlyPlanningReservationRow row,
+            com.clenzy.dto.BaitlyPlanningGuestContact contact) {
         return toDto(row.reservation(), row.propertyId(), row.propertyName(), row.guestId(),
-                row.guestEmail(), row.guestPhone(), row.guestAvatarKey(), row.interventionId());
+                contact == null ? null : contact.email(), contact == null ? null : contact.phone(),
+                contact == null ? null : contact.avatarKey(), row.interventionId());
     }
 
     private ReservationDto toDto(Reservation entity, Long propertyId, String propertyName,

@@ -24,6 +24,9 @@ import { useGeoDetection } from './hooks/useGeoDetection'
 import { AuthProvider } from './contexts/AuthContext'
 import { useTranslation } from 'react-i18next'
 import { i18nInitPromise } from './i18n/config'
+import { markBaitlyBoot } from './services/baitlyBootTiming'
+
+markBaitlyBoot('entry-evaluated');
 
 // ─── Service Worker kill-switch en mode DEV ──────────────────────────────────
 // Probleme historique : un SW PWA installe via `npm run preview` ou via un
@@ -98,8 +101,10 @@ if (sentryDsn) {
   // Session Replay : intégration lourde (instrumentation DOM complète) —
   // ajoutée à l'idle pour ne pas peser sur le boot (audit perf). Les erreurs
   // survenant avant l'ajout sont capturées normalement, sans replay associé.
-  const addReplay = () => Sentry.addIntegration(Sentry.replayIntegration());
-  scheduleBaitlyDeferredStartup(addReplay);
+  scheduleBaitlyDeferredStartup(() => {
+    void import('./services/baitlyReplay').then(({ startBaitlyReplay }) => startBaitlyReplay())
+      .catch(() => { /* Sentry conserve la collecte d'erreurs si Replay est indisponible. */ });
+  });
 }
 
 // Optional analytics SDK starts after the planning paint, outside the boot bundle.
@@ -224,6 +229,7 @@ void i18nInitPromise
     console.error('[i18n] init échouée — rendu avec clés brutes en repli', error)
   })
   .then(() => {
+    markBaitlyBoot('root-render');
     ReactDOM.createRoot(document.getElementById('root')!).render(
       <React.StrictMode>
         <QueryClientProvider client={queryClient}>

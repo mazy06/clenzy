@@ -138,12 +138,14 @@ public class PlanningDataController {
         long started = System.nanoTime();
         reservationService.validatePropertyAccessBatch(propertyIds, jwt.getSubject());
         long authorized = System.nanoTime();
-        List<ReservationDto> details = propertyIds.isEmpty() ? List.of() : detailService.details(propertyIds, from, to);
+        var details = propertyIds.isEmpty() ? BaitlyPlanningReservationService.Details.empty()
+                : detailService.details(propertyIds, from, to);
         long completed = System.nanoTime();
         // Fixed labels and durations only; no account, property or guest identifiers.
-        String timing = String.format(java.util.Locale.ROOT, "authz;dur=%.3f, details;dur=%.3f",
-                (authorized - started) / 1_000_000.0, (completed - authorized) / 1_000_000.0);
-        return ResponseEntity.ok().header("Server-Timing", timing).body(details);
+        String timing = String.format(java.util.Locale.ROOT, "authz;dur=%.3f, details;dur=%.3f, ",
+                (authorized - started) / 1_000_000.0, (completed - authorized) / 1_000_000.0)
+                + details.serverTiming();
+        return ResponseEntity.ok().header("Server-Timing", timing).body(details.reservations());
     }
 
     private static void validateIndexRange(LocalDate from, LocalDate to) {

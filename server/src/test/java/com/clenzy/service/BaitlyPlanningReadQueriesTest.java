@@ -2,6 +2,8 @@ package com.clenzy.service;
 
 import com.clenzy.dto.BaitlyPlanningReservationIndex;
 import com.clenzy.dto.BaitlyPlanningReservationRow;
+import com.clenzy.dto.BaitlyPlanningGuestContact;
+import com.clenzy.util.BaitlyFieldDecryptionTiming;
 import com.clenzy.config.EncryptedFieldConverter;
 import com.clenzy.model.*;
 import com.clenzy.repository.*;
@@ -155,7 +157,25 @@ class BaitlyPlanningReadQueriesTest {
         var mapper = new ReservationMapper(null, null,
                 new GuestPhotoUrlResolver(null),
                 new com.clenzy.service.agent.analytics.ChannelCommissionResolver());
-        var dtos = rows.stream().map(mapper::toPlanningDto).toList();
+        var guestIds = rows.stream().map(BaitlyPlanningReservationRow::guestId)
+                .filter(Objects::nonNull).distinct().toList();
+        assertThat(guestIds).containsExactly(guest.getId());
+        var contactsQuery = GuestRepository.class.getMethod("findBaitlyPlanningContacts", Collection.class, Long.class)
+                .getAnnotation(Query.class).value();
+        Map<Long, BaitlyPlanningGuestContact> contacts;
+        try (var timing = BaitlyFieldDecryptionTiming.open()) {
+            contacts = em.createQuery(contactsQuery, BaitlyPlanningGuestContact.class)
+                    // Même si un ID étranger est fourni, la seconde lecture applique son propre garde tenant.
+                    .setParameter("ids", List.of(guest.getId(), foreignGuest.getId()))
+                    .setParameter("orgId", 1L).getResultList().stream()
+                    .collect(java.util.stream.Collectors.toMap(BaitlyPlanningGuestContact::id,
+                            java.util.function.Function.identity()));
+            // Vingt séjours du même voyageur : deux déchiffrements, pas quarante.
+            assertThat(timing.count()).isEqualTo(2);
+            assertThat(timing.nanos()).isPositive();
+        }
+        assertThat(contacts).hasSize(1).doesNotContainKey(foreignGuest.getId());
+        var dtos = rows.stream().map(row -> mapper.toPlanningDto(row, contacts.get(row.guestId()))).toList();
         assertThat(dtos).hasSize(22);
         assertThat(dtos.getFirst().guestEmail()).isEqualTo("alice@example.test");
         assertThat(dtos.getFirst().guestPhone()).isEqualTo("+33123456789");
@@ -164,7 +184,7 @@ class BaitlyPlanningReadQueriesTest {
         assertThat(dtos.getFirst().otaFeeEstimated()).isTrue();
         assertThat(dtos.getLast().guestId()).isNull();
         assertThat(dtos.get(20).guestEmail()).isNull();
-        assertThat(sessions.getStatistics().getPrepareStatementCount()).isEqualTo(1);
+        assertThat(sessions.getStatistics().getPrepareStatementCount()).isEqualTo(2);
         assertThat(sessions.getStatistics().getEntityLoadCount()).isEqualTo(22);
         assertThat(sessions.getStatistics().getEntityFetchCount()).isZero();
     }

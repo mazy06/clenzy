@@ -252,3 +252,73 @@ Les labels sont fixes et ne contiennent aucune donnée personnelle. Le prochain
 HAR permet de comparer ces phases au délai d'attente du premier octet, avant
 de choisir une optimisation SQL ou de déchiffrement. Aucun gain serveur ni
 capacité multi-utilisateurs ne peut être déduit de l'ajout de ces repères.
+## Lecture des coordonnées et démarrage : prochain relevé staging
+
+Les détails du planning lisent désormais les réservations sans leurs coordonnées,
+puis les seules coordonnées des voyageurs distincts présents dans cette lecture.
+Deux requêtes groupées remplacent la jointure qui déchiffrait les mêmes colonnes
+pour chaque séjour. Les deux lectures restent filtrées par organisation ; les
+identifiants voyageurs viennent uniquement des réservations déjà autorisées.
+Aucun cache de coordonnées n'est conservé entre requêtes. Les paramètres AES,
+la clé et le comportement strict en cas de déchiffrement invalide sont inchangés.
+
+Le convertisseur utilise désormais le pool Jasypt de la même implémentation
+`StandardPBEStringEncryptor`, avec l'algorithme et le générateur d'IV configurés
+par `AES256TextEncryptor`. Le pool est borné au nombre de processeurs disponibles,
+avec un maximum de quatre instances ; aucun thread de travail supplémentaire
+n'est créé. Les clés, la dérivation, les sels, les IV et le format stocké restent
+compatibles. Les tests vérifient la lecture des anciens chiffrés par le pool,
+la lecture des nouvelles écritures par l'ancien lecteur, et les lectures et
+écritures simultanées de huit utilisateurs synthétiques.
+
+Le probe local sur des valeurs synthétiques montre que le lecteur unique
+sérialise quatre requêtes de 182 champs (environ 290 ms au total après chauffe,
+contre environ 80 ms avec quatre lecteurs indépendants sur cette machine).
+Ce résultat identifie une contention, sans prédire le temps sur le staging ni
+certifier une capacité utilisateurs. Le pool vise la concurrence entre requêtes ;
+il ne divise pas le coût cryptographique d'une requête isolée et reste limité
+par les ressources CPU du serveur.
+Le même probe exécuté avec le pool Jasypt configuré comme le convertisseur
+mesure environ 106 à 178 ms pour les quatre lectures, contre 297 à 389 ms pour
+le lecteur partagé, selon la chauffe et la charge locale. Ces chiffres restent
+des mesures synthétiques de déchiffrement, pas des latences HTTP.
+
+`Server-Timing` conserve `authz` et `details`, avec quatre repères supplémentaires :
+
+| Repère | Périmètre |
+| --- | --- |
+| `rows` | Lecture et hydratation des réservations sans coordonnées |
+| `contacts` | Déduplication des voyageurs, lecture et déchiffrement des coordonnées |
+| `decrypt` | Temps cumulé dans le déchiffreur pendant `contacts` |
+| `mapping` | Conversion des lignes et coordonnées en DTO |
+
+`decrypt` est inclus dans `contacts`, et les quatre phases sont incluses dans
+`details` : ne pas additionner ces durées imbriquées. `rows` et `contacts` ne
+sont pas des mesures SQL pures. `details` inclut aussi l'encadrement transactionnel.
+Le test de projection réel vérifie vingt séjours d'un même voyageur : deux
+déchiffrements de coordonnées au lieu de quarante, et aucun chargement de ses
+autres champs chiffrés. Avec presque uniquement des voyageurs distincts, le gain
+sera limité ; le prochain HAR doit mesurer le bilan des deux requêtes.
+
+Le code de Sentry Replay est importé après le premier affichage du planning,
+via le même ordonnanceur que les analytics. La collecte d'erreurs Sentry reste
+initialisée au démarrage. Le login, la palette de commandes et les illustrations
+du guide sont également des imports dynamiques : le planning ne télécharge pas
+les modules qu'il n'affiche pas. Le lanceur du guide et les raccourcis restent
+disponibles dans la coquille.
+
+La trace Performance comprend des repères fixes `baitly:boot:*` : `auth-start`,
+`session-received`, `me-received`, `entry-evaluated`, `translations-ready`,
+`root-render`, `user-ready`, en plus des repères existants du planning.
+Ils ne contiennent aucune donnée de compte. Le début de navigation et les
+Resource Timings restent nécessaires pour mesurer téléchargement et évaluation
+des dépendances avant ces repères. Les parcours sans session ou en erreur
+peuvent omettre certains repères.
+
+Pour comparer au relevé 8, garder le même compte, la même fenêtre et les mêmes
+conditions de cache. Enregistrer aussi un relevé sans extensions actives :
+React DevTools intervient dans les profils précédents. Comparer le moment où
+la grille complète est visible, pas seulement le LCP du header. Vérifier
+`Server-Timing`, les repères boot et que le chunk Replay arrive après le repère
+de disponibilité du planning. Plusieurs rechargements sont nécessaires pour
+distinguer un gain reproductible d'une variation de charge du staging.
