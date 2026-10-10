@@ -632,3 +632,131 @@ Les quatre chantiers prioritaires ont maintenant une implémentation et une
 mesure : coordonnées à la demande, douze comptes relançables, trois tailles
 de portefeuille et correction SQL des interventions. Le passage à une charge
 élevée reste à valider au-delà du palier effectivement exécuté.
+
+### Répétitions des petits portefeuilles
+
+Le mode `small` du workflow infra privilégie les portefeuilles de 10 et 100
+logements, avec quatre organisations synthétiques par taille. Il réutilise
+les mêmes fixtures et le même backend que la comparaison précédente.
+Le provisioning conserve les douze comptes relançables, mais les comptes
+de 1 000 logements ne participent pas à cette mesure.
+
+Une chauffe de 90 secondes par taille précède trois répétitions de trois
+minutes, toujours à une fenêtre par seconde et avec catalogue complet.
+L'ordre est 10/100, puis 100/10, puis 10/100. Les résumés de chauffe restent
+séparés des mesures ; une erreur métier, un 429 ou une fenêtre non démarrée
+pendant la chauffe interrompt le scénario. Les comptes sont désactivés à
+la sortie. Ce mode n'augmente jamais le débit à 5 ou 10 fenêtres/s.
+
+Les phases fixes `authz`, `details`, `rows`, `contacts`, `decrypt` et `mapping`
+du header `Server-Timing` des briques sont exportées en millisecondes,
+sans descriptions ni identifiants. Leur durée n'inclut pas tout le trajet
+HTTP, `details` recouvre les sous-phases et `contacts` inclut `decrypt` :
+ne pas additionner les six.
+
+Les P95 sont comparés par répétition, avec leur intervalle min/max et la
+médiane des trois P95. Cette médiane n'est pas un P95 global des échantillons.
+Le test k6 n'utilise pas le cache HTTP d'un navigateur : la chauffe concerne
+les caches serveur et les mêmes données. Le rendu React doit être mesuré
+séparément par une trace navigateur.
+
+Limite de représentativité : les fixtures gardent le rôle technique
+`SUPER_ADMIN` pour rendre les comparaisons avant/après identiques. Un `HOST`
+ajoute un filtre propriétaire au catalogue et une lecture de son entité
+utilisateur dans `validatePropertyAccessBatch`, qui déchiffre ses champs.
+Les résultats ne qualifient donc pas encore ce parcours propriétaire.
+Une mesure dédiée au rôle `HOST` devra suivre ; une projection limitée à
+l'identifiant et au rôle est un candidat à étudier, en conservant exactement
+les contrôles de propriété et d'organisation.
+
+### Résultats répétés : workflow 38047760471
+
+Exécution réussie le 10 octobre sur `app.clenzy.fr`, outils au SHA
+`5d72fa5c140e79a25b3bc2b912fb1f5a76eb6837`, backend inchangé au SHA `d860c6e`.
+La chauffe puis les six répétitions ont terminé ; les objectifs k6 de latence,
+erreurs, limitations et fenêtres non démarrées sont tous respectés dans les
+six répétitions retenues après chauffe.
+Les comptes sont désactivés par le nettoyage final.
+
+P95 en millisecondes : la colonne précédente correspond à une seule exécution
+du workflow 38044214930 ; la nouvelle médiane est celle des trois P95 de série.
+Les différences ne constituent pas un gain causal de code : le backend est
+identique, la chauffe et les répétitions qualifient la stabilité.
+
+| Mesure | 10 : précédente | 10 : médiane nouvelle | 10 : intervalle des trois | 100 : précédente | 100 : médiane nouvelle | 100 : intervalle des trois |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| Fenêtre API avec catalogue | 1 040 | 637 | 629–670 | 710 | 666 | 664–692 |
+| Catalogue / page | 227 | 213 | 212–219 | 231 | 231 | 220–243 |
+| Index / lot | 366 | 286 | 282–286 | 325 | 308 | 292–316 |
+| Briques | 542 | 425 | 421–428 | 435 | 423 | 412–432 |
+| Prix | 649 | 238 | 234–240 | 243 | 237 | 230–239 |
+| Nuits minimales | 332 | 265 | 262–266 | 278 | 264 | 256–265 |
+
+493 fenêtres mesurées pour les portefeuilles de 10, 492 pour ceux de 100 :
+**985 fenêtres, zéro erreur de contrôle, zéro 429 et zéro fenêtre perdue**.
+La lenteur ponctuelle des prix à 649 ms ne se reproduit pas dans ces trois
+passages. Cela soutient une stabilité au débit testé, pas une preuve que la
+lenteur précédente ne pourra plus survenir ni une capacité à forte concurrence.
+
+**Le premier passage de chauffe reste lent** : sur 10 logements, fenêtre
+P95 1 483 ms, prix 644 ms, catalogue 648 ms, index 685 ms, briques 803 ms
+et nuits minimales 667 ms. Les cinq endpoints dépassent alors l'objectif
+P95 de 500 ms, avec zéro erreur, 429 ou fenêtre perdue. La chauffe 100
+qui suit est à 774 ms par fenêtre et respecte ses seuils. La lenteur initiale
+mérite donc une investigation distincte : l'origine (chauffe JVM/caches,
+trafic ambiant ou transport) n'est pas isolée par ces résumés.
+Durant cette première chauffe, le service de détails reste à 235 ms P95
+et le déchiffrement des contacts à 122 ms, proches des répétitions.
+La dégradation HTTP apparaît donc sans hausse comparable de ces phases
+mesurées : instrumenter aussi les traitements avant le controller et le
+transport, sans déduire un résidu par soustraction de percentiles.
+
+Phases des briques, médiane des trois P95, en millisecondes :
+
+| Phase | 10 logements | 100 logements |
+| --- | ---: | ---: |
+| Autorisation `authz` | 12,0 | 12,9 |
+| Service de détails `details` | 225,7 | 234,7 |
+| Lecture et hydratation `rows` | 114,7 | 118,4 |
+| Contacts `contacts` | 127,6 | 132,3 |
+| Déchiffrement des contacts `decrypt` | 125,0 | 124,2 |
+| Assemblage `mapping` | 0,14 | 0,15 |
+
+Le déchiffrement des contacts reste un coût mesuré. `rows` inclut l'appel
+JPA et l'hydratation ; ce n'est pas un temps SQL isolé. Les plans SQL
+représentatifs exportés ne sont pas une capture de la requête Hibernate
+réelle. Le header commence dans le controller et ne couvre ni toute la
+sécurité en amont, ni la sérialisation HTTP, ni le réseau. Ne pas soustraire
+des P95 de phases pour calculer un résidu : ils ne portent pas forcément
+sur les mêmes requêtes.
+
+Les 80 échantillons globaux observent un pic CPU backend de 118 % avec
+1,70 GiB de RSS à ce pic, PostgreSQL 75 % et Redis 8 %. Les connexions
+PostgreSQL passent de 12 à 14 ; aucun deadlock supplémentaire n'est relevé.
+La cohorte 1 000 ne reçoit aucune charge mesurée dans ce mode : ces chiffres
+ne sont pas directement comparables au précédent pic backend à 292 %.
+
+Prochaines qualifications prioritaires pour les petits portefeuilles :
+
+- scénario avec rôle propriétaire réel, puis projection d'autorisation
+  limitée à l'identifiant et au rôle si les tests préservent tous les refus ;
+- capture de la requête Hibernate des briques et coût d'hydratation ;
+- audit des usages de l'email sur les briques avant tout remplacement
+  éventuel par un indicateur de présence, avec email complet au panneau ;
+- montée progressive du débit sur ces mêmes petits portefeuilles et nouvelle
+  trace navigateur pour vérifier la publication simultanée.
+
+### Recentrage initial après publication groupée du planning
+
+La publication simultanée des prix et des briques retardait le montage du
+défileur après le chargement du catalogue. L'ancien effet marquait le
+recentrage initial comme effectué avant que ce défileur existe : la grille
+pouvait apparaître au début du buffer, dans le passé.
+
+La PR 436 attend le vrai défileur et positionne l'ancre avant peinture.
+Aujourd'hui reste en 7e colonne (six colonnes précédentes visibles), pour
+les trois zooms. Les rafraîchissements suivants préservent le défilement de
+l'utilisateur. Validation : 30 tests ciblés, TypeScript, build Vite et CI
+frontend réussis. Le commit main est `f134d0bb8deea61b85927cda0f74f4a0c05a9acd`.
+Le CD staging `38048609565` a réussi. La lecture publique de l'asset principal
+`/assets/index-BTNe4dop.js` confirme que `app.clenzy.fr` sert ce SHA frontend.
