@@ -20,6 +20,7 @@ import { useTranslation } from "../../hooks/useTranslation";
 import BaitlyMarkLogo from "../BaitlyMarkLogo";
 import { Skeleton } from "../ui/skeleton";
 import ErrorBoundary from "../ErrorBoundary";
+import "./setup-surfaces.css";
 
 const OnboardingStepContent = lazy(() => import("./OnboardingStepContent"));
 const SetupIllustration = lazy(() => import("./SetupIllustration"));
