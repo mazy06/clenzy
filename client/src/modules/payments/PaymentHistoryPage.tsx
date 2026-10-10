@@ -2,7 +2,7 @@ import { financeEventArtwork } from '../billing/components/financeEventArtwork';
 import FinanceHeaderFilters from '../billing/components/FinanceHeaderFilters';
 import FinanceWorkspace from '../billing/components/FinanceWorkspace';
 import { FinanceAmountKpis } from '../billing/components/FinanceKpis';
-import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import FinanceStatusIcon from '../billing/components/FinanceStatusIcon';
 import { Alert as UiAlert, AlertAction, AlertDescription } from '../../components/ui';
 import { TriangleAlert, X } from '../../icons/glyphs';
@@ -23,7 +23,7 @@ import { useNavigate } from 'react-router-dom';
 import { useTranslation } from '../../hooks/useTranslation';
 import { useAuth } from '../../hooks/useAuth';
 import { paymentsApi } from '../../services/api/paymentsApi';
-import type { PaymentRecord, HostOption } from '../../services/api/paymentsApi';
+import type { PaymentRecord, HostOption, PaymentAmountGroup } from '../../services/api/paymentsApi';
 import { reservationsApi } from '../../services/api/reservationsApi';
 import PageHeader from '../../components/PageHeader';
 import { FilterSearchBar } from '../../components/FilterSearchBar';
@@ -52,7 +52,9 @@ const PaymentHistoryPage: React.FC<PaymentHistoryPageProps> = ({ embedded = fals
   const isAdminOrManager = user?.roles?.some((r) => ['SUPER_ADMIN', 'SUPER_MANAGER'].includes(r)) ?? false;
 
   // Data state
-  const [allPayments, setAllPayments] = useState<PaymentRecord[]>([]);
+  const [payments, setPayments] = useState<PaymentRecord[]>([]);
+  const [totalElements, setTotalElements] = useState(0);
+  const [amountGroups, setAmountGroups] = useState<PaymentAmountGroup[]>([]);
   const requestVersion = useRef(0);
 
   // Host filter (ADMIN/MANAGER)
@@ -65,6 +67,11 @@ const PaymentHistoryPage: React.FC<PaymentHistoryPageProps> = ({ embedded = fals
 
   // Filter state
   const [search, setSearch] = useState('');
+  const [debouncedSearch, setDebouncedSearch] = useState('');
+  useEffect(() => {
+    const timer = window.setTimeout(() => setDebouncedSearch(search), 250);
+    return () => window.clearTimeout(timer);
+  }, [search]);
   const [statusFilter, setStatusFilter] = useState('');
   const [dateFrom, setDateFrom] = useState('');
   const [dateTo, setDateTo] = useState('');
@@ -101,13 +108,9 @@ const PaymentHistoryPage: React.FC<PaymentHistoryPageProps> = ({ embedded = fals
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(10);
   const [selectedId, setSelectedId] = useState<string | number | null>(null);
-  const filteredPayments = useMemo(() => {
-    const query = search.trim().toLocaleLowerCase();
-    return query ? allPayments.filter(record => [record.description, record.propertyName, record.hostName]
-      .some(value => value?.toLocaleLowerCase().includes(query))) : allPayments;
-  }, [allPayments, search]);
-  const totalElements = filteredPayments.length;
-  const payments = filteredPayments.slice(page * rowsPerPage, (page + 1) * rowsPerPage);
+  const amountScope = JSON.stringify([statusFilter, dateFrom, dateTo, hostFilter, debouncedSearch]);
+  const loadedAmountScope = useRef<string | null>(null);
+  const handlePageSizeChange = useCallback((size: number) => { setRowsPerPage(size); setPage(0); }, []);
 
   // ─── Load hosts list for ADMIN/MANAGER ──────────────────────────────────────
 
@@ -125,7 +128,11 @@ const PaymentHistoryPage: React.FC<PaymentHistoryPageProps> = ({ embedded = fals
       if (!background) setLoading(true);
       setError(null);
 
-      const historyRes = await paymentsApi.getAllHistory({
+      const historyRes = await paymentsApi.getPage({
+          page,
+          size: rowsPerPage,
+          search: debouncedSearch || undefined,
+          includeAmounts: background || loadedAmountScope.current !== amountScope,
           status: statusFilter || undefined,
           dateFrom: dateFrom || undefined,
           dateTo: dateTo || undefined,
@@ -133,15 +140,23 @@ const PaymentHistoryPage: React.FC<PaymentHistoryPageProps> = ({ embedded = fals
         });
 
       if (requestVersion.current !== version) return;
-      setAllPayments(historyRes);
+      setPayments(historyRes.content);
+      setTotalElements(historyRes.totalElements);
+      if (historyRes.amountGroups) {
+        setAmountGroups(historyRes.amountGroups);
+        loadedAmountScope.current = amountScope;
+      }
     } catch {
       if (requestVersion.current !== version) return;
-      setAllPayments([]);
+      setPayments([]);
+      setTotalElements(0);
+      setAmountGroups([]);
+      loadedAmountScope.current = null;
       setError(t('payments.errors.load'));
     } finally {
       if (requestVersion.current === version) setLoading(false);
     }
-  }, [statusFilter, dateFrom, dateTo, hostFilter]);
+  }, [statusFilter, dateFrom, dateTo, hostFilter, page, rowsPerPage, debouncedSearch, amountScope]);
 
   useEffect(() => {
     loadData();
@@ -178,8 +193,11 @@ const PaymentHistoryPage: React.FC<PaymentHistoryPageProps> = ({ embedded = fals
   }, [loadData, refundTarget]);
   useRefundFollowUp(pendingRefundIds, handleRefundsConfirmed, refundSeries);
 
-  useEffect(() => { setPage(0); }, [search, statusFilter, dateFrom, dateTo, hostFilter]);
-  useEffect(() => { setPage(current => Math.min(current, Math.max(0, Math.ceil(totalElements / rowsPerPage) - 1))); }, [totalElements, rowsPerPage]);
+  useEffect(() => { setPage(0); }, [dateFrom, dateTo]);
+  useEffect(() => { setSelectedId(null); }, [page, statusFilter, dateFrom, dateTo, hostFilter, debouncedSearch]);
+  useEffect(() => {
+    if (!loading && !error) setPage(current => Math.min(current, Math.max(0, Math.ceil(totalElements / rowsPerPage) - 1)));
+  }, [totalElements, rowsPerPage, loading, error]);
   // ─── Handlers ─────────────────────────────────────────────────────────────
 
   const handleChangePage = (newPage: number) => {
@@ -391,7 +409,7 @@ const PaymentHistoryPage: React.FC<PaymentHistoryPageProps> = ({ embedded = fals
         processing={processingPayment === payment.referenceId} />,
     };
   };
-  const selectedPayment = filteredPayments.find(payment => `${payment.type}-${payment.id}` === String(selectedId));
+  const selectedPayment = payments.find(payment => `${payment.type}-${payment.id}` === String(selectedId));
 
   return (
     <div className="payment-history-page">
@@ -422,13 +440,13 @@ const PaymentHistoryPage: React.FC<PaymentHistoryPageProps> = ({ embedded = fals
       )}
 
       {/* KPIs (StatTile baseline) */}
-      {!error && <FinanceAmountKpis kind="payments" records={filteredPayments.map(row => ({ ...row, dueAmount: row.payableAmount, paidToOta: row.type === 'RESERVATION' && row.paymentCollection === 'CHANNEL' }))} loading={loading} />}
+      {!error && <FinanceAmountKpis kind="payments" amountGroups={amountGroups} loading={loading && loadedAmountScope.current !== amountScope} />}
 
       {/* Data table */}
       <FinanceBatchPanel placement={embedded ? 'header' : 'inline'} title={t('financeBatch.payments')} actionLabel={t('financeBatch.preparePayments')}
         disabled={loading || !!error} items={payableItems(payments)}
         loadAll={async () => {
-          const all = await paymentsApi.getAllHistory({ status: statusFilter || undefined, hostId: hostFilter || undefined, dateFrom: dateFrom || undefined, dateTo: dateTo || undefined });
+          const all = await paymentsApi.getAllHistory({ status: statusFilter || undefined, hostId: hostFilter || undefined, dateFrom: dateFrom || undefined, dateTo: dateTo || undefined, search: search.trim() || undefined });
           const term = search.trim().toLowerCase();
           return payableItems(all.filter(item => (!dateFrom || item.transactionDate?.slice(0, 10) >= dateFrom)
             && (!dateTo || item.transactionDate?.slice(0, 10) <= dateTo)
@@ -450,7 +468,7 @@ const PaymentHistoryPage: React.FC<PaymentHistoryPageProps> = ({ embedded = fals
         }
       >
         <FinanceWorkspace artwork="received" items={payments.map(makePaymentRecord)}
-          onPageSizeChange={setRowsPerPage} selectedId={selectedId} onSelect={setSelectedId}
+          onPageSizeChange={handlePageSizeChange} selectedId={selectedId} onSelect={setSelectedId}
           selectedRecord={selectedPayment ? makePaymentRecord(selectedPayment) : undefined}
           pagination={<><PagePagination
             count={totalElements}

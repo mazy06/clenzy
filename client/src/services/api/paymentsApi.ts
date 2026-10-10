@@ -76,6 +76,15 @@ export interface PaymentHistoryResponse {
   content: PaymentRecord[];
   totalElements: number;
   totalPages: number;
+  amountGroups?: PaymentAmountGroup[];
+}
+
+export interface PaymentAmountGroup {
+  key: string;
+  artwork: 'documents' | 'pending' | 'transfer' | 'received';
+  count: number;
+  unavailable: number;
+  totals: [string, number][];
 }
 
 export interface PaymentHistoryParams {
@@ -85,6 +94,8 @@ export interface PaymentHistoryParams {
   dateFrom?: string;
   dateTo?: string;
   hostId?: number;
+  search?: string;
+  includeAmounts?: boolean;
 }
 
 export interface HostOption {
@@ -128,6 +139,10 @@ export const paymentsApi = {
     return apiClient.get<PaymentHistoryResponse>('/payments/history', { params: params as Record<string, string | number | boolean | undefined | null> });
   },
 
+  async getPage(params?: PaymentHistoryParams): Promise<PaymentHistoryResponse> {
+    return apiClient.get<PaymentHistoryResponse>('/payments/history-page', { params: params as Record<string, string | number | boolean | undefined | null> });
+  },
+
   async getSummary(): Promise<PaymentSummary> {
     return apiClient.get<PaymentSummary>('/payments/summary');
   },
@@ -135,15 +150,13 @@ export const paymentsApi = {
   /** Toutes les pages du filtre, jamais seulement les dix lignes visibles. */
   async getAllHistory(params?: Omit<PaymentHistoryParams, 'page' | 'size'>): Promise<PaymentRecord[]> {
     const records = new Map<string, PaymentRecord>();
-    // Le serveur fusionne les trois sources à chaque appel. Des lots bornés
-    // de 500 évitent de reconstruire cinq fois le même historique de 456 lignes.
+    // Réservé à la sélection groupée explicite ; la liste utilise getPage.
     const pageSize = 500;
     for (let page = 0; page < 1000; page++) {
-      const response = await paymentsApi.getHistory({ ...params, page, size: pageSize });
+      const response = await paymentsApi.getPage({ ...params, page, size: pageSize, includeAmounts: false });
       response.content.forEach(item => records.set(`${item.type}:${item.referenceId}`, item));
       if (page + 1 >= response.totalPages) {
-        // L'endpoint historique ne filtre pas encore les dates. Appliquer le
-        // filtre au jeu complet, aussi pour la sélection groupée des dossiers.
+        // Garde de cohérence pour les dates locales, aussi pour les appels existants.
         return [...records.values()].filter(record => {
           if (!params?.dateFrom && !params?.dateTo) return true;
           if (!record.transactionDate) return false;
