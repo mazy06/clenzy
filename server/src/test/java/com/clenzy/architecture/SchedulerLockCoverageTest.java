@@ -42,6 +42,8 @@ class SchedulerLockCoverageTest {
      */
     private static final Set<String> EXEMPTIONS_DELIBEREES = Set.of(
             // A — etat local a l'instance
+            // Chaque instance entretient ses propres connexions SSE en mémoire.
+            "AssignmentRealtime#heartbeat",
             "AbstractFileStorageService#updateStorageMetrics",
             "ContactFileStorageService#updateStorageMetrics",
             "TokenCleanupService#scheduledTokenCleanup",
