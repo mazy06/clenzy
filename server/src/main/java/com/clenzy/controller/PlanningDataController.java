@@ -12,6 +12,7 @@ import org.springframework.web.server.ResponseStatusException;
 import org.springframework.http.HttpStatus;
 import com.clenzy.dto.ReservationDto;
 import com.clenzy.service.ReservationMapper;
+import com.clenzy.service.BaitlyPlanningReservationService;
 import com.clenzy.service.CalendarEngine;
 import com.clenzy.service.InterventionPlanningService;
 import com.clenzy.service.ReservationService;
@@ -76,6 +77,7 @@ public class PlanningDataController {
     private final TenantContext tenantContext;
     private final BaitlyPlanningIndexService indexService;
     private final BaitlyPlanningPropertyService propertyService;
+    private final BaitlyPlanningReservationService detailService;
 
     public PlanningDataController(ReservationService reservationService,
                                   ReservationMapper reservationMapper,
@@ -84,7 +86,8 @@ public class PlanningDataController {
                                   CalendarEngine calendarEngine,
                                   TenantContext tenantContext,
                                   BaitlyPlanningIndexService indexService,
-                                  BaitlyPlanningPropertyService propertyService) {
+                                  BaitlyPlanningPropertyService propertyService,
+                                  BaitlyPlanningReservationService detailService) {
         this.reservationService = reservationService;
         this.reservationMapper = reservationMapper;
         this.interventionPlanningService = interventionPlanningService;
@@ -93,6 +96,7 @@ public class PlanningDataController {
         this.tenantContext = tenantContext;
         this.indexService = indexService;
         this.propertyService = propertyService;
+        this.detailService = detailService;
     }
 
     public record BaitlyPlanningIndexData(List<BaitlyPlanningReservationIndex> reservations,
@@ -133,8 +137,7 @@ public class PlanningDataController {
         if (propertyIds.size() > 100) throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Lot de détails limité à 100 logements");
         reservationService.validatePropertyAccessBatch(propertyIds, jwt.getSubject());
         if (propertyIds.isEmpty()) return List.of();
-        return reservationService.getReservationsPage(jwt.getSubject(), propertyIds, from, to,
-                null, null, null, Pageable.unpaged()).getContent().stream().map(reservationMapper::toDto).toList();
+        return detailService.details(propertyIds, from, to);
     }
 
     private static void validateIndexRange(LocalDate from, LocalDate to) {

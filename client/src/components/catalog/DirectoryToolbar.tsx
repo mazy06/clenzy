@@ -1,8 +1,9 @@
 import type { ReactNode } from 'react';
 import { cn } from '../../utils/cn';
+import './baitlyDirectory.css';
 
 export function DirectoryToolbar({ children }: { children: ReactNode }) {
-  return <div className="mb-3 flex shrink-0 flex-wrap items-center gap-2">{children}</div>;
+  return <div className="baitly-directory-toolbar">{children}</div>;
 }
 
 export function DirectorySegments({ label, children }: { label?: string; children: ReactNode }) {

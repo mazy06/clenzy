@@ -1,5 +1,5 @@
-import { useMemo } from 'react';
-import { useQueries, type UseQueryResult } from '@tanstack/react-query';
+import { useCallback, useMemo } from 'react';
+import { useQueries, useQueryClient, type UseQueryResult } from '@tanstack/react-query';
 import type { Reservation } from '../../../services/api';
 import { planningDataApi, type PlanningData } from '../../../services/api/planningDataApi';
 import { planningKeys, dedup } from './usePlanningData';
@@ -12,7 +12,8 @@ function combineDetails(results: UseQueryResult<PlanningData, Error>[]) {
 }
 
 /** Hydrate seulement les séjours des lignes affichées et du panneau ouvert. */
-export function useBaitlyReservationDetails(propertyIds: number[], from: Date, to: Date, enabled: boolean) {
+export function useBaitlyReservationDetails(propertyIds: number[], from: Date, to: Date, enabled: boolean,
+  priorityRange: { start: Date; end: Date } = { start: from, end: to }) {
   const batches = useMemo(() => {
     const ids = [...new Set(propertyIds)].sort((a, b) => a - b);
     const result: number[][] = [];
@@ -22,14 +23,30 @@ export function useBaitlyReservationDetails(propertyIds: number[], from: Date, t
   const chunks = useMemo(() => getOverlappingChunks(from, to, DATA_CHUNK_SIZE_DAYS),
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [toDateStr(from), toDateStr(to)]);
+  const priorityFrom = toDateStr(priorityRange.start);
+  const priorityTo = toDateStr(priorityRange.end);
+  const requests = useMemo(() => batches.flatMap((ids) => chunks.map((chunk) => ({ ids, chunk,
+    priority: chunk.from <= priorityTo && chunk.to >= priorityFrom }))),
+    [batches, chunks, priorityFrom, priorityTo]);
+  const client = useQueryClient();
+  const prioritySettled = enabled && requests.filter((r) => r.priority).every(({ ids, chunk }) => {
+    const state = client.getQueryState(planningKeys.data(ids, chunk.from, chunk.to, true));
+    return !!state && (state.dataUpdatedAt > 0 || state.errorUpdatedAt > 0);
+  });
+  const combine = useCallback((results: UseQueryResult<PlanningData, Error>[]) => ({
+    ...combineDetails(results),
+    priorityReady: enabled && results.every((result, index) => !requests[index]?.priority
+      || result.isSuccess || result.isError),
+  }), [enabled, requests]);
   return useQueries({
-    queries: enabled ? batches.flatMap((ids) => chunks.map((chunk) => ({
+    queries: requests.map(({ ids, chunk, priority }) => ({
       queryKey: planningKeys.data(ids, chunk.from, chunk.to, true),
       queryFn: ({ signal }: { signal: AbortSignal }) => planningDataApi.getReservationDetails(ids, chunk.from, chunk.to, signal),
       staleTime: 30_000,
+      enabled: enabled && (priority || prioritySettled),
       gcTime: 5 * 60 * 1000,
-    }))) : [],
-    combine: combineDetails,
+    })),
+    combine,
   });
 }
 

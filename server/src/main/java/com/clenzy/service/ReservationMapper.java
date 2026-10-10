@@ -1,6 +1,7 @@
 package com.clenzy.service;
 
 import com.clenzy.dto.ReservationDto;
+import com.clenzy.dto.BaitlyPlanningReservationRow;
 import com.clenzy.model.Guest;
 import com.clenzy.model.Property;
 import com.clenzy.model.Reservation;
@@ -59,14 +60,32 @@ public class ReservationMapper {
 
     public ReservationDto toDto(Reservation entity) {
         Guest guest = entity.getGuest();
+        return toDto(entity,
+                entity.getProperty() != null ? entity.getProperty().getId() : null,
+                entity.getProperty() != null ? entity.getProperty().getName() : "",
+                guest != null ? guest.getId() : null,
+                guest != null ? guest.getEmail() : null,
+                guest != null ? guest.getPhone() : null,
+                guest != null ? guest.getAvatarUrl() : null,
+                entity.getIntervention() != null ? entity.getIntervention().getId() : null);
+    }
+
+    /** Même contrat et mêmes calculs, sans accès aux proxies des relations. */
+    public ReservationDto toPlanningDto(BaitlyPlanningReservationRow row) {
+        return toDto(row.reservation(), row.propertyId(), row.propertyName(), row.guestId(),
+                row.guestEmail(), row.guestPhone(), row.guestAvatarKey(), row.interventionId());
+    }
+
+    private ReservationDto toDto(Reservation entity, Long propertyId, String propertyName,
+            Long guestId, String guestEmail, String guestPhone, String guestAvatarKey, Long interventionId) {
         return new ReservationDto(
             entity.getId(),
-            entity.getProperty() != null ? entity.getProperty().getId() : null,
-            entity.getProperty() != null ? entity.getProperty().getName() : "",
+            propertyId,
+            propertyName,
             entity.getGuestName() != null ? entity.getGuestName() : "",
-            guest != null ? guest.getId() : null,
-            guest != null ? guest.getEmail() : null,
-            guest != null ? guest.getPhone() : null,
+            guestId,
+            guestEmail,
+            guestPhone,
             entity.getGuestCount() != null ? entity.getGuestCount() : 1,
             entity.getCheckIn() != null ? entity.getCheckIn().toString() : null,
             entity.getCheckOut() != null ? entity.getCheckOut().toString() : null,
@@ -87,13 +106,13 @@ public class ReservationMapper {
             entity.getHiddenFromPlanning(),
             entity.getPaymentStatus() != null ? entity.getPaymentStatus().name() : null,
             entity.getPaidAt() != null ? entity.getPaidAt().toString() : null,
-            entity.getIntervention() != null ? entity.getIntervention().getId() : null,
+            interventionId,
             entity.getAdultsCount(),
             entity.getChildrenCount(),
             resolveOtaFee(entity),
             // Sortie seule : le champ n'est jamais relu depuis le DTO en entree.
             commissionResolver.isEstimated(entity),
-            guest != null ? photoUrls.publicUrl(guest.getId(), guest.getAvatarUrl()) : null
+            photoUrls.publicUrl(guestId, guestAvatarKey)
         );
     }
 

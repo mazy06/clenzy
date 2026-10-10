@@ -3,6 +3,7 @@ import BaitlyCommerceOperationsPanel from '../payments/BaitlyCommerceOperationsP
 import BaitlyCommerceRefundPanel from '../payments/BaitlyCommerceRefundPanel';
 import BaitlyCommercePayoutPanel from '../payments/BaitlyCommercePayoutPanel';
 import { useAuth } from '../../hooks/useAuth';
+import { paidServiceTypeChoices } from './paidServiceTypes';
 import React, { useState, useEffect, useMemo } from 'react';
 import StatusChip from '../../components/StatusChip';
 import { Alert as UiAlert, AlertDescription } from '../../components/ui';
@@ -40,15 +41,14 @@ import {
 import { useQuery } from '@tanstack/react-query';
 import { Add, Save, Edit, Delete } from '../../icons';
 import {
-  Receipt, Percent, Wallet, Tag, Sparkles, ImagePlus,
-  LogIn, Clock, Coffee, Car, SquareParking,
-  BookOpen, Network, ChevronRight, ArrowLeft, Eye, Home,
+  Receipt, Percent, Wallet, ImagePlus,
   MoreHorizontal, Power,
 } from '../../icons/glyphs';
 // Feuille de style « studio accueil » partagée (scopée .be-home ; l'accent du
 // module y est défini : bleu nuit, la teinte de la barre latérale relevée).
 import '../booking-engine/studio/studioHome.css';
-import ServicesCatalog from './marketplace/ServicesCatalog';
+import ServicesCatalog, { SERVICE_IMAGES } from './marketplace/ServicesCatalog';
+import BaitlyPaidServiceDetail from './BaitlyPaidServiceDetail';
 import { type MarketplaceExperience } from './marketplace/marketplaceData';
 import { useTranslation } from '../../hooks/useTranslation';
 import { useNotification, type NotificationSeverity } from '../../hooks/useNotification';
@@ -90,13 +90,6 @@ const TYPE_FALLBACK: Record<string, string> = {
 };
 const DEFAULT_CURRENCY = 'EUR';
 const THIRTY_DAYS_MS = 30 * 24 * 60 * 60 * 1000;
-
-// Icône lucide par type de service.
-const TYPE_ICON: Record<string, typeof Tag> = {
-  EARLY_CHECKIN: LogIn, LATE_CHECKOUT: Clock, CLEANING: Sparkles,
-  TRANSFER: Car, BREAKFAST: Coffee, PARKING: SquareParking,
-};
-const typeIcon = (type: string): typeof Tag => TYPE_ICON[type] ?? Tag;
 
 // Marketplace partenaire : données (fixtures) + composant refondu dans `./marketplace/` (refonte 2026-06).
 type CanalFilter = 'all' | 'livret' | 'booking';
@@ -465,10 +458,11 @@ const UpsellsAdmin: React.FC = () => {
     }
   };
 
-  const propertyName = (id: number | null) =>
-    id == null
-      ? t('upsells.allProperties', 'Toutes les propriétés')
-      : properties.find((p) => String(p.id) === String(id))?.name ?? `#${id}`;
+  const propertyName = (id: number | null) => {
+    if (id == null) return t('upsells.allProperties', 'Toutes les propriétés');
+    const property = properties.find((p) => String(p.id) === String(id));
+    return property ? [property.name, property.city].filter(Boolean).join(' | ') : `#${id}`;
+  };
 
   const orderStatusLabel = (status: string) => t(`upsells.status.${status}`, status);
 
@@ -562,109 +556,18 @@ const UpsellsAdmin: React.FC = () => {
   // ── Écran détaillé ──────────────────────────────────────────────────────────
   const renderDetail = () => {
     if (!selected) return null;
-    const backBtn = (
-      <button type="button" className="back" onClick={() => setSelected(null)}>
-        <ArrowLeft size={16} strokeWidth={2} /> {t('upsells.detail.back', 'Services payants')}
-      </button>
-    );
-
     if (selected.kind === 'internal') {
       const offer = offers.find((o) => o.id === selected.id);
       if (!offer) return null;
-      const Ic = typeIcon(offer.type);
-      const perf = perfFor(offer.title);
-      const ch = { livret: offer.diffuseOnLivret, booking: offer.diffuseOnBooking };
-      const chanBusy = togglingId === offer.id;
-      return (
-        <div className="detail">
-          {backBtn}
-          <div className="dhead">
-            <div className="dhead__ic"><Ic size={28} strokeWidth={2} /></div>
-            <div className="dhead__t">
-              <h1>{offer.title}</h1>
-              <div className="dhead__meta">
-                <span>{typeLabel(offer.type)}</span><span>·</span>
-                <span className="src-tag int"><span className="pdot" style={{ background: 'var(--bui-primary)' }} />{t('upsells.detail.internal', 'Service interne')}</span>
-              </div>
-            </div>
-            <div className="dhead__act">
-              <button type="button" className="btn-ghost" onClick={() => handlePreview({ title: offer.title, description: offer.description, price: offer.price, currency: offer.currency, imageUrl: offer.imageUrl })}><Eye size={16} strokeWidth={2} /> {t('upsells.detail.preview', 'Aperçu')}</button>
-              <Button size="sm" onClick={() => openEdit(offer)}>
-                <Edit size={16} strokeWidth={2} />
-                {t('upsells.detail.edit', 'Modifier')}
-              </Button>
-            </div>
-          </div>
-
-          <div className="dgrid">
-            <div>
-              <div className="dcard">
-                <h3>{t('upsells.detail.description', 'Description')}</h3>
-                <p className="lead">{offer.description || t('upsells.detail.noDescription', 'Aucune description.')}</p>
-                <div className="gallery">
-                  {offer.imageUrl
-                    ? [0, 1, 2].map((i) => (
-                        // L'URL vient de la donnee : style inline, pas de classe generee.
-                        <i key={i} style={{ backgroundImage: `url(${offer.imageUrl})`, backgroundSize: 'cover', backgroundPosition: 'center', opacity: i === 0 ? 1 : 0.55 }} />
-                      ))
-                    : [0, 1, 2].map((i) => (
-                        <i key={i} style={{ background: 'linear-gradient(150deg,#c7c6ee,#a9a8e0)', opacity: 0.85 }} />
-                      ))}
-                </div>
-              </div>
-              <div className="dcard">
-                <h3>{t('upsells.detail.pricing', 'Tarification')}</h3>
-                <div className="price-row"><b><Money value={offer.price} from={offer.currency} /></b><span>{t('upsells.detail.perReservationUnit', 'par réservation')}</span></div>
-                <div className="deflist">
-                  <div className="d"><span>{t('upsells.detail.billing', 'Facturation')}</span><b>{t('upsells.detail.perReservation', 'Par réservation')}</b></div>
-                  <div className="d"><span>{t('upsells.detail.availability', 'Disponibilité')}</span><b>{propertyName(offer.propertyId)}</b></div>
-                  <div className="d"><span>{t('upsells.fields.minNights', 'Séjour min.')}</span><b>{offer.minNights ? `${offer.minNights} ${t('upsells.detail.nights', 'nuits')}` : t('upsells.detail.none', 'Aucun')}</b></div>
-                  <div className="d"><span>{t('upsells.detail.leadTime', 'Délai de commande')}</span><b>{offer.leadTimeHours ? `${offer.leadTimeHours} h` : t('upsells.detail.none', 'Aucun')}</b></div>
-                </div>
-              </div>
-            </div>
-
-            <aside>
-              <div className="dcard">
-                <h3>{t('upsells.detail.distribution', 'Distribution')}</h3>
-                <div className="dist">
-                  <div className="dist__row">
-                    <span className="ic l"><BookOpen size={18} strokeWidth={2} /></span>
-                    <div className="t"><b>{t('upsells.detail.guideChannel', "Livret d'accueil")}</b><small>{t('upsells.detail.guideChannelHint', 'Affiché dans la marketplace du livret')}</small></div>
-                    <button type="button" className={`switch ${ch.livret ? '' : 'off'}`} disabled={chanBusy} aria-label={t('upsells.detail.guideChannel', "Livret d'accueil")} onClick={() => setChannel(offer, 'livret', !ch.livret)} />
-                  </div>
-                  <div className="dist__row">
-                    <span className="ic b"><Network size={18} strokeWidth={2} /></span>
-                    <div className="t"><b>{t('upsells.detail.bookingChannel', 'Booking Engine')}</b><small>{t('upsells.detail.bookingChannelHint', 'Proposé en extra au paiement')}</small></div>
-                    <button type="button" className={`switch ${ch.booking ? '' : 'off'}`} disabled={chanBusy} aria-label={t('upsells.detail.bookingChannel', 'Booking Engine')} onClick={() => setChannel(offer, 'booking', !ch.booking)} />
-                  </div>
-                </div>
-                <div className="scope-line"><Home size={15} strokeWidth={2} /> {t('upsells.detail.scope', 'Appliqué à')} <strong style={{ marginLeft: 4 }}>{propertyName(offer.propertyId)}</strong></div>
-              </div>
-
-              <div className="dcard">
-                <h3>{t('upsells.detail.perf', 'Performance · 30 jours')}</h3>
-                <div className="perf">
-                  <div className="p"><b>{perf.count}</b><span>{t('upsells.detail.bookings', 'Réservations')}</span></div>
-                  <div className="p"><b><Money value={perf.revenue} decimals={0} /></b><span>{t('upsells.detail.revenue', 'Revenu généré')}</span></div>
-                  <div className="p full"><b>{perf.count ? <Money value={perf.revenue / perf.count} decimals={0} /> : '—'}</b><span>{t('upsells.detail.aov', 'Panier moyen')}</span></div>
-                </div>
-              </div>
-
-              <div className="dcard">
-                <h3>{t('upsells.detail.details', 'Détails')}</h3>
-                <div className="deflist">
-                  <div className="d"><span>{t('upsells.fields.type', 'Catégorie')}</span><b>{typeLabel(offer.type)}</b></div>
-                  <div className="d"><span>{t('upsells.detail.source', 'Source')}</span><b>{t('upsells.detail.internalShort', 'Interne')}</b></div>
-                  <div className="d"><span>{t('upsells.fields.currency', 'Devise')}</span><b>{offer.currency}</b></div>
-                  {/* Statut = TEXTE : jeton `-ink` (la teinte vive plafonne a 2,2:1 sur la carte). */}
-                  <div className="d"><span>{t('upsells.detail.statusLabel', 'Statut')}</span><b style={{ color: offer.active ? 'var(--bui-success-ink)' : 'var(--bui-muted-foreground)' }}>{offer.active ? t('upsells.active', 'Actif') : t('upsells.inactive', 'Inactif')}</b></div>
-                </div>
-              </div>
-            </aside>
-          </div>
-        </div>
-      );
+      return <BaitlyPaidServiceDetail offer={offer}
+        image={offer.imageUrl || SERVICE_IMAGES[offer.type] || SERVICE_IMAGES.OTHER}
+        category={typeLabel(offer.type)} property={propertyName(offer.propertyId)}
+        performance={perfFor(offer.title)} busy={togglingId === offer.id}
+        onBack={() => setSelected(null)} onEdit={() => openEdit(offer)}
+        onPreview={() => handlePreview({ title: offer.title, description: offer.description,
+          price: offer.price, currency: offer.currency,
+          imageUrl: offer.imageUrl || SERVICE_IMAGES[offer.type] || SERVICE_IMAGES.OTHER })}
+        onChannel={(channel, enabled) => setChannel(offer, channel, enabled)} />;
     }
 
     // Détail d'une expérience partenaire : désormais géré par <ServicesCatalog> (état local interne).
@@ -756,7 +659,7 @@ const UpsellsAdmin: React.FC = () => {
       </Dialog>
 
       {/* ── Catalogue des services distribués aux canaux (liste ↔ détail) ──── */}
-      {selected ? <div className="be-home"><div className="canvas" style={{ paddingTop: 8, maxWidth: 1160 }}>
+      {selected ? <div className="be-home"><div className="canvas" style={{ paddingTop: 8, maxWidth: 1440 }}>
         {renderDetail()}
       </div></div> : renderList()}
 
@@ -779,7 +682,7 @@ const UpsellsAdmin: React.FC = () => {
                   extensible que personne ne trouve reste un référentiel figé.
                 */}
                 <div className="flex items-baseline justify-between gap-2">
-                  <FieldLabel htmlFor="upsell-type">{t('upsells.fields.type', 'Catégorie')}</FieldLabel>
+                  <FieldLabel htmlFor="upsell-type">{t('upsells.fields.serviceType', 'Type de prestation')}</FieldLabel>
                   <button
                     type="button"
                     onClick={() => setTypesManagerOpen(true)}
@@ -795,7 +698,7 @@ const UpsellsAdmin: React.FC = () => {
                   onChange={(e) => setEdit((s) => ({ ...s, type: e.target.value }))}
                 >
                   {(upsellTypes.length > 0
-                    ? upsellTypes.map((type) => type.code)
+                    ? paidServiceTypeChoices(upsellTypes, edit.type).map((type) => type.code)
                     : Object.keys(TYPE_FALLBACK)
                   ).map((id) => (
                     <option key={id} value={id}>

@@ -6,7 +6,7 @@ export function DirectoryFilterGroup({ title, aside, children }: {
 }) {
   return <section className="mb-4 border-b border-border pb-4 last:mb-0 last:border-b-0 last:pb-0">
     <div className="mb-1.5 flex items-baseline justify-between gap-2">
-      <h3 className="m-0 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">{title}</h3>
+      <h3 className="m-0 text-xs font-medium text-muted-foreground">{title}</h3>
       {aside && <span className="text-[11px] text-muted-foreground">{aside}</span>}
     </div>
     {children}
@@ -21,7 +21,7 @@ export function DirectoryFilter({ label, icon, count, active, onClick, title, di
   return <button type="button" onClick={onClick} title={title} disabled={disabled}
     aria-pressed={active} aria-label={count === undefined ? label : `${label} ${count}`}
     className={cn(
-      'flex w-full cursor-pointer disabled:cursor-not-allowed disabled:opacity-60 items-center justify-between gap-2 rounded-md px-1.5 py-1 text-start text-sm',
+      'flex min-h-10 w-full cursor-pointer disabled:cursor-not-allowed disabled:opacity-60 items-center justify-between gap-2 rounded-md px-2.5 py-2 text-start text-sm',
       'transition-colors duration-150 outline-none focus-visible:ring-[2px] focus-visible:ring-ring/50 motion-reduce:transition-none',
       active ? 'bg-primary-soft font-semibold text-primary'
         : count === 0 ? 'text-muted-foreground hover:bg-accent' : 'text-foreground hover:bg-accent',

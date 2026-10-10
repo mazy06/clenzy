@@ -1,0 +1,18 @@
+.baitly-service-picker { min-width:0; color:var(--bui-foreground); container-type:inline-size; }
+.baitly-service-picker__groups:focus-visible { outline:2px solid var(--bui-ring); outline-offset:3px; }
+.baitly-service-picker__help { font-size:13px; line-height:1.6; color:var(--bui-muted-foreground); margin:0 0 16px; }
+.baitly-service-picker__search { display:flex; flex-direction:column; gap:6px; font-size:12px; margin-bottom:16px; }
+.baitly-service-picker__groups { max-height:480px; overflow:auto; overscroll-behavior:contain; padding:4px 8px 4px 4px; scrollbar-width:thin; }
+.baitly-service-picker fieldset { min-width:0; border:0; border-top:1px solid var(--bui-border); padding:12px 0 20px; margin:0; }
+.baitly-service-picker legend { display:flex; align-items:center; gap:10px; padding-inline-end:14px; font-size:14px; font-weight:600; }
+.baitly-service-picker legend img { height:36px; width:36px; object-fit:contain; }
+.baitly-service-picker__all { display:flex; align-items:center; gap:8px; font-size:12px; margin-bottom:10px; cursor:pointer; }
+.baitly-service-picker__all > span { font-variant-numeric:tabular-nums; color:var(--bui-muted-foreground); }
+.baitly-service-picker__items { display:grid; grid-template-columns:minmax(0,1fr); gap:6px 12px; }
+.baitly-service-picker__items label { display:flex; align-items:center; gap:10px; min-height:44px; padding:8px; border:1px solid var(--bui-border); border-radius:6px; font-size:13px; cursor:pointer; transition:background-color 180ms cubic-bezier(.25,1,.5,1); }
+.baitly-service-picker__items label:hover,.baitly-service-picker__items label:has(input:checked) { background:var(--bui-muted); }
+.baitly-service-picker label:has(input:focus-visible) { outline:2px solid var(--bui-ring); outline-offset:2px; }
+.baitly-service-picker input[type=checkbox] { width:16px; height:16px; margin:0; flex-shrink:0; accent-color:var(--bui-primary); cursor:inherit; }
+@container(min-width:560px) { .baitly-service-picker__items { grid-template-columns:repeat(2,minmax(0,1fr)); } }
+@container(min-width:900px) { .baitly-service-picker__items { grid-template-columns:repeat(3,minmax(0,1fr)); } }
+@media(prefers-reduced-motion:reduce) { .baitly-service-picker__items label { transition:none; } }

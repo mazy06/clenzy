@@ -16,6 +16,7 @@ import {
   TooltipTrigger,
 } from '../../components/ui';
 import { useSearchParams } from 'react-router-dom';
+import { warmHotRoutes } from '../routePrefetch';
 import { useQueryClient } from '@tanstack/react-query';
 import { preloadAgentPortraits } from '../supervision/core/agentPortraitAssets';
 import { useMediaQuery } from '../../hooks/use-media-query';
@@ -361,7 +362,12 @@ const PlanningPage: React.FC = () => {
   const detailsPropertyIds = useMemo(() => selectedIndexEvent
     ? [...paginatedPropertyIds, selectedIndexEvent.propertyId] : paginatedPropertyIds,
     [paginatedPropertyIds, selectedIndexEvent?.propertyId]);
-  const details = useBaitlyReservationDetails(detailsPropertyIds, fetchRange.start, fetchRange.end, pageScopedFetchReady);
+  const priorityRange = useSettledRange(timeline.visibleRange.start, timeline.visibleRange.end);
+  const details = useBaitlyReservationDetails(detailsPropertyIds, fetchRange.start, fetchRange.end,
+    pageScopedFetchReady, priorityRange);
+  useEffect(() => {
+    if (details.priorityReady) warmHotRoutes();
+  }, [details.priorityReady]);
   const reservations = useMemo(() => mergeBaitlyReservationDetails(indexReservations, details.reservations),
     [indexReservations, details.reservations]);
   const events = useMemo(() => {

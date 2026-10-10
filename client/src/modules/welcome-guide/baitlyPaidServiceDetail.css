@@ -1,0 +1,36 @@
+.baitly-service-detail { color:var(--bui-foreground); min-width:0; }
+.baitly-service-detail,.baitly-service-detail * { box-sizing:border-box; }
+.baitly-service-detail__back { display:inline-flex; align-items:center; gap:8px; font-size:13px; color:var(--bui-muted-foreground); cursor:pointer; margin-bottom:18px; }
+.baitly-service-detail__back:hover { color:var(--bui-foreground); }
+.baitly-service-detail__back:focus-visible { outline:2px solid var(--bui-ring); outline-offset:4px; }
+.baitly-service-detail__header { display:flex; justify-content:space-between; align-items:center; gap:20px; margin-bottom:24px; }
+.baitly-service-detail__header p { margin:0 0 6px; font-size:12px; color:var(--bui-muted-foreground); }
+.baitly-service-detail__header h1 { margin:0; font-family:ui-sans-serif,system-ui,sans-serif; font-size:26px; font-weight:600; line-height:1.25; text-wrap:balance; }
+.baitly-service-detail__actions { display:flex; gap:8px; flex-shrink:0; }
+.baitly-service-detail__layout { display:grid; grid-template-columns:280px minmax(0,1fr); gap:28px; align-items:start; }
+.baitly-service-detail__overview { min-width:0; display:block; position:sticky; top:18px; max-height:calc(100dvh - 90px); overflow:auto; overscroll-behavior:contain; scrollbar-width:thin; background:var(--bui-card); border:1px solid var(--bui-border); border-radius:10px; padding:0; }
+.baitly-service-detail__visual { position:relative; background:var(--bui-muted); height:160px; overflow:hidden; }
+.baitly-service-detail__visual img { width:100%; height:100%; object-fit:contain; padding:22px; }
+.baitly-service-detail__visual[data-photo="true"] img { object-fit:cover; padding:0; }
+.baitly-service-detail__status { position:absolute; inset-block-start:12px; inset-inline-end:12px; padding:3px 7px; background:var(--bui-card); font-size:12px; border-radius:5px; }
+.baitly-service-detail__status[data-active="false"] { color:var(--bui-warning-ink); }
+.baitly-service-detail__summary { padding:18px; display:block; }
+.baitly-service-detail__description { margin:0 0 16px; font-size:13px; line-height:1.6; color:var(--bui-muted-foreground); }
+.baitly-service-detail__price { display:flex; align-items:baseline; gap:8px; flex-wrap:wrap; margin-bottom:18px; font-variant-numeric:tabular-nums; }
+.baitly-service-detail__price strong,.baitly-service-detail__price strong span { font-size:23px; line-height:1.2; font-weight:600; }
+.baitly-service-detail__price span,.baitly-service-detail__scope span { font-size:12px; color:var(--bui-muted-foreground); }
+.baitly-service-detail__scope { display:flex; flex-direction:column; gap:4px; font-size:13px; }
+.baitly-service-detail__channels,.baitly-service-detail__conditions,.baitly-service-detail__performance { border-top:1px solid var(--bui-border); margin-top:18px; padding-top:16px; }
+.baitly-service-detail h2 { font-size:13px; font-weight:600; margin:0 0 12px; }
+.baitly-service-detail__channel { display:flex; align-items:center; justify-content:space-between; gap:12px; font-size:13px; margin-top:12px; }
+.baitly-service-detail__conditions summary { cursor:pointer; font-size:13px; font-weight:500; }
+.baitly-service-detail__settings { border-top:1px solid var(--bui-border); margin-top:18px; padding-top:14px; }
+.baitly-service-detail__settings > summary { font-size:12px; font-weight:500; cursor:pointer; }
+.baitly-service-detail__settings summary:focus-visible { outline:2px solid var(--bui-ring); outline-offset:4px; }
+.baitly-service-detail dl { margin:12px 0 0; font-size:12px; }
+.baitly-service-detail dl > div { display:flex; justify-content:space-between; gap:12px; margin-top:9px; }
+.baitly-service-detail dt { color:var(--bui-muted-foreground); }
+.baitly-service-detail dd { margin:0; font-weight:500; font-variant-numeric:tabular-nums; text-align:end; }
+@media(min-width:1600px) { .baitly-service-detail__layout { grid-template-columns:300px minmax(0,1fr); gap:32px; } }
+@media(max-width:1000px) { .baitly-service-detail__layout { grid-template-columns:minmax(0,1fr); gap:24px; } .baitly-service-detail__overview { position:static; max-height:none; display:grid; grid-template-columns:160px minmax(0,1fr); } .baitly-service-detail__visual { height:100%; min-height:160px; } }
+@media(max-width:600px) { .baitly-service-detail__header { align-items:start; flex-direction:column; gap:14px; } .baitly-service-detail__header h1 { font-size:22px; } .baitly-service-detail__overview { grid-template-columns:88px minmax(0,1fr); } .baitly-service-detail__visual { min-height:0; } .baitly-service-detail__visual img { padding:8px; } .baitly-service-detail__status { inset-inline-end:6px; inset-block-start:8px; } .baitly-service-detail__summary { padding:14px; } .baitly-service-detail__description { margin-bottom:10px; } .baitly-service-detail__price { margin-bottom:12px; } }

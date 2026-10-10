@@ -16,7 +16,7 @@ export interface ShopProduct {
   kitProductIds?: string[]; // for kit products
   icon: string; // lucide-react icon name (used in SVG hero composition)
   /**
-   * Optional self-hosted product image (e.g. `/images/shop/clenzy-nm-01.jpg`).
+   * Optional self-hosted product image (e.g. `/images/catalog/noise.webp`).
    * When empty, the ProductHero component renders a bespoke SVG composition.
    * Drop JPG/PNG files into `client/public/images/shop/` and set the path here.
    */
@@ -27,6 +27,7 @@ export interface ShopProduct {
 export const SHOP_PRODUCTS: ShopProduct[] = [
   {
     id: 'clenzy-nm-01',
+    imageUrl: '/images/catalog/noise.webp',
     sku: 'CLENZY-NM-01',
     nameKey: 'shop.products.nm_01.name',
     shortDescriptionKey: 'shop.products.nm_01.short',
@@ -48,6 +49,7 @@ export const SHOP_PRODUCTS: ShopProduct[] = [
   },
   {
     id: 'clenzy-sl-01',
+    imageUrl: '/images/catalog/lock.webp',
     sku: 'CLENZY-SL-01',
     nameKey: 'shop.products.sl_01.name',
     shortDescriptionKey: 'shop.products.sl_01.short',
@@ -69,6 +71,7 @@ export const SHOP_PRODUCTS: ShopProduct[] = [
   },
   {
     id: 'clenzy-th-01',
+    imageUrl: '/images/catalog/temperature.webp',
     sku: 'CLENZY-TH-01',
     nameKey: 'shop.products.th_01.name',
     shortDescriptionKey: 'shop.products.th_01.short',
@@ -82,6 +85,7 @@ export const SHOP_PRODUCTS: ShopProduct[] = [
   },
   {
     id: 'clenzy-dw-01',
+    imageUrl: '/images/catalog/door.webp',
     sku: 'CLENZY-DW-01',
     nameKey: 'shop.products.dw_01.name',
     shortDescriptionKey: 'shop.products.dw_01.short',
@@ -100,6 +104,7 @@ export const SHOP_PRODUCTS: ShopProduct[] = [
   },
   {
     id: 'clenzy-mo-01',
+    imageUrl: '/images/catalog/motion.webp',
     sku: 'CLENZY-MO-01',
     nameKey: 'shop.products.mo_01.name',
     shortDescriptionKey: 'shop.products.mo_01.short',
@@ -113,6 +118,7 @@ export const SHOP_PRODUCTS: ShopProduct[] = [
   },
   {
     id: 'clenzy-sm-01',
+    imageUrl: '/images/catalog/smoke.webp',
     sku: 'CLENZY-SM-01',
     nameKey: 'shop.products.sm_01.name',
     shortDescriptionKey: 'shop.products.sm_01.short',
@@ -126,6 +132,7 @@ export const SHOP_PRODUCTS: ShopProduct[] = [
   },
   {
     id: 'kit-essential',
+    imageUrl: '/images/catalog/kit-essential.webp',
     sku: 'KIT-ESSENTIAL',
     nameKey: 'shop.products.kit_essential.name',
     shortDescriptionKey: 'shop.products.kit_essential.short',
@@ -146,6 +153,7 @@ export const SHOP_PRODUCTS: ShopProduct[] = [
   },
   {
     id: 'kit-security',
+    imageUrl: '/images/catalog/kit-security.webp',
     sku: 'KIT-SECURITY',
     nameKey: 'shop.products.kit_security.name',
     shortDescriptionKey: 'shop.products.kit_security.short',
@@ -166,6 +174,7 @@ export const SHOP_PRODUCTS: ShopProduct[] = [
   },
   {
     id: 'kit-complete',
+    imageUrl: '/images/catalog/kit-complete.webp',
     sku: 'KIT-COMPLETE',
     nameKey: 'shop.products.kit_complete.name',
     shortDescriptionKey: 'shop.products.kit_complete.short',

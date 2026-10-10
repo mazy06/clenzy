@@ -1,6 +1,8 @@
 package com.clenzy.service;
 
 import com.clenzy.dto.BaitlyPlanningReservationIndex;
+import com.clenzy.dto.BaitlyPlanningReservationRow;
+import com.clenzy.config.EncryptedFieldConverter;
 import com.clenzy.model.*;
 import com.clenzy.repository.*;
 import jakarta.persistence.EntityManager;
@@ -24,6 +26,7 @@ class BaitlyPlanningReadQueriesTest {
     EntityManager em;
 
     @BeforeAll static void mapping() {
+        new EncryptedFieldConverter().setEncryptorPassword("baitly-planning-test-key");
         String xml = "<entity-mappings xmlns=\"https://jakarta.ee/xml/ns/persistence/orm\" version=\"3.1\">"
                 + entity(User.class, "users", Set.of("firstName", "lastName", "keycloakId"), Map.of())
                 + entity(Property.class, "properties", Set.of("organizationId", "name", "address", "city", "maxGuests", "type",
@@ -31,10 +34,14 @@ class BaitlyPlanningReadQueriesTest {
                     "cleaningBasePrice", "defaultCurrency", "latitude", "longitude", "createdAt"), Map.of("owner", User.class))
                 + entity(Reservation.class, "reservations", Set.of("organizationId", "guestName", "guestCount", "checkIn", "checkOut",
                     "checkInTime", "checkOutTime", "status", "source", "sourceName", "totalPrice", "paymentStatus", "paymentCollection",
-                    "hiddenFromPlanning"), Map.of("property", Property.class))
+                    "hiddenFromPlanning", "otaFeeAmount", "notes", "confirmationCode", "adultsCount", "childrenCount",
+                    "cleaningFee", "touristTaxAmount", "paymentLinkSentAt", "paymentLinkEmail", "paidAt"),
+                    Map.of("property", Property.class, "guest", Guest.class, "intervention", Intervention.class))
+                + entity(Intervention.class, "interventions", Set.of("organizationId"), Map.of())
                 + entity(PropertyPhoto.class, "property_photos", Set.of("organizationId", "propertyId", "externalUrl", "sortOrder"), Map.of())
                 + "</entity-mappings>";
         sessions = new Configuration().addPackage("com.clenzy.model")
+                .addAnnotatedClass(Guest.class)
                 .addInputStream(new ByteArrayInputStream(xml.getBytes(StandardCharsets.UTF_8)))
                 .setProperty("hibernate.connection.url", "jdbc:h2:mem:baitly_planning_reads;MODE=PostgreSQL")
                 .setProperty("hibernate.hbm2ddl.auto", "create-drop")
@@ -50,7 +57,7 @@ class BaitlyPlanningReadQueriesTest {
             String name = field.getName();
             if (Modifier.isStatic(field.getModifiers()) || name.equals("id")) continue;
             if (relations.containsKey(name)) {
-                xml.append("<many-to-one name=\"").append(name).append("\" target-entity=\"")
+                xml.append("<many-to-one fetch=\"LAZY\" name=\"").append(name).append("\" target-entity=\"")
                         .append(relations.get(name).getName()).append("\"><join-column name=\"")
                         .append(name).append("_id\"/></many-to-one>");
             } else if (basic.contains(name)) {
@@ -117,5 +124,48 @@ class BaitlyPlanningReadQueriesTest {
         var rows = em.createNativeQuery(sql).setParameter("ids", List.of(1L, 2L)).getResultList();
         assertThat(rows).hasSize(2);
         assertThat(sessions.getStatistics().getEntityLoadCount()).isZero();
+    }
+
+    @Test void detailsDecryptOnlyRequiredCoordinatesAndNeverHydrateRelations() throws Exception {
+        User host = owner(1, "host");
+        Property p = property(1, 1, host);
+        Property foreign = property(2, 2, host);
+        Guest guest = new Guest("Alice", "Martin", 1L);
+        guest.setEmail("alice@example.test"); guest.setPhone("+33123456789");
+        em.persist(guest);
+        Guest foreignGuest = new Guest("Autre", "Organisation", 2L);
+        foreignGuest.setEmail("other@example.test"); em.persist(foreignGuest);
+        for (int i = 1; i <= 24; i++) {
+            Reservation r = new Reservation(); r.setId((long) i); r.setOrganizationId(i == 24 ? 2L : 1L);
+            r.setProperty(i == 24 ? foreign : p); r.setGuest(i == 22 ? null : i == 21 ? foreignGuest : guest);
+            r.setGuestName("Voyageur"); r.setSource("airbnb"); r.setTotalPrice(new java.math.BigDecimal("100"));
+            r.setCheckIn(LocalDate.of(2026, 10, 1)); r.setCheckOut(LocalDate.of(2026, 10, 25));
+            r.setHiddenFromPlanning(i == 23); em.persist(r);
+        }
+        em.flush(); em.clear();
+        // Une colonne chiffrée inutile et illisible ferait échouer l'hydratation d'un Guest.
+        em.createNativeQuery("UPDATE guests SET first_name = 'invalid-encrypted-value'").executeUpdate();
+        String query = ReservationRepository.class.getMethod("findBaitlyPlanningDetails", Collection.class,
+                LocalDate.class, LocalDate.class, Long.class).getAnnotation(Query.class).value();
+        sessions.getStatistics().clear();
+        var rows = em.createQuery(query, BaitlyPlanningReservationRow.class)
+                .setParameter("propertyIds", List.of(1L, 2L)).setParameter("orgId", 1L)
+                .setParameter("from", LocalDate.of(2026, 10, 5)).setParameter("to", LocalDate.of(2026, 10, 10))
+                .getResultList();
+        var mapper = new ReservationMapper(null, null,
+                new GuestPhotoUrlResolver(null),
+                new com.clenzy.service.agent.analytics.ChannelCommissionResolver());
+        var dtos = rows.stream().map(mapper::toPlanningDto).toList();
+        assertThat(dtos).hasSize(22);
+        assertThat(dtos.getFirst().guestEmail()).isEqualTo("alice@example.test");
+        assertThat(dtos.getFirst().guestPhone()).isEqualTo("+33123456789");
+        assertThat(dtos.getFirst().propertyName()).isEqualTo("Logement 1");
+        assertThat(dtos.getFirst().otaFeeAmount()).isEqualTo(15.5);
+        assertThat(dtos.getFirst().otaFeeEstimated()).isTrue();
+        assertThat(dtos.getLast().guestId()).isNull();
+        assertThat(dtos.get(20).guestEmail()).isNull();
+        assertThat(sessions.getStatistics().getPrepareStatementCount()).isEqualTo(1);
+        assertThat(sessions.getStatistics().getEntityLoadCount()).isEqualTo(22);
+        assertThat(sessions.getStatistics().getEntityFetchCount()).isZero();
     }
 }

@@ -19,6 +19,40 @@ C'est une mesure ponctuelle, pas une distribution p95/p99 ni une garantie.
 
 ## Corrections réalisées
 
+### Chargement visible et détails : deuxième lot du 10 octobre 2026
+
+Les deux captures staging fournies montrent des détails de réservations en
+1,36–1,96 s, presque entièrement en attente du premier octet, même avec les
+assets en cache. Cela ne constitue pas une mesure SQL ni une preuve de capacité.
+
+- Lecture dédiée des détails, bornée à 100 logements et 62 jours, après validation
+  d'accès existante. La requête est toujours limitée à l'organisation. Elle charge
+  les réservations et les seules valeurs associées utilisées par le DTO, sans
+  hydrater logement, voyageur ou intervention. Les conversions JPA déchiffrent
+  email et téléphone ; les noms chiffrés inutilisés du voyageur ne sont pas lus.
+- Conversion DTO partagée avec le mapper existant : mêmes commissions réelles ou
+  estimées, coordonnées, statut financier et URL de photo. Aucun cache de PII ajouté.
+- Histogramme `baitly_planning_reservations_seconds` avec deux valeurs fixes de
+  `phase` : `read` (requête et matérialisation, déchiffrement inclus) et `mapping`
+  (conversion DTO). Aucun identifiant utilisateur/organisation dans les labels.
+- Les détails de la zone réellement visible passent avant ceux du buffer. Après
+  résolution ou erreur des lots prioritaires, les voisins peuvent démarrer. Le
+  défilement conserve l'annulation et le délai de stabilisation de 250 ms.
+- Le préchargement dashboard/propriétés depuis le planning attend la résolution
+  des détails prioritaires. Les autres routes gardent leur préchargement habituel.
+
+Preuves locales : 22 réservations lues et converties avec un seul statement SQL,
+sans chargement de relation ; email/téléphone déchiffrés, nom chiffré inutilisé
+volontairement illisible, réservation masquée et organisation étrangère exclues.
+Un voyageur d'une autre organisation ne fournit aucune coordonnée. Tests de
+priorité avec promesses différées, erreurs, changement de fenêtre et annulation.
+Suite planning et test complémentaire : 524 tests ; 38 tests Java ciblés,
+typecheck TypeScript et build de production réussis.
+
+Validation attendue en staging après déploiement : comparer durée HTTP des détails,
+les deux phases serveur, délai avant briques visibles et chargements froid/chaud
+sur les mêmes comptes. Les tests locaux ne permettent pas d'annoncer un gain en ms.
+
 - Catalogue dédié, projeté et paginé par 200 logements : toutes les pages sont
   lues, sans plafond silencieux de 1 000. Photos sous forme d'adresses, sans
   charger les blobs ; noms du propriétaire lus séparément pour préserver les

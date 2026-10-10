@@ -1,6 +1,8 @@
 import ProviderDirectoryCard from './ProviderDirectoryCard';
+import { Link } from 'react-router-dom';
+import { Button } from '../../components/ui';
 import StatusChip from '../../components/baitly/StatusChip';
-import { Business, LocationOn, Timer, WarningAmber } from '../../icons';
+import { Business, LocationOn, Timer, WarningAmber, Edit } from '../../icons';
 import { useMarketplacePresentation } from './useMarketplacePresentation';
 import { ENGAGEMENT_TONES, STATUS_TONES } from './providerPresentation';
 import type { ProviderSummaryDto, ServiceCategoryDto } from '../../services/api/marketplaceProvidersApi';
@@ -13,6 +15,8 @@ export default function MarketplaceProviderCard({ provider, categoriesByCode }: 
   const extraCities = provider.coverageCities.filter(city => city !== provider.baseCity);
   return <ProviderDirectoryCard provider={{ ...provider, headline: provider.headline || provider.legalName }}
     categoriesByCode={categoriesByCode} to={'/marketplace/providers/' + provider.id}
+    actions={<Button size="sm" variant="ghost" asChild><Link to={`/marketplace/providers/${provider.id}?edit=1`}>
+      <Edit className="size-3.5" />{t('providerEdit.edit')}</Link></Button>}
     metadata={<>
       <span className="flex items-center gap-1"><LocationOn className="size-3.5 shrink-0" />
         {location || t('marketplaceAdmin.unknownLocation')}{provider.travelRadiusKm ? ' · ' + provider.travelRadiusKm + ' km' : ''}

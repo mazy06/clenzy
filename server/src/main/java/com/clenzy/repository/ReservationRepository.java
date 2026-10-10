@@ -16,6 +16,16 @@ import java.util.List;
 import java.util.Optional;
 
 public interface ReservationRepository extends JpaRepository<Reservation, Long> {
+    @Query("SELECT new com.clenzy.dto.BaitlyPlanningReservationRow("
+        + "r, p.id, p.name, g.id, g.email, g.phone, g.avatarUrl, r.intervention.id) "
+        + "FROM Reservation r JOIN r.property p LEFT JOIN r.guest g ON g.organizationId = :orgId "
+        + "WHERE r.organizationId = :orgId AND p.organizationId = :orgId AND p.id IN :propertyIds "
+        + "AND r.checkOut >= :from AND r.checkIn <= :to AND r.hiddenFromPlanning = false "
+        + "ORDER BY r.checkIn, r.id")
+    List<com.clenzy.dto.BaitlyPlanningReservationRow> findBaitlyPlanningDetails(
+            @Param("propertyIds") Collection<Long> propertyIds, @Param("from") LocalDate from,
+            @Param("to") LocalDate to, @Param("orgId") Long orgId);
+
     @Query("SELECT new com.clenzy.dto.BaitlyPlanningReservationIndex("
         + "r.id, r.property.id, r.guestName, r.guestCount, r.checkIn, r.checkOut, "
         + "r.checkInTime, r.checkOutTime, r.status, r.source, r.sourceName, r.totalPrice, r.paymentStatus, "

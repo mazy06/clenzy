@@ -14,6 +14,7 @@
 .be-home .mp-detail { display: grid; grid-template-columns: minmax(0, 1.5fr) 380px; gap: 36px; align-items: start; }
 .be-home .mp-detail__hero { position: relative; height: 380px; border-radius: 16px; background: var(--surface2); display: grid; place-items: center; overflow: hidden; }
 .be-home .mp-detail__hero img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+.be-home .mp-detail__hero[data-illustration=true] img { object-fit:contain; padding:28px; }
 .be-home .mp-detail__thumbs { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-top: 10px; }
 .be-home .mp-detail__thumb { height: 84px; border-radius: 12px; background: var(--surface2); display: grid; place-items: center; }
 .be-home .mp-detail__eyebrow { font-size: 11px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; margin: 22px 0 0; }
