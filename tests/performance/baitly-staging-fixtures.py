@@ -61,7 +61,12 @@ $KCADM config credentials --config "$CONFIG" --server http://localhost:8080 \\
         script += "$KCADM " + shlex.join(args) + ' --config "$CONFIG"'
         if body is not None:
             script += ' -f "$BODY"'
-        output = command(COMPOSE + ["exec", "-T", "keycloak", "sh", "-s"], script + "\n")
+        try:
+            output = command(COMPOSE + ["exec", "-T", "keycloak", "sh", "-s"], script + "\n")
+        except FixtureError:
+            resource = args[1].split("/")[0] if len(args) > 1 else "configuration"
+            operation = "mapper" if any("protocol-mappers" in item for item in args) else resource
+            raise FixtureError(f"Keycloak : {args[0]} {operation} a échoué ; sorties privées") from None
         return json.loads(output) if args[0] == "get" and output else None
 
     def sql(self, query, **variables):
@@ -129,6 +134,7 @@ def ensure_client(ops, name):
             "included.client.audience": "clenzy-api", "access.token.claim": "true", "id.token.claim": "false"}}
     existing_mapper = next((item for item in mappers if item["name"] == mapper["name"]), None)
     if existing_mapper:
+        mapper["id"] = existing_mapper["id"]
         ops.keycloak(["update", f"clients/{client_id}/protocol-mappers/models/{existing_mapper['id']}", "-r", REALM], mapper)
     else:
         ops.keycloak(["create", f"clients/{client_id}/protocol-mappers/models", "-r", REALM], mapper)
@@ -267,7 +273,9 @@ def provision(ops, per_cohort, start, end):
     for count in (10, 100, 1000):
         for ordinal in range(1, per_cohort + 1):
             name = f"baitly-perf-{count}-{ordinal:02d}"
+            print(json.dumps({"cohort": count, "account": ordinal, "phase": "client"}), flush=True)
             subject, secret = ensure_client(ops, name)
+            print(json.dumps({"cohort": count, "account": ordinal, "phase": "profile"}), flush=True)
             token = ops.token(name, secret)
             profile = ops.api("/api/me", token)
             if profile.get("role") != "SUPER_ADMIN" or profile.get("subject") != subject or not profile.get("id"):
@@ -276,6 +284,7 @@ def provision(ops, per_cohort, start, end):
             if not org:
                 raise FixtureError("Rattachement de fixture refusé")
             # Le contexte tenant est résolu depuis le profil BDD ; aucun token forgé ni filtre désactivé.
+            print(json.dumps({"cohort": count, "account": ordinal, "phase": "portfolio"}), flush=True)
             data = fill_portfolio(ops, name, count, profile["id"], token, start, end)
             if len(data["propertyIds"]) != count or data["reservations"] != count * 4 or data["interventions"] != count:
                 raise FixtureError("Volumes de fixture inattendus")
@@ -320,10 +329,16 @@ SELECT json_build_object('connections',(SELECT count(*) FROM pg_stat_activity WH
  FROM pg_stat_database WHERE datname=current_database()));
 COMMIT;
 """)
-    containers = command(COMPOSE + ["ps", "-q", "pms-server", "postgres", "redis"]).splitlines()
+    services = {}
+    for service in ("pms-server", "postgres", "redis"):
+        for container in command(COMPOSE + ["ps", "-q", service]).splitlines():
+            services[container] = service
+    containers = list(services)
     output = command(["docker", "stats", "--no-stream", "--format", "{{json .}}", *containers]) if containers else ""
     return {"timestamp": time.time(), "database": database, "containers": [
-        {"cpu": row.get("CPUPerc"), "memory": row.get("MemUsage"), "memoryPercent": row.get("MemPerc")}
+        {"service": next((service for container, service in services.items()
+                if row.get("ID") and container.startswith(row["ID"])), "unknown"),
+            "cpu": row.get("CPUPerc"), "memory": row.get("MemUsage"), "memoryPercent": row.get("MemPerc")}
         for row in (json.loads(line) for line in output.splitlines())]}
 
 
