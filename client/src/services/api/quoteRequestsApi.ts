@@ -77,6 +77,8 @@ export interface CreateQuotePayload {
   categoryCode?: string;
   serviceItemCode?: string;
   desiredDate?: string | null;
+  requestedStartTime?: string;
+  requestedDurationMinutes?: number;
 }
 
 function listQuery(status: QuoteRequestStatus[] | undefined, page: number, size: number): string {

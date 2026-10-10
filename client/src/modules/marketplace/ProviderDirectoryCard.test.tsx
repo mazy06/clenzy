@@ -37,3 +37,18 @@ it('keeps quote-only pricing and the absence of reviews explicit', () => {
   expect(screen.getByText('Pas encore noté')).toBeInTheDocument();
   expect(screen.queryByLabelText('Professionnel vérifié')).not.toBeInTheDocument();
 });
+
+it('replaces a broken photo with sector artwork without changing the media box', () => {
+  const { container, rerender } = render(<MemoryRouter><ProviderDirectoryCard
+    provider={{ displayName: 'Amina', avatarUrl: '/broken.jpg', verified: false, categoryCodes: ['CLEANING'] }}
+    categoriesByCode={categories} to="/prestataires/1" /></MemoryRouter>);
+  const media = container.querySelector('.baitly-provider-media');
+  fireEvent.error(screen.getByAltText('Amina'));
+  expect(media).toHaveAttribute('data-photo', 'false');
+  expect(media?.querySelector('img')).toHaveAttribute('src', '/images/catalog/cleaning.webp');
+  rerender(<MemoryRouter><ProviderDirectoryCard
+    provider={{ displayName: 'Amina', avatarUrl: '/new.jpg', verified: false, categoryCodes: ['CLEANING'] }}
+    categoriesByCode={categories} to="/prestataires/1" /></MemoryRouter>);
+  expect(media).toHaveAttribute('data-photo', 'true');
+  expect(screen.getByAltText('Amina').getAttribute('src')).toMatch(/\/new\.jpg$/);
+});

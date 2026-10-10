@@ -60,6 +60,7 @@ class PlanningDataControllerTest {
     @Mock private TenantContext tenantContext;
     @Mock private com.clenzy.service.BaitlyPlanningIndexService indexService;
     @Mock private com.clenzy.service.BaitlyPlanningPropertyService propertyService;
+    @Mock private com.clenzy.service.BaitlyPlanningReservationService detailService;
 
     private PlanningDataController controller;
     private Jwt jwt;
@@ -76,7 +77,7 @@ class PlanningDataControllerTest {
     @BeforeEach
     void setUp() {
         controller = new PlanningDataController(reservationService, reservationMapper,
-                interventionPlanningService, serviceRequestService, calendarEngine, tenantContext, indexService, propertyService);
+                interventionPlanningService, serviceRequestService, calendarEngine, tenantContext, indexService, propertyService, detailService);
         jwt = Jwt.withTokenValue("token")
                 .header("alg", "RS256")
                 .claim("sub", "user-123")
@@ -171,6 +172,23 @@ class PlanningDataControllerTest {
                 .isInstanceOf(org.springframework.security.access.AccessDeniedException.class);
         verify(indexService, never()).reservations(any(), any(), any());
         verify(serviceRequestService, never()).getPlanningServiceRequests(any(), any(), any());
+    }
+
+    @Test void detailsValidateOwnershipBeforeDedicatedRead() {
+        when(detailService.details(IDS, FROM, TO)).thenReturn(List.of());
+        assertThat(controller.reservationDetails(jwt, IDS, FROM, TO)).isEmpty();
+        var order = org.mockito.Mockito.inOrder(reservationService, detailService);
+        order.verify(reservationService).validatePropertyAccessBatch(IDS, "user-123");
+        order.verify(detailService).details(IDS, FROM, TO);
+        verify(reservationService, never()).getReservationsPage(anyString(), any(), any(), any(), any(), any(), any(), any());
+    }
+
+    @Test void detailsForbiddenPropertyPreventsAnyRead() {
+        doThrow(new org.springframework.security.access.AccessDeniedException("refus"))
+                .when(reservationService).validatePropertyAccessBatch(IDS, "user-123");
+        assertThatThrownBy(() -> controller.reservationDetails(jwt, IDS, FROM, TO))
+                .isInstanceOf(org.springframework.security.access.AccessDeniedException.class);
+        verify(detailService, never()).details(any(), any(), any());
     }
 
     @Test

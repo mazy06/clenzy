@@ -2,7 +2,7 @@ import type { ReactNode } from 'react';
 import { Link } from 'react-router-dom';
 import { DirectoryCard, DirectoryCardContent, DirectoryTag, DIRECTORY_CARD_BODY } from '../../components/catalog/DirectoryCard';
 import { Verified, Star } from '../../icons';
-import ProviderAvatar from './ProviderAvatar';
+import ProviderMedia from './ProviderMedia';
 import { categoryIcon } from './providerPresentation';
 import { useMarketplacePresentation } from './useMarketplacePresentation';
 import type { ServiceCategoryDto } from '../../services/api/marketplaceProvidersApi';
@@ -14,16 +14,16 @@ interface ProviderIdentity {
 }
 
 /** Carte commune ; les adaptateurs transmettent uniquement les données autorisées. */
-export default function ProviderDirectoryCard({ provider, categoriesByCode, to, metadata, badges }: {
+export default function ProviderDirectoryCard({ provider, categoriesByCode, to, metadata, badges, actions }: {
   provider: ProviderIdentity; categoriesByCode: Map<string, ServiceCategoryDto>;
-  to: string; metadata?: ReactNode; badges?: ReactNode;
+  to: string; metadata?: ReactNode; badges?: ReactNode; actions?: ReactNode;
 }) {
   const { t, catalogLabel, formatMoney } = useMarketplacePresentation();
   return <DirectoryCard>
     <Link to={to} aria-label={t('marketplaceAdmin.openProfile', { name: provider.displayName })}
-      className={`${DIRECTORY_CARD_BODY} cursor-pointer no-underline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-primary`}>
+      className={`${DIRECTORY_CARD_BODY} baitly-provider-card cursor-pointer no-underline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-primary`}>
       <DirectoryCardContent
-        media={<ProviderAvatar name={provider.displayName} url={provider.avatarUrl} />}
+        media={<ProviderMedia name={provider.displayName} url={provider.avatarUrl} categoryCodes={provider.categoryCodes} />}
         title={<>
           <span dir="auto" className="truncate">{provider.displayName}</span>
           {provider.verified && <Verified className="size-4 shrink-0 text-success-ink" aria-label={t('marketplaceAdmin.verifiedProvider')} />}
@@ -41,11 +41,12 @@ export default function ProviderDirectoryCard({ provider, categoriesByCode, to, 
           {provider.categoryCodes.length > 4 && <span className="text-xs text-muted-foreground">+{provider.categoryCodes.length - 4}</span>}
           {!provider.categoryCodes.length && <span className="text-xs text-muted-foreground">{t('marketplaceAdmin.noServices')}</span>}
         </>}
-        metadata={metadata} footerLeading={badges}
+        metadata={metadata} metadataPlacement="full" footerLeading={badges}
         footerTrailing={provider.priceFrom != null
           ? t('marketplaceAdmin.from') + ' ' + formatMoney(provider.priceFrom, provider.currency ?? 'EUR')
           : t('marketplaceAdmin.onQuote')}
       />
     </Link>
+    {actions && <div className="flex justify-end border-t border-border px-3 py-2">{actions}</div>}
   </DirectoryCard>;
 }

@@ -1,6 +1,7 @@
 import { useId, useState, type ReactNode } from 'react';
 import { ChevronDown, SlidersHorizontal } from '../../icons/glyphs';
 import { Button } from '../ui/button';
+import './baitlyDirectory.css';
 
 /** Structure de Prestataires, partagée par les catalogues Baitly. */
 export function DirectoryLayout({ filters, filtersLabel, resultsLabel, children }: {
@@ -8,20 +9,21 @@ export function DirectoryLayout({ filters, filtersLabel, resultsLabel, children 
 }) {
   const [expanded, setExpanded] = useState(false);
   const panelId = useId();
-  return <div className="grid shrink-0 grid-cols-1 gap-4 lg:min-h-0 lg:flex-1 lg:shrink lg:grid-cols-[16rem_minmax(0,1fr)] lg:overflow-hidden">
-    <aside className="min-w-0 lg:min-h-0" aria-label={filtersLabel}>
+  return <div className="baitly-directory-layout">
+    <aside className="baitly-directory-sidebar" aria-label={filtersLabel}>
       <Button variant="outline" className="mb-2 w-full justify-between lg:hidden"
         aria-expanded={expanded} aria-controls={panelId} onClick={() => setExpanded(value => !value)}>
         <span className="flex items-center gap-2"><SlidersHorizontal size={16} />{filtersLabel}</span>
         <ChevronDown size={16} className={expanded ? 'rotate-180' : ''} />
       </Button>
-      <div id={panelId} className={expanded
+      <div id={panelId} className={'baitly-directory-filter-panel ' + (expanded
         ? 'max-h-[60svh] overflow-y-auto overscroll-contain lg:h-full lg:max-h-none'
-        : 'hidden overscroll-contain lg:block lg:h-full lg:overflow-y-auto'}>
+        : 'hidden overscroll-contain lg:block lg:h-full lg:overflow-y-auto')}>
+        <div className="baitly-directory-filter-title"><SlidersHorizontal size={15} /><span>{filtersLabel}</span></div>
         {filters}
       </div>
     </aside>
     <div tabIndex={0} aria-label={resultsLabel}
-      className="min-w-0 focus-visible:outline-2 focus-visible:outline-primary lg:min-h-0 lg:overflow-y-auto lg:overscroll-contain">{children}</div>
+      className="baitly-directory-main focus-visible:outline-2 focus-visible:outline-primary">{children}</div>
   </div>;
 }

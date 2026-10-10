@@ -4894,3 +4894,33 @@ databaseChangeLog:
             relativeToChangelogFile: true
             splitStatements: true
             stripComments: false
+
+  - changeSet:
+      id: "0544-upsell-provider-bridge"
+      author: clenzy-team
+      changes:
+        - sqlFile:
+            path: changes/0544__upsell_provider_bridge.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+            stripComments: false
+
+  - changeSet:
+      id: "0545-shared-paid-service-catalog"
+      author: clenzy-team
+      changes:
+        - sqlFile:
+            path: changes/0545__shared_paid_service_catalog.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+            stripComments: false
+
+  - changeSet:
+      id: "0546-repair-imported-cleaning-service-references"
+      author: clenzy-team
+      changes:
+        - sqlFile:
+            path: changes/0546__repair_imported_cleaning_service_references.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+            stripComments: false

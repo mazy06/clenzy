@@ -25,6 +25,7 @@ export interface UseInfiniteTimelineReturn {
   totalGridWidth: number;
   bufferStart: Date;
   bufferEnd: Date;
+  visibleRange: { start: Date; end: Date };
   scrollRef: React.RefObject<HTMLDivElement | null>;
   handleScroll: () => void;
   scrollToDate: (date: Date) => void;
@@ -119,6 +120,22 @@ export function useInfiniteTimeline({
   const totalGridWidth = days.length * dayWidth;
 
   const scrollRef = useRef<HTMLDivElement | null>(null);
+  const [visibleRange, setVisibleRange] = useState(() => ({
+    start: subDays(anchorDate, TARGET_DAY_LEADING_COLUMNS),
+    end: addDays(anchorDate, config.visibleDays),
+  }));
+  const updateVisibleRange = useCallback(() => {
+    const el = scrollRef.current;
+    if (!el || el.clientWidth <= propertyColWidth) return;
+    const offset = getInlineScroll(el);
+    const first = Math.min(days.length - 1, firstVisibleIndex(offset, dayWidth));
+    const last = Math.min(days.length - 1,
+      Math.ceil((offset + el.clientWidth - propertyColWidth) / dayWidth) - 1);
+    const start = days[first];
+    const end = days[Math.max(first, last)];
+    setVisibleRange((previous) => previous.start.getTime() === start.getTime()
+      && previous.end.getTime() === end.getTime() ? previous : { start, end });
+  }, [days, dayWidth, propertyColWidth]);
   /** Pixels a rendre au scrollLeft une fois le nouveau buffer peint. */
   const pendingCompensation = useRef(0);
   /**
@@ -252,8 +269,9 @@ export function useInfiniteTimeline({
     scrollRaf.current = requestAnimationFrame(() => {
       scrollRaf.current = null;
       evaluateSlide();
+      updateVisibleRange();
     });
-  }, [evaluateSlide]);
+  }, [evaluateSlide, updateVisibleRange]);
 
   useEffect(() => () => {
     if (scrollRaf.current !== null) cancelAnimationFrame(scrollRaf.current);
@@ -318,11 +336,15 @@ export function useInfiniteTimeline({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [daysIdentity]);
 
+  // Après compensation et recentrage ; la grille peut monter après le squelette.
+  useLayoutEffect(() => { updateVisibleRange(); });
+
   return {
     days,
     totalGridWidth,
     bufferStart,
     bufferEnd,
+    visibleRange,
     scrollRef,
     handleScroll,
     scrollToDate,

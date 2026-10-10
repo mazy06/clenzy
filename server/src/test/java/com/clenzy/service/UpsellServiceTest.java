@@ -179,4 +179,23 @@ class UpsellServiceTest {
         service().markPaidBySession("cs_test_1");
         verify(settlement).settle("cs_test_1");
     }
+
+    @Test
+    void changingCanonicalTypeClearsOldExecutionAndProviderPreference() {
+        var existing=offer(12L,7L,"Ménage supplémentaire");
+        existing.setType("CLEANING");
+        existing.setFulfillmentServiceCode("cleaning-mid-stay");
+        existing.setPreferredProviderId(8L);
+        when(offerRepository.findByIdAndOrganizationId(12L,1L)).thenReturn(Optional.of(existing));
+        when(tenantContext.getOrganizationId()).thenReturn(1L);
+        var type=new UpsellTypeDef(); type.setCode("cleaning-turnover");
+        when(upsellTypeRepository.findByCodeInScope("cleaning-turnover",1L)).thenReturn(List.of(type));
+        when(offerRepository.save(any())).thenAnswer(call -> call.getArgument(0));
+        service().updateOffer(1L,12L,new com.clenzy.dto.UpsellOfferRequest(
+            7L,"cleaning-turnover","Ménage supplémentaire",null,new BigDecimal("60"),"EUR",
+            null,true,0,null,null,null,true,true));
+        assertThat(existing.getType()).isEqualTo("cleaning-turnover");
+        assertThat(existing.getFulfillmentServiceCode()).isNull();
+        assertThat(existing.getPreferredProviderId()).isNull();
+    }
 }

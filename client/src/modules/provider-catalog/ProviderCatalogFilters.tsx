@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Input, Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../components/ui';
 import { Group, FacetRow, ToggleRow, MoreButton } from '../marketplace/MarketplaceFilters';
-import { categoryIcon } from '../marketplace/providerPresentation';
+import ProviderSectorArtwork from '../marketplace/ProviderSectorArtwork';
 import { useMarketplacePresentation } from '../marketplace/useMarketplacePresentation';
 import type { ServiceCategoryDto } from '../../services/api/marketplaceProvidersApi';
 
@@ -33,7 +33,7 @@ export default function ProviderCatalogFilters({ categories, category, setCatego
       <Input className="mb-2 h-8 text-xs" value={search} onChange={event => setSearch(event.target.value)}
         placeholder={t('marketplaceAdmin.findTrade')} aria-label={t('marketplaceAdmin.tradeSearch')} />
       <FacetRow label={t('marketplaceWorkflow.allCategories')} active={!category} disabled={locked} onClick={() => setCategory('')} />
-      {visible.map(item => <FacetRow key={item.code} label={catalogLabel(item)} icon={categoryIcon(item.iconKey)}
+      {visible.map(item => <FacetRow key={item.code} label={catalogLabel(item)} icon={<ProviderSectorArtwork code={item.code} />}
         active={category === item.code} disabled={locked} onClick={() => setCategory(category === item.code ? '' : item.code)} />)}
       {hiddenCount > 0 && <MoreButton onClick={() => setExpanded(true)}>{t('marketplaceAdmin.otherTrades', { count: hiddenCount })}</MoreButton>}
       {expanded && !search && <MoreButton onClick={() => setExpanded(false)}>{t('marketplaceAdmin.hideTrades')}</MoreButton>}

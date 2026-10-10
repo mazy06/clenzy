@@ -73,12 +73,12 @@ public class QuoteRequestController {
     public ResponseEntity<QuoteRequestDto> request(@Valid @RequestBody CreateQuoteRequest body,
                                                    @AuthenticationPrincipal Jwt jwt) {
         properties.require(body.propertyId(), tenantContext.getRequiredOrganizationId(), jwt);
-        MarketplaceQuoteRequest quote = quoteService.request(
+        MarketplaceQuoteRequest quote = quoteService.requestScheduled(
             body.providerId(),
             tenantContext.getRequiredOrganizationId(),
             currentUserId(jwt),
             body.title(), body.message(), body.propertyId(),
-            body.categoryCode(), body.serviceItemCode(), body.desiredDate());
+            body.categoryCode(), body.serviceItemCode(), body.desiredDate(),body.requestedStartTime(),body.requestedDurationMinutes());
 
         return ResponseEntity.status(HttpStatus.CREATED).body(assembler.toDto(quote));
     }
@@ -185,7 +185,9 @@ public class QuoteRequestController {
         Long propertyId,
         @Size(max = 40) String categoryCode,
         @Size(max = 60) String serviceItemCode,
-        LocalDate desiredDate
+        LocalDate desiredDate,
+        java.time.LocalTime requestedStartTime,
+        @jakarta.validation.constraints.Min(15) @jakarta.validation.constraints.Max(1440) Integer requestedDurationMinutes
     ) {}
 
     /** @param amount fixe par le PRESTATAIRE, jamais par le demandeur. */

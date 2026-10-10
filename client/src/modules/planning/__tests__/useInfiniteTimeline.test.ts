@@ -154,6 +154,18 @@ describe('useInfiniteTimeline', () => {
     expect(el.scrollLeft).toBe(before);
   });
 
+  it('publie les jours réellement visibles, y compris une colonne partiellement visible', () => {
+    const { hook, dayWidth } = setup('month');
+    const first = 50;
+    attachScroller(hook.result.current.scrollRef, {
+      clientWidth: PROPERTY_COL + dayWidth * 10,
+      scrollLeft: (first + 0.5) * dayWidth,
+    });
+    act(() => hook.result.current.handleScroll());
+    expect(hook.result.current.visibleRange.start).toEqual(hook.result.current.days[first]);
+    expect(hook.result.current.visibleRange.end).toEqual(hook.result.current.days[first + 10]);
+  });
+
   // ── Cible hors fenetre ────────────────────────────────────────────────────
 
   describe('scrollToDate hors fenetre', () => {

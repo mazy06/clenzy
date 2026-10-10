@@ -123,13 +123,21 @@ public class MarketplaceCatalogService {
     @Transactional(readOnly = true)
     public CatalogPageDto searchCatalog(ProviderSearchCriteria criteria, Long organizationId,
                                         List<Long> hiddenIds, com.clenzy.model.Property property) {
+        return searchCatalog(criteria, organizationId, hiddenIds, property, null);
+    }
+
+    /** Contraintes d'exécution supplémentaires, appliquées avant pagination. */
+    @Transactional(readOnly = true)
+    public CatalogPageDto searchCatalog(ProviderSearchCriteria criteria, Long organizationId,
+                                        List<Long> hiddenIds, com.clenzy.model.Property property,
+                                        org.springframework.data.jpa.domain.Specification<MarketplaceProvider> execution) {
         LocalDate today = LocalDate.now(clock);
         var pageable = PageRequest.of(criteria.page(), criteria.size(), sortOf(criteria.sort()));
 
         Page<MarketplaceProvider> page = providerRepository.findAll(
             MarketplaceProviderSpecifications.from(criteria, today)
                 .and(MarketplaceProviderSpecifications.visibleTo(organizationId, hiddenIds))
-                .and(MarketplaceProviderSpecifications.covers(property)),
+                .and(MarketplaceProviderSpecifications.covers(property)).and(execution),
             pageable);
 
         List<MarketplaceProvider> providers = page.getContent();
@@ -185,7 +193,10 @@ public class MarketplaceCatalogService {
                                               List<MarketplaceProviderZoneRepository.EffectiveZone> zones,
                                               Set<Long> userIdsWithPhoto,
                                               Long organizationId) {
-        offers=offers.stream().filter(o -> documentary.hasReviewedScope(p.getId(),
+        boolean own = organizationId != null && organizationId.equals(p.getHomeOrganizationId());
+        // L'organisation peut préparer le choix de ses propres offres. La validation
+        // documentaire reste obligatoire dans les parcours d'attribution et d'exécution.
+        offers=offers.stream().filter(o -> own || documentary.hasReviewedScope(p.getId(),
                 o.getServiceItem()!=null ? "ITEM:"+o.getServiceItem().getCode() : "CATEGORY:"+o.getCategory().getCode())).toList();
         List<String> coverageCities = zones.stream()
             .sorted((a, b) -> Boolean.compare(b.isPrimary(), a.isPrimary()))
@@ -200,8 +211,6 @@ public class MarketplaceCatalogService {
             .toList();
 
         BigDecimal priceFrom = lowestPrice(offers);
-
-        boolean own = organizationId != null && organizationId.equals(p.getHomeOrganizationId());
 
         return CatalogProviderDto.from(p,
             resolveAvatarUrl(p, userIdsWithPhoto),

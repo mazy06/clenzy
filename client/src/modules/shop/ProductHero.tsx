@@ -200,7 +200,7 @@ const ProductHero: React.FC<ProductHeroProps> = ({ product, height = 168, compac
 
   if (compact) return showImage
     ? <img src={product.imageUrl} alt={t(product.imageAltKey)} loading="lazy" onError={() => setImgFailed(true)} />
-    : <span aria-hidden="true">{Icon && <Icon size={26} strokeWidth={1.5} />}</span>;
+    : <span aria-hidden="true">{Icon && <Icon size={40} strokeWidth={1.5} />}</span>;
 
   return (
     <div
