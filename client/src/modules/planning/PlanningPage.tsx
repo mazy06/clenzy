@@ -42,6 +42,7 @@ import ImportSourceChooserDialog from './ImportSourceChooserDialog';
 import ChannexMappingDialog from '../settings/components/ChannexMappingDialog';
 import { usePlanningNavigation } from './hooks/usePlanningNavigation';
 import { useInfiniteTimeline } from './hooks/useInfiniteTimeline';
+import { useBaitlyPlanningInitialScroll } from './hooks/useBaitlyPlanningInitialScroll';
 import { useSettledRange } from './hooks/useSettledRange';
 import { usePlanningData } from './hooks/usePlanningData';
 import { usePlanningFilters } from './hooks/usePlanningFilters';
@@ -723,18 +724,11 @@ const PlanningPage: React.FC = () => {
   );
 
   // ── Initial scroll to today when timeline first becomes visible ──────────
-  const hasInitialScrolled = useRef(false);
-  useEffect(() => {
-    if (!loading && filteredProperties.length > 0 && !hasInitialScrolled.current) {
-      hasInitialScrolled.current = true;
-      // Double rAF ensures the DOM is fully laid out before scrolling
-      requestAnimationFrame(() => {
-        requestAnimationFrame(() => {
-          timeline.scrollToAnchor();
-        });
-      });
-    }
-  }, [loading, filteredProperties.length, timeline]);
+  useBaitlyPlanningInitialScroll(
+    timeline.scrollRef,
+    timeline.scrollToAnchor,
+    !loading && filteredProperties.length > 0,
+  );
 
   // ── Auto-scroll: always position selected reservation at 7th column ─────────
   useEffect(() => {

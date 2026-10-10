@@ -248,6 +248,14 @@ describe('useInfiniteTimeline', () => {
 
   // ── Ancrage ───────────────────────────────────────────────────────────────
 
+  it.each(['week', 'fortnight', 'month'] as const)('pose immédiatement l’ancre en 7e colonne en vue %s', (zoom) => {
+    const { hook, dayWidth } = setup(zoom);
+    const el = attachScroller(hook.result.current.scrollRef, { clientWidth: 1300, scrollLeft: 0 });
+    act(() => hook.result.current.scrollToAnchor());
+    const first = Math.round(el.scrollLeft / dayWidth);
+    expect(toDateStr(hook.result.current.days[first + 6])).toBe(toDateStr(ANCHOR));
+  });
+
   it('centre la fenetre sur la date d\'ancre', () => {
     const { hook, visibleDays } = setup('fortnight');
     const { days } = hook.result.current;
