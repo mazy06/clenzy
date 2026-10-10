@@ -1,5 +1,5 @@
 import { baitlyPlanningReadQueue } from '../baitlyPlanningReadQueue';
-import apiClient from '../apiClient';
+import apiClient, { type ApiError } from '../apiClient';
 import type { Reservation, PlanningIntervention, PlanningServiceRequest } from '../api';
 import type { CalendarBlockedDay } from './calendarPricingApi';
 import type { PlanningProperty } from '../../modules/planning/types';
@@ -53,9 +53,16 @@ export const planningDataApi = {
   },
 
   async getReservationDetails(propertyIds: number[], from: string, to: string, signal?: AbortSignal): Promise<PlanningData> {
-    const reservations = await baitlyPlanningReadQueue.run(signal, () => apiClient.get<Reservation[]>('/planning/reservation-cards', {
-      signal, params: { propertyIds: propertyIds.join(','), from, to },
-    }));
+    const reservations = await baitlyPlanningReadQueue.run(signal, async () => {
+      const options = { signal, params: { propertyIds: propertyIds.join(','), from, to } };
+      try {
+        return await apiClient.get<Reservation[]>('/planning/reservation-cards', options);
+      } catch (error) {
+        // Les images frontend et backend arrivent séparément pendant un déploiement.
+        if ((error as ApiError)?.status !== 404 || signal?.aborted) throw error;
+        return apiClient.get<Reservation[]>('/planning/reservations', options);
+      }
+    });
     return { reservations, interventions: [], awaitingPayment: [], blocked: [] };
   },
   /**
