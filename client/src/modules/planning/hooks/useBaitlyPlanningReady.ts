@@ -1,4 +1,5 @@
 import { useEffect, useRef } from 'react';
+import { BAITLY_PLANNING_PAINTED } from '../../../services/baitlyDeferredStartup';
 
 /** Initial committed planning, after two animation frames allow its first paint. */
 export function useBaitlyPlanningReady(ready: boolean, onPainted: () => void) {
@@ -36,6 +37,7 @@ export function useBaitlyPlanningReady(ready: boolean, onPainted: () => void) {
           performance.measure('baitly.planning.navigation-to-ready', { start: navigation.startTime, end: now });
         }
       }
+      window.dispatchEvent(new Event(BAITLY_PLANNING_PAINTED));
       callback.current();
     };
     const schedule = () => {

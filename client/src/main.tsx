@@ -8,7 +8,8 @@ import { prefixer } from 'stylis'
 import { BrowserRouter } from 'react-router-dom'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import * as Sentry from '@sentry/react'
-import posthog from 'posthog-js'
+import { startBaitlyAnalytics } from './services/baitlyAnalytics'
+import { scheduleBaitlyDeferredStartup } from './services/baitlyDeferredStartup'
 import { runtimeEnv, runtimeEnvOr } from './config/runtimeConfig';
 import App from './modules/App'
 import AppUpdateBanner from './components/AppUpdateBanner'
@@ -27,7 +28,7 @@ import { i18nInitPromise } from './i18n/config'
 // ─── Service Worker kill-switch en mode DEV ──────────────────────────────────
 // Probleme historique : un SW PWA installe via `npm run preview` ou via un
 // container Docker en mode prod reste colle a localhost:3000 et continue a
-// servir l'ancien bundle compile (avec ancien composant ClenzyAnimatedLogo +
+// servir l'ancien bundle compile (avec ancien logo animé Baitly +
 // ancienne logique d'auth). Symptomes constates :
 //   - Hard refresh affiche l'ancien design (goutte d'eau "Propreté & Multiservices")
 //   - User authentifie est deconnecte au hard refresh (ancien bundle ne reconnait
@@ -98,46 +99,12 @@ if (sentryDsn) {
   // ajoutée à l'idle pour ne pas peser sur le boot (audit perf). Les erreurs
   // survenant avant l'ajout sont capturées normalement, sans replay associé.
   const addReplay = () => Sentry.addIntegration(Sentry.replayIntegration());
-  if (typeof window.requestIdleCallback === 'function') {
-    window.requestIdleCallback(addReplay, { timeout: 10_000 });
-  } else {
-    window.setTimeout(addReplay, 3_000);
-  }
+  scheduleBaitlyDeferredStartup(addReplay);
 }
 
-// ─── PostHog — Product analytics & session replay ────────────────────────────
-const posthogKey = runtimeEnv('VITE_POSTHOG_KEY');
-if (posthogKey) {
-  posthog.init(posthogKey, {
-    api_host: runtimeEnvOr('VITE_POSTHOG_HOST', 'https://eu.i.posthog.com'),
-    person_profiles: 'identified_only',
-    autocapture: true,
-    capture_pageview: true,
-    capture_pageleave: true,
-    // Z1-SEC-FRONTAUX-03 : le PMS affiche des PII guests (noms, emails,
-    // telephones) et des codes d'acces physiques (PIN serrures, boites a
-    // cle) en texte rendu. Par defaut PostHog masque les inputs mais PAS
-    // le texte rendu → on masque TOUT le texte des enregistrements de
-    // session et des events autocapture avant envoi a eu.i.posthog.com.
-    mask_all_text: true,
-    mask_all_element_attributes: true,
-    session_recording: {
-      recordCrossOriginIframes: false,
-      maskAllInputs: true,
-      maskTextSelector: '*',
-    },
-    persistence: 'localStorage+cookie',
-    // Disable /flags + remote config — suppresses 401/404 errors on new
-    // projects that have no feature flags configured yet.  Events, session
-    // recording & autocapture still work normally.  Set to false (or remove)
-    // once you create feature flags in the PostHog dashboard.
-    advanced_disable_flags: true,
-    loaded: (ph) => {
-      if (import.meta.env.DEV) {
-        console.log('[PostHog] Ready — distinct_id:', ph.get_distinct_id());
-      }
-    },
-  });
+// Optional analytics SDK starts after the planning paint, outside the boot bundle.
+if (runtimeEnv('VITE_POSTHOG_KEY')) {
+  scheduleBaitlyDeferredStartup(() => { void startBaitlyAnalytics(); });
 }
 
 // ─── Crisp — Live chat support widget ────────────────────────────────────────
@@ -145,11 +112,12 @@ const crispWebsiteId = runtimeEnv('VITE_CRISP_WEBSITE_ID');
 if (crispWebsiteId) {
   (window as any).$crisp = [];
   (window as any).CRISP_WEBSITE_ID = crispWebsiteId;
-  const d = document;
-  const s = d.createElement('script');
-  s.src = 'https://client.crisp.chat/l.js';
-  s.async = true;
-  d.getElementsByTagName('head')[0].appendChild(s);
+  scheduleBaitlyDeferredStartup(() => {
+    const s = document.createElement('script');
+    s.src = 'https://client.crisp.chat/l.js';
+    s.async = true;
+    document.head.appendChild(s);
+  });
 }
 
 /**
