@@ -10,7 +10,7 @@ const source = fs.readFileSync(new URL('./baitly-planning-load.js', import.meta.
   .replace('export default function (identities)', 'function execute(identities)')
   + '\nglobalThis.workload = { setup, execute, options };';
 
-function workload(propertyCount, env = {}, responder = null) {
+function workload(propertyCount, env = {}, responder = null, headers = {}) {
   const propertyIds = Array.from({ length: propertyCount }, (_, index) => index + 1);
   const requests = [], samples = [];
   class Metric {
@@ -29,7 +29,7 @@ function workload(propertyCount, env = {}, responder = null) {
       body = { reservations: ids.map((propertyId) => ({ propertyId })), interventions: [], awaitingPayment: [], blocked: [] };
     } else body = ids.map((propertyId) => ({ propertyId }));
     if (responder) body = responder(parsed, body);
-    return { status: 200, body: JSON.stringify(body), json: () => body };
+    return { status: 200, headers, body: JSON.stringify(body), json: () => body };
   };
   const context = vm.createContext({
     __ENV: { BASE_URL: 'https://app.clenzy.fr', PERF_ACTORS_FILE: '/private/actors.json', ...env },
@@ -90,4 +90,14 @@ test('le mode baseline conserve l’endpoint complet pour une comparaison avant/
 
 test('une cohorte sans comptes est refusée avant d’exécuter le test', () => {
   assert.throws(() => workload(10, { PLANNING_PROPERTY_COUNT: '1000' }), /Aucun compte/);
+});
+
+test('Server-Timing exporte seulement les durées valides des phases autorisées', () => {
+  const load = workload(10, {}, null, { 'sErVeR-tImInG': 'rows;dur=12.5;desc="private", decrypt;dur=0, unknown;dur=50, authz;dur=-1, mapping;dur=Infinity, contacts;dur=NaN' });
+  load.execute(load.setup());
+  const phases = load.samples.filter((sample) => sample.name.startsWith('planning_server_'));
+  assert.equal(phases.length, 8);
+  assert(phases.every((sample) => (sample.name === 'planning_server_rows_duration' && sample.value === 12.5)
+    || (sample.name === 'planning_server_decrypt_duration' && sample.value === 0)));
+  assert(phases.every((sample) => sample.tags === undefined));
 });
