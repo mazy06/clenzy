@@ -1,7 +1,7 @@
-import { useMemo, useRef } from 'react';
-import { useQuery, useQueries, useQueryClient } from '@tanstack/react-query';
+import { getBaitlyServiceCost } from '../utils/baitlyFinancial';
+import { useMemo, useRef, useCallback } from 'react';
+import { useQuery, useQueries, useQueryClient, type UseQueryResult } from '@tanstack/react-query';
 import { useAuth } from '../../../hooks/useAuth';
-import { propertiesApi } from '../../../services/api/propertiesApi';
 import { managersApi } from '../../../services/api/portfoliosApi';
 import { isCollectedByChannel } from '../../../services/api/reservationsApi';
 import type { CalendarBlockedDay } from '../../../services/api/calendarPricingApi';
@@ -23,19 +23,11 @@ export const planningKeys = {
    * de paiement et jours bloques arrivent ensemble (cf. planningDataApi).
    * Quatre cles distinctes signifiaient quatre requetes par tranche.
    */
-  data: (propertyIds: number[], from: string, to: string) =>
-    [...planningKeys.all, 'data', { propertyIds, from, to }] as const,
+  data: (propertyIds: number[], from: string, to: string, details = false) =>
+    [...planningKeys.all, 'data', { propertyIds, from, to, ...(details ? { details: true } : {}) }] as const,
 };
 
 // ─── Fetch helpers ───────────────────────────────────────────────────────────
-
-function unwrapPropertyList(data: unknown): Property[] {
-  if (Array.isArray(data)) return data as Property[];
-  if (data && typeof data === 'object' && 'content' in data && Array.isArray((data as { content: unknown }).content)) {
-    return (data as { content: Property[] }).content;
-  }
-  return [];
-}
 
 function mapToPlanning(list: Property[]): PlanningProperty[] {
   return list.map((p) => ({
@@ -65,6 +57,7 @@ async function fetchProperties(
   isManager: boolean,
   isHost: boolean,
   isOperational: boolean,
+  signal?: AbortSignal,
 ): Promise<PlanningProperty[]> {
   if (!user) return [];
 
@@ -73,9 +66,7 @@ async function fetchProperties(
   if (isAdmin || isManager || isHost) {
     // Le backend détecte le rôle HOST via JWT et filtre automatiquement
     // par ownerId côté serveur. Pas besoin d'envoyer ownerId depuis le frontend.
-    try {
-      propertyList = unwrapPropertyList(await propertiesApi.getAll());
-    } catch { /* empty */ }
+    return planningDataApi.getProperties(signal);
   } else if (isOperational) {
     try {
       const associations = await managersApi.getAssociations(user.id);
@@ -130,7 +121,7 @@ export function prefetchPlanningProperties(
     .some((r) => roles.includes(r));
   void queryClient.prefetchQuery({
     queryKey: planningKeys.properties(user.id),
-    queryFn: () => fetchProperties(user, isAdmin, isManager, isHost, isOperational),
+    queryFn: ({ signal }) => fetchProperties(user, isAdmin, isManager, isHost, isOperational, signal),
     staleTime: 2 * 60 * 1000,
   });
 }
@@ -223,7 +214,7 @@ export function interventionToEvent(i: PlanningIntervention): PlanningEvent {
     endTime = `${String(endH).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
   }
 
-  const cost = i.actualCost || i.estimatedCost || 0;
+  const cost = getBaitlyServiceCost(i);
   const intIsPaid = i.paymentStatus === 'PAID' || i.paymentStatus === 'REFUNDED' || i.paymentStatus === 'NOT_REQUIRED';
   const intNeedsBadge = cost > 0 && !intIsPaid;
   const intBadgeStatus: 'PENDING' | 'PROCESSING' | 'FAILED' | undefined = intNeedsBadge
@@ -470,7 +461,7 @@ export function usePlanningData(
   // Query 1: Properties (unchanged — single query)
   const propertiesQuery = useQuery({
     queryKey: planningKeys.properties(user?.id),
-    queryFn: () => fetchProperties(user, isAdmin, isManager, isHost, isOperational),
+    queryFn: ({ signal }) => fetchProperties(user, isAdmin, isManager, isHost, isOperational, signal),
     enabled: !!user,
     staleTime: 2 * 60 * 1000,
   });
@@ -520,38 +511,41 @@ export function usePlanningData(
   // produisaient des objets d'evenement neufs, ce qui invalidait la memo de
   // PlanningRow et faisait repeindre la grille entiere au moindre changement
   // d'etat local.
+  // Identité stable : TanStack ne reconstruit pas les données à chaque rendu local.
+  const combineResults = useCallback((results: UseQueryResult<PlanningData, Error>[]) => {
+    const blockedSeen = new Set<string>();
+    const blocked: CalendarBlockedDay[] = [];
+    for (const q of results) {
+      if (!q.data) continue;
+      for (const item of q.data.blocked ?? []) {
+        const key = `${item.propertyId}-${item.date}`;
+        if (blockedSeen.has(key)) continue;
+        blockedSeen.add(key);
+        blocked.push(item);
+      }
+    }
+    const chunkData = results.map((q) => q.data).filter((d): d is PlanningData => !!d);
+    return {
+      reservations: dedup(chunkData.map((d) => d.reservations ?? [])),
+      interventions: dedup(chunkData.map((d) => d.interventions ?? [])),
+      awaitingPayment: dedup(chunkData.map((d) => d.awaitingPayment ?? [])),
+      blocked,
+      hasAnyData: chunkData.length > 0,
+      isLoading: results.some((q) => q.isLoading),
+      priorityLoading: isPriorityWaveLoading(results, chunks, priorityFroms),
+      error: results.find((q) => q.error)?.error?.message,
+    };
+  }, [chunks, priorityFroms]);
+
   const planningResult = useQueries({
     queries: chunks.map((chunk) => ({
       queryKey: planningKeys.data(propertyIds, chunk.from, chunk.to),
-      queryFn: () => planningDataApi.getPlanningData(propertyIds, chunk.from, chunk.to),
+      queryFn: ({ signal }) => planningDataApi.getIndex(propertyIds, chunk.from, chunk.to, signal),
       enabled: chunkEnabled(chunk),
       staleTime: 30_000,
       gcTime: 5 * 60 * 1000, // keep cached 5 min after last use
     })),
-    combine: (results) => {
-      const blockedSeen = new Set<string>();
-      const blocked: CalendarBlockedDay[] = [];
-      for (const q of results) {
-        if (!q.data) continue;
-        for (const item of q.data.blocked ?? []) {
-          const key = `${item.propertyId}-${item.date}`;
-          if (blockedSeen.has(key)) continue;
-          blockedSeen.add(key);
-          blocked.push(item);
-        }
-      }
-      const chunkData = results.map((q) => q.data).filter((d): d is PlanningData => !!d);
-      return {
-        reservations: dedup(chunkData.map((d) => d.reservations ?? [])),
-        interventions: dedup(chunkData.map((d) => d.interventions ?? [])),
-        awaitingPayment: dedup(chunkData.map((d) => d.awaitingPayment ?? [])),
-        blocked,
-        hasAnyData: chunkData.length > 0,
-        isLoading: results.some((q) => q.isLoading),
-        priorityLoading: isPriorityWaveLoading(results, chunks, priorityFroms),
-        error: results.find((q) => q.error)?.error?.message,
-      };
-    },
+    combine: combineResults,
   });
 
   const reservations = planningResult.reservations;
@@ -580,7 +574,7 @@ export function usePlanningData(
     const visibleInterventions = interventions.filter((i) => {
       // Show if assigned OR if has unpaid cost (so payment badge is visible)
       if (i.assigneeName) return true;
-      const cost = i.actualCost || i.estimatedCost || 0;
+      const cost = getBaitlyServiceCost(i);
       const isPaid = i.paymentStatus === 'PAID' || i.paymentStatus === 'REFUNDED' || i.paymentStatus === 'NOT_REQUIRED';
       return cost > 0 && !isPaid;
     });

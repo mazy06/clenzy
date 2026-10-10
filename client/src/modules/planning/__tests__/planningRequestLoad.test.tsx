@@ -45,14 +45,16 @@ vi.mock('../../../services/api/portfoliosApi', () => ({
 
 vi.mock('../../../services/api/planningDataApi', () => ({
   planningDataApi: {
-    getPlanningData: vi.fn(async () => ({
+    getProperties: vi.fn(async () => PROPERTY_IDS.map((id) => ({ id, name: `L${id}`, photoUrls: [] }))),
+    getReservationDetails: vi.fn(async () => ({ reservations: [], interventions: [], awaitingPayment: [], blocked: [] })),
+    getIndex: vi.fn(async () => ({
       reservations: [], interventions: [], awaitingPayment: [], blocked: [],
     })),
   },
 }));
 
 const batchMock = vi.mocked(calendarPricingApi.getPricingBatch);
-const dataMock = vi.mocked(planningDataApi.getPlanningData);
+const dataMock = vi.mocked(planningDataApi.getIndex);
 
 /** 10 logements : la taille d'une page de planning telle qu'affichee. */
 const PROPERTY_IDS = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10];

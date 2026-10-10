@@ -75,6 +75,7 @@ const makeEvent = (overrides?: Partial<PlanningEvent['intervention']>): Planning
     startDate: '2025-06-01',
     endDate: '2025-06-01',
     estimatedDurationHours: 2,
+    estimatedCost: 50,
     paymentStatus: undefined,
     ...overrides,
   },
@@ -129,13 +130,24 @@ describe('PanelPayment', () => {
     });
 
     it('should handle missing duration', () => {
-      render(<PanelPayment event={makeEvent({ estimatedDurationHours: undefined })} />);
+      render(<PanelPayment event={makeEvent({ estimatedDurationHours: undefined, estimatedCost: undefined })} />);
       expect(screen.getByText('— h')).toBeInTheDocument();
       expect(screen.getByText('0.00 €')).toBeInTheDocument();
     });
   });
 
   // ── Payment cart (awaiting_payment) ────────────────────────────────────────
+  it('affiche le devis enregistré indépendamment de la durée', () => {
+    render(<PanelPayment event={makeEvent({ estimatedDurationHours: 2, estimatedCost: 73 })} />);
+    expect(screen.getByText('73.00 €')).toBeInTheDocument();
+    expect(screen.queryByText('50.00 €')).not.toBeInTheDocument();
+  });
+
+  it('préserve un coût réel nul malgré un devis non nul', () => {
+    render(<PanelPayment event={makeEvent({ actualCost: 0, estimatedCost: 73 })} />);
+    expect(screen.getByText('0.00 €')).toBeInTheDocument();
+  });
+
   describe('awaiting payment', () => {
     it('should show payment cart when status is awaiting_payment', () => {
       render(<PanelPayment event={makeEvent({ status: 'awaiting_payment' })} />);

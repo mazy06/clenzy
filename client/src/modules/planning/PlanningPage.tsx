@@ -1,3 +1,6 @@
+import { useBaitlyReservationDetails, mergeBaitlyReservationDetails } from './hooks/useBaitlyReservationDetails';
+import { reservationToEvent } from './hooks/usePlanningData';
+import { useBaitlyInterventionLifecycle } from './hooks/useBaitlyInterventionLifecycle';
 import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import {
   Alert,
@@ -26,8 +29,7 @@ import PlanningFilterButton from './PlanningFilterButton';
 import PlanningEmptyShowcase from './PlanningEmptyShowcase';
 import PlanningTimeline from './PlanningTimeline';
 import PlanningGridSkeleton from './PlanningGridSkeleton';
-import { computeDayOccupancy } from './PlanningOccupancyRow';
-import PlanningActionPanel from './PlanningActionPanel';
+import { computeDayOccupiedCounts } from './PlanningOccupancyRow';
 import ReservationDialog from '../../components/reservations/ReservationDialog';
 import PlanningPaginationBar from './PlanningPaginationBar';
 import ICalImportModal from '../dashboard/ICalImportModal';
@@ -51,16 +53,11 @@ import { usePlanningChannelSync } from './hooks/usePlanningChannelSync';
 import { useResizablePropertyColWidth } from './hooks/useResizablePropertyColWidth';
 import { useUrgencyAnimation } from './hooks/useUrgencyAnimation';
 import {
-  ACTION_PANEL_WIDTH,
   COLLAPSED_PROPERTY_COL_WIDTH,
-  PLANNING_CHANNEL_KEYS,
-  PLANNING_STATUS_KEYS,
 } from './constants';
 import { useTranslation } from 'react-i18next';
 import { useDateFormat } from '../../hooks/useDateFormat';
-import type { PlanningChannelKey } from './constants';
 import type { PlanningEvent, PlanningProperty } from './types';
-import type { ReservationStatus } from '../../services/api';
 import {
   ScopeToggle,
   PortfolioPanel,
@@ -78,6 +75,8 @@ import {
   type AgentId,
   type SupervisionScope,
 } from '../supervision';
+
+const PlanningActionPanel = React.lazy(() => import('./PlanningActionPanel'));
 
 const PlanningPage: React.FC = () => {
   const queryClient = useQueryClient();
@@ -217,7 +216,7 @@ const PlanningPage: React.FC = () => {
   const fetchRange = useSettledRange(timeline.bufferStart, timeline.bufferEnd);
 
   // Data fetching (chunked by 30-day aligned windows)
-  const { properties, events, reservations, interventions, loading, settled, error } = usePlanningData(
+  const { properties, events: indexEvents, reservations: indexReservations, interventions, loading, settled, error } = usePlanningData(
     fetchRange.start,
     fetchRange.end,
   );
@@ -234,7 +233,7 @@ const PlanningPage: React.FC = () => {
 
   // Filters
   const {
-    filters,
+    filters, activeChannels, activeStatuses, toggleChannel, toggleStatus, presentChannels, filterCount, occupancyEvents,
     setShowInterventions,
     setShowPrices,
     setSearchQuery,
@@ -242,60 +241,9 @@ const PlanningPage: React.FC = () => {
     hasActiveFilters,
     filteredEvents,
     filteredProperties,
-  } = usePlanningFilters(events, properties);
+  } = usePlanningFilters(indexEvents, properties);
 
-  // ── Filtres légende (rangées Canaux / Statuts de la toolbar) ──────────────
-  // État session-scoped, non persisté : tout est sélectionné par défaut, un
-  // clic sur une chip masque les briques du canal / statut correspondant.
-  const [activeChannels, setActiveChannels] = useState<Set<PlanningChannelKey>>(
-    () => new Set(PLANNING_CHANNEL_KEYS),
-  );
-  const [activeStatuses, setActiveStatuses] = useState<Set<ReservationStatus>>(
-    () => new Set(PLANNING_STATUS_KEYS),
-  );
-
-  const toggleChannel = useCallback((key: PlanningChannelKey) => {
-    setActiveChannels((prev) => {
-      const next = new Set(prev);
-      if (next.has(key)) next.delete(key);
-      else next.add(key);
-      return next;
-    });
-  }, []);
-
-  const toggleStatus = useCallback((status: ReservationStatus) => {
-    setActiveStatuses((prev) => {
-      const next = new Set(prev);
-      if (next.has(status)) next.delete(status);
-      else next.add(status);
-      return next;
-    });
-  }, []);
-
-  // « Effacer tous les filtres » : réinitialise AUSSI les toggles légende
-  // (canaux/statuts) qui sont session-scoped hors du hook usePlanningFilters.
-  const handleClearFilters = useCallback(() => {
-    clearFilters();
-    setActiveChannels(new Set(PLANNING_CHANNEL_KEYS));
-    setActiveStatuses(new Set(PLANNING_STATUS_KEYS));
-  }, [clearFilters]);
-
-  // Canaux réellement représentés dans les données chargées. La légende ne
-  // propose que ceux-là : afficher un chip « Expedia » à une organisation qui
-  // n'y vend pas donne un filtre sans effet et allonge la barre pour rien.
-  //
-  // Calculé sur `filteredEvents` — donc AVANT le filtrage par légende, sinon
-  // décocher un canal le ferait disparaître de sa propre légende et il
-  // deviendrait impossible de le réafficher.
-  const presentChannels = useMemo(() => {
-    const present = new Set<PlanningChannelKey>();
-    for (const event of filteredEvents) {
-      const source = event.reservation?.source;
-      const known = PLANNING_CHANNEL_KEYS.find((key) => key === source);
-      if (known) present.add(known);
-    }
-    return present;
-  }, [filteredEvents]);
+  const handleClearFilters = clearFilters;
 
   // La rangée de filtres attend d'être COMPLETE pour paraître.
   //
@@ -312,36 +260,14 @@ const PlanningPage: React.FC = () => {
   if (settled) filtersShown.current = true;
   const filtersReady = filtersShown.current;
 
-  // Masquage client-side des briques réservation selon les toggles légende.
-  // S'applique APRÈS usePlanningFilters (hooks de données inchangés) et AVANT
-  // le layout/rendu de la grille. Seul l'affichage est filtré : sélection,
-  // drag et validations de conflit continuent de voir l'ensemble complet.
-  // Les sources hors légende (ex: 'other') restent toujours visibles.
-  const visibleEvents = useMemo(() => {
-    const allSelected =
-      activeChannels.size === PLANNING_CHANNEL_KEYS.length
-      && activeStatuses.size === PLANNING_STATUS_KEYS.length;
-    if (allSelected) return filteredEvents;
-    return filteredEvents.filter((e) => {
-      if (e.type !== 'reservation') return true;
-      const source = e.reservation?.source;
-      // On ne masque QUE les canaux qui ont un chip pour les réafficher.
-      // L'ancienne règle excluait tout ce qui n'était ni dans la légende ni
-      // 'other' : dès qu'un chip était décoché, une réservation Vrbo ou Expedia
-      // disparaissait du planning sans aucun moyen de la faire revenir.
-      const togglable = PLANNING_CHANNEL_KEYS.find((key) => key === source);
-      if (togglable && !activeChannels.has(togglable)) return false;
-      return activeStatuses.has(e.status as ReservationStatus);
-    });
-  }, [filteredEvents, activeChannels, activeStatuses]);
+
 
   // Rangée « Occupation » (projection) : calculée AVANT le filtrage par légende
   // et sur toutes les propriétés filtrées — masquer un canal change l'affichage
   // des briques, pas l'occupation réelle du portefeuille.
-  const dayOccupancy = useMemo(
-    () => computeDayOccupancy(timeline.days, filteredEvents, filteredProperties.length),
-    [timeline.days, filteredEvents, filteredProperties.length],
-  );
+  const dayOccupiedCounts = useMemo(() => computeDayOccupiedCounts(timeline.days, occupancyEvents), [timeline.days, occupancyEvents]);
+  const dayOccupancy = useMemo(() => dayOccupiedCounts.map((count) => filteredProperties.length > 0
+    ? Math.round(count / filteredProperties.length * 100) : 0), [dayOccupiedCounts, filteredProperties.length]);
 
   // Superviseur : à l'ouverture d'un accordéon, on remonte le logement déployé
   // en 1ʳᵉ position ; la pagination (firstItemAlone) l'isole alors sur sa propre
@@ -402,8 +328,20 @@ const PlanningPage: React.FC = () => {
     showPrices: filters.showPrices,
     firstItemAlone: supervisorExpanded,
     gridHeight,
-    hasOccupancyRow: dayOccupancy != null && !supervisorExpanded,
+    hasOccupancyRow: dayOccupancy != null,
   });
+
+  // Selection & panels
+  const {
+    selection,
+    selectedEvent: selectedIndexEvent,
+    selectEvent,
+    closePanel,
+    setPanelTab,
+    quickCreateData,
+    openQuickCreate,
+    closeQuickCreate,
+  } = usePlanningSelection(indexEvents);
 
   // Ids des logements de la PAGE affichée uniquement, mémoïsés (stabilise les
   // clés des hooks pricing/min-nights). Fetcher toutes les propriétés filtrées
@@ -419,6 +357,30 @@ const PlanningPage: React.FC = () => {
   // 10, et tout ce qui en dépend partait donc DEUX fois. On attend la mesure,
   // qui arrive dès le premier effet suivant le montage de la grille.
   const pageScopedFetchReady = pagination.isPageSizeMeasured;
+
+  const detailsPropertyIds = useMemo(() => selectedIndexEvent
+    ? [...paginatedPropertyIds, selectedIndexEvent.propertyId] : paginatedPropertyIds,
+    [paginatedPropertyIds, selectedIndexEvent?.propertyId]);
+  const details = useBaitlyReservationDetails(detailsPropertyIds, fetchRange.start, fetchRange.end, pageScopedFetchReady);
+  const reservations = useMemo(() => mergeBaitlyReservationDetails(indexReservations, details.reservations),
+    [indexReservations, details.reservations]);
+  const events = useMemo(() => {
+    const hydrated = new Map(details.reservations.map((r) => [r.id, r]));
+    const defaults = new Map(properties.map((p) => [p.id, p]));
+    return indexEvents.map((event) => event.reservation && hydrated.has(event.reservation.id)
+      ? reservationToEvent(hydrated.get(event.reservation.id)!, defaults.get(event.propertyId)) : event);
+  }, [indexEvents, details.reservations, properties]);
+  const visibleEvents = useMemo(() => {
+    const hydratedIds = new Set(details.reservations.map((r) => `res-${r.id}`));
+    const visibleIds = new Set(filteredEvents.map((event) => event.id));
+    // Aucun faux e-mail manquant : une brique attend sa vraie fiche voyageur.
+    return events.filter((event) => visibleIds.has(event.id) && (event.type !== 'reservation' || hydratedIds.has(event.id)));
+  }, [events, filteredEvents, details.reservations]);
+  const selectedEventCandidate = selectedIndexEvent
+    ? events.find((event) => event.id === selectedIndexEvent.id) ?? null : null;
+  const selectedEvent = selectedEventCandidate?.type === 'reservation'
+    && !details.reservations.some((r) => `res-${r.id}` === selectedEventCandidate.id)
+    ? null : selectedEventCandidate;
 
   // Pricing data (fetched only when toggle is ON)
   const { pricingMap } = usePlanningPricing(
@@ -453,17 +415,7 @@ const PlanningPage: React.FC = () => {
     nav.density,
   );
 
-  // Selection & panels
-  const {
-    selection,
-    selectedEvent,
-    selectEvent,
-    closePanel,
-    setPanelTab,
-    quickCreateData,
-    openQuickCreate,
-    closeQuickCreate,
-  } = usePlanningSelection(filteredEvents);
+
 
   // « + Réservation » (header) : ouvre le ReservationDialog en création LIBRE — aucun
   // logement préselectionné, l'utilisateur choisit le logement (et les dates) dans le
@@ -504,12 +456,12 @@ const PlanningPage: React.FC = () => {
     ...(inHeaderMenu
       ? []
       : [{
-          label: 'Filtres & affichage',
+          label: t('planning.filters.title', 'Filtres'),
           icon: <FilterList size={15} strokeWidth={1.75} />,
           onSelect: () => setFilterMenuOpen(true),
         }]),
     {
-      label: 'Plein écran',
+      label: isFullscreen ? t('planning.nav.exitFullscreen') : t('planning.nav.fullscreen', 'Plein écran'),
       icon: <Fullscreen size={15} strokeWidth={1.75} />,
       onSelect: nav.toggleFullscreen,
     },
@@ -519,7 +471,7 @@ const PlanningPage: React.FC = () => {
       onSelect: () => setImportChooserOpen(true),
     },
     {
-      label: 'Nouvelle réservation',
+      label: t('planning.newReservation', 'Nouvelle réservation'),
       icon: <Add size={15} strokeWidth={1.75} />,
       onSelect: handleCreateReservation,
       disabled: properties.length === 0,
@@ -530,7 +482,7 @@ const PlanningPage: React.FC = () => {
   // Handle event click: SR blocks redirect to linked reservation's Paiement tab
   const handleEventClick = useCallback((event: PlanningEvent) => {
     if (event.isAwaitingPayment && event.serviceRequest?.reservationId) {
-      const resEvent = filteredEvents.find(
+      const resEvent = events.find(
         (e) => e.type === 'reservation' && e.reservation?.id === event.serviceRequest!.reservationId,
       );
       if (resEvent) {
@@ -540,7 +492,7 @@ const PlanningPage: React.FC = () => {
       }
     }
     selectEvent(event);
-  }, [filteredEvents, selectEvent, setPanelTab]);
+  }, [events, selectEvent, setPanelTab]);
 
   // Ouvre la fiche client d'une réservation depuis la carte « email voyageur manquant » :
   // sélectionne la réservation (ouvre PlanningActionPanel) PUIS arme l'ouverture du modal
@@ -550,14 +502,14 @@ const PlanningPage: React.FC = () => {
   const openGuestCardRef = useRef<(reservationId: string) => void>(() => {});
   useEffect(() => {
     openGuestCardRef.current = (reservationId: string) => {
-      const resEvent = filteredEvents.find(
+      const resEvent = events.find(
         (e) => e.type === 'reservation' && e.reservation && String(e.reservation.id) === String(reservationId),
       );
       if (!resEvent) return;
       selectEvent(resEvent);
       setAutoOpenGuestCardReservationId(String(reservationId));
     };
-  }, [filteredEvents, selectEvent, setAutoOpenGuestCardReservationId]);
+  }, [events, selectEvent, setAutoOpenGuestCardReservationId]);
   const handleOpenGuestCard = useCallback((reservationId: string) => {
     openGuestCardRef.current(reservationId);
   }, []);
@@ -589,58 +541,7 @@ const PlanningPage: React.FC = () => {
     updateInterventionNotes,
   } = useInterventionActions(events, interventions);
 
-  // Intervention lifecycle actions (start, complete, validate, photos, progress, payment)
-  const startIntervention = useCallback(async (interventionId: number) => {
-    try {
-      const { interventionsApi } = await import('../../services/api');
-      await interventionsApi.start(interventionId);
-      return { success: true, error: null };
-    } catch (err) {
-      return { success: false, error: err instanceof Error ? err.message : 'Erreur' };
-    }
-  }, []);
-
-  const completeIntervention = useCallback(async (interventionId: number) => {
-    try {
-      const { interventionsApi } = await import('../../services/api');
-      // Complete = set progress to 100%
-      await interventionsApi.updateProgress(interventionId, 100);
-      return { success: true, error: null };
-    } catch (err) {
-      return { success: false, error: err instanceof Error ? err.message : 'Erreur' };
-    }
-  }, []);
-
-  const validateIntervention = useCallback(async (interventionId: number, estimatedCost: number) => {
-    try {
-      const { interventionsApi } = await import('../../services/api');
-      // Validate = update with estimated cost and mark complete
-      await interventionsApi.update(interventionId, { estimatedCost, status: 'COMPLETED' });
-      return { success: true, error: null };
-    } catch (err) {
-      return { success: false, error: err instanceof Error ? err.message : 'Erreur' };
-    }
-  }, []);
-
-  const uploadPhotos = useCallback(async (interventionId: number, photos: File[], type: 'before' | 'after') => {
-    try {
-      const { interventionsApi } = await import('../../services/api');
-      await interventionsApi.uploadPhotos(interventionId, photos, type);
-      return { success: true, error: null };
-    } catch (err) {
-      return { success: false, error: err instanceof Error ? err.message : 'Erreur' };
-    }
-  }, []);
-
-  const updateInterventionProgress = useCallback(async (interventionId: number, progress: number) => {
-    try {
-      const { interventionsApi } = await import('../../services/api');
-      await interventionsApi.updateProgress(interventionId, progress);
-      return { success: true, error: null };
-    } catch (err) {
-      return { success: false, error: err instanceof Error ? err.message : 'Erreur' };
-    }
-  }, []);
+  const { startIntervention, completeIntervention, validateIntervention, uploadPhotos, updateInterventionProgress } = useBaitlyInterventionLifecycle();
 
   const createPaymentSession = useCallback(async (interventionIds: number[], total: number) => {
     const { paymentsApi } = await import('../../services/api/paymentsApi');
@@ -908,6 +809,10 @@ const PlanningPage: React.FC = () => {
                 )}
                 {!isOverview && (
                   <>
+                    {!inHeaderMenu && <Button size="sm" onClick={handleCreateReservation}>
+                      <Add size={15} strokeWidth={1.75} />
+                      {t('planning.newReservation', 'Nouvelle réservation')}
+                    </Button>}
                     {/* Sous `lg`, le PageHeader replie DEJA ses actions dans son
                         menu ⋯ : y remettre un menu revient a empiler deux couches
                         pour une seule intention. Les entrees sont donc rendues a
@@ -917,7 +822,7 @@ const PlanningPage: React.FC = () => {
                         filtres (rendu a part, controle). */}
                     {inHeaderMenu ? (
                       <span ref={setMoreAnchorEl} className="flex flex-col items-stretch gap-1">
-                        {PLANNING_ACTIONS.map((action) => (
+                        {PLANNING_ACTIONS.filter((action) => inHeaderMenu || action.onSelect !== handleCreateReservation).map((action) => (
                           <Button
                             key={action.label}
                             variant="ghost"
@@ -950,7 +855,7 @@ const PlanningPage: React.FC = () => {
                           </span>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end">
-                          {PLANNING_ACTIONS.map((action) => (
+                          {PLANNING_ACTIONS.filter((action) => inHeaderMenu || action.onSelect !== handleCreateReservation).map((action) => (
                             <React.Fragment key={action.label}>
                               {action.separatorBefore && <DropdownMenuSeparator />}
                               <DropdownMenuItem disabled={action.disabled} onSelect={action.onSelect}>
@@ -966,6 +871,7 @@ const PlanningPage: React.FC = () => {
                       filters={filters}
                       density={nav.density}
                       hasActiveFilters={hasActiveFilters}
+                      activeFilterCount={filterCount}
                       onDensityChange={nav.setDensity}
                       onShowInterventionsChange={setShowInterventions}
                       onShowPricesChange={setShowPrices}
@@ -1023,9 +929,9 @@ const PlanningPage: React.FC = () => {
       )}
 
       {/* Error */}
-      {error && (
+      {(error || details.error) && (
         <Alert variant="destructive" className="mx-[9px] mb-1.5 shrink-0">
-          <AlertDescription>{error}</AlertDescription>
+          <AlertDescription>{error || details.error}</AlertDescription>
         </Alert>
       )}
 
@@ -1087,6 +993,7 @@ const PlanningPage: React.FC = () => {
             totalGridWidth={totalGridWidth}
             selectedEventId={selection.selectedEventId}
             events={visibleEvents}
+            allEvents={events}
             loadedReservations={reservations}
             drag={drag}
             onEventClick={handleEventClick}
@@ -1109,6 +1016,8 @@ const PlanningPage: React.FC = () => {
             pendingCountByProperty={canSupervise ? pendingCountByProperty : undefined}
             pageSize={pagination.pageSize}
             dayOccupancy={dayOccupancy}
+            dayOccupiedCounts={dayOccupiedCounts}
+            occupancyPropertyCount={filteredProperties.length}
             expandedPropertyId={canSupervise ? expandedPropertyId : null}
             onToggleExpanded={canSupervise ? handleToggleExpanded : undefined}
             renderExpanded={canSupervise ? renderExpandedPanel : undefined}
@@ -1138,13 +1047,15 @@ const PlanningPage: React.FC = () => {
       )}
 
       {/* Action Panel */}
+      {selection.panelOpen && (
+      <React.Suspense fallback={null}>
       <PlanningActionPanel
         open={selection.panelOpen}
         event={selectedEvent}
         activeTab={selection.panelTab}
         onTabChange={setPanelTab}
         onClose={closePanel}
-        allEvents={filteredEvents}
+        allEvents={events}
         properties={properties}
         interventions={interventions}
         loadedReservations={reservations}
@@ -1171,6 +1082,8 @@ const PlanningPage: React.FC = () => {
         autoOpenGuestCardForReservationId={autoOpenGuestCardReservationId}
         onGuestCardAutoOpenHandled={() => setAutoOpenGuestCardReservationId(null)}
       />
+      </React.Suspense>
+      )}
 
       {/* Quick Create Dialog — création verrouillée (clic cellule/résa) OU création libre
           (bouton +, sélecteur de logement dans le corps). Sert aussi le mode « Blocage »
@@ -1200,7 +1113,7 @@ const PlanningPage: React.FC = () => {
             ? { checkIn: quickCreateData.startDate, checkOut: quickCreateData.endDate }
             : undefined
         }
-        events={filteredEvents}
+        events={events}
       />
 
       {/* Choix du mécanisme d'import : iCal ponctuel OU Channel Manager (Channex) */}

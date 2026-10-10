@@ -12,6 +12,18 @@ import java.util.Optional;
 
 @Repository
 public interface PropertyPhotoRepository extends JpaRepository<PropertyPhoto, Long> {
+    interface BaitlyPlanningPhoto {
+        Long getId();
+        Long getPropertyId();
+        String getExternalUrl();
+    }
+
+    /** Aucun BYTEA ni entité photo hydratée pour les vignettes du planning Baitly. */
+    @Query("SELECT p.id AS id, p.propertyId AS propertyId, p.externalUrl AS externalUrl "
+        + "FROM PropertyPhoto p WHERE p.organizationId = :orgId AND p.propertyId IN :ids "
+        + "ORDER BY p.sortOrder, p.id")
+    List<BaitlyPlanningPhoto> findBaitlyPlanningPhotos(@Param("ids") List<Long> ids, @Param("orgId") Long orgId);
+
 
     List<PropertyPhoto> findByPropertyIdOrderBySortOrderAsc(Long propertyId);
 

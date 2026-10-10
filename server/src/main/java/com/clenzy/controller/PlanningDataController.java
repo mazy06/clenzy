@@ -1,6 +1,15 @@
 package com.clenzy.controller;
 
 import com.clenzy.dto.PlanningDataDto;
+import com.clenzy.dto.BaitlyPlanningReservationIndex;
+import com.clenzy.dto.BaitlyPlanningPropertyRow;
+import com.clenzy.service.BaitlyPlanningIndexService;
+import com.clenzy.service.BaitlyPlanningPropertyService;
+import com.clenzy.util.JwtRoleExtractor;
+import com.clenzy.model.UserRole;
+import org.springframework.data.domain.Page;
+import org.springframework.web.server.ResponseStatusException;
+import org.springframework.http.HttpStatus;
 import com.clenzy.dto.ReservationDto;
 import com.clenzy.service.ReservationMapper;
 import com.clenzy.service.CalendarEngine;
@@ -65,19 +74,73 @@ public class PlanningDataController {
     private final ServiceRequestService serviceRequestService;
     private final CalendarEngine calendarEngine;
     private final TenantContext tenantContext;
+    private final BaitlyPlanningIndexService indexService;
+    private final BaitlyPlanningPropertyService propertyService;
 
     public PlanningDataController(ReservationService reservationService,
                                   ReservationMapper reservationMapper,
                                   InterventionPlanningService interventionPlanningService,
                                   ServiceRequestService serviceRequestService,
                                   CalendarEngine calendarEngine,
-                                  TenantContext tenantContext) {
+                                  TenantContext tenantContext,
+                                  BaitlyPlanningIndexService indexService,
+                                  BaitlyPlanningPropertyService propertyService) {
         this.reservationService = reservationService;
         this.reservationMapper = reservationMapper;
         this.interventionPlanningService = interventionPlanningService;
         this.serviceRequestService = serviceRequestService;
         this.calendarEngine = calendarEngine;
         this.tenantContext = tenantContext;
+        this.indexService = indexService;
+        this.propertyService = propertyService;
+    }
+
+    public record BaitlyPlanningIndexData(List<BaitlyPlanningReservationIndex> reservations,
+            List<Map<String, Object>> interventions, List<Map<String, Object>> awaitingPayment,
+            List<Map<String, Object>> blocked) {}
+
+    @GetMapping("/properties")
+    public Page<BaitlyPlanningPropertyRow> properties(@AuthenticationPrincipal Jwt jwt,
+            @RequestParam(defaultValue = "0") int page, @RequestParam(defaultValue = "200") int size) {
+        if (page < 0 || size < 1 || size > 200) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Page invalide (taille 1 à 200)");
+        }
+        String ownerKc = JwtRoleExtractor.extractUserRole(jwt) == UserRole.HOST ? jwt.getSubject() : null;
+        return propertyService.page(ownerKc, page, size);
+    }
+
+    @GetMapping("/index")
+    public BaitlyPlanningIndexData index(@AuthenticationPrincipal Jwt jwt, Authentication authentication,
+            @RequestParam List<Long> propertyIds,
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate from,
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate to) {
+        validateIndexRange(from, to);
+        if (propertyIds.size() > 500) throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Index limité à 500 logements par lot");
+        reservationService.validatePropertyAccessBatch(propertyIds, jwt.getSubject());
+        if (propertyIds.isEmpty()) return new BaitlyPlanningIndexData(List.of(), List.of(), List.of(), List.of());
+        return new BaitlyPlanningIndexData(indexService.reservations(propertyIds, from, to),
+                canReadInterventions(authentication) ? interventionPlanningService.getPlanningInterventions(jwt, propertyIds, from, to, null) : List.of(),
+                serviceRequestService.getPlanningServiceRequests(propertyIds, from.atStartOfDay(), to.atTime(LocalTime.MAX)),
+                blockedDays(propertyIds, from, to, jwt));
+    }
+
+    @GetMapping("/reservations")
+    public List<ReservationDto> reservationDetails(@AuthenticationPrincipal Jwt jwt,
+            @RequestParam List<Long> propertyIds,
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate from,
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate to) {
+        validateIndexRange(from, to);
+        if (propertyIds.size() > 100) throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Lot de détails limité à 100 logements");
+        reservationService.validatePropertyAccessBatch(propertyIds, jwt.getSubject());
+        if (propertyIds.isEmpty()) return List.of();
+        return reservationService.getReservationsPage(jwt.getSubject(), propertyIds, from, to,
+                null, null, null, Pageable.unpaged()).getContent().stream().map(reservationMapper::toDto).toList();
+    }
+
+    private static void validateIndexRange(LocalDate from, LocalDate to) {
+        if (from == null || to == null || to.isBefore(from) || java.time.temporal.ChronoUnit.DAYS.between(from, to) > 62) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Fenêtre du planning limitée à 62 jours");
+        }
     }
 
     @GetMapping("/data")
@@ -96,6 +159,9 @@ public class PlanningDataController {
         LocalDate effectiveTo = to != null ? to : LocalDate.now().plusMonths(6);
         LocalDateTime fromDateTime = effectiveFrom.atStartOfDay();
         LocalDateTime toDateTime = effectiveTo.atTime(LocalTime.MAX);
+
+        // Refuser le lot avant toute lecture métier, avec une seule garde groupée.
+        reservationService.validatePropertyAccessBatch(propertyIds, jwt.getSubject());
 
         List<ReservationDto> reservations = reservationService
                 .getReservationsPage(jwt.getSubject(), propertyIds, effectiveFrom, effectiveTo,
@@ -133,10 +199,6 @@ public class PlanningDataController {
         if (propertyIds == null || propertyIds.isEmpty()) return List.of();
 
         Long orgId = tenantContext.getRequiredOrganizationId();
-        for (Long propertyId : propertyIds) {
-            reservationService.validatePropertyAccess(propertyId, jwt.getSubject());
-        }
-
         return calendarEngine.getBlockedOrMaintenanceDays(propertyIds, from, to, orgId).stream()
                 .map(day -> {
                     Map<String, Object> map = new LinkedHashMap<>();

@@ -12872,6 +12872,16 @@
     }
   },
   "planning": {
+    "feedback": {
+      "saveError": "The move was not saved. The previous dates have been restored.",
+      "reservation": "A reservation already occupies this time slot.",
+      "blocked": "This time slot is blocked.",
+      "intervention": "Another intervention already occupies this time slot.",
+      "turnaround": "There is not enough time for the intervention before the next arrival.",
+      "invalidRange": "The end must be after the start.",
+      "conflict": "This time slot is unavailable."
+    },
+    "newReservation": "New reservation",
     "importChooser": {
       "title": "Import reservations",
       "subtitle": "Choose how to connect your booking channels.",
@@ -12895,6 +12905,7 @@
     "title": "Planning",
     "subtitle": "Bookings & interventions · {{month}}",
     "nav": {
+      "fullscreen": "Full screen",
       "prev": "Previous period",
       "next": "Next period",
       "today": "Today",
@@ -12910,6 +12921,10 @@
       "monthShort": "Month"
     },
     "grid": {
+      "occupancyScope": "All filtered properties, across all pages and channels.",
+      "occupiedCount_one": "{{count}} occupied property out of {{total}}",
+      "occupiedCount_other": "{{count}} occupied properties out of {{total}}",
+      "keyboardSelection": "{{property}}, {{date}}. Arrows: choose a date. Shift + arrows: extend. Enter: create a reservation.",
       "propertyCount_one": "{{count}} property",
       "propertyCount_other": "{{count}} properties",
       "showProperties": "Show the properties column",
@@ -13014,6 +13029,9 @@
       "unblockFailed": "Unblocking failed. Try again."
     },
     "bar": {
+      "alerts": "Needs attention",
+      "details": "Details",
+      "resize": "Resize stay",
       "hide": "Hide from the planning",
       "paymentFailed": "Payment failed",
       "paymentProcessing": "Payment being processed",
@@ -13411,7 +13429,7 @@
         "noLinked": "No intervention linked to this booking.",
         "interventionCost": "Intervention cost",
         "estimatedDuration": "Estimated duration",
-        "estimatedCost": "Estimated cost (€25/h)",
+        "estimatedCost": "Estimated cost",
         "actualCost": "Actual cost",
         "paymentStatus": "Payment status",
         "generateInvoice": "Generate an invoice",

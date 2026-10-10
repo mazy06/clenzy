@@ -1,3 +1,6 @@
+import { BaitlyPaymentHistory, type BaitlyHistoryPayment } from './BaitlyPaymentHistory';
+import StatusChip from '../../../components/StatusChip';
+import { getBaitlyServiceCost, isBaitlyServicePaid } from '../utils/baitlyFinancial';
 import React, { useState, useCallback, useEffect, useMemo, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useDateFormat } from '../../../hooks/useDateFormat';
@@ -8,7 +11,6 @@ import { Button, Spinner } from '../../../components/ui';
 import { useQueryClient } from '@tanstack/react-query';
 import PaymentCheckoutModal from '../../../components/PaymentCheckoutModal';
 import { reservationsApi } from '../../../services/api/reservationsApi';
-import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '../../../components/ui';
 import {
   Field,
   FieldLabel,
@@ -57,7 +59,7 @@ import { RESERVATION_SOURCE_LABELS, isCollectedByChannel } from '../../../servic
 import { useCurrency } from '../../../hooks/useCurrency';
 import { useNotification } from '../../../hooks/useNotification';
 import { Money } from '../../../components/Money';
-import StatusChip, { STATUS_TONES, type ToneTokens } from '../../../components/StatusChip';
+import { SectionCard, DomainStatusChip, FinRow, OK_TOKENS, WARN_TOKENS, ERR_TOKENS, INFO_TOKENS, NEUTRAL_TOKENS, STATUS_TOKENS, type SoftTokens } from './BaitlyFinancialPrimitives';
 import {
   filterAttachedToReservation,
   type AttachmentCandidate,
@@ -66,14 +68,7 @@ import { useAttachedServiceRequests } from './useAttachedServiceRequests';
 import { PlanningTooltipContent } from '../PlanningTooltip';
 
 // ── Types for local financial state ────────────────────────────────────────
-interface LocalPayment {
-  id: number;
-  amount: number;
-  method: string;
-  date: string;
-  status: 'PAID' | 'PENDING' | 'REFUNDED';
-  reference?: string;
-}
+type LocalPayment = BaitlyHistoryPayment;
 
 interface LocalExtraFee {
   id: number;
@@ -94,37 +89,6 @@ interface GeneratedInvoice {
 // `planning.panel.fin.methods.<valeur>` au rendu. Figé à l'import, il resterait
 // français après un changement de langue.
 const PAYMENT_METHOD_VALUES = ['card', 'transfer', 'cash', 'check', 'stripe', 'other'] as const;
-
-type SoftTokens = ToneTokens;
-
-const OK_TOKENS: SoftTokens = STATUS_TONES.ok;
-const WARN_TOKENS: SoftTokens = STATUS_TONES.warn;
-const ERR_TOKENS: SoftTokens = STATUS_TONES.err;
-const INFO_TOKENS: SoftTokens = STATUS_TONES.info;
-const NEUTRAL_TOKENS: SoftTokens = STATUS_TONES.neutral;
-
-/** Statuts paiement → tokens sémantiques (succès = ok, attente = warn, en cours = info, échec = err). */
-const STATUS_TOKENS: Record<string, SoftTokens> = {
-  PAID: OK_TOKENS,
-  PENDING: WARN_TOKENS,
-  REFUNDED: ERR_TOKENS,
-  DRAFT: NEUTRAL_TOKENS,
-  ISSUED: INFO_TOKENS,
-  PROCESSING: INFO_TOKENS,
-  FAILED: ERR_TOKENS,
-  CANCELLED: NEUTRAL_TOKENS,
-};
-
-const OVERLINE_SX = {
-  fontSize: '0.625rem',
-  fontWeight: 700,
-  textTransform: 'uppercase' as const,
-  letterSpacing: '0.08em',
-  color: 'var(--faint)',
-};
-
-/** Report en classes de `OVERLINE_SX`. */
-const OVERLINE_CLASS = 'text-[0.625rem] font-bold uppercase tracking-[0.08em] text-[var(--faint)]';
 
 const PAYMENT_STATUS_KEYS = [
   'PAID', 'PENDING', 'REFUNDED', 'DRAFT', 'ISSUED', 'PROCESSING', 'FAILED', 'CANCELLED',
@@ -147,80 +111,6 @@ const INTERVENTION_STATUS_TOKENS: Record<string, SoftTokens> = {
 };
 
 let mockFinancialId = 5000;
-
-// ── Section wrapper — carte hairline, titre overline, badge chip soft ───────
-const SectionCard: React.FC<{
-  icon: React.ReactNode;
-  title: string;
-  badge: string;
-  badgeTokens: SoftTokens;
-  children: React.ReactNode;
-}> = ({ icon, title, badge, badgeTokens, children }) => (
-  <div className="border border-[var(--bui-border)] bg-[var(--bui-card)] rounded-[12px] p-2">
-    <div className="flex items-center gap-1.5 mb-2">
-      {icon}
-      <p className={cn(OVERLINE_CLASS, 'cn-text-body2 flex-1')}>
-        {title}
-      </p>
-      <StatusChip pill tokens={{ color: badgeTokens.color, bg: badgeTokens.bg }} label={badge} />
-    </div>
-    {children}
-  </div>
-);
-
-// ── Status chip helper — résout le ton via la map domaine puis délègue au
-//    StatusChip partagé (taille sm), rayon pilule conservé. ──────────────────
-const DomainStatusChip: React.FC<{ status: string; map?: Record<string, string>; tokenMap?: Record<string, SoftTokens> }> = ({
-  status,
-  map,
-  tokenMap = STATUS_TOKENS,
-}) => {
-  // Sans table fournie, le statut est un statut de PAIEMENT : il se traduit
-  // ici. La table était naguère un objet de module, figé en français.
-  const { t } = useTranslation();
-  const label = map
-    ? map[status] || status
-    : t(`planning.panel.fin.statuses.${status}`, status);
-
-  return (
-    <StatusChip
-      tokens={tokenMap[status] || NEUTRAL_TOKENS}
-      label={label}
-      size="sm"
-      sx={{ borderRadius: 'var(--radius-pill)' }}
-    />
-  );
-};
-
-// ── Row helper ──────────────────────────────────────────────────────────────
-const FinRow: React.FC<{
-  label: string;
-  value: React.ReactNode;
-  bold?: boolean;
-  color?: string;
-  secondary?: boolean;
-  children?: React.ReactNode;
-}> = ({ label, value, bold, color, secondary, children }) => (
-  <div className="flex justify-between items-center mb-0.5">
-    <p className={cn('cn-text-body2 text-[0.8125rem]', secondary !== false && 'text-[var(--muted)]')}>
-      {label}
-    </p>
-    <div className="flex items-center gap-1.5">
-      {/* `color` et `bold` sont des props : leur valeur n'existe qu'a
-          l'execution, donc style inline et non classes Tailwind. */}
-      <p
-        className="cn-text-body2 font-semibold text-[0.8125rem] tabular-nums"
-        style={{
-          color: color || 'var(--ink)',
-          ...(bold && { fontFamily: 'var(--font-display)' }),
-        }}
-      >
-        {value}
-      </p>
-      {children}
-    </div>
-  </div>
-);
 
 // ── Props ──────────────────────────────────────────────────────────────────
 interface PanelFinancialProps {
@@ -503,20 +393,20 @@ const PanelFinancial: React.FC<PanelFinancialProps> = ({
     : [];
 
   const interventionCostTotal = linkedInterventions.reduce((sum, i) => {
-    const cost = i.actualCost || i.estimatedCost || (i.estimatedDurationHours ? i.estimatedDurationHours * 25 : 0);
+    const cost = getBaitlyServiceCost(i);
     return sum + cost;
   }, 0);
 
   const interventionPaid = linkedInterventions
-    .filter((i) => i.paymentStatus === 'PAID' || i.paymentStatus === 'PROCESSING' || i.status === 'completed')
+    .filter(isBaitlyServicePaid)
     .reduce((sum, i) => {
-      const cost = i.actualCost || i.estimatedCost || (i.estimatedDurationHours ? i.estimatedDurationHours * 25 : 0);
+      const cost = getBaitlyServiceCost(i);
       return sum + cost;
     }, 0);
 
   const interventionAwaiting = linkedInterventions.filter((i) => i.status === 'awaiting_payment');
   const interventionAwaitingTotal = interventionAwaiting.reduce((sum, i) => {
-    const cost = i.estimatedCost || (i.estimatedDurationHours ? i.estimatedDurationHours * 25 : 0);
+    const cost = getBaitlyServiceCost(i);
     return sum + cost;
   }, 0);
 
@@ -525,7 +415,7 @@ const PanelFinancial: React.FC<PanelFinancialProps> = ({
     (sr) => sr.status === 'AWAITING_PAYMENT',
   );
   const srProposedTotal = payableServiceRequests.reduce((sum, sr) => {
-    const cost = sr.estimatedCost || (sr.estimatedDurationHours ? sr.estimatedDurationHours * 25 : 0);
+    const cost = getBaitlyServiceCost(sr);
     return sum + cost;
   }, 0);
 
@@ -638,17 +528,17 @@ const PanelFinancial: React.FC<PanelFinancialProps> = ({
 
   // ── Handler — Intervention payment (embedded) ──────────────────────────
   const unpaidInterventions = linkedInterventions.filter(
-    (i) => i.paymentStatus !== 'PAID' && i.paymentStatus !== 'PROCESSING' && i.status !== 'completed',
+    (i) => i.paymentStatus !== 'PAID' && i.paymentStatus !== 'PROCESSING',
   );
   const unpaidTotal = unpaidInterventions.reduce((sum, i) => {
-    const cost = i.estimatedCost || (i.estimatedDurationHours ? i.estimatedDurationHours * 25 : 0);
+    const cost = getBaitlyServiceCost(i);
     return sum + cost;
   }, 0);
 
   const handlePayInterventions = useCallback(() => {
     if (unpaidInterventions.length === 0) return;
     const intv = unpaidInterventions[0];
-    const cost = intv.estimatedCost || (intv.estimatedDurationHours ? intv.estimatedDurationHours * 25 : 0);
+    const cost = getBaitlyServiceCost(intv);
     setPaymentModalTarget({ interventionId: intv.id, amount: cost, title: intv.title });
     setPaymentModalOpen(true);
   }, [unpaidInterventions]);
@@ -659,7 +549,7 @@ const PanelFinancial: React.FC<PanelFinancialProps> = ({
   const handlePayServiceRequest = useCallback((sr: { id: number; estimatedCost?: number; title: string }) => {
     setPaymentModalTarget({
       serviceRequestId: sr.id,
-      amount: sr.estimatedCost || 0,
+      amount: getBaitlyServiceCost(sr),
       title: sr.title,
     });
     setPaymentModalOpen(true);
@@ -707,7 +597,7 @@ const PanelFinancial: React.FC<PanelFinancialProps> = ({
       {/* ─── MONTANT (hero) ─────────────────────────────────────────────── */}
       {reservation && (
         <div>
-          <span className="block text-[0.625rem] font-bold uppercase tracking-[0.08em] text-[var(--faint)] mb-0.5">
+          <span className="block text-xs font-medium uppercase tracking-[0.05em] text-[var(--bui-muted-foreground)] mb-0.5">
             {t('planning.panel.fin.amount', 'Montant')}
           </span>
           <div className="flex items-baseline gap-2 flex-wrap">
@@ -715,7 +605,7 @@ const PanelFinancial: React.FC<PanelFinancialProps> = ({
               {isICalImport && !hasTotalPrice ? t('planning.panel.fin.notDisclosed') : fmtCurrency(grandTotal)}
             </span>
             {(hasTotalPrice || isOTABooking) && (
-              <span className={cn('self-center px-1.5 py-[3px] rounded-[var(--radius-pill)] text-[0.6875rem] font-semibold', isSettled ? 'bg-[var(--ok-soft)]' : 'bg-[var(--warn-soft)]', isSettled ? 'text-[var(--ok)]' : 'text-[var(--warn)]')}>
+              <span className={cn('self-center px-1.5 py-[3px] rounded-[var(--radius-pill)] text-xs font-semibold', isSettled ? 'bg-[var(--ok-soft)]' : 'bg-[var(--warn-soft)]', isSettled ? 'text-[var(--bui-success-ink)]' : 'text-[var(--bui-warning-ink)]')}>
                 {isOTABooking ? `Réglé · ${otaChannelLabel}` : isSettled ? 'Réglé' : 'En attente'}
               </span>
             )}
@@ -752,7 +642,7 @@ const PanelFinancial: React.FC<PanelFinancialProps> = ({
                   : t('planning.panel.fin.commission', { channel: otaChannelLabel })
               }
               value={<>-{fmtCurrency(otaFee)}</>}
-              color="var(--err)"
+              color="var(--bui-destructive-ink)"
             />
           )}
 
@@ -778,11 +668,11 @@ const PanelFinancial: React.FC<PanelFinancialProps> = ({
               ? t('planning.panel.fin.paidOn', { channel: otaChannelLabel })
               : t('planning.panel.fin.paid', 'Payé')}
             value={fmtCurrency(effectiveTotalPaid)}
-            color="var(--ok)"
+            color="var(--bui-success-ink)"
           />
 
           {totalRefunded > 0 && (
-            <FinRow label={t('planning.panel.fin.refunded', 'Remboursé')} value={<>-{fmtCurrency(totalRefunded)}</>} color="var(--err)" />
+            <FinRow label={t('planning.panel.fin.refunded', 'Remboursé')} value={<>-{fmtCurrency(totalRefunded)}</>} color="var(--bui-destructive-ink)" />
           )}
 
           <div className="flex justify-between items-center mb-1.5">
@@ -790,7 +680,7 @@ const PanelFinancial: React.FC<PanelFinancialProps> = ({
               {t('planning.panel.fin.balanceDue', 'Reste à payer')}
             </p>
             <div className="flex items-center gap-1.5">
-              <p className={cn('cn-text-body2 font-semibold tabular-nums', effectiveBalanceDue > 0 ? 'text-[var(--warn)]' : 'text-[var(--ok)]')} style={{ fontFamily: 'var(--font-display)' }}>
+              <p className={cn('cn-text-body2 font-semibold tabular-nums', effectiveBalanceDue > 0 ? 'text-[var(--bui-warning-ink)]' : 'text-[var(--bui-success-ink)]')} style={{ fontFamily: 'var(--font-display)' }}>
                 <Money value={Math.max(0, effectiveBalanceDue)} from="EUR" />
               </p>
               <StatusChip pill tokens={{ color: effectivePaymentStatusTokens.color, bg: effectivePaymentStatusTokens.bg }} label={effectivePaymentStatus} />
@@ -800,13 +690,13 @@ const PanelFinancial: React.FC<PanelFinancialProps> = ({
           {/* Invoices */}
           {invoices.length > 0 && (
             <div className="mb-1.5">
-              <span className="cn-text-caption font-semibold text-[0.6875rem] text-muted-foreground">
+              <span className="cn-text-caption font-semibold text-xs text-muted-foreground">
                 {t('planning.panel.fin.invoices', { count: invoices.length })}
               </span>
               {invoices.map((inv) => (
                 <div className="flex items-center gap-1 mt-0.5" key={inv.id}>
                   <span className="inline-flex text-muted-foreground"><Receipt size={14} strokeWidth={1.75} /></span>
-                  <span className="cn-text-caption text-[0.6875rem] font-semibold">
+                  <span className="cn-text-caption text-xs font-semibold">
                     {inv.legalNumber || inv.fileName}
                   </span>
                   <DomainStatusChip status={inv.status} />
@@ -858,13 +748,13 @@ const PanelFinancial: React.FC<PanelFinancialProps> = ({
           {/* ── Confirmation lien envoye ──────────────────────────── */}
           {lastSentAt && (
             <div className="flex items-start gap-1.5 mb-0.5">
-              <span className="inline-flex mt-0.5 text-[var(--ok)]"><CheckCircle size={16} strokeWidth={1.75} /></span>
+              <span className="inline-flex mt-0.5 text-[var(--bui-success-ink)]"><CheckCircle size={16} strokeWidth={1.75} /></span>
               <div className="flex-1">
-                <span className="cn-text-caption text-[0.6875rem] text-[var(--ok)] font-semibold">
+                <span className="cn-text-caption text-xs text-[var(--bui-success-ink)] font-semibold">
                   {t('planning.panel.fin.linkSentOn', { date: fmtDate(lastSentAt) })}
                 </span>
                 {lastSentEmail && (
-                  <span className="cn-text-caption block text-[0.625rem] text-muted-foreground">
+                  <span className="cn-text-caption block text-xs text-muted-foreground">
                     {t('planning.panel.fin.linkSentTo', { email: lastSentEmail })}
                   </span>
                 )}
@@ -873,9 +763,9 @@ const PanelFinancial: React.FC<PanelFinancialProps> = ({
           )}
 
           {linkSent && (
-            <UiAlert variant="success" className="my-[3px] py-1 text-[0.6875rem]">
+            <UiAlert variant="success" className="my-[3px] py-1 text-xs">
               <CheckCircle size={14} strokeWidth={1.75} />
-              <AlertDescription className="text-[0.6875rem]">{t('planning.panel.fin.linkSent')}</AlertDescription>
+              <AlertDescription className="text-xs">{t('planning.panel.fin.linkSent')}</AlertDescription>
             </UiAlert>
           )}
 
@@ -885,8 +775,8 @@ const PanelFinancial: React.FC<PanelFinancialProps> = ({
               // OTA : paiement deja regle sur le canal externe → pas de bouton
               // d'envoi de lien, juste une note d'information.
               <div className="flex-1 flex items-center justify-center gap-[4.5px] px-[7.5px] py-[5.25px] rounded-[9px] bg-[var(--ok-soft)] border border-solid border-[color-mix(in_srgb,_var(--ok)_30%,_transparent)]">
-                <span className="inline-flex text-[var(--ok)]"><CheckCircle size={14} strokeWidth={1.75} /></span>
-                <span className="cn-text-caption text-[0.6875rem] text-[var(--ok)] font-medium">
+                <span className="inline-flex text-[var(--bui-success-ink)]"><CheckCircle size={14} strokeWidth={1.75} /></span>
+                <span className="cn-text-caption text-xs text-[var(--bui-success-ink)] font-medium">
                   {t('planning.panel.fin.settledOn', { channel: otaChannelLabel })}
                 </span>
               </div>
@@ -979,7 +869,7 @@ const PanelFinancial: React.FC<PanelFinancialProps> = ({
           ═══════════════════════════════════════════════════════════════════ */}
       {reservation && (linkedInterventions.length > 0 || payableServiceRequests.length > 0) && (
         <SectionCard
-          icon={<span className="inline-flex text-[var(--warn)]"><Business size={18} strokeWidth={1.75} /></span>}
+          icon={<span className="inline-flex text-[var(--bui-warning-ink)]"><Business size={18} strokeWidth={1.75} /></span>}
           title={t('planning.panel.fin.interventionPayment', 'Paiement interventions')}
           badge={t('planning.panel.fin.ownerBadge', 'Propriétaire')}
           badgeTokens={WARN_TOKENS}
@@ -988,14 +878,14 @@ const PanelFinancial: React.FC<PanelFinancialProps> = ({
           {payableServiceRequests.length > 0 && (
             <>
               <div className="flex items-center justify-between mb-0.5">
-                <span className="cn-text-caption font-semibold text-[0.6875rem] text-[var(--warn)]">
+                <span className="cn-text-caption font-semibold text-xs text-[var(--bui-warning-ink)]">
                   {t('planning.panel.fin.proposed', { count: payableServiceRequests.length })}
                 </span>
               </div>
               {payableServiceRequests.map((sr) => {
-                const cost = sr.estimatedCost || (sr.estimatedDurationHours ? sr.estimatedDurationHours * 25 : 0);
+                const cost = getBaitlyServiceCost(sr);
                 const typeIcon = (
-                  <span className="inline-flex text-[var(--warn)]">
+                  <span className="inline-flex text-[var(--bui-warning-ink)]">
                     {sr.serviceType === 'CLEANING' || sr.serviceType === 'EXPRESS_CLEANING'
                       ? <CleaningServices size={14} strokeWidth={1.75} />
                       : <Handyman size={14} strokeWidth={1.75} />}
@@ -1006,14 +896,14 @@ const PanelFinancial: React.FC<PanelFinancialProps> = ({
                     {typeIcon}
                     <Tooltip>
                       <TooltipTrigger asChild>
-                        <p className="cn-text-body1 text-[0.6875rem] flex-1 overflow-hidden text-ellipsis whitespace-nowrap">
+                        <p className="cn-text-body1 text-xs flex-1 overflow-hidden text-ellipsis whitespace-nowrap">
                           {sr.title}
                         </p>
                       </TooltipTrigger>
                       <PlanningTooltipContent side="top">{sr.title}</PlanningTooltipContent>
                     </Tooltip>
                     {sr.estimatedDurationHours > 0 && (
-                      <span className="cn-text-caption text-muted-foreground text-[0.625rem]">
+                      <span className="cn-text-caption text-muted-foreground text-xs">
                         {sr.estimatedDurationHours}h
                       </span>
                     )}
@@ -1032,7 +922,7 @@ const PanelFinancial: React.FC<PanelFinancialProps> = ({
           {linkedInterventions.length > 0 && (
             <>
               <div className="flex items-center justify-between mb-0.5">
-                <span className="cn-text-caption font-semibold text-[0.6875rem] text-muted-foreground">
+                <span className="cn-text-caption font-semibold text-xs text-muted-foreground">
                   {t('planning.panel.fin.linkedServices', { count: linkedInterventions.length })}
                 </span>
                 <Button
@@ -1051,7 +941,7 @@ const PanelFinancial: React.FC<PanelFinancialProps> = ({
               <Collapsible open={interventionsExpanded}>
                 <CollapsibleContent>
                 {linkedInterventions.map((intv) => {
-                  const cost = intv.actualCost || intv.estimatedCost || (intv.estimatedDurationHours ? intv.estimatedDurationHours * 25 : 0);
+                  const cost = getBaitlyServiceCost(intv);
                   const typeIcon = intv.type === 'cleaning'
                     ? <span className="inline-flex text-muted-foreground"><CleaningServices size={14} strokeWidth={1.75} /></span>
                     : <span className="inline-flex text-muted-foreground"><Handyman size={14} strokeWidth={1.75} /></span>;
@@ -1060,14 +950,14 @@ const PanelFinancial: React.FC<PanelFinancialProps> = ({
                       {typeIcon}
                       <Tooltip>
                         <TooltipTrigger asChild>
-                          <p className="cn-text-body1 text-[0.6875rem] flex-1 overflow-hidden text-ellipsis whitespace-nowrap">
+                          <p className="cn-text-body1 text-xs flex-1 overflow-hidden text-ellipsis whitespace-nowrap">
                             {intv.title}
                           </p>
                         </TooltipTrigger>
                         <PlanningTooltipContent side="top">{intv.title}</PlanningTooltipContent>
                       </Tooltip>
                       {intv.estimatedDurationHours > 0 && (
-                        <span className="cn-text-caption text-muted-foreground text-[0.625rem]">
+                        <span className="cn-text-caption text-muted-foreground text-xs">
                           {intv.estimatedDurationHours}h
                         </span>
                       )}
@@ -1091,14 +981,14 @@ const PanelFinancial: React.FC<PanelFinancialProps> = ({
 
           {/* Summary */}
           {srProposedTotal > 0 && (
-            <FinRow label={t('planning.panel.fin.proposedTotal', 'Interventions proposées')} value={fmtCurrency(srProposedTotal)} color="var(--warn)" />
+            <FinRow label={t('planning.panel.fin.proposedTotal', 'Interventions proposées')} value={fmtCurrency(srProposedTotal)} color="var(--bui-warning-ink)" />
           )}
           <FinRow label={t('planning.panel.fin.interventionsTotal', 'Total interventions')} value={fmtCurrency(interventionCostTotal + srProposedTotal)} bold />
           {interventionPaid > 0 && (
-            <FinRow label={t('planning.panel.fin.paid', 'Payé')} value={fmtCurrency(interventionPaid)} color="var(--ok)" />
+            <FinRow label={t('planning.panel.fin.paid', 'Payé')} value={fmtCurrency(interventionPaid)} color="var(--bui-success-ink)" />
           )}
           {interventionAwaitingTotal > 0 && (
-            <FinRow label={t('planning.panel.fin.awaiting', 'En attente')} value={fmtCurrency(interventionAwaitingTotal)} color="var(--warn)" />
+            <FinRow label={t('planning.panel.fin.awaiting', 'En attente')} value={fmtCurrency(interventionAwaitingTotal)} color="var(--bui-warning-ink)" />
           )}
 
           {/* Action buttons */}
@@ -1118,7 +1008,7 @@ const PanelFinancial: React.FC<PanelFinancialProps> = ({
                   handlePayInterventions();
                 }
               }}
-              className="flex-1 text-[var(--warn)] border-[var(--warn)] hover:bg-[var(--warn-soft)]"
+              className="flex-1 text-[var(--bui-warning-ink)] border-[var(--warn)] hover:bg-[var(--warn-soft)]"
             >
               {payingSR ? <Spinner className="size-3.5" /> : <CreditCard size={14} strokeWidth={1.75} />}
               {t('planning.panel.fin.pay', 'Payer')}
@@ -1134,7 +1024,7 @@ const PanelFinancial: React.FC<PanelFinancialProps> = ({
                   handleGenerateInvoice('INTERVENTION', intv.id);
                 }
               }}
-              className="flex-1 text-[var(--warn)] border-[var(--warn)] hover:bg-[var(--warn-soft)]"
+              className="flex-1 text-[var(--bui-warning-ink)] border-[var(--warn)] hover:bg-[var(--warn-soft)]"
             >
               {invoiceLoading ? <Spinner className="size-3" /> : <Receipt size={12} strokeWidth={1.75} />}
               {t('planning.panel.fin.invoice', 'Facture')}
@@ -1145,7 +1035,7 @@ const PanelFinancial: React.FC<PanelFinancialProps> = ({
               variant="outline"
               disabled={interventionPaid <= 0}
               onClick={() => setRefundDialogOpen(true)}
-              className="flex-1 text-[var(--warn)] border-[var(--warn)] hover:bg-[var(--warn-soft)]"
+              className="flex-1 text-[var(--bui-warning-ink)] border-[var(--warn)] hover:bg-[var(--warn-soft)]"
             >
               <MoneyOff size={12} strokeWidth={1.75} />
               {t('planning.panel.fin.refund', 'Remboursement')}
@@ -1157,12 +1047,12 @@ const PanelFinancial: React.FC<PanelFinancialProps> = ({
       {/* ── No interventions message ───────────────────────────────────── */}
       {reservation && linkedInterventions.length === 0 && payableServiceRequests.length === 0 && (
         <SectionCard
-          icon={<span className="inline-flex text-[var(--warn)]"><Business size={18} strokeWidth={1.75} /></span>}
+          icon={<span className="inline-flex text-[var(--bui-warning-ink)]"><Business size={18} strokeWidth={1.75} /></span>}
           title={t('planning.panel.fin.interventionPayment', 'Paiement interventions')}
           badge={t('planning.panel.fin.ownerBadge', 'Propriétaire')}
           badgeTokens={WARN_TOKENS}
         >
-          <p className="cn-text-body2 text-[0.75rem] italic text-[var(--muted)]">
+          <p className="cn-text-body2 text-[0.75rem] italic text-[var(--bui-muted-foreground)]">
             {t('planning.panel.fin.noLinked')}
           </p>
         </SectionCard>
@@ -1173,7 +1063,7 @@ const PanelFinancial: React.FC<PanelFinancialProps> = ({
           ═══════════════════════════════════════════════════════════════════ */}
       {!reservation && intervention && (
         <SectionCard
-          icon={<span className="inline-flex text-[var(--warn)]"><Business size={18} strokeWidth={1.75} /></span>}
+          icon={<span className="inline-flex text-[var(--bui-warning-ink)]"><Business size={18} strokeWidth={1.75} /></span>}
           title={t('planning.panel.fin.interventionCost', 'Coût intervention')}
           badge={t('planning.panel.fin.ownerBadge', 'Propriétaire')}
           badgeTokens={WARN_TOKENS}
@@ -1181,13 +1071,13 @@ const PanelFinancial: React.FC<PanelFinancialProps> = ({
           <FinRow label={t('planning.panel.fin.estimatedDuration', 'Durée estimée')} value={intervention.estimatedDurationHours ? `${intervention.estimatedDurationHours}h` : '-'} />
           {intervention.estimatedDurationHours && (
             <FinRow
-              label={t('planning.panel.fin.estimatedCost', 'Coût estimé (25 €/h)')}
-              value={fmtCurrency(intervention.estimatedDurationHours * 25)}
+              label={t('planning.panel.fin.estimatedCost', 'Coût estimé')}
+              value={fmtCurrency(getBaitlyServiceCost(intervention))}
               bold
             />
           )}
-          {intervention.actualCost != null && intervention.actualCost > 0 && (
-            <FinRow label={t('planning.panel.fin.actualCost', 'Coût réel')} value={fmtCurrency(intervention.actualCost)} bold color="var(--ok)" />
+          {intervention.actualCost != null && intervention.actualCost >= 0 && (
+            <FinRow label={t('planning.panel.fin.actualCost', 'Coût réel')} value={fmtCurrency(intervention.actualCost)} bold color="var(--bui-success-ink)" />
           )}
 
           <Separator className="my-[4.5px]" />
@@ -1209,14 +1099,14 @@ const PanelFinancial: React.FC<PanelFinancialProps> = ({
               size="sm"
               variant="outline"
               onClick={() => {
-                const cost = intervention.estimatedCost || (intervention.estimatedDurationHours ? intervention.estimatedDurationHours * 25 : 0);
+                const cost = getBaitlyServiceCost(intervention);
                 setPaymentModalTarget({ interventionId: intervention.id, amount: cost, title: intervention.title });
                 setPaymentModalOpen(true);
               }}
-              className="w-full mt-[6px] text-[var(--warn)] border-[var(--warn)] hover:bg-[var(--warn-soft)]"
+              className="w-full mt-[6px] text-[var(--bui-warning-ink)] border-[var(--warn)] hover:bg-[var(--warn-soft)]"
             >
               <CreditCard size={14} strokeWidth={1.75} />
-              {t('planning.panel.fin.pay', 'Payer')} {fmtCurrency(intervention.estimatedCost || (intervention.estimatedDurationHours ? intervention.estimatedDurationHours * 25 : 0))}
+              {t('planning.panel.fin.pay', 'Payer')} {fmtCurrency(getBaitlyServiceCost(intervention))}
             </Button>
           )}
 
@@ -1228,7 +1118,7 @@ const PanelFinancial: React.FC<PanelFinancialProps> = ({
               variant="outline"
               disabled={invoiceLoading}
               onClick={() => handleGenerateInvoice('INTERVENTION', intervention.id)}
-              className="w-full mt-[4.5px] text-[var(--warn)] border-[var(--warn)] hover:bg-[var(--warn-soft)]"
+              className="w-full mt-[4.5px] text-[var(--bui-warning-ink)] border-[var(--warn)] hover:bg-[var(--warn-soft)]"
             >
               {invoiceLoading ? <Spinner className="size-3" /> : <Receipt size={12} strokeWidth={1.75} />}
               {t('planning.panel.fin.generateInvoice', 'Générer facture')}
@@ -1238,13 +1128,13 @@ const PanelFinancial: React.FC<PanelFinancialProps> = ({
           {/* Standalone intervention invoices */}
           {invoices.length > 0 && (
             <div className="mt-1.5">
-              <span className="cn-text-caption font-semibold text-[0.6875rem] text-muted-foreground">
+              <span className="cn-text-caption font-semibold text-xs text-muted-foreground">
                 {t('planning.panel.fin.invoices', { count: invoices.length })}
               </span>
               {invoices.map((inv) => (
                 <div className="flex items-center gap-1 mt-0.5" key={inv.id}>
                   <span className="inline-flex text-muted-foreground"><Receipt size={14} strokeWidth={1.75} /></span>
-                  <span className="cn-text-caption text-[0.6875rem] font-semibold">
+                  <span className="cn-text-caption text-xs font-semibold">
                     {inv.legalNumber || inv.fileName}
                   </span>
                   <DomainStatusChip status={inv.status} />
@@ -1297,72 +1187,9 @@ const PanelFinancial: React.FC<PanelFinancialProps> = ({
           DIALOGS (unchanged logic, kept compact)
           ═══════════════════════════════════════════════════════════════════ */}
 
-      {/* View Payments Dialog */}
-      <Dialog open={paymentsDialogOpen} onOpenChange={(next) => { if (!next) setPaymentsDialogOpen(false); }}>
-        <DialogContent className="sm:max-w-[600px]">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-1.5">
-              <span className="inline-flex text-[var(--brand-ink)]"><Payment size={20} strokeWidth={1.75} /></span>
-              <span>{t('planning.panel.fin.historyTitle', 'Historique des paiements')}</span>
-            </DialogTitle>
-          </DialogHeader>
-          {payments.length === 0 ? (
-            <UiAlert variant="info" className="text-[0.8125rem]">
-              <Info />
-              <AlertDescription>{t('planning.panel.fin.noPayments')}</AlertDescription>
-            </UiAlert>
-          ) : (
-            // La modale du kit est une grille : sans ce conteneur, un tableau
-            // large ferait deborder la page au lieu de defiler chez lui.
-            <div className="overflow-x-auto">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>{t('planning.panel.fin.colDate', 'Date')}</TableHead>
-                  <TableHead>{t('planning.panel.fin.colMethod', 'Méthode')}</TableHead>
-                  <TableHead>{t('planning.panel.fin.colReference', 'Référence')}</TableHead>
-                  <TableHead className="text-end">{t('planning.panel.fin.colAmount', 'Montant')}</TableHead>
-                  <TableHead>{t('planning.panel.fin.colStatus', 'Statut')}</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {payments.map((p) => (
-                  <TableRow key={p.id}>
-                    <TableCell className="tabular-nums">{p.date}</TableCell>
-                    <TableCell>{paymentMethods.find((m) => m.value === p.method)?.label || p.method}</TableCell>
-                    <TableCell className="text-[var(--muted)]">{p.reference || '-'}</TableCell>
-                    <TableCell className="text-end font-semibold tabular-nums">
-                      {p.status === 'REFUNDED' ? '-' : ''}{fmtCurrency(p.amount)}
-                    </TableCell>
-                    <TableCell><DomainStatusChip status={p.status} /></TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-            </div>
-          )}
-          {payments.length > 0 && (
-            <div className="mt-2 pt-1.5 border-t border-[var(--bui-border)]">
-              <div className="flex justify-between mb-0.5">
-                <span className="cn-text-caption font-semibold text-[0.75rem]">{t('planning.panel.fin.totalPaid', 'Total payé')}</span>
-                <span className="cn-text-caption font-bold text-[0.75rem] text-[var(--ok)]">{fmtCurrency(totalPaid)}</span>
-              </div>
-              {totalRefunded > 0 && (
-                <div className="flex justify-between mb-0.5">
-                  <span className="cn-text-caption font-semibold text-[0.75rem]">{t('planning.panel.fin.totalRefunded', 'Total remboursé')}</span>
-                  <span className="cn-text-caption font-bold text-[0.75rem] text-[var(--err)]">-{fmtCurrency(totalRefunded)}</span>
-                </div>
-              )}
-              <div className="flex justify-between">
-                <span className="cn-text-caption font-semibold text-[0.75rem]">{t('planning.panel.fin.balanceDue', 'Reste à payer')}</span>
-                <span className={cn('cn-text-caption font-bold text-[0.75rem] tabular-nums', balanceDue > 0 ? 'text-[var(--warn)]' : 'text-[var(--ok)]')}>
-                  <Money value={Math.max(0, balanceDue)} from="EUR" />
-                </span>
-              </div>
-            </div>
-          )}
-        </DialogContent>
-      </Dialog>
+      <BaitlyPaymentHistory open={paymentsDialogOpen} onOpenChange={setPaymentsDialogOpen}
+        payments={payments} paymentMethods={paymentMethods} fmtCurrency={fmtCurrency}
+        totalPaid={totalPaid} totalRefunded={totalRefunded} balanceDue={balanceDue} />
 
       {/* Add Payment Dialog */}
       <Dialog open={addPaymentOpen} onOpenChange={(next) => { if (!next) setAddPaymentOpen(false); }}>
@@ -1374,7 +1201,7 @@ const PanelFinancial: React.FC<PanelFinancialProps> = ({
             </DialogTitle>
           </DialogHeader>
           {reservation && (
-            <span className="cn-text-caption text-muted-foreground text-[0.6875rem] mb-2 block">
+            <span className="cn-text-caption text-muted-foreground text-xs mb-2 block">
               {t('planning.panel.fin.addPaymentIntro', {
                 guest: reservation.guestName,
                 balance: convertAndFormat(Math.max(0, balanceDue), 'EUR'),
@@ -1497,7 +1324,7 @@ const PanelFinancial: React.FC<PanelFinancialProps> = ({
         <DialogContent className="sm:max-w-[444px]">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-1.5">
-              <span className="inline-flex text-[var(--warn)]"><MoneyOff size={20} strokeWidth={1.75} /></span>
+              <span className="inline-flex text-[var(--bui-warning-ink)]"><MoneyOff size={20} strokeWidth={1.75} /></span>
               <span>{t('planning.panel.fin.confirmRefund', 'Confirmer le remboursement')}</span>
             </DialogTitle>
           </DialogHeader>
@@ -1520,7 +1347,7 @@ const PanelFinancial: React.FC<PanelFinancialProps> = ({
             )}
             <div className="flex justify-between">
               <p className="cn-text-body2 text-muted-foreground text-[0.8125rem]">{t('planning.panel.fin.refundedAmount', 'Montant remboursé')}</p>
-              <p className="cn-text-body2 font-bold text-[0.8125rem] text-[var(--err)] tabular-nums">
+              <p className="cn-text-body2 font-bold text-[0.8125rem] text-[var(--bui-destructive-ink)] tabular-nums">
                 -{fmtCurrency(totalPaid)}
               </p>
             </div>
@@ -1534,7 +1361,7 @@ const PanelFinancial: React.FC<PanelFinancialProps> = ({
               variant="outline"
               size="sm"
               disabled={refundLoading}
-              className="text-[var(--warn)] border-[var(--warn)] hover:bg-[var(--warn-soft)]"
+              className="text-[var(--bui-warning-ink)] border-[var(--warn)] hover:bg-[var(--warn-soft)]"
             >
               {refundLoading ? <Spinner className="size-3.5" /> : <MoneyOff size={16} strokeWidth={1.75} />}
               {t('planning.panel.fin.confirmRefund', 'Confirmer le remboursement')}

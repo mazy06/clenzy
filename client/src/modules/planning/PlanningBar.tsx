@@ -1,3 +1,5 @@
+import { BaitlyReservationOverflow, type BaitlyReservationDetail } from './BaitlyReservationOverflow';
+import { getBaitlyServiceCost } from './utils/baitlyFinancial';
 import { guestPhotoSrc } from '../../services/api/guestsApi';
 import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -26,28 +28,14 @@ import './planningUrgency.css';
 import { PlanningTooltipContent } from './PlanningTooltip';
 import { orderNameForReading } from '../../utils/textDirection';
 import { isRtlLanguage } from '../../utils/localeDate';
+import { stripCurrencyFraction } from '../../utils/currencyUtils';
 import { getBarContentLayout } from './utils/barContentLayout';
-
-// Les trois @keyframes de la brique vivaient dans le `sx` MUI, qui les injectait
-// lui-meme dans le document. Sans MUI il faut une vraie feuille de style : on la
-// pose une seule fois au chargement du module (idempotent), les classes
-// `animate-[nom_…]` peuvent alors s'y referer.
-const BAR_KEYFRAMES_ID = 'planning-bar-keyframes';
-if (typeof document !== 'undefined' && !document.getElementById(BAR_KEYFRAMES_ID)) {
-  const styleEl = document.createElement('style');
-  styleEl.id = BAR_KEYFRAMES_ID;
-  styleEl.textContent = [
-    '@keyframes radar-pulse{0%{transform:scale(1);opacity:.55}100%{transform:scale(2.6);opacity:0}}',
-    '@keyframes select-pop{0%{transform:scale(1) translateY(0)}40%{transform:scale(1.05) translateY(-2px)}100%{transform:scale(1) translateY(-1px)}}',
-    '@keyframes pulse-conflict{0%,100%{box-shadow:0 0 0 2px var(--err)}50%{box-shadow:0 0 0 2px color-mix(in srgb, var(--err) 50%, transparent)}}',
-  ].join('\n');
-  document.head.appendChild(styleEl);
-}
+import { useBaitlyTextWidth } from './hooks/useBaitlyTextWidth';
 
 /** Montant compact pour la brique : sans décimales, « ~ » si converti
  *  (même normalisation que les prix par cellule dans PlanningRow). */
 function compactMoney(formatted: string): string {
-  return formatted.replace(/[.,]\d+/g, '').replace(/^≈\s*/, '~');
+  return stripCurrencyFraction(formatted).replace(/^≈\s*/, '~');
 }
 
 /** Compte le nombre de nuits d'une reservation (endDate - startDate). */
@@ -104,15 +92,15 @@ const RadarPastille: React.FC<{
 }> = ({ color, tooltip, right = -4 }) => (
   <TooltipRoot>
     <TooltipTrigger asChild>
-      <div className="absolute top-[-3px] w-[10px] h-[10px] z-[12]" style={{ right }}>
+      <div className="absolute top-[-3px] w-[10px] h-[10px] z-[12]" style={{ insetInlineEnd: right }}>
         {/* Anneau 1 (pulse continu) */}
         <div
-          className="absolute inset-0 rounded-[50%] pointer-events-none animate-[radar-pulse_1.6s_cubic-bezier(0,0,0.2,1)_infinite] motion-reduce:animate-none motion-reduce:opacity-0"
+          className="absolute inset-0 rounded-[50%] pointer-events-none animate-[radar-pulse_1.6s_cubic-bezier(0,0,0.2,1)_2] motion-reduce:animate-none motion-reduce:opacity-0"
           style={{ backgroundColor: color }}
         />
         {/* Anneau 2 (decale de 0.8s pour un effet continu) */}
         <div
-          className="absolute inset-0 rounded-[50%] pointer-events-none animate-[radar-pulse_1.6s_cubic-bezier(0,0,0.2,1)_0.8s_infinite] motion-reduce:animate-none motion-reduce:opacity-0"
+          className="absolute inset-0 rounded-[50%] pointer-events-none animate-[radar-pulse_1.6s_cubic-bezier(0,0,0.2,1)_0.8s_2] motion-reduce:animate-none motion-reduce:opacity-0"
           style={{ backgroundColor: color }}
         />
         {/* Point central solide */}
@@ -141,7 +129,7 @@ const PILL_UNPAID_ICON = '#C9803F'; // icône carte (non réglé)
 
 // Pendant en classes de l'ancien BAR_BADGE_SX (21x21, r7, fond blanc, ombre douce).
 const BAR_BADGE_CLS =
-  'w-[21px] h-[21px] rounded-[7px] bg-[#fff] flex items-center justify-center shrink-0 shadow-[0_1px_2px_rgba(0,0,0,.14)]';
+  'w-[21px] h-[21px] rounded-[7px] bg-[#FBFCFD] flex items-center justify-center shrink-0 shadow-[0_1px_2px_rgba(0,0,0,.14)]';
 
 // ─── Resize Handle (right edge) ──────────────────────────────────────────────
 
@@ -150,6 +138,7 @@ const ResizeHandle: React.FC<{ eventId: string; event: PlanningEvent; layout: Ba
   event,
   layout,
 }) => {
+  const { t } = useTranslation();
   const { attributes, listeners, setNodeRef } = useDraggable({
     id: `resize-${eventId}`,
     data: { type: 'resize', event, layout } satisfies DragBarData,
@@ -165,8 +154,11 @@ const ResizeHandle: React.FC<{ eventId: string; event: PlanningEvent; layout: Ba
     <div
       ref={setNodeRef}
       {...attributes}
+      {...listeners}
+      onKeyDown={(e) => { e.stopPropagation(); listeners?.onKeyDown?.(e); }}
+      aria-label={t('planning.bar.resize', 'Redimensionner le séjour')}
       onPointerDown={handlePointerDown}
-      className="absolute right-0 top-0 w-[8px] h-full cursor-col-resize z-10 hover:bg-[color-mix(in_srgb,var(--ink)_8%,transparent)]"
+      className="absolute end-0 top-0 w-[8px] h-full cursor-col-resize z-10 focus-visible:outline-2 focus-visible:outline-[var(--bui-primary)] hover:bg-[color-mix(in_srgb,var(--ink)_8%,transparent)]"
     />
   );
 };
@@ -189,6 +181,7 @@ const PlanningBar: React.FC<PlanningBarProps> = React.memo(({
   const { t, i18n } = useTranslation();
   // Sens de lecture de l'écran : il décide de l'ordre d'affichage du nom.
   const isRtl = isRtlLanguage(i18n.language);
+  const guestNameMeasurement = useBaitlyTextWidth(layout.event.label ?? '', i18n.language);
   const { event, left, top, height } = layout;
   const isIntervention = event.type !== 'reservation';
   const isReservation = event.type === 'reservation';
@@ -207,7 +200,8 @@ const PlanningBar: React.FC<PlanningBarProps> = React.memo(({
   );
 
   // Draggable for move (whole bar body) — SR blocks are not draggable
-  const isDragDisabled = event.type === 'blocked' || (isIntervention && !canEditIntervention) || !!event.isAwaitingPayment;
+  const interventionLocked = isIntervention && ['in_progress', 'completed', 'cancelled'].includes(event.status);
+  const isDragDisabled = event.type === 'blocked' || interventionLocked || (isIntervention && !canEditIntervention) || !!event.isAwaitingPayment;
   const { attributes, listeners, setNodeRef, isDragging } = useDraggable({
     id: event.id,
     data: { type: 'move', event, layout } satisfies DragBarData,
@@ -253,6 +247,14 @@ const PlanningBar: React.FC<PlanningBarProps> = React.memo(({
           data-planning-bar
           {...(!isDragDisabled ? listeners : {})}
           {...(!isDragDisabled ? attributes : {})}
+          role="button"
+          tabIndex={0}
+          aria-label={tooltipTitle}
+          onKeyDown={(e) => {
+            if (isDragActive || isDragging) { listeners?.onKeyDown?.(e); return; }
+            if (e.key !== 'Enter') return;
+            e.preventDefault(); e.stopPropagation(); onClick(event);
+          }}
           onClick={(e) => {
             if (isDragActive) return;
             e.stopPropagation();
@@ -275,7 +277,7 @@ const PlanningBar: React.FC<PlanningBarProps> = React.memo(({
             BAR_BADGE_CLS,
             'border border-solid border-[var(--bui-border)] cursor-pointer touch-none select-none',
             // Spec .pl-bar:hover : translateY(-1px) + shadow, z-5
-            'hover:shadow-[0_7px_16px_-8px_var(--shadow-pop)] hover:-translate-y-px hover:z-[5]',
+            'focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--bui-primary)] hover:shadow-[0_7px_16px_-8px_var(--shadow-pop)] hover:-translate-y-px hover:z-[5]',
             'motion-reduce:transition-none motion-reduce:hover:translate-y-0',
             isDragging ? 'opacity-30 transition-none' : 'opacity-100 transition-[transform,box-shadow] duration-[120ms]',
             // Spec .pl-bar.sel : z-index 7 (au-dessus de la ligne « maintenant »)
@@ -337,7 +339,7 @@ const PlanningBar: React.FC<PlanningBarProps> = React.memo(({
   const priceFull = hasPrice ? convertAndFormat(totalPrice, srcCurrency) : '';
 
   // ── Indicateurs (info manquante + tarif prestation) ───────────────────────
-  const missingEmail = isReservation && !!event.reservation && !event.reservation.guestEmail && !isCancelled;
+  const missingEmail = isReservation && !!event.reservation && !event.reservation.guestEmail?.trim() && !isCancelled;
   const indicators: {
     key: string;
     /** Libellé pour la liste du « +N ». */
@@ -351,15 +353,6 @@ const PlanningBar: React.FC<PlanningBarProps> = React.memo(({
     feeRaw?: number;
     onClick?: (e: React.MouseEvent) => void;
   }[] = [];
-  if (missingEmail) {
-    indicators.push({
-      key: 'miss',
-      label: 'Infos client manquantes',
-      tooltip: t('planning.missingGuestEmail'),
-      color: 'var(--warn)',
-      icon: <Warning size={13} strokeWidth={2} />,
-    });
-  }
   // Interventions rattachées : pastille du type (balai = ménage, clé =
   // maintenance), cliquable → détail. Avec un tarif, elle s'élargit en pilule
   // « icône + montant » (.pl-badge--fee) ; sinon elle reste le carré-icône.
@@ -368,7 +361,7 @@ const PlanningBar: React.FC<PlanningBarProps> = React.memo(({
     const typeKey = isCleaning ? 'cleaning' : 'maintenance';
     const typeLabel = t(`planning.bar.interventionTypes.${typeKey}`,
       INTERVENTION_TYPE_LABELS[typeKey as PlanningInterventionType]);
-    const rawFee = linked.intervention?.actualCost || linked.intervention?.estimatedCost || linked.serviceRequest?.estimatedCost || 0;
+    const rawFee = getBaitlyServiceCost(linked.intervention ?? linked.serviceRequest ?? {});
     const feeLabel = rawFee > 0 ? compactMoney(convertAndFormat(rawFee, srcCurrency)) : undefined;
     indicators.push({
       key: linked.id,
@@ -403,19 +396,22 @@ const PlanningBar: React.FC<PlanningBarProps> = React.memo(({
     width: displayWidth,
     height,
     guestName: event.label ?? '',
+    guestNameWidth: guestNameMeasurement.width,
     hasPrice,
     hasChannel: !!sourceLogo,
     indicatorCount: indicators.length,
+    hasAlert: missingEmail,
     isReservation,
   });
   const shownIndicators = indicators.slice(0, shownIndicatorCount);
   const hiddenIndicators = indicators.slice(shownIndicatorCount);
 
   // Repli commun : prix, prestations et canal gardent leur détail au survol.
-  const overflowItems: { key: string; label: string; color?: string; icon: React.ReactNode }[] = [
+  const overflowItems: BaitlyReservationDetail[] = [
     ...(priceFolded
       ? [{
           key: 'price',
+          alert: priceUnpaid,
           label: priceUnpaid
             ? `${paymentTooltip} · ${priceLabel}`
             : `${t('planning.bar.settled', 'Réglé')} · ${priceLabel}`,
@@ -423,13 +419,13 @@ const PlanningBar: React.FC<PlanningBarProps> = React.memo(({
           icon: priceUnpaid ? <CreditCardFill size={13} /> : <CheckBold size={12} />,
         }]
       : []),
-    ...hiddenIndicators.map(({ key, label, color, icon }) => ({ key, label, color, icon })),
+    ...hiddenIndicators.map(({ key, label, color, icon, onClick }) => ({ key, label, color, icon, onClick })),
     ...(channelFolded
       ? [{
           key: 'channel',
           label: t('planning.bar.channel', { channel: event.sublabel || '—' }),
           icon: (
-            <div className="w-[16px] h-[16px] rounded-[5px] bg-[#fff] flex items-center justify-center">
+            <div className="w-[16px] h-[16px] rounded-[5px] bg-[#FBFCFD] flex items-center justify-center">
               <img className="w-[11px] h-[11px] object-contain block" src={sourceLogo!} alt="" />
             </div>
           ),
@@ -450,8 +446,8 @@ const PlanningBar: React.FC<PlanningBarProps> = React.memo(({
   const isPopoverActive = popoverAnchor !== null;
   const isUrgent = isReservation && !isCancelled && (event.needsPaymentBadge || missingEmail);
   const urgencyClass = isUrgent
-    && !isSelected && !isPopoverActive && !isConflict && !resizeConflict && !isDragging && !isResizing
-    ? 'pl-urgent'
+    && !isSelected && !isPopoverActive && !overflowOpen && !isConflict && !resizeConflict && !isDragging && !isResizing
+    ? cn('pl-urgent', missingEmail && 'pl-email-missing')
     : undefined;
 
   return (
@@ -488,15 +484,15 @@ const PlanningBar: React.FC<PlanningBarProps> = React.memo(({
         // Spec .pl-bar : transition transform .12s, box-shadow .12s (+ width pour le resize).
         (isDragging || isResizing)
           ? 'transition-none'
-          : 'transition-[transform,box-shadow,width] duration-[120ms] motion-reduce:transition-none',
+          : 'transition-[transform,box-shadow] duration-[120ms] motion-reduce:transition-none',
         // Spec .pl-bar.sel : z-index 7 (au-dessus de la ligne « maintenant »).
         isSelected ? 'z-[7]' : isIntervention ? 'z-[2]' : 'z-[3]',
         // Spec .pl-bar:hover : translateY(-1px) + shadow, z-5.
-        'hover:shadow-[0_7px_16px_-8px_var(--shadow-pop)] hover:-translate-y-px hover:z-[5] motion-reduce:hover:translate-y-0',
+        'focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--bui-primary)] hover:shadow-[0_7px_16px_-8px_var(--shadow-pop)] hover:-translate-y-px hover:z-[5] motion-reduce:hover:translate-y-0',
         // Brique active (popover ouvert) : anneau accent + offset blanc.
         (isPopoverActive && !isSelected) && 'shadow-[0_0_0_2px_var(--bui-card),0_0_0_4px_var(--accent)]',
         isSelected && 'shadow-[0_0_0_2px_var(--bui-card),0_0_0_4px_var(--accent)] -translate-y-px animate-[select-pop_0.3s_ease-out] motion-reduce:animate-none motion-reduce:translate-y-0',
-        (isConflict || resizeConflict) && 'shadow-[0_0_0_2px_var(--err)] animate-[pulse-conflict_2s_ease-in-out_infinite] motion-reduce:animate-none',
+        (isConflict || resizeConflict) && 'shadow-[0_0_0_2px_var(--err)]  motion-reduce:animate-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--bui-primary)]',
         // Spec .pl-bar.cancelled:hover : brique fantome inerte (ni lift ni ombre).
         isCancelled && 'hover:translate-y-0 hover:shadow-none',
       )}
@@ -518,6 +514,17 @@ const PlanningBar: React.FC<PlanningBarProps> = React.memo(({
       }}
       {...(!isDragDisabled ? listeners : {})}
       {...(!isDragDisabled ? attributes : {})}
+      role="button"
+      tabIndex={0}
+      aria-label={missingEmail ? `${event.label}. ${t('planning.missingGuestEmail')}` : event.label}
+      onKeyDown={(e) => {
+        if (e.target !== e.currentTarget) return;
+        if (isDragActive || isDragging) { listeners?.onKeyDown?.(e); return; }
+        if (e.key !== 'Enter') { listeners?.onKeyDown?.(e); return; }
+        e.preventDefault();
+        e.stopPropagation();
+        if (isReservation) setPopoverAnchor(e.currentTarget); else onClick(event);
+      }}
       onClick={(e) => {
         // Don't trigger click if a drag just happened
         if (isDragActive) return;
@@ -544,6 +551,17 @@ const PlanningBar: React.FC<PlanningBarProps> = React.memo(({
           // constant, invisible sur les briques pales de la palette.
           style={{ borderRadius: `${BAR_BORDER_RADIUS}px`, ...(isCancelled ? {} : { color: barInk }) }}
         >
+          {missingEmail && displayWidth >= 36 && (
+            <TooltipRoot>
+              <TooltipTrigger asChild>
+                <span role="img" aria-label={t('planning.missingGuestEmail')} title={t('planning.missingGuestEmail')}
+                  className={cn(BAR_BADGE_CLS, 'shrink-0')} style={{ color: 'var(--bui-warning-ink)' }}>
+                  <Warning size={13} strokeWidth={2} />
+                </span>
+              </TooltipTrigger>
+              <PlanningTooltipContent>{t('planning.missingGuestEmail')}</PlanningTooltipContent>
+            </TooltipRoot>
+          )}
           {/* Avatar voyageur : rond 26px (spec .pl-bar__av), bord clair,
               initiales 9.5px fw700. Pas de pastille d'alerte dessus (les
               alertes sont portées par les pastilles à droite). Cède la place
@@ -570,10 +588,7 @@ const PlanningBar: React.FC<PlanningBarProps> = React.memo(({
           )}
           {/* Spec .s-brick__t : colonne centrée, line-height 1.2. */}
           <div className="min-w-0 flex-1 flex flex-col justify-center leading-[1.2]">
-            {/* Ligne 1 (spec .s-brick__n) : nombre de nuits — 9.5px fw600 */}
-            <span className="text-[9.5px] font-semibold opacity-85 whitespace-nowrap overflow-hidden text-ellipsis">
-              {t('planning.panel.nights', { count: nights })}
-            </span>
+            <span ref={guestNameMeasurement.ref} aria-hidden="true" data-text={event.label} className="absolute invisible pointer-events-none w-max whitespace-nowrap text-[12px] font-semibold before:content-[attr(data-text)]" />
             {/* Ligne 2 (spec .pl-bar__g) : nom du voyageur — 12px fw600 */}
             {showLabel && (
               <span
@@ -585,6 +600,10 @@ const PlanningBar: React.FC<PlanningBarProps> = React.memo(({
                 {orderNameForReading(event.label, isRtl)}
               </span>
             )}
+            {/* Ligne 1 (spec .s-brick__n) : nombre de nuits — 9.5px fw600 */}
+            <span className="text-xs font-medium whitespace-nowrap overflow-hidden text-ellipsis">
+              {t('planning.panel.nights', { count: nights })}
+            </span>
           </div>
           {/* Prix réservation (pilule .pl-price) — toujours visible quand la
               brique a la place ; couleur = état paiement. Sous PRICE_AMOUNT_MIN
@@ -597,12 +616,12 @@ const PlanningBar: React.FC<PlanningBarProps> = React.memo(({
                 // posees en style pour ne pas dupliquer leur valeur en classe.
                 style={{ fontFamily: 'var(--font-display)', ...(priceUnpaid ? { color: PILL_UNPAID } : {}) }}
                 className={cn(
-                  'inline-flex items-center gap-[4px] shrink-0 h-[21px] rounded-[7px] text-[11px] font-bold tabular-nums tracking-[-.01em] whitespace-nowrap',
+                  'inline-flex items-center gap-[4px] shrink-0 h-[21px] rounded-[7px] text-xs font-semibold tabular-nums tracking-[-.01em] whitespace-nowrap',
                   priceAmountVisible ? 'px-[8px]' : 'px-[6px]',
                   // Couleur = sens : non réglé = blanc + ambre + carte ;
                   // réglé/OTA = verre translucide + check ; annulé = neutre.
                   priceUnpaid
-                    ? 'bg-[#fff] shadow-[0_1px_2px_rgba(0,0,0,.14)]'
+                    ? 'bg-[#FBFCFD] shadow-[0_1px_2px_rgba(0,0,0,.14)]'
                     : isCancelled
                       ? 'bg-[var(--pl-surface-2)] text-[var(--muted)] shadow-[inset_0_0_0_1px_var(--line-2)]'
                       // Le verre suit l'encre de la brique. Un verre sombre +
@@ -666,7 +685,7 @@ const PlanningBar: React.FC<PlanningBarProps> = React.memo(({
                     >
                       {it.icon}
                       {asFeePill && (
-                        <span className="text-[10.5px] font-bold tabular-nums tracking-[-.01em]" style={{ fontFamily: 'var(--font-display)', color: PILL_INK }}>
+                        <span className="text-xs font-semibold tabular-nums tracking-[-.01em]" style={{ fontFamily: 'var(--font-display)', color: PILL_INK }}>
                           <Money value={it.feeRaw} from={srcCurrency} compact symbolSize={10} />
                         </span>
                       )}
@@ -677,55 +696,9 @@ const PlanningBar: React.FC<PlanningBarProps> = React.memo(({
                 );
               })}
               {showBadgeGroup && overflowItems.length > 0 && (
-                <TooltipRoot
-                  // Contrôlé : le survol (onOpenChange) ET le clic / clavier
-                  // ouvrent le même tooltip.
-                  open={overflowOpen}
-                  onOpenChange={setOverflowOpen}
-                >
-                  <TooltipTrigger asChild>
-                  <div
-                    role="button"
-                    tabIndex={0}
-                    aria-label={`${t('planning.hiddenIndicators', { count: overflowItems.length })} : ${overflowItems.map((it) => it.label).join(', ')}`}
-                    onClick={(e) => {
-                      // Ne déclenche PAS le popover réservation de la brique.
-                      e.stopPropagation();
-                      setOverflowOpen(true);
-                    }}
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter' || e.key === ' ') {
-                        e.preventDefault();
-                        e.stopPropagation();
-                        setOverflowOpen((o) => !o);
-                      }
-                    }}
-                    style={{ fontFamily: 'var(--font-display)', color: PILL_INK }}
-                    className={cn(
-                      BAR_BADGE_CLS,
-                      // Spec .s-brick__badge.combo
-                      'bg-[rgba(255,255,255,.9)] text-[10px] font-bold cursor-pointer',
-                      'focus-visible:outline-2 focus-visible:outline-[var(--accent)] focus-visible:outline-offset-1',
-                    )}
-                  >
-                    +{overflowItems.length}
-                  </div>
-                  </TooltipTrigger>
-                  <PlanningTooltipContent>
-                    <ul className="list-none m-0 p-[2px_0] flex flex-col gap-[5px]">
-                      {overflowItems.map((it) => (
-                        <li className="flex items-center gap-[7px]" key={it.key}>
-                          <div className="flex items-center justify-center w-[16px] shrink-0" style={{ color: it.color }}>
-                            {it.icon}
-                          </div>
-                          <span className="whitespace-nowrap">
-                            {it.label}
-                          </span>
-                        </li>
-                      ))}
-                    </ul>
-                  </PlanningTooltipContent>
-                </TooltipRoot>
+                <BaitlyReservationOverflow items={overflowItems} open={overflowOpen} onOpenChange={setOverflowOpen}
+                  color={PILL_INK}
+                  className={cn(BAR_BADGE_CLS, 'bg-[rgba(255,255,255,.9)] text-xs font-semibold cursor-pointer focus-visible:outline-2 focus-visible:outline-[var(--bui-primary)] focus-visible:outline-offset-1')} />
               )}
               {sourceLogo && displayWidth > 60 && !compactRightZone && nameFitsInline && (() => {
                 const logoBadge = (
@@ -778,15 +751,19 @@ const PlanningBar: React.FC<PlanningBarProps> = React.memo(({
             <div
               role="button"
               tabIndex={0}
+              onKeyDown={(e) => {
+                if (e.key !== 'Enter' && e.key !== ' ') return;
+                e.preventDefault(); e.stopPropagation(); onHide(event);
+              }}
               aria-label={t('planning.bar.hide', 'Masquer du planning')}
               onClick={(e) => {
                 e.stopPropagation();
                 onHide(event);
               }}
               className={
-                'absolute top-[-6px] right-[-6px] w-[16px] h-[16px] rounded-[50%] bg-[var(--muted)] flex items-center justify-center cursor-pointer z-[12] '
+                'absolute top-[-6px] end-[-6px] w-[16px] h-[16px] rounded-[50%] bg-[var(--muted)] flex items-center justify-center cursor-pointer z-[12] '
                 + 'shadow-[0_1px_3px_color-mix(in_srgb,var(--ink)_30%,transparent)] border-[1.5px] border-solid border-[var(--bui-card)] text-[var(--on-accent)] '
-                + 'transition-[transform,background-color] duration-150 ease-[ease] hover:bg-[var(--body)] hover:scale-110 '
+                + 'transition-[transform,background-color] duration-150 ease-[ease] hover:bg-[var(--body)] '
                 + 'motion-reduce:transition-none motion-reduce:hover:scale-100'
               }
             >

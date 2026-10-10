@@ -1,3 +1,4 @@
+import { parseCompletedSteps, parseValidatedRooms } from '../utils/baitlyInterventionParsers';
 import React, { useState, useCallback, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import StatusChip from '../../../components/StatusChip';
@@ -27,15 +28,7 @@ interface PanelInterventionProgressProps {
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
 
-const parseCompletedSteps = (steps?: string): Set<string> => {
-  if (!steps) return new Set();
-  return new Set(steps.split(',').filter(Boolean));
-};
 
-const parseValidatedRooms = (rooms?: string): Set<number> => {
-  if (!rooms) return new Set();
-  return new Set(rooms.split(',').filter(Boolean).map(Number));
-};
 
 // Le <Step> du kit clone ses enfants pour leur injecter `index` : ce conteneur
 // l'absorbe, sinon l'attribut atterrirait tel quel sur le DOM. Il remplace le

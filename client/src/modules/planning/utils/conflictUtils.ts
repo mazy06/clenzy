@@ -1,331 +1,144 @@
 import type { PlanningEvent } from '../types';
 import type { PlanningIntervention } from '../../../services/api';
-import { toDate } from './dateUtils';
 
-export interface ConflictPair {
-  eventA: PlanningEvent;
-  eventB: PlanningEvent;
-}
-
-/**
- * Detect overlapping reservations on the same property.
- * Only compares reservation-type events (not interventions).
- * Cancelled reservations are excluded — they don't truly conflict with active ones.
- */
-export function detectConflicts(events: PlanningEvent[]): ConflictPair[] {
-  const reservations = events.filter((e) => e.type === 'reservation' && e.status !== 'cancelled');
-  const conflicts: ConflictPair[] = [];
-
-  for (let i = 0; i < reservations.length; i++) {
-    for (let j = i + 1; j < reservations.length; j++) {
-      const a = reservations[i];
-      const b = reservations[j];
-
-      if (a.propertyId !== b.propertyId) continue;
-
-      const aStart = toDate(a.startDate);
-      const aEnd = toDate(a.endDate);
-      const bStart = toDate(b.startDate);
-      const bEnd = toDate(b.endDate);
-
-      // Overlap: aStart < bEnd AND bStart < aEnd
-      if (aStart < bEnd && bStart < aEnd) {
-        conflicts.push({ eventA: a, eventB: b });
-      }
-    }
-  }
-
-  return conflicts;
-}
-
-/**
- * Check if a specific event is involved in any conflict.
- */
-export function isEventInConflict(eventId: string, conflicts: ConflictPair[]): boolean {
-  return conflicts.some((c) => c.eventA.id === eventId || c.eventB.id === eventId);
-}
-
-/**
- * Check if a modified event would conflict with other reservations
- * on the same property (used during drag to provide real-time feedback).
- *
- * Checks TWO things:
- * 1. Direct reservation-to-reservation overlap
- * 2. If there's a linked intervention (e.g. cleaning), whether it would
- *    overflow into the next reservation's dates/times
- */
-export function wouldConflict(
-  modifiedEvent: PlanningEvent,
-  allEvents: PlanningEvent[],
-  interventions?: PlanningIntervention[],
-): boolean {
-  const isInterventionEvent =
-    modifiedEvent.type === 'cleaning' || modifiedEvent.type === 'maintenance';
-
-  // ── Intervention conflict detection ──────────────────────────────────────
-  if (isInterventionEvent) {
-    // 1. Check overlap with reservations on the same property
-    const reservations = allEvents.filter(
-      (e) =>
-        e.propertyId === modifiedEvent.propertyId &&
-        e.type === 'reservation' &&
-        e.status !== 'cancelled',
-    );
-    const overlapsReservation = reservations.some(
-      (e) => modifiedEvent.startDate < e.endDate && modifiedEvent.endDate > e.startDate,
-    );
-    if (overlapsReservation) return true;
-
-    // 2. Check overlap with other interventions on the same property
-    if (interventions && interventions.length > 0) {
-      const numericId = parseInt(modifiedEvent.id.replace('int-', ''), 10);
-      const overlapsIntervention = interventions.some(
-        (i) =>
-          i.id !== numericId &&
-          i.propertyId === modifiedEvent.propertyId &&
-          modifiedEvent.startDate < i.endDate &&
-          modifiedEvent.endDate > i.startDate,
-      );
-      if (overlapsIntervention) return true;
-    }
-
-    return false;
-  }
-
-  // ── Reservation conflict detection (existing logic) ──────────────────────
-  const others = allEvents.filter(
-    (e) =>
-      e.id !== modifiedEvent.id &&
-      e.propertyId === modifiedEvent.propertyId &&
-      e.type === 'reservation' &&
-      e.status !== 'cancelled',
-  );
-
-  // 1. Direct reservation overlap
-  const hasDirectOverlap = others.some(
-    (e) => modifiedEvent.startDate < e.endDate && modifiedEvent.endDate > e.startDate,
-  );
-  if (hasDirectOverlap) return true;
-
-  // 2. Check linked intervention fits before next reservation
-  if (interventions && interventions.length > 0) {
-    const numericId = parseInt(modifiedEvent.id.replace('res-', ''), 10);
-    const linkedIntervention = interventions.find(
-      (i) => i.linkedReservationId === numericId,
-    );
-
-    if (linkedIntervention) {
-      // Find the next reservation on this property after the new checkout
-      const nextReservation = others
-        .filter((e) => e.startDate >= modifiedEvent.endDate)
-        .sort((a, b) => a.startDate.localeCompare(b.startDate))[0];
-
-      if (nextReservation) {
-        // Calculate intervention duration in days
-        const interventionDurationDays = Math.ceil(
-          (new Date(linkedIntervention.endDate).getTime() -
-            new Date(linkedIntervention.startDate).getTime()) /
-            86400000,
-        );
-
-        // Intervention starts at checkout and lasts N days
-        const interventionEndDate = new Date(modifiedEvent.endDate);
-        interventionEndDate.setDate(interventionEndDate.getDate() + interventionDurationDays);
-        const interventionEndStr = interventionEndDate.toISOString().split('T')[0];
-
-        // Intervention end goes beyond next check-in → conflict
-        if (interventionEndStr > nextReservation.startDate) return true;
-
-        // Same-day: check hour-level overlap
-        if (interventionEndStr === nextReservation.startDate) {
-          const checkOutMinutes = timeToMinutes(modifiedEvent.endTime);
-          const interventionMinutes = (linkedIntervention.estimatedDurationHours || 0) * 60;
-          const interventionEndMinutes = checkOutMinutes + interventionMinutes;
-          const nextCheckInMinutes = timeToMinutes(nextReservation.startTime);
-
-          if (nextCheckInMinutes > 0 && interventionEndMinutes > nextCheckInMinutes) {
-            return true;
-          }
-        }
-      }
-    }
-  }
-
-  return false;
-}
-
-// ─── Validation for reservation updates (panel edits) ─────────────────────
-
-interface UpdateValidation {
+export interface ConflictPair { eventA: PlanningEvent; eventB: PlanningEvent }
+export interface BaitlyPlanningValidation {
   valid: boolean;
   error: string | null;
+  reason?: 'reservation' | 'blocked' | 'intervention' | 'turnaround' | 'invalidRange';
+}
+interface PlanningRange { startDate: string; endDate: string; startTime?: string; endTime?: string }
+
+/** Intervalles civils semi-ouverts : la fin exacte libère le créneau suivant. */
+function bounds(range: PlanningRange, fullDay = false): [string, string] {
+  const time = (value: string) => value.length === 5 ? `${value}:00` : value;
+  return [
+    `${range.startDate} ${time(range.startTime || '00:00')}`,
+    `${range.endDate} ${time(range.endTime || (fullDay && range.startDate === range.endDate ? '23:59:59' : '00:00'))}`,
+  ];
+}
+export function baitlyRangesOverlap(a: PlanningRange, b: PlanningRange, aFullDay = false, bFullDay = false): boolean {
+  const [aStart, aEnd] = bounds(a, aFullDay);
+  const [bStart, bEnd] = bounds(b, bFullDay);
+  return aStart < bEnd && bStart < aEnd;
 }
 
-/**
- * Combine date + time into a comparable timestamp string.
- * Format: "YYYY-MM-DD HH:mm" or "YYYY-MM-DD" if no time.
- */
-function toTimestamp(date: string, time?: string): string {
-  return time ? `${date} ${time}` : date;
-}
-
-/**
- * Get total minutes from an HH:mm string.
- */
-function timeToMinutes(time: string | undefined): number {
-  if (!time) return 0;
-  const [h, m] = time.split(':').map(Number);
-  return h * 60 + (m || 0);
-}
-
-/**
- * Validate that a reservation update doesn't:
- * 1. Overlap with another reservation on the same property
- * 2. Leave insufficient time for linked interventions between reservations
- */
-export function validateReservationUpdate(
-  reservationId: number,
-  propertyId: number,
-  newCheckIn: string,
-  newCheckOut: string,
-  newCheckInTime: string | undefined,
-  newCheckOutTime: string | undefined,
-  allEvents: PlanningEvent[],
-  interventions: PlanningIntervention[],
-): UpdateValidation {
-  const eventId = `res-${reservationId}`;
-
-  // 1. Check overlap with other reservations on the same property
-  const otherReservations = allEvents.filter(
-    (e) =>
-      e.id !== eventId &&
-      e.propertyId === propertyId &&
-      e.type === 'reservation' &&
-      e.status !== 'cancelled',
-  );
-
-  const newStart = toTimestamp(newCheckIn, newCheckInTime);
-  const newEnd = toTimestamp(newCheckOut, newCheckOutTime);
-
-  for (const other of otherReservations) {
-    const otherStart = toTimestamp(other.startDate, other.startTime);
-    const otherEnd = toTimestamp(other.endDate, other.endTime);
-
-    // Overlap: newStart < otherEnd AND otherStart < newEnd
-    if (newStart < otherEnd && otherStart < newEnd) {
-      return {
-        valid: false,
-        error: `Conflit avec la reservation de ${other.label} (${other.startDate} - ${other.endDate})`,
-      };
+/** Regroupement puis balayage par début : seuls les séjours encore actifs sont comparés. */
+export function detectConflicts(events: PlanningEvent[]): ConflictPair[] {
+  type IndexedStay = { event: PlanningEvent; start: string; end: string };
+  const properties = new Map<number, IndexedStay[]>();
+  for (const event of events) {
+    if (event.type !== 'reservation' || event.status === 'cancelled') continue;
+    const group = properties.get(event.propertyId) ?? [];
+    const [start, end] = bounds(event);
+    if (start >= end) continue;
+    group.push({ event, start, end });
+    properties.set(event.propertyId, group);
+  }
+  const conflicts: ConflictPair[] = [];
+  for (const group of properties.values()) {
+    group.sort((a, b) => a.start < b.start ? -1 : a.start > b.start ? 1 : 0);
+    let active: IndexedStay[] = [];
+    for (const stay of group) {
+      active = active.filter((other) => other.end > stay.start);
+      for (const other of active) {
+        conflicts.push({ eventA: other.event, eventB: stay.event });
+      }
+      active.push(stay);
     }
   }
+  return conflicts;
+}
+export function isEventInConflict(eventId: string, conflicts: ConflictPair[]): boolean {
+  return conflicts.some(({ eventA, eventB }) => eventA.id === eventId || eventB.id === eventId);
+}
 
-  // 2. Check that linked intervention fits between this checkout and next check-in
-  const linkedIntervention = interventions.find(
-    (i) => i.linkedReservationId === reservationId,
-  );
-
-  if (linkedIntervention) {
-    // Find the next reservation on this property after the new checkout
-    const nextReservation = otherReservations
-      .filter((e) => e.startDate >= newCheckOut)
-      .sort((a, b) => a.startDate.localeCompare(b.startDate))[0];
-
-    if (nextReservation) {
-      // Compute intervention end: startDate = newCheckOut, duration = estimatedDurationHours
-      const interventionDurationDays = Math.ceil(
-        (new Date(linkedIntervention.endDate).getTime() - new Date(linkedIntervention.startDate).getTime()) /
-        (1000 * 60 * 60 * 24),
-      );
-
-      // Intervention would start at checkout and last N days
-      const interventionEndDate = new Date(newCheckOut);
-      interventionEndDate.setDate(interventionEndDate.getDate() + interventionDurationDays);
-      const interventionEndStr = interventionEndDate.toISOString().split('T')[0];
-
-      // If intervention end goes beyond next check-in → not enough time
-      if (interventionEndStr > nextReservation.startDate) {
-        return {
-          valid: false,
-          error: `Temps insuffisant pour l'intervention "${linkedIntervention.title}" avant la reservation de ${nextReservation.label} (${nextReservation.startDate})`,
-        };
+/** IDs seuls en O(n log n), même si toutes les réservations se superposent. */
+export function detectBaitlyConflictEventIds(events: PlanningEvent[]): Set<string> {
+  const properties = new Map<number, { id: string; start: string; end: string }[]>();
+  for (const event of events) {
+    if (event.type !== 'reservation' || event.status === 'cancelled') continue;
+    const [start, end] = bounds(event);
+    if (start >= end) continue;
+    const stays = properties.get(event.propertyId) ?? [];
+    stays.push({ id: event.id, start, end });
+    properties.set(event.propertyId, stays);
+  }
+  const ids = new Set<string>();
+  for (const stays of properties.values()) {
+    stays.sort((a, b) => a.start < b.start ? -1 : a.start > b.start ? 1 : 0);
+    let furthest: (typeof stays)[number] | undefined;
+    for (const stay of stays) {
+      if (furthest && furthest.end > stay.start) {
+        ids.add(furthest.id);
+        ids.add(stay.id);
       }
+      if (!furthest || stay.end > furthest.end) furthest = stay;
+    }
+  }
+  return ids;
+}
 
-      // Also check times if same-day
-      if (interventionEndStr === nextReservation.startDate) {
-        const checkOutMinutes = timeToMinutes(newCheckOutTime);
-        const interventionMinutes = (linkedIntervention.estimatedDurationHours || 0) * 60;
-        const interventionEndMinutes = checkOutMinutes + interventionMinutes;
-        const nextCheckInMinutes = timeToMinutes(nextReservation.startTime);
-
-        if (nextCheckInMinutes > 0 && interventionEndMinutes > nextCheckInMinutes) {
-          return {
-            valid: false,
-            error: `L'intervention "${linkedIntervention.title}" (${linkedIntervention.estimatedDurationHours}h) ne tiendra pas avant le check-in de ${nextReservation.label} a ${nextReservation.startTime}`,
-          };
+/** Même décision pour création, déplacement et édition dans le panneau Baitly. */
+export function validatePlanningEvent(
+  event: PlanningEvent, allEvents: PlanningEvent[], interventions: PlanningIntervention[] = [],
+): BaitlyPlanningValidation {
+  const [start, end] = bounds(event, event.type !== 'reservation');
+  if (start >= end) return { valid: false, reason: 'invalidRange', error: 'La fin doit être postérieure au début.' };
+  const isReservation = event.type === 'reservation';
+  for (const other of allEvents) {
+    if (other.id === event.id || other.propertyId !== event.propertyId || other.status === 'cancelled') continue;
+    // Une réservation peut contenir une prestation planifiée pendant le séjour.
+    if (isReservation && other.type !== 'reservation' && other.type !== 'blocked') continue;
+    if (!baitlyRangesOverlap(event, other, !isReservation, other.type !== 'reservation')) continue;
+    const reason = other.type === 'blocked' ? 'blocked' : other.type === 'reservation' ? 'reservation' : 'intervention';
+    return { valid: false, reason, error: `Conflit avec ${reason === 'blocked' ? 'la période bloquée' : reason === 'reservation' ? 'la reservation' : 'l’intervention'} de ${other.label} (${other.startDate} - ${other.endDate})` };
+  }
+  if (!isReservation) {
+    for (const other of interventions) {
+      if (`int-${other.id}` === event.id || other.propertyId !== event.propertyId || other.status === 'cancelled') continue;
+      if (baitlyRangesOverlap(event, other, true, true)) {
+        return { valid: false, reason: 'intervention', error: `Conflit avec l’intervention "${other.title}" (${other.startDate} - ${other.endDate})` };
+      }
+    }
+  } else {
+    const reservationId = event.reservation?.id ?? Number(event.id.replace('res-', ''));
+    const nextReservation = allEvents.filter((other) => other.id !== event.id && other.propertyId === event.propertyId
+      && other.type === 'reservation' && other.status !== 'cancelled' && bounds(other)[0] >= end)
+      .sort((a, b) => bounds(a)[0].localeCompare(bounds(b)[0]))[0];
+    if (nextReservation) {
+      for (const linked of interventions) {
+        if (linked.linkedReservationId !== reservationId || linked.status === 'cancelled') continue;
+        // Durée civile : pas d'erreur d'une heure lors des changements de fuseau.
+        const duration = Math.max(linked.estimatedDurationHours || 0,
+          (Date.parse(`${linked.endDate}T${linked.endTime || '00:00'}Z`) - Date.parse(`${linked.startDate}T${linked.startTime || '00:00'}Z`)) / 3_600_000);
+        const checkout = Date.parse(`${event.endDate}T${event.endTime || '00:00'}Z`);
+        const interventionEnd = checkout + duration * 3_600_000;
+        const nextStart = Date.parse(`${nextReservation.startDate}T${nextReservation.startTime || '00:00'}Z`);
+        if (interventionEnd > nextStart) {
+          return { valid: false, reason: 'turnaround', error: `L'intervention "${linked.title}" ne tiendra pas avant le check-in de ${nextReservation.label} (${nextReservation.startDate}). Temps insuffisant pour l'intervention.` };
         }
       }
     }
   }
-
   return { valid: true, error: null };
 }
-
-// ─── Validation for intervention updates (panel edits) ────────────────────
-
-/**
- * Validate that an intervention update doesn't:
- * 1. Overlap with a reservation on the same property
- * 2. Overlap with another intervention on the same property
- */
+export function wouldConflict(event: PlanningEvent, allEvents: PlanningEvent[], interventions: PlanningIntervention[] = []): boolean {
+  return !validatePlanningEvent(event, allEvents, interventions).valid;
+}
+export function validateReservationUpdate(
+  reservationId: number, propertyId: number, startDate: string, endDate: string,
+  startTime: string | undefined, endTime: string | undefined,
+  allEvents: PlanningEvent[], interventions: PlanningIntervention[],
+): BaitlyPlanningValidation {
+  return validatePlanningEvent({ id: `res-${reservationId}`, propertyId, type: 'reservation', startDate, endDate,
+    startTime, endTime, label: '', status: 'confirmed', color: '' }, allEvents, interventions);
+}
 export function validateInterventionUpdate(
-  interventionId: number,
-  propertyId: number,
-  newStartDate: string,
-  newEndDate: string,
-  newStartTime: string | undefined,
-  newEndTime: string | undefined,
-  allEvents: PlanningEvent[],
-  interventions: PlanningIntervention[],
-): UpdateValidation {
-  const newStart = toTimestamp(newStartDate, newStartTime);
-  const newEnd = toTimestamp(newEndDate, newEndTime);
-
-  // 1. Check overlap with reservations on the same property
-  const reservations = allEvents.filter(
-    (e) =>
-      e.propertyId === propertyId &&
-      e.type === 'reservation' &&
-      e.status !== 'cancelled',
-  );
-
-  for (const res of reservations) {
-    const resStart = toTimestamp(res.startDate, res.startTime);
-    const resEnd = toTimestamp(res.endDate, res.endTime);
-
-    if (newStart < resEnd && resStart < newEnd) {
-      return {
-        valid: false,
-        error: `Conflit avec la reservation de ${res.label} (${res.startDate} - ${res.endDate})`,
-      };
-    }
-  }
-
-  // 2. Check overlap with other interventions on the same property
-  for (const intv of interventions) {
-    if (intv.id === interventionId) continue;
-    if (intv.propertyId !== propertyId) continue;
-
-    const intvStart = toTimestamp(intv.startDate, intv.startTime);
-    const intvEnd = toTimestamp(intv.endDate, intv.endTime);
-
-    if (newStart < intvEnd && intvStart < newEnd) {
-      return {
-        valid: false,
-        error: `Conflit avec l'intervention "${intv.title}" (${intv.startDate} - ${intv.endDate})`,
-      };
-    }
-  }
-
-  return { valid: true, error: null };
+  interventionId: number, propertyId: number, startDate: string, endDate: string,
+  startTime: string | undefined, endTime: string | undefined,
+  allEvents: PlanningEvent[], interventions: PlanningIntervention[],
+): BaitlyPlanningValidation {
+  return validatePlanningEvent({ id: `int-${interventionId}`, propertyId, type: 'cleaning', startDate, endDate,
+    startTime, endTime, label: '', status: 'scheduled', color: '' }, allEvents, interventions);
 }

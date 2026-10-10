@@ -1,5 +1,6 @@
-import { useMemo } from 'react';
-import { useQueries } from '@tanstack/react-query';
+import type { CalendarPricingDayForProperty } from '../../../services/api/calendarPricingApi';
+import { useMemo, useCallback } from 'react';
+import { useQueries, type UseQueryResult } from '@tanstack/react-query';
 import { calendarPricingApi } from '../../../services/api/calendarPricingApi';
 import type { CalendarPricingDay } from '../../../services/api';
 import { getOverlappingChunks, toDateStr } from '../utils/dateUtils';
@@ -45,31 +46,34 @@ export function usePlanningPricing(
   // `combine` : sans lui, `useQueries` rend un tableau d'identité neuve à chaque
   // rendu, la map dérivée était donc recalculée en boucle et cassait la
   // barrière de mémo de toute la grille.
+  // Identité stable : TanStack ne reconstruit pas les données à chaque rendu local.
+  const combineResults = useCallback((results: UseQueryResult<CalendarPricingDayForProperty[], Error>[]) => {
+    const map: PricingMap = new Map();
+    for (const result of results) {
+      if (!result.data) continue;
+      for (const day of result.data) {
+        let dateMap = map.get(day.propertyId);
+        if (!dateMap) {
+          dateMap = new Map();
+          map.set(day.propertyId, dateMap);
+        }
+        // Premier arrivé gagne : les tranches se recouvrent sur leurs bords.
+        if (!dateMap.has(day.date)) dateMap.set(day.date, day);
+      }
+    }
+    return { pricingMap: map, isLoading: results.some((r) => r.isLoading) };
+  }, []);
+
   const { pricingMap, isLoading } = useQueries({
     queries: active
       ? chunks.map((chunk) => ({
           queryKey: pricingKeys.batch(sortedIds, chunk.from, chunk.to),
-          queryFn: () => calendarPricingApi.getPricingBatch(sortedIds, chunk.from, chunk.to),
+          queryFn: ({ signal }) => calendarPricingApi.getPricingBatch(sortedIds, chunk.from, chunk.to, signal),
           staleTime: 60_000,
           gcTime: 5 * 60 * 1000,
         }))
       : [],
-    combine: (results) => {
-      const map: PricingMap = new Map();
-      for (const result of results) {
-        if (!result.data) continue;
-        for (const day of result.data) {
-          let dateMap = map.get(day.propertyId);
-          if (!dateMap) {
-            dateMap = new Map();
-            map.set(day.propertyId, dateMap);
-          }
-          // Premier arrivé gagne : les tranches se recouvrent sur leurs bords.
-          if (!dateMap.has(day.date)) dateMap.set(day.date, day);
-        }
-      }
-      return { pricingMap: map, isLoading: results.some((r) => r.isLoading) };
-    },
+    combine: combineResults,
   });
 
   return { pricingMap, isLoading };

@@ -1,26 +1,19 @@
-import React, { useCallback, useRef, useState, useEffect, useMemo } from 'react';
+import React, { useMemo, useRef, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import PlanningBar from './PlanningBar';
 import PlanningBlockedBand from './PlanningBlockedBand';
 import type { BarLayout, PlanningEvent, PlanningProperty, DensityMode, ZoomLevel, QuickCreateData, RowDragState } from './types';
 import { ROW_CONFIG, BAR_BORDER_RADIUS } from './constants';
 import PlanningRowBackdrop from './PlanningRowBackdrop';
-import { toDateStr, getHourOffsetPx } from './utils/dateUtils';
+import { toDateStr } from './utils/dateUtils';
 import { resolveAttachedReservationId, type AttachmentCandidate } from './utils/interventionAttachment';
 import type { PricingMap } from './hooks/usePlanningPricing';
 import type { MinNightsMap } from './hooks/usePlanningMinNights';
 import { cn } from '../../utils/cn';
 import { isRtlLanguage } from '../../utils/localeDate';
-import { inlineOffsetInRect } from '../../utils/inlineScroll';
+import { useBaitlyRangeSelection } from './hooks/useBaitlyRangeSelection';
 import { Money } from '../../components/Money';
 import { NightsStay } from '../../icons';
-
-// ─── Price formatter ────────────────────────────────────────────────────────
-
-function formatPrice(price: number, symbol: string): string {
-  if (Number.isInteger(price)) return `${price}${symbol}`;
-  return `${price.toFixed(1)}${symbol}`;
-}
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
@@ -95,8 +88,6 @@ const PlanningRow: React.FC<PlanningRowProps> = React.memo(({
   // de souris en index de colonne : en arabe, la colonne 0 est a DROITE.
   const { i18n, t } = useTranslation();
   const isRtl = isRtlLanguage(i18n.language);
-  const isRtlRef = useRef(isRtl);
-  isRtlRef.current = isRtl;
 
   // ── Interventions rattachées à une réservation (maquette) ────────────────
   // RÈGLE UNIQUE : une intervention RATTACHÉE (lien explicite
@@ -106,13 +97,9 @@ const PlanningRow: React.FC<PlanningRowProps> = React.memo(({
   // resolveAttachedReservationId) est
   // UNIQUEMENT rendue comme pastille DANS la brique de sa réservation
   // (pastille blanche 20px — sur brique étroite elle compte dans le « +N »).
-  // Si la brique hôte n'est pas rendue (masquée par les filtres/légende, hors
-  // plage), l'intervention n'est PAS rendue du tout — jamais en pastille
-  // isolée. Seules les interventions véritablement orphelines (aucune
-  // réservation candidate dans les données chargées) restent sur la grille,
-  // rendues en pastille icône seule par PlanningBar. Chaque layout suit UN
-  // seul chemin (absorbé, ignoré ou standalone) : une intervention ne peut
-  // pas être rendue 2 fois.
+  // Si la brique hôte est masquée ou hors plage, la prestation reste visible
+  // à sa propre date. Chaque layout suit un seul chemin : lié, autonome ou
+  // plage bloquée, sans double rendu de la même intervention.
   const { visibleLayouts, linkedInterventionsByBarId, blockedLayouts } = useMemo(() => {
     const reservationLayoutsById = new Map<number, BarLayout>();
     for (const l of barLayouts) {
@@ -181,322 +168,35 @@ const PlanningRow: React.FC<PlanningRowProps> = React.memo(({
   // verticale de la brique (plus de couloir dédié sous la brique).
   const activeRowHeight = config.rowHeight;
 
-  // ── Drag-to-select state ──────────────────────────────────────────────────
-  const selectionRef = useRef<{
-    startIndex: number;
-    endIndex: number;
-    isSelecting: boolean;
-    startX: number;
-    rect: DOMRect;
-  } | null>(null);
-  const [selectionRange, setSelectionRange] = useState<{
-    start: number;
-    end: number;
-    /** Sub-day pixel offset for the start (aligns with checkout/intervention end hour) */
-    startOffsetPx: number;
-  } | null>(null);
+  const { selectionRange, selectionError, selectionBlocked, handlePointerDown, handleKeyDown, keyboardDay } = useBaitlyRangeSelection({
+    days, dayWidth, property, pricingMap, allEvents, isDragging, isRtl,
+    rowHeight: config.rowHeight, quickCreateOpen, onEmptyClick,
+  });
 
-  // Stable refs for values used in document-level listeners
-  const daysRef = useRef(days);
-  const dayWidthRef = useRef(dayWidth);
-  const onEmptyClickRef = useRef(onEmptyClick);
-  const propertyRef = useRef(property);
-  const pricingMapRef = useRef(pricingMap);
-  const allEventsRef = useRef(allEvents);
+  const rowRef = useRef<HTMLDivElement>(null);
   useEffect(() => {
-    daysRef.current = days;
-    dayWidthRef.current = dayWidth;
-    onEmptyClickRef.current = onEmptyClick;
-    propertyRef.current = property;
-    pricingMapRef.current = pricingMap;
-    allEventsRef.current = allEvents;
-  }, [days, dayWidth, onEmptyClick, property, pricingMap, allEvents]);
-
-  // ── Red flash / blocked state for rejected selections ────────────────────
-  const [selectionError, setSelectionError] = useState(false);
-  const [selectionBlocked, setSelectionBlocked] = useState(false);
-
-  /** Resolve the nightly price for a given date: dynamic pricing first, then property base */
-  const resolveNightlyPrice = (startDate: Date, propertyId: number, basePrice: number): number => {
-    const dateStr = toDateStr(startDate);
-    const dynamicPrice = pricingMapRef.current.get(propertyId)?.get(dateStr)?.nightlyPrice;
-    return dynamicPrice ?? basePrice;
-  };
-
-  /**
-   * Find the adjusted start after overlapping events on the same property.
-   * Uses an **iterative walk** approach: starts at the raw selection start,
-   * finds events that contain that point, pushes past them, then repeats
-   * until a free slot is found (or there's no room).
-   *
-   * This avoids jumping past events at the END of the range that don't
-   * block the start position (e.g. a later reservation further along).
-   *
-   * Returns: { dayIdx, endTime } for sub-day pixel positioning.
-   * dayIdx > rawEndIdx means no room.
-   */
-  const findAdjustedStart = (rawStartIdx: number, rawEndIdx: number): { dayIdx: number; endTime: string } => {
-    const currentDays = daysRef.current;
-    const prop = propertyRef.current;
-    const currentAllEvents = allEventsRef.current;
-    const defaultCheckIn = prop.defaultCheckInTime || '15:00';
-
-    const toTs = (d: string, t?: string) => t ? `${d} ${t}` : d;
-    const samePropertyEvents = currentAllEvents.filter((e) => e.propertyId === prop.id);
-
-    // Start from the beginning of the raw start day (00:00) so we detect
-    // ALL events on that day (checkout, cleaning, etc.), even those ending
-    // before defaultCheckIn. The dialog will enforce the proper check-in time.
-    let curDate = toDateStr(currentDays[rawStartIdx]);
-    let curTime = '00:00';
-    let curTs = toTs(curDate, curTime);
-    let adjusted = false;
-
-    // Iteratively push past events that contain/overlap the current start point
-    let moved = true;
-    let iterations = 0;
-    while (moved && iterations < 50) {
-      moved = false;
-      iterations++;
-      for (const evt of samePropertyEvents) {
-        // Default to 00:00 / 23:59 when times are missing so events
-        // without explicit hours still block the full day range.
-        const evtStartTs = toTs(evt.startDate, evt.startTime || '00:00');
-        const evtEndTs = toTs(evt.endDate, evt.endTime || '23:59');
-
-        // Does this event contain our current start point?
-        // (event starts at or before our point, and ends after our point)
-        if (evtStartTs <= curTs && evtEndTs > curTs) {
-          curDate = evt.endDate;
-          curTime = evt.endTime || '23:59';
-          curTs = toTs(curDate, curTime);
-          moved = true;
-          adjusted = true;
-        } else if (
-          // Same-day intervention that STARTS AFTER our point but still
-          // occupies the current day (e.g., cleaning starts 1h after checkout).
-          // Only applies once we've already pushed past a reservation.
-          adjusted &&
-          evt.type !== 'reservation' &&
-          evt.startDate === curDate &&
-          evtEndTs > curTs
-        ) {
-          curDate = evt.endDate;
-          curTime = evt.endTime || '23:59';
-          curTs = toTs(curDate, curTime);
-          moved = true;
-        }
-      }
+    if (document.activeElement === rowRef.current) {
+      rowRef.current?.querySelector('[data-keyboard-day]')?.scrollIntoView({ block: 'nearest', inline: 'nearest' });
     }
-
-    if (!adjusted) return { dayIdx: rawStartIdx, endTime: '' }; // No overlap at start
-
-    // Find the day index for the adjusted date
-    for (let i = 0; i < currentDays.length; i++) {
-      const ds = toDateStr(currentDays[i]);
-      if (ds === curDate) return { dayIdx: i, endTime: curTime };
-      if (ds > curDate) return { dayIdx: i, endTime: curTime };
-    }
-
-    return { dayIdx: currentDays.length, endTime: curTime }; // Past visible days → no room
-  };
-
-  const cleanupListeners = useRef<(() => void) | null>(null);
-
-  const handleMouseDown = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
-    if (isDragging) return;
-    if (e.button !== 0) return; // Left button only
-
-    // Skip if the user clicked on a planning bar — let @dnd-kit handle drag.
-    // Skip aussi les plages bloquées : le clic ouvre leur tooltip, pas une sélection.
-    const target = e.target as HTMLElement;
-    if (target.closest('[data-planning-bar]') || target.closest('[data-blocked-range]')) return;
-
-    const rect = e.currentTarget.getBoundingClientRect();
-
-    // Ignore clicks outside the active grid area
-    const y = e.clientY - rect.top;
-    if (y > config.rowHeight) return;
-
-    const x = inlineOffsetInRect(e.clientX, rect, isRtlRef.current);
-    const dayIndex = Math.floor(x / dayWidthRef.current);
-
-    if (dayIndex < 0 || dayIndex >= daysRef.current.length) return;
-
-    // Reset previous states
-    setSelectionBlocked(false);
-    setSelectionError(false);
-
-    selectionRef.current = {
-      startIndex: dayIndex,
-      endIndex: dayIndex,
-      isSelecting: false,
-      startX: e.clientX,
-      rect,
-    };
-
-    e.preventDefault(); // Prevent text selection
-
-    const handleDocMouseMove = (ev: MouseEvent) => {
-      const sel = selectionRef.current;
-      if (!sel) return;
-
-      const currentX = inlineOffsetInRect(ev.clientX, sel.rect, isRtlRef.current);
-      const currentDayIndex = Math.max(0, Math.min(
-        daysRef.current.length - 1,
-        Math.floor(currentX / dayWidthRef.current),
-      ));
-
-      // Activate drag mode after 5px threshold
-      if (!sel.isSelecting && Math.abs(ev.clientX - sel.startX) > 5) {
-        sel.isSelecting = true;
-      }
-
-      if (sel.isSelecting && currentDayIndex !== sel.endIndex) {
-        sel.endIndex = currentDayIndex;
-        const rawStart = Math.min(sel.startIndex, currentDayIndex);
-        const rawEnd = Math.max(sel.startIndex, currentDayIndex);
-
-        // Auto-adjust start past overlapping events (real-time during drag)
-        const { dayIdx: adjustedStart, endTime } = findAdjustedStart(rawStart, rawEnd);
-
-        if (adjustedStart > rawEnd) {
-          // No room — show blocked overlay (red) over the full raw range
-          setSelectionRange({ start: rawStart, end: rawEnd, startOffsetPx: 0 });
-          setSelectionBlocked(true);
-        } else {
-          // Compute sub-day pixel offset from the event end time
-          const offsetPx = endTime
-            ? getHourOffsetPx(endTime, dayWidthRef.current)
-            : 0;
-          setSelectionRange({ start: adjustedStart, end: rawEnd, startOffsetPx: offsetPx });
-          setSelectionBlocked(false);
-        }
-      }
-    };
-
-    const handleDocMouseUp = () => {
-      // Remove document listeners
-      document.removeEventListener('mousemove', handleDocMouseMove);
-      document.removeEventListener('mouseup', handleDocMouseUp);
-      cleanupListeners.current = null;
-
-      // Clear live-drag blocked state
-      setSelectionBlocked(false);
-
-      const sel = selectionRef.current;
-      if (!sel) return;
-
-      const prop = propertyRef.current;
-      const currentDays = daysRef.current;
-      const currentAllEvents = allEventsRef.current;
-
-      const defaultCheckIn = prop.defaultCheckInTime || '15:00';
-      const defaultCheckOut = prop.defaultCheckOutTime || '11:00';
-
-      // ── Determine raw selected range ────────────────────────────────────
-      let rawStartIdx: number;
-      let rawEndIdx: number;
-      let rawEndStr: string;
-
-      if (sel.isSelecting) {
-        rawStartIdx = Math.min(sel.startIndex, sel.endIndex);
-        rawEndIdx = Math.max(sel.startIndex, sel.endIndex);
-        const endDate = new Date(currentDays[rawEndIdx]);
-        endDate.setDate(endDate.getDate() + 1);
-        rawEndStr = toDateStr(endDate);
-      } else {
-        const minNights = prop.minimumNights || 1;
-        rawStartIdx = sel.startIndex;
-        rawEndIdx = Math.min(sel.startIndex + minNights - 1, currentDays.length - 1);
-        const clickedDate = currentDays[sel.startIndex];
-        const endDate = new Date(clickedDate);
-        endDate.setDate(endDate.getDate() + minNights);
-        rawEndStr = toDateStr(endDate);
-      }
-
-      // ── Find overlapping events & compute adjusted start ────────────────
-      const { dayIdx: adjustedDayIdx, endTime: latestEndTime } = findAdjustedStart(rawStartIdx, rawEndIdx);
-
-      let adjustedStartStr = toDateStr(currentDays[rawStartIdx]);
-      let adjustedCheckInTime = defaultCheckIn;
-
-      if (latestEndTime && adjustedDayIdx < currentDays.length) {
-        // Adjustment happened (possibly same day with time offset)
-        adjustedStartStr = toDateStr(currentDays[adjustedDayIdx]);
-        adjustedCheckInTime = latestEndTime > defaultCheckIn ? latestEndTime : defaultCheckIn;
-      } else if (adjustedDayIdx > rawStartIdx && adjustedDayIdx < currentDays.length) {
-        adjustedStartStr = toDateStr(currentDays[adjustedDayIdx]);
-      }
-
-      // No room: adjusted start is on or past the end date → flash red
-      if (adjustedDayIdx > rawEndIdx || adjustedStartStr >= rawEndStr) {
-        const offsetPx = latestEndTime
-          ? getHourOffsetPx(latestEndTime, dayWidthRef.current)
-          : 0;
-        setSelectionRange({ start: rawStartIdx, end: rawEndIdx, startOffsetPx: offsetPx });
-        setSelectionError(true);
-        setTimeout(() => {
-          setSelectionError(false);
-          setSelectionRange(null);
-        }, 1500);
-        selectionRef.current = null;
-        return;
-      }
-
-      // ── Open quick-create dialog with adjusted dates ────────────────────
-      onEmptyClickRef.current({
-        propertyId: prop.id,
-        propertyName: prop.name,
-        startDate: adjustedStartStr,
-        endDate: rawEndStr,
-        nightlyPrice: resolveNightlyPrice(new Date(adjustedStartStr), prop.id, prop.nightlyPrice ?? 0),
-        defaultCheckInTime: adjustedCheckInTime,
-        defaultCheckOutTime: defaultCheckOut,
-        cleaningFrequency: prop.cleaningFrequency,
-        cleaningBasePrice: prop.cleaningBasePrice,
-      });
-
-      selectionRef.current = null;
-      // Don't clear selectionRange here — keep the overlay visible while dialog is open.
-      // It will be cleared when quickCreateOpen goes from true → false.
-    };
-
-    document.addEventListener('mousemove', handleDocMouseMove);
-    document.addEventListener('mouseup', handleDocMouseUp);
-    cleanupListeners.current = () => {
-      document.removeEventListener('mousemove', handleDocMouseMove);
-      document.removeEventListener('mouseup', handleDocMouseUp);
-    };
-  }, [isDragging, config]);
-
-  // Cleanup document listeners on unmount
-  useEffect(() => {
-    return () => {
-      cleanupListeners.current?.();
-    };
-  }, []);
-
-  // Clear selection overlay when quick-create dialog closes
-  useEffect(() => {
-    if (!quickCreateOpen && selectionRange) {
-      setSelectionRange(null);
-      setSelectionError(false);
-      setSelectionBlocked(false);
-    }
-  }, [quickCreateOpen]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [keyboardDay]);
 
   return (
-    <div className="relative bg-[transparent]" style={{ height: effectiveRowHeight, width: totalGridWidth, borderBottom: '1px solid var(--bui-border)' }} onMouseDown={handleMouseDown}>
+    <div ref={rowRef} className="relative bg-[transparent] focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-[var(--bui-primary)]" style={{ height: effectiveRowHeight, width: totalGridWidth, borderBottom: '1px solid var(--bui-border)' }}
+      role="group" tabIndex={0}
+      aria-label={t('planning.grid.keyboardSelection', { property: property.name, date: days[keyboardDay] ? toDateStr(days[keyboardDay]) : '', defaultValue: '{{property}}, {{date}}. Flèches : choisir une date. Maj + flèches : étendre. Entrée : créer une réservation.' })}
+      onPointerDown={handlePointerDown} onKeyDown={handleKeyDown}>
       {/* Fond de la rangee (colonnes teintees + filets) : partage avec le
           squelette de chargement, pour qu'ils ne puissent pas diverger. */}
       <PlanningRowBackdrop days={days} dayWidth={dayWidth} totalGridWidth={totalGridWidth} />
 
-      {/* Cursor zone for empty areas (pointer-events off — parent handles mouseDown) */}
+      {/* Cursor zone for empty areas (pointer-events off — parent handles pointerDown) */}
       <div
-        className="absolute left-0 top-0 cursor-cell z-[1] pointer-events-none"
+        className="absolute start-0 top-0 cursor-cell z-[1] pointer-events-none"
         style={{ width: totalGridWidth, height: activeRowHeight }}
       />
+
+      <span aria-hidden="true" data-keyboard-day className="absolute invisible pointer-events-none"
+        style={{ insetInlineStart: keyboardDay * dayWidth, width: dayWidth, height: activeRowHeight }} />
 
       {/* Selection highlight overlay (drag-to-select) — styled like reservation bars */}
       {selectionRange && (() => {
@@ -534,10 +234,10 @@ const PlanningRow: React.FC<PlanningRowProps> = React.memo(({
             {/* `selColor` est calcule au rendu : une classe Tailwind ne pouvant
                 pas naitre d'une variable, la couleur passe en style inline. */}
             <p
-              className="cn-text-body1 text-[0.6875rem] font-semibold truncate leading-[1.2]"
-              style={{ color: selColor }}
+              className="cn-text-body1 text-xs font-semibold truncate leading-[1.2]"
+              style={{ color: isError ? 'var(--bui-destructive-ink)' : 'var(--bui-success-ink)' }}
             >
-              {isError ? t('planning.noRoom') : `${nightCount}${nightCount === 1 ? ' nuit' : ' nuits'}`}
+              {isError ? t('planning.noRoom') : t('planning.panel.nights', { count: nightCount })}
             </p>
           </div>
         );
@@ -594,6 +294,9 @@ const PlanningRow: React.FC<PlanningRowProps> = React.memo(({
         const price = pricing?.nightlyPrice;
         const minNights = propertyMinNights?.get(dateStr);
         if (price == null && minNights == null) return null;
+        if (allEvents.some((event) => event.propertyId === property.id
+          && (event.type === 'blocked' || (event.type === 'reservation' && event.status !== 'cancelled'))
+          && event.startDate <= dateStr && event.endDate > dateStr)) return null;
         if (dayWidth < 30) return null;
 
         return (
@@ -601,17 +304,17 @@ const PlanningRow: React.FC<PlanningRowProps> = React.memo(({
             {price != null && (
               <span
                 className={cn(
-                  'font-[family-name:var(--font-display)] font-medium text-[var(--muted)] opacity-80 leading-none whitespace-nowrap overflow-hidden text-ellipsis max-w-full tabular-nums',
-                  dayWidth < 60 ? 'text-[0.625rem]' : 'text-[0.6875rem]',
+                  'font-[family-name:var(--font-display)] font-medium text-[var(--bui-muted-foreground)] leading-none whitespace-nowrap overflow-hidden text-ellipsis max-w-full tabular-nums',
+                  'text-xs',
                 )}
               >
                 <Money value={price} from={property.currency ?? 'EUR'} compact symbolSize={dayWidth < 60 ? 9 : 10} />
               </span>
             )}
             {minNights != null && dayWidth >= 38 && (
-              <div className="absolute bottom-[2px] end-[3px] flex items-center gap-0 text-[var(--faint)] opacity-85">
-                <NightsStay size={8} strokeWidth={1.75} />
-                <span className="text-[0.5rem] font-semibold leading-[1] tabular-nums">
+              <div className="absolute bottom-[2px] end-[3px] flex items-center gap-0 text-[var(--bui-muted-foreground)]">
+                <NightsStay size={12} strokeWidth={1.75} />
+                <span className="text-xs font-medium leading-none tabular-nums">
                   {minNights}
                 </span>
               </div>

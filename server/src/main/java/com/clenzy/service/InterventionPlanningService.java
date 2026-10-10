@@ -156,8 +156,10 @@ public class InterventionPlanningService {
             map.put("startTime", i.getScheduledDate() != null ? i.getScheduledDate().toLocalTime().toString() : "11:00");
 
             if (i.getScheduledDate() != null && i.getEstimatedDurationHours() != null) {
-                LocalTime endTime = i.getScheduledDate().toLocalTime().plusHours(i.getEstimatedDurationHours());
-                map.put("endTime", endTime.toString());
+                // La projection Baitly conserve le jour réel de fin, même après minuit.
+                LocalDateTime scheduledEnd = i.getScheduledDate().plusHours(i.getEstimatedDurationHours());
+                map.put("endDate", scheduledEnd.toLocalDate().toString());
+                map.put("endTime", scheduledEnd.toLocalTime().toString());
             } else {
                 map.put("endTime", null);
             }

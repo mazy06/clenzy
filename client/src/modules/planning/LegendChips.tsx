@@ -2,9 +2,9 @@ import React from 'react';
 import { useTranslation } from 'react-i18next';
 import { Tooltip, TooltipTrigger } from '../../components/ui';
 import { cn } from '../../utils/cn';
-import { Public as GlobeIcon, BroomFill, WrenchFill } from '../../icons';
+import { Public as GlobeIcon, BroomFill, WrenchFill, Check } from '../../icons';
 import type { ReservationStatus } from '../../services/api';
-import { RESERVATION_STATUS_TOKEN_COLORS, INTERVENTION_TYPE_TOKEN_COLORS } from './constants';
+import { RESERVATION_STATUS_BAR_COLORS, INTERVENTION_TYPE_TOKEN_COLORS, PLANNING_CHANNEL_KEYS, PLANNING_STATUS_KEYS } from './constants';
 import type { PlanningChannelKey } from './constants';
 import { RESERVATION_SOURCE_LABELS } from '../../services/api/reservationsApi';
 import { getSourceLogo } from './utils/sourceLogos';
@@ -20,9 +20,7 @@ import { PlanningTooltipContent } from './PlanningTooltip';
  * francais quel que soit l'etat de l'interface — un module charge une fois
  * pour toutes ne repasse pas au changement de langue.</p>
  */
-export const STATUS_OPTIONS: readonly ReservationStatus[] = [
-  'confirmed', 'pending', 'checked_in', 'checked_out', 'cancelled',
-];
+export const STATUS_OPTIONS = PLANNING_STATUS_KEYS;
 
 // Le logo de chaque canal est RESOLU, jamais figé : les assets existent pour
 // presque tous les canaux (agoda, hotels.com, hometogo, mabeet, rentelly,
@@ -33,8 +31,7 @@ export const STATUS_OPTIONS: readonly ReservationStatus[] = [
 // « Direct » reste sans logo : ce n'est pas un canal externe mais l'absence
 // d'intermédiaire — un globe, à l'encre de marque comme le reste du chrome.
 export const CHANNEL_LEGEND: { key: PlanningChannelKey; label: string; logo: string | null }[] =
-  (['airbnb', 'booking', 'vrbo', 'expedia', 'agoda', 'hotels_com',
-    'hometogo', 'mabeet', 'rentelly', 'gathern', 'direct'] as const)
+  PLANNING_CHANNEL_KEYS
     .map((key) => ({
       key,
       label: RESERVATION_SOURCE_LABELS[key],
@@ -42,59 +39,6 @@ export const CHANNEL_LEGEND: { key: PlanningChannelKey; label: string; logo: str
     }));
 
 // ─── Styles partagés (langage Signature) ─────────────────────────────────────
-
-/** Chip pilule Signature (spec .pl-chip) : carte hairline, padding 5px 10px,
- *  11.5px fw600 var(--body) ; état actif accent-soft. */
-export const sigChipSx = (active: boolean) => ({
-  display: 'inline-flex',
-  alignItems: 'center',
-  gap: 0.75,
-  fontSize: '0.71875rem',
-  fontWeight: 600,
-  lineHeight: 1,
-  color: active ? 'var(--accent)' : 'var(--body)',
-  backgroundColor: active ? 'var(--accent-soft)' : 'var(--bui-card)',
-  border: '1px solid',
-  borderColor: active ? 'var(--accent)' : 'var(--line-2)',
-  borderRadius: '8px',
-  padding: '5px 10px',
-  cursor: 'pointer',
-  userSelect: 'none' as const,
-  whiteSpace: 'nowrap' as const,
-  transition: 'border-color 160ms cubic-bezier(.16,1,.3,1), background-color 160ms cubic-bezier(.16,1,.3,1), color 160ms cubic-bezier(.16,1,.3,1)',
-  '&:hover': { borderColor: active ? 'var(--accent)' : 'var(--faint)' },
-  '@media (prefers-reduced-motion: reduce)': { transition: 'none' },
-});
-
-/** Reset commun aux chips rendues comme `<button>` (a11y aria-pressed). */
-const BUTTON_RESET = {
-  appearance: 'none' as const,
-  fontFamily: 'inherit',
-  boxSizing: 'border-box' as const,
-  // Hauteur uniforme : les chips canaux (logo 15px), statuts (puce 9px) et
-  // interventions (icônes) doivent être identiques.
-  minHeight: '27px',
-  '&:focus-visible': { outline: '2px solid var(--accent)', outlineOffset: '2px' },
-};
-
-/** Variante « toggle » : sélectionné = accent-soft, désélectionné = pilule plate
- *  (état actif visible). Utilisée dans la modale de filtres. */
-export const sigButtonSx = (active: boolean) => ({
-  ...sigChipSx(active),
-  ...BUTTON_RESET,
-});
-
-/** Variante « légende » : sélectionné = pilule normale, désélectionné = chip
- *  entière à opacity .4 (fond, bordure, puce inchangés). Utilisée dans la
- *  rangée légende de la toolbar. */
-export const legendChipSx = (selected: boolean) => ({
-  ...sigChipSx(false),
-  ...BUTTON_RESET,
-  opacity: selected ? 1 : 0.4,
-  transition: 'opacity .12s, border-color .12s',
-  '&:hover': { borderColor: 'var(--faint)' },
-  '@media (prefers-reduced-motion: reduce)': { transition: 'none' },
-});
 
 /** Deux registres visuels pour la MÊME chip selon le contexte :
  *  - `legend` (toolbar) : opacity .4 quand masqué.
@@ -104,33 +48,33 @@ export type LegendChipVariant = 'legend' | 'toggle';
 /** Equivalent en classes de `sigChipSx` + `BUTTON_RESET`, hors couleurs et transition.
  *  gap: 0.75 = 4.5px (theme.spacing vaut 6 dans ce projet, pas 8). */
 const CHIP_BASE_CLS =
-  'inline-flex shrink-0 items-center gap-[4.5px] min-h-[27px] px-2.5 py-[5px] rounded-[8px] border border-solid text-[0.71875rem] font-semibold leading-none font-[inherit] appearance-none box-border cursor-pointer select-none whitespace-nowrap motion-reduce:transition-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent)]';
-const CHIP_IDLE_COLORS_CLS = 'text-[var(--body)] bg-[var(--bui-card)] border-[var(--line-2)] hover:border-[var(--faint)]';
+  'inline-flex shrink-0 items-center gap-[4.5px] min-h-[27px] px-2.5 py-[5px] rounded-[8px] border border-solid text-xs font-medium leading-none font-[inherit] appearance-none box-border cursor-pointer select-none whitespace-nowrap motion-reduce:transition-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--bui-primary)]';
+const CHIP_IDLE_COLORS_CLS = 'text-[var(--bui-foreground)] bg-[var(--bui-card)] border-[var(--bui-border)] hover:border-[var(--bui-muted-foreground)]';
 const CHIP_TOGGLE_TRANSITION_CLS =
   'transition-[border-color,background-color,color] duration-[160ms] ease-[cubic-bezier(.16,1,.3,1)]';
 
 /** Pendant en classes de `chipSxFor` : `toggle` colore l'etat actif, `legend` l'attenue. */
-const chipClsFor = (variant: LegendChipVariant, selected: boolean) =>
+export const baitlyPlanningChipClass = (variant: LegendChipVariant, selected: boolean) =>
   cn(
     CHIP_BASE_CLS,
     variant === 'toggle'
       ? cn(
           CHIP_TOGGLE_TRANSITION_CLS,
           selected
-            ? 'text-[var(--accent)] bg-[var(--accent-soft)] border-[var(--accent)]'
+            ? 'text-[var(--bui-primary)] bg-[var(--bui-primary-soft)] border-[var(--bui-primary)]'
             : CHIP_IDLE_COLORS_CLS,
         )
       : cn(
           CHIP_IDLE_COLORS_CLS,
           'transition-[opacity,border-color] duration-[120ms]',
-          selected ? 'opacity-100' : 'opacity-40',
+          selected ? 'border-[var(--bui-muted-foreground)]' : 'border-dashed text-[var(--bui-muted-foreground)]',
         ),
   );
 
 // ─── Chips légende (source unique : toolbar ET modale) ───────────────────────
 
 /** Chips togglables des canaux : logo (ou globe) + nom. Un canal désélectionné
- *  masque les briques de ce canal (état local page, non persisté). */
+ *  masque les briques de ce canal (préférence persistée côté backend). */
 export const ChannelLegendChips: React.FC<{
   activeChannels: ReadonlySet<PlanningChannelKey>;
   onToggleChannel: (key: PlanningChannelKey) => void;
@@ -155,8 +99,9 @@ export const ChannelLegendChips: React.FC<{
               type="button"
               aria-pressed={selected}
               onClick={() => onToggleChannel(ch.key)}
-              className={chipClsFor(variant, selected)}
+              className={baitlyPlanningChipClass(variant, selected)}
             >
+              <span className="inline-flex w-3 shrink-0" aria-hidden="true">{selected && <Check size={12} />}</span>
               {ch.logo ? (
                 <img className="w-[15px] h-[15px] object-contain block shrink-0" src={ch.logo} alt="" />
               ) : (
@@ -197,10 +142,11 @@ export const StatusLegendChips: React.FC<{
           type="button"
           aria-pressed={selected}
           onClick={() => onToggleStatus(status)}
-          className={chipClsFor(variant, selected)}
+          className={baitlyPlanningChipClass(variant, selected)}
         >
+          <span className="inline-flex w-3 shrink-0" aria-hidden="true">{selected && <Check size={12} />}</span>
           {/* Puce 9px radius 3 (spec .s-dot) = couleur exacte du statut. */}
-          <span className="w-[9px] h-[9px] rounded-[3px] shrink-0" style={{ backgroundColor: RESERVATION_STATUS_TOKEN_COLORS[status] ?? 'var(--faint)' }} />
+          <span className="w-[9px] h-[9px] rounded-[3px] shrink-0" style={{ backgroundColor: RESERVATION_STATUS_BAR_COLORS[status] ?? 'var(--bui-muted-foreground)' }} />
           {t(`planning.legend.status.${status}`)}
         </button>
       );
@@ -221,8 +167,9 @@ export const InterventionLegendChip: React.FC<{
     type="button"
     aria-pressed={active}
     onClick={onToggle}
-    className={chipClsFor(variant, active)}
+    className={baitlyPlanningChipClass(variant, active)}
   >
+    <span className="inline-flex w-3 shrink-0" aria-hidden="true">{active && <Check size={12} />}</span>
     {/* Balai (ménage) + outil (maintenance) : la chip couvre les DEUX types. */}
     <span className="inline-flex" style={{ color: INTERVENTION_TYPE_TOKEN_COLORS.cleaning }}>
       <BroomFill size={16} />

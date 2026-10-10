@@ -104,6 +104,25 @@ class InterventionPlanningServiceTest {
     class GetPlanning {
 
         @Test
+        @DisplayName("Baitly conserve le jour de fin d'une intervention passant minuit")
+        void whenScheduleCrossesMidnight_thenEndDateAdvances() {
+            User admin = user(1L, "kc-admin", UserRole.SUPER_ADMIN);
+            Intervention item = intervention(100L, property(20L, "Prop A", admin), InterventionStatus.PENDING, "CLEANING");
+            item.setScheduledDate(LocalDateTime.of(2026, 6, 10, 23, 0));
+            item.setEstimatedDurationHours(3);
+            when(userRepository.findByKeycloakId("kc-admin")).thenReturn(Optional.of(admin));
+            when(interventionRepository.findAllByDateRange(any(), any(), eq(ORG_ID))).thenReturn(List.of(item));
+            when(reservationRepository.findByInterventionIdIn(eq(List.of(100L)), eq(ORG_ID))).thenReturn(List.of());
+
+            Map<String, Object> projection = service.getPlanningInterventions(jwt("kc-admin"), null,
+                    LocalDate.of(2026, 6, 1), LocalDate.of(2026, 6, 30), null).get(0);
+
+            assertThat(projection.get("startDate")).isEqualTo("2026-06-10");
+            assertThat(projection.get("endDate")).isEqualTo("2026-06-11");
+            assertThat(projection.get("endTime")).isEqualTo("02:00");
+        }
+
+        @Test
         @DisplayName("when user not found - throws RuntimeException")
         void whenUserMissing_thenThrows() {
             Jwt j = jwt("kc-x");

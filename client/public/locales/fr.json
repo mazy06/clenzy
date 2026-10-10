@@ -12859,6 +12859,16 @@
     }
   },
   "planning": {
+    "feedback": {
+      "saveError": "Le déplacement n’a pas été enregistré. Les dates précédentes sont restaurées.",
+      "reservation": "Une réservation occupe déjà ce créneau.",
+      "blocked": "Ce créneau appartient à une période bloquée.",
+      "intervention": "Une autre intervention occupe déjà ce créneau.",
+      "turnaround": "Le temps disponible avant la prochaine arrivée ne suffit pas pour l’intervention.",
+      "invalidRange": "La fin doit être postérieure au début.",
+      "conflict": "Ce créneau est indisponible."
+    },
+    "newReservation": "Nouvelle réservation",
     "importChooser": {
       "title": "Importer des réservations",
       "subtitle": "Choisissez comment connecter vos canaux de réservation.",
@@ -12882,6 +12892,7 @@
     "title": "Planning",
     "subtitle": "Réservations & interventions · {{month}}",
     "nav": {
+      "fullscreen": "Plein écran",
       "prev": "Période précédente",
       "next": "Période suivante",
       "today": "Aujourd'hui",
@@ -12897,6 +12908,10 @@
       "monthShort": "Mois"
     },
     "grid": {
+      "occupancyScope": "Tous les logements filtrés, toutes les pages et tous les canaux.",
+      "occupiedCount_one": "{{count}} logement occupé sur {{total}}",
+      "occupiedCount_other": "{{count}} logements occupés sur {{total}}",
+      "keyboardSelection": "{{property}}, {{date}}. Flèches : choisir une date. Maj + flèches : étendre. Entrée : créer une réservation.",
       "propertyCount_one": "{{count}} logement",
       "propertyCount_other": "{{count}} logements",
       "showProperties": "Afficher la colonne logements",
@@ -13001,6 +13016,9 @@
       "unblockFailed": "Le déblocage a échoué. Réessayez."
     },
     "bar": {
+      "alerts": "À vérifier",
+      "details": "Détails",
+      "resize": "Redimensionner le séjour",
       "hide": "Masquer du planning",
       "paymentFailed": "Paiement échoué",
       "paymentProcessing": "Paiement en cours de traitement",
@@ -13398,7 +13416,7 @@
         "noLinked": "Aucune intervention liée à cette réservation.",
         "interventionCost": "Coût intervention",
         "estimatedDuration": "Durée estimée",
-        "estimatedCost": "Coût estimé (25 €/h)",
+        "estimatedCost": "Coût estimé",
         "actualCost": "Coût réel",
         "paymentStatus": "Statut paiement",
         "generateInvoice": "Générer facture",

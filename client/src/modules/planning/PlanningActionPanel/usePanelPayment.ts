@@ -1,3 +1,5 @@
+import { planningKeys } from '../hooks/usePlanningData';
+import { getBaitlyServiceCost } from '../utils/baitlyFinancial';
 import { useState, useCallback, useEffect, useMemo, useRef } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { paymentsApi } from '../../../services/api/paymentsApi';
@@ -67,7 +69,7 @@ export function usePanelPayment(
       .map((i) => ({
         interventionId: i.id,
         title: i.title,
-        cost: i.estimatedDurationHours ? i.estimatedDurationHours * 25 : 0,
+        cost: getBaitlyServiceCost(i),
         selected: !deselectedIds.has(i.id),
       }));
   }, [interventions, propertyId, deselectedIds]);
@@ -163,6 +165,7 @@ export function usePanelPayment(
             setPaying(false);
             // Refresh all planning data
             queryClient.invalidateQueries({ queryKey: ['planning'] });
+            queryClient.invalidateQueries({ queryKey: planningKeys.all });
             refreshHistory();
           } else if (status.paymentStatus === 'FAILED') {
             if (pollRef.current) clearInterval(pollRef.current);

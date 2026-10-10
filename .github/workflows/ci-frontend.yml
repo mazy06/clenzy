@@ -2,8 +2,8 @@
 # Baitly — CI/CD Frontend (React + TypeScript + Vite)
 # ===========================================
 # Flux :
-#   - push main/develop  → CI (typecheck + build) + push image GHCR
-#   - push production    → CI + push image GHCR (:latest) + déclenchement déploiement via clenzy-infra
+#   - push main → CI + images + staging app.clenzy.fr ; develop → CI + images
+#   - push production → CI + images + production app.baitly.fr via clenzy-infra
 #   - PR main/develop/production → CI obligatoire (gate de validation)
 #
 # IMPORTANT : Les merges vers production ne sont autorisées que via Pull Request.
@@ -164,7 +164,7 @@ jobs:
           images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
           tags: |
             type=ref,event=branch
-            type=sha,prefix=
+            type=sha,prefix=,format=long
             type=raw,value=latest,enable=${{ github.ref == 'refs/heads/production' }}
 
       - name: Build and push Docker image
@@ -243,7 +243,7 @@ jobs:
           images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME_SITE }}
           tags: |
             type=ref,event=branch
-            type=sha,prefix=
+            type=sha,prefix=,format=long
             type=raw,value=latest,enable=${{ github.ref == 'refs/heads/production' }}
 
       - name: Build and push Docker image
@@ -258,13 +258,13 @@ jobs:
           cache-to: type=gha,mode=max
 
   deploy:
-    name: Trigger deploy via clenzy-infra
+    name: Deploy ${{ github.ref == 'refs/heads/main' && 'staging (app.clenzy.fr)' || 'production (app.baitly.fr)' }}
     runs-on: ubuntu-latest
     # Les DEUX images doivent exister avant de declencher l'infra : le compose de
     # prod les tire toutes les deux, et une seule manquante fait echouer le pull
     # donc le deploiement entier.
     needs: [docker-push, docker-push-site]
-    if: github.ref == 'refs/heads/production'
+    if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/production')
     env:
       INFRA_REPOSITORY: ${{ vars.INFRA_REPOSITORY || format('{0}/clenzy-infra', github.repository_owner) }}
 
@@ -295,8 +295,9 @@ jobs:
           client-payload: >-
             {
               "services": "pms-client,baitly-site",
-              "environment": "production",
-              "image": "ghcr.io/${{ env.IMAGE_NAME }}:latest",
+              "target": "${{ github.ref == 'refs/heads/main' && 'staging' || 'production-baitly' }}",
+              "environment": "${{ github.ref == 'refs/heads/main' && 'staging' || 'production' }}",
+              "image": "ghcr.io/${{ env.IMAGE_NAME }}:${{ github.sha }}",
               "source_repo": "${{ github.repository }}",
               "source_ref": "${{ github.ref }}",
               "source_sha": "${{ github.sha }}"
