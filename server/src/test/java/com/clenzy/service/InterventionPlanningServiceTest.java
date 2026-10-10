@@ -74,7 +74,7 @@ class InterventionPlanningServiceTest {
                     return List.of(new com.clenzy.dto.BaitlyPlanningInterventionLink(ids.getFirst(), 99L));
                 });
         when(userRepository.findBaitlyPlanningAssignees(List.of(7L), ORG_ID))
-                .thenReturn(List.of(new com.clenzy.dto.BaitlyPlanningAssignee(7L, "Alice", "Martin")));
+                .thenReturn(List.of(new com.clenzy.dto.BaitlyPlanningPersonName(7L, "Alice", "Martin")));
         var result = service.getBaitlyPlanningInterventions(List.of(1L), from, to);
         assertThat(result).hasSize(1001).allSatisfy(row -> assertThat(row.get("assigneeName")).isEqualTo("Alice Martin"));
         assertThat(result.getFirst().get("linkedReservationId")).isEqualTo(99L);

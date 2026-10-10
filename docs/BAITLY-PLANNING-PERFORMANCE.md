@@ -453,3 +453,62 @@ les clients ont été désactivés à la sortie. La PR 428 ajoute uniquement aux
 clients de test l'audience `clenzy-api` exigée par la sécurité JWT existante.
 La nouvelle référence est lancée par le workflow `38037278661` ; aucune valeur
 de capacité n'est déclarée avant examen de ses résultats.
+
+### Référence de charge staging du 10 octobre (workflow 38038127277)
+
+Les douze comptes techniques et leurs organisations ont été créés : 4 comptes
+pour chacune des tailles 10, 100 et 1 000 logements, soit 4 440 logements,
+17 760 séjours, 17 760 voyageurs et 4 440 interventions synthétiques au total.
+Les clients ont été désactivés à la sortie ; les données sont réutilisables.
+Les appels ont vérifié le périmètre des logements et le catalogue complet.
+
+Débit cible identique de 1 fenêtre/s, catalogue parcouru intégralement :
+
+| Portefeuille | Fenêtres terminées | Catalogue p95 / page | Index p95 / lot | Détails p95 | Fenêtre API p95 | Taux de contrôles en erreur | Itérations non démarrées |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| 10 logements | 164 | 256 ms | 365 ms | 508 ms | 767 ms | 0 % | 0 |
+| 100 logements | 164 | 644 ms | 303 ms | 459 ms | 1 121 ms | 0 % | 0 |
+| 1 000 logements | 134 | 8 828 ms | 10 001 ms | 8 374 ms | 45 348 ms | 14,8 % | 31 |
+
+Le palier multi-comptes (12 identités, sans relecture du catalogue, cible
+1 fenêtre/s) a terminé 164 fenêtres, sans erreur, sans 429 et sans itération
+non démarrée. Fenêtre API p95 637 ms, index p95 621 ms, détails p95 598 ms.
+Les objectifs de 500 ms p95 de l'index/détails restent dépassés : le scénario
+n'a pas lancé le palier 5 fenêtres/s. Le workflow termine donc avec le code
+de seuil k6 99, après les mesures et le nettoyage, pas avec un échec de setup.
+
+Les valeurs API ne sont pas des temps de peinture React. Le taux d'erreur
+agrège les contrôles de réponse et de catalogue, pas uniquement les statuts
+HTTP. Les timeouts de la cohorte 1 000 ont atteint la limite de 10 secondes.
+Les portefeuilles sont testés successivement, pas comme une comparaison à
+concurrence strictement identique de tous leurs appels SQL.
+
+Les plans représentatifs révèlent 500 scans de `reservations` par lot de
+500 interventions : environ 17 994 lignes parcourues à chaque scan,
+258 500 blocs déjà en cache visités et 1 628 / 1 720 ms d'exécution SQL sur
+les deux lots du portefeuille 1 000. Les lectures représentatives des
+réservations seules prennent 8 / 14 ms. Les index existants des interventions
+ne corrigent pas le sous-plan de recherche des réservations liées.
+
+Les 48 échantillons Docker ont observé un maximum de CPU de 349 % pour
+`pms-server` (plusieurs cœurs), 52 % pour PostgreSQL et 9 % pour Redis. La RSS
+serveur au pic CPU était de 1,80 GiB pour une limite de container de 2,5 GiB.
+Ce sont des échantillons globaux, pas des métriques heap/GC ni une preuve
+d'absence d'attente Hikari. Aucun deadlock PostgreSQL n'a été comptabilisé
+sur l'intervalle observé.
+
+Corrections motivées par cette référence :
+
+- changeset Liquibase 0547 : index partiel
+  `(organization_id, intervention_id, id)` des réservations liées, partagé
+  par le rattachement groupé et l'exclusion des interventions masquées ;
+- catalogue : sélection des identifiants propriétaires, puis lecture de
+  leurs noms par personne distincte sur la page. Pour 200 logements du même
+  propriétaire, deux déchiffrements remplacent les 400 de la projection
+  répétée. Le périmètre suit les logements autorisés, y compris un propriétaire
+  membre de plusieurs organisations ;
+- aucune nouvelle indexation des dates de réservation décidée à ce stade,
+  leur lecture représentative n'étant pas le coût dominant mesuré.
+
+La PR 429 a fusionné le premier lot au SHA `4fbd45a17776dfa52b70e5e7871f10d672704960`.
+La mesure après optimisation attend le déploiement des corrections ci-dessus.
