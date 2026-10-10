@@ -17,7 +17,7 @@ import java.util.Optional;
 
 public interface ReservationRepository extends JpaRepository<Reservation, Long> {
     @Query("SELECT new com.clenzy.dto.BaitlyPlanningReservationRow("
-        + "r, p.id, p.name, g.id, g.email, g.phone, g.avatarUrl, r.intervention.id) "
+        + "r, p.id, p.name, g.id, r.intervention.id) "
         + "FROM Reservation r JOIN r.property p LEFT JOIN r.guest g ON g.organizationId = :orgId "
         + "WHERE r.organizationId = :orgId AND p.organizationId = :orgId AND p.id IN :propertyIds "
         + "AND r.checkOut >= :from AND r.checkIn <= :to AND r.hiddenFromPlanning = false "

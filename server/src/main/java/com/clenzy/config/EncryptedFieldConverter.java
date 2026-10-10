@@ -90,7 +90,7 @@ public class EncryptedFieldConverter implements AttributeConverter<String, Strin
             return dbData;
         }
         try {
-            return encryptor.decrypt(dbData);
+            return com.clenzy.util.BaitlyFieldDecryptionTiming.record(() -> encryptor.decrypt(dbData));
         } catch (Exception e) {
             // Z1-SEC-08 : ne plus renvoyer silencieusement la valeur brute (le
             // ciphertext ou une donnee alteree serait servie comme valeur metier
