@@ -760,3 +760,38 @@ l'utilisateur. Validation : 30 tests ciblés, TypeScript, build Vite et CI
 frontend réussis. Le commit main est `f134d0bb8deea61b85927cda0f74f4a0c05a9acd`.
 Le CD staging `38048609565` a réussi. La lecture publique de l'asset principal
 `/assets/index-BTNe4dop.js` confirme que `app.clenzy.fr` sert ce SHA frontend.
+
+### Console staging : polices et flux d'interventions (10 octobre)
+
+La console du profil Chrome invité montre une chaîne d'erreurs Google Fonts :
+`connect-src` bloque le `fetch` Workbox, puis `FetchEvent`, `no-response` et
+`ERR_FAILED`. La CSP autorise déjà ces domaines comme styles et polices, mais
+pas comme connexions Fetch. Les routes runtime Workbox Google Fonts sont retirées :
+le navigateur charge les styles et polices avec son cache HTTP natif, sans
+élargissement de la CSP. Les autres caches PWA restent inchangés.
+
+Le flux `/api/service-assignments/stream` montre aussi des coupures
+`ERR_QUIC_PROTOCOL_ERROR` après HTTP 200. Son code n'émettait aucun signal
+pendant les périodes inactives ; Nginx conserve par défaut le buffering et un
+timeout de lecture de 60 secondes. Le correctif ajoute `X-Accel-Buffering: no`
+et un commentaire SSE toutes les 20 secondes, sans lecture BDD, publication
+Redis ni invalidation des vues. Ces protections ne prouvent pas que les
+coupures QUIC viennent toutes du silence ou du buffering : le transport CDN
+reste à vérifier sur staging après déploiement.
+
+Le client ne réinitialise plus son délai de reconnexion au seul HTTP 200 :
+il attend une connexion stable pendant au moins 30 secondes. Les coupures
+immédiates conservent le délai exponentiel, plafonné à 60 secondes.
+
+L'avertissement iframe `allow-scripts` + `allow-same-origin` appartient au
+silent SSO Keycloak. Son sandbox reste inchangé : retirer arbitrairement ces
+permissions risquerait de casser l'authentification. Aucun jeton, politique de
+sécurité ou réglage HTTP/3 global n'est modifié par cette correction.
+
+Validation frontend : 5 tests de reconnexion, compilation TypeScript et build
+Vite réussis. Le worker généré `sw-local.js` conserve `html-cache` et ne contient
+plus les domaines Google Fonts ni leurs routes d'interception.
+Les 3 tests backend ciblés passent sous Java 21 : validation du tenant,
+buffering désactivé et commentaire SSE sans lecture BDD ni événement métier.
+Le fonctionnement du header est documenté dans la
+[référence Nginx proxy_buffering](https://nginx.org/en/docs/http/ngx_http_proxy_module.html#proxy_buffering).

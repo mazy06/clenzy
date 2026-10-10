@@ -2,6 +2,7 @@ package com.clenzy.controller;
 
 import com.clenzy.service.assignment.AssignmentRealtime;
 import com.clenzy.tenant.TenantContext;
+import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RestController;
@@ -16,7 +17,10 @@ public class AssignmentStreamController {
         this.realtime=realtime; this.tenant=tenant;
     }
     @GetMapping(value="/api/service-assignments/stream",produces="text/event-stream")
-    public SseEmitter stream() throws java.io.IOException {
-        return realtime.subscribe(tenant.getRequiredOrganizationId());
+    public SseEmitter stream(HttpServletResponse response) throws java.io.IOException {
+        Long organization = tenant.getRequiredOrganizationId();
+        // Transmettre immédiatement les événements Baitly, y compris les keepalive.
+        response.setHeader("X-Accel-Buffering", "no");
+        return realtime.subscribe(organization);
     }
 }

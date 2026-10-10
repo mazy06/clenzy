@@ -22,6 +22,7 @@ export function useAssignmentEventStream(session: string | null): void {
       }, 250);
     };
     const connect = async () => {
+      let connectedAt: number | undefined;
       try {
         const token = getAccessToken();
         const response = await fetch(buildApiUrl('/service-assignments/stream'), {
@@ -29,7 +30,7 @@ export function useAssignmentEventStream(session: string | null): void {
           headers: { Accept: 'text/event-stream', ...(token ? { Authorization: `Bearer ${token}` } : {}) },
         });
         if (!response.ok || !response.body) throw new Error('Flux indisponible');
-        retry = 2_000;
+        connectedAt = Date.now();
         changed(); // Récupère aussi les décisions manquées pendant une déconnexion.
         const reader = response.body.getReader();
         const decoder = new TextDecoder();
@@ -50,6 +51,9 @@ export function useAssignmentEventStream(session: string | null): void {
         } finally { reader.releaseLock(); }
       } catch { /* Une coupure relance le flux, pas une boucle de lecture des demandes. */ }
       if (!stopped) {
+        // Un HTTP 200 peut précéder une coupure immédiate du corps (HTTP/3).
+        // Ne réinitialiser le délai qu'après une connexion restée stable.
+        if (connectedAt !== undefined && Date.now() - connectedAt >= 30_000) retry = 2_000;
         reconnect = setTimeout(() => { void connect(); }, retry);
         retry = Math.min(retry * 2, 60_000);
       }
