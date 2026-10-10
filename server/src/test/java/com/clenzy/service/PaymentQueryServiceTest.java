@@ -26,6 +26,32 @@ class PaymentQueryServiceTest {
 
     PaymentQueryServiceTest() { admin.setRole(UserRole.SUPER_ADMIN); when(tenant.getRequiredOrganizationId()).thenReturn(2L); }
 
+    @Test void pageHydrationPreservesGlobalOrderAndLoadsQuotesOnceForAllDisplayedMissions() {
+        var first=new Intervention();first.setId(1L);first.setOrganizationId(2L);first.setPaymentStatus(PaymentStatus.PENDING);
+        first.setStatus(InterventionStatus.COMPLETED);first.setEstimatedCost(new BigDecimal("100"));
+        var second=new Intervention();second.setId(2L);second.setOrganizationId(2L);second.setPaymentStatus(PaymentStatus.PENDING);
+        second.setStatus(InterventionStatus.COMPLETED);second.setEstimatedCost(new BigDecimal("50"));
+        var quote=new ServiceQuote();quote.setInterventionId(1L);quote.setStatus(ServiceQuote.Status.APPROVED);
+        quote.setDepositAmount(new BigDecimal("30"));quote.setDepositPaidAt(java.time.LocalDateTime.now());quote.setDepositTransactionRef("DEP-1");
+        when(interventions.findBaitlyPaymentPage(List.of(2L,1L),2L)).thenReturn(List.of(first,second));
+        when(quotes.findBaitlyPaymentPageQuotes(List.of(2L,1L),2L)).thenReturn(List.of(quote));
+        var booking=reservation(1,PaymentCollection.PMS,PaymentStatus.PAID,null);
+        when(reservations.findBaitlyPaymentPage(List.of(1L),2L)).thenReturn(List.of(booking));
+        var keys=List.of(new BaitlyPaymentHistoryRepository.Key("RESERVATION",1),
+                new BaitlyPaymentHistoryRepository.Key("INTERVENTION",2),new BaitlyPaymentHistoryRepository.Key("INTERVENTION",1));
+        var rows=service.hydrateBaitlyPaymentPage(keys);
+        assertThat(rows).extracting(r->r.type+":"+r.referenceId).containsExactly("RESERVATION:1","INTERVENTION:2","INTERVENTION:1");
+        assertThat(rows.getLast().payableAmount).isEqualByComparingTo("70");
+        verify(quotes).findBaitlyPaymentPageQuotes(List.of(2L,1L),2L);
+        verify(quotes,never()).findByInterventionIdAndOrganizationIdOrderByAmountAsc(anyLong(),anyLong());
+        verify(requests,never()).findBaitlyPaymentPage(anyList(),anyLong());
+    }
+
+    @Test void emptyPageDoesNotQueryEntitiesOrFinancialProofs() {
+        assertThat(service.hydrateBaitlyPaymentPage(List.of())).isEmpty();
+        verifyNoInteractions(interventions,reservations,requests,quotes,transactions);
+    }
+
     @Test void partialInterventionRefundExposesItsAmountAndKeepsOnlyTheNetPaidInSummary() {
         var mission=new Intervention(); mission.setId(332L); mission.setOrganizationId(2L);
         mission.setPaymentStatus(PaymentStatus.PARTIALLY_REFUNDED); mission.setEstimatedCost(new BigDecimal("35")); mission.setCurrency("EUR");

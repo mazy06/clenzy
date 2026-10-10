@@ -6,6 +6,7 @@ import com.clenzy.model.Reservation;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
@@ -619,6 +620,10 @@ public interface ReservationRepository extends JpaRepository<Reservation, Long> 
            "WHERE r.status = 'pending' AND r.paymentStatus = com.clenzy.model.PaymentStatus.PENDING " +
            "AND r.createdAt < :cutoff")
     List<Reservation> findExpiredPendingReservations(@Param("cutoff") java.time.LocalDateTime cutoff);
+
+    @EntityGraph(attributePaths = {"property", "guest"})
+    @Query("SELECT r FROM Reservation r WHERE r.id IN :ids AND r.organizationId=:orgId")
+    List<Reservation> findBaitlyPaymentPage(@Param("ids") List<Long> ids, @Param("orgId") Long orgId);
 
     // ─── Payment queries ────────────────────────────────────────────────────────
 
