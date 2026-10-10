@@ -40,6 +40,12 @@ export default defineConfig({
     // le reset Tailwind casserait la baseline Emotion/CssBaseline.
     tailwindcss(),
     VitePWA({
+      // Le CDN peut conserver les fichiers .js pendant un an. Une URL par
+      // version empêche de réinstaller un ancien worker après un déploiement.
+      // Le scope reste à la racine : la nouvelle version remplace l'inscription
+      // existante et conserve le parcours de mise à jour avec confirmation.
+      filename: `sw-${(process.env.VITE_APP_VERSION || 'local').replace(/[^a-zA-Z0-9._-]/g, '-')}.js`,
+      scope: '/',
       // 'prompt' : le nouveau SW est installe en background mais ne prend PAS
       // le controle automatiquement. On expose un hook useRegisterSW au composant
       // <AppUpdateBanner /> qui affiche une bannière "Nouvelle version disponible
@@ -278,4 +284,3 @@ export default defineConfig({
     testTimeout: 20_000,
   },
 })
-
