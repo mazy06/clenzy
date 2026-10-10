@@ -11,6 +11,21 @@ spec.loader.exec_module(fixture)
 
 
 class StagingFixturesTest(unittest.TestCase):
+    @patch.dict(os.environ, {"APP_DOMAIN": "app.clenzy.fr"})
+    def test_marked_client_gets_the_required_api_audience(self):
+        ops = Mock()
+        client_id = "00000000-0000-0000-0000-000000000001"
+        subject = "00000000-0000-0000-0000-000000000002"
+        ops.keycloak.side_effect = [
+            [{"id": client_id, "clientId": "baitly-perf-10-01", "attributes": {"baitly_fixture": fixture.MARKER}}],
+            None, [], None, {"id": subject}, None, [{"id": "role-id", "name": "SUPER_ADMIN"}], None,
+            {"value": "test-only-secret"}]
+        fixture.ensure_client(ops, "baitly-perf-10-01")
+        args, kwargs = ops.keycloak.call_args_list[3]
+        self.assertIn("protocol-mappers/models", args[0][1])
+        self.assertEqual(args[1]["config"]["included.client.audience"], "clenzy-api")
+        self.assertEqual(args[1]["config"]["access.token.claim"], "true")
+
     def test_production_is_refused_before_any_operation(self):
         ops = Mock()
         with patch.dict(os.environ, {"APP_DOMAIN": "app.baitly.fr"}):

@@ -86,7 +86,7 @@ $KCADM config credentials --config "$CONFIG" --server http://localhost:8080 \\
                     raise FixtureError("Redirection de fixture refusée")
                 return json.load(response)
         except urllib.error.HTTPError as error:
-            raise FixtureError(f"API de fixture refusée (HTTP {error.code}) ; aucun corps journalisé") from None
+            raise FixtureError(f"API de fixture {path} refusée (HTTP {error.code}) ; aucun corps journalisé") from None
 
     def token(self, client_id, secret):
         require_staging()
@@ -122,6 +122,16 @@ def ensure_client(ops, name):
         })
         clients = ops.keycloak(["get", "clients", "-r", REALM, "-q", f"clientId={name}"])
     client_id = str(uuid.UUID(clients[0]["id"]))
+    # Le serveur exige cette audience pour tous les JWT, y compris les comptes de mesure.
+    mappers = ops.keycloak(["get", f"clients/{client_id}/protocol-mappers/models", "-r", REALM])
+    mapper = {"name": "baitly-planning-api-audience", "protocol": "openid-connect",
+        "protocolMapper": "oidc-audience-mapper", "config": {
+            "included.client.audience": "clenzy-api", "access.token.claim": "true", "id.token.claim": "false"}}
+    existing_mapper = next((item for item in mappers if item["name"] == mapper["name"]), None)
+    if existing_mapper:
+        ops.keycloak(["update", f"clients/{client_id}/protocol-mappers/models/{existing_mapper['id']}", "-r", REALM], mapper)
+    else:
+        ops.keycloak(["create", f"clients/{client_id}/protocol-mappers/models", "-r", REALM], mapper)
     user = ops.keycloak(["get", f"clients/{client_id}/service-account-user", "-r", REALM])
     subject = str(uuid.UUID(user["id"]))
     # Comptes machine temporaires de staging, sans administrateur du realm Keycloak.
