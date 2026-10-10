@@ -26,6 +26,7 @@ class StagingFixturesTest(unittest.TestCase):
         def portfolio(ops, slug, count, *args):
             return {"propertyIds": list(range(count)), "reservations": count * 4, "interventions": count}
         with patch.object(fixture, "ensure_client", return_value=("test-subject", "test-secret")), \
+                patch.object(fixture, "repair_fixture_identity"), \
                 patch.object(fixture, "ensure_organization", return_value={"organizationId": 1}), \
                 patch.object(fixture, "fill_portfolio", side_effect=portfolio), \
                 patch.object(fixture.time, "sleep"), patch("builtins.print"):
@@ -44,6 +45,7 @@ class StagingFixturesTest(unittest.TestCase):
             None, [], None, {"id": subject}, None, [{"id": "role-id", "name": "SUPER_ADMIN"}], None,
             {"value": "test-only-secret"}]
         fixture.ensure_client(ops, "baitly-perf-10-01")
+        self.assertTrue(ops.keycloak.call_args_list[1].args[1]['serviceAccountsEnabled'])
         args, kwargs = ops.keycloak.call_args_list[3]
         self.assertIn("protocol-mappers/models", args[0][1])
         self.assertEqual(args[1]["config"]["included.client.audience"], "clenzy-api")
@@ -115,6 +117,51 @@ class StagingFixturesTest(unittest.TestCase):
         self.assertIn("users.organization_id IS NULL OR users.organization_id=o.id", sql)
         self.assertIn("o.slug=:'slug' AND o.name=:'slug'", sql)
         self.assertIn("users.role='SUPER_ADMIN'", sql)
+
+    @patch.dict(os.environ, {"APP_DOMAIN": "app.clenzy.fr"})
+    def test_cleanup_keeps_the_service_account_identity(self):
+        ops = Mock()
+        def keycloak(args, body=None):
+            if args[0] == 'get':
+                name = args[-1].split('=')[1]
+                return [{'id': 'test-client', 'clientId': name, 'attributes': {'baitly_fixture': fixture.MARKER}}]
+        ops.keycloak.side_effect = keycloak
+        fixture.disable(ops, 1)
+        writes = [call for call in ops.keycloak.call_args_list if call.args[0][0] == 'update']
+        self.assertEqual(len(writes), 3)
+        for call in writes:
+            self.assertEqual(call.args[1], {'enabled': False, 'serviceAccountsEnabled': True})
+
+    @patch.dict(os.environ, {"APP_DOMAIN": "app.clenzy.fr"})
+    def test_existing_old_identity_is_never_adopted(self):
+        ops = Mock()
+        ops.sql.return_value = [{'id': 1, 'subject': '00000000-0000-0000-0000-000000000001'}]
+        ops.keycloak.return_value = {'id': 'still-exists'}
+        with self.assertRaisesRegex(fixture.FixtureError, 'toujours présente'):
+            fixture.repair_fixture_identity(ops, 'baitly-perf-10-01', '00000000-0000-0000-0000-000000000002', 10)
+        self.assertEqual(ops.sql.call_count, 1)
+
+    @patch.dict(os.environ, {"APP_DOMAIN": "app.clenzy.fr"})
+    def test_deleted_fixture_identity_repair_is_scoped_and_compare_and_set(self):
+        ops = Mock()
+        ops.sql.side_effect = [[{'id': 1, 'subject': '00000000-0000-0000-0000-000000000001'}], {'matched': 1}]
+        ops.keycloak.return_value = None
+        fixture.repair_fixture_identity(ops, 'baitly-perf-10-01', '00000000-0000-0000-0000-000000000002', 10)
+        sql = ops.sql.call_args.args[0]
+        for guard in ["u.keycloak_id=:'oldSubject'", "u.email_hash=:'emailHash'", "o.slug=:'name' AND o.name=:'name'",
+                      "m.role_in_org='OWNER'", "p.description IS DISTINCT FROM :'marker'", "u.role='SUPER_ADMIN'"]:
+            self.assertIn(guard, sql)
+        self.assertTrue(ops.keycloak.call_args.kwargs['allow_missing'])
+
+    def test_only_explicit_cli_not_found_can_be_tolerated(self):
+        result = Mock(returncode=1, stderr='Resource not found for url: http://localhost/users/test', stdout='')
+        with patch.object(fixture.subprocess, 'run', return_value=result):
+            self.assertEqual(fixture.command(['test'], allow_not_found=True), '')
+            with self.assertRaises(fixture.FixtureError):
+                fixture.command(['test'])
+            result.stderr = 'Authentication failed'
+            with self.assertRaises(fixture.FixtureError):
+                fixture.command(['test'], allow_not_found=True)
 
 
 if __name__ == "__main__":

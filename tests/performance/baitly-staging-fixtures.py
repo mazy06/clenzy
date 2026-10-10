@@ -1,5 +1,6 @@
 """Fixtures et plans SQL Baitly, exclusivement sur app.clenzy.fr, exécutés par CI."""
 import argparse
+import hashlib
 import json
 import os
 from pathlib import Path
@@ -36,16 +37,22 @@ def require_staging():
         raise FixtureError("Refus : APP_DOMAIN doit être exactement app.clenzy.fr")
 
 
-def command(args, content=None):
+def command(args, content=None, allow_not_found=False):
     result = subprocess.run(args, input=content, text=True, capture_output=True, timeout=120)
     if result.returncode:
+        # kcadm traduit uniquement les réponses HTTP 404 par ce préfixe fixe.
+        if allow_not_found and any(line.startswith("Resource not found for url:") for line in result.stderr.splitlines()):
+            return ""
         raise FixtureError("Commande de fixture échouée ; sorties et secrets non journalisés")
     return result.stdout.strip()
 
 
 class Staging:
-    def keycloak(self, args, body=None):
+    def keycloak(self, args, body=None, allow_missing=False):
         require_staging()
+        if allow_missing and (len(args) < 2 or args[0] != "get" or not args[1].startswith("users/")
+                or args[1] != "users/" + str(uuid.UUID(args[1][6:]))):
+            raise FixtureError("Absence tolérée uniquement pour un utilisateur UUID précis")
         script = """set -eu
 set +x
 umask 077
@@ -62,7 +69,7 @@ $KCADM config credentials --config "$CONFIG" --server http://localhost:8080 \\
         if body is not None:
             script += ' -f "$BODY"'
         try:
-            output = command(COMPOSE + ["exec", "-T", "keycloak", "sh", "-s"], script + "\n")
+            output = command(COMPOSE + ["exec", "-T", "keycloak", "sh", "-s"], script + "\n", allow_not_found=allow_missing)
         except FixtureError:
             resource = args[1].split("/")[0] if len(args) > 1 else "configuration"
             operation = "mapper" if any("protocol-mappers" in item for item in args) else resource
@@ -116,7 +123,8 @@ def ensure_client(ops, name):
         if len(clients) != 1 or clients[0].get("clientId") != name or clients[0].get("attributes", {}).get("baitly_fixture") != MARKER:
             raise FixtureError("Client existant non reconnu ; aucune identité adoptée")
         ops.keycloak(["update", f"clients/{clients[0]['id']}", "-r", REALM], {
-            "enabled": True, "attributes": {"baitly_fixture": MARKER, "access.token.lifespan": "300"}})
+            "enabled": True, "serviceAccountsEnabled": True,
+            "attributes": {"baitly_fixture": MARKER, "access.token.lifespan": "300"}})
     else:
         ops.keycloak(["create", "clients", "-r", REALM], {
             "clientId": name, "name": name, "enabled": True, "protocol": "openid-connect",
@@ -151,6 +159,49 @@ def ensure_client(ops, name):
     ops.keycloak(["create", f"users/{subject}/role-mappings/realm", "-r", REALM], [{"id": role["id"], "name": role["name"]}])
     secret = ops.keycloak(["get", f"clients/{client_id}/client-secret", "-r", REALM])["value"]
     return subject, secret
+
+
+def repair_fixture_identity(ops, name, subject, count):
+    """Répare uniquement une fixture dont l'ancienne identité Keycloak a disparu."""
+    require_staging()
+    if count not in (10, 100, 1000) or name not in {f"baitly-perf-{count}-{ordinal:02d}" for ordinal in range(1, 5)}:
+        raise FixtureError("Réconciliation réservée aux douze comptes synthétiques")
+    subject = str(uuid.UUID(subject))
+    email_hash = hashlib.sha256(f"{name}@example.invalid".encode()).hexdigest()
+    profiles = ops.sql("""BEGIN READ ONLY;
+SELECT coalesce(json_agg(json_build_object('id',u.id,'subject',u.keycloak_id)),'[]'::json)
+ FROM users u JOIN organizations o ON o.id=u.organization_id
+ WHERE o.slug=:'name' AND o.name=:'name' AND u.email_hash=:'emailHash'
+ AND u.role='SUPER_ADMIN' AND u.status='ACTIVE';
+COMMIT;
+""", name=name, emailHash=email_hash)
+    if not profiles:
+        return
+    if len(profiles) != 1:
+        raise FixtureError("Profil synthétique ambigu ; aucune réconciliation")
+    profile = profiles[0]
+    old_subject = str(uuid.UUID(profile["subject"]))
+    if old_subject == subject:
+        return
+    if ops.keycloak(["get", f"users/{old_subject}", "-r", REALM], allow_missing=True) is not None:
+        raise FixtureError("Ancienne identité toujours présente ; aucune réconciliation")
+    repaired = ops.sql("""BEGIN;
+SET LOCAL lock_timeout='5s';
+UPDATE users u SET keycloak_id=:'subject'
+ FROM organizations o WHERE u.organization_id=o.id AND o.slug=:'name' AND o.name=:'name'
+ AND u.id=:'userId'::bigint AND u.keycloak_id=:'oldSubject' AND u.email_hash=:'emailHash'
+ AND u.role='SUPER_ADMIN' AND u.status='ACTIVE'
+ AND EXISTS(SELECT 1 FROM organization_members m WHERE m.organization_id=o.id AND m.user_id=u.id AND m.role_in_org='OWNER')
+ AND (SELECT count(*) FROM properties p WHERE p.organization_id=o.id)=:'count'::integer
+ AND NOT EXISTS(SELECT 1 FROM properties p WHERE p.organization_id=o.id AND (p.owner_id<>u.id OR p.description IS DISTINCT FROM :'marker'))
+ AND NOT EXISTS(SELECT 1 FROM users other WHERE other.keycloak_id=:'subject');
+SELECT json_build_object('matched',count(*)) FROM users u JOIN organizations o ON o.id=u.organization_id
+ WHERE o.slug=:'name' AND o.name=:'name' AND u.id=:'userId'::bigint AND u.keycloak_id=:'subject';
+COMMIT;
+""", name=name, emailHash=email_hash, userId=profile["id"], oldSubject=old_subject,
+            subject=subject, count=count, marker=MARKER)
+    if repaired != {"matched": 1}:
+        raise FixtureError("Réconciliation synthétique concurrente ou périmètre différent ; arrêt")
 
 
 def ensure_organization(ops, slug, user_id, subject):
@@ -275,6 +326,7 @@ def provision(ops, per_cohort, start, end):
             name = f"baitly-perf-{count}-{ordinal:02d}"
             print(json.dumps({"cohort": count, "account": ordinal, "phase": "client"}), flush=True)
             subject, secret = ensure_client(ops, name)
+            repair_fixture_identity(ops, name, subject, count)
             print(json.dumps({"cohort": count, "account": ordinal, "phase": "profile"}), flush=True)
             token = ops.token(name, secret)
             profile = ops.api("/api/me", token)
@@ -303,7 +355,7 @@ def disable(ops, per_cohort):
             for client in clients:
                 if client.get("clientId") != name or client.get("attributes", {}).get("baitly_fixture") != MARKER:
                     raise FixtureError("Désactivation refusée pour un client non marqué")
-                ops.keycloak(["update", f"clients/{client['id']}", "-r", REALM], {"enabled": False})
+                ops.keycloak(["update", f"clients/{client['id']}", "-r", REALM], {"enabled": False, "serviceAccountsEnabled": True})
 
 
 def schema(ops):
