@@ -12,6 +12,51 @@ import jakarta.persistence.QueryHint;
 import java.util.List;
 
 public interface PropertyRepository extends JpaRepository<Property, Long>, JpaSpecificationExecutor<Property> {
+    interface BaitlyPlanningProperty {
+        Long getId();
+        String getName();
+        String getAddress();
+        String getCity();
+        String getOwnerFirstName();
+        String getOwnerLastName();
+        Integer getMaxGuests();
+        com.clenzy.model.PropertyType getType();
+        java.math.BigDecimal getNightlyPrice();
+        Integer getMinimumNights();
+        String getDefaultCheckInTime();
+        String getDefaultCheckOutTime();
+        com.clenzy.model.CleaningFrequency getCleaningFrequency();
+        java.math.BigDecimal getCleaningBasePrice();
+        String getCurrency();
+        java.math.BigDecimal getLatitude();
+        java.math.BigDecimal getLongitude();
+    }
+
+    @Query(value = "SELECT p.id AS id, p.name AS name, p.address AS address, p.city AS city, "
+        + "o.firstName AS ownerFirstName, o.lastName AS ownerLastName, p.maxGuests AS maxGuests, p.type AS type, "
+        + "p.nightlyPrice AS nightlyPrice, p.minimumNights AS minimumNights, "
+        + "p.defaultCheckInTime AS defaultCheckInTime, p.defaultCheckOutTime AS defaultCheckOutTime, "
+        + "p.cleaningFrequency AS cleaningFrequency, p.cleaningBasePrice AS cleaningBasePrice, "
+        + "p.defaultCurrency AS currency, p.latitude AS latitude, p.longitude AS longitude "
+        + "FROM Property p LEFT JOIN p.owner o WHERE p.organizationId = :orgId "
+        + "AND (:ownerKc IS NULL OR o.keycloakId = :ownerKc) ORDER BY p.createdAt DESC, p.id DESC",
+        countQuery = "SELECT COUNT(p) FROM Property p WHERE p.organizationId = :orgId "
+        + "AND (:ownerKc IS NULL OR p.owner.keycloakId = :ownerKc)")
+    org.springframework.data.domain.Page<BaitlyPlanningProperty> findBaitlyPlanningProperties(
+            @Param("orgId") Long orgId, @Param("ownerKc") String ownerKc,
+            org.springframework.data.domain.Pageable pageable);
+
+    interface BaitlyPropertyAccess {
+        Long getId();
+        Long getOrganizationId();
+        Long getOwnerId();
+    }
+
+    /** Projection interne Baitly : même visibilité que findById, garde d'organisation dans le service. */
+    @Query(value = "SELECT id, organization_id AS \"organizationId\", owner_id AS \"ownerId\" "
+            + "FROM properties WHERE id IN (:ids)", nativeQuery = true)
+    List<BaitlyPropertyAccess> findBaitlyPropertyAccess(@Param("ids") java.util.Collection<Long> ids);
+
     interface StockPropertyChoice {
         Long getId();
         String getName();

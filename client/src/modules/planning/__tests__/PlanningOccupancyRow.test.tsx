@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
+import { render, screen } from '@testing-library/react';
 
-import { computeDayOccupancy } from '../PlanningOccupancyRow';
+import PlanningOccupancyRow, { computeDayOccupancy, computeDayOccupiedCounts } from '../PlanningOccupancyRow';
 import type { PlanningEvent } from '../types';
 
 const makeEvent = (overrides: Partial<PlanningEvent>): PlanningEvent => ({
@@ -24,6 +25,14 @@ const days = [
 ];
 
 describe('computeDayOccupancy', () => {
+  it('affiche le compte exact et le périmètre de tous les logements filtrés', () => {
+    const events = [makeEvent({})];
+    render(<PlanningOccupancyRow days={days} dayWidth={38} totalGridWidth={152} propertyColWidth={200}
+      occupancy={computeDayOccupancy(days, events, 11)} occupiedCounts={computeDayOccupiedCounts(days, events)} totalPropertyCount={11} />);
+    expect(screen.getAllByRole('img', { name: '1 logement occupé sur 11' })).toHaveLength(2);
+    expect(screen.getAllByText('9%')).toHaveLength(2);
+    expect(screen.getByTitle(/toutes les pages/i)).toBeTruthy();
+  });
   it('whenReservationCoversDay_thenDayCountsOccupied_andCheckoutDayIsFree', () => {
     const events = [makeEvent({ startDate: '2025-06-02', endDate: '2025-06-04' })];
 

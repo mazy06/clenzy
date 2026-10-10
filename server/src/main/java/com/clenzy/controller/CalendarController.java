@@ -171,9 +171,7 @@ public class CalendarController {
         Long orgId = tenantContext.getRequiredOrganizationId();
 
         // Ownership : valider chaque propriete du lot (anti-IDOR, regle audit #3).
-        for (Long propertyId : propertyIds) {
-            validatePropertyAccess(propertyId, jwt.getSubject(), orgId);
-        }
+        reservationService.validatePropertyAccessBatch(propertyIds, jwt.getSubject());
 
         List<CalendarDay> days = calendarEngine.getBlockedOrMaintenanceDays(propertyIds, from, to, orgId);
 
@@ -257,11 +255,9 @@ public class CalendarController {
 
         Long orgId = tenantContext.getRequiredOrganizationId();
 
-        // Ownership : valider chaque propriete du lot (anti-IDOR, regle audit #3),
+        // Ownership : valider toutes les proprietes en lot (anti-IDOR, regle audit #3),
         // comme le fait deja /blocked.
-        for (Long propertyId : propertyIds) {
-            validatePropertyAccess(propertyId, jwt.getSubject(), orgId);
-        }
+        reservationService.validatePropertyAccessBatch(propertyIds, jwt.getSubject());
 
         return ResponseEntity.ok(
                 planningPricingService.pricingRows(propertyIds, from, to, orgId, true));

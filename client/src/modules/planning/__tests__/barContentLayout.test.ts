@@ -10,6 +10,9 @@ const reservation = {
 };
 
 describe('reservation content priorities', () => {
+  it('réserve la place de l’alerte sans empiler deux pastilles sur une brique très courte', () => {
+    expect(getBarContentLayout({ ...reservation, width: 60, hasAlert: true })).toMatchObject({ showBadgeGroup: false, showAvatar: false, priceInline: false });
+  });
   it.each([
     [400, 0, true, true, 1, 0],
     [300, 1, true, true, 0, 2],
@@ -29,6 +32,13 @@ describe('reservation content priorities', () => {
     expect(short.foldLevel).toBe(0);
     expect(long.foldLevel).toBe(1);
     expect(long.channelFolded).toBe(true);
+  });
+
+  it('uses the measured width for scripts whose character count is misleading', () => {
+    const measured = getBarContentLayout({ ...reservation, width: 300, guestNameWidth: 35 });
+    expect(measured.foldLevel).toBe(0);
+    const wide = getBarContentLayout({ ...reservation, width: 300, guestName: 'Li', guestNameWidth: 210 });
+    expect(wide.foldLevel).toBeGreaterThan(0);
   });
 
   it('counts each hidden indicator and the price and channel exactly once', () => {

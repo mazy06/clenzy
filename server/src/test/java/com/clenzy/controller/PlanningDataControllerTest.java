@@ -58,6 +58,8 @@ class PlanningDataControllerTest {
     @Mock private ServiceRequestService serviceRequestService;
     @Mock private CalendarEngine calendarEngine;
     @Mock private TenantContext tenantContext;
+    @Mock private com.clenzy.service.BaitlyPlanningIndexService indexService;
+    @Mock private com.clenzy.service.BaitlyPlanningPropertyService propertyService;
 
     private PlanningDataController controller;
     private Jwt jwt;
@@ -74,7 +76,7 @@ class PlanningDataControllerTest {
     @BeforeEach
     void setUp() {
         controller = new PlanningDataController(reservationService, reservationMapper,
-                interventionPlanningService, serviceRequestService, calendarEngine, tenantContext);
+                interventionPlanningService, serviceRequestService, calendarEngine, tenantContext, indexService, propertyService);
         jwt = Jwt.withTokenValue("token")
                 .header("alg", "RS256")
                 .claim("sub", "user-123")
@@ -130,10 +132,10 @@ class PlanningDataControllerTest {
 
     @Test
     void unLogementInterdit_faitEchouerLeLot() {
-        // Anti-IDOR (regle audit #3) : l'acces est valide logement par logement,
+        // Anti-IDOR (regle audit #3) : l'acces est valide pour tout le lot avant les lectures,
         // comme le faisait /api/calendar/blocked avant la fusion.
         doThrow(new RuntimeException("Acces refuse"))
-                .when(reservationService).validatePropertyAccess(2L, "user-123");
+                .when(reservationService).validatePropertyAccessBatch(IDS, "user-123");
 
         assertThatThrownBy(() -> controller.getPlanningData(
                 jwt, withRoles("ROLE_MANAGER"), IDS, FROM, TO))
@@ -149,5 +151,45 @@ class PlanningDataControllerTest {
 
         assertThat(response.getBody().blocked()).isEmpty();
         verify(calendarEngine, never()).getBlockedOrMaintenanceDays(any(), any(), any(), anyLong());
+    }
+
+    @Test
+    void indexSansRoleIntervention_neChargePasLesFichesVoyageurs() {
+        when(indexService.reservations(IDS, FROM, TO)).thenReturn(List.of());
+        var response = controller.index(jwt, withRoles("ROLE_HOST"), IDS, FROM, TO);
+        assertThat(response.interventions()).isEmpty();
+        verify(reservationService).validatePropertyAccessBatch(IDS, "user-123");
+        verify(reservationService, never()).getReservationsPage(anyString(), any(), any(), any(), any(), any(), any(), any());
+        verify(interventionPlanningService, never()).getPlanningInterventions(any(), any(), any(), any(), any());
+    }
+
+    @Test
+    void indexInterdit_neLitAucuneDonneeMetier() {
+        doThrow(new org.springframework.security.access.AccessDeniedException("refus"))
+                .when(reservationService).validatePropertyAccessBatch(IDS, "user-123");
+        assertThatThrownBy(() -> controller.index(jwt, withRoles("ROLE_HOST"), IDS, FROM, TO))
+                .isInstanceOf(org.springframework.security.access.AccessDeniedException.class);
+        verify(indexService, never()).reservations(any(), any(), any());
+        verify(serviceRequestService, never()).getPlanningServiceRequests(any(), any(), any());
+    }
+
+    @Test
+    void fenetreEtLotDeDetailsSontBornesAvantLesLectures() {
+        assertThatThrownBy(() -> controller.index(jwt, withRoles("ROLE_HOST"), IDS, FROM, FROM.plusDays(63)))
+                .isInstanceOf(org.springframework.web.server.ResponseStatusException.class);
+        var ids = java.util.stream.LongStream.rangeClosed(1, 101).boxed().toList();
+        assertThatThrownBy(() -> controller.reservationDetails(jwt, ids, FROM, TO))
+                .isInstanceOf(org.springframework.web.server.ResponseStatusException.class);
+        verify(reservationService, never()).validatePropertyAccessBatch(any(), any());
+    }
+
+    @Test
+    void catalogueHostEstScopeAuProprietaireEtLaPaginationEstBornee() {
+        Jwt host = Jwt.withTokenValue("token").header("alg", "RS256").claim("sub", "host")
+                .claim("realm_access", Map.of("roles", List.of("HOST"))).build();
+        controller.properties(host, 5, 200);
+        verify(propertyService).page("host", 5, 200);
+        assertThatThrownBy(() -> controller.properties(host, 0, 201))
+                .isInstanceOf(org.springframework.web.server.ResponseStatusException.class);
     }
 }

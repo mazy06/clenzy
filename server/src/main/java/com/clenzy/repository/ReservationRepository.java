@@ -16,6 +16,17 @@ import java.util.List;
 import java.util.Optional;
 
 public interface ReservationRepository extends JpaRepository<Reservation, Long> {
+    @Query("SELECT new com.clenzy.dto.BaitlyPlanningReservationIndex("
+        + "r.id, r.property.id, r.guestName, r.guestCount, r.checkIn, r.checkOut, "
+        + "r.checkInTime, r.checkOutTime, r.status, r.source, r.sourceName, r.totalPrice, r.paymentStatus, "
+        + "CASE WHEN r.paymentCollection = com.clenzy.model.PaymentCollection.CHANNEL THEN true ELSE false END) "
+        + "FROM Reservation r WHERE r.organizationId = :orgId AND r.property.id IN :propertyIds "
+        + "AND r.checkOut >= :from AND r.checkIn <= :to AND r.hiddenFromPlanning = false "
+        + "ORDER BY r.checkIn, r.id")
+    List<com.clenzy.dto.BaitlyPlanningReservationIndex> findBaitlyPlanningIndex(
+            @Param("propertyIds") Collection<Long> propertyIds, @Param("from") LocalDate from,
+            @Param("to") LocalDate to, @Param("orgId") Long orgId);
+
     @org.springframework.data.jpa.repository.Lock(jakarta.persistence.LockModeType.PESSIMISTIC_WRITE)
     @Query("select r from Reservation r where r.organizationId=:org and r.confirmationCode=:code")
     Optional<Reservation> lockCancellation(@Param("org") Long org, @Param("code") String code);

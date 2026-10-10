@@ -1,3 +1,4 @@
+import { parseCompletedSteps, parseBaitlyPhotoUrls } from '../utils/baitlyInterventionParsers';
 import React, { useState, useCallback, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import StatusChip, { STATUS_TONES } from '../../../components/StatusChip';
@@ -71,10 +72,6 @@ const ACCORDION_CLASS = 'rounded-[8px] border border-solid border-[var(--bui-bor
 /** En-tete d'accordeon : hauteur 36 et gouttieres reprises du gabarit MUI. */
 const ACCORDION_TRIGGER_CLASS = 'min-h-9 items-center px-2 py-1';
 
-const parseCompletedSteps = (steps?: string): Set<string> => {
-  if (!steps) return new Set();
-  return new Set(steps.split(',').filter(Boolean));
-};
 
 // ─── Component ──────────────────────────────────────────────────────────────
 
@@ -170,16 +167,8 @@ const PanelInterventionDetail: React.FC<PanelInterventionDetailProps> = ({
   const realAmount = intervention.actualCost ?? intervention.estimatedCost ?? 0;
   const displayAmount = amountOverride ?? realAmount;
 
-  const beforePhotos = intervention.beforePhotosUrls
-    ? (typeof intervention.beforePhotosUrls === 'string'
-        ? (intervention.beforePhotosUrls as string).split(',').filter(Boolean)
-        : intervention.beforePhotosUrls as string[])
-    : [];
-  const afterPhotos = intervention.afterPhotosUrls
-    ? (typeof intervention.afterPhotosUrls === 'string'
-        ? (intervention.afterPhotosUrls as string).split(',').filter(Boolean)
-        : intervention.afterPhotosUrls as string[])
-    : [];
+  const beforePhotos = parseBaitlyPhotoUrls(intervention.beforePhotosUrls);
+  const afterPhotos = parseBaitlyPhotoUrls(intervention.afterPhotosUrls);
 
   return (
     <div>

@@ -12793,6 +12793,16 @@
     }
   },
   "planning": {
+    "feedback": {
+      "saveError": "لم يتم حفظ التغيير. تمت استعادة التواريخ السابقة.",
+      "reservation": "يوجد حجز في هذه الفترة.",
+      "blocked": "هذه الفترة محظورة.",
+      "intervention": "توجد مهمة أخرى في هذه الفترة.",
+      "turnaround": "الوقت المتاح قبل الوصول التالي غير كافٍ للمهمة.",
+      "invalidRange": "يجب أن تكون النهاية بعد البداية.",
+      "conflict": "هذه الفترة غير متاحة."
+    },
+    "newReservation": "حجز جديد",
     "importChooser": {
       "title": "استيراد الحجوزات",
       "subtitle": "اختر طريقة ربط قنوات الحجز الخاصة بك.",
@@ -12824,6 +12834,7 @@
     "title": "التخطيط",
     "subtitle": "الحجوزات والتدخلات · {{month}}",
     "nav": {
+      "fullscreen": "ملء الشاشة",
       "prev": "الفترة السابقة",
       "next": "الفترة التالية",
       "today": "اليوم",
@@ -12839,6 +12850,14 @@
       "monthShort": "شهر"
     },
     "grid": {
+      "occupancyScope": "كل العقارات المحددة، في جميع الصفحات والقنوات.",
+      "occupiedCount_zero": "{{count}} عقارات مشغولة من {{total}}",
+      "occupiedCount_one": "عقار واحد مشغول من {{total}}",
+      "occupiedCount_two": "عقاران مشغولان من {{total}}",
+      "occupiedCount_few": "{{count}} عقارات مشغولة من {{total}}",
+      "occupiedCount_many": "{{count}} عقارًا مشغولًا من {{total}}",
+      "occupiedCount_other": "{{count}} عقار مشغول من {{total}}",
+      "keyboardSelection": "{{property}}، {{date}}. الأسهم: اختيار تاريخ. Shift مع الأسهم: توسيع الفترة. Enter: إنشاء حجز.",
       "propertyCount_zero": "لا سكن",
       "propertyCount_one": "سكن واحد",
       "propertyCount_two": "سكنان",
@@ -12947,6 +12966,9 @@
       "unblockFailed": "فشل رفع الحظر. حاول مجددًا."
     },
     "bar": {
+      "alerts": "يحتاج مراجعة",
+      "details": "التفاصيل",
+      "resize": "تغيير مدة الإقامة",
       "hide": "إخفاء من التخطيط",
       "paymentFailed": "فشل الدفع",
       "paymentProcessing": "جارٍ معالجة الدفع",
@@ -13344,7 +13366,7 @@
         "noLinked": "لا تدخلات مرتبطة بهذا الحجز.",
         "interventionCost": "تكلفة التدخل",
         "estimatedDuration": "المدة المقدّرة",
-        "estimatedCost": "التكلفة المقدّرة (25 €/ساعة)",
+        "estimatedCost": "التكلفة المقدّرة",
         "actualCost": "التكلفة الفعلية",
         "paymentStatus": "حالة الدفع",
         "generateInvoice": "إنشاء فاتورة",

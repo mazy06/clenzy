@@ -1331,6 +1331,68 @@ class ReservationServiceTest {
     }
 
     @Nested
+    @DisplayName("validatePropertyAccessBatch Baitly")
+    class BatchAccess {
+        private com.clenzy.repository.PropertyRepository.BaitlyPropertyAccess access(long id, Long org, Long owner) {
+            return new com.clenzy.repository.PropertyRepository.BaitlyPropertyAccess() {
+                public Long getId() { return id; }
+                public Long getOrganizationId() { return org; }
+                public Long getOwnerId() { return owner; }
+            };
+        }
+
+        @Test void thousandPropertiesUseOneProjectionAndOneUserRead() {
+            User owner = buildUser(1L, "host", UserRole.HOST);
+            when(userRepository.findByKeycloakId("host")).thenReturn(Optional.of(owner));
+            var ids = java.util.stream.LongStream.rangeClosed(1, 1000).boxed().toList();
+            var rows = ids.stream().map(id -> access(id, orgId, 1L)).toList();
+            when(propertyRepository.findBaitlyPropertyAccess(ids)).thenReturn(rows);
+            reservationService.validatePropertyAccessBatch(ids, "host");
+            verify(propertyRepository, times(1)).findBaitlyPropertyAccess(ids);
+            verify(userRepository, times(1)).findByKeycloakId("host");
+            verify(propertyRepository, never()).findById(anyLong());
+        }
+
+        @Test void mixedOwnerBatchIsDenied() {
+            when(userRepository.findByKeycloakId("host")).thenReturn(Optional.of(buildUser(1L, "host", UserRole.HOST)));
+            when(propertyRepository.findBaitlyPropertyAccess(List.of(1L, 2L)))
+                    .thenReturn(List.of(access(1, orgId, 1L), access(2, orgId, 9L)));
+            assertThatThrownBy(() -> reservationService.validatePropertyAccessBatch(List.of(1L, 2L), "host"))
+                    .isInstanceOf(org.springframework.security.access.AccessDeniedException.class);
+        }
+
+        @Test void superAdminStillCannotReadOtherOrganization() {
+            tenantContext.setSuperAdmin(true);
+            when(propertyRepository.findBaitlyPropertyAccess(List.of(1L))).thenReturn(List.of(access(1, 99L, 9L)));
+            assertThatThrownBy(() -> reservationService.validatePropertyAccessBatch(List.of(1L), "admin"))
+                    .isInstanceOf(org.springframework.security.access.AccessDeniedException.class);
+            verifyNoInteractions(userRepository);
+        }
+
+        @Test void missingPropertyRejectsWholeBatch() {
+            when(userRepository.findByKeycloakId("host")).thenReturn(Optional.of(buildUser(1L, "host", UserRole.HOST)));
+            when(propertyRepository.findBaitlyPropertyAccess(List.of(1L, 2L))).thenReturn(List.of(access(1, orgId, 1L)));
+            assertThatThrownBy(() -> reservationService.validatePropertyAccessBatch(List.of(1L, 2L), "host"))
+                    .isInstanceOf(com.clenzy.exception.NotFoundException.class);
+        }
+
+        @Test void staffBypassesOwnershipWithinOrganization() {
+            when(userRepository.findByKeycloakId("staff")).thenReturn(Optional.of(buildUser(9L, "staff", UserRole.SUPER_MANAGER)));
+            when(propertyRepository.findBaitlyPropertyAccess(List.of(1L))).thenReturn(List.of(access(1, orgId, 1L)));
+            reservationService.validatePropertyAccessBatch(List.of(1L), "staff");
+        }
+
+        @Test void duplicatesAreValidatedOnceAndEmptyBatchDoesNoReads() {
+            reservationService.validatePropertyAccessBatch(List.of(), "host");
+            verifyNoInteractions(propertyRepository, userRepository);
+            when(userRepository.findByKeycloakId("host")).thenReturn(Optional.of(buildUser(1L, "host", UserRole.HOST)));
+            when(propertyRepository.findBaitlyPropertyAccess(List.of(1L))).thenReturn(List.of(access(1, null, 1L)));
+            reservationService.validatePropertyAccessBatch(List.of(1L, 1L), "host");
+            verify(propertyRepository).findBaitlyPropertyAccess(List.of(1L));
+        }
+    }
+
+    @Nested
     @DisplayName("persistHiddenFromPlanning")
     class PersistHiddenFromPlanning {
 

@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo } from 'react';
+import React, { useEffect, useMemo, useRef, lazy, Suspense } from 'react';
 import { createPortal } from 'react-dom';
 import { useTranslation } from 'react-i18next';
 import type { TFunction } from 'i18next';
@@ -20,8 +20,8 @@ import type { PlanningIntervention } from '../../services/api';
 import type { AttachmentCandidate } from './utils/interventionAttachment';
 import PageTabs from '../../components/PageTabs';
 import PanelReservationInfo from './PlanningActionPanel/PanelReservationInfo';
-import PanelOperations from './PlanningActionPanel/PanelOperations';
-import PanelFinancial from './PlanningActionPanel/PanelFinancial';
+const PanelOperations = lazy(() => import('./PlanningActionPanel/PanelOperations'));
+const PanelFinancial = lazy(() => import('./PlanningActionPanel/PanelFinancial'));
 import PanelPropertyDetails from './PlanningActionPanel/PanelPropertyDetails';
 import PanelInterventionProgress from './PlanningActionPanel/PanelInterventionProgress';
 import PanelInterventionRecap from './PlanningActionPanel/PanelInterventionRecap';
@@ -222,6 +222,17 @@ const PlanningActionPanel: React.FC<PlanningActionPanelProps> = ({
     // Garde `includes` + 'info' present dans toutes les configs : converge en 1 pas.
   }, [event, validTabs, activeTab, onTabChange]);
 
+  const panelRef = useRef<HTMLElement>(null);
+  useEffect(() => {
+    if (!open || !event) return;
+    const previousFocus = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+    const panel = panelRef.current;
+    panel?.focus({ preventScroll: true });
+    return () => {
+      if (panel?.contains(document.activeElement) && previousFocus?.isConnected) previousFocus.focus({ preventScroll: true });
+    };
+  }, [open, event?.id]);
+
   if (!event) return null;
 
   const isReservation = event.type === 'reservation';
@@ -370,6 +381,12 @@ const PlanningActionPanel: React.FC<PlanningActionPanelProps> = ({
   // redefinirait le bloc conteneur d'un `position: fixed` et decalerait tout.
   return createPortal(
     <aside
+      ref={panelRef}
+      tabIndex={-1}
+      aria-label={headerTitle}
+      onKeyDown={(event) => {
+        if (event.key === 'Escape' && !event.defaultPrevented) { event.stopPropagation(); onClose(); }
+      }}
       aria-hidden={!open}
       className={cn(
         'fixed top-0 bottom-0 end-0 z-[1201] flex flex-col',
@@ -433,7 +450,9 @@ const PlanningActionPanel: React.FC<PlanningActionPanelProps> = ({
 
       {/* Content */}
       <div className="flex-1 overflow-auto p-3 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-        {isSubView ? renderSubView() : renderTabContent()}
+        <Suspense fallback={<div role="status" aria-label={t('common.loading', 'Chargement')} className="h-24 rounded-lg bg-[var(--bui-muted)] animate-pulse motion-reduce:animate-none" />}>
+          {isSubView ? renderSubView() : renderTabContent()}
+        </Suspense>
       </div>
 
       {/* ─── Pied sticky : actions réservation (grille 2×2) ───────────── */}

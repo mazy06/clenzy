@@ -437,7 +437,7 @@ public interface InterventionRepository extends JpaRepository<Intervention, Long
      * Exclut les interventions liees a une reservation masquee du planning
      * (reservation cancelled + hidden_from_planning=true).
      */
-    @Query("SELECT i FROM Intervention i LEFT JOIN FETCH i.property p LEFT JOIN FETCH p.owner LEFT JOIN FETCH i.assignedUser " +
+    @Query("SELECT i FROM Intervention i LEFT JOIN FETCH i.property p LEFT JOIN FETCH p.owner LEFT JOIN FETCH i.assignedUser LEFT JOIN FETCH i.serviceRequest " +
            "WHERE i.property.id IN :propertyIds " +
            "AND i.scheduledDate >= :fromDate AND i.scheduledDate <= :toDate " +
            "AND i.organizationId = :orgId " +
@@ -454,7 +454,7 @@ public interface InterventionRepository extends JpaRepository<Intervention, Long
      * Toutes les interventions pour le planning dans une plage de dates (admin/manager).
      * Exclut les interventions liees a une reservation masquee du planning.
      */
-    @Query("SELECT i FROM Intervention i LEFT JOIN FETCH i.property p LEFT JOIN FETCH p.owner LEFT JOIN FETCH i.assignedUser " +
+    @Query("SELECT i FROM Intervention i LEFT JOIN FETCH i.property p LEFT JOIN FETCH p.owner LEFT JOIN FETCH i.assignedUser LEFT JOIN FETCH i.serviceRequest " +
            "WHERE i.scheduledDate >= :fromDate AND i.scheduledDate <= :toDate " +
            "AND i.organizationId = :orgId " +
            "AND NOT EXISTS (SELECT 1 FROM Reservation r WHERE r.intervention.id = i.id " +
@@ -469,7 +469,7 @@ public interface InterventionRepository extends JpaRepository<Intervention, Long
      * Interventions pour le planning d'un owner specifique.
      * Exclut les interventions liees a une reservation masquee du planning.
      */
-    @Query("SELECT i FROM Intervention i LEFT JOIN FETCH i.property p LEFT JOIN FETCH p.owner LEFT JOIN FETCH i.assignedUser " +
+    @Query("SELECT i FROM Intervention i LEFT JOIN FETCH i.property p LEFT JOIN FETCH p.owner LEFT JOIN FETCH i.assignedUser LEFT JOIN FETCH i.serviceRequest " +
            "WHERE (p.owner.keycloakId = :keycloakId OR (p IS NULL AND i.requestor.keycloakId = :keycloakId)) " +
            "AND i.scheduledDate >= :fromDate AND i.scheduledDate <= :toDate " +
            "AND i.organizationId = :orgId " +

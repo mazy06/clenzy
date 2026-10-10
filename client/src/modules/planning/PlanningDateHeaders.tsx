@@ -34,7 +34,7 @@ const PlanningDateHeaders: React.FC<PlanningDateHeadersProps> = React.memo(({
 }) => {
   const { t } = useTranslation();
   // En arabe, quantièmes et jours de semaine viennent du calendrier hégirien.
-  const { formatDayNumber, formatWeekdayShort, formatFullDate, isWeekend } = useDateFormat();
+  const { formatDayNumber, formatWeekdayShort, formatFullDate, formatMonthYearShort, isWeekend } = useDateFormat();
 
   // Le coin n'est un bouton QUE si le parent fournit l'interrupteur (mobile) :
   // ailleurs il reste la cellule inerte qu'il a toujours ete.
@@ -56,7 +56,7 @@ const PlanningDateHeaders: React.FC<PlanningDateHeadersProps> = React.memo(({
             : undefined
         }
         className={cn(
-          'sticky left-0 z-[14] flex shrink-0 items-center border-r border-solid border-[var(--bui-border)] bg-[var(--pl-surface-2)] py-1',
+          'sticky start-0 z-[14] flex shrink-0 items-center border-e border-solid border-[var(--bui-border)] bg-[var(--pl-surface-2)] py-1',
           collapsed ? 'justify-center px-0' : 'px-4',
           onToggleCollapse && 'cursor-pointer text-start hover:bg-[var(--hover)]',
         )}
@@ -65,7 +65,7 @@ const PlanningDateHeaders: React.FC<PlanningDateHeadersProps> = React.memo(({
         {collapsed ? (
           <ChevronRight size={15} strokeWidth={2} className="text-[var(--muted)]" />
         ) : (
-          <span className="font-bold text-[10.5px] text-[var(--faint)] uppercase tracking-[0.05em] overflow-hidden text-ellipsis whitespace-nowrap tabular-nums">
+          <span className="font-bold text-xs text-[var(--bui-muted-foreground)] uppercase tracking-[0.05em] overflow-hidden text-ellipsis whitespace-nowrap tabular-nums">
             {t('planning.grid.propertyCount', { count: propertyCount })}
           </span>
         )}
@@ -77,9 +77,11 @@ const PlanningDateHeaders: React.FC<PlanningDateHeadersProps> = React.memo(({
           scroll) — plus de rangée mois dans la grille. Le nom complet
           (jour + numero + mois + annee) reste au hover via Tooltip. */}
       <div className="flex" style={{ height: DATE_HEADER_HEIGHT, width: totalGridWidth }}>
-          {days.map((day) => {
+          {days.map((day, index) => {
             const today = isToday(day);
             const weekend = isWeekend(day);
+            const monthStart = index > 0 && formatMonthYearShort(day) !== formatMonthYearShort(days[index - 1]);
+            const monthLabel = formatMonthYearShort(day).replace(/[0-9٠-٩۰-۹]+.*$/, '').trim();
             return (
               <Tooltip key={day.getTime()} delayDuration={250}>
                 {/* Le trigger cible directement la cellule : un <div> natif accepte
@@ -87,11 +89,11 @@ const PlanningDateHeaders: React.FC<PlanningDateHeadersProps> = React.memo(({
                 <TooltipTrigger asChild>
                 {/* border-e-[1px_solid_var(--bui-border)] laisse par le codemod ne produisait
                     rien : une largeur de bordure n'accepte pas une valeur raccourcie. */}
-                <div className="flex flex-col items-center justify-center gap-px py-1 border-e border-solid border-e-[var(--bui-border)] last:border-e-0 cursor-default select-none" style={{ width: dayWidth, minWidth: dayWidth, backgroundColor: weekend ? WEEKEND_HEADER_BG : 'transparent' }}>
+                <div data-month-start={monthStart || undefined} className="flex flex-col items-center justify-center gap-0 py-1 border-e border-solid border-e-[var(--bui-border)] last:border-e-0 cursor-default select-none" style={{ width: dayWidth, minWidth: dayWidth, backgroundColor: weekend ? WEEKEND_HEADER_BG : 'transparent' }}>
                   {/* Jour abrégé (spec .wd : 9.5px fw700 .04em uppercase) */}
                   {dayWidth >= 34 && (
-                    <span className={cn('text-[9.5px] font-bold tracking-[0.04em] uppercase leading-[1]', today ? 'text-[var(--brand-ink)]' : 'text-[var(--faint)]')}>
-                      {formatWeekdayShort(day)}
+                    <span className={cn('text-xs font-bold tracking-[0.04em] uppercase leading-[1] max-w-full truncate', today ? 'text-[var(--brand-ink)]' : 'text-[var(--bui-muted-foreground)]')}>
+                      {monthStart ? monthLabel : formatWeekdayShort(day)}
                     </span>
                   )}
                   {/* Numéro (spec .dn : Space Grotesk 14px fw600) —
@@ -111,7 +113,7 @@ const PlanningDateHeaders: React.FC<PlanningDateHeadersProps> = React.memo(({
                   </p>
                 </div>
                 </TooltipTrigger>
-                <PlanningTooltipContent side="top" className="capitalize text-[0.6875rem]">
+                <PlanningTooltipContent side="top" className="capitalize text-xs">
                   {formatFullDate(day)}
                 </PlanningTooltipContent>
               </Tooltip>

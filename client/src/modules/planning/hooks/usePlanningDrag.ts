@@ -1,3 +1,5 @@
+import type { PlanningData } from '../../../services/api/planningDataApi';
+import { updateBaitlyPlanningStay } from '../utils/baitlyPlanningCache';
 import { useState, useCallback, useEffect, useMemo, useRef } from 'react';
 import {
   useSensor,
@@ -25,8 +27,10 @@ import type {
 import { addDaysToStr } from '../utils/dateUtils';
 import { isRtlLanguage } from '../../../utils/localeDate';
 import { computeBarLayout } from '../utils/layoutUtils';
-import { wouldConflict } from '../utils/conflictUtils';
+import { validatePlanningEvent } from '../utils/conflictUtils';
 import { planningKeys } from './usePlanningData';
+import { useNotification } from '../../../hooks/useNotification';
+import { saveBaitlyInterventionSchedule } from '../utils/baitlyInterventionSchedule';
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
@@ -69,10 +73,11 @@ export function usePlanningDrag({
   density,
 }: UsePlanningDragConfig): UsePlanningDragReturn {
   const queryClient = useQueryClient();
+  const { notify } = useNotification();
   // Sens de lecture de la frise. dnd-kit rend un delta de pixels PHYSIQUE : en
   // arabe, tirer une brique vers la gauche l'avance dans le temps. Sans ce
   // signe, glisser une reservation la reculerait d'autant de jours.
-  const { i18n } = useTranslation();
+  const { i18n, t } = useTranslation();
   const timeDirection = isRtlLanguage(i18n.language) ? -1 : 1;
   const [state, setState] = useState<PlanningDragState>(INITIAL_STATE);
 
@@ -115,7 +120,7 @@ export function usePlanningDrag({
       }
 
       const ghost = computeBarLayout(newEvent, days, dayWidth, density);
-      const conflict = wouldConflict(newEvent, events, interventions);
+      const conflict = !validatePlanningEvent(newEvent, events, interventions).valid;
       return { ghost, conflict, newEvent };
     },
     [dayWidth, days, density, events, interventions, timeDirection],
@@ -202,6 +207,8 @@ export function usePlanningDrag({
 
       // Cancel if conflict
       if (conflict) {
+        const validation = validatePlanningEvent(newEvent, events, interventions);
+        notify.warning(t(`planning.feedback.${validation.reason}`, validation.error ?? 'Ce créneau est indisponible.'));
         setState(INITIAL_STATE);
         return;
       }
@@ -210,19 +217,14 @@ export function usePlanningDrag({
       const isInterventionEvent =
         data.event.type === 'cleaning' || data.event.type === 'maintenance';
 
+      const snapshots: { key: readonly unknown[]; before: PlanningData | undefined; optimistic: PlanningData | undefined }[] = [];
       try {
         if (isInterventionEvent) {
-          // ── Intervention mutation ──────────────────────────────────────────
-          // Real API: update intervention dates
-          const payload: Record<string, string> = {};
-          if (data.type === 'move') {
-            payload.startDate = newEvent.startDate;
-            payload.endDate = newEvent.endDate;
-          } else {
-            payload.endDate = newEvent.endDate;
-          }
-          // TODO: call real interventions API when available
-          queryClient.invalidateQueries({ queryKey: planningKeys.all });
+          const intervention = data.event.intervention ?? interventions.find((item) => `int-${item.id}` === data.event.id);
+          if (!intervention) throw new Error('Intervention introuvable');
+          await saveBaitlyInterventionSchedule(intervention, data.type === 'move'
+            ? { startDate: newEvent.startDate }
+            : { endDate: newEvent.endDate });
         } else {
           // ── Reservation mutation (existing logic) ─────────────────────────
           const numericId = parseInt(data.event.id.replace('res-', ''), 10);
@@ -235,74 +237,28 @@ export function usePlanningDrag({
             newDates.checkOut = newEvent.endDate;
           }
 
-          // 1. Optimistic cache update (immediate visual feedback)
-          queryClient.setQueriesData(
-            { queryKey: [...planningKeys.all, 'reservations'] },
-            (old: unknown) => {
-              if (!Array.isArray(old)) return old;
-              return old.map((r: any) =>
-                r.id === numericId
-                  ? {
-                      ...r,
-                      ...(newDates.checkIn && { checkIn: newDates.checkIn }),
-                      ...(newDates.checkOut && { checkOut: newDates.checkOut }),
-                    }
-                  : r,
-              );
-            },
-          );
-
-          // 2. Update linked interventions optimistically
-          queryClient.setQueriesData(
-            { queryKey: [...planningKeys.all, 'interventions'] },
-            (old: unknown) => {
-              if (!Array.isArray(old)) return old;
-              return old.map((i: any) => {
-                if (i.linkedReservationId !== numericId) return i;
-
-                if (data.type === 'move') {
-                  return {
-                    ...i,
-                    startDate: addDaysToStr(i.startDate, daysDelta),
-                    endDate: addDaysToStr(i.endDate, daysDelta),
-                  };
-                } else {
-                  const interventionDuration =
-                    (new Date(i.endDate).getTime() - new Date(i.startDate).getTime()) /
-                    (1000 * 60 * 60 * 24);
-                  const newStartDate = newEvent.endDate;
-                  const newEndDate = addDaysToStr(newStartDate, interventionDuration);
-                  return {
-                    ...i,
-                    startDate: newStartDate,
-                    endDate: newEndDate,
-                  };
-                }
-              });
-            },
-          );
-
-          // 3. Persist to backend
-          try {
-            const result = await reservationsApi.update(numericId, newDates);
-          } catch (err) {
-            // API failed — rollback by refetching authoritative data
-            console.error('[drag-resize]', err);
-            queryClient.invalidateQueries({ queryKey: planningKeys.all });
-            setState(INITIAL_STATE);
-            return;
+          for (const [key, before] of queryClient.getQueriesData<PlanningData>({ queryKey: [...planningKeys.all, 'data'] })) {
+            const optimistic = updateBaitlyPlanningStay(before, numericId, newDates, { type: data.type, daysDelta });
+            queryClient.setQueryData(key, optimistic);
+            snapshots.push({ key, before, optimistic: queryClient.getQueryData(key) });
           }
-          // 4. Refetch to sync with backend (linked interventions, etc.)
-          queryClient.invalidateQueries({ queryKey: planningKeys.all });
-        }
-      } catch {
-        // Rollback: refetch authoritative data on any error
-        queryClient.invalidateQueries({ queryKey: planningKeys.all });
-      }
 
-      setState(INITIAL_STATE);
+          await reservationsApi.update(numericId, newDates);
+        }
+      } catch (error) {
+        // Ne pas écraser une modification concurrente avec un ancien snapshot.
+        for (const snapshot of snapshots) {
+          if (queryClient.getQueryData(snapshot.key) === snapshot.optimistic) queryClient.setQueryData(snapshot.key, snapshot.before);
+        }
+        notify.error(t('planning.feedback.saveError', 'Le déplacement n’a pas été enregistré. Les dates précédentes sont restaurées.')
+          + (error instanceof Error ? ` ${error.message}` : ''));
+      } finally {
+        // Le serveur reste la source de vérité, après succès comme après échec.
+        void queryClient.invalidateQueries({ queryKey: planningKeys.all });
+        setState(INITIAL_STATE);
+      }
     },
-    [dayWidth, computeGhost, queryClient, cancelPendingMove],
+    [dayWidth, timeDirection, computeGhost, queryClient, cancelPendingMove, events, interventions, notify, t],
   );
 
   const handleDragCancel = useCallback(() => {

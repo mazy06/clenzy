@@ -1,10 +1,10 @@
-import React, { useCallback, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { cn } from '../../utils/cn';
 import { TooltipProvider, TooltipRoot, TooltipTrigger } from '../../components/ui';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import PropertyPopover from './PropertyPopover';
 import { PropertyImageCarousel } from '../../components/PropertyImageCarousel';
-import { PROPERTY_COL_THUMBNAIL_MIN_WIDTH } from './hooks/useResizablePropertyColWidth';
+import { PROPERTY_COL_THUMBNAIL_MIN_WIDTH, PROPERTY_COL_MIN_WIDTH, PROPERTY_COL_MAX_WIDTH } from './hooks/useResizablePropertyColWidth';
 import { propertiesApi } from '../../services/api/propertiesApi';
 import type { PlanningProperty, DensityMode } from './types';
 
@@ -23,6 +23,7 @@ import { useTranslation } from '../../hooks/useTranslation';
 import { getPropertyTypeLabel } from '../../utils/statusUtils';
 import { getPropertyTypeIcon } from '../../utils/propertyTypeIcon';
 import type { ChannelSyncMap } from './hooks/usePlanningChannelSync';
+import { isRtlLanguage } from '../../utils/localeDate';
 import { PlanningTooltipContent } from './PlanningTooltip';
 
 // ─── Colonne logements (gauche, sticky) ──────────────────────────────────────
@@ -74,7 +75,8 @@ const PlanningPropertyColumn: React.FC<PlanningPropertyColumnProps> = React.memo
   accordionHeight = 600,
   collapsed = false,
 }) => {
-  const { t } = useTranslation();
+  const { t, currentLanguage } = useTranslation();
+  const isRtl = isRtlLanguage(currentLanguage);
   // Les deux etages de la colonne d'indicateurs sont RESERVES ou absents pour
   // TOUTE la colonne, jamais ligne par ligne : c'est ce qui garde les pastilles
   // sur une meme verticale, y compris sur les lignes ou le compteur est nul.
@@ -108,32 +110,31 @@ const PlanningPropertyColumn: React.FC<PlanningPropertyColumnProps> = React.memo
 
   const handleResizeMouseDown = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
     if (!onColWidthChange) return;
-    e.preventDefault();
-    e.stopPropagation();
+    e.preventDefault(); e.stopPropagation();
     resizeStartRef.current = { startX: e.clientX, startWidth: colWidth };
     setIsResizing(true);
+  }, [colWidth, onColWidthChange]);
 
-    const handleMove = (ev: MouseEvent) => {
+  useEffect(() => {
+    if (!isResizing || !onColWidthChange) return;
+    const previousCursor = document.body.style.cursor;
+    const previousSelect = document.body.style.userSelect;
+    const handleMove = (event: MouseEvent) => {
       const start = resizeStartRef.current;
-      if (!start) return;
-      const delta = ev.clientX - start.startX;
-      onColWidthChange(start.startWidth + delta);
+      if (start) onColWidthChange(start.startWidth + (event.clientX - start.startX) * (isRtl ? -1 : 1));
     };
-
-    const handleUp = () => {
-      resizeStartRef.current = null;
-      setIsResizing(false);
-      document.removeEventListener('mousemove', handleMove);
-      document.removeEventListener('mouseup', handleUp);
-      document.body.style.cursor = '';
-      document.body.style.userSelect = '';
-    };
-
+    const handleUp = () => { resizeStartRef.current = null; setIsResizing(false); };
     document.addEventListener('mousemove', handleMove);
     document.addEventListener('mouseup', handleUp);
     document.body.style.cursor = 'col-resize';
     document.body.style.userSelect = 'none';
-  }, [colWidth, onColWidthChange]);
+    return () => {
+      document.removeEventListener('mousemove', handleMove);
+      document.removeEventListener('mouseup', handleUp);
+      document.body.style.cursor = previousCursor;
+      document.body.style.userSelect = previousSelect;
+    };
+  }, [isResizing, onColWidthChange, isRtl]);
 
 
   /**
@@ -163,13 +164,22 @@ const PlanningPropertyColumn: React.FC<PlanningPropertyColumnProps> = React.memo
         <div
           onMouseDown={handleResizeMouseDown}
           role="separator"
+          tabIndex={0}
+          aria-valuenow={colWidth}
+          aria-valuemin={PROPERTY_COL_MIN_WIDTH}
+          aria-valuemax={PROPERTY_COL_MAX_WIDTH}
+          onKeyDown={(e) => {
+            if (e.key !== 'ArrowLeft' && e.key !== 'ArrowRight') return;
+            e.preventDefault();
+            onColWidthChange(colWidth + (e.key === 'ArrowRight' ? 16 : -16) * (isRtl ? -1 : 1));
+          }}
           aria-label={t('planning.grid.resizeColumn', 'Redimensionner la colonne logements')}
           aria-orientation="vertical"
           // right:-3px = chevauche legerement la grille pour faciliter la prise.
           // Ligne verticale (::after) visible uniquement au hover ou pendant le drag.
           className={cn(
-            'absolute top-0 -right-[3px] w-[6px] h-full cursor-col-resize z-[11]',
-            "after:content-[''] after:absolute after:top-0 after:left-[2px] after:w-[2px] after:h-full",
+            'absolute top-0 -end-[3px] w-[6px] h-full cursor-col-resize z-[11] focus-visible:outline-2 focus-visible:outline-[var(--bui-primary)]',
+            "after:content-[''] after:absolute after:top-0 after:start-[2px] after:w-[2px] after:h-full",
             'after:[transition:background-color_150ms_ease]',
             isResizing
               ? 'after:bg-[var(--accent)]'
@@ -240,7 +250,12 @@ const PlanningPropertyColumn: React.FC<PlanningPropertyColumnProps> = React.memo
         }
         return (
           <React.Fragment key={property.id}>
-          <div className={cn('relative flex flex-row items-center gap-0 px-0 cursor-pointer hover:bg-[var(--hover)]', selectedPropertyId === property.id || popover?.propertyId === property.id ? 'bg-[var(--accent-soft)]' : 'bg-[var(--bui-card)]')} style={{ height: effectiveRowHeight, borderBottom: '1px solid var(--bui-border)', transition: 'background-color 0.15s ease' }} onClick={(e) => setPopover({ anchorEl: e.currentTarget, propertyId: property.id })} onMouseEnter={() => prefetchPerformance(property.id)}>
+          <div className={cn('relative flex flex-row items-center gap-0 px-0 cursor-pointer hover:bg-[var(--hover)]', selectedPropertyId === property.id || popover?.propertyId === property.id ? 'bg-[var(--accent-soft)]' : 'bg-[var(--bui-card)]')} style={{ height: effectiveRowHeight, borderBottom: '1px solid var(--bui-border)', transition: 'background-color 0.15s ease' }} role="button" tabIndex={0} aria-label={property.name}
+            onKeyDown={(e) => {
+              if (e.target !== e.currentTarget || (e.key !== 'Enter' && e.key !== ' ')) return;
+              e.preventDefault(); setPopover({ anchorEl: e.currentTarget, propertyId: property.id });
+            }}
+            onClick={(e) => setPopover({ anchorEl: e.currentTarget, propertyId: property.id })} onMouseEnter={() => prefetchPerformance(property.id)}>
             {/* Bloc texte (spec .pl-name : padding 0 16px, colonne centrée) :
                 nom + ville dessous. Les deux compteurs ont quitté la ligne du
                 nom : accrochés derrière un libellé de longueur variable, ils
@@ -368,7 +383,12 @@ const PlanningPropertyColumn: React.FC<PlanningPropertyColumnProps> = React.memo
             )}
             {/* Chevron d'accordéon Superviseur (gated par le rôle côté parent) */}
             {onToggleExpanded && (
-              <div className={cn('shrink-0 flex items-center justify-center w-[26px] h-[26px] me-2 rounded-[8px] cursor-pointer hover:bg-[var(--hover)] hover:text-[var(--brand-ink)]', expandedPropertyId === property.id ? 'text-[var(--brand-ink)]' : 'text-[var(--muted)]')} style={{ transform: expandedPropertyId === property.id ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s ease, color 0.15s, background-color 0.15s' }} role="button" aria-label={t('planning.grid.agentSupervisor', "Superviseur d'agents")} aria-expanded={expandedPropertyId === property.id} onClick={(e) => {
+              <div className={cn('shrink-0 flex items-center justify-center w-[26px] h-[26px] me-2 rounded-[8px] cursor-pointer hover:bg-[var(--hover)] hover:text-[var(--brand-ink)]', expandedPropertyId === property.id ? 'text-[var(--brand-ink)]' : 'text-[var(--muted)]')} style={{ transform: expandedPropertyId === property.id ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s ease, color 0.15s, background-color 0.15s' }} role="button" tabIndex={0}
+                onKeyDown={(e) => {
+                  if (e.key !== 'Enter' && e.key !== ' ') return;
+                  e.preventDefault(); e.stopPropagation(); onToggleExpanded(property.id);
+                }}
+                aria-label={t('planning.grid.agentSupervisor', "Superviseur d'agents")} aria-expanded={expandedPropertyId === property.id} onClick={(e) => {
                   e.stopPropagation();
                   onToggleExpanded(property.id);
                 }}>

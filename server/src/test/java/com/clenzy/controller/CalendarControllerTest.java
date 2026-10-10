@@ -213,7 +213,7 @@ class CalendarControllerTest {
             // Anti-IDOR (regle audit #3) : l'acces est valide logement par
             // logement AVANT toute lecture, un seul refus fait echouer le lot.
             doThrow(new RuntimeException("Acces refuse"))
-                    .when(reservationService).validatePropertyAccess(2L, "user-123");
+                    .when(reservationService).validatePropertyAccessBatch(List.of(1L, 2L), "user-123");
 
             assertThatThrownBy(() -> controller.getPricingBatch(
                     List.of(1L, 2L), LocalDate.of(2026, 3, 1), LocalDate.of(2026, 3, 3), jwt))

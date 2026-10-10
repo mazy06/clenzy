@@ -1,3 +1,4 @@
+import { getBaitlyServiceCost } from '../utils/baitlyFinancial';
 import React, { useState, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useDateFormat } from '../../../hooks/useDateFormat';
@@ -120,9 +121,7 @@ const PanelPayment: React.FC<PanelPaymentProps> = ({
     );
   }
 
-  const estimatedCost = intervention.estimatedDurationHours
-    ? intervention.estimatedDurationHours * 25
-    : 0;
+  const estimatedCost = getBaitlyServiceCost(intervention);
 
   return (
     <div>

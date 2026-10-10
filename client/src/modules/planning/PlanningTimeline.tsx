@@ -18,8 +18,8 @@ import type { UsePlanningDragReturn } from './hooks/usePlanningDrag';
 import type { PricingMap } from './hooks/usePlanningPricing';
 import type { MinNightsMap } from './hooks/usePlanningMinNights';
 import type { ChannelSyncMap } from './hooks/usePlanningChannelSync';
-import { ROW_CONFIG, DATE_HEADER_HEIGHT } from './constants';
-import { detectConflicts } from './utils/conflictUtils';
+import { ROW_CONFIG, DATE_HEADER_HEIGHT, OCCUPANCY_ROW_HEIGHT } from './constants';
+import { detectBaitlyConflictEventIds } from './utils/conflictUtils';
 import { toDateStr } from './utils/dateUtils';
 
 /** Hauteur de l'accordéon Superviseur (panneau constellation 560px + marge). */
@@ -35,6 +35,7 @@ interface PlanningTimelineProps {
   totalGridWidth: number;
   selectedEventId: string | null;
   events: PlanningEvent[];
+  allEvents?: PlanningEvent[];
   /**
    * Toutes les réservations chargées (NON filtrées) — cf. PlanningRow : elles
    * servent à rattacher chaque intervention à son séjour, y compris quand ce
@@ -67,6 +68,8 @@ interface PlanningTimelineProps {
   pageSize?: number;
   /** Occupation par jour (alignée sur `days`) — rangée pied de grille, absente = masquée. */
   dayOccupancy?: number[];
+  dayOccupiedCounts?: number[];
+  occupancyPropertyCount?: number;
   /** Superviseur d'agents : logement déployé en accordéon (null = aucun). */
   expandedPropertyId?: number | null;
   /** Toggle du chevron d'accordéon (gated par le rôle côté parent). */
@@ -82,6 +85,9 @@ interface PlanningTimelineProps {
   onViewportHeight?: (height: number) => void;
 }
 
+const EMPTY_EVENTS: PlanningEvent[] = [];
+const EMPTY_RESERVATIONS: AttachmentCandidate[] = [];
+
 const PlanningTimeline: React.FC<PlanningTimelineProps> = React.memo(({
   properties,
   days,
@@ -92,6 +98,7 @@ const PlanningTimeline: React.FC<PlanningTimelineProps> = React.memo(({
   totalGridWidth,
   selectedEventId,
   events,
+  allEvents = events,
   loadedReservations,
   drag,
   onEventClick,
@@ -113,6 +120,8 @@ const PlanningTimeline: React.FC<PlanningTimelineProps> = React.memo(({
   pendingCountByProperty,
   pageSize,
   dayOccupancy,
+  dayOccupiedCounts,
+  occupancyPropertyCount,
   expandedPropertyId = null,
   onToggleExpanded,
   renderExpanded,
@@ -160,20 +169,14 @@ const PlanningTimeline: React.FC<PlanningTimelineProps> = React.memo(({
   // les interventions ne change donc plus la hauteur (le filtre des events
   // est fait dans usePlanningFilters).
   const effectiveRowHeight = config.rowHeight;
-  // Fill remaining space with empty rows. En mode accordéon déployé, le panneau
-  // remplit la hauteur sous l'unique logement → pas de lignes vides parasites.
-  const emptyRowCount =
-    expandedPropertyId != null
-      ? 0
-      : pageSize
-        ? Math.max(0, pageSize - properties.length)
-        : 0;
+  // La synthèse suit les logements réels, sans lignes vides intercalées.
+  const emptyRowCount = 0;
   // Hauteur de l'accordéon = espace vertical restant (viewport − header dates − 1
   // ligne logement). Ainsi le contenu tient pile dans la zone visible : pas de
   // débordement → pas de scroll vertical (seul le scroll horizontal subsiste).
   const accordionHeight =
     viewport.height > 0
-      ? Math.max(0, viewport.height - DATE_HEADER_HEIGHT - effectiveRowHeight - 2)
+      ? Math.max(0, viewport.height - DATE_HEADER_HEIGHT - effectiveRowHeight - (dayOccupancy ? OCCUPANCY_ROW_HEIGHT : 0) - 2)
       : SUPERVISION_ACCORDION_HEIGHT;
   const totalDisplayRows = properties.length + emptyRowCount;
   const totalRowsHeight = totalDisplayRows * effectiveRowHeight;
@@ -182,15 +185,7 @@ const PlanningTimeline: React.FC<PlanningTimelineProps> = React.memo(({
   const todayLineHeight = properties.length * effectiveRowHeight;
 
   // Detect conflicts
-  const conflictEventIds = useMemo(() => {
-    const conflicts = detectConflicts(events);
-    const ids = new Set<string>();
-    for (const c of conflicts) {
-      ids.add(c.eventA.id);
-      ids.add(c.eventB.id);
-    }
-    return ids;
-  }, [events]);
+  const conflictEventIds = useMemo(() => detectBaitlyConflictEventIds(allEvents), [allEvents]);
 
   // ── Découpage du dragState par ligne ──────────────────────────────────────
   // Seul un RESIZE affecte le rendu d'une ligne (largeur live de la brique) ;
@@ -206,19 +201,38 @@ const PlanningTimeline: React.FC<PlanningTimelineProps> = React.memo(({
     return events.find((e) => e.id === resizingEventId)?.propertyId ?? null;
   }, [resizingEventId, events]);
 
+  const eventsByProperty = useMemo(() => {
+    const grouped = new Map<number, PlanningEvent[]>();
+    for (const event of allEvents) {
+      const list = grouped.get(event.propertyId) ?? [];
+      list.push(event);
+      grouped.set(event.propertyId, list);
+    }
+    return grouped;
+  }, [allEvents]);
+  const reservationsByProperty = useMemo(() => {
+    const grouped = new Map<number, AttachmentCandidate[]>();
+    for (const reservation of loadedReservations) {
+      const list = grouped.get(reservation.propertyId) ?? [];
+      list.push(reservation);
+      grouped.set(reservation.propertyId, list);
+    }
+    return grouped;
+  }, [loadedReservations]);
+
   // Count UPCOMING reservations per property (for the small tag indicator
   // in the property column). Filtre les reservations passees (endDate < aujourd'hui)
   // et les interventions — seules les reservations en cours ou a venir.
   const reservationCountByProperty = useMemo(() => {
     const todayStr = toDateStr(new Date());
     const map = new Map<number, number>();
-    for (const evt of events) {
-      if (evt.type !== 'reservation') continue;
+    for (const evt of allEvents) {
+      if (evt.type !== 'reservation' || evt.status === 'cancelled') continue;
       if (evt.endDate < todayStr) continue;
       map.set(evt.propertyId, (map.get(evt.propertyId) ?? 0) + 1);
     }
     return map;
-  }, [events]);
+  }, [allEvents]);
 
   return (
     // Sous 900px la carte est a fleur d'ecran : ni arrondi ni filet lateral —
@@ -330,8 +344,8 @@ const PlanningTimeline: React.FC<PlanningTimelineProps> = React.memo(({
                       pricingMap={pricingMap}
                       minNightsMap={minNightsMap}
                       effectiveRowHeight={effectiveRowHeight}
-                      allEvents={events}
-                      loadedReservations={loadedReservations}
+                      allEvents={eventsByProperty.get(property.id) ?? EMPTY_EVENTS}
+                      loadedReservations={reservationsByProperty.get(property.id) ?? EMPTY_RESERVATIONS}
                     />
                     {expandedPropertyId === property.id && renderExpanded && (
                       <div className="relative bg-[var(--bui-background)]" style={{ width: totalGridWidth, height: accordionHeight, borderBottom: '1px solid var(--bui-border)' }}>
@@ -340,8 +354,8 @@ const PlanningTimeline: React.FC<PlanningTimelineProps> = React.memo(({
                             Pas de padding : le canvas sombre (flush) couvre TOUT
                             l'accordéon. Retrait gauche et largeur sont calculés → `style`. */}
                         <div
-                          className="sticky left-0 h-full z-[11] p-0 box-border"
-                          style={{ marginLeft: `-${propertyColWidth}px`, width: viewport.width || '100%' }}
+                          className="sticky start-0 h-full z-[11] p-0 box-border"
+                          style={{ marginInlineStart: `-${propertyColWidth}px`, width: viewport.width || '100%' }}
                         >
                           {renderExpanded(property)}
                         </div>
@@ -358,21 +372,16 @@ const PlanningTimeline: React.FC<PlanningTimelineProps> = React.memo(({
               </div>
             </div>
 
-            {/* Rangée « Occupation » (projection) — pied de la carte, ancrée en
-                bas par son `mt-auto` : le nombre de lignes vient d'un pageSize
-                ESTIME (cf. usePlanningPagination), donc la pile ne remplit pas
-                exactement la carte et l'ecart varie avec la largeur d'ecran ;
-                la synthese resterait sinon a une distance du bas differente a
-                chaque taille. Masquée en mode accordéon : l'accordéon est
-                dimensionné pour remplir EXACTEMENT le viewport, une rangée de
-                plus créerait un débordement vertical. */}
-            {dayOccupancy && expandedPropertyId == null && (
+            {/* La synthèse Baitly reste en bas, y compris sous l'accordéon. */}
+            {dayOccupancy && (
               <PlanningOccupancyRow
                 days={days}
                 dayWidth={dayWidth}
                 totalGridWidth={totalGridWidth}
                 propertyColWidth={propertyColWidth}
                 occupancy={dayOccupancy}
+                occupiedCounts={dayOccupiedCounts}
+                totalPropertyCount={occupancyPropertyCount}
                 collapsed={propertyColCollapsed}
               />
             )}

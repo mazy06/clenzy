@@ -275,6 +275,38 @@ public class ReservationService {
     }
 
     /**
+     * Garde Baitly en lot : une lecture de l'utilisateur et une projection par
+     * tranche de 2 000 logements, dans une seule transaction en lecture seule.
+     * Aucun lot partiellement autorisé n'est accepté.
+     */
+    public void validatePropertyAccessBatch(java.util.Collection<Long> propertyIds, String keycloakId) {
+        if (propertyIds == null || propertyIds.isEmpty()) return;
+        Long orgId = tenantContext.getRequiredOrganizationId();
+        List<Long> ids = new java.util.ArrayList<>(new java.util.LinkedHashSet<>(propertyIds));
+        if (ids.contains(null)) throw new NotFoundException("Propriete introuvable");
+        boolean superAdmin = tenantContext.isSuperAdmin();
+        User user = superAdmin ? null : userRepository.findByKeycloakId(keycloakId).orElse(null);
+        boolean staff = superAdmin || user != null && user.getRole() != null && user.getRole().isPlatformStaff();
+
+        for (int offset = 0; offset < ids.size(); offset += 2000) {
+            List<Long> batch = ids.subList(offset, Math.min(offset + 2000, ids.size()));
+            Map<Long, PropertyRepository.BaitlyPropertyAccess> access = propertyRepository
+                    .findBaitlyPropertyAccess(batch).stream().collect(java.util.stream.Collectors.toMap(
+                            PropertyRepository.BaitlyPropertyAccess::getId, java.util.function.Function.identity()));
+            for (Long id : batch) {
+                PropertyRepository.BaitlyPropertyAccess property = access.get(id);
+                if (property == null) throw new NotFoundException("Propriete introuvable: " + id);
+                if (property.getOrganizationId() != null && !orgId.equals(property.getOrganizationId())) {
+                    throw new AccessDeniedException("Acces refuse : propriete hors de votre organisation");
+                }
+                if (!staff && (user == null || property.getOwnerId() == null || !property.getOwnerId().equals(user.getId()))) {
+                    throw new AccessDeniedException("Acces refuse : vous n'etes pas proprietaire de cette propriete");
+                }
+            }
+        }
+    }
+
+    /**
      * Persiste le masquage planning (flag hiddenFromPlanning deja applique par
      * l'appelant apres validation du statut cancelled).
      */
