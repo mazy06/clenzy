@@ -92,7 +92,7 @@ export default function PropertySelectionPanel({ cfg }: PropertySelectionPanelPr
         <EmptyState
           icon={<Home />}
           title={t('studio.properties.empty')}
-          description="{t('studio.properties.emptyHint')}"
+          description={t('studio.properties.emptyHint')}
         />
       </div>
     );
@@ -103,12 +103,12 @@ export default function PropertySelectionPanel({ cfg }: PropertySelectionPanelPr
   return (
     <SettingsPage
       title={t('studio.properties.displayed')}
-      description="{t('studio.properties.chooseHint')}"
+      description={t('studio.properties.chooseHint')}
       footer={<SaveBar dirty={cfg.dirty} saving={cfg.saving} onSave={() => { cfg.save().catch(() => {}); }} error={cfg.error} />}
     >
       <SettingCard title={t('studio.properties.selection')}>
         <SettingRow
-          label="{t('studio.properties.showAll')}"
+          label={t('studio.properties.showAll')}
           helper="Désactivez pour choisir manuellement les biens à présenter."
           control={<ToggleControl checked={showAll} onChange={onToggleShowAll} />}
         />

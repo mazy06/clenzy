@@ -1,4 +1,4 @@
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { queryOptions, useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useMemo } from 'react';
 import { propertiesApi } from '../services/api/propertiesApi';
 import type { Property as ApiProperty } from '../services/api/propertiesApi';
@@ -52,6 +52,14 @@ export const propertiesListKeys = {
   all: ['properties-list'] as const,
 };
 
+// Le cache partagé conserve le DTO API. Chaque écran adapte ses données avec
+// select ; les écrans financiers ne reçoivent plus les objets UI convertis.
+export const propertiesListQuery = () => queryOptions({
+  queryKey: propertiesListKeys.all,
+  queryFn: () => propertiesApi.getAll(),
+  staleTime: (query) => query.state.data?.length === 0 ? 0 : 60_000,
+});
+
 // ============================================================================
 // Converter
 // ============================================================================
@@ -93,6 +101,8 @@ function convertProperty(raw: ApiProperty): PropertyListItem {
   };
 }
 
+const selectPropertyList = (data: ApiProperty[]) => extractApiList<ApiProperty>(data).map(convertProperty);
+
 // ============================================================================
 // Hook
 // ============================================================================
@@ -114,14 +124,9 @@ export function usePropertiesList(enabled = true): UsePropertiesListReturn {
 
   // ─── Properties query ──────────────────────────────────────────────
   const propertiesQuery = useQuery({
-    queryKey: propertiesListKeys.all,
+    ...propertiesListQuery(),
     enabled,
-    queryFn: async () => {
-      const data = await propertiesApi.getAll();
-      return extractApiList<ApiProperty>(data).map(convertProperty);
-    },
-    // Revérifier un portefeuille vide au retour d'une création ou d'un import.
-    staleTime: (query) => query.state.data?.length === 0 ? 0 : 60_000,
+    select: selectPropertyList,
   });
 
   // ─── Delete mutation ───────────────────────────────────────────────

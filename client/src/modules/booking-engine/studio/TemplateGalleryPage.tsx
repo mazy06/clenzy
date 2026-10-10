@@ -80,8 +80,8 @@ export default function TemplateGalleryPage() {
             d'une colonne centrée ne s'aligne sur rien. */}
         <PageHeader
           anchored={false}
-          title="{t('studio.gallery.allTemplates')}"
-          subtitle="{t('studio.gallery.subtitle')}"
+          title={t('studio.gallery.allTemplates')}
+          subtitle={t('studio.gallery.subtitle')}
           iconBadge={<LayoutGrid />}
           titleAdornment={<Badge variant="secondary" className="tabular-nums whitespace-nowrap">{total} modèles</Badge>}
           onBack={() => navigate(-1)}

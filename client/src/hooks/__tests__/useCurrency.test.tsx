@@ -7,6 +7,7 @@ import { renderHook, act, waitFor } from '@testing-library/react';
 const updatePreferencesMock = vi.fn(() => Promise.resolve());
 let mockPreferences: { currency: string } = { currency: 'EUR' };
 let mockIsLoaded = false;
+let mockIsAuthenticated = true;
 
 vi.mock('../useUserPreferences', () => ({
   useUserPreferences: () => ({
@@ -19,7 +20,7 @@ vi.mock('../useUserPreferences', () => ({
 }));
 
 vi.mock('../useIsAuthenticated', () => ({
-  useIsAuthenticated: () => true,
+  useIsAuthenticated: () => mockIsAuthenticated,
 }));
 
 // Empeche la query exchangeRateApi (non utile dans ces tests unitaires)
@@ -30,6 +31,7 @@ vi.mock('../../services/api/exchangeRateApi', () => ({
 }));
 
 import { CurrencyProvider, useCurrency } from '../useCurrency';
+import { exchangeRateApi } from '../../services/api/exchangeRateApi';
 import i18n from '../../i18n/config';
 
 const wrapper = ({ children }: { children: React.ReactNode }) => (
@@ -42,6 +44,17 @@ describe('useCurrency', () => {
     updatePreferencesMock.mockClear();
     mockPreferences = { currency: 'EUR' };
     mockIsLoaded = false;
+    mockIsAuthenticated = true;
+    vi.mocked(exchangeRateApi.getMatrix).mockClear();
+  });
+
+  it('waits for authentication before requesting private rates, then loads them on login', async () => {
+    mockIsAuthenticated = false;
+    const { rerender } = renderHook(() => useCurrency(), { wrapper });
+    expect(exchangeRateApi.getMatrix).not.toHaveBeenCalled();
+    mockIsAuthenticated = true;
+    rerender();
+    await waitFor(() => expect(exchangeRateApi.getMatrix).toHaveBeenCalledTimes(1));
   });
 
   it('boots synchronously from localStorage to avoid flash', () => {

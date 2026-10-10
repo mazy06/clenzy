@@ -135,10 +135,24 @@ export const paymentsApi = {
   /** Toutes les pages du filtre, jamais seulement les dix lignes visibles. */
   async getAllHistory(params?: Omit<PaymentHistoryParams, 'page' | 'size'>): Promise<PaymentRecord[]> {
     const records = new Map<string, PaymentRecord>();
+    // Le serveur fusionne les trois sources à chaque appel. Des lots bornés
+    // de 500 évitent de reconstruire cinq fois le même historique de 456 lignes.
+    const pageSize = 500;
     for (let page = 0; page < 1000; page++) {
-      const response = await paymentsApi.getHistory({ ...params, page, size: 100 });
+      const response = await paymentsApi.getHistory({ ...params, page, size: pageSize });
       response.content.forEach(item => records.set(`${item.type}:${item.referenceId}`, item));
-      if (page + 1 >= response.totalPages) return [...records.values()];
+      if (page + 1 >= response.totalPages) {
+        // L'endpoint historique ne filtre pas encore les dates. Appliquer le
+        // filtre au jeu complet, aussi pour la sélection groupée des dossiers.
+        return [...records.values()].filter(record => {
+          if (!params?.dateFrom && !params?.dateTo) return true;
+          if (!record.transactionDate) return false;
+          const date = new Date(record.transactionDate);
+          if (Number.isNaN(date.getTime())) return false;
+          const day = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+          return (!params.dateFrom || day >= params.dateFrom) && (!params.dateTo || day <= params.dateTo);
+        });
+      }
     }
     throw new Error('La liste est trop volumineuse. Affinez les filtres avant de sélectionner les paiements.');
   },

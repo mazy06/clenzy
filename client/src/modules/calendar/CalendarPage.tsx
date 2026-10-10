@@ -362,8 +362,8 @@ export default function CalendarPage({ embedded = false, filtersContainer }: Cal
       ) : (
         <PageHeader
           className="shrink-0"
-          title="{t('calendar.title')}"
-          subtitle="{t('calendar.subtitle')}"
+          title={t('calendar.title')}
+          subtitle={t('calendar.subtitle')}
           iconBadge={<CalendarMonth />}
           backPath="/interventions"
           showBackButton={false}
@@ -385,7 +385,7 @@ export default function CalendarPage({ embedded = false, filtersContainer }: Cal
         <EmptyState
           icon={<CalendarMonth />}
           title={t('calendar.empty')}
-          description="{t('calendar.emptyHint')}"
+          description={t('calendar.emptyHint')}
         />
       ) : (
         <Card className="flex min-h-0 flex-1 flex-col gap-0 py-0 cal-signature p-3">

@@ -241,7 +241,7 @@ function CreateCodeDialog({ open, onClose, onCreated }: CreateDialogProps) {
               id="promo-max-uses"
               value={maxUses}
               onChange={(e) => setMaxUses(e.target.value.replace(/[^0-9]/g, ''))}
-              placeholder="{t('admin.promo.leaveEmptyUnlimited')}"
+              placeholder={t('admin.promo.leaveEmptyUnlimited')}
             />
             <FieldDescription>{t('admin.promo.unlimitedUses')}</FieldDescription>
           </Field>
@@ -430,7 +430,7 @@ export default function PromoCodesPage() {
       ) : filtered.length === 0 ? (
         <EmptyState
           icon={<LocalOffer />}
-          title="{t('admin.promo.empty')}"
+          title={t('admin.promo.empty')}
           description={
             filterMode !== 'all'
               ? `Aucun code ne correspond au filtre « ${filterMode} ».`
