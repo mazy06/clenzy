@@ -12,6 +12,14 @@ spec.loader.exec_module(fixture)
 
 class StagingFixturesTest(unittest.TestCase):
     @patch.dict(os.environ, {"APP_DOMAIN": "app.clenzy.fr"})
+    def test_keycloak_failure_reports_only_the_fixed_operation(self):
+        with patch.object(fixture, "command", side_effect=fixture.FixtureError("private secret")):
+            with self.assertRaisesRegex(fixture.FixtureError, "Keycloak : update mapper a échoué") as failure:
+                fixture.Staging().keycloak(["update", "clients/private-id/protocol-mappers/models/private-mapper"],
+                        {"clientSecret": "private secret"})
+        self.assertNotIn("private", str(failure.exception).replace("privées", ""))
+
+    @patch.dict(os.environ, {"APP_DOMAIN": "app.clenzy.fr"})
     def test_provision_uses_the_application_profile_route(self):
         ops = Mock()
         ops.api.return_value = {"id": 1, "subject": "test-subject", "role": "SUPER_ADMIN"}
