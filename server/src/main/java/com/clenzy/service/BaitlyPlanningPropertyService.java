@@ -3,6 +3,7 @@ package com.clenzy.service;
 import com.clenzy.dto.BaitlyPlanningPropertyRow;
 import com.clenzy.repository.PropertyRepository;
 import com.clenzy.repository.PropertyPhotoRepository;
+import com.clenzy.repository.UserRepository;
 import com.clenzy.tenant.TenantContext;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -18,10 +19,12 @@ import java.util.Map;
 public class BaitlyPlanningPropertyService {
     private final PropertyRepository properties;
     private final PropertyPhotoRepository photos;
+    private final UserRepository users;
     private final TenantContext tenant;
-    public BaitlyPlanningPropertyService(PropertyRepository properties, PropertyPhotoRepository photos, TenantContext tenant) {
+    public BaitlyPlanningPropertyService(PropertyRepository properties, PropertyPhotoRepository photos, UserRepository users, TenantContext tenant) {
         this.properties = properties;
         this.photos = photos;
+        this.users = users;
         this.tenant = tenant;
     }
 
@@ -30,7 +33,11 @@ public class BaitlyPlanningPropertyService {
         var rows = properties.findBaitlyPlanningProperties(orgId, ownerKeycloakId, PageRequest.of(page, size));
         List<Long> ids = rows.stream().map(PropertyRepository.BaitlyPlanningProperty::getId).toList();
         Map<Long, List<String>> urls = new HashMap<>();
+        Map<Long, String> owners = new HashMap<>();
         if (!ids.isEmpty()) {
+            for (var owner : users.findBaitlyPlanningPropertyOwners(ids, orgId)) {
+                owners.put(owner.id(), owner.displayName());
+            }
             for (var photo : photos.findBaitlyPlanningPhotos(ids, orgId)) {
                 String url = photo.getExternalUrl();
                 if (url == null || url.isBlank()) {
@@ -40,8 +47,7 @@ public class BaitlyPlanningPropertyService {
             }
         }
         return rows.map(p -> new BaitlyPlanningPropertyRow(p.getId(), p.getName(), p.getAddress(), p.getCity(),
-                ((p.getOwnerFirstName() == null ? "" : p.getOwnerFirstName()) + " "
-                    + (p.getOwnerLastName() == null ? "" : p.getOwnerLastName())).trim(),
+                owners.getOrDefault(p.getOwnerId(), ""),
                 p.getMaxGuests(), p.getType(), p.getNightlyPrice(), p.getMinimumNights(),
                 p.getDefaultCheckInTime(), p.getDefaultCheckOutTime(), p.getCleaningFrequency(), p.getCleaningBasePrice(),
                 p.getCurrency(), p.getLatitude(), p.getLongitude(), urls.getOrDefault(p.getId(), List.of())));

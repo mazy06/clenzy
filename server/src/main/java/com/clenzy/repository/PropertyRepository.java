@@ -17,8 +17,7 @@ public interface PropertyRepository extends JpaRepository<Property, Long>, JpaSp
         String getName();
         String getAddress();
         String getCity();
-        String getOwnerFirstName();
-        String getOwnerLastName();
+        Long getOwnerId();
         Integer getMaxGuests();
         com.clenzy.model.PropertyType getType();
         java.math.BigDecimal getNightlyPrice();
@@ -33,7 +32,7 @@ public interface PropertyRepository extends JpaRepository<Property, Long>, JpaSp
     }
 
     @Query(value = "SELECT p.id AS id, p.name AS name, p.address AS address, p.city AS city, "
-        + "o.firstName AS ownerFirstName, o.lastName AS ownerLastName, p.maxGuests AS maxGuests, p.type AS type, "
+        + "o.id AS ownerId, p.maxGuests AS maxGuests, p.type AS type, "
         + "p.nightlyPrice AS nightlyPrice, p.minimumNights AS minimumNights, "
         + "p.defaultCheckInTime AS defaultCheckInTime, p.defaultCheckOutTime AS defaultCheckOutTime, "
         + "p.cleaningFrequency AS cleaningFrequency, p.cleaningBasePrice AS cleaningBasePrice, "

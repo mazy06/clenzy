@@ -4924,3 +4924,11 @@ databaseChangeLog:
             relativeToChangelogFile: true
             splitStatements: false
             stripComments: false
+
+  - changeSet:
+      id: "0547-baitly-planning-reservation-intervention-index"
+      author: clenzy-team
+      changes:
+        - sqlFile:
+            path: changes/0547__baitly_planning_reservation_intervention_index.sql
+            relativeToChangelogFile: true

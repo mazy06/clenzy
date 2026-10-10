@@ -101,9 +101,35 @@ class BaitlyPlanningReadQueriesTest {
         var rows = em.createQuery(annotation.value(), Tuple.class).setParameter("orgId", 1L).setParameter("ownerKc", "host")
                 .setFirstResult(1000).setMaxResults(200).getResultList();
         assertThat(rows).hasSize(101);
-        assertThat(rows.getFirst().get("ownerFirstName")).isEqualTo("Alice");
+        assertThat(rows.getFirst().get("ownerId")).isEqualTo(1L);
         assertThat(em.createQuery(annotation.countQuery(), Long.class).setParameter("orgId", 1L).setParameter("ownerKc", "host")
                 .getSingleResult()).isEqualTo(1101);
+    }
+
+    @Test void catalogueDecryptsOwnerNamesOncePerPageAndScopesNamesThroughProperties() throws Exception {
+        User host = owner(1, "host"), foreign = owner(2, "foreign");
+        host.setOrganizationId(2L); foreign.setOrganizationId(2L);
+        for (int i = 1; i <= 200; i++) property(i, 1, host);
+        property(1000, 2, foreign); em.flush(); em.clear(); sessions.getStatistics().clear();
+        String rowsQuery = PropertyRepository.class.getMethod("findBaitlyPlanningProperties", Long.class, String.class, Pageable.class)
+                .getAnnotation(Query.class).value();
+        String namesQuery = UserRepository.class.getMethod("findBaitlyPlanningPropertyOwners", Collection.class, Long.class)
+                .getAnnotation(Query.class).value();
+        try (var timing = BaitlyFieldDecryptionTiming.open()) {
+            var rows = em.createQuery(rowsQuery, Tuple.class).setParameter("orgId", 1L).setParameter("ownerKc", "host")
+                    .setMaxResults(200).getResultList();
+            assertThat(rows).hasSize(200);
+            assertThat(timing.count()).isZero();
+            var ids = new ArrayList<>(rows.stream().map(row -> (Long) row.get("id")).toList());
+            ids.add(1000L);
+            var names = em.createQuery(namesQuery, com.clenzy.dto.BaitlyPlanningPersonName.class)
+                    .setParameter("propertyIds", ids).setParameter("orgId", 1L).getResultList();
+            assertThat(names).singleElement().satisfies(name -> {
+                assertThat(name.id()).isEqualTo(1L); assertThat(name.displayName()).isEqualTo("Alice Martin");
+            });
+            assertThat(timing.count()).isEqualTo(2);
+        }
+        assertThat(sessions.getStatistics().getEntityLoadCount()).isZero();
     }
 
     @Test void indexUsesTheRealConstructorAndExcludesHiddenForeignAndOutOfRangeStays() throws Exception {
@@ -132,7 +158,7 @@ class BaitlyPlanningReadQueriesTest {
         String query = UserRepository.class.getMethod("findBaitlyPlanningAssignees", Collection.class, Long.class)
                 .getAnnotation(Query.class).value();
         try (var timing = BaitlyFieldDecryptionTiming.open()) {
-            var names = em.createQuery(query, com.clenzy.dto.BaitlyPlanningAssignee.class)
+            var names = em.createQuery(query, com.clenzy.dto.BaitlyPlanningPersonName.class)
                     .setParameter("ids", List.of(1L, 2L)).setParameter("orgId", 1L).getResultList();
             assertThat(names).singleElement().satisfies(name -> assertThat(name.displayName()).isEqualTo("Alice Martin"));
             assertThat(timing.count()).isEqualTo(2);
