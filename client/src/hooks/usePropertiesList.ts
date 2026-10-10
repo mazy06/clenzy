@@ -106,7 +106,7 @@ export interface UsePropertiesListReturn {
   isDeleting: boolean;
 }
 
-export function usePropertiesList(): UsePropertiesListReturn {
+export function usePropertiesList(enabled = true): UsePropertiesListReturn {
   const queryClient = useQueryClient();
 
   // Note: le backend détecte le rôle HOST via JWT et filtre automatiquement
@@ -115,6 +115,7 @@ export function usePropertiesList(): UsePropertiesListReturn {
   // ─── Properties query ──────────────────────────────────────────────
   const propertiesQuery = useQuery({
     queryKey: propertiesListKeys.all,
+    enabled,
     queryFn: async () => {
       const data = await propertiesApi.getAll();
       return extractApiList<ApiProperty>(data).map(convertProperty);

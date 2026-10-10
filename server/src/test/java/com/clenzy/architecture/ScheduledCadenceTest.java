@@ -46,6 +46,9 @@ class ScheduledCadenceTest {
      * lot est borne a 500 lignes.</p>
      */
     private static final Set<String> CADENCES_RAPIDES_ASSUMEES = Set.of(
+            // Commentaire SSE local sans BDD/Redis : reste sous le timeout proxy
+            // de 60 secondes même lorsque les interventions ne changent pas.
+            "AssignmentRealtime#heartbeat",
             "OutboxRelay#relayPendingEvents",
             "OutboxRelay#retryFailedEvents");
 

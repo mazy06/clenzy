@@ -103,6 +103,25 @@ class ActionItemQueryServiceTest {
     }
 
     @Test
+    void aGuestWithoutAPhotoDoesNotPreventOtherActionsFromLoading() {
+        var withoutPhoto = reservation(455L, ORG, 76L);
+        withoutPhoto.getGuest().setAvatarUrl(null);
+        var photos = mock(GuestPhotoUrlResolver.class);
+        when(photos.publicUrl(77L, "guests/77/photo.jpg")).thenReturn("/api/guests/77/photo?ticket=t");
+        when(reservationRepository.findAllWithGuestByIdIn(any()))
+                .thenReturn(List.of(withoutPhoto, reservation(456L, ORG, 77L)));
+        service = new ActionItemQueryService(actionItemRepository, propertyRepository,
+                reservationRepository, photos, Clock.fixed(NOW, ZoneOffset.UTC));
+        queueContains(rowOnReservation(ActionItemKind.RESERVATION_PENDING, "pending:455", 455L),
+                rowOnReservation(ActionItemKind.BALANCE_DUE, "balance:456", 456L));
+
+        var result = service.getActionItems(ORG, UserRole.SUPER_MANAGER, "kc-staff");
+        assertThat(result.total()).isEqualTo(2);
+        assertThat(result.items()).extracting(item -> item.subjectAvatarUrl())
+                .containsExactly(null, "/api/guests/77/photo?ticket=t");
+    }
+
+    @Test
     void whenTheStayBelongsToAnotherOrganization_thenNoPhotoCrossesOver() {
         final GuestPhotoUrlResolver photos = mock(GuestPhotoUrlResolver.class);
         // La requête ne filtre pas sur l'organisation : c'est la lecture qui doit
