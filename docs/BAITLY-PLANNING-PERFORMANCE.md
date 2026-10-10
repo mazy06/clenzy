@@ -1,9 +1,9 @@
 # Baitly : performance et montée en charge du planning
 
 Audit du 10 octobre 2026. Périmètre : chargement du planning, calculs frontend,
-requêtes et configuration serveur identifiables dans le dépôt. Aucun test de
-charge serveur n'a été exécuté dans cet audit ; aucune capacité de production
-n'est donc certifiée.
+requêtes et configuration serveur identifiables dans le dépôt. Les premières
+mesures locales ont été complétées par des tests API sur staging, décrits en
+fin de document. Aucune capacité de production n'est certifiée.
 
 ## Ce que mesurent les 119 ms et 4 ms
 
@@ -363,10 +363,10 @@ de cache et plusieurs rechargements pour confirmer la reproductibilité.
 
 ## Investigation des quatre chantiers prioritaires
 
-1. **Coordonnées.** Préparer une lecture des briques sans téléphone, avec email
+1. **Coordonnées.** Lecture déployée des briques sans téléphone, avec email
    et avatar conservés pour l'indicateur d'email manquant. Le panneau récupère
-   la fiche complète à son ouverture. Comparer cette lecture à l'endpoint
-   complet, avec les mêmes voyageurs et `Server-Timing`.
+   la fiche complète à son ouverture. Les tests vérifient le contrat et la
+   comparaison API utilise les mêmes voyageurs que la lecture complète.
 2. **Multi-comptes.** Le workflow infra `Baitly planning staging benchmark`
    prépare douze comptes machine répartis dans douze organisations de test.
    Il propose 1, puis 5 et éventuellement 10 fenêtres/s ; un palier échoué
@@ -376,9 +376,9 @@ de cache et plusieurs rechargements pour confirmer la reproductibilité.
    1 000 logements. Le scénario peut parcourir toutes les pages du catalogue,
    découpe l'index en lots de 500 et garde détails/prix sur la première page.
    Il vérifie le catalogue complet et le périmètre de chaque réponse.
-4. **SQL et interventions.** Recueillir schéma/index et plans PostgreSQL
-   `EXPLAIN (ANALYZE, BUFFERS)` sur ces fixtures, avant tout nouvel index.
-   Préparer la projection des interventions et de leurs rattachements, avec
+4. **SQL et interventions.** Schéma/index et plans PostgreSQL
+   `EXPLAIN (ANALYZE, BUFFERS)` recueillis sur ces fixtures avant le nouvel index.
+   Projection déployée des interventions et de leurs rattachements, avec
    isolation de l'organisation et conservation des fins après minuit.
 
 ### Fixtures staging et périmètre des mesures
@@ -405,6 +405,9 @@ uniquement dans les fixtures : même texte fictif, IDs distincts pour conserver
 le travail de déchiffrement. Les réservations ont leurs automatisations
 suspendues. Les organisations/données restent disponibles pour refaire une
 mesure ; les comptes machine sont désactivés entre les exécutions.
+Un portefeuille partage ici un propriétaire et un intervenant. Ce cas exerce
+la déduplication d'une même personne ; le gain sera moindre sur un portefeuille
+ayant un propriétaire ou un intervenant distinct pour chaque logement.
 
 Les acteurs et secrets sont conservés dans des fichiers privés temporaires
 en mode 0600, hors des artifacts. Ceux-ci contiennent uniquement les métriques,
@@ -428,7 +431,7 @@ aucun redémarrage de container. Les seuils k6 restent des objectifs : un workfl
 rouge peut signaler une mesure terminée avec des seuils dépassés, pas un échec
 du déploiement.
 
-### Lectures applicatives préparées pour la comparaison
+### Lectures applicatives déployées pour la comparaison
 
 - `/planning/reservation-cards` applique les mêmes gardes logement/organisation,
   limites et `Server-Timing` que la lecture complète, mais ne sélectionne pas le
@@ -446,13 +449,13 @@ du déploiement.
 
 Le contrôle `schema` du staging a réussi (workflow infra `38036790728`). Il
 confirme les index `(organization_id, scheduled_date)` et
-`(property_id, scheduled_date)` des interventions. Aucun index supplémentaire
-n'est encore décidé : il faut les plans et les mesures sur les fixtures.
+`(property_id, scheduled_date)` des interventions. Les plans sur les fixtures
+ont ensuite motivé le changeset 0547 présenté ci-dessous.
 Le premier provisioning a reçu un HTTP 401 avant le lancement de la charge ;
 les clients ont été désactivés à la sortie. La PR 428 ajoute uniquement aux
 clients de test l'audience `clenzy-api` exigée par la sécurité JWT existante.
-La nouvelle référence est lancée par le workflow `38037278661` ; aucune valeur
-de capacité n'est déclarée avant examen de ses résultats.
+Deux autres erreurs de préparation (route de profil et mise à jour du mapper
+d'audience) ont été corrigées avant la référence complète `38038127277`.
 
 ### Référence de charge staging du 10 octobre (workflow 38038127277)
 
@@ -511,4 +514,121 @@ Corrections motivées par cette référence :
   leur lecture représentative n'étant pas le coût dominant mesuré.
 
 La PR 429 a fusionné le premier lot au SHA `4fbd45a17776dfa52b70e5e7871f10d672704960`.
-La mesure après optimisation attend le déploiement des corrections ci-dessus.
+La PR 432 a fusionné les corrections mesurées au SHA
+`d860c6eb78e60427bed1fabf6fe04d259c26b604`. Le CD backend staging
+`38042454640` a réussi le 10 octobre à 09:47 UTC, avec ce tag d'image et la
+destination vérifiée `https://app.clenzy.fr`.
+Les métadonnées staging exportées par `38042718411` confirment la présence de
+`idx_baitly_reservation_org_intervention` avec les trois colonnes et le prédicat
+partiel prévus, après ce déploiement Liquibase.
+
+Le changeset réel a aussi été exécuté sur PostgreSQL 15 en CI : l'index est
+valide, le plan de rattachement l'utilise et les liens retournés restent
+identiques. Les tests H2 vérifient zéro déchiffrement sur la projection du
+catalogue, puis deux déchiffrements pour 200 logements partageant un propriétaire,
+y compris un propriétaire rattaché à plusieurs organisations. Ces tests ne
+remplacent pas la mesure API staging.
+
+### Réutilisation des comptes de test
+
+La première tentative après déploiement (`38042718411`) s'est arrêtée avant
+toute charge : `/api/me` a renvoyé 500 pendant le provisioning. Le diagnostic
+staging filtré a identifié un refus de réconciliation d'identité, prévu en
+409 mais transformé en 500 par le gestionnaire global. Les compteurs de
+correspondance ont confirmé qu'un profil synthétique existait avec l'email et
+l'organisation attendus, mais plus avec le sujet de son compte de service.
+
+Cause corrigée dans la PR 433 : les mises à jour partielles de clients
+omettaient `serviceAccountsEnabled`, ce qui supprimait l'utilisateur de service
+dans Keycloak 26. Ce flag reste maintenant à `true` lors de l'activation et de
+la désactivation du client, lequel reste désactivé entre les exécutions.
+Le comportement est explicite dans
+[ClientResource de Keycloak 26](https://github.com/keycloak/keycloak/blob/26.0.0/services/src/main/java/org/keycloak/services/resources/admin/ClientResource.java#L739).
+La réparation refuse toute ancienne identité encore présente. Elle ne peut
+mettre à jour que les douze profils synthétiques prévus, après vérification
+du domaine, email haché, organisation dédiée, rôle/statut, membership OWNER,
+volume et marqueur des propriétés, avec comparaison de l'ancien sujet.
+Les logements, voyageurs et réservations restent identiques.
+
+Les workflows de diagnostic ne publient ni logs bruts ni identifiants :
+seulement classes d'exception, codes SQL/HTTP, catégories fixes et compteurs
+de correspondance. Le correctif des fixtures passe 14 tests Python locaux
+et la CI. Le statut erroné 500 au lieu de 409 reste un sujet distinct du
+gestionnaire global d'erreurs ; aucune règle d'authentification n'a été assouplie.
+Le diagnostic post-nettoyage `38045731353` confirme une seule correspondance
+du profil synthétique, de son email et de son sujet dans l'organisation attendue :
+l'identité du premier compte est maintenant conservée après l'exécution.
+
+### Comparaison après optimisation : workflow 38044214930
+
+Mesure terminée sur `app.clenzy.fr`, même période, douze organisations et
+mêmes volumes vérifiés que la référence. Code des outils au SHA
+`52f0bf6fa4b61de2eca6d8697cb05978fd93cfed` ; backend déployé au SHA `d860c6e`.
+Les trois cohortes et le scénario multi-comptes ont terminé sans erreur de contrôle, sans 429,
+sans timeout à 10 secondes et sans itération non démarrée. Le workflow termine
+avec le code k6 99 parce que certains objectifs de latence restent dépassés.
+
+P95, en millisecondes ; la fenêtre inclut ici toutes les pages séquentielles
+du catalogue avant les lectures de planning en parallèle :
+
+| Portefeuille | Fenêtre avant → après | Catalogue / page avant → après | Index / lot avant → après | Détails complets → briques | Erreurs avant → après | Non démarrées avant → après |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| 10 | 767 → 1 040 | 256 → 227 | 365 → 366 | 508 → 542 | 0 % → 0 % | 0 → 0 |
+| 100 | 1 121 → 710 | 644 → 231 | 303 → 325 | 459 → 435 | 0 % → 0 % | 0 → 0 |
+| 1 000 | 45 348 → 1 975 | 8 828 → 261 | 10 001 → 579 | 8 374 → 575 | 14,8 % → 0 % | 31 → 0 |
+
+Sur 1 000 logements, le p95 de la fenêtre baisse de 95,6 % (environ 23 fois),
+et 164 fenêtres terminent contre 134. Sur 100, 165 fenêtres terminent contre
+164. Sur 10, 164 terminent dans les deux mesures, mais le p95 global augmente :
+les prix passent de 238 à 649 ms. Une seule exécution ne permet ni d'attribuer
+cette variation ni de promettre un gain universel sur les petits portefeuilles.
+
+Le scénario multi-comptes sans catalogue, cible 1 fenêtre/s, termine
+164 fenêtres dans les deux versions, avec zéro erreur, 429 ou itération perdue :
+
+| Mesure | Avant | Après |
+| --- | ---: | ---: |
+| Fenêtre p95 | 637 ms | 639 ms |
+| Index p95 | 621 ms | 613 ms |
+| Détails/briques p95 | 598 ms | 547 ms |
+| Fenêtre p99 | 722 ms | 784 ms |
+
+L'index et les briques restent au-dessus de 500 ms p95 ; le palier
+5 fenêtres/s n'a donc pas été exécuté. Ce résultat valide la stabilité au
+faible débit testé, pas une capacité multi-utilisateurs élevée. La cohorte
+1 000 dépasse également l'objectif de fenêtre API à 1 500 ms.
+
+Les plans réels représentatifs de 500 interventions passent de
+1 628 / 1 720 ms à **18,6 / 22,1 ms**. Le sous-plan `reservations` utilise
+`idx_baitly_reservation_org_intervention` : environ 1 499 / 1 500 blocs en
+cache visités, contre 258 500 par lot précédemment. Les 500 scans complets
+sont remplacés par 500 recherches indexées. Les lectures représentatives
+des réservations restent à 8 / 14 ms ; ce nouvel index cible bien le coût
+identifié plutôt que la sélection des séjours.
+
+Les 46 échantillons après correction observent un pic CPU serveur de 292 %
+et une RSS de 1,63 GiB à ce pic, contre 349 % et 1,80 GiB dans la référence.
+PostgreSQL culmine à 54 % contre 52 %. Aucun deadlock supplémentaire n'est
+comptabilisé. Ce sont des observations globales sur une exécution, influencées
+par la chauffe et le trafic ambiant, pas une mesure causale de heap ou de GC.
+
+### Ce qui reste à qualifier
+
+- Extraire les phases `Server-Timing` déjà exposées par les briques dans le
+  scénario k6, puis instrumenter les phases fixes de l'index (accès, séjours,
+  interventions, demandes, jours bloqués). Les latences HTTP restantes ne
+  prouvent pas que SQL ou le déchiffrement restent seuls responsables.
+- Répéter les petits portefeuilles avec une chauffe comparable, en particulier
+  les prix de la cohorte 10. Ne pas masquer cette régression ponctuelle par le
+  gain spectaculaire du portefeuille 1 000.
+- Atteindre les seuils du palier multi-comptes avant la montée 5/10 fenêtres/s,
+  puis prolonger la durée et diversifier propriétaires, intervenants et statuts.
+  Un test distribué devra distinguer capacité backend et limites par IP.
+- Refaire une trace navigateur avec la même période pour vérifier le temps
+  d'affichage complet. Les 1,98 s API de ce scénario ne remplacent pas les
+  2,19 s `baitly.planning.ready` observés auparavant à un utilisateur.
+
+Les quatre chantiers prioritaires ont maintenant une implémentation et une
+mesure : coordonnées à la demande, douze comptes relançables, trois tailles
+de portefeuille et correction SQL des interventions. Le passage à une charge
+élevée reste à valider au-delà du palier effectivement exécuté.
