@@ -176,7 +176,10 @@ class PlanningDataControllerTest {
 
     @Test void detailsValidateOwnershipBeforeDedicatedRead() {
         when(detailService.details(IDS, FROM, TO)).thenReturn(List.of());
-        assertThat(controller.reservationDetails(jwt, IDS, FROM, TO)).isEmpty();
+        var response = controller.reservationDetails(jwt, IDS, FROM, TO);
+        assertThat(response.getBody()).isEmpty();
+        assertThat(response.getHeaders().getFirst("Server-Timing"))
+                .matches("authz;dur=[0-9]+\\.[0-9]{3}, details;dur=[0-9]+\\.[0-9]{3}");
         var order = org.mockito.Mockito.inOrder(reservationService, detailService);
         order.verify(reservationService).validatePropertyAccessBatch(IDS, "user-123");
         order.verify(detailService).details(IDS, FROM, TO);

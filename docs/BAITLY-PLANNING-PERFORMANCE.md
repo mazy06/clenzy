@@ -230,3 +230,25 @@ Le préchargement des écrans fréquents démarre après ce repère, pendant l�
 Pour comparer deux versions, utiliser le même compte, la même période, le même zoom et les mêmes logements. Conserver le même réglage de cache et refaire plusieurs mesures. Une capture avec un profil de navigateur sans extensions aide à distinguer le coût du produit de celui des outils. Comparer le CLS, les tâches longues et `mount-to-ready` avec l’arrivée des réponses API et la bande de captures. Ces mesures à un utilisateur ne remplacent pas un test de charge multi-comptes.
 
 Les marqueurs ne contiennent aucun identifiant utilisateur ou de logement. Ils restent dans les API Performance du navigateur et ne déclenchent pas de nouvelle requête de télémétrie.
+
+## Démarrage et lecture serveur : lot suivant
+
+PostHog est importé dynamiquement uniquement lorsqu'une clé est configurée. Son
+initialisation, l'ajout du replay Sentry et le chargement du widget Crisp attendent
+le repère d'affichage du planning puis une période idle. Les autres routes attendent
+deux frames. Un délai de secours de 10 secondes évite de bloquer ces outils si la
+page échoue ; le callback idle est lui-même borné à 5 secondes. Sentry conserve
+la capture initiale des erreurs. Les événements PostHog explicites sont mis en
+attente dans une file mémoire limitée à 200, sans stockage supplémentaire ; une
+initialisation échouée vide cette file. Le masquage des textes, attributs et inputs
+des replays est conservé. L'autocapture ne commence qu'à l'initialisation différée.
+
+Les réponses réussies de `/api/planning/reservations` exposent `Server-Timing` :
+`authz` mesure la validation d'accès au lot et `details` l'appel transactionnel
+de lecture/conversion des détails. Ces durées ne mesurent pas les filtres de
+sécurité en amont, la sérialisation JSON ou le réseau. Les histogrammes existants
+`baitly_planning_reservations_seconds` séparent ensuite `read` et `mapping`.
+Les labels sont fixes et ne contiennent aucune donnée personnelle. Le prochain
+HAR permet de comparer ces phases au délai d'attente du premier octet, avant
+de choisir une optimisation SQL ou de déchiffrement. Aucun gain serveur ni
+capacité multi-utilisateurs ne peut être déduit de l'ajout de ces repères.

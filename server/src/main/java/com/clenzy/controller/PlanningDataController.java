@@ -129,15 +129,21 @@ public class PlanningDataController {
     }
 
     @GetMapping("/reservations")
-    public List<ReservationDto> reservationDetails(@AuthenticationPrincipal Jwt jwt,
+    public ResponseEntity<List<ReservationDto>> reservationDetails(@AuthenticationPrincipal Jwt jwt,
             @RequestParam List<Long> propertyIds,
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate from,
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate to) {
         validateIndexRange(from, to);
         if (propertyIds.size() > 100) throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Lot de détails limité à 100 logements");
+        long started = System.nanoTime();
         reservationService.validatePropertyAccessBatch(propertyIds, jwt.getSubject());
-        if (propertyIds.isEmpty()) return List.of();
-        return detailService.details(propertyIds, from, to);
+        long authorized = System.nanoTime();
+        List<ReservationDto> details = propertyIds.isEmpty() ? List.of() : detailService.details(propertyIds, from, to);
+        long completed = System.nanoTime();
+        // Fixed labels and durations only; no account, property or guest identifiers.
+        String timing = String.format(java.util.Locale.ROOT, "authz;dur=%.3f, details;dur=%.3f",
+                (authorized - started) / 1_000_000.0, (completed - authorized) / 1_000_000.0);
+        return ResponseEntity.ok().header("Server-Timing", timing).body(details);
     }
 
     private static void validateIndexRange(LocalDate from, LocalDate to) {
