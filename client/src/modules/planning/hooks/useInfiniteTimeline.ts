@@ -329,12 +329,10 @@ export function useInfiniteTimeline({
   );
 
   const scrollToAnchor = useCallback(() => {
-    requestAnimationFrame(() => {
-      const el = scrollRef.current;
-      if (!el) return;
-      const offset = inlineScrollForDate(anchorDate);
-      if (offset !== null) setInlineScroll(el, offset, isRtl);
-    });
+    const el = scrollRef.current;
+    if (!el) return;
+    const offset = inlineScrollForDate(anchorDate);
+    if (offset !== null) setInlineScroll(el, offset, isRtl);
   }, [anchorDate, inlineScrollForDate, isRtl]);
 
   // ── Repositionnement differe apres recentrage du buffer ──────────────────
