@@ -322,3 +322,41 @@ la grille complète est visible, pas seulement le LCP du header. Vérifier
 `Server-Timing`, les repères boot et que le chunk Replay arrive après le repère
 de disponibilité du planning. Plusieurs rechargements sont nécessaires pour
 distinguer un gain reproductible d'une variation de charge du staging.
+
+## Relevé 9 et publication conjointe des prix
+
+Comparaison des traces du 10 octobre à 08:05 et 09:10, même fenêtre centrale
+et 98 séjours pour 11 logements :
+
+| Mesure | Relevé 8 | Relevé 9 |
+| --- | ---: | ---: |
+| Navigation → planning prêt | 4 957 ms | 2 188 ms |
+| Montage → planning prêt | 1 917 ms | 1 514 ms |
+| Réponse détaillée centrale HTTP | 1 050 ms | 1 113 ms |
+| Réponse prix centrale HTTP | 308 ms | 141 ms |
+| Blocage du thread principal, premières 5 s | 1 399 ms | 294 ms |
+
+Le relevé 9 utilise davantage le cache : 203 ressources du frame principal
+servies depuis le cache navigateur/service worker contre 80 dans le relevé 8.
+Ces captures ne constituent donc pas une mesure contrôlée du gain du code.
+Le LCP (684 ms) concerne toujours le header ; le repère du planning est plus
+pertinent pour cette grille. Le CLS est de 0,032, contre 0,000065 auparavant.
+
+Les nouveaux repères isolent le démarrage : entrée évaluée à 193 ms,
+session reçue à 387 ms, profil reçu à 558 ms, planning monté à 673 ms.
+Sur la réponse centrale, `rows` vaut 31 ms, `contacts` 985 ms, dont
+770 ms de déchiffrement, et `mapping` 0,5 ms. Le coût dominant reste donc
+celui des coordonnées, sans amélioration démontrée de cette réponse HTTP.
+
+Les prix centraux sont reçus à 1 578 ms et les détails à 2 041 ms.
+Pour supprimer leur publication décalée, le squelette initial reste affiché
+jusqu'au règlement des requêtes de prix et de détails pour la période visible.
+Les prix prioritaires sont demandés avant ceux du buffer voisin ; ces derniers
+ne conditionnent pas la publication. Les prix désactivés ne sont pas attendus.
+Une erreur est affichée sans attente infinie. Après publication initiale,
+la grille reste montée pendant le scroll pour préserver sa position.
+
+Le repère `baitly.planning.ready` attend maintenant aussi les prix visibles.
+Il mesure donc une grille initiale plus complète. Au prochain relevé, comparer
+les réponses, ce repère et les captures visuelles, avec les mêmes conditions
+de cache et plusieurs rechargements pour confirmer la reproductibilité.

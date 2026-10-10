@@ -1,6 +1,7 @@
 import { useBaitlyReservationDetails, mergeBaitlyReservationDetails } from './hooks/useBaitlyReservationDetails';
 import { selectBaitlyHydratedEvents } from './utils/baitlyHydratedEvents';
 import { useBaitlyPlanningReady } from './hooks/useBaitlyPlanningReady';
+import { useBaitlyPlanningPublication } from './hooks/useBaitlyPlanningPublication';
 import { reservationToEvent } from './hooks/usePlanningData';
 import { useBaitlyInterventionLifecycle } from './hooks/useBaitlyInterventionLifecycle';
 import React, { useState, useEffect, useLayoutEffect, useRef, useCallback, useMemo } from 'react';
@@ -376,11 +377,6 @@ const PlanningPage: React.FC = () => {
   const priorityRange = useSettledRange(timeline.visibleRange.start, timeline.visibleRange.end, planningLayoutReady);
   const details = useBaitlyReservationDetails(detailsPropertyIds, fetchRange.start, fetchRange.end,
     pageScopedFetchReady, priorityRange);
-  const planningReady = planningLayoutReady && !loading && settled && !error && !details.error
-    && (!hasProperties || filteredProperties.length === 0
-      || (!isOverview && pageScopedFetchReady && details.priorityReady));
-  // Warm other screens only after the committed planning has had a paint opportunity.
-  useBaitlyPlanningReady(planningReady, warmHotRoutes);
   const reservations = useMemo(() => mergeBaitlyReservationDetails(indexReservations, details.reservations),
     [indexReservations, details.reservations]);
   const events = useMemo(() => {
@@ -399,12 +395,21 @@ const PlanningPage: React.FC = () => {
     ? null : selectedEventCandidate;
 
   // Pricing data (fetched only when toggle is ON)
-  const { pricingMap } = usePlanningPricing(
+  const { pricingMap, priorityReady: pricesReady, error: pricingError } = usePlanningPricing(
     paginatedPropertyIds,
     fetchRange.start,
     fetchRange.end,
     filters.showPrices && pageScopedFetchReady,
+    priorityRange,
   );
+
+  const gridDataSettled = !hasProperties || filteredProperties.length === 0
+    || (pageScopedFetchReady && details.priorityReady && pricesReady);
+  const gridPublished = useBaitlyPlanningPublication(planningLayoutReady && !loading && settled && gridDataSettled);
+  const planningReady = planningLayoutReady && !loading && settled && !error && !details.error
+    && gridDataSettled && !isOverview;
+  // Warm other screens only after prices and stays have had a paint opportunity.
+  useBaitlyPlanningReady(planningReady, warmHotRoutes);
 
   // Min-nights overrides (toujours fetch quand showPrices est ON, meme
   // indicateur que pour les prix : info contextuelle a la cellule)
@@ -948,9 +953,9 @@ const PlanningPage: React.FC = () => {
       )}
 
       {/* Error */}
-      {(error || details.error) && (
+      {(error || details.error || pricingError) && (
         <Alert variant="destructive" className="mx-[9px] mb-1.5 shrink-0">
-          <AlertDescription>{error || details.error}</AlertDescription>
+          <AlertDescription>{error || details.error || pricingError}</AlertDescription>
         </Alert>
       )}
 
@@ -959,7 +964,7 @@ const PlanningPage: React.FC = () => {
         <div className="baitly-portfolio-host flex-1 min-h-0 min-w-0 overflow-auto px-2">
           <PortfolioPanel createProvider={createPortfolioProvider} deps={['portfolio']} />
         </div>
-      ) : loading || !planningLayoutReady ? (
+      ) : loading || !planningLayoutReady || (!gridPublished && !gridDataSettled && !error) ? (
         /* Pas un sursis tournant : la grille a venir, vide. Elle occupe deja sa
            place — memes largeurs de colonne, meme hauteur de rangee —, donc
            rien ne se deplace quand les donnees arrivent. */
