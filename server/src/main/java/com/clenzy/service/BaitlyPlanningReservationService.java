@@ -50,6 +50,11 @@ public class BaitlyPlanningReservationService {
 
     @Transactional(readOnly = true)
     public Details details(List<Long> ids, LocalDate from, LocalDate to) {
+        return details(ids, from, to, true);
+    }
+
+    @Transactional(readOnly = true)
+    public Details details(List<Long> ids, LocalDate from, LocalDate to, boolean includePhone) {
         long started = System.nanoTime();
         Long org = tenant.getRequiredOrganizationId();
         var rows = readTimer.record(() -> reservations.findBaitlyPlanningDetails(
@@ -63,7 +68,8 @@ public class BaitlyPlanningReservationService {
         try (var timing = BaitlyFieldDecryptionTiming.open()) {
             contacts = contactsTimer.record(() -> guestIds.isEmpty()
                     ? java.util.Map.of()
-                    : guests.findBaitlyPlanningContacts(guestIds, org).stream().collect(
+                    : (includePhone ? guests.findBaitlyPlanningContacts(guestIds, org)
+                            : guests.findBaitlyPlanningCardContacts(guestIds, org)).stream().collect(
                         java.util.stream.Collectors.toMap(com.clenzy.dto.BaitlyPlanningGuestContact::id,
                             java.util.function.Function.identity())));
             decryptNanos = timing.nanos();

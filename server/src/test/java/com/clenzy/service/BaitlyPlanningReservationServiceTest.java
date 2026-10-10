@@ -47,4 +47,18 @@ class BaitlyPlanningReservationServiceTest {
         assertThat(service.details(List.of(2L), from, to).reservations()).hasSize(1);
         verifyNoInteractions(guests);
     }
+
+    @Test void gridReadsEmailAndAvatarWithoutReadingPhones() {
+        when(tenant.getRequiredOrganizationId()).thenReturn(8L);
+        var stay = new Reservation(); stay.setId(1L);
+        when(reservations.findBaitlyPlanningDetails(List.of(2L), from, to, 8L)).thenReturn(List.of(
+                new BaitlyPlanningReservationRow(stay, 2L, "Logement", 3L, null)));
+        when(guests.findBaitlyPlanningCardContacts(List.of(3L), 8L)).thenReturn(List.of(
+                new BaitlyPlanningGuestContact(3L, "guest@example.test", null, null)));
+        var result = service.details(List.of(2L), from, to, false);
+        assertThat(result.reservations().getFirst().guestEmail()).isEqualTo("guest@example.test");
+        assertThat(result.reservations().getFirst().guestPhone()).isNull();
+        verify(guests).findBaitlyPlanningCardContacts(List.of(3L), 8L);
+        verify(guests, never()).findBaitlyPlanningContacts(any(), any());
+    }
 }

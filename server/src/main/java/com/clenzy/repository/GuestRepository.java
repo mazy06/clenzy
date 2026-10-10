@@ -19,6 +19,12 @@ public interface GuestRepository extends JpaRepository<Guest, Long> {
     List<com.clenzy.dto.BaitlyPlanningGuestContact> findBaitlyPlanningContacts(
             @Param("ids") java.util.Collection<Long> ids, @Param("orgId") Long orgId);
 
+    /** La grille utilise l'email et l'avatar ; le téléphone est lu à l'ouverture du panneau. */
+    @Query("SELECT new com.clenzy.dto.BaitlyPlanningGuestContact(g.id, g.email, null, g.avatarUrl) "
+            + "FROM Guest g WHERE g.organizationId = :orgId AND g.id IN :ids")
+    List<com.clenzy.dto.BaitlyPlanningGuestContact> findBaitlyPlanningCardContacts(
+            @Param("ids") java.util.Collection<Long> ids, @Param("orgId") Long orgId);
+
     /**
      * Deduplication par canal et ID guest externe.
      * Utilisable en SQL car ces champs ne sont pas chiffres.

@@ -2,6 +2,7 @@ import { useBaitlyReservationDetails, mergeBaitlyReservationDetails } from './ho
 import { selectBaitlyHydratedEvents } from './utils/baitlyHydratedEvents';
 import { useBaitlyPlanningReady } from './hooks/useBaitlyPlanningReady';
 import { useBaitlyPlanningPublication } from './hooks/useBaitlyPlanningPublication';
+import { useBaitlyPlanningPanelReservation } from './hooks/useBaitlyPlanningPanelReservation';
 import { reservationToEvent } from './hooks/usePlanningData';
 import { useBaitlyInterventionLifecycle } from './hooks/useBaitlyInterventionLifecycle';
 import React, { useState, useEffect, useLayoutEffect, useRef, useCallback, useMemo } from 'react';
@@ -390,9 +391,12 @@ const PlanningPage: React.FC = () => {
   ), [events, filteredEvents, indexReservations, details.reservations, details.loadedWindows]);
   const selectedEventCandidate = selectedIndexEvent
     ? events.find((event) => event.id === selectedIndexEvent.id) ?? null : null;
-  const selectedEvent = selectedEventCandidate?.type === 'reservation'
+  const panelReservation = useBaitlyPlanningPanelReservation(selectedEventCandidate?.reservation?.id, selection.panelOpen);
+  const selectedEvent = useMemo(() => selectedEventCandidate?.type === 'reservation'
     && !details.reservations.some((r) => `res-${r.id}` === selectedEventCandidate.id)
-    ? null : selectedEventCandidate;
+    ? null : selectedEventCandidate?.type === 'reservation' && panelReservation.data
+      ? { ...selectedEventCandidate, reservation: panelReservation.data } : selectedEventCandidate,
+    [selectedEventCandidate, details.reservations, panelReservation.data]);
 
   // Pricing data (fetched only when toggle is ON)
   const { pricingMap, priorityReady: pricesReady, error: pricingError } = usePlanningPricing(
@@ -953,9 +957,9 @@ const PlanningPage: React.FC = () => {
       )}
 
       {/* Error */}
-      {(error || details.error || pricingError) && (
+      {(error || details.error || pricingError || panelReservation.error) && (
         <Alert variant="destructive" className="mx-[9px] mb-1.5 shrink-0">
-          <AlertDescription>{error || details.error || pricingError}</AlertDescription>
+          <AlertDescription>{error || details.error || pricingError || panelReservation.error?.message}</AlertDescription>
         </Alert>
       )}
 

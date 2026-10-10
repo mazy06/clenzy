@@ -123,7 +123,7 @@ public class PlanningDataController {
         reservationService.validatePropertyAccessBatch(propertyIds, jwt.getSubject());
         if (propertyIds.isEmpty()) return new BaitlyPlanningIndexData(List.of(), List.of(), List.of(), List.of());
         return new BaitlyPlanningIndexData(indexService.reservations(propertyIds, from, to),
-                canReadInterventions(authentication) ? interventionPlanningService.getPlanningInterventions(jwt, propertyIds, from, to, null) : List.of(),
+                canReadInterventions(authentication) ? interventionPlanningService.getBaitlyPlanningInterventions(propertyIds, from, to) : List.of(),
                 serviceRequestService.getPlanningServiceRequests(propertyIds, from.atStartOfDay(), to.atTime(LocalTime.MAX)),
                 blockedDays(propertyIds, from, to, jwt));
     }
@@ -133,13 +133,27 @@ public class PlanningDataController {
             @RequestParam List<Long> propertyIds,
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate from,
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate to) {
+        return readReservationDetails(jwt, propertyIds, from, to, true);
+    }
+
+    @GetMapping("/reservation-cards")
+    public ResponseEntity<List<ReservationDto>> reservationCards(@AuthenticationPrincipal Jwt jwt,
+            @RequestParam List<Long> propertyIds,
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate from,
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate to) {
+        return readReservationDetails(jwt, propertyIds, from, to, false);
+    }
+
+    private ResponseEntity<List<ReservationDto>> readReservationDetails(Jwt jwt,
+            List<Long> propertyIds, LocalDate from, LocalDate to, boolean includePhone) {
         validateIndexRange(from, to);
         if (propertyIds.size() > 100) throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Lot de détails limité à 100 logements");
         long started = System.nanoTime();
         reservationService.validatePropertyAccessBatch(propertyIds, jwt.getSubject());
         long authorized = System.nanoTime();
         var details = propertyIds.isEmpty() ? BaitlyPlanningReservationService.Details.empty()
-                : detailService.details(propertyIds, from, to);
+                : includePhone ? detailService.details(propertyIds, from, to)
+                    : detailService.details(propertyIds, from, to, false);
         long completed = System.nanoTime();
         // Fixed labels and durations only; no account, property or guest identifiers.
         String timing = String.format(java.util.Locale.ROOT, "authz;dur=%.3f, details;dur=%.3f, ",
