@@ -32,6 +32,7 @@ import java.util.Map;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.doThrow;
@@ -175,8 +176,13 @@ class PlanningDataControllerTest {
     }
 
     @Test void detailsValidateOwnershipBeforeDedicatedRead() {
-        when(detailService.details(IDS, FROM, TO)).thenReturn(List.of());
-        assertThat(controller.reservationDetails(jwt, IDS, FROM, TO)).isEmpty();
+        when(detailService.details(IDS, FROM, TO)).thenReturn(
+                new com.clenzy.service.BaitlyPlanningReservationService.Details(List.of(), 2_000_000, 5_000_000, 1_000_000, 4_000_000));
+        var response = controller.reservationDetails(jwt, IDS, FROM, TO);
+        assertThat(response.getBody()).isEmpty();
+        assertThat(response.getHeaders().getFirst("Server-Timing"))
+                .matches("authz;dur=[0-9]+\\.[0-9]{3}, details;dur=[0-9]+\\.[0-9]{3}, "
+                        + "rows;dur=2.000, contacts;dur=5.000, decrypt;dur=4.000, mapping;dur=1.000");
         var order = org.mockito.Mockito.inOrder(reservationService, detailService);
         order.verify(reservationService).validatePropertyAccessBatch(IDS, "user-123");
         order.verify(detailService).details(IDS, FROM, TO);
@@ -189,6 +195,23 @@ class PlanningDataControllerTest {
         assertThatThrownBy(() -> controller.reservationDetails(jwt, IDS, FROM, TO))
                 .isInstanceOf(org.springframework.security.access.AccessDeniedException.class);
         verify(detailService, never()).details(any(), any(), any());
+    }
+
+    @Test void cardsValidateOwnershipBeforeReadingWithoutPhones() {
+        when(detailService.details(IDS, FROM, TO, false)).thenReturn(
+                com.clenzy.service.BaitlyPlanningReservationService.Details.empty());
+        assertThat(controller.reservationCards(jwt, IDS, FROM, TO).getBody()).isEmpty();
+        var order = org.mockito.Mockito.inOrder(reservationService, detailService);
+        order.verify(reservationService).validatePropertyAccessBatch(IDS, "user-123");
+        order.verify(detailService).details(IDS, FROM, TO, false);
+    }
+
+    @Test void cardsForbiddenPropertyPreventsAnyContactRead() {
+        doThrow(new org.springframework.security.access.AccessDeniedException("refus"))
+                .when(reservationService).validatePropertyAccessBatch(IDS, "user-123");
+        assertThatThrownBy(() -> controller.reservationCards(jwt, IDS, FROM, TO))
+                .isInstanceOf(org.springframework.security.access.AccessDeniedException.class);
+        verify(detailService, never()).details(any(), any(), any(), anyBoolean());
     }
 
     @Test

@@ -168,7 +168,7 @@ export default function FunnelPicker({ open, onClose, onInsert, savedPresets = [
         {showSavedTab && (
           <TabBtn label="Mes parcours" count={savedPresets.length} active={activeTab === 'saved'} onClick={() => setTab('saved')} />
         )}
-        <TabBtn label="{t('studio.funnel.composeCustom')}" active={activeTab === 'compose'} onClick={() => setTab('compose')} />
+        <TabBtn label={t('studio.funnel.composeCustom')} active={activeTab === 'compose'} onClick={() => setTab('compose')} />
       </div>
 
       {/* ── Corps (scroll) ── */}
@@ -214,7 +214,7 @@ export default function FunnelPicker({ open, onClose, onInsert, savedPresets = [
                   {t('studio.funnel.basedOn')} <span className="font-semibold text-foreground">« {baseLabel} »</span>
                   {' — '}{editingId ? t('studio.funnel.willUpdate') : t('studio.funnel.willCreate')}
                 </span>
-                <SecondaryBtn icon={RotateCcw} label="{t('studio.funnel.reset')}" onClick={resetComposer} />
+                <SecondaryBtn icon={RotateCcw} label={t('studio.funnel.reset')} onClick={resetComposer} />
               </div>
             )}
 

@@ -58,6 +58,12 @@ export default defineConfig({
     // le reset Tailwind casserait la baseline Emotion/CssBaseline.
     tailwindcss(),
     VitePWA({
+      // Le CDN peut conserver les fichiers .js pendant un an. Une URL par
+      // version empêche de réinstaller un ancien worker après un déploiement.
+      // Le scope reste à la racine : la nouvelle version remplace l'inscription
+      // existante et conserve le parcours de mise à jour avec confirmation.
+      filename: `sw-${(process.env.VITE_APP_VERSION || 'local').replace(/[^a-zA-Z0-9._-]/g, '-')}.js`,
+      scope: '/',
       // 'prompt' : le nouveau SW est installe en background mais ne prend PAS
       // le controle automatiquement. On expose un hook useRegisterSW au composant
       // <AppUpdateBanner /> qui affiche une bannière "Nouvelle version disponible
@@ -192,34 +198,10 @@ export default defineConfig({
               cacheableResponse: { statuses: [0, 200] },
             },
           },
-          {
-            urlPattern: /^https:\/\/fonts\.googleapis\.com\/.*/i,
-            handler: 'CacheFirst',
-            options: {
-              cacheName: 'google-fonts-cache',
-              expiration: {
-                maxEntries: 10,
-                maxAgeSeconds: 60 * 60 * 24 * 365,
-              },
-              cacheableResponse: {
-                statuses: [0, 200],
-              },
-            },
-          },
-          {
-            urlPattern: /^https:\/\/fonts\.gstatic\.com\/.*/i,
-            handler: 'CacheFirst',
-            options: {
-              cacheName: 'gstatic-fonts-cache',
-              expiration: {
-                maxEntries: 10,
-                maxAgeSeconds: 60 * 60 * 24 * 365,
-              },
-              cacheableResponse: {
-                statuses: [0, 200],
-              },
-            },
-          },
+          // Google Fonts utilise le cache HTTP natif : son interception par
+          // Workbox transforme les lectures style/font en fetch connect-src,
+          // bloqués par la CSP Baitly. Garder les autorisations style-src et
+          // font-src existantes, sans élargir connect-src pour contourner cela.
         ],
       },
     }),
@@ -321,4 +303,3 @@ export default defineConfig({
     testTimeout: 20_000,
   },
 })
-

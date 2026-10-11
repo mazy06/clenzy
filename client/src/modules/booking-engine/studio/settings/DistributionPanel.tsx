@@ -77,7 +77,7 @@ const properties = await booking.getProperties();`;
   };
 
   return (
-    <SettingsPage title="Diffusion" description="{t('studio.distribution.subtitle')}">
+    <SettingsPage title="Diffusion" description={t('studio.distribution.subtitle')}>
       <SettingCard title="Statut" description="Tant qu'il est désactivé, le booking engine ne répond pas aux requêtes publiques.">
         <SettingRow
           label="Booking engine actif"
@@ -93,7 +93,7 @@ const properties = await booking.getProperties();`;
         </Alert>
       )}
 
-      <SettingCard title="{t('studio.distribution.hostedSite')}" description="Une page de réservation prête à l'emploi, sans rien installer.">
+      <SettingCard title={t('studio.distribution.hostedSite')} description="Une page de réservation prête à l'emploi, sans rien installer.">
         <div className="py-2 flex items-center gap-1.5 flex-wrap">
           <div className="inline-flex text-primary"><Globe size={18} strokeWidth={2} /></div>
           <div className="flex-1 min-w-[220px] [font-family:var(--font-mono,_monospace)] text-xs text-foreground whitespace-nowrap overflow-hidden text-ellipsis">
@@ -112,7 +112,7 @@ const properties = await booking.getProperties();`;
         </div>
       </SettingCard>
 
-      <SettingCard title="{t('studio.distribution.embeddableWidget')}" description="{t('studio.distribution.embedHint')}">
+      <SettingCard title={t('studio.distribution.embeddableWidget')} description={t('studio.distribution.embedHint')}>
         <div className="py-2">
           <CodeBlock icon={Code2} code={embedCode} copied={copiedId === 'embed'} onCopy={() => copy('embed', embedCode)} />
           <div className="text-2xs text-faint mt-2 mb-1">{t('studio.distribution.orIframe')}</div>
@@ -120,7 +120,7 @@ const properties = await booking.getProperties();`;
         </div>
       </SettingCard>
 
-      <SettingCard title="SDK & API" description="{t('studio.distribution.apiHint')}">
+      <SettingCard title="SDK & API" description={t('studio.distribution.apiHint')}>
         <SettingRow
           label={t('studio.distribution.apiKey')}
           helper="Authentifie vos requêtes. Régénérer invalide l'ancienne clé immédiatement."
@@ -135,7 +135,7 @@ const properties = await booking.getProperties();`;
               <IconBtn label={showKey ? 'Masquer' : 'Afficher'} onClick={() => setShowKey((s) => !s)}>
                 {showKey ? <EyeOff size={15} strokeWidth={2} /> : <Eye size={15} strokeWidth={2} />}
               </IconBtn>
-              <IconBtn label="{t('studio.distribution.copyKey')}" onClick={() => copy('key', apiKey)}>
+              <IconBtn label={t('studio.distribution.copyKey')} onClick={() => copy('key', apiKey)}>
                 {copiedId === 'key' ? <Check size={15} strokeWidth={2.4} /> : <Copy size={15} strokeWidth={2} />}
               </IconBtn>
             </div>

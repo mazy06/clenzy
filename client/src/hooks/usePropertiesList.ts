@@ -1,4 +1,4 @@
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { queryOptions, useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useMemo } from 'react';
 import { propertiesApi } from '../services/api/propertiesApi';
 import type { Property as ApiProperty } from '../services/api/propertiesApi';
@@ -52,6 +52,14 @@ export const propertiesListKeys = {
   all: ['properties-list'] as const,
 };
 
+// Le cache partagé conserve le DTO API. Chaque écran adapte ses données avec
+// select ; les écrans financiers ne reçoivent plus les objets UI convertis.
+export const propertiesListQuery = () => queryOptions({
+  queryKey: propertiesListKeys.all,
+  queryFn: () => propertiesApi.getAll(),
+  staleTime: (query) => query.state.data?.length === 0 ? 0 : 60_000,
+});
+
 // ============================================================================
 // Converter
 // ============================================================================
@@ -93,6 +101,8 @@ function convertProperty(raw: ApiProperty): PropertyListItem {
   };
 }
 
+const selectPropertyList = (data: ApiProperty[]) => extractApiList<ApiProperty>(data).map(convertProperty);
+
 // ============================================================================
 // Hook
 // ============================================================================
@@ -106,7 +116,7 @@ export interface UsePropertiesListReturn {
   isDeleting: boolean;
 }
 
-export function usePropertiesList(): UsePropertiesListReturn {
+export function usePropertiesList(enabled = true): UsePropertiesListReturn {
   const queryClient = useQueryClient();
 
   // Note: le backend détecte le rôle HOST via JWT et filtre automatiquement
@@ -114,13 +124,9 @@ export function usePropertiesList(): UsePropertiesListReturn {
 
   // ─── Properties query ──────────────────────────────────────────────
   const propertiesQuery = useQuery({
-    queryKey: propertiesListKeys.all,
-    queryFn: async () => {
-      const data = await propertiesApi.getAll();
-      return extractApiList<ApiProperty>(data).map(convertProperty);
-    },
-    // Revérifier un portefeuille vide au retour d'une création ou d'un import.
-    staleTime: (query) => query.state.data?.length === 0 ? 0 : 60_000,
+    ...propertiesListQuery(),
+    enabled,
+    select: selectPropertyList,
   });
 
   // ─── Delete mutation ───────────────────────────────────────────────

@@ -15,6 +15,17 @@ import java.util.List;
 import java.util.Optional;
 
 public interface UserRepository extends JpaRepository<User, Long>, JpaSpecificationExecutor<User> {
+    @Query("SELECT new com.clenzy.dto.BaitlyPlanningPersonName(u.id, u.firstName, u.lastName) "
+            + "FROM User u WHERE u.id IN :ids AND u.organizationId = :orgId")
+    List<com.clenzy.dto.BaitlyPlanningPersonName> findBaitlyPlanningAssignees(
+            @Param("ids") java.util.Collection<Long> ids, @Param("orgId") Long orgId);
+
+    /** Le nom suit les logements autorisés, même si le propriétaire appartient à plusieurs organisations. */
+    @Query("SELECT DISTINCT new com.clenzy.dto.BaitlyPlanningPersonName(u.id, u.firstName, u.lastName) "
+            + "FROM Property p JOIN p.owner u WHERE p.id IN :propertyIds AND p.organizationId = :orgId")
+    List<com.clenzy.dto.BaitlyPlanningPersonName> findBaitlyPlanningPropertyOwners(
+            @Param("propertyIds") java.util.Collection<Long> propertyIds, @Param("orgId") Long orgId);
+
     /** Sérialise la génération des reversements d'un propriétaire présent dans cette organisation. */
     @org.springframework.data.jpa.repository.Lock(jakarta.persistence.LockModeType.PESSIMISTIC_WRITE)
     @Query("select u from User u where u.id = :ownerId and exists "

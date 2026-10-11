@@ -4,12 +4,12 @@ import { usePageHeaderLayout } from '../usePageHeaderLayout';
 
 afterEach(() => { cleanup(); vi.restoreAllMocks(); vi.unstubAllGlobals(); });
 
-function Header({ anchored = true, contentKey = '' }: { anchored?: boolean; contentKey?: string }) {
+function Header({ anchored = true, contentKey = '', title = 'Titre et onglet' }: { anchored?: boolean; contentKey?: string; title?: string }) {
   const { headerRef, canInlineControls, compactSearch, compactActions } = usePageHeaderLayout(anchored, contentKey);
   return <div data-testid="page" style={{ paddingInlineStart: 24, paddingInlineEnd: 24, paddingTop: 24 }}>
     <header ref={headerRef} data-testid="header">
       <div data-header-row data-inline={canInlineControls}>
-        <div data-slot="page-title"><span>Titre et onglet</span></div>
+        <div data-slot="page-title"><span>{title}</span></div>
         <div data-header-toolbar>{canInlineControls && <select aria-label="Catégorie"><option>Toutes</option></select>}</div>
         <output>{compactSearch ? 'Recherche compacte' : 'Recherche complète'}</output>
         <output>{compactActions ? 'Menu actions' : 'Actions directes'}</output>
@@ -100,4 +100,19 @@ it('additionne les marges imbriquées de la page et du cadre principal', () => {
   render(<div data-testid="shell" style={{ padding: 12, paddingInlineStart: 12, paddingInlineEnd: 12 }}><Header /></div>);
   expect(screen.getByTestId('header').style.getPropertyValue('--page-header-gutter-start')).toBe('36px');
   expect(screen.getByTestId('header').style.getPropertyValue('--page-header-gutter-top')).toBe('36px');
+});
+
+it('réutilise les marges quand seul le contenu du header change', async () => {
+  dimensions();
+  const writes = vi.spyOn(CSSStyleDeclaration.prototype, 'setProperty');
+  const view = render(<Header />);
+  await waitFor(() => expect(screen.getByRole('combobox')).toBeVisible());
+  const headerStyle = screen.getByTestId('header').style;
+  const gutterWrites = () => writes.mock.calls.filter(([name], index) =>
+    writes.mock.contexts[index] === headerStyle && name.startsWith('--page-header-gutter-')).length;
+  const before = gutterWrites();
+  view.rerender(<Header title="Autre titre" />);
+  await act(async () => { await new Promise(requestAnimationFrame); await new Promise(requestAnimationFrame); });
+  expect(gutterWrites()).toBe(before);
+  expect(screen.getByTestId('header').style.getPropertyValue('--page-header-gutter-start')).toBe('24px');
 });

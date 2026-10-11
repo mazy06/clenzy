@@ -246,6 +246,35 @@ public class PaymentQueryService {
         int end = Math.min(start + size, merged.size());
         List<PaymentHistoryDto> pageContent = start < merged.size()
                 ? merged.subList(start, end) : List.of();
+        enrichHistory(orgId, pageContent);
+        return Map.of("content", pageContent, "totalElements", merged.size(),
+                "totalPages", (int) Math.ceil((double) merged.size() / size), "number", page, "size", size);
+    }
+
+    /** Les clés sont issues d'une requête déjà filtrée par organisation et propriétaire. */
+    @Transactional(readOnly = true)
+    public List<PaymentHistoryDto> hydrateBaitlyPaymentPage(List<com.clenzy.repository.BaitlyPaymentHistoryRepository.Key> keys) {
+        Long orgId = tenantContext.getRequiredOrganizationId();
+        Map<String, PaymentHistoryDto> records = new java.util.HashMap<>();
+        var missionIds = keys.stream().filter(k -> k.type().equals("INTERVENTION")).map(com.clenzy.repository.BaitlyPaymentHistoryRepository.Key::id).toList();
+        var bookingIds = keys.stream().filter(k -> k.type().equals("RESERVATION")).map(com.clenzy.repository.BaitlyPaymentHistoryRepository.Key::id).toList();
+        var requestIds = keys.stream().filter(k -> k.type().equals("SERVICE_REQUEST")).map(com.clenzy.repository.BaitlyPaymentHistoryRepository.Key::id).toList();
+        if (!missionIds.isEmpty()) {
+            var quotes = serviceQuoteRepository.findBaitlyPaymentPageQuotes(missionIds, orgId).stream()
+                    .collect(java.util.stream.Collectors.groupingBy(com.clenzy.model.ServiceQuote::getInterventionId));
+            interventionRepository.findBaitlyPaymentPage(missionIds, orgId)
+                    .forEach(i -> records.put("INTERVENTION:" + i.getId(), toPaymentHistoryDto(i, quotes.getOrDefault(i.getId(), List.of()))));
+        }
+        if (!bookingIds.isEmpty()) reservationRepository.findBaitlyPaymentPage(bookingIds, orgId)
+                .forEach(r -> records.put("RESERVATION:" + r.getId(), toReservationPaymentDto(r)));
+        if (!requestIds.isEmpty()) serviceRequestRepository.findBaitlyPaymentPage(requestIds, orgId)
+                .forEach(s -> records.put("SERVICE_REQUEST:" + s.getId(), toServiceRequestPaymentDto(s)));
+        var content = keys.stream().map(k -> records.get(k.type() + ":" + k.id())).filter(java.util.Objects::nonNull).toList();
+        enrichHistory(orgId, content);
+        return content;
+    }
+
+    private void enrichHistory(Long orgId, List<PaymentHistoryDto> pageContent) {
         var refundRows = interventionRefunds(orgId, pageContent.stream().filter(d -> "INTERVENTION".equals(d.type))
                 .map(d -> d.referenceId).toList());
         var missionIds = pageContent.stream().filter(d -> "INTERVENTION".equals(d.type)).map(d -> d.referenceId).toList();
@@ -277,13 +306,6 @@ public class PaymentQueryService {
             }
         });
 
-        return Map.of(
-            "content", pageContent,
-            "totalElements", merged.size(),
-            "totalPages", (int) Math.ceil((double) merged.size() / size),
-            "number", page,
-            "size", size
-        );
     }
 
     /**
@@ -447,6 +469,13 @@ public class PaymentQueryService {
     }
 
     private PaymentHistoryDto toPaymentHistoryDto(Intervention i) {
+        boolean needsQuote = (i.getPaymentStatus() == null || java.util.Set.of(PaymentStatus.PENDING, PaymentStatus.FAILED).contains(i.getPaymentStatus()))
+                && i.getStatus()!=null && i.getStatus()!=com.clenzy.model.InterventionStatus.CANCELLED;
+        return toPaymentHistoryDto(i, needsQuote ? serviceQuoteRepository
+                .findByInterventionIdAndOrganizationIdOrderByAmountAsc(i.getId(), i.getOrganizationId()) : List.of());
+    }
+
+    private PaymentHistoryDto toPaymentHistoryDto(Intervention i, List<com.clenzy.model.ServiceQuote> quotes) {
         PaymentHistoryDto dto = new PaymentHistoryDto();
         dto.id = i.getId();
         dto.referenceId = i.getId();
@@ -461,8 +490,7 @@ public class PaymentQueryService {
         dto.canCollect = java.util.Set.of("PENDING", "FAILED").contains(dto.status)
                 && i.getStatus() != null && i.getStatus() != com.clenzy.model.InterventionStatus.CANCELLED;
         if (dto.canCollect) {
-            dto.payableAmount = InterventionPaymentAmounts.payable(i, serviceQuoteRepository
-                    .findByInterventionIdAndOrganizationIdOrderByAmountAsc(i.getId(), i.getOrganizationId()), false);
+            dto.payableAmount = InterventionPaymentAmounts.payable(i, quotes, false);
             dto.canCollect = dto.payableAmount != null && dto.payableAmount.signum() > 0;
             dto.individualCheckout = dto.canCollect && i.getEstimatedCost()!=null && dto.payableAmount.compareTo(i.getEstimatedCost())<0;
         }

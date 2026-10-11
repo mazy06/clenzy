@@ -205,7 +205,10 @@
     "BaitlyEmailPreviewTest",
     "EmailWrapperServiceTest",
     "EmailChannelTest",
-    "TemplateInterpolationServiceTest"
+    "TemplateInterpolationServiceTest",
+    "BaitlyPaymentHistoryPostgresTest",
+    "BaitlyPaymentHistoryReaderTest",
+    "BaitlyPaymentHistoryControllerTest"
   ],
   "frontend": [
     "src/modules/accounting/components/HousekeeperPayoutsTab.test.tsx",

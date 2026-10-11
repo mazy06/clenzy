@@ -1870,9 +1870,9 @@ export default function GrapesStudio({ cfg, breakpoint, mode }: GrapesStudioProp
           <Separator orientation="vertical" className="mx-0.5 h-5" />
           {/* Import = mode Avancé uniquement (import de design multi-standards). Masqué en Guidé. */}
           {!guided && <ToolBtn icon={FolderInput} title={t('studio.import.panelTitle')} label={t('studio.grapes.importLabel')} onClick={() => setImportOpen(true)} />}
-          <ToolBtn icon={Workflow} title="{t('studio.grapes.funnelTooltip')}" label="Funnel" onClick={handleFunnel} />
-          <ToolBtn icon={PaintBucket} title="{t('studio.grapes.widgetStyles')}" label="Styles widgets" onClick={insertWidgetStyles} />
-          <ToolBtn icon={ImagePlus} title="{t('studio.grapes.siteLogo')}" label="Logo" onClick={() => logoInputRef.current?.click()} />
+          <ToolBtn icon={Workflow} title={t('studio.grapes.funnelTooltip')} label="Funnel" onClick={handleFunnel} />
+          <ToolBtn icon={PaintBucket} title={t('studio.grapes.widgetStyles')} label="Styles widgets" onClick={insertWidgetStyles} />
+          <ToolBtn icon={ImagePlus} title={t('studio.grapes.siteLogo')} label="Logo" onClick={() => logoInputRef.current?.click()} />
           <input ref={logoInputRef} type="file" accept="image/*" hidden onChange={() => { void handleLogoUpload(); }} />
           <div className="flex-1 min-w-[8px]" />
           <ToolBtn icon={SquareDashed} title="Afficher les contours d'édition" active={outlineOn} onClick={toggleOutline} />

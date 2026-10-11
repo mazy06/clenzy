@@ -86,7 +86,7 @@ export default function GrowthSettingsPanel() {
   return (
     <SettingsPage
       title="Croissance"
-      description="{t('studio.growth.subtitle')}"
+      description={t('studio.growth.subtitle')}
       footer={<SaveBar dirty={dirty} saving={saving} onSave={save} error={error} />}
       intro={
         <Alert variant="info" className="mb-3.5">
@@ -99,12 +99,12 @@ export default function GrowthSettingsPanel() {
     >
       <SettingCard title={t('studio.growth.leadCapture')} description={t('studio.growth.leadCaptureHint')}>
         <SettingRow
-          label="{t('studio.growth.enableLeadCapture')}"
+          label={t('studio.growth.enableLeadCapture')}
           helper="Désactivé, l’endpoint public de capture est refusé (403)."
           control={<ToggleControl checked={leadCapture} onChange={setLeadCapture} />}
         />
         <SettingRow
-          label="{t('studio.growth.exitIntent')}"
+          label={t('studio.growth.exitIntent')}
           helper="Affiche un popup « Ne partez pas les mains vides » à l’intention de sortie. Désactivé par défaut."
           control={<ToggleControl checked={leadCapturePopup} onChange={setLeadCapturePopup} />}
         />
@@ -112,21 +112,21 @@ export default function GrowthSettingsPanel() {
 
       <SettingCard title={t('studio.growth.cartRecovery')} description={t('studio.growth.cartRecoveryHint')}>
         <SettingRow
-          label="{t('studio.growth.enableCartRecovery')}"
+          label={t('studio.growth.enableCartRecovery')}
           helper="Désactivé, le planificateur n’envoie plus d’email de relance pour votre organisation."
           control={<ToggleControl checked={abandoned} onChange={setAbandoned} />}
         />
       </SettingCard>
 
-      <SettingCard title="{t('studio.growth.loyaltyCredit')}" description="{t('studio.growth.loyaltyHint')}">
+      <SettingCard title={t('studio.growth.loyaltyCredit')} description={t('studio.growth.loyaltyHint')}>
         <SettingRow
-          label="{t('studio.growth.creditPerStay')}"
+          label={t('studio.growth.creditPerStay')}
           helper="Crédité APRÈS le séjour (check-out passé), réutilisable lors d'une prochaine réservation. 0 = programme désactivé."
           control={<NumberControl value={loyalty} onChange={(v) => setLoyalty(v)} min={0} max={100} />}
         />
       </SettingCard>
 
-      <SettingCard title="Parrainage" description="{t('studio.growth.referralHint')}">
+      <SettingCard title="Parrainage" description={t('studio.growth.referralHint')}>
         <SettingRow
           label={t('studio.growth.creditPerReferral', { currency: currencySign(currency) })}
           helper="Montant crédité À CHAQUE côté (parrain et filleul) lorsque le filleul termine son 1er séjour direct. 0 = programme désactivé."
@@ -134,12 +134,12 @@ export default function GrowthSettingsPanel() {
         />
       </SettingCard>
 
-      <SettingCard title="Impact" description="{t('studio.growth.metricsHint')}">
+      <SettingCard title="Impact" description={t('studio.growth.metricsHint')}>
         {/* `bg-muted/40` : les tuiles se détachent de la carte qui les contient
             plutôt que d'empiler deux surfaces `bg-card` identiques. */}
         <div className="grid grid-cols-[1fr] min-[600px]:grid-cols-[1fr_1fr] gap-3 py-[9px]">
-          <StatTile icon={<Users />} label="{t('studio.growth.leadsCaptured')}" value={loaded.contactsCaptured} className="bg-muted/40" />
-          <StatTile icon={<ShoppingCart />} label="{t('studio.growth.cartsRecovered')}" value={loaded.cartsRecovered} className="bg-muted/40" />
+          <StatTile icon={<Users />} label={t('studio.growth.leadsCaptured')} value={loaded.contactsCaptured} className="bg-muted/40" />
+          <StatTile icon={<ShoppingCart />} label={t('studio.growth.cartsRecovered')} value={loaded.cartsRecovered} className="bg-muted/40" />
         </div>
       </SettingCard>
     </SettingsPage>

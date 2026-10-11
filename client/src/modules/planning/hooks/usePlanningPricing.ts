@@ -1,6 +1,6 @@
 import type { CalendarPricingDayForProperty } from '../../../services/api/calendarPricingApi';
 import { useMemo, useCallback } from 'react';
-import { useQueries, type UseQueryResult } from '@tanstack/react-query';
+import { useQueries, useQueryClient, type UseQueryResult } from '@tanstack/react-query';
 import { calendarPricingApi } from '../../../services/api/calendarPricingApi';
 import type { CalendarPricingDay } from '../../../services/api';
 import { getOverlappingChunks, toDateStr } from '../utils/dateUtils';
@@ -24,6 +24,8 @@ export type PricingMap = Map<number, Map<string, CalendarPricingDay>>;
 export interface UsePlanningPricingReturn {
   pricingMap: PricingMap;
   isLoading: boolean;
+  priorityReady: boolean;
+  error: string | null;
 }
 
 export function usePlanningPricing(
@@ -31,6 +33,7 @@ export function usePlanningPricing(
   bufferStart: Date,
   bufferEnd: Date,
   enabled: boolean,
+  priorityRange = { start: bufferStart, end: bufferEnd },
 ): UsePlanningPricingReturn {
   const chunks = useMemo(
     () => getOverlappingChunks(bufferStart, bufferEnd, DATA_CHUNK_SIZE_DAYS),
@@ -42,6 +45,16 @@ export function usePlanningPricing(
   // différente pour le même lot.
   const sortedIds = useMemo(() => [...propertyIds].sort((a, b) => a - b), [propertyIds]);
   const active = enabled && sortedIds.length > 0;
+  const priorityFrom = toDateStr(priorityRange.start);
+  const priorityTo = toDateStr(priorityRange.end);
+  const requests = useMemo(() => chunks.map((chunk) => ({ ...chunk,
+    priority: chunk.from <= priorityTo && chunk.to >= priorityFrom,
+  })), [chunks, priorityFrom, priorityTo]);
+  const client = useQueryClient();
+  const prioritySettled = active && requests.filter((request) => request.priority).every((chunk) => {
+    const state = client.getQueryState(pricingKeys.batch(sortedIds, chunk.from, chunk.to));
+    return !!state && (state.dataUpdatedAt > 0 || state.errorUpdatedAt > 0);
+  });
 
   // `combine` : sans lui, `useQueries` rend un tableau d'identité neuve à chaque
   // rendu, la map dérivée était donc recalculée en boucle et cassait la
@@ -61,20 +74,23 @@ export function usePlanningPricing(
         if (!dateMap.has(day.date)) dateMap.set(day.date, day);
       }
     }
-    return { pricingMap: map, isLoading: results.some((r) => r.isLoading) };
-  }, []);
+    return { pricingMap: map, isLoading: results.some((r) => r.isLoading),
+      priorityReady: !active || results.every((result, index) => !requests[index]?.priority
+        || result.isSuccess || result.isError),
+      error: results.find((result) => result.error)?.error?.message ?? null,
+    };
+  }, [active, requests]);
 
-  const { pricingMap, isLoading } = useQueries({
+  return useQueries({
     queries: active
-      ? chunks.map((chunk) => ({
+      ? requests.map((chunk) => ({
           queryKey: pricingKeys.batch(sortedIds, chunk.from, chunk.to),
           queryFn: ({ signal }) => calendarPricingApi.getPricingBatch(sortedIds, chunk.from, chunk.to, signal),
           staleTime: 60_000,
           gcTime: 5 * 60 * 1000,
+          enabled: chunk.priority || prioritySettled,
         }))
       : [],
     combine: combineResults,
   });
-
-  return { pricingMap, isLoading };
 }

@@ -55,3 +55,43 @@ it('reconnects after transport failure and cancels reconnection on unmount', asy
   await act(async () => { vi.advanceTimersByTime(60_000); });
   expect(fetch).toHaveBeenCalledTimes(2);
 });
+
+it('backs off when HTTP 200 responses repeatedly fail while reading the stream', async () => {
+  vi.useFakeTimers();
+  const releaseLock = vi.fn();
+  const fetch = vi.fn().mockImplementation(async () => ({
+    ok: true,
+    body: { getReader: () => ({ read: async () => { throw new Error('QUIC stream failed'); }, releaseLock }) },
+  }));
+  vi.stubGlobal('fetch', fetch);
+  renderHook(() => useAssignmentEventStream('user:org'), { wrapper });
+  await act(async () => { await vi.advanceTimersByTimeAsync(0); });
+  expect(fetch).toHaveBeenCalledTimes(1);
+  await act(async () => { await vi.advanceTimersByTimeAsync(2_000); });
+  expect(fetch).toHaveBeenCalledTimes(2);
+  await act(async () => { await vi.advanceTimersByTimeAsync(2_000); });
+  expect(fetch).toHaveBeenCalledTimes(2);
+  await act(async () => { await vi.advanceTimersByTimeAsync(2_000); });
+  expect(fetch).toHaveBeenCalledTimes(3);
+  expect(releaseLock).toHaveBeenCalledTimes(3);
+});
+
+it('restores the short reconnect delay after a stream has stayed healthy', async () => {
+  vi.useFakeTimers();
+  let failRead!: (error: Error) => void;
+  const read = new Promise<never>((_, reject) => { failRead = reject; });
+  const fetch = vi.fn()
+    .mockRejectedValueOnce(new Error('offline'))
+    .mockResolvedValueOnce({ ok: true, body: { getReader: () => ({ read: () => read, releaseLock: vi.fn() }) } })
+    .mockRejectedValue(new Error('offline'));
+  vi.stubGlobal('fetch', fetch);
+  renderHook(() => useAssignmentEventStream('user:org'), { wrapper });
+  await act(async () => { await vi.advanceTimersByTimeAsync(2_000); });
+  expect(fetch).toHaveBeenCalledTimes(2);
+  await act(async () => { await vi.advanceTimersByTimeAsync(30_000); });
+  await act(async () => { failRead(new Error('connection closed')); await Promise.resolve(); });
+  await act(async () => { await vi.advanceTimersByTimeAsync(1_999); });
+  expect(fetch).toHaveBeenCalledTimes(2);
+  await act(async () => { await vi.advanceTimersByTimeAsync(1); });
+  expect(fetch).toHaveBeenCalledTimes(3);
+});

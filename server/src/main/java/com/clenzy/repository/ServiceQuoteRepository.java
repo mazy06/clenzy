@@ -11,6 +11,8 @@ import java.util.List;
 import java.util.Optional;
 
 public interface ServiceQuoteRepository extends JpaRepository<ServiceQuote, Long> {
+    @Query("SELECT q FROM ServiceQuote q WHERE q.interventionId IN :ids AND q.organizationId=:orgId ORDER BY q.amount")
+    List<ServiceQuote> findBaitlyPaymentPageQuotes(@Param("ids") List<Long> ids, @Param("orgId") Long orgId);
     List<ServiceQuote> findByServiceRequestIdAndOrganizationIdOrderByCreatedAtDesc(Long requestId,Long organizationId);
     @Modifying(flushAutomatically=true)
     @Query("UPDATE ServiceQuote q SET q.status=com.clenzy.model.ServiceQuote.Status.REJECTED WHERE q.serviceRequestId=:requestId AND q.organizationId=:orgId AND q.id<>:winner AND q.status=com.clenzy.model.ServiceQuote.Status.RECEIVED")

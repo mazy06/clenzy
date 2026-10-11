@@ -3,7 +3,8 @@ package com.clenzy.config;
 import com.clenzy.exception.FieldDecryptionException;
 import jakarta.persistence.AttributeConverter;
 import jakarta.persistence.Converter;
-import org.jasypt.util.text.AES256TextEncryptor;
+import org.jasypt.encryption.pbe.PooledPBEStringEncryptor;
+import org.jasypt.iv.RandomIvGenerator;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
@@ -35,7 +36,7 @@ public class EncryptedFieldConverter implements AttributeConverter<String, Strin
 
     private static final Logger log = LoggerFactory.getLogger(EncryptedFieldConverter.class);
 
-    private static AES256TextEncryptor encryptor;
+    private static volatile PooledPBEStringEncryptor encryptor;
 
     /**
      * Mode strict (defaut) : un echec de dechiffrement leve une
@@ -53,8 +54,15 @@ public class EncryptedFieldConverter implements AttributeConverter<String, Strin
      */
     @Value("${jasypt.encryptor.password}")
     public void setEncryptorPassword(String password) {
-        encryptor = new AES256TextEncryptor();
-        encryptor.setPassword(password);
+        // Même StandardPBEStringEncryptor, algorithme et IV que AES256TextEncryptor.
+        // Les autres paramètres et le format restent les défauts Jasypt existants.
+        // Plusieurs requêtes peuvent travailler sans attendre le verrou d'un seul Cipher.
+        var pooled = new PooledPBEStringEncryptor();
+        pooled.setAlgorithm("PBEWithHMACSHA512AndAES_256");
+        pooled.setIvGenerator(new RandomIvGenerator());
+        pooled.setPassword(password);
+        pooled.setPoolSize(Math.max(1, Math.min(4, Runtime.getRuntime().availableProcessors())));
+        encryptor = pooled;
         log.debug("EncryptedFieldConverter initialise avec succes");
     }
 
@@ -90,7 +98,7 @@ public class EncryptedFieldConverter implements AttributeConverter<String, Strin
             return dbData;
         }
         try {
-            return encryptor.decrypt(dbData);
+            return com.clenzy.util.BaitlyFieldDecryptionTiming.record(() -> encryptor.decrypt(dbData));
         } catch (Exception e) {
             // Z1-SEC-08 : ne plus renvoyer silencieusement la valeur brute (le
             // ciphertext ou une donnee alteree serait servie comme valeur metier
