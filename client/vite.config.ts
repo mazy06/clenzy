@@ -1,5 +1,5 @@
 import { createHash } from 'node:crypto'
-import { readFileSync, readdirSync } from 'node:fs'
+import { existsSync, readFileSync, readdirSync } from 'node:fs'
 import { join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { defineConfig, type Plugin } from 'vite'
@@ -31,6 +31,11 @@ function localeVersionPlugin(): Plugin {
     },
   }
 }
+
+// Carte Baitly en dev : sans archive locale (`public/maps/`, 20 Go, cf. scripts/maps/README.md),
+// `/maps/` est relaye vers le stockage public des cartes, comme le fait nginx en prod.
+const localMapTiles = existsSync(fileURLToPath(new URL('./public/maps/baitly.pmtiles', import.meta.url)))
+const devMapsOrigin = new URL(process.env.BAITLY_MAPS_ORIGIN ?? 'https://baitly-cartes.s3.gra.io.cloud.ovh.net/maps')
 
 export default defineConfig({
   resolve: {
@@ -273,14 +278,21 @@ export default defineConfig({
         target: 'http://copilot-runtime:8080',
         changeOrigin: true,
       },
-      // Carte Baitly en dev : l'archive et le sprite Baitly viennent de `public/maps/`
-      // (cf. scripts/maps/README.md) ; seuls les glyphes sont relayes depuis leur
-      // depot public d'origine. En prod, nginx relaie tout `/maps/` vers le stockage.
+      // Carte Baitly en dev : avec une archive locale, tout vient de `public/maps/` sauf les
+      // glyphes Noto, relayes depuis leur depot d'origine ; sinon `/maps/` entier part vers
+      // le stockage des cartes (cf. devMapsOrigin). En prod, nginx relaie tout `/maps/`.
       '^/maps/assets/fonts/Noto': {
         target: 'https://protomaps.github.io',
         changeOrigin: true,
         rewrite: (path) => path.replace(/^\/maps\/assets/, '/basemaps-assets'),
       },
+      ...(localMapTiles ? {} : {
+        '/maps/': {
+          target: devMapsOrigin.origin,
+          changeOrigin: true,
+          rewrite: (path: string) => path.replace(/^\/maps/, devMapsOrigin.pathname.replace(/\/$/, '')),
+        },
+      }),
     },
   },
   test: {
