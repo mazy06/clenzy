@@ -194,6 +194,11 @@ export const propertiesApi = {
     return apiClient.get<Property>(`/properties/${id}`);
   },
 
+  /** État du jour des logements en mouvement (arrivée, départ, rotation, occupé) — carte. */
+  getMapStates() {
+    return apiClient.get<Array<{ propertyId: number; state: 'TURNOVER' | 'ARRIVAL' | 'DEPARTURE' | 'OCCUPIED' }>>('/properties/map-states');
+  },
+
   canAssign(id: number) {
     return apiClient.get<boolean>(`/properties/${id}/can-assign`);
   },

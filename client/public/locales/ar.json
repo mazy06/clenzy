@@ -2892,7 +2892,14 @@
       "store": "المتجر",
       "address": "العنوان",
       "openingHours": "ساعات العمل",
-      "property": "العقار"
+      "property": "العقار",
+      "locationPhotos": "صور الموقع",
+      "locationPhotosHint": "أظهر مكان الصندوق أو المتجر: الشارع والمدخل والصندوق نفسه. حتى 6 صور.",
+      "addPhotos": "إضافة صور",
+      "removePhoto": "حذف الصورة",
+      "photosUploaded": "تمت إضافة الصور",
+      "photoRemoved": "تم حذف الصورة",
+      "photosFailed": "تعذّر رفع الصور"
     },
     "accessCode": {
       "stayCode": "رمز الإقامة — مُرسَل إلى هذا القفل",
@@ -10409,8 +10416,7 @@
         "progress": "التقدّم",
         "access": "إرشادات الدخول",
         "parking": "الوقوف",
-        "photos": "صور",
-        "openMap": "فتح في الخرائط"
+        "photos": "صور"
       },
       "request": {
         "nature": "طبيعة الطلب",
@@ -16482,8 +16488,50 @@
   "photoUploader": {
     "dropHere": "اسحب صورك وأفلتها هنا"
   },
+  "baitlyMap": {
+    "view3d": "العرض ثلاثي الأبعاد",
+    "view2d": "العرض المسطّح",
+    "controls": {
+      "close": "إغلاق",
+      "zoomIn": "تكبير",
+      "zoomOut": "تصغير",
+      "resetBearing": "إعادة الاتجاه نحو الشمال",
+      "attribution": "عرض المصادر"
+    },
+    "card": {
+      "loadError": "تعذّر تحميل التفاصيل.",
+      "team": "الفريق المكلّف",
+      "assignee": "المنفّذ",
+      "merchant": "تاجر",
+      "individual": "فرد",
+      "activeCodes": "الرموز النشطة: {{count}}",
+      "noLocationPhoto": "لا توجد صورة للموقع بعد.",
+      "openPoint": "عرض النقطة"
+    },
+    "directions": {
+      "title": "الاتجاهات",
+      "viewOnMap": "عرض على خريطة Baitly",
+      "navigateWith": "الاتجاهات عبر",
+      "appleMaps": "خرائط Apple",
+      "googleMaps": "خرائط Google",
+      "waze": "Waze"
+    },
+    "cluster": "{{count}} مواقع، كبّر لرؤيتها",
+    "legend": "مفتاح الخريطة",
+    "states": {
+      "alert": "تنبيه",
+      "late": "متأخر",
+      "turnover": "تبديل (تنظيف عاجل)",
+      "arrival": "وصول",
+      "departure": "مغادرة",
+      "today": "اليوم",
+      "occupied": "مشغول",
+      "done": "منتهية",
+      "closed": "ملغاة",
+      "inactive": "غير نشط"
+    }
+  },
   "locationPicker": {
-    "mapboxMissing": "لم يُضبط Mapbox — يتعذّر عرض خريطة التحديد.",
     "centerOnMarker": "التوسيط على العلامة",
     "hint": "نصيحة: انقر على الخريطة أو اسحب العلامة لضبط الموضع بدقة."
   },
@@ -20764,8 +20812,7 @@
       "location": {
         "title": "الموقع",
         "city": "المدينة",
-        "coordinates": "إحداثيات GPS",
-        "openGoogleMaps": "فتح في خرائط Google"
+        "coordinates": "إحداثيات GPS"
       },
       "management": {
         "title": "الإدارة",

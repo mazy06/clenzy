@@ -272,5 +272,9 @@
       "scheduled": "Change scheduled. It takes effect after the next invoice is paid.",
       "confirm": "Confirm this change"
     }
+  },
+  "directions": {
+    "title": "Directions with",
+    "appleMaps": "Apple Maps"
   }
 }

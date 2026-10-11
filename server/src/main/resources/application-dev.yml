@@ -272,7 +272,5 @@ clenzy:
     contact-dir: ${CONTACT_UPLOADS_DIR:/app/uploads/contact}
     templates-dir: ${TEMPLATES_DIR:/app/uploads/templates}
     documents-dir: ${DOCUMENTS_DIR:/app/uploads/documents}
-  mapbox:
-    access-token: ${MAPBOX_ACCESS_TOKEN:}
   libreoffice:
     url: ${LIBREOFFICE_URL:http://clenzy-libreoffice:3000}

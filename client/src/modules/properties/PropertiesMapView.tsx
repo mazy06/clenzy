@@ -5,11 +5,16 @@ import { Home } from '../../icons';
 import { useTranslation } from '../../hooks/useTranslation';
 import { useHomeMapCenter } from '../../hooks/useHomeMapCenter';
 import EmptyState from '../../components/EmptyState';
-import { MapboxPropertyMap } from '../../components/MapboxPropertyMap';
+import { BaitlyPropertyMap } from '../../components/BaitlyPropertyMap';
+import PropertyMapCard from './PropertyMapCard';
+import KeyPointMapCard from '../connected-objects/KeyPointMapCard';
+import { useQuery } from '@tanstack/react-query';
+import { keyExchangeApi } from '../../services/api/keyExchangeApi';
+import { propertiesApi } from '../../services/api/propertiesApi';
+import type { MarkerState } from '../../components/map/markerStates';
 import MapWithSheet from '../../components/baitly/MapWithSheet';
 import PropertyMapRow from './PropertyMapRow';
-import type { NavigateFunction } from 'react-router-dom';
-import type { PropertyMarker, MapBounds } from '../../components/MapboxPropertyMap';
+import type { PropertyMarker, MapBounds } from '../../components/BaitlyPropertyMap';
 import type { PropertyListItem } from '../../hooks/usePropertiesList';
 import type { ChannexMappingDto } from '../../services/api/channexApi';
 
@@ -31,7 +36,6 @@ interface PropertiesMapViewProps {
   missingContractIds: Set<number>;
   /** Clic sur le badge « Contrat manquant » : ouvre la modal de contrat préselectionnée. */
   onMissingContractClick: (propertyId: number) => void;
-  navigate: NavigateFunction;
 }
 
 /**
@@ -46,12 +50,61 @@ interface PropertiesMapViewProps {
  * champ. Le panneau latéral les rend simultanées, ce qui est le propre d'une
  * vue carte : déplacer la carte MET À JOUR la liste, sous les yeux.</p>
  */
+const DAY_STATES: Record<string, MarkerState> = {
+  TURNOVER: 'turnover',
+  ARRIVAL: 'arrival',
+  DEPARTURE: 'departure',
+  OCCUPIED: 'occupied',
+};
+
+/** Une maintenance ou une désactivation prime sur le planning du jour. */
+function propertyMarkerState(
+  marker: PropertyMarker,
+  dayStates: Array<{ propertyId: number; state: string }> | undefined,
+): MarkerState | undefined {
+  if (marker.state === 'alert' || marker.state === 'inactive') return marker.state;
+  const day = dayStates?.find((entry) => entry.propertyId === marker.id);
+  return day ? DAY_STATES[day.state] : marker.state;
+}
+
 const PropertiesMapView: React.FC<PropertiesMapViewProps> = ({
   mapMarkers, viewportProperties, channexMappings, onBoundsChange, onDiagnose,
-  canManageContracts, missingContractIds, onMissingContractClick, navigate,
+  canManageContracts, missingContractIds, onMissingContractClick,
 }) => {
   const { t } = useTranslation();
   const homeCenter = useHomeMapCenter();
+
+  // Points de remise des clés des logements affichés : mêmes filtres que la liste.
+  const pointsQuery = useQuery({
+    queryKey: ['key-exchange-points'],
+    queryFn: () => keyExchangeApi.getPoints(),
+    staleTime: 60_000,
+  });
+  const keyPoints = useMemo(() => {
+    const shown = new Set(mapMarkers.map((marker) => marker.id));
+    return (pointsQuery.data ?? []).filter(
+      (point) => point.storeLat != null && point.storeLng != null && shown.has(point.propertyId),
+    );
+  }, [pointsQuery.data, mapMarkers]);
+  // État du jour (arrivée, départ, rotation, occupé) : l'anneau des épingles lit le planning.
+  const statesQuery = useQuery({
+    queryKey: ['properties', 'map-states'],
+    queryFn: () => propertiesApi.getMapStates(),
+    staleTime: 5 * 60_000,
+  });
+  const markers = useMemo<PropertyMarker[]>(
+    () => [
+      ...mapMarkers.map((marker) => ({ ...marker, state: propertyMarkerState(marker, statesQuery.data) })),
+      ...keyPoints.map((point) => ({
+        id: point.id,
+        lat: point.storeLat as number,
+        lng: point.storeLng as number,
+        name: point.storeName,
+        type: 'key_exchange' as const,
+      })),
+    ],
+    [mapMarkers, keyPoints, statesQuery.data],
+  );
 
   const [visibleCount, setVisibleCount] = useState(BATCH_SIZE);
   const endRef = useRef<HTMLDivElement>(null);
@@ -116,12 +169,16 @@ const PropertiesMapView: React.FC<PropertiesMapViewProps> = ({
       className="baitly-properties-map min-h-[480px]"
       listResetKey={`${viewportProperties.length}:${viewportProperties[0]?.id ?? ''}`}
       map={
-        <MapboxPropertyMap
-          properties={mapMarkers}
+        <BaitlyPropertyMap
+          properties={markers}
           center={homeCenter}
           height="100%"
-          onMarkerClick={(marker) => {
-            if (marker.id) navigate(`/properties/${marker.id}`);
+          renderPopup={(marker) => {
+            if (marker.type === 'key_exchange') {
+              const point = keyPoints.find((candidate) => candidate.id === marker.id);
+              return point ? <KeyPointMapCard point={point} /> : null;
+            }
+            return marker.id ? <PropertyMapCard propertyId={marker.id} /> : null;
           }}
           onBoundsChange={onBoundsChange}
         />

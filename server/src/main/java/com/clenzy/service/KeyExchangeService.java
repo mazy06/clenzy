@@ -51,6 +51,7 @@ public class KeyExchangeService {
     private final TenantContext tenantContext;
     private final KeyVerificationThrottle verificationThrottle;
     private final OrganizationAccessGuard organizationAccessGuard;
+    private final KeyExchangePointPhotoRegistry photoRegistry;
 
     public KeyExchangeService(KeyExchangePointRepository pointRepository,
                               KeyExchangeCodeRepository codeRepository,
@@ -58,7 +59,8 @@ public class KeyExchangeService {
                               PropertyRepository propertyRepository,
                               TenantContext tenantContext,
                               KeyVerificationThrottle verificationThrottle,
-                              OrganizationAccessGuard organizationAccessGuard) {
+                              OrganizationAccessGuard organizationAccessGuard,
+                              KeyExchangePointPhotoRegistry photoRegistry) {
         this.pointRepository = pointRepository;
         this.codeRepository = codeRepository;
         this.eventRepository = eventRepository;
@@ -66,6 +68,7 @@ public class KeyExchangeService {
         this.tenantContext = tenantContext;
         this.verificationThrottle = verificationThrottle;
         this.organizationAccessGuard = organizationAccessGuard;
+        this.photoRegistry = photoRegistry;
     }
 
     // ═══════════════════════════════════════════════════════════════
@@ -91,11 +94,15 @@ public class KeyExchangeService {
      * Liste tous les points d'echange actifs de l'organisation.
      */
     public List<KeyExchangePointDto> getPoints(String userId) {
-        return pointRepository
+        List<KeyExchangePointDto> points = pointRepository
                 .findByOrganizationIdAndStatus(tenantContext.getRequiredOrganizationId(), PointStatus.ACTIVE)
                 .stream()
                 .map(this::toPointDto)
                 .collect(Collectors.toList());
+        // Photos d'emplacement de tous les points en une requête (pas une par point).
+        var photos = photoRegistry.listFor(points.stream().map(KeyExchangePointDto::getId).toList());
+        points.forEach(point -> point.setPhotos(photos.getOrDefault(point.getId(), List.of())));
+        return points;
     }
 
     /**

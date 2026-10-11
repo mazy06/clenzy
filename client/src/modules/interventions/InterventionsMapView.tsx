@@ -12,11 +12,13 @@ import { getStatusTokens, getPriorityTokens } from './interventionUtils';
 import { getProgress } from './interventionsListConstants';
 
 import PagedMissionMap from "../../components/PagedMissionMap";
+import InterventionMapCard from "./InterventionMapCard";
 import type { MissionMapFilters } from "../../hooks/useMissionMap";
 
 export default function InterventionsMapView({ filters }: { filters: MissionMapFilters }) {
   const { t } = useTranslation();
   return <PagedMissionMap<Intervention> kind="interventions" filters={filters}
+      renderPopup={marker => marker.id ? <InterventionMapCard interventionId={marker.id} /> : null}
       renderRow={intervention => {
         const progress = getProgress(intervention);
         return <ServiceMapRow key={intervention.id}

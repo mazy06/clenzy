@@ -47,7 +47,9 @@ emit VITE_STRIPE_PUBLISHABLE_KEY "${VITE_STRIPE_PUBLISHABLE_KEY:-}"
 emit VITE_SENTRY_DSN             "${VITE_SENTRY_DSN:-}"
 emit VITE_POSTHOG_KEY            "${VITE_POSTHOG_KEY:-}"
 emit VITE_POSTHOG_HOST           "${VITE_POSTHOG_HOST:-}"
-emit VITE_MAPBOX_TOKEN           "${VITE_MAPBOX_TOKEN:-}"
+emit VITE_MAP_TILES_URL          "${VITE_MAP_TILES_URL:-}"
+emit VITE_MAP_ASSETS_URL         "${VITE_MAP_ASSETS_URL:-}"
+emit VITE_MAP_TERRAIN_URL        "${VITE_MAP_TERRAIN_URL:-}"
 emit VITE_BAITLY_CAPTCHA_ENABLED "${VITE_BAITLY_CAPTCHA_ENABLED:-false}"
 emit VITE_TURNSTILE_SITE_KEY     "${VITE_TURNSTILE_SITE_KEY:-}"
 emit VITE_CRISP_WEBSITE_ID       "${VITE_CRISP_WEBSITE_ID:-}"
@@ -112,6 +114,58 @@ location ^~ /academie/media/ {
   proxy_hide_header Set-Cookie;
   add_header Cache-Control "public, max-age=2592000" always;
   add_header X-Content-Type-Options "nosniff" always;
+}
+NGINX
+fi
+
+# ─── Carte Baitly : tuiles et ressources de style servies sous /maps/ ──────────
+# Le front lit la carte sur SON domaine (/maps/baitly.pmtiles, /maps/assets/...) :
+# ni CSP a elargir, ni CORS. Quand BAITLY_MAPS_ORIGIN est defini, par exemple
+# https://<bucket>.s3.gra.io.cloud.ovh.net/maps, nginx relaie ce chemin vers le
+# conteneur PUBLIC des cartes (lecture seule, sans cookies). L'en-tete Range passe
+# tel quel : PMTiles ne lit l'archive que par plages d'octets. Le Cache-Control
+# pose au televersement (scripts/maps/upload-baitly-tiles.sh) est conserve.
+# Variable absente : /maps/ repond 404 — jamais le repli SPA (index.html), que
+# MapLibre tenterait de decoder comme une archive.
+MAPS_DIR="${BAITLY_MAPS_NGINX_DIR:-/etc/nginx/baitly-maps}"
+mkdir -p "$MAPS_DIR"
+rm -f "$MAPS_DIR/maps.conf"
+maps_error=""
+if [ -n "${BAITLY_MAPS_ORIGIN:-}" ]; then
+  maps_origin="${BAITLY_MAPS_ORIGIN%/}"
+  maps_rest="${maps_origin#https://}"
+  maps_host="${maps_rest%%/*}"
+  maps_path="${maps_rest#"$maps_host"}"
+  case "$maps_origin" in https://*) ;; *) maps_error="doit commencer par https://" ;; esac
+  case "$maps_host" in ''|*[!A-Za-z0-9.-]*) maps_error="hote invalide" ;; esac
+  case "$maps_path" in *[!A-Za-z0-9/_.-]*|*..*) maps_error="chemin invalide" ;; esac
+  maps_resolver="${BAITLY_MAPS_RESOLVER:-127.0.0.11}"
+  case "$maps_resolver" in ''|*[!A-Za-z0-9.:\ -]*) maps_error="resolveur invalide" ;; esac
+fi
+if [ -n "${BAITLY_MAPS_ORIGIN:-}" ] && [ -z "$maps_error" ]; then
+  cat > "$MAPS_DIR/maps.conf" <<NGINX
+location ^~ /maps/ {
+  limit_except GET HEAD { deny all; }
+  resolver $maps_resolver valid=300s ipv6=off;
+  set \$baitly_maps_host "$maps_host";
+  rewrite ^/maps/(.*)\$ $maps_path/\$1 break;
+  proxy_pass https://\$baitly_maps_host;
+  proxy_set_header Host \$baitly_maps_host;
+  proxy_ssl_server_name on;
+  proxy_ssl_name \$baitly_maps_host;
+  proxy_http_version 1.1;
+  proxy_set_header Connection "";
+  proxy_set_header Cookie "";
+  proxy_set_header Authorization "";
+  proxy_hide_header Set-Cookie;
+  add_header X-Content-Type-Options "nosniff" always;
+}
+NGINX
+else
+  [ -n "$maps_error" ] && echo "[entrypoint] BAITLY_MAPS_ORIGIN ignoree ($maps_error) : carte indisponible" >&2
+  cat > "$MAPS_DIR/maps.conf" <<NGINX
+location ^~ /maps/ {
+  return 404;
 }
 NGINX
 fi

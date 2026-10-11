@@ -20,7 +20,11 @@ public class MissionMapQueryService {
     public static final int PAGE_SIZE = 20;
     public record Filters(String search, String type, String status, String priority, Long propertyId,
                           Double north, Double south, Double east, Double west) {}
-    public record Marker(Long id, String name, Double lat, Double lng) {}
+    /**
+     * Point d'une mission sur la carte. {@code state} colore l'épingle :
+     * {@code late} (en retard), {@code today}, {@code planned}, {@code done}, {@code closed}.
+     */
+    public record Marker(Long id, String name, Double lat, Double lng, String state) {}
     public record Overview(List<Marker> markers, long total, long late, long today, long completed) {}
     public record Batch(List<?> content, long totalElements, int number, boolean last) {}
     private record Scope(String from, String where, Map<String, Object> params, String date, boolean requests) {}
@@ -44,13 +48,15 @@ public class MissionMapQueryService {
 
     private Overview overview(Scope scope) {
         // Projection scalaire : aucune fiche, photo, équipe ou description chargée pour les points.
-        List<Object[]> points = query("SELECT x.id, x.title, p.latitude, p.longitude" + scope.from
+        List<Object[]> points = query("SELECT x.id, x.title, p.latitude, p.longitude, cast(x.status as string), "
+                + scope.date + scope.from
                 + scope.where + " AND p.latitude IS NOT NULL AND p.longitude IS NOT NULL ORDER BY x.id",
                 Object[].class, scope).getResultList();
-        List<Marker> markers = points.stream().map(row -> new Marker((Long) row[0], (String) row[1],
-                ((Number) row[2]).doubleValue(), ((Number) row[3]).doubleValue())).toList();
-        Map<String, Object> parameters = new HashMap<>(scope.params);
         LocalDateTime now = LocalDateTime.now();
+        List<Marker> markers = points.stream().map(row -> new Marker((Long) row[0], (String) row[1],
+                ((Number) row[2]).doubleValue(), ((Number) row[3]).doubleValue(),
+                markerState((String) row[4], (LocalDateTime) row[5], now))).toList();
+        Map<String, Object> parameters = new HashMap<>(scope.params);
         parameters.put("now", now);
         parameters.put("dayStart", now.toLocalDate().atStartOfDay());
         parameters.put("dayEnd", now.toLocalDate().plusDays(1).atStartOfDay());
@@ -63,6 +69,16 @@ public class MissionMapQueryService {
                 + "sum(case when " + state + " = 'COMPLETED' AND " + scope.date + " >= :weekStart AND " + scope.date + " <= :now then 1 else 0 end)"
                 + scope.from + scope.where, Object[].class, statsScope).getSingleResult();
         return new Overview(markers, number(stats[0]), number(stats[1]), number(stats[2]), number(stats[3]));
+    }
+
+    /** Même règle que les compteurs de l'aperçu : « en retard » = ni terminée ni annulée, date passée. */
+    static String markerState(String status, LocalDateTime date, LocalDateTime now) {
+        if ("COMPLETED".equals(status)) return "done";
+        if ("CANCELLED".equals(status) || "REJECTED".equals(status)) return "closed";
+        if (date == null) return "planned";
+        if (date.isBefore(now)) return "late";
+        if (date.toLocalDate().equals(now.toLocalDate())) return "today";
+        return "planned";
     }
 
     public Batch page(String kind, Filters filters, int page, Jwt jwt) {

@@ -272,5 +272,9 @@
       "scheduled": "Changement programmé. Il prendra effet après le paiement de la prochaine échéance.",
       "confirm": "Confirmer ce changement"
     }
+  },
+  "directions": {
+    "title": "Itinéraire avec",
+    "appleMaps": "Plans"
   }
 }

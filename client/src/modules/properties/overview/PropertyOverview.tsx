@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
+import { DirectionsMenu } from '../../../components/map/DirectionsMenu';
 import { Bath, BedDouble, ExternalLink, Images, Map as MapIcon, MapPin, Ruler, Users } from '../../../icons/glyphs';
 import { Button } from '../../../components/ui';
-import { MapboxPropertyMap } from '../../../components/MapboxPropertyMap';
+import { BaitlyPropertyMap } from '../../../components/BaitlyPropertyMap';
 import StatusChip from '../../../components/StatusChip';
 import IllustratedHeading from '../../../components/IllustratedHeading';
 import { Money } from '../../../components/Money';
@@ -100,12 +101,12 @@ function HeroLocation({ property: p }: { property: PropertyDetailsData }) {
         ...(p.country ? [{ label: t('properties.country'), value: p.country }] : []),
         { label: t('propertyWorkspace.overview.location.coordinates'), value: <span dir="ltr">{coordinates}</span> },
       ]} />
-      <Button variant="outline" size="sm" asChild className="self-start">
-        <a href={`https://www.google.com/maps/search/?api=1&query=${p.latitude},${p.longitude}`} target="_blank" rel="noopener noreferrer">
+      <DirectionsMenu target={{ lat: p.latitude, lng: p.longitude, address: p.address, label: p.name }}>
+        <Button variant="outline" size="sm" className="self-start">
           <ExternalLink size={14} />
-          {t('propertyWorkspace.overview.location.openGoogleMaps')}
-        </a>
-      </Button>
+          {t('baitlyMap.directions.title', 'Itinéraire')}
+        </Button>
+      </DirectionsMenu>
     </>
   );
 }
@@ -127,7 +128,7 @@ function Hero({ property: p, photoUrls }: { property: PropertyDetailsData; photo
     <section className="pdo-hero" data-view={showMap ? 'map' : 'photos'}>
       <div className="pdo-hero__media">
         {showMap ? (
-          <MapboxPropertyMap
+          <BaitlyPropertyMap
             properties={[{ lat: p.latitude!, lng: p.longitude!, name: p.name, id: Number(p.id), type: 'property' }]}
             center={[p.longitude!, p.latitude!]}
             zoom={15}

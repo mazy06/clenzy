@@ -13,7 +13,6 @@ import awsUrl from '../assets/brands/wk-aws.svg';
 import hotelsUrl from '../assets/brands/si-hotelsdotcom.svg';
 import wiseUrl from '../assets/brands/si-wise.svg';
 import nvidiaUrl from '../assets/brands/si-nvidia.svg';
-import mapboxUrl from '../assets/brands/si-mapbox.svg';
 import osmUrl from '../assets/brands/si-openstreetmap.svg';
 import deeplUrl from '../assets/brands/si-deepl.svg';
 import cloudflareUrl from '../assets/brands/si-cloudflare.svg';
@@ -115,7 +114,6 @@ export const BRANDS: BrandDef[] = [
   { name: 'Voyage AI', mono: 'Vo', color: '#5B3DF5', category: 'IA' },
 
   /* ─── Cartes, données & plateforme ───────────────────────────────────────── */
-  { name: 'Mapbox', logoUrl: mapboxUrl, mask: true, color: '#1B1B21', category: 'Plateforme' },
   { name: 'OpenStreetMap', logoUrl: osmUrl, mask: true, color: '#7EBC6F', glyph: '#12341C', category: 'Plateforme' },
   { name: 'Open-Meteo', mono: 'OM', color: '#FF6A00', category: 'Plateforme' },
   { name: 'Cloudflare', logoUrl: cloudflareUrl, mask: true, color: '#F38020', category: 'Plateforme' },

@@ -27,8 +27,10 @@ interface ImportMetaEnv {
   // Crisp
   readonly VITE_CRISP_WEBSITE_ID: string
 
-  // Mapbox
-  readonly VITE_MAPBOX_TOKEN: string
+  // Carte Baitly (MapLibre + PMTiles) — defauts en meme origine sous /maps/
+  readonly VITE_MAP_TILES_URL?: string
+  readonly VITE_MAP_ASSETS_URL?: string
+  readonly VITE_MAP_TERRAIN_URL?: string
 
   // Application
   readonly VITE_APP_NAME: string

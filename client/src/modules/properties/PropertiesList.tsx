@@ -23,7 +23,7 @@ import type { ExportColumn } from '../../utils/exportUtils';
 import { useChannexMappings } from '../../hooks/useChannexMappings';
 import ChannexDiagnoseDialog from '../settings/components/ChannexDiagnoseDialog';
 import ChannexFullDisconnectDialog from '../settings/components/ChannexFullDisconnectDialog';
-import type { PropertyMarker, MapBounds } from '../../components/MapboxPropertyMap';
+import type { PropertyMarker, MapBounds } from '../../components/BaitlyPropertyMap';
 import { usePropertiesList, propertiesListKeys } from '../../hooks/usePropertiesList';
 import type { PropertyListItem } from '../../hooks/usePropertiesList';
 import { usePropertyKpiSummaries } from '../../hooks/usePropertyKpiSummaries';
@@ -229,6 +229,7 @@ export default function PropertiesList({ embedded = false, actionsContainer, fil
           name: p.name,
           id: Number(p.id),
           type: 'property' as const,
+          state: p.status === 'maintenance' ? ('alert' as const) : p.status === 'inactive' ? ('inactive' as const) : undefined,
         })),
     [filteredProperties],
   );
@@ -458,7 +459,6 @@ export default function PropertiesList({ embedded = false, actionsContainer, fil
             canManageContracts={canManageContracts}
             missingContractIds={missingContractIds}
             onMissingContractClick={openContractModal}
-            navigate={navigate}
           />
         ) : viewMode === 'grid' ? (
           <PropertiesGridView

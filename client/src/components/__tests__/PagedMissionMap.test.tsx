@@ -8,7 +8,7 @@ import { TooltipProvider } from '../ui';
 
 vi.mock('../../services/apiClient', () => ({ default: { get: vi.fn() } }));
 vi.mock('../../hooks/use-mobile', () => ({ useIsMobile: () => false }));
-vi.mock('../MapboxPropertyMap', () => ({ MapboxPropertyMap: ({ onBoundsChange }: any) =>
+vi.mock('../BaitlyPropertyMap', () => ({ BaitlyPropertyMap: ({ onBoundsChange }: any) =>
   <><button onClick={() => onBoundsChange({ north: 50, south: 40, east: 10, west: -10 })}>Initial zone</button>
     <button onClick={() => onBoundsChange({ north: 40, south: 30, east: 10, west: -10 })}>New zone</button></> }));
 

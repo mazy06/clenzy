@@ -4932,3 +4932,10 @@ databaseChangeLog:
         - sqlFile:
             path: changes/0547__baitly_planning_reservation_intervention_index.sql
             relativeToChangelogFile: true
+
+  - changeSet:
+      id: "0548-key-exchange-point-photos"
+      author: clenzy-team
+      sqlFile:
+        path: changes/0548__key_exchange_point_photos.sql
+        relativeToChangelogFile: true

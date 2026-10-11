@@ -80,3 +80,7 @@ marketing/motion/out/
 # Académie Baitly : copie locale des vidéos pour `npm run dev:site` (en production, stockage objet).
 # Régénérable : node marketing/motion/academie-web.mjs
 client/site/public/academie/media/
+
+# Carte Baitly : tuiles et ressources générées (scripts/maps/build-baitly-tiles.sh)
+scripts/maps/out/
+client/public/maps/

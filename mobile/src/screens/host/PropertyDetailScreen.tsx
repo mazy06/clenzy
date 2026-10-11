@@ -1,5 +1,7 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
-import { View, Text, ScrollView, Image, Pressable, RefreshControl, Platform, Linking, useWindowDimensions, FlatList, Modal, StatusBar } from 'react-native';
+import { View, Text, ScrollView, Image, Pressable, RefreshControl, useWindowDimensions, FlatList, Modal, StatusBar } from 'react-native';
+import { openDirections } from '@/lib/directions';
+import i18n from '@/i18n/config';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRoute, useNavigation } from '@react-navigation/native';
 import type { RouteProp } from '@react-navigation/native';
@@ -43,7 +45,17 @@ const AMENITY_MAP: Record<string, { icon: IconName; label: string }> = {
   HIGH_CHAIR:        { icon: 'accessibility-outline',   label: 'Chaise haute' },
 };
 
-/* ─── OSM Tile Map helpers ─── */
+/* ─── Carte Baitly (tuiles raster) ─── */
+
+/**
+ * Tuile raster du style Baitly « Papier », dessinée par le moteur de rendu
+ * Baitly et servie par l'API (cache CDN). Remplace les tuiles publiques
+ * d'openstreetmap.org, dont la politique d'usage exclut les applications.
+ */
+function baitlyRasterTileUrl(z: number, x: number, y: number): string {
+  const language = ['fr', 'en', 'ar'].includes(i18n.language) ? i18n.language : 'fr';
+  return `${API_CONFIG.BASE_URL}${API_CONFIG.BASE_PATH}/public/maps/raster/${language}/${z}/${x}/${y}.png`;
+}
 
 const TILE_SIZE = 256;
 const MAP_ZOOM = 15;
@@ -60,10 +72,10 @@ function latLngToTile(lat: number, lng: number, zoom: number) {
 }
 
 /**
- * Pure-RN static map: renders a grid of OSM tiles with a pin overlay.
+ * Pure-RN static map: renders a grid of Baitly raster tiles with a pin overlay.
  * No native modules required — works in Expo Go.
  */
-function OsmTileMap({
+function BaitlyTileMap({
   latitude,
   longitude,
   width,
@@ -111,7 +123,7 @@ function OsmTileMap({
         const tileY = centerTileY - centerRowOffset + row;
         tiles.push({
           key: `${tileX}-${tileY}`,
-          url: `https://tile.openstreetmap.org/${MAP_ZOOM}/${tileX}/${tileY}.png`,
+          url: baitlyRasterTileUrl(MAP_ZOOM, tileX, tileY),
           left: col * TILE_SIZE - offsetX,
           top: row * TILE_SIZE - offsetY,
         });
@@ -665,17 +677,8 @@ export function PropertyDetailScreen() {
     : geocoded;
 
   const openInMaps = useCallback(() => {
-    if (coords) {
-      const label = encodeURIComponent(property?.name || fullAddress);
-      const url = Platform.select({
-        ios: `maps:0,0?q=${coords.latitude},${coords.longitude}(${label})`,
-        android: `geo:0,0?q=${coords.latitude},${coords.longitude}(${label})`,
-      }) ?? `https://www.google.com/maps/search/?api=1&query=${coords.latitude},${coords.longitude}`;
-      Linking.openURL(url);
-    } else if (fullAddress) {
-      Linking.openURL(`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(fullAddress)}`);
-    }
-  }, [coords, property?.name, fullAddress]);
+    openDirections({ latitude: coords?.latitude, longitude: coords?.longitude, address: fullAddress });
+  }, [coords, fullAddress]);
 
   const { width: mapWidth } = useWindowDimensions();
 
@@ -832,7 +835,7 @@ export function PropertyDetailScreen() {
           {/* Map section */}
           {coords && (
             <Card variant="filled" style={{ marginTop: theme.SPACING.xl, padding: 0, overflow: 'hidden' }}>
-              <OsmTileMap
+              <BaitlyTileMap
                 latitude={coords.latitude}
                 longitude={coords.longitude}
                 width={mapWidth - theme.SPACING.lg * 2}
