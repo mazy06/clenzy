@@ -23,5 +23,6 @@ done
 cp "$HERE/build-baitly-fonts.mjs" "$WORK/"
 
 docker run --rm --platform linux/amd64 \
+  --user "$(id -u):$(id -g)" \
   -v "$WORK:/work" -v "$OUT/assets/fonts:/fonts" -w /work node:20 \
-  sh -c "npm i --silent --no-audit --no-fund fontnik@0.7 >/dev/null && node build-baitly-fonts.mjs /work/ttf /fonts /fonts"
+  sh -c "npm i --cache /work/.npm --silent --no-audit --no-fund fontnik@0.7 >/dev/null && node build-baitly-fonts.mjs /work/ttf /fonts /fonts"
