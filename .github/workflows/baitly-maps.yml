@@ -27,7 +27,7 @@ jobs:
       - uses: actions/checkout@v4
         with:
           # Source immuable : publier les données sans déployer les autres changements applicatifs.
-          ref: dc34d18389b759d02f89dadda5b9aacaf6306b72
+          ref: 44c715a24babea1884b1e1fd4058998b080b00cc
       - name: Valider la publication et les entrées
         env:
           PUBLISH: ${{ inputs.publish }}
