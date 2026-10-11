@@ -2,7 +2,8 @@ package com.clenzy.service.messaging;
 
 import com.clenzy.model.*;
 import com.clenzy.repository.*;
-import com.clenzy.service.MapboxStaticImageService;
+import com.clenzy.service.maps.BaitlyStaticMapService;
+import com.clenzy.service.maps.StaticMapRequest;
 import com.clenzy.service.NotificationMetadata;
 import com.clenzy.service.NotificationService;
 import com.clenzy.service.WelcomeGuideService;
@@ -40,7 +41,7 @@ public class GuestMessagingService {
     private final ReservationRepository reservationRepository;
     private final NotificationService notificationService;
     private final AccessCodeResolverService accessCodeResolverService;
-    private final MapboxStaticImageService mapboxStaticImageService;
+    private final BaitlyStaticMapService staticMapService;
     private final WelcomeGuideService welcomeGuideService;
 
     public GuestMessagingService(
@@ -53,7 +54,7 @@ public class GuestMessagingService {
             ReservationRepository reservationRepository,
             NotificationService notificationService,
             AccessCodeResolverService accessCodeResolverService,
-            MapboxStaticImageService mapboxStaticImageService,
+            BaitlyStaticMapService staticMapService,
             WelcomeGuideService welcomeGuideService
     ) {
         this.channels = channels;
@@ -65,7 +66,7 @@ public class GuestMessagingService {
         this.reservationRepository = reservationRepository;
         this.notificationService = notificationService;
         this.accessCodeResolverService = accessCodeResolverService;
-        this.mapboxStaticImageService = mapboxStaticImageService;
+        this.staticMapService = staticMapService;
         this.welcomeGuideService = welcomeGuideService;
     }
 
@@ -236,20 +237,22 @@ public class GuestMessagingService {
             }
         }
 
-        // Generer la carte de localisation Mapbox (propriete + point d'echange si applicable)
+        // Carte de localisation Baitly (propriete + point d'echange si applicable), dans la langue du voyageur
         try {
             Double storeLat = parseDoubleOrNull(resolvedVars.get("keyExchangeStoreLat"));
             Double storeLng = parseDoubleOrNull(resolvedVars.get("keyExchangeStoreLng"));
             String storeName = resolvedVars.get("keyExchangeStoreName");
 
-            String mapImageTag = mapboxStaticImageService.generateMapImageTag(
-                    property.getLatitude(), property.getLongitude(),
-                    storeLat, storeLng,
-                    property.getName(), storeName
-            );
+            String mapImageTag = "";
+            if (property.getLatitude() != null && property.getLongitude() != null) {
+                StaticMapRequest mapRequest = new StaticMapRequest(
+                        property.getLatitude().doubleValue(), property.getLongitude().doubleValue(),
+                        storeLat, storeLng, guest != null ? guest.getLanguage() : null);
+                mapImageTag = staticMapService.generateMapImageTag(mapRequest, property.getName(), storeName);
+            }
             resolvedVars.put("locationMap", mapImageTag);
         } catch (Exception e) {
-            log.warn("Erreur generation carte Mapbox pour reservation={}: {}",
+            log.warn("Erreur generation carte de localisation pour reservation={}: {}",
                     reservation.getId(), e.getMessage());
             resolvedVars.put("locationMap", "");
         }

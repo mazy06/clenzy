@@ -238,7 +238,7 @@ public class AccessCodeResolverService {
             vars.put("keyExchangeStoreAddress", nullToEmpty(point.getStoreAddress()));
             vars.put("keyExchangeStorePhone", nullToEmpty(point.getStorePhone()));
             vars.put("keyExchangeStoreHours", nullToEmpty(point.getStoreOpeningHours()));
-            // Coordonnees GPS du point d'echange pour la carte Mapbox
+            // Coordonnees GPS du point d'echange pour la carte de localisation Baitly
             vars.put("keyExchangeStoreLat", point.getStoreLat() != null ? point.getStoreLat().toString() : "");
             vars.put("keyExchangeStoreLng", point.getStoreLng() != null ? point.getStoreLng().toString() : "");
 

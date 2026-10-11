@@ -4924,3 +4924,10 @@ databaseChangeLog:
             relativeToChangelogFile: true
             splitStatements: false
             stripComments: false
+
+  - changeSet:
+      id: "0547-key-exchange-point-photos"
+      author: clenzy-team
+      sqlFile:
+        path: changes/0547__key_exchange_point_photos.sql
+        relativeToChangelogFile: true
