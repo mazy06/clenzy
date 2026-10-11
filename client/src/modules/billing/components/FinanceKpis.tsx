@@ -4,6 +4,7 @@ import DashboardKpiDetail from '../../dashboard/DashboardKpiDetail';
 import { useTranslation } from '../../../hooks/useTranslation';
 import { activeIntlLocale } from '../../../utils/activeLocale';
 import { financeAmountGroups, type FinanceAmountKind, type FinanceAmountRecord } from './financeAmounts';
+import type { PaymentAmountGroup } from '../../../services/api/paymentsApi';
 import '../../dashboard/dashboardKpis.css';
 import './financeWorkspace.css';
 
@@ -39,9 +40,9 @@ export default function FinanceKpis({ items, loading, scope }: { items: FinanceK
   </section>;
 }
 
-export function FinanceAmountKpis({ records, loading, scope, kind }: { records: FinanceAmountRecord[]; kind: FinanceAmountKind; loading?: boolean; scope?: string }) {
+export function FinanceAmountKpis({ records = [], amountGroups, loading, scope, kind }: { records?: FinanceAmountRecord[]; amountGroups?: PaymentAmountGroup[]; kind: FinanceAmountKind; loading?: boolean; scope?: string }) {
   const { t } = useTranslation();
-  const groups = financeAmountGroups(records, kind);
+  const groups = amountGroups ?? financeAmountGroups(records, kind);
   return <FinanceKpis loading={loading} scope={scope} items={groups.map(group => ({ ...group,
     label: t(`financeWorkspace.amounts.${kind}.${group.key}`),
     value: <span className="finance-kpis__amounts">{group.totals.length ? group.totals.map(([currency, amount]) =>
