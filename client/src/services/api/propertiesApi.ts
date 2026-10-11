@@ -182,12 +182,29 @@ export interface CleaningPreviewResponse {
   minutesBreakdown: Record<string, number>;
 }
 
+/** Sous le plafond de pagination Spring (2 000). */
+const PROPERTIES_PAGE_SIZE = 1000;
+
 export const propertiesApi = {
-  getAll(params?: { ownerId?: string | number; size?: number; sort?: string }) {
-    // Backend returns Page<PropertyDto>; unwrap .content to return Property[]
-    return apiClient
-      .get('/properties', { params: { ...params, size: params?.size ?? 1000 } })
-      .then((data) => extractApiList<Property>(data));
+  /**
+   * Sans `size` : TOUS les logements, page après page. Une seule page tronquait la liste
+   * (tri du plus récent au plus ancien) : un compte plateforme qui voit plus de 1 000
+   * logements perdait les plus anciens, absents de la liste comme de la carte.
+   * Avec `size` : une seule page de cette taille, comme avant.
+   */
+  async getAll(params?: { ownerId?: string | number; size?: number; sort?: string }) {
+    if (params?.size != null) {
+      return extractApiList<Property>(await apiClient.get('/properties', { params }));
+    }
+    const all: Property[] = [];
+    for (let page = 0; ; page++) {
+      const data = await apiClient.get<{ totalPages?: number }>('/properties', {
+        params: { ...params, page, size: PROPERTIES_PAGE_SIZE },
+      });
+      all.push(...extractApiList<Property>(data));
+      // Réponse non paginée (tableau) ou dernière page atteinte.
+      if (typeof data?.totalPages !== 'number' || page + 1 >= data.totalPages) return all;
+    }
   },
 
   getById(id: number) {

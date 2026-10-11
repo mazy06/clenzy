@@ -129,7 +129,7 @@ fi
 # MapLibre tenterait de decoder comme une archive.
 MAPS_DIR="${BAITLY_MAPS_NGINX_DIR:-/etc/nginx/baitly-maps}"
 mkdir -p "$MAPS_DIR"
-rm -f "$MAPS_DIR/maps.conf"
+rm -f "$MAPS_DIR/maps.conf" "$MAPS_DIR/maps-cache.http"
 maps_error=""
 if [ -n "${BAITLY_MAPS_ORIGIN:-}" ]; then
   maps_origin="${BAITLY_MAPS_ORIGIN%/}"
@@ -141,11 +141,29 @@ if [ -n "${BAITLY_MAPS_ORIGIN:-}" ]; then
   case "$maps_path" in *[!A-Za-z0-9/_.-]*|*..*) maps_error="chemin invalide" ;; esac
   maps_resolver="${BAITLY_MAPS_RESOLVER:-127.0.0.11}"
   case "$maps_resolver" in ''|*[!A-Za-z0-9.:\ -]*) maps_error="resolveur invalide" ;; esac
+  case "${BAITLY_MAPS_CACHE_MAX_SIZE:-2g}" in *[!0-9]*[!kmg]|[!0-9]*|*[!0-9kmg]*) maps_error="taille de cache invalide" ;; esac
 fi
 if [ -n "${BAITLY_MAPS_ORIGIN:-}" ] && [ -z "$maps_error" ]; then
+  # Cache local par tranches : chaque tuile est une requete Range dans une archive de
+  # plusieurs Go, que Cloudflare ne met pas en cache (180-500 ms vers le stockage a
+  # chaque fois). nginx garde des tranches de 256 Ko : les zones consultees ne
+  # repartent plus vers le stockage. La duree suit le Cache-Control des objets.
+  cat > "$MAPS_DIR/maps-cache.http" <<NGINX
+proxy_cache_path /var/cache/nginx/baitly-maps levels=1:2 keys_zone=baitly_maps:20m
+                 max_size=${BAITLY_MAPS_CACHE_MAX_SIZE:-2g} inactive=7d use_temp_path=off;
+NGINX
   cat > "$MAPS_DIR/maps.conf" <<NGINX
 location ^~ /maps/ {
   limit_except GET HEAD { deny all; }
+  slice 256k;
+  proxy_cache baitly_maps;
+  proxy_cache_key \$uri\$slice_range;
+  proxy_set_header Range \$slice_range;
+  proxy_cache_valid 200 206 1h;
+  proxy_cache_lock on;
+  proxy_cache_lock_timeout 5s;
+  proxy_cache_use_stale error timeout updating;
+  add_header X-Baitly-Maps-Cache \$upstream_cache_status always;
   resolver $maps_resolver valid=300s ipv6=off;
   set \$baitly_maps_host "$maps_host";
   rewrite ^/maps/(.*)\$ $maps_path/\$1 break;
