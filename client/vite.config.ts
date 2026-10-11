@@ -1,6 +1,7 @@
 import { createHash } from 'node:crypto'
 import { readFileSync, readdirSync } from 'node:fs'
 import { join } from 'node:path'
+import { fileURLToPath } from 'node:url'
 import { defineConfig, type Plugin } from 'vite'
 import react from '@vitejs/plugin-react'
 import { VitePWA } from 'vite-plugin-pwa'
@@ -32,6 +33,23 @@ function localeVersionPlugin(): Plugin {
 }
 
 export default defineConfig({
+  resolve: {
+    alias: [
+      {
+        // Le paquet n'exporte que `.` (sources ESM) : MapLibre attend, lui, le
+        // bundle autonome `dist/`, servi en meme origine via `?url`.
+        find: /^@mapbox\/mapbox-gl-rtl-text\/dist\/mapbox-gl-rtl-text\.js/,
+        replacement: fileURLToPath(
+          new URL('./node_modules/@mapbox/mapbox-gl-rtl-text/dist/mapbox-gl-rtl-text.js', import.meta.url),
+        ),
+      },
+    ],
+  },
+  optimizeDeps: {
+    // Importe en `?url` (fichier servi tel quel au worker MapLibre) : le
+    // pre-bundling de dev ne sait pas le traiter et casse toute la page.
+    exclude: ['@mapbox/mapbox-gl-rtl-text'],
+  },
   plugins: [
     react(),
     localeVersionPlugin(),
@@ -158,6 +176,23 @@ export default defineConfig({
             },
           },
           {
+            // Carte Baitly : glyphes et sprites du style (`/maps/assets/`), immuables
+            // d'un deploiement a l'autre — CacheFirst, la carte s'ouvre sans reseau
+            // pour ses libelles. L'archive PMTiles (`/maps/baitly.pmtiles`), lue par
+            // requetes Range, reste hors SW : un cache Workbox ne sert pas les plages.
+            urlPattern: ({ url, request }) =>
+              request.method === 'GET' && url.pathname.startsWith('/maps/assets/'),
+            handler: 'CacheFirst',
+            options: {
+              cacheName: 'map-assets-cache',
+              expiration: {
+                maxEntries: 300,
+                maxAgeSeconds: 60 * 60 * 24 * 30,
+              },
+              cacheableResponse: { statuses: [0, 200] },
+            },
+          },
+          {
             urlPattern: /^https:\/\/fonts\.googleapis\.com\/.*/i,
             handler: 'CacheFirst',
             options: {
@@ -231,7 +266,7 @@ export default defineConfig({
           'vendor-i18n': ['i18next', 'react-i18next', 'i18next-browser-languagedetector'],
           'vendor-stripe': ['@stripe/react-stripe-js', '@stripe/stripe-js'],
           'vendor-dnd': ['@dnd-kit/core', '@dnd-kit/modifiers', '@dnd-kit/utilities'],
-          'vendor-map': ['mapbox-gl'],
+          'vendor-map': ['maplibre-gl', 'pmtiles', '@protomaps/basemaps'],
           'vendor-motion': ['framer-motion'],
         },
       },
@@ -255,6 +290,14 @@ export default defineConfig({
       '/api/copilotkit': {
         target: 'http://copilot-runtime:8080',
         changeOrigin: true,
+      },
+      // Carte Baitly en dev : l'archive et le sprite Baitly viennent de `public/maps/`
+      // (cf. scripts/maps/README.md) ; seuls les glyphes sont relayes depuis leur
+      // depot public d'origine. En prod, nginx relaie tout `/maps/` vers le stockage.
+      '^/maps/assets/fonts/Noto': {
+        target: 'https://protomaps.github.io',
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/maps\/assets/, '/basemaps-assets'),
       },
     },
   },

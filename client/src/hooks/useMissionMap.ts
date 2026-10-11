@@ -2,11 +2,11 @@ import { useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { useQuery, useInfiniteQuery } from "@tanstack/react-query";
 import apiClient from "../services/apiClient";
-import type { MapBounds, PropertyMarker } from "../components/MapboxPropertyMap";
+import type { MapBounds, PropertyMarker } from "../components/BaitlyPropertyMap";
 
 export type MissionMapKind = "service-requests" | "interventions";
 export interface MissionMapFilters { search: string; type: string; status: string; priority: string; propertyId?: number }
-export interface MissionMapOverview { markers: PropertyMarker[]; total: number; late: number; today: number; completed: number }
+export interface MissionMapOverview { markers: Array<Omit<PropertyMarker, "state"> & { state?: string }>; total: number; late: number; today: number; completed: number }
 export interface MissionMapPage<T> { content: T[]; totalElements: number; number: number; last: boolean }
 const keys = (kind: MissionMapKind) => kind === "service-requests" ? ["service-requests-list", "map"] : ["interventions", "list", "map"];
 

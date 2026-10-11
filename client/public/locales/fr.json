@@ -2837,7 +2837,14 @@
       "store": "Commerce",
       "address": "Adresse",
       "openingHours": "Horaires",
-      "property": "Logement"
+      "property": "Logement",
+      "locationPhotos": "Photos de l'emplacement",
+      "locationPhotosHint": "Montrez où trouver la boîte ou le comptoir : la rue, l'accès, la boîte elle-même. Jusqu'à 6 photos.",
+      "addPhotos": "Ajouter des photos",
+      "removePhoto": "Supprimer la photo",
+      "photosUploaded": "Photos ajoutées",
+      "photoRemoved": "Photo supprimée",
+      "photosFailed": "Échec de l'envoi des photos"
     },
     "accessCode": {
       "stayCode": "Code de séjour — poussé sur cette serrure",
@@ -10132,8 +10139,7 @@
         "progress": "Avancement",
         "access": "Indications d'accès",
         "parking": "Stationnement",
-        "photos": "Photos",
-        "openMap": "Ouvrir dans Maps"
+        "photos": "Photos"
       },
       "request": {
         "nature": "Nature de la demande",
@@ -16337,8 +16343,50 @@
   "photoUploader": {
     "dropHere": "Glissez-déposez vos photos ici"
   },
+  "baitlyMap": {
+    "view3d": "Passer en vue 3D",
+    "view2d": "Passer en vue à plat",
+    "controls": {
+      "close": "Fermer",
+      "zoomIn": "Zoom avant",
+      "zoomOut": "Zoom arrière",
+      "resetBearing": "Réorienter vers le nord",
+      "attribution": "Afficher les crédits"
+    },
+    "card": {
+      "loadError": "Impossible de charger le détail.",
+      "team": "Équipe intervenante",
+      "assignee": "Intervenant",
+      "merchant": "Commerçant",
+      "individual": "Particulier",
+      "activeCodes": "Codes actifs : {{count}}",
+      "noLocationPhoto": "Pas encore de photo de l'emplacement.",
+      "openPoint": "Voir le point"
+    },
+    "directions": {
+      "title": "Itinéraire",
+      "viewOnMap": "Voir sur la carte Baitly",
+      "navigateWith": "Itinéraire avec",
+      "appleMaps": "Plans",
+      "googleMaps": "Google Maps",
+      "waze": "Waze"
+    },
+    "cluster": "{{count}} lieux, zoomer pour les voir",
+    "legend": "Légende",
+    "states": {
+      "alert": "Alerte",
+      "late": "En retard",
+      "turnover": "Rotation (ménage urgent)",
+      "arrival": "Arrivée",
+      "departure": "Départ",
+      "today": "Aujourd'hui",
+      "occupied": "Occupé",
+      "done": "Terminée",
+      "closed": "Annulée",
+      "inactive": "Inactif"
+    }
+  },
   "locationPicker": {
-    "mapboxMissing": "Mapbox n'est pas configuré — impossible d'afficher la carte de sélection.",
     "centerOnMarker": "Centrer sur le marqueur",
     "hint": "Astuce : cliquez sur la carte ou faites glisser le repère pour ajuster la position exacte."
   },
@@ -20629,8 +20677,7 @@
       "location": {
         "title": "Localisation",
         "city": "Ville",
-        "coordinates": "Coordonnées GPS",
-        "openGoogleMaps": "Ouvrir dans Google Maps"
+        "coordinates": "Coordonnées GPS"
       },
       "management": {
         "title": "Gestion",

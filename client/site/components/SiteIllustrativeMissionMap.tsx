@@ -1,4 +1,4 @@
-import type { MapboxPropertyMapProps } from '../../src/components/MapboxMapCanvas';
+import type { BaitlyPropertyMapProps } from '../../src/components/BaitlyMapCanvas';
 import { useSiteLanguage } from '../lib/siteLanguage';
 import './site-illustrative-map.css';
 
@@ -8,7 +8,7 @@ const POINTS = [[37, 61], [60, 35], [70, 73]];
 /** Local scene only: preserve mission selection without a map SDK, telemetry or
  * tile requests on the public site. Positions are illustrative, not geographic.
  */
-export default function SiteIllustrativeMissionMap({ properties, selectedPropertyId, onMarkerClick }: MapboxPropertyMapProps) {
+export default function SiteIllustrativeMissionMap({ properties, selectedPropertyId, onMarkerClick }: BaitlyPropertyMapProps) {
   const { language } = useSiteLanguage();
   return <div className="site-illustrative-map" role="group" aria-label={LABEL[language]}>
     <svg viewBox="0 0 600 600" preserveAspectRatio="xMidYMid slice" aria-hidden="true">

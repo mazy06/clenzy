@@ -6,7 +6,7 @@ import PropertiesMapView from './PropertiesMapView';
 import type { PropertyListItem } from '../../hooks/usePropertiesList';
 
 vi.mock('../../hooks/use-mobile', () => ({ useIsMobile: () => false }));
-vi.mock('../../components/MapboxPropertyMap', () => ({ MapboxPropertyMap: () => <div data-testid="map" /> }));
+vi.mock('../../components/BaitlyPropertyMap', () => ({ BaitlyPropertyMap: () => <div data-testid="map" /> }));
 vi.mock('../settings/components/ChannexHealthBadge', () => ({ default: () => null }));
 vi.mock('./MissingContractChip', () => ({ default: () => null }));
 
@@ -36,7 +36,6 @@ const view = (properties: PropertyListItem[]) => (
       canManageContracts={false}
       missingContractIds={new Set()}
       onMissingContractClick={() => {}}
-      navigate={vi.fn() as never}
     />
     </QueryClientProvider>
   </MemoryRouter>

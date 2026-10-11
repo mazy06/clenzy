@@ -4,7 +4,7 @@ import { cleanup, fireEvent, render, screen, within } from '@testing-library/rea
 import type { PropertyDetailsData } from '../../../hooks/usePropertyDetails';
 
 vi.mock('../../../components/PropertyImageCarousel', () => ({ PropertyImageCarousel: () => <div data-testid="carousel" /> }));
-vi.mock('../../../components/MapboxPropertyMap', () => ({ MapboxPropertyMap: () => <div data-testid="map" /> }));
+vi.mock('../../../components/BaitlyPropertyMap', () => ({ BaitlyPropertyMap: () => <div data-testid="map" /> }));
 vi.mock('../../../components/Money', () => ({ Money: ({ value }: { value: number }) => <>{value} €</> }));
 vi.mock('../../../hooks/useAuth', () => ({ useAuth: () => ({ user: { organizationId: 3 } }) }));
 vi.mock('../../settings/amenity-mapping/useAmenityIconOverrides', () => ({ useAmenityIconOverrides: () => ({ overrides: {} }) }));
@@ -44,8 +44,8 @@ describe("Fiche logement, vue d'ensemble", () => {
     expect(screen.getByTestId('map')).toBeInTheDocument();
     expect(screen.queryByTestId('carousel')).not.toBeInTheDocument();
     expect(screen.getByText('31.62000, -8.01000')).toBeVisible();
-    expect(screen.getByRole('link', { name: /Ouvrir dans Google Maps/ }))
-      .toHaveAttribute('href', 'https://www.google.com/maps/search/?api=1&query=31.62,-8.01');
+    // L'itinéraire propose l'app GPS au choix (menu), il n'impose plus Google Maps.
+    expect(screen.getByRole('button', { name: /Itinéraire/ })).toBeVisible();
 
     fireEvent.click(photos);
 

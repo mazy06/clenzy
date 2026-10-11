@@ -2847,7 +2847,14 @@
       "store": "Store",
       "address": "Address",
       "openingHours": "Opening hours",
-      "property": "Property"
+      "property": "Property",
+      "locationPhotos": "Location photos",
+      "locationPhotosHint": "Show where to find the box or the counter: the street, the access, the box itself. Up to 6 photos.",
+      "addPhotos": "Add photos",
+      "removePhoto": "Delete photo",
+      "photosUploaded": "Photos added",
+      "photoRemoved": "Photo deleted",
+      "photosFailed": "Photo upload failed"
     },
     "accessCode": {
       "stayCode": "Stay code — pushed to this lock",
@@ -10146,8 +10153,7 @@
         "progress": "Progress",
         "access": "Access directions",
         "parking": "Parking",
-        "photos": "Photos",
-        "openMap": "Open in Maps"
+        "photos": "Photos"
       },
       "request": {
         "nature": "Nature of the request",
@@ -16350,8 +16356,50 @@
   "photoUploader": {
     "dropHere": "Drag and drop your photos here"
   },
+  "baitlyMap": {
+    "view3d": "Switch to 3D view",
+    "view2d": "Switch to flat view",
+    "controls": {
+      "close": "Close",
+      "zoomIn": "Zoom in",
+      "zoomOut": "Zoom out",
+      "resetBearing": "Reset bearing to north",
+      "attribution": "Show credits"
+    },
+    "card": {
+      "loadError": "Could not load the details.",
+      "team": "Assigned team",
+      "assignee": "Assignee",
+      "merchant": "Merchant",
+      "individual": "Individual",
+      "activeCodes": "Active codes: {{count}}",
+      "noLocationPhoto": "No location photo yet.",
+      "openPoint": "Open point"
+    },
+    "directions": {
+      "title": "Directions",
+      "viewOnMap": "View on the Baitly map",
+      "navigateWith": "Directions with",
+      "appleMaps": "Apple Maps",
+      "googleMaps": "Google Maps",
+      "waze": "Waze"
+    },
+    "cluster": "{{count}} places, zoom in to see them",
+    "legend": "Legend",
+    "states": {
+      "alert": "Alert",
+      "late": "Late",
+      "turnover": "Turnover (urgent cleaning)",
+      "arrival": "Arrival",
+      "departure": "Departure",
+      "today": "Today",
+      "occupied": "Occupied",
+      "done": "Done",
+      "closed": "Cancelled",
+      "inactive": "Inactive"
+    }
+  },
   "locationPicker": {
-    "mapboxMissing": "Mapbox is not configured — the selection map cannot be displayed.",
     "centerOnMarker": "Centre on the marker",
     "hint": "Tip: click the map or drag the pin to fine-tune the exact position."
   },
@@ -20642,8 +20690,7 @@
       "location": {
         "title": "Location",
         "city": "City",
-        "coordinates": "GPS coordinates",
-        "openGoogleMaps": "Open in Google Maps"
+        "coordinates": "GPS coordinates"
       },
       "management": {
         "title": "Management",

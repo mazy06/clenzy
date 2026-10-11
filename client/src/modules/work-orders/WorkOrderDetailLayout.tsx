@@ -1,4 +1,5 @@
 import React from 'react';
+import { DirectionsMenu } from '../../components/map/DirectionsMenu';
 import { Check, Clock3, MapPin, Play, TriangleAlert, XCircle } from '../../icons/glyphs';
 import { Avatar, AvatarFallback, AvatarImage, Tooltip, TooltipContent, TooltipTrigger } from '../../components/ui';
 import ServiceReferenceLabels from '../../components/ServiceReferenceLabels';
@@ -271,8 +272,9 @@ export default function WorkOrderDetailLayout({
           {addressLine && <p><MapPin size={14} aria-hidden="true" /><span>{addressLine}</span></p>}
           <div className="wo-property__links">
             {propertyAction}
-            {addressLine && <a href={'https://www.google.com/maps/dir/?api=1&destination=' + encodeURIComponent(addressLine)}
-              target="_blank" rel="noopener noreferrer"><MapPin size={14} aria-hidden="true" />{t('serviceRequests.details.directions', 'Itinéraire')}</a>}
+            {addressLine && <DirectionsMenu target={{ address: addressLine, label: p.name || addressLine }}>
+              <a role="button" tabIndex={0}><MapPin size={14} aria-hidden="true" />{t('serviceRequests.details.directions', 'Itinéraire')}</a>
+            </DirectionsMenu>}
           </div>
         </div>
         <div className="wo-property__state">

@@ -21,7 +21,7 @@ import { clearTokens } from '../services/storageService';
 
 // Pages publiques secondaires : lazy (code-splitting). Elles n'ont aucune raison
 // d'être dans le bundle d'entrée des utilisateurs authentifiés du PMS —
-// PublicBookingPage tire tout le SDK booking, PublicGuide tire mapbox-gl,
+// PublicBookingPage tire tout le SDK booking, PublicGuide tire maplibre-gl,
 // SupervisionDemo tire le module supervision + framer-motion. Seul Login reste
 // statique (chemin d'auth chaud).
 //
