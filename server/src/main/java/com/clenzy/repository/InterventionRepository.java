@@ -398,6 +398,10 @@ public interface InterventionRepository extends JpaRepository<Intervention, Long
            "ORDER BY i.scheduledDate")
     List<Intervention> findUnpaidByProperty(@Param("propertyId") Long propertyId, @Param("orgId") Long orgId);
 
+    @EntityGraph(attributePaths = {"property", "requestor"})
+    @Query("SELECT i FROM Intervention i WHERE i.id IN :ids AND i.organizationId=:orgId")
+    List<Intervention> findBaitlyPaymentPage(@Param("ids") List<Long> ids, @Param("orgId") Long orgId);
+
     /**
      * Historique des paiements — toutes interventions payantes (ADMIN/MANAGER, optionnellement par host)
      */
