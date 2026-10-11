@@ -453,7 +453,8 @@ const PaymentHistoryPage: React.FC<PaymentHistoryPageProps> = ({ embedded = fals
             && (!term || [item.description, item.propertyName, item.hostName].some(value => value?.toLowerCase().includes(term)))));
         }} onExecute={prepareBatchPayments} />
       <DataFetchWrapper
-        loading={loading}
+        // Garder la mesure de capacité montée pendant les requêtes suivantes.
+        loading={loading && payments.length === 0}
         error={error}
         onRetry={loadData}
         variant="skeleton"
@@ -468,7 +469,7 @@ const PaymentHistoryPage: React.FC<PaymentHistoryPageProps> = ({ embedded = fals
         }
       >
         <FinanceWorkspace artwork="received" items={payments.map(makePaymentRecord)}
-          onPageSizeChange={handlePageSizeChange} selectedId={selectedId} onSelect={setSelectedId}
+          onPageSizeChange={handlePageSizeChange} selectedId={loading ? null : selectedId} onSelect={loading ? undefined : setSelectedId}
           selectedRecord={selectedPayment ? makePaymentRecord(selectedPayment) : undefined}
           pagination={<><PagePagination
             count={totalElements}
