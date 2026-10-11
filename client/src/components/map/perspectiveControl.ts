@@ -1,6 +1,7 @@
 import type * as maplibregl from 'maplibre-gl';
 import i18n from '../../i18n/config';
 import { prefersReducedMotion } from './motion';
+import { TERRAIN_SOURCE_ID } from './baitlyMapStyle';
 
 /** Caméra « 3D » : inclinaison et légère rotation qui révèlent le volume des bâtiments. */
 export const PERSPECTIVE_CAMERA = { pitch: 45, bearing: -15 } as const;
@@ -41,8 +42,11 @@ export class BaitlyPerspectiveControl implements maplibregl.IControl {
 
   private toggle(): void {
     if (!this.map) return;
-    const camera = this.isTilted() ? { pitch: 0, bearing: 0 } : PERSPECTIVE_CAMERA;
-    this.map.easeTo({ ...camera, duration: prefersReducedMotion() ? 0 : 700 });
+    const tilted = this.isTilted();
+    if (tilted) this.map.setTerrain(null);
+    else if (this.map.getSource(TERRAIN_SOURCE_ID)) this.map.setTerrain({ source: TERRAIN_SOURCE_ID, exaggeration: 1.15 });
+    const camera = tilted ? { pitch: 0, bearing: 0 } : PERSPECTIVE_CAMERA;
+    this.map.easeTo({ ...camera, duration: prefersReducedMotion() ? 0 : 250 });
   }
 
   private render(): void {

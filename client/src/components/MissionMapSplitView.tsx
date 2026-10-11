@@ -24,10 +24,12 @@ export default function MissionMapSplitView({
   return (
     <div
       className={cn(
-        "grid min-h-0 flex-1 grid-cols-[minmax(0,1fr)_minmax(300px,40%)] gap-3 overflow-hidden",
+        "flex min-h-0 min-w-0 flex-1 overflow-hidden",
         className,
       )}
+      style={{ containerType: 'inline-size', containerName: 'baitly-map' }}
     >
+      <div className="baitly-map-split grid min-h-0 w-full flex-1 gap-3 overflow-hidden">
       <div className="relative min-h-0 overflow-hidden rounded-xl border border-border bg-card">
         {map}
       </div>
@@ -52,6 +54,7 @@ export default function MissionMapSplitView({
           {children}
         </div>
       </section>
+      </div>
     </div>
   );
 }

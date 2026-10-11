@@ -25,9 +25,18 @@ export function keepPopupInView(map: maplibregl.Map, popup: maplibregl.Popup): (
   if (!element || !content) return () => undefined;
 
   const container = map.getContainer();
+  const usableFrame = () => {
+    const frame = container.getBoundingClientRect();
+    // Les contrôles gardent un couloir à droite ; la fiche ne les recouvre pas.
+    const controls = container.querySelector('.maplibregl-ctrl-top-right')?.getBoundingClientRect();
+    const reserved = controls?.width ? Math.min(controls.width + EDGE_MARGIN, frame.width / 3) : 0;
+    return { left: frame.left + EDGE_MARGIN, right: frame.right - EDGE_MARGIN - reserved,
+      top: frame.top + EDGE_MARGIN, bottom: frame.bottom - EDGE_MARGIN };
+  };
   const applyLimits = () => {
-    const limitWidth = Math.max(220, container.clientWidth - EDGE_MARGIN * 2);
-    const limitHeight = Math.max(160, container.clientHeight - EDGE_MARGIN * 2);
+    const frame = usableFrame();
+    const limitWidth = Math.max(1, frame.right - frame.left);
+    const limitHeight = Math.max(1, frame.bottom - frame.top);
     content.style.maxInlineSize = `${limitWidth}px`;
     content.style.maxBlockSize = `${limitHeight}px`;
     // Large : photos à gauche, infos à droite — dès que la carte a la place
@@ -41,22 +50,21 @@ export function keepPopupInView(map: maplibregl.Map, popup: maplibregl.Popup): (
     // Un vol de caméra est en cours (centrage au clic) : le recadrer l'interromprait.
     // On mesure une fois la caméra posée.
     if (map.isMoving()) {
-      map.once('moveend', schedule);
       return;
     }
     const box = content.getBoundingClientRect();
-    const frame = container.getBoundingClientRect();
+    const frame = usableFrame();
     const shift = (start: number, end: number, min: number, max: number): number => {
       if (end - start > max - min) return min - start; // plus grande que la carte : aligner le début
       if (start < min) return min - start;
       if (end > max) return max - end;
       return 0;
     };
-    const dx = shift(box.left, box.right, frame.left + EDGE_MARGIN, frame.right - EDGE_MARGIN);
-    const dy = shift(box.top, box.bottom, frame.top + EDGE_MARGIN, frame.bottom - EDGE_MARGIN);
+    const dx = shift(box.left, box.right, frame.left, frame.right);
+    const dy = shift(box.top, box.bottom, frame.top, frame.bottom);
     if (Math.abs(dx) < 1 && Math.abs(dy) < 1) return;
     // panBy déplace la VUE : pour amener la fiche de +dy, la vue part de -dy.
-    map.panBy([-dx, -dy], { duration: prefersReducedMotion() ? 0 : 320 });
+    map.panBy([-dx, -dy], { duration: prefersReducedMotion() ? 0 : 200 });
   };
 
   let frameId = 0;
@@ -72,10 +80,14 @@ export function keepPopupInView(map: maplibregl.Map, popup: maplibregl.Popup): (
   const observer = new ResizeObserver(schedule);
   observer.observe(content);
   observer.observe(container);
+  map.on('moveend', schedule);
+  map.on('resize', schedule);
   schedule();
 
   return () => {
     cancelAnimationFrame(frameId);
     observer.disconnect();
+    map.off('moveend', schedule);
+    map.off('resize', schedule);
   };
 }

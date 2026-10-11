@@ -1,4 +1,5 @@
 import { afterEach, describe, expect, it } from 'vitest';
+import { validateStyleMin } from '@maplibre/maplibre-gl-style-spec';
 import { buildBaitlyMapStyle, composeBaitlyMapStyle, dayPeriodAt, BAITLY_NIGHT, BAITLY_PAPER } from '../baitlyMapStyle';
 
 afterEach(() => {
@@ -6,6 +7,13 @@ afterEach(() => {
 });
 
 describe('buildBaitlyMapStyle', () => {
+  it('produces valid worldwide styles in every supported language and theme', () => {
+    for (const mode of ['light', 'dark'] as const) {
+      for (const language of ['fr', 'en', 'ar'] as const) {
+        expect(validateStyleMin(buildBaitlyMapStyle(mode, language)).map((error) => error.message)).toEqual([]);
+      }
+    }
+  });
   it('whenNoRuntimeConfig_thenReadsTilesAndAssetsFromSameOrigin', () => {
     const style = buildBaitlyMapStyle('light', 'fr');
 
@@ -21,6 +29,16 @@ describe('buildBaitlyMapStyle', () => {
     const source = buildBaitlyMapStyle('dark', 'fr').sources.protomaps as { url: string };
 
     expect(source.url).toBe('pmtiles://https://cartes.example/fr.pmtiles');
+  });
+
+  it('keeps a worldwide background below regional detail and above the style background', () => {
+    const style = buildBaitlyMapStyle('light', 'fr');
+    expect(style.sources['baitly-world']).toMatchObject({ type: 'vector', url: `pmtiles://${window.location.origin}/maps/world.pmtiles`, maxzoom: 6 });
+    const firstWorld = style.layers.findIndex((layer) => layer.id.startsWith('world-'));
+    const regionalEarth = style.layers.findIndex((layer) => layer.id === 'earth');
+    expect(firstWorld).toBeGreaterThan(style.layers.findIndex((layer) => layer.type === 'background'));
+    expect(firstWorld).toBeLessThan(regionalEarth);
+    expect(style.layers.filter((layer) => layer.id.startsWith('world-') && layer.type !== 'symbol').every((layer) => layer.maxzoom === 24)).toBe(true);
   });
 
   it('whenDarkMode_thenPaintsNightPalette', () => {

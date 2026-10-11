@@ -3,7 +3,7 @@ import Supercluster from 'supercluster';
 import { prefersReducedMotion } from './motion';
 
 /**
- * Regroupement des épingles : au-delà d'une douzaine de lieux, les épingles
+ * Regroupement des épingles : même pour deux lieux, les épingles
  * proches fusionnent en une bulle chiffrée, qui s'ouvre au clic (zoom jusqu'au
  * niveau où elles se séparent). La bulle prend la couleur de l'état le plus
  * urgent qu'elle contient : un retard ne se cache pas dans un groupe.
@@ -17,10 +17,8 @@ export interface ClusterEntry {
   urgency: number;
 }
 
-/** En dessous, toutes les épingles restent visibles : regrouper n'aide pas. */
-const CLUSTER_THRESHOLD = 12;
-/** Au-delà de ce zoom, plus de regroupement : on est à l'échelle de la rue. */
-const CLUSTER_MAX_ZOOM = 14;
+/** Les lieux à une même adresse restent sélectionnables au zoom de la rue. */
+const CLUSTER_MAX_ZOOM = 22;
 const CLUSTER_RADIUS = 56;
 
 type PointProps = { index: number; urgency: number };
@@ -31,6 +29,8 @@ export class BaitlyClusterLayer {
   private index: Supercluster<PointProps, ClusterProps> | null = null;
   private readonly onMap = new Set<maplibregl.Marker>();
   private readonly clusterMarkers = new Map<number, maplibregl.Marker>();
+  private signature = '';
+  private choice?: maplibregl.Popup;
   private readonly refresh = () => this.render();
 
   constructor(
@@ -40,13 +40,26 @@ export class BaitlyClusterLayer {
     map.on('moveend', this.refresh);
   }
 
-  /** Nouvelle liste d'épingles (les précédentes ont déjà été retirées par l'appelant). */
+  /** Met à jour le regroupement sans détacher les épingles conservées. */
   setEntries(entries: ClusterEntry[]): void {
+    const signature = entries.map(({ marker, urgency }) => {
+      const { lng, lat } = marker.getLngLat();
+      return `${lng},${lat}:${urgency}:${marker.getElement().getAttribute('aria-label')}`;
+    }).join('|');
+    const unchanged = signature === this.signature && entries.length === this.entries.length && entries.every((entry, index) => entry.marker === this.entries[index].marker);
     this.entries = entries;
-    this.onMap.clear();
+    if (unchanged) return;
+    this.signature = signature;
+    const retained = new Set(entries.map((entry) => entry.marker));
+    for (const marker of this.onMap) {
+      if (retained.has(marker)) continue;
+      marker.remove();
+      this.onMap.delete(marker);
+    }
+    this.choice?.remove();
     this.clusterMarkers.forEach((marker) => marker.remove());
     this.clusterMarkers.clear();
-    if (entries.length <= CLUSTER_THRESHOLD) {
+    if (entries.length < 2) {
       this.index = null;
     } else {
       this.index = new Supercluster<PointProps, ClusterProps>({
@@ -72,6 +85,7 @@ export class BaitlyClusterLayer {
   }
 
   destroy(): void {
+    this.choice?.remove();
     this.map.off('moveend', this.refresh);
     this.clusterMarkers.forEach((marker) => marker.remove());
     this.clusterMarkers.clear();
@@ -79,6 +93,7 @@ export class BaitlyClusterLayer {
   }
 
   private render(): void {
+    this.choice?.remove();
     if (!this.index) {
       this.entries.forEach((entry) => this.show(entry.marker));
       this.clusterMarkers.forEach((marker) => marker.remove());
@@ -103,7 +118,7 @@ export class BaitlyClusterLayer {
     }
     for (const entry of this.entries) {
       // Une fiche ouverte garde son épingle, même si le zoom la regrouperait.
-      if (visibleMarkers.has(entry.marker) || entry.marker.getPopup()?.isOpen()) this.show(entry.marker);
+      if (visibleMarkers.has(entry.marker) || entry.marker.getPopup()?.isOpen() || entry.marker.getElement().getAttribute('aria-pressed') === 'true') this.show(entry.marker);
       else this.hide(entry.marker);
     }
     this.clusterMarkers.forEach((marker, id) => {
@@ -138,9 +153,36 @@ export class BaitlyClusterLayer {
     element.addEventListener('click', (event) => {
       event.stopPropagation();
       if (!this.index) return;
-      const zoom = Math.min(this.index.getClusterExpansionZoom(id), CLUSTER_MAX_ZOOM + 1);
-      this.map.easeTo({ center: coordinates, zoom, duration: prefersReducedMotion() ? 0 : 600 });
+      const leaves = this.index.getLeaves(id, Infinity);
+      const first = leaves[0]?.geometry.coordinates;
+      const coincident = first && leaves.every((leaf) => leaf.geometry.coordinates[0] === first[0] && leaf.geometry.coordinates[1] === first[1]);
+      if (coincident || this.map.getZoom() >= CLUSTER_MAX_ZOOM) {
+        this.showChoices(coordinates, leaves.map((leaf) => this.entries[leaf.properties.index].marker));
+        return;
+      }
+      const zoom = Math.min(this.index.getClusterExpansionZoom(id), CLUSTER_MAX_ZOOM);
+      this.map.easeTo({ center: coordinates, zoom, duration: prefersReducedMotion() ? 0 : 200 });
     });
     this.clusterMarkers.set(id, new maplibregl.Marker({ element }).setLngLat(coordinates).addTo(this.map));
+  }
+
+  /** Une sélection explicite rend accessibles les missions à la même adresse. */
+  private showChoices(coordinates: [number, number], markers: maplibregl.Marker[]): void {
+    const list = document.createElement('div');
+    list.className = 'baitly-map-cluster-list';
+    for (const marker of markers) {
+      const button = document.createElement('button');
+      button.type = 'button';
+      button.textContent = marker.getElement().getAttribute('aria-label');
+      button.addEventListener('click', (event) => {
+        event.stopPropagation();
+        this.choice?.remove();
+        this.show(marker);
+        marker.getElement().click();
+      });
+      list.append(button);
+    }
+    this.choice?.remove();
+    this.choice = new maplibregl.Popup({ maxWidth: '280px', offset: 24 }).setLngLat(coordinates).setDOMContent(list).addTo(this.map);
   }
 }

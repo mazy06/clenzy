@@ -29,6 +29,7 @@ interface ImportMetaEnv {
 
   // Carte Baitly (MapLibre + PMTiles) — defauts en meme origine sous /maps/
   readonly VITE_MAP_TILES_URL?: string
+  readonly VITE_MAP_WORLD_TILES_URL?: string
   readonly VITE_MAP_ASSETS_URL?: string
   readonly VITE_MAP_TERRAIN_URL?: string
 

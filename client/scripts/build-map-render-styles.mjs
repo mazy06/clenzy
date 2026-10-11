@@ -63,6 +63,7 @@ for (const [mode, name] of [['light', 'paper'], ['dark', 'night']]) {
       glyphs: '__BAITLY_ASSETS__/fonts/{fontstack}/{range}.pbf',
       sprite: `__BAITLY_ASSETS__/sprites/baitly/${mode}`,
       terrain: 'pmtiles://__BAITLY_TERRAIN__',
+      world: 'pmtiles://__BAITLY_ASSETS__/../world.pmtiles',
     });
     const file = join(outDir, 'web-styles', `baitly-${name}-${language}.json`);
     await writeFile(file, JSON.stringify(style));

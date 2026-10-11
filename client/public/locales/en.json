@@ -16357,6 +16357,11 @@
     "dropHere": "Drag and drop your photos here"
   },
   "baitlyMap": {
+    "showAll": "Show all places",
+    "backToList": "Back to the list",
+    "loading": "Loading the map…",
+    "loadError": "The map background could not be loaded.",
+    "worldUnavailable": "Worldwide background unavailable. Regional map displayed.",
     "view3d": "Switch to 3D view",
     "view2d": "Switch to flat view",
     "controls": {
@@ -16384,7 +16389,7 @@
       "googleMaps": "Google Maps",
       "waze": "Waze"
     },
-    "cluster": "{{count}} places, zoom in to see them",
+    "cluster": "{{count}} places, show the group",
     "legend": "Legend",
     "states": {
       "alert": "Alert",

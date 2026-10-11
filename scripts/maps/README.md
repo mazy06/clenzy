@@ -17,7 +17,7 @@ Code front : `client/src/components/map/` (style dans `baitlyMapStyle.ts`, épin
 
 Rendu : palette « Papier » (claire, papier chaud) et « Nuit », routes blanches en clair,
 bâtiments extrudés en 3D à partir du zoom 14 (hauteur OSM, 12 m par défaut), caméra
-inclinée avec bouton 2D/3D sur les cartes de consultation. Les commerces (restaurants,
+à plat par défaut avec bouton 2D/3D sur les cartes de consultation. Les commerces (restaurants,
 cafés, boutiques) sont masqués pour ne pas noyer les épingles des logements.
 
 ## Rendu
@@ -33,7 +33,8 @@ cafés, boutiques) sont masqués pour ne pas noyer les épingles des logements.
   Lucide en pastilles teintées par famille de lieu), mêmes noms que Protomaps.
 - **Police Baitly Sans** : Plus Jakarta Sans (latin) + Tajawal (arabe) + Noto Sans (autres
   écritures), glyphes générés par `fonts/build-baitly-fonts.sh` (polices SIL OFL 1.1).
-- **Épingles** : regroupement en bulles au-delà de 12 lieux (supercluster), anneau d'état
+- **Épingles** : regroupement dès deux lieux proches (supercluster), sélection explicite
+  des lieux à la même adresse, anneau d'état
   (rotation, arrivée, départ, occupé, alerte, retard…) et légende. L'état du jour des
   logements vient de `GET /api/properties/map-states`, calculé dans le fuseau du logement.
 - Changer de thème (Papier / Nuit) remplace le style sur la carte existante : la caméra
@@ -41,9 +42,38 @@ cafés, boutiques) sont masqués pour ne pas noyer les épingles des logements.
 
 ## Couverture
 
-France métropolitaine + Corse, Maroc, Arabie saoudite (`baitly-region.geojson`), zooms
-0 à 15. Hors de ces zones, la carte affiche le fond uni. Pour ajouter un pays (DOM-TOM,
-Émirats…), ajouter un polygone à `baitly-region.geojson` et reconstruire.
+France métropolitaine + Corse, Maroc et Moyen-Orient (`baitly-region.geojson`), zooms
+0 à 15. Le rectangle de construction du Moyen-Orient couvre Turquie, Chypre,
+Égypte, Levant, Irak, Iran et toute la péninsule Arabique, Qatar, Bahreïn,
+Koweït, Émirats arabes unis, Oman et Yémen inclus. Il couvre aussi les mers et
+territoires voisins à l'intérieur de ses limites : ce n'est pas une définition
+politique des frontières.
+
+Le web charge en dessous une **source mondiale séparée**, `world.pmtiles` (z0-6),
+dans les mêmes couleurs. Hors des zones détaillées, elle reste surzoomée : on garde
+le contexte géographique, mais sans promettre les rues ou les bâtiments locaux.
+Fusionner les deux archives avec un maximum global de z15 supprimerait le repli à
+partir de z7 ; c'est pour cela que les sources restent distinctes.
+Les images serveur et les tuiles raster gardent la source régionale ; leur ajout
+d'une source mondiale nécessite aussi la configuration du moteur dans le dépôt infra.
+
+Un monde détaillé z0-15 représente environ 120 Go selon
+[Protomaps](https://docs.protomaps.com/basemaps/downloads), sans compter le relief
+et les fichiers temporaires. Le navigateur lit seulement les plages de tuiles
+consultées, pas l'archive entière. Le coût réel dépend du stockage, du trafic,
+du cache et de la fréquence de reconstruction ; il doit être mesuré avant
+d'étendre les détails au monde. Le fond simplifié conserve notre hébergement et
+évite cette multiplication du volume. Le workflow affiche les tailles mesurées.
+
+## Centre et consultation
+
+Le PMS demande la position actuelle au navigateur, puis utilise la ville du profil
+si elle est refusée, indisponible ou invalide. Cache de session en mémoire uniquement.
+Sans les deux, il affiche une vue mondiale ou le portefeuille, jamais Paris par défaut.
+Un geste de l'utilisateur conserve la priorité sur une localisation arrivée après coup.
+Les états métier se mettent à jour sans reconstruire les marqueurs ni recadrer.
+« Voir tous les lieux » demande explicitement le cadrage du portefeuille ; ouvrir
+une fiche ne force plus de zoom. En mobile, le détail se lit dans la feuille.
 
 ## Chaîne de production
 
@@ -63,6 +93,20 @@ bash scripts/maps/upload-baitly-tiles.sh
 3. En production, le conteneur client relaie `/maps/` vers ce conteneur
    (`BAITLY_MAPS_ORIGIN`, cf. `client/docker-runtime-config.sh`) : le front lit la carte en
    même origine, sans CSP à élargir.
+
+La publication des changements doit passer par le workflow **Baitly maps**
+(`.github/workflows/baitly-maps.yml`), après intégration par PR. Par défaut il
+construit et vérifie sans publier. La publication est explicite et uniquement
+depuis `production`, car le stockage des cartes est partagé entre instances.
+Configurer les secrets `BAITLY_MAPS_AWS_ACCESS_KEY_ID` et
+`BAITLY_MAPS_AWS_SECRET_ACCESS_KEY` pour le compte dédié aux cartes publiques.
+Ne jamais réutiliser un compte donnant accès au stockage privé des clients.
+Publier `world.pmtiles` avant de déployer le frontend qui le référence.
+Les URL runtime `VITE_MAP_WORLD_TILES_URL`, `VITE_MAP_TILES_URL` et
+`VITE_MAP_TERRAIN_URL` permettent de pointer des archives alternatives.
+
+Qualification locale, sans télécharger de données :
+`python3 scripts/maps/test_baitly_tiles.py`, puis tests ciblés de la carte et build frontend.
 
 Reconstruire tous les mois ou deux suffit : l'archive porte un `Cache-Control` d'un jour,
 les navigateurs revalident par ETag.

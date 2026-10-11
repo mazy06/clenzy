@@ -9,9 +9,10 @@ import { createBaitlyPin } from './map/baitlyMapPin';
 import { LocationOn, DirectionsWalk } from '../icons';
 import { useThemeMode } from '../hooks/useThemeMode';
 import { useTranslation } from '../hooks/useTranslation';
+import { useHomeMapCenter } from '../hooks/useHomeMapCenter';
 
-// Fallback : centre de la France métropolitaine
-const DEFAULT_FALLBACK: [number, number] = [2.3522, 48.8566];
+// Sans localisation exploitable, montrer le monde sans inventer une ville.
+const DEFAULT_FALLBACK: [number, number] = [0, 0];
 
 export interface PropertyLocationPickerProps {
   /** Latitude actuelle (null/undefined si non définie) */
@@ -38,6 +39,8 @@ export function PropertyLocationPicker({
 }: PropertyLocationPickerProps) {
   const { t } = useTranslation();
   const { isDark } = useThemeMode();
+  const homeCenter = useHomeMapCenter();
+  const userMovedRef = useRef(false);
   const mapContainerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<maplibregl.Map | null>(null);
   const markerRef = useRef<maplibregl.Marker | null>(null);
@@ -56,8 +59,8 @@ export function PropertyLocationPicker({
     ? [longitude as number, latitude as number]
     : fallbackCenter
       ? [fallbackCenter.lng, fallbackCenter.lat]
-      : DEFAULT_FALLBACK;
-  const initialZoom = hasCoords ? 15 : fallbackCenter ? 12 : 5;
+      : homeCenter ?? DEFAULT_FALLBACK;
+  const initialZoom = hasCoords ? 15 : fallbackCenter || homeCenter ? 12 : 2;
 
   const movePin = useCallback((lng: number, lat: number) => {
     const map = mapRef.current;
@@ -98,6 +101,8 @@ export function PropertyLocationPicker({
       onChangeRef.current(lat, lng);
     };
     map.on('click', handleMapClick);
+    const onMoveStart = (event: { originalEvent?: unknown }) => { if (event.originalEvent) userMovedRef.current = true; };
+    map.on('movestart', onMoveStart);
 
     if (hasCoords) {
       movePin(longitude as number, latitude as number);
@@ -105,12 +110,18 @@ export function PropertyLocationPicker({
 
     return () => {
       map.off('click', handleMapClick);
+      map.off('movestart', onMoveStart);
       map.remove();
       mapRef.current = null;
       markerRef.current = null;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  useEffect(() => {
+    if (hasCoords || fallbackCenter || !homeCenter || userMovedRef.current) return;
+    mapRef.current?.jumpTo({ center: homeCenter, zoom: 12 });
+  }, [homeCenter, hasCoords, fallbackCenter]);
 
   // Switch style quand le thème change
   useEffect(() => {
