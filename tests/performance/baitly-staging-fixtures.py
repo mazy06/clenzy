@@ -358,6 +358,153 @@ def disable(ops, per_cohort):
                 ops.keycloak(["update", f"clients/{client['id']}", "-r", REALM], {"enabled": False, "serviceAccountsEnabled": True})
 
 
+# Organisations synthétiques du benchmark : slug = nom, cohorte 10/100/1000, compte 01 à 10.
+FIXTURE_ORG_PATTERN = r"^baitly-perf-(10|100|1000)-(0[1-9]|10)$"
+
+# Une seule transaction : gardes, suppression, contrôle d'intégrité, rapport — puis COMMIT
+# (purge) ou ROLLBACK (purge-plan). Les contraintes FK sont suspendues le temps de la
+# transaction (session_replication_role) : l'ordre de suppression n'importe donc pas, et
+# les lignes dépendantes laissées orphelines sont ensuite traitées selon leur contrainte
+# (CASCADE/RESTRICT : supprimées, SET NULL : remises à NULL), jusqu'à n'en plus trouver.
+# Une ligne dépendante appartenant à une AUTRE organisation arrête tout.
+PURGE_SQL = r"""BEGIN;
+SET LOCAL lock_timeout='10s'; SET LOCAL statement_timeout='900s';
+SELECT set_config('baitly.marker', :'marker', true), set_config('baitly.pattern', :'pattern', true) \g /dev/null
+CREATE TEMP TABLE purge_report(table_name text PRIMARY KEY, deleted bigint NOT NULL DEFAULT 0,
+ nulled bigint NOT NULL DEFAULT 0) ON COMMIT DROP;
+CREATE TEMP TABLE purge_orgs ON COMMIT DROP AS SELECT id, slug FROM organizations
+ WHERE slug ~ current_setting('baitly.pattern') AND name = slug;
+DO $purge$
+DECLARE
+  fixture_ids bigint[] := ARRAY(SELECT id FROM purge_orgs);
+  touched oid[] := ARRAY['organizations'::regclass::oid];
+  rec record; fk record; n bigint; changed boolean; pass int;
+  present text; joined text; nulls text; foreign_rows bigint;
+BEGIN
+  IF cardinality(fixture_ids) = 0 THEN RETURN; END IF;
+  IF EXISTS (SELECT 1 FROM properties WHERE organization_id = ANY(fixture_ids)
+      AND description IS DISTINCT FROM current_setting('baitly.marker')) THEN
+    RAISE EXCEPTION 'Logement non synthétique dans une organisation de fixture : purge refusée';
+  END IF;
+  IF EXISTS (SELECT 1 FROM users u JOIN purge_orgs o ON o.id = u.organization_id
+      WHERE u.email_hash IS DISTINCT FROM encode(sha256(convert_to(o.slug || '@example.invalid', 'UTF8')), 'hex')) THEN
+    RAISE EXCEPTION 'Compte non synthétique dans une organisation de fixture : purge refusée';
+  END IF;
+  IF EXISTS (SELECT 1 FROM organization_members m WHERE m.organization_id = ANY(fixture_ids)
+      AND m.user_id NOT IN (SELECT id FROM users WHERE organization_id = ANY(fixture_ids))) THEN
+    RAISE EXCEPTION 'Membre extérieur dans une organisation de fixture : purge refusée';
+  END IF;
+  IF EXISTS (SELECT 1 FROM organization_members m WHERE NOT (m.organization_id = ANY(fixture_ids))
+      AND m.user_id IN (SELECT id FROM users WHERE organization_id = ANY(fixture_ids))) THEN
+    RAISE EXCEPTION 'Compte de fixture membre d''une autre organisation : purge refusée';
+  END IF;
+
+  SET LOCAL session_replication_role = replica;
+  FOR rec IN SELECT c.oid, c.oid::regclass AS rel FROM pg_class c
+      JOIN pg_attribute a ON a.attrelid = c.oid AND a.attname = 'organization_id' AND NOT a.attisdropped
+      WHERE c.relnamespace = 'public'::regnamespace AND c.relkind IN ('r', 'p')
+        AND c.oid <> 'organizations'::regclass LOOP
+    EXECUTE format('DELETE FROM %s WHERE organization_id = ANY($1)', rec.rel) USING fixture_ids;
+    GET DIAGNOSTICS n = ROW_COUNT;
+    IF n > 0 THEN
+      INSERT INTO purge_report(table_name, deleted) VALUES (rec.rel::text, n);
+      touched := touched || rec.oid;
+    END IF;
+  END LOOP;
+  DELETE FROM organizations WHERE id = ANY(fixture_ids);
+  GET DIAGNOSTICS n = ROW_COUNT;
+  INSERT INTO purge_report(table_name, deleted) VALUES ('organizations', n);
+
+  FOR pass IN 1..15 LOOP
+    changed := false;
+    FOR fk IN SELECT con.conrelid, con.conrelid::regclass AS child, con.confrelid::regclass AS parent,
+        con.confdeltype, k.child_cols, k.parent_cols
+        FROM pg_constraint con
+        CROSS JOIN LATERAL (SELECT array_agg(quote_ident(ca.attname) ORDER BY u.ord) AS child_cols,
+            array_agg(quote_ident(pa.attname) ORDER BY u.ord) AS parent_cols
+          FROM unnest(con.conkey, con.confkey) WITH ORDINALITY u(ck, pk, ord)
+          JOIN pg_attribute ca ON ca.attrelid = con.conrelid AND ca.attnum = u.ck
+          JOIN pg_attribute pa ON pa.attrelid = con.confrelid AND pa.attnum = u.pk) k
+        WHERE con.contype = 'f' AND con.confrelid = ANY(touched) LOOP
+      SELECT string_agg(format('c.%s IS NOT NULL', col), ' AND ') INTO present FROM unnest(fk.child_cols) col;
+      SELECT string_agg(format('p.%s = c.%s', pc, cc), ' AND ') INTO joined
+        FROM unnest(fk.parent_cols, fk.child_cols) u(pc, cc);
+      present := present || format(' AND NOT EXISTS (SELECT 1 FROM %s p WHERE %s)', fk.parent, joined);
+      IF EXISTS (SELECT 1 FROM pg_attribute WHERE attrelid = fk.conrelid AND attname = 'organization_id'
+          AND NOT attisdropped) THEN
+        EXECUTE format('SELECT count(*) FROM %s c WHERE %s AND c.organization_id IS NOT NULL', fk.child, present)
+          INTO foreign_rows;
+        IF foreign_rows > 0 THEN
+          RAISE EXCEPTION 'Donnée d''une autre organisation liée à la fixture (%) : purge refusée', fk.child;
+        END IF;
+      END IF;
+      IF fk.confdeltype = 'n' THEN
+        SELECT string_agg(format('%s = NULL', col), ', ') INTO nulls FROM unnest(fk.child_cols) col;
+        EXECUTE format('UPDATE %s c SET %s WHERE %s', fk.child, nulls, present);
+        GET DIAGNOSTICS n = ROW_COUNT;
+        IF n > 0 THEN
+          INSERT INTO purge_report(table_name, nulled) VALUES (fk.child::text, n)
+            ON CONFLICT (table_name) DO UPDATE SET nulled = purge_report.nulled + EXCLUDED.nulled;
+        END IF;
+      ELSIF fk.confdeltype = 'd' THEN
+        RAISE EXCEPTION 'Contrainte SET DEFAULT non prise en charge (%) : purge refusée', fk.child;
+      ELSE
+        EXECUTE format('DELETE FROM %s c WHERE %s', fk.child, present);
+        GET DIAGNOSTICS n = ROW_COUNT;
+        IF n > 0 THEN
+          INSERT INTO purge_report(table_name, deleted) VALUES (fk.child::text, n)
+            ON CONFLICT (table_name) DO UPDATE SET deleted = purge_report.deleted + EXCLUDED.deleted;
+          IF NOT fk.conrelid = ANY(touched) THEN touched := touched || fk.conrelid; END IF;
+          changed := true;
+        END IF;
+      END IF;
+    END LOOP;
+    IF NOT changed THEN
+      SET LOCAL session_replication_role = origin;
+      RETURN;
+    END IF;
+  END LOOP;
+  RAISE EXCEPTION 'Dépendances encore orphelines après 15 passes : purge refusée';
+END
+$purge$;
+SELECT json_build_object('organizations',(SELECT coalesce(json_agg(slug ORDER BY slug),'[]'::json) FROM purge_orgs),
+ 'tables',(SELECT coalesce(json_object_agg(table_name, json_build_object('deleted',deleted,'nulled',nulled)
+   ORDER BY table_name),'{}'::json) FROM purge_report));
+"""
+
+
+def fixture_clients(ops):
+    """Clients Keycloak des comptes de mesure, refusés s'ils ne portent pas le marqueur."""
+    found = []
+    for count in (10, 100, 1000):
+        for ordinal in range(1, 11):
+            name = f"baitly-perf-{count}-{ordinal:02d}"
+            for client in ops.keycloak(["get", "clients", "-r", REALM, "-q", f"clientId={name}"]) or []:
+                if client.get("clientId") != name:
+                    continue
+                if client.get("attributes", {}).get("baitly_fixture") != MARKER:
+                    raise FixtureError("Client homonyme non marqué ; purge refusée")
+                found.append(str(uuid.UUID(client["id"])))
+    return found
+
+
+def purge(ops, apply):
+    """Supprime toutes les données des organisations de fixture puis leurs clients Keycloak.
+
+    purge-plan (apply=False) exécute exactement la même transaction et l'annule :
+    le rapport donne ce que purge supprimera. Idempotent : relancer après un échec
+    Keycloak ne retrouve plus d'organisation et termine la suppression des clients."""
+    require_staging()
+    report = ops.sql(PURGE_SQL + ("COMMIT;\n" if apply else "ROLLBACK;\n"),
+            marker=MARKER, pattern=FIXTURE_ORG_PATTERN)
+    clients = fixture_clients(ops)
+    if apply:
+        for client_id in clients:
+            ops.keycloak(["delete", f"clients/{client_id}", "-r", REALM])
+    report.update({"applied": apply, "keycloakClients": len(clients)})
+    return report
+
+
 def schema(ops):
     require_staging()
     return ops.sql("""BEGIN READ ONLY;
@@ -428,7 +575,7 @@ def explain(ops, actors, start, end):
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument("action", choices=["schema", "provision", "explain", "stats", "disable"])
+    parser.add_argument("action", choices=["schema", "provision", "explain", "stats", "disable", "purge-plan", "purge"])
     parser.add_argument("--actors", type=Path)
     parser.add_argument("--report", type=Path)
     parser.add_argument("--accounts-per-cohort", type=int, default=4)
@@ -448,6 +595,8 @@ def main():
         args.report.write_text(json.dumps(values, indent=2))
     elif args.action == "disable":
         disable(Staging(), args.accounts_per_cohort)
+    elif args.action in {"purge-plan", "purge"}:
+        print(json.dumps(purge(Staging(), apply=args.action == "purge")))
     else:
         if not args.actors:
             raise FixtureError("Fichier privé de comptes requis")

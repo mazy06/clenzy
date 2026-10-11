@@ -163,6 +163,48 @@ class StagingFixturesTest(unittest.TestCase):
             with self.assertRaises(fixture.FixtureError):
                 fixture.command(['test'], allow_not_found=True)
 
+    @patch.dict(os.environ, {"APP_DOMAIN": "app.clenzy.fr"})
+    def test_purge_plan_rolls_back_and_keeps_keycloak_clients(self):
+        ops = Mock()
+        ops.sql.return_value = {"organizations": ["baitly-perf-10-01"], "tables": {}}
+        with patch.object(fixture, "fixture_clients", return_value=["client-id"]):
+            report = fixture.purge(ops, apply=False)
+        self.assertTrue(ops.sql.call_args.args[0].endswith("ROLLBACK;\n"))
+        ops.keycloak.assert_not_called()
+        self.assertEqual(report["applied"], False)
+        self.assertEqual(report["keycloakClients"], 1)
+
+    @patch.dict(os.environ, {"APP_DOMAIN": "app.clenzy.fr"})
+    def test_purge_commits_then_deletes_only_marked_clients(self):
+        ops = Mock()
+        ops.sql.return_value = {"organizations": [], "tables": {}}
+        with patch.object(fixture, "fixture_clients", return_value=["client-id"]):
+            fixture.purge(ops, apply=True)
+        self.assertTrue(ops.sql.call_args.args[0].endswith("COMMIT;\n"))
+        self.assertEqual(ops.sql.call_args.kwargs["pattern"], fixture.FIXTURE_ORG_PATTERN)
+        ops.keycloak.assert_called_once_with(["delete", "clients/client-id", "-r", fixture.REALM])
+
+    @patch.dict(os.environ, {"APP_DOMAIN": "app.clenzy.fr"})
+    def test_purge_refuses_an_unmarked_homonym_client(self):
+        ops = Mock()
+        ops.keycloak.return_value = [{"id": "00000000-0000-0000-0000-000000000001",
+            "clientId": "baitly-perf-10-01", "attributes": {}}]
+        with self.assertRaisesRegex(fixture.FixtureError, "non marqué"):
+            fixture.fixture_clients(ops)
+
+    def test_purge_pattern_targets_only_the_benchmark_organizations(self):
+        import re
+        pattern = re.compile(fixture.FIXTURE_ORG_PATTERN)
+        for slug in ("baitly-perf-10-01", "baitly-perf-100-10", "baitly-perf-1000-04"):
+            self.assertRegex(slug, pattern)
+        for slug in ("baitly-perf-10-11", "baitly-perf-50-01", "baitly", "vraie-org-baitly-perf-10-01"):
+            self.assertNotRegex(slug, pattern)
+
+    @patch.dict(os.environ, {"APP_DOMAIN": "app.baitly.fr"})
+    def test_purge_refuses_any_other_domain(self):
+        with self.assertRaisesRegex(fixture.FixtureError, "app.clenzy.fr"):
+            fixture.purge(Mock(), apply=True)
+
 
 if __name__ == "__main__":
     unittest.main()
