@@ -77,4 +77,4 @@ if [ "$status" != "206" ]; then
   echo "Lecture par plage impossible (HTTP $status) : vérifier la lecture publique du conteneur." >&2
   exit 1
 fi
-echo "OK. Valeur de BAITLY_MAPS_ORIGIN (nginx) : https://$BUCKET.s3.$REGION.io.cloud.ovh.net"
+echo "OK. Valeur de BAITLY_MAPS_ORIGIN : https://$BUCKET.s3.$REGION.io.cloud.ovh.net/maps"
