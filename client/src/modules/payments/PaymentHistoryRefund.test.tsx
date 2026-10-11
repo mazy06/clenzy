@@ -5,6 +5,7 @@ import PaymentHistoryPage from './PaymentHistoryPage';
 
 const api = vi.hoisted(() => ({ getPage: vi.fn(), getHosts: vi.fn(), refund: vi.fn(), refundInstallment: vi.fn(), refundInstallmentStatus: vi.fn() }));
 const interventions = vi.hoisted(() => ({ getById: vi.fn() }));
+const measuredLayout = vi.hoisted(() => ({ enabled: false, mounts: 0 }));
 vi.mock('../../services/api/paymentsApi', () => ({ paymentsApi: api }));
 vi.mock('../../services/api/interventionsApi', () => ({ interventionsApi: interventions }));
 vi.mock('../../hooks/useAuth', () => ({ useAuth: () => ({ user: { roles: ['SUPER_ADMIN'] } }) }));
@@ -15,14 +16,29 @@ vi.mock('../billing/components/FinanceKpis', () => ({ FinanceAmountKpis: ({ amou
 vi.mock('./FinanceBatchPanel', () => ({ FinanceBatchPanel: () => null }));
 vi.mock('../../components/PagePagination', () => ({ default: ({ count, page, onPageChange }: any) =>
   <><span>{count} dossiers</span><button onClick={() => onPageChange(page + 1)}>Page suivante</button></> }));
-vi.mock('../../components/DataFetchWrapper', () => ({ default: ({ children }: any) => children }));
-vi.mock('../billing/components/FinanceWorkspace', () => ({ default: ({ items, pagination }: any) =>
-  <div>{items.map((item: any) => <div key={item.id}>{item.title}{item.headerActions}</div>)}{pagination}</div> }));
+vi.mock('../../components/DataFetchWrapper', () => ({ default: ({ children, loading }: any) =>
+  measuredLayout.enabled && loading ? null : children }));
+vi.mock('../billing/components/FinanceWorkspace', async () => {
+  const { useEffect, useState } = await import('react');
+  return { default: ({ items, pagination, onPageSizeChange, selectedId }: any) => {
+    const [capacity, setCapacity] = useState(10);
+    useEffect(() => {
+      if (measuredLayout.enabled) { measuredLayout.mounts++; setCapacity(5); }
+    }, []);
+    useEffect(() => {
+      if (measuredLayout.enabled) onPageSizeChange?.(capacity);
+    }, [capacity, onPageSizeChange]);
+    return <div data-testid="finance-list" data-selected={String(selectedId)}>
+      {items.map((item: any) => <div key={item.id}>{item.title}{item.headerActions}</div>)}{pagination}</div>;
+  } };
+});
 vi.mock('./PaymentRecordDetail', () => ({ default: () => null,
   PaymentRecordActions: ({ onRefund, canRefund }: any) => canRefund && <button onClick={onRefund}>Demander un remboursement</button> }));
 
 beforeEach(() => {
   vi.clearAllMocks();
+  measuredLayout.enabled = false;
+  measuredLayout.mounts = 0;
   interventions.getById.mockResolvedValue({ paymentStatus: 'PAID' });
   api.getHosts.mockResolvedValue([]);
   api.getPage.mockResolvedValue({ content: [{ id: 1, referenceId: 15, type: 'INTERVENTION', status: 'PAID', amount: 35,
@@ -30,6 +46,24 @@ beforeEach(() => {
     currency: 'EUR', description: 'Ménage de départ', createdAt: '2026-10-05', transactionDate: '2026-10-05' }], totalElements: 1, totalPages: 1, amountGroups: [] });
 });
 afterEach(() => { cleanup(); vi.restoreAllMocks(); });
+
+it('keeps measured layout mounted while fetching its adjusted page capacity', async () => {
+  measuredLayout.enabled = true;
+  let complete!: (value: any) => void;
+  const response = { content: [{ id: 1, referenceId: 1, type: 'INTERVENTION', status: 'PENDING', amount: 35,
+    currency: 'EUR', description: 'Dossier conservé' }], totalElements: 456, totalPages: 92, amountGroups: [] };
+  api.getPage.mockImplementation(({ size }) => size === 10 ? Promise.resolve(response)
+    : new Promise(resolve => { complete = resolve; }));
+  render(<MemoryRouter><PaymentHistoryPage embedded /></MemoryRouter>);
+  await waitFor(() => expect(api.getPage).toHaveBeenCalledTimes(2));
+  expect(api.getPage).toHaveBeenLastCalledWith(expect.objectContaining({ size: 5 }));
+  expect(screen.getByText('Dossier conservé')).toBeVisible();
+  expect(screen.getByTestId('finance-list')).toHaveAttribute('data-selected', 'null');
+  complete(response);
+  await waitFor(() => expect(screen.getByText('456 dossiers')).toBeVisible());
+  expect(measuredLayout.mounts).toBe(1);
+  expect(api.getPage).toHaveBeenCalledTimes(2);
+});
 
 it('loads only the requested page while keeping totals for the complete filtered history', async () => {
   const amounts = [{ key: 'all', artwork: 'documents', count: 456, unavailable: 0, totals: [['EUR', 158930.42]] }];
