@@ -1,5 +1,5 @@
 import { useEffect, useRef } from 'react';
-import maplibregl from 'maplibre-gl';
+import * as maplibregl from 'maplibre-gl';
 import { createBaitlyMap } from './createBaitlyMap';
 import { createBaitlyPin } from './baitlyMapPin';
 import type { BaitlyMapMode } from './baitlyMapStyle';

@@ -1,6 +1,6 @@
 import React, { useRef, useEffect, useCallback, useState, type ReactNode } from "react";
 import { createPortal } from "react-dom";
-import maplibregl from "maplibre-gl";
+import * as maplibregl from "maplibre-gl";
 import { createSettledScheduler } from "../utils/layoutShift";
 import { createBaitlyMap, prefersReducedMotion, setBaitlyMapMode } from "./map/createBaitlyMap";
 import { createBaitlyPin, pinPopupContent, PIN_POPUP_OFFSET, type BaitlyPinIcon } from "./map/baitlyMapPin";

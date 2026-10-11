@@ -1,4 +1,4 @@
-import type maplibregl from 'maplibre-gl';
+import type * as maplibregl from 'maplibre-gl';
 import i18n from '../../i18n/config';
 import { prefersReducedMotion } from './motion';
 

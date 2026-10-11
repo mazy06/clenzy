@@ -3,7 +3,7 @@ import { Alert as BuiAlert, AlertDescription, AlertAction, Button as BuiButton }
 import { TriangleAlert, X } from '../icons/glyphs';
 import { Spinner, Tooltip, TooltipContent, TooltipTrigger } from './ui';
 import { cn } from '../utils/cn';
-import maplibregl from 'maplibre-gl';
+import * as maplibregl from 'maplibre-gl';
 import { createBaitlyMap, prefersReducedMotion, setBaitlyMapMode } from './map/createBaitlyMap';
 import { createBaitlyPin } from './map/baitlyMapPin';
 import { LocationOn, DirectionsWalk } from '../icons';

@@ -1,4 +1,4 @@
-import maplibregl from 'maplibre-gl';
+import * as maplibregl from 'maplibre-gl';
 import i18n from '../../i18n/config';
 import { activeLanguage } from '../../utils/activeLocale';
 import { buildBaitlyMapStyle, dayPeriodAt, daylightFor, TERRAIN_SOURCE_ID, type BaitlyMapMode, type DayPeriod } from './baitlyMapStyle';

@@ -1,4 +1,4 @@
-import type maplibregl from 'maplibre-gl';
+import type * as maplibregl from 'maplibre-gl';
 import { prefersReducedMotion } from './motion';
 
 /** Marge gardée entre la fiche et le bord de la carte. */

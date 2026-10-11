@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
-import maplibregl from 'maplibre-gl';
+import * as maplibregl from 'maplibre-gl';
 import type { IconComponent } from '../../icons/glyphs';
 import { createBaitlyMap, prefersReducedMotion } from '../../components/map/createBaitlyMap';
 import { createBaitlyPin, pinIconSlot, pinPopupContent, PIN_POPUP_OFFSET } from '../../components/map/baitlyMapPin';
