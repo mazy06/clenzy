@@ -4,7 +4,7 @@ import { activeLanguage } from '../../utils/activeLocale';
 import { buildBaitlyMapStyle, dayPeriodAt, daylightFor, TERRAIN_SOURCE_ID, type BaitlyMapMode, type DayPeriod } from './baitlyMapStyle';
 import { ensureMapRuntime } from './mapRuntime';
 import { prefersReducedMotion } from './motion';
-import { BaitlyPerspectiveControl, PERSPECTIVE_CAMERA } from './perspectiveControl';
+import { BaitlyPerspectiveControl } from './perspectiveControl';
 
 export { prefersReducedMotion };
 
@@ -24,7 +24,7 @@ export interface BaitlyMapOptions {
    */
   attribution?: boolean;
   /**
-   * Vue 3D : caméra inclinée sur les bâtiments en volume + bouton 2D/3D.
+   * Autorise la vue 3D via le bouton 2D/3D ; démarre à plat.
    * Réservée aux cartes de consultation ; placer un point se fait à plat.
    */
   perspective?: boolean;
@@ -57,9 +57,17 @@ export function createBaitlyMap({
     dragRotate: compass || perspective,
     touchPitch: perspective,
     maxPitch: 65,
-    ...(perspective ? PERSPECTIVE_CAMERA : {}),
+    maxZoom: 22,
     fadeDuration: prefersReducedMotion() ? 0 : 300,
     locale: controlsLocale(),
+  });
+  // Une archive mondiale encore indisponible ne bloque pas la carte régionale.
+  map.on('error', (event) => {
+    if ((event as maplibregl.ErrorEvent & { sourceId?: string }).sourceId !== 'baitly-world') return;
+    for (const layer of map.getStyle()?.layers ?? []) {
+      if ('source' in layer && layer.source === 'baitly-world') map.removeLayer(layer.id);
+    }
+    if (map.getSource('baitly-world')) map.removeSource('baitly-world');
   });
   if (attribution) {
     map.addControl(new maplibregl.AttributionControl({ compact: true }), 'bottom-right');
@@ -80,7 +88,7 @@ export function createBaitlyMap({
     // Terrain 3D sur les cartes inclinées : le relief prend du volume. Réappliqué à
     // chaque style chargé (le changement de thème remplace le style, pas la carte).
     map.on('style.load', () => {
-      if (map.getSource(TERRAIN_SOURCE_ID)) map.setTerrain({ source: TERRAIN_SOURCE_ID, exaggeration: 1.15 });
+      if (map.getPitch() > 5 && map.getSource(TERRAIN_SOURCE_ID)) map.setTerrain({ source: TERRAIN_SOURCE_ID, exaggeration: 1.15 });
     });
   }
   followDaylight(map, mode, period);

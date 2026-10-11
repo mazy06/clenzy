@@ -4,6 +4,7 @@ import { useIsMobile } from '../../hooks/use-mobile';
 import { cn } from '../../utils/cn';
 import MissionMapSplitView from '../MissionMapSplitView';
 import { useTranslation } from '../../hooks/useTranslation';
+import { MapSheetProvider } from '../map/MapSheetContext';
 
 /**
  * Vue « carte + liste » — surface UNIQUE des trois écrans qui l'utilisent
@@ -22,8 +23,8 @@ import { useTranslation } from '../../hooks/useTranslation';
  *   <li><b>Sous 640 px</b> : la carte occupe toute la zone, la liste devient une
  *       feuille que l'on tire depuis le bas, à trois crans — aperçu, moitié,
  *       plein. La carte reste manipulable à tout moment.</li>
- *   <li><b>À partir de 640 px</b> : la mise en page d'origine est conservée
- *       telle quelle, carte puis liste dessous. Rien ne change sur desktop.</li>
+ *   <li><b>À partir de 640 px</b> : le mode split s'adapte à la largeur du
+ *       conteneur, côte à côte à partir de 800 px, empilé en dessous.</li>
  * </ul>
  *
  * <h2>Deux choix d'implémentation à connaître</h2>
@@ -54,7 +55,7 @@ export interface MapWithSheetProps {
   children: React.ReactNode;
   /** Rendu quand il n'y a rien à lister — remplace la liste, pas la carte. */
   emptyState?: React.ReactNode;
-  /** Hauteur de la carte sur desktop (la mise en page d'origine y est figée). */
+  /** Hauteur de la carte dans le mode desktop empilé. */
   desktopMapHeight?: number;
   desktopLayout?: 'stack' | 'split';
   className?: string;
@@ -74,6 +75,11 @@ export default function MapWithSheet({
   const { t } = useTranslation();
   const isNarrow = useIsMobile(640);
   const [snap, setSnap] = React.useState<number | string | null>(SNAP_POINTS[0]);
+  const [detailHost, setDetailHost] = React.useState<HTMLDivElement | null>(null);
+  const [detailOpen, setDetailOpen] = React.useState(false);
+  const openDetail = React.useCallback(() => { setDetailOpen(true); setSnap(SNAP_POINTS[1]); }, []);
+  const closeDetail = React.useCallback(() => setDetailOpen(false), []);
+  const slot = React.useMemo(() => ({ detailHost, detailOpen, openDetail, closeDetail }), [detailHost, detailOpen, openDetail, closeDetail]);
 
   const scrollRef = React.useRef<HTMLDivElement>(null);
   React.useEffect(() => { if (scrollRef.current) scrollRef.current.scrollTop = 0; }, [listResetKey]);
@@ -90,7 +96,7 @@ export default function MapWithSheet({
           <div style={{ height: desktopMapHeight }}>{map}</div>
         </div>
         <div className="mt-2 flex min-h-[320px] flex-1 flex-col">
-          <div className="mb-1.5 flex shrink-0 items-center gap-3 text-2xs font-semibold text-muted-foreground tabular-nums">
+          <div className="mb-1.5 flex shrink-0 items-center gap-3 text-xs font-semibold text-muted-foreground tabular-nums">
             <span className="min-w-0 flex-1 truncate">{listTitle}</span>
             {listIndicators}
           </div>
@@ -109,6 +115,7 @@ export default function MapWithSheet({
   };
 
   return (
+    <MapSheetProvider value={slot}>
     <div className={cn('relative flex min-h-0 flex-1 overflow-hidden rounded-xl', className)}>
       {/* La carte prend toute la zone : plus de hauteur fixe qui la rogne. */}
       <div className="absolute inset-0">{map}</div>
@@ -147,21 +154,27 @@ export default function MapWithSheet({
               className="min-w-0 flex-1 cursor-pointer rounded-t-2xl pt-2 pb-2.5 text-start outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50"
             >
               <span aria-hidden className="mx-auto mb-2 block h-1 w-9 rounded-full bg-border" />
-              <span className="block truncate text-2xs font-semibold text-muted-foreground tabular-nums">
+              <span className="block truncate text-xs font-semibold text-muted-foreground tabular-nums">
                 {listTitle}
               </span>
             </button>
             {listIndicators}
             </div>
 
+            {detailOpen && <button type="button" onClick={closeDetail} className="min-h-11 shrink-0 cursor-pointer px-3 text-start text-sm font-medium focus-visible:ring-2 focus-visible:ring-ring">
+              {t('baitlyMap.backToList', 'Retour à la liste')}
+            </button>}
+
             {/* `overscroll-contain` : arrivé en bout de liste, le geste ne
                 repart pas dans la page derrière la feuille. */}
-            <div ref={scrollRef} data-map-list-scroll className="flex min-h-0 flex-1 flex-col gap-1.5 overflow-y-auto overscroll-contain px-3 pb-4">
+            <div ref={setDetailHost} hidden={!detailOpen} className={cn('min-h-0 flex-1 overflow-y-auto overscroll-contain px-3 pb-[max(16px,env(safe-area-inset-bottom))]', !detailOpen && 'hidden')} />
+            <div ref={scrollRef} data-map-list-scroll className={cn('flex min-h-0 flex-1 flex-col gap-1.5 overflow-y-auto overscroll-contain px-3 pb-[max(16px,env(safe-area-inset-bottom))]', detailOpen && 'hidden')}>
               {list}
             </div>
           </Vaul.Content>
         </Vaul.Portal>
       </Vaul.Root>
     </div>
+    </MapSheetProvider>
   );
 }

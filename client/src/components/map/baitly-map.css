@@ -18,8 +18,8 @@
   box-shadow: 0 1px 2px var(--bui-shadow-1), 0 6px 16px -6px var(--bui-shadow-2);
 }
 .maplibregl-ctrl-group button {
-  inline-size: 32px;
-  block-size: 32px;
+  inline-size: 44px;
+  block-size: 44px;
   cursor: pointer;
   transition: background-color 160ms cubic-bezier(0.25, 1, 0.5, 1);
 }
@@ -281,8 +281,8 @@
   z-index: 3;
   inset-block-start: 8px;
   inset-inline-end: 8px;
-  inline-size: 24px;
-  block-size: 24px;
+  inline-size: 44px;
+  block-size: 44px;
   border-radius: 50%;
   background: color-mix(in srgb, var(--bui-card) 92%, transparent);
   color: var(--bui-foreground);
@@ -342,14 +342,14 @@
     0 0 0 3px var(--bui-card),
     0 0 0 7px var(--cluster-ring, color-mix(in srgb, var(--bui-navy) 22%, transparent)),
     0 10px 22px -8px var(--bui-shadow-2);
-  transition: transform 200ms cubic-bezier(0.22, 1, 0.36, 1);
+  transition: background-color 200ms cubic-bezier(0.22, 1, 0.36, 1);
 }
 .baitly-map-cluster[data-size='m'] { inline-size: 44px; block-size: 44px; }
 .baitly-map-cluster[data-size='l'] { inline-size: 52px; block-size: 52px; font-size: 14px; }
 .baitly-map-cluster[data-urgency='3'] { --cluster-ring: var(--bui-destructive); }
 .baitly-map-cluster[data-urgency='2'] { --cluster-ring: var(--bui-warning); }
 .baitly-map-cluster[data-urgency='1'] { --cluster-ring: var(--bui-info); }
-.baitly-map-cluster:hover { transform: translateY(-2px); }
+.baitly-map-cluster:hover { background: color-mix(in srgb, var(--bui-navy) 90%, var(--bui-card)); }
 .baitly-map-cluster:focus-visible { outline: 2px solid var(--bui-ring); outline-offset: 6px; }
 
 /* ── Légende des états ───────────────────────────────────────────────────── */
@@ -368,7 +368,7 @@
   border-radius: 10px;
   background: color-mix(in srgb, var(--bui-card) 90%, transparent);
   box-shadow: 0 1px 2px var(--bui-shadow-1), 0 6px 16px -8px var(--bui-shadow-2);
-  font-size: 11px;
+  font-size: 12px;
   color: var(--bui-foreground);
   pointer-events: none;
 }
@@ -394,4 +394,61 @@
 
 @media (prefers-reduced-motion: reduce) {
   .baitly-map-cluster { transition: none; }
+}
+
+.baitly-map-split {
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-rows: minmax(0, 1fr) minmax(0, 1fr);
+}
+@container baitly-map (min-width: 800px) {
+  .baitly-map-split {
+    grid-template-columns: minmax(0, 1fr) minmax(300px, 40%);
+    grid-template-rows: minmax(0, 1fr);
+  }
+}
+.baitly-map-cluster-list {
+  display: flex;
+  flex-direction: column;
+  max-block-size: min(300px, 50dvh);
+  overflow-y: auto;
+  gap: 4px;
+}
+.baitly-map-cluster-list button {
+  min-block-size: 44px;
+  padding: 8px;
+  text-align: start;
+  color: var(--bui-foreground);
+  border-radius: 6px;
+  cursor: pointer;
+}
+.baitly-map-cluster-list button:hover { background: var(--bui-muted); }
+.baitly-map-cluster-list button:focus-visible { outline: 2px solid var(--bui-ring); outline-offset: -2px; }
+
+/* Action de cadrage : largeur du contenu, indépendante des messages de chargement. */
+.baitly-map-fit-button {
+  display: inline-flex;
+  inline-size: fit-content;
+  align-items: center;
+  gap: 8px;
+  min-block-size: 44px;
+  max-inline-size: 100%;
+  padding: 8px 12px;
+  border: 1px solid var(--bui-border);
+  border-radius: 8px;
+  background: var(--bui-card);
+  color: var(--bui-foreground);
+  box-shadow: 0 1px 2px var(--bui-shadow-1), 0 4px 12px -6px var(--bui-shadow-2);
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 1.4;
+  text-align: start;
+  cursor: pointer;
+  transition: background-color 150ms cubic-bezier(.25, 1, .5, 1), border-color 150ms cubic-bezier(.25, 1, .5, 1);
+}
+.baitly-map-fit-button svg { flex-shrink: 0; }
+.baitly-map-fit-button:hover { background: var(--bui-muted); }
+.baitly-map-fit-button:active { border-color: var(--bui-muted-foreground); }
+.baitly-map-fit-button:focus-visible { outline: 2px solid var(--bui-ring); outline-offset: 2px; }
+@media (prefers-reduced-motion: reduce) {
+  .baitly-map-fit-button { transition: none; }
 }

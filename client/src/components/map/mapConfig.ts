@@ -17,6 +17,11 @@ export function mapTilesUrl(): string {
   return absolute(runtimeEnv('VITE_MAP_TILES_URL') ?? '/maps/baitly.pmtiles');
 }
 
+/** Fond mondial z0-6, conservé sous les régions détaillées à tous les zooms. */
+export function mapWorldTilesUrl(): string {
+  return absolute(runtimeEnv('VITE_MAP_WORLD_TILES_URL') ?? '/maps/world.pmtiles');
+}
+
 /** Racine des glyphes (`fonts/`) et des sprites (`sprites/v4/`). */
 export function mapAssetsUrl(): string {
   return absolute(runtimeEnv('VITE_MAP_ASSETS_URL') ?? '/maps/assets').replace(/\/$/, '');

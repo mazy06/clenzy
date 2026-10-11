@@ -2,7 +2,7 @@
 # Carte Baitly · fabrique les tuiles vectorielles OSM et les ressources de style servies sous /maps/.
 #
 # À quoi sert ce fichier : extraire du build quotidien Protomaps (OpenStreetMap, planète entière,
-# ~140 Go, lu par requêtes Range — rien n'est téléchargé en entier) les seules zones FR + MA + SA
+# lu par requêtes Range) les zones France + Maroc + Moyen-Orient
 # décrites dans baitly-region.geojson, puis rapatrier les polices (glyphes) et les sprites que le
 # style Baitly référence. Le résultat est un dossier autonome à téléverser tel quel
 # (upload-baitly-tiles.sh) :
@@ -12,7 +12,7 @@
 #   out/assets/sprites/baitly/{light,dark}*     pictogrammes Baitly (scripts build-map-sprite.mjs)
 #
 # Utilisation :
-#   bash scripts/maps/build-baitly-tiles.sh                    # FR + MA + SA, zoom 0-15
+#   bash scripts/maps/build-baitly-tiles.sh                    # régions détaillées + monde z0-6
 #   bash scripts/maps/build-baitly-tiles.sh --maxzoom 12       # fichier plus léger (essais)
 #   bash scripts/maps/build-baitly-tiles.sh --bbox 2.2,48.8,2.45,48.92 --out client/public/maps
 #                                                              # extrait de dev (Paris), servi par Vite
@@ -60,7 +60,14 @@ REGION_ARGS=(--region="$HERE/baitly-region.geojson")
 echo "→ Tuiles : $SOURCE ⇒ $OUT/baitly.pmtiles (zoom max $MAXZOOM)"
 pmtiles extract "$SOURCE" "$OUT/baitly.pmtiles.tmp" "${REGION_ARGS[@]}" --maxzoom="$MAXZOOM"
 mv "$OUT/baitly.pmtiles.tmp" "$OUT/baitly.pmtiles"
-pmtiles show "$OUT/baitly.pmtiles" | head -n 12
+pmtiles show "$OUT/baitly.pmtiles"
+
+# Source distincte : elle reste surzoomable hors des régions détaillées, même
+# à z15. Fusionner les archives ferait disparaître ce repli dès z7.
+echo "→ Fond mondial simplifié : $SOURCE ⇒ $OUT/world.pmtiles (zoom max 6)"
+pmtiles extract "$SOURCE" "$OUT/world.pmtiles.tmp" --maxzoom=6
+pmtiles verify "$OUT/world.pmtiles.tmp"
+mv "$OUT/world.pmtiles.tmp" "$OUT/world.pmtiles"
 
 # Relief : altitude Mapterhorn (Terrarium, zooms 0-12) sur la même zone — d'après IGN
 # (Licence Ouverte 2.0) et Copernicus GLO-30. Attribution « © Mapterhorn » affichée par la carte.

@@ -1,5 +1,5 @@
 .baitly-properties-map { container-type: inline-size; }
-.baitly-properties-map > section { container: property-list / inline-size; }
+.baitly-properties-map section { container: property-list / inline-size; }
 .baitly-property-map-row { display: grid; grid-template-columns: 96px minmax(0,1fr) auto 16px; align-items: start; column-gap: 16px; row-gap: 14px; padding: 20px; color: var(--bui-foreground); cursor: pointer; transition: background-color 180ms cubic-bezier(.22,1,.36,1); }
 .baitly-property-map-row:hover { background: var(--bui-muted); }
 .baitly-property-map-row .baitly-property-map-photo { width: 96px; height: 104px; border-radius: 9px; }

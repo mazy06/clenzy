@@ -160,13 +160,10 @@ const PropertiesMapView: React.FC<PropertiesMapViewProps> = ({
     />
   ) : undefined;
 
-  // Plancher de securite sur la surface : `flex-1` se resout a zero si un
-  // ancetre cesse d'etre contraint en hauteur, et la carte disparaitrait alors
-  // en silence.
   return (
     <MapWithSheet
       desktopLayout="split"
-      className="baitly-properties-map min-h-[480px]"
+      className="baitly-properties-map"
       listResetKey={`${viewportProperties.length}:${viewportProperties[0]?.id ?? ''}`}
       map={
         <BaitlyPropertyMap

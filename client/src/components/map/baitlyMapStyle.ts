@@ -1,6 +1,6 @@
 import { layers, type Flavor } from '@protomaps/basemaps';
 import type { ExpressionSpecification, LayerSpecification, StyleSpecification } from 'maplibre-gl';
-import { mapAssetsUrl, mapTerrainUrl, mapTilesUrl } from './mapConfig';
+import { mapAssetsUrl, mapTerrainUrl, mapTilesUrl, mapWorldTilesUrl } from './mapConfig';
 
 /**
  * Style cartographique Baitly — deux palettes dessinées pour le PMS, posées sur
@@ -458,6 +458,8 @@ export interface BaitlyMapEndpoints {
    * terrain 3D, ex. `pmtiles://https://…/terrain.pmtiles`. Absent : carte sans relief.
    */
   terrain?: string;
+  /** Fond mondial simplifié, surzoomé hors des régions détaillées. */
+  world?: string;
 }
 
 /** Identifiant de la source d'altitude (réutilisé par `map.setTerrain`). */
@@ -482,6 +484,12 @@ export function composeBaitlyMapStyle(
     mode,
   );
   const daylight = DAYLIGHT[mode][period];
+  const worldLayers: LayerSpecification[] = endpoints.world ? base
+    .filter((layer) => layer.type !== 'background' && layer.type !== 'symbol')
+    .map((layer) => ({ ...layer, id: `world-${layer.id}`, source: 'baitly-world', maxzoom: 24 } as LayerSpecification)) : [];
+  const worldLabels: LayerSpecification[] = endpoints.world ? base
+    .filter((layer) => layer.type === 'symbol')
+    .map((layer) => ({ ...layer, id: `world-${layer.id}`, source: 'baitly-world', maxzoom: 7 } as LayerSpecification)) : [];
   const withRelief = (layerList: LayerSpecification[]) =>
     endpoints.terrain ? withHillshade(layerList, mode) : layerList;
   const flatLayers = base.map((layer) => {
@@ -497,6 +505,7 @@ export function composeBaitlyMapStyle(
     light: daylight.light,
     ...(flat ? {} : { sky: daylight.sky }),
     sources: {
+      ...(endpoints.world ? { 'baitly-world': { type: 'vector' as const, url: endpoints.world, maxzoom: 6 } } : {}),
       [SOURCE_ID]: {
         type: 'vector',
         url: endpoints.tiles,
@@ -519,7 +528,12 @@ export function composeBaitlyMapStyle(
           }
         : {}),
     },
-    layers: withRelief(flat ? flatLayers : withBuildings3d(base, mode)),
+    layers: [
+      ...base.filter((layer) => layer.type === 'background'),
+      ...worldLayers,
+      ...withRelief(flat ? flatLayers : withBuildings3d(base, mode)).filter((layer) => layer.type !== 'background'),
+      ...worldLabels,
+    ],
   };
 }
 
@@ -537,6 +551,7 @@ export function buildBaitlyMapStyle(
       glyphs: `${assets}/fonts/{fontstack}/{range}.pbf`,
       sprite: `${assets}/sprites/baitly/${mode}`,
       terrain: `pmtiles://${mapTerrainUrl()}`,
+      world: `pmtiles://${mapWorldTilesUrl()}`,
     },
     { period },
   );

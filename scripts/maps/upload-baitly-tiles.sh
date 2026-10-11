@@ -16,7 +16,7 @@ set -euo pipefail
 HERE="$(cd "$(dirname "$0")" && pwd)"
 BUCKET="${BAITLY_MAPS_BUCKET:-baitly-cartes}"
 REGION="${BAITLY_MAPS_REGION:-gra}"
-PROFILE="${BAITLY_MAPS_PROFILE:-ovh-cartes}"
+PROFILE="${BAITLY_MAPS_PROFILE-ovh-cartes}"
 ENDPOINT="https://s3.${REGION}.io.cloud.ovh.net"
 SRC="$HERE/out"
 
@@ -28,15 +28,23 @@ if [ ! -s "$SRC/baitly.pmtiles" ]; then
   echo "Rien à téléverser : lancer d'abord « bash scripts/maps/build-baitly-tiles.sh »." >&2
   exit 1
 fi
+if [ ! -s "$SRC/world.pmtiles" ]; then
+  echo "Fond mondial absent : reconstruire les cartes avant publication." >&2
+  exit 1
+fi
 command -v aws >/dev/null || { echo "AWS CLI absente : brew install awscli" >&2; exit 1; }
 
 export AWS_REQUEST_CHECKSUM_CALCULATION=when_required
 export AWS_RESPONSE_CHECKSUM_VALIDATION=when_required
-S3=(--profile "$PROFILE" --endpoint-url "$ENDPOINT" --region "$REGION" --acl public-read --no-progress)
+S3=(--endpoint-url "$ENDPOINT" --region "$REGION" --acl public-read --no-progress)
+[ -z "$PROFILE" ] || S3+=(--profile "$PROFILE")
 
 # Les tuiles changent à chaque reconstruction : cache court, le navigateur revalide par ETag.
 echo "→ baitly.pmtiles ⇒ s3://$BUCKET/maps/"
 aws s3 cp "$SRC/baitly.pmtiles" "s3://$BUCKET/maps/baitly.pmtiles" "${S3[@]}" \
+  --content-type application/vnd.pmtiles --cache-control 'public, max-age=86400' "$@"
+
+aws s3 cp "$SRC/world.pmtiles" "s3://$BUCKET/maps/world.pmtiles" "${S3[@]}" \
   --content-type application/vnd.pmtiles --cache-control 'public, max-age=86400' "$@"
 
 if [ -s "$SRC/terrain.pmtiles" ]; then
@@ -70,11 +78,14 @@ fi
 
 case " $* " in *" --dryrun "*) exit 0 ;; esac
 
-url="https://$BUCKET.s3.$REGION.io.cloud.ovh.net/maps/baitly.pmtiles"
-status="$(curl -sS -o /dev/null -w '%{http_code}' -r 0-126 "$url")"
-echo "Contrôle public : $url → HTTP $status"
-if [ "$status" != "206" ]; then
-  echo "Lecture par plage impossible (HTTP $status) : vérifier la lecture publique du conteneur." >&2
-  exit 1
-fi
+for archive in baitly world terrain; do
+  [ -s "$SRC/$archive.pmtiles" ] || continue
+  url="https://$BUCKET.s3.$REGION.io.cloud.ovh.net/maps/$archive.pmtiles"
+  status="$(curl -sS -o /dev/null -w '%{http_code}' -r 0-126 "$url")"
+  echo "Contrôle public : $url → HTTP $status"
+  if [ "$status" != "206" ]; then
+    echo "Lecture par plage impossible pour $archive (HTTP $status) : vérifier la lecture publique du conteneur." >&2
+    exit 1
+  fi
+done
 echo "OK. Valeur de BAITLY_MAPS_ORIGIN : https://$BUCKET.s3.$REGION.io.cloud.ovh.net/maps"

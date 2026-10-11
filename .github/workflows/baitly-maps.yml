@@ -1,0 +1,81 @@
+name: Baitly maps
+
+on:
+  workflow_dispatch:
+    inputs:
+      publish:
+        description: Publier les archives partagées (branche production uniquement)
+        type: boolean
+        default: false
+      build:
+        description: Build Protomaps YYYYMMDD, vide pour le dernier disponible
+        type: string
+        default: ''
+
+permissions:
+  contents: read
+
+concurrency:
+  group: baitly-maps
+  cancel-in-progress: false
+
+jobs:
+  maps:
+    runs-on: ubuntu-latest
+    timeout-minutes: 180
+    steps:
+      - uses: actions/checkout@v4
+      - name: Valider la publication et les entrées
+        env:
+          PUBLISH: ${{ inputs.publish }}
+          MAP_BUILD: ${{ inputs.build }}
+        run: |
+          if [ "$PUBLISH" = true ] && [ "$GITHUB_REF" != refs/heads/production ]; then
+            echo 'La source partagée ne peut être publiée que depuis production après promotion par PR.' >&2
+            exit 1
+          fi
+          if [ -n "$MAP_BUILD" ] && ! [[ "$MAP_BUILD" =~ ^[0-9]{8}$ ]]; then
+            echo 'Le build doit être une date YYYYMMDD.' >&2
+            exit 1
+          fi
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: client/package-lock.json
+      - uses: actions/setup-go@v5
+        with:
+          go-version: '1.24'
+          cache: false
+      - name: Installer les outils de construction
+        run: |
+          go install github.com/protomaps/go-pmtiles@v1.31.2
+          echo "$(go env GOPATH)/bin" >> "$GITHUB_PATH"
+          npm ci --prefix client
+      - name: Vérifier les scripts de couverture
+        run: python3 scripts/maps/test_baitly_tiles.py
+      - name: Libérer le disque éphémère du runner
+        run: |
+          sudo rm -rf /usr/local/lib/android /usr/share/dotnet /opt/hostedtoolcache/CodeQL
+          df -h .
+      - name: Construire et vérifier les archives
+        env:
+          MAP_BUILD: ${{ inputs.build }}
+        run: |
+          args=()
+          if [ -n "$MAP_BUILD" ]; then args+=(--build "$MAP_BUILD"); fi
+          bash scripts/maps/build-baitly-tiles.sh "${args[@]}"
+          pmtiles verify scripts/maps/out/baitly.pmtiles
+          pmtiles verify scripts/maps/out/terrain.pmtiles
+          pmtiles verify scripts/maps/out/world.pmtiles
+          bash scripts/maps/build-render-bundle.sh
+          du -sh scripts/maps/out/*.pmtiles >> "$GITHUB_STEP_SUMMARY"
+      - name: Publier les cartes
+        if: inputs.publish
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.BAITLY_MAPS_AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.BAITLY_MAPS_AWS_SECRET_ACCESS_KEY }}
+          BAITLY_MAPS_PROFILE: ''
+        run: |
+          test -n "$AWS_ACCESS_KEY_ID" && test -n "$AWS_SECRET_ACCESS_KEY"
+          bash scripts/maps/upload-baitly-tiles.sh

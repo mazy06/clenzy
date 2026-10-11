@@ -1,5 +1,6 @@
 import React, { useRef, useEffect, useCallback, useState, type ReactNode } from "react";
 import { createPortal } from "react-dom";
+import { Maximize } from "../icons/glyphs";
 import * as maplibregl from "maplibre-gl";
 import { createSettledScheduler } from "../utils/layoutShift";
 import { createBaitlyMap, prefersReducedMotion, setBaitlyMapMode } from "./map/createBaitlyMap";
@@ -8,6 +9,7 @@ import { keepPopupInView } from "./map/keepPopupInView";
 import { BaitlyClusterLayer } from "./map/markerClusters";
 import { MARKER_STATE_DEFAULT_LABELS, MARKER_STATE_ORDER, urgencyOf, type MarkerState } from "./map/markerStates";
 import { useTranslation } from "../hooks/useTranslation";
+import { useMapSheet } from "./map/MapSheetContext";
 export interface PropertyMarker {
   lat: number;
   lng: number;
@@ -43,13 +45,8 @@ export interface BaitlyPropertyMapProps {
   renderPopup?: (marker: PropertyMarker) => ReactNode;
 }
 
-/**
- * Dernier recours seulement. Le centre normal est la ville du compte
- * (`useHomeMapCenter`) ; Paris ne sert plus qu'aux comptes sans ville
- * exploitable — creation par un administrateur, invitation d'un prestataire,
- * ville que le geocodeur ne reconnait pas.
- */
-const DEFAULT_CENTER: [number, number] = [2.3522, 48.8566]; // Paris
+/** Sans localisation exploitable, une vue mondiale plutôt qu'une ville arbitraire. */
+const DEFAULT_CENTER: [number, number] = [0, 0];
 const DEFAULT_ZOOM = 12;
 
 // L'epingle Baitly est un element DOM : les tokens s'y resolvent et suivent le theme.
@@ -74,7 +71,7 @@ interface OpenCard {
  */
 export function BaitlyMapCanvas({
   properties,
-  center = DEFAULT_CENTER,
+  center,
   zoom = DEFAULT_ZOOM,
   height = 400,
   onMarkerClick,
@@ -87,12 +84,18 @@ export function BaitlyMapCanvas({
   const renderPopupRef = useRef(renderPopup);
   renderPopupRef.current = renderPopup;
   const { t } = useTranslation();
+  const sheet = useMapSheet();
+  const sheetRef = useRef(sheet);
+  sheetRef.current = sheet;
+  const [mapStatus, setMapStatus] = useState<"loading" | "ready" | "partial" | "error">("loading");
+  const [retryKey, setRetryKey] = useState(0);
+  const entriesRef = useRef(new Map<string, { marker: maplibregl.Marker; property: PropertyMarker; rich: boolean }>());
   const [openCard, setOpenCard] = useState<OpenCard | null>(null);
+  const openCardRef = useRef(openCard);
+  openCardRef.current = openCard;
   const clustersRef = useRef<BaitlyClusterLayer | null>(null);
   const clusterLabelRef = useRef((count: number) => t("baitlyMap.cluster", { count, defaultValue: "{{count}} lieux, zoomer pour les voir" }));
   clusterLabelRef.current = (count: number) => t("baitlyMap.cluster", { count, defaultValue: "{{count}} lieux, zoomer pour les voir" });
-  /** Marqueurs affichés (type, id, position) : une liste identique ne reconstruit rien. */
-  const markersSignatureRef = useRef<string | null>(null);
   const mapContainerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<maplibregl.Map | null>(null);
   const markersRef = useRef<maplibregl.Marker[]>([]);
@@ -100,7 +103,6 @@ export function BaitlyMapCanvas({
   const onBoundsChangeRef = useRef(onBoundsChange);
   const selectedPropertyIdRef = useRef(selectedPropertyId);
   const syncSelection = useCallback(() => {
-    if (selectedPropertyIdRef.current == null) return;
     markersRef.current.forEach((marker) => {
       const selected =
         marker.getElement().dataset.mapPropertyId ===
@@ -120,9 +122,11 @@ export function BaitlyMapCanvas({
   // des que le centre changeait — ce qui arrive desormais, la ville du compte
   // arrivant apres coup. Un ref les transmet sans reconstruire.
   const centerRef = useRef(center);
+  const framedRef = useRef(false);
   const zoomRef = useRef(zoom);
   /** Thème d'AMORCAGE : le changer ensuite remplace le style, pas la carte (cf. plus bas). */
   const initialModeRef = useRef(colorMode);
+  initialModeRef.current = colorMode;
   const appliedModeRef = useRef(colorMode);
   /** L'utilisateur a-t-il deja deplace la carte lui-meme ? */
   const userMovedRef = useRef(false);
@@ -137,6 +141,7 @@ export function BaitlyMapCanvas({
   const clearMarkers = useCallback(() => {
     markersRef.current.forEach((marker) => marker.remove());
     markersRef.current = [];
+    entriesRef.current.clear();
   }, []);
 
   const emitBounds = useCallback(() => {
@@ -156,13 +161,38 @@ export function BaitlyMapCanvas({
   useEffect(() => {
     if (!mapContainerRef.current) return;
 
-    const map = createBaitlyMap({
-      container: mapContainerRef.current,
-      mode: initialModeRef.current,
-      center: centerRef.current,
-      zoom: zoomRef.current,
-      perspective: true,
-    });
+    let map: maplibregl.Map;
+    try {
+      map = createBaitlyMap({
+        container: mapContainerRef.current,
+        mode: initialModeRef.current,
+        center: centerRef.current ?? DEFAULT_CENTER,
+        zoom: centerRef.current ? zoomRef.current : 2,
+        perspective: true,
+      });
+    } catch {
+      setMapStatus("error");
+      return;
+    }
+    appliedModeRef.current = initialModeRef.current;
+    setMapStatus("loading");
+    const handleLoad = () => setMapStatus((status) => status === "error" || status === "partial" ? status : "ready");
+    const handleError = (event: maplibregl.ErrorEvent) => {
+      const source = (event as maplibregl.ErrorEvent & { sourceId?: string }).sourceId;
+      if (source === "baitly-world") {
+        setMapStatus((status) => status === "error" ? status : "partial");
+        return;
+      }
+      if (source === "baitly-terrain") {
+        map.setTerrain(null);
+        map.jumpTo({ pitch: 0, bearing: 0 });
+        if (map.getLayer("terrain_hillshade")) map.removeLayer("terrain_hillshade");
+        return;
+      }
+      setMapStatus("error");
+    };
+    map.on("load", handleLoad);
+    map.on("error", handleError);
     const handleMoveEnd = () => emitBounds();
     // `originalEvent` n'est present que sur un geste : un `fitBounds` ou un
     // `jumpTo` programmatique ne compte pas comme un deplacement utilisateur.
@@ -173,8 +203,8 @@ export function BaitlyMapCanvas({
     map.on("movestart", handleMoveStart);
     mapRef.current = map;
     clustersRef.current = new BaitlyClusterLayer(map, (count) => clusterLabelRef.current(count));
-    // Nouvelle carte (thème, remontage) : ses marqueurs sont à reposer.
-    markersSignatureRef.current = null;
+    framedRef.current = false;
+    userMovedRef.current = false;
     // Le panneau change de taille sans toujours redimensionner la fenêtre
     // (sidebar, répartition carte/liste). MapLibre doit recalculer son canvas.
     // ...mais une seule fois arrive : `resize` reconstruit le canvas GL, le
@@ -187,6 +217,8 @@ export function BaitlyMapCanvas({
     return () => {
       settledResize.cancel();
       resizeObserver.disconnect();
+      map.off("load", handleLoad);
+      map.off("error", handleError);
       map.off("moveend", handleMoveEnd);
       map.off("movestart", handleMoveStart);
       clustersRef.current?.destroy();
@@ -195,7 +227,7 @@ export function BaitlyMapCanvas({
       map.remove();
       mapRef.current = null;
     };
-  }, [clearMarkers, emitBounds]);
+  }, [clearMarkers, emitBounds, retryKey]);
 
   /**
    * Papier ↔ Nuit : on remplace le STYLE de la carte existante (MapLibre applique
@@ -212,88 +244,95 @@ export function BaitlyMapCanvas({
   /**
    * Centre arrive APRES la creation — typiquement la ville du compte, resolue
    * par une requete. On ne le pose que si la camera n'appartient a personne
-   * d'autre : des marqueurs la cadrent deja (`fitBounds` plus bas), et un
-   * deplacement manuel est une intention qu'on ne recouvre pas.
+   * d'autre : un déplacement manuel est une intention qu'on ne recouvre pas.
    */
   useEffect(() => {
     const map = mapRef.current;
-    if (!map || userMovedRef.current || properties.length > 0) return;
+    if (!map || !center || userMovedRef.current) return;
     map.jumpTo({ center, zoom });
-  }, [center, zoom, properties.length]);
+    framedRef.current = true;
+  }, [center?.[0], center?.[1], zoom]);
 
-  // Sync markers with properties
+  // Les marqueurs DOM sont indépendants du chargement des tuiles : attendre
+  // `load` après une mise à jour pouvait les laisser en attente indéfiniment.
   useEffect(() => {
     const map = mapRef.current;
     if (!map) return;
-    // Un rafraîchissement de requête renvoie un NOUVEAU tableau aux mêmes
-    // marqueurs : tout reconstruire refermait la fiche ouverte et recadrait
-    // la carte sur l'ensemble (dézoom intempestif). Même signature = rien à faire.
-    const signature = properties.map((p) => `${markerKey(p)}@${p.lat},${p.lng}#${p.state ?? ""}`).join("|");
-    if (signature === markersSignatureRef.current) return;
-
-    const addMarkers = () => {
-      markersSignatureRef.current = signature;
-      clearMarkers();
-
-      properties.forEach((property) => {
+    const valid = properties.filter(validMarker);
+    const keys = new Set(valid.map(markerKey));
+    for (const [key, entry] of entriesRef.current) {
+      if (keys.has(key)) continue;
+      entry.marker.remove();
+      entriesRef.current.delete(key);
+    }
+    valid.forEach((property) => {
+      const key = markerKey(property);
+      let entry = entriesRef.current.get(key);
+      const rich = !!renderPopupRef.current;
+      if (entry && entry.rich !== rich) {
+        entry.marker.remove();
+        entriesRef.current.delete(key);
+        entry = undefined;
+      }
+      if (!entry) {
         const markerType = property.type ?? "property";
         const { color, icon } = MARKER_STYLES[markerType] ?? MARKER_STYLES.property;
-
-        const popup = renderPopupRef.current
-          ? cardPopup(map, property, setOpenCard)
-          : new maplibregl.Popup({ offset: PIN_POPUP_OFFSET, closeButton: false })
-              .setDOMContent(pinPopupContent(property.name));
-
         const element = createBaitlyPin({ color, icon, label: property.name, interactive: true });
-        element.dataset.mapPropertyId = String(property.id ?? "");
-        if (property.state) element.dataset.state = property.state;
-        // Pas d'`addTo` ici : c'est le regroupement qui décide de l'affichage.
         const marker = new maplibregl.Marker({ element, anchor: "bottom" })
-          .setLngLat([property.lng, property.lat])
-          .setPopup(popup);
-
-        // Ouverture pilotée ici, au premier clic : laisser le clic remonter à la
-        // carte faisait basculer la bulle une seconde fois (MapLibre referme ce
-        // que la sélection venait d'ouvrir) — il fallait cliquer deux fois.
+          .setLngLat([property.lng, property.lat]);
+        const created = { marker, property, rich };
+        marker.setPopup(rich
+          ? cardPopup(map, () => created.property, setOpenCard)
+          : new maplibregl.Popup({ offset: PIN_POPUP_OFFSET, closeButton: false }).setDOMContent(pinPopupContent(property.name)));
+        marker.getPopup()?.on("close", () => element.setAttribute("aria-pressed", "false"));
         element.addEventListener("click", (event) => {
           event.stopPropagation();
-          togglePopupExclusively(map, marker, markersRef.current);
-          onMarkerClickRef.current?.(property);
+          const mobile = sheetRef.current;
+          if (created.rich && mobile?.detailHost) {
+            markersRef.current.forEach((other) => other.getElement().setAttribute("aria-pressed", String(other === marker)));
+            setOpenCard({ marker: created.property, container: mobile.detailHost });
+            mobile.openDetail();
+          } else {
+            togglePopupExclusively(map, marker, markersRef.current);
+          }
+          onMarkerClickRef.current?.(created.property);
         });
-
-        markersRef.current.push(marker);
-      });
-      clustersRef.current?.setEntries(
-        markersRef.current.map((marker, index) => ({ marker, urgency: urgencyOf(properties[index].state) })),
-      );
-      syncSelection();
-
-      // Centre aussi un logement unique, au lieu de conserver la vue du globe.
-      if (properties.length > 0) {
-        const bounds = new maplibregl.LngLatBounds();
-        properties.forEach((p) => bounds.extend([p.lng, p.lat]));
-        map.fitBounds(bounds, {
-          padding: 60,
-          // z16 : un logement seul se voit à l'îlot, bâtiments en volume.
-          maxZoom: 16,
-          ...(prefersReducedMotion() ? { duration: 0 } : {}),
-        });
+        entry = created;
+        entriesRef.current.set(key, entry);
       }
-
-      // Emit initial bounds after markers settle
-      requestAnimationFrame(() => emitBounds());
-    };
-
-    if (map.loaded()) {
-      addMarkers();
-    } else {
-      map.on("load", addMarkers);
+      entry.property = property;
+      const position = entry.marker.getLngLat();
+      if (position.lng !== property.lng || position.lat !== property.lat) entry.marker.setLngLat([property.lng, property.lat]);
+      const element = entry.marker.getElement();
+      element.dataset.mapPropertyId = String(property.id ?? "");
+      element.setAttribute("aria-label", property.name);
+      if (property.state) element.dataset.state = property.state;
+      else delete element.dataset.state;
+      if (!entry.rich) entry.marker.getPopup()?.setDOMContent(pinPopupContent(property.name));
+    });
+    markersRef.current = [...entriesRef.current.values()].map((entry) => entry.marker);
+    clustersRef.current?.setEntries([...entriesRef.current.values()].map((entry) => ({ marker: entry.marker, urgency: urgencyOf(entry.property.state) })));
+    if (selectedPropertyIdRef.current != null) syncSelection();
+    if (openCardRef.current && !keys.has(markerKey(openCardRef.current.marker))) sheetRef.current?.closeDetail();
+    setOpenCard((current) => {
+      if (!current) return null;
+      const fresh = entriesRef.current.get(markerKey(current.marker));
+      if (!fresh) return null;
+      return current.marker === fresh.property ? current : { ...current, marker: fresh.property };
+    });
+    if (!framedRef.current && !centerRef.current && !userMovedRef.current && valid.length) {
+      framedRef.current = true;
+      fitMarkers(map, valid);
     }
+    emitBounds();
+  }, [properties, emitBounds, syncSelection, retryKey, !!renderPopup]);
 
-    return () => {
-      map.off("load", addMarkers);
-    };
-  }, [properties, clearMarkers, emitBounds, syncSelection]);
+  useEffect(() => {
+    if (sheet && !sheet.detailOpen) {
+      setOpenCard((current) => current?.container === sheet.detailHost ? null : current);
+      if (selectedPropertyIdRef.current == null) markersRef.current.forEach((marker) => marker.getElement().setAttribute("aria-pressed", "false"));
+    }
+  }, [sheet?.detailOpen, sheet?.detailHost]);
 
   const states = MARKER_STATE_ORDER.filter((state) => properties.some((p) => p.state === state));
 
@@ -301,6 +340,31 @@ export function BaitlyMapCanvas({
     <>
       <div className="relative w-full" style={{ height }}>
         <div ref={mapContainerRef} className="size-full rounded-lg overflow-hidden" />
+        <div className="absolute start-3 top-3 z-10 flex max-w-[calc(100%-88px)] flex-col items-start gap-2">
+          {properties.length > 0 && <button type="button" onClick={() => {
+            userMovedRef.current = true;
+            if (mapRef.current) fitMarkers(mapRef.current, properties);
+          }} className="baitly-map-fit-button">
+            <Maximize size={16} aria-hidden="true" />
+            <span>
+            {t("baitlyMap.showAll", "Voir tous les lieux")}
+            </span>
+          </button>}
+          {mapStatus === "loading" && <span role="status" className="rounded-lg bg-card px-3 py-2 text-xs text-muted-foreground">{t("baitlyMap.loading", "Chargement de la carte…")}</span>}
+          {mapStatus === "partial" && <span role="status" className="max-w-64 rounded-lg border border-border bg-card px-3 py-2 text-xs text-muted-foreground">{t("baitlyMap.worldUnavailable", "Fond mondial indisponible. Carte régionale affichée.")}</span>}
+          {mapStatus === "error" && <div role="alert" className="max-w-64 rounded-lg border border-border bg-card p-3 text-xs text-foreground">
+            <p>{t("baitlyMap.loadError", "Le fond de carte n’a pas pu être chargé.")}</p>
+            <button type="button" onClick={() => {
+              const map = mapRef.current;
+              if (map) {
+                const location = map.getCenter();
+                centerRef.current = [location.lng, location.lat];
+                zoomRef.current = map.getZoom();
+              }
+              setRetryKey((key) => key + 1);
+            }} className="mt-2 min-h-11 cursor-pointer rounded-md border border-border px-3 font-medium focus-visible:ring-2 focus-visible:ring-ring">{t("common.retry", "Réessayer")}</button>
+          </div>}
+        </div>
         {states.length > 0 ? (
           <ul className="baitly-map-legend" aria-label={t("baitlyMap.legend", "Légende")}>
             {states.map((state) => (
@@ -322,40 +386,28 @@ export function BaitlyMapCanvas({
 function togglePopupExclusively(map: maplibregl.Map, marker: maplibregl.Marker, markers: maplibregl.Marker[]): void {
   if (marker.getPopup()?.isOpen()) {
     marker.togglePopup();
+    marker.getElement().setAttribute("aria-pressed", "false");
     return;
   }
   markers.forEach((other) => {
     if (other !== marker && other.getPopup()?.isOpen()) other.togglePopup();
   });
-  const anchor = placeBeside(map, marker);
+  placeBeside(map, marker);
   marker.togglePopup();
-  if (anchor) focusMarker(map, marker, anchor);
+  markers.forEach((other) => other.getElement().setAttribute("aria-pressed", String(other === marker)));
 }
 
-/**
- * Zoom d'arrivée sur une fiche : celui où les bâtiments 3D sont entièrement
- * dressés (ils poussent de z14 à z15, cf. baitlyMapStyle). Plus loin, le relief
- * se devine à peine ; plus près, on perd le quartier.
- */
-const FOCUS_ZOOM = 15;
+function validMarker(marker: PropertyMarker): boolean {
+  return Number.isFinite(marker.lng) && Number.isFinite(marker.lat) && Math.abs(marker.lng) <= 180 && Math.abs(marker.lat) <= 90;
+}
 
-/**
- * Centre la carte sur le marqueur cliqué et zoome jusqu'au relief 3D — sans
- * jamais dézoomer — en décalant le centre pour que la fiche ouverte à côté
- * tienne entièrement dans la carte. L'inclinaison courante est conservée.
- */
-function focusMarker(map: maplibregl.Map, marker: maplibregl.Marker, anchor: "left" | "right"): void {
-  const width = map.getContainer().clientWidth;
-  const cardWidth = width >= 560 ? 400 : 280;
-  // Le marqueur part du côté opposé à la fiche, d'une demi-fiche (+ l'écart de la bulle).
-  const shift = Math.min(cardWidth / 2 + 16, width / 2 - 24);
-  map.flyTo({
-    center: marker.getLngLat(),
-    zoom: Math.max(map.getZoom(), FOCUS_ZOOM),
-    offset: [anchor === "left" ? -shift : shift, 0],
-    duration: prefersReducedMotion() ? 0 : 900,
-    essential: true,
-  });
+function fitMarkers(map: maplibregl.Map, properties: PropertyMarker[]): void {
+  const valid = properties.filter(validMarker);
+  if (!valid.length) return;
+  const bounds = new maplibregl.LngLatBounds();
+  valid.forEach((p) => bounds.extend([p.lng, p.lat]));
+  const padding = Math.max(0, Math.min(60, (Math.min(map.getContainer().clientWidth, map.getContainer().clientHeight) - 1) / 4));
+  map.fitBounds(bounds, { padding, maxZoom: 15, duration: prefersReducedMotion() ? 0 : 200 });
 }
 
 /**
@@ -379,7 +431,7 @@ function placeBeside(map: maplibregl.Map, marker: maplibregl.Marker): "left" | "
  */
 function cardPopup(
   map: maplibregl.Map,
-  marker: PropertyMarker,
+  getMarker: () => PropertyMarker,
   setOpenCard: React.Dispatch<React.SetStateAction<OpenCard | null>>,
 ): maplibregl.Popup {
   const container = document.createElement("div");
@@ -393,7 +445,7 @@ function cardPopup(
   }).setDOMContent(container);
   let release: () => void = () => undefined;
   popup.on("open", () => {
-    setOpenCard({ marker, container });
+    setOpenCard({ marker: getMarker(), container });
     release = keepPopupInView(map, popup);
   });
   popup.on("close", () => {
