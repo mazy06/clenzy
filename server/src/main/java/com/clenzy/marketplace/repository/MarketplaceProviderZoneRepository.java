@@ -51,4 +51,21 @@ public interface MarketplaceProviderZoneRepository extends JpaRepository<Marketp
 
     @Query("SELECT DISTINCT z.city FROM MarketplaceProviderZone z WHERE z.city IS NOT NULL ORDER BY z.city")
     List<String> findDistinctCities();
+
+    /** Couple (prestataire, logement) : la zone du prestataire couvre le logement (règle d'affectation). */
+    interface PropertyCoverage { Long getProviderId(); Long getPropertyId(); }
+
+    // Même jointure de zones effectives et même règle que baitly_provider_covers, appliquées
+    // d'un bloc aux logements de l'organisation plutôt qu'un appel par couple.
+    String PROPERTY_COVERAGE = "SELECT DISTINCT pr.id AS providerId, p.id AS propertyId FROM properties p "
+        + "JOIN marketplace_provider_zones z ON public.baitly_zone_covers(z.country_code, z.department, z.arrondissement, "
+        + "z.city, COALESCE(NULLIF(trim(p.country_code), ''), 'FR'), p.department, p.arrondissement, p.city) "
+        + "JOIN marketplace_providers pr ON (z.user_id = pr.user_id OR (pr.user_id IS NULL AND z.provider_id = pr.id)) "
+        + "WHERE p.organization_id = :orgId AND p.status <> 'ARCHIVED'";
+
+    @Query(value = PROPERTY_COVERAGE, nativeQuery = true)
+    List<PropertyCoverage> coverageForOrganization(Long orgId);
+
+    @Query(value = PROPERTY_COVERAGE + " AND pr.id = :providerId", nativeQuery = true)
+    List<PropertyCoverage> coverageForProvider(Long providerId, Long orgId);
 }

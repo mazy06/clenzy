@@ -15,6 +15,7 @@ import { PROPERTY_ART } from '../propertyArtwork';
 import { AccessSection, Facts, ManagementSection } from './PropertyOverviewParts';
 import PropertyAmenities from './PropertyAmenities';
 import PropertyCleaningSection from './PropertyCleaningSection';
+import PropertyProvidersSection from './PropertyProvidersSection';
 import './propertyOverview.css';
 
 interface PropertyOverviewProps {
@@ -214,6 +215,7 @@ export default function PropertyOverview({ property: p, photoUrls, onEditAccess 
         <div className="pdo-column">
           <AccessSection property={p} onEdit={onEditAccess} />
           <ManagementSection property={p} />
+          <PropertyProvidersSection propertyId={Number(p.id)} />
         </div>
       </div>
     </div>

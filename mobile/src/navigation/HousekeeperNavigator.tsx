@@ -19,6 +19,7 @@ import { SubscriptionCheckoutScreen } from '@/screens/common/SubscriptionCheckou
 import { DeleteAccountScreen } from '@/screens/common/DeleteAccountScreen';
 import { MyRatesScreen } from '@/screens/shared/MyRatesScreen';
 import { MyPayoutsScreen } from '@/screens/shared/MyPayoutsScreen';
+import { SectorMapScreen } from '@/screens/shared/SectorMapScreen';
 import { MyIssuesScreen } from '@/screens/shared/MyIssuesScreen';
 import { ConversationScreen } from '@/screens/shared/ConversationScreen';
 import { ConversationDetailScreen } from '@/screens/shared/ConversationDetailScreen';
@@ -81,6 +82,7 @@ function ProfileStackNavigator() {
       <ProfileStack.Screen name="MyRates" component={MyRatesScreen} />
       <ProfileStack.Screen name="MyPayouts" component={MyPayoutsScreen} />
       <ProfileStack.Screen name="MyIssues" component={MyIssuesScreen} />
+      <ProfileStack.Screen name="SectorMap" component={SectorMapScreen} initialParams={{ scope: 'mine' }} />
     </ProfileStack.Navigator>
   );
 }

@@ -314,6 +314,8 @@
 .baitly-map-pin[data-state='departure'],
 .baitly-map-pin[data-state='today'] { --pin-state: var(--bui-info); }
 .baitly-map-pin[data-state='occupied'] { --pin-state: color-mix(in srgb, var(--bui-navy) 45%, transparent); }
+.baitly-map-pin[data-state='covered'] { --pin-state: var(--bui-success); }
+.baitly-map-pin[data-state='uncovered'] { --pin-state: var(--bui-warning); }
 /* Terminé, annulé, inactif : présent mais en retrait. */
 .baitly-map-pin[data-state='done'],
 .baitly-map-pin[data-state='closed'],
@@ -387,6 +389,8 @@
 .baitly-map-legend [data-state='alert'],
 .baitly-map-legend [data-state='late'] { --legend-color: var(--bui-destructive); }
 .baitly-map-legend [data-state='turnover'] { --legend-color: var(--bui-warning); }
+.baitly-map-legend [data-state='covered'] { --legend-color: var(--bui-success); }
+.baitly-map-legend [data-state='uncovered'] { --legend-color: var(--bui-warning); }
 .baitly-map-legend [data-state='arrival'] { --legend-color: var(--bui-success); }
 .baitly-map-legend [data-state='departure'],
 .baitly-map-legend [data-state='today'] { --legend-color: var(--bui-info); }
@@ -449,6 +453,8 @@
 .baitly-map-fit-button:hover { background: var(--bui-muted); }
 .baitly-map-fit-button:active { border-color: var(--bui-muted-foreground); }
 .baitly-map-fit-button:focus-visible { outline: 2px solid var(--bui-ring); outline-offset: 2px; }
+/* Calque activé (secteurs des prestataires) : bordure marine, fond discret. */
+.baitly-map-fit-button[aria-pressed='true'] { border-color: var(--bui-navy); background: var(--bui-muted); }
 @media (prefers-reduced-motion: reduce) {
   .baitly-map-fit-button { transition: none; }
 }

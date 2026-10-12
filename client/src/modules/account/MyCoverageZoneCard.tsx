@@ -1,4 +1,6 @@
 import ProviderPropertyTypes from './ProviderPropertyTypes';
+import MySectorMap, { mySectorMapKey } from './MySectorMap';
+import { useQueryClient } from '@tanstack/react-query';
 import React, { useEffect, useState } from 'react';
 import {
   Alert,
@@ -48,6 +50,7 @@ const emptyZone = (country = 'FR'): CoverageZoneInput => ({
 export default function MyCoverageZoneCard({ onSaved }: Props) {
   const { t } = useTranslation();
   const { notify } = useNotification();
+  const queryClient = useQueryClient();
   const [zones, setZones] = useState<CoverageZoneInput[] | null>(null);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -96,6 +99,7 @@ export default function MyCoverageZoneCard({ onSaved }: Props) {
       })));
       setZones(saved.map(({ id: _id, ...rest }) => rest));
       notify.success(t('coverageZone.saved', 'Zone enregistrée'));
+      void queryClient.invalidateQueries({ queryKey: mySectorMapKey });
       if (cleaned.length > 0) onSaved?.();
     } catch {
       setError(t('coverageZone.saveError', "L'enregistrement a échoué, réessayez."));
@@ -233,6 +237,7 @@ export default function MyCoverageZoneCard({ onSaved }: Props) {
             </div>
           </>
         )}
+        {zones && !loadFailed && <MySectorMap />}
         <ProviderPropertyTypes />
       </CardContent>
     </Card>

@@ -5,6 +5,7 @@ import type { PropertyDetailsData } from '../../../hooks/usePropertyDetails';
 
 vi.mock('../../../components/PropertyImageCarousel', () => ({ PropertyImageCarousel: () => <div data-testid="carousel" /> }));
 vi.mock('../../../components/BaitlyPropertyMap', () => ({ BaitlyPropertyMap: () => <div data-testid="map" /> }));
+vi.mock('../overview/PropertyProvidersSection', () => ({ default: () => null }));
 vi.mock('../../../components/Money', () => ({ Money: ({ value }: { value: number }) => <>{value} €</> }));
 vi.mock('../../../hooks/useAuth', () => ({ useAuth: () => ({ user: { organizationId: 3 } }) }));
 vi.mock('../../settings/amenity-mapping/useAmenityIconOverrides', () => ({ useAmenityIconOverrides: () => ({ overrides: {} }) }));

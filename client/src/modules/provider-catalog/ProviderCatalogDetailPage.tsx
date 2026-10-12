@@ -10,6 +10,7 @@ import { useCatalogProvider } from '../../hooks/useProviderCatalog';
 import { useQuoteReplacement } from '../../hooks/useQuoteReplacement';
 import { useTranslation } from '../../hooks/useTranslation';
 import { BaitlyProviderIdentity, BaitlyProviderOffers, BaitlyProfileSection } from '../marketplace/BaitlyProviderProfile';
+import ProviderSectorSection from '../marketplace/sectors/ProviderSectorSection';
 
 /** Fiche catalogue Baitly : seules les données publiques autorisées sont présentées. */
 export default function ProviderCatalogDetailPage() {
@@ -54,6 +55,7 @@ export default function ProviderCatalogDetailPage() {
             {cities.length ? <ul className="m-0 flex list-none flex-wrap gap-2 p-0">{cities.map(city => <li key={city} className="inline-flex items-center gap-2 rounded-md bg-muted px-3 py-2 text-sm"><LocationOn size={16} />{city}</li>)}</ul>
               : <p className="text-sm text-muted-foreground">{t('providerCatalog.noZone')}</p>}
             {provider.travelRadiusKm != null && <p className="text-sm text-muted-foreground tabular-nums">{t('marketplaceAdmin.radius', { count: provider.travelRadiusKm })}</p>}
+            <div className="mt-4"><ProviderSectorSection providerId={provider.id} /></div>
             <div className="mt-5 border-t border-border pt-4"><h3 className="m-0 mb-2 text-sm font-medium">{t('marketplaceAdmin.availability')}</h3>
               <p className="baitly-profile-contact-help">{t('providerProfile.availabilityHelp')}</p>
             </div>
