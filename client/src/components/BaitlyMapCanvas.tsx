@@ -7,6 +7,7 @@ import { createBaitlyMap, prefersReducedMotion, setBaitlyMapMode } from "./map/c
 import { createBaitlyPin, pinPopupContent, PIN_POPUP_OFFSET, type BaitlyPinIcon } from "./map/baitlyMapPin";
 import { keepPopupInView } from "./map/keepPopupInView";
 import { BaitlyClusterLayer } from "./map/markerClusters";
+import { BaitlySectorLayer, sectorBounds, type SectorOverlay } from "./map/sectorLayer";
 import { MARKER_STATE_DEFAULT_LABELS, MARKER_STATE_ORDER, urgencyOf, type MarkerState } from "./map/markerStates";
 import { useTranslation } from "../hooks/useTranslation";
 import { useMapSheet } from "./map/MapSheetContext";
@@ -43,6 +44,10 @@ export interface BaitlyPropertyMapProps {
    * (requêtes, traductions, navigation). Absente : la bulle montre le nom seul.
    */
   renderPopup?: (marker: PropertyMarker) => ReactNode;
+  /** Secteurs d'intervention dessinés sous les épingles (bordure + fond translucide). */
+  sectors?: SectorOverlay | null;
+  /** Commandes propres à l'écran, posées en haut de la carte (ex. bascule des secteurs). */
+  overlayControls?: ReactNode;
 }
 
 /** Sans localisation exploitable, une vue mondiale plutôt qu'une ville arbitraire. */
@@ -78,6 +83,8 @@ export function BaitlyMapCanvas({
   onBoundsChange,
   selectedPropertyId,
   renderPopup,
+  sectors,
+  overlayControls,
   colorMode = "light",
 }: BaitlyPropertyMapProps & { colorMode?: "light" | "dark" }) {
   // Lu à la création des marqueurs : changer de fonction ne les reconstruit pas.
@@ -94,6 +101,9 @@ export function BaitlyMapCanvas({
   const openCardRef = useRef(openCard);
   openCardRef.current = openCard;
   const clustersRef = useRef<BaitlyClusterLayer | null>(null);
+  const sectorLayerRef = useRef<BaitlySectorLayer | null>(null);
+  const sectorsRef = useRef(sectors);
+  sectorsRef.current = sectors;
   const clusterLabelRef = useRef((count: number) => t("baitlyMap.cluster", { count, defaultValue: "{{count}} lieux, zoomer pour les voir" }));
   clusterLabelRef.current = (count: number) => t("baitlyMap.cluster", { count, defaultValue: "{{count}} lieux, zoomer pour les voir" });
   const mapContainerRef = useRef<HTMLDivElement>(null);
@@ -203,6 +213,8 @@ export function BaitlyMapCanvas({
     map.on("movestart", handleMoveStart);
     mapRef.current = map;
     clustersRef.current = new BaitlyClusterLayer(map, (count) => clusterLabelRef.current(count));
+    sectorLayerRef.current = new BaitlySectorLayer(map);
+    sectorLayerRef.current.set(sectorsRef.current ?? null, initialModeRef.current);
     framedRef.current = false;
     userMovedRef.current = false;
     // Le panneau change de taille sans toujours redimensionner la fenêtre
@@ -223,11 +235,25 @@ export function BaitlyMapCanvas({
       map.off("movestart", handleMoveStart);
       clustersRef.current?.destroy();
       clustersRef.current = null;
+      sectorLayerRef.current?.destroy();
+      sectorLayerRef.current = null;
       clearMarkers();
       map.remove();
       mapRef.current = null;
     };
   }, [clearMarkers, emitBounds, retryKey]);
+
+  // Secteurs : redessinés à chaque changement ; sans épingle à cadrer, la carte se
+  // cadre une fois sur leur emprise (zone d'un prestataire qui n'a encore aucun logement).
+  useEffect(() => {
+    const map = mapRef.current;
+    sectorLayerRef.current?.set(sectors ?? null, colorMode);
+    const outline = sectors?.merged;
+    if (!map || !outline || properties.length > 0 || framedRef.current || userMovedRef.current || centerRef.current) return;
+    framedRef.current = true;
+    const [west, south, east, north] = sectorBounds(outline);
+    map.fitBounds([[west, south], [east, north]], { padding: 48, maxZoom: 12, duration: 0 });
+  }, [sectors, properties.length, colorMode]);
 
   /**
    * Papier ↔ Nuit : on remplace le STYLE de la carte existante (MapLibre applique
@@ -341,6 +367,7 @@ export function BaitlyMapCanvas({
       <div className="relative w-full" style={{ height }}>
         <div ref={mapContainerRef} className="size-full rounded-lg overflow-hidden" />
         <div className="absolute start-3 top-3 z-10 flex max-w-[calc(100%-88px)] flex-col items-start gap-2">
+          {overlayControls}
           {properties.length > 0 && <button type="button" onClick={() => {
             userMovedRef.current = true;
             if (mapRef.current) fitMarkers(mapRef.current, properties);

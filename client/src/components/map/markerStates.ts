@@ -4,6 +4,7 @@
  * Logements : `turnover` (départ + arrivée le même jour : ménage urgent),
  * `arrival`, `departure`, `occupied`, `alert` (maintenance), `inactive`.
  * Missions : `late`, `today`, `done`, `closed`.
+ * Secteurs : `covered` / `uncovered` — le logement est-il dans le secteur d'un prestataire.
  * Absent : lieu calme, épingle sans anneau.
  */
 export type MarkerState =
@@ -16,11 +17,14 @@ export type MarkerState =
   | 'occupied'
   | 'done'
   | 'closed'
-  | 'inactive';
+  | 'inactive'
+  | 'covered'
+  | 'uncovered';
 
 /** Ordre de la légende, et rang d'urgence (bulles de regroupement). */
 export const MARKER_STATE_ORDER: MarkerState[] = [
   'alert', 'late', 'turnover', 'arrival', 'departure', 'today', 'occupied', 'done', 'closed', 'inactive',
+  'covered', 'uncovered',
 ];
 
 export function urgencyOf(state: MarkerState | undefined): number {
@@ -50,4 +54,6 @@ export const MARKER_STATE_DEFAULT_LABELS: Record<MarkerState, string> = {
   done: 'Terminée',
   closed: 'Annulée',
   inactive: 'Inactif',
+  covered: 'Couvert',
+  uncovered: 'Non couvert',
 };

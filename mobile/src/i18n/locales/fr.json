@@ -276,5 +276,18 @@
   "directions": {
     "title": "Itinéraire avec",
     "appleMaps": "Plans"
+  },
+  "sectorMap": {
+    "title": "Secteurs des prestataires",
+    "mineTitle": "Ma zone d'intervention",
+    "menuLabel": "Ma zone d'intervention (carte)",
+    "merged": "Fusionnés",
+    "byProvider": "Par prestataire",
+    "loadError": "Les secteurs n'ont pas pu être chargés.",
+    "mineEmpty": "Déclarez au moins un secteur (sur le web, Mon compte) pour le voir sur la carte.",
+    "noneRelevant": "Aucun prestataire du catalogue ne couvre encore vos logements.",
+    "mySector": "Mon secteur",
+    "noZone": "Aucune zone déclarée",
+    "uncovered": "{{count}} logement(s) hors de ces secteurs : {{names}}"
   }
 }

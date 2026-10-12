@@ -197,6 +197,13 @@ export function ProfileScreen() {
                 onPress={() => navigation.navigate('MyIssues')}
                 theme={theme}
               />
+              <View style={{ height: 1, backgroundColor: theme.colors.border.light, marginHorizontal: theme.SPACING.md }} />
+              <MenuRow
+                icon="layers-outline"
+                label={t('sectorMap.menuLabel')}
+                onPress={() => navigation.navigate('SectorMap', { scope: 'mine' })}
+                theme={theme}
+              />
             </Card>
           )}
 

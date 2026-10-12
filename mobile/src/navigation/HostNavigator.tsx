@@ -16,6 +16,7 @@ import { AnalyticsScreen } from '@/screens/host/AnalyticsScreen';
 import { ReservationsListScreen } from '@/screens/host/ReservationsListScreen';
 import { InterventionsListScreen } from '@/screens/host/InterventionsListScreen';
 import { PropertyListScreen } from '@/screens/host/PropertyListScreen';
+import { SectorMapScreen } from '@/screens/shared/SectorMapScreen';
 import { PropertyDetailScreen } from '@/screens/host/PropertyDetailScreen';
 import { PropertyOverviewScreen } from '@/screens/host/PropertyOverviewScreen';
 import { PropertyInterventionsScreen } from '@/screens/host/PropertyInterventionsScreen';
@@ -100,6 +101,7 @@ export type DashboardStackParamList = {
 
 export type PropertiesStackParamList = {
   PropertyList: undefined;
+  SectorMap: { scope: 'mine' | 'relevant' };
   PropertyDetail: { propertyId: number };
   PropertyOverview: { propertyId: number };
   PropertyInterventions: { propertyId: number };
@@ -186,6 +188,7 @@ function PropertiesStackNavigator() {
   return (
     <PropertiesStack.Navigator screenOptions={{ headerShown: false }}>
       <PropertiesStack.Screen name="PropertyList" component={PropertyListScreen} />
+      <PropertiesStack.Screen name="SectorMap" component={SectorMapScreen} />
       <PropertiesStack.Screen name="PropertyDetail" component={PropertyDetailScreen} />
       <PropertiesStack.Screen name="PropertyOverview" component={PropertyOverviewScreen} />
       <PropertiesStack.Screen name="PropertyInterventions" component={PropertyInterventionsScreen} />

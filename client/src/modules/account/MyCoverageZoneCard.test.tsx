@@ -10,6 +10,8 @@ vi.mock('../../hooks/useTranslation', () => {
   return { useTranslation: () => ({ t }) };
 });
 vi.mock('./ProviderPropertyTypes', () => ({ default: () => null }));
+vi.mock('./MySectorMap', () => ({ default: () => null, mySectorMapKey: ['sector-map', 'mine'] }));
+vi.mock('@tanstack/react-query', () => ({ useQueryClient: () => ({ invalidateQueries: vi.fn() }) }));
 afterEach(() => { cleanup(); vi.clearAllMocks(); });
 it('does not allow an empty replacement after failing to load the saved zones', async () => {
   mocks.getMine.mockRejectedValue(new Error('network'));

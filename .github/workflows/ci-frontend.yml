@@ -54,6 +54,10 @@ jobs:
 
       - name: TypeScript type check
         working-directory: client
+        env:
+          # Le typecheck complet dépasse ~2,4 Go : au-delà du tas par défaut, il
+          # tombait en « JavaScript heap out of memory » (exit 134) selon les runs.
+          NODE_OPTIONS: --max-old-space-size=4096
         run: npx tsc --noEmit
 
       - name: Build production bundle

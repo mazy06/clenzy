@@ -16401,7 +16401,9 @@
       "occupied": "Occupied",
       "done": "Done",
       "closed": "Cancelled",
-      "inactive": "Inactive"
+      "inactive": "Inactive",
+      "covered": "Covered",
+      "uncovered": "Not covered"
     }
   },
   "locationPicker": {
@@ -20706,6 +20708,13 @@
         "label": "Banner view",
         "photos": "Show photos",
         "map": "Show on the map"
+      },
+      "providers": {
+        "title": "Providers working here",
+        "hint": "Their service area includes this property.",
+        "error": "The list could not be loaded.",
+        "empty": "No catalogue provider covers this property yet.",
+        "more": "+ {{count}} more in the catalogue"
       }
     },
     "channels": {
@@ -20947,5 +20956,22 @@
     "services": "Catalogue services",
     "servicesHelp": "Select the precise catalogue service for each offer. Existing prices are preserved.",
     "noServices": "No services provided."
+  },
+  "sectorMap": {
+    "layer": "Provider service areas",
+    "loading": "Loading service areas…",
+    "loadError": "Service areas could not be loaded.",
+    "noneRelevant": "No catalogue provider covers your properties yet.",
+    "modeLabel": "Service area display",
+    "merged": "Merged",
+    "byProvider": "By provider",
+    "mySector": "My service area",
+    "noZone": "No area declared",
+    "approx": "Approximate outline around the city (administrative boundary unknown).",
+    "undrawn": "No outline on the map: {{zones}}",
+    "coversCount": "{{count}} / {{total}} properties",
+    "uncovered": "{{count}} property(ies) outside these areas: {{names}}",
+    "mineEmpty": "Declare at least one area to see it on the map.",
+    "providerEmpty": "This provider has not declared any drawable area."
   }
 }

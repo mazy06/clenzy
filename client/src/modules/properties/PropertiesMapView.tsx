@@ -14,6 +14,7 @@ import { propertiesApi } from '../../services/api/propertiesApi';
 import type { MarkerState } from '../../components/map/markerStates';
 import MapWithSheet from '../../components/baitly/MapWithSheet';
 import PropertyMapRow from './PropertyMapRow';
+import { useProviderSectorLayer } from '../marketplace/sectors/useProviderSectorLayer';
 import type { PropertyMarker, MapBounds } from '../../components/BaitlyPropertyMap';
 import type { PropertyListItem } from '../../hooks/usePropertiesList';
 import type { ChannexMappingDto } from '../../services/api/channexApi';
@@ -92,9 +93,16 @@ const PropertiesMapView: React.FC<PropertiesMapViewProps> = ({
     queryFn: () => propertiesApi.getMapStates(),
     staleTime: 5 * 60_000,
   });
+  // Calque des secteurs : actif, l'anneau des épingles dit si un prestataire couvre le logement.
+  const sectorLayer = useProviderSectorLayer();
   const markers = useMemo<PropertyMarker[]>(
     () => [
-      ...mapMarkers.map((marker) => ({ ...marker, state: propertyMarkerState(marker, statesQuery.data) })),
+      ...mapMarkers.map((marker) => ({
+        ...marker,
+        state: sectorLayer.coverage
+          ? ((sectorLayer.coverage.get(Number(marker.id))?.length ?? 0) > 0 ? 'covered' as const : 'uncovered' as const)
+          : propertyMarkerState(marker, statesQuery.data),
+      })),
       ...keyPoints.map((point) => ({
         id: point.id,
         lat: point.storeLat as number,
@@ -103,7 +111,7 @@ const PropertiesMapView: React.FC<PropertiesMapViewProps> = ({
         type: 'key_exchange' as const,
       })),
     ],
-    [mapMarkers, keyPoints, statesQuery.data],
+    [mapMarkers, keyPoints, statesQuery.data, sectorLayer.coverage],
   );
 
   const [visibleCount, setVisibleCount] = useState(BATCH_SIZE);
@@ -178,6 +186,8 @@ const PropertiesMapView: React.FC<PropertiesMapViewProps> = ({
             return marker.id ? <PropertyMapCard propertyId={marker.id} /> : null;
           }}
           onBoundsChange={onBoundsChange}
+          sectors={sectorLayer.overlay}
+          overlayControls={sectorLayer.controls}
         />
       }
       listTitle={t('propertyMap.visible', { count: viewportProperties.length })}

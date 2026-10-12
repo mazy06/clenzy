@@ -226,6 +226,24 @@ public interface PropertyRepository extends JpaRepository<Property, Long>, JpaSp
     @Query("SELECT p.id FROM Property p WHERE p.owner.keycloakId = :ownerKeycloakId AND p.organizationId = :orgId")
     List<Long> findIdsByOwnerKeycloakId(@Param("ownerKeycloakId") String ownerKeycloakId, @Param("orgId") Long orgId);
     
+    /** Logement placé sur la carte des secteurs d'intervention. */
+    interface SectorMapProperty {
+        Long getId();
+        String getName();
+        java.math.BigDecimal getLatitude();
+        java.math.BigDecimal getLongitude();
+    }
+
+    @Query("SELECT p.id AS id, p.name AS name, p.latitude AS latitude, p.longitude AS longitude FROM Property p "
+        + "WHERE p.organizationId = :orgId AND p.status <> com.clenzy.model.PropertyStatus.ARCHIVED ORDER BY p.name")
+    List<SectorMapProperty> findSectorMapProperties(@Param("orgId") Long orgId);
+
+    @Query("SELECT p.id AS id, p.name AS name, p.latitude AS latitude, p.longitude AS longitude FROM Property p "
+        + "WHERE p.organizationId = :orgId AND p.owner.keycloakId = :ownerKeycloakId "
+        + "AND p.status <> com.clenzy.model.PropertyStatus.ARCHIVED ORDER BY p.name")
+    List<SectorMapProperty> findSectorMapPropertiesOfOwner(@Param("orgId") Long orgId,
+                                                          @Param("ownerKeycloakId") String ownerKeycloakId);
+
     /**
      * Requête optimisée avec FETCH JOIN pour charger la propriété avec son owner
      * Évite les LazyInitializationException

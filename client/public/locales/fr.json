@@ -16388,7 +16388,9 @@
       "occupied": "Occupé",
       "done": "Terminée",
       "closed": "Annulée",
-      "inactive": "Inactif"
+      "inactive": "Inactif",
+      "covered": "Couvert",
+      "uncovered": "Non couvert"
     }
   },
   "locationPicker": {
@@ -20693,6 +20695,13 @@
         "label": "Affichage du bandeau",
         "photos": "Voir les photos",
         "map": "Voir sur la carte"
+      },
+      "providers": {
+        "title": "Prestataires qui interviennent ici",
+        "hint": "Leur secteur d’intervention inclut ce logement.",
+        "error": "La liste n’a pas pu être chargée.",
+        "empty": "Aucun prestataire du catalogue ne couvre encore ce logement.",
+        "more": "+ {{count}} autre(s) dans le catalogue"
       }
     },
     "channels": {
@@ -20934,5 +20943,22 @@
     "services": "Prestations du catalogue",
     "servicesHelp": "Choisissez la prestation précise correspondant à chaque offre. Les prix restent conservés.",
     "noServices": "Aucune prestation renseignée."
+  },
+  "sectorMap": {
+    "layer": "Secteurs des prestataires",
+    "loading": "Chargement des secteurs…",
+    "loadError": "Les secteurs n’ont pas pu être chargés.",
+    "noneRelevant": "Aucun prestataire du catalogue ne couvre encore vos logements.",
+    "modeLabel": "Affichage des secteurs",
+    "merged": "Fusionnés",
+    "byProvider": "Par prestataire",
+    "mySector": "Mon secteur",
+    "noZone": "Aucune zone déclarée",
+    "approx": "Contour approché autour de la ville (limite administrative inconnue).",
+    "undrawn": "Sans contour sur la carte : {{zones}}",
+    "coversCount": "{{count}} / {{total}} logements",
+    "uncovered": "{{count}} logement(s) hors de ces secteurs : {{names}}",
+    "mineEmpty": "Déclarez au moins un secteur pour le voir sur la carte.",
+    "providerEmpty": "Ce prestataire n’a déclaré aucun secteur dessinable."
   }
 }

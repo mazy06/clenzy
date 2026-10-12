@@ -12,6 +12,7 @@ vi.mock('../../hooks/useProviderCatalog', () => ({ useCatalogProvider: () => ({ 
 } }) }));
 vi.mock('../../hooks/useQuoteReplacement', () => ({ useQuoteReplacement: () => ({ data: state.replacement }) }));
 vi.mock('../../components/PageHeader', () => ({ default: ({ title, actions }: { title: string; actions: React.ReactNode }) => <header><h1>{title}</h1>{actions}</header> }));
+vi.mock('./sectors/ProviderSectorSection', () => ({ default: () => null }));
 vi.mock('../quotes/QuoteRequestDialog', () => ({ default: ({ open, initialPropertyId }: { open: boolean; initialPropertyId: string }) => open ? <div role="dialog">Logement {initialPropertyId}</div> : null }));
 afterEach(() => { cleanup(); state.own = false; state.replacement = undefined; });
 it('keeps prices, inactive services and generated sector art visible', () => {

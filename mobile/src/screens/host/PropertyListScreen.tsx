@@ -1,5 +1,7 @@
 import { useCallback } from 'react';
-import { View, Text, RefreshControl } from 'react-native';
+import { View, Text, RefreshControl, Pressable } from 'react-native';
+import { useTranslation } from 'react-i18next';
+import { Reicon } from '@/icons';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { FlashList } from '@shopify/flash-list';
 import { useNavigation } from '@react-navigation/native';
@@ -15,6 +17,7 @@ import type { Property } from '@/api/endpoints/propertiesApi';
 type PropertiesStackNav = NativeStackNavigationProp<{
   PropertyList: undefined;
   PropertyDetail: { propertyId: number };
+  SectorMap: { scope: 'mine' | 'relevant' };
 }>;
 
 function PropertyListSkeleton({ theme }: { theme: ReturnType<typeof useTheme> }) {
@@ -29,6 +32,7 @@ function PropertyListSkeleton({ theme }: { theme: ReturnType<typeof useTheme> })
 
 export function PropertyListScreen() {
   const theme = useTheme();
+  const { t } = useTranslation();
   const navigation = useNavigation<PropertiesStackNav>();
   const { data, isLoading, isRefetching, refetch, error, isError } = useProperties();
   const properties = data?.content ?? [];
@@ -67,7 +71,13 @@ export function PropertyListScreen() {
             {properties.length} bien{properties.length !== 1 ? 's' : ''} enregistre{properties.length !== 1 ? 's' : ''}
           </Text>
         </View>
-        <NotificationBell />
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: theme.SPACING.sm }}>
+          <Pressable onPress={() => navigation.navigate('SectorMap', { scope: 'relevant' })} hitSlop={10}
+            accessibilityRole="button" accessibilityLabel={t('sectorMap.title')}>
+            <Reicon name="layers-outline" size={24} color={theme.colors.text.primary} />
+          </Pressable>
+          <NotificationBell />
+        </View>
       </View>
 
       <FlashList
