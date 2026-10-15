@@ -52,11 +52,11 @@ import java.util.Optional;
 import java.util.UUID;
 
 /**
- * Service d'onboarding Channex (connexion/deconnexion d'une property Clenzy).
+ * Service d'onboarding Channex (connexion/deconnexion d'une property Baitly).
  *
  * <p>Flux de connexion :</p>
  * <ol>
- *   <li>Validation cross-tenant de la property Clenzy</li>
+ *   <li>Validation cross-tenant de la property Baitly</li>
  *   <li>Verification existence de la property Channex (appel API getProperty)</li>
  *   <li>Creation du ChannexPropertyMapping en DB (sync_status=PENDING)</li>
  *   <li><b>Pas de push initial</b> : on attend qu'au moins 1 OTA (Airbnb, Booking,
@@ -116,17 +116,17 @@ public class ChannexConnectService {
     // ─── Connect ────────────────────────────────────────────────────────────
 
     /**
-     * Connecte une property Clenzy a son equivalent Channex.
+     * Connecte une property Baitly a son equivalent Channex.
      *
      * <p>Deux modes selon {@link ChannexConnectRequest#effectiveMode()} :</p>
      * <ul>
      *   <li>{@code AUTO_CREATE} : on cree Property + Room Type + Rate Plan
-     *       dans Channex en derivant les attributs de la Property Clenzy</li>
+     *       dans Channex en derivant les attributs de la Property Baitly</li>
      *   <li>{@code IMPORT_EXISTING} : on importe les 3 IDs fournis (apres
      *       verification d'existence via getProperty)</li>
      * </ul>
      *
-     * @throws IllegalStateException si la property Clenzy est introuvable ou n'appartient
+     * @throws IllegalStateException si la property Baitly est introuvable ou n'appartient
      *         pas a l'organisation, OU si un mapping existe deja, OU si la property
      *         Channex n'existe pas (mode IMPORT) ou ne peut etre creee (mode AUTO).
      */
@@ -182,6 +182,51 @@ public class ChannexConnectService {
         return mapping;
     }
 
+    /** Replace only the default rate on an existing, tenant-owned connection. */
+    @Transactional
+    public ChannexPropertyMapping replaceDefaultRatePlan(Long propertyId, Long orgId,
+                                                        ChannexConnectRequest request,
+                                                        boolean adoptCurrency) {
+        Property property = propertyRepository.findById(propertyId)
+            .orElseThrow(() -> new IllegalStateException("Propriete introuvable"));
+        if (!orgId.equals(property.getOrganizationId())) {
+            throw new org.springframework.security.access.AccessDeniedException("Propriete hors organisation");
+        }
+        ChannexPropertyMapping mapping = mappingRepository.findByClenzyPropertyId(propertyId, orgId)
+            .orElseThrow(() -> new IllegalStateException("Aucune connexion Channex pour cette propriete"));
+        if (request == null || !request.hasAllIds()
+            || !mapping.getChannexPropertyId().equals(request.channexPropertyId())
+            || !mapping.getChannexRoomTypeId().equals(request.channexRoomTypeId())) {
+            throw new IllegalArgumentException("La propriete et la chambre Channex doivent rester identiques");
+        }
+        var remoteProperty = channexClient.getProperty(mapping.getChannexPropertyId());
+        var rate = channexClient.getRatePlan(request.channexDefaultRatePlanId());
+        if (rate == null || !request.channexDefaultRatePlanId().equals(rate.id())
+            || !mapping.getChannexPropertyId().equals(rate.propertyId())
+            || !mapping.getChannexRoomTypeId().equals(rate.roomTypeId())) {
+            throw new IllegalArgumentException("Ce tarif n'appartient pas a la chambre Channex connectee");
+        }
+        if (rate.currency() == null || !rate.currency().equalsIgnoreCase(remoteProperty.currency())) {
+            throw new IllegalArgumentException("La devise du tarif doit correspondre a la propriete Channex");
+        }
+        if (!rate.currency().equalsIgnoreCase(property.getDefaultCurrency())) {
+            if (!adoptCurrency) throw new IllegalArgumentException(
+                "Confirmez l'adoption de la devise du nouveau tarif pour la propriete Baitly");
+            property.setDefaultCurrency(rate.currency().toUpperCase(java.util.Locale.ROOT));
+            propertyRepository.save(property);
+        }
+        String previousRateId = mapping.getChannexDefaultRatePlanId();
+        String additionalTargets = mapping.getTargetRatePlanIds().stream()
+            .filter(id -> !id.equals(previousRateId) && !id.equals(rate.id()))
+            .collect(java.util.stream.Collectors.joining(","));
+        mapping.setChannexDefaultRatePlanId(rate.id());
+        // Preserve other targets without retaining the replaced default as an extra.
+        mapping.setChannexRatePlanIds(additionalTargets.isEmpty() ? null : additionalTargets);
+        mapping.setSyncStatus(ChannexSyncStatus.PENDING);
+        mapping.setLastSyncError(null);
+        return mappingRepository.save(mapping);
+    }
+
     // ─── Helpers de resolution des IDs Channex ──────────────────────────────
 
     /** Triple d'identifiants Channex. */
@@ -189,7 +234,7 @@ public class ChannexConnectService {
 
     /**
      * Mode AUTO_CREATE : cree Property + Room Type + Rate Plan dans Channex
-     * via 3 appels API. Les attributs sont derives de la Property Clenzy.
+     * via 3 appels API. Les attributs sont derives de la Property Baitly.
      *
      * <p>Le payload inclut des la creation : l'adresse/contact/geo (REQUIS par
      * Channex a la connexion du premier channel OTA), {@code property_type}
@@ -198,13 +243,13 @@ public class ChannexConnectService {
      * de l'availability.</p>
      */
     private ChannexIds autoCreateInChannex(Property property) {
-        // Property : derivation depuis Clenzy
+        // Property : derivation depuis Baitly
         String currency = property.getDefaultCurrency() != null && !property.getDefaultCurrency().isBlank()
             ? property.getDefaultCurrency().toUpperCase() : "EUR";
         String country = property.getCountryCode() != null && property.getCountryCode().length() == 2
             ? property.getCountryCode().toUpperCase() : "FR";
         String title = property.getName() != null && !property.getName().isBlank()
-            ? property.getName() : ("Clenzy Property #" + property.getId());
+            ? property.getName() : ("Baitly Property #" + property.getId());
         String timezone = property.getTimezone() != null && !property.getTimezone().isBlank()
             ? property.getTimezone() : "Europe/Paris";
         // Contact : owner de la propriete (requis par les OTAs au 1er channel)
@@ -236,7 +281,7 @@ public class ChannexConnectService {
             ));
             log.info("ChannexConnect[AUTO]: property creee {} ({})", created.id(), created.title());
 
-            // Room Type : 1 unite, capacite = maxGuests de la Clenzy property
+            // Room Type : 1 unite, capacite = maxGuests de la Baitly property
             int maxAdults = property.getMaxGuests() != null ? property.getMaxGuests() : 2;
             ChannexRoomTypeDto roomType = channexClient.createRoomType(
                 ChannexCreateRoomTypeRequest.simple(created.id(), title, maxAdults)
@@ -322,7 +367,7 @@ public class ChannexConnectService {
      * Quand un user veut "vraiment" deconnecter (parce que Channex bloque Airbnb,
      * par exemple), il devait jusqu'ici enchainer 4-5 operations manuelles :
      * revoke OAuth cote Airbnb → deactivate channel cote Channex → delete channel
-     * → delete pivot → SQL cleanup Clenzy. Cette methode automatise tout.</p>
+     * → delete pivot → SQL cleanup Baitly. Cette methode automatise tout.</p>
      *
      * <p>Sequence orchestree (best-effort, continue meme si une etape echoue) :</p>
      * <ol>
@@ -334,14 +379,14 @@ public class ChannexConnectService {
      *       (reset complet, plus rien dans le dashboard Channex). Sinon SKIPPED.</li>
      *   <li><b>CLEANUP_LOCAL</b> : suppression du mapping + ota_channels rows en DB
      *       (toujours execute, meme si les etapes Channex ont echoue — l'utilisateur
-     *       doit pouvoir "abandonner" et nettoyer cote Clenzy)</li>
+     *       doit pouvoir "abandonner" et nettoyer cote Baitly)</li>
      * </ol>
      *
      * <p>Garantie : <b>la priorite #1 est de liberer les OTA</b> (deactivate). Si tout
      * le reste echoue, tant que les desactivations sont passees, l'utilisateur a
      * repris la main sur ses listings Airbnb/Booking/etc.</p>
      *
-     * @param clenzyPropertyId     Property Clenzy a deconnecter
+     * @param clenzyPropertyId     Property Baitly a deconnecter
      * @param orgId                Organisation (validation cross-tenant)
      * @param deleteChannexProperty true = reset complet (supprime aussi la property
      *                              cote hub Channex). false = soft (reversible :
@@ -452,7 +497,7 @@ public class ChannexConnectService {
 
         // 4. CLEANUP_LOCAL — sauf si on n'a pas pu enumerer les channels du hub.
         //    Supprimer le mapping alors qu'on ignore ce qui reste actif cote Channex
-        //    rend la property invisible dans Clenzy tout en la laissant branchee aux
+        //    rend la property invisible dans Baitly tout en la laissant branchee aux
         //    OTA : plus aucun ecran ne permet de la rattraper. Tant que l'enumeration
         //    a echoue, on garde le mapping — c'est lui qui permet de rejouer.
         if (!channelsEnumerated) {
@@ -510,7 +555,7 @@ public class ChannexConnectService {
      * <p>Filet de secours quand {@code GET /channels} echoue (hub injoignable,
      * credentials absents) : on tente au moins de desactiver ce qu'on connait
      * plutot que de ne rien faire du tout. La liste peut etre incomplete — un
-     * channel cree cote hub sans passer par Clenzy n'y figure pas.</p>
+     * channel cree cote hub sans passer par Baitly n'y figure pas.</p>
      */
     private List<String> knownLocalChannelIds(UUID mappingId) {
         return otaChannelRepository.findByMappingId(mappingId).stream()
@@ -650,9 +695,9 @@ public class ChannexConnectService {
                     + mappedCount + " deja mappee(s) sur cette organisation"));
         }
 
-        // ── 4. Alignement des prix Clenzy ↔ Channex (Phase 5 audit UX) ──────
+        // ── 4. Alignement des prix Baitly ↔ Channex (Phase 5 audit UX) ──────
         // Compte les drifts actifs (non-resolus) detectes par le scheduler de
-        // reconciliation. OK si 0 (= Clenzy et OTA alignes), WARNING sinon
+        // reconciliation. OK si 0 (= Baitly et OTA alignes), WARNING sinon
         // avec remediation pointant vers le dialog de resolution.
         try {
             int activeDrifts = clenzyPropertyId != null
@@ -691,7 +736,7 @@ public class ChannexConnectService {
     }
 
     /**
-     * Helper : checks specifiques a une property Clenzy (existence, mapping,
+     * Helper : checks specifiques a une property Baitly (existence, mapping,
      * completude des attributs requis pour la creation Channex).
      */
     private void runPerPropertyChecks(Long clenzyPropertyId, Long orgId, List<PreflightCheck> checks) {
@@ -732,7 +777,7 @@ public class ChannexConnectService {
                 "La propriete est prete a etre connectee"));
         }
 
-        // Name (warning si missing — default fallback "Clenzy Property #ID")
+        // Name (warning si missing — default fallback "Baitly Property #ID")
         if (property.getName() == null || property.getName().isBlank()) {
             checks.add(PreflightCheck.warning("PROPERTY_NAME",
                 "Nom de la propriete manquant",
@@ -1113,11 +1158,11 @@ public class ChannexConnectService {
         return source;
     }
 
-    // ─── Pull bookings (reverse sync OTA → Channex → Clenzy) ───────────────
+    // ─── Pull bookings (reverse sync OTA → Channex → Baitly) ───────────────
 
     /**
      * Importe les bookings actuellement connus de Channex pour une property donnee
-     * en {@link com.clenzy.model.Reservation Reservation} Clenzy.
+     * en {@link com.clenzy.model.Reservation Reservation} Baitly.
      *
      * <p>Cas d'usage : apres connexion d'Airbnb (ou autre OTA) cote Channex,
      * Channex a deja recupere les bookings futurs de cet OTA. Sans cette
@@ -1136,7 +1181,7 @@ public class ChannexConnectService {
      * la semantique best-effort des counters — un booking en erreur n'annule
      * pas ceux deja importes.</p>
      *
-     * @param clenzyPropertyId Property Clenzy
+     * @param clenzyPropertyId Property Baitly
      * @param orgId            Organisation
      * @param arrivalFrom      Date d'arrivee min (typiquement today)
      * @param arrivalTo        Date d'arrivee max (typiquement today + 12 mois)
@@ -1265,13 +1310,13 @@ public class ChannexConnectService {
     /**
      * Genere une URL signee permettant d'embarquer le widget Channex de
      * connexion aux OTAs (Airbnb, Booking.com, Vrbo, Expedia...) dans une iframe
-     * cote Clenzy.
+     * cote Baitly.
      *
      * <p>Le mapping doit exister pour la property — sinon il n'y a pas de
      * channex_property_id a passer au widget. La verification cross-tenant est
      * faite via le filtre {@code findByClenzyPropertyId(id, orgId)}.</p>
      *
-     * @param clenzyPropertyId id de la property Clenzy
+     * @param clenzyPropertyId id de la property Baitly
      * @param orgId            id de l'organisation (tenant)
      * @param username         identite affichee dans le widget (typiquement email admin)
      * @param language         code langue UI (fr/en/es/...) — optionnel, default "fr"
@@ -1313,11 +1358,11 @@ public class ChannexConnectService {
      * L'appelant doit donc traiter l'echec comme un cas normal et retomber sur
      * {@link #getEmbedUrl}, pas comme une panne.</p>
      *
-     * @param clenzyPropertyId id de la property Clenzy
+     * @param clenzyPropertyId id de la property Baitly
      * @param orgId            id de l'organisation (tenant)
      * @param otaChannelName   nom Channex de l'OTA ("Airbnb", "BookingCom",
      *                         "VrboCom", "ExpediaQuickConnect", "Agoda")
-     * @param username         email admin Clenzy (audit cote Channex)
+     * @param username         email admin Baitly (audit cote Channex)
      * @param language         code langue UI iframe (fr/en/...)
      * @param settings         reglages specifiques au channel — pour Booking.com
      *                         {@code {"hotel_id": "..."}}. Obligatoire sur les

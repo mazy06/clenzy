@@ -17432,7 +17432,14 @@
     "analysing": "Analyse…",
     "analyseOrphans": "Analyser les logements sans organisation",
     "autoCreateHint": "Baitly crée automatiquement Property, Room Type et Rate Plan dans le hub",
-    "manualIdsHint": "Renseignez les 3 identifiants du hub (visibles dans votre tableau de bord)"
+    "manualIdsHint": "Renseignez les 3 identifiants du hub (visibles dans votre tableau de bord)",
+    "adoptRateCurrency": "Adopter la devise du nouveau tarif",
+    "adoptRateCurrencyHint": "Les montants existants ne sont pas convertis. Vérifiez les prix avant de synchroniser.",
+    "replaceRate": "Modifier le tarif",
+    "replaceRateTitle": "Modifier le tarif de {{name}}",
+    "replaceRateHint": "Remplacez le tarif lié à Baitly sans déconnecter les canaux. Sa chambre et sa devise doivent correspondre à la propriété.",
+    "savingRate": "Enregistrement…",
+    "saveRate": "Enregistrer le tarif"
   },
   "channexImport": {
     "detectError": "Impossible de détecter les logements du hub non encore importés.",

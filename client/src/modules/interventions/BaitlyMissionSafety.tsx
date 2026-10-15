@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { Phone, TriangleAlert, Pause, Play } from 'lucide-react';
+import { Phone, TriangleAlert, Pause, Play } from '../../icons/glyphs';
 import { Button } from '../../components/ui';
 import { baitlyMissionSafetyApi } from '../../services/api/baitlyMissionSafetyApi';
 import { useTranslation } from '../../hooks/useTranslation';

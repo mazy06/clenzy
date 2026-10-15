@@ -17445,7 +17445,14 @@
     "analysing": "Analysing…",
     "analyseOrphans": "Analyse the properties without an organisation",
     "autoCreateHint": "Baitly automatically creates the property, room type and rate plan in the hub",
-    "manualIdsHint": "Enter the 3 hub IDs (shown in your dashboard)"
+    "manualIdsHint": "Enter the 3 hub IDs (shown in your dashboard)",
+    "adoptRateCurrency": "Use the new rate plan currency",
+    "adoptRateCurrencyHint": "Existing amounts are not converted. Check prices before synchronizing.",
+    "replaceRate": "Change rate plan",
+    "replaceRateTitle": "Change the rate plan for {{name}}",
+    "replaceRateHint": "Replace the rate plan linked to Baitly without disconnecting channels. Its room and currency must match the property.",
+    "savingRate": "Saving…",
+    "saveRate": "Save rate plan"
   },
   "channexImport": {
     "detectError": "Unable to detect the hub properties not yet imported.",

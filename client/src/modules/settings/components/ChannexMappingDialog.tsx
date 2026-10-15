@@ -16,7 +16,7 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { cn } from '../../../utils/cn';
 import StatusChip from '../../../components/StatusChip';
-import { Badge, Button } from '../../../components/ui';
+import { Badge, Button, Checkbox } from '../../../components/ui';
 import { Alert as UiAlert, AlertDescription } from '../../../components/ui';
 import { TriangleAlert, Info } from '../../../icons/glyphs';
 import { Spinner } from '../../../components/ui';
@@ -71,6 +71,8 @@ interface ChannexMappingDialogProps {
 
 interface ConnectFormState {
   open: boolean;
+  replacingRate: boolean;
+  adoptCurrency: boolean;
   property: Property | null;
   mode: ChannexConnectMode;
   channexPropertyId: string;
@@ -82,6 +84,8 @@ interface ConnectFormState {
 
 const initialConnectForm: ConnectFormState = {
   open: false,
+  replacingRate: false,
+  adoptCurrency: false,
   property: null,
   mode: 'AUTO_CREATE',
   channexPropertyId: '',
@@ -431,6 +435,15 @@ export default function ChannexMappingDialog({ open, onClose, guided = false }: 
     setConnectForm({ ...initialConnectForm, open: true, property });
   };
 
+  const handleReplaceRate = (property: Property, mapping: ChannexMappingDto) => {
+    setConnectForm({
+      ...initialConnectForm, open: true, replacingRate: true, property, mode: 'IMPORT_EXISTING',
+      channexPropertyId: mapping.channexPropertyId,
+      channexRoomTypeId: mapping.channexRoomTypeId,
+      channexDefaultRatePlanId: mapping.channexDefaultRatePlanId,
+    });
+  };
+
   const handleConnectSubmit = async () => {
     if (!connectForm.property) return;
 
@@ -456,7 +469,9 @@ export default function ChannexMappingDialog({ open, onClose, guided = false }: 
     setConnectForm((s) => ({ ...s, submitting: true, error: null }));
     try {
       const connectedProperty = connectForm.property;
-      const mapping = await channexApi.connect(connectedProperty.id, payload);
+      const mapping = connectForm.replacingRate
+        ? await channexApi.replaceDefaultRatePlan(connectedProperty.id, payload, connectForm.adoptCurrency)
+        : await channexApi.connect(connectedProperty.id, payload);
       setMappings((prev) => {
         const next = new Map(prev);
         next.set(mapping.clenzyPropertyId, mapping);
@@ -467,7 +482,7 @@ export default function ChannexMappingDialog({ open, onClose, guided = false }: 
       // Apres connexion reussie -> on enchaine sur le picker OTA pour que
       // l'utilisateur choisisse quel OTA (Airbnb, Booking, ...) connecter en
       // premier. Le picker ouvre ensuite le widget Channex pre-filtre.
-      setPickerDialog({ open: true, property: connectedProperty });
+      if (!connectForm.replacingRate) setPickerDialog({ open: true, property: connectedProperty });
     } catch (err) {
       const message =
         err instanceof Error ? err.message : t('channexHub.connectError');
@@ -1096,6 +1111,15 @@ export default function ChannexMappingDialog({ open, onClose, guided = false }: 
                         </Button>
                       ) : (
                         <>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            disabled={isBusy}
+                            onClick={() => handleReplaceRate(property, mapping)}
+                          >
+                            <SettingsIcon size={14} />
+                            {t('channexHub.replaceRate')}
+                          </Button>
                           {/* Logos OTAs : tous les OTAs supportes (Airbnb / Booking
                               / Vrbo / Expedia / Agoda). En couleur + check vert si
                               cette property est sync sur l'OTA, grise si pas
@@ -1269,10 +1293,12 @@ export default function ChannexMappingDialog({ open, onClose, guided = false }: 
         <DialogContent className="sm:max-w-lg max-h-[85vh] overflow-y-auto">
           <DialogHeader className="-mx-4 px-4 pb-[9px] pe-10 border-b border-solid border-border">
             <DialogTitle className="text-sm font-bold tracking-tight">
-              Connecter "{connectForm.property?.name}" au hub de distribution
+              {connectForm.replacingRate
+                ? t('channexHub.replaceRateTitle', { name: connectForm.property?.name })
+                : <>Connecter "{connectForm.property?.name}" au hub de distribution</>}
             </DialogTitle>
             <DialogDescription className="text-xs mt-0.5">
-              {connectForm.mode === 'AUTO_CREATE'
+              {connectForm.replacingRate ? t('channexHub.replaceRateHint') : connectForm.mode === 'AUTO_CREATE'
                 ? t('channexHub.autoCreateHint')
                 : t('channexHub.manualIdsHint')}
             </DialogDescription>
@@ -1285,7 +1311,7 @@ export default function ChannexMappingDialog({ open, onClose, guided = false }: 
           )}
 
           {/* Mode toggle */}
-          <div className="flex flex-col gap-1.5 mb-3">
+          {!connectForm.replacingRate && <div className="flex flex-col gap-1.5 mb-3">
             <div
               role="button"
               tabIndex={0}
@@ -1333,7 +1359,7 @@ export default function ChannexMappingDialog({ open, onClose, guided = false }: 
                 {t('settings.channex.importExistingHint')}
               </p>
             </div>
-          </div>
+          </div>}
 
           {/* Champs IDs : visibles uniquement en mode IMPORT */}
           {connectForm.mode === 'IMPORT_EXISTING' && (
@@ -1347,7 +1373,7 @@ export default function ChannexMappingDialog({ open, onClose, guided = false }: 
                   onChange={(e) =>
                     setConnectForm((s) => ({ ...s, channexPropertyId: e.target.value }))
                   }
-                  disabled={connectForm.submitting}
+                  disabled={connectForm.submitting || connectForm.replacingRate}
                   placeholder="ex: 8f8a2c1a-4b5e-..."
                 />
                 <FieldDescription>{t('settings.channex.propertyUuidHint')}</FieldDescription>
@@ -1361,7 +1387,7 @@ export default function ChannexMappingDialog({ open, onClose, guided = false }: 
                   onChange={(e) =>
                     setConnectForm((s) => ({ ...s, channexRoomTypeId: e.target.value }))
                   }
-                  disabled={connectForm.submitting}
+                  disabled={connectForm.submitting || connectForm.replacingRate}
                   placeholder="ex: 1d2e3f4a-..."
                 />
                 <FieldDescription>{t('settings.channex.roomTypeHint')}</FieldDescription>
@@ -1384,6 +1410,20 @@ export default function ChannexMappingDialog({ open, onClose, guided = false }: 
           )}
 
           {/* Recap mode AUTO_CREATE */}
+          {connectForm.replacingRate && (
+            <Field className="mt-3">
+              <div className="flex items-start gap-2">
+                <Checkbox
+                  id="channex-adopt-currency"
+                  checked={connectForm.adoptCurrency}
+                  disabled={connectForm.submitting}
+                  onCheckedChange={(checked) => setConnectForm((s) => ({ ...s, adoptCurrency: checked === true }))}
+                />
+                <FieldLabel htmlFor="channex-adopt-currency">{t('channexHub.adoptRateCurrency')}</FieldLabel>
+              </div>
+              <FieldDescription>{t('channexHub.adoptRateCurrencyHint')}</FieldDescription>
+            </Field>
+          )}
           {connectForm.mode === 'AUTO_CREATE' && connectForm.property && (
             <UiAlert variant="info" className="text-xs">
               <Info />
@@ -1395,13 +1435,13 @@ export default function ChannexMappingDialog({ open, onClose, guided = false }: 
             </UiAlert>
           )}
 
-          <UiAlert variant="info" className="mt-3 text-xs">
+          {!connectForm.replacingRate && <UiAlert variant="info" className="mt-3 text-xs">
             <Info />
             <AlertDescription>{t('settings.channex.initialPush')}
             {connectForm.mode === 'AUTO_CREATE' && (
               <> {t('settings.channex.autoCreateFooter')}</>
             )}</AlertDescription>
-          </UiAlert>
+          </UiAlert>}
 
           <div className="flex justify-end gap-1.5 mt-3">
             <Button
@@ -1418,7 +1458,9 @@ export default function ChannexMappingDialog({ open, onClose, guided = false }: 
               disabled={connectForm.submitting}
             >
               {connectForm.submitting ? <Spinner className="size-3" /> : null}
-              {connectForm.submitting ? 'Connexion...' : 'Connecter'}
+              {connectForm.replacingRate
+                ? t(connectForm.submitting ? 'channexHub.savingRate' : 'channexHub.saveRate')
+                : connectForm.submitting ? 'Connexion...' : 'Connecter'}
             </Button>
           </div>
         </DialogContent>

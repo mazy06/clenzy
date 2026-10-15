@@ -385,7 +385,9 @@ class ChannexClientExtendedTest {
     void fetchRatePlansForProperty_parsesItems() {
         String body = "{\"data\":["
             + "{\"id\":\"rp-1\",\"type\":\"rate_plan\",\"attributes\":{"
-            + "\"title\":\"Standard\",\"property_id\":\"prop-1\",\"room_type_id\":\"rt-1\",\"currency\":\"EUR\"}}"
+            + "\"title\":\"Standard\",\"currency\":\"EUR\"},\"relationships\":{"
+            + "\"property\":{\"data\":{\"id\":\"prop-1\",\"type\":\"property\"}},"
+            + "\"room_type\":{\"data\":{\"id\":\"rt-1\",\"type\":\"room_type\"}}}}"
             + "]}";
         mockServer.expect(requestTo(containsString("/rate_plans?")))
             .andRespond(withSuccess(body, MediaType.APPLICATION_JSON));
@@ -393,6 +395,24 @@ class ChannexClientExtendedTest {
         List<ChannexRatePlanDto> rps = client.fetchRatePlansForProperty("prop-1");
         assertThat(rps).hasSize(1);
         assertThat(rps.get(0).id()).isEqualTo("rp-1");
+        assertThat(rps.get(0).propertyId()).isEqualTo("prop-1");
+        assertThat(rps.get(0).roomTypeId()).isEqualTo("rt-1");
+    }
+
+    @Test
+    void getRatePlan_readsOwnershipFromRelationships() {
+        String body = """
+            {"data":{"id":"rp-eur","type":"rate_plan","attributes":{"currency":"EUR"},
+              "relationships":{"property":{"data":{"id":"prop-1"}},
+                               "room_type":{"data":{"id":"rt-1"}}}}}
+            """;
+        mockServer.expect(requestTo(containsString("/rate_plans/rp-eur")))
+            .andRespond(withSuccess(body, MediaType.APPLICATION_JSON));
+        var rate = client.getRatePlan("rp-eur");
+        assertThat(rate.id()).isEqualTo("rp-eur");
+        assertThat(rate.propertyId()).isEqualTo("prop-1");
+        assertThat(rate.roomTypeId()).isEqualTo("rt-1");
+        assertThat(rate.currency()).isEqualTo("EUR");
     }
 
     // --- fetchRoomTypeDetail / fetchHotelPolicies / fetchPhotos / facilityCatalog ---
