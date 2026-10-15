@@ -3,6 +3,10 @@ import { extractApiList } from '../../types';
 import type { PaginatedResponse } from '../apiClient';
 import type { ServiceRequest } from './serviceRequestsApi';
 import type { InterventionDetailsData } from '../../modules/interventions/interventionUtils';
+export interface BaitlyRoomInspection { rooms: { id: string; type: string; number: number }[]; stepPhotoCounts: Record<string, number> }
+export async function getBaitlyRoomInspection(id: number): Promise<BaitlyRoomInspection> {
+  return apiClient.get<BaitlyRoomInspection>(`/mobile/missions/${id}`);
+}
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 

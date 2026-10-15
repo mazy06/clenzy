@@ -15,7 +15,7 @@ export interface PricePrediction {
 export const aiPricingApi = {
   /** Get AI price suggestions for a property over a date range */
   getPredictions(propertyId: number, from: string, to: string) {
-    return apiClient.get<PricePrediction[]>(`/ai/pricing/${propertyId}`, {
+    return apiClient.get<PricePrediction[]>(`/ai/pricing/${propertyId}/predictions`, {
       params: { from, to },
     });
   },

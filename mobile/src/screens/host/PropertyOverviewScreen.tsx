@@ -48,7 +48,7 @@ const AMENITY_MAP: Record<string, AmenityDef> = {
 const CATEGORY_CONFIG: Record<string, { label: string; colorKey: 'primary' | 'success' | 'info' | 'warning' | 'secondary' }> = {
   comfort:    { label: 'Confort',              colorKey: 'primary' },
   kitchen:    { label: 'Cuisine',              colorKey: 'success' },
-  appliances: { label: 'Electromenager',       colorKey: 'info' },
+  appliances: { label: 'Électroménager',       colorKey: 'info' },
   outdoor:    { label: 'Exterieur',            colorKey: 'warning' },
   family:     { label: 'Securite & Famille',   colorKey: 'secondary' },
 };
@@ -93,12 +93,12 @@ function AmenityTile({ def, color, theme }: {
 function CleaningNotesSection({ notes, theme }: { notes?: string; theme: ReturnType<typeof useTheme> }) {
   const [expanded, setExpanded] = useState(false);
   const placeholder = !notes;
-  const displayText = notes ?? 'Aucune note de menage';
+  const displayText = notes ?? 'Aucune note de ménage';
   const isLong = (notes?.split('\n').length ?? 0) > 3 || (notes?.length ?? 0) > 200;
 
   return (
     <Accordion
-      title="Notes de menage"
+      title="Notes de ménage"
       iconName="document-text-outline"
       iconColor={theme.colors.info.main}
       defaultOpen
@@ -269,13 +269,13 @@ export function PropertyOverviewScreen() {
             }}>
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: theme.SPACING.sm }}>
                 <Reicon name="sparkles-outline" size={18} color={theme.colors.secondary.main} />
-                <Text style={{ ...theme.typography.body2, color: theme.colors.text.primary }}>Tarif menage</Text>
+                <Text style={{ ...theme.typography.body2, color: theme.colors.text.primary }}>Tarif ménage</Text>
               </View>
               <Text style={{ ...theme.typography.h3, color: theme.colors.secondary.main }}>{property.cleaningBasePrice}{'\u20AC'}</Text>
             </View>
           )}
           {property.nightlyPrice == null && property.cleaningBasePrice == null && (
-            <Text style={{ ...theme.typography.body2, color: theme.colors.text.disabled, fontStyle: 'italic' }}>Aucun tarif renseigne</Text>
+            <Text style={{ ...theme.typography.body2, color: theme.colors.text.disabled, fontStyle: 'italic' }}>Aucun tarif renseigné</Text>
           )}
         </Accordion>
 
@@ -285,7 +285,7 @@ export function PropertyOverviewScreen() {
           if (property.numberOfFloors != null)
             configItems.push({ icon: 'layers-outline', label: 'Nombre d\'etages', value: `${property.numberOfFloors}`, color: theme.colors.info.main });
           if (property.cleaningDurationMinutes != null)
-            configItems.push({ icon: 'time-outline', label: 'Duree estimee', value: `${property.cleaningDurationMinutes} min`, color: theme.colors.primary.main });
+            configItems.push({ icon: 'time-outline', label: 'Durée estimée', value: `${property.cleaningDurationMinutes} min`, color: theme.colors.primary.main });
           if (property.cleaningBasePrice != null)
             configItems.push({ icon: 'cash-outline', label: 'Prix de base', value: `${property.cleaningBasePrice}\u20AC`, color: theme.colors.secondary.main });
 
@@ -299,7 +299,7 @@ export function PropertyOverviewScreen() {
 
           return (
             <Accordion
-              title="Configuration menage"
+              title="Configuration ménage"
               iconName="settings-outline"
               iconColor={theme.colors.secondary.main}
               defaultOpen

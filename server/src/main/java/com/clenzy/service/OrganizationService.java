@@ -291,6 +291,29 @@ public class OrganizationService {
     }
 
     /**
+     * Meme regle que {@link #validateOrgManagement}, en reponse oui/non.
+     *
+     * <p>A utiliser quand un refus n'est pas une erreur (choisir un affichage, un perimetre).
+     * Attraper l'exception de {@code validateOrgManagement} depuis une autre transaction ne
+     * marche pas : en traversant son proxy transactionnel, elle marque la transaction de
+     * l'appelant « rollback-only », qui echoue alors au commit.</p>
+     */
+    @Transactional(readOnly = true)
+    public boolean canManageOrg(String keycloakId, Long orgId) {
+        User caller = userRepository.findByKeycloakId(keycloakId).orElse(null);
+        if (caller == null) {
+            return false;
+        }
+        if (caller.getRole() != null && caller.getRole().isPlatformStaff()) {
+            return true;
+        }
+        return memberRepository.findByUserId(caller.getId())
+                .filter(member -> member.getOrganization().getId().equals(orgId))
+                .map(member -> member.getRoleInOrg().canManageOrg())
+                .orElse(false);
+    }
+
+    /**
      * Change le type d'une organisation (ex: INDIVIDUAL → CONCIERGE).
      */
     public Organization upgradeType(Long orgId, OrganizationType newType) {

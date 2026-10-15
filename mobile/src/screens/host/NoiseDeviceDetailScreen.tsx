@@ -14,7 +14,7 @@ import { Skeleton } from '@/components/ui/Skeleton';
 import { NoiseChart } from '@/components/domain/NoiseChart';
 import { useNoiseChartData } from '@/hooks/useNoiseMonitoring';
 import { useNoiseAlertConfig, useNoiseAlertConfigs, useSaveNoiseAlertConfig } from '@/hooks/useNoiseAlertConfig';
-import type { DashboardStackParamList } from '@/navigation/HostNavigator';
+import type { BaitlyStackParams as DashboardStackParamList } from '@/navigation/BaitlyNavigator';
 
 type IconName = keyof typeof Reicon.glyphMap;
 
@@ -414,7 +414,7 @@ function TimeWindowCard({
       <View style={{ flexDirection: 'row', gap: theme.SPACING.sm, marginBottom: theme.SPACING.md }}>
         <View style={{ flex: 1 }}>
           <Input
-            label="Debut"
+            label="Début"
             placeholder="22:00"
             value={window.startTime}
             onChangeText={(v) => onChange(index, 'startTime', v)}
@@ -576,17 +576,17 @@ function ConfigTab({
   const handleSave = useCallback(() => {
     // Validate
     if (timeWindows.length === 0) {
-      Alert.alert('Erreur', 'Au moins un creneau horaire est requis');
+      Alert.alert('Erreur', 'Au moins un créneau horaire est requis');
       return;
     }
 
     for (const tw of timeWindows) {
       if (!tw.label.trim()) {
-        Alert.alert('Erreur', 'Chaque creneau doit avoir un nom');
+        Alert.alert('Erreur', 'Chaque créneau doit avoir un nom');
         return;
       }
       if (!tw.startTime || !tw.endTime) {
-        Alert.alert('Erreur', 'Les heures de debut et fin sont requises');
+        Alert.alert('Erreur', 'Les heures de début et fin sont requises');
         return;
       }
       const warning = Number(tw.warningThresholdDb);
@@ -607,7 +607,7 @@ function ConfigTab({
 
     const cooldown = Number(cooldownMinutes);
     if (isNaN(cooldown) || cooldown < 5 || cooldown > 1440) {
-      Alert.alert('Erreur', 'Le delai de cooldown doit etre entre 5 et 1440 minutes');
+      Alert.alert('Erreur', 'Le délai de cooldown doit être entre 5 et 1440 minutes');
       return;
     }
 
@@ -634,7 +634,7 @@ function ConfigTab({
       },
       {
         onSuccess: () => {
-          Alert.alert('Configuration enregistree', 'Les seuils et notifications ont ete mis a jour');
+          Alert.alert('Configuration enregistrée', 'Les seuils et notifications ont été mis à jour');
         },
         onError: (error: any) => {
           const message = error?.response?.data?.error ?? error?.message ?? 'Erreur inconnue';
@@ -737,7 +737,7 @@ function ConfigTab({
         <Divider />
         <ToggleRow
           label="Email"
-          description="Envoyer un email au proprietaire ou aux destinataires"
+          description="Envoyer un email au propriétaire ou aux destinataires"
           value={notifyEmail}
           onValueChange={setNotifyEmail}
           iconName="mail-outline"
@@ -748,7 +748,7 @@ function ConfigTab({
             placeholder="email1@example.com, email2@example.com"
             value={emailRecipients}
             onChangeText={setEmailRecipients}
-            helperText="Laissez vide pour utiliser l'email du proprietaire"
+            helperText="Laissez vide pour utiliser l'email du propriétaire"
             containerStyle={{ marginTop: theme.SPACING.sm, marginBottom: theme.SPACING.sm }}
           />
         )}

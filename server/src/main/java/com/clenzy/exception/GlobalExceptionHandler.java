@@ -277,6 +277,35 @@ public class GlobalExceptionHandler {
                 "code", "PAYOUT_NOT_READY", "message", ex.getMessage(), "status", 409));
     }
 
+    @ExceptionHandler(InterventionStateConflictException.class)
+    public ResponseEntity<Map<String, Object>> handleInterventionStateConflict(InterventionStateConflictException ex) {
+        logger.warn("Action refusée par le cycle de vie de la mission: {}", ex.getMessage());
+        Map<String, Object> errorResponse = new HashMap<>();
+        errorResponse.put("error", "Action impossible dans l'état actuel");
+        errorResponse.put("message", ex.getMessage());
+        errorResponse.put("status", HttpStatus.CONFLICT.value());
+        return ResponseEntity.status(HttpStatus.CONFLICT).body(errorResponse);
+    }
+
+    /**
+     * Un statut choisi par le service (400 étape invalide, 404, 409 version périmée…) est une
+     * réponse métier : sans ce handler, celui des RuntimeException le rhabillait en 500.
+     */
+    @ExceptionHandler(org.springframework.web.server.ResponseStatusException.class)
+    public ResponseEntity<Map<String, Object>> handleResponseStatus(org.springframework.web.server.ResponseStatusException ex) {
+        HttpStatus status = HttpStatus.resolve(ex.getStatusCode().value());
+        if (status == null || status.is5xxServerError()) {
+            logger.error("Erreur serveur signalée par un service", ex);
+        } else {
+            logger.warn("Requête refusée ({}): {}", ex.getStatusCode().value(), ex.getReason());
+        }
+        Map<String, Object> errorResponse = new HashMap<>();
+        errorResponse.put("error", status != null ? status.getReasonPhrase() : "Erreur");
+        errorResponse.put("message", ex.getReason() != null ? ex.getReason() : "Requête refusée");
+        errorResponse.put("status", ex.getStatusCode().value());
+        return ResponseEntity.status(ex.getStatusCode()).body(errorResponse);
+    }
+
     @ExceptionHandler(RuntimeException.class)
     public ResponseEntity<Map<String, Object>> handleRuntimeException(RuntimeException ex) {
         logger.error("Erreur runtime non gérée", ex);

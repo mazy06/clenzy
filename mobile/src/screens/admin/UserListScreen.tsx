@@ -1,3 +1,4 @@
+import { toAdminUser, fromAdminUser } from '@/api/endpoints/adminUserShape';
 import React, { useMemo, useState } from 'react';
 import { View, Text, ScrollView, RefreshControl, Pressable, TextInput } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -26,10 +27,12 @@ export interface UserSummary {
 }
 
 const ROLE_CONFIG: Record<string, { label: string; color: 'primary' | 'secondary' | 'success' | 'error' | 'warning' | 'info' }> = {
-  HOST: { label: 'Proprietaire', color: 'primary' },
+  HOST: { label: 'Propriétaire', color: 'primary' },
   TECHNICIAN: { label: 'Technicien', color: 'info' },
-  HOUSEKEEPER: { label: 'Agent menage', color: 'success' },
+  HOUSEKEEPER: { label: 'Agent ménage', color: 'success' },
   SUPERVISOR: { label: 'Superviseur', color: 'warning' },
+  LAUNDRY: { label: 'Blanchisserie', color: 'success' },
+  EXTERIOR_TECH: { label: 'Jardin et piscine', color: 'info' },
   ADMIN: { label: 'Admin', color: 'error' },
   SUPER_ADMIN: { label: 'Super Admin', color: 'error' },
   SUPER_MANAGER: { label: 'Super Manager', color: 'secondary' },
@@ -96,10 +99,10 @@ export function UserListScreen() {
 
   const { data, isLoading, isRefetching, refetch } = useQuery({
     queryKey: ['admin', 'users'],
-    queryFn: () => apiClient.get<{ content: UserSummary[] }>('/admin/users', { params: { size: '500' } }),
+    queryFn: () => apiClient.get<{ content: UserSummary[] }>('/users', { params: { size: '500' } }),
   });
 
-  const allUsers: UserSummary[] = (data as any)?.content ?? (Array.isArray(data) ? data : []);
+  const allUsers: UserSummary[] = ((data as any)?.content ?? (Array.isArray(data) ? data : [])).map(toAdminUser<UserSummary>);
 
   const filtered = useMemo(() => {
     if (!search.trim()) return allUsers;
@@ -237,7 +240,7 @@ export function UserListScreen() {
           <EmptyState
             iconName="people-outline"
             title="Aucun utilisateur"
-            description={search ? 'Aucun resultat pour cette recherche' : 'Aucun utilisateur trouve'}
+            description={search ? 'Aucun résultat pour cette recherche' : 'Aucun utilisateur trouvé'}
             compact
           />
         ) : (

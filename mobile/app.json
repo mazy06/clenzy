@@ -1,6 +1,6 @@
 {
   "expo": {
-    "name": "Clenzy",
+    "name": "Baitly",
     "slug": "clenzy-mobile",
     "version": "1.0.0",
     "orientation": "portrait",
@@ -11,18 +11,18 @@
     "splash": {
       "image": "./assets/splash-icon.png",
       "resizeMode": "contain",
-      "backgroundColor": "#6B8A9A"
+      "backgroundColor": "#1B2A35"
     },
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.clenzy.mobile",
       "infoPlist": {
-        "NSCameraUsageDescription": "Clenzy utilise la camera pour prendre des photos avant/apres les interventions.",
-        "NSPhotoLibraryUsageDescription": "Clenzy accede a la galerie pour selectionner des photos d'interventions.",
-        "NSLocationWhenInUseUsageDescription": "Clenzy utilise votre position pour verifier les interventions sur site.",
-        "NSFaceIDUsageDescription": "Clenzy utilise Face ID pour un acces securise a votre compte.",
-        "NSBluetoothAlwaysUsageDescription": "Clenzy utilise le Bluetooth pour appairer vos objets connectes.",
-        "NSLocalNetworkUsageDescription": "Clenzy utilise le reseau local pour appairer vos objets connectes (Wi-Fi)."
+        "NSCameraUsageDescription": "Baitly utilise la camera pour prendre des photos avant/apres les interventions.",
+        "NSPhotoLibraryUsageDescription": "Baitly accede a la galerie pour selectionner des photos d'interventions.",
+        "NSLocationWhenInUseUsageDescription": "Baitly utilise votre position pour verifier les interventions sur site.",
+        "NSFaceIDUsageDescription": "Baitly utilise Face ID pour un acces securise a votre compte.",
+        "NSBluetoothAlwaysUsageDescription": "Baitly utilise le Bluetooth pour appairer vos objets connectes.",
+        "NSLocalNetworkUsageDescription": "Baitly utilise le reseau local pour appairer vos objets connectes (Wi-Fi)."
       }
     },
     "android": {
@@ -54,6 +54,13 @@
       ]
     },
     "plugins": [
+      ["expo-splash-screen", {
+        "image": "./assets/splash-icon.png",
+        "imageWidth": 200,
+        "resizeMode": "contain",
+        "backgroundColor": "#1B2A35",
+        "dark": { "backgroundColor": "#0A1120" }
+      }],
       "expo-secure-store",
       "expo-camera",
       "expo-image-picker",

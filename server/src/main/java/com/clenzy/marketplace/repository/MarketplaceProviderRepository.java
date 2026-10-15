@@ -100,6 +100,7 @@ public interface MarketplaceProviderRepository
     boolean existsByEmailHash(String emailHash);
 
     List<MarketplaceProvider> findByHomeOrganizationId(Long organizationId);
+    org.springframework.data.domain.Page<MarketplaceProvider> findByHomeOrganizationId(Long organizationId, Pageable pageable);
 
     long countByStatus(ProviderStatus status);
 

@@ -9,11 +9,12 @@ const STATUS_MAP: Record<string, { label: string; color: StatusColor }> = {
   AWAITING_VALIDATION: { label: 'Validation', color: 'warning' },
   AWAITING_PAYMENT: { label: 'Paiement', color: 'warning' },
   IN_PROGRESS: { label: 'En cours', color: 'info' },
-  COMPLETED: { label: 'Termine', color: 'success' },
-  CANCELLED: { label: 'Annule', color: 'error' },
-  APPROVED: { label: 'Approuve', color: 'info' },
-  REJECTED: { label: 'Rejete', color: 'error' },
-  SCHEDULED: { label: 'Planifie', color: 'primary' },
+  COMPLETED: { label: 'Terminée', color: 'success' },
+  RESOLVED: { label: 'Résolu', color: 'success' },
+  CANCELLED: { label: 'Annulée', color: 'error' },
+  APPROVED: { label: 'Approuvée', color: 'info' },
+  REJECTED: { label: 'Rejetée', color: 'error' },
+  SCHEDULED: { label: 'Planifiée', color: 'primary' },
 };
 
 interface StatusBadgeProps {

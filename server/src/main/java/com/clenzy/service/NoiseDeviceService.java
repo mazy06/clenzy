@@ -60,10 +60,11 @@ public class NoiseDeviceService {
     // ─── CRUD ───────────────────────────────────────────────────
 
     /**
-     * Liste les capteurs de l'organisation (le filtre Hibernate assure l'isolation).
+     * Liste les capteurs de l'organisation courante. Le filtre explicite est requis : le filtre
+     * Hibernate est inactif en HTTP, et findByStatus exposait les appareils de toutes les organisations.
      */
     public List<NoiseDeviceDto> getUserDevices(String userId) {
-        return noiseDeviceRepository.findByStatus(DeviceStatus.ACTIVE).stream()
+        return noiseDeviceRepository.findByOrganizationIdAndStatus(tenantContext.getRequiredOrganizationId(), DeviceStatus.ACTIVE).stream()
                 .map(this::toDto)
                 .collect(Collectors.toList());
     }
@@ -220,7 +221,8 @@ public class NoiseDeviceService {
      * pour indiquer l'absence de donnees (et non pas une fausse valeur 0).
      */
     public NoiseChartDataDto getAllNoiseData(String userId, String startAt, String endAt) {
-        List<NoiseDevice> devices = noiseDeviceRepository.findByStatus(DeviceStatus.ACTIVE);
+        List<NoiseDevice> devices = noiseDeviceRepository.findByOrganizationIdAndStatus(
+                tenantContext.getRequiredOrganizationId(), DeviceStatus.ACTIVE);
 
         List<NoiseChartDataDto.DeviceSummary> summaries = new ArrayList<>();
         Map<String, Map<String, Double>> timeSeriesMap = new LinkedHashMap<>();

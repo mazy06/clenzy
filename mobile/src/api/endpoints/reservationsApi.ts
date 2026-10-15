@@ -72,8 +72,9 @@ export const reservationsApi = {
     return apiClient.put<Reservation>(`/reservations/${id}`, payload);
   },
 
-  cancel(id: number, reason?: string) {
-    return apiClient.post<void>(`/reservations/${id}/cancel`, { reason });
+  /** Same endpoint as the web PMS: the reservation is set to cancelled and its days released. */
+  cancel(id: number, _reason?: string) {
+    return apiClient.delete<void>(`/reservations/${id}`);
   },
 
   sendPaymentLink(id: number, email?: string) {

@@ -4939,3 +4939,94 @@ databaseChangeLog:
       sqlFile:
         path: changes/0548__key_exchange_point_photos.sql
         relativeToChangelogFile: true
+
+  - changeSet:
+      id: "0549-baitly-private-network"
+      author: clenzy-team
+      changes:
+        - sqlFile:
+            path: changes/0549__baitly_private_network.sql
+            relativeToChangelogFile: true
+
+  - changeSet:
+      id: "0550-baitly-concierge-publications"
+      author: clenzy-team
+      changes:
+        - sqlFile:
+            path: changes/0550__baitly_concierge_publications.sql
+            relativeToChangelogFile: true
+
+  - changeSet:
+      id: "0551-baitly-public-profiles"
+      author: clenzy-team
+      changes:
+        - sqlFile:
+            path: changes/0551__baitly_public_profiles.sql
+            relativeToChangelogFile: true
+
+  - changeSet:
+      id: "0552-baitly-management-contacts"
+      author: clenzy-team
+      changes:
+        - sqlFile:
+            path: changes/0552__baitly_management_contacts.sql
+            relativeToChangelogFile: true
+
+  - changeSet:
+      id: "0553-baitly-public-name-privacy"
+      author: clenzy-team
+      changes:
+        - sqlFile:
+            path: changes/0553__baitly_public_name_privacy.sql
+            relativeToChangelogFile: true
+
+  - changeSet:
+      id: "0554-baitly-public-financial-consent"
+      author: clenzy-team
+      changes:
+        - sqlFile:
+            path: changes/0554__baitly_public_financial_consent.sql
+            relativeToChangelogFile: true
+
+  - changeSet:
+      id: "0555-baitly-reels"
+      author: clenzy-team
+      changes:
+        - sqlFile:
+            path: changes/0555__baitly_reels.sql
+            relativeToChangelogFile: true
+  - changeSet:
+      id: "0556-baitly-mission-restock-ledger"
+      author: clenzy-team
+      changes:
+        - sqlFile:
+            path: changes/0556__baitly_mission_restock_ledger.sql
+            relativeToChangelogFile: true
+  - changeSet:
+      id: "0557-baitly-mission-pause"
+      author: clenzy-team
+      changes:
+        - sqlFile:
+            path: changes/0557__baitly_mission_pause.sql
+            relativeToChangelogFile: true
+  - changeSet:
+      id: "0558-baitly-intervention-door-codes"
+      author: clenzy-team
+      changes:
+        - sqlFile:
+            path: changes/0558__baitly_intervention_door_codes.sql
+            relativeToChangelogFile: true
+  - changeSet:
+      id: "0559-baitly-public-review-identity"
+      author: clenzy-team
+      changes:
+        - sqlFile:
+            path: changes/0559__baitly_public_review_identity.sql
+            relativeToChangelogFile: true
+  - changeSet:
+      id: "0560-baitly-mission-signature"
+      author: clenzy-team
+      changes:
+        - sqlFile:
+            path: changes/0560__baitly_mission_signature.sql
+            relativeToChangelogFile: true

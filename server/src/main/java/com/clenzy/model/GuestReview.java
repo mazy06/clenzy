@@ -15,6 +15,15 @@ import java.util.List;
 @Table(name = "guest_reviews")
 @Filter(name = "organizationFilter", condition = "organization_id = :orgId")
 public class GuestReview {
+    /** Public review identity explicitly approved for publication; never the private guest record. */
+    @Column(name = "baitly_public_author_name", length = 100)
+    private String baitlyPublicAuthorName;
+    @Column(name = "baitly_public_author_avatar", length = 2048)
+    private String baitlyPublicAuthorAvatar;
+    public String getBaitlyPublicAuthorName(){return baitlyPublicAuthorName;}
+    public void setBaitlyPublicAuthorName(String value){baitlyPublicAuthorName=value;}
+    public String getBaitlyPublicAuthorAvatar(){return baitlyPublicAuthorAvatar;}
+    public void setBaitlyPublicAuthorAvatar(String value){baitlyPublicAuthorAvatar=value;}
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)

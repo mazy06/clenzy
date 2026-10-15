@@ -23,17 +23,19 @@ public class InterventionProgressService {
     private final InterventionAccessPolicy accessPolicy;
     private final InterventionLifecycleService lifecycleService;
     private final ObjectMapper objectMapper;
+    private final com.clenzy.repository.InterventionPhotoRepository inspectionPhotos;
 
     public InterventionProgressService(InterventionRepository interventionRepository,
                                        InterventionMapper interventionMapper,
                                        InterventionAccessPolicy accessPolicy,
                                        InterventionLifecycleService lifecycleService,
-                                       ObjectMapper objectMapper) {
+                                       ObjectMapper objectMapper, com.clenzy.repository.InterventionPhotoRepository inspectionPhotos) {
         this.interventionRepository = interventionRepository;
         this.interventionMapper = interventionMapper;
         this.accessPolicy = accessPolicy;
         this.lifecycleService = lifecycleService;
         this.objectMapper = objectMapper;
+        this.inspectionPhotos = inspectionPhotos;
     }
 
     /**
@@ -53,6 +55,7 @@ public class InterventionProgressService {
                 .orElseThrow(() -> new NotFoundException("Intervention non trouvee"));
 
         accessPolicy.assertCanAccess(intervention, jwt);
+        if(intervention.getBaitlyPausedAt()!=null) throw new org.springframework.web.server.ResponseStatusException(org.springframework.http.HttpStatus.CONFLICT,"Intervention en pause.");
 
         intervention.setProgressPercentage(progressPercentage);
         intervention = interventionRepository.save(intervention);
@@ -70,6 +73,7 @@ public class InterventionProgressService {
                 .orElseThrow(() -> new NotFoundException("Intervention non trouvee"));
 
         accessPolicy.assertCanAccess(intervention, jwt);
+        if(intervention.getBaitlyPausedAt()!=null) throw new org.springframework.web.server.ResponseStatusException(org.springframework.http.HttpStatus.CONFLICT,"Intervention en pause.");
 
         if (intervention.getStatus() != InterventionStatus.IN_PROGRESS) {
             throw new IllegalArgumentException("Seules les interventions en cours peuvent etre commentees");
@@ -99,6 +103,7 @@ public class InterventionProgressService {
                 .orElseThrow(() -> new NotFoundException("Intervention non trouvee"));
 
         accessPolicy.assertCanAccess(intervention, jwt);
+        if(intervention.getBaitlyPausedAt()!=null) throw new org.springframework.web.server.ResponseStatusException(org.springframework.http.HttpStatus.CONFLICT,"Intervention en pause.");
 
         if (intervention.getStatus() != InterventionStatus.IN_PROGRESS) {
             throw new IllegalArgumentException("Seules les interventions en cours peuvent avoir leurs pieces validees");
@@ -128,11 +133,25 @@ public class InterventionProgressService {
                 .orElseThrow(() -> new NotFoundException("Intervention non trouvee"));
 
         accessPolicy.assertCanAccess(intervention, jwt);
+        if(intervention.getBaitlyPausedAt()!=null) throw new org.springframework.web.server.ResponseStatusException(org.springframework.http.HttpStatus.CONFLICT,"Intervention en pause.");
 
         if (intervention.getStatus() != InterventionStatus.IN_PROGRESS) {
             throw new IllegalArgumentException("Seules les interventions en cours peuvent avoir leurs etapes completees mises a jour");
         }
 
+        if(intervention.getType()!=null && intervention.getType().toUpperCase(java.util.Locale.ROOT).contains("CLEANING")
+            && completedSteps!=null && completedSteps.contains("\"inspection\"")) {
+            var property=intervention.getProperty();
+            if(property==null) throw new IllegalArgumentException("Les pièces du logement doivent être renseignées.");
+            var requiredRooms=new java.util.ArrayList<String>();
+            for(int n=1;n<=(property.getBedroomCount()==null?0:property.getBedroomCount());n++) requiredRooms.add("bedroom_"+n);
+            for(int n=1;n<=(property.getBathroomCount()==null?0:property.getBathroomCount());n++) requiredRooms.add("bathroom_"+n);
+            requiredRooms.add("living_1"); requiredRooms.add("kitchen_1");
+            var photos=inspectionPhotos.findByInterventionIdAndPhaseOrderByCreatedAtAsc(id,com.clenzy.model.InterventionPhoto.PhotoPhase.BEFORE,intervention.getOrganizationId());
+            if(!requiredRooms.stream().allMatch(room -> photos.stream().anyMatch(photo -> photo.getOriginalFilename()!=null
+                && photo.getOriginalFilename().startsWith("baitly-"+id+"-step-inspection_"+room+"-"))))
+                throw new IllegalArgumentException("Une photo avant par pièce est requise pour valider l’inspection.");
+        }
         intervention.setCompletedSteps(completedSteps);
         intervention = interventionRepository.save(intervention);
 

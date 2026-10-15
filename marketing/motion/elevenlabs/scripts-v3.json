@@ -19,7 +19,8 @@
       "reel-15-cartes-de-la-journee": "7pDdnNI6PhXmAp0pXFZm",
       "reel-16-votre-savoir-faire": "ecxPjiGTvAfpGEams6ec",
       "reel-17-la-mission-cote-prestataire": "ecxPjiGTvAfpGEams6ec",
-      "reel-18-six-familles-de-metiers": "ecxPjiGTvAfpGEams6ec"
+      "reel-18-six-familles-de-metiers": "ecxPjiGTvAfpGEams6ec",
+      "reel-19-baitly-est-lance": "ecxPjiGTvAfpGEams6ec"
     },
     "en": "WTUK291rZZ9CLPCiFTfh"
   },
@@ -943,6 +944,278 @@
           "text": "[pause] [warm but upbeat] Préparez votre profil dès aujourd'hui, sur bètli point F R."
         }
       ]
+    },
+    "reel-19-baitly-est-lance": {
+      "fr": [
+        {
+          "id": "b1",
+          "text": "[confident, crisp, a touch of urgency] Un logement ou cinquante : réservations, messages, ménage, comptabilité…"
+        },
+        {
+          "id": "b2",
+          "text": "[pause] [bright, proud reveal] Voici Bètli. [beat] Tout votre métier, sur une seule plateforme."
+        },
+        {
+          "id": "b3",
+          "text": "[pause] [warm, confident] Pour les propriétaires qui gèrent eux-mêmes… [beat] comme pour les conciergeries."
+        },
+        {
+          "id": "b4",
+          "text": "[pause] [confident, crisp] Un seul planning pour tous vos canaux, et votre propre site de réservation, sans commission Bètli."
+        },
+        {
+          "id": "b5",
+          "text": "[pause] [bright, building energy] Et surtout, Bètli, c'est dix agents I.A., chacun expert de son métier."
+        },
+        {
+          "id": "b6",
+          "text": "[pause] [warm, sincere] L'agent Avis et Réputation répond à chaque avis, surtout aux plus durs : vos voyageurs voient que vous agissez pour améliorer leur séjour."
+        },
+        {
+          "id": "b7",
+          "text": "[pause] [confident, crisp] L'agent Conformité suit l'évolution des taxes de séjour et des règles locales, pour rester en règle avec les autorités, sans y penser."
+        },
+        {
+          "id": "b8",
+          "text": "[pause] [energetic, assured] L'agent Revenue suit les prix de la nuitée en direct, repère les creux et les pics à venir, et ajuste vos tarifs pour viser le meilleur rève-par et la meilleure occupation."
+        },
+        {
+          "id": "b9",
+          "text": "[pause] [quick, light] L'agent Opérations vous rappelle les réassorts et les missions à confirmer."
+        },
+        {
+          "id": "b10",
+          "text": "[pause] [confident] L'agent Finance organise vos versements, vos commissions, vos cautions… [beat] et même vos litiges bancaires."
+        },
+        {
+          "id": "b11",
+          "text": "[pause] [gradually building energy] Ils proposent, vous validez, avec l'autonomie que vous leur donnez. [beat] Moins d'oublis, moins de frustration, plus de temps."
+        },
+        {
+          "id": "b12",
+          "text": "[pause] [warm, with a smile] Et l'agent Communication répond à vos voyageurs, vite et dans leur langue, selon le contexte de chaque séjour."
+        },
+        {
+          "id": "b13",
+          "text": "[pause] [bright, light] Le livret d'accueil tient dans un simple lien : infos du séjour, extras, activités."
+        },
+        {
+          "id": "b14",
+          "text": "[pause] [enthusiastic] Vendez-y vos propres prestations, avec ou sans prestataire, et les activités GetYourGuide, Klook ou Viator, jusque sur votre site de réservation."
+        },
+        {
+          "id": "b15",
+          "text": "[pause] [confident, reassuring] Vos objets connectés accueillent pour vous : un code limité au séjour, des alertes de bruit, sans écouter personne."
+        },
+        {
+          "id": "b16",
+          "text": "[pause] [crisp, energetic] Chaque départ crée sa mission de ménage, prouvée en photo. Le stock se met à jour, vos commandes partent chez vos fournisseurs… [beat] et vos prestataires s'occupent même du réassort."
+        },
+        {
+          "id": "b17",
+          "text": "[pause] [confident] Propriétaires et prestataires suivent l'avancement depuis leur propre espace."
+        },
+        {
+          "id": "b18",
+          "text": "[pause] [quick, assured] Facturation électronique, comptabilité transmise automatiquement à Pennylane, et déclarations de voyageurs envoyées à Tchèkine, ou aux autorités marocaines et saoudiennes, selon le pays du logement."
+        },
+        {
+          "id": "b19",
+          "text": "[pause] [bright, inviting, building energy] Et Bètli est ouvert à tous ceux qui ont un service à proposer : ménage, maintenance, linge, transferts, chefs ou activités. [beat] Les inscriptions à la marketplace sont ouvertes."
+        },
+        {
+          "id": "b20",
+          "text": "[pause] [warm, inviting, with a smile] Vous débutez, ou vous voulez aller plus loin ? [beat] L'Académie Bètli vous forme au métier en courtes vidéos : piloter, revenus, opérations, réglementation… en accès libre."
+        },
+        {
+          "id": "b21",
+          "text": "[pause] [bold, proud] Faites grandir vos revenus. [beat] Pas votre charge de travail."
+        },
+        {
+          "id": "b22",
+          "text": "[pause] [warm but upbeat] Bètli est lancé. Réservez votre démo sur bètli point F R."
+        }
+      ],
+      "en": [
+        {
+          "id": "b1",
+          "text": "[confident, crisp, a touch of urgency] One property or fifty: bookings, messages, cleaning, accounting…"
+        },
+        {
+          "id": "b2",
+          "text": "[pause] [bright, proud reveal] Meet Betly. [beat] Your whole business, on one platform."
+        },
+        {
+          "id": "b3",
+          "text": "[pause] [warm, confident] For owners who manage their own properties… [beat] and for property managers."
+        },
+        {
+          "id": "b4",
+          "text": "[pause] [confident, crisp] One calendar for all your channels, and your own booking site, with no Betly commission."
+        },
+        {
+          "id": "b5",
+          "text": "[pause] [bright, building energy] Above all, Betly is ten A.I. agents, each one an expert in its field."
+        },
+        {
+          "id": "b6",
+          "text": "[pause] [warm, sincere] The Reviews and Reputation agent replies to every review, especially the toughest ones: your guests see that you act to improve their stay."
+        },
+        {
+          "id": "b7",
+          "text": "[pause] [confident, crisp] The Compliance agent tracks changes in tourist taxes and local rules, so you stay compliant with the authorities, without a second thought."
+        },
+        {
+          "id": "b8",
+          "text": "[pause] [energetic, assured] The Revenue agent follows nightly prices live, spots the dips and peaks ahead, and adjusts your rates to target the best RevPAR and occupancy."
+        },
+        {
+          "id": "b9",
+          "text": "[pause] [quick, light] The Operations agent reminds you of restocks and jobs to confirm."
+        },
+        {
+          "id": "b10",
+          "text": "[pause] [confident] The Finance agent organises your payouts, your commissions, your deposits… [beat] and even your bank disputes."
+        },
+        {
+          "id": "b11",
+          "text": "[pause] [gradually building energy] They propose, you approve, with the autonomy you give them. [beat] Fewer oversights, less frustration, more time."
+        },
+        {
+          "id": "b12",
+          "text": "[pause] [warm, with a smile] And the Communication agent replies to your guests, quickly and in their language, based on the context of each stay."
+        },
+        {
+          "id": "b13",
+          "text": "[pause] [bright, light] The guest guide fits in a simple link: stay info, extras, activities."
+        },
+        {
+          "id": "b14",
+          "text": "[pause] [enthusiastic] Sell your own services there, with or without a provider, plus GetYourGuide, Klook or Viator activities, right on your booking site."
+        },
+        {
+          "id": "b15",
+          "text": "[pause] [confident, reassuring] Your connected devices welcome guests for you: a code valid only for the stay, noise alerts, without listening to anyone."
+        },
+        {
+          "id": "b16",
+          "text": "[pause] [crisp, energetic] Every check-out creates its cleaning job, proven with photos. Stock updates itself, your orders go straight to your suppliers… [beat] and your providers even handle the restocking."
+        },
+        {
+          "id": "b17",
+          "text": "[pause] [confident] Owners and providers follow progress from their own space."
+        },
+        {
+          "id": "b18",
+          "text": "[pause] [quick, assured] E-invoicing, accounting sent automatically to Pennylane, and guest registrations sent to Chekin, or to the Moroccan and Saudi authorities, depending on where the property is."
+        },
+        {
+          "id": "b19",
+          "text": "[pause] [bright, inviting, building energy] And Betly is open to anyone with a service to offer: cleaning, maintenance, linen, transfers, chefs or activities. [beat] Marketplace sign-ups are open."
+        },
+        {
+          "id": "b20",
+          "text": "[pause] [warm, inviting, with a smile] Just starting out, or want to go further? [beat] The Betly Academy teaches you the trade in short videos: performance, revenue, operations, regulation… free to access."
+        },
+        {
+          "id": "b21",
+          "text": "[pause] [bold, proud] Grow your revenue. [beat] Not your workload."
+        },
+        {
+          "id": "b22",
+          "text": "[pause] [warm but upbeat] Betly is live. Book your demo at betly dot F R."
+        }
+      ],
+      "ar": [
+        {
+          "id": "b1",
+          "text": "[confident, crisp, a touch of urgency] مسكن واحد أو خمسون: حجوزات، ورسائل، وتنظيف، ومحاسبة…"
+        },
+        {
+          "id": "b2",
+          "text": "[pause] [bright, proud reveal] إليك بيتلي. [beat] مهنتك كلّها، على منصّة واحدة."
+        },
+        {
+          "id": "b3",
+          "text": "[pause] [warm, confident] للملّاك الذين يديرون مساكنهم بأنفسهم… [beat] ولشركات الإدارة أيضاً."
+        },
+        {
+          "id": "b4",
+          "text": "[pause] [confident, crisp] تقويم واحد لكل قنواتك، وموقع حجز خاص بك، بدون أي عمولة لبيتلي."
+        },
+        {
+          "id": "b5",
+          "text": "[pause] [bright, building energy] والأهم، بيتلي هو عشرة وكلاء ذكاء اصطناعي، كلٌّ منهم خبير في مجاله."
+        },
+        {
+          "id": "b6",
+          "text": "[pause] [warm, sincere] وكيل التقييمات والسمعة يردّ على كل تقييم، خاصةً الأشدّ قسوة: فيرى ضيوفك أنك تعمل على تحسين إقامتهم."
+        },
+        {
+          "id": "b7",
+          "text": "[pause] [confident, crisp] وكيل الامتثال يتابع تطوّر ضرائب الإقامة والأنظمة المحلية، لتبقى ملتزماً أمام السلطات، دون عناء."
+        },
+        {
+          "id": "b8",
+          "text": "[pause] [energetic, assured] وكيل الإيرادات يتابع أسعار الليلة مباشرةً، ويرصد فترات الركود والذروة القادمة، ويعدّل أسعارك لتحقيق أفضل عائد لكل غرفة متاحة وأفضل نسبة إشغال."
+        },
+        {
+          "id": "b9",
+          "text": "[pause] [quick, light] وكيل العمليات يذكّرك بإعادة التزويد وبالمهام التي تنتظر التأكيد."
+        },
+        {
+          "id": "b10",
+          "text": "[pause] [confident] وكيل المالية ينظّم تحويلاتك، وعمولاتك، ومبالغ التأمين… [beat] وحتى نزاعاتك البنكية."
+        },
+        {
+          "id": "b11",
+          "text": "[pause] [gradually building energy] هم يقترحون، وأنت تصادق، بالاستقلالية التي تمنحها لهم. [beat] نسيان أقل، وإحباط أقل، ووقت أكثر."
+        },
+        {
+          "id": "b12",
+          "text": "[pause] [warm, with a smile] ووكيل التواصل يردّ على ضيوفك، بسرعة وبلغتهم، حسب سياق كل إقامة."
+        },
+        {
+          "id": "b13",
+          "text": "[pause] [bright, light] دليل الاستقبال في رابط بسيط: معلومات الإقامة، والخدمات الإضافية، والأنشطة."
+        },
+        {
+          "id": "b14",
+          "text": "[pause] [enthusiastic] بِع فيه خدماتك الخاصة، مع مزوّد خدمة أو بدونه، وأنشطة GetYourGuide وKlook وViator، حتى على موقع حجزك."
+        },
+        {
+          "id": "b15",
+          "text": "[pause] [confident, reassuring] أجهزتك الذكية تستقبل الضيوف نيابةً عنك: رمز صالح طوال الإقامة فقط، وتنبيهات للضوضاء، دون التنصّت على أحد."
+        },
+        {
+          "id": "b16",
+          "text": "[pause] [crisp, energetic] كل مغادرة تُنشئ مهمة التنظيف الخاصة بها، مُثبَتة بالصور. يتحدّث المخزون تلقائياً، وتصل طلباتك إلى مورّديك… [beat] بل ويتكفّل مزوّدو الخدمة بإعادة التزويد."
+        },
+        {
+          "id": "b17",
+          "text": "[pause] [confident] يتابع الملّاك ومزوّدو الخدمات سير العمل من مساحتهم الخاصة."
+        },
+        {
+          "id": "b18",
+          "text": "[pause] [quick, assured] فوترة إلكترونية، ومحاسبة تُرسَل تلقائياً إلى Pennylane، واستمارات تسجيل الضيوف تُرسَل إلى Chekin، أو إلى السلطات المغربية والسعودية، حسب بلد المسكن."
+        },
+        {
+          "id": "b19",
+          "text": "[pause] [bright, inviting, building energy] وبيتلي مفتوح لكل من لديه خدمة يقدّمها: تنظيف، وصيانة، وغسيل، ونقل، وطهاة، وأنشطة. [beat] التسجيل في سوق الخدمات مفتوح."
+        },
+        {
+          "id": "b20",
+          "text": "[pause] [warm, inviting, with a smile] تبدأ للتو، أو تريد التعمّق أكثر؟ [beat] أكاديمية بيتلي تعلّمك المهنة بفيديوهات قصيرة: القيادة، والإيرادات، والعمليات، والتشريعات… مجاناً."
+        },
+        {
+          "id": "b21",
+          "text": "[pause] [bold, proud] نمِّ إيراداتك. [beat] لا أعباء عملك."
+        },
+        {
+          "id": "b22",
+          "text": "[pause] [warm but upbeat] بيتلي انطلق. احجز عرضك التوضيحي على بيتلي دوت إف آر."
+        }
+      ]
     }
   },
   "overrides": {
@@ -960,6 +1233,11 @@
       "model_id": "eleven_v4",
       "stability": 0.3,
       "note": "Paul K (Ad & Trailer), direction keynote, 29/09"
+    },
+    "reel-19-baitly-est-lance": {
+      "model_id": "eleven_v4",
+      "stability": 0.3,
+      "note": "Paul K (Ad & Trailer), direction keynote, film de lancement 9:16 v3 (agents + Académie, réplique b20 générée seule puis insérée), 2026-10-09 · EN Paul K (ecxPjiGTvAfpGEams6ec), AR Ali · Saudi Arabic (Hvlnv5DwiIO2CQ6oYMZ3, remplace Hamida le 10/10), même modèle et stabilité ; AR à faire relire par un natif"
     }
   }
 }

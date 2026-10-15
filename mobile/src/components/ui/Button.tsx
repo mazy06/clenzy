@@ -34,10 +34,11 @@ export function Button({
   textStyle,
 }: ButtonProps) {
   const theme = useTheme();
+  const [focused, setFocused] = React.useState(false);
   const palette = theme.colors[color];
 
   const sizeStyles = {
-    small: { paddingVertical: 8, paddingHorizontal: 16, minHeight: 36 },
+    small: { paddingVertical: 8, paddingHorizontal: 16, minHeight: 44 },
     medium: { paddingVertical: 12, paddingHorizontal: 24, minHeight: 48 },
     large: { paddingVertical: 16, paddingHorizontal: 28, minHeight: 56 },
   };
@@ -63,7 +64,6 @@ export function Button({
       justifyContent: 'center',
       gap: 8,
       opacity: disabled ? 0.45 : pressed ? 0.88 : 1,
-      transform: pressed && !disabled ? [{ scale: 0.97 }] : [],
     };
 
     if (fullWidth) base.width = '100%';
@@ -96,8 +96,9 @@ export function Button({
   return (
     <Pressable
       onPress={onPress}
+      onFocus={() => setFocused(true)} onBlur={() => setFocused(false)}
       disabled={disabled || loading}
-      style={({ pressed }) => [getContainerStyle(pressed), style]}
+      style={({ pressed }) => [getContainerStyle(pressed), style, focused && { borderWidth: 2, borderColor: variant === 'contained' ? palette.contrastText : palette.main }]}
       accessibilityRole="button"
       accessibilityLabel={title}
       accessibilityState={{ disabled: disabled || loading, busy: loading }}

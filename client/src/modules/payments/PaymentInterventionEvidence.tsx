@@ -18,6 +18,7 @@ import { StockThumbnail } from '../stock/StockThumbnail';
 import FinanceStatusIcon from '../billing/components/FinanceStatusIcon';
 
 import PaymentDetailPager from './PaymentDetailPager';
+import { baitlyRestockApi } from '../../services/api/baitlyRestockApi';
 
 type DocumentLink = { key: string; title: string; caption: string; generationId?: number; path?: string };
 
@@ -37,6 +38,8 @@ export default function PaymentInterventionEvidence({ intervention, view }: { in
     queryFn: () => invoicesApi.list(), staleTime: 60_000, retry: false });
   const expenses = useQuery({ queryKey: ['payment-expenses', scope], enabled: enabled && view === 'restock',
     queryFn: () => providerExpensesApi.getAll(), staleTime: 60_000, retry: false });
+  const restocks = useQuery({ queryKey: ['payment-restock-audit', scope, intervention.id], enabled: enabled && view === 'restock',
+    queryFn: () => baitlyRestockApi.history(intervention.id), staleTime: 60_000, retry: false });
   const linkedInvoices = (invoices.data ?? []).filter(item => item.interventionId === intervention.id);
   const linkedExpenses = (expenses.data ?? []).filter(item => item.interventionId === intervention.id && item.status !== 'CANCELLED');
   const links: DocumentLink[] = [];
@@ -106,6 +109,12 @@ export default function PaymentInterventionEvidence({ intervention, view }: { in
       ...(!links.length && !generations.isLoading && !quotes.isLoading && !invoices.isLoading && !generations.isError && !quotes.isError && !invoices.isError ? [<p className="payment-record-detail__muted">{t('paymentDetail.noDocuments')}</p>] : []),
     ]} />}
     {view === 'restock' && <PaymentDetailPager items={[
+      ...(restocks.data ?? []).flatMap(receipt => receipt.entries.map(entry => <div key={`${receipt.requestKey}-${entry.itemId}`} className="payment-record-detail__expense">
+        <StockThumbnail name={entry.name} size={44} />
+        <div><strong>{entry.name}</strong><small>{new Date(receipt.date).toLocaleString(activeIntlLocale())}</small>
+          <small>{entry.before} → {entry.observed} + {entry.added} = {entry.after}</small></div>
+        <span className="payment-record-detail__expense-amount">{money(entry.amount,entry.currency)}</span>
+      </div>)),
       <div className="payment-record-detail__section-heading"><h4>{t('paymentDetail.restockExpenses')}</h4><div className="payment-record-detail__expense-totals">{Object.entries(totals).map(([currency, amount]) => <strong key={currency}>{money(amount, currency)}</strong>)}</div></div>,
       ...(expenses.isLoading ? [<Skeleton className="h-16 w-full" />] : []),
       ...(expenses.isError ? [<p className="payment-record-detail__muted" role="alert">{t('paymentDetail.expensesUnavailable')}</p>] : []),

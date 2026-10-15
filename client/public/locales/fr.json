@@ -11934,6 +11934,35 @@
     }
   },
   "auth": {
+    "showcase": {
+      "label": "Découvrir Baitly",
+      "kicker": "Pour les professionnels de la location courte durée",
+      "intro": "Vos logements. Vos équipes. Un même espace de travail.",
+      "groups": {
+        "portfolio": "Réservations",
+        "guests": "Voyageurs",
+        "operations": "Opérations",
+        "business": "Revenus"
+      },
+      "images": {
+        "portfolio": "Illustration de logements et de leur calendrier de réservation partagé",
+        "guests": "Illustration de la messagerie voyageurs et du livret d’accueil",
+        "operations": "Illustration du planning des équipes, du ménage et des accès connectés",
+        "business": "Illustration du suivi des revenus, des factures et de la réservation directe"
+      },
+      "illustration": "Illustration du produit",
+      "modules": "Explorer les fonctionnalités",
+      "previous": "Fonctionnalité précédente",
+      "next": "Fonctionnalité suivante",
+      "pause": "Mettre la présentation en pause",
+      "play": "Reprendre la présentation",
+      "footer": "De la réservation au suivi de votre activité",
+      "formFooter": "Votre espace professionnel Baitly",
+      "loginKicker": "Votre activité vous attend",
+      "signupTitle": "Créez votre espace Baitly",
+      "signupSubtitle": "Rassemblez vos logements, vos équipes et votre activité.",
+      "signupKicker": "Un espace pour votre organisation"
+    },
     "common": {
       "back": "Retour",
       "backToLogin": "Retour a la connexion",
@@ -11951,7 +11980,7 @@
     },
     "login": {
       "title": "Connexion",
-      "subtitle": "Connecte-toi pour accéder à ton tableau de bord.",
+      "subtitle": "Retrouvez vos réservations, vos équipes et les priorités du jour.",
       "inscriptionSuccess": "Votre compte a été créé avec succès. Connectez-vous pour accéder à votre espace.",
       "emailLabel": "Email ou nom d'utilisateur",
       "emailPlaceholder": "vous@exemple.com",
@@ -12142,8 +12171,8 @@
     },
     "support": {
       "headerSubtitle": "Contactez notre support",
-      "submittedTitle": "Message envoyé !",
-      "submittedBody": "Notre équipe vous contactera dans les 24 heures.",
+      "submittedTitle": "Votre message a été envoyé",
+      "submittedBody": "L’équipe Baitly vous répondra à l’adresse indiquée dans votre demande.",
       "backToLogin": "Retour à la connexion",
       "fields": {
         "nameLabel": "Nom complet",
@@ -12161,8 +12190,24 @@
         "feature": "Demande de fonctionnalité",
         "other": "Autre"
       },
-      "submit": "Envoyer",
-      "submitError": "Une erreur est survenue lors de l'envoi. Veuillez réessayer ou nous contacter à info@clenzy.fr."
+      "submit": "Envoyer ma demande",
+      "submitError": "Nous n’avons pas pu envoyer votre demande. Réessayez, votre message est conservé.",
+      "title": "Comment pouvons-nous vous aider ?",
+      "intro": "Accès à votre compte, question technique ou abonnement : adressez votre demande à l’équipe Baitly.",
+      "messageHelp": "Indiquez la page concernée et ce qui vous bloque.",
+      "sending": "Envoi en cours…",
+      "guide": {
+        "kicker": "L’équipe Baitly à votre écoute",
+        "title": "Un point de contact pour votre activité.",
+        "body": "Décrivez votre besoin. Nous pourrons vous orienter à partir du contexte de votre demande.",
+        "contextTitle": "Précisez le contexte",
+        "contextBody": "Un logement, une réservation ou votre organisation : indiquez ce qui est concerné.",
+        "detailsTitle": "Ajoutez les détails utiles",
+        "detailsBody": "Pour un problème technique, précisez les étapes suivies et le message d’erreur affiché.",
+        "privacyTitle": "Gardez vos accès confidentiels",
+        "privacyBody": "Ne partagez pas votre mot de passe ni vos informations de paiement dans ce formulaire.",
+        "note": "Un simple oubli de mot de passe ? Vous pouvez le réinitialiser depuis la page de connexion."
+      }
     },
     "legal": {
       "back": "Retour",
@@ -14521,24 +14566,16 @@
     }
   },
   "providerServices": {
-    "title": "Mes prestations",
-    "help": "Un tarif par prestation, partagé avec toutes vos conciergeries et votre fiche marketplace. Les devis déjà acceptés conservent leur prix.",
-    "choose": "Choisir une prestation",
-    "enabled": "Proposer cette prestation",
-    "save": "Enregistrer le tarif partagé",
-    "models": {
-      "FLAT": "Forfait par mission",
-      "HOURLY": "Par heure",
-      "PER_SQM": "Par m²",
-      "PER_UNIT": "À l’unité",
-      "PER_KM": "Par kilomètre",
-      "PERCENTAGE": "Pourcentage",
-      "ON_QUOTE": "Sur devis"
-    },
-    "hourlyAmount": "Tarif par heure",
-    "missionAmount": "Forfait par mission",
-    "hourlyHelp": "Le total est calculé avec la durée prévue : tarif horaire × nombre d’heures.",
-    "missionHelp": "Ce montant couvre une mission complète pour cette prestation, quelle que soit sa durée."
+    "manage": "Ajouter ou choisir les prestations",
+    "existingReferences": "Références des prestations existantes",
+    "help": "Cochez les prestations proposées, dans un ou plusieurs métiers. Les tarifs existants sont conservés ; les nouvelles prestations sont sur devis. Décocher désactive l’offre sans effacer son historique. Les prestations hors catalogue restent inchangées.",
+    "search": "Rechercher une prestation ou un métier",
+    "selectGroup": "Tout cocher dans ce métier",
+    "selected": "{{count}} prestation(s) sélectionnée(s)",
+    "loadError": "Impossible de charger le catalogue des prestations.",
+    "saveError": "Impossible d’enregistrer les prestations.",
+    "retry": "Réessayer",
+    "empty": "Aucune prestation ne correspond à cette recherche."
   },
   "providerJournal": {
     "title": "Historique des décisions",
@@ -16388,9 +16425,7 @@
       "occupied": "Occupé",
       "done": "Terminée",
       "closed": "Annulée",
-      "inactive": "Inactif",
-      "covered": "Couvert",
-      "uncovered": "Non couvert"
+      "inactive": "Inactif"
     }
   },
   "locationPicker": {
@@ -20695,13 +20730,6 @@
         "label": "Affichage du bandeau",
         "photos": "Voir les photos",
         "map": "Voir sur la carte"
-      },
-      "providers": {
-        "title": "Prestataires qui interviennent ici",
-        "hint": "Leur secteur d’intervention inclut ce logement.",
-        "error": "La liste n’a pas pu être chargée.",
-        "empty": "Aucun prestataire du catalogue ne couvre encore ce logement.",
-        "more": "+ {{count}} autre(s) dans le catalogue"
       }
     },
     "channels": {
@@ -20906,18 +20934,6 @@
     "time": "Heure locale du logement",
     "durationMinutes": "Durée (minutes)"
   },
-  "providerServices": {
-    "manage": "Ajouter ou choisir les prestations",
-    "existingReferences": "Références des prestations existantes",
-    "help": "Cochez les prestations proposées, dans un ou plusieurs métiers. Les tarifs existants sont conservés ; les nouvelles prestations sont sur devis. Décocher désactive l’offre sans effacer son historique. Les prestations hors catalogue restent inchangées.",
-    "search": "Rechercher une prestation ou un métier",
-    "selectGroup": "Tout cocher dans ce métier",
-    "selected": "{{count}} prestation(s) sélectionnée(s)",
-    "loadError": "Impossible de charger le catalogue des prestations.",
-    "saveError": "Impossible d’enregistrer les prestations.",
-    "retry": "Réessayer",
-    "empty": "Aucune prestation ne correspond à cette recherche."
-  },
   "providerEdit": {
     "edit": "Modifier",
     "title": "Modifier le prestataire",
@@ -20943,6 +20959,49 @@
     "services": "Prestations du catalogue",
     "servicesHelp": "Choisissez la prestation précise correspondant à chaque offre. Les prix restent conservés.",
     "noServices": "Aucune prestation renseignée."
+  },
+  "missionSafety": {
+    "title": "Signaler un dégât",
+    "pause": "Pause",
+    "resume": "Reprendre",
+    "paused": "Intervention en pause",
+    "failed": "Action non confirmée. Vérifiez avant de réessayer.",
+    "refresh": "Vérifier",
+    "cause": "Cause constatée",
+    "room": "Pièce",
+    "item": "Élément concerné",
+    "choose": "Choisir",
+    "other": "Autre élément",
+    "detail": "Précision facultative",
+    "reportPause": "Signaler et mettre en pause",
+    "unknown": "À déterminer",
+    "wear": "Usure",
+    "breakage": "Casse",
+    "leak": "Fuite",
+    "missing": "Manquant",
+    "bedroom": "Chambre",
+    "bathroom": "Salle de bain",
+    "living": "Salon",
+    "kitchen": "Cuisine",
+    "supervisor": "Superviseur",
+    "concierge": "Contact du logement",
+    "owner": "Propriétaire",
+    "noPhone": "Numéro non renseigné",
+    "inventory": "Dans le logement",
+    "surfaces": "Mur, plafond, sol",
+    "catalog": "Catalogue : mobilier et équipements",
+    "wall": "Mur",
+    "ceiling": "Plafond",
+    "floor": "Sol"
+  },
+  "baitlyPublicReview": {
+    "title": "Publication dans Baitly",
+    "failed": "Publication indisponible ou accès refusé.",
+    "visible": "Avis visible sur la fiche publique du logement",
+    "name": "Nom public (facultatif)",
+    "photo": "URL HTTPS de la photo publique (facultative)",
+    "consent": "L’auteur a autorisé la publication de ce nom et de cette photo.",
+    "saved": "Publication enregistrée."
   },
   "sectorMap": {
     "layer": "Secteurs des prestataires",

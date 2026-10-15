@@ -18,10 +18,10 @@ type IconName = keyof typeof Reicon.glyphMap;
 type Step = 1 | 2 | 3;
 
 const DOC_TYPES: { key: DocumentType; label: string; icon: IconName; color: string; description: string }[] = [
-  { key: 'FACTURE', label: 'Facture', icon: 'receipt-outline', color: '#2196F3', description: 'Facture de sejour pour le voyageur' },
+  { key: 'FACTURE', label: 'Facture', icon: 'receipt-outline', color: '#2196F3', description: 'Facture de séjour pour le voyageur' },
   { key: 'RECU', label: 'Recu', icon: 'card-outline', color: '#4CAF50', description: 'Recu de paiement' },
-  { key: 'CONTRAT', label: 'Contrat', icon: 'document-text-outline', color: '#9C27B0', description: 'Contrat de location courte duree' },
-  { key: 'ATTESTATION', label: 'Attestation', icon: 'ribbon-outline', color: '#FF9800', description: 'Attestation d\'hebergement' },
+  { key: 'CONTRAT', label: 'Contrat', icon: 'document-text-outline', color: '#9C27B0', description: 'Contrat de location courte durée' },
+  { key: 'ATTESTATION', label: 'Attestation', icon: 'ribbon-outline', color: '#FF9800', description: 'Attestation d\'hébergement' },
 ];
 
 function formatDateShort(dateStr: string): string {
@@ -36,7 +36,7 @@ function formatDateShort(dateStr: string): string {
 function StepIndicator({ currentStep, theme }: { currentStep: Step; theme: ReturnType<typeof useTheme> }) {
   const steps = [
     { number: 1, label: 'Type' },
-    { number: 2, label: 'Reservation' },
+    { number: 2, label: 'Réservation' },
     { number: 3, label: 'Confirmer' },
   ];
 
@@ -131,7 +131,7 @@ export function DocumentGenerateScreen() {
       }),
     onSuccess: (doc) => {
       queryClient.invalidateQueries({ queryKey: ['documents'] });
-      Alert.alert('Succes', 'Le document a ete genere avec succes.', [
+      Alert.alert('Succes', 'Le document a été généré avec succès.', [
         {
           text: 'Voir le document',
           onPress: () => {
@@ -142,7 +142,7 @@ export function DocumentGenerateScreen() {
       ]);
     },
     onError: (err: any) => {
-      Alert.alert('Erreur', err?.message || 'Impossible de generer le document.');
+      Alert.alert('Erreur', err?.message || 'Impossible de générer le document.');
     },
   });
 
@@ -247,7 +247,7 @@ export function DocumentGenerateScreen() {
         {/* Step 2: Select reservation */}
         {step === 2 && (
           <View>
-            <SectionHeader title="Reservation associee" iconName="bookmark-outline" />
+            <SectionHeader title="Réservation associée" iconName="bookmark-outline" />
             <Text style={{
               ...theme.typography.body2, color: theme.colors.text.secondary,
               marginBottom: theme.SPACING.md,
@@ -293,8 +293,8 @@ export function DocumentGenerateScreen() {
               <EmptyState
                 compact
                 iconName="calendar-outline"
-                title="Aucune reservation"
-                description="Aucune reservation disponible."
+                title="Aucune réservation"
+                description="Aucune réservation disponible."
               />
             ) : (
               <View style={{ gap: theme.SPACING.sm }}>
@@ -335,7 +335,7 @@ export function DocumentGenerateScreen() {
         {/* Step 3: Review & confirm */}
         {step === 3 && (
           <View>
-            <SectionHeader title="Recapitulatif" iconName="list-outline" />
+            <SectionHeader title="Récapitulatif" iconName="list-outline" />
 
             <Card elevated style={{ marginBottom: theme.SPACING.lg }}>
               {/* Document type */}
@@ -371,7 +371,7 @@ export function DocumentGenerateScreen() {
                   <Reicon name="bookmark-outline" size={24} color={theme.colors.info.main} />
                 </View>
                 <View style={{ flex: 1 }}>
-                  <Text style={{ ...theme.typography.caption, color: theme.colors.text.disabled }}>Reservation</Text>
+                  <Text style={{ ...theme.typography.caption, color: theme.colors.text.disabled }}>Réservation</Text>
                   {selectedReservation ? (
                     <View>
                       <Text style={{ ...theme.typography.body1, color: theme.colors.text.primary, fontWeight: '600' }}>
@@ -419,7 +419,7 @@ export function DocumentGenerateScreen() {
       }}>
         {step > 1 && (
           <Button
-            title="Precedent"
+            title="Précédent"
             variant="outlined"
             size="medium"
             onPress={handleBack}

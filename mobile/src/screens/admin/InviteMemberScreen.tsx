@@ -1,3 +1,4 @@
+import { useAuthStore } from '@/store/authStore';
 import React, { useState } from 'react';
 import { View, Text, ScrollView, Pressable, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -15,17 +16,19 @@ import { Divider } from '@/components/ui/Divider';
 import { apiClient } from '@/api/apiClient';
 
 const ROLE_OPTIONS = [
-  { label: 'Proprietaire', value: 'HOST' },
+  { label: 'Propriétaire', value: 'HOST' },
   { label: 'Technicien', value: 'TECHNICIAN' },
-  { label: 'Agent de menage', value: 'HOUSEKEEPER' },
+  { label: 'Agent de ménage', value: 'HOUSEKEEPER' },
   { label: 'Superviseur', value: 'SUPERVISOR' },
+  { label: 'Blanchisserie', value: 'LAUNDRY' },
+  { label: 'Jardin et piscine', value: 'EXTERIOR_TECH' },
 ];
 
 const ROLE_DESCRIPTIONS: Record<string, string> = {
-  HOST: 'Gestion complete des proprietes, reservations et facturation',
+  HOST: 'Gestion complete des propriétés, reservations et facturation',
   TECHNICIAN: 'Interventions de maintenance et reparations',
-  HOUSEKEEPER: 'Menage, inventaire et check-in/out',
-  SUPERVISOR: 'Supervision des equipes et validation des taches',
+  HOUSEKEEPER: 'Ménage, inventaire et check-in/out',
+  SUPERVISOR: 'Supervision des équipes et validation des tâches',
 };
 
 export function InviteMemberScreen() {
@@ -39,15 +42,15 @@ export function InviteMemberScreen() {
 
   const inviteMutation = useMutation({
     mutationFn: (data: { email: string; role: string }) =>
-      apiClient.post('/admin/invitations', data),
+      apiClient.post(`/organizations/${useAuthStore.getState().user?.organizationId}/invitations`, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['admin', 'users'] });
-      Alert.alert('Invitation envoyee', `Un email d'invitation a ete envoye a ${email}`, [
+      Alert.alert('Invitation envoyée', `Un email d'invitation a ete envoye a ${email}`, [
         { text: 'OK', onPress: () => navigation.goBack() },
       ]);
     },
     onError: () => {
-      Alert.alert('Erreur', 'Impossible d\'envoyer l\'invitation. Verifiez l\'adresse email.');
+      Alert.alert('Erreur', 'Impossible d\'envoyer l\'invitation. Vérifiez l\'adresse email.');
     },
   });
 
@@ -133,7 +136,7 @@ export function InviteMemberScreen() {
             options={ROLE_OPTIONS}
             value={role}
             onChange={setRole}
-            placeholder="Selectionner un role..."
+            placeholder="Sélectionner un role..."
           />
           {selectedRoleDesc ? (
             <View style={{
@@ -156,7 +159,7 @@ export function InviteMemberScreen() {
         {/* Preview */}
         {email.trim() && role ? (
           <>
-            <SectionHeader title="Apercu de l'invitation" iconName="eye-outline" />
+            <SectionHeader title="Aperçu de l'invitation" iconName="eye-outline" />
             <Card style={{ marginBottom: theme.SPACING.lg }}>
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: theme.SPACING.md, marginBottom: theme.SPACING.md }}>
                 <View style={{

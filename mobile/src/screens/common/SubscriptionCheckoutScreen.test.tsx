@@ -105,6 +105,7 @@ it('changes the existing contract after preview without starting a second checko
   jest.mocked(api.changeProposal).mockResolvedValue({ terms, chargeNowCents: 0, reason: 'NEXT_RENEWAL_NO_PRORATION' });
   jest.mocked(api.scheduleChange).mockRejectedValue(new Error('network'));
   await open();expect(button('continue')).toBeUndefined();
+  await until(()=>expect(tree.root.findAllByType(Select)).toHaveLength(1));
   await act(async () => tree.root.findByType(Select).props.onChange('pro'));
   await act(async () => button('change.preview').props.onPress());
   await act(async () => button('change.confirm').props.onPress());

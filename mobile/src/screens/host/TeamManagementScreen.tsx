@@ -180,7 +180,7 @@ export function TeamManagementScreen() {
           >
             <Reicon name="arrow-back" size={20} color={theme.colors.text.primary} />
           </Pressable>
-          <Text style={{ ...theme.typography.h2, color: theme.colors.text.primary }}>Gestion d'equipe</Text>
+          <Text style={{ ...theme.typography.h2, color: theme.colors.text.primary }}>Gestion d'équipe</Text>
         </View>
         <TeamManagementSkeleton />
       </SafeAreaView>
@@ -265,13 +265,13 @@ export function TeamManagementScreen() {
           </View>
         </View>
 
-        <SectionHeader title="Equipes" iconName="people-outline" />
+        <SectionHeader title="Équipes" iconName="people-outline" />
 
         {!teams || teams.length === 0 ? (
           <EmptyState
             iconName="people-outline"
-            title="Aucune equipe"
-            description="Aucune equipe n'est configuree pour votre organisation."
+            title="Aucune équipe"
+            description="Aucune équipe n'est configurée pour votre organisation."
           />
         ) : (
           teams.map((team) => <TeamCard key={team.id} team={team} />)

@@ -96,7 +96,7 @@ export function PropertyPhotosManageScreen() {
   const handlePickImage = useCallback(async () => {
     const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (!permissionResult.granted) {
-      Alert.alert('Permission requise', 'Autorisez l\'acces a la galerie pour ajouter des photos.');
+      Alert.alert('Permission requise', 'Autorisez l\'accès a la galerie pour ajouter des photos.');
       return;
     }
 
@@ -132,7 +132,7 @@ export function PropertyPhotosManageScreen() {
   const handleTakePhoto = useCallback(async () => {
     const permissionResult = await ImagePicker.requestCameraPermissionsAsync();
     if (!permissionResult.granted) {
-      Alert.alert('Permission requise', 'Autorisez l\'acces a la camera pour prendre une photo.');
+      Alert.alert('Permission requise', 'Autorisez l\'accès a la caméra pour prendre une photo.');
       return;
     }
 
@@ -260,7 +260,7 @@ export function PropertyPhotosManageScreen() {
         <EmptyState
           iconName="image-outline"
           title="Aucune photo"
-          description="Ajoutez des photos pour presenter votre propriete"
+          description="Ajoutez des photos pour presenter votre propriété"
         />
       ) : (
         <FlatList

@@ -468,7 +468,7 @@ export function NoiseMonitoringScreen() {
               <EmptyState
                 iconName="mic-off-outline"
                 title="Aucun capteur"
-                description="Aucun capteur de bruit n'est configure"
+                description="Aucun capteur de bruit n'est configuré"
                 compact
                 style={{ marginBottom: theme.SPACING.lg }}
               />

@@ -35,8 +35,8 @@ public interface NoiseDeviceRepository extends JpaRepository<NoiseDevice, Long> 
 
     List<NoiseDevice> findByPropertyIdAndStatus(Long propertyId, DeviceStatus status);
 
-    /** Org-scoped : le filtre Hibernate organizationFilter assure l'isolation */
-    List<NoiseDevice> findByStatus(DeviceStatus status);
+    /** Capteurs d'une organisation : seule lecture a exposer a un utilisateur. */
+    List<NoiseDevice> findByOrganizationIdAndStatus(Long organizationId, DeviceStatus status);
 
     /**
      * F7b — borne d'EPISODE hors-ligne : transition {@code online → offline} par

@@ -32,6 +32,7 @@ class InterventionProgressServiceTest {
     @Mock private InterventionAccessPolicy accessPolicy;
     @Mock private InterventionLifecycleService lifecycleService;
     @Mock private ObjectMapper objectMapper;
+    @Mock private com.clenzy.repository.InterventionPhotoRepository inspectionPhotos;
 
     private InterventionProgressService service;
 
@@ -42,7 +43,7 @@ class InterventionProgressServiceTest {
     void setUp() {
         service = new InterventionProgressService(
                 interventionRepository, interventionMapper, accessPolicy,
-                lifecycleService, objectMapper);
+                lifecycleService, objectMapper, inspectionPhotos);
 
         owner = new User();
         owner.setId(10L);
@@ -294,6 +295,35 @@ class InterventionProgressServiceTest {
     @Nested
     @DisplayName("updateCompletedSteps")
     class UpdateCompletedSteps {
+        @Test
+        void cleaningInspectionRequiresEveryRoomNotDuplicatePhotos() {
+            Jwt jwt = mockJwtWithRole("HOUSEKEEPER");
+            Intervention iv = buildIntervention(1L, InterventionStatus.IN_PROGRESS);
+            iv.setType("CLEANING"); property.setBedroomCount(1); property.setBathroomCount(1);
+            when(interventionRepository.findById(1L)).thenReturn(Optional.of(iv));
+            var one = new com.clenzy.model.InterventionPhoto();
+            one.setOriginalFilename("baitly-1-step-inspection_bedroom_1-123.jpg");
+            when(inspectionPhotos.findByInterventionIdAndPhaseOrderByCreatedAtAsc(1L, com.clenzy.model.InterventionPhoto.PhotoPhase.BEFORE, 1L))
+                .thenReturn(java.util.List.of(one,one));
+            assertThatThrownBy(() -> service.updateCompletedSteps(1L,"[\"inspection\"]",jwt))
+                .isInstanceOf(IllegalArgumentException.class).hasMessageContaining("par pièce");
+            verify(interventionRepository,never()).save(any());
+        }
+
+        @Test
+        void cleaningInspectionAcceptsAllRoomEvidence() {
+            Jwt jwt = mockJwtWithRole("HOUSEKEEPER");
+            Intervention iv = buildIntervention(1L, InterventionStatus.IN_PROGRESS);
+            iv.setType("CLEANING"); property.setBedroomCount(1); property.setBathroomCount(1);
+            when(interventionRepository.findById(1L)).thenReturn(Optional.of(iv));
+            var photos=java.util.List.of("bedroom_1","bathroom_1","living_1","kitchen_1").stream().map(room -> {
+                var photo=new com.clenzy.model.InterventionPhoto(); photo.setOriginalFilename("baitly-1-step-inspection_"+room+"-123.jpg"); return photo;
+            }).toList();
+            when(inspectionPhotos.findByInterventionIdAndPhaseOrderByCreatedAtAsc(1L, com.clenzy.model.InterventionPhoto.PhotoPhase.BEFORE, 1L)).thenReturn(photos);
+            when(interventionRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+            service.updateCompletedSteps(1L,"[\"inspection\"]",jwt);
+            assertThat(iv.getCompletedSteps()).isEqualTo("[\"inspection\"]");
+        }
 
         @Test
         @DisplayName("rejects invalid JSON")

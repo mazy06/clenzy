@@ -34,7 +34,7 @@ export const ServiceRequestCard = React.memo(function ServiceRequestCard({ reque
       <View style={{ flexDirection: 'row', alignItems: 'center', gap: theme.SPACING.xs, marginBottom: theme.SPACING.xs }}>
         <StatusBadge status={request.status} />
         <Text style={{ ...theme.typography.caption, color: theme.colors.text.disabled }}>
-          {request.serviceType}
+          {({ CLEANING: 'Ménage', MAINTENANCE: 'Maintenance', HVAC_REPAIR: 'Climatisation', OTHER: 'Autre' } as Record<string, string>)[request.serviceType] || request.serviceType}
         </Text>
       </View>
 

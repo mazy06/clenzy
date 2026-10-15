@@ -28,7 +28,7 @@ const MAINTENANCE_TYPES = new Set([
 ]);
 
 const CLEANING_FREQ_LABELS: Record<string, string> = {
-  AFTER_EACH_STAY: 'Apres chaque sejour',
+  AFTER_EACH_STAY: 'Après chaque séjour',
   WEEKLY: 'Hebdomadaire',
   BIWEEKLY: 'Bi-mensuel',
   MONTHLY: 'Mensuel',
@@ -44,7 +44,7 @@ interface TabDef {
 }
 
 const TABS: TabDef[] = [
-  { key: 'cleaning', label: 'Menage', icon: 'sparkles-outline' },
+  { key: 'cleaning', label: 'Ménage', icon: 'sparkles-outline' },
   { key: 'maintenance', label: 'Maintenance', icon: 'construct-outline' },
   { key: 'other', label: 'Autre', icon: 'ellipsis-horizontal-outline' },
 ];
@@ -176,7 +176,7 @@ function CleaningConfigSection({ theme, property }: {
           <View style={{ width: 36, height: 36, borderRadius: 18, backgroundColor: `${theme.colors.info.main}15`, alignItems: 'center', justifyContent: 'center', marginBottom: 8 }}>
             <Reicon name="time-outline" size={18} color={theme.colors.info.main} />
           </View>
-          <Text style={{ ...theme.typography.caption, color: theme.colors.text.secondary, textAlign: 'center', fontWeight: '600' }}>Duree</Text>
+          <Text style={{ ...theme.typography.caption, color: theme.colors.text.secondary, textAlign: 'center', fontWeight: '600' }}>Durée</Text>
           <Text style={{ ...theme.typography.caption, color: theme.colors.info.main, textAlign: 'center', marginTop: 2, fontWeight: '700' }}>
             {property.cleaningDurationMinutes ? formatDuration(property.cleaningDurationMinutes) : 'Auto'}
           </Text>
@@ -222,7 +222,7 @@ function CleaningConfigSection({ theme, property }: {
           }}>
             <Reicon name="alert-circle-outline" size={16} color={theme.colors.warning.main} style={{ marginTop: 2 }} />
             <View style={{ flex: 1 }}>
-              <Text style={{ ...theme.typography.caption, color: theme.colors.warning.dark, fontWeight: '700', marginBottom: 4 }}>Notes de menage</Text>
+              <Text style={{ ...theme.typography.caption, color: theme.colors.warning.dark, fontWeight: '700', marginBottom: 4 }}>Notes de ménage</Text>
               <Text style={{ ...theme.typography.body2, color: theme.colors.text.secondary, lineHeight: 20 }}>{property.cleaningNotes}</Text>
             </View>
           </View>
@@ -360,17 +360,17 @@ export function PropertyInterventionsScreen() {
               iconName={activeTab === 'cleaning' ? 'sparkles-outline' : activeTab === 'maintenance' ? 'construct-outline' : 'apps-outline'}
               title={
                 activeTab === 'cleaning'
-                  ? 'Aucune intervention menage'
+                  ? 'Aucune intervention ménage'
                   : activeTab === 'maintenance'
                     ? 'Aucune intervention maintenance'
                     : 'Aucune autre intervention'
               }
               description={
                 activeTab === 'cleaning'
-                  ? 'Pas encore d\'intervention de menage pour cette propriete'
+                  ? 'Pas encore d\'intervention de ménage pour cette propriété'
                   : activeTab === 'maintenance'
-                    ? 'Pas encore d\'intervention de maintenance pour cette propriete'
-                    : 'Pas d\'autre type d\'intervention pour cette propriete'
+                    ? 'Pas encore d\'intervention de maintenance pour cette propriété'
+                    : 'Pas d\'autre type d\'intervention pour cette propriété'
               }
             />
           ) : (

@@ -22,7 +22,7 @@ export function DeleteAccountScreen() {
   const handleDelete = useCallback(async () => {
     Alert.alert(
       'Confirmer la suppression',
-      'Cette action est irreversible. Toutes vos donnees seront supprimees definitivement.',
+      'Cette action est irréversible. Toutes vos données seront supprimees definitivement.',
       [
         { text: 'Annuler', style: 'cancel' },
         {
@@ -36,7 +36,7 @@ export function DeleteAccountScreen() {
             } catch {
               Alert.alert(
                 'Erreur',
-                'La suppression du compte a echoue. Veuillez reessayer ou contacter le support.',
+                'La suppression du compte a échoué. Veuillez réessayer ou contacter le support.',
               );
               setIsDeleting(false);
             }

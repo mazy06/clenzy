@@ -56,7 +56,7 @@ public enum InterventionStatus {
 
     public void assertCanTransitionTo(InterventionStatus target) {
         if (!canTransitionTo(target)) {
-            throw new IllegalStateException(
+            throw new com.clenzy.exception.InterventionStateConflictException(
                 "Transition invalide : " + this.name() + " -> " + target.name()
                 + ". Transitions autorisees depuis " + this.name() + " : " + ALLOWED_TRANSITIONS.getOrDefault(this, Set.of()));
         }

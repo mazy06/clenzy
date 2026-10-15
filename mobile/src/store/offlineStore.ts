@@ -30,6 +30,7 @@ interface OfflineState {
   setSyncing: (syncing: boolean) => void;
   clearCompleted: () => void;
   hydrate: () => void;
+  clearSession: () => void;
 }
 
 function generateId(): string {
@@ -44,6 +45,12 @@ export const useOfflineStore = create<OfflineState>((set, get) => ({
   pendingActions: [],
   lastSyncTimestamp: 0,
   isSyncing: false,
+
+  clearSession: () => {
+    persist([]);
+    storage.remove('last_sync');
+    set({ pendingActions: [], lastSyncTimestamp: 0, isSyncing: false });
+  },
 
   enqueue: (action) => {
     const id = generateId();

@@ -1,0 +1,9 @@
+:root { --bui-card: #FBFCFD; --bui-muted: #E8EEF3; --bui-border: #CCD7DE; --bui-foreground: #1B2A35; --bui-muted-foreground: #526571; --bui-ring: #0C7166; --bui-shadow-1: #1B2A3514; --bui-shadow-2: #1B2A3528; }
+[data-theme='dark'] { --bui-card: #182534; --bui-muted: #223242; --bui-border: #405364; --bui-foreground: #E9F0F5; --bui-muted-foreground: #B5C5D1; }
+html, body, #map { height: 100%; margin: 0; background: var(--bui-muted); font-family: system-ui, sans-serif; }
+.maplibregl-ctrl-bottom-right { top: 120px; bottom: auto; left: 6px; right: auto; }
+[data-surface='coverage'] .maplibregl-ctrl-bottom-right { top: 8px; }
+.provider-pin { border: 2px solid #FBFCFD; border-radius: 22px; background: #1B2A35; color: #FBFCFD; min-width: 44px; height: 44px; font: 600 15px system-ui; box-shadow: 0 3px 12px #1B2A3528; cursor: pointer; transition: background-color 180ms ease-out; }
+.provider-pin[aria-pressed='true'] { background: #0C7166; }
+.provider-pin:focus-visible { outline: 3px solid var(--bui-ring); outline-offset: 3px; }
+@media (prefers-reduced-motion: reduce) { .provider-pin { transition: none; } }

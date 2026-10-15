@@ -274,7 +274,7 @@ function AddLockModal({
 
           <View style={{ marginTop: theme.SPACING.md }}>
             <Input
-              label="Piece (optionnel)"
+              label="Pièce (optionnel)"
               value={roomName}
               onChangeText={setRoomName}
               placeholder="Ex: Entree, Chambre 1"
@@ -425,7 +425,7 @@ export function SmartLockScreen() {
           <EmptyState
             iconName="lock-closed-outline"
             title="Aucune serrure"
-            description="Ajoutez une serrure connectee pour gerer les acces a vos proprietes"
+            description="Ajoutez une serrure connectée pour gérer les accès a vos propriétés"
             style={{ paddingVertical: theme.SPACING['3xl'] }}
           />
         ) : (

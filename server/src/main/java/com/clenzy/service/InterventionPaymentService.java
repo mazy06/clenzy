@@ -127,6 +127,25 @@ public class InterventionPaymentService {
                 .findByInterventionIdAndOrganizationIdOrderByAmountAsc(intervention.getId(), intervention.getOrganizationId()), true);
     }
 
+    /** What the payer is about to pay: the same amount the checkout will charge, whatever the provider. */
+    public record PayableSummary(Long interventionId, BigDecimal amount, String currency, String paymentStatus, boolean payable) {}
+
+    /**
+     * Reste a payer d'une intervention, pour l'afficher AVANT d'ouvrir le paiement (mobile).
+     * Meme calcul que {@link #createPaymentSession} : un ecart entre affichage et facturation est impossible.
+     */
+    public PayableSummary payableSummary(Long interventionId) {
+        Intervention intervention = interventionRepository.findById(interventionId)
+            .orElseThrow(() -> new PaymentValidationException("Intervention non trouvée"));
+        requireSameOrganization(intervention);
+        String status = intervention.getPaymentStatus() != null ? intervention.getPaymentStatus().name() : "PENDING";
+        BigDecimal amount = intervention.getStatus() == InterventionStatus.CANCELLED || intervention.getPaymentStatus() == PaymentStatus.PAID
+            ? null : subtractPaidDeposit(intervention);
+        return new PayableSummary(intervention.getId(), amount,
+            intervention.getCurrency() != null ? intervention.getCurrency() : "EUR", status,
+            amount != null && amount.signum() > 0);
+    }
+
     /** Même montant exigible pour Checkout hébergé et intégré. */
     private BigDecimal resolvePayableAmount(Intervention intervention, PaymentSessionRequest request,
                                              boolean isDeposit) {

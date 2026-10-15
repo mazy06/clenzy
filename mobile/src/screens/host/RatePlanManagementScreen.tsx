@@ -349,7 +349,7 @@ function RatePlanFormModal({
               label="Nom du tarif"
               value={name}
               onChangeText={(t) => { setName(t); setErrors((e) => ({ ...e, name: '' })); }}
-              placeholder="Ex: Tarif ete 2025"
+              placeholder="Ex: Tarif été 2025"
               error={errors.name}
             />
 
@@ -386,7 +386,7 @@ function RatePlanFormModal({
             {/* Date range */}
             <View style={{ flexDirection: 'row', gap: theme.SPACING.md, marginTop: theme.SPACING.md }}>
               <View style={{ flex: 1 }}>
-                <Input label="Date debut" value={startDate} onChangeText={setStartDate} placeholder="AAAA-MM-JJ" />
+                <Input label="Date début" value={startDate} onChangeText={setStartDate} placeholder="AAAA-MM-JJ" />
               </View>
               <View style={{ flex: 1 }}>
                 <Input label="Date fin" value={endDate} onChangeText={setEndDate} placeholder="AAAA-MM-JJ" />
@@ -439,7 +439,7 @@ function RatePlanFormModal({
 
             <View style={{ marginTop: theme.SPACING['2xl'], gap: theme.SPACING.sm }}>
               <Button
-                title={editPlan ? 'Enregistrer' : 'Creer le tarif'}
+                title={editPlan ? 'Enregistrer' : 'Créer le tarif'}
                 onPress={handleSubmit}
                 fullWidth
                 loading={isPending}
@@ -545,7 +545,7 @@ export function RatePlanManagementScreen() {
           <EmptyState
             iconName="pricetag-outline"
             title="Aucun tarif"
-            description="Creez votre premier tarif pour cette propriete"
+            description="Creez votre premier tarif pour cette propriété"
             style={{ paddingVertical: theme.SPACING['3xl'] }}
           />
         ) : (

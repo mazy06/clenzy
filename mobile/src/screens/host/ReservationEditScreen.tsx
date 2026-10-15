@@ -72,18 +72,18 @@ export function ReservationEditScreen() {
     mutationFn: (payload: ReservationUpdatePayload) => reservationsApi.update(reservationId, payload),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['reservations'] });
-      Alert.alert('Succes', 'La reservation a ete mise a jour.', [
+      Alert.alert('Succes', 'La réservation a été mise à jour.', [
         { text: 'OK', onPress: () => navigation.goBack() },
       ]);
     },
     onError: (err: any) => {
-      Alert.alert('Erreur', err?.message || 'Impossible de mettre a jour la reservation.');
+      Alert.alert('Erreur', err?.message || 'Impossible de mettre à jour la réservation.');
     },
   });
 
   const handleSave = useCallback(() => {
     if (!checkIn || !checkOut) {
-      Alert.alert('Erreur', 'Les dates d\'arrivee et de depart sont obligatoires.');
+      Alert.alert('Erreur', 'Les dates d\'arrivée et de départ sont obligatoires.');
       return;
     }
 
@@ -124,7 +124,7 @@ export function ReservationEditScreen() {
       <SafeAreaView style={{ flex: 1, backgroundColor: theme.colors.background.default }} edges={['top']}>
         <EmptyState
           iconName="warning-outline"
-          title="Reservation introuvable"
+          title="Réservation introuvable"
           actionLabel="Retour"
           onAction={() => navigation.goBack()}
         />
@@ -186,7 +186,7 @@ export function ReservationEditScreen() {
               autoCapitalize="none"
             />
             <Input
-              label="Telephone"
+              label="Téléphone"
               value={guestPhone}
               onChangeText={setGuestPhone}
               placeholder="+33 6 12 34 56 78"
@@ -199,7 +199,7 @@ export function ReservationEditScreen() {
           <Card style={{ marginBottom: theme.SPACING.lg, gap: theme.SPACING.md }}>
             <View style={{ flexDirection: 'row', gap: theme.SPACING.md }}>
               <Input
-                label="Date d'arrivee"
+                label="Date d'arrivée"
                 value={checkIn}
                 onChangeText={setCheckIn}
                 placeholder="AAAA-MM-JJ"
@@ -215,7 +215,7 @@ export function ReservationEditScreen() {
             </View>
             <View style={{ flexDirection: 'row', gap: theme.SPACING.md }}>
               <Input
-                label="Date de depart"
+                label="Date de départ"
                 value={checkOut}
                 onChangeText={setCheckOut}
                 placeholder="AAAA-MM-JJ"
@@ -232,7 +232,7 @@ export function ReservationEditScreen() {
           </Card>
 
           {/* Details */}
-          <SectionHeader title="Details" iconName="information-circle-outline" />
+          <SectionHeader title="Détails" iconName="information-circle-outline" />
           <Card style={{ marginBottom: theme.SPACING.lg, gap: theme.SPACING.md }}>
             <Input
               label="Nombre de voyageurs"

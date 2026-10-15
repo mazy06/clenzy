@@ -4,14 +4,16 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRoute } from '@react-navigation/native';
 import type { RouteProp } from '@react-navigation/native';
 import { useTeam } from '@/hooks/useTeams';
-import { useInterventions, useUpdateIntervention } from '@/hooks/useInterventions';
+import { useInterventions } from '@/hooks/useInterventions';
+import { useMutation,useQueryClient } from '@tanstack/react-query';
+import { BAITLY_QUERY_ROOT } from '@/config/baitlyCache';
 import { InterventionCard } from '@/components/domain/InterventionCard';
 import { Badge } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { useTheme } from '@/theme';
-import type { Intervention } from '@/api/endpoints/interventionsApi';
+import { interventionsApi,type Intervention } from '@/api/endpoints/interventionsApi';
 
 type RouteParams = { TeamAssignment: { teamId: number } };
 
@@ -20,7 +22,9 @@ export function TeamAssignmentScreen() {
   const route = useRoute<RouteProp<RouteParams, 'TeamAssignment'>>();
   const { teamId } = route.params;
   const { data: team } = useTeam(teamId);
-  const updateMutation = useUpdateIntervention();
+  const cache=useQueryClient();
+  const updateMutation=useMutation({mutationFn:({id,teamId}:{id:number;teamId:number})=>interventionsApi.assign(id,teamId),retry:false,
+    onSuccess:async()=>{await Promise.all([cache.invalidateQueries({queryKey:['interventions']}),cache.invalidateQueries({queryKey:[BAITLY_QUERY_ROOT]})]);}});
 
   // Unassigned pending interventions
   const { data: unassignedData, isRefetching, refetch } = useInterventions({
@@ -32,18 +36,18 @@ export function TeamAssignmentScreen() {
   // Already assigned to this team
   const { data: teamData } = useInterventions({
     teamId,
-    status: 'SCHEDULED',
+    status: 'PENDING',
     size: 20,
   });
 
-  const unassigned = useMemo(() => unassignedData?.content ?? [], [unassignedData]);
+  const unassigned = useMemo(() => (unassignedData?.content ?? []).filter(item=>!item.assignedTechnicianId&&!item.teamId), [unassignedData]);
   const assigned = useMemo(() => teamData?.content ?? [], [teamData]);
 
   const handleAssign = useCallback(
     (intervention: Intervention) => {
       Alert.alert(
         'Assigner',
-        `Assigner "${intervention.title || intervention.type}" a ${team?.name ?? 'cette equipe'} ?`,
+        `Assigner "${intervention.title || intervention.type}" a ${team?.name ?? 'cette équipe'} ?`,
         [
           { text: 'Annuler', style: 'cancel' },
           {
@@ -51,7 +55,7 @@ export function TeamAssignmentScreen() {
             onPress: () => {
               updateMutation.mutate({
                 id: intervention.id,
-                data: { status: 'SCHEDULED', teamId },
+                teamId,
               });
             },
           },
@@ -62,13 +66,13 @@ export function TeamAssignmentScreen() {
   );
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: theme.colors.background.default }} edges={['top']}>
+    <SafeAreaView style={{ flex: 1, backgroundColor: theme.colors.background.default }} edges={['left', 'right']}>
       <ScrollView
         contentContainerStyle={{ padding: theme.SPACING.lg, paddingBottom: 120 }}
         refreshControl={<RefreshControl refreshing={isRefetching} onRefresh={refetch} tintColor={theme.colors.primary.main} />}
       >
         <Text style={{ ...theme.typography.h2, color: theme.colors.text.primary, marginBottom: 4 }}>
-          {team?.name ?? 'Equipe'}
+          {team?.name ?? 'Équipe'}
         </Text>
         {team?.members && (
           <Text style={{ ...theme.typography.body2, color: theme.colors.text.secondary, marginBottom: theme.SPACING.lg }}>
@@ -101,7 +105,7 @@ export function TeamAssignmentScreen() {
           <Badge label={String(unassigned.length)} color="warning" size="small" />
         </View>
         {unassigned.length === 0 ? (
-          <EmptyState title="Tout est assigne" description="Pas d'intervention en attente d'assignation" />
+          <EmptyState title="Tout est assigné" description="Pas d'intervention en attente d'assignation" />
         ) : (
           unassigned.map((item) => (
             <View key={item.id}>

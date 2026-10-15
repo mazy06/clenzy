@@ -27,7 +27,7 @@ interface SelectProps {
 
 export function Select({
   label,
-  placeholder = 'Selectionner...',
+  placeholder = 'Sélectionner...',
   options,
   value,
   onChange,

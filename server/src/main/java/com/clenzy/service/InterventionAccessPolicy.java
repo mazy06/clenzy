@@ -24,19 +24,33 @@ public class InterventionAccessPolicy {
     private final TenantContext tenantContext;
     private final UserRepository userRepository;
     private final TeamRepository teamRepository;
+    private final OrganizationService organizations;
 
     public InterventionAccessPolicy(TenantContext tenantContext,
                                     UserRepository userRepository,
                                     TeamRepository teamRepository) {
+        this(tenantContext,userRepository,teamRepository,null);
+    }
+    @org.springframework.beans.factory.annotation.Autowired
+    public InterventionAccessPolicy(TenantContext tenantContext,UserRepository userRepository,TeamRepository teamRepository,OrganizationService organizations) {
         this.tenantContext = tenantContext;
         this.userRepository = userRepository;
         this.teamRepository = teamRepository;
+        this.organizations=organizations;
     }
 
     /**
      * Validates that the authenticated user has access to the given intervention.
      * Checks: tenant isolation, role-based access, ownership (HOST), assignment (TECHNICIAN/HOUSEKEEPER).
      */
+    /** Contrôle par la plateforme ou un gestionnaire effectif du tenant de la mission. */
+    public boolean canReview(Intervention intervention, Jwt jwt) {
+        if (jwt == null || !java.util.Objects.equals(intervention.getOrganizationId(), tenantContext.getOrganizationId())) return false;
+        if (JwtRoleExtractor.extractUserRole(jwt).isPlatformStaff()) return true;
+        if (organizations == null) return false;
+        return organizations.canManageOrg(jwt.getSubject(), intervention.getOrganizationId());
+    }
+
     public void assertCanAccess(Intervention intervention, Jwt jwt) {
         UserRole userRole = JwtRoleExtractor.extractUserRole(jwt);
 
@@ -82,14 +96,22 @@ public class InterventionAccessPolicy {
         }
 
         Long userId = currentUser.getId();
+        if(organizations!=null && java.util.Objects.equals(intervention.getOrganizationId(),tenantContext.getOrganizationId())) {
+            // Asked as yes/no: a caught refusal would doom the caller's transaction. Otherwise ownership or assignment is still required.
+            if(organizations.canManageOrg(keycloakId,intervention.getOrganizationId()))return;
+        }
 
-        if (userRole == UserRole.HOST) {
+        if (userRole.isOwnerScoped()) {
             Property prop = intervention.getProperty();
             if (prop == null && intervention.getRequestor() != null
                     && userId.equals(intervention.getRequestor().getId())) return;
             if (prop != null && prop.getOwner() != null && prop.getOwner().getId().equals(userId)) {
                 return;
             }
+            // Un compte propriétaire peut aussi exercer comme prestataire.
+            // L'affectation autorise cette mission, jamais tout le tenant.
+            try { requireAssignee(intervention, jwt); return; }
+            catch (UnauthorizedException denied) { /* Aucun droit terrain sur cette mission. */ }
         } else {
             if (intervention.getAssignedUser() != null
                     && intervention.getAssignedUser().getId().equals(userId)) {

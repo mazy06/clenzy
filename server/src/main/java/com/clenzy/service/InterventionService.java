@@ -523,8 +523,10 @@ public class InterventionService {
      * acces, statut en cours, type et nombre maximum. Revérifie par {@link #attachPhotos}.
      */
     @Transactional(readOnly = true)
-    public void checkPhotoUpload(Long id, int photoCount, String photoType, Jwt jwt) {
-        requirePhotoUploadAllowed(requireIntervention(id), photoCount, photoType, jwt);
+    public Long checkPhotoUpload(Long id, int photoCount, String photoType, Jwt jwt) {
+        var intervention=requireIntervention(id);
+        requirePhotoUploadAllowed(intervention, photoCount, photoType, jwt);
+        return intervention.getOrganizationId();
     }
 
     /**
@@ -582,7 +584,7 @@ public class InterventionService {
             throw new IllegalArgumentException("Seules les interventions en cours peuvent avoir des photos supprimees");
         }
 
-        photoService.deletePhoto(photoId, id);
+        photoService.deletePhoto(photoId, id,intervention.getOrganizationId());
 
         intervention = interventionRepository.findById(id)
                 .orElseThrow(() -> new NotFoundException("Intervention non trouvee"));

@@ -54,7 +54,19 @@ function createMemoryStorage(_opts: { id: string }): SyncStorage {
  */
 export function createStorage(opts: { id: string }): SyncStorage {
   if (mmkvAvailable && createMMKVNative) {
-    return createMMKVNative(opts);
+    const native = createMMKVNative(opts);
+    // MMKV v4 uses remove; legacy versions use delete. Keep one stable API.
+    const remove = typeof native.remove === 'function'
+      ? native.remove.bind(native) : native.delete.bind(native);
+    return {
+      getString: native.getString.bind(native),
+      getNumber: native.getNumber.bind(native),
+      set: native.set.bind(native),
+      contains: native.contains?.bind(native) ?? ((key) => native.getString(key) !== undefined),
+      clearAll: native.clearAll.bind(native),
+      delete: remove,
+      remove,
+    };
   }
   console.warn(`[Storage] MMKV unavailable (Expo Go?) — using in-memory fallback for "${opts.id}"`);
   return createMemoryStorage(opts);

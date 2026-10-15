@@ -319,9 +319,9 @@ export function OwnerPayoutsScreen() {
             <View style={{ paddingVertical: theme.SPACING['2xl'] }}>
               <EmptyState
                 icon="cash-outline"
-                title={filter === 'all' ? "Aucun reversement" : "Aucun resultat"}
+                title={filter === 'all' ? "Aucun reversement" : "Aucun résultat"}
                 description={filter === 'all'
-                  ? "Les reversements aux proprietaires apparaitront ici une fois generes."
+                  ? "Les reversements aux propriétaires apparaîtront ici une fois générés."
                   : "Aucun reversement ne correspond a ce filtre."}
               />
             </View>

@@ -18,6 +18,12 @@ import java.util.List;
 
 @Repository
 public interface InterventionRepository extends JpaRepository<Intervention, Long> {
+    @Query("SELECT i FROM Intervention i LEFT JOIN i.property p WHERE i.organizationId=:org "
+        + "AND (:manage=true OR p.owner.id=:user OR (i.property IS NULL AND i.requestor.id=:user)) "
+        + "AND (:status IS NULL OR i.status=:status)")
+    Page<Intervention> findBaitlyOwnerMissions(@Param("org") Long org,@Param("user") Long user,
+        @Param("status") InterventionStatus status,@Param("manage") boolean manage,Pageable pageable);
+
     @Query("select (count(a) > 0) from InterventionPaymentAllocation a join a.transaction t "
             + "where a.organizationId=:org and a.interventionId=:mission and t.organizationId=:org and t.providerTxId=:session")
     boolean hasAllocatedPayment(@Param("org") Long org, @Param("mission") Long mission, @Param("session") String session);
@@ -260,7 +266,10 @@ public interface InterventionRepository extends JpaRepository<Intervention, Long
           AND (CAST(:startDate AS timestamp) IS NULL OR i.scheduled_date >= :startDate)
           AND (CAST(:endDate AS timestamp) IS NULL OR i.scheduled_date < :endDate)
           AND (CAST(:orgId AS bigint) IS NULL OR i.organization_id = :orgId)
-        ORDER BY i.scheduled_date DESC, i.id DESC
+        ORDER BY CASE WHEN i.status='IN_PROGRESS' THEN 0 WHEN i.status IN ('PENDING','AWAITING_PAYMENT') THEN 1
+            WHEN i.status='AWAITING_VALIDATION' THEN 2 WHEN i.status='COMPLETED' THEN 3 ELSE 4 END,
+            CASE WHEN i.status IN ('IN_PROGRESS','PENDING','AWAITING_PAYMENT') THEN i.scheduled_date END ASC,
+            i.scheduled_date DESC, i.id DESC
         """, nativeQuery = true)
     Page<Intervention> findByAssignedUserOrTeamWithFilters(@Param("userId") Long userId,
                                                           @Param("propertyId") Long propertyId,

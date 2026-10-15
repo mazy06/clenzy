@@ -93,9 +93,15 @@ public class OpenMeteoClient {
      * @return coordonnees ou empty si geocoding echoue ET aucun cache stale dispo
      */
     public Optional<GeoCoord> geocode(String city) {
+        return geocode(city,null);
+    }
+    /** A city centre only; country disambiguates names shared by several countries. */
+    public Optional<GeoCoord> geocode(String city,String country) {
         if (city == null || city.isBlank()) return Optional.empty();
+        city=city.trim().substring(0,Math.min(city.trim().length(),80));
+        final String countryFilter=country==null||!country.matches("[A-Za-z]{2}")?null:country.toUpperCase(Locale.ROOT);
         String normalized = city.trim().toLowerCase(Locale.ROOT);
-        String cacheKey = CACHE_GEOCODE_PREFIX + normalized;
+        String cacheKey = CACHE_GEOCODE_PREFIX + normalized+(countryFilter==null?"":":"+countryFilter);
 
         CachedSnapshot<GeoCoord> cached = readCachedSnapshot(cacheKey, GeoCoord.class);
         if (cached != null && isFresh(cached)) {
@@ -105,7 +111,7 @@ public class OpenMeteoClient {
         String url = UriComponentsBuilder.fromUriString(geocodingBaseUrl)
                 .path("/v1/search")
                 .queryParam("name", city)
-                .queryParam("count", 1)
+                .queryParam("count", countryFilter==null?1:10)
                 .queryParam("language", "fr")
                 .queryParam("format", "json")
                 .toUriString();
@@ -118,7 +124,8 @@ public class OpenMeteoClient {
                 // priver l'user d'une coord connue.
                 return cached != null ? Optional.of(cached.value) : Optional.empty();
             }
-            GeocodingResult hit = response.results.get(0);
+            GeocodingResult hit = response.results.stream().filter(r->countryFilter==null || countryFilter.equalsIgnoreCase(r.country_code!=null?r.country_code:r.countryCode)).findFirst().orElse(null);
+            if(hit==null)return Optional.empty();
             if (hit.latitude == null || hit.longitude == null) {
                 return cached != null ? Optional.of(cached.value) : Optional.empty();
             }

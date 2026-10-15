@@ -194,6 +194,10 @@ public class InterventionMapper {
                .recommendedCost(intervention.getRecommendedCost())
                .actualCost(intervention.getActualCost())
                .notes(intervention.getNotes());
+        builder.pausedAt(intervention.getBaitlyPausedAt()==null?null:intervention.getBaitlyPausedAt().atZone(java.time.ZoneId.systemDefault()).toInstant().toString())
+            .pauseSeconds(intervention.getBaitlyPauseSeconds()).version(intervention.getVersion())
+            .customerFeedback(intervention.getCustomerFeedback()).customerRating(intervention.getCustomerRating())
+            .requiresFollowUp(intervention.getRequiresFollowUp()).followUpNotes(intervention.getFollowUpNotes());
 
         if (loadPhotos) {
             // Convert BYTEA photos to base64 data URLs for frontend compatibility (single query)

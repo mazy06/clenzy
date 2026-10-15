@@ -28,6 +28,20 @@ export interface Invoice {
   lineItems?: InvoiceLineItem[];
 }
 
+/** InvoiceDto as sent by the server (amounts in decimals, buyer = client). */
+interface ServerInvoice {
+  id: number; invoiceNumber?: string; invoiceDate?: string; dueDate?: string; currency?: string;
+  totalHt?: number; totalTax?: number; totalTtc?: number; buyerName?: string; status: string;
+  lines?: { id: number; description: string; quantity: number; unitPriceHt: number; totalTtc: number }[];
+}
+/** An issued invoice is shown as sent: the client has it. */
+export function toInvoice(item: ServerInvoice): Invoice {
+  return { id: item.id, number: item.invoiceNumber ?? `#${item.id}`, date: item.invoiceDate ?? '', dueDate: item.dueDate ?? '',
+    amount: Number(item.totalHt ?? 0), taxAmount: Number(item.totalTax ?? 0), totalAmount: Number(item.totalTtc ?? 0),
+    status: (item.status === 'ISSUED' ? 'SENT' : item.status) as Invoice['status'], clientName: item.buyerName ?? '',
+    lineItems: item.lines?.map(line => ({ id: line.id, description: line.description, quantity: Number(line.quantity), unitPrice: Number(line.unitPriceHt), total: Number(line.totalTtc) })) };
+}
+
 export interface InvoiceLineItem {
   id: number;
   description: string;
@@ -47,10 +61,10 @@ const FILTERS: Array<{ key: FilterKey; label: string }> = [
 
 const STATUS_CONFIG: Record<string, { label: string; badgeColor: 'success' | 'warning' | 'info' | 'error' | 'neutral' }> = {
   DRAFT: { label: 'Brouillon', badgeColor: 'neutral' },
-  SENT: { label: 'Envoyee', badgeColor: 'info' },
+  SENT: { label: 'Envoyée', badgeColor: 'info' },
   PAID: { label: 'Payee', badgeColor: 'success' },
   OVERDUE: { label: 'En retard', badgeColor: 'error' },
-  CANCELLED: { label: 'Annulee', badgeColor: 'neutral' },
+  CANCELLED: { label: 'Annulée', badgeColor: 'neutral' },
 };
 
 function formatDate(dateStr: string): string {
@@ -130,7 +144,7 @@ export function InvoiceListScreen() {
 
   const { data, isLoading, isRefetching, refetch } = useQuery({
     queryKey: ['invoices'],
-    queryFn: () => apiClient.get<{ content: Invoice[] }>('/invoices', { params: { size: '500' } }),
+    queryFn: async () => { const page = await apiClient.get<{ content: ServerInvoice[] }>('/invoices', { params: { size: '500' } }); return { content: (page.content ?? []).map(toInvoice) }; },
   });
 
   const allInvoices: Invoice[] = (data as any)?.content ?? (Array.isArray(data) ? data : []);
@@ -222,7 +236,7 @@ export function InvoiceListScreen() {
           <EmptyState
             iconName="document-text-outline"
             title="Aucune facture"
-            description="Vos factures apparaitront ici"
+            description="Vos factures apparaîtront ici"
             compact
           />
         ) : (

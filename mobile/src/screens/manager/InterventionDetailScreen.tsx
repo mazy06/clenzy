@@ -5,7 +5,10 @@ import { Reicon } from '@/icons';
 import { useRoute, useNavigation } from '@react-navigation/native';
 import type { RouteProp } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { useIntervention, useUpdateIntervention } from '@/hooks/useInterventions';
+import { useIntervention } from '@/hooks/useInterventions';
+import { useMutation,useQueryClient } from '@tanstack/react-query';
+import { interventionsApi } from '@/api/endpoints/interventionsApi';
+import { BAITLY_QUERY_ROOT } from '@/config/baitlyCache';
 import { StatusBadge, PriorityBadge } from '@/components/domain';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
@@ -14,6 +17,7 @@ import { Input } from '@/components/ui/Input';
 import { Divider } from '@/components/ui/Divider';
 import { SectionHeader } from '@/components/ui/SectionHeader';
 import { useTheme } from '@/theme';
+import { BaitlyEmpty, BaitlyLoading, BaitlyScreen } from '@/design-system/components';
 
 type RouteParams = { InterventionDetail: { interventionId: number } };
 type NavType = NativeStackNavigationProp<{
@@ -23,9 +27,9 @@ type NavType = NativeStackNavigationProp<{
 }>;
 
 const PAYMENT_STATUS_CONFIG: Record<string, { label: string; color: 'success' | 'warning' | 'info' | 'error' }> = {
-  PAID: { label: 'Paye', color: 'success' },
+  PAID: { label: 'Payé', color: 'success' },
   PENDING: { label: 'A payer', color: 'warning' },
-  REFUNDED: { label: 'Rembourse', color: 'info' },
+  REFUNDED: { label: 'Remboursé', color: 'info' },
 };
 
 function formatAmount(amount?: number | null): string {
@@ -38,8 +42,11 @@ export function InterventionDetailScreen() {
   const route = useRoute<RouteProp<RouteParams, 'InterventionDetail'>>();
   const navigation = useNavigation<NavType>();
   const { interventionId } = route.params;
-  const { data: intervention, isLoading } = useIntervention(interventionId);
-  const updateMutation = useUpdateIntervention();
+  const { data: intervention, isLoading, isError, refetch } = useIntervention(interventionId);
+  const cache=useQueryClient();
+  const updateMutation=useMutation({mutationFn:({action,value}:{action:'cancel'|'start'|'complete'|'amount';value?:number})=>
+    action==='start'?interventionsApi.start(interventionId):action==='complete'?interventionsApi.complete(interventionId):action==='amount'?interventionsApi.updateCost(interventionId,undefined,value):interventionsApi.updateStatus(interventionId,'CANCELLED'),retry:false,
+    onSettled:async()=>{await Promise.all([cache.invalidateQueries({queryKey:['interventions']}),cache.invalidateQueries({queryKey:[BAITLY_QUERY_ROOT]})]);},onError:()=>Alert.alert('Erreur','Action non enregistrée. Vérifiez la mission avant de réessayer.')});
 
   const [editingCost, setEditingCost] = useState(false);
   const [actualCostInput, setActualCostInput] = useState('');
@@ -55,19 +62,19 @@ export function InterventionDetailScreen() {
         text: 'Annuler intervention',
         style: 'destructive',
         onPress: () => {
-          updateMutation.mutate({ id: interventionId, data: { status: 'CANCELLED' } });
+          updateMutation.mutate({action:'cancel'});
         },
       },
     ]);
   }, [interventionId, updateMutation]);
 
   const handleStartIntervention = useCallback(() => {
-    Alert.alert('Demarrer l\'intervention', 'Confirmer le demarrage ?', [
+    Alert.alert('Démarrer l\'intervention', 'Confirmer le démarrage ?', [
       { text: 'Annuler', style: 'cancel' },
       {
-        text: 'Demarrer',
+        text: 'Démarrer',
         onPress: () => {
-          updateMutation.mutate({ id: interventionId, data: { status: 'IN_PROGRESS' } });
+          updateMutation.mutate({action:'start'});
         },
       },
     ]);
@@ -79,37 +86,29 @@ export function InterventionDetailScreen() {
       {
         text: 'Terminer',
         onPress: () => {
-          updateMutation.mutate({ id: interventionId, data: { status: 'COMPLETED' } });
+          updateMutation.mutate({action:'complete'});
         },
       },
     ]);
   }, [interventionId, updateMutation]);
 
   const handleSaveCost = useCallback(() => {
-    const cost = parseFloat(actualCostInput);
-    if (isNaN(cost) || cost < 0) {
+    const cost = Number(actualCostInput.replace(',','.'));
+    if (!/^\d{1,10}([.,]\d{1,2})?$/.test(actualCostInput.trim()) || !Number.isFinite(cost) || cost < 0) {
       Alert.alert('Erreur', 'Montant invalide');
       return;
     }
     updateMutation.mutate(
-      { id: interventionId, data: { actualCost: cost } },
+      {action:'amount',value:cost},
       { onSuccess: () => setEditingCost(false) },
     );
   }, [interventionId, actualCostInput, updateMutation]);
 
-  if (isLoading || !intervention) {
-    return (
-      <SafeAreaView style={{ flex: 1, backgroundColor: theme.colors.background.default }} edges={['top']}>
-        <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
-          <Text style={{ ...theme.typography.body2, color: theme.colors.text.secondary }}>Chargement...</Text>
-        </View>
-      </SafeAreaView>
-    );
-  }
+  if (isLoading) return <BaitlyScreen><BaitlyLoading /></BaitlyScreen>;
+  if (isError || !intervention) return <BaitlyScreen><BaitlyEmpty title="Impossible de charger la mission" retry={() => { void refetch(); }} /></BaitlyScreen>;
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: theme.colors.background.default }} edges={['top']}>
-      <ScrollView contentContainerStyle={{ padding: theme.SPACING.lg, paddingBottom: 120 }}>
+    <BaitlyScreen>
         {/* Header */}
         <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: theme.SPACING.md }}>
           <View style={{ flex: 1, marginRight: theme.SPACING.sm }}>
@@ -130,22 +129,16 @@ export function InterventionDetailScreen() {
             <InfoRow label="Adresse" value={intervention.propertyAddress} theme={theme} />
           )}
           {intervention.assignedTechnicianName && (
-            <InfoRow label="Assigne a" value={intervention.assignedTechnicianName} theme={theme} />
+            <InfoRow label="Assigné à" value={intervention.assignedTechnicianName} theme={theme} />
           )}
           {intervention.teamName && (
-            <InfoRow label="Equipe" value={intervention.teamName} theme={theme} />
+            <InfoRow label="Équipe" value={intervention.teamName} theme={theme} />
           )}
           {intervention.startTime && (
-            <InfoRow label="Debut" value={new Date(intervention.startTime).toLocaleString('fr-FR')} theme={theme} />
+            <InfoRow label="Début" value={new Date(intervention.startTime).toLocaleString('fr-FR', { weekday: 'short', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })} theme={theme} />
           )}
           {intervention.estimatedDurationHours && (
-            <InfoRow label="Duree estimee" value={`${intervention.estimatedDurationHours}h`} theme={theme} />
-          )}
-          {intervention.estimatedCost != null && (
-            <InfoRow label="Cout estime" value={`${intervention.estimatedCost}€`} theme={theme} />
-          )}
-          {intervention.actualCost != null && (
-            <InfoRow label="Cout reel" value={`${intervention.actualCost}€`} theme={theme} />
+            <InfoRow label="Durée estimée" value={`${intervention.estimatedDurationHours}h`} theme={theme} />
           )}
         </Card>
 
@@ -181,7 +174,7 @@ export function InterventionDetailScreen() {
             )}
             {intervention.afterPhotosUrls && intervention.afterPhotosUrls.length > 0 && (
               <>
-                <Text style={{ ...theme.typography.caption, color: theme.colors.text.secondary, fontWeight: '600', marginBottom: 4 }}>Apres</Text>
+                <Text style={{ ...theme.typography.caption, color: theme.colors.text.secondary, fontWeight: '600', marginBottom: 4 }}>Après</Text>
                 <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
                   {intervention.afterPhotosUrls.map((uri, i) => (
                     <Image key={`after-${i}`} source={{ uri }} style={{ width: 80, height: 80, borderRadius: 8 }} />
@@ -197,18 +190,18 @@ export function InterventionDetailScreen() {
           <Card style={{ marginBottom: theme.SPACING.md }}>
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: theme.SPACING.md }}>
               <Reicon name="calculator-outline" size={18} color={theme.colors.primary.main} />
-              <Text style={{ ...theme.typography.h5, color: theme.colors.text.primary }}>Couts</Text>
+              <Text style={{ ...theme.typography.h5, color: theme.colors.text.primary }}>Coûts</Text>
             </View>
             <View style={{ gap: theme.SPACING.sm }}>
               <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
-                <Text style={{ ...theme.typography.body2, color: theme.colors.text.secondary }}>Cout estime</Text>
+                <Text style={{ ...theme.typography.body2, color: theme.colors.text.secondary }}>Coût estimé</Text>
                 <Text style={{ ...theme.typography.body1, fontWeight: '600', color: theme.colors.text.primary }}>
                   {formatAmount(intervention.estimatedCost)} €
                 </Text>
               </View>
               <Divider style={{ marginVertical: 0 }} />
               <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
-                <Text style={{ ...theme.typography.body2, color: theme.colors.text.secondary }}>Cout reel</Text>
+                <Text style={{ ...theme.typography.body2, color: theme.colors.text.secondary }}>Coût réel</Text>
                 {editingCost ? (
                   <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
                     <Input
@@ -269,9 +262,8 @@ export function InterventionDetailScreen() {
               <Reicon name="card-outline" size={18} color={theme.colors.primary.main} />
               <Text style={{ ...theme.typography.h5, color: theme.colors.text.primary, flex: 1 }}>Paiement</Text>
               {(() => {
-                const paymentStatus = intervention.status === 'COMPLETED' ? 'PAID' : intervention.status === 'CANCELLED' ? 'REFUNDED' : 'PENDING';
-                const cfg = PAYMENT_STATUS_CONFIG[paymentStatus] ?? PAYMENT_STATUS_CONFIG.PENDING;
-                return <Badge label={cfg.label} color={cfg.color} dot />;
+                const cfg = intervention.paymentStatus ? PAYMENT_STATUS_CONFIG[intervention.paymentStatus] : undefined;
+                return cfg ? <Badge label={cfg.label} color={cfg.color} dot /> : <Text style={{ ...theme.typography.caption, color: theme.colors.text.secondary }}>{intervention.paymentStatus || 'Non renseigné'}</Text>;
               })()}
             </View>
           </Card>
@@ -282,7 +274,7 @@ export function InterventionDetailScreen() {
         <View style={{ gap: theme.SPACING.sm }}>
           {(intervention.status === 'ASSIGNED' || intervention.status === 'PENDING') && (
             <Button
-              title="Demarrer l'intervention"
+              title="Démarrer l'intervention"
               color="primary"
               onPress={handleStartIntervention}
               fullWidth
@@ -315,8 +307,7 @@ export function InterventionDetailScreen() {
             />
           )}
         </View>
-      </ScrollView>
-    </SafeAreaView>
+    </BaitlyScreen>
   );
 }
 

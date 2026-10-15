@@ -101,6 +101,14 @@ final class MarketplaceProviderSpecifications {
                 textMatches.add(cb.like(cb.lower(root.get("displayName")), pattern));
                 textMatches.add(cb.like(cb.lower(cb.coalesce(root.get("legalName"), "")), pattern));
                 textMatches.add(cb.like(cb.lower(cb.coalesce(root.get("baseCity"), "")), pattern));
+                // Le champ unique cherche aussi dans les villes d’intervention déclarées.
+                Subquery<Long> cities = cq.subquery(Long.class);
+                var zone = cities.from(MarketplaceProviderZone.class);
+                cities.select(cb.literal(1L)).where(cb.and(
+                    cb.or(cb.equal(zone.get("userId"), root.get("userId")),
+                        cb.and(cb.isNull(root.get("userId")), cb.equal(zone.get("provider"), root))),
+                    cb.like(cb.lower(zone.get("city")), pattern)));
+                textMatches.add(cb.exists(cities));
 
                 // Une adresse complete reste cherchable par son empreinte. La
                 // recherche partielle sur un courriel est impossible par

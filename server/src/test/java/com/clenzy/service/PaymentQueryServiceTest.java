@@ -20,8 +20,9 @@ class PaymentQueryServiceTest {
     final ServiceQuoteRepository quotes = mock(ServiceQuoteRepository.class);
     final InterventionBatchCheckoutService batch = mock(InterventionBatchCheckoutService.class);
     final PaymentTransactionRepository transactions = mock(PaymentTransactionRepository.class);
+    final StripeService stripe = mock(StripeService.class);
     final PaymentQueryService service = new PaymentQueryService(interventions, reservations, requests,
-            mock(UserService.class), mock(StripeService.class), tenant, quotes, batch, transactions, mock(BaitlyInterventionCheckoutExpiry.class), mock(BaitlyMaintenanceDepositCheckout.class));
+            mock(UserService.class), stripe, tenant, quotes, batch, transactions, mock(BaitlyInterventionCheckoutExpiry.class), mock(BaitlyMaintenanceDepositCheckout.class));
     final User admin = new User();
 
     PaymentQueryServiceTest() { admin.setRole(UserRole.SUPER_ADMIN); when(tenant.getRequiredOrganizationId()).thenReturn(2L); }
@@ -115,6 +116,20 @@ class PaymentQueryServiceTest {
         result = service.getPaymentSummary(admin, null);
         assertThat(result.totalPending).isZero(); assertThat(result.totalRefunded).isZero(); assertThat(result.totalToVerify).isEqualByComparingTo("100");
     }
+    @Test void whenAConcurrentCheckConfirmedThePaymentFirst_thenTheStatusIsReadNotAServerError() {
+        var processing=new Intervention(); processing.setId(480L); processing.setOrganizationId(2L);
+        processing.setPaymentStatus(PaymentStatus.PROCESSING); processing.setStatus(InterventionStatus.PENDING);
+        var paid=new Intervention(); paid.setId(480L); paid.setOrganizationId(2L);
+        paid.setPaymentStatus(PaymentStatus.PAID); paid.setStatus(InterventionStatus.PENDING);
+        when(interventions.findAllByStripeSessionIdAndOrganizationId("cs_480",2L)).thenReturn(List.of(processing));
+        when(interventions.findByStripeSessionId("cs_480",2L)).thenReturn(java.util.Optional.of(processing),java.util.Optional.of(paid));
+        when(stripe.isCheckoutSessionPaid("cs_480")).thenReturn(true);
+        doThrow(new jakarta.persistence.OptimisticLockException("Row was updated or deleted by another transaction"))
+            .when(stripe).confirmPayment("cs_480");
+
+        assertThat(service.getSessionStatus("cs_480").orElseThrow()).containsEntry("paymentStatus","PAID");
+    }
+
     @Test void legacySharedSessionRequiresReconciliationInsteadOfPickingOneMission() {
         when(interventions.findAllByStripeSessionIdAndOrganizationId("cs_old",2L)).thenReturn(List.of(new Intervention(),new Intervention()));
         assertThat(service.getSessionStatus("cs_old").orElseThrow()).containsEntry("interventionStatus","RECONCILIATION_REQUIRED");

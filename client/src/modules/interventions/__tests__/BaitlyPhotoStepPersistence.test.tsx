@@ -2,12 +2,12 @@ import { useMemo, useState, type PropsWithChildren } from 'react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { act, cleanup, renderHook, waitFor } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { interventionsApi } from '../../../services/api/interventionsApi';
+import { interventionsApi, getBaitlyRoomInspection } from '../../../services/api/interventionsApi';
 import { useInterventionPhotos } from '../useInterventionPhotos';
 import { parsePhotos, type InterventionDetailsData } from '../interventionUtils';
 import type { InitialLoadData } from '../useInterventionState';
 
-vi.mock('../../../services/api/interventionsApi', () => ({ interventionsApi: {
+vi.mock('../../../services/api/interventionsApi', () => ({ getBaitlyRoomInspection: vi.fn(), interventionsApi: {
   uploadPhotos: vi.fn(), updateCompletedSteps: vi.fn(),
 } }));
 vi.mock('../../../hooks/useTranslation', () => ({ useTranslation: () => ({ t: (key: string, fallback?: string) => fallback ?? key }) }));
@@ -45,6 +45,25 @@ beforeEach(() => {
 afterEach(cleanup);
 
 describe('Photos et étapes persistées Baitly', () => {
+  it('requires one tagged photo for every cleaning room before completing inspection', async () => {
+    saved = { ...saved, type: 'CLEANING', completedSteps: '[]', beforePhotosUrls: undefined };
+    const rooms = [{ id: 'bedroom_1', type: 'bedroom', number: 1 }, { id: 'bathroom_1', type: 'bathroom', number: 1 }];
+    vi.mocked(getBaitlyRoomInspection).mockResolvedValue({ rooms, stepPhotoCounts: { inspection_bedroom_1: 1 } });
+    const { result } = mount();
+    await waitFor(() => expect(result.current.inspectionRooms).toHaveLength(2));
+    act(() => { result.current.setInspectionRoom('bedroom_1'); result.current.setSelectedPhotos([new File(['photo'], 'room.png', { type: 'image/png' })]); });
+    await act(async () => { await result.current.handlePhotoUpload(); });
+    await waitFor(() => expect(result.current.uploadingPhotos).toBe(false));
+    expect(result.current.inspectionComplete).toBe(false);
+    expect(JSON.parse(saved.completedSteps!)).not.toContain('inspection');
+    expect(vi.mocked(interventionsApi.uploadPhotos).mock.calls[0][1][0].name).toMatch(/^baitly-12-step-inspection_bedroom_1-/);
+    vi.mocked(getBaitlyRoomInspection).mockResolvedValue({ rooms, stepPhotoCounts: { inspection_bedroom_1: 1, inspection_bathroom_1: 1 } });
+    act(() => { result.current.setInspectionRoom('bathroom_1'); result.current.setSelectedPhotos([new File(['photo'], 'bath.png', { type: 'image/png' })]); });
+    await act(async () => { await result.current.handlePhotoUpload(); });
+    await waitFor(() => expect(result.current.uploadingPhotos).toBe(false));
+    expect(result.current.inspectionComplete).toBe(true);
+    expect(JSON.parse(saved.completedSteps!)).toContain('inspection');
+  });
   it.each(['before', 'after'] as const)('persiste l’étape %s dès le dépôt et la retrouve après rechargement', async type => {
     if (type === 'before') saved = { ...saved, completedSteps: '[]', beforePhotosUrls: undefined };
     const first = mount();

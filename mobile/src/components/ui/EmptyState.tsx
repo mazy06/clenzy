@@ -3,6 +3,7 @@ import { View, Text, ViewStyle } from 'react-native';
 import { Reicon } from '@/icons';
 import { useTheme } from '@/theme';
 import { Button } from './Button';
+import { Image } from 'expo-image';
 
 type IconName = keyof typeof Reicon.glyphMap;
 
@@ -38,13 +39,17 @@ export function EmptyState({
             width: compact ? 56 : 72,
             height: compact ? 56 : 72,
             borderRadius: compact ? 28 : 36,
-            backgroundColor: `${theme.colors.primary.main}08`,
+            backgroundColor: 'transparent',
             alignItems: 'center',
             justifyContent: 'center',
             marginBottom: theme.SPACING.lg,
           }}
         >
-          <Reicon name={iconName} size={compact ? 24 : 28} color={theme.colors.primary.light} />
+          <Image source={iconName.includes('chat') || iconName.includes('mail') ? require('../../../assets/baitly/navigation/baitly-messages.png')
+            : iconName.includes('home') ? require('../../../assets/baitly/navigation/baitly-properties.png')
+            : iconName.includes('people') ? require('../../../assets/baitly/navigation/baitly-network.png')
+            : require('../../../assets/baitly/navigation/baitly-tracking.png')}
+            style={{ width: compact ? 50 : 68, height: compact ? 56 : 76 }} contentFit="contain" accessible={false} />
         </View>
       );
     }

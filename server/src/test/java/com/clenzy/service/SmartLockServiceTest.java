@@ -79,7 +79,7 @@ class SmartLockServiceTest {
             SmartLockDevice device = buildDevice(1L, "tuya-1");
             Property property = new Property();
             property.setName("Apt 1");
-            when(smartLockRepository.findByStatus(DeviceStatus.ACTIVE)).thenReturn(List.of(device));
+            when(smartLockRepository.findByOrganizationIdAndStatus(1L, DeviceStatus.ACTIVE)).thenReturn(List.of(device));
             when(propertyRepository.findById(10L)).thenReturn(Optional.of(property));
 
             List<SmartLockDeviceDto> result = service.getUserDevices("kc-1");
@@ -91,9 +91,19 @@ class SmartLockServiceTest {
 
         @Test
         void whenNoDevices_thenEmptyList() {
-            when(smartLockRepository.findByStatus(DeviceStatus.ACTIVE)).thenReturn(List.of());
+            when(smartLockRepository.findByOrganizationIdAndStatus(1L, DeviceStatus.ACTIVE)).thenReturn(List.of());
 
             assertThat(service.getUserDevices("kc-1")).isEmpty();
+        }
+
+        @Test
+        void whenListing_thenOnlyTheCurrentOrganizationIsQueried() {
+            when(smartLockRepository.findByOrganizationIdAndStatus(1L, DeviceStatus.ACTIVE)).thenReturn(List.of());
+
+            service.getUserDevices("kc-1");
+
+            // The Hibernate filter is inactive over HTTP: an unscoped query listed every organization's locks.
+            verify(smartLockRepository).findByOrganizationIdAndStatus(1L, DeviceStatus.ACTIVE);
         }
     }
 

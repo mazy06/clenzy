@@ -214,10 +214,11 @@ export default defineConfig({
   build: {
     chunkSizeWarningLimit: 1500, // 1.5 MiB — heic2any pèse ~1.35 MiB en standalone
     rollupOptions: {
-      // Deux pages : l'app, et la carte seule embarquée par l'app mobile (WebView).
+      // Application Baitly et cartes embarquées dans les parcours mobiles.
       input: {
         main: fileURLToPath(new URL('./index.html', import.meta.url)),
         'embed-map': fileURLToPath(new URL('./embed-map.html', import.meta.url)),
+        providerMap: fileURLToPath(new URL('./baitly-provider-map.html', import.meta.url)),
       },
       output: {
         // Code-splitting du bundle pour éviter qu'un seul chunk dépasse 2 MiB

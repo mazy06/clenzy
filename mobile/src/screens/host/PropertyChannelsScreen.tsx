@@ -75,7 +75,7 @@ export function PropertyChannelsScreen() {
                 <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingVertical: 8 }}>
                   <Text style={{ ...theme.typography.body2, color: theme.colors.text.secondary }}>Statut connexion</Text>
                   <Text style={{ ...theme.typography.body2, color: theme.colors.text.primary, fontWeight: '600' }}>
-                    {channels?.airbnb?.linked ? 'Connecte' : 'Non connecte'}
+                    {channels?.airbnb?.linked ? 'Connecte' : 'Non connecté'}
                   </Text>
                 </View>
                 <View style={{ height: 1, backgroundColor: theme.colors.border.light }} />

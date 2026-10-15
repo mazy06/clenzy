@@ -28,6 +28,7 @@ public record CatalogProviderDto(
     String avatarUrl,
 
     String baseCity,
+    String baseCountryCode,
     Integer travelRadiusKm,
     /** Villes couvertes, zone principale en tete. */
     List<String> coverageCities,
@@ -70,13 +71,14 @@ public record CatalogProviderDto(
             provider.getBio(),
             avatarUrl,
             provider.getBaseCity(),
+            provider.getBaseCountryCode(),
             provider.getTravelRadiusKm(),
             coverageCities,
             splitLanguages(provider.getLanguages()),
             categoryCodes,
             offers,
             priceFrom,
-            priceFrom != null ? offers.stream().filter(o -> o.amount() != null)
+            priceFrom != null ? offers.stream().filter(o -> o.amount() != null && o.amount().compareTo(priceFrom) == 0)
                     .map(ProviderOfferDto::currency).findFirst().orElse(provider.getCurrency()) : provider.getCurrency(),
             provider.getVerifiedAt() != null,
             provider.isAcceptsUrgent(),

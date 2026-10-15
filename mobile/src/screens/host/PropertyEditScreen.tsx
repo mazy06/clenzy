@@ -65,11 +65,11 @@ export function PropertyEditScreen() {
       { id: propertyId, data: form },
       {
         onSuccess: () => {
-          Alert.alert('Succes', 'Propriete mise a jour avec succes.');
+          Alert.alert('Succes', 'Propriete mise à jour avec succès.');
           navigation.goBack();
         },
         onError: () => {
-          Alert.alert('Erreur', 'Impossible de mettre a jour la propriete.');
+          Alert.alert('Erreur', 'Impossible de mettre à jour la propriété.');
         },
       },
     );
@@ -133,7 +133,7 @@ export function PropertyEditScreen() {
               label="Nom"
               value={form.name ?? ''}
               onChangeText={(v) => updateField('name', v)}
-              placeholder="Nom de la propriete"
+              placeholder="Nom de la propriété"
               containerStyle={{ marginBottom: theme.SPACING.md }}
             />
 

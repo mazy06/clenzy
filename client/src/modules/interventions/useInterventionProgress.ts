@@ -116,7 +116,7 @@ export function useInterventionProgress({
     const totalRooms = getTotalRooms();
     const totalSteps = 2 + totalRooms;
     let completed = 0;
-    if (inspectionComplete && beforePhotos.length > 0) completed++;
+    if (inspectionComplete && (!intervention?.type?.toUpperCase().includes('CLEANING') || beforePhotos.length > 0)) completed++;
     completed += validatedRooms.size;
     if (completedSteps.has('after_photos') && afterPhotos.length > 0) completed++;
     return totalSteps > 0 ? Math.round((completed / totalSteps) * 100) : 0;
@@ -129,7 +129,7 @@ export function useInterventionProgress({
     const afterPhotosDone = completedSteps.has('after_photos') && afterPhotos.length > 0;
     return (
       inspectionComplete &&
-      beforePhotos.length > 0 &&
+      (!intervention?.type?.toUpperCase().includes('CLEANING') || beforePhotos.length > 0) &&
       allRoomsDone &&
       afterPhotosDone
     );
@@ -322,7 +322,7 @@ export function useInterventionProgress({
     const totalRooms = getTotalRooms();
     const totalSteps = 2 + totalRooms;
     let completed = 0;
-    if (inspectionComplete && beforePhotos.length > 0) completed++;
+    if (inspectionComplete && (!intervention?.type?.toUpperCase().includes('CLEANING') || beforePhotos.length > 0)) completed++;
     completed += validatedRooms.size;
     if (completedSteps.has('after_photos') && afterPhotos.length > 0) completed++;
     const newProgress = totalSteps > 0 ? Math.round((completed / totalSteps) * 100) : 0;

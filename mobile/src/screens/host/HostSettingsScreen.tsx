@@ -72,7 +72,7 @@ const NOTIFICATION_CATEGORIES: CategoryConfig[] = [
     ],
   },
   {
-    label: 'Equipe',
+    label: 'Équipe',
     icon: 'people-outline',
     keys: [
       'TEAM_CREATED', 'TEAM_UPDATED', 'TEAM_DELETED', 'TEAM_MEMBER_ADDED',
@@ -118,10 +118,10 @@ function keyToLabel(key: string): string {
     INTERVENTION_CREATED: 'Creation',
     INTERVENTION_UPDATED: 'Mise a jour',
     INTERVENTION_ASSIGNED_TO_USER: 'Assignation utilisateur',
-    INTERVENTION_ASSIGNED_TO_TEAM: 'Assignation equipe',
+    INTERVENTION_ASSIGNED_TO_TEAM: 'Assignation équipe',
     INTERVENTION_STARTED: 'Demarrage',
     INTERVENTION_PROGRESS_UPDATED: 'Progression',
-    INTERVENTION_COMPLETED: 'Terminee',
+    INTERVENTION_COMPLETED: 'Terminée',
     INTERVENTION_REOPENED: 'Reouverture',
     INTERVENTION_STATUS_CHANGED: 'Changement statut',
     INTERVENTION_VALIDATED: 'Validation',
@@ -140,7 +140,7 @@ function keyToLabel(key: string): string {
     SERVICE_REQUEST_REJECTED: 'Rejetee',
     SERVICE_REQUEST_INTERVENTION_CREATED: 'Intervention creee',
     SERVICE_REQUEST_ASSIGNED: 'Assignee',
-    SERVICE_REQUEST_CANCELLED: 'Annulee',
+    SERVICE_REQUEST_CANCELLED: 'Annulée',
     SERVICE_REQUEST_URGENT: 'Urgente',
     // Payments
     PAYMENT_SESSION_CREATED: 'Session creee',
@@ -148,73 +148,73 @@ function keyToLabel(key: string): string {
     PAYMENT_FAILED: 'Echoue',
     PAYMENT_GROUPED_SESSION_CREATED: 'Session groupee creee',
     PAYMENT_GROUPED_CONFIRMED: 'Groupe confirme',
-    PAYMENT_GROUPED_FAILED: 'Groupe echoue',
+    PAYMENT_GROUPED_FAILED: 'Groupe échoué',
     PAYMENT_DEFERRED_REMINDER: 'Rappel differe',
     PAYMENT_DEFERRED_OVERDUE: 'Differe en retard',
     PAYMENT_REFUND_INITIATED: 'Remboursement initie',
     PAYMENT_REFUND_COMPLETED: 'Remboursement termine',
     // System (iCal)
-    ICAL_IMPORT_SUCCESS: 'Import iCal reussi',
+    ICAL_IMPORT_SUCCESS: 'Import iCal réussi',
     ICAL_IMPORT_PARTIAL: 'Import iCal partiel',
-    ICAL_IMPORT_FAILED: 'Import iCal echoue',
-    ICAL_SYNC_COMPLETED: 'Sync iCal terminee',
+    ICAL_IMPORT_FAILED: 'Import iCal échoué',
+    ICAL_SYNC_COMPLETED: 'Sync iCal terminée',
     ICAL_FEED_DELETED: 'Flux iCal supprime',
     ICAL_AUTO_INTERVENTIONS_TOGGLED: 'Auto-interventions iCal',
     // System (Portfolio)
     PORTFOLIO_CREATED: 'Portfolio cree',
     PORTFOLIO_CLIENT_ADDED: 'Client ajoute',
     PORTFOLIO_CLIENT_REMOVED: 'Client retire',
-    PORTFOLIO_TEAM_MEMBER_ADDED: 'Membre equipe ajoute',
-    PORTFOLIO_TEAM_MEMBER_REMOVED: 'Membre equipe retire',
-    PORTFOLIO_UPDATED: 'Portfolio mis a jour',
+    PORTFOLIO_TEAM_MEMBER_ADDED: 'Membre équipe ajoute',
+    PORTFOLIO_TEAM_MEMBER_REMOVED: 'Membre équipe retire',
+    PORTFOLIO_UPDATED: 'Portfolio mis à jour',
     // System (User)
     USER_CREATED: 'Utilisateur cree',
-    USER_UPDATED: 'Utilisateur mis a jour',
+    USER_UPDATED: 'Utilisateur mis à jour',
     USER_DELETED: 'Utilisateur supprime',
     USER_ROLE_CHANGED: 'Role modifie',
     USER_DEACTIVATED: 'Utilisateur desactive',
     // System (GDPR)
-    GDPR_DATA_EXPORTED: 'Donnees exportees',
+    GDPR_DATA_EXPORTED: 'Données exportées',
     GDPR_USER_ANONYMIZED: 'Utilisateur anonymise',
-    GDPR_CONSENTS_UPDATED: 'Consentements mis a jour',
+    GDPR_CONSENTS_UPDATED: 'Consentements mis à jour',
     // System (Permission)
-    PERMISSION_ROLE_UPDATED: 'Role mis a jour',
+    PERMISSION_ROLE_UPDATED: 'Role mis à jour',
     PERMISSION_CACHE_INVALIDATED: 'Cache invalide',
     // System (Property)
     PROPERTY_CREATED: 'Propriete creee',
-    PROPERTY_UPDATED: 'Propriete mise a jour',
-    PROPERTY_DELETED: 'Propriete supprimee',
-    PROPERTY_STATUS_CHANGED: 'Statut propriete',
+    PROPERTY_UPDATED: 'Propriete mise à jour',
+    PROPERTY_DELETED: 'Propriete supprimée',
+    PROPERTY_STATUS_CHANGED: 'Statut propriété',
     // System (Reconciliation / KPI)
-    RECONCILIATION_COMPLETED: 'Reconciliation terminee',
+    RECONCILIATION_COMPLETED: 'Réconciliation terminée',
     RECONCILIATION_DIVERGENCE_HIGH: 'Divergence elevee',
-    RECONCILIATION_FAILED: 'Reconciliation echouee',
-    KPI_THRESHOLD_BREACH: 'Seuil KPI depasse',
+    RECONCILIATION_FAILED: 'Réconciliation echouee',
+    KPI_THRESHOLD_BREACH: 'Seuil KPI dépassé',
     KPI_CRITICAL_FAILURE: 'Defaillance critique',
     // Team
-    TEAM_CREATED: 'Equipe creee',
-    TEAM_UPDATED: 'Equipe mise a jour',
-    TEAM_DELETED: 'Equipe supprimee',
+    TEAM_CREATED: 'Équipe creee',
+    TEAM_UPDATED: 'Équipe mise à jour',
+    TEAM_DELETED: 'Équipe supprimée',
     TEAM_MEMBER_ADDED: 'Membre ajoute',
     TEAM_MEMBER_REMOVED: 'Membre retire',
     TEAM_ASSIGNED_INTERVENTION: 'Intervention assignee',
     TEAM_ROLE_CHANGED: 'Role modifie',
     TEAM_MEMBER_JOINED: 'Membre rejoint',
     // Contact
-    CONTACT_MESSAGE_RECEIVED: 'Message recu',
-    CONTACT_MESSAGE_SENT: 'Message envoye',
-    CONTACT_MESSAGE_REPLIED: 'Reponse',
+    CONTACT_MESSAGE_RECEIVED: 'Message reçu',
+    CONTACT_MESSAGE_SENT: 'Message envoyé',
+    CONTACT_MESSAGE_REPLIED: 'Réponse',
     CONTACT_MESSAGE_ARCHIVED: 'Message archive',
-    CONTACT_FORM_RECEIVED: 'Formulaire recu',
+    CONTACT_FORM_RECEIVED: 'Formulaire reçu',
     CONTACT_FORM_STATUS_CHANGED: 'Statut formulaire',
     // Document
-    DOCUMENT_GENERATED: 'Document genere',
+    DOCUMENT_GENERATED: 'Document généré',
     DOCUMENT_GENERATION_FAILED: 'Generation echouee',
     DOCUMENT_TEMPLATE_UPLOADED: 'Modele televerse',
     DOCUMENT_SENT_BY_EMAIL: 'Envoye par email',
     // Guest messaging
-    GUEST_MESSAGE_SENT: 'Message envoye',
-    GUEST_MESSAGE_FAILED: 'Envoi echoue',
+    GUEST_MESSAGE_SENT: 'Message envoyé',
+    GUEST_MESSAGE_FAILED: 'Envoi échoué',
     GUEST_PRICING_PUSHED: 'Prix pousse',
     // Noise alert
     NOISE_ALERT_WARNING: 'Avertissement',
@@ -227,7 +227,7 @@ function keyToLabel(key: string): string {
 
 const ORG_TYPE_LABELS: Record<string, string> = {
   CONCIERGE: 'Conciergerie',
-  CLEANING_COMPANY: 'Societe de menage',
+  CLEANING_COMPANY: 'Société de ménage',
   SYSTEM: 'Systeme',
 };
 
@@ -613,7 +613,7 @@ export function HostSettingsScreen() {
   ];
 
   const languages: { value: AppLanguage; label: string }[] = [
-    { value: 'fr', label: 'Francais' },
+    { value: 'fr', label: 'Français' },
     { value: 'en', label: 'English' },
   ];
 

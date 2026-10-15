@@ -31,6 +31,18 @@ function withTuyaPodfile(config) {
       const podfilePath = path.join(cfg.modRequest.platformProjectRoot, 'Podfile');
       let contents = fs.readFileSync(podfilePath, 'utf8');
 
+      // Baitly : les bibliotheques Tuya Intel ne sont pas compatibles avec les
+      // simulateurs ARM. Le module optionnel reste reserve aux builds appareil.
+      const simulatorBuild = process.env.BAITLY_IOS_SIMULATOR === '1';
+      const simulatorModules = "use_expo_modules!(exclude: ['tuya-pairing'])";
+      contents = contents.replace(simulatorModules, 'use_expo_modules!');
+      if (simulatorBuild) {
+        contents = contents.replace('use_expo_modules!', simulatorModules);
+        contents = contents.replace(`${CRYPTION_POD_LINE}\n`, '');
+        fs.writeFileSync(podfilePath, contents);
+        return cfg;
+      }
+
       // 1) Sources Tuya en tete du Podfile (idempotent).
       if (!contents.includes('tuya-pod-specs')) {
         contents = `${TUYA_PODFILE_SOURCES}\n\n${contents}`;

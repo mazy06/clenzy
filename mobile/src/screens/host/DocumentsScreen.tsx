@@ -33,7 +33,7 @@ const DOC_TYPE_CONFIG: Record<string, { icon: IconName; color: string; label: st
 const STATUS_CONFIG: Record<string, { label: string; color: 'success' | 'warning' | 'info' }> = {
   DRAFT: { label: 'Brouillon', color: 'warning' },
   SENT: { label: 'Envoye', color: 'info' },
-  PAID: { label: 'Paye', color: 'success' },
+  PAID: { label: 'Payé', color: 'success' },
 };
 
 function formatDateShort(dateStr: string): string {
@@ -237,7 +237,7 @@ export function DocumentsScreen() {
           title="Aucun document"
           description={activeFilter !== 'all'
             ? 'Aucun document ne correspond a ce filtre.'
-            : 'Vos factures, contrats et recus apparaitront ici.'}
+            : 'Vos factures, contrats et reçus apparaîtront ici.'}
           actionLabel="Generer un document"
           onAction={() => navigation.navigate('DocumentGenerate')}
         />

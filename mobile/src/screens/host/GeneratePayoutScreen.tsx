@@ -49,7 +49,7 @@ const PERIOD_OPTIONS: PeriodOption[] = [
   {
     key: 'last-month',
     label: 'Mois precedent',
-    sub: 'Le plus utilise — cloture du mois ecoule',
+    sub: 'Le plus utilise — cloture du mois écoulé',
     compute: () => {
       const now = new Date();
       const from = new Date(now.getFullYear(), now.getMonth() - 1, 1);
@@ -82,7 +82,7 @@ const PERIOD_OPTIONS: PeriodOption[] = [
   },
   {
     key: 'year-to-date',
-    label: 'Annee en cours',
+    label: 'Année en cours',
     sub: 'Du 1er janvier a aujourd\'hui',
     compute: () => {
       const now = new Date();
@@ -140,14 +140,14 @@ export function GeneratePayoutScreen() {
   const handleSubmit = () => {
     if (mode === 'single') {
       if (!selectedOwner) {
-        setError('Selectionnez un proprietaire');
+        setError('Sélectionnez un propriétaire');
         return;
       }
       Alert.alert(
         'Generer ce reversement ?',
         `Proprietaire : ${selectedOwner.firstName} ${selectedOwner.lastName}\n` +
         `Periode : ${formatLongDate(periodDates.from)} → ${formatLongDate(periodDates.to)}\n\n` +
-        'Le montant net sera calcule automatiquement depuis les reservations payees de la periode.',
+        'Le montant net sera calculé automatiquement depuis les reservations payées de la période.',
         [
           { text: 'Annuler', style: 'cancel' },
           {
@@ -177,8 +177,8 @@ export function GeneratePayoutScreen() {
       Alert.alert(
         'Generer tous les reversements ?',
         `Periode : ${formatLongDate(periodDates.from)} → ${formatLongDate(periodDates.to)}\n\n` +
-        'Un reversement PENDING sera cree pour chaque proprietaire ayant des reservations payees sur la periode. ' +
-        'Les proprietaires deja servis sur cette periode seront ignores (idempotent).',
+        'Un reversement PENDING sera cree pour chaque propriétaire ayant des reservations payées sur la période. ' +
+        'Les propriétaires déjà servis sur cette période seront ignorés (idempotent).',
         [
           { text: 'Annuler', style: 'cancel' },
           {
@@ -194,7 +194,7 @@ export function GeneratePayoutScreen() {
                 });
                 setSubmitting(false);
                 Alert.alert(
-                  'Reversements generes',
+                  'Reversements générés',
                   `${payouts.length} reversement${payouts.length > 1 ? 's' : ''} disponible${payouts.length > 1 ? 's' : ''} dans la liste.`,
                   [{ text: 'OK', onPress: () => navigation.goBack() }],
                 );
@@ -250,7 +250,7 @@ export function GeneratePayoutScreen() {
           ...theme.shadows.sm,
         }}>
           {([
-            { key: 'single' as Mode, label: 'Un proprietaire', icon: 'person-outline' as IconName },
+            { key: 'single' as Mode, label: 'Un propriétaire', icon: 'person-outline' as IconName },
             { key: 'batch' as Mode, label: 'Tous (fin de mois)', icon: 'people-outline' as IconName },
           ]).map((opt) => {
             const active = mode === opt.key;
@@ -310,7 +310,7 @@ export function GeneratePayoutScreen() {
               </Text>
             </View>
             <Text style={{ ...theme.typography.body2, color: theme.colors.text.primary, lineHeight: 18 }}>
-              Cree un reversement PENDING pour <Text style={{ fontWeight: '700' }}>tous les proprietaires</Text> de l'organisation qui ont des reservations payees sur la periode selectionnee.
+              Cree un reversement PENDING pour <Text style={{ fontWeight: '700' }}>tous les propriétaires</Text> de l'organisation qui ont des reservations payees sur la periode selectionnee.
             </Text>
             <Text style={{ ...theme.typography.caption, color: theme.colors.text.secondary, marginTop: 4, fontSize: 11 }}>
               Idempotent : les proprietaires deja servis sur la periode sont ignores.
@@ -449,7 +449,7 @@ export function GeneratePayoutScreen() {
             letterSpacing: 0.5,
             marginBottom: theme.SPACING.sm,
           }}>
-            {mode === 'single' ? '2. Periode' : '1. Periode'}
+            {mode === 'single' ? '2. Période' : '1. Période'}
           </Text>
 
           <View style={{ gap: theme.SPACING.sm }}>

@@ -12,7 +12,7 @@
 .bp-property-option:focus-visible { outline: 2px solid var(--bui-ring); outline-offset: -2px; }
 .bp-property-option img { width: 48px; height: 44px; flex-shrink: 0; border-radius: 5px; }
 .bp-property-photo { object-fit: cover; }
-.bp-property-illustration { object-fit: contain; background: var(--bui-muted); }
+.bp-property-illustration { object-fit: contain; background: transparent; }
 .bp-property-name { min-width: 0; display: flex; flex-direction: column; gap: 4px; font-size: 13px; line-height: 1.4; }
 .bp-property-name > span { overflow-wrap: anywhere; }
 .bp-property-option[aria-pressed='true'] .bp-property-name > span { font-weight: 600; }

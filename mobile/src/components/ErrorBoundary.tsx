@@ -96,9 +96,9 @@ export class ErrorBoundary extends Component<Props, State> {
               borderRadius: 12,
             }}
             accessibilityRole="button"
-            accessibilityLabel="Reessayer"
+            accessibilityLabel="Réessayer"
           >
-            <Text style={{ color: '#fff', fontSize: 16, fontWeight: '600' }}>Reessayer</Text>
+            <Text style={{ color: '#fff', fontSize: 16, fontWeight: '600' }}>Réessayer</Text>
           </TouchableOpacity>
         </View>
       );

@@ -29,7 +29,7 @@ type PeriodKey = 'month' | 'quarter' | 'year';
 const PERIODS: Array<{ value: PeriodKey; label: string }> = [
   { value: 'month', label: 'Ce mois' },
   { value: 'quarter', label: 'Trimestre' },
-  { value: 'year', label: 'Annee' },
+  { value: 'year', label: 'Année' },
 ];
 
 const TABS: Array<{ key: TabKey; label: string; icon: IconName }> = [
@@ -366,7 +366,7 @@ function OverviewTab({ data, theme }: { data: AnalyticsResult; theme: ReturnType
           color="primary"
         />
         <KpiCard
-          label="Duree moy. sejour"
+          label="Durée moy. séjour"
           value={data.avgStay.toFixed(1)}
           unit="nuits"
           trend={trendPercent(data.avgStay, data.prevAvgStay)}
@@ -374,7 +374,7 @@ function OverviewTab({ data, theme }: { data: AnalyticsResult; theme: ReturnType
           color="info"
         />
         <KpiCard
-          label="Reservations"
+          label="Réservations"
           value={data.reservationCount}
           trend={trendPercent(data.reservationCount, data.prevReservationCount)}
           iconName="calendar-outline"
@@ -417,7 +417,7 @@ function RevenueTab({ data, theme }: { data: AnalyticsResult; theme: ReturnType<
           color="primary"
         />
         <KpiCard
-          label="Rev. moy./reservation"
+          label="Rev. moy./réservation"
           value={Math.round(data.avgRevenuePerBooking)}
           unit="EUR"
           iconName="receipt-outline"
@@ -426,7 +426,7 @@ function RevenueTab({ data, theme }: { data: AnalyticsResult; theme: ReturnType<
       </View>
 
       {/* Top properties by revenue */}
-      <SectionHeader title="Top proprietes" iconName="podium-outline" />
+      <SectionHeader title="Top propriétés" iconName="podium-outline" />
       {data.byProperty.length === 0 ? (
         <EmptyState iconName="home-outline" title="Aucune donnee" compact style={{ marginBottom: theme.SPACING.lg }} />
       ) : (
@@ -550,7 +550,7 @@ function OccupancyTab({ data, theme }: { data: AnalyticsResult; theme: ReturnTyp
           color="warning"
         />
         <KpiCard
-          label="Duree moy. sejour"
+          label="Durée moy. séjour"
           value={data.avgStay.toFixed(1)}
           unit="nuits"
           trend={trendPercent(data.avgStay, data.prevAvgStay)}
@@ -560,7 +560,7 @@ function OccupancyTab({ data, theme }: { data: AnalyticsResult; theme: ReturnTyp
       </View>
 
       {/* Occupancy by property */}
-      <SectionHeader title="Par propriete" iconName="home-outline" />
+      <SectionHeader title="Par propriété" iconName="home-outline" />
       {data.byProperty.length === 0 ? (
         <EmptyState iconName="home-outline" title="Aucune donnee" compact style={{ marginBottom: theme.SPACING.lg }} />
       ) : (
@@ -860,7 +860,7 @@ function ForecastTab({ properties, theme }: {
         <EmptyState
           iconName="sparkles-outline"
           title="Aucune prevision"
-          description="Selectionnez une propriete pour voir les previsions d'occupation IA"
+          description="Sélectionnez une propriété pour voir les previsions d'occupation IA"
           compact
         />
       ) : (
@@ -956,7 +956,7 @@ function ForecastTab({ properties, theme }: {
           }}>
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
               <View style={{ width: 10, height: 10, borderRadius: 2, backgroundColor: theme.colors.success.main }} />
-              <Text style={{ ...theme.typography.caption, color: theme.colors.text.disabled }}>Reserve/Probable</Text>
+              <Text style={{ ...theme.typography.caption, color: theme.colors.text.disabled }}>Réservé/Probable</Text>
             </View>
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
               <View style={{ width: 10, height: 10, borderRadius: 2, backgroundColor: theme.colors.warning.main }} />
@@ -969,7 +969,7 @@ function ForecastTab({ properties, theme }: {
           </View>
 
           {/* Detailed forecast list */}
-          <SectionHeader title="Detail par jour" iconName="list-outline" />
+          <SectionHeader title="Détail par jour" iconName="list-outline" />
           {forecast.filter((d) => !d.isBooked).slice(0, 10).map((day) => {
             const seasonCfg = SEASON_LABELS[day.season] ?? SEASON_LABELS.LOW;
             return (

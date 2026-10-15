@@ -101,6 +101,20 @@ public class PaymentQueryService {
     }
 
     /**
+     * Deux verifications simultanees (relance du client, webhook) peuvent confirmer la meme
+     * session : la transition gardee n'en laisse passer qu'une, l'autre echoue au verrou
+     * optimiste. Ce n'est pas une erreur pour un lecteur : il relit l'etat que la premiere a ecrit.
+     */
+    private void confirmUnlessAlreadyConfirmed(String sessionId) {
+        try {
+            stripeService.confirmPayment(sessionId);
+        } catch (jakarta.persistence.OptimisticLockException
+                 | org.springframework.orm.ObjectOptimisticLockingFailureException concurrent) {
+            logger.info("Session {} deja confirmee par une verification concurrente", sessionId);
+        }
+    }
+
+    /**
      * Statut d'une session de paiement (intervention, reservation ou service
      * request). Si le paiement est encore en attente, interroge directement
      * l'API Stripe pour verifier si la session a ete payee (fallback si le
@@ -133,7 +147,7 @@ public class PaymentQueryService {
             if (intervention.getPaymentStatus() == PaymentStatus.PROCESSING
                     && stripeService.isCheckoutSessionPaid(sessionId)) {
                 logger.info("Fallback: confirmation manuelle du paiement intervention pour session {}", sessionId);
-                stripeService.confirmPayment(sessionId);
+                confirmUnlessAlreadyConfirmed(sessionId);
                 intervention = interventionRepository.findByStripeSessionId(sessionId, orgId)
                     .orElse(intervention);
             }

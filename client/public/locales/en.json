@@ -11948,6 +11948,35 @@
     }
   },
   "auth": {
+    "showcase": {
+      "label": "Discover Baitly",
+      "kicker": "For short-term rental professionals",
+      "intro": "Your properties. Your teams. One shared workspace.",
+      "groups": {
+        "portfolio": "Bookings",
+        "guests": "Guests",
+        "operations": "Operations",
+        "business": "Revenue"
+      },
+      "images": {
+        "portfolio": "Illustration of properties and their shared booking calendar",
+        "guests": "Illustration of guest messaging and the welcome book",
+        "operations": "Illustration of team scheduling, housekeeping and connected access",
+        "business": "Illustration of revenue tracking, invoices and direct bookings"
+      },
+      "illustration": "Product illustration",
+      "modules": "Explore features",
+      "previous": "Previous feature",
+      "next": "Next feature",
+      "pause": "Pause presentation",
+      "play": "Resume presentation",
+      "footer": "From bookings to business oversight",
+      "formFooter": "Your Baitly business workspace",
+      "loginKicker": "Your business is waiting",
+      "signupTitle": "Create your Baitly workspace",
+      "signupSubtitle": "Bring your properties, teams and business together.",
+      "signupKicker": "A workspace for your organisation"
+    },
     "common": {
       "back": "Back",
       "backToLogin": "Back to login",
@@ -11965,7 +11994,7 @@
     },
     "login": {
       "title": "Sign in",
-      "subtitle": "Sign in to access your dashboard.",
+      "subtitle": "Access your bookings, teams and today’s priorities.",
       "inscriptionSuccess": "Your account was created successfully. Sign in to access your workspace.",
       "emailLabel": "Email or username",
       "emailPlaceholder": "you@example.com",
@@ -12156,8 +12185,8 @@
     },
     "support": {
       "headerSubtitle": "Contact our support team",
-      "submittedTitle": "Message sent!",
-      "submittedBody": "Our team will get back to you within 24 hours.",
+      "submittedTitle": "Your message has been sent",
+      "submittedBody": "The Baitly team will reply to the email address provided in your request.",
       "backToLogin": "Back to login",
       "fields": {
         "nameLabel": "Full name",
@@ -12175,8 +12204,24 @@
         "feature": "Feature request",
         "other": "Other"
       },
-      "submit": "Send",
-      "submitError": "Something went wrong while sending. Please try again or contact us at info@clenzy.fr."
+      "submit": "Send request",
+      "submitError": "We couldn’t send your request. Please try again; your message has been kept.",
+      "title": "How can we help?",
+      "intro": "Account access, technical questions or subscriptions: send your request to the Baitly team.",
+      "messageHelp": "Tell us which page is affected and what is blocking you.",
+      "sending": "Sending…",
+      "guide": {
+        "kicker": "The Baitly team is here to help",
+        "title": "One contact point for your business.",
+        "body": "Describe what you need. The context of your request helps us guide you.",
+        "contextTitle": "Give us the context",
+        "contextBody": "A property, a booking or your organisation: tell us what is affected.",
+        "detailsTitle": "Include useful details",
+        "detailsBody": "For technical issues, describe the steps you took and the error message displayed.",
+        "privacyTitle": "Keep your credentials private",
+        "privacyBody": "Do not share your password or payment details in this form.",
+        "note": "Forgot your password? You can reset it from the login page."
+      }
     },
     "legal": {
       "back": "Back",
@@ -14534,24 +14579,16 @@
     }
   },
   "providerServices": {
-    "title": "My services",
-    "help": "One price per service, shared across your organisations and marketplace profile. Accepted quotes keep their agreed price.",
-    "choose": "Choose a service",
-    "enabled": "Offer this service",
-    "save": "Save shared price",
-    "models": {
-      "FLAT": "Per mission",
-      "HOURLY": "Hourly",
-      "PER_SQM": "Per m²",
-      "PER_UNIT": "Per unit",
-      "PER_KM": "Per kilometre",
-      "PERCENTAGE": "Percentage",
-      "ON_QUOTE": "On quote"
-    },
-    "hourlyAmount": "Hourly rate",
-    "missionAmount": "Price per mission",
-    "hourlyHelp": "The total uses the planned duration: hourly rate × number of hours.",
-    "missionHelp": "This amount covers one complete mission for this service, regardless of its duration."
+    "manage": "Add or select services",
+    "existingReferences": "Existing service references",
+    "help": "Select services across one or several trades. Existing prices are retained; new services require a quote. Unchecking deactivates an offer without deleting its history. Services outside the catalogue remain unchanged.",
+    "search": "Search for a service or trade",
+    "selectGroup": "Select all in this trade",
+    "selected": "{{count}} service(s) selected",
+    "loadError": "Unable to load the service catalogue.",
+    "saveError": "Unable to save services.",
+    "retry": "Retry",
+    "empty": "No services match this search."
   },
   "providerJournal": {
     "title": "Decision history",
@@ -16401,9 +16438,7 @@
       "occupied": "Occupied",
       "done": "Done",
       "closed": "Cancelled",
-      "inactive": "Inactive",
-      "covered": "Covered",
-      "uncovered": "Not covered"
+      "inactive": "Inactive"
     }
   },
   "locationPicker": {
@@ -20708,13 +20743,6 @@
         "label": "Banner view",
         "photos": "Show photos",
         "map": "Show on the map"
-      },
-      "providers": {
-        "title": "Providers working here",
-        "hint": "Their service area includes this property.",
-        "error": "The list could not be loaded.",
-        "empty": "No catalogue provider covers this property yet.",
-        "more": "+ {{count}} more in the catalogue"
       }
     },
     "channels": {
@@ -20919,18 +20947,6 @@
     "time": "Property local time",
     "durationMinutes": "Duration (minutes)"
   },
-  "providerServices": {
-    "manage": "Add or select services",
-    "existingReferences": "Existing service references",
-    "help": "Select services across one or several trades. Existing prices are retained; new services require a quote. Unchecking deactivates an offer without deleting its history. Services outside the catalogue remain unchanged.",
-    "search": "Search for a service or trade",
-    "selectGroup": "Select all in this trade",
-    "selected": "{{count}} service(s) selected",
-    "loadError": "Unable to load the service catalogue.",
-    "saveError": "Unable to save services.",
-    "retry": "Retry",
-    "empty": "No services match this search."
-  },
   "providerEdit": {
     "edit": "Edit",
     "title": "Edit provider",
@@ -20956,6 +20972,49 @@
     "services": "Catalogue services",
     "servicesHelp": "Select the precise catalogue service for each offer. Existing prices are preserved.",
     "noServices": "No services provided."
+  },
+  "missionSafety": {
+    "title": "Report damage",
+    "pause": "Pause",
+    "resume": "Resume",
+    "paused": "Intervention paused",
+    "failed": "Action unconfirmed. Verify before retrying.",
+    "refresh": "Check",
+    "cause": "Observed cause",
+    "room": "Room",
+    "item": "Affected item",
+    "choose": "Choose",
+    "other": "Other item",
+    "detail": "Optional details",
+    "reportPause": "Report and pause",
+    "unknown": "Unknown",
+    "wear": "Wear",
+    "breakage": "Breakage",
+    "leak": "Leak",
+    "missing": "Missing",
+    "bedroom": "Bedroom",
+    "bathroom": "Bathroom",
+    "living": "Living room",
+    "kitchen": "Kitchen",
+    "supervisor": "Supervisor",
+    "concierge": "Property contact",
+    "owner": "Owner",
+    "noPhone": "Number not provided",
+    "inventory": "In the property",
+    "surfaces": "Wall, ceiling, floor",
+    "catalog": "Catalog: furniture and devices",
+    "wall": "Wall",
+    "ceiling": "Ceiling",
+    "floor": "Floor"
+  },
+  "baitlyPublicReview": {
+    "title": "Publish in Baitly",
+    "failed": "Publication unavailable or access denied.",
+    "visible": "Show this review on the public property profile",
+    "name": "Public name (optional)",
+    "photo": "Public photo HTTPS URL (optional)",
+    "consent": "The author authorised publication of this name and photo.",
+    "saved": "Publication saved."
   },
   "sectorMap": {
     "layer": "Provider service areas",

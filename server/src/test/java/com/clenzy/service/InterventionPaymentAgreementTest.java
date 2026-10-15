@@ -143,4 +143,23 @@ class InterventionPaymentAgreementTest {
         verifyNoInteractions(orchestration);
         verify(interventions, never()).save(any());
     }
+
+    @org.junit.jupiter.api.Test
+    void whenDepositWasPaid_thenDisplayedPayableIsTheBalanceTheCheckoutCharges() {
+        quote.setDepositPaidAt(LocalDateTime.now());
+        quote.setDepositTransactionRef("TX-1");
+        var summary = service.payableSummary(1L);
+        assertThat(summary.amount()).isEqualByComparingTo("160");
+        assertThat(summary.currency()).isEqualTo("MAD");
+        assertThat(summary.payable()).isTrue();
+    }
+
+    @org.junit.jupiter.api.Test
+    void whenInterventionIsAlreadyPaid_thenNothingIsPayable() {
+        mission.setPaymentStatus(PaymentStatus.PAID);
+        lenient().when(quotes.findByInterventionIdAndOrganizationIdOrderByAmountAsc(1L, 7L)).thenReturn(List.of(quote));
+        var summary = service.payableSummary(1L);
+        assertThat(summary.payable()).isFalse();
+        assertThat(summary.amount()).isNull();
+    }
 }

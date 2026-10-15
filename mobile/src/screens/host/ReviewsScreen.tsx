@@ -245,7 +245,7 @@ function ReviewCard({ review, theme, onRespond }: {
             <TextInput
               value={responseText}
               onChangeText={setResponseText}
-              placeholder="Ecrire votre reponse..."
+              placeholder="Écrire votre réponse..."
               placeholderTextColor={theme.colors.text.disabled}
               multiline
               style={{
@@ -319,10 +319,10 @@ export function ReviewsScreen() {
       { id, response },
       {
         onSuccess: () => {
-          Alert.alert('Succes', 'Reponse envoyee avec succes.');
+          Alert.alert('Succes', 'Réponse envoyée avec succès.');
         },
         onError: () => {
-          Alert.alert('Erreur', 'Impossible d\'envoyer la reponse.');
+          Alert.alert('Erreur', 'Impossible d\'envoyer la réponse.');
         },
       },
     );
@@ -444,7 +444,7 @@ export function ReviewsScreen() {
           <EmptyState
             iconName="star-outline"
             title="Aucun avis"
-            description={filterRating ? `Aucun avis avec ${filterRating} etoile(s)` : 'Les avis de vos voyageurs apparaitront ici'}
+            description={filterRating ? `Aucun avis avec ${filterRating} etoile(s)` : 'Les avis de vos voyageurs apparaîtront ici'}
           />
         )}
 

@@ -835,4 +835,57 @@ class OrganizationServiceTest {
             assertThat(slug).isEqualTo("hello-world");
         }
     }
+
+    @Nested
+    class CanManageOrg {
+
+        @Test
+        void whenMemberHasManagementRights_thenTrue() {
+            User user = buildUser(3L, "owner@test.com", UserRole.HOST);
+            Organization org = buildOrg(5L, "Org", OrganizationType.CONCIERGE);
+            when(userRepository.findByKeycloakId("kc-3")).thenReturn(Optional.of(user));
+            when(memberRepository.findByUserId(3L)).thenReturn(Optional.of(buildMember(10L, org, user, OrgMemberRole.OWNER)));
+
+            assertThat(organizationService.canManageOrg("kc-3", 5L)).isTrue();
+        }
+
+        @Test
+        void whenFieldWorkerOfTheOrg_thenFalseWithoutThrowing() {
+            User user = buildUser(4L, "tech@test.com", UserRole.TECHNICIAN);
+            Organization org = buildOrg(5L, "Org", OrganizationType.CONCIERGE);
+            when(userRepository.findByKeycloakId("kc-4")).thenReturn(Optional.of(user));
+            when(memberRepository.findByUserId(4L)).thenReturn(Optional.of(buildMember(11L, org, user, OrgMemberRole.TECHNICIAN)));
+
+            assertThat(organizationService.canManageOrg("kc-4", 5L)).isFalse();
+        }
+
+        @Test
+        void whenManagerOfAnotherOrg_thenFalse() {
+            User user = buildUser(3L, "owner@test.com", UserRole.HOST);
+            Organization other = buildOrg(99L, "Other", OrganizationType.CONCIERGE);
+            when(userRepository.findByKeycloakId("kc-3")).thenReturn(Optional.of(user));
+            when(memberRepository.findByUserId(3L)).thenReturn(Optional.of(buildMember(10L, other, user, OrgMemberRole.OWNER)));
+
+            assertThat(organizationService.canManageOrg("kc-3", 5L)).isFalse();
+        }
+
+        @Test
+        void whenUnknownOrNotMember_thenFalse() {
+            when(userRepository.findByKeycloakId("kc-unknown")).thenReturn(Optional.empty());
+            User user = buildUser(6L, "alone@test.com", UserRole.HOST);
+            when(userRepository.findByKeycloakId("kc-6")).thenReturn(Optional.of(user));
+            when(memberRepository.findByUserId(6L)).thenReturn(Optional.empty());
+
+            assertThat(organizationService.canManageOrg("kc-unknown", 5L)).isFalse();
+            assertThat(organizationService.canManageOrg("kc-6", 5L)).isFalse();
+        }
+
+        @Test
+        void whenPlatformStaff_thenTrueWithoutMembership() {
+            when(userRepository.findByKeycloakId("kc-1")).thenReturn(Optional.of(buildUser(1L, "admin@test.com", UserRole.SUPER_ADMIN)));
+
+            assertThat(organizationService.canManageOrg("kc-1", 5L)).isTrue();
+            verify(memberRepository, never()).findByUserId(any());
+        }
+    }
 }

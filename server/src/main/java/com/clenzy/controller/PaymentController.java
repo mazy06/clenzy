@@ -83,6 +83,18 @@ public class PaymentController {
         }
     }
 
+    /** Reste a payer d'une intervention, avant l'ouverture du paiement (affichage mobile). */
+    @GetMapping("/{interventionId}/payable")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN','SUPER_MANAGER','HOST')")
+    public ResponseEntity<?> getPayable(@PathVariable Long interventionId, @AuthenticationPrincipal Jwt jwt) {
+        paymentAccessService.requireInterventions(java.util.Collections.singletonList(interventionId), jwt);
+        try {
+            return ResponseEntity.ok(interventionPaymentService.payableSummary(interventionId));
+        } catch (PaymentValidationException e) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of("error", e.getMessage()));
+        }
+    }
+
     /**
      * Regle plusieurs interventions en une session.
      *

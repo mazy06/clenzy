@@ -16,13 +16,13 @@ import { useTeams } from '@/hooks/useTeams';
 /* ─── Constants ─── */
 
 const INTERVENTION_TYPES = [
-  { value: 'CLEANING', label: 'Menage' },
+  { value: 'CLEANING', label: 'Ménage' },
   { value: 'MAINTENANCE', label: 'Maintenance' },
   { value: 'REPAIR', label: 'Reparation' },
   { value: 'INSPECTION', label: 'Inspection' },
-  { value: 'DEEP_CLEANING', label: 'Menage en profondeur' },
-  { value: 'CHECK_IN_PREP', label: 'Preparation check-in' },
-  { value: 'CHECK_OUT_CLEAN', label: 'Menage check-out' },
+  { value: 'DEEP_CLEANING', label: 'Ménage en profondeur' },
+  { value: 'CHECK_IN_PREP', label: 'Préparation check-in' },
+  { value: 'CHECK_OUT_CLEAN', label: 'Ménage check-out' },
   { value: 'OTHER', label: 'Autre' },
 ];
 
@@ -73,9 +73,14 @@ export function CreateInterventionScreen() {
 
   const handleSubmit = useCallback(() => {
     const newErrors: Record<string, string> = {};
-    if (!title.trim()) newErrors.title = 'Titre requis';
+    if (title.trim().length<5 || title.trim().length>100) newErrors.title = 'Titre de 5 à 100 caractères requis';
     if (!type) newErrors.type = 'Type requis';
     if (!propertyId) newErrors.propertyId = 'Propriete requise';
+    const property=propertiesData?.content.find(item=>item.id===Number(propertyId));
+    if(propertyId&&!property?.ownerId)newErrors.propertyId='Renseignez le propriétaire du logement dans le PMS.';
+    if(!/^\d{4}-\d{2}-\d{2}$/.test(scheduledDate)||!Number.isFinite(Date.parse(`${scheduledDate}T12:00:00`)))newErrors.scheduledDate='Date requise';
+    if(startTime&&!/^([01]\d|2[0-3]):[0-5]\d$/.test(startTime))newErrors.startTime='Heure invalide';
+    if(estimatedHours&&(!/^\d+$/.test(estimatedHours)||Number(estimatedHours)<1))newErrors.estimatedHours='Nombre entier d’heures requis';
 
     if (Object.keys(newErrors).length > 0) {
       setErrors(newErrors);
@@ -94,11 +99,12 @@ export function CreateInterventionScreen() {
         title: title.trim(),
         description: description.trim() || undefined,
         type,
-        priority,
+        priority:isUrgent?'URGENT':priority,
         propertyId: parseInt(propertyId, 10),
-        teamId: teamId ? parseInt(teamId, 10) : undefined,
-        scheduledDate: scheduledDate || undefined,
-        startTime: startTimeISO,
+        requestorId:property!.ownerId,
+        assignedToType:teamId?'team':undefined,
+        assignedToId:teamId?Number(teamId):undefined,
+        scheduledDate: startTimeISO,
         estimatedDurationHours: estimatedHours ? parseFloat(estimatedHours) : undefined,
         isUrgent,
         requiresFollowUp: false,
@@ -107,16 +113,16 @@ export function CreateInterventionScreen() {
         onSuccess: () => {
           Alert.alert(
             'Intervention creee',
-            'L\'intervention a ete creee avec succes.',
+            'L\'intervention a été créée avec succès.',
             [{ text: 'OK', onPress: () => navigation.goBack() }],
           );
         },
         onError: () => {
-          Alert.alert('Erreur', 'Impossible de creer l\'intervention. Veuillez reessayer.');
+          Alert.alert('Erreur', 'Impossible de créer l\'intervention. Veuillez réessayer.');
         },
       },
     );
-  }, [title, description, type, priority, propertyId, teamId, scheduledDate, startTime, estimatedHours, isUrgent, createMutation, navigation]);
+  }, [title, description, type, priority, propertyId, teamId, scheduledDate, startTime, estimatedHours, isUrgent, createMutation, navigation,propertiesData]);
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: theme.colors.background.default }} edges={['top']}>
@@ -154,7 +160,7 @@ export function CreateInterventionScreen() {
               label="Titre"
               value={title}
               onChangeText={(t) => { setTitle(t); clearError('title'); }}
-              placeholder="Ex: Menage chambre principale"
+              placeholder="Ex: Ménage chambre principale"
               error={errors.title}
             />
 
@@ -185,7 +191,7 @@ export function CreateInterventionScreen() {
               <TextInput
                 value={description}
                 onChangeText={setDescription}
-                placeholder="Details sur l'intervention..."
+                placeholder="Détails sur l'intervention..."
                 placeholderTextColor={theme.colors.text.disabled}
                 multiline
                 numberOfLines={4}
@@ -235,7 +241,7 @@ export function CreateInterventionScreen() {
                   >
                     <Text style={{
                       ...theme.typography.caption, fontWeight: '600',
-                      color: isSelected ? '#fff' : chipColor,
+                      color: isSelected ? theme.colors.text.inverse : chipColor,
                     }}>
                       {opt.label}
                     </Text>
@@ -273,7 +279,7 @@ export function CreateInterventionScreen() {
               </View>
               <View style={{ flex: 1 }}>
                 <Input
-                  label="Heure debut"
+                  label="Heure début"
                   value={startTime}
                   onChangeText={setStartTime}
                   placeholder="09:00"
@@ -283,7 +289,7 @@ export function CreateInterventionScreen() {
 
             <View style={{ marginTop: theme.SPACING.md }}>
               <Input
-                label="Duree estimee (heures)"
+                label="Durée estimée (heures)"
                 value={estimatedHours}
                 onChangeText={setEstimatedHours}
                 keyboardType="numeric"
@@ -299,21 +305,21 @@ export function CreateInterventionScreen() {
             </Text>
 
             <Select
-              label="Equipe (optionnel)"
+              label="Équipe (optionnel)"
               options={teamOptions}
               value={teamId}
               onChange={setTeamId}
-              placeholder="Selectionner une equipe..."
+              placeholder="Sélectionner une équipe..."
             />
           </Card>
 
           {/* Submit */}
           <Button
-            title="Creer l'intervention"
+            title="Créer l'intervention"
             onPress={handleSubmit}
             fullWidth
             loading={createMutation.isPending}
-            icon={<Reicon name="add-circle-outline" size={18} color="#fff" />}
+            icon={<Reicon name="add-circle-outline" size={18} color={theme.colors.primary.contrastText} />}
           />
         </ScrollView>
       </KeyboardAvoidingView>

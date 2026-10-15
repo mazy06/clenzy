@@ -45,7 +45,7 @@ const AMENITY_MAP: Record<string, AmenityDef> = {
 const CATEGORY_CONFIG: Record<string, { label: string; colorKey: 'primary' | 'success' | 'info' | 'warning' | 'secondary' }> = {
   comfort:    { label: 'Confort',              colorKey: 'primary' },
   kitchen:    { label: 'Cuisine',              colorKey: 'success' },
-  appliances: { label: 'Electromenager',       colorKey: 'info' },
+  appliances: { label: 'Électroménager',       colorKey: 'info' },
   outdoor:    { label: 'Exterieur',            colorKey: 'warning' },
   family:     { label: 'Securite & Famille',   colorKey: 'secondary' },
 };
@@ -135,11 +135,11 @@ export function PropertyAmenitiesEditScreen() {
       { propertyId, amenities: Array.from(selected) },
       {
         onSuccess: () => {
-          Alert.alert('Succes', 'Equipements mis a jour.');
+          Alert.alert('Succes', 'Equipements mis à jour.');
           navigation.goBack();
         },
         onError: () => {
-          Alert.alert('Erreur', 'Impossible de mettre a jour les equipements.');
+          Alert.alert('Erreur', 'Impossible de mettre à jour les équipements.');
         },
       },
     );

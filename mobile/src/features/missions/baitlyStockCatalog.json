@@ -1,0 +1,3228 @@
+[
+  {
+    "key": "flat-sheet",
+    "names": {
+      "fr": "Drap plat",
+      "en": "Flat sheet",
+      "ar": "ملاءة سرير مسطحة"
+    },
+    "aliases": [
+      "Drap",
+      "Bed sheet"
+    ],
+    "image": {
+      "sheet": "linen",
+      "slot": 0
+    }
+  },
+  {
+    "key": "fitted-sheet",
+    "names": {
+      "fr": "Drap-housse",
+      "en": "Fitted sheet",
+      "ar": "ملاءة سرير مطاطية"
+    },
+    "aliases": [
+      "Draps housse",
+      "Drap house"
+    ],
+    "image": {
+      "sheet": "linen",
+      "slot": 1
+    }
+  },
+  {
+    "key": "duvet-cover",
+    "names": {
+      "fr": "Housse de couette",
+      "en": "Duvet cover",
+      "ar": "غطاء لحاف"
+    },
+    "image": {
+      "sheet": "linen",
+      "slot": 2
+    }
+  },
+  {
+    "key": "pillowcase",
+    "names": {
+      "fr": "Taie d’oreiller",
+      "en": "Pillowcase",
+      "ar": "غطاء وسادة"
+    },
+    "image": {
+      "sheet": "linen",
+      "slot": 3
+    }
+  },
+  {
+    "key": "square-pillow",
+    "names": {
+      "fr": "Oreiller carré",
+      "en": "Square pillow",
+      "ar": "وسادة مربعة"
+    },
+    "image": {
+      "sheet": "linen",
+      "slot": 4
+    }
+  },
+  {
+    "key": "rectangular-pillow",
+    "names": {
+      "fr": "Oreiller rectangulaire",
+      "en": "Rectangular pillow",
+      "ar": "وسادة مستطيلة"
+    },
+    "image": {
+      "sheet": "linen",
+      "slot": 5
+    }
+  },
+  {
+    "key": "duvet",
+    "names": {
+      "fr": "Couette",
+      "en": "Duvet",
+      "ar": "لحاف"
+    },
+    "image": {
+      "sheet": "linen",
+      "slot": 6
+    }
+  },
+  {
+    "key": "blanket",
+    "names": {
+      "fr": "Couverture",
+      "en": "Blanket",
+      "ar": "بطانية"
+    },
+    "image": {
+      "sheet": "linen",
+      "slot": 7
+    }
+  },
+  {
+    "key": "bath-towel",
+    "names": {
+      "fr": "Drap de bain",
+      "en": "Bath towel",
+      "ar": "منشفة حمام كبيرة"
+    },
+    "aliases": [
+      "Serviette de bain"
+    ],
+    "image": {
+      "sheet": "linen",
+      "slot": 8
+    }
+  },
+  {
+    "key": "hand-towel",
+    "names": {
+      "fr": "Serviette de toilette",
+      "en": "Hand towel",
+      "ar": "منشفة يد"
+    },
+    "aliases": [
+      "Serviette de mains",
+      "Serviette à mains"
+    ],
+    "image": {
+      "sheet": "linen",
+      "slot": 9
+    }
+  },
+  {
+    "key": "bath-mat",
+    "names": {
+      "fr": "Tapis de bain",
+      "en": "Bath mat",
+      "ar": "حصيرة حمام"
+    },
+    "image": {
+      "sheet": "linen",
+      "slot": 10
+    }
+  },
+  {
+    "key": "bathrobe",
+    "names": {
+      "fr": "Peignoir",
+      "en": "Bathrobe",
+      "ar": "رداء حمام"
+    },
+    "image": {
+      "sheet": "linen",
+      "slot": 11
+    }
+  },
+  {
+    "key": "slippers",
+    "names": {
+      "fr": "Chaussons",
+      "en": "Slippers",
+      "ar": "نعال"
+    },
+    "image": {
+      "sheet": "linen",
+      "slot": 12
+    }
+  },
+  {
+    "key": "washcloth",
+    "names": {
+      "fr": "Gant de toilette",
+      "en": "Washcloth",
+      "ar": "منشفة صغيرة"
+    },
+    "image": {
+      "sheet": "linen",
+      "slot": 13
+    }
+  },
+  {
+    "key": "tablecloth",
+    "names": {
+      "fr": "Nappe",
+      "en": "Tablecloth",
+      "ar": "مفرش طاولة"
+    },
+    "image": {
+      "sheet": "linen",
+      "slot": 14
+    }
+  },
+  {
+    "key": "napkins",
+    "names": {
+      "fr": "Serviettes de table",
+      "en": "Table napkins",
+      "ar": "مناديل مائدة"
+    },
+    "image": {
+      "sheet": "linen",
+      "slot": 15
+    }
+  },
+  {
+    "key": "kitchen-towel",
+    "names": {
+      "fr": "Torchon de cuisine",
+      "en": "Kitchen tea towel",
+      "ar": "فوطة مطبخ قطنية"
+    },
+    "aliases": [
+      "Torchon",
+      "Torchons à vaisselle",
+      "Linge à vaisselle",
+      "Essuie-vaisselle",
+      "Essuie de cuisine",
+      "Serviette de cuisine",
+      "Tea towel",
+      "Dish towel",
+      "Cotton kitchen towel",
+      "فوطة مطبخ",
+      "منشفة مطبخ"
+    ],
+    "image": {
+      "sheet": "kitchen-linen",
+      "slot": 0,
+      "grid": 1
+    }
+  },
+  {
+    "key": "fitted-sheet-90",
+    "names": {
+      "fr": "Drap-housse 90 × 200",
+      "en": "Fitted sheet 90 × 200",
+      "ar": "ملاءة مطاطية 90 × 200"
+    },
+    "aliases": [
+      "Draps housse 90"
+    ],
+    "image": {
+      "sheet": "linen",
+      "slot": 1
+    }
+  },
+  {
+    "key": "fitted-sheet-140",
+    "names": {
+      "fr": "Drap-housse 140 × 200",
+      "en": "Fitted sheet 140 × 200",
+      "ar": "ملاءة مطاطية 140 × 200"
+    },
+    "aliases": [
+      "Draps housse 140"
+    ],
+    "image": {
+      "sheet": "linen",
+      "slot": 1
+    }
+  },
+  {
+    "key": "fitted-sheet-160",
+    "names": {
+      "fr": "Drap-housse 160 × 200",
+      "en": "Fitted sheet 160 × 200",
+      "ar": "ملاءة مطاطية 160 × 200"
+    },
+    "aliases": [
+      "Draps housse 160"
+    ],
+    "image": {
+      "sheet": "linen",
+      "slot": 1
+    }
+  },
+  {
+    "key": "fitted-sheet-180",
+    "names": {
+      "fr": "Drap-housse 180 × 200",
+      "en": "Fitted sheet 180 × 200",
+      "ar": "ملاءة مطاطية 180 × 200"
+    },
+    "aliases": [
+      "Draps housse 180"
+    ],
+    "image": {
+      "sheet": "linen",
+      "slot": 1
+    }
+  },
+  {
+    "key": "duvet-cover-140",
+    "names": {
+      "fr": "Housse de couette 140 × 200",
+      "en": "Duvet cover 140 × 200",
+      "ar": "غطاء لحاف 140 × 200"
+    },
+    "image": {
+      "sheet": "linen",
+      "slot": 2
+    }
+  },
+  {
+    "key": "duvet-cover-240",
+    "names": {
+      "fr": "Housse de couette 240 × 220",
+      "en": "Duvet cover 240 × 220",
+      "ar": "غطاء لحاف 240 × 220"
+    },
+    "image": {
+      "sheet": "linen",
+      "slot": 2
+    }
+  },
+  {
+    "key": "pillowcase-65",
+    "names": {
+      "fr": "Taie d’oreiller 65 × 65",
+      "en": "Pillowcase 65 × 65",
+      "ar": "غطاء وسادة 65 × 65"
+    },
+    "image": {
+      "sheet": "linen",
+      "slot": 3
+    }
+  },
+  {
+    "key": "pillowcase-50",
+    "names": {
+      "fr": "Taie d’oreiller 50 × 70",
+      "en": "Pillowcase 50 × 70",
+      "ar": "غطاء وسادة 50 × 70"
+    },
+    "image": {
+      "sheet": "linen",
+      "slot": 3
+    }
+  },
+  {
+    "key": "hand-soap",
+    "names": {
+      "fr": "Savon mains",
+      "en": "Hand soap",
+      "ar": "صابون يدين"
+    },
+    "aliases": [
+      "Savon liquide",
+      "Savon pour les mains"
+    ],
+    "image": {
+      "sheet": "toiletries",
+      "slot": 0
+    }
+  },
+  {
+    "key": "shower-gel",
+    "names": {
+      "fr": "Gel douche",
+      "en": "Shower gel",
+      "ar": "جل استحمام"
+    },
+    "image": {
+      "sheet": "toiletries",
+      "slot": 1
+    }
+  },
+  {
+    "key": "shampoo",
+    "names": {
+      "fr": "Shampoing",
+      "en": "Shampoo",
+      "ar": "شامبو"
+    },
+    "aliases": [
+      "Shampooing"
+    ],
+    "image": {
+      "sheet": "toiletries",
+      "slot": 2
+    }
+  },
+  {
+    "key": "conditioner",
+    "names": {
+      "fr": "Après-shampoing",
+      "en": "Conditioner",
+      "ar": "بلسم شعر"
+    },
+    "image": {
+      "sheet": "toiletries",
+      "slot": 3
+    }
+  },
+  {
+    "key": "body-lotion",
+    "names": {
+      "fr": "Lait pour le corps",
+      "en": "Body lotion",
+      "ar": "لوشن للجسم"
+    },
+    "image": {
+      "sheet": "toiletries",
+      "slot": 4
+    }
+  },
+  {
+    "key": "soap-bar",
+    "names": {
+      "fr": "Savonnette",
+      "en": "Soap bar",
+      "ar": "قطعة صابون"
+    },
+    "aliases": [
+      "Savon solide"
+    ],
+    "image": {
+      "sheet": "toiletries",
+      "slot": 5
+    }
+  },
+  {
+    "key": "toilet-paper",
+    "names": {
+      "fr": "Papier toilette",
+      "en": "Toilet paper",
+      "ar": "ورق مرحاض"
+    },
+    "image": {
+      "sheet": "toiletries",
+      "slot": 6
+    }
+  },
+  {
+    "key": "tissues",
+    "names": {
+      "fr": "Mouchoirs",
+      "en": "Tissues",
+      "ar": "مناديل ورقية"
+    },
+    "image": {
+      "sheet": "toiletries",
+      "slot": 7
+    }
+  },
+  {
+    "key": "toothbrush",
+    "names": {
+      "fr": "Brosse à dents",
+      "en": "Toothbrush",
+      "ar": "فرشاة أسنان"
+    },
+    "image": {
+      "sheet": "toiletries",
+      "slot": 8
+    }
+  },
+  {
+    "key": "toothpaste",
+    "names": {
+      "fr": "Dentifrice",
+      "en": "Toothpaste",
+      "ar": "معجون أسنان"
+    },
+    "image": {
+      "sheet": "toiletries",
+      "slot": 9
+    }
+  },
+  {
+    "key": "razor",
+    "names": {
+      "fr": "Rasoir",
+      "en": "Razor",
+      "ar": "شفرة حلاقة"
+    },
+    "image": {
+      "sheet": "toiletries",
+      "slot": 10
+    }
+  },
+  {
+    "key": "shaving-foam",
+    "names": {
+      "fr": "Mousse à raser",
+      "en": "Shaving foam",
+      "ar": "رغوة حلاقة"
+    },
+    "image": {
+      "sheet": "toiletries",
+      "slot": 11
+    }
+  },
+  {
+    "key": "cotton-pads",
+    "names": {
+      "fr": "Disques de coton",
+      "en": "Cotton pads",
+      "ar": "أقراص قطن"
+    },
+    "image": {
+      "sheet": "toiletries",
+      "slot": 12
+    }
+  },
+  {
+    "key": "cotton-swabs",
+    "names": {
+      "fr": "Cotons-tiges",
+      "en": "Cotton swabs",
+      "ar": "أعواد قطن"
+    },
+    "image": {
+      "sheet": "toiletries",
+      "slot": 13
+    }
+  },
+  {
+    "key": "shower-cap",
+    "names": {
+      "fr": "Bonnet de douche",
+      "en": "Shower cap",
+      "ar": "قبعة استحمام"
+    },
+    "image": {
+      "sheet": "toiletries",
+      "slot": 14
+    }
+  },
+  {
+    "key": "comb",
+    "names": {
+      "fr": "Peigne",
+      "en": "Comb",
+      "ar": "مشط"
+    },
+    "image": {
+      "sheet": "toiletries",
+      "slot": 15
+    }
+  },
+  {
+    "key": "shower-gel-30",
+    "names": {
+      "fr": "Gel douche 30 ml",
+      "en": "Shower gel 30 ml",
+      "ar": "جل استحمام 30 مل"
+    },
+    "image": {
+      "sheet": "toiletries",
+      "slot": 1
+    }
+  },
+  {
+    "key": "shower-gel-300",
+    "names": {
+      "fr": "Gel douche 300 ml",
+      "en": "Shower gel 300 ml",
+      "ar": "جل استحمام 300 مل"
+    },
+    "aliases": [
+      "Gel douche 300ml"
+    ],
+    "image": {
+      "sheet": "toiletries",
+      "slot": 1
+    }
+  },
+  {
+    "key": "shampoo-30",
+    "names": {
+      "fr": "Shampoing 30 ml",
+      "en": "Shampoo 30 ml",
+      "ar": "شامبو 30 مل"
+    },
+    "aliases": [
+      "Shampooing 30ml"
+    ],
+    "image": {
+      "sheet": "toiletries",
+      "slot": 2
+    }
+  },
+  {
+    "key": "shampoo-300",
+    "names": {
+      "fr": "Shampoing 300 ml",
+      "en": "Shampoo 300 ml",
+      "ar": "شامبو 300 مل"
+    },
+    "aliases": [
+      "Shampooing 300ml"
+    ],
+    "image": {
+      "sheet": "toiletries",
+      "slot": 2
+    }
+  },
+  {
+    "key": "conditioner-30",
+    "names": {
+      "fr": "Après-shampoing 30 ml",
+      "en": "Conditioner 30 ml",
+      "ar": "بلسم شعر 30 مل"
+    },
+    "image": {
+      "sheet": "toiletries",
+      "slot": 3
+    }
+  },
+  {
+    "key": "body-lotion-30",
+    "names": {
+      "fr": "Lait pour le corps 30 ml",
+      "en": "Body lotion 30 ml",
+      "ar": "لوشن للجسم 30 مل"
+    },
+    "image": {
+      "sheet": "toiletries",
+      "slot": 4
+    }
+  },
+  {
+    "key": "hand-soap-300",
+    "names": {
+      "fr": "Savon mains 300 ml",
+      "en": "Hand soap 300 ml",
+      "ar": "صابون يدين 300 مل"
+    },
+    "image": {
+      "sheet": "toiletries",
+      "slot": 0
+    }
+  },
+  {
+    "key": "soap-bar-20",
+    "names": {
+      "fr": "Savonnette 20 g",
+      "en": "Soap bar 20 g",
+      "ar": "قطعة صابون 20 غ"
+    },
+    "image": {
+      "sheet": "toiletries",
+      "slot": 5
+    }
+  },
+  {
+    "key": "dish-soap",
+    "names": {
+      "fr": "Liquide vaisselle",
+      "en": "Dishwashing liquid",
+      "ar": "سائل غسل الصحون"
+    },
+    "image": {
+      "sheet": "cleaning",
+      "slot": 0
+    }
+  },
+  {
+    "key": "dishwasher-tablets",
+    "names": {
+      "fr": "Pastilles lave-vaisselle",
+      "en": "Dishwasher tablets",
+      "ar": "أقراص غسالة الصحون"
+    },
+    "aliases": [
+      "Tablettes lave-vaisselle",
+      "Pastille vaisselle",
+      "Tablette vaisselle"
+    ],
+    "image": {
+      "sheet": "laundry-dishes",
+      "slot": 0
+    }
+  },
+  {
+    "key": "laundry-detergent",
+    "names": {
+      "fr": "Lessive liquide",
+      "en": "Liquid laundry detergent",
+      "ar": "منظف غسيل سائل"
+    },
+    "image": {
+      "sheet": "cleaning",
+      "slot": 2
+    }
+  },
+  {
+    "key": "fabric-softener",
+    "names": {
+      "fr": "Adoucissant",
+      "en": "Fabric softener",
+      "ar": "منعم أقمشة"
+    },
+    "image": {
+      "sheet": "cleaning",
+      "slot": 3
+    }
+  },
+  {
+    "key": "surface-cleaner",
+    "names": {
+      "fr": "Nettoyant multi-surfaces",
+      "en": "Multi-surface cleaner",
+      "ar": "منظف متعدد الأسطح"
+    },
+    "image": {
+      "sheet": "cleaning",
+      "slot": 4
+    }
+  },
+  {
+    "key": "glass-cleaner",
+    "names": {
+      "fr": "Nettoyant vitres",
+      "en": "Glass cleaner",
+      "ar": "منظف زجاج"
+    },
+    "image": {
+      "sheet": "cleaning",
+      "slot": 5
+    }
+  },
+  {
+    "key": "toilet-cleaner",
+    "names": {
+      "fr": "Gel WC",
+      "en": "Toilet cleaner",
+      "ar": "منظف مرحاض"
+    },
+    "image": {
+      "sheet": "cleaning",
+      "slot": 6
+    }
+  },
+  {
+    "key": "disinfectant",
+    "names": {
+      "fr": "Désinfectant",
+      "en": "Disinfectant",
+      "ar": "مطهر"
+    },
+    "image": {
+      "sheet": "cleaning",
+      "slot": 7
+    }
+  },
+  {
+    "key": "descaler",
+    "names": {
+      "fr": "Détartrant",
+      "en": "Limescale remover",
+      "ar": "مزيل تكلس"
+    },
+    "image": {
+      "sheet": "cleaning",
+      "slot": 8
+    }
+  },
+  {
+    "key": "sponges",
+    "names": {
+      "fr": "Éponges",
+      "en": "Sponges",
+      "ar": "إسفنج"
+    },
+    "image": {
+      "sheet": "cleaning",
+      "slot": 9
+    }
+  },
+  {
+    "key": "microfiber-cloth",
+    "names": {
+      "fr": "Chiffon microfibre",
+      "en": "Microfiber cloth",
+      "ar": "قطعة قماش مايكروفايبر"
+    },
+    "image": {
+      "sheet": "cleaning",
+      "slot": 10
+    }
+  },
+  {
+    "key": "cleaning-gloves",
+    "names": {
+      "fr": "Gants de ménage",
+      "en": "Cleaning gloves",
+      "ar": "قفازات تنظيف"
+    },
+    "image": {
+      "sheet": "cleaning",
+      "slot": 11
+    }
+  },
+  {
+    "key": "bin-bags",
+    "names": {
+      "fr": "Sacs poubelle",
+      "en": "Bin bags",
+      "ar": "أكياس نفايات"
+    },
+    "image": {
+      "sheet": "cleaning",
+      "slot": 12
+    }
+  },
+  {
+    "key": "mop-refill",
+    "names": {
+      "fr": "Recharge de serpillière",
+      "en": "Mop refill",
+      "ar": "رأس ممسحة بديل"
+    },
+    "image": {
+      "sheet": "cleaning",
+      "slot": 13
+    }
+  },
+  {
+    "key": "dustpan-brush",
+    "names": {
+      "fr": "Pelle et balayette",
+      "en": "Dustpan and brush",
+      "ar": "جاروف وفرشاة"
+    },
+    "image": {
+      "sheet": "cleaning",
+      "slot": 14
+    }
+  },
+  {
+    "key": "cleaning-wipes",
+    "names": {
+      "fr": "Lingettes nettoyantes",
+      "en": "Cleaning wipes",
+      "ar": "مناديل تنظيف"
+    },
+    "image": {
+      "sheet": "cleaning",
+      "slot": 15
+    }
+  },
+  {
+    "key": "dish-soap-500",
+    "names": {
+      "fr": "Liquide vaisselle 500 ml",
+      "en": "Dishwashing liquid 500 ml",
+      "ar": "سائل صحون 500 مل"
+    },
+    "image": {
+      "sheet": "cleaning",
+      "slot": 0
+    }
+  },
+  {
+    "key": "dish-soap-1l",
+    "names": {
+      "fr": "Liquide vaisselle 1 L",
+      "en": "Dishwashing liquid 1 L",
+      "ar": "سائل صحون 1 لتر"
+    },
+    "image": {
+      "sheet": "cleaning",
+      "slot": 0
+    }
+  },
+  {
+    "key": "laundry-detergent-1l",
+    "names": {
+      "fr": "Lessive liquide 1 L",
+      "en": "Laundry detergent 1 L",
+      "ar": "منظف غسيل 1 لتر"
+    },
+    "image": {
+      "sheet": "cleaning",
+      "slot": 2
+    }
+  },
+  {
+    "key": "surface-cleaner-750",
+    "names": {
+      "fr": "Nettoyant multi-surfaces 750 ml",
+      "en": "Surface cleaner 750 ml",
+      "ar": "منظف أسطح 750 مل"
+    },
+    "image": {
+      "sheet": "cleaning",
+      "slot": 4
+    }
+  },
+  {
+    "key": "glass-cleaner-750",
+    "names": {
+      "fr": "Nettoyant vitres 750 ml",
+      "en": "Glass cleaner 750 ml",
+      "ar": "منظف زجاج 750 مل"
+    },
+    "image": {
+      "sheet": "cleaning",
+      "slot": 5
+    }
+  },
+  {
+    "key": "bin-bags-10",
+    "names": {
+      "fr": "Sacs poubelle 10 L",
+      "en": "Bin bags 10 L",
+      "ar": "أكياس نفايات 10 لتر"
+    },
+    "image": {
+      "sheet": "cleaning",
+      "slot": 12
+    }
+  },
+  {
+    "key": "bin-bags-30",
+    "names": {
+      "fr": "Sacs poubelle 30 L",
+      "en": "Bin bags 30 L",
+      "ar": "أكياس نفايات 30 لتر"
+    },
+    "image": {
+      "sheet": "cleaning",
+      "slot": 12
+    }
+  },
+  {
+    "key": "bin-bags-50",
+    "names": {
+      "fr": "Sacs poubelle 50 L",
+      "en": "Bin bags 50 L",
+      "ar": "أكياس نفايات 50 لتر"
+    },
+    "image": {
+      "sheet": "cleaning",
+      "slot": 12
+    }
+  },
+  {
+    "key": "coffee-capsules",
+    "names": {
+      "fr": "Capsules de café",
+      "en": "Coffee capsules",
+      "ar": "كبسولات قهوة"
+    },
+    "aliases": [
+      "Capsules cafe",
+      "Capsules café"
+    ],
+    "image": {
+      "sheet": "consumables",
+      "slot": 0
+    }
+  },
+  {
+    "key": "coffee-pods",
+    "names": {
+      "fr": "Dosettes de café",
+      "en": "Coffee pods",
+      "ar": "أقراص قهوة"
+    },
+    "image": {
+      "sheet": "consumables",
+      "slot": 1
+    }
+  },
+  {
+    "key": "ground-coffee",
+    "names": {
+      "fr": "Café moulu",
+      "en": "Ground coffee",
+      "ar": "قهوة مطحونة"
+    },
+    "image": {
+      "sheet": "consumables",
+      "slot": 2
+    }
+  },
+  {
+    "key": "tea",
+    "names": {
+      "fr": "Sachets de thé",
+      "en": "Tea bags",
+      "ar": "أكياس شاي"
+    },
+    "aliases": [
+      "Thé",
+      "Sachets de the"
+    ],
+    "image": {
+      "sheet": "consumables",
+      "slot": 3
+    }
+  },
+  {
+    "key": "sugar",
+    "names": {
+      "fr": "Sucre en sachets",
+      "en": "Sugar sachets",
+      "ar": "أكياس سكر"
+    },
+    "aliases": [
+      "Sucre en dosettes",
+      "Dosettes de sucre",
+      "Sucre individuel",
+      "Sucre en portions",
+      "Sucre en sticks",
+      "Sticks de sucre",
+      "Sachets de sucre",
+      "Sugar packets",
+      "Sugar sticks",
+      "Sucre blanc en dosettes",
+      "Sucre blanc en sachets"
+    ],
+    "image": {
+      "sheet": "consumables",
+      "slot": 4
+    }
+  },
+  {
+    "key": "salt-pepper",
+    "names": {
+      "fr": "Sel et poivre",
+      "en": "Salt and pepper",
+      "ar": "ملح وفلفل"
+    },
+    "image": {
+      "sheet": "consumables",
+      "slot": 5
+    }
+  },
+  {
+    "key": "water",
+    "names": {
+      "fr": "Eau plate",
+      "en": "Still water",
+      "ar": "مياه"
+    },
+    "aliases": [
+      "Bouteille d’eau",
+      "Bouteille d’eau plate"
+    ],
+    "image": {
+      "sheet": "consumables",
+      "slot": 6
+    }
+  },
+  {
+    "key": "milk",
+    "names": {
+      "fr": "Lait",
+      "en": "Milk",
+      "ar": "حليب"
+    },
+    "image": {
+      "sheet": "consumables",
+      "slot": 7
+    }
+  },
+  {
+    "key": "biscuits",
+    "names": {
+      "fr": "Biscuits d’accueil",
+      "en": "Welcome biscuits",
+      "ar": "بسكويت للضيافة"
+    },
+    "image": {
+      "sheet": "consumables",
+      "slot": 8
+    }
+  },
+  {
+    "key": "kitchen-paper",
+    "names": {
+      "fr": "Essuie-tout",
+      "en": "Kitchen paper",
+      "ar": "ورق مطبخ"
+    },
+    "image": {
+      "sheet": "consumables",
+      "slot": 9
+    }
+  },
+  {
+    "key": "aluminium-foil",
+    "names": {
+      "fr": "Papier aluminium",
+      "en": "Aluminium foil",
+      "ar": "ورق ألمنيوم"
+    },
+    "image": {
+      "sheet": "consumables",
+      "slot": 10
+    }
+  },
+  {
+    "key": "cling-film",
+    "names": {
+      "fr": "Film alimentaire",
+      "en": "Cling film",
+      "ar": "نايلون تغليف الطعام"
+    },
+    "image": {
+      "sheet": "consumables",
+      "slot": 11
+    }
+  },
+  {
+    "key": "freezer-bags",
+    "names": {
+      "fr": "Sacs congélation",
+      "en": "Freezer bags",
+      "ar": "أكياس تجميد"
+    },
+    "image": {
+      "sheet": "consumables",
+      "slot": 12
+    }
+  },
+  {
+    "key": "matches",
+    "names": {
+      "fr": "Allumettes",
+      "en": "Matches",
+      "ar": "أعواد ثقاب"
+    },
+    "image": {
+      "sheet": "consumables",
+      "slot": 13
+    }
+  },
+  {
+    "key": "batteries-aa",
+    "names": {
+      "fr": "Piles AA",
+      "en": "AA batteries",
+      "ar": "بطاريات AA"
+    },
+    "image": {
+      "sheet": "consumables",
+      "slot": 14
+    }
+  },
+  {
+    "key": "coffee-decaf",
+    "names": {
+      "fr": "Capsules de café décaféiné",
+      "en": "Decaf coffee capsules",
+      "ar": "كبسولات قهوة منزوعة الكافيين"
+    },
+    "image": {
+      "sheet": "consumables",
+      "slot": 0
+    }
+  },
+  {
+    "key": "tea-green",
+    "names": {
+      "fr": "Thé vert",
+      "en": "Green tea",
+      "ar": "شاي أخضر"
+    },
+    "image": {
+      "sheet": "consumables",
+      "slot": 3
+    }
+  },
+  {
+    "key": "tea-black",
+    "names": {
+      "fr": "Thé noir",
+      "en": "Black tea",
+      "ar": "شاي أسود"
+    },
+    "image": {
+      "sheet": "consumables",
+      "slot": 3
+    }
+  },
+  {
+    "key": "herbal-tea",
+    "names": {
+      "fr": "Tisanes",
+      "en": "Herbal tea",
+      "ar": "أعشاب للشرب"
+    },
+    "image": {
+      "sheet": "consumables",
+      "slot": 3
+    }
+  },
+  {
+    "key": "brown-sugar",
+    "names": {
+      "fr": "Sucre roux en sachets",
+      "en": "Brown sugar sachets",
+      "ar": "أكياس سكر بني"
+    },
+    "aliases": [
+      "Sucre roux en dosettes",
+      "Dosettes de sucre roux",
+      "Sucre roux en sticks",
+      "Sticks de sucre roux",
+      "Sachets de sucre roux",
+      "Brown sugar packets"
+    ],
+    "image": {
+      "sheet": "consumables",
+      "slot": 4
+    }
+  },
+  {
+    "key": "water-500",
+    "names": {
+      "fr": "Eau plate 50 cl",
+      "en": "Still water 500 ml",
+      "ar": "مياه 500 مل"
+    },
+    "aliases": [
+      "Bouteille d’eau 50 cl",
+      "Bouteille d’eau plate 50 cl",
+      "Bouteille d’eau 500 ml",
+      "Eau 50 cl",
+      "Eau 500 ml"
+    ],
+    "image": {
+      "sheet": "consumables",
+      "slot": 6
+    }
+  },
+  {
+    "key": "water-1l",
+    "names": {
+      "fr": "Eau plate 1 L",
+      "en": "Still water 1 L",
+      "ar": "مياه 1 لتر"
+    },
+    "aliases": [
+      "Bouteille d’eau 1 L",
+      "Bouteille d’eau plate 1 L",
+      "Eau 1 L"
+    ],
+    "image": {
+      "sheet": "consumables",
+      "slot": 6
+    }
+  },
+  {
+    "key": "milk-250",
+    "names": {
+      "fr": "Lait 25 cl",
+      "en": "Milk 250 ml",
+      "ar": "حليب 250 مل"
+    },
+    "image": {
+      "sheet": "consumables",
+      "slot": 7
+    }
+  },
+  {
+    "key": "batteries-aaa",
+    "names": {
+      "fr": "Piles AAA",
+      "en": "AAA batteries",
+      "ar": "بطاريات AAA"
+    },
+    "image": {
+      "sheet": "consumables",
+      "slot": 14
+    }
+  },
+  {
+    "key": "dishwasher-capsules",
+    "names": {
+      "fr": "Capsules gel lave-vaisselle",
+      "en": "Dishwasher gel capsules",
+      "ar": "كبسولات جل لغسالة الصحون"
+    },
+    "aliases": [
+      "capsule vaisselle",
+      "dosette lave vaisselle"
+    ],
+    "image": {
+      "sheet": "laundry-dishes",
+      "slot": 1
+    }
+  },
+  {
+    "key": "dishwasher-salt",
+    "names": {
+      "fr": "Sel régénérant lave-vaisselle",
+      "en": "Dishwasher salt",
+      "ar": "ملح غسالة الصحون"
+    },
+    "aliases": [
+      "sel lave vaisselle"
+    ],
+    "image": {
+      "sheet": "laundry-dishes",
+      "slot": 2
+    }
+  },
+  {
+    "key": "rinse-aid",
+    "names": {
+      "fr": "Liquide de rinçage lave-vaisselle",
+      "en": "Dishwasher rinse aid",
+      "ar": "سائل شطف غسالة الصحون"
+    },
+    "aliases": [
+      "rinçage vaisselle"
+    ],
+    "image": {
+      "sheet": "laundry-dishes",
+      "slot": 3
+    }
+  },
+  {
+    "key": "laundry-pods",
+    "names": {
+      "fr": "Capsules de lessive",
+      "en": "Laundry detergent pods",
+      "ar": "كبسولات منظف الملابس"
+    },
+    "aliases": [
+      "dosettes lessive",
+      "capsules machine à laver",
+      "capsule linge"
+    ],
+    "image": {
+      "sheet": "laundry-dishes",
+      "slot": 4
+    }
+  },
+  {
+    "key": "laundry-tablets",
+    "names": {
+      "fr": "Tablettes de lessive",
+      "en": "Laundry detergent tablets",
+      "ar": "أقراص منظف الملابس"
+    },
+    "aliases": [
+      "pastilles machine à laver",
+      "tablettes machine à laver",
+      "pastille lessive",
+      "tablette lessive"
+    ],
+    "image": {
+      "sheet": "laundry-dishes",
+      "slot": 5
+    }
+  },
+  {
+    "key": "laundry-powder",
+    "names": {
+      "fr": "Lessive en poudre",
+      "en": "Laundry powder",
+      "ar": "مسحوق غسيل الملابس"
+    },
+    "aliases": [
+      "poudre machine à laver"
+    ],
+    "image": {
+      "sheet": "laundry-dishes",
+      "slot": 6
+    }
+  },
+  {
+    "key": "laundry-sheets",
+    "names": {
+      "fr": "Feuilles de lessive",
+      "en": "Laundry detergent sheets",
+      "ar": "شرائح منظف الملابس"
+    },
+    "aliases": [
+      "lessive feuille"
+    ],
+    "image": {
+      "sheet": "laundry-dishes",
+      "slot": 7
+    }
+  },
+  {
+    "key": "stain-remover",
+    "names": {
+      "fr": "Détachant textile",
+      "en": "Fabric stain remover",
+      "ar": "مزيل بقع الملابس"
+    },
+    "aliases": [
+      "détachant linge"
+    ],
+    "image": {
+      "sheet": "laundry-dishes",
+      "slot": 8
+    }
+  },
+  {
+    "key": "colour-catcher",
+    "names": {
+      "fr": "Lingettes anti-décoloration",
+      "en": "Colour catcher sheets",
+      "ar": "مناديل منع انتقال الألوان"
+    },
+    "aliases": [
+      "anti decoloration",
+      "lingette lessive"
+    ],
+    "image": {
+      "sheet": "laundry-dishes",
+      "slot": 9
+    }
+  },
+  {
+    "key": "washing-machine-cleaner",
+    "names": {
+      "fr": "Nettoyant lave-linge",
+      "en": "Washing machine cleaner",
+      "ar": "منظف الغسالة"
+    },
+    "aliases": [
+      "nettoyant machine à laver",
+      "entretien lave linge"
+    ],
+    "image": {
+      "sheet": "laundry-dishes",
+      "slot": 10
+    }
+  },
+  {
+    "key": "dryer-balls",
+    "names": {
+      "fr": "Balles de séchage",
+      "en": "Dryer balls",
+      "ar": "كرات تجفيف الملابس"
+    },
+    "aliases": [
+      "balles sèche linge"
+    ],
+    "image": {
+      "sheet": "laundry-dishes",
+      "slot": 11
+    }
+  },
+  {
+    "key": "cleaning-vinegar",
+    "names": {
+      "fr": "Vinaigre ménager",
+      "en": "Cleaning vinegar",
+      "ar": "خل للتنظيف"
+    },
+    "aliases": [
+      "vinaigre blanc ménage"
+    ],
+    "image": {
+      "sheet": "laundry-dishes",
+      "slot": 12
+    }
+  },
+  {
+    "key": "baking-soda-cleaner",
+    "names": {
+      "fr": "Bicarbonate ménager",
+      "en": "Cleaning baking soda",
+      "ar": "بيكربونات للتنظيف"
+    },
+    "aliases": [
+      "bicarbonate nettoyage"
+    ],
+    "image": {
+      "sheet": "laundry-dishes",
+      "slot": 13
+    }
+  },
+  {
+    "key": "floor-cleaner",
+    "names": {
+      "fr": "Nettoyant sols",
+      "en": "Floor cleaner",
+      "ar": "منظف أرضيات"
+    },
+    "aliases": [
+      "serpillière produit sols"
+    ],
+    "image": {
+      "sheet": "laundry-dishes",
+      "slot": 14
+    }
+  },
+  {
+    "key": "dishwasher-cleaner",
+    "names": {
+      "fr": "Nettoyant lave-vaisselle",
+      "en": "Dishwasher cleaner",
+      "ar": "منظف غسالة الصحون"
+    },
+    "aliases": [
+      "entretien lave vaisselle"
+    ],
+    "image": {
+      "sheet": "laundry-dishes",
+      "slot": 15
+    }
+  },
+  {
+    "key": "water-pack",
+    "names": {
+      "fr": "Pack d’eau plate 6 × 1,5 L",
+      "en": "Still water pack 6 × 1.5 L",
+      "ar": "عبوة مياه 6 × 1.5 لتر"
+    },
+    "aliases": [
+      "pack eau",
+      "bouteilles eau",
+      "pack d eau",
+      "Pack d’eau plate"
+    ],
+    "image": {
+      "sheet": "drinks",
+      "slot": 0
+    }
+  },
+  {
+    "key": "water-pack-small",
+    "names": {
+      "fr": "Pack d’eau plate 6 × 50 cl",
+      "en": "Still water pack 6 × 500 ml",
+      "ar": "عبوة مياه 6 × 500 مل"
+    },
+    "aliases": [
+      "petites bouteilles eau"
+    ],
+    "image": {
+      "sheet": "drinks",
+      "slot": 1
+    }
+  },
+  {
+    "key": "sparkling-water",
+    "names": {
+      "fr": "Eau gazeuse",
+      "en": "Sparkling water",
+      "ar": "مياه غازية"
+    },
+    "aliases": [
+      "eau pétillante"
+    ],
+    "image": {
+      "sheet": "drinks",
+      "slot": 2
+    }
+  },
+  {
+    "key": "sparkling-water-pack",
+    "names": {
+      "fr": "Pack d’eau gazeuse",
+      "en": "Sparkling water pack",
+      "ar": "عبوة مياه غازية"
+    },
+    "aliases": [
+      "pack eau pétillante"
+    ],
+    "image": {
+      "sheet": "drinks",
+      "slot": 3
+    }
+  },
+  {
+    "key": "cola-can",
+    "names": {
+      "fr": "Cola en canette",
+      "en": "Cola can",
+      "ar": "علبة مشروب كولا"
+    },
+    "aliases": [
+      "soda cola 33 cl",
+      "coca"
+    ],
+    "image": {
+      "sheet": "drinks",
+      "slot": 4
+    }
+  },
+  {
+    "key": "cola-bottle",
+    "names": {
+      "fr": "Cola en bouteille",
+      "en": "Cola bottle",
+      "ar": "زجاجة مشروب كولا"
+    },
+    "aliases": [
+      "soda cola bouteille 1.5 l"
+    ],
+    "image": {
+      "sheet": "drinks",
+      "slot": 5
+    }
+  },
+  {
+    "key": "cola-zero",
+    "names": {
+      "fr": "Cola sans sucres",
+      "en": "Sugar-free cola",
+      "ar": "كولا بدون سكر"
+    },
+    "aliases": [
+      "soda zero",
+      "cola light",
+      "diet cola"
+    ],
+    "image": {
+      "sheet": "drinks",
+      "slot": 6
+    }
+  },
+  {
+    "key": "lemonade",
+    "names": {
+      "fr": "Limonade",
+      "en": "Lemonade",
+      "ar": "مشروب ليمون غازي"
+    },
+    "aliases": [
+      "soda citron"
+    ],
+    "image": {
+      "sheet": "drinks",
+      "slot": 7
+    }
+  },
+  {
+    "key": "orange-soda",
+    "names": {
+      "fr": "Soda à l’orange",
+      "en": "Orange soda",
+      "ar": "مشروب برتقال غازي"
+    },
+    "aliases": [
+      "soda orange"
+    ],
+    "image": {
+      "sheet": "drinks",
+      "slot": 8
+    }
+  },
+  {
+    "key": "lemon-soda",
+    "names": {
+      "fr": "Soda citron-citron vert",
+      "en": "Lemon-lime soda",
+      "ar": "مشروب غازي بالليمون والليمون الأخضر"
+    },
+    "aliases": [
+      "soda lemon lime"
+    ],
+    "image": {
+      "sheet": "drinks",
+      "slot": 9
+    }
+  },
+  {
+    "key": "iced-tea",
+    "names": {
+      "fr": "Thé glacé",
+      "en": "Iced tea",
+      "ar": "شاي مثلج"
+    },
+    "aliases": [
+      "ice tea",
+      "thé pêche"
+    ],
+    "image": {
+      "sheet": "drinks",
+      "slot": 10
+    }
+  },
+  {
+    "key": "orange-juice",
+    "names": {
+      "fr": "Jus d’orange",
+      "en": "Orange juice",
+      "ar": "عصير برتقال"
+    },
+    "aliases": [
+      "jus orange"
+    ],
+    "image": {
+      "sheet": "drinks",
+      "slot": 11
+    }
+  },
+  {
+    "key": "apple-juice",
+    "names": {
+      "fr": "Jus de pomme",
+      "en": "Apple juice",
+      "ar": "عصير تفاح"
+    },
+    "aliases": [
+      "jus pomme"
+    ],
+    "image": {
+      "sheet": "drinks",
+      "slot": 12
+    }
+  },
+  {
+    "key": "multifruit-juice",
+    "names": {
+      "fr": "Jus multifruits",
+      "en": "Multifruit juice",
+      "ar": "عصير فواكه مشكلة"
+    },
+    "aliases": [
+      "jus tropical"
+    ],
+    "image": {
+      "sheet": "drinks",
+      "slot": 13
+    }
+  },
+  {
+    "key": "tonic-water",
+    "names": {
+      "fr": "Tonic",
+      "en": "Tonic water",
+      "ar": "ماء تونيك"
+    },
+    "aliases": [
+      "soda tonic"
+    ],
+    "image": {
+      "sheet": "drinks",
+      "slot": 14
+    }
+  },
+  {
+    "key": "ginger-beer",
+    "names": {
+      "fr": "Ginger beer",
+      "en": "Ginger beer",
+      "ar": "مشروب زنجبيل غازي"
+    },
+    "aliases": [
+      "soda gingembre"
+    ],
+    "image": {
+      "sheet": "drinks",
+      "slot": 15
+    }
+  },
+  {
+    "key": "coffee-beans",
+    "names": {
+      "fr": "Café en grains",
+      "en": "Coffee beans",
+      "ar": "حبوب قهوة"
+    },
+    "aliases": [
+      "grain cafe"
+    ],
+    "image": {
+      "sheet": "beverages",
+      "slot": 0
+    }
+  },
+  {
+    "key": "instant-coffee",
+    "names": {
+      "fr": "Café soluble",
+      "en": "Instant coffee",
+      "ar": "قهوة سريعة الذوبان"
+    },
+    "aliases": [
+      "café instantané"
+    ],
+    "image": {
+      "sheet": "beverages",
+      "slot": 1
+    }
+  },
+  {
+    "key": "hot-chocolate",
+    "names": {
+      "fr": "Chocolat en poudre",
+      "en": "Hot chocolate powder",
+      "ar": "مسحوق شوكولاتة ساخنة"
+    },
+    "aliases": [
+      "cacao",
+      "chocolat chaud"
+    ],
+    "image": {
+      "sheet": "beverages",
+      "slot": 2
+    }
+  },
+  {
+    "key": "coffee-milk-portions",
+    "names": {
+      "fr": "Dosettes de lait pour café",
+      "en": "Coffee milk portions",
+      "ar": "عبوات حليب للقهوة"
+    },
+    "aliases": [
+      "crème café",
+      "creamer"
+    ],
+    "image": {
+      "sheet": "beverages",
+      "slot": 3
+    }
+  },
+  {
+    "key": "oat-drink",
+    "names": {
+      "fr": "Boisson à l’avoine",
+      "en": "Oat drink",
+      "ar": "مشروب شوفان"
+    },
+    "aliases": [
+      "lait avoine",
+      "lait végétal"
+    ],
+    "image": {
+      "sheet": "beverages",
+      "slot": 4
+    }
+  },
+  {
+    "key": "almond-drink",
+    "names": {
+      "fr": "Boisson à l’amande",
+      "en": "Almond drink",
+      "ar": "مشروب لوز"
+    },
+    "aliases": [
+      "lait amande",
+      "lait végétal"
+    ],
+    "image": {
+      "sheet": "beverages",
+      "slot": 5
+    }
+  },
+  {
+    "key": "soy-drink",
+    "names": {
+      "fr": "Boisson au soja",
+      "en": "Soy drink",
+      "ar": "مشروب صويا"
+    },
+    "aliases": [
+      "lait soja",
+      "lait végétal"
+    ],
+    "image": {
+      "sheet": "beverages",
+      "slot": 6
+    }
+  },
+  {
+    "key": "coconut-water",
+    "names": {
+      "fr": "Eau de coco",
+      "en": "Coconut water",
+      "ar": "ماء جوز الهند"
+    },
+    "aliases": [
+      "boisson coco"
+    ],
+    "image": {
+      "sheet": "beverages",
+      "slot": 7
+    }
+  },
+  {
+    "key": "smoothie",
+    "names": {
+      "fr": "Smoothie aux fruits",
+      "en": "Fruit smoothie",
+      "ar": "سموثي فواكه"
+    },
+    "aliases": [
+      "jus frais"
+    ],
+    "image": {
+      "sheet": "beverages",
+      "slot": 8
+    }
+  },
+  {
+    "key": "sparkling-fruit-drink",
+    "names": {
+      "fr": "Pétillant de fruits sans alcool",
+      "en": "Alcohol-free sparkling fruit drink",
+      "ar": "مشروب فواكه فوار بدون كحول"
+    },
+    "aliases": [
+      "pétillant sans alcool",
+      "jus raisin"
+    ],
+    "image": {
+      "sheet": "beverages",
+      "slot": 9
+    }
+  },
+  {
+    "key": "beer-bottle",
+    "names": {
+      "fr": "Bière en bouteille",
+      "en": "Bottled beer",
+      "ar": "بيرة في زجاجة"
+    },
+    "aliases": [
+      "bière minibar"
+    ],
+    "image": {
+      "sheet": "beverages",
+      "slot": 10
+    }
+  },
+  {
+    "key": "beer-can",
+    "names": {
+      "fr": "Bière en canette",
+      "en": "Beer can",
+      "ar": "علبة بيرة"
+    },
+    "aliases": [
+      "bière 33 cl"
+    ],
+    "image": {
+      "sheet": "beverages",
+      "slot": 11
+    }
+  },
+  {
+    "key": "alcohol-free-beer",
+    "names": {
+      "fr": "Bière sans alcool",
+      "en": "Alcohol-free beer",
+      "ar": "بيرة بدون كحول"
+    },
+    "aliases": [
+      "bière 0.0"
+    ],
+    "image": {
+      "sheet": "beverages",
+      "slot": 12
+    }
+  },
+  {
+    "key": "red-wine",
+    "names": {
+      "fr": "Vin rouge",
+      "en": "Red wine",
+      "ar": "نبيذ أحمر"
+    },
+    "aliases": [
+      "bouteille vin rouge"
+    ],
+    "image": {
+      "sheet": "beverages",
+      "slot": 13
+    }
+  },
+  {
+    "key": "white-wine",
+    "names": {
+      "fr": "Vin blanc",
+      "en": "White wine",
+      "ar": "نبيذ أبيض"
+    },
+    "aliases": [
+      "bouteille vin blanc"
+    ],
+    "image": {
+      "sheet": "beverages",
+      "slot": 14
+    }
+  },
+  {
+    "key": "champagne",
+    "names": {
+      "fr": "Champagne",
+      "en": "Champagne",
+      "ar": "شمبانيا"
+    },
+    "aliases": [
+      "vin pétillant",
+      "celebration"
+    ],
+    "image": {
+      "sheet": "beverages",
+      "slot": 15
+    }
+  },
+  {
+    "key": "croissants",
+    "names": {
+      "fr": "Croissants",
+      "en": "Croissants",
+      "ar": "كرواسون"
+    },
+    "aliases": [
+      "viennoiseries"
+    ],
+    "image": {
+      "sheet": "breakfast",
+      "slot": 0
+    }
+  },
+  {
+    "key": "pain-au-chocolat",
+    "names": {
+      "fr": "Pains au chocolat",
+      "en": "Chocolate pastries",
+      "ar": "معجنات بالشوكولاتة"
+    },
+    "aliases": [
+      "chocolatine",
+      "viennoiseries"
+    ],
+    "image": {
+      "sheet": "breakfast",
+      "slot": 1
+    }
+  },
+  {
+    "key": "baguette",
+    "names": {
+      "fr": "Baguette",
+      "en": "Baguette",
+      "ar": "خبز باغيت"
+    },
+    "aliases": [
+      "pain frais"
+    ],
+    "image": {
+      "sheet": "breakfast",
+      "slot": 2
+    }
+  },
+  {
+    "key": "sliced-bread",
+    "names": {
+      "fr": "Pain de mie",
+      "en": "Sliced bread",
+      "ar": "خبز توست"
+    },
+    "aliases": [
+      "toast"
+    ],
+    "image": {
+      "sheet": "breakfast",
+      "slot": 3
+    }
+  },
+  {
+    "key": "brioche",
+    "names": {
+      "fr": "Brioche",
+      "en": "Brioche",
+      "ar": "خبز بريوش"
+    },
+    "aliases": [
+      "pain brioché"
+    ],
+    "image": {
+      "sheet": "breakfast",
+      "slot": 4
+    }
+  },
+  {
+    "key": "rusks",
+    "names": {
+      "fr": "Biscottes",
+      "en": "Rusks",
+      "ar": "خبز محمص"
+    },
+    "aliases": [
+      "toast grillé"
+    ],
+    "image": {
+      "sheet": "breakfast",
+      "slot": 5
+    }
+  },
+  {
+    "key": "granola",
+    "names": {
+      "fr": "Granola",
+      "en": "Granola",
+      "ar": "جرانولا"
+    },
+    "aliases": [
+      "muesli croustillant",
+      "céréales"
+    ],
+    "image": {
+      "sheet": "breakfast",
+      "slot": 6
+    }
+  },
+  {
+    "key": "cornflakes",
+    "names": {
+      "fr": "Corn flakes",
+      "en": "Corn flakes",
+      "ar": "رقائق الذرة"
+    },
+    "aliases": [
+      "céréales maïs"
+    ],
+    "image": {
+      "sheet": "breakfast",
+      "slot": 7
+    }
+  },
+  {
+    "key": "porridge-oats",
+    "names": {
+      "fr": "Flocons d’avoine",
+      "en": "Porridge oats",
+      "ar": "رقائق شوفان"
+    },
+    "aliases": [
+      "porridge"
+    ],
+    "image": {
+      "sheet": "breakfast",
+      "slot": 8
+    }
+  },
+  {
+    "key": "strawberry-jam",
+    "names": {
+      "fr": "Confiture de fraises",
+      "en": "Strawberry jam",
+      "ar": "مربى فراولة"
+    },
+    "aliases": [
+      "pot confiture"
+    ],
+    "image": {
+      "sheet": "breakfast",
+      "slot": 9
+    }
+  },
+  {
+    "key": "apricot-jam",
+    "names": {
+      "fr": "Confiture d’abricots",
+      "en": "Apricot jam",
+      "ar": "مربى مشمش"
+    },
+    "aliases": [
+      "confiture abricot"
+    ],
+    "image": {
+      "sheet": "breakfast",
+      "slot": 10
+    }
+  },
+  {
+    "key": "jam-portions",
+    "names": {
+      "fr": "Confitures individuelles",
+      "en": "Individual jam portions",
+      "ar": "عبوات مربى فردية"
+    },
+    "aliases": [
+      "mini confiture",
+      "dosette confiture"
+    ],
+    "image": {
+      "sheet": "breakfast",
+      "slot": 11
+    }
+  },
+  {
+    "key": "honey",
+    "names": {
+      "fr": "Miel",
+      "en": "Honey",
+      "ar": "عسل"
+    },
+    "aliases": [
+      "pot miel"
+    ],
+    "image": {
+      "sheet": "breakfast",
+      "slot": 12
+    }
+  },
+  {
+    "key": "hazelnut-spread",
+    "names": {
+      "fr": "Pâte à tartiner",
+      "en": "Hazelnut chocolate spread",
+      "ar": "كريمة بندق بالشوكولاتة"
+    },
+    "aliases": [
+      "chocolat tartiner"
+    ],
+    "image": {
+      "sheet": "breakfast",
+      "slot": 13
+    }
+  },
+  {
+    "key": "peanut-butter",
+    "names": {
+      "fr": "Beurre de cacahuètes",
+      "en": "Peanut butter",
+      "ar": "زبدة فول سوداني"
+    },
+    "aliases": [
+      "beurre cacahuète"
+    ],
+    "image": {
+      "sheet": "breakfast",
+      "slot": 14
+    }
+  },
+  {
+    "key": "pancakes",
+    "names": {
+      "fr": "Pancakes",
+      "en": "Pancakes",
+      "ar": "بان كيك"
+    },
+    "aliases": [
+      "crêpes américaines"
+    ],
+    "image": {
+      "sheet": "breakfast",
+      "slot": 15
+    }
+  },
+  {
+    "key": "pasta",
+    "names": {
+      "fr": "Pâtes",
+      "en": "Pasta",
+      "ar": "معكرونة"
+    },
+    "aliases": [
+      "épicerie pâtes"
+    ],
+    "image": {
+      "sheet": "pantry",
+      "slot": 0
+    }
+  },
+  {
+    "key": "rice",
+    "names": {
+      "fr": "Riz",
+      "en": "Rice",
+      "ar": "أرز"
+    },
+    "aliases": [
+      "épicerie riz"
+    ],
+    "image": {
+      "sheet": "pantry",
+      "slot": 1
+    }
+  },
+  {
+    "key": "couscous",
+    "names": {
+      "fr": "Semoule de couscous",
+      "en": "Couscous",
+      "ar": "كسكس"
+    },
+    "aliases": [
+      "semoule"
+    ],
+    "image": {
+      "sheet": "pantry",
+      "slot": 2
+    }
+  },
+  {
+    "key": "quinoa",
+    "names": {
+      "fr": "Quinoa",
+      "en": "Quinoa",
+      "ar": "كينوا"
+    },
+    "aliases": [
+      "céréales quinoa"
+    ],
+    "image": {
+      "sheet": "pantry",
+      "slot": 3
+    }
+  },
+  {
+    "key": "flour",
+    "names": {
+      "fr": "Farine",
+      "en": "Flour",
+      "ar": "دقيق"
+    },
+    "aliases": [
+      "farine blé"
+    ],
+    "image": {
+      "sheet": "pantry",
+      "slot": 4
+    }
+  },
+  {
+    "key": "sugar-cubes",
+    "names": {
+      "fr": "Sucre en morceaux",
+      "en": "Sugar cubes",
+      "ar": "مكعبات سكر"
+    },
+    "aliases": [
+      "morceaux sucre"
+    ],
+    "image": {
+      "sheet": "pantry",
+      "slot": 5
+    }
+  },
+  {
+    "key": "olive-oil",
+    "names": {
+      "fr": "Huile d’olive",
+      "en": "Olive oil",
+      "ar": "زيت زيتون"
+    },
+    "aliases": [
+      "huile cuisine"
+    ],
+    "image": {
+      "sheet": "pantry",
+      "slot": 6
+    }
+  },
+  {
+    "key": "cooking-oil",
+    "names": {
+      "fr": "Huile de tournesol",
+      "en": "Sunflower oil",
+      "ar": "زيت دوار الشمس"
+    },
+    "aliases": [
+      "huile cuisson"
+    ],
+    "image": {
+      "sheet": "pantry",
+      "slot": 7
+    }
+  },
+  {
+    "key": "balsamic-vinegar",
+    "names": {
+      "fr": "Vinaigre balsamique",
+      "en": "Balsamic vinegar",
+      "ar": "خل بلسمي"
+    },
+    "aliases": [
+      "vinaigre alimentaire"
+    ],
+    "image": {
+      "sheet": "pantry",
+      "slot": 8
+    }
+  },
+  {
+    "key": "tomato-sauce",
+    "names": {
+      "fr": "Sauce tomate",
+      "en": "Tomato sauce",
+      "ar": "صلصة طماطم"
+    },
+    "aliases": [
+      "sauce pâtes"
+    ],
+    "image": {
+      "sheet": "pantry",
+      "slot": 9
+    }
+  },
+  {
+    "key": "pesto",
+    "names": {
+      "fr": "Pesto",
+      "en": "Pesto",
+      "ar": "صلصة بيستو"
+    },
+    "aliases": [
+      "sauce basilic"
+    ],
+    "image": {
+      "sheet": "pantry",
+      "slot": 10
+    }
+  },
+  {
+    "key": "canned-tuna",
+    "names": {
+      "fr": "Thon en conserve",
+      "en": "Canned tuna",
+      "ar": "تونة معلبة"
+    },
+    "aliases": [
+      "conserve poisson"
+    ],
+    "image": {
+      "sheet": "pantry",
+      "slot": 11
+    }
+  },
+  {
+    "key": "canned-chickpeas",
+    "names": {
+      "fr": "Pois chiches en conserve",
+      "en": "Canned chickpeas",
+      "ar": "حمص معلب"
+    },
+    "aliases": [
+      "conserve légumes"
+    ],
+    "image": {
+      "sheet": "pantry",
+      "slot": 12
+    }
+  },
+  {
+    "key": "soup",
+    "names": {
+      "fr": "Soupe",
+      "en": "Soup",
+      "ar": "حساء"
+    },
+    "aliases": [
+      "potage"
+    ],
+    "image": {
+      "sheet": "pantry",
+      "slot": 13
+    }
+  },
+  {
+    "key": "mustard",
+    "names": {
+      "fr": "Moutarde",
+      "en": "Mustard",
+      "ar": "خردل"
+    },
+    "aliases": [
+      "condiment"
+    ],
+    "image": {
+      "sheet": "pantry",
+      "slot": 14
+    }
+  },
+  {
+    "key": "ketchup",
+    "names": {
+      "fr": "Ketchup",
+      "en": "Ketchup",
+      "ar": "كاتشب"
+    },
+    "aliases": [
+      "sauce condiment"
+    ],
+    "image": {
+      "sheet": "pantry",
+      "slot": 15
+    }
+  },
+  {
+    "key": "apples",
+    "names": {
+      "fr": "Pommes",
+      "en": "Apples",
+      "ar": "تفاح"
+    },
+    "aliases": [
+      "fruits frais"
+    ],
+    "image": {
+      "sheet": "fresh-food",
+      "slot": 0
+    }
+  },
+  {
+    "key": "bananas",
+    "names": {
+      "fr": "Bananes",
+      "en": "Bananas",
+      "ar": "موز"
+    },
+    "aliases": [
+      "fruits frais"
+    ],
+    "image": {
+      "sheet": "fresh-food",
+      "slot": 1
+    }
+  },
+  {
+    "key": "oranges",
+    "names": {
+      "fr": "Oranges",
+      "en": "Oranges",
+      "ar": "برتقال"
+    },
+    "aliases": [
+      "fruits frais"
+    ],
+    "image": {
+      "sheet": "fresh-food",
+      "slot": 2
+    }
+  },
+  {
+    "key": "pears",
+    "names": {
+      "fr": "Poires",
+      "en": "Pears",
+      "ar": "كمثرى"
+    },
+    "aliases": [
+      "fruits frais"
+    ],
+    "image": {
+      "sheet": "fresh-food",
+      "slot": 3
+    }
+  },
+  {
+    "key": "grapes",
+    "names": {
+      "fr": "Raisin",
+      "en": "Grapes",
+      "ar": "عنب"
+    },
+    "aliases": [
+      "fruits frais"
+    ],
+    "image": {
+      "sheet": "fresh-food",
+      "slot": 4
+    }
+  },
+  {
+    "key": "strawberries",
+    "names": {
+      "fr": "Fraises",
+      "en": "Strawberries",
+      "ar": "فراولة"
+    },
+    "aliases": [
+      "fruits rouges"
+    ],
+    "image": {
+      "sheet": "fresh-food",
+      "slot": 5
+    }
+  },
+  {
+    "key": "lemons",
+    "names": {
+      "fr": "Citrons",
+      "en": "Lemons",
+      "ar": "ليمون"
+    },
+    "aliases": [
+      "agrumes"
+    ],
+    "image": {
+      "sheet": "fresh-food",
+      "slot": 6
+    }
+  },
+  {
+    "key": "eggs",
+    "names": {
+      "fr": "Œufs",
+      "en": "Eggs",
+      "ar": "بيض"
+    },
+    "aliases": [
+      "oeufs petit déjeuner"
+    ],
+    "image": {
+      "sheet": "fresh-food",
+      "slot": 7
+    }
+  },
+  {
+    "key": "butter",
+    "names": {
+      "fr": "Beurre",
+      "en": "Butter",
+      "ar": "زبدة"
+    },
+    "aliases": [
+      "produit laitier"
+    ],
+    "image": {
+      "sheet": "fresh-food",
+      "slot": 8
+    }
+  },
+  {
+    "key": "butter-portions",
+    "names": {
+      "fr": "Beurre en portions",
+      "en": "Butter portions",
+      "ar": "حصص زبدة فردية"
+    },
+    "aliases": [
+      "beurre individuel"
+    ],
+    "image": {
+      "sheet": "fresh-food",
+      "slot": 9
+    }
+  },
+  {
+    "key": "plain-yogurt",
+    "names": {
+      "fr": "Yaourts nature",
+      "en": "Plain yogurts",
+      "ar": "زبادي سادة"
+    },
+    "aliases": [
+      "yaourt laitier"
+    ],
+    "image": {
+      "sheet": "fresh-food",
+      "slot": 10
+    }
+  },
+  {
+    "key": "fruit-yogurt",
+    "names": {
+      "fr": "Yaourts aux fruits",
+      "en": "Fruit yogurts",
+      "ar": "زبادي بالفواكه"
+    },
+    "aliases": [
+      "yaourt fraise"
+    ],
+    "image": {
+      "sheet": "fresh-food",
+      "slot": 11
+    }
+  },
+  {
+    "key": "cheese",
+    "names": {
+      "fr": "Fromage",
+      "en": "Cheese",
+      "ar": "جبن"
+    },
+    "aliases": [
+      "fromage portion"
+    ],
+    "image": {
+      "sheet": "fresh-food",
+      "slot": 12
+    }
+  },
+  {
+    "key": "cream-cheese",
+    "names": {
+      "fr": "Fromage à tartiner",
+      "en": "Cream cheese",
+      "ar": "جبن قابل للدهن"
+    },
+    "aliases": [
+      "fromage frais"
+    ],
+    "image": {
+      "sheet": "fresh-food",
+      "slot": 13
+    }
+  },
+  {
+    "key": "ham",
+    "names": {
+      "fr": "Jambon tranché",
+      "en": "Sliced ham",
+      "ar": "شرائح لحم خنزير"
+    },
+    "aliases": [
+      "charcuterie"
+    ],
+    "image": {
+      "sheet": "fresh-food",
+      "slot": 14
+    }
+  },
+  {
+    "key": "smoked-salmon",
+    "names": {
+      "fr": "Saumon fumé",
+      "en": "Smoked salmon",
+      "ar": "سلمون مدخن"
+    },
+    "aliases": [
+      "poisson fumé"
+    ],
+    "image": {
+      "sheet": "fresh-food",
+      "slot": 15
+    }
+  },
+  {
+    "key": "crisps",
+    "names": {
+      "fr": "Chips",
+      "en": "Potato crisps",
+      "ar": "رقائق بطاطس"
+    },
+    "aliases": [
+      "snack salé",
+      "aperitif"
+    ],
+    "image": {
+      "sheet": "snacks",
+      "slot": 0
+    }
+  },
+  {
+    "key": "crackers",
+    "names": {
+      "fr": "Crackers salés",
+      "en": "Savoury crackers",
+      "ar": "بسكويت مالح"
+    },
+    "aliases": [
+      "apéritif biscuits salés"
+    ],
+    "image": {
+      "sheet": "snacks",
+      "slot": 1
+    }
+  },
+  {
+    "key": "pretzels",
+    "names": {
+      "fr": "Bretzels",
+      "en": "Pretzels",
+      "ar": "بريتزل"
+    },
+    "aliases": [
+      "apéritif"
+    ],
+    "image": {
+      "sheet": "snacks",
+      "slot": 2
+    }
+  },
+  {
+    "key": "roasted-peanuts",
+    "names": {
+      "fr": "Cacahuètes grillées",
+      "en": "Roasted peanuts",
+      "ar": "فول سوداني محمص"
+    },
+    "aliases": [
+      "apéritif noix"
+    ],
+    "image": {
+      "sheet": "snacks",
+      "slot": 3
+    }
+  },
+  {
+    "key": "almonds",
+    "names": {
+      "fr": "Amandes",
+      "en": "Almonds",
+      "ar": "لوز"
+    },
+    "aliases": [
+      "fruits à coque"
+    ],
+    "image": {
+      "sheet": "snacks",
+      "slot": 4
+    }
+  },
+  {
+    "key": "mixed-nuts",
+    "names": {
+      "fr": "Mélange de noix",
+      "en": "Mixed nuts",
+      "ar": "مكسرات مشكلة"
+    },
+    "aliases": [
+      "fruits secs",
+      "noix apéritif"
+    ],
+    "image": {
+      "sheet": "snacks",
+      "slot": 5
+    }
+  },
+  {
+    "key": "dried-fruit",
+    "names": {
+      "fr": "Fruits séchés",
+      "en": "Dried fruit",
+      "ar": "فواكه مجففة"
+    },
+    "aliases": [
+      "fruits secs"
+    ],
+    "image": {
+      "sheet": "snacks",
+      "slot": 6
+    }
+  },
+  {
+    "key": "olives",
+    "names": {
+      "fr": "Olives",
+      "en": "Olives",
+      "ar": "زيتون"
+    },
+    "aliases": [
+      "apéritif"
+    ],
+    "image": {
+      "sheet": "snacks",
+      "slot": 7
+    }
+  },
+  {
+    "key": "dark-chocolate",
+    "names": {
+      "fr": "Chocolat noir",
+      "en": "Dark chocolate",
+      "ar": "شوكولاتة داكنة"
+    },
+    "aliases": [
+      "tablette chocolat"
+    ],
+    "image": {
+      "sheet": "snacks",
+      "slot": 8
+    }
+  },
+  {
+    "key": "milk-chocolate",
+    "names": {
+      "fr": "Chocolat au lait",
+      "en": "Milk chocolate",
+      "ar": "شوكولاتة بالحليب"
+    },
+    "aliases": [
+      "tablette chocolat"
+    ],
+    "image": {
+      "sheet": "snacks",
+      "slot": 9
+    }
+  },
+  {
+    "key": "chocolate-truffles",
+    "names": {
+      "fr": "Truffes au chocolat",
+      "en": "Chocolate truffles",
+      "ar": "كرات شوكولاتة"
+    },
+    "aliases": [
+      "chocolats cadeau"
+    ],
+    "image": {
+      "sheet": "snacks",
+      "slot": 10
+    }
+  },
+  {
+    "key": "cereal-bars",
+    "names": {
+      "fr": "Barres de céréales",
+      "en": "Cereal bars",
+      "ar": "ألواح حبوب"
+    },
+    "aliases": [
+      "snack céréales"
+    ],
+    "image": {
+      "sheet": "snacks",
+      "slot": 11
+    }
+  },
+  {
+    "key": "cookies",
+    "names": {
+      "fr": "Cookies",
+      "en": "Cookies",
+      "ar": "كوكيز"
+    },
+    "aliases": [
+      "biscuit chocolat"
+    ],
+    "image": {
+      "sheet": "snacks",
+      "slot": 12
+    }
+  },
+  {
+    "key": "madeleines",
+    "names": {
+      "fr": "Madeleines",
+      "en": "Madeleines",
+      "ar": "مادلين"
+    },
+    "aliases": [
+      "gâteau accueil"
+    ],
+    "image": {
+      "sheet": "snacks",
+      "slot": 13
+    }
+  },
+  {
+    "key": "candies",
+    "names": {
+      "fr": "Bonbons",
+      "en": "Sweets",
+      "ar": "حلوى"
+    },
+    "aliases": [
+      "friandise",
+      "confiserie"
+    ],
+    "image": {
+      "sheet": "snacks",
+      "slot": 14
+    }
+  },
+  {
+    "key": "fruit-compote",
+    "names": {
+      "fr": "Compotes individuelles",
+      "en": "Individual fruit purées",
+      "ar": "عبوات مهروس فواكه فردية"
+    },
+    "aliases": [
+      "compote pomme",
+      "dessert"
+    ],
+    "image": {
+      "sheet": "snacks",
+      "slot": 15
+    }
+  },
+  {
+    "key": "breakfast-basket",
+    "names": {
+      "fr": "Panier petit-déjeuner",
+      "en": "Breakfast basket",
+      "ar": "سلة إفطار"
+    },
+    "aliases": [
+      "pack petit déjeuner",
+      "upsell breakfast"
+    ],
+    "image": {
+      "sheet": "welcome-kits",
+      "slot": 0
+    }
+  },
+  {
+    "key": "fruit-basket",
+    "names": {
+      "fr": "Corbeille de fruits",
+      "en": "Fruit basket",
+      "ar": "سلة فواكه"
+    },
+    "aliases": [
+      "panier fruits",
+      "accueil"
+    ],
+    "image": {
+      "sheet": "welcome-kits",
+      "slot": 1
+    }
+  },
+  {
+    "key": "local-treats-box",
+    "names": {
+      "fr": "Coffret de spécialités locales",
+      "en": "Local delicacies box",
+      "ar": "علبة مأكولات محلية"
+    },
+    "aliases": [
+      "panier gourmand",
+      "cadeau accueil"
+    ],
+    "image": {
+      "sheet": "welcome-kits",
+      "slot": 2
+    }
+  },
+  {
+    "key": "aperitif-box",
+    "names": {
+      "fr": "Coffret apéritif",
+      "en": "Aperitif box",
+      "ar": "علبة مقبلات"
+    },
+    "aliases": [
+      "panier apéro",
+      "upsell"
+    ],
+    "image": {
+      "sheet": "welcome-kits",
+      "slot": 3
+    }
+  },
+  {
+    "key": "coffee-tea-kit",
+    "names": {
+      "fr": "Kit café et thé",
+      "en": "Coffee and tea kit",
+      "ar": "طقم قهوة وشاي"
+    },
+    "aliases": [
+      "plateau courtoisie",
+      "accueil"
+    ],
+    "image": {
+      "sheet": "welcome-kits",
+      "slot": 4
+    }
+  },
+  {
+    "key": "welcome-drinks-pack",
+    "names": {
+      "fr": "Pack boissons d’accueil",
+      "en": "Welcome drinks pack",
+      "ar": "مجموعة مشروبات ترحيبية"
+    },
+    "aliases": [
+      "minibar",
+      "pack boissons",
+      "upsell"
+    ],
+    "image": {
+      "sheet": "welcome-kits",
+      "slot": 5
+    }
+  },
+  {
+    "key": "snack-box",
+    "names": {
+      "fr": "Coffret de snacks",
+      "en": "Snack box",
+      "ar": "علبة وجبات خفيفة"
+    },
+    "aliases": [
+      "minibar",
+      "pack snack"
+    ],
+    "image": {
+      "sheet": "welcome-kits",
+      "slot": 6
+    }
+  },
+  {
+    "key": "picnic-basket",
+    "names": {
+      "fr": "Panier pique-nique",
+      "en": "Picnic basket",
+      "ar": "سلة نزهة"
+    },
+    "aliases": [
+      "pique nique",
+      "repas upsell"
+    ],
+    "image": {
+      "sheet": "welcome-kits",
+      "slot": 7
+    }
+  },
+  {
+    "key": "cheese-board",
+    "names": {
+      "fr": "Plateau de fromages",
+      "en": "Cheese board",
+      "ar": "طبق أجبان"
+    },
+    "aliases": [
+      "planche fromage",
+      "upsell"
+    ],
+    "image": {
+      "sheet": "welcome-kits",
+      "slot": 8
+    }
+  },
+  {
+    "key": "charcuterie-board",
+    "names": {
+      "fr": "Plateau de charcuterie",
+      "en": "Charcuterie board",
+      "ar": "طبق لحوم باردة"
+    },
+    "aliases": [
+      "planche charcuterie",
+      "upsell"
+    ],
+    "image": {
+      "sheet": "welcome-kits",
+      "slot": 9
+    }
+  },
+  {
+    "key": "chocolate-gift-box",
+    "names": {
+      "fr": "Coffret de chocolats",
+      "en": "Chocolate gift box",
+      "ar": "علبة شوكولاتة هدية"
+    },
+    "aliases": [
+      "cadeau gourmand",
+      "romantique"
+    ],
+    "image": {
+      "sheet": "welcome-kits",
+      "slot": 10
+    }
+  },
+  {
+    "key": "kids-snack-box",
+    "names": {
+      "fr": "Goûter enfant",
+      "en": "Children’s snack box",
+      "ar": "علبة وجبة خفيفة للأطفال"
+    },
+    "aliases": [
+      "goûter",
+      "pack enfant",
+      "upsell"
+    ],
+    "image": {
+      "sheet": "welcome-kits",
+      "slot": 11
+    }
+  },
+  {
+    "key": "pasta-meal-kit",
+    "names": {
+      "fr": "Kit repas pâtes",
+      "en": "Pasta meal kit",
+      "ar": "طقم وجبة معكرونة"
+    },
+    "aliases": [
+      "kit dîner",
+      "panier repas"
+    ],
+    "image": {
+      "sheet": "welcome-kits",
+      "slot": 12
+    }
+  },
+  {
+    "key": "breakfast-cereal-kit",
+    "names": {
+      "fr": "Kit petit-déjeuner céréales",
+      "en": "Cereal breakfast kit",
+      "ar": "طقم إفطار بالحبوب"
+    },
+    "aliases": [
+      "pack céréales petit déjeuner"
+    ],
+    "image": {
+      "sheet": "welcome-kits",
+      "slot": 13
+    }
+  },
+  {
+    "key": "romantic-welcome",
+    "names": {
+      "fr": "Coffret accueil romantique",
+      "en": "Romantic welcome box",
+      "ar": "علبة ترحيب رومانسية"
+    },
+    "aliases": [
+      "romantique",
+      "champagne",
+      "upsell"
+    ],
+    "image": {
+      "sheet": "welcome-kits",
+      "slot": 14
+    }
+  },
+  {
+    "key": "brunch-box",
+    "names": {
+      "fr": "Box brunch",
+      "en": "Brunch box",
+      "ar": "علبة برانش"
+    },
+    "aliases": [
+      "panier brunch",
+      "upsell"
+    ],
+    "image": {
+      "sheet": "welcome-kits",
+      "slot": 15
+    }
+  }
+]

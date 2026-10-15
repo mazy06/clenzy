@@ -18,7 +18,16 @@ export interface PaymentRecord {
 
 export interface CreatePaymentSessionRequest {
   interventionId: number;
+  /** Cross-check only: the server charges its own amount and refuses a mismatch. */
   amount: number;
+}
+
+export interface PayableSummary {
+  interventionId: number;
+  amount: number | null;
+  currency: string;
+  paymentStatus: string;
+  payable: boolean;
 }
 
 export interface PaymentSessionResponse {
@@ -39,27 +48,13 @@ export interface PaymentSummary {
   transactionCount: number;
 }
 
-// ─── Payment Sheet (native mobile payments) ─────────────────────────────────
-
-export interface PaymentSheetRequest {
-  type: 'subscription' | 'intervention';
-  forfait?: string;
-  interventionId?: number;
-  amount?: number;
-}
-
-export interface PaymentSheetResponse {
-  paymentIntent: string;
-  ephemeralKey: string;
-  customer: string;
-  publishableKey: string;
-}
-
-export interface StripeConfigResponse {
-  publishableKey: string;
-}
 
 export const paymentsApi = {
+  /** Amount still due, computed by the server exactly as the checkout will charge it. */
+  getPayable(interventionId: number) {
+    return apiClient.get<PayableSummary>(`/payments/${interventionId}/payable`);
+  },
+
   createSession(request: CreatePaymentSessionRequest) {
     return apiClient.post<PaymentSessionResponse>('/payments/create-session', request);
   },
@@ -110,16 +105,6 @@ export const paymentsApi = {
         return { content: [], totalElements: 0, totalPages: 0 } as unknown as PaginatedResponse<PaymentRecord>;
       }
     }
-  },
-
-  // ─── Payment Sheet endpoints ──────────────────────────────────────────────
-
-  createPaymentSheet(request: PaymentSheetRequest) {
-    return apiClient.post<PaymentSheetResponse>('/mobile/payment-sheet', request);
-  },
-
-  getStripeConfig() {
-    return apiClient.get<StripeConfigResponse>('/mobile/stripe-config');
   },
 
   async getSummary(): Promise<PaymentSummary> {

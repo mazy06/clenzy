@@ -332,6 +332,15 @@ public class UserService {
     @Transactional
     public void updateOwnProfile(String keycloakId, Map<String, String> updates) {
         User user = requireByKeycloakId(keycloakId);
+        for (String field : List.of("firstName", "lastName")) {
+            if (!updates.containsKey(field)) continue;
+            String value = updates.get(field);
+            if (value == null || value.isBlank() || value.trim().length() > 100)
+                throw new org.springframework.web.server.ResponseStatusException(
+                    org.springframework.http.HttpStatus.BAD_REQUEST, "Nom invalide.");
+            if (field.equals("firstName")) user.setFirstName(value.trim());
+            else user.setLastName(value.trim());
+        }
         if (updates.containsKey("phoneNumber")) {
             user.setPhoneNumber(updates.get("phoneNumber"));
         }

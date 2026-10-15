@@ -1,5 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { interventionsApi, type Intervention, type InterventionListParams } from '@/api/endpoints/interventionsApi';
+import { BAITLY_QUERY_ROOT } from '@/config/baitlyCache';
 
 const KEYS = {
   all: ['interventions'] as const,
@@ -62,6 +63,7 @@ export function useCreateIntervention() {
     mutationFn: (data: Partial<Intervention>) => interventionsApi.create(data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: KEYS.all });
+      queryClient.invalidateQueries({queryKey:[BAITLY_QUERY_ROOT]});
     },
   });
 }

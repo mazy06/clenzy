@@ -798,7 +798,7 @@ export function PropertyDetailScreen() {
               <MenuTile
                 icon="layers-outline"
                 label="Vue d'ensemble"
-                subtitle="Infos, tarifs, menage"
+                subtitle="Infos, tarifs, ménage"
                 color={theme.colors.primary.main}
                 onPress={() => navigation.navigate('PropertyOverview', { propertyId })}
                 theme={theme}

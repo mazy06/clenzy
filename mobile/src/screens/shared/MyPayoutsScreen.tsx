@@ -20,7 +20,7 @@ import {
 // Historique des versements de missions + onboarding Stripe Connect Express.
 // Les composants embarqués @stripe/connect-js étant WEB-ONLY, l'onboarding
 // mobile passe par un AccountLink hébergé ouvert dans un navigateur in-app
-// (expo-web-browser, même pattern que useStripeCheckout) ; au retour, l'écran
+// (expo-web-browser, même pattern que l’écran de paiement d’intervention) ; au retour, l'écran
 // re-synchronise le statut via /refresh-status.
 
 const PAYOUTS_KEY = ['housekeeper-payouts', 'me'];

@@ -1,3 +1,5 @@
+import { Image } from 'expo-image';
+import { BaitlyHeader, BaitlyHeaderAction } from '@/design-system/BaitlyHeader';
 import React, { useCallback, useMemo, useState } from 'react';
 import { View, Text, ScrollView, Pressable, RefreshControl, Linking, Alert, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -20,7 +22,7 @@ import { useTheme } from '@/theme';
 
 type IconName = keyof typeof Reicon.glyphMap;
 
-type RouteParams = { ReservationDetail: { reservationId: number } };
+type RouteParams = { ReservationDetail: { reservationId: number; initialTab?: 'paiement' } };
 
 type TabKey = 'infos' | 'paiement' | 'operations' | 'communication';
 
@@ -36,17 +38,17 @@ const TABS: { key: TabKey; label: string; icon: IconName }[] = [
 const STATUS_CONFIG: Record<string, { label: string; color: 'success' | 'warning' | 'error' | 'info' }> = {
   CONFIRMED: { label: 'Confirmee', color: 'success' },
   PENDING: { label: 'En attente', color: 'warning' },
-  CANCELLED: { label: 'Annulee', color: 'error' },
+  CANCELLED: { label: 'Annulée', color: 'error' },
   CHECKED_IN: { label: 'En cours', color: 'info' },
-  CHECKED_OUT: { label: 'Terminee', color: 'success' },
+  CHECKED_OUT: { label: 'Terminée', color: 'success' },
 };
 
 const PAYMENT_STATUS_CONFIG: Record<string, { label: string; color: 'success' | 'warning' | 'error' | 'info' }> = {
-  PAID: { label: 'Paye', color: 'success' },
+  PAID: { label: 'Payé', color: 'success' },
   PENDING: { label: 'En attente', color: 'warning' },
   PROCESSING: { label: 'En cours', color: 'info' },
   FAILED: { label: 'Echoue', color: 'error' },
-  REFUNDED: { label: 'Rembourse', color: 'info' },
+  REFUNDED: { label: 'Remboursé', color: 'info' },
   PARTIALLY_PAID: { label: 'Partiel', color: 'warning' },
 };
 
@@ -266,7 +268,7 @@ function TabInfos({ reservation, theme, openPhone, openEmail }: {
         {reservation.guestPhone && (
           <InfoRow
             icon="call-outline"
-            label="Telephone"
+            label="Téléphone"
             value={reservation.guestPhone}
             onPress={() => openPhone(reservation.guestPhone!)}
             actionIcon="open-outline"
@@ -408,7 +410,7 @@ function TabPaiement({ reservation, theme, onSendPaymentLink, isSendingLink }: {
             </View>
             <View style={{ width: 1, backgroundColor: theme.colors.border.light }} />
             <View style={{ alignItems: 'center', flex: 1 }}>
-              <Text style={{ ...theme.typography.caption, color: theme.colors.text.disabled }}>Paye</Text>
+              <Text style={{ ...theme.typography.caption, color: theme.colors.text.disabled }}>Payé</Text>
               <Text style={{ ...theme.typography.h4, color: theme.colors.success.main, marginTop: 4 }}>
                 {formatCurrency(paidAmount)}
               </Text>
@@ -427,11 +429,11 @@ function TabPaiement({ reservation, theme, onSendPaymentLink, isSendingLink }: {
       {/* Pricing breakdown */}
       {totalPrice > 0 && (
         <>
-          <SectionHeader title="Detail tarifaire" iconName="pricetag-outline" />
+          <SectionHeader title="Détail tarifaire" iconName="pricetag-outline" />
           <Card style={{ marginBottom: theme.SPACING.lg }}>
             <PriceRow label="Prix total" amount={totalPrice} theme={theme} />
-            {cleaningFee > 0 && <PriceRow label="Frais de menage" amount={cleaningFee} theme={theme} />}
-            {touristTax > 0 && <PriceRow label="Taxe de sejour" amount={touristTax} theme={theme} />}
+            {cleaningFee > 0 && <PriceRow label="Frais de ménage" amount={cleaningFee} theme={theme} />}
+            {touristTax > 0 && <PriceRow label="Taxe de séjour" amount={touristTax} theme={theme} />}
             {(cleaningFee > 0 || touristTax > 0) && (
               <>
                 <View style={{ height: 1, backgroundColor: theme.colors.border.light, marginVertical: theme.SPACING.sm }} />
@@ -450,7 +452,7 @@ function TabPaiement({ reservation, theme, onSendPaymentLink, isSendingLink }: {
             {reservation.paidAt && (
               <InfoRow
                 icon="checkmark-circle-outline"
-                label="Paye le"
+                label="Payé le"
                 value={formatDateTime(reservation.paidAt)}
                 theme={theme}
               />
@@ -458,7 +460,7 @@ function TabPaiement({ reservation, theme, onSendPaymentLink, isSendingLink }: {
             {reservation.paymentLinkSentAt && (
               <InfoRow
                 icon="link-outline"
-                label="Lien de paiement envoye"
+                label="Lien de paiement envoyé"
                 value={formatDateTime(reservation.paymentLinkSentAt) +
                   (reservation.paymentLinkEmail ? ` a ${reservation.paymentLinkEmail}` : '')}
                 theme={theme}
@@ -550,7 +552,7 @@ function TabOperations({ reservation, theme }: {
       </Card>
 
       {/* Linked interventions */}
-      <SectionHeader title="Interventions liees" iconName="construct-outline" />
+      <SectionHeader title="Interventions liées" iconName="construct-outline" />
       {interventionsLoading ? (
         <Card style={{ marginBottom: theme.SPACING.lg, padding: theme.SPACING.lg, alignItems: 'center' }}>
           <ActivityIndicator size="small" color={theme.colors.primary.main} />
@@ -561,7 +563,7 @@ function TabOperations({ reservation, theme }: {
             <InterventionCard
               key={intervention.id}
               intervention={intervention}
-              onPress={() => navigation.navigate('InterventionDetail', { interventionId: intervention.id })}
+              onPress={() => navigation.navigate(navigation.getState().routeNames.includes('Mission') ? 'Mission' : 'InterventionDetail', { interventionId: intervention.id })}
             />
           ))}
         </View>
@@ -571,7 +573,7 @@ function TabOperations({ reservation, theme }: {
             compact
             iconName="construct-outline"
             title="Aucune intervention"
-            description="Les interventions de menage et maintenance liees a cette reservation apparaitront ici."
+            description="Les interventions de ménage et maintenance liées a cette réservation apparaîtront ici."
           />
         </Card>
       )}
@@ -700,7 +702,7 @@ function TabCommunication({ reservation, theme }: {
           compact
           iconName="chatbubbles-outline"
           title="Aucun message"
-          description="L'historique des messages avec le voyageur apparaitra ici."
+          description="L'historique des messages avec le voyageur apparaîtra ici."
         />
       </Card>
     </View>
@@ -718,13 +720,13 @@ export function ReservationDetailScreen() {
 
   const { data: reservation, isLoading, isError, error, isRefetching, refetch } = useReservation(reservationId);
 
-  const [activeTab, setActiveTab] = useState<TabKey>('infos');
+  const [activeTab, setActiveTab] = useState<TabKey>(route.params.initialTab ?? 'infos');
   const [showCancelDialog, setShowCancelDialog] = useState(false);
 
   const sendPaymentLinkMutation = useMutation({
     mutationFn: (email?: string) => reservationsApi.sendPaymentLink(reservationId, email),
     onSuccess: () => {
-      Alert.alert('Succes', 'Le lien de paiement a ete envoye.');
+      Alert.alert('Succes', 'Le lien de paiement a été envoyé.');
       queryClient.invalidateQueries({ queryKey: ['reservations', 'detail', reservationId] });
     },
     onError: (err: any) => {
@@ -735,12 +737,12 @@ export function ReservationDetailScreen() {
   const cancelMutation = useMutation({
     mutationFn: (reason: string) => reservationsApi.cancel(reservationId, reason),
     onSuccess: () => {
-      Alert.alert('Succes', 'La reservation a ete annulee.');
+      Alert.alert('Succes', 'La réservation a été annulée.');
       queryClient.invalidateQueries({ queryKey: ['reservations'] });
       navigation.goBack();
     },
     onError: (err: any) => {
-      Alert.alert('Erreur', err?.message || 'Impossible d\'annuler la reservation.');
+      Alert.alert('Erreur', err?.message || 'Impossible d\'annuler la réservation.');
     },
   });
 
@@ -784,7 +786,7 @@ export function ReservationDetailScreen() {
       // No guest email — prompt for email
       Alert.prompt(
         'Email du destinataire',
-        'Aucun email voyageur configure. Saisissez l\'adresse email pour recevoir le lien de paiement.',
+        'Aucun email voyageur configuré. Saisissez l\'adresse email pour recevoir le lien de paiement.',
         (email) => {
           if (email?.trim()) sendPaymentLinkMutation.mutate(email.trim());
         },
@@ -831,7 +833,7 @@ export function ReservationDetailScreen() {
       <SafeAreaView style={{ flex: 1, backgroundColor: theme.colors.background.default }} edges={['top']}>
         <EmptyState
           iconName="warning-outline"
-          title="Reservation introuvable"
+          title="Réservation introuvable"
           description={error ? (error instanceof Error ? error.message : JSON.stringify(error)) : undefined}
           actionLabel="Retour"
           onAction={() => navigation.goBack()}
@@ -854,30 +856,7 @@ export function ReservationDetailScreen() {
         showsVerticalScrollIndicator={false}
         refreshControl={<RefreshControl refreshing={isRefetching} onRefresh={refetch} tintColor={theme.colors.primary.main} />}
       >
-        {/* Header bar */}
-        <View style={{
-          flexDirection: 'row',
-          alignItems: 'center',
-          paddingHorizontal: theme.SPACING.lg,
-          paddingTop: theme.SPACING.lg,
-          paddingBottom: theme.SPACING.md,
-        }}>
-          <Pressable
-            onPress={() => navigation.goBack()}
-            hitSlop={12}
-            style={{
-              width: 36, height: 36, borderRadius: theme.BORDER_RADIUS.md,
-              backgroundColor: theme.colors.background.paper,
-              alignItems: 'center', justifyContent: 'center',
-              marginRight: theme.SPACING.md,
-            }}
-          >
-            <Reicon name="arrow-back" size={20} color={theme.colors.text.primary} />
-          </Pressable>
-          <Text style={{ ...theme.typography.h2, color: theme.colors.text.primary, flex: 1 }}>
-            Reservation
-          </Text>
-        </View>
+        <View style={{ paddingHorizontal: 16, paddingVertical: 6 }}><BaitlyHeader start={<BaitlyHeaderAction icon="chevron-back" label="Retour" onPress={() => navigation.goBack()} />} /></View>
 
         <View style={{ paddingHorizontal: theme.SPACING.lg }}>
 
@@ -911,7 +890,6 @@ export function ReservationDetailScreen() {
             borderRadius: theme.BORDER_RADIUS.lg,
             padding: 4,
             marginBottom: theme.SPACING.lg,
-            ...theme.shadows.xs,
           }}>
             {TABS.map((tab) => {
               const isActive = activeTab === tab.key;
@@ -927,18 +905,14 @@ export function ReservationDetailScreen() {
                     gap: 4,
                     paddingVertical: 10,
                     borderRadius: theme.BORDER_RADIUS.md,
-                    backgroundColor: isActive ? theme.colors.primary.main : 'transparent',
+                    backgroundColor: isActive ? theme.colors.background.surface : 'transparent',
                   }}
                 >
-                  <Reicon
-                    name={tab.icon}
-                    size={14}
-                    color={isActive ? theme.colors.primary.contrastText : theme.colors.text.disabled}
-                  />
+                  <Image source={tab.key === 'paiement' ? require('../../../assets/baitly/sectors/sector-accounting.webp') : tab.key === 'operations' ? require('../../../assets/baitly/navigation/baitly-missions.png') : tab.key === 'communication' ? require('../../../assets/baitly/navigation/baitly-messages.png') : require('../../../assets/baitly/navigation/baitly-properties.png')} style={{width:22,height:24}} contentFit="contain" enforceEarlyResizing accessible={false} />
                   <Text style={{
                     ...theme.typography.caption,
                     fontWeight: isActive ? '700' : '500',
-                    color: isActive ? theme.colors.primary.contrastText : theme.colors.text.disabled,
+                    color: isActive ? theme.colors.text.primary : theme.colors.text.secondary,
                   }}>
                     {tab.label}
                   </Text>

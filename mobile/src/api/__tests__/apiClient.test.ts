@@ -19,8 +19,12 @@ jest.mock('@/store/authStore', () => {
 });
 
 import { useAuthStore } from '@/store/authStore';
+import { useBaitlyDemoProfile } from '@/config/baitlyDemoProfileState';
+import { useBaitlyDataMode } from '@/config/baitlyDataMode';
 
 beforeEach(() => {
+  useBaitlyDemoProfile.getState().select(null);
+  useBaitlyDataMode.getState().setMode('real');
   jest.clearAllMocks();
   mockFetch.mockReset();
   // Reset token
@@ -40,6 +44,26 @@ function mockJsonResponse(data: unknown, status = 200) {
 }
 
 describe('apiClient', () => {
+  it('blocks writes in demo mode even without selecting a fictitious profile',async()=>{
+    useBaitlyDataMode.getState().setMode('demo');
+    const {apiClient}=require('../apiClient');
+    await expect(apiClient.post('/interventions/1/start')).rejects.toMatchObject({status:409});
+    expect(mockFetch).not.toHaveBeenCalled();
+  });
+  it('does not mix private backend data with another demo identity',async()=>{
+    useBaitlyDataMode.getState().setMode('demo');useBaitlyDemoProfile.getState().select('owner');
+    const {apiClient}=require('../apiClient');
+    await expect(apiClient.get('/properties')).rejects.toMatchObject({status:409});expect(mockFetch).not.toHaveBeenCalled();
+  });
+  it('blocks real writes during role previews before sending a request', async () => {
+    useBaitlyDataMode.getState().setMode('demo');
+    useBaitlyDemoProfile.getState().select('owner');
+    const { apiClient } = require('../apiClient');
+    for (const method of ['post', 'put', 'patch', 'delete']) {
+      await expect(apiClient[method]('/me', {})).rejects.toMatchObject({ status: 409 });
+    }
+    expect(mockFetch).not.toHaveBeenCalled();
+  });
   describe('GET', () => {
     it('should make GET request with auth header', async () => {
       mockJsonResponse({ id: 1, name: 'test' });

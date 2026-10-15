@@ -13,21 +13,24 @@ interface CardProps {
 
 export function Card({ children, onPress, style, noPadding = false, elevated = false, variant = 'default' }: CardProps) {
   const theme = useTheme();
+  const [focused, setFocused] = React.useState(false);
 
   const cardStyle: ViewStyle = {
     backgroundColor: variant === 'filled' ? theme.colors.background.surface : theme.colors.background.paper,
-    borderRadius: theme.BORDER_RADIUS.lg,
-    padding: noPadding ? 0 : theme.SPACING.lg,
+    borderRadius: 20,
+    padding: noPadding ? 0 : theme.SPACING.md,
     ...(variant === 'outlined'
       ? { borderWidth: 1, borderColor: theme.colors.border.main }
-      : elevated ? theme.shadows.lg : theme.shadows.sm),
+      : elevated ? theme.shadows.sm : {}),
   };
 
   if (onPress) {
     return (
       <Pressable
         onPress={onPress}
-        style={({ pressed }) => [cardStyle, pressed && { opacity: 0.92, transform: [{ scale: 0.985 }] }, style]}
+        onFocus={() => setFocused(true)} onBlur={() => setFocused(false)}
+        style={({ pressed }) => [cardStyle, pressed && { backgroundColor: theme.colors.background.surface }, style,
+          focused && { borderWidth: 1, borderColor: theme.colors.primary.main }]}
         accessibilityRole="button"
       >
         {children}

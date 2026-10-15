@@ -31,6 +31,7 @@ type RouteParams = {
 
 type FilterKey = 'all' | TemplateCategory;
 
+type ServerTemplate = Partial<MessageTemplate> & { id: number; name?: string; body?: string; type?: string };
 const CATEGORY_CONFIG: Record<string, { label: string; icon: keyof typeof Reicon.glyphMap; color: string; badgeColor: 'primary' | 'success' | 'info' | 'warning' | 'secondary' }> = {
   CHECK_IN: { label: 'Check-in', icon: 'log-in-outline', color: '#059669', badgeColor: 'success' },
   CHECK_OUT: { label: 'Check-out', icon: 'log-out-outline', color: '#D97706', badgeColor: 'warning' },
@@ -52,38 +53,38 @@ const FILTERS: Array<{ key: FilterKey; label: string }> = [
 const DEFAULT_TEMPLATES: MessageTemplate[] = [
   {
     id: 1,
-    title: 'Instructions d\'arrivee',
-    content: 'Bonjour {guest_name}, bienvenue ! Voici les instructions pour votre arrivee a {property_name}. Le check-in est possible a partir de {checkin_time}. Le code de la porte est : {door_code}.',
+    title: 'Instructions d\'arrivée',
+    content: 'Bonjour {guest_name}, bienvenue ! Voici les instructions pour votre arrivée a {property_name}. Le check-in est possible à partir de {checkin_time}. Le code de la porte est : {door_code}.',
     category: 'CHECK_IN',
   },
   {
     id: 2,
     title: 'Rappel check-in',
-    content: 'Bonjour {guest_name}, nous vous rappelons que votre check-in a {property_name} est prevu demain. N\'hesitez pas si vous avez des questions !',
+    content: 'Bonjour {guest_name}, nous vous rappelons que votre check-in a {property_name} est prevu demain. N\'hésitez pas si vous avez des questions !',
     category: 'CHECK_IN',
   },
   {
     id: 3,
-    title: 'Instructions de depart',
-    content: 'Bonjour {guest_name}, nous esperons que votre sejour a ete agreable. Pour le check-out, merci de liberer le logement avant {checkout_time}. Laissez les cles sur la table.',
+    title: 'Instructions de départ',
+    content: 'Bonjour {guest_name}, nous espérons que votre séjour a été agreable. Pour le check-out, merci de libérer le logement avant {checkout_time}. Laissez les cles sur la table.',
     category: 'CHECK_OUT',
   },
   {
     id: 4,
     title: 'Message de bienvenue',
-    content: 'Bienvenue {guest_name} ! Nous sommes ravis de vous accueillir a {property_name}. N\'hesitez pas a nous contacter si vous avez besoin de quoi que ce soit. Bon sejour !',
+    content: 'Bienvenue {guest_name} ! Nous sommes ravis de vous accueillir a {property_name}. N\'hésitez pas a nous contacter si vous avez besoin de quoi que ce soit. Bon séjour !',
     category: 'WELCOME',
   },
   {
     id: 5,
-    title: 'Rappel reservation',
-    content: 'Bonjour {guest_name}, votre reservation a {property_name} du {checkin_date} au {checkout_date} approche. Avez-vous des questions ?',
+    title: 'Rappel réservation',
+    content: 'Bonjour {guest_name}, votre réservation a {property_name} du {checkin_date} au {checkout_date} approche. Avez-vous des questions ?',
     category: 'REMINDER',
   },
   {
     id: 6,
-    title: 'Remerciement post-sejour',
-    content: 'Merci {guest_name} pour votre sejour a {property_name} ! Nous esperons que tout s\'est bien passe. N\'hesitez pas a laisser un avis, cela nous aide beaucoup.',
+    title: 'Remerciement post-séjour',
+    content: 'Merci {guest_name} pour votre séjour a {property_name} ! Nous espérons que tout s\'est bien passe. N\'hésitez pas a laisser un avis, cela nous aide beaucoup.',
     category: 'CUSTOM',
   },
 ];
@@ -151,8 +152,11 @@ export function MessageTemplatesScreen() {
     queryKey: ['message-templates'],
     queryFn: async () => {
       try {
-        const result = await apiClient.get<{ content?: MessageTemplate[] } | MessageTemplate[]>('/message-templates');
-        return Array.isArray(result) ? result : (result as any)?.content ?? DEFAULT_TEMPLATES;
+        const result = await apiClient.get<{ content?: ServerTemplate[] } | ServerTemplate[]>('/message-templates');
+        const list = Array.isArray(result) ? result : result?.content;
+        // Server templates are {name, body, type}; the screen shows {title, content, category}.
+        return list ? list.map(item => ({ ...item, title: item.title ?? item.name ?? '', content: item.content ?? item.body ?? '',
+          category: (item.category ?? item.type ?? 'CUSTOM') as TemplateCategory })) as MessageTemplate[] : DEFAULT_TEMPLATES;
       } catch {
         return DEFAULT_TEMPLATES;
       }

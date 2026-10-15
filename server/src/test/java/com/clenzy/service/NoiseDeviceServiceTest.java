@@ -89,7 +89,7 @@ class NoiseDeviceServiceTest {
         void whenDevicesExist_thenReturnsDtoList() {
             // Arrange
             NoiseDevice device = buildDevice(1L, "Capteur Salon", DeviceType.MINUT);
-            when(noiseDeviceRepository.findByStatus(DeviceStatus.ACTIVE)).thenReturn(List.of(device));
+            when(noiseDeviceRepository.findByOrganizationIdAndStatus(ORG_ID, DeviceStatus.ACTIVE)).thenReturn(List.of(device));
             Property property = buildProperty(1L, "Appart Paris");
             when(propertyRepository.findById(1L)).thenReturn(Optional.of(property));
 
@@ -108,7 +108,7 @@ class NoiseDeviceServiceTest {
         @DisplayName("when no devices then returns empty list")
         void whenNoDevices_thenReturnsEmpty() {
             // Arrange
-            when(noiseDeviceRepository.findByStatus(DeviceStatus.ACTIVE)).thenReturn(List.of());
+            when(noiseDeviceRepository.findByOrganizationIdAndStatus(ORG_ID, DeviceStatus.ACTIVE)).thenReturn(List.of());
 
             // Act
             List<NoiseDeviceDto> result = service.getUserDevices("user-2");
@@ -123,7 +123,7 @@ class NoiseDeviceServiceTest {
             // Arrange
             NoiseDevice d1 = buildDevice(1L, "Capteur A", DeviceType.MINUT);
             NoiseDevice d2 = buildDevice(2L, "Capteur B", DeviceType.TUYA);
-            when(noiseDeviceRepository.findByStatus(DeviceStatus.ACTIVE)).thenReturn(List.of(d1, d2));
+            when(noiseDeviceRepository.findByOrganizationIdAndStatus(ORG_ID, DeviceStatus.ACTIVE)).thenReturn(List.of(d1, d2));
             Property property = buildProperty(1L, "Appart");
             when(propertyRepository.findById(1L)).thenReturn(Optional.of(property));
 
@@ -416,7 +416,7 @@ class NoiseDeviceServiceTest {
         @DisplayName("when no active devices then returns empty chart data")
         void whenNoActiveDevices_thenReturnsEmptyChartData() {
             // Arrange
-            when(noiseDeviceRepository.findByStatus(DeviceStatus.ACTIVE))
+            when(noiseDeviceRepository.findByOrganizationIdAndStatus(ORG_ID, DeviceStatus.ACTIVE))
                     .thenReturn(Collections.emptyList());
 
             // Act
@@ -433,7 +433,7 @@ class NoiseDeviceServiceTest {
             // Arrange
             NoiseDevice device = buildDevice(1L, "Sensor 1", DeviceType.MINUT);
             device.setExternalDeviceId("ext-1");
-            when(noiseDeviceRepository.findByStatus(DeviceStatus.ACTIVE))
+            when(noiseDeviceRepository.findByOrganizationIdAndStatus(ORG_ID, DeviceStatus.ACTIVE))
                     .thenReturn(List.of(device));
 
             Property property = buildProperty(1L, "Paris Apt");
@@ -468,7 +468,7 @@ class NoiseDeviceServiceTest {
             // Arrange
             NoiseDevice device = buildDevice(1L, "Sensor 1", DeviceType.MINUT);
             device.setExternalDeviceId(null); // will return empty
-            when(noiseDeviceRepository.findByStatus(DeviceStatus.ACTIVE))
+            when(noiseDeviceRepository.findByOrganizationIdAndStatus(ORG_ID, DeviceStatus.ACTIVE))
                     .thenReturn(List.of(device));
             when(noiseDeviceRepository.findById(1L)).thenReturn(Optional.of(device));
             when(propertyRepository.findById(1L)).thenReturn(Optional.of(buildProperty(1L, "Apt")));

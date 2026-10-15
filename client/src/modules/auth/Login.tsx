@@ -162,11 +162,12 @@ export default function Login() {
       <div className="mb-6">
         {/* md = 900 px cote MUI (breakpoints non configures), pas les 768 px de
             Tailwind : d'ou la variante exacte `min-[900px]:`. */}
-        <h4 className="font-semibold tracking-tight text-balance text-foreground mb-1.5 text-[1.75rem] min-[900px]:text-[2rem]">
+        <span className="baitly-auth-form-kicker">{t('auth.showcase.loginKicker')}</span>
+        <h1 className="font-semibold tracking-tight text-balance text-foreground mb-1.5 text-[1.75rem] min-[900px]:text-[2rem]">
           {t('auth.login.title', 'Connexion')}
-        </h4>
+        </h1>
         <p className="text-muted-foreground text-[0.95rem] leading-[1.5]">
-          {t('auth.login.subtitle', 'Connecte-toi pour accéder à ton tableau de bord.')}
+          {t('auth.login.subtitle', 'Retrouvez vos réservations, vos équipes et les priorités du jour.')}
         </p>
       </div>
 

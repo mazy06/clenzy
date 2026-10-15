@@ -1,12 +1,12 @@
 import React from 'react';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
-import { useAuthStore } from '@/store/authStore';
-import { HostNavigator } from './HostNavigator';
-import { ManagerNavigator } from './ManagerNavigator';
-import { HousekeeperNavigator } from './HousekeeperNavigator';
-import { TechnicianNavigator } from './TechnicianNavigator';
-import { NotificationsScreen } from '@/screens/host/NotificationsScreen';
+import { BaitlyNotificationsScreen as NotificationsScreen } from '@/features/account/NotificationsScreen';
 import { usePushNotifications } from '@/hooks/usePushNotifications';
+import { BaitlyNavigator } from './BaitlyNavigator';
+import { useBaitlyUser } from '@/config/baitlyDemoProfiles';
+import { useBaitlyDataMode } from '@/config/baitlyDataMode';
+import { useBaitlyTheme } from '@/design-system/theme';
+import { BaitlyHeaderLogo } from '@/design-system/BaitlyHeader';
 
 export type MainStackParamList = {
   Tabs: undefined;
@@ -20,31 +20,18 @@ export function MainNavigator() {
   // enregistre le token Expo au login + branche les listeners (deep-links).
   usePushNotifications();
 
-  const {
-    isSuperAdmin,
-    isSuperManager,
-    isSupervisor,
-    isHost,
-    isHousekeeper,
-    isTechnician,
-  } = useAuthStore();
-
-  // Pick the role-specific tab navigator
-  let RoleNavigator: React.ComponentType = HostNavigator;
-  if (isSuperAdmin() || isSuperManager() || isSupervisor()) {
-    RoleNavigator = ManagerNavigator;
-  } else if (isHousekeeper()) {
-    RoleNavigator = HousekeeperNavigator;
-  } else if (isTechnician()) {
-    RoleNavigator = TechnicianNavigator;
-  } else if (isHost()) {
-    RoleNavigator = HostNavigator;
-  }
+  const user = useBaitlyUser();
+  const mode = useBaitlyDataMode(s=>s.mode);
+  // Every role uses the Baitly navigator; the persona inside it decides tabs and screens.
+  const RoleNavigator: React.ComponentType = BaitlyNavigator;
+  const colors = useBaitlyTheme();
 
   return (
     <Stack.Navigator screenOptions={{ headerShown: false }}>
-      <Stack.Screen name="Tabs" component={RoleNavigator} />
-      <Stack.Screen name="Notifications" component={NotificationsScreen} />
+      <Stack.Screen name="Tabs" component={RoleNavigator} navigationKey={`${user?.id}:${user?.organizationId}:${mode}`} />
+      {/* Opened by push notifications: same look as every Baitly screen, with a way back. */}
+      <Stack.Screen name="Notifications" component={NotificationsScreen} options={{ headerShown: true, headerTitle: BaitlyHeaderLogo, headerTitleAlign: 'center',
+        headerShadowVisible: false, headerBackButtonDisplayMode: 'minimal', headerStyle: { backgroundColor: colors.background }, headerTintColor: colors.ink }} />
     </Stack.Navigator>
   );
 }

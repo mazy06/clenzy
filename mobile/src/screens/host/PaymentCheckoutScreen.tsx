@@ -1,418 +1,105 @@
-import React from 'react';
-import { View, Text, Pressable, ActivityIndicator, ScrollView, Alert } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import { Reicon } from '@/icons';
+import React, { useRef, useState } from 'react';
+import { View } from 'react-native';
+import * as WebBrowser from 'expo-web-browser';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useNavigation, useRoute, type RouteProp } from '@react-navigation/native';
-import { useTheme } from '@/theme';
-import { Card } from '@/components/ui/Card';
-import { Button } from '@/components/ui/Button';
-import { Skeleton } from '@/components/ui/Skeleton';
-import { useIntervention } from '@/hooks/useInterventions';
-import { useNativePayment, type PaymentState } from '@/hooks/useNativePayment';
-import type { DashboardStackParamList } from '@/navigation/HostNavigator';
+import { useTranslation } from 'react-i18next';
+import { BaitlyButton, BaitlyEmpty, BaitlyLoading, BaitlyNotice, BaitlyScreen, BaitlyText } from '@/design-system/components';
+import { BaitlyCard, BaitlyInfoRow, BaitlyPill } from '@/design-system/primitives';
+import { useBaitlyTheme } from '@/design-system/theme';
+import { Reicon } from '@/icons';
+import { paymentsApi } from '@/api/endpoints/paymentsApi';
+import { interventionsApi } from '@/api/endpoints/interventionsApi';
+import { formatMoney } from '@/features/marketplace/domain';
+import { phaseAfterCheck, safeCheckoutUrl, type CheckoutPhase } from '@/features/payments/paymentCheckoutModel';
+import type { BaitlyStackParams } from '@/navigation/BaitlyNavigator';
 
-type IconName = keyof typeof Reicon.glyphMap;
+const CHECKS = 8;
+const CHECK_INTERVAL_MS = 2500;
+const wait = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
-function formatAmount(amount: number): string {
-  return amount.toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-}
-
-function formatDate(dateStr?: string): string {
-  if (!dateStr) return '—';
-  try {
-    return new Date(dateStr).toLocaleDateString('fr-FR', {
-      day: 'numeric',
-      month: 'long',
-      year: 'numeric',
-    });
-  } catch {
-    return dateStr;
-  }
-}
-
-const PAYMENT_METHODS: Array<{ icon: IconName; label: string; color: string }> = [
-  { icon: 'card-outline', label: 'Carte bancaire', color: '#3B82F6' },
-  { icon: 'logo-apple', label: 'Apple Pay', color: '#000000' },
-  { icon: 'logo-google', label: 'Google Pay', color: '#4285F4' },
-];
-
-function CheckoutLoading({ theme }: { theme: ReturnType<typeof useTheme> }) {
-  return (
-    <View style={{ padding: theme.SPACING.lg, gap: theme.SPACING.lg }}>
-      <Skeleton width="60%" height={24} />
-      <Skeleton height={120} borderRadius={theme.BORDER_RADIUS.lg} />
-      <Skeleton height={80} borderRadius={theme.BORDER_RADIUS.lg} />
-      <Skeleton height={56} borderRadius={theme.BORDER_RADIUS.md} />
-    </View>
-  );
-}
-
-function StatusOverlay({
-  state,
-  errorMessage,
-  onRetry,
-  onGoBack,
-  theme,
-}: {
-  state: PaymentState;
-  errorMessage: string | null;
-  onRetry: () => void;
-  onGoBack: () => void;
-  theme: ReturnType<typeof useTheme>;
-}) {
-  if (state === 'loading' || state === 'presenting') {
-    return (
-      <View style={{
-        flex: 1,
-        alignItems: 'center',
-        justifyContent: 'center',
-        paddingHorizontal: theme.SPACING['2xl'],
-        gap: theme.SPACING.lg,
-      }}>
-        <ActivityIndicator size="large" color={theme.colors.primary.main} />
-        <Text style={{ ...theme.typography.h3, color: theme.colors.text.primary, textAlign: 'center' }}>
-          {state === 'loading' ? 'Preparation du paiement...' : 'Paiement en cours...'}
-        </Text>
-        <Text style={{ ...theme.typography.body2, color: theme.colors.text.secondary, textAlign: 'center' }}>
-          Veuillez patienter
-        </Text>
-      </View>
-    );
-  }
-
-  if (state === 'success') {
-    return (
-      <View style={{
-        flex: 1,
-        alignItems: 'center',
-        justifyContent: 'center',
-        paddingHorizontal: theme.SPACING['2xl'],
-        gap: theme.SPACING.lg,
-      }}>
-        <View style={{
-          width: 80,
-          height: 80,
-          borderRadius: 40,
-          backgroundColor: '#05966914',
-          alignItems: 'center',
-          justifyContent: 'center',
-        }}>
-          <Reicon name="checkmark-circle" size={48} color="#059669" />
-        </View>
-        <Text style={{ ...theme.typography.h2, color: '#059669', textAlign: 'center' }}>
-          Paiement confirme
-        </Text>
-        <Text style={{ ...theme.typography.body2, color: theme.colors.text.secondary, textAlign: 'center' }}>
-          Votre intervention a ete validee et sera planifiee prochainement.
-        </Text>
-        <Button
-          title="Retour"
-          onPress={onGoBack}
-          variant="contained"
-          fullWidth
-          size="large"
-          color="success"
-        />
-      </View>
-    );
-  }
-
-  if (state === 'error') {
-    return (
-      <View style={{
-        flex: 1,
-        alignItems: 'center',
-        justifyContent: 'center',
-        paddingHorizontal: theme.SPACING['2xl'],
-        gap: theme.SPACING.lg,
-      }}>
-        <View style={{
-          width: 80,
-          height: 80,
-          borderRadius: 40,
-          backgroundColor: '#EF444414',
-          alignItems: 'center',
-          justifyContent: 'center',
-        }}>
-          <Reicon name="close-circle" size={48} color="#EF4444" />
-        </View>
-        <Text style={{ ...theme.typography.h2, color: '#EF4444', textAlign: 'center' }}>
-          Paiement echoue
-        </Text>
-        <Text style={{ ...theme.typography.body2, color: theme.colors.text.secondary, textAlign: 'center' }}>
-          {errorMessage || 'Une erreur est survenue lors du paiement.'}
-        </Text>
-        <View style={{ width: '100%', gap: theme.SPACING.sm }}>
-          <Button
-            title="Reessayer"
-            onPress={onRetry}
-            variant="contained"
-            fullWidth
-            size="large"
-            color="primary"
-          />
-          <Button
-            title="Retour"
-            onPress={onGoBack}
-            variant="outlined"
-            fullWidth
-            size="large"
-          />
-        </View>
-      </View>
-    );
-  }
-
-  return null;
-}
-
+/**
+ * Paying an intervention. The server picks the payment provider (Stripe today, regional PSPs
+ * later) and returns its secure page; the app opens it, then reads the status the server recorded.
+ */
 export function PaymentCheckoutScreen() {
-  const theme = useTheme();
-  const navigation = useNavigation<any>();
-  const route = useRoute<RouteProp<DashboardStackParamList, 'PaymentCheckout'>>();
-  const { interventionId } = route.params;
+  const { t, i18n } = useTranslation('mobileV1');
+  const c = useBaitlyTheme();
+  const navigation = useNavigation();
+  const cache = useQueryClient();
+  const { interventionId } = useRoute<RouteProp<BaitlyStackParams, 'PaymentCheckout'>>().params;
+  const [phase, setPhase] = useState<CheckoutPhase>('ready');
+  const [error, setError] = useState('');
+  const session = useRef<string | null>(null);
+  const lock = useRef(false);
+  const mission = useQuery({ queryKey: ['payment-mission', interventionId], queryFn: () => interventionsApi.getById(interventionId), retry: false });
+  const payable = useQuery({ queryKey: ['payment-payable', interventionId], queryFn: () => paymentsApi.getPayable(interventionId), retry: false });
+  const amount = payable.data?.amount ?? null;
+  const money = amount != null ? formatMoney(amount, payable.data?.currency, i18n.language) : null;
 
-  const { data: intervention, isLoading, refetch } = useIntervention(interventionId);
-  const { state, error: errorMessage, initAndPresentPaymentSheet, reset } = useNativePayment();
-
-  const amount = intervention?.estimatedCost ?? 0;
-  const isCheckoutActive = state !== 'idle' && state !== 'cancelled';
-
-  const handlePay = async () => {
-    if (!intervention || amount <= 0) return;
-    const amountCents = Math.round(amount * 100);
-    const success = await initAndPresentPaymentSheet({
-      type: 'intervention',
-      interventionId,
-      amount: amountCents,
-    });
-
-    if (success) {
-      refetch();
+  async function check() {
+    if (!session.current) return;
+    setPhase('checking');
+    for (let attempt = 1; attempt <= CHECKS; attempt++) {
+      const status = await paymentsApi.getSessionStatus(session.current).then(r => r.paymentStatus).catch(() => undefined);
+      const next = phaseAfterCheck(status, attempt, CHECKS);
+      if (next !== 'checking') {
+        setPhase(next);
+        if (next === 'paid') await Promise.all([cache.invalidateQueries({ queryKey: ['payments'] }), cache.invalidateQueries({ queryKey: ['interventions'] }), payable.refetch()]);
+        return;
+      }
+      await wait(CHECK_INTERVAL_MS);
     }
-  };
-
-  const handleRetry = () => {
-    reset();
-    handlePay();
-  };
-
-  const handleGoBack = () => {
-    reset();
-    navigation.goBack();
-  };
-
-  if (isLoading) {
-    return (
-      <SafeAreaView style={{ flex: 1, backgroundColor: theme.colors.background.default }} edges={['top']}>
-        <CheckoutLoading theme={theme} />
-      </SafeAreaView>
-    );
   }
 
-  // Show overlay for active checkout states
-  if (isCheckoutActive) {
-    return (
-      <SafeAreaView style={{ flex: 1, backgroundColor: theme.colors.background.default }} edges={['top']}>
-        {/* Header */}
-        <View style={{
-          flexDirection: 'row',
-          alignItems: 'center',
-          paddingHorizontal: theme.SPACING.lg,
-          paddingTop: theme.SPACING.lg,
-          paddingBottom: theme.SPACING.md,
-        }}>
-          <Pressable
-            onPress={handleGoBack}
-            hitSlop={12}
-            style={{
-              width: 36,
-              height: 36,
-              borderRadius: theme.BORDER_RADIUS.md,
-              backgroundColor: theme.colors.background.paper,
-              alignItems: 'center',
-              justifyContent: 'center',
-              marginRight: theme.SPACING.md,
-            }}
-          >
-            <Reicon name="arrow-back" size={20} color={theme.colors.text.primary} />
-          </Pressable>
-          <Text style={{ ...theme.typography.h2, color: theme.colors.text.primary, flex: 1 }}>
-            Paiement
-          </Text>
-        </View>
-
-        <StatusOverlay
-          state={state}
-          errorMessage={errorMessage}
-          onRetry={handleRetry}
-          onGoBack={handleGoBack}
-          theme={theme}
-        />
-      </SafeAreaView>
-    );
+  async function pay() {
+    if (lock.current || amount == null) return;
+    lock.current = true; setError(''); setPhase('opening');
+    try {
+      const created = await paymentsApi.createSession({ interventionId, amount });
+      const url = safeCheckoutUrl(created.url);
+      if (!url) throw new Error('Invalid checkout URL');
+      session.current = created.sessionId;
+      await WebBrowser.openBrowserAsync(url, { dismissButtonStyle: 'close', presentationStyle: WebBrowser.WebBrowserPresentationStyle.FULL_SCREEN });
+      await check();
+    } catch {
+      setPhase('ready'); setError(t('paymentOpenFailed'));
+    } finally { lock.current = false; }
   }
 
-  return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: theme.colors.background.default }} edges={['top']}>
-      {/* Header */}
-      <View style={{
-        flexDirection: 'row',
-        alignItems: 'center',
-        paddingHorizontal: theme.SPACING.lg,
-        paddingTop: theme.SPACING.lg,
-        paddingBottom: theme.SPACING.md,
-      }}>
-        <Pressable
-          onPress={() => navigation.goBack()}
-          hitSlop={12}
-          style={{
-            width: 36,
-            height: 36,
-            borderRadius: theme.BORDER_RADIUS.md,
-            backgroundColor: theme.colors.background.paper,
-            alignItems: 'center',
-            justifyContent: 'center',
-            marginRight: theme.SPACING.md,
-          }}
-        >
-          <Reicon name="arrow-back" size={20} color={theme.colors.text.primary} />
-        </Pressable>
-        <Text style={{ ...theme.typography.h2, color: theme.colors.text.primary, flex: 1 }}>
-          Paiement
-        </Text>
-      </View>
+  if (mission.isPending || payable.isPending) return <BaitlyScreen><BaitlyLoading /></BaitlyScreen>;
+  if (payable.isError) return <BaitlyScreen><BaitlyEmpty title={t('loadFailed')} retry={() => { void payable.refetch(); void mission.refetch(); }} /></BaitlyScreen>;
 
-      <ScrollView
-        contentContainerStyle={{
-          paddingHorizontal: theme.SPACING.lg,
-          paddingBottom: 40,
-          gap: theme.SPACING.lg,
-        }}
-        showsVerticalScrollIndicator={false}
-      >
-        {/* Intervention recap card */}
-        <Card elevated>
-          <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: theme.SPACING.md }}>
-            <View style={{
-              width: 44,
-              height: 44,
-              borderRadius: theme.BORDER_RADIUS.md,
-              backgroundColor: `${theme.colors.primary.main}14`,
-              alignItems: 'center',
-              justifyContent: 'center',
-              marginRight: theme.SPACING.md,
-            }}>
-              <Reicon name="construct-outline" size={22} color={theme.colors.primary.main} />
-            </View>
-            <View style={{ flex: 1 }}>
-              <Text style={{ ...theme.typography.h4, color: theme.colors.text.primary }} numberOfLines={2}>
-                {intervention?.title ?? `Intervention #${interventionId}`}
-              </Text>
-              <Text style={{ ...theme.typography.caption, color: theme.colors.text.secondary, marginTop: 2 }}>
-                {intervention?.type ?? 'Intervention'}
-              </Text>
-            </View>
-          </View>
+  if (phase === 'paid' || payable.data?.paymentStatus === 'PAID') return <BaitlyScreen footer={<BaitlyButton title={t('back')} onPress={() => navigation.goBack()} />}>
+    <View style={{ alignItems: 'center', gap: 14, paddingTop: 40 }}>
+      <View style={{ width: 72, height: 72, borderRadius: 24, alignItems: 'center', justifyContent: 'center', backgroundColor: c.successSoft }}><Reicon name="checkmark-circle" size={40} color={c.success} /></View>
+      <BaitlyText variant="heading" style={{ textAlign: 'center' }}>{t('paymentDone')}</BaitlyText>
+      <BaitlyText muted style={{ textAlign: 'center' }}>{t('paymentDoneHelp')}</BaitlyText>
+    </View>
+  </BaitlyScreen>;
 
-          <View style={{
-            borderTopWidth: 1,
-            borderTopColor: theme.colors.border.light,
-            paddingTop: theme.SPACING.md,
-            gap: theme.SPACING.sm,
-          }}>
-            {intervention?.propertyName && (
-              <View style={{ flexDirection: 'row', alignItems: 'center', gap: theme.SPACING.sm }}>
-                <Reicon name="home-outline" size={16} color={theme.colors.text.disabled} />
-                <Text style={{ ...theme.typography.body2, color: theme.colors.text.secondary }}>
-                  {intervention.propertyName}
-                </Text>
-              </View>
-            )}
-            {intervention?.scheduledDate && (
-              <View style={{ flexDirection: 'row', alignItems: 'center', gap: theme.SPACING.sm }}>
-                <Reicon name="calendar-outline" size={16} color={theme.colors.text.disabled} />
-                <Text style={{ ...theme.typography.body2, color: theme.colors.text.secondary }}>
-                  Planifiee le {formatDate(intervention.scheduledDate)}
-                </Text>
-              </View>
-            )}
-            {intervention?.description && (
-              <View style={{ flexDirection: 'row', alignItems: 'flex-start', gap: theme.SPACING.sm }}>
-                <Reicon name="document-text-outline" size={16} color={theme.colors.text.disabled} style={{ marginTop: 2 }} />
-                <Text style={{ ...theme.typography.body2, color: theme.colors.text.secondary, flex: 1 }} numberOfLines={3}>
-                  {intervention.description}
-                </Text>
-              </View>
-            )}
-          </View>
-        </Card>
-
-        {/* Amount card */}
-        <Card elevated style={{ alignItems: 'center', paddingVertical: theme.SPACING['2xl'] }}>
-          <Text style={{ ...theme.typography.caption, color: theme.colors.text.secondary, marginBottom: theme.SPACING.sm }}>
-            Montant a payer
-          </Text>
-          <Text style={{
-            fontSize: 40,
-            fontWeight: '800',
-            color: theme.colors.text.primary,
-            letterSpacing: -1,
-          }}>
-            {formatAmount(amount)}<Text style={{ fontSize: 24, fontWeight: '600' }}>€</Text>
-          </Text>
-          <Text style={{ ...theme.typography.caption, color: theme.colors.text.disabled, marginTop: theme.SPACING.xs }}>
-            TTC
-          </Text>
-        </Card>
-
-        {/* Payment methods */}
-        <Card variant="filled">
-          <Text style={{ ...theme.typography.h5, color: theme.colors.text.primary, marginBottom: theme.SPACING.md }}>
-            Methodes de paiement acceptees
-          </Text>
-          <View style={{ flexDirection: 'row', gap: theme.SPACING.md }}>
-            {PAYMENT_METHODS.map((method) => (
-              <View
-                key={method.label}
-                style={{
-                  flex: 1,
-                  alignItems: 'center',
-                  paddingVertical: theme.SPACING.md,
-                  borderRadius: theme.BORDER_RADIUS.md,
-                  backgroundColor: theme.colors.background.paper,
-                  gap: 6,
-                }}
-              >
-                <Reicon name={method.icon} size={24} color={method.color} />
-                <Text style={{ ...theme.typography.caption, color: theme.colors.text.secondary, fontSize: 10, textAlign: 'center' }}>
-                  {method.label}
-                </Text>
-              </View>
-            ))}
-          </View>
-        </Card>
-
-        {/* Security notice */}
-        <View style={{ flexDirection: 'row', alignItems: 'center', gap: theme.SPACING.sm, paddingHorizontal: theme.SPACING.sm }}>
-          <Reicon name="shield-checkmark-outline" size={16} color={theme.colors.text.disabled} />
-          <Text style={{ ...theme.typography.caption, color: theme.colors.text.disabled, flex: 1 }}>
-            Paiement securise par Stripe. Vos donnees bancaires ne sont jamais stockees.
-          </Text>
-        </View>
-
-        {/* Pay button */}
-        <Button
-          title={`Payer ${formatAmount(amount)}€`}
-          onPress={handlePay}
-          variant="contained"
-          size="large"
-          fullWidth
-          disabled={amount <= 0}
-          loading={false}
-          icon={<Reicon name="lock-closed" size={18} color="#FFFFFF" />}
-        />
-      </ScrollView>
-    </SafeAreaView>
-  );
+  const busy = phase === 'opening' || phase === 'checking';
+  return <BaitlyScreen title={t('paymentTitle')} footer={payable.data?.payable ? <View style={{ gap: 4 }}>
+    {phase === 'unfinished' ? <BaitlyButton variant="ghost" title={t('paymentCheckAgain')} onPress={() => { void check(); }} /> : null}
+    <BaitlyButton icon="lock-closed-outline" busy={busy} title={busy ? t(phase === 'checking' ? 'paymentChecking' : 'paymentOpening') : t('paymentPay', { amount: money ?? '' })} onPress={() => { void pay(); }} />
+  </View> : undefined}>
+    {mission.data ? <BaitlyCard>
+      <BaitlyText style={{ fontWeight: '600', fontSize: 17 }}>{mission.data.title}</BaitlyText>
+      <BaitlyInfoRow icon="home-outline" label={t('requestHome')} value={mission.data.propertyName} />
+      <BaitlyInfoRow icon="person-outline" label={t('followUp.assignee')} value={mission.data.assignedTechnicianName ?? mission.data.assignedToName} last />
+    </BaitlyCard> : null}
+    <BaitlyCard title={t('paymentDue')}>
+      <BaitlyText variant="title" style={{ fontVariant: ['tabular-nums'] }}>{money ?? t('unknownPrice')}</BaitlyText>
+      {mission.data?.estimatedCost != null && amount != null && amount < mission.data.estimatedCost
+        ? <BaitlyText muted variant="meta">{t('paymentDepositDeducted', { total: formatMoney(mission.data.estimatedCost, payable.data?.currency, i18n.language) })}</BaitlyText> : null}
+    </BaitlyCard>
+    {!payable.data?.payable ? <BaitlyNotice>{t('paymentNothingDue')}</BaitlyNotice> : null}
+    {phase === 'unfinished' ? <BaitlyNotice tone="warning">{t('paymentUnfinished')}</BaitlyNotice> : null}
+    {phase === 'failed' ? <BaitlyNotice error>{t('paymentFailed')}</BaitlyNotice> : null}
+    {error ? <BaitlyNotice error>{error}</BaitlyNotice> : null}
+    <View style={{ flexDirection: i18n.dir() === 'rtl' ? 'row-reverse' : 'row', gap: 10, alignItems: 'center' }}>
+      <BaitlyPill tone="success" icon="shield-checkmark-outline" label={t('paymentSecure')} />
+    </View>
+    <BaitlyText muted variant="meta">{t('paymentSecureHelp')}</BaitlyText>
+  </BaitlyScreen>;
 }

@@ -15,6 +15,12 @@ const KEYS = {
   unreadCount: () => ['conversations', 'unread-count'] as const,
 };
 
+/** The server sends `unread` (boolean), `lastMessagePreview` and no `updatedAt`: shape them as the screens read them. */
+export function normalizeConversation(item: ConversationDto & { unread?: boolean; lastMessagePreview?: string | null }): ConversationDto {
+  return { ...item, unreadCount: item.unreadCount ?? (item.unread ? 1 : 0), lastMessageContent: item.lastMessageContent ?? item.lastMessagePreview ?? null,
+    updatedAt: item.updatedAt ?? item.lastMessageAt ?? item.createdAt };
+}
+
 /** List all conversations, optionally filtered by status */
 export function useConversations(status?: ConversationStatus) {
   return useQuery<ConversationDto[]>({
@@ -22,7 +28,7 @@ export function useConversations(status?: ConversationStatus) {
     queryFn: async () => {
       const res = await conversationApi.getConversations(status);
       // Backend returns Page<T> — extract the array
-      return Array.isArray(res) ? res : (res as any).content ?? [];
+      return (Array.isArray(res) ? res : (res as any).content ?? []).map(normalizeConversation);
     },
     staleTime: 30_000,
   });
@@ -35,7 +41,7 @@ export function useMyConversations() {
     queryFn: async () => {
       const res = await conversationApi.getMyConversations();
       // Backend returns Page<T> — extract the array
-      return Array.isArray(res) ? res : (res as any).content ?? [];
+      return (Array.isArray(res) ? res : (res as any).content ?? []).map(normalizeConversation);
     },
     staleTime: 30_000,
   });

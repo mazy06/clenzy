@@ -4,6 +4,8 @@
  */
 import { API_CONFIG } from '@/config/api';
 import { useAuthStore } from '@/store/authStore';
+import { isBaitlyProfilePreview } from '@/config/baitlyDemoProfileState';
+import { baitlyDataMode } from '@/config/baitlyDataMode';
 
 export interface ApiError {
   status: number;
@@ -85,6 +87,9 @@ async function request<T>(
   body?: unknown,
   options: RequestOptions = {},
 ): Promise<T> {
+  if (method !== 'GET' && baitlyDataMode() === 'demo' || method === 'GET' && !options.skipAuth && isBaitlyProfilePreview()) {
+    throw { status: 409, message: 'Profil de démonstration : les modifications des données réelles sont désactivées.' } as ApiError;
+  }
   const url = `${API_CONFIG.BASE_URL}${API_CONFIG.BASE_PATH}${endpoint}${buildQueryString(options.params)}`;
 
   const headers: Record<string, string> = { ...options.headers };
@@ -110,16 +115,22 @@ async function request<T>(
     headers['Content-Type'] = 'application/json';
   }
 
+  const controller = new AbortController();
+  const abort = () => controller.abort();
+  options.signal?.addEventListener('abort', abort);
+  if (options.signal?.aborted) controller.abort();
+  const timeout = setTimeout(abort, body instanceof FormData ? 60_000 : 30_000);
   const config: RequestInit = {
     method,
     headers,
-    signal: options.signal,
+    signal: controller.signal,
   };
 
   if (body) {
     config.body = body instanceof FormData ? body : JSON.stringify(body);
   }
 
+  try {
   const response = await fetch(url, config);
 
   // Handle 401 with token refresh retry
@@ -130,14 +141,18 @@ async function request<T>(
       const newToken = useAuthStore.getState().accessToken;
       headers['Authorization'] = `Bearer ${newToken}`;
       const retryResponse = await fetch(url, { ...config, headers });
-      return handleResponse<T>(retryResponse);
+      return await handleResponse<T>(retryResponse);
     } else {
-      authState.logout();
+      void authState.logout(true);
       throw { status: 401, message: 'Session expiree' } as ApiError;
     }
   }
 
-  return handleResponse<T>(response);
+  return await handleResponse<T>(response);
+  } finally {
+    clearTimeout(timeout);
+    options.signal?.removeEventListener('abort', abort);
+  }
 }
 
 export const apiClient = {

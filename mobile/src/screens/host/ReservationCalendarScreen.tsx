@@ -130,8 +130,8 @@ export function ReservationCalendarScreen() {
   }), [theme]);
 
   const filterConfig: { key: FilterType; label: string; icon: string; color: string }[] = useMemo(() => [
-    { key: 'reservation', label: 'Reservations', icon: 'bed-outline', color: theme.colors.primary.main },
-    { key: 'cleaning', label: 'Menage', icon: 'sparkles-outline', color: theme.colors.success.main },
+    { key: 'reservation', label: 'Réservations', icon: 'bed-outline', color: theme.colors.primary.main },
+    { key: 'cleaning', label: 'Ménage', icon: 'sparkles-outline', color: theme.colors.success.main },
     { key: 'maintenance', label: 'Maintenance', icon: 'construct-outline', color: theme.colors.warning.main },
     { key: 'other', label: 'Autre', icon: 'ellipsis-horizontal-outline', color: theme.colors.error.main },
   ], [theme]);
@@ -473,8 +473,8 @@ export function ReservationCalendarScreen() {
                   iconName="calendar-outline"
                   title="Rien de prevu"
                   description={activeFilters.size > 0
-                    ? 'Aucun resultat pour les filtres selectionnes'
-                    : 'Aucune reservation ni intervention ce jour'}
+                    ? 'Aucun résultat pour les filtres sélectionnés'
+                    : 'Aucune réservation ni intervention ce jour'}
                   compact
                 />
               ) : (

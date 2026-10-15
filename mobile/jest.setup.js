@@ -61,7 +61,7 @@ jest.mock('@/config/api', () => ({
   API_CONFIG: {
     BASE_URL: 'http://localhost:8080',
     BASE_PATH: '/api',
-    ENDPOINTS: { ME: '/auth/me' },
+    ENDPOINTS: { ME: '/me', LOGIN: '/auth/login' },
   },
   KEYCLOAK_CONFIG: {
     issuer: 'http://localhost:8080/realms/clenzy',

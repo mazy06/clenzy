@@ -12,10 +12,10 @@ import java.util.List;
 @Repository
 public interface InterventionPhotoRepository extends JpaRepository<InterventionPhoto, Long> {
     
-    @Query("SELECT ip FROM InterventionPhoto ip WHERE ip.intervention.id = :interventionId AND ip.organizationId = :orgId ORDER BY ip.createdAt ASC")
+    @Query(value="SELECT ip.* FROM intervention_photos ip WHERE ip.intervention_id=:interventionId AND ip.organization_id=:orgId ORDER BY ip.created_at ASC",nativeQuery=true)
     List<InterventionPhoto> findAllByInterventionId(@Param("interventionId") Long interventionId, @Param("orgId") Long orgId);
 
-    @Query("SELECT ip FROM InterventionPhoto ip WHERE ip.intervention.id = :interventionId AND ip.phase = :phase AND ip.organizationId = :orgId ORDER BY ip.createdAt ASC")
+    @Query(value="SELECT ip.* FROM intervention_photos ip WHERE ip.intervention_id=:interventionId AND ip.phase=:#{#phase.name()} AND ip.organization_id=:orgId ORDER BY ip.created_at ASC",nativeQuery=true)
     List<InterventionPhoto> findByInterventionIdAndPhaseOrderByCreatedAtAsc(
         @Param("interventionId") Long interventionId,
         @Param("phase") InterventionPhoto.PhotoPhase phase,
@@ -33,7 +33,7 @@ public interface InterventionPhotoRepository extends JpaRepository<InterventionP
     @Query("DELETE FROM InterventionPhoto ip WHERE ip.intervention.id = :interventionId AND ip.organizationId = :orgId")
     void deleteByInterventionIdAndOrgId(@Param("interventionId") Long interventionId, @Param("orgId") Long orgId);
 
-    @Query("SELECT COUNT(ip) FROM InterventionPhoto ip WHERE ip.intervention.id = :interventionId AND ip.organizationId = :orgId")
+    @Query(value="SELECT COUNT(*) FROM intervention_photos ip WHERE ip.intervention_id=:interventionId AND ip.organization_id=:orgId",nativeQuery=true)
     long countByInterventionId(@Param("interventionId") Long interventionId, @Param("orgId") Long orgId);
 
     /**

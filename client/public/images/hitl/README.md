@@ -6,7 +6,7 @@ les rappels de reversement et les cartes informatives des dix agents.
 
 ## Présentation
 
-- Natures mortes en bleu nuit, ivoire et laiton doux, sur fond bleu-gris.
+- Natures mortes en bleu nuit, ivoire et laiton doux, détourées sur fond transparent.
 - Vignette à côté du titre : 72 px sur ordinateur, 60 px sur mobile et 80 px dans les modales.
 - Les dates, montants, états et boutons restent du texte réel. Les illustrations ne représentent ni un logement réel, ni une preuve d’exécution.
 - Même correspondance dans la constellation, la liste, la pile et les fenêtres d’action.
@@ -101,8 +101,11 @@ le titre, les informations et les actions restent disponibles.
 - [Composant partagé](../../../src/modules/supervision/components/ActionIllustration.tsx)
 - [Tests](../../../src/modules/supervision/__tests__/ActionIllustration.test.tsx)
 
-Les PNG originaux sont conservés à leur emplacement de génération. Seuls le redimensionnement
-et la conversion WebP ont été effectués après génération.
+Les PNG originaux sont conservés à leur emplacement de génération. Le 12 octobre 2026,
+les fonds studio ont été retirés avec rembg/isnet, puis les surfaces ivoire ont été restaurées
+et les contours vérifiés en clair et sombre. Les WebP conservent leurs dimensions et URL.
+La description des poids ci-dessus correspond aux exports initiaux, avant détourage.
+Le traitement reproductible est `scripts/dev/baitly-transparent-artwork.py`.
 
 Pour ajouter un nouveau type, définir sa correspondance explicite dans
 `ACTION_TYPE_ILLUSTRATIONS`. Le test compare le registre avec les constantes Java et les

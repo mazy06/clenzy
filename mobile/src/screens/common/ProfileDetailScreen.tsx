@@ -22,10 +22,10 @@ function getDisplayName(user: AuthUser | null): string {
 
 function getRoleName(role: string): string {
   const map: Record<string, string> = {
-    HOST: 'Proprietaire',
+    HOST: 'Propriétaire',
     MANAGER: 'Gestionnaire',
     SUPERVISOR: 'Superviseur',
-    HOUSEKEEPER: 'Agent de menage',
+    HOUSEKEEPER: 'Agent de ménage',
     TECHNICIAN: 'Technicien',
     ADMIN: 'Administrateur',
   };
@@ -36,7 +36,7 @@ function getOrganizationTypeName(type?: string): string {
   const map: Record<string, string> = {
     INDIVIDUAL: 'Individuel',
     CONCIERGE: 'Conciergerie',
-    CLEANING_COMPANY: 'Societe de menage',
+    CLEANING_COMPANY: 'Société de ménage',
     SYSTEM: 'Systeme',
   };
   return type ? (map[type] ?? type) : '';
@@ -84,13 +84,13 @@ export function ProfileDetailScreen() {
 
       if (response.ok) {
         await loadUser();
-        Alert.alert('Succes', 'Votre profil a ete mis a jour.');
+        Alert.alert('Succes', 'Votre profil a été mis à jour.');
       } else {
         const data = await response.json().catch(() => null);
-        Alert.alert('Erreur', data?.message || 'Impossible de mettre a jour le profil.');
+        Alert.alert('Erreur', data?.message || 'Impossible de mettre à jour le profil.');
       }
     } catch {
-      Alert.alert('Erreur', 'Erreur reseau. Verifiez votre connexion.');
+      Alert.alert('Erreur', 'Erreur réseau. Vérifiez votre connexion.');
     } finally {
       setSaving(false);
     }
@@ -178,7 +178,7 @@ export function ProfileDetailScreen() {
               </Text>
 
               <Input
-                label="Prenom"
+                label="Prénom"
                 value={firstName}
                 onChangeText={setFirstName}
                 placeholder="Votre prenom"

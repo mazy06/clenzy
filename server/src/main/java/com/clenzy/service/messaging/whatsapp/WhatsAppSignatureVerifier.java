@@ -22,10 +22,8 @@ import java.util.HexFormat;
  * ({@code clenzy.whatsapp.meta.app-secret}, deja utilise par {@link MetaSignupService})
  * signe les webhooks de toutes les organisations.</p>
  *
- * <p>Si l'App Secret n'est pas configure (dev), la verification est desactivee
- * (log WARN) pour ne pas bloquer les tests locaux. En prod le secret est toujours
- * renseigne -> verification stricte, et tout payload non signe ou mal signe est rejete
- * avant la moindre mutation d'etat.</p>
+ * <p>Sans App Secret, tous les événements sont rejetés, y compris en local.
+ * Baitly ne traite jamais un événement Meta non authentifié.</p>
  */
 @Component
 public class WhatsAppSignatureVerifier {
@@ -43,12 +41,12 @@ public class WhatsAppSignatureVerifier {
     /**
      * @param rawBody         octets bruts du corps de la requete (tels que recus de Meta)
      * @param signatureHeader valeur de l'en-tete {@code X-Hub-Signature-256}
-     * @return true si la signature est valide, ou si aucun secret n'est configure (dev)
+     * @return true uniquement si la signature est valide et le secret configuré
      */
     public boolean isValid(byte[] rawBody, String signatureHeader) {
         if (appSecret == null || appSecret.isBlank()) {
-            log.warn("App Secret Meta non configure — signature webhook WhatsApp non verifiee (dev uniquement)");
-            return true;
+            log.warn("App Secret Meta non configuré : webhook WhatsApp rejeté");
+            return false;
         }
         if (rawBody == null || signatureHeader == null || !signatureHeader.startsWith(SIGNATURE_PREFIX)) {
             log.warn("Signature webhook WhatsApp absente ou malformee");

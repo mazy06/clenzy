@@ -101,6 +101,7 @@ export default function InterventionDetailsPage() {
     notesDialogOpen, notesValue, updatingNotes, currentStepForNotes, stepNotes,
     photosDialogOpen, selectedPhotos, uploadingPhotos, deletingPhotoId, photoType,
     beforePhotoIds, afterPhotoIds,
+    inspectionRooms, inspectionRoomCounts, setInspectionRoom,
     propertyDetails, completedSteps, beforePhotos, afterPhotos,
     validatedRooms, inspectionComplete, allRoomsValidated, savingRoom,
     canViewInterventions, canEditInterventions, permissionsLoaded,
@@ -123,7 +124,8 @@ export default function InterventionDetailsPage() {
   const photosProps = useMemo(() => ({
     beforePhotos, afterPhotos, beforePhotoIds, afterPhotoIds,
     deletingPhotoId, handleDeletePhoto, setPhotoType, setPhotosDialogOpen,
-  }), [beforePhotos, afterPhotos, beforePhotoIds, afterPhotoIds, deletingPhotoId, handleDeletePhoto, setPhotoType, setPhotosDialogOpen]);
+    inspectionRooms, inspectionRoomCounts, setInspectionRoom,
+  }), [beforePhotos, afterPhotos, beforePhotoIds, afterPhotoIds, deletingPhotoId, handleDeletePhoto, setPhotoType, setPhotosDialogOpen, inspectionRooms, inspectionRoomCounts, setInspectionRoom]);
 
   const roomsProps = useMemo(() => ({
     propertyDetails, getTotalRooms, getRoomNames,
