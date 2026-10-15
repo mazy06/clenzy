@@ -45,6 +45,11 @@ export interface ChannexSyncResult {
 }
 
 export const channexApi = {
+  replaceDefaultRatePlan(propertyId: number, request: ChannexConnectRequest, adoptCurrency = false): Promise<ChannexMappingDto> {
+    return apiClient.put<ChannexMappingDto>(
+      `/integrations/channex/properties/${propertyId}/default-rate-plan`, { mapping: request, adoptCurrency },
+    );
+  },
   /** Liste tous les mappings Channex de l'organisation. */
   listMappings(): Promise<ChannexMappingDto[]> {
     return apiClient.get<ChannexMappingDto[]>('/integrations/channex/mappings');

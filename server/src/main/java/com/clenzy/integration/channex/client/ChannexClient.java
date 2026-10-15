@@ -113,7 +113,7 @@ public class ChannexClient {
         return exchange(HttpMethod.GET, url, null, ChannexPropertyDto.class);
     }
 
-    /** Supprime une property Channex (utilise quand un mapping est supprime cote Clenzy). */
+    /** Supprime une property Channex (utilise quand un mapping est supprime cote Baitly). */
     public void deleteProperty(String channexPropertyId) {
         String url = props.getBaseUrl() + "/properties/" + channexPropertyId;
         exchange(HttpMethod.DELETE, url, null, Void.class);
@@ -137,7 +137,7 @@ public class ChannexClient {
      * aux attributes + relationships).
      *
      * <p>Utilise par {@link com.clenzy.integration.channex.service.ChannexImportService}
-     * pour la discovery des properties non-mappees dans Clenzy.</p>
+     * pour la discovery des properties non-mappees dans Baitly.</p>
      *
      * @return JsonNode racine du payload Channex {@code {"data":[...], "meta":...}}
      */
@@ -346,7 +346,7 @@ public class ChannexClient {
      * Verifie si au moins un channel OTA est actif (OAuth ou credentials valides)
      * pour une property Channex donnee.
      *
-     * <p>Sert de gate pour les push de sync Clenzy → Channex : tant qu'aucun OTA
+     * <p>Sert de gate pour les push de sync Baitly → Channex : tant qu'aucun OTA
      * n'est branche, push availability/rates est inutile (les donnees n'iront
      * nulle part). On evite ainsi les API calls inutiles et la pollution de
      * Channex.</p>
@@ -437,7 +437,7 @@ public class ChannexClient {
 
     /**
      * Cree un one-time access token Channex et retourne l'URL d'iframe a embarquer
-     * cote Clenzy pour permettre a l'utilisateur de connecter Airbnb / Booking /
+     * cote Baitly pour permettre a l'utilisateur de connecter Airbnb / Booking /
      * Vrbo / Expedia a sa property sans quitter le PMS.
      *
      * <p>Flow Channex (cf. docs.channex.io/api-v.1-documentation/channel-iframe) :</p>
@@ -452,7 +452,7 @@ public class ChannexClient {
      * </ol>
      *
      * @param channexPropertyId UUID Channex de la property a connecter
-     * @param username          identite cote Clenzy (typiquement l'email de l'admin)
+     * @param username          identite cote Baitly (typiquement l'email de l'admin)
      *                          — sert d'audit cote dashboard Channex
      * @param language          code langue UI iframe (fr, en, es, ...) — default "fr"
      * @param channelCode       code 3 lettres Channex pour pre-filtrer le wizard a un seul OTA
@@ -539,7 +539,7 @@ public class ChannexClient {
      * Update partiel des settings d'un rate_plan Channex existant — Phase 5
      * OTA pricing (push complet bidirectionnel).
      *
-     * <p>Permet de pousser vers l'OTA les modifs faites cote Clenzy sur :
+     * <p>Permet de pousser vers l'OTA les modifs faites cote Baitly sur :
      * weekend_price, guests_included, price_per_extra_person, weekly/monthly
      * factors, default_min/max_nights. Seuls les champs non-null dans
      * {@code update} sont inclus dans le payload (partial update).</p>
@@ -599,6 +599,18 @@ public class ChannexClient {
         String url = props.getBaseUrl() + "/rate_plans?filter[property_id]=" + channexPropertyId;
         JsonNode raw = exchange(HttpMethod.GET, url, null, JsonNode.class);
         return parseDtoListFromJsonApi(raw, ChannexRatePlanDto.class);
+    }
+
+    /** Read a single rate including ownership, without collection pagination. */
+    public ChannexRatePlanDto getRatePlan(String ratePlanId) {
+        String encoded = org.springframework.web.util.UriUtils.encodePathSegment(
+            ratePlanId, java.nio.charset.StandardCharsets.UTF_8);
+        JsonNode raw = exchange(HttpMethod.GET, props.getBaseUrl() + "/rate_plans/" + encoded,
+            null, JsonNode.class);
+        ObjectNode collection = objectMapper.createObjectNode();
+        collection.putArray("data").add(raw.path("data"));
+        return parseDtoListFromJsonApi(collection, ChannexRatePlanDto.class).stream().findFirst()
+            .orElseThrow(() -> new IllegalStateException("Reponse tarif Channex invalide"));
     }
 
     /**
@@ -719,7 +731,7 @@ public class ChannexClient {
      * Endpoint {@code GET /property_facilities/options} (collection non
      * filtrable par property — c'est un catalogue de reference).
      *
-     * <p>Sert a alimenter l'UI Clenzy de mapping des amenities pour suggerer
+     * <p>Sert a alimenter l'UI Baitly de mapping des amenities pour suggerer
      * des libelles standards (wifi, free parking, gym, ...) plutot que de
      * forcer l'admin a tout saisir from scratch.</p>
      */
@@ -965,7 +977,7 @@ public class ChannexClient {
      *       est re-lue via le feed/API (pattern impose par la doc).</li>
      * </ul>
      *
-     * @param callbackUrl URL publique du controller webhook Clenzy
+     * @param callbackUrl URL publique du controller webhook Baitly
      * @param eventMask   {@code "*"} ou liste separee par {@code ;}
      * @param secretToken valeur du header {@code X-Channex-Token}
      * @return l'id Channex du webhook cree
@@ -1184,6 +1196,11 @@ public class ChannexClient {
             ObjectNode flat = ((ObjectNode) attrs).deepCopy();
             if (item.has("id") && item.get("id").isTextual()) {
                 flat.put("id", item.get("id").asText());
+            }
+            // JSON:API exposes ownership through relationships, not attributes.
+            for (String relation : List.of("property", "room_type")) {
+                JsonNode relationId = item.path("relationships").path(relation).path("data").path("id");
+                if (relationId.isTextual()) flat.put(relation + "_id", relationId.asText());
             }
             try {
                 result.add(objectMapper.treeToValue(flat, elementType));
@@ -1486,7 +1503,7 @@ public class ChannexClient {
      * potentiellement perdue" et declencher des reminders/escalations.</p>
      *
      * <p>A appeler systematiquement apres avoir persiste la {@code Reservation}
-     * Clenzy depuis {@link com.clenzy.integration.channex.service.ChannexBookingService#handleNewBooking}.</p>
+     * Baitly depuis {@link com.clenzy.integration.channex.service.ChannexBookingService#handleNewBooking}.</p>
      *
      * <p>Best-effort cote caller : si Channex repond 404 (booking pas encore
      * indexe), ou si le booking a deja ete acknowledge, on n'echoue pas.</p>
@@ -1768,7 +1785,7 @@ public class ChannexClient {
     /**
      * Tokenize la CC d'un booking dans un Stripe token reutilisable.
      * Usage : Booking.com transmet la CC dans le payload booking ; on l'envoie
-     * a Channex qui la tokenize cote Stripe Connect Clenzy (pas de PCI cote Clenzy).
+     * a Channex qui la tokenize cote Stripe Connect Baitly (pas de PCI cote Baitly).
      */
     public java.util.Optional<JsonNode> stripeTokenizeBooking(String bookingId,
                                                                 String stripeAccountId) {

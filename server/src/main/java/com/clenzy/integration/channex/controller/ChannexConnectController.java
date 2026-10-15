@@ -54,7 +54,7 @@ public class ChannexConnectController {
     private final com.clenzy.integration.channex.service.ChannexStripeTokenizationService tokenService;
     // B1 : auto-registration du webhook global (idempotent)
     private final com.clenzy.integration.channex.service.ChannexWebhookRegistrationService webhookRegistrationService;
-    // B4 : push du contenu Clenzy -> Channex (description + photos publiques)
+    // B4 : push du contenu Baitly -> Channex (description + photos publiques)
     private final com.clenzy.integration.channex.service.ChannexContentPushService contentPushService;
     // Phase C : applications, Booking CRS, availability rules par canal, Google, reporting
     private final com.clenzy.integration.channex.service.ChannexApplicationsService applicationsService;
@@ -134,17 +134,27 @@ public class ChannexConnectController {
      */
     @PostMapping("/properties/{clenzyPropertyId}/connect")
     @ResponseStatus(HttpStatus.CREATED)
-    @Operation(summary = "Connecte une propriete Clenzy a son equivalent Channex")
+    @Operation(summary = "Connecte une propriete Baitly a son equivalent Channex")
     public ChannexMappingDto connect(@PathVariable Long clenzyPropertyId,
                                        @Valid @RequestBody ChannexConnectRequest request) {
         Long orgId = tenantContext.getRequiredOrganizationId();
         return ChannexMappingDto.from(connectService.connect(clenzyPropertyId, orgId, request));
     }
 
-    /**
-     * Deconnecte une property de Channex (supprime le mapping local — la property
-     * Channex reste presente cote dashboard Channex).
-     */
+    /** Remplace le tarif lie a Baitly en conservant la connexion OTA. */
+    @PutMapping("/properties/{clenzyPropertyId}/default-rate-plan")
+    @Operation(summary = "Remplace le tarif par defaut sans deconnecter les canaux OTA")
+    public ChannexMappingDto replaceDefaultRatePlan(@PathVariable Long clenzyPropertyId,
+                                                    @Valid @RequestBody ReplaceDefaultRatePlanBody body) {
+        return ChannexMappingDto.from(connectService.replaceDefaultRatePlan(
+            clenzyPropertyId, tenantContext.getRequiredOrganizationId(), body.mapping(), body.adoptCurrency()));
+    }
+
+    public record ReplaceDefaultRatePlanBody(
+        @jakarta.validation.constraints.NotNull @Valid ChannexConnectRequest mapping,
+        boolean adoptCurrency) {}
+
+    /** Supprime le mapping local ; la propriete Channex reste presente. */
     @DeleteMapping("/properties/{clenzyPropertyId}/disconnect")
     @ResponseStatus(HttpStatus.NO_CONTENT)
     @Operation(summary = "Deconnecte une propriete de Channex (mapping local supprime)")
@@ -197,7 +207,7 @@ public class ChannexConnectController {
 
     /** Liste tous les drifts actifs (non resolus) de l'organisation. */
     @GetMapping("/price-drifts")
-    @Operation(summary = "Liste les ecarts de prix Clenzy ↔ OTA en attente de resolution")
+    @Operation(summary = "Liste les ecarts de prix Baitly ↔ OTA en attente de resolution")
     public List<com.clenzy.integration.channex.dto.ChannexPriceDriftDto> listPriceDrifts() {
         Long orgId = tenantContext.getRequiredOrganizationId();
         return priceDriftService.listActive(orgId).stream()
@@ -317,7 +327,7 @@ public class ChannexConnectController {
      *
      * <p>Complement de {@link #resync} qui ne pousse QUE les rates par date.
      * A appeler quand l'admin modifie un RatePlan(WEEKEND), OccupancyPricing
-     * ou LengthOfStayDiscount cote Clenzy et veut le repercuter sur l'OTA.</p>
+     * ou LengthOfStayDiscount cote Baitly et veut le repercuter sur l'OTA.</p>
      */
     @PostMapping("/properties/{clenzyPropertyId}/push-pricing-settings")
     @Operation(summary = "Push les pricing settings (weekend/occupancy/LOS/min-max) vers Channex")
@@ -374,12 +384,12 @@ public class ChannexConnectController {
      * Sprint A7 — Test d'un webhook (Channex envoie un event "test" et retourne le status).
      */
     /**
-     * B4 — Push du contenu Clenzy → Channex : description marketing + photos
+     * B4 — Push du contenu Baitly → Channex : description marketing + photos
      * ayant une URL publique stable (additif, idempotent par URL). Sens inverse
-     * de {@link #resyncContent} (qui importe OTA → Clenzy).
+     * de {@link #resyncContent} (qui importe OTA → Baitly).
      */
     @PostMapping("/properties/{clenzyPropertyId}/push-content")
-    @Operation(summary = "Pousse description + photos publiques Clenzy vers Channex")
+    @Operation(summary = "Pousse description + photos publiques Baitly vers Channex")
     public com.clenzy.integration.channex.dto.ChannexContentPushResult pushContent(
             @PathVariable Long clenzyPropertyId) {
         Long orgId = tenantContext.getRequiredOrganizationId();
@@ -622,11 +632,11 @@ public class ChannexConnectController {
 
     /**
      * Modifie le mode {@link com.clenzy.model.PriceSourceOfTruth} d'une property
-     * — qui pilote les prix : Clenzy (push vers OTA), OTA (pull depuis OTA),
+     * — qui pilote les prix : Baitly (push vers OTA), OTA (pull depuis OTA),
      * MANUAL (aucune sync auto).
      *
      * <p>Cas d'usage : l'admin a un Pricelabs/Wheelhouse connecte directement
-     * a Airbnb → passe sa property en mode OTA pour que Clenzy ne push pas.</p>
+     * a Airbnb → passe sa property en mode OTA pour que Baitly ne push pas.</p>
      */
     @org.springframework.web.bind.annotation.PatchMapping(
         "/properties/{clenzyPropertyId}/price-source-of-truth")
@@ -703,15 +713,15 @@ public class ChannexConnectController {
     }
 
     /**
-     * Importe dans Clenzy les bookings actuellement connus de Channex pour une
-     * property (reverse sync OTA -> Channex -> Clenzy).
+     * Importe dans Baitly les bookings actuellement connus de Channex pour une
+     * property (reverse sync OTA -> Channex -> Baitly).
      *
      * <p>Typiquement appele juste apres avoir connecte un OTA dans Channex
      * (ex: Airbnb) pour recuperer les reservations existantes sur cet OTA.
      * Les webhooks {@code booking_new} prennent le relais pour les futures.</p>
      */
     @PostMapping("/properties/{clenzyPropertyId}/pull-bookings")
-    @Operation(summary = "Import des bookings Channex existants en Reservation Clenzy (idempotent)")
+    @Operation(summary = "Import des bookings Channex existants en Reservation Baitly (idempotent)")
     public com.clenzy.integration.channex.service.ChannexConnectService.PullBookingsResult pullBookings(
             @PathVariable Long clenzyPropertyId,
             @RequestParam(required = false) String from,
@@ -729,7 +739,7 @@ public class ChannexConnectController {
     /**
      * Genere une URL signee permettant d'embarquer le widget officiel Channex
      * de connexion aux OTAs (Airbnb, Booking.com, Vrbo, Expedia, ...) dans une
-     * iframe cote frontend Clenzy.
+     * iframe cote frontend Baitly.
      *
      * <p>La URL retournee contient un token a usage unique valable 15 minutes.
      * Une fois charge dans la iframe, le token est consomme et la session reste
@@ -745,7 +755,7 @@ public class ChannexConnectController {
                                                  @RequestParam(required = false) String channel,
                                                  @AuthenticationPrincipal Jwt jwt) {
         Long orgId = tenantContext.getRequiredOrganizationId();
-        // username Channex = email admin Clenzy (audit cote dashboard Channex)
+        // username Channex = email admin Baitly (audit cote dashboard Channex)
         String username = jwt != null ? jwt.getClaimAsString("email") : null;
         if (username == null || username.isBlank()) {
             username = "clenzy-org-" + orgId;
@@ -796,7 +806,7 @@ public class ChannexConnectController {
 
     /**
      * Liste les properties Channex existantes qui n'ont pas encore de mapping
-     * local Clenzy. Utile apres OAuth Airbnb (qui cree automatiquement des
+     * local Baitly. Utile apres OAuth Airbnb (qui cree automatiquement des
      * properties Channex pour chaque listing detecte du compte).
      *
      * <p>Le frontend affiche la liste avec checkboxes pour permettre a l'admin
@@ -836,7 +846,7 @@ public class ChannexConnectController {
 
     /**
      * Importe en masse les properties Channex selectionnees comme Properties
-     * Clenzy. Pour chaque ID Channex : creation Property auto-fillee + mapping
+     * Baitly. Pour chaque ID Channex : creation Property auto-fillee + mapping
      * (sync_status PENDING — push declenche au premier OTA actif).
      *
      * <p>Idempotent : si un ID Channex est deja mappe, il est skip silencieusement
@@ -844,7 +854,7 @@ public class ChannexConnectController {
      */
     @PostMapping("/import")
     @ResponseStatus(HttpStatus.CREATED)
-    @Operation(summary = "Importe en masse les properties Channex selectionnees comme Properties Clenzy")
+    @Operation(summary = "Importe en masse les properties Channex selectionnees comme Properties Baitly")
     public ChannexImportResult importProperties(@Valid @RequestBody ChannexImportRequest request,
                                                   @AuthenticationPrincipal Jwt jwt) {
         Long orgId = tenantContext.getRequiredOrganizationId();
@@ -857,7 +867,7 @@ public class ChannexConnectController {
     }
 
     /**
-     * Demarre un OAuth OTA global (sans property Clenzy preexistante).
+     * Demarre un OAuth OTA global (sans property Baitly preexistante).
      *
      * <p>Cree (ou reutilise) une property pivot {@code [Clenzy Hub] OAuth Bridge}
      * cote hub, genere une URL iframe pre-filtree sur l'OTA choisi. Apres OAuth,
