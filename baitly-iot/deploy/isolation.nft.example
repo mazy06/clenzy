@@ -1,0 +1,33 @@
+# REFERENCE ONLY: install through infrastructure CI/CD on the dedicated IoT VM.
+# Replace TEST-NET addresses, validate with nft -c, and supply management rules via CI/CD.
+# Never apply on the PMS host. No Docker networking on this reference VM.
+define pms_ipv4 = 192.0.2.10
+define iot_database_ipv4 = 192.0.2.20
+define resolver_ipv4 = 192.0.2.53
+
+table inet baitly_iot {
+    chain input {
+        type filter hook input priority 0; policy drop;
+        ct state invalid drop
+        ct state established,related accept
+        iifname "lo" accept
+        # Device HTTPS and MQTT/mTLS only.
+        tcp dport { 443, 8883 } accept
+        # Private HTTPS reverse proxy in front of the local 8096 connector.
+        ip saddr $pms_ipv4 tcp dport 8444 accept
+        meta l4proto { icmp, ipv6-icmp } accept
+    }
+    chain output {
+        type filter hook output priority 0; policy drop;
+        ct state invalid drop
+        ct state established,related accept
+        oifname "lo" accept
+        ip daddr $iot_database_ipv4 tcp dport 5432 accept
+        ip daddr $resolver_ipv4 udp dport 53 accept
+        ip daddr $resolver_ipv4 tcp dport 53 accept
+        # No outbound connection to PMS, its database, cloud metadata, or Internet.
+    }
+    chain forward {
+        type filter hook forward priority 0; policy drop;
+    }
+}

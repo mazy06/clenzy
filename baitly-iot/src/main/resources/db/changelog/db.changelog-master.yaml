@@ -1,0 +1,15 @@
+databaseChangeLog:
+  - changeSet:
+      id: "0001-create-baitly-iot-registry"
+      author: clenzy-team
+      changes:
+        - sqlFile:
+            path: changes/0001__create_baitly_iot_registry.sql
+            relativeToChangelogFile: true
+  - changeSet:
+      id: "0002-add-simulated-devices"
+      author: clenzy-team
+      changes:
+        - sqlFile:
+            path: changes/0002__add_simulated_devices.sql
+            relativeToChangelogFile: true

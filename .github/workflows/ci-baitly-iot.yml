@@ -1,0 +1,107 @@
+name: CI Baitly IoT
+
+on:
+  push:
+    branches: [main, develop, production]
+    paths: ['baitly-iot/**', '.github/workflows/ci-baitly-iot.yml']
+  pull_request:
+    branches: [main, develop, production]
+    paths: ['baitly-iot/**', '.github/workflows/ci-baitly-iot.yml']
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_DB: baitly_iot_test
+          POSTGRES_USER: baitly_iot_test
+          POSTGRES_PASSWORD: ephemeral-ci-only
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd "pg_isready -U baitly_iot_test -d baitly_iot_test"
+          --health-interval 5s --health-timeout 5s --health-retries 10
+    env:
+      BAITLY_IOT_TEST_DATABASE_URL: jdbc:postgresql://127.0.0.1:5432/baitly_iot_test
+      BAITLY_IOT_TEST_DATABASE_USER: baitly_iot_test
+      BAITLY_IOT_TEST_DATABASE_PASSWORD: ephemeral-ci-only
+      BAITLY_IOT_MQTT_TEST: 'true'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+          cache: maven
+          cache-dependency-path: baitly-iot/pom.xml
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install disposable MQTT test dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y mosquitto openssl
+          python3 -m pip install -r baitly-iot/scripts/requirements.txt
+      - name: Build and test against PostgreSQL and Liquibase
+        run: mvn -B -f baitly-iot/pom.xml verify
+      - name: Verify the packaged migration entry point twice
+        run: python3 baitly-iot/scripts/check_migration_entrypoint.py
+      - name: Check simulator arguments
+        run: python3 baitly-iot/scripts/simulate_noise.py --help
+      - name: Package immutable staging release
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        run: |
+          mkdir -p release
+          cp baitly-iot/target/baitly-iot-0.1.0-SNAPSHOT.jar release/baitly-iot.jar
+          cp -R baitly-iot/deploy baitly-iot/scripts release/
+          printf '%s\n' "$GITHUB_SHA" > release/source-sha
+          cd release
+          find . -type f ! -name SHA256SUMS -print0 | sort -z | xargs -0 sha256sum > SHA256SUMS
+      - uses: actions/upload-artifact@v4
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        with:
+          name: baitly-iot-release-${{ github.sha }}
+          path: release/
+          retention-days: 14
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: baitly-iot-test-reports
+          path: baitly-iot/target/surefire-reports/
+
+  dependency-audit:
+    runs-on: ubuntu-latest
+    # Match the existing backend budget for a cold NVD initialization.
+    timeout-minutes: 240
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+          cache: maven
+          cache-dependency-path: baitly-iot/pom.xml
+      - name: NVD cache date
+        id: nvd-date
+        run: echo "day=$(date -u +%Y-%m-%d)" >> "$GITHUB_OUTPUT"
+      - uses: actions/cache@v4
+        with:
+          path: ~/.baitly-iot-dependency-check
+          key: baitly-iot-nvd-13-${{ steps.nvd-date.outputs.day }}
+          restore-keys: baitly-iot-nvd-13-
+      - name: Audit IoT dependencies, fail on missing analysis or CVSS 7+
+        env:
+          NVD_API_KEY: ${{ secrets.NVD_API_KEY }}
+        run: >-
+          mvn -B -f baitly-iot/pom.xml org.owasp:dependency-check-maven:check
+          -DdataDirectory="$HOME/.baitly-iot-dependency-check"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: baitly-iot-dependency-audit
+          path: baitly-iot/target/dependency-check-report.*

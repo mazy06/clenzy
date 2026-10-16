@@ -1,0 +1,3 @@
+user baitly-ingestor
+topic read baitly/devices/+/measurements
+topic write baitly/devices/+/acks

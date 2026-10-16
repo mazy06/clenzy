@@ -1,0 +1,45 @@
+server:
+  address: ${BAITLY_IOT_BIND_ADDRESS:127.0.0.1}
+  port: ${BAITLY_IOT_PORT:8095}
+  forward-headers-strategy: none
+  max-http-request-header-size: 8KB
+  tomcat:
+    connection-timeout: 5s
+    keep-alive-timeout: 10s
+    max-connections: 128
+    accept-count: 32
+    threads:
+      max: 32
+      min-spare: 2
+  error:
+    include-message: never
+    include-stacktrace: never
+spring:
+  application:
+    name: baitly-iot
+  datasource:
+    url: ${BAITLY_IOT_DATABASE_URL}
+    username: ${BAITLY_IOT_DATABASE_USER}
+    password: ${BAITLY_IOT_DATABASE_PASSWORD}
+    hikari:
+      maximum-pool-size: 8
+      connection-timeout: 2000
+      connection-init-sql: "SET statement_timeout = '3s'; SET lock_timeout = '1s'; SET idle_in_transaction_session_timeout = '5s'"
+  liquibase:
+    change-log: classpath:db/changelog/db.changelog-master.yaml
+  jackson:
+    deserialization:
+      fail-on-unknown-properties: true
+      fail-on-trailing-tokens: true
+baitly:
+  iot:
+    service-token: ${BAITLY_IOT_SERVICE_TOKEN}
+    internal-port: ${BAITLY_IOT_INTERNAL_PORT:8096}
+    internal-address: ${BAITLY_IOT_INTERNAL_ADDRESS:127.0.0.1}
+    mqtt:
+      enabled: ${BAITLY_IOT_MQTT_ENABLED:false}
+      host: ${BAITLY_IOT_MQTT_HOST:localhost}
+      port: ${BAITLY_IOT_MQTT_PORT:8884}
+      ca-file: ${BAITLY_IOT_MQTT_CA_FILE:}
+      client-store: ${BAITLY_IOT_MQTT_CLIENT_STORE:}
+      client-store-password: ${BAITLY_IOT_MQTT_CLIENT_STORE_PASSWORD:}

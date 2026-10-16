@@ -1,0 +1,4 @@
+# IoT only: migrations run in a separate CI/CD job. The runtime receives no migration credentials.
+spring:
+  liquibase:
+    enabled: false

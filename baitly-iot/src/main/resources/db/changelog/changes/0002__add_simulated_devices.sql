@@ -1,0 +1,1 @@
+ALTER TABLE baitly_iot_devices ADD COLUMN simulation BOOLEAN NOT NULL DEFAULT FALSE;
