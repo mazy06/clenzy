@@ -954,9 +954,10 @@ class EntityCoverageTest {
             assertThat(nd.getStatus()).isEqualTo(NoiseDevice.DeviceStatus.ACTIVE);
         }
         @Test void enums() {
-            assertThat(NoiseDevice.DeviceType.values()).hasSize(2);
+            assertThat(NoiseDevice.DeviceType.values()).hasSize(3);
             assertThat(NoiseDevice.DeviceType.valueOf("MINUT")).isEqualTo(NoiseDevice.DeviceType.MINUT);
             assertThat(NoiseDevice.DeviceType.valueOf("TUYA")).isEqualTo(NoiseDevice.DeviceType.TUYA);
+            assertThat(NoiseDevice.DeviceType.valueOf("BAITLY")).isEqualTo(NoiseDevice.DeviceType.BAITLY);
             assertThat(NoiseDevice.DeviceStatus.values()).hasSize(3);
         }
         @Test void prePersist() {

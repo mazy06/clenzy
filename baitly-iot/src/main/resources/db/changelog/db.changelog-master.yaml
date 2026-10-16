@@ -13,3 +13,10 @@ databaseChangeLog:
         - sqlFile:
             path: changes/0002__add_simulated_devices.sql
             relativeToChangelogFile: true
+  - changeSet:
+      id: "0003-erasure-mqtt-identity-and-retention"
+      author: clenzy-team
+      changes:
+        - sqlFile:
+            path: changes/0003__erasure_mqtt_identity_and_retention.sql
+            relativeToChangelogFile: true

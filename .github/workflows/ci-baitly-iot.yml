@@ -49,7 +49,7 @@ jobs:
           python3 -m pip install -r baitly-iot/scripts/requirements.txt
       - name: Build and test against PostgreSQL and Liquibase
         run: mvn -B -f baitly-iot/pom.xml verify
-      - name: Verify the packaged migration entry point twice
+      - name: Verify the packaged migration (twice) and retention entry points
         run: python3 baitly-iot/scripts/check_migration_entrypoint.py
       - name: Check simulator arguments
         run: python3 baitly-iot/scripts/simulate_noise.py --help
@@ -67,7 +67,8 @@ jobs:
         with:
           name: baitly-iot-release-${{ github.sha }}
           path: release/
-          retention-days: 14
+          # The staging deployment requires this exact artifact: keep it long enough to promote it.
+          retention-days: 90
       - uses: actions/upload-artifact@v4
         if: always()
         with:

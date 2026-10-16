@@ -31,16 +31,17 @@ class MqttMeasurementIngressTest {
         new IotHttpConfiguration().boundedJson().customize(builder);
         json = builder.build();
         json.enable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, DeserializationFeature.FAIL_ON_TRAILING_TOKENS);
-        ingress = new MqttMeasurementIngress(devices, service, new IngressLimits(Clock.systemUTC()), json,
+        ingress = new MqttMeasurementIngress(devices, service, new IngressLimits(Clock.systemUTC()),
+                new IngressMetrics(new io.micrometer.core.instrument.simple.SimpleMeterRegistry()), json,
                 Validation.buildDefaultValidatorFactory().getValidator());
-        when(devices.authenticate(hash)).thenReturn(Optional.of(new DeviceRepository.Device(id, 1, 11, "Test",
-                false, 60, null, null, true)));
+        when(devices.authenticateMqtt(hash)).thenReturn(Optional.of(new DeviceRepository.Device(id, 1, 11, "Test",
+                false, 60, null, null, true, hash)));
     }
 
     @Test void bindsIdentityToBrokerTopicAndReturnsOnlyCommittedReceipt() throws Exception {
         UUID event = UUID.randomUUID();
         var input = new DeviceContracts.NoiseMeasurement(event, Instant.now(), 10, 62.4);
-        when(service.ingest(new DeviceIdentity(id, hash), input))
+        when(service.ingest(DeviceIdentity.mqtt(id, hash), input))
                 .thenReturn(new DeviceContracts.IngestionResult(event, true));
         assertThat(ingress.receive(topic, json.writeValueAsBytes(input), 1, false))
                 .isEqualTo(new MqttMeasurementIngress.Receipt(event, 200, true));
@@ -58,7 +59,7 @@ class MqttMeasurementIngressTest {
     }
 
     @Test void unknownOrRevokedCredentialCannotPersist() {
-        when(devices.authenticate(hash)).thenReturn(Optional.empty());
+        when(devices.authenticateMqtt(hash)).thenReturn(Optional.empty());
         assertThat(ingress.receive(topic, bytes("{}"), 1, false).status()).isEqualTo(401);
         verifyNoInteractions(service);
     }
@@ -83,6 +84,18 @@ class MqttMeasurementIngressTest {
         for (int i = 0; i < 12; i++) assertThat(ingress.receive(topic, bytes("{}"), 1, false).status()).isEqualTo(400);
         assertThat(ingress.receive(topic, bytes("{}"), 1, false).status()).isEqualTo(429);
         verifyNoInteractions(service);
+    }
+
+    @Test void httpSecretFingerprintIsNeverAcceptedAsMqttIdentity() {
+        String tokenHash = "b".repeat(64);
+        when(devices.authenticateMqtt(tokenHash)).thenReturn(Optional.empty());
+        assertThat(ingress.receive("baitly/devices/" + tokenHash + "/measurements", bytes("{}"), 1, false).status()).isEqualTo(401);
+        verify(devices, never()).authenticate(anyString());
+    }
+
+    @Test void overloadIsAnsweredWithoutTouchingTheDatabase() {
+        assertThat(ingress.overloaded().status()).isEqualTo(429);
+        verifyNoInteractions(devices, service);
     }
 
     private byte[] bytes(String value) { return value.getBytes(StandardCharsets.UTF_8); }

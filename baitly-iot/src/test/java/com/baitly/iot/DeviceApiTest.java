@@ -36,7 +36,9 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
         "spring.datasource.url=${BAITLY_IOT_TEST_DATABASE_URL}",
         "spring.datasource.username=${BAITLY_IOT_TEST_DATABASE_USER}",
         "spring.datasource.password=${BAITLY_IOT_TEST_DATABASE_PASSWORD:}",
-        "baitly.iot.service-token=integration-test-service-key-never-use-outside-tests"
+        "baitly.iot.service-token=integration-test-service-key-never-use-outside-tests",
+        // Spring Boot tests disable metric export by default; the Prometheus endpoint is under test here.
+        "management.defaults.metrics.export.enabled=true"
 })
 @AutoConfigureMockMvc
 @EnabledIfEnvironmentVariable(named = "BAITLY_IOT_TEST_DATABASE_URL", matches = ".+")
@@ -105,7 +107,7 @@ class DeviceApiTest {
     void whenOldIdentityWasResolvedBeforeRotation_thenTransactionStillRejectsIt() throws Exception {
         JsonNode credentials = register(1);
         UUID id = UUID.fromString(credentials.path("device").path("id").asText());
-        var identity = new DeviceIdentity(id, new DeviceSecrets().hash(credentials.path("token").asText()));
+        var identity = DeviceIdentity.http(id, new DeviceSecrets().hash(credentials.path("token").asText()));
         service.rotate(id, 1);
         org.assertj.core.api.Assertions.assertThatThrownBy(() -> service.ingest(identity,
                 new DeviceContracts.NoiseMeasurement(UUID.randomUUID(), Instant.now(), 10, 62.0)))
@@ -330,6 +332,104 @@ class DeviceApiTest {
                 .contentType(MediaType.APPLICATION_JSON).content(measurement(Instant.now(), 62)))
                 .andExpect(status().isNotFound());
         ensureSimulator(id, 1, 409);
+    }
+
+    @Test
+    void whenPhysicalRegistrationIsRetried_thenOneDeviceAndTheSecretComesOnlyFromRotation() throws Exception {
+        UUID id = UUID.randomUUID();
+        String body = "{\"propertyId\":11,\"name\":\"Capteur entree\",\"reportingIntervalSeconds\":60}";
+        for (int attempt = 0; attempt < 2; attempt++) {
+            mvc.perform(put("/internal/v1/organizations/1/devices/physical/" + id).header("Authorization", SERVICE)
+                    .contentType(MediaType.APPLICATION_JSON).content(body))
+                    .andExpect(status().isOk()).andExpect(jsonPath("token").doesNotExist())
+                    .andExpect(jsonPath("simulation").value(false));
+        }
+        assertThat(jdbc.queryForObject("SELECT count(*) FROM baitly_iot_devices", Integer.class)).isEqualTo(1);
+        ensureSimulator(id, 1, 409);
+        JsonNode credentials = json.readTree(mvc.perform(post("/internal/v1/organizations/1/devices/" + id + "/credentials")
+                .header("Authorization", SERVICE)).andExpect(status().isOk()).andReturn().getResponse().getContentAsString());
+        send(credentials, measurement(Instant.now(), 55), 200);
+    }
+
+    @Test
+    void whenHttpSecretRotates_thenMqttIdentityIsUnchangedAndViceVersa() throws Exception {
+        JsonNode credentials = register(1);
+        String identity = credentials.path("device").path("mqttIdentity").asText();
+        assertThat(identity).matches("[a-f0-9]{64}").isNotEqualTo(new DeviceSecrets().hash(credentials.path("token").asText()));
+        JsonNode rotated = json.readTree(mvc.perform(post(devicePath(credentials, 1) + "/credentials").header("Authorization", SERVICE))
+                .andExpect(status().isOk()).andReturn().getResponse().getContentAsString());
+        assertThat(rotated.path("device").path("mqttIdentity").asText()).isEqualTo(identity);
+        String next = json.readTree(mvc.perform(post(devicePath(credentials, 1) + "/mqtt-identity").header("Authorization", SERVICE))
+                .andExpect(status().isOk()).andReturn().getResponse().getContentAsString()).path("mqttIdentity").asText();
+        assertThat(next).matches("[a-f0-9]{64}").isNotEqualTo(identity);
+        UUID id = UUID.fromString(credentials.path("device").path("id").asText());
+        org.assertj.core.api.Assertions.assertThatThrownBy(() -> service.ingest(DeviceIdentity.mqtt(id, identity),
+                new DeviceContracts.NoiseMeasurement(UUID.randomUUID(), Instant.now(), 10, 60.0)))
+                .isInstanceOf(org.springframework.web.server.ResponseStatusException.class);
+        assertThat(service.ingest(DeviceIdentity.mqtt(id, next),
+                new DeviceContracts.NoiseMeasurement(UUID.randomUUID(), Instant.now(), 10, 60.0)).duplicate()).isFalse();
+        send(rotated, measurement(Instant.now(), 61), 200);
+    }
+
+    @Test
+    void whenErasureIsRequested_thenDeviceIsRevokedHiddenAndTheRequestIsIdempotent() throws Exception {
+        JsonNode credentials = register(1);
+        send(credentials, measurement(Instant.now(), 55), 200);
+        mvc.perform(post(devicePath(credentials, 2) + "/erasure").header("Authorization", SERVICE)).andExpect(status().isNotFound());
+        mvc.perform(post(devicePath(credentials, 1) + "/erasure").header("Authorization", SERVICE)).andExpect(status().isNoContent());
+        mvc.perform(post(devicePath(credentials, 1) + "/erasure").header("Authorization", SERVICE)).andExpect(status().isNoContent());
+        send(credentials, measurement(Instant.now(), 56), 401);
+        mvc.perform(get(devicePath(credentials, 1)).header("Authorization", SERVICE)).andExpect(status().isNotFound());
+        mvc.perform(get("/internal/v1/organizations/1/devices").header("Authorization", SERVICE))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.length()").value(0));
+    }
+
+    @Test
+    void whenRetentionRuns_thenExpiredAndErasedDataIsDeletedAndRecentDataKept() throws Exception {
+        JsonNode kept = register(1);
+        JsonNode erased = register(1);
+        send(kept, measurement(Instant.now(), 50), 200);
+        send(erased, measurement(Instant.now(), 51), 200);
+        UUID keptId = UUID.fromString(kept.path("device").path("id").asText());
+        jdbc.update("INSERT INTO baitly_iot_noise_measurements (device_id, event_id, measured_at, received_at, window_seconds, laeq_db_a)"
+                + " VALUES (?, ?, now() - interval '100 days', now() - interval '100 days', 10, 40)", keptId, UUID.randomUUID());
+        mvc.perform(post(devicePath(erased, 1) + "/erasure").header("Authorization", SERVICE)).andExpect(status().isNoContent());
+        var result = IotRetentionMain.purge(jdbc, java.time.Clock.systemUTC(), 90);
+        assertThat(result).isEqualTo(new IotRetentionMain.Result(1, 1, 1));
+        assertThat(jdbc.queryForObject("SELECT count(*) FROM baitly_iot_noise_measurements", Integer.class)).isEqualTo(1);
+        assertThat(jdbc.queryForObject("SELECT count(*) FROM baitly_iot_devices", Integer.class)).isEqualTo(1);
+        org.assertj.core.api.Assertions.assertThatThrownBy(() -> IotRetentionMain.purge(jdbc, java.time.Clock.systemUTC(), 7))
+                .isInstanceOf(IllegalArgumentException.class);
+    }
+
+    @Test
+    void whenHistoryIsReadForAnotherProperty_thenNotFound() throws Exception {
+        JsonNode credentials = register(1);
+        mvc.perform(get(devicePath(credentials, 1) + "/measurements").header("Authorization", SERVICE)
+                .param("from", Instant.now().minusSeconds(60).toString()).param("to", Instant.now().toString())
+                .param("propertyId", "12")).andExpect(status().isNotFound());
+        mvc.perform(get(devicePath(credentials, 1) + "/measurements").header("Authorization", SERVICE)
+                .param("from", Instant.now().minusSeconds(60).toString()).param("to", Instant.now().toString())
+                .param("propertyId", "11")).andExpect(status().isOk());
+    }
+
+    @Test
+    void whenHealthAndMetricsAreReadOnPrivateLoopback_thenServedWithoutSecrets() throws Exception {
+        var http = HttpClient.newHttpClient();
+        var health = http.send(HttpRequest.newBuilder(URI.create("http://127.0.0.1:" + INTERNAL_PORT + "/actuator/health")).GET().build(),
+                HttpResponse.BodyHandlers.ofString());
+        assertThat(health.statusCode()).isEqualTo(200);
+        assertThat(health.body()).contains("UP").doesNotContain("jdbc", "postgres");
+        JsonNode credentials = register(1);
+        send(credentials, measurement(Instant.now(), 50), 200);
+        var metrics = http.send(HttpRequest.newBuilder(URI.create("http://127.0.0.1:" + INTERNAL_PORT + "/actuator/prometheus")).GET().build(),
+                HttpResponse.BodyHandlers.ofString());
+        assertThat(metrics.statusCode()).isEqualTo(200);
+        assertThat(metrics.body()).contains("baitly_iot_ingress").doesNotContain(credentials.path("token").asText(),
+                credentials.path("device").path("id").asText());
+        var publicHealth = http.send(HttpRequest.newBuilder(URI.create("http://127.0.0.1:" + publicPort + "/actuator/health")).GET().build(),
+                HttpResponse.BodyHandlers.discarding());
+        assertThat(publicHealth.statusCode()).isEqualTo(404);
     }
 
     private void ensureSimulator(UUID id, long orgId, int expectedStatus) throws Exception {

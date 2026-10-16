@@ -46,7 +46,7 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("action", choices=["init-test", "issue-device"])
     parser.add_argument("--directory", type=Path, required=True)
-    parser.add_argument("--fingerprint", help="SHA-256 hex of the current device credential; never the token itself")
+    parser.add_argument("--identity", help="mqttIdentity returned by Baitly for the device (64 lowercase hex); never a secret")
     parser.add_argument("--days", type=int, default=30)
     args = parser.parse_args()
     if not os.environ.get("BAITLY_MQTT_P12_PASSWORD"):
@@ -60,11 +60,11 @@ def main():
         certificate(root, "server", "server-ca", "localhost", "serverAuth")
         certificate(root, "ingestor", "ingestion-ca", "baitly-ingestor", "clientAuth")
     else:
-        if not args.fingerprint or not re.fullmatch("[a-f0-9]{64}", args.fingerprint):
-            parser.error("A lowercase SHA-256 fingerprint is required")
+        if not args.identity or not re.fullmatch("[a-f0-9]{64}", args.identity):
+            parser.error("The device mqttIdentity (64 lowercase hex characters) is required")
         if not 1 <= args.days <= 90:
             parser.error("Certificate lifetime must be 1..90 days")
-        certificate(root, "device-" + args.fingerprint, "devices-ca", args.fingerprint, "clientAuth", args.days)
+        certificate(root, "device-" + args.identity, "devices-ca", args.identity, "clientAuth", args.days)
 
 
 if __name__ == "__main__":

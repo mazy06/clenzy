@@ -18,6 +18,13 @@ public class DeviceSecrets {
         return Base64.getUrlEncoder().withoutPadding().encodeToString(bytes);
     }
 
+    /** Random MQTT certificate CN: an identifier signed by the offline CA, never a secret. */
+    public String mqttIdentity() {
+        byte[] bytes = new byte[32];
+        random.nextBytes(bytes);
+        return HexFormat.of().formatHex(bytes);
+    }
+
     public String hash(String token) {
         try {
             return HexFormat.of().formatHex(MessageDigest.getInstance("SHA-256")

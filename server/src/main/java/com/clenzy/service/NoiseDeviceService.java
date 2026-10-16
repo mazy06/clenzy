@@ -6,6 +6,7 @@ import com.clenzy.dto.noise.NoiseChartDataDto;
 import com.clenzy.dto.noise.NoiseDataPointDto;
 import com.clenzy.dto.noise.NoiseDeviceDto;
 import com.clenzy.integration.minut.service.MinutApiService;
+import com.clenzy.integration.baitlyiot.BaitlyIotClient;
 import com.clenzy.integration.tuya.service.TuyaApiService;
 import com.clenzy.integration.tuya.service.TuyaDeviceClaimService;
 import com.clenzy.model.NoiseDevice;
@@ -26,7 +27,7 @@ import java.util.stream.Collectors;
 
 /**
  * Service business unifie pour les capteurs de bruit.
- * Orchestre les appels vers Minut ou Tuya selon le type de device.
+ * Orchestre les appels vers Minut, Tuya ou Baitly IoT selon le type de device.
  */
 @Service
 public class NoiseDeviceService {
@@ -40,6 +41,7 @@ public class NoiseDeviceService {
     private final TuyaApiService tuyaApiService;
     private final TenantContext tenantContext;
     private final TuyaDeviceClaimService claimService;
+    private final BaitlyIotClient baitlyIotClient;
 
     public NoiseDeviceService(NoiseDeviceRepository noiseDeviceRepository,
                               PropertyRepository propertyRepository,
@@ -47,7 +49,8 @@ public class NoiseDeviceService {
                               TuyaApiService tuyaApiService,
                               TenantContext tenantContext,
                               TuyaDeviceClaimService claimService,
-                                    OrganizationAccessGuard organizationAccessGuard) {
+                                    OrganizationAccessGuard organizationAccessGuard,
+                                    BaitlyIotClient baitlyIotClient) {
         this.noiseDeviceRepository = noiseDeviceRepository;
         this.propertyRepository = propertyRepository;
         this.minutApiService = minutApiService;
@@ -55,6 +58,7 @@ public class NoiseDeviceService {
         this.tenantContext = tenantContext;
         this.claimService = claimService;
         this.organizationAccessGuard = organizationAccessGuard;
+        this.baitlyIotClient = baitlyIotClient;
     }
 
     // ─── CRUD ───────────────────────────────────────────────────
@@ -73,6 +77,9 @@ public class NoiseDeviceService {
      * Cree un nouveau capteur.
      */
     public NoiseDeviceDto createDevice(String userId, CreateNoiseDeviceDto dto) {
+        if (DeviceType.BAITLY.name().equalsIgnoreCase(dto.getDeviceType())) {
+            throw new IllegalArgumentException("Utilisez le parcours de rattachement Wi-Fi direct pour cet appareil");
+        }
         // Verifier que la propriete existe
         Property property = propertyRepository.findById(dto.getPropertyId())
                 .orElseThrow(() -> new IllegalArgumentException("Propriete introuvable: " + dto.getPropertyId()));
@@ -115,6 +122,10 @@ public class NoiseDeviceService {
         organizationAccessGuard.requireSameOrganization(
                 device.getOrganizationId(), "Capteur de bruit hors de votre organisation");
 
+        if (DeviceType.BAITLY.equals(device.getDeviceType())) {
+            throw new IllegalArgumentException("Utilisez la gestion Baitly IoT pour revoquer puis supprimer ce capteur");
+        }
+
         if (DeviceType.TUYA.equals(device.getDeviceType())) {
             claimService.release(device.getExternalDeviceId());
         }
@@ -140,6 +151,12 @@ public class NoiseDeviceService {
             return Collections.emptyList();
         }
 
+        // A transport failure must remain distinguishable from an empty measurement history.
+        if (DeviceType.BAITLY.equals(device.getDeviceType())) {
+            return baitlyIotClient.noise(device.getExternalDeviceId(), device.getOrganizationId(),
+                    device.getPropertyId(), startAt, endAt, getDeviceLabel(device));
+        }
+
         try {
             switch (device.getDeviceType()) {
                 case MINUT:
@@ -159,16 +176,29 @@ public class NoiseDeviceService {
      * Statut live d'un capteur : connectivite reelle (flag Tuya/Minut), persistee
      * pour le read-model GET /api/devices. Mirror de SmartLockService.getLockStatus.
      */
-    @Transactional
     public Map<String, Object> getDeviceStatus(String userId, Long deviceId) {
         NoiseDevice device = noiseDeviceRepository.findById(deviceId)
                 .orElseThrow(() -> new IllegalArgumentException("Capteur introuvable: " + deviceId));
         organizationAccessGuard.requireSameOrganization(
                 device.getOrganizationId(), "Capteur de bruit hors de votre organisation");
 
+        if (DeviceType.BAITLY.equals(device.getDeviceType())) {
+            var status = baitlyIotClient.getDevice(device.getExternalDeviceId(), device.getOrganizationId());
+            if (status == null || status.organizationId() != device.getOrganizationId()
+                    || status.propertyId() != device.getPropertyId()) {
+                throw new IllegalStateException("Rattachement Baitly IoT incoherent");
+            }
+            device.setOnline(status.online());
+            // Same convention as the other providers: last_seen_at is a UTC technical timestamp.
+            device.setLastSeenAt(status.lastReceivedAt() == null ? null
+                    : LocalDateTime.ofInstant(status.lastReceivedAt(), java.time.ZoneOffset.UTC));
+            noiseDeviceRepository.save(device);
+            return Map.of("online", status.online(), "revoked", status.revoked());
+        }
+
         boolean online = fetchOnline(userId, device);
         device.setOnline(online);
-        device.setLastSeenAt(LocalDateTime.now());
+        device.setLastSeenAt(LocalDateTime.now(java.time.ZoneOffset.UTC));
         noiseDeviceRepository.save(device);
 
         return Map.of("online", online);

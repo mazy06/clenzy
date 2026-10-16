@@ -3,10 +3,10 @@
 
 import argparse
 import datetime
-import hashlib
 import json
 import math
 import os
+import re
 import sys
 import ssl
 import threading
@@ -21,11 +21,11 @@ class NoRedirect(urllib.request.HTTPRedirectHandler):
         return None
 
 
-def send_mqtt(args, token, payload):
+def send_mqtt(args, payload):
     # Deferred import keeps the HTTP simulator usable without additional dependencies.
     import paho.mqtt.client as mqtt
-    fingerprint = hashlib.sha256(token.encode("utf-8")).hexdigest()
-    topic = "baitly/devices/" + fingerprint
+    # The broker only lets a certificate publish under its own CN: the device's mqttIdentity.
+    topic = "baitly/devices/" + args.mqtt_identity
     context = ssl.create_default_context(cafile=args.ca_file)
     context.minimum_version = ssl.TLSVersion.TLSv1_2
     context.load_cert_chain(args.cert_file, args.key_file)
@@ -89,7 +89,8 @@ def main():
     parser.add_argument("--mqtt-host", default="localhost")
     parser.add_argument("--mqtt-port", type=int, default=8883)
     parser.add_argument("--ca-file", help="CA that signed the MQTT server certificate")
-    parser.add_argument("--cert-file", help="Individual device certificate, CN = SHA-256 of its current token")
+    parser.add_argument("--cert-file", help="Individual device certificate, CN = the device's mqttIdentity")
+    parser.add_argument("--mqtt-identity", help="mqttIdentity returned by Baitly (64 lowercase hex), the certificate CN")
     parser.add_argument("--key-file", help="Individual device private key")
     parser.add_argument("--level", type=float, required=True, help="Synthetic LAeq in dB(A)")
     parser.add_argument("--window-seconds", type=int, default=10)
@@ -97,8 +98,9 @@ def main():
     parser.add_argument("--measured-at", help="UTC integration window end, ISO 8601")
     args = parser.parse_args()
     if args.transport == "mqtt" and (not all((args.ca_file, args.cert_file, args.key_file))
-                                      or not 1 <= args.mqtt_port <= 65535):
-        parser.error("MQTT requires --ca-file, --cert-file, --key-file and a valid TLS port")
+                                      or not 1 <= args.mqtt_port <= 65535
+                                      or not re.fullmatch("[a-f0-9]{64}", args.mqtt_identity or "")):
+        parser.error("MQTT requires --ca-file, --cert-file, --key-file, --mqtt-identity and a valid TLS port")
     target = urllib.parse.urlsplit(args.url)
     loopback = target.hostname in ("localhost", "127.0.0.1", "::1")
     if not target.hostname or target.username or target.password or target.query or target.fragment:
@@ -106,7 +108,7 @@ def main():
     if target.scheme != "https" and not (target.scheme == "http" and loopback):
         parser.error("HTTPS required outside loopback")
     token = os.environ.get("BAITLY_IOT_DEVICE_TOKEN", "")
-    if not token or any(character.isspace() for character in token):
+    if args.transport == "http" and (not token or any(character.isspace() for character in token)):
         parser.error("Set BAITLY_IOT_DEVICE_TOKEN to the device credential returned at registration")
     if not math.isfinite(args.level) or not 0 <= args.level <= 150 or not 1 <= args.window_seconds <= 300:
         parser.error("Level must be finite and within 0..150, window within 1..300 seconds")
@@ -119,7 +121,7 @@ def main():
     }
     if args.transport == "mqtt":
         try:
-            return send_mqtt(args, token, payload)
+            return send_mqtt(args, payload)
         except ImportError:
             print("Install scripts/requirements.txt to use MQTT simulation", file=sys.stderr)
         except (OSError, ValueError):

@@ -11,6 +11,10 @@ import com.clenzy.service.NoiseAlertService;
 import com.clenzy.service.NoiseDeviceService;
 import com.clenzy.service.agent.supervision.SupervisionActivityService;
 import com.clenzy.service.agent.supervision.SupervisionSuggestionService;
+import com.clenzy.service.access.OrganizationAccessGuard;
+import com.clenzy.tenant.TenantContext;
+import com.clenzy.tenant.TenantScopedExecutor;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -20,6 +24,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.util.List;
+import java.util.function.Supplier;
 
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
@@ -44,12 +49,32 @@ class NoiseAlertSchedulerTest {
     @Mock
     private SupervisionSuggestionService supervisionSuggestionService;
 
+    @Mock
+    private TenantScopedExecutor tenantScopedExecutor;
+
+    private final TenantContext tenantContext = new TenantContext();
     private NoiseAlertScheduler scheduler;
 
     @BeforeEach
     void setUp() {
+        // Same contract as the real executor: org on the ThreadLocal during the action, cleared after.
+        lenient().when(tenantScopedExecutor.callAsOrganization(any(), any())).thenAnswer(invocation -> {
+            Long orgId = invocation.getArgument(0);
+            if (orgId == null) throw new IllegalArgumentException("organizationId est requis");
+            tenantContext.setOrganizationId(orgId);
+            try {
+                return invocation.<Supplier<?>>getArgument(1).get();
+            } finally {
+                tenantContext.clear();
+            }
+        });
         scheduler = new NoiseAlertScheduler(configRepository, deviceRepository, deviceService, alertService,
-                supervisionActivityService, supervisionSuggestionService);
+                supervisionActivityService, supervisionSuggestionService, tenantScopedExecutor);
+    }
+
+    @AfterEach
+    void clearTenant() {
+        tenantContext.clear();
     }
 
     private NoiseAlertConfig createConfig(Long propertyId, Long orgId) {
@@ -64,12 +89,54 @@ class NoiseAlertSchedulerTest {
         device.setId(id);
         device.setUserId(userId);
         device.setStatus(DeviceStatus.ACTIVE);
+        device.setOrganizationId(10L);
         return device;
     }
 
     @Nested
     @DisplayName("checkNoiseLevels")
     class CheckNoiseLevels {
+
+        @Test
+        void whenDeviceIsSimulated_thenNeverEvaluatesAlertsOrNotifiesGuests() {
+            NoiseAlertConfig config = createConfig(1L, 10L);
+            NoiseDevice device = createDevice(100L, "user-1");
+            device.setSimulation(true);
+            when(configRepository.findAllEnabledWithTimeWindows()).thenReturn(List.of(config));
+            when(deviceRepository.findByPropertyIdAndStatus(1L, DeviceStatus.ACTIVE)).thenReturn(List.of(device));
+            scheduler.checkNoiseLevels();
+            verifyNoInteractions(deviceService, alertService, supervisionActivityService, supervisionSuggestionService);
+        }
+
+        @Test
+        void whenReadingDevice_thenRunsInConfigOrganizationSoTheFailClosedGuardAccepts() {
+            NoiseAlertConfig config = createConfig(1L, 10L);
+            NoiseDevice device = createDevice(100L, "user-1");
+            var guard = new OrganizationAccessGuard(tenantContext);
+            when(configRepository.findAllEnabledWithTimeWindows()).thenReturn(List.of(config));
+            when(deviceRepository.findByPropertyIdAndStatus(1L, DeviceStatus.ACTIVE)).thenReturn(List.of(device));
+            when(deviceService.getNoiseData(eq("user-1"), eq(100L), anyString(), anyString())).thenAnswer(invocation -> {
+                guard.requireSameOrganization(device.getOrganizationId(), "Capteur hors organisation");
+                return List.of(new NoiseDataPointDto("2026-10-16T12:00:00Z", 80.0, "Salon"));
+            });
+
+            scheduler.checkNoiseLevels();
+
+            verify(alertService).evaluateNoiseLevel(eq(10L), eq(1L), eq(100L), eq(80.0), any());
+        }
+
+        @Test
+        void whenDeviceBelongsToAnotherOrganization_thenNeverReadsIt() {
+            NoiseAlertConfig config = createConfig(1L, 10L);
+            NoiseDevice foreign = createDevice(100L, "user-1");
+            foreign.setOrganizationId(99L);
+            when(configRepository.findAllEnabledWithTimeWindows()).thenReturn(List.of(config));
+            when(deviceRepository.findByPropertyIdAndStatus(1L, DeviceStatus.ACTIVE)).thenReturn(List.of(foreign));
+
+            scheduler.checkNoiseLevels();
+
+            verifyNoInteractions(deviceService, alertService);
+        }
 
         @Test
         void whenNoConfigs_thenDoesNothing() {

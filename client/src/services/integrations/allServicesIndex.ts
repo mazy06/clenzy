@@ -143,7 +143,7 @@ export const ALL_SERVICES: ServiceIndexEntry[] = [
   entry('clenzy_keyvault', 'Baitly KeyVault', 'key_management'),
   entry('keynest', 'KeyNest', 'key_management'),
   entry('minut', 'Minut', 'noise_monitoring'),
-  entry('clenzy_hardware', 'Baitly Hardware', 'noise_monitoring'),
+  entry('clenzy_hardware', 'Baitly IoT', 'noise_monitoring'),
   entry('getyourguide', 'GetYourGuide', 'activities_affiliate'),
   entry('klook', 'Klook', 'activities_affiliate'),
   entry('viator', 'Viator', 'activities_affiliate'),

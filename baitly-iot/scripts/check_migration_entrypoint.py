@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Verify the packaged, non-HTTP migration entry point on an explicitly disposable test DB."""
+"""Verify the packaged, non-HTTP migration and retention entry points on an explicitly disposable test DB."""
 import os
 from pathlib import Path
 import subprocess
@@ -27,7 +27,15 @@ def main():
             result = subprocess.run(command, capture_output=True, timeout=60)
             if result.returncode:
                 raise RuntimeError("Packaged migration entry point failed; credentials/output withheld")
-    print("Packaged migration entry point passed twice without starting an HTTP server")
+        retention = Path(directory) / "retention.properties"
+        retention.write_text(file.read_text() + "retentionDays=90\n")
+        retention.chmod(0o600)
+        result = subprocess.run(["java", "-Dloader.main=com.baitly.iot.IotRetentionMain", "-cp", str(jar),
+                                 "org.springframework.boot.loader.launch.PropertiesLauncher", str(retention)],
+                                capture_output=True, timeout=60)
+        if result.returncode or not result.stdout.startswith(b"Baitly IoT retention:"):
+            raise RuntimeError("Packaged retention entry point failed; credentials/output withheld")
+    print("Packaged migration (twice) and retention entry points passed without starting an HTTP server")
 
 
 if __name__ == "__main__":

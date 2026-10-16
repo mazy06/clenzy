@@ -65,13 +65,13 @@ class RuntimeDatabaseGuardTest {
                     assertThat(application.getBean(RuntimeDatabaseGuard.class)).isNotNull();
                     var service = application.getBean(DeviceService.class);
                     var registered = service.register(1, new DeviceContracts.RegisterDevice(11, "Restricted runtime", 60));
-                    var result = service.ingest(new DeviceIdentity(registered.device().id(), new DeviceSecrets().hash(registered.token())),
+                    var result = service.ingest(DeviceIdentity.http(registered.device().id(), new DeviceSecrets().hash(registered.token())),
                             new DeviceContracts.NoiseMeasurement(UUID.randomUUID(), java.time.Instant.now(), 10, 62.0));
                     assertThat(result.duplicate()).isFalse();
                     assertThat(runtime.queryForObject("SELECT count(*) FROM baitly_iot_noise_measurements", Integer.class)).isEqualTo(1);
                 }
-                runtime.update("INSERT INTO baitly_iot_devices (id,organization_id,property_id,name,token_hash,reporting_interval_seconds,created_at) VALUES (?,1,11,'Test',?,60,now())",
-                        UUID.randomUUID(), "a".repeat(64));
+                runtime.update("INSERT INTO baitly_iot_devices (id,organization_id,property_id,name,token_hash,reporting_interval_seconds,created_at,mqtt_identity) VALUES (?,1,11,'Test',?,60,now(),?)",
+                        UUID.randomUUID(), "a".repeat(64), "c".repeat(64));
                 assertThat(runtime.queryForObject("SELECT count(*) FROM baitly_iot_devices", Integer.class)).isEqualTo(2);
                 assertThatThrownBy(() -> runtime.execute("CREATE TABLE escape_attempt (id BIGINT)"))
                         .isInstanceOf(DataAccessException.class);

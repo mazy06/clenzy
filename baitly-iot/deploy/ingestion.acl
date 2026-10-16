@@ -1,3 +1,5 @@
+# One `user` block per receiver certificate CN. Several receivers share the stream with
+# BAITLY_IOT_MQTT_SHARED_GROUP; Mosquitto checks the ACL on the topic after the $share prefix.
 user baitly-ingestor
 topic read baitly/devices/+/measurements
 topic write baitly/devices/+/acks

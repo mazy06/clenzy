@@ -98,6 +98,9 @@ export default function ConnectedObjectsHub({ embedded = false, propertyId }: { 
         selectedDeviceUid={selectedUid} onDeviceSelect={selectDevice} />
         : <div className="bir-empty-room"><img src="/images/notifications/property.webp" width={80} height={80} alt="" /><h2>{t('connectedObjects.empty.title')}</h2>
           <p>{t('connectedRooms.noPropertyHint')}</p><Button onClick={() => setAdding({ propertyId: null })}><Plus size={16} />{t('connectedObjects.addDevice')}</Button></div>}
-    {adding && <AddDeviceWizard open onClose={() => setAdding(null)} onAdded={() => { void refetch(); }} defaultPropertyId={adding.propertyId} defaultRoomName={adding.roomName} />}
+    {adding && <AddDeviceWizard open onClose={() => setAdding(null)} onAdded={created => {
+      if (created) setParams({ property: String(created.propertyId), device: `${created.kind}:${created.id}` }, { replace: true });
+      void refetch();
+    }} defaultPropertyId={adding.propertyId} defaultRoomName={adding.roomName} />}
   </div>;
 }

@@ -17,7 +17,7 @@ import java.time.LocalDateTime;
 public class NoiseDevice {
 
     public enum DeviceType {
-        MINUT, TUYA
+        MINUT, TUYA, BAITLY
     }
 
     public enum DeviceStatus {
@@ -60,6 +60,12 @@ public class NoiseDevice {
     /** Connectivite reelle (flag Tuya/Minut). Null = jamais synchronise. */
     @Column(name = "online")
     private Boolean online;
+
+    @Column(name = "simulation", nullable = false)
+    private boolean simulation;
+
+    public boolean isSimulation() { return simulation; }
+    public void setSimulation(boolean simulation) { this.simulation = simulation; }
 
     /** Dernier rafraichissement du statut live. */
     @Column(name = "last_seen_at")

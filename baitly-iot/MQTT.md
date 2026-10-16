@@ -16,12 +16,12 @@ Appareil → Wi-Fi → Internet → Mosquitto Baitly :8883 (mTLS)
 
 Mosquitto utilise le **CN du certificat signé**, et non le username déclaré par le client, pour les ACL et le client ID. Un appareil ne peut donc pas évincer un autre appareil en usurpant son client ID. Les deux listeners n'acceptent pas la même CA ; une identité d'appareil ne peut pas devenir celle du récepteur.
 
-Le CN d'appareil est **SHA-256 du secret courant**, sous forme de 64 caractères hexadécimaux minuscules. Cette empreinte n'est pas un mot de passe : la clé privée et le certificat signé sont nécessaires. Le provisionnement de confiance vérifie l'enregistrement et le rattachement avant émission. Ne jamais signer un CN arbitraire fourni par un navigateur. Les clés de CA restent hors broker, service IoT et PMS.
+Le CN d'appareil est son **identité MQTT** (`mqttIdentity`) : 64 caractères hexadécimaux aléatoires attribués par Baitly à l'enregistrement, **indépendants du secret HTTP**. Ce n'est pas un mot de passe : la clé privée et le certificat signé par la CA des appareils sont nécessaires. Faire tourner la clé HTTP ne touche pas au certificat ; faire tourner l'identité MQTT (`POST .../mqtt-identity`) empêche immédiatement les certificats de l'ancienne identité d'écrire. Le provisionnement de confiance vérifie l'enregistrement et le rattachement avant émission. Ne jamais signer un CN arbitraire fourni par un navigateur. Les clés de CA restent hors broker, service IoT et PMS. Les appareils enregistrés avant cette séparation conservent comme identité l'empreinte de leur secret de l'époque, donc leur certificat actuel reste valide.
 
 | Topic | Droits de l'appareil |
 | --- | --- |
-| `baitly/devices/<empreinte>/measurements` | Publication pour sa propre empreinte seulement |
-| `baitly/devices/<empreinte>/acks` | Lecture pour sa propre empreinte seulement |
+| `baitly/devices/<mqttIdentity>/measurements` | Publication pour sa propre identité seulement |
+| `baitly/devices/<mqttIdentity>/acks` | Lecture pour sa propre identité seulement |
 
 La mesure reprend le [contrat JSON HTTP](README.md#contrat-de-mesure-sonore), sans secret, organisation, logement, audio ou commande. Maximum 4 Kio. Les validations, limites par appareil, transactions, contrôle de révocation et déduplication sont communs aux deux transports.
 
@@ -33,7 +33,9 @@ L'accusé applicatif est envoyé **après le commit SQL** :
 
 PUBACK seul ne prouve pas la persistance. L'appareil conserve la mesure jusqu'à cet accusé. En cas de timeout, il réessaie avec les mêmes `eventId`, date et contenu, avec temporisation croissante. Un doublon valide reçoit `200` et `duplicate:true`. Les refus donnent 400, 401, 409, 413 ou 429 ; `eventId` peut être nul lorsque le message n'a pas pu être identifié. Une panne SQL n'émet aucun succès. Le broker ne conserve ni retained ni sessions durables : la reprise appartient à l'appareil.
 
-Une révocation ou rotation bloque immédiatement les écritures suivantes, y compris sur une session déjà connectée. Après rotation, un **nouveau certificat avec le nouveau CN** est nécessaire. Un ancien certificat peut encore ouvrir une session TLS tant qu'il est valide pour la CA, mais son ancienne empreinte ne permet plus d'écrire. Pour couper aussi cette connexion, l'exploitation doit déployer une CRL et déconnecter la session ; cette automatisation n'est pas livrée.
+Une révocation ou une rotation de l'identité MQTT bloque immédiatement les écritures suivantes, y compris sur une session déjà connectée. Après rotation de l'identité, un **nouveau certificat avec le nouveau CN** est nécessaire. Un ancien certificat peut encore ouvrir une session TLS tant qu'il est valide pour la CA, mais son ancienne identité ne permet plus d'écrire. Pour couper aussi cette connexion, l'exploitation doit déployer une CRL et déconnecter la session ; cette automatisation n'est pas livrée.
+
+Le récepteur ne bloque jamais le thread réseau : chaque message est placé dans une file bornée (`BAITLY_IOT_MQTT_QUEUE_CAPACITY`, 512) traitée par `BAITLY_IOT_MQTT_WORKERS` (4) transactions SQL en parallèle. File pleine : accusé `429` immédiat, l'appareil réessaie. Pour plusieurs récepteurs, donner à chacun son propre certificat (CN = `BAITLY_IOT_MQTT_CLIENT_ID`, une entrée `user` par CN dans `ingestion.acl`) et le même `BAITLY_IOT_MQTT_SHARED_GROUP` : le broker répartit alors les mesures par abonnement partagé au lieu de les dupliquer.
 
 ## Serveur et isolation
 
@@ -60,7 +62,7 @@ Ces configurations ne sont **pas installées**. Ne pas appliquer cette référen
 
 Le bouton de simulation de l'interface existante injecte par l'API privée. Le **simulateur CLI MQTT** traverse réellement TLS, les ACL, le broker et PostgreSQL. Les deux parcours gardent les appareils simulés exclus des alertes voyageurs.
 
-1. Dans Baitly, créer un simulateur via le « + » existant pour un logement de test. Récupérer sa clé temporaire avec le contrôle de simulation existant et la définir dans `BAITLY_IOT_DEVICE_TOKEN`, sans l'inscrire dans l'historique shell.
+1. Dans Baitly, enregistrer un appareil (« Nouvel appareil à enregistrer ») ou créer un simulateur pour un logement de test, puis noter son `mqttIdentity` (affichée à l'enregistrement, dans **Paramètres de connexion de l'appareil**, et renvoyée par `GET /api/baitly-iot/noise-devices/{id}`, y compris pour un simulateur).
 2. Définir `BAITLY_MQTT_P12_PASSWORD` dans l'environnement de test. Créer les CA jetables avec la commande suivante. Elle génère trois autorités de deux jours et les identités serveur/récepteur, **uniquement pour un test local**. Elle refuse un dossier existant.
 
 ```sh
@@ -68,11 +70,11 @@ rtk proxy python3 baitly-iot/scripts/mqtt_pki.py init-test --directory /chemin/n
 ```
 
 3. Adapter les chemins de la configuration Mosquitto au dossier généré, lancer le broker local et activer le récepteur Java avec les variables ci-dessus. Le certificat serveur de test désigne `localhost`. Les clés de signature restent uniquement dans cet environnement de test.
-4. Calculer SHA-256 du secret courant, puis émettre l'identité d'appareil :
+4. Émettre le certificat de l'appareil pour son identité MQTT :
 
 ```sh
 rtk proxy python3 baitly-iot/scripts/mqtt_pki.py issue-device \
-  --directory /chemin/nouveau-pki-test --fingerprint <empreinte-sha256>
+  --directory /chemin/nouveau-pki-test --identity <mqttIdentity>
 ```
 
 L'outil crée `device-<empreinte>.crt`, `.key` et `.p12`, sans écraser d'identité existante. L'émission est une opération de confiance hors runtime ; la commande ne valide pas à elle seule le propriétaire du capteur.
@@ -85,8 +87,9 @@ rtk proxy /tmp/baitly-mqtt-venv/bin/pip install -r baitly-iot/scripts/requiremen
 rtk proxy /tmp/baitly-mqtt-venv/bin/python baitly-iot/scripts/simulate_noise.py \
   --transport mqtt --mqtt-host localhost --mqtt-port 8883 \
   --ca-file /chemin/nouveau-pki-test/server-ca.crt \
-  --cert-file /chemin/nouveau-pki-test/device-<empreinte>.crt \
-  --key-file /chemin/nouveau-pki-test/device-<empreinte>.key --level 62.4
+  --cert-file /chemin/nouveau-pki-test/device-<mqttIdentity>.crt \
+  --key-file /chemin/nouveau-pki-test/device-<mqttIdentity>.key \
+  --mqtt-identity <mqttIdentity> --level 62.4
 ```
 
 La commande ne réussit qu'après l'accusé Baitly. Rafraîchir ensuite la fiche et l'historique du simulateur dans le PMS. Pour tester un doublon, relancer deux fois avec les mêmes `--event-id` **et** `--measured-at`. Révoquer le simulateur pour vérifier le refus des mesures suivantes.

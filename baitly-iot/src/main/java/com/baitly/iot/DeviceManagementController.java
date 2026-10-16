@@ -39,6 +39,23 @@ public class DeviceManagementController {
         return service.ensureSimulator(id, organizationId, input);
     }
 
+    @PutMapping("/physical/{id}")
+    public DeviceView ensurePhysical(@PathVariable @Positive long organizationId, @PathVariable UUID id,
+                                     @Valid @RequestBody RegisterDevice input) {
+        return service.ensurePhysical(id, organizationId, input);
+    }
+
+    @PostMapping("/{id}/mqtt-identity")
+    public MqttIdentity rotateMqttIdentity(@PathVariable long organizationId, @PathVariable UUID id) {
+        return service.rotateMqttIdentity(id, organizationId);
+    }
+
+    @PostMapping("/{id}/erasure")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void requestErasure(@PathVariable long organizationId, @PathVariable UUID id) {
+        service.requestErasure(id, organizationId);
+    }
+
     @PostMapping("/{id}/credentials")
     public DeviceCredentials rotate(@PathVariable long organizationId, @PathVariable UUID id) {
         return service.rotate(id, organizationId);
@@ -63,7 +80,8 @@ public class DeviceManagementController {
 
     @GetMapping("/{id}/measurements")
     public List<MeasurementView> measurements(@PathVariable long organizationId, @PathVariable UUID id,
-            @RequestParam Instant from, @RequestParam Instant to, @RequestParam(defaultValue = "1000") int limit) {
-        return service.measurements(id, organizationId, from, to, limit);
+            @RequestParam Instant from, @RequestParam Instant to, @RequestParam(defaultValue = "1000") int limit,
+            @RequestParam(required = false) @Positive Long propertyId) {
+        return service.measurements(id, organizationId, propertyId, from, to, limit);
     }
 }

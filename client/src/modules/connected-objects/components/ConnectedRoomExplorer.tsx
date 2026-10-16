@@ -151,7 +151,7 @@ export default function ConnectedRoomExplorer({ group, property, kindFilter, act
         {roomDevices.length ? <>
           <div className="bir-device-list" role="group" aria-label={t('connectedRooms.selectDevice')}>
             {roomDevices.map(device => <button type="button" key={device.uid} aria-pressed={selected?.uid === device.uid} onClick={() => chooseDevice(device.uid)}>
-              <img className="bir-list-symbol" src={deviceArtwork(device, thermalFor(device))} alt="" width={38} height={38} /><span className="bir-list-name"><strong dir="auto">{device.name}</strong><span>{device.provider === 'CLENZY_KEYVAULT' ? 'Baitly KeyVault' : device.provider}</span></span>
+              <img className="bir-list-symbol" src={deviceArtwork(device, thermalFor(device))} alt="" width={38} height={38} /><span className="bir-list-name"><strong dir="auto">{device.name}</strong><span>{device.provider === 'BAITLY' ? t('baitlyIot.onboarding.direct') : device.provider === 'CLENZY_KEYVAULT' ? 'Baitly KeyVault' : device.provider}</span></span>
               <DeviceState device={device} />
             </button>)}
           </div>

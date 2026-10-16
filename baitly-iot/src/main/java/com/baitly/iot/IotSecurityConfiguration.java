@@ -27,7 +27,7 @@ import org.springframework.web.filter.OncePerRequestFilter;
 public class IotSecurityConfiguration {
     @Bean
     SecurityFilterChain security(HttpSecurity http, DeviceRepository devices, DeviceSecrets secrets,
-            IngressLimits limits, @Value("${baitly.iot.internal-port:8096}") int internalPort,
+            IngressLimits limits, IngressMetrics metrics, @Value("${baitly.iot.internal-port:8096}") int internalPort,
             @Value("${baitly.iot.service-token}") String serviceToken) throws Exception {
         if (serviceToken == null || !serviceToken.matches("[\\x21-\\x7E]{32,128}")) {
             throw new IllegalStateException("BAITLY_IOT_SERVICE_TOKEN must contain at least 32 characters");
@@ -37,36 +37,44 @@ public class IotSecurityConfiguration {
                 .requestCache(cache -> cache.disable())
                 .authorizeHttpRequests(auth -> auth
                         .dispatcherTypeMatchers(DispatcherType.ERROR).permitAll()
+                        .requestMatchers(TokenFilter.OPERATIONS).permitAll()
                         .requestMatchers("/internal/v1/**").hasRole("ADMIN")
                         .requestMatchers("/api/v1/measurements").hasRole("DEVICE")
                         .anyRequest().denyAll())
                 .exceptionHandling(errors -> errors.authenticationEntryPoint((request, response, exception) ->
                         response.setStatus(HttpServletResponse.SC_UNAUTHORIZED)))
-                .addFilterBefore(new TokenFilter(devices, secrets, secrets.hash(serviceToken), limits, internalPort),
+                .addFilterBefore(new TokenFilter(devices, secrets, secrets.hash(serviceToken), limits, metrics, internalPort),
                         UsernamePasswordAuthenticationFilter.class)
                 .build();
     }
 
     static class TokenFilter extends OncePerRequestFilter {
+        /** Health and metrics: GET, private port, loopback caller. They expose no secret nor identifier. */
+        static final String[] OPERATIONS = {"/actuator/health", "/actuator/prometheus"};
         private final DeviceRepository devices;
         private final DeviceSecrets secrets;
         private final byte[] serviceHash;
         private final IngressLimits limits;
+        private final IngressMetrics metrics;
         private final int internalPort;
 
-        TokenFilter(DeviceRepository devices, DeviceSecrets secrets, String serviceHash, IngressLimits limits, int internalPort) {
+        TokenFilter(DeviceRepository devices, DeviceSecrets secrets, String serviceHash, IngressLimits limits,
+                    IngressMetrics metrics, int internalPort) {
             this.devices = devices;
             this.secrets = secrets;
             this.serviceHash = serviceHash.getBytes(java.nio.charset.StandardCharsets.US_ASCII);
             this.limits = limits;
+            this.metrics = metrics;
             this.internalPort = internalPort;
         }
 
         @Override
         protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain chain)
                 throws IOException, ServletException {
+            String path = request.getRequestURI().substring(request.getContextPath().length());
+            boolean measuring = path.equals("/api/v1/measurements") && request.getLocalPort() != internalPort;
             try {
-                String path = request.getRequestURI().substring(request.getContextPath().length());
+                if (operations(request, path)) { chain.doFilter(request, response); return; }
                 boolean internal = path.startsWith("/internal/v1/") && request.getLocalPort() == internalPort;
                 boolean ingestion = path.equals("/api/v1/measurements") && "POST".equals(request.getMethod())
                         && request.getLocalPort() != internalPort;
@@ -106,7 +114,18 @@ public class IotSecurityConfiguration {
                 chain.doFilter(bounded, response);
             } finally {
                 SecurityContextHolder.clearContext();
+                if (measuring) metrics.record("http", response.getStatus(), false);
             }
+        }
+
+        private boolean operations(HttpServletRequest request, String path) {
+            return "GET".equals(request.getMethod()) && request.getLocalPort() == internalPort
+                    && java.util.Arrays.asList(OPERATIONS).contains(path) && request.getQueryString() == null
+                    && loopback(request.getRemoteAddr());
+        }
+
+        private static boolean loopback(String address) {
+            return "127.0.0.1".equals(address) || "0:0:0:0:0:0:0:1".equals(address) || "::1".equals(address);
         }
 
         private void rateLimited(HttpServletResponse response) throws IOException {
@@ -123,7 +142,7 @@ public class IotSecurityConfiguration {
                 return;
             }
             if (path.equals("/api/v1/measurements")) {
-                devices.authenticate(hash).ifPresent(device -> setIdentity(new DeviceIdentity(device.id(), hash), "DEVICE"));
+                devices.authenticate(hash).ifPresent(device -> setIdentity(DeviceIdentity.http(device.id(), hash), "DEVICE"));
             }
         }
 

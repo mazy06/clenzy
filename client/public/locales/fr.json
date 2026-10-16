@@ -3620,8 +3620,8 @@
         "configureDevice": "Configurer mon capteur"
       },
       "clenzy": {
-        "detailTitle": "Baitly Hardware - Solution propriétaire",
-        "detailDescription": "Notre solution basée sur Tuya OEM offre un monitoring sonore sans abonnement mensuel. Le capteur BAITLY-TUYA-NM-01 s'intègre nativement dans la plateforme Baitly avec des données en temps réel.",
+        "detailTitle": "Appareils du marché compatibles",
+        "detailDescription": "Baitly centralise les mesures d’appareils du marché via leurs connecteurs compatibles. Les caractéristiques, la compatibilité et les éventuels abonnements dépendent du modèle et du fabricant.",
         "articleRef": "Réf. article",
         "orderExternal": "Commander sur la boutique",
         "configureDevice": "Configurer mon capteur"
@@ -8795,13 +8795,13 @@
         "feature4": "Support 24/7"
       },
       "clenzy": {
-        "title": "Baitly Hardware",
-        "badge": "Propriétaire",
-        "description": "Solution propriétaire basée sur Tuya OEM. Coût unique sans abonnement, avec intégration native dans la plateforme Baitly.",
+        "title": "Appareils du marché compatibles",
+        "badge": "Compatibilité par modèle",
+        "description": "Baitly centralise les mesures d’appareils du marché via leurs connecteurs compatibles. Les caractéristiques, la compatibilité et les éventuels abonnements dépendent du modèle et du fabricant.",
         "pricingModel": "Coût unique (sans abonnement)",
         "onQuote": "Sur devis",
         "onQuoteHint": "Le tarif sera communiqué lors de la configuration de votre solution",
-        "devicePrice": "Capteur Tuya OEM",
+        "devicePrice": "Appareil du fabricant",
         "devicePriceHelp": "Coût matériel du capteur",
         "installationPrice": "Installation",
         "installationPriceHelp": "Main d'œuvre pour la pose",
@@ -8810,10 +8810,10 @@
         "supportPrice": "Support (optionnel)",
         "supportPriceHelp": "Assistance et garantie étendue",
         "total": "Total par capteur",
-        "feature1": "Sans abonnement mensuel",
-        "feature2": "Intégration Baitly native",
-        "feature3": "Données en temps réel",
-        "feature4": "Aucune dépendance externe"
+        "feature1": "Compatibilité à valider par modèle",
+        "feature2": "Mesures consultables dans Baitly",
+        "feature3": "Connexion suivie dans le PMS",
+        "feature4": "Appareils de fabricants tiers"
       }
     },
     "basePrices": {
@@ -11641,7 +11641,7 @@
         "f4": "Wi-Fi 2,4 GHz",
         "f5": "Alertes en temps réel",
         "f6": "Intégration native à Baitly",
-        "alt": "Capteur de bruit mural Baitly avec écran LED"
+        "alt": "Capteur de bruit mural avec écran LED"
       },
       "sl_01": {
         "name": "Serrure connectée",
@@ -11727,7 +11727,7 @@
         "f5": "Capteur de mouvement",
         "f6": "Détecteur de fumée",
         "f7": "17 % d'économie",
-        "alt": "Kit complet : tous les capteurs Baitly pour un logement"
+        "alt": "Illustration d’un ensemble d’objets connectés pour un logement"
       }
     },
     "checkoutFailed": "Le paiement ne peut pas être ouvert. Votre panier est conservé."
@@ -18991,9 +18991,9 @@
       "access": "Capteur (environ 149 € l'unité) et abonnement (environ 9,90 € par capteur et par mois, ou 7,90 € en engagement annuel). Clé API dans les intégrations du tableau de bord."
     },
     "clenzy_hardware": {
-      "short": "Capteur Baitly · sans abonnement",
-      "tooltip": "Solution propriétaire de Baitly : capteur de bruit à coût d'achat unique, sans abonnement mensuel, intégré nativement à la plateforme, données en temps réel et aucune dépendance à un service externe. Alternative économique pour les conciergeries qui veulent maîtriser leur coût total.",
-      "access": "Capteur Baitly à acheter (coût unique, devis sur demande). Configuration immédiate depuis le module de nuisance sonore."
+      "short": "Objets connectés via Internet",
+      "tooltip": "Service logiciel de Baitly pour recevoir par Internet les mesures d’appareils du marché avec un connecteur compatible. L’appareil utilise le Wi-Fi du logement ; le gestionnaire accède au PMS depuis une autre connexion. Baitly ne fabrique pas les appareils.",
+      "access": "Utilisez le bouton d’ajout des Objets connectés pour rattacher un appareil déjà enregistré ou tester avec un simulateur. La compatibilité du modèle doit être validée avant achat."
     },
     "zapier": {
       "short": "Automatisation · plus de 7 000 applications",
@@ -21133,5 +21133,140 @@
     "coversProperties_one": "{{count}} logement couvert",
     "coversProperties_other": "{{count}} logements couverts",
     "openProvider": "Ouvrir la fiche de {{name}}"
+  },
+  "baitlyIot": {
+    "addButton": "Connexion au service Baitly",
+    "addTitle": "Rattacher un objet connecté",
+    "addHint": "Choisissez le type d’objet et son mode de connexion depuis le bouton d’ajout.",
+    "property": "Logement",
+    "chooseProperty": "Choisir un logement",
+    "name": "Nom du capteur",
+    "room": "Pièce (facultatif)",
+    "create": "Ajouter le simulateur",
+    "creating": "Création…",
+    "simulationHint": "Données de test : aucune mesure réelle et aucun avertissement envoyé aux voyageurs.",
+    "loadError": "Impossible de joindre Baitly IoT. Vérifiez le service puis réessayez.",
+    "notConfigured": "Le service de connexion Baitly n’est pas configuré sur ce serveur. Le rattachement est indisponible.",
+    "actionError": "L’action n’a pas abouti. Réessayez.",
+    "controlsTitle": "Connexion au service Baitly",
+    "testSensor": "Simulateur",
+    "revoked": "Révoqué",
+    "lastMeasurement": "Dernière mesure",
+    "lastReception": "Dernière réception",
+    "waiting": "En attente d’une mesure",
+    "level": "Niveau sonore en dB(A)",
+    "send": "Envoyer une mesure de test",
+    "sending": "Envoi…",
+    "measurementSaved": "Mesure de test enregistrée.",
+    "externalSimulator": "Utiliser le simulateur Python",
+    "secretHint": "Générer une clé remplace la précédente. Elle reste visible uniquement dans ce panneau et n’est pas conservée dans le navigateur.",
+    "generateSecret": "Générer une clé pour le simulateur",
+    "deviceSecret": "Clé de connexion",
+    "copySecret": "Copier la clé",
+    "secretCopied": "Clé copiée.",
+    "pythonHint": "Dans un terminal, définissez BAITLY_IOT_DEVICE_TOKEN avec cette clé, puis lancez cette commande depuis le dépôt. Le service IoT local doit être démarré.",
+    "revoke": "Révoquer la connexion",
+    "revokeHint": "La révocation bloque les nouvelles mesures et invalide sa clé. L’historique reste consultable. Cette action est définitive.",
+    "confirmRevoke": "Confirmer la révocation",
+    "historyError": "Impossible de charger l’historique sonore.",
+    "recentMeasurements": "Les 10 dernières mesures",
+    "measuredAt": "Date de mesure",
+    "noMeasurements": "Aucune mesure reçue pour cet appareil.",
+    "onboarding": {
+      "connection": "Mode de connexion",
+      "integration": "Connecteur de marque ou service",
+      "direct": "Connexion au service Baitly",
+      "brandOrService": "Marque ou service connecté",
+      "source": "Appareil à rattacher",
+      "physical": "Appareil déjà enregistré dans Baitly",
+      "simulator": "Simulateur, sans matériel",
+      "compatibility": "L’appareil utilise le Wi-Fi du logement pour envoyer ses mesures au service Baitly par Internet. Vous consultez le PMS à distance, sans partager ce Wi-Fi. Le modèle et son connecteur doivent être compatibles.",
+      "physicalHint": "L’appareil doit déjà être enregistré dans le service Baitly pour ce logement. Son rattachement ne configure pas automatiquement sa connexion Wi-Fi.",
+      "unsupportedKind": "Le service de connexion Baitly prend actuellement en charge les mesures de bruit. Pour ce type d’objet, utilisez un connecteur existant.",
+      "deviceId": "Identifiant de l’appareil enregistré",
+      "deviceIdHint": "Utilisez l’identifiant fourni par le service Baitly pour cet appareil et ce logement.",
+      "attachmentHint": "Le rattachement sera vérifié par le serveur. La connexion sera confirmée après réception d’une mesure de l’appareil.",
+      "attach": "Rattacher l’objet",
+      "addSimulator": "Ajouter le simulateur",
+      "progress": "Étape {{step}} sur 3",
+      "steps": {
+        "0": "Type d’objet",
+        "1": "Connexion",
+        "2": "Rattachement"
+      },
+      "register": "Nouvel appareil à enregistrer",
+      "registerHint": "Baitly enregistre l’appareil pour ce logement et affiche une seule fois la clé à saisir dans l’appareil. L’appareil sera confirmé à la réception de sa première mesure.",
+      "registerAction": "Enregistrer l’appareil"
+    },
+    "awaitingFirst": "En attente de la première mesure",
+    "awaitingFirstHint": "L’appareil est enregistré. Il apparaîtra en ligne dès que Baitly aura reçu et enregistré sa première mesure.",
+    "connectionSettings": "Paramètres de connexion de l’appareil",
+    "rotateSecret": "Générer une nouvelle clé",
+    "rotateSecretHint": "La clé actuelle cessera immédiatement de fonctionner. Saisissez la nouvelle clé dans l’appareil pour qu’il continue d’envoyer ses mesures.",
+    "rotateMqtt": "Nouvelle identité MQTT",
+    "rotateMqttHint": "Les certificats émis pour l’identité actuelle ne pourront plus envoyer de mesures. Un nouveau certificat signé pour la nouvelle identité sera nécessaire.",
+    "confirmRotation": "Confirmer",
+    "mqttRotated": "Nouvelle identité enregistrée. Faites signer un certificat pour cette identité, puis installez-le dans l’appareil.",
+    "provisioned": {
+      "title": "Appareil enregistré",
+      "hint": "Copiez ces informations dans l’appareil maintenant. La clé ne sera plus affichée : en cas de perte, générez-en une nouvelle depuis la fiche de l’appareil.",
+      "deviceId": "Identifiant de l’appareil",
+      "secret": "Clé de connexion (HTTPS)",
+      "secretHint": "Envoyée par l’appareil dans l’en-tête Authorization. Ne la partagez pas.",
+      "mqttIdentity": "Identité MQTT (nom du certificat)",
+      "mqttHint": "À utiliser uniquement si l’appareil se connecte en MQTT : un certificat signé pour cette identité est nécessaire.",
+      "ingestionUrl": "Adresse d’envoi des mesures",
+      "copy": "Copier",
+      "copied": "Copié",
+      "copyFailed": "La copie a échoué. Sélectionnez le texte et copiez-le manuellement.",
+      "done": "J’ai copié les informations"
+    }
+  },
+  "deviceOnboarding": {
+    "model": "Modèle exact",
+    "chooseModel": "Choisir le modèle",
+    "unknownModel": "Mon modèle n’est pas listé",
+    "modelHint": "Consultez la référence sur l’appareil ou sa boîte. Une même marque peut proposer du Wi-Fi et des appareils nécessitant une passerelle.",
+    "scope": "Ce parcours recherche une connexion à distance sans hub dans le logement. Le Wi-Fi seul ne garantit pas la compatibilité avec Baitly.",
+    "guideTitle": "Comment connecter ce modèle",
+    "remoteWifi": "Wi-Fi intégré, accès distant par le service du fabricant",
+    "cloudPath": "Appareil → Wi-Fi du logement → Internet → {{brand}} → Baitly. Le gestionnaire peut utiliser une autre connexion Internet.",
+    "documentedOnly": "Connexion Wi-Fi documentée par le fabricant. Le test complet de ce modèle avec Baitly sur matériel réel reste à réaliser. Les offres et droits API du fabricant s’appliquent.",
+    "manageConnection": "Gérer la connexion du fabricant",
+    "manufacturerGuide": "Documentation du fabricant",
+    "unverified": "Ce modèle n’est pas encore référencé pour une connexion distante sans hub. Le rattachement est bloqué jusqu’à vérification du modèle et de son connecteur. Vous pouvez tester le parcours sans matériel avec le simulateur.",
+    "tuyaUnverified": "Tuya / Smart Life désigne un écosystème, pas un modèle. Aucun modèle précis n’est encore référencé ici : il faut vérifier le Wi-Fi sans passerelle, l’accès à votre compte et les mesures exposées. Le logo ou le QR code ne suffisent pas.",
+    "attachmentReminder": "Renseignez l’identifiant du compte fabricant autorisé. Le rattachement au logement ne configure pas le Wi-Fi et ne confirme pas la réception de mesures.",
+    "guides": {
+      "minut": {
+        "1": "Sur place : installez le capteur avec l’application Minut et connectez-le au Wi-Fi 2,4 GHz du logement.",
+        "2": "À distance : autorisez le compte Minut dans les intégrations Baitly. Un accès API Minut autorisé est nécessaire.",
+        "3": "Récupérez l’identifiant de l’appareil dans le compte Minut, puis associez-le au logement Baitly. La sélection automatique des appareils Minut n’est pas encore disponible ici."
+      },
+      "nuki": {
+        "1": "Sur place : configurez la serrure avec l’application Nuki et activez son Wi-Fi intégré.",
+        "2": "Activez l’accès distant et reliez le compte Nuki dans les intégrations Baitly.",
+        "3": "Récupérez l’identifiant de la serrure dans le compte Nuki, puis associez-la au logement Baitly. La sélection automatique des serrures Nuki n’est pas encore disponible ici."
+      }
+    },
+    "qr": {
+      "title": "Identifier avec un QR code",
+      "explanation": "Un QR code peut orienter le parcours. Cette lecture n’active pas l’appareil et ne remplace pas l’autorisation du fabricant ni l’installation Wi-Fi sur place.",
+      "camera": "Caméra de lecture du QR code",
+      "scan": "Scanner avec la caméra",
+      "stop": "Arrêter la caméra",
+      "paste": "Ou coller le contenu du QR code",
+      "identify": "Identifier le format",
+      "privacy": "Lecture locale uniquement. Le contenu n’est ni envoyé au serveur ni conservé. Ne saisissez pas le mot de passe du Wi-Fi.",
+      "unavailable": "La lecture par caméra n’est pas disponible dans ce navigateur. Utilisez un lecteur sur votre téléphone et collez le contenu, ou choisissez la marque manuellement.",
+      "error": "La caméra n’est pas accessible. Vérifiez l’autorisation du navigateur ou choisissez la marque manuellement.",
+      "results": {
+        "tuya": "Format de lien Tuya détecté. La marque a été présélectionnée ; le modèle et sa compatibilité restent à vérifier. Aucun appareil n’a été activé.",
+        "matter": "Code de configuration Matter détecté. Matter seul nécessite un contrôleur dans le logement pour l’accès distant ; ce code ne garantit pas le parcours sans hub. Choisissez un connecteur cloud compatible si le modèle en dispose.",
+        "wifi": "Ce code contient une configuration Wi-Fi, pas une autorisation d’accès à l’appareil. Il n’est pas utilisé par Baitly et son contenu a été effacé.",
+        "unknown": "Format non pris en charge. Choisissez la marque et le modèle manuellement. Le lien n’a pas été ouvert et aucun appareil n’a été rattaché."
+      }
+    },
+    "deviceId": "Identifiant dans le compte fabricant"
   }
 }

@@ -102,9 +102,12 @@ class MqttJourneyTest {
         var second = simulatedDevice();
         var event = UUID.randomUUID();
         String measured = Instant.now().toString();
-        String identity = secrets.hash(first.token());
+        String identity = first.device().mqttIdentity();
+        String secondIdentity = second.device().mqttIdentity();
+        // The certificate CN is independent from the HTTP secret.
+        assertThat(identity).isNotEqualTo(secrets.hash(first.token()));
         issue(identity);
-        issue(secrets.hash(second.token()));
+        issue(secondIdentity);
 
         // Actual command-line simulator, including application acknowledgement rather than PUBACK.
         var command = new ProcessBuilder(python(), "scripts/simulate_noise.py", "--transport", "mqtt",
@@ -112,6 +115,7 @@ class MqttJourneyTest {
                 "--ca-file", root.resolve("server-ca.crt").toString(),
                 "--cert-file", root.resolve("device-" + identity + ".crt").toString(),
                 "--key-file", root.resolve("device-" + identity + ".key").toString(),
+                "--mqtt-identity", identity,
                 "--level", "62.4", "--event-id", event.toString(), "--measured-at", measured);
         command.environment().put("BAITLY_IOT_DEVICE_TOKEN", first.token());
         var simulation = command.redirectErrorStream(true).start();
@@ -124,16 +128,16 @@ class MqttJourneyTest {
         assertThat(service.get(first.device().id(), 987).online()).isTrue();
         assertThat(service.get(first.device().id(), 987).simulation()).isTrue();
 
-        try (var a = connection(identity); var b = connection(secrets.hash(second.token()))) {
+        try (var a = connection(identity); var b = connection(secondIdentity)) {
             var payload = measurement(event, measured);
             assertThat(a.send(payload).path("duplicate").asBoolean()).isTrue();
             assertThat(jdbc.queryForObject("SELECT count(*) FROM baitly_iot_noise_measurements WHERE device_id = ?", Integer.class,
                     first.device().id())).isEqualTo(1);
             // A cannot publish to B or observe B's receipts. Caller supplied usernames/client IDs are irrelevant.
-            a.client.publish("baitly/devices/" + secrets.hash(second.token()) + "/measurements", payload, 1, false);
+            a.client.publish("baitly/devices/" + secondIdentity + "/measurements", payload, 1, false);
             assertThat(b.receipts.poll(500, TimeUnit.MILLISECONDS)).isNull();
-            assertThat(service.measurements(second.device().id(), 987, Instant.now().minusSeconds(60), Instant.now().plusSeconds(1), 100)).isEmpty();
-            a.client.subscribe("baitly/devices/" + secrets.hash(second.token()) + "/acks", 1);
+            assertThat(service.measurements(second.device().id(), 987, null, Instant.now().minusSeconds(60), Instant.now().plusSeconds(1), 100)).isEmpty();
+            a.client.subscribe("baitly/devices/" + secondIdentity + "/acks", 1);
             assertThat(b.send(measurement(UUID.randomUUID(), measured)).path("status").asInt()).isEqualTo(200);
             assertThat(a.receipts.poll(500, TimeUnit.MILLISECONDS)).isNull();
             // A device cannot forge Baitly's own persistence receipt, even on its own ack topic.
@@ -141,9 +145,11 @@ class MqttJourneyTest {
             assertThat(a.receipts.poll(500, TimeUnit.MILLISECONDS)).isNull();
             assertThat(a.send("{\"organizationId\":988}".getBytes()).path("status").asInt()).isEqualTo(400);
 
-            var rotated = service.rotate(first.device().id(), 987);
+            // Rotating the HTTP secret leaves the certificate usable; rotating the MQTT identity does not.
+            service.rotate(first.device().id(), 987);
+            assertThat(a.send(measurement(UUID.randomUUID(), measured)).path("status").asInt()).isEqualTo(200);
+            String next = service.rotateMqttIdentity(first.device().id(), 987).mqttIdentity();
             assertThat(a.send(measurement(UUID.randomUUID(), measured)).path("status").asInt()).isEqualTo(401);
-            String next = secrets.hash(rotated.token());
             issue(next);
             try (var updated = connection(next)) {
                 assertThat(updated.send(measurement(UUID.randomUUID(), measured)).path("status").asInt()).isEqualTo(200);
@@ -171,7 +177,7 @@ class MqttJourneyTest {
         // The ingestor's CA cannot mint public device identities, even with a trusted server certificate.
         assertThatThrownBy(() -> rawConnection("ingestor", devicePort)).isInstanceOf(MqttException.class);
         var credentials = simulatedDevice();
-        String hash = secrets.hash(credentials.token()); issue(hash);
+        String hash = credentials.device().mqttIdentity(); issue(hash);
         assertThatThrownBy(() -> rawConnection("device-" + hash, privatePort)).isInstanceOf(MqttException.class);
     }
 
@@ -190,7 +196,7 @@ class MqttJourneyTest {
                 .header("Authorization", "Bearer mqtt-test-private-api-key-never-use-outside-tests").GET().build(), HttpResponse.BodyHandlers.ofString());
     }
     private void issue(String hash) throws Exception {
-        runPython("scripts/mqtt_pki.py", "issue-device", "--directory", root.toString(), "--fingerprint", hash, "--days", "1");
+        runPython("scripts/mqtt_pki.py", "issue-device", "--directory", root.toString(), "--identity", hash, "--days", "1");
     }
     private Connection connection(String hash) throws Exception { return new Connection(hash, rawConnection("device-" + hash, devicePort)); }
     private MqttClient rawConnection(String store, int port) throws Exception {

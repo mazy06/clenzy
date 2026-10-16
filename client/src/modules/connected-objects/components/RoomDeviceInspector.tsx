@@ -43,7 +43,7 @@ export default function RoomDeviceInspector({ device, acting, onAction, children
   const [lockTab, setLockTab] = useState(0);
   const neverSynced = device.statusLevel === 'unknown';
   useLockLiveStatus(device.id, neverSynced && device.kind === 'lock');
-  useNoiseLiveStatus(device.id, neverSynced && device.kind === 'noise');
+  useNoiseLiveStatus(device.id, device.kind === 'noise' && (neverSynced || device.provider === 'BAITLY'), device.provider === 'BAITLY');
   useSensorLiveStatus(device.id, neverSynced && ['climate', 'contact', 'motion', 'smoke'].includes(device.kind));
   const connection = deviceConnection(device);
   const state = (device.raw as { lockState?: string } | null)?.lockState?.toUpperCase();
@@ -73,7 +73,7 @@ export default function RoomDeviceInspector({ device, acting, onAction, children
     {device.kind === 'camera' && <RoomCameraControls key={device.uid} device={device} />}
     <dl className="bir-inspector-facts">
       <div><dt>{t('connectedRooms.connection')}</dt><dd>{t(`connectedRooms.${connection}`)}</dd></div>
-      <div><dt>{t('connectedRooms.provider')}</dt><dd>{device.provider === 'CLENZY_KEYVAULT' ? 'Baitly KeyVault' : device.provider === 'UNKNOWN' ? t('connectedRooms.notAvailable') : device.provider}</dd></div>
+      <div><dt>{t('connectedRooms.provider')}</dt><dd>{device.provider === 'BAITLY' ? t('baitlyIot.onboarding.direct') : device.provider === 'CLENZY_KEYVAULT' ? 'Baitly KeyVault' : device.provider === 'UNKNOWN' ? t('connectedRooms.notAvailable') : device.provider}</dd></div>
       {device.battery != null && <div><dt><Battery size={14} />{t('connectedRooms.battery')}</dt><dd>{device.battery} %</dd></div>}
     </dl>
     </div>

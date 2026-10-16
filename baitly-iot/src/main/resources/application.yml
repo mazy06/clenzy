@@ -31,11 +31,28 @@ spring:
     deserialization:
       fail-on-unknown-properties: true
       fail-on-trailing-tokens: true
+# Health and Prometheus metrics: served on the private port only, to loopback callers only
+# (enforced by IotSecurityConfiguration). No detail, identifier or secret is exposed.
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,prometheus
+  endpoint:
+    health:
+      show-details: never
 baitly:
   iot:
     service-token: ${BAITLY_IOT_SERVICE_TOKEN}
     internal-port: ${BAITLY_IOT_INTERNAL_PORT:8096}
     internal-address: ${BAITLY_IOT_INTERNAL_ADDRESS:127.0.0.1}
+    limits:
+      global-per-minute: ${BAITLY_IOT_LIMIT_GLOBAL_PER_MINUTE:6000}
+      peer-per-minute: ${BAITLY_IOT_LIMIT_PEER_PER_MINUTE:240}
+      device-per-minute: ${BAITLY_IOT_LIMIT_DEVICE_PER_MINUTE:12}
+      tracked-devices: ${BAITLY_IOT_LIMIT_TRACKED_DEVICES:65536}
+      # true only when the dedicated edge proxy (per-IP limits) is the sole loopback client.
+      edge-proxy-on-loopback: ${BAITLY_IOT_EDGE_PROXY_ON_LOOPBACK:false}
     mqtt:
       enabled: ${BAITLY_IOT_MQTT_ENABLED:false}
       host: ${BAITLY_IOT_MQTT_HOST:localhost}
@@ -43,3 +60,9 @@ baitly:
       ca-file: ${BAITLY_IOT_MQTT_CA_FILE:}
       client-store: ${BAITLY_IOT_MQTT_CLIENT_STORE:}
       client-store-password: ${BAITLY_IOT_MQTT_CLIENT_STORE_PASSWORD:}
+      # Must equal the CN of this receiver's certificate (the broker uses the CN as client ID).
+      client-id: ${BAITLY_IOT_MQTT_CLIENT_ID:baitly-ingestor}
+      # Set on every receiver to share the stream between several instances.
+      shared-group: ${BAITLY_IOT_MQTT_SHARED_GROUP:}
+      workers: ${BAITLY_IOT_MQTT_WORKERS:4}
+      queue-capacity: ${BAITLY_IOT_MQTT_QUEUE_CAPACITY:512}

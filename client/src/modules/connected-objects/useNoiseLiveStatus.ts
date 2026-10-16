@@ -7,7 +7,7 @@ import { noiseDevicesApi } from '../../services/api/noiseApi';
  * fois le online réel (flag Tuya/Minut) au montage de la carte, persiste côté
  * backend, puis invalide le read-model `connected-objects` (carte + KPIs cohérents).
  */
-export function useNoiseLiveStatus(deviceId: number, enabled: boolean) {
+export function useNoiseLiveStatus(deviceId: number, enabled: boolean, live = false) {
   const qc = useQueryClient();
   return useQuery({
     queryKey: ['noise-status', deviceId],
@@ -19,7 +19,7 @@ export function useNoiseLiveStatus(deviceId: number, enabled: boolean) {
     },
     enabled,
     staleTime: 60_000,
-    refetchInterval: false,
+    refetchInterval: live ? 15_000 : false,
     retry: false,
   });
 }

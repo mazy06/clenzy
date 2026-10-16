@@ -12,9 +12,11 @@ public final class DeviceContracts {
             @NotBlank @Size(max = 120) String name,
             @Min(10) @Max(3600) int reportingIntervalSeconds) {}
 
+    // mqttIdentity is the CN to sign with the offline device CA. It is not a credential.
     public record DeviceView(UUID id, long organizationId, long propertyId, String name,
                              boolean revoked, int reportingIntervalSeconds,
-                             Instant lastReceivedAt, Instant lastMeasuredAt, boolean online, boolean simulation) {}
+                             Instant lastReceivedAt, Instant lastMeasuredAt, boolean online, boolean simulation,
+                             String mqttIdentity) {}
 
     public record DeviceCredentials(DeviceView device, String token) {
         @Override public String toString() { return "Baitly device credentials [redacted]"; }
@@ -31,4 +33,6 @@ public final class DeviceContracts {
                                   int windowSeconds, double laeqDbA) {}
 
     public record IngestionResult(UUID eventId, boolean duplicate) {}
+
+    public record MqttIdentity(String mqttIdentity) {}
 }

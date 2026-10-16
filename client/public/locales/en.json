@@ -3630,8 +3630,8 @@
         "configureDevice": "Configure my sensor"
       },
       "clenzy": {
-        "detailTitle": "Baitly Hardware - Proprietary solution",
-        "detailDescription": "Our Tuya OEM-based solution provides noise monitoring with no monthly subscription. The BAITLY-TUYA-NM-01 sensor integrates natively into the Baitly platform with real-time data.",
+        "detailTitle": "Compatible commercial devices",
+        "detailDescription": "Baitly centralizes measurements from commercial devices through compatible connectors. Specifications, compatibility and any subscriptions depend on the model and manufacturer.",
         "articleRef": "Article ref.",
         "orderExternal": "Order from the store",
         "configureDevice": "Configure my sensor"
@@ -8809,13 +8809,13 @@
         "feature4": "24/7 support"
       },
       "clenzy": {
-        "title": "Baitly Hardware",
-        "badge": "Proprietary",
-        "description": "Proprietary solution based on Tuya OEM. One-time cost with no subscription, natively integrated into the Baitly platform.",
+        "title": "Compatible commercial devices",
+        "badge": "Model-specific compatibility",
+        "description": "Baitly centralizes measurements from commercial devices through compatible connectors. Specifications, compatibility and any subscriptions depend on the model and manufacturer.",
         "pricingModel": "One-time cost (no subscription)",
         "onQuote": "On request",
         "onQuoteHint": "Price will be communicated when your solution is configured",
-        "devicePrice": "Tuya OEM Sensor",
+        "devicePrice": "Manufacturer’s device",
         "devicePriceHelp": "Hardware cost",
         "installationPrice": "Installation",
         "installationPriceHelp": "Installation labor",
@@ -8824,10 +8824,10 @@
         "supportPrice": "Support (optional)",
         "supportPriceHelp": "Extended support and warranty",
         "total": "Total per sensor",
-        "feature1": "No monthly subscription",
-        "feature2": "Native Baitly integration",
-        "feature3": "Real-time data",
-        "feature4": "No external dependency"
+        "feature1": "Verify compatibility for each model",
+        "feature2": "Measurements available in Baitly",
+        "feature3": "Connection monitored in the PMS",
+        "feature4": "Devices from third-party manufacturers"
       }
     },
     "basePrices": {
@@ -11417,7 +11417,7 @@
         "f4": "2.4 GHz Wi-Fi",
         "f5": "Real-time alerts",
         "f6": "Native Baitly integration",
-        "alt": "Baitly wall noise sensor with an LED display"
+        "alt": "Wall noise sensor with an LED display"
       },
       "sl_01": {
         "name": "Smart lock",
@@ -11503,7 +11503,7 @@
         "f5": "Motion sensor",
         "f6": "Smoke detector",
         "f7": "17% saving",
-        "alt": "Complete kit: every Baitly sensor for one property"
+        "alt": "Illustration of connected devices for a property"
       }
     },
     "checkoutFailed": "Payment cannot be opened. Your basket has been kept."
@@ -19004,9 +19004,9 @@
       "access": "A sensor (about €149 each) plus a subscription (about €9.90 per sensor per month, or €7.90 on an annual plan). API key under the dashboard's integrations."
     },
     "clenzy_hardware": {
-      "short": "Baitly sensor · no subscription",
-      "tooltip": "Baitly's own solution: a noise sensor bought once, with no monthly subscription, natively integrated into the platform, real-time data and no dependency on an outside service. An economical alternative for agencies wanting to control total cost.",
-      "access": "A Baitly sensor to purchase (one-off cost, quote on request). Immediate setup from the noise module."
+      "short": "Devices connected over the Internet",
+      "tooltip": "Baitly software service for receiving measurements over the Internet from commercial devices with a compatible connector. The device uses the property’s Wi-Fi; the manager accesses the PMS from another connection. Baitly does not manufacture the devices.",
+      "access": "Use the Connected objects add button to attach a registered device or test with a simulator. Model compatibility must be verified before purchase."
     },
     "zapier": {
       "short": "Automation · 7,000+ apps",
@@ -21146,5 +21146,140 @@
     "coversProperties_one": "{{count}} property covered",
     "coversProperties_other": "{{count}} properties covered",
     "openProvider": "Open {{name}}’s profile"
+  },
+  "baitlyIot": {
+    "addButton": "Connection to the Baitly service",
+    "addTitle": "Attach a connected device",
+    "addHint": "Choose a device type and connection method using the add button.",
+    "property": "Property",
+    "chooseProperty": "Choose a property",
+    "name": "Sensor name",
+    "room": "Room (optional)",
+    "create": "Add simulator",
+    "creating": "Creating…",
+    "simulationHint": "Test data: no real measurements and no warnings sent to guests.",
+    "loadError": "Could not reach Baitly IoT. Check the service and try again.",
+    "notConfigured": "The Baitly connection service is not configured on this server. Device attachment is unavailable.",
+    "actionError": "The action failed. Try again.",
+    "controlsTitle": "Connection to the Baitly service",
+    "testSensor": "Simulator",
+    "revoked": "Revoked",
+    "lastMeasurement": "Last measurement",
+    "lastReception": "Last received",
+    "waiting": "Waiting for a measurement",
+    "level": "Sound level in dB(A)",
+    "send": "Send test measurement",
+    "sending": "Sending…",
+    "measurementSaved": "Test measurement saved.",
+    "externalSimulator": "Use the Python simulator",
+    "secretHint": "Generating a key replaces the previous one. It is available only in this panel and is not saved in browser storage.",
+    "generateSecret": "Generate simulator key",
+    "deviceSecret": "Connection key",
+    "copySecret": "Copy key",
+    "secretCopied": "Key copied.",
+    "pythonHint": "In a terminal, set BAITLY_IOT_DEVICE_TOKEN to this key, then run this command from the repository. The local IoT service must be running.",
+    "revoke": "Revoke connection",
+    "revokeHint": "Revocation blocks new readings and invalidates the key. History remains available. This action cannot be undone.",
+    "confirmRevoke": "Confirm revocation",
+    "historyError": "Could not load noise history.",
+    "recentMeasurements": "Latest 10 measurements",
+    "measuredAt": "Measurement time",
+    "noMeasurements": "No measurements received from this device.",
+    "onboarding": {
+      "connection": "Connection method",
+      "integration": "Brand or service connector",
+      "direct": "Baitly service connection",
+      "brandOrService": "Brand or connected service",
+      "source": "Device to attach",
+      "physical": "Device already registered in Baitly",
+      "simulator": "Simulator, no hardware",
+      "compatibility": "The device uses the property’s Wi-Fi to send measurements to Baitly over the Internet. You can access the PMS remotely without sharing that Wi-Fi. The model and its connector must be compatible.",
+      "physicalHint": "The device must already be registered with Baitly for this property. Attaching it does not automatically configure its Wi-Fi connection.",
+      "unsupportedKind": "The Baitly connection service currently supports noise measurements. Use an existing connector for this device type.",
+      "deviceId": "Registered device identifier",
+      "deviceIdHint": "Use the identifier supplied by the Baitly service for this device and property.",
+      "attachmentHint": "The server will verify the attachment. Connection will be confirmed after a measurement is received from the device.",
+      "attach": "Attach device",
+      "addSimulator": "Add simulator",
+      "progress": "Step {{step}} of 3",
+      "steps": {
+        "0": "Device type",
+        "1": "Connection",
+        "2": "Attachment"
+      },
+      "register": "New device to register",
+      "registerHint": "Baitly registers the device for this property and shows the key to enter in the device only once. The device is confirmed when its first measurement arrives.",
+      "registerAction": "Register the device"
+    },
+    "awaitingFirst": "Waiting for the first measurement",
+    "awaitingFirstHint": "The device is registered. It will show as online as soon as Baitly has received and stored its first measurement.",
+    "connectionSettings": "Device connection settings",
+    "rotateSecret": "Generate a new key",
+    "rotateSecretHint": "The current key stops working immediately. Enter the new key in the device so it keeps sending measurements.",
+    "rotateMqtt": "New MQTT identity",
+    "rotateMqttHint": "Certificates issued for the current identity will no longer be able to send measurements. A new certificate signed for the new identity is required.",
+    "confirmRotation": "Confirm",
+    "mqttRotated": "New identity saved. Have a certificate signed for this identity, then install it on the device.",
+    "provisioned": {
+      "title": "Device registered",
+      "hint": "Copy this information into the device now. The key will not be shown again: if it is lost, generate a new one from the device page.",
+      "deviceId": "Device identifier",
+      "secret": "Connection key (HTTPS)",
+      "secretHint": "Sent by the device in the Authorization header. Do not share it.",
+      "mqttIdentity": "MQTT identity (certificate name)",
+      "mqttHint": "Only needed if the device connects over MQTT: a certificate signed for this identity is required.",
+      "ingestionUrl": "Measurement endpoint",
+      "copy": "Copy",
+      "copied": "Copied",
+      "copyFailed": "Copying failed. Select the text and copy it manually.",
+      "done": "I have copied this information"
+    }
+  },
+  "deviceOnboarding": {
+    "model": "Exact model",
+    "chooseModel": "Choose the model",
+    "unknownModel": "My model is not listed",
+    "modelHint": "Check the reference on the device or packaging. The same brand may offer Wi-Fi devices and devices that require a gateway.",
+    "scope": "This flow looks for remote connectivity without a hub at the property. Wi-Fi alone does not guarantee compatibility with Baitly.",
+    "guideTitle": "How to connect this model",
+    "remoteWifi": "Built-in Wi-Fi, remote access through the manufacturer’s service",
+    "cloudPath": "Device → Property Wi-Fi → Internet → {{brand}} → Baitly. The manager can use a different Internet connection.",
+    "documentedOnly": "Wi-Fi connectivity documented by the manufacturer. This model still needs a full hardware test with Baitly. Manufacturer plans and API access requirements apply.",
+    "manageConnection": "Manage manufacturer connection",
+    "manufacturerGuide": "Manufacturer documentation",
+    "unverified": "This model is not yet listed for remote connectivity without a hub. Attachment is blocked until its model and connector are verified. You can test the flow without hardware using the simulator.",
+    "tuyaUnverified": "Tuya / Smart Life is an ecosystem, not a model. No exact model is listed here yet: Wi-Fi without a gateway, account access and exposed measurements need verification. A logo or QR code is not enough.",
+    "attachmentReminder": "Enter the identifier from the authorized manufacturer account. Linking to a property does not configure Wi-Fi or confirm measurement reception.",
+    "guides": {
+      "minut": {
+        "1": "On site: install the sensor with the Minut app and connect it to the property’s 2.4 GHz Wi-Fi.",
+        "2": "Remotely: authorize the Minut account in Baitly integrations. Authorized Minut API access is required.",
+        "3": "Find the device identifier in the Minut account, then link it to the Baitly property. Automatic selection of Minut devices is not available here yet."
+      },
+      "nuki": {
+        "1": "On site: set up the lock with the Nuki app and enable its built-in Wi-Fi.",
+        "2": "Enable remote access and link the Nuki account in Baitly integrations.",
+        "3": "Find the lock identifier in the Nuki account, then link it to the Baitly property. Automatic selection of Nuki locks is not available here yet."
+      }
+    },
+    "qr": {
+      "title": "Identify with a QR code",
+      "explanation": "A QR code can help choose the flow. Reading it does not activate the device or replace manufacturer authorization and on-site Wi-Fi setup.",
+      "camera": "QR code camera",
+      "scan": "Scan with camera",
+      "stop": "Stop camera",
+      "paste": "Or paste the QR code contents",
+      "identify": "Identify format",
+      "privacy": "Read locally only. The contents are not sent to the server or saved. Do not enter the Wi-Fi password.",
+      "unavailable": "Camera scanning is unavailable in this browser. Use a reader on your phone and paste the contents, or choose the brand manually.",
+      "error": "The camera is unavailable. Check browser permission or choose the brand manually.",
+      "results": {
+        "tuya": "Tuya link format detected. The brand has been selected; the model and compatibility still need verification. No device has been activated.",
+        "matter": "Matter setup code detected. Matter alone requires a controller at the property for remote access; this code does not guarantee a hub-free flow. Choose a compatible cloud connector if the model offers one.",
+        "wifi": "This code contains Wi-Fi configuration, not device access authorization. Baitly does not use it and its contents have been cleared.",
+        "unknown": "Unsupported format. Choose the brand and model manually. The link was not opened and no device was attached."
+      }
+    },
+    "deviceId": "Identifier in the manufacturer account"
   }
 }

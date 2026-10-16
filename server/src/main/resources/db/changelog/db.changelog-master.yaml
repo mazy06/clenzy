@@ -5030,3 +5030,10 @@ databaseChangeLog:
         - sqlFile:
             path: changes/0560__baitly_mission_signature.sql
             relativeToChangelogFile: true
+  - changeSet:
+      id: "0561-baitly-iot-simulated-noise-devices"
+      author: clenzy-team
+      changes:
+        - sqlFile:
+            path: changes/0561__baitly_iot_simulated_noise_devices.sql
+            relativeToChangelogFile: true

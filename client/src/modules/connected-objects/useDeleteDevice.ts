@@ -7,6 +7,7 @@ import { environmentSensorsApi } from '../../services/api/environmentSensorsApi'
 import { camerasApi } from '../../services/api/camerasApi';
 import { thermostatsApi } from '../../services/api/thermostatsApi';
 import type { ConnectedDevice } from './types';
+import { baitlyIotApi } from '../../services/api/baitlyIotApi';
 
 /**
  * Suppression d'un objet connecté — mutation focalisée (SRP), SANS abonnement à
@@ -21,12 +22,15 @@ export function useDeleteDevice() {
   const qc = useQueryClient();
   const [removing, setRemoving] = useState(false);
 
-  const remove = async (device: Pick<ConnectedDevice, 'kind' | 'id'>) => {
+  const remove = async (device: Pick<ConnectedDevice, 'kind' | 'id'> & { provider?: ConnectedDevice['provider'] }) => {
     setRemoving(true);
     try {
       switch (device.kind) {
         case 'lock': await smartLockApi.delete(device.id); break;
-        case 'noise': await noiseDevicesApi.delete(device.id); break;
+        case 'noise':
+          if (device.provider === 'BAITLY') await baitlyIotApi.delete(device.id);
+          else await noiseDevicesApi.delete(device.id);
+          break;
         case 'keybox': await keyExchangeApi.deletePoint(device.id); break;
         case 'camera': await camerasApi.delete(device.id); break;
         case 'thermostat': await thermostatsApi.delete(device.id); break;

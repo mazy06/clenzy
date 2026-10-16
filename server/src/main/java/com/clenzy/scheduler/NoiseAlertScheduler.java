@@ -11,6 +11,7 @@ import com.clenzy.service.NoiseAlertService;
 import com.clenzy.service.NoiseDeviceService;
 import com.clenzy.service.agent.supervision.SupervisionActivityService;
 import com.clenzy.service.agent.supervision.SupervisionSuggestionService;
+import com.clenzy.tenant.TenantScopedExecutor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.scheduling.annotation.Scheduled;
@@ -22,7 +23,7 @@ import java.util.List;
 
 /**
  * Tache planifiee qui verifie periodiquement les niveaux de bruit
- * des capteurs (principalement Tuya) et declenche des alertes si necessaire.
+ * des capteurs (Tuya, Baitly IoT) et declenche des alertes si necessaire.
  *
  * Les capteurs Minut sont geres en temps reel via webhook → Kafka.
  * Ce scheduler couvre les capteurs sans webhooks (polling).
@@ -38,19 +39,22 @@ public class NoiseAlertScheduler {
     private final NoiseAlertService alertService;
     private final SupervisionActivityService supervisionActivityService;
     private final SupervisionSuggestionService supervisionSuggestionService;
+    private final TenantScopedExecutor tenantScopedExecutor;
 
     public NoiseAlertScheduler(NoiseAlertConfigRepository configRepository,
                                 NoiseDeviceRepository deviceRepository,
                                 NoiseDeviceService deviceService,
                                 NoiseAlertService alertService,
                                 SupervisionActivityService supervisionActivityService,
-                                SupervisionSuggestionService supervisionSuggestionService) {
+                                SupervisionSuggestionService supervisionSuggestionService,
+                                TenantScopedExecutor tenantScopedExecutor) {
         this.configRepository = configRepository;
         this.deviceRepository = deviceRepository;
         this.deviceService = deviceService;
         this.alertService = alertService;
         this.supervisionActivityService = supervisionActivityService;
         this.supervisionSuggestionService = supervisionSuggestionService;
+        this.tenantScopedExecutor = tenantScopedExecutor;
     }
 
     /**
@@ -68,7 +72,10 @@ public class NoiseAlertScheduler {
 
         for (NoiseAlertConfig config : configs) {
             try {
-                int result = processConfig(config);
+                // Hors HTTP, le TenantContext est vide : sans ce scope, le garde d'organisation
+                // (fail-closed) refusait chaque lecture et aucune alerte ne partait jamais.
+                int result = tenantScopedExecutor.callAsOrganization(
+                    config.getOrganizationId(), () -> processConfig(config));
                 checked++;
                 if (result > 0) alerts += result;
             } catch (Exception e) {
@@ -95,6 +102,9 @@ public class NoiseAlertScheduler {
         String startAt = Instant.now().minusSeconds(300).toString(); // Derniere 5 min
 
         for (NoiseDevice device : devices) {
+            // Synthetic readings must never trigger a guest warning or an operational automation.
+            if (device.isSimulation()) continue;
+            if (!config.getOrganizationId().equals(device.getOrganizationId())) continue;
             try {
                 List<NoiseDataPointDto> dataPoints = deviceService.getNoiseData(
                     device.getUserId(), device.getId(), startAt, endAt);

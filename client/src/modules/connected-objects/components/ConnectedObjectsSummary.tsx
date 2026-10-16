@@ -73,7 +73,7 @@ export default function ConnectedObjectsSummary({ group, providers, loading, onV
               {provider.connected ? <CheckCircle2 size={18} aria-hidden="true" /> : <Link2 size={18} aria-hidden="true" />}
               <span className="sr-only">{t(`connectedRooms.summary.${provider.connected ? 'connected' : 'notConnected'}`)}</span>
             </span>
-            <div><strong>{provider.provider === 'CLENZY_KEYVAULT' ? 'Baitly KeyVault' : provider.provider === 'NETATMO' ? 'Netatmo' : provider.provider}</strong>
+            <div><strong>{provider.provider === 'BAITLY' ? t('baitlyIot.onboarding.direct') : provider.provider === 'CLENZY_KEYVAULT' ? 'Baitly KeyVault' : provider.provider === 'NETATMO' ? 'Netatmo' : provider.provider}</strong>
               <span>{t('connectedRooms.summary.propertyDevices', { count: devices.filter(device => device.provider === provider.provider).length })}</span></div>
             {provider.provider === 'NETATMO' && !provider.connected && <Button size="sm" variant="outline" disabled={connecting}
               aria-label={t('connectedRooms.connectNetatmo')} onClick={() => { void connect(); }}>
