@@ -2,6 +2,14 @@
 
 Baitly IoT reçoit les mesures de capteurs connectés directement au Wi-Fi du logement. Ce service Java 21 et Spring Boot possède sa propre base PostgreSQL et ses migrations Liquibase. Le PMS conserve les utilisateurs, les logements, les autorisations et les règles d'alerte.
 
+Le service autonome utilise Spring Boot 4.0.8 et son ensemble cohérent de dépendances
+corrigées (Spring Framework 7, Spring Security 7, Tomcat 11). Le PMS conserve sa pile
+existante. Le module officiel de compatibilité Jackson 2 maintient temporairement
+le contrat JSON strict, avec Jackson 2.21.5 géré par le BOM ; les contrôles de champs
+inconnus, doublons, taille et profondeur restent testés. Liquibase reste en 4.29.2
+pour préserver les migrations existantes. La migration ultérieure vers Jackson 3
+devra conserver ces mêmes contrôles. Voir le [guide Spring Boot 4](https://github.com/spring-projects/spring-boot/wiki/Spring-Boot-4.0-Migration-Guide).
+
 Le service implémente le registre, la révocation, l'ingestion HTTP, l'historique sonore et un client PMS. Baitly ne fabrique pas de capteur : il raccorde des appareils du marché dont le connecteur et le protocole sont compatibles. La compatibilité doit être qualifiée par marque, modèle et version de firmware ; le Wi-Fi seul ne la garantit pas. Aucun catalogue de modèles compatibles n'est encore validé.
 
 L'espace Objets connectés utilise son unique bouton d'ajout pour rattacher un appareil déjà enregistré dans le service interne, ou ajouter explicitement un simulateur sans matériel. Le service interne prend actuellement en charge les mesures de bruit uniquement ; les autres types conservent leurs connecteurs existants. L'appairage Wi-Fi d'un appareil physique et les adaptateurs propres aux modèles retenus restent à intégrer.

@@ -27,7 +27,7 @@ spring:
       connection-init-sql: "SET statement_timeout = '3s'; SET lock_timeout = '1s'; SET idle_in_transaction_session_timeout = '5s'"
   liquibase:
     change-log: classpath:db/changelog/db.changelog-master.yaml
-  jackson:
+  jackson2:
     deserialization:
       fail-on-unknown-properties: true
       fail-on-trailing-tokens: true
