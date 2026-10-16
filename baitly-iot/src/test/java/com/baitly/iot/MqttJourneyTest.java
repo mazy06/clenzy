@@ -70,6 +70,11 @@ class MqttJourneyTest {
             Thread.sleep(50);
         }
         if (!ready) throw new IllegalStateException("Test broker did not start");
+        // A listener-scoped option before the first listener can create an implicit plaintext port.
+        var openedPorts = java.util.regex.Pattern.compile("Opening ipv[46] listen socket on port (\\d+)\\.")
+                .matcher(Files.readString(root.resolve("broker.log"))).results()
+                .map(match -> Integer.parseInt(match.group(1))).toList();
+        assertThat(openedPorts).containsExactlyInAnyOrder(devicePort, privatePort);
         properties.add("baitly.iot.internal-port", () -> internalPort);
         properties.add("baitly.iot.mqtt.enabled", () -> true);
         properties.add("baitly.iot.mqtt.host", () -> "127.0.0.1");
