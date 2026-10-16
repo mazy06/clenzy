@@ -3,6 +3,7 @@ import { useAuth } from '../../hooks/useAuth';
 import { useMissingContractCount } from '../../hooks/useMissingContractCount';
 import ManagementContractFormModal from '../contracts/ManagementContractFormModal';
 import MissingContractsBanner from '../contracts/MissingContractsBanner';
+import { usePageHeaderActions } from '../../components/PageHeaderActionsContext';
 
 /**
  * Alerte urgente sur le dashboard : N propriété(s) sans contrat de gestion.
@@ -15,14 +16,17 @@ const MissingContractsDashboardAlert: React.FC = () => {
   const canManage = isAdmin() || isManager() || isHost();
   const { count, missingPropertyIds } = useMissingContractCount(canManage);
   const [contractModalOpen, setContractModalOpen] = useState(false);
+  const headerActions = usePageHeaderActions(
+    canManage && count > 0 ? (
+      <MissingContractsBanner compact count={count} onEstablish={() => setContractModalOpen(true)} />
+    ) : null,
+  );
 
   if (!canManage || count === 0) return null;
 
   return (
     <>
-      {/* Aucune marge propre : le tableau de bord empile ses blocs avec un
-          `gap`, une marge s'y ajouterait au lieu de s'y substituer. */}
-      <MissingContractsBanner count={count} onEstablish={() => setContractModalOpen(true)} />
+      {headerActions}
 
       <ManagementContractFormModal
         open={contractModalOpen}

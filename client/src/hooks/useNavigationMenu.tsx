@@ -168,7 +168,7 @@ const MENU_ENTRIES: MenuEntryConfig[] = [
       roles: ['SUPER_ADMIN', 'SUPER_MANAGER'],
       permission: 'reports:view',
       translationKey: 'navigation.reports',
-      group: 'pilotage',
+      group: 'operations',
     },
   },
   // ── Exploitation ──
@@ -488,7 +488,7 @@ export const useNavigationMenu = (): UseNavigationMenuReturn => {
       path: tab.path,
       roles: ['all'],
       translationKey: tab.translationKey,
-      group: hub.group,
+      group: tab.sidebarGroup ?? hub.group,
       matchPaths: tabRoutePrefixes(tab),
     })), [reachableHubTabs, t]);
 

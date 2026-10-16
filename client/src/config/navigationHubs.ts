@@ -19,6 +19,8 @@ export interface HubAccess {
 }
 
 export interface HubTab {
+  /** Groupe de la sidebar lorsque les onglets du hub sont affichés séparément. */
+  sidebarGroup?: HubDef['group'];
   /** Route canonique de l'onglet (cible de navigation). */
   path: string;
   /** Préfixes de routes additionnels couverts par l'onglet (état actif). */
@@ -53,6 +55,7 @@ export const NAVIGATION_HUBS: HubDef[] = [
         path: '/properties',
         translationKey: 'navigation.map',
         fallbackLabel: 'Carte',
+        sidebarGroup: 'pilotage',
         isAccessible: (a) => has(a, 'properties:view'),
       },
       {
