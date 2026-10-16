@@ -7463,7 +7463,9 @@
       "cta": "Établir les contrats",
       "banner": "logement(s) sans contrat de gestion actif. La répartition par défaut de l'organisation s'applique en attendant.",
       "badge": "Contrat manquant",
-      "dismiss": "Masquer ce rappel"
+      "dismiss": "Masquer ce rappel",
+      "shortCount": "{{count}} sans contrat",
+      "shortCta": "Établir"
     },
     "required": {
       "title": "Contrat de gestion requis",

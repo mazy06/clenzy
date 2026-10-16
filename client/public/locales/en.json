@@ -7477,7 +7477,9 @@
       "cta": "Set up contracts",
       "banner": "property(ies) without an active management contract. The organization's default split applies in the meantime.",
       "badge": "Missing contract",
-      "dismiss": "Hide this reminder"
+      "dismiss": "Hide this reminder",
+      "shortCount": "{{count}} without contract",
+      "shortCta": "Create"
     },
     "required": {
       "title": "Management contract required",

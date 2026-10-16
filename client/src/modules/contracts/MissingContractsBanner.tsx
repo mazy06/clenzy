@@ -4,6 +4,7 @@ import { Close as CloseIcon } from '../../icons';
 import { cn } from '../../utils/cn';
 import { useTranslation } from '../../hooks/useTranslation';
 import { useUserPreference } from '../../hooks/useUserPreference';
+import StatusChip from '../../components/StatusChip';
 
 /** Cle de la preference qui retient le masquage, partagee par tous les ecrans. */
 const DISMISS_KEY = 'contracts.missingGate.dismissedCount';
@@ -15,6 +16,8 @@ interface MissingContractsBannerProps {
   onEstablish: () => void;
   /** Espacement propre à l'écran hôte. */
   className?: string;
+  /** Rappel court pour les actions du PageHeader. */
+  compact?: boolean;
 }
 
 /**
@@ -47,6 +50,7 @@ const MissingContractsBanner: React.FC<MissingContractsBannerProps> = ({
   count,
   onEstablish,
   className,
+  compact = false,
 }) => {
   const { t } = useTranslation();
   const [dismissedCount, setDismissedCount] = useUserPreference<number>(DISMISS_KEY, 0);
@@ -54,6 +58,17 @@ const MissingContractsBanner: React.FC<MissingContractsBannerProps> = ({
   const handleDismiss = useCallback(() => setDismissedCount(count), [count, setDismissedCount]);
 
   if (count <= dismissedCount) return null;
+
+  if (compact) return (
+    <div className={cn('flex shrink-0 items-center gap-1.5 whitespace-nowrap', className)}>
+      <StatusChip tone="warn" label={t('contracts.gate.shortCount', { count, defaultValue: '{{count}} sans contrat' })} />
+      <Button type="button" variant="outline" size="sm" data-keep-label onClick={onEstablish}
+        aria-label={t('contracts.gate.cta', 'Établir les contrats')}
+        className="shrink-0 border-warning bg-transparent text-warning-ink hover:bg-warning-soft hover:text-warning-ink">
+        {t('contracts.gate.shortCta', 'Établir')}
+      </Button>
+    </div>
+  );
 
   return (
     <Alert variant="warning" className={cn('flex shrink-0 items-center gap-2', className)}>
