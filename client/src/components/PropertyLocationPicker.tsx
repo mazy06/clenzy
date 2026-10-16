@@ -67,7 +67,7 @@ export function PropertyLocationPicker({
     if (!map) return;
     if (!markerRef.current) {
       // Epingle Baitly (element DOM : suit le theme), deplacable a la souris.
-      const el = createBaitlyPin({ color: 'var(--bui-destructive)', icon: 'home' });
+      const el = createBaitlyPin({ color: 'var(--bui-destructive)', icon: 'logo' });
       el.dataset.draggable = 'true';
       markerRef.current = new maplibregl.Marker({ element: el, draggable: true, anchor: 'bottom' })
         .setLngLat([lng, lat])

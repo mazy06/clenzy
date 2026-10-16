@@ -12,7 +12,10 @@ import { propertyKpiApi, type PropertyKpiSummary } from '../services/api/propert
  * Dégradation silencieuse : en cas d'échec (endpoint absent avant rebuild, droit
  * manquant…) la map est vide → la carte affiche un état neutre, jamais d'erreur.
  */
-export function usePropertyKpiSummaries(ids: number[]): {
+export function usePropertyKpiSummaries(ids: number[], { ready = true }: {
+  /** Faux : la requête attend (différée après le premier rendu de l'écran) ; état « chargement ». */
+  ready?: boolean;
+} = {}): {
   map: Map<number, PropertyKpiSummary>;
   isLoading: boolean;
 } {
@@ -20,7 +23,7 @@ export function usePropertyKpiSummaries(ids: number[]): {
   // Clé stable (ids triés) → ne refetch que si l'ensemble change réellement.
   const key = useMemo(() => [...ids].sort((a, b) => a - b).join(','), [ids]);
 
-  const enabled = !!key && !!user && !authLoading;
+  const enabled = !!key && !!user && !authLoading && ready;
   const now = new Date();
   const month = `${now.getFullYear()}-${now.getMonth() + 1}`;
   const query = useQuery({
@@ -33,5 +36,5 @@ export function usePropertyKpiSummaries(ids: number[]): {
   const map = useMemo(() => new Map<number, PropertyKpiSummary>(
     (query.data ?? []).map(row => [row.propertyId, row]),
   ), [query.data]);
-  return { map, isLoading: enabled && query.isPending };
+  return { map, isLoading: !!key && (!ready || (enabled && query.isPending)) };
 }

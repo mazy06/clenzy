@@ -51,6 +51,8 @@ export interface MapWithSheetProps {
   /** Indicateurs compacts alignés sur la même ligne que le titre. */
   listIndicators?: React.ReactNode;
   listResetKey?: string;
+  /** Colonne optionnelle entre la carte et la liste (ex. prestataires de la zone visible). */
+  aside?: React.ReactNode;
   /** La liste elle-même. */
   children: React.ReactNode;
   /** Rendu quand il n'y a rien à lister — remplace la liste, pas la carte. */
@@ -66,6 +68,7 @@ export default function MapWithSheet({
   listTitle,
   listIndicators,
   listResetKey,
+  aside,
   children,
   emptyState,
   desktopMapHeight = 400,
@@ -88,13 +91,14 @@ export default function MapWithSheet({
   // ── Desktop : mise en page d'origine, carte puis liste ─────────────────────
   if (!isNarrow) {
     if (desktopLayout === 'split') {
-      return <MissionMapSplitView map={map} listTitle={listTitle} listIndicators={listIndicators} listResetKey={listResetKey} className={className}>{list}</MissionMapSplitView>;
+      return <MissionMapSplitView map={map} aside={aside} listTitle={listTitle} listIndicators={listIndicators} listResetKey={listResetKey} className={className}>{list}</MissionMapSplitView>;
     }
     return (
       <div className={cn('flex min-h-0 flex-1 flex-col overflow-y-auto', className)}>
         <div className="shrink-0 overflow-hidden rounded-xl border border-border bg-card">
           <div style={{ height: desktopMapHeight }}>{map}</div>
         </div>
+        {aside && <div className="mt-2 flex max-h-[320px] min-h-0 flex-col">{aside}</div>}
         <div className="mt-2 flex min-h-[320px] flex-1 flex-col">
           <div className="mb-1.5 flex shrink-0 items-center gap-3 text-xs font-semibold text-muted-foreground tabular-nums">
             <span className="min-w-0 flex-1 truncate">{listTitle}</span>
@@ -169,6 +173,7 @@ export default function MapWithSheet({
                 repart pas dans la page derrière la feuille. */}
             <div ref={setDetailHost} hidden={!detailOpen} className={cn('min-h-0 flex-1 overflow-y-auto overscroll-contain px-3 pb-[max(16px,env(safe-area-inset-bottom))]', !detailOpen && 'hidden')} />
             <div ref={scrollRef} data-map-list-scroll className={cn('flex min-h-0 flex-1 flex-col gap-1.5 overflow-y-auto overscroll-contain px-3 pb-[max(16px,env(safe-area-inset-bottom))]', detailOpen && 'hidden')}>
+              {aside && <div className="flex max-h-[45dvh] min-h-0 shrink-0 flex-col">{aside}</div>}
               {list}
             </div>
           </Vaul.Content>

@@ -5,6 +5,7 @@ import { Link } from 'react-router-dom';
 import { CalendarDays, ChevronRight, Clock3, UserRound } from '../../icons/glyphs';
 import { Avatar, AvatarFallback, AvatarImage } from '../../components/ui';
 import { propertiesApi } from '../../services/api/propertiesApi';
+import { propertiesListQuery } from '../../hooks/usePropertiesList';
 import { usersApi, userAvatarSrc } from '../../services/api/usersApi';
 import { teamsApi } from '../../services/api/teamsApi';
 import { toApiMediaUrl } from '../../utils/mediaUrl';
@@ -27,8 +28,14 @@ export default function ServiceMapRow({ request, to, badges, serviceType, childr
   const catalog = useQuery(serviceReferenceQuery);
   const service = catalog.data?.find(item => item.code === request.serviceItemCode);
   const serviceLabel = service ? (isEnglish ? service.labelEn : service.labelFr) : serviceType;
-  const property = useQuery({ queryKey: ['map-property', request.propertyId],
-    queryFn: () => propertiesApi.getById(request.propertyId!), enabled: !!request.propertyId, staleTime: 300_000, retry: false });
+  // La liste des logements est souvent déjà en cache (écran Carte) : elle porte la photo et le
+  // fuseau dont la ligne a besoin. La fiche complète n'est lue que si le logement n'y est pas —
+  // une requête par ligne pesait sur l'ouverture de la liste des prestations.
+  const listed = useQuery({ ...propertiesListQuery(), enabled: false,
+    select: (rows) => rows.find((row) => row.id === request.propertyId) ?? null });
+  const fetched = useQuery({ queryKey: ['map-property', request.propertyId],
+    queryFn: () => propertiesApi.getById(request.propertyId!), enabled: !!request.propertyId && !listed.data, staleTime: 300_000, retry: false });
+  const property = { data: listed.data ?? fetched.data };
   const person = useQuery({ queryKey: ['map-assignee', request.assignedToId],
     queryFn: () => usersApi.getById(request.assignedToId!),
     enabled: request.assignedToType === 'user' && !!request.assignedToId && !request.assignedToAvatarUrl, staleTime: 300_000, retry: false });

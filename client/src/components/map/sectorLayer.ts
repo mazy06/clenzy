@@ -56,25 +56,63 @@ export function sectorColor(index: number, theme: SectorTheme): string {
   return providers[index % providers.length];
 }
 
-function collection(overlay: SectorOverlay, theme: SectorTheme): FeatureCollection {
-  const feature = (geometry: SectorGeometry, color: string, providerId: number | null): Feature => ({
-    type: 'Feature',
-    geometry,
-    properties: { color, highlighted: providerId != null && providerId === overlay.highlightedProviderId },
-  });
+/**
+ * Les secteurs de plusieurs prestataires se superposent souvent exactement (tout un
+ * département) : des fonds empilés noircissaient la carte. Par prestataire, on ne trace
+ * donc que les contours ; le secteur mis en avant prend un fond et passe au-dessus, les
+ * autres s'estompent.
+ *
+ * <p>Deux sources : la BASE (tous les secteurs, sans mise en avant) et le secteur MIS EN
+ * AVANT. Survoler une ligne de la légende ne renvoie au moteur que ce seul secteur ;
+ * l'estompage des autres est un multiplicateur d'opacité des calques. Renvoyer toutes les
+ * géométries à chaque survol les faisait re-tuiler, d'où des saccades.</p>
+ */
+function feature(geometry: SectorGeometry, color: string, fillOpacity: number, lineOpacity: number, highlighted: boolean): Feature {
+  return { type: 'Feature', geometry, properties: { color, fillOpacity, lineOpacity, highlighted } };
+}
+
+/** Un secteur seul (fiche d'un prestataire) ne chevauche rien : il garde son fond. */
+function isAlone(overlay: SectorOverlay): boolean {
+  return overlay.providers.filter((provider) => provider.geometry).length === 1;
+}
+
+/** Tous les secteurs, sans mise en avant. */
+function baseCollection(overlay: SectorOverlay, theme: SectorTheme): FeatureCollection {
+  const { fill } = PALETTES[theme];
   if (overlay.mode === 'merged') {
-    return { type: 'FeatureCollection', features: overlay.merged ? [feature(overlay.merged, mergedSectorColor(theme), null)] : [] };
+    return { type: 'FeatureCollection', features: overlay.merged ? [feature(overlay.merged, mergedSectorColor(theme), fill, 0.95, false)] : [] };
   }
+  const alone = isAlone(overlay);
+  const features = overlay.providers
+    .map((provider, index) => provider.geometry ? feature(provider.geometry, sectorColor(index, theme), alone ? fill : 0, 0.95, false) : null)
+    .filter((f): f is Feature => f != null);
+  return { type: 'FeatureCollection', features };
+}
+
+/** Le secteur mis en avant, rempli et dessiné au-dessus ; vide sans mise en avant. */
+function focusCollection(overlay: SectorOverlay, theme: SectorTheme): FeatureCollection {
+  const focused = overlay.highlightedProviderId ?? null;
+  const index = focused == null ? -1 : overlay.providers.findIndex((provider) => provider.id === focused);
+  const geometry = index < 0 ? null : overlay.providers[index].geometry;
   return {
     type: 'FeatureCollection',
-    features: overlay.providers.flatMap((provider, index) =>
-      provider.geometry ? [feature(provider.geometry, sectorColor(index, theme), provider.id)] : []),
+    features: geometry ? [feature(geometry, sectorColor(index, theme), PALETTES[theme].fill * 2, 0.95, true)] : [],
   };
 }
+
+const FOCUS_SOURCE_ID = 'baitly-sectors-focus';
+const FOCUS_FILL_ID = 'baitly-sectors-focus-fill';
+const FOCUS_CASING_ID = 'baitly-sectors-focus-casing';
+const FOCUS_LINE_ID = 'baitly-sectors-focus-line';
+/** Les autres secteurs, quand un secteur est mis en avant. */
+const DIMMED_LINE = 0.32;
+const DIMMED_FILL = 0.5;
 
 export class BaitlySectorLayer {
   private overlay: SectorOverlay | null = null;
   private theme: SectorTheme = 'light';
+  /** Ce qui façonne la base : tant qu'il ne change pas, la base n'est pas renvoyée. */
+  private baseKey: unknown[] | null = null;
   // Un changement de thème remplace le style par diff, sans `style.load` : nos calques
   // disparaissent en silence. Chaque `styledata` vérifie qu'ils sont encore là.
   private readonly reapply = () => {
@@ -96,6 +134,7 @@ export class BaitlySectorLayer {
 
   destroy(): void {
     this.map.off('styledata', this.reapply);
+    this.removeLayers();
   }
 
   /**
@@ -112,58 +151,83 @@ export class BaitlySectorLayer {
   }
 
   private draw(): void {
-    const { map } = this;
-    if (!this.overlay) {
+    const { map, overlay, theme } = this;
+    if (!overlay) {
       this.removeLayers();
       return;
     }
-    const data = collection(this.overlay, this.theme);
-    const palette = PALETTES[this.theme];
-    const source = map.getSource(SOURCE_ID) as maplibregl.GeoJSONSource | undefined;
-    if (source) {
-      source.setData(data);
-      return;
+    const key = [overlay.providers, overlay.merged, overlay.mode, overlay.mode === 'byProvider' && isAlone(overlay), theme];
+    const base = map.getSource(SOURCE_ID) as maplibregl.GeoJSONSource | undefined;
+    if (!base) {
+      this.addLayers(baseCollection(overlay, theme), focusCollection(overlay, theme));
+      this.baseKey = key;
+    } else {
+      if (!this.baseKey || key.some((part, index) => part !== this.baseKey![index])) {
+        base.setData(baseCollection(overlay, theme));
+        this.baseKey = key;
+      }
+      (map.getSource(FOCUS_SOURCE_ID) as maplibregl.GeoJSONSource | undefined)?.setData(focusCollection(overlay, theme));
     }
-    map.addSource(SOURCE_ID, { type: 'geojson', data });
+    // Mise en avant : le fond d'ensemble s'atténue ; par prestataire, les autres bordures
+    // s'estompent (la bordure fusionnée, elle, reste lisible).
+    const focused = overlay.highlightedProviderId != null;
+    const dimLines = focused && overlay.mode === 'byProvider';
+    const line: maplibregl.DataDrivenPropertyValueSpecification<number> = dimLines
+      ? ['*', ['get', 'lineOpacity'], DIMMED_LINE]
+      : ['get', 'lineOpacity'];
+    map.setPaintProperty(LINE_ID, 'line-opacity', line);
+    map.setPaintProperty(CASING_ID, 'line-opacity', line);
+    map.setPaintProperty(FILL_ID, 'fill-opacity', focused ? ['*', ['get', 'fillOpacity'], DIMMED_FILL] : ['get', 'fillOpacity']);
+  }
+
+  private addLayers(base: FeatureCollection, focus: FeatureCollection): void {
+    const { map } = this;
+    const palette = PALETTES[this.theme];
+    map.addSource(SOURCE_ID, { type: 'geojson', data: base });
+    map.addSource(FOCUS_SOURCE_ID, { type: 'geojson', data: focus });
     const beforeId = firstSymbolLayer(map);
-    map.addLayer({
-      id: FILL_ID,
-      type: 'fill',
-      source: SOURCE_ID,
-      paint: {
-        'fill-color': ['get', 'color'],
-        'fill-opacity': ['case', ['get', 'highlighted'], palette.fill * 2, palette.fill],
-      },
-    }, beforeId);
-    // Liseré sous la bordure : la détache des limites administratives du fond de carte.
-    map.addLayer({
-      id: CASING_ID,
-      type: 'line',
-      source: SOURCE_ID,
-      layout: { 'line-join': 'round', 'line-cap': 'round' },
-      paint: {
-        'line-color': palette.casing,
-        'line-width': ['interpolate', ['linear'], ['zoom'], 6, 3.5, 13, 6],
-      },
-    }, beforeId);
-    map.addLayer({
-      id: LINE_ID,
-      type: 'line',
-      source: SOURCE_ID,
-      layout: { 'line-join': 'round', 'line-cap': 'round' },
-      paint: {
-        'line-color': ['get', 'color'],
-        'line-width': ['interpolate', ['linear'], ['zoom'], 6, 1.5, 13, ['case', ['get', 'highlighted'], 3.5, 2.5]],
-        'line-opacity': 0.95,
-      },
-    }, beforeId);
+    for (const [source, fillId, casingId, lineId] of [
+      [SOURCE_ID, FILL_ID, CASING_ID, LINE_ID],
+      [FOCUS_SOURCE_ID, FOCUS_FILL_ID, FOCUS_CASING_ID, FOCUS_LINE_ID],
+    ] as const) {
+      map.addLayer({
+        id: fillId,
+        type: 'fill',
+        source,
+        paint: { 'fill-color': ['get', 'color'], 'fill-opacity': ['get', 'fillOpacity'] },
+      }, beforeId);
+      // Liseré sous la bordure : la détache des limites administratives du fond de carte.
+      map.addLayer({
+        id: casingId,
+        type: 'line',
+        source,
+        layout: { 'line-join': 'round', 'line-cap': 'round' },
+        paint: {
+          'line-color': palette.casing,
+          'line-width': ['interpolate', ['linear'], ['zoom'], 6, 3.5, 13, 6],
+          'line-opacity': ['get', 'lineOpacity'],
+        },
+      }, beforeId);
+      map.addLayer({
+        id: lineId,
+        type: 'line',
+        source,
+        layout: { 'line-join': 'round', 'line-cap': 'round' },
+        paint: {
+          'line-color': ['get', 'color'],
+          'line-width': ['interpolate', ['linear'], ['zoom'], 6, 1.5, 13, ['case', ['get', 'highlighted'], 3.5, 2.5]],
+          'line-opacity': ['get', 'lineOpacity'],
+        },
+      }, beforeId);
+    }
   }
 
   private removeLayers(): void {
     const { map } = this;
+    this.baseKey = null;
     if (!map.style) return;
-    for (const id of [LINE_ID, CASING_ID, FILL_ID]) if (map.getLayer(id)) map.removeLayer(id);
-    if (map.getSource(SOURCE_ID)) map.removeSource(SOURCE_ID);
+    for (const id of [FOCUS_LINE_ID, FOCUS_CASING_ID, FOCUS_FILL_ID, LINE_ID, CASING_ID, FILL_ID]) if (map.getLayer(id)) map.removeLayer(id);
+    for (const id of [FOCUS_SOURCE_ID, SOURCE_ID]) if (map.getSource(id)) map.removeSource(id);
   }
 }
 

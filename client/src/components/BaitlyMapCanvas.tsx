@@ -8,6 +8,7 @@ import { createBaitlyPin, pinPopupContent, PIN_POPUP_OFFSET, type BaitlyPinIcon 
 import { keepPopupInView } from "./map/keepPopupInView";
 import { BaitlyClusterLayer } from "./map/markerClusters";
 import { BaitlySectorLayer, sectorBounds, type SectorOverlay } from "./map/sectorLayer";
+import { BaitlyToolsControl } from "./map/toolsControl";
 import { MARKER_STATE_DEFAULT_LABELS, MARKER_STATE_ORDER, urgencyOf, type MarkerState } from "./map/markerStates";
 import { useTranslation } from "../hooks/useTranslation";
 import { useMapSheet } from "./map/MapSheetContext";
@@ -19,6 +20,11 @@ export interface PropertyMarker {
   type?: PropertyMarkerType;
   /** Anneau d'état de l'épingle (planning du jour, retard…) ; absent = lieu calme. */
   state?: MarkerState;
+  /** Vignette et ligne secondaire du lieu dans la liste d'un regroupement (même adresse). */
+  thumbnailUrl?: string | null;
+  subtitle?: string | null;
+  /** Anomalie ouverte la plus grave du lieu : pastille d'alerte sur l'épingle, quelle que soit la vue. */
+  alert?: 'critical' | 'high' | 'medium' | 'low';
 }
 
 export type PropertyMarkerType = "property" | "key_exchange" | "intervention" | "service_request";
@@ -46,8 +52,12 @@ export interface BaitlyPropertyMapProps {
   renderPopup?: (marker: PropertyMarker) => ReactNode;
   /** Secteurs d'intervention dessinés sous les épingles (bordure + fond translucide). */
   sectors?: SectorOverlay | null;
-  /** Commandes propres à l'écran, posées en haut de la carte (ex. bascule des secteurs). */
+  /** Messages et réglages propres à l'écran, posés en haut à gauche de la carte. */
   overlayControls?: ReactNode;
+  /** Boutons-icônes propres à l'écran (ex. calque des secteurs), empilés sous le bouton 2D / 3D. */
+  mapTools?: ReactNode;
+  /** Emprise [ouest, sud, est, nord] sur laquelle recadrer la carte quand elle change (ex. secteur choisi). */
+  focusBounds?: [number, number, number, number] | null;
 }
 
 /** Sans localisation exploitable, une vue mondiale plutôt qu'une ville arbitraire. */
@@ -56,11 +66,13 @@ const DEFAULT_ZOOM = 12;
 
 // L'epingle Baitly est un element DOM : les tokens s'y resolvent et suivent le theme.
 const MARKER_STYLES: Record<PropertyMarkerType, { color: string; icon: BaitlyPinIcon }> = {
-  property: { color: "var(--bui-navy)", icon: "home" },
+  property: { color: "var(--bui-navy)", icon: "logo" },
   key_exchange: { color: "var(--bui-warning-ink)", icon: "key" },
   intervention: { color: "var(--bui-success-ink)", icon: "wrench" },
   service_request: { color: "var(--bui-info-ink)", icon: "clipboard" },
 };
+
+const ALERT_URGENCY: Record<string, number> = { critical: 3, high: 3, medium: 1 };
 
 const markerKey = (marker: PropertyMarker) => `${marker.type ?? "property"}:${marker.id ?? `${marker.lat},${marker.lng}`}`;
 
@@ -85,6 +97,8 @@ export function BaitlyMapCanvas({
   renderPopup,
   sectors,
   overlayControls,
+  mapTools,
+  focusBounds,
   colorMode = "light",
 }: BaitlyPropertyMapProps & { colorMode?: "light" | "dark" }) {
   // Lu à la création des marqueurs : changer de fonction ne les reconstruit pas.
@@ -98,6 +112,7 @@ export function BaitlyMapCanvas({
   const [retryKey, setRetryKey] = useState(0);
   const entriesRef = useRef(new Map<string, { marker: maplibregl.Marker; property: PropertyMarker; rich: boolean }>());
   const [openCard, setOpenCard] = useState<OpenCard | null>(null);
+  const [toolsHost, setToolsHost] = useState<HTMLElement | null>(null);
   const openCardRef = useRef(openCard);
   openCardRef.current = openCard;
   const clustersRef = useRef<BaitlyClusterLayer | null>(null);
@@ -215,6 +230,10 @@ export function BaitlyMapCanvas({
     clustersRef.current = new BaitlyClusterLayer(map, (count) => clusterLabelRef.current(count));
     sectorLayerRef.current = new BaitlySectorLayer(map);
     sectorLayerRef.current.set(sectorsRef.current ?? null, initialModeRef.current);
+    // Ajouté après la navigation et le 2D / 3D : le groupe d'outils s'empile dessous.
+    const tools = new BaitlyToolsControl();
+    map.addControl(tools, "top-right");
+    setToolsHost(tools.container);
     framedRef.current = false;
     userMovedRef.current = false;
     // Le panneau change de taille sans toujours redimensionner la fenêtre
@@ -237,6 +256,8 @@ export function BaitlyMapCanvas({
       clustersRef.current = null;
       sectorLayerRef.current?.destroy();
       sectorLayerRef.current = null;
+      map.removeControl(tools);
+      setToolsHost(null);
       clearMarkers();
       map.remove();
       mapRef.current = null;
@@ -254,6 +275,17 @@ export function BaitlyMapCanvas({
     const [west, south, east, north] = sectorBounds(outline);
     map.fitBounds([[west, south], [east, north]], { padding: 48, maxZoom: 12, duration: 0 });
   }, [sectors, properties.length, colorMode]);
+
+  // Recadrage demandé par l'écran : c'est une intention explicite, elle prime sur le
+  // cadrage automatique des épingles (comme le bouton « Voir tous les lieux »).
+  const focusKey = focusBounds?.join(",");
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map || !focusBounds) return;
+    userMovedRef.current = true;
+    const [west, south, east, north] = focusBounds;
+    map.fitBounds([[west, south], [east, north]], { padding: 48, maxZoom: 13, duration: prefersReducedMotion() ? 0 : 400 });
+  }, [focusKey]);
 
   /**
    * Papier ↔ Nuit : on remplace le STYLE de la carte existante (MapLibre applique
@@ -334,10 +366,18 @@ export function BaitlyMapCanvas({
       element.setAttribute("aria-label", property.name);
       if (property.state) element.dataset.state = property.state;
       else delete element.dataset.state;
+      if (property.alert) element.dataset.alert = property.alert;
+      else delete element.dataset.alert;
       if (!entry.rich) entry.marker.getPopup()?.setDOMContent(pinPopupContent(property.name));
     });
     markersRef.current = [...entriesRef.current.values()].map((entry) => entry.marker);
-    clustersRef.current?.setEntries([...entriesRef.current.values()].map((entry) => ({ marker: entry.marker, urgency: urgencyOf(entry.property.state) })));
+    clustersRef.current?.setEntries([...entriesRef.current.values()].map((entry) => ({
+      marker: entry.marker,
+      // Une anomalie critique ou haute pèse comme un retard : le groupe ne la cache pas.
+      urgency: Math.max(urgencyOf(entry.property.state), ALERT_URGENCY[entry.property.alert ?? ''] ?? 0),
+      thumbnailUrl: entry.property.thumbnailUrl,
+      subtitle: entry.property.subtitle,
+    })));
     if (selectedPropertyIdRef.current != null) syncSelection();
     if (openCardRef.current && !keys.has(markerKey(openCardRef.current.marker))) sheetRef.current?.closeDetail();
     setOpenCard((current) => {
@@ -368,15 +408,6 @@ export function BaitlyMapCanvas({
         <div ref={mapContainerRef} className="size-full rounded-lg overflow-hidden" />
         <div className="absolute start-3 top-3 z-10 flex max-w-[calc(100%-88px)] flex-col items-start gap-2">
           {overlayControls}
-          {properties.length > 0 && <button type="button" onClick={() => {
-            userMovedRef.current = true;
-            if (mapRef.current) fitMarkers(mapRef.current, properties);
-          }} className="baitly-map-fit-button">
-            <Maximize size={16} aria-hidden="true" />
-            <span>
-            {t("baitlyMap.showAll", "Voir tous les lieux")}
-            </span>
-          </button>}
           {mapStatus === "loading" && <span role="status" className="rounded-lg bg-card px-3 py-2 text-xs text-muted-foreground">{t("baitlyMap.loading", "Chargement de la carte…")}</span>}
           {mapStatus === "partial" && <span role="status" className="max-w-64 rounded-lg border border-border bg-card px-3 py-2 text-xs text-muted-foreground">{t("baitlyMap.worldUnavailable", "Fond mondial indisponible. Carte régionale affichée.")}</span>}
           {mapStatus === "error" && <div role="alert" className="max-w-64 rounded-lg border border-border bg-card p-3 text-xs text-foreground">
@@ -402,6 +433,17 @@ export function BaitlyMapCanvas({
           </ul>
         ) : null}
       </div>
+      {toolsHost && (properties.length > 0 || mapTools)
+        ? createPortal(<>
+          {properties.length > 0 && <button type="button" onClick={() => {
+            userMovedRef.current = true;
+            if (mapRef.current) fitMarkers(mapRef.current, properties);
+          }} className="baitly-map-tool" aria-label={t("baitlyMap.showAll", "Voir tous les lieux")} title={t("baitlyMap.showAll", "Voir tous les lieux")}>
+            <Maximize size={18} aria-hidden="true" />
+          </button>}
+          {mapTools}
+        </>, toolsHost)
+        : null}
       {openCard && renderPopup
         ? createPortal(renderPopup(openCard.marker), openCard.container, markerKey(openCard.marker))
         : null}

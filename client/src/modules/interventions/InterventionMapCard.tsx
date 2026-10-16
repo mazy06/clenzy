@@ -47,8 +47,27 @@ export default function InterventionMapCard({ interventionId }: { interventionId
       .join(', '),
   ];
 
+  const footer = (
+    <MapCardFooter>
+      {intervention.assignedToName ? (
+        <MapCardPerson
+          name={intervention.assignedToName}
+          role={
+            intervention.assignedToType === 'team'
+              ? t('baitlyMap.card.team', 'Équipe intervenante')
+              : t('baitlyMap.card.assignee', 'Intervenant')
+          }
+          avatarUrl={resolveMediaUrl(intervention.assignedToAvatarUrl)}
+        />
+      ) : (
+        <MapCardPerson role={t('interventions.notAssigned')} />
+      )}
+      <MapCardAction label={t('interventions.viewDetails')} onClick={() => navigate(`/interventions/${intervention.id}`)} />
+    </MapCardFooter>
+  );
+
   return (
-    <MapCard photos={photos} alt={intervention.propertyName}>
+    <MapCard footer={footer} photos={photos} alt={intervention.propertyName}>
       <MapCardHeader
         eyebrow={getInterventionTypeLabel(intervention.type, t)}
         title={intervention.title}
@@ -84,22 +103,6 @@ export default function InterventionMapCard({ interventionId }: { interventionId
           },
         ]}
       />
-      <MapCardFooter>
-        {intervention.assignedToName ? (
-          <MapCardPerson
-            name={intervention.assignedToName}
-            role={
-              intervention.assignedToType === 'team'
-                ? t('baitlyMap.card.team', 'Équipe intervenante')
-                : t('baitlyMap.card.assignee', 'Intervenant')
-            }
-            avatarUrl={resolveMediaUrl(intervention.assignedToAvatarUrl)}
-          />
-        ) : (
-          <MapCardPerson role={t('interventions.notAssigned')} />
-        )}
-        <MapCardAction label={t('interventions.viewDetails')} onClick={() => navigate(`/interventions/${intervention.id}`)} />
-      </MapCardFooter>
     </MapCard>
   );
 }

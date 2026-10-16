@@ -33,8 +33,18 @@ export default function KeyPointMapCard({ point }: { point: KeyExchangePointDto 
         ? t('baitlyMap.card.individual', 'Particulier')
         : null;
 
+  const footer = (
+    <MapCardFooter>
+      <MapCardPerson name={PROVIDER_LABELS[point.provider] ?? point.provider} role={t('connectedObjects.keybox.provider')} />
+      <MapCardAction
+        label={t('baitlyMap.card.openPoint', 'Voir le point')}
+        onClick={() => navigate(`/connected-objects/device/keybox/${point.id}`)}
+      />
+    </MapCardFooter>
+  );
+
   return (
-    <MapCard photos={(point.photos ?? []).map((photo) => photo.url)} alt={point.storeName}>
+    <MapCard footer={footer} photos={(point.photos ?? []).map((photo) => photo.url)} alt={point.storeName}>
       <MapCardHeader
         eyebrow={guardian ?? t('connectedObjects.keybox.handoverPoint')}
         title={point.storeName}
@@ -63,13 +73,6 @@ export default function KeyPointMapCard({ point }: { point: KeyExchangePointDto 
       {!point.photos?.length ? (
         <p className="m-0 text-2xs text-muted-foreground">{t('baitlyMap.card.noLocationPhoto', "Pas encore de photo de l'emplacement.")}</p>
       ) : null}
-      <MapCardFooter>
-        <MapCardPerson name={PROVIDER_LABELS[point.provider] ?? point.provider} role={t('connectedObjects.keybox.provider')} />
-        <MapCardAction
-          label={t('baitlyMap.card.openPoint', 'Voir le point')}
-          onClick={() => navigate(`/connected-objects/device/keybox/${point.id}`)}
-        />
-      </MapCardFooter>
     </MapCard>
   );
 }

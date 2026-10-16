@@ -14,7 +14,15 @@ import { useTranslation } from '../../hooks/useTranslation';
  * « empilée » — photos en tête — pour les cartes étroites. Tout est en CSS
  * (`baitly-map.css`), la fiche n'a pas à connaître sa disposition.</p>
  */
-export function MapCard({ photos, alt, children }: { photos?: string[] | null; alt: string; children: ReactNode }) {
+export function MapCard({ photos, alt, children, footer, extra }: {
+  photos?: string[] | null;
+  alt: string;
+  children: ReactNode;
+  /** Personne liée et action : une ligne sur toute la largeur, sous la photo et les informations. */
+  footer?: ReactNode;
+  /** Bloc pleine largeur sous la photo et les informations (ex. prestations du logement). */
+  extra?: ReactNode;
+}) {
   const hasMedia = !!photos && photos.length > 0;
   return (
     <article className="baitly-map-card" data-has-media={hasMedia}>
@@ -31,6 +39,8 @@ export function MapCard({ photos, alt, children }: { photos?: string[] | null; a
         </div>
       ) : null}
       <div className="baitly-map-card__body">{children}</div>
+      {footer ? <div className="baitly-map-card__footer-row">{footer}</div> : null}
+      {extra ? <div className="baitly-map-card__extra">{extra}</div> : null}
     </article>
   );
 }
@@ -75,7 +85,7 @@ export function MapCardFacts({ facts }: { facts: Array<MapCardFact | null | fals
   );
 }
 
-/** Pied de fiche : personne liée et action — côte à côte en disposition large. */
+/** Pied de fiche : personne liée et action, côte à côte. À passer en `footer` de `MapCard`. */
 export function MapCardFooter({ children }: { children: ReactNode }) {
   return <div className="baitly-map-card__footer">{children}</div>;
 }

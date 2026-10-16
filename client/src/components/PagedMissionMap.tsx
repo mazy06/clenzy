@@ -43,10 +43,13 @@ export default function PagedMissionMap<T extends { id: string | number }>({ kin
     return [...unique.values()];
   }, [pages.data]);
   const resetKey = JSON.stringify([filters, bounds]);
-  // Un marqueur = une mission (intervention ou demande), pas un logement.
-  const markerType: PropertyMarkerType = kind === "service-requests" ? "service_request" : "intervention";
-  const markerData = useMemo(() => overview.data?.markers.map(marker => ({ ...marker, type: markerType,
-    state: MISSION_STATES[marker.state ?? ""] })) ?? [], [overview.data, markerType]);
+  // Un marqueur = une mission (intervention ou demande), pas un logement. L'écran Prestations
+  // mêle les deux : le serveur dit alors le type de chaque point.
+  const markerData = useMemo(() => overview.data?.markers.map(marker => {
+    const request = marker.kind ? marker.kind === "request" : kind === "service-requests";
+    const type: PropertyMarkerType = request ? "service_request" : "intervention";
+    return { ...marker, type, state: MISSION_STATES[marker.state ?? ""] };
+  }) ?? [], [overview.data, kind]);
   const total = pages.data?.pages[0]?.totalElements;
   const busy = pages.isFetchingNextPage;
   const endRef = useRef<HTMLDivElement>(null);
@@ -70,7 +73,7 @@ export default function PagedMissionMap<T extends { id: string | number }>({ kin
     {t("missionMap.loadError")} <Button variant="outline" onClick={() => void overview.refetch()}>{t("common.retry")}</Button>
   </AlertDescription></Alert>;
   if (!overview.data) return <Skeleton className="min-h-48 flex-1" />;
-  const indicators = kind === "service-requests" ? <div className="flex shrink-0 items-center gap-2 text-xs tabular-nums">
+  const indicators = kind !== "interventions" ? <div className="flex shrink-0 items-center gap-2 text-xs tabular-nums">
     {[
       { label: t("serviceRequests.kpi.late"), count: overview.data.late, Icon: AlertTriangle, color: "var(--bui-destructive-ink)" },
       { label: t("serviceRequests.kpi.today"), count: overview.data.today, Icon: Clock3, color: "var(--bui-info-ink)" },
@@ -83,9 +86,12 @@ export default function PagedMissionMap<T extends { id: string | number }>({ kin
   return <MapWithSheet desktopLayout="split" listResetKey={resetKey}
     map={<BaitlyPropertyMap properties={markerData} center={homeCenter} height="100%" onBoundsChange={onBoundsChange}
       renderPopup={renderPopup}
-      onMarkerClick={renderPopup ? undefined : marker => marker.id && navigate("/" + kind + "/" + marker.id)} />}
+      onMarkerClick={renderPopup ? undefined : marker => marker.id
+        && navigate((marker.type === "service_request" ? "/service-requests/" : "/interventions/") + marker.id)} />}
     listTitle={total === undefined && markerData.length ? t("missionMap.loading") :
-      kind === "service-requests" ? t("requestMap.visible", { count: total ?? 0 }) : t("missionMap.visibleInterventions", { count: total ?? 0 })}
+      kind === "service-requests" ? t("requestMap.visible", { count: total ?? 0 })
+        : kind === "prestations" ? t("prestations.mapVisible", { count: total ?? 0 })
+        : t("missionMap.visibleInterventions", { count: total ?? 0 })}
     listIndicators={indicators}>
     {renderRows ? renderRows(rows) : rows.map(row => renderRow(row))}
     {(pages.isLoading || (!bounds && markerData.length > 0)) && <div className="space-y-3 p-4" role="status" aria-label={t("missionMap.loading")}>

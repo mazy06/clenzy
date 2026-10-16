@@ -18,8 +18,12 @@ export interface SectorZone {
 export interface ProviderSectors {
   providerId: number | null;
   name: string | null;
+  /** Photo du prestataire (URL signée ou absolue) ; null : initiales. */
+  avatarUrl: string | null;
   geometry: SectorGeometry | null;
   zones: SectorZone[];
+  /** Compte PMS du prestataire : celui des interventions qui lui sont assignées ; null sans compte. */
+  userId: number | null;
 }
 
 export interface SectorProperty {
@@ -47,6 +51,11 @@ export const sectorMapApi = {
   /** Secteur d'un prestataire et logements couverts ou non. */
   provider(providerId: number | string): Promise<SectorMap> {
     return apiClient.get<SectorMap>(`/provider-catalog/${providerId}/sectors`);
+  },
+
+  /** Secteur du prestataire relié au compte `userId` (intervenant d'une prestation) ; 404 sinon. */
+  providerOfUser(userId: number): Promise<SectorMap> {
+    return apiClient.get<SectorMap>(`/provider-catalog/sectors/by-user/${userId}`);
   },
 
   /** Secteur déclaré par l'intervenant connecté. */

@@ -37,8 +37,26 @@ export default function ServiceRequestMapCard({ requestId }: { requestId: number
   const request = query.data;
   const desired = request.desiredDate ? new Date(request.desiredDate) : null;
 
+  const footer = (
+    <MapCardFooter>
+      {request.assignedToName ? (
+        <MapCardPerson
+          name={request.assignedToName}
+          role={
+            request.assignedToType === 'team'
+              ? t('baitlyMap.card.team', 'Équipe intervenante')
+              : t('baitlyMap.card.assignee', 'Intervenant')
+          }
+        />
+      ) : (
+        <MapCardPerson role={t('interventions.notAssigned')} />
+      )}
+      <MapCardAction label={t('serviceRequests.viewDetails')} onClick={() => navigate(`/service-requests/${request.id}`)} />
+    </MapCardFooter>
+  );
+
   return (
-    <MapCard alt={request.propertyName ?? request.title}>
+    <MapCard footer={footer} alt={request.propertyName ?? request.title}>
       <MapCardHeader
         eyebrow={getInterventionTypeLabel(request.serviceType, t)}
         title={request.title}
@@ -72,21 +90,6 @@ export default function ServiceRequestMapCard({ requestId }: { requestId: number
           },
         ]}
       />
-      <MapCardFooter>
-        {request.assignedToName ? (
-          <MapCardPerson
-            name={request.assignedToName}
-            role={
-              request.assignedToType === 'team'
-                ? t('baitlyMap.card.team', 'Équipe intervenante')
-                : t('baitlyMap.card.assignee', 'Intervenant')
-            }
-          />
-        ) : (
-          <MapCardPerson role={t('interventions.notAssigned')} />
-        )}
-        <MapCardAction label={t('serviceRequests.viewDetails')} onClick={() => navigate(`/service-requests/${request.id}`)} />
-      </MapCardFooter>
     </MapCard>
   );
 }

@@ -14,6 +14,7 @@ import org.junit.jupiter.api.Test;
 
 import java.math.BigDecimal;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -102,6 +103,47 @@ class ProviderSectorMapServiceTest {
         assertThat(map.providers()).singleElement().satisfies(p -> assertThat(p.geometry()).isNotNull());
         assertThat(map.properties()).extracting(SectorMapDto.SectorProperty::coveredBy)
                 .containsExactly(List.of(3L), List.of());
+    }
+
+    @Test
+    void whenTheProviderHasAPhoto_thenItsAvatarIsReturnedWithItsSector() {
+        var provider = provider(3L, "Clean Paris", true);
+        List<EffectiveZone> declared = List.of(zone(3L, "75"));
+        when(zones.effectiveZones(List.of(3L))).thenReturn(declared);
+        when(catalog.avatarUrls(List.of(provider))).thenReturn(Map.of(3L, "/api/public/avatars/9"));
+
+        var map = service.forProvider(3L, ORG, null).orElseThrow();
+
+        assertThat(map.providers()).singleElement()
+                .satisfies(p -> assertThat(p.avatarUrl()).isEqualTo("/api/public/avatars/9"));
+    }
+
+    @Test
+    void whenTheProviderHasAnAccount_thenItsUserIdIsReturnedToMatchItsMissions() {
+        var provider = provider(3L, "Clean Paris", true);
+        provider.setUserId(42L);
+        List<EffectiveZone> declared = List.of(zone(3L, "75"));
+        when(zones.effectiveZones(List.of(3L))).thenReturn(declared);
+
+        var map = service.forProvider(3L, ORG, null).orElseThrow();
+
+        assertThat(map.providers()).singleElement().satisfies(p -> assertThat(p.userId()).isEqualTo(42L));
+    }
+
+    @Test
+    void whenAskedByAccount_thenTheLinkedProviderSectorIsReturnedEvenWithoutCoverage() {
+        var provider = provider(3L, "Jean Martin", true);
+        provider.setUserId(42L);
+        when(catalog.getProviderByUserId(42L)).thenReturn(Optional.of(provider));
+        when(catalog.getProviderByUserId(7L)).thenReturn(Optional.empty());
+
+        var map = service.forProviderUser(42L, ORG, null).orElseThrow();
+
+        assertThat(map.providers()).singleElement().satisfies(p -> {
+            assertThat(p.providerId()).isEqualTo(3L);
+            assertThat(p.userId()).isEqualTo(42L);
+        });
+        assertThat(service.forProviderUser(7L, ORG, null)).isEmpty();
     }
 
     @Test

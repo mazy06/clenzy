@@ -49,6 +49,14 @@ public class ProviderSectorMapController {
                 .orElseGet(() -> ResponseEntity.notFound().build());
     }
 
+    /** Secteur du prestataire relié à un compte : l'intervenant d'une prestation (carte Propriétés). */
+    @GetMapping("/api/provider-catalog/sectors/by-user/{userId}")
+    public ResponseEntity<SectorMapDto> providerOfUser(@PathVariable Long userId, @AuthenticationPrincipal Jwt jwt) {
+        return providerSectors.forProviderUser(userId, tenantContext.getRequiredOrganizationId(), hostSubject(jwt))
+                .map(ResponseEntity::ok)
+                .orElseGet(() -> ResponseEntity.notFound().build());
+    }
+
     /** Secteur déclaré par l'intervenant connecté (Mon compte → Zone d'intervention). */
     @GetMapping("/api/my-coverage-zones/sectors")
     public SectorMapDto mine(@AuthenticationPrincipal Jwt jwt) {

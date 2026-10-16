@@ -3107,6 +3107,7 @@
     }
   },
   "navigation": {
+    "map": "الخريطة",
     "consumables": "المستهلكات",
     "bookingVouchers": "رموز الترويج",
     "dashboard": "لوحة التحكم",
@@ -4366,6 +4367,7 @@
     }
   },
   "properties": {
+    "pilotageSubtitle": "المساكن والخدمات والإقامات والبلاغات على الخريطة",
     "title": "العقارات",
     "subtitle": "إدارة المحفظة العقارية",
     "create": "عقار جديد",
@@ -8362,10 +8364,51 @@
     "effectiveMonthly": "المبلغ الفعلي",
     "loadError": "تعذر تحميل ملخص الفوترة"
   },
+  "prestations": {
+    "mine": "خدماتي",
+    "actions": "إجراءات",
+    "cancelRemaining": "الوقت المتبقي: {{hours}} ساعة",
+    "search": "ابحث عن خدمة",
+    "counter": "خدمة",
+    "mapVisible": "{{count}} خدمات في هذه المنطقة",
+    "mapVisible_zero": "لا خدمات في هذه المنطقة",
+    "mapVisible_one": "خدمة واحدة في هذه المنطقة",
+    "mapVisible_two": "خدمتان في هذه المنطقة",
+    "mapVisible_few": "{{count}} خدمات في هذه المنطقة",
+    "mapVisible_many": "{{count}} خدمةً في هذه المنطقة",
+    "mapVisible_other": "{{count}} خدمة في هذه المنطقة",
+    "kind": {
+      "intervention": "تدخل",
+      "request": "طلب"
+    },
+    "filters": {
+      "kind": "النوع",
+      "allKinds": "الكل",
+      "interventions": "التدخلات",
+      "requests": "الطلبات",
+      "allStatuses": "كل الحالات",
+      "period": "الفترة",
+      "anyDate": "كل التواريخ",
+      "today": "اليوم",
+      "next7": "الأيام السبعة القادمة",
+      "next30": "الأيام الثلاثون القادمة",
+      "past30": "آخر 30 يومًا",
+      "property": "المسكن",
+      "allProperties": "كل المساكن",
+      "assignee": "المتدخل",
+      "anyAssignee": "كل المتدخلين"
+    },
+    "empty": {
+      "title": "لا توجد خدمات",
+      "description": "ستظهر هنا التدخلات المجدولة والطلبات المطلوب معالجتها.",
+      "requests": "لا توجد طلبات معلقة: الطلبات المجدولة تظهر ضمن التدخلات."
+    }
+  },
   "workOrders": {
     "title": "التدخلات",
     "subtitle": "إدارة طلبات الخدمة والتدخلات",
     "tabs": {
+      "prestations": "الخدمات",
       "serviceRequests": "طلبات الخدمة",
       "interventions": "التدخلات",
       "issues": "البلاغات",
@@ -8554,6 +8597,11 @@
     }
   },
   "tabHeaders": {
+    "pilotage": {
+      "prestations": "التدخلات وطلبات الخدمة على الخريطة وبترتيب زمني.",
+      "reservations": "الإقامات الجارية والقادمة خلال 30 يومًا، مسكنًا بمسكن.",
+      "issues": "البلاغات المطلوب معالجتها، الأخطر أولًا."
+    },
     "consumables": {
       "pending": "بانتظار الطلب",
       "ordered": "تم طلبها",
@@ -15013,6 +15061,46 @@
     "visible_other": "{{count}} طلب في هذه المنطقة"
   },
   "propertyMap": {
+    "issuesTitle": "بلاغات للمعالجة",
+    "issuesLoading": "جارٍ تحميل البلاغات…",
+    "issuesLoadError": "تعذّر تحميل البلاغات.",
+    "issuesEmpty": "لا توجد بلاغات للمعالجة في هذه المنطقة.",
+    "noIssue": "لا توجد بلاغات للمعالجة.",
+    "issuesVisible_zero": "لا بلاغات في هذه المنطقة",
+    "issuesVisible_one": "بلاغ واحد في هذه المنطقة",
+    "issuesVisible_two": "بلاغان في هذه المنطقة",
+    "issuesVisible_few": "{{count}} بلاغات في هذه المنطقة",
+    "issuesVisible_many": "{{count}} بلاغًا في هذه المنطقة",
+    "issuesVisible_other": "{{count}} بلاغ في هذه المنطقة",
+    "views": {
+      "issues": "البلاغات",
+      "label": "عرض الخريطة",
+      "properties": "نظرة عامة",
+      "prestations": "الخدمات",
+      "reservations": "الحجوزات"
+    },
+    "nights_zero": "لا ليالٍ",
+    "nights_one": "ليلة واحدة",
+    "nights_two": "ليلتان",
+    "nights_few": "{{count}} ليالٍ",
+    "nights_many": "{{count}} ليلة",
+    "nights_other": "{{count}} ليلة",
+    "stays": "الإقامات الجارية والقادمة",
+    "reservationsLoading": "جارٍ تحميل الإقامات…",
+    "reservationsLoadError": "تعذّر تحميل الحجوزات.",
+    "noStay": "لا توجد إقامة خلال الثلاثين يومًا القادمة.",
+    "reservationsEmpty": "لا توجد إقامة جارية أو قادمة في هذه المنطقة.",
+    "reservationsVisible_zero": "لا إقامات في هذه المنطقة",
+    "reservationsVisible_one": "إقامة واحدة في هذه المنطقة",
+    "reservationsVisible_two": "إقامتان في هذه المنطقة",
+    "reservationsVisible_few": "{{count}} إقامات في هذه المنطقة",
+    "reservationsVisible_many": "{{count}} إقامةً في هذه المنطقة",
+    "reservationsVisible_other": "{{count}} إقامة في هذه المنطقة",
+    "prestationsEmpty": "لا توجد خدمات في هذه المنطقة.",
+    "summary": "اليوم",
+    "nextPrestation": "الخدمة القادمة",
+    "currentStay": "الإقامة الجارية",
+    "nextStay": "الوصول القادم",
     "visible": "{{count}} عقارات في هذه المنطقة",
     "emptyZoneTitle": "لا يوجد عقار في هذه المنطقة",
     "emptyZone": "حرّك الخريطة أو صغّرها لتوسيع البحث.",
@@ -21142,6 +21230,36 @@
     "consent": "وافق صاحب التقييم على نشر هذا الاسم والصورة.",
     "saved": "تم حفظ النشر."
   },
+  "propertyPrestations": {
+    "statusHelp": {
+      "PENDING": "لم تُعالَج بعد: في انتظار متدخل أو قرار.",
+      "AWAITING_VALIDATION": "عرض السعر أو الطلب في انتظار موافقتك.",
+      "ASSIGNED": "تم تعيين متدخل؛ لم تبدأ المهمة بعد.",
+      "SCHEDULED": "مجدولة في التاريخ المحدد.",
+      "AWAITING_PAYMENT": "يجب سداد الدفع قبل بدء المهمة.",
+      "IN_PROGRESS": "المتدخل في الموقع، والمهمة جارية.",
+      "COMPLETED": "اكتملت المهمة.",
+      "CANCELLED": "أُلغيت المهمة: لن تتم.",
+      "REJECTED": "رُفض الطلب."
+    },
+    "title": "الخدمات",
+    "upcoming": "القادمة",
+    "previousWeek": "الأسبوع السابق",
+    "nextWeek": "الأسبوع التالي",
+    "days": "أيام الأسبوع",
+    "count_zero": "لا توجد خدمات",
+    "count_one": "خدمة واحدة",
+    "count_two": "خدمتان",
+    "count_few": "{{count}} خدمات",
+    "count_many": "{{count}} خدمة",
+    "count_other": "{{count}} خدمة",
+    "loading": "جارٍ تحميل الخدمات…",
+    "loadError": "تعذّر تحميل الخدمات.",
+    "noneThatDay": "لا توجد خدمة في هذا اليوم.",
+    "noneUpcoming": "لا توجد خدمات قادمة.",
+    "intervention": "تدخّل",
+    "request": "طلب"
+  },
   "sectorMap": {
     "layer": "مناطق عمل مقدمي الخدمات",
     "loading": "جارٍ تحميل المناطق…",
@@ -21157,6 +21275,21 @@
     "coversCount": "{{count}} / {{total}} عقارات",
     "uncovered": "{{count}} عقار خارج هذه المناطق: {{names}}",
     "mineEmpty": "حدّد منطقة واحدة على الأقل لرؤيتها على الخريطة.",
-    "providerEmpty": "لم يحدد مقدم الخدمة هذا أي منطقة قابلة للرسم."
+    "providerEmpty": "لم يحدد مقدم الخدمة هذا أي منطقة قابلة للرسم.",
+    "panelLabel": "مقدمو الخدمات في المنطقة الظاهرة",
+    "visibleCount_zero": "لا يوجد مقدم خدمة في هذه المنطقة",
+    "visibleCount_one": "مقدم خدمة واحد في هذه المنطقة",
+    "visibleCount_two": "مقدما خدمة في هذه المنطقة",
+    "visibleCount_few": "{{count}} مقدمي خدمات في هذه المنطقة",
+    "visibleCount_many": "{{count}} مقدم خدمة في هذه المنطقة",
+    "visibleCount_other": "{{count}} مقدم خدمة في هذه المنطقة",
+    "noneVisible": "لا توجد منطقة في الجزء الظاهر من الخريطة. حرّك الخريطة أو صغّرها.",
+    "coversProperties_zero": "لا يغطي أي عقار",
+    "coversProperties_one": "يغطي عقارًا واحدًا",
+    "coversProperties_two": "يغطي عقارين",
+    "coversProperties_few": "يغطي {{count}} عقارات",
+    "coversProperties_many": "يغطي {{count}} عقارًا",
+    "coversProperties_other": "يغطي {{count}} عقار",
+    "openProvider": "فتح ملف {{name}}"
   }
 }

@@ -3062,6 +3062,7 @@
     }
   },
   "navigation": {
+    "map": "Map",
     "consumables": "Consumables",
     "bookingVouchers": "Promo codes",
     "dashboard": "Dashboard",
@@ -4324,6 +4325,7 @@
     }
   },
   "properties": {
+    "pilotageSubtitle": "Properties, services, stays and issues, on the map",
     "title": "Properties",
     "subtitle": "Real estate portfolio management",
     "create": "New property",
@@ -8308,10 +8310,47 @@
     "effectiveMonthly": "Effective amount",
     "loadError": "Error loading billing summary"
   },
+  "prestations": {
+    "mine": "My services",
+    "actions": "Actions",
+    "cancelRemaining": "Time left: {{hours}} h",
+    "search": "Search a service",
+    "counter": "service",
+    "mapVisible": "{{count}} services in this area",
+    "mapVisible_one": "{{count}} service in this area",
+    "mapVisible_other": "{{count}} services in this area",
+    "kind": {
+      "intervention": "Intervention",
+      "request": "Request"
+    },
+    "filters": {
+      "kind": "Type",
+      "allKinds": "All",
+      "interventions": "Interventions",
+      "requests": "Requests",
+      "allStatuses": "All statuses",
+      "period": "Period",
+      "anyDate": "Any date",
+      "today": "Today",
+      "next7": "Next 7 days",
+      "next30": "Next 30 days",
+      "past30": "Last 30 days",
+      "property": "Property",
+      "allProperties": "All properties",
+      "assignee": "Assignee",
+      "anyAssignee": "All assignees"
+    },
+    "empty": {
+      "title": "No services",
+      "description": "Scheduled interventions and requests to handle will appear here.",
+      "requests": "No pending requests: requests already scheduled are listed as interventions."
+    }
+  },
   "workOrders": {
     "title": "Interventions",
     "subtitle": "Manage service requests and interventions",
     "tabs": {
+      "prestations": "Services",
       "serviceRequests": "Service Requests",
       "interventions": "Interventions",
       "issues": "Issues",
@@ -11740,6 +11779,11 @@
     }
   },
   "tabHeaders": {
+    "pilotage": {
+      "prestations": "Interventions and service requests, on the map and in chronological order.",
+      "reservations": "Current and upcoming stays over 30 days, property by property.",
+      "issues": "Reported issues to handle, most severe first."
+    },
     "consumables": {
       "pending": "Awaiting order",
       "ordered": "Ordered",
@@ -15060,6 +15104,34 @@
     "unscheduled": "To schedule"
   },
   "propertyMap": {
+    "issuesTitle": "Issues to handle",
+    "issuesLoading": "Loading issues…",
+    "issuesLoadError": "Issues could not be loaded.",
+    "issuesEmpty": "No issue to handle in this area.",
+    "noIssue": "No issue to handle.",
+    "issuesVisible_one": "{{count}} issue in this area",
+    "issuesVisible_other": "{{count}} issues in this area",
+    "views": {
+      "issues": "Issues",
+      "label": "Map view",
+      "properties": "Overview",
+      "prestations": "Services",
+      "reservations": "Reservations"
+    },
+    "nights_one": "{{count}} night",
+    "nights_other": "{{count}} nights",
+    "stays": "Current and upcoming stays",
+    "reservationsLoading": "Loading stays…",
+    "reservationsLoadError": "Reservations could not be loaded.",
+    "noStay": "No stay in the next 30 days.",
+    "reservationsEmpty": "No current or upcoming stay in this area.",
+    "reservationsVisible_one": "{{count}} stay in this area",
+    "reservationsVisible_other": "{{count}} stays in this area",
+    "prestationsEmpty": "No services in this area.",
+    "summary": "Today",
+    "nextPrestation": "Next service",
+    "currentStay": "Current stay",
+    "nextStay": "Next arrival",
     "visible": "{{count}} properties in this area",
     "visible_one": "{{count}} property in this area",
     "visible_other": "{{count}} properties in this area",
@@ -21023,6 +21095,32 @@
     "consent": "The author authorised publication of this name and photo.",
     "saved": "Publication saved."
   },
+  "propertyPrestations": {
+    "statusHelp": {
+      "PENDING": "Not handled yet: waiting for a provider or a decision.",
+      "AWAITING_VALIDATION": "The quote or request is waiting for your approval.",
+      "ASSIGNED": "A provider is assigned; the job has not started.",
+      "SCHEDULED": "Scheduled for the planned date.",
+      "AWAITING_PAYMENT": "Payment is due before the job can start.",
+      "IN_PROGRESS": "The provider is on site, the job is in progress.",
+      "COMPLETED": "Job completed.",
+      "CANCELLED": "Job cancelled: it will not take place.",
+      "REJECTED": "Request declined."
+    },
+    "title": "Services",
+    "upcoming": "Upcoming",
+    "previousWeek": "Previous week",
+    "nextWeek": "Next week",
+    "days": "Days of the week",
+    "count_one": "{{count}} service",
+    "count_other": "{{count}} services",
+    "loading": "Loading services…",
+    "loadError": "Services could not be loaded.",
+    "noneThatDay": "No service on this day.",
+    "noneUpcoming": "No upcoming service.",
+    "intervention": "Intervention",
+    "request": "Request"
+  },
   "sectorMap": {
     "layer": "Provider service areas",
     "loading": "Loading service areas…",
@@ -21038,6 +21136,13 @@
     "coversCount": "{{count}} / {{total}} properties",
     "uncovered": "{{count}} property(ies) outside these areas: {{names}}",
     "mineEmpty": "Declare at least one area to see it on the map.",
-    "providerEmpty": "This provider has not declared any drawable area."
+    "providerEmpty": "This provider has not declared any drawable area.",
+    "panelLabel": "Providers in the visible area",
+    "visibleCount_one": "{{count}} provider in this area",
+    "visibleCount_other": "{{count}} providers in this area",
+    "noneVisible": "No service area in the visible part of the map. Move or zoom out.",
+    "coversProperties_one": "{{count}} property covered",
+    "coversProperties_other": "{{count}} properties covered",
+    "openProvider": "Open {{name}}’s profile"
   }
 }

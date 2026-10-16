@@ -1,12 +1,16 @@
 import React, { lazy, Suspense, useState } from 'react';
+import { Navigate, useLocation } from 'react-router-dom';
 import ModuleFirstUsePage from '../../components/first-use/ModuleFirstUsePage';
 import { useTabKeyParam } from '../../components/tabKeyParam';
 import { useVisibleScreenTabs } from '../../hooks/useScreenTabs';
 import { useTranslation } from '../../hooks/useTranslation';
 import PageHeader from '../../components/PageHeader';
 import PageTabs from '../../components/PageTabs';
-import ServiceRequestsList from '../service-requests/ServiceRequestsList';
-import InterventionsList from '../interventions/InterventionsList';
+import PrestationsList from '../prestations/PrestationsList';
+import { legacyWorkOrdersTarget } from '../prestations/prestationFilters';
+import ProviderServiceRequests from '../service-requests/ProviderServiceRequests';
+import { useAuth } from '../../hooks/useAuth';
+import { MANAGER_ROLES, OPERATIONAL_ROLES } from '../../constants/roles';
 import IssuesList from './IssuesList';
 import { Skeleton } from '../../components/ui';
 
@@ -36,14 +40,9 @@ const WorkOrdersPage: React.FC = () => {
 
   const [actionsContainer, setActionsContainer] = useState<HTMLDivElement | null>(null);
   const [filtersContainer, setFiltersContainer] = useState<HTMLDivElement | null>(null);
-
-  // Un seul onglet accessible → l'ecran se rend seul, sans barre d'onglets.
-  // (La barre laterale applique la meme regle : elle n'ouvre pas de tiroir pour
-  // un ecran qui n'a qu'un onglet.)
-  if (tabs.length <= 1) {
-    if (tabs[0]?.key === 'service-requests') return <ServiceRequestsList />;
-    return <InterventionsList />;
-  }
+  const { hasAnyRole } = useAuth();
+  // Les prestataires gardent, au-dessus de la liste, leurs propositions et les besoins publics.
+  const providerView = hasAnyRole([...OPERATIONAL_ROLES]) && !hasAnyRole([...MANAGER_ROLES]);
 
   return (
     <>
@@ -63,19 +62,23 @@ const WorkOrdersPage: React.FC = () => {
       </div>
       <div className="flex flex-col flex-1 min-h-0 overflow-hidden">
         <div className="shrink-0">
-          <PageTabs
+          {tabs.length > 1 && <PageTabs
             options={tabs}
             value={activeTab}
             onChange={setActiveTab}
-          />
+          />}
         </div>
 
-        {activeKey === 'service-requests' && (
-          <ServiceRequestsList embedded actionsContainer={actionsContainer} filtersContainer={filtersContainer} />
-        )}
-        {activeKey === 'interventions' && (
-          <InterventionsList embedded actionsContainer={actionsContainer} filtersContainer={filtersContainer} />
-        )}
+        {/* Ecran Prestations EN TEST. Les anciennes listes (InterventionsList,
+            ServiceRequestsList et leurs vues) sont conservees, non rendues, pour un
+            retour arriere : ne pas les supprimer avant validation de cet ecran. */}
+        {activeKey === 'prestations' && (providerView ? (
+          <ProviderServiceRequests embedded mainLabel={t('prestations.mine', 'Mes prestations')}>
+            <PrestationsList actionsContainer={actionsContainer} filtersContainer={filtersContainer} />
+          </ProviderServiceRequests>
+        ) : (
+          <PrestationsList actionsContainer={actionsContainer} filtersContainer={filtersContainer} />
+        ))}
         {activeKey === 'issues' && (
           <IssuesList embedded actionsContainer={actionsContainer} filtersContainer={filtersContainer} />
         )}
@@ -90,5 +93,12 @@ const WorkOrdersPage: React.FC = () => {
 };
 
 export default function WorkOrdersEntry() {
+  // Anciens onglets Interventions / Demandes de service et onglet Prestations : vue Prestations
+  // de la carte des logements, ou onglet Prestations pour un prestataire (ou fiche surlignée).
+  const { search } = useLocation();
+  const { hasAnyRole } = useAuth();
+  const providerView = hasAnyRole([...OPERATIONAL_ROLES]) && !hasAnyRole([...MANAGER_ROLES]);
+  const legacyTarget = legacyWorkOrdersTarget(search, providerView);
+  if (legacyTarget) return <Navigate to={legacyTarget} replace />;
   return <ModuleFirstUsePage module="interventions"><WorkOrdersPage /></ModuleFirstUsePage>;
 }

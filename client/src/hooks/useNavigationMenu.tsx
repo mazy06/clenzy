@@ -2,6 +2,7 @@ import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { Plug } from '../icons/glyphs';
 import { useAuth } from './useAuth';
 import { CLEANING_ROLES, FIELD_ROLES, TRADE_ROLES } from '../utils/fieldRoles';
+import { MANAGER_ROLES, OPERATIONAL_ROLES } from '../constants/roles';
 
 /**
  * Seuls onglets de hub ouverts aux roles de terrain.
@@ -467,9 +468,11 @@ export const useNavigationMenu = (): UseNavigationMenuReturn => {
       isManager: isManager(),
     };
     const tabs = accessibleHubTabs(hub, access);
-    return hasAnyRole([...FIELD_ROLES])
-      ? tabs.filter((tab) => FIELD_HUB_TABS.has(tab.path))
-      : tabs;
+    if (hasAnyRole([...FIELD_ROLES])) return tabs.filter((tab) => FIELD_HUB_TABS.has(tab.path));
+    // Interventions, demandes et anomalies se pilotent depuis la carte (/properties) : le menu
+    // Interventions ne reste qu'aux prestataires (leurs propositions et besoins publics).
+    const providerView = hasAnyRole([...OPERATIONAL_ROLES]) && !hasAnyRole([...MANAGER_ROLES]);
+    return providerView ? tabs : tabs.filter((tab) => tab.path !== '/interventions');
   }, [user?.permissions, isAdmin, isManager, hasAnyRole]);
 
   /**

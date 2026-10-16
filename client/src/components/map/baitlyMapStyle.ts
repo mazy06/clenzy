@@ -416,10 +416,13 @@ const HILLSHADE: Record<BaitlyMapMode, { shadow: string; highlight: string; acce
   dark: { shadow: '#03060C', highlight: '#2E4064', accent: '#0B1424', exaggeration: 0.42 },
 };
 
-function hillshade(mode: BaitlyMapMode): LayerSpecification {
+/** Identifiant du calque d'ombrage du relief. */
+export const HILLSHADE_LAYER_ID = 'terrain_hillshade';
+
+export function hillshade(mode: BaitlyMapMode): LayerSpecification {
   const colors = HILLSHADE[mode];
   return {
-    id: 'terrain_hillshade',
+    id: HILLSHADE_LAYER_ID,
     type: 'hillshade',
     source: TERRAIN_SOURCE_ID,
     paint: {
@@ -477,7 +480,7 @@ export function composeBaitlyMapStyle(
   mode: BaitlyMapMode,
   language: BaitlyMapLanguage,
   endpoints: BaitlyMapEndpoints,
-  { flat = false, period = 'day' }: { flat?: boolean; period?: DayPeriod } = {},
+  { flat = false, period = 'day', relief = true }: { flat?: boolean; period?: DayPeriod; relief?: boolean } = {},
 ): StyleSpecification {
   const base = withShoreline(
     layers(SOURCE_ID, FLAVORS[mode], { lang: language }).map((layer) => refine(layer, mode)),
@@ -491,7 +494,7 @@ export function composeBaitlyMapStyle(
     .filter((layer) => layer.type === 'symbol')
     .map((layer) => ({ ...layer, id: `world-${layer.id}`, source: 'baitly-world', maxzoom: 7 } as LayerSpecification)) : [];
   const withRelief = (layerList: LayerSpecification[]) =>
-    endpoints.terrain ? withHillshade(layerList, mode) : layerList;
+    endpoints.terrain && relief ? withHillshade(layerList, mode) : layerList;
   const flatLayers = base.map((layer) => {
     if (layer.id !== 'buildings') return layer;
     const { maxzoom: _maxzoom, ...rest } = layer;
@@ -553,6 +556,9 @@ export function buildBaitlyMapStyle(
       terrain: `pmtiles://${mapTerrainUrl()}`,
       world: `pmtiles://${mapWorldTilesUrl()}`,
     },
-    { period },
+    // Ombrage du relief absent du style web : ses tuiles d'altitude (512 px, décodées puis
+    // préparées par le GPU) pesaient au chargement et à chaque déplacement d'une carte à
+    // plat. La vue 3D l'ajoute avec le terrain (cf. `setRelief`).
+    { period, relief: false },
   );
 }

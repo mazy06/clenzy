@@ -10,13 +10,19 @@
  * <p>La position est pilotée par MapLibre via `transform` sur l'élément racine :
  * toute animation se fait sur l'enfant `.baitly-map-pin__glyph`.</p>
  */
+import { FLOW_LENGTH, FLOW_STROKE_WIDTH, MARK_PATH, MARK_VIEWBOX, STROKE_WIDTH } from '../baitlyLogoGeometry';
+
 const SVG_NS = 'http://www.w3.org/2000/svg';
 
-/** `slot` : badge vide, l'appelant y monte sa propre icône (portail React, cf. GuideMap). */
-export type BaitlyPinIcon = 'home' | 'key' | 'wrench' | 'clipboard' | 'dot' | 'slot';
+/**
+ * `slot` : badge vide, l'appelant y monte sa propre icône (portail React, cf. GuideMap).
+ * `logo` : le symbole Baitly (logement du PMS) ; son flux s'anime quand l'épingle est survolée
+ * ou sélectionnée (cf. `baitly-map.css`), pas sur toutes les épingles à la fois.
+ */
+export type BaitlyPinIcon = 'logo' | 'home' | 'key' | 'wrench' | 'clipboard' | 'dot' | 'slot';
 
 /** Tracés Lucide (ISC) — même famille que le reste de l'interface. */
-type BuiltInIcon = Exclude<BaitlyPinIcon, 'dot' | 'slot'>;
+type BuiltInIcon = Exclude<BaitlyPinIcon, 'dot' | 'slot' | 'logo'>;
 
 const ICON_PATHS: Record<BuiltInIcon, string[]> = {
   home: [
@@ -54,6 +60,26 @@ function iconSvg(icon: BuiltInIcon): SVGSVGElement {
   return svg;
 }
 
+function logoSvg(): SVGSVGElement {
+  const svg = document.createElementNS(SVG_NS, 'svg');
+  svg.setAttribute('class', 'baitly-map-pin__logo');
+  svg.setAttribute('viewBox', MARK_VIEWBOX);
+  svg.setAttribute('aria-hidden', 'true');
+  svg.setAttribute('focusable', 'false');
+  const base = document.createElementNS(SVG_NS, 'path');
+  base.setAttribute('class', 'baitly-map-pin__logo-base');
+  base.setAttribute('d', MARK_PATH);
+  base.setAttribute('stroke-width', String(STROKE_WIDTH * 1.6));
+  const flow = document.createElementNS(SVG_NS, 'path');
+  flow.setAttribute('class', 'baitly-map-pin__logo-flow');
+  flow.setAttribute('d', MARK_PATH);
+  flow.setAttribute('pathLength', '100');
+  flow.setAttribute('stroke-width', String(FLOW_STROKE_WIDTH * 1.6));
+  flow.setAttribute('stroke-dasharray', `${FLOW_LENGTH} 400`);
+  svg.append(base, flow);
+  return svg;
+}
+
 function pinGlyph(icon: BaitlyPinIcon): HTMLSpanElement {
   const glyph = document.createElement('span');
   glyph.className = 'baitly-map-pin__glyph';
@@ -63,6 +89,8 @@ function pinGlyph(icon: BaitlyPinIcon): HTMLSpanElement {
     const dot = document.createElement('span');
     dot.className = 'baitly-map-pin__dot';
     badge.append(dot);
+  } else if (icon === 'logo') {
+    badge.append(logoSvg());
   } else if (icon !== 'slot') {
     badge.append(iconSvg(icon));
   }

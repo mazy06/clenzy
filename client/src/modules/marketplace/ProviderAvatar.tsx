@@ -25,6 +25,7 @@ export interface ProviderAvatarProps {
   /** Côté de la boîte, en classes Tailwind littérales (jamais calculées). */
   size?: 'sm' | 'lg';
   className?: string;
+  style?: React.CSSProperties;
 }
 
 /** Deux initiales tirées du nom affiché, à défaut d'un logo déposé. */
@@ -42,7 +43,7 @@ const SIZE_CLASS = {
   lg: 'size-16 rounded-lg text-lg',
 } as const;
 
-export default function ProviderAvatar({ url, name, size = 'sm', className }: ProviderAvatarProps) {
+export default function ProviderAvatar({ url, name, size = 'sm', className, style }: ProviderAvatarProps) {
   const src = resolveMediaUrl(url);
   const [failed, setFailed] = useState(false);
 
@@ -59,6 +60,7 @@ export default function ProviderAvatar({ url, name, size = 'sm', className }: Pr
         SIZE_CLASS[size],
         className,
       )}
+      style={style}
       aria-hidden="true"
     >
       {initialsOf(name)}

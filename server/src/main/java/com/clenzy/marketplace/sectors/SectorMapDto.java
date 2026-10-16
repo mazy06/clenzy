@@ -15,8 +15,15 @@ import java.util.Map;
 public record SectorMapDto(List<ProviderSectors> providers, Map<String, Object> merged,
                            List<SectorProperty> properties, String attribution) {
 
-    /** Secteur d'un prestataire : ses zones et leur contour réuni. */
-    public record ProviderSectors(Long providerId, String name, Map<String, Object> geometry, List<Zone> zones) {
+    /**
+     * Secteur d'un prestataire : ses zones, leur contour réuni et sa photo (null : initiales).
+     * {@code userId} : son compte PMS, celui que portent ses interventions assignées (null s'il n'en a pas).
+     */
+    public record ProviderSectors(Long providerId, String name, String avatarUrl, Map<String, Object> geometry,
+                                  List<Zone> zones, Long userId) {
+        public ProviderSectors withUserId(Long accountId) {
+            return new ProviderSectors(providerId, name, avatarUrl, geometry, zones, accountId);
+        }
     }
 
     /** Une zone déclarée ; {@code drawn = false} : nommée, mais sans contour connu. */

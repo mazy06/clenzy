@@ -6,7 +6,9 @@ import { MapSheetProvider } from '../map/MapSheetContext';
 const state = vi.hoisted(() => ({ markers: [] as Array<{ element: HTMLElement; removed: number }> }));
 const container = document.createElement('div');
 const map = {
-  on: vi.fn(), off: vi.fn(), remove: vi.fn(), resize: vi.fn(), jumpTo: vi.fn(), fitBounds: vi.fn(),
+  on: vi.fn(), off: vi.fn(), remove: vi.fn(),
+  addControl: vi.fn((control: { onAdd: () => HTMLElement }) => document.body.append(control.onAdd())),
+  removeControl: vi.fn((control: { onRemove: () => void }) => control.onRemove()), resize: vi.fn(), jumpTo: vi.fn(), fitBounds: vi.fn(),
   getContainer: () => container, getZoom: () => 20,
   getBounds: () => ({ getNorth: () => 90, getSouth: () => -90, getEast: () => 180, getWest: () => -180 }),
   project: () => ({ x: 120, y: 100 }),

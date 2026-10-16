@@ -11,7 +11,11 @@ import {
 } from '../../components/ui';
 import { Add, Home } from '../../icons';
 import { useNavigate } from 'react-router-dom';
+import type { PropertyMapView } from './map-views/propertyMapView';
+import { toApiMediaUrl } from '../../utils/mediaUrl';
 import { useAuth } from '../../hooks/useAuth';
+import { useIdleReady } from '../../hooks/useIdleReady';
+import ListSkeleton from '../../components/ListSkeleton';
 import { usePersistedViewMode } from '../../hooks/usePersistedViewMode';
 import FilterSearchBar from '../../components/FilterSearchBar';
 import PageHeader from '../../components/PageHeader';
@@ -45,9 +49,14 @@ interface PropertiesListProps {
   embedded?: boolean;
   actionsContainer?: HTMLElement | null;
   filtersContainer?: HTMLElement | null;
+  /** Onglet du menu Carte : Logements, ou une vue carte (prestations, réservations, anomalies). */
+  mapView?: PropertyMapView;
+  onMapViewChange?: (view: PropertyMapView) => void;
 }
 
-export default function PropertiesList({ embedded = false, actionsContainer, filtersContainer }: PropertiesListProps) {
+export default function PropertiesList({
+  embedded = false, actionsContainer, filtersContainer, mapView = 'properties', onMapViewChange,
+}: PropertiesListProps) {
   // ─── React Query ──────────────────────────────────────────────────
   const { properties, isLoading, deleteProperty } = usePropertiesList();
 
@@ -99,6 +108,9 @@ export default function PropertiesList({ embedded = false, actionsContainer, fil
     ['grid', 'list', 'map'] as const,
     autoDefaultMode,
   );
+  // Prestations, réservations et anomalies n'existent que sur la carte : ces onglets l'imposent.
+  const mapOnly = mapView !== 'properties';
+  const effectiveViewMode = mapOnly ? 'map' : viewMode;
   // Taille de page MESUREE, pas choisie : le hook partage avec Interventions,
   // Reservations et Demandes compte les lignes qui tiennent dans la hauteur
   // restante, en mesurant une vraie ligne du DOM. Les 10 lignes fixes d'avant
@@ -178,7 +190,10 @@ export default function PropertiesList({ embedded = false, actionsContainer, fil
     () => properties.map((p) => Number(p.id)),
     [properties],
   );
-  const { map: kpiMap, isLoading: kpiLoading } = usePropertyKpiSummaries(allPropertyIds);
+  // Indicateurs du portefeuille : secondaires, demandés après le premier rendu de l'écran
+  // (carte et épingles d'abord) pour ne pas disputer le backend à la liste des logements.
+  const secondaryReady = useIdleReady(!isLoading);
+  const { map: kpiMap, isLoading: kpiLoading } = usePropertyKpiSummaries(allPropertyIds, { ready: secondaryReady });
 
   // ─── Filtering ────────────────────────────────────────────────────
 
@@ -213,7 +228,8 @@ export default function PropertiesList({ embedded = false, actionsContainer, fil
   const cleaningEstimatesQuery = useQuery({
     queryKey: ['properties-cleaning-estimates', cleaningEstimateIds],
     queryFn: () => propertiesApi.getCleaningEstimates(cleaningEstimateIds),
-    enabled: cleaningEstimateIds.length > 0,
+    // Seules la grille et la table les affichent : rien à demander en vue carte.
+    enabled: cleaningEstimateIds.length > 0 && effectiveViewMode !== 'map',
     staleTime: 60_000,
   });
   const cleaningEstimates = cleaningEstimatesQuery.data ?? {};
@@ -230,6 +246,8 @@ export default function PropertiesList({ embedded = false, actionsContainer, fil
           id: Number(p.id),
           type: 'property' as const,
           state: p.status === 'maintenance' ? ('alert' as const) : p.status === 'inactive' ? ('inactive' as const) : undefined,
+          thumbnailUrl: toApiMediaUrl(p.imageUrl ?? p.photoUrls?.[0]) ?? null,
+          subtitle: [p.address, p.city].filter(Boolean).join(', ') || null,
         })),
     [filteredProperties],
   );
@@ -368,7 +386,7 @@ export default function PropertiesList({ embedded = false, actionsContainer, fil
         singular: "",
         plural: "s"
       }}
-      viewToggle={{
+      viewToggle={mapOnly ? undefined : {
         mode: viewMode,
         onChange: setViewMode,
       }}
@@ -391,8 +409,8 @@ export default function PropertiesList({ embedded = false, actionsContainer, fil
       {!embedded ? (
         <div className="shrink-0">
           <PageHeader
-            title={t('properties.title')}
-            subtitle={t('properties.subtitle')}
+            title={t('navigation.map', 'Carte')}
+            subtitle={t('properties.pilotageSubtitle', 'Logements, prestations, séjours et anomalies, sur la carte')}
             iconBadge={<Home />}
             backPath="/dashboard"
             showBackButton={false}
@@ -425,8 +443,11 @@ export default function PropertiesList({ embedded = false, actionsContainer, fil
           <PropertiesPortfolioTiles properties={filteredProperties} kpiMap={kpiMap} loading={kpiLoading} />
         )}
 
-        {/* Liste des propriétés */}
-        {filteredProperties.length === 0 ? (
+        {/* Liste des propriétés. Pendant le chargement, la carte est montée tout de suite
+            (fond, contrôles, position) ; ses épingles arrivent avec les logements. */}
+        {isLoading && effectiveViewMode !== 'map' ? (
+          <ListSkeleton rows={6} variant="row" />
+        ) : filteredProperties.length === 0 && !isLoading ? (
           <EmptyState
             icon={<Home />}
             title={t('properties.noPropertyFound')}
@@ -449,8 +470,11 @@ export default function PropertiesList({ embedded = false, actionsContainer, fil
               ? t('properties.icalTip')
               : undefined}
           />
-        ) : viewMode === 'map' ? (
+        ) : effectiveViewMode === 'map' ? (
           <PropertiesMapView
+            view={mapView}
+            onViewChange={onMapViewChange}
+            loading={isLoading}
             mapMarkers={mapMarkers}
             viewportProperties={viewportProperties}
             channexMappings={channexMappings}

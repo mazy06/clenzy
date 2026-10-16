@@ -3052,6 +3052,7 @@
     }
   },
   "navigation": {
+    "map": "Carte",
     "consumables": "Consommables",
     "bookingVouchers": "Codes promo",
     "dashboard": "Tableau de bord",
@@ -4310,6 +4311,7 @@
     }
   },
   "properties": {
+    "pilotageSubtitle": "Logements, prestations, séjours et anomalies, sur la carte",
     "title": "Propriétés",
     "subtitle": "Gestion du parc immobilier",
     "create": "Nouvelle propriété",
@@ -8294,10 +8296,47 @@
     "effectiveMonthly": "Montant effectif",
     "loadError": "Erreur de chargement du résumé de facturation"
   },
+  "prestations": {
+    "mine": "Mes prestations",
+    "actions": "Actions",
+    "cancelRemaining": "Temps restant : {{hours}} h",
+    "search": "Rechercher une prestation",
+    "counter": "prestation",
+    "mapVisible": "{{count}} prestations dans cette zone",
+    "mapVisible_one": "{{count}} prestation dans cette zone",
+    "mapVisible_other": "{{count}} prestations dans cette zone",
+    "kind": {
+      "intervention": "Intervention",
+      "request": "Demande"
+    },
+    "filters": {
+      "kind": "Type",
+      "allKinds": "Toutes",
+      "interventions": "Interventions",
+      "requests": "Demandes",
+      "allStatuses": "Tous les statuts",
+      "period": "Période",
+      "anyDate": "Toutes les dates",
+      "today": "Aujourd'hui",
+      "next7": "7 prochains jours",
+      "next30": "30 prochains jours",
+      "past30": "30 derniers jours",
+      "property": "Logement",
+      "allProperties": "Tous les logements",
+      "assignee": "Intervenant",
+      "anyAssignee": "Tous les intervenants"
+    },
+    "empty": {
+      "title": "Aucune prestation",
+      "description": "Les interventions planifiées et les demandes à traiter apparaîtront ici.",
+      "requests": "Aucune demande en attente : les demandes déjà planifiées figurent parmi les interventions."
+    }
+  },
   "workOrders": {
     "title": "Interventions",
     "subtitle": "Gestion des demandes de service et des interventions",
     "tabs": {
+      "prestations": "Prestations",
       "serviceRequests": "Demandes de service",
       "interventions": "Interventions",
       "issues": "Anomalies",
@@ -11726,6 +11765,11 @@
     }
   },
   "tabHeaders": {
+    "pilotage": {
+      "prestations": "Interventions et demandes de service, sur la carte et dans l’ordre chronologique.",
+      "reservations": "Séjours en cours et à venir sur 30 jours, logement par logement.",
+      "issues": "Anomalies signalées à traiter, les plus graves d’abord."
+    },
     "consumables": {
       "pending": "En attente de commande",
       "ordered": "Commandés",
@@ -15047,6 +15091,34 @@
     "unscheduled": "À planifier"
   },
   "propertyMap": {
+    "issuesTitle": "Anomalies à traiter",
+    "issuesLoading": "Chargement des anomalies…",
+    "issuesLoadError": "Les anomalies n’ont pas pu être chargées.",
+    "issuesEmpty": "Aucune anomalie à traiter dans cette zone.",
+    "noIssue": "Aucune anomalie à traiter.",
+    "issuesVisible_one": "{{count}} anomalie dans cette zone",
+    "issuesVisible_other": "{{count}} anomalies dans cette zone",
+    "views": {
+      "issues": "Anomalies",
+      "label": "Affichage de la carte",
+      "properties": "Vue d'ensemble",
+      "prestations": "Prestations",
+      "reservations": "Réservations"
+    },
+    "nights_one": "{{count}} nuit",
+    "nights_other": "{{count}} nuits",
+    "stays": "Séjours en cours et à venir",
+    "reservationsLoading": "Chargement des séjours…",
+    "reservationsLoadError": "Les réservations n’ont pas pu être chargées.",
+    "noStay": "Aucun séjour dans les 30 prochains jours.",
+    "reservationsEmpty": "Aucun séjour en cours ou à venir dans cette zone.",
+    "reservationsVisible_one": "{{count}} séjour dans cette zone",
+    "reservationsVisible_other": "{{count}} séjours dans cette zone",
+    "prestationsEmpty": "Aucune prestation dans cette zone.",
+    "summary": "Aujourd’hui",
+    "nextPrestation": "Prochaine prestation",
+    "currentStay": "Séjour en cours",
+    "nextStay": "Prochaine arrivée",
     "visible": "{{count}} propriétés dans cette zone",
     "visible_one": "{{count}} propriété dans cette zone",
     "visible_other": "{{count}} propriétés dans cette zone",
@@ -21010,6 +21082,32 @@
     "consent": "L’auteur a autorisé la publication de ce nom et de cette photo.",
     "saved": "Publication enregistrée."
   },
+  "propertyPrestations": {
+    "statusHelp": {
+      "PENDING": "Pas encore prise en charge : en attente d’un intervenant ou d’une décision.",
+      "AWAITING_VALIDATION": "Le devis ou la demande attend votre validation.",
+      "ASSIGNED": "Un intervenant est désigné ; la mission n’a pas commencé.",
+      "SCHEDULED": "Planifiée à la date prévue.",
+      "AWAITING_PAYMENT": "Le paiement doit être réglé avant que la mission démarre.",
+      "IN_PROGRESS": "L’intervenant est sur place, la mission est en cours.",
+      "COMPLETED": "Mission terminée.",
+      "CANCELLED": "Mission annulée : elle n’aura pas lieu.",
+      "REJECTED": "Demande refusée."
+    },
+    "title": "Prestations",
+    "upcoming": "À venir",
+    "previousWeek": "Semaine précédente",
+    "nextWeek": "Semaine suivante",
+    "days": "Jours de la semaine",
+    "count_one": "{{count}} prestation",
+    "count_other": "{{count}} prestations",
+    "loading": "Chargement des prestations…",
+    "loadError": "Les prestations n’ont pas pu être chargées.",
+    "noneThatDay": "Aucune prestation ce jour.",
+    "noneUpcoming": "Aucune prestation à venir.",
+    "intervention": "Intervention",
+    "request": "Demande"
+  },
   "sectorMap": {
     "layer": "Secteurs des prestataires",
     "loading": "Chargement des secteurs…",
@@ -21019,12 +21117,19 @@
     "merged": "Fusionnés",
     "byProvider": "Par prestataire",
     "mySector": "Mon secteur",
-    "noZone": "Aucune zone déclarée",
     "approx": "Contour approché autour de la ville (limite administrative inconnue).",
     "undrawn": "Sans contour sur la carte : {{zones}}",
     "coversCount": "{{count}} / {{total}} logements",
     "uncovered": "{{count}} logement(s) hors de ces secteurs : {{names}}",
     "mineEmpty": "Déclarez au moins un secteur pour le voir sur la carte.",
-    "providerEmpty": "Ce prestataire n’a déclaré aucun secteur dessinable."
+    "providerEmpty": "Ce prestataire n’a déclaré aucun secteur dessinable.",
+    "panelLabel": "Prestataires de la zone visible",
+    "visibleCount_one": "{{count}} prestataire dans cette zone",
+    "visibleCount_other": "{{count}} prestataires dans cette zone",
+    "noneVisible": "Aucun secteur dans la zone visible. Déplacez ou dézoomez la carte.",
+    "noZone": "Aucune zone déclarée",
+    "coversProperties_one": "{{count}} logement couvert",
+    "coversProperties_other": "{{count}} logements couverts",
+    "openProvider": "Ouvrir la fiche de {{name}}"
   }
 }

@@ -93,6 +93,13 @@ describe('buildBaitlyMapStyle', () => {
     expect(ids.indexOf('terrain_hillshade')).toBeLessThan(ids.indexOf('water'));
   });
 
+  it('whenWebStyleBuilt_thenReliefSourceIsReadyButNotDrawnUntil3d', () => {
+    const style = buildBaitlyMapStyle('light', 'fr');
+
+    expect(style.sources['baitly-terrain']).toMatchObject({ type: 'raster-dem' });
+    expect(style.layers.some((layer) => layer.id === 'terrain_hillshade')).toBe(false);
+  });
+
   it('whenNoTerrain_thenNoHillshade', () => {
     const style = composeBaitlyMapStyle('light', 'fr', { tiles: 'pmtiles://t', glyphs: 'g', sprite: 's' });
 

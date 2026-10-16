@@ -9,6 +9,8 @@ vi.mock('../../hooks/use-mobile', () => ({ useIsMobile: () => false }));
 vi.mock('../../components/BaitlyPropertyMap', () => ({ BaitlyPropertyMap: () => <div data-testid="map" /> }));
 vi.mock('../settings/components/ChannexHealthBadge', () => ({ default: () => null }));
 vi.mock('./MissingContractChip', () => ({ default: () => null }));
+// Le calque des secteurs est allumé d'office : sa colonne a ses propres tests.
+vi.mock('../marketplace/sectors/ProviderSectorPanel', () => ({ default: () => null }));
 
 let intersect: IntersectionObserverCallback;
 beforeEach(() => {

@@ -155,15 +155,24 @@ export const SCREEN_TABS: Record<string, ScreenTabDef[]> = {
     },
   ],
 
+  // Menu « Carte » : quatre lectures. Chaque onglet change la liste, les
+  // épingles et le bas de la fiche logement (cf. modules/properties/map-views).
   '/properties': [
-    { key: 'properties', translationKey: 'propertiesPage.tabs.properties', fallbackLabel: 'Propriétés', icon: <Home /> },
+    { key: 'properties', translationKey: 'propertyMap.views.properties', fallbackLabel: 'Vue d’ensemble', icon: <Home /> },
+    { key: 'prestations', translationKey: 'propertyMap.views.prestations', fallbackLabel: 'Prestations', icon: <Build />, isAccessible: canViewInterventions },
+    { key: 'reservations', translationKey: 'propertyMap.views.reservations', fallbackLabel: 'Réservations', icon: <CalendarMonth />, isAccessible: (a) => has(a, 'reservations:view') },
+    { key: 'issues', translationKey: 'propertyMap.views.issues', fallbackLabel: 'Anomalies', icon: <ReportProblem />, isAccessible: canViewIssues },
   ],
 
   // Le calendrier est en tête : c'est la vue d'entrée de l'écran (URL sans `?tab=`).
   '/interventions': [
-    { key: 'calendar', translationKey: 'workOrders.tabs.calendar', fallbackLabel: 'Calendrier', icon: <CalendarMonth />, isAccessible: canViewInterventions },
-    { key: 'service-requests', translationKey: 'workOrders.tabs.serviceRequests', fallbackLabel: 'Demandes de service', icon: <Assignment />, isAccessible: canViewServiceRequests },
-    { key: 'interventions', translationKey: 'workOrders.tabs.interventions', fallbackLabel: 'Interventions', icon: <Build />, isAccessible: canViewInterventions },
+    // Calendrier masqué (2026-10-15) : le planning et la carte le remplacent. Code conservé.
+    { key: 'calendar', translationKey: 'workOrders.tabs.calendar', fallbackLabel: 'Calendrier', icon: <CalendarMonth />, isAccessible: () => false },
+    // Interventions et demandes : l'onglet Prestations ne reste que pour les prestataires
+    // (leurs propositions et besoins publics y vivent). Gestionnaires et hôtes les lisent
+    // dans la vue Prestations de la carte des logements (/properties?mapView=prestations).
+    { key: 'prestations', translationKey: 'workOrders.tabs.prestations', fallbackLabel: 'Prestations', icon: <Build />,
+      isAccessible: (a) => canViewInterventions(a) && hasRole(a, ...OPERATIONAL_ROLES) && !hasRole(a, ...MANAGER_ROLES) },
     { key: 'issues', translationKey: 'workOrders.tabs.issues', fallbackLabel: 'Anomalies', icon: <ReportProblem />, isAccessible: canViewIssues },
   ],
 

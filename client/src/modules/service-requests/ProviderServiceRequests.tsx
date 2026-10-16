@@ -13,7 +13,8 @@ import { invalidateMissionWorkflow } from '../../hooks/invalidateMissionWorkflow
 import { useSecondTicker } from '../../hooks/useSecondTicker';
 import { formatDateTime } from '../../utils/formatUtils';
 
-export default function ProviderServiceRequests({ embedded = false, children }: { embedded?: boolean; children: ReactNode }) {
+/** `mainLabel` renomme le premier sous-onglet (« Mes prestations » dans l'écran Prestations). */
+export default function ProviderServiceRequests({ embedded = false, mainLabel, children }: { embedded?: boolean; mainLabel?: string; children: ReactNode }) {
   const { t } = useTranslation();
   const [params, setParams] = useSearchParams();
   const requestedTab = params.get('scope');
@@ -26,7 +27,7 @@ export default function ProviderServiceRequests({ embedded = false, children }: 
   return <div className="flex min-h-0 flex-1 flex-col gap-3">
     {!embedded && tab !== 'requests' && <PageHeader title={t('workOrders.tabs.serviceRequests')} subtitle={t('assignmentFlow.subtitle')} />}
     <PageTabs trail={false} value={tab} onChange={setTab} options={[
-      { value: 'requests', label: t('assignmentFlow.myRequests') },
+      { value: 'requests', label: mainLabel ?? t('assignmentFlow.myRequests') },
       { value: 'inbox', label: t('assignmentFlow.inbox') }, { value: 'public', label: t('assignmentFlow.public') },
     ]} />
     {tab === 'requests' ? children : (

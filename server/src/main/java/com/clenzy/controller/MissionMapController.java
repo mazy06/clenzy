@@ -25,4 +25,12 @@ public class MissionMapController {
             @RequestParam(defaultValue = "0") int page, @AuthenticationPrincipal Jwt jwt) {
         return service.page(kind, filters, page, jwt);
     }
+
+    /** Liste paginée de l'écran, sans restriction géographique. */
+    @GetMapping("/{kind}/list")
+    public MissionMapQueryService.Batch list(@PathVariable String kind,
+            @ModelAttribute MissionMapQueryService.Filters filters,
+            @RequestParam(defaultValue = "0") int page, @AuthenticationPrincipal Jwt jwt) {
+        return service.list(kind, filters, page, jwt);
+    }
 }

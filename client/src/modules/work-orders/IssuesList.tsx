@@ -17,13 +17,12 @@ import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '.
 import {
   Field,
   FieldLabel,
-  FieldDescription,
   Input,
   Textarea,
   NativeSelect,
   NativeSelectOption,
 } from '../../components/ui';
-import { Add, OpenInNew, Refresh, ReportProblem, Warning } from '../../icons';
+import { Add, Refresh, ReportProblem, Warning } from '../../icons';
 import { useTranslation } from '../../hooks/useTranslation';
 import { useNotification } from '../../hooks/useNotification';
 import { useAuth } from '../../hooks/useAuth';
@@ -31,10 +30,12 @@ import { MANAGER_ROLES } from '../../constants/roles';
 import { propertiesApi } from '../../services/api/propertiesApi';
 import type { Property } from '../../services/api/propertiesApi';
 import { extractApiList } from '../../types';
-import StatusChip, { type StatusTone } from '../../components/StatusChip';
+import StatusChip from '../../components/StatusChip';
 import FilterChipRow, { type FilterChipOption } from '../../components/baitly/FilterChipRow';
 import EmptyState from '../../components/EmptyState';
 import { issuesApi, type Issue, type IssueSeverity, type IssueStatus } from '../../services/api/issuesApi';
+import IssueDetailDialog from './IssueDetailDialog';
+import { ISSUE_CATEGORIES, ISSUE_SEVERITIES as SEVERITIES, ISSUE_SEVERITY_TONES as SEVERITY_TONES, ISSUE_STATUSES as STATUSES, ISSUE_STATUS_TONES as STATUS_TONES } from './issuePresentation';
 import { formatCurrency } from '../../utils/currencyUtils';
 import compactHeaderActions from '../../components/compactHeaderActions';
 
@@ -42,24 +43,6 @@ import compactHeaderActions from '../../components/compactHeaderActions';
 // Liste org-scopée des signalements terrain + panneau de qualification :
 // Qualifier (catégorie / sévérité / coût) → Convertir en maintenance / Rejeter.
 
-const STATUS_TONES: Record<IssueStatus, StatusTone> = {
-  OPEN: 'warn',
-  QUALIFIED: 'info',
-  CONVERTED: 'ok',
-  DISMISSED: 'neutral',
-};
-
-const SEVERITY_TONES: Record<IssueSeverity, StatusTone> = {
-  LOW: 'neutral',
-  MEDIUM: 'info',
-  HIGH: 'warn',
-  CRITICAL: 'err',
-};
-
-const SEVERITIES: IssueSeverity[] = ['LOW', 'MEDIUM', 'HIGH', 'CRITICAL'];
-// Miroir des catégories du mobile (AnomalyReportScreen) — mêmes valeurs backend.
-const ISSUE_CATEGORIES = ['DAMAGE', 'MISSING_ITEM', 'HYGIENE', 'EQUIPMENT', 'SAFETY', 'OTHER'] as const;
-const STATUSES: IssueStatus[] = ['OPEN', 'QUALIFIED', 'CONVERTED', 'DISMISSED'];
 
 interface IssuesListProps {
   embedded?: boolean;
@@ -91,15 +74,8 @@ export default function IssuesList({ embedded = false, actionsContainer, filters
   const [createError, setCreateError] = useState<string | null>(null);
   const [properties, setProperties] = useState<Property[]>([]);
 
-  // Panneau détail / qualification
+  // Panneau détail / qualification (partagé avec la vue Anomalies de la carte)
   const [selected, setSelected] = useState<Issue | null>(null);
-  const [editCategory, setEditCategory] = useState('');
-  const [editSeverity, setEditSeverity] = useState<IssueSeverity>('MEDIUM');
-  const [editCost, setEditCost] = useState('');
-  const [dismissReason, setDismissReason] = useState('');
-  const [confirmConvert, setConfirmConvert] = useState(false);
-  const [saving, setSaving] = useState(false);
-  const [error, setError] = useState<string | null>(null);
 
   const statusLabel = useCallback(
     (status: IssueStatus) => t(`issues.status.${status.toLowerCase()}`, status),
@@ -179,45 +155,12 @@ export default function IssuesList({ embedded = false, actionsContainer, filters
     }
   };
 
-  const openDetail = (issue: Issue) => {
-    setSelected(issue);
-    setEditCategory(issue.category ?? '');
-    setEditSeverity(issue.severity);
-    setEditCost(issue.suggestedCost != null ? String(issue.suggestedCost) : '');
-    setDismissReason('');
-    setConfirmConvert(false);
-    setError(null);
-  };
+  const openDetail = (issue: Issue) => setSelected(issue);
 
   const applyUpdated = (updated: Issue) => {
     setIssues((prev) => prev.map((issue) => (issue.id === updated.id ? updated : issue)));
     setSelected(updated);
   };
-
-  const runAction = async (action: () => Promise<Issue>) => {
-    setSaving(true);
-    setError(null);
-    try {
-      applyUpdated(await action());
-      setConfirmConvert(false);
-    } catch {
-      setError(t('issues.actionError', 'Action impossible — vérifiez le statut de l’anomalie.'));
-    } finally {
-      setSaving(false);
-    }
-  };
-
-  const handleQualify = () =>
-    runAction(() =>
-      issuesApi.qualify(selected!.id, {
-        category: editCategory.trim() || null,
-        severity: editSeverity,
-        suggestedCost: editCost.trim() === '' ? null : Number(editCost),
-      })
-    );
-
-  const handleConvert = () => runAction(() => issuesApi.convert(selected!.id));
-  const handleDismiss = () => runAction(() => issuesApi.dismiss(selected!.id, dismissReason.trim() || undefined));
 
   const filterOptions: FilterChipOption<IssueStatus>[] = useMemo(
     () =>
@@ -230,7 +173,6 @@ export default function IssuesList({ embedded = false, actionsContainer, filters
     [issues, statusFilter, statusLabel]
   );
 
-  const isActionable = selected != null && (selected.status === 'OPEN' || selected.status === 'QUALIFIED');
 
   const actionButtons = (
     <>
@@ -442,165 +384,12 @@ export default function IssuesList({ embedded = false, actionsContainer, filters
         </DialogContent>
       </Dialog>
 
-      {/* ── Panneau détail / qualification ── */}
-      <Dialog open={selected != null} onOpenChange={(next) => { if (!next) setSelected(null); }}>
-        <DialogContent className="sm:max-w-[600px]">
-        {selected && (
-          <>
-            <DialogHeader>
-              <DialogTitle className="flex flex-row items-center gap-1.5 flex-wrap">
-                <span className="flex-1 min-w-0">
-                  {selected.title}
-                </span>
-                <StatusChip tone={STATUS_TONES[selected.status]} label={statusLabel(selected.status)} />
-              </DialogTitle>
-            </DialogHeader>
-            {/* Les filets haut/bas remplacent le `dividers` de la modale MUI. */}
-            <div className="flex flex-col gap-3 border-y border-solid border-border py-3">
-                <div>
-                  <span className="text-xs text-muted-foreground">
-                    {selected.propertyName ?? '—'}
-                    {' · '}
-                    {selected.createdAt ? new Date(selected.createdAt).toLocaleString() : ''}
-                    {selected.reportedByName ? ` · ${t('issues.reportedBy', 'Signalée par')} ${selected.reportedByName}` : ''}
-                  </span>
-                  {selected.description && (
-                    <p className="text-xs mt-1 whitespace-pre-wrap">
-                      {selected.description}
-                    </p>
-                  )}
-                  {selected.dismissReason && (
-                    <p className="text-xs mt-1 text-muted-foreground">
-                      {t('issues.dismissedReason', 'Motif du rejet')} : {selected.dismissReason}
-                    </p>
-                  )}
-                </div>
-
-                {selected.status === 'CONVERTED' && selected.convertedServiceRequestId != null && (
-                  <BuiButton
-                    variant="outline"
-                    size="sm"
-                    onClick={() => navigate(`/service-requests/${selected.convertedServiceRequestId}`)}
-                    className="self-start"
-                  >
-                    <OpenInNew />
-                    {t('issues.openServiceRequest', 'Voir la demande de maintenance')}
-                  </BuiButton>
-                )}
-
-                {canManage && isActionable && (
-                  <div className="flex flex-col gap-[9px]">
-                    <h6 className="text-xs font-medium">
-                      {t('issues.qualifySection', 'Qualification')}
-                    </h6>
-                    <div className="flex flex-col min-[600px]:flex-row gap-[9px]">
-                      <Field>
-                        <FieldLabel htmlFor="issue-edit-category">{t('issues.fields.category', 'Catégorie')}</FieldLabel>
-                        <Input
-                          id="issue-edit-category"
-                          className="w-full"
-                          value={editCategory}
-                          onChange={(e) => setEditCategory(e.target.value)}
-                        />
-                        <FieldDescription>
-                          {t('issues.fields.categoryHelp', 'Alignée sur le catalogue travaux → chiffrage automatique')}
-                        </FieldDescription>
-                      </Field>
-                      <Field className="min-w-[140px]">
-                        <FieldLabel htmlFor="issue-edit-severity">{t('issues.fields.severity', 'Sévérité')}</FieldLabel>
-                        <NativeSelect
-                          id="issue-edit-severity"
-                          className="w-full"
-                          value={editSeverity}
-                          onChange={(e) => setEditSeverity(e.target.value as IssueSeverity)}
-                        >
-                          {SEVERITIES.map((severity) => (
-                            <NativeSelectOption key={severity} value={severity}>{severityLabel(severity)}</NativeSelectOption>
-                          ))}
-                        </NativeSelect>
-                      </Field>
-                      <Field className="min-w-[120px]">
-                        <FieldLabel htmlFor="issue-edit-cost">{t('issues.fields.suggestedCost', 'Coût (€)')}</FieldLabel>
-                        <Input
-                          id="issue-edit-cost"
-                          className="w-full"
-                          type="number"
-                          min={0}
-                          step="0.01"
-                          value={editCost}
-                          onChange={(e) => setEditCost(e.target.value.replace(',', '.'))}
-                        />
-                      </Field>
-                    </div>
-                  </div>
-                )}
-
-                {canManage && isActionable && confirmConvert && (
-                  <Alert variant="warning">
-                    <Warning />
-                    <AlertDescription>
-                      {t('issues.convertConfirm', 'Créer une demande de maintenance pré-chiffrée à')}{' '}
-                      <span className="font-semibold tabular-nums">
-                        {selected.suggestedCost != null
-                          ? formatCurrency(selected.suggestedCost)
-                          : t('issues.noCost', 'chiffrage manuel')}
-                      </span>
-                      {' — '}{t('issues.convertConfirmSuffix', 'confirmer ?')}
-                    </AlertDescription>
-                  </Alert>
-                )}
-
-                {canManage && isActionable && !confirmConvert && (
-                  <Field>
-                    <FieldLabel htmlFor="issue-dismiss-reason">
-                      {t('issues.fields.dismissReason', 'Motif de rejet (optionnel)')}
-                    </FieldLabel>
-                    <Input
-                      id="issue-dismiss-reason"
-                      className="w-full"
-                      value={dismissReason}
-                      onChange={(e) => setDismissReason(e.target.value)}
-                    />
-                  </Field>
-                )}
-
-                {error && (
-                  <Alert variant="destructive">
-                    <Warning />
-                    <AlertDescription>{error}</AlertDescription>
-                  </Alert>
-                )}
-            </div>
-            <DialogFooter className="gap-1.5">
-              <BuiButton variant="ghost" onClick={() => setSelected(null)} disabled={saving}>
-                {t('common.close', 'Fermer')}
-              </BuiButton>
-              {canManage && isActionable && (
-                <>
-                  {/* « Rejeter » reste tertiaire (ghost) : c'est l'issue de secours,
-                      pas une suppression — la conversion est l'action attendue. */}
-                  <BuiButton variant="ghost" onClick={handleDismiss} disabled={saving}>
-                    {t('issues.actions.dismiss', 'Rejeter')}
-                  </BuiButton>
-                  <BuiButton variant="outline" onClick={handleQualify} disabled={saving}>
-                    {t('issues.actions.qualify', 'Qualifier')}
-                  </BuiButton>
-                  {confirmConvert ? (
-                    <BuiButton onClick={handleConvert} disabled={saving}>
-                      {t('issues.actions.confirmConvert', 'Confirmer la conversion')}
-                    </BuiButton>
-                  ) : (
-                    <BuiButton onClick={() => setConfirmConvert(true)} disabled={saving}>
-                      {t('issues.actions.convert', 'Convertir en maintenance')}
-                    </BuiButton>
-                  )}
-                </>
-              )}
-            </DialogFooter>
-          </>
-        )}
-        </DialogContent>
-      </Dialog>
+      <IssueDetailDialog
+        issue={selected}
+        canManage={canManage}
+        onClose={() => setSelected(null)}
+        onUpdated={applyUpdated}
+      />
     </div>
   );
 }

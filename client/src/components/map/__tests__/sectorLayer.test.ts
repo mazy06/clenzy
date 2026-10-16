@@ -21,6 +21,10 @@ function fakeMap() {
     getLayer: (id: string) => layers.get(id),
     addLayer: (layer: { id: string }, beforeId?: string) => layers.set(layer.id, { ...layer, beforeId }),
     removeLayer: (id: string) => layers.delete(id),
+    setPaintProperty: (id: string, property: string, value: unknown) => {
+      const layer = layers.get(id);
+      if (layer) layer.paint = { ...(layer.paint as Record<string, unknown>), [property]: value };
+    },
     on: (event: string, listener: Listener) => listeners.set(event, [...(listeners.get(event) ?? []), listener]),
     off: () => undefined,
     /** Remplacement de style par diff : nos sources et calques disparaissent. */
@@ -63,11 +67,60 @@ describe('BaitlySectorLayer', () => {
     expect(colours).toEqual([sectorColor(0, 'dark'), sectorColor(2, 'dark')]);
   });
 
+  it('whenByProviderWithoutFocus_thenOutlinesOnlySoOverlapsDoNotDarkenTheMap', () => {
+    const { map, sources } = fakeMap();
+    new BaitlySectorLayer(map as unknown as maplibregl.Map).set(overlay('byProvider'), 'light');
+
+    const fills = sources.get('baitly-sectors')!.data.features.map((f) => f.properties?.fillOpacity);
+    expect(fills).toEqual([0, 0]);
+  });
+
+  it('whenAProviderIsFocused_thenItIsFilledOnTopAndTheOthersFade', () => {
+    const { map, sources, layers } = fakeMap();
+    new BaitlySectorLayer(map as unknown as maplibregl.Map).set({ ...overlay('byProvider'), highlightedProviderId: 1 }, 'light');
+
+    const focus = sources.get('baitly-sectors-focus')!.data.features;
+    expect(focus.map((f) => f.properties?.color)).toEqual([sectorColor(0, 'light')]);
+    expect(focus[0].properties?.fillOpacity).toBeGreaterThan(0);
+    expect((layers.get('baitly-sectors-line')!.paint as Record<string, unknown>)['line-opacity']).toEqual(['*', ['get', 'lineOpacity'], 0.32]);
+    // Les calques mis en avant sont posés après la base : ils se dessinent au-dessus.
+    const ids = [...layers.keys()];
+    expect(ids.indexOf('baitly-sectors-focus-line')).toBeGreaterThan(ids.indexOf('baitly-sectors-line'));
+  });
+
+  it('whenMergedWithAFocusedProvider_thenItsSectorIsDrawnOverTheMergedOutline', () => {
+    const { map, sources } = fakeMap();
+    new BaitlySectorLayer(map as unknown as maplibregl.Map).set({ ...overlay('merged'), highlightedProviderId: 3 }, 'light');
+
+    expect(sources.get('baitly-sectors')!.data.features.map((f) => f.properties?.color)).toEqual([mergedSectorColor('light')]);
+    expect(sources.get('baitly-sectors-focus')!.data.features.map((f) => f.properties?.color)).toEqual([sectorColor(2, 'light')]);
+  });
+
+  it('whenOnlyTheFocusChanges_thenTheBaseIsNotSentAgain', () => {
+    const { map, sources } = fakeMap();
+    const layer = new BaitlySectorLayer(map as unknown as maplibregl.Map);
+    const shown = overlay('byProvider');
+    layer.set(shown, 'light');
+    const base = sources.get('baitly-sectors')!;
+    let baseSends = 0;
+    const setData = base.setData.bind(base);
+    base.setData = (data) => { baseSends += 1; setData(data); };
+
+    layer.set({ ...shown, highlightedProviderId: 1 }, 'light');
+    layer.set({ ...shown, highlightedProviderId: 3 }, 'light');
+
+    expect(baseSends).toBe(0);
+    expect(sources.get('baitly-sectors-focus')!.data.features).toHaveLength(1);
+  });
+
   it('whenDrawn_thenLayersSitBelowTheFirstLabelLayer', () => {
     const { map, layers } = fakeMap();
     new BaitlySectorLayer(map as unknown as maplibregl.Map).set(overlay('merged'), 'light');
 
-    expect([...layers.keys()]).toEqual(['baitly-sectors-fill', 'baitly-sectors-casing', 'baitly-sectors-line']);
+    expect([...layers.keys()]).toEqual([
+      'baitly-sectors-fill', 'baitly-sectors-casing', 'baitly-sectors-line',
+      'baitly-sectors-focus-fill', 'baitly-sectors-focus-casing', 'baitly-sectors-focus-line',
+    ]);
     expect([...layers.values()].every((layer) => layer.beforeId === 'labels')).toBe(true);
   });
 

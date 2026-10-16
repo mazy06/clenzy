@@ -55,9 +55,19 @@ public class ProviderSectorMapService {
     public Optional<SectorMapDto> forProvider(Long providerId, Long orgId, String hostSubject) {
         return visible(providerId, orgId).map(provider -> {
             var shape = shapes.provider(provider.getId(), provider.getDisplayName(),
-                    declared(zones.effectiveZones(List.of(provider.getId()))));
+                    catalog.avatarUrls(List.of(provider)).get(provider.getId()),
+                    declared(zones.effectiveZones(List.of(provider.getId())))).withUserId(provider.getUserId());
             return shapes.map(List.of(shape), properties(orgId, hostSubject, zones.coverageForProvider(provider.getId(), orgId)));
         });
+    }
+
+    /**
+     * Secteur du prestataire relié au compte {@code userId} : celui qui intervient sur une
+     * prestation, même s'il ne couvre aucun logement (il n'est alors pas dans {@link #relevantTo}).
+     */
+    @Transactional(readOnly = true)
+    public Optional<SectorMapDto> forProviderUser(Long userId, Long orgId, String hostSubject) {
+        return catalog.getProviderByUserId(userId).flatMap(provider -> forProvider(provider.getId(), orgId, hostSubject));
     }
 
     /** Prestataires visibles qui couvrent au moins un logement de l'organisation (ou de l'hôte). */
@@ -81,9 +91,11 @@ public class ProviderSectorMapService {
         Map<Long, List<EffectiveZone>> zonesByProvider = ids.isEmpty() ? Map.of()
                 : zones.effectiveZones(List.copyOf(ids)).stream().collect(Collectors.groupingBy(EffectiveZone::getProviderId));
 
+        Map<Long, String> avatars = catalog.avatarUrls(providers);
         var shapesOf = providers.stream()
                 .sorted(Comparator.comparing(MarketplaceProvider::getDisplayName, Comparator.nullsLast(String::compareToIgnoreCase)))
-                .map(p -> shapes.provider(p.getId(), p.getDisplayName(), declared(zonesByProvider.getOrDefault(p.getId(), List.of()))))
+                .map(p -> shapes.provider(p.getId(), p.getDisplayName(), avatars.get(p.getId()),
+                        declared(zonesByProvider.getOrDefault(p.getId(), List.of()))).withUserId(p.getUserId()))
                 .toList();
         var visibleCoverage = coverage.stream().filter(c -> ids.contains(c.getProviderId())).toList();
         return shapes.map(shapesOf, toDtos(mapProperties, visibleCoverage));

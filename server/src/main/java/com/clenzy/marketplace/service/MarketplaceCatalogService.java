@@ -177,6 +177,11 @@ public class MarketplaceCatalogService {
         return providerRepository.findById(id);
     }
 
+    /** Prestataire relié au compte PMS {@code userId} (celui de ses missions assignées). */
+    public Optional<MarketplaceProvider> getProviderByUserId(Long userId) {
+        return providerRepository.findByUserId(userId);
+    }
+
     /** Fiche detaillee cote organisation. Le controle de visibilite est fait par l'appelant. */
     @Transactional(readOnly = true)
     public Optional<CatalogProviderDto> getCatalogEntry(Long providerId, Long organizationId) {
@@ -457,6 +462,22 @@ public class MarketplaceCatalogService {
      * personne change sa photo. Une fiche sans compte — candidature deposee
      * depuis le site public — garde la sienne.</p>
      */
+    /**
+     * Photo de chaque fiche, selon la même règle que le catalogue (photo du compte lié, sinon
+     * celle de la fiche sans compte). Une fiche sans photo est absente : l'appelant affiche
+     * les initiales.
+     */
+    @Transactional(readOnly = true)
+    public Map<Long, String> avatarUrls(List<MarketplaceProvider> providers) {
+        Set<Long> userIdsWithPhoto = resolveUserIdsWithPhoto(providers);
+        Map<Long, String> urls = new HashMap<>();
+        for (MarketplaceProvider provider : providers) {
+            String url = resolveAvatarUrl(provider, userIdsWithPhoto);
+            if (url != null) urls.put(provider.getId(), url);
+        }
+        return urls;
+    }
+
     private String resolveAvatarUrl(MarketplaceProvider provider, Set<Long> userIdsWithPhoto) {
         if (provider.getUserId() != null && userIdsWithPhoto.contains(provider.getUserId())) {
             return userService.publicAvatarUrl(provider.getUserId());

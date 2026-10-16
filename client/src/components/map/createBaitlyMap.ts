@@ -1,10 +1,11 @@
 import * as maplibregl from 'maplibre-gl';
 import i18n from '../../i18n/config';
 import { activeLanguage } from '../../utils/activeLocale';
-import { buildBaitlyMapStyle, dayPeriodAt, daylightFor, TERRAIN_SOURCE_ID, type BaitlyMapMode, type DayPeriod } from './baitlyMapStyle';
+import { buildBaitlyMapStyle, dayPeriodAt, daylightFor, type BaitlyMapMode, type DayPeriod } from './baitlyMapStyle';
 import { ensureMapRuntime } from './mapRuntime';
 import { prefersReducedMotion } from './motion';
 import { BaitlyPerspectiveControl } from './perspectiveControl';
+import { rememberReliefMode, setRelief } from './relief';
 
 export { prefersReducedMotion };
 
@@ -87,8 +88,14 @@ export function createBaitlyMap({
   if (perspective) {
     // Terrain 3D sur les cartes inclinées : le relief prend du volume. Réappliqué à
     // chaque style chargé (le changement de thème remplace le style, pas la carte).
+    rememberReliefMode(map, mode);
     map.on('style.load', () => {
-      if (map.getPitch() > 5 && map.getSource(TERRAIN_SOURCE_ID)) map.setTerrain({ source: TERRAIN_SOURCE_ID, exaggeration: 1.15 });
+      if (map.getPitch() > 5) setRelief(map, true);
+    });
+    // Un geste (clic droit, deux doigts) incline aussi la carte : le relief suit.
+    map.on('pitchend', () => {
+      const tilted = map.getPitch() > 5;
+      if (tilted !== !!map.getTerrain()) setRelief(map, tilted);
     });
   }
   followDaylight(map, mode, period);
@@ -133,6 +140,7 @@ function followDaylight(map: maplibregl.Map, mode: BaitlyMapMode, initial: DayPe
 /** Bascule clair / sombre sans recréer la carte (les marqueurs DOM restent en place). */
 export function setBaitlyMapMode(map: maplibregl.Map, mode: BaitlyMapMode): void {
   mapModes.set(map, mode);
+  rememberReliefMode(map, mode);
   map.setStyle(buildBaitlyMapStyle(mode, activeLanguage(), currentPeriod(map.getCenter().lng)));
 }
 

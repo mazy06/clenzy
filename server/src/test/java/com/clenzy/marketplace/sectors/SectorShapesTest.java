@@ -96,4 +96,25 @@ class SectorShapesTest {
         assertThat(contains(shape.geometry(), 2.3800, 48.8590)).isTrue();   // Paris 11e
         assertThat(contains(shape.geometry(), 2.2945, 48.8584)).isFalse();  // Tour Eiffel, 7e
     }
+
+    @Test
+    void whenTheSameZonesComeBack_thenTheUnionsAreReusedNotRecomputed() {
+        var first = shapes.provider(1L, "A", List.of(fr("75", null), fr("93", null)));
+        var again = shapes.provider(7L, "Autre prestataire", List.of(fr("75", null), fr("93", null)));
+
+        assertThat(again.geometry()).isSameAs(first.geometry());
+        assertThat(again.sectors().providerId()).isEqualTo(7L);
+        assertThat(again.sectors().name()).isEqualTo("Autre prestataire");
+        var map = shapes.map(List.of(first), List.of());
+        assertThat(shapes.map(List.of(again), List.of()).merged()).isSameAs(map.merged());
+    }
+
+    @Test
+    void whenTheZonesChange_thenANewUnionIsComputed() {
+        var paris = shapes.provider(1L, "A", List.of(fr("75", null)));
+        var larger = shapes.provider(1L, "A", List.of(fr("75", null), fr("93", null)));
+
+        assertThat(larger.geometry()).isNotSameAs(paris.geometry());
+        assertThat(larger.geometry().getArea()).isGreaterThan(paris.geometry().getArea());
+    }
 }

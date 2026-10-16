@@ -13,9 +13,10 @@ import {
   type TabHeaderMeta,
 } from '../../components/PageHeaderActionsContext';
 import PropertiesList from './PropertiesList';
+import { parsePropertyMapView } from './map-views/propertyMapView';
 import { useQueryClient } from '@tanstack/react-query';
 import { usePropertiesList, propertiesListKeys } from '../../hooks/usePropertiesList';
-import { Alert, AlertDescription, Button, Skeleton } from '../../components/ui';
+import { Alert, AlertDescription, Button } from '../../components/ui';
 import PropertiesEmptyShowcase, { isPropertyIntroduction } from './PropertiesEmptyShowcase';
 import ChannexMappingDialog from '../settings/components/ChannexMappingDialog';
 
@@ -60,16 +61,22 @@ const PropertiesPage: React.FC = () => {
   const { slot: headerActionsSlot, portalContainer: headerActionsPortal } = usePageHeaderActionsSlot();
   // Mapping label → subtitle reconstruit a chaque render pour suivre la langue.
   const propertiesTabMeta: Record<string, TabHeaderMeta> = {
-    [t('propertiesPage.tabs.properties')]: {
+    [t('propertyMap.views.properties', 'Vue d’ensemble')]: {
       subtitle: t('tabHeaders.properties.subtitle.properties', "Liste de vos biens immobiliers avec leur statut, taux d'occupation et alertes."),
     },
-    [t('propertiesPage.tabs.pricing')]: {
-      subtitle: t('tabHeaders.properties.subtitle.pricing', 'Configuration de la tarification dynamique par bien : prix de base, saisonnalité, ajustements.'),
+    [t('propertyMap.views.prestations', 'Prestations')]: {
+      subtitle: t('tabHeaders.pilotage.prestations', 'Interventions et demandes de service, sur la carte et dans l’ordre chronologique.'),
+    },
+    [t('propertyMap.views.reservations', 'Réservations')]: {
+      subtitle: t('tabHeaders.pilotage.reservations', 'Séjours en cours et à venir sur 30 jours, logement par logement.'),
+    },
+    [t('propertyMap.views.issues', 'Anomalies')]: {
+      subtitle: t('tabHeaders.pilotage.issues', 'Anomalies signalées à traiter, les plus graves d’abord.'),
     },
   };
   const { title, subtitle } = resolveTabHeader(
-    t('tabHeaders.properties.title', 'Propriétés'),
-    t('tabHeaders.properties.default', 'Gestion des propriétés et des tarifs dynamiques'),
+    t('navigation.map', 'Carte'),
+    t('properties.pilotageSubtitle', 'Logements, prestations, séjours et anomalies, sur la carte'),
     visibleTabs.map((tab) => tab.label),
     activeTab,
     propertiesTabMeta,
@@ -109,23 +116,24 @@ const PropertiesPage: React.FC = () => {
         </div>
 
         {/* ── Tab content ── */}
-        {!hasProperties && isLoading ? (
-          <div className="grid gap-6 p-6 md:grid-cols-2" role="status" aria-label={t('common.loading')}>
-            <div><Skeleton className="mb-4 h-20 w-4/5" /><Skeleton className="h-40 w-full" /></div>
-            <Skeleton className="h-80 w-full rounded-2xl" />
-          </div>
-        ) : !hasProperties && isError ? (
+        {!hasProperties && !isLoading && isError ? (
           <Alert className="m-4 w-auto" variant="destructive">
             <AlertDescription>
               {t('propertiesFirstUse.loadError')}
               <Button variant="outline" className="ms-3" onClick={() => { void refreshProperties(); }}>{t('common.retry')}</Button>
             </AlertDescription>
           </Alert>
-        ) : !hasProperties && isPropertyIntroduction(activeKey) ? (
+        ) : !hasProperties && !isLoading && isPropertyIntroduction(activeKey) ? (
           <PropertiesEmptyShowcase key={activeKey} screen={activeKey} onImport={() => setImportOpen(true)} />
         ) : null}
-        {hasProperties && activeKey === 'properties' && (
-          <PropertiesList embedded actionsContainer={actionsContainer} filtersContainer={filtersContainer} />
+        {/* Monté dès l'ouverture : la carte n'attend plus la liste des logements. */}
+        {(hasProperties || isLoading) && activeKey && (
+          <PropertiesList embedded actionsContainer={actionsContainer} filtersContainer={filtersContainer}
+            mapView={parsePropertyMapView(activeKey)}
+            onMapViewChange={(key) => {
+              const index = visibleTabs.findIndex((tab) => tab.key === key);
+              if (index >= 0) setActiveTab(index);
+            }} />
         )}
       </div>
       {importOpen && <ChannexMappingDialog open guided onClose={() => {

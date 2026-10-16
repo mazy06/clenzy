@@ -48,9 +48,11 @@ export const NAVIGATION_HUBS: HubDef[] = [
     group: 'operations',
     tabs: [
       {
+        // « Carte » : elle réunit logements, prestations, séjours et anomalies. Route
+        // historique conservée ; « Pilotage » est déjà le nom d'un groupe de la barre.
         path: '/properties',
-        translationKey: 'navigation.properties',
-        fallbackLabel: 'Propriétés',
+        translationKey: 'navigation.map',
+        fallbackLabel: 'Carte',
         isAccessible: (a) => has(a, 'properties:view'),
       },
       {

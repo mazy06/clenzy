@@ -16,12 +16,28 @@ import { useTranslation } from '../../hooks/useTranslation';
 import { propertiesApi } from '../../services/api/propertiesApi';
 import { getPropertyStatusLabel, getPropertyTypeLabel } from '../../utils/statusUtils';
 import { propertyStatusTokens } from './propertiesListConstants';
+import PropertyPrestations from './prestations/PropertyPrestations';
+import PropertyReservations from './map-views/PropertyReservations';
+import PropertyIssues from './map-views/PropertyIssues';
+import PropertyDaySummary from './map-views/PropertyDaySummary';
+import type { PropertyMapView } from './map-views/propertyMapView';
 
 /**
  * Fiche d'un logement dans la bulle de carte : photos, adresse, propriétaire,
- * capacité. Chargée au clic sur le marqueur (une seule requête, mise en cache).
+ * capacité, puis ses prestations (interventions et demandes réunies). Chargée au clic
+ * sur le marqueur, mise en cache.
  */
-export default function PropertyMapCard({ propertyId }: { propertyId: number }) {
+/**
+ * `view` choisit le bas de la fiche (résumé du jour, prestations ou séjours) ; le haut —
+ * photos, détails, propriétaire — ne change pas. `onDayAssignee` : intervenant du jour choisi
+ * dans les prestations, pour montrer son secteur.
+ */
+export default function PropertyMapCard({ propertyId, view = 'prestations', onShowView, onDayAssignee }: {
+  propertyId: number;
+  view?: PropertyMapView;
+  onShowView?: (view: PropertyMapView) => void;
+  onDayAssignee?: (userId: number | null) => void;
+}) {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const query = useQuery({
@@ -37,8 +53,18 @@ export default function PropertyMapCard({ propertyId }: { propertyId: number }) 
     .filter(Boolean)
     .join(', ');
 
+  const footer = (
+    <MapCardFooter>
+      {property.ownerName ? <MapCardPerson name={property.ownerName} role={t('properties.owner')} /> : <span />}
+      <MapCardAction label={t('properties.viewDetails')} onClick={() => navigate(`/properties/${property.id}`)} />
+    </MapCardFooter>
+  );
+
   return (
-    <MapCard photos={property.photoUrls} alt={property.name}>
+    <MapCard footer={footer} photos={property.photoUrls} alt={property.name} extra={view === 'reservations' ? <PropertyReservations propertyId={property.id} />
+      : view === 'issues' ? <PropertyIssues propertyId={property.id} />
+      : view === 'properties' && onShowView ? <PropertyDaySummary propertyId={property.id} onShowView={onShowView} />
+      : <PropertyPrestations propertyId={property.id} onDayAssignee={onDayAssignee} />}>
       <MapCardHeader
         eyebrow={getPropertyTypeLabel(property.type, t)}
         title={property.name}
@@ -69,10 +95,6 @@ export default function PropertyMapCard({ propertyId }: { propertyId: number }) 
           },
         ]}
       />
-      <MapCardFooter>
-        {property.ownerName ? <MapCardPerson name={property.ownerName} role={t('properties.owner')} /> : <span />}
-        <MapCardAction label={t('properties.viewDetails')} onClick={() => navigate(`/properties/${property.id}`)} />
-      </MapCardFooter>
     </MapCard>
   );
 }
