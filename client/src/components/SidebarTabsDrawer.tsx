@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
+import React, { useCallback, useLayoutEffect, useRef, useState } from 'react';
 import { ChevronRightIcon } from '../icons/glyphs';
 import {
   Popover,
@@ -52,13 +52,6 @@ import type { ResolvedScreenTab } from '../hooks/useScreenTabs';
  * focus à la ligne. Le focus n'est pris QUE dans ce cas — une ouverture qui le
  * volerait déplacerait le curseur de saisie de la page.</p>
  */
-
-/**
- * Repli si l'animation d'ouverture ne rend pas la main — un mouvement coupé par
- * {@code prefers-reduced-motion} ne lève aucun {@code animationend}, et le
- * tiroir est alors en place dès la première image.
- */
-const LANDED_FALLBACK = 400;
 
 /**
  * Ce à quoi le tiroir est accolé : le volet du hub (barre repliée) ou le flanc
@@ -379,27 +372,6 @@ function useTabsDrawerRow({ screenLabel, tabs, activeKey, side, onSelect }: Tabs
 
   const { innerRef, seam } = useSeam(drawer.open, anchorRef, flush);
 
-  /**
-   * Le tiroir a fini sa course.
-   *
-   * <p>Le congé inversé déborde de la boîte du côté de la couture, là même où la
-   * fenêtre de découpe rogne pendant la course. Lui ouvrir le passage avant
-   * l'arrivée, c'est laisser passer du corps du tiroir à gauche de la couture —
-   * invisible sur le volet (même fond), mais bien visible EN DESSOUS, où le
-   * tiroir dépasse : son coin y apparaissait en avance puis rejoignait le reste.
-   * Le passage ne s'ouvre donc qu'une fois posé (cf. {@code data-seam-ready}).</p>
-   */
-  const [landed, setLanded] = useState(false);
-
-  useEffect(() => {
-    if (!drawer.open) {
-      setLanded(false);
-      return undefined;
-    }
-    const timer = setTimeout(() => setLanded(true), LANDED_FALLBACK);
-    return () => clearTimeout(timer);
-  }, [drawer.open]);
-
   const outward = side === 'right' ? 'ArrowRight' : 'ArrowLeft';
 
   /** Posé sur l'enveloppe : les touches lui remontent de la ligne. */
@@ -433,8 +405,7 @@ function useTabsDrawerRow({ screenLabel, tabs, activeKey, side, onSelect }: Tabs
       className={cn('w-56 gap-0 p-0', sidebarFlyoutClass)}
       data-seam={seam.mode}
       data-seam-top={flush ? 'flush' : undefined}
-      data-seam-ready={landed ? '' : undefined}
-      onAnimationEnd={() => setLanded(true)}
+      data-seam-ready=""
       style={
         seam.end != null
           ? ({ '--bui-flyout-seam-end': `${seam.end}px` } as React.CSSProperties)

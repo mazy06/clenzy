@@ -21,13 +21,11 @@ import {
   TooltipTrigger,
 } from './tooltip'
 import { IconPlaceholder } from './icon-placeholder'
-import { beginLayoutShift } from '../../utils/layoutShift'
 
 /**
  * Baitly UI — Sidebar (copie de apps/v4/registry/bases/radix/ui — la source de la doc /docs/components/radix).
  * Adaptations locales : imports, propriétés logiques RTL (sidebar : positions physiques conservées, prop side), shim IconPlaceholder,
- * transitions portées dans la feuille Nova (`cn-sidebar-container`) pour tenir UNE ligne de temps,
- * et signal `beginLayoutShift` pour que les écrans ne se mesurent qu'à la fin du repli.
+ * ouverture et repli immédiats, sans suspension des mesures des écrans.
  */
 
 const SIDEBAR_COOKIE_NAME = "sidebar_state"
@@ -43,12 +41,6 @@ const SIDEBAR_KEYBOARD_SHORTCUT = "b"
  * Cf. `components/SIDEBAR-PARITY.md` §E.
  */
 const SIDEBAR_SHEET_BREAKPOINT = 1024
-/**
- * Duree du repli, en miroir de `--bui-sidebar-motion` (theme/baitly-ui.css).
- * Sert a suspendre les mesures de mise en page des ecrans le temps que la
- * gouttiere finisse de pousser le contenu (cf. utils/layoutShift).
- */
-const SIDEBAR_MOTION_MS = 220
 
 type SidebarContextProps = {
   state: "expanded" | "collapsed"
@@ -102,14 +94,8 @@ function SidebarProvider({
 
       // This sets the cookie to keep the sidebar state.
       document.cookie = `${SIDEBAR_COOKIE_NAME}=${openState}; path=/; max-age=${SIDEBAR_COOKIE_MAX_AGE}`
-
-      // Adaptation locale : seul le bureau POUSSE le contenu (sur mobile la
-      // sidebar est une feuille posee par-dessus). On previent donc les
-      // mesureurs d'ecran que la largeur va bouger pendant toute la
-      // transition, pour qu'ils ne mesurent qu'a l'arrivee.
-      if (!isMobile) beginLayoutShift(SIDEBAR_MOTION_MS)
     },
-    [setOpenProp, open, isMobile]
+    [setOpenProp, open]
   )
 
   // Helper to toggle the sidebar.
@@ -207,6 +193,7 @@ function Sidebar({
     return (
       <Sheet open={openMobile} onOpenChange={setOpenMobile} {...props}>
         <SheetContent
+          overlayClassName="bui-sidebar-overlay"
           dir={dir}
           data-sidebar="sidebar"
           data-slot="sidebar"
