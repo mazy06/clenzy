@@ -1,6 +1,5 @@
 import SiteMoney, { SiteMoneyText } from '../components/SiteMoney';
 import {
-  ArrowDownIcon,
   ArrowRightIcon,
   CalendarDaysIcon,
   CheckIcon,
@@ -11,7 +10,6 @@ import {
   SparklesIcon,
 } from '../../src/icons/glyphs';
 import { Link } from 'react-router-dom';
-import AnimatedPlanningMockup from '../components/AnimatedPlanningMockup';
 import BaitlyChannelFlow from '../components/BaitlyChannelFlow';
 import SiteAcquisitionLink from '../components/SiteAcquisitionLink';
 import Reveal from '../components/Reveal';
@@ -52,10 +50,6 @@ export default function BaitlyPmsPage() {
                 {m.cta}
                 <ArrowRightIcon />
               </SiteAcquisitionLink>
-              <a href="#planning-demo" className="bpm-text-link">
-                {m.explore}
-                <ArrowDownIcon />
-              </a>
             </div>
             <ul className="bpm-promises">
               {m.promises.map((p) => (
@@ -146,42 +140,7 @@ export default function BaitlyPmsPage() {
         </div>
       </section>
 
-      <section className="site-shell bpm-planning-section" id="planning-demo">
-        <Reveal className="bpm-section-heading">
-          <div>
-            <p className="bpm-eyebrow">{m.planning.eyebrow}</p>
-            <h2>{m.planning.title}</h2>
-          </div>
-          <p>{m.planning.intro}</p>
-        </Reveal>
-        <AnimatedPlanningMockup />
-        <div className="bpm-planning-keys">
-          <div>
-            <span className="bpm-status-swatches" aria-hidden="true">
-              <i />
-              <i />
-              <i />
-              <i />
-            </span>
-            <p>{m.planning.legends[0]}</p>
-          </div>
-          <div>
-            <span className="bpm-key-channels">
-              <img src={airbnb} alt="Airbnb" />
-              <img src={booking} alt="Booking.com" />
-            </span>
-            <p>{m.planning.legends[1]}</p>
-          </div>
-          <div>
-            <span className="bpm-key-badges" aria-hidden="true">
-              <CheckIcon />
-              <span>+3</span>
-            </span>
-            <p>{m.planning.legends[2]}</p>
-          </div>
-        </div>
-        <p className="bpm-demo-note">{m.planning.note}</p>
-      </section>
+      {/* La démo planning avec voix off reste privée pour protéger le design Baitly. */}
 
       <section className="bpm-sync-section">
         <div className="site-shell bpm-sync-layout">
