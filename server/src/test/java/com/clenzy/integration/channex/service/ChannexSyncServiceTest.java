@@ -232,6 +232,35 @@ class ChannexSyncServiceTest {
     }
 
     @Test
+    void movedBookingSendsOnlyOriginalAndNewNightInOneAvailabilityCall() {
+        LocalDate original = LocalDate.of(2026, 10, 20);
+        LocalDate moved = original.plusDays(7);
+        when(mappingRepository.findByClenzyPropertyId(100L, 42L)).thenReturn(Optional.of(mapping));
+        when(channexClient.hasActiveOtaChannel("channex-prop-abc")).thenReturn(true);
+        CalendarDay booked = new CalendarDay();
+        booked.setDate(moved);
+        booked.setStatus(CalendarDayStatus.BOOKED);
+        when(calendarDayRepository.findByPropertyAndDateRange(100L, original, moved, 42L))
+            .thenReturn(List.of(booked));
+        var batcher = new ChannexAriBatcher(service, java.time.Clock.systemUTC(),
+            new org.springframework.mock.env.MockEnvironment());
+        batcher.enqueue(100L, 42L, original, original,
+            com.clenzy.integration.channex.model.ChannexAriScope.AVAILABILITY);
+        batcher.enqueue(100L, 42L, moved, moved,
+            com.clenzy.integration.channex.model.ChannexAriScope.AVAILABILITY);
+        batcher.flush();
+        @SuppressWarnings("unchecked")
+        ArgumentCaptor<List<ChannexAvailabilityUpdate>> cap = ArgumentCaptor.forClass(List.class);
+        verify(channexClient).pushAvailability(cap.capture());
+        assertThat(cap.getValue()).extracting(ChannexAvailabilityUpdate::date)
+            .containsExactly(original, moved);
+        assertThat(cap.getValue()).extracting(ChannexAvailabilityUpdate::availability)
+            .containsExactly(1, 0);
+        verify(channexClient, never()).pushRates(any());
+        assertThat(batcher.pendingCount()).isZero();
+    }
+
+    @Test
     @DisplayName("Jours BOOKED -> availability=0, jours AVAILABLE -> availability=1")
     void mapsCalendarStatusToAvailability() {
         when(mappingRepository.findByClenzyPropertyId(eq(100L), eq(42L)))

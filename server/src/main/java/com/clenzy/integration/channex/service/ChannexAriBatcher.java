@@ -13,6 +13,8 @@ import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
+import java.util.HashSet;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
@@ -81,9 +83,9 @@ public class ChannexAriBatcher {
 
     /**
      * Accumule une plage de dates a pousser pour une propriete. Les plages
-     * successives sont fusionnees en leur enveloppe [min(from), max(to)] :
-     * pousser une plage plus large que necessaire est correct (les valeurs
-     * sont recalculees depuis CalendarEngine/PriceEngine au flush).
+     * successives gardent leur enveloppe pour le calcul des tarifs, mais les
+     * disponibilites conservent les dates exactes : un deplacement ne doit
+     * pas renvoyer les nuits entre l'ancien et le nouveau sejour.
      *
      * <p>La PORTEE se fusionne elle aussi : deux changements de meme nature
      * gardent la leur, deux natures differentes donnent {@code BOTH} — les deux
@@ -108,8 +110,15 @@ public class ChannexAriBatcher {
         ChannexAriScope effective = scope != null ? scope : ChannexAriScope.BOTH;
         java.util.Set<ChannexRateField> effectiveFields =
             (rateFields == null || rateFields.isEmpty()) ? ChannexRateField.ALL : rateFields;
+        Set<LocalDate> availabilityDates = new HashSet<>();
+        if (effective.includesAvailability()) {
+            for (LocalDate date = from; !date.isAfter(to); date = date.plusDays(1)) {
+                availabilityDates.add(date);
+            }
+        }
         pending.merge(propertyId,
-            new PendingRange(orgId, from, to, Instant.EPOCH, 0, effective, effectiveFields),
+            new PendingRange(orgId, from, to, Instant.EPOCH, 0, effective, effectiveFields,
+                Set.copyOf(availabilityDates)),
             (current, incoming) -> new PendingRange(
                 current.orgId(),
                 current.from().isBefore(incoming.from()) ? current.from() : incoming.from(),
@@ -117,7 +126,8 @@ public class ChannexAriBatcher {
                 current.nextAttemptAt(),
                 current.attempts(),
                 current.scope().merge(incoming.scope()),
-                ChannexRateField.merge(current.rateFields(), incoming.rateFields())));
+                ChannexRateField.merge(current.rateFields(), incoming.rateFields()),
+                unionDates(current.availabilityDates(), incoming.availabilityDates())));
         log.debug("ChannexAriBatcher: enqueue property={} [{}, {}] scope={} fields={}",
             propertyId, from, to, effective, effectiveFields);
     }
@@ -166,7 +176,7 @@ public class ChannexAriBatcher {
             try {
                 result = syncService.processCalendarRange(
                     propertyId, range.orgId(), range.from(), range.to(), range.scope(),
-                    range.rateFields());
+                    range.rateFields(), range.availabilityDates());
             } catch (Exception e) {
                 // Erreur inattendue (hors ChannexException, deja absorbee par le
                 // sync service) : on retente comme un echec de push classique.
@@ -194,7 +204,7 @@ public class ChannexAriBatcher {
         Instant nextAttempt = clock.instant().plusSeconds(retrySeconds);
         PendingRange retry = new PendingRange(
             failed.orgId(), failed.from(), failed.to(), nextAttempt, attempts,
-            failed.scope(), failed.rateFields());
+            failed.scope(), failed.rateFields(), failed.availabilityDates());
         // merge : si des events sont arrives entre-temps, fusionner les plages
         // et conserver le differe (on ne re-pousse pas avant le backoff).
         pending.merge(propertyId, retry, (current, incoming) -> new PendingRange(
@@ -204,13 +214,21 @@ public class ChannexAriBatcher {
             incoming.nextAttemptAt(),
             incoming.attempts(),
             current.scope().merge(incoming.scope()),
-            ChannexRateField.merge(current.rateFields(), incoming.rateFields())));
+            ChannexRateField.merge(current.rateFields(), incoming.rateFields()),
+            unionDates(current.availabilityDates(), incoming.availabilityDates())));
         log.warn("ChannexAriBatcher: push KO property={} ({}), retry #{} dans {}s",
             propertyId, reason, attempts, retrySeconds);
+    }
+
+    private static Set<LocalDate> unionDates(Set<LocalDate> first, Set<LocalDate> second) {
+        Set<LocalDate> dates = new HashSet<>(first);
+        dates.addAll(second);
+        return Set.copyOf(dates);
     }
 
     private record PendingRange(Long orgId, LocalDate from, LocalDate to,
                                 Instant nextAttemptAt, int attempts,
                                 ChannexAriScope scope,
-                                java.util.Set<ChannexRateField> rateFields) {}
+                                java.util.Set<ChannexRateField> rateFields,
+                                Set<LocalDate> availabilityDates) {}
 }

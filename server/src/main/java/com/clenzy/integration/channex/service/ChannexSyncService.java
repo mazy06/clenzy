@@ -143,6 +143,15 @@ public class ChannexSyncService {
                                                   LocalDate from, LocalDate to,
                                                   com.clenzy.integration.channex.model.ChannexAriScope scope,
                                                   java.util.Set<ChannexRateField> rateFields) {
+        return processCalendarRange(propertyId, orgId, from, to, scope, rateFields, null);
+    }
+
+    /** Batch avec dates de disponibilite exactes ; null conserve le push de toute la plage. */
+    public ChannexSyncResult processCalendarRange(Long propertyId, Long orgId,
+                                                  LocalDate from, LocalDate to,
+                                                  com.clenzy.integration.channex.model.ChannexAriScope scope,
+                                                  java.util.Set<ChannexRateField> rateFields,
+                                                  java.util.Set<LocalDate> availabilityDates) {
         Optional<ChannexPropertyMapping> mappingOpt =
             mappingRepository.findByClenzyPropertyId(propertyId, orgId);
         if (mappingOpt.isEmpty()) {
@@ -189,7 +198,7 @@ public class ChannexSyncService {
         // rien a dire. Les echecs OTA sont catch dans les methodes de push et
         // enregistres en ERROR.
         boolean availabilityOk = !effectiveScope.includesAvailability()
-            || pushAvailabilityForRange(mapping, from, to);
+            || pushAvailabilityForRange(mapping, from, to, availabilityDates);
         boolean ratesOk = !effectiveScope.includesRates()
             || pushRatesForRange(mapping, from, to, rateFields);
 
@@ -290,9 +299,14 @@ public class ChannexSyncService {
 
     /**
      * Calcule les updates de disponibilite a partir des CalendarDay et push vers Channex.
-     * Convention Clenzy : absence de ligne = AVAILABLE.
+     * Convention Baitly : absence de ligne = AVAILABLE.
      */
     private boolean pushAvailabilityForRange(ChannexPropertyMapping mapping, LocalDate from, LocalDate to) {
+        return pushAvailabilityForRange(mapping, from, to, null);
+    }
+
+    private boolean pushAvailabilityForRange(ChannexPropertyMapping mapping, LocalDate from, LocalDate to,
+                                              java.util.Set<LocalDate> selectedDates) {
         long startMs = System.currentTimeMillis();
         try {
             List<CalendarDay> days = calendarDayRepository.findByPropertyAndDateRange(
@@ -318,6 +332,7 @@ public class ChannexSyncService {
             // 1 = l'unite est disponible, 0 = elle est occupee par une reservation
             List<ChannexAvailabilityUpdate> updates = new ArrayList<>();
             for (LocalDate d = from; !d.isAfter(to); d = d.plusDays(1)) {
+                if (selectedDates != null && !selectedDates.contains(d)) continue;
                 int avail = bookedDates.contains(d) ? 0 : 1;
                 updates.add(new ChannexAvailabilityUpdate(
                     mapping.getChannexPropertyId(),
@@ -652,7 +667,7 @@ public class ChannexSyncService {
      * Phase 5 OTA pricing — Push complet bidirectionnel.
      *
      * <p>Pousse vers Channex (via PUT /rate_plans/{id}) les settings tarifaires
-     * Clenzy qui n'etaient PAS repercutes par l'export {@link #pushRatesForRange}
+     * Baitly qui n'etaient PAS repercutes par l'export {@link #pushRatesForRange}
      * (qui ne push que le rate quotidien + restrictions par date) :</p>
      * <ul>
      *   <li>{@code weekend_price} : depuis le {@link com.clenzy.model.RatePlan}(type=WEEKEND)
@@ -668,7 +683,7 @@ public class ChannexSyncService {
      *
      * <p><b>Conditions de skip</b> :</p>
      * <ul>
-     *   <li>{@code priceSourceOfTruth != CLENZY} (la prop n'est pas pilotee par Clenzy)</li>
+     *   <li>{@code priceSourceOfTruth != CLENZY} (la prop n'est pas pilotee par Baitly)</li>
      *   <li>Pas de mapping Channex pour cette property</li>
      *   <li>Aucune des sources tarifaires presente (payload vide → no-op)</li>
      * </ul>
@@ -713,7 +728,7 @@ public class ChannexSyncService {
                 "Skipped: price_source_of_truth=" + property.getPriceSourceOfTruth(), 0, 0);
         }
 
-        // Build le payload depuis les sources Clenzy
+        // Build le payload depuis les sources Baitly
         java.math.BigDecimal weekendPrice = findWeekendPrice(propertyId, orgId);
         com.clenzy.model.OccupancyPricing op = occupancyPricingRepository
             .findByPropertyId(propertyId, orgId).orElse(null);
