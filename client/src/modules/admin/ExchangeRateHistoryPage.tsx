@@ -161,8 +161,8 @@ export default function ExchangeRateHistoryPage() {
   return (
     <div>
       <PageHeader
-        title="{t('admin.rates.title')}"
-        subtitle="{t('admin.rates.subtitle')}"
+        title={t('admin.rates.title')}
+        subtitle={t('admin.rates.subtitle')}
         iconBadge={<CurrencyExchange />}
         showBackButton={false}
         actions={

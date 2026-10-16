@@ -1,0 +1,4754 @@
+[
+  {
+    "key": "sofa-two",
+    "names": [
+      "Canapé 2 places",
+      "Two-seat fabric sofa",
+      "أريكة بمقعدين"
+    ],
+    "sheet": "seating",
+    "room": "Salon",
+    "slot": 0
+  },
+  {
+    "key": "sofa-three",
+    "names": [
+      "Canapé 3 places",
+      "Three-seat fabric sofa",
+      "أريكة بثلاثة مقاعد"
+    ],
+    "sheet": "seating",
+    "room": "Salon",
+    "slot": 1
+  },
+  {
+    "key": "corner-sofa",
+    "names": [
+      "Canapé d’angle",
+      "L-shaped corner sofa",
+      "أريكة زاوية"
+    ],
+    "sheet": "seating",
+    "room": "Salon",
+    "slot": 2
+  },
+  {
+    "key": "sofa-bed",
+    "names": [
+      "Canapé convertible",
+      "Sofa bed unfolded into a bed",
+      "أريكة تتحول إلى سرير"
+    ],
+    "sheet": "seating",
+    "room": "Salon",
+    "slot": 3
+  },
+  {
+    "key": "futon",
+    "names": [
+      "Banquette clic-clac",
+      "Foldable futon sofa",
+      "أريكة سرير قابلة للطي"
+    ],
+    "sheet": "seating",
+    "room": "Salon",
+    "slot": 4
+  },
+  {
+    "key": "armchair",
+    "names": [
+      "Fauteuil",
+      "Upholstered armchair",
+      "كرسي بذراعين"
+    ],
+    "sheet": "seating",
+    "room": "Salon",
+    "slot": 5
+  },
+  {
+    "key": "recliner",
+    "names": [
+      "Fauteuil relax",
+      "Reclining armchair with extended footrest",
+      "كرسي استرخاء"
+    ],
+    "sheet": "seating",
+    "room": "Salon",
+    "slot": 6
+  },
+  {
+    "key": "rocking-chair",
+    "names": [
+      "Fauteuil à bascule",
+      "Wooden rocking chair",
+      "كرسي هزاز"
+    ],
+    "sheet": "seating",
+    "room": "Salon",
+    "slot": 7
+  },
+  {
+    "key": "dining-chair",
+    "names": [
+      "Chaise de salle à manger",
+      "Wooden dining chair",
+      "كرسي طعام"
+    ],
+    "sheet": "seating",
+    "room": "Salon",
+    "slot": 8
+  },
+  {
+    "key": "folding-chair",
+    "names": [
+      "Chaise pliante",
+      "Folding chair",
+      "كرسي قابل للطي"
+    ],
+    "sheet": "seating",
+    "room": "Salon",
+    "slot": 9
+  },
+  {
+    "key": "bar-stool",
+    "names": [
+      "Tabouret de bar",
+      "Tall bar stool",
+      "مقعد بار مرتفع"
+    ],
+    "sheet": "seating",
+    "room": "Salon",
+    "slot": 10
+  },
+  {
+    "key": "stool",
+    "names": [
+      "Tabouret bas",
+      "Low wooden stool",
+      "مقعد خشبي منخفض"
+    ],
+    "sheet": "seating",
+    "room": "Salon",
+    "slot": 11
+  },
+  {
+    "key": "bench",
+    "names": [
+      "Banc",
+      "Wooden indoor bench",
+      "مقعد طويل"
+    ],
+    "sheet": "seating",
+    "room": "Salon",
+    "slot": 12
+  },
+  {
+    "key": "pouffe",
+    "names": [
+      "Pouf",
+      "Round upholstered pouffe",
+      "مسند جلوس مبطن"
+    ],
+    "sheet": "seating",
+    "room": "Salon",
+    "slot": 13
+  },
+  {
+    "key": "beanbag",
+    "names": [
+      "Pouf poire",
+      "Large beanbag chair",
+      "كرسي كيس حبيبات"
+    ],
+    "sheet": "seating",
+    "room": "Salon",
+    "slot": 14
+  },
+  {
+    "key": "moroccan-bench",
+    "names": [
+      "Banquette de salon marocain",
+      "Low Moroccan salon bench with patterned cushions",
+      "جلسة صالون مغربي"
+    ],
+    "sheet": "seating",
+    "room": "Salon",
+    "slot": 15
+  },
+  {
+    "key": "dining-table",
+    "names": [
+      "Table à manger rectangulaire",
+      "Rectangular wooden dining table",
+      "طاولة طعام مستطيلة"
+    ],
+    "sheet": "furniture",
+    "room": "Salon",
+    "slot": 0
+  },
+  {
+    "key": "round-table",
+    "names": [
+      "Table à manger ronde",
+      "Round dining table",
+      "طاولة طعام مستديرة"
+    ],
+    "sheet": "furniture",
+    "room": "Salon",
+    "slot": 1
+  },
+  {
+    "key": "extendable-table",
+    "names": [
+      "Table à rallonges",
+      "Extendable table with extension leaf exposed",
+      "طاولة قابلة للتمديد"
+    ],
+    "sheet": "furniture",
+    "room": "Salon",
+    "slot": 2
+  },
+  {
+    "key": "coffee-table",
+    "names": [
+      "Table basse",
+      "Low coffee table",
+      "طاولة قهوة منخفضة"
+    ],
+    "sheet": "furniture",
+    "room": "Salon",
+    "slot": 3
+  },
+  {
+    "key": "nesting-tables",
+    "names": [
+      "Tables gigognes",
+      "Three nesting side tables",
+      "طاولات متداخلة"
+    ],
+    "sheet": "furniture",
+    "room": "Salon",
+    "slot": 4
+  },
+  {
+    "key": "side-table",
+    "names": [
+      "Table d’appoint",
+      "Small side table",
+      "طاولة جانبية"
+    ],
+    "sheet": "furniture",
+    "room": "Salon",
+    "slot": 5
+  },
+  {
+    "key": "console-table",
+    "names": [
+      "Console d’entrée",
+      "Narrow hallway console table",
+      "طاولة مدخل ضيقة"
+    ],
+    "sheet": "furniture",
+    "room": "Salon",
+    "slot": 6
+  },
+  {
+    "key": "tv-unit",
+    "names": [
+      "Meuble TV",
+      "Low television cabinet without television",
+      "خزانة تلفاز"
+    ],
+    "sheet": "furniture",
+    "room": "Salon",
+    "slot": 7
+  },
+  {
+    "key": "sideboard",
+    "names": [
+      "Buffet",
+      "Wooden sideboard cabinet",
+      "خزانة جانبية"
+    ],
+    "sheet": "furniture",
+    "room": "Salon",
+    "slot": 8
+  },
+  {
+    "key": "display-cabinet",
+    "names": [
+      "Vitrine",
+      "Glass-front display cabinet",
+      "خزانة عرض زجاجية"
+    ],
+    "sheet": "furniture",
+    "room": "Salon",
+    "slot": 9
+  },
+  {
+    "key": "bookcase",
+    "names": [
+      "Bibliothèque",
+      "Tall open bookcase",
+      "مكتبة رفوف"
+    ],
+    "sheet": "furniture",
+    "room": "Salon",
+    "slot": 10
+  },
+  {
+    "key": "desk",
+    "names": [
+      "Bureau",
+      "Writing desk with drawer",
+      "مكتب"
+    ],
+    "sheet": "furniture",
+    "room": "Salon",
+    "slot": 11
+  },
+  {
+    "key": "office-chair",
+    "names": [
+      "Chaise de bureau",
+      "Ergonomic office chair with wheels",
+      "كرسي مكتب بعجلات"
+    ],
+    "sheet": "furniture",
+    "room": "Salon",
+    "slot": 12
+  },
+  {
+    "key": "dressing-table",
+    "names": [
+      "Coiffeuse",
+      "Dressing table with mirror",
+      "طاولة زينة بمرآة"
+    ],
+    "sheet": "furniture",
+    "room": "Salon",
+    "slot": 13
+  },
+  {
+    "key": "bedside-table",
+    "names": [
+      "Table de chevet",
+      "Bedside table with drawer",
+      "طاولة بجانب السرير"
+    ],
+    "sheet": "furniture",
+    "room": "Salon",
+    "slot": 14
+  },
+  {
+    "key": "chest-drawers",
+    "names": [
+      "Commode",
+      "Chest of drawers",
+      "خزانة أدراج"
+    ],
+    "sheet": "furniture",
+    "room": "Salon",
+    "slot": 15
+  },
+  {
+    "key": "single-bed",
+    "names": [
+      "Lit simple 90 × 200",
+      "Single bed with narrow mattress",
+      "سرير فردي 90 × 200"
+    ],
+    "sheet": "beds",
+    "room": "Chambre",
+    "slot": 0
+  },
+  {
+    "key": "double-bed",
+    "names": [
+      "Lit double 140 × 200",
+      "Double bed with two pillows",
+      "سرير مزدوج 140 × 200"
+    ],
+    "sheet": "beds",
+    "room": "Chambre",
+    "slot": 1
+  },
+  {
+    "key": "queen-bed",
+    "names": [
+      "Lit queen size 160 × 200",
+      "Queen size bed with broad padded headboard",
+      "سرير كوين 160 × 200"
+    ],
+    "sheet": "beds",
+    "room": "Chambre",
+    "slot": 2
+  },
+  {
+    "key": "king-bed",
+    "names": [
+      "Lit king size 180 × 200",
+      "Very wide king size bed with four pillows",
+      "سرير كينغ 180 × 200"
+    ],
+    "sheet": "beds",
+    "room": "Chambre",
+    "slot": 3
+  },
+  {
+    "key": "twin-beds",
+    "names": [
+      "Deux lits jumeaux",
+      "Two separate matching single beds",
+      "سريران فرديان متماثلان"
+    ],
+    "sheet": "beds",
+    "room": "Chambre",
+    "slot": 4
+  },
+  {
+    "key": "bunk-bed",
+    "names": [
+      "Lits superposés",
+      "Wooden bunk bed with ladder",
+      "سرير بطابقين"
+    ],
+    "sheet": "beds",
+    "room": "Chambre",
+    "slot": 5
+  },
+  {
+    "key": "trundle-bed",
+    "names": [
+      "Lit gigogne",
+      "Trundle bed with lower bed pulled out",
+      "سرير بسحب سفلي"
+    ],
+    "sheet": "beds",
+    "room": "Chambre",
+    "slot": 6
+  },
+  {
+    "key": "loft-bed",
+    "names": [
+      "Lit mezzanine",
+      "Loft bed with clear empty space below",
+      "سرير مرتفع"
+    ],
+    "sheet": "beds",
+    "room": "Chambre",
+    "slot": 7
+  },
+  {
+    "key": "folding-bed",
+    "names": [
+      "Lit d’appoint pliant",
+      "Folding guest bed partly unfolded",
+      "سرير إضافي قابل للطي"
+    ],
+    "sheet": "beds",
+    "room": "Chambre",
+    "slot": 8
+  },
+  {
+    "key": "murphy-bed",
+    "names": [
+      "Lit escamotable",
+      "Wall bed lowered from its cabinet",
+      "سرير جداري قابل للطي"
+    ],
+    "sheet": "beds",
+    "room": "Chambre",
+    "slot": 9
+  },
+  {
+    "key": "storage-bed",
+    "names": [
+      "Lit coffre",
+      "Storage bed with mattress base lifted",
+      "سرير مع صندوق تخزين"
+    ],
+    "sheet": "beds",
+    "room": "Chambre",
+    "slot": 10
+  },
+  {
+    "key": "inflatable-bed",
+    "names": [
+      "Matelas gonflable",
+      "Inflatable guest air mattress",
+      "مرتبة هوائية"
+    ],
+    "sheet": "beds",
+    "room": "Chambre",
+    "slot": 11
+  },
+  {
+    "key": "spring-mattress",
+    "names": [
+      "Matelas à ressorts",
+      "Thick spring mattress standing on edge",
+      "مرتبة بنوابض"
+    ],
+    "sheet": "beds",
+    "room": "Chambre",
+    "slot": 12
+  },
+  {
+    "key": "foam-mattress",
+    "names": [
+      "Matelas en mousse",
+      "Foam mattress with flat cream quilted cover",
+      "مرتبة إسفنجية"
+    ],
+    "sheet": "beds",
+    "room": "Chambre",
+    "slot": 13
+  },
+  {
+    "key": "slatted-base",
+    "names": [
+      "Sommier à lattes",
+      "Bare wooden slatted bed base",
+      "قاعدة سرير بشرائح خشبية"
+    ],
+    "sheet": "beds",
+    "room": "Chambre",
+    "slot": 14
+  },
+  {
+    "key": "headboard",
+    "names": [
+      "Tête de lit",
+      "Freestanding padded headboard only",
+      "لوح رأس السرير"
+    ],
+    "sheet": "beds",
+    "room": "Chambre",
+    "slot": 15
+  },
+  {
+    "key": "mattress-topper",
+    "names": [
+      "Surmatelas",
+      "Thick mattress topper rolled halfway",
+      "لبادة مرتبة"
+    ],
+    "sheet": "textiles",
+    "room": "Chambre",
+    "slot": 0
+  },
+  {
+    "key": "waterproof-protector",
+    "names": [
+      "Alèse imperméable",
+      "Waterproof mattress protector with elastic corners",
+      "واقي مرتبة مقاوم للماء"
+    ],
+    "sheet": "textiles",
+    "room": "Chambre",
+    "slot": 1
+  },
+  {
+    "key": "bolster",
+    "names": [
+      "Traversin",
+      "Long cylindrical white bolster pillow",
+      "وسادة أسطوانية طويلة"
+    ],
+    "sheet": "textiles",
+    "room": "Chambre",
+    "slot": 2
+  },
+  {
+    "key": "ergonomic-pillow",
+    "names": [
+      "Oreiller ergonomique",
+      "Contoured memory foam pillow",
+      "وسادة طبية محدبة"
+    ],
+    "sheet": "textiles",
+    "room": "Chambre",
+    "slot": 3
+  },
+  {
+    "key": "decorative-cushion",
+    "names": [
+      "Coussin décoratif",
+      "Square decorative linen cushion",
+      "وسادة زينة مربعة"
+    ],
+    "sheet": "textiles",
+    "room": "Chambre",
+    "slot": 4
+  },
+  {
+    "key": "cushion-cover",
+    "names": [
+      "Housse de coussin",
+      "Empty cushion cover with visible zipper",
+      "غطاء وسادة زينة"
+    ],
+    "sheet": "textiles",
+    "room": "Chambre",
+    "slot": 5
+  },
+  {
+    "key": "bedspread",
+    "names": [
+      "Couvre-lit",
+      "Folded quilted bedspread",
+      "مفرش سرير مبطن"
+    ],
+    "sheet": "textiles",
+    "room": "Chambre",
+    "slot": 6
+  },
+  {
+    "key": "throw",
+    "names": [
+      "Plaid",
+      "Folded knitted throw blanket with tassels",
+      "بطانية خفيفة محبوكة"
+    ],
+    "sheet": "textiles",
+    "room": "Chambre",
+    "slot": 7
+  },
+  {
+    "key": "blackout-curtains",
+    "names": [
+      "Rideaux occultants",
+      "Pair of heavy opaque curtains on short rod",
+      "ستائر معتمة"
+    ],
+    "sheet": "textiles",
+    "room": "Chambre",
+    "slot": 8
+  },
+  {
+    "key": "sheer-curtains",
+    "names": [
+      "Voilages",
+      "Pair of translucent sheer curtains",
+      "ستائر شفافة"
+    ],
+    "sheet": "textiles",
+    "room": "Chambre",
+    "slot": 9
+  },
+  {
+    "key": "roller-blind",
+    "names": [
+      "Store enrouleur",
+      "Partly lowered roller blind",
+      "ستارة رول"
+    ],
+    "sheet": "textiles",
+    "room": "Chambre",
+    "slot": 10
+  },
+  {
+    "key": "venetian-blind",
+    "names": [
+      "Store vénitien",
+      "Venetian slatted blind",
+      "ستارة شرائح"
+    ],
+    "sheet": "textiles",
+    "room": "Chambre",
+    "slot": 11
+  },
+  {
+    "key": "rug",
+    "names": [
+      "Tapis de salon",
+      "Rectangular woven living room rug",
+      "سجادة غرفة جلوس"
+    ],
+    "sheet": "textiles",
+    "room": "Chambre",
+    "slot": 12
+  },
+  {
+    "key": "runner-rug",
+    "names": [
+      "Tapis de couloir",
+      "Long narrow hallway runner rug",
+      "سجادة ممر طويلة"
+    ],
+    "sheet": "textiles",
+    "room": "Chambre",
+    "slot": 13
+  },
+  {
+    "key": "doormat",
+    "names": [
+      "Paillasson",
+      "Coir entrance doormat without writing",
+      "حصيرة مدخل"
+    ],
+    "sheet": "textiles",
+    "room": "Chambre",
+    "slot": 14
+  },
+  {
+    "key": "mosquito-net",
+    "names": [
+      "Moustiquaire de lit",
+      "Suspended canopy mosquito net",
+      "ناموسية سرير"
+    ],
+    "sheet": "textiles",
+    "room": "Chambre",
+    "slot": 15
+  },
+  {
+    "key": "fridge",
+    "names": [
+      "Réfrigérateur",
+      "Tall single-door refrigerator slightly open",
+      "ثلاجة بباب واحد"
+    ],
+    "sheet": "large-appliances",
+    "room": "Cuisine",
+    "slot": 0
+  },
+  {
+    "key": "fridge-freezer",
+    "names": [
+      "Réfrigérateur combiné",
+      "Tall refrigerator with separate bottom freezer",
+      "ثلاجة مع مجمد سفلي"
+    ],
+    "sheet": "large-appliances",
+    "room": "Cuisine",
+    "slot": 1
+  },
+  {
+    "key": "american-fridge",
+    "names": [
+      "Réfrigérateur américain",
+      "Wide side-by-side refrigerator with water dispenser",
+      "ثلاجة أمريكية ببابين"
+    ],
+    "sheet": "large-appliances",
+    "room": "Cuisine",
+    "slot": 2
+  },
+  {
+    "key": "mini-fridge",
+    "names": [
+      "Mini-réfrigérateur",
+      "Compact minibar refrigerator",
+      "ثلاجة صغيرة"
+    ],
+    "sheet": "large-appliances",
+    "room": "Cuisine",
+    "slot": 3
+  },
+  {
+    "key": "upright-freezer",
+    "names": [
+      "Congélateur armoire",
+      "Upright freezer with drawers visible",
+      "مجمد عمودي"
+    ],
+    "sheet": "large-appliances",
+    "room": "Cuisine",
+    "slot": 4
+  },
+  {
+    "key": "chest-freezer",
+    "names": [
+      "Congélateur coffre",
+      "Chest freezer with top lid open",
+      "مجمد صندوقي"
+    ],
+    "sheet": "large-appliances",
+    "room": "Cuisine",
+    "slot": 5
+  },
+  {
+    "key": "dishwasher",
+    "names": [
+      "Lave-vaisselle",
+      "Full-size dishwasher with front door open",
+      "غسالة صحون كبيرة"
+    ],
+    "sheet": "large-appliances",
+    "room": "Cuisine",
+    "slot": 6
+  },
+  {
+    "key": "mini-dishwasher",
+    "names": [
+      "Mini-lave-vaisselle",
+      "Small countertop dishwasher",
+      "غسالة صحون صغيرة"
+    ],
+    "sheet": "large-appliances",
+    "room": "Cuisine",
+    "slot": 7
+  },
+  {
+    "key": "oven",
+    "names": [
+      "Four encastrable",
+      "Built-in electric oven",
+      "فرن كهربائي مدمج"
+    ],
+    "sheet": "large-appliances",
+    "room": "Cuisine",
+    "slot": 8
+  },
+  {
+    "key": "microwave",
+    "names": [
+      "Four à micro-ondes",
+      "Countertop microwave oven",
+      "فرن ميكروويف"
+    ],
+    "sheet": "large-appliances",
+    "room": "Cuisine",
+    "slot": 9
+  },
+  {
+    "key": "mini-oven",
+    "names": [
+      "Mini-four",
+      "Countertop mini oven with heating coils",
+      "فرن صغير"
+    ],
+    "sheet": "large-appliances",
+    "room": "Cuisine",
+    "slot": 10
+  },
+  {
+    "key": "gas-stove",
+    "names": [
+      "Cuisinière à gaz",
+      "Freestanding cooker with gas burners and oven",
+      "موقد غاز مع فرن"
+    ],
+    "sheet": "large-appliances",
+    "room": "Cuisine",
+    "slot": 11
+  },
+  {
+    "key": "induction-hob",
+    "names": [
+      "Plaque à induction",
+      "Black induction hob with four smooth cooking rings",
+      "موقد حث كهربائي"
+    ],
+    "sheet": "large-appliances",
+    "room": "Cuisine",
+    "slot": 12
+  },
+  {
+    "key": "ceramic-hob",
+    "names": [
+      "Plaque vitrocéramique",
+      "Ceramic hob with glowing red radiant rings",
+      "موقد زجاجي سيراميكي"
+    ],
+    "sheet": "large-appliances",
+    "room": "Cuisine",
+    "slot": 13
+  },
+  {
+    "key": "gas-hob",
+    "names": [
+      "Plaque de cuisson à gaz",
+      "Four burner gas hob with metal pan supports",
+      "موقد غاز بأربع شعلات"
+    ],
+    "sheet": "large-appliances",
+    "room": "Cuisine",
+    "slot": 14
+  },
+  {
+    "key": "extractor-hood",
+    "names": [
+      "Hotte aspirante",
+      "Stainless steel chimney extractor hood",
+      "شفاط مطبخ"
+    ],
+    "sheet": "large-appliances",
+    "room": "Cuisine",
+    "slot": 15
+  },
+  {
+    "key": "toaster",
+    "names": [
+      "Grille-pain",
+      "Two-slot toaster",
+      "محمصة خبز"
+    ],
+    "sheet": "small-appliances",
+    "room": "Cuisine",
+    "slot": 0
+  },
+  {
+    "key": "blender",
+    "names": [
+      "Blender",
+      "Countertop blender with glass jug",
+      "خلاط بإبريق"
+    ],
+    "sheet": "small-appliances",
+    "room": "Cuisine",
+    "slot": 1
+  },
+  {
+    "key": "hand-blender",
+    "names": [
+      "Mixeur plongeant",
+      "Handheld immersion blender",
+      "خلاط يدوي غاطس"
+    ],
+    "sheet": "small-appliances",
+    "room": "Cuisine",
+    "slot": 2
+  },
+  {
+    "key": "hand-mixer",
+    "names": [
+      "Batteur électrique",
+      "Electric hand mixer with twin beaters",
+      "مضرب كهربائي يدوي"
+    ],
+    "sheet": "small-appliances",
+    "room": "Cuisine",
+    "slot": 3
+  },
+  {
+    "key": "stand-mixer",
+    "names": [
+      "Robot pâtissier",
+      "Stand mixer with stainless bowl",
+      "عجانة كهربائية"
+    ],
+    "sheet": "small-appliances",
+    "room": "Cuisine",
+    "slot": 4
+  },
+  {
+    "key": "food-processor",
+    "names": [
+      "Robot multifonction",
+      "Food processor with chopping bowl",
+      "محضر طعام"
+    ],
+    "sheet": "small-appliances",
+    "room": "Cuisine",
+    "slot": 5
+  },
+  {
+    "key": "air-fryer",
+    "names": [
+      "Friteuse à air",
+      "Basket air fryer with drawer open",
+      "قلاية هوائية"
+    ],
+    "sheet": "small-appliances",
+    "room": "Cuisine",
+    "slot": 6
+  },
+  {
+    "key": "deep-fryer",
+    "names": [
+      "Friteuse à huile",
+      "Oil deep fryer with metal basket",
+      "قلاية زيت"
+    ],
+    "sheet": "small-appliances",
+    "room": "Cuisine",
+    "slot": 7
+  },
+  {
+    "key": "rice-cooker",
+    "names": [
+      "Cuiseur à riz",
+      "Electric rice cooker with lid open",
+      "طباخة أرز"
+    ],
+    "sheet": "small-appliances",
+    "room": "Cuisine",
+    "slot": 8
+  },
+  {
+    "key": "steamer",
+    "names": [
+      "Cuiseur vapeur",
+      "Three-tier electric food steamer",
+      "طباخة بخار"
+    ],
+    "sheet": "small-appliances",
+    "room": "Cuisine",
+    "slot": 9
+  },
+  {
+    "key": "multicooker",
+    "names": [
+      "Multicuiseur",
+      "Electric pressure multicooker",
+      "طباخة متعددة الوظائف"
+    ],
+    "sheet": "small-appliances",
+    "room": "Cuisine",
+    "slot": 10
+  },
+  {
+    "key": "waffle-maker",
+    "names": [
+      "Gaufrier",
+      "Open waffle maker with square waffle plates",
+      "آلة وافل"
+    ],
+    "sheet": "small-appliances",
+    "room": "Cuisine",
+    "slot": 11
+  },
+  {
+    "key": "sandwich-maker",
+    "names": [
+      "Appareil à croque-monsieur",
+      "Open toasted sandwich maker with triangular plates",
+      "آلة شطائر محمصة"
+    ],
+    "sheet": "small-appliances",
+    "room": "Cuisine",
+    "slot": 12
+  },
+  {
+    "key": "panini-grill",
+    "names": [
+      "Grill à panini",
+      "Contact panini grill with ribbed plates",
+      "شواية بانيني"
+    ],
+    "sheet": "small-appliances",
+    "room": "Cuisine",
+    "slot": 13
+  },
+  {
+    "key": "raclette",
+    "names": [
+      "Appareil à raclette",
+      "Raclette grill with little cheese pans",
+      "جهاز راكليت"
+    ],
+    "sheet": "small-appliances",
+    "room": "Cuisine",
+    "slot": 14
+  },
+  {
+    "key": "crepe-maker",
+    "names": [
+      "Crêpière électrique",
+      "Round electric crepe maker with wooden spreader",
+      "آلة كريب كهربائية"
+    ],
+    "sheet": "small-appliances",
+    "room": "Cuisine",
+    "slot": 15
+  },
+  {
+    "key": "capsule-machine",
+    "names": [
+      "Cafetière à capsules",
+      "Compact coffee capsule machine",
+      "آلة قهوة بالكبسولات"
+    ],
+    "sheet": "coffee-drinks",
+    "room": "Cuisine",
+    "slot": 0
+  },
+  {
+    "key": "pod-machine",
+    "names": [
+      "Cafetière à dosettes souples",
+      "Coffee machine for round soft paper pods",
+      "آلة قهوة بأكياس ورقية"
+    ],
+    "sheet": "coffee-drinks",
+    "room": "Cuisine",
+    "slot": 1
+  },
+  {
+    "key": "filter-coffee",
+    "names": [
+      "Cafetière filtre",
+      "Drip filter coffee maker with glass carafe",
+      "آلة قهوة بالتقطير"
+    ],
+    "sheet": "coffee-drinks",
+    "room": "Cuisine",
+    "slot": 2
+  },
+  {
+    "key": "espresso-machine",
+    "names": [
+      "Machine espresso à porte-filtre",
+      "Espresso machine with portafilter and steam wand",
+      "آلة إسبريسو بحامل فلتر"
+    ],
+    "sheet": "coffee-drinks",
+    "room": "Cuisine",
+    "slot": 3
+  },
+  {
+    "key": "bean-coffee",
+    "names": [
+      "Machine à café à grains",
+      "Automatic bean-to-cup machine with top bean hopper",
+      "آلة قهوة بحبوب كاملة"
+    ],
+    "sheet": "coffee-drinks",
+    "room": "Cuisine",
+    "slot": 4
+  },
+  {
+    "key": "french-press",
+    "names": [
+      "Cafetière à piston",
+      "Glass French press coffee maker",
+      "مكبس قهوة فرنسي"
+    ],
+    "sheet": "coffee-drinks",
+    "room": "Cuisine",
+    "slot": 5
+  },
+  {
+    "key": "moka-pot",
+    "names": [
+      "Cafetière italienne",
+      "Octagonal stovetop moka coffee pot",
+      "إبريق قهوة موكا"
+    ],
+    "sheet": "coffee-drinks",
+    "room": "Cuisine",
+    "slot": 6
+  },
+  {
+    "key": "pour-over",
+    "names": [
+      "Porte-filtre à café",
+      "Ceramic pour-over coffee dripper",
+      "قمع ترشيح قهوة"
+    ],
+    "sheet": "coffee-drinks",
+    "room": "Cuisine",
+    "slot": 7
+  },
+  {
+    "key": "coffee-grinder",
+    "names": [
+      "Moulin à café",
+      "Electric coffee grinder",
+      "مطحنة قهوة"
+    ],
+    "sheet": "coffee-drinks",
+    "room": "Cuisine",
+    "slot": 8
+  },
+  {
+    "key": "milk-frother",
+    "names": [
+      "Mousseur à lait",
+      "Electric jug milk frother",
+      "رغّاية حليب كهربائية"
+    ],
+    "sheet": "coffee-drinks",
+    "room": "Cuisine",
+    "slot": 9
+  },
+  {
+    "key": "electric-kettle",
+    "names": [
+      "Bouilloire électrique",
+      "Electric kettle on its base",
+      "غلاية كهربائية"
+    ],
+    "sheet": "coffee-drinks",
+    "room": "Cuisine",
+    "slot": 10
+  },
+  {
+    "key": "stove-kettle",
+    "names": [
+      "Bouilloire pour plaque",
+      "Stovetop whistling kettle",
+      "غلاية صفارة للموقد"
+    ],
+    "sheet": "coffee-drinks",
+    "room": "Cuisine",
+    "slot": 11
+  },
+  {
+    "key": "teapot",
+    "names": [
+      "Théière",
+      "Ceramic teapot with lid",
+      "إبريق شاي خزفي"
+    ],
+    "sheet": "coffee-drinks",
+    "room": "Cuisine",
+    "slot": 12
+  },
+  {
+    "key": "moroccan-teapot",
+    "names": [
+      "Théière marocaine",
+      "Polished silver Moroccan teapot with curved spout",
+      "براد شاي مغربي"
+    ],
+    "sheet": "coffee-drinks",
+    "room": "Cuisine",
+    "slot": 13
+  },
+  {
+    "key": "thermos",
+    "names": [
+      "Carafe isotherme",
+      "Insulated vacuum coffee carafe",
+      "إبريق حراري"
+    ],
+    "sheet": "coffee-drinks",
+    "room": "Cuisine",
+    "slot": 14
+  },
+  {
+    "key": "citrus-juicer",
+    "names": [
+      "Presse-agrumes électrique",
+      "Electric citrus juicer with exposed cone",
+      "عصارة حمضيات كهربائية"
+    ],
+    "sheet": "coffee-drinks",
+    "room": "Cuisine",
+    "slot": 15
+  },
+  {
+    "key": "saucepan",
+    "names": [
+      "Casserole",
+      "Stainless saucepan with long handle",
+      "قدر بمقبض طويل"
+    ],
+    "sheet": "cookware",
+    "room": "Cuisine",
+    "slot": 0
+  },
+  {
+    "key": "stockpot",
+    "names": [
+      "Faitout",
+      "Stock pot with two handles and lid",
+      "قدر طبخ بغطاء"
+    ],
+    "sheet": "cookware",
+    "room": "Cuisine",
+    "slot": 1
+  },
+  {
+    "key": "frying-pan",
+    "names": [
+      "Poêle antiadhésive",
+      "Nonstick frying pan",
+      "مقلاة غير لاصقة"
+    ],
+    "sheet": "cookware",
+    "room": "Cuisine",
+    "slot": 2
+  },
+  {
+    "key": "stainless-pan",
+    "names": [
+      "Poêle inox",
+      "Shiny stainless steel frying pan",
+      "مقلاة فولاذ مقاوم للصدأ"
+    ],
+    "sheet": "cookware",
+    "room": "Cuisine",
+    "slot": 3
+  },
+  {
+    "key": "cast-iron-pan",
+    "names": [
+      "Poêle en fonte",
+      "Heavy cast iron skillet",
+      "مقلاة حديد زهر"
+    ],
+    "sheet": "cookware",
+    "room": "Cuisine",
+    "slot": 4
+  },
+  {
+    "key": "wok",
+    "names": [
+      "Wok",
+      "Deep round-bottom wok",
+      "مقلاة ووك"
+    ],
+    "sheet": "cookware",
+    "room": "Cuisine",
+    "slot": 5
+  },
+  {
+    "key": "saute-pan",
+    "names": [
+      "Sauteuse",
+      "Deep straight-sided saute pan with lid",
+      "مقلاة عميقة بغطاء"
+    ],
+    "sheet": "cookware",
+    "room": "Cuisine",
+    "slot": 6
+  },
+  {
+    "key": "dutch-oven",
+    "names": [
+      "Cocotte en fonte",
+      "Enameled cast iron Dutch oven",
+      "قدر حديد زهر مطلي"
+    ],
+    "sheet": "cookware",
+    "room": "Cuisine",
+    "slot": 7
+  },
+  {
+    "key": "pressure-cooker",
+    "names": [
+      "Cocotte-minute",
+      "Stovetop pressure cooker with locking lid",
+      "قدر ضغط"
+    ],
+    "sheet": "cookware",
+    "room": "Cuisine",
+    "slot": 8
+  },
+  {
+    "key": "couscous-pot",
+    "names": [
+      "Couscoussier",
+      "Two-tier stainless couscous steamer pot",
+      "كسكاس"
+    ],
+    "sheet": "cookware",
+    "room": "Cuisine",
+    "slot": 9
+  },
+  {
+    "key": "tagine",
+    "names": [
+      "Plat à tajine",
+      "Terracotta Moroccan tagine with conical lid",
+      "طاجين فخاري"
+    ],
+    "sheet": "cookware",
+    "room": "Cuisine",
+    "slot": 10
+  },
+  {
+    "key": "griddle-pan",
+    "names": [
+      "Poêle grill",
+      "Square ridged grill pan",
+      "مقلاة شواء مخططة"
+    ],
+    "sheet": "cookware",
+    "room": "Cuisine",
+    "slot": 11
+  },
+  {
+    "key": "crepe-pan",
+    "names": [
+      "Poêle à crêpes",
+      "Very shallow round crepe pan",
+      "مقلاة كريب"
+    ],
+    "sheet": "cookware",
+    "room": "Cuisine",
+    "slot": 12
+  },
+  {
+    "key": "oven-dish",
+    "names": [
+      "Plat à gratin",
+      "Rectangular ceramic oven dish",
+      "صينية فرن خزفية"
+    ],
+    "sheet": "cookware",
+    "room": "Cuisine",
+    "slot": 13
+  },
+  {
+    "key": "roasting-pan",
+    "names": [
+      "Plat à rôtir",
+      "Metal roasting pan with rack",
+      "صينية تحمير بشبكة"
+    ],
+    "sheet": "cookware",
+    "room": "Cuisine",
+    "slot": 14
+  },
+  {
+    "key": "pot-lid",
+    "names": [
+      "Couvercle de casserole",
+      "Glass pot lid with round knob",
+      "غطاء قدر زجاجي"
+    ],
+    "sheet": "cookware",
+    "room": "Cuisine",
+    "slot": 15
+  },
+  {
+    "key": "chef-knife",
+    "names": [
+      "Couteau de chef",
+      "Large chef kitchen knife",
+      "سكين طاهٍ"
+    ],
+    "sheet": "utensils",
+    "room": "Cuisine",
+    "slot": 0
+  },
+  {
+    "key": "bread-knife",
+    "names": [
+      "Couteau à pain",
+      "Long serrated bread knife",
+      "سكين خبز مسنن"
+    ],
+    "sheet": "utensils",
+    "room": "Cuisine",
+    "slot": 1
+  },
+  {
+    "key": "paring-knife",
+    "names": [
+      "Couteau d’office",
+      "Small paring knife",
+      "سكين تقشير صغير"
+    ],
+    "sheet": "utensils",
+    "room": "Cuisine",
+    "slot": 2
+  },
+  {
+    "key": "kitchen-scissors",
+    "names": [
+      "Ciseaux de cuisine",
+      "Kitchen scissors",
+      "مقص مطبخ"
+    ],
+    "sheet": "utensils",
+    "room": "Cuisine",
+    "slot": 3
+  },
+  {
+    "key": "peeler",
+    "names": [
+      "Économe",
+      "Vegetable peeler",
+      "مقشرة خضروات"
+    ],
+    "sheet": "utensils",
+    "room": "Cuisine",
+    "slot": 4
+  },
+  {
+    "key": "cutting-board",
+    "names": [
+      "Planche à découper",
+      "Wooden chopping board",
+      "لوح تقطيع"
+    ],
+    "sheet": "utensils",
+    "room": "Cuisine",
+    "slot": 5
+  },
+  {
+    "key": "grater",
+    "names": [
+      "Râpe",
+      "Four-sided box grater",
+      "مبشرة صندوقية"
+    ],
+    "sheet": "utensils",
+    "room": "Cuisine",
+    "slot": 6
+  },
+  {
+    "key": "ladle",
+    "names": [
+      "Louche",
+      "Stainless soup ladle",
+      "مغرفة حساء"
+    ],
+    "sheet": "utensils",
+    "room": "Cuisine",
+    "slot": 7
+  },
+  {
+    "key": "spatula",
+    "names": [
+      "Spatule",
+      "Flat silicone cooking spatula",
+      "ملعقة طبخ مسطحة"
+    ],
+    "sheet": "utensils",
+    "room": "Cuisine",
+    "slot": 8
+  },
+  {
+    "key": "slotted-spoon",
+    "names": [
+      "Écumoire",
+      "Slotted skimmer spoon",
+      "ملعقة مثقبة"
+    ],
+    "sheet": "utensils",
+    "room": "Cuisine",
+    "slot": 9
+  },
+  {
+    "key": "wooden-spoon",
+    "names": [
+      "Cuillère en bois",
+      "Wooden cooking spoon",
+      "ملعقة خشبية"
+    ],
+    "sheet": "utensils",
+    "room": "Cuisine",
+    "slot": 10
+  },
+  {
+    "key": "whisk",
+    "names": [
+      "Fouet",
+      "Wire balloon whisk",
+      "مضرب يدوي"
+    ],
+    "sheet": "utensils",
+    "room": "Cuisine",
+    "slot": 11
+  },
+  {
+    "key": "tongs",
+    "names": [
+      "Pince de cuisine",
+      "Kitchen serving tongs",
+      "ملقط مطبخ"
+    ],
+    "sheet": "utensils",
+    "room": "Cuisine",
+    "slot": 12
+  },
+  {
+    "key": "can-opener",
+    "names": [
+      "Ouvre-boîte",
+      "Manual can opener",
+      "فتاحة علب"
+    ],
+    "sheet": "utensils",
+    "room": "Cuisine",
+    "slot": 13
+  },
+  {
+    "key": "corkscrew",
+    "names": [
+      "Tire-bouchon",
+      "Winged corkscrew",
+      "فتاحة فلين"
+    ],
+    "sheet": "utensils",
+    "room": "Cuisine",
+    "slot": 14
+  },
+  {
+    "key": "bottle-opener",
+    "names": [
+      "Décapsuleur",
+      "Simple metal bottle opener",
+      "فتاحة زجاجات"
+    ],
+    "sheet": "utensils",
+    "room": "Cuisine",
+    "slot": 15
+  },
+  {
+    "key": "dinner-plate",
+    "names": [
+      "Assiette plate",
+      "Large flat ceramic dinner plate",
+      "طبق طعام مسطح"
+    ],
+    "sheet": "tableware",
+    "room": "Cuisine",
+    "slot": 0
+  },
+  {
+    "key": "soup-plate",
+    "names": [
+      "Assiette creuse",
+      "Deep rimmed soup plate",
+      "طبق حساء عميق"
+    ],
+    "sheet": "tableware",
+    "room": "Cuisine",
+    "slot": 1
+  },
+  {
+    "key": "dessert-plate",
+    "names": [
+      "Assiette à dessert",
+      "Small ceramic dessert plate",
+      "طبق حلوى صغير"
+    ],
+    "sheet": "tableware",
+    "room": "Cuisine",
+    "slot": 2
+  },
+  {
+    "key": "bowl",
+    "names": [
+      "Bol",
+      "Round breakfast bowl",
+      "وعاء إفطار"
+    ],
+    "sheet": "tableware",
+    "room": "Cuisine",
+    "slot": 3
+  },
+  {
+    "key": "salad-bowl",
+    "names": [
+      "Saladier",
+      "Large glass salad bowl",
+      "وعاء سلطة كبير"
+    ],
+    "sheet": "tableware",
+    "room": "Cuisine",
+    "slot": 4
+  },
+  {
+    "key": "serving-platter",
+    "names": [
+      "Plat de service",
+      "Oval ceramic serving platter",
+      "طبق تقديم بيضاوي"
+    ],
+    "sheet": "tableware",
+    "room": "Cuisine",
+    "slot": 5
+  },
+  {
+    "key": "mug",
+    "names": [
+      "Mug",
+      "Ceramic coffee mug with handle",
+      "كوب خزفي بمقبض"
+    ],
+    "sheet": "tableware",
+    "room": "Cuisine",
+    "slot": 6
+  },
+  {
+    "key": "espresso-cup",
+    "names": [
+      "Tasse à espresso",
+      "Small espresso cup and saucer",
+      "فنجان إسبريسو"
+    ],
+    "sheet": "tableware",
+    "room": "Cuisine",
+    "slot": 7
+  },
+  {
+    "key": "tea-cup",
+    "names": [
+      "Tasse à thé",
+      "Tea cup and matching saucer",
+      "فنجان شاي وصحن"
+    ],
+    "sheet": "tableware",
+    "room": "Cuisine",
+    "slot": 8
+  },
+  {
+    "key": "water-glass",
+    "names": [
+      "Verre à eau",
+      "Short clear water tumbler",
+      "كأس ماء"
+    ],
+    "sheet": "tableware",
+    "room": "Cuisine",
+    "slot": 9
+  },
+  {
+    "key": "wine-glass",
+    "names": [
+      "Verre à vin",
+      "Stemmed wine glass",
+      "كأس نبيذ بساق"
+    ],
+    "sheet": "tableware",
+    "room": "Cuisine",
+    "slot": 10
+  },
+  {
+    "key": "champagne-flute",
+    "names": [
+      "Flûte à champagne",
+      "Tall narrow champagne flute",
+      "كأس شمبانيا طويل"
+    ],
+    "sheet": "tableware",
+    "room": "Cuisine",
+    "slot": 11
+  },
+  {
+    "key": "tea-glass",
+    "names": [
+      "Verre à thé marocain",
+      "Small Moroccan tea glass with gold rim",
+      "كأس شاي مغربي"
+    ],
+    "sheet": "tableware",
+    "room": "Cuisine",
+    "slot": 12
+  },
+  {
+    "key": "dinner-fork",
+    "names": [
+      "Fourchette",
+      "Dinner fork with four tines",
+      "شوكة طعام"
+    ],
+    "sheet": "tableware",
+    "room": "Cuisine",
+    "slot": 13
+  },
+  {
+    "key": "dinner-knife",
+    "names": [
+      "Couteau de table",
+      "Rounded dinner table knife",
+      "سكين مائدة"
+    ],
+    "sheet": "tableware",
+    "room": "Cuisine",
+    "slot": 14
+  },
+  {
+    "key": "spoon-set",
+    "names": [
+      "Cuillère à soupe et petite cuillère",
+      "Tablespoon and teaspoon side by side showing size difference",
+      "ملعقة كبيرة وملعقة صغيرة"
+    ],
+    "sheet": "tableware",
+    "room": "Cuisine",
+    "slot": 15
+  },
+  {
+    "key": "hairdryer",
+    "names": [
+      "Sèche-cheveux",
+      "Handheld hairdryer",
+      "مجفف شعر"
+    ],
+    "sheet": "bathroom",
+    "room": "Salle de bain",
+    "slot": 0
+  },
+  {
+    "key": "hair-straightener",
+    "names": [
+      "Lisseur à cheveux",
+      "Hair straightening iron",
+      "مكواة فرد الشعر"
+    ],
+    "sheet": "bathroom",
+    "room": "Salle de bain",
+    "slot": 1
+  },
+  {
+    "key": "bathroom-scale",
+    "names": [
+      "Pèse-personne",
+      "Digital bathroom weighing scale",
+      "ميزان حمام"
+    ],
+    "sheet": "bathroom",
+    "room": "Salle de bain",
+    "slot": 2
+  },
+  {
+    "key": "magnifying-mirror",
+    "names": [
+      "Miroir grossissant",
+      "Round magnifying mirror on stand",
+      "مرآة تكبير"
+    ],
+    "sheet": "bathroom",
+    "room": "Salle de bain",
+    "slot": 3
+  },
+  {
+    "key": "toilet-brush",
+    "names": [
+      "Brosse WC",
+      "Toilet brush in holder",
+      "فرشاة مرحاض وحامل"
+    ],
+    "sheet": "bathroom",
+    "room": "Salle de bain",
+    "slot": 4
+  },
+  {
+    "key": "toilet-roll-holder",
+    "names": [
+      "Porte-papier toilette",
+      "Freestanding toilet roll holder",
+      "حامل ورق مرحاض"
+    ],
+    "sheet": "bathroom",
+    "room": "Salle de bain",
+    "slot": 5
+  },
+  {
+    "key": "soap-dispenser",
+    "names": [
+      "Distributeur de savon",
+      "Empty ceramic refillable soap dispenser",
+      "موزع صابون قابل للتعبئة"
+    ],
+    "sheet": "bathroom",
+    "room": "Salle de bain",
+    "slot": 6
+  },
+  {
+    "key": "soap-dish",
+    "names": [
+      "Porte-savon",
+      "Ceramic soap dish",
+      "صحن صابون"
+    ],
+    "sheet": "bathroom",
+    "room": "Salle de bain",
+    "slot": 7
+  },
+  {
+    "key": "toothbrush-cup",
+    "names": [
+      "Gobelet porte-brosses",
+      "Bathroom toothbrush tumbler",
+      "كوب فرش الأسنان"
+    ],
+    "sheet": "bathroom",
+    "room": "Salle de bain",
+    "slot": 8
+  },
+  {
+    "key": "shower-curtain",
+    "names": [
+      "Rideau de douche",
+      "Shower curtain with rings",
+      "ستارة دش"
+    ],
+    "sheet": "bathroom",
+    "room": "Salle de bain",
+    "slot": 9
+  },
+  {
+    "key": "shower-squeegee",
+    "names": [
+      "Raclette de douche",
+      "Handheld shower glass squeegee",
+      "ماسحة زجاج الدش"
+    ],
+    "sheet": "bathroom",
+    "room": "Salle de bain",
+    "slot": 10
+  },
+  {
+    "key": "shower-caddy",
+    "names": [
+      "Étagère de douche",
+      "Hanging shower storage caddy",
+      "رف أدوات دش"
+    ],
+    "sheet": "bathroom",
+    "room": "Salle de bain",
+    "slot": 11
+  },
+  {
+    "key": "towel-rack",
+    "names": [
+      "Porte-serviettes",
+      "Freestanding towel rack",
+      "حامل مناشف"
+    ],
+    "sheet": "bathroom",
+    "room": "Salle de bain",
+    "slot": 12
+  },
+  {
+    "key": "bathroom-bin",
+    "names": [
+      "Poubelle de salle de bain",
+      "Small pedal bathroom bin",
+      "سلة حمام بدواسة"
+    ],
+    "sheet": "bathroom",
+    "room": "Salle de bain",
+    "slot": 13
+  },
+  {
+    "key": "non-slip-mat",
+    "names": [
+      "Tapis antidérapant de douche",
+      "Rubber shower mat with suction cups",
+      "بساط دش مانع للانزلاق"
+    ],
+    "sheet": "bathroom",
+    "room": "Salle de bain",
+    "slot": 14
+  },
+  {
+    "key": "bath-tray",
+    "names": [
+      "Plateau de baignoire",
+      "Expandable bamboo bathtub tray",
+      "رف بانيو من الخيزران"
+    ],
+    "sheet": "bathroom",
+    "room": "Salle de bain",
+    "slot": 15
+  },
+  {
+    "key": "front-washer",
+    "names": [
+      "Lave-linge hublot",
+      "Front-loading washing machine",
+      "غسالة بتحميل أمامي"
+    ],
+    "sheet": "laundry-cleaning",
+    "room": "Buanderie",
+    "slot": 0
+  },
+  {
+    "key": "top-washer",
+    "names": [
+      "Lave-linge top",
+      "Top-loading washing machine with top lid",
+      "غسالة بتحميل علوي"
+    ],
+    "sheet": "laundry-cleaning",
+    "room": "Buanderie",
+    "slot": 1
+  },
+  {
+    "key": "dryer",
+    "names": [
+      "Sèche-linge",
+      "Tumble dryer with circular glass door and lower lint panel",
+      "مجفف ملابس"
+    ],
+    "sheet": "laundry-cleaning",
+    "room": "Buanderie",
+    "slot": 2
+  },
+  {
+    "key": "washer-dryer",
+    "names": [
+      "Lave-linge séchant",
+      "Combined washer dryer with two program dials",
+      "غسالة مع مجفف"
+    ],
+    "sheet": "laundry-cleaning",
+    "room": "Buanderie",
+    "slot": 3
+  },
+  {
+    "key": "iron",
+    "names": [
+      "Fer à repasser",
+      "Steam clothes iron",
+      "مكواة بخار"
+    ],
+    "sheet": "laundry-cleaning",
+    "room": "Buanderie",
+    "slot": 4
+  },
+  {
+    "key": "steam-station",
+    "names": [
+      "Centrale vapeur",
+      "Steam iron connected to large separate steam base",
+      "مكواة بمحطة بخار"
+    ],
+    "sheet": "laundry-cleaning",
+    "room": "Buanderie",
+    "slot": 5
+  },
+  {
+    "key": "garment-steamer",
+    "names": [
+      "Défroisseur",
+      "Handheld garment steamer",
+      "جهاز بخار للملابس"
+    ],
+    "sheet": "laundry-cleaning",
+    "room": "Buanderie",
+    "slot": 6
+  },
+  {
+    "key": "ironing-board",
+    "names": [
+      "Table à repasser",
+      "Folding ironing board",
+      "طاولة كي"
+    ],
+    "sheet": "laundry-cleaning",
+    "room": "Buanderie",
+    "slot": 7
+  },
+  {
+    "key": "drying-rack",
+    "names": [
+      "Étendoir à linge",
+      "Folding wing clothes drying rack",
+      "منشر ملابس"
+    ],
+    "sheet": "laundry-cleaning",
+    "room": "Buanderie",
+    "slot": 8
+  },
+  {
+    "key": "laundry-basket",
+    "names": [
+      "Panier à linge",
+      "Wicker laundry basket",
+      "سلة غسيل"
+    ],
+    "sheet": "laundry-cleaning",
+    "room": "Buanderie",
+    "slot": 9
+  },
+  {
+    "key": "canister-vacuum",
+    "names": [
+      "Aspirateur traîneau",
+      "Canister vacuum cleaner with hose",
+      "مكنسة كهربائية بخرطوم"
+    ],
+    "sheet": "laundry-cleaning",
+    "room": "Buanderie",
+    "slot": 10
+  },
+  {
+    "key": "stick-vacuum",
+    "names": [
+      "Aspirateur balai",
+      "Cordless stick vacuum cleaner",
+      "مكنسة عصا لاسلكية"
+    ],
+    "sheet": "laundry-cleaning",
+    "room": "Buanderie",
+    "slot": 11
+  },
+  {
+    "key": "robot-vacuum",
+    "names": [
+      "Aspirateur robot",
+      "Round robot vacuum with charging dock",
+      "مكنسة روبوت"
+    ],
+    "sheet": "laundry-cleaning",
+    "room": "Buanderie",
+    "slot": 12
+  },
+  {
+    "key": "steam-mop",
+    "names": [
+      "Balai vapeur",
+      "Upright steam mop",
+      "ممسحة بخار"
+    ],
+    "sheet": "laundry-cleaning",
+    "room": "Buanderie",
+    "slot": 13
+  },
+  {
+    "key": "broom-dustpan",
+    "names": [
+      "Balai et pelle",
+      "Broom and upright dustpan set",
+      "مكنسة يدوية ومجرود"
+    ],
+    "sheet": "laundry-cleaning",
+    "room": "Buanderie",
+    "slot": 14
+  },
+  {
+    "key": "mop-bucket",
+    "names": [
+      "Serpillière et seau",
+      "String mop with wringer bucket",
+      "ممسحة ودلو عصر"
+    ],
+    "sheet": "laundry-cleaning",
+    "room": "Buanderie",
+    "slot": 15
+  },
+  {
+    "key": "floor-lamp",
+    "names": [
+      "Lampadaire",
+      "Tall floor lamp with fabric shade",
+      "مصباح أرضي"
+    ],
+    "sheet": "lighting",
+    "room": "Salon",
+    "slot": 0
+  },
+  {
+    "key": "table-lamp",
+    "names": [
+      "Lampe à poser",
+      "Table lamp with ceramic base",
+      "مصباح طاولة"
+    ],
+    "sheet": "lighting",
+    "room": "Salon",
+    "slot": 1
+  },
+  {
+    "key": "bedside-lamp",
+    "names": [
+      "Lampe de chevet",
+      "Small bedside lamp",
+      "مصباح بجانب السرير"
+    ],
+    "sheet": "lighting",
+    "room": "Salon",
+    "slot": 2
+  },
+  {
+    "key": "desk-lamp",
+    "names": [
+      "Lampe de bureau",
+      "Adjustable articulated desk lamp",
+      "مصباح مكتب قابل للتعديل"
+    ],
+    "sheet": "lighting",
+    "room": "Salon",
+    "slot": 3
+  },
+  {
+    "key": "pendant-light",
+    "names": [
+      "Suspension",
+      "Hanging pendant ceiling light",
+      "مصباح معلق"
+    ],
+    "sheet": "lighting",
+    "room": "Salon",
+    "slot": 4
+  },
+  {
+    "key": "chandelier",
+    "names": [
+      "Lustre",
+      "Multi-arm chandelier",
+      "ثريا"
+    ],
+    "sheet": "lighting",
+    "room": "Salon",
+    "slot": 5
+  },
+  {
+    "key": "ceiling-light",
+    "names": [
+      "Plafonnier",
+      "Round flush ceiling light",
+      "مصباح سقف دائري"
+    ],
+    "sheet": "lighting",
+    "room": "Salon",
+    "slot": 6
+  },
+  {
+    "key": "wall-light",
+    "names": [
+      "Applique murale",
+      "Wall-mounted sconce",
+      "مصباح جداري"
+    ],
+    "sheet": "lighting",
+    "room": "Salon",
+    "slot": 7
+  },
+  {
+    "key": "reading-light",
+    "names": [
+      "Liseuse",
+      "Flexible bedside reading light",
+      "مصباح قراءة مرن"
+    ],
+    "sheet": "lighting",
+    "room": "Salon",
+    "slot": 8
+  },
+  {
+    "key": "night-light",
+    "names": [
+      "Veilleuse",
+      "Small plug-in night light",
+      "مصباح ليلي"
+    ],
+    "sheet": "lighting",
+    "room": "Salon",
+    "slot": 9
+  },
+  {
+    "key": "led-strip",
+    "names": [
+      "Ruban LED",
+      "Coiled LED light strip with adapter",
+      "شريط إضاءة LED"
+    ],
+    "sheet": "lighting",
+    "room": "Salon",
+    "slot": 10
+  },
+  {
+    "key": "string-lights",
+    "names": [
+      "Guirlande lumineuse",
+      "String of warm festoon light bulbs",
+      "سلسلة مصابيح"
+    ],
+    "sheet": "lighting",
+    "room": "Salon",
+    "slot": 11
+  },
+  {
+    "key": "lantern",
+    "names": [
+      "Lanterne",
+      "Decorative Moroccan metal lantern",
+      "فانوس معدني"
+    ],
+    "sheet": "lighting",
+    "room": "Salon",
+    "slot": 12
+  },
+  {
+    "key": "solar-light",
+    "names": [
+      "Lampe solaire de jardin",
+      "Solar garden stake light",
+      "مصباح حديقة شمسي"
+    ],
+    "sheet": "lighting",
+    "room": "Salon",
+    "slot": 13
+  },
+  {
+    "key": "portable-lamp",
+    "names": [
+      "Lampe rechargeable",
+      "Portable rechargeable table lamp with handle",
+      "مصباح قابل للشحن"
+    ],
+    "sheet": "lighting",
+    "room": "Salon",
+    "slot": 14
+  },
+  {
+    "key": "flashlight",
+    "names": [
+      "Lampe torche",
+      "Handheld flashlight",
+      "مصباح يدوي"
+    ],
+    "sheet": "lighting",
+    "room": "Salon",
+    "slot": 15
+  },
+  {
+    "key": "split-ac",
+    "names": [
+      "Climatiseur mural",
+      "Wall mounted split air conditioner",
+      "مكيف جداري"
+    ],
+    "sheet": "climate",
+    "room": "Salon",
+    "slot": 0
+  },
+  {
+    "key": "portable-ac",
+    "names": [
+      "Climatiseur mobile",
+      "Portable air conditioner with exhaust hose",
+      "مكيف متنقل"
+    ],
+    "sheet": "climate",
+    "room": "Salon",
+    "slot": 1
+  },
+  {
+    "key": "ceiling-fan",
+    "names": [
+      "Ventilateur de plafond",
+      "Ceiling fan with three blades",
+      "مروحة سقف"
+    ],
+    "sheet": "climate",
+    "room": "Salon",
+    "slot": 2
+  },
+  {
+    "key": "pedestal-fan",
+    "names": [
+      "Ventilateur sur pied",
+      "Pedestal fan",
+      "مروحة عمودية"
+    ],
+    "sheet": "climate",
+    "room": "Salon",
+    "slot": 3
+  },
+  {
+    "key": "desk-fan",
+    "names": [
+      "Ventilateur de table",
+      "Small desk fan",
+      "مروحة طاولة"
+    ],
+    "sheet": "climate",
+    "room": "Salon",
+    "slot": 4
+  },
+  {
+    "key": "tower-fan",
+    "names": [
+      "Ventilateur colonne",
+      "Tall tower fan",
+      "مروحة برجية"
+    ],
+    "sheet": "climate",
+    "room": "Salon",
+    "slot": 5
+  },
+  {
+    "key": "oil-heater",
+    "names": [
+      "Radiateur bain d’huile",
+      "Oil-filled electric radiator on wheels",
+      "مدفأة زيت كهربائية"
+    ],
+    "sheet": "climate",
+    "room": "Salon",
+    "slot": 6
+  },
+  {
+    "key": "fan-heater",
+    "names": [
+      "Chauffage soufflant",
+      "Compact electric fan heater",
+      "مدفأة بمروحة"
+    ],
+    "sheet": "climate",
+    "room": "Salon",
+    "slot": 7
+  },
+  {
+    "key": "panel-heater",
+    "names": [
+      "Radiateur électrique mural",
+      "Flat wall panel heater",
+      "مدفأة كهربائية جدارية"
+    ],
+    "sheet": "climate",
+    "room": "Salon",
+    "slot": 8
+  },
+  {
+    "key": "towel-warmer",
+    "names": [
+      "Sèche-serviettes",
+      "Wall-mounted ladder towel radiator",
+      "مجفف مناشف جداري"
+    ],
+    "sheet": "climate",
+    "room": "Salon",
+    "slot": 9
+  },
+  {
+    "key": "dehumidifier",
+    "names": [
+      "Déshumidificateur",
+      "Portable dehumidifier with water tank",
+      "مزيل رطوبة"
+    ],
+    "sheet": "climate",
+    "room": "Salon",
+    "slot": 10
+  },
+  {
+    "key": "humidifier",
+    "names": [
+      "Humidificateur",
+      "Compact ultrasonic humidifier with visible mist",
+      "مرطب هواء"
+    ],
+    "sheet": "climate",
+    "room": "Salon",
+    "slot": 11
+  },
+  {
+    "key": "air-purifier",
+    "names": [
+      "Purificateur d’air",
+      "Cylindrical air purifier with perforated sides",
+      "منقي هواء"
+    ],
+    "sheet": "climate",
+    "room": "Salon",
+    "slot": 12
+  },
+  {
+    "key": "thermostat",
+    "names": [
+      "Thermostat",
+      "Wall thermostat with simple blank display",
+      "منظم حرارة"
+    ],
+    "sheet": "climate",
+    "room": "Salon",
+    "slot": 13
+  },
+  {
+    "key": "water-heater",
+    "names": [
+      "Chauffe-eau électrique",
+      "Wall mounted cylindrical electric water heater",
+      "سخان ماء كهربائي"
+    ],
+    "sheet": "climate",
+    "room": "Salon",
+    "slot": 14
+  },
+  {
+    "key": "ac-remote",
+    "names": [
+      "Télécommande de climatiseur",
+      "Air conditioner remote with LCD display",
+      "جهاز تحكم المكيف"
+    ],
+    "sheet": "climate",
+    "room": "Salon",
+    "slot": 15
+  },
+  {
+    "key": "television",
+    "names": [
+      "Téléviseur",
+      "Flat screen television with stand",
+      "تلفاز مسطح"
+    ],
+    "sheet": "electronics",
+    "room": "Salon",
+    "slot": 0
+  },
+  {
+    "key": "tv-remote",
+    "names": [
+      "Télécommande TV",
+      "Television remote with many buttons",
+      "جهاز تحكم التلفاز"
+    ],
+    "sheet": "electronics",
+    "room": "Salon",
+    "slot": 1
+  },
+  {
+    "key": "projector",
+    "names": [
+      "Vidéoprojecteur",
+      "Compact video projector",
+      "جهاز عرض"
+    ],
+    "sheet": "electronics",
+    "room": "Salon",
+    "slot": 2
+  },
+  {
+    "key": "projector-screen",
+    "names": [
+      "Écran de projection",
+      "Tripod projection screen",
+      "شاشة عرض على حامل"
+    ],
+    "sheet": "electronics",
+    "room": "Salon",
+    "slot": 3
+  },
+  {
+    "key": "soundbar",
+    "names": [
+      "Barre de son",
+      "Slim soundbar speaker",
+      "مكبر صوت شريطي"
+    ],
+    "sheet": "electronics",
+    "room": "Salon",
+    "slot": 4
+  },
+  {
+    "key": "bluetooth-speaker",
+    "names": [
+      "Enceinte Bluetooth",
+      "Portable Bluetooth speaker",
+      "مكبر صوت بلوتوث"
+    ],
+    "sheet": "electronics",
+    "room": "Salon",
+    "slot": 5
+  },
+  {
+    "key": "smart-speaker",
+    "names": [
+      "Enceinte connectée",
+      "Small smart speaker with fabric cover",
+      "مكبر صوت ذكي"
+    ],
+    "sheet": "electronics",
+    "room": "Salon",
+    "slot": 6
+  },
+  {
+    "key": "radio",
+    "names": [
+      "Radio",
+      "Compact tabletop radio with antenna",
+      "راديو"
+    ],
+    "sheet": "electronics",
+    "room": "Salon",
+    "slot": 7
+  },
+  {
+    "key": "alarm-clock",
+    "names": [
+      "Réveil",
+      "Digital bedside alarm clock",
+      "منبه رقمي"
+    ],
+    "sheet": "electronics",
+    "room": "Salon",
+    "slot": 8
+  },
+  {
+    "key": "wifi-router",
+    "names": [
+      "Routeur Wi-Fi",
+      "Wifi router with antennas",
+      "جهاز توجيه واي فاي"
+    ],
+    "sheet": "electronics",
+    "room": "Salon",
+    "slot": 9
+  },
+  {
+    "key": "wifi-extender",
+    "names": [
+      "Répéteur Wi-Fi",
+      "Plug-in wifi range extender",
+      "مقوي إشارة واي فاي"
+    ],
+    "sheet": "electronics",
+    "room": "Salon",
+    "slot": 10
+  },
+  {
+    "key": "tv-box",
+    "names": [
+      "Boîtier TV",
+      "Streaming television box and remote",
+      "جهاز بث تلفزيوني"
+    ],
+    "sheet": "electronics",
+    "room": "Salon",
+    "slot": 11
+  },
+  {
+    "key": "games-console",
+    "names": [
+      "Console de jeux",
+      "Unbranded video game console and controller",
+      "جهاز ألعاب"
+    ],
+    "sheet": "electronics",
+    "room": "Salon",
+    "slot": 12
+  },
+  {
+    "key": "game-controller",
+    "names": [
+      "Manette de jeu",
+      "Standalone game controller",
+      "يد تحكم ألعاب"
+    ],
+    "sheet": "electronics",
+    "room": "Salon",
+    "slot": 13
+  },
+  {
+    "key": "monitor",
+    "names": [
+      "Écran d’ordinateur",
+      "Computer monitor on adjustable stand",
+      "شاشة حاسوب"
+    ],
+    "sheet": "electronics",
+    "room": "Salon",
+    "slot": 14
+  },
+  {
+    "key": "printer",
+    "names": [
+      "Imprimante",
+      "Compact home printer with paper tray",
+      "طابعة منزلية"
+    ],
+    "sheet": "electronics",
+    "room": "Salon",
+    "slot": 15
+  },
+  {
+    "key": "smoke-detector",
+    "names": [
+      "Détecteur de fumée",
+      "Round ceiling smoke alarm",
+      "كاشف دخان"
+    ],
+    "sheet": "safety-access",
+    "room": "Entree",
+    "slot": 0
+  },
+  {
+    "key": "co-detector",
+    "names": [
+      "Détecteur de monoxyde de carbone",
+      "Rectangular carbon monoxide alarm with display",
+      "كاشف أول أكسيد الكربون"
+    ],
+    "sheet": "safety-access",
+    "room": "Entree",
+    "slot": 1
+  },
+  {
+    "key": "gas-detector",
+    "names": [
+      "Détecteur de gaz",
+      "Plug-in gas detector with vent slots",
+      "كاشف غاز"
+    ],
+    "sheet": "safety-access",
+    "room": "Entree",
+    "slot": 2
+  },
+  {
+    "key": "water-leak-sensor",
+    "names": [
+      "Détecteur de fuite d’eau",
+      "Small water leak sensor with cable probe",
+      "حساس تسرب ماء"
+    ],
+    "sheet": "safety-access",
+    "room": "Entree",
+    "slot": 3
+  },
+  {
+    "key": "fire-extinguisher",
+    "names": [
+      "Extincteur",
+      "Small red fire extinguisher",
+      "مطفأة حريق"
+    ],
+    "sheet": "safety-access",
+    "room": "Entree",
+    "slot": 4
+  },
+  {
+    "key": "fire-blanket",
+    "names": [
+      "Couverture anti-feu",
+      "Fire blanket pouch with two pull straps",
+      "بطانية إطفاء"
+    ],
+    "sheet": "safety-access",
+    "room": "Entree",
+    "slot": 5
+  },
+  {
+    "key": "first-aid-kit",
+    "names": [
+      "Trousse de secours",
+      "Open first aid case with bandages",
+      "حقيبة إسعافات أولية"
+    ],
+    "sheet": "safety-access",
+    "room": "Entree",
+    "slot": 6
+  },
+  {
+    "key": "safe",
+    "names": [
+      "Coffre-fort",
+      "Small electronic hotel safe",
+      "خزنة إلكترونية"
+    ],
+    "sheet": "safety-access",
+    "room": "Entree",
+    "slot": 7
+  },
+  {
+    "key": "key-safe",
+    "names": [
+      "Boîte à clés",
+      "Wall mounted numeric combination key safe",
+      "صندوق مفاتيح برمز"
+    ],
+    "sheet": "safety-access",
+    "room": "Entree",
+    "slot": 8
+  },
+  {
+    "key": "smart-lock",
+    "names": [
+      "Serrure connectée",
+      "Electronic smart door lock and handle",
+      "قفل باب ذكي"
+    ],
+    "sheet": "safety-access",
+    "room": "Entree",
+    "slot": 9
+  },
+  {
+    "key": "key-set",
+    "names": [
+      "Jeu de clés",
+      "Metal house keys on keyring",
+      "مجموعة مفاتيح"
+    ],
+    "sheet": "safety-access",
+    "room": "Entree",
+    "slot": 10
+  },
+  {
+    "key": "access-fob",
+    "names": [
+      "Badge d’accès",
+      "Contactless key fob",
+      "شارة دخول إلكترونية"
+    ],
+    "sheet": "safety-access",
+    "room": "Entree",
+    "slot": 11
+  },
+  {
+    "key": "intercom",
+    "names": [
+      "Interphone",
+      "Wall intercom handset",
+      "هاتف باب داخلي"
+    ],
+    "sheet": "safety-access",
+    "room": "Entree",
+    "slot": 12
+  },
+  {
+    "key": "video-intercom",
+    "names": [
+      "Visiophone",
+      "Wall video door intercom monitor",
+      "جهاز اتصال مرئي للباب"
+    ],
+    "sheet": "safety-access",
+    "room": "Entree",
+    "slot": 13
+  },
+  {
+    "key": "doorbell",
+    "names": [
+      "Sonnette",
+      "Wireless doorbell button and chime",
+      "جرس باب لاسلكي"
+    ],
+    "sheet": "safety-access",
+    "room": "Entree",
+    "slot": 14
+  },
+  {
+    "key": "doorstop",
+    "names": [
+      "Butée de porte",
+      "Rubber wedge doorstop",
+      "مصد باب"
+    ],
+    "sheet": "safety-access",
+    "room": "Entree",
+    "slot": 15
+  },
+  {
+    "key": "cot",
+    "names": [
+      "Lit bébé à barreaux",
+      "Wooden baby cot with vertical slats",
+      "سرير رضيع بقضبان"
+    ],
+    "sheet": "baby",
+    "room": "Chambre",
+    "slot": 0
+  },
+  {
+    "key": "travel-cot",
+    "names": [
+      "Lit parapluie",
+      "Mesh travel cot",
+      "سرير سفر للرضيع"
+    ],
+    "sheet": "baby",
+    "room": "Chambre",
+    "slot": 1
+  },
+  {
+    "key": "bassinet",
+    "names": [
+      "Berceau",
+      "Small rocking bassinet",
+      "مهد رضيع"
+    ],
+    "sheet": "baby",
+    "room": "Chambre",
+    "slot": 2
+  },
+  {
+    "key": "high-chair",
+    "names": [
+      "Chaise haute",
+      "Baby high chair with tray",
+      "كرسي طعام مرتفع للطفل"
+    ],
+    "sheet": "baby",
+    "room": "Chambre",
+    "slot": 3
+  },
+  {
+    "key": "booster-seat",
+    "names": [
+      "Rehausseur de chaise",
+      "Child dining booster seat with straps",
+      "مقعد رفع للطفل"
+    ],
+    "sheet": "baby",
+    "room": "Chambre",
+    "slot": 4
+  },
+  {
+    "key": "changing-table",
+    "names": [
+      "Table à langer",
+      "Baby changing table with lower shelf",
+      "طاولة تغيير حفاضات"
+    ],
+    "sheet": "baby",
+    "room": "Chambre",
+    "slot": 5
+  },
+  {
+    "key": "changing-mat",
+    "names": [
+      "Matelas à langer",
+      "Padded baby changing mat",
+      "وسادة تغيير حفاضات"
+    ],
+    "sheet": "baby",
+    "room": "Chambre",
+    "slot": 6
+  },
+  {
+    "key": "baby-bath",
+    "names": [
+      "Baignoire bébé",
+      "Small plastic baby bathtub",
+      "حوض استحمام للرضيع"
+    ],
+    "sheet": "baby",
+    "room": "Chambre",
+    "slot": 7
+  },
+  {
+    "key": "baby-gate",
+    "names": [
+      "Barrière de sécurité",
+      "Child safety stair gate",
+      "حاجز أمان للأطفال"
+    ],
+    "sheet": "baby",
+    "room": "Chambre",
+    "slot": 8
+  },
+  {
+    "key": "bed-rail",
+    "names": [
+      "Barrière de lit",
+      "Mesh toddler bed guard rail",
+      "حاجز سرير للأطفال"
+    ],
+    "sheet": "baby",
+    "room": "Chambre",
+    "slot": 9
+  },
+  {
+    "key": "baby-monitor",
+    "names": [
+      "Babyphone",
+      "Baby monitor camera and parent screen",
+      "جهاز مراقبة الطفل"
+    ],
+    "sheet": "baby",
+    "room": "Chambre",
+    "slot": 10
+  },
+  {
+    "key": "bottle-warmer",
+    "names": [
+      "Chauffe-biberon",
+      "Electric baby bottle warmer",
+      "جهاز تدفئة الرضاعات"
+    ],
+    "sheet": "baby",
+    "room": "Chambre",
+    "slot": 11
+  },
+  {
+    "key": "bottle-sterilizer",
+    "names": [
+      "Stérilisateur de biberons",
+      "Baby bottle steam sterilizer",
+      "معقم رضاعات"
+    ],
+    "sheet": "baby",
+    "room": "Chambre",
+    "slot": 12
+  },
+  {
+    "key": "potty",
+    "names": [
+      "Pot enfant",
+      "Small toddler potty",
+      "نونية طفل"
+    ],
+    "sheet": "baby",
+    "room": "Chambre",
+    "slot": 13
+  },
+  {
+    "key": "toilet-reducer",
+    "names": [
+      "Réducteur de toilette",
+      "Child toilet seat reducer",
+      "مقعد مرحاض للأطفال"
+    ],
+    "sheet": "baby",
+    "room": "Chambre",
+    "slot": 14
+  },
+  {
+    "key": "stroller",
+    "names": [
+      "Poussette",
+      "Compact folding baby stroller",
+      "عربة أطفال"
+    ],
+    "sheet": "baby",
+    "room": "Chambre",
+    "slot": 15
+  },
+  {
+    "key": "garden-table",
+    "names": [
+      "Table de jardin",
+      "Outdoor garden dining table",
+      "طاولة حديقة"
+    ],
+    "sheet": "outdoor-furniture",
+    "room": "Exterieur",
+    "slot": 0
+  },
+  {
+    "key": "garden-chair",
+    "names": [
+      "Chaise de jardin",
+      "Outdoor garden chair",
+      "كرسي حديقة"
+    ],
+    "sheet": "outdoor-furniture",
+    "room": "Exterieur",
+    "slot": 1
+  },
+  {
+    "key": "outdoor-sofa",
+    "names": [
+      "Canapé de jardin",
+      "Woven outdoor sofa with cushions",
+      "أريكة حديقة"
+    ],
+    "sheet": "outdoor-furniture",
+    "room": "Exterieur",
+    "slot": 2
+  },
+  {
+    "key": "garden-bench",
+    "names": [
+      "Banc de jardin",
+      "Slatted garden bench",
+      "مقعد حديقة طويل"
+    ],
+    "sheet": "outdoor-furniture",
+    "room": "Exterieur",
+    "slot": 3
+  },
+  {
+    "key": "sun-lounger",
+    "names": [
+      "Bain de soleil",
+      "Reclining sun lounger",
+      "كرسي استلقاء شمسي"
+    ],
+    "sheet": "outdoor-furniture",
+    "room": "Exterieur",
+    "slot": 4
+  },
+  {
+    "key": "deckchair",
+    "names": [
+      "Chilienne",
+      "Folding canvas sling deck chair",
+      "كرسي قماشي قابل للطي"
+    ],
+    "sheet": "outdoor-furniture",
+    "room": "Exterieur",
+    "slot": 5
+  },
+  {
+    "key": "hammock",
+    "names": [
+      "Hamac",
+      "Hammock on freestanding frame",
+      "أرجوحة شبكية"
+    ],
+    "sheet": "outdoor-furniture",
+    "room": "Exterieur",
+    "slot": 6
+  },
+  {
+    "key": "hanging-chair",
+    "names": [
+      "Fauteuil suspendu",
+      "Hanging egg chair on stand",
+      "كرسي معلق"
+    ],
+    "sheet": "outdoor-furniture",
+    "room": "Exterieur",
+    "slot": 7
+  },
+  {
+    "key": "parasol",
+    "names": [
+      "Parasol droit",
+      "Upright garden parasol",
+      "مظلة حديقة مستقيمة"
+    ],
+    "sheet": "outdoor-furniture",
+    "room": "Exterieur",
+    "slot": 8
+  },
+  {
+    "key": "cantilever-parasol",
+    "names": [
+      "Parasol déporté",
+      "Cantilever parasol with side support",
+      "مظلة جانبية"
+    ],
+    "sheet": "outdoor-furniture",
+    "room": "Exterieur",
+    "slot": 9
+  },
+  {
+    "key": "parasol-base",
+    "names": [
+      "Pied de parasol",
+      "Weighted parasol base",
+      "قاعدة مظلة"
+    ],
+    "sheet": "outdoor-furniture",
+    "room": "Exterieur",
+    "slot": 10
+  },
+  {
+    "key": "shade-sail",
+    "names": [
+      "Voile d’ombrage",
+      "Triangular shade sail stretched on three poles",
+      "شراع تظليل"
+    ],
+    "sheet": "outdoor-furniture",
+    "room": "Exterieur",
+    "slot": 11
+  },
+  {
+    "key": "charcoal-bbq",
+    "names": [
+      "Barbecue à charbon",
+      "Round charcoal kettle barbecue",
+      "شواية فحم"
+    ],
+    "sheet": "outdoor-furniture",
+    "room": "Exterieur",
+    "slot": 12
+  },
+  {
+    "key": "gas-bbq",
+    "names": [
+      "Barbecue à gaz",
+      "Gas barbecue grill with lid and wheels",
+      "شواية غاز"
+    ],
+    "sheet": "outdoor-furniture",
+    "room": "Exterieur",
+    "slot": 13
+  },
+  {
+    "key": "electric-bbq",
+    "names": [
+      "Barbecue électrique",
+      "Compact electric tabletop barbecue",
+      "شواية كهربائية"
+    ],
+    "sheet": "outdoor-furniture",
+    "room": "Exterieur",
+    "slot": 14
+  },
+  {
+    "key": "plancha",
+    "names": [
+      "Plancha",
+      "Flat top plancha grill",
+      "صفيحة شواء مسطحة"
+    ],
+    "sheet": "outdoor-furniture",
+    "room": "Exterieur",
+    "slot": 15
+  },
+  {
+    "key": "garden-hose",
+    "names": [
+      "Tuyau d’arrosage",
+      "Coiled garden hose with spray nozzle",
+      "خرطوم ري"
+    ],
+    "sheet": "garden-pool",
+    "room": "Exterieur",
+    "slot": 0
+  },
+  {
+    "key": "watering-can",
+    "names": [
+      "Arrosoir",
+      "Metal watering can",
+      "مرش ماء"
+    ],
+    "sheet": "garden-pool",
+    "room": "Exterieur",
+    "slot": 1
+  },
+  {
+    "key": "hose-reel",
+    "names": [
+      "Dévidoir de tuyau",
+      "Garden hose reel on wheels",
+      "بكرة خرطوم"
+    ],
+    "sheet": "garden-pool",
+    "room": "Exterieur",
+    "slot": 2
+  },
+  {
+    "key": "garden-tools",
+    "names": [
+      "Outils de jardin",
+      "Hand garden trowel and small rake",
+      "أدوات بستنة يدوية"
+    ],
+    "sheet": "garden-pool",
+    "room": "Exterieur",
+    "slot": 3
+  },
+  {
+    "key": "lawnmower",
+    "names": [
+      "Tondeuse",
+      "Push lawn mower",
+      "جزازة عشب"
+    ],
+    "sheet": "garden-pool",
+    "room": "Exterieur",
+    "slot": 4
+  },
+  {
+    "key": "pool-net",
+    "names": [
+      "Épuisette de piscine",
+      "Pool skimmer net on telescopic pole",
+      "شبكة تنظيف مسبح"
+    ],
+    "sheet": "garden-pool",
+    "room": "Exterieur",
+    "slot": 5
+  },
+  {
+    "key": "pool-vacuum",
+    "names": [
+      "Robot de piscine",
+      "Pool cleaning robot",
+      "روبوت تنظيف مسبح"
+    ],
+    "sheet": "garden-pool",
+    "room": "Exterieur",
+    "slot": 6
+  },
+  {
+    "key": "pool-cover",
+    "names": [
+      "Bâche de piscine",
+      "Rolled blue pool cover",
+      "غطاء مسبح ملفوف"
+    ],
+    "sheet": "garden-pool",
+    "room": "Exterieur",
+    "slot": 7
+  },
+  {
+    "key": "pool-float",
+    "names": [
+      "Bouée",
+      "Inflatable swimming ring",
+      "عوامة سباحة"
+    ],
+    "sheet": "garden-pool",
+    "room": "Exterieur",
+    "slot": 8
+  },
+  {
+    "key": "pool-noodle",
+    "names": [
+      "Frite de piscine",
+      "Two foam pool noodles",
+      "عوامات إسفنجية طويلة"
+    ],
+    "sheet": "garden-pool",
+    "room": "Exterieur",
+    "slot": 9
+  },
+  {
+    "key": "life-ring",
+    "names": [
+      "Bouée de sauvetage",
+      "Orange life saving ring with rope",
+      "طوق نجاة"
+    ],
+    "sheet": "garden-pool",
+    "room": "Exterieur",
+    "slot": 10
+  },
+  {
+    "key": "outdoor-shower",
+    "names": [
+      "Douche extérieure",
+      "Freestanding outdoor shower column",
+      "دش خارجي"
+    ],
+    "sheet": "garden-pool",
+    "room": "Exterieur",
+    "slot": 11
+  },
+  {
+    "key": "hot-tub",
+    "names": [
+      "Jacuzzi",
+      "Square outdoor hot tub",
+      "حوض جاكوزي"
+    ],
+    "sheet": "garden-pool",
+    "room": "Exterieur",
+    "slot": 12
+  },
+  {
+    "key": "fire-pit",
+    "names": [
+      "Brasero",
+      "Metal garden fire pit bowl",
+      "موقد نار خارجي"
+    ],
+    "sheet": "garden-pool",
+    "room": "Exterieur",
+    "slot": 13
+  },
+  {
+    "key": "patio-heater",
+    "names": [
+      "Chauffage de terrasse",
+      "Tall patio heater",
+      "مدفأة شرفة"
+    ],
+    "sheet": "garden-pool",
+    "room": "Exterieur",
+    "slot": 14
+  },
+  {
+    "key": "garden-storage-box",
+    "names": [
+      "Coffre de jardin",
+      "Outdoor deck storage box",
+      "صندوق تخزين خارجي"
+    ],
+    "sheet": "garden-pool",
+    "room": "Exterieur",
+    "slot": 15
+  },
+  {
+    "key": "board-game",
+    "names": [
+      "Jeu de société",
+      "Open board game with pawns and dice, no writing",
+      "لعبة لوحية"
+    ],
+    "sheet": "leisure",
+    "room": "Salon",
+    "slot": 0
+  },
+  {
+    "key": "playing-cards",
+    "names": [
+      "Jeu de cartes",
+      "Deck of playing cards fanned out",
+      "أوراق لعب"
+    ],
+    "sheet": "leisure",
+    "room": "Salon",
+    "slot": 1
+  },
+  {
+    "key": "chess-set",
+    "names": [
+      "Jeu d’échecs",
+      "Chess board with pieces",
+      "طقم شطرنج"
+    ],
+    "sheet": "leisure",
+    "room": "Salon",
+    "slot": 2
+  },
+  {
+    "key": "dominoes",
+    "names": [
+      "Dominos",
+      "Wooden box of domino tiles",
+      "لعبة دومينو"
+    ],
+    "sheet": "leisure",
+    "room": "Salon",
+    "slot": 3
+  },
+  {
+    "key": "puzzle",
+    "names": [
+      "Puzzle",
+      "Unbranded jigsaw puzzle with scattered pieces",
+      "أحجية تركيب"
+    ],
+    "sheet": "leisure",
+    "room": "Salon",
+    "slot": 4
+  },
+  {
+    "key": "books",
+    "names": [
+      "Livres",
+      "Three hardcover books with blank spines",
+      "مجموعة كتب"
+    ],
+    "sheet": "leisure",
+    "room": "Salon",
+    "slot": 5
+  },
+  {
+    "key": "yoga-mat",
+    "names": [
+      "Tapis de yoga",
+      "Rolled yoga exercise mat",
+      "حصيرة يوغا"
+    ],
+    "sheet": "leisure",
+    "room": "Salon",
+    "slot": 6
+  },
+  {
+    "key": "dumbbells",
+    "names": [
+      "Haltères",
+      "Pair of small dumbbells",
+      "أثقال يدوية"
+    ],
+    "sheet": "leisure",
+    "room": "Salon",
+    "slot": 7
+  },
+  {
+    "key": "exercise-bike",
+    "names": [
+      "Vélo d’appartement",
+      "Stationary exercise bicycle",
+      "دراجة تمارين"
+    ],
+    "sheet": "leisure",
+    "room": "Salon",
+    "slot": 8
+  },
+  {
+    "key": "bicycle",
+    "names": [
+      "Vélo",
+      "Adult city bicycle",
+      "دراجة هوائية"
+    ],
+    "sheet": "leisure",
+    "room": "Salon",
+    "slot": 9
+  },
+  {
+    "key": "bicycle-helmet",
+    "names": [
+      "Casque de vélo",
+      "Cycling helmet",
+      "خوذة دراجة"
+    ],
+    "sheet": "leisure",
+    "room": "Salon",
+    "slot": 10
+  },
+  {
+    "key": "table-tennis",
+    "names": [
+      "Raquettes de ping-pong",
+      "Two table tennis paddles and ball",
+      "مضارب تنس طاولة"
+    ],
+    "sheet": "leisure",
+    "room": "Salon",
+    "slot": 11
+  },
+  {
+    "key": "badminton",
+    "names": [
+      "Raquettes de badminton",
+      "Two badminton rackets and shuttlecock",
+      "مضارب ريشة"
+    ],
+    "sheet": "leisure",
+    "room": "Salon",
+    "slot": 12
+  },
+  {
+    "key": "petanque",
+    "names": [
+      "Jeu de pétanque",
+      "Three metal petanque balls in case",
+      "كرات بيتانك"
+    ],
+    "sheet": "leisure",
+    "room": "Salon",
+    "slot": 13
+  },
+  {
+    "key": "beach-umbrella",
+    "names": [
+      "Parasol de plage",
+      "Folded beach umbrella in carry bag",
+      "مظلة شاطئ"
+    ],
+    "sheet": "leisure",
+    "room": "Salon",
+    "slot": 14
+  },
+  {
+    "key": "cooler",
+    "names": [
+      "Glacière",
+      "Insulated picnic cooler box",
+      "صندوق تبريد متنقل"
+    ],
+    "sheet": "leisure",
+    "room": "Salon",
+    "slot": 15
+  },
+  {
+    "key": "wardrobe",
+    "names": [
+      "Armoire à portes battantes",
+      "Wooden wardrobe with hinged doors",
+      "خزانة ملابس بأبواب مفصلية"
+    ],
+    "sheet": "storage",
+    "room": "Rangement",
+    "slot": 0
+  },
+  {
+    "key": "sliding-wardrobe",
+    "names": [
+      "Armoire à portes coulissantes",
+      "Wardrobe with sliding doors",
+      "خزانة بأبواب منزلقة"
+    ],
+    "sheet": "storage",
+    "room": "Rangement",
+    "slot": 1
+  },
+  {
+    "key": "clothes-rack",
+    "names": [
+      "Portant à vêtements",
+      "Open clothes rack with rail",
+      "حامل ملابس مفتوح"
+    ],
+    "sheet": "storage",
+    "room": "Rangement",
+    "slot": 2
+  },
+  {
+    "key": "wooden-hanger",
+    "names": [
+      "Cintre en bois",
+      "Wooden clothes hanger",
+      "علاقة ملابس خشبية"
+    ],
+    "sheet": "storage",
+    "room": "Rangement",
+    "slot": 3
+  },
+  {
+    "key": "clip-hanger",
+    "names": [
+      "Cintre à pinces",
+      "Trouser hanger with two clips",
+      "علاقة ملابس بمشابك"
+    ],
+    "sheet": "storage",
+    "room": "Rangement",
+    "slot": 4
+  },
+  {
+    "key": "wall-hooks",
+    "names": [
+      "Patères murales",
+      "Wall mounted row of coat hooks",
+      "خطافات حائط"
+    ],
+    "sheet": "storage",
+    "room": "Rangement",
+    "slot": 5
+  },
+  {
+    "key": "coat-stand",
+    "names": [
+      "Porte-manteau sur pied",
+      "Freestanding coat stand",
+      "حامل معاطف"
+    ],
+    "sheet": "storage",
+    "room": "Rangement",
+    "slot": 6
+  },
+  {
+    "key": "shoe-rack",
+    "names": [
+      "Étagère à chaussures",
+      "Open shoe storage rack",
+      "رف أحذية"
+    ],
+    "sheet": "storage",
+    "room": "Rangement",
+    "slot": 7
+  },
+  {
+    "key": "shoe-cabinet",
+    "names": [
+      "Meuble à chaussures",
+      "Tilt-out shoe cabinet",
+      "خزانة أحذية"
+    ],
+    "sheet": "storage",
+    "room": "Rangement",
+    "slot": 8
+  },
+  {
+    "key": "luggage-rack",
+    "names": [
+      "Porte-bagages",
+      "Folding hotel luggage rack with straps",
+      "حامل حقائب"
+    ],
+    "sheet": "storage",
+    "room": "Rangement",
+    "slot": 9
+  },
+  {
+    "key": "storage-basket",
+    "names": [
+      "Panier de rangement",
+      "Woven storage basket",
+      "سلة تخزين"
+    ],
+    "sheet": "storage",
+    "room": "Rangement",
+    "slot": 10
+  },
+  {
+    "key": "storage-box",
+    "names": [
+      "Boîte de rangement",
+      "Clear storage box with lid",
+      "صندوق تخزين بغطاء"
+    ],
+    "sheet": "storage",
+    "room": "Rangement",
+    "slot": 11
+  },
+  {
+    "key": "underbed-box",
+    "names": [
+      "Boîte sous le lit",
+      "Low flat under-bed storage box",
+      "صندوق تخزين تحت السرير"
+    ],
+    "sheet": "storage",
+    "room": "Rangement",
+    "slot": 12
+  },
+  {
+    "key": "drawer-organizer",
+    "names": [
+      "Organiseur de tiroir",
+      "Compartment drawer organizer",
+      "منظم أدراج"
+    ],
+    "sheet": "storage",
+    "room": "Rangement",
+    "slot": 13
+  },
+  {
+    "key": "wall-shelf",
+    "names": [
+      "Étagère murale",
+      "Floating wooden wall shelf",
+      "رف جداري"
+    ],
+    "sheet": "storage",
+    "room": "Rangement",
+    "slot": 14
+  },
+  {
+    "key": "umbrella-stand",
+    "names": [
+      "Porte-parapluies",
+      "Tall umbrella stand",
+      "حامل مظلات"
+    ],
+    "sheet": "storage",
+    "room": "Rangement",
+    "slot": 15
+  },
+  {
+    "key": "step-stool",
+    "names": [
+      "Marchepied",
+      "Folding two-step stool",
+      "سلم صغير بدرجتين"
+    ],
+    "sheet": "tools",
+    "room": "Rangement",
+    "slot": 0
+  },
+  {
+    "key": "stepladder",
+    "names": [
+      "Escabeau",
+      "Four-step folding stepladder",
+      "سلم منزلي قابل للطي"
+    ],
+    "sheet": "tools",
+    "room": "Rangement",
+    "slot": 1
+  },
+  {
+    "key": "toolbox",
+    "names": [
+      "Boîte à outils",
+      "Open toolbox with basic tools",
+      "صندوق أدوات"
+    ],
+    "sheet": "tools",
+    "room": "Rangement",
+    "slot": 2
+  },
+  {
+    "key": "screwdriver-set",
+    "names": [
+      "Tournevis",
+      "Flat and Phillips screwdrivers side by side",
+      "مفكات مسطحة وصليبية"
+    ],
+    "sheet": "tools",
+    "room": "Rangement",
+    "slot": 3
+  },
+  {
+    "key": "hammer",
+    "names": [
+      "Marteau",
+      "Claw hammer",
+      "مطرقة"
+    ],
+    "sheet": "tools",
+    "room": "Rangement",
+    "slot": 4
+  },
+  {
+    "key": "pliers",
+    "names": [
+      "Pince universelle",
+      "Combination pliers",
+      "كماشة متعددة الاستعمال"
+    ],
+    "sheet": "tools",
+    "room": "Rangement",
+    "slot": 5
+  },
+  {
+    "key": "adjustable-wrench",
+    "names": [
+      "Clé à molette",
+      "Adjustable wrench",
+      "مفتاح ربط قابل للتعديل"
+    ],
+    "sheet": "tools",
+    "room": "Rangement",
+    "slot": 6
+  },
+  {
+    "key": "tape-measure",
+    "names": [
+      "Mètre ruban",
+      "Retractable tape measure",
+      "شريط قياس"
+    ],
+    "sheet": "tools",
+    "room": "Rangement",
+    "slot": 7
+  },
+  {
+    "key": "drill",
+    "names": [
+      "Perceuse-visseuse",
+      "Cordless drill with battery",
+      "مثقاب ومفك لاسلكي"
+    ],
+    "sheet": "tools",
+    "room": "Rangement",
+    "slot": 8
+  },
+  {
+    "key": "extension-cord",
+    "names": [
+      "Rallonge électrique",
+      "Coiled electrical extension cord",
+      "سلك تمديد كهربائي"
+    ],
+    "sheet": "tools",
+    "room": "Rangement",
+    "slot": 9
+  },
+  {
+    "key": "power-strip",
+    "names": [
+      "Multiprise",
+      "European multi-socket power strip",
+      "مشترك كهربائي"
+    ],
+    "sheet": "tools",
+    "room": "Rangement",
+    "slot": 10
+  },
+  {
+    "key": "travel-adapter",
+    "names": [
+      "Adaptateur de prise universel",
+      "Universal travel plug adapter",
+      "محول مقابس عالمي"
+    ],
+    "sheet": "tools",
+    "room": "Rangement",
+    "slot": 11
+  },
+  {
+    "key": "usb-charger",
+    "names": [
+      "Chargeur USB",
+      "USB wall charger with two ports",
+      "شاحن USB جداري"
+    ],
+    "sheet": "tools",
+    "room": "Rangement",
+    "slot": 12
+  },
+  {
+    "key": "usb-c-cable",
+    "names": [
+      "Câble USB-C",
+      "Coiled cable with two USB-C connectors clearly visible",
+      "كابل USB-C"
+    ],
+    "sheet": "tools",
+    "room": "Rangement",
+    "slot": 13
+  },
+  {
+    "key": "lightning-cable",
+    "names": [
+      "Câble Lightning",
+      "Coiled cable with slim Lightning connector clearly visible",
+      "كابل لايتنينغ"
+    ],
+    "sheet": "tools",
+    "room": "Rangement",
+    "slot": 14
+  },
+  {
+    "key": "hdmi-cable",
+    "names": [
+      "Câble HDMI",
+      "Coiled HDMI cable with wide trapezoid connectors",
+      "كابل HDMI"
+    ],
+    "sheet": "tools",
+    "room": "Rangement",
+    "slot": 15
+  },
+  {
+    "key": "shower-chair",
+    "names": [
+      "Chaise de douche",
+      "Accessible shower chair with backrest",
+      "كرسي استحمام"
+    ],
+    "sheet": "accessibility-pets",
+    "room": "Autre",
+    "slot": 0
+  },
+  {
+    "key": "bath-seat",
+    "names": [
+      "Siège de baignoire",
+      "Bath board seat spanning bathtub width",
+      "مقعد بانيو"
+    ],
+    "sheet": "accessibility-pets",
+    "room": "Autre",
+    "slot": 1
+  },
+  {
+    "key": "grab-bar",
+    "names": [
+      "Barre d’appui",
+      "Wall grab rail",
+      "قضيب مساعدة جداري"
+    ],
+    "sheet": "accessibility-pets",
+    "room": "Autre",
+    "slot": 2
+  },
+  {
+    "key": "raised-toilet",
+    "names": [
+      "Rehausseur WC",
+      "Raised toilet seat with arm supports",
+      "مقعد مرحاض مرتفع بمساند"
+    ],
+    "sheet": "accessibility-pets",
+    "room": "Autre",
+    "slot": 3
+  },
+  {
+    "key": "portable-ramp",
+    "names": [
+      "Rampe d’accès amovible",
+      "Portable wheelchair access ramp",
+      "منحدر وصول متنقل"
+    ],
+    "sheet": "accessibility-pets",
+    "room": "Autre",
+    "slot": 4
+  },
+  {
+    "key": "wheelchair",
+    "names": [
+      "Fauteuil roulant",
+      "Manual wheelchair",
+      "كرسي متحرك"
+    ],
+    "sheet": "accessibility-pets",
+    "room": "Autre",
+    "slot": 5
+  },
+  {
+    "key": "walking-frame",
+    "names": [
+      "Déambulateur",
+      "Four-wheel walking frame with seat",
+      "مشاية بعجلات"
+    ],
+    "sheet": "accessibility-pets",
+    "room": "Autre",
+    "slot": 6
+  },
+  {
+    "key": "non-slip-step",
+    "names": [
+      "Marche antidérapante",
+      "Wide low non-slip access step",
+      "درجة مانعة للانزلاق"
+    ],
+    "sheet": "accessibility-pets",
+    "room": "Autre",
+    "slot": 7
+  },
+  {
+    "key": "pet-bowl",
+    "names": [
+      "Gamelle",
+      "Stainless pet food bowl",
+      "وعاء طعام للحيوان"
+    ],
+    "sheet": "accessibility-pets",
+    "room": "Autre",
+    "slot": 8
+  },
+  {
+    "key": "pet-double-bowl",
+    "names": [
+      "Double gamelle",
+      "Double pet food and water bowls in stand",
+      "وعاء مزدوج للحيوان"
+    ],
+    "sheet": "accessibility-pets",
+    "room": "Autre",
+    "slot": 9
+  },
+  {
+    "key": "dog-bed",
+    "names": [
+      "Panier pour chien",
+      "Padded oval dog bed",
+      "سرير كلب"
+    ],
+    "sheet": "accessibility-pets",
+    "room": "Autre",
+    "slot": 10
+  },
+  {
+    "key": "cat-bed",
+    "names": [
+      "Couchage pour chat",
+      "Enclosed felt cat cave bed",
+      "بيت نوم للقط"
+    ],
+    "sheet": "accessibility-pets",
+    "room": "Autre",
+    "slot": 11
+  },
+  {
+    "key": "litter-tray",
+    "names": [
+      "Bac à litière",
+      "Open cat litter tray",
+      "صندوق رمل قطط مفتوح"
+    ],
+    "sheet": "accessibility-pets",
+    "room": "Autre",
+    "slot": 12
+  },
+  {
+    "key": "covered-litter",
+    "names": [
+      "Maison de toilette pour chat",
+      "Covered cat litter box with flap",
+      "صندوق رمل قطط مغلق"
+    ],
+    "sheet": "accessibility-pets",
+    "room": "Autre",
+    "slot": 13
+  },
+  {
+    "key": "pet-carrier",
+    "names": [
+      "Caisse de transport",
+      "Pet travel carrier with front grille",
+      "صندوق نقل حيوانات"
+    ],
+    "sheet": "accessibility-pets",
+    "room": "Autre",
+    "slot": 14
+  },
+  {
+    "key": "scratching-post",
+    "names": [
+      "Griffoir pour chat",
+      "Cat scratching post",
+      "عمود خدش للقطط"
+    ],
+    "sheet": "accessibility-pets",
+    "room": "Autre",
+    "slot": 15
+  },
+  {
+    "key": "colander",
+    "names": [
+      "Passoire",
+      "Stainless kitchen colander",
+      "مصفاة مطبخ"
+    ],
+    "sheet": "kitchen-extras",
+    "room": "Cuisine",
+    "slot": 0
+  },
+  {
+    "key": "fine-sieve",
+    "names": [
+      "Chinois et tamis",
+      "Fine mesh conical kitchen sieve",
+      "مصفاة دقيقة مخروطية"
+    ],
+    "sheet": "kitchen-extras",
+    "room": "Cuisine",
+    "slot": 1
+  },
+  {
+    "key": "mixing-bowl",
+    "names": [
+      "Cul-de-poule",
+      "Stainless mixing bowl",
+      "وعاء خلط فولاذي"
+    ],
+    "sheet": "kitchen-extras",
+    "room": "Cuisine",
+    "slot": 2
+  },
+  {
+    "key": "measuring-jug",
+    "names": [
+      "Verre doseur",
+      "Transparent measuring jug with handle",
+      "إبريق قياس"
+    ],
+    "sheet": "kitchen-extras",
+    "room": "Cuisine",
+    "slot": 3
+  },
+  {
+    "key": "kitchen-scale",
+    "names": [
+      "Balance de cuisine",
+      "Flat digital kitchen scale",
+      "ميزان مطبخ"
+    ],
+    "sheet": "kitchen-extras",
+    "room": "Cuisine",
+    "slot": 4
+  },
+  {
+    "key": "rolling-pin",
+    "names": [
+      "Rouleau à pâtisserie",
+      "Wooden rolling pin",
+      "نشابة عجين"
+    ],
+    "sheet": "kitchen-extras",
+    "room": "Cuisine",
+    "slot": 5
+  },
+  {
+    "key": "cake-tin",
+    "names": [
+      "Moule à gâteau",
+      "Round springform cake tin",
+      "قالب كعك دائري"
+    ],
+    "sheet": "kitchen-extras",
+    "room": "Cuisine",
+    "slot": 6
+  },
+  {
+    "key": "loaf-tin",
+    "names": [
+      "Moule à cake",
+      "Rectangular loaf baking tin",
+      "قالب كعك مستطيل"
+    ],
+    "sheet": "kitchen-extras",
+    "room": "Cuisine",
+    "slot": 7
+  },
+  {
+    "key": "muffin-tin",
+    "names": [
+      "Moule à muffins",
+      "Six-cup muffin baking tin",
+      "قالب مافن"
+    ],
+    "sheet": "kitchen-extras",
+    "room": "Cuisine",
+    "slot": 8
+  },
+  {
+    "key": "baking-tray",
+    "names": [
+      "Plaque de cuisson",
+      "Flat metal oven baking tray",
+      "صفيحة خبز معدنية"
+    ],
+    "sheet": "kitchen-extras",
+    "room": "Cuisine",
+    "slot": 9
+  },
+  {
+    "key": "salad-spinner",
+    "names": [
+      "Essoreuse à salade",
+      "Salad spinner with inner basket visible",
+      "مجفف سلطة"
+    ],
+    "sheet": "kitchen-extras",
+    "room": "Cuisine",
+    "slot": 10
+  },
+  {
+    "key": "food-container",
+    "names": [
+      "Boîte alimentaire",
+      "Glass food storage container with lid",
+      "علبة حفظ طعام"
+    ],
+    "sheet": "kitchen-extras",
+    "room": "Cuisine",
+    "slot": 11
+  },
+  {
+    "key": "water-jug",
+    "names": [
+      "Carafe à eau",
+      "Clear glass water carafe",
+      "إبريق ماء زجاجي"
+    ],
+    "sheet": "kitchen-extras",
+    "room": "Cuisine",
+    "slot": 12
+  },
+  {
+    "key": "filter-jug",
+    "names": [
+      "Carafe filtrante",
+      "Water filter pitcher with inner filter chamber",
+      "إبريق ترشيح ماء"
+    ],
+    "sheet": "kitchen-extras",
+    "room": "Cuisine",
+    "slot": 13
+  },
+  {
+    "key": "dish-rack",
+    "names": [
+      "Égouttoir à vaisselle",
+      "Countertop dish drying rack",
+      "رف تجفيف صحون"
+    ],
+    "sheet": "kitchen-extras",
+    "room": "Cuisine",
+    "slot": 14
+  },
+  {
+    "key": "kitchen-bin",
+    "names": [
+      "Poubelle de cuisine",
+      "Tall kitchen pedal bin",
+      "سلة مطبخ بدواسة"
+    ],
+    "sheet": "kitchen-extras",
+    "room": "Cuisine",
+    "slot": 15
+  },
+  {
+    "key": "wall-mirror",
+    "names": [
+      "Miroir mural",
+      "Round wall mirror",
+      "مرآة جدارية"
+    ],
+    "sheet": "decor",
+    "room": "Salon",
+    "slot": 0
+  },
+  {
+    "key": "full-length-mirror",
+    "names": [
+      "Miroir sur pied",
+      "Full length standing mirror",
+      "مرآة طويلة على حامل"
+    ],
+    "sheet": "decor",
+    "room": "Salon",
+    "slot": 1
+  },
+  {
+    "key": "wall-clock",
+    "names": [
+      "Horloge murale",
+      "Minimal round wall clock",
+      "ساعة حائط"
+    ],
+    "sheet": "decor",
+    "room": "Salon",
+    "slot": 2
+  },
+  {
+    "key": "picture-frame",
+    "names": [
+      "Cadre photo",
+      "Small tabletop picture frame with neutral abstract insert",
+      "إطار صورة"
+    ],
+    "sheet": "decor",
+    "room": "Salon",
+    "slot": 3
+  },
+  {
+    "key": "wall-art",
+    "names": [
+      "Tableau décoratif",
+      "Framed abstract wall art in muted earthy colors",
+      "لوحة فنية جدارية"
+    ],
+    "sheet": "decor",
+    "room": "Salon",
+    "slot": 4
+  },
+  {
+    "key": "vase",
+    "names": [
+      "Vase",
+      "Ceramic flower vase",
+      "مزهرية خزفية"
+    ],
+    "sheet": "decor",
+    "room": "Salon",
+    "slot": 5
+  },
+  {
+    "key": "plant-pot",
+    "names": [
+      "Cache-pot",
+      "Empty ceramic planter pot",
+      "وعاء نبات خزفي"
+    ],
+    "sheet": "decor",
+    "room": "Salon",
+    "slot": 6
+  },
+  {
+    "key": "indoor-plant",
+    "names": [
+      "Plante d’intérieur",
+      "Small potted leafy houseplant",
+      "نبتة منزلية"
+    ],
+    "sheet": "decor",
+    "room": "Salon",
+    "slot": 7
+  },
+  {
+    "key": "artificial-plant",
+    "names": [
+      "Plante artificielle",
+      "Artificial potted plant with visibly uniform plastic leaves",
+      "نبتة صناعية"
+    ],
+    "sheet": "decor",
+    "room": "Salon",
+    "slot": 8
+  },
+  {
+    "key": "candle-holder",
+    "names": [
+      "Bougeoir",
+      "Brass candle holder without candle",
+      "حامل شموع"
+    ],
+    "sheet": "decor",
+    "room": "Salon",
+    "slot": 9
+  },
+  {
+    "key": "reed-diffuser",
+    "names": [
+      "Diffuseur à bâtonnets",
+      "Glass reed diffuser bottle with wooden sticks",
+      "ناشر عطر بأعواد"
+    ],
+    "sheet": "decor",
+    "room": "Salon",
+    "slot": 10
+  },
+  {
+    "key": "essential-oil-diffuser",
+    "names": [
+      "Diffuseur électrique",
+      "Electric essential oil diffuser with light mist",
+      "ناشر عطر كهربائي"
+    ],
+    "sheet": "decor",
+    "room": "Salon",
+    "slot": 11
+  },
+  {
+    "key": "serving-tray",
+    "names": [
+      "Plateau",
+      "Wooden serving tray with handles",
+      "صينية تقديم"
+    ],
+    "sheet": "decor",
+    "room": "Salon",
+    "slot": 12
+  },
+  {
+    "key": "magazine-rack",
+    "names": [
+      "Porte-revues",
+      "Freestanding magazine rack",
+      "حامل مجلات"
+    ],
+    "sheet": "decor",
+    "room": "Salon",
+    "slot": 13
+  },
+  {
+    "key": "room-divider",
+    "names": [
+      "Paravent",
+      "Three-panel folding room divider",
+      "فاصل غرف قابل للطي"
+    ],
+    "sheet": "decor",
+    "room": "Salon",
+    "slot": 14
+  },
+  {
+    "key": "decorative-basket",
+    "names": [
+      "Corbeille décorative",
+      "Shallow decorative woven basket",
+      "سلة زينة منسوجة"
+    ],
+    "sheet": "decor",
+    "room": "Salon",
+    "slot": 15
+  },
+  {
+    "key": "toilet",
+    "names": [
+      "WC sur pied",
+      "Freestanding toilet with cistern",
+      "مرحاض أرضي بخزان"
+    ],
+    "sheet": "fixtures",
+    "room": "Salle de bain",
+    "slot": 0
+  },
+  {
+    "key": "wall-toilet",
+    "names": [
+      "WC suspendu",
+      "Wall-hung toilet bowl with concealed flush plate",
+      "مرحاض معلق"
+    ],
+    "sheet": "fixtures",
+    "room": "Salle de bain",
+    "slot": 1
+  },
+  {
+    "key": "washbasin",
+    "names": [
+      "Lavabo sur colonne",
+      "Pedestal bathroom washbasin",
+      "مغسلة بعمود"
+    ],
+    "sheet": "fixtures",
+    "room": "Salle de bain",
+    "slot": 2
+  },
+  {
+    "key": "vessel-basin",
+    "names": [
+      "Vasque à poser",
+      "Round countertop vessel washbasin",
+      "حوض مغسلة فوق السطح"
+    ],
+    "sheet": "fixtures",
+    "room": "Salle de bain",
+    "slot": 3
+  },
+  {
+    "key": "vanity-unit",
+    "names": [
+      "Meuble sous-vasque",
+      "Bathroom vanity cabinet with integrated washbasin",
+      "خزانة حمام مع مغسلة"
+    ],
+    "sheet": "fixtures",
+    "room": "Salle de bain",
+    "slot": 4
+  },
+  {
+    "key": "bathtub",
+    "names": [
+      "Baignoire",
+      "Freestanding oval bathtub",
+      "حوض استحمام"
+    ],
+    "sheet": "fixtures",
+    "room": "Salle de bain",
+    "slot": 5
+  },
+  {
+    "key": "shower-enclosure",
+    "names": [
+      "Cabine de douche",
+      "Glass corner shower enclosure with tray",
+      "كابينة استحمام زجاجية"
+    ],
+    "sheet": "fixtures",
+    "room": "Salle de bain",
+    "slot": 6
+  },
+  {
+    "key": "shower-screen",
+    "names": [
+      "Paroi de douche",
+      "Single frameless shower glass screen with support arm",
+      "حاجز دش زجاجي"
+    ],
+    "sheet": "fixtures",
+    "room": "Salle de bain",
+    "slot": 7
+  },
+  {
+    "key": "shower-column",
+    "names": [
+      "Colonne de douche",
+      "Chrome shower column with rainfall head and handheld spray",
+      "عمود دش"
+    ],
+    "sheet": "fixtures",
+    "room": "Salle de bain",
+    "slot": 8
+  },
+  {
+    "key": "shower-head",
+    "names": [
+      "Pommeau de douche",
+      "Handheld shower head with flexible hose",
+      "رأس دش يدوي"
+    ],
+    "sheet": "fixtures",
+    "room": "Salle de bain",
+    "slot": 9
+  },
+  {
+    "key": "basin-tap",
+    "names": [
+      "Mitigeur de lavabo",
+      "Single lever bathroom basin mixer tap",
+      "خلاط مغسلة"
+    ],
+    "sheet": "fixtures",
+    "room": "Salle de bain",
+    "slot": 10
+  },
+  {
+    "key": "bath-tap",
+    "names": [
+      "Mitigeur de baignoire",
+      "Wall-mounted bathtub mixer tap with spout",
+      "خلاط بانيو جداري"
+    ],
+    "sheet": "fixtures",
+    "room": "Salle de bain",
+    "slot": 11
+  },
+  {
+    "key": "kitchen-sink",
+    "names": [
+      "Évier de cuisine",
+      "Stainless steel double bowl kitchen sink",
+      "حوض مطبخ مزدوج"
+    ],
+    "sheet": "fixtures",
+    "room": "Salle de bain",
+    "slot": 12
+  },
+  {
+    "key": "kitchen-tap",
+    "names": [
+      "Robinet de cuisine",
+      "Tall gooseneck kitchen mixer tap",
+      "صنبور مطبخ"
+    ],
+    "sheet": "fixtures",
+    "room": "Salle de bain",
+    "slot": 13
+  },
+  {
+    "key": "towel-hook",
+    "names": [
+      "Crochet de salle de bain",
+      "Single chrome bathroom towel hook",
+      "خطاف منشفة"
+    ],
+    "sheet": "fixtures",
+    "room": "Salle de bain",
+    "slot": 14
+  },
+  {
+    "key": "bathroom-cabinet",
+    "names": [
+      "Armoire de toilette",
+      "Wall bathroom cabinet with mirrored doors",
+      "خزانة حمام بمرآة"
+    ],
+    "sheet": "fixtures",
+    "room": "Salle de bain",
+    "slot": 15
+  },
+  {
+    "key": "tablespoon",
+    "names": [
+      "Cuillère à soupe",
+      "One stainless steel tablespoon, large oval bowl",
+      "ملعقة طعام"
+    ],
+    "sheet": "tableware-details",
+    "room": "Cuisine",
+    "slot": 0
+  },
+  {
+    "key": "teaspoon",
+    "names": [
+      "Cuillère à café",
+      "One small stainless steel teaspoon with short handle",
+      "ملعقة شاي صغيرة"
+    ],
+    "sheet": "tableware-details",
+    "room": "Cuisine",
+    "slot": 1
+  },
+  {
+    "key": "dessert-fork",
+    "names": [
+      "Fourchette à dessert",
+      "One small three-pronged dessert fork",
+      "شوكة حلوى"
+    ],
+    "sheet": "tableware-details",
+    "room": "Cuisine",
+    "slot": 2
+  },
+  {
+    "key": "steak-knife",
+    "names": [
+      "Couteau à steak",
+      "One serrated steak knife with dark wooden handle",
+      "سكين لحم"
+    ],
+    "sheet": "tableware-details",
+    "room": "Cuisine",
+    "slot": 3
+  },
+  {
+    "key": "butter-knife",
+    "names": [
+      "Couteau à beurre",
+      "One short blunt butter spreading knife",
+      "سكين زبدة"
+    ],
+    "sheet": "tableware-details",
+    "room": "Cuisine",
+    "slot": 4
+  },
+  {
+    "key": "serving-spoon",
+    "names": [
+      "Cuillère de service",
+      "One large stainless serving spoon with deep bowl",
+      "ملعقة تقديم كبيرة"
+    ],
+    "sheet": "tableware-details",
+    "room": "Cuisine",
+    "slot": 5
+  },
+  {
+    "key": "salad-servers",
+    "names": [
+      "Couverts à salade",
+      "Wooden salad fork and spoon pair",
+      "أدوات تقديم سلطة"
+    ],
+    "sheet": "tableware-details",
+    "room": "Cuisine",
+    "slot": 6
+  },
+  {
+    "key": "chopsticks",
+    "names": [
+      "Baguettes",
+      "One pair of bamboo chopsticks",
+      "عيدان طعام"
+    ],
+    "sheet": "tableware-details",
+    "room": "Cuisine",
+    "slot": 7
+  },
+  {
+    "key": "red-wine-glass",
+    "names": [
+      "Verre à vin rouge",
+      "Large wide round-bowl red wine glass, empty",
+      "كأس نبيذ أحمر واسع"
+    ],
+    "sheet": "tableware-details",
+    "room": "Cuisine",
+    "slot": 8
+  },
+  {
+    "key": "white-wine-glass",
+    "names": [
+      "Verre à vin blanc",
+      "Narrow tulip-bowl white wine glass, empty",
+      "كأس نبيذ أبيض ضيق"
+    ],
+    "sheet": "tableware-details",
+    "room": "Cuisine",
+    "slot": 9
+  },
+  {
+    "key": "champagne-coupe",
+    "names": [
+      "Coupe à champagne",
+      "Wide shallow champagne coupe glass, empty",
+      "كأس شامبانيا عريض"
+    ],
+    "sheet": "tableware-details",
+    "room": "Cuisine",
+    "slot": 10
+  },
+  {
+    "key": "beer-glass",
+    "names": [
+      "Verre à bière",
+      "Tall tapered beer pint glass, empty",
+      "كأس بيرة طويل"
+    ],
+    "sheet": "tableware-details",
+    "room": "Cuisine",
+    "slot": 11
+  },
+  {
+    "key": "cocktail-glass",
+    "names": [
+      "Verre à cocktail",
+      "V-shaped martini cocktail glass, empty",
+      "كأس كوكتيل"
+    ],
+    "sheet": "tableware-details",
+    "room": "Cuisine",
+    "slot": 12
+  },
+  {
+    "key": "shot-glass",
+    "names": [
+      "Verre à liqueur",
+      "Small thick-bottom shot glass, empty",
+      "كأس صغير"
+    ],
+    "sheet": "tableware-details",
+    "room": "Cuisine",
+    "slot": 13
+  },
+  {
+    "key": "child-plate",
+    "names": [
+      "Assiette enfant",
+      "Silicone toddler plate with three divided compartments",
+      "طبق أطفال مقسم"
+    ],
+    "sheet": "tableware-details",
+    "room": "Cuisine",
+    "slot": 14
+  },
+  {
+    "key": "child-cutlery",
+    "names": [
+      "Couverts enfant",
+      "Small child fork and spoon with thick silicone handles",
+      "أدوات مائدة أطفال"
+    ],
+    "sheet": "tableware-details",
+    "room": "Cuisine",
+    "slot": 15
+  }
+]

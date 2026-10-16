@@ -1,4 +1,4 @@
-import React, { useCallback, useMemo, lazy, Suspense } from 'react';
+import React, { useCallback, useEffect, useMemo, useState, lazy, Suspense } from 'react';
 import { useLocation } from 'react-router-dom';
 import { cn } from '../../utils/cn';
 import { useLayoutState } from '../../hooks/useLayoutState';
@@ -16,7 +16,7 @@ import {
 } from '../../components/ui';
 import { LoadingStates } from '../../components/LoadingStates';
 import { ScreenChromeProvider } from '../../components/ScreenChrome';
-import { CommandCenter, CommandCenterProvider } from '../../components/command-center';
+import { CommandCenterProvider, useCommandCenter } from '../../components/command-center/CommandCenterProvider';
 import OfflineBanner from '../../components/OfflineBanner';
 import PWAInstallBanner from '../../components/PWAInstallBanner';
 import OnboardingDockMount from '../../components/OnboardingDockMount';
@@ -25,6 +25,16 @@ import OnboardingDockMount from '../../components/OnboardingDockMount';
 // est lourd et monté sur CHAQUE page — le sortir du chunk layout permet au premier
 // écran de s'afficher sans lui (la bulle apparaît dès que son chunk arrive).
 const AssistantDockTab = lazy(() => import('../../components/AssistantDockTab'));
+const CommandCenter = lazy(() => import('../../components/command-center/CommandCenter'));
+
+/** Garder les raccourcis disponibles ; charger la palette seulement à l'ouverture. */
+function CommandCenterMount() {
+  const { open } = useCommandCenter();
+  const [hasOpened, setHasOpened] = useState(false);
+  useEffect(() => { if (open) setHasOpened(true); }, [open]);
+  // Après l'ouverture, conserver le Dialog pour sa fermeture et la restitution du focus.
+  return open || hasOpened ? <Suspense fallback={null}><CommandCenter /></Suspense> : null;
+}
 
 interface MainLayoutFullProps {
   children: React.ReactNode;
@@ -192,7 +202,7 @@ export default function MainLayoutFull({ children }: MainLayoutFullProps) {
       </Suspense>
 
       {/* Palette ⌘K — rendue en portail, donc placée en dernier. */}
-      <CommandCenter />
+      <CommandCenterMount />
     </SidebarProvider>
     </CommandCenterProvider>
     </ScreenChromeProvider>

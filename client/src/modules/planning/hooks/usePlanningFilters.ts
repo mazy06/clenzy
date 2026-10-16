@@ -1,5 +1,7 @@
 import { useCallback, useDeferredValue, useMemo, useState } from 'react';
 import { useUserPreference } from '../../../hooks/useUserPreference';
+import { PLANNING_CHANNEL_KEYS, PLANNING_STATUS_KEYS, type PlanningChannelKey } from '../constants';
+import { countBaitlyPlanningFilters } from '../utils/baitlyFilters';
 import type { ReservationStatus, PlanningInterventionType } from '../../../services/api';
 import type { PlanningEvent, PlanningFilters, PlanningProperty } from '../types';
 
@@ -24,7 +26,7 @@ const PREF_KEY = 'planning.filters';
 type PersistedFilters = Pick<
   PlanningFilters,
   'statuses' | 'interventionTypes' | 'showInterventions' | 'showPrices'
->;
+> & { hiddenStatuses?: ReservationStatus[]; hiddenChannels?: PlanningChannelKey[] };
 
 const DEFAULT_PERSISTED: PersistedFilters = {
   statuses: DEFAULT_FILTERS.statuses,
@@ -38,6 +40,8 @@ function sanitize(raw: unknown): PersistedFilters {
   if (!raw || typeof raw !== 'object') return DEFAULT_PERSISTED;
   const r = raw as Record<string, unknown>;
   return {
+    hiddenChannels: Array.isArray(r.hiddenChannels) ? r.hiddenChannels.filter((channel): channel is PlanningChannelKey => PLANNING_CHANNEL_KEYS.includes(channel as PlanningChannelKey)) : [],
+    hiddenStatuses: Array.isArray(r.hiddenStatuses) ? r.hiddenStatuses.filter((s): s is ReservationStatus => PLANNING_STATUS_KEYS.includes(s as ReservationStatus)) : undefined,
     statuses: Array.isArray(r.statuses) ? (r.statuses as ReservationStatus[]) : DEFAULT_PERSISTED.statuses,
     interventionTypes: Array.isArray(r.interventionTypes)
       ? (r.interventionTypes as PlanningInterventionType[])
@@ -50,6 +54,13 @@ function sanitize(raw: unknown): PersistedFilters {
 
 export interface UsePlanningFiltersReturn {
   filters: PlanningFilters;
+  activeChannels: ReadonlySet<PlanningChannelKey>;
+  activeStatuses: ReadonlySet<ReservationStatus>;
+  toggleChannel: (channel: PlanningChannelKey) => void;
+  toggleStatus: (status: ReservationStatus) => void;
+  presentChannels: ReadonlySet<PlanningChannelKey>;
+  filterCount: number;
+  occupancyEvents: PlanningEvent[];
   setStatusFilter: (statuses: ReservationStatus[]) => void;
   setInterventionTypeFilter: (types: PlanningInterventionType[]) => void;
   setPropertyFilter: (propertyIds: number[]) => void;
@@ -72,6 +83,24 @@ export function usePlanningFilters(
 
   // Champs ephemeres (session-scoped, pas persistes — meme comportement qu'avant)
   const [propertyIds, setPropertyIds] = useState<number[]>([]);
+  const activeChannels = useMemo(() => new Set(PLANNING_CHANNEL_KEYS.filter(
+    (channel) => !safePersisted.hiddenChannels?.includes(channel),
+  )), [safePersisted.hiddenChannels]);
+  const activeStatuses = useMemo(() => new Set(
+    safePersisted.hiddenStatuses
+      ? PLANNING_STATUS_KEYS.filter((status) => !safePersisted.hiddenStatuses!.includes(status))
+      : safePersisted.statuses.length ? safePersisted.statuses : PLANNING_STATUS_KEYS,
+  ), [safePersisted]);
+  const toggleChannel = useCallback((channel: PlanningChannelKey) => {
+    const next = new Set(activeChannels);
+    if (next.has(channel)) next.delete(channel); else next.add(channel);
+    setPersisted({ ...safePersisted, hiddenChannels: PLANNING_CHANNEL_KEYS.filter((key) => !next.has(key)) });
+  }, [activeChannels, safePersisted, setPersisted]);
+  const toggleStatus = useCallback((status: ReservationStatus) => {
+    const next = new Set(activeStatuses);
+    if (next.has(status)) next.delete(status); else next.add(status);
+    setPersisted({ ...safePersisted, statuses: [], hiddenStatuses: PLANNING_STATUS_KEYS.filter((key) => !next.has(key)) });
+  }, [activeStatuses, safePersisted, setPersisted]);
   const [searchQuery, setSearchQuery] = useState<string>('');
   // Version differee pour le filtrage : le champ controle reste reactif a la
   // frappe, mais le recalcul filteredEvents → re-layout complet de la grille
@@ -84,7 +113,7 @@ export function usePlanningFilters(
   );
 
   const setStatusFilter = useCallback(
-    (statuses: ReservationStatus[]) => setPersisted({ ...safePersisted, statuses }),
+    (statuses: ReservationStatus[]) => setPersisted({ ...safePersisted, statuses, hiddenStatuses: undefined }),
     [safePersisted, setPersisted],
   );
 
@@ -113,32 +142,34 @@ export function usePlanningFilters(
     setSearchQuery('');
   }, [setPersisted]);
 
-  const hasActiveFilters =
-    filters.statuses.length > 0
-    || filters.interventionTypes.length > 0
-    || filters.propertyIds.length > 0
-    || filters.searchQuery.length > 0
-    || !filters.showInterventions
-    || !filters.showPrices;
+  const occupancyEvents = useMemo(() => {
+    const ids = new Set(propertyIds);
+    return ids.size ? events.filter((event) => ids.has(event.propertyId)) : events;
+  }, [events, propertyIds]);
+  const presentChannels = useMemo(() => new Set(occupancyEvents.flatMap((event) => {
+    const channel = PLANNING_CHANNEL_KEYS.find((key) => key === event.reservation?.source);
+    return channel ? [channel] : [];
+  })), [occupancyEvents]);
+  const filterCount = countBaitlyPlanningFilters(filters, activeChannels, activeStatuses, presentChannels);
+  const hasActiveFilters = filterCount > 0;
 
   // Depend des champs individuels (et de la recherche DIFFEREE) : dependre de
   // l'objet `filters` invalidait le memo a chaque frappe, avant meme le defer.
   const filteredEvents = useMemo(() => {
     let result = events;
 
-    if (safePersisted.statuses.length > 0) {
-      const statusSet = new Set(safePersisted.statuses);
-      result = result.filter((e) =>
-        e.type !== 'reservation' || statusSet.has(e.status as ReservationStatus),
-      );
-    }
+    result = result.filter((event) => {
+      if (event.type !== 'reservation') return true;
+      const channel = PLANNING_CHANNEL_KEYS.find((key) => key === event.reservation?.source);
+      return activeStatuses.has(event.status as ReservationStatus) && (!channel || activeChannels.has(channel));
+    });
 
     if (!safePersisted.showInterventions) {
-      result = result.filter((e) => e.type === 'reservation');
+      result = result.filter((e) => e.type === 'reservation' || e.type === 'blocked');
     } else if (safePersisted.interventionTypes.length > 0) {
       const interventionTypeSet = new Set(safePersisted.interventionTypes);
       result = result.filter((e) =>
-        e.type === 'reservation'
+        e.type === 'reservation' || e.type === 'blocked'
         || interventionTypeSet.has(e.type as PlanningInterventionType),
       );
     }
@@ -157,7 +188,7 @@ export function usePlanningFilters(
     }
 
     return result;
-  }, [events, safePersisted, propertyIds, deferredSearchQuery]);
+  }, [events, safePersisted, propertyIds, deferredSearchQuery, activeStatuses, activeChannels]);
 
   const filteredProperties = useMemo(() => {
     if (filters.propertyIds.length === 0) return properties;
@@ -166,7 +197,7 @@ export function usePlanningFilters(
   }, [properties, filters.propertyIds]);
 
   return {
-    filters,
+    filters, activeChannels, activeStatuses, toggleChannel, toggleStatus, presentChannels, filterCount, occupancyEvents,
     setStatusFilter,
     setInterventionTypeFilter,
     setPropertyFilter,

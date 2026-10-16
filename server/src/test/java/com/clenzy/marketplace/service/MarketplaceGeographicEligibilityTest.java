@@ -69,15 +69,15 @@ class MarketplaceGeographicEligibilityTest {
         var owner = mock(MarketplaceProviderZoneRepository.CoverageOwner.class);
         when(owner.getUserId()).thenReturn(8L);
         when(zones.lockCoverageOwner(1L)).thenReturn(Optional.of(owner));
-        when(zones.covers(1L, "FR", "75", "75101", null)).thenReturn(true);
+        when(zones.coversLocation(1L, "FR", "75", "75101", null, null, null)).thenReturn(true);
         when(zones.acceptsProperty(1L, null)).thenReturn(true);
         service.requireCoverage(1L, 2L, 3L);
         var order = inOrder(properties, zones);
         order.verify(properties).lockMarketplaceLocation(2L, 3L);
         order.verify(zones).lockCoverageOwner(1L);
         order.verify(zones).lockIndividual(8L);
-        order.verify(zones).covers(1L, "FR", "75", "75101", null);
-        when(zones.covers(1L, "FR", "75", "75101", null)).thenReturn(false);
+        order.verify(zones).coversLocation(1L, "FR", "75", "75101", null, null, null);
+        when(zones.coversLocation(1L, "FR", "75", "75101", null, null, null)).thenReturn(false);
         assertThatThrownBy(() -> service.requireCoverage(1L, 2L, 3L)).isInstanceOf(IllegalStateException.class);
     }
 }

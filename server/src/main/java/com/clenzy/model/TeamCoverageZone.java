@@ -29,11 +29,11 @@ public class TeamCoverageZone {
     @Column(name = "department", length = 3)
     private String department;
 
-    /** France uniquement : arrondissement (ex "75001"). Null pour les autres pays. */
+    /** France : code INSEE municipal (ex. "75101" pour Paris 1er). */
     @Column(name = "arrondissement", length = 5)
     private String arrondissement;
 
-    /** Hors France : libelle de la ville (ex "Marrakech"). Null pour la France. */
+    /** Ville du secteur (ex. Courbevoie ou Marrakech). En France, null couvre tout le département. */
     @Column(name = "city", length = 100)
     private String city;
 

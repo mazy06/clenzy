@@ -126,6 +126,17 @@ class InterventionAccessPolicyTest {
         }
     }
 
+    @Test
+    void hostProviderAssignedInSameOrganizationCanExecuteOnlyOwnMission() {
+        when(tenantContext.getRequiredOrganizationId()).thenReturn(7L);
+        User provider=user(42L);
+        when(userRepository.findByKeycloakId("kc-1")).thenReturn(Optional.of(provider));
+        var own=intervention(7L,null,provider,null);
+        assertThatNoException().isThrownBy(()->policy.assertCanAccess(own,jwt("HOST")));
+        var other=intervention(7L,null,user(99L),null);
+        assertThatThrownBy(()->policy.assertCanAccess(other,jwt("HOST"))).isInstanceOf(UnauthorizedException.class);
+    }
+
     @Nested
     @DisplayName("HOST role")
     class HostRole {

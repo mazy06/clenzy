@@ -6,14 +6,14 @@ import { formatDate as formatLocalizedDate } from '../quotes/quotePresentation';
 import ProviderDecisionJournal from './ProviderDecisionJournal';
 import ProviderDocumentaryPanel from './ProviderDocumentaryPanel';
 import ProviderRetentionPanel from './ProviderRetentionPanel';
+import BaitlyProviderEditor from './BaitlyProviderEditor';
 import React, { useMemo, useState } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import PageHeader from '../../components/PageHeader';
 import EmptyState from '../../components/EmptyState';
 import StatusChip from '../../components/baitly/StatusChip';
 import {
   Button,
-  Card,
   Select,
   SelectContent,
   SelectItem,
@@ -24,20 +24,19 @@ import {
 } from '../../components/ui';
 import {
   ArrowBack,
+  Edit,
   Business,
   Email,
-  Language,
   LocationOn,
   OpenInNew,
   PersonSearch,
   Phone,
   Description,
-  Star,
   Verified,
   WarningAmber,
 } from '../../icons';
 import { cn } from '../../utils/cn';
-import ProviderAvatar from './ProviderAvatar';
+import { BaitlyProviderIdentity, BaitlyProviderOffers as OffersByCategory, BaitlyProfileSection as Section } from './BaitlyProviderProfile';
 import ProviderNotificationStatus from './ProviderNotificationStatus';
 import ProviderProvisioningPanel from './ProviderProvisioningPanel';
 import {
@@ -52,7 +51,6 @@ import {
 } from '../../hooks/useMarketplaceProviders';
 import { marketplaceProvidersApi } from '../../services/api/marketplaceProvidersApi';
 import type {
-  ApplicationDocumentDto,
   ExposureEffect,
   ProviderDetailDto,
   ProviderOfferDto,
@@ -60,7 +58,6 @@ import type {
 } from '../../services/api/marketplaceProvidersApi';
 import { declaredDays, summariseWeek } from './providerAvailability';
 import {
-  categoryIcon,
   COMPLIANCE_TONES,
   complianceState,
   ENGAGEMENT_ORDER,
@@ -94,25 +91,6 @@ function statusErrorMessage(error: unknown): string {
  * hauteur restante au lieu de faire défiler — c'est ce qui tranchait le bandeau
  * d'identité en deux, chips et réputation coupés au milieu.</p>
  */
-function Section({ title, aside, children, className }: {
-  title: string;
-  aside?: React.ReactNode;
-  children: React.ReactNode;
-  className?: string;
-}) {
-  return (
-    <Card className={cn('shrink-0 gap-0 px-0 py-0', className)}>
-      <div className="flex items-center justify-between gap-2 border-b border-border px-4 py-2.5">
-        <h2 className="m-0 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
-          {title}
-        </h2>
-        {aside}
-      </div>
-      <div className="px-4 py-3.5">{children}</div>
-    </Card>
-  );
-}
-
 /**
  * Couples libellé / valeur, **vides exclus**.
  *
@@ -391,7 +369,7 @@ function ExposurePanel({ providerId }: { providerId: number }) {
             </div>
 
             {reason.trim().length === 0 && (
-              <p className="m-0 text-[11px] text-warning-ink">
+              <p className="m-0 text-xs text-warning-ink">
                 {/* Le serveur refuse aussi : le dire ici évite de perdre la saisie. */}
                 {t("marketplaceAdmin.ruleHint")}
               </p>
@@ -405,89 +383,6 @@ function ExposurePanel({ providerId }: { providerId: number }) {
 }
 
 /** Prestations groupées par métier : une ligne de prix par prestation. */
-function OffersByCategory({ offers }: { offers: ProviderOfferDto[] }) {
-  const { t, RECURRENCE_LABELS, PAYER_LABELS, formatOfferPrice } = useMarketplacePresentation();
-  const grouped = useMemo(() => {
-    const map = new Map<string, { label: string; iconKey?: string; items: ProviderOfferDto[] }>();
-    for (const offer of offers) {
-      const entry = map.get(offer.categoryCode) ?? {
-        label: offer.categoryLabelFr,
-        iconKey: offer.categoryIconKey,
-        items: [],
-      };
-      entry.items.push(offer);
-      map.set(offer.categoryCode, entry);
-    }
-    return [...map.entries()];
-  }, [offers]);
-
-  if (grouped.length === 0) {
-    return <p className="m-0 text-sm text-muted-foreground">{t('marketplaceAdmin.noServices')}</p>;
-  }
-
-  return (
-    <div className="flex flex-col gap-4">
-      {grouped.map(([code, group]) => (
-        <div key={code}>
-          <h3 className="m-0 mb-1.5 flex items-center gap-1.5 text-sm font-semibold text-foreground [&>svg]:size-4 [&>svg]:text-primary">
-            {categoryIcon(group.iconKey)}
-            {group.label}
-          </h3>
-          <ul className="m-0 flex list-none flex-col p-0">
-            {group.items.map((offer) => (
-              <li
-                key={offer.id}
-                className="flex items-start justify-between gap-4 border-b border-border py-2 last:border-b-0"
-              >
-                <div className="min-w-0">
-                  <p className={cn(
-                    'm-0 text-sm',
-                    offer.active ? 'text-foreground' : 'text-muted-foreground line-through',
-                  )}>
-                    {offer.label}
-                  </p>
-                  {offer.description && (
-                    <p className="m-0 mt-0.5 text-xs text-muted-foreground">{offer.description}</p>
-                  )}
-                  {/* Récurrence, payeur et caractère obligatoire viennent du
-                      catalogue. Une prestation hors référentiel n'en porte
-                      aucun — et c'est une information en soi. */}
-                  {(offer.recurrence || offer.payer || offer.regulated
-                    || offer.minDurationMinutes != null) && (
-                    <div className="mt-1 flex flex-wrap items-center gap-1">
-                      {offer.recurrence && (
-                        <StatusChip size="sm" tone="neutral" label={RECURRENCE_LABELS[offer.recurrence]} />
-                      )}
-                      {offer.payer && (
-                        <StatusChip
-                          size="sm"
-                          tone={offer.payer === 'GUEST' ? 'info' : 'neutral'}
-                          label={t('marketplaceAdmin.paidBy', { payer: PAYER_LABELS[offer.payer] })}
-                        />
-                      )}
-                      {offer.regulated && (
-                        <StatusChip size="sm" tone="warn" label={t('marketplaceAdmin.regulated')} />
-                      )}
-                      {offer.minDurationMinutes != null && (
-                        <span className="text-[11px] text-muted-foreground">
-                          {t('marketplaceAdmin.minimumDuration', { count: offer.minDurationMinutes })}
-                        </span>
-                      )}
-                    </div>
-                  )}
-                </div>
-                <span className="shrink-0 text-sm font-semibold tabular-nums text-foreground">
-                  {formatOfferPrice(offer.amount, offer.currency, offer.pricingModel, offer.unitLabel)}
-                </span>
-              </li>
-            ))}
-          </ul>
-        </div>
-      ))}
-    </div>
-  );
-}
-
 /**
  * Où et quand le professionnel intervient.
  *
@@ -546,19 +441,20 @@ function Coverage({ provider }: { provider: ProviderDetailDto }) {
           </p>
         ) : (
           <>
-            <div className="mb-2.5 flex gap-1">
+            <div className="baitly-profile-week">
               {DAY_INITIALS.map((initial, index) => {
                 const open = openDays.has(index + 1);
                 return (
                   <span
                     key={`${initial}-${index}`}
                     title={DAY_NAMES[index]}
+                    aria-label={DAY_NAMES[index]}
                     className={cn(
                       'inline-flex size-7 items-center justify-center rounded-md text-xs font-semibold',
                       open ? 'bg-success-soft text-success-ink' : 'bg-muted text-muted-foreground',
                     )}
                   >
-                    {initial}
+                    {DAY_NAMES[index].slice(0,3)}
                   </span>
                 );
               })}
@@ -583,14 +479,22 @@ function Coverage({ provider }: { provider: ProviderDetailDto }) {
 // ─── Écran ──────────────────────────────────────────────────────────────────
 
 export default function MarketplaceProviderDetailPage() {
-  const { t, STATUS_LABELS, ENGAGEMENT_LABELS, ENGAGEMENT_HINTS, COMPLIANCE_LABELS, SOURCE_LABELS, formatDate, formatMoney, languageName } = useMarketplacePresentation();
+  const { t, STATUS_LABELS, ENGAGEMENT_LABELS, ENGAGEMENT_HINTS, COMPLIANCE_LABELS, SOURCE_LABELS, formatDate, formatMoney } = useMarketplacePresentation();
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const [searchParams,setSearchParams]=useSearchParams();
   const providerId = id ? Number(id) : undefined;
 
   const { data: provider, isLoading, isError } = useMarketplaceProvider(providerId);
   const updateStatus = useUpdateProviderStatus();
   const updateEngagement = useUpdateProviderEngagement();
+  const [editing,setEditing]=useState(() => searchParams.get('edit')==='1');
+  const finishEditing=() => {
+    setEditing(false);
+    if(searchParams.has('edit')) {
+      const next=new URLSearchParams(searchParams);next.delete('edit');setSearchParams(next,{replace:true});
+    }
+  };
 
   const [pendingStatus, setPendingStatus] = useState<ProviderStatus | ''>('');
   const [reviewNote, setReviewNote] = useState('');
@@ -635,7 +539,6 @@ export default function MarketplaceProviderDetailPage() {
   const vigilance = complianceState(provider.vigilanceExpiresAt);
   const location = [provider.baseAddress, provider.basePostalCode, provider.baseCity]
     .filter(Boolean).join(', ');
-  const hasReputation = provider.ratingAvg != null || provider.completedMissions > 0;
 
   return (
     <>
@@ -643,120 +546,34 @@ export default function MarketplaceProviderDetailPage() {
         title={provider.displayName}
         subtitle={provider.headline ?? provider.legalName ?? t('marketplaceAdmin.professional')}
         actions={
-          <Button variant="outline" size="sm" onClick={() => navigate('/marketplace/providers')}>
+          <><Button variant="outline" size="sm" onClick={() => navigate('/marketplace/providers')}>
             <ArrowBack className="size-4" />{t('marketplaceAdmin.catalogue')}</Button>
+            {!editing && <Button size="sm" onClick={() => setEditing(true)}><Edit className="size-4" />{t('providerEdit.edit')}</Button>}</>
         }
       />
 
       {/* ─── Identité ────────────────────────────────────────────────── */}
-      <Card className="shrink-0 gap-0 px-4 py-4">
-        <div className="flex flex-wrap items-start gap-4">
-          <ProviderAvatar url={provider.avatarUrl} name={provider.displayName} size="lg" />
+      {editing ? <BaitlyProviderEditor key={provider.id} provider={provider} onCancel={finishEditing} onSaved={finishEditing} /> : <>
+      <div className="baitly-provider-profile">
+      <BaitlyProviderIdentity name={provider.displayName} headline={provider.headline ?? provider.legalName}
+        bio={provider.bio} url={provider.avatarUrl} categoryCodes={provider.offers.map(o => o.categoryCode)}
+        location={location} languages={provider.languages} rating={provider.ratingAvg}
+        ratingCount={provider.ratingCount} completedMissions={provider.completedMissions}
+        badges={<>
+          <StatusChip dot tone={STATUS_TONES[provider.status]} label={STATUS_LABELS[provider.status]} />
+          <StatusChip tone={ENGAGEMENT_TONES[provider.engagementMode]} label={ENGAGEMENT_LABELS[provider.engagementMode]} />
+          {provider.verified && <StatusChip tone="ok" icon={<Verified />} label={t('marketplaceAdmin.verified')} />}
+          {provider.complianceAlert && <StatusChip tone="err" icon={<WarningAmber />} label={t('marketplaceAdmin.renew')} />}
+          {provider.acceptsUrgent && <StatusChip tone="info" label={t('marketplaceAdmin.urgent')} />}
+        </>}>
+        <a href={`mailto:${provider.email}`}><Email size={16} />{provider.email}</a>
+        {provider.phone && <a href={`tel:${provider.phone}`}><Phone size={16} />{provider.phone}</a>}
+        {provider.website && <a href={provider.website} target="_blank" rel="noopener noreferrer"><OpenInNew size={16} />{t('marketplaceAdmin.website')}</a>}
+        {provider.avgResponseMinutes != null && <span className="tabular-nums">{t('marketplaceAdmin.response')} : {provider.avgResponseMinutes} min</span>}
+      </BaitlyProviderIdentity>
 
-          <div className="min-w-0 flex-1">
-            <div className="flex flex-wrap items-center gap-1.5">
-              <StatusChip dot tone={STATUS_TONES[provider.status]} label={STATUS_LABELS[provider.status]} />
-              <StatusChip
-                tone={ENGAGEMENT_TONES[provider.engagementMode]}
-                label={ENGAGEMENT_LABELS[provider.engagementMode]}
-              />
-              {provider.verified && <StatusChip tone="ok" icon={<Verified />} label={t('marketplaceAdmin.verified')} />}
-              {provider.complianceAlert && (
-                <StatusChip tone="err" icon={<WarningAmber />} label={t('marketplaceAdmin.renew')} />
-              )}
-              {provider.acceptsUrgent && <StatusChip tone="info" label={t('marketplaceAdmin.urgent')} />}
-            </div>
-
-            <div className="mt-2.5 flex flex-wrap gap-x-5 gap-y-1 text-xs text-muted-foreground">
-              <a
-                href={`mailto:${provider.email}`}
-                className="flex items-center gap-1 text-muted-foreground underline-offset-2 hover:text-foreground hover:underline"
-              >
-                <Email className="size-3.5" />
-                {provider.email}
-              </a>
-              {provider.phone && (
-                <a
-                  href={`tel:${provider.phone}`}
-                  className="flex items-center gap-1 text-muted-foreground underline-offset-2 hover:text-foreground hover:underline"
-                >
-                  <Phone className="size-3.5" />
-                  {provider.phone}
-                </a>
-              )}
-              {location && (
-                <span className="flex items-center gap-1">
-                  <LocationOn className="size-3.5" />
-                  {location}
-                </span>
-              )}
-              {provider.website && (
-                <a
-                  href={provider.website}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="flex items-center gap-1 text-muted-foreground underline-offset-2 hover:text-foreground hover:underline"
-                >
-                  <OpenInNew className="size-3.5" />{t('marketplaceAdmin.website')}</a>
-              )}
-              {provider.languages.length > 0 && (
-                <span className="flex items-center gap-1">
-                  <Language className="size-3.5" />
-                  {provider.languages.map(languageName).join(', ')}
-                </span>
-              )}
-            </div>
-          </div>
-
-          {/*
-            La réputation ne s'affiche que s'il y en a une. Un « — » posé à côté
-            d'un « 0 » occupait la place d'une information sans en être une : sur
-            les fiches reprises, aucune n'est notée, et rien dans le produit ne
-            note encore un intervenant.
-          */}
-          {hasReputation ? (
-            <div className="flex shrink-0 gap-6 border-s border-border ps-5">
-              {provider.ratingAvg != null && (
-                <div>
-                  <p className="m-0 flex items-baseline gap-1 text-lg font-semibold tabular-nums text-foreground">
-                    <Star className="size-4 text-warning" />
-                    {provider.ratingAvg.toFixed(1)}
-                  </p>
-                  <p className="m-0 text-[11px] text-muted-foreground">{t('marketplaceAdmin.reviews', { count: provider.ratingCount })}</p>
-                </div>
-              )}
-              {provider.completedMissions > 0 && (
-                <div>
-                  <p className="m-0 text-lg font-semibold tabular-nums text-foreground">
-                    {provider.completedMissions}
-                  </p>
-                  <p className="m-0 text-[11px] text-muted-foreground">{t('marketplaceAdmin.completed')}</p>
-                </div>
-              )}
-              {provider.avgResponseMinutes != null && (
-                <div>
-                  <p className="m-0 text-lg font-semibold tabular-nums text-foreground">
-                    {provider.avgResponseMinutes}<span className="text-xs"> min</span>
-                  </p>
-                  <p className="m-0 text-[11px] text-muted-foreground">{t('marketplaceAdmin.response')}</p>
-                </div>
-              )}
-            </div>
-          ) : (
-            <span className="shrink-0 self-center text-xs text-muted-foreground">{t('marketplaceAdmin.unrated')}</span>
-          )}
-        </div>
-
-        {provider.bio && (
-          <p className="m-0 mt-4 max-w-[75ch] border-t border-border pt-3 text-sm leading-relaxed text-foreground">
-            {provider.bio}
-          </p>
-        )}
-      </Card>
-
-      {/* ─── Corps ───────────────────────────────────────────────────── */}
-      <div className="mt-3 grid grid-cols-1 gap-3 lg:grid-cols-3">
-        <div className="flex flex-col gap-3 lg:col-span-2">
+      <div className="baitly-profile-layout">
+        <div>
           <Section
             title={t('marketplaceAdmin.services')}
             aside={
@@ -771,7 +588,7 @@ export default function MarketplaceProviderDetailPage() {
                 séparée de l'autre colonne obligeait à faire l'aller-retour pour
                 lire un tarif complet. */}
             <div className="mt-4 border-t border-border pt-3">
-              <h4 className="m-0 mb-2 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">{t('marketplaceAdmin.commercialTerms')}</h4>
+              <h4 className="m-0 mb-2 text-xs font-medium text-muted-foreground">{t('marketplaceAdmin.commercialTerms')}</h4>
               <DataList
                 emptyLabel={t('marketplaceAdmin.noTerms', { currency: provider.currency })}
                 rows={[
@@ -805,10 +622,7 @@ export default function MarketplaceProviderDetailPage() {
         </div>
 
         {/* ─── Colonne de droite ─────────────────────────────────────── */}
-        <div className="flex flex-col gap-3">
-          <ProviderProvisioningPanel key={provider.id} provider={provider} />
-          <ProviderNotificationStatus providerId={provider.id} />
-            <ProviderDecisionJournal providerId={provider.id} />
+        <aside>
           <Section
             title={t('marketplace.review.documentDates')}
             aside={provider.complianceAlert
@@ -844,7 +658,7 @@ export default function MarketplaceProviderDetailPage() {
               />
             </div>
 
-            <p className="m-0 mt-3 border-t border-border pt-3 text-[11px] leading-relaxed text-muted-foreground">
+            <p className="m-0 mt-3 border-t border-border pt-3 text-xs leading-relaxed text-muted-foreground">
               {t('marketplace.review.documentPolicyPending')}
             </p>
           </Section>
@@ -873,7 +687,7 @@ export default function MarketplaceProviderDetailPage() {
             />
 
             <div className="mt-3 border-t border-border pt-3">
-              <p className="m-0 mb-2 text-[11px] leading-relaxed text-muted-foreground">
+              <p className="m-0 mb-2 text-xs leading-relaxed text-muted-foreground">
                 {ENGAGEMENT_HINTS[provider.engagementMode]}
               </p>
               <div className="flex flex-wrap gap-1.5">
@@ -907,6 +721,17 @@ export default function MarketplaceProviderDetailPage() {
             </div>
           </Section>
 
+        </aside>
+      </div>
+      <details className="baitly-profile-management">
+        <summary>{t('providerProfile.management')}</summary>
+        <div className="baitly-profile-management__body">
+          <div>
+            <ProviderProvisioningPanel key={provider.id} provider={provider} />
+            <ProviderNotificationStatus providerId={provider.id} />
+            <ProviderDecisionJournal providerId={provider.id} />
+          </div>
+          <div>
           <ApplicationDocuments providerId={provider.id} emailConfirmed={!!provider.emailConfirmedAt} />
           <ProviderDocumentaryPanel key={provider.id} providerId={provider.id} />
 
@@ -940,7 +765,7 @@ export default function MarketplaceProviderDetailPage() {
 
             {provider.reviewNote && (
               <div className="mt-2.5 rounded-md bg-muted px-2.5 py-2">
-                <p className="m-0 mb-1 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">{t('marketplaceAdmin.internalNote')}</p>
+                <p className="m-0 mb-1 text-xs font-semibold  text-muted-foreground">{t('marketplaceAdmin.internalNote')}</p>
                 <p className="m-0 text-xs leading-relaxed text-muted-foreground">
                   {provider.reviewNote}
                 </p>
@@ -949,7 +774,7 @@ export default function MarketplaceProviderDetailPage() {
 
             {provider.decisionMessage && (
               <div className="mt-2 rounded-md border border-border px-2.5 py-2">
-                <p className="m-0 mb-1 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+                <p className="m-0 mb-1 text-xs font-semibold  text-muted-foreground">
                   {/* La date d'envoi est ce qui distingue un message rédigé d'un
                       message effectivement parti — sans elle on réécrit une
                       décision déjà annoncée. */}
@@ -964,7 +789,7 @@ export default function MarketplaceProviderDetailPage() {
             )}
 
             {!provider.emailConfirmedAt && provider.status !== 'ACTIVE' && (
-              <p className="m-0 mt-2.5 flex items-start gap-1.5 rounded-md border border-warning/40 bg-warning-soft px-2.5 py-2 text-[11px] leading-relaxed text-warning-ink [&>svg]:mt-0.5 [&>svg]:size-3.5 [&>svg]:shrink-0">
+              <p className="m-0 mt-2.5 flex items-start gap-1.5 rounded-md border border-warning/40 bg-warning-soft px-2.5 py-2 text-xs leading-relaxed text-warning-ink [&>svg]:mt-0.5 [&>svg]:size-3.5 [&>svg]:shrink-0">
                 <WarningAmber />
                 {/* Le dire ici, et pas seulement au moment du refus serveur :
                     un modérateur qui découvre la règle en la heurtant perd son
@@ -1038,7 +863,7 @@ export default function MarketplaceProviderDetailPage() {
                     >{t('marketplaceAdmin.cancel')}</Button>
                   </div>
                   {noteRequired && (decisionMessage.trim().length === 0 || reviewNote.trim().length === 0) && (
-                    <p className="m-0 text-[11px] text-warning-ink">
+                    <p className="m-0 text-xs text-warning-ink">
                       {t('marketplace.review.rejectionRequiresBoth')}
                     </p>
                   )}
@@ -1046,7 +871,7 @@ export default function MarketplaceProviderDetailPage() {
               )}
 
               {updateStatus.isError && (
-                <p className="m-0 text-[11px] text-destructive-ink">
+                <p className="m-0 text-xs text-destructive-ink">
                   {/* Le serveur explique POURQUOI il refuse — une adresse non
                       confirmée, un motif manquant. Afficher « Réessayez » par
                       dessus invitait à une action qui ne pouvait pas aboutir. */}
@@ -1055,8 +880,11 @@ export default function MarketplaceProviderDetailPage() {
               )}
             </div>
           </Section>
+          </div>
         </div>
+      </details>
       </div>
+      </>}
     </>
   );
 }

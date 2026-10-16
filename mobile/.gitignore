@@ -52,3 +52,4 @@ modules/tuya-pairing/vendor/android/*
 # xcframework n'est pas commite et le build EAS echoue (framework absent).
 !modules/tuya-pairing/ios/ios_core_sdk/Build/
 !modules/tuya-pairing/ios/ios_core_sdk/Build/**
+scripts/dev-test-accounts.json

@@ -1,0 +1,116 @@
+{
+  "date": "2026-10-10",
+  "environment": "https://app.clenzy.fr",
+  "scope": "Audit des vues initiales et de plusieurs onglets, avec inspection de console et du code. Ne couvre pas toutes les actions métier, tous les rôles ou tous les formulaires.",
+  "accountRole": "SUPER_ADMIN",
+  "measurementMethod": {
+    "metric": "Temps observé par le contrôle du navigateur entre navigation/rechargement et visibilité d'un élément métier identifié",
+    "cache": "Cache conservé, aucune désactivation ni purge",
+    "repetitions": 3,
+    "limitations": [
+      "Ces délais incluent le contrôle du navigateur et ne sont pas des valeurs LCP, INP ou TTFB.",
+      "Des extensions Chrome sont présentes. Leurs erreurs sont exclues des anomalies Baitly, mais leur coût peut influencer les délais.",
+      "Les écrans ont des volumes de données différents. Consommables est vide ; Finances contient 456 dossiers.",
+      "Le déploiement du correctif dashboard #439 a eu lieu pendant l'audit. Ces observations précèdent le lot de correction de cet audit et ne constituent pas une comparaison avant/après contrôlée.",
+      "Rapports et Documents sont proches ; l'écart ne suffit pas à conclure à une différence significative. Même réserve pour Réservations et Consommables."
+    ]
+  },
+  "loadingRanking": [
+    { "screen": "Finances / Paiements", "route": "/billing", "marker": "Liste Dossiers financiers", "samplesMs": [10781, 10826, 10452], "medianMs": 10781 },
+    { "screen": "Rapports / Synthèse", "route": "/reports", "marker": "Repères", "samplesMs": [2859, 2386, 2418], "medianMs": 2418 },
+    { "screen": "Documents / Modèles", "route": "/documents", "marker": "Tout le dossier, au même endroit", "samplesMs": [3316, 1402, 2288], "medianMs": 2288 },
+    { "screen": "Consommables", "route": "/consumables", "marker": "Aucun consommable référencé", "samplesMs": [1425, 2408, 1011], "medianMs": 1425 },
+    { "screen": "Réservations", "route": "/reservations", "marker": "Choisissez une réservation", "samplesMs": [4681, 1348, 1424], "medianMs": 1424 }
+  ],
+  "functionalPriorityRanking": [
+    {
+      "priority": "P0",
+      "screens": ["Dashboard"],
+      "issue": "À traiter affiche une erreur ; /api/dashboard/action-items renvoie 500",
+      "evidence": "NPE reproduite dans le test backend lorsque le voyageur ne possède pas de photo ; Collectors.toMap refuse une valeur null",
+      "correction": "Ignorer les photos null sans supprimer la ligne métier, après contrôle du tenant",
+      "delivery": "PR #439 fusionnée sur main ; CI complet réussi ; CD staging frontend 38054217208 et backend 38054711528 réussis ; vérification navigateur : À traiter affiche 320 éléments dans 9 rubriques, sans message d'échec"
+    },
+    {
+      "priority": "P1",
+      "screens": ["Propriétés", "Promotions OTA", "Finances / Dépenses", "Portail propriétaire", "Rapports"],
+      "issue": "Collision de cache : propriétés API et propriétés UI partagent la même clé avec des formats différents",
+      "evidence": "Deux tests reproduisent la perte de champs API ou la réception de types UI incorrects selon l'ordre de montage, avant correction",
+      "correction": "Conserver les DTO API dans le cache partagé ; convertir les données de Propriétés par select ; partager aussi ce cache avec les Rapports"
+    },
+    {
+      "priority": "P1",
+      "screens": ["Rapports / Synthèse", "Rapports / Revenus", "Rapports / Occupation"],
+      "issue": "Les statistiques voyageurs utilisent l'historique complet malgré la période sélectionnée",
+      "evidence": "La Synthèse affiche 158 réservations sur la période, nombre issu de tous les séjours non annulés ; computeClientMetrics ne reçoit aucune fenêtre",
+      "correction": "Limiter les métriques voyageurs aux séjours qui chevauchent la fenêtre du portefeuille serveur, avec bornes inclusives et exclusion des annulations"
+    },
+    {
+      "priority": "P1",
+      "screens": ["Finances / Paiements"],
+      "issue": "dateFrom et dateTo sont envoyés à l'API mais ne sont pas pris en compte par l'endpoint historique",
+      "evidence": "Inspection du controller et de la signature de PaymentQueryService ; test simulant une réponse backend non filtrée",
+      "correction": "Filtrer le jeu complet dans getAllHistory selon la date locale affichée, y compris pour la sélection groupée ; exclure les dates absentes ou invalides lorsqu'un intervalle est demandé",
+      "limitation": "Le filtre devra aussi être porté au serveur pour réduire le volume transmis ; ce lot corrige la sélection visible et groupée"
+    },
+    {
+      "priority": "P2",
+      "screens": ["Pages publiques puis écrans authentifiés"],
+      "issue": "CurrencyProvider demande la matrice privée avant authentification et ne reprend pas automatiquement au login",
+      "evidence": "Avertissement de chargement sur la page de connexion ; controller authentifié ; test échoue avant correction",
+      "correction": "Attendre l'authentification, reprendre au login et ignorer l'erreur d'une requête devenue obsolète"
+    }
+  ],
+  "incorrectLabelsByScreen": {
+    "meaning": "Occurrences de chaînes JSX contenant littéralement un appel t(...), vérifiées dans le code. Ce ne sont ni des bugs fonctionnels indépendants ni 65 erreurs toutes observées en navigateur.",
+    "totalCorrected": 65,
+    "ranking": [
+      { "screen": "Booking Engine / Studio et catalogue", "occurrences": 33 },
+      { "screen": "Administration et Monitoring", "occurrences": 15 },
+      { "screen": "Paramètres", "occurrences": 9 },
+      { "screen": "Prospection", "occurrences": 4 },
+      { "screen": "Calendrier", "occurrences": 3 },
+      { "screen": "Contacts / Voyageurs", "occurrences": 1 }
+    ],
+    "browserEvidence": "Trois libellés {t(...)} affichés tels quels dans Monitoring et une infobulle dans le Studio",
+    "validation": "Les 65 clés existent dans les locales fr, en et ar ; correction des expressions JSX, sans changement de palette ni de mise en page"
+  },
+  "performanceCorrections": [
+    {
+      "screen": "Finances / Paiements",
+      "finding": "getAllHistory récupère 100 dossiers par appel successif. Le serveur reconstruit et trie les trois sources à chaque appel.",
+      "correction": "Lots bornés de 500 dossiers, récupération des pages suivantes conservée, dédoublonnage par type/referenceId et rejet si une page échoue",
+      "validatedGain": "Pour les 456 dossiers observés : 1 requête d'historique au lieu de 5, confirmé par test. Aucun gain de délai après déploiement n'est encore revendiqué.",
+      "remaining": "Le chargement de tout l'historique reste linéaire. Pour les grands volumes, séparer totaux filtrés côté serveur et pagination réelle du contenu ; le plafond actuel de 10000 lignes par source doit être retiré de façon coordonnée."
+    },
+    {
+      "screen": "Rapports",
+      "correction": "Réutiliser le cache propriétés commun et mémoriser indépendamment les projections pricing/forecast/clients",
+      "validatedGain": "Une seule requête propriétés pour le hook de liste et les Rapports ; les projections ne sont pas recalculées quand seuls les agrégats serveur arrivent ; tests dédiés"
+    },
+    {
+      "screen": "Dashboard",
+      "correction": "Partager la requête propriétés entre les photos et le rappel de contrats manquants",
+      "delivery": "Inclus dans #439"
+    }
+  ],
+  "mapDependency": {
+    "screens": ["Propriétés / Carte", "Demandes de service / Carte"],
+    "finding": "Le chargement du style Mapbox échoue ; api.mapbox.com n'est pas autorisé dans le connect-src actuel",
+    "decision": "Aucune modification de carte ni de CSP dans ce lot. Le remplacement par la carte Baitly est déjà en cours sur la branche indiquée par l'utilisateur."
+  },
+  "browserSurfacesChecked": [
+    "/dashboard", "/properties", "/reservations", "/interventions",
+    "/interventions?tab=service-requests", "/connected-objects", "/consumables",
+    "/reports", "/dynamic-pricing", "/promotions", "/booking-engine",
+    "/booking-engine?tab=welcome-guide", "/booking-engine?tab=upsells",
+    "/shop", "/devis", "/prestataires", "/directory", "/documents",
+    "/contracts", "/billing", "/settings", "/automation-rules", "/admin/monitoring", "/tarification"
+  ],
+  "notQualifiedAsBug": [
+    "Erreurs MetaMask et canaux de messages d'extension",
+    "Portefeuilles de test visibles pour le super-admin : périmètre métier à distinguer des 11 logements des rapports",
+    "Prix dynamiques vide sans sélection de propriétaire : état attendu explicitement indiqué à l'écran",
+    "Absence de prestataire ou de consommable dans le jeu de données : état vide valide"
+  ]
+}

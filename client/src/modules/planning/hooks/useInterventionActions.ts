@@ -5,6 +5,8 @@ import type { PlanningIntervention } from '../../../services/api';
 import type { PlanningEvent } from '../types';
 import { planningKeys } from './usePlanningData';
 import { useTranslation } from '../../../hooks/useTranslation';
+import { saveBaitlyInterventionSchedule, getBaitlyScheduleRange } from '../utils/baitlyInterventionSchedule';
+import { validateInterventionUpdate } from '../utils/conflictUtils';
 
 interface ActionResult {
   success: boolean;
@@ -179,14 +181,18 @@ export function useInterventionActions(
       }
 
       try {
-        // TODO: call real API when available
-        queryClient.invalidateQueries({ queryKey: planningKeys.all });
+        const range = getBaitlyScheduleRange(intervention, updates);
+        const validation = validateInterventionUpdate(interventionId, intervention.propertyId,
+          range.startDate, range.endDate, range.startTime, range.endTime, events, interventions);
+        if (!validation.valid) return { success: false, error: t(`planning.feedback.${validation.reason}`) };
+        await saveBaitlyInterventionSchedule(intervention, updates);
+        void queryClient.invalidateQueries({ queryKey: planningKeys.all });
         return { success: true, error: null };
-      } catch {
-        return { success: false, error: t('planning.datesUpdateError') };
+      } catch (error) {
+        return { success: false, error: error instanceof Error ? error.message : t('planning.datesUpdateError') };
       }
     },
-    [queryClient, interventions],
+    [queryClient, interventions, events, t],
   );
 
   // ── 6. Mettre a jour les notes d'une intervention ──────────────────────

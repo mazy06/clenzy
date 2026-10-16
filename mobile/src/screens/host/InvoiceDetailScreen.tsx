@@ -1,3 +1,6 @@
+import * as FileSystem from 'expo-file-system/legacy';
+import { API_CONFIG } from '@/config/api';
+import { useAuthStore } from '@/store/authStore';
 import React from 'react';
 import { View, Text, ScrollView, Pressable, Alert, Share } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -22,10 +25,10 @@ type RouteParams = {
 
 const STATUS_CONFIG: Record<string, { label: string; badgeColor: 'success' | 'warning' | 'info' | 'error' | 'neutral' }> = {
   DRAFT: { label: 'Brouillon', badgeColor: 'neutral' },
-  SENT: { label: 'Envoyee', badgeColor: 'info' },
+  SENT: { label: 'Envoyée', badgeColor: 'info' },
   PAID: { label: 'Payee', badgeColor: 'success' },
   OVERDUE: { label: 'En retard', badgeColor: 'error' },
-  CANCELLED: { label: 'Annulee', badgeColor: 'neutral' },
+  CANCELLED: { label: 'Annulée', badgeColor: 'neutral' },
 };
 
 function formatDate(dateStr?: string): string {
@@ -77,15 +80,15 @@ export function InvoiceDetailScreen() {
   const statusCfg = STATUS_CONFIG[invoice.status] ?? STATUS_CONFIG.DRAFT;
 
   const markPaidMutation = useMutation({
-    mutationFn: () => apiClient.put(`/invoices/${invoice.id}/mark-paid`),
+    mutationFn: () => apiClient.post(`/invoices/${invoice.id}/send-payment-link`),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['invoices'] });
-      Alert.alert('Succes', 'Facture marquee comme payee', [
+      Alert.alert('Lien envoyé', 'Le client a reçu le lien de paiement par e-mail. La facture passera à « Payée » dès la confirmation du paiement.', [
         { text: 'OK', onPress: () => navigation.goBack() },
       ]);
     },
     onError: () => {
-      Alert.alert('Erreur', 'Impossible de mettre a jour la facture');
+      Alert.alert('Erreur', 'Le lien de paiement n’a pas pu être envoyé.');
     },
   });
 
@@ -93,21 +96,30 @@ export function InvoiceDetailScreen() {
     mutationFn: () => apiClient.post(`/invoices/${invoice.id}/send`),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['invoices'] });
-      Alert.alert('Succes', 'Facture envoyee par email');
+      Alert.alert('Succes', 'Facture envoyée par email');
     },
     onError: () => {
       Alert.alert('Erreur', 'Impossible d\'envoyer la facture');
     },
   });
 
-  const handleDownloadPdf = () => {
-    Alert.alert('Info', 'Le telechargement du PDF sera disponible prochainement');
+  const handleDownloadPdf = async () => {
+    const uri = `${FileSystem.cacheDirectory}baitly-invoice-${invoice.id}-${Date.now()}.pdf`;
+    try {
+      const result = await FileSystem.downloadAsync(`${API_CONFIG.BASE_URL}/api/invoices/${invoice.id}/pdf`, uri,
+        { headers: { Authorization: `Bearer ${useAuthStore.getState().accessToken}` } });
+      if (result.status !== 200) throw new Error('PDF unavailable');
+      navigation.navigate('PdfViewer', { uri, title: invoice.number || 'Facture' });
+    } catch {
+      await FileSystem.deleteAsync(uri, { idempotent: true });
+      Alert.alert('Erreur', 'Le PDF de la facture n’est pas disponible.');
+    }
   };
 
   const handleMarkPaid = () => {
     Alert.alert(
-      'Marquer comme payee',
-      'Voulez-vous marquer cette facture comme payee ?',
+      'Envoyer le lien de paiement',
+      'Le client recevra par e-mail un lien pour régler cette facture.',
       [
         { text: 'Annuler', style: 'cancel' },
         { text: 'Confirmer', onPress: () => markPaidMutation.mutate() },
@@ -190,7 +202,7 @@ export function InvoiceDetailScreen() {
         </Card>
 
         {/* Line items */}
-        <SectionHeader title="Details" iconName="list-outline" />
+        <SectionHeader title="Détails" iconName="list-outline" />
         <Card style={{ marginBottom: theme.SPACING.lg }}>
           {/* Table header */}
           <View style={{ flexDirection: 'row', paddingBottom: theme.SPACING.sm, borderBottomWidth: 1, borderBottomColor: theme.colors.border.light }}>
@@ -238,7 +250,7 @@ export function InvoiceDetailScreen() {
         <SectionHeader title="Actions" iconName="settings-outline" />
         <View style={{ gap: theme.SPACING.sm }}>
           <Button
-            title="Telecharger PDF"
+            title="Télécharger PDF"
             variant="outlined"
             onPress={handleDownloadPdf}
             fullWidth
@@ -255,12 +267,12 @@ export function InvoiceDetailScreen() {
                 icon={<Reicon name="mail-outline" size={18} color={theme.colors.primary.main} />}
               />
               <Button
-                title="Marquer comme payee"
+                title="Envoyer le lien de paiement"
                 color="success"
                 onPress={handleMarkPaid}
                 loading={markPaidMutation.isPending}
                 fullWidth
-                icon={<Reicon name="checkmark-circle-outline" size={18} color={theme.colors.success.contrastText} />}
+                icon={<Reicon name="card-outline" size={18} color={theme.colors.success.contrastText} />}
               />
             </>
           )}

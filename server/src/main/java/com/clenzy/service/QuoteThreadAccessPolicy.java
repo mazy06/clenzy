@@ -43,6 +43,15 @@ public class QuoteThreadAccessPolicy {
         if (com.clenzy.marketplace.service.MarketplaceQuoteDiscussionPublisher.REFERENCE.equals(type)) {
             return canAccessMarketplace(thread, keycloakId);
         }
+        if ("BAITLY_MISSION".equals(type)) {
+            var mission = interventions.findById(thread.getReferenceId()).orElse(null);
+            var viewer = users.findByKeycloakId(keycloakId).orElse(null);
+            if (mission == null || viewer == null || !Objects.equals(thread.getOrganizationId(), mission.getOrganizationId())) return false;
+            if (isCustomer(viewer, mission)) return true;
+            if (mission.getRequestor()!=null && Objects.equals(mission.getRequestor().getId(), viewer.getId())) return true;
+            if (mission.getAssignedUser()!=null && Objects.equals(mission.getAssignedUser().getId(), viewer.getId())) return true;
+            return mission.getTeamId()!=null && scope.teamsOf(viewer).contains(mission.getTeamId());
+        }
         if (type == null || !type.startsWith("SERVICE_QUOTE_")) return true;
         User user = users.findByKeycloakId(keycloakId).orElse(null);
         Intervention intervention = thread.getReferenceId() == null ? null

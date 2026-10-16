@@ -1,4 +1,5 @@
 import { useState, useCallback, useRef, useLayoutEffect, useEffect, useMemo } from 'react';
+import { createSettledScheduler } from '../../../utils/layoutShift';
 import { useTranslation } from 'react-i18next';
 import type { ZoomLevel } from '../types';
 import { ZOOM_CONFIGS, BUFFER_MULTIPLIER, EXTEND_THRESHOLD_DAYS } from '../constants';
@@ -25,6 +26,7 @@ export interface UseInfiniteTimelineReturn {
   totalGridWidth: number;
   bufferStart: Date;
   bufferEnd: Date;
+  visibleRange: { start: Date; end: Date };
   scrollRef: React.RefObject<HTMLDivElement | null>;
   handleScroll: () => void;
   scrollToDate: (date: Date) => void;
@@ -119,6 +121,37 @@ export function useInfiniteTimeline({
   const totalGridWidth = days.length * dayWidth;
 
   const scrollRef = useRef<HTMLDivElement | null>(null);
+  const viewport = useRef<{ element: HTMLDivElement | null; width: number }>({ element: null, width: 0 });
+  const readViewportWidth = useCallback((element: HTMLDivElement) => {
+    if (viewport.current.element !== element) {
+      viewport.current = { element, width: element.clientWidth };
+    }
+    return viewport.current.width;
+  }, []);
+  const [visibleRange, setVisibleRange] = useState(() => ({
+    start: subDays(anchorDate, TARGET_DAY_LEADING_COLUMNS),
+    end: addDays(anchorDate, config.visibleDays),
+  }));
+  const publishedVisibleRange = useRef(visibleRange);
+  const updateVisibleRange = useCallback(() => {
+    const el = scrollRef.current;
+    if (!el) return;
+    const viewportWidth = readViewportWidth(el);
+    if (viewportWidth <= propertyColWidth) return;
+    const offset = getInlineScroll(el);
+    const first = Math.min(days.length - 1, firstVisibleIndex(offset, dayWidth));
+    const last = Math.min(days.length - 1,
+      Math.ceil((offset + viewportWidth - propertyColWidth) / dayWidth) - 1);
+    const start = days[first];
+    const end = days[Math.max(first, last)];
+    const previous = publishedVisibleRange.current;
+    // Un setter appelé dans chaque effet de mise en page peut entretenir une
+    // boucle React, même si son updater retourne parfois la valeur précédente.
+    if (previous.start.getTime() === start.getTime() && previous.end.getTime() === end.getTime()) return;
+    const next = { start, end };
+    publishedVisibleRange.current = next;
+    setVisibleRange(next);
+  }, [days, dayWidth, propertyColWidth, readViewportWidth]);
   /** Pixels a rendre au scrollLeft une fois le nouveau buffer peint. */
   const pendingCompensation = useRef(0);
   /**
@@ -226,7 +259,7 @@ export function useInfiniteTimeline({
     const el = scrollRef.current;
     if (!el || slidePending.current) return;
 
-    const gridViewportWidth = Math.max(0, el.clientWidth - propertyColWidth);
+    const gridViewportWidth = Math.max(0, readViewportWidth(el) - propertyColWidth);
     const startIndex = firstVisibleIndex(getInlineScroll(el), dayWidth);
     const endIndex = startIndex + Math.ceil(gridViewportWidth / dayWidth);
 
@@ -245,15 +278,16 @@ export function useInfiniteTimeline({
       pendingCompensation.current = -slideAmount * dayWidth;
       setBufferStart((prev) => addDays(prev, slideAmount));
     }
-  }, [dayWidth, days.length, propertyColWidth, slideAmount]);
+  }, [dayWidth, days.length, propertyColWidth, slideAmount, readViewportWidth]);
 
   const handleScroll = useCallback(() => {
     if (scrollRaf.current !== null) return;
     scrollRaf.current = requestAnimationFrame(() => {
       scrollRaf.current = null;
       evaluateSlide();
+      updateVisibleRange();
     });
-  }, [evaluateSlide]);
+  }, [evaluateSlide, updateVisibleRange]);
 
   useEffect(() => () => {
     if (scrollRaf.current !== null) cancelAnimationFrame(scrollRaf.current);
@@ -295,12 +329,10 @@ export function useInfiniteTimeline({
   );
 
   const scrollToAnchor = useCallback(() => {
-    requestAnimationFrame(() => {
-      const el = scrollRef.current;
-      if (!el) return;
-      const offset = inlineScrollForDate(anchorDate);
-      if (offset !== null) setInlineScroll(el, offset, isRtl);
-    });
+    const el = scrollRef.current;
+    if (!el) return;
+    const offset = inlineScrollForDate(anchorDate);
+    if (offset !== null) setInlineScroll(el, offset, isRtl);
   }, [anchorDate, inlineScrollForDate, isRtl]);
 
   // ── Repositionnement differe apres recentrage du buffer ──────────────────
@@ -318,11 +350,51 @@ export function useInfiniteTimeline({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [daysIdentity]);
 
+  // The scroller mounts after loading. Check its identity every commit, but read
+  // layout only on attachment/resize; local query renders reuse the measured width.
+  const observedViewport = useRef<{
+    element: HTMLDivElement | null; update: typeof updateVisibleRange; dispose: () => void;
+  } | null>(null);
+  const latestVisibleUpdate = useRef(updateVisibleRange);
+  latestVisibleUpdate.current = updateVisibleRange;
+  useLayoutEffect(() => {
+    const element = scrollRef.current;
+    const previous = observedViewport.current;
+    if (previous?.element === element) {
+      if (previous.update !== updateVisibleRange) {
+        previous.update = updateVisibleRange;
+        updateVisibleRange();
+      }
+      return;
+    }
+    previous?.dispose();
+    if (!element) { observedViewport.current = null; return; }
+    viewport.current = { element, width: element.clientWidth };
+    const settled = createSettledScheduler(() => {
+      viewport.current = { element, width: element.clientWidth };
+      latestVisibleUpdate.current();
+    });
+    const observer = typeof ResizeObserver === 'undefined' ? null : new ResizeObserver(settled.schedule);
+    // Set the attachment before publishing state to avoid a render feedback loop.
+    observedViewport.current = { element, update: updateVisibleRange, dispose: () => {
+      settled.cancel(); observer?.disconnect();
+      window.removeEventListener('resize', settled.schedule);
+    } };
+    observer?.observe(element);
+    window.addEventListener('resize', settled.schedule);
+    updateVisibleRange();
+  });
+  useEffect(() => () => {
+    observedViewport.current?.dispose();
+    observedViewport.current = null;
+  }, []);
+
   return {
     days,
     totalGridWidth,
     bufferStart,
     bufferEnd,
+    visibleRange,
     scrollRef,
     handleScroll,
     scrollToDate,

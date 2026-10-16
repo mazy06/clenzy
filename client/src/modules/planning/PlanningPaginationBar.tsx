@@ -47,6 +47,7 @@ const PlanningPaginationBar: React.FC<PlanningPaginationBarProps> = React.memo((
         rangeFrom={rangeStart}
         rangeTo={rangeEnd}
         hideOnSinglePage={false}
+        hideNavigationOnSinglePage
         centerNav
         className="w-full py-0"
       />

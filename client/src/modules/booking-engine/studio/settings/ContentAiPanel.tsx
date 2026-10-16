@@ -104,7 +104,7 @@ export default function ContentAiPanel() {
       <div className="px-6 py-12">
         <EmptyState
           icon={<Sparkles />}
-          title="{t('studio.contentAi.noProperty')}"
+          title={t('studio.contentAi.noProperty')}
           description="Ajoutez une propriété pour générer son contenu avec l'IA."
         />
       </div>
@@ -114,7 +114,7 @@ export default function ContentAiPanel() {
   const propertyOptions = (properties ?? []).map((p) => ({ value: String(p.id), label: p.city ? `${p.name} — ${p.city}` : p.name }));
 
   return (
-    <SettingsPage title="Contenu IA" description="{t('studio.contentAi.subtitle')}">
+    <SettingsPage title="Contenu IA" description={t('studio.contentAi.subtitle')}>
       <SettingCard title={t('studio.contentAi.settings')}>
         <SettingRow label={t('studio.contentAi.property')} htmlFor="ai-property" control={
           <SelectControl id="ai-property" value={propertyId} onChange={setPropertyId} options={propertyOptions} />
@@ -128,8 +128,8 @@ export default function ContentAiPanel() {
       </SettingCard>
 
       <div className="flex gap-2 flex-wrap mb-3.5">
-        <GenButton icon={Wand2} label="{t('studio.contentAi.generateDescription')}" loading={generating === 'description'} disabled={!propertyId || generating !== null} onClick={() => generate('description')} />
-        <GenButton icon={Search} label="{t('studio.contentAi.generateSeo')}" variant="outline" loading={generating === 'seo'} disabled={!propertyId || generating !== null} onClick={() => generate('seo')} />
+        <GenButton icon={Wand2} label={t('studio.contentAi.generateDescription')} loading={generating === 'description'} disabled={!propertyId || generating !== null} onClick={() => generate('description')} />
+        <GenButton icon={Search} label={t('studio.contentAi.generateSeo')} variant="outline" loading={generating === 'seo'} disabled={!propertyId || generating !== null} onClick={() => generate('seo')} />
       </div>
 
       {genError && (

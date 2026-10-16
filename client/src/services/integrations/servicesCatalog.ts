@@ -493,7 +493,7 @@ export const CATALOG_SERVICES: CatalogService[] = [
   },
   {
     id: 'clenzy_hardware',
-    name: 'Baitly Hardware',
+    name: 'Baitly IoT',
     category: 'noise_monitoring',
     brandColor: '#4A9B8E',
     brandTextColor: '#FFFFFF',
@@ -504,7 +504,7 @@ export const CATALOG_SERVICES: CatalogService[] = [
     available: true,
     region: 'Global',
     tag: 'proprietary',
-    internalRoute: '/admin?tab=sound',
+    internalRoute: '/connected-objects',
   },
 
   // ─── Automatisation & Webhooks ───────────────────────────────────────────

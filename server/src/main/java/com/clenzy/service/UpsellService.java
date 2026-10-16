@@ -154,8 +154,15 @@ public class UpsellService {
     }
 
     private void apply(UpsellOffer offer, UpsellOfferRequest req) {
+        String type = parseType(req.type());
+        boolean typeChanged = !java.util.Objects.equals(offer.getType(), type);
+        if (!java.util.Objects.equals(offer.getPropertyId(),req.propertyId())
+                || typeChanged)
+            offer.setPreferredProviderId(null);
+        // Changer la prestation ne doit pas conserver un ancien rattachement incompatible.
+        if (typeChanged) offer.setFulfillmentServiceCode(null);
         offer.setPropertyId(req.propertyId());
-        offer.setType(parseType(req.type()));
+        offer.setType(type);
         offer.setTitle(req.title());
         offer.setDescription(req.description());
         offer.setPrice(req.price());

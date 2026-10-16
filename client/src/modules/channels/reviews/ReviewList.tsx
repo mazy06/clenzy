@@ -27,6 +27,7 @@ import { useTranslation } from '../../../hooks/useTranslation';
 import { useNotification } from '../../../hooks/useNotification';
 import { reviewsApi, type GuestReview } from '../../../services/api/reviewsApi';
 import { activeIntlLocale } from '../../../utils/activeLocale';
+import { BaitlyReviewPublication } from './BaitlyReviewPublication';
 
 interface ReviewListProps {
   /** Filtre sur un logement. Absent = tous les logements de l'organisation. */
@@ -177,6 +178,7 @@ export default function ReviewList({ propertyId, showStats = false }: ReviewList
             const busy = busyId === review.id;
             return (
               <article key={review.id} className="pdt-review-detail">
+                <BaitlyReviewPublication id={review.id}/>
                 <header className="flex items-start gap-2.5">
                   {/* La route de liste sert desormais la photo : l'ecran des
                       avis n'a plus de raison de s'en tenir aux initiales. */}

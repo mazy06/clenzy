@@ -7,7 +7,7 @@ import type { UrgencyAnimationMode } from '../types';
 // manquante). Lecture synchrone au mount, ecriture immediate au changement.
 
 const VALID_MODES: UrgencyAnimationMode[] = ['shake', 'wobble', 'pop', 'tada', 'none'];
-const DEFAULT_MODE: UrgencyAnimationMode = 'shake';
+const DEFAULT_MODE: UrgencyAnimationMode = 'none';
 
 function readStoredMode(): UrgencyAnimationMode {
   const raw = getItem(STORAGE_KEYS.PLANNING_URGENCY_ANIMATION);

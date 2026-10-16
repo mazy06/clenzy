@@ -305,7 +305,19 @@ public class MarketplaceProviderImportService {
     private boolean fillOffers(MarketplaceProvider provider, User user, Sources sources,
                                Map<String, MarketplaceServiceCategory> categories,
                                Map<String, MarketplaceServiceItem> serviceItems) {
-        if (!provider.getOffers().isEmpty()) return false;
+        if (!provider.getOffers().isEmpty()) {
+            boolean repaired=false;
+            for (var existing : provider.getOffers()) {
+                if (existing.getServiceItem()!=null || existing.getTariff()==null) continue;
+                var item=serviceItems.get(existing.getTariff().getServiceKey());
+                if (item!=null && existing.getCategory()!=null
+                        && item.getCategory().getCode().equals(existing.getCategory().getCode())) {
+                    existing.setServiceItem(item);
+                    repaired=true;
+                }
+            }
+            return repaired;
+        }
 
         int order = 0;
 

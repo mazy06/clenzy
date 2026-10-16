@@ -29,10 +29,13 @@ public interface PropertyStockItemRepository extends JpaRepository<PropertyStock
     List<PropertyStockItem> findByIdInAndOrganizationId(java.util.Collection<Long> ids, Long orgId);
 
 
+    @Query(value="SELECT s.* FROM property_stock_items s WHERE s.property_id=:propertyId AND s.organization_id=:org ORDER BY s.name,s.id",nativeQuery=true)
     List<PropertyStockItem> findByPropertyIdAndOrganizationIdOrderByNameAsc(
-            Long propertyId, Long organizationId);
+            @Param("propertyId") Long propertyId,@Param("org") Long organizationId);
 
     Optional<PropertyStockItem> findByIdAndOrganizationId(Long id, Long organizationId);
+    @Query(value="SELECT s.* FROM property_stock_items s WHERE s.id=:id AND s.organization_id=:org FOR UPDATE",nativeQuery=true)
+    Optional<PropertyStockItem> lockForRestock(@Param("id") Long id,@Param("org") Long org);
 
     /**
      * Articles SOUS LEUR SEUIL sur toute l'organisation, le plus bas d'abord.

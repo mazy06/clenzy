@@ -1,0 +1,60 @@
+/* Baitly : une seule échelle pour la recherche et les actions des en-têtes.
+   Les menus portalisés gardent leur présentation partagée sur petit écran. */
+[data-slot="page-header"] [data-header-toolbar] {
+  gap: 0.5rem;
+}
+
+[data-slot="page-header"] [data-header-toolbar] button[data-slot="button"]:not([data-size="icon-xs"]) {
+  height: 2rem;
+  border-radius: 0.5rem;
+  cursor: pointer;
+  transition: background-color 180ms cubic-bezier(0.22, 1, 0.36, 1), color 180ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+[data-slot="page-header"] [aria-keyshortcuts] {
+  background: transparent;
+  box-shadow: none;
+}
+
+[data-slot="page-header"] [aria-keyshortcuts]:not([data-active-filter]) {
+  color: var(--bui-muted-foreground);
+}
+
+[data-slot="page-header"] [aria-keyshortcuts]:hover {
+  background: var(--bui-muted);
+}
+
+[data-slot="page-header"] [aria-keyshortcuts] kbd {
+  border: 0;
+  background: var(--bui-muted);
+  border-radius: 0.25rem;
+  padding: 0.125rem 0.25rem;
+}
+
+[data-slot="page-header"] [data-header-toolbar] [data-contract-reminder] {
+  gap: 0.375rem;
+  padding-inline: 0.625rem;
+  font-size: 0.75rem;
+  font-weight: 500;
+  border: 1px solid transparent;
+}
+
+[data-slot="page-header"] [data-header-toolbar] [data-header-create] {
+  gap: 0.375rem;
+  padding-inline: 0.625rem;
+  background: var(--bui-primary-soft);
+  border-color: transparent;
+  color: var(--bui-foreground);
+  font-size: 0.75rem;
+  max-width: 12rem;
+}
+
+[data-slot="page-header"] [data-header-toolbar] [data-header-create]:hover {
+  background: var(--bui-muted);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  [data-slot="page-header"] [data-header-toolbar] button[data-slot="button"] {
+    transition: none;
+  }
+}

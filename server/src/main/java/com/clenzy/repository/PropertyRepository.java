@@ -12,6 +12,50 @@ import jakarta.persistence.QueryHint;
 import java.util.List;
 
 public interface PropertyRepository extends JpaRepository<Property, Long>, JpaSpecificationExecutor<Property> {
+    interface BaitlyPlanningProperty {
+        Long getId();
+        String getName();
+        String getAddress();
+        String getCity();
+        Long getOwnerId();
+        Integer getMaxGuests();
+        com.clenzy.model.PropertyType getType();
+        java.math.BigDecimal getNightlyPrice();
+        Integer getMinimumNights();
+        String getDefaultCheckInTime();
+        String getDefaultCheckOutTime();
+        com.clenzy.model.CleaningFrequency getCleaningFrequency();
+        java.math.BigDecimal getCleaningBasePrice();
+        String getCurrency();
+        java.math.BigDecimal getLatitude();
+        java.math.BigDecimal getLongitude();
+    }
+
+    @Query(value = "SELECT p.id AS id, p.name AS name, p.address AS address, p.city AS city, "
+        + "o.id AS ownerId, p.maxGuests AS maxGuests, p.type AS type, "
+        + "p.nightlyPrice AS nightlyPrice, p.minimumNights AS minimumNights, "
+        + "p.defaultCheckInTime AS defaultCheckInTime, p.defaultCheckOutTime AS defaultCheckOutTime, "
+        + "p.cleaningFrequency AS cleaningFrequency, p.cleaningBasePrice AS cleaningBasePrice, "
+        + "p.defaultCurrency AS currency, p.latitude AS latitude, p.longitude AS longitude "
+        + "FROM Property p LEFT JOIN p.owner o WHERE p.organizationId = :orgId "
+        + "AND (:ownerKc IS NULL OR o.keycloakId = :ownerKc) ORDER BY p.createdAt DESC, p.id DESC",
+        countQuery = "SELECT COUNT(p) FROM Property p WHERE p.organizationId = :orgId "
+        + "AND (:ownerKc IS NULL OR p.owner.keycloakId = :ownerKc)")
+    org.springframework.data.domain.Page<BaitlyPlanningProperty> findBaitlyPlanningProperties(
+            @Param("orgId") Long orgId, @Param("ownerKc") String ownerKc,
+            org.springframework.data.domain.Pageable pageable);
+
+    interface BaitlyPropertyAccess {
+        Long getId();
+        Long getOrganizationId();
+        Long getOwnerId();
+    }
+
+    /** Projection interne Baitly : même visibilité que findById, garde d'organisation dans le service. */
+    @Query(value = "SELECT id, organization_id AS \"organizationId\", owner_id AS \"ownerId\" "
+            + "FROM properties WHERE id IN (:ids)", nativeQuery = true)
+    List<BaitlyPropertyAccess> findBaitlyPropertyAccess(@Param("ids") java.util.Collection<Long> ids);
+
     interface StockPropertyChoice {
         Long getId();
         String getName();
@@ -182,11 +226,31 @@ public interface PropertyRepository extends JpaRepository<Property, Long>, JpaSp
     @Query("SELECT p.id FROM Property p WHERE p.owner.keycloakId = :ownerKeycloakId AND p.organizationId = :orgId")
     List<Long> findIdsByOwnerKeycloakId(@Param("ownerKeycloakId") String ownerKeycloakId, @Param("orgId") Long orgId);
     
+    /** Logement placé sur la carte des secteurs d'intervention. */
+    interface SectorMapProperty {
+        Long getId();
+        String getName();
+        java.math.BigDecimal getLatitude();
+        java.math.BigDecimal getLongitude();
+    }
+
+    @Query("SELECT p.id AS id, p.name AS name, p.latitude AS latitude, p.longitude AS longitude FROM Property p "
+        + "WHERE p.organizationId = :orgId AND p.status <> com.clenzy.model.PropertyStatus.ARCHIVED ORDER BY p.name")
+    List<SectorMapProperty> findSectorMapProperties(@Param("orgId") Long orgId);
+
+    @Query("SELECT p.id AS id, p.name AS name, p.latitude AS latitude, p.longitude AS longitude FROM Property p "
+        + "WHERE p.organizationId = :orgId AND p.owner.keycloakId = :ownerKeycloakId "
+        + "AND p.status <> com.clenzy.model.PropertyStatus.ARCHIVED ORDER BY p.name")
+    List<SectorMapProperty> findSectorMapPropertiesOfOwner(@Param("orgId") Long orgId,
+                                                          @Param("ownerKeycloakId") String ownerKeycloakId);
+
     /**
      * Requête optimisée avec FETCH JOIN pour charger la propriété avec son owner
      * Évite les LazyInitializationException
      */
     interface MarketplaceLocation {
+        java.math.BigDecimal getLatitude();
+        java.math.BigDecimal getLongitude();
         String getType();
         String getCountryCode();
         String getDepartment();
@@ -194,7 +258,7 @@ public interface PropertyRepository extends JpaRepository<Property, Long>, JpaSp
         String getCity();
     }
 
-    @Query(value = "SELECT country_code AS countryCode, department, arrondissement, city, type FROM properties "
+    @Query(value = "SELECT country_code AS countryCode, department, arrondissement, city, type, latitude, longitude FROM properties "
         + "WHERE id=:id AND organization_id=:orgId FOR SHARE", nativeQuery = true)
     java.util.Optional<MarketplaceLocation> lockMarketplaceLocation(Long id, Long orgId);
 

@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useMemo, useEffect, useLayoutEffect, useCallback, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
@@ -11,7 +11,11 @@ import {
 } from '../../components/ui';
 import { Add, Home } from '../../icons';
 import { useNavigate } from 'react-router-dom';
+import type { PropertyMapView } from './map-views/propertyMapView';
+import { toApiMediaUrl } from '../../utils/mediaUrl';
 import { useAuth } from '../../hooks/useAuth';
+import { useIdleReady } from '../../hooks/useIdleReady';
+import ListSkeleton from '../../components/ListSkeleton';
 import { usePersistedViewMode } from '../../hooks/usePersistedViewMode';
 import FilterSearchBar from '../../components/FilterSearchBar';
 import PageHeader from '../../components/PageHeader';
@@ -23,7 +27,7 @@ import type { ExportColumn } from '../../utils/exportUtils';
 import { useChannexMappings } from '../../hooks/useChannexMappings';
 import ChannexDiagnoseDialog from '../settings/components/ChannexDiagnoseDialog';
 import ChannexFullDisconnectDialog from '../settings/components/ChannexFullDisconnectDialog';
-import type { PropertyMarker, MapBounds } from '../../components/MapboxPropertyMap';
+import type { PropertyMarker, MapBounds } from '../../components/BaitlyPropertyMap';
 import { usePropertiesList, propertiesListKeys } from '../../hooks/usePropertiesList';
 import type { PropertyListItem } from '../../hooks/usePropertiesList';
 import { usePropertyKpiSummaries } from '../../hooks/usePropertyKpiSummaries';
@@ -40,14 +44,21 @@ import PropertiesTableView from './PropertiesTableView';
 import PropertyDeleteDialog from './PropertyDeleteDialog';
 import PropertyStatusToggleDialog from './PropertyStatusToggleDialog';
 import compactHeaderActions from '../../components/compactHeaderActions';
+import { usePageHeaderActions } from '../../components/PageHeaderActionsContext';
+import { useUserPreference } from '../../hooks/useUserPreference';
 
 interface PropertiesListProps {
   embedded?: boolean;
   actionsContainer?: HTMLElement | null;
   filtersContainer?: HTMLElement | null;
+  /** Onglet du menu Carte : Logements, ou une vue carte (prestations, réservations, anomalies). */
+  mapView?: PropertyMapView;
+  onMapViewChange?: (view: PropertyMapView) => void;
 }
 
-export default function PropertiesList({ embedded = false, actionsContainer, filtersContainer }: PropertiesListProps) {
+export default function PropertiesList({
+  embedded = false, actionsContainer, filtersContainer, mapView = 'properties', onMapViewChange,
+}: PropertiesListProps) {
   // ─── React Query ──────────────────────────────────────────────────
   const { properties, isLoading, deleteProperty } = usePropertiesList();
 
@@ -77,9 +88,12 @@ export default function PropertiesList({ embedded = false, actionsContainer, fil
   // handleDiagnoseOpenHub est defini plus bas (apres const navigate = useNavigate()).
 
   // ─── Local UI state ───────────────────────────────────────────────
-  const [searchTerm, setSearchTerm] = useState('');
-  const [selectedType, setSelectedType] = useState('all');
-  const [selectedStatus, setSelectedStatus] = useState('all');
+  const [propertyFilters, setPropertyFilters] = useUserPreference('map.propertyFilters', { search: '', type: 'all', status: 'all' });
+  const { search: searchTerm, type: selectedType, status: selectedStatus } = propertyFilters;
+  const setSearchTerm = (search: string) => setPropertyFilters({ ...propertyFilters, search });
+  const setSelectedType = (type: string) => setPropertyFilters({ ...propertyFilters, type });
+  const setSelectedStatus = (status: string) => setPropertyFilters({ ...propertyFilters, status });
+  const [mapScopeIds, setMapScopeIds] = useState<number[] | null>(null);
   const [selectedHost] = useState('all');
   const [selectedProperty, setSelectedProperty] = useState<PropertyListItem | null>(null);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
@@ -99,6 +113,9 @@ export default function PropertiesList({ embedded = false, actionsContainer, fil
     ['grid', 'list', 'map'] as const,
     autoDefaultMode,
   );
+  // Prestations, réservations et anomalies n'existent que sur la carte : ces onglets l'imposent.
+  const mapOnly = mapView !== 'properties';
+  const effectiveViewMode = mapOnly ? 'map' : viewMode;
   // Taille de page MESUREE, pas choisie : le hook partage avec Interventions,
   // Reservations et Demandes compte les lignes qui tiennent dans la hauteur
   // restante, en mesurant une vraie ligne du DOM. Les 10 lignes fixes d'avant
@@ -178,7 +195,10 @@ export default function PropertiesList({ embedded = false, actionsContainer, fil
     () => properties.map((p) => Number(p.id)),
     [properties],
   );
-  const { map: kpiMap, isLoading: kpiLoading } = usePropertyKpiSummaries(allPropertyIds);
+  // Indicateurs du portefeuille : secondaires, demandés après le premier rendu de l'écran
+  // (carte et épingles d'abord) pour ne pas disputer le backend à la liste des logements.
+  const secondaryReady = useIdleReady(!isLoading);
+  const { map: kpiMap, isLoading: kpiLoading } = usePropertyKpiSummaries(allPropertyIds, { ready: secondaryReady });
 
   // ─── Filtering ────────────────────────────────────────────────────
 
@@ -213,7 +233,8 @@ export default function PropertiesList({ embedded = false, actionsContainer, fil
   const cleaningEstimatesQuery = useQuery({
     queryKey: ['properties-cleaning-estimates', cleaningEstimateIds],
     queryFn: () => propertiesApi.getCleaningEstimates(cleaningEstimateIds),
-    enabled: cleaningEstimateIds.length > 0,
+    // Seules la grille et la table les affichent : rien à demander en vue carte.
+    enabled: cleaningEstimateIds.length > 0 && effectiveViewMode !== 'map',
     staleTime: 60_000,
   });
   const cleaningEstimates = cleaningEstimatesQuery.data ?? {};
@@ -229,6 +250,9 @@ export default function PropertiesList({ embedded = false, actionsContainer, fil
           name: p.name,
           id: Number(p.id),
           type: 'property' as const,
+          state: p.status === 'maintenance' ? ('alert' as const) : p.status === 'inactive' ? ('inactive' as const) : undefined,
+          thumbnailUrl: toApiMediaUrl(p.imageUrl ?? p.photoUrls?.[0]) ?? null,
+          subtitle: [p.address, p.city].filter(Boolean).join(', ') || null,
         })),
     [filteredProperties],
   );
@@ -320,6 +344,12 @@ export default function PropertiesList({ embedded = false, actionsContainer, fil
 
   // ─── Render ───────────────────────────────────────────────────────
 
+  const contractReminder = canManageContracts && missingContractIds.size > 0 ? (
+    <MissingContractsBanner compact count={missingContractIds.size}
+      onEstablish={() => openContractModal([...missingContractIds][0] ?? null)} />
+  ) : null;
+  const contractHeaderActions = usePageHeaderActions(embedded ? contractReminder : null);
+
   const actionButtons = (
     <div className="flex gap-1 items-center">
       <Tooltip>
@@ -328,12 +358,14 @@ export default function PropertiesList({ embedded = false, actionsContainer, fil
               contour de marque plutôt qu'un aplat plein. */}
           <Button
             variant="outline"
-            size="icon-sm"
+            data-keep-label
+            data-header-create
             aria-label={t('properties.create')}
             onClick={() => navigate('/properties/new')}
             className="border-solid border-primary bg-transparent text-primary hover:bg-primary-soft hover:text-primary"
           >
             <Add size={20} strokeWidth={1.75} />
+            <span>{t('common.add', 'Ajouter')}</span>
           </Button>
         </TooltipTrigger>
         <TooltipContent>{t('properties.create')}</TooltipContent>
@@ -367,7 +399,7 @@ export default function PropertiesList({ embedded = false, actionsContainer, fil
         singular: "",
         plural: "s"
       }}
-      viewToggle={{
+      viewToggle={mapOnly ? undefined : {
         mode: viewMode,
         onChange: setViewMode,
       }}
@@ -381,6 +413,19 @@ export default function PropertiesList({ embedded = false, actionsContainer, fil
     />
   );
 
+  const mapSurfaceRef = useRef<HTMLDivElement>(null);
+  const portfolioOverlayRef = useRef<HTMLDivElement>(null);
+  useLayoutEffect(() => {
+    const surface = mapSurfaceRef.current;
+    const overlay = portfolioOverlayRef.current;
+    if (!surface || !overlay || effectiveViewMode !== 'map') return;
+    const measure = () => surface.style.setProperty('--map-overlay-top', `${overlay.getBoundingClientRect().height + 20}px`);
+    measure();
+    const observer = new ResizeObserver(measure);
+    observer.observe(overlay);
+    return () => { observer.disconnect(); surface.style.removeProperty('--map-overlay-top'); };
+  }, [effectiveViewMode, filteredProperties.length > 0]);
+
   return (
     <>
       {/* Le bandeau du header deborde du rembourrage du conteneur de contenu
@@ -390,42 +435,37 @@ export default function PropertiesList({ embedded = false, actionsContainer, fil
       {!embedded ? (
         <div className="shrink-0">
           <PageHeader
-            title={t('properties.title')}
-            subtitle={t('properties.subtitle')}
+            title={t('navigation.map', 'Carte')}
+            subtitle={t('properties.pilotageSubtitle', 'Logements, prestations, séjours et anomalies, sur la carte')}
             iconBadge={<Home />}
             backPath="/dashboard"
             showBackButton={false}
-            actions={actionButtons}
+            actions={<div className="flex items-center gap-2">{contractReminder}{actionButtons}</div>}
             filters={filterBar}
           />
         </div>
       ) : null}
-      <div className="flex flex-col flex-1 min-h-0 overflow-hidden">
+      <div ref={mapSurfaceRef} className={`flex flex-col flex-1 min-h-0 overflow-hidden${effectiveViewMode === 'map' ? ' baitly-map-stage relative' : ''}`}>
         {/* Portail des actions vers le PageHeader du parent en mode embarqué.
             Ternaires explicites (au lieu de &&) pour ne jamais passer le booléen
             `false` en children. */}
         {embedded && actionsContainer ? createPortal(compactHeaderActions(actionButtons), actionsContainer) : null}
         {embedded && filtersContainer ? createPortal(filterBar, filtersContainer) : null}
-
-
-        {/* Gate de rattrapage : rappel des logements sans contrat de gestion actif.
-            Le variant `warning` du primitif porte deja le fond pastel et l'encre
-            `-ink` : aucune couleur n'est reecrite ici, seule la mise en ligne. */}
-        {canManageContracts && missingContractIds.size > 0 ? (
-          <MissingContractsBanner
-            count={missingContractIds.size}
-            onEstablish={() => openContractModal([...missingContractIds][0] ?? null)}
-            className="mb-1.5"
-          />
-        ) : null}
+        {contractHeaderActions}
 
         {/* Tuiles portefeuille (projection) — l'agrégat suit les filtres. */}
         {filteredProperties.length > 0 && (
-          <PropertiesPortfolioTiles properties={filteredProperties} kpiMap={kpiMap} loading={kpiLoading} />
+          <div ref={portfolioOverlayRef} className={effectiveViewMode === 'map' ? 'baitly-map-stage__kpis' : undefined}>
+          <PropertiesPortfolioTiles properties={effectiveViewMode === 'map' && mapScopeIds
+            ? filteredProperties.filter(property => mapScopeIds.includes(Number(property.id))) : filteredProperties} kpiMap={kpiMap} loading={kpiLoading} />
+          </div>
         )}
 
-        {/* Liste des propriétés */}
-        {filteredProperties.length === 0 ? (
+        {/* Liste des propriétés. Pendant le chargement, la carte est montée tout de suite
+            (fond, contrôles, position) ; ses épingles arrivent avec les logements. */}
+        {isLoading && effectiveViewMode !== 'map' ? (
+          <ListSkeleton rows={6} variant="row" />
+        ) : filteredProperties.length === 0 && !isLoading ? (
           <EmptyState
             icon={<Home />}
             title={t('properties.noPropertyFound')}
@@ -448,17 +488,22 @@ export default function PropertiesList({ embedded = false, actionsContainer, fil
               ? t('properties.icalTip')
               : undefined}
           />
-        ) : viewMode === 'map' ? (
+        ) : effectiveViewMode === 'map' ? (
           <PropertiesMapView
+            view={mapView}
+            onViewChange={onMapViewChange}
+            loading={isLoading}
             mapMarkers={mapMarkers}
             viewportProperties={viewportProperties}
+            allProperties={filteredProperties}
+            onScopeChange={setMapScopeIds}
+            onResetPropertyFilters={() => setPropertyFilters({ search: '', type: 'all', status: 'all' })}
             channexMappings={channexMappings}
             onBoundsChange={handleBoundsChange}
             onDiagnose={openDiagnoseFor}
             canManageContracts={canManageContracts}
             missingContractIds={missingContractIds}
             onMissingContractClick={openContractModal}
-            navigate={navigate}
           />
         ) : viewMode === 'grid' ? (
           <PropertiesGridView

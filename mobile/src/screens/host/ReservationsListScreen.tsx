@@ -16,7 +16,7 @@ type FilterKey = 'all' | 'upcoming' | 'active' | 'past';
 
 const FILTERS: Array<{ key: FilterKey; label: string }> = [
   { key: 'all', label: 'Toutes' },
-  { key: 'upcoming', label: 'A venir' },
+  { key: 'upcoming', label: 'À venir' },
   { key: 'active', label: 'En cours' },
   { key: 'past', label: 'Passees' },
 ];
@@ -177,7 +177,7 @@ export function ReservationsListScreen() {
           ...theme.shadows.sm,
         }}>
           <Text style={{ ...theme.typography.h3, color: theme.colors.success.main }}>{stats.upcoming}</Text>
-          <Text style={{ ...theme.typography.caption, color: theme.colors.text.secondary }}>A venir</Text>
+          <Text style={{ ...theme.typography.caption, color: theme.colors.text.secondary }}>À venir</Text>
         </View>
         <View style={{
           flex: 1,
@@ -230,15 +230,15 @@ export function ReservationsListScreen() {
         {filtered.length === 0 ? (
           <EmptyState
             iconName="calendar-outline"
-            title="Aucune reservation"
+            title="Aucune réservation"
             description={
               filter === 'upcoming'
-                ? 'Aucune reservation a venir'
+                ? 'Aucune réservation à venir'
                 : filter === 'active'
-                  ? 'Aucune reservation en cours'
+                  ? 'Aucune réservation en cours'
                   : filter === 'past'
-                    ? 'Aucune reservation passee'
-                    : 'Aucune reservation trouvee'
+                    ? 'Aucune réservation passée'
+                    : 'Aucune réservation trouvée'
             }
             compact
           />

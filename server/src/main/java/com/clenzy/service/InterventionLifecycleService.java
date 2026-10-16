@@ -176,7 +176,7 @@ public class InterventionLifecycleService {
         // Empecher le demarrage avant la date planifiee
         if (intervention.getScheduledDate() != null
                 && LocalDateTime.now().isBefore(intervention.getScheduledDate())) {
-            throw new IllegalStateException(
+            throw new com.clenzy.exception.InterventionStateConflictException(
                     "Impossible de demarrer avant la date planifiee (" + intervention.getScheduledDate() + ")");
         }
 
@@ -530,10 +530,16 @@ public class InterventionLifecycleService {
         }
 
         intervention.getStatus().assertCanTransitionTo(InterventionStatus.AWAITING_VALIDATION);
+        if(intervention.getBaitlyPausedAt()!=null) throw new org.springframework.web.server.ResponseStatusException(org.springframework.http.HttpStatus.CONFLICT,"Reprenez l’intervention avant de la soumettre.");
+        var finishedAt=java.time.LocalDateTime.now();
+        if(intervention.getStartTime()!=null) {
+            actualDurationMinutes=(int)Math.max(1,(java.time.Duration.between(intervention.getStartTime(),finishedAt).getSeconds()-intervention.getBaitlyPauseSeconds())/60);
+        }
         if (actualDurationMinutes != null && actualDurationMinutes > 0) {
             intervention.setActualDurationMinutes(actualDurationMinutes);
         }
-        intervention.setCompletedAt(java.time.LocalDateTime.now());
+        intervention.setEndTime(finishedAt);
+        intervention.setCompletedAt(finishedAt);
         intervention.setStatus(InterventionStatus.AWAITING_VALIDATION);
         final Intervention saved = saveWithAllocation(intervention);
 
@@ -564,15 +570,17 @@ public class InterventionLifecycleService {
                 .orElseThrow(() -> new NotFoundException("Intervention non trouvee"));
         accessPolicy.assertCanAccess(intervention, jwt);
 
-        if (!JwtRoleExtractor.extractUserRole(jwt).isPlatformStaff()) {
+        if (!JwtRoleExtractor.extractUserRole(jwt).isPlatformStaff() && !accessPolicy.canReview(intervention, jwt)) {
             throw new UnauthorizedException(
-                    "Seuls les administrateurs et managers peuvent refuser un travail");
+                    "Contrôle réservé au gestionnaire de la mission");
         }
         if (reason == null || reason.isBlank()) {
             throw new IllegalArgumentException(
                     "Un motif est requis : l'intervenant doit savoir quoi reprendre");
         }
         intervention.getStatus().assertCanTransitionTo(InterventionStatus.IN_PROGRESS);
+        if(intervention.getEndTime()!=null)intervention.setBaitlyPauseSeconds(intervention.getBaitlyPauseSeconds()+Math.max(0,java.time.Duration.between(intervention.getEndTime(),LocalDateTime.now()).getSeconds()));
+        intervention.setEndTime(null);
         intervention.setStatus(InterventionStatus.IN_PROGRESS);
         intervention.setCompletedAt(null);
         intervention.setFollowUpNotes(reason.strip());
@@ -642,9 +650,11 @@ public class InterventionLifecycleService {
 
         // Verifier que seul un manager peut valider
         UserRole userRole = JwtRoleExtractor.extractUserRole(jwt);
-        if (!userRole.isPlatformStaff()) {
-            throw new UnauthorizedException("Seuls les administrateurs et managers peuvent valider des interventions");
+        if (!userRole.isPlatformStaff() && !accessPolicy.canReview(intervention, jwt)) {
+            throw new UnauthorizedException("Contrôle réservé au gestionnaire de la mission");
         }
+
+        accessPolicy.assertCanAccess(intervention, jwt);
 
         // Verifier que l'intervention peut passer en AWAITING_PAYMENT
         intervention.getStatus().assertCanTransitionTo(InterventionStatus.AWAITING_PAYMENT);

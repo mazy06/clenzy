@@ -5,6 +5,7 @@ import { Link } from 'react-router-dom';
 import { CalendarDays, ChevronRight, Clock3, UserRound } from '../../icons/glyphs';
 import { Avatar, AvatarFallback, AvatarImage } from '../../components/ui';
 import { propertiesApi } from '../../services/api/propertiesApi';
+import { propertiesListQuery } from '../../hooks/usePropertiesList';
 import { usersApi, userAvatarSrc } from '../../services/api/usersApi';
 import { teamsApi } from '../../services/api/teamsApi';
 import { toApiMediaUrl } from '../../utils/mediaUrl';
@@ -19,16 +20,23 @@ export interface ServiceMapSummary {
   propertyCity?: string; assignedToId?: number; assignedToName?: string;
   assignedToType?: 'user' | 'team'; assignedToAvatarUrl?: string | null; dueDate?: string;
 }
-export default function ServiceMapRow({ request, to, badges, serviceType, children, actions }: {
+export default function ServiceMapRow({ request, to, badges, serviceType, children, actions, menu }: {
   request: ServiceMapSummary; to: string; badges: ReactNode; serviceType: string; children?: ReactNode;
   actions?: ReactNode;
+  menu?: ReactNode;
 }) {
   const { t, currentLanguage, isEnglish } = useTranslation();
   const catalog = useQuery(serviceReferenceQuery);
   const service = catalog.data?.find(item => item.code === request.serviceItemCode);
   const serviceLabel = service ? (isEnglish ? service.labelEn : service.labelFr) : serviceType;
-  const property = useQuery({ queryKey: ['map-property', request.propertyId],
-    queryFn: () => propertiesApi.getById(request.propertyId!), enabled: !!request.propertyId, staleTime: 300_000, retry: false });
+  // La liste des logements est souvent déjà en cache (écran Carte) : elle porte la photo et le
+  // fuseau dont la ligne a besoin. La fiche complète n'est lue que si le logement n'y est pas —
+  // une requête par ligne pesait sur l'ouverture de la liste des prestations.
+  const listed = useQuery({ ...propertiesListQuery(), enabled: false,
+    select: (rows) => rows.find((row) => row.id === request.propertyId) ?? null });
+  const fetched = useQuery({ queryKey: ['map-property', request.propertyId],
+    queryFn: () => propertiesApi.getById(request.propertyId!), enabled: !!request.propertyId && !listed.data, staleTime: 300_000, retry: false });
+  const property = { data: listed.data ?? fetched.data };
   const person = useQuery({ queryKey: ['map-assignee', request.assignedToId],
     queryFn: () => usersApi.getById(request.assignedToId!),
     enabled: request.assignedToType === 'user' && !!request.assignedToId && !request.assignedToAvatarUrl, staleTime: 300_000, retry: false });
@@ -63,6 +71,6 @@ export default function ServiceMapRow({ request, to, badges, serviceType, childr
       <span className="flex items-center gap-1 text-muted-foreground"><CalendarDays className="size-3.5" aria-hidden />{date.toLocaleDateString(currentLanguage, dateOptions)}</span>
       <span className="flex items-center gap-1 font-medium"><Clock3 className="size-3.5 text-muted-foreground" aria-hidden />{date.toLocaleTimeString(currentLanguage, timeOptions)}{end && <> – {end.toLocaleDateString(currentLanguage, dateOptions) !== date.toLocaleDateString(currentLanguage, dateOptions) && end.toLocaleDateString(currentLanguage, dateOptions) + ' '}{end.toLocaleTimeString(currentLanguage, timeOptions)}</>}</span>
     </div> : <span className="text-xs text-muted-foreground">{t('requestMap.unscheduled')}</span>}
-    to={to} badges={badges} actions={actions}
+    to={to} badges={badges} actions={actions} menu={menu}
   >{children}</ServiceMapRowView>;
 }

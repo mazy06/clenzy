@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="72" height="88" viewBox="0 0 72 88">
+  <!-- Épingle Baitly pour les images de carte (e-mails) — même dessin que baitly-map.css @2x. -->
+  <defs><filter id="s" x="-25%" y="-25%" width="150%" height="150%"><feDropShadow dx="0" dy="2" stdDeviation="2" flood-color="#1B2A35" flood-opacity="0.32"/></filter></defs>
+  <g filter="url(#s)">
+    <path d="M24 64 L48 64 L36 86 Z" fill="#7A5320"/>
+    <circle cx="36" cy="35" r="31" fill="#FDFDFE" stroke="#7A5320" stroke-width="4"/>
+    <g transform="translate(18 17) scale(1.5)" fill="none" stroke="#7A5320" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><path d="M2.586 17.414A2 2 0 0 0 2 18.828V21a1 1 0 0 0 1 1h3a1 1 0 0 0 1-1v-1a1 1 0 0 1 1-1h1a1 1 0 0 0 1-1v-1a1 1 0 0 1 1-1h.172a2 2 0 0 0 1.414-.586l.814-.814a6.5 6.5 0 1 0-4-4z"/><path d="M16.5 7.5h.01"/></g>
+  </g>
+</svg>

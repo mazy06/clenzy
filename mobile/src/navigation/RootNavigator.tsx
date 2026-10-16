@@ -5,16 +5,15 @@ import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { useAuthStore } from '@/store/authStore';
 import { AuthNavigator } from './AuthNavigator';
 import { MainNavigator } from './MainNavigator';
-import { linkingConfig } from './linking';
-import { useTheme } from '@/theme';
+import { getMobileLinkingConfig } from './linking';
+import { baitlyLight } from '@/design-system/theme';
 
 const Stack = createNativeStackNavigator();
 
 const INIT_TIMEOUT_MS = 8000; // 8s safety net
 
 export function RootNavigator() {
-  const theme = useTheme();
-  const { isAuthenticated, isLoading, isInitialized, initialize } = useAuthStore();
+  const { isAuthenticated, isLoading, isInitialized, initialize, isHost, isHousekeeper, isTechnician, isSupervisor, isPlatformStaff } = useAuthStore();
   const [timedOut, setTimedOut] = useState(false);
 
   useEffect(() => {
@@ -34,7 +33,7 @@ export function RootNavigator() {
     return () => clearTimeout(timer);
   }, []);
 
-  const showLoading = (!isInitialized || isLoading) && !timedOut;
+  const showLoading = !isInitialized && !timedOut;
 
   if (showLoading) {
     return (
@@ -43,16 +42,16 @@ export function RootNavigator() {
           flex: 1,
           justifyContent: 'center',
           alignItems: 'center',
-          backgroundColor: theme.colors.background.default,
+          backgroundColor: baitlyLight.ink,
         }}
       >
-        <ActivityIndicator size="large" color={theme.colors.primary.main} />
+        <ActivityIndicator size="large" color={baitlyLight.onPrimary} />
       </View>
     );
   }
 
   return (
-    <NavigationContainer linking={linkingConfig}>
+    <NavigationContainer linking={getMobileLinkingConfig(true, !isAuthenticated)}>
       <Stack.Navigator screenOptions={{ headerShown: false }}>
         {isAuthenticated ? (
           <Stack.Screen name="Main" component={MainNavigator} />

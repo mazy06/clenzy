@@ -201,7 +201,7 @@ const GuestsListPage: React.FC<GuestsListPageProps> = ({ embedded = false }) => 
         searchQuery || channelFilter ? (
           <EmptyState
             icon={<PeopleIcon />}
-            title="{t('guests.noMatch')}"
+            title={t('guests.noMatch')}
             description={'Essayez d\'élargir la recherche ou de retirer le filtre canal.'}
           />
         ) : (

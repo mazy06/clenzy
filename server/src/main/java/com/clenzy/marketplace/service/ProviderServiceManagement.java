@@ -69,6 +69,9 @@ public class ProviderServiceManagement {
                 offer.setLabel(item.getLabelFr()); offer.setTariff(tariff); offer.setActive(command.enabled());
                 offers.save(offer);
             } else for (var offer:linked) {
+                if (item!=null && item.isActive() && item.getCategory().isActive()) {
+                    offer.setServiceItem(item); offer.setCategory(item.getCategory());
+                }
                 offer.setActive(command.enabled()); offers.save(offer);
             }
         }
@@ -82,4 +85,3 @@ public class ProviderServiceManagement {
         return users.findByKeycloakId(subject).orElseThrow(() -> new AccessDeniedException("Compte introuvable")).getId();
     }
 }
-

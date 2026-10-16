@@ -14,6 +14,7 @@ import java.time.LocalDateTime;
 
 @Repository
 public interface IssueRepository extends JpaRepository<Issue, Long> {
+    List<Issue> findBySourceInterventionIdAndOrganizationIdOrderByCreatedAtDesc(Long interventionId,Long organizationId);
 
     /** Liste org-scopée, filtres optionnels statut / logement. */
     @Query("SELECT i FROM Issue i WHERE i.organizationId = :orgId " +

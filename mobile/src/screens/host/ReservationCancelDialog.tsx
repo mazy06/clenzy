@@ -80,7 +80,7 @@ export function ReservationCancelDialog({ visible, onCancel, onConfirm, isLoadin
             <TextInput
               value={reason}
               onChangeText={setReason}
-              placeholder="Ex: Demande du voyageur, double reservation..."
+              placeholder="Ex: Demande du voyageur, double réservation..."
               placeholderTextColor={theme.colors.text.disabled}
               multiline
               numberOfLines={4}

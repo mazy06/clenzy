@@ -123,4 +123,21 @@ describe('useAttachedServiceRequests', () => {
     expect(result.current).toEqual([]);
     expect(getByIdMock).not.toHaveBeenCalled();
   });
+
+  it('actualise une fiche rechargée avec le même identifiant', async () => {
+    getAllMock.mockResolvedValue([]);
+    getByIdMock.mockResolvedValue({ id: 7, title: 'Ménage', status: 'AWAITING_PAYMENT' });
+    const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    const wrapper = ({ children }: { children: React.ReactNode }) => (
+      <QueryClientProvider client={client}>{children}</QueryClientProvider>
+    );
+    const { result } = renderHook(() => useAttachedServiceRequests({
+      reservationId: 42, allEvents: [unlinkedCleaningEvent], loadedReservations: [stay],
+    }), { wrapper });
+    await waitFor(() => expect(result.current[0]?.status).toBe('AWAITING_PAYMENT'));
+    client.setQueryData(['service-request', 7], { id: 7, title: 'Ménage', status: 'PAID', estimatedCost: 70 });
+    await waitFor(() => expect(result.current[0]?.status).toBe('PAID'));
+    expect(result.current[0].estimatedCost).toBe(70);
+    client.clear();
+  });
 });

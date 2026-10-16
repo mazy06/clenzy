@@ -1,15 +1,17 @@
-import React, { useEffect, useRef } from 'react';
-import mapboxgl from 'mapbox-gl';
-import 'mapbox-gl/dist/mapbox-gl.css';
-
-import { runtimeEnv } from '../../config/runtimeConfig';
-const MAPBOX_TOKEN = runtimeEnv('VITE_MAPBOX_TOKEN');
+import React, { useEffect, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
+import * as maplibregl from 'maplibre-gl';
+import type { IconComponent } from '../../icons/glyphs';
+import { createBaitlyMap, prefersReducedMotion } from '../../components/map/createBaitlyMap';
+import { createBaitlyPin, pinIconSlot, pinPopupContent, PIN_POPUP_OFFSET } from '../../components/map/baitlyMapPin';
 
 export interface GuideMapPin {
   lat: number;
   lng: number;
   color: string;
   label: string;
+  /** Icône de la catégorie ; `home` pour le logement lui-même. Absente : simple point. */
+  icon?: IconComponent | 'home';
 }
 
 interface GuideMapProps {
@@ -18,42 +20,57 @@ interface GuideMapProps {
   height?: number;
 }
 
+interface IconMount {
+  target: HTMLElement;
+  Icon: IconComponent;
+}
+
 /**
- * Carte Mapbox de la page guest ("autour de moi") : marqueurs colorés par catégorie
- * + pin du logement. Standalone (style clair fixe, pas de dépendance au thème PMS).
- * Rend `null` si le token Mapbox n'est pas configuré (la liste reste affichée).
+ * Carte Baitly de la page guest ("autour de moi") : épingles à l'icône de leur
+ * catégorie + épingle du logement. Standalone (style clair fixe, pas de dépendance
+ * au thème PMS). Tuiles servies par Baitly : aucun jeton requis.
+ *
+ * <p>Les icônes de catégorie sont des composants React : on les monte par portail
+ * dans le badge de chaque épingle (élément DOM géré par MapLibre).</p>
  */
 export const GuideMap: React.FC<GuideMapProps> = ({ center, pins, height = 220 }) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const dataRef = useRef({ center, pins });
+  const [iconMounts, setIconMounts] = useState<IconMount[]>([]);
   useEffect(() => {
     dataRef.current = { center, pins };
   }, [center, pins]);
 
   useEffect(() => {
-    if (!MAPBOX_TOKEN || !containerRef.current) return undefined;
+    if (!containerRef.current) return undefined;
     const { center: c, pins: p } = dataRef.current;
 
-    const map = new mapboxgl.Map({
+    const map = createBaitlyMap({
       container: containerRef.current,
-      style: 'mapbox://styles/mapbox/streets-v12',
+      mode: 'light',
       center: c,
       zoom: 13,
-      accessToken: MAPBOX_TOKEN,
-      attributionControl: false,
+      compass: false,
+      perspective: true,
     });
-    map.addControl(new mapboxgl.NavigationControl({ showCompass: false }), 'top-right');
 
     const addPins = () => {
-      const bounds = new mapboxgl.LngLatBounds();
+      const bounds = new maplibregl.LngLatBounds();
+      const mounts: IconMount[] = [];
       p.forEach((pin) => {
-        const popup = new mapboxgl.Popup({ offset: 24, closeButton: false }).setHTML(
-          `<strong>${escapeHtml(pin.label)}</strong>`,
+        const popup = new maplibregl.Popup({ offset: PIN_POPUP_OFFSET, closeButton: false }).setDOMContent(
+          pinPopupContent(pin.label),
         );
-        new mapboxgl.Marker({ color: pin.color }).setLngLat([pin.lng, pin.lat]).setPopup(popup).addTo(map);
+        const pinIcon = pin.icon === 'home' ? 'home' : pin.icon ? 'slot' : 'dot';
+        const element = createBaitlyPin({ color: pin.color, icon: pinIcon, label: pin.label, interactive: true });
+        if (pin.icon && pin.icon !== 'home') mounts.push({ target: pinIconSlot(element), Icon: pin.icon });
+        new maplibregl.Marker({ element, anchor: 'bottom' }).setLngLat([pin.lng, pin.lat]).setPopup(popup).addTo(map);
         bounds.extend([pin.lng, pin.lat]);
       });
-      if (p.length > 1) map.fitBounds(bounds, { padding: 48, maxZoom: 15 });
+      setIconMounts(mounts);
+      if (p.length > 1) {
+        map.fitBounds(bounds, { padding: 48, maxZoom: 15, ...(prefersReducedMotion() ? { duration: 0 } : {}) });
+      }
     };
 
     if (map.loaded()) addPins();
@@ -62,16 +79,15 @@ export const GuideMap: React.FC<GuideMapProps> = ({ center, pins, height = 220 }
     return () => {
       map.off('load', addPins);
       map.remove();
+      setIconMounts([]);
     };
   }, []);
 
-  if (!MAPBOX_TOKEN) return null;
   // height vient des props (valeur d'execution) → style ; borderRadius 2 = 16px (shape 8).
-  return <div ref={containerRef} className="w-full rounded-[16px] overflow-hidden" style={{ height }} />;
+  return (
+    <>
+      <div ref={containerRef} className="w-full rounded-[16px] overflow-hidden" style={{ height }} />
+      {iconMounts.map(({ target, Icon }, index) => createPortal(<Icon size={18} weight="filled" aria-hidden />, target, `pin-icon-${index}`))}
+    </>
+  );
 };
-
-function escapeHtml(text: string): string {
-  const div = document.createElement('div');
-  div.textContent = text;
-  return div.innerHTML;
-}

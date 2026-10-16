@@ -168,6 +168,22 @@ class PropertyServiceTest {
     @Nested
     class Update {
 
+        @Test void normalizesMunicipalArrondissementsWhenSavingAProperty() {
+            var existing=buildProperty(76L,buildOwner(1L));
+            when(propertyRepository.findById(76L)).thenReturn(Optional.of(existing));
+            when(propertyRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+            var dto=new PropertyDto();dto.countryCode="FR";dto.department="75";dto.arrondissement="10e";dto.city="Paris";
+            assertThat(propertyService.update(76L,dto).arrondissement).isEqualTo("75110");
+            assertThat(existing.getArrondissement()).isEqualTo("75110");
+        }
+
+        @Test void refusesAnUnknownMunicipalArrondissementBeforeSaving() {
+            when(propertyRepository.findById(76L)).thenReturn(Optional.of(buildProperty(76L,buildOwner(1L))));
+            var dto=new PropertyDto();dto.countryCode="FR";dto.department="75";dto.arrondissement="21e";
+            assertThatThrownBy(()->propertyService.update(76L,dto)).isInstanceOf(IllegalArgumentException.class);
+            verify(propertyRepository,never()).save(any());
+        }
+
         @Test
         void whenPropertyExists_thenUpdatesFields() {
             User owner = buildOwner(1L);

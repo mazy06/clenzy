@@ -26,6 +26,30 @@ import java.time.LocalDateTime;
     condition = "organization_id = :orgId"
 )
 public class Issue {
+    @Column(name = "baitly_damage_cause", length = 30)
+    private String baitlyDamageCause;
+    @Column(name = "baitly_damage_room", length = 40)
+    private String baitlyDamageRoom;
+    @Column(name = "baitly_damage_item_id")
+    private Long baitlyDamageItemId;
+    public String getBaitlyDamageCause(){return baitlyDamageCause;}
+    public void setBaitlyDamageCause(String value){baitlyDamageCause=value;}
+    public String getBaitlyDamageRoom(){return baitlyDamageRoom;}
+    public void setBaitlyDamageRoom(String value){baitlyDamageRoom=value;}
+    public Long getBaitlyDamageItemId(){return baitlyDamageItemId;}
+    public void setBaitlyDamageItemId(Long value){baitlyDamageItemId=value;}
+    @Column(name = "baitly_damage_element_category", length = 30)
+    private String baitlyDamageElementCategory;
+    @Column(name = "baitly_damage_element_code", length = 80)
+    private String baitlyDamageElementCode;
+    @Column(name = "baitly_damage_element_name", length = 150)
+    private String baitlyDamageElementName;
+    public String getBaitlyDamageElementCategory(){return baitlyDamageElementCategory;}
+    public void setBaitlyDamageElementCategory(String value){baitlyDamageElementCategory=value;}
+    public String getBaitlyDamageElementCode(){return baitlyDamageElementCode;}
+    public void setBaitlyDamageElementCode(String value){baitlyDamageElementCode=value;}
+    public String getBaitlyDamageElementName(){return baitlyDamageElementName;}
+    public void setBaitlyDamageElementName(String value){baitlyDamageElementName=value;}
 
     public enum IssueSeverity { LOW, MEDIUM, HIGH, CRITICAL }
 

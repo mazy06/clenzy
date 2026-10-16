@@ -18,10 +18,10 @@ type IconName = keyof typeof Reicon.glyphMap;
 const PERIOD_OPTIONS = [
   { label: 'Ce mois', value: 'month' },
   { label: 'Ce trimestre', value: 'quarter' },
-  { label: 'Cette annee', value: 'year' },
+  { label: 'Cette année', value: 'year' },
   { label: 'Mois dernier', value: 'last_month' },
   { label: 'Trimestre dernier', value: 'last_quarter' },
-  { label: 'Annee derniere', value: 'last_year' },
+  { label: 'Année dernière', value: 'last_year' },
   { label: 'Personnalise', value: 'custom' },
 ];
 
@@ -52,13 +52,13 @@ export function AnalyticsExportScreen() {
     { key: 'occupancy', label: 'Taux d\'occupation', icon: 'pie-chart-outline', selected: true },
     { key: 'adr', label: 'ADR (Prix moyen)', icon: 'trending-up-outline', selected: true },
     { key: 'revpar', label: 'RevPAR', icon: 'analytics-outline', selected: false },
-    { key: 'reservations', label: 'Reservations', icon: 'calendar-outline', selected: false },
+    { key: 'reservations', label: 'Réservations', icon: 'calendar-outline', selected: false },
     { key: 'cancellation_rate', label: 'Taux d\'annulation', icon: 'close-circle-outline', selected: false },
   ]);
   const [isGenerating, setIsGenerating] = useState(false);
 
   const propertyOptions = useMemo(() => [
-    { label: 'Toutes les proprietes', value: 'all' },
+    { label: 'Toutes les propriétés', value: 'all' },
     ...properties.map((p) => ({ label: p.name, value: String(p.id) })),
   ], [properties]);
 
@@ -128,10 +128,10 @@ export function AnalyticsExportScreen() {
         showsVerticalScrollIndicator={false}
       >
         {/* Period */}
-        <SectionHeader title="Periode" iconName="calendar-outline" />
+        <SectionHeader title="Période" iconName="calendar-outline" />
         <Card style={{ marginBottom: theme.SPACING.lg }}>
           <Select
-            label="Selectionner la periode"
+            label="Sélectionner la période"
             options={PERIOD_OPTIONS}
             value={period}
             onChange={setPeriod}
@@ -142,7 +142,7 @@ export function AnalyticsExportScreen() {
         <SectionHeader title="Proprietes" iconName="home-outline" />
         <Card style={{ marginBottom: theme.SPACING.lg }}>
           <Select
-            label="Selectionner les proprietes"
+            label="Sélectionner les propriétés"
             options={propertyOptions}
             value={selectedProperties[0] || 'all'}
             onChange={(v) => setSelectedProperties(v === 'all' ? [] : [v])}

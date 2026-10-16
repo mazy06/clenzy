@@ -266,7 +266,7 @@ export default function SiteManagerPage() {
                           <div className="text-2xs text-muted-foreground tabular-nums">{p.path}</div>
                         </div>
                         {p.dirty
-                          ? <div className="w-[7px] h-[7px] rounded-full bg-primary shrink-0" title="{t('studio.siteManager.unpublishedDraft')}" />
+                          ? <div className="w-[7px] h-[7px] rounded-full bg-primary shrink-0" title={t('studio.siteManager.unpublishedDraft')} />
                           : <Check size={14} strokeWidth={2.4} color="var(--color-muted-foreground)" />}
                       </DropdownMenuItem>
                     ))}

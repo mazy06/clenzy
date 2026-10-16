@@ -9,6 +9,7 @@ import org.springframework.data.redis.connection.Message;
 import org.springframework.data.redis.connection.MessageListener;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Component;
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
 /** Invalidation sans données métier, diffusée uniquement aux organisations concernées. */
@@ -34,6 +35,16 @@ public class AssignmentRealtime implements MessageListener {
     }
     private void remove(Long org,SseEmitter emitter) {
         streams.computeIfPresent(org,(key,set)->{ set.remove(emitter); return set.isEmpty()?null:set; });
+    }
+    /** Maintient les connexions inactives sans accès BDD ni invalidation des vues. */
+    @Scheduled(fixedDelay = 20_000L, initialDelay = 20_000L)
+    public void heartbeat() {
+        streams.forEach((org, emitters) -> {
+            for (var emitter : emitters) {
+                try { emitter.send(SseEmitter.event().comment("baitly-keepalive")); }
+                catch (java.io.IOException | IllegalStateException disconnected) { remove(org, emitter); }
+            }
+        });
     }
     public void changed(long requestId) {
         var organizations=db.queryForList("""

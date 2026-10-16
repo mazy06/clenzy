@@ -60,7 +60,8 @@ public class MarketplaceGeographicEligibility {
         String country = location.getCountryCode();
         if (country == null || country.isBlank()) country = "FR";
         // Lecture séparée après le verrou : voit les modifications de zones qui viennent de terminer.
-        if (!zones.covers(providerId, country, location.getDepartment(), location.getArrondissement(), location.getCity()))
+        if (!zones.coversLocation(providerId, country, location.getDepartment(), location.getArrondissement(), location.getCity(),
+                location.getLatitude(), location.getLongitude()))
             throw new IllegalStateException("Le logement n'est pas couvert par les zones actuelles du prestataire. Vérifiez les zones et l'adresse du logement.");
     }
 }

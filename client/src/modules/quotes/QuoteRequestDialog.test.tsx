@@ -32,6 +32,18 @@ it('keeps a general request without inventing a service or property', () => {
   expect(mocks.mutate).toHaveBeenCalledWith(expect.objectContaining({ propertyId: null, categoryCode: undefined, serviceItemCode: undefined }), expect.anything());
 });
 
+it('prefills an internal service request and still requires an explicit send action', () => {
+  render(<QuoteRequestDialog provider={provider} open onOpenChange={vi.fn()} initialPropertyId="42"
+    initialTitle="Ménage supplémentaire" initialServiceItemCode="cleaning-turnover" initialDate="2026-10-15"
+    initialMessage="Ménage supplémentaire" initialStartTime="09:00" initialDurationMinutes={60} />);
+  expect(mocks.mutate).not.toHaveBeenCalled();
+  expect(screen.getByLabelText('marketplaceWorkflow.service')).toHaveValue('11');
+  fireEvent.click(screen.getByRole('button', { name: 'marketplaceWorkflow.send' }));
+  expect(mocks.mutate).toHaveBeenCalledWith(expect.objectContaining({ title: 'Ménage supplémentaire', propertyId: 42,
+    serviceItemCode: 'cleaning-turnover', desiredDate: '2026-10-15', message: 'Ménage supplémentaire',
+    requestedStartTime: '09:00',requestedDurationMinutes: 60 }), expect.anything());
+});
+
 it('keeps replacement context immutable and sends through the dedicated command', () => {
   render(<QuoteRequestDialog provider={provider} open onOpenChange={vi.fn()} replacement={{ quoteId: 55, propertyId: 42,
     title: 'Nettoyage prévu', categoryCode: 'CLEANING', serviceItemCode: 'cleaning-turnover', desiredDate: '2026-12-01',

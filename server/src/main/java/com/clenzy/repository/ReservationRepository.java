@@ -6,6 +6,7 @@ import com.clenzy.model.Reservation;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
@@ -16,6 +17,27 @@ import java.util.List;
 import java.util.Optional;
 
 public interface ReservationRepository extends JpaRepository<Reservation, Long> {
+    @Query("SELECT new com.clenzy.dto.BaitlyPlanningReservationRow("
+        + "r, p.id, p.name, g.id, r.intervention.id) "
+        + "FROM Reservation r JOIN r.property p LEFT JOIN r.guest g ON g.organizationId = :orgId "
+        + "WHERE r.organizationId = :orgId AND p.organizationId = :orgId AND p.id IN :propertyIds "
+        + "AND r.checkOut >= :from AND r.checkIn <= :to AND r.hiddenFromPlanning = false "
+        + "ORDER BY r.checkIn, r.id")
+    List<com.clenzy.dto.BaitlyPlanningReservationRow> findBaitlyPlanningDetails(
+            @Param("propertyIds") Collection<Long> propertyIds, @Param("from") LocalDate from,
+            @Param("to") LocalDate to, @Param("orgId") Long orgId);
+
+    @Query("SELECT new com.clenzy.dto.BaitlyPlanningReservationIndex("
+        + "r.id, r.property.id, r.guestName, r.guestCount, r.checkIn, r.checkOut, "
+        + "r.checkInTime, r.checkOutTime, r.status, r.source, r.sourceName, r.totalPrice, r.paymentStatus, "
+        + "CASE WHEN r.paymentCollection = com.clenzy.model.PaymentCollection.CHANNEL THEN true ELSE false END) "
+        + "FROM Reservation r WHERE r.organizationId = :orgId AND r.property.id IN :propertyIds "
+        + "AND r.checkOut >= :from AND r.checkIn <= :to AND r.hiddenFromPlanning = false "
+        + "ORDER BY r.checkIn, r.id")
+    List<com.clenzy.dto.BaitlyPlanningReservationIndex> findBaitlyPlanningIndex(
+            @Param("propertyIds") Collection<Long> propertyIds, @Param("from") LocalDate from,
+            @Param("to") LocalDate to, @Param("orgId") Long orgId);
+
     @org.springframework.data.jpa.repository.Lock(jakarta.persistence.LockModeType.PESSIMISTIC_WRITE)
     @Query("select r from Reservation r where r.organizationId=:org and r.confirmationCode=:code")
     Optional<Reservation> lockCancellation(@Param("org") Long org, @Param("code") String code);
@@ -555,6 +577,12 @@ public interface ReservationRepository extends JpaRepository<Reservation, Long> 
         @Param("interventionIds") List<Long> interventionIds,
         @Param("orgId") Long orgId);
 
+    @Query("SELECT new com.clenzy.dto.BaitlyPlanningInterventionLink(r.intervention.id, MIN(r.id)) "
+            + "FROM Reservation r WHERE r.intervention.id IN :interventionIds AND r.organizationId = :orgId "
+            + "GROUP BY r.intervention.id")
+    List<com.clenzy.dto.BaitlyPlanningInterventionLink> findBaitlyPlanningInterventionLinks(
+            @Param("interventionIds") List<Long> interventionIds, @Param("orgId") Long orgId);
+
     /**
      * Compte les reservations dont le guestName commence par un prefix donne, sur une propriete.
      * Utilise par ICalImportService pour incrementer les noms generiques (Reserved #1, #2...).
@@ -592,6 +620,10 @@ public interface ReservationRepository extends JpaRepository<Reservation, Long> 
            "WHERE r.status = 'pending' AND r.paymentStatus = com.clenzy.model.PaymentStatus.PENDING " +
            "AND r.createdAt < :cutoff")
     List<Reservation> findExpiredPendingReservations(@Param("cutoff") java.time.LocalDateTime cutoff);
+
+    @EntityGraph(attributePaths = {"property", "guest"})
+    @Query("SELECT r FROM Reservation r WHERE r.id IN :ids AND r.organizationId=:orgId")
+    List<Reservation> findBaitlyPaymentPage(@Param("ids") List<Long> ids, @Param("orgId") Long orgId);
 
     // ─── Payment queries ────────────────────────────────────────────────────────
 

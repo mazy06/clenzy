@@ -69,16 +69,16 @@ class WhatsAppSignatureVerifierTest {
     }
 
     @Test
-    void blankSecret_skipsVerificationReturnsTrue() {
+    void blankSecret_rejectsWebhook() {
         WhatsAppSignatureVerifier verifier = new WhatsAppSignatureVerifier("");
 
-        assertThat(verifier.isValid("{}".getBytes(StandardCharsets.UTF_8), null)).isTrue();
+        assertThat(verifier.isValid("{}".getBytes(StandardCharsets.UTF_8), null)).isFalse();
     }
 
     @Test
-    void nullSecret_skipsVerificationReturnsTrue() {
+    void nullSecret_rejectsWebhook() {
         WhatsAppSignatureVerifier verifier = new WhatsAppSignatureVerifier(null);
 
-        assertThat(verifier.isValid("{}".getBytes(StandardCharsets.UTF_8), "sha256=whatever")).isTrue();
+        assertThat(verifier.isValid("{}".getBytes(StandardCharsets.UTF_8), "sha256=whatever")).isFalse();
     }
 }

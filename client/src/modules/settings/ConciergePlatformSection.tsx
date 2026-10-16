@@ -52,7 +52,7 @@ const ConciergePlatformSection: React.FC = () => {
         <>
           <SettingsToggleRow
             icon={PenLine}
-            title="{t('settings.concierge.drafts')}"
+            title={t('settings.concierge.drafts')}
             description="À chaque message guest entrant, le concierge prépare un brouillon de réponse à valider par l'opérateur (aucun envoi automatique)."
             checked={draftEnabled}
             onChange={(c) => save({ draftEnabled: c, ...(c ? {} : { autosendEnabled: false }) })}
@@ -60,7 +60,7 @@ const ConciergePlatformSection: React.FC = () => {
           />
           <SettingsToggleRow
             icon={Send}
-            title="{t('settings.concierge.autoSend')}"
+            title={t('settings.concierge.autoSend')}
             description="Ouvre l'auto-envoi au niveau plateforme. Un org n'auto-envoie que si son autonomie « Communication » est ≥ Notifie, sur une intention FAQ sûre, et si son palier atteint le seuil ci-dessous."
             checked={autosendEnabled}
             onChange={(c) => save({ autosendEnabled: c })}

@@ -1,4 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useAuth } from './useAuth';
 import {
   bookingVouchersApi,
   type BookingVoucher,
@@ -25,10 +26,12 @@ export const bookingVouchersKeys = {
 // ─── Queries ─────────────────────────────────────────────────────────────────
 
 export function useBookingVouchersList(statusFilter?: VoucherStatus) {
+  const { user, loading } = useAuth();
   return useQuery<BookingVoucher[]>({
-    queryKey: bookingVouchersKeys.list(statusFilter),
+    queryKey: [...bookingVouchersKeys.list(statusFilter), user?.id, user?.organizationId],
     queryFn: () => bookingVouchersApi.list(statusFilter),
     staleTime: 30_000,
+    enabled: !!user && !loading,
   });
 }
 
@@ -39,7 +42,7 @@ export function useCreateBookingVoucher() {
   return useMutation<BookingVoucher, Error, BookingVoucherCreateRequest>({
     mutationFn: (payload) => bookingVouchersApi.create(payload),
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: bookingVouchersKeys.lists() });
+      qc.invalidateQueries({ queryKey: bookingVouchersKeys.all });
     },
   });
 }
@@ -49,7 +52,7 @@ export function useUpdateBookingVoucher() {
   return useMutation<BookingVoucher, Error, { id: number; payload: BookingVoucherUpdateRequest }>({
     mutationFn: ({ id, payload }) => bookingVouchersApi.update(id, payload),
     onSuccess: (_data, variables) => {
-      qc.invalidateQueries({ queryKey: bookingVouchersKeys.lists() });
+      qc.invalidateQueries({ queryKey: bookingVouchersKeys.all });
       qc.invalidateQueries({ queryKey: bookingVouchersKeys.detail(variables.id) });
     },
   });
@@ -60,7 +63,7 @@ export function useDeleteBookingVoucher() {
   return useMutation<void, Error, number>({
     mutationFn: (id) => bookingVouchersApi.delete(id),
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: bookingVouchersKeys.lists() });
+      qc.invalidateQueries({ queryKey: bookingVouchersKeys.all });
     },
   });
 }
@@ -70,7 +73,7 @@ export function usePauseBookingVoucher() {
   return useMutation<BookingVoucher, Error, number>({
     mutationFn: (id) => bookingVouchersApi.pause(id),
     onSuccess: (_data, id) => {
-      qc.invalidateQueries({ queryKey: bookingVouchersKeys.lists() });
+      qc.invalidateQueries({ queryKey: bookingVouchersKeys.all });
       qc.invalidateQueries({ queryKey: bookingVouchersKeys.detail(id) });
     },
   });
@@ -81,7 +84,7 @@ export function useResumeBookingVoucher() {
   return useMutation<BookingVoucher, Error, number>({
     mutationFn: (id) => bookingVouchersApi.resume(id),
     onSuccess: (_data, id) => {
-      qc.invalidateQueries({ queryKey: bookingVouchersKeys.lists() });
+      qc.invalidateQueries({ queryKey: bookingVouchersKeys.all });
       qc.invalidateQueries({ queryKey: bookingVouchersKeys.detail(id) });
     },
   });
@@ -90,9 +93,11 @@ export function useResumeBookingVoucher() {
 // ─── Analytics queries ───────────────────────────────────────────────────────
 
 export function useVoucherAnalytics(from?: string, to?: string) {
+  const { user, loading } = useAuth();
   return useQuery<VoucherAnalytics>({
-    queryKey: bookingVouchersKeys.analytics(from, to),
+    queryKey: [...bookingVouchersKeys.analytics(from, to), user?.id, user?.organizationId],
     queryFn: () => bookingVouchersApi.getAnalytics(from, to),
     staleTime: 60_000,
+    enabled: !!user && !loading,
   });
 }

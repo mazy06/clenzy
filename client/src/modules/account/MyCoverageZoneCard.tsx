@@ -1,4 +1,7 @@
+import BaitlyFrenchCitySelect from "../../components/BaitlyFrenchCitySelect";
 import ProviderPropertyTypes from './ProviderPropertyTypes';
+import MySectorMap from './MySectorMap';
+import { useQueryClient } from '@tanstack/react-query';
 import React, { useEffect, useState } from 'react';
 import {
   Alert,
@@ -41,13 +44,14 @@ const emptyZone = (country = 'FR'): CoverageZoneInput => ({
  * un gestionnaire le designe a la main.</p>
  *
  * <p>La maille change avec le pays : la France se decrit par departement, avec
- * un arrondissement facultatif pour Paris, Lyon et Marseille ; le reste du
+ * une ville facultative et un arrondissement pour Paris, Lyon et Marseille ; le reste du
  * monde par ville. Le formulaire suit cette regle plutot que d'exposer quatre
  * champs dont deux seraient toujours vides.</p>
  */
 export default function MyCoverageZoneCard({ onSaved }: Props) {
   const { t } = useTranslation();
   const { notify } = useNotification();
+  const queryClient = useQueryClient();
   const [zones, setZones] = useState<CoverageZoneInput[] | null>(null);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -96,6 +100,9 @@ export default function MyCoverageZoneCard({ onSaved }: Props) {
       })));
       setZones(saved.map(({ id: _id, ...rest }) => rest));
       notify.success(t('coverageZone.saved', 'Zone enregistrée'));
+      void queryClient.invalidateQueries({ queryKey: ['sector-map'] });
+      void queryClient.invalidateQueries({ queryKey: ['provider-catalog'] });
+      void queryClient.invalidateQueries({ queryKey: ['property-teams'] });
       if (cleaned.length > 0) onSaved?.();
     } catch {
       setError(t('coverageZone.saveError', "L'enregistrement a échoué, réessayez."));
@@ -172,9 +179,12 @@ export default function MyCoverageZoneCard({ onSaved }: Props) {
                           value={zone.department ?? ''}
                           maxLength={3}
                           placeholder="75"
-                          onChange={(event) => update(index, { department: event.target.value })}
+                          onChange={(event) => update(index, { department: event.target.value.toUpperCase(), city: null, arrondissement: null })}
                         />
                       </div>
+                      <BaitlyFrenchCitySelect id={`zone-city-${index}`} department={zone.department ?? ""} value={zone.city}
+                        onChange={city => update(index, { city: city ?? null, arrondissement: null })} />
+                      {(["75", "69", "13"].includes(zone.department ?? "")) && (!zone.city || zone.city === ({"75":"Paris","69":"Lyon","13":"Marseille"} as Record<string,string>)[zone.department ?? ""]) && (
                       <div className="flex min-w-[140px] flex-col gap-1">
                         <label className="text-xs text-muted-foreground" htmlFor={`zone-arr-${index}`}>
                           {t('coverageZone.arrondissement', 'Arrondissement (optionnel)')}
@@ -183,10 +193,11 @@ export default function MyCoverageZoneCard({ onSaved }: Props) {
                           id={`zone-arr-${index}`}
                           value={zone.arrondissement ?? ''}
                           maxLength={5}
-                          placeholder="75001"
+                          placeholder="75101"
                           onChange={(event) => update(index, { arrondissement: event.target.value })}
                         />
                       </div>
+                      )}
                     </>
                   ) : (
                     <div className="flex min-w-[160px] flex-1 flex-col gap-1">
@@ -233,6 +244,7 @@ export default function MyCoverageZoneCard({ onSaved }: Props) {
             </div>
           </>
         )}
+        {zones && !loadFailed && <MySectorMap />}
         <ProviderPropertyTypes />
       </CardContent>
     </Card>

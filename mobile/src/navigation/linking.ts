@@ -1,6 +1,9 @@
+import { Linking } from 'react-native';
+import { useAuthStore } from '@/store/authStore';
+import { captureInvitation } from '@/features/network/pendingInvitation';
 import { LinkingOptions } from '@react-navigation/native';
 
-export const linkingConfig: LinkingOptions<ReactNavigation.RootParamList> = {
+const legacyLinkingConfig: LinkingOptions<ReactNavigation.RootParamList> = {
   prefixes: ['clenzy://', 'https://app.clenzy.fr'],
   config: {
     screens: {
@@ -51,3 +54,54 @@ export const linkingConfig: LinkingOptions<ReactNavigation.RootParamList> = {
     },
   },
 };
+
+const baitlyLinkingConfig: LinkingOptions<ReactNavigation.RootParamList> = {
+  async getInitialURL() {
+    const url = await Linking.getInitialURL();
+    if (url?.startsWith('clenzy://auth/callback')) return null;
+    if (url && !useAuthStore.getState().isAuthenticated && captureInvitation(url)) return null;
+    return url;
+  },
+  subscribe(listener) {
+    const subscription = Linking.addEventListener('url', ({ url }) => {
+      if (url.startsWith('clenzy://auth/callback')) return;
+      if (!useAuthStore.getState().isAuthenticated && captureInvitation(url)) return;
+      listener(url);
+    });
+    return () => subscription.remove();
+  },
+  prefixes: ['clenzy://', 'https://app.clenzy.fr', 'https://app.baitly.fr'],
+  config: { screens: {
+    Main: { path: '', screens: {
+      Tabs: { path: '', screens: {
+        Home: { path: '', screens: {
+          Today: 'today', Properties: 'properties', Marketplace: 'marketplace', Tracking: 'requests', Reels: 'reels',
+        } },
+        MandateSignature: { path: "sign/:token" },
+        Provider: { path: 'marketplace/providers/:providerId', parse: { providerId: Number } },
+        Quote: { path: 'quote-requests/:requestId', parse: {
+          requestId: Number, side: (side: string) => side === 'received' ? 'received' : 'sent',
+        } },
+        Property: { path: 'properties/:propertyId', parse: { propertyId: Number } },
+        Mission: { path: 'interventions/:interventionId', parse: { interventionId: Number } },
+        Account: 'account',
+        Network: { path: 'network-invitation', parse: { token: String } },
+      } },
+      Notifications: 'notifications',
+    } },
+    Auth: { path: 'auth', screens: { Login: 'login' } },
+  } },
+};
+
+export function getMobileLinkingConfig(useBaitly: boolean, guest = false): LinkingOptions<ReactNavigation.RootParamList> {
+  if (useBaitly && guest) return {
+    ...baitlyLinkingConfig,
+    config: { screens: { Auth: { path: '', screens: {
+      Home: { path: '', screens: { Marketplace: 'marketplace', Properties: 'properties', Reels: 'reels', Profile: 'account' } },
+      MandateSignature: { path: "sign/:token" },
+        Provider: { path: 'marketplace/providers/:providerId', parse: { providerId: Number } },
+      Login: { path: 'auth/login' },
+    } } } },
+  };
+  return useBaitly ? baitlyLinkingConfig : legacyLinkingConfig;
+}

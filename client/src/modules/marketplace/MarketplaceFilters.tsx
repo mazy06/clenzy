@@ -15,10 +15,10 @@ import type {
   ServiceCategoryDto,
 } from '../../services/api/marketplaceProvidersApi';
 import {
-  categoryIcon,
   ENGAGEMENT_ORDER,
   FAMILY_ORDER,
 } from './providerPresentation';
+import ProviderSectorArtwork from './ProviderSectorArtwork';
 
 /**
  * Filtres de la place de marché Baitly, repliables dans le flux en mobile.
@@ -221,7 +221,7 @@ export function MarketplaceFilterPanel(props: MarketplaceFilterPanelProps) {
               <FacetRow
                 key={category.code}
                 label={catalogLabel(category)}
-                icon={categoryIcon(category.iconKey)}
+                icon={<ProviderSectorArtwork code={category.code} />}
                 count={count}
                 active={selectedCategories.includes(category.code)}
                 onClick={() => onToggleCategory(category.code)}
@@ -240,7 +240,7 @@ export function MarketplaceFilterPanel(props: MarketplaceFilterPanelProps) {
                         <FacetRow
                           key={category.code}
                           label={catalogLabel(category)}
-                          icon={categoryIcon(category.iconKey)}
+                          icon={<ProviderSectorArtwork code={category.code} />}
                           count={count}
                           active={false}
                           onClick={() => onToggleCategory(category.code)}

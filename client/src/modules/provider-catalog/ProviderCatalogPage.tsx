@@ -14,6 +14,7 @@ import { useScreenSearch } from '../../components/ScreenChrome';
 import ProviderCatalogCard from './ProviderCatalogCard';
 import { useCatalogCategories, useProviderCatalog } from '../../hooks/useProviderCatalog';
 import type { CatalogSearchParams } from '../../services/api/providerCatalogApi';
+import { DirectoryToolbar } from '../../components/catalog/DirectoryToolbar';
 
 const DEFAULT_FILTERS = { category: '', city: '', verifiedOnly: false, propertyId: '' };
 
@@ -88,6 +89,11 @@ export default function ProviderCatalogPage() {
         <a href="/devis" className="cursor-pointer underline focus-visible:outline-2">{t('quoteReplacement.viewRequests')}</a>
       </div>}
 
+      <DirectoryToolbar>
+        <span className="text-sm font-medium text-foreground">{t('providerDirectory.catalog')}</span>
+        <span className="text-xs tabular-nums text-muted-foreground" aria-live="polite">{t('marketplaceAdmin.results', { count: data?.totalElements ?? 0 })}</span>
+        {hasFilters && <Button variant="ghost" size="sm" className="ms-auto" onClick={resetFilters}>{t('marketplaceWorkflow.clear')}</Button>}
+      </DirectoryToolbar>
       <ProviderDirectoryLayout
         filters={<ProviderCatalogFilters categories={orderedCategories} category={category} setCategory={setCategory}
           city={city} setCity={setCity} verifiedOnly={verifiedOnly} setVerifiedOnly={value => changeFilter({ verifiedOnly: value })}

@@ -1,3 +1,4 @@
+import { toAdminUser, fromAdminUser } from '@/api/endpoints/adminUserShape';
 import React, { useState, useEffect } from 'react';
 import { View, Text, ScrollView, Pressable, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -36,11 +37,13 @@ type RouteParams = {
 };
 
 const ROLE_OPTIONS = [
-  { label: 'Proprietaire', value: 'HOST' },
+  { label: 'Propriétaire', value: 'HOST' },
   { label: 'Technicien', value: 'TECHNICIAN' },
-  { label: 'Agent de menage', value: 'HOUSEKEEPER' },
+  { label: 'Agent de ménage', value: 'HOUSEKEEPER' },
   { label: 'Superviseur', value: 'SUPERVISOR' },
-  { label: 'Administrateur', value: 'ADMIN' },
+  { label: 'Blanchisserie', value: 'LAUNDRY' },
+  { label: 'Jardin et piscine', value: 'EXTERIOR_TECH' },
+  { label: 'Gestionnaire plateforme', value: 'SUPER_MANAGER' },
 ];
 
 const STATUS_OPTIONS = [
@@ -78,13 +81,13 @@ export function UserEditScreen() {
 
   const { data: user, isLoading } = useQuery({
     queryKey: ['admin', 'users', userId],
-    queryFn: () => apiClient.get<UserDetail>(`/admin/users/${userId}`),
+    queryFn: async () => toAdminUser<UserDetail>(await apiClient.get(`/users/${userId}`)),
     enabled: userId > 0,
   });
 
   const { data: orgsData } = useQuery({
     queryKey: ['admin', 'organizations'],
-    queryFn: () => apiClient.get<{ content?: Organization[] } | Organization[]>('/admin/organizations'),
+    queryFn: () => apiClient.get<{ content?: Organization[] } | Organization[]>('/organizations'),
   });
 
   const organizations: Organization[] = Array.isArray(orgsData) ? orgsData : (orgsData as any)?.content ?? [];
@@ -105,15 +108,15 @@ export function UserEditScreen() {
 
   const updateMutation = useMutation({
     mutationFn: (data: Record<string, unknown>) =>
-      apiClient.put(`/admin/users/${userId}`, data),
+      apiClient.put(`/users/${userId}`, fromAdminUser(data)),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['admin', 'users'] });
-      Alert.alert('Succes', 'Utilisateur mis a jour', [
+      Alert.alert('Succes', 'Utilisateur mis à jour', [
         { text: 'OK', onPress: () => navigation.goBack() },
       ]);
     },
     onError: () => {
-      Alert.alert('Erreur', 'Impossible de mettre a jour l\'utilisateur');
+      Alert.alert('Erreur', 'Impossible de mettre à jour l\'utilisateur');
     },
   });
 
@@ -186,10 +189,10 @@ export function UserEditScreen() {
         <SectionHeader title="Informations personnelles" iconName="person-outline" />
         <Card style={{ marginBottom: theme.SPACING.lg }}>
           <Input
-            label="Prenom *"
+            label="Prénom *"
             value={firstName}
             onChangeText={setFirstName}
-            placeholder="Prenom"
+            placeholder="Prénom"
             containerStyle={{ marginBottom: theme.SPACING.lg }}
           />
           <Input
@@ -209,7 +212,7 @@ export function UserEditScreen() {
             containerStyle={{ marginBottom: theme.SPACING.lg }}
           />
           <Input
-            label="Telephone"
+            label="Téléphone"
             value={phone}
             onChangeText={setPhone}
             placeholder="+33 6 12 34 56 78"

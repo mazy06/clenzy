@@ -1,16 +1,22 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { useNavigate } from "react-router-dom";
 import { AlertTriangle, Clock3, CircleCheck } from "../icons/glyphs";
-import { MapboxPropertyMap, type MapBounds } from "./MapboxPropertyMap";
+import { BaitlyPropertyMap, type MapBounds, type PropertyMarker, type PropertyMarkerType } from "./BaitlyPropertyMap";
+import type { MarkerState } from "./map/markerStates";
 import MapWithSheet from "./baitly/MapWithSheet";
 import { Alert, AlertDescription, Button, Skeleton, Tooltip, TooltipContent, TooltipTrigger } from "./ui";
 import { useTranslation } from "../hooks/useTranslation";
 import { useHomeMapCenter } from "../hooks/useHomeMapCenter";
 import { useMissionMapOverview, useMissionMapPages, type MissionMapFilters, type MissionMapKind } from "../hooks/useMissionMap";
 
-export default function PagedMissionMap<T extends { id: string | number }>({ kind, filters, renderRow, renderRows }: {
+/** État calculé par le serveur (MissionMapQueryService.markerState) → anneau de l'épingle. */
+const MISSION_STATES: Record<string, MarkerState | undefined> = { late: "late", today: "today", done: "done", closed: "closed" };
+
+export default function PagedMissionMap<T extends { id: string | number }>({ kind, filters, renderRow, renderRows, renderPopup }: {
   kind: MissionMapKind; filters: MissionMapFilters; renderRow: (row: T) => ReactNode;
   renderRows?: (rows: T[]) => ReactNode;
+  /** Fiche de la mission dans la bulle du marqueur cliqué. */
+  renderPopup?: (marker: PropertyMarker) => ReactNode;
 }) {
   const { t } = useTranslation();
   const navigate = useNavigate();
@@ -37,7 +43,13 @@ export default function PagedMissionMap<T extends { id: string | number }>({ kin
     return [...unique.values()];
   }, [pages.data]);
   const resetKey = JSON.stringify([filters, bounds]);
-  const markerData = useMemo(() => overview.data?.markers.map(marker => ({ ...marker, type: "property" as const })) ?? [], [overview.data]);
+  // Un marqueur = une mission (intervention ou demande), pas un logement. L'écran Prestations
+  // mêle les deux : le serveur dit alors le type de chaque point.
+  const markerData = useMemo(() => overview.data?.markers.map(marker => {
+    const request = marker.kind ? marker.kind === "request" : kind === "service-requests";
+    const type: PropertyMarkerType = request ? "service_request" : "intervention";
+    return { ...marker, type, state: MISSION_STATES[marker.state ?? ""] };
+  }) ?? [], [overview.data, kind]);
   const total = pages.data?.pages[0]?.totalElements;
   const busy = pages.isFetchingNextPage;
   const endRef = useRef<HTMLDivElement>(null);
@@ -61,7 +73,7 @@ export default function PagedMissionMap<T extends { id: string | number }>({ kin
     {t("missionMap.loadError")} <Button variant="outline" onClick={() => void overview.refetch()}>{t("common.retry")}</Button>
   </AlertDescription></Alert>;
   if (!overview.data) return <Skeleton className="min-h-48 flex-1" />;
-  const indicators = kind === "service-requests" ? <div className="flex shrink-0 items-center gap-2 text-xs tabular-nums">
+  const indicators = kind !== "interventions" ? <div className="flex shrink-0 items-center gap-2 text-xs tabular-nums">
     {[
       { label: t("serviceRequests.kpi.late"), count: overview.data.late, Icon: AlertTriangle, color: "var(--bui-destructive-ink)" },
       { label: t("serviceRequests.kpi.today"), count: overview.data.today, Icon: Clock3, color: "var(--bui-info-ink)" },
@@ -72,10 +84,14 @@ export default function PagedMissionMap<T extends { id: string | number }>({ kin
       </span></TooltipTrigger><TooltipContent>{label}</TooltipContent></Tooltip>)}
   </div> : undefined;
   return <MapWithSheet desktopLayout="split" listResetKey={resetKey}
-    map={<MapboxPropertyMap properties={markerData} center={homeCenter} height="100%" onBoundsChange={onBoundsChange}
-      onMarkerClick={marker => marker.id && navigate("/" + kind + "/" + marker.id)} />}
+    map={<BaitlyPropertyMap properties={markerData} center={homeCenter} height="100%" onBoundsChange={onBoundsChange}
+      renderPopup={renderPopup}
+      onMarkerClick={renderPopup ? undefined : marker => marker.id
+        && navigate((marker.type === "service_request" ? "/service-requests/" : "/interventions/") + marker.id)} />}
     listTitle={total === undefined && markerData.length ? t("missionMap.loading") :
-      kind === "service-requests" ? t("requestMap.visible", { count: total ?? 0 }) : t("missionMap.visibleInterventions", { count: total ?? 0 })}
+      kind === "service-requests" ? t("requestMap.visible", { count: total ?? 0 })
+        : kind === "prestations" ? t("prestations.mapVisible", { count: total ?? 0 })
+        : t("missionMap.visibleInterventions", { count: total ?? 0 })}
     listIndicators={indicators}>
     {renderRows ? renderRows(rows) : rows.map(row => renderRow(row))}
     {(pages.isLoading || (!bounds && markerData.length > 0)) && <div className="space-y-3 p-4" role="status" aria-label={t("missionMap.loading")}>

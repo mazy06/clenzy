@@ -185,13 +185,15 @@ public class ActionItemQueryService {
 
         // La requête ne filtre pas sur l'organisation : c'est à l'appelant de
         // comparer, ligne par ligne (règle #3 de l'audit 2026-06).
-        final Map<Long, String> photoByReservation = reservationRepository
-                .findAllWithGuestByIdIn(reservationIds).stream()
-                .filter(r -> Objects.equals(r.getOrganizationId(), orgId))
-                .filter(r -> r.getGuest() != null)
-                .collect(Collectors.toMap(Reservation::getId,
-                        r -> guestPhotoUrls.publicUrl(r.getGuest().getId(), r.getGuest().getAvatarUrl()),
-                        (a, b) -> a));
+        final Map<Long, String> photoByReservation = new java.util.HashMap<>();
+        for (Reservation reservation : reservationRepository.findAllWithGuestByIdIn(reservationIds)) {
+            if (!Objects.equals(reservation.getOrganizationId(), orgId) || reservation.getGuest() == null) continue;
+            final String photo = guestPhotoUrls.publicUrl(
+                    reservation.getGuest().getId(), reservation.getGuest().getAvatarUrl());
+            // Une absence de photo est normale : toMap refuse les valeurs nulles
+            // et faisait échouer toute la file au lieu de laisser les initiales.
+            if (photo != null) photoByReservation.putIfAbsent(reservation.getId(), photo);
+        }
 
         return rows.stream()
                 .map(row -> {

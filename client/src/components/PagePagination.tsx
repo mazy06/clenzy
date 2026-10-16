@@ -54,6 +54,8 @@ interface PagePaginationProps {
   hideTotal?: boolean;
   /** Masquer entièrement le bloc quand il n'y a qu'une page. Défaut : true. */
   hideOnSinglePage?: boolean;
+  /** Garder le compteur et masquer seulement la navigation sur une page. */
+  hideNavigationOnSinglePage?: boolean;
   /**
    * Centrer les boutons dans la largeur au lieu de les caler à droite, le
    * rappel du total restant à gauche. Pour les barres qui traversent tout
@@ -96,6 +98,7 @@ export default function PagePagination({
   rangeTo,
   hideTotal = false,
   hideOnSinglePage = true,
+  hideNavigationOnSinglePage = false,
   centerNav = false,
   compact = false,
   className,
@@ -163,7 +166,7 @@ export default function PagePagination({
         )}
       </div>
 
-      <Pagination className={cn('mx-0 w-auto', centerNav ? 'justify-center' : 'justify-end')}>
+      {(!hideNavigationOnSinglePage || totalPages > 1) && <Pagination className={cn('mx-0 w-auto', centerNav ? 'justify-center' : 'justify-end')}>
         <PaginationContent>
           <PaginationItem>
             <PaginationPrevious
@@ -214,7 +217,7 @@ export default function PagePagination({
             />
           </PaginationItem>
         </PaginationContent>
-      </Pagination>
+      </Pagination>}
     </div>
   );
 }

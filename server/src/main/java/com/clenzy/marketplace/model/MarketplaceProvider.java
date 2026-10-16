@@ -131,9 +131,8 @@ public class MarketplaceProvider {
     private BigDecimal longitude;
 
     /**
-     * Distance maximale de deplacement depuis la base. Complete les zones
-     * declarees : une zone dit « je couvre ce departement », le rayon dit
-     * « je me deplace jusque-la ».
+     * Rayon depuis la base géolocalisée Baitly. Complète les secteurs déclarés :
+     * un logement est couvert par un secteur OU par ce rayon.
      */
     @Column(name = "travel_radius_km")
     private Integer travelRadiusKm;

@@ -272,5 +272,22 @@
       "scheduled": "Change scheduled. It takes effect after the next invoice is paid.",
       "confirm": "Confirm this change"
     }
+  },
+  "directions": {
+    "title": "Directions with",
+    "appleMaps": "Apple Maps"
+  },
+  "sectorMap": {
+    "title": "Provider service areas",
+    "mineTitle": "My service area",
+    "menuLabel": "My service area (map)",
+    "merged": "Merged",
+    "byProvider": "By provider",
+    "loadError": "Service areas could not be loaded.",
+    "mineEmpty": "Declare at least one area (on the web, My account) to see it on the map.",
+    "noneRelevant": "No catalogue provider covers your properties yet.",
+    "mySector": "My service area",
+    "noZone": "No area declared",
+    "uncovered": "{{count}} property(ies) outside these areas: {{names}}"
   }
 }

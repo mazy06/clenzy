@@ -75,7 +75,8 @@ class KeyExchangeServiceCrossTenantTest {
 
         service = new KeyExchangeService(pointRepository, codeRepository, eventRepository,
                 propertyRepository, tenantContext, verificationThrottle,
-                new OrganizationAccessGuard(tenantContext));
+                new OrganizationAccessGuard(tenantContext),
+                org.mockito.Mockito.mock(KeyExchangePointPhotoRegistry.class));
     }
 
     private KeyExchangePoint point(Long orgId) {

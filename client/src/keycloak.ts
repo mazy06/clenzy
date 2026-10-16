@@ -1,5 +1,6 @@
 import Keycloak, { KeycloakTokenParsed } from 'keycloak-js'
 import { KEYCLOAK_CONFIG } from './config/api'
+import { markBaitlyBoot } from './services/baitlyBootTiming'
 import {
   setSessionCookie,
   setSessionCookieUntil,
@@ -96,6 +97,7 @@ cleanupLegacyTokens()
 // ajoutant un round-trip complet au chemin critique du boot. La decision
 // (check-sso prioritaire, metadonnees en fallback) reste identique.
 const bootstrapSessionPromise: Promise<SessionInfo | null> = (async () => {
+  markBaitlyBoot('auth-start');
   try {
     const { API_CONFIG } = await import('./config/api')
     const response = await fetch(`${API_CONFIG.BASE_URL}${API_CONFIG.BASE_PATH}/auth/session`, {
@@ -104,6 +106,7 @@ const bootstrapSessionPromise: Promise<SessionInfo | null> = (async () => {
     })
     if (response.ok) {
       const data = await response.json() as SessionInfo
+      markBaitlyBoot('session-received');
       const stillValid = typeof data.expiresAt === 'number' && data.expiresAt * 1000 > Date.now()
       if (data.authenticated && stillValid) {
         return data
@@ -134,7 +137,9 @@ export const eagerMePromise: Promise<Record<string, unknown> | null> =
         credentials: 'include',
       })
       if (!response.ok) return null
-      return await response.json() as Record<string, unknown>
+      const data = await response.json() as Record<string, unknown>
+      markBaitlyBoot('me-received');
+      return data;
     } catch {
       return null
     }
@@ -381,5 +386,4 @@ export async function syncAuthCookie(): Promise<void> {
 }
 
 export default keycloak
-
 

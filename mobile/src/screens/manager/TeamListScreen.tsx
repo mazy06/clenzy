@@ -1,83 +1,48 @@
-import React, { useCallback } from 'react';
-import { View, Text, ScrollView, RefreshControl, ActivityIndicator } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import React, { useState } from 'react';
+import { View, RefreshControl, Pressable, StyleSheet } from 'react-native';
+import { FlashList } from '@shopify/flash-list';
+import { Image } from 'expo-image';
 import { useNavigation } from '@react-navigation/native';
-import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import { useTranslation } from 'react-i18next';
 import { useTeams } from '@/hooks/useTeams';
-import { Card } from '@/components/ui/Card';
-import { Badge } from '@/components/ui/Badge';
-import { EmptyState } from '@/components/ui/EmptyState';
-import { NotificationBell } from '@/components/ui/NotificationBell';
-import { useTheme } from '@/theme';
-import type { Team } from '@/api/endpoints/teamsApi';
-
-type TeamsStackNav = NativeStackNavigationProp<{
-  TeamList: undefined;
-  TeamAssignment: { teamId: number };
-}>;
+import { BaitlyScreen, BaitlyText, BaitlyField, BaitlyLoading, BaitlyEmpty } from '@/design-system/components';
+import { BaitlyHeaderAction } from '@/design-system/BaitlyHeader';
+import { useBaitlyTheme } from '@/design-system/theme';
+import { canUseBaitlyDemo, useBaitlyDataMode } from '@/config/baitlyDataMode';
+import { Reicon } from '@/icons';
 
 export function TeamListScreen() {
-  const theme = useTheme();
-  const navigation = useNavigation<TeamsStackNav>();
-  const { data: rawTeams, isLoading, isRefetching, refetch } = useTeams();
-  const teams = Array.isArray(rawTeams) ? rawTeams : [];
-
-  const handlePress = useCallback(
-    (team: Team) => {
-      navigation.navigate('TeamAssignment', { teamId: team.id });
-    },
-    [navigation],
-  );
-
-  if (isLoading) {
-    return (
-      <SafeAreaView style={{ flex: 1, backgroundColor: theme.colors.background.default }} edges={['top']}>
-        <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
-          <ActivityIndicator size="large" color={theme.colors.primary.main} />
-        </View>
-      </SafeAreaView>
-    );
-  }
-
-  return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: theme.colors.background.default }} edges={['top']}>
-      <ScrollView
-        contentContainerStyle={{ padding: theme.SPACING.lg, paddingBottom: 120 }}
-        refreshControl={<RefreshControl refreshing={isRefetching} onRefresh={refetch} tintColor={theme.colors.primary.main} />}
-      >
-        <View style={{ flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 4 }}>
-          <View style={{ flex: 1 }}>
-            <Text style={{ ...theme.typography.h2, color: theme.colors.text.primary, marginBottom: 4 }}>Equipes</Text>
-            <Text style={{ ...theme.typography.body2, color: theme.colors.text.secondary }}>
-              {teams?.length ?? 0} equipe{(teams?.length ?? 0) !== 1 ? 's' : ''}
-            </Text>
-          </View>
-          <NotificationBell />
-        </View>
-
-        {!teams || teams.length === 0 ? (
-          <EmptyState title="Aucune equipe" description="Pas d'equipe configuree" />
-        ) : (
-          teams.map((team) => (
-            <Card key={team.id} onPress={() => handlePress(team)} style={{ marginBottom: theme.SPACING.sm }}>
-              <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: theme.SPACING.xs }}>
-                <Text style={{ ...theme.typography.h5, color: theme.colors.text.primary }}>{team.name}</Text>
-                <Badge label={`${team.members?.length ?? 0} membres`} color="info" size="small" />
-              </View>
-              {team.coverageZone && (
-                <Text style={{ ...theme.typography.caption, color: theme.colors.text.secondary, marginBottom: 4 }}>
-                  Zone: {team.coverageZone}
-                </Text>
-              )}
-              {team.members && team.members.length > 0 && (
-                <Text style={{ ...theme.typography.caption, color: theme.colors.text.disabled }} numberOfLines={1}>
-                  {team.members.map((m) => m.userName).join(', ')}
-                </Text>
-              )}
-            </Card>
-          ))
-        )}
-      </ScrollView>
-    </SafeAreaView>
-  );
+  const navigation = useNavigation<any>();
+  const { t } = useTranslation('mobileV1');
+  const c = useBaitlyTheme();
+  const result = useTeams();
+  const mode = useBaitlyDataMode(s => s.mode);
+  const demo = canUseBaitlyDemo() && mode === 'demo';
+  const [search, setSearch] = useState('');
+  const [searchOpen, setSearchOpen] = useState(false);
+  const [expanded, setExpanded] = useState<number | null>(null);
+  const teams = demo ? [
+    { id: -201, name: 'Équipe centre · Démo', coverageZone: 'Marrakech · Médina', members: [{ userName: 'Salma' }, { userName: 'Amine' }] },
+    { id: -202, name: 'Équipe villas · Démo', coverageZone: 'Ourika · Palmeraie', members: [{ userName: 'Youssef' }, { userName: 'Nadia' }, { userName: 'Karim' }] },
+  ] : Array.isArray(result.data) ? result.data : [];
+  const visible = teams.filter(team => `${team.name} ${team.coverageZone || ''}`.toLocaleLowerCase().includes(search.toLocaleLowerCase()));
+  return <BaitlyScreen scroll={false}>
+    <View style={styles.toolbar}><View style={styles.flex}>{searchOpen ? <BaitlyField label={t('adminTeamSearch')} value={search} onChangeText={setSearch} autoFocus /> : <BaitlyText variant="heading">{t('adminTeams')}</BaitlyText>}</View>
+      <BaitlyHeaderAction icon="search-outline" label={t('adminTeamSearch')} onPress={() => { setSearchOpen(!searchOpen); setSearch(''); }} /></View>
+    {demo ? <BaitlyText muted variant="meta" style={styles.demo}>{t('homeDemo')}</BaitlyText> : null}
+    <FlashList data={visible} extraData={expanded} keyExtractor={team => String(team.id)} contentContainerStyle={styles.list}
+      renderItem={({ item }) => <Pressable accessibilityRole="button" onPress={() => demo ? setExpanded(current => current === item.id ? null : item.id) : navigation.navigate('TeamAssignment', { teamId: item.id })}
+        style={({ pressed }) => [styles.card, { backgroundColor: pressed ? c.muted : c.surface }]}>
+        <View style={styles.top}><Image source={require('../../../assets/baitly/navigation/baitly-network.png')} style={styles.image} contentFit="contain" accessible={false} />
+          <View style={styles.flex}><BaitlyText style={styles.name}>{item.name}</BaitlyText><BaitlyText muted variant="meta">{item.coverageZone}</BaitlyText></View><Reicon name="chevron-forward" size={18} color={c.secondary} /></View>
+        <BaitlyText variant="meta" muted>{t('adminTeamMembers', { count: 'memberCount' in item&&typeof item.memberCount==='number'?item.memberCount:item.members?.length ?? 0 })}</BaitlyText>
+        {item.members?.length ? <BaitlyText variant="meta" numberOfLines={demo && expanded === item.id ? undefined : 1}>{item.members.map(member => member.userName).join(' · ')}</BaitlyText> : null}
+      </Pressable>}
+      refreshControl={demo ? undefined : <RefreshControl refreshing={result.isRefetching} onRefresh={() => { void result.refetch(); }} />}
+      ListEmptyComponent={!demo && result.isLoading ? <BaitlyLoading /> : <BaitlyEmpty title={!demo && result.isError ? t('loadFailed') : t('adminNoTeams')} retry={!demo && result.isError ? () => { void result.refetch(); } : undefined} />} />
+  </BaitlyScreen>;
 }
+const styles = StyleSheet.create({
+  flex: { flex: 1 }, toolbar: { paddingHorizontal: 16, paddingBottom: 12, flexDirection: 'row', alignItems: 'center' }, demo: { paddingHorizontal: 16, paddingBottom: 12 }, list: { paddingHorizontal: 16, paddingBottom: 32 },
+  card: { padding: 16, borderRadius: 22, gap: 10, marginBottom: 12 }, top: { flexDirection: 'row', alignItems: 'center', gap: 12 }, image: { width: 45, height: 52 }, name: { fontSize: 18, lineHeight: 24, fontWeight: '600' },
+});

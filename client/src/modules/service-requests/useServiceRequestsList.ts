@@ -107,8 +107,10 @@ export function useServiceRequestsList(enabled = true) {
   // HANDLERS
   // ============================================================================
 
+  // Suppression et validation touchent aussi les interventions (la validation en crée une) :
+  // toutes les surfaces de mission se relisent, dont l'écran Prestations.
   const invalidateList = () => {
-    queryClient.invalidateQueries({ queryKey: serviceRequestsListKeys.all });
+    void invalidateMissionWorkflow(queryClient);
   };
 
   const handleMenuOpen = (event: React.MouseEvent<HTMLElement>, serviceRequest: ServiceRequest) => {

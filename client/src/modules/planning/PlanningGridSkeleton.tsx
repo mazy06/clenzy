@@ -6,8 +6,9 @@ import { isRtlLanguage } from '../../utils/localeDate';
 import { setInlineScroll } from '../../utils/inlineScroll';
 import PlanningDateHeaders from './PlanningDateHeaders';
 import PlanningRowBackdrop from './PlanningRowBackdrop';
-import { BAR_BORDER_RADIUS, PAGINATION_BAR_HEIGHT, ROW_CONFIG } from './constants';
+import { BAR_BORDER_RADIUS, DATE_HEADER_HEIGHT, PAGINATION_BAR_HEIGHT, ROW_CONFIG } from './constants';
 import { inlineScrollForDateIn } from './hooks/useInfiniteTimeline';
+import { useBaitlyPlanningViewport } from './hooks/useBaitlyPlanningViewport';
 import type { DensityMode, ZoomLevel } from './types';
 
 /**
@@ -59,7 +60,7 @@ function rowBars(row: number): readonly (readonly [number, number])[] {
   return Array.from({ length: count }, (_, i) => BAR_PATTERN[(from + i) % BAR_PATTERN.length]);
 }
 
-export default function PlanningGridSkeleton({
+const PlanningGridSkeleton = React.memo(function PlanningGridSkeleton({
   days,
   dayWidth,
   zoom,
@@ -68,6 +69,8 @@ export default function PlanningGridSkeleton({
   propertyColWidth,
   totalGridWidth,
   collapsed = false,
+  layoutReady = true,
+  onViewportHeight,
 }: {
   days: Date[];
   dayWidth: number;
@@ -78,10 +81,14 @@ export default function PlanningGridSkeleton({
   propertyColWidth: number;
   totalGridWidth: number;
   collapsed?: boolean;
+  layoutReady?: boolean;
+  onViewportHeight?: (height: number) => void;
 }) {
   const { t, i18n } = useTranslation();
   const isRtl = isRtlLanguage(i18n.language);
   const { rowHeight, reservationBarHeight, barPadding } = ROW_CONFIG[density];
+  const scrollRef = React.useRef<HTMLDivElement | null>(null);
+  const viewport = useBaitlyPlanningViewport(scrollRef, onViewportHeight, layoutReady);
 
   // Le defileur s'ouvre sur la MEME fenetre de dates que la grille reelle, qui
   // se recale sur son ancre des qu'elle est peinte. Sans cela, le squelette
@@ -89,17 +96,18 @@ export default function PlanningGridSkeleton({
   // grille sauterait lateralement en apparaissant.
   const openAt = React.useCallback(
     (el: HTMLDivElement | null) => {
+      scrollRef.current = el;
       if (!el) return;
       const offset = inlineScrollForDateIn(days, anchorDate, dayWidth);
       if (offset !== null) setInlineScroll(el, offset, isRtl);
     },
-    [days, anchorDate, dayWidth, isRtl],
+    [days, anchorDate, dayWidth, isRtl, layoutReady],
   );
 
-  // Assez de rangées pour remplir n'importe quelle hauteur d'écran : la carte
-  // est en `overflow-hidden`, elle coupe le surplus exactement comme la grille
-  // réelle borne le sien au nombre de logements que la page peut tenir.
-  const rows = Array.from({ length: 16 }, (_, i) => i);
+  // Only build rows that can be seen, with a fallback until the first measurement.
+  const rowCount = viewport.height > 0
+    ? Math.max(1, Math.ceil((viewport.height - DATE_HEADER_HEIGHT) / rowHeight)) : 16;
+  const rows = Array.from({ length: rowCount }, (_, i) => i);
 
   return (
     <>
@@ -113,7 +121,7 @@ export default function PlanningGridSkeleton({
         ref={openAt}
         className="flex-1 relative overflow-x-auto overflow-y-hidden [-webkit-overflow-scrolling:touch] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
       >
-        <div
+        {layoutReady && <div
           className="min-w-full flex flex-col min-h-full [&>*]:shrink-0"
           style={{ width: propertyColWidth + totalGridWidth }}
         >
@@ -166,6 +174,8 @@ export default function PlanningGridSkeleton({
 
             {/* Grille — même conteneur que PlanningTimeline. */}
             <div className="relative shrink-0" style={{ width: totalGridWidth }}>
+              {/* One backdrop spans all loading rows; weekend columns need only one DOM layer. */}
+              <PlanningRowBackdrop days={days} dayWidth={dayWidth} totalGridWidth={totalGridWidth} />
               {rows.map((row) => (
                 <div
                   key={row}
@@ -176,11 +186,6 @@ export default function PlanningGridSkeleton({
                     borderBottom: '1px solid var(--bui-border)',
                   }}
                 >
-                  <PlanningRowBackdrop
-                    days={days}
-                    dayWidth={dayWidth}
-                    totalGridWidth={totalGridWidth}
-                  />
                   {rowBars(row)
                     .filter(([start]) => start < days.length)
                     .map(([start, nights], i) => (
@@ -200,7 +205,7 @@ export default function PlanningGridSkeleton({
               ))}
             </div>
           </div>
-        </div>
+        </div>}
       </div>
     </Card>
 
@@ -231,4 +236,6 @@ export default function PlanningGridSkeleton({
     </div>
     </>
   );
-}
+});
+
+export default PlanningGridSkeleton;

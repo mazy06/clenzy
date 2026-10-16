@@ -1,0 +1,8 @@
+# Never commit MQTT private keys, certificates, trust stores or generated broker configurations.
+*.key
+*.crt
+*.csr
+*.p12
+*.pem
+*.ext
+.mqtt-test/

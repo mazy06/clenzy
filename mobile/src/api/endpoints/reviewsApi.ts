@@ -12,6 +12,7 @@ export interface GuestReview {
   reservationId: number | null;
   channelName: ChannelName;
   guestName: string;
+  guestAvatarUrl?: string | null;
   rating: number;
   reviewText: string;
   hostResponse: string | null;

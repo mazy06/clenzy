@@ -57,7 +57,8 @@ describe('Première visite des écrans Propriétés', () => {
   it('ne confond ni le chargement ni une erreur avec un portefeuille vide et propose de réessayer', () => {
     state.isLoading = true;
     const view = renderPage('properties');
-    expect(screen.getByRole('status', { name: 'Chargement...' })).toBeVisible();
+    // Pendant le chargement, l'écran (et sa carte) est déjà monté ; jamais la vitrine du premier usage.
+    expect(screen.getByTestId('live-properties')).toBeVisible();
     expect(screen.queryByRole('button', { name: 'Ajouter un logement' })).not.toBeInTheDocument();
     state.isLoading = false; state.isError = true;
     view.rerender(<QueryClientProvider client={view.client}><MemoryRouter><PropertiesPage /></MemoryRouter></QueryClientProvider>);

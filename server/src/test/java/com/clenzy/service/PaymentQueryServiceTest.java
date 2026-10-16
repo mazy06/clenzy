@@ -20,11 +20,38 @@ class PaymentQueryServiceTest {
     final ServiceQuoteRepository quotes = mock(ServiceQuoteRepository.class);
     final InterventionBatchCheckoutService batch = mock(InterventionBatchCheckoutService.class);
     final PaymentTransactionRepository transactions = mock(PaymentTransactionRepository.class);
+    final StripeService stripe = mock(StripeService.class);
     final PaymentQueryService service = new PaymentQueryService(interventions, reservations, requests,
-            mock(UserService.class), mock(StripeService.class), tenant, quotes, batch, transactions, mock(BaitlyInterventionCheckoutExpiry.class), mock(BaitlyMaintenanceDepositCheckout.class));
+            mock(UserService.class), stripe, tenant, quotes, batch, transactions, mock(BaitlyInterventionCheckoutExpiry.class), mock(BaitlyMaintenanceDepositCheckout.class));
     final User admin = new User();
 
     PaymentQueryServiceTest() { admin.setRole(UserRole.SUPER_ADMIN); when(tenant.getRequiredOrganizationId()).thenReturn(2L); }
+
+    @Test void pageHydrationPreservesGlobalOrderAndLoadsQuotesOnceForAllDisplayedMissions() {
+        var first=new Intervention();first.setId(1L);first.setOrganizationId(2L);first.setPaymentStatus(PaymentStatus.PENDING);
+        first.setStatus(InterventionStatus.COMPLETED);first.setEstimatedCost(new BigDecimal("100"));
+        var second=new Intervention();second.setId(2L);second.setOrganizationId(2L);second.setPaymentStatus(PaymentStatus.PENDING);
+        second.setStatus(InterventionStatus.COMPLETED);second.setEstimatedCost(new BigDecimal("50"));
+        var quote=new ServiceQuote();quote.setInterventionId(1L);quote.setStatus(ServiceQuote.Status.APPROVED);
+        quote.setDepositAmount(new BigDecimal("30"));quote.setDepositPaidAt(java.time.LocalDateTime.now());quote.setDepositTransactionRef("DEP-1");
+        when(interventions.findBaitlyPaymentPage(List.of(2L,1L),2L)).thenReturn(List.of(first,second));
+        when(quotes.findBaitlyPaymentPageQuotes(List.of(2L,1L),2L)).thenReturn(List.of(quote));
+        var booking=reservation(1,PaymentCollection.PMS,PaymentStatus.PAID,null);
+        when(reservations.findBaitlyPaymentPage(List.of(1L),2L)).thenReturn(List.of(booking));
+        var keys=List.of(new BaitlyPaymentHistoryRepository.Key("RESERVATION",1),
+                new BaitlyPaymentHistoryRepository.Key("INTERVENTION",2),new BaitlyPaymentHistoryRepository.Key("INTERVENTION",1));
+        var rows=service.hydrateBaitlyPaymentPage(keys);
+        assertThat(rows).extracting(r->r.type+":"+r.referenceId).containsExactly("RESERVATION:1","INTERVENTION:2","INTERVENTION:1");
+        assertThat(rows.getLast().payableAmount).isEqualByComparingTo("70");
+        verify(quotes).findBaitlyPaymentPageQuotes(List.of(2L,1L),2L);
+        verify(quotes,never()).findByInterventionIdAndOrganizationIdOrderByAmountAsc(anyLong(),anyLong());
+        verify(requests,never()).findBaitlyPaymentPage(anyList(),anyLong());
+    }
+
+    @Test void emptyPageDoesNotQueryEntitiesOrFinancialProofs() {
+        assertThat(service.hydrateBaitlyPaymentPage(List.of())).isEmpty();
+        verifyNoInteractions(interventions,reservations,requests,quotes,transactions);
+    }
 
     @Test void partialInterventionRefundExposesItsAmountAndKeepsOnlyTheNetPaidInSummary() {
         var mission=new Intervention(); mission.setId(332L); mission.setOrganizationId(2L);
@@ -89,6 +116,20 @@ class PaymentQueryServiceTest {
         result = service.getPaymentSummary(admin, null);
         assertThat(result.totalPending).isZero(); assertThat(result.totalRefunded).isZero(); assertThat(result.totalToVerify).isEqualByComparingTo("100");
     }
+    @Test void whenAConcurrentCheckConfirmedThePaymentFirst_thenTheStatusIsReadNotAServerError() {
+        var processing=new Intervention(); processing.setId(480L); processing.setOrganizationId(2L);
+        processing.setPaymentStatus(PaymentStatus.PROCESSING); processing.setStatus(InterventionStatus.PENDING);
+        var paid=new Intervention(); paid.setId(480L); paid.setOrganizationId(2L);
+        paid.setPaymentStatus(PaymentStatus.PAID); paid.setStatus(InterventionStatus.PENDING);
+        when(interventions.findAllByStripeSessionIdAndOrganizationId("cs_480",2L)).thenReturn(List.of(processing));
+        when(interventions.findByStripeSessionId("cs_480",2L)).thenReturn(java.util.Optional.of(processing),java.util.Optional.of(paid));
+        when(stripe.isCheckoutSessionPaid("cs_480")).thenReturn(true);
+        doThrow(new jakarta.persistence.OptimisticLockException("Row was updated or deleted by another transaction"))
+            .when(stripe).confirmPayment("cs_480");
+
+        assertThat(service.getSessionStatus("cs_480").orElseThrow()).containsEntry("paymentStatus","PAID");
+    }
+
     @Test void legacySharedSessionRequiresReconciliationInsteadOfPickingOneMission() {
         when(interventions.findAllByStripeSessionIdAndOrganizationId("cs_old",2L)).thenReturn(List.of(new Intervention(),new Intervention()));
         assertThat(service.getSessionStatus("cs_old").orElseThrow()).containsEntry("interventionStatus","RECONCILIATION_REQUIRED");

@@ -90,6 +90,28 @@ public class Intervention {
     @Column(name = "end_time")
     private LocalDateTime endTime;
 
+    @Column(name = "baitly_paused_at")
+    private LocalDateTime baitlyPausedAt;
+    @Column(name = "baitly_pause_seconds", nullable = false)
+    private long baitlyPauseSeconds;
+    public LocalDateTime getBaitlyPausedAt() { return baitlyPausedAt; }
+    public void setBaitlyPausedAt(LocalDateTime value) { baitlyPausedAt = value; }
+    public long getBaitlyPauseSeconds() { return baitlyPauseSeconds; }
+    public void setBaitlyPauseSeconds(long value) { baitlyPauseSeconds = value; }
+    /** End-of-mission acknowledgement: SIGNED by the client on site, or CLIENT_ABSENT declared by the worker. */
+    @Column(name = "baitly_signature_status", length = 16)
+    private String baitlySignatureStatus;
+    @Column(name = "baitly_signer_name", length = 160)
+    private String baitlySignerName;
+    @Column(name = "baitly_signed_at")
+    private LocalDateTime baitlySignedAt;
+    public String getBaitlySignatureStatus() { return baitlySignatureStatus; }
+    public String getBaitlySignerName() { return baitlySignerName; }
+    public LocalDateTime getBaitlySignedAt() { return baitlySignedAt; }
+    public void recordBaitlySignature(String status, String signerName, LocalDateTime at) {
+        baitlySignatureStatus = status; baitlySignerName = signerName; baitlySignedAt = at;
+    }
+
     @Column(name = "is_urgent")
     private Boolean isUrgent;
 

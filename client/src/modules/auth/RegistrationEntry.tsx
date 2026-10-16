@@ -24,7 +24,7 @@ function RegistrationGate() {
       <div className="baitly-marketing">
         <header className="prelaunch-app-header">
           <a href="/login" aria-label="Baitly">
-            <BaitlyMarkLogo variant="full" size={30} />
+            <BaitlyMarkLogo variant="full" size="clamp(34px, calc(28px + 1.4vw), 48px)" />
           </a>
         </header>
         <main>

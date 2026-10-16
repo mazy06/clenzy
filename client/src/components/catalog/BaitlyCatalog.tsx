@@ -43,7 +43,7 @@ export function CatalogCard({ title, source, media, description, trailing, badge
   return <DirectoryCard>
     <div className={DIRECTORY_CARD_BODY}>
       <DirectoryCardContent
-        media={<div className="grid size-11 shrink-0 place-items-center overflow-hidden rounded-md bg-primary-soft text-primary [&>img]:size-full [&>img]:object-cover">{media}</div>}
+        media={media}
         title={onOpen ? <button type="button" onClick={onOpen}
           className="min-w-0 cursor-pointer rounded-sm text-start outline-none hover:underline hover:underline-offset-2 focus-visible:ring-2 focus-visible:ring-ring/50">
           <span dir="auto" className="line-clamp-2">{title}</span>

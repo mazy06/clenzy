@@ -1,0 +1,709 @@
+/* Carte Baitly — habillage des contrôles, bulles et épingles MapLibre.
+ * Tokens `--bui-*` uniquement (cf. theme/BAITLY-UI-CONTRACT.md) : ces éléments
+ * sont du DOM, ils suivent le thème. Le fond de carte, lui, est peint en WebGL
+ * par baitlyMapStyle.ts. */
+
+.maplibregl-map {
+  font: inherit;
+  background: var(--bui-muted);
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* ── Contrôles de navigation ─────────────────────────────────────────────── */
+.maplibregl-map .maplibregl-ctrl-top-right {
+  inset-inline: 0;
+  inset-block-start: 8px;
+  inline-size: max-content;
+  max-inline-size: calc(100% - 16px);
+  margin-inline: auto;
+  display: flex;
+  align-items: start;
+  gap: 6px;
+  overflow-x: auto;
+  overscroll-behavior-inline: contain;
+  pointer-events: auto;
+}
+.maplibregl-map .maplibregl-ctrl-top-right > .maplibregl-ctrl {
+  display: flex;
+  flex: 0 0 auto;
+  float: none;
+  clear: none;
+  margin: 0;
+}
+.maplibregl-map .maplibregl-ctrl-top-right > .maplibregl-ctrl:empty { display: none; }
+.maplibregl-map .maplibregl-ctrl-top-right .maplibregl-ctrl-group button + button {
+  border-block-start: 0;
+  border-inline-start: 1px solid var(--bui-border);
+}
+.maplibregl-ctrl-group:not(:empty) {
+  overflow: hidden;
+  background: var(--bui-card);
+  border: 1px solid var(--bui-border);
+  border-radius: 10px;
+  box-shadow: 0 1px 2px var(--bui-shadow-1), 0 6px 16px -6px var(--bui-shadow-2);
+}
+.maplibregl-ctrl-group button {
+  inline-size: 44px;
+  block-size: 44px;
+  cursor: pointer;
+  transition: background-color 160ms cubic-bezier(0.25, 1, 0.5, 1);
+}
+.maplibregl-ctrl-group button + button {
+  border-block-start: 1px solid var(--bui-border);
+}
+.maplibregl-ctrl-group button:not(:disabled):hover {
+  background-color: var(--bui-muted);
+}
+.maplibregl-ctrl-group button:focus-visible {
+  box-shadow: inset 0 0 0 2px var(--bui-ring);
+}
+/* Les pictos MapLibre sont des SVG sombres en data-URI : on les éclaircit en mode Nuit. */
+[data-theme='dark'] .maplibregl-ctrl-icon,
+[data-theme='dark'] .maplibregl-ctrl-attrib-button {
+  filter: invert(1) hue-rotate(180deg) brightness(1.1);
+}
+
+/* ── Attribution (ODbL : doit rester visible) ────────────────────────────── */
+.maplibregl-ctrl-attrib,
+.maplibregl-ctrl-attrib.maplibregl-compact {
+  background: color-mix(in srgb, var(--bui-card) 88%, transparent);
+  color: var(--bui-muted-foreground);
+  font-size: 11px;
+  border-radius: 8px;
+}
+.maplibregl-ctrl-attrib a {
+  color: inherit;
+}
+.maplibregl-ctrl-attrib a:hover {
+  color: var(--bui-foreground);
+}
+
+/* ── Bulles ──────────────────────────────────────────────────────────────── */
+.maplibregl-popup-content {
+  padding: 8px 12px;
+  background: var(--bui-card);
+  color: var(--bui-foreground);
+  border: 1px solid var(--bui-border);
+  border-radius: 10px;
+  box-shadow: 0 1px 2px var(--bui-shadow-1), 0 10px 24px -10px var(--bui-shadow-2);
+  font-size: 13px;
+  line-height: 1.35;
+}
+.baitly-map-popup__title {
+  font-weight: 600;
+  text-wrap: balance;
+}
+.maplibregl-popup-anchor-bottom .maplibregl-popup-tip,
+.maplibregl-popup-anchor-bottom-left .maplibregl-popup-tip,
+.maplibregl-popup-anchor-bottom-right .maplibregl-popup-tip {
+  border-top-color: var(--bui-card);
+}
+.maplibregl-popup-anchor-top .maplibregl-popup-tip,
+.maplibregl-popup-anchor-top-left .maplibregl-popup-tip,
+.maplibregl-popup-anchor-top-right .maplibregl-popup-tip {
+  border-bottom-color: var(--bui-card);
+}
+.maplibregl-popup-anchor-left .maplibregl-popup-tip {
+  border-right-color: var(--bui-card);
+}
+.maplibregl-popup-anchor-right .maplibregl-popup-tip {
+  border-left-color: var(--bui-card);
+}
+
+/* ── Épingles ────────────────────────────────────────────────────────────── */
+/* Badge 36 px + pointe 8 px, ancré en bas sur le point exact. */
+.baitly-map-pin {
+  inline-size: 36px;
+  block-size: 44px;
+  cursor: pointer;
+  outline: none;
+}
+.baitly-map-pin__glyph {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  inline-size: 100%;
+  block-size: 100%;
+  transform-origin: 50% 100%;
+  transition: transform 220ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+.baitly-map-pin__badge {
+  display: grid;
+  place-items: center;
+  inline-size: 36px;
+  block-size: 36px;
+  border-radius: 50%;
+  background: var(--bui-card);
+  color: var(--pin-color, var(--bui-navy));
+  border: 2px solid var(--pin-color, var(--bui-navy));
+  box-shadow:
+    0 1px 2px var(--bui-shadow-1),
+    0 8px 18px -6px var(--bui-shadow-2);
+  transition:
+    background-color 200ms cubic-bezier(0.22, 1, 0.36, 1),
+    color 200ms cubic-bezier(0.22, 1, 0.36, 1),
+    box-shadow 200ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+.baitly-map-pin__badge svg {
+  inline-size: 18px;
+  block-size: 18px;
+}
+/* Symbole Baitly des logements : tracé seul, le flux ne s'anime que sur l'épingle survolée,
+   au focus ou sélectionnée (une carte de 50 logements ne clignote pas). Mêmes valeurs que
+   BaitlyMarkLogo (FLOW_LEG_MS = 3000, FLOW_END = -86). */
+.baitly-map-pin__badge svg.baitly-map-pin__logo {
+  inline-size: 22px;
+  block-size: 22px;
+}
+.baitly-map-pin__logo path {
+  fill: none;
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.baitly-map-pin__logo-flow {
+  opacity: 0;
+}
+.baitly-map-pin:is(:hover, :focus-visible, [aria-pressed='true']) .baitly-map-pin__logo-base {
+  opacity: 0.42;
+}
+.baitly-map-pin:is(:hover, :focus-visible, [aria-pressed='true']) .baitly-map-pin__logo-flow {
+  opacity: 1;
+  animation: baitly-map-pin-flow 3000ms cubic-bezier(0.37, 0, 0.63, 1) infinite alternate;
+}
+@keyframes baitly-map-pin-flow {
+  from { stroke-dashoffset: 0; }
+  to { stroke-dashoffset: -86; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .baitly-map-pin__logo-flow { display: none; }
+  .baitly-map-pin:is(:hover, :focus-visible, [aria-pressed='true']) .baitly-map-pin__logo-base { opacity: 1; }
+}
+/* Icônes intégrées (tracés Lucide) ; les icônes Baitly montées en portail sont en surfaces. */
+.baitly-map-pin__icon {
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2.1;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.baitly-map-pin__dot {
+  inline-size: 12px;
+  block-size: 12px;
+  border-radius: 50%;
+  background: currentColor;
+}
+/* Pointe : prolonge le liseré du badge jusqu'au point exact. */
+.baitly-map-pin__tail {
+  inline-size: 12px;
+  block-size: 9px;
+  margin-block-start: -2px;
+  background: var(--pin-color, var(--bui-navy));
+  clip-path: polygon(0 0, 100% 0, 50% 100%);
+}
+/* Ombre portée au sol : ancre visuellement l'épingle sur la carte. */
+.baitly-map-pin::after {
+  content: '';
+  position: absolute;
+  inset-block-end: -3px;
+  inset-inline-start: 50%;
+  inline-size: 14px;
+  block-size: 5px;
+  margin-inline-start: -7px;
+  border-radius: 50%;
+  background: var(--bui-shadow-2);
+  opacity: 0.55;
+  pointer-events: none;
+}
+.baitly-map-pin:hover .baitly-map-pin__glyph,
+.baitly-map-pin:focus-visible .baitly-map-pin__glyph {
+  transform: translateY(-3px);
+}
+.baitly-map-pin:hover .baitly-map-pin__badge {
+  box-shadow:
+    0 1px 2px var(--bui-shadow-1),
+    0 12px 24px -8px var(--bui-shadow-2);
+}
+.baitly-map-pin:focus-visible .baitly-map-pin__badge {
+  box-shadow:
+    0 0 0 2px var(--bui-card),
+    0 0 0 4px var(--bui-ring);
+}
+/* Sélection : le badge se remplit de la teinte, l'icône passe en couleur carte,
+   un halo de la teinte signale l'élément actif. */
+.baitly-map-pin[aria-pressed='true'] {
+  z-index: 2;
+}
+
+.baitly-map-pin[data-highlighted] { z-index: 5; }
+.baitly-map-pin[data-highlighted] .baitly-map-pin__badge {
+  outline: 3px solid var(--bui-primary);
+  outline-offset: 3px;
+}
+.baitly-map-pin[aria-pressed='true'] .baitly-map-pin__glyph {
+  transform: translateY(-4px);
+}
+.baitly-map-pin[aria-pressed='true'] .baitly-map-pin__badge {
+  background: var(--pin-color, var(--bui-navy));
+  color: var(--bui-card);
+  box-shadow:
+    0 0 0 5px color-mix(in srgb, var(--pin-color, var(--bui-navy)) 22%, transparent),
+    0 12px 24px -8px var(--bui-shadow-2);
+}
+.baitly-map-pin[data-draggable='true'] {
+  cursor: grab;
+}
+.baitly-map-pin[data-draggable='true']:active {
+  cursor: grabbing;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .baitly-map-pin__glyph,
+  .baitly-map-pin__badge,
+  .maplibregl-ctrl-group button {
+    transition: none;
+  }
+}
+
+/* ── Bouton 2D / 3D ──────────────────────────────────────────────────────── */
+.maplibregl-ctrl-group button.baitly-map-perspective {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  color: var(--bui-foreground);
+  font-variant-numeric: tabular-nums;
+}
+
+/* ── Bulle « fiche » (logement, intervention, remise de clés) ─────────────── */
+/* Disposition posée par keepPopupInView selon la largeur de la carte :
+   « wide » = vignette photo à gauche, informations à droite (≈ 400 px) ;
+   « stacked » = photo en tête (≈ 280 px), pour les cartes étroites. */
+.baitly-map-popup--card .maplibregl-popup-content {
+  padding: 0;
+  overflow: hidden auto;
+  overscroll-behavior: contain;
+  inline-size: 280px;
+  border-radius: 12px;
+}
+.baitly-map-popup--card[data-layout='wide'] .maplibregl-popup-content {
+  inline-size: 400px;
+}
+.baitly-map-popup--card[data-layout='wide'] .maplibregl-popup-content:not(:has([data-has-media='true'])) {
+  inline-size: 300px;
+}
+.baitly-map-card {
+  display: flex;
+  flex-direction: column;
+}
+.baitly-map-card__body {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px;
+  min-inline-size: 0;
+}
+[data-map-card-media] {
+  inline-size: 100%;
+  block-size: 128px;
+  flex-shrink: 0;
+  background: var(--bui-muted);
+}
+.baitly-map-popup--card[data-compact='true'] [data-map-card-media] {
+  block-size: 96px;
+}
+.baitly-map-popup--card[data-layout='wide'] .baitly-map-card[data-has-media='true'] {
+  display: grid;
+  grid-template-columns: 124px minmax(0, 1fr);
+  align-items: start;
+}
+/* Vignette posée en haut à gauche, pas une colonne pleine hauteur : la fiche
+   garde la hauteur de ses informations, pas celle de la photo. */
+.baitly-map-popup--card[data-layout='wide'] [data-map-card-media] {
+  inline-size: auto;
+  block-size: 112px;
+  margin-block-start: 12px;
+  margin-inline-start: 12px;
+  border-radius: 8px;
+  overflow: hidden;
+}
+/* Vignette : les commandes du carrousel au strict minimum. */
+[data-map-card-media] button {
+  transform: scale(0.82);
+}
+.baitly-map-card__extra {
+  grid-column: 1 / -1;
+  padding: 0 12px 12px;
+  min-inline-size: 0;
+}
+/* Pied (personne liée + action) sur toute la largeur de la fiche, sous la vignette
+   ET les informations : en disposition large, il ne reste pas dans la colonne de droite. */
+.baitly-map-card__footer-row {
+  grid-column: 1 / -1;
+  padding: 0 12px 10px;
+  min-inline-size: 0;
+}
+.baitly-map-card__footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding-block-start: 10px;
+  border-block-start: 1px solid var(--bui-border);
+}
+/* Fermeture : un bouton discret de 28 px dans le coin, croix dessinée au trait (le « × »
+   typographique de MapLibre est masqué). La zone de clic reste à 44 px via ::after. */
+.baitly-map-popup--card .maplibregl-popup-close-button {
+  z-index: 3;
+  inset-block-start: 8px;
+  inset-inline-end: 8px;
+  display: grid;
+  place-items: center;
+  inline-size: 28px;
+  block-size: 28px;
+  padding: 0;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--bui-muted-foreground);
+  font-size: 0;
+  cursor: pointer;
+  transition: background-color 160ms cubic-bezier(0.25, 1, 0.5, 1), color 160ms cubic-bezier(0.25, 1, 0.5, 1);
+}
+.baitly-map-popup--card .maplibregl-popup-close-button > span {
+  display: none;
+}
+.baitly-map-popup--card .maplibregl-popup-close-button::before {
+  content: '';
+  inline-size: 14px;
+  block-size: 14px;
+  background-color: currentColor;
+  -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2.25' stroke-linecap='round'%3E%3Cpath d='M6 6l12 12M18 6L6 18'/%3E%3C/svg%3E") center / contain no-repeat;
+  mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2.25' stroke-linecap='round'%3E%3Cpath d='M6 6l12 12M18 6L6 18'/%3E%3C/svg%3E") center / contain no-repeat;
+}
+.baitly-map-popup--card .maplibregl-popup-close-button::after {
+  content: '';
+  position: absolute;
+  inset: -8px;
+}
+/* Sur une photo (disposition empilée), une pastille claire garde la croix lisible. */
+.baitly-map-popup--card:not([data-layout='wide']) .maplibregl-popup-content:has([data-has-media='true']) .maplibregl-popup-close-button {
+  background: color-mix(in srgb, var(--bui-card) 88%, transparent);
+  color: var(--bui-foreground);
+}
+.baitly-map-popup--card .maplibregl-popup-close-button:hover {
+  background: var(--bui-muted);
+  color: var(--bui-foreground);
+}
+.baitly-map-popup--card .maplibregl-popup-close-button:focus-visible {
+  outline: 2px solid var(--bui-ring);
+  outline-offset: 2px;
+}
+
+/* ── États des épingles (anneau) ─────────────────────────────────────────── */
+/* Pastille d'alerte (anomalie ouverte) : « ! » sur le badge, visible dans toutes les vues.
+   Rouge pour une anomalie critique, orange pour une haute ; discrète pour une moyenne. */
+.baitly-map-pin[data-alert] .baitly-map-pin__badge {
+  position: relative;
+}
+.baitly-map-pin[data-alert='critical'] .baitly-map-pin__badge::after,
+.baitly-map-pin[data-alert='high'] .baitly-map-pin__badge::after,
+.baitly-map-pin[data-alert='medium'] .baitly-map-pin__badge::after {
+  content: '!';
+  position: absolute;
+  inset-block-start: -6px;
+  inset-inline-end: -6px;
+  display: grid;
+  place-items: center;
+  inline-size: 18px;
+  block-size: 18px;
+  border-radius: 50%;
+  border: 2px solid var(--bui-card);
+  background: var(--bui-destructive);
+  color: var(--bui-card);
+  font-size: 11px;
+  font-weight: 800;
+  line-height: 1;
+}
+.baitly-map-pin[data-alert='high'] .baitly-map-pin__badge::after { background: var(--bui-warning); color: var(--bui-foreground); }
+.baitly-map-pin[data-alert='medium'] .baitly-map-pin__badge::after {
+  inline-size: 12px;
+  block-size: 12px;
+  content: '';
+  background: var(--bui-info);
+}
+/* Une anomalie critique pulse doucement (sauf mouvement réduit) : on la voit de loin. */
+@media (prefers-reduced-motion: no-preference) {
+  .baitly-map-pin[data-alert='critical'] .baitly-map-pin__badge::after {
+    animation: baitly-map-pin-alert 1600ms cubic-bezier(0.22, 1, 0.36, 1) infinite;
+  }
+}
+@keyframes baitly-map-pin-alert {
+  0%, 100% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--bui-destructive) 55%, transparent); }
+  60% { box-shadow: 0 0 0 7px color-mix(in srgb, var(--bui-destructive) 0%, transparent); }
+}
+.baitly-map-pin[data-state] .baitly-map-pin__badge {
+  box-shadow:
+    0 0 0 2px var(--bui-card),
+    0 0 0 5px var(--pin-state, transparent),
+    0 8px 18px -6px var(--bui-shadow-2);
+}
+.baitly-map-pin[data-state='alert'],
+.baitly-map-pin[data-state='late'] { --pin-state: var(--bui-destructive); }
+.baitly-map-pin[data-state='turnover'] { --pin-state: var(--bui-warning); }
+.baitly-map-pin[data-state='arrival'] { --pin-state: var(--bui-success); }
+.baitly-map-pin[data-state='departure'],
+.baitly-map-pin[data-state='today'] { --pin-state: var(--bui-info); }
+.baitly-map-pin[data-state='occupied'] { --pin-state: color-mix(in srgb, var(--bui-navy) 45%, transparent); }
+.baitly-map-pin[data-state='covered'] { --pin-state: var(--bui-success); }
+.baitly-map-pin[data-state='uncovered'] { --pin-state: var(--bui-warning); }
+/* Terminé, annulé, inactif : présent mais en retrait. */
+.baitly-map-pin[data-state='done'],
+.baitly-map-pin[data-state='closed'],
+.baitly-map-pin[data-state='inactive'] { opacity: 0.55; }
+.baitly-map-pin[data-state='done']:hover,
+.baitly-map-pin[data-state='closed']:hover,
+.baitly-map-pin[data-state='inactive']:hover { opacity: 1; }
+
+/* ── Bulles de regroupement ──────────────────────────────────────────────── */
+.baitly-map-cluster {
+  display: grid;
+  place-items: center;
+  inline-size: 38px;
+  block-size: 38px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: var(--bui-navy);
+  color: var(--bui-card);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  cursor: pointer;
+  box-shadow:
+    0 0 0 3px var(--bui-card),
+    0 0 0 7px var(--cluster-ring, color-mix(in srgb, var(--bui-navy) 22%, transparent)),
+    0 10px 22px -8px var(--bui-shadow-2);
+  transition: background-color 200ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+.baitly-map-cluster[data-size='m'] { inline-size: 44px; block-size: 44px; }
+.baitly-map-cluster[data-size='l'] { inline-size: 52px; block-size: 52px; font-size: 14px; }
+.baitly-map-cluster[data-urgency='3'] { --cluster-ring: var(--bui-destructive); }
+.baitly-map-cluster[data-urgency='2'] { --cluster-ring: var(--bui-warning); }
+.baitly-map-cluster[data-urgency='1'] { --cluster-ring: var(--bui-info); }
+.baitly-map-cluster:hover { background: color-mix(in srgb, var(--bui-navy) 90%, var(--bui-card)); }
+.baitly-map-cluster:focus-visible { outline: 2px solid var(--bui-ring); outline-offset: 6px; }
+
+/* ── Légende des états ───────────────────────────────────────────────────── */
+.baitly-map-legend {
+  position: absolute;
+  inset-block-end: 10px;
+  inset-inline-start: 10px;
+  z-index: 2;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 10px;
+  max-inline-size: calc(100% - 120px);
+  margin: 0;
+  padding: 6px 10px;
+  list-style: none;
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--bui-card) 90%, transparent);
+  box-shadow: 0 1px 2px var(--bui-shadow-1), 0 6px 16px -8px var(--bui-shadow-2);
+  font-size: 12px;
+  color: var(--bui-foreground);
+  pointer-events: none;
+}
+.baitly-map-legend li {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+.baitly-map-legend li::before {
+  content: '';
+  inline-size: 9px;
+  block-size: 9px;
+  border-radius: 50%;
+  background: var(--legend-color, var(--bui-muted-foreground));
+}
+.baitly-map-legend [data-state='alert'],
+.baitly-map-legend [data-state='late'] { --legend-color: var(--bui-destructive); }
+.baitly-map-legend [data-state='turnover'] { --legend-color: var(--bui-warning); }
+.baitly-map-legend [data-state='covered'] { --legend-color: var(--bui-success); }
+.baitly-map-legend [data-state='uncovered'] { --legend-color: var(--bui-warning); }
+.baitly-map-legend [data-state='arrival'] { --legend-color: var(--bui-success); }
+.baitly-map-legend [data-state='departure'],
+.baitly-map-legend [data-state='today'] { --legend-color: var(--bui-info); }
+.baitly-map-legend [data-state='occupied'] { --legend-color: color-mix(in srgb, var(--bui-navy) 45%, transparent); }
+
+@media (prefers-reduced-motion: reduce) {
+  .baitly-map-cluster { transition: none; }
+}
+
+.baitly-map-split {
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-rows: minmax(0, 1fr) minmax(0, 1fr);
+}
+@container baitly-map (min-width: 800px) {
+  .baitly-map-split {
+    grid-template-columns: minmax(0, 1fr) minmax(300px, 40%);
+    grid-template-rows: minmax(0, 1fr);
+  }
+}
+/* Colonne intermédiaire (prestataires de la zone visible) : sous la carte en étroit,
+   au-dessus de la liste en moyen, à côté de la liste en large. La carte garde toujours
+   sa largeur : c'est la colonne des logements qui cède la place. */
+.baitly-map-split--aside {
+  grid-template-areas: "map" "aside" "list";
+  grid-template-rows: minmax(0, 1fr) minmax(0, 0.8fr) minmax(0, 1fr);
+}
+.baitly-map-split--aside > .baitly-map-split__map { grid-area: map; }
+.baitly-map-split--aside > .baitly-map-split__aside { grid-area: aside; }
+.baitly-map-split--aside > .baitly-map-split__list { grid-area: list; }
+@container baitly-map (min-width: 800px) {
+  .baitly-map-split--aside {
+    grid-template-columns: minmax(0, 1fr) minmax(300px, 40%);
+    grid-template-areas: "map aside" "map list";
+    grid-template-rows: minmax(0, 2fr) minmax(0, 3fr);
+  }
+}
+@container baitly-map (min-width: 1200px) {
+  .baitly-map-split--aside {
+    grid-template-areas: "map aside list";
+    /* Deux panneaux de même largeur, la carte garde les 60 % restants. */
+    grid-template-columns: minmax(0, 1fr) repeat(2, minmax(0, 20%));
+    grid-template-rows: minmax(0, 1fr);
+  }
+}
+/* Bureau et paysage : la carte remplit la surface ; les listes se posent de
+   chaque côté avec une largeur unique, indépendamment de leur contenu. */
+@media (min-width: 1280px), (orientation: landscape) {
+  .baitly-map-split,
+  .baitly-map-split.baitly-map-split--aside {
+    --map-panel-width: clamp(144px, 27%, 280px);
+    position: relative;
+    display: block;
+    isolation: isolate;
+  }
+  .baitly-map-split > .baitly-map-split__map {
+    position: absolute;
+    inset: 0;
+  }
+  .baitly-map-split > .baitly-map-split__aside,
+  .baitly-map-split > .baitly-map-split__list {
+    position: absolute;
+    inset-block: 8px;
+    inline-size: var(--map-panel-width);
+    max-inline-size: calc(50% - 12px);
+    z-index: 1;
+  }
+  .baitly-map-split > .baitly-map-split__aside { inset-inline-start: 8px; }
+  .baitly-map-split > .baitly-map-split__list { inset-inline-end: 8px; }
+  .baitly-map-split__list > div:first-child { flex-wrap: wrap; gap: 6px; padding: 8px; }
+  .baitly-map-split .maplibregl-ctrl-top-right,
+  .baitly-map-split .maplibregl-ctrl-bottom-right,
+  .baitly-map-split .baitly-map-legend {
+    max-inline-size: calc(100% - 2 * var(--map-panel-width) - 32px);
+  }
+  .baitly-map-split .maplibregl-ctrl-bottom-right,
+  .baitly-map-split .baitly-map-legend {
+    inset-inline: 0;
+    inline-size: max-content;
+    margin-inline: auto;
+  }
+  .baitly-map-split .baitly-map-legend { inset-block-end: 36px; }
+}
+/* Lieux à une même adresse : vignette, nom, adresse. */
+.baitly-map-popup--choices .maplibregl-popup-content {
+  padding: 6px;
+  border-radius: 12px;
+  inline-size: 280px;
+}
+.baitly-map-popup--choices .maplibregl-popup-close-button { display: none; }
+.baitly-map-cluster-list {
+  display: flex;
+  flex-direction: column;
+  max-block-size: min(320px, 50dvh);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  gap: 2px;
+}
+.baitly-map-cluster-list button {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-block-size: 52px;
+  padding: 6px;
+  border: 0;
+  background: transparent;
+  text-align: start;
+  color: var(--bui-foreground);
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background-color 150ms cubic-bezier(0.25, 1, 0.5, 1);
+}
+.baitly-map-cluster-list button:hover { background: var(--bui-muted); }
+.baitly-map-cluster-list__thumb {
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+  inline-size: 44px;
+  block-size: 44px;
+  overflow: hidden;
+  border-radius: 8px;
+  background: var(--bui-navy-soft);
+  color: var(--bui-navy);
+  font-size: 15px;
+  font-weight: 600;
+}
+.baitly-map-cluster-list__thumb img {
+  inline-size: 100%;
+  block-size: 100%;
+  object-fit: cover;
+}
+.baitly-map-cluster-list__text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-inline-size: 0;
+}
+.baitly-map-cluster-list__name {
+  overflow: hidden;
+  font-size: 13px;
+  font-weight: 600;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.baitly-map-cluster-list__meta {
+  overflow: hidden;
+  color: var(--bui-muted-foreground);
+  font-size: 12px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.baitly-map-cluster-list button:focus-visible { outline: 2px solid var(--bui-ring); outline-offset: -2px; }
+
+/* Outils de l'écran (cadrer les lieux, calques), alignés avec la navigation et le 2D / 3D. */
+.maplibregl-ctrl-group button.baitly-map-tool {
+  display: grid;
+  place-items: center;
+  color: var(--bui-foreground);
+}
+/* Calque activé (secteurs des prestataires) : icône marine sur fond discret (l'anneau reste au focus). */
+.maplibregl-ctrl-group button.baitly-map-tool[aria-pressed='true'],
+.maplibregl-ctrl-group button.baitly-map-tool[data-active='true'],
+.maplibregl-ctrl-group button.baitly-map-tool[data-state='open'] {
+  background-color: var(--bui-muted);
+  color: var(--bui-navy);
+}
+.baitly-map-filter-tool { position: relative; }
+.baitly-map-filter-tool__dot {
+  position: absolute;
+  inset-block-start: 8px;
+  inset-inline-end: 8px;
+  inline-size: 6px;
+  block-size: 6px;
+  border-radius: 50%;
+  background: var(--bui-info-ink);
+}
+.baitly-map-filter-tool__dot[data-invalid='true'] { background: var(--bui-warning-ink); }

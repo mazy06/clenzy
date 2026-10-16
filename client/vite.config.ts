@@ -1,6 +1,7 @@
 import { createHash } from 'node:crypto'
-import { readFileSync, readdirSync } from 'node:fs'
+import { existsSync, readFileSync, readdirSync } from 'node:fs'
 import { join } from 'node:path'
+import { fileURLToPath } from 'node:url'
 import { defineConfig, type Plugin } from 'vite'
 import react from '@vitejs/plugin-react'
 import { VitePWA } from 'vite-plugin-pwa'
@@ -31,7 +32,29 @@ function localeVersionPlugin(): Plugin {
   }
 }
 
+// Carte Baitly en dev : sans archive locale (`public/maps/`, 20 Go, cf. scripts/maps/README.md),
+// `/maps/` est relaye vers le stockage public des cartes, comme le fait nginx en prod.
+const localMapTiles = existsSync(fileURLToPath(new URL('./public/maps/baitly.pmtiles', import.meta.url)))
+const devMapsOrigin = new URL(process.env.BAITLY_MAPS_ORIGIN ?? 'https://baitly-cartes.s3.gra.io.cloud.ovh.net/maps')
+
 export default defineConfig({
+  resolve: {
+    alias: [
+      {
+        // Le paquet n'exporte que `.` (sources ESM) : MapLibre attend, lui, le
+        // bundle autonome `dist/`, servi en meme origine via `?url`.
+        find: /^@mapbox\/mapbox-gl-rtl-text\/dist\/mapbox-gl-rtl-text\.js/,
+        replacement: fileURLToPath(
+          new URL('./node_modules/@mapbox/mapbox-gl-rtl-text/dist/mapbox-gl-rtl-text.js', import.meta.url),
+        ),
+      },
+    ],
+  },
+  optimizeDeps: {
+    // Importe en `?url` (fichier servi tel quel au worker MapLibre) : le
+    // pre-bundling de dev ne sait pas le traiter et casse toute la page.
+    exclude: ['@mapbox/mapbox-gl-rtl-text'],
+  },
   plugins: [
     react(),
     localeVersionPlugin(),
@@ -40,6 +63,12 @@ export default defineConfig({
     // le reset Tailwind casserait la baseline Emotion/CssBaseline.
     tailwindcss(),
     VitePWA({
+      // Le CDN peut conserver les fichiers .js pendant un an. Une URL par
+      // version empêche de réinstaller un ancien worker après un déploiement.
+      // Le scope reste à la racine : la nouvelle version remplace l'inscription
+      // existante et conserve le parcours de mise à jour avec confirmation.
+      filename: `sw-${(process.env.VITE_APP_VERSION || 'local').replace(/[^a-zA-Z0-9._-]/g, '-')}.js`,
+      scope: '/',
       // 'prompt' : le nouveau SW est installe en background mais ne prend PAS
       // le controle automatiquement. On expose un hook useRegisterSW au composant
       // <AppUpdateBanner /> qui affiche une bannière "Nouvelle version disponible
@@ -91,8 +120,10 @@ export default defineConfig({
         // Workbox cherchait /index.html dans son precache (vide pour html), plantait
         // sur toutes les navigations -> SW casse -> logout freeze + warnings preload.
         //
-        // Sans navigateFallback, c'est le runtimeCaching `mode === 'navigate'`
-        // ci-dessous qui gere les navigations (NetworkFirst, fallback cache offline).
+        // Le plugin ajoute « index.html » par défaut : il faut désactiver
+        // explicitement ce repli, puisque HTML est exclu du précache.
+        // runtimeCaching `mode === 'navigate'` gère les navigations ci-dessous.
+        navigateFallback: null,
         navigationPreload: true,
         // index.html EXCLUS du precache (pas de `html` dans globPatterns) — sinon
         // le SW pre-cache l'ancien index.html au build, et meme NetworkFirst
@@ -156,33 +187,26 @@ export default defineConfig({
             },
           },
           {
-            urlPattern: /^https:\/\/fonts\.googleapis\.com\/.*/i,
+            // Carte Baitly : glyphes et sprites du style (`/maps/assets/`), immuables
+            // d'un deploiement a l'autre — CacheFirst, la carte s'ouvre sans reseau
+            // pour ses libelles. L'archive PMTiles (`/maps/baitly.pmtiles`), lue par
+            // requetes Range, reste hors SW : un cache Workbox ne sert pas les plages.
+            urlPattern: ({ url, request }) =>
+              request.method === 'GET' && url.pathname.startsWith('/maps/assets/'),
             handler: 'CacheFirst',
             options: {
-              cacheName: 'google-fonts-cache',
+              cacheName: 'map-assets-cache',
               expiration: {
-                maxEntries: 10,
-                maxAgeSeconds: 60 * 60 * 24 * 365,
+                maxEntries: 300,
+                maxAgeSeconds: 60 * 60 * 24 * 30,
               },
-              cacheableResponse: {
-                statuses: [0, 200],
-              },
+              cacheableResponse: { statuses: [0, 200] },
             },
           },
-          {
-            urlPattern: /^https:\/\/fonts\.gstatic\.com\/.*/i,
-            handler: 'CacheFirst',
-            options: {
-              cacheName: 'gstatic-fonts-cache',
-              expiration: {
-                maxEntries: 10,
-                maxAgeSeconds: 60 * 60 * 24 * 365,
-              },
-              cacheableResponse: {
-                statuses: [0, 200],
-              },
-            },
-          },
+          // Google Fonts utilise le cache HTTP natif : son interception par
+          // Workbox transforme les lectures style/font en fetch connect-src,
+          // bloqués par la CSP Baitly. Garder les autorisations style-src et
+          // font-src existantes, sans élargir connect-src pour contourner cela.
         ],
       },
     }),
@@ -190,6 +214,12 @@ export default defineConfig({
   build: {
     chunkSizeWarningLimit: 1500, // 1.5 MiB — heic2any pèse ~1.35 MiB en standalone
     rollupOptions: {
+      // Application Baitly et cartes embarquées dans les parcours mobiles.
+      input: {
+        main: fileURLToPath(new URL('./index.html', import.meta.url)),
+        'embed-map': fileURLToPath(new URL('./embed-map.html', import.meta.url)),
+        providerMap: fileURLToPath(new URL('./baitly-provider-map.html', import.meta.url)),
+      },
       output: {
         // Code-splitting du bundle pour éviter qu'un seul chunk dépasse 2 MiB
         // (utile pour le PWA workbox cache et le TTI initial)
@@ -229,7 +259,7 @@ export default defineConfig({
           'vendor-i18n': ['i18next', 'react-i18next', 'i18next-browser-languagedetector'],
           'vendor-stripe': ['@stripe/react-stripe-js', '@stripe/stripe-js'],
           'vendor-dnd': ['@dnd-kit/core', '@dnd-kit/modifiers', '@dnd-kit/utilities'],
-          'vendor-map': ['mapbox-gl'],
+          'vendor-map': ['maplibre-gl', 'pmtiles', '@protomaps/basemaps'],
           'vendor-motion': ['framer-motion'],
         },
       },
@@ -254,6 +284,21 @@ export default defineConfig({
         target: 'http://copilot-runtime:8080',
         changeOrigin: true,
       },
+      // Carte Baitly en dev : avec une archive locale, tout vient de `public/maps/` sauf les
+      // glyphes Noto, relayes depuis leur depot d'origine ; sinon `/maps/` entier part vers
+      // le stockage des cartes (cf. devMapsOrigin). En prod, nginx relaie tout `/maps/`.
+      '^/maps/assets/fonts/Noto': {
+        target: 'https://protomaps.github.io',
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/maps\/assets/, '/basemaps-assets'),
+      },
+      ...(localMapTiles ? {} : {
+        '/maps/': {
+          target: devMapsOrigin.origin,
+          changeOrigin: true,
+          rewrite: (path: string) => path.replace(/^\/maps/, devMapsOrigin.pathname.replace(/\/$/, '')),
+        },
+      }),
     },
   },
   test: {
@@ -276,5 +321,3 @@ export default defineConfig({
     testTimeout: 20_000,
   },
 })
-
-

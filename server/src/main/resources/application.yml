@@ -185,6 +185,13 @@ resilience4j:
 
 # ─── AI Module ────────────────────────────────────────────────────────────────
 clenzy:
+  # Carte Baitly des e-mails : moteur de rendu interne (conteneur baitly-maps-renderer,
+  # tileserver-gl) et secret HMAC des URL d'images publiques. Vides = pas de carte.
+  maps:
+    renderer-url: ${BAITLY_MAPS_RENDERER_URL:}
+    signing-secret: ${BAITLY_MAPS_SIGNING_SECRET:}
+    # Origine publique des URL d'images (e-mails) : le domaine de l'instance, où /api est servi.
+    public-base-url: ${FRONTEND_URL:http://localhost:3000}
   retention:
     purge:
       # Politique métier validée : candidatures marketplace et fiches de police.

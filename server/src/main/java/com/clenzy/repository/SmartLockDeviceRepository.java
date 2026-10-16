@@ -10,6 +10,8 @@ import java.util.Optional;
 
 @Repository
 public interface SmartLockDeviceRepository extends JpaRepository<SmartLockDevice, Long> {
+    @org.springframework.data.jpa.repository.Query(value="SELECT * FROM smart_lock_devices WHERE property_id=:property AND organization_id=:org AND status='ACTIVE'",nativeQuery=true)
+    List<SmartLockDevice> findBaitlyMissionLocks(@org.springframework.data.repository.query.Param("property")Long property,@org.springframework.data.repository.query.Param("org")Long org);
 
     List<SmartLockDevice> findByUserId(String userId);
 
@@ -26,5 +28,7 @@ public interface SmartLockDeviceRepository extends JpaRepository<SmartLockDevice
     Optional<SmartLockDevice> findByExternalDeviceId(String externalDeviceId);
 
     /** Org-scoped : le filtre Hibernate organizationFilter assure l'isolation */
-    List<SmartLockDevice> findByStatus(DeviceStatus status);
+    /** Serrures d'une organisation : seule lecture a exposer a un utilisateur. */
+    List<SmartLockDevice> findByOrganizationIdAndStatus(Long organizationId, DeviceStatus status);
+
 }

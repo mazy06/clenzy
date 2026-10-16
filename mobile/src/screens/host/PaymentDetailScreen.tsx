@@ -22,11 +22,11 @@ type RouteParams = {
 };
 
 const STATUS_CONFIG: Record<string, { label: string; color: string; icon: IconName; badgeColor: 'success' | 'warning' | 'error' | 'info' | 'neutral' }> = {
-  PAID: { label: 'Paye', color: '#059669', icon: 'checkmark-circle', badgeColor: 'success' },
+  PAID: { label: 'Payé', color: '#059669', icon: 'checkmark-circle', badgeColor: 'success' },
   PENDING: { label: 'En attente', color: '#D97706', icon: 'time-outline', badgeColor: 'warning' },
   PROCESSING: { label: 'En cours', color: '#3B82F6', icon: 'sync-outline', badgeColor: 'info' },
   FAILED: { label: 'Echoue', color: '#EF4444', icon: 'close-circle', badgeColor: 'error' },
-  REFUNDED: { label: 'Rembourse', color: '#4A7C8E', icon: 'arrow-undo-outline', badgeColor: 'info' },
+  REFUNDED: { label: 'Remboursé', color: '#4A7C8E', icon: 'arrow-undo-outline', badgeColor: 'info' },
   CANCELLED: { label: 'Annule', color: '#6B7280', icon: 'ban-outline', badgeColor: 'neutral' },
 };
 
@@ -161,9 +161,9 @@ export function PaymentDetailScreen() {
 
   const timelineEvents = [
     { label: 'Transaction creee', date: formatDateTime(payment.createdAt), icon: 'add-circle-outline' as IconName, color: theme.colors.info.main },
-    ...(payment.status === 'PAID' ? [{ label: 'Paiement recu', date: formatDateTime(payment.transactionDate), icon: 'checkmark-circle' as IconName, color: '#059669' }] : []),
+    ...(payment.status === 'PAID' ? [{ label: 'Paiement reçu', date: formatDateTime(payment.transactionDate), icon: 'checkmark-circle' as IconName, color: '#059669' }] : []),
     ...(payment.status === 'REFUNDED' ? [{ label: 'Remboursement effectue', date: formatDateTime(payment.transactionDate), icon: 'arrow-undo-outline' as IconName, color: '#EF4444' }] : []),
-    ...(payment.status === 'FAILED' ? [{ label: 'Paiement echoue', date: formatDateTime(payment.transactionDate), icon: 'close-circle' as IconName, color: '#EF4444' }] : []),
+    ...(payment.status === 'FAILED' ? [{ label: 'Paiement échoué', date: formatDateTime(payment.transactionDate), icon: 'close-circle' as IconName, color: '#EF4444' }] : []),
   ];
 
   return (
@@ -294,9 +294,9 @@ export function PaymentDetailScreen() {
                   icon={<Reicon name="arrow-undo-outline" size={18} color={theme.colors.error.main} />}
                 />
                 <Button
-                  title="Telecharger le recu"
+                  title="Télécharger le reçu"
                   variant="outlined"
-                  onPress={() => Alert.alert('Info', 'Fonctionnalite a venir')}
+                  onPress={() => Alert.alert('Info', 'Fonctionnalite à venir')}
                   fullWidth
                   icon={<Reicon name="download-outline" size={18} color={theme.colors.primary.main} />}
                 />

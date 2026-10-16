@@ -454,7 +454,7 @@ const KpiReadinessPage: React.FC = () => {
     <div>
       <PageHeader
         title="KPI Readiness"
-        subtitle="{t('admin.kpi.subtitle')}"
+        subtitle={t('admin.kpi.subtitle')}
         iconBadge={<BarChartIcon />}
         backPath="/admin"
         showBackButton={false}
@@ -613,8 +613,8 @@ const KpiReadinessPage: React.FC = () => {
               // La carte porte deja sa bordure : variante transparente.
               <EmptyState
                 icon={<BarChartIcon />}
-                title="{t('admin.kpi.noHistory')}"
-                description="{t('admin.kpi.snapshotHint')}"
+                title={t('admin.kpi.noHistory')}
+                description={t('admin.kpi.snapshotHint')}
                 variant="transparent"
               />
             )}

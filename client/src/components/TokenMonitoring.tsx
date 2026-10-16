@@ -406,7 +406,7 @@ const TokenMonitoring: React.FC = () => {
       <div className="grid grid-cols-[1fr_1fr] min-[900px]:grid-cols-[repeat(4,_1fr)] gap-[9px]">
         <StatTile
           icon={<Storage />}
-          label="{t('tokenMonitoring.totalTokens')}"
+          label={t('tokenMonitoring.totalTokens')}
           value={tokenStats?.totalTokens ?? 0}
           iconClassName="text-primary"
           loading={isLoading && !tokenStats}
@@ -425,7 +425,7 @@ const TokenMonitoring: React.FC = () => {
         />
         <StatTile
           icon={<Warning />}
-          label="{t('tokenMonitoring.expiredTokens')}"
+          label={t('tokenMonitoring.expiredTokens')}
           value={tokenStats?.expiredTokens ?? 0}
           iconClassName="text-destructive"
           hint={
@@ -437,7 +437,7 @@ const TokenMonitoring: React.FC = () => {
         />
         <StatTile
           icon={<TrendingUp />}
-          label="{t('tokenMonitoring.successRate')}"
+          label={t('tokenMonitoring.successRate')}
           value={tokenStats?.successRate ?? 'N/A'}
           iconClassName="text-primary"
           loading={isLoading && !tokenStats}

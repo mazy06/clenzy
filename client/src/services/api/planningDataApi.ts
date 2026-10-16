@@ -1,6 +1,14 @@
-import apiClient from '../apiClient';
+import { baitlyPlanningReadQueue } from '../baitlyPlanningReadQueue';
+import apiClient, { type ApiError } from '../apiClient';
 import type { Reservation, PlanningIntervention, PlanningServiceRequest } from '../api';
 import type { CalendarBlockedDay } from './calendarPricingApi';
+import type { PlanningProperty } from '../../modules/planning/types';
+
+interface BaitlyPlanningPropertyPage {
+  content: PlanningProperty[];
+  number: number;
+  totalPages: number;
+}
 
 /** Les quatre jeux de données que le planning peint sur une même fenêtre. */
 export interface PlanningData {
@@ -11,6 +19,52 @@ export interface PlanningData {
 }
 
 export const planningDataApi = {
+  /** Toutes les pages du catalogue léger, sans troncature à 1 000 logements. */
+  async getProperties(signal?: AbortSignal): Promise<PlanningProperty[]> {
+    const properties = new Map<number, PlanningProperty>();
+    let page = 0;
+    let totalPages = 1;
+    while (page < totalPages) {
+      const response = await baitlyPlanningReadQueue.run(signal, () => apiClient.get<BaitlyPlanningPropertyPage>('/planning/properties', {
+        signal, params: { page, size: 200 },
+      }));
+      for (const property of response.content) properties.set(property.id, property);
+      totalPages = response.totalPages;
+      page++;
+    }
+    return [...properties.values()];
+  },
+
+  async getIndex(propertyIds: number[], from: string, to: string, signal?: AbortSignal): Promise<PlanningData> {
+    const result: PlanningData = { reservations: [], interventions: [], awaitingPayment: [], blocked: [] };
+    const ids = [...new Set(propertyIds)];
+    // Borner aussi l'URL et le IN SQL des grands portefeuilles.
+    for (let offset = 0; offset < ids.length; offset += 500) {
+      const data = await baitlyPlanningReadQueue.run(signal, () => apiClient.get<PlanningData>('/planning/index', {
+        signal, params: { propertyIds: ids.slice(offset, offset + 500).join(','), from, to },
+      }));
+      // L'index omet volontairement le nom du logement répété pour chaque séjour.
+      result.reservations.push(...data.reservations.map((r) => ({ ...r, propertyName: '' })));
+      result.interventions.push(...data.interventions);
+      result.awaitingPayment.push(...data.awaitingPayment);
+      result.blocked.push(...data.blocked);
+    }
+    return result;
+  },
+
+  async getReservationDetails(propertyIds: number[], from: string, to: string, signal?: AbortSignal): Promise<PlanningData> {
+    const reservations = await baitlyPlanningReadQueue.run(signal, async () => {
+      const options = { signal, params: { propertyIds: propertyIds.join(','), from, to } };
+      try {
+        return await apiClient.get<Reservation[]>('/planning/reservation-cards', options);
+      } catch (error) {
+        // Les images frontend et backend arrivent séparément pendant un déploiement.
+        if ((error as ApiError)?.status !== 404 || signal?.aborted) throw error;
+        return apiClient.get<Reservation[]>('/planning/reservations', options);
+      }
+    });
+    return { reservations, interventions: [], awaitingPayment: [], blocked: [] };
+  },
   /**
    * Séjours, interventions, demandes en attente de paiement et jours bloqués,
    * en UN appel.
@@ -28,8 +82,10 @@ export const planningDataApi = {
     propertyIds: number[],
     from: string,
     to: string,
+    signal?: AbortSignal,
   ): Promise<PlanningData> {
     return apiClient.get<PlanningData>('/planning/data', {
+      signal,
       params: { propertyIds: propertyIds.join(','), from, to },
     });
   },

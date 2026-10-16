@@ -2,6 +2,7 @@ import { useQuery } from '@tanstack/react-query';
 import { noiseDevicesApi } from '../../services/api/noiseApi';
 import type { NoiseMonitoringData, PropertyNoiseData } from '../../hooks/noiseMonitoring';
 import type { ConnectedDevice } from './types';
+import { propertiesApi } from '../../services/api/propertiesApi';
 
 /**
  * Adapte l'historique live d'UN capteur (Tuya/Minut) au format attendu par
@@ -12,12 +13,19 @@ import type { ConnectedDevice } from './types';
  */
 export function useNoiseDeviceDetail(device: ConnectedDevice) {
   const label = device.name;
+  // One property, not the whole portfolio: only its timezone is needed to display the readings.
+  const propertyId = device.propertyId;
+  const propertyDetail = useQuery({ queryKey: ['baitly-iot-property', propertyId],
+    queryFn: () => propertiesApi.getById(propertyId as number),
+    enabled: device.provider === 'BAITLY' && propertyId != null, staleTime: 300_000 });
+  const timeZone = propertyDetail.data?.timezone || 'Europe/Paris';
 
   const query = useQuery({
     queryKey: ['noise-device-data', device.id],
     queryFn: () => noiseDevicesApi.getNoiseData(device.id),
     enabled: device.kind === 'noise',
     staleTime: 60_000,
+    refetchInterval: device.provider === 'BAITLY' ? 30_000 : false,
   });
 
   const points = query.data ?? [];
@@ -43,5 +51,5 @@ export function useNoiseDeviceDetail(device: ConnectedDevice) {
 
   const combinedChartData = history.map((h) => ({ time: h.time, [label]: h.decibels }));
 
-  return { data, combinedChartData, loading: query.isLoading };
+  return { data, combinedChartData, points, timeZone, error: query.error, loading: query.isLoading };
 }

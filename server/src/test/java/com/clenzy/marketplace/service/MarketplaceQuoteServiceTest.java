@@ -80,12 +80,13 @@ class MarketplaceQuoteServiceTest {
     private static final Long PROVIDER = 1L;
 
     @Mock MarketplaceGeographicEligibility geography;
+    @Mock MarketplaceQuoteMissionFactory missionFactory;
 
     @BeforeEach
     void setUp() {
         service = new MarketplaceQuoteService(
             quoteRepository, providerRepository, exposureService, propertyRepository,
-            Clock.fixed(NOW, ZoneOffset.UTC), teams, commercialQuotes, mock(MarketplaceQuoteMissionFactory.class), geography);
+            Clock.fixed(NOW, ZoneOffset.UTC), teams, commercialQuotes, missionFactory, geography);
     }
 
     // ─── Creation ────────────────────────────────────────────────────────────
@@ -156,6 +157,25 @@ class MarketplaceQuoteServiceTest {
         // envoie ne peut le fixer.
         assertThat(saved.getValue().getQuotedAmount()).isNull();
         assertThat(saved.getValue().getPropertyId()).isEqualTo(42L);
+    }
+
+    @Test void scheduledRequestKeepsTheExactSlotBeforePreparingTheNeed() {
+        var provider=provider(); provider.getOffers().add(offer("CLEANING","cleaning-turnover"));
+        when(providerRepository.findById(PROVIDER)).thenReturn(Optional.of(provider));
+        when(exposureService.isVisibleTo(any(),eq(ORG))).thenReturn(true);
+        when(quoteRepository.save(any())).thenAnswer(i -> i.getArgument(0));
+        when(propertyRepository.findByIdWithOwner(42L,ORG)).thenReturn(Optional.of(new com.clenzy.model.Property()));
+        var result=service.requestScheduled(PROVIDER,ORG,3L,"Ménage",null,42L,"CLEANING","cleaning-turnover",
+                TODAY.plusDays(5),java.time.LocalTime.of(9,30),90);
+        assertThat(result.getRequestedStartTime()).isEqualTo(java.time.LocalTime.of(9,30));
+        assertThat(result.getRequestedDurationMinutes()).isEqualTo(90);
+        verify(missionFactory).prepareNeed(result);
+    }
+
+    @Test void incompleteSlotIsRejectedBeforeAnyProviderIsSolicited() {
+        assertThatThrownBy(() -> service.requestScheduled(PROVIDER,ORG,3L,"Ménage",null,42L,null,null,
+                null,java.time.LocalTime.of(9,30),90)).isInstanceOf(IllegalArgumentException.class);
+        verifyNoInteractions(providerRepository,quoteRepository);
     }
 
     @Test

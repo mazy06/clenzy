@@ -13,7 +13,7 @@ const fixtures = vi.hoisted(() => {
     { ...base, uid: 'climate:2', id: 2, kind: 'climate', name: 'Capteur test', roomName: 'Chambre', propertyId: 2, propertyName: 'Appartement B' },
     { ...base, uid: 'noise:3', id: 3, kind: 'noise', name: 'Bruit séjour', roomName: 'Séjour', propertyId: 1, propertyName: 'Appartement A', online: false, statusLevel: 'offline', statusLabel: 'Hors ligne' },
   ];
-  return { devices, act: vi.fn(), refetch: vi.fn() };
+  return { devices, act: vi.fn(), refetch: vi.fn(), wizard: vi.fn() };
 });
 vi.mock('./useConnectedObjects', () => ({ useConnectedObjects: () => ({ ...fixtures, groups: [1, 2].map(id => ({ propertyId: id, propertyName: id === 1 ? 'Appartement A' : 'Appartement B', devices: fixtures.devices.filter(d => d.propertyId === id) })), providers: [], loading: false, error: false, actingUid: null }) }));
 vi.mock('./useDeviceEventStream', () => ({ useDeviceEventStream: () => undefined }));
@@ -23,7 +23,7 @@ vi.mock('../../hooks/useNotification', () => ({ useNotification: () => ({ notify
 vi.mock('../../hooks/useUserPreference', () => ({ useUserPreference: (_key: string, initial: unknown) => { const [value, setValue] = useState(initial); return [value, setValue, { isLoaded: true }]; } }));
 vi.mock('../../hooks/useViewportFill', () => ({ useViewportFill: () => [() => undefined, 650] }));
 vi.mock('../../components/PageHeader', () => ({ default: ({ title, actions }: { title: string; actions: React.ReactNode }) => <header><h1>{title}</h1>{actions}</header> }));
-vi.mock('./components/AddDeviceWizard', () => ({ default: () => null }));
+vi.mock('./components/AddDeviceWizard', () => ({ default: (props: unknown) => { fixtures.wizard(props); return null; } }));
 vi.mock('./components/RoomDeviceInspector', () => ({ default: ({ device }: { device: ConnectedDevice }) => <section aria-label="Détail test">{device.name}</section>, DeviceState: () => null }));
 const clients: QueryClient[] = [];
 function Location() { const value = useLocation(); return <output data-testid="location">{value.pathname}{value.search}</output>; }
@@ -33,6 +33,13 @@ function setup(url = '/connected-objects') {
 }
 afterEach(() => { cleanup(); clients.splice(0).forEach(client => client.clear()); vi.clearAllMocks(); });
 describe('unified device workspace', () => {
+  it('uses the existing add action and does not expose a separate Baitly sensor button', () => {
+    setup();
+    expect(screen.queryByRole('button', { name: 'Capteur Baitly' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Connexion Wi-Fi directe' })).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Ajouter un objet' }));
+    expect(fixtures.wizard).toHaveBeenCalledWith(expect.objectContaining({ open: true, defaultPropertyId: 1 }));
+  });
   it('opens a bookmarked device in the correct property and room, without a detail route', () => {
     setup('/connected-objects?device=climate%3A2');
     expect(screen.getByRole('combobox', { name: 'Choisir un logement' })).toHaveValue('2');

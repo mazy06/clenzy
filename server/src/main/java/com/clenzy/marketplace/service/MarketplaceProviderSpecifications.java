@@ -81,7 +81,9 @@ final class MarketplaceProviderSpecifications {
                 root.get("id"), cb.literal(country),
                 property.getDepartment() == null ? cb.nullLiteral(String.class) : cb.literal(property.getDepartment()),
                 property.getArrondissement() == null ? cb.nullLiteral(String.class) : cb.literal(property.getArrondissement()),
-                property.getCity() == null ? cb.nullLiteral(String.class) : cb.literal(property.getCity()))));
+                property.getCity() == null ? cb.nullLiteral(String.class) : cb.literal(property.getCity()),
+                property.getLatitude() == null ? cb.nullLiteral(Double.class) : cb.literal(property.getLatitude().doubleValue()),
+                property.getLongitude() == null ? cb.nullLiteral(Double.class) : cb.literal(property.getLongitude().doubleValue()))));
         };
     }
 
@@ -101,6 +103,14 @@ final class MarketplaceProviderSpecifications {
                 textMatches.add(cb.like(cb.lower(root.get("displayName")), pattern));
                 textMatches.add(cb.like(cb.lower(cb.coalesce(root.get("legalName"), "")), pattern));
                 textMatches.add(cb.like(cb.lower(cb.coalesce(root.get("baseCity"), "")), pattern));
+                // Le champ unique cherche aussi dans les villes d’intervention déclarées.
+                Subquery<Long> cities = cq.subquery(Long.class);
+                var zone = cities.from(MarketplaceProviderZone.class);
+                cities.select(cb.literal(1L)).where(cb.and(
+                    cb.or(cb.equal(zone.get("userId"), root.get("userId")),
+                        cb.and(cb.isNull(root.get("userId")), cb.equal(zone.get("provider"), root))),
+                    cb.like(cb.lower(zone.get("city")), pattern)));
+                textMatches.add(cb.exists(cities));
 
                 // Une adresse complete reste cherchable par son empreinte. La
                 // recherche partielle sur un courriel est impossible par
@@ -201,8 +211,16 @@ final class MarketplaceProviderSpecifications {
                 }
                 sub.select(cb.literal(1L)).where(cb.and(zonePredicates.toArray(Predicate[]::new)));
 
-                // L'adresse du siège n'est pas une déclaration de zone d'intervention.
-                predicates.add(cb.exists(sub));
+                // Une base ne devient une zone que lorsqu'un rayon géolocalisé est déclaré.
+                if (!isNotBlank(c.department())) {
+                    List<Predicate> base = new ArrayList<>();
+                    base.add(cb.isNotNull(root.get("travelRadiusKm")));
+                    base.add(cb.isNotNull(root.get("latitude")));
+                    base.add(cb.isNotNull(root.get("longitude")));
+                    if (isNotBlank(c.countryCode())) base.add(cb.equal(cb.upper(root.get("baseCountryCode")),c.countryCode().trim().toUpperCase(Locale.ROOT)));
+                    if (isNotBlank(c.city())) base.add(cb.equal(cb.lower(root.get("baseCity")),c.city().trim().toLowerCase(Locale.ROOT)));
+                    predicates.add(cb.or(cb.exists(sub),cb.and(base.toArray(Predicate[]::new))));
+                } else predicates.add(cb.exists(sub));
             }
 
             if (c.availableOnDay() != null) {

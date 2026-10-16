@@ -106,11 +106,11 @@ export function AddNoiseDeviceScreen() {
   const handleSubmit = useCallback(() => {
     // Validation
     if (!deviceType) {
-      Alert.alert('Type requis', 'Selectionnez le type de capteur');
+      Alert.alert('Type requis', 'Sélectionnez le type de capteur');
       return;
     }
     if (!propertyId) {
-      Alert.alert('Propriete requise', 'Selectionnez la propriete');
+      Alert.alert('Propriete requise', 'Sélectionnez la propriété');
       return;
     }
     const finalName = name.trim() || suggestedName;
@@ -130,7 +130,7 @@ export function AddNoiseDeviceScreen() {
       },
       {
         onSuccess: () => {
-          Alert.alert('Capteur ajoute', 'Le capteur a ete cree avec succes', [
+          Alert.alert('Capteur ajoute', 'Le capteur a été créé avec succès', [
             { text: 'OK', onPress: () => navigation.goBack() },
           ]);
         },
@@ -182,7 +182,7 @@ export function AddNoiseDeviceScreen() {
         <Card style={{ marginBottom: theme.SPACING.md }}>
           <Select
             label="Type de capteur *"
-            placeholder="Selectionnez le type..."
+            placeholder="Sélectionnez le type..."
             options={DEVICE_TYPE_OPTIONS}
             value={deviceType}
             onChange={setDeviceType}
@@ -193,7 +193,7 @@ export function AddNoiseDeviceScreen() {
         <Card style={{ marginBottom: theme.SPACING.md }}>
           <Select
             label="Propriete *"
-            placeholder="Selectionnez la propriete..."
+            placeholder="Sélectionnez la propriété..."
             options={propertyOptions}
             value={propertyId}
             onChange={setPropertyId}

@@ -1,4 +1,5 @@
 import { apiClient, PaginatedResponse } from '../apiClient';
+import { baitlyMediaList } from '../baitlyMedia';
 
 export interface Intervention {
   id: number;
@@ -8,10 +9,12 @@ export interface Intervention {
   status: string;
   priority: string;
   propertyId?: number;
+  requestorId?:number;
   propertyName?: string;
   propertyAddress?: string;
   assignedTechnicianId?: number;
   assignedTechnicianName?: string;
+  assignedToId?:number;assignedToName?:string;assignedToType?:string;
   teamId?: number;
   teamName?: string;
   startTime?: string;
@@ -26,6 +29,8 @@ export interface Intervention {
   afterPhotosUrls?: string[];
   validatedRooms?: string;
   estimatedCost?: number;
+  currency?:string;
+  followUpNotes?:string;
   /** Prix conseil plateforme (moteur ménage) snapshoté à la création — badge barème. */
   recommendedCost?: number;
   actualCost?: number;
@@ -36,6 +41,7 @@ export interface Intervention {
   scheduledDate?: string;
   createdAt: string;
   updatedAt: string;
+  version?:number;
 }
 
 export interface InterventionListParams {
@@ -53,12 +59,13 @@ export interface InterventionListParams {
 }
 
 export const interventionsApi = {
-  getAll(params?: InterventionListParams) {
-    return apiClient.get<PaginatedResponse<Intervention>>('/interventions', { params: params as Record<string, string> });
+  async getAll(params?: InterventionListParams) {
+    const page = await apiClient.get<PaginatedResponse<Intervention>>('/interventions', { params: params as Record<string, string> });
+    return { ...page, content: page.content.map(normalizeIntervention) };
   },
 
-  getById(id: number) {
-    return apiClient.get<Intervention>(`/interventions/${id}`);
+  async getById(id: number) {
+    return normalizeIntervention(await apiClient.get<Intervention>(`/interventions/${id}`));
   },
 
   create(data: Partial<Intervention>) {
@@ -77,15 +84,25 @@ export const interventionsApi = {
     return apiClient.upload(`/interventions/${id}/photos`, formData);
   },
 
-  getPhotos(id: number) {
-    return apiClient.get<{ beforePhotos: string[]; afterPhotos: string[] }>(`/interventions/${id}/photos`);
-  },
-
   updateCost(id: number, estimatedCost?: number, actualCost?: number) {
-    return apiClient.put<Intervention>(`/interventions/${id}/cost`, { estimatedCost, actualCost });
+    const value=actualCost??estimatedCost;
+    if(value==null||!Number.isFinite(value)||value<0)return Promise.reject({status:400,message:'Montant invalide'});
+    return apiClient.put<Intervention>(`/interventions/${id}/amount`, {mode:'SET',value});
   },
+  start:(id:number)=>apiClient.put<Intervention>(`/interventions/${id}/start`),
+  complete:(id:number)=>apiClient.put<Intervention>(`/interventions/${id}/complete`),
 
   updateStatus(id: number, status: string) {
-    return apiClient.put<Intervention>(`/interventions/${id}/status`, { status });
+    return apiClient.put<Intervention>(`/interventions/${id}/status`, undefined,{params:{status}});
+  },
+  assign(id:number,teamId:number){return apiClient.put<Intervention>(`/interventions/${id}/assign`,undefined,{params:{teamId}});},
+  managerReview(id:number,body:{decision:'approve'|'reject';feedback?:string;rating?:number;amount?:string;version:number}){
+    return apiClient.post<Intervention>(`/mobile/missions/${id}/manager-review`,body).then(normalizeIntervention);
   },
 };
+export function normalizeIntervention(item: Intervention): Intervention {
+  const team=item.assignedToType?.toUpperCase()==='TEAM';
+  return { ...item,assignedTechnicianName:item.assignedTechnicianName??item.assignedToName,
+    assignedTechnicianId:item.assignedTechnicianId??(!team?item.assignedToId:undefined),teamName:item.teamName??(team?item.assignedToName:undefined),teamId:item.teamId??(team?item.assignedToId:undefined),
+    beforePhotosUrls: baitlyMediaList(item.beforePhotosUrls), afterPhotosUrls: baitlyMediaList(item.afterPhotosUrls) };
+}

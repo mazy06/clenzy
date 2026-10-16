@@ -103,6 +103,26 @@ public class MarketplaceQuoteService {
                                            String title, String message, Long propertyId,
                                            String categoryCode, String serviceItemCode,
                                            LocalDate desiredDate, Long serviceRequestId) {
+        return createRequest(providerId,organizationId,userId,title,message,propertyId,categoryCode,serviceItemCode,
+                desiredDate,serviceRequestId,null,null);
+    }
+
+    /** Un créneau choisi dans la fiche du service survit à la demande et à son accord. */
+    @Transactional
+    public MarketplaceQuoteRequest requestScheduled(Long providerId, Long organizationId, Long userId,
+            String title,String message,Long propertyId,String categoryCode,String serviceItemCode,LocalDate date,
+            java.time.LocalTime startTime,Integer durationMinutes) {
+        if (startTime!=null || durationMinutes!=null) {
+            if (date==null || startTime==null || durationMinutes==null || durationMinutes<15 || durationMinutes>1440)
+                throw new IllegalArgumentException("Indiquez une date, une heure et une durée valide pour ce créneau");
+        }
+        return createRequest(providerId,organizationId,userId,title,message,propertyId,categoryCode,serviceItemCode,
+                date,null,startTime,durationMinutes);
+    }
+
+    private MarketplaceQuoteRequest createRequest(Long providerId, Long organizationId, Long userId,
+            String title,String message,Long propertyId,String categoryCode,String serviceItemCode,LocalDate desiredDate,
+            Long serviceRequestId,java.time.LocalTime startTime,Integer durationMinutes) {
         if (organizationId == null) {
             throw new AccessDeniedException("Organisation non résolue");
         }
@@ -153,6 +173,8 @@ public class MarketplaceQuoteService {
         request.setTitle(cleanedTitle);
         request.setMessage(cleanedMessage);
         request.setDesiredDate(desiredDate);
+        request.setRequestedStartTime(startTime);
+        request.setRequestedDurationMinutes(durationMinutes);
         request.setStatus(QuoteRequestStatus.SENT);
         LocalDateTime now = LocalDateTime.now(clock);
         request.setCreatedAt(now);

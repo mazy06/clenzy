@@ -4,12 +4,10 @@ import { headerActionIcon, type HeaderActionKind } from './headerActionIcons';
 import { cn } from '../utils/cn';
 
 /**
- * Action d'en-tête Baitly — un bouton ICÔNE SEULE, expliqué par une infobulle.
+ * Action d'en-tête Baitly : icône et infobulle, libellé visible pour la création.
  *
- * <p>C'est la seule forme admise dans le `PageHeader` : une barre de titre qui
- * aligne des boutons libellés se déforme d'un écran à l'autre (trois mots ici,
- * huit là) et pousse la recherche hors du pli. L'icône fixe la largeur, et
- * l'infobulle — qui porte AUSSI le nom accessible — dit ce que le bouton fait.</p>
+ * <p>Les actions secondaires restent compactes. La création garde son libellé,
+ * borné dans la barre, pour identifier immédiatement l'action principale.</p>
  *
  * <p>L'icône n'est pas au choix de l'écran : elle vient du vocabulaire commun
  * (`headerActionIcons`) via `kind`. Passer `icon` explicitement reste possible
@@ -25,7 +23,7 @@ export interface HeaderActionProps
   extends Omit<React.ComponentProps<typeof Button>, 'children' | 'size' | 'aria-label'> {
   /** Action du vocabulaire commun : décide de l'icône. */
   kind?: HeaderActionKind;
-  /** Texte de l'infobulle ET nom accessible du bouton. Obligatoire. */
+  /** Infobulle et nom accessible, également visible pour une création. */
   label: string;
   /** Icône explicite, pour une action hors vocabulaire. */
   icon?: React.ReactNode;
@@ -62,12 +60,15 @@ export default function HeaderAction({
           <Button
             {...props}
             variant={variant}
-            size={size}
+            size={kind === 'create' ? 'default' : size}
+            data-header-create={kind === 'create' || undefined}
+            data-keep-label={kind === 'create' || undefined}
             disabled={disabled || loading}
             aria-label={label}
             className={cn(className)}
           >
             {glyph}
+            {kind === 'create' && <span className="truncate">{label}</span>}
           </Button>
         </span>
       </TooltipTrigger>

@@ -16,10 +16,12 @@ const SETTLE_DELAY_MS = 250;
  * utilisateur) et rendait la main avec des 429.</p>
  *
  * <p>La toute premiere valeur est adoptee immediatement : l'affichage initial
- * ne doit pas attendre.</p>
+ * ne doit pas attendre. `ready=false` reserve cette premiere adoption jusqu'a
+ * la resolution des preferences de zoom et au recentrage initial du buffer.</p>
  */
-export function useSettledRange(start: Date, end: Date): { start: Date; end: Date } {
+export function useSettledRange(start: Date, end: Date, ready = true): { start: Date; end: Date } {
   const [settled, setSettled] = useState({ start, end });
+  const started = useRef(ready);
 
   // Cles textuelles : deux `Date` distinctes valant le meme jour ne doivent pas
   // relancer le minuteur (le buffer se recalcule a chaque rendu du parent).
@@ -29,11 +31,18 @@ export function useSettledRange(start: Date, end: Date): { start: Date; end: Dat
   latest.current = { start, end };
 
   useEffect(() => {
+    if (!ready) return;
+    // Saved zoom defines the first usable range; do not debounce its initial adoption.
+    if (!started.current) {
+      started.current = true;
+      setSettled(latest.current);
+      return;
+    }
     if (toDateStr(settled.start) === startKey && toDateStr(settled.end) === endKey) return;
     const timer = setTimeout(() => setSettled(latest.current), SETTLE_DELAY_MS);
     return () => clearTimeout(timer);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [startKey, endKey]);
+  }, [startKey, endKey, ready]);
 
-  return settled;
+  return started.current ? settled : { start, end };
 }

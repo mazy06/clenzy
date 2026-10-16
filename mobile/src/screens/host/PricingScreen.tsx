@@ -480,12 +480,12 @@ function RatePlanForm({
     }
     const price = Number(form.nightlyPrice);
     if (isNaN(price) || price <= 0) {
-      Alert.alert('Erreur', 'Le prix par nuit doit etre superieur a 0');
+      Alert.alert('Erreur', 'Le prix par nuit doit être supérieur a 0');
       return;
     }
     const prio = Number(form.priority);
     if (isNaN(prio) || prio < 1) {
-      Alert.alert('Erreur', 'La priorite doit etre superieure ou egale a 1');
+      Alert.alert('Erreur', 'La priorité doit être supérieure ou égale a 1');
       return;
     }
     onSave(form);
@@ -539,7 +539,7 @@ function RatePlanForm({
             placeholder="YYYY-MM-DD"
             value={form.startDate}
             onChangeText={(v) => updateField('startDate', v)}
-            helperText="Debut"
+            helperText="Début"
           />
         </View>
         <View style={{ flex: 1 }}>
@@ -666,7 +666,7 @@ function PlansTab({
       {
         onSuccess: () => {
           setShowForm(false);
-          Alert.alert('Plan cree', 'Le plan tarifaire a ete cree avec succes');
+          Alert.alert('Plan cree', 'Le plan tarifaire a été créé avec succès');
         },
         onError: (err: any) => {
           Alert.alert('Erreur', err?.response?.data?.error ?? err?.message ?? 'Erreur inconnue');
@@ -697,7 +697,7 @@ function PlansTab({
       {
         onSuccess: () => {
           setEditingPlan(null);
-          Alert.alert('Plan modifie', 'Le plan tarifaire a ete mis a jour');
+          Alert.alert('Plan modifie', 'Le plan tarifaire a été mis à jour');
         },
         onError: (err: any) => {
           Alert.alert('Erreur', err?.response?.data?.error ?? err?.message ?? 'Erreur inconnue');
@@ -768,7 +768,7 @@ function PlansTab({
         <EmptyState
           iconName="pricetag-outline"
           title="Aucun plan tarifaire"
-          description="Creez votre premier plan tarifaire pour cette propriete"
+          description="Creez votre premier plan tarifaire pour cette propriété"
           compact
           style={{ marginBottom: theme.SPACING.lg }}
         />
@@ -975,7 +975,7 @@ function AiPricingTab({
       <EmptyState
         iconName="sparkles-outline"
         title="Aucune suggestion"
-        description="Les suggestions de prix IA seront bientot disponibles pour cette propriete"
+        description="Les suggestions de prix IA seront bientôt disponibles pour cette propriété"
         compact
         style={{ marginTop: theme.SPACING.xl }}
       />
@@ -1055,7 +1055,7 @@ function AiPricingTab({
       </View>
 
       {/* Day-by-day predictions */}
-      <SectionHeader title="Detail par jour" iconName="list-outline" />
+      <SectionHeader title="Détail par jour" iconName="list-outline" />
 
       {predictions.map((pred) => {
         const d = new Date(pred.date);
@@ -1241,7 +1241,7 @@ export function PricingScreen() {
       ) : properties.length > 1 ? (
         <View style={{ paddingHorizontal: theme.SPACING.lg, marginBottom: theme.SPACING.sm }}>
           <Select
-            placeholder="Selectionner une propriete"
+            placeholder="Sélectionner une propriété"
             options={propertyOptions}
             value={String(selectedPropertyId)}
             onChange={(v) => setSelectedPropertyId(Number(v))}
@@ -1265,8 +1265,8 @@ export function PricingScreen() {
         ) : (
           <EmptyState
             iconName="home-outline"
-            title="Aucune propriete"
-            description="Aucune propriete disponible"
+            title="Aucune propriété"
+            description="Aucune propriété disponible"
             compact
           />
         )}

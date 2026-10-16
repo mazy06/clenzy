@@ -9,9 +9,9 @@ import type { Reservation } from '@/api/endpoints/reservationsApi';
 const STATUS_CONFIG: Record<string, { label: string; color: 'success' | 'warning' | 'error' | 'info' }> = {
   CONFIRMED: { label: 'Confirmee', color: 'success' },
   PENDING: { label: 'En attente', color: 'warning' },
-  CANCELLED: { label: 'Annulee', color: 'error' },
+  CANCELLED: { label: 'Annulée', color: 'error' },
   CHECKED_IN: { label: 'En cours', color: 'info' },
-  CHECKED_OUT: { label: 'Terminee', color: 'success' },
+  CHECKED_OUT: { label: 'Terminée', color: 'success' },
 };
 
 function formatShortDate(dateStr: string): string {

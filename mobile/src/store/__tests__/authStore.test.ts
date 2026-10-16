@@ -41,9 +41,9 @@ describe('authStore', () => {
       const state = store.getState();
       expect(state.accessToken).toBe('access-123');
       expect(state.refreshToken).toBe('refresh-456');
-      expect(state.isAuthenticated).toBe(true);
+      expect(state.isAuthenticated).toBe(false);
 
-      expect(SecureStore.setItemAsync).toHaveBeenCalledWith('clenzy_access_token', 'access-123');
+      expect(SecureStore.setItemAsync).not.toHaveBeenCalledWith('clenzy_access_token', 'access-123');
       expect(SecureStore.setItemAsync).toHaveBeenCalledWith('clenzy_refresh_token', 'refresh-456');
     });
   });
@@ -143,5 +143,43 @@ describe('authStore', () => {
       expect(state.isLoading).toBe(false);
       expect(state.isAuthenticated).toBe(false);
     });
+  });
+});
+
+describe('native login session', () => {
+  it('opens the account only after the authenticated profile loads', async () => {
+    globalThis.fetch = jest.fn()
+      .mockResolvedValueOnce({ ok: true, json: async () => ({ access_token: 'access', refresh_token: 'refresh' }) })
+      .mockResolvedValueOnce({ ok: true, json: async () => ({ subject: 'A', role: 'HOST', email: 'a@test.invalid' }) });
+    await getStore().getState().login(' a@test.invalid ', 'password');
+    expect(globalThis.fetch).toHaveBeenNthCalledWith(1, expect.stringContaining('/api/auth/login'), expect.objectContaining({
+      body: JSON.stringify({ username: 'a@test.invalid', password: 'password' }), credentials: 'omit',
+    }));
+    expect(getStore().getState().user.id).toBe('A');
+    expect(getStore().getState().isAuthenticated).toBe(true);
+    expect(SecureStore.setItemAsync).not.toHaveBeenCalledWith('clenzy_access_token', 'access');
+  });
+  it('does not open an account or save tokens after invalid credentials', async () => {
+    globalThis.fetch = jest.fn().mockResolvedValue({ ok: false, status: 401, json: async () => ({ error: 'authentication_failed' }) });
+    await expect(getStore().getState().login('a@test.invalid', 'wrong')).rejects.toMatchObject({ reason: 'credentials' });
+    expect(getStore().getState().isAuthenticated).toBe(false);
+    expect(SecureStore.setItemAsync).not.toHaveBeenCalled();
+  });
+  it('preserves the server CAPTCHA protection and sends a challenge token only when supplied', async () => {
+    globalThis.fetch = jest.fn().mockResolvedValue({ ok: false, status: 403, json: async () => ({ error: 'captcha_required', captchaRequired: true }) });
+    await expect(getStore().getState().login('a@test.invalid', 'password')).rejects.toMatchObject({ reason: 'captcha' });
+    await expect(getStore().getState().login('a@test.invalid', 'password', 'challenge')).rejects.toMatchObject({ reason: 'captcha' });
+    expect(globalThis.fetch).toHaveBeenLastCalledWith(expect.stringContaining('/api/auth/login'), expect.objectContaining({
+      body: JSON.stringify({ username: 'a@test.invalid', password: 'password', captchaToken: 'challenge' }),
+    }));
+    expect(SecureStore.setItemAsync).not.toHaveBeenCalled();
+  });
+  it('refreshes through the backend client that issued the native login tokens', async () => {
+    const store = getStore();
+    store.setState({ refreshToken: 'old' });
+    globalThis.fetch = jest.fn().mockResolvedValue({ ok: true, json: async () => ({ access_token: 'new-access', refresh_token: 'new-refresh' }) });
+    expect(await store.getState().refreshAccessToken()).toBe(true);
+    expect(globalThis.fetch).toHaveBeenCalledWith(expect.stringContaining('/public/baitly-session/refresh'), expect.objectContaining({ body: JSON.stringify({ refreshToken: 'old' }) }));
+    expect(store.getState().refreshToken).toBe('new-refresh');
   });
 });

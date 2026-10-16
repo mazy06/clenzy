@@ -43,6 +43,7 @@ export interface UsePlanningNavigationReturn {
   density: DensityMode;
   isFullscreen: boolean;
   dayWidth: number;
+  preferencesReady: boolean;
   goToday: () => void;
   goPrev: () => void;
   goNext: () => void;
@@ -55,7 +56,7 @@ export interface UsePlanningNavigationReturn {
 export function usePlanningNavigation(): UsePlanningNavigationReturn {
   const { i18n } = useTranslation();
   const language = i18n.language;
-  const [persisted, setPersisted] = useUserPreference<PersistedNav>(PREF_KEY, DEFAULT_NAV);
+  const [persisted, setPersisted, { isLoading }] = useUserPreference<PersistedNav>(PREF_KEY, DEFAULT_NAV);
   const safe = useMemo(() => sanitize(persisted), [persisted]);
 
   const [currentDate, setCurrentDate] = useState(() => new Date());
@@ -109,6 +110,8 @@ export function usePlanningNavigation(): UsePlanningNavigationReturn {
     density: safe.density,
     isFullscreen,
     dayWidth: config.dayWidth,
+    // A failed preferences request falls back to defaults instead of blocking the grid.
+    preferencesReady: !isLoading,
     goToday,
     goPrev,
     goNext,

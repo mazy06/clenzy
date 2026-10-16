@@ -1,0 +1,138 @@
+.baitly-directory-layout {
+  display:grid;
+  grid-template-columns:minmax(0,1fr);
+  gap:20px;
+  min-width:0;
+}
+.baitly-directory-sidebar,.baitly-directory-main { min-width:0; }
+.baitly-directory-main { container:directory-results / inline-size; }
+.baitly-directory-filter-panel {
+  padding:16px;
+  border:1px solid var(--bui-border);
+  border-radius:12px;
+  background:var(--bui-card);
+}
+.baitly-directory-filter-title {
+  display:flex; align-items:center; gap:8px;
+  padding-bottom:16px; margin-bottom:16px;
+  border-bottom:1px solid var(--bui-border);
+  font-size:13px; font-weight:600; color:var(--bui-foreground);
+}
+.baitly-directory-toolbar {
+  display:flex; flex-wrap:wrap; align-items:center; gap:10px;
+  margin-bottom:16px; padding:10px 12px;
+  border:1px solid var(--bui-border); border-radius:10px;
+  background:var(--bui-card); min-width:0; flex-shrink:0;
+}
+.baitly-directory-results {
+  display:grid; grid-template-columns:minmax(0,1fr);
+  gap:14px; align-items:start;
+}
+.baitly-directory-card {
+  border:1px solid var(--bui-border);
+  border-radius:12px; background:var(--bui-card);
+  box-shadow:none;
+  transition:border-color 180ms cubic-bezier(.22,1,.36,1);
+}
+.baitly-directory-card:hover { border-color:var(--bui-primary); }
+.baitly-directory-card__body {
+  display:grid; grid-template-columns:112px minmax(0,1fr);
+  min-width:0; color:var(--bui-foreground);
+}
+.baitly-directory-card__media {
+  grid-row:1 / 3;
+  display:flex; align-items:center; justify-content:center;
+  background:var(--bui-muted); padding:16px 12px;
+  border-inline-end:1px solid var(--bui-border);
+  color:var(--bui-primary); min-width:0;
+}
+.baitly-directory-card__media > img {
+  width:100%; height:112px; object-fit:contain;
+  filter:drop-shadow(0 5px 5px color-mix(in srgb,var(--bui-foreground) 8%,transparent));
+}
+.baitly-directory-card__media > span.relative {
+  width:76px; height:76px; border-radius:12px;
+  font-size:22px; color:var(--bui-primary);
+}
+.baitly-directory-card__media > svg,.baitly-directory-card__media > span > svg { width:40px; height:40px; }
+.baitly-directory-professional { position:relative; width:100%; }
+.baitly-directory-professional > img { width:100%; height:100px; object-fit:contain; }
+.baitly-directory-professional__initials { position:absolute; inset-inline-end:-4px; bottom:-8px; width:30px; height:30px; border:2px solid var(--bui-card); font-size:10px; border-radius:8px; background:var(--bui-primary); color:var(--bui-primary-foreground); }
+.baitly-directory-card__content { min-width:0; padding:18px 18px 14px; }
+.baitly-directory-card__heading { display:flex; flex-wrap:wrap; align-items:start; gap:8px 12px; }
+.baitly-directory-card__heading h3 {
+  display:flex; align-items:start; gap:6px; min-width:0;
+  margin:0; font-size:15px; font-weight:600; line-height:1.4;
+  color:var(--bui-foreground); text-wrap:balance; overflow-wrap:anywhere;
+}
+.baitly-directory-card__heading h3 > .truncate { white-space:normal; overflow:visible; }
+.baitly-directory-card__heading h3 > svg { margin-top:2px; }
+.baitly-directory-card__trailing { margin-inline-start:auto; }
+.baitly-directory-card__description {
+  display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical;
+  overflow:hidden; margin:6px 0 0;
+  font-size:13px; line-height:1.6; color:var(--bui-muted-foreground);
+}
+.baitly-directory-card__tags { display:flex; flex-wrap:wrap; align-items:center; gap:5px; margin-top:12px; }
+.baitly-directory-tag {
+  border-radius:5px; padding:3px 7px;
+  background:var(--bui-muted); font-size:11px; line-height:1.4;
+  color:var(--bui-muted-foreground);
+}
+.baitly-directory-card__metadata {
+  display:flex; flex-direction:column; gap:6px; margin-top:12px;
+  font-size:12px; line-height:1.5; color:var(--bui-muted-foreground);
+}
+.baitly-directory-card__footer {
+  display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between;
+  gap:10px; padding:12px 18px; border-top:1px solid var(--bui-border);
+}
+.baitly-directory-card__actions { display:flex; flex-wrap:wrap; align-items:center; gap:6px; }
+.baitly-directory-card__price {
+  margin-inline-start:auto; font-size:16px; font-weight:600;
+  font-variant-numeric:tabular-nums; text-align:end; color:var(--bui-foreground);
+}
+.baitly-directory-card button,.baitly-directory-toolbar button { cursor:pointer; }
+.baitly-provider-card { grid-template-columns:140px minmax(0,1fr); }
+.baitly-provider-card .baitly-directory-card__media {
+  grid-row:1; padding-block:16px 8px; padding-inline:16px 0; background:transparent; border:0; align-items:start;
+}
+.baitly-provider-card .baitly-directory-card__content { padding-inline-start:16px; }
+.baitly-provider-media { width:120px; height:120px; flex-shrink:0; border-radius:10px; overflow:hidden; background:var(--bui-muted); }
+.baitly-provider-media img { width:100%; height:100%; object-fit:contain; padding:8px; }
+.baitly-provider-media[data-photo="true"] img { object-fit:cover; padding:0; }
+.baitly-provider-metadata {
+  grid-column:1 / -1; display:grid; grid-template-columns:repeat(2,minmax(0,1fr));
+  gap:10px 16px; padding:8px 18px 16px; font-size:12px; line-height:1.5;
+  color:var(--bui-muted-foreground); overflow-wrap:anywhere;
+}
+.baitly-provider-card .baitly-directory-card__footer { grid-column:1 / -1; }
+@media (max-width:480px) {
+  .baitly-provider-card { grid-template-columns:108px minmax(0,1fr); }
+  .baitly-provider-card .baitly-provider-media { width:92px; height:104px; }
+  .baitly-provider-media { width:92px; height:104px; }
+  .baitly-provider-metadata { padding-inline:14px; }
+}
+@media (min-width:1024px) {
+  .baitly-directory-layout { grid-template-columns:232px minmax(0,1fr); min-height:0; flex:1; overflow:hidden; }
+  .baitly-directory-sidebar { min-height:0; }
+  .baitly-directory-main { min-height:0; overflow-y:auto; overscroll-behavior:contain; padding-bottom:2px; }
+}
+@container directory-results (min-width:880px) {
+  .baitly-directory-results:not(.baitly-directory-results--list) { grid-template-columns:repeat(2,minmax(0,1fr)); }
+}
+@container directory-results (min-width:1320px) {
+  .baitly-directory-results:not(.baitly-directory-results--list) { grid-template-columns:repeat(3,minmax(0,1fr)); }
+}
+@container directory-results (max-width:460px) {
+  .baitly-directory-card__body { grid-template-columns:76px minmax(0,1fr); }
+  .baitly-provider-card { grid-template-columns:108px minmax(0,1fr); }
+  .baitly-directory-card__media { padding:12px 8px; }
+  .baitly-directory-card__media > span.relative { width:56px; height:56px; font-size:18px; }
+  .baitly-directory-card__media > img { height:76px; }
+  .baitly-directory-card__content { padding:14px 12px 12px; }
+  .baitly-directory-card__footer { padding:12px; }
+  .baitly-directory-card__actions button { min-height:40px; }
+  .baitly-directory-card__price { font-size:15px; }
+}
+@media (prefers-reduced-motion:reduce) { .baitly-directory-card { transition:none; } }

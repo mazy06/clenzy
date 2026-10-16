@@ -41,7 +41,7 @@ const PERIODS: Array<{ key: PeriodKey; label: string; sub: string; compute: () =
   {
     key: 'this-month',
     label: 'Ce mois-ci',
-    sub: 'Releve intermediaire',
+    sub: 'Relevé intermediaire',
     compute: () => {
       const n = new Date();
       const from = new Date(n.getFullYear(), n.getMonth(), 1);
@@ -74,8 +74,8 @@ const PERIODS: Array<{ key: PeriodKey; label: string; sub: string; compute: () =
   },
   {
     key: 'year-to-date',
-    label: 'Annee en cours',
-    sub: 'Releve fiscal — du 1er janvier a aujourd\'hui',
+    label: 'Année en cours',
+    sub: 'Relevé fiscal — du 1er janvier a aujourd\'hui',
     compute: () => {
       const n = new Date();
       const from = new Date(n.getFullYear(), 0, 1);
@@ -112,7 +112,7 @@ export function SendOwnerStatementScreen() {
       'Envoyer le releve ?',
       `Destinataire : ${ownerName ?? `proprietaire #${ownerId}`}${ownerEmail ? `\n${ownerEmail}` : ''}\n` +
       `Periode : ${formatLongDate(periodDates.from)} → ${formatLongDate(periodDates.to)}\n\n` +
-      "Un email HTML detaillant les reversements VERSES sera envoye immediatement.",
+      "Un email HTML détaillant les reversements VERSES sera envoyé immédiatement.",
       [
         { text: 'Annuler', style: 'cancel' },
         {
@@ -127,7 +127,7 @@ export function SendOwnerStatementScreen() {
                 to: periodDates.to,
               });
               Alert.alert(
-                'Releve envoye',
+                'Relevé envoyé',
                 `${res.payoutsCount} reversement${res.payoutsCount > 1 ? 's' : ''} (${res.totalPaid.toFixed(2)} €) envoyes a ${res.emailSentTo}.`,
                 [{ text: 'OK', onPress: () => navigation.goBack() }],
               );

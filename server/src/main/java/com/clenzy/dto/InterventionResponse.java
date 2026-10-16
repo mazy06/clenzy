@@ -72,7 +72,14 @@ public record InterventionResponse(
     String assignmentResponse,
     LocalDateTime assignmentRespondedAt,
     String assignmentDeclineReason,
-    String serviceItemCode
+    String serviceItemCode,
+    String pausedAt,
+    long pauseSeconds,
+    Long version,
+    String customerFeedback,
+    Integer customerRating,
+    Boolean requiresFollowUp,
+    String followUpNotes
 ) {
     /**
      * Signalement a l'origine — ce qui a ete constate sur place, par qui, et
@@ -195,6 +202,19 @@ public record InterventionResponse(
         public Builder assignmentDeclineReason(String assignmentDeclineReason) { this.assignmentDeclineReason = assignmentDeclineReason; return this; }
 
         public Builder serviceItemCode(String value) { serviceItemCode = value; return this; }
+        private String pausedAt;
+        private long pauseSeconds;
+        public Builder pausedAt(String value){pausedAt=value;return this;}
+        public Builder pauseSeconds(long value){pauseSeconds=value;return this;}
+        private Long version;
+        public Builder version(Long value){version=value;return this;}
+        private String customerFeedback,followUpNotes;
+        private Integer customerRating;
+        private Boolean requiresFollowUp;
+        public Builder customerFeedback(String value){customerFeedback=value;return this;}
+        public Builder customerRating(Integer value){customerRating=value;return this;}
+        public Builder requiresFollowUp(Boolean value){requiresFollowUp=value;return this;}
+        public Builder followUpNotes(String value){followUpNotes=value;return this;}
 
         public InterventionResponse build() {
             return new InterventionResponse(
@@ -213,7 +233,7 @@ public record InterventionResponse(
                 beforePhotoIds, afterPhotoIds,
                 paymentStatus, stripePaymentIntentId, stripeSessionId,
                 paidAt, preferredTimeSlot,
-                assignmentResponse, assignmentRespondedAt, assignmentDeclineReason, serviceItemCode
+                assignmentResponse, assignmentRespondedAt, assignmentDeclineReason, serviceItemCode,pausedAt,pauseSeconds,version,customerFeedback,customerRating,requiresFollowUp,followUpNotes
             );
         }
     }

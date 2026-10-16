@@ -45,7 +45,16 @@ class InterventionPhotoServiceTest {
     private Intervention buildIntervention(Long id) {
         Intervention intervention = new Intervention();
         intervention.setId(id);
+        intervention.setOrganizationId(ORG_ID);
         return intervention;
+    }
+    @Test void assignedExternalWorkerReadsTheMissionOrganizationsPhotos(){
+        tenantContext.setOrganizationId(99L);
+        var intervention=buildIntervention(1L);
+        when(interventionPhotoRepository.findAllByInterventionId(1L,ORG_ID)).thenReturn(List.of());
+        service.loadPhotoBundle(intervention);
+        verify(interventionPhotoRepository).findAllByInterventionId(1L,ORG_ID);
+        verify(interventionPhotoRepository,never()).findAllByInterventionId(1L,99L);
     }
 
     // ===== PREPARE + ATTACH PHOTOS =====

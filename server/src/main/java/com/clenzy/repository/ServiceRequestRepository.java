@@ -2,6 +2,7 @@ package com.clenzy.repository;
 
 import com.clenzy.model.*;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.jpa.repository.QueryHints;
@@ -278,6 +279,10 @@ public interface ServiceRequestRepository extends JpaRepository<ServiceRequest, 
      */
     @Query("SELECT sr FROM ServiceRequest sr LEFT JOIN FETCH sr.property LEFT JOIN FETCH sr.user WHERE sr.stripeSessionId = :sessionId")
     Optional<ServiceRequest> findByStripeSessionId(@Param("sessionId") String sessionId);
+
+    @EntityGraph(attributePaths = {"property", "user"})
+    @Query("SELECT s FROM ServiceRequest s WHERE s.id IN :ids AND s.organizationId=:orgId")
+    List<ServiceRequest> findBaitlyPaymentPage(@Param("ids") List<Long> ids, @Param("orgId") Long orgId);
 
     // ── Payment history : SR en AWAITING_PAYMENT ───────────────────────────────
 

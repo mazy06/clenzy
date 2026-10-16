@@ -123,13 +123,21 @@ public class MarketplaceCatalogService {
     @Transactional(readOnly = true)
     public CatalogPageDto searchCatalog(ProviderSearchCriteria criteria, Long organizationId,
                                         List<Long> hiddenIds, com.clenzy.model.Property property) {
+        return searchCatalog(criteria, organizationId, hiddenIds, property, null);
+    }
+
+    /** Contraintes d'exécution supplémentaires, appliquées avant pagination. */
+    @Transactional(readOnly = true)
+    public CatalogPageDto searchCatalog(ProviderSearchCriteria criteria, Long organizationId,
+                                        List<Long> hiddenIds, com.clenzy.model.Property property,
+                                        org.springframework.data.jpa.domain.Specification<MarketplaceProvider> execution) {
         LocalDate today = LocalDate.now(clock);
         var pageable = PageRequest.of(criteria.page(), criteria.size(), sortOf(criteria.sort()));
 
         Page<MarketplaceProvider> page = providerRepository.findAll(
             MarketplaceProviderSpecifications.from(criteria, today)
                 .and(MarketplaceProviderSpecifications.visibleTo(organizationId, hiddenIds))
-                .and(MarketplaceProviderSpecifications.covers(property)),
+                .and(MarketplaceProviderSpecifications.covers(property)).and(execution),
             pageable);
 
         List<MarketplaceProvider> providers = page.getContent();
@@ -169,6 +177,11 @@ public class MarketplaceCatalogService {
         return providerRepository.findById(id);
     }
 
+    /** Prestataire relié au compte PMS {@code userId} (celui de ses missions assignées). */
+    public Optional<MarketplaceProvider> getProviderByUserId(Long userId) {
+        return providerRepository.findByUserId(userId);
+    }
+
     /** Fiche detaillee cote organisation. Le controle de visibilite est fait par l'appelant. */
     @Transactional(readOnly = true)
     public Optional<CatalogProviderDto> getCatalogEntry(Long providerId, Long organizationId) {
@@ -185,7 +198,10 @@ public class MarketplaceCatalogService {
                                               List<MarketplaceProviderZoneRepository.EffectiveZone> zones,
                                               Set<Long> userIdsWithPhoto,
                                               Long organizationId) {
-        offers=offers.stream().filter(o -> documentary.hasReviewedScope(p.getId(),
+        boolean own = organizationId != null && organizationId.equals(p.getHomeOrganizationId());
+        // L'organisation peut préparer le choix de ses propres offres. La validation
+        // documentaire reste obligatoire dans les parcours d'attribution et d'exécution.
+        offers=offers.stream().filter(o -> own || documentary.hasReviewedScope(p.getId(),
                 o.getServiceItem()!=null ? "ITEM:"+o.getServiceItem().getCode() : "CATEGORY:"+o.getCategory().getCode())).toList();
         List<String> coverageCities = zones.stream()
             .sorted((a, b) -> Boolean.compare(b.isPrimary(), a.isPrimary()))
@@ -200,8 +216,6 @@ public class MarketplaceCatalogService {
             .toList();
 
         BigDecimal priceFrom = lowestPrice(offers);
-
-        boolean own = organizationId != null && organizationId.equals(p.getHomeOrganizationId());
 
         return CatalogProviderDto.from(p,
             resolveAvatarUrl(p, userIdsWithPhoto),
@@ -448,6 +462,22 @@ public class MarketplaceCatalogService {
      * personne change sa photo. Une fiche sans compte — candidature deposee
      * depuis le site public — garde la sienne.</p>
      */
+    /**
+     * Photo de chaque fiche, selon la même règle que le catalogue (photo du compte lié, sinon
+     * celle de la fiche sans compte). Une fiche sans photo est absente : l'appelant affiche
+     * les initiales.
+     */
+    @Transactional(readOnly = true)
+    public Map<Long, String> avatarUrls(List<MarketplaceProvider> providers) {
+        Set<Long> userIdsWithPhoto = resolveUserIdsWithPhoto(providers);
+        Map<Long, String> urls = new HashMap<>();
+        for (MarketplaceProvider provider : providers) {
+            String url = resolveAvatarUrl(provider, userIdsWithPhoto);
+            if (url != null) urls.put(provider.getId(), url);
+        }
+        return urls;
+    }
+
     private String resolveAvatarUrl(MarketplaceProvider provider, Set<Long> userIdsWithPhoto) {
         if (provider.getUserId() != null && userIdsWithPhoto.contains(provider.getUserId())) {
             return userService.publicAvatarUrl(provider.getUserId());

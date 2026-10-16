@@ -23,11 +23,11 @@ const FILTERS: Array<{ key: FilterKey; label: string }> = [
 ];
 
 const STATUS_CONFIG: Record<string, { label: string; color: string; icon: IconName }> = {
-  PAID: { label: 'Paye', color: '#059669', icon: 'checkmark-circle' },
+  PAID: { label: 'Payé', color: '#059669', icon: 'checkmark-circle' },
   PENDING: { label: 'En attente', color: '#D97706', icon: 'time-outline' },
   PROCESSING: { label: 'En cours', color: '#3B82F6', icon: 'sync-outline' },
   FAILED: { label: 'Echoue', color: '#EF4444', icon: 'close-circle' },
-  REFUNDED: { label: 'Rembourse', color: '#4A7C8E', icon: 'arrow-undo-outline' },
+  REFUNDED: { label: 'Remboursé', color: '#4A7C8E', icon: 'arrow-undo-outline' },
   CANCELLED: { label: 'Annule', color: '#6B7280', icon: 'ban-outline' },
 };
 
@@ -241,7 +241,7 @@ export function PaymentHistoryScreen() {
                   ? 'Aucun paiement en attente'
                   : filter === 'REFUNDED'
                     ? 'Aucun remboursement'
-                    : 'Aucun paiement trouve'
+                    : 'Aucun paiement trouvé'
             }
             compact
           />
@@ -321,10 +321,7 @@ export function PaymentHistoryScreen() {
 
                   {(payment.status === 'PENDING' || payment.status === 'PROCESSING') ? (
                     <Pressable
-                      onPress={() => navigation.navigate('Dashboard', {
-                        screen: 'PaymentCheckout',
-                        params: { interventionId: payment.interventionId },
-                      })}
+                      onPress={() => navigation.navigate('PaymentCheckout', { interventionId: payment.interventionId })}
                       style={({ pressed }) => ({
                         flexDirection: 'row',
                         alignItems: 'center',

@@ -37,6 +37,7 @@ import type {
 import type { PublicUpsell } from '../../services/api/upsellApi';
 import { POI_CATEGORIES, poiCategory, poiLabel } from './poiCatalog';
 import { GuideMap, type GuideMapPin } from './GuideMap';
+import { GuideDirections } from './GuideDirections';
 import { injectWelcomeBookCss, normalizeTheme } from './welcomeBookThemes';
 import { guideIcon } from './guideIcons';
 
@@ -570,16 +571,14 @@ const WelcomeBookView: React.FC<WelcomeBookViewProps> = ({
   const addressLine = property ? [property.address, property.postalCode, property.city, property.country].filter(Boolean).join(', ') : '';
   const propLat = property?.latitude ?? null;
   const propLng = property?.longitude ?? null;
-  const mapsUrl = propLat != null && propLng != null
-    ? `https://www.google.com/maps/search/?api=1&query=${propLat},${propLng}`
-    : addressLine ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(addressLine)}` : null;
+  const hasLocation = (propLat != null && propLng != null) || !!addressLine;
 
   // Autour de moi.
   const poiPins: GuideMapPin[] = pois.filter((p) => p.lat != null && p.lng != null)
-    .map((p) => ({ lat: p.lat as number, lng: p.lng as number, color: poiCategory(p.category).color, label: p.name || poiLabel(p.category, lang) }));
+    .map((p) => ({ lat: p.lat as number, lng: p.lng as number, color: poiCategory(p.category).color, icon: poiCategory(p.category).Icon, label: p.name || poiLabel(p.category, lang) }));
   const mapCenter: [number, number] | null = propLat != null && propLng != null ? [propLng, propLat] : poiPins[0] ? [poiPins[0].lng, poiPins[0].lat] : null;
   const mapPins: GuideMapPin[] = propLat != null && propLng != null
-    ? [{ lat: propLat, lng: propLng, color: '#BC5B36', label: property?.name || model.title }, ...poiPins] : poiPins;
+    ? [{ lat: propLat, lng: propLng, color: '#BC5B36', icon: 'home', label: property?.name || model.title }, ...poiPins] : poiPins;
   const poiGroups = POI_CATEGORIES.flatMap((c) => {
     const items = pois.filter((p) => p.category === c.id);
     return items.length > 0 ? [{ cat: c, items }] : [];
@@ -839,7 +838,7 @@ const WelcomeBookView: React.FC<WelcomeBookViewProps> = ({
                 <div className="wb-label" style={{ marginBottom: 3 }}>{L.address}</div>
                 <div style={{ fontWeight: 700, fontSize: 14, lineHeight: 1.4 }}>{addressLine}</div>
               </div>
-              {mapsUrl ? <a href={interactive ? mapsUrl : undefined} target="_blank" rel="noopener noreferrer" className="wb-btn wb-btn--soft wb-pressable" style={{ flexShrink: 0, padding: '10px 14px', fontSize: 13, borderRadius: 13, textDecoration: 'none', cursor: interactive ? 'pointer' : 'default' }}><Navigation size={16} strokeWidth={1.7} /> {L.viewMap}</a> : null}
+              {hasLocation ? <GuideDirections target={{ lat: propLat, lng: propLng, address: addressLine }} labels={L} interactive={interactive} className="wb-btn wb-btn--soft wb-pressable" style={{ padding: '10px 14px', fontSize: 13, borderRadius: 13 }}><Navigation size={16} strokeWidth={1.7} /> {L.viewMap}</GuideDirections> : null}
             </div>
           </div>
         ) : null}
@@ -954,7 +953,7 @@ const WelcomeBookView: React.FC<WelcomeBookViewProps> = ({
               {items.map((p) => {
                 const CatIcon = cat.Icon;
                 const dist = propLat != null && propLng != null && p.lat != null && p.lng != null ? distanceKm(propLat, propLng, p.lat, p.lng) : null;
-                const gmaps = p.lat != null && p.lng != null ? `https://www.google.com/maps/search/?api=1&query=${p.lat},${p.lng}` : p.address ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(p.address)}` : null;
+                const hasPlace = (p.lat != null && p.lng != null) || !!p.address;
                 return (
                   <div key={p.id} className="wb-card" style={{ padding: 15, display: 'flex', gap: 13, background: 'var(--raised)' }}>
                     <div style={poiIconBoxStyle}><CatIcon size={21} strokeWidth={1.7} style={{ color: cat.color }} /></div>
@@ -969,7 +968,7 @@ const WelcomeBookView: React.FC<WelcomeBookViewProps> = ({
                         {dist != null ? <span style={{ display: 'inline-flex', alignItems: 'center', gap: 3, fontVariantNumeric: 'tabular-nums' }}><Footprints size={13} strokeWidth={1.7} />{fmtDistance(dist)}</span> : null}
                       </div>
                       {p.note ? <div style={{ fontSize: 13.5, lineHeight: 1.5, color: 'var(--ink-soft)' }}>{p.note}</div> : null}
-                      {gmaps ? <a href={interactive ? gmaps : undefined} target="_blank" rel="noopener noreferrer" style={{ ...poiMapLinkStyle, cursor: interactive ? 'pointer' : 'default' }}><MapPin size={13} strokeWidth={1.7} />{L.viewMap}</a> : null}
+                      {hasPlace ? <GuideDirections target={{ lat: p.lat, lng: p.lng, address: p.address }} labels={L} interactive={interactive} style={{ ...poiMapLinkStyle, background: 'none', border: 0, padding: 0 }}><MapPin size={13} strokeWidth={1.7} />{L.viewMap}</GuideDirections> : null}
                     </div>
                   </div>
                 );

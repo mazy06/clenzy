@@ -31,7 +31,7 @@ const DOC_TYPE_CONFIG: Record<string, { icon: IconName; color: string; label: st
 const STATUS_CONFIG: Record<string, { label: string; color: 'success' | 'warning' | 'info' }> = {
   DRAFT: { label: 'Brouillon', color: 'warning' },
   SENT: { label: 'Envoye', color: 'info' },
-  PAID: { label: 'Paye', color: 'success' },
+  PAID: { label: 'Payé', color: 'success' },
 };
 
 function formatDate(dateStr: string): string {
@@ -132,14 +132,14 @@ export function DocumentDetailScreen() {
     const fileInfo = await FileSystem.getInfoAsync(result.uri);
     if (!fileInfo.exists || fileInfo.size < 100) {
       await FileSystem.deleteAsync(result.uri, { idempotent: true });
-      throw new Error('Le fichier telecharge est invalide. Veuillez reessayer.');
+      throw new Error('Le fichier téléchargé est invalide. Veuillez réessayer.');
     }
 
     // Check content-type header if available
     const contentType = result.headers?.['content-type'] || result.headers?.['Content-Type'] || '';
     if (contentType.includes('text/html')) {
       await FileSystem.deleteAsync(result.uri, { idempotent: true });
-      throw new Error('Session expiree. Veuillez vous reconnecter.');
+      throw new Error('Session expirée. Veuillez vous reconnecter.');
     }
 
     return result.uri;
@@ -176,7 +176,7 @@ export function DocumentDetailScreen() {
   }, []);
 
   const handleMarkPaid = useCallback(() => {
-    Alert.alert('Info', 'Le marquage comme paye sera disponible prochainement.');
+    Alert.alert('Info', 'Le marquage comme payé sera disponible prochainement.');
   }, []);
 
   /* --- Loading --- */
@@ -296,7 +296,7 @@ export function DocumentDetailScreen() {
               <InfoRow icon="home-outline" label="Propriete" value={document.propertyName} theme={theme} />
             )}
             {document.reservationCode && (
-              <InfoRow icon="bookmark-outline" label="Reservation" value={document.reservationCode} theme={theme} />
+              <InfoRow icon="bookmark-outline" label="Réservation" value={document.reservationCode} theme={theme} />
             )}
             {document.guestName && (
               <InfoRow icon="person-outline" label="Voyageur" value={document.guestName} theme={theme} />
@@ -314,7 +314,7 @@ export function DocumentDetailScreen() {
               icon={<Reicon name="eye-outline" size={18} color="#fff" />}
             />
             <Button
-              title="Telecharger PDF"
+              title="Télécharger PDF"
               onPress={handleDownload}
               variant="soft"
               fullWidth
@@ -330,7 +330,7 @@ export function DocumentDetailScreen() {
             />
             {document.status !== 'PAID' && (
               <Button
-                title="Marquer comme paye"
+                title="Marquer comme payé"
                 onPress={handleMarkPaid}
                 variant="soft"
                 color="success"

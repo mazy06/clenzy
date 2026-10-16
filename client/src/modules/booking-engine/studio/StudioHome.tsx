@@ -766,7 +766,7 @@ export default function StudioHome({ embedded = false }: { embedded?: boolean })
               {/* « + » : propose les champs non encore ajoutés pour un prompt complet et standardisé. */}
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <button className="chip chip--icon" aria-label={t('studio.home.addFieldToPrompt')} type="button" title="{t('studio.home.addField')}">
+                  <button className="chip chip--icon" aria-label={t('studio.home.addFieldToPrompt')} type="button" title={t('studio.home.addField')}>
                     <Plus size={16} strokeWidth={2} />
                   </button>
                 </DropdownMenuTrigger>

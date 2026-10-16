@@ -4,8 +4,9 @@ import { reservationsApi } from '../../../services/api/reservationsApi';
 import type { PlanningIntervention } from '../../../services/api';
 import type { PlanningEvent } from '../types';
 import { planningKeys } from './usePlanningData';
-import { validateReservationUpdate } from '../utils/conflictUtils';
+import { validateReservationUpdate, validatePlanningEvent } from '../utils/conflictUtils';
 import { useTranslation } from '../../../hooks/useTranslation';
+import type { PlanningData } from '../../../services/api/planningDataApi';
 
 interface ReservationTimeUpdate {
   checkIn?: string;
@@ -41,8 +42,8 @@ export function useReservationUpdate(
       const res = currentEvent.reservation;
       const newCheckIn = updates.checkIn ?? res.checkIn;
       const newCheckOut = updates.checkOut ?? res.checkOut;
-      const newCheckInTime = updates.checkInTime ?? res.checkInTime;
-      const newCheckOutTime = updates.checkOutTime ?? res.checkOutTime;
+      const newCheckInTime = updates.checkInTime ?? currentEvent.startTime;
+      const newCheckOutTime = updates.checkOutTime ?? currentEvent.endTime;
 
       // Validate: no conflicts + enough time for interventions
       const validation = validateReservationUpdate(
@@ -57,7 +58,7 @@ export function useReservationUpdate(
       );
 
       if (!validation.valid) {
-        return { success: false, error: validation.error };
+        return { success: false, error: t(`planning.feedback.${validation.reason}`) };
       }
 
       try {
@@ -69,7 +70,7 @@ export function useReservationUpdate(
         return { success: false, error: 'Erreur lors de la mise a jour' };
       }
     },
-    [queryClient, events, interventions],
+    [queryClient, events, interventions, t],
   );
 
   const changeProperty = useCallback(
@@ -84,21 +85,11 @@ export function useReservationUpdate(
         return { success: false, error: 'Reservation introuvable' };
       }
 
-      // Validate: no overlap on target property
-      const targetReservations = events.filter(
-        (e) =>
-          e.type === 'reservation' &&
-          e.propertyId === newPropertyId,
-      );
-      const hasOverlap = targetReservations.some(
-        (e) =>
-          currentEvent.startDate < e.endDate &&
-          currentEvent.endDate > e.startDate,
-      );
-      if (hasOverlap) {
+      const validation = validatePlanningEvent({ ...currentEvent, propertyId: newPropertyId }, events);
+      if (!validation.valid) {
         return {
           success: false,
-          error: t('planning.conflictTargetProperty'),
+          error: t(`planning.feedback.${validation.reason}`),
         };
       }
 
@@ -114,7 +105,7 @@ export function useReservationUpdate(
         return { success: false, error: t('planning.propertyChangeError') };
       }
     },
-    [queryClient, events],
+    [queryClient, events, t],
   );
 
   const cancelReservation = useCallback(
@@ -206,25 +197,22 @@ export function useReservationUpdate(
     ): Promise<UpdateResult> => {
       try {
         const serverRes = await reservationsApi.update(reservationId, updates);
-        // Update cache with server response (authoritative) merged with local updates
-        queryClient.setQueriesData(
-          { queryKey: [...planningKeys.all, 'reservations'] },
-          (old: unknown) => {
-            if (!Array.isArray(old)) return old;
-            return old.map((r: any) => {
+        // Met à jour la source réellement affichée ; l'alerte d'e-mail cesse immédiatement.
+        queryClient.setQueriesData<PlanningData>(
+          { queryKey: [...planningKeys.all, 'data'] },
+          (old) => {
+            if (!old) return old;
+            return { ...old, reservations: old.reservations.map((r) => {
               if (r.id !== reservationId) return r;
               return {
                 ...r,
+                ...updates,
                 // Use server response for all fields (it includes the persisted guest email)
                 ...(serverRes.guestName !== undefined && { guestName: serverRes.guestName }),
                 ...(serverRes.guestEmail !== undefined && { guestEmail: serverRes.guestEmail }),
                 ...(serverRes.guestPhone !== undefined && { guestPhone: serverRes.guestPhone }),
-                // Also apply local updates as fallback in case server doesn't return them
-                ...(updates.guestName !== undefined && { guestName: updates.guestName }),
-                ...(updates.guestEmail !== undefined && { guestEmail: updates.guestEmail }),
-                ...(updates.guestPhone !== undefined && { guestPhone: updates.guestPhone }),
               };
-            });
+            }) };
           },
         );
 
@@ -233,7 +221,7 @@ export function useReservationUpdate(
         return { success: false, error: t('planning.clientUpdateError') };
       }
     },
-    [queryClient],
+    [queryClient, t],
   );
 
   return { updateReservation, changeProperty, cancelReservation, updateNotes, duplicateReservation, hideReservation, updateGuestInfo };

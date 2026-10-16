@@ -1,5 +1,5 @@
 import React, { lazy, Suspense, useEffect } from 'react';
-import { Routes, Route, Navigate, useParams } from 'react-router-dom';
+import { Routes, Route, Navigate, useParams, useLocation } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
 import ProtectedRoute from '../components/ProtectedRoute';
 import { FIELD_ROLES } from '../utils/fieldRoles';
@@ -180,6 +180,7 @@ const ManagementContractsPage = lazy(() => import('./contracts/ManagementContrac
 
 const AuthenticatedApp: React.FC = () => {
   const { user } = useAuth();
+  const { pathname } = useLocation();
   useAssignmentEventStream(user ? `${user.id}:${user.organizationId}` : null);
   const queryClient = useQueryClient();
 
@@ -192,7 +193,8 @@ const AuthenticatedApp: React.FC = () => {
     void import('./planning/hooks/usePlanningData')
       .then((m) => m.prefetchPlanningProperties(queryClient, user))
       .catch(() => { /* prefetch best-effort — la page fetchera elle-même */ });
-    warmHotRoutes();
+    // Le planning déclenche le préchargement après ses détails prioritaires.
+    if (pathname !== '/planning') warmHotRoutes();
     // Volontairement au mount uniquement : le prefetch est idempotent (même
     // clé react-query) et user est garanti présent quand ce composant rend.
     // eslint-disable-next-line react-hooks/exhaustive-deps

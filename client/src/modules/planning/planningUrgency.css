@@ -102,9 +102,9 @@
  * voyageur manquante. La brique porte la classe .pl-urgent ; le TYPE de
  * mouvement est sélectionné par l'attribut racine [data-wizz="…"] posé sur
  * <html> (useUrgencyAnimation) — le CSS fait le reste :
- *   - .pl-urgent seul = anneau pulsé permanent (plRingWave) ;
- *   - [data-wizz="shake|wobble|pop|tada"] = mouvement + anneau ;
- *   - [data-wizz="none"] = anneau seul (règle de base).
+ *   - .pl-urgent seul et [data-wizz="none"] = anneau statique ;
+ *   - [data-wizz="shake|wobble|pop|tada"] = deux cycles puis retour au repos.
+ *   - e-mail manquant = animation en boucle jusqu'à correction.
  * La couleur de l'anneau est portée par la custom property `--bc`, posée
  * inline sur la brique (= sa couleur de statut).
  */
@@ -112,8 +112,8 @@
 /* Chiffre de la pastille « actions a valider ». Le FOND, lui, ne bascule pas :
    --pl-st-pending vaut #E0C89B dans les deux themes (les fonds pales tiennent
    tels quels sur la grille sombre). Seule l'encre change. */
-:root            { --pl-hitl-digit: #FFFFFF; }  /* 1,6:1 — choix produit */
-[data-theme="dark"] { --pl-hitl-digit: #000000; }  /* 13,4:1 */
+:root { --pl-hitl-digit: #2B211A; }
+[data-theme="dark"] { --pl-hitl-digit: #2B211A; }
 
 /* ─── Infobulles du planning : la surface DU theme, pas son inverse ──────────
  *
@@ -190,12 +190,19 @@
   100% { box-shadow: 0 0 0 0 transparent; }
 }
 
-/* Anneau seul par défaut ; le mouvement est ajouté par l'attribut racine. */
-.pl-urgent { animation: plRingWave 2.4s ease-out infinite; }
-[data-wizz="shake"] .pl-urgent { animation: plWizzShake 3.6s ease-in-out infinite, plRingWave 2.4s ease-out infinite; }
-[data-wizz="wobble"] .pl-urgent { animation: plWizzWobble 4s ease-in-out infinite, plRingWave 2.4s ease-out infinite; }
-[data-wizz="pop"] .pl-urgent { animation: plWizzPop 3.8s ease-in-out infinite, plRingWave 2.4s ease-out infinite; }
-[data-wizz="tada"] .pl-urgent { animation: plWizzTada 4.2s ease-in-out infinite, plRingWave 2.4s ease-out infinite; }
+/* Anneau statique par défaut ; les mouvements choisis restent limités. */
+.pl-urgent { box-shadow: 0 0 0 1px color-mix(in srgb, var(--bc) 60%, transparent); }
+[data-wizz="shake"] .pl-urgent { animation: plWizzShake 3.6s ease-in-out 2, plRingWave 2.4s ease-out 2; }
+[data-wizz="wobble"] .pl-urgent { animation: plWizzWobble 4s ease-in-out 2, plRingWave 2.4s ease-out 2; }
+[data-wizz="pop"] .pl-urgent { animation: plWizzPop 3.8s ease-in-out 2, plRingWave 2.4s ease-out 2; }
+[data-wizz="tada"] .pl-urgent { animation: plWizzTada 4.2s ease-in-out 2, plRingWave 2.4s ease-out 2; }
+
+/* L'e-mail manquant reste signalé en boucle. Sans variante de mouvement
+ * choisie, le planning Baitly reprend le tremblement historique. */
+.pl-urgent.pl-email-missing { animation: plWizzShake 3.6s ease-in-out infinite, plRingWave 2.4s ease-out infinite; }
+[data-wizz="wobble"] .pl-urgent.pl-email-missing { animation: plWizzWobble 4s ease-in-out infinite, plRingWave 2.4s ease-out infinite; }
+[data-wizz="pop"] .pl-urgent.pl-email-missing { animation: plWizzPop 3.8s ease-in-out infinite, plRingWave 2.4s ease-out infinite; }
+[data-wizz="tada"] .pl-urgent.pl-email-missing { animation: plWizzTada 4.2s ease-in-out infinite, plRingWave 2.4s ease-out infinite; }
 
 /* prefers-reduced-motion : pas d'animation périodique, anneau STATIQUE
  * conservé à 55 % d'alpha (l'info d'urgence reste visible sans mouvement). */
@@ -231,3 +238,13 @@
   padding-block: 2px;
 }
 .pl-filter-row::-webkit-scrollbar { display: none; }
+
+/* Animation locale, déclarée en CSS plutôt qu'injectée à chaque module. */
+@keyframes radar-pulse {
+  0% { transform: scale(1); opacity: .55; }
+  100% { transform: scale(2.6); opacity: 0; }
+}
+@keyframes select-pop {
+  0% { transform: translateY(0); }
+  100% { transform: translateY(-1px); }
+}

@@ -7,23 +7,28 @@ const ENV = {
   development: {
     BASE_URL: 'http://localhost:8084',
     KEYCLOAK_URL: 'http://localhost:8086',
+    WEB_URL: 'http://localhost:3000',
   },
   staging: {
     BASE_URL: 'https://api.staging.clenzy.fr',
     KEYCLOAK_URL: 'https://auth.staging.clenzy.fr',
+    WEB_URL: 'https://app.clenzy.fr',
   },
   production: {
     BASE_URL: 'https://api.clenzy.fr',
     KEYCLOAK_URL: 'https://auth.clenzy.fr',
+    WEB_URL: 'https://app.baitly.fr',
   },
 };
 
 const environment = (__DEV__ ? 'development' : 'production') as keyof typeof ENV;
 
 export const API_CONFIG = {
-  BASE_URL: ENV[environment].BASE_URL,
+  BASE_URL: process.env.EXPO_PUBLIC_API_URL || ENV[environment].BASE_URL,
   BASE_PATH: '/api',
-  KEYCLOAK_URL: ENV[environment].KEYCLOAK_URL,
+  KEYCLOAK_URL: process.env.EXPO_PUBLIC_KEYCLOAK_URL || ENV[environment].KEYCLOAK_URL,
+  /** PMS web : sert la carte Baitly embarquée (`/embed-map.html`) et ses tuiles. */
+  WEB_URL: ENV[environment].WEB_URL,
   KEYCLOAK_REALM: 'clenzy',
   KEYCLOAK_CLIENT_ID: 'clenzy-mobile',
   ENDPOINTS: {

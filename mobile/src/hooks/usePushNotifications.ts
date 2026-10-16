@@ -3,6 +3,7 @@ import * as Notifications from 'expo-notifications';
 import { Linking } from 'react-native';
 import { useNotificationStore } from '@/store/notificationStore';
 import { registerForPushNotifications } from '@/services/push/pushService';
+import { BAITLY_QUERY_ROOT } from '@/config/baitlyCache';
 import { useQueryClient } from '@tanstack/react-query';
 
 /**
@@ -93,7 +94,7 @@ export function usePushNotifications() {
       // Invalidate relevant queries so data refreshes
       const data = notification.request.content.data;
       const type = data?.type as string | undefined;
-      const keys = getInvalidationKeys(type);
+      const keys = [...getInvalidationKeys(type), [BAITLY_QUERY_ROOT]];
       for (const key of keys) {
         queryClient.invalidateQueries({ queryKey: key });
       }
@@ -113,7 +114,7 @@ export function usePushNotifications() {
   );
 
   useEffect(() => {
-    registerForPushNotifications();
+    void registerForPushNotifications().catch(() => {});
 
     // Foreground notification received
     notificationListener.current = Notifications.addNotificationReceivedListener(

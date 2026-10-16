@@ -8,26 +8,36 @@ import type { QuoteReplacementContext } from '../../hooks/useQuoteReplacement';
 
 const fieldClass = 'h-9 min-w-0 rounded-md border border-border bg-background px-3 text-sm text-foreground focus-visible:outline-2 focus-visible:outline-primary';
 
-export default function QuoteRequestDialog({ provider, open, onOpenChange, initialPropertyId = '', replacement }: {
+export default function QuoteRequestDialog({ provider, open, onOpenChange, initialPropertyId = '', replacement, initialTitle = '', initialServiceItemCode, initialDate = '', initialMessage = '', initialStartTime = '', initialDurationMinutes = 60 }: {
   provider: CatalogProviderDto;
   open: boolean;
   onOpenChange: (open: boolean) => void;
   initialPropertyId?: string;
   replacement?: QuoteReplacementContext;
+  initialTitle?: string;
+  initialServiceItemCode?: string;
+  initialDate?: string;
+  initialMessage?: string;
+  initialStartTime?: string;
+  initialDurationMinutes?: number;
 }) {
   const { t } = useTranslation();
-  const [title, setTitle] = useState(replacement?.title ?? '');
-  const [message, setMessage] = useState('');
+  const [title, setTitle] = useState(replacement?.title ?? initialTitle);
+  const [message, setMessage] = useState(initialMessage);
   const [propertyId, setPropertyId] = useState(replacement ? String(replacement.propertyId ?? '') : initialPropertyId);
-  const [desiredDate, setDesiredDate] = useState(replacement?.desiredDate ?? '');
+  const [desiredDate, setDesiredDate] = useState(replacement?.desiredDate ?? initialDate);
+  const [startTime, setStartTime] = useState(initialStartTime);
+  const [durationMinutes, setDurationMinutes] = useState(String(initialDurationMinutes));
   const [offerId, setOfferId] = useState(() => replacement ? String(provider.offers.find(offer =>
-    (replacement.serviceItemCode ? offer.serviceItemCode === replacement.serviceItemCode : offer.categoryCode === replacement.categoryCode))?.id ?? '') : '');
+    (replacement.serviceItemCode ? offer.serviceItemCode === replacement.serviceItemCode : offer.categoryCode === replacement.categoryCode))?.id ?? '')
+    : String(provider.offers.find(offer => offer.serviceItemCode === initialServiceItemCode && initialServiceItemCode)?.id ?? ''));
   const { data: properties = [], isLoading, isError } = useMarketplaceProperties(open);
   const selectedOffer = provider.offers.find((offer) => String(offer.id) === offerId);
   const createRequest = useCreateQuoteRequest(replacement?.quoteId);
   const validProperty = !propertyId || properties.some((property) => String(property.id) === propertyId);
   const canSubmit = title.trim().length > 0 && !createRequest.isPending && validProperty && !replacement?.activeRequestId
-    && (!replacement?.requiresServiceSelection || !!selectedOffer?.serviceItemCode);
+    && (!replacement?.requiresServiceSelection || !!selectedOffer?.serviceItemCode)
+    && (!initialStartTime || (!!desiredDate && !!startTime && Number(durationMinutes)>=15 && Number(durationMinutes)<=1440));
 
   const submit = (event: FormEvent) => {
     event.preventDefault();
@@ -37,6 +47,8 @@ export default function QuoteRequestDialog({ provider, open, onOpenChange, initi
       propertyId: propertyId ? Number(propertyId) : null,
       categoryCode: selectedOffer?.categoryCode, serviceItemCode: selectedOffer?.serviceItemCode,
       desiredDate: desiredDate || null,
+      requestedStartTime: initialStartTime ? startTime : undefined,
+      requestedDurationMinutes: initialStartTime ? Number(durationMinutes) : undefined,
     }, { onSuccess: () => {
       onOpenChange(false);
       if (!replacement) { setTitle(''); setMessage(''); setPropertyId(initialPropertyId); setDesiredDate(''); setOfferId(''); }
@@ -85,6 +97,14 @@ export default function QuoteRequestDialog({ provider, open, onOpenChange, initi
                 <input type="date" value={desiredDate} onChange={(event) => setDesiredDate(event.target.value)} className={fieldClass} />
               </label>
             </div>
+            {!!initialStartTime && <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+              <label className="flex flex-col gap-1.5 text-sm">{t('upsellFulfillment.time')}
+                <input type="time" value={startTime} onChange={e => setStartTime(e.target.value)} required className={fieldClass} />
+              </label>
+              <label className="flex flex-col gap-1.5 text-sm">{t('upsellFulfillment.durationMinutes')}
+                <input type="number" min={15} max={1440} value={durationMinutes} onChange={e => setDurationMinutes(e.target.value)} required className={fieldClass} />
+              </label>
+            </div>}
             {(isError || !validProperty) && <p role="alert" className="text-xs text-destructive-ink">{t('marketplaceWorkflow.propertiesFailed')}</p>}
             {createRequest.isError && <p role="alert" className="text-sm text-destructive-ink">
               {(createRequest.error as Error)?.message || t('marketplaceWorkflow.sendFailed')}

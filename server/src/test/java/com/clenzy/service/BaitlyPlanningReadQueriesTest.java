@@ -1,0 +1,310 @@
+package com.clenzy.service;
+
+import com.clenzy.dto.BaitlyPlanningReservationIndex;
+import com.clenzy.dto.BaitlyPlanningReservationRow;
+import com.clenzy.dto.BaitlyPlanningGuestContact;
+import com.clenzy.util.BaitlyFieldDecryptionTiming;
+import com.clenzy.config.EncryptedFieldConverter;
+import com.clenzy.model.*;
+import com.clenzy.repository.*;
+import jakarta.persistence.EntityManager;
+import jakarta.persistence.Tuple;
+import org.hibernate.SessionFactory;
+import org.hibernate.cfg.Configuration;
+import org.junit.jupiter.api.*;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.repository.Query;
+import java.io.ByteArrayInputStream;
+import java.lang.reflect.Modifier;
+import java.nio.charset.StandardCharsets;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.util.*;
+import static org.assertj.core.api.Assertions.assertThat;
+
+/** Vraies projections et prédicats d'isolation, sur H2, sans Docker. */
+class BaitlyPlanningReadQueriesTest {
+    static SessionFactory sessions;
+    EntityManager em;
+
+    @BeforeAll static void mapping() {
+        new EncryptedFieldConverter().setEncryptorPassword("baitly-planning-test-key");
+        String xml = "<entity-mappings xmlns=\"https://jakarta.ee/xml/ns/persistence/orm\" version=\"3.1\">"
+                + entity(User.class, "users", Set.of("organizationId", "firstName", "lastName", "keycloakId"), Map.of())
+                + entity(Property.class, "properties", Set.of("organizationId", "name", "address", "city", "maxGuests", "type",
+                    "nightlyPrice", "minimumNights", "defaultCheckInTime", "defaultCheckOutTime", "cleaningFrequency",
+                    "cleaningBasePrice", "defaultCurrency", "latitude", "longitude", "createdAt"), Map.of("owner", User.class))
+                + entity(Reservation.class, "reservations", Set.of("organizationId", "guestName", "guestCount", "checkIn", "checkOut",
+                    "checkInTime", "checkOutTime", "status", "source", "sourceName", "totalPrice", "paymentStatus", "paymentCollection",
+                    "hiddenFromPlanning", "otaFeeAmount", "notes", "confirmationCode", "adultsCount", "childrenCount",
+                    "cleaningFee", "touristTaxAmount", "paymentLinkSentAt", "paymentLinkEmail", "paidAt"),
+                    Map.of("property", Property.class, "guest", Guest.class, "intervention", Intervention.class))
+                + entity(Intervention.class, "interventions", Set.of("organizationId", "serviceItemCode", "type", "status", "priority",
+                    "title", "description", "scheduledDate", "estimatedDurationHours", "notes", "teamId",
+                    "paymentStatus", "estimatedCost", "actualCost", "paidAt"),
+                    Map.of("property", Property.class, "assignedUser", User.class, "serviceRequest", ServiceRequest.class))
+                + entity(ServiceRequest.class, "service_requests", Set.of("organizationId", "reservationId"), Map.of())
+                + entity(Team.class, "teams", Set.of("organizationId", "name"), Map.of())
+                + entity(PropertyPhoto.class, "property_photos", Set.of("organizationId", "propertyId", "externalUrl", "sortOrder"), Map.of())
+                + "</entity-mappings>";
+        sessions = new Configuration().addPackage("com.clenzy.model")
+                .addAnnotatedClass(Guest.class)
+                .addInputStream(new ByteArrayInputStream(xml.getBytes(StandardCharsets.UTF_8)))
+                .setProperty("hibernate.connection.url", "jdbc:h2:mem:baitly_planning_reads;MODE=PostgreSQL")
+                .setProperty("hibernate.hbm2ddl.auto", "create-drop")
+                .setProperty("jakarta.persistence.validation.mode", "none")
+                .setProperty("hibernate.generate_statistics", "true").buildSessionFactory();
+    }
+
+    static String entity(Class<?> type, String table, Set<String> basic, Map<String, Class<?>> relations) {
+        var xml = new StringBuilder("<entity class=\"").append(type.getName())
+                .append("\" access=\"FIELD\" metadata-complete=\"true\"><table name=\"").append(table)
+                .append("\"/><attributes><id name=\"id\"/>");
+        for (var field : type.getDeclaredFields()) {
+            String name = field.getName();
+            if (Modifier.isStatic(field.getModifiers()) || name.equals("id")) continue;
+            if (relations.containsKey(name)) {
+                xml.append("<many-to-one fetch=\"LAZY\" name=\"").append(name).append("\" target-entity=\"")
+                        .append(relations.get(name).getName()).append("\"><join-column name=\"")
+                        .append(name).append("_id\"/></many-to-one>");
+            } else if (basic.contains(name)) {
+                xml.append("<basic name=\"").append(name).append("\">");
+                if (name.equals("organizationId")) xml.append("<column name=\"organization_id\"/>");
+                if (field.getType().isEnum()) xml.append("<enumerated>STRING</enumerated>");
+                if (type == User.class && (name.equals("firstName") || name.equals("lastName")))
+                    xml.append("<convert converter=\"com.clenzy.config.EncryptedFieldConverter\"/>");
+                xml.append("</basic>");
+            } else xml.append("<transient name=\"").append(name).append("\"/>");
+        }
+        return xml.append("</attributes></entity>").toString();
+    }
+
+    @AfterAll static void close() { if (sessions != null) sessions.close(); }
+    @BeforeEach void setup() { em = sessions.createEntityManager(); em.getTransaction().begin(); }
+    @AfterEach void rollback() { em.getTransaction().rollback(); em.close(); }
+
+    User owner(long id, String kc) {
+        User user = new User(); user.setId(id); user.setOrganizationId(1L); user.setKeycloakId(kc); user.setFirstName("Alice"); user.setLastName("Martin");
+        em.persist(user); return user;
+    }
+    Property property(long id, long org, User owner) {
+        Property p = new Property(); p.setId(id); p.setOrganizationId(org); p.setOwner(owner); p.setName("Logement " + id);
+        p.setAddress("Adresse"); p.setCreatedAt(LocalDateTime.of(2026, 10, 1, 0, 0)); em.persist(p); return p;
+    }
+
+    @Test void cataloguePaginationAndOwnerScopeAreAppliedInSqlBeyondThousandProperties() throws Exception {
+        User host = owner(1, "host"), other = owner(2, "other");
+        for (int i = 1; i <= 1101; i++) property(i, 1, host);
+        property(2000, 1, other); property(2001, 2, host);
+        em.flush(); em.clear();
+        Query annotation = PropertyRepository.class.getMethod("findBaitlyPlanningProperties", Long.class, String.class, Pageable.class).getAnnotation(Query.class);
+        var rows = em.createQuery(annotation.value(), Tuple.class).setParameter("orgId", 1L).setParameter("ownerKc", "host")
+                .setFirstResult(1000).setMaxResults(200).getResultList();
+        assertThat(rows).hasSize(101);
+        assertThat(rows.getFirst().get("ownerId")).isEqualTo(1L);
+        assertThat(em.createQuery(annotation.countQuery(), Long.class).setParameter("orgId", 1L).setParameter("ownerKc", "host")
+                .getSingleResult()).isEqualTo(1101);
+    }
+
+    @Test void catalogueDecryptsOwnerNamesOncePerPageAndScopesNamesThroughProperties() throws Exception {
+        User host = owner(1, "host"), foreign = owner(2, "foreign");
+        host.setOrganizationId(2L); foreign.setOrganizationId(2L);
+        for (int i = 1; i <= 200; i++) property(i, 1, host);
+        property(1000, 2, foreign); em.flush(); em.clear(); sessions.getStatistics().clear();
+        String rowsQuery = PropertyRepository.class.getMethod("findBaitlyPlanningProperties", Long.class, String.class, Pageable.class)
+                .getAnnotation(Query.class).value();
+        String namesQuery = UserRepository.class.getMethod("findBaitlyPlanningPropertyOwners", Collection.class, Long.class)
+                .getAnnotation(Query.class).value();
+        try (var timing = BaitlyFieldDecryptionTiming.open()) {
+            var rows = em.createQuery(rowsQuery, Tuple.class).setParameter("orgId", 1L).setParameter("ownerKc", "host")
+                    .setMaxResults(200).getResultList();
+            assertThat(rows).hasSize(200);
+            assertThat(timing.count()).isZero();
+            var ids = new ArrayList<>(rows.stream().map(row -> (Long) row.get("id")).toList());
+            ids.add(1000L);
+            var names = em.createQuery(namesQuery, com.clenzy.dto.BaitlyPlanningPersonName.class)
+                    .setParameter("propertyIds", ids).setParameter("orgId", 1L).getResultList();
+            assertThat(names).singleElement().satisfies(name -> {
+                assertThat(name.id()).isEqualTo(1L); assertThat(name.displayName()).isEqualTo("Alice Martin");
+            });
+            assertThat(timing.count()).isEqualTo(2);
+        }
+        assertThat(sessions.getStatistics().getEntityLoadCount()).isZero();
+    }
+
+    @Test void indexUsesTheRealConstructorAndExcludesHiddenForeignAndOutOfRangeStays() throws Exception {
+        User host = owner(1, "host"); Property p = property(1, 1, host), foreign = property(2, 2, host);
+        for (int i = 1; i <= 4; i++) {
+            Reservation r = new Reservation(); r.setId((long)i); r.setOrganizationId(i == 3 ? 2L : 1L);
+            r.setProperty(i == 3 ? foreign : p); r.setGuestName("Voyageur"); r.setGuestCount(2);
+            r.setCheckIn(LocalDate.of(2026, 10, i == 4 ? 20 : 1)); r.setCheckOut(LocalDate.of(2026, 10, 25));
+            r.setStatus("confirmed"); r.setSource("airbnb"); r.setPaymentStatus(PaymentStatus.PAID);
+            r.setPaymentCollection(PaymentCollection.CHANNEL); r.setHiddenFromPlanning(i == 2); em.persist(r);
+        }
+        em.flush(); em.clear();
+        var query = ReservationRepository.class.getMethod("findBaitlyPlanningIndex", Collection.class, LocalDate.class, LocalDate.class, Long.class)
+                .getAnnotation(Query.class).value();
+        sessions.getStatistics().clear();
+        var rows = em.createQuery(query, BaitlyPlanningReservationIndex.class).setParameter("propertyIds", List.of(1L, 2L))
+                .setParameter("orgId", 1L).setParameter("from", LocalDate.of(2026, 10, 5)).setParameter("to", LocalDate.of(2026, 10, 10)).getResultList();
+        assertThat(rows).singleElement().satisfies(row -> { assertThat(row.id()).isEqualTo(1L); assertThat(row.collectedByChannel()).isTrue(); });
+        assertThat(sessions.getStatistics().getPrepareStatementCount()).isEqualTo(1);
+        assertThat(sessions.getStatistics().getEntityLoadCount()).isZero();
+    }
+
+    @Test void repeatedInterventionAssigneesDecryptOnlyDistinctScopedNames() throws Exception {
+        owner(1, "host"); User foreign = owner(2, "other"); foreign.setOrganizationId(2L);
+        em.flush(); em.clear(); sessions.getStatistics().clear();
+        String query = UserRepository.class.getMethod("findBaitlyPlanningAssignees", Collection.class, Long.class)
+                .getAnnotation(Query.class).value();
+        try (var timing = BaitlyFieldDecryptionTiming.open()) {
+            var names = em.createQuery(query, com.clenzy.dto.BaitlyPlanningPersonName.class)
+                    .setParameter("ids", List.of(1L, 2L)).setParameter("orgId", 1L).getResultList();
+            assertThat(names).singleElement().satisfies(name -> assertThat(name.displayName()).isEqualTo("Alice Martin"));
+            assertThat(timing.count()).isEqualTo(2);
+        }
+        assertThat(sessions.getStatistics().getEntityLoadCount()).isZero();
+    }
+
+    @Test void accessProjectionIncludesOrganizationForTheServiceGuardWithoutHydratingProperties() throws Exception {
+        User host = owner(1, "host"); property(1, 1, host); property(2, 2, host); em.flush(); em.clear();
+        sessions.getStatistics().clear();
+        String sql = PropertyRepository.class.getMethod("findBaitlyPropertyAccess", Collection.class).getAnnotation(Query.class).value();
+        var rows = em.createNativeQuery(sql).setParameter("ids", List.of(1L, 2L)).getResultList();
+        assertThat(rows).hasSize(2);
+        assertThat(sessions.getStatistics().getEntityLoadCount()).isZero();
+    }
+
+    @Test void detailsDecryptOnlyRequiredCoordinatesAndNeverHydrateRelations() throws Exception {
+        User host = owner(1, "host");
+        Property p = property(1, 1, host);
+        Property foreign = property(2, 2, host);
+        Guest guest = new Guest("Alice", "Martin", 1L);
+        guest.setEmail("alice@example.test"); guest.setPhone("+33123456789");
+        em.persist(guest);
+        Guest foreignGuest = new Guest("Autre", "Organisation", 2L);
+        foreignGuest.setEmail("other@example.test"); em.persist(foreignGuest);
+        for (int i = 1; i <= 24; i++) {
+            Reservation r = new Reservation(); r.setId((long) i); r.setOrganizationId(i == 24 ? 2L : 1L);
+            r.setProperty(i == 24 ? foreign : p); r.setGuest(i == 22 ? null : i == 21 ? foreignGuest : guest);
+            r.setGuestName("Voyageur"); r.setSource("airbnb"); r.setTotalPrice(new java.math.BigDecimal("100"));
+            r.setCheckIn(LocalDate.of(2026, 10, 1)); r.setCheckOut(LocalDate.of(2026, 10, 25));
+            r.setHiddenFromPlanning(i == 23); em.persist(r);
+        }
+        em.flush(); em.clear();
+        // Une colonne chiffrée inutile et illisible ferait échouer l'hydratation d'un Guest.
+        em.createNativeQuery("UPDATE guests SET first_name = 'invalid-encrypted-value'").executeUpdate();
+        String query = ReservationRepository.class.getMethod("findBaitlyPlanningDetails", Collection.class,
+                LocalDate.class, LocalDate.class, Long.class).getAnnotation(Query.class).value();
+        sessions.getStatistics().clear();
+        var rows = em.createQuery(query, BaitlyPlanningReservationRow.class)
+                .setParameter("propertyIds", List.of(1L, 2L)).setParameter("orgId", 1L)
+                .setParameter("from", LocalDate.of(2026, 10, 5)).setParameter("to", LocalDate.of(2026, 10, 10))
+                .getResultList();
+        var mapper = new ReservationMapper(null, null,
+                new GuestPhotoUrlResolver(null),
+                new com.clenzy.service.agent.analytics.ChannelCommissionResolver());
+        var guestIds = rows.stream().map(BaitlyPlanningReservationRow::guestId)
+                .filter(Objects::nonNull).distinct().toList();
+        assertThat(guestIds).containsExactly(guest.getId());
+        var contactsQuery = GuestRepository.class.getMethod("findBaitlyPlanningContacts", Collection.class, Long.class)
+                .getAnnotation(Query.class).value();
+        Map<Long, BaitlyPlanningGuestContact> contacts;
+        try (var timing = BaitlyFieldDecryptionTiming.open()) {
+            contacts = em.createQuery(contactsQuery, BaitlyPlanningGuestContact.class)
+                    // Même si un ID étranger est fourni, la seconde lecture applique son propre garde tenant.
+                    .setParameter("ids", List.of(guest.getId(), foreignGuest.getId()))
+                    .setParameter("orgId", 1L).getResultList().stream()
+                    .collect(java.util.stream.Collectors.toMap(BaitlyPlanningGuestContact::id,
+                            java.util.function.Function.identity()));
+            // Vingt séjours du même voyageur : deux déchiffrements, pas quarante.
+            assertThat(timing.count()).isEqualTo(2);
+            assertThat(timing.nanos()).isPositive();
+        }
+        assertThat(contacts).hasSize(1).doesNotContainKey(foreignGuest.getId());
+        var dtos = rows.stream().map(row -> mapper.toPlanningDto(row, contacts.get(row.guestId()))).toList();
+        assertThat(dtos).hasSize(22);
+        assertThat(dtos.getFirst().guestEmail()).isEqualTo("alice@example.test");
+        assertThat(dtos.getFirst().guestPhone()).isEqualTo("+33123456789");
+        assertThat(dtos.getFirst().propertyName()).isEqualTo("Logement 1");
+        assertThat(dtos.getFirst().otaFeeAmount()).isEqualTo(15.5);
+        assertThat(dtos.getFirst().otaFeeEstimated()).isTrue();
+        assertThat(dtos.getLast().guestId()).isNull();
+        assertThat(dtos.get(20).guestEmail()).isNull();
+        assertThat(sessions.getStatistics().getPrepareStatementCount()).isEqualTo(2);
+        assertThat(sessions.getStatistics().getEntityLoadCount()).isEqualTo(22);
+        assertThat(sessions.getStatistics().getEntityFetchCount()).isZero();
+    }
+
+    @Test void cardsDoNotReadOrDecryptPhonesAndKeepTheEmailForTheMissingEmailIndicator() throws Exception {
+        Guest guest = new Guest("Alice", "Martin", 1L);
+        guest.setEmail("alice@example.test"); guest.setPhone("+33123456789"); em.persist(guest);
+        em.flush(); em.clear();
+        em.createNativeQuery("UPDATE guests SET phone = 'unreadable-phone'").executeUpdate();
+        String query = GuestRepository.class.getMethod("findBaitlyPlanningCardContacts", Collection.class, Long.class)
+                .getAnnotation(Query.class).value();
+        sessions.getStatistics().clear();
+        try (var timing = BaitlyFieldDecryptionTiming.open()) {
+            var rows = em.createQuery(query, BaitlyPlanningGuestContact.class).setParameter("ids", List.of(guest.getId()))
+                    .setParameter("orgId", 1L).getResultList();
+            assertThat(rows).singleElement().satisfies(row -> {
+                assertThat(row.email()).isEqualTo("alice@example.test"); assertThat(row.phone()).isNull();
+            });
+            assertThat(timing.count()).isEqualTo(1);
+        }
+        assertThat(sessions.getStatistics().getEntityLoadCount()).isZero();
+    }
+
+    @Test void interventionLinksChooseTheFirstScopedReservationWithoutHydratingEntities() throws Exception {
+        User host = owner(1, "host"); Property p = property(1, 1, host);
+        Intervention item = new Intervention(); item.setId(1L); item.setOrganizationId(1L);
+        item.setProperty(p); em.persist(item);
+        for (long id : List.of(2L, 3L, 1L)) {
+            Reservation r = new Reservation(); r.setId(id); r.setOrganizationId(id == 1 ? 2L : 1L);
+            r.setProperty(p); r.setIntervention(item); em.persist(r);
+        }
+        em.flush(); em.clear(); sessions.getStatistics().clear();
+        String query = ReservationRepository.class.getMethod("findBaitlyPlanningInterventionLinks", List.class, Long.class)
+                .getAnnotation(Query.class).value();
+        var links = em.createQuery(query, com.clenzy.dto.BaitlyPlanningInterventionLink.class)
+                .setParameter("interventionIds", List.of(1L)).setParameter("orgId", 1L).getResultList();
+        assertThat(links).singleElement().satisfies(link -> {
+            assertThat(link.interventionId()).isEqualTo(1L);
+            assertThat(link.reservationId()).isEqualTo(2L);
+        });
+        assertThat(sessions.getStatistics().getPrepareStatementCount()).isEqualTo(1);
+        assertThat(sessions.getStatistics().getEntityLoadCount()).isZero();
+    }
+
+    @Test void thousandInterventionsUseAProjectionAndKeepScopedLinksAndMidnightEndDates() throws Exception {
+        User host = owner(1, "host"); Property p = property(1, 1, host), foreign = property(2, 2, host);
+        ServiceRequest request = new ServiceRequest(); request.setId(1L); request.setOrganizationId(1L);
+        request.setReservationId(77L); em.persist(request);
+        for (int i = 1; i <= 1002; i++) {
+            Intervention item = new Intervention(); item.setId((long) i); item.setOrganizationId(i == 1002 ? 2L : 1L);
+            item.setProperty(i == 1002 ? foreign : p); item.setScheduledDate(LocalDateTime.of(2026, 10, 10, 23, 0));
+            item.setEstimatedDurationHours(3); item.setStatus(InterventionStatus.IN_PROGRESS);
+            item.setAssignedUser(host); item.setServiceRequest(request); item.setType("CLEANING"); em.persist(item);
+            if (i == 1001) {
+                Reservation hidden = new Reservation(); hidden.setId(50L); hidden.setOrganizationId(1L);
+                hidden.setIntervention(item); hidden.setHiddenFromPlanning(true); hidden.setStatus("cancelled"); em.persist(hidden);
+            }
+        }
+        em.flush(); em.clear(); sessions.getStatistics().clear();
+        String query = InterventionRepository.class.getMethod("findBaitlyPlanningRows", List.class,
+                LocalDateTime.class, LocalDateTime.class, Long.class).getAnnotation(Query.class).value();
+        var rows = em.createQuery(query, com.clenzy.dto.BaitlyPlanningInterventionRow.class)
+                .setParameter("propertyIds", List.of(1L, 2L)).setParameter("orgId", 1L)
+                .setParameter("fromDate", LocalDateTime.of(2026, 10, 1, 0, 0))
+                .setParameter("toDate", LocalDateTime.of(2026, 10, 31, 23, 59)).getResultList();
+        assertThat(rows).hasSize(1000);
+        var map = rows.getFirst().toPlanningMap(null, "Alice Martin");
+        assertThat(map.get("linkedReservationId")).isEqualTo(77L);
+        assertThat(map.get("endDate")).isEqualTo("2026-10-11");
+        assertThat(map.get("endTime")).isEqualTo("02:00");
+        assertThat(map.get("status")).isEqualTo("in_progress");
+        assertThat(rows.getFirst().toPlanningMap(88L, "Alice Martin").get("linkedReservationId")).isEqualTo(88L);
+        assertThat(sessions.getStatistics().getPrepareStatementCount()).isEqualTo(1);
+        assertThat(sessions.getStatistics().getEntityLoadCount()).isZero();
+    }
+}

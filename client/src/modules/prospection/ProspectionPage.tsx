@@ -197,7 +197,7 @@ const ProspectionPage: React.FC<ProspectionPageProps> = ({ embedded, actionsCont
       {!embedded && (
         <PageHeader
           title="Prospection"
-          subtitle="{t('prospection.subtitle')}"
+          subtitle={t('prospection.subtitle')}
           iconBadge={<TrendingUp />}
           backPath="/dashboard"
           showBackButton={false}
@@ -262,8 +262,8 @@ const ProspectionPage: React.FC<ProspectionPageProps> = ({ embedded, actionsCont
       {prospects.length === 0 && !isLoading ? (
         <EmptyState
           icon={<CloudUpload />}
-          title="{t('prospection.empty')}"
-          description="{t('prospection.emptyHint')}"
+          title={t('prospection.empty')}
+          description={t('prospection.emptyHint')}
           action={(
             <Button variant="outline" size="sm" onClick={() => setImportOpen(true)}>
               <CloudUpload size={16} strokeWidth={1.75} />
@@ -274,7 +274,7 @@ const ProspectionPage: React.FC<ProspectionPageProps> = ({ embedded, actionsCont
       ) : filteredCategories.length === 0 ? (
         <EmptyState
           icon={<FilterList />}
-          title="{t('prospection.noMatch')}"
+          title={t('prospection.noMatch')}
           variant="plain"
         />
       ) : (

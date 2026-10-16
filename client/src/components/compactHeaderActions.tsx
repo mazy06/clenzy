@@ -1,7 +1,7 @@
 import React from 'react';
 import { Button, Spinner, Tooltip, TooltipContent, TooltipTrigger } from './ui';
 import NavCountBadge from './NavCountBadge';
-import { canonicalIconFor, thinStroke } from './headerActionIcons';
+import { canonicalIconFor, resolveActionKind, thinStroke } from './headerActionIcons';
 
 /**
  * Réduction des actions d'en-tête à leur icône.
@@ -20,7 +20,8 @@ import { canonicalIconFor, thinStroke } from './headerActionIcons';
  * (« Actualiser », « Exporter »…), ce qui aligne les écrans entre eux.</p>
  *
  * <p>Un bouton peut refuser la réduction avec l'attribut `data-keep-label` :
- * réservé aux cas où le libellé EST l'information (un compteur, un état).</p>
+ * réservé aux cas où le libellé EST l'information (un compteur, un état).
+ * Les créations gardent aussi leur libellé pour rendre l'action principale explicite.</p>
  *
  * <p>Ce qui n'est pas un bouton (sélecteur, champ, puce) traverse intact : le
  * `PageHeader` le replie derrière son propre déclencheur de filtres.</p>
@@ -140,6 +141,13 @@ function compactButton(
   const ariaLabel = typeof props['aria-label'] === 'string' ? props['aria-label'].trim() : '';
   const label = ariaLabel || textOf(children).replace(/\s+/g, ' ').trim();
   if (!label) return element;
+  const isCreate = resolveActionKind(label) === 'create';
+  const presentation = isCreate
+    ? { ...BARE, size: 'default', 'aria-label': label, 'data-header-create': true }
+    : { ...BARE, size: ICON_SIZE, 'aria-label': label };
+  const content = (glyph: React.ReactElement) => isCreate
+    ? <>{glyph}<span className="truncate">{label}</span></>
+    : glyph;
 
   // `<Button asChild><Link>…</Link></Button>` : c'est l'ENFANT qui porte
   // l'icône et le texte, le bouton n'est qu'un gabarit.
@@ -152,8 +160,8 @@ function compactButton(
     if (innerChildren.length === 0) return element;
     const compacted = React.cloneElement(
       element,
-      { ...BARE, size: ICON_SIZE, 'aria-label': label },
-      React.cloneElement(inner, undefined, glyphFor(label, innerChildren)),
+      presentation,
+      React.cloneElement(inner, undefined, content(glyphFor(label, innerChildren))),
     );
     return describe(compacted, label, context);
   }
@@ -167,8 +175,8 @@ function compactButton(
   const glyph = glyphFor(label, elements);
   const compacted = React.cloneElement(
     element,
-    { ...BARE, size: ICON_SIZE, 'aria-label': label },
-    badges.length > 0 ? [React.cloneElement(glyph, { key: 'glyph' }), ...badges] : glyph,
+    presentation,
+    badges.length > 0 ? [<React.Fragment key="glyph">{content(glyph)}</React.Fragment>, ...badges] : content(glyph),
   );
 
   return describe(compacted, label, context);

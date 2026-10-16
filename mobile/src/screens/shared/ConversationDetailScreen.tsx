@@ -283,7 +283,7 @@ export function ConversationDetailScreen() {
           setMessageText('');
         },
         onError: () => {
-          Alert.alert('Erreur', "Impossible d'envoyer le message. Reessayez.");
+          Alert.alert('Erreur', "Impossible d'envoyer le message. Réessayez.");
         },
       },
     );
@@ -294,7 +294,7 @@ export function ConversationDetailScreen() {
     // Find last inbound message
     const lastInbound = messages.find((m) => m.direction === 'INBOUND');
     if (!lastInbound) {
-      Alert.alert('Info', 'Aucun message entrant pour generer une suggestion.');
+      Alert.alert('Info', 'Aucun message entrant pour générer une suggestion.');
       return;
     }
 
@@ -305,7 +305,7 @@ export function ConversationDetailScreen() {
           setMessageText(result.suggestedResponse);
         },
         onError: () => {
-          Alert.alert('Erreur', 'Impossible de generer une suggestion. Reessayez.');
+          Alert.alert('Erreur', 'Impossible de générer une suggestion. Réessayez.');
         },
       },
     );
@@ -333,11 +333,11 @@ export function ConversationDetailScreen() {
 
   // Quick templates for the bottom sheet
   const QUICK_TEMPLATES = useMemo(() => [
-    { id: 1, title: 'Instructions check-in', content: 'Bonjour, voici les instructions pour votre arrivee. Le check-in est possible a partir de 15h.', category: 'CHECK_IN' },
-    { id: 2, title: 'Instructions check-out', content: 'Merci pour votre sejour ! Pour le check-out, merci de liberer le logement avant 11h.', category: 'CHECK_OUT' },
-    { id: 3, title: 'Bienvenue', content: 'Bienvenue ! Nous sommes ravis de vous accueillir. N\'hesitez pas a nous contacter si besoin.', category: 'WELCOME' },
-    { id: 4, title: 'Rappel reservation', content: 'Bonjour, votre reservation approche. Avez-vous des questions avant votre arrivee ?', category: 'REMINDER' },
-    { id: 5, title: 'Remerciement', content: 'Merci pour votre sejour ! Nous esperons que tout s\'est bien passe. A bientot !', category: 'CUSTOM' },
+    { id: 1, title: 'Instructions check-in', content: 'Bonjour, voici les instructions pour votre arrivée. Le check-in est possible à partir de 15h.', category: 'CHECK_IN' },
+    { id: 2, title: 'Instructions check-out', content: 'Merci pour votre séjour ! Pour le check-out, merci de libérer le logement avant 11h.', category: 'CHECK_OUT' },
+    { id: 3, title: 'Bienvenue', content: 'Bienvenue ! Nous sommes ravis de vous accueillir. N\'hésitez pas a nous contacter si besoin.', category: 'WELCOME' },
+    { id: 4, title: 'Rappel réservation', content: 'Bonjour, votre réservation approche. Avez-vous des questions avant votre arrivée ?', category: 'REMINDER' },
+    { id: 5, title: 'Remerciement', content: 'Merci pour votre séjour ! Nous espérons que tout s\'est bien passe. A bientôt !', category: 'CUSTOM' },
   ], []);
 
   const handleInsertTemplate = useCallback((content: string) => {
@@ -664,7 +664,7 @@ export function ConversationDetailScreen() {
               <TextInput
                 value={messageText}
                 onChangeText={setMessageText}
-                placeholder="Ecrire un message..."
+                placeholder="Écrire un message..."
                 placeholderTextColor={theme.colors.text.disabled}
                 multiline
                 style={{

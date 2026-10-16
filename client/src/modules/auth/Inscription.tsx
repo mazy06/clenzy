@@ -298,6 +298,11 @@ export default function Inscription() {
 
   return (
     <AuthLayout maxFormWidth={activeStep === 1 ? 880 : 560}>
+        <div className="mb-7">
+          <span className="baitly-auth-form-kicker">{t('auth.showcase.signupKicker')}</span>
+          <h1 className="font-semibold mb-3">{t('auth.showcase.signupTitle')}</h1>
+          <p className="text-sm text-muted-foreground leading-relaxed">{t('auth.showcase.signupSubtitle')}</p>
+        </div>
         {/* Stepper */}
         <Stepper activeStep={activeStep} className="mb-[18px]">
           {steps.map((label, index) => {

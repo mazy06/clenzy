@@ -1,6 +1,5 @@
 import { useMemo } from 'react';
-import { useQuery } from '@tanstack/react-query';
-import { propertiesApi } from '../services/api/propertiesApi';
+import { usePropertiesList } from './usePropertiesList';
 import { useContractedPropertyIds } from './useContractedPropertyIds';
 
 export interface MissingContracts {
@@ -19,16 +18,12 @@ export interface MissingContracts {
  */
 export function useMissingContractCount(enabled = true): MissingContracts {
   const { propertyIds } = useContractedPropertyIds(enabled);
-  const { data: properties } = useQuery({
-    queryKey: ['properties', 'contract-gate-count'],
-    queryFn: () => propertiesApi.getAll(),
-    enabled,
-    staleTime: 30_000,
-  });
+  // Les photos des widgets et le contrôle des contrats partagent la même liste.
+  const { properties } = usePropertiesList(enabled);
 
   return useMemo(() => {
-    const missingPropertyIds = (properties ?? []).flatMap((p) =>
-      propertyIds.has(p.id) ? [] : [p.id],
+    const missingPropertyIds = properties.flatMap((p) =>
+      propertyIds.has(Number(p.id)) ? [] : [Number(p.id)],
     );
     return { count: missingPropertyIds.length, missingPropertyIds };
   }, [properties, propertyIds]);

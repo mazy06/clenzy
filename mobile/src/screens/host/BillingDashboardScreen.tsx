@@ -24,11 +24,11 @@ const FILTERS: Array<{ key: FilterKey; label: string }> = [
 ];
 
 const STATUS_CONFIG: Record<string, { label: string; color: string; icon: IconName; badgeColor: 'success' | 'warning' | 'error' | 'info' | 'neutral' }> = {
-  PAID: { label: 'Paye', color: '#059669', icon: 'checkmark-circle', badgeColor: 'success' },
+  PAID: { label: 'Payé', color: '#059669', icon: 'checkmark-circle', badgeColor: 'success' },
   PENDING: { label: 'En attente', color: '#D97706', icon: 'time-outline', badgeColor: 'warning' },
   PROCESSING: { label: 'En cours', color: '#3B82F6', icon: 'sync-outline', badgeColor: 'info' },
   FAILED: { label: 'Echoue', color: '#EF4444', icon: 'close-circle', badgeColor: 'error' },
-  REFUNDED: { label: 'Rembourse', color: '#4A7C8E', icon: 'arrow-undo-outline', badgeColor: 'info' },
+  REFUNDED: { label: 'Remboursé', color: '#4A7C8E', icon: 'arrow-undo-outline', badgeColor: 'info' },
   CANCELLED: { label: 'Annule', color: '#6B7280', icon: 'ban-outline', badgeColor: 'neutral' },
 };
 
@@ -311,7 +311,7 @@ export function BillingDashboardScreen() {
           <EmptyState
             iconName="receipt-outline"
             title="Aucune transaction"
-            description="Vos transactions apparaitront ici"
+            description="Vos transactions apparaîtront ici"
             compact
           />
         ) : (

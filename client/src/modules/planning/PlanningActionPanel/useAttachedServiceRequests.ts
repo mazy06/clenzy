@@ -65,25 +65,20 @@ export function useAttachedServiceRequests({
     );
   }, [linkedRaw, linkedPending, allEvents, reservationId, loadedReservations]);
 
-  const extraQueries = useQueries({
+  const extraData = useQueries({
     queries: extraIds.map((id) => ({
       queryKey: ['service-request', id],
       queryFn: () => serviceRequestsApi.getById(id),
       staleTime: 30_000,
     })),
+    combine: (queries) => queries.flatMap((query) => query.data ? [query.data] : []),
   });
 
-  // `useQueries` rend un nouveau tableau à chaque rendu : on mémoïse sur la
-  // signature des fiches chargées, sinon la liste changerait d'identité sans
-  // avoir changé de contenu.
-  const extraSignature = extraQueries.map((q) => q.data?.id ?? 0).join(',');
-
+  // Le combine de React Query partage les références tant que les fiches
+  // restent identiques ; une nouvelle version du même ID actualise le panneau.
   return useMemo(() => {
-    const merged: ServiceRequest[] = [...(linkedRaw ?? [])];
-    for (const query of extraQueries) {
-      if (query.data) merged.push(query.data);
-    }
-    return merged;
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [linkedRaw, extraSignature]);
+    const merged = new Map<number, ServiceRequest>();
+    for (const request of [...(linkedRaw ?? []), ...extraData]) merged.set(request.id, request);
+    return [...merged.values()];
+  }, [linkedRaw, extraData]);
 }

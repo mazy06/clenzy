@@ -75,6 +75,14 @@ public class UpsellOffer {
     @Column(name = "bundle_offer_ids", length = 500)
     private String bundleOfferIds;
 
+    /** Prestation exécutée : surcharge facultative du lien porté par le type. */
+    @Column(name = "fulfillment_service_code", length = 60)
+    private String fulfillmentServiceCode;
+
+    /** Préférence du gestionnaire, sans réservation ni affectation de mission. */
+    @Column(name = "preferred_provider_id")
+    private Long preferredProviderId;
+
     /** Diffusion par canal : proposé dans le livret numérique (défaut TRUE). */
     @Column(name = "diffuse_on_livret", nullable = false)
     private boolean diffuseOnLivret = true;
@@ -118,6 +126,10 @@ public class UpsellOffer {
     public Integer getLeadTimeHours() { return leadTimeHours; }
     public void setLeadTimeHours(Integer leadTimeHours) { this.leadTimeHours = leadTimeHours; }
     public String getBundleOfferIds() { return bundleOfferIds; }
+    public String getFulfillmentServiceCode() { return fulfillmentServiceCode; }
+    public void setFulfillmentServiceCode(String code) { this.fulfillmentServiceCode = code; }
+    public Long getPreferredProviderId() { return preferredProviderId; }
+    public void setPreferredProviderId(Long id) { this.preferredProviderId = id; }
     public void setBundleOfferIds(String bundleOfferIds) { this.bundleOfferIds = bundleOfferIds; }
     public boolean isDiffuseOnLivret() { return diffuseOnLivret; }
     public void setDiffuseOnLivret(boolean diffuseOnLivret) { this.diffuseOnLivret = diffuseOnLivret; }

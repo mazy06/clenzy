@@ -32,6 +32,8 @@ public class IndividualCoverageService {
                 throw new IllegalArgumentException("Zone invalide");
             if ("FR".equalsIgnoreCase(input.country().trim()) ? blank(input.department()) : blank(input.city()))
                 throw new IllegalArgumentException("Indiquez un département en France ou une ville dans les autres pays");
+            com.clenzy.util.BaitlyArrondissement.requireValid(input.country(),input.department(),input.arrondissement());
+            com.clenzy.util.BaitlyFrenchCities.requireValid(input.country(),input.department(),input.arrondissement(),input.city());
         }
         Long userId = owner(subject);
         // L'équipe représente la personne dans l'org, mais ne possède pas ses zones.
@@ -43,8 +45,9 @@ public class IndividualCoverageService {
         for (Input input : inputs.stream().distinct().toList()) {
             var zone = new MarketplaceProviderZone(); zone.setUserId(userId);
             zone.setCountryCode(input.country().trim().toUpperCase(Locale.ROOT));
-            zone.setDepartment(clean(input.department())); zone.setArrondissement(clean(input.arrondissement()));
-            zone.setCity(clean(input.city())); zone.setPrimary(position++ == 0);
+            zone.setDepartment(clean(input.department()));
+            zone.setArrondissement(com.clenzy.util.BaitlyArrondissement.requireValid(input.country(),input.department(),input.arrondissement()));
+            zone.setCity(com.clenzy.util.BaitlyFrenchCities.requireValid(input.country(),input.department(),input.arrondissement(),input.city())); zone.setPrimary(position++ == 0);
             zones.save(zone);
         }
         zones.flush();

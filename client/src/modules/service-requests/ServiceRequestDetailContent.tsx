@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react';
+import { DirectionsMenu } from '../../components/map/DirectionsMenu';
 import { Link } from 'react-router-dom';
 import { Home, MapPin, Navigation, CalendarDays, Clock3, Check, UserRound, Mail, Phone, KeyRound, ClipboardList, ArrowUpRight, BedDouble, Bath, Users, Ruler } from '../../icons/glyphs';
 import { Avatar, AvatarImage, AvatarFallback, Button, Card, CardContent } from '../../components/ui';
@@ -107,7 +108,7 @@ export default function ServiceRequestDetailContent({ request: sr, manager, hist
               <h2 className="m-0 text-lg font-semibold [text-wrap:balance]">{sr.propertyId ? sr.propertyName : t('serviceReference.withoutProperty')}</h2>
               {address && <p className="m-0 flex items-start gap-1.5 text-sm text-muted-foreground"><MapPin className="mt-0.5 size-4 shrink-0" aria-hidden />{address}</p>}
               <div className="flex flex-wrap gap-2">
-                {address && <Button variant="outline" size="sm" asChild><a href={`https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(address)}`} target="_blank" rel="noopener noreferrer"><Navigation className="size-4" aria-hidden />{t('requestDetail.directions')}</a></Button>}
+                {address && <DirectionsMenu target={{ address, label: sr.propertyName || address }}><Button variant="outline" size="sm"><Navigation className="size-4" aria-hidden />{t('requestDetail.directions')}</Button></DirectionsMenu>}
                 {sr.propertyId > 0 && manager && <Button variant="ghost" size="sm" asChild><Link to={`/properties/${sr.propertyId}`}>{t('serviceRequests.details.viewProperty')}<ArrowUpRight className="size-4" aria-hidden /></Link></Button>}
               </div>
             </div>

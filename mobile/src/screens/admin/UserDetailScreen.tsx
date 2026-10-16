@@ -1,3 +1,4 @@
+import { toAdminUser, fromAdminUser } from '@/api/endpoints/adminUserShape';
 import React, { useCallback } from 'react';
 import { View, Text, ScrollView, RefreshControl, Pressable, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -36,10 +37,12 @@ type RouteParams = {
 };
 
 const ROLE_CONFIG: Record<string, { label: string; color: 'primary' | 'secondary' | 'success' | 'error' | 'warning' | 'info' }> = {
-  HOST: { label: 'Proprietaire', color: 'primary' },
+  HOST: { label: 'Propriétaire', color: 'primary' },
   TECHNICIAN: { label: 'Technicien', color: 'info' },
-  HOUSEKEEPER: { label: 'Agent menage', color: 'success' },
+  HOUSEKEEPER: { label: 'Agent ménage', color: 'success' },
   SUPERVISOR: { label: 'Superviseur', color: 'warning' },
+  LAUNDRY: { label: 'Blanchisserie', color: 'success' },
+  EXTERIOR_TECH: { label: 'Jardin et piscine', color: 'info' },
   ADMIN: { label: 'Admin', color: 'error' },
   SUPER_ADMIN: { label: 'Super Admin', color: 'error' },
   SUPER_MANAGER: { label: 'Super Manager', color: 'secondary' },
@@ -116,12 +119,12 @@ export function UserDetailScreen() {
 
   const { data: user, isLoading, isRefetching, refetch } = useQuery({
     queryKey: ['admin', 'users', userId],
-    queryFn: () => apiClient.get<UserDetail>(`/admin/users/${userId}`),
+    queryFn: async () => toAdminUser<UserDetail>(await apiClient.get(`/users/${userId}`)),
     enabled: userId > 0,
   });
 
   const disableMutation = useMutation({
-    mutationFn: () => apiClient.put(`/admin/users/${userId}/disable`),
+    mutationFn: () => apiClient.put(`/users/${userId}`, { status: user?.enabled ? 'SUSPENDED' : 'ACTIVE' }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['admin', 'users'] });
       refetch();
@@ -129,7 +132,7 @@ export function UserDetailScreen() {
   });
 
   const deleteMutation = useMutation({
-    mutationFn: () => apiClient.delete(`/admin/users/${userId}`),
+    mutationFn: () => apiClient.delete(`/users/${userId}`),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['admin', 'users'] });
       navigation.goBack();
@@ -151,7 +154,7 @@ export function UserDetailScreen() {
   const handleDelete = useCallback(() => {
     Alert.alert(
       'Supprimer l\'utilisateur',
-      'Cette action est irreversible. Voulez-vous vraiment supprimer cet utilisateur ?',
+      'Cette action est irréversible. Voulez-vous vraiment supprimer cet utilisateur ?',
       [
         { text: 'Annuler', style: 'cancel' },
         { text: 'Supprimer', style: 'destructive', onPress: () => deleteMutation.mutate() },
@@ -252,13 +255,13 @@ export function UserDetailScreen() {
         {/* Info section */}
         <SectionHeader title="Informations" iconName="information-circle-outline" />
         <Card style={{ marginBottom: theme.SPACING.lg }}>
-          <InfoRow icon="person-outline" label="Prenom" value={user.firstName || '—'} theme={theme} />
+          <InfoRow icon="person-outline" label="Prénom" value={user.firstName || '—'} theme={theme} />
           <Divider />
           <InfoRow icon="person-outline" label="Nom" value={user.lastName || '—'} theme={theme} />
           <Divider />
           <InfoRow icon="mail-outline" label="Email" value={user.email} theme={theme} />
           <Divider />
-          <InfoRow icon="call-outline" label="Telephone" value={user.phone || '—'} theme={theme} />
+          <InfoRow icon="call-outline" label="Téléphone" value={user.phone || '—'} theme={theme} />
           <Divider />
           <InfoRow icon="calendar-outline" label="Date de creation" value={formatDate(user.createdAt)} theme={theme} />
           <Divider />

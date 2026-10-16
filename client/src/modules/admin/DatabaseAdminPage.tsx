@@ -113,8 +113,8 @@ const DatabaseAdminPage: React.FC = () => {
   return (
     <div>
       <PageHeader
-        title="{t('admin.database.title')}"
-        subtitle="{t('admin.database.subtitle')}"
+        title={t('admin.database.title')}
+        subtitle={t('admin.database.subtitle')}
         iconBadge={<Storage />}
         backPath="/admin"
         showBackButton={false}
@@ -152,7 +152,7 @@ const DatabaseAdminPage: React.FC = () => {
         ) : backups.length === 0 ? (
           <EmptyState
             icon={<Storage />}
-            title="{t('admin.database.empty')}"
+            title={t('admin.database.empty')}
             description={'Cliquez sur "Créer un dump" pour générer votre premier backup.'}
             variant="transparent"
           />

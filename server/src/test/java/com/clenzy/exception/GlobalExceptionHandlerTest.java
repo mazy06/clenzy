@@ -53,6 +53,38 @@ class GlobalExceptionHandlerTest {
                         .jsonPath("$.message").value("Confirmation PSP requise"));
     }
 
+    @Test
+    void whenServiceRaisesResponseStatus_thenItsStatusAndReasonReachTheClient() throws Exception {
+        var mvc = org.springframework.test.web.servlet.setup.MockMvcBuilders
+                .standaloneSetup(new ResponseStatusEndpoint())
+                .setControllerAdvice(handler).build();
+
+        mvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post("/test/mission-review"))
+                .andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers.status().isConflict())
+                .andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers
+                        .jsonPath("$.message").value("Le travail à contrôler a changé."))
+                .andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers
+                        .jsonPath("$.status").value(409));
+    }
+
+    @Test
+    void whenMissionLifecycleRefusesAnAction_thenConflictInsteadOfServerError() {
+        var response = handler.handleInterventionStateConflict(
+                new InterventionStateConflictException("Impossible de demarrer avant la date planifiee (2026-10-17T00:00)"));
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.CONFLICT);
+        assertThat(response.getBody()).containsEntry("message", "Impossible de demarrer avant la date planifiee (2026-10-17T00:00)");
+    }
+
+    @org.springframework.web.bind.annotation.RestController
+    @org.springframework.security.access.prepost.PreAuthorize("isAuthenticated()")
+    static class ResponseStatusEndpoint {
+        @org.springframework.web.bind.annotation.PostMapping("/test/mission-review")
+        void review() {
+            throw new org.springframework.web.server.ResponseStatusException(HttpStatus.CONFLICT, "Le travail à contrôler a changé.");
+        }
+    }
+
     @org.springframework.web.bind.annotation.RestController
     @org.springframework.security.access.prepost.PreAuthorize("isAuthenticated()")
     static class PaymentEvidenceEndpoint {

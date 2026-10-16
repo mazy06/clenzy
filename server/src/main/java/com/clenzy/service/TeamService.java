@@ -106,8 +106,8 @@ public class TeamService {
                         savedTeam.getId(),
                         normalizeCountry(zoneDto.country),
                         zoneDto.department,
-                        zoneDto.arrondissement,
-                        zoneDto.city
+                        com.clenzy.util.BaitlyArrondissement.requireValid(normalizeCountry(zoneDto.country),zoneDto.department,zoneDto.arrondissement),
+                        com.clenzy.util.BaitlyFrenchCities.requireValid(normalizeCountry(zoneDto.country),zoneDto.department,zoneDto.arrondissement,zoneDto.city)
                 );
                 zone.setOrganizationId(tenantContext.getRequiredOrganizationId());
                 teamCoverageZoneRepository.save(zone);
@@ -181,8 +181,8 @@ public class TeamService {
                         id,
                         normalizeCountry(zoneDto.country),
                         zoneDto.department,
-                        zoneDto.arrondissement,
-                        zoneDto.city
+                        com.clenzy.util.BaitlyArrondissement.requireValid(normalizeCountry(zoneDto.country),zoneDto.department,zoneDto.arrondissement),
+                        com.clenzy.util.BaitlyFrenchCities.requireValid(normalizeCountry(zoneDto.country),zoneDto.department,zoneDto.arrondissement,zoneDto.city)
                 );
                 zone.setOrganizationId(tenantContext.getRequiredOrganizationId());
                 zone.setTeam(team);

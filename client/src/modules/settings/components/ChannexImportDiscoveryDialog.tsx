@@ -976,7 +976,7 @@ export default function ChannexImportDiscoveryDialog({
                           <NativeSelect
                             size="sm"
                             className="min-w-[130px]"
-                            aria-label="{t('settings.channex.baitlyPropertyType')}"
+                            aria-label={t('settings.channex.baitlyPropertyType')}
                             value={row.propertyType}
                             onChange={(e) => updateType(p.channexPropertyId, e.target.value)}
                             disabled={!row.selected}

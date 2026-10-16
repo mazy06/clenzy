@@ -155,6 +155,13 @@ class MarketplaceExposureServiceTest {
         verifyNoInteractions(ruleRepository);
     }
 
+    @Test
+    void publicDirectoryExcludesGloballyHiddenProfiles() {
+        when(ruleRepository.findHiddenProviderIdsFor(null)).thenReturn(java.util.List.of(7L));
+
+        assertThat(service.publicHiddenProviderIds()).containsExactly(7L);
+    }
+
     private static MarketplaceProvider active() {
         var provider = new MarketplaceProvider();
         provider.setId(1L);

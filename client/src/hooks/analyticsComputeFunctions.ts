@@ -260,8 +260,16 @@ export function computeRecommendations(
 // computeClientMetrics
 // ============================================================================
 
-export function computeClientMetrics(reservations: Reservation[]): ClientMetrics {
-  const nonCancelled = reservations.filter((r) => r.status !== 'cancelled');
+export function computeClientMetrics(
+  reservations: Reservation[],
+  window?: { from: string; to: string },
+): ClientMetrics {
+  // Même fenêtre de séjours que le portefeuille serveur : chevauchement
+  // inclusif. Les réservations futures et anciennes ne gonflent pas la période.
+  const nonCancelled = reservations.filter((r) =>
+    r.status.toLowerCase() !== 'cancelled'
+    && (!window || (r.checkOut >= window.from && r.checkIn <= window.to)),
+  );
 
   // By source
   const sourceMap: Record<string, number> = {};

@@ -2,7 +2,7 @@ import React from 'react';
 import { afterEach, expect, it, vi } from 'vitest';
 import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import MyCoverageZoneCard from './MyCoverageZoneCard';
-const mocks = vi.hoisted(() => ({ getMine: vi.fn(), replace: vi.fn(), success: vi.fn() }));
+const mocks = vi.hoisted(() => ({ getMine: vi.fn(), replace: vi.fn(), success: vi.fn(), invalidateQueries: vi.fn() }));
 vi.mock('../../services/api/myCoverageZonesApi', () => ({ myCoverageZonesApi: mocks }));
 vi.mock('../../hooks/useNotification', () => ({ useNotification: () => ({ notify: { success: mocks.success } }) }));
 vi.mock('../../hooks/useTranslation', () => {
@@ -10,6 +10,8 @@ vi.mock('../../hooks/useTranslation', () => {
   return { useTranslation: () => ({ t }) };
 });
 vi.mock('./ProviderPropertyTypes', () => ({ default: () => null }));
+vi.mock('./MySectorMap', () => ({ default: () => null, mySectorMapKey: ['sector-map', 'mine'] }));
+vi.mock('@tanstack/react-query', () => ({ useQueryClient: () => ({ invalidateQueries: mocks.invalidateQueries }), useQuery: () => ({data:['Courbevoie','Neuilly-sur-Seine'],isPending:false,isError:false}) }));
 afterEach(() => { cleanup(); vi.clearAllMocks(); });
 it('does not allow an empty replacement after failing to load the saved zones', async () => {
   mocks.getMine.mockRejectedValue(new Error('network'));
@@ -35,5 +37,17 @@ it('saves a country outside the original whitelist without changing the declared
   await screen.findByDisplayValue('Kyoto');
   fireEvent.click(screen.getByRole('button', { name: 'Enregistrer ma zone' }));
   await waitFor(() => expect(mocks.replace).toHaveBeenCalledWith([{ country: 'JP', city: 'Kyoto', department: null, arrondissement: null }]));
+  expect(mocks.invalidateQueries).toHaveBeenCalledWith({queryKey:['sector-map']});
+  expect(mocks.invalidateQueries).toHaveBeenCalledWith({queryKey:['provider-catalog']});
+  expect(mocks.invalidateQueries).toHaveBeenCalledWith({queryKey:['property-teams']});
+});
+it('saves a city restriction from the personal coverage form', async () => {
+  const zone={id:1,country:'FR',department:'92',arrondissement:null,city:null};
+  mocks.getMine.mockResolvedValue([zone]);mocks.replace.mockResolvedValue([{...zone,city:'Courbevoie'}]);
+  render(<MyCoverageZoneCard />);
+  const select=await screen.findByLabelText('providerCoverage.cityOptional');
+  fireEvent.change(select,{target:{value:'Courbevoie'}});
+  fireEvent.click(screen.getByRole('button',{name:'Enregistrer ma zone'}));
+  await waitFor(()=>expect(mocks.replace).toHaveBeenCalledWith([{country:'FR',department:'92',arrondissement:null,city:'Courbevoie'}]));
 });
 

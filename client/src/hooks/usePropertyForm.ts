@@ -269,6 +269,9 @@ export function usePropertyForm({
       queryClient.invalidateQueries({ queryKey: propertyDetailsKeys.all });
       queryClient.invalidateQueries({ queryKey: propertiesListKeys.all });
       queryClient.invalidateQueries({ queryKey: ['planning'] });
+      queryClient.invalidateQueries({ queryKey: ['sector-map'] });
+      queryClient.invalidateQueries({ queryKey: ['provider-catalog'] });
+      queryClient.invalidateQueries({ queryKey: ['property-teams'] });
 
       // Navigate after short delay for UX
       setTimeout(() => {

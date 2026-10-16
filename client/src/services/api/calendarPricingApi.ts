@@ -1,3 +1,4 @@
+import { baitlyPlanningReadQueue } from '../baitlyPlanningReadQueue';
 import apiClient from '../apiClient';
 
 // ─── Types ──────────────────────────────────────────────────────────────────
@@ -132,10 +133,11 @@ export const calendarPricingApi = {
    * logement et par tranche de 30 jours saturait le quota de l'API
    * (300 req/min par utilisateur) des qu'on faisait defiler la grille.
    */
-  async getPricingBatch(propertyIds: number[], from: string, to: string): Promise<CalendarPricingDayForProperty[]> {
-    return apiClient.get<CalendarPricingDayForProperty[]>('/calendar/pricing', {
+  async getPricingBatch(propertyIds: number[], from: string, to: string, signal?: AbortSignal): Promise<CalendarPricingDayForProperty[]> {
+    return baitlyPlanningReadQueue.run(signal, () => apiClient.get<CalendarPricingDayForProperty[]>('/calendar/pricing', {
+      signal,
       params: { propertyIds: propertyIds.join(','), from, to },
-    });
+    }));
   },
 
   async updatePrice(propertyId: number, from: string, to: string, price: number): Promise<void> {
@@ -182,10 +184,11 @@ export const calendarPricingApi = {
   },
 
   /** Overrides min-nights de PLUSIEURS logements en un seul appel (cf. getPricingBatch). */
-  async getMinNightsOverridesBatch(propertyIds: number[], from: string, to: string): Promise<MinNightsOverride[]> {
-    return apiClient.get<MinNightsOverride[]>('/min-nights-overrides/batch', {
+  async getMinNightsOverridesBatch(propertyIds: number[], from: string, to: string, signal?: AbortSignal): Promise<MinNightsOverride[]> {
+    return baitlyPlanningReadQueue.run(signal, () => apiClient.get<MinNightsOverride[]>('/min-nights-overrides/batch', {
+      signal,
       params: { propertyIds: propertyIds.join(','), from, to },
-    });
+    }));
   },
 
   async createMinNightsOverrideBulk(data: BulkMinNightsOverrideData): Promise<void> {

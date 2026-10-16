@@ -30,11 +30,11 @@ SUB_MAX = 66             # longueur maximale d'un sous-titre (deux lignes à 44 
 
 # Moments synchronisés : (réplique, mot déclencheur, décalage en s). Le mot (un par langue) est
 # cherché dans le texte dit ; le moment tombe au début du mot (+ décalage).
-def W(fr, en):
-    return {'fr': fr, 'en': en}
+def W(fr, en, ar=None):
+    return {'fr': fr, 'en': en, **({'ar': ar} if ar else {})}
 
 
-BAITLY = W('Bètli', 'Betly')
+BAITLY = W('Bètli', 'Betly', 'بيتلي')
 SYNC = {
     'reel-01-manifeste': {
         'click': ('b5', W('validez', 'approve'), -0.1), 'promise2': ('b6', W('Pas', 'Not'), 0.0),
@@ -460,6 +460,37 @@ SYNC = {
         'r1': ('b4', W('lieu', 'place'), 0.0), 'r2': ('b4', W('consignes', 'instructions'), 0.0), 'r3': ('b4', W('tarif', 'rate'), 0.0),
         'end': ('b6', W('Préparez', 'Set up'), 0.0),
     },
+    # Film de lancement 9:16 « Baitly est lancé » : un plan par réplique ; FR seulement (mots EN = FR).
+    'reel-19-baitly-est-lance': {
+        'reveal': ('b2', BAITLY, 0.0), 'own': ('b3', W('propriétaires', 'owners', 'للملّاك'), 0.0),
+        'conc': ('b3', W('conciergeries', 'property managers', 'ولشركات'), 0.0),
+        'site': ('b4', W('site', 'booking site', 'وموقع'), 0.0), 'ten': ('b5', W('dix agents', 'ten A.I.', 'عشرة'), 0.0),
+        'hard': ('b6', W('plus durs', 'toughest', 'الأشدّ'), 0.0), 'act': ('b6', W('agissez', 'you act', 'تعمل'), 0.0),
+        'tax': ('b7', W('taxes', 'tourist taxes', 'ضرائب'), 0.0), 'auth': ('b7', W('autorités', 'authorities', 'السلطات'), 0.0),
+        'live': ('b8', W('en direct', 'live', 'مباشرةً'), 0.0), 'dips': ('b8', W('creux', 'dips', 'الركود'), 0.0),
+        'peaks': ('b8', W('pics', 'peaks', 'والذروة'), 0.0), 'adj': ('b8', W('ajuste', 'adjusts', 'ويعدّل'), 0.0),
+        'kpi': ('b8', W('rève-par', 'RevPAR', 'أفضل عائد'), 0.0),
+        'r1': ('b9', W('réassorts', 'restocks', 'بإعادة'), 0.0), 'r2': ('b9', W('missions', 'jobs', 'وبالمهام'), 0.0),
+        'f': [('b10', W('versements', 'payouts', 'تحويلاتك'), 0.0), ('b10', W('commissions', 'commissions', 'وعمولاتك'), 0.0),
+              ('b10', W('cautions', 'deposits', 'ومبالغ'), 0.0), ('b10', W('litiges', 'disputes', 'نزاعاتك'), 0.0)],
+        'valid': ('b11', W('validez', 'approve', 'تصادق'), 0.0), 'auto': ('b11', W("l'autonomie", 'autonomy', 'بالاستقلالية'), 0.0),
+        'reply': ('b12', W('langue', 'language', 'وبلغتهم'), 0.0),
+        'x': [('b13', W('infos', 'stay info', 'معلومات'), 0.0), ('b13', W('extras', 'extras', 'والخدمات'), 0.0),
+              ('b13', W('activités', 'activities', 'والأنشطة'), 0.0)],
+        'gyg': ('b14', W('GetYourGuide', 'GetYourGuide', 'GetYourGuide'), 0.0), 'bk': ('b14', W('site', 'booking site', 'موقع حجزك'), 0.0),
+        'code': ('b15', W('code', 'code', 'رمز'), 0.0), 'noise': ('b15', W('bruit', 'noise', 'للضوضاء'), 0.0),
+        'photo': ('b16', W('photo', 'photos', 'بالصور'), 0.0), 'stock': ('b16', W('stock', 'Stock', 'المخزون'), 0.0),
+        'order': ('b16', W('commandes', 'orders', 'طلباتك'), 0.0), 'restock': ('b16', W('prestataires', 'providers', 'بل ويتكفّل'), 0.0),
+        'dash2': ('b17', W('prestataires', 'providers', 'ومزوّدو'), 0.0),
+        'penny': ('b18', W('comptabilité', 'accounting', 'ومحاسبة'), 0.0), 'decl': ('b18', W('déclarations', 'registrations', 'واستمارات'), 0.0),
+        'm': [('b19', W('ménage', 'cleaning', 'تنظيف'), 0.0), ('b19', W('maintenance', 'maintenance', 'وصيانة'), 0.0),
+              ('b19', W('linge', 'linen', 'وغسيل'), 0.0), ('b19', W('transferts', 'transfers', 'ونقل'), 0.0),
+              ('b19', W('chefs', 'chefs', 'وطهاة'), 0.0), ('b19', W('activités', 'activities', 'وأنشطة'), 0.0)],
+        'join': ('b19', W('inscriptions', 'sign-ups', 'التسجيل'), 0.0),
+        'acad': ('b20', W("L'Académie", 'Academy', 'أكاديمية'), 0.0), 'themes': ('b20', W('piloter', 'performance', 'القيادة'), 0.0),
+        'free': ('b20', W('en accès libre', 'free to access', 'مجاناً'), 0.0),
+        'promise2': ('b21', W('Pas', 'Not', 'لا أعباء'), 0.0), 'end': ('b22', BAITLY, 0.0),
+    },
     'reel-17-la-mission-cote-prestataire': {
         'notif': ('b1', W('voyageur', 'guest'), 0.0), 'arrive': ('b1', W('quinze heures', 'three'), 0.0),
         'd1': ('b2', W('adresse', 'address'), 0.0), 'd2': ('b2', W("l'accès", 'access'), 0.0),
@@ -586,6 +617,7 @@ FOLLOW = {
     'reel-16-votre-savoir-faire': {'slots': ['b1', 'b2', 'b3', 'b4', 'b5'], 'slot_end': 'end'},
     'reel-17-la-mission-cote-prestataire': {'slots': ['b1', 'b2', 'b3', 'b4', 'b5'], 'slot_end': 'end'},
     'reel-18-six-familles-de-metiers': {'slots': ['b1', 'b2', 'b3', 'b4', 'b5'], 'slot_end': 'end'},
+    'reel-19-baitly-est-lance': {'slots': ['b%d' % i for i in range(1, 22)], 'slot_end': 'end'},
     # Académie : un plan par chapitre ; respirations plus longues qu'un Reel (on apprend).
     'academie-01-kpi': {'slots': ['b1', 'b2', 'b5', 'b8', 'b11', 'b13', 'b16'], 'slot_end': 'end', 'gap': 0.5, 'scene_gap': 0.85},
     'academie-02-revenu-net': {'slots': ['b1', 'b2', 'b4', 'b6', 'b9', 'b11', 'b12'], 'slot_end': 'end', 'gap': 0.5, 'scene_gap': 0.85},
@@ -622,6 +654,7 @@ SUB_UNTIL = {'reel-01-manifeste': 'b6', 'reel-02-une-seule-verite': 25.6, 'reel-
              'reel-12-deux-nuits-de-plus': 'b5', 'reel-13-direct-sans-risque': 'b5',
              'reel-14-proprietaire-inquiet': 'b5', 'reel-15-cartes-de-la-journee': 'b7',
              'reel-16-votre-savoir-faire': 'b5', 'reel-17-la-mission-cote-prestataire': 'b5', 'reel-18-six-familles-de-metiers': 'b5',
+             'reel-19-baitly-est-lance': 'b21',
              'academie-01-kpi': 'b17', 'academie-02-revenu-net': 'b13', 'academie-18-direct-ou-plateforme': 'b13',
              'academie-03-delai-duree': 'b13', 'academie-04-qualite': 'b12',
              'academie-17-prix-dynamique': 'b13', 'academie-19-extras': 'b12',
@@ -651,6 +684,7 @@ DISPLAY = {
 # Écriture d'affichage propre à un épisode (nombres écrits en toutes lettres pour la voix), avant
 # DISPLAY : l'ordre compte (« quatre-vingt-cinq » contient « vingt-cinq »).
 DISPLAY_REEL = {
+    'reel-19-baitly-est-lance': {'ar': [('بيتلي دوت إف آر', 'baitly.fr')], 'fr': [('Tchèkine', 'Chekin'), ("L'Académie Bètli", "L'Académie Baitly"), ('rève-par', 'RevPAR'), ('Dix agents I.A.', '10 agents IA'), ('dix agents I.A.', '10 agents IA')]},
     'academie-01-kpi': {'fr': [
         ('Vingt-deux sur trente', '22 sur 30'), ('trente nuits', '30 nuits'), ('vendez vingt-deux.', 'vendez 22.'),
         ('soixante-treize pour cent', '73 %'), ('Cinq nuits', '5 nuits'), ('par vingt-cinq', 'par 25'),
@@ -825,6 +859,15 @@ def split_lines(total, sils, lines, w_pause=1.5, w_gap=1.0, w_ell=1.0, long_min=
 # Coupures imposées (fin de chaque réplique sauf la dernière, en s dans la prise), pour une prise que
 # la détection automatique découperait mal. Vide tant que la détection suffit.
 FORCE_BOUNDS = {
+    # Film de lancement 9:16 (Paul K) : la réplique Académie (b20) a été générée seule puis insérée ;
+    # la détection plaçait alors la fin de b18 une phrase trop loin. Fins relevées sur les silences.
+    # Arabe (Ali) : la pause « … [beat] » de b10 passait pour la fin de réplique.
+    ('reel-19-baitly-est-lance', 'ar'): [4.72, 8.78, 14.23, 20.13, 25.84, 33.88, 40.56, 52.88, 57.98, 64.12, 71.06,
+                                         76.08, 83.08, 91.00, 97.97, 110.79, 115.12, 125.33, 134.64, 144.84, 147.86],
+    ('reel-19-baitly-est-lance', 'en'): [4.70, 8.80, 13.33, 18.71, 24.00, 32.55, 40.73, 49.52, 53.41, 60.77, 66.93,
+                                         73.63, 78.76, 86.91, 94.31, 104.61, 108.07, 117.75, 127.35, 138.43, 141.74],
+    ('reel-19-baitly-est-lance', 'fr'): [5.0, 9.49, 13.24, 18.98, 23.86, 31.67, 39.26, 48.93, 52.83, 58.85, 65.76,
+                                         72.24, 77.6, 86.56, 93.18, 102.56, 106.74, 116.67, 126.78, 138.31, 142.2],
     # Lucie marque autant la pause des deux-points (« Et tout suit : ») que la fin de réplique.
     ('reel-12-deux-nuits-de-plus', 'fr'): [7.12, 13.28, 19.33, 25.70, 29.95],
     # Mark : pause « … » de 0,5 s seulement, la pause suivante (0,9 s) passait pour la fin de b4.
@@ -878,18 +921,19 @@ def chunks(text, sub_max=SUB_MAX):
     """Regroupe les membres de phrase (coupés après . ? ! … , « : » et « ; ») en sous-titres de
     SUB_MAX caractères au plus : deux lignes lisibles, jamais un fragment isolé. Une citation
     reste entière : on ne coupe jamais avant son « » » fermant, mais juste après."""
-    pieces = [p for p in re.split(r'(?<=[,.?!…])\s+(?!»)|(?<=[.?!…] »)\s+|(?<=\s[:;])\s+', text) if p]
+    # ponctuation arabe incluse (« ، » « ؛ » « ؟ ») : sans elle, une réplique arabe restait d'un bloc
+    pieces = [p for p in re.split(r'(?<=[,.?!…،؛؟])\s+(?!»)|(?<=[.?!…] »)\s+|(?<=\s[:;])\s+|(?<=\S:)\s+(?=\S)(?=[\u0600-\u06FF])', text) if p]
     out = []
     for p in pieces:
         # un fragment court qui FINIT une phrase (« automatiquement. ») rejoint le précédent,
         # quitte à dépasser un peu ; un début de phrase (« De l'autre, ») ouvre un nouveau sous-titre
         # (une fin de phrase suivie du « » » d'une citation reste une fin de phrase)
         end = lambda x: x.rstrip(' »')[-1:]
-        tail = len(p) < 18 and end(p) in '.?!…'
+        tail = len(p) < 18 and end(p) in '.?!…؟'
         # une phrase qui commence ne s'accroche pas derrière une phrase finie si elle continue
         # au sous-titre suivant (« …la DGSN. En France, » / « elle est transmise… ») ; une phrase
         # complète et courte peut s'y accrocher
-        opens = out and end(out[-1]) in '.?!…' and end(p) not in '.?!…'
+        opens = out and end(out[-1]) in '.?!…؟' and end(p) not in '.?!…؟'
         if out and not opens and len(out[-1]) + 1 + len(p) <= sub_max + (10 if tail else 0):
             out[-1] = out[-1] + ' ' + p
         else:

@@ -1,6 +1,11 @@
 import { create } from 'zustand';
 import * as SecureStore from 'expo-secure-store';
-import { API_CONFIG, KEYCLOAK_CONFIG } from '@/config/api';
+import { API_CONFIG } from '@/config/api';
+import { baitlyCredentials, BaitlyLoginError } from '@/services/auth/baitlyCredentials';
+import { clearAllMissionDrafts } from '@/features/missions/drafts';
+import { queryClient, queryPersister } from '@/config/queryClient';
+import { useOfflineStore } from '@/store/offlineStore';
+import { useNotificationStore } from '@/store/notificationStore';
 
 export interface AuthUser {
   id: string;
@@ -29,11 +34,11 @@ interface AuthState {
 
   // Actions
   initialize: () => Promise<void>;
-  login: (username: string, password: string) => Promise<void>;
+  login: (username: string, password: string, captchaToken?: string) => Promise<void>;
   setTokens: (accessToken: string, refreshToken: string) => Promise<void>;
   loadUser: () => Promise<void>;
   refreshAccessToken: () => Promise<boolean>;
-  logout: () => Promise<void>;
+  logout: (preserveDrafts?: boolean) => Promise<void>;
 
   // Role helpers (ported from web useAuth.ts)
   hasRole: (role: string) => boolean;
@@ -72,6 +77,9 @@ async function fetchWithTimeout(
   }
 }
 
+let refreshFlight: Promise<boolean> | null = null;
+let sessionGeneration = 0;
+
 export const useAuthStore = create<AuthState>((set, get) => ({
   user: null,
   accessToken: null,
@@ -82,100 +90,41 @@ export const useAuthStore = create<AuthState>((set, get) => ({
 
   initialize: async () => {
     try {
-      console.log('[AUTH] initialize: reading tokens from SecureStore...');
-      const accessToken = await SecureStore.getItemAsync(STORAGE_KEYS.ACCESS_TOKEN);
+      await SecureStore.deleteItemAsync(STORAGE_KEYS.ACCESS_TOKEN);
       const refreshToken = await SecureStore.getItemAsync(STORAGE_KEYS.REFRESH_TOKEN);
-      console.log('[AUTH] initialize: tokens found:', !!accessToken, !!refreshToken);
-
-      if (accessToken && refreshToken) {
-        set({ accessToken, refreshToken });
-
-        // Check if token is expired
-        try {
-          const payload = JSON.parse(atob(accessToken.split('.')[1]));
-          const now = Math.floor(Date.now() / 1000);
-          const isExpired = !payload.exp || payload.exp <= now;
-          console.log('[AUTH] initialize: token expired:', isExpired, 'exp:', payload.exp, 'now:', now);
-
-          if (!isExpired) {
-            console.log('[AUTH] initialize: loading user...');
-            await get().loadUser();
-            console.log('[AUTH] initialize: loadUser complete');
-          } else {
-            console.log('[AUTH] initialize: refreshing token...');
-            const refreshed = await get().refreshAccessToken();
-            console.log('[AUTH] initialize: refresh result:', refreshed);
-            if (refreshed) {
-              await get().loadUser();
-            } else {
-              console.log('[AUTH] initialize: refresh failed, logging out...');
-              await get().logout();
-              console.log('[AUTH] initialize: logout complete');
-            }
-          }
-        } catch (e) {
-          console.error('[AUTH] initialize: error during token check:', e);
-          await get().logout();
-        }
-      } else {
-        console.log('[AUTH] initialize: no tokens, showing login');
+      if (refreshToken) {
+        set({ refreshToken });
+        if (await get().refreshAccessToken()) await get().loadUser();
+        if (!get().user) await get().logout(true);
       }
     } catch (e) {
       console.error('[AUTH] initialize: outer error:', e);
     } finally {
-      console.log('[AUTH] initialize: FINALLY - setting isInitialized=true');
       set({ isLoading: false, isInitialized: true });
     }
   },
 
-  login: async (username: string, password: string) => {
-    const tokenUrl = `${KEYCLOAK_CONFIG.issuer}/protocol/openid-connect/token`;
-
-    try {
-      const response = await fetchWithTimeout(
-        tokenUrl,
-        {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-          body: new URLSearchParams({
-            grant_type: 'password',
-            client_id: KEYCLOAK_CONFIG.clientId,
-            username,
-            password,
-            scope: KEYCLOAK_CONFIG.scopes.join(' '),
-          }).toString(),
-        },
-        15000,
-      );
-
-      if (!response) {
-        throw new Error('Impossible de contacter le serveur. Verifiez votre connexion internet.');
-      }
-
-      if (response.ok) {
-        const data = await response.json();
-        await get().setTokens(data.access_token, data.refresh_token);
-        await get().loadUser();
-      } else if (response.status === 401 || response.status === 400) {
-        throw new Error('Identifiants incorrects. Verifiez votre email et mot de passe.');
-      } else {
-        throw new Error(`Erreur serveur (${response.status}). Reessayez plus tard.`);
-      }
-    } catch (e: unknown) {
-      if (e instanceof Error && e.message.includes('Identifiants')) throw e;
-      if (e instanceof Error && e.message.includes('Impossible')) throw e;
-      if (e instanceof Error && e.message.includes('Erreur serveur')) throw e;
-      throw new Error('Impossible de contacter le serveur. Verifiez votre connexion internet.');
+  login: async (username, password, captchaToken) => {
+    const generation = ++sessionGeneration;
+    const tokens = await baitlyCredentials(username, password, captchaToken);
+    if (generation !== sessionGeneration) return;
+    await get().setTokens(tokens.accessToken, tokens.refreshToken!);
+    await get().loadUser();
+    if (!get().user) {
+      await get().logout(true);
+      throw new BaitlyLoginError('profile');
     }
   },
 
   setTokens: async (accessToken: string, refreshToken: string) => {
-    await SecureStore.setItemAsync(STORAGE_KEYS.ACCESS_TOKEN, accessToken);
+    // Access token stays in memory; remove the legacy persisted copy.
+    await SecureStore.deleteItemAsync(STORAGE_KEYS.ACCESS_TOKEN);
     await SecureStore.setItemAsync(STORAGE_KEYS.REFRESH_TOKEN, refreshToken);
-    set({ accessToken, refreshToken, isAuthenticated: true });
+    set({ accessToken, refreshToken });
   },
 
   loadUser: async () => {
+    const generation = sessionGeneration;
     const { accessToken } = get();
     if (!accessToken) return;
 
@@ -193,6 +142,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
 
       if (response?.ok) {
         const userData = await response.json();
+        if (generation !== sessionGeneration || get().accessToken !== accessToken) return;
         const permissions = userData.permissions || [];
         let roles: string[] = [];
         if (userData.role) {
@@ -225,41 +175,37 @@ export const useAuthStore = create<AuthState>((set, get) => ({
 
         set({ user, isAuthenticated: true });
       } else if (response?.status === 401) {
-        const refreshed = await get().refreshAccessToken();
-        if (refreshed) {
-          await get().loadUser();
-        } else {
-          await get().logout();
-        }
+        if (generation === sessionGeneration) await get().logout(true);
       }
     } catch {
       // Network error - stay authenticated if we have tokens (offline)
     }
   },
 
-  refreshAccessToken: async () => {
+  refreshAccessToken: () => {
+    if (refreshFlight) return refreshFlight;
+    const generation = sessionGeneration;
+    refreshFlight = (async () => {
     const { refreshToken } = get();
     if (!refreshToken) return false;
 
     try {
-      const tokenUrl = `${KEYCLOAK_CONFIG.issuer}/protocol/openid-connect/token`;
+      const tokenUrl = `${API_CONFIG.BASE_URL}${API_CONFIG.BASE_PATH}/public/baitly-session/refresh`;
       const response = await fetchWithTimeout(
         tokenUrl,
         {
           method: 'POST',
-          headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-          body: new URLSearchParams({
-            grant_type: 'refresh_token',
-            client_id: KEYCLOAK_CONFIG.clientId,
-            refresh_token: refreshToken,
-          }).toString(),
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ refreshToken }),
+          credentials: 'omit',
         },
         10000,
       );
 
       if (response?.ok) {
         const data = await response.json();
-        await get().setTokens(data.access_token, data.refresh_token);
+        if (generation !== sessionGeneration || get().refreshToken !== refreshToken) return false;
+        await get().setTokens(data.access_token, data.refresh_token || refreshToken);
         return true;
       }
 
@@ -267,10 +213,15 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     } catch {
       return false;
     }
+
+    })().finally(() => { refreshFlight = null; });
+    return refreshFlight;
   },
 
-  logout: async () => {
-    const { refreshToken, accessToken } = get();
+  logout: async (preserveDrafts = false) => {
+    sessionGeneration += 1;
+    if (!preserveDrafts) await clearAllMissionDrafts().catch(() => {});
+    const { refreshToken } = get();
 
     // 0. Désenregistrer le token push TANT QUE la session est encore valide
     // (le DELETE /devices est authentifié). Best-effort borné à 1,5 s pour ne
@@ -288,6 +239,10 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     // 1. Clear local tokens FIRST (ensures UI unblocks immediately)
     await SecureStore.deleteItemAsync(STORAGE_KEYS.ACCESS_TOKEN);
     await SecureStore.deleteItemAsync(STORAGE_KEYS.REFRESH_TOKEN);
+    queryClient.clear();
+    await queryPersister.removeClient();
+    useOfflineStore.getState().clearSession();
+    useNotificationStore.getState().resetUnread();
     set({
       user: null,
       accessToken: null,
@@ -297,37 +252,18 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     });
 
     // 2. Best-effort server-side cleanup (non-blocking, with 5s timeout)
-    // Revoke refresh token + end Keycloak session in parallel
+    // Revoke the session through the Baitly backend that issued the tokens.
     const cleanupPromises: Promise<unknown>[] = [];
 
     if (refreshToken) {
       cleanupPromises.push(
         fetchWithTimeout(
-          `${KEYCLOAK_CONFIG.issuer}/protocol/openid-connect/revoke`,
+          `${API_CONFIG.BASE_URL}${API_CONFIG.BASE_PATH}/public/baitly-session/logout`,
           {
             method: 'POST',
-            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-            body: new URLSearchParams({
-              client_id: KEYCLOAK_CONFIG.clientId,
-              token: refreshToken,
-              token_type_hint: 'refresh_token',
-            }).toString(),
-          },
-        ),
-      );
-    }
-
-    if (refreshToken || accessToken) {
-      cleanupPromises.push(
-        fetchWithTimeout(
-          `${KEYCLOAK_CONFIG.issuer}/protocol/openid-connect/logout`,
-          {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-            body: new URLSearchParams({
-              client_id: KEYCLOAK_CONFIG.clientId,
-              refresh_token: refreshToken || '',
-            }).toString(),
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ refreshToken }),
+            credentials: 'omit',
           },
         ),
       );

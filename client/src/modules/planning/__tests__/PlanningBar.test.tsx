@@ -86,6 +86,27 @@ function renderBar(props?: Partial<React.ComponentProps<typeof PlanningBar>>) {
 // ─── Tests ──────────────────────────────────────────────────────────────────
 
 describe('PlanningBar', () => {
+  it('garde l’alerte d’e-mail visible sur une réservation courte', () => {
+    const event = { ...baseEvent, reservation: { id: 1, guestEmail: '' } as PlanningEvent['reservation'] };
+    const { container } = renderBar({ layout: { ...baseLayout, width: 60, event } });
+    expect(container.querySelector('[role="img"][aria-label]')).toBeTruthy();
+    expect(container.querySelector('[data-planning-bar]')?.getAttribute('aria-label')).toContain('manquant');
+  });
+  it('permet d’ouvrir une prestation repliée sans ouvrir le récapitulatif du séjour', () => {
+    const onClick = vi.fn();
+    const intervention = { ...baseEvent, id: 'int-12', type: 'cleaning', label: 'Ménage de départ' } as PlanningEvent;
+    renderBar({ layout: { ...baseLayout, width: 90 }, linkedInterventions: [intervention], onClick });
+    fireEvent.click(screen.getByRole('button', { name: /indicateur/i }));
+    fireEvent.click(screen.getByRole('button', { name: /^ménage$/i }));
+    expect(onClick).toHaveBeenCalledWith(intervention);
+  });
+  it.each(['', '   ', 'guest@example.com'])('signals a missing email for "%s"', (guestEmail) => {
+    const event = { ...baseEvent, reservation: { id: 1, guestEmail } as PlanningEvent['reservation'] };
+    const { container } = renderBar({ layout: { ...baseLayout, event } });
+    const bar = container.querySelector('[data-planning-bar]')!;
+    expect(bar.classList.contains('pl-email-missing')).toBe(!guestEmail.trim());
+  });
+
   it('renders with data-planning-bar attribute for drag detection', () => {
     const { container } = renderBar();
     const barElement = container.querySelector('[data-planning-bar]');
@@ -138,6 +159,29 @@ describe('PlanningBar', () => {
     const barElement = container.querySelector('[data-planning-bar]') as HTMLElement;
     fireEvent.click(barElement);
     expect(handleClick).not.toHaveBeenCalled();
+  });
+
+  it('opens an intervention with Enter', () => {
+    const handleClick = vi.fn();
+    const cleaning = { ...baseEvent, type: 'cleaning' as const };
+    const { container } = renderBar({ layout: { ...baseLayout, event: cleaning }, onClick: handleClick });
+    fireEvent.keyDown(container.querySelector('[data-planning-bar]')!, { key: 'Enter' });
+    expect(handleClick).toHaveBeenCalledWith(cleaning);
+  });
+
+  it('does not open an intervention while finishing a keyboard drag', () => {
+    const onClick = vi.fn();
+    const { container } = renderBar({ layout: { ...baseLayout, event: { ...baseEvent, type: 'cleaning' } }, onClick, isDragActive: true });
+    fireEvent.keyDown(container.querySelector('[data-planning-bar]')!, { key: 'Enter' });
+    expect(onClick).not.toHaveBeenCalled();
+  });
+
+  it('hides a cancelled stay with the keyboard without opening its recap', () => {
+    const onHide = vi.fn();
+    const cancelled = { ...baseEvent, status: 'cancelled' };
+    renderBar({ layout: { ...baseLayout, event: cancelled }, onHide });
+    fireEvent.keyDown(screen.getByRole('button', { name: 'Masquer du planning' }), { key: 'Enter' });
+    expect(onHide).toHaveBeenCalledWith(cancelled);
   });
 
   it('renders with position: absolute for absolute positioning in row', () => {

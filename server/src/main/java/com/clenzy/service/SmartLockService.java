@@ -57,10 +57,11 @@ public class SmartLockService {
     // ─── CRUD ───────────────────────────────────────────────────
 
     /**
-     * Liste les serrures de l'organisation (le filtre Hibernate assure l'isolation).
+     * Liste les serrures de l'organisation courante. Le filtre explicite est requis : le filtre
+     * Hibernate est inactif en HTTP, et findByStatus exposait les appareils de toutes les organisations.
      */
     public List<SmartLockDeviceDto> getUserDevices(String userId) {
-        return smartLockRepository.findByStatus(DeviceStatus.ACTIVE).stream()
+        return smartLockRepository.findByOrganizationIdAndStatus(tenantContext.getRequiredOrganizationId(), DeviceStatus.ACTIVE).stream()
                 .map(this::toDto)
                 .collect(Collectors.toList());
     }

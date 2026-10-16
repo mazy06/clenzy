@@ -1,0 +1,65 @@
+.baitly-provider-profile { width:100%; max-width:1440px; margin-inline:auto; color:var(--bui-foreground); }
+.baitly-profile-identity.cn-card { display:grid; grid-template-columns:160px minmax(0,1fr); align-items:start; gap:24px; padding:24px; box-shadow:none; flex-shrink:0; }
+.baitly-profile-identity .baitly-provider-media { width:160px; height:168px; border-radius:10px; }
+.baitly-profile-identity__content { min-width:0; }
+.baitly-profile-identity h2 { margin:8px 0 4px; font-size:26px; line-height:1.25; letter-spacing:-.025em; font-weight:600; text-wrap:balance; }
+.baitly-profile-identity__badges,.baitly-profile-identity__facts,.baitly-profile-identity__contacts { display:flex; flex-wrap:wrap; align-items:center; gap:10px 22px; }
+.baitly-profile-identity__badges { gap:6px; }
+.baitly-profile-identity__headline { margin:0; font-size:15px; color:var(--bui-muted-foreground); }
+.baitly-profile-identity__facts { margin-top:16px; font-size:13px; color:var(--bui-muted-foreground); font-variant-numeric:tabular-nums; }
+.baitly-profile-identity__facts span,.baitly-profile-identity__contacts a { display:inline-flex; gap:6px; align-items:center; }
+.baitly-profile-identity__facts b { color:var(--bui-foreground); font-weight:500; }
+.baitly-profile-identity__bio { max-width:75ch; white-space:pre-line; font-size:14px; line-height:1.7; margin:16px 0 0; }
+.baitly-profile-identity__contacts { padding-top:14px; margin-top:16px; border-top:1px solid var(--bui-border); font-size:13px; }
+.baitly-profile-identity__contacts a { overflow-wrap:anywhere; min-width:0; cursor:pointer; color:var(--bui-foreground); text-decoration:underline; text-underline-offset:3px; }
+.baitly-profile-identity__contacts a:hover { color:var(--bui-muted-foreground); }
+.baitly-profile-identity__contacts a:focus-visible { outline:2px solid var(--bui-ring); outline-offset:3px; border-radius:3px; }
+.baitly-profile-layout { display:grid; grid-template-columns:minmax(0,1fr) minmax(280px,360px); gap:20px; align-items:start; margin-top:20px; }
+.baitly-profile-layout > div,.baitly-profile-layout > aside { display:flex; flex-direction:column; gap:20px; min-width:0; }
+.baitly-profile-section.cn-card { padding:0; gap:0; box-shadow:none; flex-shrink:0; min-width:0; }
+.baitly-profile-section > header { padding:18px 20px; display:flex; justify-content:space-between; align-items:center; gap:12px; border-bottom:1px solid var(--bui-border); }
+.baitly-profile-section h2 { font-size:16px; font-weight:600; margin:0; text-wrap:balance; }
+.baitly-profile-section__body { padding:20px; min-width:0; }
+.baitly-profile-section__body dl dd { overflow-wrap:anywhere; min-width:0; }
+.baitly-profile-offers__group + .baitly-profile-offers__group { margin-top:24px; }
+.baitly-profile-offers__group > header { display:flex; align-items:center; gap:12px; }
+.baitly-profile-offers__group > header img { width:48px; height:48px; object-fit:contain; }
+.baitly-profile-offers h3 { margin:0; font-size:14px; font-weight:500; color:var(--bui-muted-foreground); }
+.baitly-profile-offers ul { list-style:none; margin:8px 0 0; padding:0; }
+.baitly-profile-offers li { display:grid; grid-template-columns:64px minmax(0,1fr) auto; align-items:start; gap:16px; padding:18px 0; border-bottom:1px solid var(--bui-border); }
+.baitly-profile-offers__image { width:64px; height:64px; object-fit:contain; padding:6px; background:var(--bui-muted); border-radius:8px; }
+.baitly-profile-offers li:last-child { border-bottom:0; padding-bottom:0; }
+.baitly-profile-offers h4 { margin:0; font-size:15px; line-height:1.5; font-weight:500; text-wrap:balance; }
+.baitly-profile-offers li[data-active="false"] h4 { color:var(--bui-muted-foreground); text-decoration:line-through; }
+.baitly-profile-offers p { max-width:65ch; font-size:13px; color:var(--bui-muted-foreground); line-height:1.6; margin:5px 0; }
+.baitly-profile-offers strong { font-size:18px; line-height:1.5; font-weight:600; font-variant-numeric:tabular-nums; white-space:nowrap; }
+.baitly-profile-offers__conditions { display:flex; flex-wrap:wrap; gap:6px; margin-top:8px; font-size:12px; color:var(--bui-muted-foreground); }
+.baitly-profile-management { margin-top:20px; border:1px solid var(--bui-border); border-radius:10px; background:var(--bui-card); }
+.baitly-profile-management > summary { padding:20px; font-size:16px; font-weight:600; cursor:pointer; }
+.baitly-profile-management > summary:hover { background:var(--bui-muted); }
+.baitly-profile-management > summary,.baitly-profile-identity__contacts a { transition:background-color 180ms cubic-bezier(.25,1,.5,1),color 180ms cubic-bezier(.25,1,.5,1); }
+.baitly-profile-management > summary:focus-visible { outline:2px solid var(--bui-ring); outline-offset:2px; }
+.baitly-profile-management__body { padding:0 20px 20px; display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1fr); align-items:start; gap:20px; }
+.baitly-profile-management__body > * { min-width:0; }
+.baitly-profile-management__body > div { display:flex; flex-direction:column; gap:20px; }
+.baitly-profile-week { display:grid; grid-template-columns:repeat(7,minmax(0,1fr)); gap:6px; margin-bottom:14px; }
+.baitly-profile-week > span { width:100%; height:38px; text-transform:capitalize; }
+.baitly-profile-contact-help { font-size:13px; line-height:1.65; color:var(--bui-muted-foreground); margin:0 0 16px; }
+@media(max-width:1000px) { .baitly-profile-layout { grid-template-columns:minmax(0,1fr); } .baitly-profile-layout > aside { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); align-items:start; } }
+@media(max-width:600px) {
+  .baitly-profile-identity.cn-card { grid-template-columns:84px minmax(0,1fr); gap:10px 14px; padding:16px; }
+  .baitly-profile-identity .baitly-provider-media { width:84px; height:100px; grid-row:1 / 4; }
+  .baitly-profile-identity__content { display:contents; }
+  .baitly-profile-identity__badges { grid-column:2; grid-row:1; }
+  .baitly-profile-identity h2 { font-size:20px; grid-column:2; grid-row:2; margin:0; }
+  .baitly-profile-identity__headline { grid-column:2; grid-row:3; }
+  .baitly-profile-identity__facts,.baitly-profile-identity__bio,.baitly-profile-identity__contacts { grid-column:1 / -1; margin-top:6px; }
+  .baitly-profile-identity__facts { gap:10px 16px; }
+  .baitly-profile-section > header,.baitly-profile-section__body { padding:16px; }
+  .baitly-profile-layout > aside,.baitly-profile-management__body { grid-template-columns:minmax(0,1fr); }
+  .baitly-profile-offers li { grid-template-columns:48px minmax(0,1fr); gap:8px 12px; }
+  .baitly-profile-offers__image { width:48px; height:48px; }
+  .baitly-profile-offers strong { grid-column:2; }
+  .baitly-profile-management__body { padding:0 12px 12px; }
+}
+@media(prefers-reduced-motion:reduce) { .baitly-profile-management > summary,.baitly-profile-identity__contacts a { transition:none; } }

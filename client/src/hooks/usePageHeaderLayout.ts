@@ -45,16 +45,21 @@ export function usePageHeaderLayout(anchored: boolean, contentKey = '') {
     const parent = header.parentElement;
     let frame = 0;
     let disposed = false;
+    let guttersDirty = true;
     const measure = () => {
-      if (anchored && parent) {
+      if (anchored && parent && guttersDirty) {
         const gutters = pageGutters(parent);
-        header.style.setProperty('--page-header-gutter-start', `${gutters.start}px`);
-        header.style.setProperty('--page-header-gutter-end', `${gutters.end}px`);
-        header.style.setProperty('--page-header-gutter-top', `${gutters.top}px`);
+        for (const [name, value] of Object.entries(gutters)) {
+          const key = `--page-header-gutter-${name}`;
+          const next = `${value}px`;
+          if (header.style.getPropertyValue(key) !== next) header.style.setProperty(key, next);
+        }
+        guttersDirty = false;
       }
       const row = header.querySelector<HTMLElement>('[data-header-row]');
-      if (!row?.clientWidth) return;
-      setWidth(previous => previous === row.clientWidth ? previous : row.clientWidth);
+      const rowWidth = row?.clientWidth ?? 0;
+      if (!row || rowWidth <= 0) return;
+      setWidth(previous => previous === rowWidth ? previous : rowWidth);
       // Les traductions, dates et filtres peuvent demander plus de place.
       if (row.dataset.inline === 'true') {
         const title = row.querySelector<HTMLElement>('[data-slot="page-title"]');
@@ -76,20 +81,21 @@ export function usePageHeaderLayout(anchored: boolean, contentKey = '') {
       cancelAnimationFrame(frame);
       frame = requestAnimationFrame(measure);
     };
+    const scheduleGeometry = () => { guttersDirty = true; schedule(); };
     measure();
-    const resize = new ResizeObserver(schedule);
+    const resize = new ResizeObserver(scheduleGeometry);
     resize.observe(header);
     if (parent) resize.observe(parent);
     const changes = new MutationObserver(schedule);
     changes.observe(header, { childList: true, subtree: true, characterData: true });
-    window.addEventListener('resize', schedule);
-    document.fonts?.ready.then(schedule);
+    window.addEventListener('resize', scheduleGeometry);
+    document.fonts?.ready.then(scheduleGeometry);
     return () => {
       disposed = true;
       cancelAnimationFrame(frame);
       resize.disconnect();
       changes.disconnect();
-      window.removeEventListener('resize', schedule);
+      window.removeEventListener('resize', scheduleGeometry);
     };
   }, [anchored]);
 

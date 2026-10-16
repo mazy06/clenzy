@@ -187,8 +187,8 @@ export function PayoutStatsScreen() {
         <View style={{ flex: 1, justifyContent: 'center', padding: theme.SPACING.lg }}>
           <EmptyState
             icon="stats-chart-outline"
-            title="Aucun reversement verse"
-            description="Une fois les premiers reversements payes, les statistiques apparaitront ici."
+            title="Aucun reversement versé"
+            description="Une fois les premiers reversements payés, les statistiques apparaîtront ici."
           />
         </View>
       ) : (

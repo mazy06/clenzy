@@ -40,13 +40,12 @@ export const PROPERTY_COL_WIDTH_SM = 188;
  * chevron de son en-tete qui la ramene — a zero, plus rien a toucher.
  */
 export const COLLAPSED_PROPERTY_COL_WIDTH = 28;
-// 44px rangée jour : le contenu fait ~35px (jour abrégé 9.5px + carré
+// 44px rangée jour : le contenu fait 36px (jour abrégé 12px + carré
 // « aujourd'hui » 24×24, la seule pièce incompressible), le reste n'est que de
 // l'air — 8px de respiration suffisent, la spec d'origine en mettait 16 et la
 // rangée pesait plus lourd que les jours qu'elle annonce. Pas de rangée mois
 // dans la grille : le mois/année vit dans la toolbar (‹ Mois Année ›).
 export const DATE_HEADER_HEIGHT = 44;
-export const ACTION_PANEL_WIDTH = 380;
 
 // ─── Row dimensions by density ──────────────────────────────────────────────
 
@@ -140,7 +139,7 @@ export const DEFAULT_CHECK_IN_HOUR = 15;
 export const DEFAULT_CHECK_OUT_HOUR = 11;
 // Spec : width = max(3.5 %, right − left) sur la grille 14 jours de la
 // maquette → 3.5 % × 14 jours = 0.49 jour. Exprimé en fraction de jour car
-// la grille Clenzy a un nombre de jours variable (timeline infinie).
+// la grille Baitly a un nombre de jours variable (timeline infinie).
 export const BAR_MIN_DAY_FRACTION = 0.49;
 
 // ─── Couleurs de statut — palette « Terre cuite » ───────────────────────────

@@ -1,5 +1,22 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, beforeAll, afterAll } from 'vitest';
 import { render, fireEvent, screen } from '@testing-library/react';
+
+const previousPointerEvent = window.PointerEvent;
+beforeAll(() => {
+  Object.defineProperty(window, 'PointerEvent', { configurable: true, writable: true,
+    value: class extends MouseEvent {
+      pointerId: number;
+      pointerType: string;
+      isPrimary: boolean;
+      constructor(type: string, init: PointerEventInit = {}) {
+        super(type, init);
+        this.pointerId = init.pointerId ?? 1;
+        this.pointerType = init.pointerType ?? 'mouse';
+        this.isPrimary = init.isPrimary ?? true;
+      }
+    } });
+});
+afterAll(() => { Object.defineProperty(window, 'PointerEvent', { configurable: true, writable: true, value: previousPointerEvent }); });
 
 // ─── Mock @dnd-kit ──────────────────────────────────────────────────────────
 
@@ -68,6 +85,8 @@ const reservationEvent: PlanningEvent = {
   propertyId: 1,
   startDate: '2026-03-02',
   endDate: '2026-03-04',
+  startTime: '15:00',
+  endTime: '11:00',
   label: 'John Doe',
   status: 'confirmed',
   color: '#4CAF50',
@@ -125,17 +144,54 @@ describe('PlanningRow', () => {
   });
 
   describe('Range selection (empty space clicks)', () => {
+    it('ouvre les dates au doigt après un tap sur une plage libre', () => {
+      const { container } = renderRow();
+      fireEvent.pointerDown(container.firstChild as HTMLElement, { pointerType: 'touch', pointerId: 2, clientX: 40, clientY: 20 });
+      fireEvent.pointerUp(document, { pointerType: 'touch', pointerId: 2 });
+      expect(mockOnEmptyClick).toHaveBeenCalledWith(expect.objectContaining({ startDate: '2026-03-01', endDate: '2026-03-02' }));
+    });
+    it('laisse le doigt défiler sans créer de réservation', () => {
+      const { container } = renderRow();
+      fireEvent.pointerDown(container.firstChild as HTMLElement, { pointerType: 'touch', pointerId: 2, clientX: 40, clientY: 20 });
+      fireEvent.pointerMove(document, { pointerType: 'touch', pointerId: 2, clientX: 100, clientY: 20 });
+      fireEvent.pointerUp(document, { pointerType: 'touch', pointerId: 2 });
+      expect(mockOnEmptyClick).not.toHaveBeenCalled();
+    });
+    it('annule la sélection quand le navigateur annule le pointeur', () => {
+      const { container } = renderRow();
+      fireEvent.pointerDown(container.firstChild as HTMLElement, { pointerId: 2, clientX: 40, clientY: 20 });
+      fireEvent.pointerCancel(document, { pointerId: 2 });
+      fireEvent.pointerUp(document, { pointerId: 2 });
+      expect(mockOnEmptyClick).not.toHaveBeenCalled();
+    });
+    it('crée une plage étendue avec Maj et les flèches', () => {
+      const { container } = renderRow({ allEvents: [], barLayouts: [] });
+      const row = container.firstChild as HTMLElement;
+      fireEvent.keyDown(row, { key: 'ArrowRight', shiftKey: true });
+      fireEvent.keyDown(row, { key: 'ArrowRight', shiftKey: true });
+      fireEvent.keyDown(row, { key: 'Enter' });
+      expect(mockOnEmptyClick).toHaveBeenCalledWith(expect.objectContaining({ startDate: '2026-03-01', endDate: '2026-03-04' }));
+    });
+    it('refuse une sélection qui traverse une réservation même si sa brique est masquée', () => {
+      const { container } = renderRow({ barLayouts: [] });
+      const row = container.firstChild as HTMLElement;
+      for (let i = 0; i < 4; i++) fireEvent.keyDown(row, { key: 'ArrowRight', shiftKey: true });
+      fireEvent.keyDown(row, { key: 'Enter' });
+      expect(mockOnEmptyClick).not.toHaveBeenCalled();
+    });
     it('triggers onEmptyClick when clicking on empty space (not on a bar)', () => {
       const { container } = renderRow();
       const rowElement = container.firstChild as HTMLElement;
 
       // Click on empty area (day 0 = x offset 40, y = 20 — in the grid area)
-      fireEvent.mouseDown(rowElement, {
+      fireEvent.pointerDown(rowElement, {
         clientX: 40,
         clientY: 20,
         button: 0,
+        pointerType: 'mouse',
+        pointerId: 1,
       });
-      fireEvent.mouseUp(document);
+      fireEvent.pointerUp(document, { pointerId: 1 });
 
       // onEmptyClick should have been called (single click = minimumNights selection)
       expect(mockOnEmptyClick).toHaveBeenCalled();
@@ -146,8 +202,8 @@ describe('PlanningRow', () => {
       const barElement = container.querySelector('[data-planning-bar]') as HTMLElement;
 
       // Click directly on the bar
-      fireEvent.mouseDown(barElement, { button: 0 });
-      fireEvent.mouseUp(document);
+      fireEvent.pointerDown(barElement, { button: 0 });
+      fireEvent.pointerUp(document, { pointerId: 1 });
 
       // onEmptyClick should NOT be called — the bar should handle its own events
       expect(mockOnEmptyClick).not.toHaveBeenCalled();
@@ -157,12 +213,14 @@ describe('PlanningRow', () => {
       const { container } = renderRow({ isDragging: true });
       const rowElement = container.firstChild as HTMLElement;
 
-      fireEvent.mouseDown(rowElement, {
+      fireEvent.pointerDown(rowElement, {
         clientX: 40,
         clientY: 20,
         button: 0,
+        pointerType: 'mouse',
+        pointerId: 1,
       });
-      fireEvent.mouseUp(document);
+      fireEvent.pointerUp(document, { pointerId: 1 });
 
       expect(mockOnEmptyClick).not.toHaveBeenCalled();
     });
@@ -171,12 +229,12 @@ describe('PlanningRow', () => {
       const { container } = renderRow();
       const rowElement = container.firstChild as HTMLElement;
 
-      fireEvent.mouseDown(rowElement, {
+      fireEvent.pointerDown(rowElement, {
         clientX: 40,
         clientY: 20,
-        button: 2, // Right click
+        button: 2, pointerType: 'mouse', pointerId: 1, // Right click
       });
-      fireEvent.mouseUp(document);
+      fireEvent.pointerUp(document, { pointerId: 1 });
 
       expect(mockOnEmptyClick).not.toHaveBeenCalled();
     });
@@ -230,8 +288,8 @@ describe('PlanningRow', () => {
       const { container } = renderRow({ barLayouts: [blockedLayout], allEvents: [blockedEvent] });
       const band = container.querySelector('[data-blocked-range]') as HTMLElement;
 
-      fireEvent.mouseDown(band, { button: 0 });
-      fireEvent.mouseUp(document);
+      fireEvent.pointerDown(band, { button: 0 });
+      fireEvent.pointerUp(document, { pointerId: 1 });
 
       expect(mockOnEmptyClick).not.toHaveBeenCalled();
     });

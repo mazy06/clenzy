@@ -286,8 +286,6 @@ clenzy:
     businesses-url: ${SAGE_BUSINESSES_URL:https://api.accounting.sage.com/v3.1/businesses}
     api-base-url: ${SAGE_API_BASE_URL:https://api.accounting.sage.com/v3.1}
     scopes: ${SAGE_SCOPES:full_access}
-  mapbox:
-    access-token: ${MAPBOX_ACCESS_TOKEN:}
   mail:
     provider: ${MAIL_PROVIDER:brevo}
     from: ${MAIL_FROM:info@clenzy.fr}

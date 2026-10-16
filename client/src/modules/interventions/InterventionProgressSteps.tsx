@@ -1,4 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import { BaitlyMissionSafety } from './BaitlyMissionSafety';
+import { BaitlyRestockRecap } from './BaitlyRestockRecap';
 import { cn } from '../../utils/cn';
 import { Badge, Button, Item } from '../../components/ui';
 import { Alert, AlertDescription } from '../../components/ui';
@@ -46,6 +48,9 @@ import { activeIntlLocale } from '../../utils/activeLocale';
 // ─── Types ──────────────────────────────────────────────────────────────────
 
 interface PhotoProps {
+  inspectionRooms?: { id: string; type: string; number: number }[];
+  inspectionRoomCounts?: Record<string, number>;
+  setInspectionRoom?: (room: string | null) => void;
   beforePhotos: string[];
   afterPhotos: string[];
   beforePhotoIds: number[];
@@ -210,7 +215,10 @@ const InterventionProgressSteps: React.FC<InterventionProgressStepsProps> = ({
   // Destructure grouped props for internal usage
   const { beforePhotos, afterPhotos, beforePhotoIds, afterPhotoIds, deletingPhotoId, handleDeletePhoto, setPhotoType, setPhotosDialogOpen } = photos;
   const { propertyDetails, getTotalRooms, getRoomNames, validatedRooms, allRoomsValidated, savingRoom, handleRoomValidation } = rooms;
-  const { inspectionComplete, setInspectionComplete, completedSteps, setCompletedSteps, getStepNote, handleOpenNotesDialog } = stepProps;
+  const { inspectionComplete: storedInspectionComplete, setInspectionComplete, completedSteps, setCompletedSteps, getStepNote, handleOpenNotesDialog } = stepProps;
+  const cleaning = intervention.type?.toUpperCase().includes('CLEANING');
+  const [safetyPaused, setSafetyPaused] = useState(true);
+  const inspectionComplete = cleaning ? !!photos.inspectionRooms?.length && photos.inspectionRooms.every(room => (photos.inspectionRoomCounts?.[`inspection_${room.id}`] ?? 0) > 0) : storedInspectionComplete;
   const { calculateProgress, areAllStepsCompleted, canUpdateProgress, handleUpdateProgressValue } = progressProps;
 
   const { t } = useTranslation();
@@ -278,6 +286,7 @@ const InterventionProgressSteps: React.FC<InterventionProgressStepsProps> = ({
     if (isComplete) return 3;
     // After reopen: go directly to recap
     if (isReopened) return 3;
+    if (!inspectionComplete) return 0;
     if (allRoomsValidated) return 2;
     if (inspectionComplete) return 1;
     return 0;
@@ -309,7 +318,7 @@ const InterventionProgressSteps: React.FC<InterventionProgressStepsProps> = ({
   const steps: StepDef[] = [
     { id: 0, label: t('interventions.progressSteps.inspection'), completed: inspectionComplete, active: !inspectionComplete, locked: false },
     { id: 1, label: t('interventions.progressSteps.rooms'), completed: allRoomsChecked, active: inspectionComplete && !allRoomsChecked, locked: !inspectionComplete },
-    { id: 2, label: t('interventions.progressSteps.photos'), completed: completedSteps.has('after_photos'), active: allRoomsChecked && !completedSteps.has('after_photos'), locked: !allRoomsChecked },
+    { id: 2, label: t('interventions.progressSteps.photos'), completed: completedSteps.has('after_photos'), active: allRoomsChecked && !completedSteps.has('after_photos'), locked: !inspectionComplete || !allRoomsChecked },
     { id: 3, label: t('interventions.progressSteps.recap'), completed: isComplete, active: false, locked: !canAccessRecap },
   ];
 
@@ -352,17 +361,28 @@ const InterventionProgressSteps: React.FC<InterventionProgressStepsProps> = ({
       )}
 
       <div className="flex gap-1.5 flex-wrap">
+        {cleaning ? <div className="grid gap-2 w-full">
+          {(photos.inspectionRooms ?? []).map(room => {
+            const done=(photos.inspectionRoomCounts?.[`inspection_${room.id}`] ?? 0)>0;
+            const keys: Record<string,string>={bedroom:'bedroom_n',bathroom:'bathroom_n',living:'livingRoom',kitchen:'kitchen'};
+            const label=t(`interventions.roomNames.${keys[room.type] ?? room.type}`, { n: room.number });
+            return <Button key={room.id} variant="outline" className="min-h-[48px] justify-between" onClick={() => {
+              photos.setInspectionRoom?.(room.id); setPhotoType('before'); setPhotosDialogOpen(true);
+            }}><span className="flex items-center gap-2"><img src={`/images/baitly-mission-safety/${room.type}.png`} alt="" width={36} height={36}/>{label}</span>{done ? <CheckCircleIcon size={20} /> : <PhotoCameraIcon size={20} />}</Button>;
+          })}
+        </div> : null}
+        {!cleaning ?
         <Button variant="outline" size="sm"
           onClick={() => { setPhotoType('before'); setPhotosDialogOpen(true); }}>
           <PhotoCameraIcon size={18} strokeWidth={1.75} />
           {t('interventions.progressSteps.addPhotos')}
-        </Button>
+        </Button> : null}
         <Button variant="outline" size="sm"
           onClick={() => handleOpenNotesDialog('inspection')}>
           <CommentIcon size={18} strokeWidth={1.75} />
           {getStepNote('inspection') ? t('interventions.progressSteps.editNote') : t('interventions.progressSteps.addNote')}
         </Button>
-        {!inspectionComplete && beforePhotos.length > 0 && (
+        {!storedInspectionComplete && (cleaning ? inspectionComplete : true) && (
           // Seule action qui fait AVANCER l'etape : elle domine les deux autres.
           <Button variant="default" size="sm" className="animate-pulse motion-reduce:animate-none"
           onClick={() => {
@@ -527,6 +547,7 @@ const InterventionProgressSteps: React.FC<InterventionProgressStepsProps> = ({
 
   const renderRecap = () => (
     <div>
+      <BaitlyRestockRecap id={Number(intervention.id)} />
       <p className="text-xs font-semibold mb-3.5">
         {t('interventions.progressSteps.recapTitle')}
       </p>
@@ -683,8 +704,10 @@ const InterventionProgressSteps: React.FC<InterventionProgressStepsProps> = ({
   return (
     <>
       {/* ── Stepper + Content ────────────────────────────────────── */}
+      {intervention.status === 'IN_PROGRESS' ? <BaitlyMissionSafety id={Number(intervention.id)} rooms={photos.inspectionRooms ?? []} onPause={setSafetyPaused} canEdit={canUpdateProgress} /> : null}
       {canUpdateProgress && propertyDetails && (
         <>
+          <fieldset disabled={intervention.status === 'IN_PROGRESS' && safetyPaused} className="border-0 p-0 m-0 min-w-0 disabled:opacity-50">
           <StepperHeader steps={steps} activeStep={activeStep} onStepClick={(id) => setActiveStep(id)} />
 
           <div className="p-3.5 rounded-xl border border-border bg-card min-h-[120px]">
@@ -710,6 +733,7 @@ const InterventionProgressSteps: React.FC<InterventionProgressStepsProps> = ({
               </div>
             )}
           </div>
+          </fieldset>
         </>
       )}
 

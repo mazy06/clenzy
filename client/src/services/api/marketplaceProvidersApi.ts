@@ -83,6 +83,26 @@ export interface ProviderOfferDto {
   regulated: boolean;
 }
 
+export interface ProviderProfileEdit {
+  displayName: string;
+  legalName: string;
+  headline: string;
+  bio: string;
+  phone: string;
+  baseAddress: string;
+  baseCity: string;
+  basePostalCode: string;
+  baseCountryCode: string;
+  travelRadiusKm: number | null;
+  languages: string[];
+  acceptsUrgent: boolean;
+  references: Array<{ offerId: number; serviceItemCode: string }>;
+  selectedServiceCodes?: string[];
+  zones?: Omit<ProviderZoneDto, 'id'>[];
+  latitude?: number | null;
+  longitude?: number | null;
+}
+
 export interface ProviderZoneDto {
   id: number;
   countryCode: string;
@@ -417,6 +437,10 @@ export const marketplaceProvidersApi = {
 
   getFacets() {
     return apiClient.get<MarketplaceFacetsDto>(`${BASE}/facets`);
+  },
+
+  updateProfile(id: number, data: ProviderProfileEdit) {
+    return apiClient.put<ProviderDetailDto>(`${BASE}/providers/${id}/profile`, data);
   },
 
   updateStatus(id: number, status: ProviderStatus, reviewNote?: string, decisionMessage?: string) {

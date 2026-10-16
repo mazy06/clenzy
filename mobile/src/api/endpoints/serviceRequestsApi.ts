@@ -9,6 +9,7 @@ export interface ServiceRequest {
   status: string;
   propertyId?: number;
   propertyName?: string;
+  property?:{id:number;name:string};
   desiredDate?: string;
   preferredTimeSlot?: string;
   estimatedDurationHours?: number;
@@ -20,12 +21,13 @@ export interface ServiceRequest {
 }
 
 export const serviceRequestsApi = {
-  getAll(params?: Record<string, string>) {
-    return apiClient.get<PaginatedResponse<ServiceRequest>>('/service-requests', { params });
+  async getAll(params?: Record<string, string>) {
+    const page=await apiClient.get<PaginatedResponse<ServiceRequest>>('/service-requests', { params });
+    return {...page,content:page.content.map(normalizeServiceRequest)};
   },
 
-  getById(id: number) {
-    return apiClient.get<ServiceRequest>(`/service-requests/${id}`);
+  async getById(id: number) {
+    return normalizeServiceRequest(await apiClient.get<ServiceRequest>(`/service-requests/${id}`));
   },
 
   create(data: Partial<ServiceRequest>) {
@@ -36,3 +38,4 @@ export const serviceRequestsApi = {
     return apiClient.put<ServiceRequest>(`/service-requests/${id}`, data);
   },
 };
+export function normalizeServiceRequest(item:ServiceRequest):ServiceRequest {return {...item,propertyId:item.propertyId??item.property?.id,propertyName:item.propertyName??item.property?.name};}

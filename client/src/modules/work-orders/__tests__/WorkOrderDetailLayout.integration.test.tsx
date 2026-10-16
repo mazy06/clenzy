@@ -26,7 +26,8 @@ describe('Fiche Baitly : contexte et étapes de mission', () => {
       expect(screen.getByText(value)).toBeVisible();
     }
     expect(screen.getByText('40 €')).toBeVisible();
-    expect(screen.getByRole('link', { name: 'Itinéraire' }).getAttribute('href')).toContain(encodeURIComponent('69000 Lyon, France'));
+    // L'itinéraire ouvre le choix de l'app GPS (menu) au lieu d'un lien Google Maps imposé.
+    expect(screen.getByRole('button', { name: 'Itinéraire' })).toBeVisible();
     fireEvent.click(screen.getByRole('button', { name: 'Démarrer la mission' }));
     expect(open).toHaveBeenCalledOnce();
   });

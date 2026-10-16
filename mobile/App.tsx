@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect } from 'react';
-import { StatusBar, View, Text } from 'react-native';
+import { AppState, StatusBar, View, Text } from 'react-native';
+import { focusManager, onlineManager } from '@tanstack/react-query';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import Constants from 'expo-constants';
@@ -31,10 +32,19 @@ import { useOfflineSync } from './src/hooks/useOfflineSync';
 import { useTheme } from './src/theme';
 import { STRIPE_CONFIG } from './src/config/stripe';
 import './src/i18n/config';
+import { useTranslation } from 'react-i18next';
+import { useAuthStore } from './src/store/authStore';
+import { clearBaitlySessionCache, shouldPersistMobileQuery } from './src/config/baitlyCache';
+import { useBaitlyTheme } from './src/design-system/theme';
+import { useAccountPreferences } from './src/features/account/useAccountPreferences';
+import { useBaitlyDataMode } from './src/config/baitlyDataMode';
 
 SplashScreen.preventAutoHideAsync();
 
 function AppContent() {
+  useAccountPreferences();
+  const { t } = useTranslation('mobileV1');
+  const baitly = useBaitlyTheme();
   const theme = useTheme();
   const { isConnected } = useNetworkStatus();
   const { toast, hideToast } = useUiStore();
@@ -43,7 +53,18 @@ function AppContent() {
 
   useEffect(() => {
     hydrateOffline();
+    // Purge old snapshots that were not bound to an account or an organization.
+    void queryPersister.removeClient();
   }, []);
+  useEffect(()=>{onlineManager.setOnline(isConnected);},[isConnected]);
+  useEffect(()=>{focusManager.setFocused(AppState.currentState==='active');const listener=AppState.addEventListener('change',state=>focusManager.setFocused(state==='active'));return()=>listener.remove();},[]);
+  useEffect(()=>useBaitlyDataMode.subscribe((state,previous)=>{if(state.mode!==previous.mode)clearBaitlySessionCache(queryClient);}),[]);
+
+  useEffect(() => useAuthStore.subscribe((state, previous) => {
+    if (state.user?.id !== previous.user?.id || state.user?.organizationId !== previous.user?.organizationId) {
+      clearBaitlySessionCache(queryClient);
+    }
+  }), []);
 
   return (
     <View style={{ flex: 1, backgroundColor: theme.colors.background.default }}>
@@ -56,22 +77,22 @@ function AppContent() {
       {!isConnected && (
         <View
           style={{
-            backgroundColor: theme.colors.warning.main,
+            backgroundColor: baitly.warningSoft,
             paddingVertical: 6,
             paddingHorizontal: 16,
             alignItems: 'center',
           }}
           accessibilityRole="alert"
-          accessibilityLabel="Vous etes hors ligne. Les modifications seront synchronisees automatiquement."
+          accessibilityLabel={t('offline')}
         >
           <Text
             style={{
               ...theme.typography.caption,
-              color: theme.colors.warning.contrastText,
+              color: baitly.warning,
               fontWeight: '600',
             }}
           >
-            Hors ligne - les modifications seront synchronisees
+            {t('offline')}
           </Text>
         </View>
       )}
@@ -80,22 +101,22 @@ function AppContent() {
       {isConnected && isSyncing && pendingCount > 0 && (
         <View
           style={{
-            backgroundColor: theme.colors.info.main,
+            backgroundColor: baitly.muted,
             paddingVertical: 4,
             paddingHorizontal: 16,
             alignItems: 'center',
           }}
           accessibilityRole="alert"
-          accessibilityLabel={`Synchronisation de ${pendingCount} element${pendingCount > 1 ? 's' : ''} en cours`}
+          accessibilityLabel={t('syncCount', { count: pendingCount })}
         >
           <Text
             style={{
               ...theme.typography.caption,
-              color: '#fff',
+              color: baitly.ink,
               fontWeight: '600',
             }}
           >
-            Synchronisation ({pendingCount})...
+            {t('syncCount', { count: pendingCount })}
           </Text>
         </View>
       )}
@@ -150,7 +171,7 @@ export default function App() {
           <MaybeStripeProvider>
             <PersistQueryClientProvider
               client={queryClient}
-              persistOptions={{ persister: queryPersister }}
+              persistOptions={{ persister: queryPersister, dehydrateOptions: { shouldDehydrateQuery: shouldPersistMobileQuery } }}
             >
               <AppContent />
             </PersistQueryClientProvider>

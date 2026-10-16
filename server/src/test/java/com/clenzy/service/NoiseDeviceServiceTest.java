@@ -5,6 +5,7 @@ import com.clenzy.dto.noise.NoiseChartDataDto;
 import com.clenzy.dto.noise.NoiseDataPointDto;
 import com.clenzy.dto.noise.NoiseDeviceDto;
 import com.clenzy.integration.minut.service.MinutApiService;
+import com.clenzy.integration.baitlyiot.BaitlyIotClient;
 import com.clenzy.integration.tuya.service.TuyaApiService;
 import com.clenzy.integration.tuya.service.TuyaDeviceClaimService;
 import com.clenzy.model.NoiseDevice;
@@ -41,6 +42,7 @@ class NoiseDeviceServiceTest {
     @Mock private MinutApiService minutApiService;
     @Mock private TuyaApiService tuyaApiService;
     @Mock private TuyaDeviceClaimService claimService;
+    @Mock private BaitlyIotClient baitlyIotClient;
 
     private TenantContext tenantContext;
     private NoiseDeviceService service;
@@ -53,7 +55,7 @@ class NoiseDeviceServiceTest {
         tenantContext.setOrganizationId(ORG_ID);
         service = new NoiseDeviceService(noiseDeviceRepository, propertyRepository,
                 minutApiService, tuyaApiService, tenantContext, claimService,
-                new com.clenzy.service.access.OrganizationAccessGuard(tenantContext));
+                new com.clenzy.service.access.OrganizationAccessGuard(tenantContext), baitlyIotClient);
     }
 
     private NoiseDevice buildDevice(Long id, String name, DeviceType type) {
@@ -78,6 +80,43 @@ class NoiseDeviceServiceTest {
         return property;
     }
 
+    @Test
+    void whenGenericApiReceivesDirectConnection_thenCannotBypassDedicatedOwnershipChecks() {
+        CreateNoiseDeviceDto input = new CreateNoiseDeviceDto();
+        input.setPropertyId(1L);
+        input.setName("Baitly salon");
+        input.setDeviceType("BAITLY");
+        input.setExternalDeviceId("device-1");
+        assertThatThrownBy(() -> service.createDevice(USER_ID, input)).isInstanceOf(IllegalArgumentException.class);
+        verifyNoInteractions(noiseDeviceRepository, baitlyIotClient, propertyRepository);
+    }
+
+    @Test
+    void whenBaitlyHistoryIsUnavailable_thenPropagatesFailure() {
+        NoiseDevice device = buildDevice(1L, "Baitly salon", DeviceType.BAITLY);
+        device.setExternalDeviceId("device-1");
+        when(noiseDeviceRepository.findById(1L)).thenReturn(Optional.of(device));
+        when(propertyRepository.findById(1L)).thenReturn(Optional.of(buildProperty(1L, "Paris")));
+        when(baitlyIotClient.noise(eq("device-1"), eq(ORG_ID), eq(1L), any(), any(), any()))
+                .thenThrow(new IllegalStateException("IoT unavailable"));
+        assertThatThrownBy(() -> service.getNoiseData(USER_ID, 1L, null, null))
+                .isInstanceOf(IllegalStateException.class);
+    }
+
+    @Test
+    void whenBaitlyStatusIsRead_thenStoresActualReceptionTimeAsUtcLikeOtherProviders() {
+        NoiseDevice device = buildDevice(1L, "Baitly salon", DeviceType.BAITLY);
+        device.setExternalDeviceId("b7d5efb8-2a94-4a78-b782-99d8ad2b3284");
+        when(noiseDeviceRepository.findById(1L)).thenReturn(Optional.of(device));
+        var receivedAt = java.time.Instant.parse("2026-01-16T12:00:00Z");
+        when(baitlyIotClient.getDevice(device.getExternalDeviceId(), ORG_ID)).thenReturn(new BaitlyIotClient.Device(
+                java.util.UUID.fromString(device.getExternalDeviceId()), ORG_ID, 1, "Salon", false,
+                60, receivedAt, receivedAt, false, false, "a".repeat(64)));
+        assertThat(service.getDeviceStatus(USER_ID, 1L)).containsEntry("online", false);
+        assertThat(device.getLastSeenAt()).isEqualTo(java.time.LocalDateTime.parse("2026-01-16T12:00:00"));
+        verify(noiseDeviceRepository).save(device);
+    }
+
     // ===== GET USER DEVICES =====
 
     @Nested
@@ -89,7 +128,7 @@ class NoiseDeviceServiceTest {
         void whenDevicesExist_thenReturnsDtoList() {
             // Arrange
             NoiseDevice device = buildDevice(1L, "Capteur Salon", DeviceType.MINUT);
-            when(noiseDeviceRepository.findByStatus(DeviceStatus.ACTIVE)).thenReturn(List.of(device));
+            when(noiseDeviceRepository.findByOrganizationIdAndStatus(ORG_ID, DeviceStatus.ACTIVE)).thenReturn(List.of(device));
             Property property = buildProperty(1L, "Appart Paris");
             when(propertyRepository.findById(1L)).thenReturn(Optional.of(property));
 
@@ -108,7 +147,7 @@ class NoiseDeviceServiceTest {
         @DisplayName("when no devices then returns empty list")
         void whenNoDevices_thenReturnsEmpty() {
             // Arrange
-            when(noiseDeviceRepository.findByStatus(DeviceStatus.ACTIVE)).thenReturn(List.of());
+            when(noiseDeviceRepository.findByOrganizationIdAndStatus(ORG_ID, DeviceStatus.ACTIVE)).thenReturn(List.of());
 
             // Act
             List<NoiseDeviceDto> result = service.getUserDevices("user-2");
@@ -123,7 +162,7 @@ class NoiseDeviceServiceTest {
             // Arrange
             NoiseDevice d1 = buildDevice(1L, "Capteur A", DeviceType.MINUT);
             NoiseDevice d2 = buildDevice(2L, "Capteur B", DeviceType.TUYA);
-            when(noiseDeviceRepository.findByStatus(DeviceStatus.ACTIVE)).thenReturn(List.of(d1, d2));
+            when(noiseDeviceRepository.findByOrganizationIdAndStatus(ORG_ID, DeviceStatus.ACTIVE)).thenReturn(List.of(d1, d2));
             Property property = buildProperty(1L, "Appart");
             when(propertyRepository.findById(1L)).thenReturn(Optional.of(property));
 
@@ -416,7 +455,7 @@ class NoiseDeviceServiceTest {
         @DisplayName("when no active devices then returns empty chart data")
         void whenNoActiveDevices_thenReturnsEmptyChartData() {
             // Arrange
-            when(noiseDeviceRepository.findByStatus(DeviceStatus.ACTIVE))
+            when(noiseDeviceRepository.findByOrganizationIdAndStatus(ORG_ID, DeviceStatus.ACTIVE))
                     .thenReturn(Collections.emptyList());
 
             // Act
@@ -433,7 +472,7 @@ class NoiseDeviceServiceTest {
             // Arrange
             NoiseDevice device = buildDevice(1L, "Sensor 1", DeviceType.MINUT);
             device.setExternalDeviceId("ext-1");
-            when(noiseDeviceRepository.findByStatus(DeviceStatus.ACTIVE))
+            when(noiseDeviceRepository.findByOrganizationIdAndStatus(ORG_ID, DeviceStatus.ACTIVE))
                     .thenReturn(List.of(device));
 
             Property property = buildProperty(1L, "Paris Apt");
@@ -468,7 +507,7 @@ class NoiseDeviceServiceTest {
             // Arrange
             NoiseDevice device = buildDevice(1L, "Sensor 1", DeviceType.MINUT);
             device.setExternalDeviceId(null); // will return empty
-            when(noiseDeviceRepository.findByStatus(DeviceStatus.ACTIVE))
+            when(noiseDeviceRepository.findByOrganizationIdAndStatus(ORG_ID, DeviceStatus.ACTIVE))
                     .thenReturn(List.of(device));
             when(noiseDeviceRepository.findById(1L)).thenReturn(Optional.of(device));
             when(propertyRepository.findById(1L)).thenReturn(Optional.of(buildProperty(1L, "Apt")));

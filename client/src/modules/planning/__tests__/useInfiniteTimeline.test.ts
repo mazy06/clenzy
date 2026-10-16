@@ -154,6 +154,63 @@ describe('useInfiniteTimeline', () => {
     expect(el.scrollLeft).toBe(before);
   });
 
+  it('publie les jours réellement visibles, y compris une colonne partiellement visible', () => {
+    const { hook, dayWidth } = setup('month');
+    const first = 50;
+    attachScroller(hook.result.current.scrollRef, {
+      clientWidth: PROPERTY_COL + dayWidth * 10,
+      scrollLeft: (first + 0.5) * dayWidth,
+    });
+    act(() => hook.result.current.handleScroll());
+    expect(hook.result.current.visibleRange.start).toEqual(hook.result.current.days[first]);
+    expect(hook.result.current.visibleRange.end).toEqual(hook.result.current.days[first + 10]);
+  });
+
+  it('ne programme aucun rendu supplémentaire quand les dates visibles sont inchangées', () => {
+    let renders = 0;
+    const { dayWidth } = ZOOM_CONFIGS.month;
+    const hook = renderHook(() => {
+      renders++;
+      return useInfiniteTimeline({ anchorDate: ANCHOR, zoom: 'month', dayWidth, propertyColWidth: PROPERTY_COL });
+    });
+    attachScroller(hook.result.current.scrollRef, {
+      clientWidth: PROPERTY_COL + dayWidth * 10,
+      scrollLeft: 50 * dayWidth,
+    });
+    hook.rerender();
+    const range = hook.result.current.visibleRange;
+    const before = renders;
+    for (let i = 0; i < 10; i++) hook.rerender();
+    expect(hook.result.current.visibleRange).toBe(range);
+    expect(renders - before).toBe(10);
+  });
+
+  it('réutilise la largeur entre rendus et la remesure au redimensionnement', () => {
+    let notify!: ResizeObserverCallback;
+    const disconnect = vi.fn();
+    vi.stubGlobal('ResizeObserver', class {
+      constructor(callback: ResizeObserverCallback) { notify = callback; }
+      observe() {}
+      disconnect = disconnect;
+    });
+    const { hook, dayWidth } = setup('month');
+    let width = PROPERTY_COL + dayWidth * 10;
+    const element = attachScroller(hook.result.current.scrollRef, { clientWidth: width, scrollLeft: 50 * dayWidth });
+    const read = vi.fn(() => width);
+    Object.defineProperty(element, 'clientWidth', { get: read });
+    hook.rerender();
+    const reads = read.mock.calls.length;
+    for (let i = 0; i < 10; i++) hook.rerender();
+    expect(read).toHaveBeenCalledTimes(reads);
+    const oldEnd = hook.result.current.visibleRange.end;
+    width += dayWidth * 5;
+    act(() => notify([], {} as ResizeObserver));
+    expect(read).toHaveBeenCalledTimes(reads + 1);
+    expect(hook.result.current.visibleRange.end.getTime()).toBeGreaterThan(oldEnd.getTime());
+    hook.unmount();
+    expect(disconnect).toHaveBeenCalledOnce();
+  });
+
   // ── Cible hors fenetre ────────────────────────────────────────────────────
 
   describe('scrollToDate hors fenetre', () => {
@@ -190,6 +247,14 @@ describe('useInfiniteTimeline', () => {
   });
 
   // ── Ancrage ───────────────────────────────────────────────────────────────
+
+  it.each(['week', 'fortnight', 'month'] as const)('pose immédiatement l’ancre en 7e colonne en vue %s', (zoom) => {
+    const { hook, dayWidth } = setup(zoom);
+    const el = attachScroller(hook.result.current.scrollRef, { clientWidth: 1300, scrollLeft: 0 });
+    act(() => hook.result.current.scrollToAnchor());
+    const first = Math.round(el.scrollLeft / dayWidth);
+    expect(toDateStr(hook.result.current.days[first + 6])).toBe(toDateStr(ANCHOR));
+  });
 
   it('centre la fenetre sur la date d\'ancre', () => {
     const { hook, visibleDays } = setup('fortnight');

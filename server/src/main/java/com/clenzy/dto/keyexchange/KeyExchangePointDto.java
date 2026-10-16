@@ -1,6 +1,7 @@
 package com.clenzy.dto.keyexchange;
 
 import java.time.LocalDateTime;
+import java.util.List;
 
 /*
  * Le champ `verificationToken` a ete RETIRE le 2026-07-26 (audit securite, constat P1-02).
@@ -26,6 +27,8 @@ public class KeyExchangePointDto {
     private String status;
     private long activeCodesCount;
     private LocalDateTime createdAt;
+    /** Photos de l'emplacement exact (boîte à clés, comptoir). Vide si aucune. */
+    private List<KeyExchangePointPhotoDto> photos = List.of();
 
     // ─── Getters / Setters ──────────────────────────────────────
 
@@ -74,4 +77,7 @@ public class KeyExchangePointDto {
 
     public LocalDateTime getCreatedAt() { return createdAt; }
     public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }
+
+    public List<KeyExchangePointPhotoDto> getPhotos() { return photos; }
+    public void setPhotos(List<KeyExchangePointPhotoDto> photos) { this.photos = photos; }
 }

@@ -6,7 +6,6 @@ import { Percent, Euro, TrendingUp } from '../../icons';
 import type { PropertyListItem } from '../../hooks/usePropertiesList';
 import type { PropertyKpiSummary } from '../../services/api/propertyKpiApi';
 import { useTranslation } from '../../hooks/useTranslation';
-import { Skeleton } from '../../components/ui';
 import './baitlyPortfolioSummary.css';
 
 // ─── Tuiles portefeuille (projection Logements) ──────────────────────────────
@@ -80,13 +79,7 @@ const PropertiesPortfolioTiles: React.FC<PropertiesPortfolioTilesProps> = ({
   if (!loading && aggregates.covered === 0) return null;
 
   return (
-    <StatTileRow presentation="overview" className="baitly-portfolio-summary shrink-0"
-      footer={<div className="baitly-portfolio-summary-scope">
-        {loading ? <Skeleton className="h-[18px] w-[24ch]" /> : <>
-          <span>{t('properties.tiles.coveredHint', { count: aggregates.covered })}</span>
-          {aggregates.covered < properties.length && <span>{t('properties.tiles.partialCoverage', { count: properties.length - aggregates.covered })}</span>}
-        </>}
-      </div>}>
+    <StatTileRow presentation="overview" className="baitly-portfolio-summary shrink-0">
       <StatTile
         loading={loading}
         className="bui-stat-overview__item"

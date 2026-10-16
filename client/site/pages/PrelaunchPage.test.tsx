@@ -37,6 +37,7 @@ function mount(
   language: SiteLanguage = 'fr',
   route = '/bientot-disponible',
   query = '',
+  applicationEntry = false,
 ) {
   const location = `${route}?lang=${language}${query}`;
   window.history.replaceState({}, '', location);
@@ -46,7 +47,7 @@ function mount(
         <SiteLaunchProvider>
           <Routes>
             <Route path="/demo" element={<DemoRoute />} />
-            <Route path="/bientot-disponible" element={<PrelaunchPage />} />
+            <Route path="/bientot-disponible" element={<PrelaunchPage applicationEntry={applicationEntry} />} />
           </Routes>
         </SiteLaunchProvider>
       </SiteLanguageProvider>
@@ -68,6 +69,13 @@ function fillSignup(language: SiteLanguage = 'fr') {
 }
 
 describe('Pré-lancement public', () => {
+  it('garde les inscriptions fermées et utilise les liens légaux du PMS', async () => {
+    mount('fr', '/bientot-disponible', '', true);
+    await screen.findByText(PRELAUNCH_MESSAGES.fr.dateSoon);
+    expect(screen.getByText(PRELAUNCH_MESSAGES.fr.paused)).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: PRELAUNCH_MESSAGES.fr.privacy })).toHaveAttribute('href', '/confidentialite');
+    expect(screen.getByRole('link', { name: PRELAUNCH_MESSAGES.fr.login })).toHaveAttribute('href', '/login');
+  });
   it('conserve la sélection commerciale après la redirection de la démo', async () => {
     mount('fr', '/demo', '&plan=pro&market=SA&properties=12');
     const m = PRELAUNCH_MESSAGES.fr;

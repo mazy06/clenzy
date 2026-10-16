@@ -46,3 +46,36 @@
 4. **Mesure sur l’application réelle** : réseau lent, portefeuille volumineux, changement de période/devise, scénarios d’erreur partielle, ancien layout à trois colonnes, rôles terrain. Mesurer LCP/INP/CLS, nombre de requêtes et temps de rendu avant/après avec les mêmes données.
 
 Pas de migration SQL, de modification des configurations de sécurité ni d’opération sur les conteneurs dans ce lot. Déploiement à réaliser par le circuit CI/CD habituel.
+
+## Console et chargement sur staging, 10 octobre 2026
+
+La recette authentifiée montre un HTTP 500 sur `/api/dashboard/action-items`,
+avec le widget « À traiter » en erreur. Un cas est reproduit par test :
+`GuestPhotoUrlResolver` renvoie normalement `null` pour un voyageur sans photo,
+mais `Collectors.toMap` refuse cette valeur et fait échouer toute la file.
+Les photos absentes sont désormais omises du dictionnaire ; les actions,
+leurs compteurs et les autres photos restent disponibles. Le filtrage par
+organisation reste effectué avant toute résolution de photo.
+
+Les photos des widgets et l'alerte des contrats manquants appelaient toutes deux
+`propertiesApi.getAll()` sous deux clés de cache. Elles utilisent désormais
+`usePropertiesList` et partagent une requête, avec les invalidations déjà
+utilisées lors des créations/imports/suppressions de logements. Les rôles sans
+accès aux contrats ne déclenchent pas cette requête depuis l'alerte.
+
+Les erreurs Google Fonts/Workbox et SSE sont communes au shell et couvertes
+par la PR #438. L'avertissement du sandbox Keycloak reste inchangé.
+Les URL des ressources signalées comme préchargées mais inutilisées ne sont
+pas présentes dans l'extrait de console ; aucune suppression de préchargement
+n'est faite sans connaître les ressources concernées.
+
+Le gain réseau démontré par test est une requête de portefeuille supprimée
+quand ces widgets sont montés ensemble. Aucun gain de LCP ou de temps total
+en millisecondes n'est annoncé avant une mesure comparable sur staging.
+
+Validation : le test du voyageur sans photo échoue avant le correctif et passe
+après. Les 13 tests de lecture de la file et les 3 tests SSE passent, ainsi que
+24 tests frontend ciblés, TypeScript et le build Vite de production.
+Le CI complet du lot précédent a identifié deux inventaires d'architecture
+à compléter pour le heartbeat SSE : cadence rapide justifiée et état local
+à chaque instance, sans verrou distribué. Les règles générales restent intactes.

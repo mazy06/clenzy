@@ -1,3 +1,5 @@
+import { parseSignalements, parseStepNotes, parseBaitlyPhotoUrls, type BaitlySignalement as Signalement } from '../utils/baitlyInterventionParsers';
+import { getBaitlyServiceCost } from '../utils/baitlyFinancial';
 import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { cn } from '../../../utils/cn';
@@ -37,41 +39,6 @@ import { Money } from '../../../components/Money';
 
 // ─── Signalement parsing ────────────────────────────────────────────────────
 
-interface Signalement {
-  severity: 'basse' | 'moyenne' | 'haute';
-  description: string;
-}
-
-const parseSignalements = (notes?: string): Signalement[] => {
-  if (!notes) return [];
-  const regex = /\[SIGNALEMENT:(\w+)\]\s*(.+?)(?=\[SIGNALEMENT|\n---|$)/gs;
-  const results: Signalement[] = [];
-  let match;
-  while ((match = regex.exec(notes)) !== null) {
-    results.push({
-      severity: (match[1].toLowerCase() as Signalement['severity']) || 'moyenne',
-      description: match[2].trim(),
-    });
-  }
-  return results;
-};
-
-const parseStepNotes = (notes?: string): Record<string, string> => {
-  if (!notes) return {};
-  const result: Record<string, string> = {};
-  const sections = notes.split('--- ');
-  for (const section of sections) {
-    if (section.startsWith('Inspection')) {
-      result.inspection = section.replace(/^Inspection\s*---?\s*\n?/, '').trim();
-    } else if (section.startsWith('Pieces') || section.startsWith('Pièces')) {
-      result.rooms = section.replace(/^Pi[eè]ces\s*---?\s*\n?/, '').trim();
-    } else if (section.startsWith('Final') || section.startsWith('Photos')) {
-      result.after_photos = section.replace(/^(Final|Photos\s*après)\s*---?\s*\n?/, '').trim();
-    }
-  }
-  return result;
-};
-
 /** Sévérité → tons sémantiques partagés (haute = err, moyenne = warn, basse = info). */
 const SEVERITY_TOKENS: Record<string, ToneTokens> = {
   haute: STATUS_TONES.err,
@@ -81,16 +48,7 @@ const SEVERITY_TOKENS: Record<string, ToneTokens> = {
 
 /** Chip statut pilule — même pattern que PanelReservationInfo (texte couleur + fond soft). */
 
-const OVERLINE_SX = {
-  fontSize: '0.625rem',
-  fontWeight: 700,
-  textTransform: 'uppercase' as const,
-  letterSpacing: '0.08em',
-  color: 'var(--faint)',
-};
-
-/** Report en classes de `OVERLINE_SX`. */
-const OVERLINE_CLASS = 'text-[0.625rem] font-bold uppercase tracking-[0.08em] text-[var(--faint)]';
+const OVERLINE_CLASS = 'text-xs font-medium uppercase tracking-[0.05em] text-[var(--bui-muted-foreground)]';
 
 // ─── Props ──────────────────────────────────────────────────────────────────
 
@@ -116,17 +74,9 @@ const PanelInterventionRecap: React.FC<PanelInterventionRecapProps> = ({ event }
     );
   }
 
-  const beforePhotos = intervention.beforePhotosUrls
-    ? (typeof intervention.beforePhotosUrls === 'string'
-        ? (intervention.beforePhotosUrls as string).split(',').filter(Boolean)
-        : intervention.beforePhotosUrls as string[])
-    : [];
+  const beforePhotos = parseBaitlyPhotoUrls(intervention.beforePhotosUrls);
 
-  const afterPhotos = intervention.afterPhotosUrls
-    ? (typeof intervention.afterPhotosUrls === 'string'
-        ? (intervention.afterPhotosUrls as string).split(',').filter(Boolean)
-        : intervention.afterPhotosUrls as string[])
-    : [];
+  const afterPhotos = parseBaitlyPhotoUrls(intervention.afterPhotosUrls);
 
   const stepNotes = parseStepNotes(intervention.notes);
   const signalements = parseSignalements(intervention.notes);
@@ -150,7 +100,7 @@ const PanelInterventionRecap: React.FC<PanelInterventionRecapProps> = ({ event }
           <StatusChip pill tokens={{ color: 'var(--info)', bg: 'var(--info-soft)' }} label={`${intervention.estimatedDurationHours}h estimées`} icon={<Schedule size={12} strokeWidth={1.75} />} />
         )}
         {intervention.estimatedDurationHours && (
-          <StatusChip pill tokens={{ color: 'var(--ok)', bg: 'var(--ok-soft)' }} label={<Money value={intervention.estimatedDurationHours * 25} from="EUR" decimals={0} />} icon={<AttachMoney size={12} strokeWidth={1.75} />} />
+          <StatusChip pill tokens={{ color: 'var(--ok)', bg: 'var(--ok-soft)' }} label={<Money value={getBaitlyServiceCost(intervention)} from="EUR" decimals={0} />} icon={<AttachMoney size={12} strokeWidth={1.75} />} />
         )}
       </div>
 
@@ -171,7 +121,7 @@ const PanelInterventionRecap: React.FC<PanelInterventionRecapProps> = ({ event }
       </p>
 
       {!hasNotes && !intervention.notes ? (
-        <p className="cn-text-body1 text-[0.6875rem] text-[var(--muted)] italic mb-2">
+        <p className="cn-text-body1 text-xs text-[var(--muted)] italic mb-2">
           {t('planning.panel.recap.noNotes', 'Aucune note enregistrée')}
         </p>
       ) : (
@@ -195,11 +145,11 @@ const PanelInterventionRecap: React.FC<PanelInterventionRecapProps> = ({ event }
                   <AccordionTrigger className="min-h-8 items-center px-2 py-1">
                     <div className="flex items-center gap-0.5">
                       <span className="inline-flex text-[var(--brand-ink)]"><Notes size={14} strokeWidth={1.75} /></span>
-                      <p className="cn-text-body1 text-[0.6875rem] font-semibold">{stepLabel}</p>
+                      <p className="cn-text-body1 text-xs font-semibold">{stepLabel}</p>
                     </div>
                   </AccordionTrigger>
                   <AccordionContent className="px-2 pt-0 pb-[6px]">
-                    <p className="cn-text-body1 text-[0.6875rem] whitespace-pre-wrap">{note}</p>
+                    <p className="cn-text-body1 text-xs whitespace-pre-wrap">{note}</p>
                   </AccordionContent>
                 </AccordionItem>
               );
@@ -209,7 +159,7 @@ const PanelInterventionRecap: React.FC<PanelInterventionRecapProps> = ({ event }
           {/* Raw notes fallback if no structured notes */}
           {!hasNotes && intervention.notes && (
             <div className="p-2 bg-[var(--field)] rounded-[10px] mb-2">
-              <p className="cn-text-body1 text-[0.6875rem] text-[var(--body)] whitespace-pre-wrap">{intervention.notes}</p>
+              <p className="cn-text-body1 text-xs text-[var(--body)] whitespace-pre-wrap">{intervention.notes}</p>
             </div>
           )}
         </>
@@ -226,7 +176,7 @@ const PanelInterventionRecap: React.FC<PanelInterventionRecapProps> = ({ event }
           variant="ghost"
           size="sm"
           onClick={() => setAddDialogOpen(true)}
-          className="text-[0.625rem]"
+          className="text-xs"
         >
           <Add size={14} strokeWidth={1.75} />
           {t('planning.panel.recap.add', 'Ajouter')}
@@ -234,7 +184,7 @@ const PanelInterventionRecap: React.FC<PanelInterventionRecapProps> = ({ event }
       </div>
 
       {signalements.length === 0 ? (
-        <p className="cn-text-body1 text-[0.6875rem] text-[var(--muted)] italic">
+        <p className="cn-text-body1 text-xs text-[var(--muted)] italic">
           {t('planning.panel.recap.noReports', 'Aucun signalement')}
         </p>
       ) : (
@@ -246,7 +196,7 @@ const PanelInterventionRecap: React.FC<PanelInterventionRecapProps> = ({ event }
               <span className="inline-flex mt-[1.5px]" style={{ color: tone.color }}><Warning size={16} strokeWidth={1.75} /></span>
               <div className="flex-1 min-w-0">
                 <StatusChip pill tokens={{ color: tone.color, bg: tone.bg }} label={t(`planning.panel.recap.severities.${s.severity}`)} className="mb-0.5" />
-                <p className="cn-text-body1 text-[0.6875rem] text-[var(--body)]">{s.description}</p>
+                <p className="cn-text-body1 text-xs text-[var(--body)]">{s.description}</p>
               </div>
               </>
               ); })()}

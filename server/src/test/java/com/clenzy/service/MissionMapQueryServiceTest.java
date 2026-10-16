@@ -27,7 +27,13 @@ class MissionMapQueryServiceTest {
     static final MissionMapQueryService.Filters ALL = filters(null, null, null, null);
 
     static MissionMapQueryService.Filters filters(Double north, Double south, Double east, Double west) {
-        return new MissionMapQueryService.Filters(null, null, null, null, null, north, south, east, west);
+        return new MissionMapQueryService.Filters(null, null, null, null, null, north, south, east, west, null, null, null, null, null);
+    }
+
+    static MissionMapQueryService.Filters prestations(String category, java.time.LocalDate from, java.time.LocalDate to,
+                                                      String assigneeType, Long assigneeId) {
+        return new MissionMapQueryService.Filters(null, null, null, null, null, null, null, null, null,
+                category, from, to, assigneeType, assigneeId);
     }
 
     @BeforeAll static void mapping() {
@@ -75,7 +81,13 @@ class MissionMapQueryServiceTest {
             List<ServiceRequest> entities = invocation.getArgument(0);
             return entities.stream().map(entity -> { var dto = new ServiceRequestDto(); dto.id = entity.getId(); return dto; }).toList();
         });
-        service = new MissionMapQueryService(em, tenant, users, requests, mock(InterventionMapper.class));
+        InterventionMapper mapper = mock(InterventionMapper.class);
+        when(mapper.convertToListResponse(any(Intervention.class), isNull())).thenAnswer(invocation -> {
+            com.clenzy.dto.InterventionResponse response = mock(com.clenzy.dto.InterventionResponse.class);
+            when(response.id()).thenReturn(((Intervention) invocation.getArgument(0)).getId());
+            return response;
+        });
+        service = new MissionMapQueryService(em, tenant, users, requests, mapper);
         owner = new User(); owner.setId(1L); owner.setKeycloakId("owner"); em.persist(owner);
         Property property = new Property(); property.setId(1L); property.setName("Tours"); property.setOwner(owner);
         property.setLatitude(new BigDecimal("47.39")); property.setLongitude(new BigDecimal("0.68")); em.persist(property);
@@ -114,10 +126,33 @@ class MissionMapQueryServiceTest {
         var jwt = jwt("SUPER_ADMIN", "admin");
         assertThat(service.page("service-requests", filters(48d, 47d, 1d, 0d), 0, jwt).totalElements()).isEqualTo(45);
         assertThat(service.page("service-requests", filters(20d, 10d, 1d, 0d), 0, jwt).content()).isEmpty();
-        var search = new MissionMapQueryService.Filters("Mission 4", "cleaning", "pending", "normal", 1L, null, null, null, null);
+        var search = new MissionMapQueryService.Filters("Mission 4", "cleaning", "pending", "normal", 1L, null, null, null, null, null, null, null, null, null);
         assertThat(service.page("interventions", search, 0, jwt).totalElements()).isEqualTo(7);
         assertThat(service.overview("interventions", search, jwt).markers()).hasSize(7);
         assertThat(service.page("interventions", filters(90d, -90d, -170d, 170d), 0, jwt).content()).isEmpty();
+    }
+    @Test void mapPropertyScopeNarrowsCountsPagesAndNeverBypassesOwnership() {
+        var included = new MissionMapQueryService.Filters(null, null, null, null, null,
+                null, null, null, null, null, null, null, null, null, "1");
+        var excluded = new MissionMapQueryService.Filters(null, null, null, null, null,
+                null, null, null, null, null, null, null, null, null, "99");
+        var empty = new MissionMapQueryService.Filters(null, null, null, null, null,
+                null, null, null, null, null, null, null, null, null, "none");
+        for (String kind : List.of("prestations", "interventions", "service-requests")) {
+            assertThat(service.overview(kind, included, jwt("SUPER_ADMIN", "admin")).total()).isPositive();
+            assertThat(service.page(kind, excluded, 0, jwt("SUPER_ADMIN", "admin")).totalElements()).isZero();
+            assertThat(service.overview(kind, empty, jwt("SUPER_ADMIN", "admin")).total()).isZero();
+            User outsider = new User(); outsider.setId(99L);
+            when(users.findByKeycloakId("outsider")).thenReturn(Optional.of(outsider));
+            assertThat(service.overview(kind, included, jwt("HOST", "outsider")).total()).isZero();
+        }
+    }
+
+    @Test void rejectsMalformedAndOversizedMapPropertyScopes() {
+        assertThat(MissionMapQueryService.parsePropertyIds("1,2,1")).containsExactly(1L, 2L);
+        for (String invalid : List.of("0", "-1", "1,", "1,abc", "1 OR 1=1", "9999999999999999999999", "1,".repeat(2001))) {
+            assertThatThrownBy(() -> MissionMapQueryService.parsePropertyIds(invalid)).isInstanceOf(IllegalArgumentException.class);
+        }
     }
     @Test void closedAndAlreadyConvertedRequestsAreExcludedBeforePagingAndCounting() {
         em.find(ServiceRequest.class, 1L).setStatus(RequestStatus.COMPLETED);
@@ -152,10 +187,62 @@ class MissionMapQueryServiceTest {
             assertThat(service.page(kind, ALL, 0, jwt("TECHNICIAN", "outsider")).content()).isEmpty();
         }
     }
+    static String rowId(Object row) {
+        var prestation = (MissionMapQueryService.PrestationRow) row;
+        Object id = prestation.item() instanceof ServiceRequestDto dto ? dto.id : ((com.clenzy.dto.InterventionResponse) prestation.item()).id();
+        return prestation.kind() + ":" + id;
+    }
+
+    @Test void prestationsMergeBothQueuesInOneChronologyAcrossPages() {
+        var admin = jwt("SUPER_ADMIN", "admin");
+        var overview = service.overview("prestations", ALL, admin);
+        assertThat(overview.total()).isEqualTo(90);
+        assertThat(overview.markers()).extracting(MissionMapQueryService.Marker::kind).containsOnly("intervention", "request");
+        assertThat(overview.markers()).extracting(MissionMapQueryService.Marker::propertyId).containsOnly(1L);
+        List<String> rows = new ArrayList<>();
+        for (int page = 0; page < 5; page++) {
+            var batch = service.list("prestations", ALL, page, admin);
+            assertThat(batch.totalElements()).isEqualTo(90);
+            assertThat(batch.last()).isEqualTo(page == 4);
+            batch.content().forEach(row -> rows.add(rowId(row)));
+        }
+        assertThat(rows).hasSize(90).doesNotHaveDuplicates();
+        // Même date : l'intervention précède la demande, puis on avance dans le temps.
+        assertThat(rows.subList(0, 4)).containsExactly("intervention:1", "request:1", "intervention:2", "request:2");
+        assertThat(rows.subList(88, 90)).containsExactly("intervention:45", "request:45");
+    }
+
+    @Test void prestationsHonourCategoryPeriodAndAssignee() {
+        var admin = jwt("SUPER_ADMIN", "admin");
+        assertThat(service.list("prestations", prestations("request", null, null, null, null), 0, admin).content())
+                .allSatisfy(row -> assertThat(((MissionMapQueryService.PrestationRow) row).kind()).isEqualTo("request"));
+        assertThat(service.overview("prestations", prestations("intervention", null, null, null, null), admin).total()).isEqualTo(45);
+        var today = java.time.LocalDate.now();
+        assertThat(service.list("prestations", prestations(null, today.plusDays(10), today.plusDays(14), null, null), 0, admin)
+                .totalElements()).isEqualTo(10);
+        User worker = new User(); worker.setId(2L); worker.setKeycloakId("worker"); em.persist(worker);
+        em.find(Intervention.class, 9L).setAssignedUser(worker);
+        ServiceRequest request = em.find(ServiceRequest.class, 9L); request.setAssignedToType("user"); request.setAssignedToId(2L);
+        em.flush();
+        var assigned = service.list("prestations", prestations(null, null, null, "user", 2L), 0, admin);
+        assertThat(assigned.content()).extracting(MissionMapQueryServiceTest::rowId).containsExactly("intervention:9", "request:9");
+    }
+
+    @Test void prestationListKeepsMissionsWithoutCoordinates() {
+        em.find(Property.class, 1L).setLatitude(null);
+        em.flush();
+        var admin = jwt("SUPER_ADMIN", "admin");
+        assertThat(service.list("prestations", ALL, 0, admin).totalElements()).isEqualTo(90);
+        assertThat(service.page("prestations", ALL, 0, admin).totalElements()).isZero();
+    }
+
     @Test void malformedBoundsAndPagesAreRejected() {
         assertThatThrownBy(() -> MissionMapQueryService.validateBounds(filters(91d, 0d, 0d, 0d))).isInstanceOf(IllegalArgumentException.class);
         assertThatThrownBy(() -> MissionMapQueryService.validateBounds(filters(Double.NaN, 0d, 0d, 0d))).isInstanceOf(IllegalArgumentException.class);
         assertThatThrownBy(() -> service.page("interventions", ALL, -1, jwt("SUPER_ADMIN", "admin"))).isInstanceOf(IllegalArgumentException.class);
+        assertThatThrownBy(() -> service.list("prestations", prestations("quote", null, null, null, null), 0, jwt("SUPER_ADMIN", "admin"))).isInstanceOf(IllegalArgumentException.class);
+        assertThatThrownBy(() -> service.list("prestations", prestations(null, null, null, "robot", 1L), 0, jwt("SUPER_ADMIN", "admin"))).isInstanceOf(IllegalArgumentException.class);
+        assertThatThrownBy(() -> service.list("prestations", ALL, MissionMapQueryService.MAX_PRESTATION_PAGE + 1, jwt("SUPER_ADMIN", "admin"))).isInstanceOf(IllegalArgumentException.class);
     }
 
     @Test void crossOrganizationMissionsAreVisibleOnlyToTheirAssigneeOrTeam() {

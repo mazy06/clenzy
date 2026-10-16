@@ -129,7 +129,7 @@ export default function PageHeaderActions({ filters, actions, narrow }: PageHead
 
   if (!filters && !actions) return null;
 
-  // La barre de titre n'admet qu'une forme de bouton : icone + infobulle.
+  // Actions secondaires : icône + infobulle ; créations : icône + libellé.
   // Repli comme deploiement partent du meme arbre reduit — le menu ⋯ redonne
   // le libelle via `aria-label` (cf. MENU_LAYOUT_CLASS).
   const compactActions = compactHeaderActions(actions);

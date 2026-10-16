@@ -71,7 +71,8 @@ class KeyExchangeServiceTest {
         service = new KeyExchangeService(
                 pointRepository, codeRepository, eventRepository,
                 propertyRepository, tenantContext, verificationThrottle,
-                new com.clenzy.service.access.OrganizationAccessGuard(tenantContext));
+                new com.clenzy.service.access.OrganizationAccessGuard(tenantContext),
+                org.mockito.Mockito.mock(KeyExchangePointPhotoRegistry.class));
     }
 
     // ── Helpers ──────────────────────────────────────────────────────────────

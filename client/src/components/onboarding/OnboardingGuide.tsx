@@ -17,12 +17,13 @@ import {
 import { Button } from "../ui/button";
 import type { OnboardingStepWithStatus } from "../../hooks/useOnboarding";
 import { useTranslation } from "../../hooks/useTranslation";
-import SetupIllustration from "./SetupIllustration";
 import BaitlyMarkLogo from "../BaitlyMarkLogo";
 import { Skeleton } from "../ui/skeleton";
 import ErrorBoundary from "../ErrorBoundary";
+import "./setup-surfaces.css";
 
 const OnboardingStepContent = lazy(() => import("./OnboardingStepContent"));
+const SetupIllustration = lazy(() => import("./SetupIllustration"));
 
 interface Props {
   steps: OnboardingStepWithStatus[];
@@ -193,7 +194,9 @@ export default function OnboardingGuide({
             key={step.key}
             data-editing={editing === step.key || undefined}
           >
-            <SetupIllustration step={step.key} />
+            <Suspense fallback={<Skeleton className="h-48" />}>
+              <SetupIllustration step={step.key} />
+            </Suspense>
             <div className="setup-guide-copy">
               <div className="setup-step-eyebrow">
                 <span>

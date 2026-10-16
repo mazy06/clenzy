@@ -16,6 +16,19 @@ import {
 import './marketplace.css';
 import PagePagination from '../../../components/PagePagination';
 import { useTranslation } from '../../../hooks/useTranslation';
+import { ServiceArt } from '../serviceArt';
+
+export const SERVICE_IMAGES: Record<string, string> = {
+  EARLY_CHECKIN: '/images/dashboard-kpis/adr.webp',
+  LATE_CHECKOUT: '/images/dashboard-kpis/occupancy.webp',
+  CLEANING: '/images/catalog/cleaning.webp',
+  BREAKFAST: '/images/catalog/breakfast.webp',
+  EQUIPMENT: '/images/catalog/equipment.webp',
+  TRANSFER: '/images/catalog/transfer.webp',
+  PARKING: '/images/catalog/parking.webp',
+  EXPERIENCE: '/images/catalog/experience.webp',
+  OTHER: '/images/catalog/other-service.webp',
+};
 
 type Filter = 'Tous' | 'Internes' | PartnerName;
 /** Item unifié : service interne (géré) OU expérience partenaire (à ajouter). */
@@ -135,7 +148,6 @@ export default function ServicesCatalog({
 
   // ── Écran de détail (expérience partenaire) ─────────────────────────────────
   if (selected) {
-    const Icon = selected.icon;
     const color = PARTNER_COLOR[selected.partner];
     const commission = (selected.price * selected.commission) / 100;
     const commissionTxt = `+ ${commission.toFixed(2).replace('.', ',')} €`;
@@ -154,14 +166,9 @@ export default function ServicesCatalog({
         <div className="mp-detail">
           <div className="mp-detail__main">
             <div className="mp-detail__gallery">
-              <div className="mp-detail__hero">
-                {selected.imageUrl ? <img src={selected.imageUrl} alt="" /> : <Icon size={64} strokeWidth={1.5} style={{ color, opacity: 0.4 }} />}
+              <div className="mp-detail__hero" data-illustration={!selected.imageUrl}>
+                <img src={selected.imageUrl || `/images/catalog/${selected.id}.webp`} alt="" className="object-contain" />
                 <span className="mp-pbadge mp-pbadge--over"><span className="mp-dot" style={{ background: color }} />{selected.partner}</span>
-              </div>
-              <div className="mp-detail__thumbs">
-                {[0, 1, 2].map((i) => (
-                  <div className="mp-detail__thumb" key={i}><Icon size={22} strokeWidth={1.5} style={{ color, opacity: 0.35 }} /></div>
-                ))}
               </div>
             </div>
 
@@ -279,9 +286,8 @@ export default function ServicesCatalog({
   </BaitlyCatalog>;
 
   function renderPartner(e: MarketplaceExperience) {
-    const Icon = e.icon;
     return <CatalogCard key={e.id} title={e.title} source={e.partner}
-      media={e.imageUrl ? <img src={e.imageUrl} alt="" loading="lazy" /> : <Icon size={26} strokeWidth={1.5} />}
+      media={<img src={e.imageUrl || `/images/catalog/${e.id}.webp`} alt="" loading="lazy" decoding="async" />}
       description={e.desc} onOpen={() => setSelectedId(e.id)}
       trailing={<span className="flex shrink-0 items-center gap-1 text-xs tabular-nums"><Star size={14} className="text-warning-ink" />{e.rating}</span>}
       metadata={<>
@@ -295,7 +301,9 @@ export default function ServicesCatalog({
 
   function renderInternal(o: UpsellOffer) {
     return <CatalogCard key={'int-' + o.id} title={o.title} source={t('welcomeGuide.marketplace.filterInternal')}
-      media={o.imageUrl ? <img src={o.imageUrl} alt="" loading="lazy" /> : <Tag size={26} strokeWidth={1.5} />}
+      media={o.imageUrl || SERVICE_IMAGES[o.type]
+        ? <img src={o.imageUrl || SERVICE_IMAGES[o.type]} alt="" loading="lazy" decoding="async" />
+        : <ServiceArt type={o.type} />}
       description={o.description || typeLabel(o.type)} onOpen={() => onOpenInternal(o)}
       badges={<Badge variant="secondary">{t(o.active ? 'baitlyCatalog.active' : 'baitlyCatalog.inactive')}</Badge>}
       metadata={<>

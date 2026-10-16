@@ -37,7 +37,7 @@ public class TemplateInterpolationService {
     // ne PAS re-echapper sinon les balises s'affichent en clair). Etendue avec
     // les variables systeme des templates email DB (system_email_template).
     private static final Set<String> HTML_SAFE_VARIABLES = Set.of(
-        "locationMap",        // Mapbox embed HTML
+        "locationMap",        // carte Baitly (balise <img> signee)
         "paymentLink",        // bouton HTML rich pre-genere
         "detailsHtml",        // sections dynamiques pre-rendues (devis/maintenance)
         "urgencyBanner",      // banner colore selon urgency (maintenance)
@@ -74,7 +74,7 @@ public class TemplateInterpolationService {
         new TemplateVariable("keyExchangeStoreAddress", "Adresse du point d'echange", "5 rue de la Gare, 75010 Paris"),
         new TemplateVariable("keyExchangeStorePhone", "Telephone du point d'echange", "+33 1 42 00 00 00"),
         new TemplateVariable("keyExchangeStoreHours", "Horaires du point d'echange", "Lun-Sam 8h-20h"),
-        // Carte de localisation generee automatiquement (Mapbox Static Images)
+        // Carte de localisation generee automatiquement (carte Baitly, BaitlyStaticMapService)
         new TemplateVariable("locationMap", "Carte de localisation (propriete + point de retrait des cles si applicable)", "[Image carte generee automatiquement]"),
         // Variables de paiement (resolues via extraVars par le controller)
         new TemplateVariable("paymentLink", "Bouton HTML de paiement Stripe", "<a href=\"...\">Payer maintenant</a>"),

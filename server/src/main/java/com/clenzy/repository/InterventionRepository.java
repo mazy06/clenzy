@@ -18,6 +18,12 @@ import java.util.List;
 
 @Repository
 public interface InterventionRepository extends JpaRepository<Intervention, Long> {
+    @Query("SELECT i FROM Intervention i LEFT JOIN i.property p WHERE i.organizationId=:org "
+        + "AND (:manage=true OR p.owner.id=:user OR (i.property IS NULL AND i.requestor.id=:user)) "
+        + "AND (:status IS NULL OR i.status=:status)")
+    Page<Intervention> findBaitlyOwnerMissions(@Param("org") Long org,@Param("user") Long user,
+        @Param("status") InterventionStatus status,@Param("manage") boolean manage,Pageable pageable);
+
     @Query("select (count(a) > 0) from InterventionPaymentAllocation a join a.transaction t "
             + "where a.organizationId=:org and a.interventionId=:mission and t.organizationId=:org and t.providerTxId=:session")
     boolean hasAllocatedPayment(@Param("org") Long org, @Param("mission") Long mission, @Param("session") String session);
@@ -260,7 +266,10 @@ public interface InterventionRepository extends JpaRepository<Intervention, Long
           AND (CAST(:startDate AS timestamp) IS NULL OR i.scheduled_date >= :startDate)
           AND (CAST(:endDate AS timestamp) IS NULL OR i.scheduled_date < :endDate)
           AND (CAST(:orgId AS bigint) IS NULL OR i.organization_id = :orgId)
-        ORDER BY i.scheduled_date DESC, i.id DESC
+        ORDER BY CASE WHEN i.status='IN_PROGRESS' THEN 0 WHEN i.status IN ('PENDING','AWAITING_PAYMENT') THEN 1
+            WHEN i.status='AWAITING_VALIDATION' THEN 2 WHEN i.status='COMPLETED' THEN 3 ELSE 4 END,
+            CASE WHEN i.status IN ('IN_PROGRESS','PENDING','AWAITING_PAYMENT') THEN i.scheduled_date END ASC,
+            i.scheduled_date DESC, i.id DESC
         """, nativeQuery = true)
     Page<Intervention> findByAssignedUserOrTeamWithFilters(@Param("userId") Long userId,
                                                           @Param("propertyId") Long propertyId,
@@ -398,6 +407,10 @@ public interface InterventionRepository extends JpaRepository<Intervention, Long
            "ORDER BY i.scheduledDate")
     List<Intervention> findUnpaidByProperty(@Param("propertyId") Long propertyId, @Param("orgId") Long orgId);
 
+    @EntityGraph(attributePaths = {"property", "requestor"})
+    @Query("SELECT i FROM Intervention i WHERE i.id IN :ids AND i.organizationId=:orgId")
+    List<Intervention> findBaitlyPaymentPage(@Param("ids") List<Long> ids, @Param("orgId") Long orgId);
+
     /**
      * Historique des paiements — toutes interventions payantes (ADMIN/MANAGER, optionnellement par host)
      */
@@ -437,7 +450,7 @@ public interface InterventionRepository extends JpaRepository<Intervention, Long
      * Exclut les interventions liees a une reservation masquee du planning
      * (reservation cancelled + hidden_from_planning=true).
      */
-    @Query("SELECT i FROM Intervention i LEFT JOIN FETCH i.property p LEFT JOIN FETCH p.owner LEFT JOIN FETCH i.assignedUser " +
+    @Query("SELECT i FROM Intervention i LEFT JOIN FETCH i.property p LEFT JOIN FETCH p.owner LEFT JOIN FETCH i.assignedUser LEFT JOIN FETCH i.serviceRequest " +
            "WHERE i.property.id IN :propertyIds " +
            "AND i.scheduledDate >= :fromDate AND i.scheduledDate <= :toDate " +
            "AND i.organizationId = :orgId " +
@@ -450,11 +463,29 @@ public interface InterventionRepository extends JpaRepository<Intervention, Long
             @Param("toDate") LocalDateTime toDate,
             @Param("orgId") Long orgId);
 
+    @Query("SELECT new com.clenzy.dto.BaitlyPlanningInterventionRow(i.id, p.id, p.name, "
+            + "i.serviceItemCode, i.type, i.status, i.priority, i.title, i.description, "
+            + "i.scheduledDate, i.estimatedDurationHours, i.notes, u.id, "
+            + "i.teamId, t.name, s.reservationId, i.paymentStatus, i.estimatedCost, i.actualCost, i.paidAt) "
+            + "FROM Intervention i JOIN i.property p "
+            + "LEFT JOIN i.assignedUser u ON u.organizationId = :orgId "
+            + "LEFT JOIN i.serviceRequest s ON s.organizationId = :orgId "
+            + "LEFT JOIN Team t ON t.id = i.teamId AND t.organizationId = :orgId "
+            + "WHERE p.id IN :propertyIds AND p.organizationId = :orgId AND i.organizationId = :orgId "
+            + "AND i.scheduledDate >= :fromDate AND i.scheduledDate <= :toDate "
+            + "AND NOT EXISTS (SELECT 1 FROM Reservation r WHERE r.intervention.id = i.id "
+            + "AND r.organizationId = :orgId AND r.hiddenFromPlanning = true AND r.status = 'cancelled') "
+            + "ORDER BY i.scheduledDate ASC")
+    List<com.clenzy.dto.BaitlyPlanningInterventionRow> findBaitlyPlanningRows(
+            @Param("propertyIds") List<Long> propertyIds,
+            @Param("fromDate") LocalDateTime fromDate, @Param("toDate") LocalDateTime toDate,
+            @Param("orgId") Long orgId);
+
     /**
      * Toutes les interventions pour le planning dans une plage de dates (admin/manager).
      * Exclut les interventions liees a une reservation masquee du planning.
      */
-    @Query("SELECT i FROM Intervention i LEFT JOIN FETCH i.property p LEFT JOIN FETCH p.owner LEFT JOIN FETCH i.assignedUser " +
+    @Query("SELECT i FROM Intervention i LEFT JOIN FETCH i.property p LEFT JOIN FETCH p.owner LEFT JOIN FETCH i.assignedUser LEFT JOIN FETCH i.serviceRequest " +
            "WHERE i.scheduledDate >= :fromDate AND i.scheduledDate <= :toDate " +
            "AND i.organizationId = :orgId " +
            "AND NOT EXISTS (SELECT 1 FROM Reservation r WHERE r.intervention.id = i.id " +
@@ -469,7 +500,7 @@ public interface InterventionRepository extends JpaRepository<Intervention, Long
      * Interventions pour le planning d'un owner specifique.
      * Exclut les interventions liees a une reservation masquee du planning.
      */
-    @Query("SELECT i FROM Intervention i LEFT JOIN FETCH i.property p LEFT JOIN FETCH p.owner LEFT JOIN FETCH i.assignedUser " +
+    @Query("SELECT i FROM Intervention i LEFT JOIN FETCH i.property p LEFT JOIN FETCH p.owner LEFT JOIN FETCH i.assignedUser LEFT JOIN FETCH i.serviceRequest " +
            "WHERE (p.owner.keycloakId = :keycloakId OR (p IS NULL AND i.requestor.keycloakId = :keycloakId)) " +
            "AND i.scheduledDate >= :fromDate AND i.scheduledDate <= :toDate " +
            "AND i.organizationId = :orgId " +

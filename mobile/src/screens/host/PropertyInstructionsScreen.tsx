@@ -92,7 +92,7 @@ function MultilineText({ value, placeholder, theme }: {
   if (!value) {
     return (
       <Text style={{ ...theme.typography.body2, color: theme.colors.text.disabled, fontStyle: 'italic' }}>
-        {placeholder ?? 'Non renseigne'}
+        {placeholder ?? 'Non renseigné'}
       </Text>
     );
   }
@@ -218,13 +218,13 @@ export function PropertyInstructionsScreen() {
         <InstructionSection
           icon="key-outline"
           iconColor={theme.colors.primary.main}
-          label="Acces"
+          label="Accès"
           theme={theme}
         >
           {instructions?.accessCode ? (
-            <CopyableField label="Code d'acces" value={instructions.accessCode} theme={theme} />
+            <CopyableField label="Code d'accès" value={instructions.accessCode} theme={theme} />
           ) : (
-            <MultilineText placeholder="Aucun code d'acces renseigne" theme={theme} />
+            <MultilineText placeholder="Aucun code d'accès renseigné" theme={theme} />
           )}
         </InstructionSection>
 
@@ -238,11 +238,11 @@ export function PropertyInstructionsScreen() {
           {instructions?.wifiName || instructions?.wifiPassword ? (
             <View style={{ gap: theme.SPACING.md }}>
               {instructions.wifiName ? (
-                <CopyableField label="Nom du reseau" value={instructions.wifiName} theme={theme} />
+                <CopyableField label="Nom du réseau" value={instructions.wifiName} theme={theme} />
               ) : (
                 <View>
-                  <Text style={{ ...theme.typography.caption, color: theme.colors.text.disabled, marginBottom: 2 }}>Nom du reseau</Text>
-                  <Text style={{ ...theme.typography.body2, color: theme.colors.text.disabled, fontStyle: 'italic' }}>Non renseigne</Text>
+                  <Text style={{ ...theme.typography.caption, color: theme.colors.text.disabled, marginBottom: 2 }}>Nom du réseau</Text>
+                  <Text style={{ ...theme.typography.body2, color: theme.colors.text.disabled, fontStyle: 'italic' }}>Non renseigné</Text>
                 </View>
               )}
               {instructions.wifiName && instructions.wifiPassword && (
@@ -253,12 +253,12 @@ export function PropertyInstructionsScreen() {
               ) : (
                 <View>
                   <Text style={{ ...theme.typography.caption, color: theme.colors.text.disabled, marginBottom: 2 }}>Mot de passe</Text>
-                  <Text style={{ ...theme.typography.body2, color: theme.colors.text.disabled, fontStyle: 'italic' }}>Non renseigne</Text>
+                  <Text style={{ ...theme.typography.body2, color: theme.colors.text.disabled, fontStyle: 'italic' }}>Non renseigné</Text>
                 </View>
               )}
             </View>
           ) : (
-            <MultilineText placeholder="Aucune information WiFi renseignee" theme={theme} />
+            <MultilineText placeholder="Aucune information WiFi renseignée" theme={theme} />
           )}
         </InstructionSection>
 
@@ -276,12 +276,12 @@ export function PropertyInstructionsScreen() {
         <InstructionSection
           icon="enter-outline"
           iconColor={theme.colors.success.main}
-          label="Consignes d'arrivee"
+          label="Consignes d'arrivée"
           theme={theme}
         >
           <MultilineText
             value={instructions?.arrivalInstructions ?? property.accessInstructions}
-            placeholder="Aucune consigne d'arrivee"
+            placeholder="Aucune consigne d'arrivée"
             theme={theme}
           />
         </InstructionSection>
@@ -290,10 +290,10 @@ export function PropertyInstructionsScreen() {
         <InstructionSection
           icon="exit-outline"
           iconColor={theme.colors.error.main}
-          label="Consignes de depart"
+          label="Consignes de départ"
           theme={theme}
         >
-          <MultilineText value={instructions?.departureInstructions} placeholder="Aucune consigne de depart" theme={theme} />
+          <MultilineText value={instructions?.departureInstructions} placeholder="Aucune consigne de départ" theme={theme} />
         </InstructionSection>
 
         {/* ── Reglement interieur ── */}
@@ -341,7 +341,7 @@ export function PropertyInstructionsScreen() {
               </View>
             </View>
           ) : (
-            <MultilineText placeholder="Aucun contact d'urgence renseigne" theme={theme} />
+            <MultilineText placeholder="Aucun contact d'urgence renseigné" theme={theme} />
           )}
         </InstructionSection>
       </ScrollView>

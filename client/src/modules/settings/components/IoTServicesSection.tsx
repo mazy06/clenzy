@@ -170,7 +170,7 @@ export default function IoTServicesSection() {
           <OAuthProviderCard
             providerId="TUYA"
             label="Tuya"
-            description="{t('settings.iot.tuyaDesc')}"
+            description={t('settings.iot.tuyaDesc')}
             api={tuyaAdapter}
             serviceTooltipId="TUYA"
             secondaryAction={tuyaConfigAction}
@@ -180,14 +180,14 @@ export default function IoTServicesSection() {
           <OAuthProviderCard
             providerId="MINUT"
             label="Minut"
-            description="{t('settings.iot.minutDesc')}"
+            description={t('settings.iot.minutDesc')}
             api={minutAdapter}
             serviceTooltipId="MINUT"
           />
           <OAuthProviderCard
             providerId="NETATMO"
             label="Netatmo"
-            description="{t('settings.iot.netatmoDesc')}"
+            description={t('settings.iot.netatmoDesc')}
             api={netatmoAdapter}
             secondaryAction={netatmoConfigAction}
             mainActionDisabled={!netatmoConfigured}

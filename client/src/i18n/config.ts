@@ -2,6 +2,7 @@ import i18n from 'i18next';
 import type { BackendModule, ReadCallback, ResourceKey } from 'i18next';
 import { initReactI18next } from 'react-i18next';
 import LanguageDetector from 'i18next-browser-languagedetector';
+import { markBaitlyBoot } from '../services/baitlyBootTiming';
 
 /**
  * Départ anticipé posé par `index.html` : la locale détectée part au tout
@@ -91,6 +92,9 @@ export const i18nInitPromise = i18n
       order: ['localStorage', 'navigator'],
       caches: ['localStorage'],
     },
+  }).then((translate) => {
+    markBaitlyBoot('translations-ready');
+    return translate;
   });
 
 export default i18n;

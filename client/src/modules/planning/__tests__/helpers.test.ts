@@ -1,17 +1,9 @@
+import { parseCompletedSteps, parseValidatedRooms, parseSignalements, parseStepNotes } from '../utils/baitlyInterventionParsers';
 import { describe, it, expect } from 'vitest';
 
-/**
- * Tests for helper/parsing functions used across multiple components.
- * These functions are inline (not exported) in their components, so we
- * replicate them here for thorough unit testing.
- */
 
 // ─── parseCompletedSteps (from PanelInterventionProgress & PanelInterventionDetail) ─
 
-const parseCompletedSteps = (steps?: string): Set<string> => {
-  if (!steps) return new Set();
-  return new Set(steps.split(',').filter(Boolean));
-};
 
 describe('parseCompletedSteps', () => {
   it('should return empty set for undefined', () => {
@@ -56,10 +48,6 @@ describe('parseCompletedSteps', () => {
 
 // ─── parseValidatedRooms (from PanelInterventionProgress) ───────────────────
 
-const parseValidatedRooms = (rooms?: string): Set<number> => {
-  if (!rooms) return new Set();
-  return new Set(rooms.split(',').filter(Boolean).map(Number));
-};
 
 describe('parseValidatedRooms', () => {
   it('should return empty set for undefined', () => {
@@ -97,19 +85,6 @@ interface Signalement {
   description: string;
 }
 
-const parseSignalements = (notes?: string): Signalement[] => {
-  if (!notes) return [];
-  const regex = /\[SIGNALEMENT:(\w+)\]\s*(.+?)(?=\[SIGNALEMENT|\n---|$)/gs;
-  const results: Signalement[] = [];
-  let match;
-  while ((match = regex.exec(notes)) !== null) {
-    results.push({
-      severity: (match[1].toLowerCase() as Signalement['severity']) || 'moyenne',
-      description: match[2].trim(),
-    });
-  }
-  return results;
-};
 
 describe('parseSignalements', () => {
   it('should return empty array for undefined', () => {
@@ -157,21 +132,6 @@ describe('parseSignalements', () => {
 
 // ─── parseStepNotes (from PanelInterventionRecap) ───────────────────────────
 
-const parseStepNotes = (notes?: string): Record<string, string> => {
-  if (!notes) return {};
-  const result: Record<string, string> = {};
-  const sections = notes.split('--- ');
-  for (const section of sections) {
-    if (section.startsWith('Inspection')) {
-      result.inspection = section.replace(/^Inspection\s*-{0,3}\s*\n?/, '').trim();
-    } else if (section.startsWith('Pieces') || section.startsWith('Pieces')) {
-      result.rooms = section.replace(/^Pi[eè]ces\s*-{0,3}\s*\n?/, '').trim();
-    } else if (section.startsWith('Final') || section.startsWith('Photos')) {
-      result.after_photos = section.replace(/^(Final|Photos\s*apres)\s*-{0,3}\s*\n?/, '').trim();
-    }
-  }
-  return result;
-};
 
 describe('parseStepNotes', () => {
   it('should return empty object for undefined', () => {
@@ -300,19 +260,5 @@ describe('cart total calculation', () => {
     const items: { selected: boolean; cost: number }[] = [];
     const total = items.filter((i) => i.selected).reduce((sum, i) => sum + i.cost, 0);
     expect(total).toBe(0);
-  });
-});
-
-// ─── Cost estimation ─────────────────────────────────────────────────────────
-
-describe('cost estimation', () => {
-  it('should calculate cost as hours x 25', () => {
-    const hours = 2;
-    expect(hours * 25).toBe(50);
-  });
-
-  it('should return 0 when no hours', () => {
-    const hours = undefined;
-    expect(hours ? hours * 25 : 0).toBe(0);
   });
 });

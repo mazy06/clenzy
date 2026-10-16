@@ -3,22 +3,16 @@ import { Alert as BuiAlert, AlertDescription, AlertAction, Button as BuiButton }
 import { TriangleAlert, X } from '../icons/glyphs';
 import { Spinner, Tooltip, TooltipContent, TooltipTrigger } from './ui';
 import { cn } from '../utils/cn';
-import mapboxgl from 'mapbox-gl';
-import 'mapbox-gl/dist/mapbox-gl.css';
+import * as maplibregl from 'maplibre-gl';
+import { createBaitlyMap, prefersReducedMotion, setBaitlyMapMode } from './map/createBaitlyMap';
+import { createBaitlyPin } from './map/baitlyMapPin';
 import { LocationOn, DirectionsWalk } from '../icons';
 import { useThemeMode } from '../hooks/useThemeMode';
 import { useTranslation } from '../hooks/useTranslation';
+import { useHomeMapCenter } from '../hooks/useHomeMapCenter';
 
-import { runtimeEnv } from '../config/runtimeConfig';
-const MAPBOX_TOKEN = runtimeEnv('VITE_MAPBOX_TOKEN');
-
-const MAP_STYLES = {
-  light: 'mapbox://styles/mapbox/streets-v12',
-  dark: 'mapbox://styles/mapbox/dark-v11',
-} as const;
-
-// Fallback : centre de la France métropolitaine
-const DEFAULT_FALLBACK: [number, number] = [2.3522, 48.8566];
+// Sans localisation exploitable, montrer le monde sans inventer une ville.
+const DEFAULT_FALLBACK: [number, number] = [0, 0];
 
 export interface PropertyLocationPickerProps {
   /** Latitude actuelle (null/undefined si non définie) */
@@ -45,9 +39,11 @@ export function PropertyLocationPicker({
 }: PropertyLocationPickerProps) {
   const { t } = useTranslation();
   const { isDark } = useThemeMode();
+  const homeCenter = useHomeMapCenter();
+  const userMovedRef = useRef(false);
   const mapContainerRef = useRef<HTMLDivElement>(null);
-  const mapRef = useRef<mapboxgl.Map | null>(null);
-  const markerRef = useRef<mapboxgl.Marker | null>(null);
+  const mapRef = useRef<maplibregl.Map | null>(null);
+  const markerRef = useRef<maplibregl.Marker | null>(null);
   const onChangeRef = useRef(onChange);
   useEffect(() => {
     onChangeRef.current = onChange;
@@ -63,23 +59,17 @@ export function PropertyLocationPicker({
     ? [longitude as number, latitude as number]
     : fallbackCenter
       ? [fallbackCenter.lng, fallbackCenter.lat]
-      : DEFAULT_FALLBACK;
-  const initialZoom = hasCoords ? 15 : fallbackCenter ? 12 : 5;
+      : homeCenter ?? DEFAULT_FALLBACK;
+  const initialZoom = hasCoords ? 15 : fallbackCenter || homeCenter ? 12 : 2;
 
   const movePin = useCallback((lng: number, lat: number) => {
     const map = mapRef.current;
     if (!map) return;
     if (!markerRef.current) {
-      // Element DOM reel : les custom properties Baitly s'y resolvent, le pin
-      // suit donc le theme clair / sombre sans table de couleurs dupliquee.
-      const el = document.createElement('div');
-      el.style.cssText = `
-        width: 28px; height: 28px; border-radius: 50% 50% 50% 0;
-        background: var(--bui-destructive); transform: rotate(-45deg);
-        border: 3px solid var(--bui-card); box-shadow: 0 2px 6px rgba(0,0,0,0.3);
-        cursor: grab;
-      `;
-      markerRef.current = new mapboxgl.Marker({ element: el, draggable: true, anchor: 'bottom' })
+      // Epingle Baitly (element DOM : suit le theme), deplacable a la souris.
+      const el = createBaitlyPin({ color: 'var(--bui-destructive)', icon: 'logo' });
+      el.dataset.draggable = 'true';
+      markerRef.current = new maplibregl.Marker({ element: el, draggable: true, anchor: 'bottom' })
         .setLngLat([lng, lat])
         .addTo(map);
       markerRef.current.on('dragend', () => {
@@ -93,25 +83,26 @@ export function PropertyLocationPicker({
 
   // Init map (une seule fois)
   useEffect(() => {
-    if (!MAPBOX_TOKEN || !mapContainerRef.current) return;
+    if (!mapContainerRef.current) return;
     if (mapRef.current) return;
 
-    const map = new mapboxgl.Map({
+    const map = createBaitlyMap({
       container: mapContainerRef.current,
-      style: isDark ? MAP_STYLES.dark : MAP_STYLES.light,
+      mode: isDark ? 'dark' : 'light',
       center: initialCenter,
       zoom: initialZoom,
-      accessToken: MAPBOX_TOKEN,
+      compass: false,
     });
-    map.addControl(new mapboxgl.NavigationControl({ showCompass: false }), 'top-right');
     mapRef.current = map;
 
-    const handleMapClick = (e: mapboxgl.MapMouseEvent) => {
+    const handleMapClick = (e: maplibregl.MapMouseEvent) => {
       const { lng, lat } = e.lngLat;
       movePin(lng, lat);
       onChangeRef.current(lat, lng);
     };
     map.on('click', handleMapClick);
+    const onMoveStart = (event: { originalEvent?: unknown }) => { if (event.originalEvent) userMovedRef.current = true; };
+    map.on('movestart', onMoveStart);
 
     if (hasCoords) {
       movePin(longitude as number, latitude as number);
@@ -119,6 +110,7 @@ export function PropertyLocationPicker({
 
     return () => {
       map.off('click', handleMapClick);
+      map.off('movestart', onMoveStart);
       map.remove();
       mapRef.current = null;
       markerRef.current = null;
@@ -126,11 +118,16 @@ export function PropertyLocationPicker({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  useEffect(() => {
+    if (hasCoords || fallbackCenter || !homeCenter || userMovedRef.current) return;
+    mapRef.current?.jumpTo({ center: homeCenter, zoom: 12 });
+  }, [homeCenter, hasCoords, fallbackCenter]);
+
   // Switch style quand le thème change
   useEffect(() => {
     const map = mapRef.current;
     if (!map) return;
-    map.setStyle(isDark ? MAP_STYLES.dark : MAP_STYLES.light);
+    setBaitlyMapMode(map, isDark ? 'dark' : 'light');
   }, [isDark]);
 
   // Sync pin quand lat/lng changent depuis l'extérieur (ex : autocomplete d'adresse)
@@ -138,7 +135,7 @@ export function PropertyLocationPicker({
     const map = mapRef.current;
     if (!map || !hasCoords) return;
     movePin(longitude as number, latitude as number);
-    map.flyTo({ center: [longitude as number, latitude as number], zoom: 15, duration: 600 });
+    map.flyTo({ center: [longitude as number, latitude as number], zoom: 15, duration: prefersReducedMotion() ? 0 : 600 });
   }, [latitude, longitude, hasCoords, movePin]);
 
   const handleGeolocate = useCallback(() => {
@@ -169,17 +166,8 @@ export function PropertyLocationPicker({
   const handleRecenter = useCallback(() => {
     const map = mapRef.current;
     if (!map || !hasCoords) return;
-    map.flyTo({ center: [longitude as number, latitude as number], zoom: 16, duration: 600 });
+    map.flyTo({ center: [longitude as number, latitude as number], zoom: 16, duration: prefersReducedMotion() ? 0 : 600 });
   }, [hasCoords, latitude, longitude]);
-
-  if (!MAPBOX_TOKEN) {
-    return (
-      <BuiAlert variant="warning" className="text-xs">
-        <TriangleAlert />
-        <AlertDescription>{t('locationPicker.mapboxMissing')}</AlertDescription>
-      </BuiAlert>
-    );
-  }
 
   return (
     <div className="flex flex-col gap-1.5">

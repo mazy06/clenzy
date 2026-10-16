@@ -17,6 +17,7 @@ import { NOISE_THRESHOLDS } from '../../../hooks/noiseMonitoring';
 import type { ConnectedDevice } from '../types';
 import PageTabs from '../../../components/PageTabs';
 import { useTranslation } from '../../../hooks/useTranslation';
+import BaitlySensorControls from '../components/BaitlySensorControls';
 
 const NEUTRAL = 'text-muted-foreground';
 
@@ -37,8 +38,8 @@ function levelAccent(level: number): string {
  * Réutilise les composants riches existants en variante `device`/`embedded`.
  */
 export default function NoiseDetail({ device, compact = false }: { device: ConnectedDevice; compact?: boolean }) {
-  const { t } = useTranslation();
-  const { data, combinedChartData, loading } = useNoiseDeviceDetail(device);
+  const { t, currentLanguage } = useTranslation();
+  const { data, combinedChartData, points, timeZone, error, loading } = useNoiseDeviceDetail(device);
   const [activeThresholds, setActiveThresholds] = useState<ActiveThresholds | null>(null);
   const [subTab, setSubTab] = useState(0);
   const configRef = useRef<NoiseAlertConfigHandle>(null);
@@ -61,6 +62,8 @@ export default function NoiseDetail({ device, compact = false }: { device: Conne
 
   return (
     <div className="flex flex-col gap-3">
+      {device.provider === 'BAITLY' && <BaitlySensorControls key={device.id} deviceId={device.id} timeZone={timeZone} />}
+      {error && <Alert variant="destructive"><AlertDescription>{t('baitlyIot.historyError')}</AlertDescription></Alert>}
       {/* 1. Lecture live du capteur — remplace la tuile « Connexion » orpheline */}
       {compact ? <div className="bir-noise-readings">
         <div><span>{t('connectedRooms.inspector.noiseNow')}</span><strong>{reading(sensor?.currentLevel ?? 0)}</strong></div>
@@ -98,11 +101,24 @@ export default function NoiseDetail({ device, compact = false }: { device: Conne
         <NoiseMonitorChart
           variant="device"
           data={data}
-          combinedChartData={combinedChartData}
+          combinedChartData={device.provider === 'BAITLY' ? combinedChartData.map(point => ({ ...point,
+            time: new Date(String(point.time)).toLocaleTimeString(currentLanguage, { hour: '2-digit', minute: '2-digit', timeZone }) })) : combinedChartData}
           activeThresholds={activeThresholds}
           loading={loading}
         />
       </div>
+
+      {device.provider === 'BAITLY' && <div className="overflow-x-auto">
+        <table className="w-full text-start text-xs tabular-nums">
+          <caption className="pb-2 text-start font-medium">{t('baitlyIot.recentMeasurements')}</caption>
+          <thead><tr className="border-b border-border"><th scope="col" className="py-2 text-start">{t('baitlyIot.measuredAt')}</th>
+            <th scope="col" className="py-2 text-end">{t('baitlyIot.level')}</th></tr></thead>
+          <tbody>{points.slice(-10).reverse().map((point, index) => <tr key={`${point.time}-${index}`} className="border-b border-border">
+            <td className="py-2"><time dateTime={point.time}>{new Date(point.time).toLocaleString(currentLanguage, { timeZone })}</time></td>
+            <td className="py-2 text-end">{point.decibels.toLocaleString(currentLanguage)} dB(A)</td></tr>)}</tbody>
+        </table>
+        {!loading && !error && points.length === 0 && <p className="py-3 text-xs text-muted-foreground">{t('baitlyIot.noMeasurements')}</p>}
+      </div>}
 
       {/* 3. Configuration | Historique */}
       <div>

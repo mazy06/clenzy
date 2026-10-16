@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import { renderHook, act, waitFor } from '@testing-library/react';
+import { render, renderHook, act, waitFor } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import type { ReactNode } from 'react';
 import React from 'react';
@@ -9,6 +9,11 @@ import { addDays, toDateStr, getOverlappingChunks } from '../utils/dateUtils';
 import { DATA_CHUNK_SIZE_DAYS } from '../constants';
 import { calendarPricingApi } from '../../../services/api/calendarPricingApi';
 import { planningDataApi } from '../../../services/api/planningDataApi';
+import { usePlanningData } from '../hooks/usePlanningData';
+import { usePlanningPagination } from '../hooks/usePlanningPagination';
+import { useBaitlyReservationDetails } from '../hooks/useBaitlyReservationDetails';
+import PlanningGridSkeleton from '../PlanningGridSkeleton';
+import { ROW_CONFIG, DATE_HEADER_HEIGHT, OCCUPANCY_ROW_HEIGHT } from '../constants';
 
 /**
  * Charge RESEAU du planning.
@@ -45,14 +50,16 @@ vi.mock('../../../services/api/portfoliosApi', () => ({
 
 vi.mock('../../../services/api/planningDataApi', () => ({
   planningDataApi: {
-    getPlanningData: vi.fn(async () => ({
+    getProperties: vi.fn(async () => PROPERTY_IDS.map((id) => ({ id, name: `L${id}`, photoUrls: [] }))),
+    getReservationDetails: vi.fn(async () => ({ reservations: [], interventions: [], awaitingPayment: [], blocked: [] })),
+    getIndex: vi.fn(async () => ({
       reservations: [], interventions: [], awaitingPayment: [], blocked: [],
     })),
   },
 }));
 
 const batchMock = vi.mocked(calendarPricingApi.getPricingBatch);
-const dataMock = vi.mocked(planningDataApi.getPlanningData);
+const dataMock = vi.mocked(planningDataApi.getIndex);
 
 /** 10 logements : la taille d'une page de planning telle qu'affichee. */
 const PROPERTY_IDS = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
@@ -205,6 +212,38 @@ describe('planning — charge reseau', () => {
     for (const [ids] of dataMock.mock.calls) {
       expect(ids).toEqual(PROPERTY_IDS);
     }
+  });
+
+  it('démarre les détails sur la page mesurée avant la réponse de l’index', async () => {
+    const height = DATE_HEADER_HEIGHT + OCCUPANCY_ROW_HEIGHT + 3 * ROW_CONFIG.normal.rowHeight;
+    const measuredHeight = vi.spyOn(HTMLElement.prototype, 'clientHeight', 'get').mockReturnValue(height);
+    dataMock.mockImplementation(() => new Promise(() => {}));
+    const detailMock = vi.mocked(planningDataApi.getReservationDetails);
+    detailMock.mockClear();
+    const end = addDays(START, WINDOW_DAYS);
+    const days = [START, addDays(START, 1)];
+    function Startup({ ready }: { ready: boolean }) {
+      const data = usePlanningData(START, end, ready);
+      const [gridHeight, setHeight] = React.useState(0);
+      const page = usePlanningPagination({ totalProperties: data.properties, density: 'normal',
+        isFullscreen: false, showPrices: true, gridHeight, hasOccupancyRow: true });
+      useBaitlyReservationDetails(page.paginatedProperties.map((p) => p.id), START, end,
+        ready && page.isPageSizeMeasured, { start: START, end: START });
+      return <PlanningGridSkeleton days={days} dayWidth={80} zoom="fortnight" density="normal"
+        anchorDate={START} propertyColWidth={188} totalGridWidth={160}
+        layoutReady={ready} onViewportHeight={setHeight} />;
+    }
+    const view = render(<Startup ready={false} />, { wrapper: makeWrapper() });
+    await waitFor(() => expect(planningDataApi.getProperties).toHaveBeenCalled());
+    expect(dataMock).not.toHaveBeenCalled();
+    expect(detailMock).not.toHaveBeenCalled();
+    view.rerender(<Startup ready />);
+    await waitFor(() => expect(detailMock).toHaveBeenCalled());
+    // Index remains pending. No estimated-page request and no whole-portfolio details.
+    expect(dataMock).toHaveBeenCalled();
+    for (const [ids] of detailMock.mock.calls) expect(ids).toEqual(PROPERTY_IDS.slice(0, 3));
+    view.unmount();
+    measuredHeight.mockRestore();
   });
 
   it('le toggle « prix » coupe reellement le trafic', async () => {

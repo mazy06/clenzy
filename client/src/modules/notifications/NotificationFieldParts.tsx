@@ -8,7 +8,10 @@ import { formatFactDate } from './notificationMeta';
 import { useThemeMode } from '../../hooks/useThemeMode';
 import type { Property } from '../../services/api/propertiesApi';
 
-import { runtimeEnv } from '../../config/runtimeConfig';
+// MapLibre (~800 Ko) ne se charge qu'a l'affichage d'une vignette.
+import { DirectionsMenu } from '../../components/map/DirectionsMenu';
+const BaitlyStaticMap = React.lazy(() => import('../../components/map/BaitlyStaticMap'));
+
 /**
  * Les pieces communes aux fiches de TERRAIN — intervention, demande de service,
  * signalement.
@@ -88,46 +91,34 @@ export function PriorityBanner({ priority }: { priority: string | null | undefin
 /**
  * Vignette de carte cliquable — l'adresse, et le chemin pour y aller.
  *
- * <p>Une image statique, pas une carte interactive : on ne navigue pas dans une
- * fiche de notification, on l'ouvre dans l'application de cartes du telephone.
- * Sans coordonnees ou sans jeton, la tuile retombe sur un reperage sobre — le
- * LIEN, lui, marche toujours : il part sur l'adresse en toutes lettres.</p>
+ * <p>Une vignette figée (carte Baitly sans geste), pas une carte interactive : un
+ * clic propose la carte Baitly ou le guidage dans l'app GPS de son choix. Sans
+ * coordonnees, la tuile retombe sur un reperage sobre — le menu, lui, marche
+ * toujours : il part sur l'adresse en toutes lettres.</p>
  */
 export function MapTile({ property, address }: { property: Property | null; address: string }) {
   const { t } = useTranslation();
   const { isDark } = useThemeMode();
-  const [failed, setFailed] = React.useState(false);
 
-  const token = runtimeEnv('VITE_MAPBOX_TOKEN');
   const lat = property?.latitude;
   const lon = property?.longitude;
   const hasCoords = typeof lat === 'number' && typeof lon === 'number';
 
-  const href = hasCoords
-    ? `https://www.google.com/maps/search/?api=1&query=${lat},${lon}`
-    : `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(address)}`;
-
-  const style = isDark ? 'dark-v11' : 'streets-v12';
-  const preview = token && hasCoords
-    ? `https://api.mapbox.com/styles/v1/mapbox/${style}/static/pin-s+5453D6(${lon},${lat})/${lon},${lat},13,0/240x120@2x?access_token=${token}`
-    : null;
-
   return (
-    <a
-      href={href}
-      target="_blank"
-      rel="noreferrer noopener"
-      aria-label={t('notifications.detail.intervention.openMap', 'Ouvrir dans Maps')}
-      className="relative block h-[120px] w-[240px] shrink-0 overflow-hidden rounded-lg border border-border bg-field"
+    <DirectionsMenu target={{ lat, lng: lon, address, label: property?.name ?? address }}>
+    <button
+      type="button"
+      aria-label={t('baitlyMap.directions.title', 'Itinéraire')}
+      className="relative block h-[120px] w-[240px] shrink-0 cursor-pointer overflow-hidden rounded-lg border border-border bg-field p-0 text-start"
     >
-      {preview && !failed ? (
-        <img
-          src={preview}
-          alt=""
-          loading="lazy"
-          className="absolute inset-0 size-full object-cover"
-          onError={() => setFailed(true)}
-        />
+      {hasCoords ? (
+        <React.Suspense fallback={null}>
+          <BaitlyStaticMap lat={lat} lng={lon} mode={isDark ? 'dark' : 'light'} />
+          {/* Mention ODbL : la vignette n'embarque pas le controle d'attribution (liens imbriques). */}
+          <span className="absolute end-1 top-1 rounded bg-card/85 px-1 text-[10px] leading-4 text-muted-foreground">
+            © OpenStreetMap
+          </span>
+        </React.Suspense>
       ) : (
         <span className="absolute inset-0 flex items-center justify-center text-muted-foreground">
           {sizedIcon(<LocationOn />, 24, 1.5)}
@@ -137,9 +128,10 @@ export function MapTile({ property, address }: { property: Property | null; addr
         <span className="inline-flex shrink-0 text-muted-foreground">
           {sizedIcon(<OpenInNew />, 13, 1.75)}
         </span>
-        <span className="truncate">{t('notifications.detail.intervention.openMap', 'Ouvrir dans Maps')}</span>
+        <span className="truncate">{t('baitlyMap.directions.title', 'Itinéraire')}</span>
       </span>
-    </a>
+    </button>
+    </DirectionsMenu>
   );
 }
 

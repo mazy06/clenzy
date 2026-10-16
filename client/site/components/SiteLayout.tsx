@@ -379,6 +379,22 @@ function SiteFooter() {
                 {link.label}
               </Link>
             ))}
+            <a
+              href="https://www.f6s.com/member/baitly?follow=1"
+              target="_blank"
+              rel="noopener noreferrer"
+              title="Follow Baitly on F6S"
+              className="inline-flex"
+            >
+              <img
+                src="https://www.f6s.com/images/f6s-follow-secondary.png"
+                alt="Follow Baitly on F6S"
+                width={78}
+                height={22}
+                loading="lazy"
+                className="block h-[22px] w-[78px]"
+              />
+            </a>
           </span>
         </div>
       </div>

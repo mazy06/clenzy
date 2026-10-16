@@ -1,5 +1,5 @@
 import { lazy, Suspense, useEffect, useMemo, useRef, useState, type ComponentType } from "react";
-import type { MapboxPropertyMapProps } from "../../../components/MapboxMapCanvas";
+import type { BaitlyPropertyMapProps } from "../../../components/BaitlyMapCanvas";
 import {
   CalendarDays,
   CalendarIcon,
@@ -28,9 +28,9 @@ import thumbVilla from "../../../assets/demo/stay-villa.jpg";
 import thumbTerrace from "../../../assets/demo/stay-terrace.jpg";
 import "./interventions-map-demo.css";
 
-const MapboxMapCanvas = lazy(() =>
-  import("../../../components/MapboxMapCanvas").then((module) => ({
-    default: module.MapboxMapCanvas,
+const BaitlyMapCanvas = lazy(() =>
+  import("../../../components/BaitlyMapCanvas").then((module) => ({
+    default: module.BaitlyMapCanvas,
   })),
 );
 const IMAGES = {
@@ -57,7 +57,7 @@ const TONES = { pending: "warn", late: "err", done: "ok" } as const;
 function DeferredMap({
   loadingLabel,
   ...props
-}: MapboxPropertyMapProps & { loadingLabel: string }) {
+}: BaitlyPropertyMapProps & { loadingLabel: string }) {
   const host = useRef<HTMLDivElement>(null);
   const [ready, setReady] = useState(false);
   useEffect(() => {
@@ -79,7 +79,7 @@ function DeferredMap({
     <div ref={host} className="h-full">
       {ready ? (
         <Suspense fallback={placeholder}>
-          <MapboxMapCanvas {...props} colorMode="light" />
+          <BaitlyMapCanvas {...props} colorMode="light" />
         </Suspense>
       ) : (
         placeholder
@@ -91,7 +91,7 @@ function DeferredMap({
 /** Same Mapbox renderer, map/list layout and mission row as the authenticated
  * PMS. Only fixture data and local selection replace the private data layer. */
 export default function BInterventionsMapDemo({ MapComponent = DeferredMap }: {
-  MapComponent?: ComponentType<MapboxPropertyMapProps & { loadingLabel: string }>;
+  MapComponent?: ComponentType<BaitlyPropertyMapProps & { loadingLabel: string }>;
 } = {}) {
   const language = useDemoLanguage();
   const m = interventionsDemoText(language);

@@ -47,6 +47,15 @@ répliques 2 à 6.
 | `reel-17-la-mission-cote-prestataire/` | Le téléphone du prestataire : mission reçue à 11 h, consignes, checklist, photos, validée ; à droite, ce que voit l'hôte | 30 s |
 | `reel-18-six-familles-de-metiers/` | Les six familles de services en cartes photo, puis la mosaïque « pour les hôtes / pour leurs voyageurs » | 26,1 s |
 
+**Film de lancement 9:16 (9 octobre 2026)** — `reel-19-baitly-est-lance/`, ~144 s, FR · EN (Paul K) · AR (Ali, traduction à relire), voix FR Paul K
+(Eleven v4, Stabilité 0,3). Tour du produit en 22 plans calés sur la voix (accroche, logo validé de la
+barre latérale, pour qui, planning et site direct, les 10 agents IA puis Avis & Réputation, Conformité,
+Revenue, Opérations, Finance et Communication, messagerie, livret, prestations et
+activités partenaires, objets connectés, ménage et stock, espaces dédiés, finance et conformité,
+marketplace ouverte, Académie Baitly, promesse et fin sur bleu nuit : « Baitly est lancé · baitly.fr » puis « Réservez
+votre démo · baitly.fr/demo »). Certaines fonctionnalités annoncées sont en cours de déploiement :
+mention en petit sur l'écran de fin. Brief et déclinaisons 1:1 / 16:9 : [VOIX-OFF.md](reel-19-baitly-est-lance/VOIX-OFF.md).
+
 **Teaser 15 s sans voix (29 septembre 2026)** — `teaser-15s-9x16/` et `teaser-15s-16x9/`, un seul
 moteur commun dans `teaser-15s-shared/` (`teaser.js` s'adapte au format, 60 i/s). Monté sur une grille
 de tempo : 128 BPM, 8 mesures = 15 s, une scène par mesure (accroche, logo, planning, canaux, ménage,

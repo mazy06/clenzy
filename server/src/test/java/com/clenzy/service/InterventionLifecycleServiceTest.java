@@ -92,6 +92,20 @@ class InterventionLifecycleServiceTest {
         intervention.setRequestor(owner);
         return intervention;
     }
+    @Test void submissionStoresActualEndAndDurationEvenWithoutAPause(){
+        var mission=buildIntervention(1L,InterventionStatus.IN_PROGRESS);mission.setStartTime(java.time.LocalDateTime.now().minusMinutes(20));
+        when(interventionRepository.findById(1L)).thenReturn(Optional.of(mission));when(interventionRepository.save(mission)).thenReturn(mission);
+        service.submitForValidation(1L,null,mockJwtWithRole("SUPER_ADMIN"));
+        assertThat(mission.getEndTime()).isNotNull();assertThat(mission.getActualDurationMinutes()).isBetween(20,21);assertThat(mission.getStatus()).isEqualTo(InterventionStatus.AWAITING_VALIDATION);
+        verifyNoInteractions(housekeeperPayoutService);
+    }
+    @Test void rejectedWorkDoesNotCountTheSupervisorsReviewTimeAsFieldWork(){
+        var mission=buildIntervention(1L,InterventionStatus.AWAITING_VALIDATION);mission.setEndTime(java.time.LocalDateTime.now().minusMinutes(10));
+        when(interventionRepository.findById(1L)).thenReturn(Optional.of(mission));when(interventionRepository.save(mission)).thenReturn(mission);
+        service.rejectWork(1L,"Reprendre la cuisine",mockJwtWithRole("SUPER_ADMIN"));
+        assertThat(mission.getEndTime()).isNull();assertThat(mission.getBaitlyPauseSeconds()).isGreaterThanOrEqualTo(600);assertThat(mission.getFollowUpNotes()).isEqualTo("Reprendre la cuisine");
+        verifyNoInteractions(housekeeperPayoutService);
+    }
 
     @Nested
     @DisplayName("updateStatus(id, status, jwt)")

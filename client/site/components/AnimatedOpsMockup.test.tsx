@@ -8,7 +8,7 @@ import {
 } from "@testing-library/react";
 import { renderToString } from "react-dom/server";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import type { MapboxPropertyMapProps } from "../../src/components/MapboxMapCanvas";
+import type { BaitlyPropertyMapProps } from "../../src/components/BaitlyMapCanvas";
 import BInterventionsMapDemo from "../../src/modules/admin/design-system/BInterventionsMapDemo";
 import { DemoLanguageProvider } from "../../src/modules/admin/design-system/demoLanguage";
 import { interventionsDemoText } from "../../src/modules/admin/design-system/interventionsDemoMessages";
@@ -16,9 +16,9 @@ import { SiteLanguageProvider } from "../lib/siteLanguage";
 import AnimatedOpsMockup from "./AnimatedOpsMockup";
 
 // Exercise the real mission rows/layout without requiring WebGL or paid map requests.
-vi.mock("../../src/components/MapboxMapCanvas", () => ({
-  MapboxMapCanvas: ({ properties, onMarkerClick }: MapboxPropertyMapProps) => (
-    <div role="group" aria-label="Mapbox">
+vi.mock("../../src/components/BaitlyMapCanvas", () => ({
+  BaitlyMapCanvas: ({ properties, onMarkerClick }: BaitlyPropertyMapProps) => (
+    <div role="group" aria-label="Carte Baitly">
       {properties.map((property) => (
         <button
           key={property.id}
@@ -94,9 +94,9 @@ describe("PMS interventions projection", () => {
     "selects the real mission row from its map marker in %s",
     async (language) => {
       const { container } = render(demo(language));
-      expect(screen.queryByRole("group", { name: "Mapbox" })).toBeNull();
+      expect(screen.queryByRole("group", { name: "Carte Baitly" })).toBeNull();
       await reveal();
-      const map = await screen.findByRole("group", { name: "Mapbox" });
+      const map = await screen.findByRole("group", { name: "Carte Baitly" });
       const m = interventionsDemoText(language);
       fireEvent.click(
         within(map).getByRole("button", { name: m.missions[1].propertyName }),
@@ -125,7 +125,7 @@ describe("PMS interventions projection", () => {
   it("filters map markers and mission rows together, including an empty result", async () => {
     const { container } = render(demo());
     await reveal();
-    const map = await screen.findByRole("group", { name: "Mapbox" });
+    const map = await screen.findByRole("group", { name: "Carte Baitly" });
     fireEvent.change(screen.getByRole("searchbox"), {
       target: { value: "Atlas" },
     });
@@ -157,7 +157,7 @@ describe("PMS interventions projection", () => {
     act(() => vi.advanceTimersByTime(6000));
     expect(row(0)).toHaveAttribute("aria-pressed", "true");
     await reveal();
-    expect(screen.queryByRole('group', { name: 'Mapbox' })).toBeNull();
+    expect(screen.queryByRole('group', { name: 'Carte Baitly' })).toBeNull();
     expect(screen.getByRole('group', { name: 'Carte illustrative · données de démonstration' })).toBeVisible();
     act(() => vi.advanceTimersByTime(6100));
     expect(row(1)).toHaveAttribute("aria-pressed", "true");

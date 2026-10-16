@@ -1,0 +1,4 @@
+# %u comes from the signed certificate CN, never the MQTT client-supplied username.
+# CN is SHA-256 of the device's current credential, exactly 64 lowercase hex characters.
+pattern write baitly/devices/%u/measurements
+pattern read baitly/devices/%u/acks

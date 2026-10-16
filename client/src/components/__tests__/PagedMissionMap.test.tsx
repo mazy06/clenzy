@@ -8,8 +8,9 @@ import { TooltipProvider } from '../ui';
 
 vi.mock('../../services/apiClient', () => ({ default: { get: vi.fn() } }));
 vi.mock('../../hooks/use-mobile', () => ({ useIsMobile: () => false }));
-vi.mock('../MapboxPropertyMap', () => ({ MapboxPropertyMap: ({ onBoundsChange }: any) =>
-  <><button onClick={() => onBoundsChange({ north: 50, south: 40, east: 10, west: -10 })}>Initial zone</button>
+vi.mock('../BaitlyPropertyMap', () => ({ BaitlyPropertyMap: ({ onBoundsChange, properties }: any) =>
+  <>{properties.map((marker: any) => <span key={marker.type + marker.id} data-testid="marker">{marker.type}:{marker.id}</span>)}
+    <button onClick={() => onBoundsChange({ north: 50, south: 40, east: 10, west: -10 })}>Initial zone</button>
     <button onClick={() => onBoundsChange({ north: 40, south: 30, east: 10, west: -10 })}>New zone</button></> }));
 
 let intersect: IntersectionObserverCallback;
@@ -25,10 +26,10 @@ afterEach(() => { cleanup(); vi.unstubAllGlobals(); });
 
 const filters = { search: '', type: 'all', status: 'all', priority: 'all' };
 const pageCalls = () => vi.mocked(apiClient.get).mock.calls.filter(([url]) => url.endsWith('/page'));
-function mount(kind: 'service-requests' | 'interventions') {
+function mount(kind: 'service-requests' | 'interventions' | 'prestations') {
   const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   return render(<MemoryRouter><QueryClientProvider client={client}><TooltipProvider>
-    <PagedMissionMap<{ id: number }> kind={kind} filters={filters}
+    <PagedMissionMap<{ id: number | string }> kind={kind} filters={filters}
       renderRow={row => <div key={row.id} data-testid="mission">{row.id}</div>} />
   </TooltipProvider></QueryClientProvider></MemoryRouter>);
 }
@@ -75,5 +76,23 @@ describe.each(['service-requests', 'interventions'] as const)('Chargement progre
     fireEvent.click(screen.getByRole('button', { name: /Réessayer/i }));
     await waitFor(() => expect(screen.getAllByTestId('mission')).toHaveLength(21));
     expect(pageCalls().map(([, options]) => options?.params?.page)).toEqual([0, 1, 1]);
+  });
+});
+
+describe('Carte des prestations', () => {
+  it('épingle chaque point selon son type et compte les prestations de la zone', async () => {
+    vi.mocked(apiClient.get).mockImplementation(async (url) => {
+      if (url.endsWith('/overview')) return { markers: [
+        { id: 4, name: 'Tours', lat: 47, lng: 1, kind: 'intervention' },
+        { id: 4, name: 'Tours', lat: 47, lng: 1, kind: 'request' },
+      ], total: 2, late: 0, today: 0, completed: 0 } as any;
+      return { content: [{ id: 'intervention:4' }, { id: 'request:4' }], totalElements: 2, number: 0, last: true } as any;
+    });
+    mount('prestations');
+    expect((await screen.findAllByTestId('marker')).map((marker) => marker.textContent))
+      .toEqual(['intervention:4', 'service_request:4']);
+    fireEvent.click(screen.getByText('Initial zone'));
+    await waitFor(() => expect(screen.getAllByTestId('mission')).toHaveLength(2));
+    expect(vi.mocked(apiClient.get).mock.calls[0][0]).toBe('/mission-map/prestations/overview');
   });
 });

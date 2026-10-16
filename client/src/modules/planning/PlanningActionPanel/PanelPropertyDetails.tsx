@@ -34,7 +34,7 @@ import { usePropertyDetails } from '../../../hooks/usePropertyDetails';
 import { useTranslation } from '../../../hooks/useTranslation';
 import type { PanelView } from '../types';
 import { PropertyImageCarousel } from '../../../components/PropertyImageCarousel';
-import { MapboxPropertyMap } from '../../../components/MapboxPropertyMap';
+import { BaitlyPropertyMap } from '../../../components/BaitlyPropertyMap';
 import { formatTimeFromDate } from '../../../utils/formatUtils';
 import { useDateFormat, type DateFormatApi } from '../../../hooks/useDateFormat';
 import { getCleaningFrequencyLabel } from '../../../utils/statusUtils';
@@ -265,7 +265,7 @@ const PanelPropertyDetails: React.FC<PanelPropertyDetailsProps> = ({
       {/* ─── HÉRO : aperçu carte (propriété géolocalisée) sinon icône ─── */}
       {hasCoords ? (
         <div className="rounded-[14px] overflow-hidden border border-[var(--bui-border)] mb-2">
-          <MapboxPropertyMap
+          <BaitlyPropertyMap
             properties={[{
               lat: property.latitude as number,
               lng: property.longitude as number,

@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, type Dispatch, type SetStateAction } from 'react';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { interventionsApi } from '../../services/api/interventionsApi';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { interventionsApi, getBaitlyRoomInspection, type BaitlyRoomInspection } from '../../services/api/interventionsApi';
 import { interventionsKeys } from './useInterventionsList';
 import { interventionExecutionScope } from './interventionExecutionScope';
 import {
@@ -48,6 +48,11 @@ export function useInterventionPhotos({
   const [selectedPhotos, setSelectedPhotos] = useState<File[]>([]);
   const [uploadingPhotos, setUploadingPhotos] = useState(false);
   const [photoType, setPhotoType] = useState<'before' | 'after'>('before');
+  const [inspectionRoom, setInspectionRoom] = useState<string | null>(null);
+  const cleaning = intervention?.type?.toUpperCase().includes('CLEANING') === true;
+  const roomKey = ['baitly-room-inspection', id];
+  const roomQuery = useQuery({ queryKey: roomKey, queryFn: () => getBaitlyRoomInspection(Number(id)), enabled: !!id && cleaning, retry: false });
+  const allRoomPhotos = (work?: BaitlyRoomInspection) => !!work?.rooms?.length && work.rooms.every(room => (work.stepPhotoCounts?.[`inspection_${room.id}`] ?? 0) > 0);
   const [beforePhotos, setBeforePhotos] = useState<string[]>([]);
   const [afterPhotos, setAfterPhotos] = useState<string[]>([]);
   const [beforePhotoIds, setBeforePhotoIds] = useState<number[]>([]);
@@ -56,6 +61,15 @@ export function useInterventionPhotos({
   const [inspectionComplete, setInspectionComplete] = useState(false);
   const [completedSteps, setCompletedSteps] = useState<Set<string>>(new Set());
   const hydratedMission = useRef<string | undefined>(undefined);
+  useEffect(() => {
+    if (!cleaning) return;
+    const complete = allRoomPhotos(roomQuery.data);
+    setInspectionComplete(complete);
+    setCompletedSteps(previous => {
+      if (previous.has('inspection') === complete) return previous;
+      const next = new Set(previous); complete ? next.add('inspection') : next.delete('inspection'); return next;
+    });
+  }, [cleaning, roomQuery.data, initialLoadData]);
 
   // ------------------------------------------------------------------
   // Hydrate from initial load
@@ -65,8 +79,10 @@ export function useInterventionPhotos({
     hydratedMission.current = id;
     setBeforePhotos(initialLoadData.beforePhotos);
     setAfterPhotos(initialLoadData.afterPhotos);
-    setInspectionComplete(initialLoadData.inspectionComplete);
-    setCompletedSteps(initialLoadData.completedSteps);
+    setInspectionComplete(cleaning ? allRoomPhotos(roomQuery.data) : initialLoadData.inspectionComplete);
+    const initialSteps = new Set(initialLoadData.completedSteps);
+    if(cleaning && !allRoomPhotos(roomQuery.data)) initialSteps.delete('inspection');
+    setCompletedSteps(initialSteps);
   }, [id, initialLoadData]);
 
   // Sync photo IDs from intervention data
@@ -96,6 +112,8 @@ export function useInterventionPhotos({
     mutationFn: ({ interventionId, photos, type }: { interventionId: number; photos: File[]; type: 'before' | 'after' }) =>
       interventionsApi.uploadPhotos(interventionId, photos, type),
     onSuccess: async (updated, variables) => {
+      const roomWork = cleaning ? await getBaitlyRoomInspection(variables.interventionId) : undefined;
+      if (roomWork) queryClient.setQueryData(roomKey, roomWork);
       setIntervention(updated);
       // Update detail cache so navigation away/back serves fresh data
       if (id) queryClient.setQueryData(interventionsKeys.detail(String(id)), updated);
@@ -106,7 +124,7 @@ export function useInterventionPhotos({
           ? parsePhotos(updated.beforePhotosUrls)
           : [];
         setBeforePhotos(newBeforePhotos);
-        if (newBeforePhotos.length > 0) {
+        if (newBeforePhotos.length > 0 && (!cleaning || allRoomPhotos(roomWork))) {
           setInspectionComplete(true);
           setCompletedSteps(prev => {
             const newSteps = new Set(prev).add('inspection');
@@ -135,7 +153,8 @@ export function useInterventionPhotos({
       try {
         const storedSteps: unknown = JSON.parse(updated.completedSteps || '[]');
         const steps = new Set<string>(Array.isArray(storedSteps) ? storedSteps.filter((step): step is string => typeof step === 'string') : []);
-        if (parsePhotos(updated.beforePhotosUrls).length > 0) steps.add('inspection');
+        if (parsePhotos(updated.beforePhotosUrls).length > 0 && (!cleaning || allRoomPhotos(roomWork))) steps.add('inspection');
+        else if (cleaning) steps.delete('inspection');
         if (variables.type === 'after' && parsePhotos(updated.afterPhotosUrls).length > 0) steps.add('after_photos');
         const persisted = await interventionsApi.updateCompletedSteps(variables.interventionId, JSON.stringify([...steps]));
         setIntervention(persisted);
@@ -157,6 +176,7 @@ export function useInterventionPhotos({
     mutationFn: ({ interventionId, photoId }: { interventionId: number; photoId: number }) =>
       interventionsApi.deletePhoto(interventionId, photoId),
     onSuccess: (updated) => {
+      void queryClient.invalidateQueries({ queryKey: roomKey });
       setIntervention(updated);
       if (id) queryClient.setQueryData(interventionsKeys.detail(String(id)), updated);
       queryClient.invalidateQueries({ queryKey: interventionsKeys.lists() });
@@ -218,15 +238,18 @@ export function useInterventionPhotos({
   // ------------------------------------------------------------------
 
   const handlePhotoUpload = async () => {
-    if (photoType === 'after' && beforePhotos.length === 0) {
+    if (cleaning && photoType === 'after' && !inspectionComplete) {
       setError(t('interventions.detailErrors.mustUploadBeforePhotosFirst'));
       return;
     }
     if (!id || !intervention || selectedPhotos.length === 0) return;
+    if (cleaning && photoType === 'before' && !inspectionRoom) { setError(t('interventions.progressSteps.inspectionTitle')); return; }
+    const files = cleaning && photoType === 'before' ? selectedPhotos.map((file, index) => new File([file],
+      `baitly-${id}-step-inspection_${inspectionRoom}-${Date.now()}-${index}.${file.name.split('.').pop() || 'jpg'}`, { type: file.type })) : photoType === 'before' ? selectedPhotos.slice(0, 1) : selectedPhotos;
 
     setUploadingPhotos(true);
     uploadPhotosMutation.mutate(
-      { interventionId: Number(id), photos: selectedPhotos, type: photoType },
+      { interventionId: Number(id), photos: files, type: photoType },
       { onSettled: () => setUploadingPhotos(false) },
     );
   };
@@ -245,6 +268,9 @@ export function useInterventionPhotos({
     uploadingPhotos,
     photoType,
     setPhotoType,
+    inspectionRooms: roomQuery.data?.rooms ?? [],
+    inspectionRoomCounts: roomQuery.data?.stepPhotoCounts ?? {},
+    setInspectionRoom,
     beforePhotos,
     setBeforePhotos,
     afterPhotos,

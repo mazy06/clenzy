@@ -27,8 +27,8 @@ public class InterventionPhotoUploadService {
     }
 
     public InterventionResponse addPhotos(Long id, List<MultipartFile> photos, String photoType, Jwt jwt) {
-        interventionService.checkPhotoUpload(id, photos.size(), photoType, jwt);
-        final List<InterventionPhotoService.PreparedPhoto> prepared = photoService.preparePhotos(photos);
+        Long missionOrg=interventionService.checkPhotoUpload(id, photos.size(), photoType, jwt);
+        final List<InterventionPhotoService.PreparedPhoto> prepared = photoService.preparePhotos(photos,missionOrg);
         final List<String> writtenKeys = prepared.stream()
                 .map(InterventionPhotoService.PreparedPhoto::storageKey)
                 .filter(Objects::nonNull)

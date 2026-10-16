@@ -81,6 +81,12 @@ export function CurrencyProvider({ children }: CurrencyProviderProps) {
   // La langue et la devise sont deux preferences independantes.
   // Fetch rate matrix when needed (currency !== EUR or stale cache).
   useEffect(() => {
+    // La matrice est servie par une API authentifiée. Reprendre au login
+    // plutôt que provoquer un appel refusé sur les pages publiques.
+    if (!isAuthed) {
+      setRatesLoading(false);
+      return;
+    }
     const now = Date.now();
     const isStale = now - fetchedAt.current > MATRIX_STALE_MS;
 
@@ -100,7 +106,7 @@ export function CurrencyProvider({ children }: CurrencyProviderProps) {
         }
       })
       .catch((err) => {
-        console.warn('[CurrencyProvider] Failed to fetch rate matrix:', err);
+        if (!cancelled) console.warn('[CurrencyProvider] Failed to fetch rate matrix:', err);
       })
       .finally(() => {
         if (!cancelled) setRatesLoading(false);
@@ -109,7 +115,7 @@ export function CurrencyProvider({ children }: CurrencyProviderProps) {
     return () => {
       cancelled = true;
     };
-  }, [currency]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [currency, isAuthed]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const meta = getCurrencyMeta(currency);
   const rates = rateMatrix?.rates ?? null;

@@ -1,4 +1,5 @@
 import ServicePriceComparison, { ServicePriceDifference } from '../../service-requests/ServicePriceComparison';
+import { DirectionsMenu } from '../../../components/map/DirectionsMenu';
 import DashboardServiceProposals from '../../service-requests/DashboardServiceProposals';
 import * as React from 'react';
 import { useNavigate } from 'react-router-dom';
@@ -272,19 +273,12 @@ function MissionCard({ mission, onOpen }: { mission: Intervention; onOpen: (id: 
           hauteur de la plus haute, et sans cela leurs boutons se decalent. */}
       <div className="mt-auto flex items-center gap-1.5 border-t border-solid border-border pt-2.5">
         {address && (
-          <Button
-            variant="outline"
-            size="sm"
-            className="flex-1"
-            onClick={() => window.open(
-              `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(address)}`,
-              '_blank',
-              'noopener',
-            )}
-          >
-            <MapPinIcon className="size-4" />
-            {t('field.nextMission.directions', 'Itinéraire')}
-          </Button>
+          <DirectionsMenu target={{ address, label: address }}>
+            <Button variant="outline" size="sm" className="flex-1">
+              <MapPinIcon className="size-4" />
+              {t('field.nextMission.directions', 'Itinéraire')}
+            </Button>
+          </DirectionsMenu>
         )}
         <Button variant="secondary" size="sm" className="flex-1" onClick={() => onOpen(mission.id)}>
           {running

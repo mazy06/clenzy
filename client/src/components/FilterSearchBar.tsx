@@ -71,6 +71,7 @@ export interface FilterSearchBarProps {
     assignedTo?: FilterConfig;
     host?: FilterConfig;
     source?: FilterConfig;
+    period?: FilterConfig;
   };
   counter: {
     label: string;

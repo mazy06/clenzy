@@ -2,7 +2,7 @@ package com.clenzy.service.messaging;
 
 import com.clenzy.model.*;
 import com.clenzy.repository.*;
-import com.clenzy.service.MapboxStaticImageService;
+import com.clenzy.service.maps.BaitlyStaticMapService;
 import com.clenzy.service.NotificationService;
 import com.clenzy.service.WelcomeGuideService;
 import com.clenzy.service.access.AccessCodeResolverService;
@@ -35,7 +35,7 @@ class GuestMessagingServiceTest {
     @Mock private ReservationRepository reservationRepository;
     @Mock private NotificationService notificationService;
     @Mock private AccessCodeResolverService accessCodeResolverService;
-    @Mock private MapboxStaticImageService mapboxStaticImageService;
+    @Mock private BaitlyStaticMapService staticMapService;
     @Mock private WelcomeGuideService welcomeGuideService;
 
     private GuestMessagingService service;
@@ -46,7 +46,7 @@ class GuestMessagingServiceTest {
         service = new GuestMessagingService(channels, interpolationService, messageLogRepository,
                 attemptLog,
             instructionsRepository, templateRepository, reservationRepository, notificationService,
-            accessCodeResolverService, mapboxStaticImageService, welcomeGuideService);
+            accessCodeResolverService, staticMapService, welcomeGuideService);
 
         // Default : resolution manuelle (pas de code dynamique)
         lenient().when(accessCodeResolverService.resolveForReservation(any(), any(), any()))
@@ -666,7 +666,7 @@ class GuestMessagingServiceTest {
         }
 
         @Test
-        void sendForReservation_emailWithMapboxFailure_continuesWithEmptyMap() {
+        void sendForReservation_emailWithMapRenderingFailure_continuesWithEmptyMap() {
             Property property = new Property();
             property.setId(10L);
             property.setName("P");
@@ -688,8 +688,8 @@ class GuestMessagingServiceTest {
 
             when(instructionsRepository.findByPropertyIdAndOrganizationId(10L, 1L))
                 .thenReturn(Optional.empty());
-            when(mapboxStaticImageService.generateMapImageTag(any(), any(), any(), any(), any(), any()))
-                .thenThrow(new RuntimeException("mapbox down"));
+            when(staticMapService.generateMapImageTag(any(), any(), any()))
+                .thenThrow(new RuntimeException("renderer down"));
             when(interpolationService.interpolateAndTranslate(any(), any(), any(), any(), any(), any(), any()))
                 .thenReturn(new TemplateInterpolationService.InterpolatedMessage("S", "H", "P"));
             when(emailChannel.getChannelType()).thenReturn(MessageChannelType.EMAIL);

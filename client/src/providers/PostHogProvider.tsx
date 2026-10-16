@@ -1,6 +1,6 @@
 import { useEffect, useRef } from 'react';
 import { useLocation } from 'react-router-dom';
-import posthog from 'posthog-js';
+import { baitlyAnalytics as posthog, getBaitlyAnalytics, withBaitlyAnalytics } from '../services/baitlyAnalytics';
 import { useAuth } from '../hooks/useAuth';
 
 import { runtimeEnv } from '../config/runtimeConfig';
@@ -151,28 +151,30 @@ export const featureFlags = {
   /** Check if a feature flag is enabled for the current user. */
   isEnabled: (flagKey: string): boolean => {
     if (!isActive()) return false;
-    return posthog.isFeatureEnabled(flagKey) ?? false;
+    return getBaitlyAnalytics()?.isFeatureEnabled(flagKey) ?? false;
   },
 
   /** Get the variant value of a multi-variant feature flag. */
   getVariant: (flagKey: string): string | boolean | undefined => {
     if (!isActive()) return undefined;
-    return posthog.getFeatureFlag(flagKey);
+    return getBaitlyAnalytics()?.getFeatureFlag(flagKey);
   },
 
   /** Subscribe to a feature flag change (e.g., after remote evaluation). */
   onFlag: (flagKey: string, callback: (value: string | boolean) => void): void => {
     if (!isActive()) return;
-    posthog.onFeatureFlags(() => {
-      const value = posthog.getFeatureFlag(flagKey);
-      if (value !== undefined) callback(value);
+    withBaitlyAnalytics(sdk => {
+      sdk.onFeatureFlags(() => {
+        const value = sdk.getFeatureFlag(flagKey);
+        if (value !== undefined) callback(value);
+      });
     });
   },
 
   /** Get all active feature flags for the current user (for debugging). */
   getAll: (): Record<string, string | boolean> => {
     if (!isActive()) return {};
-    return posthog.featureFlags?.getFlagVariants?.() ?? {};
+    return getBaitlyAnalytics()?.featureFlags?.getFlagVariants?.() ?? {};
   },
 };
 

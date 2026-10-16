@@ -150,7 +150,7 @@ export function PropertyInstructionsEditScreen() {
           navigation.goBack();
         },
         onError: () => {
-          Alert.alert('Erreur', 'Impossible de mettre a jour les instructions.');
+          Alert.alert('Erreur', 'Impossible de mettre à jour les instructions.');
         },
       },
     );
@@ -204,7 +204,7 @@ export function PropertyInstructionsEditScreen() {
               theme={theme}
             />
             <InputWithCopy
-              label="Nom du reseau"
+              label="Nom du réseau"
               value={form.wifiName ?? ''}
               onChangeText={(v) => updateField('wifiName', v)}
               placeholder="Nom du WiFi"
@@ -224,11 +224,11 @@ export function PropertyInstructionsEditScreen() {
             <SectionHeader
               icon="key-outline"
               iconColor={theme.colors.warning.main}
-              label="Acces"
+              label="Accès"
               theme={theme}
             />
             <InputWithCopy
-              label="Code d'acces"
+              label="Code d'accès"
               value={form.accessCode ?? ''}
               onChangeText={(v) => updateField('accessCode', v)}
               placeholder="Code de la porte"
@@ -255,14 +255,14 @@ export function PropertyInstructionsEditScreen() {
             />
             <View style={{ flexDirection: 'row', gap: theme.SPACING.md }}>
               <Input
-                label="Heure d'arrivee"
+                label="Heure d'arrivée"
                 value={form.checkInTime ?? ''}
                 onChangeText={(v) => updateField('checkInTime', v)}
                 placeholder="15:00"
                 containerStyle={{ flex: 1, marginBottom: theme.SPACING.md }}
               />
               <Input
-                label="Heure de depart"
+                label="Heure de départ"
                 value={form.checkOutTime ?? ''}
                 onChangeText={(v) => updateField('checkOutTime', v)}
                 placeholder="11:00"
@@ -302,7 +302,7 @@ export function PropertyInstructionsEditScreen() {
               label="Contact d'urgence"
               value={form.emergencyContact ?? ''}
               onChangeText={(v) => updateField('emergencyContact', v)}
-              placeholder="Numero ou nom du contact"
+              placeholder="Numéro ou nom du contact"
               containerStyle={{ marginBottom: theme.SPACING.md }}
             />
             <Input

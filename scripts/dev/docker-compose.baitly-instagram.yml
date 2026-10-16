@@ -1,0 +1,9 @@
+# Charger le fichier privé .env.baitly-instagram.local avec --env-file.
+# Ce fichier ne démarre ni ne redémarre aucun service.
+services:
+  pms-server:
+    environment:
+      BAITLY_INSTAGRAM_APP_ID: ${BAITLY_INSTAGRAM_APP_ID:?Identifiant Instagram requis}
+      BAITLY_INSTAGRAM_APP_SECRET: ${BAITLY_INSTAGRAM_APP_SECRET:?Secret Instagram requis}
+      BAITLY_INSTAGRAM_REDIRECT_URI: ${BAITLY_INSTAGRAM_REDIRECT_URI:?Retour HTTPS Instagram requis}
+      BAITLY_INSTAGRAM_API_VERSION: ${BAITLY_INSTAGRAM_API_VERSION:-v25.0}

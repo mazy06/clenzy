@@ -18,6 +18,13 @@ export interface KeyExchangePointDto {
   status: string;
   activeCodesCount: number;
   createdAt: string;
+  /** Photos de l'emplacement exact (boîte à clés, comptoir) — URL relatives, servies authentifiées. */
+  photos?: KeyExchangePointPhotoDto[];
+}
+
+export interface KeyExchangePointPhotoDto {
+  id: number;
+  url: string;
 }
 
 export interface CreateKeyExchangePointDto {
@@ -111,6 +118,17 @@ export const keyExchangeApi = {
   /** Supprimer un point d'echange */
   deletePoint(id: number) {
     return apiClient.delete(`/key-exchange/points/${id}`);
+  },
+
+  /** Photos de l'emplacement — jusqu'à 6, 5 Mo chacune (validé côté serveur). */
+  uploadPointPhotos(pointId: number, files: File[]) {
+    const form = new FormData();
+    files.forEach((file) => form.append('photos', file));
+    return apiClient.upload<KeyExchangePointPhotoDto[]>(`/key-exchange/points/${pointId}/photos`, form);
+  },
+
+  deletePointPhoto(pointId: number, photoId: number) {
+    return apiClient.delete(`/key-exchange/points/${pointId}/photos/${photoId}`);
   },
 
   // ─── Codes ────────────────────────────────────────────────

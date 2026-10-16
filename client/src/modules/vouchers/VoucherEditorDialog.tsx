@@ -5,6 +5,8 @@ import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, Field, 
 import { Combobox, ComboboxChip, ComboboxChips, ComboboxChipsInput, ComboboxContent, ComboboxEmpty, ComboboxItem, ComboboxList, ComboboxValue, useComboboxAnchor } from '../../components/ui/combobox';
 import { TriangleAlert } from '../../icons/glyphs';
 import { useTranslation } from '../../hooks/useTranslation';
+import { voucherDiscount } from './VoucherOfferRow';
+import './baitlyVouchers.css';
 import { usePropertiesList, type PropertyListItem } from '../../hooks/usePropertiesList';
 import {
   useCreateBookingVoucher,
@@ -86,7 +88,7 @@ function initFromVoucher(v: BookingVoucher | null): FormState {
  * multi-select de logements obligatoire.</p>
  */
 export default function VoucherEditorDialog({ voucher, open, onClose, onSaved }: Props) {
-  const { t } = useTranslation();
+  const { t, currentLanguage } = useTranslation();
   const isEdit = voucher !== null;
   // Appele inconditionnellement : le multi-select n'est rendu que si le toggle
   // « toutes les proprietes » est off, mais un hook ne peut pas etre conditionnel.
@@ -203,6 +205,12 @@ export default function VoucherEditorDialog({ voucher, open, onClose, onSaved }:
         {/* Le defilement porte sur le corps du formulaire, pas sur DialogContent :
             titre et pied restent visibles, comme le `dividers` du Dialog MUI. */}
         <div className="max-h-[65vh] overflow-y-auto border-y border-solid border-border py-3">
+        <div className="baitly-voucher-editor-preview">
+          <img src="/images/dashboard-kpis/adr.webp" width={56} height={56} alt="" />
+          <div><span>{t('vouchers.workspace.preview')}</span><strong>{form.name || t('vouchers.editor.createTitle')}</strong><p>{form.type === 'MANUAL_CODE' ? form.code : t('vouchers.autoCampaign')}</p></div>
+          <b>{Number(form.discountValue) > 0 && (form.discountType !== 'FIXED_AMOUNT' || form.currency)
+            ? voucherDiscount(form, currentLanguage, count => t('vouchers.editor.nights', { count })) : '—'}</b>
+        </div>
         {errorMsg && <Alert variant="destructive" className="mb-3">
           <TriangleAlert />
           <AlertDescription>{errorMsg}</AlertDescription>

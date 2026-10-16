@@ -7,15 +7,7 @@ import { getEventDisplayColor } from './utils/colorUtils';
 import { orderNameForReading } from '../../utils/textDirection';
 import { isRtlLanguage } from '../../utils/localeDate';
 
-// Le @keyframes vivait dans le `sx` MUI, qui l'injectait lui-meme. Sans MUI il
-// faut une vraie feuille : posee une seule fois au chargement du module.
-const GHOST_KEYFRAMES_ID = 'planning-bar-ghost-keyframes';
-if (typeof document !== 'undefined' && !document.getElementById(GHOST_KEYFRAMES_ID)) {
-  const styleEl = document.createElement('style');
-  styleEl.id = GHOST_KEYFRAMES_ID;
-  styleEl.textContent = '@keyframes ghost-pulse{0%,100%{opacity:.8}50%{opacity:.5}}';
-  document.head.appendChild(styleEl);
-}
+import './planningUrgency.css';
 
 interface PlanningBarGhostProps {
   layout: BarLayout;
@@ -34,7 +26,7 @@ const PlanningBarGhost: React.FC<PlanningBarGhostProps> = ({ layout, isConflict 
     <div
       className={cn(
         'flex items-center px-[4.5px] overflow-hidden pointer-events-none opacity-80 border-solid',
-        isConflict && 'animate-[ghost-pulse_1s_ease-in-out_infinite] motion-reduce:animate-none',
+        isConflict && 'shadow-[0_0_0_1px_var(--bui-destructive)]',
       )}
       // Geometrie et couleurs derivees de l'evenement : valeurs d'execution.
       style={{

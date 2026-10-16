@@ -56,7 +56,10 @@ public class InterventionPhotoService {
      * deja ecrits sont supprimes avant de relancer l'erreur.
      */
     public List<PreparedPhoto> preparePhotos(List<MultipartFile> photos) {
-        final long orgId = tenantContext.getRequiredOrganizationId();
+        return preparePhotos(photos,tenantContext.getRequiredOrganizationId());
+    }
+    /** Organization resolved from the authorized mission before any storage write. */
+    public List<PreparedPhoto> preparePhotos(List<MultipartFile> photos,long orgId) {
         final List<PreparedPhoto> prepared = new ArrayList<>();
         try {
             for (MultipartFile photo : photos) {
@@ -86,6 +89,7 @@ public class InterventionPhotoService {
      * @param photoType "before", "after" ou "issue" (anomalie terrain, Moteur Menage 3C)
      */
     public void attachPhotos(Intervention intervention, List<PreparedPhoto> photos, String photoType) {
+        if(intervention.getBaitlyPausedAt()!=null && !"issue".equals(photoType)) throw new org.springframework.web.server.ResponseStatusException(org.springframework.http.HttpStatus.CONFLICT,"Intervention en pause.");
         final InterventionPhoto.PhotoPhase phase = switch (photoType) {
             case "before" -> InterventionPhoto.PhotoPhase.BEFORE;
             case "issue" -> InterventionPhoto.PhotoPhase.ISSUE;
@@ -96,7 +100,7 @@ public class InterventionPhotoService {
             photo.setIntervention(intervention);
             photo.setStorageKey(prepared.storageKey());
             photo.setData(prepared.inlineData());
-            photo.setOrganizationId(tenantContext.getRequiredOrganizationId());
+            photo.setOrganizationId(intervention.getOrganizationId());
             photo.setFileSize(prepared.size());
             photo.setContentType(prepared.contentType());
             photo.setOriginalFilename(prepared.originalFilename());
@@ -131,7 +135,7 @@ public class InterventionPhotoService {
      */
     public String convertPhotosToBase64Urls(Intervention intervention) {
         List<InterventionPhoto> photos = interventionPhotoRepository.findAllByInterventionId(
-                intervention.getId(), tenantContext.getRequiredOrganizationId());
+                intervention.getId(), intervention.getOrganizationId());
 
         if (photos.isEmpty()) {
             return intervention.getPhotos();
@@ -147,7 +151,7 @@ public class InterventionPhotoService {
     public String convertPhotosToBase64UrlsByType(Intervention intervention, String photoType) {
         InterventionPhoto.PhotoPhase phase = "before".equals(photoType) ? InterventionPhoto.PhotoPhase.BEFORE : InterventionPhoto.PhotoPhase.AFTER;
         List<InterventionPhoto> photos = interventionPhotoRepository.findByInterventionIdAndPhaseOrderByCreatedAtAsc(
-                intervention.getId(), phase, tenantContext.getRequiredOrganizationId());
+                intervention.getId(), phase, intervention.getOrganizationId());
 
         if (photos.isEmpty()) {
             return "before".equals(photoType)
@@ -165,7 +169,7 @@ public class InterventionPhotoService {
     public String getPhotoIdsByType(Intervention intervention, String photoType) {
         InterventionPhoto.PhotoPhase phase = "before".equals(photoType) ? InterventionPhoto.PhotoPhase.BEFORE : InterventionPhoto.PhotoPhase.AFTER;
         List<InterventionPhoto> photos = interventionPhotoRepository.findByInterventionIdAndPhaseOrderByCreatedAtAsc(
-                intervention.getId(), phase, tenantContext.getRequiredOrganizationId());
+                intervention.getId(), phase, intervention.getOrganizationId());
 
         if (photos.isEmpty()) {
             return null;
@@ -180,8 +184,11 @@ public class InterventionPhotoService {
      * Delete a single photo by ID, validating it belongs to the given intervention and organization.
      */
     public void deletePhoto(Long photoId, Long interventionId) {
+        deletePhoto(photoId,interventionId,tenantContext.getRequiredOrganizationId());
+    }
+    public void deletePhoto(Long photoId,Long interventionId,Long missionOrg) {
         InterventionPhoto photo = interventionPhotoRepository.findByIdAndInterventionId(
-                photoId, interventionId, tenantContext.getRequiredOrganizationId())
+                photoId, interventionId, missionOrg)
                 .orElseThrow(() -> new RuntimeException("Photo introuvable ou accès refusé"));
 
         interventionPhotoRepository.delete(photo);
@@ -196,7 +203,7 @@ public class InterventionPhotoService {
 
     public long getPhotoCount(Intervention intervention) {
         return interventionPhotoRepository.countByInterventionId(
-                intervention.getId(), tenantContext.getRequiredOrganizationId());
+                intervention.getId(), intervention.getOrganizationId());
     }
 
     /**
@@ -207,7 +214,7 @@ public class InterventionPhotoService {
 
     public PhotoBundle loadPhotoBundle(Intervention intervention) {
         List<InterventionPhoto> allPhotos = interventionPhotoRepository.findAllByInterventionId(
-                intervention.getId(), tenantContext.getRequiredOrganizationId());
+                intervention.getId(), intervention.getOrganizationId());
 
         if (allPhotos.isEmpty()) {
             return new PhotoBundle(
@@ -220,6 +227,8 @@ public class InterventionPhotoService {
         List<InterventionPhoto> beforePhotos = new ArrayList<>();
         List<InterventionPhoto> afterPhotos = new ArrayList<>();
         for (InterventionPhoto photo : allPhotos) {
+            // The client's signature is stored as mission evidence, not shown as a work photo.
+            if (photo.getOriginalFilename() != null && photo.getOriginalFilename().contains("-step-signature-")) continue;
             if (photo.getPhase() == InterventionPhoto.PhotoPhase.BEFORE) beforePhotos.add(photo);
             else if (photo.getPhase() == InterventionPhoto.PhotoPhase.AFTER) afterPhotos.add(photo);
         }

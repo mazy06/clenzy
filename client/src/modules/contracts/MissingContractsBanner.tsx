@@ -1,6 +1,6 @@
 import React, { useCallback } from 'react';
 import { Alert, AlertDescription, Button } from '../../components/ui';
-import { Close as CloseIcon } from '../../icons';
+import { Close as CloseIcon, Description, ArrowForward } from '../../icons';
 import { cn } from '../../utils/cn';
 import { useTranslation } from '../../hooks/useTranslation';
 import { useUserPreference } from '../../hooks/useUserPreference';
@@ -15,6 +15,8 @@ interface MissingContractsBannerProps {
   onEstablish: () => void;
   /** Espacement propre à l'écran hôte. */
   className?: string;
+  /** Rappel court pour les actions du PageHeader. */
+  compact?: boolean;
 }
 
 /**
@@ -47,6 +49,7 @@ const MissingContractsBanner: React.FC<MissingContractsBannerProps> = ({
   count,
   onEstablish,
   className,
+  compact = false,
 }) => {
   const { t } = useTranslation();
   const [dismissedCount, setDismissedCount] = useUserPreference<number>(DISMISS_KEY, 0);
@@ -54,6 +57,18 @@ const MissingContractsBanner: React.FC<MissingContractsBannerProps> = ({
   const handleDismiss = useCallback(() => setDismissedCount(count), [count, setDismissedCount]);
 
   if (count <= dismissedCount) return null;
+
+  if (compact) return (
+    <Button type="button" variant="ghost" data-keep-label onClick={onEstablish}
+      data-contract-reminder
+      aria-label={`${t('contracts.gate.shortCount', { count, defaultValue: '{{count}} sans contrat' })}. ${t('contracts.gate.cta', 'Établir les contrats')}`}
+      title={t('contracts.gate.cta', 'Établir les contrats')}
+      className={cn('gap-2 bg-warning-soft text-warning-ink hover:bg-warning-soft hover:text-warning-ink tabular-nums', className)}>
+      <Description size={16} aria-hidden />
+      <span>{t('contracts.gate.shortCount', { count, defaultValue: '{{count}} sans contrat' })}</span>
+      <ArrowForward size={14} aria-hidden />
+    </Button>
+  );
 
   return (
     <Alert variant="warning" className={cn('flex shrink-0 items-center gap-2', className)}>

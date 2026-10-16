@@ -21,6 +21,7 @@ import StatusChip, { type StatusTone } from '../../../components/StatusChip';
 import { keyExchangeApi, type KeyExchangeCodeDto } from '../../../services/api/keyExchangeApi';
 import type { ConnectedDevice } from '../types';
 import PageTabs from '../../../components/PageTabs';
+import KeyPointPhotos from './KeyPointPhotos';
 import { activeIntlLocale } from '../../../utils/activeLocale';
 
 // Statuts de code → tons sémantiques de la primitive : actif = ok, utilisé =
@@ -110,6 +111,8 @@ export default function KeyboxDetail({ device }: { device: ConnectedDevice }) {
         <InfoRow label={t('connectedObjects.keybox.openingHours')} value={point?.storeOpeningHours} />
         <InfoRow label={t('connectedObjects.keybox.property')} value={device.propertyName} />
       </Card>
+
+      {point ? <KeyPointPhotos pointId={point.id} photos={point.photos ?? []} /> : null}
 
       {/* Codes | Mouvements */}
       <div>

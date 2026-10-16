@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
   Button,
@@ -24,8 +24,7 @@ import {
   ChannelLegendChips,
   StatusLegendChips,
   InterventionLegendChip,
-  STATUS_OPTIONS,
-  CHANNEL_LEGEND,
+  baitlyPlanningChipClass,
 } from './LegendChips';
 import { PlanningTooltipContent } from './PlanningTooltip';
 
@@ -33,6 +32,7 @@ interface PlanningFilterButtonProps {
   filters: PlanningFilters;
   density: DensityMode;
   hasActiveFilters: boolean;
+  activeFilterCount?: number;
   onDensityChange: (density: DensityMode) => void;
   onShowInterventionsChange: (show: boolean) => void;
   onShowPricesChange: (show: boolean) => void;
@@ -72,24 +72,7 @@ const URGENCY_ANIMATION_MODES: readonly UrgencyAnimationMode[] = [
   'shake', 'wobble', 'pop', 'tada', 'none',
 ];
 
-/** Overline des sections du popover de filtres. */
-const OVERLINE_SX = {
-  fontSize: '0.5625rem',
-  fontWeight: 700,
-  color: 'var(--faint)',
-  letterSpacing: '0.08em',
-  mb: 0.75,
-  display: 'block',
-};
-
-/** Report en classes de `OVERLINE_SX`. */
-const OVERLINE_CLASS = 'text-[0.5625rem] font-bold text-[var(--faint)] tracking-[0.08em] mb-[4.5px] block';
-
-/** Equivalent en classes de `sigButtonSx` (= sigChipSx + BUTTON_RESET de
- *  LegendChips), hors couleurs. `chipClsFor` n'est pas exporte la-bas, d'ou la
- *  transcription ici. gap: 0.75 = 4.5px (theme.spacing vaut 6, pas 8). */
-const MODAL_CHIP_CLS =
-  'inline-flex items-center gap-[4.5px] min-h-[27px] px-2.5 py-[5px] rounded-[8px] border border-solid text-[0.71875rem] font-semibold leading-none font-[inherit] appearance-none box-border cursor-pointer select-none whitespace-nowrap transition-[border-color,background-color,color] duration-[160ms] ease-[cubic-bezier(.16,1,.3,1)] motion-reduce:transition-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent)]';
+const OVERLINE_CLASS = 'text-xs font-medium text-[var(--bui-muted-foreground)] tracking-[0.05em] mb-1 block';
 
 /** Chip pilule togglable de la modale (langage Signature .pl-chip, même style
  *  que les chips Statuts) : icône optionnelle + libellé, actif = accent-soft. */
@@ -103,12 +86,7 @@ const ModalToggleChip: React.FC<{
     type="button"
     aria-pressed={active}
     onClick={onClick}
-    className={cn(
-      MODAL_CHIP_CLS,
-      active
-        ? 'text-[var(--accent)] bg-[var(--accent-soft)] border-[var(--accent)]'
-        : 'text-[var(--body)] bg-[var(--bui-card)] border-[var(--line-2)] hover:border-[var(--faint)]',
-    )}
+    className={baitlyPlanningChipClass('toggle', active)}
   >
     {icon && (
       <span className="inline-flex text-inherit">
@@ -129,6 +107,7 @@ const PlanningFilterButton: React.FC<PlanningFilterButtonProps> = ({
   filters,
   density,
   hasActiveFilters,
+  activeFilterCount = 0,
   onDensityChange,
   onShowInterventionsChange,
   onShowPricesChange,
@@ -154,24 +133,6 @@ const PlanningFilterButton: React.FC<PlanningFilterButtonProps> = ({
   const filterOpen = open ?? internalOpen;
   const setFilterOpen = (next: boolean) =>
     onOpenChange ? onOpenChange(next) : setInternalOpen(next);
-
-  // Badge de l'entonnoir : nombre de filtres actifs (toutes catégories).
-  // Un canal/statut désélectionné = un filtre actif, où qu'il soit affiché.
-  //
-  // Les canaux sont comptés parmi ceux qui ont un chip VISIBLE : un canal
-  // désélectionné puis disparu des données (changement de plage) laisserait
-  // sinon le badge annoncer un filtre que l'utilisateur ne voit nulle part.
-  const activeFilterCount = useMemo(() => {
-    const shownChannels = CHANNEL_LEGEND.filter(
-      (ch) => !presentChannels || presentChannels.has(ch.key),
-    );
-    let count =
-      shownChannels.filter((ch) => !activeChannels.has(ch.key)).length
-      + (STATUS_OPTIONS.length - activeStatuses.size);
-    if (!filters.showInterventions) count++; // masqué = filtre actif
-    if (filters.showPrices) count++;          // tarifs affichés = filtre actif
-    return count;
-  }, [activeChannels, presentChannels, activeStatuses.size, filters.showInterventions, filters.showPrices]);
 
   const isCompactDensity = density === 'compact';
 
@@ -286,12 +247,12 @@ const PlanningFilterButton: React.FC<PlanningFilterButtonProps> = ({
         {/* Clear all filters */}
         {(hasActiveFilters || activeFilterCount > 0) && (
           <div className="mt-2 pt-2 border-t border-[var(--bui-border)]">
-            <span className="cn-text-caption text-[var(--err)] cursor-pointer font-semibold text-[0.75rem] hover:decoration-[underline]" onClick={() => {
+            <button type="button" className="cn-text-caption text-[var(--bui-destructive)] cursor-pointer font-semibold text-[0.75rem] hover:decoration-[underline]" onClick={() => {
                 onClearFilters();
                 setFilterOpen(false);
               }}>
               {t('planning.filters.clearAll', 'Effacer tous les filtres')}
-            </span>
+            </button>
           </div>
         )}
         </div>

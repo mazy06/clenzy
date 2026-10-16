@@ -1896,7 +1896,8 @@
       "leadTimeHours": "Délai mini avant arrivée (h)",
       "leadTimeHoursHelp": "Commandable seulement si l’arrivée est ≥ X h. Vide = aucun délai.",
       "minNights": "Séjour min.",
-      "minNightsHelp": "Proposé si le séjour atteint ce nb de nuits. Vide = toujours."
+      "minNightsHelp": "Proposé si le séjour atteint ce nb de nuits. Vide = toujours.",
+      "serviceType": "Type de prestation"
     },
     "form": {
       "createTitle": "Nouveau service",
@@ -2836,7 +2837,14 @@
       "store": "Commerce",
       "address": "Adresse",
       "openingHours": "Horaires",
-      "property": "Logement"
+      "property": "Logement",
+      "locationPhotos": "Photos de l'emplacement",
+      "locationPhotosHint": "Montrez où trouver la boîte ou le comptoir : la rue, l'accès, la boîte elle-même. Jusqu'à 6 photos.",
+      "addPhotos": "Ajouter des photos",
+      "removePhoto": "Supprimer la photo",
+      "photosUploaded": "Photos ajoutées",
+      "photoRemoved": "Photo supprimée",
+      "photosFailed": "Échec de l'envoi des photos"
     },
     "accessCode": {
       "stayCode": "Code de séjour — poussé sur cette serrure",
@@ -3044,6 +3052,7 @@
     }
   },
   "navigation": {
+    "map": "Carte",
     "consumables": "Consommables",
     "bookingVouchers": "Codes promo",
     "dashboard": "Tableau de bord",
@@ -3611,8 +3620,8 @@
         "configureDevice": "Configurer mon capteur"
       },
       "clenzy": {
-        "detailTitle": "Baitly Hardware - Solution propriétaire",
-        "detailDescription": "Notre solution basée sur Tuya OEM offre un monitoring sonore sans abonnement mensuel. Le capteur BAITLY-TUYA-NM-01 s'intègre nativement dans la plateforme Baitly avec des données en temps réel.",
+        "detailTitle": "Appareils du marché compatibles",
+        "detailDescription": "Baitly centralise les mesures d’appareils du marché via leurs connecteurs compatibles. Les caractéristiques, la compatibilité et les éventuels abonnements dépendent du modèle et du fabricant.",
         "articleRef": "Réf. article",
         "orderExternal": "Commander sur la boutique",
         "configureDevice": "Configurer mon capteur"
@@ -4302,6 +4311,7 @@
     }
   },
   "properties": {
+    "pilotageSubtitle": "Logements, prestations, séjours et anomalies, sur la carte",
     "title": "Propriétés",
     "subtitle": "Gestion du parc immobilier",
     "create": "Nouvelle propriété",
@@ -7453,7 +7463,9 @@
       "cta": "Établir les contrats",
       "banner": "logement(s) sans contrat de gestion actif. La répartition par défaut de l'organisation s'applique en attendant.",
       "badge": "Contrat manquant",
-      "dismiss": "Masquer ce rappel"
+      "dismiss": "Masquer ce rappel",
+      "shortCount": "{{count}} sans contrat",
+      "shortCta": "Établir"
     },
     "required": {
       "title": "Contrat de gestion requis",
@@ -8286,10 +8298,47 @@
     "effectiveMonthly": "Montant effectif",
     "loadError": "Erreur de chargement du résumé de facturation"
   },
+  "prestations": {
+    "mine": "Mes prestations",
+    "actions": "Actions",
+    "cancelRemaining": "Temps restant : {{hours}} h",
+    "search": "Rechercher une prestation",
+    "counter": "prestation",
+    "mapVisible": "{{count}} prestations dans cette zone",
+    "mapVisible_one": "{{count}} prestation dans cette zone",
+    "mapVisible_other": "{{count}} prestations dans cette zone",
+    "kind": {
+      "intervention": "Intervention",
+      "request": "Demande"
+    },
+    "filters": {
+      "kind": "Type",
+      "allKinds": "Toutes",
+      "interventions": "Interventions",
+      "requests": "Demandes",
+      "allStatuses": "Tous les statuts",
+      "period": "Période",
+      "anyDate": "Toutes les dates",
+      "today": "Aujourd'hui",
+      "next7": "7 prochains jours",
+      "next30": "30 prochains jours",
+      "past30": "30 derniers jours",
+      "property": "Logement",
+      "allProperties": "Tous les logements",
+      "assignee": "Intervenant",
+      "anyAssignee": "Tous les intervenants"
+    },
+    "empty": {
+      "title": "Aucune prestation",
+      "description": "Les interventions planifiées et les demandes à traiter apparaîtront ici.",
+      "requests": "Aucune demande en attente : les demandes déjà planifiées figurent parmi les interventions."
+    }
+  },
   "workOrders": {
     "title": "Interventions",
     "subtitle": "Gestion des demandes de service et des interventions",
     "tabs": {
+      "prestations": "Prestations",
       "serviceRequests": "Demandes de service",
       "interventions": "Interventions",
       "issues": "Anomalies",
@@ -8748,13 +8797,13 @@
         "feature4": "Support 24/7"
       },
       "clenzy": {
-        "title": "Baitly Hardware",
-        "badge": "Propriétaire",
-        "description": "Solution propriétaire basée sur Tuya OEM. Coût unique sans abonnement, avec intégration native dans la plateforme Baitly.",
+        "title": "Appareils du marché compatibles",
+        "badge": "Compatibilité par modèle",
+        "description": "Baitly centralise les mesures d’appareils du marché via leurs connecteurs compatibles. Les caractéristiques, la compatibilité et les éventuels abonnements dépendent du modèle et du fabricant.",
         "pricingModel": "Coût unique (sans abonnement)",
         "onQuote": "Sur devis",
         "onQuoteHint": "Le tarif sera communiqué lors de la configuration de votre solution",
-        "devicePrice": "Capteur Tuya OEM",
+        "devicePrice": "Appareil du fabricant",
         "devicePriceHelp": "Coût matériel du capteur",
         "installationPrice": "Installation",
         "installationPriceHelp": "Main d'œuvre pour la pose",
@@ -8763,10 +8812,10 @@
         "supportPrice": "Support (optionnel)",
         "supportPriceHelp": "Assistance et garantie étendue",
         "total": "Total par capteur",
-        "feature1": "Sans abonnement mensuel",
-        "feature2": "Intégration Baitly native",
-        "feature3": "Données en temps réel",
-        "feature4": "Aucune dépendance externe"
+        "feature1": "Compatibilité à valider par modèle",
+        "feature2": "Mesures consultables dans Baitly",
+        "feature3": "Connexion suivie dans le PMS",
+        "feature4": "Appareils de fabricants tiers"
       }
     },
     "basePrices": {
@@ -8793,10 +8842,10 @@
       "autre": "Autre"
     },
     "propertyCount": {
-      "title": "Coefficients nombre de logements",
-      "subtitle": "Remise volume pour les propriétaires multi-logements",
       "1": "1 logement",
       "2": "2 logements",
+      "title": "Coefficients nombre de logements",
+      "subtitle": "Remise volume pour les propriétaires multi-logements",
       "3-5": "3 à 5 logements",
       "6+": "6+ logements"
     },
@@ -10131,8 +10180,7 @@
         "progress": "Avancement",
         "access": "Indications d'accès",
         "parking": "Stationnement",
-        "photos": "Photos",
-        "openMap": "Ouvrir dans Maps"
+        "photos": "Photos"
       },
       "request": {
         "nature": "Nature de la demande",
@@ -11595,7 +11643,7 @@
         "f4": "Wi-Fi 2,4 GHz",
         "f5": "Alertes en temps réel",
         "f6": "Intégration native à Baitly",
-        "alt": "Capteur de bruit mural Baitly avec écran LED"
+        "alt": "Capteur de bruit mural avec écran LED"
       },
       "sl_01": {
         "name": "Serrure connectée",
@@ -11681,7 +11729,7 @@
         "f5": "Capteur de mouvement",
         "f6": "Détecteur de fumée",
         "f7": "17 % d'économie",
-        "alt": "Kit complet : tous les capteurs Baitly pour un logement"
+        "alt": "Illustration d’un ensemble d’objets connectés pour un logement"
       }
     },
     "checkoutFailed": "Le paiement ne peut pas être ouvert. Votre panier est conservé."
@@ -11719,6 +11767,11 @@
     }
   },
   "tabHeaders": {
+    "pilotage": {
+      "prestations": "Interventions et demandes de service, sur la carte et dans l’ordre chronologique.",
+      "reservations": "Séjours en cours et à venir sur 30 jours, logement par logement.",
+      "issues": "Anomalies signalées à traiter, les plus graves d’abord."
+    },
     "consumables": {
       "pending": "En attente de commande",
       "ordered": "Commandés",
@@ -11927,6 +11980,35 @@
     }
   },
   "auth": {
+    "showcase": {
+      "label": "Découvrir Baitly",
+      "kicker": "Pour les professionnels de la location courte durée",
+      "intro": "Vos logements. Vos équipes. Un même espace de travail.",
+      "groups": {
+        "portfolio": "Réservations",
+        "guests": "Voyageurs",
+        "operations": "Opérations",
+        "business": "Revenus"
+      },
+      "images": {
+        "portfolio": "Illustration de logements et de leur calendrier de réservation partagé",
+        "guests": "Illustration de la messagerie voyageurs et du livret d’accueil",
+        "operations": "Illustration du planning des équipes, du ménage et des accès connectés",
+        "business": "Illustration du suivi des revenus, des factures et de la réservation directe"
+      },
+      "illustration": "Illustration du produit",
+      "modules": "Explorer les fonctionnalités",
+      "previous": "Fonctionnalité précédente",
+      "next": "Fonctionnalité suivante",
+      "pause": "Mettre la présentation en pause",
+      "play": "Reprendre la présentation",
+      "footer": "De la réservation au suivi de votre activité",
+      "formFooter": "Votre espace professionnel Baitly",
+      "loginKicker": "Votre activité vous attend",
+      "signupTitle": "Créez votre espace Baitly",
+      "signupSubtitle": "Rassemblez vos logements, vos équipes et votre activité.",
+      "signupKicker": "Un espace pour votre organisation"
+    },
     "common": {
       "back": "Retour",
       "backToLogin": "Retour a la connexion",
@@ -11944,7 +12026,7 @@
     },
     "login": {
       "title": "Connexion",
-      "subtitle": "Connecte-toi pour accéder à ton tableau de bord.",
+      "subtitle": "Retrouvez vos réservations, vos équipes et les priorités du jour.",
       "inscriptionSuccess": "Votre compte a été créé avec succès. Connectez-vous pour accéder à votre espace.",
       "emailLabel": "Email ou nom d'utilisateur",
       "emailPlaceholder": "vous@exemple.com",
@@ -12135,8 +12217,8 @@
     },
     "support": {
       "headerSubtitle": "Contactez notre support",
-      "submittedTitle": "Message envoyé !",
-      "submittedBody": "Notre équipe vous contactera dans les 24 heures.",
+      "submittedTitle": "Votre message a été envoyé",
+      "submittedBody": "L’équipe Baitly vous répondra à l’adresse indiquée dans votre demande.",
       "backToLogin": "Retour à la connexion",
       "fields": {
         "nameLabel": "Nom complet",
@@ -12154,8 +12236,24 @@
         "feature": "Demande de fonctionnalité",
         "other": "Autre"
       },
-      "submit": "Envoyer",
-      "submitError": "Une erreur est survenue lors de l'envoi. Veuillez réessayer ou nous contacter à info@clenzy.fr."
+      "submit": "Envoyer ma demande",
+      "submitError": "Nous n’avons pas pu envoyer votre demande. Réessayez, votre message est conservé.",
+      "title": "Comment pouvons-nous vous aider ?",
+      "intro": "Accès à votre compte, question technique ou abonnement : adressez votre demande à l’équipe Baitly.",
+      "messageHelp": "Indiquez la page concernée et ce qui vous bloque.",
+      "sending": "Envoi en cours…",
+      "guide": {
+        "kicker": "L’équipe Baitly à votre écoute",
+        "title": "Un point de contact pour votre activité.",
+        "body": "Décrivez votre besoin. Nous pourrons vous orienter à partir du contexte de votre demande.",
+        "contextTitle": "Précisez le contexte",
+        "contextBody": "Un logement, une réservation ou votre organisation : indiquez ce qui est concerné.",
+        "detailsTitle": "Ajoutez les détails utiles",
+        "detailsBody": "Pour un problème technique, précisez les étapes suivies et le message d’erreur affiché.",
+        "privacyTitle": "Gardez vos accès confidentiels",
+        "privacyBody": "Ne partagez pas votre mot de passe ni vos informations de paiement dans ce formulaire.",
+        "note": "Un simple oubli de mot de passe ? Vous pouvez le réinitialiser depuis la page de connexion."
+      }
     },
     "legal": {
       "back": "Retour",
@@ -12260,6 +12358,45 @@
     }
   },
   "vouchers": {
+    "workspace": {
+      "eyebrow": "Codes promo et campagnes",
+      "title": "Une bonne raison de réserver.",
+      "intro": "Préparez vos offres, partagez vos codes et suivez leurs utilisations au même endroit.",
+      "search": "Rechercher une offre ou un code",
+      "discount": "de remise",
+      "freeNights_one": "offerte",
+      "freeNights_other": "offertes",
+      "copied": "Code copié",
+      "copyError": "Impossible de copier le code. Sélectionnez-le pour le partager.",
+      "copyCode": "Copier le code {{code}}",
+      "conditions": "Conditions",
+      "noStart": "Dès maintenant",
+      "noEnd": "Sans expiration",
+      "noDates": "Sans limite de dates",
+      "allProperties": "Tous les logements",
+      "uses": "utilisations",
+      "noMinimum": "Aucun minimum",
+      "unlimited": "Illimité",
+      "performance": "Vos offres en action",
+      "period": "30 derniers jours",
+      "firstUsage": "Chaque offre commence par un partage.",
+      "firstUsageHint": "{{count}} offres actives. Les résultats apparaîtront après leurs premières utilisations.",
+      "performanceHint": "Utilisations et montants enregistrés sur la période affichée.",
+      "noResults": "Aucune offre ne correspond",
+      "clearHint": "Essayez un autre code ou retirez les filtres.",
+      "clear": "Réinitialiser les filtres",
+      "emptyHint": "Créez votre première remise et choisissez les logements auxquels elle s’applique.",
+      "preview": "Aperçu de votre offre",
+      "propertyCount_one": "{{count}} logement",
+      "propertyCount_other": "{{count}} logements",
+      "channels": {
+        "ALL": "Tous les canaux",
+        "BOOKING_ENGINE": "Moteur de réservation",
+        "DIRECT_LINK": "Lien direct",
+        "WHATSAPP": "WhatsApp",
+        "EMAIL": "Email"
+      }
+    },
     "title": "Promos & Vouchers",
     "subtitle": "Codes promo et campagnes appliqués au prix des nuitées dans le booking engine.",
     "createButton": "Créer un voucher",
@@ -12820,6 +12957,16 @@
     }
   },
   "planning": {
+    "feedback": {
+      "saveError": "Le déplacement n’a pas été enregistré. Les dates précédentes sont restaurées.",
+      "reservation": "Une réservation occupe déjà ce créneau.",
+      "blocked": "Ce créneau appartient à une période bloquée.",
+      "intervention": "Une autre intervention occupe déjà ce créneau.",
+      "turnaround": "Le temps disponible avant la prochaine arrivée ne suffit pas pour l’intervention.",
+      "invalidRange": "La fin doit être postérieure au début.",
+      "conflict": "Ce créneau est indisponible."
+    },
+    "newReservation": "Nouvelle réservation",
     "importChooser": {
       "title": "Importer des réservations",
       "subtitle": "Choisissez comment connecter vos canaux de réservation.",
@@ -12843,6 +12990,7 @@
     "title": "Planning",
     "subtitle": "Réservations & interventions · {{month}}",
     "nav": {
+      "fullscreen": "Plein écran",
       "prev": "Période précédente",
       "next": "Période suivante",
       "today": "Aujourd'hui",
@@ -12858,6 +13006,10 @@
       "monthShort": "Mois"
     },
     "grid": {
+      "occupancyScope": "Tous les logements filtrés, toutes les pages et tous les canaux.",
+      "occupiedCount_one": "{{count}} logement occupé sur {{total}}",
+      "occupiedCount_other": "{{count}} logements occupés sur {{total}}",
+      "keyboardSelection": "{{property}}, {{date}}. Flèches : choisir une date. Maj + flèches : étendre. Entrée : créer une réservation.",
       "propertyCount_one": "{{count}} logement",
       "propertyCount_other": "{{count}} logements",
       "showProperties": "Afficher la colonne logements",
@@ -12962,6 +13114,9 @@
       "unblockFailed": "Le déblocage a échoué. Réessayez."
     },
     "bar": {
+      "alerts": "À vérifier",
+      "details": "Détails",
+      "resize": "Redimensionner le séjour",
       "hide": "Masquer du planning",
       "paymentFailed": "Paiement échoué",
       "paymentProcessing": "Paiement en cours de traitement",
@@ -13359,7 +13514,7 @@
         "noLinked": "Aucune intervention liée à cette réservation.",
         "interventionCost": "Coût intervention",
         "estimatedDuration": "Durée estimée",
-        "estimatedCost": "Coût estimé (25 €/h)",
+        "estimatedCost": "Coût estimé",
         "actualCost": "Coût réel",
         "paymentStatus": "Statut paiement",
         "generateInvoice": "Générer facture",
@@ -14457,24 +14612,16 @@
     }
   },
   "providerServices": {
-    "title": "Mes prestations",
-    "help": "Un tarif par prestation, partagé avec toutes vos conciergeries et votre fiche marketplace. Les devis déjà acceptés conservent leur prix.",
-    "choose": "Choisir une prestation",
-    "enabled": "Proposer cette prestation",
-    "save": "Enregistrer le tarif partagé",
-    "models": {
-      "FLAT": "Forfait par mission",
-      "HOURLY": "Par heure",
-      "PER_SQM": "Par m²",
-      "PER_UNIT": "À l’unité",
-      "PER_KM": "Par kilomètre",
-      "PERCENTAGE": "Pourcentage",
-      "ON_QUOTE": "Sur devis"
-    },
-    "hourlyAmount": "Tarif par heure",
-    "missionAmount": "Forfait par mission",
-    "hourlyHelp": "Le total est calculé avec la durée prévue : tarif horaire × nombre d’heures.",
-    "missionHelp": "Ce montant couvre une mission complète pour cette prestation, quelle que soit sa durée."
+    "manage": "Ajouter ou choisir les prestations",
+    "existingReferences": "Références des prestations existantes",
+    "help": "Cochez les prestations proposées, dans un ou plusieurs métiers. Les tarifs existants sont conservés ; les nouvelles prestations sont sur devis. Décocher désactive l’offre sans effacer son historique. Les prestations hors catalogue restent inchangées.",
+    "search": "Rechercher une prestation ou un métier",
+    "selectGroup": "Tout cocher dans ce métier",
+    "selected": "{{count}} prestation(s) sélectionnée(s)",
+    "loadError": "Impossible de charger le catalogue des prestations.",
+    "saveError": "Impossible d’enregistrer les prestations.",
+    "retry": "Réessayer",
+    "empty": "Aucune prestation ne correspond à cette recherche."
   },
   "providerJournal": {
     "title": "Historique des décisions",
@@ -14946,6 +15093,34 @@
     "unscheduled": "À planifier"
   },
   "propertyMap": {
+    "issuesTitle": "Anomalies à traiter",
+    "issuesLoading": "Chargement des anomalies…",
+    "issuesLoadError": "Les anomalies n’ont pas pu être chargées.",
+    "issuesEmpty": "Aucune anomalie à traiter dans cette zone.",
+    "noIssue": "Aucune anomalie à traiter.",
+    "issuesVisible_one": "{{count}} anomalie dans cette zone",
+    "issuesVisible_other": "{{count}} anomalies dans cette zone",
+    "views": {
+      "issues": "Anomalies",
+      "label": "Affichage de la carte",
+      "properties": "Vue d'ensemble",
+      "prestations": "Prestations",
+      "reservations": "Réservations"
+    },
+    "nights_one": "{{count}} nuit",
+    "nights_other": "{{count}} nuits",
+    "stays": "Séjours en cours et à venir",
+    "reservationsLoading": "Chargement des séjours…",
+    "reservationsLoadError": "Les réservations n’ont pas pu être chargées.",
+    "noStay": "Aucun séjour dans les 30 prochains jours.",
+    "reservationsEmpty": "Aucun séjour en cours ou à venir dans cette zone.",
+    "reservationsVisible_one": "{{count}} séjour dans cette zone",
+    "reservationsVisible_other": "{{count}} séjours dans cette zone",
+    "prestationsEmpty": "Aucune prestation dans cette zone.",
+    "summary": "Aujourd’hui",
+    "nextPrestation": "Prochaine prestation",
+    "currentStay": "Séjour en cours",
+    "nextStay": "Prochaine arrivée",
     "visible": "{{count}} propriétés dans cette zone",
     "visible_one": "{{count}} propriété dans cette zone",
     "visible_other": "{{count}} propriétés dans cette zone",
@@ -16279,8 +16454,55 @@
   "photoUploader": {
     "dropHere": "Glissez-déposez vos photos ici"
   },
+  "baitlyMap": {
+    "showAll": "Voir tous les lieux",
+    "backToList": "Retour à la liste",
+    "loading": "Chargement de la carte…",
+    "loadError": "Le fond de carte n’a pas pu être chargé.",
+    "worldUnavailable": "Fond mondial indisponible. Carte régionale affichée.",
+    "view3d": "Passer en vue 3D",
+    "view2d": "Passer en vue à plat",
+    "controls": {
+      "close": "Fermer",
+      "zoomIn": "Zoom avant",
+      "zoomOut": "Zoom arrière",
+      "resetBearing": "Réorienter vers le nord",
+      "attribution": "Afficher les crédits"
+    },
+    "card": {
+      "loadError": "Impossible de charger le détail.",
+      "team": "Équipe intervenante",
+      "assignee": "Intervenant",
+      "merchant": "Commerçant",
+      "individual": "Particulier",
+      "activeCodes": "Codes actifs : {{count}}",
+      "noLocationPhoto": "Pas encore de photo de l'emplacement.",
+      "openPoint": "Voir le point"
+    },
+    "directions": {
+      "title": "Itinéraire",
+      "viewOnMap": "Voir sur la carte Baitly",
+      "navigateWith": "Itinéraire avec",
+      "appleMaps": "Plans",
+      "googleMaps": "Google Maps",
+      "waze": "Waze"
+    },
+    "cluster": "{{count}} lieux, afficher le groupe",
+    "legend": "Légende",
+    "states": {
+      "alert": "Alerte",
+      "late": "En retard",
+      "turnover": "Rotation (ménage urgent)",
+      "arrival": "Arrivée",
+      "departure": "Départ",
+      "today": "Aujourd'hui",
+      "occupied": "Occupé",
+      "done": "Terminée",
+      "closed": "Annulée",
+      "inactive": "Inactif"
+    }
+  },
   "locationPicker": {
-    "mapboxMissing": "Mapbox n'est pas configuré — impossible d'afficher la carte de sélection.",
     "centerOnMarker": "Centrer sur le marqueur",
     "hint": "Astuce : cliquez sur la carte ou faites glisser le repère pour ajuster la position exacte."
   },
@@ -17284,7 +17506,14 @@
     "analysing": "Analyse…",
     "analyseOrphans": "Analyser les logements sans organisation",
     "autoCreateHint": "Baitly crée automatiquement Property, Room Type et Rate Plan dans le hub",
-    "manualIdsHint": "Renseignez les 3 identifiants du hub (visibles dans votre tableau de bord)"
+    "manualIdsHint": "Renseignez les 3 identifiants du hub (visibles dans votre tableau de bord)",
+    "adoptRateCurrency": "Adopter la devise du nouveau tarif",
+    "adoptRateCurrencyHint": "Les montants existants ne sont pas convertis. Vérifiez les prix avant de synchroniser.",
+    "replaceRate": "Modifier le tarif",
+    "replaceRateTitle": "Modifier le tarif de {{name}}",
+    "replaceRateHint": "Remplacez le tarif lié à Baitly sans déconnecter les canaux. Sa chambre et sa devise doivent correspondre à la propriété.",
+    "savingRate": "Enregistrement…",
+    "saveRate": "Enregistrer le tarif"
   },
   "channexImport": {
     "detectError": "Impossible de détecter les logements du hub non encore importés.",
@@ -18764,9 +18993,9 @@
       "access": "Capteur (environ 149 € l'unité) et abonnement (environ 9,90 € par capteur et par mois, ou 7,90 € en engagement annuel). Clé API dans les intégrations du tableau de bord."
     },
     "clenzy_hardware": {
-      "short": "Capteur Baitly · sans abonnement",
-      "tooltip": "Solution propriétaire de Baitly : capteur de bruit à coût d'achat unique, sans abonnement mensuel, intégré nativement à la plateforme, données en temps réel et aucune dépendance à un service externe. Alternative économique pour les conciergeries qui veulent maîtriser leur coût total.",
-      "access": "Capteur Baitly à acheter (coût unique, devis sur demande). Configuration immédiate depuis le module de nuisance sonore."
+      "short": "Objets connectés via Internet",
+      "tooltip": "Service logiciel de Baitly pour recevoir par Internet les mesures d’appareils du marché avec un connecteur compatible. L’appareil utilise le Wi-Fi du logement ; le gestionnaire accède au PMS depuis une autre connexion. Baitly ne fabrique pas les appareils.",
+      "access": "Utilisez le bouton d’ajout des Objets connectés pour rattacher un appareil déjà enregistré ou tester avec un simulateur. La compatibilité du modèle doit être validée avant achat."
     },
     "zapier": {
       "short": "Automatisation · plus de 7 000 applications",
@@ -20571,8 +20800,7 @@
       "location": {
         "title": "Localisation",
         "city": "Ville",
-        "coordinates": "Coordonnées GPS",
-        "openGoogleMaps": "Ouvrir dans Google Maps"
+        "coordinates": "Coordonnées GPS"
       },
       "management": {
         "title": "Gestion",
@@ -20721,5 +20949,377 @@
       "advanceNoticeDays_one": "Réservation au moins {{count}} jour à l’avance",
       "advanceNoticeDays_other": "Réservation au moins {{count}} jours à l’avance"
     }
+  },
+  "providerProfile": {
+    "management": "Gestion du compte, documents et suivi",
+    "contactTitle": "Préparer votre prestation",
+    "availabilityHelp": "Précisez le logement et le créneau dans votre demande. La disponibilité sera confirmée avec le professionnel avant l’accord.",
+    "inactive": "Prestation inactive"
+  },
+  "upsellFulfillment": {
+    "alternative": "Autre prestation proposée",
+    "offeredService": "Prestation à choisir",
+    "replacesService": "Ce choix remplacera la prestation liée au service.",
+    "offersUnavailable": "Les prestations de ce profil ne sont pas disponibles. Consultez sa fiche ou actualisez les résultats.",
+    "serviceSettings": "Diffusion, conditions et résultats",
+    "title": "Prestataires pour ce service",
+    "help": "Comparez les profils, puis choisissez le professionnel qui réalisera ce service.",
+    "moreCriteria": "Plus de critères",
+    "filtersApplied": "Filtres actifs",
+    "manual": "Sélection par le gestionnaire",
+    "loadError": "Impossible de charger le lien avec les prestataires.",
+    "retry": "Réessayer",
+    "useType": "Reprendre la prestation de la catégorie",
+    "resetService": "Réinitialiser",
+    "slotShort": "Créneau",
+    "durationShort": "Durée",
+    "saveError": "Le choix n’a pas été enregistré. Réessayez.",
+    "connectHelp": "Choisissez la prestation à réaliser pour afficher les professionnels qui la proposent.",
+    "preferred": "Prestataire préféré : {{name}}",
+    "preferenceHelp": "Ce choix est enregistré pour le service. Chaque mission nécessite une demande et un accord ; aucun créneau n’est réservé ici.",
+    "removePreference": "Retirer le choix",
+    "hiddenPreferred": "Le prestataire choisi n’est plus visible. Choisissez un autre profil.",
+    "property": "Lieu d’intervention",
+    "noExactMatch": "Aucun prestataire ne propose exactement la prestation sélectionnée avec ces critères.",
+    "relatedTitle": "Prestations voisines proposées dans ce métier",
+    "relatedHelp": "Ces professionnels proposent une autre prestation du même métier. Pour les rattacher, choisissez leur prestation : elle remplacera le type de service lié à cette offre.",
+    "linkRelated": "Rattacher avec « {{service}} »",
+    "noProperty": "Aucun logement ne correspond à votre recherche.",
+    "propertiesError": "Impossible de charger les logements.",
+    "allPlaces": "Tous les lieux, sans filtre géographique",
+    "slot": "Créneau (heure locale du logement)",
+    "duration": "Durée estimée",
+    "language": "Langue",
+    "anyLanguage": "Toutes les langues",
+    "sort": "Trier les profils",
+    "byName": "Nom",
+    "byRating": "Mieux notés",
+    "byMissions": "Missions réalisées",
+    "availableOnly": "Disponibles sur ce créneau",
+    "verifiedOnly": "Profils vérifiés",
+    "urgent": "Accepte les urgences",
+    "calendarHelp": "Les horaires, absences et engagements connus dans Baitly sont vérifiés. Un calendrier non connecté reste à confirmer. La disponibilité sera revalidée lors de l’accord.",
+    "chooseSlot": "Choisissez un logement pour vérifier la zone et un créneau pour vérifier la disponibilité.",
+    "searchError": "Impossible de rechercher les prestataires.",
+    "results": "{{count}} prestataire correspond",
+    "results_other": "{{count}} prestataires correspondent",
+    "profile": "Voir le profil",
+    "prepareRequest": "Préparer une demande",
+    "selected": "Choisi",
+    "select": "Choisir",
+    "noMatch": "Aucun profil ne correspond. Essayez un autre créneau ou élargissez les filtres.",
+    "AVAILABLE": "Disponible selon le calendrier",
+    "UNAVAILABLE": "Indisponible sur ce créneau",
+    "UNKNOWN": "Calendrier à confirmer",
+    "NO_SLOT": "Choisissez un créneau pour vérifier",
+    "time": "Heure locale du logement",
+    "durationMinutes": "Durée (minutes)"
+  },
+  "providerEdit": {
+    "edit": "Modifier",
+    "title": "Modifier le prestataire",
+    "help": "Corrigez la fiche et reliez chaque prestation au catalogue commun.",
+    "cancel": "Annuler",
+    "save": "Enregistrer",
+    "saving": "Enregistrement…",
+    "error": "Impossible d’enregistrer les modifications.",
+    "identity": "Identité et contact",
+    "displayName": "Nom affiché",
+    "legalName": "Raison sociale",
+    "headline": "Présentation courte",
+    "phone": "Téléphone",
+    "bio": "Présentation",
+    "location": "Localisation et préférences",
+    "baseAddress": "Adresse",
+    "baseCity": "Ville",
+    "basePostalCode": "Code postal",
+    "baseCountryCode": "Pays (code ISO)",
+    "radius": "Rayon d’intervention (km)",
+    "languages": "Langues (codes séparés par des virgules)",
+    "urgent": "Accepte les urgences",
+    "services": "Prestations du catalogue",
+    "servicesHelp": "Choisissez la prestation précise correspondant à chaque offre. Les prix restent conservés.",
+    "noServices": "Aucune prestation renseignée."
+  },
+  "missionSafety": {
+    "title": "Signaler un dégât",
+    "pause": "Pause",
+    "resume": "Reprendre",
+    "paused": "Intervention en pause",
+    "failed": "Action non confirmée. Vérifiez avant de réessayer.",
+    "refresh": "Vérifier",
+    "cause": "Cause constatée",
+    "room": "Pièce",
+    "item": "Élément concerné",
+    "choose": "Choisir",
+    "other": "Autre élément",
+    "detail": "Précision facultative",
+    "reportPause": "Signaler et mettre en pause",
+    "unknown": "À déterminer",
+    "wear": "Usure",
+    "breakage": "Casse",
+    "leak": "Fuite",
+    "missing": "Manquant",
+    "bedroom": "Chambre",
+    "bathroom": "Salle de bain",
+    "living": "Salon",
+    "kitchen": "Cuisine",
+    "supervisor": "Superviseur",
+    "concierge": "Contact du logement",
+    "owner": "Propriétaire",
+    "noPhone": "Numéro non renseigné",
+    "inventory": "Dans le logement",
+    "surfaces": "Mur, plafond, sol",
+    "catalog": "Catalogue : mobilier et équipements",
+    "wall": "Mur",
+    "ceiling": "Plafond",
+    "floor": "Sol"
+  },
+  "baitlyPublicReview": {
+    "title": "Publication dans Baitly",
+    "failed": "Publication indisponible ou accès refusé.",
+    "visible": "Avis visible sur la fiche publique du logement",
+    "name": "Nom public (facultatif)",
+    "photo": "URL HTTPS de la photo publique (facultative)",
+    "consent": "L’auteur a autorisé la publication de ce nom et de cette photo.",
+    "saved": "Publication enregistrée."
+  },
+  "propertyPrestations": {
+    "statusHelp": {
+      "PENDING": "Pas encore prise en charge : en attente d’un intervenant ou d’une décision.",
+      "AWAITING_VALIDATION": "Le devis ou la demande attend votre validation.",
+      "ASSIGNED": "Un intervenant est désigné ; la mission n’a pas commencé.",
+      "SCHEDULED": "Planifiée à la date prévue.",
+      "AWAITING_PAYMENT": "Le paiement doit être réglé avant que la mission démarre.",
+      "IN_PROGRESS": "L’intervenant est sur place, la mission est en cours.",
+      "COMPLETED": "Mission terminée.",
+      "CANCELLED": "Mission annulée : elle n’aura pas lieu.",
+      "REJECTED": "Demande refusée."
+    },
+    "title": "Prestations",
+    "upcoming": "À venir",
+    "previousWeek": "Semaine précédente",
+    "nextWeek": "Semaine suivante",
+    "days": "Jours de la semaine",
+    "count_one": "{{count}} prestation",
+    "count_other": "{{count}} prestations",
+    "loading": "Chargement des prestations…",
+    "loadError": "Les prestations n’ont pas pu être chargées.",
+    "noneThatDay": "Aucune prestation ce jour.",
+    "noneUpcoming": "Aucune prestation à venir.",
+    "intervention": "Intervention",
+    "request": "Demande"
+  },
+  "sectorMap": {
+    "previewZones": "Zones d’intervention",
+    "areaFilter": "Secteur sélectionné",
+    "clearAreaFilter": "Effacer le filtre",
+    "displayedCount": "{{shown}} sur {{total}} affichés",
+    "loadMore": "Afficher les {{count}} suivants",
+    "layer": "Secteurs des prestataires",
+    "loading": "Chargement des secteurs…",
+    "loadError": "Les secteurs n’ont pas pu être chargés.",
+    "noneRelevant": "Aucun prestataire du catalogue ne couvre encore vos logements.",
+    "modeLabel": "Affichage des secteurs",
+    "merged": "Fusionnés",
+    "byProvider": "Par prestataire",
+    "mySector": "Mon secteur",
+    "approx": "Contour approché autour de la ville (limite administrative inconnue).",
+    "undrawn": "Sans contour sur la carte : {{zones}}",
+    "coversCount": "{{count}} / {{total}} logements",
+    "uncovered": "{{count}} logement(s) hors de ces secteurs : {{names}}",
+    "mineEmpty": "Déclarez au moins un secteur pour le voir sur la carte.",
+    "providerEmpty": "Ce prestataire n’a déclaré aucun secteur dessinable.",
+    "panelLabel": "Prestataires de la zone visible",
+    "visibleCount_one": "{{count}} prestataire dans cette zone",
+    "visibleCount_other": "{{count}} prestataires dans cette zone",
+    "noneVisible": "Aucun secteur dans la zone visible. Déplacez ou dézoomez la carte.",
+    "noZone": "Aucune zone déclarée",
+    "coversProperties_one": "{{count}} logement couvert",
+    "coversProperties_other": "{{count}} logements couverts",
+    "openProvider": "Ouvrir la fiche de {{name}}"
+  },
+  "baitlyIot": {
+    "addButton": "Connexion au service Baitly",
+    "addTitle": "Rattacher un objet connecté",
+    "addHint": "Choisissez le type d’objet et son mode de connexion depuis le bouton d’ajout.",
+    "property": "Logement",
+    "chooseProperty": "Choisir un logement",
+    "name": "Nom du capteur",
+    "room": "Pièce (facultatif)",
+    "create": "Ajouter le simulateur",
+    "creating": "Création…",
+    "simulationHint": "Données de test : aucune mesure réelle et aucun avertissement envoyé aux voyageurs.",
+    "loadError": "Impossible de joindre Baitly IoT. Vérifiez le service puis réessayez.",
+    "notConfigured": "Le service de connexion Baitly n’est pas configuré sur ce serveur. Le rattachement est indisponible.",
+    "actionError": "L’action n’a pas abouti. Réessayez.",
+    "controlsTitle": "Connexion au service Baitly",
+    "testSensor": "Simulateur",
+    "revoked": "Révoqué",
+    "lastMeasurement": "Dernière mesure",
+    "lastReception": "Dernière réception",
+    "waiting": "En attente d’une mesure",
+    "level": "Niveau sonore en dB(A)",
+    "send": "Envoyer une mesure de test",
+    "sending": "Envoi…",
+    "measurementSaved": "Mesure de test enregistrée.",
+    "externalSimulator": "Utiliser le simulateur Python",
+    "secretHint": "Générer une clé remplace la précédente. Elle reste visible uniquement dans ce panneau et n’est pas conservée dans le navigateur.",
+    "generateSecret": "Générer une clé pour le simulateur",
+    "deviceSecret": "Clé de connexion",
+    "copySecret": "Copier la clé",
+    "secretCopied": "Clé copiée.",
+    "pythonHint": "Dans un terminal, définissez BAITLY_IOT_DEVICE_TOKEN avec cette clé, puis lancez cette commande depuis le dépôt. Le service IoT local doit être démarré.",
+    "revoke": "Révoquer la connexion",
+    "revokeHint": "La révocation bloque les nouvelles mesures et invalide sa clé. L’historique reste consultable. Cette action est définitive.",
+    "confirmRevoke": "Confirmer la révocation",
+    "historyError": "Impossible de charger l’historique sonore.",
+    "recentMeasurements": "Les 10 dernières mesures",
+    "measuredAt": "Date de mesure",
+    "noMeasurements": "Aucune mesure reçue pour cet appareil.",
+    "onboarding": {
+      "connection": "Mode de connexion",
+      "integration": "Connecteur de marque ou service",
+      "direct": "Connexion au service Baitly",
+      "brandOrService": "Marque ou service connecté",
+      "source": "Appareil à rattacher",
+      "physical": "Appareil déjà enregistré dans Baitly",
+      "simulator": "Simulateur, sans matériel",
+      "compatibility": "L’appareil utilise le Wi-Fi du logement pour envoyer ses mesures au service Baitly par Internet. Vous consultez le PMS à distance, sans partager ce Wi-Fi. Le modèle et son connecteur doivent être compatibles.",
+      "physicalHint": "L’appareil doit déjà être enregistré dans le service Baitly pour ce logement. Son rattachement ne configure pas automatiquement sa connexion Wi-Fi.",
+      "unsupportedKind": "Le service de connexion Baitly prend actuellement en charge les mesures de bruit. Pour ce type d’objet, utilisez un connecteur existant.",
+      "deviceId": "Identifiant de l’appareil enregistré",
+      "deviceIdHint": "Utilisez l’identifiant fourni par le service Baitly pour cet appareil et ce logement.",
+      "attachmentHint": "Le rattachement sera vérifié par le serveur. La connexion sera confirmée après réception d’une mesure de l’appareil.",
+      "attach": "Rattacher l’objet",
+      "addSimulator": "Ajouter le simulateur",
+      "progress": "Étape {{step}} sur 3",
+      "steps": {
+        "0": "Type d’objet",
+        "1": "Connexion",
+        "2": "Rattachement"
+      },
+      "register": "Nouvel appareil à enregistrer",
+      "registerHint": "Baitly enregistre l’appareil pour ce logement et affiche une seule fois la clé à saisir dans l’appareil. L’appareil sera confirmé à la réception de sa première mesure.",
+      "registerAction": "Enregistrer l’appareil"
+    },
+    "awaitingFirst": "En attente de la première mesure",
+    "awaitingFirstHint": "L’appareil est enregistré. Il apparaîtra en ligne dès que Baitly aura reçu et enregistré sa première mesure.",
+    "connectionSettings": "Paramètres de connexion de l’appareil",
+    "rotateSecret": "Générer une nouvelle clé",
+    "rotateSecretHint": "La clé actuelle cessera immédiatement de fonctionner. Saisissez la nouvelle clé dans l’appareil pour qu’il continue d’envoyer ses mesures.",
+    "rotateMqtt": "Nouvelle identité MQTT",
+    "rotateMqttHint": "Les certificats émis pour l’identité actuelle ne pourront plus envoyer de mesures. Un nouveau certificat signé pour la nouvelle identité sera nécessaire.",
+    "confirmRotation": "Confirmer",
+    "mqttRotated": "Nouvelle identité enregistrée. Faites signer un certificat pour cette identité, puis installez-le dans l’appareil.",
+    "provisioned": {
+      "title": "Appareil enregistré",
+      "hint": "Copiez ces informations dans l’appareil maintenant. La clé ne sera plus affichée : en cas de perte, générez-en une nouvelle depuis la fiche de l’appareil.",
+      "deviceId": "Identifiant de l’appareil",
+      "secret": "Clé de connexion (HTTPS)",
+      "secretHint": "Envoyée par l’appareil dans l’en-tête Authorization. Ne la partagez pas.",
+      "mqttIdentity": "Identité MQTT (nom du certificat)",
+      "mqttHint": "À utiliser uniquement si l’appareil se connecte en MQTT : un certificat signé pour cette identité est nécessaire.",
+      "ingestionUrl": "Adresse d’envoi des mesures",
+      "copy": "Copier",
+      "copied": "Copié",
+      "copyFailed": "La copie a échoué. Sélectionnez le texte et copiez-le manuellement.",
+      "done": "J’ai copié les informations"
+    }
+  },
+  "providerCoverage": {
+    "title": "Secteurs d’intervention",
+    "help": "Choisissez des départements, des arrondissements ou des villes. Un logement est couvert par un secteur déclaré ou par le rayon, si celui-ci est renseigné.",
+    "chooseDepartment": "Choisir un département",
+    "wholeDepartment": "Tout le département",
+    "located": "Point de départ géolocalisé : le rayon est calculé depuis cette adresse.",
+    "locateHelp": "Pour utiliser le rayon, sélectionnez une adresse dans les suggestions afin de définir son point de départ.",
+    "cityOptional": "Ville (optionnel)",
+    "wholeCity": "Toute la ville",
+    "loadingCities": "Chargement des villes…",
+    "citiesError": "Impossible de charger les villes.",
+    "retryCities": "Réessayer"
+  },
+  "deviceOnboarding": {
+    "model": "Modèle exact",
+    "chooseModel": "Choisir le modèle",
+    "unknownModel": "Mon modèle n’est pas listé",
+    "modelHint": "Consultez la référence sur l’appareil ou sa boîte. Une même marque peut proposer du Wi-Fi et des appareils nécessitant une passerelle.",
+    "scope": "Ce parcours recherche une connexion à distance sans hub dans le logement. Le Wi-Fi seul ne garantit pas la compatibilité avec Baitly.",
+    "guideTitle": "Comment connecter ce modèle",
+    "remoteWifi": "Wi-Fi intégré, accès distant par le service du fabricant",
+    "cloudPath": "Appareil → Wi-Fi du logement → Internet → {{brand}} → Baitly. Le gestionnaire peut utiliser une autre connexion Internet.",
+    "documentedOnly": "Connexion Wi-Fi documentée par le fabricant. Le test complet de ce modèle avec Baitly sur matériel réel reste à réaliser. Les offres et droits API du fabricant s’appliquent.",
+    "manageConnection": "Gérer la connexion du fabricant",
+    "manufacturerGuide": "Documentation du fabricant",
+    "unverified": "Ce modèle n’est pas encore référencé pour une connexion distante sans hub. Le rattachement est bloqué jusqu’à vérification du modèle et de son connecteur. Vous pouvez tester le parcours sans matériel avec le simulateur.",
+    "tuyaUnverified": "Tuya / Smart Life désigne un écosystème, pas un modèle. Aucun modèle précis n’est encore référencé ici : il faut vérifier le Wi-Fi sans passerelle, l’accès à votre compte et les mesures exposées. Le logo ou le QR code ne suffisent pas.",
+    "attachmentReminder": "Renseignez l’identifiant du compte fabricant autorisé. Le rattachement au logement ne configure pas le Wi-Fi et ne confirme pas la réception de mesures.",
+    "guides": {
+      "minut": {
+        "1": "Sur place : installez le capteur avec l’application Minut et connectez-le au Wi-Fi 2,4 GHz du logement.",
+        "2": "À distance : autorisez le compte Minut dans les intégrations Baitly. Un accès API Minut autorisé est nécessaire.",
+        "3": "Récupérez l’identifiant de l’appareil dans le compte Minut, puis associez-le au logement Baitly. La sélection automatique des appareils Minut n’est pas encore disponible ici."
+      },
+      "nuki": {
+        "1": "Sur place : configurez la serrure avec l’application Nuki et activez son Wi-Fi intégré.",
+        "2": "Activez l’accès distant et reliez le compte Nuki dans les intégrations Baitly.",
+        "3": "Récupérez l’identifiant de la serrure dans le compte Nuki, puis associez-la au logement Baitly. La sélection automatique des serrures Nuki n’est pas encore disponible ici."
+      }
+    },
+    "qr": {
+      "title": "Identifier avec un QR code",
+      "explanation": "Un QR code peut orienter le parcours. Cette lecture n’active pas l’appareil et ne remplace pas l’autorisation du fabricant ni l’installation Wi-Fi sur place.",
+      "camera": "Caméra de lecture du QR code",
+      "scan": "Scanner avec la caméra",
+      "stop": "Arrêter la caméra",
+      "paste": "Ou coller le contenu du QR code",
+      "identify": "Identifier le format",
+      "privacy": "Lecture locale uniquement. Le contenu n’est ni envoyé au serveur ni conservé. Ne saisissez pas le mot de passe du Wi-Fi.",
+      "unavailable": "La lecture par caméra n’est pas disponible dans ce navigateur. Utilisez un lecteur sur votre téléphone et collez le contenu, ou choisissez la marque manuellement.",
+      "error": "La caméra n’est pas accessible. Vérifiez l’autorisation du navigateur ou choisissez la marque manuellement.",
+      "results": {
+        "tuya": "Format de lien Tuya détecté. La marque a été présélectionnée ; le modèle et sa compatibilité restent à vérifier. Aucun appareil n’a été activé.",
+        "matter": "Code de configuration Matter détecté. Matter seul nécessite un contrôleur dans le logement pour l’accès distant ; ce code ne garantit pas le parcours sans hub. Choisissez un connecteur cloud compatible si le modèle en dispose.",
+        "wifi": "Ce code contient une configuration Wi-Fi, pas une autorisation d’accès à l’appareil. Il n’est pas utilisé par Baitly et son contenu a été effacé.",
+        "unknown": "Format non pris en charge. Choisissez la marque et le modèle manuellement. Le lien n’a pas été ouvert et aucun appareil n’a été rattaché."
+      }
+    },
+    "deviceId": "Identifiant dans le compte fabricant"
+  },
+  "mapPilot": {
+    "period": "Période",
+    "periods": {
+      "all": "Toutes les dates",
+      "today": "Aujourd’hui",
+      "tomorrow": "Demain",
+      "week": "7 prochains jours",
+      "custom": "Dates personnalisées"
+    },
+    "from": "Date de début",
+    "to": "Date de fin",
+    "invalidDates": "Choisissez une période valide.",
+    "clearArea": "Effacer la zone",
+    "quick": {
+      "active": "Actifs",
+      "maintenance": "Maintenance",
+      "missing": "Sans contrat",
+      "uncovered": "Non couverts"
+    },
+    "reset": "Réinitialiser la carte",
+    "issuePeriod": "Anomalies signalées pendant la période sélectionnée.",
+    "findProvider": "Trouver un intervenant",
+    "trade": "Métier",
+    "allTrades": "Tous les métiers",
+    "tradesError": "Les métiers n’ont pas pu être chargés.",
+    "declaredAvailability": "Disponibilité déclarée pour le jour",
+    "availabilityHelp": "Le filtre utilise les disponibilités hebdomadaires déclarées. Le créneau exact reste à confirmer avec le prestataire.",
+    "providersError": "La recherche n’a pas abouti.",
+    "providerCount": "{{count}} prestataire(s) couvrant ce logement",
+    "viewAndRequest": "Voir les prestations et demander un devis",
+    "locate": "Localiser sur la carte",
+    "inPeriod": "Dans la période",
+    "noStayInPeriod": "Aucun séjour dans la période sélectionnée.",
+    "filters": "Filtres de la carte"
   }
 }

@@ -1,4 +1,4 @@
-/* The mission panel and Mapbox surface come directly from the PMS. These
+/* The mission panel and Baitly map surface come directly from the PMS. These
    rules only frame the public projection and contain it within the landing. */
 .bim-demo {
   container: interventions / inline-size;
@@ -130,17 +130,6 @@
 }
 .bim-demo [data-demo-mission][aria-pressed="true"] {
   background: var(--bui-muted);
-}
-.bim-demo .mapboxgl-marker {
-  cursor: pointer;
-}
-.bim-demo .mapboxgl-marker:focus-visible {
-  outline: 2px solid #264672;
-  outline-offset: 4px;
-}
-.bim-demo .mapboxgl-popup-content {
-  color: #1b2a35;
-  font-size: 13px;
 }
 @container interventions (max-width: 1000px) {
   .bim-screen-switcher {

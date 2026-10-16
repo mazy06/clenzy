@@ -4,14 +4,14 @@ import * as Localization from 'expo-localization';
 import fr from './locales/fr.json';
 import en from './locales/en.json';
 import ar from './locales/ar.json';
+import { mobileV1 } from './mobileV1';
 
 const resources = {
-  fr: { translation: fr },
-  en: { translation: en },
-  // Traductions arabes complètes (Moteur Ménage 4B). NOTE : le support du
-  // layout RTL (I18nManager.forceRTL, miroir des écrans) est HORS scope —
-  // seules les chaînes sont traduites.
-  ar: { translation: ar },
+  fr: { translation: fr, mobileV1: mobileV1.fr },
+  en: { translation: en, mobileV1: mobileV1.en },
+  // Les surfaces Baitly adaptent les alignements à i18n.dir().
+  // La navigation native suit la direction du système.
+  ar: { translation: ar, mobileV1: mobileV1.ar },
 };
 
 // Detect device language, default to French

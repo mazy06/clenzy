@@ -32,6 +32,7 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.times;
 
 @ExtendWith(MockitoExtension.class)
 class InterventionPlanningServiceTest {
@@ -56,6 +57,32 @@ class InterventionPlanningServiceTest {
     }
 
     // ── Helpers ──────────────────────────────────────────────────────────────
+
+    @Test
+    void scalarIndexBatchesLinksAndReadsEachAssigneeOnceForThousandInterventions() {
+        LocalDate from = LocalDate.of(2026, 10, 1), to = LocalDate.of(2026, 10, 31);
+        var rows = java.util.stream.LongStream.rangeClosed(1, 1001).mapToObj(id ->
+                new com.clenzy.dto.BaitlyPlanningInterventionRow(id, 1L, "Logement", null,
+                        "CLEANING", InterventionStatus.PENDING, "MEDIUM", "Intervention", null,
+                        from.atTime(11, 0), 3, null, 7L, null, null, null, null, null, null, null)).toList();
+        when(interventionRepository.findBaitlyPlanningRows(eq(List.of(1L)), any(), any(), eq(ORG_ID)))
+                .thenReturn(rows);
+        when(reservationRepository.findBaitlyPlanningInterventionLinks(anyList(), eq(ORG_ID)))
+                .thenAnswer(invocation -> {
+                    List<Long> ids = invocation.getArgument(0);
+                    assertThat(ids).hasSizeLessThanOrEqualTo(500);
+                    return List.of(new com.clenzy.dto.BaitlyPlanningInterventionLink(ids.getFirst(), 99L));
+                });
+        when(userRepository.findBaitlyPlanningAssignees(List.of(7L), ORG_ID))
+                .thenReturn(List.of(new com.clenzy.dto.BaitlyPlanningPersonName(7L, "Alice", "Martin")));
+        var result = service.getBaitlyPlanningInterventions(List.of(1L), from, to);
+        assertThat(result).hasSize(1001).allSatisfy(row -> assertThat(row.get("assigneeName")).isEqualTo("Alice Martin"));
+        assertThat(result.getFirst().get("linkedReservationId")).isEqualTo(99L);
+        verify(reservationRepository, times(3)).findBaitlyPlanningInterventionLinks(anyList(), eq(ORG_ID));
+        verify(userRepository).findBaitlyPlanningAssignees(List.of(7L), ORG_ID);
+        verify(userRepository, never()).findByKeycloakId(any());
+        verify(teamRepository, never()).findAllById(any());
+    }
 
     private Jwt jwt(String sub) {
         Jwt jwt = mock(Jwt.class);
@@ -102,6 +129,25 @@ class InterventionPlanningServiceTest {
     @Nested
     @DisplayName("getPlanningInterventions(jwt, propertyIds, from, to, type)")
     class GetPlanning {
+
+        @Test
+        @DisplayName("Baitly conserve le jour de fin d'une intervention passant minuit")
+        void whenScheduleCrossesMidnight_thenEndDateAdvances() {
+            User admin = user(1L, "kc-admin", UserRole.SUPER_ADMIN);
+            Intervention item = intervention(100L, property(20L, "Prop A", admin), InterventionStatus.PENDING, "CLEANING");
+            item.setScheduledDate(LocalDateTime.of(2026, 6, 10, 23, 0));
+            item.setEstimatedDurationHours(3);
+            when(userRepository.findByKeycloakId("kc-admin")).thenReturn(Optional.of(admin));
+            when(interventionRepository.findAllByDateRange(any(), any(), eq(ORG_ID))).thenReturn(List.of(item));
+            when(reservationRepository.findByInterventionIdIn(eq(List.of(100L)), eq(ORG_ID))).thenReturn(List.of());
+
+            Map<String, Object> projection = service.getPlanningInterventions(jwt("kc-admin"), null,
+                    LocalDate.of(2026, 6, 1), LocalDate.of(2026, 6, 30), null).get(0);
+
+            assertThat(projection.get("startDate")).isEqualTo("2026-06-10");
+            assertThat(projection.get("endDate")).isEqualTo("2026-06-11");
+            assertThat(projection.get("endTime")).isEqualTo("02:00");
+        }
 
         @Test
         @DisplayName("when user not found - throws RuntimeException")

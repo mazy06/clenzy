@@ -158,7 +158,7 @@ export function OwnerPayoutDetailScreen() {
   const handleApprove = () => {
     Alert.alert(
       'Approuver ce reversement',
-      'Confirmer l\'approbation ? Le reversement passera au statut APPROUVE et pourra ensuite etre execute.',
+      'Confirmer l\'approbation ? Le reversement passera au statut APPROUVE et pourra ensuite être exécuté.',
       [
         { text: 'Annuler', style: 'cancel' },
         {
@@ -181,7 +181,7 @@ export function OwnerPayoutDetailScreen() {
   const handleExecute = () => {
     Alert.alert(
       'Executer le versement',
-      'Le virement va etre declenche immediatement vers le rail configure (Wise / SEPA / Stripe Connect). Confirmer ?',
+      'Le virement va être déclenché immédiatement vers le rail configuré (Wise / SEPA / Stripe Connect). Confirmer ?',
       [
         { text: 'Annuler', style: 'cancel' },
         {
@@ -293,7 +293,7 @@ export function OwnerPayoutDetailScreen() {
           }}>
             Detail financier
           </Text>
-          <DetailRow theme={theme} label="Periode" value={`${formatDate(payout.periodStart)} → ${formatDate(payout.periodEnd)}`} />
+          <DetailRow theme={theme} label="Période" value={`${formatDate(payout.periodStart)} → ${formatDate(payout.periodEnd)}`} />
           <DetailRow theme={theme} label="Revenu brut" value={`${formatAmount(payout.grossRevenue)} €`} />
           <DetailRow
             theme={theme}
@@ -376,13 +376,13 @@ export function OwnerPayoutDetailScreen() {
               <DetailRow theme={theme} label="BIC" value={ownerConfig.bic} />
             )}
             {ownerConfig.wiseConfigured && (
-              <DetailRow theme={theme} label="Wise" value="Recipient configure" />
+              <DetailRow theme={theme} label="Wise" value="Recipient configuré" />
             )}
             {ownerConfig.openBankingProvider && (
               <DetailRow
                 theme={theme}
                 label="Open Banking"
-                value={`${ownerConfig.openBankingProvider}${ownerConfig.openBankingConsentActive ? ' · actif' : ' · expire'}`}
+                value={`${ownerConfig.openBankingProvider}${ownerConfig.openBankingConsentActive ? ' · actif' : ' · expiré'}`}
               />
             )}
 
@@ -495,7 +495,7 @@ export function OwnerPayoutDetailScreen() {
           {payout.status === 'FAILED' && (
             <ActionButton
               theme={theme}
-              label="Reessayer"
+              label="Réessayer"
               icon="refresh-outline"
               color="#D97706"
               onPress={handleRetry}

@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { cleanup, screen } from '@testing-library/react';
+import { cleanup, fireEvent, screen } from '@testing-library/react';
 import i18n from '../../../i18n/config';
 import { renderWithProviders } from '../../../test/renderWithProviders';
 import { AGENT_IDS } from '../../supervision/constants';
@@ -34,6 +34,31 @@ vi.mock('../../../hooks/useGeoAuthLanguage', () => ({
 const LANGUAGES = ['fr', 'en', 'ar'] as const;
 
 afterEach(cleanup);
+
+describe('Navigation de la présentation Baitly', () => {
+  beforeEach(async () => { await i18n.changeLanguage('fr'); });
+
+  it('rend chaque fonctionnalité accessible sans attendre le défilement', () => {
+    renderWithProviders(<AuthLayout><input aria-label="Formulaire" defaultValue="Valeur conservée" /></AuthLayout>);
+    const select = screen.getByLabelText('Explorer les fonctionnalités', { selector: 'select' });
+    expect(select.querySelectorAll('option')).toHaveLength(SLIDE_IDS.length);
+    fireEvent.click(screen.getByRole('button', { name: 'Voyageurs', exact: true }));
+    expect(document.querySelector('[data-scene="guests"]')).toBeTruthy();
+    fireEvent.change(select, { target: { value: '13' } });
+    expect(document.querySelector('[data-scene="business"]')).toBeTruthy();
+    expect((screen.getByLabelText('Formulaire') as HTMLInputElement).value).toBe('Valeur conservée');
+    fireEvent.click(screen.getByRole('button', { name: 'Fonctionnalité suivante' }));
+    expect((select as HTMLSelectElement).value).toBe('0');
+    fireEvent.click(screen.getByRole('button', { name: 'Fonctionnalité précédente' }));
+    expect((select as HTMLSelectElement).value).toBe('13');
+  });
+
+  it('offre une commande explicite pour suspendre la présentation', () => {
+    renderWithProviders(<AuthLayout><div /></AuthLayout>);
+    fireEvent.click(screen.getByRole('button', { name: 'Mettre la présentation en pause' }));
+    expect(screen.getByRole('button', { name: 'Reprendre la présentation' })).toBeTruthy();
+  });
+});
 
 describe.each(LANGUAGES)('Carrousel d’authentification (%s)', (language) => {
   beforeEach(async () => {

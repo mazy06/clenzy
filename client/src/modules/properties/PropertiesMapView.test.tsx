@@ -5,10 +5,13 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import PropertiesMapView from './PropertiesMapView';
 import type { PropertyListItem } from '../../hooks/usePropertiesList';
 
+vi.mock('../../hooks/useUserPreference', () => ({ useUserPreference: (_key: string, defaults: unknown) => [defaults, vi.fn(), { isLoaded: true }] }));
 vi.mock('../../hooks/use-mobile', () => ({ useIsMobile: () => false }));
-vi.mock('../../components/MapboxPropertyMap', () => ({ MapboxPropertyMap: () => <div data-testid="map" /> }));
+vi.mock('../../components/BaitlyPropertyMap', () => ({ BaitlyPropertyMap: () => <div data-testid="map" /> }));
 vi.mock('../settings/components/ChannexHealthBadge', () => ({ default: () => null }));
 vi.mock('./MissingContractChip', () => ({ default: () => null }));
+// Le calque des secteurs est allumé d'office : sa colonne a ses propres tests.
+vi.mock('../marketplace/sectors/ProviderSectorPanel', () => ({ default: () => null }));
 
 let intersect: IntersectionObserverCallback;
 beforeEach(() => {
@@ -36,7 +39,6 @@ const view = (properties: PropertyListItem[]) => (
       canManageContracts={false}
       missingContractIds={new Set()}
       onMissingContractClick={() => {}}
-      navigate={vi.fn() as never}
     />
     </QueryClientProvider>
   </MemoryRouter>

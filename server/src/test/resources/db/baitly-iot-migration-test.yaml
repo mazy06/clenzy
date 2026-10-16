@@ -1,0 +1,7 @@
+databaseChangeLog:
+  - changeSet:
+      id: "0561-baitly-iot-simulated-noise-devices"
+      author: clenzy-team
+      changes:
+        - sqlFile:
+            path: db/changelog/changes/0561__baitly_iot_simulated_noise_devices.sql

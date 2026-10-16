@@ -56,10 +56,10 @@ export function Input({
         style={{
           ...theme.typography.body1,
           color: theme.colors.text.primary,
-          backgroundColor: theme.colors.background.surface,
-          borderWidth: 1.5,
+          backgroundColor: theme.colors.background.paper,
+          borderWidth: focused || error ? 1.5 : 1,
           borderColor,
-          borderRadius: theme.BORDER_RADIUS.md,
+          borderRadius: 14,
           paddingHorizontal: 16,
           paddingVertical: 14,
           minHeight: theme.TOUCH_TARGET.minHeight,

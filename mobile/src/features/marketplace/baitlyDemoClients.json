@@ -1,0 +1,736 @@
+[
+  {
+    "id": "baitly-demo-client-0",
+    "bio": "Des logements accueillants pour découvrir Marrakech, avec une attention particulière au confort et aux détails.",
+    "city": "Marrakech",
+    "demo": true,
+    "name": "Salma El Idrissi",
+    "role": "OWNER",
+    "properties": [
+      {
+        "id": "baitly-demo-home-0-1",
+        "city": "Marrakech",
+        "name": "Riad des Oliviers",
+        "type": "RIAD",
+        "areaM2": 140,
+        "guests": 6,
+        "photos": [
+          "cleaning",
+          "pool",
+          "garden"
+        ],
+        "bedrooms": 3,
+        "amenities": [
+          "WIFI",
+          "POOL",
+          "TERRACE",
+          "AIR_CONDITIONING"
+        ],
+        "bathrooms": 2,
+        "description": "Un patio lumineux, des chambres calmes et une terrasse pour profiter des soirées. Un pied-à-terre pour découvrir la médina.",
+        "performance": [
+          {
+            "year": 2024,
+            "bookedNights": 210,
+            "calendarNights": 365
+          },
+          {
+            "year": 2025,
+            "bookedNights": 280,
+            "calendarNights": 365
+          }
+        ],
+        "guestReviews": [
+          {
+            "id": "guest-0-1",
+            "date": "2026-09-28",
+            "name": "Camille R.",
+            "rating": 5,
+            "comment": "Très beau séjour. Le patio est calme, la literie confortable et l’accueil attentionné.",
+            "portraitIndex": 2
+          },
+          {
+            "id": "guest-0-2",
+            "date": "2026-09-14",
+            "name": "Karim A.",
+            "rating": 4,
+            "comment": "Maison agréable et propre. La terrasse est un vrai plus. Quelques bruits de rue en journée.",
+            "portraitIndex": 1
+          }
+        ]
+      },
+      {
+        "id": "baitly-demo-home-0-2",
+        "city": "Marrakech",
+        "name": "Suite Zellige",
+        "type": "APARTMENT",
+        "areaM2": 58,
+        "guests": 2,
+        "photos": [
+          "maintenance",
+          "cleaning",
+          "laundry"
+        ],
+        "bedrooms": 1,
+        "amenities": [
+          "WIFI",
+          "KITCHEN",
+          "AIR_CONDITIONING"
+        ],
+        "bathrooms": 1,
+        "description": "Un appartement chaleureux avec cuisine équipée et espace de repos. Idéal pour un séjour à deux.",
+        "performance": [
+          {
+            "year": 2024,
+            "bookedNights": 190,
+            "calendarNights": 365
+          },
+          {
+            "year": 2025,
+            "bookedNights": 220,
+            "calendarNights": 365
+          }
+        ],
+        "guestReviews": [
+          {
+            "id": "guest-0-3",
+            "date": "2026-09-30",
+            "name": "Léa M.",
+            "rating": 5,
+            "comment": "Arrivée facile et appartement très propre. Nous avons particulièrement apprécié le confort de la chambre.",
+            "portraitIndex": 0
+          },
+          {
+            "id": "guest-0-4",
+            "date": "2026-09-10",
+            "name": "Thomas B.",
+            "rating": 4,
+            "comment": "Un logement pratique pour visiter Marrakech. Cuisine bien équipée et hôte disponible.",
+            "portraitIndex": 4
+          }
+        ]
+      }
+    ],
+    "organization": null,
+    "bookingDomain": "sejours-salma.example",
+    "portraitIndex": 0,
+    "managementFeePct": null,
+    "networkPublished": true,
+    "seekingManagement": true,
+    "managementServices": []
+  },
+  {
+    "id": "baitly-demo-client-1",
+    "bio": "Une équipe locale pour accueillir les voyageurs et prendre soin des maisons à Marrakech.",
+    "city": "Marrakech",
+    "demo": true,
+    "name": "Youssef Amrani",
+    "role": "CONCIERGE",
+    "properties": [
+      {
+        "id": "baitly-demo-home-1-1",
+        "city": "Marrakech",
+        "name": "Maison Safran",
+        "type": "RIAD",
+        "areaM2": 140,
+        "guests": 6,
+        "photos": [
+          "cleaning",
+          "pool",
+          "garden"
+        ],
+        "bedrooms": 3,
+        "amenities": [
+          "WIFI",
+          "POOL",
+          "TERRACE",
+          "AIR_CONDITIONING"
+        ],
+        "bathrooms": 2,
+        "description": "Un patio lumineux, des chambres calmes et une terrasse pour profiter des soirées. Un pied-à-terre pour découvrir la médina.",
+        "performance": [
+          {
+            "year": 2024,
+            "bookedNights": 220,
+            "calendarNights": 365
+          },
+          {
+            "year": 2025,
+            "bookedNights": 292,
+            "calendarNights": 365
+          }
+        ],
+        "guestReviews": [
+          {
+            "id": "guest-1-1",
+            "date": "2026-09-28",
+            "name": "Camille R.",
+            "rating": 5,
+            "comment": "Très beau séjour. Le patio est calme, la literie confortable et l’accueil attentionné.",
+            "portraitIndex": 2
+          },
+          {
+            "id": "guest-1-2",
+            "date": "2026-09-14",
+            "name": "Karim A.",
+            "rating": 4,
+            "comment": "Maison agréable et propre. La terrasse est un vrai plus. Quelques bruits de rue en journée.",
+            "portraitIndex": 1
+          }
+        ]
+      },
+      {
+        "id": "baitly-demo-home-1-2",
+        "city": "Marrakech",
+        "name": "Le Studio Safran",
+        "type": "APARTMENT",
+        "areaM2": 58,
+        "guests": 2,
+        "photos": [
+          "maintenance",
+          "cleaning",
+          "laundry"
+        ],
+        "bedrooms": 1,
+        "amenities": [
+          "WIFI",
+          "KITCHEN",
+          "AIR_CONDITIONING"
+        ],
+        "bathrooms": 1,
+        "description": "Un appartement chaleureux avec cuisine équipée et espace de repos. Idéal pour un séjour à deux.",
+        "performance": [
+          {
+            "year": 2024,
+            "bookedNights": 202,
+            "calendarNights": 365
+          },
+          {
+            "year": 2025,
+            "bookedNights": 234,
+            "calendarNights": 365
+          }
+        ],
+        "guestReviews": [
+          {
+            "id": "guest-1-3",
+            "date": "2026-09-30",
+            "name": "Léa M.",
+            "rating": 5,
+            "comment": "Arrivée facile et appartement très propre. Nous avons particulièrement apprécié le confort de la chambre.",
+            "portraitIndex": 0
+          },
+          {
+            "id": "guest-1-4",
+            "date": "2026-09-10",
+            "name": "Thomas B.",
+            "rating": 4,
+            "comment": "Un logement pratique pour visiter Marrakech. Cuisine bien équipée et hôte disponible.",
+            "portraitIndex": 4
+          }
+        ]
+      }
+    ],
+    "organization": "Maison Safran · Démo",
+    "bookingDomain": "maison-safran.example",
+    "portraitIndex": 1,
+    "managementFeePct": 18,
+    "networkPublished": true,
+    "seekingManagement": false,
+    "managementServices": [
+      "LISTINGS",
+      "PRICING",
+      "GUESTS",
+      "CLEANING",
+      "MAINTENANCE",
+      "OWNER_REPORTING"
+    ]
+  },
+  {
+    "id": "baitly-demo-client-2",
+    "bio": "Des logements accueillants pour découvrir Marrakech, avec une attention particulière au confort et aux détails.",
+    "city": "Marrakech",
+    "demo": true,
+    "name": "Claire Morel",
+    "role": "OWNER",
+    "properties": [
+      {
+        "id": "baitly-demo-home-2-1",
+        "city": "Marrakech",
+        "name": "La Terrasse des Orangers",
+        "type": "RIAD",
+        "areaM2": 140,
+        "guests": 6,
+        "photos": [
+          "cleaning",
+          "pool",
+          "garden"
+        ],
+        "bedrooms": 3,
+        "amenities": [
+          "WIFI",
+          "POOL",
+          "TERRACE",
+          "AIR_CONDITIONING"
+        ],
+        "bathrooms": 2,
+        "description": "Un patio lumineux, des chambres calmes et une terrasse pour profiter des soirées. Un pied-à-terre pour découvrir la médina.",
+        "performance": [
+          {
+            "year": 2024,
+            "bookedNights": 230,
+            "calendarNights": 365
+          },
+          {
+            "year": 2025,
+            "bookedNights": 304,
+            "calendarNights": 365
+          }
+        ],
+        "guestReviews": [
+          {
+            "id": "guest-2-1",
+            "date": "2026-09-28",
+            "name": "Camille R.",
+            "rating": 5,
+            "comment": "Très beau séjour. Le patio est calme, la literie confortable et l’accueil attentionné.",
+            "portraitIndex": 2
+          },
+          {
+            "id": "guest-2-2",
+            "date": "2026-09-14",
+            "name": "Karim A.",
+            "rating": 4,
+            "comment": "Maison agréable et propre. La terrasse est un vrai plus. Quelques bruits de rue en journée.",
+            "portraitIndex": 1
+          }
+        ]
+      },
+      {
+        "id": "baitly-demo-home-2-2",
+        "city": "Marrakech",
+        "name": "Le Nid de la Médina",
+        "type": "APARTMENT",
+        "areaM2": 58,
+        "guests": 2,
+        "photos": [
+          "maintenance",
+          "cleaning",
+          "laundry"
+        ],
+        "bedrooms": 1,
+        "amenities": [
+          "WIFI",
+          "KITCHEN",
+          "AIR_CONDITIONING"
+        ],
+        "bathrooms": 1,
+        "description": "Un appartement chaleureux avec cuisine équipée et espace de repos. Idéal pour un séjour à deux.",
+        "performance": [
+          {
+            "year": 2024,
+            "bookedNights": 214,
+            "calendarNights": 365
+          },
+          {
+            "year": 2025,
+            "bookedNights": 248,
+            "calendarNights": 365
+          }
+        ],
+        "guestReviews": [
+          {
+            "id": "guest-2-3",
+            "date": "2026-09-30",
+            "name": "Léa M.",
+            "rating": 5,
+            "comment": "Arrivée facile et appartement très propre. Nous avons particulièrement apprécié le confort de la chambre.",
+            "portraitIndex": 0
+          },
+          {
+            "id": "guest-2-4",
+            "date": "2026-09-10",
+            "name": "Thomas B.",
+            "rating": 4,
+            "comment": "Un logement pratique pour visiter Marrakech. Cuisine bien équipée et hôte disponible.",
+            "portraitIndex": 4
+          }
+        ]
+      }
+    ],
+    "organization": null,
+    "bookingDomain": "escales-claire.example",
+    "portraitIndex": 2,
+    "managementFeePct": null,
+    "networkPublished": true,
+    "seekingManagement": true,
+    "managementServices": []
+  },
+  {
+    "id": "baitly-demo-client-3",
+    "bio": "Une équipe locale pour accueillir les voyageurs et prendre soin des maisons à Marrakech.",
+    "city": "Marrakech",
+    "demo": true,
+    "name": "Mehdi Berrada",
+    "role": "CONCIERGE",
+    "properties": [
+      {
+        "id": "baitly-demo-home-3-1",
+        "city": "Marrakech",
+        "name": "Riad Horizon",
+        "type": "RIAD",
+        "areaM2": 140,
+        "guests": 6,
+        "photos": [
+          "cleaning",
+          "pool",
+          "garden"
+        ],
+        "bedrooms": 3,
+        "amenities": [
+          "WIFI",
+          "POOL",
+          "TERRACE",
+          "AIR_CONDITIONING"
+        ],
+        "bathrooms": 2,
+        "description": "Un patio lumineux, des chambres calmes et une terrasse pour profiter des soirées. Un pied-à-terre pour découvrir la médina.",
+        "performance": [
+          {
+            "year": 2024,
+            "bookedNights": 240,
+            "calendarNights": 365
+          },
+          {
+            "year": 2025,
+            "bookedNights": 316,
+            "calendarNights": 365
+          }
+        ],
+        "guestReviews": [
+          {
+            "id": "guest-3-1",
+            "date": "2026-09-28",
+            "name": "Camille R.",
+            "rating": 5,
+            "comment": "Très beau séjour. Le patio est calme, la literie confortable et l’accueil attentionné.",
+            "portraitIndex": 2
+          },
+          {
+            "id": "guest-3-2",
+            "date": "2026-09-14",
+            "name": "Karim A.",
+            "rating": 4,
+            "comment": "Maison agréable et propre. La terrasse est un vrai plus. Quelques bruits de rue en journée.",
+            "portraitIndex": 1
+          }
+        ]
+      },
+      {
+        "id": "baitly-demo-home-3-2",
+        "city": "Marrakech",
+        "name": "Suite Horizon",
+        "type": "APARTMENT",
+        "areaM2": 58,
+        "guests": 2,
+        "photos": [
+          "maintenance",
+          "cleaning",
+          "laundry"
+        ],
+        "bedrooms": 1,
+        "amenities": [
+          "WIFI",
+          "KITCHEN",
+          "AIR_CONDITIONING"
+        ],
+        "bathrooms": 1,
+        "description": "Un appartement chaleureux avec cuisine équipée et espace de repos. Idéal pour un séjour à deux.",
+        "performance": [
+          {
+            "year": 2024,
+            "bookedNights": 226,
+            "calendarNights": 365
+          },
+          {
+            "year": 2025,
+            "bookedNights": 262,
+            "calendarNights": 365
+          }
+        ],
+        "guestReviews": [
+          {
+            "id": "guest-3-3",
+            "date": "2026-09-30",
+            "name": "Léa M.",
+            "rating": 5,
+            "comment": "Arrivée facile et appartement très propre. Nous avons particulièrement apprécié le confort de la chambre.",
+            "portraitIndex": 0
+          },
+          {
+            "id": "guest-3-4",
+            "date": "2026-09-10",
+            "name": "Thomas B.",
+            "rating": 4,
+            "comment": "Un logement pratique pour visiter Marrakech. Cuisine bien équipée et hôte disponible.",
+            "portraitIndex": 4
+          }
+        ]
+      }
+    ],
+    "organization": "Riad Horizon · Démo",
+    "bookingDomain": "riad-horizon.example",
+    "portraitIndex": 3,
+    "managementFeePct": 18,
+    "networkPublished": true,
+    "seekingManagement": false,
+    "managementServices": [
+      "LISTINGS",
+      "PRICING",
+      "GUESTS",
+      "CLEANING",
+      "MAINTENANCE",
+      "OWNER_REPORTING"
+    ]
+  },
+  {
+    "id": "baitly-demo-client-4",
+    "bio": "Des logements accueillants pour découvrir Marrakech, avec une attention particulière au confort et aux détails.",
+    "city": "Marrakech",
+    "demo": true,
+    "name": "Philippe Laurent",
+    "role": "OWNER",
+    "properties": [
+      {
+        "id": "baitly-demo-home-4-1",
+        "city": "Marrakech",
+        "name": "Le Patio Bleu",
+        "type": "RIAD",
+        "areaM2": 140,
+        "guests": 6,
+        "photos": [
+          "cleaning",
+          "pool",
+          "garden"
+        ],
+        "bedrooms": 3,
+        "amenities": [
+          "WIFI",
+          "POOL",
+          "TERRACE",
+          "AIR_CONDITIONING"
+        ],
+        "bathrooms": 2,
+        "description": "Un patio lumineux, des chambres calmes et une terrasse pour profiter des soirées. Un pied-à-terre pour découvrir la médina.",
+        "performance": [
+          {
+            "year": 2024,
+            "bookedNights": 250,
+            "calendarNights": 365
+          },
+          {
+            "year": 2025,
+            "bookedNights": 328,
+            "calendarNights": 365
+          }
+        ],
+        "guestReviews": [
+          {
+            "id": "guest-4-1",
+            "date": "2026-09-28",
+            "name": "Camille R.",
+            "rating": 5,
+            "comment": "Très beau séjour. Le patio est calme, la literie confortable et l’accueil attentionné.",
+            "portraitIndex": 2
+          },
+          {
+            "id": "guest-4-2",
+            "date": "2026-09-14",
+            "name": "Karim A.",
+            "rating": 4,
+            "comment": "Maison agréable et propre. La terrasse est un vrai plus. Quelques bruits de rue en journée.",
+            "portraitIndex": 1
+          }
+        ]
+      },
+      {
+        "id": "baitly-demo-home-4-2",
+        "city": "Marrakech",
+        "name": "Appartement du Patio",
+        "type": "APARTMENT",
+        "areaM2": 58,
+        "guests": 2,
+        "photos": [
+          "maintenance",
+          "cleaning",
+          "laundry"
+        ],
+        "bedrooms": 1,
+        "amenities": [
+          "WIFI",
+          "KITCHEN",
+          "AIR_CONDITIONING"
+        ],
+        "bathrooms": 1,
+        "description": "Un appartement chaleureux avec cuisine équipée et espace de repos. Idéal pour un séjour à deux.",
+        "performance": [
+          {
+            "year": 2024,
+            "bookedNights": 238,
+            "calendarNights": 365
+          },
+          {
+            "year": 2025,
+            "bookedNights": 276,
+            "calendarNights": 365
+          }
+        ],
+        "guestReviews": [
+          {
+            "id": "guest-4-3",
+            "date": "2026-09-30",
+            "name": "Léa M.",
+            "rating": 5,
+            "comment": "Arrivée facile et appartement très propre. Nous avons particulièrement apprécié le confort de la chambre.",
+            "portraitIndex": 0
+          },
+          {
+            "id": "guest-4-4",
+            "date": "2026-09-10",
+            "name": "Thomas B.",
+            "rating": 4,
+            "comment": "Un logement pratique pour visiter Marrakech. Cuisine bien équipée et hôte disponible.",
+            "portraitIndex": 4
+          }
+        ]
+      }
+    ],
+    "organization": null,
+    "bookingDomain": "maison-philippe.example",
+    "portraitIndex": 4,
+    "managementFeePct": null,
+    "networkPublished": true,
+    "seekingManagement": false,
+    "managementServices": []
+  },
+  {
+    "id": "baitly-demo-client-5",
+    "bio": "Des logements accueillants pour découvrir Marrakech, avec une attention particulière au confort et aux détails.",
+    "city": "Marrakech",
+    "demo": true,
+    "name": "Nadia Benali",
+    "role": "OWNER",
+    "properties": [
+      {
+        "id": "baitly-demo-home-5-1",
+        "city": "Marrakech",
+        "name": "Maison des Jasmins",
+        "type": "RIAD",
+        "areaM2": 140,
+        "guests": 6,
+        "photos": [
+          "cleaning",
+          "pool",
+          "garden"
+        ],
+        "bedrooms": 3,
+        "amenities": [
+          "WIFI",
+          "POOL",
+          "TERRACE",
+          "AIR_CONDITIONING"
+        ],
+        "bathrooms": 2,
+        "description": "Un patio lumineux, des chambres calmes et une terrasse pour profiter des soirées. Un pied-à-terre pour découvrir la médina.",
+        "performance": [
+          {
+            "year": 2024,
+            "bookedNights": 260,
+            "calendarNights": 365
+          },
+          {
+            "year": 2025,
+            "bookedNights": 340,
+            "calendarNights": 365
+          }
+        ],
+        "guestReviews": [
+          {
+            "id": "guest-5-1",
+            "date": "2026-09-28",
+            "name": "Camille R.",
+            "rating": 5,
+            "comment": "Très beau séjour. Le patio est calme, la literie confortable et l’accueil attentionné.",
+            "portraitIndex": 2
+          },
+          {
+            "id": "guest-5-2",
+            "date": "2026-09-14",
+            "name": "Karim A.",
+            "rating": 4,
+            "comment": "Maison agréable et propre. La terrasse est un vrai plus. Quelques bruits de rue en journée.",
+            "portraitIndex": 1
+          }
+        ]
+      },
+      {
+        "id": "baitly-demo-home-5-2",
+        "city": "Marrakech",
+        "name": "Le Studio des Jasmins",
+        "type": "APARTMENT",
+        "areaM2": 58,
+        "guests": 2,
+        "photos": [
+          "maintenance",
+          "cleaning",
+          "laundry"
+        ],
+        "bedrooms": 1,
+        "amenities": [
+          "WIFI",
+          "KITCHEN",
+          "AIR_CONDITIONING"
+        ],
+        "bathrooms": 1,
+        "description": "Un appartement chaleureux avec cuisine équipée et espace de repos. Idéal pour un séjour à deux.",
+        "performance": [
+          {
+            "year": 2024,
+            "bookedNights": 250,
+            "calendarNights": 365
+          },
+          {
+            "year": 2025,
+            "bookedNights": 290,
+            "calendarNights": 365
+          }
+        ],
+        "guestReviews": [
+          {
+            "id": "guest-5-3",
+            "date": "2026-09-30",
+            "name": "Léa M.",
+            "rating": 5,
+            "comment": "Arrivée facile et appartement très propre. Nous avons particulièrement apprécié le confort de la chambre.",
+            "portraitIndex": 0
+          },
+          {
+            "id": "guest-5-4",
+            "date": "2026-09-10",
+            "name": "Thomas B.",
+            "rating": 4,
+            "comment": "Un logement pratique pour visiter Marrakech. Cuisine bien équipée et hôte disponible.",
+            "portraitIndex": 4
+          }
+        ]
+      }
+    ],
+    "organization": null,
+    "bookingDomain": "sejours-nadia.example",
+    "portraitIndex": 5,
+    "managementFeePct": null,
+    "networkPublished": true,
+    "seekingManagement": true,
+    "managementServices": []
+  }
+]

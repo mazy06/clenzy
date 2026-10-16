@@ -12,6 +12,7 @@ import { clearTokenCookie, refreshSession } from '../services/apiClient';
 import PermissionSyncService from '../services/PermissionSyncService';
 import { clearTokens, clearSessionCookie } from '../services/storageService';
 import { idbCache } from '../services/indexedDbCache';
+import { markBaitlyBoot } from '../services/baitlyBootTiming';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -215,6 +216,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             updatedAt: userData.updatedAt || undefined,
           };
 
+          markBaitlyBoot('user-ready');
           setUser(nextUser);
           setLoading(false);
 

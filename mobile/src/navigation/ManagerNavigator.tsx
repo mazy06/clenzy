@@ -1,9 +1,21 @@
+import { BaitlyTabBar } from "./BaitlyTabBar";
+import { useBaitlyTabOptions } from "./useBaitlyMotion";
 import React from 'react';
-import { Platform, StyleSheet, View, Text } from 'react-native';
+import { useTranslation } from 'react-i18next';
+import type { NativeStackNavigationOptions } from '@react-navigation/native-stack';
+import { useBaitlyTheme } from '@/design-system/theme';
+import { BaitlyHeaderLogo } from '@/design-system/BaitlyHeader';
+
+/** Header with a back button, for pushed Baitly screens that do not draw their own. */
+function usePushedHeader(): NativeStackNavigationOptions {
+  const colors = useBaitlyTheme();
+  const { t } = useTranslation('mobileV1');
+  return { headerShown: true, headerTitle: BaitlyHeaderLogo, headerTitleAlign: 'center', headerShadowVisible: false,
+    headerBackButtonDisplayMode: 'minimal', headerBackTitle: t('back'), headerTintColor: colors.ink,
+    headerStyle: { backgroundColor: colors.background }, contentStyle: { backgroundColor: colors.background } };
+}
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
-import { Reicon } from '@/icons';
-import { useTheme } from '@/theme';
 import { useUnreadConversationCount } from '@/hooks/useConversations';
 
 import { PlanningDashboardScreen } from '@/screens/manager/PlanningDashboardScreen';
@@ -12,9 +24,8 @@ import { InterventionDetailScreen } from '@/screens/manager/InterventionDetailSc
 import { TaskValidationScreen } from '@/screens/manager/TaskValidationScreen';
 import { TeamListScreen } from '@/screens/manager/TeamListScreen';
 import { TeamAssignmentScreen } from '@/screens/manager/TeamAssignmentScreen';
-import { IncidentListScreen } from '@/screens/manager/IncidentListScreen';
-import { ServiceRequestListScreen } from '@/screens/manager/ServiceRequestListScreen';
-import { ProfileScreen } from '@/screens/common/ProfileScreen';
+import { AdminIncidentsScreen as IncidentListScreen, AdminRequestsScreen as ServiceRequestListScreen } from '@/screens/manager/AdminRequestsScreen';
+import { ManagerMoreScreen } from '@/screens/manager/ManagerMoreScreen';
 import { ProfileDetailScreen } from '@/screens/common/ProfileDetailScreen';
 import { SubscriptionScreen } from '@/screens/common/SubscriptionScreen';
 import { SubscriptionCheckoutScreen } from '@/screens/common/SubscriptionCheckoutScreen';
@@ -35,11 +46,6 @@ export type InterventionsStackParamList = {
   CreateIntervention: undefined;
 };
 
-export type TeamsStackParamList = {
-  TeamList: undefined;
-  TeamAssignment: { teamId: number };
-};
-
 export type MessagesStackParamList = {
   ConversationList: undefined;
   ConversationDetail: { conversationId: number };
@@ -48,6 +54,8 @@ export type MessagesStackParamList = {
 
 export type MoreStackParamList = {
   MoreMenu: undefined;
+  Teams: undefined;
+  TeamAssignment: { teamId: number };
   ProfileDetail: undefined;
   Subscription: undefined;
   SubscriptionCheckout: { forfait: string };
@@ -62,23 +70,14 @@ export type MoreStackParamList = {
 
 const InterventionsStack = createNativeStackNavigator<InterventionsStackParamList>();
 function InterventionsStackNavigator() {
+  const pushed = usePushedHeader();
   return (
     <InterventionsStack.Navigator screenOptions={{ headerShown: false }}>
       <InterventionsStack.Screen name="InterventionList" component={InterventionListScreen} />
-      <InterventionsStack.Screen name="InterventionDetail" component={InterventionDetailScreen} />
-      <InterventionsStack.Screen name="TaskValidation" component={TaskValidationScreen} />
+      <InterventionsStack.Screen name="InterventionDetail" options={pushed} component={InterventionDetailScreen} />
+      <InterventionsStack.Screen name="TaskValidation" options={pushed} component={TaskValidationScreen} />
       <InterventionsStack.Screen name="CreateIntervention" component={CreateInterventionScreen} />
     </InterventionsStack.Navigator>
-  );
-}
-
-const TeamsStack = createNativeStackNavigator<TeamsStackParamList>();
-function TeamsStackNavigator() {
-  return (
-    <TeamsStack.Navigator screenOptions={{ headerShown: false }}>
-      <TeamsStack.Screen name="TeamList" component={TeamListScreen} />
-      <TeamsStack.Screen name="TeamAssignment" component={TeamAssignmentScreen} />
-    </TeamsStack.Navigator>
   );
 }
 
@@ -102,14 +101,17 @@ function MessagesStackNavigator() {
 
 const MoreStack = createNativeStackNavigator<MoreStackParamList>();
 function MoreStackNavigator() {
+  const pushed = usePushedHeader();
   return (
     <MoreStack.Navigator screenOptions={{ headerShown: false }}>
-      <MoreStack.Screen name="MoreMenu" component={ProfileScreen} />
+      <MoreStack.Screen name="MoreMenu" component={ManagerMoreScreen} />
+      <MoreStack.Screen name="Teams" options={pushed} component={TeamListScreen} />
+      <MoreStack.Screen name="TeamAssignment" options={pushed} component={TeamAssignmentScreen} />
       <MoreStack.Screen name="ProfileDetail" component={ProfileDetailScreen} />
       <MoreStack.Screen name="Subscription" component={SubscriptionScreen} />
       <MoreStack.Screen name="SubscriptionCheckout" component={SubscriptionCheckoutScreen} />
-      <MoreStack.Screen name="ServiceRequests" component={ServiceRequestListScreen} />
-      <MoreStack.Screen name="Incidents" component={IncidentListScreen} />
+      <MoreStack.Screen name="ServiceRequests" options={pushed} component={ServiceRequestListScreen} />
+      <MoreStack.Screen name="Incidents" options={pushed} component={IncidentListScreen} />
       <MoreStack.Screen name="Documents" component={DocumentsScreen} />
       <MoreStack.Screen name="DocumentDetail" component={DocumentDetailScreen} />
       <MoreStack.Screen name="DocumentGenerate" component={DocumentGenerateScreen} />
@@ -122,105 +124,15 @@ function MoreStackNavigator() {
 const Tab = createBottomTabNavigator();
 
 export function ManagerNavigator() {
-  const theme = useTheme();
+  const options = useBaitlyTabOptions();
   const { data: unreadData } = useUnreadConversationCount();
   const unreadCount = unreadData?.count ?? 0;
-
   return (
-    <Tab.Navigator
-      screenOptions={{
-        headerShown: false,
-        tabBarActiveTintColor: theme.colors.primary.main,
-        tabBarInactiveTintColor: theme.colors.text.secondary,
-        tabBarStyle: {
-          backgroundColor: theme.colors.background.paper,
-          borderTopColor: theme.colors.border.light,
-          borderTopWidth: StyleSheet.hairlineWidth,
-          height: Platform.OS === 'ios' ? 88 : 64,
-          paddingTop: 6,
-          paddingBottom: Platform.OS === 'ios' ? 28 : 8,
-          ...theme.shadows.md,
-        },
-        tabBarLabelStyle: {
-          fontSize: 11,
-          fontWeight: '600',
-          marginTop: 2,
-        },
-        tabBarIconStyle: {
-          marginBottom: -2,
-        },
-      }}
-    >
-      <Tab.Screen
-        name="Planning"
-        component={PlanningDashboardScreen}
-        options={{
-          tabBarLabel: 'Planning',
-          tabBarIcon: ({ color, size }) => (
-            <Reicon name="clipboard-outline" size={size} color={color} />
-          ),
-        }}
-      />
-      <Tab.Screen
-        name="Interventions"
-        component={InterventionsStackNavigator}
-        options={{
-          tabBarLabel: 'Interventions',
-          tabBarIcon: ({ color, size }) => (
-            <Reicon name="construct-outline" size={size} color={color} />
-          ),
-        }}
-      />
-      <Tab.Screen
-        name="Messages"
-        component={MessagesStackNavigator}
-        options={{
-          tabBarLabel: 'Messages',
-          tabBarIcon: ({ color, size }) => (
-            <View>
-              <Reicon name="chatbubbles-outline" size={size} color={color} />
-              {unreadCount > 0 && (
-                <View style={{
-                  position: 'absolute',
-                  top: -4,
-                  right: -8,
-                  minWidth: 16,
-                  height: 16,
-                  borderRadius: 8,
-                  backgroundColor: theme.colors.error.main,
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  paddingHorizontal: 3,
-                }}>
-                  <Text style={{ fontSize: 9, color: '#fff', fontWeight: '800' }}>
-                    {unreadCount > 99 ? '99+' : unreadCount}
-                  </Text>
-                </View>
-              )}
-            </View>
-          ),
-        }}
-      />
-      <Tab.Screen
-        name="Teams"
-        component={TeamsStackNavigator}
-        options={{
-          tabBarLabel: 'Equipes',
-          tabBarIcon: ({ color, size }) => (
-            <Reicon name="people-outline" size={size} color={color} />
-          ),
-        }}
-      />
-      <Tab.Screen
-        name="More"
-        component={MoreStackNavigator}
-        options={{
-          tabBarLabel: 'Plus',
-          tabBarIcon: ({ color, size }) => (
-            <Reicon name="ellipsis-horizontal-circle-outline" size={size} color={color} />
-          ),
-        }}
-      />
+    <Tab.Navigator tabBar={props => <BaitlyTabBar {...props} />} screenOptions={options}>
+      <Tab.Screen name="Planning" component={PlanningDashboardScreen} options={{ tabBarLabel: "Planning" }} />
+      <Tab.Screen name="Interventions" component={InterventionsStackNavigator} options={{ tabBarLabel: "Missions" }} />
+      <Tab.Screen name="Messages" component={MessagesStackNavigator} options={{ tabBarLabel: "Messages", tabBarBadge: unreadCount > 0 ? (unreadCount > 99 ? "99+" : unreadCount) : undefined }} />
+      <Tab.Screen name="More" component={MoreStackNavigator} options={{ tabBarLabel: "Plus" }} />
     </Tab.Navigator>
   );
 }

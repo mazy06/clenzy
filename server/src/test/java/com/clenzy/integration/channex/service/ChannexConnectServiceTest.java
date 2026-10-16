@@ -86,6 +86,103 @@ class ChannexConnectServiceTest {
         return ChannexConnectRequest.importExisting("channex-prop-1", "channex-room-1", "channex-rate-1");
     }
 
+    private ChannexPropertyMapping existingEurConnection() {
+        Property p = property(100L, 42L);
+        p.setDefaultCurrency("EUR");
+        when(propertyRepository.findById(100L)).thenReturn(Optional.of(p));
+        ChannexPropertyMapping mapping = new ChannexPropertyMapping();
+        mapping.setChannexPropertyId("channex-prop-1");
+        mapping.setChannexRoomTypeId("channex-room-1");
+        mapping.setChannexDefaultRatePlanId("old-rate");
+        mapping.setChannexRatePlanIds("old-rate,other-rate");
+        when(mappingRepository.findByClenzyPropertyId(100L, 42L)).thenReturn(Optional.of(mapping));
+        return mapping;
+    }
+
+    private void remoteEurRate(String roomId, String currency) {
+        when(channexClient.getProperty("channex-prop-1")).thenReturn(
+            new ChannexPropertyDto("channex-prop-1", "Test", "EUR", null, "Europe/Paris"));
+        when(channexClient.getRatePlan("channex-rate-1")).thenReturn(
+            new ChannexRatePlanDto("channex-rate-1", "EUR", "channex-prop-1", roomId, currency, "per_room"));
+    }
+
+    @Test
+    void replaceRate_preservesConnectionAndOtherTargetsWithoutSendingAri() {
+        var mapping = existingEurConnection();
+        remoteEurRate("channex-room-1", "EUR");
+        when(mappingRepository.save(mapping)).thenReturn(mapping);
+        assertThat(service.replaceDefaultRatePlan(100L, 42L, request(), false)).isSameAs(mapping);
+        assertThat(mapping.getTargetRatePlanIds()).containsExactly("channex-rate-1", "other-rate");
+        assertThat(mapping.getChannexPropertyId()).isEqualTo("channex-prop-1");
+        assertThat(mapping.getSyncStatus()).isEqualTo(ChannexSyncStatus.PENDING);
+        org.mockito.Mockito.verifyNoInteractions(otaChannelRepository, syncService, bookingService);
+    }
+
+    @Test
+    void replaceRate_rejectsAnotherOrganizationBeforeRemoteAccess() {
+        when(propertyRepository.findById(100L)).thenReturn(Optional.of(property(100L, 999L)));
+        assertThatThrownBy(() -> service.replaceDefaultRatePlan(100L, 42L, request(), false))
+            .isInstanceOf(org.springframework.security.access.AccessDeniedException.class);
+        org.mockito.Mockito.verifyNoInteractions(channexClient, mappingRepository);
+    }
+
+    @Test
+    void replaceRate_cannotMoveConnectionToAnotherProperty() {
+        existingEurConnection();
+        var other = ChannexConnectRequest.importExisting("other-property", "channex-room-1", "channex-rate-1");
+        assertThatThrownBy(() -> service.replaceDefaultRatePlan(100L, 42L, other, false))
+            .isInstanceOf(IllegalArgumentException.class);
+        org.mockito.Mockito.verifyNoInteractions(channexClient);
+        verify(mappingRepository, never()).save(any());
+    }
+
+    @Test
+    void replaceRate_rejectsRateFromAnotherRoom() {
+        var mapping = existingEurConnection();
+        remoteEurRate("other-room", "EUR");
+        assertThatThrownBy(() -> service.replaceDefaultRatePlan(100L, 42L, request(), false))
+            .isInstanceOf(IllegalArgumentException.class).hasMessageContaining("chambre");
+        assertThat(mapping.getChannexDefaultRatePlanId()).isEqualTo("old-rate");
+        verify(mappingRepository, never()).save(any());
+    }
+
+    @Test
+    void replaceRate_rejectsCurrencyMismatchWithoutChangingMapping() {
+        var mapping = existingEurConnection();
+        remoteEurRate("channex-room-1", "USD");
+        assertThatThrownBy(() -> service.replaceDefaultRatePlan(100L, 42L, request(), false))
+            .isInstanceOf(IllegalArgumentException.class).hasMessageContaining("devise");
+        assertThat(mapping.getChannexDefaultRatePlanId()).isEqualTo("old-rate");
+        verify(mappingRepository, never()).save(any());
+    }
+
+    @Test
+    void replaceRate_requiresExplicitConsentToChangePropertyCurrency() {
+        var mapping = existingEurConnection();
+        var property = propertyRepository.findById(100L).orElseThrow();
+        property.setDefaultCurrency("USD");
+        remoteEurRate("channex-room-1", "EUR");
+        assertThatThrownBy(() -> service.replaceDefaultRatePlan(100L, 42L, request(), false))
+            .isInstanceOf(IllegalArgumentException.class).hasMessageContaining("Confirmez");
+        assertThat(property.getDefaultCurrency()).isEqualTo("USD");
+        assertThat(mapping.getChannexDefaultRatePlanId()).isEqualTo("old-rate");
+        verify(propertyRepository, never()).save(any());
+        verify(mappingRepository, never()).save(any());
+    }
+
+    @Test
+    void replaceRate_adoptsCurrencyOnlyWithExplicitConsentWithoutSendingAri() {
+        var mapping = existingEurConnection();
+        var property = propertyRepository.findById(100L).orElseThrow();
+        property.setDefaultCurrency("USD");
+        remoteEurRate("channex-room-1", "EUR");
+        service.replaceDefaultRatePlan(100L, 42L, request(), true);
+        assertThat(property.getDefaultCurrency()).isEqualTo("EUR");
+        assertThat(mapping.getChannexDefaultRatePlanId()).isEqualTo("channex-rate-1");
+        verify(propertyRepository).save(property);
+        org.mockito.Mockito.verifyNoInteractions(otaChannelRepository, syncService, bookingService);
+    }
+
     // ─── Connect ────────────────────────────────────────────────────────────
 
     @Test

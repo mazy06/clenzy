@@ -396,6 +396,13 @@
             <version>7.14.0</version>
         </dependency>
 
+        <!-- JTS — union et validité des contours des secteurs d'intervention (carte Baitly) -->
+        <dependency>
+            <groupId>org.locationtech.jts</groupId>
+            <artifactId>jts-core</artifactId>
+            <version>1.20.0</version>
+        </dependency>
+
         <!-- Jsoup — HTML parsing for AI design analysis (website fetching) -->
         <dependency>
             <groupId>org.jsoup</groupId>

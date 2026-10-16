@@ -705,7 +705,8 @@ class InterventionServiceTest {
 
             InterventionResponse result = service.deletePhoto(1L, 5L, jwt);
 
-            verify(photoService).deletePhoto(5L, 1L);
+            // Scoped to the mission's own organization, not only the request's tenant.
+            verify(photoService).deletePhoto(5L, 1L, intervention.getOrganizationId());
             assertThat(result).isNotNull();
         }
     }

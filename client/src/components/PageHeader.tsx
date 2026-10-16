@@ -11,6 +11,7 @@ import GlobalSearchField from './GlobalSearchField';
 import PageHeaderActions from './PageHeaderActions';
 import { cn } from '../utils/cn';
 import { usePageHeaderLayout } from '../hooks/usePageHeaderLayout';
+import './pageHeader.css';
 
 /** Seuil historique du planning pour choisir où porter les dates.
  * Le header adapte ensuite leur affichage à sa largeur disponible réelle. */
@@ -114,8 +115,8 @@ interface PageHeaderProps {
  *     pas, pour que chaque ecran ait son marqueur visuel ;
  *   - la RECHERCHE est unique et toujours visible (cf. GlobalSearchField).
  *
- * Tout ce qui est posé à droite est réduit à une icône expliquée par une
- * infobulle : les actions par `compactHeaderActions`, les filtres derrière un
+ * Les actions secondaires sont réduites à une icône expliquée par une
+ * infobulle ; les créations gardent leur libellé. Les filtres sont derrière un
  * déclencheur unique (cf. PageHeaderActions). Mode compact (lg-) : le tout se
  * replie dans un menu ⋯.
  */

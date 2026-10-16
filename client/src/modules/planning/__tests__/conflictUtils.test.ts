@@ -5,6 +5,7 @@ import {
   wouldConflict,
   validateReservationUpdate,
   validateInterventionUpdate,
+  validatePlanningEvent,
 } from '../utils/conflictUtils';
 import type { PlanningEvent } from '../types';
 import type { PlanningIntervention } from '../../../services/api';
@@ -62,6 +63,23 @@ function makePlanningIntervention(overrides: Partial<PlanningIntervention> = {})
 // ─── detectConflicts ─────────────────────────────────────────────────────────
 
 describe('detectConflicts', () => {
+  it('utilise les mêmes heures que les validations de déplacement et de panneau', () => {
+    const departure = makeReservation({ endTime: '16:00' });
+    const arrival = makeReservation({ id: 'res-2', startDate: '2026-03-05', endDate: '2026-03-08', startTime: '15:00' });
+    expect(detectConflicts([departure, arrival])).toHaveLength(1);
+    expect(wouldConflict(departure, [departure, arrival])).toBe(true);
+    expect(validateReservationUpdate(1, 1, departure.startDate, departure.endDate, undefined, '16:00', [departure, arrival], []).valid).toBe(false);
+  });
+  it('normalise HH:mm et HH:mm:ss pour une jonction exacte', () => {
+    const departure = makeReservation({ endTime: '11:00:00' });
+    const arrival = makeReservation({ id: 'res-2', startDate: '2026-03-05', endDate: '2026-03-08', startTime: '11:00' });
+    expect(detectConflicts([departure, arrival])).toHaveLength(0);
+  });
+  it('prend en compte les blocages masqués et ignore les annulations', () => {
+    const blocked = makeReservation({ id: 'block-1', type: 'blocked' });
+    expect(validatePlanningEvent(makeReservation(), [blocked]).reason).toBe('blocked');
+    expect(validatePlanningEvent(makeReservation(), [{ ...blocked, status: 'cancelled' }]).valid).toBe(true);
+  });
   it('returns empty for non-overlapping reservations', () => {
     const events = [
       makeReservation({ id: 'res-1', startDate: '2026-03-01', endDate: '2026-03-05' }),

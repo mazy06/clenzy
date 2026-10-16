@@ -16,6 +16,7 @@ import LaunchCountdown from '../components/LaunchCountdown';
 import BaitlyProductProofs from '../components/BaitlyProductProofs';
 import { BAITLY_READINESS_MESSAGES } from '../lib/messages/baitlyReadiness';
 import { SITE_PHOTOS, sitePhotoAlt } from '../data/baitlyPhotography';
+import '../prelaunch.css';
 
 const { prelaunchReception: terracePhoto } = SITE_PHOTOS;
 
@@ -149,7 +150,7 @@ function WaitlistForm({ applicationEntry }: { applicationEntry: boolean }) {
         />
         <span>
           {m.consent}{' '}
-          <Link to={applicationEntry ? '/privacy' : '/legal/confidentialite'}>
+          <Link to={applicationEntry ? '/confidentialite' : '/legal/confidentialite'}>
             {m.privacy}
           </Link>
         </span>

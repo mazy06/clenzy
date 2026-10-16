@@ -1,0 +1,32 @@
+name: Baitly planning index PostgreSQL
+on:
+  pull_request:
+    paths:
+      - 'server/src/main/resources/db/changelog/changes/0547__baitly_planning_reservation_intervention_index.sql'
+      - 'server/src/main/resources/db/changelog/db.changelog-master.yaml'
+      - 'tests/performance/baitly-planning-index-check.py'
+      - '.github/workflows/ci-baitly-planning-index.yml'
+permissions:
+  contents: read
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    services:
+      postgres:
+        image: postgres:15
+        env:
+          POSTGRES_USER: baitly_test
+          POSTGRES_PASSWORD: fixture-only
+          POSTGRES_DB: baitly_planning_index_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U baitly_test -d baitly_planning_index_test"
+          --health-interval 5s --health-timeout 5s --health-retries 10
+    steps:
+      - uses: actions/checkout@v4
+      - name: Apply migration and verify indexed links
+        env:
+          BAITLY_SQL_TEST_DB_URL: postgresql://baitly_test:fixture-only@localhost:5432/baitly_planning_index_test
+        run: python3 -B tests/performance/baitly-planning-index-check.py

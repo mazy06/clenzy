@@ -142,6 +142,14 @@ public class MarketplaceExposureService {
         return List.copyOf(hidden);
     }
 
+    /** Fiches a exclure de l'annuaire public : refus globaux et fiches non publiables. */
+    @Transactional(readOnly = true)
+    public List<Long> publicHiddenProviderIds() {
+        var hidden = new java.util.HashSet<>(ruleRepository.findHiddenProviderIdsFor(null));
+        hidden.addAll(documentary.unpublishableIds());
+        return List.copyOf(hidden);
+    }
+
     /** Regles posees sur une fiche, pour l'ecran de moderation. */
     @Transactional(readOnly = true)
     public List<MarketplaceExposureRule> rulesFor(Long providerId) {

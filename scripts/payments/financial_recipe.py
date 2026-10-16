@@ -119,8 +119,10 @@ def main(argv=None):
             results["backend"] = verify_reports(reports.glob("TEST-*.xml"), backend)
         if args.scope != "backend":
             node = os.environ.get("BAITLY_TEST_NODE", "node")
-            run([node, "node_modules/typescript/bin/tsc", "--noEmit", "-p", "tsconfig.json"], ROOT / "client", output / "typecheck.log")
-            run([node, "node_modules/typescript/bin/tsc", "--noEmit", "-p", "tsconfig.finance-tests.json"], ROOT / "client", output / "test-typecheck.log")
+            # Le typecheck complet dépasse ~2,4 Go : le tas par défaut de Node le faisait échouer (exit -6).
+            heap = "--max-old-space-size=4096"
+            run([node, heap, "node_modules/typescript/bin/tsc", "--noEmit", "-p", "tsconfig.json"], ROOT / "client", output / "typecheck.log")
+            run([node, heap, "node_modules/typescript/bin/tsc", "--noEmit", "-p", "tsconfig.finance-tests.json"], ROOT / "client", output / "test-typecheck.log")
             report = output / "frontend.xml"
             # Les suites HTTP/jsdom chargent de gros écrans ; borner les workers évite la saturation
             # et les faux timeouts de rendu lorsque les vérifications mobiles tournent aussi.

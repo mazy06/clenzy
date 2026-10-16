@@ -106,12 +106,12 @@ function ConversationCard({
       <View style={{
         width: 46,
         height: 46,
-        borderRadius: 23,
-        backgroundColor: `${channelCfg.color}18`,
+        borderRadius: 16,
+        backgroundColor: theme.colors.background.surface,
         alignItems: 'center',
         justifyContent: 'center',
       }}>
-        <Text style={{ fontSize: 16, fontWeight: '700', color: channelCfg.color }}>
+        <Text style={{ fontSize: 16, fontWeight: '600', color: theme.colors.text.primary }}>
           {getInitials(conversation.guestName)}
         </Text>
       </View>
@@ -142,7 +142,7 @@ function ConversationCard({
           {conversation.propertyName && (
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 3 }}>
               <Reicon name="home-outline" size={10} color={theme.colors.text.disabled} />
-              <Text style={{ fontSize: 10, color: theme.colors.text.disabled }} numberOfLines={1}>
+              <Text style={{ fontSize: 12, color: theme.colors.text.secondary }} numberOfLines={1}>
                 {conversation.propertyName}
               </Text>
             </View>
@@ -157,7 +157,7 @@ function ConversationCard({
             backgroundColor: `${channelCfg.color}10`,
           }}>
             <Reicon name={channelCfg.icon} size={9} color={channelCfg.color} />
-            <Text style={{ fontSize: 9, color: channelCfg.color, fontWeight: '600' }}>
+            <Text style={{ fontSize: 12, color: theme.colors.text.secondary, fontWeight: '500' }}>
               {channelCfg.label}
             </Text>
           </View>
@@ -189,7 +189,7 @@ function ConversationCard({
           justifyContent: 'center',
           paddingHorizontal: 5,
         }}>
-          <Text style={{ fontSize: 11, color: '#fff', fontWeight: '800' }}>
+          <Text style={{ fontSize: 12, color: theme.colors.primary.contrastText, fontWeight: '600', fontVariant: ['tabular-nums'] }}>
             {conversation.unreadCount > 99 ? '99+' : conversation.unreadCount}
           </Text>
         </View>
@@ -305,11 +305,12 @@ export function ConversationScreen({
           return (
             <Pressable
               key={f.key}
+              accessibilityRole="button" accessibilityState={{ selected: active }}
               onPress={() => setFilter(f.key)}
               style={{
                 paddingHorizontal: 14,
                 paddingVertical: 6,
-                borderRadius: theme.BORDER_RADIUS.full,
+                minHeight: 40, justifyContent: 'center', borderRadius: 12,
                 backgroundColor: active ? `${theme.colors.primary.main}14` : theme.colors.background.surface,
                 borderWidth: 1,
                 borderColor: active ? theme.colors.primary.main : theme.colors.border.light,
@@ -334,7 +335,7 @@ export function ConversationScreen({
         <EmptyState
           iconName="chatbubbles-outline"
           title="Aucune conversation"
-          description="Vos conversations apparaitront ici"
+          description="Vos conversations apparaîtront ici"
           compact
           style={{ marginTop: theme.SPACING['2xl'] }}
         />
