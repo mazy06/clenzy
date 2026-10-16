@@ -39,6 +39,7 @@ export class BaitlyClusterLayer {
   constructor(
     private readonly map: maplibregl.Map,
     private readonly clusterLabel: (count: number) => string,
+    private readonly claimCard?: (close: () => void) => () => void,
   ) {
     map.on('moveend', this.refresh);
   }
@@ -95,6 +96,8 @@ export class BaitlyClusterLayer {
     this.onMap.clear();
   }
 
+  refreshSelection(): void { this.render(); }
+
   private render(): void {
     this.choice?.remove();
     if (!this.index) {
@@ -139,7 +142,8 @@ export class BaitlyClusterLayer {
   }
 
   private isOpen(marker: maplibregl.Marker): boolean {
-    return !!marker.getPopup()?.isOpen() || marker.getElement().getAttribute('aria-pressed') === 'true';
+    return !!marker.getPopup()?.isOpen() || marker.getElement().getAttribute('aria-pressed') === 'true'
+      || marker.getElement().hasAttribute('data-highlighted');
   }
 
   private hasOpenLeaf(clusterId: number, open: Set<maplibregl.Marker>): boolean {
@@ -210,6 +214,9 @@ export class BaitlyClusterLayer {
     this.choice?.remove();
     this.choice = new maplibregl.Popup({ maxWidth: '300px', offset: 24, className: 'baitly-map-popup--choices' })
       .setLngLat(coordinates).setDOMContent(list).addTo(this.map);
+    const choice = this.choice;
+    const release = this.claimCard?.(() => choice.remove());
+    if (release) choice.on('close', release);
   }
 }
 

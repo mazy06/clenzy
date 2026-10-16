@@ -21,6 +21,7 @@ import PropertyReservations from './map-views/PropertyReservations';
 import PropertyIssues from './map-views/PropertyIssues';
 import PropertyDaySummary from './map-views/PropertyDaySummary';
 import type { PropertyMapView } from './map-views/propertyMapView';
+import PropertyProviderFinder from './map-views/PropertyProviderFinder';
 import PropertyMapPreview from './PropertyMapPreview';
 
 /**
@@ -33,12 +34,14 @@ import PropertyMapPreview from './PropertyMapPreview';
  * photos, détails, propriétaire — ne change pas. `onDayAssignee` : intervenant du jour choisi
  * dans les prestations, pour montrer son secteur.
  */
-export default function PropertyMapCard({ propertyId, view = 'prestations', onShowView, onDayAssignee, previewOnly = false }: {
+export default function PropertyMapCard({ propertyId, view = 'prestations', onShowView, onDayAssignee, providerDate, range, previewOnly = false }: {
   previewOnly?: boolean;
   propertyId: number;
   view?: PropertyMapView;
   onShowView?: (view: PropertyMapView) => void;
   onDayAssignee?: (userId: number | null) => void;
+  providerDate?: string;
+  range?: { from?: string; to?: string };
 }) {
   const { t } = useTranslation();
   const navigate = useNavigate();
@@ -64,10 +67,10 @@ export default function PropertyMapCard({ propertyId, view = 'prestations', onSh
   );
 
   return (
-    <MapCard footer={footer} photos={property.photoUrls} alt={property.name} extra={view === 'reservations' ? <PropertyReservations propertyId={property.id} />
-      : view === 'issues' ? <PropertyIssues propertyId={property.id} />
+    <MapCard footer={footer} photos={property.photoUrls} alt={property.name} extra={<>{view === 'reservations' ? <PropertyReservations propertyId={property.id} range={range} />
+      : view === 'issues' ? <PropertyIssues propertyId={property.id} range={range} />
       : view === 'properties' && onShowView ? <PropertyDaySummary propertyId={property.id} onShowView={onShowView} />
-      : <PropertyPrestations propertyId={property.id} onDayAssignee={onDayAssignee} />}>
+      : <PropertyPrestations propertyId={property.id} onDayAssignee={onDayAssignee} range={range} />}<PropertyProviderFinder propertyId={property.id} initialDate={providerDate} /></>}>
       <MapCardHeader
         eyebrow={getPropertyTypeLabel(property.type, t)}
         title={property.name}

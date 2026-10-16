@@ -38,7 +38,14 @@ public class MissionMapQueryService {
                           String category,
                           @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate from,
                           @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate to,
-                          String assigneeType, Long assigneeId) {}
+                          String assigneeType, Long assigneeId, String propertyIds) {
+        public Filters(String search, String type, String status, String priority, Long propertyId,
+                       Double north, Double south, Double east, Double west, String category,
+                       LocalDate from, LocalDate to, String assigneeType, Long assigneeId) {
+            this(search, type, status, priority, propertyId, north, south, east, west, category,
+                    from, to, assigneeType, assigneeId, null);
+        }
+    }
     /**
      * Point d'une mission sur la carte. {@code state} colore l'épingle :
      * {@code late} (en retard), {@code today}, {@code planned}, {@code done}, {@code closed}.
@@ -296,6 +303,13 @@ public class MissionMapQueryService {
         if (filters.propertyId != null) {
             where.append(" AND p.id = :propertyId"); params.put("propertyId", filters.propertyId);
         }
+        if (filters.propertyIds != null) {
+            var ids = parsePropertyIds(filters.propertyIds);
+            if (ids.isEmpty()) where.append(" AND 1 = 0");
+            else { where.append(" AND p.id IN :mapPropertyIds"); params.put("mapPropertyIds", ids); }
+        }
+        if (filters.from != null && filters.to != null && filters.from.isAfter(filters.to))
+            throw new IllegalArgumentException("Période invalide");
         if (filters.from != null) {
             where.append(" AND ").append(date).append(" >= :periodStart"); params.put("periodStart", filters.from.atStartOfDay());
         }
@@ -339,6 +353,19 @@ public class MissionMapQueryService {
                 || f.south < -90 || f.north > 90 || f.south > f.north
                 || f.west < -180 || f.west > 180 || f.east < -180 || f.east > 180)
             throw new IllegalArgumentException("Zone géographique invalide");
+    }
+
+    /** Un filtre de carte ne fait que restreindre le périmètre tenant/ownership existant. */
+    static List<Long> parsePropertyIds(String value) {
+        if (value.isBlank() || value.equals("none")) return List.of();
+        if (value.length() > 40_000) throw new IllegalArgumentException("Trop de logements : affinez les filtres");
+        String[] parts = value.split(",", -1);
+        if (parts.length > 2_000) throw new IllegalArgumentException("Trop de logements : affinez les filtres");
+        try {
+            var ids = Arrays.stream(parts).map(String::strip).map(Long::valueOf).distinct().toList();
+            if (ids.stream().anyMatch(id -> id <= 0)) throw new IllegalArgumentException("Logement invalide");
+            return ids;
+        } catch (NumberFormatException error) { throw new IllegalArgumentException("Logement invalide", error); }
     }
 
     private static void addFilter(StringBuilder where, Map<String, Object> params, String name, String field, String value) {

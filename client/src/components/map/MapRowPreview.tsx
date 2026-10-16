@@ -1,10 +1,11 @@
-import { useLayoutEffect, useState, type ReactNode } from 'react';
+import { useLayoutEffect, useRef, useState, type ReactNode } from 'react';
 import { Popover as PopoverPrimitive } from 'radix-ui';
 import { Button, PopoverContent } from '../ui';
 import { X } from '../../icons/glyphs';
 import { useTranslation } from '../../hooks/useTranslation';
 import { useMediaQuery } from '../../hooks/use-media-query';
 import './mapRowPreview.css';
+import { useMapCardClaim } from './MapCardCoordinator';
 
 /** Aperçu ancré à sa ligne, avec encoche et fermeture sans quitter la carte. */
 export default function MapRowPreview({ children, label, side }: {
@@ -15,6 +16,9 @@ export default function MapRowPreview({ children, label, side }: {
   const [inner, setInner] = useState<HTMLDivElement | null>(null);
   const [lastRow, setLastRow] = useState(false);
   const [lastAlignOffset, setLastAlignOffset] = useState(-1);
+  const closeRef = useRef<HTMLButtonElement>(null);
+  const closedByScroll = useRef(false);
+  const claimCard = useMapCardClaim();
   useLayoutEffect(() => {
     const panel = inner?.closest<HTMLElement>('[data-slot="popover-content"]');
     if (!panel) return;
@@ -22,6 +26,11 @@ export default function MapRowPreview({ children, label, side }: {
       .find(element => element.getAttribute('aria-controls') === panel.id);
     const anchor = trigger?.closest<HTMLElement>('[data-map-preview-anchor]') ?? trigger;
     if (!anchor) return;
+    closedByScroll.current = false;
+    const releaseCard = claimCard(() => {
+      closedByScroll.current = true;
+      closeRef.current?.click();
+    });
     const carrier = anchor.closest<HTMLElement>('[data-provider-sector-panel]');
     const measure = () => {
       const box = panel.getBoundingClientRect();
@@ -70,6 +79,16 @@ export default function MapRowPreview({ children, label, side }: {
     };
     let frame = 0;
     const schedule = () => { cancelAnimationFrame(frame); frame = requestAnimationFrame(measure); };
+    // La liaison appartient à une ligne immobile. Fermer dès que son conteneur
+    // défile, sans interrompre le geste ni ramener le focus sur la ligne déplacée.
+    const onScroll = (event: Event) => {
+      const target = event.target;
+      if (target !== document && target !== event.currentTarget
+        && (!(target instanceof Element) || !target.contains(anchor))) return;
+      closedByScroll.current = true;
+      cancelAnimationFrame(frame);
+      closeRef.current?.click();
+    };
     measure(); schedule();
     const observer = new ResizeObserver(schedule);
     observer.observe(panel); observer.observe(anchor);
@@ -77,22 +96,28 @@ export default function MapRowPreview({ children, label, side }: {
     if (panel.parentElement) positionObserver.observe(panel.parentElement, { attributes: true, attributeFilter: ['style'] });
     if (anchor.parentElement) positionObserver.observe(anchor.parentElement, { attributes: true, attributeFilter: ['style'], childList: true });
     window.addEventListener('resize', schedule);
-    window.addEventListener('scroll', schedule, true);
-    return () => { observer.disconnect(); positionObserver.disconnect(); cancelAnimationFrame(frame);
+    window.addEventListener('scroll', onScroll, true);
+    return () => { releaseCard(); observer.disconnect(); positionObserver.disconnect(); cancelAnimationFrame(frame);
       if (carrier) delete carrier.dataset.previewLastSide;
-      window.removeEventListener('resize', schedule); window.removeEventListener('scroll', schedule, true); };
-  }, [inner, small]);
+      window.removeEventListener('resize', schedule); window.removeEventListener('scroll', onScroll, true); };
+  }, [inner, small, claimCard]);
   const physicalSide = (side === 'end') !== !!isArabic ? 'right' : 'left';
   return <PopoverContent side={small ? 'bottom' : physicalSide} align={small ? 'start' : lastRow ? 'end' : 'center'}
     alignOffset={!small && lastRow ? lastAlignOffset : 0} sideOffset={12}
     collisionPadding={{ top: 24, bottom: lastRow && !small ? 8 : 24, left: 24, right: 24 }}
+    onCloseAutoFocus={event => {
+      if (closedByScroll.current) {
+        event.preventDefault();
+        closedByScroll.current = false;
+      }
+    }}
     aria-label={label} className="bui-map-preview w-[min(400px,calc(100vw-48px))] gap-0 p-0">
     <span aria-hidden className="bui-map-preview__join" />
     <div ref={setInner} className="max-h-[min(75dvh,var(--radix-popover-content-available-height))] overflow-y-auto overscroll-contain">
       {children}
     </div>
     <PopoverPrimitive.Close asChild>
-      <Button size="icon-xs" variant="secondary" aria-label={t('common.close', 'Fermer')}
+      <Button ref={closeRef} size="icon-xs" variant="secondary" aria-label={t('common.close', 'Fermer')}
         className="absolute end-2 top-2 cursor-pointer"><X className="size-3.5" /></Button>
     </PopoverPrimitive.Close>
   </PopoverContent>;

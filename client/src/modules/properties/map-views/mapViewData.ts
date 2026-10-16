@@ -26,25 +26,27 @@ export function groupMissionsByProperty(markers: MissionMapOverview['markers']):
 }
 
 /** Prestations de la vue carte (interventions + demandes ouvertes), filtrées par type. */
-export function usePrestationPins(category: PrestationCategory, enabled: boolean) {
+export function usePrestationPins(category: PrestationCategory, enabled: boolean,
+  scope?: { from?: string; to?: string; propertyIds?: string }) {
   const filters = useMemo<MissionMapFilters>(() => buildPrestationFilters(
     { search: '', category, status: 'all', period: 'all', assignee: 'all' }, new Date()), [category]);
-  const overview = useMissionMapOverview('prestations', filters, enabled);
+  const scopedFilters = useMemo(() => ({ ...filters, ...scope }), [filters, scope?.from, scope?.to, scope?.propertyIds]);
+  const overview = useMissionMapOverview('prestations', scopedFilters, enabled);
   const byProperty = useMemo(() => groupMissionsByProperty(overview.data?.markers ?? []), [overview.data]);
-  return { filters, overview, byProperty };
+  return { filters: scopedFilters, overview, byProperty };
 }
 
 /** Fenêtre des réservations de la carte : en cours et à venir sur 30 jours. */
 export const RESERVATION_WINDOW_DAYS = 30;
 
-export function useReservationWindow(enabled: boolean, propertyIds?: number[]) {
+export function useReservationWindow(enabled: boolean, propertyIds?: number[], range?: { from?: string; to?: string }) {
   const today = startOfDay(new Date());
-  const from = isoDay(today);
-  const to = isoDay(addDays(today, RESERVATION_WINDOW_DAYS));
+  const from = range ? range.from : isoDay(today);
+  const to = range ? range.to : isoDay(addDays(today, RESERVATION_WINDOW_DAYS));
   return useQuery({
     queryKey: ['reservations', 'map-window', from, to, propertyIds ?? 'all'],
     queryFn: () => reservationsApi.getAll({ from, to, propertyIds }),
-    enabled,
+    enabled: enabled && (!propertyIds || propertyIds.length > 0),
     staleTime: 60_000,
     select: (rows: Reservation[]) => rows
       .filter((reservation) => reservation.status !== 'cancelled')

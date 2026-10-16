@@ -1,6 +1,7 @@
 import * as React from 'react';
 import { Drawer as Vaul } from 'vaul';
 import { useIsMobile } from '../../hooks/use-mobile';
+import { useMediaQuery } from '../../hooks/use-media-query';
 import { cn } from '../../utils/cn';
 import MissionMapSplitView from '../MissionMapSplitView';
 import { useTranslation } from '../../hooks/useTranslation';
@@ -77,6 +78,7 @@ export default function MapWithSheet({
 }: MapWithSheetProps) {
   const { t } = useTranslation();
   const isNarrow = useIsMobile(640);
+  const isCompactLandscape = useMediaQuery('(max-width: 1279px) and (orientation: landscape)');
   const [snap, setSnap] = React.useState<number | string | null>(SNAP_POINTS[0]);
   const [detailHost, setDetailHost] = React.useState<HTMLDivElement | null>(null);
   const [detailOpen, setDetailOpen] = React.useState(false);
@@ -89,7 +91,7 @@ export default function MapWithSheet({
   const list = emptyState ?? children;
 
   // ── Desktop : mise en page d'origine, carte puis liste ─────────────────────
-  if (!isNarrow) {
+  if (!isNarrow || (desktopLayout === 'split' && isCompactLandscape)) {
     if (desktopLayout === 'split') {
       return <MissionMapSplitView map={map} aside={aside} listTitle={listTitle} listIndicators={listIndicators} listResetKey={listResetKey} className={className}>{list}</MissionMapSplitView>;
     }
@@ -104,7 +106,7 @@ export default function MapWithSheet({
             <span className="min-w-0 flex-1 truncate">{listTitle}</span>
             {listIndicators}
           </div>
-          <div ref={scrollRef} data-map-list-scroll className="flex min-h-0 flex-1 flex-col gap-1.5 overflow-y-auto pe-0.5">
+          <div ref={scrollRef} data-map-list-scroll className="no-scrollbar flex min-h-0 flex-1 flex-col gap-1.5 overflow-y-auto pe-0.5">
             {list}
           </div>
         </div>
@@ -172,7 +174,7 @@ export default function MapWithSheet({
             {/* `overscroll-contain` : arrivé en bout de liste, le geste ne
                 repart pas dans la page derrière la feuille. */}
             <div ref={setDetailHost} hidden={!detailOpen} className={cn('min-h-0 flex-1 overflow-y-auto overscroll-contain px-3 pb-[max(16px,env(safe-area-inset-bottom))]', !detailOpen && 'hidden')} />
-            <div ref={scrollRef} data-map-list-scroll className={cn('flex min-h-0 flex-1 flex-col gap-1.5 overflow-y-auto overscroll-contain px-3 pb-[max(16px,env(safe-area-inset-bottom))]', detailOpen && 'hidden')}>
+            <div ref={scrollRef} data-map-list-scroll className={cn('no-scrollbar flex min-h-0 flex-1 flex-col gap-1.5 overflow-y-auto overscroll-contain px-3 pb-[max(16px,env(safe-area-inset-bottom))]', detailOpen && 'hidden')}>
               {aside && <div className="flex max-h-[45dvh] min-h-0 shrink-0 flex-col">{aside}</div>}
               {list}
             </div>

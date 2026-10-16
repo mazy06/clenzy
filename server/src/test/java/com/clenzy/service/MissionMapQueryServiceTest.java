@@ -131,6 +131,29 @@ class MissionMapQueryServiceTest {
         assertThat(service.overview("interventions", search, jwt).markers()).hasSize(7);
         assertThat(service.page("interventions", filters(90d, -90d, -170d, 170d), 0, jwt).content()).isEmpty();
     }
+    @Test void mapPropertyScopeNarrowsCountsPagesAndNeverBypassesOwnership() {
+        var included = new MissionMapQueryService.Filters(null, null, null, null, null,
+                null, null, null, null, null, null, null, null, null, "1");
+        var excluded = new MissionMapQueryService.Filters(null, null, null, null, null,
+                null, null, null, null, null, null, null, null, null, "99");
+        var empty = new MissionMapQueryService.Filters(null, null, null, null, null,
+                null, null, null, null, null, null, null, null, null, "none");
+        for (String kind : List.of("prestations", "interventions", "service-requests")) {
+            assertThat(service.overview(kind, included, jwt("SUPER_ADMIN", "admin")).total()).isPositive();
+            assertThat(service.page(kind, excluded, 0, jwt("SUPER_ADMIN", "admin")).totalElements()).isZero();
+            assertThat(service.overview(kind, empty, jwt("SUPER_ADMIN", "admin")).total()).isZero();
+            User outsider = new User(); outsider.setId(99L);
+            when(users.findByKeycloakId("outsider")).thenReturn(Optional.of(outsider));
+            assertThat(service.overview(kind, included, jwt("HOST", "outsider")).total()).isZero();
+        }
+    }
+
+    @Test void rejectsMalformedAndOversizedMapPropertyScopes() {
+        assertThat(MissionMapQueryService.parsePropertyIds("1,2,1")).containsExactly(1L, 2L);
+        for (String invalid : List.of("0", "-1", "1,", "1,abc", "1 OR 1=1", "9999999999999999999999", "1,".repeat(2001))) {
+            assertThatThrownBy(() -> MissionMapQueryService.parsePropertyIds(invalid)).isInstanceOf(IllegalArgumentException.class);
+        }
+    }
     @Test void closedAndAlreadyConvertedRequestsAreExcludedBeforePagingAndCounting() {
         em.find(ServiceRequest.class, 1L).setStatus(RequestStatus.COMPLETED);
         em.find(ServiceRequest.class, 2L).setStatus(RequestStatus.AWAITING_PAYMENT);

@@ -49,6 +49,31 @@ const overlay = (mode: SectorOverlay['mode']): SectorOverlay => ({
 });
 
 describe('BaitlySectorLayer', () => {
+  it.each(['merged', 'byProvider'] as const)('toggles the same area off and switches from city to district in %s mode', mode => {
+    const { map, listeners } = fakeMap();
+    const select = vi.fn();
+    const city = square(2);
+    const district: GeoJSON.Polygon = { type: 'Polygon', coordinates: [[[2.1,48.1],[2.2,48.1],[2.2,48.2],[2.1,48.2],[2.1,48.1]]] };
+    const layer = new BaitlySectorLayer(map as unknown as maplibregl.Map);
+    const shown = { ...overlay(mode), providers: [{ id: 1, geometry: city }, { id: 3, geometry: district }], onAreaSelect: select };
+    layer.set(shown, 'light');
+    const click = listeners.get('click')![0] as unknown as (event: maplibregl.MapMouseEvent) => void;
+    const at = (lng: number, lat: number) => click({ lngLat: { lng, lat } } as maplibregl.MapMouseEvent);
+    at(2.5, 48.5);
+    expect(select.mock.lastCall?.[1]).toEqual(city);
+    layer.set({ ...shown, selectedAreaGeometry: JSON.parse(JSON.stringify(city)) }, 'light');
+    at(2.7, 48.7);
+    expect(select).toHaveBeenLastCalledWith(null, null, null);
+    // Un arrondissement est une autre zone, même s'il appartient à la ville sélectionnée.
+    at(2.15, 48.15);
+    expect(select.mock.lastCall?.[1]).toEqual(district);
+    layer.set({ ...shown, selectedAreaGeometry: JSON.parse(JSON.stringify(district)) }, 'light');
+    at(2.18, 48.18);
+    expect(select).toHaveBeenLastCalledWith(null, null, null);
+    layer.set({ ...shown, selectedAreaGeometry: null }, 'light');
+    at(2.18, 48.18);
+    expect(select.mock.lastCall?.[1]).toEqual(district);
+  });
   it.each(['merged', 'byProvider'] as const)('selects the district before its enclosing city in %s mode', mode => {
     const { map, listeners } = fakeMap();
     const select = vi.fn();
@@ -58,9 +83,9 @@ describe('BaitlySectorLayer', () => {
     layer.set({ ...overlay(mode), providers: [{ id: 3, geometry: district }, { id: 1, geometry: square(2) }], onAreaSelect: select }, 'light');
     const click = listeners.get('click')![0] as unknown as (event: maplibregl.MapMouseEvent) => void;
     click({ lngLat: { lng: 2.15, lat: 48.15 } } as maplibregl.MapMouseEvent);
-    expect(select).toHaveBeenLastCalledWith([3, 1], district);
+    expect(select).toHaveBeenLastCalledWith([3, 1], district, { lng: 2.1499999999999773, lat: 48.15 });
     click({ lngLat: { lng: 2.5, lat: 48.5 } } as maplibregl.MapMouseEvent);
-    expect(select).toHaveBeenLastCalledWith([3, 1], square(2));
+    expect(select).toHaveBeenLastCalledWith([3, 1], square(2), { lng: 2.5, lat: 48.5 });
   });
   it('filters overlapping providers on map clicks, preserves marker actions and releases its listener', () => {
     const { map, listeners } = fakeMap();
@@ -71,14 +96,14 @@ describe('BaitlySectorLayer', () => {
     const click = listeners.get('click')![0] as unknown as (event: maplibregl.MapMouseEvent) => void;
     const event = (lng: number, target: Element = document.createElement('canvas')) => ({ lngLat: { lng, lat: 48.5 }, originalEvent: { target } }) as unknown as maplibregl.MapMouseEvent;
     click(event(2.5));
-    expect(select).toHaveBeenLastCalledWith([1, 3], square(2));
+    expect(select).toHaveBeenLastCalledWith([1, 3], square(2), { lng: 2.5, lat: 48.5 });
     click(event(362.5));
-    expect(select).toHaveBeenLastCalledWith([1, 3], square(2));
+    expect(select).toHaveBeenLastCalledWith([1, 3], square(2), { lng: 2.5, lat: 48.5 });
     const marker = document.createElement('button'); marker.className = 'maplibregl-marker';
     select.mockClear(); click(event(2.5, marker));
     expect(select).not.toHaveBeenCalled();
     click(event(8));
-    expect(select).toHaveBeenLastCalledWith(null, null);
+    expect(select).toHaveBeenLastCalledWith(null, null, null);
     layer.destroy();
     expect(off).toHaveBeenCalledWith('click', click);
   });

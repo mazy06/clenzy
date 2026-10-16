@@ -53,7 +53,7 @@ export default function MissionMapSplitView({
         <div
           ref={scrollRef}
           data-map-list-scroll
-          className="min-h-0 flex-1 overflow-y-auto overscroll-contain divide-y divide-border"
+          className="no-scrollbar min-h-0 flex-1 overflow-y-auto overscroll-contain divide-y divide-border"
         >
           {children}
         </div>

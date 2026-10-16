@@ -21266,6 +21266,8 @@
     "previewZones": "مناطق التدخل",
     "areaFilter": "المنطقة المحددة",
     "clearAreaFilter": "مسح عامل التصفية",
+    "displayedCount": "تم عرض {{shown}} من {{total}}",
+    "loadMore": "عرض {{count}} التالية",
     "layer": "مناطق عمل مقدمي الخدمات",
     "loading": "جارٍ تحميل المناطق…",
     "loadError": "تعذّر تحميل المناطق.",
@@ -21295,9 +21297,7 @@
     "coversProperties_few": "يغطي {{count}} عقارات",
     "coversProperties_many": "يغطي {{count}} عقارًا",
     "coversProperties_other": "يغطي {{count}} عقار",
-    "openProvider": "فتح ملف {{name}}",
-    "displayedCount": "تم عرض {{shown}} من {{total}}",
-    "loadMore": "عرض {{count}} التالية"
+    "openProvider": "فتح ملف {{name}}"
   },
   "baitlyIot": {
     "addButton": "الاتصال بخدمة Baitly",
@@ -21387,6 +21387,19 @@
       "done": "لقد نسخت المعلومات"
     }
   },
+  "providerCoverage": {
+    "title": "مناطق التدخل",
+    "help": "اختر الأقاليم أو الدوائر أو المدن. يُغطّى العقار إذا كان ضمن منطقة معلنة أو ضمن نصف القطر المحدد.",
+    "chooseDepartment": "اختر إقليماً",
+    "wholeDepartment": "الإقليم بأكمله",
+    "located": "تم تحديد نقطة الانطلاق جغرافياً: يُحسب نصف القطر من هذا العنوان.",
+    "locateHelp": "لاستخدام نصف القطر، اختر عنواناً من الاقتراحات لتحديد نقطة الانطلاق.",
+    "cityOptional": "المدينة (اختياري)",
+    "wholeCity": "المدينة بأكملها",
+    "loadingCities": "جارٍ تحميل المدن…",
+    "citiesError": "تعذّر تحميل المدن.",
+    "retryCities": "إعادة المحاولة"
+  },
   "deviceOnboarding": {
     "model": "الطراز الدقيق",
     "chooseModel": "اختر الطراز",
@@ -21434,17 +21447,39 @@
     },
     "deviceId": "المعرّف في حساب الشركة المصنّعة"
   },
-  "providerCoverage": {
-    "title": "مناطق التدخل",
-    "help": "اختر الأقاليم أو الدوائر أو المدن. يُغطّى العقار إذا كان ضمن منطقة معلنة أو ضمن نصف القطر المحدد.",
-    "chooseDepartment": "اختر إقليماً",
-    "wholeDepartment": "الإقليم بأكمله",
-    "located": "تم تحديد نقطة الانطلاق جغرافياً: يُحسب نصف القطر من هذا العنوان.",
-    "locateHelp": "لاستخدام نصف القطر، اختر عنواناً من الاقتراحات لتحديد نقطة الانطلاق.",
-    "cityOptional": "المدينة (اختياري)",
-    "wholeCity": "المدينة بأكملها",
-    "loadingCities": "جارٍ تحميل المدن…",
-    "citiesError": "تعذّر تحميل المدن.",
-    "retryCities": "إعادة المحاولة"
+  "mapPilot": {
+    "period": "الفترة",
+    "periods": {
+      "all": "جميع التواريخ",
+      "today": "اليوم",
+      "tomorrow": "غدًا",
+      "week": "الأيام السبعة القادمة",
+      "custom": "تواريخ مخصصة"
+    },
+    "from": "تاريخ البداية",
+    "to": "تاريخ النهاية",
+    "invalidDates": "اختر فترة صالحة.",
+    "clearArea": "إلغاء المنطقة",
+    "quick": {
+      "active": "نشط",
+      "maintenance": "صيانة",
+      "missing": "بدون عقد",
+      "uncovered": "غير مغطى"
+    },
+    "reset": "إعادة ضبط الخريطة",
+    "issuePeriod": "البلاغات المسجلة خلال الفترة المحددة.",
+    "findProvider": "البحث عن مقدم خدمة",
+    "trade": "المهنة",
+    "allTrades": "جميع المهن",
+    "tradesError": "تعذر تحميل المهن.",
+    "declaredAvailability": "التوفر المعلن لهذا اليوم",
+    "availabilityHelp": "يعتمد المرشح على التوفر الأسبوعي المعلن. يجب تأكيد الموعد المحدد مع مقدم الخدمة.",
+    "providersError": "تعذر إجراء البحث.",
+    "providerCount": "{{count}} من مقدمي الخدمة يغطون هذا العقار",
+    "viewAndRequest": "عرض الخدمات وطلب عرض سعر",
+    "locate": "تحديد الموقع على الخريطة",
+    "inPeriod": "خلال الفترة",
+    "noStayInPeriod": "لا توجد إقامات خلال الفترة المحددة.",
+    "filters": "مرشحات الخريطة"
   }
 }

@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useMemo, useEffect, useLayoutEffect, useCallback, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
@@ -45,6 +45,7 @@ import PropertyDeleteDialog from './PropertyDeleteDialog';
 import PropertyStatusToggleDialog from './PropertyStatusToggleDialog';
 import compactHeaderActions from '../../components/compactHeaderActions';
 import { usePageHeaderActions } from '../../components/PageHeaderActionsContext';
+import { useUserPreference } from '../../hooks/useUserPreference';
 
 interface PropertiesListProps {
   embedded?: boolean;
@@ -87,9 +88,12 @@ export default function PropertiesList({
   // handleDiagnoseOpenHub est defini plus bas (apres const navigate = useNavigate()).
 
   // ─── Local UI state ───────────────────────────────────────────────
-  const [searchTerm, setSearchTerm] = useState('');
-  const [selectedType, setSelectedType] = useState('all');
-  const [selectedStatus, setSelectedStatus] = useState('all');
+  const [propertyFilters, setPropertyFilters] = useUserPreference('map.propertyFilters', { search: '', type: 'all', status: 'all' });
+  const { search: searchTerm, type: selectedType, status: selectedStatus } = propertyFilters;
+  const setSearchTerm = (search: string) => setPropertyFilters({ ...propertyFilters, search });
+  const setSelectedType = (type: string) => setPropertyFilters({ ...propertyFilters, type });
+  const setSelectedStatus = (status: string) => setPropertyFilters({ ...propertyFilters, status });
+  const [mapScopeIds, setMapScopeIds] = useState<number[] | null>(null);
   const [selectedHost] = useState('all');
   const [selectedProperty, setSelectedProperty] = useState<PropertyListItem | null>(null);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
@@ -409,6 +413,19 @@ export default function PropertiesList({
     />
   );
 
+  const mapSurfaceRef = useRef<HTMLDivElement>(null);
+  const portfolioOverlayRef = useRef<HTMLDivElement>(null);
+  useLayoutEffect(() => {
+    const surface = mapSurfaceRef.current;
+    const overlay = portfolioOverlayRef.current;
+    if (!surface || !overlay || effectiveViewMode !== 'map') return;
+    const measure = () => surface.style.setProperty('--map-overlay-top', `${overlay.getBoundingClientRect().height + 20}px`);
+    measure();
+    const observer = new ResizeObserver(measure);
+    observer.observe(overlay);
+    return () => { observer.disconnect(); surface.style.removeProperty('--map-overlay-top'); };
+  }, [effectiveViewMode, filteredProperties.length > 0]);
+
   return (
     <>
       {/* Le bandeau du header deborde du rembourrage du conteneur de contenu
@@ -428,19 +445,20 @@ export default function PropertiesList({
           />
         </div>
       ) : null}
-      <div className="flex flex-col flex-1 min-h-0 overflow-hidden">
+      <div ref={mapSurfaceRef} className={`flex flex-col flex-1 min-h-0 overflow-hidden${effectiveViewMode === 'map' ? ' baitly-map-stage relative' : ''}`}>
         {/* Portail des actions vers le PageHeader du parent en mode embarqué.
             Ternaires explicites (au lieu de &&) pour ne jamais passer le booléen
             `false` en children. */}
         {embedded && actionsContainer ? createPortal(compactHeaderActions(actionButtons), actionsContainer) : null}
         {embedded && filtersContainer ? createPortal(filterBar, filtersContainer) : null}
-
-
         {contractHeaderActions}
 
         {/* Tuiles portefeuille (projection) — l'agrégat suit les filtres. */}
         {filteredProperties.length > 0 && (
-          <PropertiesPortfolioTiles properties={filteredProperties} kpiMap={kpiMap} loading={kpiLoading} />
+          <div ref={portfolioOverlayRef} className={effectiveViewMode === 'map' ? 'baitly-map-stage__kpis' : undefined}>
+          <PropertiesPortfolioTiles properties={effectiveViewMode === 'map' && mapScopeIds
+            ? filteredProperties.filter(property => mapScopeIds.includes(Number(property.id))) : filteredProperties} kpiMap={kpiMap} loading={kpiLoading} />
+          </div>
         )}
 
         {/* Liste des propriétés. Pendant le chargement, la carte est montée tout de suite
@@ -477,6 +495,9 @@ export default function PropertiesList({
             loading={isLoading}
             mapMarkers={mapMarkers}
             viewportProperties={viewportProperties}
+            allProperties={filteredProperties}
+            onScopeChange={setMapScopeIds}
+            onResetPropertyFilters={() => setPropertyFilters({ search: '', type: 'all', status: 'all' })}
             channexMappings={channexMappings}
             onBoundsChange={handleBoundsChange}
             onDiagnose={openDiagnoseFor}

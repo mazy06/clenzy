@@ -73,9 +73,10 @@ function reachListEnd() {
 
 describe('ProviderSectorPanel', () => {
   it('opens an anchored preview before exposing the full provider profile link', async () => {
-    renderPanel();
+    const { onSelect } = renderPanel();
     expect(screen.queryByRole('link', { name: 'Voir les détails' })).toBeNull();
-    fireEvent.click(screen.getByRole('button', { name: /Paris Ménage/ }));
+    fireEvent.click(screen.getByRole('button', { name: 'Détails · Paris Ménage' }));
+    expect(onSelect).not.toHaveBeenCalled();
     const preview = screen.getByRole('dialog', { name: 'Paris Ménage' });
     expect(within(preview).getByText('Paris')).toBeTruthy();
     expect(within(preview).getByText('Loft')).toBeTruthy();
@@ -87,7 +88,7 @@ describe('ProviderSectorPanel', () => {
     expect(within(preview).getByRole('link', { name: 'Voir les détails' }).getAttribute('href')).toBe('/prestataires/1');
     fireEvent.click(within(preview).getByRole('button', { name: 'Fermer' }));
     expect(screen.queryByRole('dialog')).toBeNull();
-    expect(screen.getByRole('button', { name: /Paris Ménage/ })).toBeTruthy();
+    expect(screen.getByRole('button', { name: /Paris Ménage/, pressed: false })).toBeTruthy();
   });
 
   it('keeps every provider of the selected area even outside the visible map bounds', () => {
@@ -126,13 +127,14 @@ describe('ProviderSectorPanel', () => {
 
   it('whenARowIsHoveredThenClicked_thenItsSectorIsHighlightedThenSelected', () => {
     const { onSelect, onHover } = renderPanel();
-    const row = screen.getByRole('button', { name: /Paris Ménage/ });
+    const row = screen.getByRole('button', { name: /Paris Ménage/, pressed: false });
 
     fireEvent.mouseEnter(row);
     fireEvent.click(row);
 
     expect(onHover).toHaveBeenCalledWith(1);
     expect(onSelect).toHaveBeenCalledWith(1);
+    expect(screen.queryByRole('dialog')).toBeNull();
     fireEvent.mouseLeave(row.closest('li')!);
     expect(onHover).toHaveBeenLastCalledWith(null);
   });
@@ -194,12 +196,14 @@ describe('ProviderSectorPanel', () => {
     const order = Array.from(list.children).map(row => row.textContent);
     const scroll = list.parentElement!;
     scroll.scrollTop = 400;
-    const row = within(list).getByRole('button', { name: /Salma Chraibi/ });
+    const row = within(list).getByRole('button', { name: /Salma Chraibi/, pressed: false });
     fireEvent.click(row);
     expect(Array.from(list.children).map(row => row.textContent)).toEqual(order);
     expect(list.children).toHaveLength(23);
     expect(scroll.scrollTop).toBe(400);
     expect(row.getAttribute('aria-pressed')).toBe('true');
+    expect(screen.queryByRole('dialog')).toBeNull();
+    fireEvent.click(screen.getByRole('button', { name: 'Détails · Salma Chraibi' }));
     expect(screen.getByRole('dialog', { name: 'Salma Chraibi' })).toBeTruthy();
   });
 

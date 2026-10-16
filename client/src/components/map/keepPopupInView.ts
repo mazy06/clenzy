@@ -27,11 +27,11 @@ export function keepPopupInView(map: maplibregl.Map, popup: maplibregl.Popup): (
   const container = map.getContainer();
   const usableFrame = () => {
     const frame = container.getBoundingClientRect();
-    // Les contrôles gardent un couloir à droite ; la fiche ne les recouvre pas.
+    // La barre horizontale garde son couloir en haut ; la fiche ne la recouvre pas.
     const controls = container.querySelector('.maplibregl-ctrl-top-right')?.getBoundingClientRect();
-    const reserved = controls?.width ? Math.min(controls.width + EDGE_MARGIN, frame.width / 3) : 0;
-    return { left: frame.left + EDGE_MARGIN, right: frame.right - EDGE_MARGIN - reserved,
-      top: frame.top + EDGE_MARGIN, bottom: frame.bottom - EDGE_MARGIN };
+    const reserved = controls?.height ? Math.min(controls.bottom - frame.top, frame.height / 3) : 0;
+    return { left: frame.left + EDGE_MARGIN, right: frame.right - EDGE_MARGIN,
+      top: frame.top + EDGE_MARGIN + reserved, bottom: frame.bottom - EDGE_MARGIN };
   };
   const applyLimits = () => {
     const frame = usableFrame();

@@ -11,6 +11,7 @@ export type MissionMapKind = "service-requests" | "interventions" | "prestations
 export interface MissionMapFilters {
   search: string; type: string; status: string; priority: string; propertyId?: number;
   category?: string; from?: string; to?: string; assigneeType?: "user" | "team"; assigneeId?: number;
+  propertyIds?: string;
 }
 export interface MissionMapOverview { markers: Array<Omit<PropertyMarker, "state"> & { state?: string; kind?: "intervention" | "request"; propertyId?: number | null }>; total: number; late: number; today: number; completed: number }
 export interface MissionMapPage<T> { content: T[]; totalElements: number; number: number; last: boolean }

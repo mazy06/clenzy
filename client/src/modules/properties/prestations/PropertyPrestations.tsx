@@ -7,7 +7,7 @@ import { activeIntlLocale } from '../../../utils/activeLocale';
 import { getInterventionTypeLabel } from '../../../utils/statusUtils';
 import { cn } from '../../../utils/cn';
 import {
-  addDays, dayAssigneeUserId, sameDay, upcomingPrestations, type Prestation,
+  addDays, dayAssigneeUserId, isoDay, sameDay, upcomingPrestations, type Prestation,
 } from './prestationTimeline';
 import { usePropertyPrestationList } from './usePropertyPrestationList';
 import { PrestationAssigneeAvatar, PrestationStatusIcon, prestationTypeIcon } from './prestationVisuals';
@@ -20,15 +20,19 @@ import { PrestationAssigneeAvatar, PrestationStatusIcon, prestationTypeIcon } fr
  * lointaines. Cliquer un jour signale son intervenant (`onDayAssignee`), pour que la carte
  * sélectionne son prestataire et montre son secteur.
  */
-export default function PropertyPrestations({ propertyId, onDayAssignee }: {
+export default function PropertyPrestations({ propertyId, onDayAssignee, range }: {
   propertyId: number; onDayAssignee?: (userId: number | null) => void;
+  range?: { from?: string; to?: string };
 }) {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const [weekOffset, setWeekOffset] = useState(0);
   const today = useMemo(() => new Date(), []);
-  const [selectedDay, setSelectedDay] = useState<Date | null>(today);
-  const { currentWeek, prestations, loading, failed } = usePropertyPrestationList(propertyId, today);
+  const anchor = useMemo(() => range?.from ? new Date(`${range.from}T12:00:00`) : today, [range?.from, today]);
+  const [selectedDay, setSelectedDay] = useState<Date | null>(anchor);
+  const { currentWeek, prestations: allPrestations, loading, failed } = usePropertyPrestationList(propertyId, anchor);
+  const prestations = allPrestations.filter(p => (!range?.from || isoDay(p.date) >= range.from) && (!range?.to || isoDay(p.date) <= range.to));
+  useEffect(() => { setSelectedDay(anchor); setWeekOffset(0); }, [anchor]);
   const weekStart = addDays(currentWeek, weekOffset * 7);
   const days = Array.from({ length: 7 }, (_, i) => addDays(weekStart, i));
 
@@ -41,7 +45,7 @@ export default function PropertyPrestations({ propertyId, onDayAssignee }: {
   useEffect(() => () => notify.current?.(null), []);
   const shown = selectedDay
     ? prestations.filter((p) => sameDay(p.date, selectedDay))
-    : upcomingPrestations(prestations, today);
+    : range?.from ? prestations : upcomingPrestations(prestations, today);
 
   const locale = activeIntlLocale();
   const weekday = new Intl.DateTimeFormat(locale, { weekday: 'narrow' });
@@ -56,7 +60,7 @@ export default function PropertyPrestations({ propertyId, onDayAssignee }: {
         <h4 className="m-0 me-auto text-xs font-semibold text-foreground">{t('propertyPrestations.title', 'Prestations')}</h4>
         <button type="button" aria-pressed={selectedDay == null} onClick={() => setSelectedDay(null)}
           className="h-7 cursor-pointer rounded-md px-2 text-2xs font-medium text-muted-foreground transition-colors duration-150 ease-out hover:bg-muted aria-pressed:bg-[var(--bui-navy-soft)] aria-pressed:text-[var(--bui-navy)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
-          {t('propertyPrestations.upcoming', 'À venir')}
+          {range?.from ? t('mapPilot.inPeriod', 'Dans la période') : t('propertyPrestations.upcoming', 'À venir')}
         </button>
         <button type="button" disabled={weekOffset === 0} onClick={() => { setWeekOffset((w) => w - 1); setSelectedDay(null); }}
           aria-label={t('propertyPrestations.previousWeek', 'Semaine précédente')}
@@ -80,10 +84,11 @@ export default function PropertyPrestations({ propertyId, onDayAssignee }: {
           const isToday = sameDay(day, today);
           return (
             <button key={day.toISOString()} type="button" aria-pressed={selected}
+              disabled={!!range?.from && (isoDay(day) < range.from || (!!range.to && isoDay(day) > range.to))}
               aria-label={`${new Intl.DateTimeFormat(locale, { dateStyle: 'full' }).format(day)}, ${t('propertyPrestations.count', { count, defaultValue: '{{count}} prestation(s)' })}`}
               onClick={() => setSelectedDay(selected ? null : day)}
               className={cn(
-                'flex cursor-pointer flex-col items-center gap-0.5 rounded-md py-1 text-2xs tabular-nums transition-colors duration-150 ease-out hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
+                'flex cursor-pointer flex-col items-center gap-0.5 rounded-md py-1 text-2xs tabular-nums transition-colors duration-150 ease-out hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-default disabled:opacity-40',
                 selected ? 'bg-[var(--bui-navy)] text-[var(--bui-card)] hover:bg-[var(--bui-navy)]' : 'text-muted-foreground',
                 isToday && !selected && 'font-semibold text-foreground',
               )}>

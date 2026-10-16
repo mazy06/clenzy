@@ -20,9 +20,10 @@ export interface ServiceMapSummary {
   propertyCity?: string; assignedToId?: number; assignedToName?: string;
   assignedToType?: 'user' | 'team'; assignedToAvatarUrl?: string | null; dueDate?: string;
 }
-export default function ServiceMapRow({ request, to, badges, serviceType, children, actions }: {
+export default function ServiceMapRow({ request, to, badges, serviceType, children, actions, menu }: {
   request: ServiceMapSummary; to: string; badges: ReactNode; serviceType: string; children?: ReactNode;
   actions?: ReactNode;
+  menu?: ReactNode;
 }) {
   const { t, currentLanguage, isEnglish } = useTranslation();
   const catalog = useQuery(serviceReferenceQuery);
@@ -70,6 +71,6 @@ export default function ServiceMapRow({ request, to, badges, serviceType, childr
       <span className="flex items-center gap-1 text-muted-foreground"><CalendarDays className="size-3.5" aria-hidden />{date.toLocaleDateString(currentLanguage, dateOptions)}</span>
       <span className="flex items-center gap-1 font-medium"><Clock3 className="size-3.5 text-muted-foreground" aria-hidden />{date.toLocaleTimeString(currentLanguage, timeOptions)}{end && <> – {end.toLocaleDateString(currentLanguage, dateOptions) !== date.toLocaleDateString(currentLanguage, dateOptions) && end.toLocaleDateString(currentLanguage, dateOptions) + ' '}{end.toLocaleTimeString(currentLanguage, timeOptions)}</>}</span>
     </div> : <span className="text-xs text-muted-foreground">{t('requestMap.unscheduled')}</span>}
-    to={to} badges={badges} actions={actions}
+    to={to} badges={badges} actions={actions} menu={menu}
   >{children}</ServiceMapRowView>;
 }

@@ -7,6 +7,7 @@ import { createBaitlyMap, prefersReducedMotion, setBaitlyMapMode } from "./map/c
 import { createBaitlyPin, pinPopupContent, PIN_POPUP_OFFSET, type BaitlyPinIcon } from "./map/baitlyMapPin";
 import { keepPopupInView } from "./map/keepPopupInView";
 import { BaitlyClusterLayer } from "./map/markerClusters";
+import { useMapCardClaim } from './map/MapCardCoordinator';
 import { BaitlySectorLayer, sectorBounds, type SectorOverlay } from "./map/sectorLayer";
 import { BaitlyToolsControl } from "./map/toolsControl";
 import { MARKER_STATE_DEFAULT_LABELS, MARKER_STATE_ORDER, urgencyOf, type MarkerState } from "./map/markerStates";
@@ -35,6 +36,7 @@ export interface MapBounds {
   east: number;
   west: number;
 }
+export interface MapCamera { center: [number, number]; zoom: number; bearing: number; pitch: number }
 
 export interface BaitlyPropertyMapProps {
   properties: PropertyMarker[];
@@ -42,8 +44,16 @@ export interface BaitlyPropertyMapProps {
   zoom?: number;
   height?: string | number;
   onMarkerClick?: (property: PropertyMarker) => void;
+  onMarkerClose?: (property: PropertyMarker) => void;
   onBoundsChange?: (bounds: MapBounds) => void;
   selectedPropertyId?: number;
+  highlightedPropertyId?: number;
+  onMarkerHover?: (property: PropertyMarker | null) => void;
+  camera?: MapCamera | null;
+  onCameraChange?: (camera: MapCamera) => void;
+  /** Une demande explicite, répétable même pour le même logement. */
+  locateProperty?: { id: number; request: number } | null;
+  resetCameraKey?: number;
   /**
    * Fiche riche affichée dans la bulle du marqueur ouvert (photos, adresse,
    * intervenant…). Montée par portail : elle garde le contexte React de l'écran
@@ -92,8 +102,15 @@ export function BaitlyMapCanvas({
   zoom = DEFAULT_ZOOM,
   height = 400,
   onMarkerClick,
+  onMarkerClose,
   onBoundsChange,
   selectedPropertyId,
+  highlightedPropertyId,
+  onMarkerHover,
+  camera,
+  onCameraChange,
+  locateProperty,
+  resetCameraKey,
   renderPopup,
   sectors,
   overlayControls,
@@ -104,6 +121,8 @@ export function BaitlyMapCanvas({
   // Lu à la création des marqueurs : changer de fonction ne les reconstruit pas.
   const renderPopupRef = useRef(renderPopup);
   renderPopupRef.current = renderPopup;
+  const propertiesRef = useRef(properties);
+  propertiesRef.current = properties;
   const { t } = useTranslation();
   const sheet = useMapSheet();
   const sheetRef = useRef(sheet);
@@ -116,6 +135,9 @@ export function BaitlyMapCanvas({
   const openCardRef = useRef(openCard);
   openCardRef.current = openCard;
   const clustersRef = useRef<BaitlyClusterLayer | null>(null);
+  const claimCard = useMapCardClaim();
+  const claimCardRef = useRef(claimCard);
+  claimCardRef.current = claimCard;
   const sectorLayerRef = useRef<BaitlySectorLayer | null>(null);
   const sectorsRef = useRef(sectors);
   sectorsRef.current = sectors;
@@ -125,11 +147,20 @@ export function BaitlyMapCanvas({
   const mapRef = useRef<maplibregl.Map | null>(null);
   const markersRef = useRef<maplibregl.Marker[]>([]);
   const onMarkerClickRef = useRef(onMarkerClick);
+  const onMarkerCloseRef = useRef(onMarkerClose);
+  onMarkerCloseRef.current = onMarkerClose;
   const onBoundsChangeRef = useRef(onBoundsChange);
+  const onMarkerHoverRef = useRef(onMarkerHover);
+  onMarkerHoverRef.current = onMarkerHover;
+  const onCameraChangeRef = useRef(onCameraChange);
+  onCameraChangeRef.current = onCameraChange;
+  const cameraRef = useRef(camera);
+  cameraRef.current = camera;
   const selectedPropertyIdRef = useRef(selectedPropertyId);
   const syncSelection = useCallback(() => {
     markersRef.current.forEach((marker) => {
       const selected =
+        marker.getElement().dataset.mapPropertyType !== 'key_exchange' &&
         marker.getElement().dataset.mapPropertyId ===
         String(selectedPropertyIdRef.current);
       marker.getElement().setAttribute("aria-pressed", String(selected));
@@ -218,7 +249,13 @@ export function BaitlyMapCanvas({
     };
     map.on("load", handleLoad);
     map.on("error", handleError);
-    const handleMoveEnd = () => emitBounds();
+    const handleMoveEnd = () => {
+      emitBounds();
+      if (onCameraChangeRef.current) {
+        const position = map.getCenter();
+        onCameraChangeRef.current({ center: [position.lng, position.lat], zoom: map.getZoom(), bearing: map.getBearing(), pitch: map.getPitch() });
+      }
+    };
     // `originalEvent` n'est present que sur un geste : un `fitBounds` ou un
     // `jumpTo` programmatique ne compte pas comme un deplacement utilisateur.
     const handleMoveStart = (event: { originalEvent?: unknown }) => {
@@ -227,7 +264,7 @@ export function BaitlyMapCanvas({
     map.on("moveend", handleMoveEnd);
     map.on("movestart", handleMoveStart);
     mapRef.current = map;
-    clustersRef.current = new BaitlyClusterLayer(map, (count) => clusterLabelRef.current(count));
+    clustersRef.current = new BaitlyClusterLayer(map, (count) => clusterLabelRef.current(count), close => claimCardRef.current(close));
     sectorLayerRef.current = new BaitlySectorLayer(map);
     sectorLayerRef.current.set(sectorsRef.current ?? null, initialModeRef.current);
     // Ajouté après la navigation et le 2D / 3D : le groupe d'outils s'empile dessous.
@@ -263,6 +300,28 @@ export function BaitlyMapCanvas({
       mapRef.current = null;
     };
   }, [clearMarkers, emitBounds, retryKey]);
+
+  const cameraKey = camera ? JSON.stringify(camera) : '';
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map || !camera) return;
+    const location = map.getCenter();
+    if (Math.abs(location.lng - camera.center[0]) < 1e-6 && Math.abs(location.lat - camera.center[1]) < 1e-6
+      && Math.abs(map.getZoom() - camera.zoom) < 1e-4 && Math.abs(map.getBearing() - camera.bearing) < 1e-4
+      && Math.abs(map.getPitch() - camera.pitch) < 1e-4) return;
+    userMovedRef.current = true;
+    framedRef.current = true;
+    map.jumpTo(camera);
+  }, [cameraKey, retryKey]);
+
+  useEffect(() => {
+    if (!resetCameraKey || !mapRef.current) return;
+    userMovedRef.current = true;
+    const frame = requestAnimationFrame(() => {
+      if (mapRef.current) fitMarkers(mapRef.current, propertiesRef.current);
+    });
+    return () => cancelAnimationFrame(frame);
+  }, [resetCameraKey]);
 
   // Secteurs : redessinés à chaque changement ; sans épingle à cadrer, la carte se
   // cadre une fois sur leur emprise (zone d'un prestataire qui n'a encore aucun logement).
@@ -306,7 +365,7 @@ export function BaitlyMapCanvas({
    */
   useEffect(() => {
     const map = mapRef.current;
-    if (!map || !center || userMovedRef.current) return;
+    if (!map || !center || userMovedRef.current || cameraRef.current) return;
     map.jumpTo({ center, zoom });
     framedRef.current = true;
   }, [center?.[0], center?.[1], zoom]);
@@ -342,11 +401,22 @@ export function BaitlyMapCanvas({
         marker.setPopup(rich
           ? cardPopup(map, () => created.property, setOpenCard)
           : new maplibregl.Popup({ offset: PIN_POPUP_OFFSET, closeButton: false }).setDOMContent(pinPopupContent(property.name)));
-        marker.getPopup()?.on("close", () => element.setAttribute("aria-pressed", "false"));
+        let releaseCard: (() => void) | undefined;
+        marker.getPopup()?.on('open', () => {
+          releaseCard?.();
+          releaseCard = claimCardRef.current(() => marker.getPopup()?.remove());
+        });
+        marker.getPopup()?.on("close", () => {
+          releaseCard?.();
+          releaseCard = undefined;
+          element.setAttribute("aria-pressed", "false");
+          onMarkerCloseRef.current?.(created.property);
+        });
         element.addEventListener("click", (event) => {
           event.stopPropagation();
           const mobile = sheetRef.current;
           if (created.rich && mobile?.detailHost) {
+            claimCardRef.current(() => { setOpenCard(null); mobile.closeDetail(); });
             markersRef.current.forEach((other) => other.getElement().setAttribute("aria-pressed", String(other === marker)));
             setOpenCard({ marker: created.property, container: mobile.detailHost });
             mobile.openDetail();
@@ -355,6 +425,10 @@ export function BaitlyMapCanvas({
           }
           onMarkerClickRef.current?.(created.property);
         });
+        element.addEventListener('mouseenter', () => onMarkerHoverRef.current?.(created.property));
+        element.addEventListener('mouseleave', () => onMarkerHoverRef.current?.(null));
+        element.addEventListener('focus', () => onMarkerHoverRef.current?.(created.property));
+        element.addEventListener('blur', () => onMarkerHoverRef.current?.(null));
         entry = created;
         entriesRef.current.set(key, entry);
       }
@@ -363,6 +437,7 @@ export function BaitlyMapCanvas({
       if (position.lng !== property.lng || position.lat !== property.lat) entry.marker.setLngLat([property.lng, property.lat]);
       const element = entry.marker.getElement();
       element.dataset.mapPropertyId = String(property.id ?? "");
+      element.dataset.mapPropertyType = property.type ?? 'property';
       element.setAttribute("aria-label", property.name);
       if (property.state) element.dataset.state = property.state;
       else delete element.dataset.state;
@@ -392,6 +467,27 @@ export function BaitlyMapCanvas({
     }
     emitBounds();
   }, [properties, emitBounds, syncSelection, retryKey, !!renderPopup]);
+
+  useEffect(() => {
+    for (const entry of entriesRef.current.values()) {
+      const highlighted = entry.property.type !== 'key_exchange' && entry.property.id === highlightedPropertyId;
+      entry.marker.getElement().toggleAttribute('data-highlighted', highlighted);
+    }
+    clustersRef.current?.refreshSelection();
+  }, [highlightedPropertyId, properties]);
+
+  useEffect(() => {
+    if (!locateProperty || !mapRef.current) return;
+    const entry = [...entriesRef.current.values()].find(entry => entry.property.type !== 'key_exchange' && entry.property.id === locateProperty.id);
+    if (!entry) return;
+    userMovedRef.current = true;
+    const map = mapRef.current;
+    map.easeTo({ center: [entry.property.lng, entry.property.lat], zoom: Math.max(map.getZoom(), 15), duration: prefersReducedMotion() ? 0 : 200 });
+    // La sélection force le marqueur hors de son groupe avant d'ouvrir sa fiche.
+    entry.marker.getElement().setAttribute('aria-pressed', 'true');
+    clustersRef.current?.refreshSelection();
+    if (!entry.marker.getPopup()?.isOpen()) entry.marker.getElement().click();
+  }, [locateProperty?.id, locateProperty?.request]);
 
   useEffect(() => {
     if (sheet && !sheet.detailOpen) {

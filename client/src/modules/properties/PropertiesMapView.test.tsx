@@ -5,6 +5,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import PropertiesMapView from './PropertiesMapView';
 import type { PropertyListItem } from '../../hooks/usePropertiesList';
 
+vi.mock('../../hooks/useUserPreference', () => ({ useUserPreference: (_key: string, defaults: unknown) => [defaults, vi.fn(), { isLoaded: true }] }));
 vi.mock('../../hooks/use-mobile', () => ({ useIsMobile: () => false }));
 vi.mock('../../components/BaitlyPropertyMap', () => ({ BaitlyPropertyMap: () => <div data-testid="map" /> }));
 vi.mock('../settings/components/ChannexHealthBadge', () => ({ default: () => null }));

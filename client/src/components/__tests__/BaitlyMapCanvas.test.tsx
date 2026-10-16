@@ -10,6 +10,7 @@ const map = {
   addControl: vi.fn((control: { onAdd: () => HTMLElement }) => document.body.append(control.onAdd())),
   removeControl: vi.fn((control: { onRemove: () => void }) => control.onRemove()), resize: vi.fn(), jumpTo: vi.fn(), fitBounds: vi.fn(),
   getContainer: () => container, getZoom: () => 20,
+  getCenter: () => ({ lng: 51.5, lat: 25.3 }), getBearing: () => 0, getPitch: () => 0, easeTo: vi.fn(),
   getBounds: () => ({ getNorth: () => 90, getSouth: () => -90, getEast: () => 180, getWest: () => -180 }),
   project: () => ({ x: 120, y: 100 }),
 };
@@ -29,6 +30,7 @@ vi.mock('maplibre-gl', () => {
     addTo() { if (this.content) container.append(this.content); return this; }
     remove() { this.content?.remove(); return this; }
     on(event: string, callback: () => void) { this.listeners.set(event, [...(this.listeners.get(event) ?? []), callback]); return this; }
+    once(event: string, callback: () => void) { return this.on(event, callback); }
     isOpen() { return this.opened; }
     toggle() { this.opened = !this.opened; this.listeners.get(this.opened ? 'open' : 'close')?.forEach((listener) => listener()); }
   }
@@ -61,6 +63,26 @@ beforeEach(() => {
 afterEach(() => { cleanup(); vi.unstubAllGlobals(); });
 
 describe('Carte Baitly : rafraîchissements et caméra', () => {
+  it('met en évidence un marqueur depuis la liste et localise un lieu regroupé sans quitter la carte', () => {
+    const second = { ...place, id: 2, name: 'Deuxième logement' };
+    const { rerender } = render(<BaitlyMapCanvas properties={[place, second]} center={[51.5, 25.3]} />);
+    rerender(<BaitlyMapCanvas properties={[place, second]} center={[51.5, 25.3]} highlightedPropertyId={2} />);
+    const pin = state.markers.find(marker => marker.element.dataset.mapPropertyId === '2')!;
+    expect(pin.element.hasAttribute('data-highlighted')).toBe(true);
+    expect(container.contains(pin.element)).toBe(true);
+    rerender(<BaitlyMapCanvas properties={[place, second]} center={[51.5, 25.3]} locateProperty={{ id: 2, request: 1 }} />);
+    expect(map.easeTo).toHaveBeenCalledWith(expect.objectContaining({ center: [second.lng, second.lat] }));
+    expect(pin.element.getAttribute('aria-pressed')).toBe('true');
+  });
+  it('restaure et émet le cadrage sans recréer la carte', () => {
+    const changed = vi.fn();
+    const camera = { center: [2.3, 48.8] as [number, number], zoom: 13, bearing: 20, pitch: 30 };
+    render(<BaitlyMapCanvas properties={[place]} camera={camera} onCameraChange={changed} />);
+    expect(map.jumpTo).toHaveBeenCalledWith(camera);
+    act(() => map.on.mock.calls.find(([event]) => event === 'moveend')?.[1]());
+    expect(changed).toHaveBeenCalledWith({ center: [51.5, 25.3], zoom: 20, bearing: 0, pitch: 0 });
+    expect(map.remove).not.toHaveBeenCalled();
+  });
   it('conserve la carte régionale quand seul le fond mondial est indisponible', () => {
     render(<BaitlyMapCanvas properties={[place]} center={[51.5, 25.3]} />);
     const errorHandler = map.on.mock.calls.find(([event]) => event === 'error')?.[1];

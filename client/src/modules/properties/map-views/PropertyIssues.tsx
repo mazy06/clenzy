@@ -4,11 +4,12 @@ import { useIssueDetail } from './IssuesMapList';
 import { useOpenIssues } from './mapViewData';
 
 /** Bas de fiche de la vue Anomalies : anomalies à traiter du logement, les plus graves d'abord. */
-export default function PropertyIssues({ propertyId }: { propertyId: number }) {
+export default function PropertyIssues({ propertyId, range }: { propertyId: number; range?: { from?: string; to?: string } }) {
   const { t } = useTranslation();
   const query = useOpenIssues();
   const { openIssue, dialog } = useIssueDetail();
-  const issues = (query.data ?? []).filter((issue) => issue.propertyId === propertyId);
+  const issues = (query.data ?? []).filter((issue) => issue.propertyId === propertyId
+    && (!range?.from || issue.createdAt.slice(0, 10) >= range.from) && (!range?.to || issue.createdAt.slice(0, 10) <= range.to));
   return (
     <section className="flex flex-col gap-2 border-t border-border pt-2.5" aria-label={t('propertyMap.views.issues', 'Anomalies')}>
       <h4 className="m-0 text-xs font-semibold text-foreground">{t('propertyMap.issuesTitle', 'Anomalies à traiter')}</h4>

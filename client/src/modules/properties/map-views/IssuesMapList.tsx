@@ -8,6 +8,7 @@ import { MANAGER_ROLES } from '../../../constants/roles';
 import type { Issue } from '../../../services/api/issuesApi';
 import IssueDetailDialog from '../../work-orders/IssueDetailDialog';
 import IssueMapRow from './IssueMapRow';
+import { MapLinkedRow } from './MapRowInteractions';
 
 /** Ouvre le détail d'une anomalie (qualifier, convertir, rejeter) et relit la carte après une action. */
 export function useIssueDetail() {
@@ -47,7 +48,7 @@ export default function IssuesMapList({ issues, allIssues, loading, failed }: {
   return (
     <>
       {issues.length === 0 && <p className="m-0 p-3 text-sm text-muted-foreground">{t('propertyMap.issuesEmpty', 'Aucune anomalie à traiter dans cette zone.')}</p>}
-      {issues.map((issue) => <IssueMapRow key={issue.id} issue={issue} onOpen={openIssue} />)}
+      {issues.map((issue) => <MapLinkedRow key={issue.id} propertyId={issue.propertyId}><IssueMapRow issue={issue} onOpen={openIssue} /></MapLinkedRow>)}
       {dialog}
     </>
   );

@@ -28,7 +28,7 @@ export interface SectorOverlay {
   /** Fond persistant de la partie du secteur sélectionnée sur la carte. */
   selectedAreaGeometry?: SectorGeometry | null;
   /** Clic sur la carte : prestataires couvrant la zone sélectionnée, ou null hors secteur. */
-  onAreaSelect?: (providerIds: number[] | null, geometry?: SectorGeometry | null) => void;
+  onAreaSelect?: (providerIds: number[] | null, geometry?: SectorGeometry | null, point?: { lng: number; lat: number } | null) => void;
 }
 
 const SOURCE_ID = 'baitly-sectors';
@@ -130,8 +130,15 @@ export class BaitlySectorLayer {
     if (target instanceof Element && target.closest('.maplibregl-marker, .maplibregl-popup, .maplibregl-ctrl')) return;
     const lng = ((event.lngLat.lng + 180) % 360 + 360) % 360 - 180;
     const area = smallestSectorAtPoint(this.overlay.providers, lng, event.lngLat.lat);
+    const selected = this.overlay.selectedAreaGeometry;
+    // Comparer les zones, pas le point du clic : deux endroits du même secteur le désélectionnent.
+    if (area && selected?.type === area.type && (selected.coordinates === area.coordinates
+      || JSON.stringify(selected.coordinates) === JSON.stringify(area.coordinates))) {
+      this.overlay.onAreaSelect(null, null, null);
+      return;
+    }
     const ids = area ? sectorProvidersInArea(this.overlay.providers, area) : [];
-    this.overlay.onAreaSelect(ids.length ? ids : null, area);
+    this.overlay.onAreaSelect(ids.length ? ids : null, area, area ? { lng, lat: event.lngLat.lat } : null);
   };
   // Un changement de thème remplace le style par diff, sans `style.load` : nos calques
   // disparaissent en silence. Chaque `styledata` vérifie qu'ils sont encore là.

@@ -91,7 +91,7 @@ const PropertiesPage: React.FC = () => {
 
   return (
     <PageHeaderActionsProvider slot={headerActionsSlot}>
-      <div className="flex flex-col flex-1 min-h-0">
+      <div className="baitly-map-page flex flex-col flex-1 min-h-0">
         <div className="shrink-0">
           <PageHeader
             title={title}
@@ -108,6 +108,7 @@ const PropertiesPage: React.FC = () => {
             filters={hasProperties ? <div ref={setFiltersContainer} style={PORTAL_STYLE} /> : undefined}
           />
           <PageTabs
+            className="baitly-map-page__tabs"
             options={tabs}
             value={activeTab}
             onChange={handleTabChange}

@@ -21127,6 +21127,8 @@
     "previewZones": "Service areas",
     "areaFilter": "Selected area",
     "clearAreaFilter": "Clear the filter",
+    "displayedCount": "{{shown}} of {{total}} shown",
+    "loadMore": "Show the next {{count}}",
     "layer": "Provider service areas",
     "loading": "Loading service areas…",
     "loadError": "Service areas could not be loaded.",
@@ -21148,9 +21150,7 @@
     "noneVisible": "No service area in the visible part of the map. Move or zoom out.",
     "coversProperties_one": "{{count}} property covered",
     "coversProperties_other": "{{count}} properties covered",
-    "openProvider": "Open {{name}}’s profile",
-    "displayedCount": "{{shown}} of {{total}} shown",
-    "loadMore": "Show the next {{count}}"
+    "openProvider": "Open {{name}}’s profile"
   },
   "baitlyIot": {
     "addButton": "Connection to the Baitly service",
@@ -21240,6 +21240,19 @@
       "done": "I have copied this information"
     }
   },
+  "providerCoverage": {
+    "title": "Service areas",
+    "help": "Choose departments, districts or cities. A property is covered by a declared area or by the radius, when specified.",
+    "chooseDepartment": "Choose a department",
+    "wholeDepartment": "Entire department",
+    "located": "Geolocated starting point: the radius is calculated from this address.",
+    "locateHelp": "To use the radius, select an address from the suggestions to set its starting point.",
+    "cityOptional": "City (optional)",
+    "wholeCity": "Entire city",
+    "loadingCities": "Loading cities…",
+    "citiesError": "Could not load cities.",
+    "retryCities": "Retry"
+  },
   "deviceOnboarding": {
     "model": "Exact model",
     "chooseModel": "Choose the model",
@@ -21287,17 +21300,39 @@
     },
     "deviceId": "Identifier in the manufacturer account"
   },
-  "providerCoverage": {
-    "title": "Service areas",
-    "help": "Choose departments, districts or cities. A property is covered by a declared area or by the radius, when specified.",
-    "chooseDepartment": "Choose a department",
-    "wholeDepartment": "Entire department",
-    "located": "Geolocated starting point: the radius is calculated from this address.",
-    "locateHelp": "To use the radius, select an address from the suggestions to set its starting point.",
-    "cityOptional": "City (optional)",
-    "wholeCity": "Entire city",
-    "loadingCities": "Loading cities…",
-    "citiesError": "Could not load cities.",
-    "retryCities": "Retry"
+  "mapPilot": {
+    "period": "Period",
+    "periods": {
+      "all": "All dates",
+      "today": "Today",
+      "tomorrow": "Tomorrow",
+      "week": "Next 7 days",
+      "custom": "Custom dates"
+    },
+    "from": "Start date",
+    "to": "End date",
+    "invalidDates": "Choose a valid date range.",
+    "clearArea": "Clear area",
+    "quick": {
+      "active": "Active",
+      "maintenance": "Maintenance",
+      "missing": "Missing contract",
+      "uncovered": "Not covered"
+    },
+    "reset": "Reset map",
+    "issuePeriod": "Issues reported during the selected period.",
+    "findProvider": "Find a provider",
+    "trade": "Trade",
+    "allTrades": "All trades",
+    "tradesError": "Could not load trades.",
+    "declaredAvailability": "Declared availability for the day",
+    "availabilityHelp": "This filter uses declared weekly availability. The exact time slot must be confirmed with the provider.",
+    "providersError": "The search failed.",
+    "providerCount": "{{count}} provider(s) covering this property",
+    "viewAndRequest": "View services and request a quote",
+    "locate": "Locate on map",
+    "inPeriod": "In this period",
+    "noStayInPeriod": "No stays in the selected period.",
+    "filters": "Map filters"
   }
 }

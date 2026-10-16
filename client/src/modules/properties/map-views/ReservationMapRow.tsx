@@ -1,11 +1,15 @@
 import { useNavigate } from 'react-router-dom';
-import { Avatar, AvatarFallback, AvatarImage } from '../../../components/ui';
+import { Avatar, AvatarFallback, AvatarImage, Popover, PopoverAnchor, PopoverTrigger } from '../../../components/ui';
+import MapRowPreview from '../../../components/map/MapRowPreview';
+import { Link } from 'react-router-dom';
 import { ReservationStatusChip } from '../../reservations/ReservationStatusChip';
 import { RESERVATION_SOURCE_LABELS, type Reservation } from '../../../services/api/reservationsApi';
 import { activeIntlLocale } from '../../../utils/activeLocale';
 import { toApiMediaUrl } from '../../../utils/mediaUrl';
 import { useTranslation } from '../../../hooks/useTranslation';
 import { cn } from '../../../utils/cn';
+import { ChevronRight } from '../../../icons/glyphs';
+import { useMapRowFocus } from './MapRowInteractions';
 
 /** Nuits entre deux dates aaaa-mm-jj (sans fuseau : ce sont des dates de séjour). */
 export function nightsBetween(checkIn: string, checkOut: string): number {
@@ -22,13 +26,12 @@ export default function ReservationMapRow({ reservation, showProperty = true, co
 }) {
   const { t } = useTranslation();
   const navigate = useNavigate();
+  const locate = useMapRowFocus();
+  const open = () => navigate(`/reservations?highlight=${reservation.id}`);
   const nights = nightsBetween(reservation.checkIn, reservation.checkOut);
   const initials = reservation.guestName.split(/\s+/).filter(Boolean).slice(0, 2).map((part) => part[0]?.toUpperCase()).join('');
   const source = reservation.sourceName || RESERVATION_SOURCE_LABELS[reservation.source] || reservation.source;
-  return (
-    <button type="button" onClick={() => navigate(`/reservations?highlight=${reservation.id}`)}
-      className={cn('flex w-full cursor-pointer items-center gap-3 text-start transition-colors duration-150 ease-out hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring',
-        compact ? 'rounded-md px-1.5 py-1.5' : 'px-4 py-3')}>
+  const content = <>
       <Avatar size="sm" className={compact ? 'size-6' : 'size-9'}>
         <AvatarImage src={toApiMediaUrl(reservation.guestAvatarUrl)} alt="" />
         <AvatarFallback className="text-[10px]">{initials}</AvatarFallback>
@@ -43,6 +46,24 @@ export default function ReservationMapRow({ reservation, showProperty = true, co
         </span>
       </span>
       <span className="shrink-0 [&>*]:scale-90"><ReservationStatusChip status={reservation.status} /></span>
+  </>;
+  return (
+    <Popover><PopoverAnchor asChild><div data-map-preview-anchor className="flex items-stretch"><button type="button" onClick={locate ?? open}
+      className={cn('flex w-full cursor-pointer items-center gap-3 text-start transition-colors duration-150 ease-out hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring',
+        compact ? 'rounded-md px-1.5 py-1.5' : 'px-4 py-3')}>
+      {content}
     </button>
+    {locate && <PopoverTrigger asChild><button type="button" aria-label={`${t('common.details', 'Détails')} · ${reservation.guestName}`}
+      className="flex w-9 shrink-0 cursor-pointer items-center justify-center text-muted-foreground hover:bg-muted focus-visible:outline-2 focus-visible:outline-ring">
+      <ChevronRight className="size-4" aria-hidden />
+    </button></PopoverTrigger>}</div></PopoverAnchor>
+    {locate && <MapRowPreview label={reservation.guestName} side="start">
+      <div className="p-4 pt-9"><div className="flex items-center gap-3">{content}</div>
+        <Link to={`/reservations?highlight=${reservation.id}`} className="mt-4 flex min-h-9 cursor-pointer items-center justify-center gap-2 rounded-md bg-muted px-3 text-sm font-medium hover:bg-accent focus-visible:outline-2 focus-visible:outline-ring">
+          {t('common.viewDetails', 'Voir les détails')}<ChevronRight className="size-4" aria-hidden />
+        </Link>
+      </div>
+    </MapRowPreview>}
+    </Popover>
   );
 }

@@ -10,6 +10,31 @@
 }
 
 /* ── Contrôles de navigation ─────────────────────────────────────────────── */
+.maplibregl-map .maplibregl-ctrl-top-right {
+  inset-inline: 0;
+  inset-block-start: 8px;
+  inline-size: max-content;
+  max-inline-size: calc(100% - 16px);
+  margin-inline: auto;
+  display: flex;
+  align-items: start;
+  gap: 6px;
+  overflow-x: auto;
+  overscroll-behavior-inline: contain;
+  pointer-events: auto;
+}
+.maplibregl-map .maplibregl-ctrl-top-right > .maplibregl-ctrl {
+  display: flex;
+  flex: 0 0 auto;
+  float: none;
+  clear: none;
+  margin: 0;
+}
+.maplibregl-map .maplibregl-ctrl-top-right > .maplibregl-ctrl:empty { display: none; }
+.maplibregl-map .maplibregl-ctrl-top-right .maplibregl-ctrl-group button + button {
+  border-block-start: 0;
+  border-inline-start: 1px solid var(--bui-border);
+}
 .maplibregl-ctrl-group:not(:empty) {
   overflow: hidden;
   background: var(--bui-card);
@@ -208,6 +233,12 @@
    un halo de la teinte signale l'élément actif. */
 .baitly-map-pin[aria-pressed='true'] {
   z-index: 2;
+}
+
+.baitly-map-pin[data-highlighted] { z-index: 5; }
+.baitly-map-pin[data-highlighted] .baitly-map-pin__badge {
+  outline: 3px solid var(--bui-primary);
+  outline-offset: 3px;
 }
 .baitly-map-pin[aria-pressed='true'] .baitly-map-pin__glyph {
   transform: translateY(-4px);
@@ -539,10 +570,48 @@
 @container baitly-map (min-width: 1200px) {
   .baitly-map-split--aside {
     grid-template-areas: "map aside list";
-    /* 17 % + 23 % = les 40 % de la colonne de droite sans le calque. */
-    grid-template-columns: minmax(0, 1fr) minmax(0, 17%) minmax(0, 23%);
+    /* Deux panneaux de même largeur, la carte garde les 60 % restants. */
+    grid-template-columns: minmax(0, 1fr) repeat(2, minmax(0, 20%));
     grid-template-rows: minmax(0, 1fr);
   }
+}
+/* Bureau et paysage : la carte remplit la surface ; les listes se posent de
+   chaque côté avec une largeur unique, indépendamment de leur contenu. */
+@media (min-width: 1280px), (orientation: landscape) {
+  .baitly-map-split,
+  .baitly-map-split.baitly-map-split--aside {
+    --map-panel-width: clamp(144px, 27%, 280px);
+    position: relative;
+    display: block;
+    isolation: isolate;
+  }
+  .baitly-map-split > .baitly-map-split__map {
+    position: absolute;
+    inset: 0;
+  }
+  .baitly-map-split > .baitly-map-split__aside,
+  .baitly-map-split > .baitly-map-split__list {
+    position: absolute;
+    inset-block: 8px;
+    inline-size: var(--map-panel-width);
+    max-inline-size: calc(50% - 12px);
+    z-index: 1;
+  }
+  .baitly-map-split > .baitly-map-split__aside { inset-inline-start: 8px; }
+  .baitly-map-split > .baitly-map-split__list { inset-inline-end: 8px; }
+  .baitly-map-split__list > div:first-child { flex-wrap: wrap; gap: 6px; padding: 8px; }
+  .baitly-map-split .maplibregl-ctrl-top-right,
+  .baitly-map-split .maplibregl-ctrl-bottom-right,
+  .baitly-map-split .baitly-map-legend {
+    max-inline-size: calc(100% - 2 * var(--map-panel-width) - 32px);
+  }
+  .baitly-map-split .maplibregl-ctrl-bottom-right,
+  .baitly-map-split .baitly-map-legend {
+    inset-inline: 0;
+    inline-size: max-content;
+    margin-inline: auto;
+  }
+  .baitly-map-split .baitly-map-legend { inset-block-end: 36px; }
 }
 /* Lieux à une même adresse : vignette, nom, adresse. */
 .baitly-map-popup--choices .maplibregl-popup-content {
@@ -614,14 +683,27 @@
 }
 .baitly-map-cluster-list button:focus-visible { outline: 2px solid var(--bui-ring); outline-offset: -2px; }
 
-/* Outils de l'écran (cadrer les lieux, calques) : icônes empilées sous le bouton 2D / 3D. */
+/* Outils de l'écran (cadrer les lieux, calques), alignés avec la navigation et le 2D / 3D. */
 .maplibregl-ctrl-group button.baitly-map-tool {
   display: grid;
   place-items: center;
   color: var(--bui-foreground);
 }
 /* Calque activé (secteurs des prestataires) : icône marine sur fond discret (l'anneau reste au focus). */
-.maplibregl-ctrl-group button.baitly-map-tool[aria-pressed='true'] {
+.maplibregl-ctrl-group button.baitly-map-tool[aria-pressed='true'],
+.maplibregl-ctrl-group button.baitly-map-tool[data-active='true'],
+.maplibregl-ctrl-group button.baitly-map-tool[data-state='open'] {
   background-color: var(--bui-muted);
   color: var(--bui-navy);
 }
+.baitly-map-filter-tool { position: relative; }
+.baitly-map-filter-tool__dot {
+  position: absolute;
+  inset-block-start: 8px;
+  inset-inline-end: 8px;
+  inline-size: 6px;
+  block-size: 6px;
+  border-radius: 50%;
+  background: var(--bui-info-ink);
+}
+.baitly-map-filter-tool__dot[data-invalid='true'] { background: var(--bui-warning-ink); }

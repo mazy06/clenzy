@@ -21,7 +21,7 @@ import { usePrestationActions } from './PrestationActionsContext';
 /** Déclencheur « … » commun aux deux menus, aligné en fin de ligne. */
 function MenuShell({ label, onOpen, children }: { label: string; onOpen: (event: MouseEvent<HTMLElement>) => void; children: ReactNode }) {
   return (
-    <div className="mb-2 flex justify-end">
+    <div className="flex justify-end">
       <DropdownMenu modal={false}>
         <DropdownMenuTrigger asChild>
           <Button variant="ghost" size="icon-sm" aria-label={label} onClick={onOpen} className="cursor-pointer">

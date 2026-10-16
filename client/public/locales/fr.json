@@ -21114,6 +21114,8 @@
     "previewZones": "Zones d’intervention",
     "areaFilter": "Secteur sélectionné",
     "clearAreaFilter": "Effacer le filtre",
+    "displayedCount": "{{shown}} sur {{total}} affichés",
+    "loadMore": "Afficher les {{count}} suivants",
     "layer": "Secteurs des prestataires",
     "loading": "Chargement des secteurs…",
     "loadError": "Les secteurs n’ont pas pu être chargés.",
@@ -21135,9 +21137,7 @@
     "noZone": "Aucune zone déclarée",
     "coversProperties_one": "{{count}} logement couvert",
     "coversProperties_other": "{{count}} logements couverts",
-    "openProvider": "Ouvrir la fiche de {{name}}",
-    "displayedCount": "{{shown}} sur {{total}} affichés",
-    "loadMore": "Afficher les {{count}} suivants"
+    "openProvider": "Ouvrir la fiche de {{name}}"
   },
   "baitlyIot": {
     "addButton": "Connexion au service Baitly",
@@ -21227,6 +21227,19 @@
       "done": "J’ai copié les informations"
     }
   },
+  "providerCoverage": {
+    "title": "Secteurs d’intervention",
+    "help": "Choisissez des départements, des arrondissements ou des villes. Un logement est couvert par un secteur déclaré ou par le rayon, si celui-ci est renseigné.",
+    "chooseDepartment": "Choisir un département",
+    "wholeDepartment": "Tout le département",
+    "located": "Point de départ géolocalisé : le rayon est calculé depuis cette adresse.",
+    "locateHelp": "Pour utiliser le rayon, sélectionnez une adresse dans les suggestions afin de définir son point de départ.",
+    "cityOptional": "Ville (optionnel)",
+    "wholeCity": "Toute la ville",
+    "loadingCities": "Chargement des villes…",
+    "citiesError": "Impossible de charger les villes.",
+    "retryCities": "Réessayer"
+  },
   "deviceOnboarding": {
     "model": "Modèle exact",
     "chooseModel": "Choisir le modèle",
@@ -21274,17 +21287,39 @@
     },
     "deviceId": "Identifiant dans le compte fabricant"
   },
-  "providerCoverage": {
-    "title": "Secteurs d’intervention",
-    "help": "Choisissez des départements, des arrondissements ou des villes. Un logement est couvert par un secteur déclaré ou par le rayon, si celui-ci est renseigné.",
-    "chooseDepartment": "Choisir un département",
-    "wholeDepartment": "Tout le département",
-    "located": "Point de départ géolocalisé : le rayon est calculé depuis cette adresse.",
-    "locateHelp": "Pour utiliser le rayon, sélectionnez une adresse dans les suggestions afin de définir son point de départ.",
-    "cityOptional": "Ville (optionnel)",
-    "wholeCity": "Toute la ville",
-    "loadingCities": "Chargement des villes…",
-    "citiesError": "Impossible de charger les villes.",
-    "retryCities": "Réessayer"
+  "mapPilot": {
+    "period": "Période",
+    "periods": {
+      "all": "Toutes les dates",
+      "today": "Aujourd’hui",
+      "tomorrow": "Demain",
+      "week": "7 prochains jours",
+      "custom": "Dates personnalisées"
+    },
+    "from": "Date de début",
+    "to": "Date de fin",
+    "invalidDates": "Choisissez une période valide.",
+    "clearArea": "Effacer la zone",
+    "quick": {
+      "active": "Actifs",
+      "maintenance": "Maintenance",
+      "missing": "Sans contrat",
+      "uncovered": "Non couverts"
+    },
+    "reset": "Réinitialiser la carte",
+    "issuePeriod": "Anomalies signalées pendant la période sélectionnée.",
+    "findProvider": "Trouver un intervenant",
+    "trade": "Métier",
+    "allTrades": "Tous les métiers",
+    "tradesError": "Les métiers n’ont pas pu être chargés.",
+    "declaredAvailability": "Disponibilité déclarée pour le jour",
+    "availabilityHelp": "Le filtre utilise les disponibilités hebdomadaires déclarées. Le créneau exact reste à confirmer avec le prestataire.",
+    "providersError": "La recherche n’a pas abouti.",
+    "providerCount": "{{count}} prestataire(s) couvrant ce logement",
+    "viewAndRequest": "Voir les prestations et demander un devis",
+    "locate": "Localiser sur la carte",
+    "inPeriod": "Dans la période",
+    "noStayInPeriod": "Aucun séjour dans la période sélectionnée.",
+    "filters": "Filtres de la carte"
   }
 }

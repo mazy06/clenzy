@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 import StatusChip from '../../components/StatusChip';
+import { ServiceMapStatus } from '../../components/ServiceMapIndicator';
 import { Progress } from '../../components/ui';
 import ServiceMapRow from '../service-requests/ServiceMapRow';
 import { useTranslation } from '../../hooks/useTranslation';
@@ -32,10 +33,10 @@ export function InterventionMissionRow({ intervention, badge, actions }: {
     request={{ ...intervention, dueDate: intervention.scheduledDate, durationHours: intervention.estimatedDurationHours }}
     serviceType={getInterventionTypeLabel(intervention.type, t)}
     to={'/interventions/' + intervention.id}
-    actions={actions}
+    menu={actions}
     badges={<>
       {badge}
-      <StatusChip pill tokens={getStatusTokens(intervention.status)} label={getInterventionStatusLabel(intervention.status, t)} />
+      <ServiceMapStatus status={intervention.status} tokens={getStatusTokens(intervention.status)} label={getInterventionStatusLabel(intervention.status, t)} />
       {intervention.priority.toUpperCase() !== 'NORMAL' && <StatusChip pill tokens={getPriorityTokens(intervention.priority)} label={getInterventionPriorityLabel(intervention.priority, t)} />}
     </>}>
     {progress > 0 && <div className="mt-2 flex items-center gap-2">

@@ -1,13 +1,15 @@
-import { Popover, PopoverAnchor, PopoverTrigger } from '../../components/ui';
+import { Button, Popover, PopoverAnchor, PopoverTrigger, Tooltip, TooltipContent, TooltipTrigger } from '../../components/ui';
 import MapRowPreview from '../../components/map/MapRowPreview';
 import PropertyMapCard from './PropertyMapCard';
-import { Bath, BedDouble, ChevronRight, Users } from '../../icons/glyphs';
-import StatusChip from '../../components/StatusChip';
+import { MapLocateButton } from './map-views/MapRowInteractions';
+import { useContext } from 'react';
+import { MapRowInteractions } from './map-views/MapRowInteractions';
+import { Archive, BadgeCheck, Bath, BedDouble, ChevronRight, CircleCheck, CircleHelp, CirclePause, FileWarningIcon, KeyRound, Users, Wrench } from '../../icons/glyphs';
+import ServiceMapIndicator from '../../components/ServiceMapIndicator';
 import { Money } from '../../components/Money';
 import { useTranslation } from '../../hooks/useTranslation';
 import { cn } from '../../utils/cn';
 import ChannexHealthBadge from '../settings/components/ChannexHealthBadge';
-import MissingContractChip from './MissingContractChip';
 import { PropertyThumb } from '../notifications/NotificationPropertyPanel';
 import type { PropertyListItem } from '../../hooks/usePropertiesList';
 import type { ChannexMappingDto } from '../../services/api/channexApi';
@@ -19,6 +21,11 @@ import {
 import { propertyStatusTokens } from './propertiesListConstants';
 import './baitlyPropertyMap.css';
 
+const PROPERTY_STATUS_ICONS: Record<string, typeof CircleCheck> = {
+  ACTIVE: CircleCheck, INACTIVE: CirclePause, MAINTENANCE: Wrench,
+  UNDER_MAINTENANCE: Wrench, RENTED: KeyRound, SOLD: BadgeCheck, ARCHIVED: Archive,
+};
+
 /**
  * Une ligne de la vue carte des logements, dans la langue des deux autres
  * cartes de l'application (demandes de service, interventions) : la ligne
@@ -27,11 +34,11 @@ import './baitlyPropertyMap.css';
  *
  * <h2>Pourquoi le déclencheur est étiré et non enveloppant</h2>
  * <p>La sante Channex et le contrat manquant sont des actions indépendantes.
- * Or ce sont de vrais `<button>` : `StatusChip onClick` et
+ * Or ce sont de vrais `<button>` : l'action de contrat et
  * `ChannexHealthBadge` en rendent un. Un bouton imbriqué dans un autre
  * est invalide : le navigateur y reagit de facon imprevisible.</p>
  *
- * <p>Le déclencheur d'aperçu ne porte donc que le NOM, et couvre la ligne entière par un
+ * <p>Le déclencheur de cadrage ne porte donc que le NOM, et couvre la ligne entière par un
  * pseudo-element absolu. Les puces se replacent au-dessus de ce calque
  * (`relative z-10`) et redeviennent cliquables. Contrepartie assumee du
  * procede : le texte recouvert n'est plus selectionnable et ne porte plus
@@ -52,6 +59,7 @@ export default function PropertyMapRow({
 }) {
   const { t } = useTranslation();
   const id = Number(property.id);
+  const interaction = useContext(MapRowInteractions);
 
   const capacity = [
     { Icon: Users, value: property.guests, label: t('properties.guests') },
@@ -89,9 +97,10 @@ export default function PropertyMapRow({
               />
             </span>
           )}
-          <PopoverTrigger asChild><button
+          <button
             type="button"
             dir="auto"
+            onClick={() => interaction?.locate(id)}
             className={cn(
               'baitly-property-map-name min-w-0 text-foreground no-underline',
               'border-0 bg-transparent p-0 text-start',
@@ -99,7 +108,7 @@ export default function PropertyMapRow({
             )}
           >
             {property.name}
-          </button></PopoverTrigger>
+          </button>
         </div>
         <div className="baitly-property-map-address">
           <span className="baitly-property-map-street">{property.address}</span>
@@ -121,7 +130,10 @@ export default function PropertyMapRow({
           <span className="text-sm text-muted-foreground">—</span>
         )}
       </div>
-      <ChevronRight className="baitly-property-map-chevron size-4 text-muted-foreground" aria-hidden />
+      <PopoverTrigger asChild><button type="button" aria-label={`${t('common.details', 'Détails')} · ${property.name}`}
+        className="baitly-property-map-chevron relative z-10 flex size-6 cursor-pointer items-center justify-center rounded text-muted-foreground hover:bg-muted focus-visible:outline-2 focus-visible:outline-ring">
+        <ChevronRight className="size-4" aria-hidden />
+      </button></PopoverTrigger>
 
       <div
         className={cn(
@@ -142,12 +154,20 @@ export default function PropertyMapRow({
         )}
         <div className="baitly-property-map-states">
           {showMissingContract && (
-            <span className="baitly-property-map-contract relative z-10 inline-flex">
-              <MissingContractChip onClick={() => onMissingContractClick(id)} />
-            </span>
+            <Tooltip><TooltipTrigger asChild>
+              <Button size="icon" variant="ghost" className="relative z-10 size-8 shrink-0 cursor-pointer"
+                style={{ color: 'var(--bui-warning-ink)', backgroundColor: 'var(--bui-warning-soft)' }}
+                aria-label={t('contracts.gate.badge', 'Contrat manquant')}
+                onClick={() => onMissingContractClick(id)}>
+                <FileWarningIcon className="size-4" aria-hidden />
+              </Button>
+            </TooltipTrigger><TooltipContent>{t('contracts.gate.badge', 'Contrat manquant')}</TooltipContent></Tooltip>
           )}
-          <StatusChip pill tokens={propertyStatusTokens(property.status)}
-            label={getPropertyStatusLabel(property.status, t)} />
+          <span className="relative z-10 inline-flex">
+            <ServiceMapIndicator icon={PROPERTY_STATUS_ICONS[property.status?.toUpperCase()] ?? CircleHelp}
+              tokens={propertyStatusTokens(property.status)} label={getPropertyStatusLabel(property.status, t)} />
+          </span>
+          <MapLocateButton propertyId={id} />
         </div>
       </div>
     </article></PopoverAnchor>

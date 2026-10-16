@@ -1,4 +1,6 @@
-import StatusChip, { STATUS_TONES } from '../../components/StatusChip';
+import { STATUS_TONES } from '../../components/StatusChip';
+import ServiceMapIndicator from '../../components/ServiceMapIndicator';
+import { ClipboardList, Wrench } from '../../icons/glyphs';
 import { convertServiceRequest } from '../../hooks/useServiceRequestsList';
 import { useTranslation } from '../../hooks/useTranslation';
 import { InterventionMissionRow } from '../interventions/InterventionsMapView';
@@ -13,7 +15,7 @@ export default function PrestationRowItem({ row }: { row: PrestationRow }) {
     return (
       <InterventionMissionRow
         intervention={row.item}
-        badge={<StatusChip pill tokens={STATUS_TONES.neutral} label={t('prestations.kind.intervention', 'Intervention')} />}
+        badge={<ServiceMapIndicator icon={Wrench} tokens={STATUS_TONES.neutral} label={t('prestations.kind.intervention', 'Intervention')} />}
         actions={<InterventionRowMenu intervention={row.item} />}
       />
     );
@@ -22,7 +24,7 @@ export default function PrestationRowItem({ row }: { row: PrestationRow }) {
   return (
     <ServiceRequestMapRow
       request={request}
-      badge={<StatusChip pill tokens={STATUS_TONES.info} label={t('prestations.kind.request', 'Demande')} />}
+      badge={<ServiceMapIndicator icon={ClipboardList} tokens={STATUS_TONES.info} label={t('prestations.kind.request', 'Demande')} />}
       menu={<RequestRowMenu request={request} />}
     />
   );

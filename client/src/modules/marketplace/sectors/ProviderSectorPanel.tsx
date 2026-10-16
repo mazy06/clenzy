@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { ChevronNext } from '../../../icons';
 import { mergedSectorColor, sectorBounds, sectorColor, type SectorMode } from '../../../components/map/sectorLayer';
 import type { MapBounds } from '../../../components/BaitlyPropertyMap';
-import { Button, Popover, PopoverTrigger, ToggleGroup, ToggleGroupItem } from '../../../components/ui';
+import { Button, Popover, PopoverAnchor, PopoverTrigger, ToggleGroup, ToggleGroupItem } from '../../../components/ui';
 import MapRowPreview from '../../../components/map/MapRowPreview';
 import ProviderMapPreview from './ProviderMapPreview';
 import { useThemeMode } from '../../../hooks/useThemeMode';
@@ -129,7 +129,7 @@ export default function ProviderSectorPanel({
           </ToggleGroup>
         )}
       </div>
-      <div ref={scrollRef} className="min-h-0 flex-1 overflow-y-auto overscroll-contain" onMouseLeave={() => onHover(null)}>
+      <div ref={scrollRef} className="no-scrollbar min-h-0 flex-1 overflow-y-auto overscroll-contain" onMouseLeave={() => onHover(null)}>
         {isLoading && <p role="status" className="px-3 py-4 text-sm text-muted-foreground">
           {t('sectorMap.loading', 'Chargement des secteurs…')}
         </p>}
@@ -151,7 +151,8 @@ export default function ProviderSectorPanel({
             return (
               <li key={id ?? index} className="flex items-stretch" data-map-preview-row data-map-preview-last={rowIndex === visible.length - 1 || undefined} data-selected={selected || undefined}
                 onMouseEnter={() => onHover(id)} onMouseLeave={() => onHover(null)}>
-                <Popover><PopoverTrigger asChild><button type="button" aria-pressed={selected} data-map-preview-anchor
+                <Popover><PopoverAnchor asChild><div data-map-preview-anchor className="flex min-w-0 flex-1 items-stretch">
+                <button type="button" aria-pressed={selected}
                   onClick={() => onSelect(id)}
                   onFocus={() => onHover(id)} onBlur={() => onHover(null)}
                   className="flex min-w-0 flex-1 cursor-pointer items-center gap-3 px-3 py-2.5 text-start transition-colors duration-150 ease-out hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring aria-pressed:bg-muted">
@@ -166,8 +167,11 @@ export default function ProviderSectorPanel({
                       {t('sectorMap.coversProperties', { count: covered, defaultValue: '{{count}} logement(s) couvert(s)' })}
                     </span>
                   </span>
-                  <ChevronNext size={16} className="shrink-0 text-muted-foreground" aria-hidden />
-                </button></PopoverTrigger>
+                </button>
+                <PopoverTrigger asChild><button type="button" aria-label={`${t('common.details', 'Détails')} · ${provider.name ?? ''}`}
+                  className="flex w-9 shrink-0 cursor-pointer items-center justify-center text-muted-foreground hover:bg-muted focus-visible:outline-2 focus-visible:outline-ring">
+                  <ChevronNext size={16} aria-hidden />
+                </button></PopoverTrigger></div></PopoverAnchor>
                 <MapRowPreview label={provider.name ?? ''} side="end">
                   <ProviderMapPreview provider={provider} properties={data?.properties.filter(property => id != null && property.coveredBy.includes(id)) ?? []} />
                 </MapRowPreview></Popover>
