@@ -116,7 +116,7 @@ const ICONS: Record<HeaderActionKind, IconComponent> = {
 const KEYWORDS: Record<HeaderActionKind, string[]> = {
   refresh: ['rafraichir', 'actualiser', 'recharger', 'refresh', 'reload'],
   sync: ['synchroniser', 'synchronisation', 'resynchroniser', 'sync'],
-  create: ['ajouter', 'ajout', 'nouveau', 'nouvelle', 'creer', 'add', 'new', 'create'],
+  create: ['ajouter', 'ajout', 'nouveau', 'nouvelle', 'creer', 'add', 'new', 'create', 'إضافة', 'أضف', 'جديد', 'جديدة', 'إنشاء'],
   save: ['enregistrer', 'sauvegarder', 'save'],
   edit: ['modifier', 'editer', 'renommer', 'edit', 'rename'],
   delete: ['supprimer', 'effacer', 'retirer', 'delete', 'remove'],
@@ -145,9 +145,9 @@ const KEYWORDS: Record<HeaderActionKind, string[]> = {
 function normalize(label: string): string[] {
   return label
     .normalize('NFD')
-    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/\p{M}/gu, '')
     .toLowerCase()
-    .replace(/[^a-z0-9]+/g, ' ')
+    .replace(/[^\p{L}\p{N}]+/gu, ' ')
     .trim()
     .split(' ')
     .filter(Boolean);
@@ -155,7 +155,7 @@ function normalize(label: string): string[] {
 
 const BY_WORD: Map<string, HeaderActionKind> = new Map(
   (Object.entries(KEYWORDS) as Array<[HeaderActionKind, string[]]>).flatMap(([kind, words]) =>
-    words.map((word) => [word, kind] as const),
+    words.map((word) => [normalize(word).join(' '), kind] as const),
   ),
 );
 

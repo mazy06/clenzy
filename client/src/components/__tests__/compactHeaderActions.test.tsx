@@ -1,6 +1,6 @@
 import React from 'react';
 import { describe, it, expect } from 'vitest';
-import { render, screen } from '@testing-library/react';
+import { fireEvent, render, screen } from '@testing-library/react';
 import compactHeaderActions from '../compactHeaderActions';
 import { resolveActionKind } from '../headerActionIcons';
 import { composeTitleSegments } from '../PageTitle';
@@ -27,6 +27,12 @@ describe('resolveActionKind', () => {
     expect(resolveActionKind('Constellation')).toBeUndefined();
     expect(resolveActionKind('')).toBeUndefined();
   });
+
+  it('reconnait la creation dans les trois langues du PMS', () => {
+    for (const label of ['Ajouter un logement', 'Create property', 'إضافة مسكن', 'إنشاء حجز جديد']) {
+      expect(resolveActionKind(label)).toBe('create');
+    }
+  });
 });
 
 describe('composeTitleSegments', () => {
@@ -42,6 +48,28 @@ describe('composeTitleSegments', () => {
 });
 
 describe('compactHeaderActions', () => {
+  it('garde la creation explicite et fonctionnelle parmi les actions secondaires', () => {
+    let calls = 0;
+    render(<>{compactHeaderActions(<div>
+      <Button onClick={() => { calls++; }}><RefreshGlyph />Nouvelle réservation</Button>
+      <Button disabled onClick={() => { calls++; }}><RefreshGlyph />Ajouter un logement</Button>
+      <Button><RefreshGlyph />Exporter</Button>
+    </div>)}</>);
+    const create = screen.getByRole('button', { name: 'Nouvelle réservation' });
+    expect(create.textContent).toBe('Nouvelle réservation');
+    fireEvent.click(create);
+    fireEvent.click(screen.getByRole('button', { name: 'Ajouter un logement' }));
+    expect(calls).toBe(1);
+    expect(screen.getByRole('button', { name: 'Exporter' }).textContent).toBe('');
+  });
+
+  it('conserve le lien et son libelle lors de la creation via asChild', () => {
+    render(<>{compactHeaderActions(<Button asChild><a href="/properties/new"><RefreshGlyph />Créer un logement</a></Button>)}</>);
+    const link = screen.getByRole('link', { name: 'Créer un logement' });
+    expect(link.getAttribute('href')).toBe('/properties/new');
+    expect(link.textContent).toBe('Créer un logement');
+  });
+
   it('remplace le libelle par une infobulle et le nom accessible', () => {
     render(
       <>

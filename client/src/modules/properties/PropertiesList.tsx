@@ -44,6 +44,7 @@ import PropertiesTableView from './PropertiesTableView';
 import PropertyDeleteDialog from './PropertyDeleteDialog';
 import PropertyStatusToggleDialog from './PropertyStatusToggleDialog';
 import compactHeaderActions from '../../components/compactHeaderActions';
+import { usePageHeaderActions } from '../../components/PageHeaderActionsContext';
 
 interface PropertiesListProps {
   embedded?: boolean;
@@ -339,6 +340,12 @@ export default function PropertiesList({
 
   // ─── Render ───────────────────────────────────────────────────────
 
+  const contractReminder = canManageContracts && missingContractIds.size > 0 ? (
+    <MissingContractsBanner compact count={missingContractIds.size}
+      onEstablish={() => openContractModal([...missingContractIds][0] ?? null)} />
+  ) : null;
+  const contractHeaderActions = usePageHeaderActions(embedded ? contractReminder : null);
+
   const actionButtons = (
     <div className="flex gap-1 items-center">
       <Tooltip>
@@ -347,12 +354,14 @@ export default function PropertiesList({
               contour de marque plutôt qu'un aplat plein. */}
           <Button
             variant="outline"
-            size="icon-sm"
+            data-keep-label
+            data-header-create
             aria-label={t('properties.create')}
             onClick={() => navigate('/properties/new')}
             className="border-solid border-primary bg-transparent text-primary hover:bg-primary-soft hover:text-primary"
           >
             <Add size={20} strokeWidth={1.75} />
+            <span>{t('common.add', 'Ajouter')}</span>
           </Button>
         </TooltipTrigger>
         <TooltipContent>{t('properties.create')}</TooltipContent>
@@ -414,7 +423,7 @@ export default function PropertiesList({
             iconBadge={<Home />}
             backPath="/dashboard"
             showBackButton={false}
-            actions={actionButtons}
+            actions={<div className="flex items-center gap-2">{contractReminder}{actionButtons}</div>}
             filters={filterBar}
           />
         </div>
@@ -427,16 +436,7 @@ export default function PropertiesList({
         {embedded && filtersContainer ? createPortal(filterBar, filtersContainer) : null}
 
 
-        {/* Gate de rattrapage : rappel des logements sans contrat de gestion actif.
-            Le variant `warning` du primitif porte deja le fond pastel et l'encre
-            `-ink` : aucune couleur n'est reecrite ici, seule la mise en ligne. */}
-        {canManageContracts && missingContractIds.size > 0 ? (
-          <MissingContractsBanner
-            count={missingContractIds.size}
-            onEstablish={() => openContractModal([...missingContractIds][0] ?? null)}
-            className="mb-1.5"
-          />
-        ) : null}
+        {contractHeaderActions}
 
         {/* Tuiles portefeuille (projection) — l'agrégat suit les filtres. */}
         {filteredProperties.length > 0 && (

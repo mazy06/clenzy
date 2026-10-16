@@ -78,6 +78,7 @@ export default function GlobalSearchField({ className, compact }: { className?: 
         className={cn('shrink-0', compact === undefined && 'md:hidden', hasFilter && 'border-primary text-primary')}
         aria-label={ariaLabel}
         aria-keyshortcuts="Meta+K Control+K"
+        data-active-filter={hasFilter || undefined}
         onClick={open}
       >
         <SearchIcon />
@@ -99,6 +100,7 @@ export default function GlobalSearchField({ className, compact }: { className?: 
           )}
           aria-label={ariaLabel}
           aria-keyshortcuts="Meta+K Control+K"
+          data-active-filter={hasFilter || undefined}
           onClick={open}
         >
           <SearchIcon />
@@ -127,6 +129,7 @@ export default function GlobalSearchField({ className, compact }: { className?: 
             className="flex min-w-0 flex-1 cursor-pointer items-center gap-2 border-0 bg-transparent p-0 text-start text-sm text-foreground outline-none focus-visible:underline"
             aria-label={ariaLabel}
             aria-keyshortcuts="Meta+K Control+K"
+            data-active-filter={hasFilter || undefined}
             onClick={open}
           >
             <SearchIcon className="size-4 shrink-0 text-muted-foreground" />
