@@ -91,15 +91,19 @@ jobs:
         run: echo "day=$(date -u +%Y-%m-%d)" >> "$GITHUB_OUTPUT"
       - uses: actions/cache@v4
         with:
-          path: ~/.baitly-iot-dependency-check
+          # Same Dependency-Check 13 database format and path as the backend audit.
+          # Reuse its public NVD data on the first IoT run; analysis still fails closed.
+          path: ~/.dependency-check-data
           key: baitly-iot-nvd-13-${{ steps.nvd-date.outputs.day }}
-          restore-keys: baitly-iot-nvd-13-
+          restore-keys: |
+            baitly-iot-nvd-13-
+            nvd-data-
       - name: Audit IoT dependencies, fail on missing analysis or CVSS 7+
         env:
           NVD_API_KEY: ${{ secrets.NVD_API_KEY }}
         run: >-
           mvn -B -f baitly-iot/pom.xml org.owasp:dependency-check-maven:check
-          -DdataDirectory="$HOME/.baitly-iot-dependency-check"
+          -DdataDirectory="$HOME/.dependency-check-data"
       - uses: actions/upload-artifact@v4
         if: always()
         with:
