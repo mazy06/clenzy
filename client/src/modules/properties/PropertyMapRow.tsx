@@ -1,4 +1,6 @@
-import { Link } from 'react-router-dom';
+import { Popover, PopoverAnchor, PopoverTrigger } from '../../components/ui';
+import MapRowPreview from '../../components/map/MapRowPreview';
+import PropertyMapCard from './PropertyMapCard';
 import { Bath, BedDouble, ChevronRight, Users } from '../../icons/glyphs';
 import StatusChip from '../../components/StatusChip';
 import { Money } from '../../components/Money';
@@ -23,13 +25,13 @@ import './baitlyPropertyMap.css';
  * ENTIERE est cliquable, la vignette ancre le logement, et le pied de ligne
  * porte capacite a gauche / statut a droite.
  *
- * <h2>Pourquoi le lien est etire et non enveloppant</h2>
+ * <h2>Pourquoi le déclencheur est étiré et non enveloppant</h2>
  * <p>La sante Channex et le contrat manquant sont des actions indépendantes.
- * Or ce sont de vrais `<button>` — `StatusChip onClick` et
- * `ChannexHealthBadge` en rendent un — et un bouton imbrique dans une ancre
+ * Or ce sont de vrais `<button>` : `StatusChip onClick` et
+ * `ChannexHealthBadge` en rendent un. Un bouton imbriqué dans un autre
  * est invalide : le navigateur y reagit de facon imprevisible.</p>
  *
- * <p>Le lien ne porte donc que le NOM, et couvre la ligne entiere par un
+ * <p>Le déclencheur d'aperçu ne porte donc que le NOM, et couvre la ligne entière par un
  * pseudo-element absolu. Les puces se replacent au-dessus de ce calque
  * (`relative z-10`) et redeviennent cliquables. Contrepartie assumee du
  * procede : le texte recouvert n'est plus selectionnable et ne porte plus
@@ -58,7 +60,7 @@ export default function PropertyMapRow({
   ].filter((item) => item.value > 0);
 
   return (
-    <article
+    <Popover><PopoverAnchor asChild><article data-map-preview-anchor
       className={cn(
         'baitly-property-map-row group relative text-foreground',
         'transition-colors duration-150 motion-reduce:transition-none hover:bg-muted',
@@ -87,16 +89,17 @@ export default function PropertyMapRow({
               />
             </span>
           )}
-          <Link
-            to={`/properties/${property.id}`}
+          <PopoverTrigger asChild><button
+            type="button"
             dir="auto"
             className={cn(
               'baitly-property-map-name min-w-0 text-foreground no-underline',
+              'border-0 bg-transparent p-0 text-start',
               "cursor-pointer outline-none after:absolute after:inset-0 after:content-['']",
             )}
           >
             {property.name}
-          </Link>
+          </button></PopoverTrigger>
         </div>
         <div className="baitly-property-map-address">
           <span className="baitly-property-map-street">{property.address}</span>
@@ -147,6 +150,10 @@ export default function PropertyMapRow({
             label={getPropertyStatusLabel(property.status, t)} />
         </div>
       </div>
-    </article>
+    </article></PopoverAnchor>
+    <MapRowPreview label={property.name} side="start">
+      <PropertyMapCard propertyId={id} previewOnly />
+    </MapRowPreview>
+    </Popover>
   );
 }

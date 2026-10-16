@@ -1,8 +1,18 @@
-import { act, cleanup, fireEvent, render, screen } from '@testing-library/react';
+import { act, cleanup, fireEvent, render, screen, within } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
+import { useState } from 'react';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { SectorMap } from '../../../services/api/sectorMapApi';
 import ProviderSectorPanel from './ProviderSectorPanel';
+
+vi.mock('../../../hooks/usePropertiesList', () => ({ usePropertiesList: () => ({ properties: [
+  { id: '10', name: 'Loft', imageUrl: '/loft.jpg', city: 'Paris', postalCode: '75011' },
+] }) }));
+vi.mock('../../../services/api/providerCatalogApi', () => ({ providerCatalogApi: { getById: vi.fn().mockResolvedValue({
+  id: 1, displayName: 'Paris Ménage', headline: 'Ménage entre deux séjours', verified: true,
+  categoryCodes: ['CLEANING'], coverageCities: ['Paris'], offers: [{ id: 11, active: true, label: 'Ménage de départ', categoryCode: 'CLEANING', amount: 45, currency: 'EUR', pricingModel: 'FIXED' }],
+}) } }));
 
 vi.mock('../../../hooks/useThemeMode', () => ({ useThemeMode: () => ({ isDark: false }) }));
 vi.mock('../../../hooks/useTranslation', () => ({
@@ -31,10 +41,10 @@ const data: SectorMap = {
 const parisBounds = { north: 49, south: 48.5, east: 2.6, west: 2.1 };
 
 function renderPanel(onSelect = vi.fn(), onHover = vi.fn(), selectedId: number | null = null, map: SectorMap = data) {
-  render(<MemoryRouter>
+  render(<QueryClientProvider client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}><MemoryRouter>
     <ProviderSectorPanel data={map} isLoading={false} isError={false} bounds={parisBounds}
       mode="merged" onModeChange={vi.fn()} selectedId={selectedId} onSelect={onSelect} onHover={onHover} />
-  </MemoryRouter>);
+  </MemoryRouter></QueryClientProvider>);
   return { onSelect, onHover };
 }
 
@@ -62,6 +72,24 @@ function reachListEnd() {
 }
 
 describe('ProviderSectorPanel', () => {
+  it('opens an anchored preview before exposing the full provider profile link', async () => {
+    renderPanel();
+    expect(screen.queryByRole('link', { name: 'Voir les détails' })).toBeNull();
+    fireEvent.click(screen.getByRole('button', { name: /Paris Ménage/ }));
+    const preview = screen.getByRole('dialog', { name: 'Paris Ménage' });
+    expect(within(preview).getByText('Paris')).toBeTruthy();
+    expect(within(preview).getByText('Loft')).toBeTruthy();
+    expect(await within(preview).findByText('Ménage de départ')).toBeTruthy();
+    expect(within(preview).getByText('Zones d’intervention')).toBeTruthy();
+    expect(preview.querySelector('img[src="/images/catalog/cleaning.webp"]')).toBeTruthy();
+    expect(preview.querySelector('img')).toBeTruthy();
+    expect(preview.className).not.toContain('bui-sidebar-flyout');
+    expect(within(preview).getByRole('link', { name: 'Voir les détails' }).getAttribute('href')).toBe('/prestataires/1');
+    fireEvent.click(within(preview).getByRole('button', { name: 'Fermer' }));
+    expect(screen.queryByRole('dialog')).toBeNull();
+    expect(screen.getByRole('button', { name: /Paris Ménage/ })).toBeTruthy();
+  });
+
   it('keeps every provider of the selected area even outside the visible map bounds', () => {
     const panel = (ids: number[] | null) => <MemoryRouter><ProviderSectorPanel
       data={data} isLoading={false} isError={false} bounds={parisBounds} mode="merged"
@@ -109,7 +137,7 @@ describe('ProviderSectorPanel', () => {
     expect(onHover).toHaveBeenLastCalledWith(null);
   });
 
-  it('whenTheSelectedProviderHasNoSectorHere_thenItIsStillListedFirst', () => {
+  it('keeps a selected provider without a visible sector in the normal list order', () => {
     const withAssignee: SectorMap = { ...data, providers: [...data.providers,
       { providerId: 3, name: 'Jean Martin', avatarUrl: null, geometry: null, zones: [], userId: 42 }] };
     renderPanel(vi.fn(), vi.fn(), 3, withAssignee);
@@ -117,7 +145,8 @@ describe('ProviderSectorPanel', () => {
     const rows = screen.getAllByRole('button', { pressed: true });
     expect(rows[0].textContent).toContain('Jean Martin');
     expect(screen.getByText('Aucune zone déclarée')).toBeTruthy();
-    expect(screen.getAllByRole('listitem')[0].textContent).toContain('Jean Martin');
+    expect(screen.getAllByRole('listitem')[0].textContent).toContain('Paris Ménage');
+    expect(screen.getAllByRole('listitem')[1].textContent).toContain('Jean Martin');
   });
 
   it('loads visible providers ten at a time and keeps Salma reachable at the end', () => {
@@ -153,10 +182,25 @@ describe('ProviderSectorPanel', () => {
     expect(screen.getAllByRole('listitem')).toHaveLength(10);
   });
 
-  it('keeps a selected provider first even when it was in a later batch', () => {
-    renderPanel(vi.fn(), vi.fn(), 27, manyProviders);
-    expect(screen.getAllByRole('listitem')).toHaveLength(10);
-    expect(screen.getAllByRole('listitem')[0].textContent).toContain('Salma Chraibi');
+  it('preserves row order, loaded batches and scroll position when a later provider is clicked', () => {
+    function Panel() {
+      const [selectedId, onSelect] = useState<number | null>(null);
+      return <ProviderSectorPanel data={manyProviders} isLoading={false} isError={false} bounds={parisBounds}
+        mode="byProvider" onModeChange={vi.fn()} selectedId={selectedId} onSelect={onSelect} onHover={vi.fn()} />;
+    }
+    render(<QueryClientProvider client={new QueryClient()}><MemoryRouter><Panel /></MemoryRouter></QueryClientProvider>);
+    reachListEnd(); reachListEnd();
+    const list = screen.getByRole('list');
+    const order = Array.from(list.children).map(row => row.textContent);
+    const scroll = list.parentElement!;
+    scroll.scrollTop = 400;
+    const row = within(list).getByRole('button', { name: /Salma Chraibi/ });
+    fireEvent.click(row);
+    expect(Array.from(list.children).map(row => row.textContent)).toEqual(order);
+    expect(list.children).toHaveLength(23);
+    expect(scroll.scrollTop).toBe(400);
+    expect(row.getAttribute('aria-pressed')).toBe('true');
+    expect(screen.getByRole('dialog', { name: 'Salma Chraibi' })).toBeTruthy();
   });
 
   it('offers keyboard-accessible loading when IntersectionObserver is unavailable', () => {

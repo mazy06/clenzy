@@ -21,6 +21,7 @@ import PropertyReservations from './map-views/PropertyReservations';
 import PropertyIssues from './map-views/PropertyIssues';
 import PropertyDaySummary from './map-views/PropertyDaySummary';
 import type { PropertyMapView } from './map-views/propertyMapView';
+import PropertyMapPreview from './PropertyMapPreview';
 
 /**
  * Fiche d'un logement dans la bulle de carte : photos, adresse, propriétaire,
@@ -32,7 +33,8 @@ import type { PropertyMapView } from './map-views/propertyMapView';
  * photos, détails, propriétaire — ne change pas. `onDayAssignee` : intervenant du jour choisi
  * dans les prestations, pour montrer son secteur.
  */
-export default function PropertyMapCard({ propertyId, view = 'prestations', onShowView, onDayAssignee }: {
+export default function PropertyMapCard({ propertyId, view = 'prestations', onShowView, onDayAssignee, previewOnly = false }: {
+  previewOnly?: boolean;
   propertyId: number;
   view?: PropertyMapView;
   onShowView?: (view: PropertyMapView) => void;
@@ -49,6 +51,7 @@ export default function PropertyMapCard({ propertyId, view = 'prestations', onSh
   if (query.isError) return <MapCardError onRetry={() => void query.refetch()} />;
   if (!query.data) return <MapCardSkeleton />;
   const property = query.data;
+  if (previewOnly) return <PropertyMapPreview property={property} />;
   const address = [property.address, [property.postalCode, property.city].filter(Boolean).join(' ')]
     .filter(Boolean)
     .join(', ');

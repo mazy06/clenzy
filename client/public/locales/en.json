@@ -21124,6 +21124,7 @@
     "request": "Request"
   },
   "sectorMap": {
+    "previewZones": "Service areas",
     "areaFilter": "Selected area",
     "clearAreaFilter": "Clear the filter",
     "layer": "Provider service areas",

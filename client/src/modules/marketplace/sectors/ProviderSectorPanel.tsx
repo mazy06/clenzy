@@ -1,9 +1,10 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Link } from 'react-router-dom';
 import { ChevronNext } from '../../../icons';
 import { mergedSectorColor, sectorBounds, sectorColor, type SectorMode } from '../../../components/map/sectorLayer';
 import type { MapBounds } from '../../../components/BaitlyPropertyMap';
-import { Button, ToggleGroup, ToggleGroupItem } from '../../../components/ui';
+import { Button, Popover, PopoverTrigger, ToggleGroup, ToggleGroupItem } from '../../../components/ui';
+import MapRowPreview from '../../../components/map/MapRowPreview';
+import ProviderMapPreview from './ProviderMapPreview';
 import { useThemeMode } from '../../../hooks/useThemeMode';
 import { useTranslation } from '../../../hooks/useTranslation';
 import type { ProviderSectors, SectorMap } from '../../../services/api/sectorMapApi';
@@ -65,8 +66,7 @@ export default function ProviderSectorPanel({
       // Une zone sélectionnée prime sur le cadrage ; sinon, garder le prestataire sélectionné visible.
       .filter(({ provider }) => areaIds != null || (provider.providerId != null && provider.providerId === selectedId)
         || (extents.has(provider) && (!bounds || intersects(extents.get(provider)!, bounds))))
-      .sort((a, b) => Number(b.provider.providerId === selectedId) - Number(a.provider.providerId === selectedId)
-        || b.covered - a.covered || (a.provider.name ?? '').localeCompare(b.provider.name ?? ''));
+      .sort((a, b) => b.covered - a.covered || (a.provider.name ?? '').localeCompare(b.provider.name ?? ''));
   }, [data, bounds, selectedId, extents, areaIds]);
 
   // La pagination suit les candidats visibles, jamais leur rang global dans le catalogue.
@@ -102,17 +102,11 @@ export default function ProviderSectorPanel({
     return () => observer.disconnect();
   }, [displayedCount, hasMore, loadMore]);
 
-  // Une sélection venue d'ailleurs (jour choisi dans une fiche logement) doit rester visible.
-  const listRef = useRef<HTMLUListElement>(null);
-  useEffect(() => {
-    listRef.current?.querySelector<HTMLElement>('[data-selected]')?.scrollIntoView?.({ block: 'nearest' });
-  }, [selectedId, visible]);
-
   const colorOf = (index: number, providerId: number | null) =>
     mode === 'merged' && providerId !== selectedId ? mergedSectorColor(theme) : sectorColor(index, theme);
 
   return (
-    <section className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden rounded-xl border border-border bg-card"
+    <section data-provider-sector-panel className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden rounded-xl border border-border bg-card"
       aria-label={t('sectorMap.panelLabel', 'Prestataires de la zone visible')}>
       <div className="flex shrink-0 flex-col gap-2 border-b border-border px-3 py-3">
         <span className="text-sm font-medium tabular-nums">
@@ -148,17 +142,17 @@ export default function ProviderSectorPanel({
         {data && data.providers.length > 0 && visible.length === 0 && <p role="status" className="px-3 py-4 text-sm text-muted-foreground">
           {t('sectorMap.noneVisible', 'Aucun secteur dans la zone visible. Déplacez ou dézoomez la carte.')}
         </p>}
-        <ul ref={listRef} className="m-0 list-none divide-y divide-border p-0">
-          {visible.slice(0, displayedCount).map(({ provider, index, covered }) => {
+        <ul className="m-0 list-none divide-y divide-border p-0">
+          {visible.slice(0, displayedCount).map(({ provider, index, covered }, rowIndex) => {
             const id = provider.providerId;
             const selected = id != null && id === selectedId;
             const color = colorOf(index, id);
             const zones = provider.zones.filter((zone) => zone.drawn).map((zone) => zone.name).join(', ');
             return (
-              <li key={id ?? index} className="flex items-stretch" data-selected={selected || undefined}
+              <li key={id ?? index} className="flex items-stretch" data-map-preview-row data-map-preview-last={rowIndex === visible.length - 1 || undefined} data-selected={selected || undefined}
                 onMouseEnter={() => onHover(id)} onMouseLeave={() => onHover(null)}>
-                <button type="button" aria-pressed={selected}
-                  onClick={() => onSelect(selected ? null : id)}
+                <Popover><PopoverTrigger asChild><button type="button" aria-pressed={selected} data-map-preview-anchor
+                  onClick={() => onSelect(id)}
                   onFocus={() => onHover(id)} onBlur={() => onHover(null)}
                   className="flex min-w-0 flex-1 cursor-pointer items-center gap-3 px-3 py-2.5 text-start transition-colors duration-150 ease-out hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring aria-pressed:bg-muted">
                   {/* L'anneau porte la teinte du secteur sur la carte. */}
@@ -172,14 +166,11 @@ export default function ProviderSectorPanel({
                       {t('sectorMap.coversProperties', { count: covered, defaultValue: '{{count}} logement(s) couvert(s)' })}
                     </span>
                   </span>
-                </button>
-                {id != null && (
-                  <Link to={`/prestataires/${id}`}
-                    aria-label={t('sectorMap.openProvider', { name: provider.name, defaultValue: 'Ouvrir la fiche de {{name}}' })}
-                    className="flex w-11 shrink-0 items-center justify-center text-muted-foreground transition-colors duration-150 ease-out hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring">
-                    <ChevronNext size={16} aria-hidden />
-                  </Link>
-                )}
+                  <ChevronNext size={16} className="shrink-0 text-muted-foreground" aria-hidden />
+                </button></PopoverTrigger>
+                <MapRowPreview label={provider.name ?? ''} side="end">
+                  <ProviderMapPreview provider={provider} properties={data?.properties.filter(property => id != null && property.coveredBy.includes(id)) ?? []} />
+                </MapRowPreview></Popover>
               </li>
             );
           })}

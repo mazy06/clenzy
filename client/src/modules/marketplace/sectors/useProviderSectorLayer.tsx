@@ -30,8 +30,8 @@ export interface ProviderSectorLayer {
  * Calque « Secteurs des prestataires » de la carte des logements, allumé d'office : il montre
  * les secteurs des prestataires qui couvrent au moins un logement, la liste de ceux qui
  * entrent dans la zone visible, et l'anneau des épingles passe en couvert / non couvert.
- * L'éteindre rend à la carte l'anneau du planning du jour. Choisir un prestataire recadre
- * la carte sur son secteur.
+ * L'éteindre rend à la carte l'anneau du planning du jour. Choisir un prestataire ouvre
+ * son aperçu à côté de sa ligne, sans déplacer la liste ni la carte.
  */
 /** `ready` : faux tant que l'écran n'a pas fait son premier rendu (calque secondaire, différé). */
 export function useProviderSectorLayer(bounds: MapBounds | null, ready = true): ProviderSectorLayer {
@@ -96,9 +96,12 @@ export function useProviderSectorLayer(bounds: MapBounds | null, ready = true): 
     : null, [data, visibleProviderId]);
 
   const focusBounds = useMemo(() => {
+    // Le clic dans la liste ouvre l'aperçu à sa place, sans changer le cadrage
+    // et donc les candidats visibles. Le recadrage reste utile depuis une prestation.
+    if (focusUserId == null) return null;
     const geometry = data?.providers.find((p) => p.providerId != null && p.providerId === selectedId)?.geometry;
     return geometry ? sectorBounds(geometry) : null;
-  }, [data, selectedId]);
+  }, [data, selectedId, focusUserId]);
 
   const toggle = () => {
     setEnabled((on) => !on);

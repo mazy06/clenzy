@@ -21263,6 +21263,7 @@
     "request": "طلب"
   },
   "sectorMap": {
+    "previewZones": "مناطق التدخل",
     "areaFilter": "المنطقة المحددة",
     "clearAreaFilter": "مسح عامل التصفية",
     "layer": "مناطق عمل مقدمي الخدمات",
