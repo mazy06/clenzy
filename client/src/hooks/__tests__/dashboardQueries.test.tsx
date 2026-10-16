@@ -6,8 +6,7 @@ import { useDashboardOccupancyByProperty, useDashboardRevenueSplit } from '../us
 import { portfolioAnalyticsQuery, portfolioAnalyticsApi, type PortfolioAnalytics } from '../../services/api/portfolioAnalyticsApi';
 import { reportsApi } from '../../services/api/reportsApi';
 import { useFinancialReport } from '../../modules/reports/hooks/useReportData';
-import { accountingApi, type OwnerPayout } from '../../services/api/accountingApi';
-import { reportViewsApi } from '../../services/api/reportViewsApi';
+import { dashboardOverviewApi } from '../../services/api/dashboardOverviewApi';
 
 const auth = vi.hoisted(() => ({ user: { id: 'host-1', organizationId: 1 } as { id: string; organizationId: number } | null }));
 vi.mock('../useAuth', () => ({ useAuth: () => auth }));
@@ -62,50 +61,36 @@ it('waits for an authenticated account before requesting report data', () => {
   expect(get).not.toHaveBeenCalled();
 });
 
-it('does not replace an unavailable payout list with zero financial amounts', async () => {
-  vi.spyOn(reportViewsApi, 'execute').mockResolvedValue({ dimensions: ['PERIOD'], metrics: [], granularity: 'MONTH', from: '', to: '', currency: 'EUR', rows: [] });
-  vi.spyOn(accountingApi, 'getPayouts').mockRejectedValue(new Error('offline'));
-  const hook = renderHook(() => useDashboardRevenueSplit(), { wrapper: setup() });
+it('requests one annual summary and shares it between widgets', async () => {
+  const rows = [{ month: '2026-01', currency: 'EUR', revenue: 100, fees: 10, interventions: 20, payout: 30, retained: 40 }];
+  const get = vi.spyOn(dashboardOverviewApi, 'getRevenueSplit').mockResolvedValue(rows);
+  const hook = renderHook(() => [useDashboardRevenueSplit(2026), useDashboardRevenueSplit(2026)], { wrapper: setup() });
+  await waitFor(() => expect(hook.result.current.every(query => query.isSuccess)).toBe(true));
+  expect(get).toHaveBeenCalledExactlyOnceWith(2026);
+  expect(hook.result.current[0].data).toEqual(rows);
+});
+
+it('does not substitute zero amounts when the summary fails', async () => {
+  vi.spyOn(dashboardOverviewApi, 'getRevenueSplit').mockRejectedValue(new Error('offline'));
+  const hook = renderHook(() => useDashboardRevenueSplit(2026), { wrapper: setup() });
   await waitFor(() => expect(hook.result.current.isError).toBe(true));
   expect(hook.result.current.data).toBeUndefined();
 });
 
-it('shows the full calendar year, fills missing months and excludes other years', async () => {
-  vi.useFakeTimers({ toFake: ['Date'] });
-  vi.setSystemTime(new Date(2026, 9, 3, 12));
-  const execute = vi.spyOn(reportViewsApi, 'execute').mockResolvedValue({ dimensions: ['PERIOD'], metrics: [], granularity: 'MONTH', from: '', to: '', currency: 'EUR', rows: [
-    { dimensionValues: ['2026-10'], metrics: { REVENUE: 100, FEES: 10, MARGIN: 90 } },
-    { dimensionValues: ['2026-01'], metrics: { REVENUE: 500, FEES: 50, MARGIN: 400 } },
-    { dimensionValues: ['2026-12'], metrics: { REVENUE: 200, FEES: 20, MARGIN: 160 } },
-    { dimensionValues: ['2026-10'], metrics: { REVENUE: 50, FEES: 5, MARGIN: 40 } },
-    { dimensionValues: ['2025-12'], metrics: { REVENUE: 9999 } },
-  ] });
-  vi.spyOn(accountingApi, 'getPayouts').mockResolvedValue([
-    { periodStart: '2026-11-01', netAmount: 1000, status: 'PAID' } as OwnerPayout,
-    { periodStart: '2026-10-01', netAmount: 20, status: 'PAID' } as OwnerPayout,
-    { periodStart: '2026-10-01', netAmount: 999, status: 'FAILED' } as OwnerPayout,
-    { periodStart: '2025-12-01', netAmount: 999, status: 'PAID' } as OwnerPayout,
-    { periodStart: '2027-01-01', netAmount: 999, status: 'APPROVED' } as OwnerPayout,
-  ]);
-  const hook = renderHook(() => useDashboardRevenueSplit(), { wrapper: setup() });
+it('waits for authentication and isolates summaries by account, organization and year', async () => {
+  auth.user = null;
+  const get = vi.spyOn(dashboardOverviewApi, 'getRevenueSplit').mockResolvedValue([]);
+  const hook = renderHook(({ year }) => useDashboardRevenueSplit(year), { initialProps: { year: 2026 }, wrapper: setup() });
+  expect(get).not.toHaveBeenCalled();
+  auth.user = { id: 'host-1', organizationId: 1 }; hook.rerender({ year: 2026 });
   await waitFor(() => expect(hook.result.current.isSuccess).toBe(true));
-  expect(execute).toHaveBeenCalledWith(expect.objectContaining({ from: '2026-01-01', to: '2026-12-31' }));
-  const rows = hook.result.current.data!;
-  expect(rows.map(row => row.month)).toEqual(['2026-01', '2026-02', '2026-03', '2026-04', '2026-05', '2026-06', '2026-07', '2026-08', '2026-09', '2026-10', '2026-11', '2026-12']);
-  expect(rows[1]).toMatchObject({ currency: 'EUR', revenue: 0, fees: 0, interventions: 0, payout: 0, retained: 0 });
-  expect(rows[9]).toMatchObject({ revenue: 150, fees: 15, interventions: 5, payout: 20, retained: 110 });
-  expect(rows[10]).toMatchObject({ revenue: 0, payout: 1000, retained: -1000 });
-  expect(rows.reduce((sum, row) => sum + row.revenue, 0)).toBe(850);
-  expect(rows.reduce((sum, row) => sum + row.payout, 0)).toBe(1020);
-  for (const row of rows) expect(row.fees + row.interventions + row.payout + row.retained).toBe(row.revenue);
-});
-
-it('keeps January through December visible for a year with no financial activity', async () => {
-  const execute = vi.spyOn(reportViewsApi, 'execute').mockResolvedValue({ dimensions: ['PERIOD'], metrics: [], granularity: 'MONTH', from: '', to: '', currency: 'MAD', rows: [] });
-  vi.spyOn(accountingApi, 'getPayouts').mockResolvedValue([]);
-  const hook = renderHook(() => useDashboardRevenueSplit(2024), { wrapper: setup() });
+  auth.user = { id: 'host-1', organizationId: 2 }; hook.rerender({ year: 2026 });
+  expect(hook.result.current.data).toBeUndefined();
   await waitFor(() => expect(hook.result.current.isSuccess).toBe(true));
-  expect(execute).toHaveBeenCalledWith(expect.objectContaining({ from: '2024-01-01', to: '2024-12-31' }));
-  expect(hook.result.current.data).toHaveLength(12);
-  expect(hook.result.current.data?.every(row => row.currency === 'MAD' && row.revenue === 0 && row.payout === 0)).toBe(true);
+  auth.user = { id: 'host-2', organizationId: 2 }; hook.rerender({ year: 2026 });
+  expect(hook.result.current.data).toBeUndefined();
+  await waitFor(() => expect(hook.result.current.isSuccess).toBe(true));
+  hook.rerender({ year: 2025 });
+  await waitFor(() => expect(get).toHaveBeenLastCalledWith(2025));
+  expect(get).toHaveBeenCalledTimes(4);
 });

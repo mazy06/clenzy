@@ -16,6 +16,17 @@ export interface KpiTrend {
   previousValue?: number | null;
 }
 
+/** Synthèse annuelle calculée côté serveur, sans historique détaillé. */
+export interface MonthlyRevenueSplit {
+  currency: string;
+  month: string;
+  revenue: number;
+  fees: number;
+  interventions: number;
+  payout: number;
+  retained: number;
+}
+
 /** Note moyenne et volume d'avis publics **sur la période**. */
 export interface GuestRating {
   /** Moyenne sur 5 ; 0 si aucun avis sur la fenêtre. */
@@ -72,6 +83,8 @@ export interface DashboardOverviewSummary {
 }
 
 export const dashboardOverviewApi = {
+  getRevenueSplit: (year: number): Promise<MonthlyRevenueSplit[]> =>
+    apiClient.get<MonthlyRevenueSplit[]>('/dashboard/revenue-split', { params: { year } }),
   getSummary: (period: DashboardPeriod = 'month'): Promise<DashboardOverviewSummary> =>
     apiClient.get<DashboardOverviewSummary>('/dashboard/overview-summary', { params: { period } }),
 };

@@ -68,10 +68,15 @@ public class ChannelCommissionResolver {
 
     /** Commission : {@code otaFeeAmount} réel si présent, sinon {@code gross} × taux par défaut. */
     public BigDecimal commissionOf(Reservation r, BigDecimal gross) {
-        if (r.getOtaFeeAmount() != null) {
-            return r.getOtaFeeAmount();
+        return commissionOf(r.getSource(), r.getOtaFeeAmount(), gross);
+    }
+
+    /** Variante scalaire pour les projections, sans hydrater de réservation. */
+    public BigDecimal commissionOf(String source, BigDecimal actualFee, BigDecimal gross) {
+        if (actualFee != null) {
+            return actualFee;
         }
-        double rate = rateFor(normalize(r.getSource()));
+        double rate = rateFor(normalize(source));
         return gross.multiply(BigDecimal.valueOf(rate));
     }
 
