@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Layers } from '../../../icons/glyphs';
-import { sectorBounds, type SectorMode, type SectorOverlay } from '../../../components/map/sectorLayer';
+import { sectorBounds, type SectorGeometry, type SectorMode, type SectorOverlay } from '../../../components/map/sectorLayer';
 import type { MapBounds } from '../../../components/BaitlyPropertyMap';
 import { useTranslation } from '../../../hooks/useTranslation';
 import { sectorMapApi } from '../../../services/api/sectorMapApi';
@@ -15,7 +15,7 @@ export interface ProviderSectorLayer {
   tool: ReactNode;
   /** Colonne des prestataires de la zone visible ; null tant que le calque est éteint. */
   panel: ReactNode;
-  /** Logement → prestataires qui le couvrent (le seul sélectionné s'il y en a un) ; null si éteint. */
+  /** Logement → couverture du prestataire survolé, puis sélectionné, sinon de tous ; null si éteint. */
   coverage: Map<number, number[]> | null;
   /** Emprise du secteur sélectionné, pour y recadrer la carte ; null sans sélection. */
   focusBounds: [number, number, number, number] | null;
@@ -41,8 +41,17 @@ export function useProviderSectorLayer(bounds: MapBounds | null, ready = true): 
   const [mode, setMode] = useState<SectorMode>('merged');
   const [selectedId, setSelectedId] = useState<number | null>(null);
   const [hoveredId, setHoveredId] = useState<number | null>(null);
+  const [areaProviderIds, setAreaProviderIds] = useState<number[] | null>(null);
+  const [selectedAreaGeometry, setSelectedAreaGeometry] = useState<SectorGeometry | null>(null);
   // Compte de l'intervenant d'une prestation (jour choisi dans une fiche logement).
   const [focusUserId, setFocusUserId] = useState<number | null>(null);
+  const selectArea = useCallback((ids: number[] | null, geometry?: SectorGeometry | null) => {
+    setAreaProviderIds(ids?.length ? ids : null);
+    setSelectedAreaGeometry(ids?.length ? geometry ?? null : null);
+    setFocusUserId(null);
+    setSelectedId(null);
+    setHoveredId(null);
+  }, []);
   const query = useQuery({
     queryKey: ['sector-map', 'relevant'],
     queryFn: () => sectorMapApi.relevant(),
@@ -69,17 +78,22 @@ export function useProviderSectorLayer(bounds: MapBounds | null, ready = true): 
     if (provider?.providerId != null) setSelectedId(provider.providerId);
   }, [data, focusUserId]);
 
+  const providerContours = useMemo(() => data?.providers.map((p) => ({ id: p.providerId, geometry: p.geometry })) ?? [], [data]);
   const overlay = useMemo<SectorOverlay | null>(() => data ? {
-    providers: data.providers.map((p) => ({ id: p.providerId, geometry: p.geometry })),
+    providers: providerContours,
     merged: data.merged,
     mode,
-    highlightedProviderId: hoveredId ?? selectedId,
-  } : null, [data, mode, hoveredId, selectedId]);
+    highlightedProviderId: hoveredId,
+    selectedProviderId: selectedId,
+    selectedAreaGeometry,
+    onAreaSelect: selectArea,
+  } : null, [data, providerContours, mode, hoveredId, selectedId, selectedAreaGeometry, selectArea]);
 
+  const visibleProviderId = hoveredId ?? selectedId;
   const coverage = useMemo(() => data
     ? new Map(data.properties.map((p) => [p.id,
-      selectedId == null ? p.coveredBy : p.coveredBy.filter((id) => id === selectedId)]))
-    : null, [data, selectedId]);
+      visibleProviderId == null ? p.coveredBy : p.coveredBy.filter((id) => id === visibleProviderId)]))
+    : null, [data, visibleProviderId]);
 
   const focusBounds = useMemo(() => {
     const geometry = data?.providers.find((p) => p.providerId != null && p.providerId === selectedId)?.geometry;
@@ -91,6 +105,8 @@ export function useProviderSectorLayer(bounds: MapBounds | null, ready = true): 
     setFocusUserId(null);
     setSelectedId(null);
     setHoveredId(null);
+    setAreaProviderIds(null);
+    setSelectedAreaGeometry(null);
   };
   const label = t('sectorMap.layer', 'Secteurs des prestataires');
   const tool = (
@@ -107,15 +123,19 @@ export function useProviderSectorLayer(bounds: MapBounds | null, ready = true): 
       isError={query.isError}
       bounds={bounds}
       mode={mode}
-      onModeChange={setMode}
+      onModeChange={(next) => { setMode(next); selectArea(null); }}
+      areaProviderIds={areaProviderIds}
+      onClearAreaFilter={() => selectArea(null)}
       selectedId={selectedId}
       // Sélectionner un prestataire, c'est vouloir voir SON secteur : vue par prestataire.
-      onSelect={(id) => { setFocusUserId(null); setSelectedId(id); if (id != null) setMode('byProvider'); }}
+      onSelect={(id) => { setFocusUserId(null); setHoveredId(null); setSelectedId(id); if (id != null) setMode('byProvider'); }}
       onHover={setHoveredId}
     />
   ) : null;
 
   const focusProviderUser = useCallback((userId: number | null) => {
+    setAreaProviderIds(null);
+    setSelectedAreaGeometry(null);
     setFocusUserId(userId);
     setHoveredId(null);
     setSelectedId(null);

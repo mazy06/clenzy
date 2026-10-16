@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import { ChevronNext } from '../../../icons';
 import { mergedSectorColor, sectorBounds, sectorColor, type SectorMode } from '../../../components/map/sectorLayer';
 import type { MapBounds } from '../../../components/BaitlyPropertyMap';
-import { ToggleGroup, ToggleGroupItem } from '../../../components/ui';
+import { Button, ToggleGroup, ToggleGroupItem } from '../../../components/ui';
 import { useThemeMode } from '../../../hooks/useThemeMode';
 import { useTranslation } from '../../../hooks/useTranslation';
 import type { ProviderSectors, SectorMap } from '../../../services/api/sectorMapApi';
@@ -20,6 +20,8 @@ interface ProviderSectorPanelProps {
   selectedId: number | null;
   onSelect: (providerId: number | null) => void;
   onHover: (providerId: number | null) => void;
+  areaProviderIds?: readonly number[] | null;
+  onClearAreaFilter?: () => void;
 }
 
 interface VisibleProvider {
@@ -36,10 +38,12 @@ interface VisibleProvider {
  */
 export default function ProviderSectorPanel({
   data, isLoading, isError, bounds, mode, onModeChange, selectedId, onSelect, onHover,
+  areaProviderIds, onClearAreaFilter,
 }: ProviderSectorPanelProps) {
   const { t } = useTranslation();
   const { isDark } = useThemeMode();
   const theme = isDark ? 'dark' : 'light';
+  const areaIds = useMemo(() => areaProviderIds ? new Set(areaProviderIds) : null, [areaProviderIds]);
 
   // Emprise de chaque secteur : un parcours de tous ses sommets, fait une fois par jeu de
   // données et non à chaque déplacement de la carte.
@@ -55,12 +59,13 @@ export default function ProviderSectorPanel({
         index,
         covered: data.properties.filter((p) => provider.providerId != null && p.coveredBy.includes(provider.providerId)).length,
       }))
-      // Le prestataire sélectionné reste listé, en tête, même sans secteur dans la zone visible.
-      .filter(({ provider }) => (provider.providerId != null && provider.providerId === selectedId)
+      .filter(({ provider }) => !areaIds || (provider.providerId != null && areaIds.has(provider.providerId)))
+      // Une zone sélectionnée prime sur le cadrage ; sinon, garder le prestataire sélectionné visible.
+      .filter(({ provider }) => areaIds != null || (provider.providerId != null && provider.providerId === selectedId)
         || (extents.has(provider) && (!bounds || intersects(extents.get(provider)!, bounds))))
       .sort((a, b) => Number(b.provider.providerId === selectedId) - Number(a.provider.providerId === selectedId)
         || b.covered - a.covered || (a.provider.name ?? '').localeCompare(b.provider.name ?? ''));
-  }, [data, bounds, selectedId, extents]);
+  }, [data, bounds, selectedId, extents, areaIds]);
 
   // Une sélection venue d'ailleurs (jour choisi dans une fiche logement) doit rester visible.
   const listRef = useRef<HTMLUListElement>(null);
@@ -80,6 +85,12 @@ export default function ProviderSectorPanel({
             ? t('sectorMap.visibleCount', { count: visible.length, defaultValue: '{{count}} prestataire(s) dans cette zone' })
             : t('sectorMap.layer', 'Secteurs des prestataires')}
         </span>
+        {areaIds && <div className="flex flex-wrap items-center justify-between gap-1 text-xs text-muted-foreground">
+          <span>{t('sectorMap.areaFilter', 'Secteur sélectionné')}</span>
+          <Button type="button" variant="ghost" size="sm" onClick={onClearAreaFilter}>
+            {t('sectorMap.clearAreaFilter', 'Effacer le filtre')}
+          </Button>
+        </div>}
         {data && data.providers.length > 1 && (
           <ToggleGroup type="single" variant="outline" size="sm" spacing={0} value={mode}
             onValueChange={(value) => value && onModeChange(value as SectorMode)}

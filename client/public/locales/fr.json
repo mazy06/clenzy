@@ -21109,6 +21109,8 @@
     "request": "Demande"
   },
   "sectorMap": {
+    "areaFilter": "Secteur sélectionné",
+    "clearAreaFilter": "Effacer le filtre",
     "layer": "Secteurs des prestataires",
     "loading": "Chargement des secteurs…",
     "loadError": "Les secteurs n’ont pas pu être chargés.",

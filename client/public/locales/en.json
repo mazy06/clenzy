@@ -21122,6 +21122,8 @@
     "request": "Request"
   },
   "sectorMap": {
+    "areaFilter": "Selected area",
+    "clearAreaFilter": "Clear the filter",
     "layer": "Provider service areas",
     "loading": "Loading service areas…",
     "loadError": "Service areas could not be loaded.",

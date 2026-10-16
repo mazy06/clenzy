@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import type * as maplibregl from 'maplibre-gl';
 import { BaitlySectorLayer, mergedSectorColor, sectorBounds, sectorColor, type SectorOverlay } from '../sectorLayer';
 
@@ -34,7 +34,7 @@ function fakeMap() {
       listeners.get('styledata')?.forEach((listener) => listener());
     },
   };
-  return { map, sources, layers };
+  return { map, sources, layers, listeners };
 }
 
 const square = (lng: number): GeoJSON.Polygon => ({
@@ -49,6 +49,93 @@ const overlay = (mode: SectorOverlay['mode']): SectorOverlay => ({
 });
 
 describe('BaitlySectorLayer', () => {
+  it.each(['merged', 'byProvider'] as const)('selects the district before its enclosing city in %s mode', mode => {
+    const { map, listeners } = fakeMap();
+    const select = vi.fn();
+    const district: GeoJSON.Polygon = { type: 'Polygon', coordinates: [[[2.1, 48.1], [2.2, 48.1], [2.2, 48.2], [2.1, 48.2], [2.1, 48.1]]] };
+    const layer = new BaitlySectorLayer(map as unknown as maplibregl.Map);
+    // La grande ville arrive en dernier : l'ordre des prestataires ne doit pas gagner.
+    layer.set({ ...overlay(mode), providers: [{ id: 3, geometry: district }, { id: 1, geometry: square(2) }], onAreaSelect: select }, 'light');
+    const click = listeners.get('click')![0] as unknown as (event: maplibregl.MapMouseEvent) => void;
+    click({ lngLat: { lng: 2.15, lat: 48.15 } } as maplibregl.MapMouseEvent);
+    expect(select).toHaveBeenLastCalledWith([3, 1], district);
+    click({ lngLat: { lng: 2.5, lat: 48.5 } } as maplibregl.MapMouseEvent);
+    expect(select).toHaveBeenLastCalledWith([3, 1], square(2));
+  });
+  it('filters overlapping providers on map clicks, preserves marker actions and releases its listener', () => {
+    const { map, listeners } = fakeMap();
+    const off = vi.spyOn(map, 'off');
+    const select = vi.fn();
+    const layer = new BaitlySectorLayer(map as unknown as maplibregl.Map);
+    layer.set({ ...overlay('merged'), providers: [{ id: 1, geometry: square(2) }, { id: 3, geometry: square(2) }], onAreaSelect: select }, 'light');
+    const click = listeners.get('click')![0] as unknown as (event: maplibregl.MapMouseEvent) => void;
+    const event = (lng: number, target: Element = document.createElement('canvas')) => ({ lngLat: { lng, lat: 48.5 }, originalEvent: { target } }) as unknown as maplibregl.MapMouseEvent;
+    click(event(2.5));
+    expect(select).toHaveBeenLastCalledWith([1, 3], square(2));
+    click(event(362.5));
+    expect(select).toHaveBeenLastCalledWith([1, 3], square(2));
+    const marker = document.createElement('button'); marker.className = 'maplibregl-marker';
+    select.mockClear(); click(event(2.5, marker));
+    expect(select).not.toHaveBeenCalled();
+    click(event(8));
+    expect(select).toHaveBeenLastCalledWith(null, null);
+    layer.destroy();
+    expect(off).toHaveBeenCalledWith('click', click);
+  });
+
+  it('keeps the clicked area filled while hovering a provider and removes it when the area is cleared', () => {
+    const { map, sources } = fakeMap();
+    const layer = new BaitlySectorLayer(map as unknown as maplibregl.Map);
+    const selectedAreaGeometry = square(2);
+    const shown = { ...overlay('byProvider'), selectedAreaGeometry };
+    layer.set(shown, 'light');
+    const focus = () => sources.get('baitly-sectors-focus')!.data.features;
+    expect(focus()[0].geometry).toEqual(selectedAreaGeometry);
+    expect(focus()[0].properties?.fillOpacity).toBeGreaterThan(0);
+    layer.set({ ...shown, highlightedProviderId: 3 }, 'dark');
+    expect(focus().some(feature => feature.geometry === selectedAreaGeometry)).toBe(true);
+    layer.set({ ...shown, selectedAreaGeometry: null }, 'light');
+    expect(focus()).toEqual([]);
+  });
+  it.each(['merged', 'byProvider'] as const)('whenSalmaIsSelected_thenOnlyHerContourIsVisibleIn%sMode', mode => {
+    const { map, sources, layers } = fakeMap();
+    const layer = new BaitlySectorLayer(map as unknown as maplibregl.Map);
+    const shown = overlay(mode);
+    layer.set(shown, 'light');
+    const base = sources.get('baitly-sectors')!;
+    const send = vi.spyOn(base, 'setData');
+    const opacity = (id: string, key = 'line-opacity') => (layers.get(id)!.paint as Record<string, unknown>)[key];
+
+    layer.set({ ...shown, selectedProviderId: 3 }, 'light');
+    expect(opacity('baitly-sectors-line')).toBe(0);
+    expect(opacity('baitly-sectors-casing')).toBe(0);
+    expect(opacity('baitly-sectors-fill', 'fill-opacity')).toBe(0);
+    expect(sources.get('baitly-sectors-focus')!.data.features.map(f => f.geometry)).toEqual([shown.providers[2].geometry]);
+    expect(send).not.toHaveBeenCalled();
+
+    layer.set({ ...shown, selectedProviderId: 3, highlightedProviderId: 1 }, 'light');
+    expect(sources.get('baitly-sectors-focus')!.data.features.map(f => f.geometry)).toEqual([shown.providers[0].geometry]);
+    layer.set({ ...shown, selectedProviderId: 3, highlightedProviderId: null }, 'light');
+    expect(sources.get('baitly-sectors-focus')!.data.features.map(f => f.geometry)).toEqual([shown.providers[2].geometry]);
+
+    // Le remplacement du style (thème/3D) conserve aussi l'isolation du secteur.
+    map.replaceStyle();
+    expect(opacity('baitly-sectors-line')).toBe(0);
+    expect(sources.get('baitly-sectors-focus')!.data.features.map(f => f.geometry)).toEqual([shown.providers[2].geometry]);
+
+    layer.set(shown, 'light');
+    expect(opacity('baitly-sectors-line')).toEqual(['get', 'lineOpacity']);
+    expect(opacity('baitly-sectors-fill', 'fill-opacity')).toEqual(['get', 'fillOpacity']);
+    expect(sources.get('baitly-sectors-focus')!.data.features).toEqual([]);
+  });
+
+  it('doesNotShowOtherCoverageWhenTheSelectedProviderHasNoDrawableSector', () => {
+    const { map, sources, layers } = fakeMap();
+    new BaitlySectorLayer(map as unknown as maplibregl.Map).set({ ...overlay('byProvider'), selectedProviderId: 2 }, 'dark');
+    expect((layers.get('baitly-sectors-line')!.paint as Record<string, unknown>)['line-opacity']).toBe(0);
+    expect(sources.get('baitly-sectors-focus')!.data.features).toEqual([]);
+  });
+
   it('whenMerged_thenOneOutlineInTheMergedColour', () => {
     const { map, sources } = fakeMap();
     new BaitlySectorLayer(map as unknown as maplibregl.Map).set(overlay('merged'), 'light');
@@ -75,25 +162,32 @@ describe('BaitlySectorLayer', () => {
     expect(fills).toEqual([0, 0]);
   });
 
-  it('whenAProviderIsFocused_thenItIsFilledOnTopAndTheOthersFade', () => {
+  it('whenAProviderIsHovered_thenOnlyItsFilledSectorIsVisible', () => {
     const { map, sources, layers } = fakeMap();
     new BaitlySectorLayer(map as unknown as maplibregl.Map).set({ ...overlay('byProvider'), highlightedProviderId: 1 }, 'light');
 
     const focus = sources.get('baitly-sectors-focus')!.data.features;
     expect(focus.map((f) => f.properties?.color)).toEqual([sectorColor(0, 'light')]);
     expect(focus[0].properties?.fillOpacity).toBeGreaterThan(0);
-    expect((layers.get('baitly-sectors-line')!.paint as Record<string, unknown>)['line-opacity']).toEqual(['*', ['get', 'lineOpacity'], 0.32]);
+    expect((layers.get('baitly-sectors-line')!.paint as Record<string, unknown>)['line-opacity']).toBe(0);
+    expect((layers.get('baitly-sectors-fill')!.paint as Record<string, unknown>)['fill-opacity']).toBe(0);
     // Les calques mis en avant sont posés après la base : ils se dessinent au-dessus.
     const ids = [...layers.keys()];
     expect(ids.indexOf('baitly-sectors-focus-line')).toBeGreaterThan(ids.indexOf('baitly-sectors-line'));
   });
 
-  it('whenMergedWithAFocusedProvider_thenItsSectorIsDrawnOverTheMergedOutline', () => {
-    const { map, sources } = fakeMap();
-    new BaitlySectorLayer(map as unknown as maplibregl.Map).set({ ...overlay('merged'), highlightedProviderId: 3 }, 'light');
+  it('whenMergedWithAHoveredProvider_thenOnlyItsSectorIsVisibleUntilThePointerLeaves', () => {
+    const { map, sources, layers } = fakeMap();
+    const layer = new BaitlySectorLayer(map as unknown as maplibregl.Map);
+    const shown = overlay('merged');
+    layer.set({ ...shown, highlightedProviderId: 3 }, 'light');
 
     expect(sources.get('baitly-sectors')!.data.features.map((f) => f.properties?.color)).toEqual([mergedSectorColor('light')]);
     expect(sources.get('baitly-sectors-focus')!.data.features.map((f) => f.properties?.color)).toEqual([sectorColor(2, 'light')]);
+    expect((layers.get('baitly-sectors-line')!.paint as Record<string, unknown>)['line-opacity']).toBe(0);
+    layer.set(shown, 'light');
+    expect((layers.get('baitly-sectors-line')!.paint as Record<string, unknown>)['line-opacity']).toEqual(['get', 'lineOpacity']);
+    expect(sources.get('baitly-sectors-focus')!.data.features).toEqual([]);
   });
 
   it('whenOnlyTheFocusChanges_thenTheBaseIsNotSentAgain', () => {

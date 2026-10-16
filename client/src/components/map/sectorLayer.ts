@@ -1,5 +1,6 @@
 import type * as maplibregl from 'maplibre-gl';
 import type { Feature, FeatureCollection, MultiPolygon, Polygon } from 'geojson';
+import { sectorProvidersInArea, smallestSectorAtPoint } from './sectorHitTest';
 
 /**
  * Secteurs d'intervention des prestataires : une bordure et un fond translucide.
@@ -20,8 +21,14 @@ export interface SectorOverlay {
   providers: { id: number | null; geometry: SectorGeometry | null }[];
   merged: SectorGeometry | null;
   mode: SectorMode;
-  /** Secteur mis en avant (survol d'une ligne de légende, fiche ouverte). */
+  /** Secteur survolé : remplace temporairement la sélection ou la vue d'ensemble. */
   highlightedProviderId?: number | null;
+  /** Sélection persistante : seul ce secteur est dessiné, sans les contours des autres. */
+  selectedProviderId?: number | null;
+  /** Fond persistant de la partie du secteur sélectionnée sur la carte. */
+  selectedAreaGeometry?: SectorGeometry | null;
+  /** Clic sur la carte : prestataires couvrant la zone sélectionnée, ou null hors secteur. */
+  onAreaSelect?: (providerIds: number[] | null, geometry?: SectorGeometry | null) => void;
 }
 
 const SOURCE_ID = 'baitly-sectors';
@@ -59,12 +66,12 @@ export function sectorColor(index: number, theme: SectorTheme): string {
 /**
  * Les secteurs de plusieurs prestataires se superposent souvent exactement (tout un
  * département) : des fonds empilés noircissaient la carte. Par prestataire, on ne trace
- * donc que les contours ; le secteur mis en avant prend un fond et passe au-dessus, les
- * autres s'estompent.
+ * donc que les contours. Un survol ou une sélection affiche uniquement le secteur
+ * concerné, avec son fond ; quitter le survol restaure la sélection ou l'ensemble.
  *
  * <p>Deux sources : la BASE (tous les secteurs, sans mise en avant) et le secteur MIS EN
  * AVANT. Survoler une ligne de la légende ne renvoie au moteur que ce seul secteur ;
- * l'estompage des autres est un multiplicateur d'opacité des calques. Renvoyer toutes les
+ * masquer les autres change seulement l'opacité des calques. Renvoyer toutes les
  * géométries à chaque survol les faisait re-tuiler, d'où des saccades.</p>
  */
 function feature(geometry: SectorGeometry, color: string, fillOpacity: number, lineOpacity: number, highlighted: boolean): Feature {
@@ -91,12 +98,18 @@ function baseCollection(overlay: SectorOverlay, theme: SectorTheme): FeatureColl
 
 /** Le secteur mis en avant, rempli et dessiné au-dessus ; vide sans mise en avant. */
 function focusCollection(overlay: SectorOverlay, theme: SectorTheme): FeatureCollection {
-  const focused = overlay.highlightedProviderId ?? null;
+  const focused = overlay.highlightedProviderId ?? overlay.selectedProviderId ?? null;
   const index = focused == null ? -1 : overlay.providers.findIndex((provider) => provider.id === focused);
   const geometry = index < 0 ? null : overlay.providers[index].geometry;
+  const area = overlay.selectedAreaGeometry;
+  const features: Feature[] = area
+    ? [feature(area, mergedSectorColor(theme), PALETTES[theme].fill * 2, 0.95, true)] : [];
+  if (geometry && (!area || geometry.type !== area.type || geometry.coordinates !== area.coordinates)) {
+    features.push(feature(geometry, sectorColor(index, theme), PALETTES[theme].fill * 2, 0.95, true));
+  }
   return {
     type: 'FeatureCollection',
-    features: geometry ? [feature(geometry, sectorColor(index, theme), PALETTES[theme].fill * 2, 0.95, true)] : [],
+    features,
   };
 }
 
@@ -104,15 +117,22 @@ const FOCUS_SOURCE_ID = 'baitly-sectors-focus';
 const FOCUS_FILL_ID = 'baitly-sectors-focus-fill';
 const FOCUS_CASING_ID = 'baitly-sectors-focus-casing';
 const FOCUS_LINE_ID = 'baitly-sectors-focus-line';
-/** Les autres secteurs, quand un secteur est mis en avant. */
-const DIMMED_LINE = 0.32;
-const DIMMED_FILL = 0.5;
 
 export class BaitlySectorLayer {
   private overlay: SectorOverlay | null = null;
   private theme: SectorTheme = 'light';
   /** Ce qui façonne la base : tant qu'il ne change pas, la base n'est pas renvoyée. */
   private baseKey: unknown[] | null = null;
+  private readonly selectArea = (event: maplibregl.MapMouseEvent) => {
+    if (!this.overlay?.onAreaSelect) return;
+    const target = event.originalEvent?.target;
+    // Les logements, grappes, fiches et commandes gardent leur propre action.
+    if (target instanceof Element && target.closest('.maplibregl-marker, .maplibregl-popup, .maplibregl-ctrl')) return;
+    const lng = ((event.lngLat.lng + 180) % 360 + 360) % 360 - 180;
+    const area = smallestSectorAtPoint(this.overlay.providers, lng, event.lngLat.lat);
+    const ids = area ? sectorProvidersInArea(this.overlay.providers, area) : [];
+    this.overlay.onAreaSelect(ids.length ? ids : null, area);
+  };
   // Un changement de thème remplace le style par diff, sans `style.load` : nos calques
   // disparaissent en silence. Chaque `styledata` vérifie qu'ils sont encore là.
   private readonly reapply = () => {
@@ -121,6 +141,7 @@ export class BaitlySectorLayer {
 
   constructor(private readonly map: maplibregl.Map) {
     map.on('styledata', this.reapply);
+    map.on('click', this.selectArea);
   }
 
   set(overlay: SectorOverlay | null, theme: SectorTheme): void {
@@ -134,6 +155,7 @@ export class BaitlySectorLayer {
 
   destroy(): void {
     this.map.off('styledata', this.reapply);
+    this.map.off('click', this.selectArea);
     this.removeLayers();
   }
 
@@ -168,16 +190,13 @@ export class BaitlySectorLayer {
       }
       (map.getSource(FOCUS_SOURCE_ID) as maplibregl.GeoJSONSource | undefined)?.setData(focusCollection(overlay, theme));
     }
-    // Mise en avant : le fond d'ensemble s'atténue ; par prestataire, les autres bordures
-    // s'estompent (la bordure fusionnée, elle, reste lisible).
-    const focused = overlay.highlightedProviderId != null;
-    const dimLines = focused && overlay.mode === 'byProvider';
-    const line: maplibregl.DataDrivenPropertyValueSpecification<number> = dimLines
-      ? ['*', ['get', 'lineOpacity'], DIMMED_LINE]
-      : ['get', 'lineOpacity'];
+    // Survol et sélection isolent le secteur : aucun autre contour ne doit suggérer
+    // une couverture plus large. La base reste chargée pour un retour immédiat.
+    const focused = overlay.selectedProviderId != null || overlay.highlightedProviderId != null;
+    const line: maplibregl.DataDrivenPropertyValueSpecification<number> = focused ? 0 : ['get', 'lineOpacity'];
     map.setPaintProperty(LINE_ID, 'line-opacity', line);
     map.setPaintProperty(CASING_ID, 'line-opacity', line);
-    map.setPaintProperty(FILL_ID, 'fill-opacity', focused ? ['*', ['get', 'fillOpacity'], DIMMED_FILL] : ['get', 'fillOpacity']);
+    map.setPaintProperty(FILL_ID, 'fill-opacity', focused ? 0 : ['get', 'fillOpacity']);
   }
 
   private addLayers(base: FeatureCollection, focus: FeatureCollection): void {

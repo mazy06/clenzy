@@ -42,6 +42,32 @@ function renderPanel(onSelect = vi.fn(), onHover = vi.fn(), selectedId: number |
 afterEach(cleanup);
 
 describe('ProviderSectorPanel', () => {
+  it('keeps every provider of the selected area even outside the visible map bounds', () => {
+    const panel = (ids: number[] | null) => <MemoryRouter><ProviderSectorPanel
+      data={data} isLoading={false} isError={false} bounds={parisBounds} mode="merged"
+      onModeChange={vi.fn()} selectedId={null} onSelect={vi.fn()} onHover={vi.fn()}
+      areaProviderIds={ids} /></MemoryRouter>;
+    const { rerender } = render(panel([1, 2]));
+    expect(screen.getByText('Paris Ménage')).toBeTruthy();
+    expect(screen.getByText('Lyon Services')).toBeTruthy();
+    rerender(panel(null));
+    expect(screen.queryByText('Lyon Services')).toBeNull();
+  });
+  it('lists only providers in the clicked area and restores the full list when the area filter is cleared', () => {
+    const clear = vi.fn();
+    const map = { ...data, providers: [data.providers[0], { ...data.providers[1], geometry: data.providers[0].geometry }] };
+    const panel = (ids: number[] | null) => <MemoryRouter><ProviderSectorPanel
+      data={map} isLoading={false} isError={false} bounds={parisBounds} mode="merged"
+      onModeChange={vi.fn()} selectedId={2} onSelect={vi.fn()} onHover={vi.fn()}
+      areaProviderIds={ids} onClearAreaFilter={clear} /></MemoryRouter>;
+    const { rerender } = render(panel([1]));
+    expect(screen.getByText('Paris Ménage')).toBeTruthy();
+    expect(screen.queryByText('Lyon Services')).toBeNull();
+    fireEvent.click(screen.getByRole('button', { name: 'Effacer le filtre' }));
+    expect(clear).toHaveBeenCalledOnce();
+    rerender(panel(null));
+    expect(screen.getByText('Lyon Services')).toBeTruthy();
+  });
   it('whenTheMapShowsParis_thenOnlyProvidersWhoseSectorIsVisibleAreListed', () => {
     renderPanel();
 
