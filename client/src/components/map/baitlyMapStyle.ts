@@ -59,7 +59,7 @@ export const BAITLY_PAPER: Flavor = {
   tunnel_major: '#FFFFFF',
   tunnel_highway: '#FFFFFF',
   pier: '#E9E4DA',
-  buildings: '#DFD8CB',
+  buildings: '#CCD5DB',
   minor_service_casing: '#D9D2C5',
   minor_casing: '#CFC7B8',
   link_casing: '#C4B9A6',
@@ -229,7 +229,7 @@ const FLAVORS: Record<BaitlyMapMode, Flavor> = {
 };
 
 /** Contour des bâtiments, une marche au-dessus du remplissage. */
-const BUILDING_OUTLINE: Record<BaitlyMapMode, string> = { light: '#C7BEAE', dark: '#33456A' };
+const BUILDING_OUTLINE: Record<BaitlyMapMode, string> = { light: '#AFBDC7', dark: '#33456A' };
 
 /**
  * Commerces masqués : une carte de gestion locative n'est pas un guide de
