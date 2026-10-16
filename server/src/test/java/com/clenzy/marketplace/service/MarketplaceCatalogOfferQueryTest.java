@@ -234,14 +234,14 @@ class MarketplaceCatalogOfferQueryTest {
     }
 
     @ParameterizedTest
-    @ValueSource(strings = {"base", "foreign-zone", "country-only", "split-zones", "wrong-country", "base-bypasses-department", "matching-department", "wrong-department"})
+    @ValueSource(strings = {"base", "foreign-zone", "country-only", "split-zones", "wrong-country", "base-bypasses-department", "matching-department", "wrong-department", "radius-base", "radius-unlocated", "radius-foreign"})
     void geographicFiltersMustMatchOneLocation(String scenario) {
         verifyGeography(new Configuration().setProperty("hibernate.connection.url", "jdbc:h2:mem:" + UUID.randomUUID()), scenario);
     }
 
     @org.junit.jupiter.api.condition.EnabledIfSystemProperty(named = "baitly.test.jdbc", matches = "jdbc:postgresql:.*")
     @ParameterizedTest
-    @ValueSource(strings = {"base", "foreign-zone", "country-only", "split-zones", "wrong-country", "base-bypasses-department", "matching-department", "wrong-department"})
+    @ValueSource(strings = {"base", "foreign-zone", "country-only", "split-zones", "wrong-country", "base-bypasses-department", "matching-department", "wrong-department", "radius-base", "radius-unlocated", "radius-foreign"})
     void postgresGeographicFiltersMustMatchOneLocation(String scenario) throws Exception {
         withPostgres(config -> verifyGeography(config, scenario));
     }
@@ -260,6 +260,12 @@ class MarketplaceCatalogOfferQueryTest {
             boolean expected = false;
             switch (scenario) {
                 case "base" -> provider.setBaseCountryCode("FR");
+                case "radius-base", "radius-unlocated", "radius-foreign" -> {
+                    provider.setBaseCountryCode(scenario.equals("radius-foreign") ? "MA" : "FR");
+                    provider.setTravelRadiusKm(10);
+                    if (!scenario.equals("radius-unlocated")) { provider.setLatitude(new java.math.BigDecimal("48.86")); provider.setLongitude(new java.math.BigDecimal("2.38")); }
+                    expected = scenario.equals("radius-base");
+                }
                 case "foreign-zone", "country-only" -> { zone(provider, "FR", "Paris", "75"); expected = true; }
                 case "split-zones" -> { zone(provider, "FR", "Lyon", "69"); zone(provider, "MA", "Paris", null); }
                 case "wrong-country" -> zone(provider, "MA", "Paris", "75");

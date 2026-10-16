@@ -97,6 +97,36 @@ class SectorShapesTest {
         assertThat(contains(shape.geometry(), 2.2945, 48.8584)).isFalse();  // Tour Eiffel, 7e
     }
 
+    @Test void aFrenchCityDrawsOnlyItsMunicipalBoundaryAndKeepsDepartmentCoverageAvailable() {
+        var city = shapes.provider(27L, "Courbevoie", List.of(new SectorShapes.DeclaredZone("FR", "92", null, "Courbevoie")));
+        assertThat(contains(city.geometry(), 2.256, 48.897)).isTrue();
+        assertThat(contains(city.geometry(), 2.241, 48.884)).isFalse(); // Neuilly-sur-Seine
+        assertThat(city.geometry().getArea()).isLessThan(catalog.find("FR", "92", null, null).orElseThrow().geometry().getArea() / 10);
+        assertThat(catalog.find("FR", "92", null, "Neuilly sur Seine")).isPresent();
+        assertThat(catalog.find("FR", "93", null, "Courbevoie")).isEmpty();
+        assertThat(catalog.find("FR", "92", null, "Ville inconnue")).isEmpty();
+        var department = shapes.provider(27L, "Tout le 92", List.of(fr("92", null)));
+        assertThat(contains(department.geometry(), 2.241, 48.884)).isTrue();
+    }
+
+    @Test void radiusOutlineUsesTheGeolocatedBaseAndJoinsDeclaredDepartments() {
+        var radius=new SectorShapes.DeclaredZone("FR",null,null,"Paris",48.8566,2.3522,10);
+        var shape=shapes.provider(1L,"A",List.of(radius));
+        assertThat(contains(shape.geometry(),2.3522,48.8566)).isTrue();
+        assertThat(contains(shape.geometry(),2.448,48.863)).isTrue();
+        assertThat(contains(shape.geometry(),4.84,45.76)).isFalse();
+        var union=shapes.provider(1L,"A",List.of(radius,fr("69",null)));
+        assertThat(contains(union.geometry(),4.84,45.76)).isTrue();
+        assertThat(contains(union.geometry(),2.3522,48.8566)).isTrue();
+    }
+
+    @Test void zeroRadiusDoesNotDrawTheWholeBaseCity() {
+        var radius=new SectorShapes.DeclaredZone("FR",null,null,"Paris",48.8566,2.3522,0);
+        var shape=shapes.provider(1L,"A",List.of(radius));
+        assertThat(shape.geometry()).isNull();
+        assertThat(shape.sectors().zones()).extracting(SectorMapDto.Zone::kind).containsExactly("radius");
+    }
+
     @Test
     void whenTheSameZonesComeBack_thenTheUnionsAreReusedNotRecomputed() {
         var first = shapes.provider(1L, "A", List.of(fr("75", null), fr("93", null)));

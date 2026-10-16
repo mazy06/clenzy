@@ -14,6 +14,12 @@ public interface TeamCoverageZoneRepository extends JpaRepository<TeamCoverageZo
 
     List<TeamCoverageZone> findByTeamId(Long teamId);
 
+    @Query(value = "SELECT t.id FROM teams t WHERE t.organization_id=:orgId AND "
+        + "public.baitly_team_covers(t.id,:country,:department,:arrondissement,:city,"
+        + "CAST(:latitude AS double precision),CAST(:longitude AS double precision))", nativeQuery = true)
+    List<Long> findTeamIdsCoveringLocation(Long orgId, String country, String department, String arrondissement, String city,
+                                         java.math.BigDecimal latitude, java.math.BigDecimal longitude);
+
     /** Même règle que l'attribution verrouillée, en lecture pour les suggestions. */
     @Query(value = "SELECT NOT public.baitly_assignee_accepts_property('team', :teamId, :propertyType)", nativeQuery = true)
     boolean rejectsPropertyType(@Param("teamId") Long teamId, @Param("propertyType") String propertyType);

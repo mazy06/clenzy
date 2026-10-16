@@ -249,6 +249,8 @@ public interface PropertyRepository extends JpaRepository<Property, Long>, JpaSp
      * Évite les LazyInitializationException
      */
     interface MarketplaceLocation {
+        java.math.BigDecimal getLatitude();
+        java.math.BigDecimal getLongitude();
         String getType();
         String getCountryCode();
         String getDepartment();
@@ -256,7 +258,7 @@ public interface PropertyRepository extends JpaRepository<Property, Long>, JpaSp
         String getCity();
     }
 
-    @Query(value = "SELECT country_code AS countryCode, department, arrondissement, city, type FROM properties "
+    @Query(value = "SELECT country_code AS countryCode, department, arrondissement, city, type, latitude, longitude FROM properties "
         + "WHERE id=:id AND organization_id=:orgId FOR SHARE", nativeQuery = true)
     java.util.Optional<MarketplaceLocation> lockMarketplaceLocation(Long id, Long orgId);
 

@@ -26,7 +26,11 @@ import java.util.Optional;
 public class SectorShapes {
 
     /** Zone telle que déclarée, quelle que soit sa table d'origine. */
-    public record DeclaredZone(String country, String department, String arrondissement, String city) {
+    public record DeclaredZone(String country, String department, String arrondissement, String city,
+                               Double latitude, Double longitude, Integer radiusKm) {
+        public DeclaredZone(String country, String department, String arrondissement, String city) {
+            this(country,department,arrondissement,city,null,null,null);
+        }
     }
 
     /** Secteur d'un prestataire, avec sa géométrie JTS et ses zones (clé des unions suivantes). */
@@ -65,6 +69,13 @@ public class SectorShapes {
         List<SectorMapDto.Zone> zones = new ArrayList<>();
         List<Geometry> parts = new ArrayList<>();
         for (DeclaredZone zone : declared) {
+            if (zone.radiusKm()!=null) {
+                boolean drawable=zone.radiusKm()>0 && zone.radiusKm()<=1000 && zone.latitude()!=null && zone.longitude()!=null
+                    && Math.abs(zone.latitude())<=90 && Math.abs(zone.longitude())<=180;
+                if(drawable) parts.add(radiusOutline(zone));
+                zones.add(new SectorMapDto.Zone(null,zone.radiusKm()+" km", "radius",false,drawable));
+                continue;
+            }
             var sector = catalog.find(zone.country(), zone.department(), zone.arrondissement(), zone.city());
             if (sector.isPresent()) {
                 var found = sector.get();
@@ -92,8 +103,25 @@ public class SectorShapes {
         return UnaryUnionOp.union(parts, catalog.factory());
     }
 
+    /** Cercle géodésique avec le même rayon terrestre que le verdict SQL Baitly. */
+    private Geometry radiusOutline(DeclaredZone zone) {
+        int steps=128;
+        var points=new org.locationtech.jts.geom.Coordinate[steps+1];
+        double latitude=Math.toRadians(zone.latitude()), longitude=Math.toRadians(zone.longitude());
+        double distance=zone.radiusKm()/6371.0088;
+        for(int i=0;i<steps;i++) {
+            double bearing=2*Math.PI*i/steps;
+            double lat=Math.asin(Math.sin(latitude)*Math.cos(distance)+Math.cos(latitude)*Math.sin(distance)*Math.cos(bearing));
+            double lon=longitude+Math.atan2(Math.sin(bearing)*Math.sin(distance)*Math.cos(latitude),Math.cos(distance)-Math.sin(latitude)*Math.sin(lat));
+            points[i]=new org.locationtech.jts.geom.Coordinate(Math.toDegrees(lon),Math.toDegrees(lat));
+        }
+        points[steps]=points[0].copy();
+        return catalog.factory().createPolygon(points);
+    }
+
     private static String label(DeclaredZone zone) {
         if (zone.arrondissement() != null && !zone.arrondissement().isBlank()) return zone.arrondissement();
+        if (zone.city() != null && !zone.city().isBlank()) return zone.city();
         if (zone.department() != null && !zone.department().isBlank()) return zone.department();
         return zone.city() == null ? "" : zone.city();
     }

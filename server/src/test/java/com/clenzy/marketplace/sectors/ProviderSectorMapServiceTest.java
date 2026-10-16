@@ -177,4 +177,68 @@ class ProviderSectorMapServiceTest {
                 .satisfies(p -> assertThat(p.coveredBy()).containsExactly(3L));
         verify(catalog, never()).getProvider(5L);
     }
+
+    @Test void salmaIsListedWithOnlyHerThreeArrondissementOutlinesAndRemovingOneUpdatesTheOutline() {
+        provider(27L,"Salma Chraibi",true);
+        var owned=List.of(property(75L,"Loft Bastille"),property(76L,"Studio Jemmapes"));
+        var coverage=List.of(covers(27L,76L));
+        when(properties.findSectorMapProperties(ORG)).thenReturn(owned);
+        when(zones.coverageForOrganization(ORG)).thenReturn(coverage);
+        var third=zone(27L,"75");when(third.getArrondissement()).thenReturn("3e");
+        var tenth=zone(27L,"75");when(tenth.getArrondissement()).thenReturn("75110");
+        var eighteenth=zone(27L,"75");when(eighteenth.getArrondissement()).thenReturn("75018");
+        when(zones.effectiveZones(List.of(27L))).thenReturn(List.of(third,tenth,eighteenth),List.of(third,tenth));
+
+        var map=service.relevantTo(ORG,null);
+        assertThat(map.providers()).singleElement().satisfies(p -> {
+            assertThat(p.name()).isEqualTo("Salma Chraibi");
+            assertThat(p.zones()).extracting(SectorMapDto.Zone::key).containsExactly("FR-A-75103","FR-A-75110","FR-A-75118");
+        });
+        assertThat(map.properties()).extracting(SectorMapDto.SectorProperty::coveredBy).containsExactly(List.of(),List.of(27L));
+        var catalogOf=new SectorGeometryCatalog(new ObjectMapper());
+        var geometry=GeoJsonGeometries.read(new ObjectMapper().valueToTree(map.providers().getFirst().geometry()),catalogOf.factory());
+        var tenthPoint=catalogOf.find("FR","75","75110",null).orElseThrow().geometry().getInteriorPoint();
+        var eleventhPoint=catalogOf.find("FR","75","75111",null).orElseThrow().geometry().getInteriorPoint();
+        var eighteenthPoint=catalogOf.find("FR","75","75118",null).orElseThrow().geometry().getInteriorPoint();
+        assertThat(geometry.covers(tenthPoint)).isTrue();assertThat(geometry.covers(eighteenthPoint)).isTrue();
+        assertThat(geometry.covers(eleventhPoint)).isFalse();
+        assertThat(geometry.getArea()).isLessThan(catalogOf.find("FR","75",null,null).orElseThrow().geometry().getArea());
+
+        var changed=service.relevantTo(ORG,null);
+        var updated=GeoJsonGeometries.read(new ObjectMapper().valueToTree(changed.providers().getFirst().geometry()),catalogOf.factory());
+        assertThat(updated.covers(tenthPoint)).isTrue();assertThat(updated.covers(eighteenthPoint)).isFalse();
+        assertThat(updated.getArea()).isLessThan(geometry.getArea());
+    }
+
+    @Test void salmaAtRankFiftyThreeIsNotDroppedBeforeTheBrowserFiltersToParis() {
+        var owned=List.of(property(75L,"Loft Bastille"),property(76L,"Studio Jemmapes"));
+        when(properties.findSectorMapProperties(ORG)).thenReturn(owned);
+        var coverage=new java.util.ArrayList<PropertyCoverage>();
+        var declared=new java.util.ArrayList<EffectiveZone>();
+        for(long id=100;id<152;id++) {
+            provider(id,"Prestataire "+id,true);
+            coverage.add(covers(id,75L));coverage.add(covers(id,76L));
+            declared.add(zone(id,"75"));
+        }
+        provider(27L,"Salma Chraibi",true);
+        coverage.add(covers(27L,76L));
+        for(String code:List.of("75103","75110","75118")) {
+            var sector=zone(27L,"75");when(sector.getArrondissement()).thenReturn(code);declared.add(sector);
+        }
+        when(zones.coverageForOrganization(ORG)).thenReturn(coverage);
+        when(zones.effectiveZones(anyList())).thenReturn(declared);
+
+        var map=service.relevantTo(ORG,null);
+
+        assertThat(map.providers()).hasSize(53);
+        assertThat(map.providers().stream().filter(p->Long.valueOf(27).equals(p.providerId())))
+            .singleElement().satisfies(p->{
+                assertThat(p.name()).isEqualTo("Salma Chraibi");
+                assertThat(p.geometry()).isNotNull();
+                assertThat(p.zones()).extracting(SectorMapDto.Zone::key)
+                    .containsExactly("FR-A-75103","FR-A-75110","FR-A-75118");
+            });
+        assertThat(map.properties().stream().filter(p->p.id()==76L).findFirst().orElseThrow().coveredBy()).contains(27L);
+        assertThat(map.properties().stream().filter(p->p.id()==75L).findFirst().orElseThrow().coveredBy()).doesNotContain(27L);
+    }
 }

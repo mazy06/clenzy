@@ -21132,7 +21132,9 @@
     "noZone": "Aucune zone déclarée",
     "coversProperties_one": "{{count}} logement couvert",
     "coversProperties_other": "{{count}} logements couverts",
-    "openProvider": "Ouvrir la fiche de {{name}}"
+    "openProvider": "Ouvrir la fiche de {{name}}",
+    "displayedCount": "{{shown}} sur {{total}} affichés",
+    "loadMore": "Afficher les {{count}} suivants"
   },
   "baitlyIot": {
     "addButton": "Connexion au service Baitly",
@@ -21268,5 +21270,18 @@
       }
     },
     "deviceId": "Identifiant dans le compte fabricant"
+  },
+  "providerCoverage": {
+    "title": "Secteurs d’intervention",
+    "help": "Choisissez des départements, des arrondissements ou des villes. Un logement est couvert par un secteur déclaré ou par le rayon, si celui-ci est renseigné.",
+    "chooseDepartment": "Choisir un département",
+    "wholeDepartment": "Tout le département",
+    "located": "Point de départ géolocalisé : le rayon est calculé depuis cette adresse.",
+    "locateHelp": "Pour utiliser le rayon, sélectionnez une adresse dans les suggestions afin de définir son point de départ.",
+    "cityOptional": "Ville (optionnel)",
+    "wholeCity": "Toute la ville",
+    "loadingCities": "Chargement des villes…",
+    "citiesError": "Impossible de charger les villes.",
+    "retryCities": "Réessayer"
   }
 }

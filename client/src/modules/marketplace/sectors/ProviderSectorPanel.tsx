@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { ChevronNext } from '../../../icons';
 import { mergedSectorColor, sectorBounds, sectorColor, type SectorMode } from '../../../components/map/sectorLayer';
@@ -30,6 +30,8 @@ interface VisibleProvider {
   index: number;
   covered: number;
 }
+
+const PROVIDERS_PER_BATCH = 10;
 
 /**
  * Prestataires dont le secteur entre dans la partie visible de la carte : la liste suit
@@ -67,6 +69,39 @@ export default function ProviderSectorPanel({
         || b.covered - a.covered || (a.provider.name ?? '').localeCompare(b.provider.name ?? ''));
   }, [data, bounds, selectedId, extents, areaIds]);
 
+  // La pagination suit les candidats visibles, jamais leur rang global dans le catalogue.
+  const visibleKey = visible.map(({ provider }) => provider.providerId).join(',');
+  const [batch, setBatch] = useState({ key: visibleKey, count: PROVIDERS_PER_BATCH });
+  const displayedCount = Math.min(visible.length, batch.key === visibleKey ? batch.count : PROVIDERS_PER_BATCH);
+  const hasMore = displayedCount < visible.length;
+  const loadMore = useCallback(() => {
+    setBatch(previous => ({
+      key: visibleKey,
+      count: Math.min(visible.length, (previous.key === visibleKey ? previous.count : PROVIDERS_PER_BATCH) + PROVIDERS_PER_BATCH),
+    }));
+  }, [visibleKey, visible.length]);
+
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const moreRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    setBatch(previous => previous.key === visibleKey ? previous : { key: visibleKey, count: PROVIDERS_PER_BATCH });
+    if (scrollRef.current) scrollRef.current.scrollTop = 0;
+  }, [visibleKey]);
+  useEffect(() => {
+    const root = scrollRef.current;
+    const sentinel = moreRef.current;
+    if (!root || !sentinel || !hasMore || typeof IntersectionObserver === 'undefined') return;
+    let requested = false;
+    const observer = new IntersectionObserver(entries => {
+      if (!requested && entries.some(entry => entry.isIntersecting)) {
+        requested = true;
+        loadMore();
+      }
+    }, { root, rootMargin: '0px 0px 100px 0px' });
+    observer.observe(sentinel);
+    return () => observer.disconnect();
+  }, [displayedCount, hasMore, loadMore]);
+
   // Une sélection venue d'ailleurs (jour choisi dans une fiche logement) doit rester visible.
   const listRef = useRef<HTMLUListElement>(null);
   useEffect(() => {
@@ -100,7 +135,7 @@ export default function ProviderSectorPanel({
           </ToggleGroup>
         )}
       </div>
-      <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain" onMouseLeave={() => onHover(null)}>
+      <div ref={scrollRef} className="min-h-0 flex-1 overflow-y-auto overscroll-contain" onMouseLeave={() => onHover(null)}>
         {isLoading && <p role="status" className="px-3 py-4 text-sm text-muted-foreground">
           {t('sectorMap.loading', 'Chargement des secteurs…')}
         </p>}
@@ -114,16 +149,17 @@ export default function ProviderSectorPanel({
           {t('sectorMap.noneVisible', 'Aucun secteur dans la zone visible. Déplacez ou dézoomez la carte.')}
         </p>}
         <ul ref={listRef} className="m-0 list-none divide-y divide-border p-0">
-          {visible.map(({ provider, index, covered }) => {
+          {visible.slice(0, displayedCount).map(({ provider, index, covered }) => {
             const id = provider.providerId;
             const selected = id != null && id === selectedId;
             const color = colorOf(index, id);
             const zones = provider.zones.filter((zone) => zone.drawn).map((zone) => zone.name).join(', ');
             return (
-              <li key={id ?? index} className="flex items-stretch" data-selected={selected || undefined}>
+              <li key={id ?? index} className="flex items-stretch" data-selected={selected || undefined}
+                onMouseEnter={() => onHover(id)} onMouseLeave={() => onHover(null)}>
                 <button type="button" aria-pressed={selected}
                   onClick={() => onSelect(selected ? null : id)}
-                  onMouseEnter={() => onHover(id)} onFocus={() => onHover(id)} onBlur={() => onHover(null)}
+                  onFocus={() => onHover(id)} onBlur={() => onHover(null)}
                   className="flex min-w-0 flex-1 cursor-pointer items-center gap-3 px-3 py-2.5 text-start transition-colors duration-150 ease-out hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring aria-pressed:bg-muted">
                   {/* L'anneau porte la teinte du secteur sur la carte. */}
                   <ProviderAvatar url={provider.avatarUrl} name={provider.name ?? ''}
@@ -148,6 +184,14 @@ export default function ProviderSectorPanel({
             );
           })}
         </ul>
+        {visible.length > PROVIDERS_PER_BATCH && <div ref={moreRef} className="border-t border-border px-3 py-2">
+          <p role="status" className="m-0 text-center text-xs tabular-nums text-muted-foreground">
+            {t('sectorMap.displayedCount', { shown: displayedCount, total: visible.length, defaultValue: '{{shown}} sur {{total}} affichés' })}
+          </p>
+          {hasMore && <Button type="button" variant="ghost" size="sm" className="mt-1 w-full" onClick={loadMore}>
+            {t('sectorMap.loadMore', { count: Math.min(PROVIDERS_PER_BATCH, visible.length - displayedCount), defaultValue: 'Afficher les {{count}} suivants' })}
+          </Button>}
+        </div>}
       </div>
     </section>
   );

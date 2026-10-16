@@ -21,28 +21,37 @@ class BaitlyProviderEditingTest {
     @Mock MarketplaceProviderOfferRepository offers;
     @Mock ProviderTariffRepository tariffs;
     @Mock MarketplaceDecisionJournal journal;
+    @Mock BaitlyProviderCoverageEditing coverage;
     BaitlyProviderEditing editing;
     MarketplaceProvider provider;
     MarketplaceProviderOffer offer;
     ProviderTariff tariff;
     @BeforeEach void setup() {
-        editing=new BaitlyProviderEditing(providers,items,offers,tariffs,journal);
+        editing=new BaitlyProviderEditing(providers,items,offers,tariffs,journal,coverage);
         provider=new MarketplaceProvider();provider.setId(27L);provider.setUserId(35L);provider.setDisplayName("Salma");
         offer=new MarketplaceProviderOffer();offer.setId(32L);offer.setProvider(provider);
         tariff=new ProviderTariff();org.springframework.test.util.ReflectionTestUtils.setField(tariff,"id",38L);tariff.setUserId(35L);tariff.setServiceKey("custom:1:hourly");
         tariff.setAmount(new BigDecimal("35.00"));tariff.setCurrency("EUR");tariff.setPricingModel(PricingModel.HOURLY);
         offer.setTariff(tariff);offer.setLabel("Prestation à l’heure");
-        when(providers.findById(27L)).thenReturn(Optional.of(provider));
+        lenient().when(providers.findById(27L)).thenReturn(Optional.of(provider));
+        lenient().when(providers.findForProfileUpdate(27L)).thenReturn(Optional.of(provider));
         when(offers.findAllByProviderIdWithCategory(27L)).thenReturn(List.of(offer));
     }
     BaitlyProviderEditing.Command command(Long offerId) {
         return new BaitlyProviderEditing.Command("Salma Chraibi","","Ménage","Présentation","123","", "Marrakech","40000","ma",15,List.of("fr","ar"),true,
-                List.of(new BaitlyProviderEditing.Reference(offerId,"cleaning-turnover")));
+                List.of(new BaitlyProviderEditing.Reference(offerId,"cleaning-turnover")),null,null,
+                new BigDecimal("31.63"),new BigDecimal("-8.00"));
     }
     void catalogue() {
         var category=new MarketplaceServiceCategory();category.setCode("CLEANING");
         var item=new MarketplaceServiceItem();item.setCode("cleaning-turnover");item.setCategory(category);
         when(items.findByCode("cleaning-turnover")).thenReturn(Optional.of(item));
+    }
+    @Test void radiusRequiresAGeolocatedBaseBeforeAnythingIsWritten() {
+        reset(offers);
+        var unlocated=new BaitlyProviderEditing.Command("Salma","","","","","","Paris","75011","FR",10,List.of("fr"),false,List.of());
+        assertThatThrownBy(()->editing.update(27L,unlocated,"admin")).hasMessageContaining("adresse géolocalisée");
+        verify(providers,never()).save(any());verifyNoInteractions(coverage);
     }
     @Test void repairsTheReferenceWithoutCopyingOrChangingThePrice() {
         catalogue();editing.update(27L,command(32L),"admin");

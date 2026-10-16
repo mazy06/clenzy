@@ -7,6 +7,8 @@ import { marketplaceKeys } from '../../hooks/useMarketplaceProviders';
 import { marketplaceProvidersApi, type ProviderDetailDto, type ProviderProfileEdit } from '../../services/api/marketplaceProvidersApi';
 import { BaitlyProfileSection } from './BaitlyProviderProfile';
 import BaitlyProviderServicesPicker from './BaitlyProviderServicesPicker';
+import BaitlyProviderZonesEditor from './BaitlyProviderZonesEditor';
+import { AddressAutocomplete } from '../../components/AddressAutocomplete';
 
 /** Formulaire dans le flux : les changements ne sont écrits qu'à l'enregistrement. */
 export default function BaitlyProviderEditor({ provider, onCancel, onSaved }: {
@@ -20,6 +22,8 @@ export default function BaitlyProviderEditor({ provider, onCancel, onSaved }: {
     baseCity:provider.baseCity ?? '', basePostalCode:provider.basePostalCode ?? '', baseCountryCode:provider.baseCountryCode,
     travelRadiusKm:provider.travelRadiusKm ?? null, languages:provider.languages ?? [], acceptsUrgent:provider.acceptsUrgent,
     references:[],
+    zones:(provider.zones ?? []).map(({id: _id,...zone}) => zone),
+    latitude:provider.latitude ?? null, longitude:provider.longitude ?? null,
   }));
   const [languageText,setLanguageText]=useState(draft.languages.join(', '));
   const save=useMutation({
@@ -31,13 +35,16 @@ export default function BaitlyProviderEditor({ provider, onCancel, onSaved }: {
       void qc.invalidateQueries({queryKey:marketplaceKeys.all});
       void qc.invalidateQueries({queryKey:['provider-catalog']});
       void qc.invalidateQueries({queryKey:['upsell-fulfillment']});
+      void qc.invalidateQueries({queryKey:['sector-map']});
+      void qc.invalidateQueries({queryKey:['property-teams']});
       onSaved();
     },
   });
   const field=(key: 'displayName'|'legalName'|'headline'|'phone'|'baseAddress'|'baseCity'|'basePostalCode'|'baseCountryCode',maxLength:number,required=false) =>
     <label className="flex min-w-0 flex-col gap-1.5 text-sm" key={key}>{t(`providerEdit.${key}`)}
       <Input value={draft[key]} maxLength={maxLength} required={required} disabled={save.isPending}
-        onChange={e => setDraft(s => ({...s,[key]:e.target.value}))} /></label>;
+        onChange={e => setDraft(s => ({...s,[key]:e.target.value,
+          ...(['baseCity','basePostalCode','baseCountryCode'].includes(key) ? {latitude:null,longitude:null} : {})}))} /></label>;
   return <form className="baitly-provider-profile space-y-4" onSubmit={e => {e.preventDefault();save.mutate();}}>
     <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
       <div><h2 className="m-0 text-lg font-semibold">{t('providerEdit.title')}</h2><p className="mt-1 text-sm text-muted-foreground">{t('providerEdit.help')}</p></div>
@@ -54,12 +61,23 @@ export default function BaitlyProviderEditor({ provider, onCancel, onSaved }: {
     </BaitlyProfileSection>
     <BaitlyProfileSection title={t('providerEdit.location')}>
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-        {field('baseAddress',200)}{field('baseCity',80)}{field('basePostalCode',10)}{field('baseCountryCode',2,true)}
-        <label className="flex flex-col gap-1.5 text-sm">{t('providerEdit.radius')}<Input type="number" min={0} max={1000} disabled={save.isPending}
+        <fieldset disabled={save.isPending} className="min-w-0 border-0 p-0">
+          <AddressAutocomplete value={draft.baseAddress} countryCode={draft.baseCountryCode} label={t('providerEdit.baseAddress')}
+            onChange={value => setDraft(s => ({...s,baseAddress:value,latitude:null,longitude:null}))}
+            onSelect={address => setDraft(s => ({...s,baseAddress:address.label,baseCity:address.city,
+              basePostalCode:address.postcode,baseCountryCode:address.countryCode,latitude:address.latitude,longitude:address.longitude}))} />
+        </fieldset>
+        {field('baseCity',80)}{field('basePostalCode',10)}{field('baseCountryCode',2,true)}
+        <label className="flex flex-col gap-1.5 text-sm">{t('providerEdit.radius')}<Input type="number" min={0} max={1000} step={1} className="tabular-nums" disabled={save.isPending}
           value={draft.travelRadiusKm ?? ''} onChange={e => setDraft(s => ({...s,travelRadiusKm:e.target.value==='' ? null : Number(e.target.value)}))} /></label>
         <label className="flex flex-col gap-1.5 text-sm">{t('providerEdit.languages')}<Input value={languageText} placeholder="fr, en, ar" disabled={save.isPending} onChange={e => setLanguageText(e.target.value)} /></label>
         <label className="flex items-center gap-2 text-sm cursor-pointer"><input type="checkbox" checked={draft.acceptsUrgent} disabled={save.isPending}
           onChange={e => setDraft(s => ({...s,acceptsUrgent:e.target.checked}))} />{t('providerEdit.urgent')}</label>
+      </div>
+      <p className="mt-3 text-sm text-muted-foreground" role="status">{t(draft.latitude != null && draft.longitude != null ? 'providerCoverage.located' : 'providerCoverage.locateHelp')}</p>
+      <div className="mt-5 border-t border-border pt-4">
+        <BaitlyProviderZonesEditor value={draft.zones ?? []} country={draft.baseCountryCode} disabled={save.isPending}
+          onChange={zones => setDraft(s => ({...s,zones}))} />
       </div>
     </BaitlyProfileSection>
     <BaitlyProfileSection title={t('providerEdit.services')}>

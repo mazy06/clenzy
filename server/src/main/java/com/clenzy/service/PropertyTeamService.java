@@ -339,6 +339,11 @@ public class PropertyTeamService {
         if (countryCode == null || countryCode.isBlank()) return List.of();
         countryCode = countryCode.trim().toUpperCase(java.util.Locale.ROOT);
 
+        if ((property.getCity()!=null && !property.getCity().isBlank())
+                || (property.getLatitude()!=null && property.getLongitude()!=null))
+            return teamCoverageZoneRepository.findTeamIdsCoveringLocation(searchOrgId,countryCode,
+                property.getDepartment(),property.getArrondissement(),property.getCity(),property.getLatitude(),property.getLongitude());
+
         if ("FR".equals(countryCode)) {
             final String department = property.getDepartment();
             if (department == null || department.isBlank()) return List.of();

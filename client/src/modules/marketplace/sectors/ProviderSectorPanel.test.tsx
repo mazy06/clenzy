@@ -1,6 +1,6 @@
-import { cleanup, fireEvent, render, screen } from '@testing-library/react';
+import { act, cleanup, fireEvent, render, screen } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { SectorMap } from '../../../services/api/sectorMapApi';
 import ProviderSectorPanel from './ProviderSectorPanel';
 
@@ -8,9 +8,8 @@ vi.mock('../../../hooks/useThemeMode', () => ({ useThemeMode: () => ({ isDark: f
 vi.mock('../../../hooks/useTranslation', () => ({
   useTranslation: () => ({
     t: (_key: string, fallback?: unknown) => typeof fallback === 'string' ? fallback
-      : (fallback as { defaultValue?: string; count?: number; name?: string } | undefined)?.defaultValue
-        ?.replace('{{count}}', String((fallback as { count?: number }).count ?? ''))
-        .replace('{{name}}', String((fallback as { name?: string }).name ?? '')) ?? _key,
+      : (fallback as { defaultValue?: string } | undefined)?.defaultValue
+        ?.replace(/\{\{(\w+)\}\}/g, (_match, name: string) => String((fallback as Record<string, unknown>)[name] ?? '')) ?? _key,
   }),
 }));
 
@@ -39,7 +38,28 @@ function renderPanel(onSelect = vi.fn(), onHover = vi.fn(), selectedId: number |
   return { onSelect, onHover };
 }
 
-afterEach(cleanup);
+const observers: { callback: IntersectionObserverCallback; root: IntersectionObserverInit['root']; disconnected: boolean }[] = [];
+beforeEach(() => {
+  observers.length = 0;
+  vi.stubGlobal('IntersectionObserver', class {
+    entry: typeof observers[number];
+    constructor(callback: IntersectionObserverCallback, options: IntersectionObserverInit) {
+      this.entry = { callback, root: options.root, disconnected: false }; observers.push(this.entry);
+    }
+    observe() {}
+    disconnect() { this.entry.disconnected = true; }
+  });
+});
+afterEach(() => { cleanup(); vi.unstubAllGlobals(); });
+
+const manyProviders: SectorMap = { ...data, providers: [
+  ...Array.from({ length: 22 }, (_, index) => ({ ...data.providers[0], providerId: index + 100, name: `Prestataire ${String(index + 1).padStart(2, '0')}` })),
+  { ...data.providers[0], providerId: 27, name: 'Salma Chraibi' },
+  data.providers[1],
+] };
+function reachListEnd() {
+  act(() => observers.at(-1)!.callback([{ isIntersecting: true }] as IntersectionObserverEntry[], {} as IntersectionObserver));
+}
 
 describe('ProviderSectorPanel', () => {
   it('keeps every provider of the selected area even outside the visible map bounds', () => {
@@ -85,6 +105,8 @@ describe('ProviderSectorPanel', () => {
 
     expect(onHover).toHaveBeenCalledWith(1);
     expect(onSelect).toHaveBeenCalledWith(1);
+    fireEvent.mouseLeave(row.closest('li')!);
+    expect(onHover).toHaveBeenLastCalledWith(null);
   });
 
   it('whenTheSelectedProviderHasNoSectorHere_thenItIsStillListedFirst', () => {
@@ -96,5 +118,53 @@ describe('ProviderSectorPanel', () => {
     expect(rows[0].textContent).toContain('Jean Martin');
     expect(screen.getByText('Aucune zone déclarée')).toBeTruthy();
     expect(screen.getAllByRole('listitem')[0].textContent).toContain('Jean Martin');
+  });
+
+  it('loads visible providers ten at a time and keeps Salma reachable at the end', () => {
+    renderPanel(vi.fn(), vi.fn(), null, manyProviders);
+    expect(screen.getAllByRole('listitem')).toHaveLength(10);
+    expect(screen.getByText('23 prestataire(s) dans cette zone')).toBeTruthy();
+    expect(screen.queryByText('Lyon Services')).toBeNull();
+    expect(screen.queryByText('Salma Chraibi')).toBeNull();
+    expect(observers.at(-1)?.root).toBe(screen.getByRole('list').parentElement);
+
+    reachListEnd();
+    expect(screen.getAllByRole('listitem')).toHaveLength(20);
+    expect(screen.getByText('20 sur 23 affichés')).toBeTruthy();
+    reachListEnd();
+    expect(screen.getAllByRole('listitem')).toHaveLength(23);
+    expect(screen.getByText('Salma Chraibi')).toBeTruthy();
+    expect(screen.queryByRole('button', { name: /Afficher les/ })).toBeNull();
+    expect(observers.at(-1)?.disconnected).toBe(true);
+  });
+
+  it('resets the batch and scroll position when the visible map area changes', () => {
+    const props = { data: manyProviders, isLoading: false, isError: false, mode: 'merged' as const,
+      onModeChange: vi.fn(), selectedId: null, onSelect: vi.fn(), onHover: vi.fn() };
+    const { rerender } = render(<MemoryRouter><ProviderSectorPanel {...props} bounds={parisBounds} /></MemoryRouter>);
+    reachListEnd();
+    const scroll = screen.getByRole('list').parentElement!;
+    scroll.scrollTop = 600;
+    rerender(<MemoryRouter><ProviderSectorPanel {...props} bounds={{ west: 4, east: 5, south: 45, north: 46 }} /></MemoryRouter>);
+    expect(screen.getAllByRole('listitem')).toHaveLength(1);
+    expect(screen.getByText('Lyon Services')).toBeTruthy();
+    expect(scroll.scrollTop).toBe(0);
+    rerender(<MemoryRouter><ProviderSectorPanel {...props} bounds={parisBounds} /></MemoryRouter>);
+    expect(screen.getAllByRole('listitem')).toHaveLength(10);
+  });
+
+  it('keeps a selected provider first even when it was in a later batch', () => {
+    renderPanel(vi.fn(), vi.fn(), 27, manyProviders);
+    expect(screen.getAllByRole('listitem')).toHaveLength(10);
+    expect(screen.getAllByRole('listitem')[0].textContent).toContain('Salma Chraibi');
+  });
+
+  it('offers keyboard-accessible loading when IntersectionObserver is unavailable', () => {
+    vi.stubGlobal('IntersectionObserver', undefined);
+    renderPanel(vi.fn(), vi.fn(), null, manyProviders);
+    fireEvent.click(screen.getByRole('button', { name: 'Afficher les 10 suivants' }));
+    expect(screen.getAllByRole('listitem')).toHaveLength(20);
+    fireEvent.click(screen.getByRole('button', { name: 'Afficher les 3 suivants' }));
+    expect(screen.getByText('Salma Chraibi')).toBeTruthy();
   });
 });

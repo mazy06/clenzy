@@ -21,8 +21,7 @@ import java.util.stream.Collectors;
 /**
  * Secteurs des prestataires vus par une organisation, avec ses logements.
  *
- * <p>« Couvert » suit la règle d'affectation ({@code baitly_zone_covers}) appliquée aux
- * zones déclarées, et non une inclusion géométrique : la carte dit toujours ce que le
+ * <p>« Couvert » suit la règle d'affectation (secteur déclaré ou rayon depuis la base) : la carte dit toujours ce que le
  * moteur d'affectation décidera. Seuls les prestataires visibles de l'organisation dans le
  * catalogue apparaissent ; un prestataire masqué répond comme inexistant.</p>
  *
@@ -30,9 +29,6 @@ import java.util.stream.Collectors;
  */
 @Service
 public class ProviderSectorMapService {
-
-    /** Au-delà, la carte devient illisible et la réponse lourde : les plus couvrants d'abord. */
-    static final int MAX_PROVIDERS = 50;
 
     private final MarketplaceCatalogService catalog;
     private final MarketplaceExposureService exposure;
@@ -56,7 +52,7 @@ public class ProviderSectorMapService {
         return visible(providerId, orgId).map(provider -> {
             var shape = shapes.provider(provider.getId(), provider.getDisplayName(),
                     catalog.avatarUrls(List.of(provider)).get(provider.getId()),
-                    declared(zones.effectiveZones(List.of(provider.getId())))).withUserId(provider.getUserId());
+                    declared(provider,zones.effectiveZones(List.of(provider.getId())))).withUserId(provider.getUserId());
             return shapes.map(List.of(shape), properties(orgId, hostSubject, zones.coverageForProvider(provider.getId(), orgId)));
         });
     }
@@ -85,7 +81,6 @@ public class ProviderSectorMapService {
                 .sorted(Map.Entry.<Long, Long>comparingByValue().reversed().thenComparing(Map.Entry::getKey))
                 .map(entry -> visible(entry.getKey(), orgId))
                 .flatMap(Optional::stream)
-                .limit(MAX_PROVIDERS)
                 .toList();
         var ids = providers.stream().map(MarketplaceProvider::getId).collect(Collectors.toSet());
         Map<Long, List<EffectiveZone>> zonesByProvider = ids.isEmpty() ? Map.of()
@@ -95,7 +90,7 @@ public class ProviderSectorMapService {
         var shapesOf = providers.stream()
                 .sorted(Comparator.comparing(MarketplaceProvider::getDisplayName, Comparator.nullsLast(String::compareToIgnoreCase)))
                 .map(p -> shapes.provider(p.getId(), p.getDisplayName(), avatars.get(p.getId()),
-                        declared(zonesByProvider.getOrDefault(p.getId(), List.of()))).withUserId(p.getUserId()))
+                        declared(p,zonesByProvider.getOrDefault(p.getId(), List.of()))).withUserId(p.getUserId()))
                 .toList();
         var visibleCoverage = coverage.stream().filter(c -> ids.contains(c.getProviderId())).toList();
         return shapes.map(shapesOf, toDtos(mapProperties, visibleCoverage));
@@ -125,10 +120,14 @@ public class ProviderSectorMapService {
                 .toList();
     }
 
-    private static List<SectorShapes.DeclaredZone> declared(List<EffectiveZone> effective) {
-        return effective.stream()
+    private static List<SectorShapes.DeclaredZone> declared(MarketplaceProvider provider,List<EffectiveZone> effective) {
+        var declared=new java.util.ArrayList<>(effective.stream()
                 .map(z -> new SectorShapes.DeclaredZone(z.getCountryCode(), z.getDepartment(), z.getArrondissement(), z.getCity()))
                 .collect(Collectors.toMap(Function.identity(), Function.identity(), (a, b) -> a, LinkedHashMap::new))
-                .values().stream().toList();
+                .values().stream().toList());
+        if(provider.getTravelRadiusKm()!=null && provider.getLatitude()!=null && provider.getLongitude()!=null)
+            declared.add(new SectorShapes.DeclaredZone(provider.getBaseCountryCode(),null,null,provider.getBaseCity(),
+                provider.getLatitude().doubleValue(),provider.getLongitude().doubleValue(),provider.getTravelRadiusKm()));
+        return declared;
     }
 }

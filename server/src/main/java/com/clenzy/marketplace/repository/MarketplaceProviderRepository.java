@@ -61,6 +61,10 @@ public interface MarketplaceProviderRepository
 
     @org.springframework.data.jpa.repository.Lock(jakarta.persistence.LockModeType.PESSIMISTIC_WRITE)
     @Query("SELECT p FROM MarketplaceProvider p WHERE p.id = :id")
+    Optional<MarketplaceProvider> findForProfileUpdate(@Param("id") Long id);
+
+    @org.springframework.data.jpa.repository.Lock(jakarta.persistence.LockModeType.PESSIMISTIC_WRITE)
+    @Query("SELECT p FROM MarketplaceProvider p WHERE p.id = :id")
     Optional<MarketplaceProvider> findForErasure(@Param("id") Long id);
 
     @org.springframework.data.jpa.repository.Lock(jakarta.persistence.LockModeType.PESSIMISTIC_WRITE)

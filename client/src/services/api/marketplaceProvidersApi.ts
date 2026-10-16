@@ -98,6 +98,9 @@ export interface ProviderProfileEdit {
   acceptsUrgent: boolean;
   references: Array<{ offerId: number; serviceItemCode: string }>;
   selectedServiceCodes?: string[];
+  zones?: Omit<ProviderZoneDto, 'id'>[];
+  latitude?: number | null;
+  longitude?: number | null;
 }
 
 export interface ProviderZoneDto {

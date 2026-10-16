@@ -3,6 +3,7 @@ package com.clenzy.marketplace.service;
 import com.clenzy.marketplace.repository.*;
 import com.clenzy.marketplace.model.MarketplaceProviderOffer;
 import com.clenzy.marketplace.model.MarketplaceServiceItem;
+import com.clenzy.marketplace.service.BaitlyProviderCoverageEditing.Zone;
 import com.clenzy.repository.ProviderTariffRepository;
 import jakarta.persistence.EntityNotFoundException;
 import jakarta.validation.Valid;
@@ -20,9 +21,12 @@ public class BaitlyProviderEditing {
     private final MarketplaceProviderOfferRepository offers;
     private final ProviderTariffRepository tariffs;
     private final MarketplaceDecisionJournal journal;
+    private final BaitlyProviderCoverageEditing coverage;
     public BaitlyProviderEditing(MarketplaceProviderRepository providers, MarketplaceServiceItemRepository items,
-            MarketplaceProviderOfferRepository offers, ProviderTariffRepository tariffs, MarketplaceDecisionJournal journal) {
+            MarketplaceProviderOfferRepository offers, ProviderTariffRepository tariffs, MarketplaceDecisionJournal journal,
+            BaitlyProviderCoverageEditing coverage) {
         this.providers=providers; this.items=items; this.offers=offers; this.tariffs=tariffs; this.journal=journal;
+        this.coverage=coverage;
     }
     public record Reference(@NotNull Long offerId, @NotBlank @Size(max=60) String serviceItemCode) {}
     public record Services(@NotNull @Size(max=200) List<@NotBlank @Size(max=60) String> codes) {}
@@ -72,19 +76,32 @@ public class BaitlyProviderEditing {
             @NotBlank String baseCountryCode, @Min(0) @Max(1000) Integer travelRadiusKm,
             @Size(max=20) List<@Pattern(regexp="[a-z]{2}") String> languages, boolean acceptsUrgent,
             @NotNull @Size(max=100) List<@Valid Reference> references,
-            @Size(max=200) List<@NotBlank @Size(max=60) String> selectedServiceCodes) {
+            @Size(max=200) List<@NotBlank @Size(max=60) String> selectedServiceCodes,
+            @Size(max=100) List<@NotNull @Valid Zone> zones,
+            @DecimalMin("-90") @DecimalMax("90") java.math.BigDecimal latitude,
+            @DecimalMin("-180") @DecimalMax("180") java.math.BigDecimal longitude) {
         public Command(String displayName,String legalName,String headline,String bio,String phone,String baseAddress,
                 String baseCity,String basePostalCode,String baseCountryCode,Integer travelRadiusKm,List<String> languages,
                 boolean acceptsUrgent,List<Reference> references) {
             this(displayName,legalName,headline,bio,phone,baseAddress,baseCity,basePostalCode,baseCountryCode,
-                travelRadiusKm,languages,acceptsUrgent,references,null);
+                travelRadiusKm,languages,acceptsUrgent,references,null,null,null,null);
         }
     }
 
     @Transactional
     public void update(Long id, Command command, String actor) {
-        var provider=providers.findById(id).orElseThrow(() -> new EntityNotFoundException("Prestataire introuvable"));
+        var provider=providers.findForProfileUpdate(id).orElseThrow(() -> new EntityNotFoundException("Prestataire introuvable"));
         String country=ProviderDocumentaryService.country(command.baseCountryCode());
+        if ((command.latitude()==null)!=(command.longitude()==null))
+            throw new IllegalArgumentException("Indiquez les deux coordonnées du point de départ");
+        boolean moved = !Objects.equals(text(command.baseAddress()),provider.getBaseAddress())
+            || !Objects.equals(text(command.baseCity()),provider.getBaseCity())
+            || !Objects.equals(text(command.basePostalCode()),provider.getBasePostalCode())
+            || !country.equals(provider.getBaseCountryCode());
+        var latitude = command.latitude()!=null ? command.latitude() : moved ? null : provider.getLatitude();
+        var longitude = command.longitude()!=null ? command.longitude() : moved ? null : provider.getLongitude();
+        if (command.travelRadiusKm()!=null && (latitude==null || longitude==null))
+            throw new IllegalArgumentException("Sélectionnez une adresse géolocalisée pour activer le rayon d'intervention");
         var current=offers.findAllByProviderIdWithCategory(id);
         var byId=current.stream().collect(java.util.stream.Collectors.toMap(o -> o.getId(),o -> o));
         var seen=new HashSet<Long>();
@@ -113,9 +130,11 @@ public class BaitlyProviderEditing {
         provider.setHeadline(text(command.headline())); provider.setBio(text(command.bio())); provider.setPhone(text(command.phone()));
         provider.setBaseAddress(text(command.baseAddress())); provider.setBaseCity(text(command.baseCity()));
         provider.setBasePostalCode(text(command.basePostalCode())); provider.setBaseCountryCode(country);
+        provider.setLatitude(latitude); provider.setLongitude(longitude);
         provider.setTravelRadiusKm(command.travelRadiusKm());
         provider.setLanguages(command.languages()==null ? null : String.join(",",new LinkedHashSet<>(command.languages())));
         provider.setAcceptsUrgent(command.acceptsUrgent()); providers.save(provider);
+        coverage.replace(provider,command.zones());
         if(command.selectedServiceCodes()!=null) selectServices(id,new Services(command.selectedServiceCodes()),actor);
         journal.record(id,"PROFILE_EDIT",before,provider.getDisplayName(),actor);
     }

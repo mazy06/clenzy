@@ -5037,3 +5037,30 @@ databaseChangeLog:
         - sqlFile:
             path: changes/0561__baitly_iot_simulated_noise_devices.sql
             relativeToChangelogFile: true
+  - changeSet:
+      id: "0562-baitly-radius-and-declared-coverage"
+      author: clenzy-team
+      changes:
+        - sqlFile:
+            path: changes/0562__baitly_radius_and_declared_coverage.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+            stripComments: false
+  - changeSet:
+      id: "0563-baitly-normalize-municipal-arrondissements"
+      author: clenzy-team
+      changes:
+        - sqlFile:
+            path: changes/0563__baitly_normalize_municipal_arrondissements.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+            stripComments: false
+  - changeSet:
+      id: "0564-baitly-french-city-coverage"
+      author: clenzy-team
+      changes:
+        - sqlFile:
+            path: changes/0564__baitly_french_city_coverage.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+            stripComments: false

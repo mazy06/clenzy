@@ -183,11 +183,7 @@ class PropertyTeamServiceTest {
         property.setCity(" Marrakech "); property.setDepartment(" 75 ");
         property.setArrondissement(scenario.equals("arrondissement") ? " 75001 " : "  ");
         when(propertyRepository.findById(20L)).thenReturn(Optional.of(property));
-        switch (scenario) {
-            case "france" -> when(teamCoverageZoneRepository.findTeamIdsByDepartment("75", ORG_ID)).thenReturn(List.of(8L));
-            case "arrondissement" -> when(teamCoverageZoneRepository.findTeamIdsByDepartmentAndArrondissement("75", "75001", ORG_ID)).thenReturn(List.of(8L));
-            case "foreign" -> when(teamCoverageZoneRepository.findTeamIdsByCountryAndCity("MA", "Marrakech", ORG_ID)).thenReturn(List.of(8L));
-        }
+        when(teamCoverageZoneRepository.findTeamIdsCoveringLocation(ORG_ID,scenario.equals("foreign") ? "MA" : "FR"," 75 ",scenario.equals("arrondissement") ? " 75001 " : "  "," Marrakech ",null,null)).thenReturn(List.of(8L));
         var team = buildTeam(8L, "Équipe de zone", "cleaning-turnover");
         when(teamRepository.findById(8L)).thenReturn(Optional.of(team));
 
@@ -195,16 +191,40 @@ class PropertyTeamServiceTest {
         var suggestions = service.findAssignableTeams(20L, start, 3, "cleaning-turnover", ORG_ID);
         assertThat(suggestions).extracting(PropertyTeamService.AssignableTeam::teamId).containsExactly(8L);
         assertThat(suggestions.getFirst().origin()).isEqualTo("ZONE");
-        switch (scenario) {
-            case "france" -> verify(teamCoverageZoneRepository, times(2)).findTeamIdsByDepartment("75", ORG_ID);
-            case "arrondissement" -> verify(teamCoverageZoneRepository, times(2)).findTeamIdsByDepartmentAndArrondissement("75", "75001", ORG_ID);
-            case "foreign" -> verify(teamCoverageZoneRepository, times(2)).findTeamIdsByCountryAndCity("MA", "Marrakech", ORG_ID);
-        }
+        verify(teamCoverageZoneRepository,times(2)).findTeamIdsCoveringLocation(ORG_ID,scenario.equals("foreign") ? "MA" : "FR"," 75 ",scenario.equals("arrondissement") ? " 75001 " : "  "," Marrakech ",null,null);
         verify(teamCoverageZoneRepository, times(2)).rejectsPropertyType(8L, "APARTMENT");
         verifyNoMoreInteractions(teamCoverageZoneRepository);
     }
 
+    @Test void cityRestrictedSuggestionsKeepTheCityEvenWithoutCoordinates() {
+        var start=LocalDateTime.of(2026,9,16,10,0);
+        var property=new Property();property.setCountryCode("FR");property.setDepartment("92");property.setCity("Courbevoie");
+        when(propertyRepository.findById(20L)).thenReturn(Optional.of(property));
+        when(teamCoverageZoneRepository.findTeamIdsCoveringLocation(ORG_ID,"FR","92",null,"Courbevoie",null,null)).thenReturn(List.of(8L));
+        when(teamRepository.findById(8L)).thenReturn(Optional.of(buildTeam(8L,"Courbevoie uniquement","cleaning-turnover")));
+        assertThat(service.findAvailableTeamForProperty(20L,start,3,"cleaning-turnover")).contains(8L);
+        assertThat(service.findAssignableTeams(20L,start,3,"cleaning-turnover",ORG_ID))
+            .extracting(PropertyTeamService.AssignableTeam::teamId).containsExactly(8L);
+        verify(teamCoverageZoneRepository,times(2)).findTeamIdsCoveringLocation(ORG_ID,"FR","92",null,"Courbevoie",null,null);
+        verify(teamCoverageZoneRepository,never()).findTeamIdsByDepartment(any(),any());
+    }
+
     // ===== ASSIGN TEAM =====
+
+    @Test void geolocatedPropertyUsesTheCombinedSectorAndRadiusRule() {
+        var start=LocalDateTime.of(2026,9,16,10,0);
+        var property=new Property();property.setCountryCode("FR");property.setDepartment("75");
+        var latitude=new java.math.BigDecimal("48.86");var longitude=new java.math.BigDecimal("2.38");
+        property.setLatitude(latitude);property.setLongitude(longitude);
+        when(propertyRepository.findById(20L)).thenReturn(Optional.of(property));
+        when(teamCoverageZoneRepository.findTeamIdsCoveringLocation(ORG_ID,"FR","75",null,null,latitude,longitude)).thenReturn(List.of(8L));
+        when(teamRepository.findById(8L)).thenReturn(Optional.of(buildTeam(8L,"Équipe de rayon","cleaning-turnover")));
+        assertThat(service.findAvailableTeamForProperty(20L,start,3,"cleaning-turnover")).contains(8L);
+        assertThat(service.findAssignableTeams(20L,start,3,"cleaning-turnover",ORG_ID))
+            .extracting(PropertyTeamService.AssignableTeam::teamId).containsExactly(8L);
+        verify(teamCoverageZoneRepository,times(2)).findTeamIdsCoveringLocation(ORG_ID,"FR","75",null,null,latitude,longitude);
+        verify(teamCoverageZoneRepository,never()).findTeamIdsByDepartment(any(),any());
+    }
 
     @Nested
     @DisplayName("assignTeamToProperty")

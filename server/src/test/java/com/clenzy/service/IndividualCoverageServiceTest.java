@@ -47,6 +47,6 @@ class IndividualCoverageServiceTest {
         assertThat(saved.getValue().getUserId()).isEqualTo(7L);
         assertThat(saved.getValue().getProvider()).isNull();
         assertThat(saved.getValue().getCountryCode()).isEqualTo("FR");
-        assertThat(saved.getValue().getArrondissement()).isEqualTo("75001");
+        assertThat(saved.getValue().getArrondissement()).isEqualTo("75101");
     }
 }

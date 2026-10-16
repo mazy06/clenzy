@@ -35,12 +35,21 @@ public interface MarketplaceProviderZoneRepository extends JpaRepository<Marketp
     @Query(value = "SELECT public.baitly_provider_covers(:providerId, :country, :department, :arrondissement, :city)", nativeQuery = true)
     boolean covers(Long providerId, String country, String department, String arrondissement, String city);
 
+    @Query(value = "SELECT public.baitly_provider_covers(:providerId, :country, :department, :arrondissement, :city, "
+        + "CAST(:latitude AS double precision), CAST(:longitude AS double precision))", nativeQuery = true)
+    boolean coversLocation(Long providerId, String country, String department, String arrondissement, String city,
+                          java.math.BigDecimal latitude, java.math.BigDecimal longitude);
+
     List<MarketplaceProviderZone> findByUserIdOrderByIdAsc(Long userId);
     boolean existsByUserId(Long userId);
 
     @Modifying(flushAutomatically = true)
     @Query("DELETE FROM MarketplaceProviderZone z WHERE z.userId = :userId")
     void deleteIndividualZones(Long userId);
+
+    @Modifying(flushAutomatically = true)
+    @Query("DELETE FROM MarketplaceProviderZone z WHERE z.provider.id = :providerId AND z.userId IS NULL")
+    void deleteCandidateZones(Long providerId);
 
     @Query(value = "SELECT 1 FROM pg_advisory_xact_lock(hashtextextended('baitly:coverage:user:' || CAST(:userId AS text), 0))", nativeQuery = true)
     Integer lockIndividual(Long userId);
@@ -55,12 +64,14 @@ public interface MarketplaceProviderZoneRepository extends JpaRepository<Marketp
     /** Couple (prestataire, logement) : la zone du prestataire couvre le logement (règle d'affectation). */
     interface PropertyCoverage { Long getProviderId(); Long getPropertyId(); }
 
-    // Même jointure de zones effectives et même règle que baitly_provider_covers, appliquées
-    // d'un bloc aux logements de l'organisation plutôt qu'un appel par couple.
+    // Même union secteurs/rayon que la recherche et la validation des devis Baitly.
     String PROPERTY_COVERAGE = "SELECT DISTINCT pr.id AS providerId, p.id AS propertyId FROM properties p "
-        + "JOIN marketplace_provider_zones z ON public.baitly_zone_covers(z.country_code, z.department, z.arrondissement, "
-        + "z.city, COALESCE(NULLIF(trim(p.country_code), ''), 'FR'), p.department, p.arrondissement, p.city) "
-        + "JOIN marketplace_providers pr ON (z.user_id = pr.user_id OR (pr.user_id IS NULL AND z.provider_id = pr.id)) "
+        + "JOIN marketplace_providers pr ON (EXISTS (SELECT 1 FROM marketplace_provider_zones z "
+        + "WHERE (z.user_id=pr.user_id OR (pr.user_id IS NULL AND z.provider_id=pr.id)) "
+        + "AND public.baitly_zone_covers(z.country_code,z.department,z.arrondissement,z.city,"
+        + "COALESCE(NULLIF(trim(p.country_code), ''), 'FR'),p.department,p.arrondissement,p.city)) "
+        + "OR public.baitly_within_radius(pr.latitude::double precision,pr.longitude::double precision,"
+        + "pr.travel_radius_km,p.latitude::double precision,p.longitude::double precision)) "
         + "WHERE p.organization_id = :orgId AND p.status <> 'ARCHIVED'";
 
     @Query(value = PROPERTY_COVERAGE, nativeQuery = true)

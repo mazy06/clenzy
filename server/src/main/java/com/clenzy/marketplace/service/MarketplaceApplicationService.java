@@ -297,7 +297,7 @@ public class MarketplaceApplicationService {
             zone.setProvider(provider);
             zone.setCountryCode(normalizeCountry(input.countryCode()));
             zone.setDepartment(trimToNull(input.department()));
-            zone.setCity(trimToNull(input.city()));
+            zone.setCity(com.clenzy.util.BaitlyFrenchCities.requireValid(country,input.department(),null,input.city()));
             zone.setPostalCode(trimToNull(input.postalCode()));
             zone.setRadiusKm(input.radiusKm());
             zone.setPrimary(input.primary());

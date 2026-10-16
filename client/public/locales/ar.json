@@ -21292,7 +21292,9 @@
     "coversProperties_few": "يغطي {{count}} عقارات",
     "coversProperties_many": "يغطي {{count}} عقارًا",
     "coversProperties_other": "يغطي {{count}} عقار",
-    "openProvider": "فتح ملف {{name}}"
+    "openProvider": "فتح ملف {{name}}",
+    "displayedCount": "تم عرض {{shown}} من {{total}}",
+    "loadMore": "عرض {{count}} التالية"
   },
   "baitlyIot": {
     "addButton": "الاتصال بخدمة Baitly",
@@ -21428,5 +21430,18 @@
       }
     },
     "deviceId": "المعرّف في حساب الشركة المصنّعة"
+  },
+  "providerCoverage": {
+    "title": "مناطق التدخل",
+    "help": "اختر الأقاليم أو الدوائر أو المدن. يُغطّى العقار إذا كان ضمن منطقة معلنة أو ضمن نصف القطر المحدد.",
+    "chooseDepartment": "اختر إقليماً",
+    "wholeDepartment": "الإقليم بأكمله",
+    "located": "تم تحديد نقطة الانطلاق جغرافياً: يُحسب نصف القطر من هذا العنوان.",
+    "locateHelp": "لاستخدام نصف القطر، اختر عنواناً من الاقتراحات لتحديد نقطة الانطلاق.",
+    "cityOptional": "المدينة (اختياري)",
+    "wholeCity": "المدينة بأكملها",
+    "loadingCities": "جارٍ تحميل المدن…",
+    "citiesError": "تعذّر تحميل المدن.",
+    "retryCities": "إعادة المحاولة"
   }
 }

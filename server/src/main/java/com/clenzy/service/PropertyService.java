@@ -498,7 +498,7 @@ public class PropertyService {
         property.setLatitude(dto.latitude);
         property.setLongitude(dto.longitude);
         property.setDepartment(dto.department);
-        property.setArrondissement(dto.arrondissement);
+        property.setArrondissement(com.clenzy.util.BaitlyArrondissement.requireValid(dto.countryCode,dto.department,dto.arrondissement));
         property.setBedroomCount(dto.bedroomCount);
         property.setBathroomCount(dto.bathroomCount);
         property.setMaxGuests(dto.maxGuests);

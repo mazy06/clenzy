@@ -5,12 +5,13 @@
 /** Clé d'un secteur — même règle que SectorKey côté serveur. */
 export function sectorKey({ country, department, arrondissement, city }) {
   if (arrondissement) return `FR-A-${arrondissement}`;
+  if (country === 'FR' && department && city) return `FR-C-${department.toUpperCase()}-${normalizeCity(city)}`;
   if (department) return `FR-D-${department.toUpperCase()}`;
   return `${country}-C-${normalizeCity(city)}`;
 }
 
 export function normalizeCity(value) {
-  return value.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase()
+  return value.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().replaceAll('œ', 'oe').replaceAll('æ', 'ae')
     .replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
 }
 
