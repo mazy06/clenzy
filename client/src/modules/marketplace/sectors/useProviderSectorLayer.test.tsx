@@ -15,8 +15,6 @@ type PanelElement = ReactElement<ComponentProps<typeof ProviderSectorPanel>>;
 it('filters the provider panel from a map sector and clears the filter explicitly or on mode changes', () => {
   const { result } = renderHook(() => useProviderSectorLayer(null));
   const panel = () => (result.current.panel as PanelElement).props;
-  expect(panel().mode).toBe('byProvider');
-  expect(result.current.overlay?.mode).toBe('byProvider');
   const geometry: GeoJSON.Polygon = { type: 'Polygon', coordinates: [[[0, 0], [1, 0], [1, 1], [0, 0]]] };
   act(() => result.current.overlay?.onAreaSelect?.([27, 1], geometry));
   expect(panel().areaProviderIds).toEqual([27, 1]);
