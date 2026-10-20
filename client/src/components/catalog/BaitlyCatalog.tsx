@@ -1,8 +1,10 @@
+import PageHeaderViewControls from "../PageHeaderViewControls";
+import {usePageHeaderFilterHost} from "../PageHeaderActionsContext";
 import type { ReactNode } from 'react';
 import { LayoutGrid, List } from '../../icons/glyphs';
 import { useTranslation } from '../../hooks/useTranslation';
 import { DirectoryLayout } from './DirectoryLayout';
-import { DirectoryToolbar, DirectorySegments, DirectorySegment } from './DirectoryToolbar';
+import { DirectoryToolbar } from './DirectoryToolbar';
 import { DirectoryCard, DirectoryCardContent, DirectoryTag, DIRECTORY_CARD_BODY, type CatalogView } from './DirectoryCard';
 
 export { DirectoryFilterGroup as CatalogFilterGroup, DirectoryFilter as CatalogFilter } from './DirectoryFilters';
@@ -15,19 +17,12 @@ export function BaitlyCatalog({ filters, title, count, view, onViewChange, toolb
   summary?: ReactNode; children: ReactNode;
 }) {
   const { t } = useTranslation();
+  const hosted=usePageHeaderFilterHost();
+  const views=<PageHeaderViewControls label={t("baitlyCatalog.display")} value={view} onChange={onViewChange} options={[{value:"cards",label:t("baitlyCatalog.cards"),icon:<LayoutGrid size={16}/>},{value:"list",label:t("baitlyCatalog.list"),icon:<List size={16}/>}]} />;
+  const results=<span className="ms-auto text-xs tabular-nums text-muted-foreground" aria-live="polite">{title} · {count}</span>;
   return <>
-    <DirectoryToolbar>
-      <DirectorySegments label={t('baitlyCatalog.display')}>
-        {([{ value: 'cards', icon: LayoutGrid }, { value: 'list', icon: List }] as const).map(({ value, icon: Icon }) =>
-          <DirectorySegment key={value} active={view === value} onClick={() => onViewChange(value)}>
-            <Icon size={14} />{t(`baitlyCatalog.${value}`)}
-          </DirectorySegment>)}
-      </DirectorySegments>
-      {toolbar}
-      {summary}
-      <span className="ms-auto text-xs tabular-nums text-muted-foreground" aria-live="polite">{title} · {count}</span>
-    </DirectoryToolbar>
-    <DirectoryLayout filters={<div className="px-1 pb-2">{filters}</div>}
+    {hosted?views:<DirectoryToolbar>{views}{toolbar}{summary}{results}</DirectoryToolbar>}
+    <DirectoryLayout filters={<div className="space-y-3 px-1 pb-2">{hosted&&<>{toolbar}{summary}{results}</>}{filters}</div>}
       filtersLabel={t('baitlyCatalog.filters')} resultsLabel={title}>
       {children}
     </DirectoryLayout>

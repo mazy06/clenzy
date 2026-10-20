@@ -63,6 +63,11 @@ export function reseedEditorPreview(editor: Editor, config: BookingEngineConfig 
   editorPreviews.get(editor)?.reseed(config);
 }
 
+/** Page navigation changes the preview only; no reservation or public configuration is modified. */
+export function selectEditorPreviewProperty(editor: Editor, config: BookingEngineConfig | null, id: number): void {
+  if (Number.isSafeInteger(id) && id > 0) getEditorPreview(editor, { getConfig: () => config }).selectProperty(id);
+}
+
 /** Construit une icône SVG (def) en DOM sûr, dans le document fourni (hôte OU iframe). */
 function buildIcon(shape: BookingIconShape, doc: Document, size = 22): SVGSVGElement {
   const svg = doc.createElementNS(SVG_NS, 'svg');

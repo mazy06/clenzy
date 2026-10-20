@@ -1,0 +1,209 @@
+/* Guest-owned information layouts. Width queries follow the book, including scaled previews. */
+.wb { container:baitly-book / inline-size; }
+.wb :where(p,li,dt,dd,h2,h3,a,button) { overflow-wrap:anywhere; }
+.wb :where(section,article,dl,dd,.wb-wifi__identity,.wb-nav-entry__text,.wb-editorial__title) { min-inline-size:0; }
+.wb .wb-section-heading { margin:0 0 18px; font:500 22px/1.3 var(--serif); color:var(--ink); text-wrap:balance; }
+.wb .wb-label { font-size:12px; line-height:1.5; }
+.wb .wb-home__essentials { padding:22px 18px; }
+.wb .wb-essential-details { display:flex; flex-direction:column; gap:20px; }
+.wb .wb-wifi { display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:12px; }
+.wb .wb-wifi__identity { display:flex; align-items:flex-start; gap:12px; flex:1 1 160px; }
+.wb .wb-wifi__icon { flex-shrink:0; color:var(--terra-deep); }
+.wb .wb-wifi__name { font-size:17px; font-weight:600; line-height:1.45; overflow-wrap:anywhere; }
+.wb .wb-wifi__password { font-size:13px; line-height:1.6; color:var(--ink-soft); margin-block-start:4px; overflow-wrap:anywhere; }
+.wb .wb-wifi__password span { color:var(--ink); }
+.wb .wb-stay-facts { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:18px; margin:0; }
+.wb .wb-stay-fact { display:flex; flex-direction:column; gap:6px; min-inline-size:0; }
+.wb .wb-stay-fact[data-code="true"] { grid-column:1/-1; }
+.wb .wb-stay-fact > svg { color:var(--terra-deep); inline-size:18px; block-size:18px; }
+.wb .wb-stay-fact__value { margin:0; font:500 24px/1.35 var(--sans); font-variant-numeric:tabular-nums; overflow-wrap:anywhere; }
+.wb .wb-stay-fact__label { font:400 12px/1.5 var(--sans); color:var(--ink-soft); }
+.wb .wb-nav-items { background:transparent; border:0; border-block:1px solid var(--line); border-radius:0; }
+.wb .wb-nav-entry { min-block-size:64px; block-size:auto; }
+.wb .wb-nav-entry__icon { display:flex; align-items:center; flex-shrink:0; inline-size:28px; }
+.wb .wb-nav-entry__text { flex:1; }
+.wb .wb-nav-entry__title { font:550 16px/1.5 var(--sans); }
+.wb .wb-nav-entry__subtitle { font:400 13px/1.5 var(--sans); color:var(--ink-soft); margin-block-start:4px; }
+.wb .wb-nav-entry__number { display:none; font-variant-numeric:tabular-nums; }
+.wb .wb-home__welcome { display:flex; align-items:flex-start; gap:14px; }
+.wb .wb-host-initial { flex-shrink:0; display:grid; place-items:center; inline-size:36px; block-size:36px; border:1px solid var(--line); border-radius:50%; color:var(--terra-deep); font:500 20px var(--serif); }
+.wb .wb-host-name { font-size:14px; font-weight:600; margin-block-end:8px; }
+.wb .wb-host-note { font:400 15px/1.75 var(--sans); color:var(--ink-soft); white-space:pre-line; overflow-wrap:anywhere; }
+.wb .wb-editorial,.wb .wb-arrival { display:flex; flex-direction:column; gap:24px; padding:24px 22px 100px; }
+.wb .wb-editorial__prose { font:400 15px/1.8 var(--sans); white-space:pre-line; color:var(--ink-soft); }
+.wb .wb-editorial__chapters,.wb .wb-editorial__items { display:flex; flex-direction:column; gap:0; }
+.wb .wb-editorial__chapter { padding-block:20px; border-block-end:1px solid var(--line); }
+.wb .wb-editorial__heading { display:flex; gap:12px; align-items:flex-start; margin:0; font:600 17px/1.5 var(--sans); }
+.wb .wb-editorial__heading > svg { flex-shrink:0; margin-block-start:3px; color:var(--terra-deep); }
+.wb .wb-editorial__number { display:none; font-variant-numeric:tabular-nums; }
+.wb .wb-editorial__toggle { display:flex; align-items:flex-start; gap:12px; inline-size:100%; min-block-size:44px; padding:0; border:0; background:transparent; color:var(--ink); text-align:start; font:inherit; cursor:pointer; }
+.wb .wb-editorial__toggle > svg { flex-shrink:0; margin-block-start:3px; color:var(--terra-deep); }
+.wb .wb-editorial__title { flex:1; }
+.wb .wb-editorial__chapter-body { padding-block-start:16px; }
+.wb .wb-editorial__steps { margin:0; padding:0; list-style:none; display:flex; flex-direction:column; gap:16px; }
+.wb .wb-editorial__steps li { display:flex; gap:12px; align-items:flex-start; font:400 15px/1.7 var(--sans); color:var(--ink-soft); white-space:pre-line; }
+.wb .wb-editorial__step-number { flex-shrink:0; inline-size:24px; color:var(--terra-deep); font-variant-numeric:tabular-nums; }
+.wb .wb-editorial__detail { margin:0 0 16px; font:400 14px/1.7 var(--sans); color:var(--ink-soft); white-space:pre-line; }
+.wb .wb-editorial__item { display:flex; gap:14px; padding-block:20px; border-block-end:1px solid var(--line); }
+.wb .wb-editorial__item > svg { flex-shrink:0; margin-block-start:3px; color:var(--terra-deep); }
+.wb .wb-editorial__item > div { min-inline-size:0; flex:1; }
+.wb .wb-editorial__item h3 { margin:0; font:600 17px/1.5 var(--sans); }
+.wb .wb-editorial__item p,.wb .wb-editorial__item li { font:400 14px/1.75 var(--sans); color:var(--ink-soft); white-space:pre-line; }
+.wb .wb-editorial__item p { margin:8px 0 0; }
+.wb .wb-editorial__item ul { margin:10px 0 0; padding-inline-start:20px; }
+.wb .wb-info-block { padding:20px; }
+.wb .wb-info-block__label { margin:0 0 12px; color:var(--terra-deep); font:600 15px/1.5 var(--sans); }
+.wb .wb-arrival__times { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:12px; }
+.wb .wb-arrival__time { padding:18px 14px; background:var(--raised); }
+.wb .wb-arrival__time-value { margin-block-start:10px; font-size:28px; line-height:1.35; font-variant-numeric:tabular-nums; overflow-wrap:anywhere; }
+.wb .wb-arrival__address { min-inline-size:0; }
+.wb .wb-arrival__address-body { display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:16px; padding:18px; }
+.wb .wb-arrival__address-body > div { flex:1 1 160px; }
+.wb .wb-arrival__code { display:flex; align-items:center; gap:14px; justify-content:space-between; padding:18px; }
+.wb .wb-arrival__code > div { min-inline-size:0; flex:1; }
+.wb .wb-arrival__code-value { font:600 22px/1.6 var(--sans); letter-spacing:.06em; font-variant-numeric:tabular-nums; overflow-wrap:anywhere; }
+.wb .wb-arrival__photo-caption { flex:1; min-inline-size:0; font:400 14px/1.6 var(--sans); color:var(--ink-soft); overflow-wrap:anywhere; }
+.wb .wb-offers { display:grid; grid-auto-flow:column; grid-auto-columns:minmax(200px,75%); gap:14px; overflow-x:auto; padding:4px; margin-inline:-4px; align-items:start; }
+.wb .wb-offer { min-inline-size:0; }
+.wb .wb-offer__card { overflow:hidden; background:var(--raised); }
+.wb .wb-offer__photo { position:relative; block-size:132px; display:grid; place-items:center; background:var(--terra-bg); }
+.wb .wb-offer__body { min-inline-size:0; padding:16px; overflow-wrap:anywhere; }
+.wb .wb-offer__actions { display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:12px; }
+/* Atelier: an open journal. Label/value ledgers and fully expanded numbered chapters. */
+.wb[data-theme="atelier"] .wb-home__essentials { border:0; border-radius:0; padding:0; background:transparent; }
+.wb[data-theme="atelier"] .wb-wifi { padding:20px 0; border-block:1px solid var(--line); }
+.wb[data-theme="atelier"] .wb-wifi__icon,.wb[data-theme="atelier"] .wb-host-initial { display:none; }
+.wb[data-theme="atelier"] .wb-wifi__name { font:500 23px/1.4 var(--serif); }
+.wb[data-theme="atelier"] .wb-stay-facts { grid-template-columns:1fr; gap:0; }
+.wb[data-theme="atelier"] .wb-stay-fact { display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1fr); align-items:baseline; border-block-end:1px solid var(--line); padding-block:12px; }
+.wb[data-theme="atelier"] .wb-stay-fact > svg { display:none; }
+.wb[data-theme="atelier"] .wb-stay-fact__value { text-align:end; font:500 23px/1.4 var(--serif); }
+.wb[data-theme="atelier"] .wb-nav-entry__number,.wb[data-theme="atelier"] .wb-editorial__number { display:block; color:var(--terra-deep); font:400 13px/1.8 var(--sans); }
+.wb[data-theme="atelier"] .wb-nav-entry__icon,.wb[data-theme="atelier"] .wb-editorial__heading > svg,.wb[data-theme="atelier"] .wb-editorial__item > svg { display:none; }
+.wb[data-theme="atelier"] .wb-nav-entry__title,.wb[data-theme="atelier"] .wb-editorial__heading,.wb[data-theme="atelier"] .wb-editorial__item h3 { font:500 23px/1.3 var(--serif); }
+.wb[data-theme="atelier"] .wb-host-note { font:400 20px/1.6 var(--serif); }
+.wb[data-theme="atelier"] .wb-editorial__chapter-body { padding-inline-start:30px; }
+.wb[data-theme="atelier"] .wb-info-block { border:0; border-radius:0; border-block-start:1px solid var(--line); padding:22px 0; background:transparent; }
+.wb[data-theme="atelier"] .wb-offers { display:flex; flex-direction:column; overflow:visible; }
+.wb[data-theme="atelier"] .wb-offer__card { border:0; border-radius:0; border-block-end:1px solid var(--line); background:transparent; }
+.wb[data-theme="atelier"] .wb-offer__photo { block-size:180px; }
+.wb[data-theme="atelier"] .wb-offer__body { padding:18px 0; }
+/* Noir: a hotel directory. Wi-Fi is a separate panel after a vertical list of stay facts. */
+.wb[data-theme="noir"] .wb-essential-details { flex-direction:column-reverse; gap:28px; }
+.wb[data-theme="noir"] .wb-home__essentials { background:transparent; border:1px solid var(--terra-soft); border-radius:0; padding:26px 20px; }
+.wb[data-theme="noir"] .wb-section-heading { text-align:center; font:400 25px/1.3 var(--serif); }
+.wb[data-theme="noir"] .wb-stay-facts { grid-template-columns:1fr; gap:18px; }
+.wb[data-theme="noir"] .wb-stay-fact { text-align:center; align-items:center; padding-block-end:18px; border-block-end:1px solid var(--line); }
+.wb[data-theme="noir"] .wb-stay-fact__value { font:400 30px/1.3 var(--serif); }
+.wb[data-theme="noir"] .wb-wifi { flex-direction:column; text-align:center; }
+.wb[data-theme="noir"] .wb-wifi__identity { flex:0 1 auto; flex-direction:column; align-items:center; }
+.wb[data-theme="noir"] .wb-nav-entry__icon,.wb[data-theme="noir"] .wb-stay-fact > svg { display:none; }
+.wb[data-theme="noir"] .wb-nav-entry__title { font:400 20px/1.4 var(--serif); }
+.wb[data-theme="noir"] .wb-editorial__heading,.wb[data-theme="noir"] .wb-editorial__item h3 { font:400 22px/1.4 var(--serif); }
+.wb[data-theme="noir"] .wb-editorial__chapter { padding-block:24px; border-color:var(--terra-soft); }
+.wb[data-theme="noir"] .wb-info-block { background:transparent; border-radius:0; border-color:var(--terra-soft); }
+.wb[data-theme="noir"] .wb-arrival__times { grid-template-columns:1fr; }
+.wb[data-theme="noir"] .wb-arrival__time { text-align:center; border:0; border-radius:0; border-block-end:1px solid var(--line); background:transparent; }
+.wb[data-theme="noir"] .wb-offers { display:flex; flex-direction:column; overflow:visible; }
+.wb[data-theme="noir"] .wb-offer__card { display:grid; grid-template-columns:70px minmax(0,1fr); border:0; border-radius:0; border-block-end:1px solid var(--terra-soft); background:transparent; }
+.wb[data-theme="noir"] .wb-offer__photo { block-size:90px; margin-block:16px; }
+/* Jardin: a notebook. Spacious fact strips and open practical sheets with a visible timeline. */
+.wb[data-theme="jardin"] .wb-home__essentials { border:0; padding:0; background:transparent; }
+.wb[data-theme="jardin"] .wb-wifi { padding:20px; background:var(--surface); border:1px solid var(--line); }
+.wb[data-theme="jardin"] .wb-stay-facts { grid-template-columns:1fr; gap:10px; }
+.wb[data-theme="jardin"] .wb-stay-fact { display:grid; grid-template-columns:24px minmax(0,1fr); column-gap:12px; padding:16px; background:var(--terra-bg); border-radius:3px; }
+.wb[data-theme="jardin"] .wb-stay-fact > svg { grid-row:1/3; align-self:center; }
+.wb[data-theme="jardin"] .wb-stay-fact__value { grid-column:2; font-family:var(--serif); }
+.wb[data-theme="jardin"] .wb-editorial__chapters { gap:24px; }
+.wb[data-theme="jardin"] .wb-editorial__chapter { padding:22px; border:1px solid var(--line); background:var(--surface); }
+.wb[data-theme="jardin"] .wb-editorial__steps { border-inline-start:1px solid var(--terra-soft); margin-inline-start:10px; padding-inline-start:16px; }
+.wb[data-theme="jardin"] .wb-editorial__step-number { inline-size:24px; block-size:24px; border-radius:50%; background:var(--terra-bg); display:grid; place-items:center; }
+.wb[data-theme="jardin"] .wb-editorial__items { gap:12px; }
+.wb[data-theme="jardin"] .wb-editorial__item { padding:20px; background:var(--surface); border:1px solid var(--line); }
+.wb[data-theme="jardin"] .wb-info-block { border:0; border-radius:2px; background:var(--surface); }
+/* Azur: a practical atlas. A two-column information grid with full-width network and access code. */
+.wb[data-theme="azur"] .wb-home__essentials { background:var(--terra-bg); border:0; border-radius:4px; }
+.wb[data-theme="azur"] .wb-wifi { padding-block-end:20px; border-block-end:1px solid var(--terra-soft); }
+.wb[data-theme="azur"] .wb-section-heading { font:650 17px/1.4 var(--sans); }
+.wb[data-theme="azur"] .wb-nav-items { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); border:0; gap:10px; }
+.wb[data-theme="azur"] .wb-nav-entry { flex-direction:column; align-items:flex-start; padding:16px; border:1px solid var(--line); background:var(--surface); gap:12px; }
+.wb[data-theme="azur"] .wb-nav-entry > svg:last-child { display:none; }
+.wb[data-theme="azur"] .wb-editorial__number { display:block; color:var(--terra-deep); }
+.wb[data-theme="azur"] .wb-editorial__toggle > svg:first-of-type { display:none; }
+.wb[data-theme="azur"] .wb-editorial__chapter { padding:18px; background:var(--surface); border:1px solid var(--line); border-radius:4px; }
+.wb[data-theme="azur"] .wb-editorial__chapters { gap:12px; }
+.wb[data-theme="azur"] .wb-arrival { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); }
+.wb[data-theme="azur"] .wb-arrival > * { grid-column:1/-1; }
+.wb[data-theme="azur"] .wb-info-block { border-radius:4px; }
+.wb[data-theme="azur"] .wb-offers { grid-auto-flow:row; grid-template-columns:1fr; overflow:visible; }
+.wb[data-theme="azur"] .wb-offer__card { border-radius:4px; }
+/* Corail: a guest magazine. Bold chapter numbers, coloured fact blocks and a lower Wi-Fi strip. */
+.wb[data-theme="corail"] .wb-home__essentials { border:0; background:transparent; padding:0; }
+.wb[data-theme="corail"] .wb-essential-details { flex-direction:column-reverse; }
+.wb[data-theme="corail"] .wb-stay-fact { padding:18px; background:var(--terra-bg); }
+.wb[data-theme="corail"] .wb-stay-fact__value { font-weight:700; font-size:28px; }
+.wb[data-theme="corail"] .wb-wifi { padding:20px 0; border-block:1px solid var(--line); }
+.wb[data-theme="corail"] .wb-section-heading { font:750 25px/1.15 var(--sans); letter-spacing:-.04em; }
+.wb[data-theme="corail"] .wb-nav-entry__title { font-weight:650; font-size:18px; }
+.wb[data-theme="corail"] .wb-editorial__number { display:block; font:700 34px/1 var(--sans); color:var(--terra-deep); letter-spacing:-.05em; }
+.wb[data-theme="corail"] .wb-editorial__heading > svg,.wb[data-theme="corail"] .wb-editorial__item > svg { display:none; }
+.wb[data-theme="corail"] .wb-editorial__chapters,.wb[data-theme="corail"] .wb-editorial__items { gap:20px; }
+.wb[data-theme="corail"] .wb-editorial__chapter,.wb[data-theme="corail"] .wb-editorial__item { padding:22px; background:var(--surface); border:0; border-radius:4px; }
+.wb[data-theme="corail"] .wb-editorial__heading { flex-direction:column; font-size:22px; letter-spacing:-.025em; }
+.wb[data-theme="corail"] .wb-info-block { background:var(--terra-bg); border:0; border-radius:4px; }
+.wb[data-theme="corail"] .wb-arrival__time { background:var(--terra-bg); border:0; border-radius:0; }
+.wb[data-theme="corail"] .wb-offers { grid-auto-columns:88%; }
+.wb[data-theme="corail"] .wb-offer__card { border:0; border-radius:4px; }
+.wb[data-theme="corail"] .wb-offer__photo { block-size:190px; }
+/* Brume: an index. Unboxed definition rows, text-led chapters and no competing icon badges. */
+.wb[data-theme="brume"] .wb-home__essentials { border:0; border-radius:0; background:transparent; padding:0; }
+.wb[data-theme="brume"] .wb-section-heading { font:500 13px/1.5 var(--sans); text-transform:uppercase; letter-spacing:.08em; }
+.wb[data-theme="brume"] .wb-wifi { border-block-end:1px solid var(--line); padding-block-end:20px; }
+.wb[data-theme="brume"] .wb-wifi__icon,.wb[data-theme="brume"] .wb-stay-fact > svg,.wb[data-theme="brume"] .wb-nav-entry__icon,.wb[data-theme="brume"] .wb-host-initial { display:none; }
+.wb[data-theme="brume"] .wb-stay-facts { grid-template-columns:1fr; gap:0; }
+.wb[data-theme="brume"] .wb-stay-fact { display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1fr); gap:12px; padding-block:14px; border-block-end:1px solid var(--line); }
+.wb[data-theme="brume"] .wb-stay-fact__value { text-align:end; font-size:18px; }
+.wb[data-theme="brume"] .wb-nav-entry__number { display:block; color:var(--ink-soft); font-size:12px; }
+.wb[data-theme="brume"] .wb-nav-entry__title { font-weight:450; }
+.wb[data-theme="brume"] .wb-editorial__heading > svg,.wb[data-theme="brume"] .wb-editorial__item > svg { display:none; }
+.wb[data-theme="brume"] .wb-editorial__number { display:block; font-size:12px; color:var(--ink-soft); }
+.wb[data-theme="brume"] .wb-editorial__item h3,.wb[data-theme="brume"] .wb-editorial__heading { font:500 16px/1.5 var(--sans); }
+.wb[data-theme="brume"] .wb-info-block { border:0; border-radius:0; border-block-end:1px solid var(--line); background:transparent; padding:22px 0; }
+.wb[data-theme="brume"] .wb-arrival__times { grid-template-columns:1fr; }
+.wb[data-theme="brume"] .wb-arrival__time { background:transparent; border:0; border-radius:0; border-block-end:1px solid var(--line); padding-inline:0; }
+.wb[data-theme="brume"] .wb-offers { display:flex; flex-direction:column; overflow:visible; }
+.wb[data-theme="brume"] .wb-offer__card { border:0; border-radius:0; border-block-end:1px solid var(--line); background:transparent; }
+.wb[data-theme="brume"] .wb-offer__photo { block-size:100px; }
+.wb[data-theme="brume"] .wb-offer__body { padding:18px 0; }
+/* Minuit: a stay console. Separate fact tiles, a large access-code panel and compact disclosures. */
+.wb[data-theme="minuit"] .wb-home__essentials { border:0; background:transparent; padding:0; }
+.wb[data-theme="minuit"] .wb-stay-fact { background:var(--surface); border:1px solid var(--line); border-radius:6px; padding:18px; }
+.wb[data-theme="minuit"] .wb-stay-fact[data-code="true"] .wb-stay-fact__value { font-size:30px; }
+.wb[data-theme="minuit"] .wb-wifi { padding:18px; background:var(--raised); border-radius:6px; }
+.wb[data-theme="minuit"] .wb-nav-items { display:flex; flex-direction:column; gap:10px; border:0; }
+.wb[data-theme="minuit"] .wb-nav-entry { padding:18px; background:var(--surface); border:1px solid var(--line); border-radius:6px; }
+.wb[data-theme="minuit"] .wb-editorial__chapter { padding:20px; border:1px solid var(--line); border-radius:6px; background:var(--surface); }
+.wb[data-theme="minuit"] .wb-editorial__chapters { gap:12px; }
+.wb[data-theme="minuit"] .wb-arrival__code { background:var(--raised); border-radius:6px; }
+.wb[data-theme="minuit"] .wb-arrival__code-value { font-size:28px; }
+/* No fixed text heights or ellipses. Narrow containers stack the actions instead of clipping values. */
+@container baitly-book (max-width:330px) {
+  .wb .wb-home__content { padding-inline:16px; }
+  .wb .wb-editorial,.wb .wb-arrival { padding-inline:16px; }
+  .wb .wb-wifi { flex-direction:column; align-items:flex-start; }
+  .wb .wb-wifi__identity { flex:0 1 auto; }
+  .wb .wb-stay-facts,.wb .wb-arrival__times,.wb[data-theme="azur"] .wb-nav-items { grid-template-columns:1fr; }
+  .wb[data-theme="jardin"] .wb-stay-fact { grid-template-columns:24px minmax(0,1fr); }
+  .wb[data-theme="atelier"] .wb-stay-fact,.wb[data-theme="brume"] .wb-stay-fact { grid-template-columns:1fr; }
+  .wb[data-theme="atelier"] .wb-stay-fact__value,.wb[data-theme="brume"] .wb-stay-fact__value { text-align:start; }
+}
+@container baitly-book (min-width:560px) {
+  .wb .wb-home__content { padding-inline:32px; }
+  .wb .wb-editorial,.wb .wb-arrival { padding-inline:32px; }
+  .wb[data-theme="azur"] .wb-info-block { grid-column:auto; }
+  .wb[data-theme="corail"] .wb-editorial__items { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:20px; align-items:start; }
+  .wb[data-theme="brume"] .wb-editorial__item { display:grid; grid-template-columns:28px minmax(0,1fr); }
+  .wb[data-theme="atelier"] .wb-editorial__chapter { display:grid; grid-template-columns:minmax(0,1fr) minmax(0,2fr); gap:28px; }
+  .wb[data-theme="atelier"] .wb-editorial__chapter-body { padding:0; }
+  .wb[data-theme="azur"] .wb-offers { grid-template-columns:repeat(2,minmax(0,1fr)); }
+}

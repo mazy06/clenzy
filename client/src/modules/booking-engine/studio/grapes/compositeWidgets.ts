@@ -1,5 +1,6 @@
 import { buildFunnelHtml } from './funnelPresets';
 import { buildSearchBarHtml } from './searchBarRules';
+import { BAITLY_JOURNEY_COMPOSITES, type BaitlyBookingJourneyId } from './baitlyJourneyComposites';
 
 /**
  * Widgets COMPOSITES : compositions nommées et réutilisables de widgets granulaires (ex. barre de
@@ -20,6 +21,9 @@ export interface CompositeWidget {
   name: string;
   /** Markup LIBRE issu du mini-éditeur DnD (source de vérité du rendu si présent). */
   html?: string;
+  /** CSS carried with the composition when inserted or duplicated in another engine. */
+  css?: string;
+  journeyId?: BaitlyBookingJourneyId;
   /** LEGACY (composites créés avant le mini-éditeur DnD) : type de disposition. */
   kind?: CompositeKind;
   /** LEGACY : ids ordonnés des widgets granulaires (cf. `bookingWidgetDefs`). */
@@ -48,10 +52,9 @@ export const COMPOSITE_KIND_LABELS: Record<CompositeKind, string> = {
 };
 
 /**
- * Composites INTÉGRÉS : AUCUN. La bibliothèque est 100 % custom — elle reste vide tant que l'utilisateur
- * n'a pas créé ses propres composites (rien n'est codé en dur dans la palette).
+ * Ready-made journey compositions; custom organization composites remain available alongside them.
  */
-export const BUILTIN_COMPOSITES: CompositeWidget[] = [];
+export const BUILTIN_COMPOSITES: CompositeWidget[] = BAITLY_JOURNEY_COMPOSITES;
 
 /** Markup INTERNE d'un composite (sections headless `.sb`/`.clenzy-*`), SANS enveloppe — chargé tel quel
  *  dans le canvas du constructeur (stockage propre). Pour le RENDU sur page, utiliser `buildCompositeHtml`. */
@@ -82,8 +85,8 @@ const COMPOSITE_SHELL_CLASS = 'cz-composite';
  */
 export function buildCompositeHtml(c: CompositeWidget): string {
   const inner = buildCompositeInner(c);
-  if (new RegExp(`class="[^"]*\\b${COMPOSITE_SHELL_CLASS}\\b`).test(inner)) return inner;
-  return `<div class="cb-widget ${COMPOSITE_SHELL_CLASS}">${inner}</div>`;
+  const shell = new RegExp(`class="[^"]*\\b${COMPOSITE_SHELL_CLASS}\\b`).test(inner) ? inner : `<div class="cb-widget ${COMPOSITE_SHELL_CLASS}">${inner}</div>`;
+  return `${c.css ? `<style>${c.css.replace(/</g, '\\3c ')}</style>` : ''}${shell}`;
 }
 
 /** Lit les composites custom stockés en JSON dans `config.compositeWidgets` (tolérant aux données invalides). */
@@ -109,5 +112,5 @@ export function parseSavedComposites(json: string | null | undefined): Composite
 
 /** Sérialise les composites custom pour `config.compositeWidgets`. */
 export function serializeSavedComposites(list: CompositeWidget[]): string {
-  return JSON.stringify(list.map(({ id, name, html, kind, widgetIds, filterSubs }) => ({ id, name, html, kind, widgetIds, filterSubs })));
+  return JSON.stringify(list.map(({ id, name, html, css, kind, widgetIds, filterSubs }) => ({ id, name, html, css, kind, widgetIds, filterSubs })));
 }

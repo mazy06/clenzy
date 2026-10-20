@@ -14,6 +14,8 @@ import { getErrorMessage } from '../../utils/getErrorMessage';
 import ServiceRequestCatalogPicker from './ServiceRequestCatalogPicker';
 import './serviceRequestComposer.css';
 import { PropertyThumb } from '../notifications/NotificationPropertyPanel';
+import BaitlyFormSteps from '../../components/forms/BaitlyFormSteps';
+import { useMediaQuery } from '../../hooks/use-media-query';
 
 export interface ComposerProps {
   onClose: () => void;
@@ -24,6 +26,9 @@ export interface ComposerProps {
 
 export default function ServiceRequestComposer({ onClose, onSuccess, setLoading, submitRef }: ComposerProps) {
   const { t, isEnglish, currentLanguage } = useTranslation();
+  const mobile = useMediaQuery('(max-width: 639px)');
+  const [step, setStep] = useState(1);
+  const [selectedService, setSelectedService] = useState('');
   const queryClient = useQueryClient();
   const [propertyId, setPropertyId] = useState<number | null>(null);
   const [desiredDate, setDesiredDate] = useState('');
@@ -44,6 +49,7 @@ export default function ServiceRequestComposer({ onClose, onSuccess, setLoading,
   });
   const property = propertyDetails.data ?? properties.data?.find(p => p.id === propertyId);
   const selectedItems = selections.map(s => catalog.data?.find(i => i.code === s.serviceItemCode));
+  const activeService = selections.some(selection => selection.serviceItemCode === selectedService) ? selectedService : selections[0]?.serviceItemCode;
   const requiresProperty = !selections.length || selectedItems.some(i => i?.propertyRequired !== false);
   const canEstimate = selections.length > 0 && (!requiresProperty || !!propertyId);
   const reservations = useQuery({
@@ -54,7 +60,7 @@ export default function ServiceRequestComposer({ onClose, onSuccess, setLoading,
   // Notes and duration edits do not refetch the price guide. Its inputs are catalogue,
   // property and date; only the backend computes prices and reference durations.
   const estimateDraft = useMemo<RequestDraft>(() => ({
-    propertyId, desiredDate: desiredDate || null, priority: 'NORMAL', instructions: '',
+    propertyId, desiredDate: desiredDate ? new Date(desiredDate).toISOString().slice(0, 19) : null, priority: 'NORMAL', instructions: '',
     selections: selections.map(s => ({ serviceItemCode: s.serviceItemCode, instructions: '' })),
   }), [propertyId, desiredDate, selections.map(s => s.serviceItemCode).join('|')]);
   const estimate = useQuery({
@@ -92,7 +98,7 @@ export default function ServiceRequestComposer({ onClose, onSuccess, setLoading,
     saving.current = true; setBusy(true); setLoading(true); setError(null);
     try {
       await serviceRequestComposerApi.create({
-        submissionId: submissionId.current, propertyId, desiredDate, priority, instructions,
+        submissionId: submissionId.current, propertyId, desiredDate: new Date(desiredDate).toISOString().slice(0, 19), priority, instructions,
         selections,
       });
       await Promise.allSettled([
@@ -108,11 +114,36 @@ export default function ServiceRequestComposer({ onClose, onSuccess, setLoading,
   }
   useEffect(() => { submitRef.current = () => { void submit(); }; return () => { submitRef.current = null; }; });
 
-  return <form ref={formRef} onSubmit={e => { e.preventDefault(); void submit(); }} className="request-composer w-full min-w-0 p-2" aria-label={t('requestComposer.form')}>
+  function goToStep(next: number) {
+    if (next >= 3 && !canEstimate) { setStep(2); return; }
+    if (next >= 4) {
+      const invalid = Array.from(formRef.current?.querySelectorAll<HTMLInputElement>('input[id^="duration-"]') ?? []).find(input => !input.checkValidity());
+      if (invalid) {
+        setSelectedService(invalid.id.slice('duration-'.length));
+        setError(invalid.validationMessage);
+        setStep(3);
+        return;
+      }
+    }
+    if (next === 5) {
+      const date = formRef.current?.querySelector<HTMLInputElement>('#composer-date');
+      if (date && !date.checkValidity()) { setError(date.validationMessage); setStep(4); return; }
+    }
+    setError(null);
+    setStep(next);
+  }
+
+  return <form ref={formRef} noValidate={mobile} onSubmit={e => {
+    e.preventDefault();
+    if (mobile && step < 5) goToStep(step + 1);
+    else void submit();
+  }} className="request-composer w-full min-w-0 p-2" data-mobile-step={mobile ? step : undefined} aria-label={t('requestComposer.form')}>
+    {mobile && <BaitlyFormSteps steps={[t('interventions.fields.property'), t('requestComposer.services'), t('requestComposer.selectedServices'), t('requestComposer.schedule'), t('requestComposer.estimate')]}
+      current={step} reachable={[true, true, canEstimate, canEstimate, canEstimate && !!desiredDate]} onStepClick={goToStep} />}
     {error && <Alert variant="destructive" className="mb-5"><AlertDescription>{error}</AlertDescription></Alert>}
     <fieldset disabled={busy} className="composer-columns m-0 grid min-w-0 border-0 p-0 gap-3 lg:grid-cols-[minmax(0,3fr)_minmax(0,2fr)]">
       <Card className="composer-services min-w-0 gap-0 p-3 rounded-lg shadow-none">
-        <section className="flex items-center gap-3 shrink-0">
+        <section className="composer-property flex items-center gap-3 shrink-0">
           {property && <PropertyThumb key={property.id} property={property} name={property.name} className="h-20 w-24" />}
           {properties.isPending ? <Skeleton className="h-10" /> : properties.isError
             ? <Alert variant="destructive"><AlertDescription>{t('requestComposer.propertiesError')} <Button type="button" variant="outline" onClick={() => properties.refetch()}>{t('common.retry')}</Button></AlertDescription></Alert>
@@ -120,14 +151,14 @@ export default function ServiceRequestComposer({ onClose, onSuccess, setLoading,
               <FieldLabel htmlFor="composer-property">{t('requestComposer.property')}{requiresProperty ? ' *' : ''}</FieldLabel>
               <Select value={propertyId ? String(propertyId) : 'none'} onValueChange={v => { setPropertyId(v === 'none' ? null : Number(v)); setDesiredDate(''); }}>
                 <SelectTrigger id="composer-property" className="w-full min-h-10"><SelectValue /></SelectTrigger>
-                <SelectContent>
+                <SelectContent className="baitly-form-options">
                   <SelectItem value="none">{t('requestComposer.chooseProperty')}</SelectItem>
                   {(properties.data ?? []).map(p => <SelectItem key={p.id} value={String(p.id)}>{p.name} · {p.city}</SelectItem>)}
                 </SelectContent>
               </Select>
               {!requiresProperty && <p className="text-xs text-muted-foreground">{t('requestComposer.optionalProperty')}</p>}
               {property && <div className="min-w-0 text-xs text-muted-foreground">
-                <p className="truncate" title={[property.address, property.city].filter(Boolean).join(', ')}>{[property.address, property.postalCode, property.city].filter(Boolean).join(', ')}</p>
+                <p>{[property.address, property.postalCode, property.city].filter(Boolean).join(', ')}</p>
                 <p className="flex flex-wrap gap-x-3 gap-y-1 tabular-nums">
                   {property.squareMeters > 0 && <span>{property.squareMeters} m²</span>}
                   {property.bedroomCount != null && <span>{t('requestComposer.bedrooms', { count: property.bedroomCount })}</span>}
@@ -144,11 +175,15 @@ export default function ServiceRequestComposer({ onClose, onSuccess, setLoading,
         </section>
         {selections.length > 0 && <section aria-label={t('requestComposer.selectedServices')} className="composer-selection mt-3 space-y-2 border-t border-border pt-2">
           <h3 className="text-base font-semibold">{t('requestComposer.selectedServices')} <span className="text-muted-foreground font-normal tabular-nums">({selections.length})</span></h3>
+          {mobile && <Select value={activeService} onValueChange={setSelectedService}>
+            <SelectTrigger aria-label={t('requestComposer.selectedServices')} className="w-full"><SelectValue /></SelectTrigger>
+            <SelectContent className="baitly-form-options">{selections.map((selection, index) => <SelectItem key={selection.serviceItemCode} value={selection.serviceItemCode}>{label(selectedItems[index], selection.serviceItemCode)}</SelectItem>)}</SelectContent>
+          </Select>}
           <div className="divide-y divide-border">
             {selections.map((selection, index) => {
               const item = selectedItems[index];
               const guidance = amounts.find(e => e.serviceItemCode === selection.serviceItemCode);
-              return <div key={selection.serviceItemCode} className="py-2">
+              return <div key={selection.serviceItemCode} className="py-2" hidden={mobile && selection.serviceItemCode !== activeService}>
                 <div className="flex items-start justify-between gap-3 mb-3">
                   <div className="min-w-0">
                     <h4 className="text-sm font-medium">{label(item, selection.serviceItemCode)}</h4>
@@ -178,6 +213,7 @@ export default function ServiceRequestComposer({ onClose, onSuccess, setLoading,
       </Card>
       <aside className="composer-sidebar min-w-0">
         <Card className="composer-planning gap-0 p-3 rounded-lg shadow-none">
+          <div className="composer-schedule">
           <h3 className="text-base font-semibold mb-2 flex items-center gap-2"><CalendarDays className="size-4" aria-hidden />{t('requestComposer.schedule')}</h3>
           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-1 xl:grid-cols-2">
             <Field><FieldLabel htmlFor="composer-date">{t('requestComposer.date')} *</FieldLabel>
@@ -186,7 +222,7 @@ export default function ServiceRequestComposer({ onClose, onSuccess, setLoading,
             <Field><FieldLabel htmlFor="composer-priority">{t('serviceRequests.fields.priority')}</FieldLabel>
               <Select value={priority} onValueChange={v => setPriority(v as RequestDraft['priority'])}>
                 <SelectTrigger id="composer-priority" className="w-full min-h-10"><SelectValue /></SelectTrigger>
-                <SelectContent>{(['LOW', 'NORMAL', 'HIGH', 'CRITICAL'] as const).map(p => <SelectItem key={p} value={p}>{t('serviceRequests.priorities.' + p.toLowerCase())}</SelectItem>)}</SelectContent>
+                <SelectContent className="baitly-form-options">{(['LOW', 'NORMAL', 'HIGH', 'CRITICAL'] as const).map(p => <SelectItem key={p} value={p}>{t('serviceRequests.priorities.' + p.toLowerCase())}</SelectItem>)}</SelectContent>
               </Select>
             </Field>
           </div>
@@ -209,7 +245,12 @@ export default function ServiceRequestComposer({ onClose, onSuccess, setLoading,
             <Textarea id="composer-instructions" value={instructions} maxLength={2000} rows={2} className="min-h-14 resize-none"
               onChange={e => setInstructions(e.target.value)} placeholder={t('requestComposer.sharedNotesExample')} />
           </Field>
-          <h3 className="mt-3 border-t border-border pt-3 text-base font-semibold">{t('requestComposer.estimate')}</h3>
+          </div>
+          {mobile && step === 5 && <dl className="composer-mobile-recap text-sm">
+            {property && <div><dt>{t('requestComposer.property')}</dt><dd>{property.name} · {property.city}</dd></div>}
+            {desiredDate && <div><dt>{t('requestComposer.date')}</dt><dd className="tabular-nums">{new Date(desiredDate).toLocaleString(currentLanguage, { dateStyle: 'medium', timeStyle: 'short' })}</dd></div>}
+          </dl>}
+          <h3 className="composer-budget-title mt-3 border-t border-border pt-3 text-base font-semibold">{t('requestComposer.estimate')}</h3>
 
           <div className="composer-budget my-2" aria-live="polite">
             {!selections.length ? <p className="text-sm text-muted-foreground">{t('requestComposer.emptyEstimate')}</p>
@@ -233,16 +274,22 @@ export default function ServiceRequestComposer({ onClose, onSuccess, setLoading,
                 </div>}
               </div>}
           </div>
-          <div className="composer-actions border-t border-border pt-2 space-y-2">
+          {!mobile && <div className="composer-actions border-t border-border pt-2 space-y-2">
             {selections.length > 0 && <p className="text-xs text-muted-foreground">{t('requestComposer.budgetDisclaimer')}</p>}
             <Button type="submit" className="w-full min-h-11 cursor-pointer" disabled={busy || !selections.length || (requiresProperty && !propertyId) || catalog.isError}>
               <Plus className="size-4" aria-hidden />{busy ? t('serviceRequests.creating') : t(selections.length ? 'requestComposer.create' : 'requestComposer.selectAtLeastOne', { count: selections.length })}
             </Button>
             <Button type="button" variant="ghost" className="w-full cursor-pointer" onClick={onClose}>{t('common.cancel')}</Button>
 
-          </div>
+          </div>}
         </Card>
       </aside>
     </fieldset>
+    {mobile && <div className="baitly-mobile-form-footer">
+      <Button type="button" variant="ghost" disabled={busy} onClick={() => step > 1 ? setStep(step - 1) : onClose()}>{t(step > 1 ? 'reservations.dialog.previous' : 'common.cancel')}</Button>
+      {step < 5 ? <Button key="next" type="button" disabled={busy || (step === 2 && !canEstimate) || (step === 4 && !desiredDate)}
+        onClick={event => { event.preventDefault(); goToStep(step + 1); }}>{t('reservations.dialog.next')}</Button> :
+        <Button key="submit" type="submit" disabled={busy || !canEstimate || !desiredDate}>{busy ? t('serviceRequests.creating') : t('requestComposer.create', { count: selections.length })}</Button>}
+    </div>}
   </form>;
 }

@@ -21,12 +21,16 @@ function pageGutters(parent: HTMLElement) {
     const left = parseFloat(padding.paddingLeft) || 0;
     const right = parseFloat(padding.paddingRight) || 0;
     const above = parseFloat(padding.paddingTop) || 0;
-    if (inner.width <= 0 || Math.abs(inner.left - outer.left - left) > 1
-      || Math.abs(inner.right - outer.right + right) > 1
-      || Math.abs(inner.top - outer.top - above) > 1) break;
-    start += parseFloat(padding.paddingInlineStart) || 0;
-    end += parseFloat(padding.paddingInlineEnd) || 0;
-    top += above;
+    const currentStyle=getComputedStyle(current);
+    const marginLeft=parseFloat(currentStyle.marginLeft)||0;
+    const marginRight=parseFloat(currentStyle.marginRight)||0;
+    const marginTop=parseFloat(currentStyle.marginTop)||0;
+    if (inner.width <= 0 || Math.abs(inner.left - outer.left - left - marginLeft) > 1
+      || Math.abs(inner.right - outer.right + right + marginRight) > 1
+      || Math.abs(inner.top - outer.top - above - marginTop) > 1) break;
+    start += (parseFloat(padding.paddingInlineStart) || 0)+(parseFloat(currentStyle.marginInlineStart)||0);
+    end += (parseFloat(padding.paddingInlineEnd) || 0)+(parseFloat(currentStyle.marginInlineEnd)||0);
+    top += above+marginTop;
     current = ancestor;
   }
   return { start, end, top };
@@ -48,7 +52,12 @@ export function usePageHeaderLayout(anchored: boolean, contentKey = '') {
     let guttersDirty = true;
     const measure = () => {
       if (anchored && parent && guttersDirty) {
+        // A negative first-child margin can collapse into its wrapper. Measure
+        // the unshifted layout so the header does not hide its own page inset.
+        const previousTop=header.style.marginTop;
+        header.style.marginTop='0px';
         const gutters = pageGutters(parent);
+        header.style.marginTop=previousTop;
         for (const [name, value] of Object.entries(gutters)) {
           const key = `--page-header-gutter-${name}`;
           const next = `${value}px`;

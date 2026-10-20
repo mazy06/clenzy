@@ -149,6 +149,7 @@ public class WelcomeGuideService {
         if (req.curatedActivities() != null) guide.setCuratedActivities(req.curatedActivities());
         if (req.brandingColor() != null) guide.setBrandingColor(req.brandingColor());
         if (req.theme() != null && !req.theme().isBlank()) guide.setTheme(req.theme());
+        if (req.structure() != null) guide.setStructure(req.structure());
         if (req.heroPhotoIds() != null) guide.setHeroPhotoIds(req.heroPhotoIds()); // '[]' = pas de hero
         if (req.welcomeMessage() != null) guide.setWelcomeMessage(req.welcomeMessage().isBlank() ? null : req.welcomeMessage());
         if (req.hostNames() != null) guide.setHostNames(req.hostNames().isBlank() ? null : req.hostNames());
@@ -177,6 +178,7 @@ public class WelcomeGuideService {
         if (req.curatedActivities() != null) guide.setCuratedActivities(req.curatedActivities());
         if (req.brandingColor() != null) guide.setBrandingColor(req.brandingColor());
         if (req.theme() != null && !req.theme().isBlank()) guide.setTheme(req.theme());
+        if (req.structure() != null) guide.setStructure(req.structure());
         if (req.heroPhotoIds() != null) guide.setHeroPhotoIds(req.heroPhotoIds()); // '[]' = pas de hero
         if (req.welcomeMessage() != null) guide.setWelcomeMessage(req.welcomeMessage().isBlank() ? null : req.welcomeMessage());
         if (req.hostNames() != null) guide.setHostNames(req.hostNames().isBlank() ? null : req.hostNames());
@@ -647,7 +649,7 @@ public class WelcomeGuideService {
             dto.welcomeMessage(), dto.hostNames(), dto.logoUrl(), dto.sections(), dto.pois(),
             dto.curatedActivities(), dto.property(), masked, dto.stay(), dto.checkIn(),
             dto.dataCollection(), dto.chatbotEnabled(), dto.guestbookEnabled(), dto.activitiesEnabled(),
-            dto.upsellsEnabled(), dto.available(), dto.unavailableReason());
+            dto.upsellsEnabled(), dto.available(), dto.unavailableReason(), dto.structure());
     }
 
     /**

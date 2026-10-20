@@ -197,6 +197,10 @@ export default function PublicBookingPage() {
   // HTML GrapesJS assaini (retire script/iframe/style/on*=… — parité sécurité avec le SSR).
   const homeHtml = useMemo(() => (home ? sanitizeHtml(home.html) : ''), [home]);
 
+  useEffect(() => {
+    if (homeHtml && grapesRef.current) return BaitlyBooking.enhance(grapesRef.current);
+  }, [homeHtml]);
+
   // La HOME GrapesJS porte-t-elle ses propres marqueurs de réservation ? (déterminé depuis le HTML
   // assaini, donc stable au render — sert à décider d'afficher ou non la section #reserver de repli).
   const homeHasWidgets = homeHtml.includes(WIDGET_MARKER);

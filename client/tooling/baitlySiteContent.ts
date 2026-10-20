@@ -10,6 +10,7 @@ import {
   loyaltyUnitPrice,
 } from '../site/data/baitlyLoyaltyPricing';
 import { PROVIDERS_MESSAGES } from '../site/lib/messages/providers';
+import { BAITLY_CONCIERGES } from '../site/lib/messages/baitlyConcierges';
 import { AGENTS_PAGE_MESSAGES } from '../site/lib/messages/baitlyAgentsPage';
 import { autonomyChoicesFor } from '../src/modules/supervision/constants';
 import type { AgentId } from '../src/modules/supervision/types';
@@ -43,6 +44,7 @@ import { legalDocuments } from '../site/data/legal/publication';
 
 export const DISCOVERY_LANGUAGES = ['fr', 'en', 'ar'] as const;
 export const PRIVATE_SITE_PATHS = [
+  '/campagnes/reponse',
   '/prestataires/inscription',
   '/prestataires/activation',
   '/inscription',
@@ -381,6 +383,7 @@ export function siteDocuments(
     section(pages.status.measurementTitle, pages.status.measurementCopy),
     section(pages.status.incidentsTitle, pages.status.noIncidents),
   );
+  add('/conciergeries',BAITLY_CONCIERGES[language].directory,BAITLY_CONCIERGES[language].intro);
   add(
     '/prestataires',
     providers.titleBefore + providers.titleAccent,

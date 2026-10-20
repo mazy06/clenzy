@@ -87,7 +87,7 @@ public class BaitlyPublicProfiles {
         Long org=tenant.getRequiredOrganizationId(), author=accounts.userIdOf(subject);
         if(author==null) throw new AccessDeniedException("Compte indisponible");
         var organization=orgs.findById(org).orElseThrow();
-        boolean concierge=organization.getType()==OrganizationType.CONCIERGE;
+        boolean concierge=BaitlyCrmOrganizationRules.concierge(organization.getType().name(),tenant.isSuperAdmin());
         if(concierge) organizations.validateOrgManagement(subject,org);
         var ids=command.propertyIds().stream().distinct().toList();
         for(Long id:ids) {

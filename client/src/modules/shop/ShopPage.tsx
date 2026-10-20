@@ -1,3 +1,4 @@
+import {PageHeaderActionsProvider,usePageHeaderActionsSlot,usePageHeaderFiltersSlot} from "../../components/PageHeaderActionsContext";
 import BaitlyHardwareOrders from './BaitlyHardwareOrders';
 import BaitlyHardwareInventoryPanel from './BaitlyHardwareInventoryPanel';
 import { useAuth } from '../../hooks/useAuth';
@@ -31,6 +32,8 @@ const categoryTranslationKeys: Record<string, string> = {
 
 const ShopPage: React.FC = () => {
   const { t } = useTranslation();
+  const {slot,portalContainer}=usePageHeaderActionsSlot();
+  const {filtersSlot,filtersContainer}=usePageHeaderFiltersSlot();
   const { hasAnyRole } = useAuth();
   const [management, setManagement] = useState<'orders' | 'stock' | null>(null);
 
@@ -139,8 +142,8 @@ const ShopPage: React.FC = () => {
   }, []);
 
   return (
-    <div className="flex min-h-0 flex-1 flex-col">
-      <PageHeader
+    <PageHeaderActionsProvider slot={slot} filtersSlot={filtersSlot}><div className="flex min-h-0 flex-1 flex-col">
+      <PageHeader filters={!management?filtersContainer:undefined}
         title={t('shop.title')}
         subtitle={t('shop.subtitle')}
         iconBadge={<Memory />}
@@ -148,6 +151,7 @@ const ShopPage: React.FC = () => {
         showBackButton={false}
         actions={(
           <>
+          {portalContainer}
           <Button variant="ghost" onClick={() => setManagement(management === 'orders' ? null : 'orders')}>{t('hardwareOrders.title')}</Button>
           {hasAnyRole(['SUPER_ADMIN']) && <Button variant="ghost" onClick={() => setManagement(management === 'stock' ? null : 'stock')}>{t('hardwareInventory.title')}</Button>}
           <Button
@@ -213,7 +217,7 @@ const ShopPage: React.FC = () => {
         onRemoveItem={handleRemoveItem}
         onCheckout={handleCheckout}
       />
-    </div>
+    </div></PageHeaderActionsProvider>
   );
 };
 

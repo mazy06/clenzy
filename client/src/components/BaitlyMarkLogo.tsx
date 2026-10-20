@@ -27,7 +27,8 @@ export default function BaitlyMarkLogo({ scale = 1, size, variant = 'full', tone
   const color = colorMode === 'inherit' ? 'inherit' : tone === 'dark' ? '#FFFFFF' : tone === 'light' ? '#1B2A35' : undefined;
   return (
     <div className={cls} role="img" aria-label="Baitly" style={{ display: 'inline-flex', alignItems: 'center', flexShrink: 0, direction: 'ltr', gap: variant === 'full' ? proportionalSize(WORDMARK_GAP_RATIO) : 0, color }}>
-      <style>{`
+      {/* Only constants and the sanitized React ID enter this CSS. Raw style text keeps SSR quotes identical to the browser. */}
+      <style dangerouslySetInnerHTML={{ __html: `
         .${cls} { color: #1B2A35; }
         [data-theme="dark"] .${cls} { color: #FFFFFF; }
         .${cls} .baitly-logo-base { opacity: ${animated ? '.42' : '1'}; }
@@ -37,7 +38,7 @@ export default function BaitlyMarkLogo({ scale = 1, size, variant = 'full', tone
           .${cls} .baitly-logo-flow { display: none; animation: none; }
           .${cls} .baitly-logo-base { opacity: 1; }
         }
-      `}</style>
+      ` }} />
       {variant !== 'wordmark' && (
         <svg width={typeof iconSize === 'number' ? iconSize : undefined} height={typeof iconSize === 'number' ? iconSize : undefined} viewBox={MARK_VIEWBOX} fill="none" aria-hidden="true" style={{ flexShrink: 0, width: iconSize, height: iconSize }}>
           <path className="baitly-logo-base" d={MARK_PATH} stroke="currentColor" strokeWidth={STROKE_WIDTH} strokeLinecap="round" strokeLinejoin="round" />

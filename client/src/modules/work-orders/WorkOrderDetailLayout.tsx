@@ -1,17 +1,20 @@
 import React from 'react';
-import { DirectionsMenu } from '../../components/map/DirectionsMenu';
-import { Check, Clock3, MapPin, Play, TriangleAlert, XCircle } from '../../icons/glyphs';
-import { Avatar, AvatarFallback, AvatarImage, Tooltip, TooltipContent, TooltipTrigger } from '../../components/ui';
+import PropertyPresentation from '../../components/PropertyPresentation';
+import ContactPresentation from '../../components/ContactPresentation';
+import { Check, Clock3, Play, TriangleAlert, XCircle, CalendarDays, ClipboardList, KeyRound, UserRound } from '../../icons/glyphs';
+import { Tooltip, TooltipContent, TooltipTrigger } from '../../components/ui';
 import ServiceReferenceLabels from '../../components/ServiceReferenceLabels';
 import StatusIcon from '../../components/StatusIcon';
 import DescriptionNotesDisplay from '../../components/DescriptionNotesDisplay';
 import { Money } from '../../components/Money';
 import { useTranslation } from '../../hooks/useTranslation';
-import { formatDateTime, formatDuration } from '../../utils/formatUtils';
+import { formatDateTime, formatDuration, parseApiDate } from '../../utils/formatUtils';
 import { getInterventionTypeLabel, getPropertyTypeLabel } from '../../utils/statusUtils';
 import { toApiMediaUrl } from '../../utils/mediaUrl';
 import { WorkOrderHeading, WORK_ORDER_ART, workOrderArt } from './WorkOrderPresentation';
 import './workOrderDetails.css';
+import '../service-requests/baitlyRequestDetail.css';
+import './baitlyInterventionDetail.css';
 
 export type WorkOrderAssignmentState =
   | 'PENDING' | 'ACCEPTED' | 'DECLINED' | 'QUOTE_SUBMITTED' | 'QUOTE_APPROVED';
@@ -19,6 +22,7 @@ export type WorkOrderAssignmentState =
 export interface WorkOrderProperty {
   id?: number;
   name: string;
+  timezone?: string;
   address?: string;
   city?: string;
   postalCode?: string;
@@ -41,6 +45,7 @@ export interface WorkOrderProperty {
 export interface WorkOrderPerson {
   name: string;
   email?: string;
+  phone?: string;
   avatarUrl?: string | null;
   /** Rôle affiché en texte (libellé déjà traduit ou code brut). */
   roleLabel?: string;
@@ -50,6 +55,7 @@ export interface WorkOrderAssignee {
   avatarUrl?: string | null;
   name?: string;
   email?: string;
+  phone?: string;
   type?: 'user' | 'team';
   /** Libellé du type (« Équipe », rôle, etc.) déjà résolu. */
   typeLabel?: string;
@@ -113,6 +119,8 @@ export interface WorkOrderTimeRow {
 }
 
 export interface WorkOrderViewModel {
+  id?: number;
+  title?: string;
   /** Photo de couverture du logement — un lieu se reconnait avant de se lire. */
   propertyPhotoUrl?: string;
   /** Taches chiffrees de la demande. Vide pour un forfait sans devis structure. */
@@ -163,7 +171,7 @@ export interface WorkOrderViewModel {
 export interface WorkOrderDetailLayoutProps {
   vm: WorkOrderViewModel;
   /** Slot d'action sur la carte Propriété (ex : bouton « Voir la propriété »). */
-  propertyAction?: React.ReactNode;
+  propertyHref?: string;
   /**
    * Contenu riche additionnel rendu sous les deux colonnes (ex : le stepper
    * interactif d'une intervention). N'a pas d'équivalent côté demande de service.
@@ -188,11 +196,6 @@ export interface WorkOrderDetailLayoutProps {
 }
 
 
-function initialsOf(name: string) {
-  return name.replace(/^\s*\[[^\]]*\]\s*/, '').split(/[\s-]+/).filter(Boolean)
-    .slice(0, 2).map(word => word[0]).join('').toUpperCase() || '?';
-}
-
 /** Le parcours décrit des étapes, pas un pourcentage fictif de travail réalisé. */
 function stageOf(status: string) {
   switch (status) {
@@ -204,17 +207,10 @@ function stageOf(status: string) {
   }
 }
 
-function Fact({ art, label, children }: { art: string; label: string; children: React.ReactNode }) {
-  return <div className="wo-fact">
-    <img src={art} alt="" width={42} height={42} decoding="async" />
-    <div><span className="wo-label">{label}</span><div className="wo-fact__value">{children}</div></div>
-  </div>;
-}
-
 export default function WorkOrderDetailLayout({
-  vm, propertyAction, extraSection, heroAction, statusBanner, detailsSection, asideSection,
+  vm, propertyHref, extraSection, heroAction, statusBanner, detailsSection, asideSection,
 }: WorkOrderDetailLayoutProps) {
-  const { t } = useTranslation();
+  const { t, currentLanguage } = useTranslation();
   const p = vm.property;
   const status = vm.status.toUpperCase();
   const stage = stageOf(status);
@@ -228,22 +224,25 @@ export default function WorkOrderDetailLayout({
     t('serviceRequests.progressLabels.completed', 'Terminé'),
   ];
   const addressLine = [p.address, [p.postalCode, p.city].filter(Boolean).join(' '), p.country].filter(Boolean).join(', ');
-  const hasActualCost = vm.actualCost != null && vm.actualCost > 0;
+  const hasActualCost = vm.actualCost != null && vm.actualCost >= 0;
   const hasAccess = !!(vm.access?.code || vm.access?.parking || vm.access?.arrival || vm.accessNotes);
   const hasNotes = !!(p.description || p.cleaningNotes || vm.specialInstructions);
   const tasksTotal = (vm.tasks ?? []).reduce((sum, task) => sum + task.unitPrice * task.quantity, 0);
-  const characteristics = [
-    { value: p.bedroomCount, art: WORK_ORDER_ART.bedrooms, label: t('serviceRequests.layout.bedroomsShort', 'ch.') },
-    { value: p.bathroomCount, art: WORK_ORDER_ART.bathrooms, label: t('serviceRequests.layout.bathroomsShort', 'SDB') },
-    { value: p.squareMeters, art: WORK_ORDER_ART.surface, label: 'm²' },
-    { value: p.maxGuests, art: WORK_ORDER_ART.capacity, label: t('serviceRequests.layout.guestsShort', 'voyag.') },
-  ].filter(item => item.value != null);
   const otherCharacteristics = [
     p.type ? getPropertyTypeLabel(p.type, t) : null,
     p.numberOfFloors && p.numberOfFloors > 1 ? p.numberOfFloors + ' ' + t('serviceRequests.layout.floorsShort', 'étages') : null,
     p.hasExterior ? t('serviceRequests.layout.exterior', 'Extérieur') : null,
     p.hasLaundry ? t('serviceRequests.layout.laundry', 'Linge') : null,
-  ].filter(Boolean);
+  ].filter((value): value is string => Boolean(value));
+  const date = (value: string, options: Intl.DateTimeFormatOptions) => {
+    const parsed = parseApiDate(value);
+    if (!Number.isFinite(parsed.getTime())) return t('requestDetail.unscheduled');
+    try { return new Intl.DateTimeFormat(currentLanguage, { ...options, timeZone: p.timezone }).format(parsed); }
+    catch { return new Intl.DateTimeFormat(currentLanguage, options).format(parsed); }
+  };
+  const due = vm.dueDate ? parseApiDate(vm.dueDate) : undefined;
+  const plannedEnd = due && Number.isFinite(due.getTime()) && (vm.estimatedDurationHours ?? 0) > 0
+    ? new Date(due.getTime() + vm.estimatedDurationHours! * 3600000).toISOString() : undefined;
   const assignmentLabels = {
     PENDING: 'En attente', ACCEPTED: 'Acceptée', DECLINED: 'Refusée',
     QUOTE_SUBMITTED: 'Devis soumis', QUOTE_APPROVED: 'Devis accepté',
@@ -261,60 +260,39 @@ export default function WorkOrderDetailLayout({
       </TooltipTrigger><TooltipContent>{t('workOrders.recommended.scale')}: <Money value={vm.recommendedCost!} from="EUR" /></TooltipContent></Tooltip>;
     })() : null;
 
-  return <div className="wo-detail">
-    <section className="wo-overview">
-      <div className="wo-property">
-        <img className={vm.propertyPhotoUrl ? 'wo-property__photo' : 'wo-property__art'}
-          src={vm.propertyPhotoUrl ? toApiMediaUrl(vm.propertyPhotoUrl) : WORK_ORDER_ART.property}
-          alt="" width={76} height={76} />
-        <div className="wo-property__identity">
-          <h2>{p.name}</h2>
-          {addressLine && <p><MapPin size={14} aria-hidden="true" /><span>{addressLine}</span></p>}
-          <div className="wo-property__links">
-            {propertyAction}
-            {addressLine && <DirectionsMenu target={{ address: addressLine, label: p.name || addressLine }}>
-              <a role="button" tabIndex={0}><MapPin size={14} aria-hidden="true" />{t('serviceRequests.details.directions', 'Itinéraire')}</a>
-            </DirectionsMenu>}
-          </div>
+  return <div className="wo-detail baitly-request-detail baitly-intervention-detail">
+    <section className="baitly-request-tracking" data-closed={cancelled || undefined}>
+      <div className="baitly-request-tracking__heading">
+        <div><p className="baitly-request-eyebrow">{t('workOrderDetails.progress', 'Avancement de la mission')}{vm.id != null && <> · #{vm.id}</>}</p>
+          <h2>{vm.statusLabel}</h2>
         </div>
-        <div className="wo-property__state">
+        <div className="baitly-intervention-actions">
           <StatusIcon icon={currentIcon} tone={currentTone} label={vm.statusLabel} />
           {heroAction}
         </div>
       </div>
-      {stage >= 0 && <ol className="wo-stages" aria-label={t('workOrderDetails.progress', 'Avancement de la mission')}>
-        {steps.map((label, index) => <li key={label} data-state={index < stage ? 'done' : index === stage ? 'current' : 'next'}
+      {stage >= 0 && <ol className="baitly-request-progress" aria-label={t('workOrderDetails.progress', 'Avancement de la mission')}>
+        {steps.map((label, index) => <li key={label} data-completed={index < stage || undefined}
           aria-current={index === stage ? 'step' : undefined}>
-          <span className="wo-stage-mark" aria-hidden="true">{index < stage ? <Check size={13} /> : index + 1}</span><span>{label}</span>
+          <div className="baitly-request-progress__track">
+            <span className="baitly-request-progress__number" aria-hidden="true">{index < stage ? <Check size={13} /> : index + 1}</span>
+            {index < 3 && <span className="baitly-request-progress__line" aria-hidden="true" />}
+          </div>
+          <span className="baitly-request-progress__label">{label}</span>
         </li>)}
       </ol>}
-      <div className="wo-facts">
-        <Fact art={workOrderArt(vm.type)} label={t('common.type')}>
-          {vm.serviceItemCode ? <ServiceReferenceLabels codes={[vm.serviceItemCode]} /> : getInterventionTypeLabel(vm.type, t)}
-        </Fact>
-        <Fact art={WORK_ORDER_ART.calendar} label={t('serviceRequests.dueDateShort')}>
-          {vm.dueDate ? formatDateTime(vm.dueDate) : '—'}
-        </Fact>
-        <Fact art={WORK_ORDER_ART.duration} label={t('serviceRequests.estimatedDurationLabel')}>
-          {vm.estimatedDurationHours != null ? formatDuration(vm.estimatedDurationHours) : '—'}
-        </Fact>
-        <Fact art={WORK_ORDER_ART.payment} label={hasActualCost ? t('serviceRequests.details.actualCost') : t('serviceRequests.details.estimatedCost')}>
-          {hasActualCost ? <Money value={vm.actualCost!} from="EUR" />
-            : vm.estimatedCost != null ? <Money value={vm.estimatedCost} from="EUR" /> : '—'}
-          {scaleGap}
-        </Fact>
-        {vm.extraMetrics?.map(metric => <div className="wo-fact" key={metric.label}>
-          <span aria-hidden="true">{metric.icon}</span><div><span className="wo-label">{metric.label}</span><div className="wo-fact__value">{metric.value}</div></div>
-        </div>)}
-      </div>
+      {stage >= 0 && <p className="baitly-request-mobile-step">{t('requestDetail.currentStep')} · {steps[stage]}</p>}
     </section>
-
     {statusBanner && <div className="wo-banner">{statusBanner}</div>}
-
-    <div className="wo-columns">
-      <div className="wo-main">
+    <div className="baitly-request-layout">
+      <div className="wo-main baitly-request-main">
+        <PropertyPresentation name={p.name} address={addressLine} photoUrl={vm.propertyPhotoUrl}
+          propertyHref={propertyHref} squareMeters={p.squareMeters} bedrooms={p.bedroomCount}
+          bathrooms={p.bathroomCount} guests={p.maxGuests} details={otherCharacteristics} />
         <section className="wo-section">
-          <WorkOrderHeading art={workOrderArt(vm.type)} title={t('workOrderDetails.mission', 'La mission')} />
+          <WorkOrderHeading icon={<ClipboardList />} art={workOrderArt(vm.type)} title={t('workOrderDetails.mission', 'La mission')} />
+          {vm.title && <p className="baitly-intervention-service">{vm.title}</p>}
+          <p className={vm.title ? 'baitly-intervention-type' : 'baitly-intervention-service'}>{vm.serviceItemCode ? <ServiceReferenceLabels codes={[vm.serviceItemCode]} /> : getInterventionTypeLabel(vm.type, t)}</p>
           {vm.description ? <p className="wo-copy">{vm.description}</p>
             : <p className="wo-muted">{t('workOrderDetails.noDescription', 'Aucune consigne particulière renseignée.')}</p>}
           {vm.importSource && <p className="wo-muted">{t('workOrderDetails.source', 'Source')} : {vm.importSource}</p>}
@@ -335,7 +313,7 @@ export default function WorkOrderDetailLayout({
         </section>
 
         {hasAccess && <section className="wo-section wo-access">
-          <WorkOrderHeading art={WORK_ORDER_ART.access} title={t('serviceRequests.details.accessSection', 'Accès au logement')} />
+          <WorkOrderHeading icon={<KeyRound />} art={WORK_ORDER_ART.access} title={t('serviceRequests.details.accessSection', 'Accès au logement')} />
           <dl className="wo-info">
             {vm.access?.code && <div><dt>{t('serviceRequests.details.accessCode', 'Code')}</dt><dd><code className="wo-access-code">{vm.access.code}</code></dd></div>}
             {vm.access?.parking && <div><dt>{t('serviceRequests.details.accessParking', 'Stationnement')}</dt><dd>{vm.access.parking}</dd></div>}
@@ -361,56 +339,61 @@ export default function WorkOrderDetailLayout({
             vm.sourceIssue.createdAt && formatDateTime(vm.sourceIssue.createdAt),
           ].filter(Boolean).join(' · ')}</p>
         </section>}
-        {detailsSection}
+        {detailsSection && <div className="wo-details-slot">{detailsSection}</div>}
+        {(vm.extraTimeRows?.length || vm.extraMetrics?.length || vm.createdAt || p.cleaningDurationMinutes) ? <section className="wo-section wo-time-log">
+          <WorkOrderHeading icon={<Clock3 />} art={WORK_ORDER_ART.duration} title={t('serviceRequests.layout.timeDetail', 'Détail du temps')} />
+          <dl className="wo-info wo-info--compact">
+            {p.cleaningDurationMinutes != null && p.cleaningDurationMinutes > 0 && <div>
+              <dt>{t('serviceRequests.layout.propertyCleaningDuration', 'Durée ménage (propriété)')}</dt><dd>{formatDuration(p.cleaningDurationMinutes / 60)}</dd>
+            </div>}
+            {vm.extraMetrics?.map(metric => <div key={metric.label}><dt>{metric.label}</dt><dd>{metric.value}</dd></div>)}
+            {vm.extraTimeRows?.map((row, index) => <div key={index}><dt>{row.label}</dt><dd>{row.value}</dd></div>)}
+            {vm.createdAt && <div><dt>{t('serviceRequests.createdAtLabel')}</dt><dd>{formatDateTime(vm.createdAt)}</dd></div>}
+          </dl>
+        </section> : null}
+
+        {asideSection && <div className="wo-admin-slot">{asideSection}</div>}
       </div>
 
-      <aside className="wo-aside" aria-label={t('workOrderDetails.organization', 'Organisation de la mission')}>
+      <aside className="wo-aside baitly-request-sidebar" aria-label={t('workOrderDetails.organization', 'Organisation de la mission')}>
+        <section className="baitly-request-schedule">
+          <h2 className="flex items-center gap-2"><CalendarDays className="size-4" aria-hidden />{t('requestDetail.schedule')}</h2>
+          <p className="baitly-request-schedule__date">{vm.dueDate ? date(vm.dueDate, { dateStyle: 'full' }) : t('requestDetail.unscheduled')}</p>
+          {vm.dueDate && <p className="m-0 flex flex-wrap items-center gap-2 tabular-nums"><Clock3 className="size-4" aria-hidden />
+            {date(vm.dueDate, { timeStyle: 'short' })}{plannedEnd && <> – {date(plannedEnd, { timeStyle: 'short' })}</>}
+            {vm.estimatedDurationHours != null && <span className="text-sm text-muted-foreground">· {formatDuration(vm.estimatedDurationHours)}</span>}
+          </p>}
+          {p.timezone && <p className="mt-3 mb-0 text-xs text-muted-foreground">{t('requestDetail.localTime')} · {p.timezone}</p>}
+        </section>
+        <section className="wo-section baitly-intervention-pricing">
+          <h2>{t('requestDetail.price')}</h2>
+          <span className="wo-label">{hasActualCost ? t('serviceRequests.details.actualCost') : t('serviceRequests.details.estimatedCost')}</span>
+          <p className="baitly-intervention-price">{hasActualCost ? <Money value={vm.actualCost!} from="EUR" />
+            : vm.estimatedCost != null ? <Money value={vm.estimatedCost} from="EUR" /> : t('requestDetail.notProvided')}</p>
+          {scaleGap}
+          <dl className="wo-info wo-info--compact">
+            {hasActualCost && vm.estimatedCost != null && <div><dt>{t('serviceRequests.details.estimatedCost')}</dt><dd><Money value={vm.estimatedCost} from="EUR" /></dd></div>}
+            {vm.recommendedCost != null && <div><dt>{t('requestDetail.recommended')}</dt><dd><Money value={vm.recommendedCost} from="EUR" /></dd></div>}
+          </dl>
+        </section>
         {(vm.requestor || vm.assignee) && <section className="wo-section">
-          <WorkOrderHeading art={WORK_ORDER_ART.people} title={t('serviceRequests.peopleInvolved')} />
-          {vm.assignee && <div className="wo-person">
-            <Avatar className="size-10">
-              {vm.assignee.avatarUrl && <AvatarImage src={toApiMediaUrl(vm.assignee.avatarUrl)} alt="" />}
-              <AvatarFallback>{initialsOf(vm.assignee.name || '')}</AvatarFallback>
-            </Avatar>
-            <div><span className="wo-label">{t('serviceRequests.assignedTo')}</span>
-              <strong>{vm.assignee.name || t('serviceRequests.fields.noAssignment')}</strong>
-              {(vm.assignee.email || vm.assignee.typeLabel) && <p>{[vm.assignee.typeLabel, vm.assignee.email].filter(Boolean).join(' · ')}</p>}
-            </div>
-          </div>}
-          {vm.requestor && <div className="wo-person">
-            <Avatar className="size-10">
-              {vm.requestor.avatarUrl && <AvatarImage src={toApiMediaUrl(vm.requestor.avatarUrl)} alt="" />}
-              <AvatarFallback>{initialsOf(vm.requestor.name)}</AvatarFallback>
-            </Avatar>
-            <div><span className="wo-label">{t('serviceRequests.fields.requestor')}</span><strong>{vm.requestor.name}</strong>
-              {(vm.requestor.email || vm.requestor.roleLabel) && <p>{[vm.requestor.roleLabel, vm.requestor.email].filter(Boolean).join(' · ')}</p>}
-            </div>
-          </div>}
+          <WorkOrderHeading icon={<UserRound />} art={WORK_ORDER_ART.people} title={t('serviceRequests.peopleInvolved')} />
+          <div>
+            {vm.assignee && <ContactPresentation name={vm.assignee.name || t('serviceRequests.fields.noAssignment')}
+              pending={!vm.assignee.name} photoUrl={vm.assignee.avatarUrl} label={t('requestDetail.provider')}
+              role={vm.assignee.typeLabel} team={vm.assignee.type === 'team'} email={vm.assignee.email} phone={vm.assignee.phone} />}
+            {vm.requestor && <ContactPresentation name={vm.requestor.name} photoUrl={vm.requestor.avatarUrl}
+              label={t('serviceRequests.fields.requestor')} role={vm.requestor.roleLabel}
+              email={vm.requestor.email} phone={vm.requestor.phone} />}
+          </div>
           {vm.assignment && <div className="wo-assignment">
             <span className="wo-label">{t('interventions.detail.assignmentLabel', 'Votre réponse')}</span>
             <StatusIcon icon={vm.assignment === 'DECLINED' ? XCircle : vm.assignment === 'PENDING' || vm.assignment === 'QUOTE_SUBMITTED' ? Clock3 : Check}
               tone={vm.assignment === 'DECLINED' ? 'destructive' : vm.assignment === 'PENDING' || vm.assignment === 'QUOTE_SUBMITTED' ? 'warning' : 'success'}
               label={t('interventions.detail.assignment.' + vm.assignment, assignmentLabels[vm.assignment])} />
+            <span className="text-sm font-medium">{t('interventions.detail.assignment.' + vm.assignment, assignmentLabels[vm.assignment])}</span>
           </div>}
         </section>}
-        {(vm.extraTimeRows?.length || vm.createdAt || p.cleaningDurationMinutes) ? <section className="wo-section">
-          <WorkOrderHeading art={WORK_ORDER_ART.duration} title={t('serviceRequests.layout.timeDetail', 'Détail du temps')} />
-          <dl className="wo-info wo-info--compact">
-            {p.cleaningDurationMinutes != null && p.cleaningDurationMinutes > 0 && <div>
-              <dt>{t('serviceRequests.layout.propertyCleaningDuration', 'Durée ménage (propriété)')}</dt><dd>{formatDuration(p.cleaningDurationMinutes / 60)}</dd>
-            </div>}
-            {vm.extraTimeRows?.map((row, index) => <div key={index}><dt>{row.label}</dt><dd>{row.value}</dd></div>)}
-            {vm.createdAt && <div><dt>{t('serviceRequests.createdAtLabel')}</dt><dd>{formatDateTime(vm.createdAt)}</dd></div>}
-          </dl>
-        </section> : null}
-        {!!(characteristics.length || otherCharacteristics.length) && <section className="wo-section">
-          <WorkOrderHeading art={WORK_ORDER_ART.property} title={t('serviceRequests.sections.property')} />
-          <div className="wo-characteristics">{characteristics.map(item => <div key={item.art}>
-            <img src={item.art} alt="" width={38} height={38} /><span><strong>{item.value}</strong> {item.label}</span>
-          </div>)}</div>
-          {!!otherCharacteristics.length && <p className="wo-muted">{otherCharacteristics.join(' · ')}</p>}
-        </section>}
-        {asideSection}
       </aside>
     </div>
     {extraSection}

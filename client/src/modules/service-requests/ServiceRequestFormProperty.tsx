@@ -1,7 +1,5 @@
 import React from 'react';
 import { cn } from '../../utils/cn';
-import StatusChip, { type ToneTokens } from '../../components/StatusChip';
-import { FORM_TAG_TOKENS, FORM_TAG_CLASS } from './serviceRequestsListConstants';
 import { Field, FieldError, FieldLabel, Input } from '../../components/ui';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../components/ui';
 import {
@@ -84,17 +82,6 @@ export interface ServiceRequestFormPropertyProps {
   /** Info de l'utilisateur connecté — si fourni, le demandeur est affiché en lecture seule */
   currentUser?: CurrentUserInfo | null;
 }
-
-/**
- * Ton de la pastille de rôle du demandeur. Encre `-ink` sur fond `-soft` : la
- * teinte vive en TEXTE plafonne à ~2,2:1 sur son propre pastel.
- */
-const REQUESTOR_ROLE_TOKENS: Record<string, ToneTokens> = {
-  ADMIN: { color: 'var(--bui-destructive-ink)', bg: 'var(--bui-destructive-soft)' },
-  MANAGER: { color: 'var(--bui-warning-ink)', bg: 'var(--bui-warning-soft)' },
-};
-
-const REQUESTOR_ROLE_FALLBACK: ToneTokens = { color: 'var(--bui-primary)', bg: 'var(--bui-primary-soft)' };
 
 // Chip neutre « champ » : fond de champ, icône de marque (géométrie pilule du gabarit).
 const ServiceRequestFormProperty: React.FC<ServiceRequestFormPropertyProps> = React.memo(
@@ -260,9 +247,9 @@ const ServiceRequestFormProperty: React.FC<ServiceRequestFormPropertyProps> = Re
         </p>
 
         {/* Propriété et Demandeur sur la même ligne */}
-        <div className="flex gap-3 mb-2">
+        <div className="grid grid-cols-1 gap-4 mb-2">
           {/* Propriété */}
-          <div className="flex-[7]">
+          <div className="min-w-0">
             <Controller
               name="propertyId"
               control={control}
@@ -286,10 +273,10 @@ const ServiceRequestFormProperty: React.FC<ServiceRequestFormPropertyProps> = Re
                         aria-invalid={!!fieldState.error}
                         onBlur={field.onBlur}
                       >
-                        <span className={cn('inline-flex shrink-0', selectedProp ? 'text-primary' : 'text-faint')}><Home size={16} strokeWidth={1.75} /></span>
+
                         <SelectValue placeholder={t('serviceRequests.fields.selectProperty')} />
                       </SelectTrigger>
-                      <SelectContent>
+                      <SelectContent className="baitly-form-options">
                         {properties.map((property) => (
                           <SelectItem key={property.id} value={String(property.id)}>
                             <span className="inline-flex text-primary"><Home size={16} strokeWidth={1.75} /></span>
@@ -308,24 +295,18 @@ const ServiceRequestFormProperty: React.FC<ServiceRequestFormPropertyProps> = Re
           </div>
 
           {/* Demandeur — lecture seule, trace l'utilisateur connecté */}
-          <div className="flex-[5]">
+          <div className="min-w-0">
             {currentUser ? (
               <div>
                 <p className="text-2xs font-semibold uppercase tracking-wide text-muted-foreground mb-0.5 ms-0.5">
                   {t('serviceRequests.fields.requestor')}
                 </p>
-                <div className="flex items-center gap-1 px-2 py-1 rounded-[11px] bg-field border border-solid border-field-line min-h-[40px]">
-                  <span className="inline-flex text-primary"><Person size={16} strokeWidth={1.75} /></span>
-                  <p className="text-[12.5px] font-medium text-foreground flex-1">
-                    {currentUser.name}
-                  </p>
-                  {currentUser.roleLabel && (
-                    <StatusChip
-                      tokens={REQUESTOR_ROLE_TOKENS[currentUser.role] ?? REQUESTOR_ROLE_FALLBACK}
-                      label={currentUser.roleLabel}
-                      className="h-[20px] text-[10px]"
-                    />
-                  )}
+                <div className="baitly-request-editor__requestor">
+                  <span className="baitly-request-editor__avatar" aria-hidden="true">{currentUser.name.split(/\s+/).filter(Boolean).slice(0, 2).map(part => part[0]).join('').toUpperCase()}</span>
+                  <div>
+                    <p className="baitly-request-editor__requestor-name">{currentUser.name}</p>
+                    {currentUser.roleLabel && <p className="baitly-request-editor__requestor-role">{currentUser.roleLabel}</p>}
+                  </div>
                 </div>
               </div>
             ) : (
@@ -356,7 +337,7 @@ const ServiceRequestFormProperty: React.FC<ServiceRequestFormPropertyProps> = Re
                           <span className={cn('inline-flex shrink-0', hasValue ? 'text-primary' : 'text-faint')}><Person size={16} strokeWidth={1.75} /></span>
                           <SelectValue placeholder={t('serviceRequests.fields.selectRequestor')} />
                         </SelectTrigger>
-                        <SelectContent>
+                        <SelectContent className="baitly-form-options">
                           {users.map((u) => (
                             <SelectItem key={u.id} value={String(u.id)}>
                               <span className="inline-flex text-primary"><Person size={16} strokeWidth={1.75} /></span>
@@ -378,17 +359,11 @@ const ServiceRequestFormProperty: React.FC<ServiceRequestFormPropertyProps> = Re
 
         {/* Chips caractéristiques du logement */}
         {propertyTags.length > 0 && (
-          <div className="mt-[9px] mb-[3px] flex flex-wrap gap-[4.5px]">
+          <ul className="baitly-request-editor__property-facts">
             {propertyTags.map((tag) => (
-              <StatusChip
-                key={tag.label}
-                tokens={FORM_TAG_TOKENS}
-                icon={tag.icon}
-                label={tag.label}
-                className={FORM_TAG_CLASS}
-              />
+              <li key={tag.label}>{tag.icon}<span>{tag.label}</span></li>
             ))}
-          </div>
+          </ul>
         )}
       </>
     );

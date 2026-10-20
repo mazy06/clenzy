@@ -1,4 +1,7 @@
 import structuralCSS from './styles/structural.css?raw';
+import journeySearchCSS from './styles/journeySearch.css?raw';
+import journeyControlsCSS from './styles/journeyControls.css?raw';
+import journeyContentCSS from './styles/journeyContent.css?raw';
 
 /**
  * Mode « headless » des widgets de réservation.
@@ -16,7 +19,7 @@ export const STRUCTURAL_STYLE_ID = 'clenzy-widget-structural';
 
 // Contenu courant de la feuille (mutable pour le HMR dev) + documents où elle est injectée (suivi DEV seul,
 // pour la ré-injection HMR ci-dessous — non peuplé en prod, donc aucune rétention de documents).
-let currentStructuralCss = structuralCSS;
+let currentStructuralCss = structuralCSS + '\n' + journeyControlsCSS + '\n' + journeyContentCSS + '\n' + journeySearchCSS;
 const injectedDocs = new Set<Document>();
 
 /**
@@ -50,7 +53,7 @@ export function ensureStructuralStyles(doc: Document | null | undefined): void {
 if (import.meta.hot) {
   import.meta.hot.accept('./styles/structural.css?raw', (mod) => {
     if (!mod) return;
-    currentStructuralCss = (mod as { default?: string }).default ?? currentStructuralCss;
+    currentStructuralCss = ((mod as { default?: string }).default ?? structuralCSS) + '\n' + journeyControlsCSS + '\n' + journeyContentCSS + '\n' + journeySearchCSS;
     for (const d of injectedDocs) {
       const el = d.getElementById(STRUCTURAL_STYLE_ID);
       if (el && el.textContent !== currentStructuralCss) el.textContent = currentStructuralCss;

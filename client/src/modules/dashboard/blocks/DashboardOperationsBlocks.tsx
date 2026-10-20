@@ -44,6 +44,7 @@ import RetryDeliveryDialog from '../../../components/baitly/RetryDeliveryDialog'
 import StuckServiceDialog from '../../../components/baitly/StuckServiceDialog';
 import PaymentCheckoutModal from '../../../components/PaymentCheckoutModal';
 import { Money } from '../../../components/baitly/Money';
+import { WidgetPanel } from '../../../components/baitly/WidgetPanel';
 import { cn } from '../../../utils/cn';
 import { getInterventionTypeLabel } from '../../../utils/statusUtils';
 import { useTranslation } from '../../../hooks/useTranslation';
@@ -126,32 +127,13 @@ export function BlockCard({
   className?: string;
   scrollable?: boolean;
 }) {
-  return (
-    // Contour en `ring-1`, jamais en `border` : c'est la métrique du `Card` du
-    // design system (cf. `.cn-card`, baitly-nova.css). Un `ring` est un
-    // box-shadow — il n'occupe aucune place et se dessine hors de la boîte,
-    // là où une bordure de 1 px pousse le contenu vers l'intérieur. Mélanger
-    // les deux sur une même ligne du tableau de bord décale les cartes et
-    // leurs titres d'un pixel.
-    <section
-      className={cn(
-        'flex flex-col rounded-lg bg-card ring-1 ring-foreground/10 p-4',
-        scrollable && 'db-widget-surface',
-        className,
-      )}
-    >
-      <h3 className="m-0 mb-3 flex shrink-0 flex-wrap items-center gap-x-1.5 gap-y-1 text-sm font-semibold text-foreground">
-        {icon}
-        {title}
-        {count !== undefined && <span className="tabular-nums">({count})</span>}
-      </h3>
-      <div className={cn('min-w-0', scrollable && 'db-widget-body')}
-        tabIndex={scrollable ? 0 : undefined} role={scrollable ? 'region' : undefined}
-        aria-label={scrollable && typeof title === 'string' ? title : undefined}>
-        {children}
-      </div>
-    </section>
-  );
+  return <WidgetPanel title={<>{icon}{title}</>} count={count} className={className}>
+    <div className={cn('db-block-body min-w-0', scrollable && 'db-widget-body')}
+      tabIndex={scrollable ? 0 : undefined} role={scrollable ? 'region' : undefined}
+      aria-label={scrollable && typeof title === 'string' ? title : undefined}>
+      {children}
+    </div>
+  </WidgetPanel>;
 }
 
 /** Vide de carte : une phrase, pas une carte creuse. */

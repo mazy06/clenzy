@@ -1,6 +1,7 @@
 import * as maplibregl from 'maplibre-gl';
 import Supercluster from 'supercluster';
 import { prefersReducedMotion } from './motion';
+import {clusterCountLabel,clusterDiameter,selectVisibleMapFeatures,MAP_VISIBLE_SYMBOL_LIMIT} from './clusterPresentation';
 
 /**
  * Regroupement des épingles : même pour deux lieux, les épingles
@@ -13,6 +14,8 @@ import { prefersReducedMotion } from './motion';
  */
 export interface ClusterEntry {
   marker: maplibregl.Marker;
+  aggregate?:boolean;
+  prepare?:()=>void;
   /** 0 = calme … 3 = urgent (cf. `urgencyOf`). */
   urgency: number;
   /** Vignette et ligne secondaire du lieu, dans la liste d'un regroupement. */
@@ -31,6 +34,7 @@ export class BaitlyClusterLayer {
   private entries: ClusterEntry[] = [];
   private index: Supercluster<PointProps, ClusterProps> | null = null;
   private readonly onMap = new Set<maplibregl.Marker>();
+  private readonly prepare = new WeakMap<maplibregl.Marker,()=>void>();
   private readonly clusterMarkers = new Map<number, maplibregl.Marker>();
   private signature = '';
   private choice?: maplibregl.Popup;
@@ -46,6 +50,7 @@ export class BaitlyClusterLayer {
 
   /** Met à jour le regroupement sans détacher les épingles conservées. */
   setEntries(entries: ClusterEntry[]): void {
+    entries.forEach(entry=>{if(entry.prepare)this.prepare.set(entry.marker,entry.prepare);});
     const signature = entries.map(({ marker, urgency }) => {
       const { lng, lat } = marker.getLngLat();
       return `${lng},${lat}:${urgency}:${marker.getElement().getAttribute('aria-label')}`;
@@ -61,9 +66,8 @@ export class BaitlyClusterLayer {
       this.onMap.delete(marker);
     }
     this.choice?.remove();
-    this.clusterMarkers.forEach((marker) => marker.remove());
-    this.clusterMarkers.clear();
-    if (entries.length < 2) {
+    const regular=entries.map((entry,index)=>({entry,index})).filter(({entry})=>!entry.aggregate);
+    if (regular.length < 2) {
       this.index = null;
     } else {
       this.index = new Supercluster<PointProps, ClusterProps>({
@@ -75,7 +79,7 @@ export class BaitlyClusterLayer {
         },
       });
       this.index.load(
-        entries.map((entry, index) => {
+        regular.map(({entry,index}) => {
           const { lng, lat } = entry.marker.getLngLat();
           return {
             type: 'Feature',
@@ -116,11 +120,14 @@ export class BaitlyClusterLayer {
     // Lieux dont la fiche est ouverte : relevés une fois, pas groupe par groupe (le
     // parcours des feuilles de chaque groupe coûtait à chaque fin de déplacement).
     const open = new Set(this.entries.filter((entry) => this.isOpen(entry.marker)).map((entry) => entry.marker));
-    for (const feature of features) {
+    const candidates=features.filter(feature=>{
+      const props=feature.properties as PointProps & Partial<Supercluster.ClusterProperties>;
+      if(!props.cluster&&open.has(this.entries[props.index]?.marker))return false;
+      return !(props.cluster&&open.size>0&&this.hasOpenLeaf(props.cluster_id as number,open));
+    });
+    const displayed=selectVisibleMapFeatures(candidates,{west:bounds.getWest(),south:bounds.getSouth(),east:bounds.getEast(),north:bounds.getNorth()},Math.max(0,MAP_VISIBLE_SYMBOL_LIMIT-open.size-this.entries.filter(entry=>entry.aggregate).length));
+    for (const feature of displayed) {
       const props = feature.properties as PointProps & Partial<Supercluster.ClusterProperties> & ClusterProps;
-      // Un lieu du groupe est ouvert : son épingle le remplace, la pastille s'efface
-      // jusqu'à ce qu'on clique ailleurs (fermeture de la fiche → nouveau rendu).
-      if (props.cluster && open.size > 0 && this.hasOpenLeaf(props.cluster_id as number, open)) continue;
       if (props.cluster) {
         visibleClusters.add(props.cluster_id as number);
         this.showCluster(props.cluster_id as number, feature.geometry.coordinates as [number, number], props.point_count as number, props.urgency);
@@ -130,7 +137,7 @@ export class BaitlyClusterLayer {
     }
     for (const entry of this.entries) {
       // Une fiche ouverte garde son épingle, même si le zoom la regrouperait.
-      if (visibleMarkers.has(entry.marker) || open.has(entry.marker)) this.show(entry.marker);
+      if (entry.aggregate || visibleMarkers.has(entry.marker) || open.has(entry.marker)) this.show(entry.marker);
       else this.hide(entry.marker);
     }
     this.clusterMarkers.forEach((marker, id) => {
@@ -153,6 +160,7 @@ export class BaitlyClusterLayer {
 
   private show(marker: maplibregl.Marker): void {
     if (this.onMap.has(marker)) return;
+    this.prepare.get(marker)?.();
     marker.addTo(this.map);
     this.onMap.add(marker);
   }
@@ -164,13 +172,28 @@ export class BaitlyClusterLayer {
   }
 
   private showCluster(id: number, coordinates: [number, number], count: number, urgency: number): void {
-    if (this.clusterMarkers.has(id)) return;
+    const existing=this.clusterMarkers.get(id);
+    if(existing){
+      const element=existing.getElement();
+      if(element.dataset.count!==String(count)){
+        element.textContent=clusterCountLabel(count);element.dataset.count=String(count);
+        element.dataset.size=count>=100?'l':count>=10?'m':'s';
+        element.style.setProperty('--cluster-size',`${clusterDiameter(count)}px`);
+        element.setAttribute('aria-label',this.clusterLabel(count));
+      }
+      if(element.dataset.urgency!==String(urgency))element.dataset.urgency=String(urgency);
+      const point=existing.getLngLat();
+      if(point.lng!==coordinates[0]||point.lat!==coordinates[1])existing.setLngLat(coordinates);
+      return;
+    }
     const element = document.createElement('button');
     element.type = 'button';
     element.className = 'baitly-map-cluster';
     element.dataset.urgency = String(urgency);
     element.dataset.size = count >= 100 ? 'l' : count >= 10 ? 'm' : 's';
-    element.textContent = String(count);
+    element.textContent = clusterCountLabel(count);
+    element.style.setProperty('--cluster-size',`${clusterDiameter(count)}px`);
+    element.dataset.count=String(count);
     element.setAttribute('aria-label', this.clusterLabel(count));
     element.addEventListener('click', (event) => {
       event.stopPropagation();
@@ -178,14 +201,16 @@ export class BaitlyClusterLayer {
       const leaves = this.index.getLeaves(id, Infinity);
       const first = leaves[0]?.geometry.coordinates;
       const coincident = first && leaves.every((leaf) => leaf.geometry.coordinates[0] === first[0] && leaf.geometry.coordinates[1] === first[1]);
+      const point=marker.getLngLat(),current:[number,number]=[point.lng,point.lat];
       if (coincident || this.map.getZoom() >= CLUSTER_MAX_ZOOM) {
-        this.showChoices(coordinates, leaves.map((leaf) => this.entries[leaf.properties.index]));
+        this.showChoices(current, leaves.map((leaf) => this.entries[leaf.properties.index]));
         return;
       }
       const zoom = Math.min(this.index.getClusterExpansionZoom(id), CLUSTER_MAX_ZOOM);
-      this.map.easeTo({ center: coordinates, zoom, duration: prefersReducedMotion() ? 0 : 200 });
+      this.map.easeTo({ center: current, zoom, duration: prefersReducedMotion() ? 0 : 200 });
     });
-    this.clusterMarkers.set(id, new maplibregl.Marker({ element }).setLngLat(coordinates).addTo(this.map));
+    const marker=new maplibregl.Marker({element}).setLngLat(coordinates).addTo(this.map);
+    this.clusterMarkers.set(id,marker);
   }
 
   /**

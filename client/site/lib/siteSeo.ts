@@ -22,6 +22,7 @@ export const isIndexablePath = (path: string) =>
     '/register',
     '/prestataires/inscription',
     '/prestataires/activation',
+    '/campagnes/reponse',
   ].includes(path);
 
 export const HOME_SEARCH = {

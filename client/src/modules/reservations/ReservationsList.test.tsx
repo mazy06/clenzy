@@ -12,6 +12,8 @@ const hooks = vi.hoisted(() => ({
   reservations: [] as Reservation[],
 }));
 
+vi.mock('../../hooks/useAuth', () => ({ useAuth: () => ({ user: null, hasAnyRole: () => false }) }));
+
 vi.mock('../../hooks/useReservations', () => ({
   reservationsKeys: { all: ['reservations'] },
   useReservations: () => ({
@@ -39,7 +41,8 @@ vi.mock('../../hooks/useDynamicPageSize', () => ({ useDynamicPageSize: () => ({ 
 vi.mock('../../components/ScreenChrome', () => ({ useScreenSearch: () => {} }));
 vi.mock('../../components/Money', () => ({ Money: ({ value }: { value: number }) => <>{value.toFixed(2)} €</> }));
 vi.mock('../../components/PageHeader', () => ({
-  default: ({ title, actions }: { title: string; actions?: React.ReactNode }) => <header><h1>{title}</h1>{actions}</header>,
+  default: ({ title, actions, filters, onBack, backLabel, showBackButton }: { title: string; actions?: React.ReactNode; filters?:React.ReactNode;onBack?: () => void; backLabel?: string; showBackButton?: boolean }) =>
+    <header><h1>{title}</h1>{actions}<div data-header-filter-panel>{filters}</div>{showBackButton && onBack && <button type="button" onClick={onBack} aria-label={backLabel}><span aria-hidden>←</span></button>}</header>,
 }));
 vi.mock('../../components/first-use/ModuleFirstUsePage', () => ({ default: ({ children }: { children: React.ReactNode }) => <>{children}</> }));
 vi.mock('../../components/reservations/ReservationDialog', () => ({
@@ -95,6 +98,19 @@ beforeEach(() => {
 afterEach(cleanup);
 
 describe('Réservations, liste et détail', () => {
+  it('places the only return control in the page header and restores the list without changing reservations', async () => {
+    renderPage();
+    expect(screen.queryByRole('button', { name: 'Retour à la liste' })).toBeNull();
+    const row = screen.getByRole('button', { name: /Inès Haddad/ });
+    fireEvent.click(row);
+    const back = within(screen.getByRole('heading', { level: 1, name: 'Réservations' }).closest('header')!).getByRole('button', { name: 'Retour à la liste' });
+    expect(screen.getAllByRole('button', { name: 'Retour à la liste' })).toHaveLength(1);
+    expect(within(screen.getByRole('region', { name: 'Détail de la réservation' })).queryByRole('button', { name: 'Retour à la liste' })).toBeNull();
+    fireEvent.click(back);
+    expect(screen.getByRole('heading', { name: 'Choisissez une réservation' })).toBeVisible();
+    await waitFor(() => expect(row).toHaveFocus());
+    expect(hooks.cancelReservation).not.toHaveBeenCalled();
+  });
   it('whenARowIsSelected_thenItsStayGuestPropertyAndPaymentShowInTheDetail', () => {
     renderPage();
     const detail = screen.getByRole('region', { name: 'Détail de la réservation' });
@@ -137,9 +153,9 @@ describe('Réservations, liste et détail', () => {
     await waitFor(() => expect(hooks.cancelReservation).toHaveBeenCalledWith(17));
   });
 
-  it('whenAStatusChipIsChosen_thenTheListIsFilteredOnThatStatus', () => {
+  it('whenAHeaderStatusIsChosen_thenTheListIsFilteredOnThatStatus', () => {
     renderPage();
-    fireEvent.click(screen.getByRole('button', { name: 'Confirmée' }));
+    fireEvent.change(screen.getByRole('combobox', { name: 'Statut' }),{target:{value:'confirmed'}});
     expect(hooks.setFilter).toHaveBeenCalledWith('status', 'confirmed');
   });
 

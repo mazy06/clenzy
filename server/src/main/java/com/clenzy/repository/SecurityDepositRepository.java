@@ -15,13 +15,21 @@ import java.util.List;
 import java.util.Optional;
 
 public interface SecurityDepositRepository extends JpaRepository<SecurityDeposit, Long> {
+    @org.springframework.data.jpa.repository.Lock(jakarta.persistence.LockModeType.PESSIMISTIC_WRITE)
+    @Query("select d from SecurityDeposit d where d.id = :id and d.organizationId = :orgId")
+    Optional<SecurityDeposit> lockOperation(@Param("id") Long id, @Param("orgId") Long orgId);
+
+    @Query("select d from SecurityDeposit d where d.status in (com.clenzy.model.SecurityDepositStatus.HELD, "
+         + "com.clenzy.model.SecurityDepositStatus.RELEASING) and exists "
+         + "(select r.id from Reservation r where r.id = d.reservationId and r.organizationId = d.organizationId "
+         + "and r.checkOut <= :latestCheckout)")
+    List<SecurityDeposit> findCleaningReleaseCandidates(@Param("latestCheckout") LocalDate latestCheckout);
 
     /**
      * Cautions encore retenues bien après le départ du voyageur.
      *
-     * <p>La libération automatique passe deux jours après le départ ; au-delà,
-     * c'est qu'elle échoue en boucle (Stripe injoignable, hold antérieur au suivi
-     * de son échéance). La base affirme alors {@code HELD} sans que la carte du
+     * <p>Un ménage non validé, une anomalie ou un échec bancaire peut retarder la libération.
+     * La base affirme alors {@code HELD} sans que la carte du
      * voyageur soit libérée — ou alors que plus aucun fonds n'est bloqué : fausse
      * sécurité en cas de dégât. Un hold échu est normalement sorti de HELD par
      * le scheduler des holds (EXPIRED / RELEASED).</p>

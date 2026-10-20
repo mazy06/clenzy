@@ -1,9 +1,11 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { interventionExecutionScope } from './interventionExecutionScope';
+import { useInterventionStartTime } from './useInterventionStartTime';
 import { useAuth } from '../../hooks/useAuth';
 import { interventionsApi } from '../../services/api/interventionsApi';
 import { propertiesApi } from '../../services/api/propertiesApi';
+import { teamsApi } from '../../services/api/teamsApi';
 import { interventionsKeys } from './useInterventionsList';
 import {
   InterventionDetailsData,
@@ -13,6 +15,7 @@ import {
 } from './interventionUtils';
 import { useTranslation } from '../../hooks/useTranslation';
 import { documentKeys } from '../documents/hooks/useDocuments';
+import { invalidateMissionWorkflow } from '../../hooks/invalidateMissionWorkflow';
 
 /**
  * Loaded data produced by the initial fetch, consumed by sibling hooks
@@ -39,7 +42,7 @@ const detailKeys = {
 
 export function useInterventionState(id: string | undefined) {
   const { t } = useTranslation();
-  const { user, hasPermissionAsync, isTechnician, isHousekeeper, isSupervisor } = useAuth();
+  const { user, hasPermissionAsync, isTechnician, isHousekeeper, isSupervisor, isPlatformStaff } = useAuth();
   const queryClient = useQueryClient();
 
   // UI-only state
@@ -108,6 +111,11 @@ export function useInterventionState(id: string | undefined) {
       return {
         bedroomCount: rawProperty.bedroomCount,
         bathroomCount: rawProperty.bathroomCount,
+        timezone: rawProperty.timezone,
+        squareMeters: rawProperty.squareMeters,
+        maxGuests: rawProperty.maxGuests,
+        cleaningDurationMinutes: rawProperty.cleaningDurationMinutes,
+        cleaningNotes: rawProperty.cleaningNotes,
         // Consignes d'acces : code de porte, stationnement, arrivee. La requete
         // les rapportait deja, le mapping les jetait.
         checkInInstructions: rawProperty.checkInInstructions
@@ -130,14 +138,7 @@ export function useInterventionState(id: string | undefined) {
     }
   }, [propertyQuery.error, t]);
 
-  const propertyDetails = useMemo<PropertyDetails | null>(() => {
-    if (!propertyQuery.data) return null;
-    return {
-      bedroomCount: propertyQuery.data.bedroomCount,
-      bathroomCount: propertyQuery.data.bathroomCount,
-      checkInInstructions: propertyQuery.data.checkInInstructions,
-    };
-  }, [propertyQuery.data?.bedroomCount, propertyQuery.data?.bathroomCount]);
+  const propertyDetails = propertyQuery.data ?? null;
 
   // ------------------------------------------------------------------
   // Derived initial load data for sibling hooks (memoized)
@@ -248,21 +249,29 @@ export function useInterventionState(id: string | undefined) {
   // Computed permission helpers
   // ------------------------------------------------------------------
 
+  // Staff may take part in an assigned team, but staff status alone does not
+  // expose execution controls. Membership is loaded from the authorized API.
+  const assignedTeam = useQuery({
+    queryKey: ['intervention-assigned-team', intervention?.assignedToId, user?.databaseId],
+    queryFn: () => teamsApi.getById(intervention!.assignedToId!),
+    enabled: isPlatformStaff() && intervention?.assignedToType === 'team' && intervention?.assignedToId != null,
+  });
+  const staffMember = isPlatformStaff() && user?.databaseId != null && assignedTeam.data?.members?.some(
+    member => (member.userId ?? member.id) === user?.databaseId,
+  );
+
   const canStartOrUpdateIntervention = useMemo(() => {
     if (!intervention) return false;
     const isOperationalUser = isTechnician() || isHousekeeper() || isSupervisor();
-    if (!isOperationalUser) return false;
+    if (!isOperationalUser && !staffMember) return false;
     if (intervention.assignedToId === undefined || intervention.assignedToId === null) return false;
     if (intervention.assignedToType === 'user') {
       return user?.databaseId === intervention.assignedToId;
     }
     return true;
-  }, [intervention, user?.databaseId, isTechnician, isHousekeeper, isSupervisor]);
+  }, [intervention, user?.databaseId, isTechnician, isHousekeeper, isSupervisor, staffMember]);
 
-  const isBeforeScheduledDate = useMemo(() => {
-    if (!intervention?.scheduledDate) return false;
-    return new Date() < new Date(intervention.scheduledDate);
-  }, [intervention?.scheduledDate]);
+  const isBeforeScheduledDate = useInterventionStartTime(intervention?.scheduledDate);
 
   const canStartIntervention = useMemo(() => {
     if (!intervention) return false;
@@ -301,7 +310,7 @@ export function useInterventionState(id: string | undefined) {
       if (id) queryClient.setQueryData(interventionsKeys.detail(String(id)), updated);
       setError(null);
       setStartSuccessMessage(t('interventions.detailErrors.startSuccess'));
-      queryClient.invalidateQueries({ queryKey: interventionsKeys.lists() });
+      void invalidateMissionWorkflow(queryClient);
     },
     onError: (err: Error) => {
       setError(err.message || t('interventions.detailErrors.starting'));
@@ -315,7 +324,7 @@ export function useInterventionState(id: string | undefined) {
       setIntervention(updated);
       if (id) queryClient.setQueryData(interventionsKeys.detail(String(id)), updated);
       setError(null);
-      queryClient.invalidateQueries({ queryKey: interventionsKeys.lists() });
+      void invalidateMissionWorkflow(queryClient);
       // Documents are generated asynchronously via Kafka (~2-3s).
       // Invalidate the document query after a delay so the recap shows them.
       if (id) {

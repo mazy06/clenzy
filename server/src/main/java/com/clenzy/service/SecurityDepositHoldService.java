@@ -62,15 +62,18 @@ public class SecurityDepositHoldService {
     private final StripeGateway stripeGateway;
     private final NotificationService notificationService;
     private final Clock clock;
+    private final BaitlyDepositReleasePolicy releasePolicy;
 
     public SecurityDepositHoldService(SecurityDepositRepository repository,
                                       StripeGateway stripeGateway,
                                       NotificationService notificationService,
-                                      Clock clock) {
+                                      Clock clock,
+                                      BaitlyDepositReleasePolicy releasePolicy) {
         this.repository = repository;
         this.stripeGateway = stripeGateway;
         this.notificationService = notificationService;
         this.clock = clock;
+        this.releasePolicy = releasePolicy;
     }
 
     /** La réservation porte-t-elle une carte réutilisable hors session ? */
@@ -172,20 +175,20 @@ public class SecurityDepositHoldService {
     }
 
     /**
-     * Hold échu chez Stripe : RELEASED s'il n'y avait plus rien à garantir (fenêtre de réclamation
-     * close, réservation annulée), sinon EXPIRED + alerte — la caution ne couvre plus rien.
+     * Hold échu chez Stripe : RELEASED si le ménage a été validé sans anomalie ou si le séjour
+     * a été annulé avant l'arrivée, sinon EXPIRED + alerte : la caution ne couvre plus rien.
      *
      * @return le statut appliqué, ou {@code null} si la caution a changé d'état entre-temps
      */
     public SecurityDepositStatus recordLapse(SecurityDeposit deposit, Reservation reservation) {
-        final SecurityDepositStatus outcome = SecurityDepositHoldPolicy.nothingLeftToGuarantee(reservation, clock.instant())
+        final SecurityDepositStatus outcome = releasePolicy.eligible(reservation)
             ? SecurityDepositStatus.RELEASED
             : SecurityDepositStatus.EXPIRED;
         if (repository.markHoldLapsed(deposit.getId(), deposit.getOrganizationId(), outcome) == 0) {
             return null;
         }
         if (outcome == SecurityDepositStatus.EXPIRED) {
-            log.warn("Caution {} (résa {}) : hold {} échu pendant la fenêtre de réclamation",
+            log.warn("Caution {} (résa {}) : hold {} échu avant validation du logement",
                 deposit.getId(), deposit.getReservationId(), deposit.getExternalRef());
             notifyOrg(deposit, reservation, NotificationKey.SECURITY_DEPOSIT_HOLD_EXPIRED,
                 "Caution expirée",
@@ -193,7 +196,7 @@ public class SecurityDepositHoldService {
                     + reservation.getConfirmationCode() + ") a expiré chez la banque du voyageur : "
                     + "aucun fonds n'est plus bloqué. Des dégâts constatés ne pourront plus être prélevés sur cette caution.");
         } else {
-            log.info("Caution {} : hold {} échu après la fenêtre de réclamation — libérée", deposit.getId(), deposit.getExternalRef());
+            log.info("Caution {} : hold {} annulé, ménage validé ou séjour annulé", deposit.getId(), deposit.getExternalRef());
         }
         return outcome;
     }
@@ -209,7 +212,9 @@ public class SecurityDepositHoldService {
         if (PI_CANCELED.equals(hold.getStatus())) {
             return true;
         }
-        stripeGateway.cancelPaymentIntent(hold, idempotencyKey);
+        PaymentIntent cancelled = stripeGateway.cancelPaymentIntent(hold, idempotencyKey);
+        if (cancelled == null || !PI_CANCELED.equals(cancelled.getStatus()))
+            throw new IllegalStateException("Libération de préautorisation non confirmée par Stripe.");
         return false;
     }
 

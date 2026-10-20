@@ -1,0 +1,29 @@
+<!doctype html>
+<html lang="fr">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Recette réelle des templates Baitly</title>
+    <style>
+      #baitly-recipe-bar{display:flex;align-items:center;flex-wrap:wrap;gap:8px;padding:10px 16px;background:#edf2f4;color:#21343d;border-bottom:1px solid #c8d5dc;font:13px/1.5 system-ui,sans-serif}
+      #baitly-recipe-bar label{display:flex;align-items:center;gap:6px}
+      #baitly-recipe-bar select,#baitly-recipe-bar button,#baitly-recipe-bar input{font:inherit;color:inherit;background:#fafcfd;border:1px solid #afc1cb;border-radius:5px;padding:6px 9px;max-width:100%;cursor:pointer}
+      #baitly-recipe-bar :focus-visible{outline:2px solid #345f75;outline-offset:2px}
+      #baitly-recipe-bar input{cursor:text;width:160px}#baitly-recipe-status{font-size:12px}
+      @media(max-width:600px){#baitly-recipe-bar{padding:8px}#baitly-recipe-bar label{min-width:0}#baitly-recipe-bar select{max-width:180px}}
+    </style>
+  </head>
+  <body style="margin:0">
+    <aside id="baitly-recipe-bar" aria-label="Contrôles de recette locale">
+      <strong>Recette locale</strong>
+      <label>Template <select id="recipe-model"></select></label>
+      <button id="recipe-reset" type="button">Nouveau scénario</button>
+      <label>Référence existante <input id="recipe-reference" placeholder="RES-…" /></label>
+      <button id="recipe-load" type="button">Afficher la confirmation</button>
+      <span id="baitly-recipe-status" role="status">Connexion au backend local…</span>
+    </aside>
+    <style id="recipe-page-style"></style>
+    <main id="recipe-page"></main>
+    <script type="module" src="./baitlyLiveJourney.ts"></script>
+  </body>
+</html>

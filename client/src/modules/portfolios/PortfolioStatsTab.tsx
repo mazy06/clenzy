@@ -24,6 +24,7 @@ import {
 import { useTranslation } from '../../hooks/useTranslation';
 import { PROPERTY_TYPES } from '../../utils/statusUtils';
 import type { ReportContent } from '../reports/reportShell';
+import { useWidgetPresentation } from '../../components/stats/widgetPresentation';
 import { CoverageChart, DonutChart, HistogramChart, TimelineChart } from './PortfolioCharts';
 
 /** Le `t` du hook, plutot qu'une signature reecrite a la main qui diverge. */
@@ -288,6 +289,7 @@ const CompositionChart: React.FC<{
   breakdown: PortfolioStats['portfolioBreakdown'];
   t: Translate;
 }> = ({ breakdown, t }) => {
+  const widget = useWidgetPresentation();
   const config: ChartConfig = {
     clients: { label: t('portfolios.statistics.clientsLabel'), color: SERIES_TOKENS[0] },
     staff: { label: t('portfolios.statistics.staff'), color: SERIES_TOKENS[1] },
@@ -308,6 +310,15 @@ const CompositionChart: React.FC<{
   }
 
   const showStates = breakdown.length > 1 || breakdown.some((p) => !p.isActive);
+
+  if (widget) return <ul className="db-data-composition">{breakdown.map((portfolio) => <li key={portfolio.portfolioId}>
+    <div className="db-data-composition__name"><strong dir="auto">{portfolio.portfolioName}</strong>
+      {!portfolio.isActive && <span>{t('portfolios.teamManagement.inactive')}</span>}</div>
+    <dl>
+      <div><dt>{t('portfolios.statistics.clientsLabel')}</dt><dd>{portfolio.clientCount.toLocaleString()}</dd></div>
+      <div><dt>{t('portfolios.statistics.staff')}</dt><dd>{portfolio.teamMemberCount.toLocaleString()}</dd></div>
+    </dl>
+  </li>)}</ul>;
 
   return (
     <div className="flex h-full min-h-0 flex-col gap-2">

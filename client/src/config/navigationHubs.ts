@@ -252,6 +252,7 @@ export interface StandaloneScreen {
 }
 
 export const STANDALONE_SCREENS: StandaloneScreen[] = [
+  { path: '/prospection', translationKey: 'directoryPage.tabs.prospection', fallbackLabel: 'Prospection' },
   { path: '/dynamic-pricing', translationKey: 'dynamicPricing.title', fallbackLabel: 'Prix dynamiques' },
   { path: '/connected-objects', translationKey: 'navigation.connectedObjects', fallbackLabel: 'Objets connectés' },
   { path: '/planning', translationKey: 'navigation.planning', fallbackLabel: 'Planning' },

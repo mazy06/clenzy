@@ -1,0 +1,42 @@
+/* Encres Baitly pour la navigation, contrastées en clair et en sombre. */
+:root {
+  --bui-tab-0: #25406e;
+  --bui-tab-1: #18766e;
+  --bui-tab-2: #7851b5;
+  --bui-tab-3: #915b10;
+  --bui-tab-4: #306f86;
+  --bui-tab-5: #2768b7;
+  --bui-tab-6: #a33b66;
+  --bui-tab-7: #58732a;
+  --bui-tab-8: #ad4931;
+  --bui-tab-9: #5b57ab;
+  --bui-tab-10: #80652c;
+  --bui-tab-11: #8b486e;
+}
+[data-theme="dark"] {
+  --bui-tab-0: #9cb4e2;
+  --bui-tab-1: #65c9b9;
+  --bui-tab-2: #bd9aef;
+  --bui-tab-3: #efbd68;
+  --bui-tab-4: #89c4da;
+  --bui-tab-5: #89b9fc;
+  --bui-tab-6: #f19cbd;
+  --bui-tab-7: #b1ce7e;
+  --bui-tab-8: #f4a48d;
+  --bui-tab-9: #b3acf5;
+  --bui-tab-10: #d7c18a;
+  --bui-tab-11: #dda4cd;
+}
+.bui-tab-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+  width: 22px;
+  height: 22px;
+  border-radius: 4px;
+  background: color-mix(in srgb, var(--bui-tab-color) 10%, transparent);
+}
+.bui-tab-icon svg { color: var(--bui-tab-color); }
+.bui-tab-dot { width: 7px; height: 7px; border-radius: 50%; background: currentColor; }
+.bui-colored-tab::after { background-color: var(--bui-tab-color); }

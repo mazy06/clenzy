@@ -17,6 +17,16 @@ import java.util.List;
 import java.util.Optional;
 
 public interface ReservationRepository extends JpaRepository<Reservation, Long> {
+    /** Rattrapage durable si la lecture Stripe post-commit a échoué après paiement du séjour. */
+    @Query("select r from Reservation r where r.securityDepositAmount > 0 and r.stripeSessionId is not null "
+        + "and r.paymentStatus in (com.clenzy.model.PaymentStatus.PAID, com.clenzy.model.PaymentStatus.PARTIALLY_PAID) "
+        + "and r.cancelledAt is null and r.checkOut >= :earliest "
+        + "and not exists (select d.id from SecurityDeposit d where d.organizationId=r.organizationId and d.reservationId=r.id)")
+    List<Reservation> findMissingBookingCautions(@Param("earliest") LocalDate earliest);
+    @org.springframework.data.jpa.repository.Lock(jakarta.persistence.LockModeType.PESSIMISTIC_WRITE)
+    @Query("select r from Reservation r where r.id = :id and r.organizationId = :orgId")
+    Optional<Reservation> lockDepositReservation(@Param("id") Long id, @Param("orgId") Long orgId);
+
     @Query("SELECT new com.clenzy.dto.BaitlyPlanningReservationRow("
         + "r, p.id, p.name, g.id, r.intervention.id) "
         + "FROM Reservation r JOIN r.property p LEFT JOIN r.guest g ON g.organizationId = :orgId "

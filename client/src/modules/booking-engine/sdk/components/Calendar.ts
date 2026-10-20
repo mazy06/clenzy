@@ -12,6 +12,14 @@ export function createCalendar(state: StateManager, i18n: I18n, currency: string
   wrapper.className = 'cb-calendar-wrapper';
   wrapper.setAttribute('role', 'dialog');
   wrapper.setAttribute('aria-label', i18n.t('searchBar.selectDates'));
+  wrapper.hidden = true;
+  wrapper.addEventListener('keydown', (event) => {
+    if (event.key !== 'Escape') return;
+    event.preventDefault();
+    const boundary = wrapper.closest('.cb-field') || wrapper.closest('.cb-wdates') || wrapper.parentElement;
+    state.set({ calendarOpen: false }, 'calendarToggle');
+    boundary?.querySelector<HTMLButtonElement>('.cb-date-input')?.focus();
+  });
 
   const inner = document.createElement('div');
   inner.className = 'cb-calendar';
@@ -43,6 +51,7 @@ export function createCalendar(state: StateManager, i18n: I18n, currency: string
 
   function render(s: WidgetState): void {
     wrapper.classList.toggle('cb-open', s.calendarOpen);
+    wrapper.hidden = !s.calendarOpen;
     if (s.calendarOpen) ensureOutside(); else removeOutside();
     if (!s.calendarOpen) return;
 
@@ -111,6 +120,15 @@ export function createCalendar(state: StateManager, i18n: I18n, currency: string
     }
 
     inner.appendChild(monthsContainer);
+    const close = document.createElement('button');
+    close.type = 'button';
+    close.className = 'cb-calendar-close';
+    close.textContent = i18n.t('common.close');
+    close.addEventListener('click', () => {
+      state.set({ calendarOpen: false }, 'calendarToggle');
+      (wrapper.closest('.cb-wdates') || wrapper.parentElement)?.querySelector<HTMLButtonElement>('.cb-date-input')?.focus();
+    });
+    inner.appendChild(close);
 
     // Aperçu de plage AU SURVOL : après l'arrivée et avant le départ, surligne arrivée → jour survolé
     // (toggle de classes en direct, sans re-render → pas de scintillement ni de boucle d'état).
@@ -148,6 +166,10 @@ function buildMonth(
 ): HTMLElement {
   const container = document.createElement('div');
   container.className = 'cb-calendar-month';
+  const monthTitle = document.createElement('div');
+  monthTitle.className = 'cb-calendar-month__title';
+  monthTitle.textContent = `${i18n.tArray('months')[month]} ${year}`;
+  container.appendChild(monthTitle);
 
   // Weekday headers
   const weekdays = document.createElement('div');

@@ -230,6 +230,11 @@ const MENU_ENTRIES: MenuEntryConfig[] = [
   },
   // ── Ventes & distribution ──
   { kind: 'item', item: {
+    icon: <TrendingUp />, path: '/prospection', group: 'sales',
+    roles: ['all'],
+    translationKey: 'directoryPage.tabs.prospection',
+  } },
+  { kind: 'item', item: {
     icon: <TrendingUp />, path: '/dynamic-pricing', group: 'sales',
     roles: ['SUPER_ADMIN', 'SUPER_MANAGER', 'HOST'],
     permission: 'pricing:view', translationKey: 'dynamicPricing.title',

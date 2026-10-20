@@ -1,7 +1,7 @@
 import * as maplibregl from 'maplibre-gl';
 import i18n from '../../i18n/config';
 import { activeLanguage } from '../../utils/activeLocale';
-import { buildBaitlyMapStyle, dayPeriodAt, daylightFor, type BaitlyMapMode, type DayPeriod } from './baitlyMapStyle';
+import { buildBaitlyMapStyle, dayPeriodAt, daylightFor, type BaitlyMapMode, type BaitlyMapLanguage, type DayPeriod } from './baitlyMapStyle';
 import { ensureMapRuntime } from './mapRuntime';
 import { prefersReducedMotion } from './motion';
 import { BaitlyPerspectiveControl } from './perspectiveControl';
@@ -12,6 +12,8 @@ export { prefersReducedMotion };
 export interface BaitlyMapOptions {
   container: HTMLElement;
   mode: BaitlyMapMode;
+  /** Langue explicite pour les pages voyageur indépendantes de la langue du PMS. */
+  language?: BaitlyMapLanguage;
   /** [lng, lat] */
   center: [number, number];
   zoom: number;
@@ -39,6 +41,7 @@ export interface BaitlyMapOptions {
 export function createBaitlyMap({
   container,
   mode,
+  language,
   center,
   zoom,
   interactive = true,
@@ -50,7 +53,7 @@ export function createBaitlyMap({
   const period = currentPeriod(center[0]);
   const map = new maplibregl.Map({
     container,
-    style: buildBaitlyMapStyle(mode, activeLanguage(), period),
+    style: buildBaitlyMapStyle(mode, language ?? activeLanguage(), period),
     center,
     zoom,
     interactive,
@@ -60,7 +63,7 @@ export function createBaitlyMap({
     maxPitch: 65,
     maxZoom: 22,
     fadeDuration: prefersReducedMotion() ? 0 : 300,
-    locale: controlsLocale(),
+    locale: controlsLocale(language),
   });
   // Une archive mondiale encore indisponible ne bloque pas la carte régionale.
   map.on('error', (event) => {
@@ -83,7 +86,7 @@ export function createBaitlyMap({
       new maplibregl.NavigationControl({ showCompass: compass || perspective, visualizePitch: perspective }),
       'top-right',
     );
-    if (perspective) map.addControl(new BaitlyPerspectiveControl(), 'top-right');
+    if (perspective) map.addControl(new BaitlyPerspectiveControl(language), 'top-right');
   }
   if (perspective) {
     // Terrain 3D sur les cartes inclinées : le relief prend du volume. Réappliqué à
@@ -145,12 +148,13 @@ export function setBaitlyMapMode(map: maplibregl.Map, mode: BaitlyMapMode): void
 }
 
 /** Libellés accessibles des contrôles MapLibre (anglais par défaut) dans la langue de l'interface. */
-function controlsLocale(): Record<string, string> {
+function controlsLocale(language?: BaitlyMapLanguage): Record<string, string> {
+  const t = (key: string, fallback: string) => i18n.t(key, fallback, { lng: language });
   return {
-    'Popup.Close': i18n.t('baitlyMap.controls.close', 'Fermer'),
-    'NavigationControl.ZoomIn': i18n.t('baitlyMap.controls.zoomIn', 'Zoom avant'),
-    'NavigationControl.ZoomOut': i18n.t('baitlyMap.controls.zoomOut', 'Zoom arrière'),
-    'NavigationControl.ResetBearing': i18n.t('baitlyMap.controls.resetBearing', 'Réorienter vers le nord'),
-    'AttributionControl.ToggleAttribution': i18n.t('baitlyMap.controls.attribution', 'Afficher les crédits'),
+    'Popup.Close': t('baitlyMap.controls.close', 'Fermer'),
+    'NavigationControl.ZoomIn': t('baitlyMap.controls.zoomIn', 'Zoom avant'),
+    'NavigationControl.ZoomOut': t('baitlyMap.controls.zoomOut', 'Zoom arrière'),
+    'NavigationControl.ResetBearing': t('baitlyMap.controls.resetBearing', 'Réorienter vers le nord'),
+    'AttributionControl.ToggleAttribution': t('baitlyMap.controls.attribution', 'Afficher les crédits'),
   };
 }

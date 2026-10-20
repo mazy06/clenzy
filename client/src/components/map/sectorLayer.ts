@@ -1,6 +1,7 @@
 import type * as maplibregl from 'maplibre-gl';
 import type { Feature, FeatureCollection, MultiPolygon, Polygon } from 'geojson';
 import { sectorProvidersInArea, smallestSectorAtPoint } from './sectorHitTest';
+import { renderedMapPlaceAt } from './renderedMapPlace';
 
 /**
  * Secteurs d'intervention des prestataires : une bordure et un fond translucide.
@@ -128,15 +129,9 @@ export class BaitlySectorLayer {
     const target = event.originalEvent?.target;
     // Les logements, grappes, fiches et commandes gardent leur propre action.
     if (target instanceof Element && target.closest('.maplibregl-marker, .maplibregl-popup, .maplibregl-ctrl')) return;
+    if (renderedMapPlaceAt(this.map, event.point)) return;
     const lng = ((event.lngLat.lng + 180) % 360 + 360) % 360 - 180;
     const area = smallestSectorAtPoint(this.overlay.providers, lng, event.lngLat.lat);
-    const selected = this.overlay.selectedAreaGeometry;
-    // Comparer les zones, pas le point du clic : deux endroits du même secteur le désélectionnent.
-    if (area && selected?.type === area.type && (selected.coordinates === area.coordinates
-      || JSON.stringify(selected.coordinates) === JSON.stringify(area.coordinates))) {
-      this.overlay.onAreaSelect(null, null, null);
-      return;
-    }
     const ids = area ? sectorProvidersInArea(this.overlay.providers, area) : [];
     this.overlay.onAreaSelect(ids.length ? ids : null, area, area ? { lng, lat: event.lngLat.lat } : null);
   };

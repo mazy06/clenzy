@@ -2,6 +2,7 @@ import { useEffect, useRef } from 'react';
 import { useLocation } from 'react-router-dom';
 import { useSiteLanguage } from '../lib/siteLanguage';
 import { robotsDirective } from '../lib/siteSeo';
+import { conciergeMetadata } from '../lib/baitlyConciergeMetadata';
 
 export default function SiteMetadata() {
   const { pathname } = useLocation();
@@ -21,8 +22,9 @@ export default function SiteMetadata() {
     void import('virtual:baitly-site-metadata').then(({ default: pages }) => {
       if (!active) return;
       currentMetadata.current = key;
-      const meta = pages[language][path] ?? pages[language]['/404'];
-      const canonicalPath = pages[language][path]
+      const concierge = conciergeMetadata(path,language);
+      const meta: (typeof pages)[typeof language][string] = concierge ?? pages[language][path] ?? pages[language]['/404'];
+      const canonicalPath = concierge || pages[language][path]
         ? path === '/pre-lancement'
           ? '/bientot-disponible'
           : path

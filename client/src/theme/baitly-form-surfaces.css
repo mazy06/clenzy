@@ -1,0 +1,90 @@
+/* Baitly operational forms share the setup guide's navy and readable surfaces. */
+.baitly-form-surface {
+  --bui-primary: var(--bui-navy);
+  --bui-primary-deep: var(--bui-navy-deep);
+  --bui-primary-soft: var(--bui-navy-soft);
+  min-width: 0;
+}
+.baitly-form-header {
+  background: color-mix(in srgb, var(--bui-navy-soft) 65%, var(--bui-card));
+  border-bottom: 1px solid var(--bui-border);
+}
+.baitly-form-header__title { color: var(--bui-navy); overflow-wrap: anywhere; text-wrap: balance; }
+.baitly-form-header p { margin: 0; }
+.baitly-form-header .baitly-form-header__mobile-context { margin-top: .25rem; }
+.baitly-form-header__symbol {
+  display: grid; place-items: center; width: 2.75rem; height: 2.75rem;
+  flex-shrink: 0; border-radius: .85rem;
+  background: var(--bui-navy); color: var(--bui-primary-foreground);
+}
+.baitly-form-header__symbol svg { width: 1.35rem; height: 1.35rem; }
+.baitly-form-surface [data-slot="field"] { min-width: 0; }
+.baitly-form-surface .baitly-readonly-value { field-sizing: content; min-height: 2.75rem; resize: none; overflow-wrap: anywhere; }
+.baitly-form-surface [data-slot="field-label"] { white-space: normal; line-height: 1.5; }
+.baitly-form-surface :is(p, h3, h4, h6, [data-slot="field-description"]) { overflow-wrap: anywhere; }
+.baitly-form-surface [data-slot="select-trigger"] { height: auto; min-height: 2.75rem; white-space: normal; }
+.baitly-form-surface [data-slot="select-value"] { white-space: normal; text-align: start; overflow-wrap: anywhere; -webkit-line-clamp: unset; }
+.baitly-form-options [data-slot="select-item-text"] { white-space: normal; overflow-wrap: anywhere; }
+.baitly-form-surface .cn-button-variant-default {
+  background: var(--bui-navy); color: var(--bui-primary-foreground);
+}
+.baitly-form-surface .cn-button-variant-default:hover { background: var(--bui-navy-deep); }
+.baitly-form-surface .cn-button { white-space: normal; height: auto; min-height: 2.5rem; text-align: center; }
+.baitly-form-footer {
+  background: color-mix(in srgb, var(--bui-navy-soft) 45%, var(--bui-card));
+  flex-wrap: wrap;
+}
+.baitly-form-footer__actions { margin-inline-start: auto; display: flex; flex-wrap: wrap; justify-content: flex-end; gap: .5rem; min-width: 0; }
+.baitly-form-steps { display: grid; grid-template-columns: repeat(var(--form-step-count), minmax(0, 1fr)); gap: .375rem; padding: .75rem 1rem; border-bottom: 1px solid var(--bui-border); flex-shrink: 0; }
+.baitly-form-progress { flex-shrink: 0; }
+.baitly-form-step-caption { display: none; }
+.baitly-form-step { display: flex; align-items: center; gap: .5rem; padding: .5rem; border: 0; border-radius: .65rem; background: transparent; color: var(--bui-muted-foreground); font: inherit; font-size: .75rem; text-align: start; cursor: pointer; min-width: 0; line-height: 1.4; }
+.baitly-form-step:disabled { cursor: default; }
+.baitly-form-step:hover:enabled, .baitly-form-step[aria-current="step"] { background: var(--bui-navy-soft); color: var(--bui-navy); }
+.baitly-form-step:focus-visible { outline: 2px solid var(--bui-navy); outline-offset: 2px; }
+.baitly-form-step__number { width: 1.4rem; height: 1.4rem; display: grid; place-items: center; border: 1px solid var(--bui-border); border-radius: 50%; flex-shrink: 0; font-variant-numeric: tabular-nums; }
+.baitly-form-step__number svg { width: .8rem; height: .8rem; }
+.baitly-form-step[aria-current="step"] .baitly-form-step__number { background: var(--bui-navy); color: var(--bui-primary-foreground); border-color: transparent; }
+.baitly-mobile-form-footer { display: flex; align-items: center; justify-content: space-between; flex-shrink: 0; gap: .75rem; padding: .75rem 1rem; border-top: 1px solid var(--bui-border); background: var(--bui-card); }
+.baitly-mobile-form-footer .cn-button { min-height: 2.75rem; }
+.baitly-reservation-dialog.cn-dialog-content { gap: 0; max-height: calc(100dvh - 2rem); max-width: calc(100vw - 2rem); }
+.baitly-reservation-dialog__body { min-height: 0; min-width: 0; overscroll-behavior: contain; scrollbar-gutter: stable; }
+.baitly-reservation-dialog__body > div { min-width: 0; }
+.baitly-reservation-dialog__body > :is(p, h3, dl), .baitly-reservation-dialog__body dd { margin: 0; }
+.reservation-calendar { container-type: inline-size; }
+.reservation-calendar__months { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.reservation-calendar__months button, .reservation-calendar__months [aria-hidden] { aspect-ratio: auto; height: 2rem; }
+.reservation-calendar__months button { font-weight: 500; }
+.baitly-form-page { height: 100%; min-height: 0; display: flex; flex-direction: column; }
+.baitly-form-page > .baitly-form-header { border-radius: 1rem 1rem 0 0; flex-shrink: 0; }
+.baitly-form-page > .baitly-form-header [data-slot="page-header"] { background: color-mix(in srgb, var(--bui-navy-soft) 65%, var(--bui-card)); }
+.baitly-form-page > .baitly-form-header h1 { display: block; line-height: 1.4; }
+.baitly-form-page > .baitly-form-header h1 > .truncate { color: var(--bui-navy); overflow: visible; text-overflow: clip; white-space: normal; overflow-wrap: anywhere; }
+.baitly-form-page > .intervention-workspace { flex: 1; }
+@container (max-width: 32rem) {
+  .reservation-calendar__months { grid-template-columns: minmax(0, 1fr); }
+  .reservation-calendar__months > :nth-child(2) { display: none; }
+}
+@media (max-width: 639px) {
+  .baitly-form-page [data-header-toolbar] .cn-button-variant-default { display: none; }
+  .baitly-form-page > .baitly-form-header [data-slot="page-header"] { padding-block: .5rem; }
+  .baitly-form-steps { gap: .25rem; padding: .5rem .75rem; }
+  .baitly-form-steps { border-bottom: 0; padding-bottom: .25rem; }
+  .baitly-form-step { justify-content: center; gap: .3rem; font-size: .65rem; text-align: center; padding: .15rem; }
+  .baitly-form-step > span:last-child { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+  .baitly-form-step-caption { display: block; margin: 0; padding: 0 1rem .5rem; border-bottom: 1px solid var(--bui-border); color: var(--bui-navy); font-size: .75rem; line-height: 1.4; }
+  .baitly-reservation-dialog > .baitly-form-header { padding: .75rem 1rem; }
+  .baitly-reservation-dialog > .baitly-form-header[data-entry-mode="edit"] { position: relative; padding-bottom: .85rem; }
+  .baitly-reservation-dialog .baitly-form-header[data-entry-mode="edit"] .baitly-form-header__controls { display: none; }
+  .baitly-reservation-dialog .baitly-form-header__title { font-size: .95rem; }
+  .baitly-reservation-dialog .baitly-form-header__symbol,
+  .baitly-reservation-dialog .baitly-form-header__photo { display: none; }
+  .baitly-reservation-dialog .baitly-form-header__controls { margin-top: .5rem; gap: .5rem; }
+  .baitly-reservation-dialog .baitly-form-header__status { display: none; }
+  .baitly-reservation-dialog__body { padding: 1rem; }
+  .baitly-reservation-dialog__body .reservation-calendar > .grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .reservation-calendar__months button, .reservation-calendar__months [aria-hidden] { height: 2.5rem; }
+  .baitly-form-footer { padding: .75rem 1rem; gap: .75rem; }
+  .baitly-form-footer__actions { flex: 1; }
+  .baitly-form-footer__actions > button { flex: 1; }
+}

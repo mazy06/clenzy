@@ -8,6 +8,32 @@
 .request-composer [data-slot="field"] {
   gap: 0.375rem;
 }
+.request-composer .composer-planning { background: color-mix(in srgb, var(--bui-navy-soft) 45%, var(--bui-card)); }
+.request-composer h3 { color: var(--bui-navy); }
+.request-composer [aria-pressed="true"], .request-composer label:has([data-state="checked"]) {
+  background: var(--bui-navy-soft);
+  color: var(--bui-navy);
+}
+.request-composer .composer-actions .cn-button { min-height: 2.75rem; }
+.composer-mobile-recap { display: grid; gap: .75rem; margin: 0 0 1rem; }
+.composer-mobile-recap dt { color: var(--bui-muted-foreground); font-size: .75rem; }
+.composer-mobile-recap dd { margin: .25rem 0 0; overflow-wrap: anywhere; }
+.request-composer .composer-planning .cn-button { white-space: normal; height: auto; overflow-wrap: anywhere; }
+@media (max-width: 639px) {
+  .request-composer[data-mobile-step] { padding: 0; height: 100%; min-height: 0; display: flex; flex-direction: column; }
+  .request-composer[data-mobile-step] > .composer-columns { flex: 1; min-height: 0; overflow-y: auto; display: block; padding: .75rem; overscroll-behavior: contain; }
+  .request-composer[data-mobile-step] .composer-actions { display: none; }
+  .request-composer[data-mobile-step="1"] :is(.composer-catalog, .composer-selection, .composer-sidebar),
+  .request-composer[data-mobile-step="2"] :is(.composer-property, .composer-sidebar, .composer-selection),
+  .request-composer[data-mobile-step="3"] :is(.composer-property, .composer-catalog, .composer-sidebar),
+  .request-composer[data-mobile-step="4"] :is(.composer-services, .composer-budget-title, .composer-budget),
+  .request-composer[data-mobile-step="5"] :is(.composer-services, .composer-schedule) { display: none; }
+  .request-composer[data-mobile-step="3"] .composer-services:has(:not(.composer-selection)) { border: 0; padding-block: 0; }
+  .request-composer[data-mobile-step="3"] .composer-services:not(:has(.composer-selection)) { display: none; }
+  .request-composer[data-mobile-step="2"] .composer-catalog { margin: 0; padding: 0; border: 0; }
+  .request-composer[data-mobile-step="2"] .composer-results { max-height: 42dvh; }
+  .request-composer[data-mobile-step="5"] .composer-budget-title { margin: 0; padding: 0; border: 0; }
+}
 
 @media (min-width: 1024px) and (min-height: 650px) {
   .request-composer {

@@ -537,11 +537,16 @@ class PublicBookingServiceTest {
         @Test
         @DisplayName("creates PENDING reservation when autoConfirm=false")
         void whenAutoConfirmFalse_thenPending() {
+            Property property = buildProperty();
+            property.setSecurityDepositAmount(new BigDecimal("250.00"));
+            when(propertyRepository.findBookingEngineProperty(PROPERTY_ID, ORG_ID)).thenReturn(Optional.of(property));
             BookingReserveResponseDto resp = service.reserve(buildCtx(), req);
 
             ArgumentCaptor<Reservation> captor = ArgumentCaptor.forClass(Reservation.class);
             verify(reservationRepository).save(captor.capture());
             assertThat(captor.getValue().getStatus()).isEqualTo("pending");
+            property.setSecurityDepositAmount(new BigDecimal("900.00"));
+            assertThat(captor.getValue().getSecurityDepositAmount()).isEqualByComparingTo("250.00");
             assertThat(resp.status()).isEqualTo("PENDING");
             assertThat(resp.expiresAt()).isNotNull();
             assertThat(resp.requiresPayment()).isTrue();
@@ -945,6 +950,19 @@ class PublicBookingServiceTest {
                     .isInstanceOf(RuntimeException.class);
         }
 
+        @Test
+        void checkoutUsesFrozenPropertyDepositRatherThanLaterPropertyOrEngineAmounts() throws Exception {
+            var ctx = stubPayableReservationWithOrigins(null);
+            var reservation = reservationRepository.lockCancellation(ORG_ID, "CODE").orElseThrow();
+            reservation.setSecurityDepositAmount(new BigDecimal("250.00"));
+            reservation.getProperty().setSecurityDepositAmount(new BigDecimal("900.00"));
+            service.checkout(ctx, new BookingCheckoutRequestDto("CODE", null));
+            var request = captureCheckoutRequest();
+            assertThat(request.metadata()).containsEntry("security_deposit_amount", "250.00");
+            assertThat(request.saveCardForFutureUse()).isTrue();
+            assertThat(request.amount()).isEqualByComparingTo("100.00"); // Caution séparée du séjour.
+        }
+
         // ── returnUrl (B3) : garde-fou open-redirect ────────────────────────────
 
         /** Réservation PENDING payable + stub de session ; renvoie le ctx avec `allowedOrigins` donné. */
@@ -1009,6 +1027,33 @@ class PublicBookingServiceTest {
             service.checkout(ctx, new BookingCheckoutRequestDto("CODE", "http://book.acme.com/merci"));
 
             assertThat(captureCheckoutRequest().successUrl()).isEqualTo("https://app.clenzy.fr/booking/key/confirmation?reservation=CODE&flow=return");
+        }
+
+        @Test
+        void localRecipeReturnPreservesTemplateAndEveryStayReference() throws StripeException {
+            org.springframework.test.util.ReflectionTestUtils.setField(service, "allowLocalReturn", true);
+            org.springframework.test.util.ReflectionTestUtils.setField(service, "publicBaseUrl", "http://localhost:3000");
+            var ctx = stubPayableReservationWithOrigins(null);
+            service.checkout(ctx, new BookingCheckoutRequestDto("CODE", "http://localhost:3000/tests/fixtures/live.html?stay=A&stay=B"));
+            assertThat(captureCheckoutRequest().successUrl()).isEqualTo("http://localhost:3000/tests/fixtures/live.html?stay=A&stay=B&reservation=CODE");
+        }
+
+        @org.junit.jupiter.params.ParameterizedTest
+        @org.junit.jupiter.params.provider.ValueSource(strings={"http://localhost:3001/merci", "http://localhost.evil.example/merci", "http://user@localhost:3000/merci", "http://127.0.0.1:3000/merci"})
+        void localRecipeNeverAllowsAnotherOrigin(String url) throws StripeException {
+            org.springframework.test.util.ReflectionTestUtils.setField(service, "allowLocalReturn", true);
+            org.springframework.test.util.ReflectionTestUtils.setField(service, "publicBaseUrl", "http://localhost:3000");
+            var ctx = stubPayableReservationWithOrigins(null);
+            service.checkout(ctx, new BookingCheckoutRequestDto("CODE", url));
+            assertThat(captureCheckoutRequest().successUrl()).startsWith("http://localhost:3000/booking/key/confirmation?");
+        }
+
+        @Test
+        void localRecipeReturnRemainsDisabledByDefault() throws StripeException {
+            org.springframework.test.util.ReflectionTestUtils.setField(service, "publicBaseUrl", "http://localhost:3000");
+            var ctx = stubPayableReservationWithOrigins(null);
+            service.checkout(ctx, new BookingCheckoutRequestDto("CODE", "http://localhost:3000/local-template"));
+            assertThat(captureCheckoutRequest().successUrl()).startsWith("http://localhost:3000/booking/key/confirmation?");
         }
 
         @Test

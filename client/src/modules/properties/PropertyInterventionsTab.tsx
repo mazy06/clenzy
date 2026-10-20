@@ -1,3 +1,5 @@
+import PageHeaderViewControls from "../../components/PageHeaderViewControls";
+import {PageHeaderFilterControls} from "../../components/PageHeaderActionsContext";
 import { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { CalendarDays, List, ChevronLeft, ChevronRight, CheckCircle2, Clock3, Play, XCircle, ExternalLink } from '../../icons/glyphs';
@@ -71,25 +73,22 @@ export default function PropertyInterventionsTab({ interventions }: { interventi
       <StatusIcon icon={status.icon} tone={status.tone} label={getInterventionStatusLabel(item.status, t)} />
     </div>;
   });
-  return <div className="pdt-page">
+  return <div className="pdt-page"><PageHeaderViewControls label={t("propertyTabs.display","Affichage")} value={view} onChange={setView} options={[{value:"calendar",label:t("common.calendar","Calendrier"),icon:<CalendarDays size={16}/>},{value:"list",label:t("common.list","Liste"),icon:<List size={16}/>}]} />
     <StatTileRow presentation="overview">
       <StatTile icon={<CalendarDays />} artwork={PROPERTY_ART.calendar} label={t('properties.tabs.interventions')} value={interventions.length} />
       <StatTile icon={<Clock3 />} artwork={PROPERTY_ART.interventions} label={t('propertyTabs.pending', 'À réaliser')} value={interventions.filter(i => ['pending','progress'].includes(statusDetails(i.status).state)).length} />
       <StatTile icon={<CheckCircle2 />} artwork={PROPERTY_ART.completed} label={t('properties.interventions.completed')} value={interventions.filter(i => statusDetails(i.status).state === 'completed').length} />
     </StatTileRow>
     <section className="pdt-surface">
-      <div className="pdt-toolbar">
-        <ToggleGroup type="single" value={view} onValueChange={value => { if (value) setView(value); }} aria-label={t('propertyTabs.display', 'Affichage')}>
-          <ToggleGroupItem value="calendar"><CalendarDays size={16} />{t('common.calendar', 'Calendrier')}</ToggleGroupItem>
-          <ToggleGroupItem value="list"><List size={16} />{t('common.list', 'Liste')}</ToggleGroupItem>
-        </ToggleGroup>
+      <PageHeaderFilterControls><div className="pdt-toolbar">
+
         {view === 'calendar' && <div className="pdt-toolbar__group">
           <Button size="sm" variant="ghost" onClick={() => { setMonth(today); setSelectedDay(today); }}>{t('common.today', 'Aujourd’hui')}</Button>
           <Button variant="ghost" size="icon-sm" aria-label={t('properties.interventions.prevMonth')} onClick={() => moveMonth(-1)}><ChevronLeft className="cn-rtl-flip" size={16} /></Button>
           <p>{formatMonthYear(month,currentLanguage)}</p>
           <Button variant="ghost" size="icon-sm" aria-label={t('properties.interventions.nextMonth')} onClick={() => moveMonth(1)}><ChevronRight className="cn-rtl-flip" size={16} /></Button>
         </div>}
-      </div>
+      </div></PageHeaderFilterControls>
       {interventions.length === 0 ? <PropertyTabEmpty art={PROPERTY_ART.interventions} title={t('properties.noInterventions')} description={t('properties.interventions.emptyHint')} />
         : <div className="pdt-split">
           <div className="pdt-list">

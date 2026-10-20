@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef, type Dispatch, type SetStateAction } from 'react';
-import { useMutation } from '@tanstack/react-query';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { interventionsKeys } from './useInterventionsList';
 import { getAccessToken } from '../../keycloak';
 import { interventionsApi } from '../../services/api/interventionsApi';
 import { buildApiUrl } from '../../config/api';
@@ -28,6 +29,8 @@ export function useInterventionNotes({
   initialLoadData,
 }: UseInterventionNotesArgs) {
   const { t } = useTranslation();
+  const queryClient = useQueryClient();
+  const savingRef = useRef(false);
   const [notesDialogOpen, setNotesDialogOpen] = useState(false);
   const [notesValue, setNotesValue] = useState('');
   const [updatingNotes, setUpdatingNotes] = useState(false);
@@ -46,10 +49,8 @@ export function useInterventionNotes({
     if (!initialLoadData) return;
     setStepNotes(initialLoadData.stepNotes);
     lastSavedNotesRef.current = initialLoadData.lastSavedNotes;
-    // Also set the raw notesValue from the intervention for backward compat
-    if (initialLoadData.intervention.notes) {
-      setNotesValue(initialLoadData.intervention.notes);
-    }
+    // Le brouillon du dialogue appartient à l'utilisateur. Une actualisation
+    // de la fiche ne doit pas le remplacer par le JSON de toutes les étapes.
     // Mark initial load done after delay
     const timeoutId = setTimeout(() => {
       isInitialLoadRef.current = false;
@@ -63,10 +64,20 @@ export function useInterventionNotes({
 
   const updateNotesMutation = useMutation({
     scope: interventionExecutionScope(id),
-    mutationFn: ({ interventionId, notes }: { interventionId: number; notes: string }) =>
-      interventionsApi.updateNotes(interventionId, notes),
+    mutationFn: async ({ interventionId, notes }: { interventionId: number; notes: string }) => {
+      try {
+        return await interventionsApi.updateNotes(interventionId, notes);
+      } catch (error) {
+        // Une réponse perdue ne prouve pas que l'écriture a échoué. Relire
+        // avant de proposer un nouvel envoi, sans rejouer la modification.
+        const persisted = await interventionsApi.getById(interventionId).catch(() => null);
+        if (persisted?.notes === notes) return persisted;
+        throw error;
+      }
+    },
     onSuccess: (updated) => {
       setIntervention(updated);
+      if (id) queryClient.setQueryData(interventionsKeys.detail(id), updated);
     },
   });
 
@@ -74,10 +85,10 @@ export function useInterventionNotes({
   // Internal save helper
   // ------------------------------------------------------------------
 
-  const saveNotesAuto = async (notesToSave: StepNotes, immediate: boolean = false) => {
+  const saveNotesAuto = async (notesToSave: StepNotes, immediate: boolean = false, requireConfirmation = false) => {
     if (!id || !intervention) return;
 
-    if (notesSaveTimeoutRef.current && !immediate) {
+    if (notesSaveTimeoutRef.current) {
       clearTimeout(notesSaveTimeoutRef.current);
     }
 
@@ -85,16 +96,11 @@ export function useInterventionNotes({
       try {
         const notesJson = JSON.stringify(notesToSave);
         if (notesJson === lastSavedNotesRef.current) return;
-        updateNotesMutation.mutate(
-          { interventionId: Number(id), notes: notesJson },
-          {
-            onSuccess: () => {
-              lastSavedNotesRef.current = JSON.stringify(notesToSave);
-            },
-          },
-        );
+        await updateNotesMutation.mutateAsync({ interventionId: Number(id), notes: notesJson });
+        lastSavedNotesRef.current = notesJson;
       } catch {
-        // silent
+        if (requireConfirmation) throw new Error('Notes not saved');
+        setError(t('interventions.detailErrors.updatingNotes'));
       }
     };
 
@@ -142,8 +148,9 @@ export function useInterventionNotes({
   };
 
   const handleUpdateNotes = async () => {
-    if (!id || !intervention || !currentStepForNotes) return;
+    if (!id || !intervention || !currentStepForNotes || savingRef.current) return;
 
+    savingRef.current = true;
     setUpdatingNotes(true);
     try {
       const updatedStepNotes = { ...stepNotes };
@@ -154,7 +161,7 @@ export function useInterventionNotes({
         updatedStepNotes[currentStepForNotes] = notesValue;
       }
 
-      await saveNotesAuto(updatedStepNotes, true);
+      await saveNotesAuto(updatedStepNotes, true, true);
 
       setStepNotes(updatedStepNotes);
       setNotesDialogOpen(false);
@@ -164,6 +171,7 @@ export function useInterventionNotes({
     } catch {
       setError(t('interventions.detailErrors.updatingNotes'));
     } finally {
+      savingRef.current = false;
       setUpdatingNotes(false);
     }
   };

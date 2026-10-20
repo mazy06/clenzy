@@ -81,6 +81,8 @@ class BookingCautionAfterCommitIT extends AbstractIntegrationTest {
 
         PaymentIntent stay = new PaymentIntent();
         stay.setPaymentMethod("pm_saved");
+        stay.setCustomer("cus_guest");
+        stay.setStatus("succeeded");
         when(stripeGateway.retrievePaymentIntent("pi_stay")).thenReturn(stay);
     }
 

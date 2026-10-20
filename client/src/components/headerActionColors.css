@@ -1,0 +1,15 @@
+/* Baitly action roles are stable across pages, tabs and header portals. */
+.baitly-header-action[data-header-action]{--header-action-ink:var(--bui-navy);--header-action-soft:var(--bui-navy-soft);color:var(--header-action-ink);cursor:pointer;transition:background-color 180ms ease-out,color 180ms ease-out,box-shadow 180ms ease-out}
+.baitly-header-action:is([data-header-action=create],[data-header-action=locate],[data-header-action=table],[data-header-action=preview],[data-header-action=help],[data-header-action=link]){--header-action-ink:var(--bui-info-ink);--header-action-soft:var(--bui-info-soft)}
+.baitly-header-action:is([data-header-action=search],[data-header-action=save],[data-header-action=refresh],[data-header-action=sync],[data-header-action=confirm],[data-header-action=export]){--header-action-ink:var(--bui-success-ink);--header-action-soft:var(--bui-success-soft)}
+.baitly-header-action:is([data-header-action=import],[data-header-action=review],[data-header-action=edit],[data-header-action=history],[data-header-action=schedule],[data-header-action=notify],[data-header-action=reset],[data-header-action=archive]){--header-action-ink:var(--bui-warning-ink);--header-action-soft:var(--bui-warning-soft)}
+.baitly-header-action:is([data-header-action=enrich],[data-header-action=pipeline],[data-header-action=send],[data-header-action=share],[data-header-action=filter],[data-header-action=settings],[data-header-action=duplicate]){--header-action-ink:#7042b5;--header-action-soft:#eee7fa}
+.dark .baitly-header-action:is([data-header-action=enrich],[data-header-action=pipeline],[data-header-action=send],[data-header-action=share],[data-header-action=filter],[data-header-action=settings],[data-header-action=duplicate]){--header-action-ink:#c8a9f5;--header-action-soft:#382b4d}
+.baitly-header-action:is([data-header-action=cancel],[data-header-action=delete]){--header-action-ink:var(--bui-destructive-ink);--header-action-soft:var(--bui-destructive-soft)}
+.baitly-header-action[data-header-action]>svg{color:var(--header-action-ink)}
+.baitly-header-action[data-header-action]:hover:enabled{background:var(--header-action-soft);color:var(--header-action-ink)}
+.baitly-header-action[data-header-action][aria-pressed=true]{background:var(--header-action-soft);color:var(--header-action-ink);box-shadow:inset 0 0 0 2px var(--header-action-ink)}
+.baitly-header-action[data-header-action]:focus-visible{outline:2px solid var(--header-action-ink);outline-offset:2px}
+@media(prefers-reduced-motion:reduce){.baitly-header-action[data-header-action]{transition:none}}
+
+.baitly-header-action[data-filters-active=true]{background:var(--header-action-soft);box-shadow:inset 0 0 0 2px var(--header-action-ink)}

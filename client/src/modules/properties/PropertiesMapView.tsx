@@ -102,7 +102,7 @@ const PropertiesMapView: React.FC<PropertiesMapViewProps> = ({
   const { t } = useTranslation();
   const homeCenter = useHomeMapCenter();
   const { context, patch, ready: contextReady, reset } = useBaitlyMapContext(view, onViewChange);
-  const setAreaPoint = useCallback((area: MapPoint | null) => patch({ area }), [patch]);
+  const setAreaPoint = useCallback((area: MapPoint | MapPoint[] | null) => patch({ area }), [patch]);
   const setSectorMode = useCallback((sectorMode: SectorMode) => patch({ sectorMode }), [patch]);
   const range = mapDateRange(context.period, context.from, context.to);
   const periodValid = context.period !== 'custom' || (validMapDay(context.from) && validMapDay(context.to) && context.from <= context.to);

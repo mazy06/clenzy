@@ -5,7 +5,6 @@ import { Combobox, ComboboxContent, ComboboxEmpty, ComboboxInput, ComboboxItem, 
 import StatusChip from '../StatusChip';
 import { Person, PersonOutline, Search as SearchIcon, Group as GroupIcon, Remove as RemoveIcon, Add as AddIcon } from '../../icons';
 import { useTranslation } from '../../hooks/useTranslation';
-import { cn } from '../../utils/cn';
 import type { UseReservationFormResult } from './useReservationForm';
 import type { GuestDto } from '../../services/api';
 import IllustratedHeading from '../IllustratedHeading';
@@ -58,11 +57,7 @@ const renderStepper = (
 const roField = (id: string, label: string, value?: string | null, multiline = false) => (
   <Field>
     <FieldLabel htmlFor={id}>{label}</FieldLabel>
-    {multiline ? (
-      <Textarea id={id} className="w-full" rows={2} value={value || '—'} disabled readOnly />
-    ) : (
-      <Input id={id} className="w-full" value={value || '—'} disabled readOnly />
-    )}
+    <Textarea id={id} className="baitly-readonly-value w-full" rows={multiline ? 3 : 2} value={value || '—'} readOnly />
   </Field>
 );
 
@@ -147,7 +142,7 @@ const GuestSection: React.FC<Props> = ({ form }) => {
   const editableGuestForm = (
     <div className="flex flex-col gap-2.5">
       <div className="flex items-center gap-[10px] mt-[2px]">
-        <p className={cn(SUB_CLS, 'whitespace-nowrap')}>
+        <p className={SUB_CLS}>
           {form.selectedGuest ? t('reservations.dialog.editGuest') : t('reservations.dialog.newGuest')}
         </p>
         <div className="flex-1 h-[1px] bg-border" />
@@ -251,10 +246,10 @@ const GuestSection: React.FC<Props> = ({ form }) => {
         // ── ÉDITION : comportement inchangé — voyageur en lecture seule ──
         form.selectedGuest && (
           <div className="flex flex-col gap-3.5">
-            <div className="flex items-center gap-2.5 min-w-0">
+            <div className="flex flex-wrap items-center gap-2.5 min-w-0">
               {guestChip}
               {form.selectedGuest.email && (
-                <p className="text-[11.5px] text-muted-foreground overflow-hidden text-ellipsis whitespace-nowrap">
+                <p className="min-w-0 text-[11.5px] text-muted-foreground break-words">
                   {form.selectedGuest.email}
                 </p>
               )}

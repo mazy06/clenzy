@@ -1,232 +1,122 @@
 package com.clenzy.service;
-
 import com.clenzy.dto.ProspectDto;
 import com.clenzy.model.Prospect;
 import com.clenzy.model.Prospect.ProspectCategory;
-import com.clenzy.model.Prospect.ProspectStatus;
 import com.clenzy.repository.ProspectRepository;
 import com.clenzy.tenant.TenantContext;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.web.multipart.MultipartFile;
-
-import java.io.BufferedReader;
-import java.io.InputStreamReader;
-import java.nio.charset.StandardCharsets;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import java.util.stream.Collectors;
+import org.springframework.security.access.AccessDeniedException;
+import org.springframework.web.server.ResponseStatusException;
+import org.springframework.http.HttpStatus;
+import org.springframework.data.domain.*;
+import org.springframework.data.jpa.domain.Specification;
+import java.util.*;
+import static com.clenzy.service.BaitlyCrmIdentity.*;
 
 @Service
 @Transactional
 public class ProspectService {
-
-    private static final Logger log = LoggerFactory.getLogger(ProspectService.class);
-
-    private final ProspectRepository prospectRepository;
-    private final TenantContext tenantContext;
-
-    public ProspectService(ProspectRepository prospectRepository, TenantContext tenantContext) {
-        this.prospectRepository = prospectRepository;
-        this.tenantContext = tenantContext;
+    private final ProspectRepository repository;
+    private final TenantContext tenant;
+    public ProspectService(ProspectRepository repository,TenantContext tenant) {
+        this.repository=repository; this.tenant=tenant;
     }
-
-    // ─── Read ───────────────────────────────────────────────────────────────────
-
-    @Transactional(readOnly = true)
+    @Transactional(readOnly=true)
     public List<ProspectDto> getAll() {
-        Long orgId = tenantContext.getRequiredOrganizationId();
-        return prospectRepository.findByOrganizationId(orgId)
-            .stream()
-            .map(ProspectDto::fromEntity)
-            .collect(Collectors.toList());
+        return repository.findByOrganizationId(tenant.getRequiredOrganizationId()).stream()
+            .filter(p -> !p.isArchived()).map(ProspectDto::fromEntity).toList();
     }
-
-    @Transactional(readOnly = true)
+    @Transactional(readOnly=true)
     public List<ProspectDto> getByCategory(ProspectCategory category) {
-        Long orgId = tenantContext.getRequiredOrganizationId();
-        return prospectRepository.findByOrganizationIdAndCategory(orgId, category)
-            .stream()
-            .map(ProspectDto::fromEntity)
-            .collect(Collectors.toList());
+        return repository.findByOrganizationIdAndCategory(tenant.getRequiredOrganizationId(),category).stream()
+            .filter(p -> !p.isArchived()).map(ProspectDto::fromEntity).toList();
     }
-
-    // ─── Update ─────────────────────────────────────────────────────────────────
-
-    public ProspectDto update(Long id, ProspectDto dto) {
-        Long orgId = tenantContext.getRequiredOrganizationId();
-        Prospect prospect = prospectRepository.findById(id)
-            .orElseThrow(() -> new IllegalArgumentException("Prospect introuvable: " + id));
-
-        if (!prospect.getOrganizationId().equals(orgId)) {
-            throw new SecurityException("Acces refuse");
+    @Transactional(readOnly=true)
+    public Page<ProspectDto> page(String search,String type,String status,int page,int size) {
+        long org=tenant.getRequiredOrganizationId();
+        String query=text(search,200);
+        Specification<Prospect> scope=(r,q,b) -> b.and(b.equal(r.get("organizationId"),org),b.isFalse(r.get("archived")));
+        if(type!=null && !type.isBlank()) {
+            BaitlyCrmContactValidation.choice(type,Set.of("OWNER","PROVIDER"));
+            scope=scope.and((r,q,b)->b.equal(r.get("contactType"),type));
         }
-
-        if (dto.name() != null) prospect.setName(dto.name());
-        if (dto.email() != null) prospect.setEmail(dto.email());
-        if (dto.phone() != null) prospect.setPhone(dto.phone());
-        if (dto.city() != null) prospect.setCity(dto.city());
-        if (dto.specialty() != null) prospect.setSpecialty(dto.specialty());
-        if (dto.status() != null) {
-            prospect.setStatus(ProspectStatus.valueOf(dto.status()));
+        if(status!=null && !status.isBlank()) {
+            Prospect.ProspectStatus.valueOf(status);
+            scope=scope.and((r,q,b)->b.equal(r.get("status"),Prospect.ProspectStatus.valueOf(status)));
         }
-        if (dto.notes() != null) prospect.setNotes(dto.notes());
-        if (dto.website() != null) prospect.setWebsite(dto.website());
-        if (dto.linkedIn() != null) prospect.setLinkedIn(dto.linkedIn());
-        if (dto.revenue() != null) prospect.setRevenue(dto.revenue());
-        if (dto.employees() != null) prospect.setEmployees(dto.employees());
-
-        return ProspectDto.fromEntity(prospectRepository.save(prospect));
+        if(query!=null) {
+            String pattern="%"+query.toLowerCase(Locale.ROOT).replace("\\","\\\\").replace("%","\\%").replace("_","\\_")+"%";
+            scope=scope.and((r,q,b)->b.or(b.like(b.lower(r.get("name")),pattern,'\\'),
+                b.like(b.lower(r.get("city")),pattern,'\\'),b.like(b.lower(r.get("email")),pattern,'\\')));
+        }
+        return repository.findAll(scope,PageRequest.of(Math.max(0,page),Math.min(100,Math.max(1,size)),Sort.by(Sort.Direction.DESC,"id")))
+            .map(ProspectDto::fromEntity);
     }
-
-    // ─── Delete ─────────────────────────────────────────────────────────────────
-
-    public void delete(Long id) {
-        Long orgId = tenantContext.getRequiredOrganizationId();
-        Prospect prospect = prospectRepository.findById(id)
-            .orElseThrow(() -> new IllegalArgumentException("Prospect introuvable: " + id));
-
-        if (!prospect.getOrganizationId().equals(orgId)) {
-            throw new SecurityException("Acces refuse");
-        }
-
-        prospectRepository.delete(prospect);
+    public ProspectDto create(ProspectDto dto) {
+        Prospect p=new Prospect(); p.setOrganizationId(tenant.getRequiredOrganizationId());
+        if("OWNERS".equals(dto.category()) && dto.contactType()==null) p.setContactType("OWNER");
+        BaitlyCrmContactValidation.apply(p,dto);
+        BaitlyCrmContactValidation.source(p,dto,"MANUAL");
+        assertUnique(p);
+        return ProspectDto.fromEntity(repository.saveAndFlush(p));
     }
-
-    // ─── CSV Import ─────────────────────────────────────────────────────────────
-
-    /**
-     * Importe un fichier CSV Vibe Prospecting.
-     * Le CSV est au format standard avec en-tetes en premiere ligne.
-     * Colonnes attendues (flexibles) : business_name, domain, city, linkedin_url,
-     * number_of_employees_range, revenue_range, linkedin_categories, etc.
-     *
-     * @param file     fichier CSV uploade
-     * @param category categorie de prospect
-     * @return nombre de prospects importes
-     */
-    public int importFromCsv(MultipartFile file, ProspectCategory category) {
-        Long orgId = tenantContext.getRequiredOrganizationId();
-
-        List<Prospect> prospects = new ArrayList<>();
-
-        try (BufferedReader reader = new BufferedReader(
-                new InputStreamReader(file.getInputStream(), StandardCharsets.UTF_8))) {
-
-            String headerLine = reader.readLine();
-            if (headerLine == null) {
-                throw new IllegalArgumentException("Fichier CSV vide");
-            }
-
-            // Parse header → index mapping
-            String[] headers = parseCsvLine(headerLine);
-            Map<String, Integer> headerMap = new java.util.HashMap<>();
-            for (int i = 0; i < headers.length; i++) {
-                headerMap.put(headers[i].trim().toLowerCase(), i);
-            }
-
-            String line;
-            while ((line = reader.readLine()) != null) {
-                if (line.isBlank()) continue;
-
-                String[] values = parseCsvLine(line);
-                Prospect p = new Prospect();
-                p.setOrganizationId(orgId);
-                p.setCategory(category);
-                p.setStatus(ProspectStatus.TO_CONTACT);
-
-                // Nom : business_name ou name
-                p.setName(getCsvValue(values, headerMap, "business_name", "name", "company_name"));
-
-                if (p.getName() == null || p.getName().isBlank()) {
-                    continue; // skip lignes sans nom
-                }
-
-                // Email
-                p.setEmail(getCsvValue(values, headerMap, "email", "contact_email", "business_email"));
-
-                // Telephone
-                p.setPhone(getCsvValue(values, headerMap, "phone", "phone_number", "telephone"));
-
-                // Ville
-                p.setCity(getCsvValue(values, headerMap, "city", "headquarters_city", "location"));
-
-                // Specialite (linkedin_categories ou industry)
-                p.setSpecialty(getCsvValue(values, headerMap, "linkedin_categories", "industry", "specialty", "naics_labels"));
-
-                // Site web
-                String website = getCsvValue(values, headerMap, "domain", "website", "website_url");
-                if (website != null && !website.isBlank() && !website.startsWith("http")) {
-                    website = "https://" + website;
-                }
-                p.setWebsite(website);
-
-                // LinkedIn
-                p.setLinkedIn(getCsvValue(values, headerMap, "linkedin_url", "linkedin", "linkedin_company_url"));
-
-                // Revenue
-                p.setRevenue(getCsvValue(values, headerMap, "revenue_range", "revenue", "annual_revenue"));
-
-                // Employes
-                p.setEmployees(getCsvValue(values, headerMap, "number_of_employees_range", "employees", "employee_count", "company_size"));
-
-                prospects.add(p);
-            }
-
-        } catch (java.io.IOException e) {
-            throw new RuntimeException("Erreur lors de la lecture du fichier CSV", e);
-        }
-
-        if (!prospects.isEmpty()) {
-            prospectRepository.saveAll(prospects);
-            log.info("Imported {} prospects in category {} for org {}", prospects.size(), category, orgId);
-        }
-
-        return prospects.size();
+    public ProspectDto update(Long id,ProspectDto dto) {
+        Prospect p=require(id);
+        if(p.isArchived()) throw new ResponseStatusException(HttpStatus.CONFLICT,"Contact archivé");
+        String oldEmail=p.getNormalizedEmail(),oldPhone=p.getNormalizedPhone();
+        String oldName=p.getName(),oldCity=p.getCity();
+        ProspectCategory oldCategory=p.getCategory();
+        // Provenance is historical and cannot be replaced by a partial contact edit.
+        BaitlyCrmContactValidation.apply(p,dto);
+        if("LEGACY".equals(p.getSourceType()) && dto.sourceType()!=null && !"LEGACY".equals(dto.sourceType()))
+            BaitlyCrmContactValidation.source(p,dto,"MANUAL");
+        boolean noCoordinates=p.getNormalizedEmail()==null && p.getNormalizedPhone()==null;
+        if(!Objects.equals(oldEmail,p.getNormalizedEmail()) || !Objects.equals(oldPhone,p.getNormalizedPhone())
+            || (noCoordinates && (!Objects.equals(oldName,p.getName()) || !Objects.equals(oldCity,p.getCity()) || oldCategory!=p.getCategory())))
+            assertUnique(p);
+        return ProspectDto.fromEntity(repository.saveAndFlush(p));
     }
-
-    // ─── CSV Helpers ────────────────────────────────────────────────────────────
-
-    /**
-     * Parse une ligne CSV en gerant les champs entre guillemets.
-     */
-    private String[] parseCsvLine(String line) {
-        List<String> result = new ArrayList<>();
-        boolean inQuotes = false;
-        StringBuilder current = new StringBuilder();
-
-        for (int i = 0; i < line.length(); i++) {
-            char c = line.charAt(i);
-            if (c == '"') {
-                inQuotes = !inQuotes;
-            } else if (c == ',' && !inQuotes) {
-                result.add(current.toString().trim());
-                current = new StringBuilder();
-            } else {
-                current.append(c);
-            }
-        }
-        result.add(current.toString().trim());
-
-        return result.toArray(new String[0]);
+    /** Archiving preserves refusals and prevents their loss on re-import. */
+    public void delete(Long id) { Prospect p=require(id); p.setArchived(true); repository.saveAndFlush(p); }
+    /** Baitly CRM : valider toute la sélection avant de retirer une seule fiche. */
+    public void deleteMany(Collection<Long> ids) {
+        if(ids==null||ids.isEmpty()||ids.size()>10000||ids.stream().anyMatch(id->id==null||id<=0))
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,"Sélection invalide (1 à 10 000 contacts)");
+        var unique=new LinkedHashSet<>(ids);
+        var selected=repository.findByOrganizationIdAndIdIn(tenant.getRequiredOrganizationId(),unique);
+        if(!selected.stream().map(Prospect::getId).collect(java.util.stream.Collectors.toSet()).equals(unique))
+            throw new AccessDeniedException("Sélection de contacts inaccessible");
+        selected.forEach(contact->contact.setArchived(true));
+        repository.saveAllAndFlush(selected);
     }
-
-    /**
-     * Cherche la premiere colonne correspondante parmi plusieurs noms possibles.
-     */
-    private String getCsvValue(String[] values, Map<String, Integer> headerMap, String... possibleNames) {
-        for (String name : possibleNames) {
-            Integer idx = headerMap.get(name.toLowerCase());
-            if (idx != null && idx < values.length) {
-                String val = values[idx].trim();
-                if (!val.isEmpty() && !val.equalsIgnoreCase("null")) {
-                    return val;
-                }
-            }
+    @Transactional(readOnly=true)
+    public ProspectDto detail(Long id) { return ProspectDto.fromEntity(require(id)); }
+    @Transactional(readOnly=true)
+    public List<ProspectDto> duplicates(Long id) {
+        return matches(require(id)).stream().filter(p -> !p.isArchived() && !p.getId().equals(id))
+            .limit(100).map(ProspectDto::fromEntity).toList();
+    }
+    Prospect require(Long id) {
+        return repository.findByIdAndOrganizationId(id,tenant.getRequiredOrganizationId())
+            .orElseThrow(() -> new AccessDeniedException("Contact inaccessible"));
+    }
+    List<Prospect> matches(Prospect p) {
+        if(p.getNormalizedEmail()!=null || p.getNormalizedPhone()!=null) {
+            var found=new LinkedHashMap<Long,Prospect>();
+            repository.findIdentityMatches(p.getOrganizationId(),p.getNormalizedEmail(),p.getNormalizedPhone())
+                .forEach(contact -> found.put(contact.getId(),contact));
+            var hashes=java.util.stream.Stream.of(p.getNormalizedEmail(),p.getNormalizedPhone())
+                .filter(Objects::nonNull).map(BaitlyCrmIdentity::hash).toList();
+            repository.findHistoricIdentityMatches(p.getOrganizationId(),hashes)
+                .forEach(contact -> found.put(contact.getId(),contact));
+            return List.copyOf(found.values());
         }
-        return null;
+        // An exact identity without coordinates is flagged, never merged automatically.
+        return repository.findWithoutCoordinates(p.getOrganizationId(),p.getName(),Objects.toString(p.getCity(),""),p.getCategory());
+    }
+    private void assertUnique(Prospect p) {
+        if(matches(p).stream().anyMatch(other -> !Objects.equals(other.getId(),p.getId())))
+            throw new ResponseStatusException(HttpStatus.CONFLICT,"Un contact de cette organisation utilise déjà cette identité (archives comprises)");
     }
 }

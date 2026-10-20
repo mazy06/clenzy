@@ -185,9 +185,9 @@ public class BookingCheckoutController {
 
         // P0.3 Caution : si configurée, enregistrer la carte (customer + off-session, capacité
         // CUSTOMER = Stripe-only, décision D3) → le webhook posera ensuite un hold séparé.
-        BigDecimal securityDeposit = (policy.securityDepositAmount() != null
-            && policy.securityDepositAmount().compareTo(BigDecimal.ZERO) > 0)
-            ? policy.securityDepositAmount() : null;
+        BigDecimal depositAmount = hold.getSecurityDepositAmount() != null
+                ? hold.getSecurityDepositAmount() : policy.securityDepositAmount();
+        BigDecimal securityDeposit = depositAmount != null && depositAmount.signum() > 0 ? depositAmount : null;
 
         // Z4A-BUGS-07 : devise de la PROPRIETE (repli config), pas la devise globale.
         String propertyCurrency = property.getDefaultCurrency();

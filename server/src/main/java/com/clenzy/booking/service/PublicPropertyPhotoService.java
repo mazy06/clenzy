@@ -4,7 +4,8 @@ import com.clenzy.exception.NotFoundException;
 import com.clenzy.integration.channex.repository.ChannexPropertyMappingRepository;
 import com.clenzy.model.Property;
 import com.clenzy.repository.PropertyRepository;
-import com.clenzy.service.PropertyPhotoService;
+import com.clenzy.repository.PropertyPhotoRepository;
+import com.clenzy.service.PhotoStorageService;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -22,14 +23,17 @@ import org.springframework.transaction.annotation.Transactional;
 public class PublicPropertyPhotoService {
 
     private final PropertyRepository propertyRepository;
-    private final PropertyPhotoService photoService;
+    private final PropertyPhotoRepository photoRepository;
+    private final PhotoStorageService storageService;
     private final ChannexPropertyMappingRepository channexMappingRepository;
 
     public PublicPropertyPhotoService(PropertyRepository propertyRepository,
-                                      PropertyPhotoService photoService,
+                                      PropertyPhotoRepository photoRepository,
+                                      PhotoStorageService storageService,
                                       ChannexPropertyMappingRepository channexMappingRepository) {
         this.propertyRepository = propertyRepository;
-        this.photoService = photoService;
+        this.photoRepository = photoRepository;
+        this.storageService = storageService;
         this.channexMappingRepository = channexMappingRepository;
     }
 
@@ -44,8 +48,12 @@ public class PublicPropertyPhotoService {
         if (!marketingPublic) {
             throw new NotFoundException("Photo non disponible");
         }
-        byte[] data = photoService.getPhotoData(propertyId, photoId);
-        String contentType = photoService.getPhotoContentType(propertyId, photoId);
+        // The marketing guard above replaces the private organization guard on this public path.
+        // Keep the photo bound to the approved property, including when resolving object storage.
+        var photo = photoRepository.findByIdAndPropertyId(photoId, propertyId)
+                .orElseThrow(() -> new NotFoundException("Photo non disponible"));
+        byte[] data = photo.getStorageKey() == null ? photo.getData() : storageService.retrieve(photo.getStorageKey());
+        String contentType = photo.getContentType() == null ? "image/jpeg" : photo.getContentType();
         return new PublicPhoto(data, contentType);
     }
 }

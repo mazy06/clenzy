@@ -1,7 +1,10 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { ArrowUpRight } from '../../icons/glyphs';
-import { ChartThumbnailContext, ChartTile, FiguresRow } from '../../components/stats';
+import { ChartThumbnailContext, FiguresRow } from '../../components/stats';
+import { WidgetPanel } from '../../components/baitly/WidgetPanel';
+import './dashboardImportedWidgets.css';
+import { WidgetPresentationContext } from '../../components/stats/widgetPresentation';
 import { useTranslation } from '../../hooks/useTranslation';
 import type { DashboardPeriod } from './DashboardDateFilter';
 import type { ReportContent } from '../reports/reportShell';
@@ -282,7 +285,7 @@ export function sourceTiles(content: ReportContent, kpiTitle: string): ReportCon
       key: KPI_TILE_KEY,
       title: kpiTitle,
       fluid: true,
-      render: () => <FiguresRow figures={content.figures} />,
+      render: () => <FiguresRow figures={content.figures} className="db-imported-figures" />,
     },
     ...content.items,
   ];
@@ -327,13 +330,12 @@ export const ImportedTileWidget: React.FC<{
           // La tuile n'existe pas dans cette periode (pas de donnee) : on le dit,
           // plutot que de laisser un cadre vide sans explication.
           return (
-            <ChartTile
-              fluid
+            <WidgetPanel
               title={t('dashboard.imported.missingTitle', 'Graphique indisponible')}
-              hint={t('dashboard.imported.missingHint', 'Aucune donnée sur la période choisie.')}
+              caption={t('dashboard.imported.missingHint', 'Aucune donnée sur la période choisie.')}
             >
               <span className="sr-only">{reference.tileKey}</span>
-            </ChartTile>
+            </WidgetPanel>
           );
         }
         // Le libelle du renvoi doit nommer la DESTINATION, pas la source : une
@@ -346,12 +348,10 @@ export const ImportedTileWidget: React.FC<{
           ? t(destination.translationKey, destination.fallbackLabel ?? source.originFallback)
           : t(source.originKey, source.originFallback);
         return (
-          <ChartTile
+          <WidgetPanel
             className="db-imported-widget"
-            scrollable
             title={tile.title}
-            hint={tile.hint}
-            fluid={tile.fluid}
+            caption={tile.hint}
             action={
               <div className="flex items-center gap-1">
                 {tile.action}
@@ -362,8 +362,11 @@ export const ImportedTileWidget: React.FC<{
               </div>
             }
           >
-            {tile.render()}
-          </ChartTile>
+            <div className={`db-widget-body db-imported-body${tile.fluid ? ' db-imported-body--fluid' : ' db-imported-body--chart'}`}
+              tabIndex={0} role="region" aria-label={tile.title}>
+              <WidgetPresentationContext.Provider value>{tile.render()}</WidgetPresentationContext.Provider>
+            </div>
+          </WidgetPanel>
         );
       }}
     </Mount>
@@ -381,7 +384,7 @@ export const ImportedTileWidget: React.FC<{
 export const SourceTileOptions: React.FC<{
   source: TileSource;
   period: DashboardPeriod;
-  children: (tiles: ReportContent['items'], loading: boolean) => React.ReactNode;
+  children: (tiles: ReportContent['items'], loading: boolean, failure?: { retry?: () => void }) => React.ReactNode;
 }> = ({ source, period, children }) => {
   const { t } = useTranslation();
   const Mount = SOURCE_MOUNTS[source.id];
@@ -390,7 +393,7 @@ export const SourceTileOptions: React.FC<{
     <React.Suspense fallback={<DashboardWidgetState title={t(source.labelKey, source.fallback)} />}>
     <Mount period={period}>
       {(content) =>
-        children(sourceTiles(content, t('dashboard.imported.kpisTitle', 'Indicateurs clés')), content.loading)
+        children(sourceTiles(content, t('dashboard.imported.kpisTitle', 'Indicateurs clés')), content.loading, content.error ? { retry: content.retry } : undefined)
       }
     </Mount>
     </React.Suspense>
@@ -421,13 +424,17 @@ const THUMB_SOURCE_WIDTH = 380;
  */
 const THUMB_SOURCE_HEIGHT = Math.round(THUMB_SOURCE_WIDTH * (THUMB_HEIGHT / THUMB_WIDTH));
 
-export const TileThumbnail: React.FC<{ tile: ReportContent['items'][number] }> = ({ tile }) => {
-  const scale = THUMB_WIDTH / THUMB_SOURCE_WIDTH;
+export const TileThumbnail: React.FC<{ tile: ReportContent['items'][number]; large?: boolean }> = ({ tile, large = false }) => {
+  const width = large ? 240 : THUMB_WIDTH;
+  const height = large ? 138 : THUMB_HEIGHT;
+  const scale = width / THUMB_SOURCE_WIDTH;
   return (
     <span
       aria-hidden
+      ref={(node) => { if (node) node.setAttribute('inert', ''); }}
       className="db-thumb relative block shrink-0 overflow-hidden rounded-md border border-border bg-card"
-      style={{ width: THUMB_WIDTH, height: THUMB_HEIGHT }}
+      // Keep the scaled SVG coordinate origin consistent in both directions.
+      style={{ width, height, direction: 'ltr' }}
     >
       <ChartThumbnailContext.Provider value>
         <span
@@ -438,7 +445,7 @@ export const TileThumbnail: React.FC<{ tile: ReportContent['items'][number] }> =
             transform: `scale(${scale})`,
           }}
         >
-          {tile.render()}
+          <WidgetPresentationContext.Provider value>{tile.render()}</WidgetPresentationContext.Provider>
         </span>
       </ChartThumbnailContext.Provider>
     </span>

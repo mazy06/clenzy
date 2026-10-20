@@ -4,6 +4,7 @@ import com.clenzy.exception.NotFoundException;
 import com.clenzy.repository.InterventionRepository;
 import com.clenzy.repository.ReservationRepository;
 import com.clenzy.repository.ServiceRequestRepository;
+import com.clenzy.repository.PaymentTransactionRepository;
 import com.clenzy.tenant.TenantScopedExecutor;
 import org.springframework.stereotype.Component;
 
@@ -20,14 +21,16 @@ public class StripeWebhookTenantScope {
     private final ReservationRepository reservations;
     private final ServiceRequestRepository requests;
     private final TenantScopedExecutor tenants;
+    private final PaymentTransactionRepository payments;
 
     public StripeWebhookTenantScope(InterventionRepository interventions,
             ReservationRepository reservations, ServiceRequestRepository requests,
-            TenantScopedExecutor tenants) {
+            TenantScopedExecutor tenants, PaymentTransactionRepository payments) {
         this.interventions = interventions;
         this.reservations = reservations;
         this.requests = requests;
         this.tenants = tenants;
+        this.payments = payments;
     }
 
     public void forIntervention(String sessionId, Runnable action) {
@@ -39,6 +42,24 @@ public class StripeWebhookTenantScope {
     public void forReservation(String sessionId, Runnable action) {
         var reservation = reservations.findByStripeSessionId(sessionId)
                 .orElseThrow(() -> new NotFoundException("Session de réservation introuvable"));
+        tenants.runAsOrganization(reservation.getOrganizationId(), action);
+    }
+
+    /** Le dossier serveur permet aussi de reprendre une session non encore attachée au hold. */
+    public void forBookingCheckout(String sessionId, Runnable action) {
+        var payment = payments.findByProviderTxId(sessionId)
+                .orElseThrow(() -> new NotFoundException("Paiement de séjour introuvable"));
+        if (!"BOOKING_CHECKOUT".equals(payment.getSourceType()) || payment.getSourceId() == null
+                || payment.getProviderType() != com.clenzy.model.PaymentProviderType.STRIPE
+                || payment.getPaymentType() != com.clenzy.model.TransactionType.CHECKOUT) {
+            throw new IllegalStateException("Origine du paiement de séjour incohérente");
+        }
+        var reservation = reservations.findById(payment.getSourceId())
+                .orElseThrow(() -> new NotFoundException("Séjour du paiement introuvable"));
+        if (payment.getOrganizationId() == null
+                || !Objects.equals(payment.getOrganizationId(), reservation.getOrganizationId())) {
+            throw new IllegalStateException("Le paiement et le séjour appartiennent à des organisations différentes");
+        }
         tenants.runAsOrganization(reservation.getOrganizationId(), action);
     }
 

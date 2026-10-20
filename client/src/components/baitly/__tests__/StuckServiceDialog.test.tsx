@@ -6,6 +6,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import StuckServiceDialog from '../StuckServiceDialog';
 import { serviceRequestsApi } from '../../../services/api/serviceRequestsApi';
 import { reservationsApi } from '../../../services/api/reservationsApi';
+import { teamsApi } from '../../../services/api/teamsApi';
 import { useTranslation } from '../../../hooks/useTranslation';
 
 /**
@@ -16,6 +17,7 @@ import { useTranslation } from '../../../hooks/useTranslation';
  * « À traiter » derrière sa limite d'erreur.
  */
 
+vi.mock('../../../services/api/teamsApi', () => ({ teamsApi: { getAll: vi.fn().mockResolvedValue([]) } }));
 vi.mock('../../../services/api/reservationsApi', () => ({
   reservationsApi: { getAll: vi.fn().mockResolvedValue([]) },
 }));
@@ -125,6 +127,31 @@ describe('<StuckServiceDialog>', () => {
     expect(await screen.findByText('Équipe Marrakech')).toBeTruthy();
     expect(screen.getByText('Équipe Gueliz')).toBeTruthy();
     expect(screen.getByText(/Aucune équipe ne remplit les conditions actuelles/)).toBeTruthy();
+  });
+
+  it('affiche les membres réels en avatars et conserve la sélection du prestataire', async () => {
+    vi.mocked(teamsApi.getAll).mockResolvedValue([{ id: 1, name: 'Équipe Paris', memberCount: 4,
+      members: [
+        { id: 10, firstName: 'Sofia', lastName: 'Martin', avatarUrl: '/api/photos/10' },
+        { id: 11, firstName: 'Karim', lastName: 'Benali' },
+        { id: 12, firstName: 'Léa', lastName: 'Dupont' },
+        { id: 13, firstName: 'Max', lastName: 'Morel' },
+      ] } ] as never);
+    vi.mocked(serviceRequestsApi.assignableTeams).mockResolvedValue({ teams: [
+      { teamId: 1, name: 'Équipe Paris', origin: 'ZONE', available: true, conflicts: 0 },
+    ], requiredTeamType: null });
+    renderDialog();
+    fireEvent.click(screen.getByRole('button', { name: /Replanifier/ }));
+    await screen.findByLabelText(/Heure/);
+    const days = Array.from(document.querySelectorAll<HTMLButtonElement>('button[data-day]')).filter(button => !button.disabled);
+    fireEvent.click(days[0]);
+    const provider = await screen.findByRole('button', { name: /Équipe Paris/ });
+    await waitFor(() => expect(provider.querySelector('[title="Sofia Martin"]')).toBeTruthy());
+    expect(provider.textContent).toContain('KB');
+    expect(provider.textContent).toContain('+1');
+    fireEvent.click(provider);
+    expect(provider.getAttribute('aria-pressed')).toBe('true');
+    expect(screen.getByRole('button', { name: /Laisser chercher/ }).getAttribute('aria-pressed')).toBe('false');
   });
 
   it('rattache au séjour qui couvre le jour choisi', async () => {

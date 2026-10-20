@@ -250,6 +250,7 @@ export default function CompositeBuilder({ open, config, initial, getTemplateCss
     const init = initialRef.current;
     const html = init ? (init.html?.trim() ? init.html : buildCompositeInner(init)) : '';
     if (html.trim()) editor.setComponents(html);
+    if (init?.css) editor.addStyle(init.css);
 
     return () => { editor.destroy(); editorRef.current = null; };
     // eslint-disable-next-line react-hooks/exhaustive-deps

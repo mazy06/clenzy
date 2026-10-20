@@ -25,7 +25,7 @@ import java.util.function.Consumer;
  *
  * <p>Horaire : le jour de l'arrivée commence à une heure différente selon le fuseau du logement,
  * et un renouvellement se déclenche {@link SecurityDepositHoldPolicy#RENEWAL_MARGIN} avant une
- * échéance à la seconde près. La libération J+2 reste portée par {@link BookingCautionScheduler}.</p>
+ * échéance à la seconde près. La libération après ménage validé relève de {@link BookingCautionScheduler}.</p>
  */
 @Component
 public class SecurityDepositHoldScheduler {

@@ -110,9 +110,10 @@ class WelcomeGuideServiceTest {
 
         // Staff plateforme : contexte org null → l'org doit etre derivee du logement.
         WelcomeGuide result = service.createGuide(null, new WelcomeGuideRequest(
-            10L, "Guide", "fr", "[]", null, null, null, null, null, null, null, null, null, null, null, null, null, null), false);
+            10L, "Guide", "fr", "[]", null, null, null, null, null, null, null, null, null, null, null, null, null, null, "cityguide"), false);
 
         assertThat(result.getOrganizationId()).isEqualTo(7L);
+        assertThat(result.getStructure()).isEqualTo("cityguide");
     }
 
     @Test

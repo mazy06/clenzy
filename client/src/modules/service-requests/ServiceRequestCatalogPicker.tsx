@@ -40,7 +40,7 @@ export default function ServiceRequestCatalogPicker({ selected, onToggle, disabl
       <FieldLabel htmlFor={id + '-category'}>{t('requestComposer.categories')}</FieldLabel>
       <Select value={category || 'all'} onValueChange={value => setCategory(value === 'all' ? '' : value)} disabled={disabled}>
         <SelectTrigger id={id + '-category'} className="w-full min-h-10"><SelectValue /></SelectTrigger>
-        <SelectContent>
+        <SelectContent className="baitly-form-options">
           <SelectItem value="all">{t('requestComposer.allServices')}</SelectItem>
           {groups.map(code => <SelectItem key={code} value={code}>{categoryLabel(code)}</SelectItem>)}
         </SelectContent>

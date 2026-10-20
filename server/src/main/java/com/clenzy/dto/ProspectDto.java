@@ -3,7 +3,7 @@ package com.clenzy.dto;
 import com.clenzy.model.Prospect;
 import io.swagger.v3.oas.annotations.media.Schema;
 
-@Schema(description = "Prospect B2B pour la prospection")
+@Schema(description = "Contact CRM Baitly de l’organisation")
 public record ProspectDto(
     @Schema(description = "ID du prospect") Long id,
     @Schema(description = "Nom de l'entreprise") String name,
@@ -17,8 +17,16 @@ public record ProspectDto(
     @Schema(description = "Site web") String website,
     @Schema(description = "Profil LinkedIn") String linkedIn,
     @Schema(description = "Chiffre d'affaires") String revenue,
-    @Schema(description = "Nombre d'employes") String employees
+    @Schema(description = "Nombre d'employes") String employees,
+    String contactType, String contactNature, String sourceType, String sourceDetail,
+    String sourceUrl, java.time.Instant sourceRecordedAt, boolean archived
 ) {
+    /** Compatibility with historic partial-update clients. */
+    public ProspectDto(Long id,String name,String email,String phone,String city,String specialty,
+                       String category,String status,String notes,String website,String linkedIn,String revenue,String employees) {
+        this(id,name,email,phone,city,specialty,category,status,notes,website,linkedIn,revenue,employees,
+             null,null,null,null,null,null,false);
+    }
     public static ProspectDto fromEntity(Prospect p) {
         return new ProspectDto(
             p.getId(),
@@ -33,7 +41,9 @@ public record ProspectDto(
             p.getWebsite(),
             p.getLinkedIn(),
             p.getRevenue(),
-            p.getEmployees()
+            p.getEmployees(),
+            p.getContactType(),p.getContactNature(),p.getSourceType(),p.getSourceDetail(),
+            p.getSourceUrl(),p.getSourceRecordedAt(),p.isArchived()
         );
     }
 }

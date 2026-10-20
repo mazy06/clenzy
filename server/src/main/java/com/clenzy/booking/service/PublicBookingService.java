@@ -61,6 +61,10 @@ public class PublicBookingService {
     @org.springframework.beans.factory.annotation.Value("${clenzy.base-url:https://app.clenzy.fr}")
     private String publicBaseUrl = "https://app.clenzy.fr";
 
+    /** Recette locale uniquement, désactivée par défaut et limitée à l'origine locale configurée. */
+    @org.springframework.beans.factory.annotation.Value("${clenzy.booking.allow-local-return:false}")
+    private boolean allowLocalReturn;
+
     /** Duree d'expiration d'une reservation PENDING (minutes). */
     private static final int PENDING_EXPIRATION_MINUTES = 30;
 
@@ -767,6 +771,7 @@ public class PublicBookingService {
         reservation.setStatus("pending");
         reservation.setSource("direct");
         reservation.setSourceName("Baitly Booking Engine");
+        reservation.setSecurityDepositAmount(property.getSecurityDepositAmount());
         reservation.setCurrency(property.getDefaultCurrency());
         reservation.setNotes(req.notes());
         reservation.setPaymentStatus(PaymentStatus.PENDING);
@@ -1115,8 +1120,10 @@ public class PublicBookingService {
         var plan=BaitlyBookingPaymentPlan.of(chargeAmount,ctx.config().getDepositPercent());
         chargeAmount=plan.now();
         creditMetadata.putAll(plan.metadata());
-        if(ctx.config().getSecurityDepositAmount()!=null && ctx.config().getSecurityDepositAmount().signum()>0)
-            creditMetadata.put("security_deposit_amount",ctx.config().getSecurityDepositAmount().toPlainString());
+        BigDecimal securityDeposit = reservation.getSecurityDepositAmount() != null
+                ? reservation.getSecurityDepositAmount() : ctx.config().getSecurityDepositAmount();
+        if(securityDeposit != null && securityDeposit.signum()>0)
+            creditMetadata.put("security_deposit_amount",securityDeposit.toPlainString());
 
         // P2 — scoring de risque/fraude AVANT la création de session. Le montant scoré est le total
         // RECALCULÉ SERVEUR, jamais un montant client. Décision graduée (advisory par défaut → no-op).
@@ -1311,12 +1318,13 @@ public class PublicBookingService {
             log.warn("Booking Engine — returnUrl illisible ignore pour l'org {} (anti open-redirect)", config.getOrganizationId());
             return null;
         }
-        // HTTPS obligatoire + host present.
-        if (uri.getScheme() == null || !"https".equalsIgnoreCase(uri.getScheme()) || uri.getHost() == null) {
+        boolean localRecipeReturn = isLocalRecipeReturn(uri);
+        // HTTPS en fonctionnement normal ; exception explicite de recette pour l'origine locale exacte.
+        if (uri.getHost() == null || !"https".equalsIgnoreCase(uri.getScheme()) && !localRecipeReturn) {
             log.warn("Booking Engine — returnUrl non-HTTPS ou sans host ignore pour l'org {} (anti open-redirect)", config.getOrganizationId());
             return null;
         }
-        if (!isHostAllowedForOrg(config, uri.getHost())) {
+        if (!localRecipeReturn && !isHostAllowedForOrg(config, uri.getHost())) {
             log.warn("Booking Engine — returnUrl host '{}' hors origines autorisees de l'org {} : ignore (anti open-redirect)",
                 uri.getHost(), config.getOrganizationId());
             return null;
@@ -1325,6 +1333,17 @@ public class PublicBookingService {
         String separator = (uri.getRawQuery() == null || uri.getRawQuery().isEmpty()) ? "?" : "&";
         return returnUrl.trim() + separator + "reservation="
             + URLEncoder.encode(reservationCode, StandardCharsets.UTF_8);
+    }
+
+    private boolean isLocalRecipeReturn(URI uri) {
+        if (!allowLocalReturn || !"http".equalsIgnoreCase(uri.getScheme()) || uri.getUserInfo() != null
+                || !("localhost".equalsIgnoreCase(uri.getHost()) || "127.0.0.1".equals(uri.getHost()))) return false;
+        try {
+            URI base = URI.create(publicBaseUrl);
+            return "http".equalsIgnoreCase(base.getScheme()) && uri.getRawAuthority().equalsIgnoreCase(base.getRawAuthority());
+        } catch (IllegalArgumentException invalidBase) {
+            return false;
+        }
     }
 
     /**
@@ -1492,6 +1511,7 @@ public class PublicBookingService {
         reservation.setStatus("pending");
         reservation.setSource("direct");
         reservation.setSourceName("Baitly Booking Engine");
+        reservation.setSecurityDepositAmount(property.getSecurityDepositAmount());
         reservation.setCurrency(property.getDefaultCurrency());
         reservation.setPaymentStatus(PaymentStatus.PENDING);
         reservation.setRoomRevenue(availability.subtotal());
@@ -1514,6 +1534,9 @@ public class PublicBookingService {
         Property property = reservation.getProperty();
         int nights = (int) ChronoUnit.DAYS.between(reservation.getCheckIn(), reservation.getCheckOut());
 
+        var caution = depositService.publicSummary(orgId, reservation.getId());
+        BigDecimal cautionAmount = reservation.getSecurityDepositAmount() != null ? reservation.getSecurityDepositAmount()
+                : caution.map(BookingEngineDepositService.PublicSummary::amount).orElse(BigDecimal.ZERO);
         return new BookingConfirmationDto(
             reservation.getConfirmationCode(),
             reservation.getStatus(),
@@ -1532,7 +1555,9 @@ public class PublicBookingService {
             reservation.getGuestName(),
             reservation.getGuest() != null ? reservation.getGuest().getEmail() : null,
             reservation.getCheckInTime(),
-            reservation.getCheckOutTime()
+            reservation.getCheckOutTime(),
+            cautionAmount,
+            caution.map(BookingEngineDepositService.PublicSummary::status).orElse(cautionAmount.signum() > 0 ? "SETUP_PENDING" : null)
         );
     }
 
@@ -1566,6 +1591,7 @@ public class PublicBookingService {
         var reservation=holdLifecycle.confirmable(session);
         if(reservation.getPaymentStatus()==PaymentStatus.PAID || reservation.getPaymentStatus()==PaymentStatus.PARTIALLY_PAID) {
             if(session.getMetadata()!=null && parseAmountOrZero(session.getMetadata().get("deposit_balance")).signum()>0)voucherClaims.consume(reservation);
+            scheduleCautionSetup(session, reservation);
             return;
         }
         finalizeBookingPayment(session,reservation);
@@ -1609,7 +1635,8 @@ public class PublicBookingService {
      */
     private void scheduleCautionSetup(Session session, Reservation reservation) {
         Map<String, String> md = session.getMetadata() != null ? session.getMetadata() : Collections.emptyMap();
-        BigDecimal caution = parseAmountOrZero(md.get("security_deposit_amount"));
+        BigDecimal caution = reservation.getSecurityDepositAmount() != null
+                ? reservation.getSecurityDepositAmount() : parseAmountOrZero(md.get("security_deposit_amount"));
         if (caution.compareTo(BigDecimal.ZERO) <= 0) {
             return;
         }
@@ -1827,6 +1854,8 @@ public class PublicBookingService {
             wb.customerName() != null ? wb.customerName() : nameParts[0],
             wb.guests(), wb.checkIn(), wb.checkOut(), availability, stripeTotal);
         reservation.setStripeSessionId(session.getId());
+        // Le montant annoncé au paiement prévaut sur les modifications ultérieures du logement.
+        reservation.setSecurityDepositAmount(parseAmountOrZero(session.getMetadata().get("security_deposit_amount")));
         reservation = reservationRepository.save(reservation);
 
         try {

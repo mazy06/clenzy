@@ -1,6 +1,6 @@
 import type { ReactNode } from "react";
-import StatusChip from '../../components/StatusChip';
-import { ServiceMapStatus } from '../../components/ServiceMapIndicator';
+import ServiceMapIndicator, { ServiceMapStatus } from '../../components/ServiceMapIndicator';
+import { Flag } from '../../icons/glyphs';
 import { Progress } from '../../components/ui';
 import ServiceMapRow from '../service-requests/ServiceMapRow';
 import { useTranslation } from '../../hooks/useTranslation';
@@ -37,7 +37,7 @@ export function InterventionMissionRow({ intervention, badge, actions }: {
     badges={<>
       {badge}
       <ServiceMapStatus status={intervention.status} tokens={getStatusTokens(intervention.status)} label={getInterventionStatusLabel(intervention.status, t)} />
-      {intervention.priority.toUpperCase() !== 'NORMAL' && <StatusChip pill tokens={getPriorityTokens(intervention.priority)} label={getInterventionPriorityLabel(intervention.priority, t)} />}
+      {intervention.priority.toUpperCase() !== 'NORMAL' && <ServiceMapIndicator icon={Flag} tokens={getPriorityTokens(intervention.priority)} label={getInterventionPriorityLabel(intervention.priority, t)} />}
     </>}>
     {progress > 0 && <div className="mt-2 flex items-center gap-2">
       <Progress value={progress} className="h-1 flex-1" aria-label={t('interventions.fields.initialProgress')} />

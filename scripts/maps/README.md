@@ -156,3 +156,24 @@ palette n'est définie qu'à un seul endroit. L'adresse du bloc est géocodée c
 Les liens « Itinéraire » (PMS, livret, application mobile) proposent le choix de
 l'application GPS — Plans, Google Maps, Waze — au lieu d'imposer Google Maps
 (`client/src/utils/directions.ts`, `mobile/src/lib/directions.ts`).
+
+## TODO : enrichissement automatique Google Places
+
+Décision du 18 octobre 2026 : **reporté à plus tard à la demande de l’utilisateur**.
+Conserver pour le moment la carte Baitly et les fiches OSM/Wikimedia actuelles.
+
+- [ ] Étudier et intégrer Google Places UI Kit pour afficher automatiquement les photos,
+  coordonnées et horaires disponibles au clic sur un lieu, en conservant la carte Baitly.
+- [ ] Prévoir la correspondance fiable avec l’établissement Google, un chargement au clic,
+  les quotas et limites de dépenses, ainsi que le repli sur les données actuelles.
+- [ ] Vérifier les conditions EEE, les mentions et crédits obligatoires, les possibilités
+  de présentation et la tarification au moment de la reprise.
+- [ ] Configurer le projet Google Cloud, la facturation et une clé restreinte uniquement
+  lors de la reprise explicite de ce chantier.
+
+Périmètre souhaité : **aucune édition manuelle, aucune fiche personnalisable**.
+Aucune activation de service Google ni dépense n’est autorisée par cette entrée TODO.
+
+Références : [Places UI Kit](https://developers.google.com/maps/documentation/javascript/places-ui-kit/overview),
+[conditions EEE](https://developers.google.com/maps/comms/eea/faq),
+[tarification](https://developers.google.com/maps/billing-and-pricing/pricing).

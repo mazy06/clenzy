@@ -18,6 +18,7 @@ export interface PropertyDetailsData {
   city: string;
   postalCode: string;
   country: string;
+  countryCode?: string;
   propertyType: string;
   status: string;
   nightlyPrice: number;
@@ -103,6 +104,7 @@ function convertProperty(raw: Property): PropertyDetailsData {
     city: raw.city,
     postalCode: raw.postalCode,
     country: raw.country,
+    countryCode: raw.countryCode,
     propertyType: raw.type?.toLowerCase() || 'apartment',
     status: raw.status?.toLowerCase() || 'active',
     nightlyPrice: raw.nightlyPrice || 0,

@@ -8,7 +8,7 @@ import { useMediaQuery } from '../hooks/use-media-query';
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem } from './ui';
 import { Drawer, DrawerTrigger, DrawerContent, DrawerHeader, DrawerTitle, DrawerDescription } from './ui/drawer';
 import NavCountBadge from './NavCountBadge';
-import { sizedIcon } from '../config/navigationIcons';
+import { baitlyTabColor, BaitlyTabIcon } from './baitlyTabColors';
 import { cn } from '../utils/cn';
 import type { PageTabItem } from './PageTabs';
 
@@ -95,7 +95,7 @@ export default function PageTabsMenu<T extends string | number>({
         'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50',
       )}
     >
-      <span className="truncate">{current.label}</span>
+      <span className="truncate" style={{color:current.color ?? baitlyTabColor(Math.max(0, activeIndex))}}>{current.label}</span>
       <NavCountBadge count={current.badge} tone={current.badgeColor} />
       <span className="relative flex shrink-0 items-center">
         <ChevronDown className="size-4 text-muted-foreground" />
@@ -113,12 +113,8 @@ export default function PageTabsMenu<T extends string | number>({
     const icon = iconFor(opt);
     return (
     <>
-      {icon ? (
-        sizedIcon(icon, 16, 1.75)
-      ) : (
-        <span aria-hidden className="size-4 shrink-0" />
-      )}
-      <span className="min-w-0 flex-1 truncate">{opt.label}</span>
+      <BaitlyTabIcon icon={icon} color={opt.color ?? baitlyTabColor(index)} />
+      <span className="min-w-0 flex-1 truncate" style={{color:opt.color ?? baitlyTabColor(index)}}>{opt.label}</span>
       <NavCountBadge count={opt.badge} tone={opt.badgeColor} />
       {index === activeIndex && <Check className="size-4 shrink-0 text-primary" />}
     </>

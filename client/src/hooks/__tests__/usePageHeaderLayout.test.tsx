@@ -4,9 +4,9 @@ import { usePageHeaderLayout } from '../usePageHeaderLayout';
 
 afterEach(() => { cleanup(); vi.restoreAllMocks(); vi.unstubAllGlobals(); });
 
-function Header({ anchored = true, contentKey = '', title = 'Titre et onglet' }: { anchored?: boolean; contentKey?: string; title?: string }) {
+function Header({ anchored = true, contentKey = '', title = 'Titre et onglet',margin=0 }: { anchored?: boolean; contentKey?: string; title?: string;margin?:number }) {
   const { headerRef, canInlineControls, compactSearch, compactActions } = usePageHeaderLayout(anchored, contentKey);
-  return <div data-testid="page" style={{ paddingInlineStart: 24, paddingInlineEnd: 24, paddingTop: 24 }}>
+  return <div data-testid="page" style={{ margin,marginInlineStart:margin,marginInlineEnd:margin,paddingInlineStart: 24, paddingInlineEnd: 24, paddingTop: 24 }}>
     <header ref={headerRef} data-testid="header">
       <div data-header-row data-inline={canInlineControls}>
         <div data-slot="page-title"><span>{title}</span></div>
@@ -115,4 +115,15 @@ it('réutilise les marges quand seul le contenu du header change', async () => {
   await act(async () => { await new Promise(requestAnimationFrame); await new Promise(requestAnimationFrame); });
   expect(gutterWrites()).toBe(before);
   expect(screen.getByTestId('header').style.getPropertyValue('--page-header-gutter-start')).toBe('24px');
+});
+
+it('absorbs the outside margins of a full-width page wrapper',()=>{
+ dimensions();
+ vi.spyOn(HTMLElement.prototype,'getBoundingClientRect').mockImplementation(function(this:HTMLElement){
+  const page=this.dataset.testid==='page',shell=this.dataset.testid==='shell';
+  return {x:page?20:0,y:page?20:0,left:page?20:0,top:page?20:0,right:page?1180:shell?1200:0,bottom:0,width:page?1160:shell?1200:0,height:0,toJSON(){}};
+ });
+ render(<main data-testid="shell" style={{padding:12,paddingInlineStart:12,paddingInlineEnd:12}}><Header margin={8}/></main>);
+ expect(screen.getByTestId('header').style.getPropertyValue('--page-header-gutter-start')).toBe('44px');
+ expect(screen.getByTestId('header').style.getPropertyValue('--page-header-gutter-top')).toBe('44px');
 });

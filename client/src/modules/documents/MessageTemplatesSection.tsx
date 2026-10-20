@@ -1,3 +1,4 @@
+import {PageHeaderFilterControls} from "../../components/PageHeaderActionsContext";
 import { useState, forwardRef, useImperativeHandle } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useSearchParams } from 'react-router-dom';
@@ -71,9 +72,10 @@ const MessageTemplatesSection = forwardRef<MessageTemplatesSectionRef>((_, ref) 
   const visiblePage = selectedIndex >= 0 ? Math.floor(selectedIndex / 12) : pageIndex;
   return <>
     {(actionError || users.error || systems.error) && <Alert variant="destructive" role="alert" className="mb-3"><AlertDescription>{actionError || t('messaging.templates.loadError')}</AlertDescription><Button variant="ghost" onClick={refresh}>{t('common.retry')}</Button></Alert>}
-    <div className="documents-toolbar"><p>{t('documentsWorkspace.count', { count: rows.length })}</p><NativeSelect value={origin} aria-label={t('messaging.templates.origin')} onChange={e => { setOrigin(e.target.value); setPage(0); }}>
+    <PageHeaderFilterControls>{<NativeSelect value={origin} aria-label={t('messaging.templates.origin')} onChange={e => { setOrigin(e.target.value); setPage(0); }}>
       <NativeSelectOption value="all">{t('documentsWorkspace.allOrigins')}</NativeSelectOption><NativeSelectOption value="user">{t('messaging.templates.originUser')}</NativeSelectOption><NativeSelectOption value="system">{t('messaging.templates.originSystem')}</NativeSelectOption>
-    </NativeSelect></div>
+    </NativeSelect>}</PageHeaderFilterControls>
+    <div className="documents-toolbar"><p>{t('documentsWorkspace.count', { count: rows.length })}</p></div>
     {users.isPending || systems.isPending ? <DocumentsLoading /> : <DocumentsWorkspace label={t('documentsWorkspace.views.email')}
       records={rows.slice(visiblePage * 12, (visiblePage + 1) * 12)} selectedId={selected}
       onSelect={id => setParams(previous => { const next = new URLSearchParams(previous); if (id) next.set('template', id); else next.delete('template'); return next; }, { replace: true })}

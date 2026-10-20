@@ -5,6 +5,8 @@
 import type { SearchFilters } from './types';
 
 export interface ApiProperty {
+  securityDepositAmount?: number;
+  securityDepositCurrency?: string;
   id: number;
   name: string;
   type: string | null;
@@ -122,6 +124,8 @@ export interface ApiBatchReserveResult {
 
 /** Confirmation post-paiement (GET /{slug}/booking/{code}) — re-fetch au retour Stripe (B3). */
 export interface ApiConfirmation {
+  securityDepositAmount?: number;
+  securityDepositStatus?: string | null;
   reservationCode: string;
   status: string;
   paymentStatus: string;
@@ -401,7 +405,7 @@ export class BookingApi {
   }
 
   checkAvailability(
-    params: { propertyId: number; checkIn: string; checkOut: string; guests: number },
+    params: { propertyId: number; checkIn: string; checkOut: string; guests: number; children?: number },
     currency?: string,
     guestToken?: string,
   ): Promise<ApiAvailability> {

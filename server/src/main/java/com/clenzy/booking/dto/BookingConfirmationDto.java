@@ -24,5 +24,16 @@ public record BookingConfirmationDto(
     String guestName,
     String guestEmail,
     String checkInTime,
-    String checkOutTime
-) {}
+    String checkOutTime,
+    BigDecimal securityDepositAmount,
+    String securityDepositStatus
+) {
+    public BookingConfirmationDto(String reservationCode, String status, String paymentStatus, String propertyName,
+            String propertyCity, LocalDate checkIn, LocalDate checkOut, int nights, int guests,
+            BigDecimal subtotal, BigDecimal cleaningFee, BigDecimal touristTax, BigDecimal total, String currency,
+            String guestName, String guestEmail, String checkInTime, String checkOutTime) {
+        this(reservationCode, status, paymentStatus, propertyName, propertyCity, checkIn, checkOut, nights, guests,
+            subtotal, cleaningFee, touristTax, total, currency, guestName, guestEmail, checkInTime, checkOutTime,
+            BigDecimal.ZERO, null);
+    }
+}

@@ -1,4 +1,5 @@
 import React from 'react';
+import type { ServiceExecutionProfile } from './baitlyServiceExecution';
 import { cn } from '../../utils/cn';
 import { Alert as UiAlert, AlertDescription, Button } from '../../components/ui';
 import { CircleCheck, Info } from '../../icons/glyphs';
@@ -22,6 +23,7 @@ import { useTranslation } from '../../hooks/useTranslation';
 // ============================================================
 
 export interface NotesDialogProps {
+  executionProfile?: ServiceExecutionProfile | null;
   open: boolean;
   onClose: () => void;
   currentStep: 'inspection' | 'rooms' | 'after_photos' | null;
@@ -42,12 +44,14 @@ export const NotesDialog: React.FC<NotesDialogProps> = ({
   onSubmit,
   updating,
   stepNotes,
-  onStepNotesChange
+  onStepNotesChange,
+  executionProfile,
 }) => {
   const { t } = useTranslation();
   // Le champ n'a jamais eu de libelle visible : c'est le titre du dialogue qui
   // le nomme. On le reprend en aria-label pour ne pas laisser la zone anonyme.
-  const notesAriaLabel =
+  const serviceStep = executionProfile ? t(`serviceExecution.${executionProfile.kind}.${currentStep === 'inspection' ? 'prepare' : currentStep === 'rooms' ? 'work' : 'report'}`) : '';
+  const notesAriaLabel = executionProfile ? t('serviceExecution.notesTitle', { step: serviceStep }) :
     currentStep === 'inspection'
       ? t('interventions.dialogs.notesInspectionTitle')
       : currentStep === 'rooms'
@@ -59,17 +63,17 @@ export const NotesDialog: React.FC<NotesDialogProps> = ({
       <DialogContent className="sm:max-w-[900px] max-h-[85vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>
-            {currentStep === 'inspection' && t('interventions.dialogs.notesInspectionTitle')}
-            {currentStep === 'rooms' && t('interventions.dialogs.notesRoomsTitle')}
-            {currentStep === 'after_photos' && t('interventions.dialogs.notesAfterTitle')}
+            {notesAriaLabel}
           </DialogTitle>
         </DialogHeader>
         <UiAlert variant="info" className="mb-3 mt-1.5">
           <Info />
           <AlertDescription><p className="text-sm">
-            {currentStep === 'inspection' && t('interventions.dialogs.notesInspectionAlert')}
-            {currentStep === 'rooms' && t('interventions.dialogs.notesRoomsAlert')}
-            {currentStep === 'after_photos' && t('interventions.dialogs.notesAfterAlert')}
+            {executionProfile ? t('serviceExecution.noteHint') : <>
+              {currentStep === 'inspection' && t('interventions.dialogs.notesInspectionAlert')}
+              {currentStep === 'rooms' && t('interventions.dialogs.notesRoomsAlert')}
+              {currentStep === 'after_photos' && t('interventions.dialogs.notesAfterAlert')}
+            </>}
           </p></AlertDescription>
         </UiAlert>
         <Textarea
@@ -95,7 +99,7 @@ export const NotesDialog: React.FC<NotesDialogProps> = ({
               onStepNotesChange(updatedStepNotes);
             }
           }}
-          placeholder={
+          placeholder={executionProfile ? t('serviceExecution.notePlaceholder') :
             currentStep === 'inspection'
               ? t('interventions.dialogs.notesInspectionPlaceholder')
               : currentStep === 'rooms'
@@ -106,7 +110,7 @@ export const NotesDialog: React.FC<NotesDialogProps> = ({
         <UiAlert variant="info" className="mt-1.5 py-0.5">
           <Info />
           <AlertDescription><span className="text-xs">
-            {t('interventions.dialogs.notesAutoSave')}
+            {executionProfile ? t('serviceExecution.saveHint') : t('interventions.dialogs.notesAutoSave')}
           </span></AlertDescription>
         </UiAlert>
         <DialogFooter>
@@ -127,6 +131,7 @@ export const NotesDialog: React.FC<NotesDialogProps> = ({
 // ============================================================
 
 export interface PhotosDialogProps {
+  executionProfile?: ServiceExecutionProfile | null;
   open: boolean;
   onClose: () => void;
   photoType: 'before' | 'after';
@@ -144,6 +149,7 @@ export const PhotosDialog: React.FC<PhotosDialogProps> = ({
   onPhotosChange,
   onSubmit,
   uploading,
+  executionProfile,
 }) => {
   const { t } = useTranslation();
   return (
@@ -154,14 +160,14 @@ export const PhotosDialog: React.FC<PhotosDialogProps> = ({
           {/* Le titre porte deja la typo h6 du gabarit : plus de <h6> imbrique. */}
           <DialogTitle className="flex items-center gap-1.5">
             <span className={cn('inline-flex', photoType === 'before' ? 'text-primary' : 'text-success')}><PhotoCameraIcon size={20} strokeWidth={1.75} /></span>
-            {photoType === 'before' ? t('interventions.dialogs.photosBeforeTitle') : t('interventions.dialogs.photosAfterTitle')}
+            {executionProfile ? t('serviceExecution.photoTitle') : photoType === 'before' ? t('interventions.dialogs.photosBeforeTitle') : t('interventions.dialogs.photosAfterTitle')}
           </DialogTitle>
         </DialogHeader>
         <div className="pt-3">
           <UiAlert variant={photoType === 'before' ? 'info' : 'success'} className="mb-3">
             {photoType === 'before' ? <Info /> : <CircleCheck />}
             <AlertDescription><p className="text-sm">
-              {photoType === 'before'
+              {executionProfile ? t('serviceExecution.photoHint') : photoType === 'before'
                 ? t('interventions.dialogs.photosBeforeAlert')
                 : t('interventions.dialogs.photosAfterAlert')}
             </p></AlertDescription>
@@ -171,9 +177,9 @@ export const PhotosDialog: React.FC<PhotosDialogProps> = ({
             onPhotosChange={onPhotosChange}
             maxFiles={10}
             maxSizeMB={5}
-            label={photoType === 'before' ? t('interventions.dialogs.photosBeforeLabel') : t('interventions.dialogs.photosAfterLabel')}
+            label={executionProfile ? t('serviceExecution.photoTitle') : photoType === 'before' ? t('interventions.dialogs.photosBeforeLabel') : t('interventions.dialogs.photosAfterLabel')}
             helperText={
-              photoType === 'before'
+              executionProfile ? t('serviceExecution.photoHint') : photoType === 'before'
                 ? t('interventions.dialogs.photosBeforeHelper')
                 : t('interventions.dialogs.photosAfterHelper')
             }

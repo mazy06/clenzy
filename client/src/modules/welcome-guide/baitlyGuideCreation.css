@@ -1,0 +1,61 @@
+/* Baitly host workspace. Guest palettes remain scoped inside the book renderer. */
+.baitly-guide-studio { color:var(--bui-foreground); font-family:ui-sans-serif,system-ui,sans-serif; padding-block:0 32px; }
+.baitly-guide-studio__workspace { min-inline-size:0; }
+.baitly-guide-studio__choices { min-inline-size:0; }
+.baitly-guide-studio fieldset { min-inline-size:0; margin:0; padding:0; border:0; }
+.baitly-guide-studio legend { display:flex; align-items:center; gap:10px; padding:0; font-size:16px; font-weight:600; }
+.baitly-guide-studio__step { color:var(--bui-muted-foreground); font-size:12px; font-weight:500; font-variant-numeric:tabular-nums; }
+.baitly-guide-structures { display:grid; grid-auto-flow:column; grid-auto-columns:minmax(112px,1fr); gap:10px; overflow-x:auto; padding:6px; margin:14px -6px -6px; }
+.baitly-guide-structure { display:flex; flex-direction:column; justify-content:center; align-items:center; gap:12px; position:relative; min-block-size:120px; padding:20px 8px 14px; border:1px solid var(--bui-border); border-radius:8px; background:var(--bui-card); cursor:pointer; transition:background 180ms cubic-bezier(.25,1,.5,1),border-color 180ms cubic-bezier(.25,1,.5,1); }
+.baitly-guide-structure:hover { background:var(--bui-muted); }
+.baitly-guide-structure[data-selected="true"] { background:var(--bui-card); border-color:var(--bui-primary); border-radius:8px; }
+.baitly-guide-structure input,.baitly-guide-theme input { position:absolute; inline-size:1px; block-size:1px; opacity:0; }
+.baitly-guide-structure:has(input:focus-visible),.baitly-guide-theme:has(input:focus-visible) { outline:2px solid var(--bui-primary); outline-offset:4px; border-radius:8px; }
+.baitly-guide-structure__art { inline-size:64px; block-size:48px; flex-shrink:0; color:var(--bui-muted-foreground); }
+.baitly-guide-structure[data-selected="true"] .baitly-guide-structure__art { color:var(--bui-foreground); }
+.baitly-guide-structure__name { font-size:12px; font-weight:600; white-space:nowrap; }
+.baitly-guide-structure__check { position:absolute; inset-block-start:7px; inset-inline-end:7px; display:grid; place-items:center; inline-size:18px; block-size:18px; border-radius:50%; color:var(--bui-primary-foreground); opacity:0; }
+.baitly-guide-structure[data-selected="true"] .baitly-guide-structure__check { background:var(--bui-primary); opacity:1; }
+.baitly-guide-studio .baitly-guide-studio__themes { margin-block-start:28px; }
+.baitly-guide-themes { display:grid; grid-auto-flow:column; grid-auto-columns:minmax(128px,1fr); gap:10px; overflow-x:auto; padding:6px; margin:14px -6px -6px; }
+.baitly-guide-theme { position:relative; min-inline-size:0; cursor:pointer; display:flex; flex-direction:column; gap:5px; }
+.baitly-guide-theme__sample { position:relative; display:block; overflow:hidden; background:var(--bui-card); border:1px solid var(--bui-border); border-radius:6px; transition:outline-color 180ms cubic-bezier(.25,1,.5,1); }
+.baitly-guide-theme__snapshot { display:block; inline-size:100%; block-size:auto; aspect-ratio:360/470; pointer-events:none; }
+.baitly-guide-theme:hover .baitly-guide-theme__sample { outline:1px solid var(--bui-muted-foreground); outline-offset:2px; }
+.baitly-guide-theme[data-selected="true"] .baitly-guide-theme__sample { outline:2px solid var(--bui-primary); outline-offset:2px; }
+.baitly-guide-theme__selected { position:absolute; inset-block-start:4px; inset-inline-end:4px; background:var(--bui-primary); color:var(--bui-primary-foreground); border-radius:50%; inline-size:19px; block-size:19px; display:grid; place-items:center; }
+.baitly-guide-theme__name { font-size:12px; font-weight:500; margin-block-start:3px; }
+.baitly-guide-theme__recommendation { font-size:12px; color:var(--bui-muted-foreground); }
+.baitly-guide-assist { margin-block-start:26px; border-block:1px solid var(--bui-border); padding-block:14px; }
+.baitly-guide-assist summary { display:flex; align-items:center; gap:8px; cursor:pointer; font-size:13px; font-weight:500; list-style:none; }
+.baitly-guide-assist summary::-webkit-details-marker { display:none; }
+.baitly-guide-assist summary svg:last-child { margin-inline-start:auto; transition:transform 180ms cubic-bezier(.25,1,.5,1); }
+.baitly-guide-assist[open] summary svg:last-child { transform:rotate(180deg); }
+.baitly-guide-assist summary:focus-visible,.baitly-guide-preview-tabs button:focus-visible { outline:2px solid var(--bui-primary); outline-offset:4px; }
+.baitly-guide-assist label { display:block; margin-block:14px 8px; font-size:12px; line-height:1.6; color:var(--bui-muted-foreground); }
+.baitly-guide-assist textarea { min-block-size:90px; resize:vertical; }
+.baitly-guide-studio__actions { display:flex; flex-wrap:wrap; align-items:center; gap:8px; margin-block-start:22px; }
+.baitly-guide-studio__actions button { cursor:pointer; }
+.baitly-guide-studio__actions button:disabled { cursor:wait; }
+.baitly-guide-studio__toolbar { display:flex; flex-wrap:wrap; align-items:center; gap:12px 24px; padding-block-end:18px; margin-block-end:20px; border-block-end:1px solid var(--bui-border); }
+.baitly-guide-studio__preview-heading { display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:12px; min-inline-size:0; }
+.baitly-guide-studio__preview-heading h3 { font-size:13px; font-weight:600; margin:0; }
+.baitly-guide-studio__preview-heading p { margin:4px 0 0; color:var(--bui-muted-foreground); font-size:12px; }
+.baitly-guide-preview-tabs { display:flex; flex-shrink:0; border:1px solid var(--bui-border); padding:3px; border-radius:6px; }
+.baitly-guide-preview-tabs button { border:0; padding:6px 8px; font-size:12px; color:var(--bui-muted-foreground); background:transparent; border-radius:3px; cursor:pointer; transition:background 180ms cubic-bezier(.25,1,.5,1); }
+.baitly-guide-preview-tabs button[aria-pressed="true"] { background:var(--bui-card); color:var(--bui-foreground); }
+.baitly-guide-preview-tabs button:hover { color:var(--bui-foreground); }
+.baitly-guide-studio fieldset:disabled label { cursor:wait; opacity:.65; }
+.be-home.baitly-guide-admin .canvas { max-inline-size:none; }
+@media(max-width:767px) { .baitly-guide-studio__actions button:first-child { flex:1 1 100%; } }
+@media(prefers-reduced-motion:reduce) { .baitly-guide-studio * { transition:none !important; animation:none !important; scroll-behavior:auto !important; } }
+
+.baitly-guide-studio__property { display:grid; grid-template-columns:auto minmax(0,1fr); align-items:center; gap:12px; flex:1 1 240px; min-inline-size:0; }
+.baitly-guide-studio__property > label { font-size:13px; font-weight:600; }
+.baitly-guide-studio__property select { inline-size:100%; max-inline-size:100%; min-inline-size:0; text-overflow:ellipsis; }
+.baitly-guide-studio__preview-loading { display:flex; flex-direction:column; gap:20px; padding:20px; block-size:100%; background:var(--bui-card); color:var(--bui-foreground); font-size:14px; }
+@media(max-width:767px) {
+  .baitly-guide-studio__toolbar { gap:14px; }
+  .baitly-guide-studio__property { flex-basis:100%; }
+  .baitly-guide-studio__preview-heading { inline-size:100%; }
+}

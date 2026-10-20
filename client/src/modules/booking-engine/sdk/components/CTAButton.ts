@@ -6,7 +6,7 @@ interface I18n {
   t: (key: string) => string;
 }
 
-export function createCTAButton(state: StateManager, i18n: I18n, onClick: () => void): HTMLElement {
+export function createCTAButton(state: StateManager, i18n: I18n, onClick: () => void, options: { labelKey?: string } = {}): HTMLElement {
   const wrapper = document.createElement('div');
   wrapper.className = 'cb-section';
 
@@ -31,8 +31,8 @@ export function createCTAButton(state: StateManager, i18n: I18n, onClick: () => 
   wrapper.appendChild(subtitle);
 
   const renderBtn = (s: WidgetState): void => {
-    const canBook = !!s.checkIn && !!s.checkOut;
-    btn.disabled = !canBook || s.loading;
+    const canBook = !!s.checkIn && !!s.checkOut && s.checkOut > s.checkIn && !!s.selectedPropertyId && !!s.pricing;
+    btn.disabled = !canBook || s.loading || s.pricingLoading;
 
     // Clear and rebuild label content
     label.textContent = '';
@@ -42,9 +42,9 @@ export function createCTAButton(state: StateManager, i18n: I18n, onClick: () => 
       const text = document.createTextNode(` ${i18n.t('common.processing')}`);
       label.appendChild(text);
     } else if (s.pricing && canBook) {
-      label.textContent = `${i18n.t('common.reserve')} · ${formatCurrency(s.pricing.total, s.pricing.currency)}`;
+      label.textContent = `${i18n.t(options.labelKey || 'common.reserve')} · ${formatCurrency(s.pricing.total, s.pricing.currency)}`;
     } else {
-      label.textContent = i18n.t('common.reserve');
+      label.textContent = i18n.t(options.labelKey || 'common.reserve');
     }
 
     // Hide subtitle when loading or no dates
@@ -63,10 +63,10 @@ function formatCurrency(amount: number, currency: string): string {
       style: 'currency',
       currency,
       minimumFractionDigits: 0,
-      maximumFractionDigits: 0,
+      maximumFractionDigits: 2,
     }).format(amount);
   } catch {
     const symbol = currency === 'EUR' ? '€' : currency === 'USD' ? '$' : currency;
-    return `${symbol}${Math.round(amount)}`;
+    return `${symbol}${amount.toFixed(2)}`;
   }
 }

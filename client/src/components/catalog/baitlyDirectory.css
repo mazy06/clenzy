@@ -136,3 +136,5 @@
   .baitly-directory-card__price { font-size:15px; }
 }
 @media (prefers-reduced-motion:reduce) { .baitly-directory-card { transition:none; } }
+
+.baitly-directory-layout[data-header-filters=true]{grid-template-columns:minmax(0,1fr)}

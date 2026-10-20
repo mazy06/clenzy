@@ -1,17 +1,19 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { Button } from '../../components/ui';
 import { Cancel, Save } from "../../icons";
 import ServiceRequestComposer from './ServiceRequestComposer';
 import PageHeader from '../../components/PageHeader';
 import { useAuth } from '../../hooks/useAuth';
 import { useTranslation } from '../../hooks/useTranslation';
+import '../../theme/baitly-form-surfaces.css';
 
 // ─── Component ──────────────────────────────────────────────────────────────
 // Boutons d'action : geometrie et typo portees par le kit Baitly UI.
 
 const ServiceRequestCreate: React.FC = () => {
   const navigate = useNavigate();
+  const { pathname } = useLocation();
   const { hasPermissionAsync } = useAuth();
   const { t } = useTranslation();
   const [loading, setLoading] = useState(false);
@@ -27,7 +29,7 @@ const ServiceRequestCreate: React.FC = () => {
     checkPermissions();
   }, [hasPermissionAsync]);
 
-  const handleClose = () => navigate('/service-requests');
+  const handleClose = () => navigate(pathname === '/interventions/new' ? '/interventions?tab=interventions' : '/service-requests');
   const handleSuccess = () => {
     navigate('/service-requests?success=true');
   };
@@ -35,12 +37,13 @@ const ServiceRequestCreate: React.FC = () => {
   if (!canCreate) return null;
 
   return (
-    <div className="flex flex-col h-full min-h-0">
-      <div className="shrink-0">
+    <div className="baitly-form-surface baitly-form-page">
+      <div className="baitly-form-header">
         <PageHeader
         title={t('requestComposer.heading')}
         subtitle={t('requestComposer.intro')}
-          backPath="/service-requests"
+          onBack={handleClose}
+          backLabel={t('common.backToList')}
           showBackButton={true}
           actions={
             <div className="flex gap-1">

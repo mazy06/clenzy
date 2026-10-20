@@ -1,4 +1,6 @@
-import { useEffect, useRef, useState } from 'react';
+import PageHeaderViewControls from "../../components/PageHeaderViewControls";
+import {BookOpen,Mail,History,FileCheck2,Code,List as ViewList,Shield,FilePenLine,LayoutGrid} from "../../icons/glyphs";
+import React, { useEffect, useRef, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { FileText, Plus, RefreshCw, Send } from '../../icons/glyphs';
 import { Button } from '../../components/ui';
@@ -78,7 +80,7 @@ export default function DocumentsPage() {
   return <PageHeaderActionsProvider slot={slot} filtersSlot={filtersSlot}>
     <div className="documents-page">
       <PageHeader title={t('tabHeaders.documents.title')}
-        inlineControls={tab === 'catalog' ? filtersContainer : undefined}
+        filters={filtersContainer}
         subtitle={t(`documentsWorkspace.hints.${currentView}`)} iconBadge={<FileText />} showBackButton={false}
         actions={<>
           {!['variables', 'amendments', 'templates'].includes(currentView) && <Button variant="ghost" size="icon-sm" aria-label={t('common.refresh')} title={t('common.refresh')} onClick={refresh}><RefreshCw size={17} /></Button>}
@@ -87,14 +89,13 @@ export default function DocumentsPage() {
           {tab === 'history' && currentView === 'activity' && <Button size="sm" onClick={() => historyRef.current?.openGenerate()}><Send size={16} />{t('documents.tabs.generateDoc')}</Button>}
           {portalContainer}
         </>} />
+      <PageHeaderViewControls label={t("documentsWorkspace.viewsLabel")} value={currentView} onChange={next=>navigate(tab,next)} options={views.map(item=>({value:item,label:t(`documentsWorkspace.views.${item}`),icon:React.createElement(({library:ViewList,guide:BookOpen,variables:Code,email:Mail,whatsapp:Mail,activity:History,amendments:FilePenLine,templates:LayoutGrid,quality:Shield} as Record<string,typeof FileText>)[item]??FileCheck2,{size:16})}))}/>
       <PageTabs options={tabs} value={tabs.findIndex(item => item.key === tab)} onChange={index => navigate(tabs[index].key as DocumentsTab)} />
       <div className="documents-page__content" key={scope}>
         {tab !== 'catalog' && <div className="documents-context"><img src={illustration} alt="" width={52} height={52} /><div>
           <h2>{t(`documentsWorkspace.views.${currentView}`)}</h2><p>{t(`documentsWorkspace.hints.${currentView}`)}</p>
         </div></div>}
-        <div className="documents-views" role="group" aria-label={t('documentsWorkspace.viewsLabel')}>
-          {views.map(item => <button type="button" key={item} aria-pressed={currentView === item} onClick={() => navigate(tab, item)}>{t(`documentsWorkspace.views.${item}`)}</button>)}
-        </div>
+
         {currentView === 'library' && <TemplatesList ref={templatesRef} uploadRequested={uploadRequested} onUploadHandled={() => setUploadRequested(false)} />}
         {currentView === 'guide' && <TemplateCatalogAccordions templates={templates.data ?? []}
           onOpenUpload={() => { navigate('catalog'); setUploadRequested(true); }}

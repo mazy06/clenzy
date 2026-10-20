@@ -60,6 +60,7 @@ const TeamEdit = lazy(() => import('./teams/TeamEdit'));
 
 // Directory (Annuaire — merged Teams + Portfolios + Guests)
 const DirectoryPage = lazy(() => import('./directory/DirectoryPage'));
+const ProspectionPage = lazy(() => import('./prospection/ProspectionPage'));
 
 // Annuaire unifié des prestataires ; capacités selon le rôle.
 const ProvidersPage = lazy(() => import('./marketplace/ProvidersPage'));
@@ -370,6 +371,13 @@ const AuthenticatedApp: React.FC = () => {
 
         {/* Annuaire (Directory) — merged Teams + Portfolios + Guests */}
         <Route path="/directory" element={<DirectoryPage />} />
+        <Route path="/prospection" element={
+          <ProtectedRoute>
+            <ErrorBoundary>
+              <ProspectionPage />
+            </ErrorBoundary>
+          </ProtectedRoute>
+        } />
 
         {/* Ancienne entrée conservée pour les favoris. Les fiches de gestion
             restent réservées aux rôles plateforme, comme leurs API. */}

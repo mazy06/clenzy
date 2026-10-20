@@ -30,6 +30,7 @@ class StripeWebhookTenantScopeTest {
     @Mock InterventionRepository interventions;
     @Mock ReservationRepository reservations;
     @Mock ServiceRequestRepository requests;
+    @Mock com.clenzy.repository.PaymentTransactionRepository payments;
     @Mock EntityManagerFactory factory;
     @Mock EntityManager entityManager;
     @Mock Session session;
@@ -40,7 +41,7 @@ class StripeWebhookTenantScopeTest {
     @BeforeEach void setUp() {
         context.clear();
         scope = new StripeWebhookTenantScope(interventions, reservations, requests,
-                new TenantScopedExecutor(context, factory));
+                new TenantScopedExecutor(context, factory), payments);
     }
 
     @AfterEach void clear() { context.clear(); }
@@ -106,6 +107,57 @@ class StripeWebhookTenantScopeTest {
         when(reservations.findByStripeSessionId("cs_reservation")).thenReturn(Optional.of(reservation));
         allowScope();
         scope.forReservation("cs_reservation", this::assertScopedAction);
+        assertCleared();
+    }
+
+    private com.clenzy.model.PaymentTransaction bookingPayment() {
+        var payment = new com.clenzy.model.PaymentTransaction();
+        payment.setOrganizationId(7L);
+        payment.setSourceType("BOOKING_CHECKOUT");
+        payment.setSourceId(42L);
+        payment.setProviderType(com.clenzy.model.PaymentProviderType.STRIPE);
+        payment.setPaymentType(com.clenzy.model.TransactionType.CHECKOUT);
+        when(payments.findByProviderTxId("cs_booking")).thenReturn(Optional.of(payment));
+        return payment;
+    }
+
+    @Test void bookingUsesPersistedPaymentEvenBeforeSessionIsAttached() {
+        bookingPayment();
+        var reservation = new Reservation();
+        reservation.setOrganizationId(7L);
+        when(reservations.findById(42L)).thenReturn(Optional.of(reservation));
+        allowScope();
+        scope.forBookingCheckout("cs_booking", this::assertScopedAction);
+        assertCleared();
+    }
+
+    @Test void bookingRejectsCrossOrganizationPaymentBeforeAnyAction() {
+        bookingPayment();
+        var reservation = new Reservation();
+        reservation.setOrganizationId(8L);
+        when(reservations.findById(42L)).thenReturn(Optional.of(reservation));
+        Runnable action = mock(Runnable.class);
+        assertThatThrownBy(() -> scope.forBookingCheckout("cs_booking", action)).isInstanceOf(IllegalStateException.class);
+        verifyNoInteractions(action, factory);
+    }
+
+    @Test void bookingRejectsUnrelatedPaymentSource() {
+        bookingPayment().setSourceType("INTERVENTION");
+        Runnable action = mock(Runnable.class);
+        assertThatThrownBy(() -> scope.forBookingCheckout("cs_booking", action)).isInstanceOf(IllegalStateException.class);
+        verifyNoInteractions(action, factory, reservations);
+    }
+
+    @Test void bookingFailureClearsScopeAndPropagatesForWebhookRetry() {
+        bookingPayment();
+        var reservation = new Reservation();
+        reservation.setOrganizationId(7L);
+        when(reservations.findById(42L)).thenReturn(Optional.of(reservation));
+        allowScope();
+        assertThatThrownBy(() -> scope.forBookingCheckout("cs_booking", () -> {
+            assertScopedAction();
+            throw new IllegalStateException("confirmation rolled back");
+        })).isInstanceOf(IllegalStateException.class).hasMessage("confirmation rolled back");
         assertCleared();
     }
 

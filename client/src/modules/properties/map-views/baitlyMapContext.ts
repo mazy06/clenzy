@@ -14,7 +14,7 @@ export interface BaitlyMapContext {
   to: string;
   quick: MapQuickFilter;
   camera: MapCamera | null;
-  area: MapPoint | null;
+  area: MapPoint | MapPoint[] | null;
   sectorMode: SectorMode;
   view: PropertyMapView;
   category: 'all' | 'intervention' | 'request';
@@ -32,8 +32,12 @@ export function normalizeMapContext(raw: Partial<BaitlyMapContext> | null): Bait
   if (result.sectorMode !== 'merged') result.sectorMode = 'byProvider';
   if (typeof result.from !== 'string') result.from = '';
   if (typeof result.to !== 'string') result.to = '';
-  if (result.area && (!Number.isFinite(result.area.lng) || !Number.isFinite(result.area.lat)
-    || Math.abs(result.area.lng) > 180 || Math.abs(result.area.lat) > 90)) result.area = null;
+  const validPoint = (point: MapPoint) => point && Number.isFinite(point.lng) && Number.isFinite(point.lat)
+    && Math.abs(point.lng) <= 180 && Math.abs(point.lat) <= 90;
+  if (Array.isArray(result.area)) {
+    result.area = result.area.filter(validPoint);
+    if (!result.area.length) result.area = null;
+  } else if (result.area && !validPoint(result.area)) result.area = null;
   if (result.camera && (!Array.isArray(result.camera.center) || result.camera.center.length !== 2
     || ![...result.camera.center, result.camera.zoom, result.camera.bearing, result.camera.pitch].every(Number.isFinite)
     || Math.abs(result.camera.center[0]) > 180 || Math.abs(result.camera.center[1]) > 90

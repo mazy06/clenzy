@@ -9,6 +9,7 @@ vi.mock('../../hooks/useTranslation', () => ({ useTranslation: () => ({ t: (key:
 vi.mock('../../components/PageHeader', () => ({ default: ({ title }: { title: string }) => <h1>{title}</h1> }));
 vi.mock('../../components/PageTabs', () => ({ default: ({ options, onChange }: { options: { value: string; label: string }[]; onChange: (value: string) => void }) => <nav>{options.map(option => <button key={option.value} onClick={() => onChange(option.value)}>{option.label}</button>)}</nav> }));
 vi.mock('./MarketplaceProvidersPage', () => ({ default: () => <p>Management API mounted</p> }));
+vi.mock('./BaitlyProfessionalDirectory', () => ({ default: () => <p>Reference directory mounted</p> }));
 vi.mock('../provider-catalog/ProviderCatalogPage', () => ({ default: () => <p>Catalog API mounted</p> }));
 function Location() { const location = useLocation(); return <output>{location.pathname + location.search}</output>; }
 function setup(url = '/prestataires') {
@@ -23,7 +24,7 @@ describe('Providers directory access', () => {
     auth.roles = [role]; setup('/prestataires?view=management');
     expect(await screen.findByText('Catalog API mounted')).toBeInTheDocument();
     expect(screen.queryByText('Management API mounted')).not.toBeInTheDocument();
-    expect(screen.queryByRole('navigation')).not.toBeInTheDocument();
+    expect(screen.queryByText('providerDirectory.management')).not.toBeInTheDocument();
   });
   it.each(['SUPER_ADMIN', 'SUPER_MANAGER'])('lets %s switch without mounting both data sources', async role => {
     auth.roles = [role]; setup();
@@ -38,5 +39,10 @@ describe('Providers directory access', () => {
     auth.roles = ['SUPER_ADMIN']; setup('/marketplace/providers?replaceQuoteId=42&propertyId=7');
     expect(await screen.findByText('Catalog API mounted')).toBeInTheDocument();
     expect(screen.getByText('/prestataires?replaceQuoteId=42&propertyId=7')).toBeInTheDocument();
+  });
+  it('opens references for owners without mounting management', async () => {
+    auth.roles = ['HOST']; setup('/prestataires?view=references');
+    expect(await screen.findByText('Reference directory mounted')).toBeInTheDocument();
+    expect(screen.queryByText('Management API mounted')).not.toBeInTheDocument();
   });
 });

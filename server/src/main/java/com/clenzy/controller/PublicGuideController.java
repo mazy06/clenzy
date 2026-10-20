@@ -41,6 +41,7 @@ public class PublicGuideController {
     private final UpsellService upsellService;
     private final com.clenzy.service.access.GuestUnlockService guestUnlockService;
     private final GuestDeclarationService guestDeclarationService;
+    private final com.clenzy.service.BaitlyPaidServiceExecution serviceExecution;
 
     public PublicGuideController(WelcomeGuideService guideService,
                                  WelcomeGuideEntryService entryService,
@@ -49,7 +50,8 @@ public class PublicGuideController {
                                  WelcomeGuideAnalyticsService analyticsService,
                                  UpsellService upsellService,
                                  com.clenzy.service.access.GuestUnlockService guestUnlockService,
-                                 GuestDeclarationService guestDeclarationService) {
+                                 GuestDeclarationService guestDeclarationService,
+                                 com.clenzy.service.BaitlyPaidServiceExecution serviceExecution) {
         this.guideService = guideService;
         this.entryService = entryService;
         this.activityService = activityService;
@@ -58,6 +60,7 @@ public class PublicGuideController {
         this.upsellService = upsellService;
         this.guestUnlockService = guestUnlockService;
         this.guestDeclarationService = guestDeclarationService;
+        this.serviceExecution = serviceExecution;
     }
 
     @GetMapping("/{token}")
@@ -146,6 +149,12 @@ public class PublicGuideController {
     @GetMapping("/{token}/upsells")
     public ResponseEntity<List<PublicUpsellDto>> listUpsells(@PathVariable UUID token) {
         return ResponseEntity.ok(upsellService.listForToken(token));
+    }
+
+    /** Suivi du seul séjour autorisé par le lien, sans contacts ni coûts des prestataires. */
+    @GetMapping("/{token}/services")
+    public List<com.clenzy.service.BaitlyPaidServiceExecution.GuestView> serviceExecution(@PathVariable UUID token) {
+        return serviceExecution.forGuest(token);
     }
 
     /** Crée le paiement d'un upsell (Stripe embedded) — renvoie le clientSecret. */

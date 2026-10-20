@@ -215,7 +215,7 @@ const ReservationRangeCalendar: React.FC<ReservationRangeCalendarProps> = ({
   );
 
   return (
-    <div className="flex flex-col gap-[18px]">
+    <div className="reservation-calendar flex flex-col gap-[18px]">
       {/* Champs Arrivée / Départ (cibles de sélection) */}
       <div className="grid grid-cols-[1fr_1fr] gap-3">
         <FloatDateField
@@ -254,7 +254,7 @@ const ReservationRangeCalendar: React.FC<ReservationRangeCalendarProps> = ({
         </div>
 
         {/* Un ou deux mois côte à côte */}
-        <div className={cn('grid gap-7', singleMonth ? 'grid-cols-[1fr]' : 'grid-cols-[1fr_1fr]')}>
+        <div className="reservation-calendar__months grid gap-7">
           {renderMonth(cells1, fmtMonth(viewMonth))}
           {!singleMonth && renderMonth(cells2, fmtMonth(secondMonth))}
         </div>

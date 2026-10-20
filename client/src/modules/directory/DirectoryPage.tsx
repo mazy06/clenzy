@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { Navigate, useSearchParams } from 'react-router-dom';
 import { useTabKeyParam } from '../../components/tabKeyParam';
 import { useVisibleScreenTabs } from '../../hooks/useScreenTabs';
 import { useTranslation } from '../../hooks/useTranslation';
@@ -16,7 +17,6 @@ import PortfoliosPage from '../portfolios/PortfoliosPage';
 import GuestsListPage from '../guests/GuestsListPage';
 import UsersList from '../users/UsersList';
 import OrganizationsList from '../users/OrganizationsList';
-import ProspectionPage from '../prospection/ProspectionPage';
 
 // ─── Portal container for child actions in PageHeader ────────────────────────
 const PORTAL_STYLE = { display: 'contents' } as const;
@@ -28,6 +28,7 @@ const PORTAL_STYLE = { display: 'contents' } as const;
 
 const DirectoryPage: React.FC = () => {
   const { t } = useTranslation();
+  const [searchParams] = useSearchParams();
 
   // Onglets lus dans le registre partage (config/screenTabs.tsx), deja filtres
   // par les droits : la barre laterale deplie EXACTEMENT cette liste dans son
@@ -50,6 +51,9 @@ const DirectoryPage: React.FC = () => {
   // /!\ DOIT etre declare AVANT tout early return pour respecter Rules of Hooks.
   const { slot: headerActionsSlot, portalContainer: headerActionsPortal } = usePageHeaderActionsSlot();
 
+  // Compatibilité des favoris de l'ancien onglet de l'annuaire.
+  if (searchParams.get('tab') === 'prospection') return <Navigate to="/prospection" replace />;
+
   // ── Single-tab: render component directly without tabs ──
   if (visibleTabs.length === 1) {
     const onlyTab = visibleTabs[0];
@@ -58,7 +62,6 @@ const DirectoryPage: React.FC = () => {
     if (onlyTab.key === 'guests') return <GuestsListPage />;
     if (onlyTab.key === 'users') return <UsersList />;
     if (onlyTab.key === 'organizations') return <OrganizationsList />;
-    if (onlyTab.key === 'prospection') return <ProspectionPage />;
   }
 
   // ── No tabs visible ──
@@ -84,9 +87,6 @@ const DirectoryPage: React.FC = () => {
     [t('directoryPage.tabs.guests')]: {
       subtitle: t('tabHeaders.directory.subtitle.guests', 'Base centralisee des voyageurs ayant sejourne ou contacte vos biens : historique et preferences.'),
     },
-    [t('directoryPage.tabs.prospection')]: {
-      subtitle: t('tabHeaders.directory.subtitle.prospection', 'Pipeline commercial : imports CSV, enrichissement et suivi des prospects qualifies.'),
-    },
   };
   const { title, subtitle } = resolveTabHeader(
     t('tabHeaders.directory.title', 'Annuaire'),
@@ -97,7 +97,7 @@ const DirectoryPage: React.FC = () => {
   );
 
   return (
-    <PageHeaderActionsProvider slot={headerActionsSlot}>
+    <PageHeaderActionsProvider slot={headerActionsSlot} filtersSlot={filtersContainer}>
       <div>
         <PageHeader
           title={title}
@@ -134,9 +134,6 @@ const DirectoryPage: React.FC = () => {
         )}
         {activeTabDef?.key === 'organizations' && (
           <OrganizationsList embedded actionsContainer={actionsContainer} filtersContainer={filtersContainer} />
-        )}
-        {activeTabDef?.key === 'prospection' && (
-          <ProspectionPage embedded actionsContainer={actionsContainer} />
         )}
       </div>
     </PageHeaderActionsProvider>

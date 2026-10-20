@@ -86,6 +86,8 @@ export function publicPaths(source: string, modules: string[]): string[] {
           );
         else if (value === '/ressources/blog/:article')
           paths.push(...LEGAL_ARTICLES.map(articlePath));
+        // UUID profiles are live publications, never enumerated or frozen into a sitemap.
+        else if (value === '/conciergeries/:id' || value === '/recrutement/:id') { /* Served by the dedicated public shells below. */ }
         else if (value !== '*' && !PRIVATE_SITE_PATHS.includes(value)) {
           if (!/^\/[a-z0-9/-]*$/.test(value))
             throw new Error(
@@ -315,6 +317,14 @@ map $uri $baitly_markdown_content_language {
     'discovery-server.conf',
     `error_page 404 /_baitly-html/$baitly_markdown_language/404.html;
 ${pageLocations}
+location ~ "^/conciergeries/[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}/?$" {
+  add_header Cache-Control "no-cache, no-store, must-revalidate" always;
+  try_files /_baitly-html/$baitly_markdown_language/conciergeries/_profile.html =404;
+}
+location ~ "^/recrutement/[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}/?$" {
+  add_header Cache-Control "no-cache, no-store, must-revalidate" always;
+  try_files /_baitly-html/$baitly_markdown_language/recrutement/_page.html =404;
+}
 location ^~ /_baitly-html/ {
   internal;
   add_header Cache-Control "no-cache, no-store, must-revalidate" always;

@@ -355,7 +355,25 @@ export default function PromoCodesPage() {
 
   return (
     <div>
-      <PageHeader
+      <PageHeader filters={<div className="flex flex-col items-start gap-2">
+        <p className="text-2xs font-semibold uppercase tracking-wide text-muted-foreground">
+          Filtre
+        </p>
+        <ToggleGroup
+          className="flex-wrap"
+          type="single"
+          variant="outline"
+          size="sm"
+          spacing={0}
+          value={filterMode}
+          onValueChange={(v) => v && setFilterMode(v as FilterMode)}
+        >
+          <ToggleGroupItem value="all">Tous ({promoCodes?.length ?? 0})</ToggleGroupItem>
+          <ToggleGroupItem value="active">Actifs ({stats?.active ?? 0})</ToggleGroupItem>
+          <ToggleGroupItem value="inactive">Inactifs</ToggleGroupItem>
+          <ToggleGroupItem value="expired">{t('admin.promo.expired')}</ToggleGroupItem>
+        </ToggleGroup>
+      </div>}
         title="Codes promo"
         subtitle="Gestion centralisée des codes promo / cooptation utilisés à l'inscription"
         iconBadge={<LocalOffer />}
@@ -395,24 +413,7 @@ export default function PromoCodesPage() {
       )}
 
       {/* Filtre — segmented du kit (ToggleGroup jointif, variante contour) */}
-      <div className="flex items-center gap-1.5 mb-3">
-        <p className="text-2xs font-semibold uppercase tracking-wide text-muted-foreground">
-          Filtre
-        </p>
-        <ToggleGroup
-          type="single"
-          variant="outline"
-          size="sm"
-          spacing={0}
-          value={filterMode}
-          onValueChange={(v) => v && setFilterMode(v as FilterMode)}
-        >
-          <ToggleGroupItem value="all">Tous ({promoCodes?.length ?? 0})</ToggleGroupItem>
-          <ToggleGroupItem value="active">Actifs ({stats?.active ?? 0})</ToggleGroupItem>
-          <ToggleGroupItem value="inactive">Inactifs</ToggleGroupItem>
-          <ToggleGroupItem value="expired">{t('admin.promo.expired')}</ToggleGroupItem>
-        </ToggleGroup>
-      </div>
+
 
       {error && (
         <BuiAlert variant="destructive" className="mb-3">

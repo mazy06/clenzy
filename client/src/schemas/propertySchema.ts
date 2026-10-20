@@ -44,6 +44,10 @@ export const propertySchema = z.object({
   cleaningNotes: z.string().optional(),
   // Booking Engine
   bookingEngineVisible: z.boolean().default(false),
+  securityDepositAmount: z.number().min(0, vm('validation.mustBePositive', 'Doit être positif'))
+    .max(9999999999.99).refine(v => Math.abs(v * 100 - Math.round(v * 100)) < 0.000001,
+      vm('validation.depositDecimals', 'Deux décimales maximum')).default(0),
+  defaultCurrency: z.string().default('EUR'),
   // Voucher consent : autorise l'org gestionnaire (conciergerie) a creer des
   // BookingVoucher sur ce logement. Combine cote backend avec
   // organization.has_voucher_contract. Default false (host garde le controle).

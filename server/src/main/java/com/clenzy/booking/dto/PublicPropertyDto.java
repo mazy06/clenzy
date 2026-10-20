@@ -43,8 +43,20 @@ public record PublicPropertyDto(
      * Numéro d'enregistrement du meublé de tourisme (France, Code du tourisme L324-1-1) :
      * obligatoire sur toute annonce. NULL si absent ou logement hors France.
      */
-    String registrationNumber
+    String registrationNumber,
+    BigDecimal securityDepositAmount,
+    String securityDepositCurrency
 ) {
+    public PublicPropertyDto(Long id, String name, String type, String city, String country,
+                             Integer bedroomCount, Integer bathroomCount, Integer maxGuests, Integer squareMeters,
+                             BigDecimal priceFrom, BigDecimal cleaningFee, Integer minimumNights, String currency,
+                             String mainPhotoUrl, List<String> photoUrls, List<String> amenities,
+                             String checkInTime, String checkOutTime, Integer totalBookings, Integer availableDays30,
+                             Double rating, long reviewCount, String description, String registrationNumber) {
+        this(id, name, type, city, country, bedroomCount, bathroomCount, maxGuests, squareMeters, priceFrom,
+            cleaningFee, minimumNights, currency, mainPhotoUrl, photoUrls, amenities, checkInTime, checkOutTime,
+            totalBookings, availableDays30, rating, reviewCount, description, registrationNumber, BigDecimal.ZERO, currency);
+    }
     /** Arité historique : sans numéro d'enregistrement (logement hors France, démo, tests). */
     public PublicPropertyDto(Long id, String name, String type, String city, String country,
                              Integer bedroomCount, Integer bathroomCount, Integer maxGuests, Integer squareMeters,
@@ -127,35 +139,37 @@ public record PublicPropertyDto(
             null,
             0L,
             p.getDescription(),
-            null
+            null,
+            p.getSecurityDepositAmount(),
+            p.getDefaultCurrency()
         );
     }
 
-    /** Copie avec montants convertis dans une devise d'affichage (CLZ Domaine 2 — multi-devise). */
+    /** Montants du séjour convertis ; la caution reste dans sa devise contractuelle. */
     public PublicPropertyDto withDisplayCurrency(BigDecimal newPriceFrom, BigDecimal newCleaningFee, String newCurrency) {
         return new PublicPropertyDto(id, name, type, city, country, bedroomCount, bathroomCount, maxGuests,
             squareMeters, newPriceFrom, newCleaningFee, minimumNights, newCurrency, mainPhotoUrl, photoUrls,
-            amenities, checkInTime, checkOutTime, totalBookings, availableDays30, rating, reviewCount, description, registrationNumber);
+            amenities, checkInTime, checkOutTime, totalBookings, availableDays30, rating, reviewCount, description, registrationNumber, securityDepositAmount, securityDepositCurrency);
     }
 
     /** Copie enrichie des signaux honnêtes de preuve sociale / urgence (2.9). */
     public PublicPropertyDto withSignals(Integer totalBookings, Integer availableDays30) {
         return new PublicPropertyDto(id, name, type, city, country, bedroomCount, bathroomCount, maxGuests,
             squareMeters, priceFrom, cleaningFee, minimumNights, currency, mainPhotoUrl, photoUrls,
-            amenities, checkInTime, checkOutTime, totalBookings, availableDays30, rating, reviewCount, description, registrationNumber);
+            amenities, checkInTime, checkOutTime, totalBookings, availableDays30, rating, reviewCount, description, registrationNumber, securityDepositAmount, securityDepositCurrency);
     }
 
     /** Copie enrichie de la note moyenne + nombre d'avis publics (Domaine 2 — preuve sociale réelle). */
     public PublicPropertyDto withReviewStats(Double avgRating, long publicReviewCount) {
         return new PublicPropertyDto(id, name, type, city, country, bedroomCount, bathroomCount, maxGuests,
             squareMeters, priceFrom, cleaningFee, minimumNights, currency, mainPhotoUrl, photoUrls,
-            amenities, checkInTime, checkOutTime, totalBookings, availableDays30, avgRating, publicReviewCount, description, registrationNumber);
+            amenities, checkInTime, checkOutTime, totalBookings, availableDays30, avgRating, publicReviewCount, description, registrationNumber, securityDepositAmount, securityDepositCurrency);
     }
 
     /** Copie portant le numéro d'enregistrement à afficher sur l'annonce. */
     public PublicPropertyDto withRegistrationNumber(String number) {
         return new PublicPropertyDto(id, name, type, city, country, bedroomCount, bathroomCount, maxGuests,
             squareMeters, priceFrom, cleaningFee, minimumNights, currency, mainPhotoUrl, photoUrls,
-            amenities, checkInTime, checkOutTime, totalBookings, availableDays30, rating, reviewCount, description, number);
+            amenities, checkInTime, checkOutTime, totalBookings, availableDays30, rating, reviewCount, description, number, securityDepositAmount, securityDepositCurrency);
     }
 }

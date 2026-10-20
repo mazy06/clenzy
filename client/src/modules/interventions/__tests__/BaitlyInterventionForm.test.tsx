@@ -8,8 +8,10 @@ import { interventionsApi } from '../../../services/api/interventionsApi';
 const auth = vi.hoisted(() => ({
   user: { id: 'admin', email: 'admin@example.test' },
   hasPermissionAsync: vi.fn().mockResolvedValue(true),
-  isAdmin: () => true, isManager: () => false, isHost: () => false,
+  isAdmin: vi.fn(() => true), isManager: vi.fn(() => false), isHost: vi.fn(() => false),
 }));
+const viewport = vi.hoisted(() => ({ mobile: false }));
+vi.mock('../../../hooks/use-media-query', () => ({ useMediaQuery: () => viewport.mobile }));
 vi.mock('../../../hooks/useAuth', () => ({ useAuth: () => auth }));
 vi.mock('../../../providers/PostHogProvider', () => ({ trackEvent: { interventionScheduled: vi.fn() } }));
 vi.mock('../../../components/PageHeader', () => ({ default: ({ title, actions }: { title: string; actions: React.ReactNode }) => <header>{title}{actions}</header> }));
@@ -24,7 +26,12 @@ vi.mock('../../../services/api/usersApi', () => ({ usersApi: { getAll: vi.fn().m
 vi.mock('../../../services/api/teamsApi', () => ({ teamsApi: { getAll: vi.fn().mockResolvedValue([]) } }));
 
 beforeEach(() => {
+  viewport.mobile = false;
   vi.clearAllMocks();
+  auth.user.email = 'admin@example.test';
+  auth.isAdmin.mockReturnValue(true);
+  auth.isManager.mockReturnValue(false);
+  auth.isHost.mockReturnValue(false);
   vi.mocked(interventionsApi.getById).mockResolvedValue({
     id: 332, title: 'Ménage de test', description: 'Mission de simulation', type: 'CLEANING',
     serviceItemCode: 'cleaning-turnover', status: 'PENDING', priority: 'NORMAL',
@@ -44,6 +51,62 @@ function mount() {
 }
 
 describe('Replanification Baitly', () => {
+  it.each([false, true])('affiche et conserve le demandeur absent de la liste des utilisateurs (mobile : %s)', async (mobile) => {
+    viewport.mobile = mobile;
+    const mission = await interventionsApi.getById(332);
+    vi.mocked(interventionsApi.getById).mockResolvedValue({ ...mission, requestorId: 99, requestorName: 'Admin User' });
+    mount();
+    const requestor = await screen.findByRole('combobox', { name: 'Demandeur', exact: true });
+    await waitFor(() => expect(requestor).toHaveValue('99'));
+    expect(screen.getByRole('option', { name: 'Admin User', exact: true })).toBeInTheDocument();
+    if (mobile) fireEvent.click(screen.getByRole('button', { name: 'Coûts', exact: true }));
+    fireEvent.click(screen.getAllByRole('button', { name: 'Enregistrer' })[0]);
+    await waitFor(() => expect(interventionsApi.update).toHaveBeenCalledWith(332, expect.objectContaining({ requestorId: 99 })));
+  });
+
+  it.each(['HOST', 'HOUSEKEEPER'])('conserve le demandeur enregistré pour une modification par %s', async (role) => {
+    auth.user.email = 'jean@example.test';
+    auth.isAdmin.mockReturnValue(false);
+    auth.isHost.mockReturnValue(role === 'HOST');
+    const { container } = mount();
+    await screen.findByDisplayValue('Ménage de test');
+    expect(screen.getByRole('combobox', { name: 'Demandeur', exact: true })).toHaveValue('2');
+    fireEvent.click(screen.getAllByRole('button', { name: 'Enregistrer' })[0]);
+    await waitFor(() => expect(interventionsApi.update).toHaveBeenCalledWith(332, expect.objectContaining({ requestorId: 2 })));
+    expect(container.querySelector('#intervention-requestor')).toBeDisabled();
+  });
+
+  it('transmet une seule modification si la validation mobile est déclenchée deux fois', async () => {
+    viewport.mobile = true;
+    let finish!: (value: Awaited<ReturnType<typeof interventionsApi.update>>) => void;
+    vi.mocked(interventionsApi.update).mockImplementationOnce(() => new Promise(resolve => { finish = resolve; }));
+    const { container } = mount();
+    await screen.findByRole('combobox', { name: 'Propriété', exact: true });
+    fireEvent.click(screen.getByRole('button', { name: 'Coûts', exact: true }));
+    await act(async () => {
+      fireEvent.submit(container.querySelector('#intervention-form')!);
+      fireEvent.submit(container.querySelector('#intervention-form')!);
+    });
+    await waitFor(() => expect(interventionsApi.update).toHaveBeenCalledTimes(1));
+    await act(async () => finish({} as Awaited<ReturnType<typeof interventionsApi.update>>));
+  });
+  it('conserve la saisie entre les étapes mobiles et revient au champ invalide', async () => {
+    viewport.mobile = true;
+    mount();
+    await screen.findByRole('combobox', { name: 'Propriété', exact: true });
+    fireEvent.click(screen.getByRole('button', { name: 'Les prestations', exact: true }));
+    await screen.findByDisplayValue('Ménage de test');
+    fireEvent.change(screen.getByLabelText('Titre'), { target: { value: 'Ménage mobile conservé' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Quand et comment ?', exact: true }));
+    expect(screen.queryByLabelText('Titre')).toBeNull();
+    fireEvent.click(screen.getByRole('button', { name: 'Les prestations', exact: true }));
+    expect(screen.getByLabelText('Titre')).toHaveValue('Ménage mobile conservé');
+    fireEvent.change(screen.getByLabelText('Titre'), { target: { value: '' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Coûts', exact: true }));
+    fireEvent.click(screen.getByRole('button', { name: 'Enregistrer', exact: true }));
+    await waitFor(() => expect(screen.getByLabelText('Titre')).toHaveAttribute('aria-invalid', 'true'));
+    expect(interventionsApi.update).not.toHaveBeenCalled();
+  });
   it('conserve l’heure locale et transmet la nouvelle date sans changer le prix ni le prestataire', async () => {
     const { container } = mount();
     await screen.findByDisplayValue('Ménage de test');

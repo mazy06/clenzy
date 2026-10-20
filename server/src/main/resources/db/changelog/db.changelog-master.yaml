@@ -5064,3 +5064,167 @@ databaseChangeLog:
             relativeToChangelogFile: true
             splitStatements: false
             stripComments: false
+  - changeSet:
+      id: "0565-baitly-welcome-guide-structure"
+      author: clenzy-team
+      changes:
+        - sqlFile:
+            path: changes/0565__baitly_welcome_guide_structure.sql
+            relativeToChangelogFile: true
+  - changeSet:
+      id: "0566-baitly-property-security-deposit"
+      author: clenzy-team
+      changes:
+        - sqlFile:
+            path: changes/0566__baitly_property_security_deposit.sql
+            relativeToChangelogFile: true
+  - changeSet:
+      id: "0567-baitly-paid-service-execution"
+      author: clenzy-team
+      changes:
+        - sqlFile:
+            path: changes/0567__baitly_paid_service_execution.sql
+            relativeToChangelogFile: true
+  - changeSet:
+      id: "0568-baitly-crm-organization-contacts"
+      author: clenzy-team
+      changes:
+        - sqlFile:
+            path: changes/0568__baitly_crm_organization_contacts.sql
+            relativeToChangelogFile: true
+  - changeSet:
+      id: "0569-baitly-management-inquiries"
+      author: clenzy-team
+      changes:
+        - sqlFile:
+            path: changes/0569__baitly_management_inquiries.sql
+            relativeToChangelogFile: true
+  - changeSet:
+      id: "0570-baitly-owner-matching-context"
+      author: clenzy-team
+      changes:
+        - sqlFile:
+            path: changes/0570__baitly_owner_matching_context.sql
+            relativeToChangelogFile: true
+
+  - changeSet:
+      id: "0571-baitly-provider-recruitment"
+      author: clenzy-team
+      changes:
+        - sqlFile:
+            path: changes/0571__baitly_provider_recruitment.sql
+            relativeToChangelogFile: true
+
+  - changeSet:
+      id: "0572-baitly-crm-campaigns"
+      author: clenzy-team
+      changes:
+        - sqlFile:
+            path: changes/0572__baitly_crm_campaigns.sql
+            relativeToChangelogFile: true
+
+  - changeSet:
+      id: "0573-baitly-crm-contact-locations"
+      author: clenzy-team
+      changes:
+        - sqlFile:
+            path: changes/0573__baitly_crm_contact_locations.sql
+            relativeToChangelogFile: true
+
+  - changeSet:
+      id: "0574-baitly-crm-contact-details"
+      author: clenzy-team
+      changes:
+        - sqlFile:
+            path: changes/0574__baitly_crm_contact_details.sql
+            relativeToChangelogFile: true
+
+  - changeSet:
+      id: "0575-baitly-crm-osm-provenance"
+      author: clenzy-team
+      changes:
+        - sqlFile:
+            path: changes/0575__baitly_crm_osm_provenance.sql
+            relativeToChangelogFile: true
+
+  - changeSet:
+      id: "0576-baitly-crm-location-batches"
+      author: clenzy-team
+      changes:
+        - sqlFile:
+            path: changes/0576__baitly_crm_location_batches.sql
+            relativeToChangelogFile: true
+
+  - changeSet:
+      id: "0577-baitly-professional-directory"
+      author: clenzy-team
+      changes:
+        - sqlFile:
+            path: changes/0577__baitly_professional_directory.sql
+            relativeToChangelogFile: true
+
+  - changeSet:
+      id: "0578-baitly-crm-professional-imports"
+      author: clenzy-team
+      changes:
+        - sqlFile:
+            path: changes/0578__baitly_crm_professional_imports.sql
+            relativeToChangelogFile: true
+
+  - changeSet:
+      id: "0579-baitly-crm-location-review"
+      author: clenzy-team
+      changes:
+        - sqlFile:
+            path: changes/0579__baitly_crm_location_review.sql
+            relativeToChangelogFile: true
+
+  - changeSet:
+      id: "0580-baitly-crm-osm-enrichments"
+      author: clenzy-team
+      changes:
+        - sqlFile:
+            path: changes/0580__baitly_crm_osm_enrichments.sql
+            relativeToChangelogFile: true
+  - changeSet:
+      id: "0581-baitly-crm-address-geocodings"
+      author: clenzy-team
+      changes:
+        - sqlFile:
+            path: changes/0581__baitly_crm_address_geocodings.sql
+            relativeToChangelogFile: true
+  - changeSet:
+      id: "0582-baitly-crm-enrichment-runs"
+      author: clenzy-team
+      changes:
+        - sqlFile:
+            path: changes/0582__baitly_crm_enrichment_runs.sql
+            relativeToChangelogFile: true
+  - changeSet:
+      id: "0583-baitly-national-directory"
+      author: clenzy-team
+      changes:
+        - sqlFile:
+            path: changes/0583__baitly_national_directory.sql
+            relativeToChangelogFile: true
+  - changeSet:
+      id: "0584-baitly-campaign-template-defaults"
+      author: clenzy-team
+      changes:
+        - sqlFile:
+            path: changes/0584__baitly_campaign_template_defaults.sql
+            relativeToChangelogFile: true
+  - changeSet:
+      id: "0585-baitly-directory-ademe-rge"
+      author: clenzy-team
+      changes:
+        - sqlFile:
+            path: changes/0585__baitly_directory_ademe_rge.sql
+            relativeToChangelogFile: true
+  - changeSet:
+      id: "0586-baitly-directory-map-positions"
+      author: clenzy-team
+      changes:
+        - sqlFile:
+            path: changes/0586__baitly_directory_map_positions.sql
+            relativeToChangelogFile: true

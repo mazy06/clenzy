@@ -1,0 +1,126 @@
+/* Baitly service request: one readable work surface and a planning sidebar. */
+.baitly-request-detail {
+  max-width: 1440px;
+  margin-inline: auto;
+  padding-block: 4px 24px;
+  --request-accent: var(--bui-navy);
+  --request-soft: var(--bui-navy-soft);
+}
+.baitly-request-detail :is(h2,h3,p) { overflow-wrap: anywhere; }
+.baitly-request-detail :is(button,a,summary) { cursor: pointer; }
+.baitly-request-detail .cn-button { height: auto; min-height: 36px; white-space: normal; }
+.baitly-request-detail :is(a,button,summary):focus-visible { outline: 2px solid var(--request-accent); outline-offset: 3px; }
+.baitly-request-tracking {
+  display: grid;
+  grid-template-columns: minmax(0,1fr) minmax(0,1.2fr);
+  align-items: center;
+  gap: 28px;
+  padding: 20px 24px;
+  margin-block-end: 20px;
+  border: 1px solid color-mix(in srgb,var(--request-accent) 20%,var(--bui-border));
+  border-radius: 12px;
+  background: color-mix(in srgb,var(--request-soft) 65%,var(--bui-card));
+}
+.baitly-request-tracking__heading { display: flex; align-items: start; justify-content: space-between; gap: 12px; min-width: 0; }
+.baitly-request-tracking[data-linked] { grid-template-columns: minmax(210px,1fr) minmax(0,1.3fr) auto; gap: 24px; }
+.baitly-request-detail .baitly-request-intervention-link { min-height: 44px; gap: 10px; padding: 12px 16px; border-radius: 8px; background: var(--request-accent); color: var(--bui-primary-foreground); font-size: 13px; line-height: 1.5; text-align: start; transition: background-color 180ms cubic-bezier(.25,1,.5,1); }
+.baitly-request-detail .baitly-request-intervention-link:hover { background: var(--bui-navy-deep); }
+.baitly-request-intervention-link > span { min-width: 0; }
+.baitly-request-eyebrow { margin: 0 0 6px; color: var(--bui-muted-foreground); font-size: 12px; font-weight: 500; }
+.baitly-request-tracking h2 { color: var(--request-accent); font-size: 20px; line-height: 1.35; letter-spacing: -.025em; }
+.baitly-request-tracking__heading > div > p:last-child { font-size: 12px; line-height: 1.65; }
+.baitly-request-progress { display: grid; grid-template-columns: repeat(4,minmax(0,1fr)); gap: 10px; margin: 0; padding: 0; list-style: none; }
+.baitly-request-progress li { min-width: 0; }
+.baitly-request-progress__track { display: flex; align-items: center; gap: 10px; }
+.baitly-request-progress__number { display: grid; place-items: center; width: 28px; height: 28px; flex-shrink: 0; border: 1px solid var(--bui-border); border-radius: 50%; background: var(--bui-card); color: var(--bui-muted-foreground); font-size: 12px; font-weight: 600; font-variant-numeric: tabular-nums; }
+.baitly-request-progress__line { height: 1px; flex: 1; background: var(--bui-border); }
+.baitly-request-progress__label { display: block; margin-block-start: 8px; font-size: 12px; line-height: 1.5; color: var(--bui-muted-foreground); overflow-wrap: anywhere; }
+.baitly-request-progress [data-completed] .baitly-request-progress__number { border-color: transparent; color: var(--request-accent); background: var(--request-soft); }
+.baitly-request-progress [aria-current] .baitly-request-progress__number { color: var(--bui-card); background: var(--request-accent); border-color: transparent; }
+.baitly-request-progress [aria-current] .baitly-request-progress__label { color: var(--request-accent); font-weight: 600; }
+.baitly-request-mobile-step { display: none; }
+.baitly-request-layout { display: grid; grid-template-columns: minmax(0,1fr) minmax(310px,360px); align-items: start; gap: 20px; }
+.baitly-request-main { display: flex; flex-direction: column; min-width: 0; padding: 24px 28px; background: var(--bui-card); border: 1px solid var(--bui-border); border-radius: 12px; }
+.baitly-request-property { order: 0; min-width: 0; padding-block-end: 24px; }
+.baitly-request-section { min-width: 0; border-block-start: 1px solid var(--bui-border); padding-block: 22px; }
+.baitly-request-section > h2 { margin-block-end: 16px; }
+.baitly-request-section > h2 > svg,.baitly-request-instructions > h2 > svg { color: var(--request-accent); width: 18px; height: 18px; }
+.baitly-request-work { order: 1; }
+.baitly-request-work > section > div:first-of-type > div { font-size: 18px; line-height: 1.5; font-weight: 500; margin-block-end: 12px; }
+.baitly-request-work p { color: var(--bui-muted-foreground); line-height: 1.9; max-width: 70ch; }
+.baitly-request-instructions { order: 2; padding-block: 22px; border-block-start: 1px solid var(--bui-border); }
+.baitly-request-instructions > h2 { font-size: 16px; margin-block-end: 6px; }
+.baitly-request-instructions__rows > div { padding-block: 16px; border-block-end: 1px solid var(--bui-border); }
+.baitly-request-instructions__rows > div:last-child { border: 0; padding-block-end: 0; }
+.baitly-request-instructions__rows h3 { font-size: 13px; font-weight: 500; margin: 0 0 6px; }
+.baitly-request-instructions__rows p { font-size: 14px; line-height: 1.75; }
+.baitly-request-instructions__rows > [data-empty] { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 4px 20px; }
+.baitly-request-instructions__rows > [data-empty] :is(p,h3) { font-size: 12px; margin: 0; }
+.baitly-request-main > details { order: 3; }
+.baitly-request-history { order: 4; }
+.baitly-request-history > section { padding-block: 22px; }
+.baitly-request-history h2 { font-size: 16px; margin: 0; }
+.baitly-request-history .cn-button { font-size: 12px; }
+.baitly-request-context { order: 5 !important; border-block-start: 1px solid var(--bui-border); padding-block-start: 14px; }
+.baitly-request-context > summary { color: var(--bui-muted-foreground); font-size: 12px; font-weight: 500; padding-block: 8px; }
+.baitly-request-context > dl { padding-block: 12px; }
+.baitly-request-sidebar { min-width: 0; position: sticky; top: 0; background: var(--bui-card); border: 1px solid var(--bui-border); border-radius: 12px; overflow: hidden; }
+.baitly-request-schedule { padding: 24px; background: color-mix(in srgb,var(--request-soft) 65%,var(--bui-card)); }
+.baitly-request-schedule > h2 { color: var(--request-accent); font-size: 13px; margin-block-end: 18px; }
+.baitly-request-schedule__date { font-size: 20px; font-weight: 600; line-height: 1.45; letter-spacing: -.025em; margin: 0 0 8px; font-variant-numeric: tabular-nums; }
+.baitly-request-schedule > div > p:last-child { margin-block-start: 10px; }
+.baitly-request-sidebar > .baitly-request-section { padding: 22px 24px; }
+.baitly-request-sidebar .baitly-request-section > h2 { font-size: 14px; margin-block-end: 12px; }
+.baitly-request-sidebar .baitly-request-section > p { margin-block: 12px 0; }
+.baitly-request-sidebar:has(.baitly-recipient-actions) { position: static; }
+.baitly-recipient-actions { min-width: 0; }
+.baitly-recipient-actions .baitly-service-price-editor > div:first-child { display: grid; grid-template-columns: minmax(0, 1fr); gap: 1rem; padding: 0; background: transparent; border-radius: 0; }
+.baitly-recipient-actions .baitly-service-price-editor > div:first-child > div { text-align: start; }
+.baitly-recipient-actions .baitly-service-price-editor > div:first-child > div:first-child { display: flex; align-items: baseline; justify-content: space-between; gap: .75rem; border-bottom: 1px solid var(--bui-border); padding-bottom: .875rem; }
+.baitly-recipient-actions .baitly-service-price-editor input { min-height: 2.75rem; height: auto; }
+.baitly-recipient-actions .baitly-service-price-editor [data-slot="label"] { color: var(--request-accent); font-size: .8125rem; text-transform: none; }
+.baitly-recipient-actions form { grid-template-columns: minmax(0, 1fr); gap: 1rem; }
+.baitly-recipient-actions form > * { grid-column: 1; min-width: 0; }
+.baitly-recipient-actions form :is(input, textarea) { min-height: 2.75rem; height: auto; margin-top: .375rem; font-size: .8125rem; }
+.baitly-recipient-actions form textarea { resize: vertical; line-height: 1.6; }
+.baitly-recipient-actions .cn-button { min-height: 2.75rem; }
+.baitly-recipient-actions .cn-button-variant-default { background: var(--request-accent); color: var(--bui-primary-foreground); }
+.baitly-recipient-actions .cn-button-variant-default:hover { background: var(--bui-navy-deep); }
+.baitly-request-tracking[data-closed] { grid-template-columns: 1fr; background: var(--bui-card); }
+@media (max-width: 1100px) {
+  .baitly-request-tracking,.baitly-request-tracking[data-linked] { grid-template-columns: minmax(0,1fr) auto; gap: 18px; }
+  .baitly-request-tracking__heading { grid-column: 1; }
+  .baitly-request-intervention-link { grid-column: 2; grid-row: 1; }
+  .baitly-request-progress { grid-column: 1 / -1; }
+  .baitly-request-progress { padding-block-start: 16px; border-block-start: 1px solid var(--bui-border); }
+  .baitly-request-layout { grid-template-columns: minmax(0,1fr) 310px; gap: 16px; }
+  .baitly-request-main { padding: 20px; }
+}
+@media (max-width: 900px) {
+  .baitly-request-tracking { padding: 16px; margin-block-end: 14px; gap: 14px; }
+  .baitly-request-tracking h2 { font-size: 18px; }
+  .baitly-request-layout { display: flex; flex-direction: column; gap: 14px; }
+  .baitly-request-main,.baitly-request-sidebar { display: contents; }
+  .baitly-request-main > *,.baitly-request-sidebar > * { width: 100%; min-width: 0; box-sizing: border-box; padding: 18px; background: var(--bui-card); border: 1px solid var(--bui-border); border-radius: 10px; }
+  .baitly-request-property { order: 0; }
+  .baitly-request-schedule { order: 1; background: color-mix(in srgb,var(--request-soft) 65%,var(--bui-card)); }
+  .baitly-request-work { order: 2; }
+  .baitly-request-work > section { padding: 0; border: 0; }
+  .baitly-request-instructions { order: 3; }
+  .baitly-request-sidebar > .baitly-request-section { order: 4; padding: 18px; }
+  .baitly-request-history { order: 6; }
+  .baitly-request-history > section { padding: 0; border: 0; }
+  .baitly-request-context { order: 7 !important; padding: 10px 18px; }
+  .baitly-request-schedule > h2 { margin-block-end: 12px; }
+  .baitly-request-schedule__date { font-size: 18px; }
+  .baitly-request-progress { gap: 6px; }
+}
+@media (max-width: 639px) {
+  .baitly-request-tracking,.baitly-request-tracking[data-linked] { grid-template-columns: minmax(0,1fr); }
+  .baitly-request-intervention-link { grid-column: 1; grid-row: auto; width: 100%; }
+  .baitly-request-progress__label { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+  .baitly-request-mobile-step { display: block; margin: 0; font-size: 12px; color: var(--request-accent); font-weight: 500; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .baitly-request-detail :is(button,a,summary) { transition: none; }
+}

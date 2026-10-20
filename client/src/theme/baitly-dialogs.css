@@ -1,0 +1,47 @@
+/* Shared Baitly modal finish, matching the setup guide. Layout stays local. */
+.cn-dialog-content, .cn-alert-dialog-content {
+  --bui-primary: var(--bui-navy);
+  --bui-primary-deep: var(--bui-navy-deep);
+  --bui-primary-soft: var(--bui-navy-soft);
+  border: 1px solid var(--bui-border);
+  border-radius: 1.25rem;
+  background: var(--bui-card);
+  box-shadow: 0 24px 80px color-mix(in srgb, var(--bui-navy) 20%, transparent);
+}
+.cn-dialog-overlay, .cn-alert-dialog-overlay { background: color-mix(in srgb, var(--bui-navy) 16%, transparent); }
+.cn-dialog-title, .cn-alert-dialog-title {
+  margin: 0;
+  color: var(--bui-foreground); line-height: 1.4; font-weight: 600;
+  text-wrap: balance; overflow-wrap: anywhere;
+}
+.cn-dialog-description, .cn-alert-dialog-description { margin: 0; line-height: 1.6; }
+.cn-dialog-content:not(.setup-guide) .cn-dialog-title,
+.cn-alert-dialog-content .cn-alert-dialog-title { color: var(--bui-navy); }
+.cn-dialog-content:not(.baitly-service-dialog):not(.setup-guide) > .cn-dialog-header {
+  padding-bottom: 1rem;
+  border-bottom: 1px solid color-mix(in srgb, var(--bui-navy) 18%, var(--bui-border));
+}
+.cn-dialog-footer, .cn-alert-dialog-footer {
+  background: color-mix(in srgb, var(--bui-navy-soft) 45%, var(--bui-card)); border-color: var(--bui-border);
+}
+.cn-dialog-content .cn-button-variant-default,
+.cn-alert-dialog-content .cn-button-variant-default {
+  background: var(--bui-navy); color: var(--bui-primary-foreground);
+  transition: background-color 180ms ease-out, box-shadow 180ms ease-out;
+}
+.cn-dialog-content .cn-button-variant-default:hover,
+.cn-alert-dialog-content .cn-button-variant-default:hover { background: var(--bui-navy-deep); }
+.cn-dialog-close { color: var(--bui-muted-foreground); }
+.cn-dialog-close:hover { color: var(--bui-navy); background: var(--bui-navy-soft); }
+@media (max-width: 639px) {
+  .cn-dialog-content, .cn-alert-dialog-content { max-height: calc(100dvh - 1rem); border-radius: 1rem; }
+  .cn-dialog-header, .cn-alert-dialog-header { gap: .35rem; }
+  .cn-dialog-title, .cn-alert-dialog-title { font-size: .95rem; line-height: 1.35; }
+  .cn-dialog-description, .cn-alert-dialog-description { font-size: .75rem; line-height: 1.45; }
+  .cn-dialog-content:not(.baitly-service-dialog):not(.setup-guide) > .cn-dialog-header { padding-bottom: .65rem; }
+  .cn-dialog-footer, .cn-alert-dialog-footer { gap: .5rem; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .cn-dialog-content, .cn-alert-dialog-content,
+  .cn-dialog-content *, .cn-alert-dialog-content * { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
+}

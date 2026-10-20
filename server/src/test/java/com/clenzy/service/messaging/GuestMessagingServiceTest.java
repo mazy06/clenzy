@@ -71,6 +71,9 @@ class GuestMessagingServiceTest {
         MessageTemplate template = new MessageTemplate();
         template.setId(5L);
         template.setName("Check-in");
+        template.setBody("Votre livret : {guideLink}");
+        when(welcomeGuideService.linkForReservation(reservation))
+            .thenReturn(Optional.of("https://app.clenzy.fr/guide/test"));
 
         when(instructionsRepository.findByPropertyIdAndOrganizationId(10L, 1L))
             .thenReturn(Optional.empty());
@@ -89,6 +92,8 @@ class GuestMessagingServiceTest {
 
         assertThat(result).isNotNull();
         verify(emailChannel).send(any());
+        verify(interpolationService).interpolateAndTranslate(eq(template), eq(reservation), eq(guest),
+            eq(property), isNull(), argThat(vars -> "https://app.clenzy.fr/guide/test".equals(vars.get("guideLink"))), eq("fr"));
         // La trace est ouverte AVANT l'appel au fournisseur : c'est elle qui rend
         // « parti, issue inconnue » distinguable de « rien n'est parti ».
         verify(attemptLog).begin(any(), any(), any(), any(), any(), any(), any());
@@ -345,12 +350,78 @@ class GuestMessagingServiceTest {
             when(reservationRepository.findById(100L)).thenReturn(Optional.of(r));
             when(templateRepository.findByIdAndOrganizationId(5L, 1L)).thenReturn(Optional.of(template));
             when(instructionsRepository.findByPropertyIdAndOrganizationId(10L, 1L)).thenReturn(Optional.empty());
-            when(interpolationService.interpolate(eq(template), eq(r), eq(guest), eq(property), any()))
+            when(interpolationService.interpolate(eq(template), eq(r), eq(guest), eq(property), any(), eq(Map.of())))
                 .thenReturn(new TemplateInterpolationService.InterpolatedMessage("subj", "html", "plain"));
 
             var result = service.previewMessage(100L, 5L, 1L);
 
             assertThat(result.subject()).isEqualTo("subj");
+        }
+
+        @Test
+        void preview_resolvesPublishedGuideLink() {
+            Property property = new Property();
+            property.setId(10L);
+            Reservation reservation = new Reservation();
+            reservation.setId(100L);
+            reservation.setOrganizationId(1L);
+            reservation.setProperty(property);
+            MessageTemplate template = new MessageTemplate();
+            template.setBody("Votre livret : {guideLink}");
+            when(reservationRepository.findById(100L)).thenReturn(Optional.of(reservation));
+            when(templateRepository.findByIdAndOrganizationId(5L, 1L)).thenReturn(Optional.of(template));
+            when(welcomeGuideService.linkForReservation(reservation))
+                .thenReturn(Optional.of("https://app.clenzy.fr/guide/test"));
+
+            service.previewMessage(100L, 5L, 1L);
+
+            verify(interpolationService).interpolate(eq(template), eq(reservation), isNull(), eq(property),
+                isNull(), eq(Map.of("guideLink", "https://app.clenzy.fr/guide/test")));
+        }
+
+        @Test
+        void preview_rejectsOtherOrganizationBeforeCreatingGuideToken() {
+            Reservation reservation = new Reservation();
+            reservation.setOrganizationId(2L);
+            when(reservationRepository.findById(100L)).thenReturn(Optional.of(reservation));
+
+            org.assertj.core.api.Assertions.assertThatThrownBy(() -> service.previewMessage(100L, 5L, 1L))
+                .isInstanceOf(org.springframework.security.access.AccessDeniedException.class);
+
+            verifyNoInteractions(welcomeGuideService, interpolationService);
+        }
+
+        @Test
+        void preview_withoutPublishedGuideLeavesFallbackToInterpolation() {
+            assertPreviewWithoutGuide(false);
+        }
+
+        @Test
+        void preview_withGuideResolutionFailureLeavesFallbackToInterpolation() {
+            assertPreviewWithoutGuide(true);
+        }
+
+        private void assertPreviewWithoutGuide(boolean resolutionFails) {
+            Property property = new Property();
+            property.setId(10L);
+            Reservation reservation = new Reservation();
+            reservation.setId(100L);
+            reservation.setOrganizationId(1L);
+            reservation.setProperty(property);
+            MessageTemplate template = new MessageTemplate();
+            template.setBody("Votre livret : {guideLink}");
+            when(reservationRepository.findById(100L)).thenReturn(Optional.of(reservation));
+            when(templateRepository.findByIdAndOrganizationId(5L, 1L)).thenReturn(Optional.of(template));
+            if (resolutionFails) {
+                when(welcomeGuideService.linkForReservation(reservation)).thenThrow(new IllegalStateException("Unavailable"));
+            } else {
+                when(welcomeGuideService.linkForReservation(reservation)).thenReturn(Optional.empty());
+            }
+
+            service.previewMessage(100L, 5L, 1L);
+
+            verify(interpolationService).interpolate(eq(template), eq(reservation), isNull(), eq(property),
+                isNull(), eq(Map.of()));
         }
 
         @Test

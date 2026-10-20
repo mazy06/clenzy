@@ -1,0 +1,53 @@
+/* Intervention details use the same reading hierarchy as service requests. */
+.wo-detail.baitly-intervention-detail { width: 100%; box-sizing: border-box; padding: 16px; scrollbar-gutter: stable; }
+.baitly-intervention-detail .baitly-request-main { border-radius: 12px; overflow: visible; }
+.baitly-intervention-detail .wo-main > .wo-section { padding: 22px 0; border-block-start: 1px solid var(--bui-border); }
+.baitly-intervention-detail .baitly-request-tracking h2 { margin: 0; }
+.baitly-intervention-detail :is(.wo-details-slot,.wo-admin-slot) > .wo-section { padding: 22px 0; border-block-start: 1px solid var(--bui-border); }
+.baitly-intervention-detail .wo-main > .wo-section:first-of-type { border-block-start: 1px solid var(--bui-border); }
+.baitly-intervention-detail .wo-heading > :is(svg,img) { width: 18px; height: 18px; flex-shrink: 0; color: var(--request-accent); }
+.baitly-intervention-detail .wo-heading { margin-block-end: 16px; }
+.baitly-intervention-detail .wo-heading h2 { font-size: 16px; }
+.baitly-intervention-detail .wo-copy { font-size: 14px; line-height: 1.85; }
+.baitly-intervention-service { margin: 0 0 12px; font-size: 18px; font-weight: 500; line-height: 1.5; }
+.baitly-intervention-type { margin: 0 0 12px; font-size: 13px; color: var(--bui-muted-foreground); line-height: 1.5; }
+.baitly-intervention-detail .wo-muted { font-size: 12px; }
+.baitly-intervention-detail .wo-info :is(dt,dd) { overflow-wrap: anywhere; }
+.baitly-intervention-detail .wo-info dd { white-space: pre-wrap; }
+.baitly-intervention-detail .wo-task { flex-wrap: wrap; }
+.baitly-intervention-detail .wo-task strong { white-space: normal; overflow-wrap: anywhere; }
+.baitly-intervention-actions { display: flex; flex-wrap: wrap; align-items: center; justify-content: end; gap: 10px; }
+.baitly-intervention-detail .wo-aside > .wo-section { border-block-start: 1px solid var(--bui-border); padding: 22px 24px; }
+.baitly-intervention-detail .wo-aside .wo-heading h2 { font-size: 14px; }
+.baitly-intervention-detail .wo-aside .wo-heading { margin-block-end: 12px; }
+.baitly-intervention-pricing > h2 { font-size: 14px; font-weight: 600; margin: 0 0 16px; }
+.baitly-intervention-price { color: var(--bui-foreground); font-size: 24px; font-weight: 600; line-height: 1.4; letter-spacing: -.025em; margin: 4px 0 12px; overflow-wrap: anywhere; }
+.baitly-intervention-pricing .wo-scale-gap { margin-block: 4px 14px; }
+.baitly-intervention-detail .wo-assignment { flex-wrap: wrap; }
+.baitly-intervention-detail .wo-assignment .wo-label { flex: 1; }
+.baitly-intervention-detail .wo-beneficiary { margin-block-start: 0; }
+.baitly-intervention-detail .wo-beneficiary button { max-width: 100%; white-space: normal; height: auto; min-height: 40px; }
+.baitly-intervention-detail .wo-banner > div { border-radius: 10px; }
+.baitly-intervention-detail .wo-completed { border-radius: 12px; padding: 24px; }
+.baitly-intervention-detail .wo-completed :is(p,h2,h3,h4,label,button) { overflow-wrap: anywhere; }
+.baitly-intervention-detail .wo-completed .cn-button { height: auto; min-height: 40px; white-space: normal; }
+@media (max-width: 900px) {
+  .wo-detail.baitly-intervention-detail { padding: 12px; }
+  .baitly-intervention-detail .wo-main > .wo-section { order: 2; padding: 18px; }
+  .baitly-intervention-detail .wo-main > .wo-access { order: 3; }
+  .baitly-intervention-detail .wo-aside > .wo-section { order: 4; padding: 18px; }
+  .baitly-intervention-detail .wo-main > .wo-beneficiary { order: 6; }
+  .baitly-intervention-detail .wo-main > .wo-admin-slot { order: 6; }
+  .baitly-intervention-detail .wo-main > .wo-details-slot { order: 3; }
+  .baitly-intervention-detail :is(.wo-details-slot,.wo-admin-slot) > .wo-section { padding: 0; border: 0; }
+  .baitly-intervention-detail .wo-main > .wo-time-log { order: 5; }
+  .baitly-intervention-detail .wo-completed { padding: 18px; }
+  .baitly-intervention-detail .wo-heading__actions { width: auto; margin-inline-start: auto; padding-inline-start: 0; }
+  .baitly-intervention-detail .wo-info--compact > div { grid-template-columns: minmax(0,1fr) minmax(0,1.1fr); }
+}
+@media (max-width: 500px) {
+  .baitly-intervention-detail .baitly-request-tracking { gap: 14px; }
+  .baitly-intervention-detail .baitly-request-tracking__heading { flex-wrap: wrap; }
+  .baitly-intervention-actions { justify-content: start; }
+  .baitly-intervention-detail .wo-heading__actions { flex-wrap: wrap; }
+}

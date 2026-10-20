@@ -1,0 +1,101 @@
+{
+  "product": "Baitly",
+  "date": "2026-10-19",
+  "environment": "localhost",
+  "viewports": [{ "width": 375, "height": 812 }, { "width": 1440, "height": 900 }],
+  "financial_writes_performed": true,
+  "real_payments_performed": false,
+  "business_writes_performed": true,
+  "real_backend_read_checks": {
+    "reservation_id": 595,
+    "guide_token_redacted": true,
+    "services": [
+      { "service": "Ménage en cours de séjour", "request_id": 362, "intervention_id": 483 },
+      { "service": "Petit-déjeuner livré", "request_id": 363, "intervention_id": 484 },
+      { "service": "Transfert aéroport", "request_id": 364, "intervention_id": 485 }
+    ],
+    "verified": [
+      "Statut Prestation réalisée dans les ventes gestionnaire et le livret voyageur",
+      "Créneaux et durées concordants entre les deux interfaces",
+      "Liens des ventes vers les demandes et interventions correspondantes",
+      "Actualisation du suivi voyageur",
+      "Absence de débordement horizontal à 375 px"
+    ],
+    "limitation": "Lecture des ventes de recette existantes ; aucun nouvel achat, démarrage ou achèvement effectué dans le backend pendant cette passe."
+  },
+  "isolated_ui_checks": {
+    "backend_writes": false,
+    "fixtures": [
+      "client/tests/fixtures/baitlyManualServiceTracking.html",
+      "client/tests/fixtures/baitlyPaidServiceExecution.html?service=driver-station"
+    ],
+    "verified": [
+      "Arrivée anticipée : planification puis réalisation sur desktop et mobile",
+      "Départ tardif : planification sur desktop puis réalisation sur mobile",
+      "Parking : réalisation sur desktop et annulation sur mobile",
+      "États terminaux sans formulaire de nouvelle étape",
+      "Lecture seule sans action d'écriture, brouillon conservé au retour en édition",
+      "Transfert gare : consignes obligatoires, bornes min/max du début affichées",
+      "Transfert gare : date et consignes conservées après repli du panneau et passage au mobile",
+      "Transfert gare : demande isolée affichée puis retrouvée dans la vue voyageur après actualisation"
+    ],
+    "limitations": [
+      "La fixture ne prouve ni la persistance PostgreSQL ni les contrôles serveur de disponibilité et de fin de créneau.",
+      "Le double clic n'a produit qu'une ligne visible dans la recette isolée ; il ne prouve pas le nombre de requêtes réseau en production."
+    ]
+  },
+  "automated_regressions": {
+    "passed": 44,
+    "failed": 0,
+    "suites": 6,
+    "log": "/tmp/baitly-paid-services-ui-regressions-1910.log"
+  },
+  "stripe_ui_continuation": {
+    "sandbox_preflight": "tested_jar_verified=true, sandbox_configuration_verified=true, active_matches_recipe=true, read_only=true",
+    "payment_card": "Carte fictive Stripe 4242 uniquement ; aucune carte réelle ni sauvegarde Link",
+    "reservation_id": 595,
+    "purchases": [
+      { "order_id": 5, "service": "Arrivée anticipée", "amount": 30, "currency": "EUR", "checkout_viewport": "desktop", "payment": "PAID", "stripe_test_session": true, "operations": ["SCHEDULED", "FULFILLED"] },
+      { "order_id": 6, "service": "Départ tardif", "amount": 35, "currency": "EUR", "checkout_viewport": "mobile", "payment": "PAID", "stripe_test_session": true, "operations": ["SCHEDULED", "FULFILLED"] },
+      { "order_id": 7, "service": "Parking", "amount": 15, "currency": "EUR", "checkout_viewport": "mobile", "payment": "PAID", "stripe_test_session": true, "operations": ["FULFILLED"] },
+      { "order_id": 8, "service": "Transfert gare", "amount": 1, "currency": "EUR", "checkout_viewport": "desktop", "payment": "PAID", "stripe_test_session": true, "request_id": 365, "intervention_id": 486, "intervention_state": "COMPLETED" }
+    ],
+    "backend_receipts": "Un CHECKOUT COMPLETED du même montant et de la même devise, lié à une session cs_test_, pour chaque vente 5 à 8.",
+    "transfer_steps": [
+      "Demande de planification depuis le mobile",
+      "Refus du créneau trop proche, puis replanification dans le formulaire normal",
+      "Équipe fictive éligible après préparation temporaire autorisée",
+      "Refus hors horaires de sollicitation puis élargissement temporaire explicitement autorisé",
+      "Devis fictif de 1 EUR saisi depuis le desktop et mission acceptée sur mobile",
+      "Horaire de la seule intervention synthétique avancé via le formulaire de modification pour une réalisation immédiate",
+      "Démarrage depuis le desktop, prise en charge renseignée, contrôles de trajet réalisés sur mobile",
+      "Compte rendu explicitement fictif et photo portant RECETTE FICTIVE enregistrés",
+      "Finalisation mobile : intervention 486 COMPLETED, progression 100"
+    ],
+    "final_ui_checks": [
+      "Ventes, réservation 595 et livret : quatre nouveaux achats retrouvés après rechargement",
+      "Historiques manuels SCHEDULED/FULFILLED consultés dans la réservation",
+      "Livret : les quatre services sont Payé et Prestation réalisée sur mobile et desktop",
+      "Transfert gare : lien vers intervention 486 et créneau 19 octobre 07:45–08:45 Europe/Paris concordants",
+      "Aucun débordement horizontal du livret à 375 et 1440 px"
+    ],
+    "temporary_setup_restored": {
+      "team_id": 89,
+      "provider_id": 65,
+      "team_membership_capabilities_zones_availability": "Restaurés à l'identique de la sauvegarde, vérification automatisée réussie",
+      "fictitious_documents_24_25": "États, notes et métadonnées de revue restaurés exactement",
+      "review_26": "Révoquée, historique conservé",
+      "organization_contact_policy_and_user_contact_preferences": "Absence initiale des deux réglages restaurée ; retour aux horaires par défaut",
+      "guide_upsells_visibility": "Désactivée à nouveau comme avant la recette ; les achats restent visibles dans Mes services"
+    },
+    "frontend_fix": "Suppression du suivi manuel concurrent pour les services qui ont un parcours d'intervention, même avant création de leur demande. Régression sur les quatre codes couverts.",
+    "automated_validation": { "tests_passed": 47, "suites_passed": 5, "typescript": "passed", "log": "/tmp/baitly-paid-services-stripe-final-1910.log" },
+    "limits": [
+      "Une seule acquisition par service : les deux formats ont été couverts dans la campagne, sans dupliquer chacun des quatre paiements sur les deux formats.",
+      "Prestations, devis et justificatif synthétiques ; aucun trajet, aucune place de parking ni arrivée/départ réel.",
+      "Une erreur de confirmation des notes a été affichée alors que les notes étaient présentes en base ; rechargement de l'état canonique puis poursuite sans perte. Cause non reproduite dans cette passe.",
+      "Aucun versement prestataire déclenché manuellement."
+    ]
+  },
+  "remaining": []
+}

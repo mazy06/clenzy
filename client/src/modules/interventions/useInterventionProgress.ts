@@ -2,7 +2,9 @@ import { useState, useEffect, useRef, type Dispatch, type SetStateAction } from 
 import { useIsMutating, useMutation, useQueryClient } from '@tanstack/react-query';
 import { interventionsApi } from '../../services/api/interventionsApi';
 import { interventionExecutionScope } from './interventionExecutionScope';
+import { serviceExecutionProfile, serviceCheckKey, serviceValidatedChecks, serviceProofComplete } from './baitlyServiceExecution';
 import { interventionsKeys } from './useInterventionsList';
+import { invalidateMissionWorkflow } from '../../hooks/invalidateMissionWorkflow';
 import {
   InterventionDetailsData,
   PropertyDetails,
@@ -57,6 +59,8 @@ export function useInterventionProgress({
   const savingRoomRef = useRef(false);
   const scope = interventionExecutionScope(id);
   const pendingWrites = useIsMutating({ predicate: mutation => mutation.options.scope?.id === scope.id });
+  const execution = serviceExecutionProfile(intervention);
+  const checked = execution ? serviceValidatedChecks(execution, completedSteps) : validatedRooms;
 
   const isInitialLoadRef = useRef<boolean>(true);
   const isReopeningRef = useRef<boolean>(false);
@@ -113,23 +117,23 @@ export function useInterventionProgress({
     // Une intervention terminée = 100% par définition
     if (intervention?.status === 'COMPLETED') return 100;
 
-    const totalRooms = getTotalRooms();
+    const totalRooms = execution?.checks.length ?? getTotalRooms();
     const totalSteps = 2 + totalRooms;
     let completed = 0;
-    if (inspectionComplete && (!intervention?.type?.toUpperCase().includes('CLEANING') || beforePhotos.length > 0)) completed++;
-    completed += validatedRooms.size;
-    if (completedSteps.has('after_photos') && afterPhotos.length > 0) completed++;
+    if (inspectionComplete && (!!execution || !intervention?.type?.toUpperCase().includes('CLEANING') || beforePhotos.length > 0)) completed++;
+    completed += checked.size;
+    if (execution ? serviceProofComplete(execution, completedSteps, afterPhotos.length, intervention?.notes) : completedSteps.has('after_photos') && afterPhotos.length > 0) completed++;
     return totalSteps > 0 ? Math.round((completed / totalSteps) * 100) : 0;
   };
 
   const areAllStepsCompleted = (): boolean => {
-    if (!propertyDetails || savingRoomRef.current || pendingWrites > 0) return false;
-    const totalRooms = getTotalRooms();
-    const allRoomsDone = validatedRooms.size === totalRooms;
-    const afterPhotosDone = completedSteps.has('after_photos') && afterPhotos.length > 0;
+    if ((!execution && !propertyDetails) || savingRoomRef.current || pendingWrites > 0) return false;
+    const totalRooms = execution?.checks.length ?? getTotalRooms();
+    const allRoomsDone = checked.size === totalRooms;
+    const afterPhotosDone = execution ? serviceProofComplete(execution, completedSteps, afterPhotos.length, intervention?.notes) : completedSteps.has('after_photos') && afterPhotos.length > 0;
     return (
       inspectionComplete &&
-      (!intervention?.type?.toUpperCase().includes('CLEANING') || beforePhotos.length > 0) &&
+      (!!execution || !intervention?.type?.toUpperCase().includes('CLEANING') || beforePhotos.length > 0) &&
       allRoomsDone &&
       afterPhotosDone
     );
@@ -157,6 +161,14 @@ export function useInterventionProgress({
     onSuccess: (updated) => {
       setIntervention(updated);
       if (id) queryClient.setQueryData(interventionsKeys.detail(String(id)), updated);
+    },
+  });
+  const updateServiceChecksMutation = useMutation({
+    scope,
+    mutationFn: (steps: Set<string>) => interventionsApi.updateCompletedSteps(Number(id), JSON.stringify([...steps])),
+    onSuccess: updated => {
+      setIntervention(updated);
+      if (id) queryClient.setQueryData(interventionsKeys.detail(id), updated);
     },
   });
 
@@ -211,7 +223,7 @@ export function useInterventionProgress({
       if (id) {
         queryClient.setQueryData(interventionsKeys.detail(String(id)), updated);
       }
-      queryClient.invalidateQueries({ queryKey: interventionsKeys.lists() });
+      void invalidateMissionWorkflow(queryClient);
 
       setError(null);
       isInitialLoadRef.current = false;
@@ -263,9 +275,21 @@ export function useInterventionProgress({
 
   const handleRoomValidation = async (roomIndex: number) => {
     if (!id || intervention?.status !== 'IN_PROGRESS' || !canUpdateProgressFn
-        || savingRoomRef.current || roomIndex < 0 || roomIndex >= getTotalRooms()) return;
+        || savingRoomRef.current || roomIndex < 0 || roomIndex >= (execution?.checks.length ?? getTotalRooms())) return;
     savingRoomRef.current = true;
     setSavingRoom(roomIndex);
+    if (execution) {
+      const next = new Set(completedSteps);
+      const key = serviceCheckKey(execution, execution.checks[roomIndex]);
+      next.has(key) ? next.delete(key) : next.add(key);
+      try {
+        await updateServiceChecksMutation.mutateAsync(next);
+        setCompletedSteps(next);
+        setError(null);
+      } catch { setError(t('serviceExecution.saveError')); }
+      finally { savingRoomRef.current = false; setSavingRoom(null); }
+      return;
+    }
     // Toggle: add if not present, remove if already validated
     const newValidatedRooms = new Set(validatedRooms);
     if (newValidatedRooms.has(roomIndex)) {
@@ -317,14 +341,14 @@ export function useInterventionProgress({
     if (!canUpdateProgressFn) return;
     // Don't auto-sync if property details haven't loaded — getTotalRooms() would
     // return 0, making progress 100% with just inspection + after photos
-    if (!propertyDetails) return;
+    if (!propertyDetails && !execution) return;
 
-    const totalRooms = getTotalRooms();
+    const totalRooms = execution?.checks.length ?? getTotalRooms();
     const totalSteps = 2 + totalRooms;
     let completed = 0;
-    if (inspectionComplete && (!intervention?.type?.toUpperCase().includes('CLEANING') || beforePhotos.length > 0)) completed++;
-    completed += validatedRooms.size;
-    if (completedSteps.has('after_photos') && afterPhotos.length > 0) completed++;
+    if (inspectionComplete && (!!execution || !intervention?.type?.toUpperCase().includes('CLEANING') || beforePhotos.length > 0)) completed++;
+    completed += checked.size;
+    if (execution ? serviceProofComplete(execution, completedSteps, afterPhotos.length, intervention.notes) : completedSteps.has('after_photos') && afterPhotos.length > 0) completed++;
     const newProgress = totalSteps > 0 ? Math.round((completed / totalSteps) * 100) : 0;
 
     const serverProgress = intervention.progressPercentage || 0;
@@ -332,12 +356,16 @@ export function useInterventionProgress({
       handleUpdateProgressValue(newProgress);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [inspectionComplete, validatedRooms.size, afterPhotos.length, beforePhotos.length, completedSteps]);
+  }, [inspectionComplete, checked.size, afterPhotos.length, beforePhotos.length, completedSteps, intervention?.notes]);
 
   // Auto-save completed steps
   useEffect(() => {
     if (isInitialLoadRef.current) return;
     if (completedSteps.size > 0 && id && intervention && intervention.status === 'IN_PROGRESS') {
+      try {
+        const persisted = JSON.parse(intervention.completedSteps || '[]');
+        if (Array.isArray(persisted) && persisted.length === completedSteps.size && persisted.every(step => completedSteps.has(step))) return;
+      } catch { /* Une valeur historique invalide sera remplacée par les étapes confirmées. */ }
       const timeoutId = setTimeout(() => {
         saveCompletedSteps(completedSteps);
       }, 1000);
@@ -368,11 +396,11 @@ export function useInterventionProgress({
     setProgressDialogOpen,
     progressValue,
     setProgressValue,
-    validatedRooms,
+    validatedRooms: checked,
     savingRoom,
     // Property details can arrive after the mission: derive this flag from
     // the confirmed rooms instead of freezing it during the first response.
-    allRoomsValidated: getTotalRooms() > 0 && validatedRooms.size === getTotalRooms(),
+    allRoomsValidated: (execution?.checks.length ?? getTotalRooms()) > 0 && checked.size === (execution?.checks.length ?? getTotalRooms()),
 
     // Handlers
     handleUpdateProgress,

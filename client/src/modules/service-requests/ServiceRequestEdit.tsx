@@ -1,10 +1,9 @@
 import React, { useState, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Button } from '../../components/ui';
-import { Cancel, Save } from "../../icons";
 import ServiceRequestForm from './ServiceRequestForm';
 import PageHeader from '../../components/PageHeader';
 import { useTranslation } from '../../hooks/useTranslation';
+import '../../theme/baitly-form-surfaces.css';
 
 // ─── Component ──────────────────────────────────────────────────────────────
 // Boutons d'action : géométrie/typo héritées du thème global (.s-btn small).
@@ -19,36 +18,14 @@ const ServiceRequestEdit: React.FC = () => {
   const handleClose = () => navigate(`/service-requests/${id}`);
 
   return (
-    <div className="flex flex-col h-full min-h-0">
-      <div className="shrink-0">
+    <div className="baitly-form-surface baitly-form-page">
+      <div className="baitly-form-header">
         <PageHeader
           title={t('serviceRequests.edit')}
           subtitle={t('serviceRequests.editSubtitle')}
-          backPath={`/service-requests/${id}`}
+          onBack={handleClose}
+          backLabel={t('common.backToDetails')}
           showBackButton={true}
-          actions={
-            <div className="flex gap-1">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={handleClose}
-                disabled={loading}
-                title={t('common.cancel')}
-              >
-                <Cancel size={18} strokeWidth={1.75} />
-                {t('common.cancel')}
-              </Button>
-              <Button
-                size="sm"
-                onClick={() => submitRef.current?.()}
-                disabled={loading}
-                title={t('serviceRequests.update')}
-              >
-                <Save size={18} strokeWidth={1.75} />
-                {loading ? t('serviceRequests.updating') : t('serviceRequests.update')}
-              </Button>
-            </div>
-          }
         />
       </div>
 

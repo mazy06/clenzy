@@ -1,0 +1,16 @@
+<!doctype html>
+<html lang="fr">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Audit des parcours Baitly</title>
+    <style>
+      *{box-sizing:border-box}body{margin:0;background:#edf2f4;color:#21343d;font:14px/1.5 system-ui,sans-serif}header{display:flex;align-items:center;flex-wrap:wrap;gap:12px;padding:12px 20px;border-bottom:1px solid #c8d5dc}label{display:flex;align-items:center;gap:8px}select{padding:8px;max-width:100%;border:1px solid #afc1cb;border-radius:5px;background:#fafcfd;color:inherit;font:inherit;cursor:pointer}select:focus-visible{outline:2px solid #345f75;outline-offset:3px}p{margin:0;font-size:12px}iframe{display:block;width:100%;height:calc(100dvh - 82px);border:0;background:#f4f6f4}header>span{font-weight:600} @media(max-width:600px){header{padding:8px;gap:8px}label{width:100%}select{flex:1;min-width:0}iframe{height:calc(100dvh - 145px)}}
+    </style>
+  </head>
+  <body>
+    <header><span>Audit Baitly</span><label>Modèle <select id="model"></select></label><label>Étape <select id="stage"></select></label><p>API simulée. Aucune réservation ni aucun paiement réel.</p></header>
+    <iframe title="Parcours de réservation" id="canvas"></iframe>
+    <script type="module" src="./bookingJourneyAudit.ts"></script>
+  </body>
+</html>

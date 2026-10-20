@@ -21,6 +21,13 @@ import java.util.List;
     condition = "organization_id = :orgId"
 )
 public class Reservation {
+    /** Montant annoncé à la réservation, indépendant des modifications ultérieures du logement. */
+    @Column(name = "security_deposit_amount", precision = 12, scale = 2)
+    private BigDecimal securityDepositAmount;
+
+    public BigDecimal getSecurityDepositAmount() { return securityDepositAmount; }
+    public void setSecurityDepositAmount(BigDecimal amount) { securityDepositAmount = amount; }
+
     /** Source migration: no automatic messages/cleanings until explicitly adopted. */
     @Column(name = "migration_automation_paused", nullable = false)
     private boolean migrationAutomationPaused;

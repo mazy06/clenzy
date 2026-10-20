@@ -1,4 +1,112 @@
 {
+  "serviceExecution": {
+    "proof": "Justificatif",
+    "proofTitle": "Compte rendu et justificatif",
+    "saveError": "La validation n’a pas été enregistrée. Réessayez.",
+    "saving": "Enregistrement de la validation…",
+    "legacy": "Cette mission a été enregistrée avec l’ancien parcours. Les validations métier ci-dessus n’ont pas été recueillies.",
+    "notesTitle": "{{step}} : notes",
+    "saveHint": "Cliquez sur Enregistrer pour confirmer le compte rendu avant de terminer la mission.",
+    "noteHint": "Décrivez les informations utiles à cette étape, sans donnée bancaire ni information personnelle inutile.",
+    "notePlaceholder": "Consignes prises en compte, réalisation, difficulté éventuelle et résultat…",
+    "photoTitle": "Justificatif de réalisation",
+    "photoHint": "Ajoutez une photo du résultat ou d’un justificatif masqué. Aucun visage, document d’identité ni donnée personnelle.",
+    "open": "Ouvrir le suivi de réalisation",
+    "openHint": "Les étapes adaptées à cette prestation sont disponibles dans le suivi de l’intervention.",
+    "breakfast": {
+      "prepare": "Préparation",
+      "prepareTitle": "Préparer la commande",
+      "prepareHint": "Vérifiez les quantités, le créneau, le lieu de remise et les consignes alimentaires transmis pour cette commande. En cas de doute, contactez le demandeur avant de préparer.",
+      "prepareAction": "Préparation vérifiée",
+      "work": "Livraison",
+      "workTitle": "Confirmer la livraison",
+      "workHint": "Validez chaque point une fois réellement effectué. Ces validations sont enregistrées sur cette mission.",
+      "proofHint": "Ajoutez une photo de la commande remise, sans photographier les voyageurs. Vous pouvez compléter avec un compte rendu.",
+      "report": "Compte rendu",
+      "checks": {
+        "order": "Commande préparée selon les quantités et consignes",
+        "packaging": "Conditionnement et transport adaptés",
+        "delivery": "Commande livrée au lieu et au créneau convenus"
+      }
+    },
+    "transfer": {
+      "prepare": "Prise en charge",
+      "prepareTitle": "Vérifier la prise en charge",
+      "prepareHint": "Confirmez le point de rendez-vous, le créneau, la destination, le nombre de voyageurs et les bagages avec le demandeur. Ne commencez pas si ces informations restent incertaines.",
+      "prepareAction": "Prise en charge vérifiée",
+      "work": "Trajet",
+      "workTitle": "Confirmer le trajet",
+      "workHint": "Validez les étapes à mesure de leur réalisation, de l’embarquement à la dépose.",
+      "proofHint": "Renseignez un compte rendu de la prise en charge et de la dépose, puis ajoutez un justificatif photographique : véhicule ou bordereau masqué, sans visage ni donnée personnelle. Le compte rendu et le justificatif sont requis pour terminer.",
+      "report": "Compte rendu du transfert",
+      "checks": {
+        "boarding": "Voyageurs et bagages pris en charge",
+        "destination": "Destination convenue atteinte",
+        "dropoff": "Dépose des voyageurs et remise des bagages terminées"
+      }
+    },
+    "service": {
+      "prepare": "Préparation",
+      "prepareTitle": "Préparer la prestation",
+      "prepareHint": "Vérifiez les consignes, les moyens nécessaires, le lieu et le créneau avant de commencer.",
+      "prepareAction": "Préparation vérifiée",
+      "work": "Réalisation",
+      "workTitle": "Confirmer la réalisation",
+      "workHint": "Validez chaque contrôle après avoir effectué la prestation correspondante.",
+      "proofHint": "Ajoutez un justificatif photographique du résultat, sans visage ni donnée personnelle. Un compte rendu permet de préciser la réalisation.",
+      "report": "Compte rendu",
+      "checks": {
+        "work": "Prestation réalisée conformément aux consignes",
+        "result": "Résultat vérifié",
+        "handover": "Fin de prestation et consignes transmises"
+      }
+    }
+  },
+  "contactPresentation": {
+    "noContact": "Aucune coordonnée transmise"
+  },
+  "reservationPaidServices": {
+    "title": "Services achetés",
+    "hint": "Services supplémentaires de ce séjour. Le paiement et la réalisation sont suivis séparément.",
+    "refresh": "Actualiser les services",
+    "error": "Impossible de charger les services de ce séjour. Actualisez pour réessayer.",
+    "empty": "Aucun service acheté associé à ce séjour.",
+    "sale": "Vente #{{id}}",
+    "unknownPayment": "Paiement à vérifier"
+  },
+  "paidServiceExecution": {
+    "title": "Planification et suivi du service",
+    "refresh": "Actualiser le suivi",
+    "scheduled": "Créneau prévu",
+    "loadError": "Impossible de charger le suivi du service.",
+    "retry": "Réessayer",
+    "paymentSeparation": "Le service est payé par le voyageur. Le tarif et l’acceptation du prestataire suivent le parcours habituel.",
+    "openRequest": "Ouvrir la demande",
+    "openIntervention": "Ouvrir l’intervention",
+    "stayWindow": "Plage autorisée du {{start}} au {{end}} · {{timezone}}",
+    "start": "Début souhaité",
+    "duration": "Durée (heures)",
+    "instructions": "Consignes pour le service",
+    "acceptance": "Ce créneau restera demandé jusqu’à la confirmation de l’intervention. Aucun nouveau paiement n’est demandé au voyageur.",
+    "saving": "Création en cours…",
+    "submit": "Demander la planification",
+    "states": {
+      "TO_SCHEDULE": "À planifier",
+      "REQUESTED": "Créneau demandé, prestataire à confirmer",
+      "CONFIRMED": "Intervention confirmée",
+      "IN_PROGRESS": "Prestation en cours",
+      "TO_VALIDATE": "Prestation terminée, à valider",
+      "COMPLETED": "Prestation réalisée",
+      "CANCELLED": "Annulé",
+      "REFUNDED": "Remboursé",
+      "PENDING": "Paiement en attente",
+      "PAID": "Payé",
+      "TO_ORGANIZE": "Service à organiser"
+    },
+    "paymentUnavailable": "Cette vente n’est pas éligible à une nouvelle planification.",
+    "transferInstructions": "Lieu de prise en charge, destination et précisions",
+    "manualTracking": "Suivi de réalisation"
+  },
   "connectedRooms": {
     "inspector": {
       "sceneSettings": "Apparence dans la pièce",
@@ -2357,20 +2465,57 @@
     },
     "structures": {
       "essentiel": {
-        "name": "L’Essentiel"
+        "name": "L’Essentiel",
+        "desc": "L’arrivée, les informations pratiques et les règles de la maison."
       },
       "complet": {
-        "name": "Complet"
+        "name": "Complet",
+        "desc": "Le logement, les équipements, le quartier et les expériences."
       },
       "cityguide": {
-        "name": "City Guide"
+        "name": "City Guide",
+        "desc": "Les bonnes adresses, les transports et les découvertes locales."
       },
       "longue": {
-        "name": "Longue durée"
+        "name": "Longue durée",
+        "desc": "Le quotidien, l’entretien et les repères pour un séjour prolongé."
       },
       "conciergerie": {
-        "name": "Conciergerie"
+        "name": "Conciergerie",
+        "desc": "Les contacts, l’accompagnement et les services à la demande."
       }
+    },
+    "creation": {
+      "eyebrow": "Nouveau livret",
+      "heading": "Préparez l’accueil de vos voyageurs",
+      "description": "Choisissez une structure et une ambiance. Retrouvez le résultat dans l’aperçu avant de personnaliser votre livret.",
+      "structureTitle": "Le contenu de votre livret",
+      "structureHint": "Chaque structure prépare des rubriques et des options différentes.",
+      "themeTitle": "Son ambiance",
+      "themeHint": "Chaque thème propose une composition différente. Toutes utilisent les données du logement.",
+      "recommended": "Suggéré",
+      "aiTitle": "Créer avec l’IA",
+      "aiHint": "Facultatif. L’assistant préparera un brouillon selon la structure choisie. Vérifiez son contenu avant publication.",
+      "generating": "Préparation du brouillon…",
+      "continue": "Personnaliser ce livret",
+      "editableHint": "Vous pourrez modifier les textes, les photos et les options avant de publier.",
+      "previewTitle": "Aperçu voyageur",
+      "previewNavigation": "Écran de l’aperçu",
+      "previewHome": "Accueil",
+      "previewContent": "Rubriques",
+      "previewHint": "Données du logement sélectionné. Les rubriques restent personnalisables.",
+      "sampleTitle": "Bienvenue chez vous",
+      "included": "Dans cette structure",
+      "practical": "Arrivée, départ et Wi-Fi du logement",
+      "neighbourhood": "Adresses du quartier",
+      "activities": "Activités",
+      "services": "Services de conciergerie",
+      "myGuides": "Mes livrets d’accueil",
+      "propertyLabel": "Logement",
+      "chooseProperty": "Choisissez un logement",
+      "propertyHint": "Photos, adresse, Wi-Fi et horaires proviennent du logement sélectionné.",
+      "propertyError": "Les données du logement n’ont pas pu être chargées.",
+      "retry": "Réessayer"
     }
   },
   "appUpdate": {
@@ -2635,6 +2780,8 @@
     "confirm": "Confirmer",
     "close": "Fermer",
     "back": "Retour",
+    "backToList": "Retour à la liste",
+    "backToDetails": "Retour à la fiche",
     "processing": "Traitement en cours...",
     "next": "Suivant",
     "continue": "Continuer",
@@ -3148,6 +3295,12 @@
     }
   },
   "dashboard": {
+    "widgetContent": {
+      "critical": "Prioritaire",
+      "warning": "À suivre",
+      "success": "À jour",
+      "info": "Information"
+    },
     "firstUse": {
       "title": "Votre activité, en un coup d’œil",
       "lede": "Arrivées, occupation, priorités : tout sur un seul écran.",
@@ -4267,6 +4420,14 @@
       "openOrigin": "Ouvrir dans {{screen}}"
     },
     "picker": {
+      "browseDescription": "Choisissez une catégorie, puis ajoutez les indicateurs utiles à votre tableau de bord.",
+      "categories": "Catégories de composants",
+      "previewLabel": "Aperçu des composants",
+      "restore": "Remettre",
+      "allRestored": "Tous les composants ont été remis.",
+      "loadError": "Impossible de charger ces composants.",
+      "add": "Ajouter",
+      "savedHint": "Vous pourrez déplacer et redimensionner chaque composant.",
       "title": "Ajouter un composant",
       "description": "Les graphiques des Rapports et des statistiques de portefeuilles se posent ici, un par un.",
       "removed": "Retirés du tableau de bord",
@@ -4831,7 +4992,9 @@
       "suggestedSa": "Taux national : {{rate}} % du prix de la nuit.",
       "suggestSa": "Proposer le taux officiel",
       "confirmSa": "Je confirme ce taux de redevance municipale pour ce logement."
-    }
+    },
+    "securityDepositAmount": "Caution du logement",
+    "securityDepositHelp": "Préautorisation distincte du séjour, libérée après le ménage validé sans anomalie. 0 = aucune caution."
   },
   "serviceRequests": {
     "detail": {
@@ -5096,7 +5259,22 @@
     },
     "assignment": {
       "cleaningPreselected": "Type nettoyage → assignation équipe pré-sélectionnée",
-      "maintenancePreselected": "Type maintenance → assignation équipe pré-sélectionnée"
+      "maintenancePreselected": "Type maintenance → assignation équipe pré-sélectionnée",
+      "modes": {
+        "none": {
+          "title": "À attribuer",
+          "description": "Choisir le prestataire plus tard"
+        },
+        "user": {
+          "title": "Un prestataire",
+          "description": "Confier à une personne"
+        },
+        "team": {
+          "title": "Une équipe",
+          "description": "Confier à une équipe"
+        }
+      },
+      "chooseProvider": "Sélectionnez un prestataire pour cette demande"
     },
     "info": {
       "aLaCarte": "Prestations à la carte"
@@ -5107,7 +5285,15 @@
     "created": "Demande de service créée",
     "durationInMinutes": "Saisissez la durée en minutes",
     "estimateApproximate": "Estimation approximative — renseignez la surface et le tarif de base dans la fiche logement pour une estimation plus précise.",
-    "estimateImpossible": "Renseignez les caractéristiques du logement (chambres, surface, tarif de base) pour afficher une estimation."
+    "estimateImpossible": "Renseignez les caractéristiques du logement (chambres, surface, tarif de base) pour afficher une estimation.",
+    "editor": {
+      "request": "La demande",
+      "schedule": "Créneau et priorité",
+      "assignment": "Attribution",
+      "instructions": "Détails et consignes",
+      "instructionsHint": "Précisez les attentes et les informations utiles au prestataire.",
+      "workspace": "Demande de service"
+    }
   },
   "interventions": {
     "due": {
@@ -11977,6 +12163,16 @@
       "agents": "Agents",
       "agentsSub": "Définissez les actions que vos agents peuvent appliquer.",
       "navigation": "Sections d’automatisation"
+    },
+    "prospection": {
+      "contacts": "Contacts",
+      "contactsSub": "Qualifiez vos contacts et suivez chaque relation.",
+      "campaigns": "Campagnes",
+      "campaignsSub": "Préparez vos messages et vérifiez les autorisations avant envoi.",
+      "inquiries": "Demandes reçues",
+      "inquiriesSub": "Traitez les demandes et candidatures de votre organisation.",
+      "acquisition": "Acquisition",
+      "acquisitionSub": "Publiez votre offre de gestion et vos besoins en prestataires."
     }
   },
   "auth": {
@@ -16013,6 +16209,23 @@
     "home": {
       "heading": "Quel booking engine créons-nous ?",
       "manageDesignSystems": "Gérer les systèmes de design",
+      "newBookingEngine": "Nouveau moteur",
+      "createDemos": "Ajouter les démos",
+      "refreshCollectionDemos": "Actualiser les démos multi-logements",
+      "collectionDemosReady": "4 démos multi-logements mises à jour",
+      "selectedPropertyCount": "{{count}} logements",
+      "demoProgress": "Démos : {{done}} / {{total}}",
+      "refreshDemoLogos": "Logos uniquement",
+      "demoLogosReady": "Logos des démos mis à jour",
+      "demosReady": "14 démos prêtes à comparer",
+      "myBookingEngines": "Mes booking engines",
+      "chooseJourney": "Choisir un parcours",
+      "journey": "Parcours",
+      "bookingJourney": "Le parcours de réservation",
+      "customizeEngine": "Personnaliser ce moteur",
+      "journeyTemplates": "Le modèle de votre parcours",
+      "allJourneyTemplates": "Tous les modèles",
+      "templatePageCount": "{{count}} pages",
       "allFieldsAdded": "Tous les champs sont ajoutés",
       "removeField": "Retirer ce champ",
       "addFieldToPrompt": "Ajouter un champ au prompt",
@@ -16043,7 +16256,7 @@
       "studioView": "Vue du studio"
     },
     "gallery": {
-      "useTemplate": "Utiliser ce template",
+      "useTemplate": "Créer une copie",
       "allTemplates": "Tous les templates",
       "subtitle": "Choisissez un modèle pour démarrer votre booking engine"
     },
@@ -16455,6 +16668,47 @@
     "dropHere": "Glissez-déposez vos photos ici"
   },
   "baitlyMap": {
+    "place": {
+      "contactTab": "Coordonnées",
+      "practicalTab": "Horaires et détails",
+      "sourceShort": "OpenStreetMap · horaires à vérifier",
+      "title": "Lieu utile",
+      "missing": "Non renseigné",
+      "loading": "Chargement des informations…",
+      "error": "Les informations du lieu sont momentanément indisponibles.",
+      "noPhoto": "Aucune photo disponible dans la source.",
+      "noMatch": "Aucune fiche détaillée correspondante n’a été trouvée pour ce lieu.",
+      "address": "Adresse",
+      "phone": "Téléphone",
+      "website": "Site internet",
+      "email": "E-mail",
+      "hours": "Horaires d’ouverture",
+      "cuisine": "Cuisine",
+      "accessibility": "Accès fauteuil roulant",
+      "wheelchair": {
+        "yes": "Accessible",
+        "no": "Non accessible",
+        "limited": "Accès limité"
+      },
+      "source": "Voir sur OpenStreetMap",
+      "sourceHint": "Données contributives OpenStreetMap. Vérifiez les horaires auprès de l’établissement.",
+      "photoCredit": "Photo Wikimedia Commons · crédit et licence"
+    },
+    "places": {
+      "streetNames": "Noms des rues",
+      "title": "Lieux utiles",
+      "showAll": "Tout afficher",
+      "hideAll": "Tout masquer",
+      "transport": "Gares et métros",
+      "groceries": "Supermarchés et épiceries",
+      "restaurants": "Restaurants",
+      "cafes": "Cafés et bars",
+      "health": "Pharmacies et santé",
+      "culture": "Culture et visites",
+      "nature": "Parcs et plein air",
+      "services": "Services pratiques",
+      "zoomHint": "Zoomez pour voir les lieux détaillés. Leur présence dépend des données OpenStreetMap disponibles."
+    },
     "showAll": "Voir tous les lieux",
     "backToList": "Retour à la liste",
     "loading": "Chargement de la carte…",
@@ -16931,7 +17185,8 @@
     "touristTaxPercentRequired": "Pourcentage requis",
     "touristTaxCapRequired": "Plafond par personne et par nuit requis",
     "touristTaxRateRequired": "Montant de la taxe de séjour requis",
-    "touristTaxConfirmRequired": "Confirmez le montant de la taxe de séjour"
+    "touristTaxConfirmRequired": "Confirmez le montant de la taxe de séjour",
+    "depositDecimals": "Deux décimales maximum"
   },
   "loadingStates": {
     "app": "Chargement de l'application…",
@@ -20318,6 +20573,7 @@
     "hint": "Le montant sera restitué sur le moyen de paiement d’origine. Le résultat sera confirmé après vérification auprès du prestataire de paiement.",
     "confirm": "Confirmer le remboursement de {{amount}}",
     "failed": "Le remboursement n’a pas pu être vérifié.",
+    "timeout": "La confirmation prend plus de temps que prévu. Vérifiez le suivi avant de reprendre cette même demande.",
     "states": {
       "PROCESSING": "Vérification en cours",
       "COMPLETED": "Confirmé",
@@ -20326,6 +20582,7 @@
     }
   },
   "commerceOperations": {
+    "refresh": "Actualiser l’historique",
     "title": "Réalisation et suivi",
     "empty": "Aucune étape enregistrée.",
     "action": "Prochaine étape",
@@ -20738,7 +20995,7 @@
       }
     },
     "notes": {
-      "title": "Notes",
+      "title": "Notes internes",
       "hint": "Notes internes de la réservation"
     }
   },
@@ -21113,6 +21370,7 @@
   "sectorMap": {
     "previewZones": "Zones d’intervention",
     "areaFilter": "Secteur sélectionné",
+    "selectedAreas": "Zones sélectionnées : {{total}}",
     "clearAreaFilter": "Effacer le filtre",
     "displayedCount": "{{shown}} sur {{total}} affichés",
     "loadMore": "Afficher les {{count}} suivants",
@@ -21300,6 +21558,7 @@
     "to": "Date de fin",
     "invalidDates": "Choisissez une période valide.",
     "clearArea": "Effacer la zone",
+    "clearAreas": "Effacer les zones",
     "quick": {
       "active": "Actifs",
       "maintenance": "Maintenance",
@@ -21321,5 +21580,156 @@
     "inPeriod": "Dans la période",
     "noStayInPeriod": "Aucun séjour dans la période sélectionnée.",
     "filters": "Filtres de la carte"
+  },
+  "reservationsDeposit": {
+    "none": "Non enregistrée",
+    "noneHint": "Aucune préautorisation bancaire enregistrée pour ce séjour.",
+    "title": "Caution",
+    "amount": "Montant de la caution",
+    "expires": "Échéance de la préautorisation",
+    "unavailable": "État de la caution indisponible",
+    "hint": "Préautorisation séparée du séjour. Libération automatique après le ménage validé sans anomalie.",
+    "releasedHint": "Libération bancaire confirmée. Aucun encaissement sur cette caution.",
+    "statuses": {
+      "PENDING": "En attente de préautorisation",
+      "HELD": "Préautorisée",
+      "RELEASING": "Libération en cours",
+      "RELEASED": "Libérée",
+      "CAPTURING": "Capture en cours",
+      "CAPTURED": "Encaissée",
+      "FAILED": "Préautorisation refusée",
+      "EXPIRED": "Garantie expirée"
+    }
+  },
+  "baitlyCrm": {
+    "subtitle": "Contacts propriétaires et prestataires de votre organisation.",
+    "create": "Ajouter un contact",
+    "edit": "Modifier le contact",
+    "import": "Importer un CSV",
+    "type": "Type de contact",
+    "nature": "Qualité du contact",
+    "name": "Nom",
+    "email": "Email",
+    "phone": "Téléphone",
+    "city": "Ville",
+    "specialty": "Spécialité",
+    "category": "Catégorie",
+    "status": "Suivi",
+    "source": "Provenance",
+    "sourceType": "Provenance",
+    "sourceDetail": "Origine et contexte de la collecte",
+    "sourceUrl": "Lien source HTTPS (facultatif)",
+    "sourceRecordedAt": "Provenance enregistrée le",
+    "contactType": "Type",
+    "contactNature": "Qualité",
+    "notes": "Notes",
+    "file": "Fichier CSV",
+    "noAutomaticConsent": "Créer ou importer un contact ne lui attribue aucune autorisation de contact.",
+    "csvHelp": "CSV UTF-8, séparateur virgule ou point-virgule. Colonnes : name (ou business_name), email, phone, city, specialty, notes. Maximum 5 Mo et 5 000 lignes. Les doublons sont ignorés, sans écraser les fiches existantes.",
+    "importReport": "{{imported}} ajoutés · {{duplicates}} doublons ignorés · {{invalid}} lignes invalides",
+    "invalidRows": "Lignes à corriger :",
+    "saveError": "Impossible d’enregistrer le contact.",
+    "importError": "Impossible d’importer ce fichier.",
+    "loadError": "Impossible de charger les contacts.",
+    "accessDenied": "Le CRM est réservé aux gestionnaires autorisés de cette organisation.",
+    "search": "Rechercher un nom, une ville ou un email",
+    "empty": "Aucun contact à afficher",
+    "emptyHelp": "Ajoutez un contact ou ajustez les filtres. Les contacts archivés sont conservés pour respecter les oppositions.",
+    "contactRecord": "Fiche contact",
+    "retry": "Réessayer",
+    "archive": "Archiver",
+    "archiveHelp": "Le contact disparaîtra de la liste. Son historique et ses oppositions seront conservés ; un nouvel import de son identité sera ignoré.",
+    "confirmArchive": "Confirmer l’archivage",
+    "authorizations": "Autorisations de contact",
+    "recordDecision": "Documenter une décision",
+    "authorizationHelp": "Déclarations par canal pour cette organisation et cette finalité. Un consentement enregistré ne déclenche aucun envoi. Toute autre base doit être évaluée avant une campagne.",
+    "historyError": "Impossible de charger l’historique.",
+    "channel": "Canal",
+    "decision": "Décision",
+    "basis": "Fondement déclaré",
+    "occurredAt": "Date du recueil ou du retrait",
+    "expiresAt": "Expiration (facultative)",
+    "evidence": "Preuve, référence ou motif du retrait",
+    "history": "Historique des décisions",
+    "identityChanged": "Cette décision concerne une ancienne identité ou un autre contexte de contact.",
+    "values": {
+      "all": "Tous",
+      "OWNER": "Propriétaire",
+      "PROVIDER": "Prestataire",
+      "UNKNOWN": "Non renseigné",
+      "PRIVATE": "Particulier",
+      "PROFESSIONAL": "Professionnel",
+      "OWNERS": "Propriétaires",
+      "PROVIDERS": "Autres prestataires",
+      "CONCIERGERIES": "Conciergeries",
+      "MENAGE": "Ménage",
+      "ARTISANS": "Artisans",
+      "ENTRETIEN": "Entretien",
+      "BLANCHISSERIES": "Blanchisseries",
+      "TO_CONTACT": "À qualifier",
+      "IN_DISCUSSION": "En discussion",
+      "PARTNER": "Partenaire",
+      "REJECTED": "Non retenu",
+      "LEGACY": "Historique, à documenter",
+      "MANUAL": "Saisie manuelle",
+      "CSV": "Import CSV",
+      "REFERRAL": "Recommandation",
+      "PARTNER_SOURCE": "Partenaire",
+      "OPEN_DATA": "Données ouvertes",
+      "EMAIL": "Email",
+      "SMS": "SMS",
+      "PHONE": "Téléphone",
+      "CONSENT": "Consentement",
+      "REQUESTED_CONTACT": "Réponse à une demande",
+      "B2B_LEGITIMATE_INTEREST": "Intérêt légitime B2B",
+      "GRANTED": "Accord ou base documenté",
+      "REVOKED": "Opposition / retrait",
+      "CONSENT_RECORDED": "Consentement documenté",
+      "BASIS_RECORDED": "Base documentée, à évaluer",
+      "MANAGEMENT": "Gestion du bien",
+      "PROVIDER_RECRUITMENT": "Partenariat prestataire"
+    },
+    "duplicatesHelp": "{{count}} doublon(s) potentiel(s) dans cette organisation. Les fiches et historiques restent séparés ; aucune fusion automatique."
+  },
+  "baitlyInquiries": {
+    "title": "Demandes reçues",
+    "publicPage": "Ma page publique",
+    "publicHelp": "Publiez une page partageable pour recevoir des demandes dans le CRM de votre organisation. Les logements et services déjà sélectionnés dans votre profil sont conservés.",
+    "bio": "Présentation publique",
+    "published": "Publier mon profil et activer le formulaire de demande",
+    "conciergeOnly": "La publication de cette page est réservée aux organisations conciergeries.",
+    "error": "Impossible de charger ou d’enregistrer ces informations.",
+    "empty": "Aucune demande reçue.",
+    "MANAGEMENT": "Demande de gestion",
+    "ESTIMATE": "Demande d’estimation",
+    "APARTMENT": "Appartement",
+    "HOUSE": "Maison",
+    "OTHER": "Autre",
+    "EMAIL": "email",
+    "PHONE": "téléphone",
+    "NEW": "À traiter",
+    "IN_PROGRESS": "En cours",
+    "CLOSED": "Clôturée",
+    "reply": "Réponse demandée par",
+    "review": "À vérifier : contact archivé, type de contact différent, coordonnées différentes ou plusieurs correspondances. Les données et les oppositions existantes sont conservées.",
+    "origin": "Page d’origine :",
+    "declared": "Attribution déclarée par le navigateur (non vérifiée) :",
+    "direct": "Accès direct ou origine inconnue",
+    "requestOnly": "Demande de réponse uniquement. Aucun accord de campagne commerciale ajouté.",
+    "contact": "Ouvrir le contact",
+    "publicForm": "Formulaire public",
+    "services": "Services présentés",
+    "serviceLISTINGS": "Annonces",
+    "servicePRICING": "Tarification",
+    "serviceGUESTS": "Accueil voyageurs",
+    "serviceCLEANING": "Ménage",
+    "serviceMAINTENANCE": "Maintenance",
+    "serviceOWNER_REPORTING": "Suivi propriétaire",
+    "archivedRecord": "Ce contact est archivé. Ses demandes et son historique restent consultables."
+  },
+  "baitlyOwnerMatch": {
+    "open": "Trouver une conciergerie pour ce bien",
+    "services": "Services demandés",
+    "fee": "Plafond de commission demandé"
   }
 }

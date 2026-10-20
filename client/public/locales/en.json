@@ -1,4 +1,112 @@
 {
+  "serviceExecution": {
+    "proof": "Evidence",
+    "proofTitle": "Report and evidence",
+    "saveError": "The confirmation was not saved. Please retry.",
+    "saving": "Saving confirmation…",
+    "legacy": "This mission was recorded with the previous workflow. These service confirmations were not collected.",
+    "notesTitle": "{{step}}: notes",
+    "saveHint": "Select Save to confirm the report before completing the mission.",
+    "noteHint": "Record useful details for this step without banking details or unnecessary personal information.",
+    "notePlaceholder": "Instructions checked, work performed, any difficulty and outcome…",
+    "photoTitle": "Completion evidence",
+    "photoHint": "Add a photo of the result or a redacted document. No faces, identity documents or personal information.",
+    "open": "Open service tracking",
+    "openHint": "The steps for this service are available in the intervention tracking screen.",
+    "breakfast": {
+      "prepare": "Preparation",
+      "prepareTitle": "Prepare the order",
+      "prepareHint": "Check quantities, delivery time, handover location and dietary instructions. Contact the requester before preparing if anything is unclear.",
+      "prepareAction": "Preparation checked",
+      "work": "Delivery",
+      "workTitle": "Confirm delivery",
+      "workHint": "Confirm each item only after it has been performed. Confirmations are saved to this mission.",
+      "proofHint": "Add a photo of the delivered order without photographing guests. You may also add a report.",
+      "report": "Report",
+      "checks": {
+        "order": "Order prepared according to quantities and instructions",
+        "packaging": "Suitable packaging and transport",
+        "delivery": "Order delivered at the agreed place and time"
+      }
+    },
+    "transfer": {
+      "prepare": "Pickup",
+      "prepareTitle": "Check the pickup",
+      "prepareHint": "Confirm the meeting point, time, destination, passenger count and luggage with the requester. Do not start if these details remain unclear.",
+      "prepareAction": "Pickup checked",
+      "work": "Journey",
+      "workTitle": "Confirm the journey",
+      "workHint": "Confirm each stage when completed, from boarding to drop-off.",
+      "proofHint": "Record pickup and drop-off details, then add photographic evidence of the vehicle or a redacted receipt, without faces or personal information. Both report and evidence are required to finish.",
+      "report": "Transfer report",
+      "checks": {
+        "boarding": "Passengers and luggage collected",
+        "destination": "Agreed destination reached",
+        "dropoff": "Passengers dropped off and luggage handed over"
+      }
+    },
+    "service": {
+      "prepare": "Preparation",
+      "prepareTitle": "Prepare the service",
+      "prepareHint": "Check instructions, required equipment, location and time before starting.",
+      "prepareAction": "Preparation checked",
+      "work": "Execution",
+      "workTitle": "Confirm completion",
+      "workHint": "Confirm each item after the corresponding work has been performed.",
+      "proofHint": "Add photographic evidence of the result without faces or personal information. A report can describe the work performed.",
+      "report": "Report",
+      "checks": {
+        "work": "Service performed according to instructions",
+        "result": "Result checked",
+        "handover": "Completion and instructions communicated"
+      }
+    }
+  },
+  "contactPresentation": {
+    "noContact": "No contact details provided"
+  },
+  "reservationPaidServices": {
+    "title": "Purchased services",
+    "hint": "Additional services for this stay. Payment and fulfillment are tracked separately.",
+    "refresh": "Refresh services",
+    "error": "Unable to load services for this stay. Refresh to try again.",
+    "empty": "No purchased service is associated with this stay.",
+    "sale": "Sale #{{id}}",
+    "unknownPayment": "Payment to be checked"
+  },
+  "paidServiceExecution": {
+    "title": "Service scheduling and tracking",
+    "refresh": "Refresh tracking",
+    "scheduled": "Scheduled time",
+    "loadError": "Unable to load service tracking.",
+    "retry": "Retry",
+    "paymentSeparation": "The guest has paid for the service. Provider pricing and acceptance follow the usual workflow.",
+    "openRequest": "Open request",
+    "openIntervention": "Open intervention",
+    "stayWindow": "Allowed window from {{start}} to {{end}} · {{timezone}}",
+    "start": "Requested start",
+    "duration": "Duration (hours)",
+    "instructions": "Service instructions",
+    "acceptance": "This time remains requested until the intervention is confirmed. No new payment is requested from the guest.",
+    "saving": "Creating…",
+    "submit": "Request scheduling",
+    "states": {
+      "TO_SCHEDULE": "To schedule",
+      "REQUESTED": "Time requested, provider to be confirmed",
+      "CONFIRMED": "Intervention confirmed",
+      "IN_PROGRESS": "Service in progress",
+      "TO_VALIDATE": "Service finished, awaiting review",
+      "COMPLETED": "Service completed",
+      "CANCELLED": "Cancelled",
+      "REFUNDED": "Refunded",
+      "PENDING": "Payment pending",
+      "PAID": "Paid",
+      "TO_ORGANIZE": "Service to be arranged"
+    },
+    "paymentUnavailable": "This sale is not eligible for new scheduling.",
+    "transferInstructions": "Pickup location, destination and details",
+    "manualTracking": "Fulfillment tracking"
+  },
   "connectedRooms": {
     "inspector": {
       "sceneSettings": "Appearance in the room",
@@ -2367,20 +2475,57 @@
     },
     "structures": {
       "essentiel": {
-        "name": "The Essentials"
+        "name": "The Essentials",
+        "desc": "Arrival, practical information and house rules."
       },
       "complet": {
-        "name": "Complete"
+        "name": "Complete",
+        "desc": "The property, amenities, neighbourhood and experiences."
       },
       "cityguide": {
-        "name": "City Guide"
+        "name": "City Guide",
+        "desc": "Local recommendations, transport and places to discover."
       },
       "longue": {
-        "name": "Long stay"
+        "name": "Long stay",
+        "desc": "Everyday living, housekeeping and a longer stay."
       },
       "conciergerie": {
-        "name": "Concierge"
+        "name": "Concierge",
+        "desc": "Contacts, assistance and services on request."
       }
+    },
+    "creation": {
+      "eyebrow": "New guide",
+      "heading": "Prepare a welcome for your guests",
+      "description": "Choose the content and a visual style. Preview the result before personalising your guide.",
+      "structureTitle": "Your guide’s content",
+      "structureHint": "Each structure prepares a different set of sections and options.",
+      "themeTitle": "Its visual style",
+      "themeHint": "Each theme has a different composition. All use your property’s details.",
+      "recommended": "Suggested",
+      "aiTitle": "Create with AI",
+      "aiHint": "Optional. The assistant will prepare a draft based on the selected structure. Review its content before publishing.",
+      "generating": "Preparing your draft…",
+      "continue": "Personalise this guide",
+      "editableHint": "You can edit the text, photos and options before publishing.",
+      "previewTitle": "Guest preview",
+      "previewNavigation": "Preview screen",
+      "previewHome": "Home",
+      "previewContent": "Sections",
+      "previewHint": "Details from the selected property. Sections can still be customised.",
+      "sampleTitle": "Welcome home",
+      "included": "In this structure",
+      "practical": "Property arrival, departure and Wi-Fi",
+      "neighbourhood": "Local recommendations",
+      "activities": "Activities",
+      "services": "Concierge services",
+      "myGuides": "My welcome guides",
+      "propertyLabel": "Property",
+      "chooseProperty": "Choose a property",
+      "propertyHint": "Photos, address, Wi-Fi and times come from the selected property.",
+      "propertyError": "The property details could not be loaded.",
+      "retry": "Try again"
     }
   },
   "appUpdate": {
@@ -2646,6 +2791,8 @@
     "close": "Close",
     "processing": "Processing...",
     "back": "Back",
+    "backToList": "Back to list",
+    "backToDetails": "Back to details",
     "next": "Next",
     "continue": "Continue",
     "previous": "Previous",
@@ -3158,6 +3305,12 @@
     }
   },
   "dashboard": {
+    "widgetContent": {
+      "critical": "Priority",
+      "warning": "Needs attention",
+      "success": "Up to date",
+      "info": "Information"
+    },
     "firstUse": {
       "title": "Your activity at a glance",
       "lede": "Arrivals, occupancy, priorities: all on one screen.",
@@ -4280,6 +4433,14 @@
       "openOrigin": "Open in {{screen}}"
     },
     "picker": {
+      "browseDescription": "Choose a category, then add the insights you need to your dashboard.",
+      "categories": "Widget categories",
+      "previewLabel": "Widget previews",
+      "restore": "Restore",
+      "allRestored": "All widgets have been restored.",
+      "loadError": "Unable to load these widgets.",
+      "add": "Add",
+      "savedHint": "You can move and resize each widget afterwards.",
       "title": "Add a component",
       "description": "Charts from Reports and portfolio statistics can be placed here, one at a time.",
       "removed": "Removed from the dashboard",
@@ -4845,7 +5006,9 @@
       "suggestedSa": "National rate: {{rate}}% of the nightly price.",
       "suggestSa": "Suggest the official rate",
       "confirmSa": "I confirm this municipal fee rate for this property."
-    }
+    },
+    "securityDepositAmount": "Property security deposit",
+    "securityDepositHelp": "A separate card authorization, released after cleaning is approved with no reported issue. 0 = no deposit."
   },
   "serviceRequests": {
     "detail": {
@@ -5110,7 +5273,22 @@
     },
     "assignment": {
       "cleaningPreselected": "Cleaning type → team assignment pre-selected",
-      "maintenancePreselected": "Maintenance type → team assignment pre-selected"
+      "maintenancePreselected": "Maintenance type → team assignment pre-selected",
+      "modes": {
+        "none": {
+          "title": "Unassigned",
+          "description": "Choose a provider later"
+        },
+        "user": {
+          "title": "One provider",
+          "description": "Assign to an individual"
+        },
+        "team": {
+          "title": "A team",
+          "description": "Assign to a team"
+        }
+      },
+      "chooseProvider": "Select a provider for this request"
     },
     "info": {
       "aLaCarte": "À la carte services"
@@ -5121,7 +5299,15 @@
     "created": "Service request created",
     "durationInMinutes": "Enter the duration in minutes",
     "estimateApproximate": "Rough estimate — fill in the floor area and base rate on the property page for a sharper figure.",
-    "estimateImpossible": "Fill in the property details (bedrooms, floor area, base rate) to see an estimate."
+    "estimateImpossible": "Fill in the property details (bedrooms, floor area, base rate) to see an estimate.",
+    "editor": {
+      "request": "Service request",
+      "schedule": "Schedule and priority",
+      "assignment": "Assignment",
+      "instructions": "Details and instructions",
+      "instructionsHint": "Describe the requirements and useful information for the provider.",
+      "workspace": "Service request"
+    }
   },
   "interventions": {
     "due": {
@@ -11991,6 +12177,16 @@
       "agents": "Agents",
       "agentsSub": "Choose which actions your agents can apply.",
       "navigation": "Automation sections"
+    },
+    "prospection": {
+      "contacts": "Contacts",
+      "contactsSub": "Qualify contacts and follow each relationship.",
+      "campaigns": "Campaigns",
+      "campaignsSub": "Prepare messages and check permissions before sending.",
+      "inquiries": "Inbox",
+      "inquiriesSub": "Handle requests and applications for your organization.",
+      "acquisition": "Acquisition",
+      "acquisitionSub": "Publish your management offer and provider needs."
     }
   },
   "auth": {
@@ -16026,6 +16222,23 @@
     "home": {
       "heading": "Which booking engine are we creating?",
       "manageDesignSystems": "Manage the design systems",
+      "newBookingEngine": "New booking engine",
+      "createDemos": "Add demos",
+      "refreshCollectionDemos": "Refresh multi-property demos",
+      "collectionDemosReady": "4 multi-property demos updated",
+      "selectedPropertyCount": "{{count}} properties",
+      "demoProgress": "Demos: {{done}} / {{total}}",
+      "refreshDemoLogos": "Logos only",
+      "demoLogosReady": "Demo logos updated",
+      "demosReady": "14 demos ready to compare",
+      "myBookingEngines": "My booking engines",
+      "chooseJourney": "Choose a booking flow",
+      "journey": "Booking flow",
+      "bookingJourney": "The booking flow",
+      "customizeEngine": "Customize this booking engine",
+      "journeyTemplates": "Your booking flow template",
+      "allJourneyTemplates": "All templates",
+      "templatePageCount": "{{count}} pages",
       "allFieldsAdded": "All fields are added",
       "removeField": "Remove this field",
       "addFieldToPrompt": "Add a field to the prompt",
@@ -16056,7 +16269,7 @@
       "studioView": "Studio view"
     },
     "gallery": {
-      "useTemplate": "Use this template",
+      "useTemplate": "Create a copy",
       "allTemplates": "All templates",
       "subtitle": "Choose a model to start your booking engine"
     },
@@ -16468,6 +16681,47 @@
     "dropHere": "Drag and drop your photos here"
   },
   "baitlyMap": {
+    "place": {
+      "contactTab": "Contact",
+      "practicalTab": "Hours and details",
+      "sourceShort": "OpenStreetMap · confirm opening hours",
+      "title": "Useful place",
+      "missing": "Not provided",
+      "loading": "Loading place details…",
+      "error": "Place details are temporarily unavailable.",
+      "noPhoto": "No photo available from the source.",
+      "noMatch": "No matching detailed record was found for this place.",
+      "address": "Address",
+      "phone": "Phone",
+      "website": "Website",
+      "email": "Email",
+      "hours": "Opening hours",
+      "cuisine": "Cuisine",
+      "accessibility": "Wheelchair access",
+      "wheelchair": {
+        "yes": "Accessible",
+        "no": "Not accessible",
+        "limited": "Limited access"
+      },
+      "source": "View on OpenStreetMap",
+      "sourceHint": "Community data from OpenStreetMap. Confirm opening hours with the business.",
+      "photoCredit": "Wikimedia Commons photo · credit and licence"
+    },
+    "places": {
+      "streetNames": "Street names",
+      "title": "Useful places",
+      "showAll": "Show all",
+      "hideAll": "Hide all",
+      "transport": "Train and metro stations",
+      "groceries": "Supermarkets and groceries",
+      "restaurants": "Restaurants",
+      "cafes": "Cafés and bars",
+      "health": "Pharmacies and healthcare",
+      "culture": "Culture and sightseeing",
+      "nature": "Parks and outdoors",
+      "services": "Practical services",
+      "zoomHint": "Zoom in to see detailed places. Availability depends on OpenStreetMap data."
+    },
     "showAll": "Show all places",
     "backToList": "Back to the list",
     "loading": "Loading the map…",
@@ -16944,7 +17198,8 @@
     "touristTaxPercentRequired": "Percentage required",
     "touristTaxCapRequired": "Cap per person per night required",
     "touristTaxRateRequired": "Tourist tax amount required",
-    "touristTaxConfirmRequired": "Confirm the tourist tax amount"
+    "touristTaxConfirmRequired": "Confirm the tourist tax amount",
+    "depositDecimals": "Two decimal places maximum"
   },
   "loadingStates": {
     "app": "Loading the application…",
@@ -20331,6 +20586,7 @@
     "hint": "The amount will be returned to the original payment method. Confirmation follows verification with the payment provider.",
     "confirm": "Confirm {{amount}} refund",
     "failed": "The refund could not be verified.",
+    "timeout": "Confirmation is taking longer than expected. Check the status before resuming this same request.",
     "states": {
       "PROCESSING": "Verification pending",
       "COMPLETED": "Confirmed",
@@ -20339,6 +20595,7 @@
     }
   },
   "commerceOperations": {
+    "refresh": "Refresh history",
     "title": "Fulfilment and tracking",
     "empty": "No steps recorded.",
     "action": "Next step",
@@ -20751,7 +21008,7 @@
       }
     },
     "notes": {
-      "title": "Notes",
+      "title": "Internal notes",
       "hint": "Internal notes for this reservation"
     }
   },
@@ -21126,6 +21383,7 @@
   "sectorMap": {
     "previewZones": "Service areas",
     "areaFilter": "Selected area",
+    "selectedAreas": "Selected areas: {{total}}",
     "clearAreaFilter": "Clear the filter",
     "displayedCount": "{{shown}} of {{total}} shown",
     "loadMore": "Show the next {{count}}",
@@ -21313,6 +21571,7 @@
     "to": "End date",
     "invalidDates": "Choose a valid date range.",
     "clearArea": "Clear area",
+    "clearAreas": "Clear areas",
     "quick": {
       "active": "Active",
       "maintenance": "Maintenance",
@@ -21334,5 +21593,156 @@
     "inPeriod": "In this period",
     "noStayInPeriod": "No stays in the selected period.",
     "filters": "Map filters"
+  },
+  "reservationsDeposit": {
+    "none": "Not recorded",
+    "noneHint": "No bank authorization recorded for this stay.",
+    "title": "Security deposit",
+    "amount": "Deposit amount",
+    "expires": "Authorization expires",
+    "unavailable": "Deposit status unavailable",
+    "hint": "Separate from the stay price. Automatically released after cleaning approval with no reported issues.",
+    "releasedHint": "Bank release confirmed. No funds collected from this deposit.",
+    "statuses": {
+      "PENDING": "Awaiting authorization",
+      "HELD": "Authorized",
+      "RELEASING": "Release in progress",
+      "RELEASED": "Released",
+      "CAPTURING": "Capture in progress",
+      "CAPTURED": "Captured",
+      "FAILED": "Authorization declined",
+      "EXPIRED": "Authorization expired"
+    }
+  },
+  "baitlyCrm": {
+    "subtitle": "Owner and service provider contacts for your organization.",
+    "create": "Add contact",
+    "edit": "Edit contact",
+    "import": "Import CSV",
+    "type": "Contact type",
+    "nature": "Contact capacity",
+    "name": "Name",
+    "email": "Email",
+    "phone": "Phone",
+    "city": "City",
+    "specialty": "Specialty",
+    "category": "Category",
+    "status": "Stage",
+    "source": "Source",
+    "sourceType": "Source",
+    "sourceDetail": "Collection origin and context",
+    "sourceUrl": "HTTPS source link (optional)",
+    "sourceRecordedAt": "Source recorded on",
+    "contactType": "Type",
+    "contactNature": "Capacity",
+    "notes": "Notes",
+    "file": "CSV file",
+    "noAutomaticConsent": "Creating or importing a contact never grants contact permission.",
+    "csvHelp": "UTF-8 CSV, comma or semicolon separated. Columns: name (or business_name), email, phone, city, specialty, notes. Maximum 5 MB and 5,000 rows. Duplicates are skipped without overwriting existing records.",
+    "importReport": "{{imported}} added · {{duplicates}} duplicates skipped · {{invalid}} invalid rows",
+    "invalidRows": "Rows to correct:",
+    "saveError": "Could not save the contact.",
+    "importError": "Could not import this file.",
+    "loadError": "Could not load contacts.",
+    "accessDenied": "CRM access requires an authorized manager of this organization.",
+    "search": "Search by name, city or email",
+    "empty": "No contacts to display",
+    "emptyHelp": "Add a contact or adjust your filters. Archived contacts are retained to respect objections.",
+    "contactRecord": "Contact record",
+    "retry": "Retry",
+    "archive": "Archive",
+    "archiveHelp": "The contact will leave the list. History and objections are retained; importing the same identity again will be skipped.",
+    "confirmArchive": "Confirm archive",
+    "authorizations": "Contact permissions",
+    "recordDecision": "Record a decision",
+    "authorizationHelp": "Assertions for this organization and purpose, by channel. Recording consent sends no message. Other bases require assessment before a campaign.",
+    "historyError": "Could not load history.",
+    "channel": "Channel",
+    "decision": "Decision",
+    "basis": "Declared basis",
+    "occurredAt": "Collection or withdrawal date",
+    "expiresAt": "Expiry (optional)",
+    "evidence": "Evidence, reference or withdrawal reason",
+    "history": "Decision history",
+    "identityChanged": "This decision concerns an earlier identity or a different contact context.",
+    "values": {
+      "all": "All",
+      "OWNER": "Owner",
+      "PROVIDER": "Service provider",
+      "UNKNOWN": "Not recorded",
+      "PRIVATE": "Individual",
+      "PROFESSIONAL": "Professional",
+      "OWNERS": "Owners",
+      "PROVIDERS": "Other service providers",
+      "CONCIERGERIES": "Property managers",
+      "MENAGE": "Cleaning",
+      "ARTISANS": "Tradespeople",
+      "ENTRETIEN": "Maintenance",
+      "BLANCHISSERIES": "Laundry",
+      "TO_CONTACT": "To qualify",
+      "IN_DISCUSSION": "In discussion",
+      "PARTNER": "Partner",
+      "REJECTED": "Not selected",
+      "LEGACY": "Historical, needs documentation",
+      "MANUAL": "Manual entry",
+      "CSV": "CSV import",
+      "REFERRAL": "Referral",
+      "PARTNER_SOURCE": "Partner",
+      "OPEN_DATA": "Open data",
+      "EMAIL": "Email",
+      "SMS": "SMS",
+      "PHONE": "Phone",
+      "CONSENT": "Consent",
+      "REQUESTED_CONTACT": "Response to a request",
+      "B2B_LEGITIMATE_INTEREST": "B2B legitimate interest",
+      "GRANTED": "Agreement or basis recorded",
+      "REVOKED": "Objection / withdrawal",
+      "CONSENT_RECORDED": "Consent recorded",
+      "BASIS_RECORDED": "Basis recorded, needs assessment",
+      "MANAGEMENT": "Property management",
+      "PROVIDER_RECRUITMENT": "Provider partnership"
+    },
+    "duplicatesHelp": "{{count}} possible duplicate(s) in this organization. Records and history remain separate; no automatic merge."
+  },
+  "baitlyInquiries": {
+    "title": "Received requests",
+    "publicPage": "My public page",
+    "publicHelp": "Publish a shareable page to receive inquiries in your organization’s CRM. Previously selected properties and services are preserved.",
+    "bio": "Public introduction",
+    "published": "Publish my profile and enable the inquiry form",
+    "conciergeOnly": "This page is available to property management organizations.",
+    "error": "Unable to load or save this information.",
+    "empty": "No inquiries received.",
+    "MANAGEMENT": "Management inquiry",
+    "ESTIMATE": "Estimate inquiry",
+    "APARTMENT": "Apartment",
+    "HOUSE": "House",
+    "OTHER": "Other",
+    "EMAIL": "email",
+    "PHONE": "phone",
+    "NEW": "New",
+    "IN_PROGRESS": "In progress",
+    "CLOSED": "Closed",
+    "reply": "Reply requested by",
+    "review": "Review required: archived contact, different contact type, different details or multiple matches. Existing information and refusals are preserved.",
+    "origin": "Source page:",
+    "declared": "Browser-declared attribution (unverified):",
+    "direct": "Direct or unknown source",
+    "requestOnly": "Reply to this inquiry only. No marketing campaign permission was added.",
+    "contact": "Open contact",
+    "publicForm": "Public form",
+    "services": "Featured services",
+    "serviceLISTINGS": "Listings",
+    "servicePRICING": "Pricing",
+    "serviceGUESTS": "Guest services",
+    "serviceCLEANING": "Cleaning",
+    "serviceMAINTENANCE": "Maintenance",
+    "serviceOWNER_REPORTING": "Owner reporting",
+    "archivedRecord": "This contact is archived. Its inquiries and history remain available."
+  },
+  "baitlyOwnerMatch": {
+    "open": "Find a manager for this property",
+    "services": "Requested services",
+    "fee": "Requested commission limit"
   }
 }

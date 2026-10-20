@@ -4,6 +4,7 @@ import {
   CardContent,
   Field,
   FieldLabel,
+  FieldDescription,
   NativeSelect,
   NativeSelectOption,
 } from '../../components/ui';
@@ -103,6 +104,9 @@ const InterventionFormAssignment: React.FC<InterventionFormAssignmentProps> = Re
                         </NativeSelectOption>
                       ))}
                   </NativeSelect>
+                  {field.value && <FieldDescription>
+                    {users.filter(user => user.id === field.value).map(user => `${user.firstName} ${user.lastName}`).join('')}
+                  </FieldDescription>}
                 </Field>
               )}
             />
@@ -130,6 +134,9 @@ const InterventionFormAssignment: React.FC<InterventionFormAssignmentProps> = Re
                       </NativeSelectOption>
                     ))}
                   </NativeSelect>
+                  {field.value && <FieldDescription>
+                    {teams.find(team => team.id === field.value)?.name}
+                  </FieldDescription>}
                 </Field>
               )}
             />

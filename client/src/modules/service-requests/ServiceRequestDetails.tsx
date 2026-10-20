@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useParams, Link } from 'react-router-dom';
+import { useParams, useNavigate, Link } from 'react-router-dom';
 import { ClipboardList, Pencil, TriangleAlert } from '../../icons/glyphs';
 import { Alert, AlertDescription, Button, Skeleton } from '../../components/ui';
 import { useAuth } from '../../hooks/useAuth';
@@ -15,6 +15,7 @@ export type { ServiceRequestDetailsData } from '../../hooks/useServiceRequestDet
 
 export default function ServiceRequestDetails() {
   const { id } = useParams<{ id: string }>();
+  const navigate = useNavigate();
   const { hasPermissionAsync, hasAnyRole } = useAuth();
   const { t } = useTranslation();
   const { serviceRequest: sr, isLoading, isError, error } = useServiceRequestDetails(id);
@@ -39,7 +40,8 @@ export default function ServiceRequestDetails() {
   return <div className="flex h-full min-h-0 flex-col">
     <div className="shrink-0"><PageHeader title={sr.title}
       subtitle={t('serviceRequests.detail.contextLabel', 'Demande de service')} iconBadge={<ClipboardList />}
-      backPath="/service-requests" actions={canEdit && !sr.interventionId && !sr.marketplaceRequestId ? <>
+      onBack={() => navigate('/service-requests')} backLabel={t('common.backToList')}
+      actions={canEdit && !sr.interventionId && !sr.marketplaceRequestId ? <>
         {canReschedule && <Button variant="outline" size="sm" onClick={() => setRescheduling(true)}>{t('dashboard.stuckService.reschedule', 'Replanifier')}</Button>}
         <Button variant="outline" size="sm" asChild><Link to={`/service-requests/${id}/edit`}><Pencil className="size-4" aria-hidden />{t('serviceRequests.modify')}</Link></Button>
       </> : undefined} /></div>

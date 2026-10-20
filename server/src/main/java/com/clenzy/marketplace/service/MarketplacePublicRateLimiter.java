@@ -66,6 +66,19 @@ public class MarketplacePublicRateLimiter {
         return tryAcquire("upload:" + clientIp(request), MAX_UPLOADS_PER_WINDOW);
     }
 
+    /** Public CRM intake fails closed when its shared abuse counter is unavailable. */
+    public boolean tryAcquireManagementInquiry(HttpServletRequest request) {
+        try {
+            Long count=redisTemplate.execute(new org.springframework.data.redis.core.script.DefaultRedisScript<Long>(
+                "local n=redis.call('INCR',KEYS[1]); if n==1 then redis.call('EXPIRE',KEYS[1],3600) end; return n",Long.class),
+                java.util.List.of(REDIS_PREFIX+"management:"+clientIp(request)));
+            return count!=null && count<=10;
+        } catch(Exception unavailable) {
+            log.warn("Baitly management inquiry rate limiter unavailable");
+            return false;
+        }
+    }
+
     private boolean tryAcquire(String suffix, int limit) {
         String key = REDIS_PREFIX + suffix;
         try {

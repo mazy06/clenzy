@@ -112,23 +112,25 @@ export default function PropertyMapRow({
         </div>
         <div className="baitly-property-map-address">
           <span className="baitly-property-map-street">{property.address}</span>
-          <span className="baitly-property-map-place">
-            {[property.postalCode, property.city].filter(Boolean).join(' ')}
-          </span>
-        </div>
-      </div>
-      <div className="baitly-property-map-price">
-        <span className="baitly-property-map-price-label">{t('properties.nightlyPrice')}</span>
-        {property.nightlyPrice > 0 ? (
-          <span className="baitly-property-map-amount tabular-nums">
-            <Money value={property.nightlyPrice} from="EUR" decimals={0} />
-            <span className="baitly-property-map-unit">
-              {t('properties.perNight')}
+          <div className="baitly-property-map-location-price">
+            <span className="baitly-property-map-place">
+              {[property.postalCode, property.city].filter(Boolean).join(' ')}
             </span>
-          </span>
-        ) : (
-          <span className="text-sm text-muted-foreground">—</span>
-        )}
+            <div className="baitly-property-map-price">
+              <span className="baitly-property-map-price-label">{t('properties.nightlyPrice')}</span>
+              {property.nightlyPrice > 0 ? (
+                <span className="baitly-property-map-amount tabular-nums">
+                  <Money value={property.nightlyPrice} from="EUR" decimals={0} />
+                  <span className="baitly-property-map-unit">
+                    {t('properties.perNight')}
+                  </span>
+                </span>
+              ) : (
+                <span className="text-sm text-muted-foreground">—</span>
+              )}
+            </div>
+          </div>
+        </div>
       </div>
       <PopoverTrigger asChild><button type="button" aria-label={`${t('common.details', 'Détails')} · ${property.name}`}
         className="baitly-property-map-chevron relative z-10 flex size-6 cursor-pointer items-center justify-center rounded text-muted-foreground hover:bg-muted focus-visible:outline-2 focus-visible:outline-ring">

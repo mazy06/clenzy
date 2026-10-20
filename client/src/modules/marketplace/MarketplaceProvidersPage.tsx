@@ -4,7 +4,7 @@ import { useMarketplaceFilterState } from './useMarketplaceFilterState';
 import { useUserUiPreferences } from '../../providers/UserUiPreferencesProvider';
 import { useMarketplacePresentation } from './useMarketplacePresentation';
 import React, { useCallback, useMemo, useState } from 'react';
-import { usePageHeaderActions } from '../../components/PageHeaderActionsContext';
+import { PageHeaderFilterControls, usePageHeaderActions } from '../../components/PageHeaderActionsContext';
 import ProviderDirectoryResults, { PROVIDERS_PAGE_SIZE as PAGE_SIZE } from './ProviderDirectoryResults';
 import { useScreenSearch } from '../../components/ScreenChrome';
 import {
@@ -287,7 +287,7 @@ export default function MarketplaceProvidersPage() {
         précédente alignait quarante-six contrôles de poids identique sur sept
         cents pixels de haut, poussant la grille sous la ligne de flottaison.
       */}
-      <DirectoryToolbar>
+      <PageHeaderFilterControls><div className="flex flex-col gap-3">
         <DirectorySegments>
           {VIEWS.map((entry) => {
             const count = viewCount(entry.key);
@@ -351,7 +351,7 @@ export default function MarketplaceProvidersPage() {
             </span>
           )}
         </div>
-      </DirectoryToolbar>
+      </div></PageHeaderFilterControls>
 
       {/* ─── Filtres et résultats ────────────────────────────────────── */}
       <ProviderDirectoryLayout filters={<MarketplaceFilterPanel {...filterPanelProps} />}>

@@ -1,5 +1,4 @@
 import { BaitlyCommerceEvidenceDisclosure } from '../payments/BaitlyCommerceEvidencePanel';
-import BaitlyCommerceOperationsPanel from '../payments/BaitlyCommerceOperationsPanel';
 import BaitlyCommerceRefundPanel from '../payments/BaitlyCommerceRefundPanel';
 import BaitlyCommercePayoutPanel from '../payments/BaitlyCommercePayoutPanel';
 import { useAuth } from '../../hooks/useAuth';
@@ -49,6 +48,8 @@ import {
 import '../booking-engine/studio/studioHome.css';
 import ServicesCatalog, { SERVICE_IMAGES } from './marketplace/ServicesCatalog';
 import BaitlyPaidServiceDetail from './BaitlyPaidServiceDetail';
+import BaitlyPaidServiceOrderTracking from './BaitlyPaidServiceOrderTracking';
+import { usePaidServiceOrders } from './usePaidServiceOrders';
 import { type MarketplaceExperience } from './marketplace/marketplaceData';
 import { useTranslation } from '../../hooks/useTranslation';
 import { useNotification, type NotificationSeverity } from '../../hooks/useNotification';
@@ -193,10 +194,7 @@ const UpsellsAdmin: React.FC = () => {
   });
 
   // Ventes : chargées dès le montage (KPIs + perf par service + dialog Ventes).
-  const { data: orders = [], isLoading: ordersLoading } = useQuery({
-    queryKey: ['upsell-orders'],
-    queryFn: () => upsellApi.listOrders(),
-  });
+  const { data: orders = [], isLoading: ordersLoading } = usePaidServiceOrders();
 
   // ── Vue catalogue ↔ détail + filtres ──────────────────────────────────────
   const [selected, setSelected] = useState<Selected | null>(null);
@@ -934,10 +932,10 @@ const UpsellsAdmin: React.FC = () => {
                       ) : null}
                     </span>
                   </ItemActions>
+                  <BaitlyPaidServiceOrderTracking order={order} />
                   {hasAnyRole(['SUPER_ADMIN', 'SUPER_MANAGER']) && ['PAID', 'REFUNDED'].includes(order.status) && <div className="w-full">
                     <Button variant="ghost" size="sm" onClick={() => setRefundOrder(refundOrder === order.id ? null : order.id)} aria-expanded={refundOrder === order.id}>{t('commerceRefunds.title')}</Button>
                     {refundOrder === order.id && <div className="space-y-4">
-                      <BaitlyCommerceOperationsPanel key={`ops-${order.id}`} source="UPSELL" sourceId={order.id} canEdit />
                       <BaitlyCommerceRefundPanel key={order.id} source="UPSELL" sourceId={order.id} />
                       <BaitlyCommercePayoutPanel key={`payout-${order.id}`} source="UPSELL" sourceId={order.id} />
                       <BaitlyCommerceEvidenceDisclosure key={`evidence-${order.id}`} source="UPSELL" sourceId={order.id} />

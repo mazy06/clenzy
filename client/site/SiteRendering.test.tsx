@@ -9,6 +9,10 @@ import type { SiteLanguage } from './lib/siteLanguage';
 import { ACADEMY_EPISODES } from './data/baitlyAcademyVideos';
 
 vi.mock('./components/SiteMetadata', () => ({ default: () => null }));
+vi.mock('./lib/baitlyConciergeApi',async (original) => ({
+  ...await original<typeof import('./lib/baitlyConciergeApi')>(),
+  baitlyConciergeApi:{ matches:async()=>({content:[],totalElements:0,page:0,size:25}) },
+}));
 const launchState = vi.hoisted(() => ({
   paused: true,
   loading: false,
@@ -105,6 +109,8 @@ describe('Published site hydration', () => {
     ['/produit/livret-accueil', 'en'],
     ['/solutions', 'en'],
     ['/prestataires', 'ar'],
+    ['/conciergeries', 'fr'],
+    ['/conciergeries', 'ar'],
     ['/migration', 'fr'],
     ['/comparer', 'en'],
     ['/contact', 'ar'],
@@ -164,6 +170,12 @@ describe('Published site hydration', () => {
     expect(container.querySelectorAll('.blg-article-link').length).toBeLessThan(
       27,
     );
+  });
+  it('restores the owners property criteria after hydrating the public directory',async () => {
+    const view=await mountPublished('/conciergeries','fr','&city=Rabat&country=MA&propertyType=RIAD&service=CLEANING&maxFee=15');
+    expect(view.getByLabelText('Ville du logement')).toHaveValue('Rabat');
+    expect(view.getByLabelText('Type de logement')).toHaveValue('RIAD');
+    expect(view.getByRole('checkbox',{name:'Ménage'})).toBeChecked();
   });
 
   it('publishes a playable video and its transcript without JavaScript', async () => {

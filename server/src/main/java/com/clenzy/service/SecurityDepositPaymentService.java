@@ -29,6 +29,7 @@ import java.math.BigDecimal;
  * transaction courte. Idempotency keys déterministes par dépôt.</p>
  */
 @Service
+@org.springframework.transaction.annotation.Transactional(propagation = org.springframework.transaction.annotation.Propagation.NOT_SUPPORTED)
 public class SecurityDepositPaymentService {
 
     private final SecurityDepositRepository repository;
@@ -36,17 +37,20 @@ public class SecurityDepositPaymentService {
     private final SecurityDepositService depositService;
     private final SecurityDepositHoldService holdService;
     private final StripeGateway stripeGateway;
+    private final BaitlyDepositOperationStore operations;
 
     public SecurityDepositPaymentService(SecurityDepositRepository repository,
                                          ReservationRepository reservationRepository,
                                          SecurityDepositService depositService,
                                          SecurityDepositHoldService holdService,
-                                         StripeGateway stripeGateway) {
+                                         StripeGateway stripeGateway,
+                                         BaitlyDepositOperationStore operations) {
         this.repository = repository;
         this.reservationRepository = reservationRepository;
         this.depositService = depositService;
         this.holdService = holdService;
         this.stripeGateway = stripeGateway;
+        this.operations = operations;
     }
 
     /**
@@ -82,13 +86,19 @@ public class SecurityDepositPaymentService {
 
     /** Libère le hold (aucun débit). HELD -> RELEASED — y compris un hold déjà échu chez Stripe. */
     public void releaseHold(Long orgId, Long depositId) {
-        SecurityDeposit deposit = load(orgId, depositId);
-        requireStatus(deposit, SecurityDepositStatus.HELD);
+        if (!releaseAfterCleaning(orgId, depositId))
+            throw new IllegalStateException("Libération refusée : ménage non validé, anomalie signalée ou caution déjà traitée.");
+    }
+
+    /** Reprise idempotente d'une libération, y compris après perte de la réponse Stripe. */
+    public boolean releaseAfterCleaning(Long orgId, Long depositId) {
+        var command = operations.claimRelease(depositId, orgId);
+        if (command.isEmpty()) return false;
+        var instruction = command.get();
         try {
-            if (deposit.getExternalRef() != null && !deposit.getExternalRef().isBlank()) {
-                holdService.cancelAuthorization(deposit.getExternalRef(), "deposit-release-" + depositId);
-            }
-            depositService.release(orgId, depositId);
+            holdService.cancelAuthorization(instruction.authorization(), "deposit-release-" + depositId);
+            operations.released(instruction);
+            return true;
         } catch (StripeException e) {
             throw new IllegalStateException("Echec de la liberation Stripe pour la caution " + depositId, e);
         }
@@ -99,26 +109,24 @@ public class SecurityDepositPaymentService {
      * Stripe n'a plus de fonds : la caution quitte HELD (EXPIRED) et la capture est refusée.
      */
     public void captureHold(Long orgId, Long depositId, BigDecimal amount, String reason) {
-        SecurityDeposit deposit = load(orgId, depositId);
-        requireStatus(deposit, SecurityDepositStatus.HELD);
-        if (amount == null || amount.compareTo(BigDecimal.ZERO) <= 0) {
-            throw new IllegalArgumentException("Le montant capture doit etre > 0");
-        }
-        if (amount.compareTo(deposit.getAmount()) > 0) {
-            throw new IllegalArgumentException("Le montant capture depasse la caution");
-        }
+        var instruction = operations.claimCapture(depositId, orgId, amount, reason);
         try {
-            PaymentIntent pi = stripeGateway.retrievePaymentIntent(deposit.getExternalRef());
+            PaymentIntent pi = stripeGateway.retrievePaymentIntent(instruction.authorization());
             if (SecurityDepositHoldService.PI_CANCELED.equals(pi.getStatus())) {
-                holdService.recordLapse(deposit, reservationOf(orgId, deposit));
+                operations.expiredCapture(instruction);
                 throw new IllegalStateException("La pré-autorisation de la caution " + depositId
                     + " a expiré chez la banque du voyageur : plus aucun fonds à capturer");
             }
             PaymentIntentCaptureParams captureParams = PaymentIntentCaptureParams.builder()
                 .setAmountToCapture(StripeAmounts.toMinorUnits(amount))
                 .build();
-            stripeGateway.capturePaymentIntent(pi, captureParams, "deposit-capture-" + depositId);
-            depositService.capture(orgId, depositId, amount, reason);
+            if (!"succeeded".equals(pi.getStatus())) {
+                pi = stripeGateway.capturePaymentIntent(pi, captureParams, "deposit-capture-" + depositId);
+            }
+            if (!"succeeded".equals(pi.getStatus()) || pi.getAmountReceived() == null
+                    || pi.getAmountReceived() != StripeAmounts.toMinorUnits(instruction.amount()))
+                throw new IllegalStateException("Capture Stripe à rapprocher avant de confirmer l'encaissement.");
+            operations.captured(instruction);
         } catch (StripeException e) {
             throw new IllegalStateException("Echec de la capture Stripe pour la caution " + depositId, e);
         }

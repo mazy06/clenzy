@@ -1,6 +1,7 @@
 import React from 'react';
 import { Alert, AlertDescription, Button, Spinner } from '../../components/ui';
-import { TriangleAlert } from '../../icons/glyphs';
+import { TriangleAlert, CircleCheckIcon, InfoIcon } from '../../icons/glyphs';
+import { useWidgetPresentation } from '../../components/stats/widgetPresentation';
 import { cn } from '../../utils/cn';
 import { useCurrency } from '../../hooks/useCurrency';
 import { useTranslation } from '../../hooks/useTranslation';
@@ -142,6 +143,8 @@ export const SignalList: React.FC<{ items: SignalItem[]; emptyLabel: string }> =
   items,
   emptyLabel,
 }) => {
+  const widget = useWidgetPresentation();
+  const { t } = useTranslation();
   if (items.length === 0) {
     return (
       <div className="flex h-full items-center justify-center text-xs text-muted-foreground">
@@ -151,16 +154,20 @@ export const SignalList: React.FC<{ items: SignalItem[]; emptyLabel: string }> =
   }
 
   return (
-    <ul className="m-0 flex list-none flex-col gap-2 p-0">
+    <ul className={cn('m-0 flex list-none flex-col gap-2 p-0', widget && 'db-data-signals')}>
       {items.map((item) => (
         <li
           key={item.id}
           className="flex gap-2 border-b border-border pb-2 last:border-b-0 last:pb-0"
         >
-          <span
+          {widget ? <span className="db-data-signals__icon" data-tone={item.tone}>
+            {item.tone === 'critical' || item.tone === 'warning' ? <TriangleAlert aria-hidden="true" />
+              : item.tone === 'success' ? <CircleCheckIcon aria-hidden="true" /> : <InfoIcon aria-hidden="true" />}
+            <span className="sr-only">{t(`dashboard.widgetContent.${item.tone}`, item.tone === 'critical' ? 'Prioritaire' : item.tone === 'warning' ? 'À suivre' : item.tone === 'success' ? 'À jour' : 'Information')}</span>
+          </span> : <span
             aria-hidden="true"
             className={cn('mt-1.5 size-1.5 shrink-0 rounded-full', SIGNAL_DOT[item.tone])}
-          />
+          />}
           <div className="min-w-0 flex-1">
             <p className="m-0 text-xs font-semibold text-foreground">{item.title}</p>
             <p className="m-0 text-2xs leading-snug text-muted-foreground">{item.description}</p>

@@ -17,8 +17,8 @@ interface Props {
 // locales de cet ecran : flex 1, gap 5px, padding uniforme 7px.
 const segTabCls = (on: boolean) =>
   cn(
-    'inline-flex flex-1 cursor-pointer items-center justify-center gap-[5px] rounded-[7px] border-0 p-[7px]',
-    '[font-family:inherit] text-xs font-semibold whitespace-nowrap',
+    'inline-flex min-w-0 flex-1 cursor-pointer items-center justify-center gap-[5px] rounded-[7px] border-0 p-[7px]',
+    '[font-family:inherit] text-xs font-semibold whitespace-normal',
     'transition-[background,color] duration-[140ms]',
     'focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-primary',
     on

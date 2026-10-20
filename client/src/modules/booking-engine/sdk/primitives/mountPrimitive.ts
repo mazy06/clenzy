@@ -5,7 +5,7 @@ import type { ApiConfirmation, ApiBookingUpsell } from '../api';
 import type { BookingI18n } from '../i18n';
 import type { BaitlyTheme } from '../types';
 import { generateThemeCSS } from '../theme';
-import { readNext, readReturn, navigateTo, resolveReturnUrl } from './navigation';
+import { readNext, readReturn, navigateTo, resolveReturnUrl, withReservationReference, withBatchReferences, propertyDestination } from './navigation';
 
 // Factories réutilisées (mêmes que le monolithe `BaitlyWidget`) — aucune ré-implémentation d'UI.
 import { createDatePicker } from '../components/DatePicker';
@@ -20,12 +20,13 @@ import { createCartList } from '../components/CartList';
 import { createPropertyFilter, createPropertyTypeSelect } from '../components/PropertyFilter';
 import { createFilterPanel, createPriceFilter, createMinFilter, createAmenitiesFilter } from '../components/FilterPanel';
 import { createStepper } from '../components/Stepper';
-import { createAddonsPanel } from '../components/AddonsPanel';
 import { createRebookStrip } from '../components/RebookStrip';
 import { createPropertySummary } from '../components/PropertySummary';
+import { createStaySummary } from '../components/StaySummary';
 import { createAmenitiesList } from '../components/AmenitiesList';
 import { createReviewsList, createRatingBadge } from '../components/Reviews';
 import { createConfirmationCard } from '../components/Confirmation';
+import { appendConfirmationStay } from '../components/ConfirmationStay';
 import { HEADLESS_WIDGETS, ensureStructuralStyles } from '../headless';
 
 // CSS (importé en chaîne par le bundler) — identique à `BaitlyWidget.injectStyles`.
@@ -78,6 +79,10 @@ export interface MountContext {
  */
 export function mountPrimitive(el: HTMLElement, step: string, ctx: MountContext): void {
   const { core, i18n, theme } = ctx;
+  // A Studio preview can clone an empty editor marker before hydrating its live content.
+  el.classList.remove('cz-widget-empty', 'cz-widget-invalid');
+  el.removeAttribute('data-cz-name');
+  el.removeAttribute('data-cz-warn');
 
   if (i18n.isRTL) el.setAttribute('dir', 'rtl');
 
@@ -100,7 +105,16 @@ export function mountPrimitive(el: HTMLElement, step: string, ctx: MountContext)
   const node = step.startsWith('booking-')
     ? (renderGranularWidget(step, ctx, el) ?? placeholder(step))
     : renderStep(normalizeStep(step), ctx, el);
-  root.appendChild(node);
+  const filterLabels: Record<string, string> = { 'booking-price': 'filters.price', 'booking-capacity': 'filters.guests', 'booking-bedrooms': 'filters.bedrooms', 'booking-bathrooms': 'filters.bathrooms', 'booking-amenities-filter': 'filters.amenities' };
+  if (filterLabels[step]) {
+    const field = document.createElement('div');
+    field.className = 'cb-filter-field';
+    const label = document.createElement('span');
+    label.className = 'cb-filter-field__label';
+    label.textContent = i18n.t(filterLabels[step]);
+    field.append(label, node);
+    root.appendChild(field);
+  } else root.appendChild(node);
 }
 
 /** Injecte le CSS du widget dans le Shadow DOM (réplique fidèle de `BaitlyWidget.injectStyles`). */
@@ -182,7 +196,7 @@ function renderStep(step: PrimitiveStep, ctx: MountContext, el: HTMLElement): HT
       submit.type = 'button';
       submit.className = 'cb-cta cb-search__submit';
       submit.textContent = i18n.t('search.submit');
-      submit.addEventListener('click', () => { if (!ctx.preview) navigateTo(readNext(el)); });
+      submit.addEventListener('click', () => navigateJourney(ctx, el, readNext(el)));
       wrap.appendChild(submit);
 
       // Filtres avancés (type de logement…), repliés, sur une ligne pleine largeur sous la barre.
@@ -227,7 +241,7 @@ function renderStep(step: PrimitiveStep, ctx: MountContext, el: HTMLElement): HT
       // Le bouton « Continuer » du panier déclenche le checkout (reserve-batch → Stripe), comme le monolithe.
       return createCartList(state, i18n, () => { void runCheckout(ctx, el); });
     case 'guest-form':
-      return createGuestForm(state, i18n, () => { void runCheckout(ctx, el); });
+      return createGuestForm(state, i18n, () => { void runCheckout(ctx, el); }, { requireQuote: true });
     case 'checkout':
       return buildCheckoutButton(ctx, el);
     case 'property':
@@ -255,37 +269,32 @@ function propertyListOpts(config: BaitlyBookingConfig): Parameters<typeof create
 
 /**
  * Liste des logements (étape `results`) avec navigation template-driven (B3). La factory
- * `createPropertyList` met à jour `selectedPropertyId` au clic ; on observe ce passage à un id pour
- * naviguer vers la page détail déclarée par le template (`data-clenzy-next`). Sans attribut : aucune
+ * `createPropertyList` notifie chaque clic pour ouvrir la fiche déclarée par le template.
+ * Sans attribut : aucune
  * navigation (comportement B2 — le template peut relier ses pages par ses propres liens).
  */
 function buildResults(ctx: MountContext, el: HTMLElement): HTMLElement {
   const { core, i18n, config } = ctx;
-  const node = createPropertyList(core.state, i18n, config.baseUrl || window.location.origin, propertyListOpts(config));
-  attachResultsNav(ctx, el);
+  const node = createPropertyList(core.state, i18n, config.baseUrl || window.location.origin, { ...propertyListOpts(config), onPropertySelect: resultNavigation(ctx, el) });
   return node;
 }
 
 /**
- * Navigation template-driven de la liste de logements : au clic sur un logement (passage de
- * `selectedPropertyId` à un id non nul), navigue vers la page détail déclarée par le template
- * (`data-clenzy-next`). Sans attribut : aucune navigation (le template relie ses pages lui-même).
- * On ne navigue QUE sur une sélection NOUVELLE et non nulle, pas au montage initial (état restauré/URL).
+ * Navigation explicitement déclenchée par une carte, jamais par une restauration d'état.
+ * Les fiches dédiées sont résolues par identifiant ; les anciens templates gardent leur route suivante.
  */
-function attachResultsNav(ctx: MountContext, el: HTMLElement): void {
-  if (ctx.preview) return; // aperçu éditeur : pas de navigation pleine page
-  const next = readNext(el);
-  if (!next) return;
-  const state = ctx.core.state;
-  let prevSelected = state.get().selectedPropertyId;
-  state.on('stateChange', (s: WidgetState) => {
-    if (s.selectedPropertyId !== prevSelected && s.selectedPropertyId != null) {
-      prevSelected = s.selectedPropertyId;
-      navigateTo(next);
-    } else {
-      prevSelected = s.selectedPropertyId;
-    }
-  });
+function resultNavigation(ctx: MountContext, el: HTMLElement): (propertyId: number) => void {
+  return (propertyId) => {
+    const path = propertyDestination(el, propertyId);
+    if (!path) return;
+    navigateJourney(ctx, el, path);
+  };
+}
+
+function navigateJourney(ctx: MountContext, el: HTMLElement, path: string | null): void {
+  if (!path) return;
+  if (ctx.preview) el.dispatchEvent(new CustomEvent('baitly:navigate', { bubbles: true, composed: true, detail: { path } }));
+  else navigateTo(path);
 }
 
 // ─── R2a/R2b — hydratation des blocs drag-drop granulaires (`booking-*`) du Studio ────────────────
@@ -352,7 +361,7 @@ function ensureFontLoaded(css?: string): void {
 }
 
 /** Liste de logements paramétrée par les props (parité `BaitlyWidget.buildLayoutWidget` cas `propertyResults`). */
-function buildPropertyListFromProps(ctx: MountContext, props: Record<string, unknown>): HTMLElement {
+function buildPropertyListFromProps(ctx: MountContext, props: Record<string, unknown>, el: HTMLElement): HTMLElement {
   const { core, i18n, config } = ctx;
   const baseUrl = config.baseUrl || window.location.origin;
   const mode = String(props.mode ?? 'all');
@@ -362,6 +371,7 @@ function buildPropertyListFromProps(ctx: MountContext, props: Record<string, unk
   const num = (k: string): number | undefined => { const n = Number(props[k]); return Number.isFinite(n) && n > 0 ? n : undefined; };
   [str('titleFont'), str('locationFont'), str('priceFont')].forEach(ensureFontLoaded);
   return createPropertyList(core.state, i18n, baseUrl, {
+    onPropertySelect: resultNavigation(ctx, el),
     limit, pageSize,
     cardStyle: cardStyleOf(props.cardStyle),
     direction: props.direction === 'row' ? 'row' : 'column',
@@ -383,7 +393,7 @@ function buildPropertyListFromProps(ctx: MountContext, props: Record<string, unk
 /** Ajoute le séjour courant au panier multi-séjours. Parité `BaitlyWidget.addCurrentStayToCart`. */
 function addCurrentStayToCart(state: BaitlyBookingCore['state']): void {
   const s = state.get();
-  if (!s.selectedPropertyId || !s.checkIn || !s.checkOut || !s.pricing) return;
+  if (!s.selectedPropertyId || !s.checkIn || !s.checkOut || s.checkOut <= s.checkIn || !s.pricing || s.pricingLoading || s.loading) return;
   const prop = s.properties.find((p) => p.id === s.selectedPropertyId);
   state.set({
     cart: [...s.cart, {
@@ -396,7 +406,6 @@ function addCurrentStayToCart(state: BaitlyBookingCore['state']): void {
       total: s.pricing.total,
       currency: s.pricing.currency,
     }],
-    selectedPropertyId: null,
     checkIn: null,
     checkOut: null,
     pricing: null,
@@ -458,12 +467,12 @@ function renderGranularWidget(id: string, ctx: MountContext, el: HTMLElement): H
       searchBtn.type = 'button';
       searchBtn.className = 'cb-cta cb-search__submit';
       searchBtn.textContent = i18n.t('search.submit');
-      searchBtn.addEventListener('click', () => { if (!ctx.preview) navigateTo(readNext(el)); });
+      searchBtn.addEventListener('click', () => navigateJourney(ctx, el, readNext(el)));
       return searchBtn;
     }
     case 'booking-property-results': {
-      const node = buildPropertyListFromProps(ctx, readMarkerProps(el));
-      attachResultsNav(ctx, el);
+      const props = readMarkerProps(el);
+      const node = buildPropertyListFromProps(ctx, { ...(el.closest('.bt-journey') ? { direction: 'row' } : {}), ...props }, el);
       return node;
     }
     case 'booking-price-summary':
@@ -493,18 +502,22 @@ function renderGranularWidget(id: string, ctx: MountContext, el: HTMLElement): H
       return createRatingBadge(state, i18n, href ? { href } : {});
     }
     case 'booking-cart':
-      return createCartList(state, i18n, () => { void runCheckout(ctx, el); });
+      return createCartList(state, i18n, () => {
+        const next = readNext(el);
+        if (next) navigateJourney(ctx, el, next);
+        else if (!ctx.preview) void runCheckout(ctx, el);
+      });
     case 'booking-add-to-cart':
-      return createCTAButton(state, i18n, () => { addCurrentStayToCart(state); });
+      return createCTAButton(state, i18n, () => { addCurrentStayToCart(state); }, { labelKey: 'cart.addStay' });
     case 'booking-addons':
-      return createAddonsPanel(state, i18n, currency);
+      return buildUpsells(ctx);
     case 'booking-stepper':
       return createStepper(0, i18n);
     case 'booking-guest-form':
-      return createGuestForm(state, i18n, () => { void runCheckout(ctx, el); });
+      return createGuestForm(state, i18n, () => { void runCheckout(ctx, el); }, { requireQuote: true });
     case 'booking-inquiry-form':
       // Demande de devis : même formulaire, mais le submit envoie une DEMANDE (pas de paiement Stripe).
-      return createGuestForm(state, i18n, () => { void runInquiry(ctx); });
+      return createGuestForm(state, i18n, () => { void runInquiry(ctx,el); }, { submitLabel: i18n.t('inquiry.submit') });
     case 'booking-checkout-button':
       // Bouton de paiement isolé → reserve-batch + checkout (redirection Stripe).
       return buildCheckoutButton(ctx, el);
@@ -527,6 +540,9 @@ function renderGranularWidget(id: string, ctx: MountContext, el: HTMLElement): H
  * base et on re-rend sur `'*'` (changement de sélection / devise).
  */
 function buildPropertySummary(ctx: MountContext, el: HTMLElement): HTMLElement {
+  if (el.getAttribute('data-clenzy-property-layout') === 'recap') {
+    return createStaySummary(ctx.core.state, ctx.config.baseUrl || window.location.origin, ctx.i18n);
+  }
   const layout = el.getAttribute('data-clenzy-property-layout') === 'detail' ? 'detail' : undefined;
   const reviewsHref = el.getAttribute('data-clenzy-reviews-href') || undefined;
   return createPropertySummary(ctx.core.state, ctx.config.baseUrl || window.location.origin, ctx.i18n, {
@@ -538,9 +554,9 @@ function buildPropertySummary(ctx: MountContext, el: HTMLElement): HTMLElement {
 /** Formatte un montant en devise (parité avec `PropertyList.formatPrice`, non exporté → dupliqué). */
 function formatPrice(amount: number, currency: string): string {
   try {
-    return new Intl.NumberFormat(undefined, { style: 'currency', currency, maximumFractionDigits: 0 }).format(amount);
+    return new Intl.NumberFormat(undefined, { style: 'currency', currency, maximumFractionDigits: 2 }).format(amount);
   } catch {
-    return `${Math.round(amount)} ${currency}`;
+    return `${amount.toFixed(2)} ${currency}`;
   }
 }
 
@@ -557,6 +573,12 @@ function buildUpsells(ctx: MountContext): HTMLElement {
 
   const container = document.createElement('div');
   container.className = 'cb-section cb-upsells';
+  const note = document.createElement('p');
+  note.className = 'cb-text-sm cb-text-secondary';
+  note.textContent = ctx.i18n.t('upsells.availableAfterBooking');
+  container.appendChild(note);
+  // Studio keeps service checkout inert and never queries the public API with a preview key.
+  if (ctx.preview) return container;
   const list = document.createElement('div');
   list.className = 'cb-upsells__list';
   container.appendChild(list);
@@ -617,7 +639,7 @@ function upsellCard(u: ApiBookingUpsell, reservationCode: string | null, baseUrl
   btn.disabled = !reservationCode;
   const purchaseRequestId = crypto.randomUUID();
   btn.addEventListener('click', () => {
-    if (!reservationCode || btn.disabled) return;
+    if (ctx.preview || !reservationCode || btn.disabled) return;
     btn.disabled = true;
     ctx.core.api.upsellCheckout(u.offerId, reservationCode, window.location.href, purchaseRequestId)
       .then((r) => { if (r.checkoutUrl) { window.location.href = r.checkoutUrl; } else { btn.disabled = false; } })
@@ -638,14 +660,118 @@ function buildConfirmation(ctx: MountContext): HTMLElement {
   const card = createConfirmationCard(i18n);
 
   const params = readReturnParams();
+  if (ctx.preview) {
+    card.node.dataset.preview = 'true';
+    card.title.textContent = i18n.t('confirmation.preview');
+    card.subtitle.textContent = i18n.t('confirmation.previewHelp');
+    let last = '';
+    const renderPreview = () => {
+      const s = core.state.get();
+      const property = s.properties.find((p) => p.id === s.selectedPropertyId) ?? s.properties[0];
+      const key = JSON.stringify([property, s.cart, s.checkIn, s.checkOut, s.adults, s.children, s.pricing]);
+      if (key === last) return;
+      last = key;
+      card.details.replaceChildren();
+      const start = new Date();
+      start.setUTCDate(start.getUTCDate() + 7);
+      const end = new Date(start);
+      end.setUTCDate(end.getUTCDate() + 3);
+      const stays = s.cart.length ? s.cart : property ? [{ propertyId: property.id, propertyName: property.name, checkIn: s.checkIn || start.toISOString().slice(0, 10), checkOut: s.checkOut || end.toISOString().slice(0, 10), guests: s.adults + s.children, total: s.pricing?.total ?? (property.priceFrom || 0) * 3 + (property.cleaningFee || 0), currency: s.pricing?.currency || property.currency }] : [];
+      stays.forEach((stay, index) => {
+        const p = s.properties.find((item) => item.id === stay.propertyId);
+        const nights = Math.max(1, Math.round((Date.parse(stay.checkOut) - Date.parse(stay.checkIn)) / 86400000));
+        appendConfirmationStay(card.details, { reservationCode: `APERÇU-${index + 1}`, status: 'PENDING', paymentStatus: 'UNKNOWN', propertyName: stay.propertyName, propertyCity: p?.city || null, checkIn: stay.checkIn, checkOut: stay.checkOut, nights, guests: stay.guests, subtotal: s.cart.length ? stay.total - (p?.cleaningFee || 0) : s.pricing?.subtotal ?? (p?.priceFrom || 0) * nights, cleaningFee: p?.cleaningFee || 0, total: stay.total, currency: stay.currency, checkInTime: p?.checkInTime || null, checkOutTime: p?.checkOutTime || null } as ApiConfirmation, i18n);
+      });
+    };
+    core.state.on('*', renderPreview);
+    renderPreview();
+    return card.node;
+  }
+  card.node.querySelector<HTMLElement>('.cb-confirmation__icon')!.hidden = true;
+  const batchCodes = [...new Set(new URLSearchParams(window.location.search).getAll('stay'))].filter(Boolean).slice(0, 20);
+  const addRefresh = (refresh: () => Promise<void>, initial: Promise<void>) => {
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.className = 'cb-confirmation__refresh';
+    button.textContent = i18n.t('return.refresh');
+    button.disabled = true;
+    void initial.finally(() => { button.disabled = false; });
+    button.addEventListener('click', () => {
+      if (button.disabled) return;
+      button.disabled = true;
+      card.details.replaceChildren();
+      card.title.textContent = i18n.t('confirmation.loading');
+      card.node.querySelector<HTMLElement>('.cb-confirmation__icon')!.hidden = true;
+      void refresh().finally(() => { button.disabled = false; });
+    });
+    card.node.append(button);
+  };
+  if (batchCodes.length) {
+    card.title.textContent = i18n.t('confirmation.loading');
+    card.subtitle.textContent = '';
+    const initial = hydrateBatchConfirmation(ctx, batchCodes, card);
+    addRefresh(() => hydrateBatchConfirmation(ctx, batchCodes, card), initial);
+    return card.node;
+  }
+  card.title.textContent = i18n.t(params.reservationCode ? 'confirmation.loading' : 'confirmation.missingReference');
+  card.subtitle.textContent = params.reservationCode ? '' : i18n.t('confirmation.missingReferenceHelp');
   if (params.reservationCode) {
-    void hydrateConfirmation(ctx, params.reservationCode, { title: card.title, subtitle: card.subtitle, details: card.details });
+    const initial = hydrateConfirmation(ctx, params.reservationCode, card);
+    addRefresh(() => hydrateConfirmation(ctx, params.reservationCode!, card), initial);
   }
 
-  // Parcours terminé : on libère le panier persistant (le cœur garde la sélection pour un nouveau séjour).
-  core.state.set({ cart: [] });
-  core.clearPersisted();
   return card.node;
+}
+
+/** Individual server confirmations and payments: never treat the first paid stay as the whole cart. */
+async function hydrateBatchConfirmation(ctx: MountContext, codes: string[], ui: { node: HTMLElement; title: HTMLElement; subtitle: HTMLElement; details: HTMLElement }): Promise<void> {
+  const { core, i18n } = ctx;
+  const rows = await Promise.allSettled(codes.map((code) => core.api.getConfirmation(code)));
+  const needsPayment = new URLSearchParams(window.location.search).get('payRemaining') === '1';
+  let complete = true;
+  let allCancelled = true;
+  for (let index = 0; index < rows.length; index++) {
+    const row = rows[index];
+    if (row.status === 'rejected') {
+      complete = false;
+      allCancelled = false;
+      appendDetail(ui.details, codes[index], i18n.t('confirmation.unavailable'));
+      continue;
+    }
+    const booking = row.value;
+    const paid = booking.paymentStatus?.toUpperCase() === 'PAID';
+    const cancelled = booking.status?.toUpperCase() === 'CANCELLED';
+    if (!cancelled) allCancelled = false;
+    const confirmed = !cancelled && (needsPayment ? paid || booking.paymentStatus?.toUpperCase() === 'NOT_REQUIRED' : booking.status?.toUpperCase() === 'CONFIRMED' || paid);
+    if (!confirmed) complete = false;
+    const stay = appendConfirmationStay(ui.details, booking, i18n);
+    const payable = ['UNPAID', 'PENDING', 'FAILED', 'PARTIALLY_PAID'].includes(booking.paymentStatus?.toUpperCase());
+    if (needsPayment && payable && !cancelled) {
+      const button = document.createElement('button');
+      button.type = 'button';
+      button.className = 'cb-cta';
+      button.textContent = `${i18n.t('confirmation.payStay')} · ${booking.propertyName || booking.reservationCode}`;
+      button.addEventListener('click', () => {
+        if (button.disabled) return;
+        button.disabled = true;
+        void core.api.checkout(booking.reservationCode, window.location.href).then((checkout) => {
+          if (!checkout.checkoutUrl) throw new Error('Missing checkout URL');
+          window.location.assign(checkout.checkoutUrl);
+        }).catch(() => {
+          button.disabled = false;
+          ui.subtitle.textContent = i18n.t('common.checkoutUnavailable');
+        });
+      });
+      const action = document.createElement('div');
+      action.appendChild(button);
+      stay.appendChild(action);
+    }
+  }
+  ui.title.textContent = i18n.t(allCancelled ? 'confirmation.cancelled' : complete ? 'confirmation.confirmed' : 'confirmation.batchPending');
+  ui.subtitle.textContent = i18n.t(complete ? 'confirmation.verified' : 'confirmation.batchHelp');
+  const icon = ui.node.querySelector<HTMLElement>('.cb-confirmation__icon');
+  if (icon) icon.hidden = !complete;
+  if (complete) { core.state.set({ cart: [] }); core.clearPersisted(); }
 }
 
 /** Paramètres de retour Stripe lus sur l'URL courante. `reservationCode` accepte `reservation` ou `code`. */
@@ -664,8 +790,7 @@ function readReturnParams(): { reservationCode: string | null; sessionId: string
 
 /**
  * Re-fetch le statut réel de la réservation et enrichit la carte de confirmation (titre selon le statut
- * de paiement + récap). Best-effort : un échec laisse la carte de succès statique (le webhook Stripe
- * reste la source de vérité du paiement côté serveur).
+ * de paiement + récap). The return page never claims success when verification fails.
  */
 async function hydrateConfirmation(
   ctx: MountContext,
@@ -676,16 +801,19 @@ async function hydrateConfirmation(
   try {
     const c: ApiConfirmation = await core.api.getConfirmation(reservationCode);
     const paid = c.paymentStatus != null && c.paymentStatus.toUpperCase() === 'PAID';
-    ui.title.textContent = paid ? i18n.t('confirmation.confirmed') : i18n.t('confirmation.pending');
+    const cancelled = c.status?.toUpperCase() === 'CANCELLED';
+    const confirmed = !cancelled && (c.status?.toUpperCase() === 'CONFIRMED' || paid);
+    ui.title.textContent = i18n.t(cancelled ? 'confirmation.cancelled' : confirmed ? 'confirmation.confirmed' : 'confirmation.pending');
+    ui.subtitle.textContent = i18n.t('confirmation.verified');
+    const icon = ui.title.parentElement?.querySelector<HTMLElement>('.cb-confirmation__icon');
+    if (icon) icon.hidden = !confirmed;
+    if (confirmed) { core.state.set({ cart: [] }); core.clearPersisted(); }
 
     ui.details.textContent = '';
-    appendDetail(ui.details, i18n.t('confirmation.reservationNumber'), c.reservationCode);
-    if (c.propertyName) appendDetail(ui.details, i18n.t('confirmation.accommodation'), c.propertyName);
-    if (c.checkIn && c.checkOut) appendDetail(ui.details, i18n.t('confirmation.duration'), `${c.checkIn} → ${c.checkOut}`);
-    appendDetail(ui.details, i18n.t('confirmation.travelers'), String(c.guests));
-    if (paid && c.total != null) appendDetail(ui.details, i18n.t('confirmation.totalPaid'), formatPrice(c.total, c.currency));
+    appendConfirmationStay(ui.details, c, i18n);
   } catch {
-    /* best-effort : on conserve la carte de succès statique si le re-fetch échoue */
+    ui.title.textContent = i18n.t('confirmation.unavailable');
+    ui.subtitle.textContent = i18n.t('confirmation.retryHelp');
   }
 }
 
@@ -722,6 +850,7 @@ async function runCheckout(ctx: MountContext, el: HTMLElement): Promise<void> {
   const state = core.state;
   const api = core.api;
   const s = state.get();
+  if (s.loading || !s.cart.length && (!s.pricing || s.pricingLoading || !s.checkIn || !s.checkOut || s.checkOut <= s.checkIn)) return;
   const name = `${s.guestForm.firstName} ${s.guestForm.lastName}`.trim();
   const guest = { name, email: s.guestForm.email, phone: s.guestForm.phone || undefined };
 
@@ -743,8 +872,14 @@ async function runCheckout(ctx: MountContext, el: HTMLElement): Promise<void> {
         checkIn: c.checkIn,
         checkOut: c.checkOut,
         guests: c.guests,
+        children: c.children,
       }));
       const batch = await api.reserveBatch({ items, guest }, s.guestToken ?? undefined);
+      if (localNext && batch.reservations.length) {
+        state.set({ page: 'confirmation', loading: false }, 'pageChange');
+        navigateTo(withBatchReferences(localNext, batch.reservations.map((item) => item.reservationCode), batch.requiresPayment));
+        return;
+      }
       if (batch.requiresPayment && batch.reservations.length > 0) {
         const checkout = await api.checkout(batch.reservations[0].reservationCode, returnUrl);
         if (checkout.checkoutUrl) { window.location.href = checkout.checkoutUrl; return; }
@@ -759,7 +894,7 @@ async function runCheckout(ctx: MountContext, el: HTMLElement): Promise<void> {
         total: batch.grandTotal,
         currency: batch.currency,
       });
-      navigateTo(localNext); // no-op si aucun attribut → repli B2
+      navigateTo(withReservationReference(localNext,batch.reservations[0]?.reservationCode ?? batch.batchCode));
       return;
     }
 
@@ -773,6 +908,7 @@ async function runCheckout(ctx: MountContext, el: HTMLElement): Promise<void> {
       checkIn: s.checkIn,
       checkOut: s.checkOut,
       guests: s.adults + s.children,
+      children: s.children,
       guest,
       notes: s.guestForm.message || undefined,
     }, s.guestToken ?? undefined);
@@ -792,7 +928,7 @@ async function runCheckout(ctx: MountContext, el: HTMLElement): Promise<void> {
       total: reservation.total,
       currency: reservation.currency,
     });
-    navigateTo(localNext); // no-op si aucun attribut → repli B2
+    navigateTo(withReservationReference(localNext,reservation.reservationCode));
   } catch (err) {
     const message = err instanceof Error ? err.message : 'Unknown error';
     state.set({ loading: false, error: message }, 'error');
@@ -805,7 +941,7 @@ async function runCheckout(ctx: MountContext, el: HTMLElement): Promise<void> {
  * voyageurs, logement) + les coordonnées du formulaire → `api.submitInquiry`. Affiche la confirmation
  * en cas de succès. (≠ runCheckout : aucun appel Stripe, aucune réservation créée.)
  */
-async function runInquiry(ctx: MountContext): Promise<void> {
+async function runInquiry(ctx: MountContext, el?: HTMLElement): Promise<void> {
   if (ctx.preview) return; // aperçu éditeur : aucune demande réellement envoyée
   const { core, config } = ctx;
   const state = core.state;
@@ -824,6 +960,7 @@ async function runInquiry(ctx: MountContext): Promise<void> {
       message: s.guestForm.message || undefined,
     });
     state.set({ page: 'confirmation', loading: false }, 'pageChange');
+    if (el) navigateTo(readNext(el));
   } catch (err) {
     const message = err instanceof Error ? err.message : 'Unknown error';
     state.set({ loading: false, error: message }, 'error');

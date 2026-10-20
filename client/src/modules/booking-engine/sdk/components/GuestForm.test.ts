@@ -24,6 +24,16 @@ function mountForm() {
 afterEach(() => document.body.replaceChildren());
 
 describe('Baitly guest checkout form', () => {
+  it('explains reservation throttling without exposing the API response or losing details', () => {
+    const { state, root } = mountForm();
+    state.set({ error: 'API error 429: {"error":"Trop de tentatives de reservation"}' });
+    const alert = root.querySelector<HTMLElement>('[role="alert"]')!;
+    expect(alert.textContent).toBe('common.checkoutRateLimited');
+    expect(alert.hidden).toBe(false);
+    expect(document.activeElement).toBe(alert);
+    expect(root.querySelector<HTMLInputElement>('#cb-email')!.value).toBe('test@example.com');
+  });
+
   it('replaces technical server failures with localized guidance', () => {
     const { state, root } = mountForm();
     state.set({ error: 'API error 500: {"error":"Erreur interne du serveur"}' });

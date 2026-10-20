@@ -2,13 +2,17 @@ import { useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { usersApi } from '../services/api/usersApi';
 import { useIsAuthenticated } from './useIsAuthenticated';
+import { claimBrowserLocationAttempt } from '../services/storageService';
 
 /**
  * Centre Baitly : position du navigateur, puis ville du profil en cas de refus.
  *
  * <p>`undefined` tant que la reponse n'est pas la, et durablement quand le
  * compte n'a pas de ville exploitable. Aucun repli vers Paris. La position
- * reste en mémoire dans le cache de session, jamais en stockage persistant.</p>
+ * reste en mémoire dans le cache de session, jamais en stockage persistant.
+ * Seul un marqueur de tentative survit au rechargement de l'onglet : il ne
+ * remplace pas l'autorisation du navigateur. Après rechargement, la ville du
+ * profil reste disponible sans nouvelle demande automatique.</p>
  *
  * <p>La ville d'un compte ne bouge pas d'une session a l'autre, et le
  * geocodage est deja mis en cache cote serveur : une seule requete par
@@ -23,6 +27,9 @@ export function useHomeMapCenter(): [number, number] | undefined {
     staleTime: Infinity,
     gcTime: Infinity,
     retry: false,
+    refetchOnMount: false,
+    refetchOnWindowFocus: false,
+    refetchOnReconnect: false,
   });
   const { data } = useQuery({
     queryKey: ['home-location', 'me'],
@@ -45,8 +52,21 @@ export function useHomeMapCenter(): [number, number] | undefined {
   );
 }
 
+let pendingBrowserPosition: Promise<[number, number] | null> | undefined;
+
 export function browserPosition(): Promise<[number, number] | null> {
-  if (!navigator.geolocation) return Promise.resolve(null);
+  if (pendingBrowserPosition) return pendingBrowserPosition;
+  if (!navigator.geolocation || !claimBrowserLocationAttempt()) return Promise.resolve(null);
+  pendingBrowserPosition = readBrowserPosition().finally(() => { pendingBrowserPosition = undefined; });
+  return pendingBrowserPosition;
+}
+
+async function readBrowserPosition(): Promise<[number, number] | null> {
+  try {
+    if (navigator.permissions?.query && (await navigator.permissions.query({ name: 'geolocation' })).state === 'denied') return null;
+  } catch {
+    // Certaines WebViews et versions de navigateur n'exposent pas ce descripteur.
+  }
   return new Promise((resolve) => {
     navigator.geolocation.getCurrentPosition(
       ({ coords }) => {

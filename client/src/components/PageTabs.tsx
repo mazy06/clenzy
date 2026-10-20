@@ -2,11 +2,11 @@ import React from 'react';
 import { Tabs, TabsList, TabsTrigger } from './ui';
 import { useScreenTrailSegment } from './ScreenChrome';
 import NavCountBadge from './NavCountBadge';
-import { sizedIcon } from '../config/navigationIcons';
 import { createPortal } from 'react-dom';
 import { useScreenChrome } from './ScreenChrome';
 import PageTabsMenu from './PageTabsMenu';
 import { cn } from '../utils/cn';
+import { baitlyTabColor, baitlyTabStyle, BaitlyTabIcon } from './baitlyTabColors';
 
 /**
  * Description d'un onglet pour PageTabs.
@@ -24,6 +24,8 @@ export interface PageTabItem<T extends string | number = number> {
   key?: string;
   label: string;
   icon?: React.ReactNode;
+  /** Teinte optionnelle propre à cet onglet, conservée dans le menu du header. */
+  color?: string;
   /** Compteur affiché en badge à droite du label (notifications, demandes en attente, etc.). */
   badge?: number;
   badgeColor?: 'error' | 'warning' | 'primary' | 'info' | 'success';
@@ -98,7 +100,9 @@ export default function PageTabs<T extends string | number = number>({
   trail = true,
   className,
 }: PageTabsProps<T>) {
-  const visibleOptions = options.filter((opt) => !opt.hidden);
+  const visibleOptions = options.map((opt, index) => ({
+    ...opt, color: opt.color ?? baitlyTabColor(index),
+  })).filter((opt) => !opt.hidden);
   const valueOf = (opt: PageTabItem<T>, index: number) => (opt.value !== undefined ? opt.value : (index as T));
   const activeIndex = visibleOptions.findIndex((opt, index) => valueOf(opt, index) === value);
   const compact = size === 'compact';
@@ -150,12 +154,13 @@ export default function PageTabs<T extends string | number = number>({
             key={opt.key ?? String(valueOf(opt, index))}
             value={String(index)}
             disabled={opt.disabled}
+            style={baitlyTabStyle(opt.color)}
             className={cn(
-              'gap-1.5 font-medium [&_svg]:shrink-0 [&_svg]:text-muted-foreground data-active:[&_svg]:text-foreground',
+              'bui-colored-tab gap-1.5 font-medium [&_svg]:shrink-0',
               compact ? 'px-2 py-1 text-xs' : 'px-2.5 py-1.5 text-sm',
             )}
           >
-            {opt.icon && sizedIcon(opt.icon, compact ? 14 : 16, 1.75)}
+            {opt.icon && <BaitlyTabIcon icon={opt.icon} color={opt.color} size={compact ? 14 : 16} />}
             {opt.label}
             {/* Même pastille que la sidebar (NavCountBadge) : une seule
                 définition de la notification dans toute la navigation. */}

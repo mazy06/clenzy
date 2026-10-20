@@ -26,13 +26,13 @@ export function createPropertySummary(state: StateManager, baseUrl: string, i18n
 
   // La fiche ne dépend que du LOGEMENT (pas des dates) : on ne re-rend que si le bien change → la photo
   // choisie dans la galerie est préservée lors des autres changements d'état (dates, voyageurs…).
-  let lastPropId: number | null | undefined;
+  let lastProperty = '';
 
   const render = (s: WidgetState): void => {
-    const prop = s.properties.find((p) => p.id === s.selectedPropertyId) ?? s.properties[0];
-    const propId = prop ? prop.id : null;
-    if (propId === lastPropId) return;
-    lastPropId = propId;
+    const prop = s.selectedPropertyId == null ? s.properties[0] : s.properties.find((p) => p.id === s.selectedPropertyId);
+    const key = JSON.stringify(prop) || 'missing';
+    if (key === lastProperty) return;
+    lastProperty = key;
     container.textContent = '';
 
     if (!prop) {
@@ -221,8 +221,8 @@ function absoluteImageUrl(url: string, baseUrl: string): string {
 /** Formatte un montant en devise (parité avec `PropertyList.formatPrice`, non exporté). */
 function formatPrice(amount: number, currency: string): string {
   try {
-    return new Intl.NumberFormat(undefined, { style: 'currency', currency, maximumFractionDigits: 0 }).format(amount);
+    return new Intl.NumberFormat(undefined, { style: 'currency', currency, maximumFractionDigits: 2 }).format(amount);
   } catch {
-    return `${Math.round(amount)} ${currency}`;
+    return `${amount.toFixed(2)} ${currency}`;
   }
 }

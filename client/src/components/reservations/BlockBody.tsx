@@ -20,6 +20,8 @@ import ReservationRangeCalendar from './ReservationRangeCalendar';
 import ConflictAlert from './ConflictAlert';
 import IllustratedHeading from '../IllustratedHeading';
 import { RESERVATION_ART } from './reservationArtwork';
+import BaitlyFormSteps from '../forms/BaitlyFormSteps';
+import { useMediaQuery } from '../../hooks/use-media-query';
 
 // Equivalent classes du BTN_BASE_SX de reservationDialogStyles (.s-btn) —
 // le .ts partage reste la source pour les autres ecrans du dialogue.
@@ -44,6 +46,8 @@ interface Props {
 const BlockBody: React.FC<Props> = ({ form, onClose }) => {
   const { t } = useTranslation();
   const queryClient = useQueryClient();
+  const mobile = useMediaQuery('(max-width: 639px)');
+  const [step, setStep] = useState(1);
 
   const [blockType, setBlockType] = useState<BlockType>('BLOCKED');
   const [notes, setNotes] = useState('');
@@ -81,7 +85,10 @@ const BlockBody: React.FC<Props> = ({ form, onClose }) => {
 
   return (
     <>
-      <div className="flex flex-1 flex-col gap-[18px] overflow-y-auto p-[22px]">
+      {mobile && <BaitlyFormSteps steps={[t('reservations.dialog.stepStay'), t('reservations.dialog.blockTypeLabel')]}
+        current={step} reachable={[true, canSubmit]} onStepClick={setStep} />}
+      <div className="baitly-reservation-dialog__body flex flex-1 flex-col gap-[18px] overflow-y-auto p-[22px]">
+        {(!mobile || step === 1) && <>
         {form.showPropertySelector && <PropertySelectField form={form} />}
 
         <div className="flex flex-col gap-2.5">
@@ -103,6 +110,9 @@ const BlockBody: React.FC<Props> = ({ form, onClose }) => {
           />
         </div>
 
+        <ConflictAlert form={form} />
+        </>}
+        {(!mobile || step === 2) && <>
         {/* Un select natif ne peut pas peindre d icone dans ses options :
             les pastilles Lock / Build de l ancien menu MUI disparaissent. */}
         <Field>
@@ -136,24 +146,24 @@ const BlockBody: React.FC<Props> = ({ form, onClose }) => {
           />
         </Field>
 
-        <ConflictAlert form={form} />
+        </>}
 
         {error && (
           <p className="text-[12.5px] font-semibold text-destructive-ink">{error}</p>
         )}
       </div>
 
-      <div className="flex shrink-0 items-center justify-end gap-2.5 border-t border-solid border-border bg-card px-[22px] py-[14px]">
+      <div className="baitly-form-footer flex shrink-0 items-center justify-end gap-2.5 border-t border-solid border-border px-[22px] py-[14px]">
         <button
           type="button"
-          onClick={onClose}
+          onClick={() => mobile && step > 1 ? setStep(1) : onClose()}
           className={cn(BTN_BASE_CLS, 'bg-transparent text-muted-foreground hover:text-foreground')}
         >
-          {t('common.cancel')}
+          {t(mobile && step > 1 ? 'reservations.dialog.previous' : 'common.cancel')}
         </button>
         <button
           type="button"
-          onClick={handleBlock}
+          onClick={() => mobile && step === 1 ? setStep(2) : void handleBlock()}
           disabled={saving || !canSubmit}
           className={cn(
             BTN_BASE_CLS,
@@ -162,7 +172,7 @@ const BlockBody: React.FC<Props> = ({ form, onClose }) => {
           )}
         >
           {saving ? <Spinner className="size-[15px]" /> : <Lock size={15} strokeWidth={2} />}
-          {saving ? t('reservations.dialog.blockSubmitting') : t('reservations.dialog.blockSubmit')}
+          {mobile && step === 1 ? t('reservations.dialog.next') : saving ? t('reservations.dialog.blockSubmitting') : t('reservations.dialog.blockSubmit')}
         </button>
       </div>
     </>

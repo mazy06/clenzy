@@ -187,7 +187,7 @@
 .cb-guests-toggle__chevron { transition: transform 200ms ease; }
 .cb-guests-toggle.cb-open .cb-guests-toggle__chevron { transform: rotate(180deg); }
 .cb-guests-panel { overflow: hidden; max-height: 0; }
-.cb-guests-panel.cb-open { max-height: 200px; }
+.cb-guests-panel.cb-open { max-height: min(420px, 70vh); overflow-y: auto; }
 .cb-guests-row { display: flex; align-items: center; justify-content: space-between; }
 .cb-guests-row__info { display: flex; flex-direction: column; }
 .cb-counter { display: flex; align-items: center; gap: 12px; }
@@ -414,6 +414,12 @@
 /* Récap prix. */
 .cb-price-line { display: flex; justify-content: space-between; align-items: center; }
 .cb-price-total { display: flex; justify-content: space-between; align-items: center; }
+.cb-deposit-notice { display: grid; gap: 8px; min-inline-size: 0; }
+.cb-deposit-notice[hidden] { display: none; }
+.cb-deposit-notice p { margin: 0; }
+.cb-deposit-notice .cb-price-line { align-items: start; flex-wrap: wrap; gap: 8px 16px; }
+.cb-deposit-notice .cb-price-line > :first-child { flex: 1 1 12rem; min-inline-size: 0; overflow-wrap: anywhere; }
+.cb-deposit-notice .cb-price-line__amount { white-space: nowrap; font-variant-numeric: tabular-nums; }
 
 /* Formulaire (coordonnées / devis). */
 .cb-form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }

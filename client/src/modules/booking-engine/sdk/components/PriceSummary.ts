@@ -14,6 +14,7 @@ export function createPriceSummary(state: StateManager, i18n: I18n): HTMLElement
   state.on('*', (s: WidgetState) => {
     render(container, s, i18n);
   });
+  render(container, state.get(), i18n);
 
   return container;
 }

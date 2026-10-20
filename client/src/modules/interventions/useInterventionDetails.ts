@@ -3,6 +3,7 @@ import { useInterventionPhotos } from './useInterventionPhotos';
 import { useInterventionProgress } from './useInterventionProgress';
 import { useInterventionNotes } from './useInterventionNotes';
 import { useRef } from 'react';
+import { serviceExecutionProfile } from './baitlyServiceExecution';
 
 /**
  * Thin orchestrator that composes the four focused hooks while preserving
@@ -55,7 +56,9 @@ export function useInterventionDetails(id: string | undefined) {
     completingRef.current = true;
     state.setCompleting(true);
     try {
-      await photos.persistCompletedSteps(new Set(photos.completedSteps).add('rooms'));
+      const finalSteps = new Set(photos.completedSteps);
+      if (!serviceExecutionProfile(state.intervention)) finalSteps.add('rooms');
+      await photos.persistCompletedSteps(finalSteps);
       await state.handleCompleteIntervention();
     } catch {
       // Persisting the final steps failed. Its mutation exposes the error.

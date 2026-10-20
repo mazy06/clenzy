@@ -4,11 +4,9 @@ import { invalidateMissionWorkflow } from "../../hooks/invalidateMissionWorkflow
 import { serviceRequestsListKeys } from "../../hooks/useServiceRequestsList";
 import { getErrorMessage } from "../../utils/getErrorMessage";
 import React, { useState, useEffect, useMemo, useRef } from 'react';
-import { cn } from '../../utils/cn';
-import { Alert, AlertDescription, Button } from '../../components/ui';
+import { Alert, AlertDescription, Button, Field, FieldLabel, Textarea } from '../../components/ui';
 import { Info, TriangleAlert, CircleCheck } from '../../icons/glyphs';
 import { Spinner } from '../../components/ui';
-import { Card } from '../../components/ui';
 import { ArrowBack } from "../../icons";
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
@@ -22,7 +20,9 @@ import apiClient from '../../services/apiClient';
 import { useTranslation } from '../../hooks/useTranslation';
 import { pricingConfigApi } from '../../services/api/pricingConfigApi';
 import type { ForfaitConfig } from '../../services/api/pricingConfigApi';
-import { useForm } from 'react-hook-form';
+import { Controller, useForm } from 'react-hook-form';
+import BaitlyFormSteps from '../../components/forms/BaitlyFormSteps';
+import './baitly-service-request-editor.css';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { serviceRequestSchemaFor } from '../../schemas/serviceRequestSchema';
 import type { ServiceRequestFormValues } from '../../schemas';
@@ -34,36 +34,6 @@ import ServiceRequestFormPlanning from './ServiceRequestFormPlanning';
 import ServiceRequestFormAssignment from './ServiceRequestFormAssignment';
 import ServiceRequestPriceEstimate from './ServiceRequestPriceEstimate';
 
-/**
- * Remplacant du `Collapse` MUI. La bascule `grid-template-rows: 0fr -> 1fr`
- * anime la hauteur en CSS pur SANS demonter l'enfant : les champs restent
- * enregistres aupres de react-hook-form, ce qu'un rendu conditionnel (ou le
- * Collapsible Radix, qui demonte son contenu) casserait silencieusement.
- */
-function Collapse({
-  open,
-  duration,
-  children,
-}: {
-  open: boolean;
-  duration: 300 | 400;
-  children: React.ReactNode;
-}) {
-  return (
-    <div
-      className={cn(
-        'grid transition-[grid-template-rows] ease-out motion-reduce:transition-none',
-        // Branches litterales : Tailwind emet ses classes a la compilation.
-        duration === 300 ? 'duration-[300ms]' : 'duration-[400ms]',
-        open ? 'grid-rows-[1fr]' : 'grid-rows-[0fr]',
-      )}
-    >
-      <div className="min-h-0 overflow-hidden">{children}</div>
-    </div>
-  );
-}
-
-// Types pour les demandes de service
 export interface ServiceRequestFormData {
   title: string;
   description: string;
@@ -146,8 +116,11 @@ const ServiceRequestForm: React.FC<ServiceRequestFormProps> = ({ onClose, onSucc
   const navigate = useNavigate();
   const { user, hasPermissionAsync,  isAdmin, isManager, isHost } = useAuth();
   const { t } = useTranslation();
+  const loadErrorMessage = useRef(t('serviceRequests.loadError'));
+  const hostUser = isHost();
 
   const isEditMode = mode === 'edit' || !!serviceRequestId;
+  const [step, setStep] = useState(1);
 
   const [isLoading, setIsLoading] = useState(false);
   // Flag de sauvegarde jamais lu au render : ref servant de garde anti-double-submit
@@ -170,7 +143,7 @@ const ServiceRequestForm: React.FC<ServiceRequestFormProps> = ({ onClose, onSucc
   const [forfaitConfigs, setForfaitConfigs] = useState<ForfaitConfig[]>([]);
 
   // react-hook-form with Zod validation
-  const { control, handleSubmit: rhfHandleSubmit, watch, setValue, reset, formState: { errors } } = useForm<ServiceRequestFormValues>({
+  const { control, handleSubmit: rhfHandleSubmit, trigger, watch, setValue, reset, formState: { errors } } = useForm<ServiceRequestFormValues>({
     resolver: (values, context, options) => zodResolver(serviceRequestSchemaFor(serviceReference.data?.find(item => item.code === values.serviceItemCode)?.propertyRequired !== false))(values, context, options),
     defaultValues: {
       title: '',
@@ -244,14 +217,14 @@ const ServiceRequestForm: React.FC<ServiceRequestFormProps> = ({ onClose, onSucc
           }
         }
       } catch (err) {
-        setError(t('serviceRequests.loadError'));
+        setError(loadErrorMessage.current);
       } finally {
         setLoadingServiceRequest(false);
       }
     };
 
     loadServiceRequest();
-  }, [isEditMode, serviceRequestId, reset, t]);
+  }, [isEditMode, serviceRequestId, reset]);
 
   // Vérifier si l'utilisateur peut assigner pour la propriété sélectionnée
   useEffect(() => {
@@ -325,7 +298,7 @@ const ServiceRequestForm: React.FC<ServiceRequestFormProps> = ({ onClose, onSucc
         setProperties(propertiesList);
 
         // Si c'est un HOST en mode création, définir automatiquement sa première propriété
-        if (!isEditMode && isHost() && propertiesList.length > 0) {
+        if (!isEditMode && hostUser && propertiesList.length > 0) {
           // Essayer de matcher par ownerId, sinon prendre la première propriété
           // (le backend filtre déjà par organisation pour les HOST)
           const hostProperty = propertiesList.find((prop: Property) =>
@@ -343,7 +316,7 @@ const ServiceRequestForm: React.FC<ServiceRequestFormProps> = ({ onClose, onSucc
     };
 
     loadProperties();
-  }, [isHost, user?.databaseId, setValue, isEditMode]);
+  }, [hostUser, user?.databaseId, setValue, isEditMode]);
 
   // Charger la liste des utilisateurs depuis l'API (pour admin/manager uniquement)
   useEffect(() => {
@@ -431,6 +404,8 @@ const ServiceRequestForm: React.FC<ServiceRequestFormProps> = ({ onClose, onSucc
 
     if (savingRef.current) return; // anti double-submit
     savingRef.current = true;
+    setIsLoading(true);
+    setLoading?.(true);
     setError(null);
 
     try {
@@ -506,13 +481,28 @@ const ServiceRequestForm: React.FC<ServiceRequestFormProps> = ({ onClose, onSucc
         invalidateMissionWorkflow(queryClient),
       ]);
       savingRef.current = false;
+      setIsLoading(false);
+      setLoading?.(false);
     }
   };
 
   // Expose submit trigger to parent via ref — replaces DOM querySelector hack
+  const advance = async () => {
+    const fields: (keyof ServiceRequestFormValues)[] = step === 1
+      ? ['title', 'propertyId', 'serviceType'] : ['desiredDate', 'estimatedDurationHours', 'priority'];
+    if (await trigger(fields)) setStep(current => Math.min(3, current + 1));
+  };
+  const submit = () => {
+    if (step < 3) { void advance(); return; }
+    void rhfHandleSubmit(onSubmit, invalid => {
+      if (invalid.title || invalid.propertyId || invalid.serviceType) setStep(1);
+      else if (invalid.desiredDate || invalid.estimatedDurationHours) setStep(2);
+    })();
+  };
+
   useEffect(() => {
     if (submitRef) {
-      submitRef.current = rhfHandleSubmit(onSubmit);
+      submitRef.current = submit;
     }
     return () => {
       if (submitRef) submitRef.current = null;
@@ -643,146 +633,81 @@ const ServiceRequestForm: React.FC<ServiceRequestFormProps> = ({ onClose, onSucc
   if (loadingData || loadingServiceRequest) {
     return (
       <div className="flex justify-center items-center h-[50vh]">
-        <Spinner className="size-8" />
+        <Spinner className="size-8" aria-label={t('common.loading')} />
       </div>
     );
   }
 
   return (
-    <div>
-      {/* Messages d'erreur/succès */}
-      {error && (
-        <Alert variant="destructive" className="mb-2 py-1 text-[0.8125rem]">
-          <TriangleAlert />
-          <AlertDescription>{error}</AlertDescription>
-        </Alert>
-      )}
-
-      {isEditMode && success && (
-        <Alert variant="success" className="mb-2 py-1 text-[0.8125rem]">
-          <CircleCheck />
-          <AlertDescription>{t('serviceRequests.updateRequestSuccess')}</AlertDescription>
-        </Alert>
-      )}
-
-      {/* Estimation prix — visible uniquement quand une propriété est sélectionnée */}
-      <Collapse open={isPropertySelected} duration={400}>
-        <div className="shrink-0 mb-2">
-          <ServiceRequestPriceEstimate
-            property={selectedProperty}
-            forfaitConfigs={forfaitConfigs}
-            selectedForfaitKey={selectedForfaitKey}
-          />
+    <div className="baitly-request-editor" data-mobile-step={step}>
+      {error && <Alert variant="destructive"><TriangleAlert /><AlertDescription>{error}</AlertDescription></Alert>}
+      {success && <Alert variant="success"><CircleCheck /><AlertDescription>{t('serviceRequests.updateRequestSuccess')}</AlertDescription></Alert>}
+      <aside className="baitly-request-editor__navigation">
+        <div className="baitly-request-editor__context">
+          <p>{t('serviceRequests.editor.workspace')}</p>
+          <h2>{selectedProperty?.name || t('serviceRequests.fields.selectProperty')}</h2>
+          {selectedProperty?.city && <p>{selectedProperty.city}</p>}
         </div>
-      </Collapse>
-
-      {/* Formulaire */}
-      <form onSubmit={rhfHandleSubmit(onSubmit)}>
-        <div className="flex gap-3 items-start">
-          {/* ─── Colonne gauche : Propriété + Infos ─── */}
-          <div className={cn('flex flex-col gap-[9px] min-w-0', isPropertySelected ? 'flex-[7]' : 'flex-1')} style={{ transition: 'flex 0.4s ease' }}>
-            {/* 1. Propriété — en premier pour auto-fill (halo `primary-soft` tant que rien n'est sélectionné) */}
-            <Card
-              className={cn(
-                'gap-0 py-0 p-3',
-                '[transition:box-shadow_0.3s_ease] motion-reduce:transition-none',
-                // Branches litterales : Tailwind emet ses classes a la compilation.
-                // Un anneau, jamais un liseré latéral : l'état se dit sur tout le pourtour.
-                isPropertySelected
-                  ? 'shadow-none'
-                  : 'ring-2 ring-primary shadow-[0_0_0_3px_var(--bui-primary-soft)]',
-              )}
-            >
-              <ServiceRequestFormProperty
-                control={control}
-                errors={errors}
-                properties={properties}
-                users={users}
-                isAdminOrManager={isAdminOrManager}
-                selectedProperty={selectedProperty}
-                currentUser={currentUserInfo}
-              />
-            </Card>
-
-            {/* Message d'aide quand aucune propriété n'est sélectionnée */}
-            <Collapse open={!isPropertySelected} duration={300}>
-              <Alert variant="info" className="py-1 text-[0.8125rem]">
-                <Info />
-                <AlertDescription>{t('serviceRequests.selectPropertyFirst')}</AlertDescription>
-              </Alert>
-            </Collapse>
-
-            {/* 2. Informations de base — révélé quand propriété sélectionnée */}
-            <Collapse open={isPropertySelected} duration={400}>
-              <Card className="gap-0 py-0 p-3">
-                <ServiceRequestFormInfo
-                  control={control}
-                  errors={errors}
-                  setValue={setValue}
-                  watchedServiceType={watchedServiceType}
-                  disabled={!isPropertySelected}
-                  propertyDescription={selectedProperty?.description}
-                  cleaningNotes={selectedProperty?.cleaningNotes}
-                  selectedProperty={selectedProperty}
-                  includedPrestations={selectedForfait?.includedPrestations}
-                  extraPrestations={selectedForfait?.extraPrestations}
-                  isEditMode={isEditMode}
-                />
-              </Card>
-            </Collapse>
-          </div>
-
-          {/* ─── Colonne droite : Planification + Assignation — révélée quand propriété sélectionnée ─── */}
-          {isPropertySelected && (
-            // `animate-in fade-in slide-in-from-right-5` rejoue le keyframe
-            // `fadeSlideIn` du sx (opacite 0->1 + translateX 20px->0) sans avoir
-            // a declarer de keyframes, impossible depuis une classe utilitaire.
-            <div className="flex-[5] flex flex-col gap-[9px] min-w-0 animate-in fade-in slide-in-from-right-5 duration-[400ms] motion-reduce:animate-none">
-              {/* 3. Planification */}
-              <Card className="gap-0 py-0 p-3">
-                <ServiceRequestFormPlanning
-                  control={control}
-                  errors={errors}
-                  setValue={setValue}
-                  disabled={!isPropertySelected}
-                  isAdminOrManager={isAdminOrManager}
-                  reservations={propertyReservations}
-                />
-              </Card>
-
-              {/* 4. Assignation et statut */}
-              <Card className="gap-0 py-0 p-3">
-                <p className="text-2xs font-semibold uppercase tracking-wide text-muted-foreground mb-2">
-                  {t('serviceRequests.sections.requestorAssignment')}
-                </p>
-
-                <ServiceRequestFormAssignment
-                  control={control}
-                  errors={errors}
-                  setValue={setValue}
-                  users={users}
-                  teams={teams}
-                  canAssignForProperty={canAssignForProperty}
-                  watchedAssignedToType={watchedAssignedToType}
-                  watchedServiceType={watchedServiceType}
-                  isEditMode={isEditMode}
-                  disabled={!isPropertySelected}
-                  eligibleTeamIds={eligibleTeamIds}
-                />
-              </Card>
+        <BaitlyFormSteps steps={[t('serviceRequests.editor.request'), t('serviceRequests.editor.schedule'), t('serviceRequests.editor.assignment')]}
+        current={step} reachable={[true, isPropertySelected, isPropertySelected && !!watch('desiredDate')]}
+        onStepClick={next => next < step ? setStep(next) : void advance()} />
+      </aside>
+      <form onSubmit={event => { event.preventDefault(); submit(); }} className="baitly-request-editor__form">
+        <div className="baitly-request-editor__grid">
+          <section className="baitly-request-editor__request" aria-labelledby="request-editor-request">
+            <header className="baitly-request-editor__section-heading"><span aria-hidden="true">01</span><h2 id="request-editor-request">{t('serviceRequests.editor.request')}</h2></header>
+            <div className="baitly-request-editor__fields">
+              <ServiceRequestFormProperty control={control} errors={errors} properties={properties} users={users}
+                isAdminOrManager={isAdminOrManager} selectedProperty={selectedProperty} currentUser={currentUserInfo} />
             </div>
-          )}
+            <div className="baitly-request-editor__fields">
+              <ServiceRequestFormInfo control={control} errors={errors} setValue={setValue} watchedServiceType={watchedServiceType}
+                propertyDescription={selectedProperty?.description} cleaningNotes={selectedProperty?.cleaningNotes}
+                selectedProperty={selectedProperty} includedPrestations={selectedForfait?.includedPrestations}
+                extraPrestations={selectedForfait?.extraPrestations} isEditMode={isEditMode} />
+              <Controller name="description" control={control} render={({ field }) => <Field className="mt-5">
+                <FieldLabel htmlFor="request-editor-description">{t('serviceRequests.editor.instructions')}</FieldLabel>
+                <Textarea id="request-editor-description" {...field} value={field.value ?? ''} rows={4}
+                  placeholder={t('serviceRequests.editor.instructionsHint')} />
+              </Field>} />
+            </div>
+          </section>
+          <div className="baitly-request-editor__side">
+            <section className="baitly-request-editor__planning" aria-labelledby="request-editor-planning">
+              <header className="baitly-request-editor__section-heading"><span aria-hidden="true">02</span><h2 id="request-editor-planning">{t('serviceRequests.editor.schedule')}</h2></header>
+              <div className="baitly-request-editor__fields">
+                <ServiceRequestFormPlanning control={control} errors={errors} setValue={setValue}
+                  isAdminOrManager={isAdminOrManager} reservations={propertyReservations} initialDateMode={isEditMode ? 'custom' : 'checkout'} />
+                {isPropertySelected && watchedServiceType === 'CLEANING' && <details className="baitly-request-editor__estimate">
+                  <summary>{t('serviceRequests.estimate.title')}</summary>
+                  <ServiceRequestPriceEstimate property={selectedProperty} forfaitConfigs={forfaitConfigs} selectedForfaitKey={selectedForfaitKey} />
+                </details>}
+              </div>
+            </section>
+            <section className="baitly-request-editor__assignment" aria-labelledby="request-editor-assignment">
+              <header className="baitly-request-editor__section-heading"><span aria-hidden="true">03</span><h2 id="request-editor-assignment">{t('serviceRequests.editor.assignment')}</h2></header>
+              <div className="baitly-request-editor__fields">
+                <dl className="baitly-request-editor__recap">
+                  <div><dt>{t('serviceRequests.fields.title')}</dt><dd>{watch('title')}</dd></div>
+                  <div><dt>{t('serviceRequests.fields.dueDate')}</dt><dd className="tabular-nums">{watch('desiredDate')?.replace('T', ' · ')}</dd></div>
+                </dl>
+                <ServiceRequestFormAssignment control={control} errors={errors} setValue={setValue} users={users} teams={teams}
+                  canAssignForProperty={canAssignForProperty} watchedAssignedToType={watchedAssignedToType}
+                  watchedServiceType={watchedServiceType} isEditMode={isEditMode} eligibleTeamIds={eligibleTeamIds} />
+              </div>
+            </section>
+          </div>
         </div>
       </form>
-
-      {/* Bouton de soumission caché pour le PageHeader */}
-      <Button
-        type="submit"
-        className="hidden"
-        data-submit-service-request
-      >
-        Soumettre
-      </Button>
+      <footer className="baitly-request-editor__footer">
+        <Button type="button" variant="outline" disabled={isLoading || loading}
+          onClick={() => step > 1 ? setStep(step - 1) : onClose?.()}>
+          {t(step > 1 ? 'reservations.dialog.previous' : 'common.cancel')}
+        </Button>
+        <Button type="button" disabled={isLoading || loading || success} onClick={submit}>
+          {t(isLoading ? 'serviceRequests.updating' : step < 3 ? 'reservations.dialog.next' : isEditMode ? 'serviceRequests.update' : 'serviceRequests.createRequest')}
+        </Button>
+      </footer>
     </div>
   );
 };

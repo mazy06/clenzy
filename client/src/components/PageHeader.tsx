@@ -54,16 +54,7 @@ interface PageHeaderProps {
    * deborder de SON parent : il passe alors {@code anchored={false}}.</p>
    */
   anchored?: boolean;
-  /**
-   * Le parent espace deja ce header — conteneur en {@code gap} ou
-   * {@code space-y}.
-   *
-   * <p>Sans cela la gouttiere du parent S'AJOUTE a la marge basse du header :
-   * un parent en {@code gap-3} donne 24 px sous le bandeau la ou la maquette
-   * en veut 12. Neutraliser depuis la page ne suffit pas — {@code mb-0} ne
-   * remplace que le palier de base, {@code lg:mb-3} survit a la fusion
-   * tailwind-merge et le doublon reste sur le seul palier ou il se voit.</p>
-   */
+  /** Compatibilité des écrans existants : le header ne porte plus de marge basse. */
   selfSpaced?: boolean;
   /**
    * Element optionnel rendu inline a droite du titre (meme ligne que le h1).
@@ -78,6 +69,7 @@ interface PageHeaderProps {
   actions?: React.ReactNode;
   /** Slot pour les filtres, rendu avec les actions sur la ligne du titre. */
   filters?: React.ReactNode;
+  filtersActive?: boolean;
   /**
    * Commandes de l'ecran rendues EN CLAIR dans la barre, juste avant la
    * recherche — typiquement une navigation de periode, dont le sens se perd
@@ -115,8 +107,8 @@ interface PageHeaderProps {
  *     pas, pour que chaque ecran ait son marqueur visuel ;
  *   - la RECHERCHE est unique et toujours visible (cf. GlobalSearchField).
  *
- * Les actions secondaires sont réduites à une icône expliquée par une
- * infobulle ; les créations gardent leur libellé. Les filtres sont derrière un
+ * Toutes les actions sont réduites à une icône expliquée par une
+ * infobulle, y compris les créations. Les filtres sont derrière un
  * déclencheur unique (cf. PageHeaderActions). Mode compact (lg-) : le tout se
  * replie dans un menu ⋯.
  */
@@ -133,6 +125,7 @@ export default function PageHeader({
   onBack,
   actions,
   filters,
+  filtersActive = false,
   inlineControls,
   showBackButton = true,
   showBackButtonWithActions = false,
@@ -204,10 +197,10 @@ export default function PageHeader({
         marginTop: 'calc(-1 * var(--page-header-gutter-top, 12px))',
         paddingInlineStart: 'var(--page-header-gutter-start, 12px)',
         paddingInlineEnd: 'var(--page-header-gutter-end, 12px)',
+        marginBottom: 0,
       } : undefined}
       className={cn(
         'flex flex-col gap-1.5',
-        selfSpaced && 'mb-1.5 lg:mb-3',
         anchored && [
           'bg-card shadow-[inset_0_-1px_0_var(--bui-border)]',
           // Deborde le padding du conteneur, puis le retablit dedans.
@@ -280,7 +273,7 @@ export default function PageHeader({
 
           <GlobalSearchField compact={compactSearch} />
 
-          <PageHeaderActions filters={foldedFilters} actions={actions} narrow={isCompact || compactActions} />
+          <PageHeaderActions filters={foldedFilters} filtersActive={filtersActive} actions={actions} narrow={isCompact || compactActions} />
 
           {showBack && (
             <Tooltip>
@@ -294,6 +287,8 @@ export default function PageHeader({
                     size="icon"
                     onClick={handleBack}
                     aria-label={backLabel}
+                    className="baitly-header-action"
+                    data-header-action="back"
                   >
                     <ArrowLeftIcon className="cn-rtl-flip" />
                   </Button>

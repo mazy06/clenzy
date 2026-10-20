@@ -1,0 +1,30 @@
+.baitly-guide-library { margin-block-end:32px; padding-block-end:28px; border-block-end:1px solid var(--bui-border); color:var(--bui-foreground); }
+.baitly-guide-library__heading { display:flex; align-items:center; gap:12px; margin-block-end:18px; }
+.baitly-guide-library__heading h2 { margin:0; font-size:20px; font-weight:600; letter-spacing:-.025em; text-wrap:balance; }
+.baitly-guide-library__items { display:grid; grid-auto-flow:column; grid-auto-columns:clamp(320px,29vw,380px); align-items:stretch; gap:14px; padding:6px; margin:-6px; overflow-x:auto; }
+.baitly-guide-card { display:grid; grid-template-columns:132px minmax(0,1fr); min-inline-size:0; overflow:hidden; border:1px solid var(--bui-border); border-radius:10px; background:var(--bui-card); transition:border-color 180ms cubic-bezier(.25,1,.5,1); }
+.baitly-guide-card:hover { border-color:var(--bui-muted-foreground); }
+.baitly-guide-card__toolbar { display:flex; align-items:center; margin:-6px -8px 0 0; min-block-size:40px; }
+.baitly-guide-card__preview { position:relative; block-size:192px; margin:8px 0 8px 8px; overflow:hidden; background:var(--bui-muted); pointer-events:none; border:1px solid var(--bui-border); border-radius:5px; }
+.baitly-guide-card__snapshot { display:block; inline-size:100%; block-size:100%; }
+.baitly-guide-card__body { display:flex; flex-direction:column; min-inline-size:0; padding:10px 12px 12px; }
+.baitly-guide-card__preview { grid-column:1; grid-row:1; }
+.baitly-guide-card__body { grid-column:2; grid-row:1; }
+.baitly-guide-card__meta { display:flex; align-items:center; gap:8px; min-block-size:24px; margin-block-start:auto; margin-block-end:0; color:var(--bui-muted-foreground); }
+.baitly-guide-card__status { display:inline-flex; align-items:center; gap:6px; font-size:12px; font-weight:500; color:var(--bui-muted-foreground); }
+.baitly-guide-card__status::before { content:''; inline-size:5px; block-size:5px; border-radius:50%; background:currentColor; }
+.baitly-guide-card__status[data-published="true"] { color:var(--bui-success-ink); }
+.baitly-guide-card__theme { font-size:12px; margin-inline-end:auto; }
+.baitly-guide-card__language { font-size:12px; font-variant-numeric:tabular-nums; }
+.baitly-guide-card__owner { display:grid; place-items:center; inline-size:24px; block-size:24px; border-radius:50%; background:var(--bui-muted); font-size:10px; }
+.baitly-guide-card__open { display:flex; align-items:flex-start; justify-content:space-between; gap:8px; inline-size:100%; block-size:44px; margin-block-start:12px; padding:0; border:0; background:transparent; text-align:start; color:var(--bui-foreground); font:600 14px/1.45 ui-sans-serif,system-ui,sans-serif; cursor:pointer; transition:color 180ms cubic-bezier(.25,1,.5,1); }
+.baitly-guide-card__open > span { display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; overflow-wrap:anywhere; }
+.baitly-guide-card__open > svg { flex-shrink:0; margin-block-start:3px; color:var(--bui-muted-foreground); }
+.baitly-guide-card__open:hover { color:var(--bui-primary); }
+.baitly-guide-card__open:focus-visible,.baitly-guide-card__menu:focus-visible { outline:2px solid var(--bui-ring); outline-offset:2px; border-radius:4px; }
+.baitly-guide-card__property { margin:4px 0 0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-size:12px; line-height:1.5; color:var(--bui-muted-foreground); }
+.baitly-guide-card__menu { display:grid; place-items:center; inline-size:44px; block-size:44px; margin-inline-start:auto; border:0; border-radius:6px; background:transparent; color:var(--bui-muted-foreground); cursor:pointer; transition:background-color 180ms cubic-bezier(.25,1,.5,1); }
+.baitly-guide-card__menu:hover { background:var(--bui-muted); color:var(--bui-foreground); }
+@media(prefers-reduced-motion:reduce) { .baitly-guide-card,.baitly-guide-card__open,.baitly-guide-card__menu { transition:none; } }
+
+@media(max-width:479px) { .baitly-guide-library__items { grid-auto-columns:min(340px,calc(100vw - 48px)); } .baitly-guide-card { grid-template-columns:112px minmax(0,1fr); } .baitly-guide-card__preview { block-size:176px; } .baitly-guide-card__body { padding-inline:10px; } }

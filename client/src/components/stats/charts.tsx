@@ -20,6 +20,9 @@ import { ChartContainer, ChartLegend, ChartLegendContent, ChartTooltip, ChartToo
 import { useChartThumbnail } from './chartThumbnail';
 // Hors composant / valeur par defaut : la langue se lit a l'appel.
 import i18n from '../../i18n/config';
+import { useWidgetPresentation } from './widgetPresentation';
+import { WidgetRanking } from './WidgetRanking';
+import { cn } from '../../utils/cn';
 
 /**
  * Les graphiques du langage « statistiques » de Baitly.
@@ -151,7 +154,7 @@ const clipLabel = (width: number, value: string) => {
  *
  * <p>A -22 degres, un libelle de L pixels en occupe environ 0,37 L en hauteur.
  * La bande d'axe fait 52 px : au-dela d'une vingtaine de caracteres le nom
- * deborde et vient chevaucher la legende — « Equipe Entretien Clenzy - Paris »
+ * deborde et vient chevaucher la legende, « Equipe Entretien Baitly - Paris »
  * la traversait de part en part sur telephone.</p>
  */
 const ANGLED_MAX_CHARS = 20;
@@ -246,11 +249,12 @@ const positive = (buckets: StatBucket[]) => buckets.filter((b) => b.count > 0);
  */
 const nonZero = (buckets: StatBucket[]) => buckets.filter((b) => b.count !== 0);
 
-export const EmptyChart: React.FC<{ message?: string }> = ({ message }) => (
-  <div className="flex h-full items-center justify-center text-xs text-muted-foreground">
+export const EmptyChart: React.FC<{ message?: string }> = ({ message }) => {
+  const widget = useWidgetPresentation();
+  return <div className={widget ? 'db-data-empty' : 'flex h-full items-center justify-center text-xs text-muted-foreground'}>
     {message ?? i18n.t('stats.noChartData')}
-  </div>
-);
+  </div>;
+};
 
 /**
  * Répartition en anneau, avec sa légende chiffrée.
@@ -277,6 +281,7 @@ export const DonutChart: React.FC<{
   otherLabel?: string;
 }> = ({ buckets, totalLabel, formatValue, formatTotal, otherLabel = 'Autres' }) => {
   const thumb = useChartThumbnail();
+  const widget = useWidgetPresentation();
   const parts = positive(buckets);
   const MAX_SLICES = 6;
   const shown =
@@ -304,9 +309,9 @@ export const DonutChart: React.FC<{
   if (shown.length === 0) return <EmptyChart />;
 
   return (
-    <div className="flex h-full min-h-0 flex-col gap-2 @[380px]:flex-row">
-      <div className="min-h-0 min-w-0 flex-1">
-        <ChartContainer config={config} className="aspect-auto h-full w-full">
+    <div className={cn('flex h-full min-h-0 flex-col gap-2 @[380px]:flex-row', widget && !thumb && 'db-data-breakdown')}>
+      <div className={cn('min-h-0 min-w-0 flex-1', widget && !thumb && 'db-data-breakdown__chart')}>
+        <ChartContainer config={config} className={cn("aspect-auto h-full w-full", widget && "db-data-chart")}>
           <PieChart margin={{ top: 2, right: 2, bottom: 2, left: 2 }}>
             <ChartTooltip
               content={
@@ -322,6 +327,7 @@ export const DonutChart: React.FC<{
               paddingAngle={2}
               cornerRadius={3}
               strokeWidth={0}
+              isAnimationActive={!widget && !thumb}
             >
               {shown.map((b, i) => (
                 <Cell key={b.label} fill={SERIES_TOKENS[i % SERIES_TOKENS.length]} />
@@ -335,12 +341,12 @@ export const DonutChart: React.FC<{
                       <tspan
                         x={cx}
                         dy="-0.15em"
-                        className="fill-foreground text-xl font-bold"
+                        className={cn("fill-foreground text-xl", widget ? "font-semibold" : "font-bold")}
                         style={{ fontVariantNumeric: 'tabular-nums' }}
                       >
                         {formatCenter(total)}
                       </tspan>
-                      <tspan x={cx} dy="1.5em" className="fill-muted-foreground text-2xs">
+                      <tspan x={cx} dy="1.5em" className={cn("fill-muted-foreground", widget ? "text-xs" : "text-2xs")}>
                         {totalLabel}
                       </tspan>
                     </text>
@@ -359,7 +365,7 @@ export const DonutChart: React.FC<{
       {thumb ? null : (
       <ul
         data-slot="chart-legend"
-        className="no-scrollbar m-0 flex min-h-0 list-none flex-col justify-center gap-1 overflow-y-auto p-0 @[380px]:max-h-full @[380px]:w-[46%] @[380px]:shrink-0"
+        className={cn('no-scrollbar m-0 flex min-h-0 list-none flex-col justify-center gap-1 overflow-y-auto p-0 @[380px]:max-h-full @[380px]:w-[46%] @[380px]:shrink-0', widget && 'db-data-breakdown__legend')}
       >
         {shown.map((b, i) => (
           <li key={b.label} className="flex items-baseline gap-1.5 text-2xs">
@@ -403,8 +409,9 @@ export const HistogramChart: React.FC<{
   labelWidth?: number;
 }> = ({ buckets, label, tokenIndex = 0, tone, formatValue, colorFor, labelWidth = 96 }) => {
   const thumb = useChartThumbnail();
+  const widget = useWidgetPresentation();
   const parts = nonZero(buckets);
-  const base = tone ? TONE_TOKENS[tone] : SERIES_TOKENS[tokenIndex % SERIES_TOKENS.length];
+  const base = widget && (tone === "info" || tone === "primary") ? "var(--bui-navy)" : tone ? TONE_TOKENS[tone] : SERIES_TOKENS[tokenIndex % SERIES_TOKENS.length];
   const config: ChartConfig = { count: { label, color: base } };
   const [boxRef, boxWidth] = useMeasuredWidth<HTMLDivElement>();
 
@@ -414,10 +421,11 @@ export const HistogramChart: React.FC<{
   const gutter = boxWidth > 0 ? Math.max(56, Math.min(labelWidth, boxWidth * 0.34)) : labelWidth;
 
   if (parts.length === 0) return <EmptyChart />;
+  if (widget && !thumb) return <WidgetRanking buckets={parts} label={label} color={base} colorFor={colorFor} formatValue={formatValue} />;
 
   return (
     <div ref={boxRef} className="h-full w-full">
-    <ChartContainer config={config} className="aspect-auto h-full w-full">
+    <ChartContainer config={config} className={cn("aspect-auto h-full w-full", widget && "db-data-chart")}>
       <BarChart
         accessibilityLayer
         layout="vertical"
@@ -483,6 +491,7 @@ export const GroupedBarChart = <P extends { label: string }>({
   angled,
 }: MultiSeriesProps<P> & { angled?: boolean }) => {
   const thumb = useChartThumbnail();
+  const widget = useWidgetPresentation();
   const config = buildConfig(series);
   const [boxRef, boxWidth] = useMeasuredWidth<HTMLDivElement>();
 
@@ -503,7 +512,7 @@ export const GroupedBarChart = <P extends { label: string }>({
 
   return (
     <div ref={boxRef} className="h-full w-full">
-    <ChartContainer config={config} className="aspect-auto h-full w-full">
+    <ChartContainer config={config} className={cn("aspect-auto h-full w-full", widget && "db-data-chart")}>
       <BarChart
         accessibilityLayer
         data={data}
@@ -533,7 +542,7 @@ export const GroupedBarChart = <P extends { label: string }>({
             formatValue ? <ChartTooltipContent formatter={tooltipValue(formatValue)} /> : <ChartTooltipContent />
           }
         />
-        {hideLegend || thumb ? null : <ChartLegend content={<ChartLegendContent />} />}
+        {hideLegend || thumb ? null : <ChartLegend verticalAlign={widget ? "top" : "bottom"} content={<ChartLegendContent />} />}
         {series.map((s, i) => (
           <Bar
             key={s.key}
@@ -542,7 +551,8 @@ export const GroupedBarChart = <P extends { label: string }>({
             stackId={s.stackId}
             fill={seriesColor(s, i)}
             radius={s.stackId && i !== last ? undefined : [3, 3, 0, 0]}
-            maxBarSize={22}
+            isAnimationActive={!widget && !thumb}
+            maxBarSize={widget ? 32 : 22}
           />
         ))}
       </BarChart>
@@ -565,13 +575,14 @@ export const TrendAreaChart = <P extends { label: string }>({
   stacked,
 }: MultiSeriesProps<P> & { stacked?: boolean }) => {
   const thumb = useChartThumbnail();
+  const widget = useWidgetPresentation();
   const config = buildConfig(series);
   if (data.length === 0) return <EmptyChart />;
 
   const gutter = axisGutter(formatValue);
 
   return (
-    <ChartContainer config={config} className="aspect-auto h-full w-full">
+    <ChartContainer config={config} className={cn("aspect-auto h-full w-full", widget && "db-data-chart")}>
       <AreaChart
         accessibilityLayer
         data={data}
@@ -592,7 +603,7 @@ export const TrendAreaChart = <P extends { label: string }>({
             formatValue ? <ChartTooltipContent formatter={tooltipValue(formatValue)} /> : <ChartTooltipContent />
           }
         />
-        {hideLegend || thumb ? null : <ChartLegend content={<ChartLegendContent />} />}
+        {hideLegend || thumb ? null : <ChartLegend verticalAlign={widget ? "top" : "bottom"} content={<ChartLegendContent />} />}
         {series.map((s, i) => (
           <Area
             key={s.key}
@@ -604,7 +615,8 @@ export const TrendAreaChart = <P extends { label: string }>({
             strokeWidth={1.75}
             strokeDasharray={s.dashed ? '5 3' : undefined}
             fill={seriesColor(s, i)}
-            fillOpacity={0.22}
+            fillOpacity={widget ? 0.12 : 0.22}
+            isAnimationActive={!widget && !thumb}
           />
         ))}
       </AreaChart>
@@ -628,13 +640,14 @@ export const TrendLineChart = <P extends { label: string }>({
   referenceLabel,
 }: MultiSeriesProps<P> & { referenceValue?: number; referenceLabel?: string }) => {
   const thumb = useChartThumbnail();
+  const widget = useWidgetPresentation();
   const config = buildConfig(series);
   if (data.length === 0) return <EmptyChart />;
 
   const gutter = axisGutter(formatValue);
 
   return (
-    <ChartContainer config={config} className="aspect-auto h-full w-full">
+    <ChartContainer config={config} className={cn("aspect-auto h-full w-full", widget && "db-data-chart")}>
       <LineChart
         accessibilityLayer
         data={data}
@@ -648,7 +661,7 @@ export const TrendLineChart = <P extends { label: string }>({
             formatValue ? <ChartTooltipContent formatter={tooltipValue(formatValue)} /> : <ChartTooltipContent />
           }
         />
-        {hideLegend || thumb ? null : <ChartLegend content={<ChartLegendContent />} />}
+        {hideLegend || thumb ? null : <ChartLegend verticalAlign={widget ? "top" : "bottom"} content={<ChartLegendContent />} />}
         {referenceValue !== undefined ? (
           <ReferenceLine
             y={referenceValue}
@@ -658,7 +671,7 @@ export const TrendLineChart = <P extends { label: string }>({
               value: referenceLabel,
               position: 'insideTopRight',
               fill: 'var(--bui-muted-foreground)',
-              fontSize: 10,
+              fontSize: widget ? 12 : 10,
             }}
           />
         ) : null}
@@ -671,7 +684,8 @@ export const TrendLineChart = <P extends { label: string }>({
             stroke={seriesColor(s, i)}
             strokeWidth={1.75}
             strokeDasharray={s.dashed ? '5 3' : undefined}
-            dot={{ r: 2 }}
+            isAnimationActive={!widget && !thumb}
+            dot={widget ? false : { r: 2 }}
             activeDot={{ r: 4 }}
             connectNulls
           />

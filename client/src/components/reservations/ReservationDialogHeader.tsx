@@ -7,7 +7,7 @@ import PropertyThumb from '../PropertyThumb';
 import type { ReservationStatus } from '../../services/api';
 import type { UseReservationFormResult } from './useReservationForm';
 import type { ReservationDialogEntryMode } from './ReservationDialog';
-import { RESERVATION_ART } from './reservationArtwork';
+import { CalendarClockIcon, LockIcon } from '../../icons/glyphs';
 
 // Contrôle segmenté de la modale (mode, statut) : piste `bg-muted`, segment
 // actif en carte, comme les sous-vues des espaces Finances et Documents.
@@ -56,28 +56,23 @@ const ReservationDialogHeader: React.FC<Props> = ({ form, onClose, entryMode, on
   };
 
   return (
-    <div className="shrink-0 border-b border-solid border-border px-[22px] pt-[18px] pb-[14px]">
+    <div data-entry-mode={showModeToggle ? 'create' : 'edit'} className="baitly-form-header shrink-0 px-[22px] pt-[18px] pb-[14px]">
       <div className="flex items-center gap-3">
         {form.effectivePropertyId ? (
           <PropertyThumb
             seed={String(form.effectivePropertyId)}
             photo={form.propertyPhoto}
-            className="h-11 w-[66px] rounded-[10px]"
+            className="baitly-form-header__photo h-11 w-[66px] rounded-[10px]"
           />
         ) : (
-          <img
-            src={isBlock ? RESERVATION_ART.stay : RESERVATION_ART.reservation}
-            alt=""
-            width={44}
-            height={44}
-            className="size-11 shrink-0 rounded-[10px] object-cover"
-          />
+          <span className="baitly-form-header__symbol" aria-hidden="true">{isBlock ? <LockIcon /> : <CalendarClockIcon />}</span>
         )}
         <div className="min-w-0 flex-1">
-          <p className="text-[17px] font-semibold leading-tight tracking-[-0.01em] text-foreground text-balance">
+          <p className="baitly-form-header__title text-[17px] font-semibold leading-tight tracking-[-0.01em] text-balance">
             {isBlock ? t('reservations.dialog.blockTitle') : form.headerTitle}
           </p>
-          <p className="mt-0.5 truncate text-xs text-muted-foreground" dir="auto">{subtitle}</p>
+          <p className="mt-0.5 hidden sm:block text-xs text-muted-foreground" dir="auto">{subtitle}</p>
+          <p className="baitly-form-header__mobile-context mt-0.5 sm:hidden text-xs text-muted-foreground" dir="auto">{form.propertyName || t('reservations.dialog.propertyPlaceholder')}</p>
         </div>
         <button
           type="button"
@@ -93,7 +88,7 @@ const ReservationDialogHeader: React.FC<Props> = ({ form, onClose, entryMode, on
         </button>
       </div>
 
-      <div className="mt-3 flex flex-wrap items-center gap-2.5">
+      <div className="baitly-form-header__controls mt-3 flex flex-wrap items-center gap-2.5">
         {/* Toggle réservation / blocage (création uniquement) */}
         {showModeToggle && (
           <div className={SEG_WRAP_CLASS} role="group" aria-label={t('reservations.dialog.modeLabel', 'Type de saisie')}>
@@ -114,7 +109,7 @@ const ReservationDialogHeader: React.FC<Props> = ({ form, onClose, entryMode, on
         {/* Édition : statut (cycle de vie). Création : le statut dérive de
             l'intention de paiement, choisie à l'étape « Finalisation ». */}
         {form.isEdit && (
-          <div className={SEG_WRAP_CLASS} role="group" aria-label={t('reservations.fields.status')}>
+          <div className={cn(SEG_WRAP_CLASS, 'baitly-form-header__status')} role="group" aria-label={t('reservations.fields.status')}>
             {form.statuses.map((s) => (
               <button
                 key={s}

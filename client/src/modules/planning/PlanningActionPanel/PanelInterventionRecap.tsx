@@ -36,6 +36,8 @@ import type { PlanningEvent } from '../types';
 import PanelPhotoGallery from './PanelPhotoGallery';
 import { STATUS_TONES, toneTokensSx, type ToneTokens } from '../../../components/StatusChip';
 import { Money } from '../../../components/Money';
+import { Link } from 'react-router-dom';
+import { serviceExecutionProfile } from '../../interventions/baitlyServiceExecution';
 
 // ─── Signalement parsing ────────────────────────────────────────────────────
 
@@ -73,6 +75,10 @@ const PanelInterventionRecap: React.FC<PanelInterventionRecapProps> = ({ event }
       </Alert>
     );
   }
+  if (serviceExecutionProfile(intervention)) return <div className="space-y-3 text-sm">
+    <p className="text-muted-foreground">{t('serviceExecution.openHint')}</p>
+    <Button asChild className="min-h-[44px] w-full whitespace-normal"><Link to={`/interventions/${intervention.id}`}>{t('serviceExecution.open')}</Link></Button>
+  </div>;
 
   const beforePhotos = parseBaitlyPhotoUrls(intervention.beforePhotosUrls);
 

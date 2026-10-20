@@ -5,6 +5,7 @@ import com.clenzy.booking.dto.BookingServiceItemDto;
 import com.clenzy.booking.dto.SelectedServiceOptionDto;
 import com.clenzy.booking.model.BookingServiceCategory;
 import com.clenzy.booking.model.BookingServiceItem;
+import com.clenzy.booking.model.BookingServiceInputType;
 import com.clenzy.booking.model.BookingServicePricingMode;
 import com.clenzy.booking.repository.BookingServiceCategoryRepository;
 import com.clenzy.booking.repository.BookingServiceItemRepository;
@@ -20,6 +21,8 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.util.List;
+import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.Map;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -224,21 +227,8 @@ public class BookingServiceOptionsService {
             return BigDecimal.ZERO;
         }
 
-        List<Long> itemIds = selections.stream()
-            .map(SelectedServiceOptionDto::serviceItemId)
-            .toList();
-        Map<Long, BookingServiceItem> itemsById = itemRepository.findAllByIdInAndOrganizationId(itemIds, orgId).stream()
-            .collect(Collectors.toMap(BookingServiceItem::getId, Function.identity()));
-
-        BigDecimal total = BigDecimal.ZERO;
-        for (SelectedServiceOptionDto sel : selections) {
-            BookingServiceItem item = itemsById.get(sel.serviceItemId());
-            if (item == null || !item.isActive()) {
-                continue;
-            }
-            total = total.add(computeItemTotal(item, sel.quantity(), guests, nights));
-        }
-        return total;
+        return priceSelections(selections, guests, nights, orgId).stream()
+            .map(PricedSelection::total).reduce(BigDecimal.ZERO, BigDecimal::add);
     }
 
     /**
@@ -253,26 +243,18 @@ public class BookingServiceOptionsService {
             return;
         }
 
-        List<Long> itemIds = selections.stream()
-            .map(SelectedServiceOptionDto::serviceItemId)
-            .toList();
-        Map<Long, BookingServiceItem> itemsById = itemRepository.findAllByIdInAndOrganizationId(itemIds, orgId).stream()
-            .collect(Collectors.toMap(BookingServiceItem::getId, Function.identity()));
-
+        // Tout valider avant la première écriture ; devis et snapshot utilisent les mêmes règles.
+        List<PricedSelection> priced = priceSelections(selections, guests, nights, orgId);
         BigDecimal total = BigDecimal.ZERO;
-        for (SelectedServiceOptionDto sel : selections) {
-            BookingServiceItem item = itemsById.get(sel.serviceItemId());
-            if (item == null || !item.isActive()) {
-                continue;
-            }
-
-            BigDecimal itemTotal = computeItemTotal(item, sel.quantity(), guests, nights);
+        for (PricedSelection selection : priced) {
+            BookingServiceItem item = selection.item();
+            BigDecimal itemTotal = selection.total();
 
             ReservationServiceItem rsi = new ReservationServiceItem();
             rsi.setReservation(reservation);
             rsi.setServiceItemId(item.getId());
             rsi.setServiceItemName(item.getName());
-            rsi.setQuantity(sel.quantity());
+            rsi.setQuantity(selection.quantity());
             rsi.setUnitPrice(item.getPrice());
             rsi.setPricingMode(item.getPricingMode());
             rsi.setTotalPrice(itemTotal);
@@ -287,16 +269,48 @@ public class BookingServiceOptionsService {
 
     // ─── Private ────────────────────────────────────────────────────────
 
-    private BigDecimal computeItemTotal(BookingServiceItem item, int quantity, int guests, int nights) {
-        // Enforce max_quantity server-side
-        final int effectiveQty = item.getMaxQuantity() != null
-            ? Math.min(quantity, item.getMaxQuantity())
-            : quantity;
-        BigDecimal price = item.getPrice();
-        return switch (item.getPricingMode()) {
-            case PER_BOOKING -> price.multiply(BigDecimal.valueOf(effectiveQty));
-            case PER_PERSON -> price.multiply(BigDecimal.valueOf(effectiveQty)).multiply(BigDecimal.valueOf(guests));
-            case PER_NIGHT -> price.multiply(BigDecimal.valueOf(effectiveQty)).multiply(BigDecimal.valueOf(nights));
-        };
+    private record PricedSelection(BookingServiceItem item, int quantity, BigDecimal total) {}
+
+    private List<PricedSelection> priceSelections(List<SelectedServiceOptionDto> selections,
+                                                  int guests, int nights, Long orgId) {
+        if (orgId == null || guests < 1 || nights < 1) {
+            throw new IllegalArgumentException("Contexte du séjour invalide pour les services");
+        }
+        var seen = new HashSet<Long>();
+        for (SelectedServiceOptionDto selection : selections) {
+            if (selection == null || selection.serviceItemId() == null || selection.quantity() == null
+                    || selection.quantity() < 1) {
+                throw new IllegalArgumentException("Service ou quantité invalide");
+            }
+            if (!seen.add(selection.serviceItemId())) {
+                throw new IllegalArgumentException("Un service ne peut être sélectionné qu'une seule fois");
+            }
+        }
+        var ids = selections.stream().map(SelectedServiceOptionDto::serviceItemId).toList();
+        Map<Long, BookingServiceItem> items = itemRepository.findAllByIdInAndOrganizationId(ids, orgId).stream()
+            .collect(Collectors.toMap(BookingServiceItem::getId, Function.identity()));
+        var priced = new ArrayList<PricedSelection>();
+        for (SelectedServiceOptionDto selection : selections) {
+            BookingServiceItem item = items.get(selection.serviceItemId());
+            if (item == null || !item.isActive() || !orgId.equals(item.getOrganizationId())
+                    || (item.getCategory() != null && !item.getCategory().isActive())) {
+                throw new IllegalArgumentException("Un service sélectionné n'est plus disponible. Actualisez votre sélection.");
+            }
+            if (item.getPrice() == null || item.getPrice().signum() < 0 || item.getPricingMode() == null
+                    || (item.getMaxQuantity() != null && item.getMaxQuantity() < 1)) {
+                throw new IllegalArgumentException("Configuration du service invalide");
+            }
+            int quantity = item.getMaxQuantity() == null ? selection.quantity()
+                : Math.min(selection.quantity(), item.getMaxQuantity());
+            if (item.getInputType() == BookingServiceInputType.CHECKBOX) quantity = 1;
+            BigDecimal base = item.getPrice().multiply(BigDecimal.valueOf(quantity));
+            BigDecimal total = switch (item.getPricingMode()) {
+                case PER_BOOKING -> base;
+                case PER_PERSON -> base.multiply(BigDecimal.valueOf(guests));
+                case PER_NIGHT -> base.multiply(BigDecimal.valueOf(nights));
+            };
+            priced.add(new PricedSelection(item, quantity, total));
+        }
+        return priced;
     }
 }

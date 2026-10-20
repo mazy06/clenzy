@@ -538,6 +538,12 @@ public class PropertyService {
         property.setCleaningNotes(dto.cleaningNotes);
         // Booking Engine
         if (dto.bookingEngineVisible != null) property.setBookingEngineVisible(dto.bookingEngineVisible);
+        if (dto.securityDepositAmount != null) {
+            if (dto.securityDepositAmount.signum() < 0 || dto.securityDepositAmount.stripTrailingZeros().scale() > 2
+                    || dto.securityDepositAmount.compareTo(new java.math.BigDecimal("9999999999.99")) > 0)
+                throw new IllegalArgumentException("Le montant de caution doit être positif ou nul, avec deux décimales maximum.");
+            property.setSecurityDepositAmount(dto.securityDepositAmount);
+        }
         // Horaires par défaut
         if (dto.defaultCheckInTime != null) property.setDefaultCheckInTime(dto.defaultCheckInTime);
         if (dto.defaultCheckOutTime != null) property.setDefaultCheckOutTime(dto.defaultCheckOutTime);
@@ -664,6 +670,8 @@ public class PropertyService {
             }
             dto.cleaningNotes = p.getCleaningNotes();
             dto.bookingEngineVisible = p.isBookingEngineVisible();
+            dto.securityDepositAmount = p.getSecurityDepositAmount();
+            dto.defaultCurrency = p.getDefaultCurrency();
             dto.defaultCheckInTime = p.getDefaultCheckInTime();
             dto.defaultCheckOutTime = p.getDefaultCheckOutTime();
 

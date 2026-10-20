@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { BaitlyMissionSafety } from './BaitlyMissionSafety';
 import { BaitlyRestockRecap } from './BaitlyRestockRecap';
+import { serviceExecutionProfile, serviceProofComplete } from './baitlyServiceExecution';
 import { cn } from '../../utils/cn';
 import { Badge, Button, Item } from '../../components/ui';
 import { Alert, AlertDescription } from '../../components/ui';
@@ -137,52 +138,25 @@ const StepperHeader: React.FC<{
   activeStep: StepId;
   onStepClick: (id: StepId) => void;
 }> = ({ steps, activeStep, onStepClick }) => (
-  <div className="flex items-start gap-0 mb-3 relative">
-    {steps.map((step, idx) => {
-      const isActive = activeStep === step.id;
-      return (
-        <React.Fragment key={step.id}>
-          {idx > 0 && (
-            <div className={cn('flex-1 h-[2px] mt-[10.5px]', step.completed ? 'bg-success' : 'bg-border')} style={{ transition: 'background-color 0.3s' }} />
-          )}
-          <div className={cn('flex flex-col items-center min-w-[80px] max-w-[120px]', step.locked ? 'cursor-default' : 'cursor-pointer', step.locked ? 'opacity-40' : 'opacity-100')} style={{ transition: 'opacity 0.2s' }} onClick={() => !step.locked && onStepClick(step.id)}>
-            <div className={cn(
-              'w-[28px] h-[28px] rounded-full flex items-center justify-center mb-[3px] transition-all duration-200',
-              // Aplats : teinte vive, jamais l'encre `-ink` (réservée au texte).
-              step.completed ? 'bg-success' : isActive ? 'bg-primary' : 'bg-muted',
-              step.completed || isActive ? 'text-primary-foreground' : 'text-muted-foreground',
-              isActive && !step.completed && 'shadow-[0_0_0_3px_var(--bui-primary-soft)]',
-            )}>
-              {step.completed ? (
-                <CheckCircleIcon size={18} strokeWidth={1.75} />
-              ) : step.locked ? (
-                <LockIcon size={14} strokeWidth={1.75} />
-              ) : (
-                <span className="text-xs font-bold tabular-nums">
-                  {step.id + 1}
-                </span>
-              )}
-            </div>
-            {/* Le libellé est du TEXTE : encre `-ink` pour l'étape faite. */}
-            <span className={cn('text-2xs text-center leading-[1.2] px-[1.5px]', isActive ? 'font-bold' : 'font-medium', isActive ? 'text-primary' : step.completed ? 'text-success-ink' : 'text-muted-foreground')}>
-              {step.label}
-            </span>
-          </div>
-        </React.Fragment>
-      );
-    })}
-  </div>
+  <ol className="m-0 mb-4 grid grid-cols-4 gap-2 p-0 list-none" aria-label="Étapes">
+    {steps.map(step => <li key={step.id} className="min-w-0">
+      <button type="button" disabled={step.locked} aria-current={activeStep === step.id ? 'step' : undefined}
+        onClick={() => onStepClick(step.id)}
+        className={cn('w-full min-h-[68px] flex flex-col items-center gap-2 rounded-lg px-1 py-2 text-xs leading-5 cursor-pointer disabled:cursor-default disabled:opacity-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--bui-navy)]', activeStep === step.id ? 'bg-[var(--bui-navy-soft)] text-[var(--bui-navy)]' : 'text-muted-foreground hover:bg-muted')}>
+        <span className={cn('size-7 rounded-full flex items-center justify-center shrink-0 tabular-nums', step.completed ? 'bg-success-soft text-success-ink' : activeStep === step.id ? 'bg-[var(--bui-navy)] text-primary-foreground' : 'bg-muted')}>
+          {step.completed ? <CheckCircleIcon size={18} aria-hidden /> : step.locked ? <LockIcon size={14} aria-hidden /> : step.id + 1}
+        </span>
+        <span className="w-full break-words">{step.label}</span>
+      </button>
+    </li>)}
+  </ol>
 );
 
 const handleDownloadPdf = async (doc: DocumentGeneration) => {
   await documentsApi.downloadGeneration(doc.id, doc.fileName);
 };
 
-const recapCardClass = [
-  'p-[15px] rounded-xl bg-card',
-  'border border-solid border-success/30',
-  'transition-[border-color] duration-200 hover:border-success/60 motion-reduce:transition-none',
-].join(' ');
+const recapCardClass = 'py-4 min-w-0 first:pt-0';
 
 // Le breakpoint `sm` de MUI vaut 600px (non configure), pas les 640px de Tailwind.
 // Rendu par `Item variant="outline"` : ne restent ici que la direction
@@ -216,12 +190,15 @@ const InterventionProgressSteps: React.FC<InterventionProgressStepsProps> = ({
   const { beforePhotos, afterPhotos, beforePhotoIds, afterPhotoIds, deletingPhotoId, handleDeletePhoto, setPhotoType, setPhotosDialogOpen } = photos;
   const { propertyDetails, getTotalRooms, getRoomNames, validatedRooms, allRoomsValidated, savingRoom, handleRoomValidation } = rooms;
   const { inspectionComplete: storedInspectionComplete, setInspectionComplete, completedSteps, setCompletedSteps, getStepNote, handleOpenNotesDialog } = stepProps;
-  const cleaning = intervention.type?.toUpperCase().includes('CLEANING');
+  const execution = serviceExecutionProfile(intervention);
+  const cleaning = !execution;
   const [safetyPaused, setSafetyPaused] = useState(true);
   const inspectionComplete = cleaning ? !!photos.inspectionRooms?.length && photos.inspectionRooms.every(room => (photos.inspectionRoomCounts?.[`inspection_${room.id}`] ?? 0) > 0) : storedInspectionComplete;
   const { calculateProgress, areAllStepsCompleted, canUpdateProgress, handleUpdateProgressValue } = progressProps;
 
   const { t } = useTranslation();
+  const copy = (field: string) => t(`serviceExecution.${execution?.kind}.${field}`);
+  const proofComplete = execution ? serviceProofComplete(execution, completedSteps, afterPhotos.length, intervention.notes) : completedSteps.has('after_photos');
   const progress = calculateProgress();
   const isComplete = progress === 100;
 
@@ -299,8 +276,8 @@ const InterventionProgressSteps: React.FC<InterventionProgressStepsProps> = ({
   }, [getDefaultStep]);
 
   const showRoomData = canUpdateProgress || intervention?.status === 'COMPLETED';
-  const totalRooms = showRoomData ? getTotalRooms() : 0;
-  const roomNames = showRoomData ? getRoomNames() : [];
+  const totalRooms = showRoomData ? (execution?.checks.length ?? getTotalRooms()) : 0;
+  const roomNames = showRoomData ? execution ? execution.checks.map(check => copy(`checks.${check}`)) : getRoomNames() : [];
 
   /**
    * Etat REEL des coches, et non `allRoomsValidated` : ce drapeau est calcule au
@@ -316,9 +293,9 @@ const InterventionProgressSteps: React.FC<InterventionProgressStepsProps> = ({
   const canAccessRecap = inspectionComplete && allRoomsChecked;
 
   const steps: StepDef[] = [
-    { id: 0, label: t('interventions.progressSteps.inspection'), completed: inspectionComplete, active: !inspectionComplete, locked: false },
-    { id: 1, label: t('interventions.progressSteps.rooms'), completed: allRoomsChecked, active: inspectionComplete && !allRoomsChecked, locked: !inspectionComplete },
-    { id: 2, label: t('interventions.progressSteps.photos'), completed: completedSteps.has('after_photos'), active: allRoomsChecked && !completedSteps.has('after_photos'), locked: !inspectionComplete || !allRoomsChecked },
+    { id: 0, label: execution ? copy('prepare') : t('interventions.progressSteps.inspection'), completed: inspectionComplete, active: !inspectionComplete, locked: false },
+    { id: 1, label: execution ? copy('work') : t('interventions.progressSteps.rooms'), completed: allRoomsChecked, active: inspectionComplete && !allRoomsChecked, locked: !inspectionComplete },
+    { id: 2, label: execution ? t('serviceExecution.proof') : t('interventions.progressSteps.photos'), completed: proofComplete, active: allRoomsChecked && !proofComplete, locked: !inspectionComplete || !allRoomsChecked },
     { id: 3, label: t('interventions.progressSteps.recap'), completed: isComplete, active: false, locked: !canAccessRecap },
   ];
 
@@ -327,10 +304,10 @@ const InterventionProgressSteps: React.FC<InterventionProgressStepsProps> = ({
   const renderInspection = () => (
     <div>
       <p className="text-xs font-semibold mb-1.5">
-        {t('interventions.progressSteps.inspectionTitle')}
+        {execution ? copy('prepareTitle') : t('interventions.progressSteps.inspectionTitle')}
       </p>
       <p className="text-xs text-muted-foreground mb-3">
-        {t('interventions.progressSteps.inspectionDescription')}
+        {execution ? copy('prepareHint') : t('interventions.progressSteps.inspectionDescription')}
       </p>
 
       {beforePhotos.length > 0 && (
@@ -371,7 +348,7 @@ const InterventionProgressSteps: React.FC<InterventionProgressStepsProps> = ({
             }}><span className="flex items-center gap-2"><img src={`/images/baitly-mission-safety/${room.type}.png`} alt="" width={36} height={36}/>{label}</span>{done ? <CheckCircleIcon size={20} /> : <PhotoCameraIcon size={20} />}</Button>;
           })}
         </div> : null}
-        {!cleaning ?
+        {!cleaning && !execution ?
         <Button variant="outline" size="sm"
           onClick={() => { setPhotoType('before'); setPhotosDialogOpen(true); }}>
           <PhotoCameraIcon size={18} strokeWidth={1.75} />
@@ -389,7 +366,7 @@ const InterventionProgressSteps: React.FC<InterventionProgressStepsProps> = ({
             setInspectionComplete(true);
             setCompletedSteps(prev => new Set(prev).add('inspection'));
             // Calculate progress with inspectionComplete=true (not yet in state)
-            const totalRooms = rooms.getTotalRooms();
+            const totalRooms = execution?.checks.length ?? rooms.getTotalRooms();
             const totalSteps = 2 + totalRooms;
             let completed = 1; // inspection is now complete
             completed += rooms.validatedRooms.size;
@@ -399,7 +376,7 @@ const InterventionProgressSteps: React.FC<InterventionProgressStepsProps> = ({
             setActiveStep(1);
           }}>
             <CheckCircleOutlineIcon size={18} strokeWidth={1.75} />
-            {t('interventions.progressSteps.validateInspection')}
+            {execution ? copy('prepareAction') : t('interventions.progressSteps.validateInspection')}
           </Button>
         )}
       </div>
@@ -410,7 +387,7 @@ const InterventionProgressSteps: React.FC<InterventionProgressStepsProps> = ({
     <div>
       <div className="flex items-center justify-between mb-1.5">
         <p className="text-xs font-semibold">
-          {t('interventions.progressSteps.roomValidation')}
+          {execution ? copy('workTitle') : t('interventions.progressSteps.roomValidation')}
         </p>
         {totalRooms > 0 && (
           <StatusChip
@@ -421,7 +398,7 @@ const InterventionProgressSteps: React.FC<InterventionProgressStepsProps> = ({
         )}
       </div>
       <p className="text-xs text-muted-foreground mb-3">
-        {t('interventions.progressSteps.roomValidationDesc')}
+        {execution ? copy('workHint') : t('interventions.progressSteps.roomValidationDesc')}
       </p>
 
       {/* Une rangee par piece : la coche a gauche, le signalement a droite.
@@ -450,7 +427,7 @@ const InterventionProgressSteps: React.FC<InterventionProgressStepsProps> = ({
                 onClick={() => handleRoomValidation(idx)}
                 className={cn(roomChipClass, 'flex-1 justify-start')}
               />
-              {onReportIssue && (
+              {onReportIssue && !execution && (
                 <Button
                   variant="ghost"
                   size="sm"
@@ -471,7 +448,7 @@ const InterventionProgressSteps: React.FC<InterventionProgressStepsProps> = ({
 
       {savingRoom !== null && (
         <p role="status" className="mb-3 text-xs text-muted-foreground">
-          {t('interventions.progressSteps.savingRoom', 'Enregistrement de la pièce…')}
+          {execution ? t('serviceExecution.saving') : t('interventions.progressSteps.savingRoom', 'Enregistrement de la pièce…')}
         </p>
       )}
 
@@ -497,10 +474,10 @@ const InterventionProgressSteps: React.FC<InterventionProgressStepsProps> = ({
   const renderPhotos = () => (
     <div>
       <p className="text-xs font-semibold mb-1.5">
-        {t('interventions.progressSteps.afterPhotosTitle')}
+        {execution ? t('serviceExecution.proofTitle') : t('interventions.progressSteps.afterPhotosTitle')}
       </p>
       <p className="text-xs text-muted-foreground mb-3">
-        {t('interventions.progressSteps.afterPhotosDesc')}
+        {execution ? copy('proofHint') : t('interventions.progressSteps.afterPhotosDesc')}
       </p>
 
       {afterPhotos.length > 0 && (
@@ -547,17 +524,17 @@ const InterventionProgressSteps: React.FC<InterventionProgressStepsProps> = ({
 
   const renderRecap = () => (
     <div>
-      <BaitlyRestockRecap id={Number(intervention.id)} />
+      {!execution && <BaitlyRestockRecap id={Number(intervention.id)} />}
       <p className="text-xs font-semibold mb-3.5">
         {t('interventions.progressSteps.recapTitle')}
       </p>
 
-      <div className="grid grid-cols-[1fr] min-[600px]:grid-cols-[1fr_1fr_1fr] gap-[15px]">
+      <div className="flex flex-col divide-y divide-[var(--bui-border)]">
         {/* Inspection */}
         <div className={recapCardClass}>
           <div className="flex items-center gap-[4.5px] mb-[9px]">
             <span className="inline-flex text-success"><CheckCircleIcon size={18} strokeWidth={1.75} /></span>
-            <p className="text-xs font-semibold">{t('interventions.progressSteps.recapInspection')}</p>
+            <p className="text-xs font-semibold">{execution ? copy('prepare') : t('interventions.progressSteps.recapInspection')}</p>
           </div>
           {beforePhotos.length > 0 && (
             <span className="text-xs text-muted-foreground block mb-1.5">
@@ -565,8 +542,8 @@ const InterventionProgressSteps: React.FC<InterventionProgressStepsProps> = ({
             </span>
           )}
           {getStepNote('inspection') && (
-            <span className="text-xs text-muted-foreground block italic mb-1.5">
-              "{getStepNote('inspection').substring(0, 60)}{getStepNote('inspection').length > 60 ? '...' : ''}"
+            <span className="text-sm text-muted-foreground block whitespace-pre-wrap break-words mb-1.5">
+              "{getStepNote('inspection')}"
             </span>
           )}
           {beforePhotos.length > 0 && (
@@ -580,18 +557,18 @@ const InterventionProgressSteps: React.FC<InterventionProgressStepsProps> = ({
         <div className={recapCardClass}>
           <div className="flex items-center gap-[4.5px] mb-[9px]">
             <span className="inline-flex text-success"><CheckCircleIcon size={18} strokeWidth={1.75} /></span>
-            <p className="text-xs font-semibold">{t('interventions.progressSteps.recapRooms', { validated: validatedRooms.size, total: totalRooms })}</p>
+            <p className="text-xs font-semibold">{execution ? copy('work') : t('interventions.progressSteps.recapRooms', { validated: validatedRooms.size, total: totalRooms })}</p>
           </div>
           <div className="flex flex-wrap gap-1">
             {roomNames.map((name, idx) => (
               validatedRooms.has(idx) && (
-                <Badge variant="success" className="h-[28px] text-[0.75rem]" key={name}><CheckCircleOutlineIcon size={18} strokeWidth={1.75} />{name}</Badge>
+                <Badge variant="success" className="min-h-7 h-auto max-w-full whitespace-normal justify-start py-1 text-[0.75rem]" key={name}><CheckCircleOutlineIcon className="shrink-0" size={18} strokeWidth={1.75} /><span className="min-w-0 break-words">{name}</span></Badge>
               )
             ))}
           </div>
           {getStepNote('rooms') && (
-            <span className="text-xs text-muted-foreground block mt-1.5 italic">
-              "{getStepNote('rooms').substring(0, 60)}{getStepNote('rooms').length > 60 ? '...' : ''}"
+            <span className="text-sm text-muted-foreground block mt-1.5 whitespace-pre-wrap break-words">
+              "{getStepNote('rooms')}"
             </span>
           )}
         </div>
@@ -600,7 +577,7 @@ const InterventionProgressSteps: React.FC<InterventionProgressStepsProps> = ({
         <div className={recapCardClass}>
           <div className="flex items-center gap-[4.5px] mb-[9px]">
             <span className="inline-flex text-success"><CheckCircleIcon size={18} strokeWidth={1.75} /></span>
-            <p className="text-xs font-semibold">{t('interventions.progressSteps.recapAfterPhotos')}</p>
+            <p className="text-xs font-semibold">{execution ? t('serviceExecution.proofTitle') : t('interventions.progressSteps.recapAfterPhotos')}</p>
           </div>
           {afterPhotos.length > 0 && (
             <>
@@ -611,13 +588,14 @@ const InterventionProgressSteps: React.FC<InterventionProgressStepsProps> = ({
             </>
           )}
           {getStepNote('after_photos') && (
-            <span className="text-xs text-muted-foreground block mt-1.5 italic">
-              "{getStepNote('after_photos').substring(0, 60)}{getStepNote('after_photos').length > 60 ? '...' : ''}"
+            <span className="text-sm text-muted-foreground block mt-1.5 whitespace-pre-wrap break-words">
+              "{getStepNote('after_photos')}"
             </span>
           )}
         </div>
       </div>
 
+      {execution && intervention.status === 'COMPLETED' && !allRoomsChecked && <p className="text-sm text-muted-foreground">{t('serviceExecution.legacy')}</p>}
       {/* Documents */}
       {documents.length > 0 && (
         <div className="mt-4">
@@ -637,7 +615,7 @@ const InterventionProgressSteps: React.FC<InterventionProgressStepsProps> = ({
                       <span className="inline-flex text-primary"><DescriptionIcon size={22} strokeWidth={1.75} /></span>
                     </div>
                     <div className="min-w-0">
-                      <p className="text-xs font-semibold truncate mb-0.5">
+                      <p className="text-xs font-semibold break-words mb-0.5">
                         {doc.fileName}
                       </p>
                       <div className="flex items-center gap-1 flex-wrap">
@@ -680,7 +658,7 @@ const InterventionProgressSteps: React.FC<InterventionProgressStepsProps> = ({
               le kit n'a pas de variante succes et l'etat "termine" est deja porte par
               l'icone et le libelle. */}
           <Button variant="default" size="lg"
-            className={cn('px-6', areAllStepsCompleted && !completing && 'animate-pulse motion-reduce:animate-none')}
+            className="px-6"
             onClick={handleCompleteIntervention}
             disabled={!areAllStepsCompleted || completing}>
             <DoneIcon size={18} strokeWidth={1.75} />
@@ -705,7 +683,7 @@ const InterventionProgressSteps: React.FC<InterventionProgressStepsProps> = ({
     <>
       {/* ── Stepper + Content ────────────────────────────────────── */}
       {intervention.status === 'IN_PROGRESS' ? <BaitlyMissionSafety id={Number(intervention.id)} rooms={photos.inspectionRooms ?? []} onPause={setSafetyPaused} canEdit={canUpdateProgress} /> : null}
-      {canUpdateProgress && propertyDetails && (
+      {canUpdateProgress && (propertyDetails || execution) && (
         <>
           <fieldset disabled={intervention.status === 'IN_PROGRESS' && safetyPaused} className="border-0 p-0 m-0 min-w-0 disabled:opacity-50">
           <StepperHeader steps={steps} activeStep={activeStep} onStepClick={(id) => setActiveStep(id)} />

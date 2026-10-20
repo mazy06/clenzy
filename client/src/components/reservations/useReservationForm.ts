@@ -300,6 +300,7 @@ export function useReservationForm(props: ReservationDialogProps): UseReservatio
   // Id de la résa déjà créée si l'envoi du lien de paiement a échoué après création —
   // évite de re-créer un doublon quand l'utilisateur réessaie (on ne renvoie que le lien).
   const createdIdRef = useRef<number | null>(null);
+  const submittingRef = useRef(false);
   // Plafond annuel de nuitées (France) : le serveur refuse avec NIGHTS_CAP_EXCEEDED ;
   // l'opérateur peut déroger explicitement (les gestionnaires en sont prévenus).
   const [nightsCapOverrun, setNightsCapOverrun] = useState<string | null>(null);
@@ -418,11 +419,14 @@ export function useReservationForm(props: ReservationDialogProps): UseReservatio
       setChildrenCount(reservation.childrenCount ?? 0);
       setConfirmationCode(reservation.confirmationCode ?? '');
       setNotes(reservation.notes ?? '');
-      setCreateCleaning(false);
-      setCleaningFee('');
-      setTouristTaxPerPerson('');
+      const savedCleaning = reservation.cleaningFee ?? 0;
+      const savedTax = reservation.touristTaxAmount ?? 0;
+      const taxable = Math.max(0, (reservation.guestCount || 1) - (reservation.childrenCount ?? 0));
+      setCreateCleaning(savedCleaning > 0);
+      setCleaningFee(savedCleaning > 0 ? String(savedCleaning) : '');
+      setTouristTaxPerPerson(nights > 0 && taxable > 0 ? String(savedTax / nights / taxable) : '');
       setPricingMode('custom');
-      setPricingValue(nights > 0 && reservation.totalPrice ? (reservation.totalPrice / nights).toFixed(2) : '');
+      setPricingValue(nights > 0 && reservation.totalPrice != null ? String(Math.max(0, reservation.totalPrice - savedCleaning - savedTax) / nights) : '');
       setGuestSearchQuery('');
       setShowCreateGuestForm(false);
       setNewGuestFirstName('');
@@ -709,6 +713,7 @@ export function useReservationForm(props: ReservationDialogProps): UseReservatio
 
   // ── Save mutation (create OR update) ───────────────────────────────────────
   const saveMutation = useMutation({
+    onSettled: () => { submittingRef.current = false; },
     mutationFn: async (): Promise<Reservation> => {
       if (isEdit && reservation) {
         const updateData: UpdateReservationData = { notes, status };
@@ -724,6 +729,9 @@ export function useReservationForm(props: ReservationDialogProps): UseReservatio
           updateData.checkInTime = checkInTime || undefined;
           updateData.checkOutTime = checkOutTime || undefined;
           updateData.totalPrice = totalPrice || undefined;
+          updateData.cleaningFee = cleaningFeeAmount;
+          updateData.touristTaxAmount = touristTaxAmount;
+          updateData.confirmationCode = confirmationCode;
         }
         return reservationsApi.update(reservation.id, updateData);
       }
@@ -812,6 +820,7 @@ export function useReservationForm(props: ReservationDialogProps): UseReservatio
   });
 
   const handleSubmit = useCallback(() => {
+    if (submittingRef.current) return;
     if (!isEdit) {
       if (!effectivePropertyId) {
         setError(t('reservations.dialog.propertyPlaceholder'));
@@ -843,11 +852,14 @@ export function useReservationForm(props: ReservationDialogProps): UseReservatio
     }
     setError(null);
     setNightsCapOverrun(null);
+    submittingRef.current = true;
     saveMutation.mutate();
   }, [isEdit, effectivePropertyId, newGuestFirstName, newGuestLastName, isExternalSource, startDate, endDate, hasConflict, paymentIntent, paymentEmail, newGuestEmail, totalPrice, saveMutation, t]);
 
   /** Dérogation explicite au plafond de nuitées : même envoi, drapeau posé une seule fois. */
   const confirmNightsCapDerogation = useCallback(() => {
+    if (submittingRef.current) return;
+    submittingRef.current = true;
     overrideNightsCapRef.current = true;
     setNightsCapOverrun(null);
     setError(null);

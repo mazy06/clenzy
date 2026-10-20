@@ -17,12 +17,14 @@ public record UpsellOrderDto(
         String status,
         String guestEmail,
         LocalDateTime createdAt,
-        LocalDateTime paidAt) {
+        LocalDateTime paidAt,
+        String fulfillmentServiceCode,
+        Long serviceRequestId) {
 
     public static UpsellOrderDto from(UpsellOrder o) {
         return new UpsellOrderDto(
                 o.getId(), o.getReservationId(), o.getTitle(), o.getAmount(), o.getCurrency(),
                 o.getPlatformFeeAmount(), o.getHostAmount(), o.getStatus().name(),
-                o.getGuestEmail(), o.getCreatedAt(), o.getPaidAt());
+                o.getGuestEmail(), o.getCreatedAt(), o.getPaidAt(), o.getFulfillmentServiceCode(), o.getServiceRequestId());
     }
 }

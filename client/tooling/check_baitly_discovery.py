@@ -95,6 +95,15 @@ def request(port, path, accept=None, method="GET", host="baitly.fr"):
 def check(client, binary):
     count = 0
     with nginx_server(binary, client, "dist-site", True) as port:
+        for language in ["fr", "en", "ar"]:
+            profile = "/conciergeries/12345678-1234-1234-1234-123456789012"
+            status, headers, body = request(port, f"{profile}?lang={language}")
+            assert status == 200 and "no-store" in headers["cache-control"], (status, headers)
+            assert 'content="noindex, follow"' in body
+            assert 'data-baitly-url=' not in body, "The live profile must mount at the requested UUID"
+            assert '12345678-1234-1234-1234-123456789012' not in body
+            count += 1
+        assert request(port, "/conciergeries/invalid-id")[0] == 404
         for host in ["baitly.fr", "baitly.ma"]:
             status, headers, body = request(port, "/sitemap.xml", host=host)
             assert status == 200 and headers["content-type"] == "application/xml; charset=utf-8", (status, headers)

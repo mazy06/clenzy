@@ -38,6 +38,53 @@ class GlobalExceptionHandlerTest {
         handler = new GlobalExceptionHandler(syncMetrics);
     }
 
+    @org.junit.jupiter.params.ParameterizedTest
+    @org.junit.jupiter.params.provider.ValueSource(booleans = {false, true})
+    void disconnectedSseDoesNotWriteAnErrorResponse(boolean committed) throws Exception {
+        var endpoint = new DisconnectedSseEndpoint();
+        var mvc = org.springframework.test.web.servlet.setup.MockMvcBuilders
+                .standaloneSetup(endpoint).setControllerAdvice(handler).build();
+        var stream = mvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders
+                        .get("/test/disconnected-stream").param("committed", Boolean.toString(committed)))
+                .andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers.request().asyncStarted())
+                .andReturn();
+        var response = stream.getResponse();
+        String originalBody = response.getContentAsString();
+        assertThat(response.isCommitted()).isEqualTo(committed);
+        var disconnected = new org.springframework.web.context.request.async.AsyncRequestNotUsableException(
+                "Servlet container error notification for disconnected client",
+                new java.io.IOException("Broken pipe"));
+
+        endpoint.emitter.completeWithError(disconnected);
+
+        var result = mvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders
+                        .asyncDispatch(stream)).andReturn();
+        assertThat(result.getResolvedException()).isSameAs(disconnected);
+        assertThat(result.getResponse().getStatus()).isEqualTo(200);
+        assertThat(result.getResponse().getContentType()).isEqualTo("text/event-stream");
+        assertThat(result.getResponse().getContentAsString()).isEqualTo(originalBody);
+    }
+
+    @org.springframework.web.bind.annotation.RestController
+    @org.springframework.security.access.prepost.PreAuthorize("isAuthenticated()")
+    static class DisconnectedSseEndpoint {
+        private org.springframework.web.servlet.mvc.method.annotation.SseEmitter emitter;
+
+        @org.springframework.web.bind.annotation.GetMapping(
+                value = "/test/disconnected-stream", produces = "text/event-stream")
+        org.springframework.web.servlet.mvc.method.annotation.SseEmitter stream(
+                @org.springframework.web.bind.annotation.RequestParam boolean committed,
+                jakarta.servlet.http.HttpServletResponse response) throws java.io.IOException {
+            response.setContentType("text/event-stream");
+            emitter = new org.springframework.web.servlet.mvc.method.annotation.SseEmitter();
+            if (committed) {
+                emitter.send(org.springframework.web.servlet.mvc.method.annotation.SseEmitter
+                        .event().name("ready").data("{}"));
+            }
+            return emitter;
+        }
+    }
+
     @Test
     void paymentWithoutEvidenceReturnsConflictInsteadOfGenericServerError() throws Exception {
         var mvc = org.springframework.test.web.servlet.setup.MockMvcBuilders

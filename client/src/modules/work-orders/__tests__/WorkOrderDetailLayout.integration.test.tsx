@@ -10,6 +10,25 @@ const base: WorkOrderViewModel = {
 };
 
 describe('Fiche Baitly : contexte et étapes de mission', () => {
+  it('isole les devis et décisions qui portent la même clé de mission lors des rafraîchissements', () => {
+    const content = () => <WorkOrderDetailLayout vm={base}
+      detailsSection={<section key="481">Devis de recette</section>}
+      asideSection={<section key="481">Bénéficiaire de recette</section>} />;
+    const view = render(content());
+    view.rerender(content());
+    view.rerender(content());
+    expect(screen.getAllByText('Devis de recette')).toHaveLength(1);
+    expect(screen.getAllByText('Bénéficiaire de recette')).toHaveLength(1);
+  });
+
+  it('affiche le créneau prévu dans le fuseau du logement avec son heure de fin', () => {
+    render(<WorkOrderDetailLayout vm={{ ...base, dueDate: '2026-10-20T10:00:00', estimatedDurationHours: 2,
+      property: { ...base.property, timezone: 'Europe/Paris' },
+    }} />);
+    const schedule = screen.getByRole('heading', { name: 'Créneau d’intervention' }).closest('section')!;
+    expect(schedule).toHaveTextContent('12:00 – 14:00');
+    expect(schedule).toHaveTextContent('Europe/Paris');
+  });
   it('préserve les accès, les tâches, les notes et les actions de la fiche', () => {
     const open = vi.fn();
     render(<WorkOrderDetailLayout vm={{ ...base,

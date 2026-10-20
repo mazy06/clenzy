@@ -70,7 +70,7 @@ export function GuideDirections({ target, labels: L, interactive, className, sty
             minWidth: 176,
             padding: 6,
             borderRadius: 14,
-            background: 'var(--card)',
+            background: 'var(--surface)',
             border: '1px solid var(--line)',
             boxShadow: '0 12px 28px -12px rgba(0, 0, 0, 0.28)',
           }}

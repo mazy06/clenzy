@@ -59,9 +59,9 @@ export interface CompositionWarning {
  * Valide une composition (liste ordonnée d'ids widgets) → alertes de prérequis/suggestions.
  * Présence (pas ordre strict) : un funnel = une section où tout s'affiche ensemble.
  */
-export function validateComposition(widgetIds: string[]): CompositionWarning[] {
+export function validateComposition(widgetIds: string[], journeyWidgetIds: string[] = []): CompositionWarning[] {
   const provided = new Set<WidgetCapability>();
-  for (const id of widgetIds) for (const cap of PROVIDES[id] ?? []) provided.add(cap);
+  for (const id of [...widgetIds, ...journeyWidgetIds]) for (const cap of PROVIDES[id] ?? []) provided.add(cap);
 
   const out: CompositionWarning[] = [];
   const seen = new Set<string>();

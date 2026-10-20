@@ -19,19 +19,30 @@ const EDGE_MARGIN = 12;
  *
  * @returns fonction de nettoyage à appeler à la fermeture de la bulle.
  */
-export function keepPopupInView(map: maplibregl.Map, popup: maplibregl.Popup): () => void {
+export function keepPopupInView(map: maplibregl.Map, popup: maplibregl.Popup, { bottomGap = 0 }: { bottomGap?: number } = {}): () => void {
   const element = popup.getElement();
   const content = element?.querySelector<HTMLElement>('.maplibregl-popup-content');
   if (!element || !content) return () => undefined;
 
   const container = map.getContainer();
+  const split = container.closest('.baitly-map-split');
+  const panels = Array.from(split?.querySelectorAll<HTMLElement>(':scope > .baitly-map-split__aside, :scope > .baitly-map-split__list') ?? []);
   const usableFrame = () => {
     const frame = container.getBoundingClientRect();
     // La barre horizontale garde son couloir en haut ; la fiche ne la recouvre pas.
     const controls = container.querySelector('.maplibregl-ctrl-top-right')?.getBoundingClientRect();
     const reserved = controls?.height ? Math.min(controls.bottom - frame.top, frame.height / 3) : 0;
-    return { left: frame.left + EDGE_MARGIN, right: frame.right - EDGE_MARGIN,
-      top: frame.top + EDGE_MARGIN + reserved, bottom: frame.bottom - EDGE_MARGIN };
+    let left = frame.left + EDGE_MARGIN;
+    let right = frame.right - EDGE_MARGIN;
+    // Les listes se superposent au canvas en paysage : leurs pixels ne sont pas utilisables.
+    for (const panel of panels) {
+      const box = panel.getBoundingClientRect();
+      if (!box.width || !box.height || box.bottom <= frame.top || box.top >= frame.bottom || box.right <= frame.left || box.left >= frame.right) continue;
+      if ((box.left + box.right) / 2 < (frame.left + frame.right) / 2) left = Math.max(left, box.right + EDGE_MARGIN);
+      else right = Math.min(right, box.left - EDGE_MARGIN);
+    }
+    return { left, right,
+      top: frame.top + EDGE_MARGIN + reserved, bottom: frame.bottom - EDGE_MARGIN - bottomGap };
   };
   const applyLimits = () => {
     const frame = usableFrame();
@@ -39,9 +50,11 @@ export function keepPopupInView(map: maplibregl.Map, popup: maplibregl.Popup): (
     const limitHeight = Math.max(1, frame.bottom - frame.top);
     content.style.maxInlineSize = `${limitWidth}px`;
     content.style.maxBlockSize = `${limitHeight}px`;
+    content.style.setProperty('--baitly-popup-width', `${limitWidth}px`);
+    content.style.setProperty('--baitly-popup-height', `${limitHeight}px`);
     // Large : photos à gauche, infos à droite — dès que la carte a la place
     // d'une fiche de 400 px à côté du marqueur. Sinon, fiche empilée.
-    element.dataset.layout = container.clientWidth >= 560 ? 'wide' : 'stacked';
+    element.dataset.layout = limitWidth >= 420 ? 'wide' : 'stacked';
     // Fiche « compacte » : la carte est trop basse pour photos + infos en entier.
     element.dataset.compact = String(container.clientHeight < 420);
   };
@@ -80,6 +93,7 @@ export function keepPopupInView(map: maplibregl.Map, popup: maplibregl.Popup): (
   const observer = new ResizeObserver(schedule);
   observer.observe(content);
   observer.observe(container);
+  panels.forEach(panel => observer.observe(panel));
   map.on('moveend', schedule);
   map.on('resize', schedule);
   schedule();

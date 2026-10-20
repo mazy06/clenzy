@@ -18,7 +18,9 @@
 .bui-widget-panel__empty { margin: 0; padding: 28px 20px; color: var(--bui-muted-foreground); font-size: .8125rem; }
 .bui-property-thumbnail { display: grid; place-items: center; flex-shrink: 0; inline-size: 38px; block-size: 38px; border-radius: 8px; overflow: hidden; background: var(--bui-muted); color: var(--bui-muted-foreground); font-size: .75rem; font-weight: 500; }
 .bui-property-thumbnail img { inline-size: 100%; block-size: 100%; object-fit: cover; }
+.db-block-body { padding: 0 20px 20px; }
 @container widget-panel (max-width: 480px) {
+  .db-block-body { padding-inline: 16px; }
   .bui-widget-panel__header { padding-inline: 16px; }
   .bui-widget-panel__footer { padding-inline: 16px; }
 }

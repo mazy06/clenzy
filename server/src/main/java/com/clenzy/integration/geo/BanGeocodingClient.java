@@ -2,6 +2,7 @@ package com.clenzy.integration.geo;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.databind.JsonNode;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.web.client.RestTemplateBuilder;
 import org.springframework.stereotype.Component;
@@ -40,6 +41,35 @@ public class BanGeocodingClient {
 
     /** Commune trouvee : code INSEE tel que renvoye (arrondissement pour Paris/Lyon/Marseille). */
     public record Match(String citycode, String city, String postcode, double score) {
+    }
+
+    /** Address candidates, distinct from the intentionally municipality-only regulatory resolver. */
+    public record AddressMatch(String id,String label,String type,String housenumber,String street,
+                               String postcode,String city,double score,double latitude,double longitude) {}
+
+    public List<AddressMatch> searchAddresses(String query,String postcode) {
+        if(query==null||query.isBlank()||query.length()>500||postcode==null||!postcode.matches("[0-9]{5}"))
+            return List.of();
+        var uri=UriComponentsBuilder.fromUriString(baseUrl).path("/search").queryParam("q",query)
+            .queryParam("postcode",postcode).queryParam("limit",5).queryParam("autocomplete",0)
+            .queryParam("index","address").build().encode().toUri();
+        JsonNode response=restTemplate.getForObject(uri,JsonNode.class);
+        if(response==null||!response.path("features").isArray())throw new IllegalStateException("Invalid BAN response");
+        var matches=new java.util.ArrayList<AddressMatch>();var seen=new java.util.HashSet<String>();
+        for(var feature:response.path("features")) {
+            var p=feature.path("properties");var geometry=feature.path("geometry");var point=geometry.path("coordinates");
+            double lat=point.path(1).asDouble(Double.NaN),lon=point.path(0).asDouble(Double.NaN),score=p.path("score").asDouble(Double.NaN);
+            String id=p.path("id").asText(""),label=p.path("label").asText(""),type=p.path("type").asText("");
+            if(!"Point".equals(geometry.path("type").asText())||point.size()!=2||!Double.isFinite(lat)||!Double.isFinite(lon)
+                ||Math.abs(lat)>90||Math.abs(lon)>180||(lat==0&&lon==0)||!Double.isFinite(score)||score<0||score>1
+                ||id.isBlank()||id.length()>200||label.isBlank()||label.length()>500||!seen.add(id)
+                ||!List.of("housenumber","street","locality","municipality").contains(type))continue;
+            matches.add(new AddressMatch(id,label,type,p.path("housenumber").asText(""),p.path("street").asText(""),
+                p.path("postcode").asText(""),p.path("city").asText(""),score,lat,lon));
+            if(matches.size()==5)break;
+        }
+        matches.sort(java.util.Comparator.comparingDouble(AddressMatch::score).reversed());
+        return List.copyOf(matches);
     }
 
     @JsonIgnoreProperties(ignoreUnknown = true)

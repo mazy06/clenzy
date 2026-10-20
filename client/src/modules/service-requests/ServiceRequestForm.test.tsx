@@ -1,0 +1,48 @@
+import React from 'react';
+import { afterEach, expect, it, vi } from 'vitest';
+import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { MemoryRouter } from 'react-router-dom';
+import ServiceRequestForm from './ServiceRequestForm';
+
+const api = vi.hoisted(() => ({ update: vi.fn(() => new Promise(() => {})), get: vi.fn(async () => ({ canAssign: true })) }));
+const auth = vi.hoisted(() => ({ user: { databaseId: 1, firstName: 'Test', lastName: 'Admin' }, isAdmin: () => true, isManager: () => false, isHost: () => false, hasPermissionAsync: async () => true }));
+const translation = vi.hoisted(() => ({ t: (key: string) => key }));
+vi.mock('../../hooks/useAuth', () => ({ useAuth: () => auth }));
+vi.mock('../../hooks/useTranslation', () => ({ useTranslation: () => translation }));
+vi.mock('../../hooks/use-media-query', () => ({ useMediaQuery: () => true }));
+vi.mock('../../hooks/invalidateMissionWorkflow', () => ({ invalidateMissionWorkflow: vi.fn() }));
+vi.mock('../../components/ServiceItemSelect', () => ({ serviceReferenceQuery: { queryKey: ['reference'], queryFn: async () => [] } }));
+vi.mock('../../services/api/serviceRequestsApi', () => ({ serviceRequestsApi: { update: api.update, getById: async () => ({ id: 363, title: 'Petit-déjeuner test', description: 'Consigne initiale', propertyId: 88, userId: 1, serviceType: 'OTHER', serviceItemCode: 'culinary-breakfast', priority: 'NORMAL', estimatedDurationHours: 1, desiredDate: '2026-10-19T09:00:00', status: 'PENDING', reservationId: 595 }) } }));
+vi.mock('../../services/api/propertiesApi', () => ({ propertiesApi: { getAll: async () => [{ id: 88, name: 'Logement test' }] } }));
+vi.mock('../../services/api/usersApi', () => ({ usersApi: { getAll: async () => [] } }));
+vi.mock('../../services/api/teamsApi', () => ({ teamsApi: { getAll: async () => [] } }));
+vi.mock('../../services/api/reservationsApi', () => ({ reservationsApi: { getByProperty: async () => [] } }));
+vi.mock('../../services/api/pricingConfigApi', () => ({ pricingConfigApi: { get: async () => ({}) } }));
+vi.mock('../../services/apiClient', () => ({ default: { get: api.get } }));
+vi.mock('./ServiceRequestPriceEstimate', () => ({ default: () => null }));
+vi.mock('./ServiceRequestFormProperty', () => ({ default: () => <p>Logement test</p> }));
+vi.mock('./ServiceRequestFormInfo', () => ({ default: () => <p>Petit-déjeuner</p> }));
+vi.mock('./ServiceRequestFormPlanning', () => ({ default: () => <p>Créneau conservé</p> }));
+vi.mock('./ServiceRequestFormAssignment', () => ({ default: () => <p>Attribution test</p> }));
+afterEach(() => { cleanup(); vi.clearAllMocks(); });
+
+it('conserve les saisies et le séjour lié, ne soumet qu’à la dernière étape et bloque le double clic', async () => {
+  const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+  render(<QueryClientProvider client={client}><MemoryRouter><ServiceRequestForm serviceRequestId={363} mode="edit" /></MemoryRouter></QueryClientProvider>);
+  const notes = await screen.findByLabelText('serviceRequests.editor.instructions');
+  fireEvent.change(notes, { target: { value: 'Consigne de recette conservée' } });
+  await act(async () => { fireEvent.click(screen.getByRole('button', { name: 'reservations.dialog.next' })); });
+  await act(async () => { fireEvent.click(screen.getByRole('button', { name: 'reservations.dialog.next' })); });
+  expect(api.update).not.toHaveBeenCalled();
+  fireEvent.click(screen.getByRole('button', { name: 'reservations.dialog.previous' }));
+  fireEvent.click(screen.getByRole('button', { name: 'reservations.dialog.previous' }));
+  expect(notes).toHaveValue('Consigne de recette conservée');
+  await act(async () => { fireEvent.click(screen.getByRole('button', { name: 'reservations.dialog.next' })); });
+  await act(async () => { fireEvent.click(screen.getByRole('button', { name: 'reservations.dialog.next' })); });
+  const save = screen.getByRole('button', { name: 'serviceRequests.update' });
+  fireEvent.click(save); fireEvent.click(save);
+  await waitFor(() => expect(api.update).toHaveBeenCalledOnce());
+  expect(api.update).toHaveBeenCalledWith(363, expect.objectContaining({ description: 'Consigne de recette conservée', reservationId: 595, propertyId: 88, desiredDate: '2026-10-19T09:00', serviceItemCode: 'culinary-breakfast' }));
+  expect(screen.getByRole('button', { name: 'serviceRequests.updating' })).toBeDisabled();
+});

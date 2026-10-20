@@ -38,8 +38,19 @@ public record PublicPropertyDetailDto(
     String checkOutTime,
     HostPublicDto host,
     /** Numéro d'enregistrement du meublé de tourisme (France) — obligatoire sur l'annonce. */
-    String registrationNumber
+    String registrationNumber,
+    BigDecimal securityDepositAmount,
+    String securityDepositCurrency
 ) {
+    public PublicPropertyDetailDto(Long id, String name, String description, String type, String city, String country,
+            BigDecimal latitude, BigDecimal longitude, Integer bedroomCount, Integer bathroomCount, Integer maxGuests,
+            Integer squareMeters, BigDecimal nightlyPrice, Integer minimumNights, String currency,
+            List<PhotoDto> photos, List<String> amenities, String checkInTime, String checkOutTime,
+            HostPublicDto host, String registrationNumber) {
+        this(id, name, description, type, city, country, latitude, longitude, bedroomCount, bathroomCount,
+            maxGuests, squareMeters, nightlyPrice, minimumNights, currency, photos, amenities, checkInTime,
+            checkOutTime, host, registrationNumber, BigDecimal.ZERO, currency);
+    }
     /** Arité historique : sans numéro d'enregistrement (logement hors France, démo, tests). */
     public PublicPropertyDetailDto(Long id, String name, String description, String type, String city,
                                    String country, BigDecimal latitude, BigDecimal longitude, Integer bedroomCount,
@@ -132,14 +143,16 @@ public record PublicPropertyDetailDto(
             p.getDefaultCheckInTime(),
             p.getDefaultCheckOutTime(),
             HostPublicDto.from(p.getOwner()),
-            registrationNumber
+            registrationNumber,
+            p.getSecurityDepositAmount(),
+            p.getDefaultCurrency()
         );
     }
 
-    /** Copie avec prix converti dans une devise d'affichage (CLZ Domaine 2 — multi-devise). */
+    /** Prix du séjour converti ; la caution reste dans sa devise contractuelle. */
     public PublicPropertyDetailDto withDisplayCurrency(BigDecimal newNightlyPrice, String newCurrency) {
         return new PublicPropertyDetailDto(id, name, description, type, city, country, latitude, longitude,
             bedroomCount, bathroomCount, maxGuests, squareMeters, newNightlyPrice, minimumNights, newCurrency,
-            photos, amenities, checkInTime, checkOutTime, host, registrationNumber);
+            photos, amenities, checkInTime, checkOutTime, host, registrationNumber, securityDepositAmount, securityDepositCurrency);
     }
 }

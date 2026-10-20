@@ -1,0 +1,120 @@
+/* Shared finish for native Baitly journeys; customer colours and typography stay editable. */
+.bt-journey{--cb-property-card-min:280px}
+.bt-journey .cb-widget :is(.cb-property-card__name,.cb-property-card__loc,.cb-property-card__price,.cb-property-summary__title,.cb-property-summary__desc,.cb-property-summary__registration,.cb-input-label,.cb-input-error,.cb-price-line__label,.cb-amenity){white-space:normal;overflow:visible;text-overflow:clip;overflow-wrap:anywhere;-webkit-line-clamp:unset;line-clamp:unset;max-block-size:none}
+.bt-journey .cb-widget .cb-property-card{padding:0;min-inline-size:0;text-align:start;align-items:stretch;border:1px solid var(--cb-border);border-radius:var(--bt-radius-card,10px);background-color:var(--cb-surface);color:var(--cb-text);font:inherit;cursor:pointer;transition:border-color 180ms ease-out,box-shadow 180ms ease-out}
+.bt-journey .cb-widget .cb-property-card:is(:hover,.cb-active){border-color:var(--cb-accent);box-shadow:0 8px 24px color-mix(in srgb,var(--cb-text) 10%,transparent)}
+.bt-journey .cb-widget .cb-property-card--vertical .cb-property-card__img{block-size:auto;aspect-ratio:3/2;object-fit:cover}
+.bt-journey .cb-widget .cb-property-card__body{display:grid;gap:8px;padding:20px}
+.bt-journey .cb-widget .cb-property-card__name{font-size:19px;line-height:1.4;font-weight:600}
+.bt-journey .cb-widget .cb-property-card__loc{font-size:14px;line-height:1.5;color:var(--cb-muted)}
+.bt-journey .cb-widget .cb-property-card__price{font-size:18px;line-height:1.5;font-weight:600;font-variant-numeric:tabular-nums}
+.bt-journey .cb-widget .cb-property-card__facts{font-size:13px;line-height:1.6;color:var(--cb-muted);overflow-wrap:anywhere}
+.bt-journey .cb-widget .cb-property-card__price-note{font-size:12px;font-weight:400;color:var(--cb-muted);margin-inline-start:6px}
+.bt-journey .cb-widget .cb-property-list__items{gap:24px}
+.bt-journey .cb-widget .cb-property-summary{display:grid;gap:24px}
+.bt-journey .cb-widget .cb-property-summary__main{inline-size:100%;block-size:auto;aspect-ratio:3/2;object-fit:cover;border-radius:var(--bt-radius-md,8px)}
+.bt-journey .cb-widget .cb-property-summary__info{gap:14px}
+.bt-journey .cb-widget .cb-property-summary__title{margin:0;font-size:clamp(23px,3cqi,32px);line-height:1.25;font-weight:500}
+.bt-journey .cb-widget .cb-property-summary__place{flex-wrap:wrap;margin:0;font-size:14px;line-height:1.5}
+.bt-journey .cb-widget .cb-property-summary__desc{margin:0;max-inline-size:65ch;font-size:15px;line-height:1.8}
+.bt-journey .cb-widget .cb-property-summary__capacity{gap:12px 24px;font-size:14px;line-height:1.6}
+.bt-journey .cb-widget .cb-property-summary__price{gap:8px;align-items:baseline}
+.bt-journey .cb-widget .cb-property-summary__price b{line-height:1.4}
+.bt-journey .cb-widget .cb-property-summary__thumbs{gap:10px}
+.bt-journey .cb-widget .cb-property-summary__thumb{inline-size:72px;block-size:56px;border-radius:6px}
+.bt-journey .cb-widget .cb-property-summary__thumb:focus-visible{outline-offset:2px}
+.bt-journey .cb-widget .cb-amenities__list{gap:10px}
+.bt-journey .cb-widget .cb-amenity{display:inline-flex;align-items:flex-start;gap:8px;padding:8px 12px;border-radius:6px;background-color:color-mix(in srgb,var(--cb-accent) 6%,var(--cb-surface));font-size:13px;line-height:1.5}
+.bt-journey .cb-widget .cb-amenity__icon{flex-shrink:0;margin-block-start:2px}
+.bt-journey .cb-filter-field{display:grid;gap:8px;min-inline-size:0}
+.bt-journey .cb-filter-field__label{font-size:12px;font-weight:600;line-height:1.5;color:var(--cb-muted)}
+.bt-journey .cb-widget .cb-criterion>.cb-input{min-inline-size:0;flex:1 1 0}
+.bt-journey .cb-widget :is(.cb-input,.cb-textarea){padding:12px 14px;min-inline-size:0;font:inherit;font-size:14px;line-height:1.5}
+.bt-journey .cb-widget .cb-property-select__control{padding-inline-end:36px;block-size:auto;min-block-size:48px;text-align:start;white-space:normal;overflow-wrap:anywhere}
+.bt-journey .cb-widget .cb-form{display:grid;gap:20px}
+.bt-journey .cb-widget .cb-form-row{grid-template-columns:repeat(auto-fit,minmax(min(180px,100%),1fr));gap:20px}
+.bt-journey .cb-widget .cb-input-group{gap:8px}
+.bt-journey .cb-widget .cb-input-label{font-size:13px;font-weight:600;line-height:1.5}
+.bt-journey .cb-widget .cb-textarea{resize:vertical;min-block-size:120px;block-size:auto;border:1px solid var(--cb-border);border-radius:var(--bt-radius-md,8px);background-color:var(--cb-surface);color:var(--cb-text)}
+.bt-journey .cb-widget :is(.cb-cta,.cb-cart__checkout){block-size:auto;min-block-size:50px;padding:14px 20px;white-space:normal;overflow-wrap:anywhere;line-height:1.5}
+.bt-journey .cb-widget .cb-back{display:inline-flex;align-items:center;gap:8px;min-block-size:40px;padding:6px 0;border:0;background-color:transparent;color:var(--cb-muted);font:inherit;font-size:13px;cursor:pointer}
+.bt-journey .cb-widget .cb-back svg{inline-size:16px;block-size:16px}
+.bt-journey .cb-widget .cb-page>h3{margin-block:12px 24px;font-size:20px;line-height:1.4}
+.bt-site .bt-section .bt-journey__panel>h2{max-inline-size:none;margin:0;font-size:28px;line-height:1.25}
+.bt-journey .cb-widget .cb-back{display:none}
+.bt-journey .cb-widget .cb-price-summary{display:grid;gap:14px;margin:0;padding-block:20px;border-block:1px solid var(--cb-border)}
+.bt-journey .cb-widget .cb-price-summary:empty{display:none}
+.bt-journey .cb-widget :is(.cb-price-line,.cb-price-total){display:flex;align-items:baseline;flex-wrap:wrap;gap:8px 20px;font-size:14px;line-height:1.6}
+.bt-journey .cb-widget .cb-price-line__label{flex:1 1 140px}
+.bt-journey .cb-widget :is(.cb-price-line__amount,.cb-price-total>span:last-child){margin-inline-start:auto;font-variant-numeric:tabular-nums;overflow-wrap:anywhere}
+.bt-journey .cb-widget .cb-price-total{margin-block-start:4px;padding-block-start:16px;border-block-start:1px solid var(--cb-border);font-weight:600;font-size:19px}
+.bt-journey .cb-widget .cb-price-skeleton{display:block;block-size:16px;border-radius:4px;background-color:color-mix(in srgb,var(--cb-accent) 10%,var(--cb-surface))}
+.bt-journey .cb-widget :is(.cb-input-error,.cb-error-alert){font-size:13px;line-height:1.6;color:var(--bt-color-error,#953e38);overflow-wrap:anywhere;white-space:normal}
+.bt-journey .cb-widget .cb-error-alert{padding:14px;border:1px solid currentColor;border-radius:6px}
+.bt-journey .cb-widget .cb-input.cb-error{border-color:var(--bt-color-error,#953e38)}
+.bt-journey .cb-widget .cb-date-input{padding:10px 14px;min-block-size:60px;align-items:flex-start;text-align:start}
+.bt-journey .cb-widget .cb-guests-toggle{min-block-size:60px;padding:10px 14px}
+.bt-journey .cb-widget :is(.cb-date-input__label,.cb-guests-toggle__label){font-size:11px;line-height:1.4;text-transform:uppercase;letter-spacing:.04em}
+.bt-journey .cb-widget :is(.cb-date-input__value,.cb-date-input__placeholder,.cb-guests-toggle__value){font-size:14px;line-height:1.5}
+.bt-journey .cb-widget :is(.cb-date-input__label,.cb-date-input__value,.cb-date-input__placeholder){white-space:normal;overflow:visible;text-overflow:clip;overflow-wrap:anywhere}
+.bt-journey .cb-widget .cb-results-empty{padding-block:32px;border-block:1px solid var(--cb-border);font-size:15px;line-height:1.7;color:var(--cb-muted);overflow-wrap:anywhere}
+.bt-journey__panel .cb-calendar-months{flex-direction:column}
+.bt-journey__panel .bt-journey__fields{grid-template-columns:minmax(0,1fr)}
+.bt-journey__panel .cb-wdates{inline-size:100%}
+.bt-journey__panel .cb-calendar-month{flex-basis:auto;inline-size:100%}
+.bt-journey__panel .cb-calendar-wrapper.cb-open{max-block-size:65vh;overflow:auto;inline-size:100%;margin-block-start:12px}
+.bt-site:is([data-baitly-page="/logements"],[data-baitly-page="/reserver"]) .bt-section{border:0;background-color:transparent;padding-block:clamp(28px,4vw,56px)}
+.bt-site:is([data-baitly-page="/logements"],[data-baitly-page="/reserver"]) .bt-reservation{padding:0;border:0;background-color:transparent}
+.bt-site:is([data-baitly-page="/logements"],[data-baitly-page="/reserver"]) .bt-reservation>h2{margin-block:0 28px;font-size:clamp(28px,4vw,44px)}
+@container(max-width:560px){.bt-journey .cb-widget .cb-property-summary--detail{display:grid;grid-template-columns:minmax(0,1fr)}.bt-journey .cb-widget .cb-property-card--horizontal{flex-direction:column}.bt-journey .cb-widget .cb-property-card--horizontal .cb-property-card__img{inline-size:100%;block-size:auto;aspect-ratio:3/2}}
+@media(prefers-reduced-motion:reduce){.bt-journey .cb-widget .cb-property-card{transition:none}}
+
+/* The same booking controls follow each model's visual language. */
+.bt-site .bt-journey{--cb-booking-radius:var(--bt-radius-lg,10px);--cb-booking-photo-ratio:3/2}
+.bt-site .bt-section{container-type:inline-size}
+.bt-site[data-layout="urban"] .bt-journey{--cb-booking-radius:2px;--cb-booking-photo-ratio:16/10}
+.bt-site[data-layout="retreat"] .bt-journey{--cb-booking-radius:18px;--cb-booking-photo-ratio:4/3}
+.bt-site[data-layout="coast"] .bt-journey{--cb-booking-radius:12px;--cb-booking-photo-ratio:16/10}
+.bt-site[data-layout="direct"] .bt-journey{--cb-booking-radius:8px;--cb-booking-photo-ratio:16/10}
+.bt-site .bt-journey .cb-widget .cb-property-card{border-radius:var(--cb-booking-radius)}
+.bt-site .bt-journey .cb-widget .cb-property-card--vertical .cb-property-card__img{aspect-ratio:var(--cb-booking-photo-ratio)}
+.bt-site .bt-journey .cb-widget .cb-property-card__name{font-family:var(--bt-font-heading,inherit);font-size:23px;font-weight:500}
+.bt-site .bt-journey__panel{border-radius:var(--cb-booking-radius,var(--bt-radius-lg,10px))}
+.bt-site[data-layout="urban"] .bt-journey .cb-widget .cb-property-card{border-inline:0;border-block-start:0;background-color:transparent}
+.bt-site[data-layout="urban"] .bt-journey .cb-widget .cb-property-card__body{padding-inline:0}
+.bt-site[data-layout="retreat"] .bt-journey .cb-widget .cb-property-card__name{font-size:25px}
+.bt-site[data-layout="direct"] .bt-journey .cb-widget .cb-property-card__body{gap:6px;padding:16px}
+.bt-site[data-layout="direct"] .bt-journey .cb-widget .cb-property-card__name{font-size:20px;font-weight:600}
+
+/* Multi-stay, quote and extras pages must work in a narrow Studio column too. */
+.bt-site .bt-journey :is(.bt-journey__panel,.bt-journey__stack)>:is(h2,h3){margin:0;max-inline-size:none;font-family:var(--bt-font-heading,inherit);font-size:28px;line-height:1.3}
+.bt-journey .cb-widget .cb-cart{display:grid;gap:20px;margin:0}
+.bt-journey .cb-widget .cb-cart__title{font-size:16px;line-height:1.5;font-weight:600}
+.bt-journey .cb-widget .cb-cart__item{display:flex;align-items:start;flex-wrap:wrap;gap:12px 20px;padding-block:16px;border-block-end:1px solid var(--cb-border)}
+.bt-journey .cb-widget .cb-cart__item-label{flex:1 1 180px;min-inline-size:0;white-space:normal;overflow:visible;text-overflow:clip;overflow-wrap:anywhere;font-size:14px;line-height:1.7}
+.bt-journey .cb-widget .cb-cart__property-name{display:block;font-weight:600}
+.bt-journey .cb-widget .cb-cart__dates{display:block;font-size:13px;color:var(--cb-muted);font-variant-numeric:tabular-nums}
+.bt-journey .cb-widget .cb-cart__empty{margin:0;padding-block:20px;font-size:14px;line-height:1.7;color:var(--cb-muted)}
+.bt-journey .cb-widget .cb-cart__item-right{display:flex;align-items:center;flex-wrap:wrap;gap:12px;margin-inline-start:auto;min-inline-size:0;font-variant-numeric:tabular-nums;overflow-wrap:anywhere}
+.bt-journey .cb-widget .cb-cart__remove{display:inline-flex;align-items:center;justify-content:center;flex-shrink:0;inline-size:36px;block-size:36px;border:1px solid var(--cb-border);border-radius:50%;color:var(--cb-text);background-color:var(--cb-surface);font-size:20px;cursor:pointer}
+.bt-journey .cb-widget .cb-cart__remove:hover{border-color:var(--cb-accent)}
+.bt-journey .cb-widget .cb-cart__total{display:flex;align-items:baseline;flex-wrap:wrap;gap:12px 20px;padding-block-start:4px;font-size:19px;font-weight:600;line-height:1.5;font-variant-numeric:tabular-nums}
+.bt-journey .cb-widget .cb-cart__total>span:last-child{margin-inline-start:auto;overflow-wrap:anywhere}
+.bt-journey .cb-widget .cb-upsell-card{grid-template-columns:minmax(0,1fr);padding-block:24px}
+.bt-journey .cb-widget .cb-upsell-card__body{min-inline-size:0;gap:12px}
+.bt-journey .cb-widget .cb-upsell-card__body>:is(h3,p){margin:0;white-space:normal;overflow:visible;text-overflow:clip;overflow-wrap:anywhere;line-height:1.6}
+.bt-journey .cb-widget .cb-upsell-card__img{block-size:auto;aspect-ratio:16/10}
+.bt-journey .cb-widget .cb-upsell-card__btn{max-inline-size:100%;justify-self:start}
+.bt-journey .cb-widget .cb-confirmation__details{display:grid;gap:16px;margin-block:24px 0}
+.bt-journey .cb-widget .cb-confirmation__details>:is(dt,dd){min-inline-size:0;margin:0;white-space:normal;overflow-wrap:anywhere;font-size:14px;line-height:1.7}
+.bt-journey .cb-widget .cb-confirmation__details dt{font-weight:600;color:var(--cb-muted)}
+.bt-journey .cb-widget .cb-confirmation__subtitle{white-space:normal;overflow-wrap:anywhere;font-size:14px;line-height:1.7}
+.bt-journey .cb-widget .cb-wdates .cb-calendar-wrapper.cb-open{max-inline-size:100%;overflow:auto}
+.bt-journey .cb-widget .cb-wdates .cb-calendar-months{flex-wrap:wrap}
+.bt-journey .cb-widget .cb-wdates .cb-calendar-month{flex:1 1 240px;min-inline-size:0}
+.bt-journey:not([data-baitly-composite="catalogue-search"]):not([data-baitly-composite="extras-search"]) .bt-journey__fields>[data-clenzy-widget="booking-dates"]{grid-column:1/-1}
+.bt-site:is([data-baitly-page="/sejour"],[data-baitly-page="/paiement"]) .bt-section{padding-block:clamp(28px,4vw,56px)}
+.bt-site:is([data-baitly-page="/sejour"],[data-baitly-page="/paiement"]) .bt-reservation{padding:0;border:0;background-color:transparent}
+.bt-site:is([data-baitly-page="/sejour"],[data-baitly-page="/paiement"]) .bt-reservation>h2{margin-block:0 28px;font-size:clamp(28px,4vw,44px)}
+@container(min-width:760px){.bt-journey .cb-widget .cb-upsell-card{grid-template-columns:minmax(180px,.65fr) minmax(0,1fr);align-items:start}}
+@media(max-width:560px){.bt-journey .cb-widget .cb-wdates .cb-calendar-wrapper.cb-open{max-inline-size:none}}

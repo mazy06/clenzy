@@ -3,6 +3,8 @@ package com.clenzy.service.messaging;
 import com.clenzy.model.MessageChannelType;
 import com.clenzy.util.EmailHtmlSanitizer;
 import jakarta.mail.internet.MimeMessage;
+import jakarta.mail.internet.InternetAddress;
+import jakarta.mail.internet.AddressException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.ObjectProvider;
@@ -52,6 +54,12 @@ public class EmailChannel implements MessageChannel {
         }
         if (request.recipientEmail() == null || request.recipientEmail().isBlank()) {
             return MessageDeliveryResult.failure("Email du destinataire manquant");
+        }
+        try {
+            new InternetAddress(request.recipientEmail(), true).validate();
+        } catch (AddressException invalid) {
+            // Ne pas transmettre au SMTP ni recopier la valeur (PII ou ciphertext) dans l'erreur.
+            return MessageDeliveryResult.failure("Email du destinataire invalide. Vérifiez les coordonnées du voyageur et le déchiffrement des données.");
         }
 
         try {

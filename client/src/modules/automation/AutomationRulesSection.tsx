@@ -13,7 +13,8 @@ import {
   TooltipTrigger,
 } from '../../components/ui';
 import { Add, ViewList, Layers, Bolt, Lock, FilterListOff } from '../../icons';
-import { usePageHeaderActions } from '../../components/PageHeaderActionsContext';
+import PageHeaderViewControls from "../../components/PageHeaderViewControls";
+import { PageHeaderFilterControls, usePageHeaderActions } from '../../components/PageHeaderActionsContext';
 import FilterChipRow from '../../components/FilterChipRow';
 import NavCountBadge from '../../components/NavCountBadge';
 import EmptyState from '../../components/EmptyState';
@@ -96,6 +97,7 @@ export default function AutomationRulesSection() {
   return (
     <>
       {headerActions}
+      <PageHeaderViewControls label={t("automation.view.label","Affichage des règles")} value={viewMode} onChange={setViewMode} options={[{value:"list",label:t("automation.view.list","Vue liste"),icon:<ViewList size={iconSize}/>},{value:"card",label:t("automation.view.card","Vue détaillée"),icon:<Layers size={iconSize}/>}]} />
       <section aria-labelledby="automation-rules-heading">
         <div className="automation-section-heading automation-rules-heading">
           <div className="automation-section-title">
@@ -118,7 +120,7 @@ export default function AutomationRulesSection() {
               'Définissez un déclencheur. Baitly s’occupe de la suite.',
             )}
           </p>
-          <div className="automation-toolbar">
+          <PageHeaderFilterControls><div className="space-y-3">
             <FilterChipRow<Exclude<RuleStatusFilter, ''>>
               value={status}
               onChange={setStatus}
@@ -164,42 +166,9 @@ export default function AutomationRulesSection() {
                   {t('automation.event', 'Événements')}
                 </NativeSelectOption>
               </NativeSelect>
-              <div
-                className="automation-view-switch"
-                role="group"
-                aria-label={t('automation.view.label', 'Affichage des règles')}
-              >
-                {(['list', 'card'] as const).map((view) => (
-                  <Tooltip key={view}>
-                    <TooltipTrigger asChild>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        aria-label={t(
-                          `automation.view.${view}`,
-                          view === 'list' ? 'Vue liste' : 'Vue détaillée',
-                        )}
-                        aria-pressed={viewMode === view}
-                        onClick={() => setViewMode(view)}
-                      >
-                        {view === 'list' ? (
-                          <ViewList size={iconSize} />
-                        ) : (
-                          <Layers size={iconSize} />
-                        )}
-                      </Button>
-                    </TooltipTrigger>
-                    <TooltipContent>
-                      {t(
-                        `automation.view.${view}`,
-                        view === 'list' ? 'Vue liste' : 'Vue détaillée',
-                      )}
-                    </TooltipContent>
-                  </Tooltip>
-                ))}
-              </div>
+
             </div>
-          </div>
+          </div></PageHeaderFilterControls>
         </div>
         {(toggleMutation.isError || deleteMutation.isError) && (
           <Alert variant="destructive" className="mb-4">

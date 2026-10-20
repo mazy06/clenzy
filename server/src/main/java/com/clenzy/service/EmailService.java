@@ -339,6 +339,31 @@ public class EmailService {
         }
     }
 
+    /** Reports sender configuration without attempting an SMTP connection. */
+    public boolean isCampaignMailAvailable() { return mailSender != null; }
+
+    /** SMTP acknowledgement is not a delivery receipt. CRM dispatch records uncertainty separately. */
+    public String sendCrmCampaignMessage(String email,String name,String organization,String replyTo,String subject,String body,String responseUrl,String unsubscribeUrl,String language) {
+        try {
+            JavaMailSender sender=requireMailSender();
+            MimeMessage message=sender.createMimeMessage();
+            MimeMessageHelper helper=new MimeMessageHelper(message,true,"UTF-8");
+            applyDeliverabilityHeaders(message,helper);
+            helper.setFrom(resolveFromAddress(),sanitizeHeaderValue(organization)+" via Baitly");
+            helper.setTo(email);
+            if(replyTo!=null)helper.setReplyTo(replyTo);
+            helper.setSubject(sanitizeHeaderValue(subject));
+            String text=body+BaitlyCrmCampaignText.footer(language,organization,responseUrl);
+            helper.setText(text,contactEmailComposer.renderCrmCampaignBody(name,organization,body,responseUrl,language));
+            message.setHeader("List-Unsubscribe","<"+unsubscribeUrl+">");
+            message.setHeader("List-Unsubscribe-Post","List-Unsubscribe=One-Click");
+            sender.send(message);
+            return message.getMessageID();
+        } catch(Exception failure) {
+            throw new IllegalStateException("Accusé SMTP de campagne indisponible",failure);
+        }
+    }
+
     /**
      * Envoie un email depuis le module Contact (messages inbox/sent/reply).
      * Retourne l'identifiant de message fourni par le provider SMTP si disponible.

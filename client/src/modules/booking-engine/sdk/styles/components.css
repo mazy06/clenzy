@@ -1262,3 +1262,10 @@
 .cb-upsell-card__price { margin-top: auto; }
 .cb-upsell-card__btn { width: 100%; cursor: pointer; }
 .cb-upsell-card__btn:disabled { opacity: 0.5; cursor: not-allowed; }
+/* Caution : information séparée du prix, lisible aussi dans le widget embarqué. */
+.cb-deposit-notice { display: grid; gap: 8px; min-inline-size: 0; }
+.cb-deposit-notice[hidden] { display: none; }
+.cb-deposit-notice p { margin: 0; }
+.cb-deposit-notice .cb-price-line { align-items: start; flex-wrap: wrap; gap: 8px 16px; }
+.cb-deposit-notice .cb-price-line > :first-child { flex: 1 1 12rem; min-inline-size: 0; overflow-wrap: anywhere; }
+.cb-deposit-notice .cb-price-line__amount { white-space: nowrap; font-variant-numeric: tabular-nums; }

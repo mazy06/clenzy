@@ -6,6 +6,7 @@ export function invalidateMissionWorkflow(client: QueryClient): Promise<void[]> 
     ['quote-requests'], ['service-quotes'], ['interventions'],
     ['field', 'missions'], ['field', 'quotes'], ['field', 'agreed-rates'],
     ['contact'], ['planning'], ['service-proposals'], ['service-requests-list'],
-    ['assignment-history'], ['service-request-details'],
+    ['assignment-history'], ['assignment-quotes'], ['service-request-details'],
+    ['paid-service-execution'], ['upsell-orders'],
   ].map((queryKey) => client.invalidateQueries({ queryKey })));
 }

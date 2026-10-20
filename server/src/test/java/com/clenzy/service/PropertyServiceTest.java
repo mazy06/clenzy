@@ -116,16 +116,19 @@ class PropertyServiceTest {
             dto.ownerId = 1L;
             dto.bedroomCount = 2;
             dto.bathroomCount = 1;
+            dto.securityDepositAmount = new java.math.BigDecimal("350.50");
 
             PropertyDto result = propertyService.create(dto);
 
             assertThat(result).isNotNull();
             assertThat(result.name).isEqualTo("Mon Appartement");
             assertThat(result.ownerId).isEqualTo(1L);
+            assertThat(result.securityDepositAmount).isEqualByComparingTo("350.50");
 
             ArgumentCaptor<Property> captor = ArgumentCaptor.forClass(Property.class);
             verify(propertyRepository).save(captor.capture());
             assertThat(captor.getValue().getOrganizationId()).isEqualTo(ORG_ID);
+            assertThat(captor.getValue().getSecurityDepositAmount()).isEqualByComparingTo("350.50");
         }
 
         @Test

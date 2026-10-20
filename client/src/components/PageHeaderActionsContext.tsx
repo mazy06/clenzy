@@ -46,6 +46,16 @@ interface PageHeaderActionsApi {
 
 const PageHeaderActionsContext = createContext<PageHeaderActionsApi>({ slot: null });
 
+/** A planned header slot owns the controls even before its popover mounts. */
+export function usePageHeaderFilterHost():boolean {
+  return useContext(PageHeaderActionsContext).filtersSlot !== undefined;
+}
+
+/** Keep standalone sections usable; hosted sections render only in their header. */
+export function PageHeaderFilterControls({children}:{children:ReactNode}) {
+  return usePageHeaderFilters(children,{fallbackWithoutHeader:children});
+}
+
 interface PageHeaderActionsProviderProps {
   children: ReactNode;
   slot: HTMLElement | null;

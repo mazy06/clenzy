@@ -184,6 +184,7 @@ export default function VouchersPage({
           title={t('vouchers.title')}
           subtitle={t('vouchers.subtitle')}
           actions={actions}
+          filters={filterBar}
         />
       )}
 
@@ -195,7 +196,7 @@ export default function VouchersPage({
       <div className={cn("baitly-vouchers-workspace", embedded ? "p-[18px]" : "p-0")}>
         <div className="baitly-vouchers-layout">
           <section className="baitly-vouchers-list">
-            {(!embedded || !filtersContainer) && <div className="baitly-vouchers-filters">{filterBar}</div>}
+            {embedded && !filtersContainer && <div className="baitly-vouchers-filters">{filterBar}</div>}
             {error && <UiAlert variant="destructive"><TriangleAlert /><AlertDescription>{t("vouchers.loadError")}</AlertDescription><Button variant="outline" size="sm" onClick={()=>refetch()}>{t("common.refresh")}</Button></UiAlert>}
             {isLoading ? <div className="baitly-vouchers-loading" aria-busy="true">{Array.from({length:4},(_,i)=><Skeleton key={i} className="h-[180px] w-full" />)}</div> : !error && sortedVouchers.length === 0 ?
               <EmptyState icon={<LocalOffer />} title={t(vouchers.length ? "vouchers.workspace.noResults" : "vouchers.empty")}

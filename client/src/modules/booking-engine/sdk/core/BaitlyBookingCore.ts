@@ -33,6 +33,7 @@ const DURABLE_KEYS = [
   'cart',
   'guestForm',
   'selectedPropertyType',
+  'filters',
 ] as const satisfies readonly (keyof WidgetState)[];
 
 const STORAGE_PREFIX = 'clenzy_booking_';
@@ -76,7 +77,7 @@ function readUrlSelection(): Partial<WidgetState> {
   try {
     const p = new URLSearchParams(window.location.search);
     const out: Partial<WidgetState> = {};
-    const prop = p.get('clenzy_property');
+    const prop = window.location.pathname.match(/\/logements\/(\d+)\/?$/)?.[1] ?? p.get('clenzy_property');
     if (prop && /^\d+$/.test(prop)) out.selectedPropertyId = Number(prop);
     const ci = p.get('clenzy_in');
     if (ci && /^\d{4}-\d{2}-\d{2}$/.test(ci)) out.checkIn = ci;
@@ -105,6 +106,9 @@ export class BaitlyBookingCore {
   private prevCurrency = '';
   private prevFilters = '';
   private prevGuests = 0;
+  private pricingRequest = 0;
+  private calendarRequest = 0;
+  private propertiesRequest = 0;
 
   constructor(opts: BaitlyBookingCoreOptions) {
     this.api = new BookingApi(opts.baseUrl, opts.apiKey, opts.slug);
@@ -168,19 +172,22 @@ export class BaitlyBookingCore {
         if (calendarRefetch) {
           void this.fetchCalendar();
         }
-        if (currencyChanged && s.checkIn && s.checkOut) {
-          void this.fetchPricing();
-        }
       }),
     );
 
-    // Prix quand les dates changent (via /availability).
+    // Every quote input matters, including restored dates and the adult/child split for tourist tax.
+    let previousQuote = '';
+    const refreshQuote = () => {
+      const s = this.state.get();
+      const key = JSON.stringify([s.selectedPropertyId, s.checkIn, s.checkOut, s.adults, s.children, s.displayCurrency, s.guestToken]);
+      if (key === previousQuote) return;
+      previousQuote = key;
+      void this.fetchPricing();
+    };
     this.effectUnsubscribers.push(
-      this.state.on('dateSelected', (s: WidgetState) => {
-        if (s.checkIn && s.checkOut) void this.fetchPricing();
-        else this.state.set({ pricing: null });
-      }),
+      this.state.on('*', refreshQuote),
     );
+    refreshQuote();
 
     // Données initiales : devises + facettes de filtre + propriétés + calendrier agrégé (prix nuitée).
     void this.fetchCurrencies();
@@ -211,10 +218,12 @@ export class BaitlyBookingCore {
   }
 
   private async fetchProperties(): Promise<void> {
+    const request = ++this.propertiesRequest;
     try {
       this.state.set({ loading: true });
       const { displayCurrency, filters } = this.state.get();
       const apiProps = await this.api.getProperties(displayCurrency, filters);
+      if (request !== this.propertiesRequest) return;
       const properties: WidgetProperty[] = apiProps.map(mapProperty);
 
       const s = this.state.get();
@@ -223,11 +232,13 @@ export class BaitlyBookingCore {
         ?? (properties.length === 1 ? properties[0].id : null);
       this.state.set({ properties, selectedPropertyId, loading: false }, 'stateChange');
     } catch (err) {
+      if (request !== this.propertiesRequest) return;
       this.state.set({ loading: false, error: msg(err) }, 'error');
     }
   }
 
   private async fetchCalendar(): Promise<void> {
+    const request = ++this.calendarRequest;
     const s = this.state.get();
     try {
       this.state.set({ loading: true });
@@ -241,29 +252,36 @@ export class BaitlyBookingCore {
         const guests = s.adults + s.children;
         cal = await this.api.getPriceCalendar(s.calendarBaseMonth, 2, guests, s.displayCurrency, s.filters);
       }
-      this.state.set({ availability: toAvailabilityMap(cal), loading: false });
+      if (request === this.calendarRequest) this.state.set({ availability: toAvailabilityMap(cal), loading: false });
     } catch (err) {
+      if (request !== this.calendarRequest) return;
       this.state.set({ loading: false, error: msg(err) }, 'error');
     }
   }
 
   private async fetchPricing(): Promise<void> {
+    const request = ++this.pricingRequest;
     const s = this.state.get();
-    if (!s.selectedPropertyId || !s.checkIn || !s.checkOut) return;
+    if (!s.selectedPropertyId || !s.checkIn || !s.checkOut || s.checkOut <= s.checkIn) {
+      this.state.set({ pricing: null, pricingLoading: false });
+      return;
+    }
     try {
-      this.state.set({ pricingLoading: true });
+      this.state.set({ pricing: null, pricingLoading: true, error: null });
       const avail: ApiAvailability = await this.api.checkAvailability(
-        { propertyId: s.selectedPropertyId, checkIn: s.checkIn, checkOut: s.checkOut, guests: s.adults + s.children },
+        { propertyId: s.selectedPropertyId, checkIn: s.checkIn, checkOut: s.checkOut, guests: s.adults + s.children, children: s.children },
         s.displayCurrency,
         s.guestToken ?? undefined, // tarif membre (2.8) si voyageur connecté
       );
+      if (request !== this.pricingRequest) return;
       if (!avail.available) {
         this.state.set({ pricing: null, pricingLoading: false, error: avail.violations?.[0] ?? null }, 'error');
         return;
       }
       this.state.set({ pricing: toPriceBreakdown(avail, this.i18n), pricingLoading: false }, 'priceUpdated');
     } catch (err) {
-      this.state.set({ pricingLoading: false, error: msg(err) }, 'error');
+      if (request !== this.pricingRequest) return;
+      this.state.set({ pricing: null, pricingLoading: false, error: msg(err) }, 'error');
     }
   }
 
@@ -311,6 +329,9 @@ export class BaitlyBookingCore {
   }
 
   destroy(): void {
+    this.pricingRequest++;
+    this.calendarRequest++;
+    this.propertiesRequest++;
     this.unsubscribe?.();
     this.unsubscribe = null;
     this.effectUnsubscribers.forEach((fn) => fn());
@@ -358,6 +379,8 @@ export function getSharedBookingCore(opts: BaitlyBookingCoreOptions): BaitlyBook
 
 function mapProperty(p: ApiProperty): WidgetProperty {
   return {
+    securityDepositAmount: p.securityDepositAmount,
+    securityDepositCurrency: p.securityDepositCurrency,
     id: p.id,
     name: p.name,
     type: p.type,

@@ -46,7 +46,7 @@ export default function ExportButton({
   // Dans la barre de titre, tout se présente en icône : ce composant rend ses
   // boutons lui-même, la réduction ne peut pas l'atteindre — il s'y range seul.
   const compact = useHeaderCompact();
-  const effectiveVariant = compact && variant === 'button' ? 'icon' : variant;
+  const effectiveVariant = compact ? 'icon' : variant;
 
   const [exporting, setExporting] = React.useState(false);
   const isDataEmpty = !loadData && (!data || data.length === 0);
@@ -87,7 +87,8 @@ export default function ExportButton({
               // Dans la barre de titre, aucun bouton n'a de contour : ce serait
               // le seul encadre de la rangee. Ailleurs, l'encadre le detache du
               // contenu qui l'entoure.
-              className={compact ? 'disabled:opacity-45' : 'rounded-md border border-solid border-border text-muted-foreground hover:bg-muted hover:border-faint hover:text-foreground disabled:opacity-45'}
+              data-header-action={compact ? 'export' : undefined}
+              className={compact ? 'baitly-header-action disabled:opacity-45' : 'rounded-md border border-solid border-border text-muted-foreground hover:bg-muted hover:border-faint hover:text-foreground disabled:opacity-45'}
             >
               <DownloadIcon size={16} strokeWidth={1.75} />
             </Button>
@@ -105,6 +106,8 @@ export default function ExportButton({
           variant="outline"
           size="sm"
           disabled={isDisabled}
+          data-header-action={compact ? 'export' : undefined}
+          className={compact ? 'baitly-header-action' : undefined}
         >
           <DownloadIcon size={13} strokeWidth={1.75} />
           {t('export.button')}

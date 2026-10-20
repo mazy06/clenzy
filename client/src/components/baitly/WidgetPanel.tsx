@@ -7,7 +7,7 @@ import './widgetPanel.css';
 
 /** Fixed header and footer, with the same density as the dashboard's operation queues. */
 export function WidgetPanel({ title, caption, count, action, children, footer, className }: {
-  title: string;
+  title: React.ReactNode;
   caption?: React.ReactNode;
   count?: number;
   action?: React.ReactNode;

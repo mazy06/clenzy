@@ -89,6 +89,8 @@ const DEFAULT_VALUES: PropertyFormValues = {
   amenities: [],
   cleaningNotes: undefined,
   bookingEngineVisible: false,
+  securityDepositAmount: 0,
+  defaultCurrency: 'EUR',
   orgCanCreateVouchers: false,
   touristTaxRequired: true,
   touristTaxNoTax: false,
@@ -192,6 +194,8 @@ export function usePropertyForm({
       amenities: p.amenities || [],
       cleaningNotes: p.cleaningNotes ?? undefined,
       bookingEngineVisible: p.bookingEngineVisible ?? false,
+      securityDepositAmount: p.securityDepositAmount ?? 0,
+      defaultCurrency: p.defaultCurrency ?? 'EUR',
       orgCanCreateVouchers: p.orgCanCreateVouchers ?? false,
       // Geolocalisation
       latitude: p.latitude ?? undefined,
@@ -239,6 +243,7 @@ export function usePropertyForm({
         amenities: formData.amenities,
         cleaningNotes: formData.cleaningNotes,
         bookingEngineVisible: formData.bookingEngineVisible,
+        securityDepositAmount: formData.securityDepositAmount,
         orgCanCreateVouchers: formData.orgCanCreateVouchers,
         // Geolocalisation
         latitude: formData.latitude ?? undefined,
@@ -265,6 +270,8 @@ export function usePropertyForm({
       return propertiesApi.create(backendData);
     },
     onSuccess: (created: Property) => {
+      // Le formulaire possède sa propre clé : la réouverture doit retrouver la réponse sauvegardée.
+      if (isEditMode && propertyId) queryClient.setQueryData(propertyFormKeys.property(propertyId), created);
       // Invalidate related caches
       queryClient.invalidateQueries({ queryKey: propertyDetailsKeys.all });
       queryClient.invalidateQueries({ queryKey: propertiesListKeys.all });

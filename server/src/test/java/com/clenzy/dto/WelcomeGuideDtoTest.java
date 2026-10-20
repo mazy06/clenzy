@@ -17,7 +17,7 @@ class WelcomeGuideDtoTest {
             1L, 42L, "Le Chalet", "fr", "Bienvenue", "[]", "[]", "[]",
             "#FF0000", "noir", "[7]", "Bienvenue chez nous", "Camille & Antoine",
             "https://cdn/logo.png", true, true, true, true, createdAt,
-            true, null, null
+            true, null, null, "cityguide"
         );
 
         assertEquals(1L, dto.id());
@@ -30,6 +30,7 @@ class WelcomeGuideDtoTest {
         assertEquals("[]", dto.curatedActivities());
         assertEquals("#FF0000", dto.brandingColor());
         assertEquals("noir", dto.theme());
+        assertEquals("cityguide", dto.structure());
         assertEquals("[7]", dto.heroPhotoIds());
         assertEquals("Bienvenue chez nous", dto.welcomeMessage());
         assertEquals("Camille & Antoine", dto.hostNames());
@@ -101,10 +102,36 @@ class WelcomeGuideDtoTest {
     @Test
     void record_equalityByValue() {
         WelcomeGuideDto a = new WelcomeGuideDto(
-            1L, 1L, "P", "fr", "T", "[]", "[]", "[]", "#000000", "atelier", null, null, null, null, false, false, false, false, null, false, null, null);
+            1L, 1L, "P", "fr", "T", "[]", "[]", "[]", "#000000", "atelier", null, null, null, null, false, false, false, false, null, false, null, null, "complet");
         WelcomeGuideDto b = new WelcomeGuideDto(
-            1L, 1L, "P", "fr", "T", "[]", "[]", "[]", "#000000", "atelier", null, null, null, null, false, false, false, false, null, false, null, null);
+            1L, 1L, "P", "fr", "T", "[]", "[]", "[]", "#000000", "atelier", null, null, null, null, false, false, false, false, null, false, null, null, "complet");
         assertEquals(a, b);
         assertEquals(a.hashCode(), b.hashCode());
+    }
+
+    @Test
+    void structureSurvivesAdminPublicAndPublicPayloadCopies() {
+        WelcomeGuide guide = new WelcomeGuide();
+        guide.setStructure("conciergerie");
+        var dto = WelcomeGuidePublicDto.from(guide, null, null, null, null, null,
+            java.util.List.of(), false, false);
+        assertEquals("conciergerie", WelcomeGuideDto.from(guide).structure());
+        assertEquals("conciergerie", dto.structure());
+        assertEquals("conciergerie", dto.withCuratedActivities("[]").structure());
+        assertEquals("conciergerie", dto.withDataCollection(null).structure());
+        assertEquals("conciergerie", WelcomeGuidePublicDto.unavailable(guide, "EXPIRED").structure());
+    }
+
+    @Test
+    void requestRejectsUnknownStructureAndAcceptsKnownStructure() {
+        try (var factory = jakarta.validation.Validation.buildDefaultValidatorFactory()) {
+            var validator = factory.getValidator();
+            var invalid = new WelcomeGuideRequest(1L, "Guide", null, null, null, null, null, null,
+                null, null, null, null, null, null, null, null, null, null, "unknown");
+            var valid = new WelcomeGuideRequest(1L, "Guide", null, null, null, null, null, null,
+                null, null, null, null, null, null, null, null, null, null, "cityguide");
+            assertFalse(validator.validate(invalid).isEmpty());
+            assertTrue(validator.validate(valid).isEmpty());
+        }
     }
 }

@@ -1,0 +1,6 @@
+const messages={
+  fr:{review:'À vérifier',campaign:'Campagne',audience:'Cible',status:'Statut',created:'Créée le',details:'Détails',origin:'Provenance',identity:'Identité',presentation:'Présentation',publication:'Publication',published:'Publiée',draft:'Brouillon',open:'Ouvrir la page publique',contact:'Contact',received:'Reçue le',delivery:'Suivi des envois',rules:'Conditions d’envoi',message:'Message',services:'Services'},
+  en:{review:'Needs review',campaign:'Campaign',audience:'Audience',status:'Status',created:'Created',details:'Details',origin:'Origin',identity:'Identity',presentation:'Presentation',publication:'Publication',published:'Published',draft:'Draft',open:'Open public page',contact:'Contact',received:'Received',delivery:'Delivery tracking',rules:'Sending conditions',message:'Message',services:'Services'},
+  ar:{review:'للمراجعة',campaign:'الحملة',audience:'الجمهور',status:'الحالة',created:'تاريخ الإنشاء',details:'التفاصيل',origin:'المصدر',identity:'الهوية',presentation:'التقديم',publication:'النشر',published:'منشورة',draft:'مسودة',open:'فتح الصفحة العامة',contact:'جهة الاتصال',received:'تاريخ الاستلام',delivery:'متابعة الإرسال',rules:'شروط الإرسال',message:'الرسالة',services:'الخدمات'},
+};
+export function crmWorkflowMessages(language:string){return messages[language==='en'||language==='ar'?language:'fr'];}

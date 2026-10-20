@@ -2,14 +2,17 @@ import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react
 import { useNavigate } from 'react-router-dom';
 
 import { LayoutGrid, Plus } from '../../../icons/glyphs';
-import { Badge } from '../../../components/ui';
+import { Badge, Alert, AlertDescription } from '../../../components/ui';
 import PageHeader from '../../../components/PageHeader';
 import { bookingEngineApi } from '../../../services/api/bookingEngineApi';
 import { GALLERY_TEMPLATES } from './grapes/import/galleryTemplates';
+import { templateForkMetadata } from './grapes/import/templateFork';
 import { buildConfigPayload } from './StudioHome';
 import './studioHome.css';
 import PagePagination from '../../../components/PagePagination';
 import { useTranslation } from '../../../hooks/useTranslation';
+import BaitlyTemplateSnapshot from './BaitlyTemplateSnapshot';
+import { BUILTIN_FUNNEL_PRESETS } from './grapes/funnelPresets';
 
 /**
  * Galerie COMPLÈTE des templates (écran « Voir tous les templates »). 4 colonnes, paginée pour tenir
@@ -30,6 +33,7 @@ export default function TemplateGalleryPage() {
   const [pageSize, setPageSize] = useState(COLS * 2);
   const [page, setPage] = useState(1);
   const [creating, setCreating] = useState(false);
+  const [createError, setCreateError] = useState<string | null>(null);
 
   // Calcule combien de lignes tiennent dans la zone disponible → taille de page (× 4 colonnes).
   useLayoutEffect(() => {
@@ -59,15 +63,19 @@ export default function TemplateGalleryPage() {
     const tpl = GALLERY_TEMPLATES.find((t) => t.id === id);
     if (!tpl) return;
     setCreating(true);
+    setCreateError(null);
     try {
       const overrides = {
         ...(tpl.theme?.primaryColor ? { primaryColor: tpl.theme.primaryColor } : {}),
         ...(tpl.theme?.fontFamily ? { fontFamily: tpl.theme.fontFamily } : {}),
+        ...(tpl.designVars ? { designCssVariables: JSON.stringify(tpl.designVars) } : {}),
+        componentConfig: JSON.stringify(templateForkMetadata(tpl)),
       };
       const created = await bookingEngineApi.createConfig({ ...buildConfigPayload(tpl.name), ...overrides });
-      navigate(`/booking-engine/studio/${created.id}`, { state: { templateId: tpl.id } });
-    } catch {
-      setCreating(false); // l'erreur reste affichable côté Studio ; on réautorise la sélection
+      navigate(`/booking-engine/studio/${created.id}`, { state: { templateId: tpl.id, funnelId: tpl.journeyId } });
+    } catch (error) {
+      setCreateError(error instanceof Error ? error.message : t('studio.createFailed'));
+      setCreating(false);
     }
   }, [creating, navigate]);
 
@@ -89,10 +97,10 @@ export default function TemplateGalleryPage() {
         />
       </div>
 
+      {createError && <Alert variant="destructive"><AlertDescription>{createError}</AlertDescription></Alert>}
       <div className="flex-1 min-h-0 overflow-hidden" ref={areaRef}>
         <div className="tpl-grid tpl-grid--quad">
           {items.map((tpl) => {
-            const c1 = tpl.theme?.primaryColor || 'var(--bui-primary)';
             return (
               <article
                 key={tpl.id} className="tpl-card" role="button" tabIndex={0}
@@ -101,21 +109,13 @@ export default function TemplateGalleryPage() {
                 onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); handleSelect(tpl.id); } }}
               >
                 <div className="tpl-thumb">
-                  {tpl.thumbnail ? (
-                    <img src={tpl.thumbnail} alt="" loading="lazy" />
-                  ) : (
-                    <div className="mini" style={{ ['--t1' as string]: c1, ['--t2' as string]: c1, ['--t3' as string]: 'var(--bui-card)' }}>
-                      <div className="mini__bar"><span className="mini__logo" /><span className="mini__nav" /><span className="mini__nav" /><span className="mini__nav sp" /></div>
-                      <div className="mini__hero"><span className="mini__h1" /><span className="mini__h2" /><span className="mini__search" /></div>
-                      <div className="mini__cards"><span /><span /><span /></div>
-                    </div>
-                  )}
+                  <BaitlyTemplateSnapshot template={tpl} />
                   <div className="tpl-use"><span><Plus size={15} strokeWidth={2} /> {t('studio.gallery.useTemplate')}</span></div>
                 </div>
                 <div className="tpl-body">
                   <p className="tpl-name">{tpl.name}</p>
                   <div className="tpl-meta">
-                    <span className="tpl-tag">Recherche Catalogue</span>
+                    <span className="tpl-tag">{BUILTIN_FUNNEL_PRESETS.find((f) => f.id === tpl.journeyId)?.label ?? tpl.journeyId}</span>
                     {tpl.description && <span className="tpl-style">{tpl.description}</span>}
                   </div>
                 </div>

@@ -39,20 +39,6 @@
   border: 1px solid transparent;
 }
 
-[data-slot="page-header"] [data-header-toolbar] [data-header-create] {
-  gap: 0.375rem;
-  padding-inline: 0.625rem;
-  background: var(--bui-primary-soft);
-  border-color: transparent;
-  color: var(--bui-foreground);
-  font-size: 0.75rem;
-  max-width: 12rem;
-}
-
-[data-slot="page-header"] [data-header-toolbar] [data-header-create]:hover {
-  background: var(--bui-muted);
-}
-
 @media (prefers-reduced-motion: reduce) {
   [data-slot="page-header"] [data-header-toolbar] button[data-slot="button"] {
     transition: none;

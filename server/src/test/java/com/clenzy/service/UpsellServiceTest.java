@@ -48,12 +48,13 @@ class UpsellServiceTest {
     @Mock private com.clenzy.payment.StripeGateway gateway;
     @Mock private BaitlyCheckoutJournal journal;
     @Mock private BaitlyUpsellSettlement settlement;
+    @Mock private BaitlyPurchaseRequests requests;
 
     private UpsellService service() {
         return new UpsellService(offerRepository, orderRepository, tokenRepository, guideRepository, reservationRepository,
             stripeService, walletService, ledgerService, monetizationConfigService, managementContractService,
             java.time.Clock.systemUTC(), orchestrationService, transactionManager,
-            upsellTypeRepository, tenantContext, gateway, journal, settlement,org.mockito.Mockito.mock(BaitlyPurchaseRequests.class));
+            upsellTypeRepository, tenantContext, gateway, journal, settlement,requests);
     }
 
     private WelcomeGuideToken validToken(Long propertyId) {
@@ -197,5 +198,23 @@ class UpsellServiceTest {
         assertThat(existing.getType()).isEqualTo("cleaning-turnover");
         assertThat(existing.getFulfillmentServiceCode()).isNull();
         assertThat(existing.getPreferredProviderId()).isNull();
+    }
+
+    @Test void purchaseFreezesTheExecutionReferenceBeforeTheOfferCanChange() {
+        var stay=validToken(7L).getReservation(); stay.setOrganizationId(1L);
+        var sold=offer(12L,7L,"Ménage du séjour"); sold.setFulfillmentServiceCode("cleaning-mid-stay");
+        when(reservationRepository.findById(50L)).thenReturn(Optional.of(stay));
+        when(offerRepository.findByIdAndOrganizationId(12L,1L)).thenReturn(Optional.of(sold));
+        var saved=new java.util.concurrent.atomic.AtomicReference<UpsellOrder>();
+        when(orderRepository.save(any())).thenAnswer(call -> {var value=call.getArgument(0,UpsellOrder.class);value.setId(8L);saved.set(value);return value;});
+        when(requests.prepare(eq(1L),any(),eq("UPSELL"),anyString(),anyString(),any()))
+            .thenAnswer(call -> call.getArgument(5,java.util.function.Supplier.class).get());
+        when(orderRepository.findById(8L)).thenAnswer(call -> Optional.ofNullable(saved.get()));
+        when(orchestrationService.initiatePayment(eq(1L),any(),any())).thenReturn(new com.clenzy.dto.PaymentOrchestrationResult(null,
+            com.clenzy.payment.PaymentResult.success("cs_test_service","https://checkout.example.test"),PaymentProviderType.STRIPE));
+        service().createBookingCheckout(1L,stay,12L,"https://return.example.test",UUID.randomUUID());
+        sold.setFulfillmentServiceCode("cleaning-turnover");
+        assertThat(saved.get().getFulfillmentServiceCode()).isEqualTo("cleaning-mid-stay");
+        verify(settlement).snapshot(saved.get());
     }
 }

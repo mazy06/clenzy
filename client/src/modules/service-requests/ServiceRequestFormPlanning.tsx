@@ -11,19 +11,12 @@ import {
   InputGroupAddon,
   InputGroupInput,
   InputGroupText,
-  Popover,
-  PopoverAnchor,
-  PopoverContent,
-  Tooltip,
-  TooltipContent,
-  TooltipTrigger,
 } from '../../components/ui';
 import {
   Timer,
   CalendarMonth,
   EventAvailable,
   Edit as EditIcon,
-  Lock,
   ArrowDownward,
   FiberManualRecord,
   ArrowUpward,
@@ -57,6 +50,7 @@ export interface ServiceRequestFormPlanningProps {
   reservations?: Reservation[];
   /** Durée estimée auto-calculée (en minutes) depuis PriceEstimate */
   estimatedDurationMinutes?: number;
+  initialDateMode?: 'checkout' | 'custom';
 }
 
 // ─── Priority config (tokens sémantiques — encre `-ink` sur fond `-soft`) ────
@@ -101,17 +95,15 @@ function formatDurationMins(mins: number): string {
 }
 
 const ServiceRequestFormPlanning: React.FC<ServiceRequestFormPlanningProps> = React.memo(
-  ({ control, errors, setValue, disabled = false, isAdminOrManager = false, reservations = [], estimatedDurationMinutes }) => {
+  ({ control, errors, setValue, disabled = false, isAdminOrManager = false, reservations = [], estimatedDurationMinutes, initialDateMode = 'checkout' }) => {
     const { t } = useTranslation();
 
     // Date mode : 'checkout' (sélection depuis réservation) ou 'custom' (saisie libre)
-    const [dateMode, setDateMode] = useState<'checkout' | 'custom'>('checkout');
+    const [dateMode, setDateMode] = useState<'checkout' | 'custom'>(initialDateMode);
 
     // Popover pour édition de durée (admin). Le popover du kit s'ancre sur un
     // element enfant (PopoverAnchor) et non sur un anchorEl : l'etat n'a plus
     // besoin de porter le noeud DOM, un booleen suffit.
-    const [durationOpen, setDurationOpen] = useState(false);
-    const [durationInputValue, setDurationInputValue] = useState('');
 
     // Dates de checkout triées (futures uniquement)
     const checkoutDates = useMemo(() => {
@@ -202,134 +194,25 @@ const ServiceRequestFormPlanning: React.FC<ServiceRequestFormPlanningProps> = Re
             />
           </div>
 
-          {/* ─── Durée estimée (chip + popover pour admin) ─── */}
-          <div>
-            <p className="text-2xs font-semibold uppercase tracking-wide text-muted-foreground mb-1">
-              {t('serviceRequests.fields.estimatedDuration')} *
-            </p>
-            <Controller
-              name="estimatedDurationHours"
-              control={control}
-              render={({ field, fieldState }) => {
-                const currentMins = hoursToMins(field.value);
-                const displayLabel = formatDurationMins(currentMins);
-                const canEdit = isAdminOrManager && !disabled;
-
-                const commitDuration = () => {
-                  const parsed = parseInt(durationInputValue, 10);
-                  if (!isNaN(parsed) && parsed > 0) {
-                    field.onChange(minsToHours(parsed));
-                  }
-                };
-
-                return (
-                  <div>
-                  <Popover
-                    open={durationOpen}
-                    onOpenChange={(next) => {
-                      // Valider la saisie a la fermeture (Echap, clic exterieur).
-                      if (!next) commitDuration();
-                      setDurationOpen(next);
-                    }}
-                  >
-                    {/* Chip durée — sert d'ancre au popover */}
-                    <PopoverAnchor asChild>
-                    <div
-                      onClick={canEdit ? () => {
-                        setDurationInputValue(String(currentMins));
-                        setDurationOpen(true);
-                      } : undefined}
-                      className={cn(
-                        'inline-flex items-center gap-[4.5px] py-[4.5px] px-[9px] rounded-[11px]',
-                        'border border-solid bg-primary-soft transition-[border-color,background-color] duration-150',
-                        durationOpen
-                          ? 'border-primary'
-                          : 'border-[color-mix(in_srgb,var(--bui-primary)_30%,transparent)]',
-                        canEdit ? 'cursor-pointer hover:border-primary' : 'cursor-default',
-                      )}
-                    >
-                      <span className="inline-flex text-primary"><Timer size={18} strokeWidth={1.75} /></span>
-                      <div className="flex items-baseline gap-0.5">
-                        <p className="text-[16px] font-semibold text-primary leading-[1.2] font-[family-name:var(--font-display)] tabular-nums">
-                          {displayLabel}
-                        </p>
-                        <p className="text-[10.5px] font-medium text-muted-foreground">
-                          {t('serviceRequests.planning.estimatedDuration')}
-                        </p>
-                      </div>
-                      {canEdit ? (
-                        <span className="inline-flex text-primary ms-auto"><EditIcon size={13} strokeWidth={1.75} /></span>
-                      ) : (
-                        <Tooltip>
-                          <TooltipTrigger asChild>
-                            <span className="inline-flex text-faint ms-auto"><Lock size={13} strokeWidth={1.75} /></span>
-                          </TooltipTrigger>
-                          <TooltipContent>{t('serviceRequests.planning.autoDurationTooltip')}</TooltipContent>
-                        </Tooltip>
-                      )}
-                    </div>
-                    </PopoverAnchor>
-
-                    {/* Popover champ édition durée (admin/manager uniquement) */}
-                    <PopoverContent
-                      align="start"
-                      side="bottom"
-                      sideOffset={3}
-                      className="p-3 min-w-[220px]"
-                    >
-                      <p className="text-2xs font-semibold uppercase tracking-wide text-muted-foreground mb-1.5">
-                        {t('serviceRequests.planning.editDuration')}
-                      </p>
-                      <Field>
-                        <FieldLabel htmlFor="service-request-duration-minutes">{t('serviceRequests.planning.durationMinutes')}</FieldLabel>
-                        <InputGroup>
-                          <InputGroupInput
-                            id="service-request-duration-minutes"
-                            type="number"
-                            className="tabular-nums"
-                            value={durationInputValue}
-                            onChange={(e) => setDurationInputValue(e.target.value)}
-                            onKeyDown={(e) => {
-                              if (e.key === 'Enter') {
-                                commitDuration();
-                                setDurationOpen(false);
-                              }
-                            }}
-                            placeholder="Ex : 240"
-                            autoFocus
-                            min={1}
-                            step={5}
-                          />
-                          <InputGroupAddon align="inline-end">
-                            <InputGroupText className="text-[12px] text-faint whitespace-nowrap">
-                              min
-                            </InputGroupText>
-                          </InputGroupAddon>
-                        </InputGroup>
-                        <FieldDescription className="text-[10.5px] font-medium text-primary">
-                          {durationInputValue && !isNaN(parseInt(durationInputValue, 10)) && parseInt(durationInputValue, 10) > 0
-                            ? `= ${formatDurationMins(parseInt(durationInputValue, 10))}`
-                            : t('serviceRequests.durationInMinutes')}
-                        </FieldDescription>
-                      </Field>
-                    </PopoverContent>
-                  </Popover>
-
-                    {fieldState.error && (
-                      <FieldError className="mt-[3px]">
-                        {fieldState.error.message}
-                      </FieldError>
-                    )}
-                    {!isAdminOrManager && (
-                      <p className="text-2xs text-faint italic mt-0.5">
-                        {t('serviceRequests.planning.autoFromProperty')}
-                      </p>
-                    )}
-                  </div>
-                );
-              }}
-            />
-          </div>
+          <Controller name="estimatedDurationHours" control={control}
+            render={({ field, fieldState }) => (
+              <Field>
+                <FieldLabel htmlFor="service-request-duration-minutes">{t('serviceRequests.fields.estimatedDuration')} *</FieldLabel>
+                <div className="baitly-request-editor__duration">
+                  <Timer size={20} strokeWidth={1.75} aria-hidden="true" />
+                  <InputGroup>
+                    <InputGroupInput id="service-request-duration-minutes" type="number" min={1} step={5}
+                      className="tabular-nums" value={hoursToMins(field.value) || ''}
+                      readOnly={!isAdminOrManager} disabled={disabled} onBlur={field.onBlur}
+                      onChange={event => field.onChange(minsToHours(Number(event.target.value)))}
+                      aria-invalid={!!fieldState.error} />
+                    <InputGroupAddon align="inline-end"><InputGroupText>min</InputGroupText></InputGroupAddon>
+                  </InputGroup>
+                  <span className="baitly-request-editor__duration-equivalent" aria-live="polite">{formatDurationMins(hoursToMins(field.value))}</span>
+                </div>
+                {fieldState.error && <FieldError>{fieldState.error.message}</FieldError>}
+              </Field>
+            )} />
 
           {/* ─── Date d'échéance ─── */}
           <div>
@@ -377,7 +260,10 @@ const ServiceRequestFormPlanning: React.FC<ServiceRequestFormPlanningProps> = Re
                           {checkoutDates.map((co) => {
                             const isSelected = field.value === co.isoValue;
                             return (
-                              <div
+                              <button
+                                type="button"
+                                aria-pressed={field.value === co.isoValue}
+                                disabled={disabled}
                                 key={co.id}
                                 onClick={disabled ? undefined : () => handleSelectCheckout(co.isoValue, field.value)}
                                 className={cn(
@@ -401,7 +287,7 @@ const ServiceRequestFormPlanning: React.FC<ServiceRequestFormPlanningProps> = Re
                                 {isSelected && (
                                   <StatusChip size="sm" tokens={{ color: 'var(--bui-primary)', bg: 'var(--bui-card)' }} label={t('serviceRequests.planning.selected')} className="text-[10px]" />
                                 )}
-                              </div>
+                              </button>
                             );
                           })}
                         </div>

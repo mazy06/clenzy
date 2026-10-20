@@ -79,7 +79,14 @@ function ConsumablesWorkspace() {
 
   return <PageHeaderActionsProvider slot={slot}>
     <PageHeader title={t('navigation.consumables')} subtitle={t('consumables.workspace.intro')}
-      iconBadge={<Inventory2 />} actions={portalContainer} />
+      iconBadge={<Inventory2 />} filters={<Select value={propertyId} onValueChange={setPropertyId} disabled={!properties.data}>
+          <SelectTrigger className="baitly-consumables-property" aria-label={t('consumables.propertyFilter')}>
+            <SelectValue placeholder={t('consumables.allProperties')} />
+          </SelectTrigger>
+          <SelectContent><SelectItem value="all">{t('consumables.allProperties')}</SelectItem>
+            {(properties.data ?? []).map(property => <SelectItem key={property.id} value={String(property.id)}>{property.name}</SelectItem>)}
+          </SelectContent>
+        </Select>} actions={portalContainer} />
     <RefreshAction refresh={refresh} fetching={queries.some(query => query.isFetching)} />
     <div className="baitly-supply-workspace">
       <div className="baitly-supply-overview">
@@ -90,14 +97,7 @@ function ConsumablesWorkspace() {
           </div>
           <div><h2>{t('consumables.workspace.title')}</h2><p>{t('consumables.workspace.subtitle')}</p></div>
         </div>
-        <Select value={propertyId} onValueChange={setPropertyId} disabled={!properties.data}>
-          <SelectTrigger className="baitly-consumables-property" aria-label={t('consumables.propertyFilter')}>
-            <SelectValue placeholder={t('consumables.allProperties')} />
-          </SelectTrigger>
-          <SelectContent><SelectItem value="all">{t('consumables.allProperties')}</SelectItem>
-            {(properties.data ?? []).map(property => <SelectItem key={property.id} value={String(property.id)}>{property.name}</SelectItem>)}
-          </SelectContent>
-        </Select>
+
       </div>
       {properties.isError && <Alert variant="destructive"><AlertDescription>{t('consumables.error')}</AlertDescription>
         <Button variant="outline" size="sm" onClick={() => { void properties.refetch(); }}>{t('common.retry')}</Button></Alert>}

@@ -1,12 +1,30 @@
 import { afterEach, describe, expect, it } from 'vitest';
 import { validateStyleMin } from '@maplibre/maplibre-gl-style-spec';
 import { buildBaitlyMapStyle, composeBaitlyMapStyle, dayPeriodAt, BAITLY_NIGHT, BAITLY_PAPER } from '../baitlyMapStyle';
+import { MAP_PLACE_CATEGORIES, mapPlacesFilter } from '../baitlyMapPlaceCategories';
 
 afterEach(() => {
   delete window.__baitlyConfig;
 });
 
 describe('buildBaitlyMapStyle', () => {
+  it('accepts filters with every useful place category or none', () => {
+    for (const selected of [[], MAP_PLACE_CATEGORIES.map(category => category.id)]) {
+      const style = buildBaitlyMapStyle('light', 'fr');
+      for (const layer of style.layers) {
+        if (layer.type === 'symbol' && (layer.id === 'pois' || layer.id === 'world-pois')) layer.filter = mapPlacesFilter(selected);
+      }
+      expect(validateStyleMin(style).map(error => error.message)).toEqual([]);
+    }
+  });
+  it('hides road numbers while retaining road names in both themes', () => {
+    for (const mode of ['light', 'dark'] as const) {
+      const style = buildBaitlyMapStyle(mode, 'fr');
+      expect(style.layers.some((layer) => layer.id.includes('roads_shields'))).toBe(false);
+      expect(style.layers.find((layer) => layer.id === 'roads_labels_minor')).toBeDefined();
+      expect(style.layers.find((layer) => layer.id === 'roads_labels_major')).toBeDefined();
+    }
+  });
   it('produces valid worldwide styles in every supported language and theme', () => {
     for (const mode of ['light', 'dark'] as const) {
       for (const language of ['fr', 'en', 'ar'] as const) {
