@@ -8,7 +8,7 @@ export function directoryCoverageMarkers(rows:ReferencedProfessional[],clusters:
  const markers:PropertyMarker[]=[];
  const append=(row:ReferencedProfessional)=>{
   if(shown.has(row.id))return;shown.add(row.id);
-  markers.push({id:-row.id,name:row.name,lat:row.latitude!,lng:row.longitude!,type:baitlyDirectoryActivity(row.activity)==='CONCIERGE'?'crm_concierge':'crm_provider',glyph:baitlyDirectoryGlyph(row.activity),subtitle:row.address});
+  markers.push({id:-row.id,name:row.name,lat:row.latitude!,lng:row.longitude!,type:(row.service??baitlyDirectoryActivity(row.activity))==='CONCIERGE'?'crm_concierge':'crm_provider',glyph:baitlyDirectoryGlyph(row.activity,row.service),subtitle:row.address});
  };
  for(const cluster of clusters??[]){
   const single=cluster.count===1?byId.get(cluster.representativeId):undefined;

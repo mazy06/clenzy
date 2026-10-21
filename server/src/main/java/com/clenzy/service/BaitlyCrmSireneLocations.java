@@ -5,7 +5,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.jdbc.core.JdbcTemplate;
 import java.util.Objects;
 
-/** Reuses Sirene coordinates or an already validated directory OSM position, without granting consent. */
+/** Reuses source coordinates or an already validated directory OSM position, without granting consent. */
 final class BaitlyCrmSireneLocations {
     private static final ObjectMapper JSON = new ObjectMapper();
     private BaitlyCrmSireneLocations() {}
@@ -13,11 +13,11 @@ final class BaitlyCrmSireneLocations {
     /** Caller holds the organization lock and transaction. Existing positions are never replaced. */
     static void restore(JdbcTemplate db, long org, String actor, Long id) {
         var rows = db.queryForList("""
-            SELECT i.prospect_id,i.siret,i.snapshot,p.name,p.city FROM baitly_crm_professional_imports i
+            SELECT i.prospect_id,i.siret,i.country_code,i.identifier_type,i.identifier,i.snapshot,p.name,p.city FROM baitly_crm_professional_imports i
             JOIN prospects p ON p.organization_id=i.organization_id AND p.id=i.prospect_id
             WHERE i.organization_id=? AND NOT p.archived AND p.contact_type='PROVIDER' AND p.contact_nature='PROFESSIONAL'
             AND NOT EXISTS(SELECT 1 FROM baitly_crm_contact_locations l WHERE l.organization_id=i.organization_id AND l.prospect_id=i.prospect_id)
-            AND NOT EXISTS(SELECT 1 FROM baitly_directory_professionals d WHERE d.siret=i.siret AND d.suppressed=true)
+            AND NOT EXISTS(SELECT 1 FROM baitly_directory_professionals d WHERE d.country_code=i.country_code AND d.identifier_type=i.identifier_type AND d.identifier=i.identifier AND d.suppressed=true)
             AND NOT EXISTS(SELECT 1 FROM baitly_crm_location_review r WHERE r.organization_id=i.organization_id
                 AND r.prospect_id=i.prospect_id AND r.actor=? AND r.status='SKIPPED')
             """ + (id == null ? "" : " AND i.prospect_id=?"), id == null ? new Object[]{org,actor} : new Object[]{org,actor,id});
@@ -30,7 +30,10 @@ final class BaitlyCrmSireneLocations {
                 business=reference!=null?reference.path("identity").path("business"):snapshot;
             } catch (com.fasterxml.jackson.core.JsonProcessingException e) { continue; }
             String siret=business.path("siret").asText("");
-            if (!siret.matches("[0-9]{14}") || !siret.equals(row.get("siret"))
+            boolean french=Objects.toString(row.get("country_code"),"FR").equals("FR");
+            boolean identity=french?siret.matches("[0-9]{14}")&&siret.equals(row.get("siret")):
+                Objects.equals(business.path("country").asText(),row.get("country_code"))&&Objects.equals(business.path("identifierType").asText(),row.get("identifier_type"))&&Objects.equals(business.path("identifier").asText(),row.get("identifier"));
+            if (!identity
                 || !Objects.equals(business.path("name").asText(null),row.get("name"))
                 || !Objects.equals(business.path("city").asText(null),row.get("city"))) continue;
             var point=reference==null?null:reference.path("location");boolean sharedPoint=point!=null&&point.isObject();

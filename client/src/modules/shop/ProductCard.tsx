@@ -22,6 +22,7 @@ export default function ProductCard({ product, quantity, onAddToCart, onRemoveFr
   const savings = product.originalPrice && product.originalPrice > product.price
     ? Math.round((1 - product.price / product.originalPrice) * 100) : null;
   return <CatalogCard title={name} source={t('shop.' + CATEGORY_KEYS[product.category])}
+    tone={({ kit: 'purple', noise: 'blue', lock: 'amber', environment: 'teal' } as const)[product.category]}
     media={<ProductHero product={product} compact />} description={t(product.shortDescriptionKey)}
     badges={<>
       {product.badge && <Badge variant="secondary">{t('shop.badges.' + product.badge)}</Badge>}

@@ -16,6 +16,9 @@
 
 // Préfixe de route → import() du chunk de page (mêmes modules que les lazy()
 // d'AuthenticatedApp — garder les deux listes alignées quand une route bouge).
+import {scheduleBaitlyDeferredStartup} from '../services/baitlyDeferredStartup';
+import {loadBaitlyContactMap,loadBaitlyCrmWorkspace} from './prospection/baitlyProspectionChunks';
+
 const ROUTE_IMPORTS: Record<string, () => Promise<unknown>> = {
   '/prospection': () => import('./prospection/ProspectionPage'),
   '/dynamic-pricing': () => import('./pricing/DynamicPricing'),
@@ -77,17 +80,16 @@ export function prefetchRoute(path: string): void {
   const target = resolveImport(path);
   if (!target || prefetched.has(target.key)) return;
   prefetched.add(target.key);
+  if(target.key==='/prospection'&&new URLSearchParams(path.split('?')[1]?.split('#')[0]).get('tab')==='map'){
+    void loadBaitlyCrmWorkspace().catch(()=>{});
+    void loadBaitlyContactMap().catch(()=>{});
+  }
   target.load().catch(() => {
     prefetched.delete(target.key);
   });
 }
 
 /** Précharge les routes chaudes pendant l'idle du navigateur (boot authentifié). */
-export function warmHotRoutes(): void {
-  const warm = () => HOT_ROUTES.forEach(prefetchRoute);
-  if (typeof window.requestIdleCallback === 'function') {
-    window.requestIdleCallback(warm, { timeout: 5_000 });
-  } else {
-    window.setTimeout(warm, 2_000);
-  }
+export function warmHotRoutes(): () => void {
+  return scheduleBaitlyDeferredStartup(()=>HOT_ROUTES.forEach(prefetchRoute));
 }

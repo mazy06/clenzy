@@ -9,6 +9,7 @@ import { createBaitlyPin, pinPopupContent, PIN_POPUP_OFFSET, type BaitlyPinIcon 
 import { keepPopupInView } from "./map/keepPopupInView";
 import { BaitlyClusterLayer } from "./map/markerClusters";
 import {clusterCountLabel,clusterDiameter} from './map/clusterPresentation';
+import {BaitlyDirectoryTiles,type DirectoryTilesOptions} from './map/BaitlyDirectoryTiles';
 import { useMapCardClaim } from './map/MapCardCoordinator';
 import { BaitlySectorLayer, sectorBounds, type SectorOverlay } from "./map/sectorLayer";
 import { BaitlyToolsControl } from "./map/toolsControl";
@@ -47,6 +48,12 @@ export interface MapBounds {
 export interface MapCamera { center: [number, number]; zoom: number; bearing: number; pitch: number }
 
 export interface BaitlyPropertyMapProps {
+  /** First-load milestones, independent of list queries and camera updates. */
+  onMapCreated?:()=>void;
+  onMapReady?:()=>void;
+  onDataReady?:()=>void;
+  transformRequest?:maplibregl.MapOptions['transformRequest'];
+  directoryTiles?:DirectoryTilesOptions;
   properties: PropertyMarker[];
   center?: [number, number]; // [lng, lat]
   zoom?: number;
@@ -55,7 +62,7 @@ export interface BaitlyPropertyMapProps {
   onMarkerClose?: (property: PropertyMarker) => void;
   onBoundsChange?: (bounds: MapBounds) => void;
   /** Comptages complets : indépendants du rechargement des fiches déjà sélectionnées. */
-  onCoverageBoundsChange?: (bounds: MapBounds) => void;
+  onCoverageBoundsChange?: (bounds: MapBounds,zoom?:number) => void;
   selectedPropertyId?: number;
   highlightedPropertyId?: number;
   /** Multi-selection uses the same pin ring and cluster visibility as a single highlight. */
@@ -123,6 +130,8 @@ export function BaitlyMapCanvas({
   onMarkerClose,
   onBoundsChange,
   onCoverageBoundsChange,
+  directoryTiles,
+  transformRequest,
   selectedPropertyId,
   highlightedPropertyId,
   highlightedPropertyIds,
@@ -137,10 +146,17 @@ export function BaitlyMapCanvas({
   mapTools,
   mapInfo,
   focusBounds,
+  onMapCreated,
+  onMapReady,
+  onDataReady,
   colorMode = "light",
 }: BaitlyPropertyMapProps & { colorMode?: "light" | "dark" }) {
   // Lu à la création des marqueurs : changer de fonction ne les reconstruit pas.
   const renderPopupRef = useRef(renderPopup);
+  const readinessRef=useRef({onMapCreated,onMapReady,onDataReady});
+  readinessRef.current={onMapCreated,onMapReady,onDataReady};
+  const directoryTilesRef=useRef(directoryTiles);directoryTilesRef.current=directoryTiles;
+  const requestTransformRef=useRef(transformRequest);requestTransformRef.current=transformRequest;
   renderPopupRef.current = renderPopup;
   const propertiesRef = useRef(properties);
   propertiesRef.current = properties;
@@ -150,6 +166,7 @@ export function BaitlyMapCanvas({
   sheetRef.current = sheet;
   const [mapStatus, setMapStatus] = useState<"loading" | "ready" | "partial" | "error">("loading");
   const [retryKey, setRetryKey] = useState(0);
+  const [mapInstance,setMapInstance]=useState<maplibregl.Map|null>(null);
   const entriesRef = useRef(new Map<string, { marker: maplibregl.Marker; property: PropertyMarker; rich: boolean }>());
   const [openCard, setOpenCard] = useState<OpenCard | null>(null);
   const [toolsHost, setToolsHost] = useState<HTMLElement | null>(null);
@@ -247,9 +264,18 @@ export function BaitlyMapCanvas({
       east: b.getEast(),
       west: b.getWest(),
     };
-    onCoverageBoundsChangeRef.current?.(bounds);
+    onCoverageBoundsChangeRef.current?.(bounds,map.getZoom());
     if(!selectionMoveRef.current)onBoundsChangeRef.current?.(bounds);
   }, []);
+
+  // Initialize map
+  useEffect(()=>{
+    const map=mapInstance;if(!map||map!==mapRef.current||!directoryTiles?.url)return;
+    const layer=new BaitlyDirectoryTiles(map,{url:directoryTiles.url,
+      onNavigate:()=>{selectionMoveRef.current=false;},onReference:id=>directoryTilesRef.current?.onReference(id),
+      onError:()=>directoryTilesRef.current?.onError(),onReady:()=>readinessRef.current.onDataReady?.()});
+    return()=>layer.dispose();
+  },[directoryTiles?.url,mapInstance]);
 
   // Initialize map
   useEffect(() => {
@@ -263,6 +289,7 @@ export function BaitlyMapCanvas({
         center: centerRef.current ?? DEFAULT_CENTER,
         zoom: centerRef.current ? zoomRef.current : 2,
         perspective: true,
+        transformRequest:(url,type)=>requestTransformRef.current?.(url,type)??{url},
       });
     } catch {
       setMapStatus("error");
@@ -270,9 +297,13 @@ export function BaitlyMapCanvas({
     }
     appliedModeRef.current = initialModeRef.current;
     setMapStatus("loading");
-    const handleLoad = () => setMapStatus((status) => status === "error" || status === "partial" ? status : "ready");
+    const handleLoad = () => {
+      setMapStatus((status) => status === "error" || status === "partial" ? status : "ready");
+      readinessRef.current.onMapReady?.();
+    };
     const handleError = (event: maplibregl.ErrorEvent) => {
       const source = (event as maplibregl.ErrorEvent & { sourceId?: string }).sourceId;
+      if(source==='baitly-directory-professionals')return;
       if (source === "baitly-world") {
         setMapStatus((status) => status === "error" ? status : "partial");
         return;
@@ -305,6 +336,8 @@ export function BaitlyMapCanvas({
     map.on("moveend", handleMoveEnd);
     map.on("movestart", handleMoveStart);
     mapRef.current = map;
+    readinessRef.current.onMapCreated?.();
+    setMapInstance(map);
     selectionMoveRef.current = false;
     clustersRef.current = new BaitlyClusterLayer(map, (count) => clusterLabelRef.current(count), close => claimCardRef.current(close));
     sectorLayerRef.current = new BaitlySectorLayer(map);
@@ -545,6 +578,10 @@ export function BaitlyMapCanvas({
       fitMarkers(map, valid);
     }
     emitBounds();
+    if(valid.length&&!directoryTilesRef.current?.url){
+      const frame=requestAnimationFrame(()=>readinessRef.current.onDataReady?.());
+      return ()=>cancelAnimationFrame(frame);
+    }
   }, [properties, emitBounds, syncSelection, retryKey, !!renderPopup]);
 
   useEffect(() => {

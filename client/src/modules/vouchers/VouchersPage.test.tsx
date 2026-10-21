@@ -4,7 +4,7 @@ import VouchersPage from './VouchersPage';
 import type { BookingVoucher } from '../../services/api/bookingVouchersApi';
 
 const mocks = vi.hoisted(() => ({ mobile:false, pause:vi.fn(), resume:vi.fn(), remove:vi.fn(), success:vi.fn(), error:vi.fn(), copy:vi.fn(), search:undefined as undefined | ((value:string)=>void) }));
-const offers = Array.from({length:11},(_,i)=>({id:i+1,organizationId:1,name:['Bienvenue au Studio Jemmapes','Une semaine à la Villa Caudéran','Une nuit offerte à la Maison Plumereau'][i%3],description:'Pour votre prochain séjour.',code:'SEJOUR-'+(i+1),type:'MANUAL_CODE',discountType:i%3===2?'FREE_NIGHTS':'PERCENTAGE',discountValue:i%3===2?'1':'10',currency:'EUR',status:i===10?'PAUSED':'ACTIVE',validFrom:'2026-10-01',validUntil:'2027-03-31',usageCount:i===0?2:0,maxUsesTotal:80,maxUsesPerGuest:1,minStayNights:3,maxStayNights:null,minTotalAmount:null,channelScope:'ALL',propertyIds:[i+1],createdAt:'2026-10-01',updatedAt:'2026-10-01'} as BookingVoucher));
+const offers = Array.from({length:15},(_,i)=>({id:i+1,organizationId:1,name:['Bienvenue au Studio Jemmapes','Une semaine à la Villa Caudéran','Une nuit offerte à la Maison Plumereau'][i%3],description:'Pour votre prochain séjour.',code:'SEJOUR-'+(i+1),type:'MANUAL_CODE',discountType:i%3===2?'FREE_NIGHTS':'PERCENTAGE',discountValue:i%3===2?'1':'10',currency:'EUR',status:i===10?'PAUSED':'ACTIVE',validFrom:'2026-10-01',validUntil:'2027-03-31',usageCount:i===0?2:0,maxUsesTotal:80,maxUsesPerGuest:1,minStayNights:3,maxStayNights:null,minTotalAmount:null,channelScope:'ALL',propertyIds:[i+1],createdAt:'2026-10-01',updatedAt:'2026-10-01'} as BookingVoucher));
 vi.mock('../../hooks/useBookingVouchers',()=>({
  useBookingVouchersList:()=>({data:offers,isLoading:false,isFetching:false,error:null,refetch:vi.fn()}),
  usePauseBookingVoucher:()=>({mutateAsync:mocks.pause,isPending:false}),
@@ -21,7 +21,7 @@ afterEach(cleanup);
 
 it('filters locally and paginates offers',()=>{
  render(<VouchersPage embedded />);
- expect(document.querySelectorAll('.baitly-voucher-offer')).toHaveLength(8);
+ expect(document.querySelectorAll('.baitly-voucher-offer')).toHaveLength(12);
  fireEvent.click(screen.getByRole('link',{name:'Go to next page'}));
  expect(document.querySelectorAll('.baitly-voucher-offer')).toHaveLength(3);
  fireEvent.click(screen.getByRole('button',{name:/En pause/}));

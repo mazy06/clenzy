@@ -21,7 +21,7 @@ import java.util.concurrent.atomic.AtomicLong;
 import static org.assertj.core.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
-@EnabledIfSystemProperty(named="baitly.directory.test.jdbc",matches="jdbc:postgresql://127\\.0\\.0\\.1:55442/postgres")
+@EnabledIfSystemProperty(named="baitly.directory.test.jdbc",matches="jdbc:postgresql://127\\.0\\.0\\.1:(55442/postgres|5433/baitly_directory_test_[a-f0-9]+)")
 class BaitlyCrmProfessionalImportsPostgresTest {
     @Test void importsLocateSireneAddressesWithoutAssertingOsmIdentityAndPreserveConsent() throws Exception {
         String base=System.getProperty("baitly.directory.test.jdbc"),schema="baitly_crm_import_"+UUID.randomUUID().toString().replace("-","");
@@ -246,6 +246,65 @@ class BaitlyCrmProfessionalImportsPostgresTest {
                 """,Long.class);
             assertThatThrownBy(()->tx.execute(status->imports.importReferences("actor",new BaitlyCrmProfessionalImports.References(List.of(newReference,Long.MAX_VALUE))))).isInstanceOf(org.springframework.web.server.ResponseStatusException.class);
             assertThat(db.queryForObject("SELECT count(*) FROM baitly_crm_professional_imports WHERE siret='88888888800033'",Long.class)).isZero();
+            long ma=db.queryForObject("""
+                INSERT INTO baitly_directory_professionals(country_code,identifier_type,identifier,service,base_source,source_url,source_licence,
+                    name,address,city,postal_code,activity,sirene_latitude,sirene_longitude,sirene_retrieved_at,recorded_by,email)
+                VALUES('MA','ICE','001234567890123','CLEANING','OMPIC','https://www.directinfo.ma/','Contrat test',
+                    'Fixture Rabat','Rue test','Rabat','10000','',34.02,-6.84,now(),'stock','rabat@example.org') RETURNING id
+                """,Long.class);
+            int beforePermissions=db.queryForObject("SELECT count(*) FROM baitly_crm_contact_authorizations",Integer.class);
+            var firstMa=tx.execute(status->imports.importReference("actor",ma));
+            assertThat(firstMa.status()).isEqualTo("CREATED");
+            assertThat(db.queryForObject("SELECT source_type FROM prospects WHERE id=?",String.class,firstMa.id())).isEqualTo("PARTNER");
+            assertThat(db.queryForObject("SELECT latitude FROM baitly_crm_contact_locations WHERE prospect_id=?",Double.class,firstMa.id())).isEqualTo(34.02);
+            db.update("UPDATE prospects SET email='tenant-edit@example.org',name='Ma correction' WHERE id=?",firstMa.id());
+            assertThat(tx.execute(status->imports.importReference("actor",ma)).status()).isEqualTo("EXISTING");
+            assertThat(db.queryForObject("SELECT email FROM prospects WHERE id=?",String.class,firstMa.id())).isEqualTo("tenant-edit@example.org");
+            assertThat(db.queryForObject("SELECT count(*) FROM baitly_crm_contact_authorizations",Integer.class)).isEqualTo(beforePermissions);
+            long sa=db.queryForObject("""
+                INSERT INTO baitly_directory_professionals(country_code,identifier_type,identifier,service,base_source,source_url,source_licence,
+                    name,address,city,postal_code,activity,sirene_latitude,sirene_longitude,sirene_retrieved_at,recorded_by,email,phone)
+                VALUES('SA','OSM','node/901','LAUNDRY','OSM','https://www.openstreetmap.org/node/901','ODbL 1.0',
+                    'مغسلة','','الرياض','','',24.7,46.7,now(),'stock','sa@example.org','+966112345678') RETURNING id
+                """,Long.class);
+            var firstSa=tx.execute(status->imports.importReference("actor",sa));
+            assertThat(firstSa.status()).isEqualTo("CREATED");
+            assertThat(firstSa.identifierType()).isEqualTo("OSM");assertThat(firstSa.siret()).isNull();
+            assertThat(db.queryForObject("SELECT source_type FROM prospects WHERE id=?",String.class,firstSa.id())).isEqualTo("OPEN_DATA");
+            assertThat(db.queryForObject("SELECT phone FROM prospects WHERE id=?",String.class,firstSa.id())).isEqualTo("+966112345678");
+            assertThat(db.queryForObject("SELECT latitude FROM baitly_crm_contact_locations WHERE prospect_id=?",Double.class,firstSa.id())).isEqualTo(24.7);
+            assertThat(db.queryForObject("SELECT licence FROM baitly_crm_professional_imports WHERE prospect_id=?",String.class,firstSa.id())).isEqualTo("ODbL 1.0");
+            db.update("UPDATE prospects SET email='sa-private@example.org' WHERE id=?",firstSa.id());
+            db.update("UPDATE baitly_directory_professionals SET email='sa-updated@example.org' WHERE id=?",sa);
+            assertThat(tx.execute(status->imports.importReference("actor",sa)).status()).isEqualTo("EXISTING");
+            assertThat(db.queryForObject("SELECT email FROM prospects WHERE id=?",String.class,firstSa.id())).isEqualTo("sa-private@example.org");
+            org.set(20);assertThat(tx.execute(status->imports.importReference("actor",sa)).status()).isEqualTo("CREATED");
+            assertThat(db.queryForObject("SELECT count(*) FROM baitly_crm_contact_authorizations",Integer.class)).isEqualTo(beforePermissions);
+            org.set(10);
+            long overture=db.queryForObject("""
+                INSERT INTO baitly_directory_professionals(country_code,identifier_type,identifier,identifiers,service,base_source,source_url,source_licence,
+                    name,address,city,postal_code,activity,sirene_latitude,sirene_longitude,sirene_retrieved_at,recorded_by,email)
+                VALUES('SA','OVERTURE','cd9acfa1-6f6e-40ab-8e0c-8f188d4ea776','{"OVERTURE":"cd9acfa1-6f6e-40ab-8e0c-8f188d4ea776"}',
+                    'CLEANING','OVERTURE','https://docs.overturemaps.org/guides/places/','CDLA-Permissive-2.0',
+                    'Overture Fixture','20 Street','Riyadh','','',24.8,46.8,now(),'stock','over@example.org') RETURNING id
+                """,Long.class);
+            var firstOverture=tx.execute(status->imports.importReference("actor",overture));
+            assertThat(firstOverture.status()).isEqualTo("CREATED");
+            assertThat(db.queryForObject("SELECT source_type FROM prospects WHERE id=?",String.class,firstOverture.id())).isEqualTo("OPEN_DATA");
+            assertThat(db.queryForObject("SELECT latitude FROM baitly_crm_contact_locations WHERE prospect_id=?",Double.class,firstOverture.id())).isEqualTo(24.8);
+            db.update("UPDATE prospects SET name='Private edit',email='private-over@example.org' WHERE id=?",firstOverture.id());
+            db.update("UPDATE baitly_directory_professionals SET source_active=false WHERE id=?",overture);
+            long merged=db.queryForObject("""
+                INSERT INTO baitly_directory_professionals(country_code,identifier_type,identifier,identifiers,service,base_source,source_url,source_licence,
+                    name,address,city,postal_code,activity,sirene_latitude,sirene_longitude,sirene_retrieved_at,recorded_by,email)
+                VALUES('SA','OSM','node/902','{"OSM":"node/902","OVERTURE":"cd9acfa1-6f6e-40ab-8e0c-8f188d4ea776"}',
+                    'CLEANING','OSM','https://www.openstreetmap.org/node/902','ODbL 1.0',
+                    'Overture Fixture','20 Street','Riyadh','','',24.8,46.8,now(),'stock','new-over@example.org') RETURNING id
+                """,Long.class);
+            var reimport=tx.execute(status->imports.importReference("actor",merged));
+            assertThat(reimport.status()).isEqualTo("EXISTING");assertThat(reimport.id()).isEqualTo(firstOverture.id());
+            assertThat(db.queryForObject("SELECT email FROM prospects WHERE id=?",String.class,reimport.id())).isEqualTo("private-over@example.org");
+            assertThat(db.queryForObject("SELECT count(*) FROM baitly_crm_contact_authorizations",Integer.class)).isEqualTo(beforePermissions);
         } finally {try(var c=DriverManager.getConnection(base,"postgres","");var s=c.createStatement()){s.execute("DROP SCHEMA "+schema+" CASCADE");}}
     }
     private void migrate(String url)throws Exception {
@@ -253,8 +312,8 @@ class BaitlyCrmProfessionalImportsPostgresTest {
             var db=DatabaseFactory.getInstance().findCorrectDatabaseImplementation(new JdbcConnection(c));var resources=new ClassLoaderResourceAccessor();
             try(var master=new Liquibase("db/changelog/db.changelog-master.yaml",resources,db)){
                 var selected=new DatabaseChangeLog("db/changelog/db.changelog-master.yaml");
-                master.getDatabaseChangeLog().getChangeSets().stream().filter(cs->List.of("0573-baitly-crm-contact-locations","0574-baitly-crm-contact-details","0575-baitly-crm-osm-provenance","0577-baitly-professional-directory","0578-baitly-crm-professional-imports","0579-baitly-crm-location-review","0580-baitly-crm-osm-enrichments","0581-baitly-crm-address-geocodings","0583-baitly-national-directory","0585-baitly-directory-ademe-rge").contains(cs.getId())).forEach(selected::addChangeSet);
-                assertThat(selected.getChangeSets()).hasSize(10);new Liquibase(selected,resources,db).update("");
+                master.getDatabaseChangeLog().getChangeSets().stream().filter(cs->List.of("0573-baitly-crm-contact-locations","0574-baitly-crm-contact-details","0575-baitly-crm-osm-provenance","0577-baitly-professional-directory","0578-baitly-crm-professional-imports","0579-baitly-crm-location-review","0580-baitly-crm-osm-enrichments","0581-baitly-crm-address-geocodings","0583-baitly-national-directory","0585-baitly-directory-ademe-rge","0589-baitly-directory-countries","0590-baitly-crm-country-identity","0592-baitly-saudi-osm-directory","0593-baitly-saudi-overture-directory").contains(cs.getId())).forEach(selected::addChangeSet);
+                assertThat(selected.getChangeSets()).hasSize(14);new Liquibase(selected,resources,db).update("");
             }
         }
     }

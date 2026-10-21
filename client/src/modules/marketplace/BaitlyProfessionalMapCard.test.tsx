@@ -5,6 +5,11 @@ import type {ReferencedProfessional} from '../../services/api/baitlyProfessional
 import {baitlyDirectoryActivity} from '../../config/baitlyDirectoryActivities';
 const row:ReferencedProfessional={id:1,siret:'12345678900011',name:'Entreprise',address:'1 rue du Port',city:'Nantes',postal_code:'44000',activity:'81.21Z',latitude:null,longitude:null,phone:null,email:null,website:null,sirene_retrieved_at:'2026-10-20',osm_key:null,osm_name:null,osm_confirmed_at:null};
 afterEach(cleanup);
+it('shows the actual foreign identifier and mapped service without labelling it as a SIRET',()=>{
+ const view=render(<BaitlyProfessionalMapCard row={{...row,siret:null,country_code:'MA',identifier_type:'ICE',identifier:'001234567890123',activity:'',service:'LAUNDRY',city:'Rabat'}} language="fr"/>);
+ expect(screen.getByText('ICE')).toBeInTheDocument();expect(screen.getByText('001234567890123')).toBeInTheDocument();
+ expect(screen.queryByText('SIRET')).not.toBeInTheDocument();expect(view.container.querySelector('[data-service="LAUNDRY"]')).toBeInTheDocument();
+});
 it('separates street and locality without duplicating the imported postal code or city',()=>{
  const locate=vi.fn();
  const view=render(<BaitlyProfessionalMapCard row={{...row,address:'1 rue du Port 44000 NANTES'}} language="fr" onLocate={locate} selected/>);

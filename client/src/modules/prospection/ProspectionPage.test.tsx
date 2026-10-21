@@ -15,6 +15,7 @@ import {baitlyCampaignsApi} from '../../services/api/baitlyCampaignsApi';
 import {baitlyRecruitmentApi} from '../../services/api/baitlyRecruitmentApi';
 import {baitlyCrmLocationBatchesApi} from '../../services/api/baitlyCrmLocationBatchesApi';
 import RestoredProspectionPage from './ProspectionPage';
+import {mockDirectoryCoverage} from '../marketplace/__tests__/baitlyCoverageFixture';
 import {professionalDirectoryApi,crmProfessionalImportsApi,type ReferencedProfessional} from '../../services/api/baitlyProfessionalDirectoryApi';
 import {baitlyCrmEnrichmentRunsApi} from '../../services/api/baitlyCrmEnrichmentRunsApi';
 const roleState=vi.hoisted(()=>({roles:[] as string[],crm:true}));
@@ -28,6 +29,7 @@ vi.mock('../../components/BaitlyMapCanvas',()=>({BaitlyMapCanvas:({properties,on
 const base={contactType:'PROVIDER',contactNature:'PROFESSIONAL',category:'PROVIDERS',status:'TO_CONTACT',sourceType:'MANUAL',archived:false,city:'Rabat'} as const;
 const contacts:ProspectDto[]=[{...base,id:1,name:'Samira Alaoui',email:'samira@example.com',contactType:'OWNER',category:'OWNERS'},{...base,id:2,name:'Atlas Conciergerie',category:'CONCIERGERIES',status:'IN_DISCUSSION'},{...base,id:3,name:'Youssef Entretien',status:'PARTNER'}];
 beforeEach(()=>{
+  mockDirectoryCoverage();
   headerState.popover=false;roleState.roles=[];vi.spyOn(professionalDirectoryApi,'synchronization').mockResolvedValue({enabled:true,phase:'COMPLETED'});
   roleState.crm=true;vi.spyOn(professionalDirectoryApi,'map').mockResolvedValue({items:[],nextCursor:null});vi.spyOn(baitlyCrmEnrichmentRunsApi,'latest').mockResolvedValue({run:null});
   vi.spyOn(baitlyCrmDetailsApi,'list').mockResolvedValue([]);vi.spyOn(baitlyCrmDetailsApi,'assignees').mockResolvedValue([]);vi.spyOn(baitlyInquiriesApi,'list').mockResolvedValue({content:[],totalElements:0});
@@ -116,13 +118,13 @@ const nationalRows:ReferencedProfessional[]=Array.from({length:30},(_,i)=>({id:8
 it('filters contact availability from the CRM header and restarts pagination before importing',async()=>{
  vi.spyOn(professionalDirectoryApi,'list').mockImplementation(async(_query,page,_service,contacts)=>({items:contacts?[{...nationalRows[0],name:'Joignable par email',email:'contact@example.com'}]:nationalRows,total:contacts?1:31,page}));
  setup(undefined,true);await screen.findByRole('button',{name:'National 01'});
- fireEvent.click(screen.getByText('4',{selector:'a'}));await waitFor(()=>expect(professionalDirectoryApi.list).toHaveBeenLastCalledWith('',1,'',''));
+ fireEvent.click(screen.getByText('4',{selector:'a'}));await waitFor(()=>expect(professionalDirectoryApi.list).toHaveBeenLastCalledWith('',1,'','','FR'));
  fireEvent.change(within(screen.getByRole('banner')).getByRole('combobox',{name:'Coordonnées disponibles'}),{target:{value:'EMAIL'}});
- await screen.findByRole('button',{name:'Joignable par email'});expect(professionalDirectoryApi.list).toHaveBeenLastCalledWith('',0,'','EMAIL');
+ await screen.findByRole('button',{name:'Joignable par email'});expect(professionalDirectoryApi.list).toHaveBeenLastCalledWith('',0,'','EMAIL','FR');
  expect(screen.getAllByRole('row')).toHaveLength(2);
  fireEvent.click(screen.getByRole('button',{name:'Réinitialiser les filtres'}));await screen.findByRole('button',{name:'National 01'});
  expect(screen.getByRole('combobox',{name:'Coordonnées disponibles'})).toHaveValue('');
- expect(professionalDirectoryApi.list).toHaveBeenCalledWith('',0,'',''); // The unfiltered first page may be reused from cache.
+ expect(professionalDirectoryApi.list).toHaveBeenCalledWith('',0,'','','FR'); // The unfiltered first page may be reused from cache.
 });
 it('restores the national CRM table, ten-row pagination and header filters without fetching the old private list',async()=>{
  vi.spyOn(professionalDirectoryApi,'list').mockResolvedValue({items:nationalRows,total:31,page:0});setup(undefined,true);
@@ -131,7 +133,7 @@ it('restores the national CRM table, ten-row pagination and header filters witho
  const header=screen.getByRole('banner');expect(within(header).getByRole('combobox',{name:'Type de service'})).toBeInTheDocument();
  expect(screen.queryByRole('button',{name:'Ajouter un contact'})).not.toBeInTheDocument();
  fireEvent.click(screen.getByText('2',{selector:'a'}));await screen.findByRole('button',{name:'National 11'});expect(professionalDirectoryApi.list).toHaveBeenCalledTimes(1);
- fireEvent.click(screen.getByText('4',{selector:'a'}));await waitFor(()=>expect(professionalDirectoryApi.list).toHaveBeenLastCalledWith('',1,'',''));
+ fireEvent.click(screen.getByText('4',{selector:'a'}));await waitFor(()=>expect(professionalDirectoryApi.list).toHaveBeenLastCalledWith('',1,'','','FR'));
 });
 it('imports directory selection through the deduplicating organization API and retains the pipeline',async()=>{
  vi.spyOn(professionalDirectoryApi,'list').mockResolvedValue({items:nationalRows,total:30,page:0});const imported=vi.spyOn(crmProfessionalImportsApi,'importReferences').mockResolvedValue([{siret:nationalRows[0].siret,name:nationalRows[0].name,status:'EXISTING',id:1}]);setup(undefined,true);
@@ -143,16 +145,31 @@ it('imports directory selection through the deduplicating organization API and r
 it('does not mix private contacts into the restored national map',async()=>{
  vi.mocked(professionalDirectoryApi.map).mockResolvedValue({items:[nationalRows[0]],nextCursor:null});setup('map',true);
  await screen.findAllByRole('button',{name:'National 01'});expect(prospectsApi.getAll).not.toHaveBeenCalled();expect(baitlyCrmLocationsApi.list).not.toHaveBeenCalled();expect(screen.queryByText(/Samira Alaoui/)).not.toBeInTheDocument();
- expect(screen.getByRole('combobox',{name:'Pays'})).toHaveValue('FR');fireEvent.change(screen.getByRole('combobox',{name:'Pays'}),{target:{value:'MA'}});await waitFor(()=>expect(screen.queryByRole('button',{name:'National 01'})).not.toBeInTheDocument());expect(screen.getByRole('combobox',{name:'Pays'})).toHaveValue('MA');
+ fireEvent.keyDown(screen.getByRole('button',{name:'Pays : France'}),{key:'ArrowDown'});
+ fireEvent.click(await screen.findByRole('menuitemcheckbox',{name:'Maroc'}));
+ expect(screen.getByRole('button',{name:'Pays : France, Maroc'})).toBeInTheDocument();
+ fireEvent.click(screen.getByRole('menuitemcheckbox',{name:'France'}));
+ await waitFor(()=>expect(screen.queryByRole('button',{name:'National 01'})).not.toBeInTheDocument());
+ expect(screen.getByRole('button',{name:'Pays : Maroc'})).toBeInTheDocument();
 });
 it('keeps directory browsing available when CRM access is denied',async()=>{
  vi.spyOn(professionalDirectoryApi,'list').mockResolvedValue({items:nationalRows,total:30,page:0});vi.mocked(prospectsApi.access).mockRejectedValue(Object.assign(new Error('Forbidden'),{status:403}));setup(undefined,true);
  await screen.findByRole('button',{name:'National 01'});expect(screen.queryByRole('button',{name:'Importer la sélection'})).not.toBeInTheDocument();
 });
+it('uses the same multiple-country selection in the CRM directory table',async()=>{
+ vi.spyOn(professionalDirectoryApi,'list').mockResolvedValue({items:nationalRows,total:30,page:0});
+ headerState.popover=true;setup(undefined,true);
+ await screen.findByRole('button',{name:'National 01'});
+ fireEvent.click(within(screen.getByRole('banner')).getByRole('button',{name:'Filtres'}));
+ fireEvent.click(await screen.findByRole('checkbox',{name:'Maroc'}));
+ await waitFor(()=>expect(professionalDirectoryApi.list).toHaveBeenLastCalledWith('',0,'','','FR,MA'));
+ fireEvent.click(screen.getByRole('checkbox',{name:'France'}));
+ await waitFor(()=>expect(professionalDirectoryApi.list).toHaveBeenLastCalledWith('',0,'','','MA'));
+});
 
 it('keeps the national CRM read-only for users without private CRM permission',async()=>{
  roleState.crm=false;vi.spyOn(professionalDirectoryApi,'list').mockResolvedValue({items:nationalRows,total:30,page:0});setup(undefined,true);
- await screen.findByRole('button',{name:'National 01'});expect(prospectsApi.access).not.toHaveBeenCalled();expect(screen.queryByRole('checkbox')).not.toBeInTheDocument();expect(screen.queryByRole('tab',{name:'Campagnes'})).not.toBeInTheDocument();
+ await screen.findByRole('button',{name:'National 01'});expect(prospectsApi.access).not.toHaveBeenCalled();expect(within(screen.getByRole('table')).queryByRole('checkbox')).not.toBeInTheDocument();expect(screen.queryByRole('tab',{name:'Campagnes'})).not.toBeInTheDocument();
 });
 
 it('filters the national list from the single header icon, keeps its active state and resets it',async()=>{
@@ -160,14 +177,14 @@ it('filters the national list from the single header icon, keeps its active stat
  await screen.findByRole('button',{name:'National 01'});const header=screen.getByRole('banner');const filterButton=within(header).getByRole('button',{name:'Filtres'});
  expect(screen.queryByRole('combobox',{name:'Type de service'})).not.toBeInTheDocument();fireEvent.click(filterButton);
  fireEvent.change(await screen.findByRole('combobox',{name:'Type de service'}),{target:{value:'LAUNDRY'}});
- await screen.findByRole('button',{name:'Blanchisserie ciblée'});expect(filterButton).toHaveAttribute('data-filters-active','true');expect(professionalDirectoryApi.list).toHaveBeenLastCalledWith('',0,'LAUNDRY','');
+ await screen.findByRole('button',{name:'Blanchisserie ciblée'});expect(filterButton).toHaveAttribute('data-filters-active','true');expect(professionalDirectoryApi.list).toHaveBeenLastCalledWith('',0,'LAUNDRY','','FR');
  fireEvent.click(filterButton);expect(screen.queryByRole('combobox',{name:'Type de service'})).not.toBeInTheDocument();expect(filterButton).toHaveAttribute('data-filters-active','true');
  fireEvent.click(filterButton);fireEvent.click(await screen.findByRole('button',{name:'Réinitialiser les filtres'}));await screen.findByRole('button',{name:'National 01'});expect(filterButton).toHaveAttribute('data-filters-active','false');
 });
 it('mounts the map filter portal in the page header and applies its service selection',async()=>{
  headerState.popover=true;vi.mocked(professionalDirectoryApi.map).mockResolvedValue({items:[nationalRows[0]],nextCursor:null});setup('map',true);
  await screen.findAllByRole('button',{name:'National 01'});const header=screen.getByRole('banner');const filterButton=within(header).getByRole('button',{name:'Filtres'});fireEvent.click(filterButton);
- expect(await screen.findByRole('textbox',{name:'Ville'})).toBeInTheDocument();fireEvent.change(screen.getByRole('combobox',{name:'Type de service'}),{target:{value:'CLEANING'}});
+ expect(await screen.findByRole('textbox',{name:'Ville'})).toBeInTheDocument();fireEvent.click(screen.getByRole('button',{name:'Type de service'}));fireEvent.click(screen.getByRole('checkbox',{name:'Ménage et nettoyage'}));
  await waitFor(()=>expect(professionalDirectoryApi.map).toHaveBeenLastCalledWith(expect.objectContaining({service:'CLEANING'}),expect.any(AbortSignal)));expect(filterButton).toHaveAttribute('data-filters-active','true');
- fireEvent.click(screen.getByRole('button',{name:'Réinitialiser les filtres'}));await waitFor(()=>expect(screen.getByRole('combobox',{name:'Type de service'})).toHaveValue(''));expect(filterButton).toHaveAttribute('data-filters-active','false');
+ fireEvent.click(screen.getByRole('button',{name:'Réinitialiser les filtres'}));await waitFor(()=>expect(screen.getByRole('checkbox',{name:'Toutes les activités'})).toBeChecked());expect(filterButton).toHaveAttribute('data-filters-active','false');
 });

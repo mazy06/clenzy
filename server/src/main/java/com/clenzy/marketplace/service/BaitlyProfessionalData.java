@@ -9,7 +9,16 @@ import java.util.*;
 public final class BaitlyProfessionalData {
     private BaitlyProfessionalData() {}
     public record Business(String siret,String name,String address,String city,String postalCode,
-                           String activity,Double latitude,Double longitude) {}
+                           String activity,Double latitude,Double longitude,String country,String identifierType,String identifier,String service) {
+        public Business(String siret,String name,String address,String city,String postalCode,String activity,Double latitude,Double longitude){
+            this(siret,name,address,city,postalCode,activity,latitude,longitude,"FR","SIRET",siret,null);
+        }
+        public Business {
+            country=country==null?"FR":BaitlyDirectoryCountry.country(country);
+            identifierType=identifierType==null?"SIRET":identifierType;
+            identifier=identifier==null?siret:identifier;
+        }
+    }
     public record Place(String key,String name,String address,Double latitude,Double longitude,
                         String phone,String email,String website,List<String> signals) {}
     public static List<Business> businesses(JsonNode root) {

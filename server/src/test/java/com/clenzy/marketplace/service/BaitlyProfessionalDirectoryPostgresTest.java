@@ -18,22 +18,23 @@ import java.util.*;
 import static org.assertj.core.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
-@EnabledIfSystemProperty(named="baitly.directory.test.jdbc",matches="jdbc:postgresql://127\\.0\\.0\\.1:55442/postgres")
+@EnabledIfSystemProperty(named="baitly.directory.test.jdbc",matches="jdbc:postgresql://127\\.0\\.0\\.1:(55442/postgres|5433/baitly_directory_test_[a-f0-9]+)")
 class BaitlyProfessionalDirectoryPostgresTest {
     @Test void liquibaseAndValidationPreserveIdentityProvenanceAndWithdrawal() throws Exception {
         String base=System.getProperty("baitly.directory.test.jdbc"),schema="baitly_directory_"+UUID.randomUUID().toString().replace("-","");
-        try(var c=DriverManager.getConnection(base,"postgres","");var s=c.createStatement()){s.execute("CREATE SCHEMA "+schema);}
+        String user=System.getenv().getOrDefault("BAITLY_DIRECTORY_TEST_USER","postgres"),password=System.getenv().getOrDefault("BAITLY_DIRECTORY_TEST_PASSWORD","");
+        try(var c=DriverManager.getConnection(base,user,password);var s=c.createStatement()){s.execute("CREATE SCHEMA "+schema);}
         String url=base+"?currentSchema="+schema;
         try{
-            try(var c=DriverManager.getConnection(url,"postgres","")){
+            try(var c=DriverManager.getConnection(url,user,password)){
                 var db=DatabaseFactory.getInstance().findCorrectDatabaseImplementation(new JdbcConnection(c));var resources=new ClassLoaderResourceAccessor();
-                try(var master=new Liquibase("db/changelog/db.changelog-master.yaml",resources,db)){
+                try(var master=new Liquibase(System.getProperty("baitly.directory.test.changelog","db/changelog/db.changelog-master.yaml"),resources,db)){
                     var selected=new DatabaseChangeLog("db/changelog/db.changelog-master.yaml");
-                    master.getDatabaseChangeLog().getChangeSets().stream().filter(cs->Set.of("0577-baitly-professional-directory","0583-baitly-national-directory","0585-baitly-directory-ademe-rge","0586-baitly-directory-map-positions").contains(cs.getId())).forEach(selected::addChangeSet);
-                    assertThat(selected.getChangeSets()).hasSize(4);new Liquibase(selected,resources,db).update("");
+                    master.getDatabaseChangeLog().getChangeSets().stream().filter(cs->Set.of("0577-baitly-professional-directory","0583-baitly-national-directory","0585-baitly-directory-ademe-rge","0586-baitly-directory-map-positions","0587-baitly-directory-search-index","0588-baitly-directory-postgis","0589-baitly-directory-countries","0591-baitly-directory-country-cells").contains(cs.getId())).forEach(selected::addChangeSet);
+                    assertThat(selected.getChangeSets()).hasSize(8);new Liquibase(selected,resources,db).update("");
                 }
             }
-            var ds=new DriverManagerDataSource(url,"postgres","");var jdbc=new JdbcTemplate(ds);var tx=new TransactionTemplate(new DataSourceTransactionManager(ds));
+            var ds=new DriverManagerDataSource(url,user,password);var jdbc=new JdbcTemplate(ds);var tx=new TransactionTemplate(new DataSourceTransactionManager(ds));
             jdbc.execute("CREATE TABLE marketplace_providers(id bigint,registration_number varchar(40),display_name varchar(150),base_city varchar(80))");
             var mapper=new ObjectMapper().registerModule(new JavaTimeModule());var client=mock(BaitlyProfessionalDataClient.class);
             var redis=mock(StringRedisTemplate.class);
@@ -139,6 +140,106 @@ class BaitlyProfessionalDirectoryPostgresTest {
             }
             assertThat(directory.rankedMap("","","",-6,41,10,51,0,"BOTH","CONTACTS").items()).hasSize(1);
             assertThatThrownBy(()->directory.rankedMap("","","",-6,41,10,51,0,"","INVALID")).isInstanceOf(IllegalArgumentException.class);
-        }finally{try(var c=DriverManager.getConnection(base,"postgres","");var s=c.createStatement()){s.execute("DROP SCHEMA "+schema+" CASCADE");}}
+            // The real read-model publisher must preserve counts and contact-channel distinctions.
+            var metrics=new io.micrometer.core.instrument.simple.SimpleMeterRegistry();
+            var index=new BaitlyDirectoryMapIndex(jdbc,redis,mapper,metrics,new DataSourceTransactionManager(ds));
+            assertThat(index.rebuild()).isTrue();
+            assertThat(index.state().ready()).isTrue();
+            if(Boolean.getBoolean("baitly.directory.require-postgis"))assertThat(index.state().spatial()).isTrue();
+            assertThat(index.rebuild()).isFalse();
+            var aggregate=index.coverage("","",-180,-90,180,90);
+            assertThat(aggregate.total()).isEqualTo(804);
+            assertThat(index.coverage("","BOTH",-180,-90,180,90).total()).isEqualTo(1);
+            assertThat(index.coverage("","EMAIL",-180,-90,180,90).total()).isEqualTo(1);
+            assertThat(index.coverage("","PHONE",-180,-90,180,90).total()).isEqualTo(2);
+            directory.mapIndex(index);
+            assertThat(directory.rankedMap("","","",-6,41,10,51,0,"","PROXIMITY").items().getFirst().get("id")).isEqualTo(nearest);
+            // Panning to Saudi Arabia with the France filter must return an empty viewport.
+            var foreignViewport=directory.rankedMap("","","",27.7053,10.4025,78.0279,37.3681,0,"","PROXIMITY",52.8666,23.8853,"FR");
+            assertThat(foreignViewport.items()).isEmpty();
+            assertThat(foreignViewport.nextCursor()).isNull();
+            // Compare every spatial page with an exhaustive oracle, including >200 companies sharing coordinates.
+            for(String sort:List.of("PROXIMITY","CONTACTS","NAME")){
+                directory.mapIndex(null);
+                var expected=new ArrayList<Object>();long cursor=0;
+                do{var page=directory.rankedMap("","","",-6,41,10,51,cursor,"",sort);page.items().forEach(r->expected.add(r.get("id")));cursor=page.nextCursor()==null?0:page.nextCursor();}while(cursor>0);
+                directory.mapIndex(index);
+                var actual=new ArrayList<Object>();cursor=0;
+                do{var page=directory.rankedMap("","","",-6,41,10,51,cursor,"",sort);page.items().forEach(r->actual.add(r.get("id")));cursor=page.nextCursor()==null?0:page.nextCursor();}while(cursor>0);
+                assertThat(actual).containsExactlyElementsOf(expected);
+            }
+            assertThat(directory.rankedMap("","","",-6,41,10,51,0,"BOTH","PROXIMITY").items()).hasSize(1);
+            assertThat(directory.rankedMap("","","absent",-6,41,10,51,0,"","PROXIMITY").items()).isEmpty();
+            var loads=new java.util.concurrent.atomic.AtomicInteger();
+            assertThat(index.cached("test","same",String.class,()->{loads.incrementAndGet();return "value";})).isEqualTo("value");
+            index.cached("test","same",String.class,()->{loads.incrementAndGet();return "other";});
+            assertThat(loads).hasValue(1);
+            for(int key=0;key<64;key++){
+                final int number=key;
+                assertThat(index.cached("list","outer-"+key,String.class,()->index.cached("nearby","inner-"+number,String.class,()->"nested"))).isEqualTo("nested");
+            }
+            if(index.state().spatial()){
+                byte[] tile=index.tile(0,0,0,"","",index.state().revision());
+                assertThat(tile).isNotEmpty();
+                assertThat(new String(tile,java.nio.charset.StandardCharsets.ISO_8859_1)).contains("professionals");
+                assertThatThrownBy(()->index.tile(10,0,0,"","",index.state().revision())).isInstanceOf(IllegalArgumentException.class);
+            }
+            jdbc.update("UPDATE baitly_directory_professionals SET source_active=false WHERE id=?",nearest);
+            assertThat(index.rebuild()).isTrue();
+            assertThat(index.coverage("","",-180,-90,180,90).total()).isEqualTo(803);
+            assertThat(index.coverage("","BOTH",-180,-90,180,90).total()).isZero();
+            assertThatThrownBy(()->directory.mapReference(nearest)).isInstanceOf(org.springframework.web.server.ResponseStatusException.class);
+            int benchmarkRows=Integer.getInteger("baitly.directory.benchmark.rows",0);
+            if(benchmarkRows>0){
+                jdbc.update("""
+                    INSERT INTO baitly_directory_professionals(siret,name,address,city,postal_code,activity,sirene_latitude,sirene_longitude,sirene_retrieved_at,recorded_by)
+                    SELECT (95000000000000+n)::text,'Benchmark '||n,'1 rue Test','Ville test','44000','81.21Z',
+                        43+(n%700)/100.0,-4+(n%1200)/100.0,now(),'benchmark' FROM generate_series(1,?) n
+                    """,benchmarkRows);
+                directory.mapIndex(null);
+                long start=System.nanoTime();
+                var live=directory.clusters("","","",-6,41,10,51.5,"");long liveNanos=System.nanoTime()-start;
+                start=System.nanoTime();assertThat(index.rebuild()).isTrue();long buildNanos=System.nanoTime()-start;
+                directory.mapIndex(index);
+                start=System.nanoTime();var indexed=directory.clusters("","","",-6,41,10,51.5,"");long indexedNanos=System.nanoTime()-start;
+                assertThat(indexed.total()).isEqualTo(live.total()).isEqualTo(benchmarkRows+803);
+                start=System.nanoTime();directory.clusters("","","",-6,41,10,51.5,"");long cachedNanos=System.nanoTime()-start;
+                System.out.printf(java.util.Locale.ROOT,"BAITLY_DIRECTORY_BENCHMARK rows=%d build_ms=%.2f live_ms=%.2f indexed_ms=%.2f cached_ms=%.2f%n",
+                    benchmarkRows,buildNanos/1e6,liveNanos/1e6,indexedNanos/1e6,cachedNanos/1e6);
+            }
+            if(index.state().spatial()){
+                jdbc.update("""
+                    INSERT INTO baitly_directory_professionals(siret,name,address,city,postal_code,activity,sirene_latitude,sirene_longitude,sirene_retrieved_at,recorded_by)
+                    SELECT (96000000000000+n)::text,'Dense '||lpad(n::text,4,'0'),'1 rue Test','Dense','75000','81.21Z',48,2,now(),'test'
+                    FROM generate_series(1,2300) n
+                    """);
+                assertThat(index.rebuild()).isTrue();
+                var expected=jdbc.queryForList("SELECT id FROM baitly_directory_professionals WHERE NOT suppressed AND source_active AND city='Dense' ORDER BY contact_rank,lower(name) COLLATE \"C\",id",Long.class);
+                var actual=new ArrayList<Long>();long cursor=0;
+                do{
+                    var page=directory.rankedMap("Dense","","",-6,41,10,51,cursor,"","PROXIMITY",2.0,48.0);
+                    page.items().forEach(r->actual.add(((Number)r.get("id")).longValue()));cursor=page.nextCursor()==null?0:page.nextCursor();
+                }while(cursor>0);
+                assertThat(actual).containsExactlyElementsOf(expected).hasSize(2300).doesNotHaveDuplicates();
+                assertThat(directory.rankedMap("Dense","","",170,-1,-170,1,0,"","PROXIMITY",180.0,0.0).items()).isEmpty();
+            }
+
+            jdbc.update("""
+                INSERT INTO baitly_directory_professionals(country_code,identifier_type,identifier,base_source,name,address,city,postal_code,activity,sirene_latitude,sirene_longitude,sirene_retrieved_at,recorded_by)
+                SELECT 'SA','UNN',(7000000000+n)::text,'WATHQ','Saudi '||lpad(n::text,4,'0'),'10 Street','Riyadh','','',24.7,46.7,now(),'test'
+                FROM generate_series(1,205) n
+                """);
+            for(String sort:List.of("PROXIMITY","CONTACTS","NAME")){
+                var actual=new ArrayList<Object>();long cursor=0;
+                do{
+                    var page=directory.rankedMap("","","",-76.371,-14.829,84.607,62.466,cursor,"",sort,4.118,23.818,"SA");
+                    page.items().forEach(r->{assertThat(r.get("country_code")).isEqualTo("SA");actual.add(r.get("id"));});
+                    cursor=page.nextCursor()==null?0:page.nextCursor();
+                }while(cursor>0);
+                assertThat(actual).containsExactlyElementsOf(jdbc.queryForList("SELECT id FROM baitly_directory_professionals WHERE country_code='SA' ORDER BY name,id",Long.class));
+            }
+            assertThat(directory.rankedMap("","","",-32.0566,14.6514,25.7899,44.0454,0,"","PROXIMITY",-3.1333,29.3484,"SA").items()).isEmpty();
+            assertThat(directory.rankedMap("","","",170,-1,-170,1,0,"","PROXIMITY",180.0,0.0,"SA").items()).isEmpty();
+        }finally{try(var c=DriverManager.getConnection(base,user,password);var s=c.createStatement()){s.execute("DROP SCHEMA "+schema+" CASCADE");}}
     }
 }

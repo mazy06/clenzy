@@ -7,12 +7,15 @@ import { baitlyCrmDetailsApi } from '../../services/api/baitlyCrmDetailsApi';
 import { prospectsApi } from '../../services/api/prospectsApi';
 import type { BaitlyCrmContact } from './baitlyCrmWorkspace';
 vi.mock('../../hooks/useTranslation',()=>({useTranslation:()=>({currentLanguage:'fr',t:(key:string)=>key})}));
-vi.mock('../../hooks/useUserPreference',()=>({useUserPreference:(_key:string,initial:unknown)=>useState(initial)}));
+vi.mock('../../hooks/useUserPreference',()=>({useUserPreference:(key:string,initial:unknown)=>useState(key==='baitly.crm.columns'?[]:initial)}));
 const contact:BaitlyCrmContact={id:1,name:'Samira',contactType:'OWNER',contactNature:'PRIVATE',category:'OWNERS',status:'TO_CONTACT',sourceType:'MANUAL',archived:false,email:'samira@example.com',crm:{prospect_id:1,assigned_user_id:301,assigned_user_name:'Nadia',company_name:'Ancienne société',job_title:'Gérante',region:'Rabat',qualification:'QUALIFIED',score:3}};
 afterEach(()=>{cleanup();vi.restoreAllMocks();});
 function setup(canManage=true){vi.spyOn(baitlyCrmDetailsApi,'assignees').mockResolvedValue([{id:301,name:'Nadia'}]);const onOpen=vi.fn();render(<QueryClientProvider client={new QueryClient({defaultOptions:{queries:{retry:false},mutations:{retry:false}}})}><BaitlyCrmTable contacts={[contact]} org={10} status="all" canManage={canManage} onOpen={onOpen}/></QueryClientProvider>);return onOpen;}
 it('edits a detail in place and writes only after validating with the replacement action',async()=>{
  const save=vi.spyOn(baitlyCrmDetailsApi,'save').mockResolvedValue();const onOpen=setup();
+ expect(screen.getByRole('columnheader',{name:'Dernier échange'})).toBeVisible();
+ expect(screen.getByRole('columnheader',{name:'Prochaine action'})).toBeVisible();
+ expect(screen.getAllByText('Prochaine action')).toHaveLength(1);
  fireEvent.click(screen.getByRole('button',{name:'Ancienne société'}));fireEvent.change(screen.getByRole('textbox',{name:'Société : Samira'}),{target:{value:'Nouvelle société'}});
  expect(save).not.toHaveBeenCalled();expect(onOpen).not.toHaveBeenCalled();expect(screen.queryByRole('button',{name:'Supprimer : Samira'})).not.toBeInTheDocument();
  fireEvent.click(screen.getByRole('button',{name:'common.save : Samira'}));

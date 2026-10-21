@@ -12,7 +12,10 @@ const contact:ProspectDto={id:1,name:'Samira',contactType:'OWNER',contactNature:
 afterEach(()=>{cleanup();vi.restoreAllMocks();});
 function setup(canManage=true){render(<QueryClientProvider client={new QueryClient({defaultOptions:{queries:{retry:false},mutations:{retry:false}}})}><BaitlyCrmBoard contacts={[contact]} status="all" canManage={canManage} onOpen={vi.fn()}/></QueryClientProvider>);}
 it('persists only the relationship stage when dropped into another column',async()=>{
-  const update=vi.spyOn(prospectsApi,'update').mockResolvedValue({...contact,status:'IN_DISCUSSION'});setup();fireEvent.click(screen.getByRole('button',{name:'Drop next'}));
+  const update=vi.spyOn(prospectsApi,'update').mockResolvedValue({...contact,status:'IN_DISCUSSION'});setup();
+  expect(screen.getByText('Aucun échange')).toBeVisible();
+  expect(screen.getByRole('button',{name:'Mettre à jour le suivi : Samira'})).toBeVisible();
+  fireEvent.click(screen.getByRole('button',{name:'Drop next'}));
   await waitFor(()=>expect(update).toHaveBeenCalledWith(1,{status:'IN_DISCUSSION'}));expect(await screen.findByRole('status')).toHaveTextContent('Étape enregistrée.');
 });
 it('does not write for the current column, an outside drop or a cancelled drag',()=>{

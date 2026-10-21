@@ -4,7 +4,7 @@ import type {ReferencedProfessional} from '../../services/api/baitlyProfessional
 export interface MapAreaRequest {bounds:MapBounds;after:number}
 export interface MapAreaBatch extends MapAreaRequest {additionalBounds?:MapBounds[]}
 export interface MapAreaProgress extends MapAreaRequest {nextCursor:number|null}
-export interface MapDirectorySnapshot {rows:ReferencedProfessional[];areas:MapAreaProgress[];rankedCoverage?:MapBounds[]}
+export interface MapDirectorySnapshot {rows:ReferencedProfessional[];areas:MapAreaProgress[];rankedCoverage?:MapBounds[];truncated?:boolean}
 const key=(bounds:MapBounds)=>JSON.stringify([bounds.west,bounds.south,bounds.east,bounds.north]);
 const contains=(outer:MapBounds,inner:MapBounds)=>outer.west<=inner.west&&outer.east>=inner.east&&outer.south<=inner.south&&outer.north>=inner.north;
 function rectangles(bounds:MapBounds):MapBounds[]{

@@ -10,6 +10,7 @@ import { rememberReliefMode, setRelief } from './relief';
 export { prefersReducedMotion };
 
 export interface BaitlyMapOptions {
+  transformRequest?:maplibregl.MapOptions['transformRequest'];
   container: HTMLElement;
   mode: BaitlyMapMode;
   /** Langue explicite pour les pages voyageur indépendantes de la langue du PMS. */
@@ -48,6 +49,7 @@ export function createBaitlyMap({
   compass = true,
   attribution = true,
   perspective = false,
+  transformRequest,
 }: BaitlyMapOptions): maplibregl.Map {
   ensureMapRuntime();
   const period = currentPeriod(center[0]);
@@ -64,6 +66,7 @@ export function createBaitlyMap({
     maxZoom: 22,
     fadeDuration: prefersReducedMotion() ? 0 : 300,
     locale: controlsLocale(language),
+    transformRequest,
   });
   // Une archive mondiale encore indisponible ne bloque pas la carte régionale.
   map.on('error', (event) => {

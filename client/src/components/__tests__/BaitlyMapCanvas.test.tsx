@@ -7,6 +7,8 @@ import {baitlyDirectoryGlyphs} from '../../config/baitlyDirectoryGlyphs';
 import { useState } from 'react';
 
 const state = vi.hoisted(() => ({ markers: [] as Array<{ element: HTMLElement; removed: number }>, attribution: false }));
+const tileState=vi.hoisted(()=>({created:vi.fn(),disposed:vi.fn()}));
+vi.mock('../map/BaitlyDirectoryTiles',()=>({BaitlyDirectoryTiles:class{constructor(){tileState.created();}dispose(){tileState.disposed();}}}));
 const container = document.createElement('div');
 const map = {
   on: vi.fn(), off: vi.fn(), remove: vi.fn(),
@@ -75,6 +77,15 @@ beforeEach(() => {
 afterEach(() => { cleanup(); vi.unstubAllGlobals(); });
 
 describe('Carte Baitly : rafraîchissements et caméra', () => {
+  it('keeps the vector source through load completion and selection rerenders',()=>{
+    const options={url:'https://api.baitly.test/tiles/{z}/{x}/{y}',onReference:vi.fn(),onError:vi.fn()};
+    const view=render(<BaitlyMapCanvas properties={[]} directoryTiles={options}/>);
+    expect(tileState.created).toHaveBeenCalledTimes(1);
+    const load=map.on.mock.calls.find(([event])=>event==='load')![1];act(()=>load());
+    view.rerender(<BaitlyMapCanvas properties={[]} directoryTiles={{...options,onReference:vi.fn()}} highlightedPropertyId={1}/>);
+    expect(tileState.created).toHaveBeenCalledTimes(1);expect(tileState.disposed).not.toHaveBeenCalled();
+    view.unmount();expect(tileState.disposed).toHaveBeenCalledTimes(1);
+  });
   it('renders full database counts without regrouping them as individual businesses and zooms into their true bounds',()=>{
     const clicked=vi.fn();
     const group:PropertyMarker={id:-1_000_000_000_001,name:'50000 professionnels',type:'directory_cluster',clusterCount:50000,clusterBounds:[4,44,6,46],lat:45,lng:5};

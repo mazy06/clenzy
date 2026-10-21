@@ -7,7 +7,8 @@ import {crmDragMessages} from '../../i18n/baitlyCrmDragMessages';
 import PagePagination from '../../components/PagePagination';
 import { useTranslation } from '../../hooks/useTranslation';
 import { prospectionMessages } from '../../i18n/baitlyProspectionMessages';
-import type { ProspectDto } from '../../services/api/prospectsApi';
+import type { BaitlyCrmContact } from './baitlyCrmWorkspace';
+import BaitlyCrmFollowUp from './BaitlyCrmFollowUp';
 import { BAITLY_CRM_STATUSES } from './BaitlyCrmFields';
 import BaitlyCrmContactCard from './BaitlyCrmContactCard';
 export const BAITLY_CRM_STAGE_KEYS=['qualify','discuss','partner','rejected'] as const;
@@ -18,9 +19,9 @@ const columnCoordinates:KeyboardCoordinateGetter=(event,{currentCoordinates,cont
   const x=rect.left+rect.width/2;const candidates=columns.filter(column=>event.code==='ArrowRight'?column.left+column.width/2>x+1:column.left+column.width/2<x-1).sort((a,b)=>Math.abs(a.left+a.width/2-x)-Math.abs(b.left+b.width/2-x));
   const target=candidates[0];if(target)return {x:currentCoordinates.x+target.left+target.width/2-x,y:currentCoordinates.y+target.top+Math.min(target.height/2,100)-(rect.top+rect.height/2)};
 };
-export default function BaitlyCrmBoard({contacts,status,selected,onOpen,canManage=false}:{contacts:ProspectDto[];status:string;selected?:number;onOpen:(id:number)=>void;canManage?:boolean}){
+export default function BaitlyCrmBoard({contacts,status,selected,onOpen,canManage=false}:{contacts:BaitlyCrmContact[];status:string;selected?:number;onOpen:(id:number)=>void;canManage?:boolean}){
   const {currentLanguage}=useTranslation();const m=prospectionMessages(currentLanguage);const d=crmDragMessages(currentLanguage);const update=useUpdateProspect();
-  const [active,setActive]=useState<ProspectDto|null>(null);const [pending,setPending]=useState<{id:number;status:string}|null>(null);const [notice,setNotice]=useState('');
+  const [active,setActive]=useState<BaitlyCrmContact|null>(null);const [pending,setPending]=useState<{id:number;status:string}|null>(null);const [notice,setNotice]=useState('');
   const sensors=useSensors(useSensor(MouseSensor,{activationConstraint:{distance:5}}),useSensor(TouchSensor,{activationConstraint:{delay:200,tolerance:8}}),useSensor(KeyboardSensor,{coordinateGetter:columnCoordinates}));
   const blocked=!canManage||update.isPending;
   function finish(event:DragEndEvent){setActive(null);if(blocked||!event.over)return;const contact=contacts.find(item=>item.id===event.active.id);const target=String(event.over.id);if(!contact||contact.archived||!BAITLY_CRM_STATUSES.includes(target)||target===contact.status)return;
@@ -40,7 +41,7 @@ export default function BaitlyCrmBoard({contacts,status,selected,onOpen,canManag
     </DndContext>
   </>;
 }
-function Stage({stage,title,help,index,contacts,selected,onOpen,blocked,revealId}:{stage:string;title:string;help:string;index:number;contacts:ProspectDto[];selected?:number;onOpen:(id:number)=>void;blocked:boolean;revealId?:number}){
+function Stage({stage,title,help,index,contacts,selected,onOpen,blocked,revealId}:{stage:string;title:string;help:string;index:number;contacts:BaitlyCrmContact[];selected?:number;onOpen:(id:number)=>void;blocked:boolean;revealId?:number}){
   const {currentLanguage}=useTranslation();const m=prospectionMessages(currentLanguage);const [page,setPage]=useState(0);const {setNodeRef,isOver}=useDroppable({id:stage,disabled:blocked});
   const revealPage=revealId===undefined?-1:Math.floor(contacts.findIndex(contact=>contact.id===revealId)/10);
   useEffect(()=>{if(revealPage>=0)setPage(revealPage);},[revealId,revealPage]);
@@ -51,10 +52,11 @@ function Stage({stage,title,help,index,contacts,selected,onOpen,blocked,revealId
     {contacts.length>10&&<PagePagination page={currentPage} count={contacts.length} rowsPerPage={10} onPageChange={setPage}/>}
   </section>;
 }
-function DraggableContact({contact,selected,blocked,onOpen}:{contact:ProspectDto;selected:boolean;blocked:boolean;onOpen:()=>void}){
+function DraggableContact({contact,selected,blocked,onOpen}:{contact:BaitlyCrmContact;selected:boolean;blocked:boolean;onOpen:()=>void}){
   const {currentLanguage}=useTranslation();const d=crmDragMessages(currentLanguage);const {attributes,listeners,setNodeRef,setActivatorNodeRef,isDragging}=useDraggable({id:contact.id,disabled:blocked});
   return <div ref={setNodeRef} className="bcrm-draggable-contact" data-dragging={isDragging}>
     {!blocked&&<button type="button" id={`baitly-crm-drag-${contact.id}`} ref={setActivatorNodeRef} {...attributes} {...listeners} className="bcrm-drag-handle" aria-label={`${d.move} : ${contact.name}`} title={d.move}><GripVertical size={16} aria-hidden/></button>}
-    <BaitlyCrmContactCard contact={contact} selected={selected} onOpen={onOpen}/>
+    <BaitlyCrmContactCard contact={contact} selected={selected} onOpen={onOpen} showOrigin={false}/>
+    <BaitlyCrmFollowUp contact={contact} canManage={!blocked}/>
   </div>;
 }

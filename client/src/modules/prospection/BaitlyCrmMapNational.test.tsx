@@ -67,13 +67,12 @@ it('keeps the selected company and revealed list rows while zooming out and appe
  const view=setup();fireEvent.click(await screen.findByRole('button',{name:'Entreprise 45 -45'}));
  const panel=view.container.querySelector<HTMLElement>('[data-map-list-scroll]')!;
  fireEvent.click(screen.getByRole('button',{name:'Dézoomer la carte'}));
- await waitFor(()=>expect(complete).toHaveLength(4));
+ await waitFor(()=>expect(complete).toHaveLength(1));
  expect(within(panel).getByRole('button',{name:'Entreprise 45'})).toHaveAttribute('aria-pressed','true');
  expect(screen.getByTestId('popup')).toHaveTextContent('Entreprise 45');
  expect(view.container.querySelector('.baitly-map-list-skeleton')).toBeNull();
  await act(async()=>complete[0]({items:[{...row,id:100,name:'Nouvelle zone'}],nextCursor:null}));
- expect(screen.queryByRole('button',{name:'Nouvelle zone -100'})).not.toBeInTheDocument();
- await act(async()=>{for(let i=1;i<4;i++)complete[i]({items:[{...row,id:100,name:'Nouvelle zone'}],nextCursor:null});});
+
  await screen.findByRole('button',{name:'Nouvelle zone -100'});
  expect(within(panel).getByRole('button',{name:'Entreprise 45'})).toHaveAttribute('aria-pressed','true');
  expect(screen.getAllByRole('button',{name:'Nouvelle zone -100'})).toHaveLength(1);
@@ -140,7 +139,7 @@ it('keeps public IDs distinct from private contacts with the same numeric ID',as
 });
 it('searches a city across France, applies the service filter and focuses its results',async()=>{
  setup();await screen.findByRole('button',{name:'Atlas national -1'});fireEvent.click(screen.getByRole('button',{name:'Filtres de la carte'}));
- fireEvent.change(screen.getByRole('textbox',{name:'Ville'}),{target:{value:'Nantes'}});fireEvent.change(screen.getByRole('combobox',{name:'Type de service'}),{target:{value:'CLEANING'}});
+ fireEvent.change(screen.getByRole('textbox',{name:'Ville'}),{target:{value:'Nantes'}});fireEvent.click(screen.getByRole('button',{name:'Type de service'}));fireEvent.click(screen.getByRole('checkbox',{name:'Ménage et nettoyage'}));
  await waitFor(()=>expect(api.map).toHaveBeenLastCalledWith(expect.objectContaining({city:'Nantes',service:'CLEANING',bounds:{west:-180,south:-90,east:180,north:90}}),expect.any(AbortSignal)));
  await waitFor(()=>expect(screen.getByTestId('map')).toHaveAttribute('data-focus','[-1.5,47.2,-1.5,47.2]'));
 });
@@ -155,9 +154,14 @@ it('appends server pages and reuses a fully loaded area when moving inside it',a
 it('uses the laundry symbol and excludes maintenance from both the map and list when filtering laundry',async()=>{
  const laundry={...row,id:2,name:'Blanchisserie',activity:'96.01B'},maintenance={...row,id:3,name:'Maintenance',activity:'43.21A'};
  // Deliberately include an unrelated server result to exercise the display guard.
- vi.mocked(api.map).mockResolvedValue({items:[laundry,maintenance],nextCursor:null});setup();
+ vi.mocked(api.map).mockResolvedValue({items:[row,laundry,maintenance],nextCursor:null});setup();
  const map=await screen.findByTestId('map');await within(map).findByRole('button',{name:'Maintenance -3'});
- fireEvent.click(screen.getByRole('button',{name:'Filtres de la carte'}));fireEvent.change(screen.getByRole('combobox',{name:'Type de service'}),{target:{value:'LAUNDRY'}});
+ fireEvent.click(screen.getByRole('button',{name:'Filtres de la carte'}));fireEvent.click(screen.getByRole('button',{name:'Type de service'}));fireEvent.click(screen.getByRole('checkbox',{name:'Blanchisserie'}));
  const pin=await within(map).findByRole('button',{name:'Blanchisserie -2'});expect(pin).toHaveAttribute('data-glyph',baitlyDirectoryGlyphs.LAUNDRY.body);
  expect(within(map).queryByRole('button',{name:'Maintenance -3'})).not.toBeInTheDocument();expect(screen.queryByRole('button',{name:'Maintenance'})).not.toBeInTheDocument();
+ fireEvent.click(screen.getByRole('checkbox',{name:'Ménage et nettoyage'}));
+ await within(map).findByRole('button',{name:'Atlas national -1'});
+ expect(within(map).getByRole('button',{name:'Blanchisserie -2'})).toBeInTheDocument();
+ expect(within(map).queryByRole('button',{name:'Maintenance -3'})).not.toBeInTheDocument();
+ await waitFor(()=>expect(api.map).toHaveBeenLastCalledWith(expect.objectContaining({service:'CLEANING,LAUNDRY'}),expect.any(AbortSignal)));
 });

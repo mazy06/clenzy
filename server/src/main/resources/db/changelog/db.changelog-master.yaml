@@ -5228,3 +5228,92 @@ databaseChangeLog:
         - sqlFile:
             path: changes/0586__baitly_directory_map_positions.sql
             relativeToChangelogFile: true
+  - changeSet:
+      id: "0587-baitly-directory-search-index"
+      author: clenzy-team
+      changes:
+        - sqlFile:
+            path: changes/0587__baitly_directory_search_index.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+            stripComments: false
+  - changeSet:
+      id: "0588-baitly-directory-postgis"
+      author: clenzy-team
+      runAlways: true
+      changes:
+        - sqlFile:
+            path: changes/0588__baitly_directory_postgis.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+            stripComments: false
+
+  - changeSet:
+      id: "0589-baitly-directory-countries"
+      author: clenzy-team
+      changes:
+        - sqlFile:
+            path: changes/0589__baitly_directory_countries.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+            stripComments: false
+
+  - changeSet:
+      id: "0590-baitly-crm-country-identity"
+      author: clenzy-team
+      changes:
+        - sqlFile:
+            path: changes/0590__baitly_crm_country_identity.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+            stripComments: false
+
+  - changeSet:
+      id: "0591-baitly-directory-country-cells"
+      author: clenzy-team
+      changes:
+        - sqlFile:
+            path: changes/0591__baitly_directory_country_cells.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+            stripComments: false
+
+  - changeSet:
+      id: "0592-baitly-saudi-osm-directory"
+      author: clenzy-team
+      changes:
+        - sqlFile:
+            path: changes/0592__baitly_saudi_osm_directory.sql
+            relativeToChangelogFile: true
+
+  - changeSet:
+      id: "0593-baitly-saudi-overture-directory"
+      author: clenzy-team
+      changes:
+        - sqlFile:
+            path: changes/0593__baitly_saudi_overture_directory.sql
+            relativeToChangelogFile: true
+
+  - changeSet:
+      id: "0594-baitly-morocco-public-directory"
+      author: clenzy-team
+      changes:
+        - sqlFile:
+            path: changes/0594__baitly_morocco_public_directory.sql
+            relativeToChangelogFile: true
+
+  - changeSet:
+      id: "0595-baitly-directory-website-evidence"
+      author: clenzy-team
+      changes:
+        - sqlFile:
+            path: changes/0595__baitly_directory_website_evidence.sql
+            relativeToChangelogFile: true
+
+  - changeSet:
+      id: "0596-baitly-crm-follow-up"
+      author: clenzy-team
+      changes:
+        - sqlFile:
+            path: changes/0596__baitly_crm_follow_up.sql
+            relativeToChangelogFile: true

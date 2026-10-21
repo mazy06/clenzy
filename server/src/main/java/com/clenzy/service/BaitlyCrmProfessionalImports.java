@@ -75,16 +75,20 @@ public class BaitlyCrmProfessionalImports {
     }
     private ImportResult importBusiness(String actor,long org,SelectedBusiness source,ReferencedSource reference){
         Business b=source.business();
-        if(Boolean.TRUE.equals(db.queryForObject("SELECT EXISTS(SELECT 1 FROM baitly_directory_professionals WHERE siret=? AND suppressed=true)",Boolean.class,b.siret())))
-            return new ImportResult(b.siret(),b.name(),"REMOVED",null);
+        if(Boolean.TRUE.equals(db.queryForObject("SELECT EXISTS(SELECT 1 FROM baitly_directory_professionals WHERE country_code=? AND identifier_type=? AND identifier=? AND suppressed=true)",Boolean.class,b.country(),b.identifierType(),b.identifier())))
+            return new ImportResult(b,"REMOVED",null);
         var known=db.queryForList("""
             SELECT p.id,p.archived FROM baitly_crm_professional_imports i
             JOIN prospects p ON p.organization_id=i.organization_id AND p.id=i.prospect_id
-            WHERE i.organization_id=? AND i.siret=?
-            """,org,b.siret());
+            WHERE i.organization_id=? AND i.country_code=? AND (
+                (i.identifier_type=? AND i.identifier=?) OR EXISTS(
+                    SELECT 1 FROM baitly_directory_professionals d WHERE d.country_code=i.country_code
+                    AND d.identifier_type=? AND d.identifier=? AND d.identifiers->>i.identifier_type=i.identifier))
+            """,org,b.country(),b.identifierType(),b.identifier(),b.identifierType(),b.identifier());
         if(!known.isEmpty())return existing(b,known.getFirst());
         String email=reference==null?null:validEmail(reference.email()),phone=reference==null?null:validPhone(reference.phone());
         String website=reference==null?null:BaitlyProfessionalData.website(Objects.toString(reference.website(),""));
+        String storedPhone=phone!=null&&!b.country().equals("FR")?reference.phone():phone;
         if(email!=null||phone!=null){
             var identities=db.queryForList("""
                 SELECT p.id,p.archived FROM prospects p WHERE p.organization_id=? AND
@@ -103,35 +107,40 @@ public class BaitlyCrmProfessionalImports {
         if(!possible.isEmpty()){
             return review(b,possible.getFirst());
         }
-        String url="https://annuaire-entreprises.data.gouv.fr/etablissement/"+b.siret();
+        boolean french=b.country().equals("FR");
+        var proof=reference==null?null:reference.contactSources().stream().filter(item->b.identifierType().equals("OSM")?item.source().equals("OSM"):!Set.of("OSM","ADEME").contains(item.source())).findFirst().orElse(null);
+        if(!french&&proof==null)throw new IllegalArgumentException("Provenance de l’entreprise manquante");
+        String url=french?"https://annuaire-entreprises.data.gouv.fr/etablissement/"+b.siret():proof.url();
+        String licence=french?"Licence Ouverte 2.0":proof.licence();
         Long id=db.queryForObject("""
             INSERT INTO prospects(organization_id,name,city,specialty,category,status,contact_type,contact_nature,
                 source_type,source_detail,source_url,source_recorded_at,created_at,updated_at,archived,identity_version,
                 email,phone,website,normalized_email,normalized_phone)
-            VALUES(?,?,?,?,?,'TO_CONTACT','PROVIDER','PROFESSIONAL','OPEN_DATA',?,?,now(),now(),now(),false,0,?,?,?,?,?) RETURNING id
-            """,Long.class,org,b.name(),b.city(),b.activity(),category(b.activity()),
-            "Sirene · Licence Ouverte 2.0 · SIRET "+b.siret()+" · "+b.address()
+            VALUES(?,?,?,?,?,'TO_CONTACT','PROVIDER','PROFESSIONAL',?,?,?,now(),now(),now(),false,0,?,?,?,?,?) RETURNING id
+            """,Long.class,org,b.name(),b.city(),b.activity(),category(b.activity(),b.service()),french||Set.of("OSM","OVERTURE").contains(b.identifierType())?"OPEN_DATA":"PARTNER",
+            (french?"Sirene · Licence Ouverte 2.0 · SIRET "+b.siret():proof.source()+" · "+licence+" · "+b.identifierType()+" "+b.identifier())+" · "+b.address()
                 +(reference!=null&&reference.contactSources().stream().anyMatch(s->s.source().equals("ADEME"))?" · ADEME RGE · Licence Ouverte 2.0 · https://data.ademe.fr/datasets/liste-des-entreprises-rge-2":"")
                 +(reference!=null&&reference.osmKey()!=null?" · OpenStreetMap · ODbL 1.0 · https://www.openstreetmap.org/"+reference.osmKey():""),
-            url,email,phone,website,email,phone);
+            url,email,storedPhone,website,email,phone);
         String snapshot;try{snapshot=mapper.writeValueAsString(reference==null?b:reference);}catch(Exception e){throw new IllegalStateException("Invalid source evidence",e);}
         db.update("""
-            INSERT INTO baitly_crm_professional_imports(organization_id,prospect_id,siret,source_url,licence,retrieved_at,imported_by,snapshot)
-            VALUES(?,?,?,?,?,?,?,CAST(? AS jsonb))
-            """,org,id,b.siret(),url,reference!=null&&reference.osmKey()!=null?"Licence Ouverte 2.0; ODbL 1.0":"Licence Ouverte 2.0",java.sql.Timestamp.from(source.retrievedAt()),actor,snapshot);
+            INSERT INTO baitly_crm_professional_imports(organization_id,prospect_id,siret,country_code,identifier_type,identifier,source_url,licence,retrieved_at,imported_by,snapshot)
+            VALUES(?,?,?,?,?,?,?,?,?,?,CAST(? AS jsonb))
+            """,org,id,b.siret(),b.country(),b.identifierType(),b.identifier(),url,licence+(reference!=null&&reference.osmKey()!=null?"; ODbL 1.0":""),java.sql.Timestamp.from(source.retrievedAt()),actor,snapshot);
         db.update("INSERT INTO baitly_crm_contact_details(organization_id,prospect_id,company_name,recorded_by) VALUES(?,?,?,?)",org,id,b.name(),actor);
-        return new ImportResult(b.siret(),b.name(),"CREATED",id);
+        return new ImportResult(b,"CREATED",id);
     }
     private static ImportResult existing(Business b,Map<String,Object> row){
         boolean archived=Boolean.TRUE.equals(row.get("archived"));
-        return new ImportResult(b.siret(),b.name(),archived?"REMOVED":"EXISTING",archived?null:((Number)row.get("id")).longValue());
+        return new ImportResult(b,archived?"REMOVED":"EXISTING",archived?null:((Number)row.get("id")).longValue());
     }
     private static ImportResult review(Business b,Map<String,Object> row){
-        var existing=existing(b,row);return existing.status().equals("REMOVED")?existing:new ImportResult(b.siret(),b.name(),"REVIEW",existing.id());
+        var existing=existing(b,row);return existing.status().equals("REMOVED")?existing:new ImportResult(b,"REVIEW",existing.id());
     }
     private static String validEmail(String value){try{return BaitlyCrmIdentity.email(value);}catch(IllegalArgumentException e){return null;}}
     private static String validPhone(String value){try{return BaitlyCrmIdentity.phone(value);}catch(IllegalArgumentException e){return null;}}
-    private static String category(String activity){
+    private static String category(String activity,String service){
+        if(service!=null)return switch(service){case "CONCIERGE"->"CONCIERGERIES";case "CLEANING"->"MENAGE";case "LAUNDRY"->"BLANCHISSERIES";case "EXTERIOR"->"ENTRETIEN";case "MAINTENANCE"->"ARTISANS";default->"PROVIDERS";};
         if(BaitlyProfessionalSearchFilters.activities("CONCIERGE").contains(activity))return "CONCIERGERIES";
         if(BaitlyProfessionalSearchFilters.activities("CLEANING").contains(activity))return "MENAGE";
         if(BaitlyProfessionalSearchFilters.activities("LAUNDRY").contains(activity))return "BLANCHISSERIES";

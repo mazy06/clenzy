@@ -1,12 +1,17 @@
 name: Baitly professional directory sources
 
 on:
+  workflow_call:
+    inputs:
+      saudi_only:
+        type: boolean
+        default: true
   schedule:
     - cron: '41 3 * * 0'
   workflow_dispatch:
     inputs:
       publish:
-        description: Publier la source OSM commune après promotion sur production
+        description: Publier les sources ouvertes communes après promotion sur production
         type: boolean
         default: false
   push:
@@ -24,6 +29,7 @@ concurrency:
 
 jobs:
   public-source:
+    if: ${{ !inputs.saudi_only }}
     runs-on: ubuntu-latest
     timeout-minutes: 180
     steps:
@@ -71,3 +77,61 @@ jobs:
           done
           # Publish the manifest last. Consumers never observe a partial immutable snapshot.
           aws s3 cp /tmp/baitly-directory/latest.json s3://baitly-cartes/maps/directory/latest.json --endpoint-url https://s3.gra.io.cloud.ovh.net --acl public-read --no-progress --content-type application/json --cache-control 'public, max-age=300'
+
+  saudi-public-source:
+    strategy:
+      fail-fast: false
+      matrix:
+        country: [SA, MA]
+    env:
+      COUNTRY: ${{ matrix.country }}
+      SOURCE_FOLDER: /tmp/baitly-directory/${{ matrix.country }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event_name == 'schedule' && 'production' || github.ref }}
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Installer et tester les extracteurs nationaux
+        run: |
+          pip install -r scripts/directory/requirements.txt certifi
+          python -m unittest discover -s scripts/directory -p 'test_baitly_*.py'
+      - name: Construire les éditions nationales OSM et Overture
+        run: |
+          python scripts/directory/build_baitly_saudi_osm_snapshot.py --country "$COUNTRY" --out "$SOURCE_FOLDER"
+          python scripts/directory/build_baitly_saudi_public_snapshot.py --country "$COUNTRY" --out "$SOURCE_FOLDER"
+          if [ "$COUNTRY" = MA ]; then
+            python scripts/directory/enrich_baitly_morocco_websites.py --out "$SOURCE_FOLDER"
+          fi
+      - uses: actions/upload-artifact@v4
+        with:
+          name: baitly-directory-${{ matrix.country }}-public-source
+          path: |
+            /tmp/baitly-directory/${{ matrix.country }}/public-*.jsonl
+            /tmp/baitly-directory/${{ matrix.country }}/latest.json
+            /tmp/baitly-directory/${{ matrix.country }}/review.jsonl
+            /tmp/baitly-directory/${{ matrix.country }}/website-review.jsonl
+            /tmp/baitly-directory/${{ matrix.country }}/website-report.json
+            /tmp/baitly-directory/${{ matrix.country }}/licenses/*.txt
+          retention-days: 7
+      - name: Publier l’édition nationale complète
+        if: github.event_name == 'schedule' || ((github.ref == 'refs/heads/main' || github.ref == 'refs/heads/production') && (github.event_name == 'push' || inputs.publish))
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.BAITLY_MAPS_AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.BAITLY_MAPS_AWS_SECRET_ACCESS_KEY }}
+          AWS_DEFAULT_REGION: gra
+          AWS_REQUEST_CHECKSUM_CALCULATION: when_required
+          AWS_RESPONSE_CHECKSUM_VALIDATION: when_required
+        run: |
+          test -n "$AWS_ACCESS_KEY_ID" && test -n "$AWS_SECRET_ACCESS_KEY"
+          python -c 'import hashlib,json,pathlib,os; p=pathlib.Path(os.environ["SOURCE_FOLDER"]); m=json.loads((p/"latest.json").read_text()); b=(p/("public-"+m["manifest"]["sha256"]+".jsonl")).read_bytes(); assert len(b)==m["bytes"] and hashlib.sha256(b).hexdigest()==m["manifest"]["sha256"] and m["manifest"]["source"]==os.environ["COUNTRY"]+"_PUBLIC" and m["manifest"]["country"]==os.environ["COUNTRY"]'
+          for file in /tmp/baitly-directory/${{ matrix.country }}/public-*.jsonl; do
+            aws s3 cp "$file" "s3://baitly-cartes/maps/directory/${COUNTRY,,}/$(basename "$file")" --endpoint-url https://s3.gra.io.cloud.ovh.net --acl public-read --no-progress --content-type application/x-ndjson --cache-control 'public, max-age=31536000, immutable'
+          done
+          aws s3 cp /tmp/baitly-directory/${{ matrix.country }}/licenses s3://baitly-cartes/maps/directory/${COUNTRY,,}/licenses/ --recursive --endpoint-url https://s3.gra.io.cloud.ovh.net --acl public-read --no-progress --content-type text/plain --cache-control 'public, max-age=300'
+          aws s3 cp /tmp/baitly-directory/${{ matrix.country }}/latest.json s3://baitly-cartes/maps/directory/${COUNTRY,,}/latest.json --endpoint-url https://s3.gra.io.cloud.ovh.net --acl public-read --no-progress --content-type application/json --cache-control 'public, max-age=300'
+          # A successful authenticated upload does not prove that backend consumers can read it.
+          python scripts/directory/verify_baitly_public_source.py --country "$COUNTRY" --out "$SOURCE_FOLDER"

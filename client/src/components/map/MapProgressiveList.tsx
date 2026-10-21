@@ -1,8 +1,12 @@
 import { useEffect,useRef,useState,type ReactNode } from 'react';
 import { useTranslation } from '../../hooks/useTranslation';
+import BaitlyVirtualMapList from './BaitlyVirtualMapList';
 
 /** Collections déjà chargées : ajoute des lignes au bas du panneau partagé, sans pages. */
-export default function MapProgressiveList<T>({items,renderItem,resetKey,batchSize=20,activeIndex=-1}:{items:T[];renderItem:(item:T)=>ReactNode;resetKey:string;batchSize?:number;activeIndex?:number}) {
+export default function MapProgressiveList<T>({items,renderItem,resetKey,batchSize=20,activeIndex=-1,virtualize=false,getItemKey}:{items:T[];renderItem:(item:T)=>ReactNode;resetKey:string;batchSize?:number;activeIndex?:number;virtualize?:boolean;getItemKey?:(item:T)=>string|number}) {
+  return virtualize?<BaitlyVirtualMapList key={resetKey} items={items} renderItem={renderItem} activeIndex={activeIndex} getItemKey={getItemKey}/>:<ProgressiveRows items={items} renderItem={renderItem} resetKey={resetKey} batchSize={batchSize} activeIndex={activeIndex}/>;
+}
+function ProgressiveRows<T>({items,renderItem,resetKey,batchSize,activeIndex}:{items:T[];renderItem:(item:T)=>ReactNode;resetKey:string;batchSize:number;activeIndex:number}) {
   const {t}=useTranslation();
   const [window,setWindow]=useState({key:resetKey,count:batchSize});
   const count=Math.max(window.key===resetKey?window.count:batchSize,activeIndex+1);

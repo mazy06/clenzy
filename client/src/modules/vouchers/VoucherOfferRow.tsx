@@ -55,28 +55,32 @@ export default function VoucherOfferRow({ voucher: v, busy, onEdit, onPause, onR
   const tone = {ACTIVE:'ok',PAUSED:'warn',DRAFT:'info',EXPIRED:'neutral'} as const;
   const artwork = v.discountType === 'FREE_NIGHTS' ? 'occupancy' : v.discountType === 'FIXED_AMOUNT' ? 'revenue' : 'adr';
   const limit = v.maxUsesTotal;
-  return <article ref={offerRef} className="baitly-voucher-offer" data-status={v.status} data-expanded={expanded}>
-    <div className="baitly-voucher-ticket">
-      <img src={`/images/dashboard-kpis/${artwork}.webp`} width={64} height={64} alt="" decoding="async" />
-      <strong>{voucherDiscount(v, currentLanguage, count => t('vouchers.editor.nights',{count}))}</strong>
-      <span>{t(`vouchers.workspace.${v.discountType === 'FREE_NIGHTS' ? 'freeNights' : 'discount'}`, {count:Number(v.discountValue)})}</span>
+  return <article ref={offerRef} className="baitly-voucher-offer" data-card-tone={v.discountType === 'FREE_NIGHTS' ? 'blue' : v.discountType === 'FIXED_AMOUNT' ? 'teal' : 'purple'} data-status={v.status} data-expanded={expanded}>
+    <div className="baitly-voucher-topline">
+      <span className="baitly-voucher-category">{t(v.type === 'AUTO_CAMPAIGN' ? 'vouchers.typeAuto' : 'vouchers.typeManual')}</span>
+      <StatusChip tone={tone[v.status]} label={t(`vouchers.status.${v.status}`)} />
     </div>
     <div className="baitly-voucher-content">
-      <div className="baitly-voucher-heading"><h3>{v.name}</h3><StatusChip tone={tone[v.status]} label={t(`vouchers.status.${v.status}`)} /></div>
+      <div className="baitly-voucher-feature">
+        <div className="baitly-voucher-heading"><h3 title={v.name}>{v.name}</h3>
+          {v.description && <p>{v.description}</p>}
+        </div>
+        <div className="baitly-voucher-art"><img src={`/images/dashboard-kpis/${artwork}.webp`} alt="" width={132} height={132} decoding="async" loading="lazy" /></div>
+      </div>
       <div className="baitly-voucher-code-row">
         {v.code ? <Button variant="outline" size="sm" className="baitly-voucher-code" onClick={copy} disabled={copying} aria-label={t('vouchers.workspace.copyCode',{code:v.code})}>
           <bdi>{v.code}</bdi>{copied === v.code ? <Check size={14} /> : <Copy size={14} />}
         </Button> : <span className="baitly-voucher-auto">{t('vouchers.autoCampaign')}</span>}
-        <span>{t(v.type === 'AUTO_CAMPAIGN' ? 'vouchers.typeAuto' : 'vouchers.typeManual')}</span>
       </div>
       <div className="baitly-voucher-meta">
         <span>{v.validFrom || v.validUntil ? [v.validFrom ? date(v.validFrom) : t('vouchers.workspace.noStart'),v.validUntil ? date(v.validUntil) : t('vouchers.workspace.noEnd')].join(' → ') : t('vouchers.workspace.noDates')}</span>
         <span>{v.propertyIds.length ? t('vouchers.workspace.propertyCount',{count:v.propertyIds.length}) : t('vouchers.workspace.allProperties')}</span>
       </div>
-      <div className="baitly-voucher-bottom">
         <div className="baitly-voucher-usage"><span><strong>{v.usageCount}</strong>{limit != null ? ` / ${limit}` : ''} {t('vouchers.workspace.uses')}</span>
           {limit != null && limit > 0 && <div role="meter" aria-label={t('vouchers.table.usage')} aria-valuemin={0} aria-valuemax={limit} aria-valuenow={Math.min(v.usageCount,limit)}><i style={{transform:`scaleX(${Math.min(v.usageCount/limit,1)})`}} /></div>}
         </div>
+      <div className="baitly-voucher-bottom">
+        <strong className="baitly-voucher-discount">{voucherDiscount(v, currentLanguage, count => t('vouchers.editor.nights',{count}))}</strong>
         <div className="baitly-voucher-actions">
           <Button ref={conditionsRef} variant="ghost" size="sm" onClick={() => setExpanded(!expanded)} aria-expanded={expanded} aria-controls={detailsId}>{t('vouchers.workspace.conditions')}<ChevronDown size={14} /></Button>
           <Button variant="outline" size="sm" onClick={onEdit} disabled={busy}><Edit size={14} />{t('common.edit')}</Button>

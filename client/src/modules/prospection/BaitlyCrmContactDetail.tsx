@@ -16,8 +16,8 @@ import { contactKind } from './baitlyCrmWorkspace';
 import { BaitlyCrmKindIcon } from './BaitlyCrmContactCard';
 import BaitlyCrmDetailsEditor from './BaitlyCrmDetailsEditor';
 
-export default function BaitlyCrmContactDetail({ id, org, canManage, canAuthorize, onClose }: {
-  id: number; org: number; canManage: boolean; canAuthorize: boolean; onClose: () => void;
+export default function BaitlyCrmContactDetail({ id, org, canManage, canFollowUp=canManage, canAuthorize, onClose }: {
+  id: number; org: number; canManage: boolean; canFollowUp?: boolean; canAuthorize: boolean; onClose: () => void;
 }) {
   const { t, currentLanguage } = useTranslation(); const client = useQueryClient();
   const contact = useQuery({ queryKey: ['prospects', org, id], queryFn: () => prospectsApi.detail(id) });
@@ -45,7 +45,7 @@ export default function BaitlyCrmContactDetail({ id, org, canManage, canAuthoriz
       {t('baitlyCrm.duplicatesHelp', { count: duplicates.data.length })}
       <ul className="mt-2 list-inside list-disc">{duplicates.data.map((duplicate) => <li key={duplicate.id}>{duplicate.name} (#{duplicate.id})</li>)}</ul>
     </AlertDescription></Alert>}
-    {tab==='overview'&&<div className="bcrm-record-overview"><section><BaitlyCrmInquiries org={org} contactId={id} canManage={canManage} /></section><section><BaitlyCrmDetailsEditor id={id} org={org} canManage={canManage&&!p.archived} /><dl className="bcrm-record-fields grid gap-3 text-sm sm:grid-cols-2">
+    {tab==='overview'&&<div className="bcrm-record-overview"><section><BaitlyCrmInquiries org={org} contactId={id} canManage={canManage} /></section><section><BaitlyCrmDetailsEditor id={id} org={org} contactName={p.name} canManage={canManage&&!p.archived} canFollowUp={canFollowUp&&!p.archived} /><dl className="bcrm-record-fields grid gap-3 text-sm sm:grid-cols-2">
       {['email','phone','specialty','contactNature','sourceType','sourceDetail','sourceRecordedAt'].filter(field=>Boolean(p[field as keyof typeof p])).map((field) => {
         const value = p[field as keyof typeof p];
         const displayed = field === 'sourceRecordedAt' && typeof value === 'string' ? new Date(value).toLocaleString(currentLanguage)

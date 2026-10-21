@@ -4,13 +4,14 @@ import {Button,Input,Skeleton} from '../../components/ui';
 import {useTranslation} from '../../hooks/useTranslation';
 import {prospectionMessages} from '../../i18n/baitlyProspectionMessages';
 import {baitlyCrmDetailsApi,type BaitlyCrmDetails,type BaitlyCrmDetailsWrite} from '../../services/api/baitlyCrmDetailsApi';
-export default function BaitlyCrmDetailsEditor({id,org,canManage}:{id:number;org:number;canManage:boolean}){
+import BaitlyCrmFollowUp from './BaitlyCrmFollowUp';
+export default function BaitlyCrmDetailsEditor({id,org,canManage,canFollowUp=canManage,contactName=''}:{id:number;org:number;canManage:boolean;canFollowUp?:boolean;contactName?:string}){
   const {currentLanguage}=useTranslation();const m=prospectionMessages(currentLanguage);
   const query=useQuery({queryKey:['prospects',org,'details'],queryFn:baitlyCrmDetailsApi.list});
   if(query.isPending)return <Skeleton className="h-32 w-full" />;
   if(query.isError)return <div role="alert"><p>{m.detailsError}</p><Button variant="outline" onClick={()=>query.refetch()}>{m.locationRetry}</Button></div>;
   const value=query.data.find(row=>row.prospect_id===id);
-  return <Details key={JSON.stringify(value)} id={id} org={org} canManage={canManage} value={value} />;
+  return <><BaitlyCrmFollowUp contact={{id,crm:value,name:contactName,archived:false}} canManage={canFollowUp}/><Details key={JSON.stringify(value)} id={id} org={org} canManage={canManage} value={value} /></>;
 }
 function Details({id,org,canManage,value}:{id:number;org:number;canManage:boolean;value?:BaitlyCrmDetails}){
   const {currentLanguage}=useTranslation();const m=prospectionMessages(currentLanguage);const client=useQueryClient();const [editing,setEditing]=useState(false);const [assignee,setAssignee]=useState(String(value?.assigned_user_id??''));

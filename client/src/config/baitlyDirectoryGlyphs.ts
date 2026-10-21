@@ -21,6 +21,6 @@ export const baitlyDirectoryGlyphs:Record<DirectoryService,IconData>={
 };
 export const baitlyDirectoryIcons=Object.fromEntries(Object.entries(baitlyDirectoryGlyphs).map(([service,glyph])=>[service,createIcon(`Directory${service}`,{duotone:glyph})])) as Record<DirectoryService,IconComponent>;
 export const baitlyDirectoryFallbackIcon=createIcon('DirectoryBuilding',{duotone:building});
-export function baitlyDirectoryGlyph(activity:string):IconData {
- const service=baitlyDirectoryActivity(activity);return service?baitlyDirectoryGlyphs[service]:building;
+export function baitlyDirectoryGlyph(activity:string,registeredService?:DirectoryService):IconData {
+ const service=registeredService??baitlyDirectoryActivity(activity);return service?baitlyDirectoryGlyphs[service]:building;
 }

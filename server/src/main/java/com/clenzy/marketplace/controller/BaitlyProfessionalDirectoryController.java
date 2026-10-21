@@ -13,20 +13,27 @@ import java.util.Map;
 @RequestMapping("/api/professional-directory")
 @PreAuthorize("isAuthenticated()")
 public class BaitlyProfessionalDirectoryController {
+    private static final org.slf4j.Logger log=org.slf4j.LoggerFactory.getLogger(BaitlyProfessionalDirectoryController.class);
     private final BaitlyProfessionalDirectory directory;
     public BaitlyProfessionalDirectoryController(BaitlyProfessionalDirectory directory){this.directory=directory;}
-    @GetMapping public BaitlyProfessionalDirectory.Page list(@RequestParam(defaultValue="") String query,@RequestParam(defaultValue="0") int page,@RequestParam(defaultValue="") String service,@RequestParam(defaultValue="") String contacts){return directory.list(query,page,service,contacts);}
+    @GetMapping public BaitlyProfessionalDirectory.Page list(@RequestParam(defaultValue="") String query,@RequestParam(defaultValue="0") int page,@RequestParam(defaultValue="") String service,@RequestParam(defaultValue="") String contacts,@RequestParam(defaultValue="FR") String country){return directory.list(query,page,service,contacts,country);}
     @GetMapping("/map/clusters") public BaitlyProfessionalDirectory.MapCoverage clusters(@RequestParam(defaultValue="") String city,@RequestParam(defaultValue="") String service,@RequestParam(defaultValue="") String query,
-        @RequestParam(defaultValue="-180") double west,@RequestParam(defaultValue="-90") double south,@RequestParam(defaultValue="180") double east,@RequestParam(defaultValue="90") double north,@RequestParam(defaultValue="") String contacts){
-        return directory.clusters(city,service,query,west,south,east,north,contacts);
+        @RequestParam(defaultValue="-180") double west,@RequestParam(defaultValue="-90") double south,@RequestParam(defaultValue="180") double east,@RequestParam(defaultValue="90") double north,@RequestParam(defaultValue="") String contacts,@RequestParam(defaultValue="FR") String country){
+        return directory.clusters(city,service,query,west,south,east,north,contacts,country);
     }
     @GetMapping("/map") public BaitlyProfessionalDirectory.MapPage map(@RequestParam(defaultValue="") String city,@RequestParam(defaultValue="") String service,@RequestParam(defaultValue="") String query,
-        @RequestParam(defaultValue="-180") double west,@RequestParam(defaultValue="-90") double south,@RequestParam(defaultValue="180") double east,@RequestParam(defaultValue="90") double north,@RequestParam(defaultValue="0") long after,@RequestParam(defaultValue="") String contacts){
-        return directory.map(city,service,query,west,south,east,north,after,contacts);
+        @RequestParam(defaultValue="-180") double west,@RequestParam(defaultValue="-90") double south,@RequestParam(defaultValue="180") double east,@RequestParam(defaultValue="90") double north,@RequestParam(defaultValue="0") long after,@RequestParam(defaultValue="") String contacts,@RequestParam(defaultValue="FR") String country){
+        return directory.map(city,service,query,west,south,east,north,after,contacts,country);
     }
-    @GetMapping("/map/ranked") public BaitlyProfessionalDirectory.MapPage rankedMap(@RequestParam(defaultValue="") String city,@RequestParam(defaultValue="") String service,@RequestParam(defaultValue="") String query,
+    public BaitlyProfessionalDirectory.MapPage rankedMap(@RequestParam(defaultValue="") String city,@RequestParam(defaultValue="") String service,@RequestParam(defaultValue="") String query,
         @RequestParam double west,@RequestParam double south,@RequestParam double east,@RequestParam double north,@RequestParam(defaultValue="0") long after,@RequestParam(defaultValue="") String contacts,@RequestParam(defaultValue="PROXIMITY") String sort){
         return directory.rankedMap(city,service,query,west,south,east,north,after,contacts,sort);
+    }
+
+    @GetMapping("/map/ranked") public BaitlyProfessionalDirectory.MapPage rankedMapWithCenter(@RequestParam(defaultValue="") String city,@RequestParam(defaultValue="") String service,@RequestParam(defaultValue="") String query,
+        @RequestParam double west,@RequestParam double south,@RequestParam double east,@RequestParam double north,@RequestParam(defaultValue="0") long after,@RequestParam(defaultValue="") String contacts,@RequestParam(defaultValue="PROXIMITY") String sort,
+        @RequestParam(required=false) Double centerLongitude,@RequestParam(required=false) Double centerLatitude,@RequestParam(defaultValue="FR") String country){
+        return directory.rankedMap(city,service,query,west,south,east,north,after,contacts,sort,centerLongitude,centerLatitude,country);
     }
     @PostMapping("/sirene/search") @PreAuthorize("hasAnyRole('SUPER_ADMIN','SUPER_MANAGER')")
     public BaitlyProfessionalDirectory.Preview search(@AuthenticationPrincipal Jwt jwt,@Valid @RequestBody BaitlyProfessionalDirectory.Search input){return directory.search(jwt.getSubject(),input);}
@@ -44,4 +51,23 @@ public class BaitlyProfessionalDirectoryController {
     public void suppress(@PathVariable long id){directory.suppress(id);}
     @ExceptionHandler(IllegalArgumentException.class) @ResponseStatus(org.springframework.http.HttpStatus.BAD_REQUEST)
     public Map<String,String> invalid(IllegalArgumentException e){return Map.of("message",e.getMessage());}
+    @ExceptionHandler(org.springframework.dao.QueryTimeoutException.class)
+    public org.springframework.http.ResponseEntity<Map<String,Object>> queryTimeout(){
+        log.warn("Baitly professional directory query exceeded its time limit");
+        return org.springframework.http.ResponseEntity.status(org.springframework.http.HttpStatus.GATEWAY_TIMEOUT)
+            .header("Retry-After","2").body(Map.of("code","DIRECTORY_QUERY_TIMEOUT","status",504,
+                "message","La recherche prend trop de temps. Rapprochez la carte ou affinez les filtres, puis réessayez."));
+    }
+    public BaitlyProfessionalDirectory.Page list(String query,int page,String service,String contacts){return list(query,page,service,contacts,"FR");}
+
+    public BaitlyProfessionalDirectory.MapCoverage clusters(String city,String service,String query,
+        double west,double south,double east,double north,String contacts){return clusters(city,service,query,west,south,east,north,contacts,"FR");}
+
+    public BaitlyProfessionalDirectory.MapPage map(String city,String service,String query,
+        double west,double south,double east,double north,long after,String contacts){return map(city,service,query,west,south,east,north,after,contacts,"FR");}
+
+    public BaitlyProfessionalDirectory.MapPage rankedMapWithCenter(String city,String service,String query,
+        double west,double south,double east,double north,long after,String contacts,String sort,
+        Double centerLongitude,Double centerLatitude){return rankedMapWithCenter(city,service,query,west,south,east,north,after,contacts,sort,centerLongitude,centerLatitude,"FR");}
+
 }

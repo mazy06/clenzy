@@ -1,4 +1,4 @@
-import {useEffect,useRef,useState} from 'react';
+import {useCallback,useEffect,useRef,useState} from 'react';
 import {useMutation,useQueryClient} from '@tanstack/react-query';
 import {crmProfessionalImportsApi} from '../../services/api/baitlyProfessionalDirectoryApi';
 
@@ -11,8 +11,9 @@ export function useBaitlyProfessionalMapImport(org:number|undefined,enabled:bool
   onSuccess:(_result,ids,organization)=>{void client.invalidateQueries({queryKey:['prospects']});if(organization===scope.current)setSelected(previous=>new Set([...previous].filter(id=>!ids.includes(id))));}});
  useEffect(()=>{setSelected(new Set());setMode(false);request.reset();},[org,enabled,request.reset]);
  const canImport=enabled&&org!==undefined;
+ const toggle=useCallback((id:number)=>{if(!canImport||request.isPending)return;request.reset();setSelected(previous=>{const next=new Set(previous);if(next.has(id))next.delete(id);else if(next.size<100)next.add(id);return next;});},[canImport,request.isPending,request.reset]);
  return {selected,mode,setMode,request,canImport,
-  toggle:(id:number)=>{if(!canImport||request.isPending)return;request.reset();setSelected(previous=>{const next=new Set(previous);if(next.has(id))next.delete(id);else if(next.size<100)next.add(id);return next;});},
+  toggle,
   toggleLoaded:(ids:number[])=>{if(!canImport||request.isPending)return;request.reset();setSelected(previous=>{const next=new Set(previous),batch=[...new Set(ids)].slice(0,100);if(batch.every(id=>next.has(id)))batch.forEach(id=>next.delete(id));else for(const id of batch){if(next.size>=100)break;next.add(id);}return next;});},
   clear:()=>{if(!request.isPending){request.reset();setSelected(new Set());}},
   submit:()=>{if(canImport&&selected.size&&!request.isPending)request.mutate([...selected]);},

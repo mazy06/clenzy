@@ -5,7 +5,7 @@ import { LayoutGrid, List } from '../../icons/glyphs';
 import { useTranslation } from '../../hooks/useTranslation';
 import { DirectoryLayout } from './DirectoryLayout';
 import { DirectoryToolbar } from './DirectoryToolbar';
-import { DirectoryCard, DirectoryCardContent, DirectoryTag, DIRECTORY_CARD_BODY, type CatalogView } from './DirectoryCard';
+import { DirectoryCard, DirectoryCardContent, DirectoryTag, DIRECTORY_CARD_BODY, type CatalogView, type DirectoryCardTone } from './DirectoryCard';
 
 export { DirectoryFilterGroup as CatalogFilterGroup, DirectoryFilter as CatalogFilter } from './DirectoryFilters';
 export { DirectoryResults as CatalogResults, type CatalogView } from './DirectoryCard';
@@ -30,12 +30,13 @@ export function BaitlyCatalog({ filters, title, count, view, onViewChange, toolb
 }
 
 /** Les actions restent hors du bouton d'ouverture de la fiche. */
-export function CatalogCard({ title, source, media, description, trailing, badges, metadata, children, price, priceNote, action, onOpen }: {
+export function CatalogCard({ title, source, media, description, trailing, badges, metadata, children, price, priceNote, action, onOpen, tone }: {
   title: string; source: ReactNode; media: ReactNode; description?: string; trailing?: ReactNode;
   badges?: ReactNode; metadata?: ReactNode; children?: ReactNode;
   price: ReactNode; priceNote?: ReactNode; action: ReactNode; onOpen?: () => void;
+  tone?: DirectoryCardTone;
 }) {
-  return <DirectoryCard>
+  return <DirectoryCard tone={tone}>
     <div className={DIRECTORY_CARD_BODY}>
       <DirectoryCardContent
         media={media}

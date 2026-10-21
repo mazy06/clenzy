@@ -19,7 +19,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import static org.assertj.core.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
-@EnabledIfSystemProperty(named="baitly.directory.test.jdbc",matches="jdbc:postgresql://127\\.0\\.0\\.1:55442/postgres")
+@EnabledIfSystemProperty(named="baitly.directory.test.jdbc",matches="jdbc:postgresql://127\\.0\\.0\\.1:(55442/postgres|5433/baitly_directory_test_[a-f0-9]+)")
 class BaitlyNationalDirectoryPostgresTest {
     @Test void contactFiltersUseEffectiveAdemeAndOsmValuesBeforeCountingAndPaging()throws Exception {
         withDatabase((db,manager)->{
@@ -73,11 +73,15 @@ class BaitlyNationalDirectoryPostgresTest {
             assertThat(db.queryForObject("SELECT suppressed FROM baitly_directory_professionals WHERE siret='42345678900044'",Boolean.class)).isTrue();
             assertThat(db.queryForObject("SELECT count(*) FROM baitly_directory_source_evidence",Long.class)).isEqualTo(2);
             new BaitlyNationalDirectorySync(db,source,manager,true).synchronize();verify(source,times(1)).open("etab-v1");
+            db.update("INSERT INTO baitly_directory_professionals(country_code,identifier_type,identifier,base_source,name,address,city,postal_code,activity,sirene_retrieved_at,recorded_by) VALUES('MA','ICE','001234567890123','OMPIC','Maroc à conserver','Rue test','Rabat','','',now(),'test')");
+            db.update("INSERT INTO baitly_directory_sync(country_code,revision,establishments_url,units_url,phase) VALUES('MA',?,'authorized-file','','COMPLETED')",UUID.randomUUID());
             when(source.resolve()).thenReturn(new BaitlyNationalDirectorySource.Resources("etab-v2","units-v2"));
             when(source.open("etab-v2")).thenAnswer(i->csv(ETAB+"22345678900022,O,A,80.10Z,NAFRev2,12,RUE,NOUVELLE,69001,LYON,Security,,\n"));
             when(source.open("units-v2")).thenAnswer(i->csv(UNIT+"223456789,O,A,Security SAS,\n"));
             service.synchronize();
-            assertThat(db.queryForObject("SELECT count(*) FROM baitly_directory_professionals WHERE source_active AND NOT suppressed",Long.class)).isEqualTo(1);
+            assertThat(db.queryForObject("SELECT count(*) FROM baitly_directory_professionals WHERE source_active AND NOT suppressed AND country_code='FR'",Long.class)).isEqualTo(1);
+            assertThat(db.queryForObject("SELECT name FROM baitly_directory_professionals WHERE country_code='MA' AND source_active",String.class)).isEqualTo("Maroc à conserver");
+            assertThat(db.queryForObject("SELECT phase FROM baitly_directory_sync WHERE country_code='MA'",String.class)).isEqualTo("COMPLETED");
             assertThat(db.queryForObject("SELECT osm_key FROM baitly_directory_professionals WHERE siret='22345678900022'",String.class)).isNull();
             assertThat(db.queryForObject("SELECT name FROM private_test_crm WHERE organization_id=10",String.class)).isEqualTo("Ma correction");
             assertThat(db.queryForObject("SELECT count(*) FROM baitly_directory_professionals WHERE siret='22345678900022'",Long.class)).isEqualTo(1);
@@ -161,18 +165,20 @@ class BaitlyNationalDirectoryPostgresTest {
     interface Work {void run(JdbcTemplate db,DataSourceTransactionManager manager)throws Exception;}
     static void withDatabase(Work work)throws Exception {
         String base=System.getProperty("baitly.directory.test.jdbc"),schema="baitly_national_"+UUID.randomUUID().toString().replace("-","");
-        try(var c=DriverManager.getConnection(base,"postgres","");var s=c.createStatement()){s.execute("CREATE SCHEMA "+schema);}
+        String user=System.getenv().getOrDefault("BAITLY_DIRECTORY_TEST_USER","postgres");
+        String password=System.getenv().getOrDefault("BAITLY_DIRECTORY_TEST_PASSWORD","");
+        try(var c=DriverManager.getConnection(base,user,password);var s=c.createStatement()){s.execute("CREATE SCHEMA "+schema);}
         String url=base+"?currentSchema="+schema;
         try {
-            try(var c=DriverManager.getConnection(url,"postgres","")) {
+            try(var c=DriverManager.getConnection(url,user,password)) {
                 var database=DatabaseFactory.getInstance().findCorrectDatabaseImplementation(new JdbcConnection(c));var resources=new ClassLoaderResourceAccessor();
-                try(var master=new Liquibase("db/changelog/db.changelog-master.yaml",resources,database)) {
+                try(var master=new Liquibase(System.getProperty("baitly.directory.test.changelog","db/changelog/db.changelog-master.yaml"),resources,database)) {
                     var selected=new DatabaseChangeLog("db/changelog/db.changelog-master.yaml");
-                    master.getDatabaseChangeLog().getChangeSets().stream().filter(cs->Set.of("0577-baitly-professional-directory","0583-baitly-national-directory","0585-baitly-directory-ademe-rge").contains(cs.getId())).forEach(selected::addChangeSet);
-                    assertThat(selected.getChangeSets()).hasSize(3);new Liquibase(selected,resources,database).update("");
+                    master.getDatabaseChangeLog().getChangeSets().stream().filter(cs->Set.of("0577-baitly-professional-directory","0583-baitly-national-directory","0585-baitly-directory-ademe-rge","0589-baitly-directory-countries","0592-baitly-saudi-osm-directory","0593-baitly-saudi-overture-directory","0594-baitly-morocco-public-directory","0595-baitly-directory-website-evidence").contains(cs.getId())).forEach(selected::addChangeSet);
+                    assertThat(selected.getChangeSets()).hasSize(8);new Liquibase(selected,resources,database).update("");
                 }
             }
-            var ds=new DriverManagerDataSource(url,"postgres","");work.run(new JdbcTemplate(ds),new DataSourceTransactionManager(ds));
-        }finally{try(var c=DriverManager.getConnection(base,"postgres","");var s=c.createStatement()){s.execute("DROP SCHEMA "+schema+" CASCADE");}}
+            var ds=new DriverManagerDataSource(url,user,password);work.run(new JdbcTemplate(ds),new DataSourceTransactionManager(ds));
+        }finally{try(var c=DriverManager.getConnection(base,user,password);var s=c.createStatement()){s.execute("DROP SCHEMA "+schema+" CASCADE");}}
     }
 }

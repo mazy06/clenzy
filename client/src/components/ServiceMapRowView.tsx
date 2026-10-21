@@ -90,10 +90,10 @@ export default function ServiceMapRowView({
       <div className="baitly-service-map-footer">
         <div className="baitly-service-map-assignee">
           <div aria-hidden className="flex shrink-0 -space-x-2 rtl:space-x-reverse">{assigneeAvatars}</div>
-          <div className="min-w-0">
+          <div className="baitly-service-map-assignee-label" title={assigneeName}>
             <span className="sr-only">{assigneeLabel} : </span>
-            <span className="text-xs font-medium [overflow-wrap:anywhere]">{assigneeName}</span>
-            {!!extraMemberCount && <span className="ms-1 text-xs tabular-nums text-muted-foreground">+{extraMemberCount}</span>}
+            <span dir="auto" className="baitly-service-map-assignee-name text-xs font-medium">{assigneeName}</span>
+            {!!extraMemberCount && <span className="shrink-0 text-xs tabular-nums text-muted-foreground">+{extraMemberCount}</span>}
           </div>
         </div>
         <div className="baitly-service-map-actions">
@@ -104,7 +104,7 @@ export default function ServiceMapRowView({
             </Button>
           </TooltipTrigger><TooltipContent>{t('mapPilot.locate', 'Localiser sur la carte')}</TooltipContent></Tooltip>}
         </div>
-        {children && <div className="basis-full">{children}</div>}
+        {children && <div className="baitly-service-map-footer-extra">{children}</div>}
       </div>
       {actions && <div className="baitly-service-map-commercial empty:hidden">{actions}</div>}
     </article></PopoverAnchor>

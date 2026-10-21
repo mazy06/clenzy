@@ -1,0 +1,67 @@
+name: Baitly directory spatial index
+on:
+  pull_request:
+    paths:
+      - 'server/src/**/Baitly*Directory*'
+      - 'server/src/**/BaitlyWathq*'
+      - 'server/src/**/BaitlySaudiOsm*'
+      - 'server/src/**/BaitlySaudiPublic*'
+      - 'server/src/**/BaitlyMorocco*'
+      - 'server/src/**/BaitlyPublic*'
+      - 'scripts/directory/**'
+      - 'server/src/**/BaitlyCrm*'
+      - 'server/src/main/resources/db/changelog/**'
+      - '.github/workflows/ci-baitly-directory-index.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'server/src/**/Baitly*Directory*'
+      - 'server/src/**/BaitlyWathq*'
+      - 'server/src/**/BaitlySaudiOsm*'
+      - 'server/src/**/BaitlySaudiPublic*'
+      - 'server/src/**/BaitlyMorocco*'
+      - 'server/src/**/BaitlyPublic*'
+      - 'scripts/directory/**'
+      - 'server/src/**/BaitlyCrm*'
+      - 'server/src/main/resources/db/changelog/**'
+      - '.github/workflows/ci-baitly-directory-index.yml'
+permissions:
+  contents: read
+jobs:
+  spatial-index:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    services:
+      postgres:
+        image: postgis/postgis:15-3.5
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_HOST_AUTH_METHOD: trust
+          POSTGRES_DB: postgres
+        ports: ['55442:5432']
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s --health-timeout 5s --health-retries 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+          cache: maven
+          cache-dependency-path: server/pom.xml
+      - name: Verify real Liquibase, GiST ranking, MVT, publication and authorization
+        working-directory: server
+        run: mvn -B -Dtest=BaitlyProfessionalDirectoryPostgresTest,BaitlyProfessionalDirectoryAccessTest,BaitlyDirectoryCountryStockTest,BaitlyWathqClientTest,BaitlySaudiOsmStockTest,BaitlySaudiOsmPostgresTest,BaitlySaudiPublicPostgresTest,BaitlyMoroccoPublicStockTest,BaitlyMoroccoPublicPostgresTest,BaitlyDirectoryCountryPostgresTest,BaitlyNationalDirectoryPostgresTest,BaitlyCrmProfessionalImportsTest,BaitlyCrmProfessionalImportsPostgresTest -Dbaitly.directory.test.jdbc=jdbc:postgresql://127.0.0.1:55442/postgres -Dbaitly.directory.benchmark.rows=100000 -Dbaitly.directory.require-postgis=true test
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Verify national OSM/Overture geography and extraction
+        run: |
+          pip install -r scripts/directory/requirements.txt certifi
+          python -m unittest discover -s scripts/directory -p 'test_*.py'
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: baitly-directory-spatial-tests
+          path: server/target/surefire-reports/

@@ -18,21 +18,35 @@ import static com.clenzy.marketplace.service.BaitlyProfessionalData.*;
 @Service
 public class BaitlyProfessionalDirectory {
     private final JdbcTemplate db;
+    private final JdbcTemplate mapReads;
+    private BaitlyDirectoryMapIndex mapIndex;
+    @org.springframework.beans.factory.annotation.Autowired(required=false)
+    public void mapIndex(BaitlyDirectoryMapIndex index){this.mapIndex=index;}
     private final BaitlyProfessionalDataClient client;
     private final StringRedisTemplate redis;
     private final ObjectMapper mapper;
-    public BaitlyProfessionalDirectory(JdbcTemplate db,BaitlyProfessionalDataClient client,StringRedisTemplate redis,ObjectMapper mapper){this.db=db;this.client=client;this.redis=redis;this.mapper=mapper;}
+    public BaitlyProfessionalDirectory(JdbcTemplate db,BaitlyProfessionalDataClient client,StringRedisTemplate redis,ObjectMapper mapper){
+        this.db=db;this.client=client;this.redis=redis;this.mapper=mapper;
+        this.mapReads=db.getDataSource()==null?db:new JdbcTemplate(db.getDataSource());
+        if(this.mapReads!=db)this.mapReads.setQueryTimeout(5);
+    }
     public record Search(@Size(max=120) String query,@Pattern(regexp="[0-9]{5}|^$") String postalCode,@Min(1) @Max(100) int page,
                          @Pattern(regexp="[0-9AB]{5}|^$") String communeCode,@Size(max=30) String service) {
         public Search(String query,String postalCode,int page){this(query,postalCode,page,"","");}
     }
     public record Choice(@NotNull UUID ticket,@Min(0) @Max(29) int index) {}
     public record BulkChoices(@NotEmpty @Size(max=100) List<@NotNull @Valid Choice> choices) {}
-    public record ImportResult(String siret,String name,String status,Long id) {}
+    public record ImportResult(String siret,String name,String status,Long id,String country,String identifierType,String identifier) {
+        public ImportResult(String siret,String name,String status,Long id){this(siret,name,status,id,"FR","SIRET",siret);}
+        public ImportResult(Business business,String status,Long id){this(business.siret(),business.name(),status,id,business.country(),business.identifierType(),business.identifier());}
+    }
     public record SelectedBusiness(Business business,Instant retrievedAt) {}
     public record ReferenceLocation(String label,double latitude,double longitude,String osmConfirmedAt) {}
     public record ContactEvidence(String source,String url,String licence,Instant retrievedAt) {}
-    public record ReferencedSource(SelectedBusiness identity,String phone,String email,String website,String osmKey,Instant osmRetrievedAt,ReferenceLocation location,List<ContactEvidence> contactSources) {
+    public record WebsiteOffering(String service,String label,String url) {}
+    public record ReferencedSource(SelectedBusiness identity,String phone,String email,String website,String osmKey,Instant osmRetrievedAt,ReferenceLocation location,List<ContactEvidence> contactSources,List<String> services,List<WebsiteOffering> serviceDetails) {
+        public ReferencedSource(SelectedBusiness identity,String phone,String email,String website,String osmKey,Instant osmRetrievedAt,ReferenceLocation location,List<ContactEvidence> contactSources,List<String> services){this(identity,phone,email,website,osmKey,osmRetrievedAt,location,contactSources,services,List.of());}
+        public ReferencedSource(SelectedBusiness identity,String phone,String email,String website,String osmKey,Instant osmRetrievedAt,ReferenceLocation location,List<ContactEvidence> contactSources){this(identity,phone,email,website,osmKey,osmRetrievedAt,location,contactSources,List.of());}
         public ReferencedSource(SelectedBusiness identity,String phone,String email,String website,String osmKey,Instant osmRetrievedAt,ReferenceLocation location){this(identity,phone,email,website,osmKey,osmRetrievedAt,location,List.of());}
         public ReferencedSource(SelectedBusiness identity,String phone,String email,String website,String osmKey,Instant osmRetrievedAt){this(identity,phone,email,website,osmKey,osmRetrievedAt,null);}
     }
@@ -44,9 +58,18 @@ public class BaitlyProfessionalDirectory {
     public record MapCluster(String key,long count,double latitude,double longitude,double west,double south,double east,double north,long representativeId) {}
     public record MapCoverage(List<MapCluster> clusters,long total) {}
     /** Baitly: complete visible coverage, independent of the detail-list cursor. */
-    @Transactional(readOnly=true)
-    public MapCoverage clusters(String city,String service,String query,double west,double south,double east,double north,String contacts){
-        var scope=mapScope(city,service,query,west,south,east,north,0,contacts);
+    public MapCoverage clusters(String city,String service,String query,double west,double south,double east,double north,String contacts){return clusters(city,service,query,west,south,east,north,contacts,"FR");}
+    public MapCoverage clusters(String city,String service,String query,double west,double south,double east,double north,String contacts,String country){
+        mapScope(city,service,query,west,south,east,north,0,contacts,country);
+        if(west==east)throw new IllegalArgumentException("Emprise de carte invalide");
+        if(mapIndex==null)return liveClusters(city,service,query,west,south,east,north,contacts,country);
+        return mapIndex.cached("coverage",List.of(country,city,service,query,west,south,east,north,contacts),MapCoverage.class,()->{
+            var indexed=city.isBlank()&&query.isBlank()?mapIndex.coverage(service,contacts,west,south,east,north,country):null;
+            return indexed!=null?indexed:liveClusters(city,service,query,west,south,east,north,contacts,country);
+        });
+    }
+    private MapCoverage liveClusters(String city,String service,String query,double west,double south,double east,double north,String contacts,String country){
+        var scope=spatialScope(mapScope(city,service,query,west,south,east,north,0,contacts,country),west,south,east,north);
         if(west==east)throw new IllegalArgumentException("Emprise de carte invalide");
         double width=east>west?east-west:360-west+east;
         var args=new ArrayList<Object>(List.of(west,width,south,north-south));args.addAll(scope.args());
@@ -76,24 +99,48 @@ public class BaitlyProfessionalDirectory {
         return map(city,service,query,west,south,east,north,after,"");
     }
     @Transactional(readOnly=true)
-    public MapPage map(String city,String service,String query,double west,double south,double east,double north,long after,String contacts) {
-        var scope=mapScope(city,service,query,west,south,east,north,after,contacts);
+    public MapPage map(String city,String service,String query,double west,double south,double east,double north,long after,String contacts) {return map(city,service,query,west,south,east,north,after,contacts,"FR");}
+    public MapPage map(String city,String service,String query,double west,double south,double east,double north,long after,String contacts,String country) {
+        var scope=mapScope(city,service,query,west,south,east,north,after,contacts,country);
         var args=scope.args();String where=scope.where();
         var rows=db.queryForList("""
-            SELECT id,siret,name,address,city,postal_code,activity,coalesce(latitude,sirene_latitude) AS latitude,coalesce(longitude,sirene_longitude) AS longitude,
+            SELECT id,siret,country_code,identifier_type,identifier,service,base_source,name,address,city,postal_code,activity,coalesce(latitude,sirene_latitude) AS latitude,coalesce(longitude,sirene_longitude) AS longitude,
                 coalesce(nullif(phone,''),rge_phone) AS phone,coalesce(nullif(email,''),rge_email) AS email,coalesce(nullif(website,''),rge_website) AS website,rge_retrieved_at,sirene_retrieved_at,osm_key,osm_name,osm_confirmed_at,
                 coalesce(osm_key,(SELECT e.snapshot->>'key' FROM baitly_directory_source_evidence e WHERE e.professional_id=baitly_directory_professionals.id AND e.source='OSM' AND e.confirmed_by='baitly:osm-stock' ORDER BY e.id DESC LIMIT 1)) AS osm_contact_key,
-                CASE WHEN osm_confirmed_at IS NOT NULL THEN 'OSM' ELSE 'SIRENE' END AS location_source
+                CASE WHEN osm_confirmed_at IS NOT NULL THEN 'OSM' ELSE base_source END AS location_source
             FROM baitly_directory_professionals
             """+where+" ORDER BY id LIMIT 201",args.toArray());
         boolean more=rows.size()>200;var items=List.copyOf(rows.subList(0,Math.min(200,rows.size())));
         return new MapPage(items,more?((Number)items.getLast().get("id")).longValue():null);
     }
     private record MapScope(String where,List<Object> args) {}
+    private MapScope spatialScope(MapScope scope,double west,double south,double east,double north){
+        if(mapIndex==null||!mapIndex.state().spatial()||west>east)return scope;
+        var args=new ArrayList<Object>(scope.args());Collections.addAll(args,west,south,east,north);
+        return new MapScope(scope.where()+" AND map_position::public.geometry OPERATOR(public.&&) public.ST_MakeEnvelope(?,?,?,?,4326)",args);
+    }
+
     /** Global ranking precedes pagination; the last ID anchors a full ranking tuple, not an ID order. */
     @Transactional(readOnly=true)
     public MapPage rankedMap(String city,String service,String query,double west,double south,double east,double north,long after,String contacts,String sort) {
-        var scope=mapScope(city,service,query,west,south,east,north,0,contacts);
+        return rankedMap(city,service,query,west,south,east,north,after,contacts,sort,null,null);
+    }
+    public MapPage rankedMap(String city,String service,String query,double west,double south,double east,double north,long after,String contacts,String sort,Double longitude,Double latitude) {return rankedMap(city,service,query,west,south,east,north,after,contacts,sort,longitude,latitude,"FR");}
+    public MapPage rankedMap(String city,String service,String query,double west,double south,double east,double north,long after,String contacts,String sort,Double longitude,Double latitude,String country) {
+        if((longitude==null)!=(latitude==null)||longitude!=null&&(!Double.isFinite(longitude)||!Double.isFinite(latitude)||Math.abs(longitude)>180||Math.abs(latitude)>90))throw new IllegalArgumentException("Centre invalide");
+        mapScope(city,service,query,west,south,east,north,after,contacts,country);
+        if(!Set.of("PROXIMITY","CONTACTS","NAME").contains(sort))throw new IllegalArgumentException("Tri invalide");
+        if(mapIndex==null)return liveRankedMap(city,service,query,west,south,east,north,after,contacts,sort,longitude,latitude,country);
+        return mapIndex.cached("list",Arrays.asList(country,city,service,query,west,south,east,north,after,contacts,sort,longitude,latitude),MapPage.class,
+            ()->liveRankedMap(city,service,query,west,south,east,north,after,contacts,sort,longitude,latitude,country));
+    }
+    private MapPage liveRankedMap(String city,String service,String query,double west,double south,double east,double north,long after,String contacts,String sort,Double longitude,Double latitude,String country) {
+        var scope=mapScope(city,service,query,west,south,east,north,0,contacts,country);
+        if(mapIndex!=null&&mapIndex.state().spatial()&&west<=east){
+            var business=businessScope(city,service,query,contacts,country);
+            var parameters=new ArrayList<Object>(business.args());Collections.addAll(parameters,west,south,east,north);
+            scope=new MapScope(business.where()+" AND map_position::public.geometry OPERATOR(public.&&) public.ST_MakeEnvelope(?,?,?,?,4326)",parameters);
+        }
         if(after<0)throw new IllegalArgumentException("Curseur invalide");
         String order=switch(sort){
             case "PROXIMITY" -> "distance,contact_rank,name_rank,id";
@@ -101,45 +148,127 @@ public class BaitlyProfessionalDirectory {
             case "NAME" -> "name_rank,id";
             default -> throw new IllegalArgumentException("Tri invalide");
         };
-        double centerLat=(south+north)/2,centerLon=wrapLongitude(west+(east>=west?east-west:360-west+east)/2);
-        var args=new ArrayList<Object>(List.of(centerLat,centerLat,centerLon));args.addAll(scope.args());
+        double centerLat=latitude==null?(south+north)/2:latitude,centerLon=longitude==null?wrapLongitude(west+(east>=west?east-west:360-west+east)/2):longitude;
+
+        boolean spatial=mapIndex!=null&&mapIndex.state().spatial();
+        // The French stock dominates the shared spatial index. A foreign-country viewport
+        // must be filtered before ordering, especially when its camera center is far away.
+        boolean foreign=!BaitlyDirectoryCountry.countries(country).contains("FR");
+        if(spatial&&sort.equals("PROXIMITY")&&!foreign)return nearbyPage(city,service,query,west,south,east,north,after,contacts,centerLon,centerLat,country);
+        String contactRank=mapIndex!=null?"contact_rank":"-(CASE WHEN nullif(btrim(coalesce(nullif(phone,''),rge_phone)),'') IS NOT NULL THEN 1 ELSE 0 END + CASE WHEN nullif(btrim(coalesce(nullif(email,''),rge_email)),'') IS NOT NULL THEN 1 ELSE 0 END)";
+        String distance=spatial?"map_position OPERATOR(public.<->) public.ST_SetSRID(public.ST_MakePoint(?,?),4326)::public.geography":
+            "(sin(radians(coalesce(latitude,sirene_latitude)-?)/2)^2+cos(radians(?))*cos(radians(coalesce(latitude,sirene_latitude)))*sin(radians(coalesce(longitude,sirene_longitude)-?)/2)^2)";
+        var args=new ArrayList<Object>(spatial?List.of(centerLon,centerLat):List.of(centerLat,centerLat,centerLon));args.addAll(scope.args());
+        String ctes="WITH ",rankTable="baitly_directory_professionals";
+        if(spatial&&foreign){
+            var business=businessScope(city,service,query,contacts,country);
+            ctes="WITH country_scope AS MATERIALIZED (SELECT id,name,contact_rank,map_position FROM baitly_directory_professionals"+business.where()+"), ";
+            rankTable="country_scope";
+            args=new ArrayList<>(business.args());Collections.addAll(args,centerLon,centerLat);
+            if(west<=east){
+                scope=new MapScope(" WHERE map_position::public.geometry OPERATOR(public.&&) public.ST_MakeEnvelope(?,?,?,?,4326)",List.of(west,south,east,north));
+            }else{
+                scope=new MapScope(" WHERE public.ST_Y(map_position::public.geometry) BETWEEN ? AND ? AND (public.ST_X(map_position::public.geometry)>=? OR public.ST_X(map_position::public.geometry)<=?)",List.of(south,north,west,east));
+            }
+            args.addAll(scope.args());
+        }
         String cursor="";
         if(after>0){cursor=" WHERE ("+order+") > (SELECT "+order+" FROM ranked WHERE id=?)";args.add(after);}
-        var rows=db.queryForList("""
-            WITH ranked AS NOT MATERIALIZED (
-                SELECT id,siret,name,address,city,postal_code,activity,
-                    coalesce(latitude,sirene_latitude) AS latitude,coalesce(longitude,sirene_longitude) AS longitude,
-                    coalesce(nullif(phone,''),rge_phone) AS phone,coalesce(nullif(email,''),rge_email) AS email,
-                    coalesce(nullif(website,''),rge_website) AS website,rge_retrieved_at,sirene_retrieved_at,osm_key,osm_name,osm_confirmed_at,
-                    coalesce(osm_key,(SELECT e.snapshot->>'key' FROM baitly_directory_source_evidence e WHERE e.professional_id=baitly_directory_professionals.id AND e.source='OSM' AND e.confirmed_by='baitly:osm-stock' ORDER BY e.id DESC LIMIT 1)) AS osm_contact_key,
-                    CASE WHEN osm_confirmed_at IS NOT NULL THEN 'OSM' ELSE 'SIRENE' END AS location_source,
-                    lower(name) COLLATE "C" AS name_rank,
-                    -(CASE WHEN nullif(btrim(coalesce(nullif(phone,''),rge_phone)),'') IS NOT NULL THEN 1 ELSE 0 END
-                     + CASE WHEN nullif(btrim(coalesce(nullif(email,''),rge_email)),'') IS NOT NULL THEN 1 ELSE 0 END) AS contact_rank,
-                    (sin(radians(coalesce(latitude,sirene_latitude)-?)/2)^2
-                     +cos(radians(?))*cos(radians(coalesce(latitude,sirene_latitude)))
-                     *sin(radians(coalesce(longitude,sirene_longitude)-?)/2)^2) AS distance
-                FROM baitly_directory_professionals
-            """+scope.where()+") SELECT * FROM ranked"+cursor+" ORDER BY "+order+" LIMIT 201",args.toArray());
+        var rows=mapReads.queryForList(ctes+"ranked AS "+(foreign?"MATERIALIZED":"NOT MATERIALIZED")+"""
+             (
+                SELECT id,lower(name) COLLATE "C" AS name_rank,
+                    """+contactRank+"""
+                     AS contact_rank,
+                    """+distance+"""
+                     AS distance
+                FROM
+            """+rankTable+scope.where()+"), page AS MATERIALIZED (SELECT * FROM ranked"+cursor+" ORDER BY "+order+" LIMIT 201)"+"""
+             SELECT p.id,p.siret,p.country_code,p.identifier_type,p.identifier,p.service,p.base_source,p.name,p.address,p.city,p.postal_code,p.activity,
+                coalesce(p.latitude,p.sirene_latitude) AS latitude,coalesce(p.longitude,p.sirene_longitude) AS longitude,
+                coalesce(nullif(p.phone,''),p.rge_phone) AS phone,coalesce(nullif(p.email,''),p.rge_email) AS email,
+                coalesce(nullif(p.website,''),p.rge_website) AS website,p.rge_retrieved_at,p.sirene_retrieved_at,p.osm_key,p.osm_name,p.osm_confirmed_at,
+                p.osm_key AS osm_contact_key,CASE WHEN p.osm_confirmed_at IS NOT NULL THEN 'OSM' ELSE p.base_source END AS location_source,
+                page.distance,page.contact_rank,page.name_rank
+             FROM page JOIN baitly_directory_professionals p ON p.id=page.id ORDER BY
+            """+Arrays.stream(order.split(",")).map(column->"page."+column).collect(java.util.stream.Collectors.joining(",")),args.toArray());
         boolean more=rows.size()>200;var items=new ArrayList<>(rows.subList(0,Math.min(200,rows.size())));
         for(var row:items){row.remove("distance");row.remove("contact_rank");row.remove("name_rank");}
         return new MapPage(List.copyOf(items),more?((Number)items.getLast().get("id")).longValue():null);
     }
-    private static MapScope mapScope(String city,String service,String query,double west,double south,double east,double north,long after,String contacts){
+    /** Ordered spatial batches expand until exhaustive; equal-distance boundaries are never sampled. */
+    private MapPage nearbyPage(String city,String service,String query,double west,double south,double east,double north,long after,String contacts,double lon,double lat,String country){
+        var scope=businessScope(city,service,query,contacts,country);
+        String point="public.ST_SetSRID(public.ST_MakePoint(?,?),4326)::public.geography";
+        String distance="map_position OPERATOR(public.<->) "+point;
+        Map<String,Object> anchor=null;
+        if(after>0){
+            var args=new ArrayList<Object>(List.of(lon,lat));args.addAll(scope.args());args.add(after);
+            var anchors=mapReads.queryForList("SELECT id,contact_rank,lower(name) COLLATE \"C\" AS name_rank,public.ST_X(map_position::public.geometry) AS longitude,public.ST_Y(map_position::public.geometry) AS latitude,"+distance+" AS distance FROM baitly_directory_professionals"+scope.where()+" AND id=? AND map_position IS NOT NULL",args.toArray());
+            if(anchors.isEmpty())return new MapPage(List.of(),null);
+            anchor=anchors.getFirst();
+            double anchorLon=((Number)anchor.get("longitude")).doubleValue(),anchorLat=((Number)anchor.get("latitude")).doubleValue();
+            if(anchorLat<south||anchorLat>north||!(west<=east?anchorLon>=west&&anchorLon<=east:anchorLon>=west||anchorLon<=east))return new MapPage(List.of(),null);
+        }
+        int limit=512;boolean checkedViewport=false;
+        long deadline=System.nanoTime()+java.util.concurrent.TimeUnit.SECONDS.toNanos(8);
+        for(;;){
+            if(System.nanoTime()>deadline)throw new ResponseStatusException(HttpStatus.GATEWAY_TIMEOUT,"La recherche prend trop de temps. Affinez les filtres.");
+            var args=new ArrayList<Object>(List.of(lon,lat));args.addAll(scope.args());args.add(limit);
+            Collections.addAll(args,south,north,west,east);
+            String viewport=" WHERE public.ST_Y(map_position::public.geometry) BETWEEN ? AND ? AND "+
+                (west<=east?"public.ST_X(map_position::public.geometry) BETWEEN ? AND ?":"(public.ST_X(map_position::public.geometry)>=? OR public.ST_X(map_position::public.geometry)<=?)");
+            String cursor="";
+            if(anchor!=null){cursor=" AND (distance,contact_rank,name_rank,id) > (?, ?, ? COLLATE \"C\", ?)";Collections.addAll(args,anchor.get("distance"),anchor.get("contact_rank"),anchor.get("name_rank"),anchor.get("id"));}
+            // The inner LIMIT makes GiST KNN cheaper than a whole-stock bitmap scan/sort.
+            // Viewport and secondary ordering run only after that barrier. WITH TIES retains every boundary tie.
+            var batch=mapReads.queryForList("WITH candidates AS MATERIALIZED (SELECT id,contact_rank,lower(name) COLLATE \"C\" AS name_rank,map_position,"+distance+
+                " AS distance FROM baitly_directory_professionals"+scope.where()+" AND map_position IS NOT NULL ORDER BY distance FETCH FIRST ? ROWS WITH TIES), "+
+                "page AS (SELECT id,distance,contact_rank,name_rank FROM candidates"+viewport+cursor+" ORDER BY distance,contact_rank,name_rank,id LIMIT 201) "+
+                "SELECT page.id,total.candidate_count FROM (SELECT count(*) AS candidate_count FROM candidates) total LEFT JOIN page ON true ORDER BY page.distance,page.contact_rank,page.name_rank,page.id",args.toArray());
+            long examined=((Number)batch.getFirst().get("candidate_count")).longValue();
+            var ids=batch.stream().filter(row->row.get("id")!=null).map(row->((Number)row.get("id")).longValue()).toList();
+            if(ids.size()==201||examined<limit){
+                boolean more=ids.size()>200;ids=ids.subList(0,Math.min(200,ids.size()));
+                if(ids.isEmpty())return new MapPage(List.of(),null);
+                var details=mapReads.queryForList("""
+                    SELECT id,siret,country_code,identifier_type,identifier,service,base_source,name,address,city,postal_code,activity,
+                        coalesce(latitude,sirene_latitude) AS latitude,coalesce(longitude,sirene_longitude) AS longitude,
+                        coalesce(nullif(phone,''),rge_phone) AS phone,coalesce(nullif(email,''),rge_email) AS email,
+                        coalesce(nullif(website,''),rge_website) AS website,rge_retrieved_at,sirene_retrieved_at,osm_key,osm_name,osm_confirmed_at,
+                        osm_key AS osm_contact_key,CASE WHEN osm_confirmed_at IS NOT NULL THEN 'OSM' ELSE base_source END AS location_source
+                    FROM baitly_directory_professionals WHERE NOT suppressed AND source_active AND id IN (
+                    """+String.join(",",Collections.nCopies(ids.size(),"?"))+")",ids.toArray());
+                var byId=new HashMap<Long,Map<String,Object>>();details.forEach(row->byId.put(((Number)row.get("id")).longValue(),row));
+                return new MapPage(ids.stream().map(byId::get).filter(Objects::nonNull).toList(),more?ids.getLast():null);
+            }
+            // An empty viewport must not exhaust the entire country. Delay the check until needed:
+            // on wide views, building its bitmap before the first KNN batch is itself expensive.
+            if(!checkedViewport){
+                checkedViewport=true;var visible=spatialScope(scope,west,south,east,north);
+                if(!Boolean.TRUE.equals(mapReads.queryForObject("SELECT EXISTS(SELECT 1 FROM baitly_directory_professionals"+visible.where()+")",Boolean.class,visible.args().toArray())))return new MapPage(List.of(),null);
+            }
+            limit=Math.toIntExact(Math.min(Integer.MAX_VALUE,Math.max(limit*2L,examined+1)));
+        }
+    }
+    private static MapScope mapScope(String city,String service,String query,double west,double south,double east,double north,long after,String contacts,String country){
         if(!Double.isFinite(west)||!Double.isFinite(east)||!Double.isFinite(south)||!Double.isFinite(north)||west< -180||west>180||east< -180||east>180||south< -90||north>90||south>=north||after<0)
             throw new IllegalArgumentException("Emprise de carte invalide");
-        String cityValue=Objects.toString(city,"").strip(),search=Objects.toString(query,"").strip();
-        if(cityValue.length()>120||search.length()>120)throw new IllegalArgumentException("Recherche invalide");
         var args=new ArrayList<Object>();
         String where=" WHERE suppressed=false AND source_active=true AND id>? AND coalesce(latitude,sirene_latitude) BETWEEN ? AND ? AND ";
         args.add(after);args.add(south);args.add(north);
         where+=west<=east?"coalesce(longitude,sirene_longitude) BETWEEN ? AND ?":"(coalesce(longitude,sirene_longitude)>=? OR coalesce(longitude,sirene_longitude)<=?)";
         args.add(west);args.add(east);
-        where+=contactFilter(contacts);
+        var business=businessScope(city,service,query,contacts,country);
+        where+=business.where().substring(" WHERE suppressed=false AND source_active=true".length());args.addAll(business.args());
+        return new MapScope(where,args);
+    }
+    private static MapScope businessScope(String city,String service,String query,String contacts,String country){
+        String cityValue=Objects.toString(city,"").strip(),search=Objects.toString(query,"").strip();
+        if(cityValue.length()>120||search.length()>120)throw new IllegalArgumentException("Recherche invalide");
+        var args=new ArrayList<Object>();String where=" WHERE suppressed=false AND source_active=true AND "+BaitlyDirectoryCountry.readFilter(country,args)+contactFilter(contacts);
         if(!cityValue.isBlank()){where+=" AND city ILIKE ? ESCAPE '!'";args.add(escapePattern(cityValue));}
-        if(!search.isBlank()){where+=" AND (name ILIKE ? ESCAPE '!' OR city ILIKE ? ESCAPE '!' OR postal_code ILIKE ? ESCAPE '!' OR siret ILIKE ? ESCAPE '!')";for(int i=0;i<4;i++)args.add(escapePattern(search));}
-        var activities=BaitlyProfessionalSearchFilters.activities(service);
-        if(!activities.isEmpty()){where+=" AND activity IN ("+String.join(",",Collections.nCopies(activities.size(),"?"))+")";args.addAll(activities);}
+        if(!search.isBlank()){where+=" AND (name ILIKE ? ESCAPE '!' OR city ILIKE ? ESCAPE '!' OR postal_code ILIKE ? ESCAPE '!' OR identifier ILIKE ? ESCAPE '!')";for(int i=0;i<4;i++)args.add(escapePattern(search));}
+        where+=BaitlyDirectoryCountry.serviceFilter(country,service,args);
         return new MapScope(where,args);
     }
     private static String escapePattern(String value){return "%"+value.replace("!","!!").replace("%","!%").replace("_","!_")+"%";}
@@ -171,20 +300,35 @@ public class BaitlyProfessionalDirectory {
         var identity=new SelectedBusiness(business(row),((java.sql.Timestamp)row.get("sirene_retrieved_at")).toInstant());
         Double lat=number(row.get(confirmed?"latitude":"sirene_latitude")),lon=number(row.get(confirmed?"longitude":"sirene_longitude"));
         String label=Objects.toString(confirmed?row.get("osm_address"):row.get("address"),"").strip();if(label.isBlank())label=identity.business().address();
+        if(label.isBlank()&&Set.of("OSM","OVERTURE").contains(Objects.toString(row.get("base_source"),"")))label=identity.business().name();
         var location=lat!=null&&lon!=null&&Double.isFinite(lat)&&Double.isFinite(lon)&&Math.abs(lat)<=90&&Math.abs(lon)<=180&&(lat!=0||lon!=0)?
             new ReferenceLocation(label,lat,lon,confirmed?((java.sql.Timestamp)row.get("osm_confirmed_at")).toInstant().toString():null):null;
         var sources=new ArrayList<ContactEvidence>();
+        if(row.get("source_url")!=null&&row.get("source_licence")!=null)sources.add(new ContactEvidence((String)row.get("base_source"),(String)row.get("source_url"),(String)row.get("source_licence"),identity.retrievedAt()));
         if(row.get("rge_retrieved_at") instanceof java.sql.Timestamp ts)sources.add(new ContactEvidence("ADEME",BaitlyAdemeRgeClient.SOURCE,"Licence Ouverte 2.0",ts.toInstant()));
         if(confirmed&&row.get("osm_retrieved_at") instanceof java.sql.Timestamp ts)sources.add(new ContactEvidence("OSM","https://www.openstreetmap.org/"+row.get("osm_key"),"ODbL 1.0",ts.toInstant()));
+        for(var proof:db.queryForList("SELECT DISTINCT source,source_url,licence,retrieved_at FROM baitly_directory_source_evidence WHERE professional_id=? AND source IN ('OSM','OVERTURE','WEBSITE')",id)){
+            var item=new ContactEvidence((String)proof.get("source"),(String)proof.get("source_url"),(String)proof.get("licence"),((java.sql.Timestamp)proof.get("retrieved_at")).toInstant());
+            if(sources.stream().noneMatch(p->p.source().equals(item.source())&&p.url().equals(item.url())))sources.add(item);
+        }
+        var services=new TreeSet<String>();
+        var offerings=new ArrayList<WebsiteOffering>();
+        if(identity.business().service()!=null)services.add(identity.business().service());
+        for(var proof:db.queryForList("SELECT snapshot FROM baitly_directory_source_evidence WHERE professional_id=? AND source='WEBSITE'",id)){
+            try{
+                var snapshot=mapper.readTree(proof.get("snapshot").toString());snapshot.path("services").fieldNames().forEachRemaining(services::add);
+                for(var item:snapshot.path("offerings"))offerings.add(new WebsiteOffering(item.path("service").asText(),item.path("label").asText(),item.path("url").asText()));
+            }catch(java.io.IOException invalid){throw new IllegalStateException("Invalid website service evidence",invalid);}
+        }
         return new ReferencedSource(identity,contactValue(row,"phone",confirmed),contactValue(row,"email",confirmed),
             contactValue(row,"website",confirmed),confirmed?(String)row.get("osm_key"):null,
-            row.get("osm_retrieved_at") instanceof java.sql.Timestamp ts?ts.toInstant():null,location,List.copyOf(sources));
+            row.get("osm_retrieved_at") instanceof java.sql.Timestamp ts?ts.toInstant():null,location,List.copyOf(sources),List.copyOf(services),List.copyOf(offerings));
     }
     private static String contactValue(Map<String,Object> row,String field,boolean confirmed){
-        String osm=confirmed?(String)row.get(field):null;return osm!=null&&!osm.isBlank()?osm:(String)row.get("rge_"+field);
+        String osm=(confirmed||!"FR".equals(Objects.toString(row.get("country_code"),"FR")))?(String)row.get(field):null;return osm!=null&&!osm.isBlank()?osm:(String)row.get("rge_"+field);
     }
     public Matches match(String actor,long id){
-        var row=require(id,false);var candidates=places(client.match(business(row)),business(row));
+        var row=require(id,false);if(!"FR".equals(Objects.toString(row.get("country_code"),"FR")))throw new IllegalArgumentException("Recherche OSM française uniquement");var candidates=places(client.match(business(row)),business(row));
         return new Matches(store(new Ticket(actor,"OSM",id,row.get("updated_at").toString(),Instant.now(),List.of(),candidates)),candidates);
     }
     @Transactional
@@ -251,20 +395,22 @@ public class BaitlyProfessionalDirectory {
         return list(query,page,service,"");
     }
     @Transactional(readOnly=true)
-    public Page list(String query,int page,String service,String contacts){
+    public Page list(String query,int page,String service,String contacts){return list(query,page,service,contacts,"FR");}
+    public Page list(String query,int page,String service,String contacts,String country){
+        BaitlyDirectoryCountry.countries(country);
         String safe=Objects.toString(query,"").strip();if(safe.length()>120||page<0||page>100000)throw new IllegalArgumentException("Recherche invalide");
         String pattern="%"+safe.replace("!","!!").replace("%","!%").replace("_","!_")+"%";
-        String where=" WHERE suppressed=false AND source_active=true AND (name ILIKE ? ESCAPE '!' OR city ILIKE ? ESCAPE '!' OR postal_code ILIKE ? ESCAPE '!')";
+        var parameters=new ArrayList<Object>();
+        String where=" WHERE suppressed=false AND source_active=true AND "+BaitlyDirectoryCountry.readFilter(country,parameters)+" AND (name ILIKE ? ESCAPE '!' OR city ILIKE ? ESCAPE '!' OR postal_code ILIKE ? ESCAPE '!')";
         where+=contactFilter(contacts);
-        var parameters=new ArrayList<Object>(List.of(pattern,pattern,pattern));
-        var activities=BaitlyProfessionalSearchFilters.activities(service);
-        if(!activities.isEmpty()){where+=" AND activity IN ("+String.join(",",Collections.nCopies(activities.size(),"?"))+")";parameters.addAll(activities);}
+        parameters.addAll(List.of(pattern,pattern,pattern));
+        where+=BaitlyDirectoryCountry.serviceFilter(country,service,parameters);
         var total=db.queryForObject("SELECT count(*) FROM baitly_directory_professionals"+where,Long.class,parameters.toArray());
         parameters.add(page*30);
         var items=db.queryForList("""
-            SELECT id,siret,name,address,city,postal_code,activity,coalesce(latitude,sirene_latitude) AS latitude,coalesce(longitude,sirene_longitude) AS longitude,
+            SELECT id,siret,country_code,identifier_type,identifier,service,base_source,name,address,city,postal_code,activity,coalesce(latitude,sirene_latitude) AS latitude,coalesce(longitude,sirene_longitude) AS longitude,
                 coalesce(nullif(phone,''),rge_phone) AS phone,coalesce(nullif(email,''),rge_email) AS email,coalesce(nullif(website,''),rge_website) AS website,rge_retrieved_at,
-                CASE WHEN osm_confirmed_at IS NOT NULL THEN 'OSM' WHEN sirene_latitude IS NOT NULL AND sirene_longitude IS NOT NULL THEN 'SIRENE' END AS location_source,
+                CASE WHEN osm_confirmed_at IS NOT NULL THEN 'OSM' WHEN sirene_latitude IS NOT NULL AND sirene_longitude IS NOT NULL THEN base_source END AS location_source,
                 sirene_retrieved_at,osm_key,osm_name,osm_address,osm_retrieved_at,osm_confirmed_at,
                 coalesce(osm_key,(SELECT e.snapshot->>'key' FROM baitly_directory_source_evidence e WHERE e.professional_id=baitly_directory_professionals.id AND e.source='OSM' AND e.confirmed_by='baitly:osm-stock' ORDER BY e.id DESC LIMIT 1)) AS osm_contact_key
             FROM baitly_directory_professionals
@@ -281,11 +427,18 @@ public class BaitlyProfessionalDirectory {
         String json;try{json=mapper.writeValueAsString(snapshot);}catch(Exception e){throw new IllegalStateException("Invalid source evidence",e);}
         db.update("INSERT INTO baitly_directory_source_evidence(professional_id,source,source_url,licence,retrieved_at,confirmed_by,snapshot) VALUES(?,?,?,?,?,?,CAST(? AS jsonb))",id,source,url,licence,java.sql.Timestamp.from(retrieved),actor,json);
     }
+    public Map<String,Object> mapReference(long id){
+        var rows=db.queryForList("SELECT id,siret,country_code,identifier_type,identifier,service,base_source,name,address,city,postal_code,activity,coalesce(latitude,sirene_latitude) AS latitude,coalesce(longitude,sirene_longitude) AS longitude,coalesce(nullif(phone,''),rge_phone) AS phone,coalesce(nullif(email,''),rge_email) AS email,coalesce(nullif(website,''),rge_website) AS website,sirene_retrieved_at,osm_key,osm_name,osm_confirmed_at FROM baitly_directory_professionals WHERE id=? AND NOT suppressed AND source_active",id);
+        if(rows.isEmpty())throw new ResponseStatusException(HttpStatus.NOT_FOUND,"Fiche introuvable");
+        var reference=referencedSource(id);var result=rows.getFirst();
+        result.put("services",reference.services());result.put("serviceDetails",reference.serviceDetails());
+        return result;
+    }
     private Map<String,Object> require(long id,boolean lock){
         var rows=db.queryForList("SELECT * FROM baitly_directory_professionals WHERE id=? AND suppressed=false AND source_active=true"+(lock?" FOR UPDATE":""),id);
         if(rows.isEmpty())throw new ResponseStatusException(HttpStatus.NOT_FOUND,"Fiche introuvable");return rows.getFirst();
     }
-    private Business business(Map<String,Object> r){return new Business((String)r.get("siret"),(String)r.get("name"),(String)r.get("address"),(String)r.get("city"),(String)r.get("postal_code"),(String)r.get("activity"),number(r.get("sirene_latitude")),number(r.get("sirene_longitude")));}
+    private Business business(Map<String,Object> r){return new Business((String)r.get("siret"),(String)r.get("name"),(String)r.get("address"),(String)r.get("city"),(String)r.get("postal_code"),(String)r.get("activity"),number(r.get("sirene_latitude")),number(r.get("sirene_longitude")),Objects.toString(r.get("country_code"),"FR"),Objects.toString(r.get("identifier_type"),"SIRET"),Objects.toString(r.get("identifier"),(String)r.get("siret")),(String)r.get("service"));}
     private static Double number(Object v){return v instanceof Number n?n.doubleValue():null;}
     private static String contactFilter(String contacts){
         String email="nullif(btrim(coalesce(nullif(email,''),rge_email)),'') IS NOT NULL";

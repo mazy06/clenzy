@@ -49,7 +49,7 @@ describe('Baitly professional references',()=>{
   setup();await screen.findByText('Atlas');expect(screen.getByText('Adresse localisée par Sirene')).toBeInTheDocument();
   fireEvent.click(screen.getByRole('button',{name:'Carte'}));expect(screen.getByTestId('map')).toHaveAttribute('data-count','1');
   fireEvent.change(screen.getByLabelText('Type de service'),{target:{value:'SECURITY'}});
-  await waitFor(()=>expect(mocks.list).toHaveBeenCalledWith('',0,'SECURITY'));
+  await waitFor(()=>expect(mocks.list).toHaveBeenCalledWith('',0,'SECURITY',''));
   expect(mocks.confirm).not.toHaveBeenCalled();expect(screen.getByText(/Annuaire national partagé/)).toBeInTheDocument();
  });
  it('lets an organization manager import a reference without global mutation rights',async()=>{

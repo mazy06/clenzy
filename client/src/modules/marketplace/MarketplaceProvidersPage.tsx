@@ -246,7 +246,7 @@ export default function MarketplaceProvidersPage() {
 
       {/* ─── Reprise des comptes existants ───────────────────────────── */}
       {(stats?.importableUsers ?? 0) > 0 && (
-        <Card className="mb-3 shrink-0 flex-row flex-wrap items-center justify-between gap-3 px-4 py-3">
+        <Card className="mx-3 mt-3 shrink-0 flex-row flex-wrap items-center justify-between gap-3 p-3">
           <div className="min-w-0">
             <p className="m-0 text-sm font-semibold text-foreground">
               {t("marketplaceAdmin.importable", { count: stats!.importableUsers })}
@@ -267,7 +267,7 @@ export default function MarketplaceProvidersPage() {
 
       {importProviders.isError && <p role="alert">{t("marketplaceAdmin.failed")}</p>}
       {importProviders.isSuccess && importProviders.data && (
-        <Card className="mb-3 shrink-0 px-4 py-3">
+        <Card className="mx-3 mt-3 shrink-0 p-3">
           <p className="m-0 text-sm text-foreground">
             {t("marketplaceAdmin.importResult", { ...importProviders.data })}
           </p>

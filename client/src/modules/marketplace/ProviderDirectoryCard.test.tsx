@@ -1,6 +1,6 @@
 import { afterEach, expect, it } from 'vitest';
 import { cleanup, fireEvent, render, screen } from '@testing-library/react';
-import { MemoryRouter, Route, Routes } from 'react-router-dom';
+import { Link, MemoryRouter, Route, Routes } from 'react-router-dom';
 import ProviderDirectoryCard from './ProviderDirectoryCard';
 import type { ServiceCategoryDto } from '../../services/api/marketplaceProvidersApi';
 
@@ -36,6 +36,21 @@ it('keeps quote-only pricing and the absence of reviews explicit', () => {
   expect(screen.getByText('Sur devis')).toBeInTheDocument();
   expect(screen.getByText('Pas encore noté')).toBeInTheDocument();
   expect(screen.queryByLabelText('Professionnel vérifié')).not.toBeInTheDocument();
+});
+
+it('keeps the edit action outside the profile link', () => {
+  render(<MemoryRouter><Routes>
+    <Route path="/" element={<ProviderDirectoryCard
+      provider={{ displayName: 'Amina Services', verified: false, categoryCodes: ['CLEANING'] }}
+      categoriesByCode={categories} to="/prestataires/42"
+      actions={<Link to="/prestataires/42/edit">Modifier</Link>} />} />
+    <Route path="/prestataires/42/edit" element={<h1>Modifier le prestataire</h1>} />
+  </Routes></MemoryRouter>);
+  const profile = screen.getByRole('link', { name: 'Ouvrir la fiche de Amina Services' });
+  const edit = screen.getByRole('link', { name: 'Modifier' });
+  expect(profile).not.toContainElement(edit);
+  fireEvent.click(edit);
+  expect(screen.getByRole('heading', { name: 'Modifier le prestataire' })).toBeInTheDocument();
 });
 
 it('replaces a broken photo with sector artwork without changing the media box', () => {

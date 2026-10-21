@@ -1,0 +1,338 @@
+diff --git a/docker-compose.dev.yml b/docker-compose.dev.yml
+index 567a978..74c44a7 100644
+--- a/docker-compose.dev.yml
++++ b/docker-compose.dev.yml
+@@ -49,7 +49,12 @@ services:
+     # Voir CLAUDE.md - sans cette image, la migration 0143 ET le boot
+     # Hibernate (schema introspection sur kb_chunk) echouent avec
+     # "could not access file $libdir/vector".
+-    image: pgvector/pgvector:pg15
++    image: baitly-postgres:15-spatial
++    build:
++      context: ./postgres
++      dockerfile: Dockerfile
++    pull_policy: build
++    command: postgres -c shared_preload_libraries=pg_stat_statements
+     container_name: clenzy-postgres-dev
+     environment:
+       POSTGRES_DB: ${POSTGRES_DB}
+diff --git a/docker-compose.prod.yml b/docker-compose.prod.yml
+index 840e220..a128821 100644
+--- a/docker-compose.prod.yml
++++ b/docker-compose.prod.yml
+@@ -148,7 +148,11 @@ services:
+   # car postgres:15-alpine n'inclut pas pgvector dans
+   # /usr/local/share/postgresql/extension/.
+   postgres:
+-    image: pgvector/pgvector:pg15
++    image: baitly-postgres:15-spatial
++    build:
++      context: ./postgres
++      dockerfile: Dockerfile
++    pull_policy: build
+     container_name: clenzy-postgres-prod
+     restart: unless-stopped
+     environment:
+diff --git a/docker-compose.staging.yml b/docker-compose.staging.yml
+index 9994886..1d765e2 100644
+--- a/docker-compose.staging.yml
++++ b/docker-compose.staging.yml
+@@ -86,7 +86,12 @@ services:
+   postgres:
+     # Image avec extension pgvector pre-installee (requise pour kb_chunk RAG) —
+     # postgres:15-alpine casse le boot Hibernate ("$libdir/vector"). Voir CLAUDE.md.
+-    image: pgvector/pgvector:pg15
++    image: baitly-postgres:15-spatial
++    build:
++      context: ./postgres
++      dockerfile: Dockerfile
++    pull_policy: build
++    command: postgres -c shared_preload_libraries=pg_stat_statements
+     container_name: clenzy-postgres-staging
+     restart: unless-stopped
+     environment:
+diff --git a/scripts/deploy.sh b/scripts/deploy.sh
+index b6e9d82..257db82 100755
+--- a/scripts/deploy.sh
++++ b/scripts/deploy.sh
+@@ -24,6 +24,23 @@ source scripts/baitly-deployment-images.sh
+ baitly_prepare_deployment_images || exit 1
+ DC="docker compose -f docker-compose.prod.yml --env-file .env --env-file .env.baitly-images"
+ 
++# PostgreSQL is the only local-only image; application services must still pull their exact GHCR tags.
++pull_baitly_images() {
++  local services=("$@")
++  if [ "${#services[@]}" -eq 0 ]; then
++    while IFS= read -r entry; do services+=("$entry"); done < <($DC config --services)
++  fi
++  local remote_services=()
++  local service
++  for service in "${services[@]}"; do
++    if [ "$service" != "postgres" ]; then remote_services+=("$service"); fi
++  done
++  if [ "${#remote_services[@]}" -gt 0 ]; then
++    $DC pull "${remote_services[@]}"
++  fi
++}
++
++
+ # ===========================================
+ # Observabilite deploiement (Pushgateway + Alertmanager)
+ # ===========================================
+@@ -272,7 +289,7 @@ if [ "$DEPLOY_MODE" = "full-rebuild" ]; then
+   echo "🔄 Rebuild complet de tous les services..."
+   echo "   Build des images locales (pms-client, pms-server)..."
+   $DC build --no-cache pms-client pms-server
+-  $DC pull
++  pull_baitly_images
+   echo "   Arret de tous les services..."
+   $DC down --timeout 30
+   echo "   Phase 1 — Demarrage PostgreSQL + Redis..."
+@@ -287,12 +304,12 @@ if [ "$DEPLOY_MODE" = "full-rebuild" ]; then
+ else
+   if [ -n "$SERVICES_LIST" ]; then
+     echo "📦 Mise a jour des services : $SERVICES_LIST"
+-    $DC pull $SERVICES_LIST
++    pull_baitly_images $SERVICES_LIST
+     $DC up -d $RECREATE_FLAG $SERVICES_LIST
+     HEALTH_SERVICES="$SERVICES_LIST"
+   else
+     echo "📦 Mise a jour de tous les services..."
+-    $DC pull
++    pull_baitly_images
+     echo "   Phase 1 — Infrastructure de base (postgres, redis)..."
+     # --force-recreate : les configs postgres (postgresql.conf, pg_hba.conf)
+     # sont des bind mounts. docker compose up -d ne detecte pas les
+@@ -387,7 +404,7 @@ echo "📊 Etat des services :"
+ $DC ps
+ 
+ echo ""
+-echo "🏥 Attente que les services soient SAINS (max 300s) :"
++echo "🏥 Attente que les services soient SAINS (max 600s) :"
+ 
+ # Keycloak a son propre check HTTP ci-dessous
+ BASIC_SERVICES=""
+@@ -422,10 +439,10 @@ service_verdict() {
+ FAILED=0
+ STILL_WAITING="$BASIC_SERVICES"
+ ELAPSED=0
+-# 300 s et non 120 : le serveur PMS met environ deux minutes a demarrer
+-# (contexte Spring + Liquibase), mesure au deploiement du 23/09. L'ancienne
+-# borne etait a une pause GC de declarer un echec sur un demarrage normal.
+-MAX_WAIT=300
++# Le premier boot construit les index spatiaux et trigrammes de l’annuaire.
++# Garder le verdict de sante reel, avec 600 s pour laisser Liquibase terminer
++# sur le stock national. Les demarrages suivants ne reconstruisent pas ces index.
++MAX_WAIT=600
+ INTERVAL=5
+ 
+ while [ -n "$STILL_WAITING" ] && [ "$ELAPSED" -lt "$MAX_WAIT" ]; do
+diff --git a/start-dev.sh b/start-dev.sh
+index 67f94ac..000a623 100755
+--- a/start-dev.sh
++++ b/start-dev.sh
+@@ -55,16 +55,16 @@ echo ""
+ # L'image DOIT etre pgvector/pgvector:pg15 : postgres:15-alpine n'inclut PAS
+ # l'extension pgvector -> le boot Hibernate echoue avec
+ # "could not access file $libdir/vector" (introspection de kb_chunk).
+-# On pull explicitement l'image declaree dans le compose pour qu'aucun ancien
++# On pull explicitement l'image Baitly (pgvector + PostGIS) declaree dans le compose pour qu'aucun ancien
+ # container/image alpine ne soit reutilise silencieusement.
+ echo "🧩 Vérification de l'image PostgreSQL (pgvector requise pour la RAG)..."
+ # Le pull est un controle de FRAICHEUR, pas une dependance : il evite qu'une
+ # vieille image alpine soit reutilisee en silence. Hors ligne (DNS coupe, VPN,
+ # registre injoignable), il echouait avec `set -e` et bloquait tout le
+ # demarrage alors que l'image locale suffisait. On previent, on continue.
+-if ! docker compose -f docker-compose.dev.yml --env-file .env.dev pull postgres; then
+-  if docker image inspect pgvector/pgvector:pg15 >/dev/null 2>&1; then
+-    echo "   ⚠️  Registre injoignable — on repart sur l'image pgvector/pgvector:pg15 deja en local."
++if ! docker compose -f docker-compose.dev.yml --env-file .env.dev build --pull postgres; then
++  if docker image inspect baitly-postgres:15-spatial >/dev/null 2>&1; then
++    echo "   ⚠️  Registre injoignable — on repart sur l'image Baitly PostgreSQL spatiale deja en local."
+   else
+     echo "   ❌ Registre injoignable ET aucune image pgvector locale : Postgres ne peut pas demarrer."
+     echo "      Retablis la connexion, puis relance. (Sans pgvector : migration 0143 et boot Hibernate en echec.)"
+--- /dev/null
++++ b/postgres/Dockerfile
+@@ -0,0 +1,5 @@
++# Baitly: PostgreSQL major version and existing pgvector volumes stay compatible.
++FROM pgvector/pgvector:pg15
++RUN apt-get update \
++    && apt-get install -y --no-install-recommends postgresql-15-postgis-3 postgresql-15-postgis-3-scripts \
++    && rm -rf /var/lib/apt/lists/*
+--- /dev/null
++++ b/.github/workflows/ci-baitly-postgres.yml
+@@ -0,0 +1,28 @@
++name: Baitly PostgreSQL spatial image
++on:
++  pull_request:
++    paths: ['postgres/Dockerfile', '.github/workflows/ci-baitly-postgres.yml']
++  push:
++    branches: [main]
++    paths: ['postgres/Dockerfile', '.github/workflows/ci-baitly-postgres.yml']
++permissions:
++  contents: read
++jobs:
++  extensions:
++    runs-on: ubuntu-latest
++    timeout-minutes: 15
++    steps:
++      - uses: actions/checkout@v4
++      - name: Build PostgreSQL 15 with pgvector and PostGIS
++        run: docker build -t baitly-postgres:test postgres
++      - name: Verify extensions on an ephemeral database
++        run: |
++          docker run -d --name baitly-postgres-smoke -e POSTGRES_HOST_AUTH_METHOD=trust baitly-postgres:test postgres -c shared_preload_libraries=pg_stat_statements
++          for attempt in $(seq 1 60); do
++            if docker exec baitly-postgres-smoke pg_isready -U postgres; then break; fi
++            sleep 2
++          done
++          docker exec baitly-postgres-smoke psql -U postgres -v ON_ERROR_STOP=1 -c 'CREATE EXTENSION vector; CREATE EXTENSION postgis; CREATE EXTENSION pg_stat_statements; SELECT PostGIS_Version(); SELECT count(*) FROM pg_stat_statements;'
++      - name: Remove ephemeral test database
++        if: always()
++        run: docker rm -f baitly-postgres-smoke || true
+--- /dev/null
++++ b/monitoring/grafana/dashboards/baitly-directory.json
+@@ -0,0 +1,129 @@
++{
++  "uid": "baitly-directory",
++  "title": "Baitly · Annuaire et carte",
++  "schemaVersion": 39,
++  "version": 1,
++  "refresh": "30s",
++  "tags": [
++    "baitly",
++    "directory"
++  ],
++  "time": {
++    "from": "now-1h",
++    "to": "now"
++  },
++  "panels": [
++    {
++      "id": 1,
++      "type": "timeseries",
++      "title": "Latence p95 par opération (objectif 300 ms)",
++      "datasource": {
++        "type": "prometheus",
++        "uid": "prometheus"
++      },
++      "gridPos": {
++        "x": 0,
++        "y": 0,
++        "w": 12,
++        "h": 8
++      },
++      "targets": [
++        {
++          "expr": "1000 * histogram_quantile(0.95, sum by (le, operation) (rate(baitly_directory_map_seconds_bucket[5m])))",
++          "legendFormat": "{{operation}}{{layer}}",
++          "refId": "A"
++        }
++      ],
++      "fieldConfig": {
++        "defaults": {
++          "unit": "ms"
++        },
++        "overrides": []
++      }
++    },
++    {
++      "id": 2,
++      "type": "timeseries",
++      "title": "Requêtes par seconde",
++      "datasource": {
++        "type": "prometheus",
++        "uid": "prometheus"
++      },
++      "gridPos": {
++        "x": 12,
++        "y": 0,
++        "w": 12,
++        "h": 8
++      },
++      "targets": [
++        {
++          "expr": "sum by (operation) (rate(baitly_directory_map_seconds_count[5m]))",
++          "legendFormat": "{{operation}}{{layer}}",
++          "refId": "A"
++        }
++      ],
++      "fieldConfig": {
++        "defaults": {
++          "unit": "reqps"
++        },
++        "overrides": []
++      }
++    },
++    {
++      "id": 3,
++      "type": "timeseries",
++      "title": "Cache : local / Redis / base / indisponibilité",
++      "datasource": {
++        "type": "prometheus",
++        "uid": "prometheus"
++      },
++      "gridPos": {
++        "x": 0,
++        "y": 8,
++        "w": 12,
++        "h": 8
++      },
++      "targets": [
++        {
++          "expr": "sum by (layer) (rate(baitly_directory_cache_total[5m]))",
++          "legendFormat": "{{operation}}{{layer}}",
++          "refId": "A"
++        }
++      ],
++      "fieldConfig": {
++        "defaults": {
++          "unit": "ops"
++        },
++        "overrides": []
++      }
++    },
++    {
++      "id": 4,
++      "type": "timeseries",
++      "title": "Durée moyenne de construction de l’index",
++      "datasource": {
++        "type": "prometheus",
++        "uid": "prometheus"
++      },
++      "gridPos": {
++        "x": 12,
++        "y": 8,
++        "w": 12,
++        "h": 8
++      },
++      "targets": [
++        {
++          "expr": "rate(baitly_directory_index_build_seconds_sum[15m]) / clamp_min(rate(baitly_directory_index_build_seconds_count[15m]), 0.000001)",
++          "legendFormat": "{{operation}}{{layer}}",
++          "refId": "A"
++        }
++      ],
++      "fieldConfig": {
++        "defaults": {
++          "unit": "s"
++        },
++        "overrides": []
++      }
++    }
++  ]
++}
+diff --git a/nginx/nginx.conf.template b/nginx/nginx.conf.template
+index 13c5a9a..67183db 100644
+--- a/nginx/nginx.conf.template
++++ b/nginx/nginx.conf.template
+@@ -75,6 +75,8 @@ http {
+         text/xml
+         text/javascript
+         application/json
++        application/vnd.mapbox-vector-tile
++        application/x-protobuf
+         application/javascript
+         application/xml+rss
+         application/atom+xml

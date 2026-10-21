@@ -11,9 +11,12 @@
 .baitly-service-map-address { display: block; margin-top: 2px; font-size: 12px; line-height: 1.5; color: var(--bui-muted-foreground); overflow-wrap: anywhere; }
 .baitly-service-map-schedule { grid-column: 1 / -1; min-width: 0; }
 .baitly-service-map-chevron { inset-inline-end: 12px; top: 45px; }
-.baitly-service-map-footer { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px; margin-inline: 20px; padding-block: 12px; border-top: 1px solid var(--bui-border); }
-.baitly-service-map-assignee { display: flex; align-items: center; gap: 8px; min-width: 0; flex: 1 1 70px; }
-.baitly-service-map-actions { display: flex; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: 4px; margin-inline-start: auto; }
+.baitly-service-map-footer { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 10px; margin-inline: 20px; padding-block: 12px; border-top: 1px solid var(--bui-border); }
+.baitly-service-map-assignee { display: flex; align-items: center; gap: 8px; min-width: 0; }
+.baitly-service-map-assignee-label { display: flex; align-items: center; gap: 4px; min-inline-size: 0; }
+.baitly-service-map-assignee-name { min-inline-size: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.baitly-service-map-actions { display: flex; flex-wrap: nowrap; align-items: center; justify-content: flex-end; gap: 4px; }
+.baitly-service-map-footer-extra { grid-column: 1 / -1; min-inline-size: 0; }
 .baitly-service-map-commercial { padding: 0 20px 12px; }
 .baitly-service-map-preview { padding: 0; }
 @container service-map-row (max-width: 500px) {
@@ -28,7 +31,12 @@
   .baitly-service-map-photo { width: 56px; height: 56px; border-radius: 8px; }
   .baitly-service-map-title { font-size: 14px; text-wrap: pretty; }
   .baitly-service-map-type { margin-bottom: 2px; font-size: 11px; }
-  .baitly-service-map-footer { margin-inline: 12px; padding-block: 8px; }
+  /* Keep the existing 48px footer, including its 32px content track. Names never add a line. */
+  .baitly-service-map-footer { margin-inline: 12px; padding-block: 8px; column-gap: 6px; min-block-size: 49px; }
+  .baitly-service-map-assignee { gap: 6px; }
+  .baitly-service-map-actions { gap: 2px; }
+  .baitly-service-map-actions :is(button, [role="img"]) { inline-size: 24px; block-size: 24px; min-inline-size: 24px; min-block-size: 24px; padding: 0; flex-shrink: 0; }
+  .baitly-service-map-actions :is(button, [role="img"]) > svg { inline-size: 14px; block-size: 14px; }
   .baitly-service-map-chevron { top: 12px; inset-inline-end: 6px; }
   .baitly-service-map-commercial { padding-inline: 12px; }
 }

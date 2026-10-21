@@ -221,7 +221,7 @@ export const BAITLY_NIGHT: Flavor = {
  * (arabe), complétée par Noto Sans pour les autres écritures (tifinagh…). Glyphes
  * générés par scripts/maps/fonts/build-baitly-fonts.sh.
  */
-const BAITLY_FONTS = { regular: 'Baitly Sans Regular', bold: 'Baitly Sans Medium', italic: 'Baitly Sans Italic' };
+export const BAITLY_FONTS = { regular: 'Baitly Sans Regular', bold: 'Baitly Sans Medium', italic: 'Baitly Sans Italic' };
 
 const FLAVORS: Record<BaitlyMapMode, Flavor> = {
   light: { ...BAITLY_PAPER, ...BAITLY_FONTS },

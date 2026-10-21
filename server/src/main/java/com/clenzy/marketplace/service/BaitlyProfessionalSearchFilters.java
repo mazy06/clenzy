@@ -23,6 +23,14 @@ public final class BaitlyProfessionalSearchFilters {
         if(codes==null)throw new IllegalArgumentException("Type de service invalide");
         return codes;
     }
+    /** Bounded read-only service union; ingestion and discovery identities still use a single family. */
+    public static List<String> readServices(String value){
+        if(value==null||value.isBlank())return List.of();
+        if(value.length()>300)throw new IllegalArgumentException("Type de service invalide");
+        var services=Arrays.stream(value.split(",",-1)).map(String::strip).distinct().sorted().toList();
+        if(services.size()>SERVICES.size()||services.stream().anyMatch(code->!SERVICES.containsKey(code)))throw new IllegalArgumentException("Type de service invalide");
+        return services;
+    }
     public static Set<String> communes(String code) {
         if(code==null||code.isBlank())return Set.of();
         if(!code.matches("[0-9AB]{5}"))throw new IllegalArgumentException("Ville invalide");

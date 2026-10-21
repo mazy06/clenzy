@@ -304,7 +304,7 @@ const PlanningRow: React.FC<PlanningRowProps> = React.memo(({
             {price != null && (
               <span
                 className={cn(
-                  'font-[family-name:var(--font-display)] font-medium text-[var(--bui-muted-foreground)] leading-none whitespace-nowrap overflow-hidden text-ellipsis max-w-full tabular-nums',
+                  'font-sans font-normal not-italic text-[var(--bui-muted-foreground)] leading-none whitespace-nowrap overflow-hidden text-ellipsis max-w-full tabular-nums',
                   'text-xs',
                 )}
               >

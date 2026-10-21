@@ -37,6 +37,8 @@ public class BaitlyCrmExactOsmEnrichment {
         if(!Set.of("PENDING","CONFIRMED").contains(state))return new Outcome(state,List.of());
         if(location.equals("STALE"))return new Outcome("REVIEW",List.of());
         if(location.equals("VALID")&&!needsContactData(org,id))return new Outcome("ALREADY_LOCATED",List.of());
+        if(Boolean.TRUE.equals(db.queryForObject("SELECT EXISTS(SELECT 1 FROM baitly_crm_professional_imports WHERE organization_id=? AND prospect_id=? AND country_code<>'FR')",Boolean.class,org,id)))
+            return new Outcome(location.equals("VALID")?"ALREADY_LOCATED":"REVIEW",List.of());
         BaitlyCrmImportedOsmSearch.Exact exact;
         try { exact=source.exact(actor,id); }
         catch(ResponseStatusException unavailable) {

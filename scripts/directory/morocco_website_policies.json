@@ -1,0 +1,197 @@
+{
+  "schemaVersion": 1,
+  "policies": [
+    {
+      "id": "mh-pressing-agadir",
+      "revision": "2026-10-21.1",
+      "decision": "REVIEWED_PUBLIC_BUSINESS_FACTS",
+      "reviewedAt": "2026-10-21T02:20:42Z",
+      "expiresAt": "2026-12-20T00:00:00Z",
+      "reviewNotes": "Site officiel correspondant au nom et à l’adresse. Robots autorise les pages publiques. Aucun lien CGU/restriction de collecte trouvé sur la page revue. Relevé limité aux coordonnées professionnelles et faits de service ; aucune reprise des textes, photos, avis ou tarifs. La réserve de droits ne constitue pas une licence ouverte.",
+      "identities": [
+        "MA:OSM:node/14264916469"
+      ],
+      "hosts": [
+        "pressingagadir.ma"
+      ],
+      "names": [
+        "M&H Pressing",
+        "Pressing Agadir"
+      ],
+      "locationTokens": [
+        "Agadir",
+        "Haut Founty"
+      ],
+      "emailDomains": [
+        "pressingagadir.ma"
+      ],
+      "pages": [
+        "https://pressingagadir.ma/"
+      ],
+      "conditions": [
+        {
+          "url": "https://pressingagadir.ma/",
+          "sha256": "09d430ea712f28c8cb5d4536d01269112a60aff9d3f5efc0b0c162bf3ba52ccc"
+        }
+      ],
+      "services": [
+        {
+          "service": "LAUNDRY",
+          "label": "Nettoyage à sec",
+          "affirmation": "M&H Pressing assure le nettoyage à sec à Agadir"
+        },
+        {
+          "service": "LAUNDRY",
+          "label": "Linge de maison",
+          "affirmation": "Linge de maison"
+        },
+        {
+          "service": "LAUNDRY",
+          "label": "Tapis et moquettes",
+          "affirmation": "Tapis & Moquettes"
+        },
+        {
+          "service": "LAUNDRY",
+          "label": "Rideaux et voilages",
+          "affirmation": "Rideaux & Voilages"
+        },
+        {
+          "service": "LAUNDRY",
+          "label": "Ramassage et livraison",
+          "affirmation": "Ramassage et livraison à domicile"
+        }
+      ]
+    },
+    {
+      "id": "neteam-services-pending",
+      "revision": "2026-10-21.1",
+      "decision": "PENDING_REVIEW",
+      "reviewNotes": "Résolution DNS du site indisponible lors du contrôle direct. Les conditions, l’identité et le domaine email différent doivent être revus avant activation.",
+      "identities": [
+        "MA:OVERTURE:4863cc90-44ef-41b0-a825-66766432dd86"
+      ],
+      "hosts": [
+        "www.neteamservices.com"
+      ]
+    },
+    {
+      "id": "jazalum-menuiserie",
+      "revision": "2026-10-21.1",
+      "decision": "REVIEWED_PUBLIC_BUSINESS_FACTS",
+      "reviewedAt": "2026-10-21T02:27:12Z",
+      "expiresAt": "2026-12-20T00:00:00Z",
+      "reviewNotes": "Identité source, domaine et localisation revus. Robots autorise les pages publiques, aucun lien de conditions trouvé sur la page revue. Relevé de faits professionnels uniquement ; pas de licence ouverte des contenus. Contacts différents des sources et domaines email tiers laissés en revue.",
+      "identities": [
+        "MA:OVERTURE:09c0e851-f994-4041-a048-ee58f2c9180f"
+      ],
+      "hosts": [
+        "jazalum.ma"
+      ],
+      "names": [
+        "Jazalum"
+      ],
+      "locationTokens": [
+        "N 1 Bloc 2",
+        "Cité la résidence"
+      ],
+      "emailDomains": [
+        "jazalum.ma"
+      ],
+      "pages": [
+        "https://jazalum.ma/"
+      ],
+      "conditions": [
+        {
+          "url": "https://jazalum.ma/",
+          "sha256": "4daaa37df8ed2a5c467f890ed6b9599097a934097d311f9f14e42eb3525a3dca"
+        }
+      ],
+      "services": [
+        {
+          "service": "MAINTENANCE",
+          "label": "Menuiserie intérieure",
+          "affirmation": "Menuiserie d’intérieure"
+        },
+        {
+          "service": "MAINTENANCE",
+          "label": "Menuiserie extérieure",
+          "affirmation": "Menuiserie d’extérieure"
+        },
+        {
+          "service": "MAINTENANCE",
+          "label": "Meubles sur mesure",
+          "affirmation": "Meubles sur mesure"
+        },
+        {
+          "service": "MAINTENANCE",
+          "label": "Fenêtres et volets",
+          "affirmation": "Fenêtres coulissantes"
+        }
+      ]
+    },
+    {
+      "id": "moroccan-maids-nettoyage",
+      "revision": "2026-10-21.1",
+      "decision": "REVIEWED_PUBLIC_BUSINESS_FACTS",
+      "reviewedAt": "2026-10-21T02:27:12Z",
+      "expiresAt": "2026-12-20T00:00:00Z",
+      "reviewNotes": "Identité source, domaine et localisation revus. Robots autorise les pages publiques, aucun lien de conditions trouvé sur la page revue. Relevé de faits professionnels uniquement ; pas de licence ouverte des contenus. Contacts différents des sources et domaines email tiers laissés en revue.",
+      "identities": [
+        "MA:OVERTURE:b8ae734d-0f3a-46f2-a31c-ac0b22dbf56d"
+      ],
+      "hosts": [
+        "moroccanmaids.org"
+      ],
+      "names": [
+        "Moroccan Maids"
+      ],
+      "locationTokens": [
+        "Agadir"
+      ],
+      "emailDomains": [
+        "moroccanmaids.org"
+      ],
+      "pages": [
+        "https://moroccanmaids.org/"
+      ],
+      "conditions": [
+        {
+          "url": "https://moroccanmaids.org/",
+          "sha256": "244a1504e75f618e54720d8fd7c059b1a9b4f57cb6ae56c59fc486976b7c349b"
+        }
+      ],
+      "services": [
+        {
+          "service": "CLEANING",
+          "label": "Nettoyage de façades",
+          "affirmation": "Nettoyage de facades pour villas"
+        },
+        {
+          "service": "CLEANING",
+          "label": "Nettoyage après travaux",
+          "affirmation": "Remise en propre apres chantier"
+        },
+        {
+          "service": "CLEANING",
+          "label": "Entretien des sols et marbres",
+          "affirmation": "Nettoyage lavage mecanise entretien"
+        },
+        {
+          "service": "CLEANING",
+          "label": "Nettoyage de cuisines",
+          "affirmation": "Nettoyage professionnel des cuisines"
+        },
+        {
+          "service": "CLEANING",
+          "label": "Désinfection",
+          "affirmation": "Desinfection de surfaces bureaux"
+        },
+        {
+          "service": "PEST_CONTROL",
+          "label": "Traitement des nuisibles",
+          "affirmation": "Prevention et traitement contre les insectes"
+        }
+      ]
+    }
+  ]
+}

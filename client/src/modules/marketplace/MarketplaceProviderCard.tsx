@@ -21,7 +21,7 @@ export default function MarketplaceProviderCard({ provider, categoriesByCode }: 
       <span className="flex items-center gap-1"><LocationOn className="size-3.5 shrink-0" />
         {location || t('marketplaceAdmin.unknownLocation')}{provider.travelRadiusKm ? ' · ' + provider.travelRadiusKm + ' km' : ''}
         {extraCities.length > 0 ? ' · ' + t('marketplaceAdmin.extraZones', { count: extraCities.length }) : ''}</span>
-      <span className="flex items-center gap-1"><Timer className="size-3.5 shrink-0" />{availabilitySummary(provider.availableDays, provider.weeklyRestricted)}</span>
+      <span className="flex items-center gap-1" title={availabilitySummary(provider.availableDays, provider.weeklyRestricted)}><Timer className="size-3.5 shrink-0" />{availabilitySummary(provider.availableDays, provider.weeklyRestricted, true)}</span>
       {provider.homeOrganizationName && <span className="flex items-center gap-1"><Business className="size-3.5 shrink-0" />{provider.homeOrganizationName}</span>}
     </>}
     badges={<>

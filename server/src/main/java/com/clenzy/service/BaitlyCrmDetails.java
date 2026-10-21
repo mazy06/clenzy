@@ -9,6 +9,7 @@ import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import java.util.*;
+import java.time.LocalDate;
 
 @Service
 @Transactional
@@ -23,6 +24,7 @@ public class BaitlyCrmDetails {
         @Size(max=150) String specificRole,@Size(max=150) String region,
         @NotBlank @Pattern(regexp="TO_QUALIFY|QUALIFIED|UNQUALIFIED") String qualification) {}
     public record Assignee(long id,String name,String profilePictureUrl) {}
+    public record FollowUp(@PastOrPresent LocalDate lastExchangeOn, @Size(max=400) String nextAction, LocalDate nextActionOn) {}
     @Transactional(readOnly=true)
     public List<Assignee> assignees(String actor){return eligible(access.require(actor)).values().stream().toList();}
     @Transactional(readOnly=true)
@@ -30,6 +32,7 @@ public class BaitlyCrmDetails {
         long org=access.require(actor);var team=eligible(org);
         var rows=db.queryForList("""
             SELECT p.id AS prospect_id,d.assigned_user_id,d.company_name,d.job_title,d.specific_role,d.region,
+              d.last_exchange_on,d.next_action,d.next_action_on,
               coalesce(d.qualification,'TO_QUALIFY') AS qualification,coalesce(d.updated_at,p.updated_at,p.created_at) AS updated_at,
               (CASE WHEN p.normalized_email IS NOT NULL THEN 1 ELSE 0 END
                + CASE WHEN p.normalized_phone IS NOT NULL THEN 1 ELSE 0 END
@@ -44,6 +47,19 @@ public class BaitlyCrmDetails {
             row.put("assigned_user_name",member==null?null:member.name());row.put("assignee_unavailable",id!=null&&member==null);
             row.put("assigned_user_avatar_url",member==null?null:member.profilePictureUrl());
         });return rows;
+    }
+    public void saveFollowUp(String actor,long id,FollowUp followUp){
+        long org=access.lock(actor);
+        if(db.queryForList("SELECT id FROM prospects WHERE organization_id=? AND id=? AND archived=false",org,id).isEmpty())throw new AccessDeniedException("Contact inaccessible");
+        String action=BaitlyCrmIdentity.text(followUp.nextAction(),400);
+        if((action==null||action.isBlank())!=(followUp.nextActionOn()==null))throw new IllegalArgumentException("Renseignez une action et son échéance ensemble");
+        if(followUp.lastExchangeOn()!=null&&followUp.lastExchangeOn().isAfter(LocalDate.now()))throw new IllegalArgumentException("La date du dernier échange ne peut pas être future");
+        db.update("""
+            INSERT INTO baitly_crm_contact_details(organization_id,prospect_id,last_exchange_on,next_action,next_action_on,recorded_by)
+            VALUES(?,?,?,?,?,?) ON CONFLICT(organization_id,prospect_id) DO UPDATE SET
+              last_exchange_on=excluded.last_exchange_on,next_action=excluded.next_action,next_action_on=excluded.next_action_on,
+              recorded_by=excluded.recorded_by,updated_at=now()
+            """,org,id,followUp.lastExchangeOn(),action,followUp.nextActionOn(),actor);
     }
     public void save(String actor,long id,Details details){
         long org=access.lock(actor);

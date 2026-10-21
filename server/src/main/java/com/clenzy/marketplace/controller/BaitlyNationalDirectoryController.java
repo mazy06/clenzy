@@ -11,6 +11,10 @@ import java.util.Map;
 @PreAuthorize("isAuthenticated()")
 public class BaitlyNationalDirectoryController {
     private final BaitlyNationalDirectorySync sync;
+    private com.clenzy.marketplace.service.BaitlyDirectoryCountrySync countries;
+    @org.springframework.beans.factory.annotation.Autowired
+    public void countries(com.clenzy.marketplace.service.BaitlyDirectoryCountrySync countries){this.countries=countries;}
     public BaitlyNationalDirectoryController(BaitlyNationalDirectorySync sync){this.sync=sync;}
-    @GetMapping public Map<String,Object> status(){return sync.status();}
+    public Map<String,Object> status(){return sync.status();}
+    @GetMapping public Map<String,Object> status(@RequestParam(defaultValue="FR") String country){country=com.clenzy.marketplace.service.BaitlyDirectoryCountry.country(country);return country.equals("FR")?sync.status():countries.status(country);}
 }

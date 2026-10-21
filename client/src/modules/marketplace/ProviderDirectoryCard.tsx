@@ -19,13 +19,15 @@ export default function ProviderDirectoryCard({ provider, categoriesByCode, to, 
   to: string; metadata?: ReactNode; badges?: ReactNode; actions?: ReactNode;
 }) {
   const { t, catalogLabel, formatMoney } = useMarketplacePresentation();
-  return <DirectoryCard>
-    <Link to={to} aria-label={t('marketplaceAdmin.openProfile', { name: provider.displayName })}
-      className={`${DIRECTORY_CARD_BODY} baitly-provider-card cursor-pointer no-underline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-primary`}>
+  const family = categoriesByCode.get(provider.categoryCodes[0])?.family;
+  const tone = family ? ({ OPERATIONS: 'teal', TECHNICAL: 'amber', GUEST: 'blue', OWNER: 'purple', OTHER: 'blue' } as const)[family] : 'blue';
+  return <DirectoryCard tone={tone}>
+    <div className={`${DIRECTORY_CARD_BODY} baitly-provider-card`}>
       <DirectoryCardContent
         media={<ProviderMedia name={provider.displayName} url={provider.avatarUrl} categoryCodes={provider.categoryCodes} />}
         title={<>
-          <span dir="auto" className="truncate">{provider.displayName}</span>
+          <Link to={to} aria-label={t('marketplaceAdmin.openProfile', { name: provider.displayName })}
+            className="baitly-provider-card__link" dir="auto" title={provider.displayName}>{provider.displayName}</Link>
           {provider.verified && <Verified className="size-4 shrink-0 text-success-ink" aria-label={t('marketplaceAdmin.verifiedProvider')} />}
         </>}
         description={provider.headline}
@@ -41,12 +43,12 @@ export default function ProviderDirectoryCard({ provider, categoriesByCode, to, 
           {provider.categoryCodes.length > 4 && <span className="text-xs text-muted-foreground">+{provider.categoryCodes.length - 4}</span>}
           {!provider.categoryCodes.length && <span className="text-xs text-muted-foreground">{t('marketplaceAdmin.noServices')}</span>}
         </>}
-        metadata={metadata} metadataPlacement="full" footerLeading={badges}
+        metadata={<>{metadata}{badges && <div className="baitly-provider-card__badges">{badges}</div>}</>}
+        metadataPlacement="full" footerLeading={actions}
         footerTrailing={provider.priceFrom != null
           ? t('marketplaceAdmin.from') + ' ' + formatMoney(provider.priceFrom, provider.currency ?? 'EUR')
           : t('marketplaceAdmin.onQuote')}
       />
-    </Link>
-    {actions && <div className="flex justify-end border-t border-border px-3 py-2">{actions}</div>}
+    </div>
   </DirectoryCard>;
 }

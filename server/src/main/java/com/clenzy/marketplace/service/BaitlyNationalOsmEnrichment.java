@@ -31,8 +31,8 @@ public class BaitlyNationalOsmEnrichment {
         try(Connection lock=Objects.requireNonNull(db.getDataSource()).getConnection()){
             try(var s=lock.createStatement();var r=s.executeQuery("SELECT pg_try_advisory_lock(1875440583)")){r.next();if(!r.getBoolean(1))throw new IllegalStateException("Sirene or OSM directory worker already running");}
             try {
-                if(!Boolean.TRUE.equals(db.queryForObject("SELECT EXISTS(SELECT 1 FROM baitly_directory_sync WHERE phase='COMPLETED')",Boolean.class)))throw new IllegalStateException("Sirene national publication must complete before OSM enrichment");
-                String signature=fingerprint+db.queryForObject("SELECT revision::text FROM baitly_directory_sync WHERE id=true",String.class);
+                if(!Boolean.TRUE.equals(db.queryForObject("SELECT EXISTS(SELECT 1 FROM baitly_directory_sync WHERE country_code='FR' AND phase='COMPLETED')",Boolean.class)))throw new IllegalStateException("Sirene national publication must complete before OSM enrichment");
+                String signature=fingerprint+db.queryForObject("SELECT revision::text FROM baitly_directory_sync WHERE country_code='FR' AND id=true",String.class);
                 if(signature.equals(lastApplied))return lastReport;
                 var candidates=read(snapshot);
                 for(var entry:candidates.entrySet()){
@@ -97,7 +97,7 @@ public class BaitlyNationalOsmEnrichment {
             SELECT p.id,p.siret,e.snapshot AS proof,e.source_url FROM baitly_directory_professionals p
             JOIN LATERAL (SELECT snapshot,source_url FROM baitly_directory_source_evidence
                 WHERE professional_id=p.id AND source='OSM' AND confirmed_by=? ORDER BY id DESC LIMIT 1) e ON true
-            WHERE p.source_active AND NOT p.suppressed AND (p.osm_confirmed_by IS NULL OR p.osm_confirmed_by=?)
+            WHERE p.country_code='FR' AND p.source_active AND NOT p.suppressed AND (p.osm_confirmed_by IS NULL OR p.osm_confirmed_by=?)
             """,ACTOR,ACTOR);
         long retired=0;
         for(var row:prior){

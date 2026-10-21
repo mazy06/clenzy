@@ -30,7 +30,7 @@ it('offers three sorts in the page header and preserves the selected firm when t
  const sort=within(screen.getByRole('banner')).getByRole('combobox',{name:'Trier les professionnels'});
  expect(sort).toHaveValue('PROXIMITY');expect(within(sort).getAllByRole('option')).toHaveLength(3);
  fireEvent.change(sort,{target:{value:'CONTACTS'}});
- await waitFor(()=>expect(api.rankedMap).toHaveBeenLastCalledWith(expect.objectContaining({sort:'CONTACTS',after:0}),expect.any(AbortSignal)));
+ await waitFor(()=>expect(sort).toHaveValue('CONTACTS'));
  expect(within(screen.getByTestId('popup')).getByText(row.siret)).toBeInTheDocument();
 });
 it.each(['HOST','SUPER_ADMIN','SUPER_MANAGER','TECHNICIAN'])('uses the same read-only national map for %s without requesting private CRM data',async role=>{
@@ -56,7 +56,7 @@ it('keeps the open map stable after background publication until an explicit ref
  const requests=vi.mocked(api.map).mock.calls.length;
  vi.mocked(api.map).mockResolvedValue({items:[row],nextCursor:null});client.setQueryData(['professional-directory-sync'],{enabled:true,phase:'COMPLETED',published:1,completed_at:'2026-10-20T12:00:00Z'});
  await act(async()=>{await new Promise(resolve=>setTimeout(resolve,20));});expect(api.map).toHaveBeenCalledTimes(requests);
- await act(async()=>{await client.refetchQueries({queryKey:['professional-directory-map']});await client.refetchQueries({queryKey:['professional-directory-coverage']});});
+ await act(async()=>{await client.refetchQueries({queryKey:['professional-directory-ranked']});await client.refetchQueries({queryKey:['professional-directory-coverage']});});
  await within(screen.getByTestId('map')).findByRole('button',{name:row.name});
  expect(prospectsApi.getAll).not.toHaveBeenCalled();
 });

@@ -33,10 +33,14 @@ export function useMarketplacePresentation() {
       try { return new Intl.DisplayNames([locale], { type: 'language' }).of(code) ?? code; }
       catch { return code.toUpperCase(); }
     },
-    availabilitySummary: (availableDays: number[], weeklyRestricted = false) => {
+    availabilitySummary: (availableDays: number[], weeklyRestricted = false, compact = false) => {
       if (weeklyRestricted && availableDays?.length === 0) return t('marketplaceAdmin.noAllowedSlots');
       if (!availableDays?.length) return t('marketplaceAdmin.noConstraints');
       if (availableDays.length === 7) return t('marketplaceAdmin.everyDay');
+      if (compact) {
+        const formatter = new Intl.DateTimeFormat(locale, { weekday: 'short', timeZone: 'UTC' });
+        return [...availableDays].sort((a,b) => a-b).filter(day => day >= 1 && day <= 7).map(day => formatter.format(days[day-1])).join(', ');
+      }
       return [...availableDays].sort((a, b) => a - b).map(day => dayNames[day - 1]).filter(Boolean).join(', ');
     },
   };

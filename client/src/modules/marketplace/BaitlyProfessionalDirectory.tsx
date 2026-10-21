@@ -49,7 +49,7 @@ function ProfessionalDirectory(){
  const [matchingId,setMatchingId]=useState<number|null>(null),[selected,setSelected]=useState<number>();
  const [locate,setLocate]=useState<{id:number;request:number}|null>(null);
  useScreenSearch(query,setQuery,m.search);
- const sync=useQuery({queryKey:['professional-directory-sync'],queryFn:api.synchronization,refetchInterval:30_000});
+ const sync=useQuery({queryKey:['professional-directory-sync'],queryFn:()=>api.synchronization(),refetchInterval:30_000});
  const directory=useInfiniteQuery({queryKey:['professional-directory',query,service,contacts],initialPageParam:0,
   queryFn:({pageParam})=>api.list(query,pageParam,service,contacts),getNextPageParam:last=>(last.page+1)*30<last.total?last.page+1:undefined,
   refetchInterval:sync.data?.phase&&sync.data.phase!=='COMPLETED'?30_000:false});

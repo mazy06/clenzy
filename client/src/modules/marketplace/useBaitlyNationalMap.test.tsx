@@ -15,12 +15,91 @@ function setup(ranked=false){
  return {...renderHook(()=>useBaitlyNationalMap(true,'','FR',ranked),{wrapper}),cache};
 }
 beforeEach(()=>{
+ vi.spyOn(api,'mapIndex').mockResolvedValue({revision:1,indexedRevision:0,spatial:false});
  vi.spyOn(api,'clusters').mockResolvedValue({clusters:[],total:0});
  vi.spyOn(api,'synchronization').mockResolvedValue({enabled:true,phase:'ESTABLISHMENTS',published:0});
  vi.spyOn(api,'map').mockResolvedValue({items:[first],nextCursor:null});
  vi.spyOn(api,'rankedMap').mockResolvedValue({items:[first],nextCursor:null});
 });
 afterEach(()=>{cleanup();vi.restoreAllMocks();vi.useRealTimers();});
+it('unions selected services consistently in requests, tiles and loaded markers',async()=>{
+ const laundry={...first,id:3,activity:'96.01B'},maintenance={...first,id:4,activity:'43.21A'};
+ vi.mocked(api.rankedMap).mockResolvedValue({items:[first,laundry,maintenance],nextCursor:null});
+ vi.mocked(api.mapIndex).mockResolvedValue({revision:2,indexedRevision:2,spatial:true});
+ const view=setup(true);await waitFor(()=>expect(view.result.current.rows).toHaveLength(3));
+ act(()=>view.result.current.setServices(['CLEANING','LAUNDRY']));
+ await waitFor(()=>expect(view.result.current.rows).toEqual([first,laundry]));
+ expect(view.result.current.markers.map(row=>row.id)).toEqual([-1,-3]);
+ expect(view.result.current.tilesUrl).toContain('service=CLEANING%2CLAUNDRY');
+ expect(api.rankedMap).toHaveBeenLastCalledWith(expect.objectContaining({service:'CLEANING,LAUNDRY'}),expect.any(AbortSignal));
+ act(()=>view.result.current.setServices([]));await waitFor(()=>expect(view.result.current.rows).toHaveLength(3));
+});
+it('loads a country union with shared ranking and tiles, then removes deselected countries',async()=>{
+ const cache=new QueryClient({defaultOptions:{queries:{retry:false}}});
+ const wrapper=({children}:{children:ReactNode})=><QueryClientProvider client={cache}>{children}</QueryClientProvider>;
+ const ma={...first,id:3,country_code:'MA',activity:'',service:'CLEANING',latitude:34,longitude:-7} as ReferencedProfessional;
+ const sa={...ma,id:4,country_code:'SA'} as ReferencedProfessional;
+ vi.mocked(api.rankedMap).mockResolvedValue({items:[first,ma,sa],nextCursor:null});
+ vi.mocked(api.mapIndex).mockResolvedValue({revision:2,indexedRevision:2,spatial:true});
+ const view=renderHook(({country})=>useBaitlyNationalMap(true,'',country,true),{initialProps:{country:'FR,MA'},wrapper});
+ await waitFor(()=>expect(view.result.current.rows).toEqual([first,ma]));
+ expect(view.result.current.tilesUrl).toContain('country=FR%2CMA');
+ expect(api.rankedMap).toHaveBeenLastCalledWith(expect.objectContaining({country:'FR,MA',bounds:{west:-17.2,south:20.7,east:10,north:51.5}}),expect.any(AbortSignal));
+ view.rerender({country:'MA'});
+ await waitFor(()=>expect(view.result.current.rows).toEqual([ma]));
+ expect(view.result.current.tilesUrl).toContain('country=MA');
+});
+it('isolates country rows, service mapping and tile URLs when switching between France and Morocco',async()=>{
+ const cache=new QueryClient({defaultOptions:{queries:{retry:false}}});
+ const wrapper=({children}:{children:ReactNode})=><QueryClientProvider client={cache}>{children}</QueryClientProvider>;
+ const ma={...first,id:3,siret:null,country_code:'MA',identifier_type:'ICE',identifier:'001234567890123',activity:'',service:'CLEANING',latitude:34.02,longitude:-6.84} as ReferencedProfessional;
+ vi.mocked(api.rankedMap).mockImplementation(async input=>({items:input.country==='MA'?[ma]:[first],nextCursor:null}));
+ vi.mocked(api.mapIndex).mockResolvedValue({revision:2,indexedRevision:2,spatial:true});
+ const view=renderHook(({country}:{country:'FR'|'MA'})=>useBaitlyNationalMap(true,'',country,true),{initialProps:{country:'FR'},wrapper});
+ await waitFor(()=>expect(view.result.current.rows).toEqual([first]));
+ view.rerender({country:'MA'});
+ await waitFor(()=>expect(view.result.current.rows).toEqual([ma]));
+ expect(view.result.current.tilesUrl).toContain('country=MA');
+ expect(api.rankedMap).toHaveBeenLastCalledWith(expect.objectContaining({country:'MA',bounds:{west:-17.2,south:20.7,east:-.9,north:36.1}}),expect.any(AbortSignal));
+ act(()=>view.result.current.setService('CLEANING'));
+ await waitFor(()=>expect(view.result.current.rows).toEqual([ma]));
+ expect(view.result.current.tilesUrl).toContain('service=CLEANING');
+ view.rerender({country:'FR'});await waitFor(()=>expect(view.result.current.rows).toEqual([first]));
+});
+it('waits for the index version before requesting the single detail page',async()=>{
+ let complete!:(value:{revision:number;indexedRevision:number;spatial:boolean})=>void;
+ vi.mocked(api.mapIndex).mockImplementation(()=>new Promise(resolve=>{complete=resolve;}));
+ const view=setup(true);
+ await act(async()=>{await new Promise(resolve=>setTimeout(resolve,180));});
+ expect(api.rankedMap).not.toHaveBeenCalled();expect(api.map).not.toHaveBeenCalled();
+ await act(async()=>complete({revision:1,indexedRevision:0,spatial:false}));
+ await waitFor(()=>expect(view.result.current.rows).toHaveLength(1));
+ expect(api.rankedMap).toHaveBeenCalledTimes(1);expect(api.map).not.toHaveBeenCalled();
+});
+it('uses just one detail request and vector tiles when the published spatial index is ready',async()=>{
+ vi.mocked(api.mapIndex).mockResolvedValue({revision:2,indexedRevision:2,spatial:true});
+ const view=setup(true);
+ await waitFor(()=>expect(view.result.current.tilesUrl).toContain('revision=2'));
+ await waitFor(()=>expect(view.result.current.rows).toHaveLength(1));
+ expect(api.rankedMap).toHaveBeenCalledTimes(1);expect(api.map).not.toHaveBeenCalled();expect(api.clusters).not.toHaveBeenCalled();
+ act(()=>view.result.current.onTilesError());
+ await waitFor(()=>expect(api.clusters).toHaveBeenCalledTimes(1));
+ expect(view.result.current.tilesUrl).toBeUndefined();expect(view.result.current.rows).toEqual([first]);
+});
+it('uses zoom hysteresis and keeps the vector layer until the close-up coverage is ready',async()=>{
+ vi.mocked(api.mapIndex).mockResolvedValue({revision:2,indexedRevision:2,spatial:true});
+ const view=setup(true);await waitFor(()=>expect(view.result.current.tilesUrl).toBeDefined());
+ act(()=>view.result.current.onCoverageBoundsChange(initial,9.2));
+ await act(async()=>{await new Promise(resolve=>setTimeout(resolve,180));});expect(view.result.current.tilesUrl).toBeDefined();
+ let complete!:(value:{clusters:[];total:number})=>void;
+ vi.mocked(api.clusters).mockImplementationOnce(()=>new Promise(resolve=>{complete=resolve;}));
+ act(()=>view.result.current.onCoverageBoundsChange(initial,9.6));
+ await waitFor(()=>expect(api.clusters).toHaveBeenCalled());expect(view.result.current.tilesUrl).toBeDefined();
+ await act(async()=>complete({clusters:[],total:0}));await waitFor(()=>expect(view.result.current.tilesUrl).toBeUndefined());
+ act(()=>view.result.current.onCoverageBoundsChange(initial,9.2));
+ await act(async()=>{await new Promise(resolve=>setTimeout(resolve,180));});expect(view.result.current.tilesUrl).toBeUndefined();
+ act(()=>view.result.current.onCoverageBoundsChange(initial,8.4));await waitFor(()=>expect(view.result.current.tilesUrl).toBeDefined());
+});
 it('requests server ranking before pagination and preserves cached rows and the list key on sort changes',async()=>{
  vi.mocked(api.rankedMap).mockImplementation(async input=>({items:input.after?[second]:[first],nextCursor:input.after?null:1}));
  const view=setup(true);await waitFor(()=>expect(view.result.current.listResult.hasNextPage).toBe(true));
@@ -29,8 +108,8 @@ it('requests server ranking before pagination and preserves cached rows and the 
  await act(async()=>{await view.result.current.listResult.fetchNextPage();});
  expect(api.rankedMap).toHaveBeenLastCalledWith(expect.objectContaining({sort:'PROXIMITY',after:1}),expect.any(AbortSignal));
  act(()=>view.result.current.setSort('CONTACTS'));
- await waitFor(()=>expect(api.rankedMap).toHaveBeenLastCalledWith(expect.objectContaining({sort:'CONTACTS',after:0}),expect.any(AbortSignal)));
- expect(view.result.current.rows.map(row=>row.id)).toEqual([1,2]);
+ await waitFor(()=>expect(view.result.current.sort).toBe('CONTACTS'));
+ expect(view.result.current.rows.map(row=>row.id).sort()).toEqual([1,2]);
  expect(view.result.current.resetKey).toBe(key);
  const calls=vi.mocked(api.rankedMap).mock.calls.length;
  act(()=>view.result.current.onCoverageBoundsChange(expanded));

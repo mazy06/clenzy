@@ -19,4 +19,7 @@ public class BaitlyCrmDetailsController {
     @PutMapping("/{id}")
     @PreAuthorize("isAuthenticated() and hasPermission(null, 'baitly-crm:view') and hasPermission(null, 'baitly-crm:manage')")
     public void save(@AuthenticationPrincipal Jwt jwt,@PathVariable long id,@Valid @RequestBody BaitlyCrmDetails.Details command){details.save(jwt.getSubject(),id,command);}
+    @PutMapping("/{id}/follow-up")
+    @PreAuthorize("isAuthenticated() and hasPermission(null, 'baitly-crm:view') and hasPermission(null, 'baitly-crm:manage')")
+    public void saveFollowUp(@AuthenticationPrincipal Jwt jwt,@PathVariable long id,@Valid @RequestBody BaitlyCrmDetails.FollowUp command){details.saveFollowUp(jwt.getSubject(),id,command);}
 }
