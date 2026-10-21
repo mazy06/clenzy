@@ -40,6 +40,11 @@ describe('Baitly public discovery build', () => {
     expect(configs.get('discovery-server.conf')).toContain('/recrutement/_page.html');
     expect(configs.get('discovery-server.conf')).toContain('/campagnes/reponse.html');
     expect(configs.get('discovery-server.conf')).toContain('[0-9a-fA-F]{12}');
+    for (const language of ['fr', 'en', 'ar']) {
+      const markdown = assets.get(`_baitly-markdown/${language}/conciergeries.md`)!;
+      expect(markdown.startsWith('# ')).toBe(true);
+      expect(markdown.length).toBeGreaterThan(100);
+    }
   });
   it('describes the published recordings with consistent watch, thumbnail and media URLs', () => {
     const { assets } = discoveryArtifacts(routes, robots, catalog);

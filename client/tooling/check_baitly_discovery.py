@@ -152,7 +152,7 @@ def check(client, binary):
                 assert headers["content-language"] == content_language, (path, headers)
                 if article and language == "ar":
                     assert any("\u0600" <= char <= "\u06ff" for char in body.splitlines()[0]), path
-                assert body.startswith("# ") and len(body) > 100
+                assert body.startswith("# ") and len(body) > 100, (path, language, len(body))
                 assert "Accept" in headers["vary"] and "no-store" in headers["cache-control"]
                 assert 'rel="describedby"' in headers["link"]
                 count += 1

@@ -1,6 +1,6 @@
 export const BAITLY_CONCIERGES = {
   fr: {
-    directory: 'Trouver une conciergerie', intro: 'Découvrez les conciergeries qui ont choisi de publier leur profil sur Baitly.',
+    directory: 'Trouver une conciergerie', intro: 'Découvrez les conciergeries qui ont choisi de publier leur profil sur Baitly. Consultez leurs services et contactez-les pour votre projet de gestion ou une demande d’estimation.',
     back: 'Toutes les conciergeries', open: 'Voir le profil', empty: 'Aucune conciergerie publiée pour le moment.',
     error: 'Cette page est indisponible. Réessayez dans quelques instants.', retry: 'Réessayer', loading: 'Chargement des conciergeries…',
     services: 'Services de gestion', homes: 'Logements présentés', form: 'Parlons de votre logement',
@@ -17,7 +17,7 @@ export const BAITLY_CONCIERGES = {
     LISTINGS: 'Annonces', PRICING: 'Tarification', GUESTS: 'Accueil voyageurs', CLEANING: 'Ménage', MAINTENANCE: 'Maintenance', OWNER_REPORTING: 'Suivi propriétaire',
   },
   en: {
-    directory: 'Find a property manager', intro: 'Explore property managers who have chosen to publish their profile on Baitly.',
+    directory: 'Find a property manager', intro: 'Explore property managers who have chosen to publish their profile on Baitly. Review their services and contact them about property management or an estimate.',
     back: 'All property managers', open: 'View profile', empty: 'No property manager profiles published yet.',
     error: 'This page is unavailable. Please try again shortly.', retry: 'Retry', loading: 'Loading property managers…',
     services: 'Management services', homes: 'Featured homes', form: 'Tell us about your home',
@@ -34,7 +34,7 @@ export const BAITLY_CONCIERGES = {
     LISTINGS: 'Listings', PRICING: 'Pricing', GUESTS: 'Guest services', CLEANING: 'Cleaning', MAINTENANCE: 'Maintenance', OWNER_REPORTING: 'Owner reporting',
   },
   ar: {
-    directory: 'ابحث عن شركة لإدارة عقارك', intro: 'تعرّف على شركات إدارة العقارات التي اختارت نشر ملفاتها على Baitly.',
+    directory: 'ابحث عن شركة لإدارة عقارك', intro: 'تعرّف على شركات إدارة العقارات التي اختارت نشر ملفاتها على Baitly. اطّلع على خدماتها وتواصل معها لمناقشة إدارة عقارك أو طلب تقدير.',
     back: 'جميع الشركات', open: 'عرض الملف', empty: 'لا توجد ملفات منشورة حالياً.',
     error: 'الصفحة غير متاحة. حاول مجدداً بعد قليل.', retry: 'إعادة المحاولة', loading: 'جارٍ تحميل الشركات…',
     services: 'خدمات الإدارة', homes: 'العقارات المعروضة', form: 'أخبرنا عن عقارك',
