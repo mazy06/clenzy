@@ -1,6 +1,7 @@
 import React from 'react';
 import { cn } from '../../utils/cn';
 import { useFitRows } from '../../hooks/useFitRows';
+import { useWidgetPresentation } from './widgetPresentation';
 
 /**
  * Repères chiffrés d'un écran de statistiques.
@@ -26,6 +27,15 @@ export interface Highlight {
 }
 
 export const HighlightList: React.FC<{ items: Highlight[] }> = ({ items }) => {
+  const widget = useWidgetPresentation();
+  if (widget) return <dl className="db-data-highlights">{items.map((item, index) => <div key={item.id ?? `${item.label}:${index}`}>
+    <dt><span dir="auto">{item.label}</span>{item.hint && <small>{item.hint}</small>}</dt>
+    <dd data-alert={item.alert || undefined}>{item.value}</dd>
+  </div>)}</dl>;
+  return <ReportHighlights items={items} />;
+};
+
+const ReportHighlights: React.FC<{ items: Highlight[] }> = ({ items }) => {
   // Les reperes qui ne tiennent pas se comptent, ils ne defilent plus : sous
   // `no-scrollbar`, la moitie de la liste disparaissait sans qu'un rail ne le
   // laisse deviner. `justify-center` est parti avec — le rab doit rester au

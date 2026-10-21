@@ -16,7 +16,7 @@ export default function ServicePriceSlider({ suggested, amount, currency, onChan
   const valid=amount!=='' && Number.isFinite(value) && value>=0 && value<=1_000_000;
   // Le champ exact permet de dépasser la plage de confort de la jauge.
   const max=Math.min(1_000_000,Math.max(100,Math.ceil((suggested?.currency===currency?suggested.amount:100)*2),valid?value:0));
-  return <div className="space-y-3">
+  return <div className="baitly-service-price-editor space-y-3">
     <ServicePriceComparison proposedLabel={t('requestCommercial.suggestedPrice')}
       proposed={suggested?format(suggested.amount,suggested.currency):t('requestCommercial.noEstimate')}
       providerLabel={<Label htmlFor={id}>{t('requestCommercial.myProposal')}</Label>}

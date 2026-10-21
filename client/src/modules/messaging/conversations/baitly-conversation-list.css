@@ -1,0 +1,47 @@
+.baitly-inbox-list {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-height: 0;
+  overflow: hidden;
+  border: 1px solid var(--bui-border);
+  border-radius: 12px;
+  background: var(--bui-card);
+}
+.baitly-inbox-heading { display: flex; align-items: center; gap: 8px; padding: 18px 16px 12px; }
+.baitly-inbox-heading h2 { margin: 0; font: inherit; font-size: 16px; font-weight: 600; color: var(--bui-foreground); }
+.baitly-inbox-total { color: var(--bui-muted-foreground); font-size: 12px; font-variant-numeric: tabular-nums; }
+.baitly-inbox-archives { display: inline-flex; align-items: center; justify-content: center; margin-inline-start: auto; width: 32px; height: 32px; flex-shrink: 0; border: 1px solid var(--bui-border); border-radius: 8px; background: transparent; color: var(--bui-muted-foreground); cursor: pointer; transition: background-color 180ms ease-out, color 180ms ease-out; }
+.baitly-inbox-archives:hover, .baitly-inbox-archives[aria-pressed=true] { color: var(--bui-info-ink); background: var(--bui-info-soft); }
+.baitly-inbox-filters { display: flex; flex-shrink: 0; padding-inline: 12px; border-bottom: 1px solid var(--bui-border); overflow-x: auto; scrollbar-width: thin; }
+.baitly-inbox-filter { display: inline-flex; align-items: center; justify-content: center; flex: 1 0 auto; gap: 4px; cursor: pointer; border: 0; border-bottom: 2px solid transparent; border-radius: 0; background: transparent; padding: 10px 5px 11px; min-height: 40px; white-space: nowrap; color: var(--bui-muted-foreground); font-size: 11px; transition: color 180ms ease-out, border-color 180ms ease-out; }
+.baitly-inbox-filter:hover { color: var(--bui-foreground); }
+.baitly-inbox-filter[aria-selected=true] { color: var(--bui-info-ink); border-bottom-color: var(--bui-info); font-weight: 600; }
+.baitly-inbox-filter-count { font-size: 10px; color: var(--bui-info-ink); font-variant-numeric: tabular-nums; }
+.baitly-inbox-filter[data-filter=forms] .baitly-inbox-filter-count { color: var(--bui-success-ink); }
+.baitly-inbox-scroll { min-height: 0; flex: 1; overflow-y: auto; scrollbar-width: thin; scrollbar-gutter: stable; }
+.baitly-inbox-group { position: sticky; top: 0; z-index: 1; margin: 0; padding: 12px 16px 6px; background: var(--bui-card); color: var(--bui-muted-foreground); font: inherit; font-size: 11px; font-weight: 500; }
+.baitly-inbox-row { position: relative; list-style: none; margin: 3px 8px; border-radius: 8px; }
+.baitly-inbox-row[data-kind=internal] { --inbox-row-ink: var(--bui-info-ink); --inbox-row-soft: var(--bui-info-soft); }
+.baitly-inbox-row[data-kind=form] { --inbox-row-ink: var(--bui-success-ink); --inbox-row-soft: var(--bui-success-soft); }
+.baitly-inbox-row[data-kind=channel] { --inbox-row-ink: var(--bui-warning-ink); --inbox-row-soft: var(--bui-warning-soft); }
+.baitly-inbox-open { display: flex; width: 100%; align-items: flex-start; gap: 10px; border: 0; border-radius: inherit; padding: 12px 8px; background: transparent; color: var(--bui-foreground); text-align: start; }
+button.baitly-inbox-open { cursor: pointer; transition: background-color 180ms ease-out; }
+button.baitly-inbox-open:hover { background: var(--bui-muted); }
+.baitly-inbox-row[data-active] .baitly-inbox-open { background: var(--inbox-row-soft); }
+.baitly-inbox-copy { display: block; min-width: 0; flex: 1; }
+.baitly-inbox-title-line { display: flex; align-items: baseline; gap: 10px; margin-block: 1px 6px; }
+.baitly-inbox-name { display: block; flex: 1; min-width: 0; white-space: nowrap; text-overflow: ellipsis; overflow: hidden; font-size: 13px; line-height: 1.45; font-weight: 500; }
+.baitly-inbox-date { flex-shrink: 0; color: var(--bui-muted-foreground); font-size: 10px; font-variant-numeric: tabular-nums; }
+.baitly-inbox-preview-line { display: flex; align-items: center; gap: 8px; min-height: 20px; padding-inline-end: 24px; }
+.baitly-inbox-preview { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--bui-muted-foreground); font-size: 12px; line-height: 1.5; }
+.baitly-inbox-row[data-unread] .baitly-inbox-name { font-weight: 650; }
+.baitly-inbox-row[data-unread] .baitly-inbox-preview { color: var(--bui-foreground); }
+.baitly-inbox-unread { flex-shrink: 0; padding: 0 5px; font-size: 10px; font-variant-numeric: tabular-nums; background: var(--bui-info-ink); color: var(--bui-card); }
+.baitly-inbox-row-action { position: absolute; inset-inline-end: 7px; bottom: 12px; display: inline-flex; opacity: 0; transition: opacity 180ms ease-out; }
+.baitly-inbox-row:hover .baitly-inbox-row-action, .baitly-inbox-row:focus-within .baitly-inbox-row-action, .baitly-inbox-row-action[data-restore] { opacity: 1; }
+.baitly-inbox-archives:focus-visible, .baitly-inbox-filter:focus-visible, .baitly-inbox-open:focus-visible { outline: 2px solid var(--bui-primary); outline-offset: 2px; }
+@media (hover: none) { .baitly-inbox-row-action { opacity: 1; } }
+@media (prefers-reduced-motion: reduce) { .baitly-inbox-filter, button.baitly-inbox-open, .baitly-inbox-row-action, .baitly-inbox-archives { transition: none; } }
+
+@media (pointer: coarse) { .baitly-inbox-filter, .baitly-inbox-archives { min-height: 44px; } .baitly-inbox-archives { min-width: 44px; } }

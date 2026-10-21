@@ -1,3 +1,4 @@
+import {PageHeaderFilterControls} from "../../../components/PageHeaderActionsContext";
 import { useRef, useState } from 'react';
 import { BookOpen, Pencil, Plus, Trash2 } from '../../../icons/glyphs';
 import { Button } from '../../../components/ui';
@@ -56,9 +57,9 @@ export default function InventoryItemsSection({ items, canEdit, onAdd, onAddMany
     {canEdit && library ? <InventoryLibrary items={items} onClose={close} onCustom={custom} onAdd={async data => {
       await onAddMany(data); setNotice(t('inventoryLibrary.added', { count: data.length }));
     }} /> : canEdit && editing ? <InventoryItemEditor initial={editing} onSave={save} onClose={close} /> : <>
-      <div className="inventory-filter-bar"><InventoryRoomSelect value={room} includeAll label={t('inventoryLibrary.filterRoom')} onChange={value => { setRoom(value); setPage(0); }} />
+      <PageHeaderFilterControls><div className="inventory-filter-bar"><InventoryRoomSelect value={room} includeAll label={t('inventoryLibrary.filterRoom')} onChange={value => { setRoom(value); setPage(0); }} />
         <span role="status">{notice || t('inventoryLibrary.results', { count: filtered.length })}</span>
-      </div>
+      </div></PageHeaderFilterControls>
       {error && <p role="alert" className="inventory-error">{error}</p>}
       {!filtered.length ? <div className="inventory-empty"><InventoryThumbnail name={t('inventoryLibrary.inventory')} catalogKey="sofa-two" size={72} /><h3>{t(items.length ? 'inventoryLibrary.noResults' : 'inventoryLibrary.emptyTitle')}</h3>
         <p>{t(items.length ? 'inventoryLibrary.filterHint' : 'inventoryLibrary.emptyHint')}</p>

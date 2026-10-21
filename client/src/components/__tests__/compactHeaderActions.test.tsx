@@ -5,6 +5,7 @@ import compactHeaderActions from '../compactHeaderActions';
 import { resolveActionKind } from '../headerActionIcons';
 import { composeTitleSegments } from '../PageTitle';
 import { Button, DropdownMenu, DropdownMenuTrigger } from '../ui';
+import HeaderAction from '../HeaderAction';
 
 /** Pictogramme d'écran : il relaie `strokeWidth` comme le font lucide et le shim `icons`. */
 const RefreshGlyph = ({ strokeWidth }: { strokeWidth?: number | string }) => (
@@ -48,7 +49,24 @@ describe('composeTitleSegments', () => {
 });
 
 describe('compactHeaderActions', () => {
-  it('garde la creation explicite et fonctionnelle parmi les actions secondaires', () => {
+  it('keeps a header creation attached to its form after removing its visible label', () => {
+    let submissions=0;
+    render(<><form id="header-create-form" onSubmit={event=>{event.preventDefault();submissions++;}}/><HeaderAction kind="create" label="Créer une campagne" type="submit" form="header-create-form"/></>);
+    const button=screen.getByRole('button',{name:'Créer une campagne'});
+    expect(button.textContent).toBe('');
+    expect(button).toHaveAttribute('data-size','icon');
+    expect(button).toHaveAttribute('data-header-action','create');
+    fireEvent.click(button);expect(submissions).toBe(1);
+  });
+
+  it('keeps a text-only link destination and supplies an icon for an unknown action', () => {
+    render(<>{compactHeaderActions(<Button asChild><a href="/devis">Mes devis</a></Button>)}</>);
+    const link=screen.getByRole('link',{name:'Mes devis'});
+    expect(link).toHaveAttribute('href','/devis');expect(link.textContent).toBe('');
+    expect(link.querySelector('svg')).not.toBeNull();
+  });
+
+  it('compacte aussi les creations sans perdre leur comportement', () => {
     let calls = 0;
     render(<>{compactHeaderActions(<div>
       <Button onClick={() => { calls++; }}><RefreshGlyph />Nouvelle réservation</Button>
@@ -56,7 +74,7 @@ describe('compactHeaderActions', () => {
       <Button><RefreshGlyph />Exporter</Button>
     </div>)}</>);
     const create = screen.getByRole('button', { name: 'Nouvelle réservation' });
-    expect(create.textContent).toBe('Nouvelle réservation');
+    expect(create.textContent).toBe('');
     fireEvent.click(create);
     fireEvent.click(screen.getByRole('button', { name: 'Ajouter un logement' }));
     expect(calls).toBe(1);
@@ -67,7 +85,7 @@ describe('compactHeaderActions', () => {
     render(<>{compactHeaderActions(<Button asChild><a href="/properties/new"><RefreshGlyph />Créer un logement</a></Button>)}</>);
     const link = screen.getByRole('link', { name: 'Créer un logement' });
     expect(link.getAttribute('href')).toBe('/properties/new');
-    expect(link.textContent).toBe('Créer un logement');
+    expect(link.textContent).toBe('');
   });
 
   it('remplace le libelle par une infobulle et le nom accessible', () => {
@@ -86,6 +104,7 @@ describe('compactHeaderActions', () => {
     expect(button).toBeTruthy();
     expect(button.textContent).toBe('');
     expect(button.getAttribute('data-size')).toBe('icon');
+    expect(button).toHaveAttribute('data-header-action','refresh');
   });
 
   it("depose le contour et la decoration de l'ecran", () => {
@@ -128,14 +147,23 @@ describe('compactHeaderActions', () => {
     expect(container.querySelector('[data-testid="glyph-ecran"]')).toBeTruthy();
   });
 
-  it('respecte data-keep-label', () => {
+  it('compacte les anciens boutons data-keep-label', () => {
     render(<>{compactHeaderActions(<Button data-keep-label><RefreshGlyph />Rafraîchir</Button>)}</>);
-    expect(screen.getByRole('button').textContent).toContain('Rafraîchir');
+    expect(screen.getByRole('button').textContent).toBe('');
+    expect(screen.getByRole('button')).toHaveAttribute('data-header-action','refresh');
   });
 
-  it('ne peut pas reduire un bouton sans icone', () => {
+  it('preserves an explicit action role and active state independently of the translated label', () => {
+    render(<>{compactHeaderActions(<Button data-header-action="pipeline" aria-pressed><RefreshGlyph/>Vue personnalisée</Button>)}</>);
+    const button=screen.getByRole('button',{name:'Vue personnalisée'});
+    expect(button).toHaveAttribute('data-header-action','pipeline');
+    expect(button).toHaveAttribute('aria-pressed','true');
+    expect(button).toHaveClass('baitly-header-action');
+  });
+
+  it('fournit une icone canonique aux boutons qui en etaient depourvus', () => {
     render(<>{compactHeaderActions(<Button>Rafraîchir</Button>)}</>);
-    expect(screen.getByRole('button').textContent).toBe('Rafraîchir');
+    expect(screen.getByRole('button',{name:'Rafraîchir'}).textContent).toBe('');expect(screen.getByRole('button').querySelector('svg')).not.toBeNull();
   });
 
   it('traverse les fragments et les conteneurs', () => {

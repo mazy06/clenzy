@@ -175,7 +175,7 @@ export function usePricingReport(period: DashboardPeriod = 'month'): ReportConte
 
 const PricingReport: React.FC<{ period?: DashboardPeriod }> = ({ period = 'month' }) => {
   const content = usePricingReport(period);
-  return <ReportView content={content} />;
+  return <ReportView content={content} report="pricing" />;
 };
 
 export default PricingReport;

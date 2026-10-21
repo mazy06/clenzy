@@ -18,6 +18,7 @@ export interface GuideReservationRef {
 
 /** Livret tel que renvoye par l'API admin (`/welcome-guides`). */
 export interface WelcomeGuide {
+  structure?: string;
   id: number;
   propertyId: number | null;
   propertyName: string | null;
@@ -53,6 +54,7 @@ export interface WelcomeGuide {
 
 /** Payload de creation / mise a jour d'un livret. */
 export interface WelcomeGuideRequest {
+  structure?: string;
   propertyId: number;
   title: string;
   language?: string;
@@ -322,6 +324,7 @@ export interface GuidePreviewData {
 }
 
 export interface PublicGuide {
+  structure?: string;
   title: string;
   language: string;
   brandingColor: string | null;

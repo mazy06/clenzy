@@ -15,6 +15,8 @@ import ExtrasSection from './ExtrasSection';
 import FinalizeStep from './FinalizeStep';
 import ConflictAlert from './ConflictAlert';
 import BlockBody from './BlockBody';
+import '../../theme/baitly-form-surfaces.css';
+import { useMediaQuery } from '../../hooks/use-media-query';
 
 export type { ReservationDialogProps, LockedProperty } from './useReservationForm';
 
@@ -31,7 +33,7 @@ export type ReservationDialogEntryMode = 'reservation' | 'block';
 // Pied de modale : `ghost` pour se retirer, `default` pour l'action qui engage
 // — les boutons du kit, comme dans le reste de l'application.
 const FOOT_CLS =
-  'flex items-center gap-2.5 px-[22px] py-[14px] border-t border-solid border-border bg-card shrink-0';
+  'baitly-form-footer flex items-center gap-2.5 px-[22px] py-[14px] border-t border-solid border-border shrink-0';
 
 // Une section de la modale : en-tête illustré + champs, séparée de la suivante
 // par un filet (pas de carte dans la carte).
@@ -40,11 +42,33 @@ const SECTION_CLS = 'flex flex-col gap-3.5 border-t border-solid border-border p
 // ─── Corps édition (écran unique, 2 colonnes) ─────────────────────────────────
 const EditBody: React.FC<{ form: UseReservationFormResult; onClose: () => void }> = ({ form, onClose }) => {
   const { t } = useTranslation();
+  const mobile = useMediaQuery('(max-width: 639px)');
+  const [step, setStep] = useState(1);
+  const steps = [t('reservations.dialog.stepStay'), t('reservations.dialog.stepTraveler'), t('reservations.dialog.pricingSection'), t('reservations.dialog.extrasSection'), t('reservations.dialog.stepFinalize')];
 
   return (
     <>
       {/* La 2e colonne apparait a partir de 901 px. */}
-      <div className="flex-1 overflow-y-auto grid gap-0 grid-cols-[1fr] min-[901px]:grid-cols-[1fr_1fr]">
+      {mobile && <ReservationWizardSteps steps={steps} current={step} onStepClick={setStep} />}
+      {mobile ? <div className="baitly-reservation-dialog__body flex flex-1 flex-col gap-4 overflow-y-auto p-4" key={step}>
+        {step === 1 && <><StaySection form={form} /><ConflictAlert form={form} /></>}
+        {step === 2 && <GuestSection form={form} />}
+        {step === 3 && <PricingSection form={form} />}
+        {step === 4 && <ExtrasSection form={form} />}
+        {step === 5 && <>
+          <h3 className="text-base font-semibold text-primary">{t('reservations.dialog.recapTitle')}</h3>
+          <dl className="grid gap-4 text-sm">
+            <div><dt className="text-muted-foreground">{t('reservations.fields.property')}</dt><dd>{form.propertyName}</dd></div>
+            <div><dt className="text-muted-foreground">{t('reservations.fields.source')}</dt><dd>{t(`reservations.source.${form.sourceKey}`)}</dd></div>
+            <div><dt className="text-muted-foreground">{t('reservations.dialog.recapDates')}</dt><dd>{form.startDate} → {form.endDate} · {form.nightsText}</dd></div>
+            <div><dt className="text-muted-foreground">{t('reservations.dialog.traveler')}</dt><dd>{form.selectedGuest?.fullName}</dd></div>
+            <div><dt className="text-muted-foreground">{t('reservations.dialog.total')}</dt><dd className="font-semibold tabular-nums">{form.totalPrice.toFixed(2)} €</dd></div>
+          </dl>
+          <p className="text-sm font-medium">{t('reservations.fields.status')}</p>
+          <div className="grid grid-cols-2 gap-2">{form.statuses.map(status => <Button key={status} variant="outline" aria-pressed={form.status === status}
+            className={form.status === status ? 'bg-primary-soft text-primary border-primary' : ''} onClick={() => form.setStatus(status)}>{t(`reservations.status.${status}`)}</Button>)}</div>
+        </>}
+      </div> : <div className="baitly-reservation-dialog__body flex-1 overflow-y-auto grid gap-0 grid-cols-[minmax(0,1fr)] min-[901px]:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
         <div
           className={cn(
             'flex flex-col gap-5 p-[22px] border-solid border-border',
@@ -60,7 +84,7 @@ const EditBody: React.FC<{ form: UseReservationFormResult; onClose: () => void }
         </div>
 
         <ConflictAlert form={form} fullWidth />
-      </div>
+      </div>}
 
       {/* Hors de la zone defilante, cf. la meme correction dans le wizard. */}
       {form.error && (
@@ -74,20 +98,21 @@ const EditBody: React.FC<{ form: UseReservationFormResult; onClose: () => void }
 
       <div className={FOOT_CLS}>
         {/* Le séjour tel qu'il sera enregistré, en euros comme les champs du tarif. */}
-        {form.numberOfNights > 0 && (
-          <p className="min-w-0 truncate text-xs text-muted-foreground tabular-nums">
+        {!mobile && form.numberOfNights > 0 && (
+          <p className="min-w-0 text-xs text-muted-foreground tabular-nums">
             {form.nightsText} · {t('reservations.dialog.total')}{' '}
             <span className="font-semibold text-foreground">{form.totalPrice.toFixed(2)} €</span>
           </p>
         )}
-        <div className="ms-auto flex gap-2">
-          <Button variant="ghost" size="sm" onClick={onClose}>
-            {t('common.cancel')}
+        <div className="baitly-form-footer__actions">
+          <Button variant="ghost" size="sm" onClick={() => mobile && step > 1 ? setStep(step - 1) : onClose()}>
+            {t(mobile && step > 1 ? 'reservations.dialog.previous' : 'common.cancel')}
           </Button>
+          {mobile && step < 5 ? <Button size="sm" onClick={() => setStep(step + 1)}>{t('reservations.dialog.next')}<ArrowForward size={15} /></Button> :
           <Button size="sm" onClick={form.handleSubmit} disabled={form.submitDisabled}>
             <Check size={15} strokeWidth={2} />
             {form.saving ? t('reservations.dialog.submitSaving') : t('common.save')}
-          </Button>
+          </Button>}
         </div>
       </div>
     </>
@@ -102,11 +127,15 @@ const CreateWizard: React.FC<{
   setStep: React.Dispatch<React.SetStateAction<number>>;
 }> = ({ form, onClose, step, setStep }) => {
   const { t } = useTranslation();
+  const mobile = useMediaQuery('(max-width: 639px)');
+  const finalStep = mobile ? 5 : 4;
+  useEffect(() => { if (!mobile && step > 4) setStep(4); }, [mobile, step, setStep]);
 
   const stepLabels = [
     t('reservations.dialog.stepStay'),
     t('reservations.dialog.stepTraveler'),
-    t('reservations.dialog.stepPricing'),
+    t(mobile ? 'reservations.dialog.pricingSection' : 'reservations.dialog.stepPricing'),
+    ...(mobile ? [t('reservations.dialog.extrasSection')] : []),
     t('reservations.dialog.stepFinalize'),
   ];
 
@@ -114,7 +143,7 @@ const CreateWizard: React.FC<{
   // Voyageur : un prénom + nom suffisent (la fiche est upsertée au submit).
   const step2Valid = !!form.newGuestFirstName.trim() && !!form.newGuestLastName.trim();
   // Étape n atteignable si toutes les précédentes sont valides.
-  const reachable = [true, step1Valid, step1Valid && step2Valid, step1Valid && step2Valid];
+  const reachable = stepLabels.map((_, index) => index === 0 || (index === 1 ? step1Valid : step1Valid && step2Valid));
   const canGoNext = step === 1 ? step1Valid : step === 2 ? step2Valid : true;
   const hasPaymentEmail = !!(form.paymentEmail.trim() || form.newGuestEmail.trim());
   const finalizeDisabled =
@@ -128,7 +157,7 @@ const CreateWizard: React.FC<{
     <>
       <ReservationWizardSteps steps={stepLabels} current={step} reachable={reachable} onStepClick={goStep} />
 
-      <div className="flex flex-1 flex-col gap-[18px] overflow-y-auto p-[22px]">
+      <div className="baitly-reservation-dialog__body flex flex-1 flex-col gap-[18px] overflow-y-auto p-[22px]">
         {step === 1 && (
           <>
             {form.showPropertySelector && <PropertySelectField form={form} />}
@@ -140,10 +169,11 @@ const CreateWizard: React.FC<{
         {step === 3 && (
           <>
             <PricingSection form={form} />
-            <ExtrasSection form={form} />
+            {!mobile && <ExtrasSection form={form} />}
           </>
         )}
-        {step === 4 && <FinalizeStep form={form} />}
+        {mobile && step === 4 && <ExtrasSection form={form} />}
+        {step === finalStep && <FinalizeStep form={form} />}
       </div>
 
       {/* Hors de la zone defilante, juste au-dessus des boutons : a l'interieur,
@@ -180,17 +210,17 @@ const CreateWizard: React.FC<{
       )}
 
       <div className={FOOT_CLS}>
-        <Button variant="ghost" size="sm" onClick={onClose}>
+        <Button variant="ghost" size="sm" className={step > 1 ? 'hidden sm:inline-flex' : undefined} onClick={onClose}>
           {t('common.cancel')}
         </Button>
-        <div className="ms-auto flex gap-2">
+        <div className="baitly-form-footer__actions">
           {step > 1 && (
             <Button variant="outline" size="sm" onClick={() => setStep((s) => s - 1)}>
               <ArrowBack className="cn-rtl-flip" size={15} strokeWidth={2} />
               {t('reservations.dialog.previous')}
             </Button>
           )}
-          {step < 4 ? (
+          {step < finalStep ? (
             <Button size="sm" onClick={() => canGoNext && setStep((s) => s + 1)} disabled={!canGoNext}>
               {t('reservations.dialog.next')}
               <ArrowForward className="cn-rtl-flip" size={15} strokeWidth={2} />
@@ -242,14 +272,14 @@ const ReservationDialog: React.FC<ReservationDialogProps> = (props) => {
       <DialogContent
         showCloseButton={false}
         className={cn(
-          'flex flex-col overflow-hidden p-0 max-w-[95vw] max-h-[92vh]',
+          'baitly-form-surface baitly-reservation-dialog flex flex-col overflow-hidden p-0 max-w-[95vw] max-h-[92vh]',
           'rounded-2xl border border-solid border-border bg-card text-foreground shadow-2xl',
           // Wizard = colonne unique (assez large pour le calendrier 2 mois) ; édition = 2 colonnes.
           isCreate ? 'w-[740px]' : 'w-[980px]',
         )}
       >
         <DialogTitle className="sr-only">
-          {isCreate ? 'Nouvelle réservation' : 'Modifier la réservation'}
+          {form.headerTitle}
         </DialogTitle>
         <ReservationDialogHeader
           form={form}

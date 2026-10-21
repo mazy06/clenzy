@@ -9,6 +9,12 @@
     ]
   },
   "include": [
+    "src/components/__tests__/PaymentCheckoutModal.test.tsx",
+    "src/modules/interventions/__tests__/BaitlyExecutionNotes.test.tsx",
+    "src/modules/interventions/__tests__/BaitlyPhotoStepPersistence.test.tsx",
+    "src/modules/welcome-guide/BaitlyPaidServiceExecution.test.tsx",
+    "src/modules/welcome-guide/BaitlyGuestServiceTracking.test.tsx",
+    "src/modules/reservations/BaitlyReservationPaidServices.test.tsx",
     "src/modules/accounting/components/HousekeeperPayoutsTab.test.tsx",
     "src/modules/payments/PaymentHistoryRefund.test.tsx",
     "src/modules/payments/PaymentRecordDetail.test.tsx",

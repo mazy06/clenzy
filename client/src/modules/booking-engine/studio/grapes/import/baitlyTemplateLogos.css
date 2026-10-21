@@ -1,0 +1,10 @@
+/* Baitly template logos : les logos clients conservent leurs couleurs. */
+.bt-site .bt-brand{display:inline-flex;align-items:center;gap:12px;min-inline-size:0;max-inline-size:320px}
+.bt-site .bt-brand>img.bt-brand__logo{flex:0 0 auto;inline-size:48px;block-size:48px;object-fit:contain}
+.bt-site .bt-brand>img.bt-brand__logo:not([data-baitly-default-logo]){inline-size:auto;max-inline-size:180px}
+.bt-site .bt-brand__name{min-inline-size:0;overflow-wrap:anywhere}
+.bt-site[data-baitly-page="/"]:not([data-art-direction="villa"]):has(.bt-hotel-hero)>.bt-header [data-baitly-default-logo],
+.bt-site[data-art-direction="estate"] .bt-hotel-footer [data-baitly-default-logo]{filter:brightness(0) invert(.95) sepia(.12)}
+.bt-site[data-baitly-scrolled][data-baitly-page="/"]:has(.bt-hotel-hero)>.bt-header [data-baitly-default-logo]{filter:none}
+@media(max-width:1080px){.bt-site .bt-nav .bt-brand{max-inline-size:240px}.bt-site .bt-brand>img.bt-brand__logo{inline-size:40px;block-size:40px}}
+@media(max-width:600px){.bt-site .bt-nav .bt-brand{max-inline-size:min(260px,calc(100vw - 120px));gap:9px}.bt-site .bt-brand>img.bt-brand__logo{inline-size:36px;block-size:36px}.bt-site .bt-footer-grid .bt-brand{max-inline-size:100%}}

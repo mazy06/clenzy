@@ -54,10 +54,17 @@ class SecurityDepositHoldServiceTest {
     @Mock private SecurityDepositRepository repository;
     @Mock private StripeGateway stripeGateway;
     @Mock private NotificationService notificationService;
+    @Mock private BaitlyDepositReleasePolicy releasePolicy;
+
+    @org.junit.jupiter.api.BeforeEach void stripeCancellationProof() throws Exception {
+        PaymentIntent cancelled = new PaymentIntent();
+        cancelled.setStatus("canceled");
+        org.mockito.Mockito.lenient().when(stripeGateway.cancelPaymentIntent(any(), anyString())).thenReturn(cancelled);
+    }
 
     private SecurityDepositHoldService serviceAt(Instant now) {
         return new SecurityDepositHoldService(repository, stripeGateway, notificationService,
-            Clock.fixed(now, ZoneOffset.UTC));
+            Clock.fixed(now, ZoneOffset.UTC), releasePolicy);
     }
 
     private static Reservation reservation(int nights) {
@@ -310,10 +317,11 @@ class SecurityDepositHoldServiceTest {
     }
 
     @Test
-    void whenHoldLapsedAfterTheClaimWindow_thenDepositIsSimplyReleased() throws Exception {
+    void whenHoldLapsedAfterValidatedCleaning_thenDepositIsReleased() throws Exception {
         Instant expiry = Instant.parse("2026-11-03T17:10:00Z");
         when(stripeGateway.retrievePaymentIntent("pi_old")).thenReturn(paymentIntent("pi_old", "canceled", null));
         when(repository.markHoldLapsed(DEPOSIT_ID, ORG, SecurityDepositStatus.RELEASED)).thenReturn(1);
+        when(releasePolicy.eligible(any())).thenReturn(true);
 
         // Séjour d'une nuit : fenêtre de réclamation close le 1er novembre.
         serviceAt(expiry.plusSeconds(600)).reconcileLapsedHold(held("pi_old", expiry), reservation(1));

@@ -182,7 +182,6 @@ export const SCREEN_TABS: Record<string, ScreenTabDef[]> = {
     { key: 'portfolios', translationKey: 'directoryPage.tabs.portfolios', fallbackLabel: 'Portefeuilles', icon: <Business />, isAccessible: (a) => has(a, 'portfolios:view') },
     { key: 'organizations', translationKey: 'directoryPage.tabs.organizations', fallbackLabel: 'Organisations', icon: <CorporateFare />, isAccessible: (a) => has(a, 'users:manage') },
     { key: 'guests', translationKey: 'directoryPage.tabs.guests', fallbackLabel: 'Voyageurs', icon: <PersonSearch />, isAccessible: (a) => has(a, 'guests:view') },
-    { key: 'prospection', translationKey: 'directoryPage.tabs.prospection', fallbackLabel: 'Prospection', icon: <TrendingUp />, isAccessible: (a) => has(a, 'teams:view') && hasRole(a, 'SUPER_ADMIN', 'SUPER_MANAGER') },
   ],
 
   '/documents': [

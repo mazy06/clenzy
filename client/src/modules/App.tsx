@@ -166,7 +166,7 @@ const App: React.FC = () => {
   // sert les navigations SUIVANTES et arrive trop tard pour celle-ci.
   useEffect(() => {
     if (isPublicRoute) return;
-    prefetchRoute(location.pathname);
+    prefetchRoute(location.pathname+location.search);
     // Au montage seulement : les navigations ulterieures ont leur propre
     // prechargement (survol des entrees de la sidebar).
     // eslint-disable-next-line react-hooks/exhaustive-deps

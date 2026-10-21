@@ -17,6 +17,7 @@ import { Plus, TriangleAlert, X } from '../../../icons/glyphs';
 import { getParsedAccessToken } from '../../../keycloak';
 import { cn } from '../../../utils/cn';
 import { useTranslation } from '../../../hooks/useTranslation';
+import './baitly-report-document.css';
 import {
   reportDocumentsApi,
   type ReportDocumentSummary,
@@ -175,11 +176,12 @@ const SendReportDialog: React.FC<SendReportDialogProps> = ({ document, onClose, 
         </div>
 
         <DialogFooter>
-          <Button variant="outline" size="sm" onClick={onClose}>
+          <Button variant="outline" size="sm" className="rc-secondary-action" onClick={onClose}>
             Annuler
           </Button>
           <Button
             size="sm"
+            className="rc-primary-action"
             disabled={selected.length === 0 || sendMutation.isPending}
             onClick={() => sendMutation.mutate()}
           >

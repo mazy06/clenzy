@@ -1,0 +1,50 @@
+.maplibregl-popup.baitly-map-place-popup { max-width: none !important; }
+.baitly-map-place-popup .maplibregl-popup-content { padding: 0; border-radius: 14px; overflow: hidden; }
+.baitly-map-place { width: min(480px, var(--baitly-popup-width, calc(100vw - 40px))); max-height: min(440px, 65dvh, var(--baitly-popup-height, 100dvh)); overflow-y: auto; overscroll-behavior: contain; color: var(--bui-foreground); background: var(--bui-card); font-family: var(--font-sans); font-size: 13px; line-height: 1.5; }
+.baitly-map-place__header { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; padding: 18px 18px 0; background: var(--bui-card); }
+.baitly-map-place__identity { min-width: 0; flex: 1; }
+.baitly-map-place__header button { flex-shrink: 0; cursor: pointer; }
+.baitly-map-place__header p { margin: 0 0 4px; color: var(--bui-muted-foreground); font-size: 11px; }
+.baitly-map-place__header h3 { margin: 0; font-size: 18px; line-height: 1.3; font-weight: 600; text-wrap: balance; overflow-wrap: anywhere; }
+.baitly-map-place__body { padding: 16px 18px 18px; }
+.baitly-map-place__fields { margin: 0; }
+.baitly-map-place__fields > div { padding-block: 8px; }
+.baitly-map-place__fields > div + div { border-top: 1px solid var(--bui-border); }
+.baitly-map-place__fields dt { display: flex; align-items: center; gap: 6px; color: var(--bui-muted-foreground); font-size: 11px; }
+.baitly-map-place__fields dd { margin: 4px 0 0; overflow-wrap: anywhere; font-variant-numeric: tabular-nums; }
+.baitly-map-place a { color: var(--bui-navy); text-decoration: underline; text-underline-offset: 3px; cursor: pointer; }
+.baitly-map-place a:focus-visible { outline: 2px solid var(--bui-ring); outline-offset: 3px; }
+.baitly-map-place a svg { display: inline; margin-inline-start: 5px; }
+.baitly-map-place__photo { margin: 0; width: 104px; flex-shrink: 0; }
+.baitly-map-place__photo img { width: 100%; height: 72px; object-fit: cover; border-radius: 8px; }
+.baitly-map-place__photo figcaption { margin-top: 4px; font-size: 10px; }
+.baitly-map-place__notice { padding-block: 8px; color: var(--bui-muted-foreground); }
+.baitly-map-place__notice p { margin: 0 0 8px; }
+@media (max-width: 767px) {
+  .baitly-map-place { width: 100%; max-height: none; }
+  .baitly-map-place-popup .baitly-map-place { width: calc(100vw - 40px); max-height: 60dvh; }
+  .baitly-map-place__fields a { display: inline-block; padding-block: 3px; }
+}
+
+.baitly-map-place__address { display: flex; align-items: baseline; gap: 6px; margin-top: 8px; font-size: 12px; color: var(--bui-muted-foreground); overflow-wrap: anywhere; }
+.baitly-map-place__address svg { flex-shrink: 0; align-self: flex-start; margin-top: 2px; }
+.baitly-map-place__columns { display: grid; grid-template-columns: minmax(0,1fr) minmax(0,1fr); gap: 24px; }
+.baitly-map-place__columns > section { min-width: 0; }
+.baitly-map-place__columns > section + section { border-inline-start: 1px solid var(--bui-border); padding-inline-start: 24px; }
+.baitly-map-place__columns h4 { margin: 0 0 6px; font-size: 12px; font-weight: 600; }
+.baitly-map-place__tabs { display: flex; gap: 4px; margin-bottom: 8px; border-bottom: 1px solid var(--bui-border); }
+.baitly-map-place__tabs button { min-height: 44px; flex: 1; padding: 8px 4px; border-bottom: 2px solid transparent; cursor: pointer; color: var(--bui-muted-foreground); font-size: 12px; transition: color 180ms ease-out, background-color 180ms ease-out; }
+.baitly-map-place__tabs button:hover { background: var(--bui-muted); }
+.baitly-map-place__tabs button[aria-selected=true] { border-bottom-color: var(--bui-navy); color: var(--bui-navy); font-weight: 600; }
+.baitly-map-place__tabs button:focus-visible { outline: 2px solid var(--bui-ring); outline-offset: -2px; }
+@media (max-width: 767px) {
+ .baitly-map-place__header { padding: 12px 12px 0; gap: 8px; }
+ .baitly-map-place__header h3 { font-size: 17px; }
+ .baitly-map-place__body { padding: 8px 12px 12px; }
+ .baitly-map-place__columns { grid-template-columns: minmax(0,1fr); gap: 0; }
+ .baitly-map-place__columns > section + section { border: 0; padding: 0; }
+ .baitly-map-place__photo { width: 64px; }
+ .baitly-map-place__photo img { height: 56px; }
+ .baitly-map-place__photo figcaption { font-size: 8px; }
+}
+@media (prefers-reduced-motion: reduce) { .baitly-map-place__tabs button { transition: none; } }

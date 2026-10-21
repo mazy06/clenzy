@@ -19,6 +19,8 @@ export interface HubAccess {
 }
 
 export interface HubTab {
+  /** Groupe de la sidebar lorsque les onglets du hub sont affichés séparément. */
+  sidebarGroup?: HubDef['group'];
   /** Route canonique de l'onglet (cible de navigation). */
   path: string;
   /** Préfixes de routes additionnels couverts par l'onglet (état actif). */
@@ -53,6 +55,7 @@ export const NAVIGATION_HUBS: HubDef[] = [
         path: '/properties',
         translationKey: 'navigation.map',
         fallbackLabel: 'Carte',
+        sidebarGroup: 'pilotage',
         isAccessible: (a) => has(a, 'properties:view'),
       },
       {
@@ -100,7 +103,7 @@ export const NAVIGATION_HUBS: HubDef[] = [
     tabs: [
       {
         path: '/documents',
-        translationKey: 'navigation.documents',
+        translationKey: 'navigation.documentLibrary',
         fallbackLabel: 'Documents',
         isAccessible: (a) => has(a, 'documents:view'),
       },
@@ -249,6 +252,7 @@ export interface StandaloneScreen {
 }
 
 export const STANDALONE_SCREENS: StandaloneScreen[] = [
+  { path: '/prospection', translationKey: 'directoryPage.tabs.prospection', fallbackLabel: 'Prospection' },
   { path: '/dynamic-pricing', translationKey: 'dynamicPricing.title', fallbackLabel: 'Prix dynamiques' },
   { path: '/connected-objects', translationKey: 'navigation.connectedObjects', fallbackLabel: 'Objets connectés' },
   { path: '/planning', translationKey: 'navigation.planning', fallbackLabel: 'Planning' },

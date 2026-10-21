@@ -110,6 +110,7 @@ const MENU_LAYOUT_CLASS = [
 interface PageHeaderActionsProps {
   /** Recherche / filtres (slot gauche du groupe d'actions). */
   filters?: React.ReactNode;
+  filtersActive?: boolean;
   /** Boutons d'action. */
   actions?: React.ReactNode;
   /**
@@ -120,7 +121,7 @@ interface PageHeaderActionsProps {
   narrow: boolean;
 }
 
-export default function PageHeaderActions({ filters, actions, narrow }: PageHeaderActionsProps) {
+export default function PageHeaderActions({ filters, filtersActive=false, actions, narrow }: PageHeaderActionsProps) {
   const { t } = useTranslation();
   const [open, setOpen] = useState(false);
   const [filtersOpen, setFiltersOpen] = useState(false);
@@ -129,7 +130,7 @@ export default function PageHeaderActions({ filters, actions, narrow }: PageHead
 
   if (!filters && !actions) return null;
 
-  // Actions secondaires : icône + infobulle ; créations : icône + libellé.
+  // Toutes les actions, créations comprises : icône + infobulle.
   // Repli comme deploiement partent du meme arbre reduit — le menu ⋯ redonne
   // le libelle via `aria-label` (cf. MENU_LAYOUT_CLASS).
   const compactActions = compactHeaderActions(actions);
@@ -154,6 +155,9 @@ export default function PageHeaderActions({ filters, actions, narrow }: PageHead
                       variant="ghost"
                       size="icon"
                       aria-label={filtersLabel}
+                      className="baitly-header-action"
+                      data-header-action="filter"
+                      data-filters-active={filtersActive}
                       aria-expanded={filtersOpen}
                     >
                       {headerActionIcon('filter')}
@@ -209,6 +213,9 @@ export default function PageHeaderActions({ filters, actions, narrow }: PageHead
                 variant="ghost"
                 size="icon"
                 aria-label={t('common.actions', 'Actions')}
+                className="baitly-header-action"
+                data-header-action="settings"
+                data-filters-active={filtersActive}
                 aria-haspopup="menu"
                 aria-expanded={open}
               >
@@ -232,7 +239,7 @@ export default function PageHeaderActions({ filters, actions, narrow }: PageHead
               setOpen(false);
             }}
           >
-            {filters}
+            {filters&&<div data-inline-panel className="flex min-w-0 flex-col gap-2">{filters}</div>}
             {filters && actions && <div className="my-0.5 h-px shrink-0 bg-border" />}
             {compactActions}
           </div>

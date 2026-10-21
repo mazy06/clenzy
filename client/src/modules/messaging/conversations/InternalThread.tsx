@@ -16,7 +16,6 @@ import QuoteMessageCard from './QuoteMessageCard';
 import DepositMessageCard from './DepositMessageCard';
 import ThreadView from './ThreadView';
 import { type ThreadMessage } from './unified';
-import ChannelMark from './ChannelMark';
 import ConversationAvatar from './ConversationAvatar';
 import { AiDraftCard, AiDraftError, AiDraftSkeleton, CopilotBar } from './AiCopilot';
 
@@ -25,6 +24,7 @@ const COMPOSE_TOOL_CLASS =
   'inline-flex size-8 shrink-0 cursor-pointer items-center justify-center rounded-full border-0 bg-transparent p-0 text-muted-foreground transition-colors duration-150 hover:bg-muted hover:text-foreground disabled:cursor-default disabled:opacity-45 motion-reduce:transition-none';
 
 interface InternalThreadProps {
+  archived?: boolean;
   thread: ContactThreadSummary;
   /** Appelé après archivage (désélection côté parent). */
   onArchived: () => void;
@@ -37,7 +37,7 @@ interface InternalThreadProps {
  * hooks de la messagerie interne existante (contactApi) : messages du thread,
  * réponse (avec pièces jointes), archivage du thread.
  */
-export default function InternalThread({ thread, onArchived, showBack, onBack }: InternalThreadProps) {
+export default function InternalThread({ thread, onArchived, showBack, onBack, archived = false }: InternalThreadProps) {
   const { t } = useTranslation();
   const { user } = useAuth();
   const [draft, setDraft] = useState('');
@@ -46,7 +46,7 @@ export default function InternalThread({ thread, onArchived, showBack, onBack }:
   const [suggestionFailed, setSuggestionFailed] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const { data: rawMessages, isLoading } = useThreadMessages(thread.counterpartKeycloakId);
+  const { data: rawMessages, isLoading } = useThreadMessages(thread.counterpartKeycloakId, archived);
   const replyMutation = useReplyMessage();
   const replyInThreadMutation = useReplyInThread();
   const archiveThreadMutation = useArchiveThread();
@@ -85,6 +85,7 @@ export default function InternalThread({ thread, onArchived, showBack, onBack }:
       || thread.counterpartEmail;
 
   const handleSend = () => {
+    if (archived) return;
     // Repondre dans un groupe s'adresse au FIL, pas au dernier expediteur :
     // repondre au message aurait ouvert un echange un-a-un avec lui.
     if (isGroup) {
@@ -152,14 +153,13 @@ export default function InternalThread({ thread, onArchived, showBack, onBack }:
         avatar={<ConversationAvatar name={counterpartName} channel="INTERNAL" group={isGroup} />}
         subtitle={
           <>
-            <ChannelMark channel="INTERNAL" size={14} />
             {t('messagingHub.internalChat', 'Chat interne')}
             {isGroup
               ? ` · ${(thread.participantNames ?? []).join(', ')}`
               : thread.counterpartEmail ? ` · ${thread.counterpartEmail}` : ''}
           </>
         }
-        menuItems={[
+        menuItems={archived ? [] : [
           {
             key: 'archive',
             label: t('messagingHub.archive', 'Archiver'),
@@ -175,6 +175,7 @@ export default function InternalThread({ thread, onArchived, showBack, onBack }:
         onDraftChange={setDraft}
         onSend={handleSend}
         sending={replyMutation.isPending || replyInThreadMutation.isPending}
+        composeDisabled={archived}
         composePlaceholder={t('messagingHub.replyTo', 'Répondre à {{name}}…', { name: counterpartName })}
         composeExtra={
           attachments.length > 0 ? (
@@ -222,7 +223,7 @@ export default function InternalThread({ thread, onArchived, showBack, onBack }:
                 onDismiss={() => setSuggestion(null)}
               />
             )}
-            {lastInbound && !suggestion && !aiSuggestMutation.isPending && !suggestionFailed && (
+            {!archived && lastInbound && !suggestion && !aiSuggestMutation.isPending && !suggestionFailed && (
               <CopilotBar onSuggest={handleAiSuggest} suggesting={aiSuggestMutation.isPending} />
             )}
           </>

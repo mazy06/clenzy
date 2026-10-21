@@ -1,218 +1,35 @@
-import React, { useState, useCallback } from 'react';
-import { Alert as UiAlert, AlertDescription, Button } from '../../components/ui';
-import { TriangleAlert } from '../../icons/glyphs';
-import {
-  Dialog,
-  DialogContent,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-  Field,
-  FieldLabel,
-  NativeSelect,
-  NativeSelectOption,
-} from '../../components/ui';
-import { cn } from '../../utils/cn';
-import {
-  CloudUpload,
-  InsertDriveFile,
-  CheckCircle,
-} from '../../icons';
+import React, { useId, useState } from 'react';
+import { Alert, AlertDescription, Button, Field, FieldLabel, Input, Textarea } from '../../components/ui';
 import { useImportProspects } from '../../hooks/useProspects';
 import { useTranslation } from '../../hooks/useTranslation';
+import { BAITLY_CRM_CATEGORIES, BaitlyCrmSelect, baitlyCrmError } from './BaitlyCrmFields';
 
-// ─── Types ──────────────────────────────────────────────────────────────────
-
-interface ProspectImportModalProps {
-  open: boolean;
-  onClose: () => void;
+export default function ProspectImportModal({ open, onClose }: { open: boolean; onClose: () => void }) {
+  const { t } = useTranslation(); const id = useId();
+  const [file,setFile] = useState<File>(); const [category,setCategory] = useState('OWNERS');
+  const [provenance,setProvenance] = useState(''); const upload = useImportProspects();
+  if (!open) return null;
+  return <form className="space-y-4" onSubmit={(event) => {
+    event.preventDefault(); if (file) upload.mutate({ file, category, provenance });
+  }}>
+    <h2 className="text-base font-semibold text-balance">{t('baitlyCrm.import')}</h2>
+    <p className="text-sm text-muted-foreground">{t('baitlyCrm.csvHelp')}</p>
+    <fieldset disabled={upload.isPending} className="grid min-w-0 gap-4 sm:grid-cols-2">
+      <BaitlyCrmSelect label={t('baitlyCrm.category')} value={category} values={BAITLY_CRM_CATEGORIES} onChange={setCategory} />
+      <Field><FieldLabel htmlFor={id + 'file'}>{t('baitlyCrm.file')}</FieldLabel>
+        <Input id={id + 'file'} type="file" accept=".csv,text/csv" required className="cursor-pointer" onChange={(e) => { setFile(e.target.files?.[0]); upload.reset(); }} /></Field>
+      <Field className="sm:col-span-2"><FieldLabel htmlFor={id + 'source'}>{t('baitlyCrm.sourceDetail')}</FieldLabel>
+        <Textarea id={id + 'source'} required maxLength={1000} value={provenance} onChange={(e) => setProvenance(e.target.value)} /></Field>
+    </fieldset>
+    {upload.isError && <Alert variant="destructive"><AlertDescription>{baitlyCrmError(upload.error,t('baitlyCrm.importError'))}</AlertDescription></Alert>}
+    {upload.data && <div role="status" className="space-y-2 text-sm tabular-nums">
+      <p>{t('baitlyCrm.importReport',{ ...upload.data })}</p>
+      {upload.data.issues.length > 0 && <p>{t('baitlyCrm.invalidRows')} {upload.data.issues.map((issue) => issue.line).join(', ')}</p>}
+    </div>}
+    <p className="text-xs text-muted-foreground">{t('baitlyCrm.noAutomaticConsent')}</p>
+    <div className="flex flex-wrap gap-2">
+      <Button type="submit" disabled={!file || upload.isPending || upload.isSuccess} className="cursor-pointer">{t('baitlyCrm.import')}</Button>
+      <Button type="button" variant="outline" onClick={onClose} disabled={upload.isPending} className="cursor-pointer">{t('common.close')}</Button>
+    </div>
+  </form>;
 }
-
-const CATEGORY_OPTIONS = [
-  { value: 'CONCIERGERIES', labelKey: 'prospection.categories.CONCIERGERIES' },
-  { value: 'MENAGE', labelKey: 'prospection.categories.MENAGE' },
-  { value: 'ARTISANS', labelKey: 'prospection.categories.ARTISANS' },
-  { value: 'ENTRETIEN', labelKey: 'prospection.categories.ENTRETIEN' },
-  { value: 'BLANCHISSERIES', labelKey: 'prospection.categories.BLANCHISSERIES' },
-];
-
-// ─── Component ──────────────────────────────────────────────────────────────
-
-const ProspectImportModal: React.FC<ProspectImportModalProps> = ({ open, onClose }) => {
-  const { t } = useTranslation();
-  const [selectedFile, setSelectedFile] = useState<File | null>(null);
-  const [category, setCategory] = useState('');
-  const [dragOver, setDragOver] = useState(false);
-  const [successCount, setSuccessCount] = useState<number | null>(null);
-
-  const importMutation = useImportProspects();
-
-  const handleReset = useCallback(() => {
-    setSelectedFile(null);
-    setCategory('');
-    setSuccessCount(null);
-    importMutation.reset();
-  }, [importMutation]);
-
-  const handleClose = useCallback(() => {
-    handleReset();
-    onClose();
-  }, [handleReset, onClose]);
-
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      setSelectedFile(file);
-      setSuccessCount(null);
-    }
-  };
-
-  const handleDrop = (e: React.DragEvent) => {
-    e.preventDefault();
-    setDragOver(false);
-    const file = e.dataTransfer.files?.[0];
-    if (file && file.name.endsWith('.csv')) {
-      setSelectedFile(file);
-      setSuccessCount(null);
-    }
-  };
-
-  const handleImport = async () => {
-    if (!selectedFile || !category) return;
-
-    try {
-      const result = await importMutation.mutateAsync({ file: selectedFile, category });
-      setSuccessCount(result.imported);
-    } catch {
-      // Error handled by mutation state
-    }
-  };
-
-  const canImport = selectedFile && category && !importMutation.isPending;
-
-  return (
-    <Dialog open={open} onOpenChange={(next) => !next && handleClose()}>
-      <DialogContent className="sm:max-w-lg">
-        <DialogHeader className="flex-row items-center gap-1.5 border-b pb-2">
-          <CloudUpload className="text-primary" />
-          <DialogTitle className="text-sm font-semibold">
-            {t('prospection.import')}
-          </DialogTitle>
-        </DialogHeader>
-
-        {/* Success message */}
-        {successCount !== null && (
-          <UiAlert variant="success" className="mb-3">
-            <CheckCircle />
-            <AlertDescription>
-              <strong>{successCount}</strong> {t('prospection.importSuccess')}
-            </AlertDescription>
-          </UiAlert>
-        )}
-
-        {/* Error message */}
-        {importMutation.isError && (
-          <UiAlert variant="destructive" className="mb-3">
-            <TriangleAlert />
-            <AlertDescription>{t('prospection.importError')}</AlertDescription>
-          </UiAlert>
-        )}
-
-        {/* Category selector */}
-        <Field className="mb-[18px]">
-          <FieldLabel htmlFor="prospect-import-category">Categorie</FieldLabel>
-          <NativeSelect
-            id="prospect-import-category"
-            className="w-full"
-            value={category}
-            onChange={(e) => setCategory(e.target.value)}
-            disabled={importMutation.isPending}
-          >
-            {/* Option vide : le select natif afficherait sinon la 1re categorie
-                sans que l'etat ait change (le bouton Importer resterait bloque). */}
-            <NativeSelectOption value="">—</NativeSelectOption>
-            {CATEGORY_OPTIONS.map((opt) => (
-              <NativeSelectOption key={opt.value} value={opt.value}>
-                {t(opt.labelKey)}
-              </NativeSelectOption>
-            ))}
-          </NativeSelect>
-        </Field>
-
-        {/* File drop zone */}
-        <div
-          onDrop={handleDrop}
-          onDragOver={(e) => {
-            e.preventDefault();
-            setDragOver(true);
-          }}
-          onDragLeave={() => setDragOver(false)}
-          className={cn(
-            'border border-dashed rounded-xl p-6 text-center cursor-pointer',
-            'transition-[border-color,background-color] duration-200 ease-out-quart motion-reduce:transition-none',
-            dragOver
-              ? 'border-primary bg-primary-soft'
-              : 'border-border bg-field hover:border-primary/40',
-          )}
-          onClick={() => document.getElementById('csv-file-input')?.click()}
-        >
-          <input
-            id="csv-file-input"
-            type="file"
-            accept=".csv"
-            onChange={handleFileChange}
-            className="hidden"
-          />
-          {selectedFile ? (
-            <div className="flex items-center justify-center gap-1.5">
-              <InsertDriveFile className="text-primary" />
-              <p className="text-sm font-medium text-foreground">
-                {selectedFile.name}
-              </p>
-              <p className="text-xs text-muted-foreground tabular-nums">
-                ({(selectedFile.size / 1024).toFixed(1)} Ko)
-              </p>
-            </div>
-          ) : (
-            <>
-              <span className="inline-flex text-faint mb-1.5"><CloudUpload size={48} strokeWidth={1.75} /></span>
-              <p className="text-sm text-muted-foreground">
-                {t('prospection.dropCsv')}
-              </p>
-              <p className="text-xs text-faint">
-                ou cliquez pour parcourir
-              </p>
-            </>
-          )}
-        </div>
-
-        {/* Progress. Le primitif Progress traduit un POURCENTAGE et l'import n'en
-            expose aucun : une barre pulsee dit « en cours » sans mentir sur une
-            avancee, la ou un Progress serait fige a 0 %. */}
-        {importMutation.isPending && (
-          <div
-            role="progressbar"
-            aria-label="Import en cours"
-            className="mt-3 h-1 w-full overflow-hidden rounded-full bg-muted"
-          >
-            <div className="h-full w-full bg-primary animate-pulse motion-reduce:animate-none" />
-          </div>
-        )}
-
-        <DialogFooter className="gap-2">
-          <Button onClick={handleClose} variant="outline" disabled={importMutation.isPending}>
-            {successCount !== null ? 'Fermer' : 'Annuler'}
-          </Button>
-          {successCount === null && (
-            <Button onClick={handleImport} disabled={!canImport}>
-              <CloudUpload />
-              {importMutation.isPending ? 'Import en cours...' : 'Importer'}
-            </Button>
-          )}
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
-  );
-};
-
-export default ProspectImportModal;

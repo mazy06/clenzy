@@ -63,7 +63,7 @@ describe('Onglets logement : navigation et actions raccordées', () => {
       { id: '12', type: 'MAINTENANCE', status: 'PENDING', scheduledDate: '2026-10-09', description: 'Réparer la poignée', assignedTo: 'Équipe test' },
     ]} />);
     expect(screen.getByText('À réaliser').closest('.bui-stat-figure')).toHaveTextContent('1');
-    fireEvent.click(screen.getByRole('radio', { name: 'Liste' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Liste' }));
     expect(screen.getByText('Réparer la poignée')).toBeVisible();
     fireEvent.click(screen.getByRole('button', { name: /08\/10\/2026/ }));
     expect(screen.getByText('Ménage annulé')).toBeVisible();

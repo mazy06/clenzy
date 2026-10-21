@@ -1,6 +1,7 @@
 import { useState, type ReactNode } from 'react';
 import { CalendarDays, Clock3, CreditCard, ExternalLink, RotateCcw, Send } from '../../icons/glyphs';
 import { Alert, AlertDescription, Button, Skeleton, Spinner, Tabs, TabsContent, TabsList, TabsTrigger, Tooltip, TooltipContent, TooltipTrigger } from '../../components/ui';
+import { baitlyTabColor, baitlyTabStyle } from '../../components/baitlyTabColors';
 import StatusChip from '../../components/StatusChip';
 import FinanceStatusIcon from '../billing/components/FinanceStatusIcon';
 import { useTranslation } from '../../hooks/useTranslation';
@@ -98,7 +99,7 @@ export default function PaymentRecordDetail({ payment, status, onPay, onSendLink
       {query.isError && <div className="payment-record-detail__error" role="alert"><p>{t('paymentDetail.loadError')}</p><Button variant="outline" size="sm" onClick={() => void query.refetch()}>{t('common.retry', 'Réessayer')}</Button></div>}
       {intervention && <Tabs value={section} onValueChange={setSection} className="payment-record-detail__tabs">
         <TabsList aria-label={t('paymentDetail.intervention')} variant="line">
-          {['overview', 'photos', 'documents', 'restock'].map(value => <TabsTrigger key={value} value={value}>{t(`paymentDetail.tabs.${value}`)}</TabsTrigger>)}
+          {['overview', 'photos', 'documents', 'restock'].map((value, index) => <TabsTrigger key={value} value={value} className="bui-colored-tab" style={baitlyTabStyle(baitlyTabColor(index))}>{t(`paymentDetail.tabs.${value}`)}</TabsTrigger>)}
         </TabsList>
         <TabsContent value="overview">
           <PaymentDetailPager items={[

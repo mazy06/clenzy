@@ -40,7 +40,7 @@ const messages = {
 /** Tokens remain in memory and are invalidated on expiry, failure and every remount. */
 export default function BaitlyTurnstile({ siteKey, action, language = 'fr', resetKey = 0, onToken }: {
   siteKey: string;
-  action: 'login' | 'marketplace-application';
+  action: 'login' | 'marketplace-application' | 'management-inquiry' | 'provider-recruitment' | 'crm-campaign-response';
   language?: string;
   resetKey?: number;
   onToken: (token: string | null) => void;

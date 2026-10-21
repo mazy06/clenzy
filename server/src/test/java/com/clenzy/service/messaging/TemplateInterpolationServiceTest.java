@@ -63,6 +63,31 @@ class TemplateInterpolationServiceTest {
     }
 
     @Test
+    void missingGuideLinkHasReadableFallbackInSubjectAndBothBodies() {
+        template.setSubject("Livret : {guideLink}");
+        template.setBody("Votre livret : {guideLink}");
+
+        var message = service.interpolate(template, reservation, guest, property, instructions);
+
+        assertFalse(message.subject().contains("{guideLink}"));
+        assertFalse(message.htmlBody().contains("{guideLink}"));
+        assertFalse(message.plainBody().contains("{guideLink}"));
+        assertTrue(message.plainBody().contains("Contactez votre hôte"));
+    }
+
+    @Test
+    void providedGuideLinkOverridesFallback() {
+        template.setBody("Votre livret : {guideLink}");
+        String link = "https://app.clenzy.fr/guide/test";
+
+        var message = service.interpolate(template, reservation, guest, property, instructions,
+            Map.of("guideLink", link));
+
+        assertEquals("Votre livret : " + link, message.plainBody());
+        assertFalse(message.htmlBody().contains("Contactez votre hôte"));
+    }
+
+    @Test
     void whenInterpolating_thenGuestNameIsReplaced() {
         var result = service.interpolate(template, reservation, guest, property, instructions);
 

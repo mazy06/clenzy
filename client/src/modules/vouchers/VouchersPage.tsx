@@ -1,5 +1,4 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { cn } from '../../utils/cn';
 import { Alert as UiAlert, AlertDescription, Button } from '../../components/ui';
 import { TriangleAlert } from '../../icons/glyphs';
 import { Skeleton } from '../../components/ui';
@@ -80,7 +79,7 @@ export default function VouchersPage({
 
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(0);
-  const rowsPerPage = useIsMobile(640) ? 4 : 8;
+  const rowsPerPage = useIsMobile(640) ? 4 : 12;
   useScreenSearch(search, setSearch, t("vouchers.workspace.search"));
   useEffect(() => { setPage(0); }, [filter, search, rowsPerPage]);
   const { data: vouchers = [], isLoading, isFetching, error, refetch } = useBookingVouchersList();
@@ -177,13 +176,14 @@ export default function VouchersPage({
       label:t("vouchers.filter."+value.toLowerCase()),color:"var(--bui-primary)",count:vouchers.filter(v=>v.status===value).length}))} />;
 
   return (
-    <div className={cn(embedded ? 'p-0' : 'p-[18px]')}>
+    <div>
       {/* Mode standalone : on rend notre propre PageHeader. */}
       {!embedded && (
         <PageHeader
           title={t('vouchers.title')}
           subtitle={t('vouchers.subtitle')}
           actions={actions}
+          filters={filterBar}
         />
       )}
 
@@ -192,10 +192,10 @@ export default function VouchersPage({
       {embedded && actionsContainer ? createPortal(compactHeaderActions(actions), actionsContainer) : null}
       {embedded && filtersContainer ? createPortal(filterBar, filtersContainer) : null}
 
-      <div className={cn("baitly-vouchers-workspace", embedded ? "p-[18px]" : "p-0")}>
+      <div className="baitly-vouchers-workspace">
         <div className="baitly-vouchers-layout">
           <section className="baitly-vouchers-list">
-            {(!embedded || !filtersContainer) && <div className="baitly-vouchers-filters">{filterBar}</div>}
+            {embedded && !filtersContainer && <div className="baitly-vouchers-filters">{filterBar}</div>}
             {error && <UiAlert variant="destructive"><TriangleAlert /><AlertDescription>{t("vouchers.loadError")}</AlertDescription><Button variant="outline" size="sm" onClick={()=>refetch()}>{t("common.refresh")}</Button></UiAlert>}
             {isLoading ? <div className="baitly-vouchers-loading" aria-busy="true">{Array.from({length:4},(_,i)=><Skeleton key={i} className="h-[180px] w-full" />)}</div> : !error && sortedVouchers.length === 0 ?
               <EmptyState icon={<LocalOffer />} title={t(vouchers.length ? "vouchers.workspace.noResults" : "vouchers.empty")}
@@ -203,7 +203,7 @@ export default function VouchersPage({
                 action={<Button variant="outline" onClick={()=>{if(vouchers.length){setSearch("");setFilter("all");}else setCreating(true);}}>{t(vouchers.length ? "vouchers.workspace.clear" : "vouchers.createButton")}</Button>} /> :
               <div className="baitly-vouchers-offers">{sortedVouchers.slice(currentPage*rowsPerPage,(currentPage+1)*rowsPerPage).map(v=><VoucherOfferRow key={v.id} voucher={v} busy={busy}
                 onEdit={()=>setEditing(v)} onPause={()=>handlePause(v)} onResume={()=>handleResume(v)} onDelete={()=>handleDelete(v)} />)}</div>}
-            {!isLoading && !error && <PagePagination page={currentPage} onPageChange={setPage} count={sortedVouchers.length} rowsPerPage={rowsPerPage} />}
+            {!isLoading && !error && <PagePagination className="mt-4" page={currentPage} onPageChange={setPage} count={sortedVouchers.length} rowsPerPage={rowsPerPage} />}
           </section>
           <aside className="baitly-vouchers-insights"><VoucherAnalyticsPanel /></aside>
         </div>

@@ -7,7 +7,7 @@ import { useMarketplaceProperties } from '../../hooks/useMarketplaceProperties';
 import ProviderDirectoryResults, { PROVIDERS_PAGE_SIZE as PAGE_SIZE } from '../marketplace/ProviderDirectoryResults';
 import { Button, Skeleton } from '../../components/ui';
 import { Refresh } from '../../icons';
-import { usePageHeaderActions } from '../../components/PageHeaderActionsContext';
+import { PageHeaderFilterControls,usePageHeaderActions } from '../../components/PageHeaderActionsContext';
 import ProviderDirectoryLayout from '../marketplace/ProviderDirectoryLayout';
 import ProviderCatalogFilters from './ProviderCatalogFilters';
 import { useScreenSearch } from '../../components/ScreenChrome';
@@ -89,11 +89,11 @@ export default function ProviderCatalogPage() {
         <a href="/devis" className="cursor-pointer underline focus-visible:outline-2">{t('quoteReplacement.viewRequests')}</a>
       </div>}
 
-      <DirectoryToolbar>
+      <PageHeaderFilterControls><DirectoryToolbar>
         <span className="text-sm font-medium text-foreground">{t('providerDirectory.catalog')}</span>
         <span className="text-xs tabular-nums text-muted-foreground" aria-live="polite">{t('marketplaceAdmin.results', { count: data?.totalElements ?? 0 })}</span>
         {hasFilters && <Button variant="ghost" size="sm" className="ms-auto" onClick={resetFilters}>{t('marketplaceWorkflow.clear')}</Button>}
-      </DirectoryToolbar>
+      </DirectoryToolbar></PageHeaderFilterControls>
       <ProviderDirectoryLayout
         filters={<ProviderCatalogFilters categories={orderedCategories} category={category} setCategory={setCategory}
           city={city} setCity={setCity} verifiedOnly={verifiedOnly} setVerifiedOnly={value => changeFilter({ verifiedOnly: value })}

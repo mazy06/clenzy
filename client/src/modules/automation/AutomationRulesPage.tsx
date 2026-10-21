@@ -3,6 +3,7 @@ import PageTabs from '../../components/PageTabs';
 import {
   PageHeaderActionsProvider,
   usePageHeaderActionsSlot,
+  usePageHeaderFiltersSlot,
   resolveTabHeader,
   type TabHeaderMeta,
 } from '../../components/PageHeaderActionsContext';
@@ -18,6 +19,7 @@ export default function AutomationRulesPage() {
   const { t } = useTranslation();
   const { hasAnyRole } = useAuth();
   const { slot, portalContainer } = usePageHeaderActionsSlot();
+  const { filtersSlot, filtersContainer } = usePageHeaderFiltersSlot();
   const tabs = [
     { key: 'rules', label: t('tabHeaders.automation.rules', 'Règles') },
     { key: 'system', label: t('tabHeaders.automation.system', 'Système') },
@@ -67,13 +69,13 @@ export default function AutomationRulesPage() {
   );
 
   return (
-    <PageHeaderActionsProvider slot={slot}>
+    <PageHeaderActionsProvider slot={slot} filtersSlot={filtersSlot}>
       <div className="automation-page">
         <PageHeader
           title={title}
           subtitle={subtitle}
           showBackButton={false}
-          actions={portalContainer}
+          actions={portalContainer} filters={filtersContainer}
         />
         <PageTabs
           options={tabs}

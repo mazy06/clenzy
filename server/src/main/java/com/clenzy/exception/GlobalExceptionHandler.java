@@ -13,6 +13,8 @@ import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.multipart.MaxUploadSizeExceededException;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.servlet.resource.NoResourceFoundException;
+import org.springframework.web.context.request.async.AsyncRequestNotUsableException;
+import jakarta.servlet.http.HttpServletResponse;
 
 import org.springframework.orm.ObjectOptimisticLockingFailureException;
 import org.springframework.security.access.AccessDeniedException;
@@ -328,6 +330,15 @@ public class GlobalExceptionHandler {
         errorResponse.put("status", HttpStatus.NOT_FOUND.value());
 
         return ResponseEntity.status(HttpStatus.NOT_FOUND).body(errorResponse);
+    }
+
+    /**
+     * The async response is no longer writable. The response argument marks the
+     * exception as handled without rendering a view or writing to the SSE stream.
+     */
+    @ExceptionHandler(AsyncRequestNotUsableException.class)
+    public void handleAsyncRequestNotUsable(AsyncRequestNotUsableException ex, HttpServletResponse response) {
+        logger.debug("Async response no longer usable: {}", ex.getMessage());
     }
 
     @ExceptionHandler(ClientAbortException.class)

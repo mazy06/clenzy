@@ -44,6 +44,17 @@ public class SecurityDeposit {
     @Column(name = "captured_amount", precision = 12, scale = 2)
     private BigDecimal capturedAmount;
 
+    /** Instruction de capture figée avant Stripe, distincte de l'encaissement confirmé. */
+    @Column(name = "operation_amount", precision = 12, scale = 2)
+    private BigDecimal operationAmount;
+    @Column(name = "operation_reason", length = 512)
+    private String operationReason;
+
+    public BigDecimal getOperationAmount() { return operationAmount; }
+    public void setOperationAmount(BigDecimal value) { operationAmount = value; }
+    public String getOperationReason() { return operationReason; }
+    public void setOperationReason(String value) { operationReason = value; }
+
     @Size(max = 3)
     @Column(name = "currency", length = 3)
     private String currency;

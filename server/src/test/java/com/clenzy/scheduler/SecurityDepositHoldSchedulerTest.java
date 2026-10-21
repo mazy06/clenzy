@@ -58,7 +58,8 @@ class SecurityDepositHoldSchedulerTest {
     private SecurityDepositHoldScheduler realSchedulerAt(Instant now) {
         Clock clock = Clock.fixed(now, ZoneOffset.UTC);
         return new SecurityDepositHoldScheduler(depositRepository, reservationRepository,
-            new SecurityDepositHoldService(depositRepository, stripeGateway, notificationService, clock), clock);
+            new SecurityDepositHoldService(depositRepository, stripeGateway, notificationService, clock,
+                org.mockito.Mockito.mock(com.clenzy.service.BaitlyDepositReleasePolicy.class)), clock);
     }
 
     private static Reservation reservation(Long id, Long orgId, int nights) {

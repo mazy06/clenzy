@@ -59,7 +59,7 @@ export default function DepositMessageCard(
   };
 
   return (
-    <span className="flex w-full max-w-[340px] flex-col gap-2 p-3">
+    <span className="baitly-thread-deposit flex w-full flex-col gap-3 p-4">
       <span className="flex items-center gap-2">
         <span className="inline-flex size-7 shrink-0 items-center justify-center rounded-full bg-warning-soft text-warning-ink">
           <CreditCard size={15} strokeWidth={1.75} />

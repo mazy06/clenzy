@@ -30,6 +30,8 @@ import { cn } from '../utils/cn';
  */
 
 interface PagePaginationProps {
+  /** Public pages can use their own language context with the same pagination primitive. */
+  labels?: { previous: string; next: string; range: (from: number,to: number,count: number) => string };
   /** Page courante, 0-indexée. */
   page: number;
   /** Appelé avec la nouvelle page, 0-indexée. */
@@ -87,6 +89,7 @@ function pageWindow(current: number, total: number): Array<number | null> {
 }
 
 export default function PagePagination({
+  labels,
   page,
   onPageChange,
   count,
@@ -140,7 +143,7 @@ export default function PagePagination({
       <div className="flex items-center gap-3">
         {showRange && (
           <span className="text-xs text-muted-foreground tabular-nums">
-            {t('pagination.range', '{{from}}-{{to}} sur {{count}}', { from, to, count })}
+            {labels?.range(from,to,count!) ?? t('pagination.range', '{{from}}-{{to}} sur {{count}}', { from, to, count })}
           </span>
         )}
         {showSizeSelect && (
@@ -171,7 +174,8 @@ export default function PagePagination({
           <PaginationItem>
             <PaginationPrevious
               href="#"
-              text={t('pagination.previous', 'Précédent')}
+              text={labels?.previous ?? t('pagination.previous', 'Précédent')}
+              {...(labels ? { 'aria-label':labels.previous } : {})}
               aria-disabled={currentPage === 1}
               className={cn(currentPage === 1 && 'pointer-events-none opacity-50')}
               onClick={(event) => {
@@ -207,7 +211,8 @@ export default function PagePagination({
           <PaginationItem>
             <PaginationNext
               href="#"
-              text={t('pagination.next', 'Suivant')}
+              text={labels?.next ?? t('pagination.next', 'Suivant')}
+              {...(labels ? { 'aria-label':labels.next } : {})}
               aria-disabled={currentPage === totalPages}
               className={cn(currentPage === totalPages && 'pointer-events-none opacity-50')}
               onClick={(event) => {

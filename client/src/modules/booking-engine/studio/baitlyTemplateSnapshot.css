@@ -1,0 +1,14 @@
+.baitly-template-snapshot{display:block;position:relative;inline-size:100%;block-size:100%;overflow:hidden;background:var(--bui-card);pointer-events:none}
+/* This is a geometric miniature of a desktop document; its transform origin does not mirror in RTL. */
+.baitly-template-snapshot iframe{position:absolute;inset:0;inline-size:300%;block-size:300%;border:0;transform:scale(.333333);transform-origin:top left;pointer-events:none}
+.baitly-booking-templates{min-inline-size:0;margin-block-start:28px}
+.baitly-booking-templates__items{display:grid;grid-auto-flow:column;grid-auto-columns:minmax(280px,1fr);gap:18px;overflow-x:auto;padding:6px;margin:14px -6px -6px}
+.baitly-booking-template{display:flex;flex-direction:column;align-items:stretch;gap:12px;position:relative;padding:0;border:0;background:transparent;text-align:start;color:var(--bui-foreground);cursor:pointer;font:inherit}
+.baitly-booking-template__image{display:block;position:relative;aspect-ratio:16/10;border:1px solid var(--bui-border);border-radius:6px;overflow:hidden;transition:border-color 180ms cubic-bezier(.25,1,.5,1)}
+.baitly-booking-template:hover .baitly-booking-template__image{border-color:var(--bui-muted-foreground)}
+.baitly-booking-template[aria-pressed=true] .baitly-booking-template__image{outline:2px solid var(--bui-primary);outline-offset:2px}
+.baitly-booking-template:focus-visible{outline:2px solid var(--bui-ring);outline-offset:4px;border-radius:6px}
+.baitly-booking-template__name{display:flex;justify-content:space-between;align-items:center;gap:12px;font-size:14px;font-weight:600}
+.baitly-booking-template__count{font-size:12px;font-weight:400;color:var(--bui-muted-foreground);font-variant-numeric:tabular-nums}
+.baitly-booking-templates__empty{margin-block-start:14px;font-size:13px;color:var(--bui-muted-foreground)}
+@media(prefers-reduced-motion:reduce){.baitly-booking-template__image{transition:none}}

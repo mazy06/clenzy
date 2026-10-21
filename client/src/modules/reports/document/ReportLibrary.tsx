@@ -1,10 +1,11 @@
 import React, { useMemo, useState } from 'react';
 import { useViewportFill } from '../../../hooks/useViewportFill';
-import { Download, Eye, Trash2 } from '../../../icons/glyphs';
+import { Download, Eye, Trash2, FileText, Send } from '../../../icons/glyphs';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { Button, Spinner } from '../../../components/ui';
+import { Button } from '../../../components/ui';
 import StatusChip from '../../../components/StatusChip';
-import { ChartTile } from '../../../components/stats';
+import { WidgetPanel } from '../../../components/baitly/WidgetPanel';
+import { composerCopy } from './baitlyComposerCopy';
 import SendReportDialog from './SendReportDialog';
 import EmptyState from '../../../components/EmptyState';
 import NavCountBadge from '../../../components/NavCountBadge';
@@ -26,9 +27,8 @@ import { useTranslation } from '../../../hooks/useTranslation';
  * un releve envoye la semaine derniere est le geste le plus frequent de cet
  * ecran, et il n'a pas a traverser une composition pour y arriver.</p>
  *
- * <p>Le cycle reste explicite — brouillon, relu, envoye — parce qu'un
- * commentaire redige automatiquement ne doit pas atteindre un proprietaire sans
- * qu'un humain l'ait lu. Le bouton d'envoi n'apparait qu'apres la relecture.</p>
+ * <p>Le cycle reste explicite : brouillon puis envoye. L'envoi vaut relecture ;
+ * le document transmis reste consultable et ne peut plus etre supprime.</p>
  */
 const STATUS_TONE: Record<ReportDocumentStatus, 'neutral' | 'ok' | 'warn'> = {
   DRAFT: 'warn',
@@ -60,7 +60,8 @@ interface ReportLibraryProps {
 }
 
 const ReportLibrary: React.FC<ReportLibraryProps> = ({ openedId = null, onOpen }) => {
-  const { t } = useTranslation();
+  const { t, currentLanguage } = useTranslation();
+  const copy = composerCopy(currentLanguage);
   const queryClient = useQueryClient();
   const [filter, setFilter] = useState('ALL');
 
@@ -94,24 +95,23 @@ const ReportLibrary: React.FC<ReportLibraryProps> = ({ openedId = null, onOpen }
 
   // La colonne descend jusqu'au bas de la fenetre et defile pour elle-meme :
   // sans hauteur explicite, `flex-1` et `overflow-y-auto` se resolvent a zero.
-  const [fillRef, fillHeight] = useViewportFill<HTMLDivElement>();
+  const [fillRef, fillHeight] = useViewportFill<HTMLDivElement>({ minWidth: 1180 });
 
   return (
     <div
       ref={fillRef}
       style={fillHeight ? { height: fillHeight } : undefined}
-      className="flex min-h-0 flex-col min-[1180px]:sticky min-[1180px]:top-2"
+      className="rc-library"
     >
-      <ChartTile
-        fluid
-        className="min-h-0 flex-1"
-        title={t('reports.library.title')}
-        hint={t('reports.library.hint')}
+      <WidgetPanel
+        className="rc-library-panel"
+        title={<span className="rc-library-title"><FileText size={18} aria-hidden />{copy.library}</span>}
+        caption={copy.libraryHint}
         action={documents.length > 0 ? <NavCountBadge count={documents.length} /> : undefined}
       >
-        <div className="flex h-full min-h-0 flex-col gap-2 pt-1">
+        <div className="rc-library-body">
           {documents.length > 0 && (
-            <div className="shrink-0">
+            <div className="rc-library-filters">
               <PeriodSegmented
               ariaLabel={t('reports.library.filterAria')}
                 value={filter}
@@ -122,9 +122,12 @@ const ReportLibrary: React.FC<ReportLibraryProps> = ({ openedId = null, onOpen }
           )}
 
           {documentsQuery.isLoading ? (
-            <div className="flex justify-center py-6">
-              <Spinner className="size-7" />
+            <div role="status" aria-label={t('common.loading')}>
+              {[0, 1, 2].map(item => <div key={item} className="rc-library-skeleton"><span /><span /><span /></div>)}
             </div>
+          ) : documentsQuery.isError ? (
+            <div className="rc-library-error" role="alert"><p>{copy.loadFailed}</p>
+              <Button size="sm" variant="outline" onClick={() => documentsQuery.refetch()}>{copy.retry}</Button></div>
           ) : shown.length === 0 ? (
             <EmptyState
               icon={<DescriptionIcon />}
@@ -137,7 +140,7 @@ const ReportLibrary: React.FC<ReportLibraryProps> = ({ openedId = null, onOpen }
               variant="plain"
             />
           ) : (
-            <ul className="no-scrollbar m-0 min-h-0 flex-1 list-none space-y-0 overflow-y-auto p-0">
+            <ul className="rc-library-list">
               {shown.map((document) => (
                 <Row
                   key={document.id}
@@ -160,7 +163,7 @@ const ReportLibrary: React.FC<ReportLibraryProps> = ({ openedId = null, onOpen }
             </ul>
           )}
         </div>
-      </ChartTile>
+      </WidgetPanel>
 
       <SendReportDialog
         document={sending}
@@ -180,35 +183,22 @@ const Row: React.FC<{
   onDelete: () => void;
   busy: boolean;
 }> = ({ document, active, confirming, onOpen, onSend, onDelete, busy }) => {
-  const { t } = useTranslation();
+  const { t, currentLanguage } = useTranslation();
+  const copy = composerCopy(currentLanguage);
   return (
-  <li
-    className={cn(
-      'flex flex-col gap-1.5 border-b border-border px-2 py-2 last:border-b-0 transition-colors duration-200',
-      active ? 'bg-primary/5' : 'hover:bg-muted/40',
-    )}
-  >
-    <button
-      type="button"
-      onClick={onOpen}
-      disabled={!onOpen}
-      className="cursor-pointer text-start disabled:cursor-default"
-    >
-      <span className="block truncate text-xs font-semibold text-foreground">
-        {document.title}
-        {document.recipientName ? (
-          <span className="font-normal text-muted-foreground"> · {document.recipientName}</span>
-        ) : null}
-      </span>
-      <span className="block text-2xs tabular-nums text-muted-foreground">
-        {document.documentNumber} v{document.version} ·{' '}
-        {new Date(document.periodStart).toLocaleDateString(activeIntlLocale())} —{' '}
-        {new Date(document.periodEnd).toLocaleDateString(activeIntlLocale())}
-        {document.hasNarrative ? ` · ${t('reports.library.commented')}` : ''}
-      </span>
+  <li className="rc-document-row" data-active={active} data-profile={document.profile}>
+    <button type="button" onClick={onOpen} disabled={!onOpen} className="rc-document-open">
+      <span className="rc-document-stamp"><FileText size={21} aria-hidden /></span>
+      <span className="rc-document-main"><strong>{document.title}</strong>{' '}
+        <small>{document.recipientName || copy.consolidated}</small></span>
     </button>
+    <div className="rc-document-meta">
+      <span>{document.documentNumber} · v{document.version}</span>
+      <span>{new Date(document.periodStart).toLocaleDateString(activeIntlLocale())} → {new Date(document.periodEnd).toLocaleDateString(activeIntlLocale())}</span>
+      {document.hasNarrative && <span>{t('reports.library.commented')}</span>}
+    </div>
 
-    <div className="flex flex-wrap items-center gap-1.5">
+    <div className="rc-document-actions">
       <StatusChip
         tone={STATUS_TONE[document.status]}
         dot
@@ -233,7 +223,7 @@ const Row: React.FC<{
           suppression, l'ecran ne la propose donc pas. */}
       {document.status !== 'SENT' && (
         <IconAction
-          label={confirming ? 'Confirmer la suppression' : 'Supprimer'}
+          label={confirming ? copy.confirmRemove : copy.remove}
           onClick={onDelete}
           disabled={busy}
           danger={confirming}
@@ -245,8 +235,8 @@ const Row: React.FC<{
       {/* Un seul geste : envoyer. L'etape « marquer relu » demandait deux clics
           pour un seul acte — personne n'envoie un relevé sans l'avoir regardé. */}
       {document.status !== 'SENT' && (
-        <Button size="sm" disabled={busy} onClick={onSend}>
-          Envoyer
+        <Button size="sm" variant="outline" className="rc-library-send" disabled={busy} onClick={onSend}>
+          <Send size={13} aria-hidden />{copy.send}
         </Button>
       )}
     </div>

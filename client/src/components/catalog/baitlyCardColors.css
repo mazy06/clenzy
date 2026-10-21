@@ -1,0 +1,6 @@
+/* Même palette que les actions du header : catégorie, pas état de publication. */
+[data-card-tone] { --card-ink:var(--bui-info-ink); --card-soft:var(--bui-info-soft); }
+[data-card-tone=teal] { --card-ink:var(--bui-success-ink); --card-soft:var(--bui-success-soft); }
+[data-card-tone=amber] { --card-ink:var(--bui-warning-ink); --card-soft:var(--bui-warning-soft); }
+[data-card-tone=purple] { --card-ink:#7042b5; --card-soft:#eee7fa; }
+.dark [data-card-tone=purple] { --card-ink:#c8a9f5; --card-soft:#382b4d; }

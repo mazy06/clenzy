@@ -22,7 +22,9 @@ public class Prospect {
         MENAGE,
         ARTISANS,
         ENTRETIEN,
-        BLANCHISSERIES
+        BLANCHISSERIES,
+        OWNERS,
+        PROVIDERS
     }
 
     public enum ProspectStatus {
@@ -84,6 +86,36 @@ public class Prospect {
     @UpdateTimestamp
     private LocalDateTime updatedAt;
 
+    @Column(name="contact_type", length=40)
+    private String contactType = "PROVIDER";
+
+    @Column(name="contact_nature", length=40)
+    private String contactNature = "UNKNOWN";
+
+    @Column(name="source_type", length=40)
+    private String sourceType = "LEGACY";
+
+    @Column(name="source_detail", length=1000)
+    private String sourceDetail;
+
+    @Column(name="source_url", length=2000)
+    private String sourceUrl;
+
+    @Column(name="source_recorded_at")
+    private java.time.Instant sourceRecordedAt;
+
+    @Column(name="normalized_email", length=255)
+    private String normalizedEmail;
+
+    @Column(name="normalized_phone", length=40)
+    private String normalizedPhone;
+
+    @Column(name="archived")
+    private boolean archived;
+
+    @Column(name="identity_version")
+    private int identityVersion;
+
     // ─── Constructors ───────────────────────────────────────────────────────────
 
     public Prospect() {}
@@ -137,4 +169,24 @@ public class Prospect {
 
     public LocalDateTime getUpdatedAt() { return updatedAt; }
     public void setUpdatedAt(LocalDateTime updatedAt) { this.updatedAt = updatedAt; }
+    public String getContactType() { return contactType; }
+    public void setContactType(String value) { contactType=value; }
+    public String getContactNature() { return contactNature; }
+    public void setContactNature(String value) { contactNature=value; }
+    public String getSourceType() { return sourceType; }
+    public void setSourceType(String value) { sourceType=value; }
+    public String getSourceDetail() { return sourceDetail; }
+    public void setSourceDetail(String value) { sourceDetail=value; }
+    public String getSourceUrl() { return sourceUrl; }
+    public void setSourceUrl(String value) { sourceUrl=value; }
+    public java.time.Instant getSourceRecordedAt() { return sourceRecordedAt; }
+    public void setSourceRecordedAt(java.time.Instant value) { sourceRecordedAt=value; }
+    public String getNormalizedEmail() { return normalizedEmail; }
+    public void setNormalizedEmail(String value) { normalizedEmail=value; }
+    public String getNormalizedPhone() { return normalizedPhone; }
+    public void setNormalizedPhone(String value) { normalizedPhone=value; }
+    public boolean isArchived() { return archived; }
+    public void setArchived(boolean value) { archived=value; }
+    public int getIdentityVersion() { return identityVersion; }
+    public void setIdentityVersion(int value) { identityVersion=value; }
 }

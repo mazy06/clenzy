@@ -44,7 +44,8 @@ public record WelcomeGuidePublicDto(
     /** false = livret non disponible (réservation absente ou révolue) → le guest voit un écran dédié. */
     boolean available,
     /** Raison d'indisponibilité quand {@code available=false} : {@code NO_RESERVATION} | {@code EXPIRED}. */
-    String unavailableReason
+    String unavailableReason,
+    String structure
 ) {
     /**
      * Copie avec un JSON {@code curatedActivities} reecrit (ex : injection des liens
@@ -55,7 +56,7 @@ public record WelcomeGuidePublicDto(
             title, language, brandingColor, theme, heroImageUrls, welcomeMessage, hostNames,
             logoUrl, sections, pois, newCuratedActivities, property, practical, stay, checkIn,
             dataCollection, chatbotEnabled, guestbookEnabled, activitiesEnabled, upsellsEnabled,
-            available, unavailableReason);
+            available, unavailableReason, structure);
     }
 
     /** Copie avec la collecte de données réglementaire renseignée ; tous les autres champs inchangés. */
@@ -64,7 +65,7 @@ public record WelcomeGuidePublicDto(
             title, language, brandingColor, theme, heroImageUrls, welcomeMessage, hostNames,
             logoUrl, sections, pois, curatedActivities, property, practical, stay, checkIn,
             newDataCollection, chatbotEnabled, guestbookEnabled, activitiesEnabled, upsellsEnabled,
-            available, unavailableReason);
+            available, unavailableReason, structure);
     }
 
     /**
@@ -78,7 +79,7 @@ public record WelcomeGuidePublicDto(
             g.getTheme() != null ? g.getTheme() : "atelier", java.util.List.of(),
             null, null, g.getLogoUrl(), "[]", "[]", "[]",
             null, null, null, null, null,
-            false, false, false, false, false, reason);
+            false, false, false, false, false, reason, g.getStructure());
     }
 
     /** Localisation du logement (pour la carte "autour de moi" + adresse). */
@@ -217,7 +218,7 @@ public record WelcomeGuidePublicDto(
             g.getCuratedActivities(),
             propertyInfo, practicalInfo, stayInfo, checkIn, null,
             g.isChatbotEnabled(), g.isGuestbookEnabled(), g.isActivitiesEnabled(),
-            g.isUpsellsEnabled(), true, null
+            g.isUpsellsEnabled(), true, null, g.getStructure()
         );
     }
 

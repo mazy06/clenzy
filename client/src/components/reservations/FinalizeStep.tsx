@@ -28,8 +28,8 @@ interface Props {
  */
 const segBtnClass = (on: boolean) =>
   cn(
-    'inline-flex flex-1 items-center justify-center gap-[6px] border-0 rounded-[7px] p-[9px]',
-    '[font-family:inherit] text-xs font-semibold whitespace-nowrap cursor-pointer',
+    'inline-flex min-w-0 flex-1 items-center justify-center gap-[6px] border-0 rounded-[7px] p-[9px]',
+    '[font-family:inherit] text-xs font-semibold whitespace-normal cursor-pointer',
     'transition-[background-color,color] duration-[140ms]',
     'focus-visible:outline-2 focus-visible:outline-primary focus-visible:outline-offset-1',
     on
@@ -55,7 +55,7 @@ const FinalizeStep: React.FC<Props> = ({ form }) => {
   return (
     <>
       {/* Intention : confirmer maintenant / demander le paiement (déplacé de l'entête) */}
-      <div className="inline-flex w-full gap-[2px] p-[3px] rounded-lg border border-solid border-field-line bg-field">
+      <div className="baitly-reservation-payment-choice grid grid-cols-2 w-full gap-[2px] p-[3px] rounded-lg border border-solid border-field-line bg-field">
         <Tooltip>
           <TooltipTrigger asChild>
             <button
@@ -111,7 +111,7 @@ const FinalizeStep: React.FC<Props> = ({ form }) => {
       <div className="flex flex-col gap-[10px] rounded-[12px] border border-solid border-border bg-card px-[18px] py-4">
         <IllustratedHeading art={RESERVATION_ART.summary} title={t('reservations.dialog.recapTitle')} />
         {recapRows.map((row) => (
-          <div className="flex items-baseline justify-between gap-3" key={row.label}>
+          <div className="grid grid-cols-[minmax(0,1fr)_minmax(0,2fr)] items-baseline gap-3" key={row.label}>
             <p className="text-xs font-semibold text-muted-foreground shrink-0">{row.label}</p>
             <p className="text-[13px] font-semibold text-foreground text-end tabular-nums">{row.value}</p>
           </div>

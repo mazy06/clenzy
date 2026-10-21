@@ -12,9 +12,9 @@ export const baitlyCommerceApi = {
   payout: (body: { source: string; sourceId: number; party: string; requestId: string; amount: number; currency: string }) => apiClient.post<CommercePayoutView>('/commerce/payouts', body),
   operations: (source: string, sourceId: number) => apiClient.get<CommerceOperation[]>(source === 'HARDWARE_ORDER' ? `/shop/orders/${sourceId}/operations` : `/commerce/operations?source=${encodeURIComponent(source)}&sourceId=${sourceId}`),
   recordOperation: (body: { source: string; sourceId: number; requestId: string; action: string; proof: string; note: string }) => apiClient.post<CommerceOperation>('/commerce/operations', body),
-  refundView: (source: string, sourceId: number, reference?: string) => apiClient.get<CommerceRefundView>(reference ? `/commerce/refunds?reference=${encodeURIComponent(reference)}` : `/commerce/refunds?source=${encodeURIComponent(source)}&sourceId=${sourceId}`),
+  refundView: (source: string, sourceId: number, reference?: string) => apiClient.get<CommerceRefundView>(reference ? `/commerce/refunds?reference=${encodeURIComponent(reference)}` : `/commerce/refunds?source=${encodeURIComponent(source)}&sourceId=${sourceId}`, { signal: AbortSignal.timeout(15_000) }),
   creditPurchases: () => apiClient.get<{ reference: string; amount: number; currency: string; label: string }[]>('/commerce/refunds/credit-purchases'),
-  refund: (body: { reference: string; requestId: string; amount: number; reason: string }) => apiClient.post<CommerceRefundView>('/commerce/refunds', body),
+  refund: (body: { reference: string; requestId: string; amount: number; reason: string }) => apiClient.post<CommerceRefundView>('/commerce/refunds', body, { signal: AbortSignal.timeout(30_000) }),
 };
 export interface CommerceOperation { id: number; action: string; proof: string; note: string; createdAt: string }
 export interface CommercePayoutView {

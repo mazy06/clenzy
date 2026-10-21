@@ -34,7 +34,7 @@ export function useContactMessages(
  * Liste des conversations groupees par interlocuteur.
  * archived=true → conversations archivées (onglet "Messages archivés" → Conversations).
  */
-export function useContactThreads(archived = false) {
+export function useContactThreads(archived = false, enabled = true) {
   return useQuery({
     queryKey: contactKeys.threads(archived),
     queryFn: () => (archived ? contactApi.getArchivedThreads() : contactApi.getThreads()),
@@ -45,6 +45,7 @@ export function useContactThreads(archived = false) {
     // reconnexion. Ce sondage ne couvre plus que le cas ou la socket
     // resterait muette sans qu'on le sache.
     refetchInterval: archived ? false : 300_000,
+    enabled,
   });
 }
 

@@ -1,3 +1,4 @@
+import PageHeaderViewControls from "../../components/PageHeaderViewControls";
 import { useIsFetching } from '@tanstack/react-query';
 import React, { useState, useCallback, useMemo, useEffect } from 'react';
 import { createPortal } from 'react-dom';
@@ -6,7 +7,7 @@ import { Plus, CalendarDays, LayoutList, ChevronLeft, ChevronRight } from '../..
 import { Alert, AlertDescription } from '../../components/ui';
 import { useScreenTabs } from '../../hooks/useScreenTabs';
 import { useTabKeyParam, useTabValueParam } from '../../components/tabKeyParam';
-import { PageHeaderActionsProvider, usePageHeaderActionsSlot } from '../../components/PageHeaderActionsContext';
+import { PageHeaderActionsProvider, usePageHeaderActionsSlot, usePageHeaderFiltersSlot } from '../../components/PageHeaderActionsContext';
 import './baitlyPricing.css';
 import { activeIntlLocaleGregorian } from '../../utils/activeLocale';
 import {
@@ -59,6 +60,7 @@ const DynamicPricing: React.FC = () => {
   const [view, setView] = useTabValueParam(['property', 'portfolio'] as const, 'property', { param: 'view' });
   const [strategy, setStrategy] = useTabValueParam(['plans', 'automation'] as const, 'plans', { param: 'section' });
   const { slot, portalContainer } = usePageHeaderActionsSlot();
+  const {filtersSlot,filtersContainer}=usePageHeaderFiltersSlot();
   const [formOpen, setFormOpen] = useState(false);
 
   // Role-based: only SUPER_ADMIN / SUPER_MANAGER see the owner selector
@@ -311,23 +313,18 @@ const DynamicPricing: React.FC = () => {
   </label> : null;
 
   return (
-    <PageHeaderActionsProvider slot={slot}>
+    <PageHeaderActionsProvider slot={slot} filtersSlot={filtersSlot}>
       <div className="baitly-pricing flex min-w-0 flex-1 flex-col">
         <PageHeader title={t('dynamicPricing.title', 'Prix dynamiques')} subtitle={subtitle}
-          iconBadge={<TrendingUp />} showBackButton={false} actions={portalContainer} inlineControls={ownerSelector} />
-        {slot && actionButtons && createPortal(compactHeaderActions(actionButtons), slot)}
-        <PageTabs options={tabs} value={activeTab} onChange={setActiveTab} />
-        {activeTab === 0 && <div className={portfolioView ? "bp-shared-calendar-toolbar" : "bp-shared-calendar-toolbar bp-property-calendar-toolbar"}>
-          <div className="bp-month-nav flex items-center gap-0.5">
+          iconBadge={<TrendingUp />} showBackButton={false} actions={portalContainer} filters={<div className="space-y-3">{ownerSelector}{activeTab===0&&aiToggle}{filtersContainer}</div>} inlineControls={activeTab===0?<div className="bp-month-nav flex items-center gap-0.5">
             <Button variant="ghost" size="icon-sm" aria-label={t('common.previous', 'Précédent')} onClick={goToPrevMonth}><ChevronLeft size={20} className="cn-rtl-flip" /></Button>
             <p className="text-sm font-semibold min-w-[140px] text-center capitalize">{currentMonth.toLocaleDateString(activeIntlLocaleGregorian(), { month: 'long', year: 'numeric' })}</p>
             <Button variant="ghost" size="icon-sm" aria-label={t('common.next', 'Suivant')} onClick={goToNextMonth}><ChevronRight size={20} className="cn-rtl-flip" /></Button>
-          </div>
-          <div className="bp-shared-calendar-controls">{aiPreparing && <span className="bp-ai-loading-status" role="status"><span className="bp-ai-progress" aria-hidden="true" />{t('baitlyPricing.ai.preparingShort', 'Analyse IA en cours…')}</span>}{aiToggle}<div className="bp-view-switch" role="group" aria-label={t('baitlyPricing.view', "Vue des prix")}>
-              <Button variant={view === 'property' ? 'secondary' : 'ghost'} aria-pressed={view === 'property'} onClick={() => setView('property')}><CalendarDays size={16} />{t('baitlyPricing.property', "Par logement")}</Button>
-              <Button variant={view === 'portfolio' ? 'secondary' : 'ghost'} aria-pressed={view === 'portfolio'} onClick={() => setView('portfolio')}><LayoutList size={16} />{t('baitlyPricing.portfolio', "Portefeuille")}</Button>
-            </div></div>
-        </div>}
+          </div>:undefined} />
+        {slot && actionButtons && createPortal(compactHeaderActions(actionButtons), slot)}
+        <PageTabs options={tabs} value={activeTab} onChange={setActiveTab} />
+        {activeTab===0&&<PageHeaderViewControls label={t("baitlyPricing.view","Vue des prix")} value={view} onChange={setView} options={[{value:"property",label:t("baitlyPricing.property","Par logement"),icon:<CalendarDays size={16}/>},{value:"portfolio",label:t("baitlyPricing.portfolio","Portefeuille"),icon:<LayoutList size={16}/>}]} />}
+        {activeTab===0&&aiPreparing&&<span className="bp-ai-loading-status" role="status"><span className="bp-ai-progress" aria-hidden="true"/>{t("baitlyPricing.ai.preparingShort","Analyse IA en cours…")}</span>}
         <div className={portfolioView ? "bp-property-workspace bp-calendar-workspace bp-portfolio-workspace" : activeTab === 0 ? "bp-property-workspace bp-calendar-workspace" : "bp-property-workspace"}>
           {!portfolioView && <BaitlyPricingPropertyMenu properties={filteredProperties} selectedPropertyId={selectedPropertyId}
             loading={propertiesLoading} ownerRequired={isPlatformStaff && selectedOwnerId === null} onSelect={handlePropertyChange} />}

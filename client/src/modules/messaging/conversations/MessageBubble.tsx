@@ -16,7 +16,7 @@ interface MessageBubbleProps {
  * Une bulle du fil.
  *
  * <p>Quatre états qui se lisent d'un coup d'œil, sans lire le contenu :
- * reçu (carte claire, à gauche, avec avatar), envoyé (bleu nuit, à droite),
+ * reçu (surface papier, à gauche, avec avatar), envoyé (bleu doux, à droite),
  * note d'équipe (tirets ambrés : jamais transmise au voyageur), et message à
  * carte (devis, acompte) qui garde la colonne de son côté.</p>
  *
@@ -31,24 +31,21 @@ export default function MessageBubble({ run, fallbackSender }: MessageBubbleProp
   const sender = message.sender || fallbackSender;
 
   // Le coin de la « queue » ne se resserre que sur la dernière bulle d'une série.
-  const shape = cn(
-    'rounded-2xl',
-    last && (out ? 'rounded-ee-md' : 'rounded-es-md'),
-  );
 
   return (
     <div
       data-message-id={message.id}
       data-direction={out ? 'out' : 'in'}
-      className={cn('flex gap-2', out ? 'justify-end' : 'justify-start', first ? 'mt-3 first:mt-0' : 'mt-0.5')}
+      data-note={internalNote || undefined}
+      className={cn('baitly-message', out ? 'justify-end' : 'justify-start', first ? 'mt-4 first:mt-0' : 'mt-1')}
     >
       {!out && (
         <div className="w-7 shrink-0 self-end">
-          {last && <GuestAvatar name={sender} size={28} />}
+          {last && <GuestAvatar name={sender} size={28} className="baitly-message-avatar" />}
         </div>
       )}
 
-      <div className={cn('flex min-w-0 max-w-[80%] flex-col', out ? 'items-end' : 'items-start')}>
+      <div className={cn('baitly-message-content', out ? 'items-end' : 'items-start')}>
         {first && !out && message.sender && (
           <span dir="auto" className="mb-0.5 px-1 text-2xs font-semibold text-muted-foreground">
             {message.sender}
@@ -65,15 +62,7 @@ export default function MessageBubble({ run, fallbackSender }: MessageBubbleProp
         {message.text && (
           <div
             dir="auto"
-            className={cn(
-              shape,
-              'px-3 py-2 text-sm leading-relaxed break-words whitespace-pre-wrap',
-              internalNote
-                ? 'border border-dashed border-warning/60 bg-warning-soft text-foreground'
-                : out
-                  ? 'bg-primary text-primary-foreground'
-                  : 'border border-border bg-card text-foreground',
-            )}
+            className="baitly-message-text"
           >
             {message.text}
           </div>
@@ -82,7 +71,7 @@ export default function MessageBubble({ run, fallbackSender }: MessageBubbleProp
         {/* Une carte est un contenu de message : même colonne, même côté,
             même largeur bornée. */}
         {message.card && (
-          <div className="mt-1 w-full overflow-hidden rounded-2xl border border-border bg-card">{message.card}</div>
+          <div className="baitly-message-card">{message.card}</div>
         )}
 
         {message.attachments && message.attachments.length > 0 && (
@@ -90,7 +79,7 @@ export default function MessageBubble({ run, fallbackSender }: MessageBubbleProp
             {message.attachments.map((name) => (
               <li
                 key={name}
-                className="flex max-w-64 items-center gap-2 rounded-xl border border-border bg-card px-2.5 py-1.5 text-xs text-foreground"
+                className="baitly-message-file"
               >
                 <FileText className="size-4 shrink-0 text-muted-foreground" aria-hidden />
                 <span className="min-w-0 truncate">{name}</span>
@@ -102,7 +91,7 @@ export default function MessageBubble({ run, fallbackSender }: MessageBubbleProp
         {message.extra}
 
         {last && (
-          <span className="mt-0.5 flex items-center gap-1 px-1 text-2xs tabular-nums text-faint">
+          <span className="baitly-message-time">
             {formatMsgTime(message.at)}
             {delivery === 'sent' && <Check className="size-3" aria-label={t('messagingHub.delivery.sent', 'Envoyé')} />}
             {delivery === 'delivered' && (

@@ -22,6 +22,7 @@ interface ProviderSectorPanelProps {
   onSelect: (providerId: number | null) => void;
   onHover: (providerId: number | null) => void;
   areaProviderIds?: readonly number[] | null;
+  selectedAreaCount?: number;
   onClearAreaFilter?: () => void;
 }
 
@@ -41,7 +42,7 @@ const PROVIDERS_PER_BATCH = 10;
  */
 export default function ProviderSectorPanel({
   data, isLoading, isError, bounds, mode, onModeChange, selectedId, onSelect, onHover,
-  areaProviderIds, onClearAreaFilter,
+  areaProviderIds, selectedAreaCount = 1, onClearAreaFilter,
 }: ProviderSectorPanelProps) {
   const { t } = useTranslation();
   const { isDark } = useThemeMode();
@@ -115,7 +116,7 @@ export default function ProviderSectorPanel({
             : t('sectorMap.layer', 'Secteurs des prestataires')}
         </span>
         {areaIds && <div className="flex flex-wrap items-center justify-between gap-1 text-xs text-muted-foreground">
-          <span>{t('sectorMap.areaFilter', 'Secteur sélectionné')}</span>
+          <span className="tabular-nums">{t('sectorMap.selectedAreas', { total: selectedAreaCount, defaultValue: 'Zones sélectionnées : {{total}}' })}</span>
           <Button type="button" variant="ghost" size="sm" onClick={onClearAreaFilter}>
             {t('sectorMap.clearAreaFilter', 'Effacer le filtre')}
           </Button>

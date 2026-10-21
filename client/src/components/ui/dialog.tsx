@@ -1,4 +1,5 @@
 import * as React from "react"
+import "../../theme/baitly-dialogs.css"
 import { Dialog as DialogPrimitive } from "radix-ui"
 
 import { cn } from '../../utils/cn'

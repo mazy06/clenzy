@@ -98,7 +98,7 @@ public class GuestUpsellScanner {
     private UpsellOffer applicableOffer(Long orgId, Long propertyId, String type) {
         return upsellOfferRepository
                 .findByOrganizationIdAndActiveTrueOrderBySortOrderAscIdAsc(orgId).stream()
-                .filter(o -> o.getType() == type)
+                .filter(o -> type.equals(o.getType()))
                 .filter(o -> o.getPropertyId() == null || o.getPropertyId().equals(propertyId))
                 .findFirst().orElse(null);
     }

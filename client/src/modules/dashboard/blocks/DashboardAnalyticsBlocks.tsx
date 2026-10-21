@@ -26,9 +26,8 @@ import '../dashboardInsights.css';
  * Blocs analytiques du Dashboard portés depuis la projection
  * (`DASHBOARD-PARITY.md` §3 et §7).
  *
- * Aucun endpoint n'a été créé pour eux : le moteur de rapports sait déjà croiser
- * période × canal, et les analytics du portefeuille exposent déjà l'occupation
- * par logement.
+ * La synthèse annuelle fournit directement douze mois. L'occupation réutilise
+ * les analytics du portefeuille.
  */
 
 /**
@@ -41,7 +40,7 @@ import '../dashboardInsights.css';
 export function MonthlyRevenueSplitCard({ year = new Date().getFullYear() }: { year?: number }) {
   const { t } = useTranslation();
   const { currency } = useCurrency();
-  const { data, isLoading, isError, refetch } = useDashboardRevenueSplit(year);
+  const { data, isPending: isLoading, isError, refetch } = useDashboardRevenueSplit(year);
   const config = {
     fees: { label: t('dashboard.revenueSplit.fees', 'Commissions'), color: 'var(--db-chart-teal)' },
     interventions: { label: t('dashboard.revenueSplit.interventions', 'Interventions'), color: 'var(--bui-warning)' },

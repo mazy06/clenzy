@@ -27,6 +27,8 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.EnumSource;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.MockedStatic;
@@ -43,6 +45,7 @@ import java.util.Optional;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
@@ -147,6 +150,73 @@ class BookingCheckoutControllerTest {
         when(publicBookingService.resolveOrgById(ORG_ID)).thenReturn(buildCtx());
         when(publicBookingService.checkAvailability(any(), any(AvailabilityRequestDto.class)))
             .thenReturn(availableQuote(serverTotal));
+    }
+
+    @Nested
+    class BaitlyPaidServices {
+        private com.clenzy.booking.repository.BookingServiceItemRepository items;
+        private com.clenzy.repository.ReservationServiceItemRepository snapshots;
+        private BookingServiceOptionsService actualOptions;
+
+        private void useActualOptionPricing() throws Exception {
+            items = mock(com.clenzy.booking.repository.BookingServiceItemRepository.class);
+            snapshots = mock(com.clenzy.repository.ReservationServiceItemRepository.class);
+            actualOptions = new BookingServiceOptionsService(
+                mock(com.clenzy.booking.repository.BookingServiceCategoryRepository.class), items, snapshots,
+                mock(com.clenzy.repository.ReservationRepository.class), mock(com.clenzy.tenant.TenantContext.class));
+            controller = new BookingCheckoutController(
+                new BookingCheckoutQuoteService(propertyRepository, actualOptions, publicBookingService),
+                publicBookingService, rateLimiter, paymentPolicyService, orchestrationService);
+            setField("stripeSecretKey", "sk_test_xxx");
+            setField("currency", "eur");
+        }
+
+        @ParameterizedTest
+        @EnumSource(com.clenzy.booking.model.BookingServicePricingMode.class)
+        void quoteSnapshotAndSinglePaymentAgree(com.clenzy.booking.model.BookingServicePricingMode mode) throws Exception {
+            useActualOptionPricing();
+            stubServerQuote("100.00");
+            var item = new com.clenzy.booking.model.BookingServiceItem();
+            item.setId(7L); item.setOrganizationId(ORG_ID); item.setName("Service de test");
+            item.setInputType(com.clenzy.booking.model.BookingServiceInputType.QUANTITY);
+            item.setPrice(BigDecimal.TEN); item.setMaxQuantity(3); item.setPricingMode(mode);
+            when(items.findAllByIdInAndOrganizationId(List.of(7L), ORG_ID)).thenReturn(List.of(item));
+            var selections = List.of(new SelectedServiceOptionDto(7L, 99));
+            BigDecimal extras = new BigDecimal(switch (mode) {
+                case PER_BOOKING -> "30"; case PER_PERSON -> "60"; case PER_NIGHT -> "120";
+            });
+            var hold = buildHold(56L); hold.setTotalPrice(new BigDecimal("100").add(extras));
+            when(publicBookingService.createEmbeddedCheckoutHold(any(), eq(PROPERTY_ID), any(), any(), eq(2),
+                    any(), any(), any(), eq(extras), eq(selections), isNull(), eq(0)))
+                .thenAnswer(call -> {
+                    actualOptions.createReservationServiceItems(hold, selections, 2, 4, ORG_ID);
+                    return hold;
+                });
+            stubOrchestrator("cs_test_services", "cs_test_services_secret");
+            var response = controller.createCheckoutSession(buildRequest(PROPERTY_ID, ORG_ID, new BigDecimal("100"),
+                    CHECK_IN, CHECK_OUT, 2, "guest@example.test", selections), httpRequest);
+            assertThat(response.getStatusCode().value()).isEqualTo(200);
+            var saved = ArgumentCaptor.forClass(com.clenzy.model.ReservationServiceItem.class);
+            verify(snapshots).save(saved.capture());
+            assertThat(saved.getValue().getQuantity()).isEqualTo(3);
+            assertThat(saved.getValue().getTotalPrice()).isEqualByComparingTo(extras);
+            var payment = ArgumentCaptor.forClass(PaymentOrchestrationRequest.class);
+            verify(orchestrationService).initiatePayment(eq(ORG_ID), any(), payment.capture());
+            assertThat(payment.getValue().amount()).isEqualByComparingTo(hold.getTotalPrice());
+            assertThat(hold.getServiceOptionsTotal()).isEqualByComparingTo(extras);
+        }
+
+        @Test void duplicateServicesNeverCreateAHoldOrStartPayment() throws Exception {
+            useActualOptionPricing();
+            stubServerQuote("100.00");
+            var selections = List.of(new SelectedServiceOptionDto(7L, 1), new SelectedServiceOptionDto(7L, 1));
+            var response = controller.createCheckoutSession(buildRequest(PROPERTY_ID, ORG_ID, new BigDecimal("100"),
+                    CHECK_IN, CHECK_OUT, 2, "guest@example.test", selections), httpRequest);
+            assertThat(response.getStatusCode().value()).isEqualTo(400);
+            org.mockito.Mockito.verifyNoInteractions(items, snapshots, orchestrationService);
+            verify(publicBookingService, never()).createEmbeddedCheckoutHold(any(), any(), any(), any(), anyInt(),
+                    any(), any(), any(), any(), any(), any(), anyInt());
+        }
     }
 
     @Nested

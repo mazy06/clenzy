@@ -3,6 +3,7 @@ package com.clenzy.service.assignment;
 import com.clenzy.model.*;
 import com.clenzy.repository.*;
 import com.clenzy.service.InterventionAllocationGuard;
+import com.clenzy.service.access.StayTimes;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.*;
 import java.time.*;
@@ -39,15 +40,21 @@ public class AcceptedServiceRequestConverter {
         mission.setType(need.getServiceType().name());
         mission.setStatus(InterventionStatus.PENDING);
         mission.setPriority(need.getPriority().name());
-        mission.setScheduledDate(need.getDesiredDate());
-        mission.setStartTime(need.getDesiredDate());
+        // Le besoin porte l'heure du logement ; les horodatages d'intervention sont en UTC.
+        LocalDateTime scheduled = need.getDesiredDate();
+        if (scheduled != null && need.getProperty() != null) {
+            scheduled = scheduled.atZone(StayTimes.zoneOf(need.getProperty()))
+                .withZoneSameInstant(ZoneOffset.UTC).toLocalDateTime();
+        }
+        mission.setScheduledDate(scheduled);
+        mission.setStartTime(scheduled);
         mission.setEstimatedDurationHours(need.getEstimatedDurationHours());
         mission.setSpecialInstructions(need.getSpecialInstructions());
         mission.setAccessNotes(need.getAccessNotes());
         mission.setGuestCheckoutTime(need.getGuestCheckoutTime());
         mission.setGuestCheckinTime(need.getGuestCheckinTime());
-        if (need.getDesiredDate()!=null && need.getEstimatedDurationHours()!=null)
-            mission.setEndTime(need.getDesiredDate().plusHours(need.getEstimatedDurationHours()));
+        if (scheduled!=null && need.getEstimatedDurationHours()!=null)
+            mission.setEndTime(scheduled.plusHours(need.getEstimatedDurationHours()));
         mission.setEstimatedCost(need.getEstimatedCost());
         mission.setRecommendedCost(need.getRecommendedCost());
         mission.setIsUrgent(need.isUrgent());
@@ -72,7 +79,11 @@ public class AcceptedServiceRequestConverter {
             var reservation=reservations.findById(need.getReservationId()).orElseThrow();
             if (!need.getOrganizationId().equals(reservation.getOrganizationId()))
                 throw new org.springframework.security.access.AccessDeniedException("Séjour hors organisation");
-            reservation.setIntervention(mission);
+            // Les extras gardent leur lien via le besoin. Seul le ménage de départ
+            // occupe le lien utilisé pour le suivi du séjour et de la caution.
+            if ("cleaning-turnover".equals(need.getServiceItemCode())
+                    || (need.getServiceItemCode()==null && need.getServiceType()==ServiceType.CLEANING))
+                reservation.setIntervention(mission);
         }
     }
 }

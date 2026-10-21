@@ -2,7 +2,7 @@ import { createContext, useContext, useEffect, useState, type ReactNode } from '
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Link, useNavigate } from 'react-router-dom';
 import { Check, Clock3 } from '../../icons/glyphs';
-import { Button } from '../../components/ui';
+import { Button, Skeleton } from '../../components/ui';
 import { useAuth } from '../../hooks/useAuth';
 import { useTranslation } from '../../hooks/useTranslation';
 import { OPERATIONAL_ROLES, MANAGER_ROLES } from '../../constants/roles';
@@ -15,6 +15,25 @@ import ServicePriceSlider from './ServicePriceSlider';
 import RequestAssignmentProgress, { type AssignmentProgress } from './RequestAssignmentProgress';
 
 const Cards = createContext<{ data?: AssignmentCard[]; loading: boolean; error: boolean; retry?: () => void } | null>(null);
+
+/** A manager can also be a recipient; the server decides membership, never the UI role. */
+export function RequestRecipientActions({ requestId, fallback = null }: { requestId: number; fallback?: ReactNode }) {
+  const { user } = useAuth();
+  const { t } = useTranslation();
+  const query = useQuery({
+    queryKey: ['service-requests-list', 'recipient', user?.id, user?.organizationId, requestId],
+    queryFn: () => serviceAssignmentsApi.cards([requestId]),
+    enabled: !!user?.id,
+  });
+  if (query.isLoading) return <Skeleton className="h-24 w-full" aria-label={t('requestCommercial.loading')} />;
+  if (query.isError) return <><Button variant="outline" size="sm" onClick={() => void query.refetch()}>{t('requestCommercial.retry')}</Button>{fallback}</>;
+  if (!query.data?.some(card => card.requestId === requestId && (card.proposal || card.quote))) return fallback;
+  return <Cards.Provider value={{ data: query.data, loading: false, error: false }}>
+    <div className="baitly-recipient-actions" aria-label={t('assignmentFlow.inbox')}>
+      <RequestCommercialDetails id={requestId} detailView />
+    </div>
+  </Cards.Provider>;
+}
 
 /** Un chargement par tranche affichée, partagé par toutes ses cartes. */
 export function RequestCommercialBatch({ ids, children }: { ids: number[]; children: ReactNode }) {

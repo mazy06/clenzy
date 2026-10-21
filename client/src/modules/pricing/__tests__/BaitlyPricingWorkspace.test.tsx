@@ -24,7 +24,7 @@ vi.mock('../../../hooks/useDynamicPricing', async (original) => ({
     createRatePlan: state.createPlan, updateRatePlan: vi.fn(), deleteRatePlan: vi.fn(),
   }),
 }));
-vi.mock('../../../components/PageHeader', () => ({ default: ({ actions, inlineControls }: { actions: React.ReactNode; inlineControls: React.ReactNode }) => <header>{inlineControls}{actions}</header> }));
+vi.mock('../../../components/PageHeader', () => ({ default: ({ actions, inlineControls,filters }: { actions: React.ReactNode; inlineControls: React.ReactNode;filters:React.ReactNode }) => <header>{inlineControls}{actions}{filters}</header> }));
 vi.mock('../../../components/PageTabs', () => ({ default: ({ options, onChange }: { options: { label: string }[]; onChange: (index: number) => void }) => <nav>{options.map((option, index) => <button key={index} onClick={() => onChange(index)}>{option.label}</button>)}</nav> }));
 vi.mock('../BaitlyPricingAiPanel', () => ({ default: ({ selection, onDismiss }: { selection: { recommendation: { date: string } } | null; onDismiss: (selection: unknown) => void }) => <aside>{selection && <><p data-testid="proposal-preview">{selection.recommendation.date}</p><button onClick={() => onDismiss(selection)}>dismiss preview</button></>}</aside> }));
 vi.mock('../MarketPositioningCard', () => ({ default: () => <div>market</div> }));

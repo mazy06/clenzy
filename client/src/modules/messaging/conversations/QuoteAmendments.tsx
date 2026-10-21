@@ -8,6 +8,7 @@ import { serviceQuotesApi, type QuoteAmendment } from '../../../services/api/ser
 import { formatCurrency } from '../../../utils/currencyUtils';
 import { formatDate } from '../../../utils/formatUtils';
 import QuoteCancellation from './QuoteCancellation';
+import { ChevronDown } from '../../../icons/glyphs';
 
 /** Accord courant et avenants dans le fil du devis Baitly. */
 export default function QuoteAmendments({ quoteId }: { quoteId: number }) {
@@ -88,6 +89,7 @@ function QuoteAmendmentPanel({ quoteId, accountScope }: { quoteId: number; accou
     </span>}
     <Button variant="ghost" size="sm" aria-expanded={expanded} aria-controls={id} onClick={() => setExpanded(!expanded)}>
       {t('quoteAmendments.title')}
+      <ChevronDown size={14} className={expanded ? 'rotate-180' : undefined} aria-hidden />
     </Button>
     {expanded && <span id={id} className="flex min-w-0 flex-col gap-3">
       <span className="text-muted-foreground">{t('quoteAmendments.initialPreserved')}</span>

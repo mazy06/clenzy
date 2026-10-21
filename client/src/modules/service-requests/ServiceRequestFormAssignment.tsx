@@ -1,17 +1,19 @@
 import React, { useCallback, useEffect, useMemo } from 'react';
-import { cn } from '../../utils/cn';
-import StatusChip from '../../components/StatusChip';
-import { SELECT_CHIP_CLASS } from './serviceRequestsListConstants';
 import {
   Badge,
+  Avatar,
+  AvatarImage,
+  AvatarFallback,
   Field,
   FieldLabel,
+  FieldError,
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
 } from '../../components/ui';
-import { Person, Group, BlockOutlined } from '../../icons';
+import { Person, Group, Timer } from '../../icons';
+import './baitly-service-request-editor.css';
 import { Controller, Control, FieldErrors, UseFormSetValue } from 'react-hook-form';
 import { INTERVENTION_TYPE_OPTIONS } from '../../types/interventionTypes';
 import { useTranslation } from '../../hooks/useTranslation';
@@ -23,6 +25,7 @@ interface User {
   lastName: string;
   email: string;
   role: string;
+  profilePictureUrl?: string | null;
 }
 
 interface Team {
@@ -53,16 +56,14 @@ export interface ServiceRequestFormAssignmentProps {
 
 interface AssignmentTypeDef {
   value: '' | 'user' | 'team';
-  label: string;
+  key: string;
   icon: React.ReactElement;
-  fg: string;
-  bg: string;
 }
 
 const ASSIGNMENT_TYPES: AssignmentTypeDef[] = [
-  { value: '', label: 'Aucune', icon: <BlockOutlined size={14} strokeWidth={1.75} />, fg: 'var(--bui-muted-foreground)', bg: 'var(--bui-muted)' },
-  { value: 'user', label: 'Individuel', icon: <Person size={14} strokeWidth={1.75} />, fg: 'var(--bui-primary)', bg: 'var(--bui-primary-soft)' },
-  { value: 'team', label: 'Équipe', icon: <Group size={14} strokeWidth={1.75} />, fg: 'var(--bui-primary)', bg: 'var(--bui-primary-soft)' },
+  { value: '', key: 'none', icon: <Timer size={20} strokeWidth={1.75} /> },
+  { value: 'user', key: 'user', icon: <Person size={20} strokeWidth={1.75} /> },
+  { value: 'team', key: 'team', icon: <Group size={20} strokeWidth={1.75} /> },
 ];
 
 /** Determine the service category from a service type value */
@@ -87,6 +88,7 @@ const ServiceRequestFormAssignment: React.FC<ServiceRequestFormAssignmentProps> 
     matchingUserIds = [],
   }) => {
     const { t } = useTranslation();
+    const assignmentGroupId = React.useId();
 
     const matchingSet = React.useMemo(() => new Set(matchingUserIds), [matchingUserIds]);
 
@@ -101,20 +103,6 @@ const ServiceRequestFormAssignment: React.FC<ServiceRequestFormAssignmentProps> 
         return am - bm;
       });
     }, [users, matchingSet]);
-
-    const getInterventionTypeLabel = useCallback(
-      (type: string) => {
-        const interventionTypes: Record<string, string> = {
-          cleaning: t('serviceRequests.interventionTypes.cleaning'),
-          maintenance: t('serviceRequests.interventionTypes.maintenance'),
-          repair: t('serviceRequests.interventionTypes.repair'),
-          inspection: t('serviceRequests.interventionTypes.inspection'),
-          mixed: t('serviceRequests.interventionTypes.mixed'),
-        };
-        return interventionTypes[type.toLowerCase()] || type;
-      },
-      [t]
-    );
 
     // Filter teams by eligible IDs from the selected forfait
     const filteredTeams = useMemo(() => {
@@ -141,10 +129,10 @@ const ServiceRequestFormAssignment: React.FC<ServiceRequestFormAssignmentProps> 
 
     // Handle assignment type chip click
     const handleAssignmentTypeClick = useCallback((value: '' | 'user' | 'team') => {
-      if (disabled) return;
+      if (disabled || (watchedAssignedToType || '') === value) return;
       setValue('assignedToType', value === '' ? undefined : value);
       setValue('assignedToId', undefined);
-    }, [setValue, disabled]);
+    }, [setValue, disabled, watchedAssignedToType]);
 
     // If no assignment capability and not in edit mode, nothing to render
     if (!canAssignForProperty && !isEditMode) {
@@ -157,28 +145,23 @@ const ServiceRequestFormAssignment: React.FC<ServiceRequestFormAssignmentProps> 
         {/* Type d'assignation - Chips */}
         {canAssignForProperty && (
           <div className="mb-3">
-            <p className="text-2xs font-semibold uppercase tracking-wide text-muted-foreground mb-1">
-              {t('serviceRequests.fields.assignmentType')}
-            </p>
-            <div className="flex gap-1 flex-wrap">
+            <fieldset className="baitly-assignment-modes" disabled={disabled}>
+              <legend>{t('serviceRequests.fields.assignmentType')}</legend>
+              <div className="baitly-assignment-modes__options">
               {ASSIGNMENT_TYPES.map((at) => {
                 const isSelected = (watchedAssignedToType || '') === at.value;
                 return (
-                  <StatusChip
-                    key={at.value}
-                    outlined
-                    selected={isSelected}
-                    pressed={isSelected}
-                    tokens={{ color: at.fg, bg: at.bg }}
-                    icon={at.icon}
-                    label={at.label}
-                    onClick={disabled ? undefined : () => handleAssignmentTypeClick(at.value)}
-                    disabled={disabled}
-                    className={cn(SELECT_CHIP_CLASS, disabled && 'opacity-45')}
-                  />
+                  <label key={at.value} className="baitly-assignment-mode" data-selected={isSelected}>
+                    <input type="radio" name={assignmentGroupId} value={at.value} checked={isSelected}
+                      onChange={() => handleAssignmentTypeClick(at.value)} />
+                    <span className="baitly-assignment-mode__icon" aria-hidden="true">{at.icon}</span>
+                    <span><strong>{t(`serviceRequests.assignment.modes.${at.key}.title`)}</strong>
+                      <small>{t(`serviceRequests.assignment.modes.${at.key}.description`)}</small></span>
+                  </label>
                 );
               })}
-            </div>
+              </div>
+            </fieldset>
 
             {/* Indication auto-sélection */}
             {watchedServiceType && (
@@ -210,7 +193,7 @@ const ServiceRequestFormAssignment: React.FC<ServiceRequestFormAssignmentProps> 
             <Controller
               name="assignedToId"
               control={control}
-              render={({ field }) => {
+              render={({ field, fieldState }) => {
                 const selectedItem = watchedAssignedToType === 'user'
                   ? users.find(u => u.id === field.value)
                   : teams.find(t => t.id === field.value);
@@ -231,35 +214,41 @@ const ServiceRequestFormAssignment: React.FC<ServiceRequestFormAssignmentProps> 
                     >
                       <SelectTrigger
                         id="service-request-assigned-to"
-                        className="w-full"
+                        className="baitly-assignee-trigger w-full"
+                        aria-invalid={!!fieldState.error}
                         onBlur={field.onBlur}
                       >
-                        <div className="flex items-center gap-1">
-                          {watchedAssignedToType === 'user' ? (
-                            <span className={cn('inline-flex', hasValue ? 'text-primary' : 'text-faint')}><Person size={16} strokeWidth={1.75} /></span>
-                          ) : (
-                            <span className={cn('inline-flex', hasValue ? 'text-primary' : 'text-faint')}><Group size={16} strokeWidth={1.75} /></span>
-                          )}
-                          <span className={cn('text-[12.5px]', hasValue ? 'text-foreground' : 'text-faint')}>
+                        <div className="baitly-assignee-option">
+                          {watchedAssignedToType === 'user' && hasValue ? <Avatar className="baitly-assignee-avatar" aria-hidden="true">
+                            <AvatarImage src={(selectedItem as User).profilePictureUrl ?? undefined} alt="" />
+                            <AvatarFallback>{[(selectedItem as User).firstName?.[0], (selectedItem as User).lastName?.[0]].filter(Boolean).join('').toUpperCase()}</AvatarFallback>
+                          </Avatar> : <span className="baitly-assignee-avatar" aria-hidden="true">{watchedAssignedToType === 'user' ? <Person size={20} /> : <Group size={20} />}</span>}
+                          <span className="baitly-assignee-option__text">
+                          <strong>
                             {hasValue
                               ? watchedAssignedToType === 'user'
                                 ? `${(selectedItem as typeof users[number]).firstName} ${(selectedItem as typeof users[number]).lastName}`
                                 : (selectedItem as Team).name
                               : t('serviceRequests.fields.select')}
+                          </strong>
+                          <small>{hasValue ? watchedAssignedToType === 'team' ? `${(selectedItem as Team).memberCount} ${t('serviceRequests.members')}` : (selectedItem as User).role : t('serviceRequests.assignment.chooseProvider')}</small>
                           </span>
                         </div>
                       </SelectTrigger>
-                      <SelectContent>
+                      <SelectContent className="baitly-form-options baitly-assignee-options">
                         {watchedAssignedToType === 'user'
                           ? getAssignableUsers().map((user) => (
                               <SelectItem key={user.id} value={String(user.id)}>
-                                <div className="flex items-center gap-1 w-full">
-                                  <span className={cn('inline-flex', matchingSet.has(user.id) ? 'text-success' : 'text-primary')}><Person size={16} strokeWidth={1.75} /></span>
-                                  <div className="flex-1 min-w-0">
+                                <div className="baitly-assignee-option">
+                                  <Avatar className="baitly-assignee-avatar" aria-hidden="true">
+                                    <AvatarImage src={user.profilePictureUrl ?? undefined} alt="" />
+                                    <AvatarFallback>{[user.firstName?.[0], user.lastName?.[0]].filter(Boolean).join('').toUpperCase()}</AvatarFallback>
+                                  </Avatar>
+                                  <div className="baitly-assignee-option__text">
                                     <span className="block text-[12.5px] text-foreground">
                                       {user.firstName} {user.lastName}
                                     </span>
-                                    <span className="block text-[10.5px] text-faint">
+                                    <span className="block text-xs text-muted-foreground">
                                       {user.role} • {user.email}
                                     </span>
                                   </div>
@@ -271,14 +260,14 @@ const ServiceRequestFormAssignment: React.FC<ServiceRequestFormAssignmentProps> 
                             ))
                           : filteredTeams.map((team) => (
                               <SelectItem key={team.id} value={String(team.id)}>
-                                <div className="flex items-center gap-1">
-                                  <span className="inline-flex text-primary"><Group size={16} strokeWidth={1.75} /></span>
-                                  <div>
+                                <div className="baitly-assignee-option">
+                                  <span className="baitly-assignee-avatar" aria-hidden="true"><Group size={20} /></span>
+                                  <div className="baitly-assignee-option__text">
                                     <span className="block text-[12.5px] text-foreground font-medium">
                                       {team.name}
                                     </span>
-                                    <span className="block text-[10.5px] text-faint">
-                                      {team.memberCount} {t('serviceRequests.members')} • {getInterventionTypeLabel(team.interventionType)}
+                                    <span className="block text-xs text-muted-foreground">
+                                      {team.memberCount} {t('serviceRequests.members')}
                                     </span>
                                   </div>
                                 </div>
@@ -286,6 +275,7 @@ const ServiceRequestFormAssignment: React.FC<ServiceRequestFormAssignmentProps> 
                             ))}
                       </SelectContent>
                     </Select>
+                    {fieldState.error && <FieldError>{fieldState.error.message}</FieldError>}
                   </Field>
                 );
               }}

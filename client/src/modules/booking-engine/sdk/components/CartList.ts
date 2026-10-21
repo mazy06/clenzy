@@ -3,6 +3,7 @@ import type { WidgetState } from '../types';
 
 interface I18n {
   t: (key: string) => string;
+  lang?: string;
 }
 
 /** Panier multi-séjours (BE-L0-6) : liste des séjours ajoutés + total + bouton de validation. */
@@ -18,13 +19,18 @@ export function createCartList(state: StateManager, i18n: I18n, onCheckoutAll: (
 
 function render(container: HTMLElement, s: WidgetState, i18n: I18n,
                 state: StateManager, onCheckoutAll: () => void): void {
-  const key = s.cart.map(c => `${c.propertyId}:${c.checkIn}:${c.checkOut}`).join('|');
+  const key = JSON.stringify([s.cart, s.properties.map((p) => [p.id, p.city, p.mainPhotoUrl])]);
   if (container.dataset.key === key) return;
   container.dataset.key = key;
   container.textContent = '';
 
   if (!s.cart.length) {
-    container.hidden = true;
+    container.hidden = false;
+    const empty = document.createElement('p');
+    empty.className = 'cb-cart__empty';
+    empty.setAttribute('role', 'status');
+    empty.textContent = i18n.t('cart.empty');
+    container.appendChild(empty);
     return;
   }
   container.hidden = false;
@@ -34,15 +40,34 @@ function render(container: HTMLElement, s: WidgetState, i18n: I18n,
   title.textContent = i18n.t('cart.yourStays');
   container.appendChild(title);
 
-  let grandTotal = 0;
-  let currency = s.cart[0].currency;
+  const totals = new Map<string, number>();
   s.cart.forEach((item, idx) => {
     const row = document.createElement('div');
     row.className = 'cb-cart__item';
+    const property = s.properties.find((p) => p.id === item.propertyId);
+    if (property?.mainPhotoUrl) {
+      const image = document.createElement('img');
+      image.className = 'cb-cart__photo';
+      image.src = property.mainPhotoUrl;
+      image.alt = '';
+      image.loading = 'lazy';
+      row.append(image);
+    }
 
     const label = document.createElement('span');
     label.className = 'cb-cart__item-label cb-text-sm';
-    label.textContent = `${item.propertyName} · ${item.checkIn} → ${item.checkOut}`;
+    const name = document.createElement('strong');
+    name.className = 'cb-cart__property-name';
+    name.textContent = item.propertyName;
+    const dates = document.createElement('span');
+    dates.className = 'cb-cart__dates';
+    const formatDate = (value: string) => new Intl.DateTimeFormat(i18n.lang, { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'UTC' }).format(new Date(`${value}T00:00:00Z`));
+    dates.textContent = `${formatDate(item.checkIn)} → ${formatDate(item.checkOut)}`;
+    const guests = document.createElement('span');
+    guests.className = 'cb-cart__guests';
+    const nights = Math.round((Date.parse(item.checkOut) - Date.parse(item.checkIn)) / 86400000);
+    guests.textContent = `${nights} ${i18n.t('cart.nights')} · ${item.guests} ${i18n.t('property.guests')}${item.children ? ` · ${item.children} ${i18n.t('guests.children')}` : ''}`;
+    label.append(name, dates, guests);
 
     const right = document.createElement('span');
     right.className = 'cb-cart__item-right';
@@ -51,7 +76,7 @@ function render(container: HTMLElement, s: WidgetState, i18n: I18n,
     const remove = document.createElement('button');
     remove.type = 'button';
     remove.className = 'cb-cart__remove';
-    remove.setAttribute('aria-label', 'remove');
+    remove.setAttribute('aria-label', `${i18n.t('cart.remove')} ${item.propertyName}`);
     remove.textContent = '×';
     remove.addEventListener('click', () => {
       const next = state.get().cart.slice();
@@ -65,19 +90,20 @@ function render(container: HTMLElement, s: WidgetState, i18n: I18n,
     row.appendChild(right);
     container.appendChild(row);
 
-    grandTotal += item.total;
-    currency = item.currency;
+    totals.set(item.currency, (totals.get(item.currency) || 0) + item.total);
   });
 
+  totals.forEach((total, currency) => {
   const totalRow = document.createElement('div');
   totalRow.className = 'cb-cart__total';
   const tl = document.createElement('span');
   tl.textContent = i18n.t('cart.totalTTC');
   const ta = document.createElement('span');
-  ta.textContent = formatPrice(grandTotal, currency);
+  ta.textContent = formatPrice(total, currency);
   totalRow.appendChild(tl);
   totalRow.appendChild(ta);
   container.appendChild(totalRow);
+  });
 
   const cta = document.createElement('button');
   cta.type = 'button';

@@ -221,7 +221,7 @@ export const BAITLY_NIGHT: Flavor = {
  * (arabe), complétée par Noto Sans pour les autres écritures (tifinagh…). Glyphes
  * générés par scripts/maps/fonts/build-baitly-fonts.sh.
  */
-const BAITLY_FONTS = { regular: 'Baitly Sans Regular', bold: 'Baitly Sans Medium', italic: 'Baitly Sans Italic' };
+export const BAITLY_FONTS = { regular: 'Baitly Sans Regular', bold: 'Baitly Sans Medium', italic: 'Baitly Sans Italic' };
 
 const FLAVORS: Record<BaitlyMapMode, Flavor> = {
   light: { ...BAITLY_PAPER, ...BAITLY_FONTS },
@@ -250,6 +250,7 @@ function refine(layer: LayerSpecification, mode: BaitlyMapMode): LayerSpecificat
   if (layer.id === 'pois' && layer.type === 'symbol' && layer.filter) {
     return {
       ...layer,
+      layout: { ...layer.layout, 'icon-optional': true },
       filter: ['all', layer.filter as ExpressionSpecification, ['!', ['in', ['get', 'kind'], ['literal', HIDDEN_POI_KINDS]]]],
     };
   }
@@ -483,7 +484,10 @@ export function composeBaitlyMapStyle(
   { flat = false, period = 'day', relief = true }: { flat?: boolean; period?: DayPeriod; relief?: boolean } = {},
 ): StyleSpecification {
   const base = withShoreline(
-    layers(SOURCE_ID, FLAVORS[mode], { lang: language }).map((layer) => refine(layer, mode)),
+    layers(SOURCE_ID, FLAVORS[mode], { lang: language })
+      // Les numéros de route encombrent la carte ; les noms de rue restent affichés.
+      .filter((layer) => layer.id !== "roads_shields")
+      .map((layer) => refine(layer, mode)),
     mode,
   );
   const daylight = DAYLIGHT[mode][period];

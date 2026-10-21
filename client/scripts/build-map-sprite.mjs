@@ -23,6 +23,7 @@ const FAMILIES = {
   food: { light: '#B4504F', dark: '#F08F8A' },
   shop: { light: '#A4652A', dark: '#E8AE70' },
   service: { light: '#56606D', dark: '#A9B6C9' },
+  health: { light: '#B4504F', dark: '#F08F8A' },
 };
 
 /** Nom d'image Protomaps → [icône Lucide, famille]. */
@@ -60,6 +61,9 @@ const POIS = {
   theatre: ['Drama', 'culture'],
   toilets: ['Bath', 'service'],
   train_station: ['TrainFront', 'transport'],
+  pharmacy: ['Cross', 'health'],
+  hospital: ['Hospital', 'health'],
+  street_names: ['Route', 'service'],
   university: ['GraduationCap', 'culture'],
   zoo: ['Rabbit', 'nature'],
 };
@@ -132,6 +136,14 @@ function atlas(mode, ratio) {
 
 await mkdir(outDir, { recursive: true });
 for (const mode of ['light', 'dark']) {
+  if (process.argv.includes('--legend-only')) {
+    await mkdir(join(outDir, mode), { recursive: true });
+    for (const [name, width, height, inner] of images(mode)) {
+      if (!['train_station', 'supermarket', 'restaurant', 'cafe', 'pharmacy', 'museum', 'park', 'post_office', 'street_names'].includes(name)) continue;
+      await writeFile(join(outDir, mode, `${name}.svg`), `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}">${inner}</svg>`);
+    }
+    continue;
+  }
   for (const ratio of [1, 2]) {
     const { index, svg } = atlas(mode, ratio);
     const png = new Resvg(svg, { fitTo: { mode: 'original' } }).render().asPng();

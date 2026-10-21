@@ -1,10 +1,15 @@
 package com.clenzy.scheduler;
 
-import com.clenzy.booking.service.BookingEngineDepositService;
+import com.clenzy.service.SecurityDepositPaymentService;
 import com.clenzy.model.Reservation;
 import com.clenzy.model.SecurityDeposit;
 import com.clenzy.repository.ReservationRepository;
+import com.clenzy.repository.SecurityDepositRepository;
 import com.clenzy.service.agent.supervision.SupervisionActivityService;
+import com.clenzy.tenant.TenantScopedExecutor;
+import com.clenzy.booking.service.BookingEngineDepositService;
+import com.clenzy.service.NotificationService;
+import com.clenzy.model.NotificationKey;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.scheduling.annotation.Scheduled;
@@ -15,10 +20,8 @@ import java.time.LocalDate;
 import java.util.List;
 
 /**
- * Libération automatique des cautions (booking engine, P0.3) : un hold non capturé est relâché
- * {@link BookingEngineDepositService#RELEASE_DAYS_AFTER_CHECKOUT} jours après le check-out
- * (séjour terminé sans dégâts signalés). La capture pour dégâts reste manuelle côté PMS et,
- * une fois CAPTURED, le dépôt n'est plus candidat à la libération (CAS sur HELD). La pose, le
+ * Libération Baitly après le ménage de départ validé, sans anomalie. La capture reste manuelle.
+ * La pose, le
  * renouvellement et l'échéance du hold relèvent de {@link SecurityDepositHoldScheduler}.
  */
 @Component
@@ -26,33 +29,66 @@ public class BookingCautionScheduler {
 
     private static final Logger log = LoggerFactory.getLogger(BookingCautionScheduler.class);
 
-    private final BookingEngineDepositService depositService;
+    private final SecurityDepositPaymentService depositService;
+    private final SecurityDepositRepository deposits;
     private final ReservationRepository reservationRepository;
     private final SupervisionActivityService supervisionActivityService;
+    private final TenantScopedExecutor tenants;
+    private final BookingEngineDepositService setup;
+    private final NotificationService notifications;
 
-    public BookingCautionScheduler(BookingEngineDepositService depositService,
+    public BookingCautionScheduler(SecurityDepositPaymentService depositService,
+                                   SecurityDepositRepository deposits,
                                    ReservationRepository reservationRepository,
-                                   SupervisionActivityService supervisionActivityService) {
+                                   SupervisionActivityService supervisionActivityService,
+                                   TenantScopedExecutor tenants,
+                                   BookingEngineDepositService setup,
+                                   NotificationService notifications) {
         this.depositService = depositService;
+        this.deposits = deposits;
         this.reservationRepository = reservationRepository;
         this.supervisionActivityService = supervisionActivityService;
+        this.tenants = tenants;
+        this.setup = setup;
+        this.notifications = notifications;
     }
 
-    /** Tous les jours à 04:30 : libère les cautions des séjours terminés depuis le délai configuré. */
-    @Scheduled(cron = "0 30 4 * * *")
+    /** Le service recontrôle le ménage, les anomalies et le hold avant tout appel Stripe. */
+    @Scheduled(cron = "0 */15 * * * *")
     @SchedulerLock(name = "booking-caution-release", lockAtMostFor = "PT15M")
     public void releaseExpiredHolds() {
-        LocalDate cutoff = LocalDate.now().minusDays(BookingEngineDepositService.RELEASE_DAYS_AFTER_CHECKOUT);
-        List<SecurityDeposit> holds = depositService.findHoldsToRelease(cutoff);
+        LocalDate cutoff = LocalDate.now(java.time.ZoneOffset.UTC).plusDays(1);
+        for (Reservation reservation : reservationRepository.findMissingBookingCautions(cutoff.minusDays(2))) {
+            try {
+                tenants.runAsOrganization(reservation.getOrganizationId(), () ->
+                        setup.recoverMissingCaution(reservation.getId(), reservation.getOrganizationId()));
+            } catch (RuntimeException failure) {
+                reconciliationRequired(reservation.getOrganizationId(), reservation.getId(), failure);
+            }
+        }
+        List<SecurityDeposit> holds = deposits.findCleaningReleaseCandidates(cutoff);
         if (holds.isEmpty()) {
             return;
         }
-        log.info("Libération automatique de {} caution(s) (séjour terminé avant {})", holds.size(), cutoff);
+        log.debug("Vérification du ménage avant libération de {} caution(s)", holds.size());
         for (SecurityDeposit deposit : holds) {
-            if (depositService.releaseHold(deposit)) {
-                recordConstellationActivity(deposit);
+            try {
+                tenants.runAsOrganization(deposit.getOrganizationId(), () -> {
+                    if (depositService.releaseAfterCleaning(deposit.getOrganizationId(), deposit.getId()))
+                        recordConstellationActivity(deposit);
+                });
+            } catch (RuntimeException failure) {
+                log.error("Caution {} : libération non confirmée, reprise contrôlée au prochain passage", deposit.getId(), failure);
+                reconciliationRequired(deposit.getOrganizationId(), deposit.getReservationId(), failure);
             }
         }
+    }
+
+    private void reconciliationRequired(Long orgId, Long reservationId, RuntimeException failure) {
+        log.error("Caution réservation {} : rapprochement requis", reservationId, failure);
+        notifications.notifyAdminsAndManagersByOrgId(orgId, NotificationKey.SECURITY_DEPOSIT_HOLD_FAILED,
+                "Caution à vérifier", "L'opération bancaire de caution n'est pas confirmée. Vérifiez cette réservation avant toute action manuelle.",
+                "/reservations?highlight=" + reservationId);
     }
 
     /**
@@ -74,7 +110,7 @@ public class BookingCautionScheduler {
             }
             String amount = deposit.getAmount() != null ? deposit.getAmount().toPlainString() : "-";
             String currency = deposit.getCurrency() != null ? deposit.getCurrency() : "EUR";
-            String summary = "Caution libérée (" + amount + " " + currency + ") — séjour terminé sans dégâts signalés";
+            String summary = "Caution libérée (" + amount + " " + currency + ") : ménage validé sans anomalie";
             supervisionActivityService.recordModuleAct(
                     deposit.getOrganizationId(), propertyId, "fin", "booking_caution", summary);
         } catch (Exception e) {

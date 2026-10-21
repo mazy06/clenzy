@@ -127,17 +127,7 @@ public class StripePaymentProvider implements PaymentProvider {
                 builder.setShippingAddressCollection(shipping.build());
             }
 
-            if (request.metadata() != null && !request.metadata().isEmpty()) {
-                builder.putAllMetadata(request.metadata());
-                // Miroir sur le PaymentIntent : les métadonnées de session ne se propagent
-                // PAS automatiquement à la charge/PI. On les recopie pour (a) Stripe Radar
-                // (règles lues sur le PaymentIntent, ex. scoring de fraude du booking engine)
-                // et (b) la traçabilité sur la charge.
-                builder.setPaymentIntentData(
-                    com.stripe.param.checkout.SessionCreateParams.PaymentIntentData.builder()
-                        .putAllMetadata(request.metadata())
-                        .build());
-            }
+            configureStoredCard(builder, request);
 
             // Expiration de la session (ex. ~35 min pour le checkout booking engine) —
             // null = défaut Stripe (24h).
@@ -181,17 +171,7 @@ public class StripePaymentProvider implements PaymentProvider {
             if (request.customerEmail() != null) {
                 builder.setCustomerEmail(request.customerEmail());
             }
-            var intentData = com.stripe.param.checkout.SessionCreateParams.PaymentIntentData.builder();
-            // Caution : enregistre la carte (customer + off-session) pour un hold manuel ultérieur.
-            if (request.saveCardForFutureUse()) {
-                builder.setCustomerCreation(com.stripe.param.checkout.SessionCreateParams.CustomerCreation.ALWAYS);
-                intentData.setSetupFutureUsage(com.stripe.param.checkout.SessionCreateParams.PaymentIntentData.SetupFutureUsage.OFF_SESSION);
-            }
-            if (request.metadata() != null) {
-                builder.putAllMetadata(request.metadata());
-                intentData.putAllMetadata(request.metadata());
-            }
-            builder.setPaymentIntentData(intentData.build());
+            configureStoredCard(builder, request);
 
             com.stripe.model.checkout.Session session = stripeGateway.createSession(builder.build(), request.idempotencyKey());
 
@@ -200,6 +180,23 @@ public class StripePaymentProvider implements PaymentProvider {
             log.error("Stripe embedded createPayment failed: {}", e.getMessage());
             return PaymentResult.failure("Stripe error: " + e.getMessage());
         }
+    }
+
+    /** Hosted and embedded checkouts must both save the card explicitly requested for a deposit. */
+    private static void configureStoredCard(com.stripe.param.checkout.SessionCreateParams.Builder builder,
+                                            PaymentRequest request) {
+        var intentData = com.stripe.param.checkout.SessionCreateParams.PaymentIntentData.builder();
+        if (request.metadata() != null && !request.metadata().isEmpty()) {
+            builder.putAllMetadata(request.metadata());
+            // Stripe does not copy session metadata onto its PaymentIntent automatically.
+            intentData.putAllMetadata(request.metadata());
+        }
+        if (request.saveCardForFutureUse()) {
+            builder.setCustomerCreation(com.stripe.param.checkout.SessionCreateParams.CustomerCreation.ALWAYS);
+            intentData.setSetupFutureUsage(com.stripe.param.checkout.SessionCreateParams.PaymentIntentData.SetupFutureUsage.OFF_SESSION);
+        }
+        if (request.saveCardForFutureUse() || request.metadata() != null && !request.metadata().isEmpty())
+            builder.setPaymentIntentData(intentData.build());
     }
 
     private static com.stripe.param.checkout.SessionCreateParams.LineItem lineItem(PaymentRequest request) {

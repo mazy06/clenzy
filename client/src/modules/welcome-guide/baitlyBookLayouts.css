@@ -1,0 +1,99 @@
+/* Baitly guest compositions. Shared by the public book, editor and live theme thumbnails. */
+.wb .wb-cover { position:relative; display:flex; flex-direction:column; flex-shrink:0; background:var(--bg); color:var(--ink); }
+.wb .wb-cover__photo { position:relative; block-size:220px; min-block-size:0; overflow:hidden; flex-shrink:0; background:var(--surface); }
+.wb .wb-cover__missing { position:absolute; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:12px; color:var(--ink-soft); font:500 13px var(--sans); }
+.wb .wb-cover__shade { position:absolute; inset:0; background:linear-gradient(180deg,rgba(23,28,29,.06) 15%,rgba(23,28,29,.2) 45%,rgba(16,24,29,.88) 100%); }
+.wb .wb-cover__toolbar { position:absolute; z-index:2; inset-block-start:15px; inset-inline:18px; display:flex; align-items:center; justify-content:space-between; gap:12px; }
+.wb .wb-cover__toolbar img { max-inline-size:110px; max-block-size:36px; object-fit:contain; }
+.wb .wb-cover__photo:focus-visible { outline:3px solid var(--terra-deep); outline-offset:-3px; }
+.wb .wb-detail-header { position:sticky; inset-block-start:0; z-index:5; background:var(--bg); border-block-end:1px solid var(--line); }
+.wb .wb-detail-header__inner { display:flex; align-items:center; gap:14px; padding:24px 22px 18px; }
+.wb .wb-cover__caption { padding:22px; }
+.wb .wb-cover__greeting { margin:0 0 10px; font:500 13px/1.5 var(--sans); color:var(--terra-deep); }
+.wb .wb-cover__title { font:600 32px/1.05 var(--serif); letter-spacing:-.025em; margin:0; text-wrap:balance; overflow-wrap:anywhere; color:var(--ink); }
+.wb .wb-cover__location { display:flex; align-items:center; gap:5px; margin:12px 0 0; font:500 13px/1.5 var(--sans); color:var(--ink-soft); }
+.wb .wb-cover__dates { font:500 12px/1.5 var(--sans); color:var(--ink-soft); margin:6px 0 0; font-variant-numeric:tabular-nums; }
+.wb .wb-home__content { position:relative; display:flex; flex-direction:column; gap:28px; padding:0 22px 132px; background:var(--bg); }
+.wb .wb-nav-entry { inline-size:100%; display:flex; align-items:center; gap:14px; padding:18px 4px; min-block-size:74px; border:0; background:transparent; cursor:pointer; text-align:start; color:var(--ink); transition:background-color .2s cubic-bezier(.25,1,.5,1),color .2s cubic-bezier(.25,1,.5,1); }
+.wb .wb-nav-entry + .wb-nav-entry { border-block-start:1px solid var(--line); }
+.wb .wb-nav-entry:hover { background:var(--terra-bg); }
+.wb .wb-nav-entry svg:last-child { flex-shrink:0; }
+/* Cover compositions belong to the guest book, including its live thumbnails. */
+.wb .wb-cover__contact-sheet { display:grid; gap:8px; overflow:hidden; }
+.wb .wb-cover__contact-sheet img { inline-size:100%; block-size:100%; min-block-size:0; object-fit:cover; }
+/* Atelier: a small architectural journal, serif masthead and photographic contact sheet. */
+.wb[data-theme="atelier"] .wb-cover { display:grid; grid-template-columns:minmax(0,1fr) 82px; gap:8px; padding:0 24px 26px; }
+.wb[data-theme="atelier"] .wb-cover__caption { grid-column:1/-1; grid-row:1; padding:30px 0 22px; border-block-start:5px solid var(--ink); }
+.wb[data-theme="atelier"] .wb-cover__greeting { text-transform:uppercase; letter-spacing:.15em; font-size:11px; margin-block-end:18px; }
+.wb[data-theme="atelier"] .wb-cover__title { font-size:41px; font-weight:500; line-height:1.03; text-align:start; }
+.wb[data-theme="atelier"] .wb-cover__photo { grid-column:1/-1; grid-row:2; block-size:220px; border-radius:0; }
+.wb[data-theme="atelier"] .wb-cover[data-collage="true"] .wb-cover__photo { grid-column:1; }
+.wb[data-theme="atelier"] .wb-cover__contact-sheet { grid-column:2; grid-row:2; block-size:220px; }
+/* Noir: an invitation from a private hotel, framed and deliberately symmetrical. */
+.wb[data-theme="noir"] .wb-cover { margin:18px 18px 28px; padding:24px 16px 16px; border:1px solid var(--terra-soft); }
+.wb[data-theme="noir"] .wb-cover__caption { order:-1; text-align:center; padding:8px 8px 28px; }
+.wb[data-theme="noir"] .wb-cover__greeting { color:var(--terra-deep); font-size:11px; text-transform:uppercase; letter-spacing:.2em; margin-block-end:22px; }
+.wb[data-theme="noir"] .wb-cover__title { color:var(--ink); font-size:34px; font-weight:400; line-height:1.16; }
+.wb[data-theme="noir"] .wb-cover__location { justify-content:center; color:var(--ink-soft); }
+.wb[data-theme="noir"] .wb-cover__dates { color:var(--ink-soft); }
+.wb[data-theme="noir"] .wb-cover__photo { block-size:204px; border-radius:0; }
+/* Jardin: a country-house postcard with a portrait photograph and a generous paper border. */
+.wb[data-theme="jardin"] .wb-cover { padding:22px 28px 30px; }
+.wb[data-theme="jardin"] .wb-cover__photo { block-size:265px; margin-inline:28px; border:7px solid var(--surface); border-radius:2px; }
+.wb[data-theme="jardin"] .wb-cover__caption { padding:24px 0 0; text-align:center; }
+.wb[data-theme="jardin"] .wb-cover__greeting { font-style:italic; font-family:var(--serif); font-size:18px; }
+.wb[data-theme="jardin"] .wb-cover__title { font-weight:400; font-size:31px; line-height:1.15; }
+.wb[data-theme="jardin"] .wb-cover__location { justify-content:center; }
+/* Azur: a travel atlas with a blue masthead and a panoramic image below it. */
+.wb[data-theme="azur"] .wb-cover { margin-block-end:24px; }
+.wb[data-theme="azur"] .wb-cover__caption { order:-1; padding:32px 24px 28px; background:var(--terra-deep); color:var(--on-terra); }
+.wb[data-theme="azur"] .wb-cover__greeting { color:var(--on-terra); font-size:12px; letter-spacing:.1em; text-transform:uppercase; }
+.wb[data-theme="azur"] .wb-cover__title { color:var(--on-terra); font-size:34px; font-weight:650; line-height:1.12; letter-spacing:-.035em; }
+.wb[data-theme="azur"] .wb-cover__location,.wb[data-theme="azur"] .wb-cover__dates { color:var(--on-terra); }
+.wb[data-theme="azur"] .wb-cover__photo { block-size:190px; }
+/* Corail: a contemporary guest magazine, bold type and a second photographic spread. */
+.wb[data-theme="corail"] .wb-cover { display:grid; grid-template-columns:1fr 1fr; gap:8px; padding:26px 20px 28px; }
+.wb[data-theme="corail"] .wb-cover__caption { grid-column:1/-1; grid-row:1; padding:0 0 20px; }
+.wb[data-theme="corail"] .wb-cover__greeting { font-size:12px; text-transform:uppercase; letter-spacing:.09em; }
+.wb[data-theme="corail"] .wb-cover__title { font-size:42px; font-weight:750; line-height:1.02; letter-spacing:-.055em; color:var(--terra-deep); }
+.wb[data-theme="corail"] .wb-cover__photo { grid-column:1/-1; grid-row:2; block-size:200px; border-radius:3px; }
+.wb[data-theme="corail"] .wb-cover__contact-sheet { grid-column:1/-1; grid-row:3; grid-auto-flow:column; grid-auto-columns:1fr; block-size:84px; }
+/* Brume: a modern residence, compact typographic title page and a quiet image band. */
+.wb[data-theme="brume"] .wb-cover { padding:34px 26px 26px; }
+.wb[data-theme="brume"] .wb-cover__caption { order:-1; padding:0 0 26px; }
+.wb[data-theme="brume"] .wb-cover__greeting { font-size:12px; margin-block-end:22px; }
+.wb[data-theme="brume"] .wb-cover__title { font-size:30px; font-weight:450; line-height:1.2; letter-spacing:-.04em; }
+.wb[data-theme="brume"] .wb-cover__photo { block-size:148px; border-radius:0; }
+.wb[data-theme="brume"] .wb-cover__location { margin-block-start:16px; }
+/* Minuit: a photographic opening spread with a large, left-aligned title. */
+.wb[data-theme="minuit"] .wb-cover { margin:12px 12px 0; }
+.wb[data-theme="minuit"] .wb-cover__photo { block-size:436px; border-radius:6px; }
+.wb[data-theme="minuit"] .wb-cover__caption { position:absolute; inset-inline:24px; inset-block-end:32px; padding:0; }
+.wb[data-theme="minuit"] .wb-cover__title { font-size:43px; color:#E9EEF6; font-weight:550; letter-spacing:-.045em; line-height:1.06; }
+.wb[data-theme="minuit"] .wb-cover__greeting { color:#D4E6F6; font-size:12px; text-transform:uppercase; letter-spacing:.12em; }
+.wb[data-theme="minuit"] .wb-cover__location,.wb[data-theme="minuit"] .wb-cover__dates { color:#E9EEF6; }
+.wb[data-theme="minuit"] .wb-home__content { padding-block-start:26px; }
+.wb .wb-cover[data-photo="false"] .wb-cover__title,.wb .wb-cover[data-photo="false"] .wb-cover__location,.wb .wb-cover[data-photo="false"] .wb-cover__dates { color:var(--ink); }
+.wb[data-theme="azur"] .wb-cover[data-photo="false"] .wb-cover__caption :is(h1,p) { color:var(--on-terra); }
+.wb[data-theme]:not([data-theme="minuit"]) .wb-cover:has(.wb-cover__toolbar) { padding-block-start:64px; }
+.wb[data-theme="noir"] .wb-detail-header { border-block-end-color:var(--terra-soft); }
+.wb[data-theme="azur"] .wb-detail-header { background:var(--terra-deep); color:var(--on-terra); }
+.wb[data-theme="corail"] .wb-detail-header h2 { font-weight:750; letter-spacing:-.04em; }
+.wb[data-theme="brume"] .wb-detail-header h2 { font-weight:450; letter-spacing:-.03em; }
+.wb[dir="rtl"] .wb-label,.wb[dir="rtl"] .wb-cover__greeting { letter-spacing:normal; }
+.wb[dir="rtl"] .wb-nav-entry > svg:last-child { transform:rotate(180deg); }
+/* Journeys change the first actions, navigation density and the ordering of real information. */
+.wb .wb-journey {  border:1px solid var(--line); border-radius:var(--book-card-radius); background:var(--surface); padding:20px; text-align:start; color:var(--ink); }
+.wb .wb-journey h2 { font:600 24px/1.15 var(--serif); margin:0; text-wrap:balance; }
+.wb .wb-journey button { display:flex; align-items:center; justify-content:space-between; gap:8px; padding:12px 0 0; border:0; background:transparent; color:var(--terra-deep); cursor:pointer; font-weight:650; font-size:14px; }
+.wb .wb-journey--city { inline-size:100%; cursor:pointer; background:var(--terra-bg); display:flex; flex-direction:column; gap:14px; }
+.wb .wb-journey__city { display:flex; align-items:center; gap:10px; inline-size:100%; }
+.wb .wb-journey__city strong { font:600 28px var(--serif); flex:1; }
+.wb .wb-journey--city > span:last-child { font-size:13px; line-height:1.6; }
+.wb .wb-journey--longue ol { list-style:none; margin:18px 0 0; padding:0; }
+.wb .wb-journey--longue li { display:flex; align-items:center; gap:12px; padding-block:12px; font-size:14px; border-block-end:1px solid var(--line); }
+.wb .wb-journey--conciergerie { text-align:center; padding:24px 18px; background:var(--raised); }
+.wb .wb-journey--conciergerie > svg { margin:0 auto 12px; color:var(--terra-deep); }
+.wb .wb-journey--conciergerie p { margin:12px 0; font-size:14px; line-height:1.6; color:var(--ink-soft); }
+.wb .wb-journey--conciergerie button { background:var(--terra); color:var(--on-terra); padding:12px 16px; border-radius:var(--book-button-radius); margin:auto; justify-content:center; }
+@media(prefers-reduced-motion:reduce) { .wb-cover *,.wb-journey * { animation:none !important; transition:none !important; } }

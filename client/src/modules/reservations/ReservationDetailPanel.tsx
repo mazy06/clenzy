@@ -1,19 +1,22 @@
 import React from 'react';
-import { Link } from 'react-router-dom';
-import { Mail, Phone, SquarePen, UserRound, CircleX } from '../../icons/glyphs';
+import PropertyPresentation from '../../components/PropertyPresentation';
+import { SquarePen, UserRound, Users, Baby, CircleX, CalendarDays, StickyNote, LogIn, LogOut, Hash } from '../../icons/glyphs';
 import { Button } from '../../components/ui';
-import GuestAvatar from '../../components/GuestAvatar';
-import PropertyThumb from '../../components/PropertyThumb';
+import ContactPresentation from '../../components/ContactPresentation';
 import { Money } from '../../components/Money';
 import IllustratedHeading from '../../components/IllustratedHeading';
-import { RESERVATION_ART, reservationStatusArt } from '../../components/reservations/reservationArtwork';
+import { RESERVATION_ART } from '../../components/reservations/reservationArtwork';
 import { useTranslation } from '../../hooks/useTranslation';
 import type { PropertyListItem } from '../../hooks/usePropertiesList';
 import { guestPhotoSrc } from '../../services/api/guestsApi';
 import type { Reservation } from '../../services/api/reservationsApi';
 import { ReservationSourceBadge, ReservationStatusChip } from './ReservationStatusChip';
 import ReservationPaymentSection from './ReservationPaymentSection';
+import BaitlyReservationDepositSection from './BaitlyReservationDepositSection';
+import BaitlyReservationPaidServices from './BaitlyReservationPaidServices';
 import { formatStayDay, nightsBetween } from './reservationFormat';
+import '../service-requests/baitlyRequestDetail.css';
+import './baitlyReservationDetail.css';
 
 interface ReservationDetailPanelProps {
   reservation: Reservation;
@@ -31,7 +34,7 @@ function StayBand({ reservation: r }: { reservation: Reservation }) {
   return (
     <div className="rsv-stay">
       <div className="rsv-stay__point">
-        <img src={RESERVATION_ART.arrival} alt="" width={40} height={40} />
+        <LogIn className="size-4 shrink-0" aria-hidden />
         <div>
           <span className="rsv-stay__label">{t('reservations.fields.checkIn')}</span>
           <strong>{formatStayDay(r.checkIn)}</strong>
@@ -42,7 +45,7 @@ function StayBand({ reservation: r }: { reservation: Reservation }) {
         <span>{nights} {t(nights > 1 ? 'reservations.dialog.nights' : 'reservations.dialog.night')}</span>
       </div>
       <div className="rsv-stay__point">
-        <img src={RESERVATION_ART.departure} alt="" width={40} height={40} />
+        <LogOut className="size-4 shrink-0" aria-hidden />
         <div>
           <span className="rsv-stay__label">{t('reservations.fields.checkOut')}</span>
           <strong>{formatStayDay(r.checkOut)}</strong>
@@ -53,12 +56,12 @@ function StayBand({ reservation: r }: { reservation: Reservation }) {
   );
 }
 
-function Facts({ items }: { items: { label: string; value: React.ReactNode }[] }) {
+function Facts({ items }: { items: { label: string; value: React.ReactNode; icon?: React.ReactNode }[] }) {
   return (
     <dl className="rsv-facts">
       {items.map((item) => (
         <div key={item.label}>
-          <dt>{item.label}</dt>
+          <dt>{item.icon}{item.label}</dt>
           <dd>{item.value ?? '—'}</dd>
         </div>
       ))}
@@ -70,23 +73,18 @@ export default function ReservationDetailPanel({ reservation: r, property, headi
   const { t } = useTranslation();
   const nights = nightsBetween(r.checkIn, r.checkOut);
   const cancellable = r.status !== 'cancelled' && r.status !== 'checked_out';
-  const address = property ? [property.address, [property.postalCode, property.city].filter(Boolean).join(' ')].filter(Boolean).join(', ') : '';
+  const address = property ? [property.address, [property.postalCode, property.city].filter(Boolean).join(' '), property.country].filter(Boolean).join(', ') : '';
   const hasBreakdown = r.adultsCount != null || r.childrenCount != null;
 
   return (
-    <article className="rsv-detail">
-      <header className="rsv-detail__header">
-        <img src={reservationStatusArt(r.status)} alt="" width={56} height={56} />
+    <article className="rsv-detail baitly-request-detail baitly-reservation-detail">
+      <header className="rsv-detail__header baitly-request-tracking">
         <div className="rsv-detail__identity">
+          <p className="baitly-request-eyebrow">{t('reservationsWorkspace.listTitle')} · #{r.id}</p>
           <h2 ref={headingRef} tabIndex={-1} dir="auto">{r.guestName}</h2>
-          <div className="rsv-detail__tags">
-            <ReservationStatusChip status={r.status} />
-            <ReservationSourceBadge source={r.source} />
-            {r.confirmationCode && <span className="rsv-detail__code" dir="ltr">{r.confirmationCode}</span>}
-          </div>
         </div>
         <div className="rsv-detail__actions">
-          <Button variant="outline" size="sm" onClick={onEdit}>
+          <Button variant="default" size="sm" onClick={onEdit}>
             <SquarePen size={15} />
             {t('reservationsWorkspace.edit')}
           </Button>
@@ -97,90 +95,79 @@ export default function ReservationDetailPanel({ reservation: r, property, headi
             </Button>
           )}
         </div>
+        <div className="rsv-detail__tags">
+          <ReservationStatusChip status={r.status} />
+          <ReservationSourceBadge source={r.source} />
+          {r.confirmationCode && <span className="rsv-detail__reference" title={t('reservations.fields.confirmationCode')}>
+            <Hash aria-hidden />
+            <span className="sr-only">{t('reservations.fields.confirmationCode')} : </span>
+            <span className="rsv-detail__code" dir="ltr">{r.confirmationCode}</span>
+          </span>}
+        </div>
       </header>
+      <div className="baitly-request-layout">
+        <div className="baitly-request-main rsv-detail-main">
+      <PropertyPresentation name={r.propertyName} address={address}
+        photoUrl={property?.imageUrl ?? property?.photoUrls?.[0]}
+        propertyHref={r.propertyId ? `/properties/${r.propertyId}` : undefined}
+        squareMeters={property?.squareMeters} bedrooms={property?.bedrooms}
+        bathrooms={property?.bathrooms} guests={property?.guests} />
 
-      <StayBand reservation={r} />
-
-      <div className="rsv-amount">
-        <span className="rsv-amount__label">{t('reservationsWorkspace.amount')}</span>
-        <strong className="rsv-amount__value">
-          {r.totalPrice > 0 ? <Money value={r.totalPrice} from="EUR" symbolSize={22} /> : t('planning.panel.fin.notDisclosed')}
-        </strong>
-        {r.totalPrice > 0 && nights > 0 && (
-          <span className="rsv-amount__average">
-            <Money value={r.totalPrice / nights} from="EUR" /> {t('reservationsWorkspace.perNight')}
-          </span>
-        )}
-      </div>
-
-      <section className="rsv-section">
+      <section className="rsv-section rsv-guest-section">
         <IllustratedHeading
           art={RESERVATION_ART.guest}
+          icon={<UserRound className="size-4 shrink-0" aria-hidden />}
           title={t('reservationsWorkspace.guest.title')}
-          hint={t('reservationsWorkspace.guest.hint')}
           action={onOpenGuest && (
-            <Button variant="ghost" size="sm" onClick={onOpenGuest}>
+            <Button variant="outline" size="sm" className="rsv-guest-profile" onClick={onOpenGuest}>
               <UserRound size={15} />
               {t('reservationsWorkspace.guest.profile')}
             </Button>
           )}
         />
-        <div className="rsv-contact">
-          <GuestAvatar
-            name={r.guestName}
-            photoUrl={guestPhotoSrc(r.guestAvatarUrl)}
-            size={40}
-            sx={{ background: 'var(--bui-muted)', color: 'var(--bui-muted-foreground)', fontSize: 13 }}
-          />
-          <div className="rsv-contact__lines">
-            <span className="rsv-contact__name" dir="auto">{r.guestName}</span>
-            {r.guestEmail && <a href={`mailto:${r.guestEmail}`} dir="ltr"><Mail size={13} aria-hidden="true" />{r.guestEmail}</a>}
-            {r.guestPhone && <a href={`tel:${r.guestPhone}`} dir="ltr"><Phone size={13} aria-hidden="true" />{r.guestPhone}</a>}
-            {!r.guestEmail && !r.guestPhone && <span className="rsv-contact__missing">{t('reservationsWorkspace.guest.noContact')}</span>}
-          </div>
-        </div>
+        <ContactPresentation name={r.guestName} photoUrl={guestPhotoSrc(r.guestAvatarUrl)}
+          email={r.guestEmail} phone={r.guestPhone}>
         <Facts items={hasBreakdown
           ? [
-              { label: t('reservationsWorkspace.guest.adults'), value: r.adultsCount ?? 0 },
-              { label: t('reservationsWorkspace.guest.children'), value: r.childrenCount ?? 0 },
+              { label: t('reservationsWorkspace.guest.adults'), value: r.adultsCount ?? 0, icon: <Users aria-hidden /> },
+              { label: t('reservationsWorkspace.guest.children'), value: r.childrenCount ?? 0, icon: <Baby aria-hidden /> },
             ]
-          : [{ label: t('reservationsWorkspace.guest.travellers'), value: r.guestCount }]}
+          : [{ label: t('reservationsWorkspace.guest.travellers'), value: r.guestCount, icon: <Users aria-hidden /> }]}
         />
+        </ContactPresentation>
       </section>
 
-      <section className="rsv-section">
-        <IllustratedHeading
-          art={RESERVATION_ART.property}
-          title={t('reservationsWorkspace.property.title')}
-          hint={property?.city || undefined}
-          action={r.propertyId ? (
-            <Button variant="ghost" size="sm" asChild>
-              <Link to={`/properties/${r.propertyId}`}>{t('reservationsWorkspace.property.open')}</Link>
-            </Button>
-          ) : undefined}
-        />
-        <div className="rsv-property">
-          <PropertyThumb seed={String(r.propertyId ?? r.propertyName)} photo={property?.imageUrl ?? property?.photoUrls?.[0]} className="h-[84px] w-[126px] rounded-xl" />
-          <div className="rsv-property__text">
-            <span className="rsv-property__name" dir="auto">{r.propertyName}</span>
-            {address && <span className="rsv-property__address" dir="auto">{address}</span>}
-            {property && (
-              <span className="rsv-property__capacity">
-                {t('reservationsWorkspace.property.capacity', { guests: property.guests, bedrooms: property.bedrooms })}
-              </span>
-            )}
-          </div>
-        </div>
-      </section>
-
-      <ReservationPaymentSection reservation={r} />
+      <BaitlyReservationPaidServices reservationId={r.id} />
 
       {r.notes && (
-        <section className="rsv-section">
-          <IllustratedHeading art={RESERVATION_ART.notes} title={t('reservationsWorkspace.notes.title')} hint={t('reservationsWorkspace.notes.hint')} />
+        <section className="rsv-section rsv-notes-section">
+          <IllustratedHeading art={RESERVATION_ART.notes} icon={<StickyNote className="size-4 shrink-0" aria-hidden />} title={t('reservationsWorkspace.notes.title')} />
           <p className="rsv-notes" dir="auto">{r.notes}</p>
         </section>
       )}
+
+        </div>
+        <aside className="baitly-request-sidebar rsv-detail-sidebar">
+          <section className="baitly-request-schedule rsv-dates-section">
+            <h3 className="m-0 flex items-center gap-2 text-sm font-semibold"><CalendarDays className="size-4" aria-hidden />{t('reservations.dialog.stayDates')}</h3>
+            <StayBand reservation={r} />
+          </section>
+          <section className="rsv-section rsv-pricing-section">
+            <h3>{t('reservations.dialog.pricingSection')}</h3>
+            <div className="rsv-amount">
+              <span className="rsv-amount__label">{t('reservationsWorkspace.amount')}</span>
+              <strong className="rsv-amount__value">{r.totalPrice > 0 ? <Money value={r.totalPrice} from="EUR" symbolSize={22} /> : t('planning.panel.fin.notDisclosed')}</strong>
+              {r.totalPrice > 0 && nights > 0 && <span className="rsv-amount__average"><Money value={r.totalPrice / nights} from="EUR" /> {t('reservationsWorkspace.perNight')}</span>}
+            </div>
+            {(r.cleaningFee != null || r.touristTaxAmount != null) && <Facts items={[
+              ...(r.cleaningFee != null ? [{ label: t('reservations.dialog.cleaningLine'), value: <Money value={r.cleaningFee} from="EUR" /> }] : []),
+              ...(r.touristTaxAmount != null ? [{ label: t('reservations.dialog.touristTaxLine'), value: <Money value={r.touristTaxAmount} from="EUR" /> }] : []),
+            ]} />}
+          </section>
+          <ReservationPaymentSection reservation={r} />
+          <BaitlyReservationDepositSection reservationId={r.id} showMissing />
+        </aside>
+      </div>
     </article>
   );
 }

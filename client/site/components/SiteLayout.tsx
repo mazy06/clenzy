@@ -322,6 +322,7 @@ function SiteFooter() {
             {/* Le choix de langue vit ici depuis qu'il a quitte l'en-tete :
                 dans la colonne d'identite, il se trouve a toute largeur — il
                 etait masque sous 640 px la-haut. */}
+            <Link className="mt-4 block text-sm text-muted-foreground underline" to={`/conciergeries?lang=${language}`}>{language === 'fr' ? 'Trouver une conciergerie' : language === 'ar' ? 'ابحث عن شركة لإدارة عقارك' : 'Find a property manager'}</Link>
             <PublicLanguagePicker
               value={language}
               onChange={changeLanguage}

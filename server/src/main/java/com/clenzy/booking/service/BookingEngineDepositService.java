@@ -18,8 +18,6 @@ import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
-import java.time.LocalDate;
-import java.util.List;
 
 /**
  * Orchestration de la caution côté booking engine en contexte SYSTÈME (webhook Stripe, hors tenant)
@@ -42,9 +40,6 @@ import java.util.List;
 public class BookingEngineDepositService {
 
     private static final Logger log = LoggerFactory.getLogger(BookingEngineDepositService.class);
-
-    /** Délai après le check-out avant libération automatique d'un hold non capturé (fin de la fenêtre de réclamation). */
-    public static final int RELEASE_DAYS_AFTER_CHECKOUT = SecurityDepositHoldPolicy.CLAIM_DAYS_AFTER_CHECKOUT;
 
     private final SecurityDepositRepository depositRepository;
     private final ReservationRepository reservationRepository;
@@ -78,28 +73,42 @@ public class BookingEngineDepositService {
      * Suspendue, chaque écriture ouvre sa propre transaction courte et Stripe reste hors transaction.</p>
      */
     @Transactional(propagation = Propagation.NOT_SUPPORTED)
+    public void recoverMissingCaution(Long reservationId, Long orgId) {
+        Reservation reservation = reservationRepository.findByIdWithGuestAndProperty(reservationId)
+                .filter(r -> orgId.equals(r.getOrganizationId())).orElseThrow();
+        try {
+            var session = stripeGateway.retrieveSession(reservation.getStripeSessionId());
+            if (!"paid".equals(session.getPaymentStatus()))
+                throw new IllegalStateException("Paiement Stripe non confirmé pour la caution à reprendre.");
+            self.getObject().setupCautionAfterPayment(reservationId, orgId, reservation.getSecurityDepositAmount(),
+                    reservation.getCurrency(), session.getCustomer(), session.getPaymentIntent());
+        } catch (StripeException failure) {
+            throw new IllegalStateException("La carte de caution reste à rapprocher avec Stripe.", failure);
+        }
+    }
+
+    @Transactional(propagation = Propagation.NOT_SUPPORTED)
     public void setupCautionAfterPayment(Long reservationId, Long orgId, BigDecimal amount,
                                          String currency, String customerId, String stayPaymentIntentId) {
         if (amount == null || amount.compareTo(BigDecimal.ZERO) <= 0) {
             return;
         }
         if (customerId == null || customerId.isBlank() || stayPaymentIntentId == null || stayPaymentIntentId.isBlank()) {
-            log.warn("Caution résa {} non posée : carte non enregistrée (customer/paymentIntent absent)", reservationId);
-            return;
+            throw new IllegalStateException("Caution non posée : carte non enregistrée (customer/paymentIntent absent).");
         }
 
         // 1. Résout le payment_method (carte enregistrée) depuis le PaymentIntent du séjour.
         final String paymentMethodId;
         try {
             PaymentIntent stayPi = stripeGateway.retrievePaymentIntent(stayPaymentIntentId);
+            if (!customerId.equals(stayPi.getCustomer()) || !"succeeded".equals(stayPi.getStatus()))
+                throw new IllegalStateException("Le paiement confirmé et la carte enregistrée doivent appartenir au même voyageur.");
             paymentMethodId = stayPi.getPaymentMethod();
         } catch (StripeException e) {
-            log.error("Caution résa {} : échec lecture PaymentIntent {} : {}", reservationId, stayPaymentIntentId, e.getMessage());
-            return;
+            throw new IllegalStateException("Lecture du paiement de séjour impossible : caution à reprendre.", e);
         }
         if (paymentMethodId == null || paymentMethodId.isBlank()) {
-            log.warn("Caution résa {} : aucun payment_method enregistré sur le séjour", reservationId);
-            return;
+            throw new IllegalStateException("Aucune carte enregistrée sur le séjour : caution à reprendre.");
         }
 
         // 2. Crée (idempotent) le dépôt PENDING + enregistre la carte sur la résa (tx via proxy).
@@ -122,34 +131,17 @@ public class BookingEngineDepositService {
                 ? "prévue le jour de l'arrivée (" + reservation.getCheckIn() + ")" : outcome);
     }
 
-    /**
-     * Libère (annule le hold Stripe puis RELEASED) une caution HELD — utilisé par le scheduler.
-     * Renvoie {@code true} si la libération a réussi, {@code false} si l'appel Stripe a échoué
-     * (le scheduler s'appuie sur ce retour pour ne remonter dans la constellation qu'en cas de succès).
-     */
-    public boolean releaseHold(SecurityDeposit deposit) {
-        try {
-            if (deposit.getExternalRef() != null && !deposit.getExternalRef().isBlank()) {
-                holdService.cancelAuthorization(deposit.getExternalRef(), "deposit-release-" + deposit.getId());
-            }
-            self.getObject().release(deposit.getOrganizationId(), deposit.getId());
-            log.info("Caution {} libérée automatiquement (séjour terminé)", deposit.getId());
-            return true;
-        } catch (StripeException e) {
-            log.error("Caution {} : libération auto échouée : {}", deposit.getId(), e.getMessage());
-            return false;
-        }
-    }
-
-    @Transactional(readOnly = true)
-    public List<SecurityDeposit> findHoldsToRelease(LocalDate checkoutBefore) {
-        return depositRepository.findHeldWithCheckoutBefore(checkoutBefore);
-    }
-
     /** Crée le dépôt PENDING + enregistre la carte sur la résa. Renvoie le dépôt, ou null si déjà présent. */
     @Transactional
     public SecurityDeposit createPendingDeposit(Long orgId, Long reservationId, BigDecimal amount,
                                      String currency, String customerId, String paymentMethodId) {
+        Reservation reservation = reservationRepository.lockDepositReservation(reservationId, orgId)
+                .orElseThrow(() -> new IllegalArgumentException("Séjour introuvable dans cette organisation."));
+        if (reservation.getSecurityDepositAmount() != null && amount.compareTo(reservation.getSecurityDepositAmount()) != 0)
+            throw new IllegalStateException("Le montant de caution doit correspondre au montant annoncé à la réservation.");
+        reservation.setStripeCustomerId(customerId);
+        reservation.setStripePaymentMethodId(paymentMethodId);
+        reservationRepository.save(reservation);
         if (depositRepository.findByOrganizationIdAndReservationId(orgId, reservationId).isPresent()) {
             return null;
         }
@@ -161,18 +153,15 @@ public class BookingEngineDepositService {
         deposit.setStatus(SecurityDepositStatus.PENDING);
         deposit = depositRepository.save(deposit);
 
-        Reservation reservation = reservationRepository.findById(reservationId).orElse(null);
-        if (reservation != null) {
-            reservation.setStripeCustomerId(customerId);
-            reservation.setStripePaymentMethodId(paymentMethodId);
-            reservationRepository.save(reservation);
-        }
         return deposit;
     }
 
-    @Transactional
-    public void release(Long orgId, Long depositId) {
-        depositRepository.transitionStatus(depositId, orgId,
-            SecurityDepositStatus.HELD, SecurityDepositStatus.RELEASED, null);
+    public record PublicSummary(BigDecimal amount, String status) {}
+
+    @Transactional(readOnly = true)
+    public java.util.Optional<PublicSummary> publicSummary(Long orgId, Long reservationId) {
+        return depositRepository.findByOrganizationIdAndReservationId(orgId, reservationId)
+                .map(deposit -> new PublicSummary(deposit.getAmount(), deposit.getStatus().name()));
     }
+
 }

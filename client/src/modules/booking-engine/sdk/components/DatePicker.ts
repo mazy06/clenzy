@@ -29,6 +29,7 @@ export function createDatePicker(state: StateManager, i18n: I18n, opts: DateFiel
   // Ferme aussi les autres popovers (un seul ouvert à la fois).
   const toggle = (): void => {
     const s = state.get();
+    if (!s.calendarOpen && s.checkIn && s.calendarBaseMonth !== s.checkIn.slice(0, 7)) state.set({ calendarBaseMonth: s.checkIn.slice(0, 7) });
     state.set({ calendarOpen: !s.calendarOpen, guestsOpen: false, multiselectOpen: null }, 'calendarToggle');
   };
   checkIn.button.addEventListener('click', toggle);
@@ -38,6 +39,10 @@ export function createDatePicker(state: StateManager, i18n: I18n, opts: DateFiel
 
   // State sync — rendu initial INCLUS (hauteur stable dès le montage).
   const render = (s: WidgetState): void => {
+    checkIn.button.setAttribute('aria-expanded', String(s.calendarOpen));
+    checkOut.button.setAttribute('aria-expanded', String(s.calendarOpen));
+    checkIn.button.setAttribute('aria-haspopup', 'dialog');
+    checkOut.button.setAttribute('aria-haspopup', 'dialog');
     updateDateBox(checkIn.button, s.checkIn, placeholder);
     updateDateBox(checkOut.button, s.checkOut, placeholder);
     checkIn.button.classList.toggle('cb-active', s.calendarOpen && !s.checkIn);

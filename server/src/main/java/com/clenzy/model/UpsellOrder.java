@@ -37,6 +37,19 @@ public class UpsellOrder {
     @Column(name = "offer_id")
     private Long offerId;
 
+    /** Prestation figée à l'achat ; aucune requalification silencieuse des ventes anciennes. */
+    @Column(name = "fulfillment_service_code", length = 60)
+    private String fulfillmentServiceCode;
+
+    /** Une vente alimente une seule demande PMS, dont le workflow reste autoritatif. */
+    @Column(name = "service_request_id", unique = true)
+    private Long serviceRequestId;
+
+    public String getFulfillmentServiceCode() { return fulfillmentServiceCode; }
+    public void setFulfillmentServiceCode(String value) { fulfillmentServiceCode = value; }
+    public Long getServiceRequestId() { return serviceRequestId; }
+    public void setServiceRequestId(Long value) { serviceRequestId = value; }
+
     @Column(nullable = false, length = 200)
     private String title;
 

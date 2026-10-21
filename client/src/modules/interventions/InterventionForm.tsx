@@ -26,10 +26,13 @@ import { trackEvent } from '../../providers/PostHogProvider';
 import { interventionsKeys } from './useInterventionsList';
 import PageHeader from '../../components/PageHeader';
 import './interventionForm.css';
+import '../../theme/baitly-form-surfaces.css';
 import InterventionFormMainInfo from './InterventionFormMainInfo';
 import InterventionFormPropertyRequestor from './InterventionFormPropertyRequestor';
 import InterventionFormAssignment from './InterventionFormAssignment';
 import InterventionFormCostsNotes from './InterventionFormCostsNotes';
+import BaitlyFormSteps from '../../components/forms/BaitlyFormSteps';
+import { useMediaQuery } from '../../hooks/use-media-query';
 
 // Exported for backward compatibility
 export interface InterventionFormData {
@@ -104,6 +107,8 @@ const InterventionForm: React.FC<InterventionFormProps> = ({ onClose, onSuccess,
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const serviceReference = useQuery(serviceReferenceQuery);
+  const mobile = useMediaQuery('(max-width: 639px)');
+  const [mobileStep, setMobileStep] = useState(1);
 
   // Detect edit mode
   const isEditMode = mode === 'edit' || !!interventionId;
@@ -196,6 +201,9 @@ const InterventionForm: React.FC<InterventionFormProps> = ({ onClose, onSuccess,
   const properties = useMemo(() => propertiesQuery.data ?? [], [propertiesQuery.data]);
   const users = useMemo(() => usersQuery.data ?? [], [usersQuery.data]);
   const teams = teamsQuery.data ?? [];
+  const currentRequestor = isEditMode && interventionQuery.data?.requestorId
+    ? { id: interventionQuery.data.requestorId, name: interventionQuery.data.requestorName }
+    : undefined;
   const isLoading = propertiesQuery.isLoading || usersQuery.isLoading || teamsQuery.isLoading || (isEditMode && interventionQuery.isLoading);
 
   // Populate form with intervention data when loaded (edit mode)
@@ -253,8 +261,9 @@ const InterventionForm: React.FC<InterventionFormProps> = ({ onClose, onSuccess,
     }
   }, [watchedPropertyId, properties, isEditMode]);
 
-  // Definir l'utilisateur par defaut selon le role
+  // Préremplir une création sans remplacer le demandeur d'une intervention existante.
   useEffect(() => {
+    if (isEditMode) return;
     if (isHost() && user?.id) {
       // Pour un HOST, essayer de trouver son ID dans la base
       const hostUser = users.find(u => u.email === user.email);
@@ -268,11 +277,13 @@ const InterventionForm: React.FC<InterventionFormProps> = ({ onClose, onSuccess,
         setValue('requestorId', currentUser.id);
       }
     }
-  }, [users, user, isHost, isAdmin, isManager, setValue]);
+  }, [isEditMode, users, user, isHost, isAdmin, isManager, setValue]);
 
   // ─── Mutation: create/update intervention ───────────────────────────────────
 
+  const submittingRef = useRef(false);
   const submitMutation = useMutation({
+    onSettled: () => { submittingRef.current = false; },
     onMutate: () => setError(''),
     mutationFn: async (formData: InterventionFormValues) => {
       const payload = {
@@ -342,6 +353,7 @@ const InterventionForm: React.FC<InterventionFormProps> = ({ onClose, onSuccess,
   }
 
   const onSubmit = (formData: InterventionFormValues) => {
+    if (submittingRef.current) return;
     if (!isEditMode && ((!formData.propertyId && serviceReference.data?.find(item => item.code === formData.serviceItemCode)?.propertyRequired !== false) || !formData.requestorId)) {
       setError(t('interventions.errors.selectPropertyRequestor'));
       return;
@@ -349,6 +361,7 @@ const InterventionForm: React.FC<InterventionFormProps> = ({ onClose, onSuccess,
 
     if (setLoading) setLoading(true);
     setError(null);
+    submittingRef.current = true;
     submitMutation.mutate(formData, {
       onSettled: () => {
         if (setLoading) setLoading(false);
@@ -368,14 +381,15 @@ const InterventionForm: React.FC<InterventionFormProps> = ({ onClose, onSuccess,
   }
 
   return (
-    <div className="intervention-workspace">
+    <div className="baitly-form-surface intervention-workspace">
       {/* Header standalone (page /interventions/new). En mode edit, le
           PageHeader est fourni par le parent InterventionEdit. */}
       {!isEditMode && (
         <PageHeader
           title={t('interventions.createTitle')}
           subtitle={t('interventions.subtitle')}
-          backPath="/interventions"
+          onBack={() => navigate('/interventions?tab=interventions')}
+          backLabel={t('common.backToList')}
         />
       )}
 
@@ -386,11 +400,34 @@ const InterventionForm: React.FC<InterventionFormProps> = ({ onClose, onSuccess,
         </Alert>
       )}
 
-      <form onSubmit={rhfHandleSubmit(onSubmit)} id="intervention-form">
+      {mobile && <BaitlyFormSteps steps={[t('interventions.fields.property'), t('requestComposer.services'), t('requestComposer.schedule'), t('interventions.sections.costs')]}
+        current={mobileStep} onStepClick={setMobileStep} />}
+      <form onSubmit={event => {
+        if (mobile && mobileStep < 4) { event.preventDefault(); setMobileStep(mobileStep + 1); return; }
+        void rhfHandleSubmit(onSubmit, invalid => {
+        if (!mobile) return;
+        const field = Object.keys(invalid)[0];
+        setMobileStep(['propertyId', 'requestorId'].includes(field) ? 1
+          : ['title', 'description', 'serviceItemCode', 'type'].includes(field) ? 2
+            : ['estimatedCost', 'notes', 'photos'].includes(field) ? 4 : 3);
+        })(event);
+      }} id="intervention-form" data-mobile-flow={mobile || undefined}>
         <fieldset disabled={saving || loading} className="intervention-columns">
+          {mobile ? <section className="intervention-panel" key={mobileStep}>
+            {mobileStep === 1 && <InterventionFormPropertyRequestor control={control} errors={errors} properties={properties} users={users} currentRequestor={currentRequestor} isAdmin={isAdmin} isManager={isManager} />}
+            {mobileStep === 2 && <InterventionFormMainInfo section="details" control={control} errors={errors}
+              scheduledDatePart={scheduledDatePart} scheduledTimePart={scheduledTimePart} setScheduledDatePart={setScheduledDatePart}
+              setScheduledTimePart={setScheduledTimePart} properties={properties} watchedPropertyId={watchedPropertyId} />}
+            {mobileStep === 3 && <><InterventionFormMainInfo section="schedule" control={control} errors={errors}
+              scheduledDatePart={scheduledDatePart} scheduledTimePart={scheduledTimePart} setScheduledDatePart={setScheduledDatePart}
+              setScheduledTimePart={setScheduledTimePart} properties={properties} watchedPropertyId={watchedPropertyId} />
+              <InterventionFormAssignment control={control} errors={errors} setValue={setValue} users={users} teams={teams} watchedAssignedToType={watchedAssignedToType} /></>}
+            {mobileStep === 4 && <><InterventionFormCostsNotes section="cost" control={control} errors={errors} isHost={isHost} />
+              <InterventionFormCostsNotes section="notes" control={control} errors={errors} isHost={isHost} /></>}
+          </section> : <>
           <section className="intervention-panel intervention-details">
             <InterventionFormPropertyRequestor control={control} errors={errors} properties={properties}
-              users={users} isAdmin={isAdmin} isManager={isManager} />
+              users={users} currentRequestor={currentRequestor} isAdmin={isAdmin} isManager={isManager} />
             <InterventionFormMainInfo section="details" control={control} errors={errors}
               scheduledDatePart={scheduledDatePart} scheduledTimePart={scheduledTimePart}
               setScheduledDatePart={setScheduledDatePart} setScheduledTimePart={setScheduledTimePart}
@@ -420,6 +457,7 @@ const InterventionForm: React.FC<InterventionFormProps> = ({ onClose, onSuccess,
               </Button>
             </div>
           </section>
+          </>}
         </fieldset>
 
         {/* Bouton de soumission cache pour le PageHeader */}
@@ -431,6 +469,13 @@ const InterventionForm: React.FC<InterventionFormProps> = ({ onClose, onSuccess,
           {t('common.submit')}
         </Button>
       </form>
+      {mobile && <div className="baitly-mobile-form-footer">
+        <Button type="button" variant="ghost" disabled={saving || loading} onClick={() => mobileStep > 1 ? setMobileStep(mobileStep - 1) : onClose ? onClose() : navigate(isEditMode ? '/interventions/' + interventionId : '/interventions')}>
+          {t(mobileStep > 1 ? 'reservations.dialog.previous' : 'common.cancel')}
+        </Button>
+        {mobileStep < 4 ? <Button key="next" type="button" onClick={event => { event.preventDefault(); setMobileStep(mobileStep + 1); }}>{t('reservations.dialog.next')}</Button> :
+          <Button key="submit" type="submit" form="intervention-form" disabled={saving || loading}>{saving ? t('common.loading') : t(isEditMode ? 'common.save' : 'interventions.createTitle')}</Button>}
+      </div>}
     </div>
   );
 };

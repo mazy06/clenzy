@@ -34,6 +34,7 @@ import {
   SelectTrigger,
   SelectValue,
   Separator,
+  Skeleton,
   Switch,
   Textarea,
   Tooltip,
@@ -65,21 +66,15 @@ import {
   Unlink,
   Lock,
   Tag,
-  ArrowUp,
   ArrowRight,
-  Zap,
-  LayoutGrid,
   Download,
   List as ListIcon,
   Home as HomeIcon,
   ChevronDown,
   MoreHorizontal,
 } from '../../icons/glyphs';
-// Feuille de style « studio accueil » partagée (scopée .be-home ; l'accent du
-// module y est défini : bleu nuit, la teinte de la barre latérale relevée)
-// avec l'onglet Booking Engine — hero, champ IA, éventail, thèmes, cartes.
+// Styles partagés pour la liste existante ; le studio de création Baitly possède sa feuille scopée.
 import '../booking-engine/studio/studioHome.css';
-import { StructureArt } from './structureArt';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer } from 'recharts';
 import EmptyState from '../../components/EmptyState';
 import { useScreenSearch } from '../../components/ScreenChrome';
@@ -116,17 +111,15 @@ import { nominatimApi } from '../../services/nominatimApi';
 import { propertyPhotosApi } from '../../services/api/propertyPhotosApi';
 import { upsellApi, type PublicUpsell } from '../../services/api/upsellApi';
 import WelcomeBookView, { type Lang, type WelcomeBookModel } from './WelcomeBookView';
-import GuidePhotoCarousel from './GuidePhotoCarousel';
-import { WELCOME_BOOK_THEMES, themeAccent } from './welcomeBookThemes';
+import { BaitlyGuideCard } from './BaitlyGuideCard';
+import NavCountBadge from '../../components/NavCountBadge';
+import { WELCOME_BOOK_THEMES, type WelcomeBookThemeId } from './welcomeBookThemes';
+import BaitlyGuideCreationStudio from './BaitlyGuideCreationStudio';
+import { BaitlyGuidePreview } from './BaitlyGuidePreview';
+import { BAITLY_GUIDE_STRUCTURES, buildBaitlyPropertyGuideDraft, type BaitlyGuideStructureId } from './baitlyGuideStructures';
 import { GUIDE_LABELS } from './guideLabels';
 import { usePageHeaderActions } from '../../components/PageHeaderActionsContext';
 import { SectionHeading, EmptyHint, ToggleRow } from './formPrimitives';
-import {
-  templateWelcomeMessage,
-  buildTemplateSections,
-  buildTemplatePois,
-  buildTemplateActivities,
-} from './guideTemplate';
 import { guideIcon, GUIDE_ICON_OPTIONS } from './guideIcons';
 
 type View = 'list' | 'form';
@@ -215,29 +208,13 @@ function formatReservationRange(r: GuideReservationRef, locale: string): string 
   return ci || co || '';
 }
 
-// Rotation (deg) / lift (px) d'une carte d'éventail — fan symétrique pour un nombre VARIABLE de cartes.
-const fanTip = (i: number, n: number): number => (n <= 1 ? 0 : +(((n - 1) / 2 - i) * 3).toFixed(2));
-const fanLift = (i: number, n: number): number => (n <= 1 ? 0 : +(Math.abs(i - (n - 1) / 2) * 6).toFixed(1));
-
-// Structures de contenu (éventail) — préréglages de sections du livret.
-// Libelles en locales : `welcomeGuide.structures.<id>.{name,desc,badge}`.
-const LIVRET_STRUCTURES: { id: string; icon: typeof Zap }[] = [
-  { id: 'essentiel', icon: Zap },
-  { id: 'complet', icon: LayoutGrid },
-  { id: 'cityguide', icon: MapPin },
-  { id: 'longue', icon: CalendarDays },
-  { id: 'conciergerie', icon: ConciergeBell },
-];
-
-const structureName = (id: string) => `welcomeGuide.structures.${id}.name`;
-
 const WelcomeGuideAdmin: React.FC = () => {
   const { t, currentLanguage } = useTranslation();
   const { isPlatformStaff, user } = useAuth();
   // Création réservée au staff plateforme (cf. POST /welcome-guides côté backend).
   // L'édition d'un livret existant reste ouverte à tous les rôles métier.
   const isStaff = isPlatformStaff();
-  // Initiales du propriétaire (colonne « Propriétaire » de la liste, façon Booking Engine).
+  // Initiales affichées dans les fiches des livrets.
   const ownerInitials = ((user?.firstName?.[0] ?? '') + (user?.lastName?.[0] ?? '')).toUpperCase()
     || (user?.fullName || user?.email || 'V').trim().charAt(0).toUpperCase();
   const { properties } = usePropertiesList();
@@ -287,11 +264,11 @@ const WelcomeGuideAdmin: React.FC = () => {
   // Couleur de marque : passthrough load->save, jamais affichee au render : ref.
   const brandingColorRef = useRef<string>(DEFAULT_COLOR);
   const [theme, setTheme] = useState<string>(DEFAULT_THEME);
-  // Sélection « studio » (parité Booking Engine) : structure obligatoire → thème (gated) → le bouton ↑ crée.
-  const [structureId, setStructureId] = useState<string | null>(null);
-  const [hoveredStructureId, setHoveredStructureId] = useState<string | null>(null);
-  const [selectedThemeId, setSelectedThemeId] = useState<string | null>(null);
-  const [hoveredThemeId, setHoveredThemeId] = useState<string | null>(null);
+  // Choix de création volatils ; le brouillon est ensuite enregistré par l'API du livret.
+  const [structureId, setStructureId] = useState<BaitlyGuideStructureId>('essentiel');
+  const [selectedThemeId, setSelectedThemeId] = useState<WelcomeBookThemeId>('atelier');
+  const [editingStructure, setEditingStructure] = useState<string>('complet');
+  const activePreviewPropertyId = propertyId || (view === 'list' && isStaff ? properties[0]?.id ?? '' : '');
   // Photos de couverture (carrousel) : liste d'ids de PropertyPhoto sélectionnées.
   const [heroPhotoIds, setHeroPhotoIds] = useState<number[]>([]);
   // Distingue « choix explicite de l'hôte » de « pas encore choisi » : tant que false,
@@ -314,17 +291,17 @@ const WelcomeGuideAdmin: React.FC = () => {
   const [curatedActivities, setCuratedActivities] = useState<GuideActivity[]>([]);
 
   // Photos du logement : grille du sélecteur de photo de couverture (hero).
-  const { data: propertyPhotos = [] } = useQuery({
-    queryKey: ['property-photos', propertyId],
-    queryFn: () => propertyPhotosApi.list(Number(propertyId)),
-    enabled: view === 'form' && !!propertyId,
+  const { data: propertyPhotos = [], isLoading: loadingPhotos, isError: photosError, refetch: refetchPhotos } = useQuery({
+    queryKey: ['property-photos', activePreviewPropertyId],
+    queryFn: () => propertyPhotosApi.list(Number(activePreviewPropertyId)),
+    enabled: !!activePreviewPropertyId && (view === 'form' || isStaff),
   });
 
   // Données réelles du logement (adresse, wifi, digicode, horaires) → aperçu live fidèle.
-  const { data: previewData } = useQuery({
-    queryKey: ['guide-preview-data', propertyId],
-    queryFn: () => welcomeGuideApi.propertyPreview(Number(propertyId)),
-    enabled: view === 'form' && !!propertyId,
+  const { data: previewData, isLoading: loadingPreview, isError: previewError, refetch: refetchPreview } = useQuery({
+    queryKey: ['guide-preview-data', activePreviewPropertyId],
+    queryFn: () => welcomeGuideApi.propertyPreview(Number(activePreviewPropertyId)),
+    enabled: !!activePreviewPropertyId && (view === 'form' || isStaff),
   });
 
   // ─── Réservation rattachée (affichage + gating de création) ─────────────────
@@ -392,42 +369,47 @@ const WelcomeGuideAdmin: React.FC = () => {
   const notify = (message: string, severity: NotificationSeverity = 'success') =>
     showNotification(message, severity);
 
-  const openCreate = (opts?: { theme?: string }) => {
-    // Nouveau livret pré-rempli avec un modèle riche (template Baitly) que l'hôte
-    // personnalise, complète ou supprime ensuite. Langue par défaut = fr.
-    // `opts.theme` : présélection depuis une carte de thème de l'accueil.
-    const tplLang = 'fr';
+  const openCreate = (opts?: { theme?: string; blank?: boolean }) => {
+    // Le préréglage Baitly choisi alimente les sections et options réellement enregistrées.
+    const tplLang = currentLanguage.startsWith('ar') ? 'ar' : currentLanguage.startsWith('en') ? 'en' : 'fr';
+    const draft = buildBaitlyPropertyGuideDraft(tplLang, structureId, {
+      description: properties.find((property) => property.id === activePreviewPropertyId)?.description,
+      sourceGuide: guides.find((guide) => String(guide.propertyId) === activePreviewPropertyId),
+      practical: previewData?.practical,
+    }, opts?.blank);
     setEditingId(null);
-    setPropertyId('');
-    setTitle('');
+    setPropertyId(activePreviewPropertyId);
+    setTitle(properties.find((property) => property.id === activePreviewPropertyId)?.name ?? '');
+    setEditingStructure(structureId);
     setLanguage(tplLang);
     brandingColorRef.current = DEFAULT_COLOR;
-    setTheme(opts?.theme ?? DEFAULT_THEME);
+    setTheme(opts?.theme ?? selectedThemeId);
     setHeroPhotoIds([]);
     setHeroTouched(false);
-    setWelcomeMessage(templateWelcomeMessage(tplLang));
-    setHostNames('');
-    setLogoUrl('');
+    setWelcomeMessage(draft.welcomeMessage);
+    setHostNames(draft.hostNames ?? '');
+    setLogoUrl(draft.logoUrl ?? '');
     setPublished(false);
     setChatbotEnabled(true);
-    setGuestbookEnabled(true);
-    setActivitiesEnabled(true);
-    setUpsellsEnabled(true);
+    setGuestbookEnabled(draft.guestbookEnabled);
+    setActivitiesEnabled(draft.activitiesEnabled);
+    setUpsellsEnabled(draft.upsellsEnabled);
     setUpsellOfferIds(null);
-    setSections(buildTemplateSections(tplLang));
-    setPois(buildTemplatePois(tplLang));
-    setCuratedActivities(buildTemplateActivities(tplLang));
+    setSections(draft.sections);
+    setPois(draft.pois);
+    setCuratedActivities(draft.activities);
     setStep(0);
     setView('form');
   };
 
-  // Sélection « studio » (parité Booking Engine) ───────────────────────────────
-  const applyStructure = (id: string) => setStructureId(id);                              // structure obligatoire
-  const applyThemeSel = (id: string) => { if (structureId) setSelectedThemeId(id); };     // thème gated par la structure
-  // Bouton ↑ : si une structure est choisie → crée le livret (structure + thème) ; sinon → génération IA.
+  const applyStructure = (id: BaitlyGuideStructureId) => {
+    setStructureId(id);
+    setSelectedThemeId(BAITLY_GUIDE_STRUCTURES.find((item) => item.id === id)!.recommendedTheme);
+  };
   const handleStudioSubmit = () => {
-    if (structureId) { openCreate({ theme: selectedThemeId ?? DEFAULT_THEME }); return; }
-    void handleGenerateGuide();
+    if (generating) return;
+    if (livretPrompt.trim() && aiAssistOn) { void handleGenerateGuide(); return; }
+    openCreate();
   };
 
   // Champ IA du livret (gated STUDIO_ASSIST) : génère un brouillon complet (message d'accueil + sections
@@ -438,13 +420,14 @@ const WelcomeGuideAdmin: React.FC = () => {
     if (!value || !aiAssistOn) { openCreate(); return; }
     setGenerating(true);
     try {
-      const res = await welcomeGuideApi.generateGuide(value, currentLanguage);
+      const structureContext = `${t(`welcomeGuide.structures.${structureId}.name`)}: ${t(`welcomeGuide.structures.${structureId}.desc`)}`;
+      const res = await welcomeGuideApi.generateGuide(`${value}\n\n${structureContext}`, currentLanguage);
       openCreate();
       if (res.welcomeMessage) setWelcomeMessage(res.welcomeMessage);
       const secs = parseSections(res.sections);
       if (secs.length) setSections(secs);
       const generatedPois = parsePois(res.pois);
-      if (generatedPois.length) {
+      if (generatedPois.length && BAITLY_GUIDE_STRUCTURES.find((item) => item.id === structureId)!.neighbourhood) {
         setPois(generatedPois);
         // Géocodage auto best-effort des POI publics (attractions/transport/activités) → pins carte.
         // En arrière-plan (séquentiel, rate-limit Nominatim) : la liste est déjà affichée, les coords
@@ -485,6 +468,7 @@ const WelcomeGuideAdmin: React.FC = () => {
     setLanguage(g.language || 'fr');
     brandingColorRef.current = g.brandingColor || DEFAULT_COLOR;
     setTheme(g.theme || DEFAULT_THEME);
+    setEditingStructure(g.structure || 'complet');
     setHeroPhotoIds(parseHeroPhotoIds(g.heroPhotoIds));
     setHeroTouched(true); // édition : on respecte la sélection sauvegardée (pas d'auto-défaut)
     setWelcomeMessage(g.welcomeMessage || '');
@@ -530,6 +514,7 @@ const WelcomeGuideAdmin: React.FC = () => {
         curatedActivities: serializeActivities(curatedActivities),
         brandingColor: brandingColorRef.current,
         theme,
+        structure: editingStructure,
         heroPhotoIds: JSON.stringify(heroPhotoIds),
         welcomeMessage: welcomeMessage.trim() || null,
         hostNames: hostNames.trim() || null,
@@ -773,137 +758,20 @@ const WelcomeGuideAdmin: React.FC = () => {
     const filtered = q
       ? guides.filter((g) => g.title.toLowerCase().includes(q) || (g.propertyName ?? '').toLowerCase().includes(q))
       : guides;
-    // Sélection courante (sélectionné, sinon survolé) pour les chips + chevauchement dynamique des thèmes.
-    const curStructure = LIVRET_STRUCTURES.find((s) => s.id === (structureId ?? hoveredStructureId)) ?? null;
-    const curTheme = WELCOME_BOOK_THEMES.find((tt) => tt.id === (selectedThemeId ?? hoveredThemeId)) ?? null;
-    const themeOverlap = WELCOME_BOOK_THEMES.length > 1
-      ? Math.max(6, (WELCOME_BOOK_THEMES.length * 124 - 760) / (WELCOME_BOOK_THEMES.length - 1)) : 0;
     return (
-      <div className="be-home px-3 min-[900px]:px-[18px] py-3 min-[900px]:py-[18px]">
-        <div className="canvas" style={{ maxWidth: 860, margin: '0 auto' }}>
-          {/* Bloc création (studio) — réservé au staff plateforme (cf. POST /welcome-guides).
-              Même écran que le Booking Engine : TOUJOURS affiché (pas d'écran différent selon
-              qu'on ait ou non un livret). Studio à gauche, thèmes en rail vertical à droite. */}
-          {isStaff && (
-            <div className="studio-split">
-              <div className="studio-split__main">
-              <div className="hero">
-                <p className="eyebrow">{t('welcomeGuide.studio.eyebrow')}</p>
-                <h1>{t('welcomeGuide.studio.heading')}</h1>
-              </div>
-
-              {/* Champ IA : génère un brouillon (welcomeMessage + sections) via IA (gated STUDIO_ASSIST). */}
-              <div className="field">
-                <textarea
-                  className="field__area"
-                  value={livretPrompt}
-                  onChange={(e) => setLivretPrompt(e.target.value)}
-                  aria-label={t('welcomeGuide.studio.promptAria')}
-                  placeholder={aiAssistOn
-                    ? t('welcomeGuide.studio.promptPlaceholderAi')
-                    : "Décrivez votre logement (l'assistant IA est désactivé — Paramètres › IA)…"}
-                  onKeyDown={(e) => { if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) handleGenerateGuide(); }}
-                />
-                <div className="field__bar">
-                  <button className="chip chip--icon" type="button" aria-label={t('welcomeGuide.studio.importPhoto')} disabled><Add size={16} strokeWidth={2} /></button>
-                  {/* Structure (obligatoire) : reflète la sélection de l'éventail. */}
-                  <div className="chip">
-                    <span className={'chip__slide' + (curStructure ? ' chip__slide--open' : '')}>
-                      {curStructure && <span className="chip__art"><StructureArt id={curStructure.id} /></span>}
-                    </span>
-                    <span className="chip__text"><span className="chip__lbl">{t('welcomeGuide.studio.structureChip')}</span><span className="chip__val">{curStructure ? t(structureName(curStructure.id)) : t('common.none')}</span></span>
-                  </div>
-                  {/* Thème : grisé tant qu'aucune structure choisie. */}
-                  <div className={'chip' + (!structureId ? ' chip--locked' : '')}>
-                    <span className={'chip__slide' + (curTheme ? ' chip__slide--open' : '')}>
-                      {curTheme && <span className="chip__art chip__art--img"><span aria-hidden style={{ position: 'absolute', inset: 0, background: curTheme.swatch.accent }} /></span>}
-                    </span>
-                    <span className="chip__text"><span className="chip__lbl">{t('welcomeGuide.studio.theme')}</span><span className="chip__val">{curTheme ? curTheme.name : (structureId ? t('welcomeGuide.studio.themeNone') : t('welcomeGuide.studio.pickStructureFirst'))}</span></span>
-                  </div>
-                  <div className="field__spacer" />
-                  <button className="send" type="button" aria-label={structureId ? t('welcomeGuide.studio.createGuide') : t('welcomeGuide.studio.generateGuide')} disabled={generating} onClick={handleStudioSubmit}><ArrowUp size={19} strokeWidth={2.2} /></button>
-                </div>
-              </div>
-
-              {/* Structures (éventail, sélection obligatoire) */}
-              <div className="fan-wrap">
-                <p className="fan-lead">{t('welcomeGuide.studio.pickStructure')}</p>
-                <div className="fan">
-                  {LIVRET_STRUCTURES.map((s, i) => (
-                    <article
-                      key={s.id}
-                      className={'fan__card' + (s.id === structureId ? ' fan__card--active' : '')}
-                      style={{ ['--tip']: fanTip(i, LIVRET_STRUCTURES.length), ['--lift']: fanLift(i, LIVRET_STRUCTURES.length) } as React.CSSProperties}
-                      role="button" tabIndex={0} aria-pressed={s.id === structureId}
-                      title={t('welcomeGuide.studio.pickStructureTitle', { name: t(structureName(s.id)) })}
-                      onClick={() => applyStructure(s.id)}
-                      onMouseEnter={() => setHoveredStructureId(s.id)}
-                      onMouseLeave={() => setHoveredStructureId(null)}
-                      onFocus={() => setHoveredStructureId(s.id)}
-                      onBlur={() => setHoveredStructureId(null)}
-                      onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); applyStructure(s.id); } }}
-                    >
-                      <div className="fan__vig"><StructureArt id={s.id} /></div>
-                      <p className="fan__name">{t(structureName(s.id))}</p>
-                    </article>
-                  ))}
-                </div>
-              </div>
-
-              {/* Thèmes (éventail, grisés tant qu'aucune structure ; le ↑ crée avec structure + thème). */}
-              <div className="fan-wrap">
-                <p className="fan-lead">{t('welcomeGuide.studio.pickTheme')}</p>
-                {!structureId ? (
-                  <p className="fan-locked">{t('welcomeGuide.studio.themeLocked')}</p>
-                ) : (
-                  <div className="fan fan--tpl" style={{ ['--fan-mx']: `${-(themeOverlap / 2)}px` } as React.CSSProperties}>
-                    {WELCOME_BOOK_THEMES.map((th, i) => (
-                      <article
-                        key={th.id}
-                        className={'fan__card' + (th.id === selectedThemeId ? ' fan__card--active' : '')}
-                        style={{ ['--tip']: fanTip(i, WELCOME_BOOK_THEMES.length), ['--lift']: fanLift(i, WELCOME_BOOK_THEMES.length) } as React.CSSProperties}
-                        role="button" tabIndex={0} aria-pressed={th.id === selectedThemeId}
-                        title={`Choisir le thème « ${th.name} »`}
-                        onClick={() => applyThemeSel(th.id)}
-                        onMouseEnter={() => setHoveredThemeId(th.id)}
-                        onMouseLeave={() => setHoveredThemeId(null)}
-                        onFocus={() => setHoveredThemeId(th.id)}
-                        onBlur={() => setHoveredThemeId(null)}
-                        onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); applyThemeSel(th.id); } }}
-                      >
-                        <div className="fan__vig fan__vig--img" style={{ background: th.swatch.bg }}>
-                          <span aria-hidden style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', gap: 2, padding: 5, boxSizing: 'border-box' }}>
-                            <span style={{ height: 4, width: '52%', borderRadius: 2, background: th.swatch.accent }} />
-                            <span style={{ flex: 1, borderRadius: 3, background: th.swatch.surface, border: `1px solid ${th.swatch.accent}40` }} />
-                            <span style={{ height: 6, borderRadius: 2, background: th.swatch.accent, opacity: 0.5 }} />
-                          </span>
-                        </div>
-                        <p className="fan__name">{th.name}</p>
-                      </article>
-                    ))}
-                  </div>
-                )}
-              </div>
-
-              {/* Page vierge (sans structure ni thème) */}
-              <div className="blank-row">
-                <button className="blank" type="button" onClick={() => openCreate()}>{t('welcomeGuide.studio.blankGuide')} <ArrowRight size={16} strokeWidth={2} /></button>
-              </div>
-
-              </div>{/* /studio-split__main */}
-            </div>
-          )}
-
+      <div className="be-home baitly-guide-admin">
+        <div className="canvas">
           {/* Mes livrets — TOUJOURS affiché (même écran avec ou sans livret, comme le Booking Engine). */}
-          <section className="list lv-list" style={isStaff ? undefined : { marginTop: 0 }}>
-            <div className="list__head">
-              <h2>Mes livrets d'accueil</h2>
-              <span className="count">{guides.length}</span>
-              <div className="sp" />
+          <section className="baitly-guide-library" aria-labelledby="baitly-guide-library-title">
+            <div className="baitly-guide-library__heading">
+              <h2 id="baitly-guide-library-title">{t('welcomeGuide.creation.myGuides')}</h2>
+              <NavCountBadge count={guides.length} />
             </div>
 
             {isLoading ? (
-              <div className="flex justify-center py-9"><Spinner className="size-10" /></div>
+              <div className="baitly-guide-library__items" role="status" aria-label={t('common.loading')}>
+                {[0, 1, 2, 3].map((row) => <Skeleton key={row} className="h-80 w-full rounded-xl" />)}
+              </div>
             ) : guides.length === 0 ? (
               <EmptyState
                 icon={<LinkIcon />}
@@ -916,30 +784,17 @@ const WelcomeGuideAdmin: React.FC = () => {
                   </Button>
                 ) : undefined}
               />
+            ) : filtered.length === 0 ? (
+              <p className="text-sm text-muted-foreground py-4">{t('common.noResult')}</p>
             ) : (
-              <div className="tbl lv-tbl">
-                <div className="tbl__h"><span>{t('welcomeGuide.studio.colName')}</span><span>{t('welcomeGuide.studio.colStatus')}</span><span>{t('welcomeGuide.studio.colLanguage')}</span><span>{t('welcomeGuide.studio.colOwner')}</span></div>
+              <div className="baitly-guide-library__items">
                 {filtered.map((g) => {
                   const prop = properties.find((p) => p.id === String(g.propertyId));
-                  const heroIds = parseHeroPhotoIds(g.heroPhotoIds);
                   return (
-                    <div key={g.id} className="row-wrap">
-                      <button className="row" type="button" onClick={() => openEdit(g)}>
-                        <div className="row__name">
-                          <div className="row__thumb"><GuidePhotoCarousel propertyId={g.propertyId} theme={g.theme} alt={g.propertyName || g.title} priorityIds={heroIds} /></div>
-                          <div>
-                            <p className="row__t"><span className="pd" style={{ background: themeAccent(g.theme) }} /> {g.title}</p>
-                            <p className="row__u">{g.propertyName || '—'}{prop?.city ? ` · ${prop.city}` : ''}</p>
-                          </div>
-                        </div>
-                        <span className={`status ${g.published ? 'active' : 'off'}`}><span className="led" /> {g.published ? t('welcomeGuide.studio.published') : t('welcomeGuide.studio.draft')}</span>
-                        <span className="row__meta">{g.language.toUpperCase()}</span>
-                        <div className="row__acc"><span className="av-sm">{ownerInitials}</span><span className="row__owner">{t('welcomeGuide.studio.you')}</span></div>
-                      </button>
-                      {/* Menu d'actions par ligne — TOUTES les actions de l'ancienne carte sont conservées ici. */}
+                    <BaitlyGuideCard key={g.id} guide={g} city={prop?.city} ownerInitials={ownerInitials} onEdit={() => openEdit(g)} actions={(
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
-                          <button className="row__menu" type="button" aria-label={t('common.actions', 'Actions')} title={t('common.actions', 'Actions')}><MoreHorizontal size={18} strokeWidth={2} /></button>
+                          <button className="baitly-guide-card__menu" type="button" aria-label={`${t('common.actions', 'Actions')} · ${g.title}`} title={t('common.actions', 'Actions')}><MoreHorizontal size={18} strokeWidth={2} /></button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end" className="w-auto min-w-[200px]">
                           <DropdownMenuItem disabled={togglingPublishId === g.id} onSelect={() => handleTogglePublish(g)}>
@@ -968,12 +823,29 @@ const WelcomeGuideAdmin: React.FC = () => {
                           ) : null}
                         </DropdownMenuContent>
                       </DropdownMenu>
-                    </div>
+                    )} />
                   );
                 })}
               </div>
             )}
           </section>
+
+          {isStaff ? (
+            <BaitlyGuideCreationStudio
+              structureId={structureId} themeId={selectedThemeId}
+              properties={properties} selectedPropertyId={activePreviewPropertyId}
+              onPropertyChange={(id) => { setPropertyId(id); setHeroPhotoIds([]); setHeroTouched(false); }}
+              previewData={previewData} loadingPreview={loadingPreview || loadingPhotos} previewError={previewError || photosError}
+              sourceGuide={guides.find((guide) => String(guide.propertyId) === activePreviewPropertyId)}
+              upsells={previewUpsells}
+              onRetryPreview={() => { void refetchPreview(); void refetchPhotos(); }}
+              heroImages={propertyPhotos.map((photo) => propertyPhotosApi.getPhotoUrl(Number(activePreviewPropertyId), photo.id))}
+              onStructureChange={applyStructure} onThemeChange={setSelectedThemeId}
+              prompt={livretPrompt} onPromptChange={setLivretPrompt}
+              aiEnabled={aiAssistOn} generating={generating}
+              onCreate={handleStudioSubmit} onBlank={() => openCreate({ blank: true })}
+            />
+          ) : null}
         </div>
       </div>
     );
@@ -991,7 +863,7 @@ const WelcomeGuideAdmin: React.FC = () => {
   // format guest. Reflète la logique de listForToken côté serveur (logement du livret).
   // Services de l'org applicables à ce livret (actifs + toute l'org OU logement sélectionné).
   const applicableOffers = upsellOffers.filter(
-    (o) => o.active && (o.propertyId == null || String(o.propertyId) === propertyId),
+    (o) => o.active && (o.propertyId == null || String(o.propertyId) === activePreviewPropertyId),
   );
   // Sélection par livret : null = tous affichés ; sinon uniquement les ids cochés.
   const upsellOfferIdSet = upsellOfferIds === null ? null : new Set(upsellOfferIds);
@@ -1022,6 +894,7 @@ const WelcomeGuideAdmin: React.FC = () => {
       : [],
   );
   const previewModel: WelcomeBookModel = {
+    structure: editingStructure,
     title: title.trim() || previewProperty?.name || t('welcomeGuide.preview.sampleTitle', 'Votre logement'),
     welcomeMessage: welcomeMessage.trim() || null,
     hostNames: hostNames.trim() || null,
@@ -1316,7 +1189,7 @@ const WelcomeGuideAdmin: React.FC = () => {
   // ─── Render: form ──────────────────────────────────────────────────────────
   const renderForm = () => (
     // Rupture MUI lg = 1200px (breakpoints non configures) ; gap: 3 = 18px.
-    <div className="grid grid-cols-[1fr] min-[1200px]:grid-cols-[minmax(0,_1fr)_392px] gap-[18px] items-start">
+    <div className="baitly-guide-editor-layout">
       {/* theme.spacing = 6 : Stack spacing 2.5 -> 15px */}
       <div className="flex flex-col gap-[15px] min-w-0">
       {renderStepper()}
@@ -2118,8 +1991,7 @@ const WelcomeGuideAdmin: React.FC = () => {
       </div>
 
       {/* ── Aperçu téléphone live (reflète l'état du formulaire en temps réel) ── */}
-      <div className="min-[1200px]:sticky top-3 justify-self-center min-[1200px]:justify-self-start w-full">
-        <div className="w-[360px] max-w-full h-[720px] mx-auto rounded-[34px] overflow-hidden border-[10px] border-solid border-[var(--chrome-1)] bg-[var(--chrome-2)]" style={{ boxShadow: '0 28px 70px -28px rgba(21,36,45,0.55)' }}>
+      <BaitlyGuidePreview label={t('welcomeGuide.creation.previewTitle')}>
           <WelcomeBookView
             model={previewModel}
             theme={theme}
@@ -2129,8 +2001,7 @@ const WelcomeGuideAdmin: React.FC = () => {
             interactive={false}
             previewFocus={step === 3 ? 'content' : step === 4 ? 'experiences' : 'home'}
           />
-        </div>
-      </div>
+      </BaitlyGuidePreview>
     </div>
   );
 

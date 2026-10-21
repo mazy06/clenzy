@@ -12,6 +12,42 @@ const data = {
 };
 type PanelElement = ReactElement<ComponentProps<typeof ProviderSectorPanel>>;
 
+it('accumulates areas, deduplicates providers and removes only the clicked area', () => {
+  const onPointChange = vi.fn();
+  const { result } = renderHook(() => useProviderSectorLayer(null, true, {
+    point: null, onPointChange, mode: 'byProvider', onModeChange: vi.fn(),
+  }));
+  const panel = () => (result.current.panel as PanelElement).props;
+  const first: GeoJSON.Polygon = { type: 'Polygon', coordinates: [[[0,0],[1,0],[1,1],[0,0]]] };
+  const second: GeoJSON.Polygon = { type: 'Polygon', coordinates: [[[4,4],[5,4],[5,5],[4,4]]] };
+  const a = { lng: 0.8, lat: 0.2 }, b = { lng: 4.8, lat: 4.2 };
+  act(() => result.current.overlay?.onAreaSelect?.([27], first, a));
+  act(() => result.current.overlay?.onAreaSelect?.([1,27], second, b));
+  expect(panel().selectedAreaCount).toBe(2);
+  expect(panel().areaProviderIds).toEqual([27,1]);
+  expect(result.current.selectedArea).toEqual({ type: 'MultiPolygon', coordinates: [first.coordinates, second.coordinates] });
+  expect(onPointChange).toHaveBeenLastCalledWith([a,b]);
+  act(() => result.current.overlay?.onAreaSelect?.([27], JSON.parse(JSON.stringify(first)), a));
+  expect(panel().selectedAreaCount).toBe(1);
+  expect(result.current.selectedArea).toEqual(second);
+  expect(panel().areaProviderIds).toEqual([1,27]);
+  expect(onPointChange).toHaveBeenLastCalledWith(b);
+  act(() => result.current.clearArea());
+  expect(panel().selectedAreaCount).toBe(0);
+  expect(result.current.selectedArea).toBeNull();
+  expect(panel().areaProviderIds).toBeNull();
+  expect(onPointChange).toHaveBeenLastCalledWith(null);
+});
+
+it('restores persisted areas and collapses points within the same polygon', () => {
+  const point = [{ lng: 2.8, lat: 48.2 }, { lng: 2.9, lat: 48.3 }];
+  const { result } = renderHook(() => useProviderSectorLayer(null, true, {
+    point, onPointChange: vi.fn(), mode: 'byProvider', onModeChange: vi.fn(),
+  }));
+  expect((result.current.panel as PanelElement).props.selectedAreaCount).toBe(1);
+  expect(result.current.selectedArea).toEqual(data.providers[0].geometry);
+});
+
 it('filters the provider panel from a map sector and clears the filter explicitly or on mode changes', () => {
   const { result } = renderHook(() => useProviderSectorLayer(null));
   const panel = () => (result.current.panel as PanelElement).props;

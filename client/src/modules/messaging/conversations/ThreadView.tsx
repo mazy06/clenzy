@@ -14,6 +14,7 @@ import GuestAvatar from '../../../components/baitly/GuestAvatar';
 import { ArrowDown, ArrowLeft, Ellipsis, MessageSquare, PanelsTopLeft } from '../../../icons/glyphs';
 import { useTranslation } from '../../../hooks/useTranslation';
 import { cn } from '../../../utils/cn';
+import './baitly-thread.css';
 import Composer from './Composer';
 import MessageBubble from './MessageBubble';
 import { groupMessages } from './messagingModel';
@@ -120,6 +121,7 @@ export default function ThreadView({
 }: ThreadViewProps) {
   const { t } = useTranslation();
   const scrollRef = useRef<HTMLDivElement>(null);
+  const timelineRef = useRef<HTMLDivElement>(null);
   const [atBottom, setAtBottom] = useState(true);
   // Miroir de `atBottom` pour l'observateur de taille, qui ne doit pas être
   // recréé à chaque défilement.
@@ -168,6 +170,9 @@ export default function ThreadView({
       if (atBottomRef.current) scrollToEnd();
     });
     observer.observe(el);
+    // Le devis peut grandir après sa réponse API : suivre le contenu seulement
+    // lorsque l'utilisateur consulte déjà les derniers messages.
+    if (timelineRef.current) observer.observe(timelineRef.current);
     return () => observer.disconnect();
   }, [scrollToEnd]);
 
@@ -187,9 +192,9 @@ export default function ThreadView({
   };
 
   return (
-    <div className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-2xl border border-border bg-card">
+    <div className="baitly-thread">
       {/* ── Entête contextuelle ─────────────────────────────────────────── */}
-      <header className="flex shrink-0 items-center justify-between gap-2 border-b border-border px-3 py-2.5 min-[900px]:px-4">
+      <header className="baitly-thread-header">
         <div className="flex min-w-0 items-center gap-2.5">
           {showBack && (
             <Button
@@ -205,10 +210,10 @@ export default function ThreadView({
           {avatar ?? <GuestAvatar name={title} size={36} />}
           <div className="min-w-0">
             <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5">
-              <h2 dir="auto" className="m-0 max-w-full truncate text-sm font-semibold text-foreground">{title}</h2>
+              <h2 dir="auto" title={title} className="m-0 max-w-full truncate text-sm font-semibold text-foreground">{title}</h2>
               {statusBadge}
             </div>
-            <div className="flex items-center gap-1 truncate text-xs text-muted-foreground">{subtitle}</div>
+            <div className="baitly-thread-subtitle">{subtitle}</div>
           </div>
         </div>
 
@@ -286,10 +291,11 @@ export default function ThreadView({
         <div
           ref={scrollRef}
           onScroll={handleScroll}
-          className="h-full overflow-y-auto bg-muted/40 px-3 py-4 min-[900px]:px-5"
+          className="baitly-thread-scroll"
           aria-live="polite"
           aria-busy={loading}
         >
+          <div ref={timelineRef}>
           {loading ? (
             <div className="flex flex-col gap-3" role="status" aria-label={t('messagingHub.loading', 'Chargement…')}>
               <Skeleton className="h-10 w-2/3 rounded-2xl" />
@@ -307,9 +313,9 @@ export default function ThreadView({
             </div>
           ) : (
             days.map((day) => (
-              <section key={day.key} aria-label={dayLabel(day.at)} className="mt-4 first:mt-0">
-                <div className="sticky top-0 z-10 mb-2 flex justify-center">
-                  <span className="rounded-full border border-border bg-card/90 px-2.5 py-0.5 text-2xs font-medium text-muted-foreground backdrop-blur">
+              <section key={day.key} aria-label={dayLabel(day.at)} className="baitly-thread-day">
+                <div className="baitly-thread-date">
+                  <span className="baitly-thread-date-label">
                     {dayLabel(day.at)}
                   </span>
                 </div>
@@ -319,6 +325,7 @@ export default function ThreadView({
               </section>
             ))
           )}
+          </div>
         </div>
 
         {!atBottom && !loading && days.length > 0 && (
@@ -336,7 +343,7 @@ export default function ThreadView({
       </div>
 
       {/* ── Copilote + composition ──────────────────────────────────────── */}
-      <div className="flex shrink-0 flex-col gap-2 border-t border-border bg-card p-3 min-[900px]:px-4">
+      <div className="baitly-thread-compose">
         {copilot}
         <Composer
           value={draft}

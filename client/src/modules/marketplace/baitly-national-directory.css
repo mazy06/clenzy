@@ -1,0 +1,37 @@
+.baitly-professional-map-card{position:relative;min-inline-size:0;padding:14px 16px;border:0;border-radius:0;box-shadow:none;border-block-end:1px solid var(--bui-border);font-size:12px;text-align:start;transition:background-color 180ms cubic-bezier(.22,1,.36,1)}
+.baitly-professional-map-card:hover{background:var(--bui-muted)}
+.baitly-professional-map-card[data-selected=true]{background:var(--bui-info-soft)}
+.baitly-professional-map-card:has(button.baitly-directory-card__name){cursor:pointer}
+.baitly-professional-map-card[data-selectable=true]{padding-inline-start:38px}
+.baitly-directory-card__selection{position:absolute;inset-inline-start:12px;inset-block-start:14px;cursor:pointer}
+.baitly-directory-card__name{display:flex;align-items:start;justify-content:space-between;gap:12px;inline-size:100%;margin:0;font-size:14px;line-height:1.45;font-weight:600;overflow-wrap:anywhere;text-align:start;color:var(--bui-foreground)}
+button.baitly-directory-card__name{cursor:pointer;border-radius:3px}
+button.baitly-directory-card__name::after{content:'';position:absolute;inset:0;border-radius:0}
+.baitly-directory-card__selection,.baitly-directory-card__contacts a{position:relative;z-index:1}
+.baitly-directory-card__selection{position:absolute}
+.baitly-professional-map-card[data-selected=true] .baitly-directory-card__name{color:var(--bui-info-ink)}
+button.baitly-directory-card__name:focus-visible::after{outline:2px solid var(--bui-ring);outline-offset:-2px}
+.baitly-directory-card__name:focus-visible,.baitly-professional-map-card a:focus-visible{outline:2px solid var(--bui-ring);outline-offset:3px}
+.baitly-directory-card__name>svg{flex-shrink:0;margin-block-start:3px;color:var(--bui-info-ink)}
+.baitly-directory-service{display:flex;align-items:center;flex-wrap:wrap;gap:5px;margin-block:6px;color:var(--bui-info-ink);font-size:11px;line-height:1.5}
+.baitly-directory-service>svg{flex-shrink:0}
+.baitly-directory-service small{font-size:10px;color:var(--bui-muted-foreground)}
+.baitly-directory-service:is([data-service=CLEANING],[data-service=LAUNDRY],[data-service=EXTERIOR]){color:var(--bui-success-ink)}
+.baitly-directory-service:is([data-service=MAINTENANCE],[data-service=REPAIRS],[data-service=CATERING]){color:var(--bui-warning-ink)}
+.baitly-directory-card__address{margin-block:5px;font-style:normal;line-height:1.6;color:var(--bui-muted-foreground);overflow-wrap:anywhere}
+.baitly-directory-card__street{display:block}
+.baitly-directory-card__locality{display:flex;flex-wrap:wrap;gap:0 7px;margin-block-start:2px;color:var(--bui-foreground);font-weight:500}
+.baitly-directory-card__contacts{display:flex;flex-direction:column;align-items:flex-start;gap:2px;margin-block-start:8px}
+.baitly-directory-card__contacts:empty{display:none}
+.baitly-directory-card__contacts a{display:inline-flex;align-items:center;gap:8px;min-inline-size:0;max-inline-size:100%;min-block-size:28px;color:var(--bui-info-ink);cursor:pointer;overflow-wrap:anywhere;text-decoration:none;text-underline-offset:3px}
+.baitly-directory-card__contacts a>span{min-inline-size:0;overflow-wrap:anywhere}
+.baitly-directory-card__contacts a:hover{text-decoration:underline}
+.baitly-directory-card__contacts svg{flex-shrink:0}
+.baitly-directory-card__siret{display:flex;flex-wrap:wrap;gap:4px 8px;margin-block:10px 0;font-size:10px;line-height:1.5;color:var(--bui-muted-foreground)}
+.baitly-national-feed{padding:10px 14px;border-block-end:1px solid var(--bui-border);font-size:11px;line-height:1.6;color:var(--bui-muted-foreground)}
+.baitly-national-feed summary{cursor:pointer;overflow-wrap:anywhere}
+.baitly-national-feed summary strong{font-weight:500;color:var(--bui-foreground)}
+.baitly-national-feed p{margin-block:5px 0}
+.baitly-national-feed progress{display:block;inline-size:100%;block-size:3px;margin-block-start:8px;accent-color:var(--bui-info)}
+.baitly-national-feed a{color:var(--bui-info-ink);text-decoration:underline}
+@media(prefers-reduced-motion:reduce){.baitly-professional-map-card{transition:none}}

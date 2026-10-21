@@ -376,6 +376,7 @@ public class UpsellService {
         order.setReservationId(reservation != null ? reservation.getId() : null);
         order.setGuideId(tok.getGuide() != null ? tok.getGuide().getId() : null);
         order.setOfferId(offer.getId());
+        snapshotExecution(order, offer);
         order.setTitle(offer.getTitle());
         order.setAmount(offer.getPrice());
         order.setCurrency(offer.getCurrency());
@@ -408,6 +409,15 @@ public class UpsellService {
         attachProviderSession(prep.orderId(), result.paymentResult().providerTxId());
         return new com.clenzy.dto.UpsellBookingCheckoutDto(result.paymentResult().redirectUrl(), prep.orderId());
     }
+    private void snapshotExecution(UpsellOrder order, UpsellOffer offer) {
+        // Un bundle nécessite plusieurs prestations : ne pas le présenter comme une mission simple.
+        if (offer.getBundleOfferIds() != null && !offer.getBundleOfferIds().isBlank()) return;
+        String code = offer.getFulfillmentServiceCode();
+        if (code == null) code = upsellTypeRepository.findByCodeInScope(offer.getType(), offer.getOrganizationId())
+            .stream().findFirst().map(UpsellTypeDef::getServiceItemCode).orElse(null);
+        order.setFulfillmentServiceCode(code);
+    }
+
     private UpsellPrep persistedPrep(Long org,Long id) {
         var order=orderRepository.findById(id).filter(o->org.equals(o.getOrganizationId())).orElseThrow();
         if(order.getStatus()!=UpsellOrderStatus.PENDING)throw new IllegalArgumentException("Cette commande a déjà été traitée");
@@ -431,6 +441,7 @@ public class UpsellService {
         order.setOrganizationId(orgId);
         order.setReservationId(reservation.getId());
         order.setOfferId(offer.getId());
+        snapshotExecution(order, offer);
         order.setTitle(offer.getTitle());
         order.setAmount(offer.getPrice());
         order.setCurrency(offer.getCurrency());

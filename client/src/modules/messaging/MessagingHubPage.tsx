@@ -11,7 +11,7 @@ import { useHighlightParam, useHighlightTarget } from '../../hooks/useHighlight'
 import { useAuth } from '../../hooks/useAuth';
 import { useMarkAsRead, useUpdateConversationStatus } from '../../hooks/useConversations';
 import { useConversationStream } from '../../hooks/useConversationStream';
-import { useArchiveThread, useMarkThreadAsRead } from '../../hooks/useContactMessages';
+import { useArchiveThread, useUnarchiveThread, useMarkThreadAsRead } from '../../hooks/useContactMessages';
 import { useUpdateFormStatus } from '../../hooks/useReceivedForms';
 import { useUnifiedInbox, useArchivedInbox, conversationRawId, type UnifiedConversation } from './conversations/unified';
 import ConversationList, { type InboxFilter } from './conversations/ConversationList';
@@ -123,6 +123,7 @@ export default function MessagingHubPage() {
   const markThreadAsReadMutation = useMarkThreadAsRead();
   const updateStatusMutation = useUpdateConversationStatus();
   const archiveThreadMutation = useArchiveThread();
+  const unarchiveThreadMutation = useUnarchiveThread();
   const updateFormStatusMutation = useUpdateFormStatus();
 
   const handleSelect = useCallback((item: UnifiedConversation) => {
@@ -184,6 +185,9 @@ export default function MessagingHubPage() {
     const deselectIfCurrent = () => {
       if (item.key === selectedKey) setSelectedKey(null);
     };
+    if (item.kind === 'internal' && item.thread) {
+      unarchiveThreadMutation.mutate(item.thread.counterpartKeycloakId, { onSuccess: deselectIfCurrent });
+    }
     if (item.kind === 'channel' && item.conv) {
       updateStatusMutation.mutate(
         { conversationId: item.conv.id, status: 'OPEN' },
@@ -229,7 +233,7 @@ export default function MessagingHubPage() {
           </Button>
         }
       />
-      <div className="w-full flex-1 min-h-0 flex flex-col overflow-hidden">
+      <div className="w-full flex-1 min-h-0 flex flex-col overflow-hidden pt-[9px] min-[900px]:pt-3">
 
         {/* Deux CARTES distinctes plutot qu'une carte scindee par un filet : la
             liste et le fil sont deux objets, la projection les separe par une
@@ -265,6 +269,7 @@ export default function MessagingHubPage() {
               />
             ) : selected?.kind === 'internal' && selected.thread ? (
               <InternalThread
+                archived={isArchivedView}
                 // key = correspondant : remount au changement de thread (etat frais
                 // draft/attachments) — remplace l'ancien effet de reset interne.
                 key={selected.thread.counterpartKeycloakId}

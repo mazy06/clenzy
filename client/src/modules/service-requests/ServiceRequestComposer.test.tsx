@@ -1,10 +1,12 @@
 import React from 'react';
 import { afterEach, beforeEach, expect, it, vi } from 'vitest';
-import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import ServiceRequestComposer from './ServiceRequestComposer';
 
 const api = vi.hoisted(() => ({ get: vi.fn(), post: vi.fn() }));
+const viewport = vi.hoisted(() => ({ mobile: false }));
+vi.mock('../../hooks/use-media-query', () => ({ useMediaQuery: () => viewport.mobile }));
 vi.mock('../../services/apiClient', () => ({ default: api }));
 vi.mock('../../hooks/useAuth', () => ({ useAuth: () => ({ user: { firstName: 'Alex', lastName: 'Host' } }) }));
 vi.mock('../../hooks/useTranslation', () => ({
@@ -19,6 +21,7 @@ const items = [
   { code: 'cleaning', labelFr: 'Ménage', labelEn: 'Cleaning', legacyType: 'CLEANING', categoryCode: 'CLEANING', propertyRequired: true },
 ];
 beforeEach(() => {
+  viewport.mobile = false;
   api.get.mockImplementation((path: string) => Promise.resolve(path === '/service-reference' ? items : []));
   api.post.mockImplementation((path: string, body: { selections: { serviceItemCode: string }[] }) =>
     Promise.resolve(path.endsWith('/estimate') ? body.selections.map(s => ({ serviceItemCode: s.serviceItemCode, source: 'ON_QUOTE', min: null, max: null, durationMinutes: null })) : [{ id: 1 }, { id: 2 }]));
@@ -35,6 +38,22 @@ function show() {
 async function choose(name: string) {
   fireEvent.click(await screen.findByRole('checkbox', { name: new RegExp(name) }));
 }
+it('garde les choix et les consignes lors du passage entre les étapes mobiles', async () => {
+  viewport.mobile = true;
+  show();
+  fireEvent.click(await screen.findByRole('button', { name: 'requestComposer.services', exact: true }));
+  await choose('Comptabilité');
+  fireEvent.click(screen.getByRole('button', { name: 'reservations.dialog.next', exact: true }));
+  fireEvent.change(screen.getByLabelText('requestComposer.serviceNotes'), { target: { value: 'Consigne conservée' } });
+  fireEvent.click(screen.getByRole('button', { name: 'reservations.dialog.next', exact: true }));
+  fireEvent.change(screen.getByLabelText('requestComposer.date *'), { target: { value: '2026-10-20T10:00' } });
+  await act(async () => { screen.getByRole('button', { name: 'reservations.dialog.next', exact: true }).click(); });
+  expect(screen.getByRole('button', { name: 'requestComposer.create 1' })).toBeEnabled();
+  fireEvent.click(screen.getByRole('button', { name: 'reservations.dialog.previous', exact: true }));
+  expect(screen.getByLabelText('requestComposer.serviceNotes')).toHaveValue('Consigne conservée');
+  expect(screen.getByLabelText('requestComposer.date *')).toHaveValue('2026-10-20T10:00');
+  expect(api.post.mock.calls.filter(call => call[0].endsWith('/batch'))).toHaveLength(0);
+});
 it('creates separate canonical selections in one batch, without sending invented amounts', async () => {
   const { onSuccess } = show();
   await choose('Comptabilité');
@@ -46,7 +65,7 @@ it('creates separate canonical selections in one batch, without sending invented
   fireEvent.click(screen.getByRole('button', { name: 'requestComposer.create 2' }));
   await waitFor(() => expect(onSuccess).toHaveBeenCalledOnce());
   expect(api.post).toHaveBeenCalledWith('/service-requests/batch', {
-    submissionId: expect.any(String), propertyId: null, desiredDate: '2026-10-20T10:00', priority: 'NORMAL', instructions: 'Accès par la cour',
+    submissionId: expect.any(String), propertyId: null, desiredDate: new Date('2026-10-20T10:00').toISOString().slice(0, 19), priority: 'NORMAL', instructions: 'Accès par la cour',
     selections: [
       { serviceItemCode: 'books', instructions: 'Bilan annuel' },
       { serviceItemCode: 'marketing', instructions: '' },

@@ -1,44 +1,32 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { prospectsApi } from '../services/api/prospectsApi';
-import type { ProspectDto } from '../services/api/prospectsApi';
+import { useAuth } from './useAuth';
+import { prospectsApi, type BaitlyCrmContactWrite, type BaitlyCrmFilters } from '../services/api/prospectsApi';
 
-// ─── Query Keys ─────────────────────────────────────────────────────────────
-
-export const prospectsKeys = {
-  all: ['prospects'] as const,
-  list: () => [...prospectsKeys.all, 'list'] as const,
-};
-
-// ─── Queries ────────────────────────────────────────────────────────────────
-
+export const prospectsKeys = { all: ['prospects'] as const, list: (org?: number) => ['prospects', org, 'list'] as const };
 export function useProspects() {
-  return useQuery({
-    queryKey: prospectsKeys.list(),
-    queryFn: () => prospectsApi.getAll(),
-    staleTime: 60_000,
-  });
+  const { user } = useAuth();
+  return useQuery({ queryKey: prospectsKeys.list(user?.organizationId), queryFn: prospectsApi.getAll,
+    enabled: !!user?.permissions.includes('baitly-crm:view'), staleTime: 60_000 });
 }
-
-// ─── Mutations ──────────────────────────────────────────────────────────────
-
+export function useBaitlyCrm(filters: BaitlyCrmFilters) {
+  const { user } = useAuth();
+  const org = user?.organizationId;
+  const access = useQuery({ queryKey: ['prospects', user?.id, org, 'access'], queryFn: prospectsApi.access,
+    enabled: !!user?.permissions.includes('baitly-crm:view') });
+  const contacts = useQuery({ queryKey: ['prospects', user?.id, org, 'page', filters],
+    queryFn: () => prospectsApi.page(filters), enabled: access.isSuccess });
+  return { access, contacts, org };
+}
 export function useImportProspects() {
-  const queryClient = useQueryClient();
+  const client = useQueryClient();
   return useMutation({
-    mutationFn: ({ file, category }: { file: File; category: string }) =>
-      prospectsApi.importCsv(file, category),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: prospectsKeys.all });
-    },
+    mutationFn: ({ file, category, provenance }: { file: File; category: string; provenance?: string }) =>
+      prospectsApi.importCsv(file, category, provenance),
+    onSuccess: () => client.invalidateQueries({ queryKey: prospectsKeys.all }),
   });
 }
-
 export function useUpdateProspect() {
-  const queryClient = useQueryClient();
-  return useMutation({
-    mutationFn: ({ id, data }: { id: number; data: Partial<ProspectDto> }) =>
-      prospectsApi.update(id, data),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: prospectsKeys.all });
-    },
-  });
+  const client = useQueryClient();
+  return useMutation({ mutationFn: ({ id, data }: { id: number; data: BaitlyCrmContactWrite }) => prospectsApi.update(id, data),
+    onSuccess: () => client.invalidateQueries({ queryKey: prospectsKeys.all }) });
 }

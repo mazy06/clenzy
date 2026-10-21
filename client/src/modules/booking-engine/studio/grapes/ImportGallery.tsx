@@ -8,6 +8,7 @@ import {
 } from '../../../../components/ui';
 import { GALLERY_TEMPLATES, type GalleryTemplate } from './import/galleryTemplates';
 import { useTranslation } from '../../../../hooks/useTranslation';
+import BaitlyTemplateSnapshot from '../BaitlyTemplateSnapshot';
 
 /**
  * Onglet « Galerie » de l'Importer : grille de templates NATIFS multi-page. Au clic, le template est
@@ -61,10 +62,7 @@ export default function ImportGallery({ onImportTemplate, onDone }: ImportGaller
             }
           >
             {/* Aperçu : vignette si fournie, sinon fond de champ neutre. */}
-            <div
-              className="h-24 bg-field bg-cover bg-center"
-              style={{ backgroundImage: tpl.thumbnail ? `url("${tpl.thumbnail}")` : 'none' }}
-            />
+            <div className="h-36"><BaitlyTemplateSnapshot template={tpl} /></div>
             <div className="flex flex-col gap-0.5 p-2">
               <span className="text-sm font-semibold text-foreground">{tpl.name}</span>
               {tpl.description ? (

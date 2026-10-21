@@ -6,6 +6,8 @@ import { guestPhotoSrc } from '../../services/api/guestsApi';
 import { useFitRows } from '../../hooks/useFitRows';
 import { useTranslation } from '../../hooks/useTranslation';
 import type { GuestReview } from '../../services/api/reviewsApi';
+import { useWidgetPresentation } from '../../components/stats/widgetPresentation';
+import { cn } from '../../utils/cn';
 
 /**
  * Avis restes sans reponse, sur le tableau de bord.
@@ -34,6 +36,7 @@ export default function UnansweredReviewList({
   emptyLabel: string;
 }) {
   const { t } = useTranslation();
+  const widget = useWidgetPresentation();
   // Meme regime que les autres tuiles : ce qui ne tient pas se compte, il ne
   // defile pas.
   const { ref, hidden } = useFitRows<HTMLUListElement>();
@@ -47,8 +50,8 @@ export default function UnansweredReviewList({
   }
 
   return (
-    <div className="flex h-full flex-col">
-      <ul ref={ref} className="m-0 flex min-h-0 flex-1 list-none flex-col gap-2 overflow-hidden p-0">
+    <div className={cn('flex h-full flex-col', widget && 'db-data-reviews')}>
+      <ul ref={widget ? undefined : ref} className={widget ? 'db-data-reviews__list' : 'm-0 flex min-h-0 flex-1 list-none flex-col gap-2 overflow-hidden p-0'}>
         {reviews.map((review) => {
           const channel = (review.channelName ?? '').toLowerCase();
           const logo = channelLogo(channel);
@@ -71,7 +74,7 @@ export default function UnansweredReviewList({
               <GuestAvatar
                 name={guest}
                 photoUrl={guestPhotoSrc(review.guestAvatarUrl)}
-                size={28}
+                size={widget ? 36 : 28}
               />
               <div className="min-w-0 flex-1">
                 <div className="flex items-center gap-2">
@@ -113,7 +116,7 @@ export default function UnansweredReviewList({
           );
         })}
       </ul>
-      {hidden > 0 && (
+      {!widget && hidden > 0 && (
         <p className="m-0 shrink-0 pt-1.5 text-2xs font-semibold text-muted-foreground tabular-nums">
           +{hidden}
         </p>

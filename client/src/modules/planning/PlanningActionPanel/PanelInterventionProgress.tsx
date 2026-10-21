@@ -13,6 +13,8 @@ import {
   CameraAlt,
 } from '../../../icons';
 import type { PlanningEvent } from '../types';
+import { Link } from 'react-router-dom';
+import { serviceExecutionProfile } from '../../interventions/baitlyServiceExecution';
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
@@ -95,6 +97,10 @@ const PanelInterventionProgress: React.FC<PanelInterventionProgressProps> = ({
     );
   }
 
+  if (serviceExecutionProfile(intervention)) return <div className="space-y-3 text-sm">
+    <p className="text-muted-foreground">{t('serviceExecution.openHint')}</p>
+    <Button asChild className="min-h-[44px] w-full whitespace-normal"><Link to={`/interventions/${intervention.id}${intervention.status === 'in_progress' ? '/suivi' : ''}`}>{t('serviceExecution.open')}</Link></Button>
+  </div>;
   const completedSteps = parseCompletedSteps(intervention.completedSteps);
   const validatedRooms = parseValidatedRooms(intervention.validatedRooms);
 

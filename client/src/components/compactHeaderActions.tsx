@@ -2,6 +2,8 @@ import React from 'react';
 import { Button, Spinner, Tooltip, TooltipContent, TooltipTrigger } from './ui';
 import NavCountBadge from './NavCountBadge';
 import { canonicalIconFor, resolveActionKind, thinStroke } from './headerActionIcons';
+import './headerActionColors.css';
+import {MoreHorizontalIcon} from '../icons/glyphs';
 
 /**
  * Réduction des actions d'en-tête à leur icône.
@@ -19,9 +21,8 @@ import { canonicalIconFor, resolveActionKind, thinStroke } from './headerActionI
  * celle du vocabulaire commun quand le libellé désigne une action connue
  * (« Actualiser », « Exporter »…), ce qui aligne les écrans entre eux.</p>
  *
- * <p>Un bouton peut refuser la réduction avec l'attribut `data-keep-label` :
- * réservé aux cas où le libellé EST l'information (un compteur, un état).
- * Les créations gardent aussi leur libellé pour rendre l'action principale explicite.</p>
+ * <p>Toutes les actions, créations comprises, sont réduites. Les anciens
+ * marqueurs `data-keep-label` ne dérogent plus à cette présentation.</p>
  *
  * <p>Ce qui n'est pas un bouton (sélecteur, champ, puce) traverse intact : le
  * `PageHeader` le replie derrière son propre déclencheur de filtres.</p>
@@ -31,9 +32,6 @@ import { canonicalIconFor, resolveActionKind, thinStroke } from './headerActionI
  * chrome. Sans quoi la même action se dessinait autrement d'un écran à
  * l'autre — ce qu'on cherchait justement à faire disparaître.</p>
  */
-
-/** Marqueur d'exemption, posé par l'écran sur un bouton à libellé signifiant. */
-const KEEP_LABEL = 'data-keep-label';
 
 /**
  * Gabarit du bouton réduit : le carré de 32 px de la barre de titre, qui est
@@ -135,19 +133,14 @@ function compactButton(
   context: Context,
 ): React.ReactNode {
   const props = element.props;
-  if (props[KEEP_LABEL] !== undefined) return element;
-
   const children = React.Children.toArray(props.children).filter(Boolean);
   const ariaLabel = typeof props['aria-label'] === 'string' ? props['aria-label'].trim() : '';
   const label = ariaLabel || textOf(children).replace(/\s+/g, ' ').trim();
   if (!label) return element;
-  const isCreate = resolveActionKind(label) === 'create';
-  const presentation = isCreate
-    ? { ...BARE, size: 'default', 'aria-label': label, 'data-header-create': true }
-    : { ...BARE, size: ICON_SIZE, 'aria-label': label };
-  const content = (glyph: React.ReactElement) => isCreate
-    ? <>{glyph}<span className="truncate">{label}</span></>
-    : glyph;
+  const action = props['data-header-action'] ?? resolveActionKind(label) ?? 'other';
+  const colors = { 'data-header-action': action, className: 'baitly-header-action' };
+  const presentation = { ...BARE, ...colors, size: ICON_SIZE, 'aria-label': label,
+    'data-header-create': undefined, 'data-keep-label': undefined };
 
   // `<Button asChild><Link>…</Link></Button>` : c'est l'ENFANT qui porte
   // l'icône et le texte, le bouton n'est qu'un gabarit.
@@ -157,18 +150,16 @@ function compactButton(
       | undefined;
     if (!inner) return element;
     const innerChildren = React.Children.toArray(inner.props.children).filter(React.isValidElement);
-    if (innerChildren.length === 0) return element;
     const compacted = React.cloneElement(
       element,
       presentation,
-      React.cloneElement(inner, undefined, content(glyphFor(label, innerChildren))),
+      React.cloneElement(inner, undefined, glyphFor(label, innerChildren)),
     );
     return describe(compacted, label, context);
   }
 
   const elements = children.filter(React.isValidElement) as React.ReactElement[];
   // Sans icône, réduire reviendrait à effacer le bouton.
-  if (elements.length === 0) return element;
 
   // Un compteur survit à la réduction : c'est une information, pas un libellé.
   const badges = elements.filter((child) => child.type === NavCountBadge);
@@ -176,7 +167,7 @@ function compactButton(
   const compacted = React.cloneElement(
     element,
     presentation,
-    badges.length > 0 ? [<React.Fragment key="glyph">{content(glyph)}</React.Fragment>, ...badges] : content(glyph),
+    badges.length > 0 ? [<React.Fragment key="glyph">{glyph}</React.Fragment>, ...badges] : glyph,
   );
 
   return describe(compacted, label, context);
@@ -188,9 +179,18 @@ function compactButton(
  * n'est jamais remplacé — il dit que l'action est en cours.
  */
 function glyphFor(label: string, elements: React.ReactElement[]): React.ReactElement {
-  const first = elements[0];
-  if (first.type === Spinner) return first;
-  return canonicalIconFor(label) ?? thinStroke(first);
+  function findGlyph(nodes:React.ReactElement[]):React.ReactElement|undefined{
+    for(const node of nodes){
+      if(node.type===Spinner)return node;
+      if(isDecorative(node))continue;
+      if(node.type==='svg'||typeof node.type!=='string'&&node.type!==React.Fragment)return node;
+      const nested=findGlyph(React.Children.toArray((node.props as AnyProps).children).filter(React.isValidElement) as React.ReactElement[]);
+      if(nested)return nested;
+    }
+  }
+  const first=findGlyph(elements);
+  if(first?.type===Spinner)return first;
+  return canonicalIconFor(label) ?? (first?thinStroke(first):<MoreHorizontalIcon strokeWidth={1.75}/>);
 }
 
 /**

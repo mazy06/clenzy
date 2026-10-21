@@ -1,0 +1,6 @@
+const messages={
+  fr:{remove:'Supprimer',actions:'Actions',removeSelection:'Supprimer la sélection',cancel:'Annuler',busy:'Suppression…',description:'Les contacts seront retirés du CRM. Leur historique et leurs oppositions seront conservés.',error:'Impossible de confirmer la suppression. Vérifiez vos droits puis réessayez.',title:(count:number)=>`Supprimer ${count} contact${count>1?'s':''} du CRM ?`,selectAll:(count:number)=>`Tout sélectionner (${count})`},
+  en:{remove:'Delete',actions:'Actions',removeSelection:'Delete selection',cancel:'Cancel',busy:'Deleting…',description:'Contacts will be removed from the CRM. Their history and objections will be retained.',error:'Deletion could not be confirmed. Check your permissions and try again.',title:(count:number)=>`Delete ${count} contact${count>1?'s':''} from the CRM?`,selectAll:(count:number)=>`Select all (${count})`},
+  ar:{remove:'حذف',actions:'الإجراءات',removeSelection:'حذف المحدد',cancel:'إلغاء',busy:'جارٍ الحذف…',description:'ستُزال جهات الاتصال من CRM مع الاحتفاظ بسجلها واعتراضاتها.',error:'تعذر تأكيد الحذف. تحقق من صلاحياتك وأعد المحاولة.',title:(count:number)=>`حذف ${count} من جهات الاتصال من CRM؟`,selectAll:(count:number)=>`تحديد الكل (${count})`},
+};
+export function crmDeletionMessages(language:string){return messages[language==='en'||language==='ar'?language:'fr'];}

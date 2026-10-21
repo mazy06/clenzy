@@ -11,6 +11,7 @@ export const PERSPECTIVE_CAMERA = { pitch: 45, bearing: -15 } as const;
  * inclinée et la vue à plat (lecture d'un plan, placement précis).
  */
 export class BaitlyPerspectiveControl implements maplibregl.IControl {
+  constructor(private readonly language?: string) {}
   private map?: maplibregl.Map;
   private container?: HTMLDivElement;
   private button?: HTMLButtonElement;
@@ -53,7 +54,8 @@ export class BaitlyPerspectiveControl implements maplibregl.IControl {
     const tilted = this.isTilted();
     // Le bouton affiche la vue vers laquelle il bascule.
     this.button.textContent = tilted ? '2D' : '3D';
-    const label = tilted ? i18n.t('baitlyMap.view2d', 'Passer en vue à plat') : i18n.t('baitlyMap.view3d', 'Passer en vue 3D');
+    const label = tilted ? i18n.t('baitlyMap.view2d', 'Passer en vue à plat', { lng: this.language })
+      : i18n.t('baitlyMap.view3d', 'Passer en vue 3D', { lng: this.language });
     this.button.setAttribute('aria-label', label);
     this.button.title = label;
   }

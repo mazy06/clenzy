@@ -66,6 +66,12 @@ export function createGuestSelector(state: StateManager, i18n: I18n, maxGuests: 
   const panel = document.createElement('div');
   panel.className = 'cb-guests-panel';
   panel.setAttribute('role', 'region');
+  panel.addEventListener('keydown', (event) => {
+    if (event.key !== 'Escape') return;
+    event.preventDefault();
+    state.set({ guestsOpen: false }, 'guestsToggle');
+    toggle.focus();
+  });
 
   const adultsRow = createCounterRow(
     i18n.t('guests.adults'),
@@ -111,6 +117,7 @@ export function createGuestSelector(state: StateManager, i18n: I18n, maxGuests: 
     toggle.classList.toggle('cb-open', s.guestsOpen);
     toggle.setAttribute('aria-expanded', String(s.guestsOpen));
     panel.classList.toggle('cb-open', s.guestsOpen);
+    panel.hidden = !s.guestsOpen;
     if (s.guestsOpen) ensureOutside(); else removeOutside();
 
     adultsRow.update(s.adults);

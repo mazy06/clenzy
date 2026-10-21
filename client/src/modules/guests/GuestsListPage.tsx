@@ -19,6 +19,7 @@ import { keepPreviousData, useQuery } from '@tanstack/react-query';
 import { guestsApi, guestPhotoSrc } from '../../services/api/guestsApi';
 import type { GuestListDto } from '../../services/api';
 import { useAuth } from '../../hooks/useAuth';
+import {PageHeaderFilterControls} from "../../components/PageHeaderActionsContext";
 import PageHeader from '../../components/PageHeader';
 import EmptyState from '../../components/EmptyState';
 import { Money } from '../../components/Money';
@@ -146,10 +147,21 @@ const GuestsListPage: React.FC<GuestsListPageProps> = ({ embedded = false }) => 
 
   // ── Render ──────────────────────────────────────────────────────────
   // Padding de page : SPACING.PAGE_PADDING (2) = 12px avec theme.spacing = 6.
+  const channelFilters=<FilterChipRow
+        allLabel="Tous les canaux"
+        value={channelFilter}
+        onChange={handleChannelChange}
+        options={CHANNEL_OPTIONS.filter(Boolean).map((ch) => ({
+          value: ch,
+          label: CHANNEL_LABELS[ch] || ch,
+          color: CHANNEL_TOKEN[ch]?.fg ?? 'var(--bui-muted-foreground)',
+        }))}
+      />;
   return (
     <div className={embedded ? 'p-0' : 'p-3'}>
       {!embedded && (
         <PageHeader
+          filters={channelFilters}
           title="Voyageurs"
           subtitle={`${totalElements} voyageur${totalElements !== 1 ? 's' : ''}`}
           iconBadge={<PeopleIcon />}
@@ -161,17 +173,7 @@ const GuestsListPage: React.FC<GuestsListPageProps> = ({ embedded = false }) => 
       {/* ─── Chips de canal (rangee de la projection) — filtre SERVEUR.
           Pas de comptes : la pagination est serveur et l'API ne renvoie pas
           d'agregat par canal ; un compte de la page courante mentirait. */}
-      <FilterChipRow
-        className="mb-3"
-        allLabel="Tous les canaux"
-        value={channelFilter}
-        onChange={handleChannelChange}
-        options={CHANNEL_OPTIONS.filter(Boolean).map((ch) => ({
-          value: ch,
-          label: CHANNEL_LABELS[ch] || ch,
-          color: CHANNEL_TOKEN[ch]?.fg ?? 'var(--bui-muted-foreground)',
-        }))}
-      />
+      {embedded&&<PageHeaderFilterControls>{channelFilters}</PageHeaderFilterControls>}
 
       {/* Loading skeletons */}
       {isLoading && (

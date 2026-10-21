@@ -13,6 +13,24 @@
 const NEXT_ATTR = 'data-clenzy-next';
 const RETURN_ATTR = 'data-clenzy-return';
 
+/** A property-specific route carries an explicit selection across reloads and new tabs. */
+export function withPropertySelection(path: string | null, propertyId: number): string | null {
+  if (!path || !Number.isSafeInteger(propertyId) || propertyId <= 0) return path;
+  const url = new URL(path, window.location.origin);
+  url.searchParams.set('clenzy_property', String(propertyId));
+  return url.origin === window.location.origin ? `${url.pathname}${url.search}${url.hash}` : url.href;
+}
+
+export function propertyDestination(el: HTMLElement, propertyId: number): string | null {
+  let path = readNext(el);
+  try {
+    const pages = JSON.parse(el.getAttribute('data-baitly-property-pages') || '{}');
+    const mapped = pages[String(propertyId)];
+    if (typeof mapped === 'string' && mapped.startsWith('/') && !mapped.startsWith('//')) path = mapped;
+  } catch { /* Legacy templates still use their declared next route. */ }
+  return withPropertySelection(path, propertyId);
+}
+
 /** Lit `data-clenzy-next` sur le marqueur (chemin de destination après l'action). */
 export function readNext(el: HTMLElement): string | null {
   return normalizePath(el.getAttribute(NEXT_ATTR));
@@ -38,6 +56,24 @@ function normalizePath(raw: string | null): string | null {
 export function navigateTo(path: string | null): void {
   if (!path) return;
   window.location.assign(path);
+}
+
+/** Carry the server-issued booking reference to the actual confirmation page, preserving its query/hash. */
+export function withReservationReference(path: string | null, reference: string): string | null {
+  if (!path) return null;
+  const url = new URL(path,window.location.origin);
+  url.searchParams.set('reservation',reference);
+  return url.origin === window.location.origin ? `${url.pathname}${url.search}${url.hash}` : url.href;
+}
+
+/** Keep every server-issued stay reference together across individual hosted payment returns. */
+export function withBatchReferences(path: string, references: string[], requiresPayment: boolean): string {
+  const url = new URL(path, window.location.origin);
+  url.searchParams.delete('stay');
+  references.forEach((reference) => url.searchParams.append('stay', reference));
+  if (requiresPayment) url.searchParams.set('payRemaining', '1');
+  else url.searchParams.delete('payRemaining');
+  return url.origin === window.location.origin ? `${url.pathname}${url.search}${url.hash}` : url.href;
 }
 
 /**

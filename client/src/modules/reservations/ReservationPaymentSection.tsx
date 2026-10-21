@@ -1,11 +1,13 @@
 import React from 'react';
-import StatusChip, { type StatusTone } from '../../components/StatusChip';
+import type { StatusTone } from '../../components/StatusChip';
+import ReservationFinancialState from './ReservationFinancialState';
 import { Money } from '../../components/Money';
 import IllustratedHeading from '../../components/IllustratedHeading';
 import { RESERVATION_ART } from '../../components/reservations/reservationArtwork';
 import { useTranslation } from '../../hooks/useTranslation';
 import type { Reservation } from '../../services/api/reservationsApi';
 import { formatMoment } from './reservationFormat';
+import { CreditCard } from '../../icons/glyphs';
 
 /** Les statuts de `PaymentStatus` (serveur) ; un code absent d'ici se lit « à vérifier ». */
 const PAYMENT_TONE: Record<string, StatusTone> = {
@@ -70,13 +72,13 @@ export default function ReservationPaymentSection({ reservation: r }: { reservat
   }
 
   return (
-    <section className="rsv-section">
+    <section className="rsv-section rsv-payment-section">
       <IllustratedHeading
         art={RESERVATION_ART.payment}
+        icon={<CreditCard className="size-4 shrink-0" aria-hidden />}
         title={t('reservationsWorkspace.payment.title')}
-        hint={t('reservationsWorkspace.payment.hint')}
-        action={<StatusChip pill tone={state.tone} label={state.label} />}
       />
+      <ReservationFinancialState tone={state.tone} label={state.label} />
       <dl className="rsv-facts">
         {facts.map((fact) => (
           <div key={fact.label}>

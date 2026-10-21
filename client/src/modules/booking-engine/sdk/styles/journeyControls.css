@@ -1,0 +1,32 @@
+/* Control skin belongs to the traveller theme, never the host application's palette. */
+.bt-journey .cb-widget{--cb-surface:var(--bt-color-surface,#fbfaf6);--cb-text:var(--bt-color-text,#263934);--cb-muted:var(--bt-color-text-muted,#55665e);--cb-border:var(--bt-color-border,#d7dfda);--cb-accent:var(--bt-color-primary,#344f43);--cb-on-accent:var(--bt-color-on-primary,#fbfaf6);--cb-radius:8px}
+.bt-journey .cb-widget :is(.cb-input,.cb-date-input,.cb-guests-toggle){border-width:1px;border-style:solid;border-color:var(--cb-border);border-radius:var(--bt-radius-md,8px);background-color:var(--cb-surface);color:var(--cb-text);font-family:inherit;transition:border-color 180ms ease-out,background-color 180ms ease-out;cursor:pointer}
+.bt-journey .cb-widget input.cb-input{cursor:text}
+.bt-journey .cb-widget :is(.cb-input,.cb-date-input,.cb-guests-toggle):is(:hover,.cb-open,.cb-active){border-color:var(--cb-accent);background-color:color-mix(in srgb,var(--cb-accent) 4%,var(--cb-surface))}
+.bt-journey .cb-widget :is(button,input,select):focus-visible{outline:2px solid var(--cb-accent);outline-offset:3px}
+.bt-journey .cb-widget :is(.cb-calendar-wrapper.cb-open,.cb-guests-panel.cb-open,.cb-multiselect__panel.cb-open){padding:16px;background-color:var(--cb-surface);color:var(--cb-text);border:1px solid var(--cb-border);border-radius:12px;box-shadow:0 14px 40px color-mix(in srgb,var(--cb-text) 16%,transparent);z-index:60}
+.bt-journey .cb-widget .cb-multiselect__panel.cb-open{padding:6px;min-inline-size:100%;max-inline-size:calc(100vw - 32px);max-block-size:320px;overflow:auto}
+.bt-journey .cb-widget .cb-multiselect__option{display:flex;align-items:center;gap:10px;inline-size:100%;min-block-size:44px;padding:10px 12px;border:0;border-radius:6px;background-color:transparent;color:var(--cb-text);font:inherit;font-size:14px;text-align:start;white-space:normal;cursor:pointer}
+.bt-journey .cb-widget .cb-multiselect__option:is(:hover,:focus-visible){background-color:color-mix(in srgb,var(--cb-accent) 8%,var(--cb-surface))}
+.bt-journey .cb-widget .cb-multiselect__option.cb-selected{background-color:color-mix(in srgb,var(--cb-accent) 12%,var(--cb-surface));font-weight:600}
+.bt-journey .cb-widget .cb-singleselect__option.cb-selected::after{content:'✓';margin-inline-start:auto;color:var(--cb-accent)}
+.bt-journey .cb-widget :is(.cb-property-select__chevron,.cb-guests-toggle__chevron) svg{inline-size:16px;block-size:16px}
+.bt-journey .cb-widget .cb-calendar-header{margin-block-end:16px;gap:8px}
+.bt-journey .cb-widget .cb-calendar-title{font-size:14px;line-height:1.5;font-weight:600;text-align:center}
+.bt-journey .cb-widget .cb-calendar-month__title{margin-block:4px 10px;font-size:13px;font-weight:600;text-align:center}
+.bt-journey .cb-widget .cb-calendar-close{position:sticky;inset-block-end:0;inline-size:100%;min-block-size:44px;margin-block-start:12px;border:1px solid var(--cb-border);border-radius:6px;background-color:var(--cb-surface);color:var(--cb-text);font:inherit;font-size:14px;cursor:pointer}
+.bt-journey .cb-widget .cb-calendar-nav{inline-size:36px;block-size:36px;flex-shrink:0;border:1px solid var(--cb-border);border-radius:50%;background-color:var(--cb-surface);color:var(--cb-text)}
+.bt-journey .cb-widget .cb-calendar-nav svg{inline-size:16px;block-size:16px}
+.bt-journey .cb-widget .cb-calendar-day{min-inline-size:0;block-size:42px;padding:2px;border:0;border-radius:6px;background-color:transparent;color:var(--cb-text);font:inherit;font-size:13px;font-variant-numeric:tabular-nums;cursor:pointer}
+.bt-journey .cb-widget .cb-calendar-day:hover:not(.cb-disabled){background-color:color-mix(in srgb,var(--cb-accent) 10%,var(--cb-surface))}
+.bt-journey .cb-widget .cb-calendar-day.cb-in-range{border-radius:0;background-color:color-mix(in srgb,var(--cb-accent) 12%,var(--cb-surface))}
+.bt-journey .cb-widget .cb-calendar-day:is(.cb-selected,.cb-range-start,.cb-range-end){background-color:var(--cb-accent);color:var(--cb-on-accent)}
+.bt-journey .cb-widget .cb-calendar-day.cb-disabled{opacity:.35;cursor:not-allowed}
+.bt-journey .cb-widget .cb-calendar-weekday{font-size:11px;color:var(--cb-muted);padding-block:8px}
+.bt-journey .cb-widget .cb-guests-panel{min-inline-size:min(260px,calc(100vw - 32px));max-inline-size:calc(100vw - 32px);max-block-size:70vh;overflow-y:auto}
+.bt-journey .cb-widget .cb-guests-row{padding-block:12px;border-block-end:1px solid var(--cb-border);gap:20px}
+.bt-journey .cb-widget .cb-guests-row:last-child{border-block-end:0}
+.bt-journey .cb-widget .cb-guests-row__title{font-size:14px;font-weight:600}
+.bt-journey .cb-widget .cb-guests-row__subtitle{font-size:12px;color:var(--cb-muted)}
+.bt-journey .cb-widget .cb-counter__btn{inline-size:34px;block-size:34px;border:1px solid var(--cb-border);border-radius:50%;background-color:var(--cb-surface);color:var(--cb-text);cursor:pointer}
+@media(prefers-reduced-motion:reduce){.bt-journey .cb-widget :is(.cb-input,.cb-date-input,.cb-guests-toggle){transition:none}}

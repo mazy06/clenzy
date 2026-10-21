@@ -5,6 +5,7 @@ import { cn } from '../../utils/cn';
 import './baitlyDirectory.css';
 
 export type CatalogView = 'cards' | 'list';
+export type DirectoryCardTone = 'blue' | 'teal' | 'amber' | 'purple';
 
 export function DirectoryResults({ view = 'cards', loading, children }: {
   view?: CatalogView; loading?: boolean; children?: ReactNode;
@@ -15,8 +16,8 @@ export function DirectoryResults({ view = 'cards', loading, children }: {
   </div>;
 }
 
-export function DirectoryCard({ children }: { children: ReactNode }) {
-  return <Card className="baitly-directory-card min-w-0 shrink-0 gap-0 overflow-hidden p-0">{children}</Card>;
+export function DirectoryCard({ children, tone = 'blue' }: { children: ReactNode; tone?: DirectoryCardTone }) {
+  return <Card data-card-tone={tone} className="baitly-directory-card min-w-0 shrink-0 gap-0 overflow-hidden p-0">{children}</Card>;
 }
 
 export const DIRECTORY_CARD_BODY = 'baitly-directory-card__body text-start text-foreground';
@@ -32,20 +33,24 @@ export function DirectoryCardContent({ media, title, description, trailing, tags
   metadataPlacement?: 'content' | 'full';
 }) {
   return <>
-    <div className="baitly-directory-card__media">{media}</div>
     <div className="baitly-directory-card__content">
-      <div className="baitly-directory-card__heading">
-        <h3>{title}</h3>
+      <div className="baitly-directory-card__topline">
+        {tags && <div className="baitly-directory-card__tags">{tags}</div>}
         {trailing && <div className="baitly-directory-card__trailing">{trailing}</div>}
       </div>
-      {description && <p className="baitly-directory-card__description">{description}</p>}
-      {tags && <div className="baitly-directory-card__tags">{tags}</div>}
+      <div className="baitly-directory-card__feature">
+        <div className="baitly-directory-card__copy">
+          <h3>{title}</h3>
+          {description && <p className="baitly-directory-card__description">{description}</p>}
+        </div>
+        <div className="baitly-directory-card__media">{media}</div>
+      </div>
       {metadata && metadataPlacement === 'content' && <div className="baitly-directory-card__metadata">{metadata}</div>}
     </div>
     {metadata && metadataPlacement === 'full' && <div className="baitly-provider-metadata">{metadata}</div>}
     <div className="baitly-directory-card__footer">
-      <div className="baitly-directory-card__actions">{footerLeading}</div>
       <div className="baitly-directory-card__price">{footerTrailing}</div>
+      <div className="baitly-directory-card__actions">{footerLeading}</div>
     </div>
   </>;
 }

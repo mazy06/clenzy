@@ -11,7 +11,7 @@ export default function PrestationRows({ rows }: { rows: PrestationRow[] }) {
   const requestIds = rows.filter((row) => row.kind === 'request').map((row) => Number(row.item.id));
   return (
     <RequestCommercialBatch ids={requestIds}>
-      {rows.map((row) => <MapLinkedRow key={row.id} propertyId={row.item.propertyId}>
+      {rows.map((row) => <MapLinkedRow key={row.id} propertyId={row.item.propertyId} showLocate={false}>
         <PrestationRowItem row={row} />
       </MapLinkedRow>)}
     </RequestCommercialBatch>

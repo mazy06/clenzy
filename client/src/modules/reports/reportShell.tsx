@@ -1,10 +1,17 @@
 import React from 'react';
-import { Alert, AlertDescription, Button, Spinner } from '../../components/ui';
-import { TriangleAlert } from '../../icons/glyphs';
+import { Alert, AlertDescription, Button, Skeleton } from '../../components/ui';
+import { TriangleAlert, CircleCheckIcon, InfoIcon } from '../../icons/glyphs';
+import { useWidgetPresentation } from '../../components/stats/widgetPresentation';
 import { cn } from '../../utils/cn';
 import { useCurrency } from '../../hooks/useCurrency';
 import { useTranslation } from '../../hooks/useTranslation';
-import { StatsBand, StatsLayout, TileGrid } from '../../components/stats';
+import { WidgetPanel } from '../../components/baitly/WidgetPanel';
+import { WidgetPresentationContext } from '../../components/stats/widgetPresentation';
+import BaitlyReportKpis from './BaitlyReportKpis';
+import type { BaitlyReportKind } from './baitlyReportMetrics';
+import { reportPanelLayout } from './baitlyReportLayout';
+import '../dashboard/dashboardImportedWidgets.css';
+import './baitly-reports.css';
 import type { StatFigure, Tile, ValueFormatter } from '../../components/stats';
 import { activeIntlLocale } from '../../utils/activeLocale';
 
@@ -25,8 +32,9 @@ export const ReportFrame: React.FC<{
 
   if (loading) {
     return (
-      <div className="flex min-h-[240px] items-center justify-center">
-        <Spinner className="size-8" />
+      <div className="baitly-reports-loading" role="status" aria-label={t('common.loading', 'Chargement')}>
+        <Skeleton className="h-20 w-full rounded-xl" />
+        <div className="baitly-reports-loading-grid"><Skeleton className="h-80 w-full rounded-xl" /><Skeleton className="h-80 w-full rounded-xl" /></div>
       </div>
     );
   }
@@ -62,6 +70,7 @@ export const ReportFrame: React.FC<{
  */
 export function useReportFormats() {
   const { convertAndFormat, convert, currency, currencySymbol, rates } = useCurrency();
+  const { currentLanguage } = useTranslation();
 
   return React.useMemo(() => {
     // Sans matrice de taux on reste en euros : afficher le symbole cible sur un
@@ -90,11 +99,11 @@ export function useReportFormats() {
       // `${30.7}` rend « 30.7 » : le point décimal anglais dans une interface
       // française. La locale du navigateur tranche.
       percent: ((value: number) =>
-        `${value.toLocaleString(undefined, { maximumFractionDigits: 1 })} %`) as ValueFormatter,
-      count: ((value: number) => value.toLocaleString()) as ValueFormatter,
-      nights: ((value: number) => value.toLocaleString()) as ValueFormatter,
+        `${value.toLocaleString(currentLanguage, { maximumFractionDigits: 1 })} %`) as ValueFormatter,
+      count: ((value: number) => value.toLocaleString(currentLanguage)) as ValueFormatter,
+      nights: ((value: number) => value.toLocaleString(currentLanguage)) as ValueFormatter,
     };
-  }, [convertAndFormat, convert, currency, currencySymbol, rates]);
+  }, [convertAndFormat, convert, currency, currencySymbol, rates, currentLanguage]);
 }
 
 /**
@@ -142,6 +151,8 @@ export const SignalList: React.FC<{ items: SignalItem[]; emptyLabel: string }> =
   items,
   emptyLabel,
 }) => {
+  const widget = useWidgetPresentation();
+  const { t } = useTranslation();
   if (items.length === 0) {
     return (
       <div className="flex h-full items-center justify-center text-xs text-muted-foreground">
@@ -151,16 +162,20 @@ export const SignalList: React.FC<{ items: SignalItem[]; emptyLabel: string }> =
   }
 
   return (
-    <ul className="m-0 flex list-none flex-col gap-2 p-0">
+    <ul className={cn('m-0 flex list-none flex-col gap-2 p-0', widget && 'db-data-signals')}>
       {items.map((item) => (
         <li
           key={item.id}
           className="flex gap-2 border-b border-border pb-2 last:border-b-0 last:pb-0"
         >
-          <span
+          {widget ? <span className="db-data-signals__icon" data-tone={item.tone}>
+            {item.tone === 'critical' || item.tone === 'warning' ? <TriangleAlert aria-hidden="true" />
+              : item.tone === 'success' ? <CircleCheckIcon aria-hidden="true" /> : <InfoIcon aria-hidden="true" />}
+            <span className="sr-only">{t(`dashboard.widgetContent.${item.tone}`, item.tone === 'critical' ? 'Prioritaire' : item.tone === 'warning' ? 'À suivre' : item.tone === 'success' ? 'À jour' : 'Information')}</span>
+          </span> : <span
             aria-hidden="true"
             className={cn('mt-1.5 size-1.5 shrink-0 rounded-full', SIGNAL_DOT[item.tone])}
-          />
+          />}
           <div className="min-w-0 flex-1">
             <p className="m-0 text-xs font-semibold text-foreground">{item.title}</p>
             <p className="m-0 text-2xs leading-snug text-muted-foreground">{item.description}</p>
@@ -220,11 +235,33 @@ export interface ReportContent {
  * reperes derriere un « +4 » — huit onglets denses ne rentrent pas dans une
  * hauteur de fenetre sans devenir des timbres-poste.</p>
  */
-export const ReportView: React.FC<{ content: ReportContent }> = ({ content }) => (
+/** Les mêmes cadres et contenus que les widgets du dashboard, sans leur limite de hauteur. */
+export const ReportPanel: React.FC<{
+  title: string; hint?: string; action?: React.ReactNode; fluid?: boolean; children: React.ReactNode; className?: string;
+}> = ({ title, hint, action, fluid, children, className }) => <WidgetPanel title={title} caption={hint} action={action}
+  className={cn('baitly-report-widget db-imported-widget', className)}>
+  <div className={cn('db-imported-body', fluid ? 'db-imported-body--fluid' : 'db-imported-body--chart')}
+    tabIndex={fluid ? undefined : 0} role={fluid ? undefined : 'region'} aria-label={fluid ? undefined : title}>
+    <WidgetPresentationContext.Provider value>{children}</WidgetPresentationContext.Provider>
+  </div>
+</WidgetPanel>;
+
+export const ReportView: React.FC<{ content: ReportContent; report: BaitlyReportKind }> = ({ content, report }) => (
   <ReportFrame loading={content.loading} error={content.error} onRetry={content.retry}>
-    <StatsLayout>
-      <StatsBand figures={content.figures} />
-      <TileGrid items={content.items} fill={false} />
-    </StatsLayout>
+    <div className="baitly-report-view" data-report={report}>
+      <BaitlyReportKpis key={report} figures={content.figures} report={report} />
+      <div className="baitly-report-grid">
+        {[...content.items].sort((a,b) => (reportPanelLayout(report,a.key).order ?? content.items.indexOf(a)) - (reportPanelLayout(report,b.key).order ?? content.items.indexOf(b))).map(tile => {
+          const layout = reportPanelLayout(report, tile.key);
+          return <div key={tile.key} className="baitly-report-slot" data-tile={tile.key} data-columns={layout.columns}
+            style={{ '--report-span': layout.columns, '--report-span-medium': layout.columns > 6 ? 12 : 6,
+              '--report-chart-height': `${layout.height ?? 300}px` } as React.CSSProperties}>
+            <ReportPanel title={tile.title} hint={tile.hint} action={tile.action} fluid={tile.fluid}>
+              {tile.render()}
+            </ReportPanel>
+          </div>;
+        })}
+      </div>
+    </div>
   </ReportFrame>
 );

@@ -1,4 +1,6 @@
 import type { SitePageType } from '../../../../../services/api/sitesApi';
+import { BAITLY_JOURNEY_TEMPLATES } from './baitlyJourneyTemplates';
+import type { BaitlyBookingJourneyId } from '../baitlyJourneyComposites';
 
 /**
  * Galerie de templates NATIFS prêts à charger dans le Studio GrapesJS.
@@ -35,8 +37,12 @@ export interface TemplatePage {
 
 /** Un template complet de la galerie. */
 export interface GalleryTemplate {
+  /** Immutable master release recorded on each independently editable client fork. */
+  version?: string;
   /** Identifiant stable (en anglais), ex. `conciergerie-marrakech`. */
   id: string;
+  journeyId?: BaitlyBookingJourneyId;
+  designVars?: Record<string, string>;
   /** Libellé affiché dans la galerie. */
   name: string;
   /** Sous-titre court (style / usage). */
@@ -49,10 +55,5 @@ export interface GalleryTemplate {
   pages: TemplatePage[];
 }
 
-/**
- * Catalogue des templates de galerie.
- * Vidé le 2026-07-16 : l'ancienne galerie native (7 templates manuels + 24 générés
- * par templateFactory) est supprimée au profit d'une nouvelle galerie inspirée des
- * standards du marché (cf. catalogue DB `site_templates` + ingestion /ingest).
- */
-export const GALLERY_TEMPLATES: GalleryTemplate[] = [];
+/** Native Baitly templates, composed for each supported booking journey. */
+export const GALLERY_TEMPLATES: GalleryTemplate[] = BAITLY_JOURNEY_TEMPLATES;

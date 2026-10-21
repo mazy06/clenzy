@@ -74,11 +74,16 @@ public class GuestMessagingService {
      * Genere un apercu du message (sujet + corps HTML) sans l'envoyer.
      * Utilise pour afficher le contenu d'un message dans l'historique.
      */
-    @Transactional(readOnly = true)
+    // La résolution du livret peut créer son token de consultation.
+    @Transactional
     public TemplateInterpolationService.InterpolatedMessage previewMessage(
             Long reservationId, Long templateId, Long orgId) {
         Reservation reservation = reservationRepository.findById(reservationId)
             .orElseThrow(() -> new IllegalArgumentException("Reservation introuvable: " + reservationId));
+
+        if (reservation.getOrganizationId() != null && !reservation.getOrganizationId().equals(orgId)) {
+            throw new AccessDeniedException("Réservation hors de l'organisation demandée");
+        }
 
         MessageTemplate template = templateRepository.findByIdAndOrganizationId(templateId, orgId)
             .orElseThrow(() -> new IllegalArgumentException("Template introuvable: " + templateId));
@@ -90,8 +95,10 @@ public class GuestMessagingService {
             .findByPropertyIdAndOrganizationId(property.getId(), orgId)
             .orElse(null);
 
+        Map<String, String> variables = new LinkedHashMap<>();
+        resolveGuideLink(template, reservation, variables);
         return interpolationService.interpolate(
-            template, reservation, guest, property, instructions);
+            template, reservation, guest, property, instructions, variables);
     }
 
     /**
@@ -227,15 +234,7 @@ public class GuestMessagingService {
         // deja via extraVars). On evite ainsi de creer un token de livret inutile pour les
         // messages qui ne l'utilisent pas (check-in, check-out, etc.). Best-effort : un
         // echec ne doit pas bloquer l'envoi du message.
-        if (!resolvedVars.containsKey("guideLink") && templateReferencesGuideLink(template)) {
-            try {
-                welcomeGuideService.linkForReservation(reservation)
-                        .ifPresent(link -> resolvedVars.put("guideLink", link));
-            } catch (Exception e) {
-                log.warn("Resolution du lien livret echouee pour reservation={}: {}",
-                        reservation.getId(), e.getMessage());
-            }
-        }
+        resolveGuideLink(template, reservation, resolvedVars);
 
         // Carte de localisation Baitly (propriete + point d'echange si applicable), dans la langue du voyageur
         try {
@@ -386,6 +385,18 @@ public class GuestMessagingService {
             return Double.parseDouble(value);
         } catch (NumberFormatException e) {
             return null;
+        }
+    }
+
+    /** Même résolution pour l'aperçu et l'envoi ; conserve les liens fournis par une action. */
+    private void resolveGuideLink(MessageTemplate template, Reservation reservation, Map<String, String> variables) {
+        if (!templateReferencesGuideLink(template) || variables.containsKey("guideLink")) return;
+        try {
+            welcomeGuideService.linkForReservation(reservation)
+                .ifPresent(link -> variables.put("guideLink", link));
+        } catch (Exception e) {
+            log.warn("Resolution du lien livret echouee pour reservation={} [{}]",
+                reservation.getId(), e.getClass().getSimpleName());
         }
     }
 

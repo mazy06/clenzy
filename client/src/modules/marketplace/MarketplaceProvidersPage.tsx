@@ -4,7 +4,7 @@ import { useMarketplaceFilterState } from './useMarketplaceFilterState';
 import { useUserUiPreferences } from '../../providers/UserUiPreferencesProvider';
 import { useMarketplacePresentation } from './useMarketplacePresentation';
 import React, { useCallback, useMemo, useState } from 'react';
-import { usePageHeaderActions } from '../../components/PageHeaderActionsContext';
+import { PageHeaderFilterControls, usePageHeaderActions } from '../../components/PageHeaderActionsContext';
 import ProviderDirectoryResults, { PROVIDERS_PAGE_SIZE as PAGE_SIZE } from './ProviderDirectoryResults';
 import { useScreenSearch } from '../../components/ScreenChrome';
 import {
@@ -246,7 +246,7 @@ export default function MarketplaceProvidersPage() {
 
       {/* ─── Reprise des comptes existants ───────────────────────────── */}
       {(stats?.importableUsers ?? 0) > 0 && (
-        <Card className="mb-3 shrink-0 flex-row flex-wrap items-center justify-between gap-3 px-4 py-3">
+        <Card className="mx-3 mt-3 shrink-0 flex-row flex-wrap items-center justify-between gap-3 p-3">
           <div className="min-w-0">
             <p className="m-0 text-sm font-semibold text-foreground">
               {t("marketplaceAdmin.importable", { count: stats!.importableUsers })}
@@ -267,7 +267,7 @@ export default function MarketplaceProvidersPage() {
 
       {importProviders.isError && <p role="alert">{t("marketplaceAdmin.failed")}</p>}
       {importProviders.isSuccess && importProviders.data && (
-        <Card className="mb-3 shrink-0 px-4 py-3">
+        <Card className="mx-3 mt-3 shrink-0 p-3">
           <p className="m-0 text-sm text-foreground">
             {t("marketplaceAdmin.importResult", { ...importProviders.data })}
           </p>
@@ -287,7 +287,7 @@ export default function MarketplaceProvidersPage() {
         précédente alignait quarante-six contrôles de poids identique sur sept
         cents pixels de haut, poussant la grille sous la ligne de flottaison.
       */}
-      <DirectoryToolbar>
+      <PageHeaderFilterControls><div className="flex flex-col gap-3">
         <DirectorySegments>
           {VIEWS.map((entry) => {
             const count = viewCount(entry.key);
@@ -351,7 +351,7 @@ export default function MarketplaceProvidersPage() {
             </span>
           )}
         </div>
-      </DirectoryToolbar>
+      </div></PageHeaderFilterControls>
 
       {/* ─── Filtres et résultats ────────────────────────────────────── */}
       <ProviderDirectoryLayout filters={<MarketplaceFilterPanel {...filterPanelProps} />}>

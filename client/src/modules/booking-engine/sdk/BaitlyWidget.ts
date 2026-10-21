@@ -57,6 +57,7 @@ export class BaitlyWidget {
   private prevPropertyId: number | null = null;
   private prevMonth = '';
   private prevCurrency = '';
+  private pricingRequest = 0;
 
   constructor(config: BaitlyBookingConfig) {
     this.config = config;
@@ -492,7 +493,6 @@ export class BaitlyWidget {
         if (currencyChanged) {
           this.fetchProperties();
           if (s.selectedPropertyId) this.fetchCalendar();
-          if (s.checkIn && s.checkOut) this.fetchPricing();
         } else if (propertyChanged) {
           this.fetchCalendar();
         } else if (monthChanged) {
@@ -501,11 +501,19 @@ export class BaitlyWidget {
       }),
     );
 
-    // Prix quand les dates changent (via /availability).
+    // Keep legacy embedded layouts consistent with the same live stay inputs as native templates.
+    let previousQuote = '';
+    const refreshQuote = () => {
+      const s = this.state.get();
+      const key = JSON.stringify([s.selectedPropertyId, s.checkIn, s.checkOut, s.adults, s.children, s.displayCurrency, s.guestToken]);
+      if (key === previousQuote) return;
+      previousQuote = key;
+      void this.fetchPricing();
+    };
+    this.unsubscribers.push(this.state.on('*', refreshQuote));
+    refreshQuote();
     this.unsubscribers.push(
       this.state.on('dateSelected', (s: WidgetState) => {
-        if (s.checkIn && s.checkOut) this.fetchPricing();
-        else this.state.set({ pricing: null });
         this.config.onDateChange?.({ checkIn: s.checkIn, checkOut: s.checkOut });
       }),
     );
@@ -565,29 +573,35 @@ export class BaitlyWidget {
   }
 
   private async fetchPricing(): Promise<void> {
+    const request = ++this.pricingRequest;
     const s = this.state.get();
-    if (!s.selectedPropertyId || !s.checkIn || !s.checkOut) return;
+    if (!s.selectedPropertyId || !s.checkIn || !s.checkOut || s.checkOut <= s.checkIn) {
+      this.state.set({ pricing: null, pricingLoading: false });
+      return;
+    }
     try {
-      this.state.set({ pricingLoading: true });
+      this.state.set({ pricing: null, pricingLoading: true, error: null });
       const avail: ApiAvailability = await this.api.checkAvailability(
-        { propertyId: s.selectedPropertyId, checkIn: s.checkIn, checkOut: s.checkOut, guests: s.adults + s.children },
+        { propertyId: s.selectedPropertyId, checkIn: s.checkIn, checkOut: s.checkOut, guests: s.adults + s.children, children: s.children },
         s.displayCurrency,
         s.guestToken ?? undefined, // tarif membre (2.8) si voyageur connecté
       );
+      if (request !== this.pricingRequest) return;
       if (!avail.available) {
         this.state.set({ pricing: null, pricingLoading: false, error: avail.violations?.[0] ?? null }, 'error');
         return;
       }
       this.state.set({ pricing: toPriceBreakdown(avail, this.i18n), pricingLoading: false }, 'priceUpdated');
     } catch (err) {
-      this.state.set({ pricingLoading: false, error: msg(err) }, 'error');
+      if (request !== this.pricingRequest) return;
+      this.state.set({ pricing: null, pricingLoading: false, error: msg(err) }, 'error');
     }
   }
 
-  /** Ajoute le séjour courant (propriété + dates + prix) au panier, puis réinitialise la sélection. */
+  /** Ajoute le séjour courant au panier, conserve le logement et prépare de nouvelles dates. */
   private addCurrentStayToCart(): void {
     const s = this.state.get();
-    if (!s.selectedPropertyId || !s.checkIn || !s.checkOut || !s.pricing) return;
+    if (!s.selectedPropertyId || !s.checkIn || !s.checkOut || !s.pricing || s.pricingLoading || s.loading) return;
     const prop = s.properties.find(p => p.id === s.selectedPropertyId);
     const item = {
       propertyId: s.selectedPropertyId,
@@ -601,7 +615,6 @@ export class BaitlyWidget {
     };
     this.state.set({
       cart: [...s.cart, item],
-      selectedPropertyId: null,
       checkIn: null,
       checkOut: null,
       pricing: null,
@@ -768,6 +781,7 @@ export class BaitlyWidget {
   }
 
   destroy(): void {
+    this.pricingRequest++;
     this.unsubscribers.forEach(fn => fn());
     this.unsubscribers = [];
     this.wishlistAuth?.destroy();
@@ -852,6 +866,8 @@ function parseWidgetLayout(componentConfig?: string): LayoutNode[] {
 
 function mapProperty(p: ApiProperty): WidgetProperty {
   return {
+    securityDepositAmount: p.securityDepositAmount,
+    securityDepositCurrency: p.securityDepositCurrency,
     id: p.id,
     name: p.name,
     type: p.type,

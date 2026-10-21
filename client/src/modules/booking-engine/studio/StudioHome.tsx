@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { templateForkMetadata } from './grapes/import/templateFork';
 import {
   Alert,
   AlertDescription,
@@ -27,7 +28,7 @@ import {
 import {
   Plus, LayoutDashboard, ArrowUp, Search, Home, Layers, Sparkles, Languages, Feather, X,
   ArrowRight, List as ListIcon, LayoutGrid, AlertTriangle, ChevronDown, Trash2,
-  Users, Target, Gem, MapPin, Coins, BadgeCheck, Files,
+  Users, Target, Gem, MapPin, Coins, BadgeCheck, Files, Check,
 } from '../../../icons/glyphs';
 import { bookingEngineApi, type BookingEngineConfig, type BookingEngineConfigUpdate } from '../../../services/api/bookingEngineApi';
 import type { SiteGenerationBrief } from '../../../services/api/sitesApi';
@@ -41,13 +42,19 @@ import EmptyState from '../../../components/EmptyState';
 import { useScreenSearch } from '../../../components/ScreenChrome';
 import { useTranslation } from '../../../hooks/useTranslation';
 import './studioHome.css';
+import { usePropertiesList } from '../../../hooks/usePropertiesList';
+import { usePageHeaderActions } from '../../../components/PageHeaderActionsContext';
+import NavCountBadge from '../../../components/NavCountBadge';
+import './baitlyBookingHome.css';
+import BaitlyTemplateSnapshot from './BaitlyTemplateSnapshot';
+import { useUserPreference } from '../../../hooks/useUserPreference';
+import { createBookingEngineDemos, readBookingDemo, refreshBookingDemoLogos } from './bookingEngineDemos';
+import { baitlyTemplateLogoSource } from './grapes/import/baitlyTemplateLogos';
+import type { BaitlyTemplateProperty } from './grapes/import/baitlyJourneyTemplates';
 
 /**
- * Accueil « studio » du Booking Engine (refonte handoff design_handoff_booking_accueil) :
- * hero + champ IA + éventail de funnels + galerie de templates + liste « Mes booking engines ».
- * Zone de CONTENU uniquement — le chrome (sidebar, top bar segmentée, sous-onglets) est fourni
- * par le parent. Accent module = bleu nuit (teinte de la barre laterale,
- * relevee en luminosite), defini sur `.be-home` dans `studioHome.css`.
+ * Booking Engine workspace: saved engines followed by full-width journey and appearance choices.
+ * The parent supplies screen navigation, search and the header action slot.
  *
  * Câblage : la liste, la création (vierge / depuis funnel / depuis template / depuis le champ IA)
  * sont réelles (bookingEngineApi). Les champs sûrs (couleur/police d'un style ou d'un template,
@@ -75,27 +82,11 @@ export function buildConfigPayload(name: string): BookingEngineConfigUpdate {
 // ── Données d'affichage ──────────────────────────────────────────────────────
 
 /** Funnels mis en avant dans la rangée (5 parmi les presets intégrés). Schéma via `FunnelArt`. */
-const FAN_FUNNELS = ['catalogue', 'single', 'inquiry', 'extras', 'express']
+const FAN_FUNNELS = ['catalogue', 'single', 'inquiry', 'extras', 'cart', 'express', 'confirmation']
   .map((id) => BUILTIN_FUNNEL_PRESETS.find((f) => f.id === id))
   .filter((f): f is NonNullable<typeof f> => !!f);
 
-/** Funnel associé à chaque template : filtre la galerie par funnel sélectionné. Redistribués pour couvrir tous
- *  les funnels (gardés : Conciergerie→catalogue, Duplex→single). Défaut : catalogue. */
-const TEMPLATE_FUNNEL: Record<string, string> = {
-  'conciergerie-marrakech': 'catalogue',
-  'duplex-marrakech': 'single',
-  'villa-bord-de-mer': 'inquiry',
-  'bord-de-mer-balneaire': 'extras',
-  'appartement-urbain': 'cart',
-  'maison-campagne': 'express',
-  'recherche-catalogue-premium': 'confirmation',
-};
-const templateFunnel = (id: string): string => TEMPLATE_FUNNEL[id] ?? 'catalogue';
-
-/** Rotation (deg) / lift (px) d'une carte de l'éventail selon sa position i et le total n → fan symétrique
- *  pour un nombre VARIABLE de cartes (les funnels = 5 fixes via nth-child ; les templates = inline via ceci). */
-const fanTip = (i: number, n: number): number => (n <= 1 ? 0 : +(((n - 1) / 2 - i) * 3).toFixed(2));
-const fanLift = (i: number, n: number): number => (n <= 1 ? 0 : +(Math.abs(i - (n - 1) / 2) * 6).toFixed(1));
+const templateFunnel = (id: string): string => GALLERY_TEMPLATES.find((template) => template.id === id)?.journeyId ?? 'catalogue';
 
 /** Mini-aperçu « screenshot » d'un site, teinté à une couleur de marque. Styles INLINE (marche aussi dans un
  *  popover rendu en portail, hors `.be-home`), remplit son conteneur (position:absolute) et s'adapte à toute taille. */
@@ -111,6 +102,29 @@ function MiniPreview({ color }: { color: string }) {
       </span>
     </span>
   );
+}
+
+function SavedEngineLogo({ config }: { config: BookingEngineConfig }) {
+  const src = config.logoUrl || baitlyTemplateLogoSource(readBookingDemo(config)?.templateId || '');
+  return src ? <img className="baitly-booking-library__logo" src={src} alt="" width="32" height="32" /> : null;
+}
+
+function SavedEnginePreview({ config, property, availableProperties = [] }: { config: BookingEngineConfig; property?: BaitlyTemplateProperty; availableProperties?: (BaitlyTemplateProperty & { id: string | number })[] }) {
+  const selectedProperties = useMemo(() => {
+    try {
+      const ids: unknown = JSON.parse(config.featuredPropertyIds || '[]');
+      return Array.isArray(ids) ? ids.flatMap((id) => availableProperties.filter((item) => String(item.id) === String(id))) : [];
+    } catch { return []; }
+  }, [config.featuredPropertyIds, availableProperties]);
+  const { template, page } = useMemo(() => {
+    try {
+      const metadata = JSON.parse(config.componentConfig || '{}');
+      const template = GALLERY_TEMPLATES.find((entry) => entry.id === metadata.baitlyTemplateId);
+      const saved = JSON.parse(config.pageLayout || '{}');
+      return { template, page: typeof saved.html === 'string' && typeof saved.css === 'string' ? { html: saved.html, css: saved.css } : undefined };
+    } catch { return {}; }
+  }, [config.componentConfig, config.pageLayout]);
+  return template ? <BaitlyTemplateSnapshot template={template} property={property} properties={selectedProperties} page={page} /> : <MiniPreview color={config.primaryColor} />;
 }
 
 /** Vignette d'un template : vraie image si dispo, sinon mini-aperçu teinté à la couleur de marque. */
@@ -288,6 +302,9 @@ export default function StudioHome({ embedded = false }: { embedded?: boolean })
   // Message d'invite affiché si on clique « Partir d'une page vierge » sans funnel (effacé au choix d'un funnel).
   const [blankError, setBlankError] = useState<string | null>(null);
   const [creating, setCreating] = useState(false);
+  const [demoRunning, setDemoRunning] = useState(false);
+  const [demoProgress, setDemoProgress] = useState<string | null>(null);
+  const demoLock = useRef(false);
 
   // Champ IA — texte libre + champs structurés (constructeur de prompt)
   const [prompt, setPrompt] = useState('');
@@ -296,7 +313,7 @@ export default function StudioHome({ embedded = false }: { embedded?: boolean })
   const [hoveredFunnelId, setHoveredFunnelId] = useState<string | null>(null);
   const [templateId, setTemplateId] = useState<string | null>(null);          // template choisi (optionnel, filtré par funnel)
   const [hoveredTemplateId, setHoveredTemplateId] = useState<string | null>(null);
-  const [styleId, setStyleId] = useState<string | null>(null);   // null = automatique
+  const [styleId, setStyleId] = useState<string | null>(null);
   const [tone, setTone] = useState<string | null>(null);
   const [languages, setLanguages] = useState<string[]>(['fr']);
   const [audience, setAudience] = useState<string | null>(null);
@@ -309,7 +326,7 @@ export default function StudioHome({ embedded = false }: { embedded?: boolean })
   // Champs actuellement ajoutés à la barre (Funnel par défaut). Les menus « + » et
   // « valeur » sont ancrés par leur propre déclencheur ; seul le popover « Lieu »
   // garde un état d'ouverture, car il se valide (OK / Entrée) au lieu de choisir.
-  const [activeOptions, setActiveOptions] = useState<PromptOptionId[]>(['funnel', 'template']);
+  const [activeOptions, setActiveOptions] = useState<PromptOptionId[]>(GALLERY_TEMPLATES.length ? ['funnel', 'template'] : ['funnel']);
   const [locationOpen, setLocationOpen] = useState(false);
   const areaRef = useRef<HTMLTextAreaElement>(null);
 
@@ -319,7 +336,37 @@ export default function StudioHome({ embedded = false }: { embedded?: boolean })
   // surplombe (onglet « Réservation & accueil »). En page autonome il n'y en a
   // pas : l'enregistrement est alors inerte et le champ local prend le relais.
   useScreenSearch(query, setQuery, 'Rechercher un booking engine…');
-  const [view, setView] = useState<'list' | 'grid'>('list');
+  const [view, setView] = useUserPreference<'list' | 'grid'>('bookingEngine.home.view', 'grid');
+  const { properties } = usePropertiesList();
+  const [previewPropertyIds, setPreviewPropertyIds] = useState<string[]>([]);
+  const allowsMultipleProperties = funnelId === 'catalogue' || funnelId === 'cart';
+  const availableSelection = previewPropertyIds.filter((id) => properties.some((p) => String(p.id) === id));
+  const fallbackPropertyId = properties.find((p) => p.photoUrls?.length || p.imageUrl)?.id || properties[0]?.id;
+  const chosenIds = availableSelection.length ? availableSelection : fallbackPropertyId ? [String(fallbackPropertyId)] : [];
+  const activePropertyIds = allowsMultipleProperties ? chosenIds : chosenIds.slice(0, 1);
+  const activePropertyId = activePropertyIds[0] || '';
+  const selectedProperties = activePropertyIds.map((id) => properties.find((p) => String(p.id) === id)!);
+  const canCreateDemos = user?.roles?.some((role) => ['SUPER_ADMIN', 'SUPER_MANAGER'].includes(role)) || ['SUPER_ADMIN', 'SUPER_MANAGER'].includes(user?.platformRole || '');
+  async function handleCreateDemos(refresh: false | 'confirmations' | 'templates' | 'logos' = false) {
+    if (demoLock.current) return;
+    demoLock.current = true;
+    setDemoRunning(true);
+    setError(null);
+    try {
+      const progress = (done: number, total: number) => setDemoProgress(t('studio.home.demoProgress', { done, total, defaultValue: 'Démos : {{done}} / {{total}}' }));
+      const saved = refresh === 'logos' ? await refreshBookingDemoLogos(progress) : await createBookingEngineDemos(buildConfigPayload, progress, { refreshConfirmations: refresh === 'confirmations', refreshTemplates: refresh === 'templates' });
+      setConfigs(saved);
+      setDemoProgress(refresh === 'logos' ? t('studio.home.demoLogosReady', 'Logos des démos mis à jour') : refresh ? t('studio.home.refreshedDemosReady', 'Démos et confirmations mises à jour') : t('studio.home.demosReady', '14 démos prêtes à comparer'));
+    } catch (error) {
+      setError(error instanceof Error ? error.message : t('studio.createFailed'));
+      const refreshed = await bookingEngineApi.listConfigs().catch(() => null);
+      if (refreshed) setConfigs(refreshed);
+    } finally { demoLock.current = false; setDemoRunning(false); }
+  }
+  const headerActions = usePageHeaderActions(<>
+    {canCreateDemos && <><Button variant="outline" onClick={() => handleCreateDemos()} disabled={demoRunning || creating}><Files size={16} />{demoRunning ? demoProgress || t('common.loading') : t('studio.home.createDemos', 'Ajouter les démos')}</Button><DropdownMenu><DropdownMenuTrigger asChild><Button variant="ghost" disabled={demoRunning || creating}>{t('studio.home.refreshDemos', 'Actualiser les démos')}<ChevronDown size={14} /></Button></DropdownMenuTrigger><DropdownMenuContent align="end"><DropdownMenuItem onSelect={() => handleCreateDemos('logos')}>{t('studio.home.refreshDemoLogos', 'Logos uniquement')}</DropdownMenuItem><DropdownMenuItem onSelect={() => handleCreateDemos('templates')}>{t('studio.home.refreshDemoJourneys', 'Tous les parcours et thèmes')}</DropdownMenuItem><DropdownMenuItem onSelect={() => handleCreateDemos('confirmations')}>{t('studio.home.refreshDemoConfirmations', 'Confirmations uniquement')}</DropdownMenuItem></DropdownMenuContent></DropdownMenu></>}
+    <Button disabled={demoRunning} onClick={() => document.getElementById('baitly-booking-property')?.focus()}><Plus size={16} />{t('studio.home.newBookingEngine', 'Nouveau moteur')}</Button>
+  </>);
   // Suppression d'un booking engine (depuis « Mes booking engines ») : confirmation puis DELETE org-scopé.
   const [confirmDelete, setConfirmDelete] = useState<BookingEngineConfig | null>(null);
   const [deleting, setDeleting] = useState(false);
@@ -364,7 +411,13 @@ export default function StudioHome({ embedded = false }: { embedded?: boolean })
     if (creating) return;
     setCreating(true);
     try {
-      const created = await bookingEngineApi.createConfig({ ...buildConfigPayload(uniqueConfigName(name)), ...overrides });
+      const style = DESIGN_PRESETS.find((p) => p.id === styleId);
+      const created = await bookingEngineApi.createConfig({
+        ...buildConfigPayload(uniqueConfigName(name)),
+        ...(style ? { primaryColor: style.primaryColor, fontFamily: style.fontFamily, designTokens: JSON.stringify(style.tokens) } : {}),
+        ...(activePropertyIds.length ? { featuredPropertyIds: JSON.stringify(activePropertyIds.map(Number)), dataSourceMode: 'REAL' } : {}),
+        ...overrides,
+      });
       if (analyzeUrl) {
         // Analyse IA du site avant d'ouvrir l'éditeur (non bloquant : un échec n'empêche pas l'édition).
         try { await bookingEngineApi.analyzeWebsite(created.id, analyzeUrl); } catch { /* best-effort */ }
@@ -419,7 +472,7 @@ export default function StudioHome({ embedded = false }: { embedded?: boolean })
     setFunnelId(id);
     setBlankError(null); // un funnel est choisi → l'invite « page vierge » n'a plus lieu d'être
     // Le template choisi ne reste que s'il appartient au nouveau funnel, sinon on le réinitialise.
-    setTemplateId((t) => (t && templateFunnel(t) === id ? t : null));
+    setTemplateId((previous) => previous && templateFunnel(previous) === id ? previous : GALLERY_TEMPLATES.find((template) => template.journeyId === id)?.id ?? null);
     setGoal((g) => (g && goalConflicts(g, id) ? null : g));
     setPages((ps) => ps.filter((k) => !pageConflicts(k, id)));
   };
@@ -430,13 +483,6 @@ export default function StudioHome({ embedded = false }: { embedded?: boolean })
   };
   // Templates visibles = ceux du funnel sélectionné (vide tant qu'aucun funnel → section verrouillée/grisée).
   const visibleTemplates = funnelId ? GALLERY_TEMPLATES.filter((t) => templateFunnel(t.id) === funnelId) : [];
-  // Éventail borné : au-delà de TPL_FAN_MAX, on coupe + une carte « Voir tous », et le chevauchement CROÎT avec
-  // le nombre de cartes pour garder une largeur de rangée stable (≈ 760px) — plus de cartes = plus superposées.
-  const TPL_FAN_MAX = 8;
-  const fanTemplates = visibleTemplates.slice(0, TPL_FAN_MAX);
-  const fanExtra = visibleTemplates.length - fanTemplates.length;
-  const fanTotal = fanTemplates.length + (fanExtra > 0 ? 1 : 0);
-  const fanOverlap = fanTotal > 1 ? Math.max(6, (fanTotal * 124 - 760) / (fanTotal - 1)) : 0;
   // Retirer un champ réinitialise sa valeur (évite un brief alimenté par une valeur masquée).
   const removeOption = (id: PromptOptionId) => {
     setActiveOptions((prev) => prev.filter((o) => o !== id));
@@ -693,9 +739,16 @@ export default function StudioHome({ embedded = false }: { embedded?: boolean })
     const tpl = GALLERY_TEMPLATES.find((t) => t.id === tplId);
     createAndOpen(
       tpl?.name ?? t('studio.newEngine'),
-      { ...(tpl?.theme?.primaryColor ? { primaryColor: tpl.theme.primaryColor } : {}), ...(tpl?.theme?.fontFamily ? { fontFamily: tpl.theme.fontFamily } : {}) },
+      {
+        ...(tpl?.theme?.primaryColor ? { primaryColor: tpl.theme.primaryColor } : {}),
+        ...(tpl?.theme?.fontFamily ? { fontFamily: tpl.theme.fontFamily } : {}),
+        ...(tpl?.designVars ? { designCssVariables: JSON.stringify(tpl.designVars) } : {}),
+        componentConfig: JSON.stringify(templateForkMetadata(tpl ?? { id: tplId })),
+        ...(activePropertyId ? { dataSourceMode: 'REAL' } : {}),
+        ...(activePropertyIds.length ? { featuredPropertyIds: JSON.stringify(activePropertyIds.map(Number)) } : {}),
+      },
       // `templateId` + `funnelId` consommés par GrapesStudio (auto-import + widgets) une fois l'éditeur prêt.
-      { templateId: tplId, funnelId },
+      { templateId: tplId, funnelId: tpl?.journeyId ?? funnelId, propertyId: activePropertyId, ...(allowsMultipleProperties ? { propertyIds: activePropertyIds } : {}) },
     );
   };
 
@@ -720,32 +773,111 @@ export default function StudioHome({ embedded = false }: { embedded?: boolean })
   );
 
   const content = (
-    <div className="be-home">
-      <div className="canvas" style={{ maxWidth: 1180 }}>
+    <div className="be-home baitly-booking-home">
+      {headerActions}
+      <div className="canvas">
         {error && (
           <Alert variant="destructive" className="mb-3">
             <AlertTriangle />
             <AlertDescription>{error}</AlertDescription>
           </Alert>
         )}
+        {demoProgress && <p role="status" className="mb-3 text-sm text-muted-foreground">{demoProgress}</p>}
 
-        {/* Studio à 2 colonnes : création (gauche) + rail templates vertical (droite). */}
+        {/* 5 · Mes booking engines */}
+        <section className="list">
+          <div className="list__head">
+            <h2>{t('studio.home.myBookingEngines', 'Mes booking engines')}</h2>
+            <NavCountBadge count={configs?.length ?? 0} />
+            <div className="sp" />
+            {/* Champ local UNIQUEMENT en page autonome (/booking-engine/studio) :
+                cette route n'a pas de PageHeader, donc pas de champ unique où se
+                brancher. Sous l'onglet « Réservation & accueil », la recherche
+                est déjà rendue par le header (cf. `useScreenSearch` ci-dessus). */}
+            {!embedded && (
+              <label className="search">
+                <Search size={15} strokeWidth={2} />
+                <input
+                  placeholder={t('studio.home.search')}
+                  value={query}
+                  onChange={(e) => setQuery(e.target.value)}
+                />
+              </label>
+            )}
+            <div className="view">
+              <button className={view === 'list' ? 'on' : ''} aria-label="Liste" type="button" onClick={() => setView('list')}><ListIcon size={16} strokeWidth={2} /></button>
+              <button className={view === 'grid' ? 'on' : ''} aria-label="Grille" type="button" onClick={() => setView('grid')}><LayoutGrid size={16} strokeWidth={2} /></button>
+            </div>
+          </div>
+
+          {configs === null && !error && <Skeleton className="h-[132px] rounded-[14px]" />}
+
+          {configs && configs.length === 0 && (
+            <EmptyState
+              variant="dashed"
+              icon={<LayoutGrid />}
+              title={t('studio.emptyTitle')}
+              description={t('studio.emptyDescription')}
+            />
+          )}
+
+          {configs && configs.length > 0 && view === 'list' && (
+            <div className="tbl">
+              <div className="tbl__h"><span>{t('studio.home.name')}</span><span>{t('studio.home.status')}</span><span>{t('studio.home.lastModified')}</span><span>{t('studio.home.owner')}</span></div>
+              {filtered.map((c) => (
+                <div key={c.id} className="row-wrap">
+                  <button className="row" type="button" onClick={() => navigate(`/booking-engine/studio/${c.id}`)}>
+                    <div className="row__name">
+                      <div className="row__thumb"><SavedEnginePreview config={c} availableProperties={properties} property={properties.find((property) => Number(property.id) === readBookingDemo(c)?.propertyId)} /></div>
+                      <div>
+                        <p className="row__t baitly-booking-library__title"><SavedEngineLogo config={c} /><span>{c.name}</span></p>
+                        {/* TODO : vraie URL publique (la config n'expose pas de slug). */}
+                        <p className="row__u">{c.enabled ? 'Publié' : 'Brouillon · non publié'}</p>
+                      </div>
+                    </div>
+                    <span className={`status ${c.enabled ? 'active' : 'off'}`}><span className="led" /> {c.enabled ? 'Actif' : 'Désactivé'}</span>
+                    {/* TODO : « dernière modif » (la config n'expose pas updatedAt). */}
+                    <span className="row__meta">{t('common.none')}</span>
+                    <div className="row__acc"><span className="av-sm">{initials}</span><span className="row__owner">{t('studio.home.you')}</span></div>
+                  </button>
+                  <button className="row__del" type="button" aria-label={`Supprimer ${c.name}`} title="Supprimer" onClick={() => setConfirmDelete(c)}><Trash2 size={16} strokeWidth={2} /></button>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {configs && configs.length > 0 && view === 'grid' && (
+            <div className="grid">
+              {filtered.map((c) => (
+                <div key={c.id} className="gcard-wrap">
+                  <button className="gcard" type="button" onClick={() => navigate(`/booking-engine/studio/${c.id}`)}>
+                    <div className="baitly-booking-library__content">
+                      <div className="baitly-booking-library__preview">
+                        <SavedEnginePreview config={c} availableProperties={properties} property={properties.find((property) => Number(property.id) === readBookingDemo(c)?.propertyId)} />
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <div dir="auto" className="baitly-booking-library__title text-sm font-semibold text-foreground [overflow-wrap:anywhere]"><SavedEngineLogo config={c} /><span>{c.name}</span></div>
+                        {readBookingDemo(c) && <div className="text-xs text-muted-foreground [overflow-wrap:anywhere]">{properties.find((property) => Number(property.id) === readBookingDemo(c)?.propertyId)?.name}<br />{BUILTIN_FUNNEL_PRESETS.find((funnel) => funnel.id === GALLERY_TEMPLATES.find((template) => template.id === readBookingDemo(c)?.templateId)?.journeyId)?.label}</div>}
+                        <span className={`status ${c.enabled ? 'active' : 'off'}`} style={{ fontSize: 12 }}><span className="led" /> {c.enabled ? 'Actif' : 'Désactivé'}</span>
+                      </div>
+                    </div>
+                    <div className="baitly-booking-library__open">
+                      Ouvrir <ArrowRight size={14} strokeWidth={2} />
+                    </div>
+                  </button>
+                  <button className="gcard__del" type="button" aria-label={`Supprimer ${c.name}`} title="Supprimer" onClick={() => setConfirmDelete(c)}><Trash2 size={15} strokeWidth={2} /></button>
+                </div>
+              ))}
+            </div>
+          )}
+        </section>
+
+        {/* Full-width booking choices. */}
         <div className="studio-split">
           <div className="studio-split__main">
 
-        {/* 1 · Hero */}
-        <div className="hero">
-          <p className="eyebrow">Booking Engine · Studio</p>
-          <h1>{t('studio.home.heading')}</h1>
-        </div>
-
-        {/* Les directions réutilisables se gèrent ici ; la SÉLECTION se fait à l'étape 1 de la génération. */}
-        <div className="mb-2">
-          <Button variant="link" size="sm" className="px-0" onClick={() => navigate('/booking-engine/design-systems')}>
-            <Sparkles size={14} strokeWidth={2} /> {t('studio.home.manageDesignSystems')}
-          </Button>
-        </div>
-
+        <details className="baitly-booking-assist" open>
+          <summary><Sparkles size={16} />{t('welcomeGuide.creation.aiTitle')}<ChevronDown size={16} /></summary>
         {/* 2 · Champ IA */}
         {creating ? (
           <Skeleton className="h-[170px] rounded-[20px]" />
@@ -772,7 +904,7 @@ export default function StudioHome({ embedded = false }: { embedded?: boolean })
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="start" className="w-auto min-w-[200px] max-h-[340px] overflow-y-auto">
                   {PROMPT_OPTIONS.flatMap((o) => {
-                    if (activeOptions.includes(o.id)) return [];
+                    if (activeOptions.includes(o.id) || (o.id === 'template' && !GALLERY_TEMPLATES.length)) return [];
                     const Icon = o.icon;
                     return [(
                       <DropdownMenuItem key={o.id} onSelect={() => addOption(o.id)} className="text-[13px] gap-1.5">
@@ -862,6 +994,27 @@ export default function StudioHome({ embedded = false }: { embedded?: boolean })
                   </DropdownMenu>
                 );
               })}
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <button className="chip chip--property" type="button" disabled={creating || !properties.length}>
+                    <Home size={18} aria-hidden="true" />
+                    <span className="chip__text">
+                      <span className="chip__lbl">{t('welcomeGuide.creation.propertyLabel')}</span>
+                      <span className="chip__val">{selectedProperties.length > 1 ? t('studio.home.selectedPropertyCount', { count: selectedProperties.length, defaultValue: '{{count}} logements' }) : selectedProperties[0]?.name || t('welcomeGuide.creation.chooseProperty')}</span>
+                    </span>
+                    <ChevronDown size={14} aria-hidden="true" />
+                  </button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="start" className="w-[min(360px,calc(100vw-32px))] max-h-[340px] overflow-y-auto">
+                  {allowsMultipleProperties ? properties.map((p) => {
+                    const id = String(p.id);
+                    const checked = activePropertyIds.includes(id);
+                    return <DropdownMenuCheckboxItem key={id} checked={checked} disabled={checked && activePropertyIds.length === 1} onSelect={(event) => event.preventDefault()} onCheckedChange={(next) => setPreviewPropertyIds(next ? [...activePropertyIds, id] : activePropertyIds.filter((selected) => selected !== id))} className="whitespace-normal [overflow-wrap:anywhere]">{p.name}{p.city ? ` · ${p.city}` : ''}</DropdownMenuCheckboxItem>;
+                  }) : <DropdownMenuRadioGroup value={activePropertyId} onValueChange={(id) => setPreviewPropertyIds([id])}>
+                    {properties.map((p) => <DropdownMenuRadioItem key={p.id} value={String(p.id)} className="whitespace-normal [overflow-wrap:anywhere]">{p.name}{p.city ? ` · ${p.city}` : ''}</DropdownMenuRadioItem>)}
+                  </DropdownMenuRadioGroup>}
+                </DropdownMenuContent>
+              </DropdownMenu>
               <div className="field__spacer" />
               <button className="send" type="button" aria-label={t('studio.home.generate')} disabled={creating} onClick={handleAiSubmit}>
                 <ArrowUp size={19} strokeWidth={2.2} />
@@ -870,9 +1023,10 @@ export default function StudioHome({ embedded = false }: { embedded?: boolean })
           </div>
         )}
 
+        </details>
         {/* 3 · Éventail de funnels */}
         <div className="fan-wrap">
-          <p className="fan-lead">{t('studio.home.orReadyFunnel')}</p>
+          <h3 className="fan-lead"><span>01</span>{t('studio.home.bookingJourney', 'Le parcours de réservation')}</h3>
           <div className="fan">
             {FAN_FUNNELS.map((f) => {
               return (
@@ -889,60 +1043,30 @@ export default function StudioHome({ embedded = false }: { embedded?: boolean })
                   onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); applyFunnel(f.id); } }}
                 >
                   <div className="fan__vig"><FunnelArt id={f.id} /></div>
-                  <p className="fan__name">{f.label}</p>
+                  <p className="fan__name">{t(f.labelKey ?? '', f.label)}</p>{f.id === funnelId ? <Check className="baitly-booking-selected" size={16} aria-hidden="true" /> : null}
                 </article>
               );
             })}
           </div>
         </div>
 
-        {/* 4 · Templates du funnel : grisés tant qu'aucun funnel choisi ; filtrés par type de funnel ; même éventail. */}
-        <div className="fan-wrap">
-          <p className="fan-lead">
-            {t('studio.home.thenTemplate')}
-            <button className="fan-lead__link" type="button" onClick={() => navigate('/booking-engine/templates')}>{t('studio.home.seeAllArrow')}</button>
-          </p>
-          {!funnelId ? (
-            <p className="fan-locked">{t('studio.home.pickFunnelFirst')}</p>
-          ) : visibleTemplates.length ? (
-            <div className="fan fan--tpl" style={{ ['--fan-mx' as string]: `${-(fanOverlap / 2)}px` }}>
-              {fanTemplates.map((tpl, i) => (
-                <article
-                  key={tpl.id}
-                  className={'fan__card' + (tpl.id === templateId ? ' fan__card--active' : '')}
-                  style={{ ['--tip' as string]: fanTip(i, fanTotal), ['--lift' as string]: fanLift(i, fanTotal) }}
-                  role="button" tabIndex={0} aria-pressed={tpl.id === templateId}
-                  title={`Choisir le template « ${tpl.name} »`}
-                  onClick={() => applyTemplate(tpl.id)}
-                  onMouseEnter={() => setHoveredTemplateId(tpl.id)}
-                  onMouseLeave={() => setHoveredTemplateId(null)}
-                  onFocus={() => setHoveredTemplateId(tpl.id)}
-                  onBlur={() => setHoveredTemplateId(null)}
-                  onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); applyTemplate(tpl.id); } }}
-                >
-                  <div className="fan__vig fan__vig--img"><TemplateThumb tpl={tpl} /></div>
-                  <p className="fan__name">{tpl.name}</p>
-                </article>
-              ))}
-              {fanExtra > 0 && (
-                <article
-                  key="__more"
-                  className="fan__card fan__card--more"
-                  style={{ ['--tip' as string]: fanTip(fanTemplates.length, fanTotal), ['--lift' as string]: fanLift(fanTemplates.length, fanTotal) }}
-                  role="button" tabIndex={0} title={`Voir les ${fanExtra} autres templates`}
-                  onClick={() => navigate('/booking-engine/templates')}
-                  onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); navigate('/booking-engine/templates'); } }}
-                >
-                  <div className="fan__vig fan__vig--more"><span className="fan__more">+{fanExtra}</span></div>
-                  <p className="fan__name">{t('studio.home.seeAll')}</p>
-                </article>
-              )}
-            </div>
-          ) : (
-            <p className="fan-locked">{t('studio.home.noTemplateForFunnel')}</p>
-          )}
-        </div>
-
+        <section className="baitly-booking-templates" aria-labelledby="baitly-booking-templates-title">
+          <div className="baitly-booking-section-heading">
+            <h3 id="baitly-booking-templates-title"><span>02</span>{t('studio.home.journeyTemplates', 'Le modèle de votre parcours')}</h3>
+            <Button variant="link" size="sm" onClick={() => navigate('/booking-engine/templates')}>{t('studio.home.allJourneyTemplates', 'Tous les modèles')}</Button>
+          </div>
+          {!funnelId ? <p className="baitly-booking-templates__empty">{t('studio.home.pickFunnelFirst')}</p> : <div className="baitly-booking-templates__items">
+            {visibleTemplates.map((template) => <button key={template.id} type="button" className="baitly-booking-template" disabled={creating} aria-label={template.name} aria-pressed={templateId === template.id} onClick={() => applyTemplate(template.id)}>
+              <span className="baitly-booking-template__image"><BaitlyTemplateSnapshot template={template} property={selectedProperties[0]} properties={selectedProperties} />{templateId === template.id ? <Check className="baitly-booking-selected" size={16} /> : null}</span>
+              <span className="baitly-booking-template__name">{template.name}<span className="baitly-booking-template__count">{t('studio.home.templatePageCount', { count: template.pages.length + (['catalogue', 'cart'].includes(template.journeyId || '') ? selectedProperties.length : 0), defaultValue: '{{count}} pages' })}</span></span>
+            </button>)}
+          </div>}
+        </section>
+        <div className="baitly-booking-actions"><Button disabled={creating} onClick={() => {
+          if (!funnelId) { setBlankError(t('studio.home.chooseJourney', 'Choisir un parcours')); return; }
+          if (templateId || prompt.trim()) { handleAiSubmit(); return; }
+          createAndOpen(t('studio.newEngine'), {}, { funnelId });
+        }}>{t('studio.home.customizeEngine', 'Personnaliser ce moteur')}<ArrowRight size={16} /></Button>
         {/* Page vierge (sans template) — RÈGLE : un funnel est requis. Cliquable ; au clic sans funnel → message. */}
         <div className="blank-row">
           <button
@@ -960,96 +1084,12 @@ export default function StudioHome({ embedded = false }: { embedded?: boolean })
           )}
         </div>
 
+        </div>
           </div>{/* /studio-split__main */}
 
         </div>{/* /studio-split */}
 
-        {/* 5 · Mes booking engines */}
-        <section className="list">
-          <div className="list__head">
-            <h2>Mes booking engines</h2>
-            <span className="count">{configs?.length ?? 0}</span>
-            <div className="sp" />
-            {/* Champ local UNIQUEMENT en page autonome (/booking-engine/studio) :
-                cette route n'a pas de PageHeader, donc pas de champ unique où se
-                brancher. Sous l'onglet « Réservation & accueil », la recherche
-                est déjà rendue par le header (cf. `useScreenSearch` ci-dessus). */}
-            {!embedded && (
-              <label className="search">
-                <Search size={15} strokeWidth={2} />
-                <input
-                  placeholder={t('studio.home.search')}
-                  value={query}
-                  onChange={(e) => setQuery(e.target.value)}
-                />
-              </label>
-            )}
-            <div className="view">
-              <button className={view === 'list' ? 'on' : ''} aria-label="Liste" type="button" onClick={() => setView('list')}><ListIcon size={16} strokeWidth={2} /></button>
-              <button className={view === 'grid' ? 'on' : ''} aria-label="Grille" type="button" onClick={() => setView('grid')}><LayoutGrid size={16} strokeWidth={2} /></button>
-            </div>
-          </div>
 
-          {configs === null && !error && <Skeleton className="h-[132px] rounded-[14px]" />}
-
-          {configs && configs.length === 0 && (
-            <EmptyState
-              variant="dashed"
-              icon={<LayoutGrid />}
-              title={t('studio.emptyTitle')}
-              description={t('studio.emptyDescription')}
-            />
-          )}
-
-          {configs && configs.length > 0 && view === 'list' && (
-            <div className="tbl">
-              <div className="tbl__h"><span>{t('studio.home.name')}</span><span>{t('studio.home.status')}</span><span>{t('studio.home.lastModified')}</span><span>{t('studio.home.owner')}</span></div>
-              {filtered.map((c) => (
-                <div key={c.id} className="row-wrap">
-                  <button className="row" type="button" onClick={() => navigate(`/booking-engine/studio/${c.id}`)}>
-                    <div className="row__name">
-                      <div className="row__thumb"><MiniPreview color={c.primaryColor || '#5453d6'} /></div>
-                      <div>
-                        <p className="row__t">{c.name}</p>
-                        {/* TODO : vraie URL publique (la config n'expose pas de slug). */}
-                        <p className="row__u">{c.enabled ? 'Publié' : 'Brouillon · non publié'}</p>
-                      </div>
-                    </div>
-                    <span className={`status ${c.enabled ? 'active' : 'off'}`}><span className="led" /> {c.enabled ? 'Actif' : 'Désactivé'}</span>
-                    {/* TODO : « dernière modif » (la config n'expose pas updatedAt). */}
-                    <span className="row__meta">—</span>
-                    <div className="row__acc"><span className="av-sm">{initials}</span><span className="row__owner">{t('studio.home.you')}</span></div>
-                  </button>
-                  <button className="row__del" type="button" aria-label={`Supprimer ${c.name}`} title="Supprimer" onClick={() => setConfirmDelete(c)}><Trash2 size={16} strokeWidth={2} /></button>
-                </div>
-              ))}
-            </div>
-          )}
-
-          {configs && configs.length > 0 && view === 'grid' && (
-            <div className="grid">
-              {filtered.map((c) => (
-                <div key={c.id} className="gcard-wrap">
-                  <button className="gcard" type="button" onClick={() => navigate(`/booking-engine/studio/${c.id}`)}>
-                    <div className="flex items-center gap-2 mb-2">
-                      <div className="relative w-[52px] h-[36px] rounded-md shrink-0 overflow-hidden bg-muted border border-border">
-                        <MiniPreview color={c.primaryColor || '#5453d6'} />
-                      </div>
-                      <div className="min-w-0 flex-1">
-                        <div dir="auto" className="text-sm font-semibold whitespace-nowrap overflow-hidden text-ellipsis text-foreground">{c.name}</div>
-                        <span className={`status ${c.enabled ? 'active' : 'off'}`} style={{ fontSize: 12 }}><span className="led" /> {c.enabled ? 'Actif' : 'Désactivé'}</span>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-0.5 mt-auto text-sm font-medium text-primary">
-                      Ouvrir <ArrowRight size={14} strokeWidth={2} />
-                    </div>
-                  </button>
-                  <button className="gcard__del" type="button" aria-label={`Supprimer ${c.name}`} title="Supprimer" onClick={() => setConfirmDelete(c)}><Trash2 size={15} strokeWidth={2} /></button>
-                </div>
-              ))}
-            </div>
-          )}
-        </section>
       </div>
 
       <Dialog

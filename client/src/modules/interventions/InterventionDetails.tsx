@@ -1,3 +1,4 @@
+import { serviceExecutionProfile } from './baitlyServiceExecution';
 import React, { useEffect, useMemo } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { Alert as BuiAlert, AlertDescription, AlertAction, Button as BuiButton, Card, CardContent, Skeleton } from '../../components/ui';
@@ -214,6 +215,8 @@ export default function InterventionDetailsPage() {
         : t('interventions.detail.userType');
 
     return {
+      id: intervention.id,
+      title: intervention.title,
       type: intervention.type,
       serviceItemCode: intervention.serviceItemCode,
       // La photo de couverture arrive avec l'intervention depuis le lot
@@ -256,6 +259,11 @@ export default function InterventionDetailsPage() {
         country: intervention.propertyCountry,
         bedroomCount: propertyDetails?.bedroomCount,
         bathroomCount: propertyDetails?.bathroomCount,
+        timezone: propertyDetails?.timezone,
+        squareMeters: propertyDetails?.squareMeters,
+        maxGuests: propertyDetails?.maxGuests,
+        cleaningDurationMinutes: serviceExecutionProfile(intervention) ? undefined : propertyDetails?.cleaningDurationMinutes,
+        cleaningNotes: serviceExecutionProfile(intervention) ? undefined : propertyDetails?.cleaningNotes,
       },
       requestor: intervention.requestorName
         ? { name: intervention.requestorName }
@@ -328,8 +336,8 @@ export default function InterventionDetailsPage() {
               tone={['URGENT', 'CRITICAL'].includes(intervention.priority) ? 'destructive' : intervention.priority === 'HIGH' ? 'warning' : 'muted'}
               label={getPriorityLabel(intervention.priority, t)} />
           ) : undefined}
-          backPath="/interventions"
-          backLabel={t('interventions.detail.backToList')}
+          onBack={() => navigate('/interventions?tab=interventions')}
+          backLabel={t('common.backToList')}
           actions={
             canEditInterventions ? (
               <BuiButton variant="outline" size="icon-sm"
@@ -390,7 +398,7 @@ export default function InterventionDetailsPage() {
                   </span>
                 </AlertDescription>
               </BuiAlert>
-            ) : intervention.assignmentResponse === 'ACCEPTED' ? (
+            ) : intervention.assignmentResponse === 'ACCEPTED' && !['COMPLETED', 'CANCELLED'].includes(intervention.status) ? (
               // Le bandeau disait « Mission acceptée. » en texte vert dans un
               // cadre pale : rien ne se voyait avant de lire. L'acceptation est
               // un engagement — elle se signale d'abord par un aplat.
@@ -414,17 +422,7 @@ export default function InterventionDetailsPage() {
               </div>
             ) : undefined
           }
-          propertyAction={
-            // Action discrete au coin d'une carte : ghost, et xs pour retrouver
-            // la hauteur 24 que le sx d'origine imposait.
-            <BuiButton
-              variant="ghost"
-              size="xs"
-              onClick={() => navigate(`/properties/${intervention.propertyId}`)}
-            >
-              {t('serviceRequests.details.viewProperty')}
-            </BuiButton>
-          }
+          propertyHref={intervention.propertyId ? `/properties/${intervention.propertyId}` : undefined}
           asideSection={hasAnyRole(['SUPER_ADMIN', 'SUPER_MANAGER']) && intervention.status !== 'CANCELLED'
             ? <ProviderPayoutBeneficiarySection key={id} missionId={Number(id)} /> : undefined}
           detailsSection={
@@ -488,6 +486,7 @@ export default function InterventionDetailsPage() {
 
       {/* Dialogs */}
       <NotesDialog
+        executionProfile={serviceExecutionProfile(intervention)}
         open={notesDialogOpen}
         onClose={() => { setNotesDialogOpen(false); setNotesValue(''); setCurrentStepForNotes(null); }}
         currentStep={currentStepForNotes}
@@ -503,6 +502,7 @@ export default function InterventionDetailsPage() {
       />
 
       <PhotosDialog
+        executionProfile={serviceExecutionProfile(intervention)}
         open={photosDialogOpen}
         onClose={() => { if (!uploadingPhotos) { setPhotosDialogOpen(false); setSelectedPhotos([]); } }}
         photoType={photoType}

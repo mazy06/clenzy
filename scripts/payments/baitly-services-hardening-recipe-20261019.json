@@ -1,0 +1,133 @@
+{
+  "date": "2026-10-19",
+  "environment": "local-development",
+  "real_payments": false,
+  "real_bank_transfers": false,
+  "sandbox_preflight": {
+    "tested_jar_verified": true,
+    "sandbox_configuration_verified": true,
+    "active_matches_recipe": true,
+    "read_only": true
+  },
+  "notes": {
+    "original_transient_error_root_cause": "not reproduced; no claim of a confirmed original network cause",
+    "reproduced_defect": "A background intervention refresh replaced an open draft with the stored JSON for all steps.",
+    "fixes": [
+      "Keep the open draft independent from server hydration.",
+      "After an unsuccessful PUT response, read the intervention once. Confirm only an exact match of the persisted notes; never replay the write automatically.",
+      "Keep the draft and error when persistence cannot be confirmed."
+    ],
+    "regression_tests": 6
+  },
+  "stripe_ui_scenarios": [
+    {
+      "scenario": "card_declined",
+      "order_id": 9,
+      "amount_eur": 1,
+      "viewport": "desktop",
+      "stripe_ui_result": "Votre carte de crédit a été refusée. Essayez de payer avec une carte de débit.",
+      "backend_status": "PENDING",
+      "checkout_status": "PROCESSING",
+      "service_request_id": null,
+      "paid_confirmation": false
+    },
+    {
+      "scenario": "checkout_abandoned_then_resumed",
+      "order_id": 10,
+      "abandonment_viewport": "375x812 requested; actual viewport not confirmed for this action",
+      "status_before_resume": "PENDING",
+      "same_checkout_session_reused": true,
+      "new_order_created_on_resume": false,
+      "resume_payment": "PAID, 1 EUR, Stripe sandbox only"
+    },
+    {
+      "scenario": "no_eligible_provider_then_cancel",
+      "order_id": 10,
+      "service_request_id": 366,
+      "slot": "2026-10-21T10:00:00+02:00/2026-10-21T11:00:00+02:00",
+      "ui_result": "Cette prestation demande une équipe de type « Transfert gare ». Votre organisation n’en a aucune.",
+      "provider_confirmed": false,
+      "intervention_count": 0,
+      "final_request_status": "CANCELLED",
+      "payment_stays_separate_until_explicit_refund": true
+    },
+    {
+      "scenario": "refund_after_service_completion",
+      "order_id": 8,
+      "amount_eur": 1,
+      "final_order_status": "REFUNDED",
+      "refund_status": "COMPLETED",
+      "stripe_refund_proof": true
+    },
+    {
+      "scenario": "refund_after_cancellation_without_provider",
+      "order_id": 10,
+      "amount_eur": 1,
+      "submission_viewport": "375x812 requested; actual viewport not confirmed for this action",
+      "final_order_status": "REFUNDED",
+      "refund_status": "COMPLETED",
+      "stripe_refund_proof": true,
+      "observed_limit": "The original request remained pending in the UI for several minutes; the eventual backend confirmation was checked before any new payment action."
+    }
+  ],
+  "refund_network_hardening": {
+    "write_timeout_ms": 30000,
+    "read_timeout_ms": 15000,
+    "automatic_write_retry": false,
+    "same_request_id_on_manual_retry": true,
+    "server_status_refreshed_after_failure": true,
+    "http_integration_tests": 4,
+    "languages": ["fr", "en", "ar"]
+  },
+  "browsers": {
+    "in_app_browser": "Real backend and Stripe sandbox flows verified. The requested viewport override did not apply: a final DOM measurement remained 1471x984. Mobile action labels above are therefore unconfirmed, not a mobile pass.",
+    "chrome": "Public guide and property map loaded in the existing Baitly profile. Map reload did not ask for location again. The profile already had location permission; a first-permission scenario was not reset or claimed tested. A later DevTools mobile attempt did not produce a verified width of 375; native control then returned noWindowsAvailable. No mobile pass claimed.",
+    "safari": "Blocked: native application control timed out twice; no Safari pass claimed."
+  },
+  "restoration": {
+    "guide_id": 22,
+    "upsells_enabled": false,
+    "team_89_admin_membership": 0,
+    "team_permissions_or_availability_changed_this_round": false,
+    "docker_restarted": false,
+    "production_changed": false
+  },
+  "validation": {
+    "backend": { "tests": 97, "failures": 0, "errors": 0, "skipped": 0, "java": 21 },
+    "frontend_targeted": { "tests": 53, "suites": 6, "failed": 0 },
+    "frontend_total_unique_tests": 64,
+    "refund_http": { "tests": 4, "failed": 0 },
+    "guest_tracking": { "tests": 7, "failed": 0 },
+    "recipe_runner": { "tests": 6, "failed": 0 },
+    "application_typescript": "passed",
+    "finance_test_typescript": "passed after final changes",
+    "production_build": "passed; SDK and application; existing large-chunk and mixed dynamic/static import warnings. Source edits overlapped this long build; a clean build of the integrated final commit is still required before promotion.",
+    "build_log": "/tmp/baitly-paid-services-hardening-build-1910.log",
+    "diff_check": "passed"
+  },
+  "integration": {
+    "existing_ci_extended": "ci-payout-recipe.yml and its financial_recipe.json manifest; no duplicate workflow",
+    "new_ci_coverage": "Paid-service execution, guest tracking, reservation service tracking, Checkout deduplication, notes and photo persistence; matching TypeScript includes.",
+    "new_path_triggers": ["client/src/modules/interventions/**", "client/src/modules/reservations/**"],
+    "staging_url": "https://app.clenzy.fr",
+    "production_url": "https://app.baitly.fr",
+    "required_sequence": ["review and integrate the complete dependent source set by PR to main", "CI passes and staging deploys the exact commit", "validate staging with sandbox credentials and isolated test data", "PR from main to production after validation"],
+    "published_pr": false,
+    "staging_validated": false,
+    "production_deployed": false,
+    "blockers": [
+      "The current workspace contains more than 360 uncommitted paths from the preceding features. The extended recipe references prerequisite paid-service source and tests that are still untracked; publishing only this round would create an incomplete integration.",
+      "Safari validation is not complete.",
+      "Effective mobile viewport validation is not complete: the in-app override was ignored and the native Chrome fallback became unavailable.",
+      "No clean, reviewed integrated SHA exists for a staging validation of the current workspace."
+    ]
+  },
+  "evidence_directory": "/Users/toufik/.codex/visualizations/2026/10/17/01a148e0-f364-7100-91cd-6fcb02312550",
+  "evidence": [
+    "baitly-refund-stripe-test-1910.png",
+    "baitly-stripe-card-declined-1910.png",
+    "baitly-checkout-abandoned-mobile-1910.png",
+    "baitly-no-eligible-provider-test-1910.png",
+    "baitly-service-failures-final-desktop-1910.png"
+  ]
+}

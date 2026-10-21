@@ -136,6 +136,11 @@ export interface InterventionDetailsData {
 }
 
 export interface PropertyDetails {
+  timezone?: string;
+  squareMeters?: number;
+  maxGuests?: number;
+  cleaningDurationMinutes?: number;
+  cleaningNotes?: string;
   bedroomCount?: number;
   bathroomCount?: number;
   livingRooms?: number;

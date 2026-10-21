@@ -86,6 +86,8 @@ class StripeWebhookControllerTest {
     void setUp() throws Exception {
         controller = new StripeWebhookController(stripeService, inscriptionService, subscriptionService, mobilePaymentService, orchestrationService, stripeConnectService, shopService, publicBookingService, upsellService, stripeGateway, directBookingService, aiCreditGrantService, paymentFailedTriggerService, paymentEventActionRecorder, paymentConnectionStore, bankPayoutHandler, paymentTenantScope, batchCheckout, invoiceCheckout, refunds, mock(com.clenzy.service.BaitlyInterventionCheckoutExpiry.class), checkoutJournal, monthlySubscriptions, subscriptionBilling, maintenanceDeposit, subscriptionMoney);
         org.mockito.Mockito.lenient().doAnswer(invocation -> { ((Runnable) invocation.getArgument(1)).run(); return null; })
+                .when(paymentTenantScope).forBookingCheckout(anyString(), any());
+        org.mockito.Mockito.lenient().doAnswer(invocation -> { ((Runnable) invocation.getArgument(1)).run(); return null; })
                 .when(paymentTenantScope).forIntervention(anyString(), any());
         org.mockito.Mockito.lenient().doAnswer(invocation -> { ((Runnable) invocation.getArgument(1)).run(); return null; })
                 .when(paymentTenantScope).forReservation(anyString(), any());
@@ -456,6 +458,7 @@ class StripeWebhookControllerTest {
 
                 assertThat(response.getStatusCode().value()).isEqualTo(200);
                 verify(publicBookingService).confirmBookingEngineCheckout(s);
+                verify(paymentTenantScope).forBookingCheckout(eq("sess_be"), any());
             }
         }
 
@@ -630,6 +633,18 @@ class StripeWebhookControllerTest {
     @Nested
     @DisplayName("checkout.session.async_payment_succeeded dispatch")
     class AsyncPaymentSucceeded {
+
+        @Test
+        void bookingCheckoutKeepsTenantScopeForAsyncConfirmation() {
+            Session s = mockSession("sess_be_async", "paid", "payment", Map.of("type", "booking_engine"));
+            Event event = mockEvent("checkout.session.async_payment_succeeded", s);
+            try (MockedStatic<Webhook> mockedWebhook = mockStatic(Webhook.class)) {
+                mockedWebhook.when(() -> Webhook.constructEvent(anyString(), anyString(), anyString())).thenReturn(event);
+                assertThat(controller.handleStripeWebhook("payload", "sig").getStatusCode().value()).isEqualTo(200);
+                verify(paymentTenantScope).forBookingCheckout(eq("sess_be_async"), any());
+                verify(publicBookingService).confirmBookingEngineCheckout(s);
+            }
+        }
 
         @Test
         @DisplayName("dispatches to confirmReservationPayment when type='reservation'")

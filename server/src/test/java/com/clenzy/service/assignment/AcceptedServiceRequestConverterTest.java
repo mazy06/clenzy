@@ -44,4 +44,33 @@ class AcceptedServiceRequestConverterTest {
             .isInstanceOf(org.springframework.security.access.AccessDeniedException.class);
         assertThat(reservation.getIntervention()).isNull();
     }
+
+    @Test void propertyLocalSlotBecomesOneUtcInstantInWinterAndSummer() {
+        var property=new Property(); property.setTimezone("Europe/Paris");
+        when(missions.saveAndFlush(any())).thenAnswer(call -> { Intervention result=call.getArgument(0);result.setId(10L);return result; });
+        for (var local : java.util.List.of(LocalDateTime.parse("2026-11-13T10:00"),LocalDateTime.parse("2026-07-13T10:00"))) {
+            var need=new ServiceRequest(); need.setId(8L); need.setOrganizationId(2L);
+            need.setProperty(property); need.setAssignedToType("team"); need.setAssignedToId(3L);
+            need.setServiceItemCode("cleaning-mid-stay"); need.setServiceType(ServiceType.OTHER);
+            need.setPriority(Priority.NORMAL); need.setDesiredDate(local); need.setEstimatedDurationHours(2);
+            var mission=converter.convert(need);
+            var expected=local.atZone(ZoneId.of("Europe/Paris")).withZoneSameInstant(ZoneOffset.UTC).toLocalDateTime();
+            assertThat(mission.getScheduledDate()).isEqualTo(expected);
+            assertThat(mission.getStartTime()).isEqualTo(expected);
+            assertThat(mission.getEndTime()).isEqualTo(expected.plusHours(2));
+            assertThat(need.getDesiredDate()).isEqualTo(local);
+        }
+    }
+
+    @Test void midStayServiceDoesNotReplaceDepartureIntervention() {
+        var need=new ServiceRequest(); need.setOrganizationId(2L); need.setReservationId(4L);
+        var departure=new Intervention(); departure.setId(40L);
+        var reservation=new Reservation(); reservation.setOrganizationId(2L); reservation.setIntervention(departure);
+        when(reservations.findById(4L)).thenReturn(Optional.of(reservation));
+        for (var code:java.util.List.of("cleaning-mid-stay","culinary-breakfast","driver-airport","driver-station","mobility-parking")) {
+            need.setServiceItemCode(code);
+            converter.linkReservation(need,new Intervention());
+            assertThat(reservation.getIntervention()).isSameAs(departure);
+        }
+    }
 }

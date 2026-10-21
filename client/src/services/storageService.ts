@@ -31,6 +31,8 @@ export const STORAGE_KEYS = {
   SITE_COOKIE_CHOICE: 'baitly_site_cookie_choice',
   // Brouillon de parcours public : sessionStorage uniquement, aucun secret Stripe.
   SIGNUP_ATTEMPT: 'baitly_signup_attempt',
+  // Marqueur d'une tentative automatique par onglet ; jamais de coordonnées ni d'autorisation.
+  BROWSER_LOCATION_ATTEMPT: 'baitly_browser_location_attempt',
   // App Settings (per-device UI : compactMode, showAvatars, theme)
   SETTINGS: 'clenzy_settings',
 
@@ -71,6 +73,18 @@ export const STORAGE_KEYS = {
 } as const;
 
 export type StorageKey = (typeof STORAGE_KEYS)[keyof typeof STORAGE_KEYS];
+
+/** Empêche une carte remontée ou rechargée de relancer la demande native. */
+export function claimBrowserLocationAttempt(): boolean {
+  try {
+    if (sessionStorage.getItem(STORAGE_KEYS.BROWSER_LOCATION_ATTEMPT) === '1') return false;
+    sessionStorage.setItem(STORAGE_KEYS.BROWSER_LOCATION_ATTEMPT, '1');
+    return true;
+  } catch {
+    // Sans stockage de session, rester sur la ville du profil plutôt que solliciter à répétition.
+    return false;
+  }
+}
 
 // ─── Core Storage Operations ────────────────────────────────────────────────
 

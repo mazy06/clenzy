@@ -86,7 +86,33 @@ class StripePaymentProviderTest {
         assertThat(p.getLineItems().getFirst().getPriceData().getTaxBehavior()).isEqualTo(SessionCreateParams.LineItem.PriceData.TaxBehavior.INCLUSIVE);
         assertThat(p.getPaymentIntentData().getMetadata()).containsAllEntriesOf(metadata);
         assertThat(p.getInvoiceCreation().getInvoiceData().getMetadata()).containsAllEntriesOf(metadata);
-        if(embedded)assertThat(p.getPaymentIntentData().getSetupFutureUsage()).isEqualTo(SessionCreateParams.PaymentIntentData.SetupFutureUsage.OFF_SESSION);
+        assertThat(p.getPaymentIntentData().getSetupFutureUsage()).isEqualTo(SessionCreateParams.PaymentIntentData.SetupFutureUsage.OFF_SESSION);
+    }
+
+    @org.junit.jupiter.params.ParameterizedTest
+    @org.junit.jupiter.params.provider.CsvSource({"false,true,true", "true,true,true", "false,true,false", "true,true,false", "false,false,true", "true,false,true"})
+    void depositCardIsSavedInBothCheckoutPresentationsWithoutChangingTheStayAmount(boolean embedded,
+            boolean saveCard, boolean metadataPresent) throws Exception {
+        var gateway=mock(com.clenzy.payment.StripeGateway.class);
+        var service=new StripePaymentProvider(gateway,mock(com.clenzy.payment.ManagedStripeRefund.class));
+        var session=new Session();session.setId("cs_test_deposit");session.setUrl("https://checkout.stripe.com/test");session.setClientSecret("test_secret");
+        when(gateway.createSession(any(SessionCreateParams.class),eq("deposit-test"))).thenReturn(session);
+        Map<String,String> metadata=metadataPresent?Map.of("security_deposit_amount","5.00"):null;
+        var request=new PaymentRequest(BigDecimal.TEN,"EUR","Séjour test","test@example.invalid",null,
+                "https://example.test/success","https://example.test/cancel","deposit-test",metadata,embedded,null,saveCard);
+        assertThat(service.createPayment(request).success()).isTrue();
+        var capture=org.mockito.ArgumentCaptor.forClass(SessionCreateParams.class);
+        org.mockito.Mockito.verify(gateway).createSession(capture.capture(),eq("deposit-test"));
+        var params=capture.getValue();
+        assertThat(params.getLineItems().getFirst().getPriceData().getUnitAmount()).isEqualTo(1000);
+        if(saveCard) {
+            assertThat(params.getCustomerCreation()).isEqualTo(SessionCreateParams.CustomerCreation.ALWAYS);
+            assertThat(params.getPaymentIntentData().getSetupFutureUsage()).isEqualTo(SessionCreateParams.PaymentIntentData.SetupFutureUsage.OFF_SESSION);
+        } else {
+            assertThat(params.getCustomerCreation()).isNull();
+            assertThat(params.getPaymentIntentData().getSetupFutureUsage()).isNull();
+        }
+        if(metadataPresent) assertThat(params.getPaymentIntentData().getMetadata()).containsAllEntriesOf(metadata);
     }
 
     @Nested

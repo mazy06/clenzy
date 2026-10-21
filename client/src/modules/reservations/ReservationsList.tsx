@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useId, useMemo, useRef, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { ArrowLeft, TriangleAlert } from '../../icons/glyphs';
+import { TriangleAlert } from '../../icons/glyphs';
 import ModuleFirstUsePage from '../../components/first-use/ModuleFirstUsePage';
 import {
   Alert,
@@ -27,7 +27,6 @@ import { RESERVATION_ART } from '../../components/reservations/reservationArtwor
 import GuestProfileDialog from '../channels/GuestProfileDialog';
 import PageHeader from '../../components/PageHeader';
 import EmptyState from '../../components/EmptyState';
-import FilterChipRow from '../../components/baitly/FilterChipRow';
 import { FilterSearchBar } from '../../components/FilterSearchBar';
 import PagePagination from '../../components/PagePagination';
 import { useDynamicPageSize } from '../../hooks/useDynamicPageSize';
@@ -176,6 +175,7 @@ const ReservationsList: React.FC = () => {
       onSearchChange={(value) => { setSearchTerm(value); setPage(0); }}
       searchPlaceholder={t('reservations.search', 'Rechercher une réservation...')}
       filters={{
+        status: {value:filters.status??"",options:[{value:"",label:t("reservationsWorkspace.allStatuses")},...STATUS_OPTIONS.map(status=>({value:status,label:t(`reservations.status.${status}`)}))],onChange:value=>handleFilterChange("status",(value||null) as ReservationStatus|null),label:t("common.status")},
         source: {
           value: filters.source ?? '',
           options: sourceOptions,
@@ -200,8 +200,9 @@ const ReservationsList: React.FC = () => {
           title={t('reservations.title')}
           subtitle={t('reservations.subtitle')}
           iconBadge={<EventNoteIcon />}
-          backPath="/dashboard"
-          showBackButton={false}
+          onBack={selectedId != null ? handleBack : undefined}
+          backLabel={t('reservationsWorkspace.back')}
+          showBackButton={selectedId != null}
           actions={(
             <Button size="sm" onClick={handleCreate}>
               <AddIcon strokeWidth={2} />
@@ -235,13 +236,7 @@ const ReservationsList: React.FC = () => {
           />
         ) : (
           <>
-            <FilterChipRow
-              className="rsv-statuses"
-              allLabel={t('reservationsWorkspace.allStatuses')}
-              value={filters.status ?? ''}
-              onChange={(value) => handleFilterChange('status', (value || null) as ReservationStatus | null)}
-              options={STATUS_OPTIONS.map((status) => ({ value: status, label: t(`reservations.status.${status}`), color: '' }))}
-            />
+
 
             <section
               className="rsv-workspace"
@@ -291,12 +286,6 @@ const ReservationsList: React.FC = () => {
                 role="region"
                 aria-label={t('reservationsWorkspace.detailLabel')}
               >
-                {selectedId != null && (
-                  <Button variant="ghost" size="sm" className="rsv-workspace__back" onClick={handleBack}>
-                    <ArrowLeft size={15} className="cn-rtl-flip" />
-                    {t('reservationsWorkspace.back')}
-                  </Button>
-                )}
                 {selected ? (
                   <ReservationDetailPanel
                     reservation={selected}

@@ -3,13 +3,13 @@ import { activeIntlLocale } from '../../utils/activeLocale';
 // (carte / liste). Aucun effet de bord.
 
 /**
- * Retire le suffixe " — {propertyName}" ou " - {propertyName}" du titre.
+ * Retire le nom du logement précédé d'un séparateur du titre.
  * Evite la redondance quand le nom de propriete est deja affiche dans sa
  * propre colonne.
  */
 export function stripPropertySuffix(title: string, propertyName?: string): string {
   if (!propertyName) return title;
-  const patterns = [` — ${propertyName}`, ` - ${propertyName}`, ` -- ${propertyName}`];
+  const patterns = [` — ${propertyName}`, ` - ${propertyName}`, ` -- ${propertyName}`, ` · ${propertyName}`];
   for (const p of patterns) {
     if (title.endsWith(p)) return title.slice(0, -p.length).trim();
   }

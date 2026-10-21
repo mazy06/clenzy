@@ -1,13 +1,12 @@
 import React from 'react';
 import { Button, Spinner, Tooltip, TooltipContent, TooltipTrigger } from './ui';
-import { headerActionIcon, type HeaderActionKind } from './headerActionIcons';
+import { headerActionIcon, canonicalIconFor, resolveActionKind, type HeaderActionKind } from './headerActionIcons';
+import {MoreHorizontalIcon} from '../icons/glyphs';
 import { cn } from '../utils/cn';
+import './headerActionColors.css';
 
 /**
- * Action d'en-tête Baitly : icône et infobulle, libellé visible pour la création.
- *
- * <p>Les actions secondaires restent compactes. La création garde son libellé,
- * borné dans la barre, pour identifier immédiatement l'action principale.</p>
+ * Action d'en-tête Baitly : icône seule, infobulle et nom accessible.
  *
  * <p>L'icône n'est pas au choix de l'écran : elle vient du vocabulaire commun
  * (`headerActionIcons`) via `kind`. Passer `icon` explicitement reste possible
@@ -23,7 +22,7 @@ export interface HeaderActionProps
   extends Omit<React.ComponentProps<typeof Button>, 'children' | 'size' | 'aria-label'> {
   /** Action du vocabulaire commun : décide de l'icône. */
   kind?: HeaderActionKind;
-  /** Infobulle et nom accessible, également visible pour une création. */
+  /** Infobulle et nom accessible. */
   label: string;
   /** Icône explicite, pour une action hors vocabulaire. */
   icon?: React.ReactNode;
@@ -47,7 +46,7 @@ export default function HeaderAction({
   const glyph = loading ? (
     <Spinner className="size-4" />
   ) : (
-    icon ?? (kind ? headerActionIcon(kind) : null)
+    icon ?? (kind ? headerActionIcon(kind) : canonicalIconFor(label) ?? <MoreHorizontalIcon strokeWidth={1.75}/>)
   );
 
   return (
@@ -60,15 +59,13 @@ export default function HeaderAction({
           <Button
             {...props}
             variant={variant}
-            size={kind === 'create' ? 'default' : size}
-            data-header-create={kind === 'create' || undefined}
-            data-keep-label={kind === 'create' || undefined}
+            size={size}
+            data-header-action={kind ?? resolveActionKind(label) ?? 'other'}
             disabled={disabled || loading}
             aria-label={label}
-            className={cn(className)}
+            className={cn('baitly-header-action',className)}
           >
             {glyph}
-            {kind === 'create' && <span className="truncate">{label}</span>}
           </Button>
         </span>
       </TooltipTrigger>

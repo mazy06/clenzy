@@ -29,7 +29,6 @@ import {
   Description,
   AdminPanelSettings,
   CalendarViewWeek,
-  Contacts,
   Bolt,
   Palette,
   RequestQuote,
@@ -168,7 +167,7 @@ const MENU_ENTRIES: MenuEntryConfig[] = [
       roles: ['SUPER_ADMIN', 'SUPER_MANAGER'],
       permission: 'reports:view',
       translationKey: 'navigation.reports',
-      group: 'pilotage',
+      group: 'operations',
     },
   },
   // ── Exploitation ──
@@ -229,6 +228,11 @@ const MENU_ENTRIES: MenuEntryConfig[] = [
     },
   },
   // ── Ventes & distribution ──
+  { kind: 'item', item: {
+    icon: <TrendingUp />, path: '/prospection', group: 'sales',
+    roles: ['all'],
+    translationKey: 'directoryPage.tabs.prospection',
+  } },
   { kind: 'item', item: {
     icon: <TrendingUp />, path: '/dynamic-pricing', group: 'sales',
     roles: ['SUPER_ADMIN', 'SUPER_MANAGER', 'HOST'],
@@ -304,12 +308,10 @@ const MENU_ENTRIES: MenuEntryConfig[] = [
     },
   },
   // ── Gestion ──
-  // Contacts = Messagerie · Annuaire
-  { kind: 'hub', hubId: 'contacts', icon: <Contacts /> },
-  // Documents = Documents · Contrats de gestion
-  { kind: 'hub', hubId: 'documents', icon: <Description /> },
-  // Finances = Facturation · Tarification
-  { kind: 'hub', hubId: 'finances', icon: <Euro /> },
+  // Les écrans de gestion sont directement accessibles, avec les mêmes droits.
+  { kind: 'hub-tabs', hubId: 'contacts' },
+  { kind: 'hub-tabs', hubId: 'documents' },
+  { kind: 'hub-tabs', hubId: 'finances' },
   // ── Administration ──
   {
     kind: 'item',
@@ -382,7 +384,7 @@ export function groupMenuItems(items: MenuItem[]): Record<NavGroup, MenuItem[]> 
 
 // ─── Hook ────────────────────────────────────────────────────────────────────
 
-export const useNavigationMenu = (): UseNavigationMenuReturn => {
+export const useNavigationMenu = (backgroundReady=true): UseNavigationMenuReturn => {
   const { isAdmin, isManager, hasAnyRole, user } = useAuth();
   const { t } = useTranslation();
   const [loading, setLoading] = useState(true);
@@ -391,8 +393,8 @@ export const useNavigationMenu = (): UseNavigationMenuReturn => {
   // Pastille « en attente » du menu Planning : nb de cartes HITL de la
   // constellation. Gaté (rôle habilité + feature activée) → aucun fetch inutile.
   const { canView: canSupervise } = useCanSuperviseAgents();
-  const { data: supervisionConfig } = useSupervisionConfig({ enabled: canSupervise });
-  const supervisionEnabled = canSupervise && (supervisionConfig?.enabled ?? false);
+  const { data: supervisionConfig } = useSupervisionConfig({ enabled: canSupervise&&backgroundReady });
+  const supervisionEnabled = backgroundReady&&canSupervise && (supervisionConfig?.enabled ?? false);
   const { total: pendingTotal } = useSupervisionPendingCounts(supervisionEnabled);
 
   // Fonction pour vérifier si un utilisateur a accès à un élément de menu (synchronisée)
@@ -488,7 +490,7 @@ export const useNavigationMenu = (): UseNavigationMenuReturn => {
       path: tab.path,
       roles: ['all'],
       translationKey: tab.translationKey,
-      group: hub.group,
+      group: tab.sidebarGroup ?? hub.group,
       matchPaths: tabRoutePrefixes(tab),
     })), [reachableHubTabs, t]);
 
@@ -609,14 +611,12 @@ export const useNavigationMenu = (): UseNavigationMenuReturn => {
     // `user` est un useState (identite stable) : dependre de l'objet entier.
   }, [user, refreshMenu]);
 
-  // Pastille « échecs récents » du hub Documents : envois voyageur + générations
-  // de documents FAILED (7 j). Gaté sur la visibilité du hub → aucun fetch inutile.
-  const documentsHubVisible = menuItems.some((item) => item.id === 'hub:documents');
-  const documentsFailedCount = useDocumentsFailedCount(documentsHubVisible);
+  // Les compteurs suivent l'écran concerné après suppression du regroupement.
+  const documentsVisible = menuItems.some((item) => item.path === '/documents');
+  const documentsFailedCount = useDocumentsFailedCount(documentsVisible&&backgroundReady);
 
-  // Pastille « non lus » du hub Contacts : messages un-a-un + fils de groupe.
-  const contactsHubVisible = menuItems.some((item) => item.id === 'hub:contacts');
-  const contactsUnreadCount = useContactUnreadCount(contactsHubVisible);
+  const messagingVisible = menuItems.some((item) => item.path === '/contact');
+  const contactsUnreadCount = useContactUnreadCount(messagingVisible&&backgroundReady);
 
   // Mémoriser le résultat + superposer les pastilles dynamiques (« en attente »
   // sur Planning, « échecs récents » sur Documents), hors du flux de construction.
@@ -626,10 +626,10 @@ export const useNavigationMenu = (): UseNavigationMenuReturn => {
       if (item.path === '/planning' && pendingTotal > 0) {
         return { ...item, badge: pendingTotal, badgeColor: 'warning' as const };
       }
-      if (item.id === 'hub:documents' && documentsFailedCount > 0) {
+      if (item.path === '/documents' && documentsFailedCount > 0) {
         return { ...item, badge: documentsFailedCount, badgeColor: 'error' as const };
       }
-      if (item.id === 'hub:contacts' && contactsUnreadCount > 0) {
+      if (item.path === '/contact' && contactsUnreadCount > 0) {
         return { ...item, badge: contactsUnreadCount, badgeColor: 'error' as const };
       }
       return item;

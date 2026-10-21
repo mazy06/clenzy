@@ -49,7 +49,7 @@ const overlay = (mode: SectorOverlay['mode']): SectorOverlay => ({
 });
 
 describe('BaitlySectorLayer', () => {
-  it.each(['merged', 'byProvider'] as const)('toggles the same area off and switches from city to district in %s mode', mode => {
+  it.each(['merged', 'byProvider'] as const)('reports repeated area clicks for cumulative selection in %s mode', mode => {
     const { map, listeners } = fakeMap();
     const select = vi.fn();
     const city = square(2);
@@ -63,13 +63,13 @@ describe('BaitlySectorLayer', () => {
     expect(select.mock.lastCall?.[1]).toEqual(city);
     layer.set({ ...shown, selectedAreaGeometry: JSON.parse(JSON.stringify(city)) }, 'light');
     at(2.7, 48.7);
-    expect(select).toHaveBeenLastCalledWith(null, null, null);
+    expect(select.mock.lastCall?.[1]).toEqual(city);
     // Un arrondissement est une autre zone, même s'il appartient à la ville sélectionnée.
     at(2.15, 48.15);
     expect(select.mock.lastCall?.[1]).toEqual(district);
     layer.set({ ...shown, selectedAreaGeometry: JSON.parse(JSON.stringify(district)) }, 'light');
     at(2.18, 48.18);
-    expect(select).toHaveBeenLastCalledWith(null, null, null);
+    expect(select.mock.lastCall?.[1]).toEqual(district);
     layer.set({ ...shown, selectedAreaGeometry: null }, 'light');
     at(2.18, 48.18);
     expect(select.mock.lastCall?.[1]).toEqual(district);

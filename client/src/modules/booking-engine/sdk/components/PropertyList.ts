@@ -8,6 +8,8 @@ interface I18n {
 
 /** Options compte voyageur (2.11) : activées seulement si `organizationId` est fourni au widget. */
 export interface PropertyListOptions {
+  /** Runs for every explicit selection, including a second click on the same property. */
+  onPropertySelect?: (propertyId: number) => void;
   /** Affiche le cœur favori sur chaque carte. */
   wishlistEnabled?: boolean;
   /** Bascule un favori (le widget ouvre le login si la session guest est absente). */
@@ -104,7 +106,7 @@ function render(
 
   // La wishlist entre dans la clé seulement si activée → les cœurs se rafraîchissent au toggle.
   const wishlistKey = options.wishlistEnabled ? `:w${s.wishlist.join('-')}` : '';
-  const key = `${visible.map(p => p.id).join(',')}:${s.selectedPropertyId}:${s.displayCurrency}${wishlistKey}:p${cur}/${pageCount}`;
+  const key = JSON.stringify([visible, s.selectedPropertyId, s.displayCurrency, wishlistKey, cur, pageCount]);
   if (container.dataset.key === key) return;
   container.dataset.key = key;
   container.textContent = '';
@@ -114,6 +116,14 @@ function render(
     return;
   }
   container.hidden = false;
+  if (!list.length) {
+    const empty = document.createElement('p');
+    empty.className = 'cb-results-empty';
+    empty.setAttribute('role', 'status');
+    empty.textContent = i18n.t('results.noResults');
+    container.appendChild(empty);
+    return;
+  }
 
   // Disposition : colonne (défaut), ligne en grille (wrap), ou ligne défilante (1 seule ligne).
   const cols = options.columns && options.columns > 0 ? Math.floor(options.columns) : 0;
@@ -130,7 +140,7 @@ function render(
     // conteneur étroit au lieu de déborder ; `auto-fit` répartit la largeur restante sur les cartes.
     const tmpl = cols > 0
       ? `repeat(${cols}, minmax(0, 1fr))`
-      : `repeat(auto-fit, minmax(min(${minCard}px, 100%), 1fr))`;
+      : `repeat(auto-fit, minmax(min(var(--cb-property-card-min, ${minCard}px), 100%), 1fr))`;
     listWrap.style.cssText = `display:grid;grid-template-columns:${tmpl};gap:12px;width:100%;min-width:0;`;
   } else {
     listWrap.style.cssText = 'display:flex;flex-direction:column;gap:12px;';
@@ -244,14 +254,28 @@ function card(
     const price = document.createElement('div');
     price.className = 'cb-property-card__price';
     price.textContent = formatPrice(p.priceFrom, currency);
+    const note = document.createElement('span');
+    note.className = 'cb-property-card__price-note';
+    note.textContent = `/ ${i18n.t('cart.perNight')}`;
+    price.appendChild(note);
     applyTypo(price, ct?.price);
     body.appendChild(price);
+  }
+  if (options.showBadges !== false) {
+    const facts = [p.maxGuests != null ? `${p.maxGuests} ${i18n.t('property.guests')}` : '', p.bedroomCount != null ? `${p.bedroomCount} ${i18n.t('property.bedrooms')}` : ''].filter(Boolean);
+    if (facts.length) {
+      const details = document.createElement('div');
+      details.className = 'cb-property-card__facts';
+      details.textContent = facts.join(' · ');
+      body.appendChild(details);
+    }
   }
 
   el.appendChild(body);
   el.addEventListener('click', () => {
-    // Sélection d'une propriété : reset des dates + prix, le widget recharge le calendrier.
-    state.set({ selectedPropertyId: p.id, checkIn: null, checkOut: null, pricing: null }, 'stateChange');
+    // Keep the search stay; the shared core verifies these dates and refreshes the new property's quote.
+    if (state.get().selectedPropertyId !== p.id) state.set({ selectedPropertyId: p.id, pricing: null }, 'stateChange');
+    options.onPropertySelect?.(p.id);
   });
 
   return el;
@@ -307,9 +331,9 @@ function formatPrice(amount: number, currency: string): string {
     return new Intl.NumberFormat(undefined, {
       style: 'currency',
       currency,
-      maximumFractionDigits: 0,
+      maximumFractionDigits: 2,
     }).format(amount);
   } catch {
-    return `${Math.round(amount)} ${currency}`;
+    return `${amount.toFixed(2)} ${currency}`;
   }
 }

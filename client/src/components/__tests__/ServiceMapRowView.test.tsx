@@ -15,16 +15,20 @@ it('focuses the property from the service row and opens its preview only from th
   const locate = vi.fn();
   render(<MemoryRouter initialEntries={['/properties']}><Location />
     <MapRowInteractions.Provider value={{ locate, highlight: vi.fn(), selectedId: null, highlightedId: null }}>
-      <MapLinkedRow propertyId={7}>
+      <MapLinkedRow propertyId={7} showLocate={false}>
         <ServiceMapRowView title="Ménage de départ" serviceLabel="Ménage" propertyName="Loft"
           propertyAddress="Paris" propertyThumb={null} assigneeLabel="Intervenant" assigneeAvatars={null}
           assigneeName="Claire" schedule="Demain" badges={null} to="/interventions/12" />
       </MapLinkedRow>
     </MapRowInteractions.Provider>
   </MemoryRouter>);
-  fireEvent.click(screen.getByRole('button', { name: /Ménage de départ Ménage Loft/ }));
+  fireEvent.click(screen.getByRole('button', { name: 'Ménage de départ · Ménage · Loft' }));
   expect(locate).toHaveBeenCalledWith(7);
   expect(screen.queryByRole('dialog')).toBeNull();
+  locate.mockClear();
+  fireEvent.click(screen.getByRole('button', { name: 'Localiser sur la carte' }));
+  expect(locate).toHaveBeenCalledOnce();
+  expect(locate).toHaveBeenCalledWith(7);
   locate.mockClear();
   fireEvent.click(screen.getByRole('button', { name: 'Détails · Ménage de départ' }));
   expect(locate).not.toHaveBeenCalled();

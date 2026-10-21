@@ -1,0 +1,26 @@
+/* One contact hierarchy for Baitly reservation, mission and request records. */
+.baitly-contact-presentation { min-width: 0; container: baitly-contact / inline-size; }
+.baitly-contact-presentation + .baitly-contact-presentation { border-block-start: 1px solid var(--bui-border); margin-block-start: 16px; padding-block-start: 16px; }
+.baitly-contact-presentation__identity { display: flex; align-items: center; gap: 12px; min-width: 0; }
+.baitly-contact-presentation .baitly-contact-presentation__avatar { width: 48px; height: 48px; flex-shrink: 0; overflow: hidden; border-radius: 12px; }
+.baitly-contact-presentation__avatar::after { border-radius: 12px; }
+.baitly-contact-presentation__avatar [data-slot="avatar-image"] { width: 100%; height: 100%; object-fit: cover; border-radius: 0; }
+.baitly-contact-presentation__avatar [data-slot="avatar-fallback"] { color: var(--bui-navy); background: var(--bui-navy-soft); border-radius: 12px; font-size: 14px; font-weight: 500; }
+.baitly-contact-presentation__name { min-width: 0; flex: 1; }
+.baitly-contact-presentation :is(p,a,span) { overflow-wrap: anywhere; }
+.baitly-contact-presentation .baitly-contact-presentation__label { margin: 0 0 4px; font-size: 12px; line-height: 1.5; font-weight: 500; color: var(--bui-navy); }
+.baitly-contact-presentation .baitly-contact-presentation__title { margin: 0; font-size: 15px; line-height: 1.5; font-weight: 600; color: var(--bui-foreground); }
+.baitly-contact-presentation .baitly-contact-presentation__role { margin: 4px 0 0; font-size: 12px; line-height: 1.6; color: var(--bui-muted-foreground); }
+.baitly-contact-presentation__coordinates { display: grid; grid-template-columns: minmax(0,1fr); gap: 4px 16px; margin-block-start: 12px; }
+.baitly-contact-presentation__coordinates a { display: flex; align-items: center; gap: 10px; min-height: 44px; min-width: 0; padding: 8px 10px; border: 1px solid var(--bui-border); border-radius: 6px; background: var(--bui-card); color: var(--bui-navy); font-size: 13px; line-height: 1.6; text-decoration: none; cursor: pointer; transition: background-color 180ms cubic-bezier(.25,1,.5,1), border-color 180ms cubic-bezier(.25,1,.5,1); }
+.baitly-contact-presentation__coordinates a > svg { flex-shrink: 0; }
+.baitly-contact-presentation__coordinates a > span { min-width: 0; }
+.baitly-contact-presentation__coordinates a:hover { background: var(--bui-navy-soft); border-color: var(--bui-navy); }
+.baitly-contact-presentation__coordinates a:focus-visible { outline: 2px solid var(--bui-navy); outline-offset: 3px; }
+.baitly-contact-presentation .baitly-contact-presentation__empty { margin: 10px 0 0; font-size: 12px; line-height: 1.6; color: var(--bui-muted-foreground); }
+@container baitly-contact (min-width: 30rem) {
+  .baitly-contact-presentation__coordinates { grid-template-columns: repeat(2,minmax(0,1fr)); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .baitly-contact-presentation__coordinates a { transition: none; }
+}

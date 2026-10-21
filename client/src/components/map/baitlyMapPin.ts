@@ -10,6 +10,7 @@
  * <p>La position est pilotée par MapLibre via `transform` sur l'élément racine :
  * toute animation se fait sur l'enfant `.baitly-map-pin__glyph`.</p>
  */
+import type {IconData} from '../../icons/createIcon';
 import { FLOW_LENGTH, FLOW_STROKE_WIDTH, MARK_PATH, MARK_VIEWBOX, STROKE_WIDTH } from '../baitlyLogoGeometry';
 
 const SVG_NS = 'http://www.w3.org/2000/svg';
@@ -80,12 +81,20 @@ function logoSvg(): SVGSVGElement {
   return svg;
 }
 
-function pinGlyph(icon: BaitlyPinIcon): HTMLSpanElement {
+function pinGlyph(icon: BaitlyPinIcon,asset?:IconData): HTMLSpanElement {
   const glyph = document.createElement('span');
   glyph.className = 'baitly-map-pin__glyph';
   const badge = document.createElement('span');
   badge.className = 'baitly-map-pin__badge';
-  if (icon === 'dot') {
+  if(asset){
+    const svg=document.createElementNS(SVG_NS,'svg');
+    svg.setAttribute('class','baitly-map-pin__icon');
+    svg.setAttribute('viewBox',`${asset.left??0} ${asset.top??0} ${asset.width??24} ${asset.height??24}`);
+    svg.setAttribute('aria-hidden','true');svg.setAttribute('focusable','false');
+    const group=document.createElementNS(SVG_NS,'g');group.setAttribute('stroke','none');
+    // Same trusted, bundled Reicon data as createIcon; no API or user SVG is accepted.
+    group.innerHTML=asset.body;svg.append(group);badge.append(svg);
+  } else if (icon === 'dot') {
     const dot = document.createElement('span');
     dot.className = 'baitly-map-pin__dot';
     badge.append(dot);
@@ -105,17 +114,21 @@ export interface BaitlyPinOptions {
   color: string;
   /** Icône métier portée par le badge ; `dot` pour une simple catégorie. */
   icon?: BaitlyPinIcon;
+  /** Trusted compiled glyph shared with the list icon. */
+  glyph?:IconData;
   /** Nom accessible ; omis pour une épingle purement décorative. */
   label?: string;
   /** Rend l'épingle activable au clavier (Entrée / Espace → clic). */
   interactive?: boolean;
+  /** Le regroupement ne construit l’icône que lorsque l’épingle devient visible. */
+  deferGlyph?: boolean;
 }
 
-export function createBaitlyPin({ color, icon = 'dot', label, interactive = false }: BaitlyPinOptions): HTMLDivElement {
+export function createBaitlyPin({ color, icon = 'dot', glyph, label, interactive = false, deferGlyph = false }: BaitlyPinOptions): HTMLDivElement {
   const element = document.createElement('div');
   element.className = 'baitly-map-pin';
   element.style.setProperty('--pin-color', color);
-  element.append(pinGlyph(icon));
+  if(!deferGlyph)element.append(pinGlyph(icon,glyph));
   if (label) element.setAttribute('aria-label', label);
   if (!interactive) return element;
 

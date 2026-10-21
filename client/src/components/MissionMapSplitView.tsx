@@ -1,4 +1,4 @@
-import { useEffect, useRef, type ReactNode } from "react";
+import { useEffect, useRef, type ReactNode, type CSSProperties } from "react";
 import { cn } from "../utils/cn";
 
 /** Shared desktop surface for PMS mission maps and public demonstrations. */
@@ -10,6 +10,7 @@ export default function MissionMapSplitView({
   aside,
   children,
   className,
+  listWidth,
 }: {
   map: ReactNode;
   /** Colonne optionnelle entre la carte et la liste. */
@@ -19,6 +20,7 @@ export default function MissionMapSplitView({
   listResetKey?: string;
   children: ReactNode;
   className?: string;
+  listWidth?: string;
 }) {
   const scrollRef = useRef<HTMLDivElement>(null);
   useEffect(() => {
@@ -30,7 +32,7 @@ export default function MissionMapSplitView({
         "flex min-h-0 min-w-0 flex-1 overflow-hidden",
         className,
       )}
-      style={{ containerType: 'inline-size', containerName: 'baitly-map' }}
+      style={{ containerType: 'inline-size', containerName: 'baitly-map', '--map-list-width': listWidth } as CSSProperties}
     >
       <div className={cn("baitly-map-split grid min-h-0 w-full flex-1 gap-3 overflow-hidden", aside && "baitly-map-split--aside")}>
       <div className="baitly-map-split__map relative min-h-0 overflow-hidden rounded-xl border border-border bg-card">

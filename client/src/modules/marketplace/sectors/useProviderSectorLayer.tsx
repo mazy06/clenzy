@@ -39,7 +39,7 @@ export interface ProviderSectorLayer {
  */
 /** `ready` : faux tant que l'écran n'a pas fait son premier rendu (calque secondaire, différé). */
 export function useProviderSectorLayer(bounds: MapBounds | null, ready = true, options?: {
-  point: MapPoint | null; onPointChange: (point: MapPoint | null) => void;
+  point: MapPoint | MapPoint[] | null; onPointChange: (point: MapPoint | MapPoint[] | null) => void;
   mode: SectorMode; onModeChange: (mode: SectorMode) => void;
 }): ProviderSectorLayer {
   const { t } = useTranslation();
@@ -51,18 +51,32 @@ export function useProviderSectorLayer(bounds: MapBounds | null, ready = true, o
   const [selectedId, setSelectedId] = useState<number | null>(null);
   const [hoveredId, setHoveredId] = useState<number | null>(null);
   const [areaProviderIds, setAreaProviderIds] = useState<number[] | null>(null);
-  const [selectedAreaGeometry, setSelectedAreaGeometry] = useState<SectorGeometry | null>(null);
+  const [selectedAreas, setSelectedAreas] = useState<{ geometry: SectorGeometry; point?: MapPoint; ids: number[] }[]>([]);
+  const selectedAreaGeometry = useMemo<SectorGeometry | null>(() => {
+    if (!selectedAreas.length) return null;
+    if (selectedAreas.length === 1) return selectedAreas[0].geometry;
+    return { type: 'MultiPolygon', coordinates: selectedAreas.flatMap(area => area.geometry.type === 'Polygon' ? [area.geometry.coordinates] : area.geometry.coordinates) };
+  }, [selectedAreas]);
   // Compte de l'intervenant d'une prestation (jour choisi dans une fiche logement).
   const [focusUserId, setFocusUserId] = useState<number | null>(null);
   const onPointChange = options?.onPointChange;
   const selectArea = useCallback((ids: number[] | null, geometry?: SectorGeometry | null, point?: MapPoint | null) => {
-    setAreaProviderIds(ids?.length ? ids : null);
-    setSelectedAreaGeometry(ids?.length ? geometry ?? null : null);
+    const key = geometry ? JSON.stringify(geometry) : null;
+    const next = geometry && ids?.length
+      ? selectedAreas.some(area => JSON.stringify(area.geometry) === key)
+        ? selectedAreas.filter(area => JSON.stringify(area.geometry) !== key)
+        : [...selectedAreas, { geometry, point: point ?? undefined, ids }]
+      : [];
+    setSelectedAreas(next);
+    // Une union de zones filtre les listes avec un OU, sans doublonner les prestataires.
+    const providerIds = next.length ? [...new Set(next.flatMap(area => area.ids))] : geometry ? [] : ids ?? [];
+    setAreaProviderIds(providerIds.length ? providerIds : null);
     setFocusUserId(null);
     setSelectedId(null);
     setHoveredId(null);
-    onPointChange?.(point ?? null);
-  }, [onPointChange]);
+    const points = next.flatMap(area => area.point ? [area.point] : []);
+    onPointChange?.(points.length === 1 ? points[0] : points.length ? points : null);
+  }, [onPointChange, selectedAreas]);
   const query = useQuery({
     queryKey: ['sector-map', 'relevant'],
     queryFn: () => sectorMapApi.relevant(),
@@ -91,13 +105,22 @@ export function useProviderSectorLayer(bounds: MapBounds | null, ready = true, o
 
   const providerContours = useMemo(() => data?.providers.map((p) => ({ id: p.providerId, geometry: p.geometry })) ?? [], [data]);
   const point = options?.point;
+  const pointKey = JSON.stringify(point ?? null);
   useEffect(() => {
-    if (!point) { setAreaProviderIds(null); setSelectedAreaGeometry(null); return; }
+    if (!point) { setAreaProviderIds(null); setSelectedAreas([]); return; }
     if (!data) return;
-    const area = smallestSectorAtPoint(providerContours, point.lng, point.lat);
-    setSelectedAreaGeometry(area);
-    setAreaProviderIds(area ? sectorProvidersInArea(providerContours, area) : null);
-  }, [point?.lng, point?.lat, data, providerContours]);
+    const points = Array.isArray(point) ? point : [point];
+    const seen = new Set<string>();
+    const areas = points.flatMap(point => {
+      const geometry = smallestSectorAtPoint(providerContours, point.lng, point.lat);
+      if (!geometry || seen.has(JSON.stringify(geometry))) return [];
+      seen.add(JSON.stringify(geometry));
+      return [{ geometry, point, ids: sectorProvidersInArea(providerContours, geometry) }];
+    });
+    setSelectedAreas(areas);
+    const ids = [...new Set(areas.flatMap(area => sectorProvidersInArea(providerContours, area.geometry)))];
+    setAreaProviderIds(ids.length ? ids : null);
+  }, [pointKey, data, providerContours]);
   const overlay = useMemo<SectorOverlay | null>(() => data ? {
     providers: providerContours,
     merged: data.merged,
@@ -129,7 +152,7 @@ export function useProviderSectorLayer(bounds: MapBounds | null, ready = true, o
     setSelectedId(null);
     setHoveredId(null);
     setAreaProviderIds(null);
-    setSelectedAreaGeometry(null);
+    setSelectedAreas([]);
     onPointChange?.(null);
   };
   const label = t('sectorMap.layer', 'Secteurs des prestataires');
@@ -150,6 +173,7 @@ export function useProviderSectorLayer(bounds: MapBounds | null, ready = true, o
       mode={mode}
       onModeChange={(next) => { setMode(next); selectArea(null); }}
       areaProviderIds={areaProviderIds}
+      selectedAreaCount={selectedAreas.length}
       onClearAreaFilter={() => selectArea(null)}
       selectedId={selectedId}
       // Sélectionner un prestataire, c'est vouloir voir SON secteur : vue par prestataire.

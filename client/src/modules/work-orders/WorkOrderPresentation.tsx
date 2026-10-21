@@ -23,9 +23,9 @@ export function workOrderArt(type: string) {
   return WORK_ORDER_ART.maintenance;
 }
 
-export function WorkOrderHeading({ art, title, actions }: { art: string; title: string; actions?: ReactNode }) {
+export function WorkOrderHeading({ art, title, actions, icon }: { art: string; title: string; actions?: ReactNode; icon?: ReactNode }) {
   return <header className="wo-heading">
-    <img src={art} alt="" width={40} height={40} decoding="async" />
+    {icon || <img src={art} alt="" width={40} height={40} decoding="async" />}
     <h2>{title}</h2>
     {actions && <div className="wo-heading__actions">{actions}</div>}
   </header>;

@@ -53,11 +53,15 @@ public class WelcomeGuide {
     /**
      * Theme visuel du livret cote guest (identite chaude "welcome book") :
      * atelier (defaut), noir, jardin, azur, corail, brume, minuit. Pilote l'apparence
-     * via un swap de variables CSS — supplante {@code brandingColor} (conserve pour
+     * via ses compositions et variables CSS ; supplante {@code brandingColor} (conserve pour
      * retro-compat) comme controle visuel principal.
      */
     @Column(length = 20, nullable = false)
     private String theme = "atelier";
+
+    /** Parcours Baitly du voyageur, conservé indépendamment du thème visuel. */
+    @Column(name = "structure", length = 24, nullable = false)
+    private String structure = "complet";
 
     /**
      * Photos de couverture (hero) du livret : JSON array d'ids de {@link PropertyPhoto}
@@ -135,6 +139,8 @@ public class WelcomeGuide {
     public void setBrandingColor(String brandingColor) { this.brandingColor = brandingColor; }
     public String getTheme() { return theme; }
     public void setTheme(String theme) { this.theme = theme; }
+    public String getStructure() { return structure; }
+    public void setStructure(String structure) { this.structure = structure; }
     public String getHeroPhotoIds() { return heroPhotoIds; }
     public void setHeroPhotoIds(String heroPhotoIds) { this.heroPhotoIds = heroPhotoIds; }
     public String getWelcomeMessage() { return welcomeMessage; }

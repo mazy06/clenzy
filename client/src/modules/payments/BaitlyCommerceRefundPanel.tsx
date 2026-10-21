@@ -19,7 +19,12 @@ export default function BaitlyCommerceRefundPanel({ source, sourceId, reference 
       const body = { reference: data.reference, amount: Number(amount), reason: reason.trim() };
       const key = JSON.stringify(body);if (attempt.current?.key !== key) attempt.current = { key, id: crypto.randomUUID() };
       await api.refund({ ...body, requestId: attempt.current.id });await query.refetch();setAmount('');setReason('');
-    } catch (e) { setError(e instanceof Error ? e.message : t('commerceRefunds.failed')); }
+    } catch (e) {
+      setError(e instanceof Error && e.name === 'TimeoutError' ? t('commerceRefunds.timeout') : e instanceof Error ? e.message : t('commerceRefunds.failed'));
+      // L'annulation du fetch n'annule pas l'écriture côté Stripe. Le solde
+      // serveur reste la preuve ; une reprise garde le même requestId.
+      void query.refetch();
+    }
     finally { pending.current = false;setBusy(false); }
   }
   const money = (value: number) => new Intl.NumberFormat(currentLanguage, { style: 'currency', currency: data?.currency || 'EUR' }).format(value);

@@ -218,6 +218,7 @@ export function useUnifiedInbox(canAccessChannels: boolean, includeForms: boolea
  * déclenchées uniquement quand le filtre est actif.
  */
 export function useArchivedInbox(enabled: boolean, includeForms: boolean) {
+  const { data: threads, isLoading: threadsLoading, error: threadsError } = useContactThreads(true, enabled);
   const {
     data: archivedPage,
     isLoading: convsLoading,
@@ -231,17 +232,18 @@ export function useArchivedInbox(enabled: boolean, includeForms: boolean) {
 
   const items = useMemo(() => {
     const merged: UnifiedConversation[] = [
+      ...(threads ?? []).map(fromInternalThread),
       ...(archivedPage?.content ?? []).map(fromChannelConversation),
       ...(formsPage?.content ?? [])
         .flatMap((form) => (form.status === 'ARCHIVED' ? [fromReceivedForm(form)] : [])),
     ];
     return merged.sort(byLastActivityDesc);
-  }, [archivedPage, formsPage]);
+  }, [threads, archivedPage, formsPage]);
 
   return {
     items,
-    isLoading: enabled && (convsLoading || (includeForms && formsLoading)),
-    error: convsError || formsError,
+    isLoading: enabled && (threadsLoading || convsLoading || (includeForms && formsLoading)),
+    error: threadsError || convsError || formsError,
   };
 }
 

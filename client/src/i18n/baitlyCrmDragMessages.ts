@@ -1,0 +1,6 @@
+const messages={
+  fr:{move:'Déplacer',instructions:'Espace pour saisir, flèches gauche et droite pour changer de colonne, Espace pour déposer, Échap pour annuler.',moving:'Enregistrement du déplacement…',saved:'Étape enregistrée.',cancelled:'Déplacement annulé.',error:'Le déplacement n’a pas pu être enregistré. Le contact reste dans son étape précédente.',picked:(name:string)=>`${name} sélectionné pour déplacement.`,over:(stage:string)=>`Déposer dans ${stage}.`},
+  en:{move:'Move',instructions:'Press Space to pick up, left or right arrow to change column, Space to drop, Escape to cancel.',moving:'Saving move…',saved:'Stage saved.',cancelled:'Move cancelled.',error:'The move could not be saved. The contact remains in its previous stage.',picked:(name:string)=>`${name} picked up.`,over:(stage:string)=>`Drop in ${stage}.`},
+  ar:{move:'نقل',instructions:'اضغط مسافة للالتقاط، والسهم الأيمن أو الأيسر لتغيير العمود، ومسافة للإفلات، وEscape للإلغاء.',moving:'جارٍ حفظ النقل…',saved:'تم حفظ المرحلة.',cancelled:'أُلغي النقل.',error:'تعذر حفظ النقل. بقيت جهة الاتصال في مرحلتها السابقة.',picked:(name:string)=>`تم التقاط ${name}.`,over:(stage:string)=>`الإفلات في ${stage}.`},
+};
+export function crmDragMessages(language:string){return messages[language==='en'||language==='ar'?language:'fr'];}

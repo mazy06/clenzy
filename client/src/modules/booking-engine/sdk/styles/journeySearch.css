@@ -1,0 +1,29 @@
+/* Native search composites: size to their section, including inside Studio columns. */
+.bt-journey:is([data-baitly-composite="catalogue-search"],[data-baitly-composite="extras-search"]){display:flex;flex-wrap:wrap;align-items:flex-start;gap:12px;container-type:inline-size;container-name:baitly-search}
+.bt-journey:is([data-baitly-composite="catalogue-search"],[data-baitly-composite="extras-search"])>.bt-journey__fields{display:contents}
+.bt-journey:is([data-baitly-composite="catalogue-search"],[data-baitly-composite="extras-search"]) [data-clenzy-widget]{flex:1 1 140px;inline-size:auto;min-inline-size:0;position:relative;margin:0}
+.bt-journey:is([data-baitly-composite="catalogue-search"],[data-baitly-composite="extras-search"]) [data-clenzy-widget="booking-dates"]{flex:2 1 292px}
+.bt-journey:is([data-baitly-composite="catalogue-search"],[data-baitly-composite="extras-search"]) :is(.cb-date-input,.cb-guests-toggle,.cb-input,.cb-multiselect__toggle,.cb-cta){box-sizing:border-box;inline-size:100%;block-size:60px;min-block-size:60px;margin:0;padding-block:8px;padding-inline:14px;font-family:inherit;font-size:14px;line-height:1.4}
+.bt-journey:is([data-baitly-composite="catalogue-search"],[data-baitly-composite="extras-search"]) .cb-dates{grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+.bt-journey:is([data-baitly-composite="catalogue-search"],[data-baitly-composite="extras-search"]) .cb-date-input{align-items:flex-start;text-align:start;gap:2px}
+.bt-journey:is([data-baitly-composite="catalogue-search"],[data-baitly-composite="extras-search"]) :is(.cb-date-input__label,.cb-guests-toggle__label){font-size:11px;line-height:1.3;letter-spacing:.04em;text-transform:uppercase}
+.bt-journey:is([data-baitly-composite="catalogue-search"],[data-baitly-composite="extras-search"]) :is(.cb-date-input__value,.cb-date-input__placeholder,.cb-guests-toggle__value){font-size:14px;line-height:1.4;font-variant-numeric:tabular-nums}
+.bt-journey:is([data-baitly-composite="catalogue-search"],[data-baitly-composite="extras-search"]) :is(.cb-wdates,.cb-section,.cb-multiselect){position:relative;margin:0}
+.bt-journey:is([data-baitly-composite="catalogue-search"],[data-baitly-composite="extras-search"]) :is(.cb-calendar-wrapper,.cb-guests-panel){position:absolute;inset-block-start:calc(100% + 8px);z-index:50}
+.bt-journey:is([data-baitly-composite="catalogue-search"],[data-baitly-composite="extras-search"]) .cb-calendar-wrapper{inset-inline-start:0}
+.bt-journey:is([data-baitly-composite="catalogue-search"],[data-baitly-composite="extras-search"]) .cb-calendar-wrapper.cb-open{inline-size:max-content;max-inline-size:min(100cqi,calc(100vw - 32px));max-block-size:70vh;overflow:auto}
+.bt-journey:is([data-baitly-composite="catalogue-search"],[data-baitly-composite="extras-search"]) .cb-guests-panel{inset-inline-end:0}
+@container baitly-search (max-width:760px){
+ .bt-journey[data-baitly-composite] [data-clenzy-widget="booking-city-search"],.bt-journey[data-baitly-composite] [data-clenzy-widget="booking-dates"]{flex-basis:calc(50% - 12px)}
+ .bt-journey[data-baitly-composite] [data-clenzy-widget="booking-dates"]{flex-grow:1}
+ .bt-journey[data-baitly-composite] [data-clenzy-widget="booking-search-button"]{flex-basis:100%}
+}
+@container baitly-search (max-width:440px){
+ .bt-journey[data-baitly-composite] [data-clenzy-widget="booking-city-search"],.bt-journey[data-baitly-composite] [data-clenzy-widget="booking-dates"]{flex-basis:100%}
+ .bt-journey[data-baitly-composite] [data-clenzy-widget="booking-guests"],.bt-journey[data-baitly-composite] [data-clenzy-widget="booking-property-type"]{flex-basis:calc(50% - 12px)}
+ .bt-journey[data-baitly-composite] .cb-guests-panel{inset-inline-start:0;inset-inline-end:auto}
+ .bt-journey[data-baitly-composite] .cb-calendar-month{flex-basis:auto;inline-size:100%}
+}
+@media(max-width:560px){
+ .bt-journey[data-baitly-composite] .cb-widget .cb-calendar-wrapper.cb-open{position:fixed;inset-block-start:auto;inset-block-end:16px;inset-inline:16px;inline-size:auto;max-inline-size:none;max-block-size:calc(100dvh - 32px);overflow:auto}
+}

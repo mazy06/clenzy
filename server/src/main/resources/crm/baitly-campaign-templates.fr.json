@@ -1,0 +1,121 @@
+[
+  {
+    "key": "fr-owner-management",
+    "name": "Propriétaires · Présenter la gestion locative",
+    "contactType": "OWNER",
+    "subject": "Votre projet de location courte durée avec {{organization}}",
+    "body": "Bonjour {{name}},\n\nJe vous contacte au nom de {{organization}} pour vous proposer un échange sur la gestion de votre bien en location courte durée.\n\nQuels sont vos objectifs et les tâches que vous souhaitez déléguer : annonces, échanges avec les voyageurs, arrivées, ménage ou suivi du logement ? Nous pourrons ensuite vous présenter un accompagnement adapté et un devis détaillé.\n\nSeriez-vous disponible pour un premier échange, sans engagement ? Vous pouvez répondre à ce message avec vos disponibilités et la ville où se situe votre bien.\n\nBien cordialement,\nL’équipe {{organization}}"
+  },
+  {
+    "key": "fr-owner-follow-up",
+    "name": "Propriétaires · Relancer un projet de gestion",
+    "contactType": "OWNER",
+    "subject": "Votre projet de gestion locative est-il toujours d’actualité ?",
+    "body": "Bonjour {{name}},\n\nJe reviens vers vous au sujet de la gestion de votre bien en location courte durée avec {{organization}}.\n\nSi le projet est toujours d’actualité, nous pouvons faire le point sur vos besoins, votre calendrier et le périmètre de gestion souhaité, puis vous transmettre une proposition.\n\nSouhaitez-vous convenir d’un échange ? Si votre situation a changé ou si vous préférez ne pas être recontacté, vous pouvez simplement nous le signaler en réponse.\n\nBien cordialement,\nL’équipe {{organization}}"
+  },
+  {
+    "key": "fr-provider-general",
+    "name": "Prestataires · Proposer une collaboration",
+    "contactType": "PROVIDER",
+    "subject": "Collaboration pour des logements en location courte durée · {{organization}}",
+    "body": "Bonjour {{name}},\n\n{{organization}} souhaite identifier des professionnels pour des besoins liés à la location courte durée. Nous aimerions connaître les services que votre entreprise propose réellement et envisager une collaboration.\n\nPourriez-vous nous indiquer vos prestations, votre zone d’intervention, vos disponibilités, vos tarifs et vos conditions de fonctionnement ?\n\nSi cela correspond à votre activité, nous pourrons vous préciser un premier besoin et vous demander un devis avant tout engagement.\n\nBien cordialement,\nL’équipe {{organization}}"
+  },
+  {
+    "key": "fr-provider-cleaning",
+    "name": "Ménage · Organiser les rotations voyageurs",
+    "contactType": "PROVIDER",
+    "subject": "Ménage entre séjours : échange avec {{organization}}",
+    "body": "Bonjour {{name}},\n\n{{organization}} recherche un partenaire pour le nettoyage de logements entre deux séjours de courte durée.\n\nProposez-vous la remise en état des pièces, la préparation des lits, le réassort de consommables et un contrôle de fin de prestation ? Pourriez-vous préciser votre zone d’intervention, vos créneaux entre départ et arrivée, vos tarifs et votre fonctionnement les week-ends ?\n\nNous pourrons ensuite vous transmettre les caractéristiques d’un logement pour un devis, sans engagement.\n\nBien cordialement,\nL’équipe {{organization}}"
+  },
+  {
+    "key": "fr-provider-laundry",
+    "name": "Blanchisserie · Entretien et rotation du linge",
+    "contactType": "PROVIDER",
+    "subject": "Entretien du linge pour locations courte durée · {{organization}}",
+    "body": "Bonjour {{name}},\n\nNous vous contactons au nom de {{organization}} pour étudier une collaboration autour du linge de logements en location courte durée.\n\nAssurez-vous le lavage, le séchage, le repassage et, éventuellement, la location de draps et serviettes ? Pourriez-vous préciser vos tarifs, les volumes minimums, les délais de rotation et vos possibilités de collecte et de livraison ?\n\nNous aimerions aussi connaître votre gestion des taches, des articles manquants et des périodes de forte activité. Seriez-vous disponible pour en discuter ?\n\nBien cordialement,\nL’équipe {{organization}}"
+  },
+  {
+    "key": "fr-provider-maintenance",
+    "name": "Maintenance et travaux · Interventions dans les logements",
+    "contactType": "PROVIDER",
+    "subject": "Interventions techniques en location courte durée · {{organization}}",
+    "body": "Bonjour {{name}},\n\n{{organization}} souhaite identifier un partenaire pour l’entretien technique et les travaux nécessaires dans des logements en location courte durée.\n\nPourriez-vous préciser vos métiers et habilitations, votre zone d’intervention, vos délais, vos frais de déplacement et votre méthode de devis ? Proposez-vous des interventions urgentes en plomberie, électricité ou serrurerie, lorsque cela relève de votre activité ?\n\nNous pourrons vous soumettre un besoin précis avant toute intervention.\n\nBien cordialement,\nL’équipe {{organization}}"
+  },
+  {
+    "key": "fr-provider-exterior",
+    "name": "Espaces extérieurs · Jardins et terrasses",
+    "contactType": "PROVIDER",
+    "subject": "Entretien des extérieurs de locations saisonnières · {{organization}}",
+    "body": "Bonjour {{name}},\n\n{{organization}} souhaite échanger avec vous sur l’entretien des espaces extérieurs de logements en location courte durée.\n\nQuelles prestations proposez-vous pour les jardins, terrasses et abords : tonte, taille, nettoyage ou suivi de l’arrosage ? Pourriez-vous préciser votre zone, vos fréquences de passage, vos tarifs et les modalités d’évacuation des déchets verts ?\n\nNous pourrons ensuite vous présenter les surfaces et les contraintes d’accès pour établir un devis adapté.\n\nBien cordialement,\nL’équipe {{organization}}"
+  },
+  {
+    "key": "fr-provider-concierge",
+    "name": "Conciergeries · Partenariat local et relais opérationnel",
+    "contactType": "PROVIDER",
+    "subject": "Échange entre {{organization}} et votre conciergerie",
+    "body": "Bonjour {{name}},\n\n{{organization}} souhaite échanger avec des conciergeries pour envisager un partenariat local autour de la location courte durée.\n\nSeriez-vous ouverts à des missions de relais opérationnel, d’accueil voyageurs, de coordination des prestations ou à la prise en charge de logements selon votre périmètre ?\n\nPourriez-vous nous préciser vos secteurs, vos services, vos disponibilités et vos conditions ? Nous pourrons discuter d’un fonctionnement clair concernant les responsabilités, la relation propriétaire et les modalités de facturation.\n\nBien cordialement,\nL’équipe {{organization}}"
+  },
+  {
+    "key": "fr-provider-repairs",
+    "name": "Réparation · Équipements et mobilier",
+    "contactType": "PROVIDER",
+    "subject": "Réparation d’équipements de logements · {{organization}}",
+    "body": "Bonjour {{name}},\n\n{{organization}} souhaite connaître vos services de diagnostic et de réparation pour les équipements de logements en location courte durée.\n\nSur quels équipements, marques ou types de mobilier intervenez-vous ? Pourriez-vous préciser vos délais, les frais de diagnostic, la disponibilité des pièces et vos conditions de garantie ? Intervenez-vous sur place ou en atelier ?\n\nSi votre activité correspond à un besoin, nous vous transmettrons les références de l’équipement et les symptômes pour un premier avis et un devis.\n\nBien cordialement,\nL’équipe {{organization}}"
+  },
+  {
+    "key": "fr-provider-security",
+    "name": "Sécurité · Accès et protection des logements",
+    "contactType": "PROVIDER",
+    "subject": "Services de sécurité pour logements saisonniers · {{organization}}",
+    "body": "Bonjour {{name}},\n\n{{organization}} souhaite identifier des professionnels pour les besoins de sécurité de logements en location courte durée.\n\nPourriez-vous préciser vos prestations et, lorsqu’ils sont requis, vos agréments : installation ou maintenance d’alarmes, contrôle d’accès, télésurveillance ou interventions ? Nous souhaitons aussi connaître votre couverture géographique, vos délais et vos conditions tarifaires.\n\nNous pourrons ensuite vous présenter un besoin précis, en tenant compte de la vie privée des voyageurs et des contraintes du logement.\n\nBien cordialement,\nL’équipe {{organization}}"
+  },
+  {
+    "key": "fr-provider-pest-control",
+    "name": "Nuisibles · Prévention et traitement",
+    "contactType": "PROVIDER",
+    "subject": "Prévention et traitement des nuisibles · {{organization}}",
+    "body": "Bonjour {{name}},\n\n{{organization}} souhaite connaître vos prestations de prévention et de traitement des nuisibles dans des logements en location courte durée.\n\nSur quels nuisibles intervenez-vous ? Pourriez-vous préciser vos délais de diagnostic, vos certifications lorsqu’elles sont requises, vos protocoles, vos tarifs et les conditions de suivi ?\n\nNous souhaitons notamment connaître les délais de réoccupation du logement et les précautions à transmettre aux occupants après traitement. Seriez-vous disponible pour un premier échange ?\n\nBien cordialement,\nL’équipe {{organization}}"
+  },
+  {
+    "key": "fr-provider-catering",
+    "name": "Restauration et traiteur · Services aux voyageurs",
+    "contactType": "PROVIDER",
+    "subject": "Prestations de restauration pour voyageurs · {{organization}}",
+    "body": "Bonjour {{name}},\n\n{{organization}} souhaite identifier des offres de restauration pouvant être proposées aux voyageurs de logements en location courte durée.\n\nProposez-vous des petits-déjeuners, des repas livrés, des prestations de traiteur ou de chef à domicile ? Pourriez-vous préciser votre zone de livraison, vos menus et tarifs, les minimums de commande, les délais et les conditions d’annulation ?\n\nNous aimerions également connaître les informations disponibles sur les allergènes et les régimes alimentaires. Si cette collaboration vous intéresse, échangeons sur les modalités.\n\nBien cordialement,\nL’équipe {{organization}}"
+  },
+  {
+    "key": "fr-provider-moving",
+    "name": "Déménagement et stockage · Équiper les logements",
+    "contactType": "PROVIDER",
+    "subject": "Transport et stockage de mobilier · {{organization}}",
+    "body": "Bonjour {{name}},\n\n{{organization}} souhaite échanger avec vous pour des besoins de transport, de déménagement ou de stockage de mobilier destiné à des locations courte durée.\n\nQuels services proposez-vous : livraison, manutention, montage, garde-meuble ou évacuation ? Pourriez-vous préciser votre zone, vos disponibilités, vos assurances et les éléments nécessaires à l’établissement d’un devis ?\n\nNous pourrons ensuite vous transmettre le volume, les adresses et les contraintes d’accès d’une opération précise.\n\nBien cordialement,\nL’équipe {{organization}}"
+  },
+  {
+    "key": "fr-provider-property-experts",
+    "name": "Expertise et aménagement · Préparer un logement",
+    "contactType": "PROVIDER",
+    "subject": "Expertise ou aménagement de locations courte durée · {{organization}}",
+    "body": "Bonjour {{name}},\n\n{{organization}} souhaite connaître vos prestations pour préparer, contrôler ou améliorer des logements en location courte durée.\n\nPourriez-vous préciser votre spécialité : diagnostics et contrôles techniques, conseil, décoration, aménagement ou location d’équipements ? Merci de nous indiquer vos qualifications lorsqu’elles sont nécessaires, vos livrables, vos délais et votre mode de tarification.\n\nSi votre activité correspond au projet, nous pourrons vous transmettre un cahier des charges et convenir d’un échange.\n\nBien cordialement,\nL’équipe {{organization}}"
+  },
+  {
+    "key": "fr-provider-keys",
+    "name": "Accueil et clés · Arrivées et départs voyageurs",
+    "contactType": "PROVIDER",
+    "subject": "Accueil voyageurs et remise de clés · {{organization}}",
+    "body": "Bonjour {{name}},\n\n{{organization}} souhaite identifier un partenaire pour l’accueil des voyageurs et la gestion des clés de logements en location courte durée.\n\nProposez-vous les arrivées, les départs, la remise de clés, la vérification du logement ou une assistance en cas de problème d’accès ? Pourriez-vous préciser votre zone, vos horaires, les suppléments éventuels et votre procédure de conservation des clés ?\n\nNous pourrons échanger sur un premier besoin et les informations à transmettre avant chaque mission.\n\nBien cordialement,\nL’équipe {{organization}}"
+  },
+  {
+    "key": "fr-provider-pool",
+    "name": "Piscines et spas · Entretien et suivi",
+    "contactType": "PROVIDER",
+    "subject": "Entretien de piscines et spas de locations saisonnières · {{organization}}",
+    "body": "Bonjour {{name}},\n\n{{organization}} souhaite échanger avec vous sur l’entretien de piscines et spas associés à des logements en location courte durée.\n\nAssurez-vous le nettoyage, le contrôle de l’eau, le suivi des équipements, la remise en service et l’hivernage ? Pourriez-vous préciser vos fréquences de passage, votre zone, vos tarifs, la fourniture des produits et vos délais en cas de panne ?\n\nNous pourrons ensuite vous présenter les caractéristiques d’un bassin et demander un devis adapté.\n\nBien cordialement,\nL’équipe {{organization}}"
+  },
+  {
+    "key": "fr-provider-photography",
+    "name": "Photographie · Valoriser les annonces",
+    "contactType": "PROVIDER",
+    "subject": "Reportage photo pour locations courte durée · {{organization}}",
+    "body": "Bonjour {{name}},\n\n{{organization}} souhaite connaître vos offres de photographie pour valoriser des logements en location courte durée.\n\nPourriez-vous nous présenter votre portfolio, vos tarifs par logement, votre zone et vos disponibilités ? Nous aimerions aussi connaître le nombre de photos livrées, les retouches incluses, les délais et les droits d’utilisation sur les annonces, sites et réseaux sociaux.\n\nProposez-vous également des plans ou des visites virtuelles ? Si cela correspond à votre activité, nous pourrons convenir d’un premier projet.\n\nBien cordialement,\nL’équipe {{organization}}"
+  }
+]

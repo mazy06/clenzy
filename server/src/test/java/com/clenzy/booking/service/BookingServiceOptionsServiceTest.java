@@ -19,6 +19,8 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.EnumSource;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -597,8 +599,8 @@ class BookingServiceOptionsServiceTest {
         }
 
         @Test
-        @DisplayName("skips inactive items and items missing in repo")
-        void skipsMissingOrInactive() {
+        @DisplayName("rejects inactive or unavailable services instead of silently changing the basket")
+        void rejectsMissingOrInactive() {
             BookingServiceItem active = item(1L, null, "x", new BigDecimal("10"),
                     BookingServicePricingMode.PER_BOOKING, 10, true);
             BookingServiceItem inactive = item(2L, null, "y", new BigDecimal("99"),
@@ -606,13 +608,11 @@ class BookingServiceOptionsServiceTest {
             when(itemRepository.findAllByIdInAndOrganizationId(any(), eq(ORG_ID)))
                     .thenReturn(List.of(active, inactive));
 
-            BigDecimal total = service.computeServiceOptionsTotal(
+            assertThatThrownBy(() -> service.computeServiceOptionsTotal(
                     List.of(new SelectedServiceOptionDto(1L, 1),
                             new SelectedServiceOptionDto(2L, 1),
                             new SelectedServiceOptionDto(3L, 1)), // 3L missing
-                    1, 1, ORG_ID);
-
-            assertThat(total).isEqualByComparingTo("10");
+                    1, 1, ORG_ID)).isInstanceOf(IllegalArgumentException.class).hasMessageContaining("disponible");
         }
     }
 
@@ -621,6 +621,22 @@ class BookingServiceOptionsServiceTest {
     @Nested
     @DisplayName("createReservationServiceItems")
     class CreateReservationItems {
+
+        @ParameterizedTest
+        @EnumSource(BookingServicePricingMode.class)
+        void snapshotUsesTheSameCappedQuantityAndPriceAsTheQuote(BookingServicePricingMode mode) {
+            var option = item(1L, null, "Linge", new BigDecimal("10"), mode, 3, true);
+            when(itemRepository.findAllByIdInAndOrganizationId(List.of(1L), ORG_ID)).thenReturn(List.of(option));
+            var selections = List.of(new SelectedServiceOptionDto(1L, 99));
+            var quoted = service.computeServiceOptionsTotal(selections, 2, 4, ORG_ID);
+            var reservation = new Reservation();
+            service.createReservationServiceItems(reservation, selections, 2, 4, ORG_ID);
+            var captured = ArgumentCaptor.forClass(ReservationServiceItem.class);
+            verify(reservationServiceItemRepository).save(captured.capture());
+            assertThat(captured.getValue().getQuantity()).isEqualTo(3);
+            assertThat(captured.getValue().getTotalPrice()).isEqualByComparingTo(quoted);
+            assertThat(reservation.getServiceOptionsTotal()).isEqualByComparingTo(quoted);
+        }
 
         @Test
         @DisplayName("no-op when selections are empty/null")
@@ -672,8 +688,8 @@ class BookingServiceOptionsServiceTest {
         }
 
         @Test
-        @DisplayName("skips inactive items entirely")
-        void skipsInactive() {
+        @DisplayName("rejects an inactive service before writing reservation lines")
+        void rejectsInactive() {
             BookingServiceItem inactive = item(1L, null, "X",
                     new BigDecimal("10"), BookingServicePricingMode.PER_BOOKING, 10, false);
             when(itemRepository.findAllByIdInAndOrganizationId(any(), eq(ORG_ID)))
@@ -682,13 +698,80 @@ class BookingServiceOptionsServiceTest {
             Reservation r = new Reservation();
             r.setId(99L);
 
-            service.createReservationServiceItems(r,
+            assertThatThrownBy(() -> service.createReservationServiceItems(r,
                     List.of(new SelectedServiceOptionDto(1L, 1)),
-                    1, 1, ORG_ID);
+                    1, 1, ORG_ID)).isInstanceOf(IllegalArgumentException.class);
 
             verify(reservationServiceItemRepository, never()).save(any());
-            assertThat(r.getServiceOptionsTotal()).isEqualByComparingTo(BigDecimal.ZERO);
-            verify(reservationRepository).save(r);
+            verifyNoInteractions(reservationRepository);
+        }
+    }
+
+    @Nested
+    class BasketIntegrity {
+        private void rejectsBeforeAnyWrite(List<SelectedServiceOptionDto> selections) {
+            assertThatThrownBy(() -> service.computeServiceOptionsTotal(selections, 2, 3, ORG_ID))
+                    .isInstanceOf(IllegalArgumentException.class);
+            assertThatThrownBy(() -> service.createReservationServiceItems(new Reservation(), selections, 2, 3, ORG_ID))
+                    .isInstanceOf(IllegalArgumentException.class);
+            verifyNoInteractions(reservationServiceItemRepository, reservationRepository);
+        }
+
+        @Test void rejectsDuplicateServicesBeforePricing() {
+            rejectsBeforeAnyWrite(List.of(new SelectedServiceOptionDto(1L, 2), new SelectedServiceOptionDto(1L, 2)));
+            verifyNoInteractions(itemRepository);
+        }
+
+        @Test void rejectsMissingAndNonPositiveQuantitiesAtTheServiceBoundary() {
+            for (Integer quantity : new Integer[] { null, 0, -1 }) {
+                rejectsBeforeAnyWrite(List.of(new SelectedServiceOptionDto(1L, quantity)));
+            }
+            rejectsBeforeAnyWrite(List.of(new SelectedServiceOptionDto(null, 1)));
+            rejectsBeforeAnyWrite(java.util.Arrays.asList((SelectedServiceOptionDto) null));
+            verifyNoInteractions(itemRepository);
+        }
+
+        @Test void rejectsServicesFromAnotherOrganization() {
+            var option = item(1L, null, "Linge", BigDecimal.TEN, BookingServicePricingMode.PER_BOOKING, 3, true);
+            option.setOrganizationId(99L);
+            when(itemRepository.findAllByIdInAndOrganizationId(List.of(1L), ORG_ID)).thenReturn(List.of(option));
+            rejectsBeforeAnyWrite(List.of(new SelectedServiceOptionDto(1L, 1)));
+        }
+
+        @Test void rejectsHiddenCategoriesAndMissingServices() {
+            var option = item(1L, cat(1L, "Masquée", 0, false), "Linge", BigDecimal.TEN,
+                    BookingServicePricingMode.PER_BOOKING, 3, true);
+            when(itemRepository.findAllByIdInAndOrganizationId(List.of(1L), ORG_ID)).thenReturn(List.of(option));
+            rejectsBeforeAnyWrite(List.of(new SelectedServiceOptionDto(1L, 1)));
+            when(itemRepository.findAllByIdInAndOrganizationId(List.of(1L), ORG_ID)).thenReturn(List.of());
+            rejectsBeforeAnyWrite(List.of(new SelectedServiceOptionDto(1L, 1)));
+        }
+
+        @Test void validatesTheEntireBasketBeforeSavingAnyLine() {
+            var option = item(1L, null, "Linge", BigDecimal.TEN, BookingServicePricingMode.PER_BOOKING, 3, true);
+            when(itemRepository.findAllByIdInAndOrganizationId(List.of(1L, 2L), ORG_ID)).thenReturn(List.of(option));
+            rejectsBeforeAnyWrite(List.of(new SelectedServiceOptionDto(1L, 1), new SelectedServiceOptionDto(2L, 1)));
+        }
+
+        @Test void aCheckboxCanOnlyChargeAndPersistOneUnit() {
+            var option = item(1L, null, "Accueil", BigDecimal.TEN, BookingServicePricingMode.PER_BOOKING, 10, true);
+            option.setInputType(BookingServiceInputType.CHECKBOX);
+            when(itemRepository.findAllByIdInAndOrganizationId(List.of(1L), ORG_ID)).thenReturn(List.of(option));
+            var selections = List.of(new SelectedServiceOptionDto(1L, 9));
+            assertThat(service.computeServiceOptionsTotal(selections, 2, 3, ORG_ID)).isEqualByComparingTo("10");
+            service.createReservationServiceItems(new Reservation(), selections, 2, 3, ORG_ID);
+            var captured = ArgumentCaptor.forClass(ReservationServiceItem.class);
+            verify(reservationServiceItemRepository).save(captured.capture());
+            assertThat(captured.getValue().getQuantity()).isEqualTo(1);
+            assertThat(captured.getValue().getTotalPrice()).isEqualByComparingTo("10");
+        }
+
+        @Test void rejectsInvalidCatalogPricesAndLimits() {
+            var option = item(1L, null, "Linge", BigDecimal.TEN.negate(), BookingServicePricingMode.PER_BOOKING, 3, true);
+            when(itemRepository.findAllByIdInAndOrganizationId(List.of(1L), ORG_ID)).thenReturn(List.of(option));
+            rejectsBeforeAnyWrite(List.of(new SelectedServiceOptionDto(1L, 1)));
+            option.setPrice(BigDecimal.TEN); option.setMaxQuantity(0);
+            rejectsBeforeAnyWrite(List.of(new SelectedServiceOptionDto(1L, 1)));
         }
     }
 }

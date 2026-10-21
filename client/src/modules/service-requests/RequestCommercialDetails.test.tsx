@@ -3,11 +3,12 @@ import { afterEach, expect, it, vi } from 'vitest';
 import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { MemoryRouter } from 'react-router-dom';
-import RequestCommercialDetails, { RequestCommercialBatch } from './RequestCommercialDetails';
+import RequestCommercialDetails, { RequestCommercialBatch, RequestRecipientActions } from './RequestCommercialDetails';
+import AssignmentHistory from './AssignmentHistory';
 
 const api=vi.hoisted(()=>({get:vi.fn(),post:vi.fn()}));
 vi.mock('../../services/apiClient',()=>({default:api}));
-vi.mock('../../hooks/useAuth',()=>({useAuth:()=>({hasAnyRole:(roles:string[])=>roles.includes('HOUSEKEEPER')})}));
+vi.mock('../../hooks/useAuth',()=>({useAuth:()=>({user:{id:1,organizationId:2},hasAnyRole:(roles:string[])=>roles.includes('HOUSEKEEPER')})}));
 vi.mock('../../hooks/useTranslation',()=>({useTranslation:()=>({currentLanguage:'fr',t:(key:string,options?:{count:number})=>key+(options?.count!=null?' '+options.count:'')})}));
 const proposal={id:3,requestId:1,status:'PENDING',expiresAt:new Date(Date.now()+40*60_000).toISOString()};
 function show(data:unknown,status='PENDING',interventionId?:number) {
@@ -18,6 +19,27 @@ function show(data:unknown,status='PENDING',interventionId?:number) {
   </RequestCommercialBatch></QueryClientProvider></MemoryRouter>);
 }
 afterEach(()=>{cleanup();vi.clearAllMocks();});
+function showRecipient(data:unknown) {
+  api.get.mockResolvedValue(data);
+  const cache=new QueryClient({defaultOptions:{queries:{retry:false}}});
+  render(<MemoryRouter><QueryClientProvider client={cache}><RequestRecipientActions requestId={1}/></QueryClientProvider></MemoryRouter>);
+}
+it('lets an authenticated team recipient respond using only the server-authorized proposal',async()=>{
+  showRecipient([{requestId:1,proposal,price:{amount:80,currency:'EUR'},quote:false}]);
+  expect(await screen.findByRole('button',{name:'requestCommercial.confirmPrice'})).toBeEnabled();
+  expect(api.get).toHaveBeenCalledWith('/service-assignments/cards',{params:{ids:'1'}});
+});
+it('does not expose recipient actions when the backend returns no personal proposal',async()=>{
+  showRecipient([]);
+  await waitFor(()=>expect(api.get).toHaveBeenCalled());
+  expect(screen.queryByRole('region',{name:'assignmentFlow.inbox'})).not.toBeInTheDocument();
+});
+it('keeps a submitted quote visible in the integrated price panel without offering a second submission', async () => {
+  showRecipient([{ requestId: 1, proposal: null, price: { amount: 90, currency: 'EUR' }, quote: true }]);
+  expect(await screen.findByText('requestCommercial.quote')).toBeInTheDocument();
+  expect(screen.getByText(/90,00/)).toBeInTheDocument();
+  expect(screen.queryByRole('button', { name: 'assignmentFlow.sendQuote' })).not.toBeInTheDocument();
+});
 it('shows a signed difference between the proposed amount and my rate',async()=>{
   show([{requestId:1,proposal:null,price:{amount:150,currency:'EUR'},quote:false,estimate:105,estimateCurrency:'EUR'}]);
   expect(await screen.findByText(/\+45,00/)).toHaveClass('text-warning-ink');
@@ -118,4 +140,23 @@ it('adjusts the amount with the keyboard slider and restores direct acceptance a
   expect(screen.getByLabelText('requestCommercial.myProposal')).toHaveValue(80);
   expect(screen.getByRole('button',{name:'requestCommercial.confirmPrice'})).toBeEnabled();
   expect(api.post).not.toHaveBeenCalled();
+});
+
+it('shows the submitted quote to the manager immediately without remounting the request',async()=>{
+  let submitted=false;
+  api.get.mockImplementation(async(path:string)=> {
+    if(path.endsWith('/history')) return [{...proposal,status:submitted?'QUOTED':'PENDING'}];
+    if(path.endsWith('/quotes')) return submitted?[{id:5,status:'RECEIVED',providerName:'Équipe recette',amount:90,currency:'EUR',description:'Recette'}]:[];
+    return [{requestId:1,proposal:submitted?null:proposal,price:{amount:80,currency:'EUR'},quote:submitted}];
+  });
+  api.post.mockImplementation(async()=>{submitted=true;return 5;});
+  const cache=new QueryClient({defaultOptions:{queries:{retry:false},mutations:{retry:false}}});
+  render(<MemoryRouter><QueryClientProvider client={cache}><RequestRecipientActions requestId={1}/><AssignmentHistory requestId={1}/></QueryClientProvider></MemoryRouter>);
+  await screen.findByLabelText('requestCommercial.myProposal');
+  await waitFor(()=>expect(api.get).toHaveBeenCalledWith('/service-assignments/requests/1/quotes'));
+  fireEvent.change(screen.getByLabelText('requestCommercial.myProposal'),{target:{value:'90'}});
+  fireEvent.change(screen.getByLabelText('assignmentFlow.validUntil'),{target:{value:'2026-12-01'}});
+  fireEvent.click(screen.getByRole('button',{name:'assignmentFlow.sendQuote'}));
+  expect(await screen.findByText('Équipe recette')).toBeInTheDocument();
+  expect(screen.getByRole('button',{name:'assignmentFlow.accept'})).toBeEnabled();
 });

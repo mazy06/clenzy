@@ -2,16 +2,21 @@ import { useServiceReferenceLabel } from '../ServiceReferenceLabels';
 import * as React from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { CalendarClockIcon, CheckIcon, ClockIcon, TriangleAlertIcon, XCircleIcon } from '../../icons/glyphs';
-import { Alert, AlertDescription, Badge, Button, Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, Card, CardContent, CardFooter, Field, FieldGroup, FieldLabel, InputGroup, InputGroupAddon, InputGroupInput, Label, Spinner } from '../ui';
+import { Alert, AlertDescription, Avatar, AvatarImage, AvatarFallback, Badge, Button, Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, Card, CardContent, CardFooter, Field, FieldGroup, FieldLabel, InputGroup, InputGroupAddon, InputGroupInput, Label, Spinner } from '../ui';
 import { Calendar } from '../ui/calendar';
 import { serviceRequestsApi } from '../../services/api/serviceRequestsApi';
+import { teamsApi, type Team } from '../../services/api/teamsApi';
+import { resolveMediaUrl } from '../../config/api';
 import { reservationsApi, type Reservation } from '../../services/api/reservationsApi';
 import { extractApiList } from '../../types';
 import { getErrorMessage } from '../../utils/getErrorMessage';
 import { refreshActionQueue } from '../../services/api/actionItemsApi';
 import { useTranslation } from '../../hooks/useTranslation';
 import { dateFnsLocale, weekStartsOnForLanguage } from '../../utils/localeDate';
+import { useMediaQuery } from "../../hooks/use-media-query";
+import "./baitlyServicePlanning.css";
 import { cn } from '../../utils/cn';
+import BaitlyFormSteps from '../forms/BaitlyFormSteps';
 
 /**
  * Baitly — une prestation que personne n'assurera : la clore, ou la refaire.
@@ -61,6 +66,9 @@ export default function StuckServiceDialog({
   // l'affichage, un `Date` reste un `Date`.
   const { t, isArabic, currentLanguage } = useTranslation();
   const queryClient = useQueryClient();
+  const wideCalendar = useMediaQuery("(min-width: 768px)");
+  const mobile = useMediaQuery('(max-width: 639px)');
+  const [mobileStep, setMobileStep] = React.useState(1);
   const [mode, setMode] = React.useState<'idle' | 'reschedule'>('idle');
   const [day, setDay] = React.useState<Date | undefined>(undefined);
   const [time, setTime] = React.useState('10:00');
@@ -82,6 +90,7 @@ export default function StuckServiceDialog({
     setDay(undefined);
     setTime('10:00');
     setAssignee('');
+    setMobileStep(1);
   }, [serviceRequestId, schedulingOnly]);
 
   // Minuit, et non l'instant présent : `before: new Date()` désactivait le jour
@@ -112,6 +121,14 @@ export default function StuckServiceDialog({
     queryFn: () => serviceRequestsApi.assignableTeams(serviceRequestId!, desiredDate),
     enabled: open && planning && desiredDate !== '',
   });
+  const { data: teams = [] } = useQuery({
+    queryKey: ['teams'],
+    queryFn: () => teamsApi.getAll(),
+    enabled: open && planning,
+    staleTime: 60_000,
+    retry: false,
+  });
+  const teamsById = React.useMemo(() => new Map(teams.map(team => [team.id, team])), [teams]);
   const suggestions = assignable?.teams ?? [];
   // Quand aucune équipe ne convient, c'est le TYPE requis qui manque à l'écran :
   // sans lui on ne distingue pas un manque d'équipe d'un manque de disponibilité.
@@ -184,15 +201,22 @@ export default function StuckServiceDialog({
 
   return (
     <Dialog open={open} onOpenChange={(next) => !next && !busy && onClose()}>
-      <DialogContent className="max-w-lg">
-        <DialogHeader>
+      <DialogContent className={cn("baitly-service-dialog", planning && "baitly-service-dialog--planning")}>
+        <DialogHeader className="baitly-service-dialog__header">
+          <span className="baitly-service-dialog__symbol" aria-hidden="true"><CalendarClockIcon /></span>
+          <div className="baitly-service-dialog__heading">
           <DialogTitle className="pe-8">
-            {service?.title ?? t('dashboard.stuckService.fallback', 'Prestation en attente')}
+            {mobile && planning ? t('dashboard.stuckService.reschedule', 'Replanifier') : service?.title ?? t('dashboard.stuckService.fallback', 'Prestation en attente')}
           </DialogTitle>
           {service?.propertyName && <DialogDescription>{service.propertyName}</DialogDescription>}
+          </div>
         </DialogHeader>
+        {mobile && planning && <BaitlyFormSteps steps={[t('requestComposer.schedule'), t('dashboard.stuckService.assigneeLabel', 'Prestataire')]}
+          current={mobileStep} reachable={[true, !!desiredDate]} onStepClick={setMobileStep} />}
+        <div className="baitly-service-dialog__body">
+        {mobile && planning && mobileStep === 1 && <p className="text-sm font-medium">{service?.title}</p>}
 
-        {!schedulingOnly && <p className="m-0 text-sm text-muted-foreground">
+        {!schedulingOnly && (!mobile || mobileStep === 1) && <p className="m-0 text-sm text-muted-foreground">
           {overdue
             ? t(
                 'dashboard.stuckService.overdue',
@@ -205,19 +229,20 @@ export default function StuckServiceDialog({
         </p>}
 
         {planning && (
-          <div className="flex flex-col gap-4">
+          <div className="baitly-service-planning" data-mobile-step={mobile ? mobileStep : undefined}>
+            <div className="baitly-service-planning__schedule">
             {/* Présentation reprise de la galerie (Calendar + heure en pied de
                 carte), sur DEUX mois : replanifier une prestation manquée se
                 projette souvent au-delà du mois courant, et un seul mois
                 obligeait à naviguer pour voir la semaine suivante. */}
-            <Card size="sm" className="mx-auto w-fit">
+            <Card size="sm" className="baitly-service-planning__calendar mx-auto w-fit">
               <CardContent>
                 {/* Sans `locale`, react-day-picker retombe sur `enUS` : initiales
                     de jours en anglais et semaine ouverte au dimanche, meme en
                     francais. `weekStartsOn` porte la regle produit. */}
                 <Calendar
                   mode="single"
-                  numberOfMonths={2}
+                  numberOfMonths={wideCalendar ? 2 : 1}
                   locale={dateFnsLocale(currentLanguage)}
                   weekStartsOn={weekStartsOnForLanguage(currentLanguage)}
                   calendarSystem={isArabic ? 'hijri' : 'gregorian'}
@@ -250,6 +275,33 @@ export default function StuckServiceDialog({
               </CardFooter>
             </Card>
 
+            <div className="flex flex-col gap-1.5">
+              <Label>{t('dashboard.stuckService.reservationLabel', 'Séjour concerné')}</Label>
+              {!day ? (
+                <p className="m-0 text-sm text-muted-foreground">
+                  {t('dashboard.stuckService.stayPending', 'Le séjour sera déduit de la date choisie.')}
+                </p>
+              ) : matchingStay ? (
+                <p className="m-0 text-sm text-foreground">
+                  {t('dashboard.stuckService.stayMatched', {
+                    guest: matchingStay.guestName ?? '—',
+                    defaultValue: 'Rattachée au séjour de {{guest}}',
+                  })}
+                  <span className="ms-1 text-muted-foreground">
+                    {`(${matchingStay.checkIn} → ${matchingStay.checkOut})`}
+                  </span>
+                </p>
+              ) : (
+                <p className="m-0 text-sm text-muted-foreground">
+                  {t(
+                    'dashboard.stuckService.stayNone',
+                    'Aucun séjour ce jour-là : la prestation ne sera rattachée à aucune réservation.',
+                  )}
+                </p>
+              )}
+            </div>
+            </div>
+            <div className="baitly-service-planning__providers">
             <p className="m-0 text-xs text-muted-foreground">
               {t(
                 'dashboard.stuckService.availabilityHint',
@@ -311,6 +363,7 @@ export default function StuckServiceDialog({
                     <SuggestionRow
                       key={team.teamId}
                       label={team.name}
+                      team={teamsById.get(team.teamId)}
                       badge={
                         team.origin === 'DEFAULT'
                           ? t('dashboard.stuckService.originDefault', 'Attitrée')
@@ -349,30 +402,7 @@ export default function StuckServiceDialog({
               )}
             </div>
 
-            <div className="flex flex-col gap-1.5">
-              <Label>{t('dashboard.stuckService.reservationLabel', 'Séjour concerné')}</Label>
-              {!day ? (
-                <p className="m-0 text-sm text-muted-foreground">
-                  {t('dashboard.stuckService.stayPending', 'Le séjour sera déduit de la date choisie.')}
-                </p>
-              ) : matchingStay ? (
-                <p className="m-0 text-sm text-foreground">
-                  {t('dashboard.stuckService.stayMatched', {
-                    guest: matchingStay.guestName ?? '—',
-                    defaultValue: 'Rattachée au séjour de {{guest}}',
-                  })}
-                  <span className="ms-1 text-muted-foreground">
-                    {`(${matchingStay.checkIn} → ${matchingStay.checkOut})`}
-                  </span>
-                </p>
-              ) : (
-                <p className="m-0 text-sm text-muted-foreground">
-                  {t(
-                    'dashboard.stuckService.stayNone',
-                    'Aucun séjour ce jour-là : la prestation ne sera rattachée à aucune réservation.',
-                  )}
-                </p>
-              )}
+
             </div>
           </div>
         )}
@@ -386,16 +416,24 @@ export default function StuckServiceDialog({
           </Alert>
         )}
 
+        </div>
         <DialogFooter className="sm:justify-between">
+          {mobile && planning ? <div className="flex items-center gap-1"><Button variant="ghost" onClick={() => mobileStep > 1 ? setMobileStep(1) : onClose()} disabled={busy}>
+            {t(mobileStep > 1 ? 'reservations.dialog.previous' : 'common.cancel')}
+          </Button><Button variant="ghost" size="icon" onClick={() => close.mutate()} disabled={busy}
+            title={t('dashboard.stuckService.close', 'Clôturer définitivement')}
+            aria-label={t('dashboard.stuckService.close', 'Clôturer définitivement')}>
+            {close.isPending ? <Spinner /> : <XCircleIcon />}
+          </Button></div> :
           <Button variant="ghost" onClick={() => close.mutate()} disabled={busy}>
             {close.isPending ? <Spinner /> : <XCircleIcon />}
             {t('dashboard.stuckService.close', 'Clôturer définitivement')}
-          </Button>
+          </Button>}
 
           {planning ? (
-            <Button onClick={() => reschedule.mutate()} disabled={busy || !desiredDate}>
+            <Button onClick={() => mobile && mobileStep === 1 ? setMobileStep(2) : reschedule.mutate()} disabled={busy || !desiredDate}>
               {reschedule.isPending ? <Spinner /> : <CheckIcon />}
-              {t('dashboard.stuckService.confirmReschedule', 'Replanifier')}
+              {mobile && mobileStep === 1 ? t('reservations.dialog.next') : t('dashboard.stuckService.confirmReschedule', 'Replanifier')}
             </Button>
           ) : (
             <Button onClick={() => setMode('reschedule')} disabled={busy}>
@@ -423,8 +461,10 @@ function SuggestionRow({
   muted,
   selected,
   onSelect,
+  team,
 }: {
   label: string;
+  team?: Team;
   badge?: string;
   hint?: string;
   /** Occupée sur le créneau : proposée quand même, mais en retrait. */
@@ -438,15 +478,40 @@ function SuggestionRow({
       onClick={onSelect}
       aria-pressed={selected}
       className={cn(
-        'flex cursor-pointer items-center gap-2 rounded-md px-2 py-1.5 text-start text-sm outline-none transition-colors duration-150 hover:bg-accent focus-visible:ring-[3px] focus-visible:ring-ring/50 motion-reduce:transition-none',
-        selected && 'bg-accent',
+        'baitly-service-planning__suggestion cursor-pointer rounded-md px-3 py-2.5 text-start text-sm outline-none transition-colors duration-150 hover:bg-accent focus-visible:ring-[3px] focus-visible:ring-ring/50 motion-reduce:transition-none',
+        selected && 'is-selected',
         muted && 'text-muted-foreground',
       )}
     >
-      <span className="flex-1 truncate">{label}</span>
-      {badge && <Badge variant="outline">{badge}</Badge>}
-      {hint && <span className="shrink-0 text-xs text-muted-foreground">{hint}</span>}
+      {badge ? <ProviderAvatars team={team} label={label} /> : <span className="baitly-service-planning__automatic" aria-hidden="true"><CalendarClockIcon /></span>}
+      <span className="baitly-service-planning__identity">
+        <span className="baitly-service-planning__name">{label}</span>
+        {hint && <span className="baitly-service-planning__reason text-xs text-muted-foreground">{hint}</span>}
+      </span>
+      <span className="baitly-service-planning__status">
+        {badge && <Badge variant="outline">{badge}</Badge>}
+        {selected && <CheckIcon aria-hidden="true" className="size-4" />}
+      </span>
     </button>
+  );
+}
+
+function ProviderAvatars({ team, label }: { team?: Team; label: string }) {
+  const members = team?.members ?? [];
+  const visible = members.slice(0, 3);
+  const remaining = Math.max(0, (team?.memberCount ?? members.length) - visible.length);
+  const initials = (name: string) => name.trim().split(/\s+/).filter(Boolean).slice(0, 2).map(part => part[0]).join('').toUpperCase();
+  return (
+    <span className="baitly-service-planning__avatars" aria-hidden="true">
+      {visible.length ? visible.map(member => {
+        const name = [member.firstName, member.lastName].filter(Boolean).join(' ') || member.userName || label;
+        return <Avatar key={member.id} title={name}>
+          {member.avatarUrl && <AvatarImage src={resolveMediaUrl(member.avatarUrl)} alt="" />}
+          <AvatarFallback>{initials(name)}</AvatarFallback>
+        </Avatar>;
+      }) : <Avatar><AvatarFallback>{initials(label)}</AvatarFallback></Avatar>}
+      {remaining > 0 && <span className="baitly-service-planning__avatar-count">+{remaining}</span>}
+    </span>
   );
 }
 

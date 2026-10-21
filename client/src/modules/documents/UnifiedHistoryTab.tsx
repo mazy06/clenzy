@@ -1,3 +1,4 @@
+import {PageHeaderFilterControls} from "../../components/PageHeaderActionsContext";
 import { useEffect, useState, forwardRef, useImperativeHandle } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
@@ -109,10 +110,11 @@ const UnifiedHistoryTab = forwardRef<UnifiedHistoryTabRef>((_, ref) => {
   }));
   const query = channel === 'documents' ? documents : messages;
   return <>
-    <div className="documents-toolbar"><p>{t('documentsWorkspace.historyHint')}</p><NativeSelect aria-label={t('documentsWorkspace.channel')} value={channel} onChange={event => { setChannel(event.target.value); setSelected(null); setSearch(''); setMessagePage(0); }}>
+    <PageHeaderFilterControls>{<NativeSelect aria-label={t('documentsWorkspace.channel')} value={channel} onChange={event => { setChannel(event.target.value); setSelected(null); setSearch(''); setMessagePage(0); }}>
       <NativeSelectOption value="documents">{t('documents.history.filterDocuments')}</NativeSelectOption><NativeSelectOption value="messages">{t('documents.history.filterMessages')}</NativeSelectOption>
       {['EMAIL', 'WHATSAPP', 'SMS'].map(value => <NativeSelectOption value={value} key={value}>{value === 'EMAIL' ? 'Email' : value === 'WHATSAPP' ? 'WhatsApp' : value}</NativeSelectOption>)}
-    </NativeSelect></div>
+    </NativeSelect>}</PageHeaderFilterControls>
+    <div className="documents-toolbar"><p>{t('documentsWorkspace.historyHint')}</p></div>
     {actionError && <Alert variant="destructive" role="alert" className="mb-3"><AlertDescription>{actionError}</AlertDescription></Alert>}
     {verifyResult && <Alert variant={verifyResult.ok ? 'success' : 'destructive'} className="mb-3"><AlertDescription>{verifyResult.text}</AlertDescription></Alert>}
     {(query.error || highlighted.error) && <Alert variant="destructive" role="alert"><AlertDescription>{t('documentsWorkspace.loadError')}</AlertDescription><Button variant="ghost" onClick={() => { void query.refetch(); if (highlight) void highlighted.refetch(); }}>{t('common.retry')}</Button></Alert>}

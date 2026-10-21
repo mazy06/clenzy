@@ -61,4 +61,18 @@ class BaitlyPublicProfilesTest {
         for(String url:List.of("http://example.com", "https://127.0.0.1", "https://user:secret@example.com", "https://example.com?token=secret"))
             assertThatThrownBy(() -> BaitlyPublicProfiles.publicUrl(url)).isInstanceOf(IllegalArgumentException.class);
     }
+    @Test void platformStaffPublishTheInternalIntakeProfileWithoutChangingOrganizationType() {
+        var organizations=mock(com.clenzy.service.OrganizationService.class);
+        var orgs=mock(com.clenzy.repository.OrganizationRepository.class);
+        var db=mock(org.springframework.jdbc.core.JdbcTemplate.class);
+        var organization=new com.clenzy.model.Organization();organization.setType(com.clenzy.model.OrganizationType.SYSTEM);organization.setName("Baitly");
+        when(tenant.getRequiredOrganizationId()).thenReturn(34L);when(tenant.isSuperAdmin()).thenReturn(true);
+        when(accounts.userIdOf("staff")).thenReturn(12L);when(orgs.findById(34L)).thenReturn(Optional.of(organization));
+        var service=new BaitlyPublicProfiles(profiles,accounts,organizations,orgs,tenant,db,null,null,Clock.systemUTC(),null);
+        var result=service.publish(new BaitlyPublicProfiles.Publish(false,"Baitly","Paris",null,null,null,List.of(),List.of("CLEANING"),false,false,false,null),"staff");
+        assertThat(result).containsEntry("role","CONCIERGE").containsEntry("managementServices",List.of("CLEANING"));
+        assertThat(organization.getType()).isEqualTo(com.clenzy.model.OrganizationType.SYSTEM);
+        verify(organizations).validateOrgManagement("staff",34L);
+        verify(profiles).saveAndFlush(argThat(profile->profile.organizationId.equals(34L)&&profile.authorUserId.equals(12L)));
+    }
 }

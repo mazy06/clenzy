@@ -5,9 +5,9 @@ package com.clenzy.model;
  *
  * <p>Transitions par UPDATE conditionnel (CAS, audit #8), jamais check-then-act :
  * <pre>
- *   PENDING ──► HELD ──► RELEASED            (rendue, aucun dommage — ou hold échu après la fenêtre)
- *      │         │ ├──► CAPTURED             (encaissée pour dommages, partielle ou totale)
- *      │         │ └──► EXPIRED              (hold échu chez Stripe PENDANT la fenêtre de réclamation)
+ *   PENDING ──► HELD ──► RELEASING ──► RELEASED (ménage validé sans anomalie, annulation confirmée par Stripe)
+ *      │         │ ├──► CAPTURING ──► CAPTURED (capture manuelle confirmée par Stripe)
+ *      │         │ └──► EXPIRED              (autorisation échue avant validation du logement)
  *      │         └─ renouvellement ─► HELD   (nouveau PaymentIntent, externalRef/holdExpiresAt mis à jour)
  *      └────► FAILED ──► HELD                (nouvelle tentative depuis le PMS)
  * </pre>
@@ -20,12 +20,16 @@ public enum SecurityDepositStatus {
     PENDING,
     /** Pré-autorisation placée — fonds bloqués chez le PSP jusqu'à {@code holdExpiresAt}. */
     HELD,
+    /** Libération réclamée durablement, référence du hold figée jusqu'au résultat Stripe. */
+    RELEASING,
+    /** Capture manuelle réclamée durablement ; jamais libérée automatiquement. */
+    CAPTURING,
     /** Hold relâché, caution rendue au voyageur. */
     RELEASED,
     /** Tout ou partie encaissé pour dommages. */
     CAPTURED,
     /** Pré-autorisation refusée (carte refusée, authentification requise…) — voir {@code holdError}. */
     FAILED,
-    /** Hold échu chez Stripe avant la fin de la fenêtre de réclamation : plus aucune garantie. */
+    /** Hold échu chez Stripe avant validation du logement : plus aucune garantie. */
     EXPIRED
 }

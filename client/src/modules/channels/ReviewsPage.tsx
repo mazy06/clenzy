@@ -37,11 +37,7 @@ export default function ReviewsPage() {
         title={t('channels.reviews.title', 'Avis voyageurs')}
         subtitle={t('channels.reviews.subtitle', 'Tous canaux confondus')}
         iconBadge={<StarIcon />}
-        showBackButton={false}
-      />
-
-      {/* Largeur figée : le `w-full` du kit étirerait le champ sur toute la page. */}
-      <Field className="w-[240px]">
+        filters={<Field className="w-[240px]">
         <FieldLabel htmlFor="reviews-property-filter">
           {t('channels.reviews.filterByProperty', 'Filtrer par logement')}
         </FieldLabel>
@@ -57,7 +53,12 @@ export default function ReviewsPage() {
             <NativeSelectOption key={p.id} value={p.id}>{p.name}</NativeSelectOption>
           ))}
         </NativeSelect>
-      </Field>
+      </Field>}
+        showBackButton={false}
+      />
+
+      {/* Largeur figée : le `w-full` du kit étirerait le champ sur toute la page. */}
+
 
       <ReviewList
         // key : changer de logement remonte une autre liste — on remonte le

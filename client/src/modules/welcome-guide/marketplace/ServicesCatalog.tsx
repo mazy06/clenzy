@@ -286,7 +286,7 @@ export default function ServicesCatalog({
   </BaitlyCatalog>;
 
   function renderPartner(e: MarketplaceExperience) {
-    return <CatalogCard key={e.id} title={e.title} source={e.partner}
+    return <CatalogCard key={e.id} title={e.title} source={e.partner} tone="purple"
       media={<img src={e.imageUrl || `/images/catalog/${e.id}.webp`} alt="" loading="lazy" decoding="async" />}
       description={e.desc} onOpen={() => setSelectedId(e.id)}
       trailing={<span className="flex shrink-0 items-center gap-1 text-xs tabular-nums"><Star size={14} className="text-warning-ink" />{e.rating}</span>}
@@ -301,6 +301,7 @@ export default function ServicesCatalog({
 
   function renderInternal(o: UpsellOffer) {
     return <CatalogCard key={'int-' + o.id} title={o.title} source={t('welcomeGuide.marketplace.filterInternal')}
+      tone={o.type === 'CLEANING' ? 'teal' : o.type === 'EARLY_CHECKIN' || o.type === 'LATE_CHECKOUT' ? 'blue' : 'amber'}
       media={o.imageUrl || SERVICE_IMAGES[o.type]
         ? <img src={o.imageUrl || SERVICE_IMAGES[o.type]} alt="" loading="lazy" decoding="async" />
         : <ServiceArt type={o.type} />}

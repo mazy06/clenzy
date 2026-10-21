@@ -13,6 +13,10 @@
 .intervention-panel > :not(:first-child), .intervention-planning-fields > :not(:first-child) { margin-top:12px; padding-top:12px; border-top:1px solid var(--bui-border); }
 .intervention-catalog .composer-results { max-height:240px; overflow-y:auto; }
 .intervention-actions { display:grid; gap:4px; }
+.intervention-planning { background: color-mix(in srgb, var(--bui-navy-soft) 45%, var(--bui-card)); }
+.intervention-workspace h6 { color: var(--bui-navy); }
+.intervention-workspace [data-slot="field-description"] { white-space: normal; overflow-wrap: anywhere; }
+.intervention-workspace textarea { resize: vertical; }
 .intervention-extras[open] { max-height:240px; overflow:auto; }
 @media(min-width:1024px) and (min-height:650px) {
   .intervention-workspace { overflow:clip; }
@@ -31,3 +35,9 @@
   .intervention-actions { flex-shrink:0; }
 }
 @media(max-width:1023px) { .intervention-columns { grid-template-columns:minmax(0,1fr); } }
+@media(max-width:639px) {
+  .intervention-workspace { overflow: hidden; }
+  #intervention-form[data-mobile-flow] { min-height: 0; padding: .75rem; }
+  #intervention-form[data-mobile-flow] .intervention-columns { display: block; }
+  .intervention-workspace .composer-results { max-height: 28dvh; overflow-y: auto; }
+}

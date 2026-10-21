@@ -1,0 +1,22 @@
+import {act,cleanup,fireEvent,render,screen} from '@testing-library/react';
+import {afterEach,expect,it,vi} from 'vitest';
+import MapLoadMore from './MapLoadMore';
+vi.mock('../../hooks/useTranslation',()=>({useTranslation:()=>({t:(_key:string,fallback:string)=>fallback})}));
+afterEach(()=>{cleanup();vi.unstubAllGlobals();});
+it('does not drain server pages while the sentinel remains visible without a user gesture',()=>{
+ let notify!:IntersectionObserverCallback;
+ vi.stubGlobal('IntersectionObserver',class{constructor(callback:IntersectionObserverCallback){notify=callback;}observe(){}disconnect(){}});
+ const more=vi.fn();
+ const view=render(<div data-map-list-scroll><MapLoadMore hasMore busy={false} onMore={more} label="Charger la suite"/></div>);
+ const panel=view.container.querySelector('[data-map-list-scroll]')!;
+ act(()=>notify([{isIntersecting:true}] as IntersectionObserverEntry[],{} as IntersectionObserver));
+ expect(more).not.toHaveBeenCalled();
+ fireEvent.scroll(panel);expect(more).not.toHaveBeenCalled();
+ fireEvent.wheel(panel);expect(more).toHaveBeenCalledTimes(1);
+ act(()=>notify([{isIntersecting:true}] as IntersectionObserverEntry[],{} as IntersectionObserver));
+ expect(more).toHaveBeenCalledTimes(1);
+ view.rerender(<div data-map-list-scroll><MapLoadMore hasMore busy={false} onMore={()=>more()} label="Charger la suite"/></div>);
+ expect(more).toHaveBeenCalledTimes(1);
+ fireEvent.touchMove(panel);expect(more).toHaveBeenCalledTimes(2);
+ fireEvent.click(screen.getByRole('button',{name:'Charger la suite'}));expect(more).toHaveBeenCalledTimes(3);
+});

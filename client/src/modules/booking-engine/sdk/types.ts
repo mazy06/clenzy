@@ -152,6 +152,8 @@ export interface CartStay {
 }
 
 export interface WidgetProperty {
+  securityDepositAmount?: number;
+  securityDepositCurrency?: string;
   id: number;
   name: string;
   type: string | null;

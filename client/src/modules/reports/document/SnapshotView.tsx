@@ -1,17 +1,15 @@
 import React from 'react';
 import {
-  ChartTile,
   DonutChart,
   GroupedBarChart,
   HistogramChart,
-  StatsBand,
-  StatsLayout,
   TrendAreaChart,
   TrendLineChart,
   type SeriesDef,
-  type StatFigure,
 } from '../../../components/stats';
-import { Card } from '../../../components/ui';
+import { useTranslation } from '../../../hooks/useTranslation';
+import { reportDocumentCopy, reportSectionTone } from './baitlyReportDocument';
+import './baitly-report-document.css';
 import { cn } from '../../../utils/cn';
 import type {
   ReportChart,
@@ -31,83 +29,68 @@ import { activeIntlLocale } from '../../../utils/activeLocale';
  */
 const SnapshotView: React.FC<{ snapshot: ReportSnapshot }> = ({ snapshot }) => {
   const { meta } = snapshot;
-
-  const figures: StatFigure[] = snapshot.kpis.map((kpi) => ({
-    key: kpi.key,
-    value: kpi.value,
-    label: kpi.label,
-    delta: kpi.deltaLastYearPct,
-    deltaInverted: !kpi.higherIsBetter,
-  }));
+  const { currentLanguage } = useTranslation();
+  const copy = reportDocumentCopy(currentLanguage);
+  let chapter = 0;
 
   return (
-    <StatsLayout>
+    <article className="br-document" data-profile={meta.profile}>
       <CoverBand snapshot={snapshot} />
-      <StatsBand
-        figures={figures}
-        footer={
-          <p className="m-0 text-2xs text-muted-foreground">
-            Écarts affichés face à la même période l'an dernier · données arrêtées le{' '}
-            {new Date(meta.dataAsOf).toLocaleString(activeIntlLocale(), {
-              day: '2-digit', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit',
-            })}
-          </p>
-        }
-      />
-
-      {snapshot.sections.map((section) => (
-        <SectionView key={section.id} section={section} currency={meta.currency} />
-      ))}
-    </StatsLayout>
+      <section className="br-summary" aria-label={copy.summary}>
+        <h3>{copy.summary}</h3>
+        <dl className="br-kpis">
+          {snapshot.kpis.map(kpi => <div key={kpi.key} className="br-kpi">
+            <dt>{kpi.label}</dt><dd>{kpi.value}</dd>
+            <dd className="br-kpi-comparisons">
+              <KpiDelta value={kpi.deltaPreviousPct} higherIsBetter={kpi.higherIsBetter} label={copy.previous} />
+              <KpiDelta value={kpi.deltaLastYearPct} higherIsBetter={kpi.higherIsBetter} label={copy.lastYear} />
+            </dd>
+          </div>)}
+        </dl>
+        <p className="br-as-of">{copy.asOf} {new Date(meta.dataAsOf).toLocaleString(activeIntlLocale(), {
+          day: '2-digit', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit',
+        })}</p>
+      </section>
+      {snapshot.sections.map(section => <SectionView key={section.id} section={section} currency={meta.currency}
+        chapter={['glossary', 'notice'].includes(section.id) ? undefined : ++chapter} />)}
+    </article>
   );
 };
 
-/**
- * L'en-tête du document.
- *
- * <p>Périmètre et date d'arrêté ne sont pas de la décoration : sans eux, un
- * chiffre n'est pas défendable. Ils ouvrent donc l'aperçu comme ils ouvrent
- * le PDF.</p>
- */
-const CoverBand: React.FC<{ snapshot: ReportSnapshot }> = ({ snapshot }) => {
-  const { meta } = snapshot;
-  return (
-    <Card className="flex flex-col gap-2 border-border p-3.5">
-      <div className="flex flex-wrap items-baseline justify-between gap-2">
-        <div className="min-w-0">
-          <p className="m-0 text-2xs font-bold uppercase tracking-[0.06em] text-muted-foreground">
-            {meta.issuerName}
-          </p>
-          <h2 className="m-0 font-[family-name:var(--font-display)] text-lg font-bold text-foreground">
-            {meta.title}
-          </h2>
-          {meta.recipientName ? (
-            <p className="m-0 text-xs text-muted-foreground">Établi pour {meta.recipientName}</p>
-          ) : null}
-        </div>
-        <div className="text-end text-xs text-muted-foreground">
-          <p className="m-0">
-            {new Date(meta.periodStart).toLocaleDateString(activeIntlLocale())} —{' '}
-            {new Date(meta.periodEnd).toLocaleDateString(activeIntlLocale())}
-          </p>
-          <p className="m-0 tabular-nums">
-            {meta.scopeLabels.length} bien{meta.scopeLabels.length > 1 ? 's' : ''} · {meta.currency}
-          </p>
-        </div>
-      </div>
-      {meta.scopeLabels.length > 0 ? (
-        <p className="m-0 truncate text-2xs text-muted-foreground" title={meta.scopeLabels.join(' · ')}>
-          {meta.scopeLabels.join(' · ')}
-        </p>
-      ) : null}
-    </Card>
-  );
+const KpiDelta: React.FC<{ value: number | null; higherIsBetter: boolean; label: string }> = ({ value, higherIsBetter, label }) => {
+  if (value == null) return null;
+  const favorable = higherIsBetter ? value > 0 : value < 0;
+  return <p><span data-direction={value === 0 ? 'neutral' : favorable ? 'positive' : 'negative'}>
+    {value > 0 ? '+' : ''}{value.toLocaleString(activeIntlLocale(), { maximumFractionDigits: 1 })} %
+  </span> {label}</p>;
 };
 
-const SectionView: React.FC<{ section: ReportSection; currency: string }> = ({
+const CoverBand: React.FC<{ snapshot: ReportSnapshot }> = ({ snapshot: { meta } }) => {
+  const { currentLanguage } = useTranslation();
+  const copy = reportDocumentCopy(currentLanguage);
+  const profileLabel = meta.profile === 'OWNER' ? copy.owner : meta.profile === 'INTERNAL' ? copy.internal : copy.prospect;
+  return <header className="br-cover">
+    <div className="br-cover-masthead"><p>{meta.issuerName}</p><span className="br-profile">{profileLabel}</span></div>
+    <h2>{meta.title}</h2>
+    {meta.recipientName && <p className="br-recipient">{copy.recipient} <strong>{meta.recipientName}</strong></p>}
+    <p className="br-period">{new Date(meta.periodStart).toLocaleDateString(activeIntlLocale())} → {new Date(meta.periodEnd).toLocaleDateString(activeIntlLocale())}</p>
+    <dl className="br-cover-facts">
+      <div><dt>{copy.scope}</dt><dd>{meta.scopeLabels.length} {meta.scopeLabels.length === 1 ? copy.property : copy.properties}</dd></div>
+      <div><dt>{copy.currency}</dt><dd>{meta.currency}</dd></div>
+      {meta.documentNumber && <div><dt>{copy.reference}</dt><dd>{meta.documentNumber} · {copy.version} {meta.version}</dd></div>}
+    </dl>
+    {meta.scopeLabels.length > 0 && <p className="br-scope">{meta.scopeLabels.join(' · ')}</p>}
+    {meta.scopeNote && <p className="br-scope">{meta.scopeNote}</p>}
+  </header>;
+};
+
+const SectionView: React.FC<{ section: ReportSection; currency: string; chapter?: number }> = ({
   section,
   currency,
+  chapter,
 }) => {
+  const { currentLanguage } = useTranslation();
+  const copy = reportDocumentCopy(currentLanguage);
   const chart = section.chart && section.chart.series.length > 0 ? section.chart : null;
   const table = section.table && section.table.rows.length > 0 ? section.table : null;
 
@@ -115,10 +98,14 @@ const SectionView: React.FC<{ section: ReportSection; currency: string }> = ({
     // `fluid` toujours : dans un DOCUMENT les sections s'enchaînent, elles ne se
     // partagent pas la hauteur d'une grille. C'est le graphique qui porte la
     // sienne, juste en dessous.
-    <ChartTile title={section.title} hint={section.subtitle ?? undefined} fluid>
+    <section className="br-section" data-tone={reportSectionTone(section.id)}>
+      <header className="br-section-heading">
+        {chapter != null && <span>{copy.chapter} {String(chapter).padStart(2, '0')}</span>}
+        <h3>{section.title}</h3>{section.subtitle && <p>{section.subtitle}</p>}
+      </header>
       <div className="flex flex-col gap-3">
         {section.narrative ? (
-          <p className="m-0 shrink-0 border-s-2 border-primary ps-3 text-xs leading-relaxed text-foreground">
+          <p className="br-narrative">
             {section.narrative}
           </p>
         ) : null}
@@ -144,14 +131,14 @@ const SectionView: React.FC<{ section: ReportSection; currency: string }> = ({
 
         {table ? (
           <div className="no-scrollbar shrink-0 overflow-x-auto">
-            <table className="w-full border-collapse text-xs">
+            <table className="br-table">
               <thead>
                 <tr>
                   {table.columns.map((column, index) => (
                     <th
                       key={column}
                       className={cn(
-                        'border-b border-foreground/70 px-2 py-1.5 text-2xs font-bold uppercase tracking-[0.05em] text-muted-foreground',
+                        '' ,
                         alignClass(table.aligns[index], index),
                       )}
                     >
@@ -167,7 +154,7 @@ const SectionView: React.FC<{ section: ReportSection; currency: string }> = ({
                       <td
                         key={`${index}-${cell}`}
                         className={cn(
-                          'border-b border-border px-2 py-1.5 tabular-nums',
+                          '',
                           alignClass(table.aligns[index], index),
                         )}
                       >
@@ -184,8 +171,8 @@ const SectionView: React.FC<{ section: ReportSection; currency: string }> = ({
                       <td
                         key={`total-${index}-${cell}`}
                         className={cn(
-                          'border-t border-foreground/70 px-2 py-2 font-semibold tabular-nums',
-                          section.kind === 'PNL' && 'bg-muted/40 text-sm',
+                          '',
+                          section.kind === 'PNL' && 'br-cascade',
                           alignClass(table.aligns[index], index),
                         )}
                       >
@@ -200,19 +187,19 @@ const SectionView: React.FC<{ section: ReportSection; currency: string }> = ({
         ) : null}
 
         {section.notes.length > 0 ? (
-          <ul className="m-0 shrink-0 list-none space-y-1.5 p-0">
+          <ul className="br-notes">
             {section.notes.map((note) => (
               <NoteRow key={note.label} note={note} />
             ))}
           </ul>
         ) : null}
       </div>
-    </ChartTile>
+    </section>
   );
 };
 
 const NoteRow: React.FC<{ note: ReportNote }> = ({ note }) => (
-  <li className="flex items-baseline gap-2 border-b border-border pb-1.5 text-xs last:border-b-0 last:pb-0">
+  <li className="br-note" data-tone={note.tone}>
     <span
       aria-hidden="true"
       className={cn('mt-1 size-1.5 shrink-0 rounded-full', {
@@ -224,7 +211,7 @@ const NoteRow: React.FC<{ note: ReportNote }> = ({ note }) => (
     />
     <span className="min-w-0 flex-1">
       <span className="font-semibold text-foreground">{note.label}</span>
-      {note.detail ? <span className="text-muted-foreground"> — {note.detail}</span> : null}
+      {note.detail ? <span className="text-muted-foreground"> · {note.detail}</span> : null}
     </span>
     {note.impact ? (
       <span className="shrink-0 font-semibold tabular-nums text-foreground">{note.impact}</span>

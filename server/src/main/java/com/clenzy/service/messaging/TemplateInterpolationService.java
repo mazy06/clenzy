@@ -152,6 +152,8 @@ public class TemplateInterpolationService {
             Reservation reservation, Guest guest, Property property, CheckInInstructions instructions
     ) {
         Map<String, String> vars = new LinkedHashMap<>();
+        // Aucun tag technique visible si le logement n'a pas de livret publié.
+        vars.put("guideLink", "Le livret d'accueil n'est pas disponible. Contactez votre hôte pour les informations d'arrivée.");
 
         // Guest
         if (guest != null) {

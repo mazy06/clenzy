@@ -1,3 +1,4 @@
+import { serviceExecutionProfile } from './baitlyServiceExecution';
 import React, { useEffect, useMemo } from 'react';
 import { Navigate, useNavigate, useParams } from 'react-router-dom';
 import { Alert as BuiAlert, AlertDescription, Button, Spinner } from '../../components/ui';
@@ -49,6 +50,7 @@ export default function InterventionRunScreen() {
     notesDialogOpen, notesValue, updatingNotes, currentStepForNotes, stepNotes,
     photosDialogOpen, selectedPhotos, uploadingPhotos, deletingPhotoId, photoType,
     beforePhotoIds, afterPhotoIds,
+    inspectionRooms, inspectionRoomCounts, setInspectionRoom,
     propertyDetails, completedSteps, beforePhotos, afterPhotos,
     validatedRooms, inspectionComplete, allRoomsValidated, savingRoom,
     canViewInterventions, permissionsLoaded,
@@ -67,7 +69,8 @@ export default function InterventionRunScreen() {
   const photosProps = useMemo(() => ({
     beforePhotos, afterPhotos, beforePhotoIds, afterPhotoIds,
     deletingPhotoId, handleDeletePhoto, setPhotoType, setPhotosDialogOpen,
-  }), [beforePhotos, afterPhotos, beforePhotoIds, afterPhotoIds, deletingPhotoId, handleDeletePhoto, setPhotoType, setPhotosDialogOpen]);
+    inspectionRooms, inspectionRoomCounts, setInspectionRoom,
+  }), [beforePhotos, afterPhotos, beforePhotoIds, afterPhotoIds, deletingPhotoId, handleDeletePhoto, setPhotoType, setPhotosDialogOpen, inspectionRooms, inspectionRoomCounts, setInspectionRoom]);
 
   const roomsProps = useMemo(() => ({
     propertyDetails, getTotalRooms, getRoomNames,
@@ -129,10 +132,10 @@ export default function InterventionRunScreen() {
             <WrenchIcon size={18} strokeWidth={1.75} />
           </span>
           <div className="min-w-0 flex-1">
-            <p className="truncate text-sm font-semibold leading-tight text-foreground">
+            <p className="break-words text-sm font-semibold leading-tight text-foreground">
               {intervention?.title}
             </p>
-            <p dir="auto" className="truncate text-xs text-muted-foreground">{intervention?.propertyName}</p>
+            <p dir="auto" className="break-words text-xs text-muted-foreground">{intervention?.propertyName}</p>
           </div>
           {elapsed && (
             <span
@@ -190,6 +193,7 @@ export default function InterventionRunScreen() {
       )}
 
       <NotesDialog
+        executionProfile={serviceExecutionProfile(intervention)}
         open={notesDialogOpen}
         onClose={() => { setNotesDialogOpen(false); setNotesValue(''); setCurrentStepForNotes(null); }}
         currentStep={currentStepForNotes}
@@ -202,6 +206,7 @@ export default function InterventionRunScreen() {
       />
 
       <PhotosDialog
+        executionProfile={serviceExecutionProfile(intervention)}
         open={photosDialogOpen}
         onClose={() => { if (!uploadingPhotos) { setPhotosDialogOpen(false); setSelectedPhotos([]); } }}
         photoType={photoType}

@@ -19,12 +19,13 @@ import { ScreenChromeProvider } from '../../components/ScreenChrome';
 import { CommandCenterProvider, useCommandCenter } from '../../components/command-center/CommandCenterProvider';
 import OfflineBanner from '../../components/OfflineBanner';
 import PWAInstallBanner from '../../components/PWAInstallBanner';
-import OnboardingDockMount from '../../components/OnboardingDockMount';
+import {useBaitlyDeferredStartup} from '../../hooks/useBaitlyDeferredStartup';
 
 // Assistant en lazy : son sous-arbre (react-markdown, dialog plein écran, useAgent)
 // est lourd et monté sur CHAQUE page — le sortir du chunk layout permet au premier
 // écran de s'afficher sans lui (la bulle apparaît dès que son chunk arrive).
 const AssistantDockTab = lazy(() => import('../../components/AssistantDockTab'));
+const OnboardingDockMount = lazy(() => import('../../components/OnboardingDockMount'));
 const CommandCenter = lazy(() => import('../../components/command-center/CommandCenter'));
 
 /** Garder les raccourcis disponibles ; charger la palette seulement à l'ouverture. */
@@ -75,12 +76,13 @@ export default function MainLayoutFull({ children }: MainLayoutFullProps) {
     || pathname.startsWith('/booking-engine/sites/');
 
   const layoutState = useLayoutState();
-  const { menuItems, error: menuError, refreshMenu } = useNavigationMenu();
+  const backgroundReady=useBaitlyDeferredStartup();
+  const { menuItems, error: menuError, refreshMenu } = useNavigationMenu(backgroundReady);
 
   // Compteur global de formulaires recus en attente (NEW) — injecte sur l'item /contact
   const { user } = useAuth();
   const isAdminOrManager = user?.roles?.some((r) => ['SUPER_ADMIN', 'SUPER_MANAGER'].includes(r)) ?? false;
-  const { data: formsStats } = useFormsStats(isAdminOrManager);
+  const { data: formsStats } = useFormsStats(isAdminOrManager&&backgroundReady);
   const newFormsCount = formsStats?.totalNew ?? 0;
 
   // Enrichit les menuItems avec le badge sur /contact si pertinent
@@ -192,14 +194,14 @@ export default function MainLayoutFull({ children }: MainLayoutFullProps) {
       {/* Guide de démarrage persistant (projection Onboarding) : suit
           l'utilisateur hors du dashboard tant que le parcours n'est ni
           terminé ni rejeté. Se masque tout seul sinon. */}
-      <OnboardingDockMount />
+      {backgroundReady&&<Suspense fallback={null}><OnboardingDockMount /></Suspense>}
 
       {/* Assistant : accessible depuis toutes les pages, agrandissable en
           plein ecran. Unique point d'entree de l'assistant (la page dediee
           /assistant a ete supprimee). */}
-      <Suspense fallback={null}>
+      {backgroundReady&&<Suspense fallback={null}>
         <AssistantDockTab />
-      </Suspense>
+      </Suspense>}
 
       {/* Palette ⌘K — rendue en portail, donc placée en dernier. */}
       <CommandCenterMount />

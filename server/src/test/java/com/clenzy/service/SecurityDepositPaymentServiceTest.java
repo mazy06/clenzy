@@ -41,6 +41,7 @@ class SecurityDepositPaymentServiceTest {
     @Mock private SecurityDepositService depositService;
     @Mock private SecurityDepositHoldService holdService;
     @Mock private StripeGateway stripeGateway;
+    @Mock private BaitlyDepositOperationStore operations;
 
     private SecurityDepositPaymentService service;
 
@@ -50,7 +51,7 @@ class SecurityDepositPaymentServiceTest {
 
     @BeforeEach
     void setUp() {
-        service = new SecurityDepositPaymentService(repository, reservationRepository, depositService, holdService, stripeGateway);
+        service = new SecurityDepositPaymentService(repository, reservationRepository, depositService, holdService, stripeGateway, operations);
     }
 
     private SecurityDeposit deposit(SecurityDepositStatus status, String externalRef) {
@@ -183,48 +184,48 @@ class SecurityDepositPaymentServiceTest {
 
     @Test
     void releaseHold_cancelsAuthorization_andReleases() throws Exception {
-        when(repository.findByIdAndOrganizationId(DEPOSIT_ID, ORG))
-            .thenReturn(Optional.of(deposit(SecurityDepositStatus.HELD, "pi_1")));
+        var instruction = new BaitlyDepositOperationStore.Instruction(DEPOSIT_ID, ORG, "pi_1", new BigDecimal("300"), "EUR");
+        when(operations.claimRelease(DEPOSIT_ID, ORG)).thenReturn(Optional.of(instruction));
 
         service.releaseHold(ORG, DEPOSIT_ID);
 
         verify(holdService).cancelAuthorization("pi_1", "deposit-release-5");
-        verify(depositService).release(ORG, DEPOSIT_ID);
+        verify(operations).released(instruction);
     }
 
     @Test
     void captureHold_partial_capturesAndRecords() throws Exception {
-        when(repository.findByIdAndOrganizationId(DEPOSIT_ID, ORG))
-            .thenReturn(Optional.of(deposit(SecurityDepositStatus.HELD, "pi_1")));
+        var instruction = new BaitlyDepositOperationStore.Instruction(DEPOSIT_ID, ORG, "pi_1", new BigDecimal("120"), "EUR");
+        when(operations.claimCapture(DEPOSIT_ID, ORG, new BigDecimal("120.00"), "degats cuisine")).thenReturn(instruction);
         PaymentIntent pi = paymentIntent("requires_capture");
         when(stripeGateway.retrievePaymentIntent("pi_1")).thenReturn(pi);
+        var captured = paymentIntent("succeeded"); captured.setAmountReceived(12000L);
+        when(stripeGateway.capturePaymentIntent(eq(pi), any(), eq("deposit-capture-5"))).thenReturn(captured);
 
         service.captureHold(ORG, DEPOSIT_ID, new BigDecimal("120.00"), "degats cuisine");
 
         verify(stripeGateway).capturePaymentIntent(eq(pi), any(), eq("deposit-capture-5"));
-        verify(depositService).capture(ORG, DEPOSIT_ID, new BigDecimal("120.00"), "degats cuisine");
+        verify(operations).captured(instruction);
     }
 
     @Test
     void captureHold_onHoldStripeLetLapse_recordsLapseAndRefuses() throws Exception {
-        SecurityDeposit held = deposit(SecurityDepositStatus.HELD, "pi_1");
-        Reservation reservation = reservation(ORG, true);
-        when(repository.findByIdAndOrganizationId(DEPOSIT_ID, ORG)).thenReturn(Optional.of(held));
+        var instruction = new BaitlyDepositOperationStore.Instruction(DEPOSIT_ID, ORG, "pi_1", new BigDecimal("120"), "EUR");
+        when(operations.claimCapture(DEPOSIT_ID, ORG, new BigDecimal("120.00"), "degats")).thenReturn(instruction);
         when(stripeGateway.retrievePaymentIntent("pi_1")).thenReturn(paymentIntent("canceled"));
-        when(reservationRepository.findByIdWithGuestAndProperty(RESERVATION_ID)).thenReturn(Optional.of(reservation));
 
         assertThatThrownBy(() -> service.captureHold(ORG, DEPOSIT_ID, new BigDecimal("120.00"), "degats"))
             .isInstanceOf(IllegalStateException.class)
             .hasMessageContaining("expiré");
-        verify(holdService).recordLapse(held, reservation);
+        verify(operations).expiredCapture(instruction);
         verify(stripeGateway, never()).capturePaymentIntent(any(), any(), any());
         verify(depositService, never()).capture(any(), any(), any(), any());
     }
 
     @Test
     void captureHold_amountExceedsDeposit_throws() {
-        when(repository.findByIdAndOrganizationId(DEPOSIT_ID, ORG))
-            .thenReturn(Optional.of(deposit(SecurityDepositStatus.HELD, "pi_1")));
+        when(operations.claimCapture(DEPOSIT_ID, ORG, new BigDecimal("400.00"), "x"))
+            .thenThrow(new IllegalArgumentException("Montant invalide"));
 
         assertThatThrownBy(() -> service.captureHold(ORG, DEPOSIT_ID, new BigDecimal("400.00"), "x"))
             .isInstanceOf(IllegalArgumentException.class);

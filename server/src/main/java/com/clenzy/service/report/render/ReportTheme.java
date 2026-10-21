@@ -1,207 +1,111 @@
 package com.clenzy.service.report.render;
 
-/**
- * La feuille de style du document imprime.
- *
- * <p>Elle vit a part parce qu'elle est longue et qu'elle porte une decision de
- * marque, pas de la mecanique de rendu. Un PDF n'a pas de variables CSS : les
- * teintes y sont RESOLUES, et chaque valeur porte en commentaire le jeton dont
- * elle vient — sans quoi une retouche de la charte laisserait le document
- * imprime derriere elle, sans que rien ne le signale.</p>
- *
- * <p><b>Le parti pris.</b> Bleu nuit {@code #1B2A35} — la couleur du wordmark —
- * en aplat plein sur la couverture et en bandeau de chapitre ; famille TERRE
- * CUITE du planning ({@code #9A6C3A}, {@code #E0C89B}) en accent, parce que ce
- * sont les teintes que l'utilisateur voit toute la journee sur ses briques de
- * reservation. Le papier n'est jamais blanc pur, l'encre jamais noire.</p>
- *
- * <p>Les chapitres sont NUMEROTES et leurs titres poses sur un bandeau : c'est
- * ce qui distingue un document compose d'une suite de tableaux. La couverture
- * est en pleine page — d'ou la page nommee, seule facon d'annuler les marges
- * sur une page et pas sur les autres.</p>
- */
+/** Resolved Baitly document palette: quiet structure, teal finance, ochre operations. */
 final class ReportTheme {
-
-    private ReportTheme() {
-    }
-
-    /** {@code --bui-primary} — bleu nuit du wordmark. */
+    private ReportTheme() {}
     static final String NIGHT = "#1B2A35";
-    /** Fond de couverture, plus profond que l'encre pour que le texte s'en detache. */
-    static final String NIGHT_DEEP = "#141F29";
-    /** {@code --pl-st-confirmed} — l'accent terre cuite du planning. */
-    static final String CLAY = "#9A6C3A";
-    /** {@code --pl-st-pending} — le sable, pour les aplats doux. */
-    static final String SAND = "#E0C89B";
-    /** Sable tres dilue : fond des lignes de total et des cartes. */
-    static final String SAND_WASH = "#F6EFE5";
-    /** {@code --bui-card} — le papier, jamais blanc pur. */
     static final String PAPER = "#FBFCFD";
-    /** {@code --bui-muted-foreground}. */
-    static final String MUTED = "#5A6E7C";
-    /** {@code --bui-border}. */
-    static final String LINE = "#E2E8F0";
-    /** Encre claire sur fond sombre. */
-    static final String INK_LIGHT = "#F0EBE6";
+    static final String TEAL_INK = "#0C7166";
+    static final String MUTED = "#526879";
+    static final String LINE = "#DCE5ED";
 
     static String css() {
         return """
-                /* ── Pages ──────────────────────────────────────────────────
-                   La couverture est une page NOMMEE sans marge : c'est la seule
-                   facon d'obtenir un aplat pleine page sans priver de marges
-                   toutes les autres. */
-                @page { size: A4; margin: 20mm 17mm 22mm 17mm; }
-                @page cover { size: A4; margin: 0; }
-                @page toc { size: A4; margin: 20mm 17mm 22mm 17mm; }
-
-                body { font-family: Helvetica, Arial, sans-serif; font-size: 10pt;
-                       color: %NIGHT%; line-height: 1.5; margin: 0; }
-                p { margin: 0 0 7pt; }
-
-                /* ── Couverture ─────────────────────────────────────────────
-                   Un aplat plein, une hierarchie typographique franche, et une
-                   seule ligne d'accent. Rien d'autre : une couverture chargee
-                   se lit comme une brochure, pas comme un document de gestion. */
-                .cover { page-break-after: always; color: %INK_LIGHT%;
-                         padding: 10mm 3mm 0 3mm; }
-                .cover-mark { margin-bottom: 26pt; }
-                .cover-issuer { font-size: 11pt; font-weight: bold; letter-spacing: 0.2em;
-                                text-transform: uppercase; color: %SAND%; margin-bottom: 40pt; }
-                .cover-issuer-logo { max-height: 52pt; max-width: 220pt; margin-bottom: 20pt; }
-                .cover-kicker { font-size: 9pt; letter-spacing: 0.24em; text-transform: uppercase;
-                                color: %CLAY%; margin-bottom: 10pt; }
-                .cover h1 { font-size: 40pt; line-height: 1.05; margin: 0 0 18pt;
-                            letter-spacing: -0.03em; font-weight: bold; color: %INK_LIGHT%; }
-                .cover-rule { width: 90pt; height: 3pt; background: %CLAY%; margin-bottom: 22pt; }
-                .cover-recipient { font-size: 15pt; color: %INK_LIGHT%; margin-bottom: 4pt; }
-                .cover-period { font-size: 11pt; color: %SAND%; margin-bottom: 120pt; }
-                .cover-kpis { width: 100%%; border-collapse: separate; border-spacing: 14pt 0;
-                              margin: 0 -14pt 34pt; }
-                .cover-kpis td { border-top: 2pt solid %CLAY%; padding: 9pt 0 0;
-                                 vertical-align: top; width: 33%%; }
-                .ck-label { font-size: 7.5pt; letter-spacing: 0.1em; text-transform: uppercase;
-                            color: %SAND%; margin: 0 0 4pt; }
-                .ck-value { font-size: 19pt; font-weight: bold; color: %INK_LIGHT%; margin: 0;
-                            letter-spacing: -0.02em; }
-                .cover-facts { width: 100%%; border-collapse: collapse; }
-                .cover-facts td { padding: 7pt 0; border-top: 0.5pt solid rgba(240,235,230,0.18);
-                                  font-size: 9pt; color: %SAND%; }
-                .cover-facts .v { text-align: right; color: %INK_LIGHT%; font-weight: bold; }
-                .cover-draft { display: inline-block; background: %CLAY%; color: %INK_LIGHT%;
-                               font-size: 8.5pt; font-weight: bold; letter-spacing: 0.18em;
-                               padding: 4pt 10pt; margin-bottom: 18pt; }
-
-                /* ── Sommaire ───────────────────────────────────────────────── */
+                @page { size: A4; margin: 20mm 17mm 22mm; }
+                body { font-family: Arial, Helvetica, sans-serif; font-size: 10pt;
+                       color: #1B2A35; background: #FBFCFD; line-height: 1.5; margin: 0; }
+                * { box-sizing: border-box; }
+                p { margin: 0 0 7pt; orphans: 3; widows: 3; }
+                h1,h2,h3 { font-family: Arial, Helvetica, sans-serif; }
+                .cover { page-break-after: always; padding: 8mm 0 0; }
+                .cover-mark { margin-bottom: 22pt; }
+                .cover-issuer { font-size: 10pt; font-weight: bold; letter-spacing: .12em;
+                                text-transform: uppercase; color: #526879; margin-bottom: 34pt; }
+                .cover-issuer-logo { max-height: 52pt; max-width: 220pt; margin-bottom: 24pt; }
+                .cover-kicker { display: inline-block; font-size: 9pt; color: #526879;
+                                background: #EEF3F7; padding: 5pt 9pt; margin-bottom: 14pt; }
+                .profile-internal .cover-kicker { color: #0C7166; background: #E1F2EE; }
+                .profile-prospect .cover-kicker { color: #7A5320; background: #F6EFE5; }
+                .cover h1 { font-size: 30pt; line-height: 1.15; margin: 0 0 20pt;
+                            font-weight: bold; color: #1B2A35; letter-spacing: -.5pt; }
+                .cover-rule { height: .6pt; background: #DCE5ED; margin-bottom: 20pt; }
+                .cover-recipient { font-size: 15pt; margin-bottom: 6pt; }
+                .cover-period { font-size: 12pt; color: #526879; margin-bottom: 48pt; }
+                .cover-draft { display: inline-block; background: #F6EFE5; color: #7A5320;
+                               font-size: 8pt; font-weight: bold; padding: 5pt 9pt; margin-bottom: 16pt; }
+                .cover-kpis { width: 100%; border-collapse: separate; border-spacing: 8pt 0;
+                              margin: 0 0 26pt; table-layout: fixed; }
+                .cover-kpis td { background: #E1F2EE; padding: 12pt; vertical-align: top; }
+                .ck-label { font-size: 8.5pt; color: #0C7166; margin: 0 0 7pt; }
+                .ck-value { font-size: 18pt; font-weight: bold; color: #1B2A35; margin: 0; }
+                .cover-facts { width: 100%; border-collapse: collapse; font-size: 9pt; }
+                .cover-facts td { padding: 9pt 0; border-bottom: .5pt solid #DCE5ED; color: #526879; }
+                .cover-facts .v { text-align: right; color: #1B2A35; }
+                .cover-scope { font-size: 9pt; color: #526879; line-height: 1.5; margin-top: 12pt; }
                 .toc { page-break-after: always; }
-                .toc-title { font-size: 22pt; font-weight: bold; letter-spacing: -0.02em;
-                             margin: 0 0 4pt; }
-                .toc-lead { color: %MUTED%; font-size: 9.5pt; margin-bottom: 20pt; }
-                table.toc-list { width: 100%%; border-collapse: collapse; font-size: 10.5pt; }
-                table.toc-list td { padding: 8pt 0; border-bottom: 0.5pt solid %LINE%;
-                                    vertical-align: baseline; }
-                .toc-num { width: 26pt; color: %CLAY%; font-weight: bold; font-size: 9pt; }
-                .toc-page { width: 30pt; text-align: right; color: %MUTED%; font-weight: bold; }
-
-                /* ── Chapitres ──────────────────────────────────────────────
-                   Le bandeau et le numero font le rythme du document : sans eux,
-                   vingt sections se suivent sans qu'on sache ou l'on est. */
-                .chapter { page-break-inside: avoid; margin: 0 0 12pt; }
-                .chapter-band { background: %NIGHT%; color: %INK_LIGHT%; padding: 9pt 12pt;
-                                margin-bottom: 12pt; }
-                .chapter-num { font-size: 8pt; letter-spacing: 0.2em; color: %SAND%;
-                               margin: 0 0 2pt; }
-                .chapter-title { font-size: 14pt; font-weight: bold; margin: 0;
-                                 letter-spacing: -0.015em; }
-                .chapter-sub { font-size: 8.5pt; color: %SAND%; margin: 2pt 0 0; }
-                .section { margin-bottom: 18pt; }
-
-                /* ── Chiffres cles ──────────────────────────────────────────── */
-                .kpis { width: 100%%; border-collapse: separate; border-spacing: 6pt 0;
-                        margin: 4pt 0 16pt; page-break-inside: avoid; }
-                .kpi { background: %SAND_WASH%; padding: 11pt 10pt; vertical-align: top;
-                       border-bottom: 2.5pt solid %CLAY%; }
-                .kpi-label { font-size: 7.5pt; color: %MUTED%; text-transform: uppercase;
-                             letter-spacing: 0.08em; margin: 0 0 5pt; }
-                .kpi-value { font-size: 16pt; font-weight: bold; margin: 0 0 5pt;
-                             letter-spacing: -0.02em; }
-                .kpi-delta { font-size: 7pt; margin: 0; line-height: 1.6; color: %MUTED%; }
+                .toc-title { font-size: 24pt; font-weight: bold; margin: 0 0 8pt; }
+                .toc-lead { color: #526879; font-size: 10pt; margin-bottom: 22pt; }
+                .toc-list { width: 100%; border-collapse: collapse; font-size: 10pt; }
+                .toc-list td { padding: 8pt 0; border-bottom: .5pt solid #DCE5ED; }
+                .toc-num { width: 28pt; color: #526879; }
+                .toc-page { width: 30pt; text-align: right; color: #526879; }
+                .section { display: flow-root; margin-bottom: 22pt; page-break-inside: avoid; break-inside: avoid-page; }
+                .section-details { page-break-inside: avoid; }
+                .chapter { page-break-inside: avoid; margin-bottom: 12pt; }
+                .chapter-band { background: #EEF3F7; padding: 12pt; margin-bottom: 14pt; border-radius: 5pt; }
+                .chapter-num { color: #526879; font-size: 8pt; letter-spacing: .08em; margin: 0 0 5pt; }
+                .chapter-title { font-size: 16pt; font-weight: bold; line-height: 1.3; margin: 0; color: #1B2A35; }
+                .chapter-sub { font-size: 9pt; color: #526879; margin: 5pt 0 0; }
+                .tone-activity .chapter-band { background: #EDF2F7; }
+                .tone-money .chapter-band { background: #E1F2EE; }
+                .tone-money .chapter-num { color: #0C7166; }
+                .tone-operations .chapter-band { background: #F6EFE5; }
+                .tone-operations .chapter-num { color: #7A5320; }
+                .kpis { width: 100%; table-layout: fixed; border-collapse: separate; border-spacing: 8pt 8pt;
+                        margin: 4pt 0 14pt; }
+                .kpi { padding: 10pt; vertical-align: top; background: #F4F7F9; }
+                .kpi-label { font-size: 9pt; color: #526879; margin: 0 0 6pt; }
+                .kpi-value { font-size: 18pt; font-weight: bold; margin: 0 0 6pt; }
+                .kpi-delta { font-size: 8pt; margin: 0; line-height: 1.7; color: #526879; }
                 .delta { font-weight: bold; }
                 .delta.up { color: #0C7166; }
                 .delta.down { color: #93413F; }
-                .delta.flat { color: %MUTED%; }
-
-                /* ── Commentaire et corps ───────────────────────────────────── */
-                .narrative { background: %SAND_WASH%; border-left: 3pt solid %CLAY%;
-                             padding: 9pt 12pt; margin: 0 0 14pt; font-size: 9.5pt; }
-                .body-text { font-size: 9.5pt; color: #33454F; }
-                .chart { margin: 6pt 0 14pt; }
-
-                /* ── Tableaux ───────────────────────────────────────────────
-                   Bandeau de tete plein et lignes alternees : la densite vient
-                   du fond, pas d'un filet sur chaque bord. */
-                table.data { width: 100%%; border-collapse: collapse; margin: 4pt 0 8pt;
-                             font-size: 9pt; }
-                /* En-tete CLAIRE, soulignee d'un filet plein. Un bandeau sombre
-                   par tableau ferait trois aplats par page avec celui du
-                   chapitre, et iText laisse de toute facon une couture d'un
-                   pixel a la jointure de deux cellules peintes en aplat. */
-                table.data th { background: %SAND_WASH%; color: %NIGHT%; text-align: left;
-                                font-size: 7.5pt; text-transform: uppercase;
-                                letter-spacing: 0.08em; padding: 7pt 8pt; font-weight: bold;
-                                border-bottom: 1.2pt solid %NIGHT%; }
-                table.data td { padding: 6pt 8pt; border-bottom: 0.4pt solid %LINE%; }
+                .delta.flat { color: #526879; }
+                .narrative { background: #E1F2EE; border-radius: 5pt; padding: 12pt;
+                             margin: 0 0 16pt; font-size: 10pt; }
+                .narrative p:last-child { margin-bottom: 0; }
+                .body-text { font-size: 10pt; color: #33454F; }
+                .chart { margin: 8pt 0 16pt; }
+                table.data { width: 100%; border-collapse: collapse; margin: 4pt 0 10pt; font-size: 9pt; }
+                table.data thead { display: table-header-group; }
+                table.data tr { page-break-inside: avoid; }
+                table.data th { background: #EEF3F7; color: #526879; text-align: left;
+                                font-size: 8.5pt; padding: 9pt 8pt; font-weight: bold; }
+                table.data td { padding: 8pt; border-bottom: .5pt solid #DCE5ED; vertical-align: top; }
                 table.data tr:nth-child(even) td { background: #F4F7F9; }
-                table.data tfoot td { font-weight: bold; background: %SAND_WASH%;
-                                      border-top: 1.5pt solid %CLAY%;
-                                      border-bottom: 0.5pt solid %SAND_WASH%;
-                                      border-left: 0.5pt solid %SAND_WASH%;
-                                      border-right: 0.5pt solid %SAND_WASH%; padding: 8pt; }
+                table.data tfoot td { font-weight: bold; background: #EEF3F7; border-top: .6pt solid #DCE5ED; padding: 10pt 8pt; }
+                .tone-money table.data th, .tone-money table.data tfoot td { background: #E1F2EE; color: #0C7166; }
+                .tone-operations table.data th, .tone-operations table.data tfoot td { background: #F6EFE5; color: #7A5320; }
                 table.data .end { text-align: right; }
                 table.data .center { text-align: center; }
-                table.cascade tfoot td { font-size: 12pt; color: #4A2E1B; }
-
-                /* ── Constats ───────────────────────────────────────────────── */
-                table.notes { width: 100%%; border-collapse: collapse; margin: 10pt 0 0;
-                              font-size: 9pt; }
+                table.cascade tfoot td { font-size: 12pt; }
+                table.notes { width: 100%; border-collapse: collapse; margin: 10pt 0 0; font-size: 9pt; }
                 table.notes tr { page-break-inside: avoid; }
-                table.notes td { padding: 7pt 9pt; background: #F4F7F9; vertical-align: top;
-                                 border-bottom: 3pt solid %PAPER%; }
-                .note-body { border-left: 3pt solid %LINE%; }
+                table.notes td { padding: 10pt 8pt; vertical-align: top; border-bottom: .5pt solid #DCE5ED; }
                 .note-label { font-weight: bold; }
-                .note-detail { color: %MUTED%; }
-                .note-impact { text-align: right; font-weight: bold; width: 26%%;
-                               white-space: nowrap; }
-                tr.note-positive .note-body { border-left-color: #14B8A6; }
-                tr.note-warning .note-body { border-left-color: %CLAY%; }
-                tr.note-critical .note-body { border-left-color: #C97A7A; }
-                .note-positive .note-label { color: #0C7166; }
-                .note-warning .note-label { color: #7A5320; }
-                .note-critical .note-label { color: #93413F; }
-
-                /* ── Page « a propos » ──────────────────────────────────────── */
+                .note-detail { color: #526879; }
+                .note-impact { text-align: right; font-weight: bold; width: 26%; white-space: nowrap; }
+                .note-positive .note-impact { color: #0C7166; }
+                .note-warning .note-impact { color: #7A5320; }
+                .note-critical .note-impact { color: #93413F; }
                 .about { page-break-before: always; }
-                .about-band { background: %NIGHT%; color: %INK_LIGHT%; padding: 20pt;
-                              margin-bottom: 16pt; }
-                .about-band h2 { font-size: 16pt; margin: 10pt 0 6pt; color: %INK_LIGHT%; }
-                .about-band p { color: %SAND%; font-size: 9.5pt; margin: 0; }
-                .annex-head { border-top: 2pt solid %CLAY%; padding: 8pt 0 0;
-                              margin: 0 0 10pt; }
-                .annex-head .chapter-title { color: %NIGHT%; }
-                .annex-head .chapter-sub { color: %MUTED%; }
-                .legal { font-size: 7pt; color: #8195A3; line-height: 1.6; text-align: justify; }
-                .colophon { margin-top: 14pt; padding-top: 8pt; border-top: 1pt solid %NIGHT%;
-                            font-size: 7.5pt; color: %MUTED%; }
+                .about-band { background: #EEF3F7; padding: 20pt; margin-bottom: 20pt; border-radius: 5pt; }
+                .about-band h2 { font-size: 18pt; margin: 12pt 0 8pt; }
+                .about-band p { color: #526879; font-size: 10pt; margin: 0; }
+                .annex-head { padding: 12pt 0 0; margin: 0 0 14pt; border-top: .6pt solid #DCE5ED; }
+                .legal { font-size: 8pt; color: #526879; line-height: 1.6; }
+                .colophon { margin-top: 18pt; padding-top: 10pt; border-top: .6pt solid #DCE5ED; font-size: 8.5pt; color: #526879; }
                 .ai-notice { font-style: italic; }
-                """
-                .replace("%NIGHT_DEEP%", NIGHT_DEEP)
-                .replace("%NIGHT%", NIGHT)
-                .replace("%CLAY%", CLAY)
-                .replace("%SAND_WASH%", SAND_WASH)
-                .replace("%SAND%", SAND)
-                .replace("%PAPER%", PAPER)
-                .replace("%MUTED%", MUTED)
-                .replace("%LINE%", LINE)
-                .replace("%INK_LIGHT%", INK_LIGHT)
-                .replace("%%", "%");
+                """;
     }
 }

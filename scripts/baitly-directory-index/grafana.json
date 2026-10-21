@@ -1,0 +1,129 @@
+{
+  "uid": "baitly-directory",
+  "title": "Baitly · Annuaire et carte",
+  "schemaVersion": 39,
+  "version": 1,
+  "refresh": "30s",
+  "tags": [
+    "baitly",
+    "directory"
+  ],
+  "time": {
+    "from": "now-1h",
+    "to": "now"
+  },
+  "panels": [
+    {
+      "id": 1,
+      "type": "timeseries",
+      "title": "Latence p95 par opération (objectif 300 ms)",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 0,
+        "w": 12,
+        "h": 8
+      },
+      "targets": [
+        {
+          "expr": "1000 * histogram_quantile(0.95, sum by (le, operation) (rate(baitly_directory_map_seconds_bucket[5m])))",
+          "legendFormat": "{{operation}}{{layer}}",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "ms"
+        },
+        "overrides": []
+      }
+    },
+    {
+      "id": 2,
+      "type": "timeseries",
+      "title": "Requêtes par seconde",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "gridPos": {
+        "x": 12,
+        "y": 0,
+        "w": 12,
+        "h": 8
+      },
+      "targets": [
+        {
+          "expr": "sum by (operation) (rate(baitly_directory_map_seconds_count[5m]))",
+          "legendFormat": "{{operation}}{{layer}}",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "reqps"
+        },
+        "overrides": []
+      }
+    },
+    {
+      "id": 3,
+      "type": "timeseries",
+      "title": "Cache : local / Redis / base / indisponibilité",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 8,
+        "w": 12,
+        "h": 8
+      },
+      "targets": [
+        {
+          "expr": "sum by (layer) (rate(baitly_directory_cache_total[5m]))",
+          "legendFormat": "{{operation}}{{layer}}",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "ops"
+        },
+        "overrides": []
+      }
+    },
+    {
+      "id": 4,
+      "type": "timeseries",
+      "title": "Durée moyenne de construction de l’index",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "gridPos": {
+        "x": 12,
+        "y": 8,
+        "w": 12,
+        "h": 8
+      },
+      "targets": [
+        {
+          "expr": "rate(baitly_directory_index_build_seconds_sum[15m]) / clamp_min(rate(baitly_directory_index_build_seconds_count[15m]), 0.000001)",
+          "legendFormat": "{{operation}}{{layer}}",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "s"
+        },
+        "overrides": []
+      }
+    }
+  ]
+}

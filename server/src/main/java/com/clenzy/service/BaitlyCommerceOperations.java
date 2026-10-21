@@ -17,6 +17,8 @@ public class BaitlyCommerceOperations {
     public BaitlyCommerceOperation record(Long org,String source,Long id,UUID request,String action,String proof,String note,String actor) {
         require(request!=null && action!=null && proof!=null && !proof.isBlank() && proof.length()<=255 && note!=null && note.length()<=1000 && actor!=null && !actor.isBlank(),"Action, justificatif et auteur requis");
         var order=order(org,source,id,true);var history=rows(org,source,id);
+        if(order instanceof UpsellOrder upsell && upsell.getServiceRequestId()!=null)
+            throw new IllegalStateException("Suivez cette prestation depuis sa demande et son intervention liées");
         for(var previous:history) if(request.equals(previous.getRequestId())) {
             require(action.equals(previous.getAction()) && proof.trim().equals(previous.getProof()) && note.trim().equals(previous.getNote()),"Une autre action utilise cette demande");return previous;
         }

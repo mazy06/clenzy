@@ -1,0 +1,55 @@
+/* Guest services inherit the host's welcome-book theme, independently of PMS colors. */
+.wb-service-tracking { margin-block: 24px; min-width: 0; color: var(--ink); }
+.wb-service-tracking > header { display: flex; align-items: start; justify-content: space-between; gap: 16px; margin-bottom: 22px; }
+.wb-service-tracking h2 { margin: 0; font-size: 25px; line-height: 1.2; text-wrap: balance; }
+.wb-service-tracking__intro { margin: 7px 0 0; max-width: 50ch; font-size: 13px; line-height: 1.6; color: var(--ink-soft); }
+.wb-service-tracking button { display: grid; place-items: center; flex-shrink: 0; width: 44px; height: 44px; border: 1px solid var(--line); border-radius: var(--book-button-radius); background: var(--raised); color: var(--ink); cursor: pointer; transition: background-color 180ms cubic-bezier(.22,1,.36,1); }
+.wb-service-tracking button:hover { background: var(--terra-bg); }
+.wb-service-tracking button:focus-visible, .wb-service-tracking summary:focus-visible { outline: 2px solid var(--terra); outline-offset: 3px; }
+.wb-service-tracking button:disabled { opacity: .5; cursor: default; }
+.wb-service-tracking ul { padding: 0; margin: 0; list-style: none; }
+.wb-service-tracking__group-heading { display: flex; align-items: baseline; gap: 8px; margin-bottom: 4px; }
+.wb-service-tracking__group-heading h3 { margin: 0; font-size: 14px; font-weight: 650; }
+.wb-service-tracking__group-heading > span { color: var(--ink-soft); font-size: 12px; font-variant-numeric: tabular-nums; }
+.wb-service-tracking__item { display: grid; grid-template-columns: 44px minmax(0,1fr); align-items: start; gap: 14px; padding-block: 20px; border-bottom: 1px solid var(--line); overflow-wrap: anywhere; }
+.wb-service-tracking__item:last-child { border-bottom: 0; }
+.wb-service-tracking__symbol { display: grid; place-items: center; width: 44px; height: 44px; border-radius: 12px; color: var(--terra); background: var(--terra-bg); }
+.wb-service-tracking__item[data-state="REFUNDED"] .wb-service-tracking__symbol,
+.wb-service-tracking__item[data-state="CANCELLED"] .wb-service-tracking__symbol { color: var(--ink-soft); background: var(--line-soft); }
+.wb-service-tracking__identity { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 6px 20px; }
+.wb-service-tracking__identity h3 { flex: 1 1 180px; min-width: 0; margin: 0; font-family: var(--sans); font-size: 16px; line-height: 1.4; font-weight: 650; text-wrap: pretty; }
+.wb-service-tracking__state { font-size: 12px; line-height: 1.5; font-weight: 600; color: var(--terra-deep); }
+.wb-service-tracking__item[data-state="REFUNDED"] .wb-service-tracking__state,
+.wb-service-tracking__item[data-state="CANCELLED"] .wb-service-tracking__state { color: var(--ink-soft); }
+.wb-service-tracking__help { margin: 7px 0 0; max-width: 65ch; font-size: 13px; line-height: 1.6; color: var(--ink-soft); }
+.wb-service-tracking__facts { display: flex; flex-wrap: wrap; align-items: start; justify-content: space-between; gap: 12px 24px; margin-top: 12px; }
+.wb-service-tracking__facts:empty { display: none; }
+.wb-service-tracking__date, .wb-service-tracking__payment { display: flex; align-items: start; gap: 8px; font-size: 12px; line-height: 1.65; font-variant-numeric: tabular-nums; }
+.wb-service-tracking__date > div { min-width: 0; }
+.wb-service-tracking__date time, .wb-service-tracking__caption { display: block; }
+.wb-service-tracking__caption { font-size: 11px; color: var(--ink-soft); }
+.wb-service-tracking__date svg, .wb-service-tracking__payment svg { flex-shrink: 0; margin-top: 3px; color: var(--ink-soft); }
+.wb-service-tracking__payment { color: var(--ink-soft); }
+.wb-service-tracking__payment strong { font-weight: 500; color: var(--ink); }
+.wb-service-tracking__history { margin-top: 16px; border-block: 1px solid var(--line); }
+.wb-service-tracking__history summary { display: flex; align-items: center; justify-content: space-between; gap: 16px; min-height: 64px; padding: 12px 0; cursor: pointer; list-style: none; }
+.wb-service-tracking__history summary::-webkit-details-marker { display: none; }
+.wb-service-tracking__history summary strong { display: block; font-size: 14px; font-weight: 600; }
+.wb-service-tracking__history summary strong span { font-variant-numeric: tabular-nums; font-weight: 400; color: var(--ink-soft); }
+.wb-service-tracking__history summary > div > span { display: block; margin-top: 3px; font-size: 12px; color: var(--ink-soft); }
+.wb-service-tracking__history summary > svg { flex-shrink: 0; transition: transform 180ms cubic-bezier(.22,1,.36,1); }
+.wb-service-tracking__history[open] summary > svg { transform: rotate(180deg); }
+.wb-service-tracking__history[open] summary { border-bottom: 1px solid var(--line); }
+.wb-service-tracking__history summary:hover { color: var(--terra-deep); }
+.wb-service-tracking__note { margin: 14px 0 0; color: var(--ink-soft); font-size: 12px; line-height: 1.6; }
+.wb-service-tracking__empty { display: flex; align-items: center; gap: 8px; margin: 0; color: var(--ink-soft); font-size: 13px; line-height: 1.5; }
+.wb-service-tracking__empty svg { flex-shrink: 0; }
+@media (max-width: 480px) {
+  .wb-service-tracking { margin-block: 20px; }
+  .wb-service-tracking h2 { font-size: 23px; }
+  .wb-service-tracking__item { grid-template-columns: 36px minmax(0,1fr); gap: 10px; padding-block: 16px; }
+  .wb-service-tracking__symbol { width: 36px; height: 36px; border-radius: 10px; }
+  .wb-service-tracking__identity h3 { flex-basis: 100%; font-size: 15px; }
+  .wb-service-tracking__facts { gap: 10px; }
+}
+@media (prefers-reduced-motion: reduce) { .wb-service-tracking button, .wb-service-tracking__history summary > svg { transition: none; } }

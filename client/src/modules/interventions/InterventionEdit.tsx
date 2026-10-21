@@ -14,12 +14,13 @@ const InterventionEdit: React.FC = () => {
   const [loading, setLoading] = useState(false);
 
   return (
-    <div>
+    <div className="baitly-form-surface baitly-form-page">
+      <div className="baitly-form-header">
       <PageHeader
         title={t('interventions.editTitle')}
         subtitle={t('interventions.subtitle')}
-        backPath={`/interventions/${id}`}
-        backLabel="Retour aux détails"
+        onBack={() => navigate(`/interventions/${id}`)}
+        backLabel={t('common.backToDetails')}
         showBackButton={true}
         actions={
           <div className="flex gap-1.5">
@@ -51,6 +52,7 @@ const InterventionEdit: React.FC = () => {
         }
       />
 
+      </div>
       <InterventionForm
         interventionId={Number(id)}
         mode="edit"

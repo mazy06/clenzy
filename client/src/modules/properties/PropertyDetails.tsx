@@ -33,7 +33,7 @@ import { documentsApi } from '../../services/api/documentsApi';
 import { usePropertyDetails } from '../../hooks/usePropertyDetails';
 import type { PropertyDetailsData } from '../../hooks/usePropertyDetails';
 import PageHeader from '../../components/PageHeader';
-import { PageHeaderActionsProvider, usePageHeaderActionsSlot } from '../../components/PageHeaderActionsContext';
+import { PageHeaderActionsProvider, usePageHeaderActionsSlot, usePageHeaderFiltersSlot } from '../../components/PageHeaderActionsContext';
 import PageTabs from '../../components/PageTabs';
 import { useTranslation } from '../../hooks/useTranslation';
 import CheckInInstructionsForm from '../channels/CheckInInstructionsForm';
@@ -47,6 +47,7 @@ import { propertyPhotosApi } from '../../services/api/propertyPhotosApi';
 import { useQuery } from '@tanstack/react-query';
 import PropertyOverview from './overview/PropertyOverview';
 import PropertyChannelsTab from './overview/PropertyChannelsTab';
+import { ownerPropertySearchUrl } from '../../services/baitlyOwnerCriteria';
 
 // ─── Re-export type for backward compatibility ─────────────────────────────
 
@@ -76,8 +77,9 @@ const PropertyDetails: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { hasPermissionAsync } = useAuth();
-  const { t } = useTranslation();
+  const { t,currentLanguage } = useTranslation();
   const { slot, portalContainer } = usePageHeaderActionsSlot();
+  const {filtersSlot,filtersContainer}=usePageHeaderFiltersSlot();
 
   // ─── React Query ────────────────────────────────────────────────────────
   const { property, interventions, isLoading, isError, error } = usePropertyDetails(id);
@@ -165,17 +167,20 @@ const PropertyDetails: React.FC = () => {
   // ─── Render ─────────────────────────────────────────────────────────────
 
   return (
-    <PageHeaderActionsProvider slot={slot}><div className="flex flex-col h-full min-h-0">
+    <PageHeaderActionsProvider slot={slot} filtersSlot={filtersSlot}><div className="flex flex-col h-full min-h-0">
       {/* ─── Header ──────────────────────────────────────────────────────── */}
       <div className="shrink-0">
-        <PageHeader
+        <PageHeader filters={tabValue===1||tabValue===5?filtersContainer:undefined}
           title={property.name}
           subtitle={`${getPropertyTypeLabel(property.propertyType, t)} · ${property.city}`}
           iconBadge={<Home />}
           backPath="/properties"
           actions={
-            <div className="flex items-center gap-1">
+            <div className="flex max-w-full flex-wrap items-center justify-end gap-1">
               {portalContainer}
+              <Button variant="outline" size="sm" className="h-auto whitespace-normal text-start" asChild>
+                <a href={ownerPropertySearchUrl(property,currentLanguage)} target="_blank" rel="noopener noreferrer" className="cursor-pointer">{t('baitlyOwnerMatch.open')}</a>
+              </Button>
               {canEdit && (
                 <Button
                   variant="outline"

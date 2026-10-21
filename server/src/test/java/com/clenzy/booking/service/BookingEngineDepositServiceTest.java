@@ -54,7 +54,8 @@ class BookingEngineDepositServiceTest {
 
     private BookingEngineDepositService serviceAt(Instant now) {
         SecurityDepositHoldService holdService = new SecurityDepositHoldService(
-            depositRepository, stripeGateway, notificationService, Clock.fixed(now, ZoneOffset.UTC));
+            depositRepository, stripeGateway, notificationService, Clock.fixed(now, ZoneOffset.UTC),
+            org.mockito.Mockito.mock(com.clenzy.service.BaitlyDepositReleasePolicy.class));
         BookingEngineDepositService service = new BookingEngineDepositService(
             depositRepository, reservationRepository, stripeGateway, holdService, self);
         when(self.getObject()).thenReturn(service);
@@ -74,6 +75,7 @@ class BookingEngineDepositServiceTest {
 
         PaymentIntent stay = new PaymentIntent();
         stay.setPaymentMethod("pm_1");
+        stay.setCustomer("cus_1"); stay.setStatus("succeeded");
         when(stripeGateway.retrievePaymentIntent("pi_stay")).thenReturn(stay);
         when(depositRepository.findByOrganizationIdAndReservationId(ORG, RESERVATION_ID)).thenReturn(Optional.empty());
         when(depositRepository.save(any(SecurityDeposit.class))).thenAnswer(invocation -> {
@@ -81,7 +83,7 @@ class BookingEngineDepositServiceTest {
             saved.setId(DEPOSIT_ID);
             return saved;
         });
-        when(reservationRepository.findById(RESERVATION_ID)).thenReturn(Optional.of(reservation));
+        when(reservationRepository.lockDepositReservation(RESERVATION_ID, ORG)).thenReturn(Optional.of(reservation));
         when(reservationRepository.findByIdWithGuestAndProperty(RESERVATION_ID)).thenReturn(Optional.of(reservation));
         return reservation;
     }
@@ -102,6 +104,23 @@ class BookingEngineDepositServiceTest {
     }
 
     @Test
+    void scheduledRecoveryRebuildsMissingDepositFromTheConfirmedStripeSession() throws Exception {
+        BookingEngineDepositService service = serviceAt(Instant.parse("2026-09-30T10:00:00Z"));
+        Reservation reservation = stubPaidReservation();
+        reservation.setSecurityDepositAmount(new BigDecimal("300.00"));
+        reservation.setCurrency("EUR");reservation.setStripeSessionId("cs_paid");
+        var session = new com.stripe.model.checkout.Session();session.setPaymentStatus("paid");
+        session.setCustomer("cus_1");session.setPaymentIntent("pi_stay");
+        when(stripeGateway.retrieveSession("cs_paid")).thenReturn(session);
+
+        service.recoverMissingCaution(RESERVATION_ID, ORG);
+
+        verify(depositRepository).save(any(SecurityDeposit.class));
+        assertThat(reservation.getStripePaymentMethodId()).isEqualTo("pm_1");
+        verify(stripeGateway, never()).createPaymentIntent(any(), anyString());
+    }
+
+    @Test
     void whenStayIsPaidOnArrivalDay_thenHoldIsPlacedRightAway() throws Exception {
         BookingEngineDepositService service = serviceAt(Instant.parse("2026-10-30T09:00:00Z"));
         stubPaidReservation();
@@ -114,29 +133,6 @@ class BookingEngineDepositServiceTest {
         service.setupCautionAfterPayment(RESERVATION_ID, ORG, new BigDecimal("300.00"), "EUR", "cus_1", "pi_stay");
 
         verify(depositRepository).markHoldPlaced(DEPOSIT_ID, ORG, SecurityDepositStatus.PENDING, "pi_hold", captureBefore);
-    }
-
-    @Test
-    void whenReleasingAHoldStripeAlreadyLetLapse_thenDepositIsReleasedWithoutCancelling() throws Exception {
-        BookingEngineDepositService service = serviceAt(Instant.parse("2026-11-05T04:30:00Z"));
-        PaymentIntent lapsed = new PaymentIntent();
-        lapsed.setId("pi_old");
-        lapsed.setStatus("canceled");
-        when(stripeGateway.retrievePaymentIntent("pi_old")).thenReturn(lapsed);
-        when(depositRepository.transitionStatus(DEPOSIT_ID, ORG,
-            SecurityDepositStatus.HELD, SecurityDepositStatus.RELEASED, null)).thenReturn(1);
-        SecurityDeposit deposit = new SecurityDeposit();
-        deposit.setId(DEPOSIT_ID);
-        deposit.setOrganizationId(ORG);
-        deposit.setStatus(SecurityDepositStatus.HELD);
-        deposit.setExternalRef("pi_old");
-
-        boolean released = service.releaseHold(deposit);
-
-        assertThat(released).isTrue();
-        verify(stripeGateway, never()).cancelPaymentIntent(any(), anyString());
-        verify(depositRepository).transitionStatus(eq(DEPOSIT_ID), eq(ORG),
-            eq(SecurityDepositStatus.HELD), eq(SecurityDepositStatus.RELEASED), isNull());
     }
 
     private static PaymentIntent authorized(String id, Instant captureBefore) {

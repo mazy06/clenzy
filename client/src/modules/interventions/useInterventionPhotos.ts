@@ -3,6 +3,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { interventionsApi, getBaitlyRoomInspection, type BaitlyRoomInspection } from '../../services/api/interventionsApi';
 import { interventionsKeys } from './useInterventionsList';
 import { interventionExecutionScope } from './interventionExecutionScope';
+import { serviceExecutionProfile } from './baitlyServiceExecution';
 import {
   InterventionDetailsData,
   parsePhotos
@@ -49,7 +50,7 @@ export function useInterventionPhotos({
   const [uploadingPhotos, setUploadingPhotos] = useState(false);
   const [photoType, setPhotoType] = useState<'before' | 'after'>('before');
   const [inspectionRoom, setInspectionRoom] = useState<string | null>(null);
-  const cleaning = intervention?.type?.toUpperCase().includes('CLEANING') === true;
+  const cleaning = !serviceExecutionProfile(intervention) && !!(intervention?.type?.toUpperCase().includes('CLEANING') || intervention?.serviceItemCode?.startsWith('cleaning-'));
   const roomKey = ['baitly-room-inspection', id];
   const roomQuery = useQuery({ queryKey: roomKey, queryFn: () => getBaitlyRoomInspection(Number(id)), enabled: !!id && cleaning, retry: false });
   const allRoomPhotos = (work?: BaitlyRoomInspection) => !!work?.rooms?.length && work.rooms.every(room => (work.stepPhotoCounts?.[`inspection_${room.id}`] ?? 0) > 0);

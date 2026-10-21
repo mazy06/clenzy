@@ -38,12 +38,13 @@ export interface InterventionFormPropertyRequestorProps {
   errors: FieldErrors<InterventionFormValues>;
   properties: Property[];
   users: User[];
+  currentRequestor?: { id: number; name: string };
   isAdmin: () => boolean;
   isManager: () => boolean;
 }
 
 const InterventionFormPropertyRequestor: React.FC<InterventionFormPropertyRequestorProps> = React.memo(
-  ({ control, errors, properties, users, isAdmin, isManager }) => {
+  ({ control, errors, properties, users, currentRequestor, isAdmin, isManager }) => {
     const { t } = useTranslation();
     const propertyId = useWatch({ control, name: 'propertyId' });
     const detail = useQuery({
@@ -96,7 +97,8 @@ const InterventionFormPropertyRequestor: React.FC<InterventionFormPropertyReques
           />
 
           {property && <div className="text-xs text-muted-foreground tabular-nums">
-            <p className="truncate" title={property.address}>{property.address}, {property.city}</p>
+            <p>{property.name}</p>
+            <p>{property.address}, {property.city}</p>
             <p>{property.squareMeters} m² · {t('requestComposer.bedrooms', { count: property.bedroomCount })} · {t('requestComposer.guests', { count: property.maxGuests })}</p>
           </div>}
           </div></div>
@@ -121,12 +123,20 @@ const InterventionFormPropertyRequestor: React.FC<InterventionFormPropertyReques
                   <NativeSelectOption value="" disabled>
                     {t('interventions.fields.requestor')}
                   </NativeSelectOption>
+                  {currentRequestor && !users.some(user => user.id === currentRequestor.id) && (
+                    <NativeSelectOption value={currentRequestor.id}>
+                      {currentRequestor.name || `${t('interventions.fields.requestor')} #${currentRequestor.id}`}
+                    </NativeSelectOption>
+                  )}
                   {users.map((user) => (
                     <NativeSelectOption key={user.id} value={user.id}>
                       {user.firstName} {user.lastName} ({user.email})
                     </NativeSelectOption>
                   ))}
                 </NativeSelect>
+                {field.value && <FieldDescription className="break-words">
+                  {users.filter(user => user.id === field.value).map(user => `${user.firstName} ${user.lastName} · ${user.email}`).join('')}
+                </FieldDescription>}
                 {!isAdmin() && !isManager() && (
                   <FieldDescription className="text-[0.7rem]">
                     {t('interventions.fields.requestorHelper')}

@@ -16,6 +16,9 @@ const loaders = {
   BaitlyResourcePage: () => import('./pages/BaitlyResourcePage'),
   BaitlyLegalPage: () => import('./pages/BaitlyLegalPage'),
   ProvidersPage: () => import('./pages/ProvidersPage'),
+  BaitlyConciergesPage: () => import('./pages/BaitlyConciergesPage'),
+  BaitlyRecruitmentPage: () => import('./pages/BaitlyRecruitmentPage'),
+  BaitlyCampaignReplyPage: () => import('./pages/BaitlyCampaignReplyPage'),
   ProviderSignupPage: () => import('./pages/ProviderSignupPage'),
   ProviderActivationPage: () => import('./pages/ProviderActivationPage'),
   PrelaunchPage: () => import('./pages/PrelaunchPage'),
@@ -47,6 +50,9 @@ const lazyPages = {
   BaitlyResourcePage: lazy(loaders.BaitlyResourcePage),
   BaitlyLegalPage: lazy(loaders.BaitlyLegalPage),
   ProvidersPage: lazy(loaders.ProvidersPage),
+  BaitlyConciergesPage: lazy(loaders.BaitlyConciergesPage),
+  BaitlyRecruitmentPage: lazy(loaders.BaitlyRecruitmentPage),
+  BaitlyCampaignReplyPage: lazy(loaders.BaitlyCampaignReplyPage),
   ProviderSignupPage: lazy(loaders.ProviderSignupPage),
   ProviderActivationPage: lazy(loaders.ProviderActivationPage),
   PrelaunchPage: lazy(loaders.PrelaunchPage),
@@ -61,6 +67,9 @@ const lazyPages = {
 export function initialPageKey(pathname: string): PageKey {
   const path = pathname.replace(/\/$/, '') || '/';
   if (path === '/') return 'HomePage';
+  if (path === '/conciergeries' || path.startsWith('/conciergeries/')) return 'BaitlyConciergesPage';
+  if (path.startsWith('/recrutement/')) return 'BaitlyRecruitmentPage';
+  if (path === '/campagnes/reponse') return 'BaitlyCampaignReplyPage';
   if (path.startsWith('/produit/')) return 'ModulePage';
   if (/^\/ressources\/(blog|obligations)(\/|$)/.test(path))
     return 'BaitlyLegalPage';
@@ -124,6 +133,9 @@ export default function SiteApp({
     BaitlyResourcePage,
     BaitlyLegalPage,
     ProvidersPage,
+    BaitlyConciergesPage,
+    BaitlyRecruitmentPage,
+    BaitlyCampaignReplyPage,
     ProviderSignupPage,
     ProviderActivationPage,
     PrelaunchPage,
@@ -182,6 +194,10 @@ export default function SiteApp({
               path="/ressources/glossaire"
               element={<BaitlyResourcePage kind="glossaire" />}
             />
+            <Route path="/conciergeries" element={<BaitlyConciergesPage />} />
+            <Route path="/conciergeries/:id" element={<BaitlyConciergesPage />} />
+            <Route path="/recrutement/:id" element={<BaitlyRecruitmentPage />} />
+            <Route path="/campagnes/reponse" element={<BaitlyCampaignReplyPage />} />
             <Route path="/prestataires" element={<ProvidersPage />} />
             {/* Le parcours prestataire : candidature + dépôt de pièces sur la
   première, définition du mot de passe sur la seconde. */}

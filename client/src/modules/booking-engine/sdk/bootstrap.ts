@@ -2,6 +2,7 @@ import type { BaitlyBookingConfig } from './types';
 import { getSharedBookingCore } from './core/BaitlyBookingCore';
 import { createBookingI18n } from './i18n';
 import { mountPrimitive, type MountContext } from './primitives/mountPrimitive';
+import { enhanceHospitality } from './hospitality';
 
 /**
  * Bootstrap d'hydratation (B2) — parcours de réservation template-driven, multi-pages.
@@ -36,6 +37,7 @@ export type HydrateOptions = Omit<BaitlyBookingConfig, 'container'> & {
  */
 export function hydrateBookingMarkers(opts: HydrateOptions): number {
   if (typeof document === 'undefined') return 0;
+  enhanceHospitality(opts?.root ?? document);
   if (!opts?.apiKey) {
     console.error('[BaitlyBooking] hydrate: apiKey manquante');
     return 0;

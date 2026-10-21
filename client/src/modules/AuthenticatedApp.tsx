@@ -60,6 +60,7 @@ const TeamEdit = lazy(() => import('./teams/TeamEdit'));
 
 // Directory (Annuaire — merged Teams + Portfolios + Guests)
 const DirectoryPage = lazy(() => import('./directory/DirectoryPage'));
+const ProspectionPage = lazy(() => import('./prospection/ProspectionPage'));
 
 // Annuaire unifié des prestataires ; capacités selon le rôle.
 const ProvidersPage = lazy(() => import('./marketplace/ProvidersPage'));
@@ -184,17 +185,15 @@ const AuthenticatedApp: React.FC = () => {
   useAssignmentEventStream(user ? `${user.id}:${user.organizationId}` : null);
   const queryClient = useQueryClient();
 
-  // Warm-up au montage : les données du Planning (route d'atterrissage) partent
-  // immédiatement, en parallèle du téléchargement du chunk de la page ; les
-  // chunks des routes fréquentes se préchargent pendant l'idle.
+  // Only warm planning data when planning is actually the landing route.
   // Import DYNAMIQUE : un import statique de usePlanningData tirerait le data
   // layer du planning dans le chunk d'entrée (+64 KB constatés au build).
   useEffect(() => {
-    void import('./planning/hooks/usePlanningData')
+    if (pathname === '/planning') void import('./planning/hooks/usePlanningData')
       .then((m) => m.prefetchPlanningProperties(queryClient, user))
       .catch(() => { /* prefetch best-effort — la page fetchera elle-même */ });
     // Le planning déclenche le préchargement après ses détails prioritaires.
-    if (pathname !== '/planning') warmHotRoutes();
+    if (pathname !== '/planning') return warmHotRoutes();
     // Volontairement au mount uniquement : le prefetch est idempotent (même
     // clé react-query) et user est garanti présent quand ce composant rend.
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -370,6 +369,13 @@ const AuthenticatedApp: React.FC = () => {
 
         {/* Annuaire (Directory) — merged Teams + Portfolios + Guests */}
         <Route path="/directory" element={<DirectoryPage />} />
+        <Route path="/prospection" element={
+          <ProtectedRoute>
+            <ErrorBoundary>
+              <ProspectionPage />
+            </ErrorBoundary>
+          </ProtectedRoute>
+        } />
 
         {/* Ancienne entrée conservée pour les favoris. Les fiches de gestion
             restent réservées aux rôles plateforme, comme leurs API. */}

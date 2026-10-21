@@ -464,13 +464,12 @@ const DashboardOverview: React.FC<DashboardOverviewProps> = React.memo(({ period
   return (
     <>
       {layoutActions}
+      <MissingContractsDashboardAlert />
       <div className="flex min-w-0 flex-col pt-2 pb-4">
         {error && <DashboardWidgetState title={t('dashboard.widgets.kpis', 'Indicateurs')} error onRetry={refreshAll} />}
 
         {/* Chaque widget porte son chargement et son erreur. */}
         <div className="flex flex-col gap-4">
-          <MissingContractsDashboardAlert />
-
           <div className="relative flex flex-col gap-4">
 
             <div

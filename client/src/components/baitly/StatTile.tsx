@@ -28,7 +28,7 @@ interface StatTileBaseProps {
   /** Unité de la variation (« % » par défaut, « pts » pour un taux). */
   deltaUnit?: string;
   loading?: boolean;
-  onClick?: () => void;
+  onClick?: React.MouseEventHandler<HTMLElement>;
   className?: string;
   /** Optional photographic artwork for the overview presentation. */
   artwork?: string;

@@ -15,10 +15,12 @@ import {
   Input,
   Spinner,
 } from '../../../components/ui';
-import { House, TrendingUp, TriangleAlert, Users, type IconComponent } from '../../../icons/glyphs';
-import StatusChip from '../../../components/StatusChip';
+import { House, TrendingUp, TriangleAlert, Users, FileText, Eye, Sparkles, Check, type IconComponent } from '../../../icons/glyphs';
 import PeriodSegmented from '../../../components/baitly/PeriodSegmented';
-import { ChartTile, StatsLayout } from '../../../components/stats';
+import { StatsLayout } from '../../../components/stats';
+import { ComposerSection, ComposerChoice, ComposerGroup } from './BaitlyComposerControls';
+import { composerCopy } from './baitlyComposerCopy';
+import './baitly-report-composer.css';
 import { usePageHeaderActions } from '../../../components/PageHeaderActionsContext';
 import { cn } from '../../../utils/cn';
 import { propertiesApi } from '../../../services/api/propertiesApi';
@@ -257,7 +259,8 @@ type Viewer =
   | { kind: 'document'; document: ReportDocumentSummary; batch: number };
 
 const ReportComposer: React.FC = () => {
-  const { t } = useTranslation();
+  const { t, currentLanguage } = useTranslation();
+  const copy = composerCopy(currentLanguage);
   const queryClient = useQueryClient();
 
   const [profile, setProfile] = useState<ReportProfile>('OWNER');
@@ -385,17 +388,18 @@ const ReportComposer: React.FC = () => {
       <Button
         size="sm"
         variant="outline"
+        className="rc-secondary-action"
         disabled={!canRun || busy}
         onClick={() => previewMutation.mutate()}
       >
-        {previewMutation.isPending ? <Spinner /> : null}
-        {previewMutation.isPending ? 'Calcul…' : 'Aperçu'}
+        {previewMutation.isPending ? <Spinner /> : <Eye size={15} />}
+        {previewMutation.isPending ? copy.calculating : copy.preview}
       </Button>
-      <Button size="sm" disabled={!canRun || busy} onClick={() => generateMutation.mutate()}>
-        {generateMutation.isPending ? <Spinner /> : null}
+      <Button size="sm" className="rc-primary-action" disabled={!canRun || busy} onClick={() => generateMutation.mutate()}>
+        {generateMutation.isPending ? <Spinner /> : <FileText size={15} />}
         {generateMutation.isPending
-          ? 'Génération…'
-          : `Générer ${documentCount} document${documentCount > 1 ? 's' : ''}`}
+          ? copy.generating
+          : copy.generate(documentCount)}
       </Button>
     </div>,
   );
@@ -404,218 +408,80 @@ const ReportComposer: React.FC = () => {
   const loadingSnapshot = viewer?.kind === 'document' && openedSnapshotQuery.isLoading;
 
   return (
-    <StatsLayout>
+    <StatsLayout className="baitly-report-composer">
       {headerActions}
 
-      <div className="grid items-start gap-3 min-[1180px]:grid-cols-[minmax(0,1.7fr)_minmax(300px,1fr)]">
-        <div className="flex min-w-0 flex-col gap-3">
-          <ChartTile
-            fluid
-            title={t('reports.composer.audienceTitle')}
-            hint={t('reports.composer.audienceHint')}
-          >
-            <div className="flex flex-col gap-3 pt-1">
-              <div className="grid gap-2 min-[720px]:grid-cols-3">
-                {AUDIENCES.map((audience) => (
-                  <AudienceCard
-                    key={audience.profile}
-                    icon={audience.icon}
-                    label={t(audience.labelKey)}
-                    nature={audience.nature}
-                    description={t(audience.descriptionKey)}
-                    count={sectionsFor(audience.profile, groupBy).length}
-                    selected={profile === audience.profile}
-                    onSelect={() => applyAudience(audience.profile)}
-                  />
-                ))}
-              </div>
 
-              <div className="flex flex-wrap items-center justify-between gap-2 border-t border-border pt-3">
-                <div className="flex flex-col gap-1">
-                  <span className="text-xs font-medium text-foreground">{t('reports.composer.split')}</span>
-                  <PeriodSegmented
-                    ariaLabel={t('reports.composer.splitAria')}
-                    value={groupBy}
-                    onChange={(value) => applyGrouping(value as ReportGroupBy)}
-                    options={GROUPINGS.map(({ value, labelKey }) => ({ value, label: t(labelKey) }))}
-                  />
-                </div>
-                <p className="m-0 text-xs text-muted-foreground">
-                  <Trans
-                    i18nKey="reports.composer.willProduce"
-                    count={documentCount}
-                    values={{ count: documentCount }}
-                    components={{ b: <b className="tabular-nums text-foreground" /> }}
-                  />
-                </p>
-              </div>
+      <div className="rc-layout">
+        <section className="rc-editor">
+          <header className="rc-editor-heading"><span className="rc-editor-icon"><FileText size={22} aria-hidden /></span>
+            <div><h2>{copy.title}</h2><p>{copy.subtitle}</p></div></header>
+          <ComposerSection number="01" title={copy.audience}>
+            <div className="rc-audiences" role="group" aria-label={copy.audience}>
+              {AUDIENCES.map(audience => <AudienceCard key={audience.profile} icon={audience.icon}
+                label={t(audience.labelKey)} nature={audience.nature}
+                profile={audience.profile}
+                selected={profile === audience.profile} onSelect={() => applyAudience(audience.profile)} />)}
             </div>
-          </ChartTile>
-
-          <ChartTile fluid title={t('reports.composer.scopeTitle')} hint={t('reports.composer.scopeHint')}>
-            <div className="flex flex-col gap-3 pt-1">
-              <div className="flex flex-wrap items-end gap-3">
-                <div className="flex flex-col gap-1">
-                  <span className="text-xs font-medium text-foreground">{t('reports.composer.period')}</span>
-                  <PeriodSegmented
-                    ariaLabel={t('reports.composer.periodAria')}
-                    value={period}
-                    onChange={applyPeriod}
-                    options={PERIODS.map(({ value, labelKey }) => ({ value, label: t(labelKey) }))}
-                  />
-                </div>
-                <Field className="w-36">
-                  <FieldLabel htmlFor="report-from">{t('reports.composer.from')}</FieldLabel>
-                  <Input
-                    id="report-from"
-                    type="date"
-                    value={from}
-                    onChange={(e) => { setPeriod(''); setRange([e.target.value, to]); }}
-                  />
-                </Field>
-                <Field className="w-36">
-                  <FieldLabel htmlFor="report-to">{t('reports.composer.to')}</FieldLabel>
-                  <Input
-                    id="report-to"
-                    type="date"
-                    value={to}
-                    onChange={(e) => { setPeriod(''); setRange([from, e.target.value]); }}
-                  />
-                </Field>
-              </div>
-
-              {!canRun && (
-                <p className="m-0 text-xs text-destructive">
-                  {t('reports.composer.endBeforeStart')}
-                </p>
-              )}
-
-              {owners.length > 0 && (
-                <Picker
-                  label={t('reports.composer.owners')}
-                  hint={ownerIds.length === 0 ? t('reports.composer.pickerAll') : t('reports.composer.pickerSelected', { count: ownerIds.length })}
-                  onClear={ownerIds.length ? () => setOwnerIds([]) : undefined}
-                >
-                  {owners.map((owner) => (
-                    <StatusChip
-                      key={owner.id}
-                      outlined
-                      tone="accent"
-                      selected={ownerIds.includes(owner.id)}
-                      pressed={ownerIds.includes(owner.id)}
-                      label={`${owner.name} · ${owner.count}`}
-                      onClick={() => toggle(ownerIds, owner.id, setOwnerIds)}
-                    />
-                  ))}
-                </Picker>
-              )}
-
-              <Picker
-                label={t('reports.composer.properties')}
-                hint={propertyIds.length === 0 ? t('reports.composer.pickerAll') : t('reports.composer.pickerSelected', { count: propertyIds.length })}
-                onClear={propertyIds.length ? () => setPropertyIds([]) : undefined}
-                scroll
-              >
-                {properties.map((property) => (
-                  <StatusChip
-                    key={property.id}
-                    outlined
-                    tone="accent"
-                    selected={propertyIds.includes(property.id)}
-                    pressed={propertyIds.includes(property.id)}
-                    label={property.name}
-                    onClick={() => toggle(propertyIds, property.id, setPropertyIds)}
-                  />
-                ))}
-              </Picker>
+            <p className="rc-audience-explanation" data-profile={profile}>{t(AUDIENCES.find(item => item.profile === profile)!.descriptionKey)}</p>
+            <div className="rc-grouping">
+              <div><span className="rc-field-label">{t('reports.composer.split')}</span>
+                <PeriodSegmented ariaLabel={t('reports.composer.splitAria')} value={groupBy}
+                  onChange={value => applyGrouping(value as ReportGroupBy)}
+                  options={GROUPINGS.map(({ value, labelKey }) => ({ value, label: t(labelKey) }))} /></div>
+              <p><Trans i18nKey="reports.composer.willProduce" count={documentCount} values={{ count: documentCount }}
+                components={{ b: <b className="tabular-nums text-foreground" /> }} /></p>
             </div>
-          </ChartTile>
+          </ComposerSection>
 
-          <ChartTile
-            fluid
-            title={t('reports.composer.contentTitle')}
-            hint={t('reports.composer.sectionsKept', { count: sections.length })}
-          >
-            <div className="flex flex-col gap-3 pt-1">
-              {SECTION_GROUPS.map((group) => {
-                const ids = group.ids.filter((id) => SECTION_IDS.has(id));
-                const on = ids.filter((id) => sections.includes(id)).length;
-                return (
-                  <div key={group.key} className="flex flex-col gap-1">
-                    <div className="flex items-baseline gap-2">
-                      <span className="text-xs font-medium text-foreground">{t(group.labelKey)}</span>
-                      <span className="text-2xs tabular-nums text-muted-foreground">
-                        {on}/{ids.length}
-                      </span>
-                      <button
-                        type="button"
-                        onClick={() => setGroup(ids, on < ids.length)}
-                        className="cursor-pointer text-2xs text-muted-foreground underline-offset-2 transition-colors duration-200 hover:text-foreground hover:underline"
-                      >
-                        {on < ids.length
-                          ? t('reports.composer.includeAll')
-                          : t('reports.composer.removeAll')}
-                      </button>
-                    </div>
-                    <div className="flex flex-wrap gap-1">
-                      {ids.map((id) => {
-                        const locked = SECTIONS.find((section) => section.id === id)?.always;
-                        return (
-                          <StatusChip
-                            key={id}
-                            outlined
-                            tone="accent"
-                            selected={sections.includes(id)}
-                            pressed={sections.includes(id)}
-                            label={SECTION_IDS.has(id) ? t(sectionLabelKey(id)) : id}
-                            onClick={locked ? undefined : () => toggle(sections, id, (next) =>
-                              setSections(SECTION_ORDER.filter((sid) => next.includes(sid))))}
-                          />
-                        );
-                      })}
-                    </div>
-                  </div>
-                );
-              })}
-
-              <label className="flex cursor-pointer items-start gap-2 border-t border-border pt-3 text-xs">
-                <input
-                  type="checkbox"
-                  className="mt-0.5 cursor-pointer"
-                  checked={withNarrative}
-                  onChange={(e) => setWithNarrative(e.target.checked)}
-                />
-                <span>
-                  <span className="font-semibold text-foreground">{t('reports.composer.narrativeTitle')}</span>
-                  <span className="block text-muted-foreground">
-                    {t('reports.composer.narrativeBody')}
-                  </span>
-                </span>
-              </label>
-
-            <div className="flex flex-col gap-1">
-              <span className="text-xs font-medium text-foreground">{t('reports.composer.documentTitle')}</span>
-              {/* Etabli, pas saisi : le nom d'un document dit ce qu'il contient. */}
-              <p className="m-0 rounded-md border border-dashed border-border bg-muted/40 px-3 py-2 text-sm font-semibold text-foreground">
-                {documentTitle(profile, from, to)}
-              </p>
-              <span className="text-2xs text-muted-foreground">
-                {t('reports.composer.documentTitleHint')}
-              </span>
+          <ComposerSection number="02" title={copy.scope}>
+            <div className="rc-period-fields"><div><span className="rc-field-label">{t('reports.composer.period')}</span>
+              <PeriodSegmented ariaLabel={t('reports.composer.periodAria')} value={period} onChange={applyPeriod}
+                options={PERIODS.map(({ value, labelKey }) => ({ value, label: t(labelKey) }))} /></div>
+              <Field><FieldLabel htmlFor="report-from">{t('reports.composer.from')}</FieldLabel>
+                <Input id="report-from" type="date" value={from} onChange={e => { setPeriod(''); setRange([e.target.value, to]); }} /></Field>
+              <Field><FieldLabel htmlFor="report-to">{t('reports.composer.to')}</FieldLabel>
+                <Input id="report-to" type="date" value={to} onChange={e => { setPeriod(''); setRange([from, e.target.value]); }} /></Field>
             </div>
-            </div>
-          </ChartTile>
+            {!canRun && <p role="alert" className="text-xs text-destructive-ink">{t('reports.composer.endBeforeStart')}</p>}
+            {owners.length > 0 && <Picker label={t('reports.composer.owners')}
+              hint={ownerIds.length === 0 ? t('reports.composer.pickerAll') : t('reports.composer.pickerSelected', { count: ownerIds.length })}
+              onClear={ownerIds.length ? () => setOwnerIds([]) : undefined}>
+              {owners.map(owner => <ComposerChoice key={owner.id} label={`${owner.name} · ${owner.count}`}
+                selected={ownerIds.includes(owner.id)} onClick={() => toggle(ownerIds, owner.id, setOwnerIds)} />)}
+            </Picker>}
+            <Picker label={t('reports.composer.properties')} scroll
+              hint={propertyIds.length === 0 ? t('reports.composer.pickerAll') : t('reports.composer.pickerSelected', { count: propertyIds.length })}
+              onClear={propertyIds.length ? () => setPropertyIds([]) : undefined}>
+              {properties.map(property => <ComposerChoice key={property.id} label={property.name}
+                selected={propertyIds.includes(property.id)} onClick={() => toggle(propertyIds, property.id, setPropertyIds)} />)}
+            </Picker>
+          </ComposerSection>
 
-          <p className="m-0 text-2xs text-muted-foreground">
-            {t('reports.composer.previewNote')}
-          </p>
-        </div>
-
-        <ReportLibrary
-          openedId={openedDocument?.id ?? null}
-          onOpen={(document) =>
-            setViewer(document ? { kind: 'document', document, batch: 1 } : null)}
-        />
+          <ComposerSection number="03" title={copy.content} hint={t('reports.composer.sectionsKept', { count: sections.length })}>
+            <div className="rc-content-groups">{SECTION_GROUPS.map(group => {
+              const ids = group.ids.filter(id => SECTION_IDS.has(id));
+              const on = ids.filter(id => sections.includes(id)).length;
+              return <ComposerGroup key={group.key} label={t(group.labelKey)} count={on} total={ids.length}
+                tone={group.key} initiallyOpen={group.key === 'activity'}
+                onToggleAll={() => setGroup(ids, on < ids.length)}
+                actionLabel={t(on < ids.length ? 'reports.composer.includeAll' : 'reports.composer.removeAll')}>
+                {ids.map(id => <ComposerChoice key={id} label={t(sectionLabelKey(id))} selected={sections.includes(id)}
+                  locked={SECTIONS.find(section => section.id === id)?.always} requiredLabel={copy.required}
+                  onClick={() => toggle(sections, id, next => setSections(SECTION_ORDER.filter(sid => next.includes(sid))))} />)}
+              </ComposerGroup>;
+            })}</div>
+            <label className="rc-narrative" data-enabled={withNarrative}>
+              <span className="rc-narrative-icon"><Sparkles size={20} aria-hidden /></span>
+              <span><strong>{t('reports.composer.narrativeTitle')}</strong><small>{t('reports.composer.narrativeBody')}</small></span>
+              <input type="checkbox" checked={withNarrative} onChange={event => setWithNarrative(event.target.checked)} />
+            </label>
+          </ComposerSection>
+          <footer className="rc-editor-footer"><FileText size={20} aria-hidden /><div><span>{t('reports.composer.documentTitle')}</span>
+            <strong>{documentTitle(profile, from, to)}</strong><p>{t('reports.composer.previewNote')}</p></div></footer>
+        </section>
+        <ReportLibrary openedId={openedDocument?.id ?? null}
+          onOpen={document => setViewer(document ? { kind: 'document', document, batch: 1 } : null)} />
       </div>
 
       {generateMutation.isError && (
@@ -634,7 +500,7 @@ const ReportComposer: React.FC = () => {
       )}
 
       <Dialog open={viewer != null} onOpenChange={(open) => !open && setViewer(null)}>
-        <DialogContent className="flex max-h-[92vh] flex-col overflow-hidden sm:max-w-[min(1100px,94vw)]">
+        <DialogContent className="br-dialog flex max-h-[92vh] flex-col overflow-hidden sm:max-w-[min(1100px,94vw)]">
           <DialogHeader>
             <DialogTitle>
               {viewer?.kind === 'document'
@@ -650,7 +516,7 @@ const ReportComposer: React.FC = () => {
             </DialogDescription>
           </DialogHeader>
 
-          <div className="min-h-0 flex-1 overflow-y-auto">
+          <div className="br-dialog-scroll">
             {loadingSnapshot ? (
               <div className="flex justify-center py-10">
                 <Spinner className="size-7" />
@@ -665,6 +531,7 @@ const ReportComposer: React.FC = () => {
               <Button
                 size="sm"
                 variant="outline"
+                className="rc-secondary-action"
                 onClick={() =>
                   reportDocumentsApi.downloadPdf(
                     openedDocument.id,
@@ -675,7 +542,7 @@ const ReportComposer: React.FC = () => {
                 {t('reports.composer.downloadPdf')}
               </Button>
             ) : null}
-            <Button size="sm" onClick={() => setViewer(null)}>
+            <Button size="sm" className="rc-secondary-action" variant="outline" onClick={() => setViewer(null)}>
               {t('common.close')}
             </Button>
           </DialogFooter>
@@ -693,56 +560,14 @@ const ReportComposer: React.FC = () => {
  * produire est annonce des la carte — c'est le choix qui le determine.</p>
  */
 const AudienceCard: React.FC<{
-  icon: IconComponent;
-  label: string;
-  nature: string;
-  description: string;
-  count: number;
-  selected: boolean;
-  onSelect: () => void;
-}> = ({ icon: Icon, label, nature, description, count, selected, onSelect }) => {
-  const { t } = useTranslation();
-  return (
-  <button
-    type="button"
-    onClick={onSelect}
-    aria-pressed={selected}
-    className={cn(
-      'flex cursor-pointer flex-col gap-2 rounded-md border p-3 text-start transition-colors duration-200',
-      selected
-        ? 'border-primary bg-primary/5'
-        : 'border-border hover:border-primary/50 hover:bg-muted/40',
-    )}
-  >
-    <span className="flex items-center gap-2">
-      <span
-        aria-hidden
-        className={cn(
-          'flex size-8 shrink-0 items-center justify-center rounded-md transition-colors duration-200',
-          selected ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground',
-        )}
-      >
-        <Icon className="size-4" />
-      </span>
-      <span className="min-w-0 flex-1">
-        <span className="block truncate text-sm font-semibold text-foreground">{label}</span>
-        <span className="block truncate text-2xs text-muted-foreground">{nature}</span>
-      </span>
-      <span
-        aria-hidden
-        className={cn(
-          'size-3.5 shrink-0 rounded-full border transition-colors duration-200',
-          selected ? 'border-[5px] border-primary' : 'border-border',
-        )}
-      />
-    </span>
-    <span className="text-xs text-muted-foreground">{description}</span>
-    <span className="mt-auto text-2xs tabular-nums text-muted-foreground">
-      {t('reports.composer.sectionCount', { count })}
-    </span>
-  </button>
-  );
-};
+  icon: IconComponent; label: string; nature: string; profile: ReportProfile;
+  selected: boolean; onSelect: () => void;
+}> = ({ icon: Icon, label, nature, profile, selected, onSelect }) => <button type="button" onClick={onSelect}
+  aria-pressed={selected} className="rc-audience" data-profile={profile}>
+  <span className="rc-audience-icon"><Icon size={20} aria-hidden /></span>
+  <span><strong>{label}</strong><small>{nature}</small></span>
+  {selected && <Check size={15} className="rc-audience-check" aria-hidden />}
+</button>;
 
 /** Une liste d'étiquettes à cocher, avec son compteur et sa remise à zéro. */
 const Picker: React.FC<{
@@ -754,21 +579,21 @@ const Picker: React.FC<{
 }> = ({ label, hint, onClear, scroll, children }) => {
   const { t } = useTranslation();
   return (
-  <div className="flex flex-col gap-1">
-    <div className="flex items-baseline gap-2">
+  <div className="rc-picker">
+    <div className="rc-picker-heading">
       <span className="text-xs font-medium text-foreground">{label}</span>
       <span className="text-2xs text-muted-foreground">{hint}</span>
       {onClear ? (
         <button
           type="button"
           onClick={onClear}
-          className="cursor-pointer text-2xs text-muted-foreground underline-offset-2 transition-colors duration-200 hover:text-foreground hover:underline"
+          className="rc-text-action"
         >
           {t('reports.composer.clearAll')}
         </button>
       ) : null}
     </div>
-    <div className={cn('flex flex-wrap gap-1', scroll && 'no-scrollbar max-h-40 overflow-y-auto')}>
+    <div className={cn('rc-choices', scroll && 'rc-choices-scroll')}>
       {children}
     </div>
   </div>

@@ -60,7 +60,7 @@ vi.mock('../supervision/core/useSupervisionReport', () => ({
   useSupervisionReport: () => ({ report: null }),
 }));
 vi.mock('../../components/PageHeader', () => ({
-  default: ({ title, actions }: { title: string; actions: ReactNode }) => {
+  default: ({ title, actions, filters }: { title: string; actions: ReactNode; filters: ReactNode }) => {
     const { search, setSearchValue, setTabsSlot } = useScreenChrome();
     return (
       <header>
@@ -73,7 +73,7 @@ vi.mock('../../components/PageHeader', () => ({
             onChange={(event) => setSearchValue(event.target.value)}
           />
         )}
-        {actions}
+        {actions}{filters}
       </header>
     );
   },

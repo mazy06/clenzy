@@ -16,6 +16,7 @@ export function createPropertyTypeSelect(state: StateManager, i18n: I18n, curren
   // Dropdown CUSTOM stylisé (≠ `<select>` natif) + coordonné (un seul popover ouvert). Écrit `filters.types`
   // (sélection unique → tableau de 0/1 élément) pour filtrer les résultats (server-side + miroir client).
   return createSingleSelect(state, {
+    label: i18n.t('search.propertyType'),
     getOptions: (s) => {
       const options = typeOptions(s);
       if (options.length === 0) return [];

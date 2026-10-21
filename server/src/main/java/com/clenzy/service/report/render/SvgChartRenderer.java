@@ -20,34 +20,16 @@ import java.util.Locale;
  * l'envoi automatique du releve du 1er du mois — c'est-a-dire l'usage
  * principal.</p>
  *
- * <p>Le SVG est integre tel quel dans le HTML converti par iText (module SVG
- * inclus dans itext7-core). Les couleurs sont des HEXADECIMAUX resolus : un PDF
+ * <p>Le SVG est integre tel quel dans le HTML converti par Chromium.
+ * Les couleurs sont des HEXADECIMAUX resolus : un PDF
  * n'a pas de variables CSS, et une teinte non resolue s'y rendrait en noir.</p>
  */
 @Component
 public class SvgChartRenderer {
 
-    /**
-     * L'identite visuelle de Baitly, en dur.
-     *
-     * <p>Un PDF n'a pas de variables CSS : chaque teinte doit y etre resolue.
-     * Ces valeurs sont donc RECOPIEES de leur source, et le commentaire dit
-     * laquelle — sans quoi une retouche de la charte laisserait le document
-     * imprime derriere elle, sans que rien ne le signale.</p>
-     *
-     * <p>La serie suit la famille TERRE CUITE des briques de reservation du
-     * planning ({@code planningUrgency.css}), ouverte par le bleu nuit du
-     * wordmark ({@code --bui-primary}). Ce ne sont pas des teintes decoratives :
-     * ce sont celles que l'utilisateur voit toute la journee sur son planning,
-     * et un rapport qui en emploierait d'autres se lirait comme un document
-     * etranger au produit.</p>
-     */
+    /** Same series order as the report reader: teal, slate blue, ochre, rose, slate. */
     private static final String[] SERIES = {
-        "#1B2A35", // --bui-primary — bleu nuit du wordmark
-        "#9A6C3A", // --pl-st-confirmed — brun median
-        "#E0C89B", // --pl-st-pending — beige, le plus pale
-        "#A89684", // --pl-st-checked-out — taupe desature
-        "#5C3A21", // --pl-st-checked-in — brun dense
+        "#4A9B8E", "#7BA3C2", "#D4A574", "#C97A7A", "#8796A5",
     };
 
     /** {@code --bui-foreground} : l'encre du document. */
@@ -74,7 +56,7 @@ public class SvgChartRenderer {
      * 600 pt de blanc. Le document faisait douze pages pour deux mois de
      * donnees.</p>
      */
-    private static final double COLUMN_PT = 504;
+    private static final double COLUMN_PT = 499;
 
     /** Ouverture d'un SVG dimensionne en points, au ratio de sa zone de dessin. */
     private static String svgOpen(int viewWidth, int viewHeight) {
@@ -409,6 +391,7 @@ public class SvgChartRenderer {
             case "destructive" -> "#C97A7A";
             case "neutral" -> "#94A7B8";
             case "primary" -> "#1B2A35";
+            case "info" -> "#2563EB";
             default -> SERIES[index % SERIES.length];
         };
     }

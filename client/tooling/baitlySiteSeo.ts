@@ -26,6 +26,7 @@ import {
   robotsDirective,
 } from '../site/lib/siteSeo';
 import { legalArticleImage } from '../site/data/legal/articleImages';
+import { conciergeMetadata } from '../site/lib/baitlyConciergeMetadata';
 import {
   legalStaticHtml,
   legalStructuredData,
@@ -299,13 +300,14 @@ export function baitlySiteSeo(): Plugin {
           ) ?? 'fr';
         const pages = (await loadCatalog())[language];
         const path = url.pathname.replace(/\/$/, '') || '/';
+        const liveProfile = path.startsWith('/conciergeries/') || path.startsWith('/recrutement/');
         const rendered = devRenderer
           ? await renderPage(devRenderer, path, language)
           : undefined;
         return metadataHtml(
           html,
-          pages[path] ?? pages['/404'],
-          pages[path] ? path : '/404',
+          conciergeMetadata(path,language) ?? pages[path] ?? pages['/404'],
+          liveProfile || pages[path] ? path : '/404',
           language,
           rendered?.html ?? '',
           rendered?.url,
@@ -320,6 +322,12 @@ export function baitlySiteSeo(): Plugin {
       const renderer = await buildSiteRenderer(config);
       try {
         for (const language of DISCOVERY_LANGUAGES) {
+          // No profile data or visitor identifiers are stored in the static image.
+          // Omitting publishedUrl makes the browser mount at the actual UUID route.
+          this.emitFile({ type:'asset', fileName:`_baitly-html/${language}/conciergeries/_profile.html`,
+            source:metadataHtml(source,{ ...conciergeMetadata('/conciergeries',language)!,index:false },'/conciergeries',language) });
+          this.emitFile({ type:'asset',fileName:`_baitly-html/${language}/recrutement/_page.html`,
+            source:metadataHtml(source,conciergeMetadata('/recrutement/publication',language)!,'/recrutement/publication',language) });
           for (const [path, page] of Object.entries(
             (await loadCatalog())[language],
           )) {

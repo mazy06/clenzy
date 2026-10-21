@@ -27,3 +27,15 @@ it('neutralise une ancienne préférence invalide sans transmettre une caméra N
   expect(normalizeMapContext({ camera: { center: [NaN, 3], zoom: 99, pitch: 0, bearing: 0 }, area: { lng: 999, lat: 0 } }))
     .toEqual(DEFAULT_MAP_CONTEXT);
 });
+
+it('conserve plusieurs points de sélection valides et filtre sur leur union', () => {
+  const points = [{ lng: 2, lat: 48 }, { lng: 3, lat: 49 }];
+  expect(normalizeMapContext({ area: [...points, { lng: 999, lat: 0 }] }).area).toEqual(points);
+  expect(normalizeMapContext({ area: [] }).area).toBeNull();
+  const area: GeoJSON.MultiPolygon = { type: 'MultiPolygon', coordinates: [
+    [[[0,0],[1,0],[1,1],[0,1],[0,0]]], [[[4,4],[5,4],[5,5],[4,5],[4,4]]],
+  ] };
+  expect(pointInMapScope(0.5, 0.5, area, null)).toBe(true);
+  expect(pointInMapScope(4.5, 4.5, area, null)).toBe(true);
+  expect(pointInMapScope(2, 2, area, null)).toBe(false);
+});

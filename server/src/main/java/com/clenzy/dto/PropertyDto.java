@@ -119,6 +119,8 @@ public class PropertyDto {
 
     // Booking Engine
     public Boolean bookingEngineVisible;
+    public java.math.BigDecimal securityDepositAmount;
+    public String defaultCurrency;
 
     // Horaires par défaut (check-in / check-out)
     public String defaultCheckInTime;

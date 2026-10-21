@@ -48,6 +48,8 @@ export interface Reservation {
   collectedByChannel?: boolean;
   confirmationCode?: string;
   totalPrice: number;
+  cleaningFee?: number | null;
+  touristTaxAmount?: number | null;
   notes?: string;
   // Payment link tracking
   paymentLinkSentAt?: string;  // ISO datetime string
@@ -119,6 +121,9 @@ export interface CreateReservationData {
 }
 
 export interface UpdateReservationData {
+  cleaningFee?: number;
+  touristTaxAmount?: number;
+  confirmationCode?: string;
   guestName?: string;
   guestEmail?: string;
   guestPhone?: string;

@@ -380,11 +380,10 @@ public class StripeWebhookController {
             paymentTenantScope.forReservation(sessionId, () -> stripeService.confirmReservationPayment(sessionId));
         } else if ("booking_engine".equals(type)) {
             // Paiement d'une reservation creee via le Booking Engine public (widget SDK).
-            // Le webhook gere deux scenarios :
-            //  - reservation deja creee (flux SDK avec /reserve avant /checkout) → la passer en PAID
-            //  - reservation absente (flux Embedded Checkout direct) → la creer ex-nihilo depuis metadata
+            // Le hold existe avant le paiement (SDK ou Embedded Checkout).
+            // Garder son organisation active jusqu'au commit des effets financiers.
             logger.info("Paiement Booking Engine reussi pour session: {}", sessionId);
-            publicBookingService.confirmBookingEngineCheckout(session);
+            paymentTenantScope.forBookingCheckout(sessionId, () -> publicBookingService.confirmBookingEngineCheckout(session));
         } else if ("booking_engine_balance".equals(type)) {
             // Encaissement du solde d'un acompte (P0.7) : PARTIALLY_PAID → PAID + effets complets.
             logger.info("Paiement du solde Booking Engine reussi pour session: {}", sessionId);
@@ -494,7 +493,7 @@ public class StripeWebhookController {
             paymentTenantScope.forReservation(sessionId, () -> stripeService.confirmReservationPayment(sessionId));
         } else if ("booking_engine".equals(type)) {
             logger.info("Paiement Booking Engine asynchrone reussi pour session: {}", sessionId);
-            publicBookingService.confirmBookingEngineCheckout(session);
+            paymentTenantScope.forBookingCheckout(sessionId, () -> publicBookingService.confirmBookingEngineCheckout(session));
         } else if ("booking_engine_balance".equals(type)) {
             logger.info("Paiement du solde Booking Engine asynchrone reussi pour session: {}", sessionId);
             publicBookingService.confirmBookingEngineBalance(session);

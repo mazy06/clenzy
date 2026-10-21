@@ -98,6 +98,16 @@ export interface UpsellOrder {
   guestEmail: string | null;
   createdAt: string;
   paidAt: string | null;
+  fulfillmentServiceCode?: string | null;
+  serviceRequestId?: number | null;
+}
+
+export interface PaidServiceExecution {
+  orderId: number; title: string; paymentStatus: string; state: string;
+  serviceRequestId: number | null; interventionId: number | null;
+  start: string | null; durationHours: number | null; timezone: string;
+  stayStart: string | null; stayEnd: string | null; canSchedule: boolean;
+  scheduleStart?: string | null; scheduleEnd?: string | null;
 }
 
 /** Offre d'upsell exposée au guest sur le livret (page publique). */
@@ -120,6 +130,9 @@ export const upsellApi = {
     apiClient.put<UpsellOffer>(`/upsells/offers/${id}`, data),
   removeOffer: (id: number) => apiClient.delete(`/upsells/offers/${id}`),
   listOrders: () => apiClient.get<UpsellOrder[]>('/upsells/orders'),
+  execution: (id: number) => apiClient.get<PaidServiceExecution>(`/upsells/orders/${id}/execution`),
+  schedule: (id: number, plan: { start: string; durationHours: number; instructions: string }) =>
+    apiClient.post<PaidServiceExecution>(`/upsells/orders/${id}/execution`, plan),
 
   /** Référentiel des types : ceux de la plateforme et ceux de l'organisation. */
   listTypes: () => apiClient.get<UpsellTypeDto[]>('/upsells/types'),

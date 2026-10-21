@@ -1,5 +1,6 @@
 import * as React from 'react';
 import { Drawer as Vaul } from 'vaul';
+import * as Dialog from '@radix-ui/react-dialog';
 import { useIsMobile } from '../../hooks/use-mobile';
 import { useMediaQuery } from '../../hooks/use-media-query';
 import { cn } from '../../utils/cn';
@@ -8,8 +9,8 @@ import { useTranslation } from '../../hooks/useTranslation';
 import { MapSheetProvider } from '../map/MapSheetContext';
 
 /**
- * Vue « carte + liste » — surface UNIQUE des trois écrans qui l'utilisent
- * (demandes de service, interventions, logements).
+ * Vue « carte + liste » partagée par les écrans du PMS Baitly
+ * (demandes de service, interventions, logements, prospection).
  *
  * <h2>Pourquoi cette primitive existe</h2>
  * <p>Les trois écrans empilaient verticalement une carte à hauteur fixe et une
@@ -24,8 +25,9 @@ import { MapSheetProvider } from '../map/MapSheetContext';
  *   <li><b>Sous 640 px</b> : la carte occupe toute la zone, la liste devient une
  *       feuille que l'on tire depuis le bas, à trois crans — aperçu, moitié,
  *       plein. La carte reste manipulable à tout moment.</li>
- *   <li><b>À partir de 640 px</b> : le mode split s'adapte à la largeur du
- *       conteneur, côte à côte à partir de 800 px, empilé en dessous.</li>
+ *   <li><b>En bureau ou paysage</b> : le mode split remplit la surface avec la
+ *       carte et superpose ses panneaux. Sur tablette en portrait, la grille
+ *       s'adapte à la largeur du conteneur.</li>
  * </ul>
  *
  * <h2>Deux choix d'implémentation à connaître</h2>
@@ -62,6 +64,12 @@ export interface MapWithSheetProps {
   desktopMapHeight?: number;
   desktopLayout?: 'stack' | 'split';
   className?: string;
+  /** Habillage métier de la feuille portée par portail (variables de thème comprises). */
+  sheetClassName?: string;
+  /** Largeur des panneaux superposés, avec les mêmes contraintes responsives. */
+  listWidth?: string;
+  /** Un formulaire dans la feuille s'ouvre au cran médian pour rendre ses champs accessibles. */
+  listInteraction?: 'browse' | 'form';
 }
 
 export default function MapWithSheet({
@@ -75,11 +83,15 @@ export default function MapWithSheet({
   desktopMapHeight = 400,
   desktopLayout = 'stack',
   className,
+  sheetClassName,
+  listWidth,
+  listInteraction='browse',
 }: MapWithSheetProps) {
   const { t } = useTranslation();
   const isNarrow = useIsMobile(640);
   const isCompactLandscape = useMediaQuery('(max-width: 1279px) and (orientation: landscape)');
   const [snap, setSnap] = React.useState<number | string | null>(SNAP_POINTS[0]);
+  React.useEffect(()=>{setSnap(listInteraction==='form'?SNAP_POINTS[1]:SNAP_POINTS[0]);},[listInteraction]);
   const [detailHost, setDetailHost] = React.useState<HTMLDivElement | null>(null);
   const [detailOpen, setDetailOpen] = React.useState(false);
   const openDetail = React.useCallback(() => { setDetailOpen(true); setSnap(SNAP_POINTS[1]); }, []);
@@ -93,7 +105,7 @@ export default function MapWithSheet({
   // ── Desktop : mise en page d'origine, carte puis liste ─────────────────────
   if (!isNarrow || (desktopLayout === 'split' && isCompactLandscape)) {
     if (desktopLayout === 'split') {
-      return <MissionMapSplitView map={map} aside={aside} listTitle={listTitle} listIndicators={listIndicators} listResetKey={listResetKey} className={className}>{list}</MissionMapSplitView>;
+      return <MissionMapSplitView map={map} aside={aside} listTitle={listTitle} listIndicators={listIndicators} listResetKey={listResetKey} className={className} listWidth={listWidth}>{list}</MissionMapSplitView>;
     }
     return (
       <div className={cn('flex min-h-0 flex-1 flex-col overflow-y-auto', className)}>
@@ -134,6 +146,10 @@ export default function MapWithSheet({
         activeSnapPoint={snap}
         setActiveSnapPoint={setSnap}
       >
+        {/* Vaul ne transmet pas modal=false à son Dialog.Root dans la version installée.
+            Le contexte Radix explicite évite de masquer la carte aux technologies d'assistance,
+            tout en conservant le contexte Vaul pour les gestes et les crans de la feuille. */}
+        <Dialog.Root open modal={false}>
         <Vaul.Portal>
           <Vaul.Content
             data-slot="map-sheet"
@@ -149,7 +165,7 @@ export default function MapWithSheet({
             // hauteur disponible, sans gonfler la hauteur de defilement — sinon
             // on aurait pu faire defiler dans le vide au cran d'apercu.
             style={{ paddingBottom: 'var(--snap-point-height, 0px)' }}
-            className="fixed inset-x-0 bottom-0 z-40 flex h-full max-h-[92dvh] flex-col rounded-t-2xl border-t border-border bg-card shadow-[0_-8px_24px_-12px_rgba(27,42,53,.25)] outline-none"
+            className={cn("fixed inset-x-0 bottom-0 z-40 flex h-full max-h-[92dvh] flex-col rounded-t-2xl border-t border-border bg-card shadow-[0_-8px_24px_-12px_rgba(27,42,53,.25)] outline-none", sheetClassName)}
           >
             <div className="flex shrink-0 items-center gap-3 px-3">
             {/* Le bouton de dépliage reste distinct des infobulles. */}
@@ -180,6 +196,7 @@ export default function MapWithSheet({
             </div>
           </Vaul.Content>
         </Vaul.Portal>
+        </Dialog.Root>
       </Vaul.Root>
     </div>
     </MapSheetProvider>

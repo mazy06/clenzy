@@ -79,6 +79,11 @@ public class PermissionInitializer {
         // ====================================================================
         boolean anyCreated = false;
 
+        for (String action : List.of("view", "manage", "authorize")) {
+            anyCreated |= ensurePermission("baitly-crm:" + action, "CRM Baitly : " + action, "baitly-crm",
+                    List.of("SUPER_ADMIN", "SUPER_MANAGER", "HOST"));
+        }
+
         // --- Dashboard ---
         anyCreated |= ensurePermission("dashboard:view", "Voir le tableau de bord", "dashboard",
                 List.of("SUPER_ADMIN", "SUPER_MANAGER", "HOST", "TECHNICIAN", "HOUSEKEEPER", "SUPERVISOR", "LAUNDRY", "EXTERIOR_TECH"));

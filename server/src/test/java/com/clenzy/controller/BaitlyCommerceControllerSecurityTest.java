@@ -22,6 +22,8 @@ class BaitlyCommerceControllerSecurityTest {
         @Bean BaitlyAffiliateAdjustments adjustments(){return mock(BaitlyAffiliateAdjustments.class);}
         @Bean BaitlyCommerceOperations operations(){return mock(BaitlyCommerceOperations.class);}
         @Bean BaitlyHardwareInventory inventory(){return mock(BaitlyHardwareInventory.class);}
+        @Bean BaitlyPaidServiceExecution execution(){return mock(BaitlyPaidServiceExecution.class);}
+        @Bean BaitlyPaidServiceExecutionController executionController(TenantContext tenant,BaitlyPaidServiceExecution execution){return new BaitlyPaidServiceExecutionController(execution,tenant);}
         @Bean BaitlyCommerceRefundController refundsController(TenantContext tenant,BaitlyCommerceRefunds refunds){return new BaitlyCommerceRefundController(tenant,refunds,mock(ManagedRefundReconciliation.class));}
         @Bean BaitlyAffiliateAdjustmentController affiliateController(TenantContext tenant,BaitlyAffiliateAdjustments adjustments){return new BaitlyAffiliateAdjustmentController(adjustments,tenant);}
         @Bean BaitlyCommerceOperationController operationsController(TenantContext tenant,BaitlyCommerceOperations operations){return new BaitlyCommerceOperationController(operations,tenant);}
@@ -31,7 +33,19 @@ class BaitlyCommerceControllerSecurityTest {
     @Autowired BaitlyCommerceOperations operations;@Autowired BaitlyHardwareInventory inventory;
     @Autowired BaitlyCommerceRefundController refundController;@Autowired BaitlyAffiliateAdjustmentController affiliate;
     @Autowired BaitlyCommerceOperationController fulfilment;@Autowired BaitlyHardwareInventoryController stock;
-    @BeforeEach void setup(){reset(tenant,refunds,adjustments,operations,inventory);when(tenant.getRequiredOrganizationId()).thenReturn(7L);}
+    @Autowired BaitlyPaidServiceExecution execution;@Autowired BaitlyPaidServiceExecutionController executionController;
+    @BeforeEach void setup(){reset(tenant,refunds,adjustments,operations,inventory,execution);when(tenant.getRequiredOrganizationId()).thenReturn(7L);}
+    @Test @WithMockUser(roles="HOUSEKEEPER") void providerCannotPlanPaidGuestServices() {
+        assertThatThrownBy(()->executionController.inspect(8L,null)).isInstanceOf(AccessDeniedException.class);
+        assertThatThrownBy(()->executionController.schedule(8L,null,null)).isInstanceOf(AccessDeniedException.class);
+        verifyNoInteractions(execution);
+    }
+    @Test @WithMockUser(roles="HOST") void hostPlansUsingTheAuthenticatedTenantAndSubject() {
+        var jwt=Jwt.withTokenValue("test").header("alg","none").subject("host-7").build();
+        var plan=new BaitlyPaidServiceExecution.Schedule(java.time.LocalDateTime.of(2026,11,1,10,0),2,"");
+        executionController.schedule(8L,jwt,plan);
+        verify(execution).schedule(8L,7L,jwt,plan);
+    }
     @Test @WithMockUser(roles="HOST") void hostCannotRefundOrCorrectOrChangePlatformStock() {
         assertThatThrownBy(()->refundController.create(null,null)).isInstanceOf(AccessDeniedException.class);
         assertThatThrownBy(()->affiliate.correct(1L,null,null)).isInstanceOf(AccessDeniedException.class);

@@ -29,6 +29,23 @@ const robots = readFileSync('site/public/robots.txt', 'utf8');
 const catalog = readFileSync('site/data/catalog.tsx', 'utf8');
 
 describe('Baitly public discovery build', () => {
+  it('serves live concierge profiles without enumerating them in the static sitemap', () => {
+    const { assets,configs,paths }=discoveryArtifacts(routes,robots,catalog);
+    expect(paths).toContain('/conciergeries');
+    expect(paths).not.toContain('/conciergeries/:id');
+    expect(paths).not.toContain('/recrutement/:id');
+    expect(paths).not.toContain('/campagnes/reponse');
+    expect(assets.get('sitemap.xml')).not.toContain(':id');
+    expect(configs.get('discovery-server.conf')).toContain('/conciergeries/_profile.html');
+    expect(configs.get('discovery-server.conf')).toContain('/recrutement/_page.html');
+    expect(configs.get('discovery-server.conf')).toContain('/campagnes/reponse.html');
+    expect(configs.get('discovery-server.conf')).toContain('[0-9a-fA-F]{12}');
+    for (const language of ['fr', 'en', 'ar']) {
+      const markdown = assets.get(`_baitly-markdown/${language}/conciergeries.md`)!;
+      expect(markdown.startsWith('# ')).toBe(true);
+      expect(markdown.length).toBeGreaterThan(100);
+    }
+  });
   it('describes the published recordings with consistent watch, thumbnail and media URLs', () => {
     const { assets } = discoveryArtifacts(routes, robots, catalog);
     const doc = new DOMParser().parseFromString(

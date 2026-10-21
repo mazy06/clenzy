@@ -1,12 +1,13 @@
 import type { StateManager } from '../state';
 import type { WidgetState, GuestFormData } from '../types';
 import { arrowLeft } from './icons';
+import { renderDepositNotice } from './DepositNotice';
 
 interface I18n {
   t: (key: string) => string;
 }
 
-export function createGuestForm(state: StateManager, i18n: I18n, onSubmit: () => void): HTMLElement {
+export function createGuestForm(state: StateManager, i18n: I18n, onSubmit: () => void, options: { submitLabel?: string; requireQuote?: boolean } = {}): HTMLElement {
   const container = document.createElement('div');
   container.className = 'cb-page';
 
@@ -35,7 +36,8 @@ export function createGuestForm(state: StateManager, i18n: I18n, onSubmit: () =>
   form.setAttribute('novalidate', '');
   form.addEventListener('submit', (e) => {
     e.preventDefault();
-    if (state.get().loading || !validateForm(state, i18n)) return;
+    const s = state.get();
+    if (s.loading || options.requireQuote && !s.cart.length && (!s.pricing || s.pricingLoading || !s.selectedPropertyId || !s.checkIn || !s.checkOut || s.checkOut <= s.checkIn) || !validateForm(state, i18n)) return;
     state.set({ error: null });
     onSubmit();
   });
@@ -102,10 +104,14 @@ export function createGuestForm(state: StateManager, i18n: I18n, onSubmit: () =>
   form.appendChild(checkoutError);
 
   // Submit button
+  const depositNotice = document.createElement('div');
+  depositNotice.className = 'cb-deposit-notice';
+  depositNotice.setAttribute('aria-live', 'polite');
+  form.appendChild(depositNotice);
   const submitBtn = document.createElement('button');
   submitBtn.className = 'cb-cta';
   submitBtn.setAttribute('type', 'submit');
-  submitBtn.textContent = i18n.t('common.continueToPayment');
+  submitBtn.textContent = options.submitLabel ?? i18n.t('common.continueToPayment');
   form.appendChild(submitBtn);
 
   container.appendChild(form);
@@ -113,19 +119,22 @@ export function createGuestForm(state: StateManager, i18n: I18n, onSubmit: () =>
   // Le même état pilote les erreurs et empêche une seconde soumission en cours.
   let previousError: string | null = null;
   const syncForm = (s: WidgetState) => {
+    renderDepositNotice(depositNotice, s, i18n);
     firstName.setError(s.guestFormErrors.firstName);
     lastName.setError(s.guestFormErrors.lastName);
     email.setError(s.guestFormErrors.email);
     phone.setError(s.guestFormErrors.phone);
     const newError = s.error !== previousError;
     previousError = s.error;
-    checkoutError.textContent = /^API error 5\d\d:/.test(s.error || '')
-      ? i18n.t('common.checkoutUnavailable') : s.error || '';
+    checkoutError.textContent = /^API error 429:/.test(s.error || '')
+      ? i18n.t('common.checkoutRateLimited')
+      : /^API error 5\d\d:/.test(s.error || '')
+        ? i18n.t('common.checkoutUnavailable') : s.error || '';
     checkoutError.hidden = !s.error;
-    submitBtn.disabled = s.loading;
+    submitBtn.disabled = s.loading || Boolean(options.requireQuote && !s.cart.length && (!s.pricing || s.pricingLoading || !s.selectedPropertyId || !s.checkIn || !s.checkOut || s.checkOut <= s.checkIn));
     back.disabled = s.loading;
     form.setAttribute('aria-busy', String(s.loading));
-    submitBtn.textContent = i18n.t(s.loading ? 'common.processing' : 'common.continueToPayment');
+    submitBtn.textContent = s.loading ? i18n.t('common.processing') : options.submitLabel ?? i18n.t('common.continueToPayment');
     if (s.error && newError && s.page === 'form') checkoutError.focus();
   };
   state.on('*', syncForm);
@@ -159,6 +168,7 @@ function createInputGroup(
   input.id = `cb-${field}`;
   input.type = type;
   input.placeholder = placeholder;
+  input.value = state.get().guestForm[field];
   input.autocomplete = field === 'firstName' ? 'given-name'
     : field === 'lastName' ? 'family-name'
     : field === 'email' ? 'email'
@@ -174,6 +184,8 @@ function createInputGroup(
 
   const errorEl = document.createElement('span');
   errorEl.className = 'cb-input-error';
+  errorEl.id = `cb-${field}-error`;
+  input.setAttribute('aria-describedby', errorEl.id);
   errorEl.hidden = true;
 
   group.appendChild(labelEl);
@@ -186,6 +198,7 @@ function createInputGroup(
       errorEl.textContent = msg || '';
       errorEl.hidden = !msg;
       input.classList.toggle('cb-error', !!msg);
+      input.setAttribute('aria-invalid', String(!!msg));
     },
   };
 }
@@ -208,6 +221,7 @@ function createTextareaGroup(
   textarea.className = 'cb-input cb-textarea';
   textarea.id = `cb-${field}`;
   textarea.placeholder = placeholder;
+  textarea.value = state.get().guestForm[field];
 
   textarea.addEventListener('input', () => {
     const formData = { ...state.get().guestForm, [field]: textarea.value };

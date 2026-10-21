@@ -53,6 +53,7 @@ export const HUB_ICON: Record<string, React.ReactNode> = {
 
 /** Icône par écran (onglet de hub ou écran autonome), clé = route canonique. */
 export const SCREEN_ICON: Record<string, React.ReactNode> = {
+  '/prospection': <TrendingUp />,
   '/dynamic-pricing': <TrendingUp />,
   '/connected-objects': <Plug />,
   '/consumables': <Inventory2 />,

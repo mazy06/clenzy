@@ -297,6 +297,8 @@ export function createPriceFilter(state: StateManager, i18n: I18n): HTMLElement 
   const patch = (p: Partial<SearchFilters>) => state.set({ filters: { ...state.get().filters, ...p } }, 'stateChange');
   const min = document.createElement('input'); min.type = 'number'; min.className = 'cb-input'; min.min = '0';
   const max = document.createElement('input'); max.type = 'number'; max.className = 'cb-input'; max.min = '0';
+  min.setAttribute('aria-label', `${i18n.t('filters.price')} · ${i18n.t('filters.priceMin')}`);
+  max.setAttribute('aria-label', `${i18n.t('filters.price')} · ${i18n.t('filters.priceMax')}`);
   min.addEventListener('input', () => patch({ minPrice: parseNum(min.value) }));
   max.addEventListener('input', () => patch({ maxPrice: parseNum(max.value) }));
   row.append(min, max);
@@ -314,6 +316,7 @@ export function createPriceFilter(state: StateManager, i18n: I18n): HTMLElement 
 /** Critère « minimum » autonome (chambres / SDB / capacité) : dropdown CUSTOM stylisé Tous · 1+ · 2+ … */
 export function createMinFilter(state: StateManager, i18n: I18n, field: MinField, maxOf: (f: FilterFacets) => number): HTMLElement {
   return createSingleSelect(state, {
+    label: i18n.t(field === 'minGuests' ? 'filters.guests' : field === 'minBedrooms' ? 'filters.bedrooms' : 'filters.bathrooms'),
     getOptions: (s) => {
       const max = Math.min(Math.max(maxOf(facetsFrom(s)), 1), 6);
       const opts = [{ value: '', label: i18n.t('filters.any') }];
@@ -333,7 +336,7 @@ export function createMinFilter(state: StateManager, i18n: I18n, field: MinField
  */
 export function createSingleSelect(
   state: StateManager,
-  cfg: { getOptions: (s: WidgetState) => Array<{ value: string; label: string }>; getValue: () => string; setValue: (v: string) => void },
+  cfg: { label?: string; getOptions: (s: WidgetState) => Array<{ value: string; label: string }>; getValue: () => string; setValue: (v: string) => void },
 ): HTMLElement {
   const id = `ms-${++MS_SEQ}`;
   const wrap = document.createElement('div');
@@ -348,7 +351,26 @@ export function createSingleSelect(
   chev.appendChild(chevronDown());
   const pop = document.createElement('div');
   pop.className = 'cb-multiselect__panel cb-singleselect__panel';
+  pop.id = id;
+  pop.setAttribute('role', 'listbox');
+  if (cfg.label) pop.setAttribute('aria-label', cfg.label);
+  trigger.setAttribute('aria-haspopup', 'listbox');
+  trigger.setAttribute('aria-controls', id);
   wrap.append(trigger, chev, pop);
+  wrap.addEventListener('keydown', (event) => {
+    const options = Array.from(pop.querySelectorAll<HTMLButtonElement>('[role="option"]'));
+    if (event.key === 'Escape') {
+      state.set({ multiselectOpen: null }, 'msToggle');
+      trigger.focus();
+      event.preventDefault();
+    } else if (['ArrowDown', 'ArrowUp', 'Home', 'End'].includes(event.key)) {
+      event.preventDefault();
+      if (state.get().multiselectOpen !== id) state.set({ multiselectOpen: id, calendarOpen: false, guestsOpen: false }, 'msToggle');
+      const current = options.indexOf(wrap.ownerDocument.activeElement as HTMLButtonElement);
+      const index = event.key === 'Home' ? 0 : event.key === 'End' ? options.length - 1 : current < 0 ? (event.key === 'ArrowUp' ? options.length - 1 : 0) : (current + (event.key === 'ArrowUp' ? -1 : 1) + options.length) % options.length;
+      options[index]?.focus();
+    }
+  });
 
   trigger.addEventListener('click', () => {
     const cur = state.get().multiselectOpen;
@@ -385,19 +407,24 @@ export function createSingleSelect(
         optEl.type = 'button';
         optEl.className = 'cb-multiselect__option cb-singleselect__option';
         optEl.dataset.value = o.value;
+        optEl.setAttribute('role', 'option');
         optEl.textContent = o.label;
-        optEl.addEventListener('click', () => { cfg.setValue(o.value); state.set({ multiselectOpen: null }, 'msToggle'); });
+        optEl.addEventListener('click', () => { cfg.setValue(o.value); state.set({ multiselectOpen: null }, 'msToggle'); trigger.focus(); });
         pop.appendChild(optEl);
       }
     }
     const cur = cfg.getValue();
     const selected = options.find((o) => o.value === cur);
     labelSpan.textContent = selected ? selected.label : (options[0]?.label ?? '');
+    if (cfg.label) trigger.setAttribute('aria-label', `${cfg.label}: ${labelSpan.textContent}`);
     for (const c of Array.from(pop.children)) {
       (c as HTMLElement).classList.toggle('cb-selected', (c as HTMLElement).dataset.value === cur);
+      c.setAttribute('aria-selected', String((c as HTMLElement).dataset.value === cur));
     }
     const isOpen = s.multiselectOpen === id;
     pop.classList.toggle('cb-open', isOpen);
+    pop.hidden = !isOpen;
+    trigger.setAttribute('aria-expanded', String(isOpen));
     trigger.classList.toggle('cb-open', isOpen);
     if (isOpen) ensureOutside(); else removeOutside();
   };

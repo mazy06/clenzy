@@ -56,8 +56,8 @@ export const StatsBandShell: React.FC<{
  * mais pas à une tuile du tableau de bord : la tuile est déjà une carte, et
  * une carte dans une carte double les bordures pour rien.</p>
  */
-export const FiguresRow: React.FC<{ figures: StatFigure[] }> = ({ figures }) => (
-  <div className={FIGURES_ROW_CLASS}>
+export const FiguresRow: React.FC<{ figures: StatFigure[]; className?: string }> = ({ figures, className }) => (
+  <div className={cn(FIGURES_ROW_CLASS, className)}>
     {figures.map(({ key, ...figure }) => (
       <Figure key={key} {...figure} />
     ))}
@@ -152,7 +152,7 @@ export const Delta: React.FC<{
         ? 'absolute start-0 top-full -mt-0.5 whitespace-nowrap leading-none'
         : 'absolute start-0 bottom-full -mb-0.5 whitespace-nowrap leading-none';
   return (
-    <span className={cn('text-2xs font-semibold tabular-nums', tone, placement)}>
+    <span data-stat-delta className={cn('text-2xs font-semibold tabular-nums', tone, placement)}>
       {value > 0 ? '+' : ''}
       {/* `{886.7}` rend « 886.7 » : le point decimal anglais. */}
       {value.toLocaleString(undefined, { maximumFractionDigits: 1 })} {unit}

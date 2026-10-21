@@ -7,6 +7,7 @@ import { loadStripe } from '@stripe/stripe-js';
 import { EmbeddedCheckoutProvider, EmbeddedCheckout } from '@stripe/react-stripe-js';
 import { Send, X, Star, Sparkles, ArrowUp, Info, Heart } from '../../icons/glyphs';
 import { type PublicUpsell } from '../../services/api/upsellApi';
+import BaitlyGuestServiceTracking from './BaitlyGuestServiceTracking';
 import {
   parseSections,
   parsePois,
@@ -527,6 +528,7 @@ const PublicGuide: React.FC = () => {
   }
 
   const model: WelcomeBookModel = {
+    structure: guide.structure,
     title: guide.title,
     welcomeMessage: guide.welcomeMessage,
     hostNames: guide.hostNames,
@@ -639,6 +641,7 @@ const PublicGuide: React.FC = () => {
             onUnlock={token ? () => postUnlock(token) : undefined}
             accessPhotoUrl={(key) => `${API_BASE}/api/public/guide/${token}/access-photos?key=${encodeURIComponent(key)}`}
             guestbookSlot={guestbookSlot}
+            serviceTrackingSlot={token ? <BaitlyGuestServiceTracking key={token} token={token} apiBase={API_BASE} lang={lang} refreshKey={paySuccess} /> : undefined}
           >
             {/* ── Concierge IA (bouton flottant + bottom-sheet) ── */}
             {guide.chatbotEnabled ? (

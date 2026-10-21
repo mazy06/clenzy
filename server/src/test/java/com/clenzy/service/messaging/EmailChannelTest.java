@@ -33,6 +33,23 @@ class EmailChannelTest {
     }
 
     @Test
+    void invalidRecipientIsRejectedWithoutSmtpOrLeakingValue() {
+        var converter = new com.clenzy.config.EncryptedFieldConverter();
+        converter.setEncryptorPassword("baitly-email-test-key");
+        String ciphertext = converter.convertToDatabaseColumn("guest@example.test");
+        for (String invalid : new String[] {ciphertext, "guest", "a@example.test,b@example.test", "guest\r\nBcc: other@example.test"}) {
+            var request = new MessageDeliveryRequest(invalid, null, "Test", "Sujet", "Bonjour", "Bonjour", "fr");
+
+            var result = emailChannel.send(request);
+
+            assertFalse(result.success());
+            assertTrue(result.errorMessage().contains("invalide"));
+            assertFalse(result.errorMessage().contains(invalid));
+        }
+        verifyNoInteractions(mailSender);
+    }
+
+    @Test
     void getChannelType_returnsEmail() {
         assertEquals(MessageChannelType.EMAIL, emailChannel.getChannelType());
     }

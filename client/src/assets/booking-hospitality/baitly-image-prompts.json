@@ -1,0 +1,12 @@
+{
+  "generator": "Built-in ImageGen",
+  "date": "2026-10-17",
+  "purpose": "Original hospitality template photography, inspired by Mediterranean boutique hotels. No third-party template assets copied.",
+  "shared": "Photorealistic architectural travel photography, wide 2048x1152 composition, realistic tactile materials, warm restrained color grading, no people, no text, logos, watermarks, collage or interface.",
+  "assets": [
+    { "file": "baitly-coast.jpg", "prompt": "Small sophisticated Greek island coastal retreat. Pale limestone cubic architecture, warm limewash, deep olive shutters, terraces above a turquoise sea, secluded pool, woven loungers, linen parasols, olive trees. Late afternoon light, low viewpoint across pool toward architecture and sea." },
+    { "file": "baitly-suite.jpg", "prompt": "Spacious Mediterranean suite, cream plaster and curved doorway, king bed in ivory linen, walnut furniture, travertine floor, sculptural ceramic lamp, open window and sheer linen curtain framing sea and olive trees. Natural morning light, accurate verticals." },
+    { "file": "baitly-dining.jpg", "prompt": "Intimate Mediterranean restaurant terrace overlooking a calm coast. Wood tables, understated ceramics, linen, warm plaster arches, mature olive trees, natural wicker chairs. Golden evening light and tasteful pendant lamps." },
+    { "file": "baitly-heritage.jpg", "prompt": "Small historic grand hotel in Provence, honey limestone facade, tall arched windows with weathered sage shutters, antique timber entrance, carved stone cornice, climbing bougainvillea, terracotta planters, quiet pale-stone courtyard. Warm afternoon light, detailed stonework, professional wide composition." }
+  ]
+}

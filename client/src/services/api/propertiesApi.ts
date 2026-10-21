@@ -72,6 +72,8 @@ export interface Property {
   cleaningNotes?: string;
   // Booking Engine
   bookingEngineVisible?: boolean;
+  securityDepositAmount?: number;
+  defaultCurrency?: string;
   /** Consentement host pour que l'org gestionnaire cree des vouchers sur ce logement. */
   orgCanCreateVouchers?: boolean;
   // Geolocalisation
@@ -137,6 +139,7 @@ export interface PropertyFormData {
   cleaningNotes?: string;
   // Booking Engine
   bookingEngineVisible?: boolean;
+  securityDepositAmount?: number;
   /** Consentement host pour que l'org gestionnaire cree des vouchers sur ce logement. */
   orgCanCreateVouchers?: boolean;
   // Geolocalisation

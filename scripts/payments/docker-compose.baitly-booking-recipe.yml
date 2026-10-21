@@ -1,0 +1,17 @@
+# Recette locale Baitly : artefact testé figé et configuration Stripe sandbox.
+# Utiliser uniquement via baitly_booking_recipe_local.py depuis le dépôt Baitly.
+services:
+  pms-server:
+    volumes:
+      - type: bind
+        source: ${BAITLY_BOOKING_RECIPE_JAR:?Artefact de recette requis}
+        target: /app/app.jar
+        read_only: true
+    environment:
+      STRIPE_SECRET_KEY: ${STRIPE_SECRET_KEY:?Clé Stripe de test requise}
+      STRIPE_PUBLISHABLE_KEY: ${STRIPE_PUBLISHABLE_KEY:?Clé publique de test requise}
+      STRIPE_WEBHOOK_SECRET: ${STRIPE_WEBHOOK_SECRET:?Signature du relais local requise}
+      STRIPE_CONNECT_CLIENT_ID: ${STRIPE_CONNECT_CLIENT_ID:?Client OAuth test requis}
+      CLENZY_BASE_URL: http://localhost:3000
+      # Exception limitée à cette origine locale, jamais activée dans le Compose de production.
+      CLENZY_BOOKING_ALLOW_LOCAL_RETURN: "true"

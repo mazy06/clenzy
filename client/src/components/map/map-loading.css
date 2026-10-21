@@ -1,0 +1,13 @@
+.baitly-map-loading{display:flex;justify-content:center;padding:14px 12px;color:var(--bui-muted-foreground);font-size:12px;line-height:1.5}
+.baitly-map-loading__indicator{display:flex;align-items:center;gap:10px;min-inline-size:0}
+.baitly-map-loading__indicator>[data-slot=spinner]{inline-size:20px;block-size:20px;flex:0 0 auto;color:var(--bui-info)}
+.baitly-map-loading[data-overlay=true]{position:absolute;inset-block-start:72px;inset-inline-start:var(--map-visible-start,0px);inset-inline-end:var(--map-visible-end,0px);z-index:3;padding:0 12px;pointer-events:none}
+.baitly-map-loading[data-overlay=true]>.baitly-map-loading__indicator{padding:9px 13px;max-inline-size:100%;border:1px solid var(--bui-border);border-radius:8px;background:var(--bui-card);color:var(--bui-foreground);box-shadow:0 3px 12px color-mix(in srgb,var(--bui-info) 12%,transparent)}
+.baitly-map-list-skeleton__row{display:flex;align-items:flex-start;gap:10px;padding:16px 14px;border-block-end:1px solid var(--bui-border)}
+.baitly-map-list-skeleton__row>div:last-child{min-inline-size:0;flex:1}
+.baitly-map-list-skeleton [data-slot=skeleton]{border-radius:4px}
+.baitly-map-list-skeleton .baitly-map-list-skeleton__icon{inline-size:26px;block-size:26px;flex:0 0 auto;border-radius:50%}
+.baitly-map-list-skeleton__name{inline-size:72%;block-size:12px;margin-block:3px 12px}
+.baitly-map-list-skeleton__service{inline-size:45%;block-size:10px;margin-block-end:9px}
+.baitly-map-list-skeleton__address{inline-size:90%;block-size:10px}
+@media(prefers-reduced-motion:reduce){.baitly-map-loading [data-slot=spinner],.baitly-map-list-skeleton [data-slot=skeleton]{animation:none}}

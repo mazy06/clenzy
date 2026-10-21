@@ -21,7 +21,8 @@ import { useMonthlyVatSummary, useQuarterlyVatSummary, useAnnualVatSummary } fro
 import { formatTaxRate } from '../../utils/currencyUtils';
 import type { VatSummary } from '../../services/api/fiscalReportingApi';
 import type { DashboardPeriod } from '../dashboard/DashboardDateFilter';
-import { tiles, type TileOrNothing } from '../../components/stats';
+import { tiles, FiguresRow, type TileOrNothing } from '../../components/stats';
+import { useWidgetPresentation } from '../../components/stats/widgetPresentation';
 import type { ReportContent } from './reportShell';
 import FinanceKpis from '../billing/components/FinanceKpis';
 import FinanceWorkspace from '../billing/components/FinanceWorkspace';
@@ -55,10 +56,19 @@ export const VatSummaryCards: React.FC<{ summary: VatSummary; className?: string
   className,
 }) => {
   const { t } = useTranslation();
+  const widget = useWidgetPresentation();
   if (summary.issuers?.length) return <div className="space-y-4">{summary.issuers.map(issuer => <section key={issuer.issuerKey}>
     <h3 className="mb-2 text-sm font-medium">{issuer.sellerName || t('documentVerification.unknownIssuer')} · {issuer.summary.countryCode} · {issuer.summary.currency}</h3>
     <VatSummaryCards summary={issuer.summary} className={className} />
   </section>)}</div>;
+
+  if (widget) return <FiguresRow className="db-imported-figures" figures={[
+    { key: 'period', label: t('reports.fiscal.cards.period', 'Période'), value: summary.period },
+    { key: 'invoices', label: t('reports.fiscal.cards.invoices', 'Factures'), value: summary.invoiceCount.toLocaleString(activeIntlLocaleGregorian()) },
+    { key: 'ht', label: t('reports.fiscal.cards.totalHt', 'Total HT'), value: fiscalMoney(summary.totalHt, summary.currency) },
+    { key: 'tax', label: t('reports.fiscal.cards.totalTax', 'Total TVA'), value: fiscalMoney(summary.totalTax, summary.currency) },
+    { key: 'ttc', label: t('reports.fiscal.cards.totalTtc', 'Total TTC'), value: fiscalMoney(summary.totalTtc, summary.currency) },
+  ]} />;
 
   return (
   <div className={cn('flex gap-3 flex-wrap', className)}>
@@ -93,13 +103,14 @@ export const VatSummaryCards: React.FC<{ summary: VatSummary; className?: string
 /** Ventilation de la TVA par categorie et par taux. */
 export const VatBreakdownTable: React.FC<{ summary: VatSummary }> = ({ summary }) => {
   const { t } = useTranslation();
+  const widget = useWidgetPresentation();
   if (summary.issuers?.length) return <div className="space-y-4">{summary.issuers.map(issuer => <section key={issuer.issuerKey}>
     <h3 className="mb-2 text-sm font-medium">{issuer.sellerName || t('documentVerification.unknownIssuer')} · {issuer.summary.currency}</h3>
     <VatBreakdownTable summary={issuer.summary} />
   </section>)}</div>;
 
   return (
-  <div className="overflow-x-auto rounded-lg border border-solid border-border bg-card">
+  <div className={widget ? 'db-data-table' : 'overflow-x-auto rounded-lg border border-solid border-border bg-card'}>
     <Table>
       <TableHeader>
         <TableRow>

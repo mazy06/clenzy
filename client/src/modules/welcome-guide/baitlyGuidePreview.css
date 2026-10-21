@@ -1,0 +1,8 @@
+/* Matches the reference phone in the welcome-guide editor. */
+.baitly-guide-editor-layout { display:grid; grid-template-columns:minmax(0,1fr); gap:18px; align-items:start; }
+.baitly-guide-preview { inline-size:100%; min-inline-size:0; justify-self:center; }
+.baitly-guide-preview__phone { box-sizing:border-box; inline-size:360px; max-inline-size:100%; block-size:720px; margin-inline:auto; border:10px solid var(--chrome-1); border-radius:34px; overflow:hidden; background:var(--chrome-2); box-shadow:0 28px 70px -28px rgba(21,36,45,.55); }
+@media(min-width:1200px) {
+  .baitly-guide-editor-layout { grid-template-columns:minmax(0,1fr) 392px; }
+  .baitly-guide-preview { position:sticky; inset-block-start:12px; justify-self:start; }
+}

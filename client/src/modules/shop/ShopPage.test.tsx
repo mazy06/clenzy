@@ -10,7 +10,7 @@ vi.mock('../../hooks/useUserPreference', async () => {
   return { useUserPreference: (_key: string, initial: unknown) => useState(initial) };
 });
 vi.mock('../../components/ScreenChrome', () => ({ useScreenSearch: (_value: string, onChange: (value: string) => void) => { search.change = onChange; } }));
-vi.mock('../../components/PageHeader', () => ({ default: ({ actions }: { actions: ReactNode }) => <header>{actions}</header> }));
+vi.mock('../../components/PageHeader', () => ({ default: ({ actions,filters }: { actions: ReactNode;filters:ReactNode }) => <header>{actions}{filters}</header> }));
 vi.mock('../../hooks/useNotification', () => ({ useNotification: () => ({ notify: { success: vi.fn() } }) }));
 vi.mock('../../components/Money', () => ({ Money: ({ value }: { value: number }) => <span>{value} €</span> }));
 vi.mock('./CartDrawer', () => ({ default: () => null }));

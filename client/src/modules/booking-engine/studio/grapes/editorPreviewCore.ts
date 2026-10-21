@@ -48,18 +48,16 @@ const DEMO_PROPERTIES: WidgetProperty[] = [
 ];
 
 /**
- * URL photo chargeable dans un `<img>` SANS auth : l'URL admin `/api/properties/{pid}/photos/{phId}/data`
- * exige un Bearer (impossible en `<img>`) → on la réécrit vers l'endpoint PUBLIC keyless
- * `/api/public/property-photos/{pid}/{phId}` (même source que le booking engine publié). Les URLs externes
- * (OTA, déjà absolues) sont conservées telles quelles.
+ * Resolve authenticated editor images against the API. Unlike the published SDK, this host-only
+ * preview can display a property before its marketing photos have been made public.
  */
-function toPublicPhotoUrl(adminUrl: string | null | undefined): string | null {
+function toEditorPhotoUrl(adminUrl: string | null | undefined): string | null {
   if (!adminUrl) return null;
   if (/^https?:\/\//i.test(adminUrl)) return adminUrl; // déjà absolue/externe (OTA)
   // L'API est servie par le backend (API_CONFIG.BASE_URL), pas par l'origine de l'app (proxy absent en dev).
   const root = API_CONFIG.BASE_URL.replace(/\/$/, '');
   const m = adminUrl.match(/\/properties\/(\d+)\/photos\/(\d+)/);
-  return m ? `${root}/api/public/property-photos/${m[1]}/${m[2]}` : null;
+  return m ? `${root}/api/properties/${m[1]}/photos/${m[2]}/data` : null;
 }
 
 /** Mappe une propriété réelle du tenant (API admin) vers la forme widget, pour l'aperçu éditeur en mode REAL. */
@@ -77,9 +75,9 @@ function mapPropertyToWidget(p: Property, currency: string): WidgetProperty {
     cleaningFee: p.cleaningBasePrice ?? null,
     minimumNights: p.minimumNights ?? null,
     currency,
-    // Photo via l'endpoint PUBLIC keyless (chargeable en <img> sans Bearer). Pas de photo → placeholder démo.
-    mainPhotoUrl: toPublicPhotoUrl(p.coverPhotoUrl || p.photoUrls?.[0]) ?? DEMO_IMG,
-    photoUrls: (p.photoUrls ?? []).map((u) => toPublicPhotoUrl(u)).filter((u): u is string => Boolean(u)),
+    // Host-only authenticated photo URL; publication continues to use the public booking API.
+    mainPhotoUrl: toEditorPhotoUrl(p.coverPhotoUrl || p.photoUrls?.[0]) ?? DEMO_IMG,
+    photoUrls: (p.photoUrls ?? []).map((u) => toEditorPhotoUrl(u)).filter((u): u is string => Boolean(u)),
     amenities: p.amenities ?? null,
     checkInTime: p.defaultCheckInTime ?? null,
     checkOutTime: p.defaultCheckOutTime ?? null,
@@ -119,7 +117,7 @@ function buildDemoAvailability(props: WidgetProperty[]): Map<string, DayAvailabi
     const d = new Date(today);
     d.setDate(today.getDate() + i);
     const ds = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-    map.set(ds, { date: ds, available: true, minPrice, minNights: 1 });
+    map.set(ds, { date: ds, available: true, minPrice, minNights: Math.min(...props.map((p) => p.minimumNights || 1)) });
   }
   return map;
 }
@@ -132,9 +130,10 @@ function nightsBetween(checkIn: string, checkOut: string): number {
 
 /** Devis de DÉMO (prix éditeur) à partir du logement sélectionné + dates. */
 function buildDemoPricing(s: WidgetState, i18n: { t: (k: string) => string }): PriceBreakdown | null {
-  const prop = s.properties.find((p) => p.id === s.selectedPropertyId) ?? s.properties[0];
-  if (!prop || !s.checkIn || !s.checkOut) return null;
+  const prop = s.properties.find((p) => p.id === s.selectedPropertyId);
+  if (!prop || !s.checkIn || !s.checkOut || s.checkOut <= s.checkIn) return null;
   const nights = nightsBetween(s.checkIn, s.checkOut);
+  if (nights < (prop.minimumNights || 1) || prop.maxGuests != null && s.adults + s.children > prop.maxGuests) return null;
   const nightly = prop.priceFrom ?? 120;
   const subtotal = nightly * nights;
   const cleaning = prop.cleaningFee ?? 0;
@@ -144,6 +143,7 @@ function buildDemoPricing(s: WidgetState, i18n: { t: (k: string) => string }): P
 }
 
 export interface EditorPreview {
+  selectProperty: (id: number) => void;
   ctx: MountContext;
   /** Re-seede l'aperçu pour le mode courant (REAL → vraies propriétés du tenant, MOCK → démo). */
   reseed: (config: BookingEngineConfig | null) => void;
@@ -162,7 +162,9 @@ export function createEditorPreview(config: BookingEngineConfig | null): EditorP
   });
 
   let destroyed = false;
-  let lastMode: 'REAL' | 'MOCK' | null = null;
+  let requestedPropertyId: number | null = null;
+  let lastSeed = '';
+  let seedRequest = 0;
 
   // Seede la liste de logements dans le cœur partagé (+ types/dispo dérivés). start() n'est jamais appelé :
   // le seul appel réseau possible est la lecture des biens du tenant en mode REAL (cf. applyMode).
@@ -170,7 +172,7 @@ export function createEditorPreview(config: BookingEngineConfig | null): EditorP
     if (destroyed) return;
     core.state.set({
       properties: props,
-      selectedPropertyId: props[0]?.id,
+      selectedPropertyId: requestedPropertyId == null ? props[0]?.id : props.some((property) => property.id === requestedPropertyId) ? requestedPropertyId : null,
       propertyTypes: deriveDemoTypes(props),
       availability: buildDemoAvailability(props),
     }, 'stateChange');
@@ -203,43 +205,42 @@ export function createEditorPreview(config: BookingEngineConfig | null): EditorP
   };
 
   // Source de données de l'aperçu : MOCK → jeu de démo unifié ; REAL → vraies propriétés du tenant
-  // (lecture admin one-shot). Idempotent via `lastMode` (évite un double-fetch entre l'init et l'effet
-  // réactif du Studio). En cas d'échec REAL, on conserve la démo déjà affichée.
+  // (lecture admin one-shot). Idempotent par mode, sélection et devise (évite un double-fetch entre l'init et l'effet
+  // réactif du Studio). Une erreur REAL ne doit jamais afficher un autre logement de démonstration.
   const applyMode = (cfg: BookingEngineConfig | null): void => {
     const mode: 'REAL' | 'MOCK' = cfg?.dataSourceMode === 'REAL' ? 'REAL' : 'MOCK';
-    if (mode === lastMode) return;
-    lastMode = mode;
-    if (mode === 'MOCK') { seedProps(DEMO_PROPERTIES); return; }
+    let selectedIds: number[] = [];
+    try { const ids: unknown = JSON.parse(cfg?.featuredPropertyIds || '[]'); if (Array.isArray(ids)) selectedIds = [...new Set(ids.map(Number).filter((id) => Number.isSafeInteger(id) && id > 0))]; } catch { /* Legacy configurations have no property restriction. */ }
     const currency = cfg?.defaultCurrency || 'EUR';
+    const key = JSON.stringify([mode, selectedIds, currency]);
+    if (key === lastSeed) return;
+    lastSeed = key;
+    if (selectedIds.length && requestedPropertyId != null && !selectedIds.includes(requestedPropertyId)) requestedPropertyId = selectedIds[0];
+    const request = ++seedRequest;
+    if (mode === 'MOCK') { seedProps(DEMO_PROPERTIES); return; }
     propertiesApi.getAll()
       .then((list) => {
-        if (destroyed) return;
-        const props = list.map((p) => mapPropertyToWidget(p, currency));
+        if (destroyed || request !== seedRequest) return;
+        const visible = selectedIds.length ? selectedIds.map((id) => list.find((property) => property.id === id)).filter((property): property is Property => Boolean(property)) : list;
+        const props = visible.map((p) => mapPropertyToWidget(p, currency));
         seedProps(props); // paint immédiat (sans note)
         enrichWithReviewStats(props); // puis note réelle quand les stats d'avis reviennent
       })
-      .catch(() => { /* lecture des biens impossible : on garde la démo */ });
+      .catch(() => { if (!destroyed && request === seedRequest) core.state.set({ properties: [], selectedPropertyId: null, pricing: null }); });
   };
 
   // Seed démo immédiat (paint instantané), puis bascule éventuelle vers le réel si le mode est REAL.
-  seedProps(DEMO_PROPERTIES);
+  seedProps(config?.dataSourceMode === 'REAL' ? [] : DEMO_PROPERTIES);
   applyMode(config);
 
-  // Prix de démo recalculé au choix des dates.
-  const offDates = core.state.on('dateSelected', (s: WidgetState) => {
-    core.state.set({ pricing: buildDemoPricing(s, core.i18n), pricingLoading: false }, 'priceUpdated');
-  });
-  // Recalcul si le logement change alors que des dates sont posées (guard anti-réentrance).
-  let prevProp = core.state.get().selectedPropertyId;
-  let applying = false;
-  const offProp = core.state.on('stateChange', (s: WidgetState) => {
-    if (applying || s.selectedPropertyId === prevProp) return;
-    prevProp = s.selectedPropertyId;
-    if (s.checkIn && s.checkOut) {
-      applying = true;
-      core.state.set({ pricing: buildDemoPricing(s, core.i18n) }, 'priceUpdated');
-      applying = false;
-    }
+  // Recompute the illustrative quote when any stay input or property data changes.
+  let previousQuote = '';
+  const offQuote = core.state.on('*', (s: WidgetState) => {
+    const property = s.properties.find((p) => p.id === s.selectedPropertyId);
+    const key = JSON.stringify([property, s.checkIn, s.checkOut, s.adults, s.children]);
+    if (key === previousQuote) return;
+    previousQuote = key;
+    core.state.set({ pricing: buildDemoPricing(s, core.i18n), pricingLoading: false, availability: buildDemoAvailability(property ? [property] : s.properties) }, 'priceUpdated');
   });
 
   const ctx: MountContext = {
@@ -260,12 +261,15 @@ export function createEditorPreview(config: BookingEngineConfig | null): EditorP
   };
 
   return {
+    selectProperty: (id) => {
+      requestedPropertyId = id;
+      if (core.state.get().selectedPropertyId !== id) core.state.set({ selectedPropertyId: id, pricing: null }, 'stateChange');
+    },
     ctx,
     reseed: (cfg) => applyMode(cfg),
     destroy: () => {
       destroyed = true;
-      offDates();
-      offProp();
+      offQuote();
       core.destroy();
     },
   };

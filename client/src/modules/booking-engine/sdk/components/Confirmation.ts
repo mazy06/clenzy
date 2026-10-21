@@ -24,15 +24,16 @@ export function createConfirmationCard(i18n: I18n): ConfirmationCard {
 
   const icon = document.createElement('div');
   icon.className = 'cb-confirmation__icon';
+  icon.hidden = true;
   icon.appendChild(check());
 
   const title = document.createElement('h3');
   title.className = 'cb-text-lg cb-text-semibold cb-text-center cb-confirmation__title';
-  title.textContent = i18n.t('confirmation.title');
+  title.textContent = i18n.t('confirmation.overview');
 
   const subtitle = document.createElement('p');
   subtitle.className = 'cb-text-sm cb-text-secondary cb-text-center cb-confirmation__subtitle';
-  subtitle.textContent = i18n.t('confirmation.subtitle');
+  subtitle.textContent = i18n.t('confirmation.missingReferenceHelp');
 
   const details = document.createElement('dl');
   details.className = 'cb-confirmation__details';

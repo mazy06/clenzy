@@ -32,9 +32,12 @@ import { bookingEngineApi } from '../../../../services/api/bookingEngineApi';
 import { useAuth } from '../../../../hooks/useAuth';
 import { mediaApi } from '../../../../services/api/mediaApi';
 import { sitesApi } from '../../../../services/api/sitesApi';
+import { propertiesApi } from '../../../../services/api/propertiesApi';
 import { API_CONFIG } from '../../../../config/api';
-import { registerBookingComponents, reseedEditorPreview, blockLabelHtml, resolveBlockId } from './bookingComponents';
+import { registerBookingComponents, reseedEditorPreview, selectEditorPreviewProperty, blockLabelHtml, resolveBlockId } from './bookingComponents';
 import { setupImageEditing } from './imageEditing';
+import { registerHospitalityStudio, refreshHospitalityPreview } from './hospitalityStudio';
+import { templateForkMetadata } from './import/templateFork';
 import { setupElementTransform } from './elementTransform';
 import { BOOKING_WIDGET_DEFS, BOOKING_WIDGET_ATTR } from './bookingWidgetDefs';
 import { WIDGET_SKIN_CSS, WIDGET_SKIN_SENTINEL, buildWidgetSkinBlock, buildRootSkinBlock, btVarMap, type DesignVars } from '../../sdk/styles/widgetSkin';
@@ -52,7 +55,9 @@ import {
 } from './compositeWidgets';
 import { validateComposition } from './funnelRules';
 import { GALLERY_TEMPLATES, type GalleryTemplate } from './import/galleryTemplates';
+import { materializeBaitlyJourneyTemplate } from './import/baitlyJourneyTemplates';
 import { sanitizeHtml, sanitizeCss } from './import/sanitizeHtml';
+import { addBaitlyTemplateLogos, addBaitlyTemplateLogosToEditor } from './import/baitlyTemplateLogos';
 import PagesBar from '../builder/PagesBar';
 import { Segmented, SegmentedItem } from '../Segmented';
 import TranslateModal from '../TranslateModal';
@@ -182,21 +187,34 @@ const BLANK_PROJECT = { pages: [{ component: '' }] } as unknown as ProjectData;
  * L'appelant suspend la persistance (`hydratingRef`) autour de cet appel.
  */
 function loadPageInto(editor: Editor, source: string | null | undefined, logoUrl?: string | null): void {
+  const device = editor.getDevice();
   const project = parseInitialProject(source);
   if (project) {
     editor.loadProjectData(project);
   } else {
     const hc = parseHtmlCssEnvelope(source);
     if (hc) {
+      const branded = addBaitlyTemplateLogos(hc.html, hc.css);
       editor.loadProjectData(BLANK_PROJECT);
-      editor.setComponents(sanitizeHtml(hc.html));
-      if (hc.css.trim()) editor.setStyle(sanitizeCss(hc.css));
+      if (branded.css.trim()) editor.setStyle(sanitizeCss(branded.css));
+      // Parsing components creates CSS rules for inline tokens and host styles. Keep those rules.
+      editor.setComponents(sanitizeHtml(branded.html));
     } else {
       editor.loadProjectData(BLANK_PROJECT);
     }
   }
+  addBaitlyTemplateLogosToEditor(editor);
   // Logo source unique : appliqué à chaque chargement de page (nav + footer de la page courante).
   applyLogoToCanvas(editor, logoUrl);
+  // A page load replaces the canvas document; restore runtime structure and raw widget styles there.
+  ensureStructuralStyles(editor.Canvas.getDocument());
+  if (editor.Css.getRule(WIDGET_SKIN_SENTINEL)) applyWidgetSkinToCanvas(editor, {});
+  if (device) {
+    // loadProjectData restores frame dimensions independently from the selected device model.
+    editor.setDevice('');
+    editor.setDevice(device);
+  }
+  refreshHospitalityPreview(editor);
 }
 
 /**
@@ -376,6 +394,8 @@ function applyLogoToCanvas(editor: Editor, logoUrl: string | null | undefined): 
     if (url) {
       c.addAttributes({ src: url });
       c.removeAttributes('hidden');
+      // Les couleurs du logo client ne doivent pas subir le filtre du symbole par défaut.
+      c.removeAttributes('data-baitly-default-logo');
     }
   });
 }
@@ -571,7 +591,9 @@ function ensureValidationStyle(doc: Document | null): void {
     + '.cz-widget-empty{min-height:56px;display:flex!important;align-items:center;justify-content:center;'
     + 'outline:1px dashed rgba(0,0,0,.28);outline-offset:2px;border-radius:6px;background:rgba(0,0,0,.035);}'
     + ".cz-widget-empty::after{content:attr(data-cz-name);color:rgba(0,0,0,.55);"
-    + 'font:500 12px/1.3 system-ui,-apple-system,sans-serif;padding:10px 12px;text-align:center;}';
+    + 'font:500 12px/1.3 system-ui,-apple-system,sans-serif;padding:10px 12px;text-align:center;}'
+    + '.cz-widget-empty:has(.cb-price-summary:not(:empty),.cb-property-card){display:block!important;min-height:0;outline:none;background:transparent;}'
+    + '.cz-widget-empty:has(.cb-price-summary:not(:empty),.cb-property-card)::after{display:none;}';
   doc.head.appendChild(style);
 }
 
@@ -736,6 +758,7 @@ function CompositesPanel({ composites, canEditGlobal, onInsert, onEdit, onDelete
             </span>
             <span className="block text-2xs text-muted-foreground">{compositeSummary(c)}</span>
           </button>
+          {c.builtin && <Button type="button" variant="ghost" size="icon-xs" onClick={() => onEdit(c)} aria-label={`Personnaliser ${c.name}`} title="Personnaliser une copie"><Pencil size={14} /></Button>}
           {!c.builtin && (!c.global || canEditGlobal) && (
             <ItemActions className="gap-0.5">
               <Tooltip>
@@ -789,6 +812,8 @@ export default function GrapesStudio({ cfg, breakpoint, mode }: GrapesStudioProp
   const { notify } = useNotification();
   const containerRef = useRef<HTMLDivElement>(null);
   const editorRef = useRef<Editor | null>(null);
+  const nativeNavigateRef = useRef<(path: string, hash: string, search?: string) => boolean>(() => false);
+  const nativeAnchorRef = useRef('');
   // Miroir d'état de l'éditeur : permet à la modale d'import (React) de se (re)rendre une fois l'éditeur
   // monté, sans relire la ref (les refs ne déclenchent pas de rendu).
   const [editorInstance, setEditorInstance] = useState<Editor | null>(null);
@@ -871,6 +896,17 @@ export default function GrapesStudio({ cfg, breakpoint, mode }: GrapesStudioProp
     pageId: null,
     savePageBlocks: pages.savePageBlocks,
   });
+  const journeyWidgetIdsRef = useRef<string[]>([]);
+  useEffect(() => {
+    journeyWidgetIdsRef.current = pages.pages.filter((page) => page.id !== pages.selectedPageId).flatMap((page) => {
+      try {
+        const envelope = JSON.parse(page.blocks || '{}') as { html?: unknown };
+        if (typeof envelope.html !== 'string') return [];
+        const doc = new DOMParser().parseFromString(envelope.html, 'text/html');
+        return Array.from(doc.querySelectorAll(`[${BOOKING_WIDGET_ATTR}]`), (node) => node.getAttribute(BOOKING_WIDGET_ATTR) || '');
+      } catch { return []; }
+    });
+  }, [pages.pages, pages.selectedPageId]);
   // Sync hors rendu (write en rendu = anti-pattern) : mis à jour après commit, avant l'effet d'init
   // (ordre de déclaration). Valeur initiale déjà capturée par `useRef(...)`.
   useEffect(() => {
@@ -953,6 +989,8 @@ export default function GrapesStudio({ cfg, breakpoint, mode }: GrapesStudioProp
       },
       // L'app gère la persistance (cf. listener `update` ci-dessous) → pas de storage interne.
       storageManager: false,
+      // Keep runtime states (lightbox, motion, widget internals) even before their DOM exists.
+      keepUnusedStyles: true,
       // R5 — Asset Manager branché sur la médiathèque Baitly (upload custom → URL publique keyless).
       assetManager: { uploadFile: handleAssetUpload },
       // Thème initial de l'iframe du canvas. Les changements ultérieurs passent par l'effet réactif
@@ -974,8 +1012,20 @@ export default function GrapesStudio({ cfg, breakpoint, mode }: GrapesStudioProp
 
     registerBaseBlocks(editor, t);
     registerBookingComponents(editor, ctx);
+    registerHospitalityStudio(editor, (path, hash, search) => nativeNavigateRef.current(path, hash, search));
     registerTextEditing(editor);
     setupImageEditing(editor); // clic/dbl-clic sur image → picker (défauts du template + médiathèque + upload)
+    // Canvas-only authenticated photo rendering. The model keeps its public URL for publication.
+    editor.on('component:mount', (component: { getEl: () => HTMLElement | undefined }) => {
+      const image = component.getEl();
+      if (image?.tagName !== 'IMG') return;
+      const source = image.getAttribute('src') ?? '';
+      const apiOrigin = API_CONFIG.BASE_URL.replace(/\/$/, '');
+      const publicPrefix = `${apiOrigin}/api/public/property-photos/`;
+      if (!source.startsWith(publicPrefix)) return;
+      const match = source.slice(publicPrefix.length).match(/^(\d+)\/(\d+)$/);
+      if (match) image.setAttribute('src', `${apiOrigin}/api/properties/${match[1]}/photos/${match[2]}/data`);
+    });
     setupElementTransform(editor); // toolbar −/+ (échelle, texte inclus) + flèches (déplacement px), par device
 
     // Contenu initial chargé APRÈS les types → le parse HTML applique la détection texte/widget (texte
@@ -1067,7 +1117,7 @@ export default function GrapesStudio({ cfg, breakpoint, mode }: GrapesStudioProp
         })
         .filter((x): x is { c: (typeof comps)[number]; id: string } => typeof x.id === 'string');
       const byId = new Map<string, string[]>();
-      for (const w of validateComposition(items.map((x) => x.id))) {
+      for (const w of validateComposition(items.map((x) => x.id), journeyWidgetIdsRef.current)) {
         if (w.severity !== 'warning') continue; // canvas = prérequis durs seulement (infos restent au composeur)
         const arr = byId.get(w.widgetId) ?? [];
         arr.push(w.message);
@@ -1230,6 +1280,12 @@ export default function GrapesStudio({ cfg, breakpoint, mode }: GrapesStudioProp
     try {
       // Charge projectData (ré-éditable) OU enveloppe html+css (template importé) OU canvas vierge.
       loadPageInto(editor, source, configRef.current?.logoUrl);
+      const boundPropertyId = Number(pages.selectedPage?.path.match(/^\/logements\/(\d+)$/)?.[1]);
+      if (boundPropertyId > 0) selectEditorPreviewProperty(editor, configRef.current, boundPropertyId);
+      if (nativeAnchorRef.current) {
+        editor.Canvas.getDocument()?.getElementById(nativeAnchorRef.current.slice(1))?.scrollIntoView({ block: 'start' });
+        nativeAnchorRef.current = '';
+      }
     } finally {
       // Relâche au prochain tick : laisse passer les `update` synchrones émis par le load.
       hydrationTimer = setTimeout(() => { hydratingRef.current = false; }, 0);
@@ -1270,13 +1326,13 @@ export default function GrapesStudio({ cfg, breakpoint, mode }: GrapesStudioProp
 
   // ── Device piloté par le page header (le sélecteur device natif GrapesJS est masqué via CSS) ──
   useEffect(() => {
-    if (editorInstance) editorInstance.setDevice(GJS_DEVICE[breakpoint]);
+    if (editorInstance && editorInstance === editorRef.current) editorInstance.setDevice(GJS_DEVICE[breakpoint]);
   }, [breakpoint, editorInstance]);
 
   // ── Logo SOURCE UNIQUE : ré-applique config.logoUrl au canvas quand il change (ex. après upload),
   //    en plus de l'application à chaque chargement de page (cf. loadPageInto). ──
   useEffect(() => {
-    if (editorInstance) applyLogoToCanvas(editorInstance, cfg.config?.logoUrl);
+    if (editorInstance && editorInstance === editorRef.current) applyLogoToCanvas(editorInstance, cfg.config?.logoUrl);
   }, [editorInstance, cfg.config?.logoUrl]);
 
   // Upload du logo (médiathèque) → persiste config.logoUrl (source unique) → l'effet ci-dessus l'applique
@@ -1313,6 +1369,22 @@ export default function GrapesStudio({ cfg, breakpoint, mode }: GrapesStudioProp
     if (!(await flushActivePage())) return;
     pages.selectPage(id);
   }, [pages, flushActivePage]);
+
+  useEffect(() => {
+    nativeNavigateRef.current = (path, hash, search) => {
+      const page = pages.pages.find((item) => item.path === path);
+      if (!page) return false;
+      const propertyId = Number(path.match(/^\/logements\/(\d+)$/)?.[1] || new URLSearchParams(search).get('clenzy_property'));
+      if (propertyId > 0 && editorRef.current) selectEditorPreviewProperty(editorRef.current, configRef.current, propertyId);
+      if (page.id === pages.selectedPageId) {
+        if (hash) editorRef.current?.Canvas.getDocument()?.getElementById(hash.slice(1))?.scrollIntoView({ block: 'start' });
+      } else {
+        nativeAnchorRef.current = hash;
+        void handleSelectPage(page.id);
+      }
+      return true;
+    };
+  }, [pages, handleSelectPage]);
 
   const handleAddPage = useCallback(async () => {
     if (!(await flushActivePage())) return;
@@ -1456,20 +1528,37 @@ export default function GrapesStudio({ cfg, breakpoint, mode }: GrapesStudioProp
   // Import d'un template natif multi-page (galerie) : crée/maj une SitePage par page (non destructif),
   // applique le thème (couleur/police de marque), charge l'accueil dans le canvas. Repli mono-page si
   // l'API sites est indisponible : charge juste l'accueil (persisté dans config.pageLayout).
-  const handleImportTemplate = useCallback(async (template: GalleryTemplate) => {
+  const handleImportTemplate = useCallback(async (input: GalleryTemplate): Promise<boolean> => {
     setImportOpen(false);
     const editor = editorRef.current;
+    let template = input;
+    // The in-editor gallery reuses the engine's selected property, just like initial creation.
+    if (input.journeyId && GALLERY_TEMPLATES.includes(input)) {
+      try {
+        const selected = JSON.parse(configRef.current?.featuredPropertyIds || '[]') as number[];
+        const selectedProperties = await Promise.all(selected.filter((id) => Number(id) > 0).map((id) => propertiesApi.getById(Number(id))));
+        if (selectedProperties.length) template = materializeBaitlyJourneyTemplate(input, selectedProperties[0], false, selectedProperties);
+      } catch { /* Default model remains usable when the property is unavailable. */ }
+    }
 
     // Thème de marque : reflété live via l'effet réactif + persisté par le hook config.
     const themeChanges: Partial<BookingEngineConfig> = {};
+    if (template.journeyId) {
+      let components = {};
+      try { components = JSON.parse(configRef.current?.componentConfig || '{}'); } catch { /* legacy config */ }
+      themeChanges.componentConfig = JSON.stringify({ ...components, ...templateForkMetadata(template) });
+    }
     if (template.theme?.primaryColor) themeChanges.primaryColor = template.theme.primaryColor;
     if (template.theme?.fontFamily) themeChanges.fontFamily = template.theme.fontFamily;
     // Contrat `--bt-*` du template PERSISTÉ : l'injection widget du Studio (`configBtVars`) le prend en
     // priorité (cf. `configBtVars`) → les widgets suivent le design du template (couleur/polices), même si
     // `primaryColor` de l'engine dérive. Évite le split-brain « page = template, widgets = marque engine ».
-    const btVars = templateBtVars(template.theme);
+    const btVars = { ...templateBtVars(template.theme), ...template.designVars };
     if (Object.keys(btVars).length > 0) themeChanges.designCssVariables = JSON.stringify(btVars);
-    if (Object.keys(themeChanges).length > 0) cfg.patch(themeChanges);
+    if (Object.keys(themeChanges).length > 0) {
+      try { await cfg.patchPersist(themeChanges); }
+      catch { notify.error(t('studio.import.failed', 'Import du modèle impossible. Réessayez depuis la galerie.')); return false; }
+    }
 
     // Skin cosmétique des widgets baké dans CHAQUE page (light DOM) : variables de marque du template
     // + feuille de base. Les widgets headless sont ainsi habillés dès l'import, et restent surchargeables.
@@ -1501,18 +1590,20 @@ export default function GrapesStudio({ cfg, breakpoint, mode }: GrapesStudioProp
           }
           lastHydratedRef.current = result.homeId;
         }
+        return result != null;
       } catch {
-        /* échec API : erreurs exposées par le hook ; on n'écrase pas le canvas courant */
+        notify.error(t('studio.import.failed', 'Import du modèle impossible. Réessayez depuis la galerie.'));
+        return false;
       }
-      return;
     }
 
     // Repli mono-page : pas de SitePages → on charge l'accueil (NON suspendu → persisté en pageLayout).
     if (editor) {
       const home = template.pages.find((p) => p.type === 'HOME') ?? template.pages[0];
-      if (home) loadPageInto(editor, envelopeOf(home), configRef.current?.logoUrl);
+      if (home) { loadPageInto(editor, envelopeOf(home), configRef.current?.logoUrl); return true; }
     }
-  }, [pages, cfg]);
+    return false;
+  }, [pages, cfg, notify, t]);
 
   // ── Auto-import du template de galerie ─────────────────────────────────────────
   // « Utiliser ce template » (StudioHome) crée le booking engine puis navigue ici avec `templateId` en
@@ -1520,17 +1611,25 @@ export default function GrapesStudio({ cfg, breakpoint, mode }: GrapesStudioProp
   // fois, puis on consomme le state (replace) pour éviter un ré-import au rechargement.
   useEffect(() => {
     if (autoImportedRef.current) return;
-    const templateId = (location.state as { templateId?: string } | null)?.templateId;
+    const templateState = location.state as { templateId?: string; propertyId?: string; propertyIds?: string[] } | null;
+    const templateId = templateState?.templateId;
     if (!templateId) return;
     if (!editorInstance || cfg.loading) return;
     // Attendre que les SitePages soient résolues (ready) ou définitivement en erreur (repli mono-page).
     if (cfg.config != null && !pages.ready && pages.error == null) return;
     autoImportedRef.current = true;
     const template = GALLERY_TEMPLATES.find((t) => t.id === templateId);
-    if (template) void handleImportTemplate(template);
-    // Consomme le state : un rechargement ne doit pas ré-importer par-dessus les modifications de l'hôte.
-    navigate(location.pathname, { replace: true, state: null });
-  }, [editorInstance, cfg.loading, cfg.config, pages.ready, pages.error, location, navigate, handleImportTemplate]);
+    void (async () => {
+      if (template) {
+        const ids = templateState?.propertyIds ?? JSON.parse(cfg.config?.featuredPropertyIds || '[]') as (number | string)[];
+        const selectedIds = ids.length ? ids : [templateState?.propertyId];
+        const selectedProperties = await Promise.all(selectedIds.filter((id) => Number(id) > 0).map((id) => propertiesApi.getById(Number(id))));
+        if (!(await handleImportTemplate(materializeBaitlyJourneyTemplate(template, selectedProperties[0], false, selectedProperties)))) return;
+      }
+      // Consume only after import: reloading must preserve subsequent host edits.
+      navigate(location.pathname, { replace: true, state: null });
+    })().catch(() => { notify.error(t('studio.import.failed', 'Import du modèle impossible. Réessayez depuis la galerie.')); });
+  }, [editorInstance, cfg.loading, cfg.config, pages.ready, pages.error, location, navigate, handleImportTemplate, notify, t]);
 
   // Publication (B4) : enregistre le brouillon courant puis fige l'instantané publié (servi au public).
   const handlePublish = useCallback(async () => {
@@ -1620,13 +1719,13 @@ export default function GrapesStudio({ cfg, breakpoint, mode }: GrapesStudioProp
     const ed = editorRef.current;
     // Règles éditées (par classe) → CSS du template global (persisté avec la page via onUpdate).
     if (ed && d.css?.trim()) ed.addStyle(d.css);
-    // Le CSS rejoint le template (global) ; on ne stocke QUE name/html dans la bibliothèque du composite.
-    const widget = { name: d.name, html: d.html };
+    // Carry CSS with the library copy so inserting it into another page preserves its design.
+    const widget = { name: d.name, html: d.html, css: d.css };
     // Cible GLOBALE si on édite un composite global, OU si un staff plateforme en CRÉE un nouveau
     // (les composites créés par le staff alimentent la bibliothèque partagée à tous les engines).
     const toGlobal = !!editingComposite?.global || (!editingComposite && canEditGlobal);
     if (toGlobal) {
-      const current = globalComposites.map((c) => ({ id: c.id, name: c.name, html: c.html }));
+      const current = globalComposites.map((c) => ({ id: c.id, name: c.name, html: c.html, css: c.css }));
       const editId = editingComposite?.global ? editingComposite.id : null;
       const next = editId
         ? current.map((c) => (c.id === editId ? { ...c, ...widget } : c))
@@ -1651,7 +1750,7 @@ export default function GrapesStudio({ cfg, breakpoint, mode }: GrapesStudioProp
   }, []);
   const handleDeleteComposite = useCallback((c: CompositeWidget) => {
     if (c.global) {
-      const next = globalComposites.flatMap((g) => g.id === c.id ? [] : [{ id: g.id, name: g.name, html: g.html }]);
+      const next = globalComposites.flatMap((g) => g.id === c.id ? [] : [{ id: g.id, name: g.name, html: g.html, css: g.css }]);
       void bookingEngineApi.putGlobalComposites(serializeSavedComposites(next as CompositeWidget[]))
         .then(() => setGlobalComposites(next.map((g) => ({ ...g, global: true }) as CompositeWidget)))
         .catch(() => { /* erreur réseau */ });

@@ -1,5 +1,6 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { createBaitlyMap } from '../createBaitlyMap';
+import { buildBaitlyMapStyle } from '../baitlyMapStyle';
 
 const state = vi.hoisted(() => ({
   on: vi.fn(),
@@ -33,6 +34,11 @@ vi.mock('../../../utils/activeLocale', () => ({ activeLanguage: () => 'fr' }));
 afterEach(() => { vi.clearAllMocks(); vi.useRealTimers(); });
 
 describe('Repli de la carte Baitly', () => {
+  it('uses the guest language instead of the PMS language when explicitly provided', () => {
+    vi.useFakeTimers();
+    createBaitlyMap({ container: document.createElement('div'), mode: 'dark', center: [2.35, 48.86], zoom: 12, language: 'ar' });
+    expect(buildBaitlyMapStyle).toHaveBeenCalledWith('dark', 'ar', 'day');
+  });
   it('retire uniquement la source mondiale défaillante et ses calques', () => {
     vi.useFakeTimers();
     createBaitlyMap({ container: document.createElement('div'), mode: 'light', center: [2.35, 48.86], zoom: 12 });

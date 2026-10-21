@@ -241,7 +241,7 @@ public class Property {
 
     /**
      * Amenities OTA brutes (noms tels que renvoyes par Airbnb/Booking/Vrbo),
-     * stockees pour audit + futur mapping vers les codes Clenzy.
+     * stockees pour audit + futur mapping vers les codes Baitly.
      * Format : JSON array de strings, ex: ["Smoke alarm","Bed linens"].
      * @see com.clenzy.integration.channex.service.ChannexImportService
      */
@@ -252,6 +252,13 @@ public class Property {
 
     @Column(name = "booking_engine_visible", nullable = false)
     private boolean bookingEngineVisible = false;
+
+    /** Caution Baitly choisie par le gestionnaire, dans la devise du logement ; zéro = aucune. */
+    @Column(name = "security_deposit_amount", nullable = false, precision = 12, scale = 2)
+    private java.math.BigDecimal securityDepositAmount = java.math.BigDecimal.ZERO;
+
+    public java.math.BigDecimal getSecurityDepositAmount() { return securityDepositAmount; }
+    public void setSecurityDepositAmount(java.math.BigDecimal amount) { securityDepositAmount = amount; }
 
     /**
      * Consentement du host pour que son org gestionnaire (conciergerie) cree

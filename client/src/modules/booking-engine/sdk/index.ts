@@ -1,12 +1,15 @@
 import type { BaitlyBookingConfig } from './types';
 import { BaitlyWidget } from './BaitlyWidget';
 import { hydrateBookingMarkers, type HydrateOptions } from './bootstrap';
+import { enhanceHospitality } from './hospitality';
 
 export type { BaitlyBookingConfig, BaitlyTheme } from './types';
 export type { HydrateOptions } from './bootstrap';
 
 /** Global SDK namespace */
 const BaitlyBooking = {
+  /** Enhance native template galleries and motion without creating a booking or sending a request. */
+  enhance: enhanceHospitality,
   /** Initialize and mount the booking widget (embed mono-conteneur, monolithe — inchangé). */
   init(config: BaitlyBookingConfig): BaitlyWidget {
     const widget = new BaitlyWidget(config);

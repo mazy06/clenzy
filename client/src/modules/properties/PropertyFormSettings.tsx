@@ -29,7 +29,7 @@ import {
   Checklist,
   Language,
 } from '../../icons';
-import { Controller } from 'react-hook-form';
+import { Controller, useWatch } from 'react-hook-form';
 import type { Control, FieldErrors } from 'react-hook-form';
 import { useTranslation } from '../../hooks/useTranslation';
 import type { PropertyFormValues } from '../../schemas';
@@ -75,6 +75,7 @@ export interface PropertyFormSettingsProps {
 const PropertyFormSettings: React.FC<PropertyFormSettingsProps> = React.memo(
   ({ control, errors, users, propertyStatuses, cleaningFrequencies, isAdmin, isManager, part }) => {
     const { t } = useTranslation();
+    const currency = useWatch({ control, name: 'defaultCurrency' }) || 'EUR';
 
     return (
       <div className="flex flex-col gap-4">
@@ -94,7 +95,9 @@ const PropertyFormSettings: React.FC<PropertyFormSettingsProps> = React.memo(
                         manipule que des chaines : la valeur est recastee en nombre. */}
                     <Select
                       value={field.value != null ? String(field.value) : ''}
-                      onValueChange={(v) => field.onChange(v === '' ? undefined : Number(v))}
+                      // Le select peut émettre une valeur vide à son montage dans le formulaire.
+                      // Ce champ obligatoire n'offre pas d'action de suppression du propriétaire.
+                      onValueChange={(v) => { if (v !== '') field.onChange(Number(v)); }}
                       disabled={!isAdmin() && !isManager()}
                     >
                       <SelectTrigger
@@ -152,6 +155,24 @@ const PropertyFormSettings: React.FC<PropertyFormSettingsProps> = React.memo(
             </div>
 
             {/* Booking Engine Visibility */}
+            <div className="col-span-12 sm:col-span-6">
+              <Controller name="securityDepositAmount" control={control} render={({ field, fieldState }) => (
+                <Field>
+                  <FieldLabel htmlFor="property-security-deposit">{t('properties.securityDepositAmount', 'Caution du logement')}</FieldLabel>
+                  <InputGroup>
+                    <InputGroupInput {...field} id="property-security-deposit" type="number" min={0} step="0.01"
+                      inputMode="decimal" className="tabular-nums" aria-invalid={!!fieldState.error}
+                      aria-describedby="property-security-deposit-help" value={field.value ?? 0}
+                      onChange={event => field.onChange(event.target.value === '' ? 0 : Number(event.target.value))} />
+                    <InputGroupAddon align="inline-end">{currency}</InputGroupAddon>
+                  </InputGroup>
+                  <FieldDescription id="property-security-deposit-help">
+                    {t('properties.securityDepositHelp', 'Préautorisation distincte du séjour, libérée après le ménage validé sans anomalie. 0 = aucune caution.')}
+                  </FieldDescription>
+                  {fieldState.error && <FieldError>{fieldState.error.message}</FieldError>}
+                </Field>
+              )} />
+            </div>
             <div className="col-span-12">
               <Controller
                 name="bookingEngineVisible"
