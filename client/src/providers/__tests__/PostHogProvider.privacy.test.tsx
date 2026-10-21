@@ -30,7 +30,7 @@ describe('Telemetry identity lifecycle', () => {
     await waitFor(() => expect(mocks.setActor).toHaveBeenLastCalledWith({ id: 'new-hash', organization: 'new-org' }));
     await act(async () => { resolveOld({ id: 'old-hash', organization: 'old-org' }); });
     expect(mocks.setActor).not.toHaveBeenCalledWith({ id: 'old-hash', organization: 'old-org' });
-    expect(mocks.actor).toHaveBeenCalledWith('new-id', '2', 'staging');
+    expect(mocks.actor).toHaveBeenCalledWith('new-id', '2', JSON.stringify(['staging', window.location.origin]));
     expect(JSON.stringify(mocks.actor.mock.calls)).not.toContain('PRIVATE');
   });
 

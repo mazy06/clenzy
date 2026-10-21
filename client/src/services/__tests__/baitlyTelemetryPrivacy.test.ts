@@ -12,6 +12,10 @@ describe('Baitly outbound privacy boundary', () => {
     expect(a).toEqual(await baitlyAnalyticsActor('private@example.com', '42', 'staging'));
     expect(a.id).not.toBe((await baitlyAnalyticsActor('private@example.com', '43', 'staging')).id);
     expect(a.id).not.toBe((await baitlyAnalyticsActor('private@example.com', '42', 'production')).id);
+    const staging = await baitlyAnalyticsActor('private@example.com', '42', JSON.stringify(['production', 'https://app.clenzy.fr']));
+    const production = await baitlyAnalyticsActor('private@example.com', '42', JSON.stringify(['production', 'https://app.baitly.fr']));
+    expect(staging.id).not.toBe(production.id);
+    expect(staging.organization).not.toBe(production.organization);
     vi.unstubAllGlobals();
   });
 

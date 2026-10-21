@@ -30,7 +30,10 @@ export function usePostHogIdentify() {
     let cancelled = false;
     setBaitlyAnalyticsActor(undefined);
     if (!loading && user?.id && user.organizationId != null) {
-      void baitlyAnalyticsActor(String(user.id), String(user.organizationId), runtimeEnvOr('VITE_ENV', 'production'))
+      // Bind to the deployment as well: legacy staging may still declare VITE_ENV=production.
+      // The origin is hashed locally, never emitted as an analytics property.
+      const deployment = JSON.stringify([runtimeEnvOr('VITE_ENV', 'production'), window.location.origin]);
+      void baitlyAnalyticsActor(String(user.id), String(user.organizationId), deployment)
         .then(actor => { if (!cancelled) setBaitlyAnalyticsActor(actor); })
         .catch(() => { /* No raw-ID fallback when WebCrypto is unavailable. */ });
     }
