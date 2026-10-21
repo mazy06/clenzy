@@ -16,6 +16,7 @@ import java.util.zip.ZipInputStream;
 
 /** Explicit operator entrypoint, outside the application scan; starts no web server or schedulers. */
 public final class BaitlyDirectoryImport {
+    private static final org.slf4j.Logger log = org.slf4j.LoggerFactory.getLogger(BaitlyDirectoryImport.class);
     @Configuration(proxyBeanMethods=false)
     @Import({DataSourceAutoConfiguration.class,JdbcTemplateAutoConfiguration.class,DataSourceTransactionManagerAutoConfiguration.class,
         BaitlyNationalDirectorySync.class,BaitlyNationalOsmEnrichment.class})
@@ -52,21 +53,21 @@ public final class BaitlyDirectoryImport {
     }
     public static void main(String[] args)throws Exception {
         var app=new SpringApplication(Config.class);app.setWebApplicationType(WebApplicationType.NONE);
-        app.setDefaultProperties(Map.of("spring.main.banner-mode","off","logging.level.root","WARN","baitly.directory.national.enabled","true"));
+        app.setDefaultProperties(Map.of("spring.main.banner-mode","off","logging.level.root","WARN","logging.level.com.baitly.ops","INFO","baitly.directory.national.enabled","true"));
         try(var context=app.run(args)){
             var sync=context.getBean(BaitlyNationalDirectorySync.class);
-            if(context.getEnvironment().getProperty("baitly.directory.operator.status-only",Boolean.class,false)){System.out.println("SIRENE "+sync.status());return;}
+            if(context.getEnvironment().getProperty("baitly.directory.operator.status-only",Boolean.class,false)){log.info("SIRENE {}",sync.status());return;}
             int replacements=0;
             do {
                 try{sync.synchronize();}catch(BaitlyNationalDirectorySource.SourceChangedException e){if(++replacements>1)throw e;continue;}
-                System.out.println("SIRENE "+sync.status());
+                log.info("SIRENE {}",sync.status());
                 if(!Boolean.TRUE.equals(sync.status().get("enabled")))throw new IllegalStateException("National feed is disabled");
                 if(!"COMPLETED".equals(sync.status().get("phase")))Thread.sleep(30_000);
             }while(!"COMPLETED".equals(sync.status().get("phase")));
             if(context.getEnvironment().getProperty("baitly.directory.operator.sirene-only",Boolean.class,false))return;
             var snapshot=Path.of(System.getenv().getOrDefault("BAITLY_DIRECTORY_CACHE","/app/tmp/baitly-directory")).resolve("osm.jsonl");
-            System.out.println("OSM "+context.getBean(BaitlyNationalOsmEnrichment.class).enrich(snapshot));
-            System.out.println("BAITLY_DIRECTORY_IMPORT_COMPLETED");
+            log.info("OSM {}",context.getBean(BaitlyNationalOsmEnrichment.class).enrich(snapshot));
+            log.info("BAITLY_DIRECTORY_IMPORT_COMPLETED");
         }
     }
 }

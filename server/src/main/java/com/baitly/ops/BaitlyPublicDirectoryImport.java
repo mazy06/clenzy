@@ -13,6 +13,7 @@ import java.util.Map;
 
 /** One-shot local/CD operator. No web server, application scan or scheduled jobs. */
 public final class BaitlyPublicDirectoryImport {
+    private static final org.slf4j.Logger log = org.slf4j.LoggerFactory.getLogger(BaitlyPublicDirectoryImport.class);
     @Configuration(proxyBeanMethods=false)
     @Import({DataSourceAutoConfiguration.class,JdbcTemplateAutoConfiguration.class,
         DataSourceTransactionManagerAutoConfiguration.class,RedisAutoConfiguration.class,
@@ -33,6 +34,7 @@ public final class BaitlyPublicDirectoryImport {
         var app=new SpringApplication(Config.class);app.setWebApplicationType(WebApplicationType.NONE);
         app.setDefaultProperties(Map.ofEntries(
             Map.entry("spring.main.banner-mode","off"), Map.entry("logging.level.root","WARN"),
+            Map.entry("logging.level.com.baitly.ops","INFO"),
             Map.entry("spring.datasource.hikari.maximum-pool-size","3"), Map.entry("spring.datasource.hikari.minimum-idle","0"),
             Map.entry("spring.data.redis.host","${spring.redis.host:redis}"),
             Map.entry("spring.data.redis.port","${spring.redis.port:6379}"),
@@ -50,7 +52,7 @@ public final class BaitlyPublicDirectoryImport {
             do {
                 if(System.nanoTime()>deadline)throw new IllegalStateException("Public country import timeout");
                 sync.synchronize(country,true);var state=sync.status(country);
-                System.out.println("BAITLY_PUBLIC_IMPORT "+state);
+                log.info("BAITLY_PUBLIC_IMPORT {}",state);
                 if(((Number)state.getOrDefault("failures",0)).intValue()>0)throw new IllegalStateException("Public country import failed");
                 if("COMPLETED".equals(state.get("phase"))&&Boolean.TRUE.equals(context.getBean(org.springframework.jdbc.core.JdbcTemplate.class)
                     .queryForObject("SELECT source_manifest->>'sha256'=? FROM baitly_directory_sync WHERE country_code=?",Boolean.class,source.manifest().sha256(),country)))break;
@@ -64,7 +66,7 @@ public final class BaitlyPublicDirectoryImport {
             boolean published=Boolean.TRUE.equals(context.getBean(org.springframework.jdbc.core.JdbcTemplate.class)
                 .queryForObject("SELECT phase='COMPLETED' AND source_manifest->>'sha256'=? FROM baitly_directory_sync WHERE country_code=?",Boolean.class,source.manifest().sha256(),country));
             if(!published)throw new IllegalStateException("Public country edition changed during map indexing; rerun the deployment");
-            System.out.println("BAITLY_PUBLIC_IMPORT_COMPLETED "+sync.status(country)+" index="+index.state());
+            log.info("BAITLY_PUBLIC_IMPORT_COMPLETED {} index={}",sync.status(country),index.state());
         }
     }
 }

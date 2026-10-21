@@ -15,6 +15,7 @@ import java.util.*;
 /** Offline OSM stock join. No per-company requests to public Overpass, no tenant CRM writes. */
 @Service
 public class BaitlyNationalOsmEnrichment {
+    private static final org.slf4j.Logger log = org.slf4j.LoggerFactory.getLogger(BaitlyNationalOsmEnrichment.class);
     public static final String ACTOR="baitly:osm-stock";
     private final JdbcTemplate db;
     private final ObjectMapper mapper;
@@ -66,7 +67,7 @@ public class BaitlyNationalOsmEnrichment {
                         db.update("INSERT INTO baitly_directory_source_evidence(professional_id,source,source_url,licence,retrieved_at,confirmed_by,snapshot) VALUES(?,'OSM',?,'ODbL 1.0',now(),?,?::jsonb)",id,"https://www.openstreetmap.org/"+key,ACTOR,proof.toString());
                         return true;
                     }));if(saved)enriched++;else unchanged++;
-                    if(enriched%1000==0)System.out.println("OSM enriched="+enriched+" matched="+matched+" ambiguous="+ambiguous);
+                    if(enriched%1000==0)log.info("OSM enriched={} matched={} ambiguous={}",enriched,matched,ambiguous);
                 }
                 long retired=retireUnavailable(candidates,fingerprint);
                 lastReport=new Report(candidates.size(),matched,enriched,ambiguous,unchanged,retired);lastApplied=signature;
