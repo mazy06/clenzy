@@ -1,11 +1,18 @@
+@property --db-kpi-progress {
+  syntax: '<number>';
+  inherits: false;
+  initial-value: 0;
+}
+@keyframes baitly-kpi-in { from { --db-kpi-progress: 1; opacity: 0; } to { --db-kpi-progress: 0; opacity: 1; } }
+@keyframes baitly-kpi-out { from { --db-kpi-progress: 0; opacity: 1; } to { --db-kpi-progress: 1; opacity: 0; } }
 .db-kpis { min-inline-size: 0; background: var(--bui-card); border: 1px solid var(--bui-border); border-radius: 14px; overflow: hidden; }
 .db-kpis:has(.bui-stat-overview__item[data-expanded="true"][data-flush-left="true"]) { border-bottom-left-radius: 0; }
 .db-kpis:has(.bui-stat-overview__item[data-expanded="true"][data-flush-right="true"]) { border-bottom-right-radius: 0; }
 .db-kpis__drawer[data-side] {
   /* The shared flyout and its concave shoulders inherit the selected KPI surface. */
   --bui-card: var(--bui-muted);
-  --db-kpi-reveal: calc(var(--bui-flyout-progress) * 100%);
-  --db-kpi-cut: calc(var(--db-kpi-reveal) + min(3px, var(--bui-flyout-progress) * 10px));
+  --db-kpi-reveal: calc(var(--db-kpi-progress) * 100%);
+  --db-kpi-cut: calc(var(--db-kpi-reveal) + min(3px, var(--db-kpi-progress) * 10px));
   inline-size: var(--db-kpi-drawer-width, min(370px, calc(100vw - 32px)));
   max-inline-size: none; padding: 0; gap: 0; text-align: start;
 }
@@ -39,8 +46,11 @@
 /* The outside edge continues the strip's outline, without a competing concave corner. */
 .db-kpis__drawer[data-side][data-flush-left="true"]::before,
 .db-kpis__drawer[data-side][data-flush-right="true"]::after { display: none; }
-.db-kpis__drawer[data-side][data-state="open"] { animation: bui-flyout-in 240ms cubic-bezier(.16,1,.3,1) both; }
-.db-kpis__drawer[data-side][data-state="closed"] { animation: bui-flyout-out 200ms cubic-bezier(.4,0,1,1) both; }
+.db-kpis__drawer[data-side][data-state="open"] { animation: baitly-kpi-in 240ms cubic-bezier(.16,1,.3,1) both; }
+.db-kpis__drawer[data-side][data-state="closed"] { pointer-events: none; animation: baitly-kpi-out 180ms cubic-bezier(.4,0,1,1) both; }
+/* The strip collapses immediately: detach its shoulders before the exit animation. */
+.db-kpis__drawer[data-side][data-state="closed"]::before,
+.db-kpis__drawer[data-side][data-state="closed"]::after { visibility: hidden; }
 .db-kpis .bui-stat-overview__item[data-expanded="true"],
 .db-kpis button.bui-stat-figure[aria-expanded="true"]:not(:disabled) { background: var(--bui-muted); }
 .db-kpis .bui-stat-figure[aria-expanded="true"] .bui-stat-figure__label { color: var(--bui-primary); }

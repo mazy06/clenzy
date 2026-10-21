@@ -23,9 +23,11 @@ export default function DashboardKpiDetail({ label, shortLabel, value, unit, art
   const { t, currentLanguage } = useTranslation();
   const id = useId();
   const anchor = useRef<HTMLDivElement>(null);
-  const panel = useRef<HTMLDivElement>(null);
   const timer = useRef<ReturnType<typeof setTimeout>>();
   const mode = useRef<'hover' | 'click'>('hover');
+  const pointerType = useRef('mouse');
+  const pointerInAnchor = useRef(false);
+  const dismissed = useRef(false);
   const restoreFocus = useRef(false);
   const rtl = currentLanguage.startsWith('ar');
   const [placement, setPlacement] = useState<ReturnType<typeof dashboardKpiPlacement> | null>(null);
@@ -55,22 +57,27 @@ export default function DashboardKpiDetail({ label, shortLabel, value, unit, art
     return () => { observer.disconnect(); window.removeEventListener('resize', measure); };
   }, [open, measure]);
 
-  const close = () => { cancelTimer(); onOpenChange(false); };
+  const close = () => { cancelTimer(); dismissed.current = pointerInAnchor.current; onOpenChange(false); };
   const leave = () => {
     cancelTimer();
-    if (mode.current === 'hover') timer.current = setTimeout(() => {
-      if (!panel.current?.contains(document.activeElement)) onOpenChange(false);
-    }, 220);
+    // Mouse focus (for example after opening the level explanation) must not pin a hover drawer.
+    // Keyboard navigation explicitly switches to click mode below.
+    if (mode.current === 'hover') timer.current = setTimeout(close, 220);
   };
 
-  return <Popover open={open && !loading} onOpenChange={(next) => { if (!next) cancelTimer(); onOpenChange(next); }}>
+  return <Popover open={open && !loading} onOpenChange={(next) => { if (next) onOpenChange(true); else close(); }}>
     <PopoverAnchor asChild>
       <div ref={anchor} className="bui-stat-overview__item" data-expanded={open && !loading}
         data-flush-left={placement?.flushLeft} data-flush-right={placement?.flushRight}
+        onPointerDown={(event) => { pointerType.current = event.pointerType; }}
+        onKeyDown={(event) => {
+          if (open && event.key !== 'Escape') { cancelTimer(); mode.current = 'click'; }
+        }}
         onPointerEnter={(event) => {
+          pointerInAnchor.current = true;
           cancelTimer();
           // Tablets (including those with a mouse) and touch pointers use deliberate clicks.
-          if (loading || open || event.pointerType !== 'mouse'
+          if (loading || open || dismissed.current || event.pointerType !== 'mouse'
             || !window.matchMedia('(min-width: 1025px) and (hover: hover) and (pointer: fine)').matches) return;
           timer.current = setTimeout(() => {
             measure();
@@ -79,16 +86,18 @@ export default function DashboardKpiDetail({ label, shortLabel, value, unit, art
             onOpenChange(true);
           }, 180);
         }}
-        onPointerLeave={leave}>
+        onPointerLeave={() => { pointerInAnchor.current = false; dismissed.current = false; leave(); }}>
         <StatTile icon={null} artwork={artwork} label={shortLabel ?? label} value={value} unit={unit} loading={loading}
-          expanded={open && !loading} controls={id} onClick={() => {
+          expanded={open && !loading} controls={id} onClick={(event) => {
             cancelTimer();
-            const next = !open || mode.current === 'hover';
+            const next = !open;
             if (next) measure();
-            mode.current = 'click';
+            const mouseClick = event.detail > 0 && pointerType.current === 'mouse'
+              && window.matchMedia('(min-width: 1025px) and (hover: hover) and (pointer: fine)').matches;
+            mode.current = mouseClick ? 'hover' : 'click';
             // Restore only for an explicit dismissal, never while another KPI takes over.
             restoreFocus.current = !next;
-            onOpenChange(next);
+            if (next) { dismissed.current = false; onOpenChange(true); } else close();
           }} />
       </div>
     </PopoverAnchor>
@@ -101,6 +110,9 @@ export default function DashboardKpiDetail({ label, shortLabel, value, unit, art
       collisionPadding={{ top: 16, bottom: 16, left: 0, right: 0 }} aria-labelledby={`${id}-title`} aria-describedby={undefined}
       dir={rtl ? 'rtl' : 'ltr'}
       onPointerEnter={cancelTimer} onPointerLeave={leave}
+      onKeyDown={(event) => {
+        if (event.key !== 'Escape') { cancelTimer(); mode.current = 'click'; }
+      }}
       onBlur={(event) => {
         if (mode.current === 'hover' && !event.currentTarget.contains(event.relatedTarget as Node | null)) leave();
       }}
@@ -115,7 +127,7 @@ export default function DashboardKpiDetail({ label, shortLabel, value, unit, art
         if (anchor.current?.contains(event.target as Node)) event.preventDefault();
         else restoreFocus.current = false;
       }}>
-      <div ref={panel} className="db-kpis__drawer-scroll">
+      <div className="db-kpis__drawer-scroll">
         <header className="db-kpis__drawer-header">
           <h3 id={`${id}-title`}>{label}</h3>
           <button type="button" className="db-kpis__close" aria-label={t('dashboardKpis.close')}

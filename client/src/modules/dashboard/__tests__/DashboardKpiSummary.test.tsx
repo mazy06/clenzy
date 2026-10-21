@@ -19,7 +19,7 @@ function desktop() {
   }));
 }
 // jsdom may not expose PointerEvent; define the pointerType on the dispatched event.
-function pointer(target: Element, type: 'pointerover' | 'pointerout', pointerType = 'mouse') {
+function pointer(target: Element, type: 'pointerover' | 'pointerout' | 'pointerdown', pointerType = 'mouse') {
   const event = new Event(type, { bubbles: true });
   Object.defineProperty(event, 'pointerType', { value: pointerType });
   fireEvent(target, event);
@@ -79,6 +79,9 @@ describe('dashboard KPI disclosures', () => {
     pointer(dialog, 'pointerout');
     await tick(250);
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+    pointer(el('Occupation'), 'pointerover');
+    await tick(200);
+    expect(screen.getByRole('dialog', { name: 'Occupation' })).toBeVisible();
   });
 
   it('cancels a passing hover before opening and keeps a clicked drawer open on pointer leave', async () => {
@@ -93,6 +96,86 @@ describe('dashboard KPI disclosures', () => {
     pointer(el('Occupation'), 'pointerout');
     await tick(300);
     expect(screen.getByRole('dialog')).toBeVisible();
+  });
+
+  it('does not pin a hovered drawer when its tile is clicked with the mouse', async () => {
+    vi.useFakeTimers();
+    desktop();
+    mount();
+    pointer(el('Occupation'), 'pointerover');
+    await tick(200);
+    fireEvent.click(el('Occupation'), { detail: 1 });
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+    // Closing changes the grid width: a synthetic re-entry must not reopen the drawer.
+    pointer(el('Occupation'), 'pointerover');
+    await tick(300);
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+    pointer(el('Occupation'), 'pointerout');
+    pointer(el('Occupation'), 'pointerover');
+    await tick(200);
+    expect(screen.getByRole('dialog')).toBeVisible();
+  });
+
+  it('closes a mouse-opened drawer on leave even if a control inside still has mouse focus', async () => {
+    vi.useFakeTimers();
+    desktop();
+    mount();
+    fireEvent.click(el('Occupation'), { detail: 1 });
+    const dialog = screen.getByRole('dialog');
+    const summary = within(dialog).getByText('Comprendre les niveaux');
+    act(() => summary.focus());
+    fireEvent.click(summary, { detail: 1 });
+    pointer(dialog, 'pointerout');
+    await tick(250);
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+    expect(el('Occupation')).toHaveAttribute('aria-expanded', 'false');
+  });
+
+  it('keeps a hovered drawer accessible when keyboard navigation takes over', async () => {
+    vi.useFakeTimers();
+    desktop();
+    mount();
+    pointer(el('Occupation'), 'pointerover');
+    await tick(200);
+    const dialog = screen.getByRole('dialog');
+    const summary = within(dialog).getByText('Comprendre les niveaux');
+    fireEvent.keyDown(el('Occupation'), { key: 'Tab' });
+    act(() => summary.focus());
+    pointer(dialog, 'pointerout');
+    await tick(250);
+    expect(dialog).toBeVisible();
+    fireEvent.keyDown(dialog, { key: 'Escape' });
+    await tick(1);
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+    expect(el('Occupation')).toHaveFocus();
+  });
+
+  it('keeps touch activation deliberate even on a desktop with a touchscreen', async () => {
+    vi.useFakeTimers();
+    desktop();
+    mount();
+    pointer(el('Occupation'), 'pointerdown', 'touch');
+    fireEvent.click(el('Occupation'), { detail: 1 });
+    pointer(el('Occupation'), 'pointerout', 'touch');
+    await tick(300);
+    expect(screen.getByRole('dialog')).toBeVisible();
+    fireEvent.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'Fermer les détails' }));
+    await tick(1);
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+  });
+
+  it('cancels a pending close when the mouse returns to the KPI', async () => {
+    vi.useFakeTimers();
+    desktop();
+    mount();
+    pointer(el('Occupation'), 'pointerover');
+    await tick(200);
+    const dialog = screen.getByRole('dialog');
+    pointer(dialog, 'pointerout');
+    await tick(100);
+    pointer(el('Occupation'), 'pointerover');
+    await tick(250);
+    expect(dialog).toBeVisible();
   });
 
   it('can move from a clicked KPI to a hovered one without restoring focus to the old tile', async () => {
