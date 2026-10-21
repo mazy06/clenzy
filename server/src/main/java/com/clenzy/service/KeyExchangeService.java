@@ -1,6 +1,7 @@
 package com.clenzy.service;
 
 import com.clenzy.dto.keyexchange.*;
+import com.clenzy.exception.KeyExchangeProviderNotReadyException;
 import com.clenzy.service.access.OrganizationAccessGuard;
 import com.clenzy.model.KeyExchangeCode;
 import com.clenzy.model.KeyExchangeCode.CodeStatus;
@@ -36,7 +37,7 @@ import java.util.stream.Collectors;
 
 /**
  * Service metier pour la gestion des echanges de cles.
- * Supporte deux providers : KeyNest (service tiers) et Clenzy KeyVault (solution proprietaire).
+ * Gere Baitly KeyVault et conserve les points KeyNest sans simuler d'operation externe.
  */
 @Service
 public class KeyExchangeService {
@@ -135,7 +136,7 @@ public class KeyExchangeService {
         point.setStoreOpeningHours(dto.getStoreOpeningHours());
         point.setStatus(PointStatus.ACTIVE);
 
-        // Type de gardien (uniquement pour Clenzy KeyVault)
+        // Type de gardien (uniquement pour Baitly KeyVault)
         if (provider == Provider.CLENZY_KEYVAULT) {
             GuardianType guardianType = GuardianType.MERCHANT; // defaut
             if (dto.getGuardianType() != null) {
@@ -148,7 +149,7 @@ public class KeyExchangeService {
             point.setGuardianType(guardianType);
         }
 
-        // Token de verification unique pour la page publique (Clenzy KeyVault)
+        // Token de verification unique pour la page publique (Baitly KeyVault)
         if (provider == Provider.CLENZY_KEYVAULT) {
             point.setVerificationToken(UUID.randomUUID().toString().replace("-", ""));
         }
@@ -190,26 +191,9 @@ public class KeyExchangeService {
     }
 
     /**
-     * Genere un code d'echange (Clenzy KeyVault : code 6 chiffres interne).
-     * Pour KeyNest, un appel API externe est necessaire.
-     *
-     * TODO [KEYNEST-7] — Connecter la generation de code au vrai API KeyNest
-     *   Actuellement le code KeyNest est un placeholder ("KN-" + 6 chiffres).
-     *   Une fois les credentials API obtenus, remplacer par :
-     *
-     *   1. Injecter KeyNestApiService dans ce service
-     *   2. Dans le bloc `else` (provider != CLENZY_KEYVAULT) :
-     *      a) Si c'est la premiere cle pour ce point :
-     *         Map<String, String> result = keyNestApiService.createKeyWithCollectionCode(
-     *             point.getProviderStoreId(), "Cle " + point.getStoreName());
-     *         code = result.get("collectionCode");
-     *         exchangeCode.setProviderCodeId(result.get("keyId"));  // stocker l'ID KeyNest
-     *      b) Si une cle existe deja pour ce point :
-     *         Map<String, String> result = keyNestApiService.createCollectionCode(existingKeyId);
-     *         code = result.get("code");
-     *         exchangeCode.setProviderCodeId(result.get("codeId"));
-     *   3. Gerer les erreurs API KeyNest (circuit breaker, retries)
-     *   4. Si KeyNest est indisponible, laisser le code placeholder + alerter
+     * Genere uniquement les codes internes Baitly KeyVault. La generation
+     * KeyNest reste fermee jusqu'a qualification de l'API et de sa preuve de
+     * creation. Un code invente ne constitue jamais un fallback acceptable.
      */
     @Transactional
     public KeyExchangeCodeDto generateCode(String userId, CreateKeyExchangeCodeDto dto) {
@@ -218,6 +202,10 @@ public class KeyExchangeService {
         requireSameOrganization(point.getOrganizationId(), "Point d'echange hors de votre organisation");
 
         CodeType codeType = CodeType.COLLECTION;
+        if (point.getProvider() != Provider.CLENZY_KEYVAULT) {
+            throw new KeyExchangeProviderNotReadyException(
+                    "La generation de codes KeyNest est indisponible tant que l'integration fournisseur n'est pas qualifiee.");
+        }
         if (dto.getCodeType() != null) {
             try {
                 codeType = CodeType.valueOf(dto.getCodeType());
@@ -226,15 +214,7 @@ public class KeyExchangeService {
             }
         }
 
-        String code;
-        if (point.getProvider() == Provider.CLENZY_KEYVAULT) {
-            code = generateUniqueCode();
-        } else {
-            // TODO [KEYNEST-7] — Remplacer ce placeholder par l'appel reel KeyNestApiService
-            // Voir le Javadoc de cette methode pour les instructions detaillees.
-            // Pour l'instant, on genere un code placeholder tant que l'API n'est pas connectee.
-            code = "KN-" + generateUniqueCode();
-        }
+        String code = generateUniqueCode();
 
         KeyExchangeCode exchangeCode = new KeyExchangeCode();
         exchangeCode.setOrganizationId(tenantContext.getRequiredOrganizationId());
@@ -253,22 +233,17 @@ public class KeyExchangeService {
         // Creer evenement CODE_GENERATED
         createEvent(point.getOrganizationId(), saved.getId(), point.getId(),
                 point.getPropertyId(), EventType.CODE_GENERATED,
-                dto.getGuestName(), "Code genere: " + code, EventSource.MANUAL);
+                dto.getGuestName(), "Code genere", EventSource.MANUAL);
 
-        log.info("Code d'echange genere: {} (point={}, guest={}) par user={}",
-                code, point.getStoreName(), dto.getGuestName(), userId);
+        log.info("Code d'echange genere: id={} point={} par user={}",
+                saved.getId(), point.getId(), userId);
 
         return toCodeDto(saved);
     }
 
     /**
-     * Annule un code d'echange.
-     *
-     * TODO [KEYNEST-8] — Ajouter l'annulation cote KeyNest
-     *   Quand le code est lie a un provider KeyNest (providerCodeId non null),
-     *   appeler keyNestApiService.cancelCode(code.getProviderCodeId()) AVANT
-     *   de marquer le code comme CANCELLED dans notre base.
-     *   Gerer le cas ou l'appel KeyNest echoue (retry ? log + annulation locale quand meme ?)
+     * Annule un code interne. Une revocation KeyNest doit etre confirmee par
+     * le fournisseur ; elle reste refusee tant que ce circuit n'est pas qualifie.
      */
     @Transactional
     public void cancelCode(String userId, Long codeId) {
@@ -280,10 +255,14 @@ public class KeyExchangeService {
             throw new IllegalStateException("Le code n'est pas actif (statut: " + code.getStatus() + ")");
         }
 
-        // TODO [KEYNEST-8] — Appeler keyNestApiService.cancelCode() si provider = KEYNEST
-        // if (code.getProviderCodeId() != null) {
-        //     keyNestApiService.cancelCode(code.getProviderCodeId());
-        // }
+        KeyExchangePoint point = pointRepository.findById(code.getPointId())
+                .orElseThrow(() -> new IllegalArgumentException("Point d'echange introuvable"));
+        requireSameOrganization(point.getOrganizationId(), "Point d'echange hors de votre organisation");
+        if (point.getProvider() != Provider.CLENZY_KEYVAULT
+                || (code.getProviderCodeId() != null && !code.getProviderCodeId().isBlank())) {
+            throw new KeyExchangeProviderNotReadyException(
+                    "La revocation KeyNest doit etre confirmee par le fournisseur ; aucun succes local n'est enregistre.");
+        }
 
         code.setStatus(CodeStatus.CANCELLED);
         codeRepository.save(code);
@@ -292,11 +271,11 @@ public class KeyExchangeService {
                 code.getPropertyId(), EventType.CODE_CANCELLED,
                 null, "Code annule par " + userId, EventSource.MANUAL);
 
-        log.info("Code d'echange annule: {} (id={}) par user={}", code.getCode(), codeId, userId);
+        log.info("Code d'echange annule: id={} par user={}", codeId, userId);
     }
 
     // ═══════════════════════════════════════════════════════════════
-    // Page publique de verification (Clenzy KeyVault)
+    // Page publique de verification (Baitly KeyVault)
     // ═══════════════════════════════════════════════════════════════
 
     /**
@@ -425,8 +404,8 @@ public class KeyExchangeService {
                 exchangeCode.getGuestName(), "Action via page publique: " + action,
                 EventSource.PUBLIC_PAGE);
 
-        log.info("Mouvement de cle confirme via page publique: {} (code={}, point={})",
-                action, code, point.getStoreName());
+        log.info("Mouvement de cle confirme via page publique: {} (codeId={}, pointId={})",
+                action, exchangeCode.getId(), point.getId());
     }
 
     // ═══════════════════════════════════════════════════════════════

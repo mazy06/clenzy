@@ -6561,6 +6561,22 @@
     "creating": "Creating…"
   },
   "settings": {
+    "analytics": {
+      "title": "Privacy and usage measurement",
+      "subtitle": "Your personal choice, declined by default.",
+      "toggle": "Share usage statistics with PostHog",
+      "description": "Help improve Baitly by sharing which features and screens you use, with a pseudonymous identifier. This measurement collects no message content, documents, access codes or session recordings.",
+      "withdrawHint": "Optional: declining does not affect access to Baitly. Withdraw consent here at any time. Your choice is saved to your account for this organization.",
+      "busy": "Checking and saving your choice…",
+      "accepted": "Consent saved.",
+      "declined": "Usage measurement disabled.",
+      "unavailable": "Measurement disabled: secure identity unavailable or sign-in in progress.",
+      "dnt": "Your browser requests not to be tracked: collection stays disabled even with consent.",
+      "loadError": "Your choice could not be checked. Measurement stays disabled. Retry to load your settings.",
+      "saveError": "Your consent could not be saved. Measurement stays disabled.",
+      "withdrawError": "Measurement has stopped in this tab, but withdrawal could not be saved to your account. Retry to apply it to your other devices.",
+      "retry": "Retry"
+    },
     "title": "Settings",
     "subtitle": "Application configuration",
     "themeMode": {

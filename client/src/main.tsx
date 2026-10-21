@@ -10,7 +10,8 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import * as Sentry from '@sentry/react'
 import { startBaitlyAnalytics } from './services/baitlyAnalytics'
 import { scheduleBaitlyDeferredStartup } from './services/baitlyDeferredStartup'
-import { runtimeEnv, runtimeEnvOr } from './config/runtimeConfig';
+import { runtimeEnv } from './config/runtimeConfig';
+import { baitlySentryOptions } from './services/baitlySentry';
 import App from './modules/App'
 import AppUpdateBanner from './components/AppUpdateBanner'
 import './theme/signature/tokens.css'
@@ -88,23 +89,7 @@ const rtlCache = createCache({
 // ─── Sentry — Error tracking & performance monitoring ────────────────────────
 const sentryDsn = runtimeEnv('VITE_SENTRY_DSN');
 if (sentryDsn) {
-  Sentry.init({
-    dsn: sentryDsn,
-    environment: runtimeEnvOr('VITE_ENV', 'production'),
-    tracesSampleRate: 0.1,
-    replaysSessionSampleRate: 0.1,
-    replaysOnErrorSampleRate: 1.0,
-    integrations: [
-      Sentry.browserTracingIntegration(),
-    ],
-  });
-  // Session Replay : intégration lourde (instrumentation DOM complète) —
-  // ajoutée à l'idle pour ne pas peser sur le boot (audit perf). Les erreurs
-  // survenant avant l'ajout sont capturées normalement, sans replay associé.
-  scheduleBaitlyDeferredStartup(() => {
-    void import('./services/baitlyReplay').then(({ startBaitlyReplay }) => startBaitlyReplay())
-      .catch(() => { /* Sentry conserve la collecte d'erreurs si Replay est indisponible. */ });
-  });
+  Sentry.init(baitlySentryOptions());
 }
 
 // Optional analytics SDK starts after the planning paint, outside the boot bundle.

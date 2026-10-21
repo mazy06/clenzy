@@ -6547,6 +6547,22 @@
     "creating": "Création…"
   },
   "settings": {
+    "analytics": {
+      "title": "Confidentialité et mesure d’usage",
+      "subtitle": "Votre choix personnel, refusé par défaut.",
+      "toggle": "Partager des statistiques d’usage avec PostHog",
+      "description": "Aidez-nous à améliorer Baitly en partageant les fonctionnalités et écrans utilisés, avec un identifiant pseudonyme. Aucun contenu de message, document, code d’accès ou enregistrement de session n’est collecté par cette mesure.",
+      "withdrawHint": "Facultatif : votre refus ne change pas votre accès à Baitly. Retirez votre accord ici à tout moment. Ce choix est enregistré dans votre compte pour cette organisation.",
+      "busy": "Vérification et enregistrement du choix…",
+      "accepted": "Accord enregistré.",
+      "declined": "Mesure d’usage désactivée.",
+      "unavailable": "Mesure désactivée : identité sécurisée indisponible ou connexion en cours.",
+      "dnt": "Votre navigateur demande de ne pas être suivi : la collecte reste désactivée, même avec votre accord.",
+      "loadError": "Impossible de vérifier votre choix. La mesure reste désactivée. Réessayez pour charger les paramètres.",
+      "saveError": "Votre accord n’a pas été enregistré. La mesure reste désactivée.",
+      "withdrawError": "La mesure est arrêtée dans cet onglet, mais le retrait n’a pas pu être enregistré sur votre compte. Réessayez pour l’appliquer à vos autres appareils.",
+      "retry": "Réessayer"
+    },
     "title": "Paramètres",
     "subtitle": "Configuration de l'application",
     "themeMode": {

@@ -1,14 +1,16 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useLayoutEffect } from 'react';
 import { useLocation } from 'react-router-dom';
-import { baitlyAnalytics as posthog, getBaitlyAnalytics, withBaitlyAnalytics } from '../services/baitlyAnalytics';
+import { baitlyAnalytics as posthog, getBaitlyAnalytics, withBaitlyAnalytics,
+  isBaitlyAnalyticsEnabled, setBaitlyAnalyticsActor, subscribeBaitlyAnalytics } from '../services/baitlyAnalytics';
+import { baitlyAnalyticsActor, baitlyTelemetryScreen } from '../services/baitlyTelemetryPrivacy';
 import { useAuth } from '../hooks/useAuth';
 
-import { runtimeEnv } from '../config/runtimeConfig';
+import { runtimeEnvOr } from '../config/runtimeConfig';
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
-/** Returns true if PostHog was initialized (key is present). */
+/** Configuration alone never grants consent. */
 function isActive(): boolean {
-  return !!runtimeEnv('VITE_POSTHOG_KEY');
+  return isBaitlyAnalyticsEnabled();
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -17,122 +19,47 @@ function isActive(): boolean {
 
 /**
  * PostHog user identification hook.
- * Identifies the current user in PostHog with their metadata
- * (role, organization, subscription plan) for analytics segmentation.
+ * Builds an organization-scoped pseudonym, without names, email or raw IDs.
  *
  * Call this once in App.tsx after authentication.
  */
 export function usePostHogIdentify() {
   const { user, loading } = useAuth();
 
-  useEffect(() => {
-    if (loading || !user || !isActive()) return;
-
-    posthog.identify(user.id, {
-      email: user.email,
-      name: user.fullName || user.username,
-      role: user.platformRole || user.roles?.[0],
-      organization_id: user.organizationId,
-      organization_name: user.organizationName,
-      plan: user.forfait,
-    });
-
-    // Set organization as a group for B2B analytics
-    if (user.organizationId) {
-      posthog.group('organization', String(user.organizationId), {
-        name: user.organizationName,
-        plan: user.forfait,
-      });
+  useLayoutEffect(() => {
+    let cancelled = false;
+    setBaitlyAnalyticsActor(undefined);
+    if (!loading && user?.id && user.organizationId != null) {
+      void baitlyAnalyticsActor(String(user.id), String(user.organizationId), runtimeEnvOr('VITE_ENV', 'production'))
+        .then(actor => { if (!cancelled) setBaitlyAnalyticsActor(actor); })
+        .catch(() => { /* No raw-ID fallback when WebCrypto is unavailable. */ });
     }
-  }, [user, loading]);
+    return () => { cancelled = true; setBaitlyAnalyticsActor(undefined); };
+  }, [user?.id, user?.organizationId, loading]);
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // 2. Page view tracking (named events)
 // ═══════════════════════════════════════════════════════════════════════════════
 
-/** Maps route patterns to readable page names for PostHog events. */
-const PAGE_NAMES: Record<string, string> = {
-  '/dashboard': 'dashboard',
-  '/planning': 'planning',
-  '/reservations': 'reservations',
-  '/properties': 'properties',
-  '/interventions': 'interventions',
-  '/calendar': 'calendar',
-  '/billing': 'billing',
-  '/reports': 'reports',
-  '/teams': 'teams',
-  '/users': 'users',
-  '/settings': 'settings',
-  '/tarification': 'tarification',
-  '/documents': 'documents',
-  '/channels': 'channels',
-  '/channels/reviews': 'reviews',
-  '/dynamic-pricing': 'dynamic_pricing',
-  '/promotions': 'promotions',
-  '/accounting': 'accounting',
-  '/owner-portal': 'owner_portal',
-  '/automation-rules': 'automation_rules',
-  '/portfolios': 'portfolios',
-  '/profile': 'profile',
-  '/notifications': 'notifications',
-  '/contact': 'contact',
-};
-
-/**
- * Resolves a pathname to a named page for analytics.
- * Handles both exact matches and parameterized routes.
- */
-function resolvePageName(pathname: string): string | null {
-  // Exact match
-  if (PAGE_NAMES[pathname]) return PAGE_NAMES[pathname];
-
-  // Parameterized routes: /properties/42 → properties_detail, /properties/42/edit → properties_edit
-  const segments = pathname.split('/').filter(Boolean);
-  if (segments.length >= 2) {
-    const base = `/${segments[0]}`;
-    if (PAGE_NAMES[base]) {
-      const suffix = segments.length >= 3 && segments[2] === 'edit' ? 'edit' : 'detail';
-      // Skip numeric-only segments (IDs)
-      if (/^\d+$/.test(segments[1])) {
-        return `${PAGE_NAMES[base]}_${suffix}`;
-      }
-      // Named sub-routes: /properties/new
-      if (segments[1] === 'new') return `${PAGE_NAMES[base]}_create`;
-    }
-  }
-
-  return null;
-}
-
 /**
  * Tracks named page views on route changes.
- * Emits `$pageview` (already handled by autocapture) PLUS a named event
- * like `page_viewed` with `{ page_name: "dashboard" }` for easy funnel building.
+ * Emits only a static screen name. Autocapture and automatic pageviews are off.
  *
  * Call this once in App.tsx.
  */
 export function usePostHogPageTracking() {
   const location = useLocation();
-  const prevPath = useRef<string | null>(null);
 
   useEffect(() => {
-    if (!isActive()) return;
-
-    const { pathname } = location;
-
-    // Avoid duplicate tracking on the same path
-    if (pathname === prevPath.current) return;
-    prevPath.current = pathname;
-
-    const pageName = resolvePageName(pathname);
-    if (pageName) {
-      posthog.capture('page_viewed', {
-        page_name: pageName,
-        page_path: pathname,
-      });
-    }
-  }, [location]);
+    const track = () => {
+      if (!isActive()) return;
+      const page = baitlyTelemetryScreen(location.pathname);
+      if (page) posthog.capture('page_viewed', { page_name: page });
+    };
+    track();
+    return subscribeBaitlyAnalytics(track);
+  }, [location.pathname]);
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════

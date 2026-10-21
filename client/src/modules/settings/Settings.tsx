@@ -69,6 +69,7 @@ import PrivacyRequestsSection from './PrivacyRequestsSection';
 import NotificationPreferencesCard from './NotificationPreferencesCard';
 import type { NotificationPreferencesHandle } from './NotificationPreferencesCard';
 import MarketingPreferencesCard from './MarketingPreferencesCard';
+import AnalyticsConsentSection from './AnalyticsConsentSection';
 import OrganizationSection from '../organization/OrganizationSection';
 import WhatsAppStatusBanner from '../messaging/WhatsAppStatusBanner';
 import FiscalProfileSection from './FiscalProfileSection';
@@ -808,6 +809,10 @@ export default function Settings() {
                   : null
               }
             />
+          </div>
+
+          <div className="col-span-12 min-[900px]:col-span-6">
+            <AnalyticsConsentSection />
           </div>
 
           {/* Workflow */}

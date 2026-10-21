@@ -27,6 +27,8 @@ const LEGACY_TOKEN_KEYS = [
 ] as const;
 
 export const STORAGE_KEYS = {
+  // Session outbox for withdrawals only. Absence never means consent.
+  ANALYTICS_WITHDRAWALS: 'baitly_analytics_withdrawals',
   // Anonymous, browser-specific cookie choice; never an account preference or identifier.
   SITE_COOKIE_CHOICE: 'baitly_site_cookie_choice',
   // Brouillon de parcours public : sessionStorage uniquement, aucun secret Stripe.
@@ -350,3 +352,19 @@ const storageService = {
 };
 
 export default storageService;
+
+/** A pending withdrawal survives reload; the backend remains the source of truth.
+ * Only scoped pseudonyms, never tokens or a positive consent, enter this outbox. */
+export function hasPendingAnalyticsWithdrawal(scope: string): boolean {
+  try { return JSON.parse(sessionStorage.getItem(STORAGE_KEYS.ANALYTICS_WITHDRAWALS) || '{}')[scope] === true; }
+  catch { return true; }
+}
+
+export function setPendingAnalyticsWithdrawal(scope: string, pending: boolean): void {
+  try {
+    const entries = JSON.parse(sessionStorage.getItem(STORAGE_KEYS.ANALYTICS_WITHDRAWALS) || '{}');
+    if (pending) entries[scope] = true;
+    else delete entries[scope];
+    sessionStorage.setItem(STORAGE_KEYS.ANALYTICS_WITHDRAWALS, JSON.stringify(entries));
+  } catch { /* The live consent gate still stays closed. */ }
+}

@@ -1,6 +1,7 @@
 package com.clenzy.controller;
 
 import com.clenzy.dto.keyexchange.*;
+import com.clenzy.exception.KeyExchangeProviderNotReadyException;
 import com.clenzy.integration.keynest.KeyNestApiService;
 import com.clenzy.service.KeyExchangeService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -19,7 +20,7 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * Controller pour la gestion des echanges de cles (KeyNest + Clenzy KeyVault).
+ * Controller pour la gestion des echanges de cles (KeyNest + Baitly KeyVault).
  *
  * Endpoints :
  * - GET    /api/key-exchange/points                        → liste des points
@@ -33,7 +34,7 @@ import java.util.Map;
  */
 @RestController
 @RequestMapping("/api/key-exchange")
-@Tag(name = "Key Exchange", description = "Gestion des echanges de cles (KeyNest + Clenzy KeyVault)")
+@Tag(name = "Key Exchange", description = "Gestion des echanges de cles (KeyNest + Baitly KeyVault)")
 @PreAuthorize("isAuthenticated()")
 public class KeyExchangeController {
 
@@ -60,7 +61,7 @@ public class KeyExchangeController {
 
     @PostMapping("/points")
     @Operation(summary = "Creer un point d'echange",
-            description = "Cree un nouveau point lie a une propriete (KeyNest ou Clenzy KeyVault)")
+            description = "Cree un nouveau point lie a une propriete (KeyNest ou Baitly KeyVault)")
     public ResponseEntity<?> createPoint(@AuthenticationPrincipal Jwt jwt,
                                           @Valid @RequestBody CreateKeyExchangePointDto dto) {
         String userId = jwt.getSubject();
@@ -116,13 +117,16 @@ public class KeyExchangeController {
 
     @PostMapping("/codes")
     @Operation(summary = "Generer un code d'echange",
-            description = "Genere un nouveau code (Clenzy: 6 chiffres, KeyNest: via API)")
+            description = "Genere un code Baitly KeyVault ; KeyNest indisponible avant qualification fournisseur")
     public ResponseEntity<?> generateCode(@AuthenticationPrincipal Jwt jwt,
                                            @Valid @RequestBody CreateKeyExchangeCodeDto dto) {
         String userId = jwt.getSubject();
         try {
             KeyExchangeCodeDto code = keyExchangeService.generateCode(userId, dto);
             return ResponseEntity.ok(code);
+        } catch (KeyExchangeProviderNotReadyException e) {
+            return ResponseEntity.status(503).body(Map.of(
+                    "error", "provider_not_ready", "message", e.getMessage()));
         } catch (IllegalArgumentException | IllegalStateException e) {
             return ResponseEntity.badRequest().body(Map.of(
                     "error", "validation_error",
@@ -148,6 +152,9 @@ public class KeyExchangeController {
                     "status", "cancelled",
                     "message", "Code annule"
             ));
+        } catch (KeyExchangeProviderNotReadyException e) {
+            return ResponseEntity.status(503).body(Map.of(
+                    "error", "provider_not_ready", "message", e.getMessage()));
         } catch (IllegalArgumentException | IllegalStateException e) {
             return ResponseEntity.badRequest().body(Map.of(
                     "error", "validation_error",
