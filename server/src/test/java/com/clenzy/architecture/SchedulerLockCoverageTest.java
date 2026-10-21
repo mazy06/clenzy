@@ -39,6 +39,8 @@ class SchedulerLockCoverageTest {
      * <p><b>B — at-least-once assume et documente</b> dans la classe concernee.</p>
      * <p><b>C — sans effet externe</b> : ecriture idempotente, purge bornee, lecture ou log.
      * Un doublon y coute au pire du travail refait, jamais un effet visible chez un tiers.</p>
+     * <p><b>D — exclusion distribuee detenue par le service</b> : verrou SQL ou bail Redis
+     * pendant le travail effectif, y compris apres delegation a un worker asynchrone.</p>
      */
     private static final Set<String> EXEMPTIONS_DELIBEREES = Set.of(
             // A — etat local a l'instance
@@ -53,6 +55,18 @@ class SchedulerLockCoverageTest {
             "OutboxRelay#relayPendingEvents",
             "OutboxRelay#retryFailedEvents",
             "OutboxRelay#cleanupSentEvents",
+
+            // D — le verrou est pris par le service, pas par le declencheur.
+            // BaitlyCrmEnrichmentRuns.claim : advisory 1875440582 + bail durable et completion fencee.
+            "BaitlyCrmEnrichmentScheduler#process",
+            // BaitlyCrmLocationBatches.tick : advisory transactionnel 1875440576.
+            "BaitlyCrmLocationBatchScheduler#process",
+            // BaitlyDirectoryCountrySync.synchronize : bail Redis par pays, renouvele et fence en SQL.
+            "BaitlyDirectoryCountryScheduler#tick",
+            // BaitlyDirectoryMapIndex.rebuild : advisory transactionnel 1875440589.
+            "BaitlyDirectoryMapIndexScheduler#tick",
+            // BaitlyNationalDirectorySync et BaitlyNationalOsmEnrichment : advisory de session 1875440583.
+            "BaitlyNationalDirectoryScheduler#tick",
 
             // C — sans effet externe
             "AirbnbSyncScheduler#cleanupOldWebhookEvents",

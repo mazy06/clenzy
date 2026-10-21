@@ -17,7 +17,12 @@ class BaitlyProfessionalDirectoryTest {
     ObjectMapper mapper=new ObjectMapper().registerModule(new JavaTimeModule());
     BaitlyProfessionalDirectory service=new BaitlyProfessionalDirectory(db,client,redis,mapper);
     UUID token=UUID.randomUUID();
-    @BeforeEach void setup(){when(redis.opsForValue()).thenReturn(values);}
+    @BeforeEach void setup(){
+        // The constructor inspects the datasource to configure bounded map reads.
+        verify(db).getDataSource();
+        clearInvocations(db);
+        when(redis.opsForValue()).thenReturn(values);
+    }
     @Test void expiredTicketCannotMutate(){assertThatThrownBy(()->service.confirmBusiness("actor",new BaitlyProfessionalDirectory.Choice(token,0))).isInstanceOf(ResponseStatusException.class);verifyNoInteractions(db,client);}
     @Test void otherActorCannotReplay() throws Exception {
         var ticket=new BaitlyProfessionalDirectory.Ticket("other","SIRENE",null,null,Instant.now(),List.of(),List.of());when(values.get(anyString())).thenReturn(mapper.writeValueAsString(ticket));
