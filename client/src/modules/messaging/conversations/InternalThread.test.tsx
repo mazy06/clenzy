@@ -93,4 +93,15 @@ describe('InternalThread', () => {
       expect.any(Object),
     );
   });
+
+  it('ouvre une discussion archivée en lecture seule sans proposer d’envoi ni de suggestion', () => {
+    render(<InternalThread thread={thread} onArchived={vi.fn()} archived />);
+    expect(screen.getByText('Le ménage est-il fait ?')).toBeInTheDocument();
+    expect(screen.getByRole('textbox')).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'Envoyer' })).toBeDisabled();
+    expect(screen.queryByRole('button', { name: 'Suggérer une réponse' })).toBeNull();
+    fireEvent.keyDown(screen.getByRole('textbox'), { key: 'Enter' });
+    expect(api.reply).not.toHaveBeenCalled();
+    expect(api.replyInThread).not.toHaveBeenCalled();
+  });
 });

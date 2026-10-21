@@ -203,7 +203,7 @@ export function usePropertiesReport(period: DashboardPeriod = 'month'): ReportCo
 
 const PropertiesReport: React.FC<{ period?: DashboardPeriod }> = ({ period = 'month' }) => {
   const content = usePropertiesReport(period);
-  return <ReportView content={content} />;
+  return <ReportView content={content} report="properties" />;
 };
 
 export default PropertiesReport;

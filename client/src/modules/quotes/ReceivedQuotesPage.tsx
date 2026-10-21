@@ -14,6 +14,10 @@ import QuoteCard from './QuoteCard';
 import { PROVIDER_FILTERS } from './quotePresentation';
 import { useQuoteTransition, useReceivedQuotes } from '../../hooks/useQuoteRequests';
 import type { QuoteRequestDto } from '../../services/api/quoteRequestsApi';
+import BaitlyQuoteStatusFilter from './BaitlyQuoteStatusFilter';
+import './baitly-quotes.css';
+
+const FILTER_VIEWS = ['ALL', 'DECIDE', 'WAITING', 'ACCEPTED'] as const;
 
 /**
  * L'espace prestataire : ce qui m'est adressé.
@@ -92,21 +96,14 @@ export default function ReceivedQuotesPage() {
         actions={<Button variant="outline" size="sm" asChild><Link to="/devis">{t('marketplaceQuotes.sent')}</Link></Button>}
         title={t('marketplaceQuotes.received')}
         subtitle={t('marketplaceQuotes.receivedHelp')}
+        filtersActive={filterIndex !== 0}
+        inlineControls={<BaitlyQuoteStatusFilter audience="provider" value={FILTER_VIEWS[filterIndex]}
+          onChange={view => {
+            const index = FILTER_VIEWS.findIndex(candidate => candidate === view);
+            if (index < 0) return;
+            setFilterIndex(index); setPage(0); resetAnswer(); setDecliningId(null);
+          }} />}
       />
-
-      <div className="flex shrink-0 flex-wrap gap-2">
-        {PROVIDER_FILTERS.map((option, index) => (
-          <Button
-            key={t('marketplaceQuotes.' + ["all", "toQuote", "waitingClient", "accepted"][index])}
-            size="sm"
-            variant={index === filterIndex ? 'default' : 'outline'}
-            aria-pressed={index === filterIndex}
-            onClick={() => { setFilterIndex(index); setPage(0); }}
-          >
-            {t('marketplaceQuotes.' + ["all", "toQuote", "waitingClient", "accepted"][index])}
-          </Button>
-        ))}
-      </div>
 
       {transition.isError && <p role="alert" className="text-sm text-destructive-ink">
         {(transition.error as Error)?.message || t('marketplaceWorkflow.sendFailed')}

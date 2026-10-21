@@ -12,6 +12,16 @@ beforeEach(()=>{
 });
 afterEach(()=>{cleanup();vi.restoreAllMocks();});
 function setup(canManage=true,canSend=true){render(<QueryClientProvider client={new QueryClient({defaultOptions:{queries:{retry:false},mutations:{retry:false}}})}><BaitlyCrmCampaigns org={10} canManage={canManage} canSend={canSend} /></QueryClientProvider>);}
+it('guides an empty campaign list into preparation without creating or sending anything',async()=>{
+  const create=vi.spyOn(baitlyCampaignsApi,'create');const dispatch=vi.spyOn(baitlyCampaignsApi,'dispatch');setup();
+  fireEvent.click(await screen.findByRole('button',{name:'Créer ma première campagne'}));
+  expect(screen.getByRole('button',{name:'1 Destinataires'})).toBeInTheDocument();
+  expect(create).not.toHaveBeenCalled();expect(dispatch).not.toHaveBeenCalled();
+});
+it('does not offer campaign creation to a read-only user in the empty state',async()=>{
+  setup(false,false);await screen.findByRole('heading',{name:'Lancez votre première conversation'});
+  expect(screen.queryByRole('button',{name:'Créer ma première campagne'})).not.toBeInTheDocument();
+});
 it('prepares a scoped campaign without sending and requires a new preview when its segment changes',async()=>{
   const create=vi.spyOn(baitlyCampaignsApi,'create').mockResolvedValue(campaign);const dispatch=vi.spyOn(baitlyCampaignsApi,'dispatch').mockResolvedValue({accepted:1,unknown:0,skipped:0});
   const preview=vi.spyOn(baitlyCampaignsApi,'preview').mockResolvedValue({total:2,eligible:1,exclusions:{REQUEST_ONLY:1},content:[{id:2,name:'Alice',email:'alice@example.com',reason:'ELIGIBLE'},{id:3,name:'Bob',reason:'REQUEST_ONLY'}],page:0,size:25});setup();

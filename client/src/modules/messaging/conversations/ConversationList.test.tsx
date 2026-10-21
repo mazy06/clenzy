@@ -71,7 +71,8 @@ describe('ConversationList', () => {
     expect(tabs.getByRole('tab', { name: /^Formulaires\s*1$/ })).toBeTruthy();
     expect(tabs.getByRole('tab', { name: 'Voyageurs' })).toBeTruthy();
     // L'archive est un picto seul, nommé pour les lecteurs d'écran.
-    expect(tabs.getByRole('tab', { name: 'Archivés' }).textContent).toBe('');
+    expect(tabs.queryByRole('tab', { name: 'Archivés' })).toBeNull();
+    expect(screen.getByRole('button', { name: 'Archivés' })).toHaveAttribute('aria-pressed', 'false');
   });
 
   it('masque le filtre Formulaires pour un rôle sans accès', () => {
@@ -82,6 +83,24 @@ describe('ConversationList', () => {
   it('remonte le changement de filtre', () => {
     const { onFilterChange } = renderList();
     fireEvent.click(screen.getByRole('tab', { name: /^Non lus/ }));
+    expect(onFilterChange).toHaveBeenCalledWith('unread');
+  });
+
+  it('ouvre les archives depuis le titre et permet de revenir à la boîte', () => {
+    const { onFilterChange } = renderList();
+    fireEvent.click(screen.getByRole('button', { name: 'Archivés' }));
+    expect(onFilterChange).toHaveBeenCalledWith('archived');
+    cleanup();
+    const archived = renderList({ filter: 'archived' });
+    expect(screen.getByRole('button', { name: 'Archivés' })).toHaveAttribute('aria-pressed', 'true');
+    fireEvent.click(screen.getByRole('button', { name: 'Archivés' }));
+    expect(archived.onFilterChange).toHaveBeenCalledWith('all');
+  });
+
+  it('permet de parcourir les onglets au clavier', () => {
+    const { onFilterChange } = renderList();
+    fireEvent.keyDown(screen.getByRole('tab', { name: 'Tous' }), { key: 'ArrowRight' });
+    expect(screen.getByRole('tab', { name: /^Non lus/ })).toHaveFocus();
     expect(onFilterChange).toHaveBeenCalledWith('unread');
   });
 

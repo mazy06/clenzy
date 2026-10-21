@@ -176,7 +176,7 @@ export function useInterventionsReport(): ReportContent {
 
 const InterventionsReport: React.FC = () => {
   const content = useInterventionsReport();
-  return <ReportView content={content} />;
+  return <ReportView content={content} report="interventions" />;
 };
 
 export default InterventionsReport;

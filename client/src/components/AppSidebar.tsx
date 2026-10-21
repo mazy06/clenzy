@@ -173,7 +173,7 @@ function NavScreenRow({
   /** Où vit la ligne : dans le volet du hub, ou dans le sous-menu déplié. */
   variant: 'flyout' | 'sub';
   isActive: boolean;
-  onNavigate: (path: string) => void;
+  onNavigate: (path: string, keepSidebarOpen?: boolean) => void;
   /** Referme le volet du hub après un choix (mode replié). */
   onDone?: () => void;
   side: 'left' | 'right';
@@ -222,6 +222,7 @@ function NavScreenRow({
       side={side}
       isActive={isActive}
       onPrefetch={prefetch}
+      onEnter={(key) => onNavigate(`${child.path}?tab=${key}`, true)}
       onSelect={(key) => go(`${child.path}?tab=${key}`)}
     >
       <span className="truncate">{child.text}</span>
@@ -233,7 +234,7 @@ interface NavEntryProps {
   item: MenuItem;
   isActive: boolean;
   isSubActive: (paths: string[], path: string) => boolean;
-  onNavigate: (path: string) => void;
+  onNavigate: (path: string, keepSidebarOpen?: boolean) => void;
   tooltipSide: 'left' | 'right';
 }
 
@@ -274,6 +275,7 @@ function NavEntry({ item, isActive, isSubActive, onNavigate, tooltipSide }: NavE
         activeKey={activeTabKey(location, item.path, screenTabs)}
         side={tooltipSide}
         isActive={isActive}
+        onEnter={(key) => onNavigate(`${item.path}?tab=${key}`, true)}
         onSelect={(key) => onNavigate(`${item.path}?tab=${key}`)}
         onPrefetch={prefetch}
         tooltip={{ children: item.text, side: tooltipSide }}
@@ -336,7 +338,7 @@ function NavEntry({ item, isActive, isSubActive, onNavigate, tooltipSide }: NavE
                 <PopoverTrigger
                   onMouseEnter={prefetch}
                   onFocus={prefetch}
-                  onClick={() => onNavigate(item.path)}
+                  onClick={() => onNavigate(item.path, true)}
                 >
                   {label}
                   <NavBadge item={item} />
@@ -388,7 +390,7 @@ function NavEntry({ item, isActive, isSubActive, onNavigate, tooltipSide }: NavE
                 return;
               }
               setSubMenuOpen(true);
-              onNavigate(item.path);
+              onNavigate(item.path, true);
             }}
             className="max-lg:h-10"
           >
@@ -467,9 +469,9 @@ export default function AppSidebar({
     user?.username?.charAt(0)?.toUpperCase() ||
     'U';
 
-  const handleNavigation = (path: string) => {
+  const handleNavigation = (path: string, keepSidebarOpen = false) => {
     navigate(path);
-    if (isMobile) setOpenMobile(false);
+    if (isMobile && !keepSidebarOpen) setOpenMobile(false);
   };
 
   /**

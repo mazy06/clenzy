@@ -316,7 +316,7 @@ export function usePaceReport(): ReportContent {
 
 const PaceReport: React.FC = () => {
   const content = usePaceReport();
-  return <ReportView content={content} />;
+  return <ReportView content={content} report="pace" />;
 };
 
 export default PaceReport;

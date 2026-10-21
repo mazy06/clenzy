@@ -103,7 +103,7 @@ export const NAVIGATION_HUBS: HubDef[] = [
     tabs: [
       {
         path: '/documents',
-        translationKey: 'navigation.documents',
+        translationKey: 'navigation.documentLibrary',
         fallbackLabel: 'Documents',
         isAccessible: (a) => has(a, 'documents:view'),
       },

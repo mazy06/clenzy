@@ -1,5 +1,4 @@
 import React, { useMemo, useState } from 'react';
-import { cn } from '../../../utils/cn';
 import {
   Alert,
   AlertDescription,
@@ -18,6 +17,7 @@ import HeaderSearchField from '../../../components/HeaderSearchField';
 import { useTranslation } from '../../../hooks/useTranslation';
 import { type UnifiedConversation, formatConvTime, conversationRawId } from './unified';
 import { groupByBucket, type InboxBucket } from './messagingModel';
+import './baitly-conversation-list.css';
 
 /** Filtres de la liste agrégée — « archived » bascule la source de données. */
 export type InboxFilter = 'all' | 'unread' | 'guests' | 'forms' | 'archived';
@@ -45,8 +45,8 @@ const BUCKET_FALLBACK: Record<InboxBucket, string> = {
 };
 
 /**
- * Rangée de conversation : avatar marqué du canal, nom, contexte (logement),
- * aperçu, heure et non-lus.
+ * Rangée compacte : avatar, titre, aperçu, date et non-lus.
+ * Le contexte reste disponible au survol et dans le fil ouvert.
  *
  * <p>Une conversation NON LUE se lit à trois signes cumulés — nom en gras,
  * aperçu en couleur pleine, compteur — pour qu'elle ressorte d'un coup d'œil
@@ -83,27 +83,16 @@ function ConversationRow({
         name={item.name}
         channel={item.channel}
         group={item.kind === 'internal' && item.thread?.threadId != null}
-        size={40}
+        size={38}
       />
-      <span className="min-w-0 flex-1">
-        <span className="flex items-baseline justify-between gap-2">
-          <span dir="auto" className={cn('truncate text-sm text-foreground', unread ? 'font-semibold' : 'font-medium')}>
-            {item.name}
-          </span>
-          <span className={cn('shrink-0 text-2xs tabular-nums', unread ? 'font-semibold text-foreground' : 'text-faint')}>
-            {formatConvTime(item.lastAt)}
-          </span>
+      <span className="baitly-inbox-copy">
+        <span className="baitly-inbox-title-line">
+          <span dir="auto" className="baitly-inbox-name" title={item.name}>{item.name}</span>
+          <span className="baitly-inbox-date">{formatConvTime(item.lastAt)}</span>
         </span>
-        <span dir="auto" className="block truncate text-2xs text-muted-foreground">{item.context}</span>
-        <span className="flex items-center justify-between gap-2">
-          <span dir="auto" className={cn('block truncate text-xs', unread ? 'font-medium text-foreground' : 'text-muted-foreground')}>
-            {item.preview}
-          </span>
-          {unread && (
-            <Badge className={cn('shrink-0 px-1.5 py-0 text-2xs tabular-nums', onArchive && 'group-hover/row:invisible group-focus-within/row:invisible')}>
-              {item.unreadCount}
-            </Badge>
-          )}
+        <span className="baitly-inbox-preview-line">
+          <span dir="auto" className="baitly-inbox-preview" title={item.context}>{item.preview === '—' ? item.context : item.preview}</span>
+          {unread && <Badge className="baitly-inbox-unread">{item.unreadCount > 99 ? '99+' : item.unreadCount}</Badge>}
         </span>
       </span>
     </>
@@ -112,29 +101,29 @@ function ConversationRow({
   return (
     <li
       data-highlight-id={conversationRawId(item) || undefined}
-      className="group/row relative list-none border-b border-border last:border-b-0"
+      data-unread={unread || undefined}
+      data-active={active || undefined}
+      data-kind={item.kind}
+      className="baitly-inbox-row group/row"
     >
       {onSelect ? (
         <button
           type="button"
           onClick={onSelect}
           aria-current={active || undefined}
-          className={cn(
-            'flex w-full cursor-pointer items-center gap-3 border-0 px-3 py-3 text-start outline-none transition-colors duration-150 focus-visible:bg-accent motion-reduce:transition-none',
-            active ? 'bg-primary-soft' : 'bg-transparent hover:bg-accent',
-          )}
+          className="baitly-inbox-open"
         >
           {body}
         </button>
       ) : (
-        <div className="flex w-full items-center gap-3 px-3 py-3 opacity-90">{body}</div>
+        <div className="baitly-inbox-open">{body}</div>
       )}
 
       {/* Archiver : superposé à la place du compteur, visible au survol ou au focus. */}
       {onArchive && archiveTitle && (
         <Tooltip>
           <TooltipTrigger asChild>
-            <span className="absolute end-2 bottom-2.5 hidden group-focus-within/row:inline-flex group-hover/row:inline-flex">
+            <span className="baitly-inbox-row-action">
               <Button
                 variant="ghost"
                 size="icon-xs"
@@ -154,7 +143,7 @@ function ConversationRow({
       {onRestore && restoreTitle && (
         <Tooltip>
           <TooltipTrigger asChild>
-            <span className="absolute end-2 bottom-2.5 inline-flex">
+            <span className="baitly-inbox-row-action" data-restore="true">
               <Button
                 variant="ghost"
                 size="icon-xs"
@@ -236,12 +225,11 @@ export default function ConversationList({
   // Les effectifs ne s'affichent que là où ils DISENT quelque chose à faire
   // (non lus, formulaires à traiter) : « Tous 12 » répète le sous-titre de
   // l'écran, et quatre pastilles chiffrées ne tiennent pas sur 320 px.
-  const tabs: Array<{ value: InboxFilter; label: string; count?: number; hidden?: boolean; icon?: boolean }> = [
+  const tabs: Array<{ value: InboxFilter; label: string; count?: number; hidden?: boolean }> = [
     { value: 'all', label: t('messagingHub.filters.all', 'Tous') },
     { value: 'unread', label: t('messagingHub.filters.unread', 'Non lus'), count: counts.unread },
     { value: 'guests', label: t('messagingHub.filters.guests', 'Voyageurs') },
     { value: 'forms', label: t('messagingHub.filters.forms', 'Formulaires'), count: counts.forms, hidden: !showFormsFilter },
-    { value: 'archived', label: t('messagingHub.filters.archived', 'Archivés'), icon: true },
   ];
 
   const searchLabel = isArchivedView
@@ -259,16 +247,46 @@ export default function ConversationList({
           : { image: STAGE_IMAGES.inbox, title: t('messagingHub.noConversations', 'Aucune conversation'), hint: '' };
 
   return (
-    <div className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-2xl border border-border bg-card">
+    <div className="baitly-inbox-list">
       <HeaderSearchField value={search} onChange={setSearch} placeholder={searchLabel} />
 
       {/* Filtres : une ligne qui défile plutôt qu'un retour à la ligne — la
           hauteur de l'en-tête ne doit pas bouger selon le nombre de filtres
           visibles, qui dépend du rôle. */}
+      <div className="baitly-inbox-heading">
+        <h2>{t('messagingHub.conversationsTitle', 'Conversations')}</h2>
+        <span className="baitly-inbox-total">{isLoading ? '…' : filtered.length}</span>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <button
+              type="button"
+              className="baitly-inbox-archives"
+              aria-label={t('messagingHub.filters.archived', 'Archivés')}
+              aria-pressed={isArchivedView}
+              onClick={() => onFilterChange(isArchivedView ? 'all' : 'archived')}
+            >
+              <Archive size={16} aria-hidden />
+            </button>
+          </TooltipTrigger>
+          <TooltipContent>{t('messagingHub.filters.archived', 'Archivés')}</TooltipContent>
+        </Tooltip>
+      </div>
       <div
         role="tablist"
         aria-label={t('messagingHub.filtersLabel', 'Filtrer la boîte')}
-        className="flex shrink-0 gap-0.5 overflow-x-auto border-b border-border px-1.5 py-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+        className="baitly-inbox-filters"
+        onKeyDown={(event) => {
+          const rtl = document.documentElement.dir === 'rtl';
+          const step = event.key === 'ArrowRight' ? (rtl ? -1 : 1) : event.key === 'ArrowLeft' ? (rtl ? 1 : -1) : 0;
+          if (!step && event.key !== 'Home' && event.key !== 'End') return;
+          const buttons = Array.from(event.currentTarget.querySelectorAll<HTMLButtonElement>('[role="tab"]'));
+          const current = buttons.indexOf(event.target as HTMLButtonElement);
+          if (current < 0) return;
+          event.preventDefault();
+          const next = event.key === 'Home' ? 0 : event.key === 'End' ? buttons.length - 1 : (current + step + buttons.length) % buttons.length;
+          buttons[next].focus();
+          buttons[next].click();
+        }}
       >
         {tabs.flatMap((tab) => {
           if (tab.hidden) return [];
@@ -279,24 +297,14 @@ export default function ConversationList({
               type="button"
               role="tab"
               aria-selected={active}
-              aria-label={tab.icon ? tab.label : undefined}
-              title={tab.icon ? tab.label : undefined}
+              tabIndex={active || (isArchivedView && tab.value === 'all') ? 0 : -1}
               onClick={() => onFilterChange(tab.value)}
-              className={cn(
-                'inline-flex shrink-0 cursor-pointer items-center gap-1.5 rounded-full border-0 py-1.5 text-xs font-medium transition-colors duration-150 motion-reduce:transition-none',
-                // L'archive est une sortie, pas un filtre de travail : picto seul, au bout de la rangée.
-                tab.icon ? 'ms-auto px-2' : 'px-2',
-                active ? 'bg-primary text-primary-foreground' : 'bg-transparent text-muted-foreground hover:bg-muted hover:text-foreground',
-              )}
+              className="baitly-inbox-filter"
+              data-filter={tab.value}
             >
-              {tab.icon ? <Archive className="size-3.5" aria-hidden /> : tab.label}
+              {tab.label}
               {tab.count != null && tab.count > 0 && (
-                <span
-                  className={cn(
-                    'rounded-full px-1.5 text-2xs tabular-nums leading-4',
-                    active ? 'bg-primary-foreground/20' : 'bg-primary text-primary-foreground',
-                  )}
-                >
+                <span className="baitly-inbox-filter-count">
                   {tab.count}
                 </span>
               )}
@@ -305,7 +313,7 @@ export default function ConversationList({
         })}
       </div>
 
-      <div className="min-h-0 flex-1 overflow-y-auto">
+      <div className="baitly-inbox-scroll">
         {isLoading ? (
           <div role="status" aria-label={t('messagingHub.loading', 'Chargement…')}>
             {Array.from({ length: 6 }, (_, i) => <RowSkeleton key={i} />)}
@@ -324,7 +332,7 @@ export default function ConversationList({
         ) : (
           groups.map((group) => (
             <section key={group.bucket} aria-label={t(`messagingHub.groups.${group.bucket}`, BUCKET_FALLBACK[group.bucket])}>
-              <h3 className="sticky top-0 z-10 m-0 border-b border-border bg-card/95 px-3 py-1.5 text-2xs font-semibold tracking-wide text-muted-foreground uppercase backdrop-blur">
+              <h3 className="baitly-inbox-group">
                 {t(`messagingHub.groups.${group.bucket}`, BUCKET_FALLBACK[group.bucket])}
               </h3>
               <ul className="m-0 p-0">
@@ -336,7 +344,7 @@ export default function ConversationList({
                       active={item.key === selectedKey}
                       // Seuls les formulaires archivés ont un détail consultable —
                       // les conversations archivées se rouvrent avant consultation.
-                      onSelect={item.kind === 'form' ? () => onSelect(item) : undefined}
+                      onSelect={item.kind !== 'channel' ? () => onSelect(item) : undefined}
                       onRestore={() => onRestore(item)}
                       restoreTitle={
                         item.kind === 'form'

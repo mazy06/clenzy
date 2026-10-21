@@ -174,7 +174,7 @@ export function useRevenueReport(period: DashboardPeriod = 'month'): ReportConte
 
 const RevenueReport: React.FC<{ period?: DashboardPeriod }> = ({ period = 'month' }) => {
   const content = useRevenueReport(period);
-  return <ReportView content={content} />;
+  return <ReportView content={content} report="revenue" />;
 };
 
 export default RevenueReport;

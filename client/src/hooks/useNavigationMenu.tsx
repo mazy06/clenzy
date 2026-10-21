@@ -29,7 +29,6 @@ import {
   Description,
   AdminPanelSettings,
   CalendarViewWeek,
-  Contacts,
   Bolt,
   Palette,
   RequestQuote,
@@ -309,12 +308,10 @@ const MENU_ENTRIES: MenuEntryConfig[] = [
     },
   },
   // ── Gestion ──
-  // Contacts = Messagerie · Annuaire
-  { kind: 'hub', hubId: 'contacts', icon: <Contacts /> },
-  // Documents = Documents · Contrats de gestion
-  { kind: 'hub', hubId: 'documents', icon: <Description /> },
-  // Finances = Facturation · Tarification
-  { kind: 'hub', hubId: 'finances', icon: <Euro /> },
+  // Les écrans de gestion sont directement accessibles, avec les mêmes droits.
+  { kind: 'hub-tabs', hubId: 'contacts' },
+  { kind: 'hub-tabs', hubId: 'documents' },
+  { kind: 'hub-tabs', hubId: 'finances' },
   // ── Administration ──
   {
     kind: 'item',
@@ -614,14 +611,12 @@ export const useNavigationMenu = (backgroundReady=true): UseNavigationMenuReturn
     // `user` est un useState (identite stable) : dependre de l'objet entier.
   }, [user, refreshMenu]);
 
-  // Pastille « échecs récents » du hub Documents : envois voyageur + générations
-  // de documents FAILED (7 j). Gaté sur la visibilité du hub → aucun fetch inutile.
-  const documentsHubVisible = menuItems.some((item) => item.id === 'hub:documents');
-  const documentsFailedCount = useDocumentsFailedCount(documentsHubVisible&&backgroundReady);
+  // Les compteurs suivent l'écran concerné après suppression du regroupement.
+  const documentsVisible = menuItems.some((item) => item.path === '/documents');
+  const documentsFailedCount = useDocumentsFailedCount(documentsVisible&&backgroundReady);
 
-  // Pastille « non lus » du hub Contacts : messages un-a-un + fils de groupe.
-  const contactsHubVisible = menuItems.some((item) => item.id === 'hub:contacts');
-  const contactsUnreadCount = useContactUnreadCount(contactsHubVisible&&backgroundReady);
+  const messagingVisible = menuItems.some((item) => item.path === '/contact');
+  const contactsUnreadCount = useContactUnreadCount(messagingVisible&&backgroundReady);
 
   // Mémoriser le résultat + superposer les pastilles dynamiques (« en attente »
   // sur Planning, « échecs récents » sur Documents), hors du flux de construction.
@@ -631,10 +626,10 @@ export const useNavigationMenu = (backgroundReady=true): UseNavigationMenuReturn
       if (item.path === '/planning' && pendingTotal > 0) {
         return { ...item, badge: pendingTotal, badgeColor: 'warning' as const };
       }
-      if (item.id === 'hub:documents' && documentsFailedCount > 0) {
+      if (item.path === '/documents' && documentsFailedCount > 0) {
         return { ...item, badge: documentsFailedCount, badgeColor: 'error' as const };
       }
-      if (item.id === 'hub:contacts' && contactsUnreadCount > 0) {
+      if (item.path === '/contact' && contactsUnreadCount > 0) {
         return { ...item, badge: contactsUnreadCount, badgeColor: 'error' as const };
       }
       return item;

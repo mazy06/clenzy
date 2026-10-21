@@ -3286,6 +3286,7 @@
     "database": "قاعدة البيانات",
     "promoCodes": "رموز ترويج المنصة",
     "documents": "المستندات والاتصالات",
+    "documentLibrary": "المستندات",
     "myProfile": "ملفي الشخصي",
     "logout": "تسجيل الخروج",
     "menu": "القائمة",
@@ -14035,6 +14036,8 @@
     "goToScreen": "الانتقال إلى شاشة…"
   },
   "messagingHub": {
+    "messagePlaceholder": "اكتب رسالتك…",
+    "conversationsTitle": "المحادثات",
     "viewReservation": "عرض الحجز",
     "loading": "جارٍ التحميل…",
     "conversationCount_one": "محادثة واحدة",
@@ -14692,6 +14695,15 @@
       "CANCELLED": "مستبدل أو ملغى"
     }
   },
+  "baitlyQuoteInbox": {
+    "title": "عروض الأسعار",
+    "help": "جميع عروض الأسعار والطلبات، بالاتفاق نفسه المعروض في المحادثات.",
+    "closed": "المرفوضة والمنتهية",
+    "reference": "عرض سعر #{{id}}",
+    "amount": "المبلغ المقترح",
+    "discussion": "المحادثة",
+    "service": "عرض الخدمة"
+  },
   "marketplaceQuotes": {
     "expiredHint": "انتهت صلاحية عرض السعر",
     "accept": "قبول",
@@ -14703,6 +14715,12 @@
     "sentHelp": "الطلبات التي أرسلتها إلى مقدمي الخدمات في السوق.",
     "emptySent": "لا توجد طلبات",
     "emptySentHelp": "تصفح مقدمي الخدمات واطلب عرض سعر من ملفاتهم.",
+    "filterLabel": "تصفية طلباتي",
+    "startTitle": "اعثر على مقدم الخدمة المناسب لاحتياجك القادم",
+    "emptyFilteredTitle": "لا توجد طلبات في هذا العرض",
+    "emptyFilteredHelp": "اعرض جميع طلباتك أو اختر حالة أخرى.",
+    "findProvider": "البحث عن مقدم خدمة",
+    "showAllRequests": "عرض جميع طلباتي",
     "declinePlaceholder": "السبب (اختياري): يساعد مقدم الخدمة على التعديل",
     "declineReason": "سبب الرفض",
     "confirmDecline": "تأكيد الرفض",

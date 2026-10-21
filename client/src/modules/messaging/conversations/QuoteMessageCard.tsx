@@ -1,29 +1,18 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import {
-  Attachment,
-  AttachmentContent,
-  AttachmentDescription,
-  AttachmentMedia,
-  AttachmentTitle,
-  AttachmentTrigger,
   Button,
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
   Spinner,
 } from '../../../components/ui';
 import StatusChip from '../../../components/StatusChip';
-import { CheckCircleOutline, Home, LocationOn, Receipt } from '../../../icons';
+import { CheckCircleOutline, Home, LocationOn } from '../../../icons';
 import { useTranslation } from '../../../hooks/useTranslation';
 import { useNotification } from '../../../hooks/useNotification';
 import { useAuth } from '../../../hooks/useAuth';
 import { formatCurrency } from '../../../utils/currencyUtils';
 import { formatDate } from '../../../utils/formatUtils';
-import { documentsApi } from '../../../services/api/documentsApi';
+import BaitlyQuoteDocument from '../../quotes/BaitlyQuoteDocument';
 import { serviceQuotesApi } from '../../../services/api/serviceQuotesApi';
 import { quoteRequestsApi } from '../../../services/api/quoteRequestsApi';
 import type { QuoteCardPayload } from '../../../services/api/contactApi';
@@ -50,8 +39,6 @@ function QuoteMessageContent({ card }: { card: QuoteCardPayload }) {
   // La decision appartient a la conciergerie et au proprietaire. Le serveur en
   // est l'autorite (`assertCanDecide`) ; l'ecran ne doit pas proposer un geste
   // qui sera refuse — l'intervenant voyait « Accepter » sur son propre devis.
-  const [blobUrl, setBlobUrl] = useState<string | null>(null);
-  const [loadingPdf, setLoadingPdf] = useState(false);
   const [deciding, setDeciding] = useState(false);
   const queryClient = useQueryClient();
 
@@ -66,6 +53,7 @@ function QuoteMessageContent({ card }: { card: QuoteCardPayload }) {
     queryFn: () => serviceQuotesApi.list(card.interventionId!),
     enabled: card.marketplaceRequestId == null && card.interventionId != null,
     staleTime: 30_000,
+    refetchInterval: 15_000,
   });
   const { data: request } = useQuery({
     queryKey: ['quote-requests', 'detail', card.marketplaceRequestId, scope],
@@ -82,35 +70,24 @@ function QuoteMessageContent({ card }: { card: QuoteCardPayload }) {
     refetchInterval: 15_000,
     retry: false,
   });
-  const status = commercial?.status ?? (card.marketplaceRequestId != null
+  const currentQuote = commercial ?? quotes?.find(quote => quote.id === card.quoteId);
+  const status = currentQuote?.status ?? (card.marketplaceRequestId != null
     ? request?.status === 'ACCEPTED' ? 'APPROVED'
       : request?.status === 'DECLINED' ? 'REJECTED'
         : request?.status === 'QUOTED' && !request.expired ? 'RECEIVED' : null
-    : quotes?.find((quote) => quote.id === card.quoteId)?.status ?? null);
-  const documentGenerationId = commercial?.documentGenerationId ?? card.documentGenerationId;
-  const depositAmount = commercial?.depositAmount ?? card.depositAmount;
-  const depositPercent = commercial?.depositPercent ?? card.depositPercent;
+    : null);
+  const documentGenerationId = currentQuote ? currentQuote.documentGenerationId : card.documentGenerationId;
+  const amount = currentQuote?.amount ?? card.amount;
+  const currency = currentQuote?.currency ?? card.currency;
+  const validUntil = currentQuote ? currentQuote.validUntil : card.validUntil;
+  const lines = currentQuote?.lines ?? card.lines;
+  const depositAmount = currentQuote ? currentQuote.depositAmount : card.depositAmount;
+  const depositPercent = currentQuote ? currentQuote.depositPercent : card.depositPercent;
   const decision = status === 'APPROVED' || status === 'REJECTED' ? status : null;
   const canDecide = hasAnyRole(['SUPER_ADMIN', 'SUPER_MANAGER', 'HOST'])
     && (card.marketplaceRequestId == null || request?.requesterOrganizationId === user?.organizationId);
 
-  const fileName = `devis-${commercial?.id ?? card.quoteId}.pdf`;
   const interventionId = request?.interventionId ?? card.interventionId;
-
-  const loadPdf = async () => {
-    if (blobUrl || loadingPdf || documentGenerationId == null) return;
-    setLoadingPdf(true);
-    try {
-      setBlobUrl(await documentsApi.fetchGenerationBlobUrl(documentGenerationId));
-    } catch {
-      setBlobUrl(null);
-    } finally {
-      setLoadingPdf(false);
-    }
-  };
-
-  // L'URL d'objet immobilise le PDF en memoire tant qu'on ne la libere pas.
-  useEffect(() => () => { if (blobUrl) URL.revokeObjectURL(blobUrl); }, [blobUrl]);
 
   const decide = async (accept: boolean) => {
     setDeciding(true);
@@ -134,10 +111,10 @@ function QuoteMessageContent({ card }: { card: QuoteCardPayload }) {
   };
 
   return (
-    <span className="flex w-full max-w-[340px] flex-col gap-2 p-3">
+    <article className="baitly-thread-quote" data-status={status ?? undefined}>
       {/* L'intervention concernee — sans elle, un montant flotte. */}
-      <span className="flex items-start gap-2">
-        <span className="mt-px inline-flex shrink-0 text-muted-foreground">
+      <span className="baitly-thread-quote-heading">
+        <span className="baitly-thread-quote-icon">
           <Home size={15} strokeWidth={1.75} />
         </span>
         <span className="min-w-0">
@@ -148,7 +125,7 @@ function QuoteMessageContent({ card }: { card: QuoteCardPayload }) {
             <span className="block text-xs text-muted-foreground">{card.propertyName}</span>
           )}
           {card.propertyAddress && (
-            <span className="mt-0.5 flex items-center gap-1 text-2xs text-faint">
+            <span className="mt-0.5 flex items-center gap-1 text-2xs text-muted-foreground">
               <LocationOn size={11} strokeWidth={1.75} />
               {card.propertyAddress}
             </span>
@@ -156,10 +133,10 @@ function QuoteMessageContent({ card }: { card: QuoteCardPayload }) {
         </span>
       </span>
 
-      <span className="flex flex-wrap items-baseline gap-x-2 border-t border-solid border-border pt-2">
+      <span className="baitly-thread-quote-summary">
         {status === 'APPROVED' && <span className="text-xs text-muted-foreground">{t('quoteAmendments.initial')}</span>}
-        <span className="text-[17px] font-semibold tabular-nums text-foreground">
-          {formatCurrency(card.amount, card.currency)}
+        <span className="baitly-thread-quote-amount">
+          {formatCurrency(amount, currency)}
         </span>
         {card.providerName && (
           <span className="text-xs text-muted-foreground">{card.providerName}</span>
@@ -176,16 +153,16 @@ function QuoteMessageContent({ card }: { card: QuoteCardPayload }) {
         )}
       </span>
 
-      {(card.lines?.length ?? 0) > 0 && (
+      {(lines?.length ?? 0) > 0 && (
         <span className="flex flex-col gap-0.5">
-          {card.lines!.map((line, index) => (
+          {lines!.map((line, index) => (
             <span key={`${line.label}-${index}`} className="flex items-baseline justify-between gap-3 text-xs">
               <span className="min-w-0 truncate text-muted-foreground">
                 {line.label}
                 {line.quantity > 1 && <span className="ms-1 tabular-nums">× {line.quantity}</span>}
               </span>
               <span className="shrink-0 tabular-nums text-foreground">
-                {formatCurrency(line.unitPrice * (line.quantity || 1), card.currency)}
+                {formatCurrency(line.unitPrice * (line.quantity || 1), currency)}
               </span>
             </span>
           ))}
@@ -203,71 +180,29 @@ function QuoteMessageContent({ card }: { card: QuoteCardPayload }) {
         <span className="rounded-md bg-warning-soft px-2 py-1 text-xs text-warning-ink">
           {t('messagingHub.quote.deposit',
             'Acompte de {{amount}} à la validation ({{percent}} % du devis).', {
-              amount: formatCurrency(depositAmount, card.currency),
+              amount: formatCurrency(depositAmount, currency),
               percent: depositPercent ?? 0,
             })}
         </span>
       )}
 
-      {(card.earliestStartDate || card.validUntil) && (
-        <span className="text-2xs tabular-nums text-faint">
+      {(card.earliestStartDate || validUntil) && (
+        <span className="text-2xs tabular-nums text-muted-foreground">
           {[
             card.earliestStartDate && t('interventions.quotes.fromDate',
               'dispo. dès le {{date}}', { date: formatDate(card.earliestStartDate) }),
-            card.validUntil && t('interventions.quotes.untilDate',
-              'valable jusqu’au {{date}}', { date: formatDate(card.validUntil) }),
+            validUntil && t('interventions.quotes.untilDate',
+              'valable jusqu’au {{date}}', { date: formatDate(validUntil) }),
           ].filter(Boolean).join(' · ')}
         </span>
       )}
 
       {/* Le PDF, ouvrable sans quitter la discussion. */}
-      {documentGenerationId != null && (
-        <Dialog onOpenChange={(open) => { if (open) loadPdf(); }}>
-          <Attachment className="w-full">
-            <AttachmentMedia>
-              <Receipt />
-            </AttachmentMedia>
-            <AttachmentContent>
-              <AttachmentTitle>{fileName}</AttachmentTitle>
-              <AttachmentDescription>
-                {t('interventions.quotes.openPreview', 'Ouvrir l’aperçu')}
-              </AttachmentDescription>
-            </AttachmentContent>
-            <DialogTrigger asChild>
-              <AttachmentTrigger aria-label={t('interventions.quotes.preview', 'Aperçu du devis')} />
-            </DialogTrigger>
-          </Attachment>
-          <DialogContent className="sm:max-w-3xl">
-            <DialogHeader>
-              <DialogTitle>{fileName}</DialogTitle>
-            </DialogHeader>
-            {loadingPdf ? (
-              <div className="flex h-[60vh] items-center justify-center"><Spinner className="size-8" /></div>
-            ) : blobUrl ? (
-              <>
-                <iframe src={blobUrl} title={fileName}
-                  className="h-[60vh] w-full rounded-md border border-solid border-border" />
-                <div className="flex justify-end text-xs">
-                  <a href={blobUrl} target="_blank" rel="noopener noreferrer"
-                    className="text-primary underline-offset-2 hover:underline">
-                    {t('interventions.quotes.openInTab', 'Ouvrir dans un nouvel onglet')}
-                  </a>
-                </div>
-              </>
-            ) : (
-              <p className="m-0 py-8 text-center text-sm text-muted-foreground">
-                {t('interventions.quotes.previewFailed', 'Le document n’a pas pu être chargé.')}
-              </p>
-            )}
-          </DialogContent>
-        </Dialog>
-      )}
+      {documentGenerationId != null && <BaitlyQuoteDocument generationId={documentGenerationId} quoteId={commercial?.id ?? card.quoteId} />}
 
-      {/* La decision se prend ici : c'est le propriétaire ou la conciergerie
-          qui tranche, et c'est dans ce fil qu'on leur a soumis le prix. */}
       {interventionId != null && (
         <Link to={`/interventions/${interventionId}`}
-          className="cursor-pointer text-xs text-primary underline underline-offset-2 focus-visible:outline focus-visible:outline-2">
+          className="baitly-thread-quote-link">
           {t('payments.history.viewIntervention', "Voir l'intervention")}
         </Link>
       )}
@@ -291,6 +226,6 @@ function QuoteMessageContent({ card }: { card: QuoteCardPayload }) {
           </Button>
         </span>
       )}
-    </span>
+    </article>
   );
 }

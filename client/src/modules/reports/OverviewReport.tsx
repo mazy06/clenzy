@@ -82,7 +82,7 @@ export function useOverviewReport(period: DashboardPeriod = 'month'): ReportCont
 
   const recommendations: SignalItem[] = (analytics?.recommendations ?? []).map((reco) => ({
     id: reco.id,
-    tone: reco.priority === 'high' ? 'warning' : reco.priority === 'medium' ? 'info' : 'success',
+    tone: reco.priority === 'high' ? 'warning' : 'info',
     title: reco.title,
     description: reco.description,
     meta: `${format.money(reco.estimatedImpact)} · ${reco.confidence} % ${t('reports.overview.confidence', 'de confiance')}`,
@@ -210,7 +210,7 @@ export function useOverviewReport(period: DashboardPeriod = 'month'): ReportCont
 
 const OverviewReport: React.FC<{ period?: DashboardPeriod }> = ({ period = 'month' }) => {
   const content = useOverviewReport(period);
-  return <ReportView content={content} />;
+  return <ReportView content={content} report="overview" />;
 };
 
 export default OverviewReport;

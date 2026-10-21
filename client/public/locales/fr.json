@@ -3232,6 +3232,7 @@
     "promoCodes": "Codes promo plateforme",
     "shop": "Boutique",
     "documents": "Documents & Communications",
+    "documentLibrary": "Documents",
     "myProfile": "Mon profil",
     "logout": "Déconnexion",
     "menu": "Menu",
@@ -14081,6 +14082,8 @@
     "goToScreen": "Aller à un écran…"
   },
   "messagingHub": {
+    "messagePlaceholder": "Écrivez votre message…",
+    "conversationsTitle": "Conversations",
     "viewReservation": "Voir la réservation",
     "loading": "Chargement…",
     "conversationCount_one": "{{count}} conversation",
@@ -14738,6 +14741,15 @@
       "CANCELLED": "Remplacé ou annulé"
     }
   },
+  "baitlyQuoteInbox": {
+    "title": "Devis",
+    "help": "Tous vos devis et demandes, avec le même accord que dans les discussions.",
+    "closed": "Écartés et expirés",
+    "reference": "Devis #{{id}}",
+    "amount": "Montant proposé",
+    "discussion": "Discussion",
+    "service": "Voir la prestation"
+  },
   "marketplaceQuotes": {
     "expiredHint": "La validité de ce devis est dépassée",
     "accept": "Accepter",
@@ -14749,6 +14761,12 @@
     "sentHelp": "Ce que vous avez demandé aux prestataires de la place de marché.",
     "emptySent": "Aucune demande",
     "emptySentHelp": "Parcourez le catalogue des prestataires et demandez un devis depuis leur fiche.",
+    "filterLabel": "Filtrer mes demandes",
+    "startTitle": "Trouvez le bon prestataire pour votre prochain besoin",
+    "emptyFilteredTitle": "Aucune demande dans cette vue",
+    "emptyFilteredHelp": "Consultez toutes vos demandes ou sélectionnez un autre statut.",
+    "findProvider": "Trouver un prestataire",
+    "showAllRequests": "Voir toutes mes demandes",
     "declinePlaceholder": "Pourquoi (facultatif) : cela aide le prestataire à ajuster",
     "declineReason": "Motif du refus",
     "confirmDecline": "Confirmer le refus",

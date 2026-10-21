@@ -4,7 +4,7 @@ import { STAGE_IMAGES as I } from '../baitly/stageImages';
 export const FIRST_USE_MODULES = {
   reservations: { path: '/reservations', title: 'reservations.title', screens: ['reservations'] },
   interventions: { path: '/interventions', title: 'workOrders.title', screens: ['calendar', 'service-requests', 'interventions', 'issues'] },
-  quotes: { path: '/devis', title: 'marketplaceQuotes.sentTitle', screens: ['quotes'] },
+  quotes: { path: '/devis', title: 'baitlyQuoteInbox.title', screens: ['quotes'] },
   messaging: { path: '/contact', title: 'messagingHub.title', screens: ['messaging'] },
   contracts: { path: '/contracts', title: 'contracts.title', screens: ['contracts'] },
   billing: { path: '/billing', title: 'tabHeaders.billing.title', screens: ['payments', 'invoices', 'wallets', 'payouts', 'expenses', 'housekeeper-payouts', 'reports'] },

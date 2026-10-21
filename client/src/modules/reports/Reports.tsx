@@ -26,6 +26,7 @@ import PaceReport from './PaceReport';
 import ReportComposer from './document/ReportComposer';
 import type { DashboardPeriod, DateFilterOption } from '../dashboard/DashboardDateFilter';
 import PeriodSegmented from './PeriodSegmented';
+import './baitly-reports.css';
 
 interface ReportTab {
   id: string;
@@ -142,7 +143,7 @@ const PERIOD_OPTIONS: DateFilterOption<DashboardPeriod>[] = [
   { value: 'year', label: '1 an' },
 ];
 
-const TAB_PANEL_CLASS = 'pt-[9px]';
+const TAB_PANEL_CLASS = 'baitly-reports-content';
 
 const Reports: React.FC = () => {
   const { hasPermissionAsync } = useAuth();

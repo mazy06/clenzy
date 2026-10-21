@@ -39,7 +39,7 @@ it.each(['HOST','SUPER_ADMIN','SUPER_MANAGER','TECHNICIAN'])('uses the same read
  for(const request of [prospectsApi.access,prospectsApi.getAll,baitlyCrmDetailsApi.list,baitlyCrmLocationsApi.list])expect(request).not.toHaveBeenCalled();
  for(const label of ['Ajouter un contact','Importer un CSV','Enrichir et localiser','À localiser','Sélection multiple sur la carte'])expect(screen.queryByRole('button',{name:label})).not.toBeInTheDocument();
  expect(screen.queryByRole('checkbox')).not.toBeInTheDocument();
- const header=screen.getByRole('banner');expect(within(header).getByRole('textbox',{name:'Ville'})).toBeInTheDocument();expect(within(header).getByRole('combobox',{name:'Type de service'})).toBeInTheDocument();
+ const header=screen.getByRole('banner');expect(within(header).getByRole('textbox',{name:'Ville'})).toBeInTheDocument();expect(within(header).getByRole('button',{name:'Type de service'})).toBeInTheDocument();
 });
 it('shows source-backed activity and contact links directly on the professional card',async()=>{
  setup();const map=await screen.findByTestId('map');fireEvent.click(await within(map).findByRole('button',{name:row.name}));

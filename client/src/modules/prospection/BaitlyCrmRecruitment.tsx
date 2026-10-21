@@ -11,6 +11,7 @@ import {crmWorkflowMessages} from '../../i18n/baitlyCrmWorkflowMessages';
 import BaitlyCrmHeaderActions from './BaitlyCrmHeaderActions';
 import {ArrowUpRight} from '../../icons/glyphs';
 import ProviderCountrySelect from '../../../site/components/ProviderCountrySelect';
+import {prospectionGuidanceMessages} from '../../i18n/baitlyProspectionGuidanceMessages';
 
 export default function BaitlyCrmRecruitment({org,canManage}:{org:number;canManage:boolean}) {
   const {currentLanguage}=useTranslation(); const m=recruitmentMessages(currentLanguage);
@@ -24,6 +25,7 @@ export default function BaitlyCrmRecruitment({org,canManage}:{org:number;canMana
 }
 function RecruitmentEditor({page,org,canManage,onSaved}:{page:Partial<BaitlyRecruitmentPage>;org:number;canManage:boolean;onSaved:(saved:boolean)=>void}) {
   const {currentLanguage}=useTranslation(); const m=recruitmentMessages(currentLanguage);const w=crmWorkflowMessages(currentLanguage);const client=useQueryClient();
+  const guidance=prospectionGuidanceMessages(currentLanguage);
   const [services,setServices]=useState(page.services??[]); const [selectionError,setSelectionError]=useState(false);
   const save=useMutation({mutationFn:baitlyRecruitmentApi.save,onSuccess:async()=>{onSaved(true);await client.invalidateQueries({queryKey:['prospects',org,'recruitment']});}});
   function submit(event:FormEvent<HTMLFormElement>){
@@ -48,6 +50,7 @@ function RecruitmentEditor({page,org,canManage,onSaved}:{page:Partial<BaitlyRecr
       {selectionError&&<p role="alert" className="text-sm text-destructive">{m.select}</p>}
       <label className="bcrm-wide-field">{m.description}<Textarea name="description" maxLength={3000} rows={3} defaultValue={page.description??''} /></label>
       <div className="bcrm-publish-actions bcrm-wide-field"><label><input type="checkbox" name="published" defaultChecked={!!page.published} />{m.published}</label>
+        {canManage&&<Button type="submit" disabled={save.isPending}><Save size={15}/>{guidance.saveRecruitment}</Button>}
       </div>
     </fieldset>
     {save.isError&&<Alert variant="destructive"><AlertDescription>{m.error}</AlertDescription></Alert>}

@@ -188,7 +188,7 @@ export function useTeamsReport(): ReportContent {
 
 const TeamsReport: React.FC = () => {
   const content = useTeamsReport();
-  return <ReportView content={content} />;
+  return <ReportView content={content} report="teams" />;
 };
 
 export default TeamsReport;

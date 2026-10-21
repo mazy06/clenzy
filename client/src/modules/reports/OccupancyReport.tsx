@@ -171,7 +171,7 @@ export function useOccupancyReport(period: DashboardPeriod = 'month'): ReportCon
 
 const OccupancyReport: React.FC<{ period?: DashboardPeriod }> = ({ period = 'month' }) => {
   const content = useOccupancyReport(period);
-  return <ReportView content={content} />;
+  return <ReportView content={content} report="occupancy" />;
 };
 
 export default OccupancyReport;

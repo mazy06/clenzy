@@ -24,9 +24,9 @@ import java.util.Map;
  * mentions. C'est cette charpente qui fait qu'on sait ou l'on est page 12 —
  * sans elle, vingt sections se suivent et se ressemblent.</p>
  *
- * <p>Le CSS est integre et conservateur : iText ne connait ni flexbox ni grid.
- * Tout passe par des tableaux et des blocs, ce qui limite le vocabulaire mais
- * rend le resultat previsible — une page mal composee ne se rattrape pas.</p>
+ * <p>Le gabarit porte sa charte claire, partagee avec le lecteur de rapports.
+ * Chromium rend les pages ; les tableaux restent compatibles avec les tests
+ * locaux et les lignes ne se coupent pas entre deux feuilles.</p>
  */
 @Component
 public class ReportHtmlRenderer {
@@ -63,7 +63,8 @@ public class ReportHtmlRenderer {
 
         html.append("<!DOCTYPE html><html lang=\"fr\"><head><meta charset=\"UTF-8\"/><title>")
                 .append(escape(meta.title())).append("</title><style>")
-                .append(ReportTheme.css()).append("</style></head><body>");
+                .append(ReportTheme.css()).append("</style></head><body data-baitly-document=\"1\" class=\"br-print profile-")
+                .append(meta.profile().name().toLowerCase(Locale.ROOT)).append("\">");
 
         cover(html, meta, snapshot.kpis(), draft);
 
@@ -102,10 +103,10 @@ public class ReportHtmlRenderer {
                        boolean draft) {
         html.append("<div class=\"cover\">");
         html.append("<div class=\"cover-mark\">")
-                .append(BaitlyMark.svg(ReportTheme.INK_LIGHT, 34)).append("</div>");
+                .append(BaitlyMark.svg(ReportTheme.TEAL_INK, 34)).append("</div>");
 
         if (draft) {
-            html.append("<p class=\"cover-draft\">BROUILLON — NON DIFFUSABLE</p>");
+            html.append("<p class=\"cover-draft\">BROUILLON · NON DIFFUSABLE</p>");
         }
 
         // Le logo de l'emetteur REMPLACE son nom : les deux cote a cote font
@@ -138,7 +139,15 @@ public class ReportHtmlRenderer {
         if (meta.documentNumber() != null) {
             fact(html, "Référence", meta.documentNumber() + " · version " + meta.version());
         }
-        html.append("</table></div>");
+        html.append("</table>");
+        if (!meta.scopeLabels().isEmpty()) {
+            html.append("<p class=\"cover-scope\">").append(escape(String.join(" · ", meta.scopeLabels())))
+                    .append("</p>");
+        }
+        if (meta.scopeNote() != null) {
+            html.append("<p class=\"cover-scope\">").append(escape(meta.scopeNote())).append("</p>");
+        }
+        html.append("</div>");
     }
 
     /**
@@ -211,7 +220,10 @@ public class ReportHtmlRenderer {
         band(html, "Synthèse", "Les chiffres de la période, face à leurs deux références", null);
 
         html.append("<table class=\"kpis\"><tr>");
+        int figureIndex = 0;
         for (ReportKpi kpi : snapshot.kpis()) {
+            if (figureIndex > 0 && figureIndex % 3 == 0) html.append("</tr><tr>");
+            figureIndex++;
             html.append("<td class=\"kpi\"><p class=\"kpi-label\">").append(escape(kpi.label()))
                     .append("</p><p class=\"kpi-value\">").append(escape(kpi.value())).append("</p>")
                     .append("<p class=\"kpi-delta\">")
@@ -243,7 +255,7 @@ public class ReportHtmlRenderer {
 
     private void chapter(StringBuilder html, ReportSection section, int index,
                          ReportNarrative narrative, ReportMeta meta) {
-        html.append("<div class=\"section\">");
+        html.append("<div class=\"section tone-").append(sectionTone(section.id())).append("\">");
 
         // Le bandeau voyage avec le graphique : iText ne sait pas honorer le
         // « keep-with-next » du CSS, mais il respecte `page-break-inside`.
@@ -260,6 +272,10 @@ public class ReportHtmlRenderer {
         }
         html.append("</div>");
 
+        // Keep a short supporting table with its notes; long ledgers may span pages.
+        final boolean keepDetails = section.hasTable() && section.table().rows().size() <= 8
+                && !section.notes().isEmpty();
+        if (keepDetails) html.append("<div class=\"section-details\">");
         if (section.hasTable()) {
             table(html, section);
         }
@@ -269,7 +285,19 @@ public class ReportHtmlRenderer {
                     .append("</p></div>");
         }
         notes(html, section.notes());
+        if (keepDetails) html.append("</div>");
         html.append("</div>");
+    }
+
+    /** Fixed vocabulary: no user-provided class names reach the print template. */
+    private String sectionTone(String id) {
+        return switch (id) {
+            case "pnl", "settlement", "upsells", "expenses" -> "money";
+            case "operations", "reputation", "nuisances", "decisions" -> "operations";
+            case "performance", "occupancy", "cancellations", "distribution", "leadtime",
+                 "seasonality", "pricing", "outlook" -> "activity";
+            default -> "neutral";
+        };
     }
 
     private void band(StringBuilder html, String title, String subtitle, Integer index) {
@@ -372,7 +400,7 @@ public class ReportHtmlRenderer {
                        List<ReportSection> back) {
         html.append("<div class=\"about\">");
         html.append("<div class=\"about-band\">")
-                .append(BaitlyMark.svg(ReportTheme.INK_LIGHT, 30))
+                .append(BaitlyMark.svg(ReportTheme.NIGHT, 30))
                 .append("<h2>Produit avec Baitly</h2>")
                 .append("<p>Baitly est la plateforme de gestion locative qui pilote les biens de ")
                 .append(escape(meta.issuerName()))
@@ -422,6 +450,6 @@ public class ReportHtmlRenderer {
         if (value == null) {
             return "";
         }
-        return value.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;");
+        return com.clenzy.util.StringUtils.escapeHtml(value);
     }
 }

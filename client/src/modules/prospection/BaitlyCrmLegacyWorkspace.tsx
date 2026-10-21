@@ -21,6 +21,8 @@ import {PageHeaderActionsProvider,usePageHeaderActionsSlot,usePageHeaderFiltersS
 import {useScreenSearch} from '../../components/ScreenChrome';
 import {loadBaitlyContactMap} from './baitlyProspectionChunks';
 import {releaseBaitlyProspectionStartup} from '../../services/baitlyProspectionTiming';
+import BaitlyCrmEmptyState from './BaitlyCrmEmptyState';
+import {prospectionGuidanceMessages} from '../../i18n/baitlyProspectionGuidanceMessages';
 import './baitly-prospection.css';
 import './baitly-crm-workflows.css';
 
@@ -48,10 +50,13 @@ export function BaitlyCrmWorkspace({directoryMode=false,initialTab}:{directoryMo
   const {slot,portalContainer}=usePageHeaderActionsSlot();
   const {filtersSlot,filtersContainer}=usePageHeaderFiltersSlot();
   const {t,currentLanguage}=useTranslation();const m=prospectionMessages(currentLanguage);const {user}=useAuth();const {isDark}=useThemeMode();
+  const guidance=prospectionGuidanceMessages(currentLanguage);
   const platformStaff=user?.roles?.some(role=>role==='SUPER_ADMIN'||role==='SUPER_MANAGER')??false;
   const [params,setParams]=useSearchParams();const [search,setSearch]=useState('');const query=useDeferredValue(search);
   const [preferences,setPreferences]=useUserPreference<{kind:BaitlyCrmKind;status:string;view:'crm'|'map';layout?:'table'|'board'}>('baitly.crm.workspace',{kind:'all',status:'all',view:'crm',layout:'table'});
   const [source,setSource]=useUserPreference<"directory"|"followed">("baitly.crm.source","directory");
+  const filtersApplied=!!query.trim()||preferences.kind!=='all'||preferences.status!=='all';
+  const clearContactFilters=()=>{setSearch('');setPreferences({...preferences,kind:'all',status:'all'});};
   const hasCrm=platformStaff||!!user?.permissions.includes("baitly-crm:view");
   const nationalTable=directoryMode&&(!hasCrm||source==="directory");
   const rawTab=params.get('tab')??initialTab;const tab:Tab=TAB_KEYS.includes(rawTab as Tab)&&(!directoryMode||hasCrm||rawTab==="contacts"||rawTab==="map")?rawTab as Tab:preferences.view==='map'?'map':'contacts';
@@ -93,7 +98,7 @@ export function BaitlyCrmWorkspace({directoryMode=false,initialTab}:{directoryMo
     {access.isError&&tab!=='map'&&!directoryVisible&&<Alert variant="destructive"><AlertDescription>{baitlyCrmError(access.error,t('baitlyCrm.accessDenied'))}</AlertDescription></Alert>}
     {access.isError&&tab==='map'&&!directoryMode&&<Suspense fallback={<Skeleton className="h-96 w-full"/>}><ContactMap contacts={[]} nationalDirectory onFiltersActiveChange={setDirectoryFiltersActive} search={query}/></Suspense>}
     {access.isPending&&!directoryVisible&&tab!=='map'&&<Skeleton className="h-64 w-full" />}
-    {directoryVisible&&<Suspense fallback={<Skeleton className="h-96 w-full"/>}><BaitlyCrmNationalTable onFiltersActiveChange={setDirectoryFiltersActive} key={permissions?.organizationId??"shared"} search={query} canManage={!!permissions?.canManage} organizationId={permissions?.organizationId} onImported={()=>{setSource("followed");setPreferences({...preferences,layout:"table"});}}/></Suspense>}
+    {directoryVisible&&<Suspense fallback={<Skeleton className="h-96 w-full"/>}><BaitlyCrmNationalTable onExplore={()=>navigate('map')} onClearSearch={()=>setSearch('')} onFiltersActiveChange={setDirectoryFiltersActive} key={permissions?.organizationId??"shared"} search={query} canManage={!!permissions?.canManage} organizationId={permissions?.organizationId} onImported={()=>{setSource("followed");setPreferences({...preferences,layout:"table"});}}/></Suspense>}
     {directoryMode&&tab==='map'&&<Suspense fallback={<Skeleton className="h-96 w-full"/>}><ContactMap contacts={[]} publicOnly org={permissions?.organizationId} canManage={!!permissions?.canManage} nationalDirectory onFiltersActiveChange={setDirectoryFiltersActive} search={query}/></Suspense>}
     {permissions&&!directoryVisible&&!(directoryMode&&tab==='map')&&<>
       {!directoryMode&&permissions.canManage&&tab==='contacts'&&panel===null&&!bulkOpen&&<Suspense fallback={null}><BaitlyCrmEnrichImported key={permissions.organizationId} onReview={()=>setPanel('review')}/></Suspense>}
@@ -113,12 +118,17 @@ export function BaitlyCrmWorkspace({directoryMode=false,initialTab}:{directoryMo
           {contactSurface&&(tab==='map'?<ContactMap onFiltersActiveChange={setDirectoryFiltersActive} key={permissions.organizationId} publicOnly={directoryMode} contacts={directoryMode?[]:filtered} org={permissions.organizationId} canManage={permissions.canManage} onOpen={openContact} filtersSlot={directoryMode?undefined:contactFilters} filtersActive={preferences.kind!=='all'||preferences.status!=='all'} nationalDirectory search={query}/>:
             contacts.isPending?<Skeleton className="h-96 w-full" />:contacts.isError?<Alert variant="destructive"><AlertDescription>{t('baitlyCrm.loadError')}</AlertDescription><Button variant="outline" onClick={()=>contacts.refetch()}>{t('baitlyCrm.retry')}</Button></Alert>:
             tab==='contacts'&&bulkOpen&&permissions.canManage?<BulkLocations org={permissions.organizationId}/>:
+            filtered.length===0&&panel===null?<BaitlyCrmEmptyState icon={tab==='analysis'?<LayoutDashboard/>:<Users/>}
+              title={filtersApplied?guidance.filteredTitle:tab==='analysis'?guidance.analysisTitle:guidance.contactsTitle}
+              description={filtersApplied?guidance.filteredHelp:tab==='analysis'?guidance.analysisHelp:guidance.contactsHelp}
+              action={filtersApplied?{label:guidance.reset,onClick:clearContactFilters}:{label:guidance.explore,onClick:()=>navigate('map')}}
+              secondaryAction={!filtersApplied&&!directoryMode&&permissions.canManage?{label:guidance.createContact,onClick:()=>setPanel('create')}:undefined}/>:
             tab==='analysis'?<Insights contacts={filtered} />:
             preferences.layout==='board'?<BaitlyCrmBoard canManage={permissions.canManage} contacts={filtered} status={preferences.status} selected={typeof panel==='number'?panel:undefined} onOpen={openContact} />:
             <BaitlyCrmTable allowFactEditing={!directoryMode} contacts={filtered} org={permissions.organizationId} status={preferences.status} selected={typeof panel==='number'?panel:undefined} canManage={permissions.canManage} onOpen={openContact} />)}
-          {tab==='campaigns'&&<div className="bcrm-workflow"><Campaigns org={permissions.organizationId} canManage={canManageCommercial} canSend={platformStaff||!!permissions.canSendCampaigns} onContact={openContact} /></div>}
-          {tab==='inquiries'&&<div className="bcrm-workflow"><Inquiries org={permissions.organizationId} canManage={permissions.canManage} onContact={openContact} /></div>}
-          {tab==='acquisition'&&<div className="bcrm-workflow"><div className="bcrm-form-tabs"><button type="button" aria-pressed={acquisition==='recruitment'} onClick={()=>setAcquisition('recruitment')}>{m.recruitment}</button><button type="button" aria-pressed={acquisition==='public'} onClick={()=>setAcquisition('public')}>{m.publicPage}</button></div><div className="bcrm-acquisition-layout"><section>{acquisition==='recruitment'?<Recruitment org={permissions.organizationId} canManage={canManageCommercial} />:<PublicPage org={permissions.organizationId} canManage={canManageCommercial} />}</section></div></div>}
+          {tab==='campaigns'&&<div className="bcrm-workflow"><Campaigns onContacts={()=>{setSource('followed');navigate('contacts');}} org={permissions.organizationId} canManage={canManageCommercial} canSend={platformStaff||!!permissions.canSendCampaigns} onContact={openContact} /></div>}
+          {tab==='inquiries'&&<div className="bcrm-workflow"><Inquiries onPrepareForms={()=>navigate('acquisition')} org={permissions.organizationId} canManage={permissions.canManage} onContact={openContact} /></div>}
+          {tab==='acquisition'&&<div className="bcrm-workflow"><div className="bcrm-form-tabs"><button type="button" aria-pressed={acquisition==='recruitment'} onClick={()=>setAcquisition('recruitment')}>{m.recruitment}</button><button type="button" aria-pressed={acquisition==='public'} onClick={()=>setAcquisition('public')}>{m.publicPage}</button></div><header className="bcrm-form-intro"><h2>{acquisition==='recruitment'?guidance.recruitmentTitle:guidance.publicationTitle}</h2><p>{acquisition==='recruitment'?guidance.recruitmentHelp:guidance.publicationHelp}</p></header><div className="bcrm-acquisition-layout"><section>{acquisition==='recruitment'?<Recruitment org={permissions.organizationId} canManage={canManageCommercial} />:<PublicPage org={permissions.organizationId} canManage={canManageCommercial} />}</section></div></div>}
         </Suspense></div>
       </div>
     </>}

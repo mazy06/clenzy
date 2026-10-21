@@ -13,10 +13,13 @@ import {crmWorkflowMessages} from '../../i18n/baitlyCrmWorkflowMessages';
 import BaitlyCrmHeaderActions from './BaitlyCrmHeaderActions';
 import {Plus,ArrowLeft,RefreshCw} from '../../icons/glyphs';
 import { prospectionMessages } from '../../i18n/baitlyProspectionMessages';
+import { prospectionGuidanceMessages } from '../../i18n/baitlyProspectionGuidanceMessages';
+import BaitlyCrmEmptyState from './BaitlyCrmEmptyState';
 
-type WorkspaceProps={org:number;canManage:boolean;canSend:boolean;onContact?:(id:number)=>void};
+type WorkspaceProps={org:number;canManage:boolean;canSend:boolean;onContact?:(id:number)=>void;onContacts?:()=>void};
 export default function BaitlyCrmCampaigns(props:WorkspaceProps){
   const {currentLanguage}=useTranslation();const m=campaignMessages(currentLanguage);const w=crmWorkflowMessages(currentLanguage);const [page,setPage]=useState(0);
+  const guidance=prospectionGuidanceMessages(currentLanguage);
   const [mode,setMode]=useState<'list'|'create'|number>('list');
   const query=useQuery({queryKey:['prospects',props.org,'campaigns','list',page],queryFn:()=>baitlyCampaignsApi.list(page)});
   if(typeof mode==='number')return <CampaignDetails key={mode} {...props} id={mode} onBack={()=>setMode('list')} />;
@@ -24,7 +27,9 @@ export default function BaitlyCrmCampaigns(props:WorkspaceProps){
   return <section className="bcrm-campaigns" aria-label={m.title}>
     <BaitlyCrmHeaderActions>{props.canManage&&<BaitlyCrmIconAction action="create" label={m.new} icon={<HeaderPlus size={16}/>} onClick={()=>setMode('create')}/>}</BaitlyCrmHeaderActions>
     {query.isPending?<Skeleton className="h-32 w-full" />:query.isError?<Failure retry={()=>query.refetch()} />:<>
-      {!query.data.content.length?<p className="bcrm-workflow-empty">{m.empty}</p>:<div className="bcrm-data-scroll"><table className="bcrm-data-table"><thead><tr><th>{w.campaign}</th><th>{w.audience}</th><th>{w.status}</th><th>{w.created}</th></tr></thead><tbody>{query.data.content.map(campaign=><tr key={campaign.id}>
+      {!query.data.content.length?<BaitlyCrmEmptyState icon={<Send />} title={guidance.campaignTitle} description={guidance.campaignHelp}
+        action={props.canManage?{label:guidance.createCampaign,onClick:()=>setMode('create')}:undefined}
+        secondaryAction={props.onContacts?{label:guidance.contacts,onClick:props.onContacts}:undefined}/>:<div className="bcrm-data-scroll"><table className="bcrm-data-table"><thead><tr><th>{w.campaign}</th><th>{w.audience}</th><th>{w.status}</th><th>{w.created}</th></tr></thead><tbody>{query.data.content.map(campaign=><tr key={campaign.id}>
         <td><button type="button" className="bcrm-row-link" onClick={()=>setMode(campaign.id)}>{campaign.name}</button></td>
         <td><span className="bcrm-workflow-tag" data-tone={campaign.contact_type==='OWNER'?'blue':'purple'}>{campaignLabel(campaign.contact_type,currentLanguage)}</span></td>
         <td><span className="bcrm-workflow-tag" data-status={campaign.status}>{campaignLabel(campaign.status,currentLanguage)}</span></td>

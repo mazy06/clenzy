@@ -3242,6 +3242,7 @@
     "promoCodes": "Platform promo codes",
     "shop": "Shop",
     "documents": "Documents & Communications",
+    "documentLibrary": "Documents",
     "myProfile": "My Profile",
     "logout": "Logout",
     "menu": "Menu",
@@ -14094,6 +14095,8 @@
     "goToScreen": "Go to a screen…"
   },
   "messagingHub": {
+    "messagePlaceholder": "Write your message…",
+    "conversationsTitle": "Conversations",
     "viewReservation": "View reservation",
     "loading": "Loading…",
     "conversationCount_one": "{{count}} conversation",
@@ -14751,6 +14754,15 @@
       "CANCELLED": "Superseded or cancelled"
     }
   },
+  "baitlyQuoteInbox": {
+    "title": "Quotes",
+    "help": "All your quotes and requests, using the same agreement as in conversations.",
+    "closed": "Declined and expired",
+    "reference": "Quote #{{id}}",
+    "amount": "Proposed amount",
+    "discussion": "Conversation",
+    "service": "View service"
+  },
   "marketplaceQuotes": {
     "expiredHint": "This quote has expired",
     "accept": "Accept",
@@ -14762,6 +14774,12 @@
     "sentHelp": "Requests you sent to marketplace providers.",
     "emptySent": "No requests",
     "emptySentHelp": "Browse providers and request a quote from their profile.",
+    "filterLabel": "Filter my requests",
+    "startTitle": "Find the right provider for your next task",
+    "emptyFilteredTitle": "No requests in this view",
+    "emptyFilteredHelp": "View all your requests or choose another status.",
+    "findProvider": "Find a provider",
+    "showAllRequests": "View all my requests",
     "declinePlaceholder": "Reason (optional): helps the provider adjust",
     "declineReason": "Reason for declining",
     "confirmDecline": "Confirm decline",

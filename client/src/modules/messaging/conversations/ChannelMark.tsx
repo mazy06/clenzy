@@ -118,7 +118,7 @@ export default function ChannelMark({ channel, size = 18, ring = false, classNam
       style={{ ...box, backgroundColor: glyph.color }}
       title={label}
     >
-      <glyph.Icon size={Math.round(inner * 0.62)} strokeWidth={2.25} />
+      <glyph.Icon size={Math.round(inner * 0.78)} strokeWidth={2.25} />
     </span>
   );
 }

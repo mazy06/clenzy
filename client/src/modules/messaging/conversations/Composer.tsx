@@ -72,10 +72,8 @@ export default function Composer({
     <div className="shrink-0">
       {notice}
       <div
-        className={cn(
-          'rounded-2xl border bg-card shadow-xs transition-colors duration-150 focus-within:border-ring/60 focus-within:ring-[3px] focus-within:ring-ring/20 motion-reduce:transition-none',
-          internalNote ? 'border-dashed border-warning/60 bg-warning-soft' : 'border-border',
-        )}
+        className="baitly-composer"
+        data-note={internalNote || undefined}
       >
         {onInternalNoteChange && (
           <div role="tablist" aria-label={t('messagingHub.composerMode', 'Type de message')} className="flex items-center gap-1 px-2 pt-2">
@@ -112,12 +110,13 @@ export default function Composer({
 
         <textarea
           ref={areaRef}
-          rows={2}
+          rows={1}
           dir="auto"
           value={value}
           disabled={disabled}
           placeholder={
-            internalNote ? t('messagingHub.internalNotePlaceholder', 'Note pour l’équipe…') : placeholder
+            internalNote ? t('messagingHub.internalNotePlaceholder', 'Note pour l’équipe…')
+              : disabled ? placeholder : t('messagingHub.messagePlaceholder', 'Écrivez votre message…')
           }
           aria-label={internalNote ? t('messagingHub.tabNote', 'Note interne') : placeholder}
           onChange={(event) => onChange(event.target.value)}
@@ -133,9 +132,9 @@ export default function Composer({
 
         {extra && <div className="px-3 pb-1">{extra}</div>}
 
-        <div className="flex items-center gap-0.5 px-2 pb-2">
+        <div className="baitly-composer-toolbar">
           {tools}
-          <span className="ms-auto hidden pe-2 text-2xs text-faint min-[1100px]:inline">
+          <span className="baitly-composer-hint">
             {t('messagingHub.composerHint', 'Entrée pour envoyer · Maj + Entrée pour un saut de ligne')}
           </span>
           <button
@@ -143,12 +142,7 @@ export default function Composer({
             onClick={send}
             disabled={!canSend}
             aria-label={internalNote ? t('messagingHub.saveNote', 'Enregistrer la note') : t('messagingHub.send', 'Envoyer')}
-            className={cn(
-              'ms-auto inline-flex size-8 shrink-0 cursor-pointer items-center justify-center rounded-full border-0 transition-colors duration-150 motion-reduce:transition-none min-[1100px]:ms-0',
-              canSend
-                ? 'bg-primary text-primary-foreground hover:bg-primary/90'
-                : 'cursor-default bg-muted text-faint',
-            )}
+            className="baitly-composer-send"
           >
             {sending ? <Spinner className="size-4" /> : <SendHorizontal className="size-4 rtl:-scale-x-100" aria-hidden />}
           </button>

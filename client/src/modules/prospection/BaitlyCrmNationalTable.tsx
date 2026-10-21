@@ -8,7 +8,8 @@ import {professionalDirectoryMessages} from '../../i18n/baitlyProfessionalDirect
 import {usePageHeaderActions,usePageHeaderFilters} from '../../components/PageHeaderActionsContext';
 import {Alert,AlertDescription,Button,Skeleton} from '../../components/ui';
 import PagePagination from '../../components/PagePagination';
-import EmptyState from '../../components/EmptyState';
+import BaitlyCrmEmptyState from './BaitlyCrmEmptyState';
+import {prospectionGuidanceMessages} from '../../i18n/baitlyProspectionGuidanceMessages';
 import {Users,Download,RefreshCw,X} from '../../icons/glyphs';
 import {baitlyDirectoryServices} from '../../config/baitlyDirectoryServices';
 import {type DirectoryCountry} from '../marketplace/BaitlyDirectoryCountry';
@@ -19,8 +20,9 @@ import BaitlyCrmIconAction from './BaitlyCrmIconAction';
 import './baitly-crm-national-table.css';
 
 /** Browse the shared source without copying a national database into each tenant. */
-export default function BaitlyCrmNationalTable({search,canManage,organizationId,onImported,onFiltersActiveChange}:{onFiltersActiveChange?:(active:boolean)=>void;search:string;canManage:boolean;organizationId?:number;onImported:()=>void}){
+export default function BaitlyCrmNationalTable({search,canManage,organizationId,onImported,onFiltersActiveChange,onExplore,onClearSearch}:{onFiltersActiveChange?:(active:boolean)=>void;search:string;canManage:boolean;organizationId?:number;onImported:()=>void;onExplore?:()=>void;onClearSearch?:()=>void}){
  const {currentLanguage}=useTranslation(),language=currentLanguage??'fr',m=professionalDirectoryMessages(language);
+ const guidance=prospectionGuidanceMessages(language);
  const qc=useQueryClient();
  const [countries,setCountries]=useState<DirectoryCountry[]>(['FR']);
  const country=countries.join(',');
@@ -54,7 +56,8 @@ export default function BaitlyCrmNationalTable({search,canManage,organizationId,
   {importing.isError&&<Alert variant="destructive"><AlertDescription>{m.importError}</AlertDescription></Alert>}
   {importing.isSuccess&&<div role="status" className="bcrm-national-report"><span>{importing.data.filter(result=>result.status==='CREATED').length} {m.mapImported} · {importing.data.filter(result=>result.status==='EXISTING').length} {m.mapExisting}</span>{importing.data.filter(result=>result.status!=='CREATED'&&result.status!=='EXISTING').map((result,index)=><span key={`${result.siret}:${index}`}>{result.name} · {m[result.status]}</span>)}{imported>0&&<Button size="sm" variant="outline" onClick={onImported}>{m.crmContacts}</Button>}</div>}
   {!!selection.size&&<div className="bcrm-selection"><strong>{selection.size} {m.selected}</strong><button type="button" disabled={importing.isPending} onClick={()=>setSelection(new Set())}>{m.clearSelection}</button></div>}
-  {directory.isError?<Alert variant="destructive"><AlertDescription>{m.error}</AlertDescription><Button variant="outline" onClick={()=>void directory.refetch()}>{m.retry}</Button></Alert>:directory.isPending?<Skeleton className="h-96 w-full"/>:!rows.length?<EmptyState icon={<Users/>} title={m.empty} description={m.emptyHelp}/>:<>
+  {directory.isError?<Alert variant="destructive"><AlertDescription>{m.error}</AlertDescription><Button variant="outline" onClick={()=>void directory.refetch()}>{m.retry}</Button></Alert>:directory.isPending?<Skeleton className="h-96 w-full"/>:!rows.length?<BaitlyCrmEmptyState icon={<Users/>} title={m.empty} description={m.emptyHelp}
+    action={filtersActive||query?{label:guidance.reset,onClick:()=>{setCountries(['FR']);setService('');setContacts('');setSelection(new Set());setOpened(null);importing.reset();onClearSearch?.();}}:onExplore?{label:guidance.explore,onClick:onExplore}:undefined}/>:<>
    <div className="bcrm-table-scroll"><table><thead><tr>
     {canManage&&<th className="bcrm-check-cell"><input type="checkbox" aria-label={m.selectPage} checked={rows.every(row=>selection.has(row.id))} disabled={importing.isPending} onChange={event=>setSelection(previous=>{const next=new Set(previous);rows.forEach(row=>{if(!event.target.checked)next.delete(row.id);else if(next.size<100)next.add(row.id);});return next;})}/></th>}
     <th scope="col">{m.business}</th><th scope="col">{m.service}</th><th scope="col">{m.city}</th><th scope="col">{m.phone}</th><th scope="col">{m.email}</th><th scope="col">{m.website}</th>

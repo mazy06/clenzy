@@ -7,24 +7,29 @@ import { useTranslation } from '../../hooks/useTranslation';
 import {crmWorkflowMessages} from '../../i18n/baitlyCrmWorkflowMessages';
 import BaitlyCrmIconAction from "./BaitlyCrmIconAction";
 import BaitlyCrmHeaderActions from './BaitlyCrmHeaderActions';
-import {ChevronDown,ArrowUpRight,RefreshCw} from '../../icons/glyphs';
+import {ChevronDown,ArrowUpRight,RefreshCw,Inbox} from '../../icons/glyphs';
+import BaitlyCrmEmptyState from './BaitlyCrmEmptyState';
+import {prospectionGuidanceMessages} from '../../i18n/baitlyProspectionGuidanceMessages';
 import { getPropertyTypeLabel } from '../../utils/statusUtils';
 import { recruitmentMessages,recruitmentTrade } from '../../i18n/baitlyRecruitmentMessages';
 
-export default function BaitlyCrmInquiries({ org, canManage, onContact, contactId }: {
-  org: number; canManage: boolean; onContact?: (id: number) => void; contactId?: number;
+export default function BaitlyCrmInquiries({ org, canManage, onContact, contactId, onPrepareForms }: {
+  org: number; canManage: boolean; onContact?: (id: number) => void; contactId?: number; onPrepareForms?:()=>void;
 }) {
   const { t,currentLanguage } = useTranslation(); const client=useQueryClient(); const [page,setPage]=useState(0);
   const recruitment=recruitmentMessages(currentLanguage);const w=crmWorkflowMessages(currentLanguage);
+  const guidance=prospectionGuidanceMessages(currentLanguage);
   const query=useQuery({ queryKey: ['prospects',org,'inquiries',contactId,page], queryFn: () => baitlyInquiriesApi.list(page,contactId) });
   const update=useMutation({ mutationFn: ({ id,status }: { id: number; status: string }) => baitlyInquiriesApi.status(id,status),
     onSuccess: () => client.invalidateQueries({ queryKey: ['prospects',org,'inquiries'] }) });
   if(query.isPending)return <Skeleton className="h-24 w-full" />;
   if(query.isError)return <Alert variant="destructive"><AlertDescription>{t('baitlyInquiries.error')}</AlertDescription><Button variant="outline" onClick={() => query.refetch()}>{t('baitlyCrm.retry')}</Button></Alert>;
-  return <section className="bcrm-inbox" aria-label={t('baitlyInquiries.title')}>
+  return <section className="bcrm-inbox" data-empty={!query.data.content.length} aria-label={t('baitlyInquiries.title')}>
     {contactId===undefined&&<BaitlyCrmHeaderActions><BaitlyCrmIconAction action="refresh" label={t('common.refresh','Actualiser')} icon={<RefreshCw size={16}/>} disabled={query.isFetching} onClick={()=>query.refetch()}/></BaitlyCrmHeaderActions>}
     {update.isError&&<Alert variant="destructive"><AlertDescription>{t('baitlyInquiries.error')}</AlertDescription></Alert>}
-    {!query.data.content.length&&<p className="bcrm-workflow-empty">{t('baitlyInquiries.empty')}</p>}
+    {!query.data.content.length&&(contactId!==undefined?<p className="bcrm-workflow-empty">{t('baitlyInquiries.empty')}</p>:<BaitlyCrmEmptyState
+      icon={<Inbox />} title={guidance.inquiriesTitle} description={guidance.inquiriesHelp}
+      action={canManage&&onPrepareForms?{label:guidance.prepareForms,onClick:onPrepareForms}:undefined}/>)}
     {query.data.content.map((item:BaitlyInquiry)=><article key={item.id} className="bcrm-inquiry-row">
       <details className="bcrm-inquiry-content" open={contactId!==undefined}>
         <summary><ChevronDown size={15} aria-hidden /><span className="bcrm-inquiry-summary"><h3>{item.name}</h3><span className="bcrm-inquiry-context"><span className="bcrm-workflow-tag" data-tone={item.purpose==='APPLICATION'?'purple':'blue'}>{item.purpose==='APPLICATION'?recruitment.APPLICATION:t('baitlyInquiries.'+item.purpose)}</span><span>{item.city}</span>{item.needs_review&&<span className="bcrm-review-flag" title={t('baitlyInquiries.review')}>{w.review}</span>}</span><span className="bcrm-inquiry-excerpt">{item.message||item.application_availability}</span></span><time dateTime={item.created_at}>{new Date(item.created_at).toLocaleDateString(currentLanguage)}</time></summary>

@@ -1,4 +1,4 @@
-import { cleanup,fireEvent,render,screen,waitFor } from '@testing-library/react';
+import { cleanup,fireEvent,render,screen,waitFor,within } from '@testing-library/react';
 import { QueryClient,QueryClientProvider } from '@tanstack/react-query';
 import { afterEach,expect,it,vi } from 'vitest';
 import BaitlyCrmRecruitment from './BaitlyCrmRecruitment';
@@ -12,7 +12,7 @@ it('allows an owner organization to publish a specific recruitment need and expo
   fireEvent.change(await screen.findByLabelText('Nom du destinataire affiché publiquement'),{target:{value:'Maison Rabat'}});
   fireEvent.change(screen.getByLabelText('Titre du recrutement'),{target:{value:'Ménage'}});fireEvent.change(screen.getByLabelText('Ville d’intervention'),{target:{value:'Rabat'}});
   fireEvent.click(screen.getByRole('checkbox',{name:'Ménage'}));fireEvent.click(screen.getByRole('checkbox',{name:'Accepter les candidatures sur la page publique'}));
-  fireEvent.click(screen.getByRole('button',{name:'Enregistrer'}));
+  fireEvent.click(within(screen.getByLabelText('Titre du recrutement').closest('form')!).getByRole('button',{name:'Enregistrer le formulaire'}));
   await waitFor(()=>expect(save).toHaveBeenCalledWith(expect.objectContaining({recipientName:'Maison Rabat',title:'Ménage',city:'Rabat',published:true,services:['CLEANING']}),expect.anything()));
   expect(save.mock.calls[0][0]).not.toHaveProperty('organizationId');
   expect(await screen.findByRole('link',{name:'Ouvrir la page de candidature'})).toHaveAttribute('href','https://baitly.fr/recrutement/public?lang=fr');

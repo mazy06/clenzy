@@ -40,6 +40,16 @@ beforeEach(()=>{
 });
 afterEach(()=>{cleanup();vi.restoreAllMocks();});
 function setup(tab?:string,restored=false){render(<MemoryRouter initialEntries={[tab?`/?tab=${tab}`:'/']}><QueryClientProvider client={new QueryClient({defaultOptions:{queries:{retry:false},mutations:{retry:false}}})}>{restored?<RestoredProspectionPage/>:<ProspectionPage />}</QueryClientProvider></MemoryRouter>);}
+it('opens the map from the empty CRM guidance',async()=>{
+  vi.mocked(prospectsApi.getAll).mockResolvedValue([]);setup();
+  fireEvent.click(await screen.findByRole('button',{name:'Trouver des prospects'}));
+  expect(await screen.findByTestId('contact-map',{}, {timeout:5000})).toBeInTheDocument();
+},10000);
+it('opens form preparation from the empty inquiries screen',async()=>{
+  vi.spyOn(baitlyRecruitmentApi,'own').mockResolvedValue({available:true,page:{}});setup('inquiries');
+  fireEvent.click(await screen.findByRole('button',{name:'Préparer mes formulaires'}));
+  expect(await screen.findByLabelText('Titre du recrutement')).toBeInTheDocument();
+});
 it('opens the shared professional discovery inside the organization CRM',async()=>{
   setup();fireEvent.click(await screen.findByRole('button',{name:'Rechercher des professionnels'}));
   const search=await screen.findByRole('region',{name:'Rechercher des professionnels'});

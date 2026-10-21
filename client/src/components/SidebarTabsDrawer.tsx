@@ -42,10 +42,8 @@ import type { ResolvedScreenTab } from '../hooks/useScreenTabs';
  * repliée montrait alors deux choses à la fois : l'infobulle du kit, que le
  * survol déclenche aussi en mode icônes, et le tiroir — deux panneaux ouverts
  * au même geste, qui se chevauchaient. Le clic tranche : l'infobulle reste au
- * survol, le tiroir répond au clic, et la ligne se comporte comme un hub de la
- * barre, qui n'a jamais navigué au clic non plus mais ouvert son niveau
- * suivant. On atteint l'écran par son premier onglet, qui est justement son
- * onglet d'entrée.</p>
+ * survol, le tiroir répond au clic. L'ouverture affiche aussi le premier onglet
+ * accessible, tout en laissant le tiroir ouvert pour choisir un autre onglet.</p>
  *
  * <p><b>Et au clavier</b> : la flèche vers l'extérieur (droite en LTR, gauche en
  * RTL) ouvre et donne le focus au tiroir, {@code Échap} le referme et rend le
@@ -277,11 +275,13 @@ interface TabsDrawerProps {
   /** Onglet courant — seulement quand l'écran survolé est celui qui est affiché. */
   activeKey?: string;
   side: 'left' | 'right';
+  /** Ouvre le premier onglet sans refermer les niveaux de navigation parents. */
+  onEnter: (key: string) => void;
   onSelect: (key: string) => void;
 }
 
 /** Contenu du tiroir — les primitives du volet, sans rien de neuf. */
-function TabsDrawerContent({ screenLabel, tabs, activeKey, onSelect }: Omit<TabsDrawerProps, 'side'>) {
+function TabsDrawerContent({ screenLabel, tabs, activeKey, onSelect }: Omit<TabsDrawerProps, 'side' | 'onEnter'>) {
   return (
     <SidebarFlyoutGroup label={screenLabel}>
       {tabs.map((tab) => (
@@ -314,7 +314,7 @@ function TabsDrawerContent({ screenLabel, tabs, activeKey, onSelect }: Omit<Tabs
  * focus après {@code Échap} va rechercher la ligne par son {@code data-sidebar}
  * plutôt que par une référence directe.</p>
  */
-function useTabsDrawerRow({ screenLabel, tabs, activeKey, side, onSelect }: TabsDrawerProps) {
+function useTabsDrawerRow({ screenLabel, tabs, activeKey, side, onEnter, onSelect }: TabsDrawerProps) {
   const anchorRef = useRef<HTMLDivElement | null>(null);
   const [seamOffset, setSeamOffset] = useState(SIDEBAR_FLYOUT_SEAM_OFFSET);
   const [topOffset, setTopOffset] = useState(0);
@@ -434,6 +434,7 @@ function useTabsDrawerRow({ screenLabel, tabs, activeKey, side, onSelect }: Tabs
   const onOpenChange = (next: boolean) => {
     if (!next) viaKeyboard.current = false;
     drawer.onOpenChange(next);
+    if (next && tabs[0]) onEnter(tabs[0].key);
   };
 
   return { open: drawer.open, onOpenChange, anchorProps, rowProps, content };

@@ -1,0 +1,61 @@
+.baitly-reports-content { padding-block: 20px; min-inline-size: 0; }
+.baitly-report-view, .baitly-reports-loading { display: flex; flex-direction: column; min-inline-size: 0; gap: 20px; }
+.baitly-report-grid { display: grid; grid-template-columns: repeat(12,minmax(0,1fr)); align-items: start; gap: 16px; }
+.baitly-report-slot { min-inline-size: 0; grid-column: span var(--report-span,6); }
+.baitly-report-widget { container-name: widget-panel dashboard-widget; border: 1px solid var(--bui-border); box-shadow: none; min-inline-size: 0; overflow: hidden; }
+.baitly-report-widget > .bui-widget-panel__header { padding-block: 18px 14px; }
+.baitly-report-widget .db-imported-body { padding-block: 4px 20px; }
+.baitly-report-widget .db-imported-body--chart { block-size: var(--report-chart-height,300px); min-block-size: 260px; }
+.baitly-report-widget .db-imported-body--chart:has(.db-data-ranking, .db-data-breakdown) { block-size: auto; min-block-size: 0; }
+.baitly-report-widget .db-imported-body--chart:has(.db-data-ranking) { max-block-size: 460px; overflow-y: auto; overscroll-behavior: contain; }
+.baitly-report-widget .db-data-breakdown { block-size: auto; }
+.baitly-report-widget .db-data-breakdown__chart { block-size: 240px; }
+.baitly-report-slot[data-columns="12"] .db-data-highlights { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); gap: 0 28px; }
+.baitly-report-slot[data-columns="12"] .db-data-highlights > div { flex-direction: column; align-items: start; gap: 7px; border-block-start: 0; border-block-end: 1px solid var(--bui-border); }
+.baitly-report-slot[data-columns="12"] .db-data-highlights dd { max-inline-size: none; text-align: start; }
+.baitly-report-widget .db-data-signals > li:first-child { padding-block-start: 0; }
+.baitly-report-widget .db-data-highlights > div:first-child { padding-block-start: 2px; }
+.baitly-report-widget :is(th,td) { font-variant-numeric: tabular-nums; }
+.baitly-report-kpis .bui-stat-figure__value b { font-family: inherit; }
+.baitly-report-kpis[data-count="5"] .bui-stat-overview__figures { --stat-expanded-width: max(calc(100cqw / 5), min(398px, calc(100cqw - 720px))); grid-template-columns: var(--stat-col-1,minmax(0,1fr)) var(--stat-col-2,minmax(0,1fr)) var(--stat-col-3,minmax(0,1fr)) var(--stat-col-4,minmax(0,1fr)) var(--stat-col-5,minmax(0,1fr)); }
+.baitly-report-kpis[data-count="4"] .bui-stat-overview__figures { --stat-expanded-width: max(calc(100cqw / 4), min(398px, calc(100cqw - 540px))); grid-template-columns: var(--stat-col-1,minmax(0,1fr)) var(--stat-col-2,minmax(0,1fr)) var(--stat-col-3,minmax(0,1fr)) var(--stat-col-4,minmax(0,1fr)); }
+.baitly-report-kpi-reading { display: flex; flex-wrap: wrap; align-items: baseline; gap: 12px; margin-block: 16px 10px; font-variant-numeric: tabular-nums; }
+.baitly-report-kpi-reading strong { font-size: 24px; font-weight: 600; }
+.baitly-report-kpi-reading [data-report-delta] { font-size: 12px; color: var(--bui-warning-ink); }
+.baitly-report-kpi-reading [data-favorable="true"] { color: var(--bui-success-ink); }
+.baitly-report-kpi-reading [data-neutral="true"] { color: var(--bui-muted-foreground); }
+.baitly-reports-loading-grid { display: grid; grid-template-columns: minmax(0,2fr) minmax(0,1fr); gap: 16px; }
+.baitly-report-composer { gap: 20px; }
+.baitly-report-composer > .grid { gap: 20px; }
+.baitly-report-composer .text-2xs { font-size: 12px; }
+@container stat-overview (max-width: 1279px) {
+  .baitly-report-kpis .bui-stat-overview__figures > * { min-inline-size: 180px; }
+  .baitly-report-kpis .bui-stat-figure__label { position: static; inline-size: auto; block-size: auto; margin: 0; overflow: visible; clip-path: none; white-space: normal; }
+  .baitly-report-kpis .bui-stat-figure__body { gap: 4px; }
+  .baitly-report-kpis .bui-stat-figure { min-block-size: 72px; }
+}
+@container dashboard-widget (max-width: 480px) {
+  .baitly-report-widget .db-data-breakdown__chart { block-size: 200px; }
+}
+/* Une répartition de 440 px tient côte à côte ; l'empiler créait une carte de 660 px. */
+@container dashboard-widget (min-width: 420px) {
+  .baitly-report-widget .db-data-breakdown { grid-template-columns: minmax(130px,.8fr) minmax(0,1.2fr); gap: 14px; }
+  .baitly-report-widget .db-data-breakdown__chart { block-size: 230px; }
+  .baitly-report-widget .db-data-breakdown__legend li { padding-block: 8px; font-size: 12px; }
+}
+@media (max-width: 1299px) {
+  .baitly-report-slot { grid-column: span var(--report-span-medium,6); }
+  .baitly-report-slot[data-columns="12"] .db-data-highlights { grid-template-columns: repeat(2,minmax(0,1fr)); }
+}
+@media (max-width: 899px) {
+  .baitly-report-grid, .baitly-reports-loading-grid { grid-template-columns: minmax(0,1fr); }
+  .baitly-report-slot { grid-column: 1; }
+  .baitly-report-widget .db-imported-body--chart { block-size: 300px; }
+  .baitly-report-widget .db-imported-body--chart:has(.db-data-ranking, .db-data-breakdown) { block-size: auto; }
+}
+@media (max-width: 600px) {
+  .baitly-reports-content { padding-block: 12px; }
+  .baitly-report-view, .baitly-reports-loading { gap: 16px; }
+  .baitly-report-grid { gap: 12px; }
+  .baitly-report-slot[data-columns="12"] .db-data-highlights { grid-template-columns: minmax(0,1fr); }
+}

@@ -8,6 +8,7 @@ import {crmWorkflowMessages} from '../../i18n/baitlyCrmWorkflowMessages';
 import BaitlyCrmHeaderActions from './BaitlyCrmHeaderActions';
 import {ArrowUpRight} from '../../icons/glyphs';
 import { useTranslation } from '../../hooks/useTranslation';
+import {prospectionGuidanceMessages} from '../../i18n/baitlyProspectionGuidanceMessages';
 
 export default function BaitlyCrmPublicPage({ org,canManage }: { org: number; canManage: boolean }) {
   const { t }=useTranslation();
@@ -19,6 +20,7 @@ export default function BaitlyCrmPublicPage({ org,canManage }: { org: number; ca
 }
 function PublicationEditor({ profile,org,canManage }: { profile: BaitlyPublication; org: number; canManage: boolean }) {
   const { t,currentLanguage }=useTranslation();const w=crmWorkflowMessages(currentLanguage); const client=useQueryClient(); const [published,setPublished]=useState(!!profile.networkPublished);
+  const guidance=prospectionGuidanceMessages(currentLanguage);
   const [services,setServices]=useState(profile.managementServices ?? []);
   const save=useMutation({ mutationFn: baitlyInquiriesApi.publish,
     onSuccess: () => client.invalidateQueries({ queryKey: ['prospects',org,'publication'] }) });
@@ -42,6 +44,7 @@ function PublicationEditor({ profile,org,canManage }: { profile: BaitlyPublicati
         </label>)}
       </fieldset>
       <div className="bcrm-publish-actions bcrm-wide-field"><label><input type="checkbox" checked={published} onChange={e => setPublished(e.target.checked)} />{t('baitlyInquiries.published')}</label>
+        {canManage&&<Button type="submit" disabled={save.isPending}><Save size={15}/>{guidance.savePublication}</Button>}
       </div>
     </fieldset>
     {save.isError && <Alert variant="destructive"><AlertDescription>{t('baitlyInquiries.error')}</AlertDescription></Alert>}

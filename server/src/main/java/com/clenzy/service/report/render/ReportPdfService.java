@@ -20,7 +20,6 @@ import com.itextpdf.layout.Canvas;
 import com.itextpdf.layout.Document;
 import com.itextpdf.layout.element.Paragraph;
 import com.itextpdf.layout.properties.TextAlignment;
-import com.itextpdf.svg.converter.SvgConverter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -179,12 +178,12 @@ public class ReportPdfService {
 
                 try (Canvas canvas = new Canvas(pdfCanvas, band)) {
                     canvas.add(new Paragraph(left)
-                            .setFont(font).setFontSize(7.5f).setFontColor(muted)
+                            .setFont(font).setFontSize(8f).setFontColor(muted)
                             .setTextAlignment(TextAlignment.LEFT).setMargin(0));
                 }
                 try (Canvas canvas = new Canvas(pdfCanvas, band)) {
                     canvas.add(new Paragraph(page + " / " + total)
-                            .setFont(font).setFontSize(7.5f).setFontColor(muted)
+                            .setFont(font).setFontSize(8f).setFontColor(muted)
                             .setTextAlignment(TextAlignment.RIGHT).setMargin(0));
                 }
             }
@@ -197,37 +196,15 @@ public class ReportPdfService {
         }
     }
 
-    /**
-     * Peint l'aplat de couverture, a fond perdu, SOUS le contenu de la page.
-     *
-     * <p>iText n'honore pas {@code @page cover { margin: 0 }} : un bloc HTML
-     * reste enferme dans la boite de contenu, et une couverture pleine page est
-     * hors de portee du CSS seul. On peint donc le fond dans un flux insere
-     * AVANT celui de la page — {@code newContentStreamBefore} —, faute de quoi
-     * l'aplat recouvrirait le titre au lieu de le porter.</p>
-     */
+    /** The cover uses the same light paper as the report reader, including its margins. */
     private void coverBackground(PdfPage page) {
         final Rectangle size = page.getPageSize();
-        final PdfCanvas canvas = new PdfCanvas(
-                page.newContentStreamBefore(), page.getResources(), page.getDocument());
-        canvas.saveState()
-                .setFillColor(new DeviceRgb(0x14, 0x1F, 0x29))
+        new PdfCanvas(page.newContentStreamBefore(), page.getResources(), page.getDocument())
+                .saveState()
+                .setFillColor(new DeviceRgb(0xFB, 0xFC, 0xFD))
                 .rectangle(0, 0, size.getWidth(), size.getHeight())
                 .fill()
                 .restoreState();
-
-        // Le mark, en tres grand et a peine plus clair que le fond, deborde du
-        // coin. Il donne du relief a l'aplat sans rien disputer au titre : une
-        // teinte voisine plutot qu'une transparence, que tous les lecteurs PDF
-        // n'aplatissent pas de la meme facon.
-        try {
-            canvas.addXObjectAt(
-                    SvgConverter.convertToXObject(BaitlyMark.svg("#1A2833", 360),
-                            page.getDocument()),
-                    size.getWidth() - 120, -190);
-        } catch (Exception e) {
-            log.debug("Filigrane de couverture non rendu", e);
-        }
     }
 
     private static String nullSafe(String value) {

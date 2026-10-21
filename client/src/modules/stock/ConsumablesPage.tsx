@@ -101,17 +101,6 @@ function ConsumablesWorkspace() {
       </div>
       {properties.isError && <Alert variant="destructive"><AlertDescription>{t('consumables.error')}</AlertDescription>
         <Button variant="outline" size="sm" onClick={() => { void properties.refetch(); }}>{t('common.retry')}</Button></Alert>}
-      <nav className="baitly-supply-flow" aria-label={t('consumables.workspace.flow')}>
-        {VIEWS.map((view, index) => {
-          const Icon = VIEW_ICONS[view];
-          return <a href={`#consumables-${view}`} key={view}>
-            <Icon size={18} aria-hidden="true" />
-            <span>{t(`consumables.workspace.${view}`)}</span>
-            <NavCountBadge count={queries[index].data?.totalElements} />
-            {index < 2 && <ArrowForward size={14} className="baitly-supply-flow-arrow" aria-hidden="true" />}
-          </a>;
-        })}
-      </nav>
       <div className="baitly-supply-layout">
         {VIEWS.map((view, index) => {
           const query = queries[index];

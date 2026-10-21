@@ -1,0 +1,66 @@
+.baitly-thread {
+  display: flex; flex: 1; flex-direction: column; min-width: 0; min-height: 0;
+  overflow: hidden; border: 1px solid var(--bui-border); border-radius: 12px;
+  background: var(--bui-card); color: var(--bui-foreground);
+}
+.baitly-thread-header {
+  display: flex; flex-shrink: 0; align-items: center; justify-content: space-between;
+  gap: 16px; min-height: 72px; padding: 14px 20px; border-bottom: 1px solid var(--bui-border);
+}
+.baitly-thread-header h2 { font-size: 14px; font-weight: 600; line-height: 1.5; }
+.baitly-thread-subtitle { display: flex; align-items: center; gap: 5px; margin-top: 3px; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; color: var(--bui-muted-foreground); font-size: 12px; }
+.baitly-thread-scroll { height: 100%; overflow-y: auto; padding: 20px 24px 28px; background: color-mix(in srgb, var(--bui-muted) 28%, var(--bui-card)); scrollbar-width: thin; }
+.baitly-thread-day { max-width: 960px; margin: 24px auto 0; }
+.baitly-thread-day:first-child { margin-top: 0; }
+.baitly-thread-date { display: flex; justify-content: center; align-items: center; gap: 12px; margin-bottom: 20px; }
+.baitly-thread-date::before, .baitly-thread-date::after { content: ''; width: 48px; height: 1px; background: var(--bui-border); }
+.baitly-thread-date-label { padding: 4px 12px; border-radius: 7px; background: var(--bui-card); color: var(--bui-muted-foreground); font-size: 11px; font-variant-numeric: tabular-nums; }
+.baitly-message { display: flex; gap: 8px; }
+.baitly-message-avatar, .baitly-message-avatar [data-slot=avatar-fallback] { border-radius: 8px; }
+.baitly-message-content { display: flex; flex-direction: column; min-width: 0; max-width: min(82%, 640px); }
+.baitly-message-text { max-width: 65ch; padding: 12px 16px; border: 1px solid var(--bui-border); border-radius: 12px; background: var(--bui-card); color: var(--bui-foreground); font-size: 13px; line-height: 1.7; white-space: pre-wrap; overflow-wrap: anywhere; }
+.baitly-message[data-direction=out] .baitly-message-text { border-color: transparent; background: var(--bui-info-soft); border-end-end-radius: 4px; }
+.baitly-message[data-direction=in] .baitly-message-text { border-end-start-radius: 4px; }
+.baitly-message[data-note] .baitly-message-text { border: 1px dashed var(--bui-warning); background: var(--bui-warning-soft); }
+.baitly-message-card { width: 400px; max-width: 100%; min-width: 0; margin-top: 8px; border: 1px solid var(--bui-border); border-radius: 12px; background: var(--bui-card); }
+.baitly-message-file { display: flex; align-items: center; gap: 10px; max-width: 300px; border: 1px solid var(--bui-border); border-radius: 8px; padding: 10px 12px; background: var(--bui-card); color: var(--bui-foreground); font-size: 12px; }
+.baitly-message-file svg { color: var(--bui-info-ink); }
+.baitly-message-time { display: flex; align-items: center; gap: 4px; margin-top: 6px; padding-inline: 2px; color: var(--bui-muted-foreground); font-size: 11px; font-variant-numeric: tabular-nums; }
+.baitly-thread-compose { display: flex; flex-shrink: 0; flex-direction: column; gap: 10px; padding: 14px 20px; border-top: 1px solid var(--bui-border); background: var(--bui-card); }
+.baitly-composer { border: 1px solid var(--bui-border); border-radius: 10px; background: var(--bui-card); transition: border-color 180ms ease-out, box-shadow 180ms ease-out; }
+.baitly-composer:focus-within { border-color: var(--bui-info); box-shadow: 0 0 0 2px var(--bui-info-soft); }
+.baitly-composer[data-note] { border-color: var(--bui-warning); background: var(--bui-warning-soft); }
+.baitly-composer[data-note]:focus-within { box-shadow: 0 0 0 2px var(--bui-warning-soft); }
+.baitly-composer textarea { min-height: 46px; padding: 13px 14px 8px; font-size: 13px; line-height: 1.6; }
+.baitly-composer [role=tablist] { padding-inline: 12px; padding-top: 4px; gap: 8px; }
+.baitly-composer [role=tab] { padding: 8px 4px; border-radius: 0; border-bottom: 2px solid transparent; background: transparent; color: var(--bui-muted-foreground); }
+.baitly-composer [role=tab][aria-selected=true] { color: var(--bui-info-ink); border-bottom-color: var(--bui-info); }
+.baitly-composer[data-note] [role=tab][aria-selected=true] { color: var(--bui-warning-ink); border-bottom-color: var(--bui-warning); }
+.baitly-composer-toolbar { display: flex; align-items: center; gap: 4px; padding: 0 8px 8px; }
+.baitly-composer-hint { margin-inline-start: auto; padding-inline-end: 8px; color: var(--bui-muted-foreground); font-size: 10px; }
+.baitly-composer-send { display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0; width: 34px; height: 34px; margin-inline-start: auto; border: 0; border-radius: 8px; background: var(--bui-info-ink); color: var(--bui-card); cursor: pointer; transition: opacity 180ms ease-out; }
+.baitly-composer-send:hover:not(:disabled) { opacity: .85; }
+.baitly-composer-send:disabled { background: var(--bui-muted); color: var(--bui-muted-foreground); cursor: default; }
+.baitly-composer[data-note] .baitly-composer-send:not(:disabled) { background: var(--bui-warning-ink); }
+.baitly-composer-send:focus-visible, .baitly-thread-quote-link:focus-visible { outline: 2px solid var(--bui-info); outline-offset: 3px; }
+.baitly-thread-quote { display: flex; flex-direction: column; gap: 14px; padding: 18px; }
+.baitly-thread-quote-heading { display: flex; align-items: flex-start; gap: 10px; }
+.baitly-thread-quote-icon { display: inline-flex; flex-shrink: 0; align-items: center; justify-content: center; width: 34px; height: 34px; border-radius: 9px; color: var(--bui-info-ink); background: var(--bui-info-soft); }
+.baitly-thread-quote-summary { display: flex; flex-wrap: wrap; align-items: baseline; gap: 8px; padding: 12px; border-radius: 8px; background: var(--bui-info-soft); }
+.baitly-thread-quote[data-status=APPROVED] .baitly-thread-quote-summary { background: var(--bui-success-soft); }
+.baitly-thread-quote-amount { font-size: 22px; line-height: 1.3; font-weight: 500; font-variant-numeric: tabular-nums; }
+.baitly-thread-quote-document { border-radius: 8px; }
+.baitly-thread-quote-link { align-self: flex-start; color: var(--bui-info-ink); font-size: 12px; text-decoration: underline; text-underline-offset: 3px; cursor: pointer; }
+.baitly-thread-quote [aria-expanded] { justify-content: space-between; color: var(--bui-muted-foreground); }
+.baitly-thread-deposit { background: var(--bui-warning-soft); border-radius: 12px; }
+@media (max-width: 700px) {
+  .baitly-thread-header { padding: 12px; gap: 8px; }
+  .baitly-thread-scroll { padding: 16px 12px; }
+  .baitly-thread-compose { padding: 10px; }
+  .baitly-message-content { max-width: 90%; }
+  .baitly-message-text { padding: 10px 12px; }
+  .baitly-composer-hint { display: none; }
+  .baitly-thread-quote { padding: 14px; }
+}
+@media (pointer: coarse) { .baitly-composer-send { width: 44px; height: 44px; } }
+@media (prefers-reduced-motion: reduce) { .baitly-composer, .baitly-composer-send { transition: none; } }
