@@ -5,16 +5,10 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.MethodSource;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.http.*;
-import org.springframework.test.util.ReflectionTestUtils;
-import org.springframework.test.web.client.MockRestServiceServer;
-import org.springframework.web.client.RestTemplate;
-import java.net.HttpURLConnection;
 import java.util.Map;
 import java.util.stream.Stream;
 import static org.assertj.core.api.Assertions.*;
 import static org.mockito.Mockito.*;
-import static org.springframework.test.web.client.match.MockRestRequestMatchers.*;
-import static org.springframework.test.web.client.response.MockRestResponseCreators.*;
 
 class BaitlySignatureSafetyTest {
     static Stream<Object> invalidIds() {return Stream.of(null, "", "null", "../private", Map.of("secret", "synthetic-private"), -1, 1.25, Double.NaN);}
@@ -34,51 +28,46 @@ class BaitlySignatureSafetyTest {
     }
     @ParameterizedTest @ValueSource(strings={"https://foreign.example.invalid/document", "http://sign.example.invalid/document", "https://sign.example.invalid:444/document", "https://user:secret@sign.example.invalid/document", "//foreign.example.invalid/document"})
     void apiCredentialCannotBeForwardedOutsideConfiguredOrigin(String target) {
-        var downloads = new BaitlySignatureDownloads();
-        var http = (RestTemplate) ReflectionTestUtils.getField(downloads, "http");
-        var server = MockRestServiceServer.bindTo(http).build();
-        var headers = new HttpHeaders();headers.set("X-Auth-Token", "synthetic-key");
-        assertThatThrownBy(() -> downloads.fetchSameOrigin("https://sign.example.invalid", target, headers))
+        var fetcher = mock(com.clenzy.booking.service.PinnedSiteFetcher.class);
+        var downloads = new BaitlySignatureDownloads(fetcher);
+        assertThatThrownBy(() -> downloads.fetchSameOrigin("https://sign.example.invalid", target, new HttpHeaders()))
                 .isInstanceOf(IllegalStateException.class).hasNoCause();
-        server.verify();
+        verifyNoInteractions(fetcher);
     }
-    @Test void downloadClientExplicitlyDisablesRedirectFollowing() {
-        var downloads = new BaitlySignatureDownloads();
-        var http = (RestTemplate) ReflectionTestUtils.getField(downloads, "http");
-        var connection = mock(HttpURLConnection.class);
-        ReflectionTestUtils.invokeMethod(http.getRequestFactory(), "prepareConnection", connection, "GET");
-        var calls = org.mockito.ArgumentCaptor.forClass(Boolean.class);
-        verify(connection, atLeastOnce()).setInstanceFollowRedirects(calls.capture());
-        assertThat(calls.getAllValues().getLast()).isFalse();
+    @ParameterizedTest @ValueSource(strings={"https://127.0.0.1", "https://10.0.0.1", "https://192.168.1.1",
+            "https://172.16.1.1", "https://169.254.169.254", "https://localhost", "https://[::1]", "http://example.invalid"})
+    void privateOrInsecureConfiguredOriginsCannotReceiveCredentials(String origin) {
+        var downloads = new BaitlySignatureDownloads(new com.clenzy.booking.service.PinnedSiteFetcher());
+        var headers = new HttpHeaders(); headers.setBearerAuth("synthetic-key");
+        assertThatThrownBy(() -> downloads.fetchSameOrigin(origin, origin + "/document", headers))
+                .hasMessage("Service de signature temporairement indisponible").hasNoCause();
     }
-    @Test void redirectsAndPrivateErrorBodiesCannotReturnAClaimedDocument() {
-        for (var status : new HttpStatus[]{HttpStatus.FOUND, HttpStatus.INTERNAL_SERVER_ERROR}) {
-            var downloads = new BaitlySignatureDownloads();
-            var server = MockRestServiceServer.bindTo((RestTemplate) ReflectionTestUtils.getField(downloads, "http")).build();
-            server.expect(requestTo("https://sign.example.invalid/doc"))
-                    .andRespond(withStatus(status).header("Location", "https://foreign.example.invalid/leak")
-                            .body("synthetic-private@example.invalid"));
-            assertThatThrownBy(() -> downloads.fetchSameOrigin("https://sign.example.invalid", "https://sign.example.invalid/doc", new HttpHeaders()))
-                    .hasMessage("Service de signature temporairement indisponible").hasNoCause();
-            server.verify();
-        }
+    @Test void transportFailureDoesNotCopyPrivateResponseOrCause() throws Exception {
+        var fetcher = mock(com.clenzy.booking.service.PinnedSiteFetcher.class);
+        when(fetcher.fetchAuthenticated(anyString(), anyLong(), anyMap()))
+                .thenThrow(new java.io.IOException("synthetic-private@example.invalid"));
+        assertThatThrownBy(() -> new BaitlySignatureDownloads(fetcher).fetchSameOrigin(
+                "https://sign.example.invalid", "https://sign.example.invalid/doc", new HttpHeaders()))
+                .hasMessage("Service de signature temporairement indisponible").hasNoCause();
     }
-    @Test void sameOriginDownloadPreservesBytesAndAuthentication() {
-        var downloads = new BaitlySignatureDownloads();
-        var server = MockRestServiceServer.bindTo((RestTemplate) ReflectionTestUtils.getField(downloads, "http")).build();
-        server.expect(requestTo("https://sign.example.invalid/doc")).andExpect(header("X-Auth-Token", "synthetic-key"))
-                .andRespond(withSuccess("synthetic-document", MediaType.APPLICATION_PDF));
-        var headers = new HttpHeaders();headers.set("X-Auth-Token", "synthetic-key");
-        assertThat(downloads.fetchSameOrigin("https://sign.example.invalid", "https://sign.example.invalid/doc", headers))
-                .isEqualTo("synthetic-document".getBytes(java.nio.charset.StandardCharsets.UTF_8));
-        server.verify();
+    @Test void sameOriginDownloadPreservesBytesAndOnlyAuthenticationHeaders() throws Exception {
+        var fetcher = mock(com.clenzy.booking.service.PinnedSiteFetcher.class);
+        byte[] pdf = "%PDF-synthetic".getBytes(java.nio.charset.StandardCharsets.UTF_8);
+        when(fetcher.fetchAuthenticated(anyString(), anyLong(), anyMap()))
+                .thenReturn(new com.clenzy.booking.service.PinnedSiteFetcher.FetchedResource("application/pdf", pdf));
+        var headers = new HttpHeaders(); headers.set("X-Auth-Token", "synthetic-key"); headers.set("X-Unrelated", "synthetic-other");
+        assertThat(new BaitlySignatureDownloads(fetcher).fetchSameOrigin(
+                "https://sign.example.invalid", "https://sign.example.invalid/doc", headers)).isEqualTo(pdf);
+        verify(fetcher).fetchAuthenticated("https://sign.example.invalid/doc", BaitlySignatureDownloads.MAX_DOCUMENT_BYTES,
+                Map.of("X-Auth-Token", "synthetic-key"));
     }
-    @Test void emptyDownloadedBodyIsNotAValidSignedDocument() {
-        var downloads = new BaitlySignatureDownloads();
-        var server = MockRestServiceServer.bindTo((RestTemplate) ReflectionTestUtils.getField(downloads, "http")).build();
-        server.expect(requestTo("https://sign.example.invalid/doc")).andRespond(withSuccess("", MediaType.APPLICATION_PDF));
-        assertThatThrownBy(() -> downloads.fetchSameOrigin("https://sign.example.invalid", "https://sign.example.invalid/doc", new HttpHeaders()))
+    @ParameterizedTest @ValueSource(strings={"", "<html>Login required</html>", "synthetic-error"})
+    void nonPdfDownloadedBodyIsNotASignedDocument(String body) throws Exception {
+        var fetcher = mock(com.clenzy.booking.service.PinnedSiteFetcher.class);
+        when(fetcher.fetchAuthenticated(anyString(), anyLong(), anyMap()))
+                .thenReturn(new com.clenzy.booking.service.PinnedSiteFetcher.FetchedResource("text/html", body.getBytes()));
+        assertThatThrownBy(() -> new BaitlySignatureDownloads(fetcher).fetchSameOrigin(
+                "https://sign.example.invalid", "https://sign.example.invalid/doc", new HttpHeaders()))
                 .isInstanceOf(IllegalStateException.class).hasNoCause();
-        server.verify();
     }
 }

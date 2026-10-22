@@ -3,6 +3,8 @@
     "BaitlyPennylaneResponseValidationTest",
     "HomeAwayChannelAdapterTest",
     "BaitlySignatureSafetyTest",
+      "BaitlyAuthenticatedPinnedDownloadTest",
+      "PinnedSiteFetcherTest",
     "BaitlySignatureProviderPrivacyTest",
       "BaitlyOAuthHttpDiagnosticsTest",
     "DocuSealSignatureProviderTest",

@@ -1,42 +1,41 @@
 package com.clenzy.service.signature;
 
-import org.springframework.http.*;
-import org.springframework.http.client.SimpleClientHttpRequestFactory;
+import com.clenzy.booking.service.PinnedSiteFetcher;
+import org.springframework.http.HttpHeaders;
 import org.springframework.stereotype.Component;
-import org.springframework.web.client.RestTemplate;
-import java.io.IOException;
-import java.net.HttpURLConnection;
 import java.net.URI;
+import java.nio.charset.StandardCharsets;
+import java.util.LinkedHashMap;
 
-/** Téléchargement Baitly limité à l'origine configurée, sans transfert de secret par redirection. */
+/** PDF Baitly : HTTPS public, même origine, DNS épinglé, sans redirection ni corps illimité. */
 @Component
 public class BaitlySignatureDownloads {
-    private final RestTemplate http;
-    public BaitlySignatureDownloads() {
-        var factory = new SimpleClientHttpRequestFactory() {
-            @Override protected void prepareConnection(HttpURLConnection connection, String method) throws IOException {
-                super.prepareConnection(connection, method);
-                connection.setInstanceFollowRedirects(false);
-            }
-        };
-        factory.setConnectTimeout(5000); factory.setReadTimeout(15000);
-        http = new RestTemplate(factory);
-    }
+    static final long MAX_DOCUMENT_BYTES = 25L * 1024 * 1024;
+    private final PinnedSiteFetcher fetcher;
+    public BaitlySignatureDownloads(PinnedSiteFetcher fetcher) {this.fetcher = fetcher;}
 
     public byte[] fetchSameOrigin(String base, String target, HttpHeaders headers) {
         try {
             if (target == null || target.length() > 8192) throw BaitlySignatureSafety.invalidResponse();
             URI origin = URI.create(base), uri = URI.create(target);
-            if (origin.getHost() == null || origin.getUserInfo() != null || uri.getUserInfo() != null || uri.getFragment() != null
-                    || !("https".equalsIgnoreCase(origin.getScheme()) || "http".equalsIgnoreCase(origin.getScheme()))
+            if (origin.getHost() == null || origin.getUserInfo() != null || origin.getFragment() != null
+                    || uri.getUserInfo() != null || uri.getFragment() != null || !"https".equalsIgnoreCase(origin.getScheme())
                     || !origin.getScheme().equalsIgnoreCase(uri.getScheme()) || !origin.getHost().equalsIgnoreCase(uri.getHost())
-                    || port(origin) != port(uri)) throw BaitlySignatureSafety.invalidResponse();
-            var result = http.exchange(uri, HttpMethod.GET, new HttpEntity<>(headers), byte[].class);
-            if (!result.getStatusCode().is2xxSuccessful() || result.getBody() == null || result.getBody().length == 0) {
+                    || port(origin) != 443 || port(uri) != 443) throw BaitlySignatureSafety.invalidResponse();
+            var authentication = new LinkedHashMap<String, String>();
+            for (String name : new String[]{HttpHeaders.AUTHORIZATION, "X-Auth-Token"}) {
+                if (headers.containsKey(name)) {
+                    if (headers.get(name).size() != 1) throw BaitlySignatureSafety.invalidResponse();
+                    authentication.put(name, headers.getFirst(name));
+                }
+            }
+            byte[] document = fetcher.fetchAuthenticated(target, MAX_DOCUMENT_BYTES, authentication).body();
+            if (document == null || document.length == 0 || document.length > MAX_DOCUMENT_BYTES
+                    || !new String(document, 0, Math.min(document.length, 1024), StandardCharsets.ISO_8859_1).contains("%PDF-")) {
                 throw BaitlySignatureSafety.invalidResponse();
             }
-            return result.getBody();
-        } catch (RuntimeException ignored) { throw BaitlySignatureSafety.unavailable(); }
+            return document;
+        } catch (Exception ignored) {throw BaitlySignatureSafety.unavailable();}
     }
-    private int port(URI uri) {return uri.getPort() >= 0 ? uri.getPort() : "https".equalsIgnoreCase(uri.getScheme()) ? 443 : 80;}
+    private int port(URI uri) {return uri.getPort() >= 0 ? uri.getPort() : 443;}
 }
