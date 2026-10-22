@@ -5,9 +5,12 @@ import com.clenzy.dto.SecurityDepositRequests.Capture;
 import com.clenzy.dto.SecurityDepositRequests.Create;
 import com.clenzy.service.SecurityDepositPaymentService;
 import com.clenzy.service.SecurityDepositService;
+import com.clenzy.service.OrganizationService;
 import com.clenzy.tenant.TenantContext;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.*;
 
 /**
@@ -22,18 +25,21 @@ public class SecurityDepositController {
     private final SecurityDepositService service;
     private final SecurityDepositPaymentService paymentService;
     private final TenantContext tenantContext;
+    private final OrganizationService organizationAccess;
 
     public SecurityDepositController(SecurityDepositService service,
                                      SecurityDepositPaymentService paymentService,
-                                     TenantContext tenantContext) {
+                                     TenantContext tenantContext, OrganizationService organizationAccess) {
         this.service = service;
         this.paymentService = paymentService;
         this.tenantContext = tenantContext;
+        this.organizationAccess = organizationAccess;
     }
 
     @PostMapping
-    public ResponseEntity<SecurityDepositDto> create(@RequestBody Create request) {
-        Long orgId = tenantContext.getRequiredOrganizationId();
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN','SUPER_MANAGER','HOST')")
+    public ResponseEntity<SecurityDepositDto> create(@RequestBody Create request, @AuthenticationPrincipal Jwt jwt) {
+        Long orgId = requireManager(jwt);
         return ResponseEntity.ok(
             service.create(orgId, request.reservationId(), request.amount(), request.currency()));
     }
@@ -50,19 +56,28 @@ public class SecurityDepositController {
      * revient en FAILED avec son motif ({@code holdError}).
      */
     @PostMapping("/{id}/hold")
-    public ResponseEntity<SecurityDepositDto> hold(@PathVariable Long id) {
-        return ResponseEntity.ok(paymentService.placeHold(tenantContext.getRequiredOrganizationId(), id));
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN','SUPER_MANAGER','HOST')")
+    public ResponseEntity<SecurityDepositDto> hold(@PathVariable Long id, @AuthenticationPrincipal Jwt jwt) {
+        return ResponseEntity.ok(paymentService.placeHold(requireManager(jwt), id));
     }
 
     @PostMapping("/{id}/release")
-    public ResponseEntity<Void> release(@PathVariable Long id) {
-        paymentService.releaseHold(tenantContext.getRequiredOrganizationId(), id);
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN','SUPER_MANAGER','HOST')")
+    public ResponseEntity<Void> release(@PathVariable Long id, @AuthenticationPrincipal Jwt jwt) {
+        paymentService.releaseHold(requireManager(jwt), id);
         return ResponseEntity.noContent().build();
     }
 
     @PostMapping("/{id}/capture")
-    public ResponseEntity<Void> capture(@PathVariable Long id, @RequestBody Capture request) {
-        paymentService.captureHold(tenantContext.getRequiredOrganizationId(), id, request.amount(), request.reason());
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN','SUPER_MANAGER','HOST')")
+    public ResponseEntity<Void> capture(@PathVariable Long id, @RequestBody Capture request, @AuthenticationPrincipal Jwt jwt) {
+        paymentService.captureHold(requireManager(jwt), id, request.amount(), request.reason());
         return ResponseEntity.noContent().build();
+    }
+
+    private Long requireManager(Jwt jwt) {
+        Long orgId = tenantContext.getRequiredOrganizationId();
+        organizationAccess.validateOrgManagement(jwt.getSubject(), orgId);
+        return orgId;
     }
 }
