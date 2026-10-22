@@ -4,6 +4,7 @@ import com.clenzy.integration.homeaway.config.HomeAwayConfig;
 import com.clenzy.integration.homeaway.dto.HomeAwayReservationDto;
 import com.clenzy.integration.homeaway.model.HomeAwayConnection;
 import com.clenzy.integration.homeaway.repository.HomeAwayConnectionRepository;
+import com.clenzy.integration.oauth.BaitlyOAuthBusyException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
@@ -72,9 +73,10 @@ public class HomeAwaySyncScheduler {
                     oAuthService.refreshToken(connection.getOrganizationId());
                     log.info("Token HomeAway rafraichi pour org={}", connection.getOrganizationId());
                 }
-            } catch (Exception e) {
-                log.error("Echec refresh token HomeAway org={}: {}",
-                        connection.getOrganizationId(), e.getMessage());
+            } catch (BaitlyOAuthBusyException ignored) {
+                log.debug("Refresh HomeAway différé : opération OAuth déjà en cours");
+            } catch (Exception ignored) {
+                log.error("Refresh HomeAway indisponible");
             }
         }
     }
@@ -95,6 +97,7 @@ public class HomeAwaySyncScheduler {
         int successCount = 0;
 
         for (HomeAwayConnection connection : activeConnections) {
+            LocalDateTime startedAt = LocalDateTime.now();
             try {
                 String accessToken = oAuthService.getValidAccessToken(connection.getOrganizationId());
 
@@ -110,7 +113,8 @@ public class HomeAwaySyncScheduler {
                     log.debug("HomeAway sync: {} reservations pour listing {} (org={})",
                             reservations.size(), connection.getListingId(), connection.getOrganizationId());
 
-                    // Traiter chaque reservation
+                    // Une erreur partielle conserve la fenêtre pour la prochaine synchronisation.
+                    boolean complete = true;
                     for (HomeAwayReservationDto reservation : reservations) {
                         try {
                             Map<String, Object> data = Map.of(
@@ -123,28 +127,38 @@ public class HomeAwaySyncScheduler {
                                     "status", reservation.status() != null ? reservation.status() : "CONFIRMED"
                             );
                             syncService.handleReservationCreated(data, connection.getOrganizationId());
-                        } catch (Exception e) {
-                            log.error("Erreur traitement reservation HomeAway {}: {}",
-                                    reservation.reservationId(), e.getMessage());
+                        } catch (Exception ignored) {
+                            complete = false;
+                            log.error("Traitement d'une réservation HomeAway indisponible");
                         }
+                    }
+                    if (!complete) {
+                        recordFailure(connection, startedAt);
+                        continue;
                     }
                 }
 
-                connection.setLastSyncAt(LocalDateTime.now());
-                connection.setErrorMessage(null);
-                connectionRepository.save(connection);
+                if (connectionRepository.recordSyncSuccess(connection.getId(), connection.getOrganizationId(),
+                        connection.getListingId(), startedAt) == 1) successCount++;
 
-                successCount++;
-
-            } catch (Exception e) {
-                log.error("Erreur sync HomeAway pour listing {} (org={}): {}",
-                        connection.getListingId(), connection.getOrganizationId(), e.getMessage());
-
-                connection.setErrorMessage("Sync echoue: " + e.getMessage());
-                connectionRepository.save(connection);
+            } catch (BaitlyOAuthBusyException ignored) {
+                log.debug("Sync HomeAway différée : opération OAuth déjà en cours");
+            } catch (Exception ignored) {
+                log.error("Synchronisation HomeAway indisponible");
+                recordFailure(connection, startedAt);
             }
         }
 
         log.debug("Sync HomeAway terminee : {}/{} connexions OK", successCount, totalConnections);
+    }
+
+    private void recordFailure(HomeAwayConnection connection, LocalDateTime startedAt) {
+        try {
+            connectionRepository.recordSyncFailure(connection.getId(), connection.getOrganizationId(),
+                    connection.getListingId(), startedAt);
+        } catch (Exception ignored) {
+            // Un incident de persistance ne doit pas empêcher le traitement des autres organisations.
+            log.error("Enregistrement du diagnostic HomeAway indisponible");
+        }
     }
 }
