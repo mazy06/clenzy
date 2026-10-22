@@ -39,6 +39,7 @@ class BaitlyOAuthCredentialPersistenceTest {
                 em.getTransaction().commit();
             }
             var repo = mock(MinutConnectionRepository.class);
+            when(repo.findByUserId(connection.getUserId())).thenReturn(java.util.Optional.of(connection));
             when(repo.save(any())).thenAnswer(call -> {
                 try (var em = factory.createEntityManager()) {
                     em.getTransaction().begin();
@@ -57,7 +58,7 @@ class BaitlyOAuthCredentialPersistenceTest {
             when(http.postForEntity(anyString(), any(), eq(Map.class))).thenReturn(ResponseEntity.ok(
                     Map.of("access_token", "new-access", "refresh_token", "new-refresh", "expires_in", 3600)));
             var service = new MinutOAuthService(config, repo, crypto, mock(TenantContext.class),
-                    mock(StringRedisTemplate.class), http);
+                    mock(StringRedisTemplate.class), http, com.clenzy.integration.oauth.BaitlyOAuthTestGuards.passthrough());
             service.refreshToken(connection);
             try (var em = factory.createEntityManager()) {
                 var saved = em.find(MinutConnection.class, connection.getId());

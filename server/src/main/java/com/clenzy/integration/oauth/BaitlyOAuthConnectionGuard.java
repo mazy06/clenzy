@@ -18,7 +18,8 @@ public class BaitlyOAuthConnectionGuard {
         this.db = db;
         transaction = new TransactionTemplate(manager);
         transaction.setPropagationBehavior(TransactionDefinition.PROPAGATION_REQUIRES_NEW);
-        transaction.setTimeout(30);
+        // Clients historiques : connexion 10 s + lecture 30 s, puis marge de commit.
+        transaction.setTimeout(60);
     }
 
     public <T> T execute(String provider, Long organizationId, Supplier<T> operation) {
@@ -30,16 +31,43 @@ public class BaitlyOAuthConnectionGuard {
         return execute(provider, organizationId, operation, true);
     }
 
+    public <T> T executeForUser(String provider, String userId, Supplier<T> operation) {
+        return executeKey(userScope(provider, userId), operation, false);
+    }
+
+    public <T> T executeUserRefresh(String provider, String userId, Supplier<T> operation) {
+        return executeKey(userScope(provider, userId), operation, true);
+    }
+
+    private String userScope(String provider, String userId) {
+        if (provider == null || !provider.matches("[a-z0-9_-]{1,48}")
+                || userId == null || userId.isBlank() || userId.length() > 512) {
+            throw new IllegalArgumentException("Périmètre OAuth invalide");
+        }
+        try {
+            // Identifiant pseudonymisé : jamais le subject utilisateur en paramètre SQL.
+            byte[] digest = java.security.MessageDigest.getInstance("SHA-256")
+                    .digest(userId.getBytes(java.nio.charset.StandardCharsets.UTF_8));
+            return "baitly:oauth:user:" + provider + ":" + java.util.HexFormat.of().formatHex(digest);
+        } catch (java.security.NoSuchAlgorithmException ignored) {
+            throw new IllegalStateException("Coordination OAuth indisponible");
+        }
+    }
+
     private <T> T execute(String provider, Long organizationId, Supplier<T> operation, boolean preserveError) {
         if (provider == null || !provider.matches("[a-z0-9_-]{1,48}")
                 || organizationId == null || organizationId <= 0) {
             throw new IllegalArgumentException("Périmètre OAuth invalide");
         }
+        return executeKey("baitly:oauth:" + provider + ":" + organizationId, operation, preserveError);
+    }
+
+    private <T> T executeKey(String scope, Supplier<T> operation, boolean preserveError) {
         Outcome<T> outcome = transaction.execute(status -> {
-            // La clé ne contient aucun jeton, identifiant utilisateur ou URL fournisseur.
+            // La clé ne contient aucun jeton, identifiant utilisateur en clair ou URL fournisseur.
             Boolean locked = db.queryForObject(
                     "SELECT pg_try_advisory_xact_lock(hashtextextended(?, 0))", Boolean.class,
-                    "baitly:oauth:" + provider + ":" + organizationId);
+                    scope);
             if (!Boolean.TRUE.equals(locked)) {
                 throw new IllegalStateException("Opération OAuth déjà en cours ; réessayer ultérieurement");
             }

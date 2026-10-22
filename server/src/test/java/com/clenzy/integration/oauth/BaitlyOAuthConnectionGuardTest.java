@@ -89,4 +89,23 @@ class BaitlyOAuthConnectionGuardTest {
                 .hasMessage("Périmètre OAuth invalide");
         verifyNoInteractions(db, manager);
     }
+
+    @Test void userKeysAreStableAndDoNotTransmitRawIdentity() {
+        lock(true);
+        guard.executeForUser("minut", "synthetic-user@example.invalid", () -> "ok");
+        guard.executeUserRefresh("minut", "synthetic-user@example.invalid", () -> "ok");
+        guard.executeForUser("minut", "different-user", () -> "ok");
+        var keys = org.mockito.ArgumentCaptor.forClass(Object[].class);
+        verify(db, times(3)).queryForObject(anyString(), eq(Boolean.class), keys.capture());
+        String first = keys.getAllValues().get(0)[0].toString();
+        assertThat(first).matches("baitly:oauth:user:minut:[a-f0-9]{64}").doesNotContain("synthetic-user", "example.invalid");
+        assertThat(keys.getAllValues().get(1)[0]).isEqualTo(first);
+        assertThat(keys.getAllValues().get(2)[0]).isNotEqualTo(first);
+    }
+
+    @Test void invalidUserScopeNeverAccessesDatabase() {
+        assertThatThrownBy(() -> guard.executeForUser("minut", " ", () -> "ok"))
+                .hasMessage("Périmètre OAuth invalide");
+        verifyNoInteractions(db, manager);
+    }
 }

@@ -1,6 +1,7 @@
 package com.clenzy.integration.airbnb.service;
 
 import com.clenzy.integration.oauth.BaitlyOAuthDiagnostics;
+import com.clenzy.integration.oauth.BaitlyOAuthConnectionGuard;
 import static com.clenzy.integration.oauth.BaitlyOAuthDiagnostics.Operation.*;
 
 import com.clenzy.integration.oauth.BaitlyOAuthTokenResponse;
@@ -47,19 +48,21 @@ public class AirbnbOAuthService {
     private final AuditLogService auditLogService;
     private final StringRedisTemplate redisTemplate;
     private final RestTemplate restTemplate;
+    private final BaitlyOAuthConnectionGuard connectionGuard;
 
     public AirbnbOAuthService(AirbnbConfig config,
                               AirbnbConnectionRepository connectionRepository,
                               AirbnbTokenEncryptionService encryptionService,
                               AuditLogService auditLogService,
                               StringRedisTemplate redisTemplate,
-                              RestTemplate restTemplate) {
+                              RestTemplate restTemplate, BaitlyOAuthConnectionGuard connectionGuard) {
         this.config = config;
         this.connectionRepository = connectionRepository;
         this.encryptionService = encryptionService;
         this.auditLogService = auditLogService;
         this.redisTemplate = redisTemplate;
         this.restTemplate = restTemplate;
+        this.connectionGuard = connectionGuard;
     }
 
     /**
@@ -103,6 +106,11 @@ public class AirbnbOAuthService {
      */
     @CircuitBreaker(name = "airbnb-oauth")
     public AirbnbConnection exchangeCodeForToken(String code, String userId) {
+        return connectionGuard.executeUserRefresh("airbnb", userId,
+                () -> exchangeUnderLock(code, userId));
+    }
+
+    private AirbnbConnection exchangeUnderLock(String code, String userId) {
         log.info("Echange du code OAuth pour l'utilisateur: {}", userId);
 
         HttpHeaders headers = new HttpHeaders();
@@ -182,10 +190,19 @@ public class AirbnbOAuthService {
      */
     @CircuitBreaker(name = "airbnb-oauth")
     public AirbnbConnection refreshToken(String userId) {
+        return connectionGuard.executeUserRefresh("airbnb", userId,
+                () -> refreshUnderLock(userId, false));
+    }
+
+    private AirbnbConnection refreshUnderLock(String userId, boolean onlyIfExpiring) {
         log.info("Rafraichissement du token Airbnb pour l'utilisateur: {}", userId);
 
         AirbnbConnection connection = connectionRepository.findByUserId(userId)
                 .orElseThrow(() -> new RuntimeException("Aucune connexion Airbnb pour l'utilisateur: " + userId));
+
+        if (!connection.isActive()) throw new IllegalStateException("Connexion OAuth inactive ; reconnexion requise");
+        if (onlyIfExpiring && (connection.getTokenExpiresAt() == null
+                || !connection.getTokenExpiresAt().isBefore(LocalDateTime.now().plusMinutes(5)))) return connection;
 
         try {
             String refreshToken = encryptionService.decrypt(connection.getRefreshTokenEncrypted());
@@ -245,6 +262,13 @@ public class AirbnbOAuthService {
      */
     @CircuitBreaker(name = "airbnb-oauth")
     public void revokeToken(String userId) {
+        connectionGuard.executeForUser("airbnb", userId, () -> {
+            revokeUnderLock(userId);
+            return null;
+        });
+    }
+
+    private void revokeUnderLock(String userId) {
         log.info("Revocation du token Airbnb pour l'utilisateur: {}", userId);
 
         AirbnbConnection connection = connectionRepository.findByUserId(userId)
@@ -300,7 +324,8 @@ public class AirbnbOAuthService {
         if (connection.getTokenExpiresAt() != null
                 && connection.getTokenExpiresAt().isBefore(LocalDateTime.now().plusMinutes(5))) {
             log.info("Token Airbnb proche de l'expiration, rafraichissement...");
-            connection = refreshToken(userId);
+            connection = connectionGuard.executeUserRefresh("airbnb", userId,
+                    () -> refreshUnderLock(userId, true));
         }
 
         return encryptionService.decrypt(connection.getAccessTokenEncrypted());

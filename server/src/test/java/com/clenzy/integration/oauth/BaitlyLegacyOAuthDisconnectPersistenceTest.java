@@ -63,18 +63,18 @@ class BaitlyLegacyOAuthDisconnectPersistenceTest {
             when(repo.save(any())).thenAnswer(call->tx(em->em.merge(call.getArgument(0))));
             var config=mock(AirbnbConfig.class);when(config.getApiBaseUrl()).thenReturn("https://oauth.example.invalid");
             var crypto=mock(AirbnbTokenEncryptionService.class);when(crypto.decrypt(anyString())).thenReturn("synthetic-token");
-            new AirbnbOAuthService(config,repo,crypto,mock(AuditLogService.class),redis,http).revokeToken(c.getUserId());
+            new AirbnbOAuthService(config,repo,crypto,mock(AuditLogService.class),redis,http, com.clenzy.integration.oauth.BaitlyOAuthTestGuards.passthrough()).revokeToken(c.getUserId());
         } else if(connection instanceof MinutConnection c) {
             var repo=mock(MinutConnectionRepository.class);when(repo.findByUserId(c.getUserId())).thenReturn(Optional.of(c));
             when(repo.save(any())).thenAnswer(call->tx(em->em.merge(call.getArgument(0))));
             var config=mock(MinutConfig.class);when(config.getApiBaseUrl()).thenReturn("https://oauth.example.invalid");
             var crypto=mock(TokenEncryptionService.class);when(crypto.decrypt(anyString())).thenReturn("synthetic-token");
-            new MinutOAuthService(config,repo,crypto,mock(TenantContext.class),redis,http).revokeToken(c.getUserId());
+            new MinutOAuthService(config,repo,crypto,mock(TenantContext.class),redis,http, com.clenzy.integration.oauth.BaitlyOAuthTestGuards.passthrough()).revokeToken(c.getUserId());
         } else {
             var c=(NetatmoConnection)connection;var repo=mock(NetatmoConnectionRepository.class);
             when(repo.findByUserId(c.getUserId())).thenReturn(Optional.of(c));when(repo.save(any())).thenAnswer(call->tx(em->em.merge(call.getArgument(0))));
             new NetatmoOAuthService(mock(NetatmoConfig.class),mock(NetatmoPlatformConfigService.class),repo,mock(TokenEncryptionService.class),
-                    mock(TenantContext.class),redis,http).revokeToken(c.getUserId());
+                    mock(TenantContext.class),redis,http, com.clenzy.integration.oauth.BaitlyOAuthTestGuards.passthrough()).revokeToken(c.getUserId());
         }
         Object saved=tx(em->em.find(connection.getClass(),id));
         assertThat(ReflectionTestUtils.getField(saved,"status").toString()).isEqualTo("REVOKED");

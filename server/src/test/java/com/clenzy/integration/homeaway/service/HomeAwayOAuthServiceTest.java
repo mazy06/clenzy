@@ -53,7 +53,7 @@ class HomeAwayOAuthServiceTest {
         service = new HomeAwayOAuthService(
                 config, connectionRepository, encryptionService,
                 auditLogService, redisTemplate, restTemplate
-        );
+        , com.clenzy.integration.oauth.BaitlyOAuthTestGuards.passthrough());
     }
 
     // ===== GET AUTHORIZATION URL =====

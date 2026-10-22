@@ -1,6 +1,7 @@
 package com.clenzy.integration.minut.service;
 
 import com.clenzy.integration.oauth.BaitlyOAuthDiagnostics;
+import com.clenzy.integration.oauth.BaitlyOAuthConnectionGuard;
 import static com.clenzy.integration.oauth.BaitlyOAuthDiagnostics.Operation.*;
 
 import com.clenzy.integration.oauth.BaitlyOAuthTokenResponse;
@@ -42,19 +43,21 @@ public class MinutOAuthService {
     private final TenantContext tenantContext;
     private final StringRedisTemplate redisTemplate;
     private final RestTemplate restTemplate;
+    private final BaitlyOAuthConnectionGuard connectionGuard;
 
     public MinutOAuthService(MinutConfig config,
                              MinutConnectionRepository connectionRepository,
                              TokenEncryptionService encryptionService,
                              TenantContext tenantContext,
                              StringRedisTemplate redisTemplate,
-                             RestTemplate restTemplate) {
+                             RestTemplate restTemplate, BaitlyOAuthConnectionGuard connectionGuard) {
         this.config = config;
         this.connectionRepository = connectionRepository;
         this.encryptionService = encryptionService;
         this.tenantContext = tenantContext;
         this.redisTemplate = redisTemplate;
         this.restTemplate = restTemplate;
+        this.connectionGuard = connectionGuard;
     }
 
     /**
@@ -97,6 +100,11 @@ public class MinutOAuthService {
      */
     @SuppressWarnings("unchecked")
     public MinutConnection exchangeCodeForToken(String code, String userId) {
+        return connectionGuard.executeForUser("minut", userId,
+                () -> exchangeUnderLock(code, userId));
+    }
+
+    private MinutConnection exchangeUnderLock(String code, String userId) {
         log.info("Echange du code OAuth Minut pour l'utilisateur: {}", userId);
 
         HttpHeaders headers = new HttpHeaders();
@@ -161,7 +169,19 @@ public class MinutOAuthService {
      */
     @SuppressWarnings("unchecked")
     public MinutConnection refreshToken(MinutConnection connection) {
+        String userId = connection.getUserId();
+        return connectionGuard.executeUserRefresh("minut", userId,
+                () -> refreshUnderLock(userId, false));
+    }
+
+    private MinutConnection refreshUnderLock(String userId, boolean onlyIfExpiring) {
+        MinutConnection connection = connectionRepository.findByUserId(userId)
+                .orElseThrow(() -> new IllegalStateException("Connexion OAuth indisponible"));
         log.info("Rafraichissement du token Minut pour l'utilisateur: {}", connection.getUserId());
+
+        if (!connection.isActive()) throw new IllegalStateException("Connexion OAuth inactive ; reconnexion requise");
+        if (onlyIfExpiring && (connection.getTokenExpiresAt() == null
+                || !connection.getTokenExpiresAt().isBefore(LocalDateTime.now().plusMinutes(5)))) return connection;
 
         try {
             String refreshToken = encryptionService.decrypt(connection.getRefreshTokenEncrypted());
@@ -236,7 +256,8 @@ public class MinutOAuthService {
         // Refresh si expire dans moins de 5 minutes
         if (connection.getTokenExpiresAt() != null
                 && connection.getTokenExpiresAt().minusMinutes(5).isBefore(LocalDateTime.now())) {
-            connection = refreshToken(connection);
+            connection = connectionGuard.executeUserRefresh("minut", userId,
+                    () -> refreshUnderLock(userId, true));
             if (!connection.isActive()) {
                 throw new IllegalStateException("Echec du rafraichissement du token Minut");
             }
@@ -249,6 +270,13 @@ public class MinutOAuthService {
      * Revoque le token et deconnecte l'utilisateur.
      */
     public void revokeToken(String userId) {
+        connectionGuard.executeForUser("minut", userId, () -> {
+            revokeUnderLock(userId);
+            return null;
+        });
+    }
+
+    private void revokeUnderLock(String userId) {
         connectionRepository.findByUserId(userId).ifPresent(connection -> {
             boolean remoteConfirmed = false;
             try {

@@ -44,8 +44,8 @@ class BaitlyLegacyOAuthDiagnosticsTest {
             var c=new AirbnbConnection();c.setId(1L);c.setUserId("user-test");c.setAccessTokenEncrypted("encrypted-access");c.setRefreshTokenEncrypted("encrypted-refresh");
             c.setStatus(AirbnbConnection.AirbnbConnectionStatus.ACTIVE);
             when(repo.findByUserId("user-test")).thenReturn(Optional.of(c));when(repo.save(any())).thenAnswer(call->call.getArgument(0));
-            var service=new AirbnbOAuthService(config,repo,crypto,audit,redis,http);
-            return new Harness(service.getClass(),()->service.exchangeCodeForToken("synthetic-code","user-test"),()->service.refreshToken("user-test"),
+            var service=new AirbnbOAuthService(config,repo,crypto,audit,redis,http, com.clenzy.integration.oauth.BaitlyOAuthTestGuards.passthrough());
+            return new Harness(service.getClass(),()->service.exchangeCodeForToken("synthetic-code","user-test"),()->{c.setStatus(AirbnbConnection.AirbnbConnectionStatus.ACTIVE);service.refreshToken("user-test");},
                     ()->service.revokeToken("user-test"),c::getErrorMessage,c::getAccessTokenEncrypted,c::getRefreshTokenEncrypted,()->c.getStatus().name());
         }
         if(provider.equals("homeaway")) {
@@ -55,8 +55,8 @@ class BaitlyLegacyOAuthDiagnosticsTest {
             var c=new HomeAwayConnection();c.setId(1L);c.setOrganizationId(7L);c.setAccessTokenEncrypted("encrypted-access");c.setRefreshTokenEncrypted("encrypted-refresh");
             c.setStatus(HomeAwayConnection.HomeAwayConnectionStatus.ACTIVE);
             when(repo.findByOrganizationId(7L)).thenReturn(Optional.of(c));when(repo.save(any())).thenAnswer(call->call.getArgument(0));
-            var service=new HomeAwayOAuthService(config,repo,crypto,audit,redis,http);
-            return new Harness(service.getClass(),()->service.exchangeCodeForToken("synthetic-code",7L),()->service.refreshToken(7L),
+            var service=new HomeAwayOAuthService(config,repo,crypto,audit,redis,http, com.clenzy.integration.oauth.BaitlyOAuthTestGuards.passthrough());
+            return new Harness(service.getClass(),()->service.exchangeCodeForToken("synthetic-code",7L),()->{c.setStatus(HomeAwayConnection.HomeAwayConnectionStatus.ACTIVE);service.refreshToken(7L);},
                     ()->{},c::getErrorMessage,c::getAccessTokenEncrypted,c::getRefreshTokenEncrypted,()->c.getStatus().name());
         }
         var crypto=mock(TokenEncryptionService.class);when(crypto.decrypt(anyString())).thenAnswer(call -> {if(decryptFailure)throw privateFailure();return "synthetic-token";});
@@ -65,16 +65,16 @@ class BaitlyLegacyOAuthDiagnosticsTest {
             var repo=mock(MinutConnectionRepository.class);var c=new MinutConnection();c.setUserId("user-test");c.setOrganizationId(7L);
             c.setAccessTokenEncrypted("encrypted-access");c.setRefreshTokenEncrypted("encrypted-refresh");c.setStatus(MinutConnection.MinutConnectionStatus.ACTIVE);
             when(repo.findByUserId("user-test")).thenReturn(Optional.of(c));when(repo.save(any())).thenAnswer(call->call.getArgument(0));
-            var service=new MinutOAuthService(config,repo,crypto,tenant,redis,http);
-            return new Harness(service.getClass(),()->service.exchangeCodeForToken("synthetic-code","user-test"),()->service.refreshToken(c),()->service.revokeToken("user-test"),
+            var service=new MinutOAuthService(config,repo,crypto,tenant,redis,http, com.clenzy.integration.oauth.BaitlyOAuthTestGuards.passthrough());
+            return new Harness(service.getClass(),()->service.exchangeCodeForToken("synthetic-code","user-test"),()->{c.setStatus(MinutConnection.MinutConnectionStatus.ACTIVE);service.refreshToken(c);},()->service.revokeToken("user-test"),
                     c::getErrorMessage,c::getAccessTokenEncrypted,c::getRefreshTokenEncrypted,()->c.getStatus().name());
         }
         var config=mock(NetatmoConfig.class);when(config.getTokenUrl()).thenReturn("https://oauth.example.invalid/token");
         var repo=mock(NetatmoConnectionRepository.class);var c=new NetatmoConnection();c.setUserId("user-test");c.setOrganizationId(7L);
         c.setAccessTokenEncrypted("encrypted-access");c.setRefreshTokenEncrypted("encrypted-refresh");c.setStatus(NetatmoConnection.NetatmoConnectionStatus.ACTIVE);
         when(repo.findByUserId("user-test")).thenReturn(Optional.of(c));when(repo.save(any())).thenAnswer(call->call.getArgument(0));
-        var service=new NetatmoOAuthService(config,mock(NetatmoPlatformConfigService.class),repo,crypto,tenant,redis,http);
-        return new Harness(service.getClass(),()->service.exchangeCodeForToken("synthetic-code","user-test",7L),()->service.refreshToken(c),()->service.revokeToken("user-test"),
+        var service=new NetatmoOAuthService(config,mock(NetatmoPlatformConfigService.class),repo,crypto,tenant,redis,http, com.clenzy.integration.oauth.BaitlyOAuthTestGuards.passthrough());
+        return new Harness(service.getClass(),()->service.exchangeCodeForToken("synthetic-code","user-test",7L),()->{c.setStatus(NetatmoConnection.NetatmoConnectionStatus.ACTIVE);service.refreshToken(c);},()->service.revokeToken("user-test"),
                 c::getErrorMessage,c::getAccessTokenEncrypted,c::getRefreshTokenEncrypted,()->c.getStatus().name());
     }
 

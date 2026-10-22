@@ -1,6 +1,7 @@
 package com.clenzy.integration.netatmo.service;
 
 import com.clenzy.integration.oauth.BaitlyOAuthDiagnostics;
+import com.clenzy.integration.oauth.BaitlyOAuthConnectionGuard;
 import static com.clenzy.integration.oauth.BaitlyOAuthDiagnostics.Operation.*;
 
 import com.clenzy.integration.oauth.BaitlyOAuthTokenResponse;
@@ -48,6 +49,7 @@ public class NetatmoOAuthService {
     private final TenantContext tenantContext;
     private final StringRedisTemplate redisTemplate;
     private final RestTemplate restTemplate;
+    private final BaitlyOAuthConnectionGuard connectionGuard;
 
     public NetatmoOAuthService(NetatmoConfig config,
                                NetatmoPlatformConfigService configService,
@@ -55,7 +57,7 @@ public class NetatmoOAuthService {
                                TokenEncryptionService encryptionService,
                                TenantContext tenantContext,
                                StringRedisTemplate redisTemplate,
-                               RestTemplate restTemplate) {
+                               RestTemplate restTemplate, BaitlyOAuthConnectionGuard connectionGuard) {
         this.config = config;
         this.configService = configService;
         this.connectionRepository = connectionRepository;
@@ -63,6 +65,7 @@ public class NetatmoOAuthService {
         this.tenantContext = tenantContext;
         this.redisTemplate = redisTemplate;
         this.restTemplate = restTemplate;
+        this.connectionGuard = connectionGuard;
     }
 
     /**
@@ -112,6 +115,11 @@ public class NetatmoOAuthService {
      */
     @SuppressWarnings("unchecked")
     public NetatmoConnection exchangeCodeForToken(String code, String userId, Long organizationId) {
+        return connectionGuard.executeForUser("netatmo", userId,
+                () -> exchangeUnderLock(code, userId, organizationId));
+    }
+
+    private NetatmoConnection exchangeUnderLock(String code, String userId, Long organizationId) {
         log.info("Echange du code OAuth Netatmo pour l'utilisateur: {}", userId);
 
         HttpHeaders headers = new HttpHeaders();
@@ -174,7 +182,19 @@ public class NetatmoOAuthService {
      */
     @SuppressWarnings("unchecked")
     public NetatmoConnection refreshToken(NetatmoConnection connection) {
+        String userId = connection.getUserId();
+        return connectionGuard.executeUserRefresh("netatmo", userId,
+                () -> refreshUnderLock(userId, false));
+    }
+
+    private NetatmoConnection refreshUnderLock(String userId, boolean onlyIfExpiring) {
+        NetatmoConnection connection = connectionRepository.findByUserId(userId)
+                .orElseThrow(() -> new IllegalStateException("Connexion OAuth indisponible"));
         log.info("Rafraichissement du token Netatmo pour l'utilisateur: {}", connection.getUserId());
+
+        if (!connection.isActive()) throw new IllegalStateException("Connexion OAuth inactive ; reconnexion requise");
+        if (onlyIfExpiring && (connection.getTokenExpiresAt() == null
+                || !connection.getTokenExpiresAt().isBefore(LocalDateTime.now().plusMinutes(5)))) return connection;
 
         try {
             String refreshToken = encryptionService.decrypt(connection.getRefreshTokenEncrypted());
@@ -247,7 +267,8 @@ public class NetatmoOAuthService {
 
         if (connection.getTokenExpiresAt() != null
                 && connection.getTokenExpiresAt().minusMinutes(5).isBefore(LocalDateTime.now())) {
-            connection = refreshToken(connection);
+            connection = connectionGuard.executeUserRefresh("netatmo", userId,
+                    () -> refreshUnderLock(userId, true));
             if (!connection.isActive()) {
                 throw new IllegalStateException("Echec du rafraichissement du token Netatmo");
             }
@@ -261,6 +282,13 @@ public class NetatmoOAuthService {
      * La déconnexion locale efface les jetons sans attester leur révocation distante.
      */
     public void revokeToken(String userId) {
+        connectionGuard.executeForUser("netatmo", userId, () -> {
+            revokeUnderLock(userId);
+            return null;
+        });
+    }
+
+    private void revokeUnderLock(String userId) {
         connectionRepository.findByUserId(userId).ifPresent(connection -> {
             connection.setStatus(NetatmoConnectionStatus.REVOKED);
             connection.setAccessTokenEncrypted(""); // Colonne historique NOT NULL : aucun secret conservé.

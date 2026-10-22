@@ -47,7 +47,7 @@ class AirbnbOAuthServiceTest {
     @BeforeEach
     void setUp() {
         service = new AirbnbOAuthService(config, connectionRepository, encryptionService,
-                auditLogService, redisTemplate, restTemplate);
+                auditLogService, redisTemplate, restTemplate, com.clenzy.integration.oauth.BaitlyOAuthTestGuards.passthrough());
     }
 
     // ===== GET AUTHORIZATION URL =====

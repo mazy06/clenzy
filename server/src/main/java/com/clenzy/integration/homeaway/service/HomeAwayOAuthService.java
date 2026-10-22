@@ -1,6 +1,7 @@
 package com.clenzy.integration.homeaway.service;
 
 import com.clenzy.integration.oauth.BaitlyOAuthDiagnostics;
+import com.clenzy.integration.oauth.BaitlyOAuthConnectionGuard;
 import static com.clenzy.integration.oauth.BaitlyOAuthDiagnostics.Operation.*;
 
 import com.clenzy.integration.oauth.BaitlyOAuthTokenResponse;
@@ -50,19 +51,21 @@ public class HomeAwayOAuthService {
     private final AuditLogService auditLogService;
     private final StringRedisTemplate redisTemplate;
     private final RestTemplate restTemplate;
+    private final BaitlyOAuthConnectionGuard connectionGuard;
 
     public HomeAwayOAuthService(HomeAwayConfig config,
                                 HomeAwayConnectionRepository connectionRepository,
                                 AirbnbTokenEncryptionService encryptionService,
                                 AuditLogService auditLogService,
                                 StringRedisTemplate redisTemplate,
-                                RestTemplate restTemplate) {
+                                RestTemplate restTemplate, BaitlyOAuthConnectionGuard connectionGuard) {
         this.config = config;
         this.connectionRepository = connectionRepository;
         this.encryptionService = encryptionService;
         this.auditLogService = auditLogService;
         this.redisTemplate = redisTemplate;
         this.restTemplate = restTemplate;
+        this.connectionGuard = connectionGuard;
     }
 
     /**
@@ -105,6 +108,11 @@ public class HomeAwayOAuthService {
      */
     @CircuitBreaker(name = "homeaway-oauth")
     public HomeAwayConnection exchangeCodeForToken(String code, Long orgId) {
+        return connectionGuard.executeRefresh("homeaway", orgId,
+                () -> exchangeUnderLock(code, orgId));
+    }
+
+    private HomeAwayConnection exchangeUnderLock(String code, Long orgId) {
         log.info("Echange du code OAuth HomeAway pour org: {}", orgId);
 
         HttpHeaders headers = new HttpHeaders();
@@ -177,10 +185,19 @@ public class HomeAwayOAuthService {
      */
     @CircuitBreaker(name = "homeaway-oauth")
     public HomeAwayConnection refreshToken(Long orgId) {
+        return connectionGuard.executeRefresh("homeaway", orgId,
+                () -> refreshUnderLock(orgId, false));
+    }
+
+    private HomeAwayConnection refreshUnderLock(Long orgId, boolean onlyIfExpiring) {
         log.info("Rafraichissement du token HomeAway pour org: {}", orgId);
 
         HomeAwayConnection connection = connectionRepository.findByOrganizationId(orgId)
                 .orElseThrow(() -> new RuntimeException("Aucune connexion HomeAway pour org: " + orgId));
+
+        if (!connection.isActive()) throw new IllegalStateException("Connexion OAuth inactive ; reconnexion requise");
+        if (onlyIfExpiring && (connection.getTokenExpiresAt() == null
+                || !connection.getTokenExpiresAt().isBefore(LocalDateTime.now().plusMinutes(5)))) return connection;
 
         try {
             String refreshToken = encryptionService.decrypt(connection.getRefreshTokenEncrypted());
@@ -251,7 +268,8 @@ public class HomeAwayOAuthService {
         if (connection.getTokenExpiresAt() != null
                 && connection.getTokenExpiresAt().isBefore(LocalDateTime.now().plusMinutes(5))) {
             log.info("Token HomeAway proche de l'expiration, rafraichissement...");
-            connection = refreshToken(orgId);
+            connection = connectionGuard.executeRefresh("homeaway", orgId,
+                    () -> refreshUnderLock(orgId, true));
         }
 
         return encryptionService.decrypt(connection.getAccessTokenEncrypted());

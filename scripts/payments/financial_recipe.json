@@ -1,6 +1,7 @@
 {
   "backend": [
     "BaitlyOAuthCoordinationPostgresTest",
+    "BaitlyNativeOAuthCoordinationPostgresTest",
     "BaitlyPayoutMissionLoadingTest",
     "BaitlyInterventionCheckoutExpiryTest",
     "HousekeeperPayoutServiceTest",

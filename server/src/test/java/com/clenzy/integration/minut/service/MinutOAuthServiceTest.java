@@ -51,7 +51,7 @@ class MinutOAuthServiceTest {
     @BeforeEach
     void setUp() {
         service = new MinutOAuthService(config, connectionRepository, encryptionService,
-                tenantContext, redisTemplate, restTemplate);
+                tenantContext, redisTemplate, restTemplate, com.clenzy.integration.oauth.BaitlyOAuthTestGuards.passthrough());
     }
 
     private MinutConnection createActiveConnection(String userId) {
@@ -63,6 +63,7 @@ class MinutOAuthServiceTest {
         conn.setRefreshTokenEncrypted("encrypted-refresh");
         conn.setTokenExpiresAt(LocalDateTime.now().plusHours(1));
         conn.setOrganizationId(10L);
+        lenient().when(connectionRepository.findByUserId(userId)).thenReturn(Optional.of(conn));
         return conn;
     }
 

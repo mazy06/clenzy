@@ -15,7 +15,7 @@ class BaitlyNetatmoOAuthStateTest {
     final StringRedisTemplate redis=mock(StringRedisTemplate.class);
     @SuppressWarnings("unchecked") final ValueOperations<String,String> values=mock(ValueOperations.class);
     final NetatmoOAuthService service=new NetatmoOAuthService(mock(NetatmoConfig.class),mock(NetatmoPlatformConfigService.class),
-            mock(NetatmoConnectionRepository.class),mock(TokenEncryptionService.class),mock(TenantContext.class),redis,mock(RestTemplate.class));
+            mock(NetatmoConnectionRepository.class),mock(TokenEncryptionService.class),mock(TenantContext.class),redis,mock(RestTemplate.class), com.clenzy.integration.oauth.BaitlyOAuthTestGuards.passthrough());
 
     @Test void atomicConsumptionKeepsOrganizationAndRejectsReplay() {
         when(redis.opsForValue()).thenReturn(values);
