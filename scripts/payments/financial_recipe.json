@@ -1,5 +1,6 @@
 {
   "backend": [
+    "BaitlyPennylaneAccountingDiagnosticsTest",
     "BaitlyPennylaneSyncPersistenceTest",
     "PennylaneAccountingSyncServiceTest",
     "BaitlyHomeAwaySyncPersistenceTest",

@@ -206,7 +206,7 @@ class PennylaneAccountingSyncServiceTest {
 
             assertThatThrownBy(() -> service.syncInvoice(invoice))
                     .isInstanceOf(IllegalStateException.class)
-                    .hasMessageContaining("id invalide");
+                    .hasMessageContaining("identifiant absent ou invalide");
         }
 
         @Test
@@ -232,7 +232,7 @@ class PennylaneAccountingSyncServiceTest {
 
             assertThatThrownBy(() -> service.syncInvoice(invoice))
                     .isInstanceOf(IllegalStateException.class)
-                    .hasMessageContaining("id absent");
+                    .hasMessageContaining("identifiant absent ou invalide");
             verify(invoiceRepository, never()).save(any(Invoice.class));
         }
 
@@ -387,7 +387,7 @@ class PennylaneAccountingSyncServiceTest {
 
             assertThatThrownBy(() -> service.syncExpense(exp))
                     .isInstanceOf(IllegalStateException.class)
-                    .hasMessageContaining("id absent");
+                    .hasMessageContaining("identifiant absent ou invalide");
             verify(expenseRepository, never()).save(any(ProviderExpense.class));
         }
 
@@ -452,7 +452,7 @@ class PennylaneAccountingSyncServiceTest {
 
             assertThatThrownBy(() -> service.syncExpense(exp))
                     .isInstanceOf(IllegalStateException.class)
-                    .hasMessageContaining("id invalide");
+                    .hasMessageContaining("identifiant absent ou invalide");
         }
     }
 
@@ -506,7 +506,7 @@ class PennylaneAccountingSyncServiceTest {
             assertThat(result.failed()).isEqualTo(1);
             assertThat(result.total()).isEqualTo(2);
             assertThat(result.errors()).hasSize(1);
-            assertThat(result.errors().get(0)).contains("I-002");
+            assertThat(result.errors().get(0)).contains("Facture #2").doesNotContain("API 500");
         }
 
         @Test
@@ -667,7 +667,7 @@ class PennylaneAccountingSyncServiceTest {
             assertThatThrownBy(() -> service.syncInvoice(invoice))
                     .isInstanceOf(IllegalStateException.class)
                     .hasMessageContaining("Taux de TVA non reconnu")
-                    .hasMessageContaining("8.5%");
+                    .hasNoCause();
 
             // Aucune facture exportée, aucun marquage de sync → réconciliation/retry.
             verify(client, never()).createCustomerInvoice(anyLong(), any());
@@ -695,7 +695,7 @@ class PennylaneAccountingSyncServiceTest {
             assertThat(result.synced()).isEqualTo(1);
             assertThat(result.failed()).isEqualTo(1);
             assertThat(result.errors()).hasSize(1);
-            assertThat(result.errors().get(0)).contains("I-BAD").contains("Taux de TVA non reconnu");
+            assertThat(result.errors().get(0)).contains("Facture #2").contains("Taux de TVA non reconnu");
             assertThat(bad.getPennylaneSyncedAt()).isNull();
         }
 

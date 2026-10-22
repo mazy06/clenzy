@@ -91,15 +91,14 @@ public class PennylaneAccountingSyncService {
 
         // Stocker l'ID Pennylane et la date de sync
         if (response == null || response.get("id") == null) {
-            throw new IllegalStateException("Reponse Pennylane invalide — id absent pour facture " + invoice.getInvoiceNumber());
+            throw BaitlyPennylaneDiagnostics.failure(BaitlyPennylaneDiagnostics.Reason.INVALID_RESPONSE);
         }
         String pennylaneId = String.valueOf(response.get("id"));
         invoice.setPennylaneInvoiceId(pennylaneId);
         invoice.setPennylaneSyncedAt(Instant.now());
         invoiceRepository.save(invoice);
 
-        log.info("Pennylane sync — facture {} synchronisee (pennylane_id={})",
-            invoice.getInvoiceNumber(), pennylaneId);
+        log.info("Pennylane : export de facture confirmé");
     }
 
     /**
@@ -137,15 +136,14 @@ public class PennylaneAccountingSyncService {
         Map<String, Object> response = client.createSupplierInvoice(orgId, body);
 
         if (response == null || response.get("id") == null) {
-            throw new IllegalStateException("Reponse Pennylane invalide — id absent pour depense #" + expense.getId());
+            throw BaitlyPennylaneDiagnostics.failure(BaitlyPennylaneDiagnostics.Reason.INVALID_RESPONSE);
         }
         String pennylaneId = String.valueOf(response.get("id"));
         expense.setPennylaneInvoiceId(pennylaneId);
         expense.setPennylaneSyncedAt(Instant.now());
         expenseRepository.save(expense);
 
-        log.info("Pennylane sync — depense #{} synchronisee (pennylane_id={})",
-            expense.getId(), pennylaneId);
+        log.info("Pennylane : export de dépense confirmé");
     }
 
     // ─── Sync en batch ───────────────────────────────────────────────────────
@@ -169,8 +167,9 @@ public class PennylaneAccountingSyncService {
                 synced++;
             } catch (Exception e) {
                 failed++;
-                errors.add("Facture " + invoice.getInvoiceNumber() + ": " + e.getMessage());
-                log.warn("Pennylane sync — echec facture {}: {}", invoice.getInvoiceNumber(), e.getMessage());
+                var reason = BaitlyPennylaneDiagnostics.reason(e);
+                errors.add(itemReference("Facture", invoice.getId(), synced + failed) + ": " + reason.message());
+                log.warn("Pennylane : export de facture non confirmé ({})", reason.name());
             }
         }
 
@@ -197,8 +196,9 @@ public class PennylaneAccountingSyncService {
                 synced++;
             } catch (Exception e) {
                 failed++;
-                errors.add("Depense #" + expense.getId() + ": " + e.getMessage());
-                log.warn("Pennylane sync — echec depense #{}: {}", expense.getId(), e.getMessage());
+                var reason = BaitlyPennylaneDiagnostics.reason(e);
+                errors.add(itemReference("Dépense", expense.getId(), synced + failed) + ": " + reason.message());
+                log.warn("Pennylane : export de dépense non confirmé ({})", reason.name());
             }
         }
 
@@ -246,7 +246,7 @@ public class PennylaneAccountingSyncService {
         Map<String, Object> created = client.createCustomer(orgId, body);
         Object id = created != null ? created.get("id") : null;
         if (!(id instanceof Number)) {
-            throw new IllegalStateException("Pennylane — id invalide dans la reponse creation client");
+            throw BaitlyPennylaneDiagnostics.failure(BaitlyPennylaneDiagnostics.Reason.INVALID_RESPONSE);
         }
         return (Number) id;
     }
@@ -265,7 +265,7 @@ public class PennylaneAccountingSyncService {
         Map<String, Object> created = client.createSupplier(orgId, body);
         Object id = created != null ? created.get("id") : null;
         if (!(id instanceof Number)) {
-            throw new IllegalStateException("Pennylane — id invalide dans la reponse creation fournisseur");
+            throw BaitlyPennylaneDiagnostics.failure(BaitlyPennylaneDiagnostics.Reason.INVALID_RESPONSE);
         }
         return (Number) id;
     }
@@ -291,11 +291,13 @@ public class PennylaneAccountingSyncService {
         if (percent.compareTo(BigDecimal.valueOf(10)) == 0) return "FR_100";
         if (percent.compareTo(new BigDecimal("5.5")) == 0) return "FR_055";
 
-        log.error("Pennylane sync — taux de TVA non mappable vers un code Pennylane : {}% "
-                + "(taux brut {}). Export refusé pour éviter une facture avec une TVA fausse.",
-            percent.stripTrailingZeros().toPlainString(), taxRate.toPlainString());
-        throw new IllegalStateException(
-            "Taux de TVA non reconnu pour l'export Pennylane : " + percent.stripTrailingZeros().toPlainString() + "%");
+        log.error("Pennylane : export refusé (UNSUPPORTED_VAT)");
+        throw BaitlyPennylaneDiagnostics.failure(BaitlyPennylaneDiagnostics.Reason.UNSUPPORTED_VAT);
+    }
+
+    private String itemReference(String kind, Long id, int position) {
+        // Référence locale numérique pour l'utilisateur autorisé, jamais un numéro libre ou un nom.
+        return id != null && id > 0 ? kind + " #" + id : kind + " (ligne " + position + ")";
     }
 
     private void updateLastSync(Long orgId, Instant startedAt) {
