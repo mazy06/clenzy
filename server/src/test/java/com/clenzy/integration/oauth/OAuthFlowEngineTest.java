@@ -62,6 +62,73 @@ class OAuthFlowEngineTest {
         lenient().when(providerConfig.useHttpBasicAuth()).thenReturn(false);
     }
 
+    @Test void tokenEndpointFailureDoesNotExposeProviderBodyOrSecrets() {
+        var failure=new org.springframework.web.client.HttpClientErrorException(org.springframework.http.HttpStatus.BAD_REQUEST,
+                "private-status", "email=synthetic@example.invalid access_token=private-canary".getBytes(java.nio.charset.StandardCharsets.UTF_8),
+                java.nio.charset.StandardCharsets.UTF_8);
+        when(restTemplate.exchange(anyString(),eq(HttpMethod.POST),any(HttpEntity.class),eq(Map.class))).thenThrow(failure);
+        assertThatThrownBy(() -> engine.exchangeCodeForToken(providerConfig,persistence,"private-code",1L,100L))
+                .isInstanceOfSatisfying(IllegalStateException.class,safe -> {
+                    var rendered=new java.io.StringWriter();safe.printStackTrace(new java.io.PrintWriter(rendered));
+                    assertThat(rendered.toString()).doesNotContain("private-","example.invalid");
+                    assertThat(safe).hasMessage(OAuthFlowEngine.TOKEN_UNCONFIRMED).hasNoCause();
+                });
+        org.mockito.Mockito.verifyNoInteractions(persistence,encryptionService);
+    }
+
+    @org.junit.jupiter.params.ParameterizedTest
+    @org.junit.jupiter.params.provider.ValueSource(strings={"blank-access","wrong-access-type","blank-refresh","zero-expiry","negative-expiry","fractional-expiry","wrong-expiry-type"})
+    void malformedTokenResponseNeverActivatesOrPersistsConnection(String scenario) {
+        var response=new HashMap<String,Object>(Map.of("access_token","test-access","expires_in",3600));
+        switch(scenario) {
+            case "blank-access" -> response.put("access_token"," ");
+            case "wrong-access-type" -> response.put("access_token",123);
+            case "blank-refresh" -> response.put("refresh_token","");
+            case "zero-expiry" -> response.put("expires_in",0);
+            case "negative-expiry" -> response.put("expires_in",-1);
+            case "fractional-expiry" -> response.put("expires_in",0.5);
+            case "wrong-expiry-type" -> response.put("expires_in","private-expiry");
+        }
+        when(restTemplate.exchange(anyString(),eq(HttpMethod.POST),any(HttpEntity.class),eq(Map.class))).thenReturn(ResponseEntity.ok(response));
+        assertThatThrownBy(() -> engine.exchangeCodeForToken(providerConfig,persistence,"code",1L,100L))
+                .hasMessage(OAuthFlowEngine.TOKEN_UNCONFIRMED);
+        org.mockito.Mockito.verifyNoInteractions(persistence,encryptionService);
+    }
+
+    @Test void failedRefreshPersistsSafeErrorAndNeverExposesNestedSecrets() {
+        var existing=new TestConnection();existing.setRefreshTokenEncrypted("encrypted-refresh");
+        existing.setOAuthStatus(OAuthConnectionStatus.ACTIVE);
+        when(persistence.findActiveByOrganizationId(100L)).thenReturn(Optional.of(existing));
+        when(encryptionService.decrypt("encrypted-refresh")).thenThrow(new IllegalStateException("token=private-canary",
+                new RuntimeException("password=private-cause")));
+        assertThatThrownBy(() -> engine.refreshToken(providerConfig,persistence,100L))
+                .hasMessage(OAuthFlowEngine.TOKEN_UNCONFIRMED).hasNoCause();
+        assertThat(existing.getOAuthStatus()).isEqualTo(OAuthConnectionStatus.ERROR);
+        assertThat(existing.getErrorMessage()).isEqualTo(OAuthFlowEngine.TOKEN_UNCONFIRMED);
+        verify(persistence).save(existing);org.mockito.Mockito.verifyNoInteractions(restTemplate);
+    }
+
+    @Test void failedRevokeClearsLocalTokensWithoutClaimingRemoteConfirmationOrLoggingSecrets() {
+        var existing=new TestConnection();existing.setAccessTokenEncrypted("encrypted-access");
+        existing.setRefreshTokenEncrypted("encrypted-refresh");existing.setOAuthStatus(OAuthConnectionStatus.ACTIVE);
+        when(persistence.findByOrganizationId(100L)).thenReturn(Optional.of(existing));
+        when(encryptionService.decrypt("encrypted-access")).thenReturn("test-access");
+        when(restTemplate.exchange(anyString(),eq(HttpMethod.POST),any(HttpEntity.class),eq(Void.class)))
+                .thenThrow(new IllegalStateException("token=private-canary"));
+        var logger=(ch.qos.logback.classic.Logger) org.slf4j.LoggerFactory.getLogger(OAuthFlowEngine.class);
+        var appender=new ch.qos.logback.core.read.ListAppender<ch.qos.logback.classic.spi.ILoggingEvent>();
+        appender.start();logger.addAppender(appender);
+        try {
+            engine.revokeToken(providerConfig,persistence,100L);
+            assertThat(existing.getOAuthStatus()).isEqualTo(OAuthConnectionStatus.REVOKED);
+            assertThat(existing.getAccessTokenEncrypted()).isNull();assertThat(existing.getRefreshTokenEncrypted()).isNull();
+            assertThat(existing.getErrorMessage()).isEqualTo(OAuthFlowEngine.REVOCATION_UNCONFIRMED);
+            assertThat(appender.list).hasSize(1);
+            assertThat(appender.list.getFirst().getFormattedMessage()).doesNotContain("private-","test-access");
+            assertThat(appender.list.getFirst().getThrowableProxy()).isNull();
+        } finally {logger.detachAppender(appender);appender.stop();}
+    }
+
     /** Simple stub OAuth connection. */
     static class TestConnection implements OAuthConnectionLike {
         Long orgId, userId;
@@ -164,7 +231,7 @@ class OAuthFlowEngineTest {
 
             assertThatThrownBy(() -> engine.exchangeCodeForToken(providerConfig, persistence, "code", 1L, 100L))
                     .isInstanceOf(IllegalStateException.class)
-                    .hasMessageContaining("access_token");
+                    .hasMessage(OAuthFlowEngine.TOKEN_UNCONFIRMED);
         }
 
         @Test
@@ -238,7 +305,7 @@ class OAuthFlowEngineTest {
             assertThatThrownBy(() -> engine.refreshToken(providerConfig, persistence, 100L))
                     .isInstanceOf(RuntimeException.class);
             assertThat(existing.getOAuthStatus()).isEqualTo(OAuthConnectionStatus.ERROR);
-            assertThat(existing.getErrorMessage()).contains("Refresh failed");
+            assertThat(existing.getErrorMessage()).isEqualTo(OAuthFlowEngine.TOKEN_UNCONFIRMED);
         }
     }
 
