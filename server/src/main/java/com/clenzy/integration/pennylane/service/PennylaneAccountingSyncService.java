@@ -15,7 +15,7 @@ import java.time.Instant;
 import java.util.*;
 
 /**
- * Service de synchronisation Clenzy → Pennylane.
+ * Service de synchronisation Baitly → Pennylane.
  *
  * Synchronise les factures clients et les depenses fournisseurs
  * vers l'API Pennylane Entreprise v2.
@@ -55,7 +55,7 @@ public class PennylaneAccountingSyncService {
     // ─── Sync individuel ─────────────────────────────────────────────────────
 
     /**
-     * Synchronise une facture client Clenzy vers Pennylane.
+     * Synchronise une facture client Baitly vers Pennylane.
      */
     public void syncInvoice(Invoice invoice) {
         Long orgId = invoice.getOrganizationId();
@@ -103,7 +103,7 @@ public class PennylaneAccountingSyncService {
     }
 
     /**
-     * Synchronise une depense fournisseur Clenzy vers Pennylane.
+     * Synchronise une depense fournisseur Baitly vers Pennylane.
      */
     public void syncExpense(ProviderExpense expense) {
         Long orgId = expense.getOrganizationId();
@@ -154,6 +154,7 @@ public class PennylaneAccountingSyncService {
      * Synchronise toutes les factures non encore envoyees a Pennylane.
      */
     public SyncResult syncAllPendingInvoices(Long orgId) {
+        Instant startedAt = Instant.now();
         ensureConnected(orgId);
 
         List<Invoice> pending = invoiceRepository.findPendingPennylaneSync(orgId, SYNCABLE_INVOICE_STATUSES);
@@ -173,7 +174,7 @@ public class PennylaneAccountingSyncService {
             }
         }
 
-        updateLastSync(orgId);
+        updateLastSync(orgId, startedAt);
         return new SyncResult("invoices", synced, failed, pending.size(), errors);
     }
 
@@ -181,6 +182,7 @@ public class PennylaneAccountingSyncService {
      * Synchronise toutes les depenses non encore envoyees a Pennylane.
      */
     public SyncResult syncAllPendingExpenses(Long orgId) {
+        Instant startedAt = Instant.now();
         ensureConnected(orgId);
 
         List<ProviderExpense> pending = expenseRepository.findPendingPennylaneSync(orgId, SYNCABLE_EXPENSE_STATUSES);
@@ -200,7 +202,7 @@ public class PennylaneAccountingSyncService {
             }
         }
 
-        updateLastSync(orgId);
+        updateLastSync(orgId, startedAt);
         return new SyncResult("expenses", synced, failed, pending.size(), errors);
     }
 
@@ -238,7 +240,7 @@ public class PennylaneAccountingSyncService {
 
         Map<String, Object> body = new LinkedHashMap<>();
         body.put("customer_type", "company");
-        body.put("name", name != null ? name : "Client Clenzy");
+        body.put("name", name != null ? name : "Client Baitly");
         body.put("external_reference", externalRef);
 
         Map<String, Object> created = client.createCustomer(orgId, body);
@@ -269,7 +271,7 @@ public class PennylaneAccountingSyncService {
     }
 
     /**
-     * Mappe un taux de TVA Clenzy vers un code TVA Pennylane.
+     * Mappe un taux de TVA Baitly vers un code TVA Pennylane.
      *
      * <p>Un taux non reconnu lève une {@link IllegalStateException} plutôt que
      * de retomber silencieusement sur un code par défaut : exporter une facture
@@ -283,7 +285,7 @@ public class PennylaneAccountingSyncService {
             return "exempt";
         }
         // Pennylane attend le taux en pourcentage (20, 10, 5.5)
-        // Clenzy stocke en decimal (0.20, 0.10, 0.055)
+        // Baitly stocke en decimal (0.20, 0.10, 0.055)
         BigDecimal percent = taxRate.multiply(BigDecimal.valueOf(100));
         if (percent.compareTo(BigDecimal.valueOf(20)) == 0) return "FR_200";
         if (percent.compareTo(BigDecimal.valueOf(10)) == 0) return "FR_100";
@@ -296,11 +298,10 @@ public class PennylaneAccountingSyncService {
             "Taux de TVA non reconnu pour l'export Pennylane : " + percent.stripTrailingZeros().toPlainString() + "%");
     }
 
-    private void updateLastSync(Long orgId) {
-        connectionRepository.findByOrganizationId(orgId).ifPresent(conn -> {
-            conn.setLastSyncAt(Instant.now());
-            connectionRepository.save(conn);
-        });
+    private void updateLastSync(Long orgId, Instant startedAt) {
+        // Date de tentative de lot, même partiel : ne constitue pas une preuve de succès global.
+        // Une reconnexion postérieure au début du lot ne doit pas hériter de ses métadonnées.
+        connectionRepository.recordSyncAttempt(orgId, startedAt, Instant.now());
     }
 
     private String safeString(String s) {

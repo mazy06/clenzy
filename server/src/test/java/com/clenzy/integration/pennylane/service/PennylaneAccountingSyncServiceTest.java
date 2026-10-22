@@ -15,6 +15,8 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -57,6 +59,35 @@ class PennylaneAccountingSyncServiceTest {
     private PennylaneAccountingSyncService service;
 
     private static final Long ORG_ID = 10L;
+
+    @ParameterizedTest
+    @ValueSource(strings = {"invoices", "expenses"})
+    void ignoredMetadataUpdatePreservesBatchResultWithoutMergingConnection(String type) {
+        var connectedCheck = new java.util.concurrent.atomic.AtomicReference<Instant>();
+        when(oauthService.isConnected(ORG_ID)).thenAnswer(call -> {
+            connectedCheck.set(Instant.now());
+            return true;
+        });
+        if (type.equals("invoices")) {
+            when(invoiceRepository.findPendingPennylaneSync(eq(ORG_ID), any())).thenReturn(List.of());
+        } else {
+            when(expenseRepository.findPendingPennylaneSync(eq(ORG_ID), any())).thenReturn(List.of());
+        }
+        when(connectionRepository.recordSyncAttempt(eq(ORG_ID), any(), any())).thenReturn(0);
+        Instant before = Instant.now();
+        var result = type.equals("invoices") ? service.syncAllPendingInvoices(ORG_ID)
+                : service.syncAllPendingExpenses(ORG_ID);
+        var started = ArgumentCaptor.forClass(Instant.class);
+        var recorded = ArgumentCaptor.forClass(Instant.class);
+        verify(connectionRepository).recordSyncAttempt(eq(ORG_ID), started.capture(), recorded.capture());
+        assertThat(started.getValue()).isBetween(before, connectedCheck.get());
+        assertThat(recorded.getValue()).isAfterOrEqualTo(connectedCheck.get());
+        assertThat(result.type()).isEqualTo(type);
+        assertThat(result.total()).isZero();
+        assertThat(result.errors()).isEmpty();
+        verify(connectionRepository, never()).save(any());
+        verify(connectionRepository, never()).findByOrganizationId(any());
+    }
 
     @BeforeEach
     void setUp() {
@@ -262,7 +293,7 @@ class PennylaneAccountingSyncServiceTest {
 
             ArgumentCaptor<Map<String, Object>> custCaptor = ArgumentCaptor.forClass(Map.class);
             verify(client).createCustomer(eq(ORG_ID), custCaptor.capture());
-            assertThat(custCaptor.getValue().get("name")).isEqualTo("Client Clenzy");
+            assertThat(custCaptor.getValue().get("name")).isEqualTo("Client Baitly");
         }
 
         @Test
@@ -443,10 +474,6 @@ class PennylaneAccountingSyncServiceTest {
             when(client.createCustomerInvoice(eq(ORG_ID), any())).thenReturn(withId(100));
             when(invoiceRepository.save(any(Invoice.class))).thenAnswer(inv -> inv.getArgument(0));
 
-            PennylaneConnection conn = new PennylaneConnection();
-            conn.setOrganizationId(ORG_ID);
-            when(connectionRepository.findByOrganizationId(ORG_ID)).thenReturn(Optional.of(conn));
-
             PennylaneAccountingSyncService.SyncResult result = service.syncAllPendingInvoices(ORG_ID);
 
             assertThat(result.type()).isEqualTo("invoices");
@@ -454,8 +481,9 @@ class PennylaneAccountingSyncServiceTest {
             assertThat(result.failed()).isEqualTo(0);
             assertThat(result.total()).isEqualTo(2);
             assertThat(result.errors()).isEmpty();
-            verify(connectionRepository).save(conn);
-            assertThat(conn.getLastSyncAt()).isNotNull();
+            verify(connectionRepository).recordSyncAttempt(eq(ORG_ID), any(Instant.class), any(Instant.class));
+            verify(connectionRepository, never()).save(any());
+            verify(connectionRepository, never()).findByOrganizationId(any());
         }
 
         @Test
@@ -471,7 +499,6 @@ class PennylaneAccountingSyncServiceTest {
                     .thenReturn(withId(100))
                     .thenThrow(new RuntimeException("API 500"));
             when(invoiceRepository.save(any(Invoice.class))).thenAnswer(inv -> inv.getArgument(0));
-            when(connectionRepository.findByOrganizationId(ORG_ID)).thenReturn(Optional.empty());
 
             PennylaneAccountingSyncService.SyncResult result = service.syncAllPendingInvoices(ORG_ID);
 
@@ -486,7 +513,6 @@ class PennylaneAccountingSyncServiceTest {
         void whenNothingPending_thenReturnsEmptyResult() {
             when(oauthService.isConnected(ORG_ID)).thenReturn(true);
             when(invoiceRepository.findPendingPennylaneSync(eq(ORG_ID), any())).thenReturn(List.of());
-            when(connectionRepository.findByOrganizationId(ORG_ID)).thenReturn(Optional.empty());
 
             PennylaneAccountingSyncService.SyncResult result = service.syncAllPendingInvoices(ORG_ID);
 
@@ -520,7 +546,6 @@ class PennylaneAccountingSyncServiceTest {
             when(client.createSupplierInvoice(eq(ORG_ID), any())).thenReturn(withId(1));
             when(expenseRepository.save(any(ProviderExpense.class)))
                     .thenAnswer(inv -> inv.getArgument(0));
-            when(connectionRepository.findByOrganizationId(ORG_ID)).thenReturn(Optional.empty());
 
             PennylaneAccountingSyncService.SyncResult result = service.syncAllPendingExpenses(ORG_ID);
 
@@ -540,7 +565,6 @@ class PennylaneAccountingSyncServiceTest {
                     .thenReturn(Optional.of(withId(1)));
             when(client.createSupplierInvoice(eq(ORG_ID), any()))
                     .thenThrow(new RuntimeException("rate limited"));
-            when(connectionRepository.findByOrganizationId(ORG_ID)).thenReturn(Optional.empty());
 
             PennylaneAccountingSyncService.SyncResult result = service.syncAllPendingExpenses(ORG_ID);
 
@@ -665,7 +689,6 @@ class PennylaneAccountingSyncServiceTest {
                     .thenReturn(Optional.of(withId(1)));
             when(client.createCustomerInvoice(eq(ORG_ID), any())).thenReturn(withId(100));
             when(invoiceRepository.save(any(Invoice.class))).thenAnswer(inv -> inv.getArgument(0));
-            when(connectionRepository.findByOrganizationId(ORG_ID)).thenReturn(Optional.empty());
 
             PennylaneAccountingSyncService.SyncResult result = service.syncAllPendingInvoices(ORG_ID);
 

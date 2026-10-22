@@ -1,5 +1,10 @@
 package com.clenzy.integration.airbnb.service;
 
+import com.clenzy.integration.oauth.BaitlyOAuthDiagnostics;
+import com.clenzy.integration.oauth.BaitlyOAuthConnectionGuard;
+import static com.clenzy.integration.oauth.BaitlyOAuthDiagnostics.Operation.*;
+
+import com.clenzy.integration.oauth.BaitlyOAuthTokenResponse;
 import com.clenzy.integration.airbnb.config.AirbnbConfig;
 import com.clenzy.integration.airbnb.model.AirbnbConnection;
 import com.clenzy.integration.airbnb.repository.AirbnbConnectionRepository;
@@ -43,19 +48,21 @@ public class AirbnbOAuthService {
     private final AuditLogService auditLogService;
     private final StringRedisTemplate redisTemplate;
     private final RestTemplate restTemplate;
+    private final BaitlyOAuthConnectionGuard connectionGuard;
 
     public AirbnbOAuthService(AirbnbConfig config,
                               AirbnbConnectionRepository connectionRepository,
                               AirbnbTokenEncryptionService encryptionService,
                               AuditLogService auditLogService,
                               StringRedisTemplate redisTemplate,
-                              RestTemplate restTemplate) {
+                              RestTemplate restTemplate, BaitlyOAuthConnectionGuard connectionGuard) {
         this.config = config;
         this.connectionRepository = connectionRepository;
         this.encryptionService = encryptionService;
         this.auditLogService = auditLogService;
         this.redisTemplate = redisTemplate;
         this.restTemplate = restTemplate;
+        this.connectionGuard = connectionGuard;
     }
 
     /**
@@ -81,15 +88,15 @@ public class AirbnbOAuthService {
 
     /**
      * Valide le state OAuth et retourne le userId associe.
-     * Supprime le state de Redis apres validation (usage unique).
+     * Consomme atomiquement le state Redis (usage unique).
      */
     public String validateAndConsumeState(String state) {
+        if (state == null || state.isBlank()) throw new SecurityException("Invalid or expired OAuth state parameter");
         String key = OAUTH_STATE_PREFIX + state;
-        String userId = redisTemplate.opsForValue().get(key);
+        String userId = redisTemplate.opsForValue().getAndDelete(key);
         if (userId == null) {
             throw new SecurityException("Invalid or expired OAuth state parameter");
         }
-        redisTemplate.delete(key);
         return userId;
     }
 
@@ -99,6 +106,11 @@ public class AirbnbOAuthService {
      */
     @CircuitBreaker(name = "airbnb-oauth")
     public AirbnbConnection exchangeCodeForToken(String code, String userId) {
+        return connectionGuard.executeUserRefresh("airbnb", userId,
+                () -> exchangeUnderLock(code, userId));
+    }
+
+    private AirbnbConnection exchangeUnderLock(String code, String userId) {
         log.info("Echange du code OAuth pour l'utilisateur: {}", userId);
 
         HttpHeaders headers = new HttpHeaders();
@@ -118,21 +130,26 @@ public class AirbnbOAuthService {
             if (response.getStatusCode().is2xxSuccessful() && response.getBody() != null) {
                 Map<String, Object> tokenData = response.getBody();
 
-                String accessToken = (String) tokenData.get("access_token");
-                String refreshToken = (String) tokenData.get("refresh_token");
-                Integer expiresIn = (Integer) tokenData.get("expires_in");
+                var tokens = BaitlyOAuthTokenResponse.parse(tokenData, null);
+                String accessToken = tokens.accessToken();
+                String refreshToken = tokens.refreshToken();
+                Integer expiresIn = tokens.expiresIn();
                 String airbnbUserId = String.valueOf(tokenData.get("user_id"));
 
                 // Creer ou mettre a jour la connexion
                 AirbnbConnection connection = connectionRepository.findByUserId(userId)
                         .orElse(new AirbnbConnection());
 
+                // Préparer tous les secrets et dates avant de modifier la connexion Baitly.
+                String encryptedAccess = encryptionService.encrypt(accessToken);
+                String encryptedRefresh = refreshToken != null ? encryptionService.encrypt(refreshToken) : null;
+                LocalDateTime tokenExpiresAt = expiresIn != null ? LocalDateTime.now().plusSeconds(expiresIn) : null;
+
                 connection.setUserId(userId);
                 connection.setAirbnbUserId(airbnbUserId);
-                connection.setAccessTokenEncrypted(encryptionService.encrypt(accessToken));
-                connection.setRefreshTokenEncrypted(encryptionService.encrypt(refreshToken));
-                connection.setTokenExpiresAt(
-                        expiresIn != null ? LocalDateTime.now().plusSeconds(expiresIn) : null);
+                connection.setAccessTokenEncrypted(encryptedAccess);
+                connection.setRefreshTokenEncrypted(encryptedRefresh);
+                connection.setTokenExpiresAt(tokenExpiresAt);
                 connection.setScopes(config.getScopes());
                 connection.setStatus(AirbnbConnection.AirbnbConnectionStatus.ACTIVE);
                 connection.setErrorMessage(null);
@@ -147,8 +164,7 @@ public class AirbnbOAuthService {
                 auditLogService.logSync("AirbnbConnection", saved.getId().toString(),
                         "Connexion OAuth Airbnb etablie pour user " + userId);
 
-                log.info("Connexion Airbnb etablie pour l'utilisateur: {} (airbnbUserId: {})",
-                        userId, airbnbUserId);
+                log.info("Connexion Airbnb établie pour l'utilisateur : {}", userId);
 
                 return saved;
             } else {
@@ -156,16 +172,16 @@ public class AirbnbOAuthService {
             }
 
         } catch (Exception e) {
-            log.error("Erreur lors de l'echange du code OAuth Airbnb: {}", e.getMessage());
+            log.error("Échec OAuth airbnb", BaitlyOAuthDiagnostics.failure(EXCHANGE, e));
 
             // Enregistrer l'erreur dans la connexion si elle existe
             connectionRepository.findByUserId(userId).ifPresent(conn -> {
                 conn.setStatus(AirbnbConnection.AirbnbConnectionStatus.ERROR);
-                conn.setErrorMessage(e.getMessage());
+                conn.setErrorMessage(BaitlyOAuthDiagnostics.message(EXCHANGE));
                 connectionRepository.save(conn);
             });
 
-            throw new RuntimeException("Echec de l'echange OAuth Airbnb", e);
+            throw BaitlyOAuthDiagnostics.failure(EXCHANGE, e);
         }
     }
 
@@ -174,42 +190,56 @@ public class AirbnbOAuthService {
      */
     @CircuitBreaker(name = "airbnb-oauth")
     public AirbnbConnection refreshToken(String userId) {
+        return connectionGuard.executeUserRefresh("airbnb", userId,
+                () -> refreshUnderLock(userId, false));
+    }
+
+    private AirbnbConnection refreshUnderLock(String userId, boolean onlyIfExpiring) {
         log.info("Rafraichissement du token Airbnb pour l'utilisateur: {}", userId);
 
         AirbnbConnection connection = connectionRepository.findByUserId(userId)
                 .orElseThrow(() -> new RuntimeException("Aucune connexion Airbnb pour l'utilisateur: " + userId));
 
-        String refreshToken = encryptionService.decrypt(connection.getRefreshTokenEncrypted());
-        if (refreshToken == null) {
-            throw new RuntimeException("Pas de refresh token disponible");
-        }
-
-        HttpHeaders headers = new HttpHeaders();
-        headers.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
-
-        MultiValueMap<String, String> params = new LinkedMultiValueMap<>();
-        params.add("client_id", config.getClientId());
-        params.add("client_secret", config.getClientSecret());
-        params.add("refresh_token", refreshToken);
-        params.add("grant_type", "refresh_token");
+        if (!connection.isActive()) throw new IllegalStateException("Connexion OAuth inactive ; reconnexion requise");
+        if (onlyIfExpiring && (connection.getTokenExpiresAt() == null
+                || !connection.getTokenExpiresAt().isBefore(LocalDateTime.now().plusMinutes(5)))) return connection;
 
         try {
+            String refreshToken = encryptionService.decrypt(connection.getRefreshTokenEncrypted());
+            if (refreshToken == null) {
+                throw new RuntimeException("Pas de refresh token disponible");
+            }
+
+            HttpHeaders headers = new HttpHeaders();
+            headers.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
+
+            MultiValueMap<String, String> params = new LinkedMultiValueMap<>();
+            params.add("client_id", config.getClientId());
+            params.add("client_secret", config.getClientSecret());
+            params.add("refresh_token", refreshToken);
+            params.add("grant_type", "refresh_token");
+
             ResponseEntity<Map> response = restTemplate.postForEntity(
                     config.getTokenUrl(), params, Map.class);
 
             if (response.getStatusCode().is2xxSuccessful() && response.getBody() != null) {
                 Map<String, Object> tokenData = response.getBody();
 
-                String newAccessToken = (String) tokenData.get("access_token");
-                String newRefreshToken = (String) tokenData.get("refresh_token");
-                Integer expiresIn = (Integer) tokenData.get("expires_in");
+                var tokens = BaitlyOAuthTokenResponse.parse(tokenData, null);
+                String newAccessToken = tokens.accessToken();
+                String newRefreshToken = tokens.refreshToken();
+                Integer expiresIn = tokens.expiresIn();
 
-                connection.setAccessTokenEncrypted(encryptionService.encrypt(newAccessToken));
+                // Préparer tous les secrets et dates avant de modifier la connexion Baitly.
+                String encryptedAccess = encryptionService.encrypt(newAccessToken);
+                String encryptedRefresh = newRefreshToken != null ? encryptionService.encrypt(newRefreshToken) : null;
+                LocalDateTime tokenExpiresAt = expiresIn != null ? LocalDateTime.now().plusSeconds(expiresIn) : null;
+
+                connection.setAccessTokenEncrypted(encryptedAccess);
                 if (newRefreshToken != null) {
-                    connection.setRefreshTokenEncrypted(encryptionService.encrypt(newRefreshToken));
+                    connection.setRefreshTokenEncrypted(encryptedRefresh);
                 }
-                connection.setTokenExpiresAt(
-                        expiresIn != null ? LocalDateTime.now().plusSeconds(expiresIn) : null);
+                connection.setTokenExpiresAt(tokenExpiresAt);
                 connection.setStatus(AirbnbConnection.AirbnbConnectionStatus.ACTIVE);
                 connection.setErrorMessage(null);
 
@@ -219,11 +249,11 @@ public class AirbnbOAuthService {
             }
 
         } catch (Exception e) {
-            log.error("Erreur lors du refresh du token Airbnb: {}", e.getMessage());
+            log.error("Échec OAuth airbnb", BaitlyOAuthDiagnostics.failure(REFRESH, e));
             connection.setStatus(AirbnbConnection.AirbnbConnectionStatus.EXPIRED);
-            connection.setErrorMessage("Refresh echoue: " + e.getMessage());
+            connection.setErrorMessage(BaitlyOAuthDiagnostics.message(REFRESH));
             connectionRepository.save(connection);
-            throw new RuntimeException("Echec du rafraichissement du token Airbnb", e);
+            throw BaitlyOAuthDiagnostics.failure(REFRESH, e);
         }
     }
 
@@ -232,11 +262,19 @@ public class AirbnbOAuthService {
      */
     @CircuitBreaker(name = "airbnb-oauth")
     public void revokeToken(String userId) {
+        connectionGuard.executeForUser("airbnb", userId, () -> {
+            revokeUnderLock(userId);
+            return null;
+        });
+    }
+
+    private void revokeUnderLock(String userId) {
         log.info("Revocation du token Airbnb pour l'utilisateur: {}", userId);
 
         AirbnbConnection connection = connectionRepository.findByUserId(userId)
                 .orElseThrow(() -> new RuntimeException("Aucune connexion Airbnb pour l'utilisateur: " + userId));
 
+        boolean remoteConfirmed = false;
         try {
             String accessToken = encryptionService.decrypt(connection.getAccessTokenEncrypted());
 
@@ -249,24 +287,26 @@ public class AirbnbOAuthService {
             params.add("client_secret", config.getClientSecret());
             params.add("token", accessToken);
 
-            restTemplate.postForEntity(config.getApiBaseUrl() + "/oauth2/revoke", params, Void.class);
+            var response = restTemplate.postForEntity(config.getApiBaseUrl() + "/oauth2/revoke", params, Void.class);
+            remoteConfirmed = response != null && response.getStatusCode().is2xxSuccessful();
 
         } catch (Exception e) {
-            log.warn("Erreur lors de la revocation du token cote Airbnb (non-bloquant): {}", e.getMessage());
+            log.warn("Révocation OAuth airbnb non confirmée", BaitlyOAuthDiagnostics.failure(REVOKE, e));
         }
 
         // Marquer comme revoque dans tous les cas
         connection.setStatus(AirbnbConnection.AirbnbConnectionStatus.REVOKED);
-        connection.setAccessTokenEncrypted(null);
+        connection.setAccessTokenEncrypted(""); // Colonne historique NOT NULL : aucun secret conservé.
         connection.setRefreshTokenEncrypted(null);
         connection.setTokenExpiresAt(null);
+        connection.setErrorMessage(remoteConfirmed ? null : BaitlyOAuthDiagnostics.message(REVOKE));
         connectionRepository.save(connection);
 
         // Audit
         auditLogService.logSync("AirbnbConnection", connection.getId().toString(),
-                "Connexion Airbnb revoquee pour user " + userId);
+                "Connexion Airbnb déconnectée localement pour user " + userId);
 
-        log.info("Connexion Airbnb revoquee pour l'utilisateur: {}", userId);
+        log.info("Connexion Airbnb déconnectée localement pour l'utilisateur : {}", userId);
     }
 
     /**
@@ -284,7 +324,8 @@ public class AirbnbOAuthService {
         if (connection.getTokenExpiresAt() != null
                 && connection.getTokenExpiresAt().isBefore(LocalDateTime.now().plusMinutes(5))) {
             log.info("Token Airbnb proche de l'expiration, rafraichissement...");
-            connection = refreshToken(userId);
+            connection = connectionGuard.executeUserRefresh("airbnb", userId,
+                    () -> refreshUnderLock(userId, true));
         }
 
         return encryptionService.decrypt(connection.getAccessTokenEncrypted());

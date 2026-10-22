@@ -1,5 +1,12 @@
 {
   "backend": [
+    "BaitlyPennylaneSyncPersistenceTest",
+    "PennylaneAccountingSyncServiceTest",
+    "BaitlyHomeAwaySyncPersistenceTest",
+    "HomeAwaySyncSchedulerTest",
+    "BaitlyOAuthCircuitBreakerTest",
+    "BaitlyOAuthCoordinationPostgresTest",
+    "BaitlyNativeOAuthCoordinationPostgresTest",
     "BaitlyPayoutMissionLoadingTest",
     "BaitlyInterventionCheckoutExpiryTest",
     "HousekeeperPayoutServiceTest",
