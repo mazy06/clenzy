@@ -21,7 +21,7 @@ import java.util.Map;
 
 /**
  * Moteur OAuth2 generique — UNIQUE source de verite pour le flow OAuth dans
- * Clenzy. Utilise par {@code PennylaneOAuthService}, {@code DocuSignOAuthService}
+ * Baitly. Utilise par {@code PennylaneOAuthService}, {@code DocuSignOAuthService}
  * et tout futur provider OAuth.
  *
  * <h2>Responsabilites (SRP)</h2>
@@ -121,15 +121,24 @@ public class OAuthFlowEngine {
         Instant now = Instant.now();
         long expiresInSeconds = tokens.expiresIn() != null ? tokens.expiresIn() : DEFAULT_EXPIRES_IN_SECONDS;
 
+        // Préparer toutes les valeurs susceptibles d'échouer avant de muter une entité gérée.
+        String encryptedAccess = encryptionService.encrypt(tokens.accessToken());
+        String encryptedRefresh = tokens.refreshToken() != null
+                ? encryptionService.encrypt(tokens.refreshToken()) : null;
+        Instant tokenExpiresAt = now.plusSeconds(expiresInSeconds);
+        Instant refreshExpiresAt = tokens.refreshToken() != null
+                ? now.plus(Duration.ofDays(config.getRefreshTokenValidityDays())) : null;
+        String scopes = tokens.scope() != null ? tokens.scope() : config.getScopes();
+
         connection.setOrganizationId(orgId);
         connection.setUserId(userId);
-        connection.setAccessTokenEncrypted(encryptionService.encrypt(tokens.accessToken()));
+        connection.setAccessTokenEncrypted(encryptedAccess);
         if (tokens.refreshToken() != null) {
-            connection.setRefreshTokenEncrypted(encryptionService.encrypt(tokens.refreshToken()));
-            connection.setRefreshTokenExpiresAt(now.plus(Duration.ofDays(config.getRefreshTokenValidityDays())));
+            connection.setRefreshTokenEncrypted(encryptedRefresh);
+            connection.setRefreshTokenExpiresAt(refreshExpiresAt);
         }
-        connection.setTokenExpiresAt(now.plusSeconds(expiresInSeconds));
-        connection.setScopes(tokens.scope() != null ? tokens.scope() : config.getScopes());
+        connection.setTokenExpiresAt(tokenExpiresAt);
+        connection.setScopes(scopes);
         connection.setOAuthStatus(OAuthConnectionStatus.ACTIVE);
         connection.setErrorMessage(null);
         if (connection.getConnectedAt() == null) {
@@ -172,12 +181,19 @@ public class OAuthFlowEngine {
             Instant now = Instant.now();
             long expiresInSeconds = tokens.expiresIn() != null ? tokens.expiresIn() : DEFAULT_EXPIRES_IN_SECONDS;
 
-            connection.setAccessTokenEncrypted(encryptionService.encrypt(tokens.accessToken()));
+            String encryptedAccess = encryptionService.encrypt(tokens.accessToken());
+            String encryptedRefresh = tokens.refreshToken() != null
+                    ? encryptionService.encrypt(tokens.refreshToken()) : null;
+            Instant tokenExpiresAt = now.plusSeconds(expiresInSeconds);
+            Instant refreshExpiresAt = tokens.refreshToken() != null
+                    ? now.plus(Duration.ofDays(config.getRefreshTokenValidityDays())) : null;
+
+            connection.setAccessTokenEncrypted(encryptedAccess);
             if (tokens.refreshToken() != null) {
-                connection.setRefreshTokenEncrypted(encryptionService.encrypt(tokens.refreshToken()));
-                connection.setRefreshTokenExpiresAt(now.plus(Duration.ofDays(config.getRefreshTokenValidityDays())));
+                connection.setRefreshTokenEncrypted(encryptedRefresh);
+                connection.setRefreshTokenExpiresAt(refreshExpiresAt);
             }
-            connection.setTokenExpiresAt(now.plusSeconds(expiresInSeconds));
+            connection.setTokenExpiresAt(tokenExpiresAt);
             connection.setOAuthStatus(OAuthConnectionStatus.ACTIVE);
             connection.setErrorMessage(null);
 
