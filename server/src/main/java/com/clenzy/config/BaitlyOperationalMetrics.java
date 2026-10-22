@@ -45,7 +45,11 @@ public class BaitlyOperationalMetrics {
                 .strongReference(true).register(registry);
     }
 
-    /** Read off the scrape path; a failed refresh must not turn a broken queue into zero. */
+    /**
+     * Read off the scrape path; a failed refresh must not turn a broken queue into zero.
+     * Deliberately instance-local (SchedulerLockCoverageTest category A): every process
+     * needs its own in-memory gauges; SQL reads have no external side effects.
+     */
     @Scheduled(fixedDelayString = "${baitly.ops.metrics.refresh-ms:30000}",
                initialDelayString = "${baitly.ops.metrics.initial-delay-ms:15000}")
     public void refresh() {
