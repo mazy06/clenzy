@@ -90,18 +90,18 @@ class AirbnbOAuthServiceTest {
         @Test
         void whenValidState_thenReturnsUserIdAndDeletes() {
             when(redisTemplate.opsForValue()).thenReturn(valueOps);
-            when(valueOps.get("oauth:airbnb:state:valid-state")).thenReturn("user-1");
+            when(valueOps.getAndDelete("oauth:airbnb:state:valid-state")).thenReturn("user-1");
 
             String userId = service.validateAndConsumeState("valid-state");
 
             assertThat(userId).isEqualTo("user-1");
-            verify(redisTemplate).delete("oauth:airbnb:state:valid-state");
+            verify(valueOps).getAndDelete("oauth:airbnb:state:valid-state");
         }
 
         @Test
         void whenInvalidState_thenThrowsSecurityException() {
             when(redisTemplate.opsForValue()).thenReturn(valueOps);
-            when(valueOps.get("oauth:airbnb:state:invalid")).thenReturn(null);
+            when(valueOps.getAndDelete("oauth:airbnb:state:invalid")).thenReturn(null);
 
             assertThatThrownBy(() -> service.validateAndConsumeState("invalid"))
                     .isInstanceOf(SecurityException.class)
@@ -583,4 +583,12 @@ class AirbnbOAuthServiceTest {
             assertThat(service.isConnected("user-1")).isFalse();
         }
     }
+    @Test void replayedStateCannotAuthorizeASecondCallback() {
+        when(redisTemplate.opsForValue()).thenReturn(valueOps);
+        when(valueOps.getAndDelete(anyString())).thenReturn("user-1",null);
+        service.validateAndConsumeState("one-use");
+        assertThatThrownBy(() -> service.validateAndConsumeState("one-use")).isInstanceOf(SecurityException.class);
+        verify(valueOps,never()).get(anyString());verify(redisTemplate,never()).delete(anyString());
+    }
+
 }

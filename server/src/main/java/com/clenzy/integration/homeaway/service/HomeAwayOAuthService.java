@@ -83,15 +83,15 @@ public class HomeAwayOAuthService {
 
     /**
      * Valide le state OAuth et retourne l'orgId associe.
-     * Supprime le state de Redis apres validation (usage unique).
+     * Consomme atomiquement le state Redis (usage unique).
      */
     public Long validateAndConsumeState(String state) {
+        if (state == null || state.isBlank()) throw new SecurityException("Invalid or expired OAuth state parameter");
         String key = OAUTH_STATE_PREFIX + state;
-        String orgIdStr = redisTemplate.opsForValue().get(key);
+        String orgIdStr = redisTemplate.opsForValue().getAndDelete(key);
         if (orgIdStr == null) {
             throw new SecurityException("Invalid or expired OAuth state parameter");
         }
-        redisTemplate.delete(key);
         return Long.parseLong(orgIdStr);
     }
 

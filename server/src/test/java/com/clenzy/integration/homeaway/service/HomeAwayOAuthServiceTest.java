@@ -101,19 +101,19 @@ class HomeAwayOAuthServiceTest {
         @DisplayName("returns orgId and deletes state from Redis when valid")
         void validateAndConsumeState_validState_returnsUserId() {
             when(redisTemplate.opsForValue()).thenReturn(valueOps);
-            when(valueOps.get("oauth:homeaway:state:valid-state")).thenReturn("1");
+            when(valueOps.getAndDelete("oauth:homeaway:state:valid-state")).thenReturn("1");
 
             Long result = service.validateAndConsumeState("valid-state");
 
             assertThat(result).isEqualTo(1L);
-            verify(redisTemplate).delete("oauth:homeaway:state:valid-state");
+            verify(valueOps).getAndDelete("oauth:homeaway:state:valid-state");
         }
 
         @Test
         @DisplayName("throws SecurityException when state is invalid or expired")
         void validateAndConsumeState_invalidState_throws() {
             when(redisTemplate.opsForValue()).thenReturn(valueOps);
-            when(valueOps.get("oauth:homeaway:state:bad-state")).thenReturn(null);
+            when(valueOps.getAndDelete("oauth:homeaway:state:bad-state")).thenReturn(null);
 
             assertThatThrownBy(() -> service.validateAndConsumeState("bad-state"))
                     .isInstanceOf(SecurityException.class)
@@ -504,4 +504,12 @@ class HomeAwayOAuthServiceTest {
             assertThat(service.getConnectionStatus(ORG_ID)).isEmpty();
         }
     }
+    @Test void replayedStateCannotAuthorizeASecondCallback() {
+        when(redisTemplate.opsForValue()).thenReturn(valueOps);
+        when(valueOps.getAndDelete(anyString())).thenReturn("1",null);
+        service.validateAndConsumeState("one-use");
+        assertThatThrownBy(() -> service.validateAndConsumeState("one-use")).isInstanceOf(SecurityException.class);
+        verify(valueOps,never()).get(anyString());verify(redisTemplate,never()).delete(anyString());
+    }
+
 }

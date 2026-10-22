@@ -92,12 +92,12 @@ public class NetatmoOAuthService {
      * Valide le state OAuth (usage unique) et retourne le userId + l'org associes.
      */
     public OAuthState consumeState(String state) {
+        if (state == null || state.isBlank()) throw new SecurityException("Invalid or expired OAuth state parameter");
         String key = OAUTH_STATE_PREFIX + state;
-        String value = redisTemplate.opsForValue().get(key);
+        String value = redisTemplate.opsForValue().getAndDelete(key);
         if (value == null) {
             throw new SecurityException("Invalid or expired OAuth state parameter");
         }
-        redisTemplate.delete(key);
         String[] parts = value.split("\\|", 2);
         Long orgId = (parts.length > 1 && !parts[1].isBlank()) ? Long.valueOf(parts[1]) : null;
         return new OAuthState(parts[0], orgId);

@@ -81,15 +81,15 @@ public class AirbnbOAuthService {
 
     /**
      * Valide le state OAuth et retourne le userId associe.
-     * Supprime le state de Redis apres validation (usage unique).
+     * Consomme atomiquement le state Redis (usage unique).
      */
     public String validateAndConsumeState(String state) {
+        if (state == null || state.isBlank()) throw new SecurityException("Invalid or expired OAuth state parameter");
         String key = OAUTH_STATE_PREFIX + state;
-        String userId = redisTemplate.opsForValue().get(key);
+        String userId = redisTemplate.opsForValue().getAndDelete(key);
         if (userId == null) {
             throw new SecurityException("Invalid or expired OAuth state parameter");
         }
-        redisTemplate.delete(key);
         return userId;
     }
 

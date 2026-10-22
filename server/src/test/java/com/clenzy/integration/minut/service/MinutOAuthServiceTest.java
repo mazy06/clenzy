@@ -124,14 +124,14 @@ class MinutOAuthServiceTest {
         void whenValidState_thenReturnsUserIdAndDeletes() {
             // Arrange
             when(redisTemplate.opsForValue()).thenReturn(valueOps);
-            when(valueOps.get("oauth:minut:state:valid-state")).thenReturn("user-1");
+            when(valueOps.getAndDelete("oauth:minut:state:valid-state")).thenReturn("user-1");
 
             // Act
             String userId = service.validateAndConsumeState("valid-state");
 
             // Assert
             assertThat(userId).isEqualTo("user-1");
-            verify(redisTemplate).delete("oauth:minut:state:valid-state");
+            verify(valueOps).getAndDelete("oauth:minut:state:valid-state");
         }
 
         @Test
@@ -139,7 +139,7 @@ class MinutOAuthServiceTest {
         void whenInvalidState_thenThrowsSecurityException() {
             // Arrange
             when(redisTemplate.opsForValue()).thenReturn(valueOps);
-            when(valueOps.get("oauth:minut:state:invalid")).thenReturn(null);
+            when(valueOps.getAndDelete("oauth:minut:state:invalid")).thenReturn(null);
 
             // Act & Assert
             assertThatThrownBy(() -> service.validateAndConsumeState("invalid"))
@@ -560,4 +560,12 @@ class MinutOAuthServiceTest {
             assertThat(service.getConnectionStatus("user-X")).isEmpty();
         }
     }
+    @Test void replayedStateCannotAuthorizeASecondCallback() {
+        when(redisTemplate.opsForValue()).thenReturn(valueOps);
+        when(valueOps.getAndDelete(anyString())).thenReturn("user-1",null);
+        service.validateAndConsumeState("one-use");
+        assertThatThrownBy(() -> service.validateAndConsumeState("one-use")).isInstanceOf(SecurityException.class);
+        verify(valueOps,never()).get(anyString());verify(redisTemplate,never()).delete(anyString());
+    }
+
 }
