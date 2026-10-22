@@ -28,7 +28,7 @@ class DocuSealSignatureProviderTest {
         DocuSealConfig config = new DocuSealConfig();
         config.setBaseUrl(baseUrl);
         config.setApiKey(apiKey);
-        return new DocuSealSignatureProvider(config, generationRepository, documentStorageService, restTemplate);
+        return new DocuSealSignatureProvider(config, generationRepository, documentStorageService, restTemplate, org.mockito.Mockito.mock(com.clenzy.service.signature.BaitlySignatureDownloads.class));
     }
 
     @Test
@@ -64,6 +64,6 @@ class DocuSealSignatureProviderTest {
         assertEquals(SignatureStatus.CANCELLED, DocuSealSignatureProvider.mapStatus("archived"));
         assertEquals(SignatureStatus.DECLINED, DocuSealSignatureProvider.mapStatus("declined"));
         assertEquals(SignatureStatus.PENDING, DocuSealSignatureProvider.mapStatus("pending"));
-        assertEquals(SignatureStatus.PENDING, DocuSealSignatureProvider.mapStatus(null));
+        assertThrows(IllegalStateException.class, () -> DocuSealSignatureProvider.mapStatus(null));
     }
 }
