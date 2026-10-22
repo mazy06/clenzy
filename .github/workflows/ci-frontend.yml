@@ -50,7 +50,8 @@ jobs:
 
       - name: Install dependencies
         working-directory: client
-        run: npm ci
+        # The dedicated Security Audit job remains the vulnerability gate.
+        run: npm ci --no-audit
 
       - name: TypeScript type check
         working-directory: client
@@ -146,7 +147,7 @@ jobs:
 
       - name: Install dependencies
         working-directory: client
-        run: npm ci
+        run: npm ci --no-audit
 
       - name: NPM audit (high + critical)
         working-directory: client
