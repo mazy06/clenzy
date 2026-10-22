@@ -14,6 +14,7 @@ import com.clenzy.integration.expedia.model.ExpediaConnection;
 import com.clenzy.integration.expedia.repository.ExpediaConnectionRepository;
 import com.clenzy.integration.homeaway.model.HomeAwayConnection;
 import com.clenzy.integration.homeaway.repository.HomeAwayConnectionRepository;
+import com.clenzy.integration.oauth.BaitlyOAuthConnectionGuard;
 import com.clenzy.integration.hotelscom.model.HotelsComConnection;
 import com.clenzy.integration.hotelscom.repository.HotelsComConnectionRepository;
 import org.slf4j.Logger;
@@ -93,6 +94,7 @@ public class ChannelConnectionService {
     private final AgodaConnectionRepository agodaConnectionRepository;
     private final HomeAwayConnectionRepository homeAwayConnectionRepository;
     private final CredentialEncryptionService encryptionService;
+    private final BaitlyOAuthConnectionGuard oauthGuard;
 
     public ChannelConnectionService(
             ChannelConnectionRepository channelConnectionRepository,
@@ -101,7 +103,7 @@ public class ChannelConnectionService {
             HotelsComConnectionRepository hotelsComConnectionRepository,
             AgodaConnectionRepository agodaConnectionRepository,
             HomeAwayConnectionRepository homeAwayConnectionRepository,
-            CredentialEncryptionService encryptionService) {
+            CredentialEncryptionService encryptionService, BaitlyOAuthConnectionGuard oauthGuard) {
         this.channelConnectionRepository = channelConnectionRepository;
         this.bookingConnectionRepository = bookingConnectionRepository;
         this.expediaConnectionRepository = expediaConnectionRepository;
@@ -109,6 +111,7 @@ public class ChannelConnectionService {
         this.agodaConnectionRepository = agodaConnectionRepository;
         this.homeAwayConnectionRepository = homeAwayConnectionRepository;
         this.encryptionService = encryptionService;
+        this.oauthGuard = oauthGuard;
     }
 
     // ========================================================================
@@ -142,6 +145,13 @@ public class ChannelConnectionService {
     @Transactional
     public ChannelConnectionDto connect(Long orgId, ChannelName channel, ChannelConnectRequest request) {
         validateSupportedChannel(channel);
+        if (channel == ChannelName.HOMEAWAY) {
+            return oauthGuard.execute("homeaway", orgId, () -> connectUnderLock(orgId, channel, request));
+        }
+        return connectUnderLock(orgId, channel, request);
+    }
+
+    private ChannelConnectionDto connectUnderLock(Long orgId, ChannelName channel, ChannelConnectRequest request) {
 
         // Verifier qu'il n'y a pas deja une connexion active
         Optional<ChannelConnection> existing = channelConnectionRepository
@@ -179,6 +189,17 @@ public class ChannelConnectionService {
     @Transactional
     public void disconnect(Long orgId, ChannelName channel) {
         validateSupportedChannel(channel);
+        if (channel == ChannelName.HOMEAWAY) {
+            oauthGuard.execute("homeaway", orgId, () -> {
+                disconnectUnderLock(orgId, channel);
+                return null;
+            });
+            return;
+        }
+        disconnectUnderLock(orgId, channel);
+    }
+
+    private void disconnectUnderLock(Long orgId, ChannelName channel) {
 
         Optional<ChannelConnection> ccOpt = channelConnectionRepository
                 .findByOrganizationIdAndChannel(orgId, channel);
@@ -225,34 +246,34 @@ public class ChannelConnectionService {
                     requireCredential(creds, "hotelId");
                     requireCredential(creds, "username");
                     requireCredential(creds, "password");
-                    return new ChannelConnectionTestResult(true,
-                            "Credentials Booking.com valides", creds.get("hotelId"));
+                    return new ChannelConnectionTestResult(false,
+                            "Champs requis présents ; connexion non vérifiée auprès du fournisseur", creds.get("hotelId"));
                 }
                 case EXPEDIA -> {
                     requireCredential(creds, "propertyId");
                     requireCredential(creds, "apiKey");
                     requireCredential(creds, "apiSecret");
-                    return new ChannelConnectionTestResult(true,
-                            "Credentials Expedia valides", creds.get("propertyId"));
+                    return new ChannelConnectionTestResult(false,
+                            "Champs requis présents ; connexion non vérifiée auprès du fournisseur", creds.get("propertyId"));
                 }
                 case HOTELS_COM -> {
                     requireCredential(creds, "propertyId");
                     requireCredential(creds, "apiKey");
                     requireCredential(creds, "apiSecret");
-                    return new ChannelConnectionTestResult(true,
-                            "Credentials Hotels.com valides", creds.get("propertyId"));
+                    return new ChannelConnectionTestResult(false,
+                            "Champs requis présents ; connexion non vérifiée auprès du fournisseur", creds.get("propertyId"));
                 }
                 case AGODA -> {
                     requireCredential(creds, "propertyId");
                     requireCredential(creds, "apiKey");
-                    return new ChannelConnectionTestResult(true,
-                            "Credentials Agoda valides", creds.get("propertyId"));
+                    return new ChannelConnectionTestResult(false,
+                            "Champs requis présents ; connexion non vérifiée auprès du fournisseur", creds.get("propertyId"));
                 }
                 case HOMEAWAY -> {
                     requireCredential(creds, "listingId");
                     requireCredential(creds, "accessToken");
-                    return new ChannelConnectionTestResult(true,
-                            "Credentials Vrbo/Abritel valides", creds.get("listingId"));
+                    return new ChannelConnectionTestResult(false,
+                            "Champs requis présents ; connexion non vérifiée auprès du fournisseur", creds.get("listingId"));
                 }
                 // Channels stub : validation par presence des champs requis
                 // (cf. STUB_REQUIRED_FIELDS). Quand la vraie API sera cablee,
@@ -263,8 +284,8 @@ public class ChannelConnectionService {
                     }
                     String identifier = STUB_IDENTIFIER_FIELD.get(channel);
                     String identifierValue = identifier != null ? creds.get(identifier) : null;
-                    return new ChannelConnectionTestResult(true,
-                            "Credentials " + channel + " valides (stub — pas d'appel API reel)",
+                    return new ChannelConnectionTestResult(false,
+                            "Champs requis présents ; connexion non vérifiée auprès du fournisseur",
                             identifierValue);
                 }
                 default -> {
@@ -349,11 +370,18 @@ public class ChannelConnectionService {
         String accessToken = requireCredential(creds, "accessToken");
         String refreshToken = creds.getOrDefault("refreshToken", "");
 
-        HomeAwayConnection hc = new HomeAwayConnection(orgId, encryptionService.encrypt(accessToken));
+        // Préparer les secrets avant toute mutation d'une connexion éventuellement gérée par JPA.
+        String preparedAccess = encryptionService.encrypt(accessToken);
+        String preparedRefresh = refreshToken.isBlank() ? null : encryptionService.encrypt(refreshToken);
+        HomeAwayConnection hc = homeAwayConnectionRepository.findByOrganizationId(orgId)
+                .orElseGet(() -> new HomeAwayConnection(orgId, preparedAccess));
+        hc.setAccessTokenEncrypted(preparedAccess);
+        hc.setRefreshTokenEncrypted(preparedRefresh);
+        hc.setTokenExpiresAt(null);
+        hc.setStatus(HomeAwayConnection.HomeAwayConnectionStatus.ACTIVE);
+        hc.setErrorMessage(null);
+        hc.setLastSyncAt(null);
         hc.setListingId(listingId);
-        if (!refreshToken.isBlank()) {
-            hc.setRefreshTokenEncrypted(encryptionService.encrypt(refreshToken));
-        }
         hc = homeAwayConnectionRepository.save(hc);
 
         ChannelConnection cc = createGenericConnection(orgId, ChannelName.HOMEAWAY,
@@ -453,6 +481,10 @@ public class ChannelConnectionService {
             case HOMEAWAY -> homeAwayConnectionRepository.findByOrganizationId(orgId)
                     .ifPresent(c -> {
                         c.setStatus(HomeAwayConnection.HomeAwayConnectionStatus.INACTIVE);
+                        c.setAccessTokenEncrypted("");
+                        c.setRefreshTokenEncrypted(null);
+                        c.setTokenExpiresAt(null);
+                        c.setErrorMessage("Déconnexion locale ; révocation distante non confirmée");
                         homeAwayConnectionRepository.save(c);
                     });
             default -> log.warn("Pas de desactivation specifique pour le channel {}", channel);

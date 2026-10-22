@@ -98,14 +98,14 @@ public class HomeAwayChannelAdapter implements ChannelConnector {
      */
     @Override
     public void handleInboundEvent(String eventType, Map<String, Object> data, Long orgId) {
-        log.debug("HomeAwayChannelAdapter.handleInboundEvent: type={}, orgId={}", eventType, orgId);
+        log.debug("Réception événement HomeAway programmatique");
 
         switch (eventType) {
             case "reservation.created" -> homeAwaySyncService.handleReservationCreated(data, orgId);
             case "reservation.updated" -> homeAwaySyncService.handleReservationUpdated(data, orgId);
             case "reservation.cancelled" -> homeAwaySyncService.handleReservationCancelled(data, orgId);
             case "availability.updated" -> homeAwaySyncService.handleAvailabilityUpdate(data, orgId);
-            default -> log.warn("Type d'evenement HomeAway inconnu: {}", eventType);
+            default -> throw new UnsupportedOperationException("Événement HomeAway non pris en charge");
         }
     }
 

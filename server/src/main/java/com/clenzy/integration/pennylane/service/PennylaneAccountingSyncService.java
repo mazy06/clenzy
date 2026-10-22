@@ -5,6 +5,7 @@ import com.clenzy.integration.pennylane.repository.PennylaneConnectionRepository
 import com.clenzy.model.*;
 import com.clenzy.repository.InvoiceRepository;
 import com.clenzy.repository.ProviderExpenseRepository;
+import com.clenzy.util.BaitlyExternalIds;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
@@ -15,7 +16,7 @@ import java.time.Instant;
 import java.util.*;
 
 /**
- * Service de synchronisation Clenzy → Pennylane.
+ * Service de synchronisation Baitly → Pennylane.
  *
  * Synchronise les factures clients et les depenses fournisseurs
  * vers l'API Pennylane Entreprise v2.
@@ -55,7 +56,7 @@ public class PennylaneAccountingSyncService {
     // ─── Sync individuel ─────────────────────────────────────────────────────
 
     /**
-     * Synchronise une facture client Clenzy vers Pennylane.
+     * Synchronise une facture client Baitly vers Pennylane.
      */
     public void syncInvoice(Invoice invoice) {
         Long orgId = invoice.getOrganizationId();
@@ -91,19 +92,18 @@ public class PennylaneAccountingSyncService {
 
         // Stocker l'ID Pennylane et la date de sync
         if (response == null || response.get("id") == null) {
-            throw new IllegalStateException("Reponse Pennylane invalide — id absent pour facture " + invoice.getInvoiceNumber());
+            throw BaitlyPennylaneDiagnostics.failure(BaitlyPennylaneDiagnostics.Reason.INVALID_RESPONSE);
         }
-        String pennylaneId = String.valueOf(response.get("id"));
+        String pennylaneId = externalInvoiceId(response.get("id"));
         invoice.setPennylaneInvoiceId(pennylaneId);
         invoice.setPennylaneSyncedAt(Instant.now());
         invoiceRepository.save(invoice);
 
-        log.info("Pennylane sync — facture {} synchronisee (pennylane_id={})",
-            invoice.getInvoiceNumber(), pennylaneId);
+        log.info("Pennylane : export de facture confirmé");
     }
 
     /**
-     * Synchronise une depense fournisseur Clenzy vers Pennylane.
+     * Synchronise une depense fournisseur Baitly vers Pennylane.
      */
     public void syncExpense(ProviderExpense expense) {
         Long orgId = expense.getOrganizationId();
@@ -137,15 +137,14 @@ public class PennylaneAccountingSyncService {
         Map<String, Object> response = client.createSupplierInvoice(orgId, body);
 
         if (response == null || response.get("id") == null) {
-            throw new IllegalStateException("Reponse Pennylane invalide — id absent pour depense #" + expense.getId());
+            throw BaitlyPennylaneDiagnostics.failure(BaitlyPennylaneDiagnostics.Reason.INVALID_RESPONSE);
         }
-        String pennylaneId = String.valueOf(response.get("id"));
+        String pennylaneId = externalInvoiceId(response.get("id"));
         expense.setPennylaneInvoiceId(pennylaneId);
         expense.setPennylaneSyncedAt(Instant.now());
         expenseRepository.save(expense);
 
-        log.info("Pennylane sync — depense #{} synchronisee (pennylane_id={})",
-            expense.getId(), pennylaneId);
+        log.info("Pennylane : export de dépense confirmé");
     }
 
     // ─── Sync en batch ───────────────────────────────────────────────────────
@@ -154,6 +153,7 @@ public class PennylaneAccountingSyncService {
      * Synchronise toutes les factures non encore envoyees a Pennylane.
      */
     public SyncResult syncAllPendingInvoices(Long orgId) {
+        Instant startedAt = Instant.now();
         ensureConnected(orgId);
 
         List<Invoice> pending = invoiceRepository.findPendingPennylaneSync(orgId, SYNCABLE_INVOICE_STATUSES);
@@ -168,12 +168,13 @@ public class PennylaneAccountingSyncService {
                 synced++;
             } catch (Exception e) {
                 failed++;
-                errors.add("Facture " + invoice.getInvoiceNumber() + ": " + e.getMessage());
-                log.warn("Pennylane sync — echec facture {}: {}", invoice.getInvoiceNumber(), e.getMessage());
+                var reason = BaitlyPennylaneDiagnostics.reason(e);
+                errors.add(itemReference("Facture", invoice.getId(), synced + failed) + ": " + reason.message());
+                log.warn("Pennylane : export de facture non confirmé ({})", reason.name());
             }
         }
 
-        updateLastSync(orgId);
+        updateLastSync(orgId, startedAt);
         return new SyncResult("invoices", synced, failed, pending.size(), errors);
     }
 
@@ -181,6 +182,7 @@ public class PennylaneAccountingSyncService {
      * Synchronise toutes les depenses non encore envoyees a Pennylane.
      */
     public SyncResult syncAllPendingExpenses(Long orgId) {
+        Instant startedAt = Instant.now();
         ensureConnected(orgId);
 
         List<ProviderExpense> pending = expenseRepository.findPendingPennylaneSync(orgId, SYNCABLE_EXPENSE_STATUSES);
@@ -195,12 +197,13 @@ public class PennylaneAccountingSyncService {
                 synced++;
             } catch (Exception e) {
                 failed++;
-                errors.add("Depense #" + expense.getId() + ": " + e.getMessage());
-                log.warn("Pennylane sync — echec depense #{}: {}", expense.getId(), e.getMessage());
+                var reason = BaitlyPennylaneDiagnostics.reason(e);
+                errors.add(itemReference("Dépense", expense.getId(), synced + failed) + ": " + reason.message());
+                log.warn("Pennylane : export de dépense non confirmé ({})", reason.name());
             }
         }
 
-        updateLastSync(orgId);
+        updateLastSync(orgId, startedAt);
         return new SyncResult("expenses", synced, failed, pending.size(), errors);
     }
 
@@ -232,28 +235,23 @@ public class PennylaneAccountingSyncService {
     private Number getOrCreateCustomer(Long orgId, String externalRef, String name) {
         Optional<Map<String, Object>> existing = client.findCustomerByExternalRef(orgId, externalRef);
         if (existing.isPresent()) {
-            Object id = existing.get().get("id");
-            if (id instanceof Number) return (Number) id;
+            return partyId(existing.get().get("id"));
         }
 
         Map<String, Object> body = new LinkedHashMap<>();
         body.put("customer_type", "company");
-        body.put("name", name != null ? name : "Client Clenzy");
+        body.put("name", name != null ? name : "Client Baitly");
         body.put("external_reference", externalRef);
 
         Map<String, Object> created = client.createCustomer(orgId, body);
         Object id = created != null ? created.get("id") : null;
-        if (!(id instanceof Number)) {
-            throw new IllegalStateException("Pennylane — id invalide dans la reponse creation client");
-        }
-        return (Number) id;
+        return partyId(id);
     }
 
     private Number getOrCreateSupplier(Long orgId, String externalRef, String name) {
         Optional<Map<String, Object>> existing = client.findSupplierByExternalRef(orgId, externalRef);
         if (existing.isPresent()) {
-            Object id = existing.get().get("id");
-            if (id instanceof Number) return (Number) id;
+            return partyId(existing.get().get("id"));
         }
 
         Map<String, Object> body = new LinkedHashMap<>();
@@ -262,14 +260,24 @@ public class PennylaneAccountingSyncService {
 
         Map<String, Object> created = client.createSupplier(orgId, body);
         Object id = created != null ? created.get("id") : null;
-        if (!(id instanceof Number)) {
-            throw new IllegalStateException("Pennylane — id invalide dans la reponse creation fournisseur");
+        return partyId(id);
+    }
+
+    private String externalInvoiceId(Object value) {
+        try {return BaitlyExternalIds.require(value, 50);}
+        catch (IllegalArgumentException ignored) {
+            throw BaitlyPennylaneDiagnostics.failure(BaitlyPennylaneDiagnostics.Reason.INVALID_RESPONSE);
         }
-        return (Number) id;
+    }
+
+    private Number partyId(Object value) {
+        if (!(value instanceof Number number)) throw BaitlyPennylaneDiagnostics.failure(BaitlyPennylaneDiagnostics.Reason.INVALID_RESPONSE);
+        externalInvoiceId(number);
+        return number;
     }
 
     /**
-     * Mappe un taux de TVA Clenzy vers un code TVA Pennylane.
+     * Mappe un taux de TVA Baitly vers un code TVA Pennylane.
      *
      * <p>Un taux non reconnu lève une {@link IllegalStateException} plutôt que
      * de retomber silencieusement sur un code par défaut : exporter une facture
@@ -283,24 +291,25 @@ public class PennylaneAccountingSyncService {
             return "exempt";
         }
         // Pennylane attend le taux en pourcentage (20, 10, 5.5)
-        // Clenzy stocke en decimal (0.20, 0.10, 0.055)
+        // Baitly stocke en decimal (0.20, 0.10, 0.055)
         BigDecimal percent = taxRate.multiply(BigDecimal.valueOf(100));
         if (percent.compareTo(BigDecimal.valueOf(20)) == 0) return "FR_200";
         if (percent.compareTo(BigDecimal.valueOf(10)) == 0) return "FR_100";
         if (percent.compareTo(new BigDecimal("5.5")) == 0) return "FR_055";
 
-        log.error("Pennylane sync — taux de TVA non mappable vers un code Pennylane : {}% "
-                + "(taux brut {}). Export refusé pour éviter une facture avec une TVA fausse.",
-            percent.stripTrailingZeros().toPlainString(), taxRate.toPlainString());
-        throw new IllegalStateException(
-            "Taux de TVA non reconnu pour l'export Pennylane : " + percent.stripTrailingZeros().toPlainString() + "%");
+        log.error("Pennylane : export refusé (UNSUPPORTED_VAT)");
+        throw BaitlyPennylaneDiagnostics.failure(BaitlyPennylaneDiagnostics.Reason.UNSUPPORTED_VAT);
     }
 
-    private void updateLastSync(Long orgId) {
-        connectionRepository.findByOrganizationId(orgId).ifPresent(conn -> {
-            conn.setLastSyncAt(Instant.now());
-            connectionRepository.save(conn);
-        });
+    private String itemReference(String kind, Long id, int position) {
+        // Référence locale numérique pour l'utilisateur autorisé, jamais un numéro libre ou un nom.
+        return id != null && id > 0 ? kind + " #" + id : kind + " (ligne " + position + ")";
+    }
+
+    private void updateLastSync(Long orgId, Instant startedAt) {
+        // Date de tentative de lot, même partiel : ne constitue pas une preuve de succès global.
+        // Une reconnexion postérieure au début du lot ne doit pas hériter de ses métadonnées.
+        connectionRepository.recordSyncAttempt(orgId, startedAt, Instant.now());
     }
 
     private String safeString(String s) {
