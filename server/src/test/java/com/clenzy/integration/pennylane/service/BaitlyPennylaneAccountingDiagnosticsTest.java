@@ -161,11 +161,11 @@ class BaitlyPennylaneAccountingDiagnosticsTest {
         if (type.equals("invoices")) {
             when(invoices.findPendingPennylaneSync(eq(7L), any())).thenReturn(List.of(badInvoice, goodInvoice));
             when(client.findCustomerByExternalRef(eq(7L), anyString())).thenReturn(Optional.of(Map.of("id", 1)));
-            when(client.createCustomerInvoice(eq(7L), any())).thenThrow(failure).thenReturn(Map.of("id", PRIVATE));
+            when(client.createCustomerInvoice(eq(7L), any())).thenThrow(failure).thenReturn(Map.of("id", "synthetic-private-id"));
         } else {
             when(expenses.findPendingPennylaneSync(eq(7L), any())).thenReturn(List.of(badExpense, goodExpense));
             when(client.findSupplierByExternalRef(eq(7L), anyString())).thenReturn(Optional.of(Map.of("id", 1)));
-            when(client.createSupplierInvoice(eq(7L), any())).thenThrow(failure).thenReturn(Map.of("id", PRIVATE));
+            when(client.createSupplierInvoice(eq(7L), any())).thenThrow(failure).thenReturn(Map.of("id", "synthetic-private-id"));
         }
         var service = new PennylaneAccountingSyncService(client, oauth, connections, invoices, expenses);
         try (var logs = new Logs(PennylaneAccountingSyncService.class)) {
@@ -185,7 +185,7 @@ class BaitlyPennylaneAccountingDiagnosticsTest {
             String reference = id != null && id > 0 ? " #42" : " (ligne 1)";
             assertThat(result.errors()).containsExactly(kind + reference + ": " + reason);
             assertThat(new ObjectMapper().writeValueAsString(result))
-                    .doesNotContain(PRIVATE, "access_token", "refresh_token", "suppressed");
+                    .doesNotContain(PRIVATE, "synthetic-private-id", "access_token", "refresh_token", "suppressed");
             logs.assertPrivateDataAbsent();
             if (type.equals("invoices")) {
                 verify(invoices, never()).save(badInvoice);
@@ -224,7 +224,7 @@ class BaitlyPennylaneAccountingDiagnosticsTest {
         }
         void assertPrivateDataAbsent() {
             assertThat(events.list).isNotEmpty().allSatisfy(event -> {
-                assertThat(event.getFormattedMessage()).doesNotContain(PRIVATE, "access_token", "refresh_token", "suppressed");
+                assertThat(event.getFormattedMessage()).doesNotContain(PRIVATE, "synthetic-private-id", "access_token", "refresh_token", "suppressed");
                 assertThat(Arrays.deepToString(event.getArgumentArray())).doesNotContain(PRIVATE);
                 assertThat(event.getThrowableProxy()).isNull();
             });

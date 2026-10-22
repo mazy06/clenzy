@@ -1,5 +1,18 @@
 {
   "backend": [
+    "BaitlyPennylaneResponseValidationTest",
+    "HomeAwayChannelAdapterTest",
+    "BaitlySignatureSafetyTest",
+    "BaitlySignatureProviderPrivacyTest",
+    "DocuSealSignatureProviderTest",
+    "YousignSignatureProviderTest",
+    "DocuSignSignatureProviderTest",
+    "PennylaneApiServiceTest",
+    "HomeAwayWebhookControllerTest",
+    "HomeAwaySyncServiceTest",
+    "BaitlyHomeAwayFailClosedTest",
+    "BaitlyHomeAwayManualCoordinationPostgresTest",
+    "ChannelConnectionServiceTest",
     "BaitlyPennylaneAccountingDiagnosticsTest",
     "BaitlyPennylaneSyncPersistenceTest",
     "PennylaneAccountingSyncServiceTest",

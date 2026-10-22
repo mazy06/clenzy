@@ -180,20 +180,13 @@ class PennylaneAccountingSyncServiceTest {
         }
 
         @Test
-        void whenCustomerLookupReturnsNonNumberId_thenStillCreates() {
+        void whenCustomerLookupReturnsInvalidId_thenRefusesDuplicateCreation() {
             when(oauthService.isConnected(ORG_ID)).thenReturn(true);
-            // existing.get("id") not a Number → fallthrough to creation
-            when(client.findCustomerByExternalRef(eq(ORG_ID), anyString()))
-                    .thenReturn(Optional.of(withId("not-a-number")));
-            when(client.createCustomer(eq(ORG_ID), any())).thenReturn(withId(555));
-            when(client.createCustomerInvoice(eq(ORG_ID), any())).thenReturn(withId(777));
-            when(invoiceRepository.save(any(Invoice.class))).thenAnswer(inv -> inv.getArgument(0));
-
-            Invoice invoice = baseInvoice(3L, "INV-003", "ISSUED");
-            service.syncInvoice(invoice);
-
-            verify(client).createCustomer(eq(ORG_ID), any());
-            assertThat(invoice.getPennylaneInvoiceId()).isEqualTo("777");
+            when(client.findCustomerByExternalRef(eq(ORG_ID), anyString())).thenReturn(Optional.of(withId("not-a-number")));
+            assertThatThrownBy(() -> service.syncInvoice(baseInvoice(3L, "INV-003", "ISSUED")))
+                    .isInstanceOf(IllegalStateException.class).hasNoCause();
+            verify(client, never()).createCustomer(eq(ORG_ID), any());
+            verify(client, never()).createCustomerInvoice(eq(ORG_ID), any());
         }
 
         @Test
@@ -427,19 +420,13 @@ class PennylaneAccountingSyncServiceTest {
         }
 
         @Test
-        void whenSupplierLookupReturnsNonNumberId_thenStillCreatesSupplier() {
+        void whenSupplierLookupReturnsInvalidId_thenRefusesDuplicateCreation() {
             when(oauthService.isConnected(ORG_ID)).thenReturn(true);
-            when(client.findSupplierByExternalRef(eq(ORG_ID), anyString()))
-                    .thenReturn(Optional.of(withId("not-num")));
-            when(client.createSupplier(eq(ORG_ID), any())).thenReturn(withId(2));
-            when(client.createSupplierInvoice(eq(ORG_ID), any())).thenReturn(withId(3));
-            when(expenseRepository.save(any(ProviderExpense.class)))
-                    .thenAnswer(inv -> inv.getArgument(0));
-
-            ProviderExpense exp = baseExpense(15L, ExpenseStatus.APPROVED);
-            service.syncExpense(exp);
-
-            verify(client).createSupplier(eq(ORG_ID), any());
+            when(client.findSupplierByExternalRef(eq(ORG_ID), anyString())).thenReturn(Optional.of(withId("not-num")));
+            assertThatThrownBy(() -> service.syncExpense(baseExpense(15L, ExpenseStatus.APPROVED)))
+                    .isInstanceOf(IllegalStateException.class).hasNoCause();
+            verify(client, never()).createSupplier(eq(ORG_ID), any());
+            verify(client, never()).createSupplierInvoice(eq(ORG_ID), any());
         }
 
         @Test

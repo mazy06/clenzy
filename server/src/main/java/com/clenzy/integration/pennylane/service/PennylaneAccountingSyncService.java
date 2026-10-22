@@ -5,6 +5,7 @@ import com.clenzy.integration.pennylane.repository.PennylaneConnectionRepository
 import com.clenzy.model.*;
 import com.clenzy.repository.InvoiceRepository;
 import com.clenzy.repository.ProviderExpenseRepository;
+import com.clenzy.util.BaitlyExternalIds;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
@@ -93,7 +94,7 @@ public class PennylaneAccountingSyncService {
         if (response == null || response.get("id") == null) {
             throw BaitlyPennylaneDiagnostics.failure(BaitlyPennylaneDiagnostics.Reason.INVALID_RESPONSE);
         }
-        String pennylaneId = String.valueOf(response.get("id"));
+        String pennylaneId = externalInvoiceId(response.get("id"));
         invoice.setPennylaneInvoiceId(pennylaneId);
         invoice.setPennylaneSyncedAt(Instant.now());
         invoiceRepository.save(invoice);
@@ -138,7 +139,7 @@ public class PennylaneAccountingSyncService {
         if (response == null || response.get("id") == null) {
             throw BaitlyPennylaneDiagnostics.failure(BaitlyPennylaneDiagnostics.Reason.INVALID_RESPONSE);
         }
-        String pennylaneId = String.valueOf(response.get("id"));
+        String pennylaneId = externalInvoiceId(response.get("id"));
         expense.setPennylaneInvoiceId(pennylaneId);
         expense.setPennylaneSyncedAt(Instant.now());
         expenseRepository.save(expense);
@@ -234,8 +235,7 @@ public class PennylaneAccountingSyncService {
     private Number getOrCreateCustomer(Long orgId, String externalRef, String name) {
         Optional<Map<String, Object>> existing = client.findCustomerByExternalRef(orgId, externalRef);
         if (existing.isPresent()) {
-            Object id = existing.get().get("id");
-            if (id instanceof Number) return (Number) id;
+            return partyId(existing.get().get("id"));
         }
 
         Map<String, Object> body = new LinkedHashMap<>();
@@ -245,17 +245,13 @@ public class PennylaneAccountingSyncService {
 
         Map<String, Object> created = client.createCustomer(orgId, body);
         Object id = created != null ? created.get("id") : null;
-        if (!(id instanceof Number)) {
-            throw BaitlyPennylaneDiagnostics.failure(BaitlyPennylaneDiagnostics.Reason.INVALID_RESPONSE);
-        }
-        return (Number) id;
+        return partyId(id);
     }
 
     private Number getOrCreateSupplier(Long orgId, String externalRef, String name) {
         Optional<Map<String, Object>> existing = client.findSupplierByExternalRef(orgId, externalRef);
         if (existing.isPresent()) {
-            Object id = existing.get().get("id");
-            if (id instanceof Number) return (Number) id;
+            return partyId(existing.get().get("id"));
         }
 
         Map<String, Object> body = new LinkedHashMap<>();
@@ -264,10 +260,20 @@ public class PennylaneAccountingSyncService {
 
         Map<String, Object> created = client.createSupplier(orgId, body);
         Object id = created != null ? created.get("id") : null;
-        if (!(id instanceof Number)) {
+        return partyId(id);
+    }
+
+    private String externalInvoiceId(Object value) {
+        try {return BaitlyExternalIds.require(value, 50);}
+        catch (IllegalArgumentException ignored) {
             throw BaitlyPennylaneDiagnostics.failure(BaitlyPennylaneDiagnostics.Reason.INVALID_RESPONSE);
         }
-        return (Number) id;
+    }
+
+    private Number partyId(Object value) {
+        if (!(value instanceof Number number)) throw BaitlyPennylaneDiagnostics.failure(BaitlyPennylaneDiagnostics.Reason.INVALID_RESPONSE);
+        externalInvoiceId(number);
+        return number;
     }
 
     /**
