@@ -6,6 +6,8 @@
       "BaitlyAuthenticatedPinnedDownloadTest",
       "PinnedSiteFetcherTest",
     "BaitlySignatureProviderPrivacyTest",
+      "BaitlyUnverifiedExternalConnectionTest",
+      "ExternalConnectionControllerTest",
       "BaitlyOAuthHttpDiagnosticsTest",
     "DocuSealSignatureProviderTest",
     "YousignSignatureProviderTest",
