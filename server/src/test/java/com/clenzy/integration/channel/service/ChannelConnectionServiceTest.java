@@ -600,6 +600,25 @@ class ChannelConnectionServiceTest {
         }
     }
 
+    @org.junit.jupiter.params.ParameterizedTest
+    @org.junit.jupiter.params.provider.EnumSource(value = ChannelName.class, names = {
+            "BOOKING", "EXPEDIA", "HOTELS_COM", "AGODA", "HOMEAWAY", "TRIPCOM",
+            "HOMETOGO", "GATHERN", "RENTELLY", "KEASE", "STAY_SA", "MABEET"})
+    void localFieldsNeverConfirmRemoteCredentials(ChannelName channel) {
+        var input = creds("hotelId", "synthetic-property", "username", "synthetic-user",
+                "password", "synthetic-private-password", "propertyId", "synthetic-property",
+                "apiKey", "synthetic-private-key", "apiSecret", "synthetic-private-secret",
+                "listingId", "synthetic-property", "accessToken", "synthetic-private-token",
+                "partnerId", "synthetic-partner", "icalUrl", "https://example.invalid/private-feed");
+        var result = service.testConnection(ORG_ID, channel, new ChannelConnectRequest(input));
+        assertThat(result.success()).isFalse();
+        assertThat(result.message()).isEqualTo("Champs requis présents ; connexion non vérifiée auprès du fournisseur");
+        assertThat(result.toString()).doesNotContain("synthetic-private-", "private-feed");
+        org.mockito.Mockito.verifyNoInteractions(channelConnectionRepository, bookingConnectionRepository,
+                expediaConnectionRepository, hotelsComConnectionRepository, agodaConnectionRepository,
+                homeAwayConnectionRepository, encryptionService);
+    }
+
     // ── testConnection ──────────────────────────────────────────────────────
 
     @Nested
@@ -607,11 +626,11 @@ class ChannelConnectionServiceTest {
     class TestConnectionTests {
 
         @Test
-        void booking_success() {
+        void booking_fieldsDoNotConfirmRemoteConnection() {
             ChannelConnectRequest req = new ChannelConnectRequest(
                     creds("hotelId", "h", "username", "u", "password", "p"));
             ChannelConnectionTestResult r = service.testConnection(ORG_ID, ChannelName.BOOKING, req);
-            assertThat(r.success()).isTrue();
+            assertThat(r.success()).isFalse();
             assertThat(r.channelPropertyName()).isEqualTo("h");
         }
 
@@ -625,55 +644,55 @@ class ChannelConnectionServiceTest {
         }
 
         @Test
-        void expedia_success() {
+        void expedia_fieldsDoNotConfirmRemoteConnection() {
             ChannelConnectionTestResult r = service.testConnection(ORG_ID, ChannelName.EXPEDIA,
                     new ChannelConnectRequest(
                             creds("propertyId", "P", "apiKey", "K", "apiSecret", "S")));
-            assertThat(r.success()).isTrue();
+            assertThat(r.success()).isFalse();
             assertThat(r.channelPropertyName()).isEqualTo("P");
         }
 
         @Test
-        void hotelsCom_success() {
+        void hotelsCom_fieldsDoNotConfirmRemoteConnection() {
             ChannelConnectionTestResult r = service.testConnection(ORG_ID, ChannelName.HOTELS_COM,
                     new ChannelConnectRequest(
                             creds("propertyId", "P", "apiKey", "K", "apiSecret", "S")));
-            assertThat(r.success()).isTrue();
+            assertThat(r.success()).isFalse();
         }
 
         @Test
-        void agoda_success() {
+        void agoda_fieldsDoNotConfirmRemoteConnection() {
             ChannelConnectionTestResult r = service.testConnection(ORG_ID, ChannelName.AGODA,
                     new ChannelConnectRequest(
                             creds("propertyId", "P", "apiKey", "K")));
-            assertThat(r.success()).isTrue();
+            assertThat(r.success()).isFalse();
             assertThat(r.channelPropertyName()).isEqualTo("P");
         }
 
         @Test
-        void homeAway_success() {
+        void homeAway_fieldsDoNotConfirmRemoteConnection() {
             ChannelConnectionTestResult r = service.testConnection(ORG_ID, ChannelName.HOMEAWAY,
                     new ChannelConnectRequest(
                             creds("listingId", "L", "accessToken", "T")));
-            assertThat(r.success()).isTrue();
+            assertThat(r.success()).isFalse();
             assertThat(r.channelPropertyName()).isEqualTo("L");
         }
 
         @Test
-        void tripcom_success_returnsPartnerId() {
+        void tripcom_unverified_returnsPartnerId() {
             ChannelConnectionTestResult r = service.testConnection(ORG_ID, ChannelName.TRIPCOM,
                     new ChannelConnectRequest(
                             creds("partnerId", "PART", "apiKey", "K")));
-            assertThat(r.success()).isTrue();
+            assertThat(r.success()).isFalse();
             assertThat(r.channelPropertyName()).isEqualTo("PART");
-            assertThat(r.message()).contains("stub");
+            assertThat(r.message()).contains("connexion non vérifiée");
         }
 
         @Test
-        void gathern_success_noIdentifier() {
+        void gathern_unverified_noIdentifier() {
             ChannelConnectionTestResult r = service.testConnection(ORG_ID, ChannelName.GATHERN,
                     new ChannelConnectRequest(creds("apiKey", "K")));
-            assertThat(r.success()).isTrue();
+            assertThat(r.success()).isFalse();
             assertThat(r.channelPropertyName()).isNull();
         }
 

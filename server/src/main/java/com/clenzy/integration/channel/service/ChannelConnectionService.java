@@ -246,34 +246,34 @@ public class ChannelConnectionService {
                     requireCredential(creds, "hotelId");
                     requireCredential(creds, "username");
                     requireCredential(creds, "password");
-                    return new ChannelConnectionTestResult(true,
-                            "Credentials Booking.com valides", creds.get("hotelId"));
+                    return new ChannelConnectionTestResult(false,
+                            "Champs requis présents ; connexion non vérifiée auprès du fournisseur", creds.get("hotelId"));
                 }
                 case EXPEDIA -> {
                     requireCredential(creds, "propertyId");
                     requireCredential(creds, "apiKey");
                     requireCredential(creds, "apiSecret");
-                    return new ChannelConnectionTestResult(true,
-                            "Credentials Expedia valides", creds.get("propertyId"));
+                    return new ChannelConnectionTestResult(false,
+                            "Champs requis présents ; connexion non vérifiée auprès du fournisseur", creds.get("propertyId"));
                 }
                 case HOTELS_COM -> {
                     requireCredential(creds, "propertyId");
                     requireCredential(creds, "apiKey");
                     requireCredential(creds, "apiSecret");
-                    return new ChannelConnectionTestResult(true,
-                            "Credentials Hotels.com valides", creds.get("propertyId"));
+                    return new ChannelConnectionTestResult(false,
+                            "Champs requis présents ; connexion non vérifiée auprès du fournisseur", creds.get("propertyId"));
                 }
                 case AGODA -> {
                     requireCredential(creds, "propertyId");
                     requireCredential(creds, "apiKey");
-                    return new ChannelConnectionTestResult(true,
-                            "Credentials Agoda valides", creds.get("propertyId"));
+                    return new ChannelConnectionTestResult(false,
+                            "Champs requis présents ; connexion non vérifiée auprès du fournisseur", creds.get("propertyId"));
                 }
                 case HOMEAWAY -> {
                     requireCredential(creds, "listingId");
                     requireCredential(creds, "accessToken");
-                    return new ChannelConnectionTestResult(true,
-                            "Credentials Vrbo/Abritel valides", creds.get("listingId"));
+                    return new ChannelConnectionTestResult(false,
+                            "Champs requis présents ; connexion non vérifiée auprès du fournisseur", creds.get("listingId"));
                 }
                 // Channels stub : validation par presence des champs requis
                 // (cf. STUB_REQUIRED_FIELDS). Quand la vraie API sera cablee,
@@ -284,8 +284,8 @@ public class ChannelConnectionService {
                     }
                     String identifier = STUB_IDENTIFIER_FIELD.get(channel);
                     String identifierValue = identifier != null ? creds.get(identifier) : null;
-                    return new ChannelConnectionTestResult(true,
-                            "Credentials " + channel + " valides (stub — pas d'appel API reel)",
+                    return new ChannelConnectionTestResult(false,
+                            "Champs requis présents ; connexion non vérifiée auprès du fournisseur",
                             identifierValue);
                 }
                 default -> {
