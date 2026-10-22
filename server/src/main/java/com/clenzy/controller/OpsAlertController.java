@@ -105,19 +105,25 @@ public class OpsAlertController {
     /**
      * Variante au format webhook Alertmanager. Alertmanager envoie son propre JSON
      * ({@code {status, alerts:[{labels:{alertname,severity}, annotations:{summary,description}}]}})
-     * et s'authentifie via {@code Authorization: Bearer <token>} (http_config). On accepte
+     * et s'authentifie via {@code Authorization: BaitlyOps <token>} (http_config). On accepte
      * aussi {@code X-Ops-Token} pour homogeneite. Construit une notification in-app synthetique.
      */
     @PostMapping("/alertmanager")
     @Operation(summary = "Recevoir un webhook Alertmanager",
-            description = "Route les alertes Prometheus vers une notification in-app. Bearer token requis.")
+            description = "Route les alertes Prometheus vers une notification in-app. Jeton BaitlyOps requis.")
     public ResponseEntity<?> receiveAlertmanager(
             @RequestBody(required = false) JsonNode payload,
             @RequestHeader(value = "X-Ops-Token", required = false) String headerToken,
             @RequestHeader(value = "Authorization", required = false) String authHeader) {
         String token = headerToken;
-        if (isBlank(token) && authHeader != null && authHeader.regionMatches(true, 0, "Bearer ", 0, 7)) {
-            token = authHeader.substring(7).trim();
+        if (isBlank(token) && authHeader != null) {
+            // BaitlyOps avoids the JWT resource-server filter interpreting this opaque
+            // shared secret as a user access token. Token validation remains fail-closed.
+            if (authHeader.regionMatches(true, 0, "BaitlyOps ", 0, 10)) {
+                token = authHeader.substring(10).trim();
+            } else if (authHeader.regionMatches(true, 0, "Bearer ", 0, 7)) {
+                token = authHeader.substring(7).trim();
+            }
         }
         if (!tokenValid(token)) {
             log.warn("Webhook Alertmanager rejete : token absent ou invalide");

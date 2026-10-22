@@ -6,6 +6,13 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
+import org.springframework.security.oauth2.core.OAuth2AuthenticationException;
+import org.springframework.security.oauth2.core.OAuth2Error;
+import org.springframework.security.oauth2.server.resource.web.authentication.BearerTokenAuthenticationFilter;
+import org.springframework.test.web.servlet.setup.MockMvcBuilders;
+
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.*;
@@ -16,6 +23,27 @@ class BaitlyOpsAlertControllerTest {
     final SimpleMeterRegistry registry = new SimpleMeterRegistry();
     final OpsAlertController controller = new OpsAlertController(notifications, "test-ops-token", registry);
     final ObjectMapper json = new ObjectMapper();
+
+    @Test void opaqueOpsSchemePassesJwtFilterButStillRequiresTheSharedSecret() throws Exception {
+        var filter = new BearerTokenAuthenticationFilter((org.springframework.security.authentication.AuthenticationManager) authentication -> {
+            throw new OAuth2AuthenticationException(new OAuth2Error("invalid_token"));
+        });
+        var mvc = MockMvcBuilders.standaloneSetup(controller).addFilters(filter).build();
+        when(notifications.notifyPlatformOpsStrict(anyString(), anyString(), isNull())).thenReturn(1);
+        String payload = "{\"status\":\"firing\",\"alerts\":[{}]}";
+        mvc.perform(post("/api/ops/alerts/alertmanager").contentType("application/json")
+                .header("Authorization", "Bearer test-ops-token").content(payload)).andExpect(status().isUnauthorized());
+        mvc.perform(post("/api/ops/alerts/alertmanager").contentType("application/json")
+                .header("Authorization", "BaitlyOps wrong").content(payload)).andExpect(status().isUnauthorized());
+        mvc.perform(post("/api/ops/alerts/alertmanager").contentType("application/json")
+                .header("Authorization", "Basic test-ops-token").content(payload)).andExpect(status().isUnauthorized());
+        mvc.perform(post("/api/ops/alerts/alertmanager").contentType("application/json")
+                .content(payload)).andExpect(status().isUnauthorized());
+        verifyNoInteractions(notifications);
+        mvc.perform(post("/api/ops/alerts/alertmanager").contentType("application/json")
+                .header("Authorization", "BaitlyOps test-ops-token").content(payload)).andExpect(status().isAccepted());
+        verify(notifications).notifyPlatformOpsStrict(anyString(), anyString(), isNull());
+    }
 
     @Test void refusesMissingInvalidAndUnconfiguredTokensWithoutNotifying() throws Exception {
         var payload = json.readTree("{\"status\":\"firing\",\"alerts\":[{}]}");
