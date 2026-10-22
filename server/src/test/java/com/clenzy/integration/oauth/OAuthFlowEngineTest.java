@@ -32,6 +32,7 @@ import static org.mockito.Mockito.when;
 class OAuthFlowEngineTest {
 
     @Mock private OAuthStateService stateService;
+    @Mock private BaitlyOAuthConnectionGuard connectionGuard;
     @Mock private TokenEncryptionService encryptionService;
     @Mock private RestTemplate restTemplate;
     @Mock private OAuthProviderConfig providerConfig;
@@ -41,7 +42,11 @@ class OAuthFlowEngineTest {
 
     @BeforeEach
     void setUp() {
-        engine = new OAuthFlowEngine(stateService, encryptionService);
+        engine = new OAuthFlowEngine(stateService, encryptionService, connectionGuard);
+        lenient().when(connectionGuard.execute(anyString(), any(), any())).thenAnswer(call ->
+                ((java.util.function.Supplier<?>) call.getArgument(2)).get());
+        lenient().when(connectionGuard.executeRefresh(anyString(), any(), any())).thenAnswer(call ->
+                ((java.util.function.Supplier<?>) call.getArgument(2)).get());
         // Replace inner restTemplate with mocked one
         ReflectionTestUtils.setField(engine, "restTemplate", restTemplate);
 
@@ -84,6 +89,20 @@ class OAuthFlowEngineTest {
         @Override public void setErrorMessage(String m) { errorMessage = m; }
         @Override public Instant getConnectedAt() { return connectedAt; }
         @Override public void setConnectedAt(Instant a) { connectedAt = a; }
+    }
+
+    @Test
+    void automaticRefreshRechecksLatestConnectionUnderGuard() {
+        var stale = new TestConnection();
+        stale.setTokenExpiresAt(Instant.now().minusSeconds(60));
+        var latest = new TestConnection();
+        latest.setTokenExpiresAt(Instant.now().plusSeconds(3600));
+        latest.setAccessTokenEncrypted("latest-encrypted-access");
+        when(persistence.findActiveByOrganizationId(100L)).thenReturn(Optional.of(stale), Optional.of(latest));
+        when(encryptionService.decrypt("latest-encrypted-access")).thenReturn("synthetic-access");
+        assertThat(engine.getValidAccessToken(providerConfig, persistence, 100L)).isEqualTo("synthetic-access");
+        verify(connectionGuard).executeRefresh(eq("test"), eq(100L), any());
+        org.mockito.Mockito.verifyNoInteractions(restTemplate);
     }
 
     @Nested
