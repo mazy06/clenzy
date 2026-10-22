@@ -6,6 +6,7 @@ import com.clenzy.model.DocumentGeneration;
 import com.clenzy.repository.DocumentGenerationRepository;
 import com.clenzy.service.DocumentStorageService;
 import com.clenzy.service.signature.SignatureProvider;
+import com.clenzy.service.signature.BaitlySignatureSafety;
 import com.clenzy.service.signature.SignatureProviderType;
 import com.clenzy.service.signature.SignatureRequest;
 import com.clenzy.service.signature.SignatureResult;
@@ -46,7 +47,7 @@ import java.util.Optional;
  *
  * <h2>Flux de création (API v3)</h2>
  * <ol>
- *   <li>POST /signature_requests (delivery_mode=none — l'email part de Clenzy)</li>
+ *   <li>POST /signature_requests (delivery_mode=none — l'email part de Baitly)</li>
  *   <li>POST /signature_requests/{id}/documents (multipart, nature=signable_document)</li>
  *   <li>POST /signature_requests/{id}/signers (niveau electronic_signature + champ signature en dernière page)</li>
  *   <li>POST /signature_requests/{id}/activate → {@code signers[0].signature_link}</li>
@@ -102,22 +103,22 @@ public class YousignSignatureProvider implements SignatureProvider {
         }
 
         String baseUrl = apiBaseUrl(connection.get());
-        String apiKey = connectionService.decryptApiKey(connection.get());
         Signer signer = request.signers().get(0);
 
         try {
-            // 1. Demande de signature (draft). delivery_mode=none : c'est Clenzy qui
+            String apiKey = connectionService.decryptApiKey(connection.get());
+            // 1. Demande de signature (draft). delivery_mode=none : c'est Baitly qui
             //    envoie le lien par email (flux uniforme avec le provider interne).
             Map<String, Object> created = postJson(baseUrl + "/signature_requests", apiKey, Map.of(
-                    "name", request.documentName() != null ? request.documentName() : "Document Clenzy",
+                    "name", request.documentName() != null ? request.documentName() : "Document Baitly",
                     "delivery_mode", "none",
                     "timezone", "Europe/Paris"));
-            String requestId = (String) created.get("id");
+            String requestId = BaitlySignatureSafety.remoteId(created.get("id"));
 
             // 2. Upload du PDF
             Map<String, Object> document = postMultipartPdf(
                     baseUrl + "/signature_requests/" + requestId + "/documents", apiKey, pdf);
-            String documentId = (String) document.get("id");
+            String documentId = BaitlySignatureSafety.remoteId(document.get("id"));
 
             // 3. Signataire + champ de signature en dernière page
             postJson(baseUrl + "/signature_requests/" + requestId + "/signers", apiKey, Map.of(
@@ -139,33 +140,41 @@ public class YousignSignatureProvider implements SignatureProvider {
                 return SignatureResult.failure("Yousign n'a pas retourné de lien de signature");
             }
 
-            log.info("Demande Yousign créée — requestId={}, org={}", requestId, request.orgId());
+            log.info("Yousign : demande de signature créée");
             return SignatureResult.success(requestId, signingUrl);
         } catch (Exception e) {
-            log.error("Création de la demande Yousign échouée : {}", e.getMessage());
-            return SignatureResult.failure("Yousign: " + e.getMessage());
+            log.error("Yousign : création de signature non confirmée");
+            return SignatureResult.failure(BaitlySignatureSafety.CREATION_UNCONFIRMED);
         }
     }
 
     @Override
     public SignatureStatus getStatus(String signatureRequestId) {
+        signatureRequestId = BaitlySignatureSafety.remoteId(signatureRequestId);
+        try {
         ExternalServiceConnection connection = requireCurrentOrgConnection();
         Map<String, Object> response = getJson(
                 apiBaseUrl(connection) + "/signature_requests/" + signatureRequestId,
                 connectionService.decryptApiKey(connection));
         return mapStatus((String) response.get("status"));
+        } catch (Exception ignored) {throw BaitlySignatureSafety.unavailable();}
     }
 
     @Override
     public byte[] getSignedDocument(String signatureRequestId) {
+        signatureRequestId = BaitlySignatureSafety.remoteId(signatureRequestId);
+        try {
         ExternalServiceConnection connection = requireCurrentOrgConnection();
         HttpHeaders headers = new HttpHeaders();
         headers.setBearerAuth(connectionService.decryptApiKey(connection));
-        return restTemplate.exchange(
+        byte[] document = restTemplate.exchange(
                 apiBaseUrl(connection) + "/signature_requests/" + signatureRequestId + "/documents/download",
                 org.springframework.http.HttpMethod.GET,
                 new HttpEntity<>(headers),
                 byte[].class).getBody();
+        if (document == null || document.length == 0) throw BaitlySignatureSafety.invalidResponse();
+        return document;
+        } catch (Exception ignored) {throw BaitlySignatureSafety.unavailable();}
     }
 
     /** Disponible si une connexion Yousign ACTIVE existe pour l'organisation courante. */
@@ -179,14 +188,15 @@ public class YousignSignatureProvider implements SignatureProvider {
 
     /** Statuts v3 : draft, ongoing, done, expired, canceled, declined, rejected. */
     static SignatureStatus mapStatus(String yousignStatus) {
-        if (yousignStatus == null) return SignatureStatus.PENDING;
+        if (yousignStatus == null) throw BaitlySignatureSafety.unknownStatus();
         return switch (yousignStatus) {
             case "done" -> SignatureStatus.SIGNED;
             case "ongoing", "approval" -> SignatureStatus.SENT;
             case "expired" -> SignatureStatus.EXPIRED;
             case "canceled" -> SignatureStatus.CANCELLED;
             case "declined", "rejected" -> SignatureStatus.DECLINED;
-            default -> SignatureStatus.PENDING;
+            case "draft" -> SignatureStatus.PENDING;
+            default -> throw BaitlySignatureSafety.unknownStatus();
         };
     }
 
@@ -222,11 +232,13 @@ public class YousignSignatureProvider implements SignatureProvider {
     }
 
     private byte[] loadDocumentBytes(Long generationId) {
+        try {
         return generationRepository.findById(generationId)
                 .map(DocumentGeneration::getFilePath)
                 .filter(path -> path != null && !path.isBlank())
                 .map(documentStorageService::loadAsBytes)
                 .orElse(null);
+        } catch (Exception ignored) {log.error("Yousign : lecture du document indisponible");return null;}
     }
 
     private int lastPageNumber(byte[] pdf) {
@@ -274,7 +286,7 @@ public class YousignSignatureProvider implements SignatureProvider {
         Object signers = activated.get("signers");
         if (signers instanceof List<?> list && !list.isEmpty() && list.get(0) instanceof Map<?, ?> first) {
             Object link = ((Map<String, Object>) first).get("signature_link");
-            return link != null ? link.toString() : null;
+            return link == null ? null : BaitlySignatureSafety.signingUrl(link);
         }
         return null;
     }

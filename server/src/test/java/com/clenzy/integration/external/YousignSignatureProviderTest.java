@@ -80,6 +80,6 @@ class YousignSignatureProviderTest {
         assertEquals(SignatureStatus.CANCELLED, YousignSignatureProvider.mapStatus("canceled"));
         assertEquals(SignatureStatus.DECLINED, YousignSignatureProvider.mapStatus("declined"));
         assertEquals(SignatureStatus.PENDING, YousignSignatureProvider.mapStatus("draft"));
-        assertEquals(SignatureStatus.PENDING, YousignSignatureProvider.mapStatus(null));
+        assertThrows(IllegalStateException.class, () -> YousignSignatureProvider.mapStatus(null));
     }
 }
