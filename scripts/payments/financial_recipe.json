@@ -1,5 +1,7 @@
 {
   "backend": [
+    "BaitlyPennylaneSyncPersistenceTest",
+    "PennylaneAccountingSyncServiceTest",
     "BaitlyHomeAwaySyncPersistenceTest",
     "HomeAwaySyncSchedulerTest",
     "BaitlyOAuthCircuitBreakerTest",
