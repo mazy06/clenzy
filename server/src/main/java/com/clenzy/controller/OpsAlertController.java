@@ -1,7 +1,6 @@
 package com.clenzy.controller;
 
 import com.clenzy.dto.OpsAlertRequest;
-import com.clenzy.model.NotificationKey;
 import com.clenzy.service.NotificationService;
 import com.clenzy.util.StringUtils;
 import com.fasterxml.jackson.databind.JsonNode;
@@ -93,11 +92,10 @@ public class OpsAlertController {
         }
         String actionUrl = (link != null && link.startsWith("/")) ? link : null;
 
-        notificationService.notifyAllPlatformStaff(
-                NotificationKey.OPS_ALERT,
+        if (!notifyStrict("ci",
                 StringUtils.escapeHtml(rawTitle),
                 StringUtils.escapeHtml(rawMessage),
-                actionUrl);
+                actionUrl)) return notificationUnavailable();
 
         received("ci", "firing");
         log.info("Baitly ops alert accepted for platform notification");
@@ -150,11 +148,10 @@ public class OpsAlertController {
         String title = truncate("[" + status + "] " + distinctNames, MAX_TITLE);
         String message = truncate(String.join("\n", lines), MAX_MESSAGE);
 
-        notificationService.notifyAllPlatformStaff(
-                NotificationKey.OPS_ALERT,
+        if (!notifyStrict("alertmanager",
                 StringUtils.escapeHtml(title),
                 StringUtils.escapeHtml(message),
-                null);
+                null)) return notificationUnavailable();
 
         received("alertmanager", status);
         log.info("Webhook Alertmanager -> notif plateforme : status={} alerts={}", status, names.size());
@@ -165,6 +162,24 @@ public class OpsAlertController {
         Counter.builder("baitly.ops.alerts.received").tags("source", source, "status", status)
                 .description("Baitly operational alert batches accepted for platform notification")
                 .register(registry).increment();
+    }
+
+    private boolean notifyStrict(String source, String title, String message, String actionUrl) {
+        try {
+            if (notificationService.notifyPlatformOpsStrict(title, message, actionUrl) > 0) return true;
+        } catch (RuntimeException failure) {
+            // Storage errors can contain identities, SQL or credentials. No free text in logs/metrics.
+        }
+        Counter.builder("baitly.ops.alerts.rejected").tags("source", source, "reason", "notification_unavailable")
+                .description("Baitly operational alert batches requiring sender retry")
+                .register(registry).increment();
+        log.warn("Baitly operational notification unavailable; sender must retry");
+        return false;
+    }
+
+    private ResponseEntity<?> notificationUnavailable() {
+        return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE)
+                .body(Map.of("error", "notification_unavailable"));
     }
 
     /** Comparaison constante-temps ; fail-closed si le token serveur n'est pas configure. */
