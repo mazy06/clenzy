@@ -138,10 +138,15 @@ public class NetatmoOAuthService {
                 NetatmoConnection connection = connectionRepository.findByUserId(userId)
                         .orElse(new NetatmoConnection());
 
+                // Préparer tous les secrets et dates avant de modifier la connexion Baitly.
+                String encryptedAccess = encryptionService.encrypt(accessToken);
+                String encryptedRefresh = refreshToken != null ? encryptionService.encrypt(refreshToken) : null;
+                LocalDateTime tokenExpiresAt = LocalDateTime.now().plusSeconds(expiresIn);
+
                 connection.setUserId(userId);
-                connection.setAccessTokenEncrypted(encryptionService.encrypt(accessToken));
-                connection.setRefreshTokenEncrypted(encryptionService.encrypt(refreshToken));
-                connection.setTokenExpiresAt(LocalDateTime.now().plusSeconds(expiresIn));
+                connection.setAccessTokenEncrypted(encryptedAccess);
+                connection.setRefreshTokenEncrypted(encryptedRefresh);
+                connection.setTokenExpiresAt(tokenExpiresAt);
                 connection.setScopes(config.getScopes());
                 connection.setStatus(NetatmoConnectionStatus.ACTIVE);
                 connection.setErrorMessage(null);
@@ -197,11 +202,16 @@ public class NetatmoOAuthService {
                 Integer expiresIn = tokenData.get("expires_in") != null
                         ? ((Number) tokenData.get("expires_in")).intValue() : 10800;
 
-                connection.setAccessTokenEncrypted(encryptionService.encrypt(newAccessToken));
+                // Préparer tous les secrets et dates avant de modifier la connexion Baitly.
+                String encryptedAccess = encryptionService.encrypt(newAccessToken);
+                String encryptedRefresh = newRefreshToken != null ? encryptionService.encrypt(newRefreshToken) : null;
+                LocalDateTime tokenExpiresAt = LocalDateTime.now().plusSeconds(expiresIn);
+
+                connection.setAccessTokenEncrypted(encryptedAccess);
                 if (newRefreshToken != null) {
-                    connection.setRefreshTokenEncrypted(encryptionService.encrypt(newRefreshToken));
+                    connection.setRefreshTokenEncrypted(encryptedRefresh);
                 }
-                connection.setTokenExpiresAt(LocalDateTime.now().plusSeconds(expiresIn));
+                connection.setTokenExpiresAt(tokenExpiresAt);
                 connection.setStatus(NetatmoConnectionStatus.ACTIVE);
                 connection.setErrorMessage(null);
 
