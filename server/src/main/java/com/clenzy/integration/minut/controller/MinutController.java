@@ -1,5 +1,6 @@
 package com.clenzy.integration.minut.controller;
 
+import com.clenzy.integration.oauth.BaitlyOAuthHttpDiagnostics;
 import com.clenzy.dto.noise.MinutConnectionStatusDto;
 import com.clenzy.integration.minut.model.MinutConnection;
 import com.clenzy.integration.minut.service.MinutApiService;
@@ -75,7 +76,7 @@ public class MinutController {
         } catch (IllegalStateException e) {
             Map<String, String> error = new HashMap<>();
             error.put("error", "configuration_missing");
-            error.put("message", e.getMessage());
+            error.put("message", BaitlyOAuthHttpDiagnostics.CONFIGURATION_UNAVAILABLE);
             return ResponseEntity.badRequest().body(error);
         }
     }
@@ -105,7 +106,7 @@ public class MinutController {
             return ResponseEntity.ok(response);
 
         } catch (Exception e) {
-            log.error("Erreur callback OAuth Minut: {}", e.getMessage());
+            log.error("Erreur callback OAuth Minut");
             Map<String, Object> error = new HashMap<>();
             error.put("status", "error");
             error.put("message", "Echec de la connexion Minut");
@@ -129,7 +130,7 @@ public class MinutController {
             return ResponseEntity.ok(response);
 
         } catch (Exception e) {
-            log.error("Erreur deconnexion Minut: {}", e.getMessage());
+            log.error("Erreur deconnexion Minut");
             Map<String, String> error = new HashMap<>();
             error.put("status", "error");
             error.put("message", "Erreur lors de la deconnexion");
@@ -154,7 +155,7 @@ public class MinutController {
             statusDto.setMinutOrganizationId(connection.getMinutOrganizationId());
             statusDto.setConnectedAt(connection.getConnectedAt());
             statusDto.setLastSyncAt(connection.getLastSyncAt());
-            statusDto.setErrorMessage(connection.getErrorMessage());
+            statusDto.setErrorMessage(BaitlyOAuthHttpDiagnostics.connectionError(connection.getErrorMessage()));
 
             long deviceCount = deviceQueryService.countDevicesForUser(userId);
             statusDto.setDeviceCount(deviceCount);
@@ -203,7 +204,7 @@ public class MinutController {
             Map<String, Object> device = apiService.getDevice(userId, deviceId);
             return ResponseEntity.ok(device);
         } catch (Exception e) {
-            log.error("Erreur recuperation device Minut {}: {}", deviceId, e.getMessage());
+            log.error("Erreur recuperation device Minut");
             return ResponseEntity.internalServerError().body(Map.of(
                     "error", "api_error",
                     "message", "Erreur lors de la recuperation du device Minut"
@@ -229,7 +230,7 @@ public class MinutController {
             Map<String, Object> home = apiService.getHome(userId, homeId);
             return ResponseEntity.ok(home);
         } catch (Exception e) {
-            log.error("Erreur recuperation home Minut {}: {}", homeId, e.getMessage());
+            log.error("Erreur recuperation home Minut");
             return ResponseEntity.internalServerError().body(Map.of(
                     "error", "api_error",
                     "message", "Erreur lors de la recuperation du home Minut"
@@ -258,7 +259,7 @@ public class MinutController {
             Map<String, Object> events = apiService.getHomeEvents(userId, homeId, startAt, endAt, eventTypes);
             return ResponseEntity.ok(events);
         } catch (Exception e) {
-            log.error("Erreur recuperation evenements home Minut {}: {}", homeId, e.getMessage());
+            log.error("Erreur recuperation evenements home Minut");
             return ResponseEntity.internalServerError().body(Map.of(
                     "error", "api_error",
                     "message", "Erreur lors de la recuperation des evenements"
@@ -284,7 +285,7 @@ public class MinutController {
             Map<String, Object> config = apiService.getDisturbanceConfig(userId, homeId);
             return ResponseEntity.ok(config);
         } catch (Exception e) {
-            log.error("Erreur recuperation config disturbance home {}: {}", homeId, e.getMessage());
+            log.error("Erreur recuperation config disturbance home");
             return ResponseEntity.internalServerError().body(Map.of(
                     "error", "api_error",
                     "message", "Erreur lors de la recuperation de la configuration"
@@ -311,7 +312,7 @@ public class MinutController {
             Map<String, Object> result = apiService.updateDisturbanceConfig(userId, homeId, config);
             return ResponseEntity.ok(result);
         } catch (Exception e) {
-            log.error("Erreur mise a jour config disturbance home {}: {}", homeId, e.getMessage());
+            log.error("Erreur mise a jour config disturbance home");
             return ResponseEntity.internalServerError().body(Map.of(
                     "error", "api_error",
                     "message", "Erreur lors de la mise a jour de la configuration"

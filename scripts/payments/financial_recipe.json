@@ -4,6 +4,7 @@
     "HomeAwayChannelAdapterTest",
     "BaitlySignatureSafetyTest",
     "BaitlySignatureProviderPrivacyTest",
+      "BaitlyOAuthHttpDiagnosticsTest",
     "DocuSealSignatureProviderTest",
     "YousignSignatureProviderTest",
     "DocuSignSignatureProviderTest",
