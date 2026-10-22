@@ -89,6 +89,10 @@ public class HomeAwaySyncScheduler {
     @Scheduled(fixedRateString = "#{${homeaway.sync.interval-minutes:15} * 60000}")
     @SchedulerLock(name = "homeaway-sync-reservations", lockAtMostFor = "PT15M")
     public void syncReservations() {
+        if (!syncService.isInboundReady()) {
+            log.warn("Synchronisation HomeAway suspendue : traitement PMS non implémenté");
+            return;
+        }
         log.debug("Sync periodique des reservations HomeAway...");
 
         List<HomeAwayConnection> activeConnections = connectionRepository.findAllActive();

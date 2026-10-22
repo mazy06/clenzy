@@ -36,6 +36,11 @@ import static org.mockito.Mockito.when;
  */
 @ExtendWith(MockitoExtension.class)
 class HomeAwaySyncSchedulerTest {
+    @Test void unfinishedInboundNeverCallsTheProviderOrUpdatesMetadata() {
+        when(syncService.isInboundReady()).thenReturn(false);
+        scheduler.syncReservations();
+        org.mockito.Mockito.verifyNoInteractions(connectionRepository, apiClient, oAuthService);
+    }
 
     @Mock private HomeAwayConfig config;
     @Mock private HomeAwayConnectionRepository connectionRepository;
@@ -47,6 +52,7 @@ class HomeAwaySyncSchedulerTest {
 
     @BeforeEach
     void setUp() {
+        org.mockito.Mockito.lenient().when(syncService.isInboundReady()).thenReturn(true);
         scheduler = new HomeAwaySyncScheduler(
                 config, connectionRepository, apiClient, oAuthService, syncService);
     }
