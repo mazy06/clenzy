@@ -87,6 +87,10 @@ jobs:
           VITE_APP_VERSION: ${{ github.sha }}
         run: npm run build
 
+      - name: Verify runtime configuration is never cached by the PWA
+        working-directory: client
+        run: node tooling/check-baitly-runtime-cache.mjs
+
       - name: Validate public discovery content
         working-directory: client
         run: npx vitest run site/lib/discovery.test.ts
