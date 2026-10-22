@@ -44,6 +44,25 @@ import static org.mockito.Mockito.when;
 @DisplayName("OutboxRelay")
 class OutboxRelayTest {
 
+    @Test
+    void successAndFailureTimersHaveCompatiblePrometheusLabels() {
+        var registry = new io.micrometer.prometheusmetrics.PrometheusMeterRegistry(
+                io.micrometer.prometheusmetrics.PrometheusConfig.DEFAULT);
+        try {
+            var metrics = new SyncMetrics(registry);
+            var tested = new OutboxRelay(repo, kafkaTemplate, new ObjectMapper(), metrics);
+            when(repo.findPendingEvents(any(Pageable.class))).thenReturn(List.of(
+                    event(1L, "calendar.updates", "1", "{}"), event(2L, "calendar.updates", "2", "{}")));
+            when(kafkaTemplate.send(any(), any(), any())).thenReturn(okFuture(), errorFuture("unavailable"));
+            tested.relayPendingEvents();
+            assertThat(registry.scrape()).contains("result=\"success\"", "result=\"error\"");
+            assertThat(registry.find("pms.outbox.relay.latency").tag("result", "success").timer().count()).isEqualTo(1);
+            assertThat(registry.find("pms.outbox.relay.latency").tag("result", "error").timer().count()).isEqualTo(1);
+        } finally {
+            registry.close();
+        }
+    }
+
     @Mock private OutboxEventRepository repo;
     @Mock private KafkaTemplate<String, Object> kafkaTemplate;
 

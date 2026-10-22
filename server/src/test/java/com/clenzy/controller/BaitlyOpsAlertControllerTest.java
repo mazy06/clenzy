@@ -1,0 +1,59 @@
+package com.clenzy.controller;
+
+import com.clenzy.model.NotificationKey;
+import com.clenzy.service.NotificationService;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
+import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentCaptor;
+
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.*;
+import static org.mockito.Mockito.*;
+
+class BaitlyOpsAlertControllerTest {
+    final NotificationService notifications = mock(NotificationService.class);
+    final SimpleMeterRegistry registry = new SimpleMeterRegistry();
+    final OpsAlertController controller = new OpsAlertController(notifications, "test-ops-token", registry);
+    final ObjectMapper json = new ObjectMapper();
+
+    @Test void refusesMissingInvalidAndUnconfiguredTokensWithoutNotifying() throws Exception {
+        var payload = json.readTree("{\"status\":\"firing\",\"alerts\":[{}]}");
+        assertThat(controller.receiveAlertmanager(payload, null, null).getStatusCode().value()).isEqualTo(401);
+        assertThat(controller.receiveAlertmanager(payload, "wrong", null).getStatusCode().value()).isEqualTo(401);
+        assertThat(new OpsAlertController(notifications, "", registry)
+                .receiveAlertmanager(payload, "test-ops-token", null).getStatusCode().value()).isEqualTo(401);
+        verifyNoInteractions(notifications);
+    }
+
+    @Test void forwardsOnlyControlledLabelsAndCountsAcceptedNotifications() throws Exception {
+        var payload = json.readTree("""
+            {"status":"firing","alerts":[
+              {"labels":{"alertname":"BaitlyOutboxExhausted","severity":"critical","customer":"PRIVATE"},
+               "annotations":{"summary":"PRIVATE email@example.test","description":"SECRET"}},
+              {"labels":{"alertname":"PRIVATE","severity":"SECRET"}}]}
+            """);
+        assertThat(controller.receiveAlertmanager(payload, null, "Bearer test-ops-token").getStatusCode().value()).isEqualTo(202);
+        var title = ArgumentCaptor.forClass(String.class);
+        var message = ArgumentCaptor.forClass(String.class);
+        verify(notifications).notifyAllPlatformStaff(eq(NotificationKey.OPS_ALERT),title.capture(),message.capture(),isNull());
+        assertThat(title.getValue()).contains("BaitlyOutboxExhausted", "MonitoringAlert").doesNotContain("PRIVATE");
+        assertThat(message.getValue()).doesNotContain("PRIVATE", "SECRET", "example.test");
+        assertThat(registry.get("baitly.ops.alerts.received").tags("source","alertmanager","status","firing").counter().count()).isEqualTo(1);
+    }
+
+    @Test void rejectsEmptyInvalidStatusAndOversizedGroups() throws Exception {
+        assertThat(controller.receiveAlertmanager(json.readTree("{\"alerts\":[]}"),"test-ops-token",null).getStatusCode().value()).isEqualTo(400);
+        assertThat(controller.receiveAlertmanager(json.readTree("{\"status\":\"PRIVATE\",\"alerts\":[{}]}"),"test-ops-token",null).getStatusCode().value()).isEqualTo(400);
+        var payload = json.createObjectNode(); var alerts = payload.putArray("alerts");
+        for(int i=0;i<51;i++) alerts.addObject();
+        assertThat(controller.receiveAlertmanager(payload,"test-ops-token",null).getStatusCode().value()).isEqualTo(400);
+        verifyNoInteractions(notifications);
+    }
+
+    @Test void acceptsRecoveryWithoutRecordingAnErrorOrPrivateText() throws Exception {
+        var payload=json.readTree("{\"status\":\"resolved\",\"alerts\":[{\"labels\":{\"alertname\":\"BaitlyOutboxExhausted\"}}]}");
+        assertThat(controller.receiveAlertmanager(payload,"test-ops-token",null).getStatusCode().value()).isEqualTo(202);
+        assertThat(registry.get("baitly.ops.alerts.received").tags("source","alertmanager","status","resolved").counter().count()).isEqualTo(1);
+    }
+}

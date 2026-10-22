@@ -172,4 +172,21 @@ class SyncMetricsTest {
         Timer t = registry.find("pms.sync.latency").tag("channel", "AIRBNB").timer();
         assertEquals(250.0, t.totalTime(TimeUnit.MILLISECONDS), 0.1);
     }
+
+    @Test
+    void arbitraryPrivateLabelsAreCollapsedAndCannotCreateUnboundedSeries() {
+        for (int i = 0; i < 100; i++) {
+            metrics.recordSyncFailure("private@example.test/" + i, "SECRET_TOKEN_" + i, 5);
+            metrics.recordCalendarOperation("https://private/" + i, metrics.startTimer());
+            metrics.recordReservationCreation("customer-" + i, metrics.startTimer());
+        }
+        assertEquals(100, registry.get("pms.sync.failure").tags("channel", "OTHER", "error_type", "unknown").counter().count());
+        assertEquals(100, registry.get("pms.calendar.update.latency").tag("operation", "other").timer().count());
+        assertEquals(100, registry.get("pms.reservation.creation.latency").tag("source", "OTHER").timer().count());
+        registry.getMeters().forEach(meter -> meter.getId().getTags().forEach(tag -> {
+            assertFalse(tag.getValue().contains("private"));
+            assertFalse(tag.getValue().contains("SECRET"));
+            assertFalse(tag.getValue().contains("customer"));
+        }));
+    }
 }

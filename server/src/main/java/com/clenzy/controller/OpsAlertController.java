@@ -24,6 +24,9 @@ import java.security.MessageDigest;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
+import io.micrometer.core.instrument.Counter;
+import io.micrometer.core.instrument.MeterRegistry;
 
 /**
  * Reception des alertes ops (deploiement echoue, incident infra/monitoring) emises
@@ -49,14 +52,22 @@ public class OpsAlertController {
 
     private static final int MAX_TITLE = 200;
     private static final int MAX_MESSAGE = 2000;
+    private static final Set<String> KNOWN_ALERTS = Set.of("ClenzyDeployFailed", "ClenzyDeployStale",
+            "ClenzyBackendDown", "ClenzyDocGenFailures", "BaitlyBackendHigh5xx", "BaitlyBackendSlow",
+            "BaitlyDatabasePoolSaturated", "BaitlyJvmHeapPressure", "BaitlyBackendDiskLow",
+            "BaitlyOperationalMetricsUnavailable", "BaitlyOperationalMetricsStale", "BaitlyOutboxExhausted",
+            "BaitlyOutboxStalled", "BaitlyWebhookDeliveryStalled", "BaitlyWebhookDisabled", "BaitlyChannelSyncFailures");
 
     private final NotificationService notificationService;
     private final String opsToken;
+    private final MeterRegistry registry;
 
     public OpsAlertController(NotificationService notificationService,
-                              @Value("${clenzy.ops.alert-token:}") String opsToken) {
+                              @Value("${clenzy.ops.alert-token:}") String opsToken,
+                              MeterRegistry registry) {
         this.notificationService = notificationService;
         this.opsToken = opsToken;
+        this.registry = registry;
     }
 
     @PostMapping
@@ -65,8 +76,7 @@ public class OpsAlertController {
     public ResponseEntity<?> receive(@RequestBody(required = false) OpsAlertRequest req,
                                      @RequestHeader(value = "X-Ops-Token", required = false) String token) {
         if (!tokenValid(token)) {
-            log.warn("Alerte ops rejetee : token absent ou invalide (source={})",
-                    req != null ? req.source() : null);
+            log.warn("Alerte ops rejetee : token absent ou invalide");
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(Map.of("error", "invalid_token"));
         }
         if (req == null || isBlank(req.title()) || isBlank(req.message())) {
@@ -89,8 +99,8 @@ public class OpsAlertController {
                 StringUtils.escapeHtml(rawMessage),
                 actionUrl);
 
-        log.info("Alerte ops -> notif plateforme : source={} severity={} title='{}'",
-                req.source(), req.severity(), rawTitle);
+        received("ci", "firing");
+        log.info("Baitly ops alert accepted for platform notification");
         return ResponseEntity.accepted().body(Map.of("status", "notified"));
     }
 
@@ -115,22 +125,26 @@ public class OpsAlertController {
             log.warn("Webhook Alertmanager rejete : token absent ou invalide");
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(Map.of("error", "invalid_token"));
         }
-        if (payload == null || !payload.hasNonNull("alerts") || !payload.get("alerts").isArray()) {
+        if (payload == null || !payload.hasNonNull("alerts") || !payload.get("alerts").isArray()
+                || payload.get("alerts").isEmpty() || payload.get("alerts").size() > 50) {
             return ResponseEntity.badRequest().body(Map.of("error", "alerts_required"));
         }
 
         String status = payload.path("status").asText("firing");
+        if (!Set.of("firing", "resolved").contains(status)) {
+            return ResponseEntity.badRequest().body(Map.of("error", "invalid_status"));
+        }
         List<String> names = new ArrayList<>();
         List<String> lines = new ArrayList<>();
         for (JsonNode alert : payload.get("alerts")) {
-            String name = alert.path("labels").path("alertname").asText("alert");
+            String candidate = alert.path("labels").path("alertname").asText("");
+            String name = KNOWN_ALERTS.contains(candidate) ? candidate : "MonitoringAlert";
             String severity = alert.path("labels").path("severity").asText("");
-            String summary = alert.path("annotations").path("summary").asText("");
-            String desc = alert.path("annotations").path("description").asText("");
+            if (!Set.of("critical", "warning", "info").contains(severity)) severity = "warning";
             names.add(name);
-            String detail = !summary.isBlank() ? summary : desc;
-            lines.add("• " + name + (severity.isBlank() ? "" : " [" + severity + "]")
-                    + (detail.isBlank() ? "" : " — " + detail));
+            // Remote annotations and labels may contain URLs, identities or secrets.
+            // The controlled rule name identifies the runbook; details stay in internal monitoring.
+            lines.add(name + " [" + severity + "] : consulter le monitoring interne et le guide d’incident.");
         }
         String distinctNames = String.join(", ", names.stream().distinct().toList());
         String title = truncate("[" + status + "] " + distinctNames, MAX_TITLE);
@@ -142,8 +156,15 @@ public class OpsAlertController {
                 StringUtils.escapeHtml(message),
                 null);
 
+        received("alertmanager", status);
         log.info("Webhook Alertmanager -> notif plateforme : status={} alerts={}", status, names.size());
         return ResponseEntity.accepted().body(Map.of("status", "notified", "alerts", names.size()));
+    }
+
+    private void received(String source, String status) {
+        Counter.builder("baitly.ops.alerts.received").tags("source", source, "status", status)
+                .description("Baitly operational alert batches accepted for platform notification")
+                .register(registry).increment();
     }
 
     /** Comparaison constante-temps ; fail-closed si le token serveur n'est pas configure. */
