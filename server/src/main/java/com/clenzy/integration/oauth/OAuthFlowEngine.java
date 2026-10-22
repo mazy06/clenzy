@@ -21,7 +21,7 @@ import java.util.Map;
 
 /**
  * Moteur OAuth2 generique — UNIQUE source de verite pour le flow OAuth dans
- * Clenzy. Utilise par {@code PennylaneOAuthService}, {@code DocuSignOAuthService}
+ * Baitly. Utilise par {@code PennylaneOAuthService}, {@code DocuSignOAuthService}
  * et tout futur provider OAuth.
  *
  * <h2>Responsabilites (SRP)</h2>
@@ -62,16 +62,24 @@ public class OAuthFlowEngine {
 
     private static final Logger log = LoggerFactory.getLogger(OAuthFlowEngine.class);
     private static final long DEFAULT_EXPIRES_IN_SECONDS = 86400L; // 24h
+    static final String TOKEN_UNCONFIRMED = "Réponse OAuth non confirmée ; reconnexion requise";
+    static final String REVOCATION_UNCONFIRMED = "Révocation distante non confirmée ; connexion supprimée localement";
 
     private final OAuthStateService stateService;
     private final TokenEncryptionService encryptionService;
     private final RestTemplate restTemplate;
+    private final BaitlyOAuthConnectionGuard connectionGuard;
 
     public OAuthFlowEngine(OAuthStateService stateService,
-                          TokenEncryptionService encryptionService) {
+                          TokenEncryptionService encryptionService,
+                          BaitlyOAuthConnectionGuard connectionGuard) {
         this.stateService = stateService;
         this.encryptionService = encryptionService;
-        this.restTemplate = new RestTemplate();
+        this.connectionGuard = connectionGuard;
+        var requests = new org.springframework.http.client.SimpleClientHttpRequestFactory();
+        requests.setConnectTimeout(5000);
+        requests.setReadTimeout(15000);
+        this.restTemplate = new RestTemplate(requests);
     }
 
     // ─── 1. Authorization URL ────────────────────────────────────────────────
@@ -107,6 +115,13 @@ public class OAuthFlowEngine {
             Long userId,
             Long orgId
     ) {
+        return connectionGuard.execute(config.getProviderKey(), orgId,
+                () -> exchangeUnderLock(config, persistence, code, userId, orgId));
+    }
+
+    private <C extends OAuthConnectionLike> C exchangeUnderLock(
+            OAuthProviderConfig config, OAuthConnectionPersistence<C> persistence,
+            String code, Long userId, Long orgId) {
         log.info("OAuth — echange code, provider={} org={}", config.getProviderKey(), orgId);
 
         MultiValueMap<String, String> body = new LinkedMultiValueMap<>();
@@ -121,15 +136,24 @@ public class OAuthFlowEngine {
         Instant now = Instant.now();
         long expiresInSeconds = tokens.expiresIn() != null ? tokens.expiresIn() : DEFAULT_EXPIRES_IN_SECONDS;
 
+        // Préparer toutes les valeurs susceptibles d'échouer avant de muter une entité gérée.
+        String encryptedAccess = encryptionService.encrypt(tokens.accessToken());
+        String encryptedRefresh = tokens.refreshToken() != null
+                ? encryptionService.encrypt(tokens.refreshToken()) : null;
+        Instant tokenExpiresAt = now.plusSeconds(expiresInSeconds);
+        Instant refreshExpiresAt = tokens.refreshToken() != null
+                ? now.plus(Duration.ofDays(config.getRefreshTokenValidityDays())) : null;
+        String scopes = tokens.scope() != null ? tokens.scope() : config.getScopes();
+
         connection.setOrganizationId(orgId);
         connection.setUserId(userId);
-        connection.setAccessTokenEncrypted(encryptionService.encrypt(tokens.accessToken()));
+        connection.setAccessTokenEncrypted(encryptedAccess);
         if (tokens.refreshToken() != null) {
-            connection.setRefreshTokenEncrypted(encryptionService.encrypt(tokens.refreshToken()));
-            connection.setRefreshTokenExpiresAt(now.plus(Duration.ofDays(config.getRefreshTokenValidityDays())));
+            connection.setRefreshTokenEncrypted(encryptedRefresh);
+            connection.setRefreshTokenExpiresAt(refreshExpiresAt);
         }
-        connection.setTokenExpiresAt(now.plusSeconds(expiresInSeconds));
-        connection.setScopes(tokens.scope() != null ? tokens.scope() : config.getScopes());
+        connection.setTokenExpiresAt(tokenExpiresAt);
+        connection.setScopes(scopes);
         connection.setOAuthStatus(OAuthConnectionStatus.ACTIVE);
         connection.setErrorMessage(null);
         if (connection.getConnectedAt() == null) {
@@ -156,28 +180,43 @@ public class OAuthFlowEngine {
             OAuthConnectionPersistence<C> persistence,
             Long orgId
     ) {
+        return connectionGuard.executeRefresh(config.getProviderKey(), orgId,
+                () -> refreshUnderLock(config, persistence, orgId, false));
+    }
+
+    private <C extends OAuthConnectionLike> C refreshUnderLock(
+            OAuthProviderConfig config, OAuthConnectionPersistence<C> persistence,
+            Long orgId, boolean onlyIfExpiring) {
         C connection = persistence.findActiveByOrganizationId(orgId)
             .orElseThrow(() -> new IllegalStateException(
                 "Pas de connexion OAuth active — provider=" + config.getProviderKey() + " org=" + orgId));
 
-        String refreshToken = encryptionService.decrypt(connection.getRefreshTokenEncrypted());
-
-        MultiValueMap<String, String> body = new LinkedMultiValueMap<>();
-        body.add("refresh_token", refreshToken);
-        body.add("grant_type", "refresh_token");
-        addClientCredentials(body, config);
+        // Relire sous verrou avant de décider un renouvellement automatique.
+        if (onlyIfExpiring && !connection.isTokenExpiringSoon()) return connection;
 
         try {
+            String refreshToken = encryptionService.decrypt(connection.getRefreshTokenEncrypted());
+            MultiValueMap<String, String> body = new LinkedMultiValueMap<>();
+            body.add("refresh_token", refreshToken);
+            body.add("grant_type", "refresh_token");
+            addClientCredentials(body, config);
             OAuthTokenResponse tokens = postForToken(config, body);
             Instant now = Instant.now();
             long expiresInSeconds = tokens.expiresIn() != null ? tokens.expiresIn() : DEFAULT_EXPIRES_IN_SECONDS;
 
-            connection.setAccessTokenEncrypted(encryptionService.encrypt(tokens.accessToken()));
+            String encryptedAccess = encryptionService.encrypt(tokens.accessToken());
+            String encryptedRefresh = tokens.refreshToken() != null
+                    ? encryptionService.encrypt(tokens.refreshToken()) : null;
+            Instant tokenExpiresAt = now.plusSeconds(expiresInSeconds);
+            Instant refreshExpiresAt = tokens.refreshToken() != null
+                    ? now.plus(Duration.ofDays(config.getRefreshTokenValidityDays())) : null;
+
+            connection.setAccessTokenEncrypted(encryptedAccess);
             if (tokens.refreshToken() != null) {
-                connection.setRefreshTokenEncrypted(encryptionService.encrypt(tokens.refreshToken()));
-                connection.setRefreshTokenExpiresAt(now.plus(Duration.ofDays(config.getRefreshTokenValidityDays())));
+                connection.setRefreshTokenEncrypted(encryptedRefresh);
+                connection.setRefreshTokenExpiresAt(refreshExpiresAt);
             }
-            connection.setTokenExpiresAt(now.plusSeconds(expiresInSeconds));
+            connection.setTokenExpiresAt(tokenExpiresAt);
             connection.setOAuthStatus(OAuthConnectionStatus.ACTIVE);
             connection.setErrorMessage(null);
 
@@ -185,9 +224,9 @@ public class OAuthFlowEngine {
             return persistence.save(connection);
         } catch (Exception e) {
             connection.setOAuthStatus(OAuthConnectionStatus.ERROR);
-            connection.setErrorMessage("Refresh failed: " + e.getMessage());
+            connection.setErrorMessage(TOKEN_UNCONFIRMED);
             persistence.save(connection);
-            throw e;
+            throw privateFailure(e);
         }
     }
 
@@ -203,11 +242,20 @@ public class OAuthFlowEngine {
             OAuthConnectionPersistence<C> persistence,
             Long orgId
     ) {
+        connectionGuard.execute(config.getProviderKey(), orgId, () -> {
+            revokeUnderLock(config, persistence, orgId);
+            return null;
+        });
+    }
+
+    private <C extends OAuthConnectionLike> void revokeUnderLock(
+            OAuthProviderConfig config, OAuthConnectionPersistence<C> persistence, Long orgId) {
         C connection = persistence.findByOrganizationId(orgId)
             .orElseThrow(() -> new IllegalStateException(
                 "Pas de connexion OAuth — provider=" + config.getProviderKey() + " org=" + orgId));
 
         String revokeUrl = config.getRevokeUrl();
+        boolean remoteConfirmed = false;
         if (revokeUrl != null && !revokeUrl.isBlank()
                 && connection.getAccessTokenEncrypted() != null) {
             try {
@@ -221,18 +269,21 @@ public class OAuthFlowEngine {
                 headers.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
                 applyBasicAuthIfNeeded(headers, config);
 
-                restTemplate.exchange(revokeUrl, HttpMethod.POST,
+                var response = restTemplate.exchange(revokeUrl, HttpMethod.POST,
                     new HttpEntity<>(body, headers), Void.class);
+                if (!response.getStatusCode().is2xxSuccessful()) throw new IllegalStateException(REVOCATION_UNCONFIRMED);
+                remoteConfirmed = true;
                 log.info("OAuth — token revoque cote provider={} org={}", config.getProviderKey(), orgId);
             } catch (Exception e) {
-                log.warn("OAuth — revocation provider={} org={} echouee (non bloquant): {}",
-                    config.getProviderKey(), orgId, e.getMessage());
+                log.warn("OAuth : révocation distante non confirmée, provider={} org={}",
+                    config.getProviderKey(), orgId);
             }
         }
 
         connection.setOAuthStatus(OAuthConnectionStatus.REVOKED);
         connection.setAccessTokenEncrypted(null);
         connection.setRefreshTokenEncrypted(null);
+        connection.setErrorMessage(remoteConfirmed ? null : REVOCATION_UNCONFIRMED);
         persistence.save(connection);
     }
 
@@ -255,7 +306,8 @@ public class OAuthFlowEngine {
         if (connection.isTokenExpiringSoon()) {
             log.debug("OAuth — token proche expiration, refresh — provider={} org={}",
                 config.getProviderKey(), orgId);
-            connection = refreshToken(config, persistence, orgId);
+            connection = connectionGuard.executeRefresh(config.getProviderKey(), orgId,
+                    () -> refreshUnderLock(config, persistence, orgId, true));
         }
 
         return encryptionService.decrypt(connection.getAccessTokenEncrypted());
@@ -269,25 +321,36 @@ public class OAuthFlowEngine {
         headers.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
         applyBasicAuthIfNeeded(headers, config);
 
-        @SuppressWarnings("unchecked")
-        Map<String, Object> response = restTemplate.exchange(
-            config.getTokenUrl(),
-            HttpMethod.POST,
-            new HttpEntity<>(body, headers),
-            Map.class
-        ).getBody();
+        try {
+            @SuppressWarnings("unchecked")
+            Map<String, Object> response = restTemplate.exchange(
+                config.getTokenUrl(),
+                HttpMethod.POST,
+                new HttpEntity<>(body, headers),
+                Map.class
+            ).getBody();
 
-        if (response == null || response.get("access_token") == null) {
-            throw new IllegalStateException("OAuth — reponse token vide ou sans access_token");
-        }
+            if (response == null || !(response.get("access_token") instanceof String token) || token.isBlank()
+                    || response.get("refresh_token") != null && (!(response.get("refresh_token") instanceof String refresh) || refresh.isBlank())
+                    || response.get("expires_in") != null && (!(response.get("expires_in") instanceof Number duration)
+                        || !Double.isFinite(duration.doubleValue()) || duration.doubleValue() <= 0 || duration.doubleValue() != duration.longValue())) {
+                throw new IllegalStateException(TOKEN_UNCONFIRMED);
+            }
 
-        return new OAuthTokenResponse(
-            (String) response.get("access_token"),
-            (String) response.get("refresh_token"),
-            response.get("expires_in") instanceof Number n ? n.longValue() : null,
-            (String) response.get("token_type"),
-            (String) response.get("scope")
-        );
+            return new OAuthTokenResponse(
+                (String) response.get("access_token"),
+                (String) response.get("refresh_token"),
+                response.get("expires_in") instanceof Number n ? n.longValue() : null,
+                (String) response.get("token_type"),
+                (String) response.get("scope")
+            );
+        } catch (RuntimeException failure) { throw privateFailure(failure); }
+    }
+
+    private static IllegalStateException privateFailure(Throwable failure) {
+        var safe = new IllegalStateException(TOKEN_UNCONFIRMED);
+        safe.setStackTrace(failure.getStackTrace());
+        return safe;
     }
 
     private void addClientCredentials(MultiValueMap<String, String> body, OAuthProviderConfig config) {

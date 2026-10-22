@@ -20,6 +20,7 @@ import org.springframework.test.util.ReflectionTestUtils;
 import org.springframework.web.client.RestTemplate;
 
 import java.util.List;
+import java.net.URI;
 import java.util.Map;
 import java.util.Optional;
 
@@ -52,6 +53,9 @@ class PennylaneAccountingClientTest {
 
     @SuppressWarnings({"unchecked", "rawtypes"})
     private void mockSuccessfulExchange(Map<String, Object> body) {
+        when(restTemplate.exchange(any(URI.class), any(HttpMethod.class), any(HttpEntity.class),
+                any(ParameterizedTypeReference.class)))
+            .thenReturn(new ResponseEntity<>(body, HttpStatus.OK));
         when(restTemplate.exchange(anyString(), any(HttpMethod.class), any(HttpEntity.class),
                 any(ParameterizedTypeReference.class)))
             .thenReturn(new ResponseEntity<>(body, HttpStatus.OK));
@@ -77,7 +81,7 @@ class PennylaneAccountingClientTest {
             ArgumentCaptor<String> urlCaptor = ArgumentCaptor.forClass(String.class);
             verify(restTemplate).exchange(urlCaptor.capture(), eq(HttpMethod.POST),
                 any(HttpEntity.class), any(ParameterizedTypeReference.class));
-            assertThat(urlCaptor.getValue()).isEqualTo(BASE_URL + "/customer_invoices");
+            assertThat(urlCaptor.getValue().toString()).isEqualTo(BASE_URL + "/customer_invoices");
         }
 
         @Test
@@ -110,11 +114,11 @@ class PennylaneAccountingClientTest {
 
             client.listCustomerInvoices(ORG_ID, null, 50);
 
-            ArgumentCaptor<String> urlCaptor = ArgumentCaptor.forClass(String.class);
+            ArgumentCaptor<URI> urlCaptor = ArgumentCaptor.forClass(URI.class);
             verify(restTemplate).exchange(urlCaptor.capture(), eq(HttpMethod.GET),
                 any(HttpEntity.class), any(ParameterizedTypeReference.class));
-            assertThat(urlCaptor.getValue()).contains("limit=50");
-            assertThat(urlCaptor.getValue()).doesNotContain("cursor=");
+            assertThat(urlCaptor.getValue().toString()).contains("limit=50");
+            assertThat(urlCaptor.getValue().toString()).doesNotContain("cursor=");
         }
 
         @Test
@@ -124,11 +128,11 @@ class PennylaneAccountingClientTest {
 
             client.listCustomerInvoices(ORG_ID, "next-page", 25);
 
-            ArgumentCaptor<String> urlCaptor = ArgumentCaptor.forClass(String.class);
+            ArgumentCaptor<URI> urlCaptor = ArgumentCaptor.forClass(URI.class);
             verify(restTemplate).exchange(urlCaptor.capture(), eq(HttpMethod.GET),
                 any(HttpEntity.class), any(ParameterizedTypeReference.class));
-            assertThat(urlCaptor.getValue()).contains("cursor=next-page");
-            assertThat(urlCaptor.getValue()).contains("limit=25");
+            assertThat(urlCaptor.getValue().toString()).contains("cursor=next-page");
+            assertThat(urlCaptor.getValue().toString()).contains("limit=25");
         }
     }
 
@@ -147,7 +151,7 @@ class PennylaneAccountingClientTest {
         ArgumentCaptor<String> urlCaptor = ArgumentCaptor.forClass(String.class);
         verify(restTemplate).exchange(urlCaptor.capture(), eq(HttpMethod.POST),
             any(HttpEntity.class), any(ParameterizedTypeReference.class));
-        assertThat(urlCaptor.getValue()).endsWith("/supplier_invoices");
+        assertThat(urlCaptor.getValue().toString()).endsWith("/supplier_invoices");
     }
 
     // ===================================================================
@@ -165,7 +169,7 @@ class PennylaneAccountingClientTest {
         ArgumentCaptor<String> urlCaptor = ArgumentCaptor.forClass(String.class);
         verify(restTemplate).exchange(urlCaptor.capture(), eq(HttpMethod.POST),
             any(HttpEntity.class), any(ParameterizedTypeReference.class));
-        assertThat(urlCaptor.getValue()).endsWith("/customers");
+        assertThat(urlCaptor.getValue().toString()).endsWith("/customers");
     }
 
     // ===================================================================
@@ -214,11 +218,11 @@ class PennylaneAccountingClientTest {
 
             client.findCustomerByExternalRef(ORG_ID, "ext-42");
 
-            ArgumentCaptor<String> urlCaptor = ArgumentCaptor.forClass(String.class);
+            ArgumentCaptor<URI> urlCaptor = ArgumentCaptor.forClass(URI.class);
             verify(restTemplate).exchange(urlCaptor.capture(), eq(HttpMethod.GET),
                 any(HttpEntity.class), any(ParameterizedTypeReference.class));
-            assertThat(urlCaptor.getValue()).contains("/customers");
-            assertThat(urlCaptor.getValue()).contains("filter=");
+            assertThat(urlCaptor.getValue().toString()).contains("/customers");
+            assertThat(urlCaptor.getValue().toString()).contains("filter=");
         }
     }
 
@@ -237,7 +241,7 @@ class PennylaneAccountingClientTest {
         ArgumentCaptor<String> urlCaptor = ArgumentCaptor.forClass(String.class);
         verify(restTemplate).exchange(urlCaptor.capture(), eq(HttpMethod.POST),
             any(HttpEntity.class), any(ParameterizedTypeReference.class));
-        assertThat(urlCaptor.getValue()).endsWith("/suppliers");
+        assertThat(urlCaptor.getValue().toString()).endsWith("/suppliers");
     }
 
     // ===================================================================
@@ -291,10 +295,10 @@ class PennylaneAccountingClientTest {
         Map<String, Object> result = client.listJournals(ORG_ID);
 
         assertThat(result).isEqualTo(body);
-        ArgumentCaptor<String> urlCaptor = ArgumentCaptor.forClass(String.class);
+        ArgumentCaptor<URI> urlCaptor = ArgumentCaptor.forClass(URI.class);
         verify(restTemplate).exchange(urlCaptor.capture(), eq(HttpMethod.GET),
             any(HttpEntity.class), any(ParameterizedTypeReference.class));
-        assertThat(urlCaptor.getValue()).endsWith("/journals");
+        assertThat(urlCaptor.getValue().toString()).endsWith("/journals");
     }
 
     @SuppressWarnings({"unchecked", "rawtypes"})

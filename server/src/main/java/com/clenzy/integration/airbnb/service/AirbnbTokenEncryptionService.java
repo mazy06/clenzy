@@ -1,5 +1,7 @@
 package com.clenzy.integration.airbnb.service;
 
+import com.clenzy.util.BaitlySecretDiagnostics;
+import static com.clenzy.util.BaitlySecretDiagnostics.Operation.*;
 import org.jasypt.util.text.AES256TextEncryptor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -36,8 +38,9 @@ public class AirbnbTokenEncryptionService {
         try {
             return encryptor.encrypt(plainToken);
         } catch (Exception e) {
-            log.error("Erreur lors du chiffrement du token: {}", e.getMessage());
-            throw new RuntimeException("Impossible de chiffrer le token", e);
+            var safe = BaitlySecretDiagnostics.failure(ENCRYPT, e);
+            log.error("Échec du chiffrement du jeton Airbnb", safe);
+            throw safe;
         }
     }
 
@@ -51,8 +54,9 @@ public class AirbnbTokenEncryptionService {
         try {
             return encryptor.decrypt(encryptedToken);
         } catch (Exception e) {
-            log.error("Erreur lors du dechiffrement du token: {}", e.getMessage());
-            throw new RuntimeException("Impossible de dechiffrer le token", e);
+            var safe = BaitlySecretDiagnostics.failure(DECRYPT, e);
+            log.error("Échec du déchiffrement du jeton Airbnb", safe);
+            throw safe;
         }
     }
 }
