@@ -119,11 +119,11 @@ public class ExternalConnectionController {
         Long orgId = tenantContext.getRequiredOrganizationId();
         Long userId = getUserId(jwt);
 
-        log.info("External connect: org={} provider={} server={}", orgId, providerType, request.serverUrl());
+        log.info("External connect: org={} provider={}", orgId, providerType);
 
         // Strategy dispatch — chaque provider a sa propre logique de test.
         // Pour les providers stubbes (Yousign/Universign/DocaPoste), la
-        // strategie accepte par defaut. Pour Odoo, elle appelle l'API
+        // stratégie refuse sans preuve de connexion distante. Pour Odoo, elle appelle l'API
         // JSON-RPC /web/session/authenticate.
         ConnectionTestStrategy strategy = strategyRegistry.findFor(providerType)
                 .orElseThrow(() -> new IllegalStateException(
@@ -136,7 +136,7 @@ public class ExternalConnectionController {
             log.warn("External connect: test failed for org={} provider={}", orgId, providerType);
             return ResponseEntity.badRequest().body(Map.of(
                     "error", "connection_failed",
-                    "message", "Impossible de se connecter au provider avec ces credentials."
+                    "message", "Connexion fournisseur non confirmée ; vérifiez sa disponibilité et la configuration."
             ));
         }
 
