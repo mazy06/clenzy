@@ -1,5 +1,10 @@
 package com.clenzy.integration.homeaway.service;
 
+import com.clenzy.integration.oauth.BaitlyOAuthDiagnostics;
+import com.clenzy.integration.oauth.BaitlyOAuthConnectionGuard;
+import static com.clenzy.integration.oauth.BaitlyOAuthDiagnostics.Operation.*;
+
+import com.clenzy.integration.oauth.BaitlyOAuthTokenResponse;
 import com.clenzy.integration.homeaway.config.HomeAwayConfig;
 import com.clenzy.integration.homeaway.model.HomeAwayConnection;
 import com.clenzy.integration.homeaway.repository.HomeAwayConnectionRepository;
@@ -46,19 +51,21 @@ public class HomeAwayOAuthService {
     private final AuditLogService auditLogService;
     private final StringRedisTemplate redisTemplate;
     private final RestTemplate restTemplate;
+    private final BaitlyOAuthConnectionGuard connectionGuard;
 
     public HomeAwayOAuthService(HomeAwayConfig config,
                                 HomeAwayConnectionRepository connectionRepository,
                                 AirbnbTokenEncryptionService encryptionService,
                                 AuditLogService auditLogService,
                                 StringRedisTemplate redisTemplate,
-                                RestTemplate restTemplate) {
+                                RestTemplate restTemplate, BaitlyOAuthConnectionGuard connectionGuard) {
         this.config = config;
         this.connectionRepository = connectionRepository;
         this.encryptionService = encryptionService;
         this.auditLogService = auditLogService;
         this.redisTemplate = redisTemplate;
         this.restTemplate = restTemplate;
+        this.connectionGuard = connectionGuard;
     }
 
     /**
@@ -83,15 +90,15 @@ public class HomeAwayOAuthService {
 
     /**
      * Valide le state OAuth et retourne l'orgId associe.
-     * Supprime le state de Redis apres validation (usage unique).
+     * Consomme atomiquement le state Redis (usage unique).
      */
     public Long validateAndConsumeState(String state) {
+        if (state == null || state.isBlank()) throw new SecurityException("Invalid or expired OAuth state parameter");
         String key = OAUTH_STATE_PREFIX + state;
-        String orgIdStr = redisTemplate.opsForValue().get(key);
+        String orgIdStr = redisTemplate.opsForValue().getAndDelete(key);
         if (orgIdStr == null) {
             throw new SecurityException("Invalid or expired OAuth state parameter");
         }
-        redisTemplate.delete(key);
         return Long.parseLong(orgIdStr);
     }
 
@@ -101,6 +108,11 @@ public class HomeAwayOAuthService {
      */
     @CircuitBreaker(name = "homeaway-oauth")
     public HomeAwayConnection exchangeCodeForToken(String code, Long orgId) {
+        return connectionGuard.executeRefresh("homeaway", orgId,
+                () -> exchangeUnderLock(code, orgId));
+    }
+
+    private HomeAwayConnection exchangeUnderLock(String code, Long orgId) {
         log.info("Echange du code OAuth HomeAway pour org: {}", orgId);
 
         HttpHeaders headers = new HttpHeaders();
@@ -120,21 +132,26 @@ public class HomeAwayOAuthService {
             if (response.getStatusCode().is2xxSuccessful() && response.getBody() != null) {
                 Map<String, Object> tokenData = response.getBody();
 
-                String accessToken = (String) tokenData.get("access_token");
-                String refreshToken = (String) tokenData.get("refresh_token");
-                Integer expiresIn = (Integer) tokenData.get("expires_in");
+                var tokens = BaitlyOAuthTokenResponse.parse(tokenData, null);
+                String accessToken = tokens.accessToken();
+                String refreshToken = tokens.refreshToken();
+                Integer expiresIn = tokens.expiresIn();
 
                 // Creer ou mettre a jour la connexion
                 HomeAwayConnection connection = connectionRepository.findByOrganizationId(orgId)
                         .orElse(new HomeAwayConnection());
 
+                // Préparer tous les secrets et dates avant de modifier la connexion Baitly.
+                String encryptedAccess = encryptionService.encrypt(accessToken);
+                String encryptedRefresh = refreshToken != null ? encryptionService.encrypt(refreshToken) : null;
+                LocalDateTime tokenExpiresAt = expiresIn != null ? LocalDateTime.now().plusSeconds(expiresIn) : null;
+
                 connection.setOrganizationId(orgId);
-                connection.setAccessTokenEncrypted(encryptionService.encrypt(accessToken));
+                connection.setAccessTokenEncrypted(encryptedAccess);
                 if (refreshToken != null) {
-                    connection.setRefreshTokenEncrypted(encryptionService.encrypt(refreshToken));
+                    connection.setRefreshTokenEncrypted(encryptedRefresh);
                 }
-                connection.setTokenExpiresAt(
-                        expiresIn != null ? LocalDateTime.now().plusSeconds(expiresIn) : null);
+                connection.setTokenExpiresAt(tokenExpiresAt);
                 connection.setStatus(HomeAwayConnection.HomeAwayConnectionStatus.ACTIVE);
                 connection.setErrorMessage(null);
 
@@ -151,15 +168,15 @@ public class HomeAwayOAuthService {
             }
 
         } catch (Exception e) {
-            log.error("Erreur lors de l'echange du code OAuth HomeAway: {}", e.getMessage());
+            log.error("Échec OAuth homeaway", BaitlyOAuthDiagnostics.failure(EXCHANGE, e));
 
             connectionRepository.findByOrganizationId(orgId).ifPresent(conn -> {
                 conn.setStatus(HomeAwayConnection.HomeAwayConnectionStatus.ERROR);
-                conn.setErrorMessage(e.getMessage());
+                conn.setErrorMessage(BaitlyOAuthDiagnostics.message(EXCHANGE));
                 connectionRepository.save(conn);
             });
 
-            throw new RuntimeException("Echec de l'echange OAuth HomeAway", e);
+            throw BaitlyOAuthDiagnostics.failure(EXCHANGE, e);
         }
     }
 
@@ -168,42 +185,56 @@ public class HomeAwayOAuthService {
      */
     @CircuitBreaker(name = "homeaway-oauth")
     public HomeAwayConnection refreshToken(Long orgId) {
+        return connectionGuard.executeRefresh("homeaway", orgId,
+                () -> refreshUnderLock(orgId, false));
+    }
+
+    private HomeAwayConnection refreshUnderLock(Long orgId, boolean onlyIfExpiring) {
         log.info("Rafraichissement du token HomeAway pour org: {}", orgId);
 
         HomeAwayConnection connection = connectionRepository.findByOrganizationId(orgId)
                 .orElseThrow(() -> new RuntimeException("Aucune connexion HomeAway pour org: " + orgId));
 
-        String refreshToken = encryptionService.decrypt(connection.getRefreshTokenEncrypted());
-        if (refreshToken == null) {
-            throw new RuntimeException("Pas de refresh token disponible");
-        }
-
-        HttpHeaders headers = new HttpHeaders();
-        headers.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
-
-        MultiValueMap<String, String> params = new LinkedMultiValueMap<>();
-        params.add("client_id", config.getClientId());
-        params.add("client_secret", config.getClientSecret());
-        params.add("refresh_token", refreshToken);
-        params.add("grant_type", "refresh_token");
+        if (!connection.isActive()) throw new IllegalStateException("Connexion OAuth inactive ; reconnexion requise");
+        if (onlyIfExpiring && (connection.getTokenExpiresAt() == null
+                || !connection.getTokenExpiresAt().isBefore(LocalDateTime.now().plusMinutes(5)))) return connection;
 
         try {
+            String refreshToken = encryptionService.decrypt(connection.getRefreshTokenEncrypted());
+            if (refreshToken == null) {
+                throw new RuntimeException("Pas de refresh token disponible");
+            }
+
+            HttpHeaders headers = new HttpHeaders();
+            headers.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
+
+            MultiValueMap<String, String> params = new LinkedMultiValueMap<>();
+            params.add("client_id", config.getClientId());
+            params.add("client_secret", config.getClientSecret());
+            params.add("refresh_token", refreshToken);
+            params.add("grant_type", "refresh_token");
+
             ResponseEntity<Map> response = restTemplate.postForEntity(
                     config.getTokenUrl(), new HttpEntity<>(params, headers), Map.class);
 
             if (response.getStatusCode().is2xxSuccessful() && response.getBody() != null) {
                 Map<String, Object> tokenData = response.getBody();
 
-                String newAccessToken = (String) tokenData.get("access_token");
-                String newRefreshToken = (String) tokenData.get("refresh_token");
-                Integer expiresIn = (Integer) tokenData.get("expires_in");
+                var tokens = BaitlyOAuthTokenResponse.parse(tokenData, null);
+                String newAccessToken = tokens.accessToken();
+                String newRefreshToken = tokens.refreshToken();
+                Integer expiresIn = tokens.expiresIn();
 
-                connection.setAccessTokenEncrypted(encryptionService.encrypt(newAccessToken));
+                // Préparer tous les secrets et dates avant de modifier la connexion Baitly.
+                String encryptedAccess = encryptionService.encrypt(newAccessToken);
+                String encryptedRefresh = newRefreshToken != null ? encryptionService.encrypt(newRefreshToken) : null;
+                LocalDateTime tokenExpiresAt = expiresIn != null ? LocalDateTime.now().plusSeconds(expiresIn) : null;
+
+                connection.setAccessTokenEncrypted(encryptedAccess);
                 if (newRefreshToken != null) {
-                    connection.setRefreshTokenEncrypted(encryptionService.encrypt(newRefreshToken));
+                    connection.setRefreshTokenEncrypted(encryptedRefresh);
                 }
-                connection.setTokenExpiresAt(
-                        expiresIn != null ? LocalDateTime.now().plusSeconds(expiresIn) : null);
+                connection.setTokenExpiresAt(tokenExpiresAt);
                 connection.setStatus(HomeAwayConnection.HomeAwayConnectionStatus.ACTIVE);
                 connection.setErrorMessage(null);
 
@@ -214,11 +245,11 @@ public class HomeAwayOAuthService {
             }
 
         } catch (Exception e) {
-            log.error("Erreur lors du refresh du token HomeAway: {}", e.getMessage());
+            log.error("Échec OAuth homeaway", BaitlyOAuthDiagnostics.failure(REFRESH, e));
             connection.setStatus(HomeAwayConnection.HomeAwayConnectionStatus.EXPIRED);
-            connection.setErrorMessage("Refresh echoue: " + e.getMessage());
+            connection.setErrorMessage(BaitlyOAuthDiagnostics.message(REFRESH));
             connectionRepository.save(connection);
-            throw new RuntimeException("Echec du rafraichissement du token HomeAway", e);
+            throw BaitlyOAuthDiagnostics.failure(REFRESH, e);
         }
     }
 
@@ -237,7 +268,8 @@ public class HomeAwayOAuthService {
         if (connection.getTokenExpiresAt() != null
                 && connection.getTokenExpiresAt().isBefore(LocalDateTime.now().plusMinutes(5))) {
             log.info("Token HomeAway proche de l'expiration, rafraichissement...");
-            connection = refreshToken(orgId);
+            connection = connectionGuard.executeRefresh("homeaway", orgId,
+                    () -> refreshUnderLock(orgId, true));
         }
 
         return encryptionService.decrypt(connection.getAccessTokenEncrypted());
