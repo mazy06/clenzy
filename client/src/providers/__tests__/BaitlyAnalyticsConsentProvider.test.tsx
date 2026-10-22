@@ -10,7 +10,7 @@ vi.mock('../../services/baitlyAnalytics', () => ({
 }));
 vi.mock('../../services/api/userUiPreferencesApi', () => ({ userUiPreferencesApi: { list: mocks.list, upsert: mocks.upsert } }));
 import { BaitlyAnalyticsConsentProvider, analyticsConsentKey, analyticsConsentRecord, isAnalyticsConsentGranted, useBaitlyAnalyticsConsent } from '../BaitlyAnalyticsConsentProvider';
-import { hasPendingAnalyticsWithdrawal } from '../../services/storageService';
+import { hasPendingAnalyticsWithdrawal, setPendingAnalyticsWithdrawal, STORAGE_KEYS } from '../../services/storageService';
 import AnalyticsConsentSection from '../../modules/settings/AnalyticsConsentSection';
 const first = { id: `bt_${'a'.repeat(64)}`, organization: `bt_${'b'.repeat(64)}` };
 const second = { id: `bt_${'c'.repeat(64)}`, organization: `bt_${'d'.repeat(64)}` };
@@ -19,7 +19,7 @@ const mount = () => renderHook(() => useBaitlyAnalyticsConsent(), { wrapper });
 const switchActor = (actor: any) => act(() => { mocks.actor = actor; mocks.listeners.forEach(listener => listener()); });
 
 beforeEach(() => {
-  vi.clearAllMocks(); sessionStorage.clear(); mocks.actor = first;
+  vi.clearAllMocks(); sessionStorage.clear(); localStorage.clear(); mocks.actor = first;
   mocks.list.mockResolvedValue({});
   mocks.upsert.mockImplementation(async (key, value) => ({ key, value }));
 });
@@ -102,6 +102,114 @@ describe('Backend-persisted analytics consent', () => {
     switchActor(undefined);
     expect(result.current.available).toBe(false);
     expect(mocks.consent).toHaveBeenLastCalledWith(false);
+  });
+
+  it('saves a failed withdrawal on reconnection without restoring the older backend agreement', async () => {
+    mocks.list.mockResolvedValue({ [analyticsConsentKey(first)]: analyticsConsentRecord(first, true) });
+    const hook = mount();
+    await waitFor(() => expect(hook.result.current.granted).toBe(true));
+    mocks.upsert.mockRejectedValueOnce(new TypeError('Fixture network unavailable'));
+    await act(async () => hook.result.current.change(false));
+    expect(hasPendingAnalyticsWithdrawal(`${first.id}:${first.organization}`)).toBe(true);
+    mocks.consent.mockClear();
+    act(() => window.dispatchEvent(new Event('online')));
+    await waitFor(() => expect(hook.result.current.busy).toBe(false));
+    expect(mocks.upsert).toHaveBeenLastCalledWith(analyticsConsentKey(first), expect.objectContaining({ granted: false }));
+    expect(hasPendingAnalyticsWithdrawal(`${first.id}:${first.organization}`)).toBe(false);
+    expect(mocks.consent).not.toHaveBeenCalledWith(true);
+  });
+
+  it('does not lose reconnection while the failed withdrawal request is still settling', async () => {
+    mocks.list.mockResolvedValue({ [analyticsConsentKey(first)]: analyticsConsentRecord(first, true) });
+    const hook = mount();
+    await waitFor(() => expect(hook.result.current.granted).toBe(true));
+    let reject!: (reason: unknown) => void;
+    mocks.upsert.mockReturnValueOnce(new Promise((_, fail) => { reject = fail; }));
+    let saving!: Promise<void>;
+    act(() => { saving = hook.result.current.change(false); });
+    mocks.consent.mockClear();
+    act(() => window.dispatchEvent(new Event('online')));
+    await act(async () => { reject(new TypeError('Fixture late network failure')); await saving; });
+    await waitFor(() => expect(hasPendingAnalyticsWithdrawal(`${first.id}:${first.organization}`)).toBe(false));
+    expect(mocks.upsert).toHaveBeenCalledTimes(2);
+    expect(hook.result.current.granted).toBe(false);
+    expect(mocks.consent).not.toHaveBeenCalledWith(true);
+  });
+
+  it('keeps an unsaved refusal after the original tab session is closed', async () => {
+    mocks.list.mockResolvedValue({ [analyticsConsentKey(first)]: analyticsConsentRecord(first, true) });
+    const firstTab = mount();
+    await waitFor(() => expect(firstTab.result.current.granted).toBe(true));
+    mocks.upsert.mockRejectedValueOnce(new TypeError('Fixture network unavailable'));
+    await act(async () => firstTab.result.current.change(false));
+    firstTab.unmount();
+    sessionStorage.clear(); // A replacement tab does not inherit the former tab's session.
+    mocks.consent.mockClear();
+    const replacement = mount();
+    await waitFor(() => expect(replacement.result.current.busy).toBe(false));
+    expect(replacement.result.current.granted).toBe(false);
+    expect(mocks.consent).not.toHaveBeenCalledWith(true);
+    expect(mocks.upsert).toHaveBeenLastCalledWith(analyticsConsentKey(first), expect.objectContaining({ granted: false }));
+  });
+
+  it('stops collection when another tab records a pending withdrawal', async () => {
+    mocks.list.mockResolvedValue({ [analyticsConsentKey(first)]: analyticsConsentRecord(first, true) });
+    const hook = mount();
+    await waitFor(() => expect(hook.result.current.granted).toBe(true));
+    mocks.consent.mockClear();
+    setPendingAnalyticsWithdrawal(`${first.id}:${first.organization}`, true);
+    act(() => window.dispatchEvent(new StorageEvent('storage', { key: STORAGE_KEYS.ANALYTICS_WITHDRAWALS })));
+    expect(mocks.consent).toHaveBeenLastCalledWith(false);
+    await waitFor(() => expect(hook.result.current.busy).toBe(false));
+    expect(hook.result.current.granted).toBe(false);
+    expect(mocks.consent).not.toHaveBeenCalledWith(true);
+  });
+
+  it('does not apply a grant acknowledgement that arrives after another tab withdrew', async () => {
+    const hook = mount();
+    await waitFor(() => expect(hook.result.current.busy).toBe(false));
+    let acknowledge!: (value: unknown) => void;
+    mocks.upsert.mockReturnValueOnce(new Promise(resolve => { acknowledge = resolve; }));
+    let saving!: Promise<void>;
+    act(() => { saving = hook.result.current.change(true); });
+    setPendingAnalyticsWithdrawal(`${first.id}:${first.organization}`, true);
+    act(() => window.dispatchEvent(new StorageEvent('storage', { key: STORAGE_KEYS.ANALYTICS_WITHDRAWALS })));
+    await act(async () => {
+      acknowledge({ key: analyticsConsentKey(first), value: analyticsConsentRecord(first, true) });
+      await saving;
+    });
+    await waitFor(() => expect(hook.result.current.busy).toBe(false));
+    expect(hook.result.current.granted).toBe(false);
+    expect(mocks.consent).not.toHaveBeenCalledWith(true);
+    expect(mocks.upsert).toHaveBeenLastCalledWith(analyticsConsentKey(first), expect.objectContaining({ granted: false }));
+  });
+
+  it('honors another tab withdrawal even if its outbox was already acknowledged and cleared', async () => {
+    mocks.list.mockResolvedValue({ [analyticsConsentKey(first)]: analyticsConsentRecord(first, true) });
+    const hook = mount();
+    await waitFor(() => expect(hook.result.current.granted).toBe(true));
+    setPendingAnalyticsWithdrawal(`${first.id}:${first.organization}`, true);
+    const notice = localStorage.getItem(STORAGE_KEYS.ANALYTICS_WITHDRAWALS);
+    setPendingAnalyticsWithdrawal(`${first.id}:${first.organization}`, false);
+    mocks.consent.mockClear();
+    act(() => window.dispatchEvent(new StorageEvent('storage', {
+      key: STORAGE_KEYS.ANALYTICS_WITHDRAWALS, newValue: notice,
+    })));
+    expect(mocks.consent).toHaveBeenLastCalledWith(false);
+    await waitFor(() => expect(hook.result.current.busy).toBe(false));
+    expect(hook.result.current.granted).toBe(false);
+    expect(mocks.consent).not.toHaveBeenCalledWith(true);
+  });
+
+  it('retries a pending refusal stored by the previous session-only implementation', async () => {
+    sessionStorage.setItem(STORAGE_KEYS.ANALYTICS_WITHDRAWALS,
+      JSON.stringify({ [`${first.id}:${first.organization}`]: true }));
+    mocks.list.mockResolvedValue({ [analyticsConsentKey(first)]: analyticsConsentRecord(first, true) });
+    const hook = mount();
+    await waitFor(() => expect(hook.result.current.busy).toBe(false));
+    expect(hook.result.current.granted).toBe(false);
+    expect(mocks.consent).not.toHaveBeenCalledWith(true);
+    expect(hasPendingAnalyticsWithdrawal(`${first.id}:${first.organization}`)).toBe(false);
   });
 
   it('fails closed on backend error and refreshes other-device withdrawal on focus', async () => {

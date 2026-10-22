@@ -1,11 +1,11 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 const mocks = vi.hoisted(() => ({ key: '', imports: vi.fn(), init: vi.fn(), capture: vi.fn(),
-  identify: vi.fn(), reset: vi.fn(), opt_in_capturing: vi.fn(), opt_out_capturing: vi.fn() }));
+  identify: vi.fn(), reset: vi.fn(), shutdown: vi.fn(), opt_in_capturing: vi.fn(), opt_out_capturing: vi.fn() }));
 vi.mock('../../config/runtimeConfig', () => ({ runtimeEnv: () => mocks.key, runtimeEnvOr: (_: string, fallback: string) => fallback }));
 vi.mock('posthog-js', () => {
   mocks.imports();
-  return { default: mocks };
+  return { PostHog: class { constructor() { return mocks; } } };
 });
 const actor = { id: 'bt_' + 'a'.repeat(64), organization: 'bt_' + 'b'.repeat(64) };
 beforeEach(() => { vi.resetModules(); vi.clearAllMocks(); mocks.key = ''; });
@@ -45,6 +45,17 @@ describe('Baitly analytics consent and privacy', () => {
     await analytics.startBaitlyAnalytics(); expect(mocks.init).not.toHaveBeenCalled();
   });
 
+  it('fails closed when the browser cannot cancel SDK network requests safely', async () => {
+    mocks.key = 'public-test-key';
+    vi.stubGlobal('fetch', undefined);
+    const analytics = await import('../baitlyAnalytics');
+    analytics.setBaitlyAnalyticsActor(actor);
+    analytics.setBaitlyAnalyticsConsent(true);
+    await analytics.startBaitlyAnalytics();
+    expect(analytics.isBaitlyAnalyticsEnabled()).toBe(false);
+    expect(mocks.init).not.toHaveBeenCalled();
+  });
+
   it('initializes once, disables automatic capture, and filters both calls and SDK enrichment', async () => {
     const analytics = await allowed();
     analytics.baitlyAnalytics.capture('reservation_cancelled', { reservationId: 42, reason: 'Guest passport PRIVATE' });
@@ -53,7 +64,8 @@ describe('Baitly analytics consent and privacy', () => {
     const options = mocks.init.mock.calls[0][1];
     expect(options).toMatchObject({ autocapture: false, capture_pageview: false, capture_pageleave: false,
       capture_exceptions: false, capture_performance: false, disable_session_recording: true,
-      persistence: 'memory', disable_persistence: true, request_batching: false });
+      persistence: 'memory', disable_persistence: true, request_batching: false,
+      api_transport: 'fetch', disable_beacon: true });
     options.loaded();
     expect(mocks.identify).toHaveBeenCalledWith(actor.id);
     expect(mocks.capture).toHaveBeenCalledWith('reservation_cancelled', {});
@@ -100,8 +112,11 @@ describe('Baitly analytics consent and privacy', () => {
     analytics.baitlyAnalytics.capture('reservation_created', { nights: 99 });
     analytics.setBaitlyAnalyticsActor({ id: 'bt_' + 'c'.repeat(64), organization: 'bt_' + 'd'.repeat(64) });
     analytics.setBaitlyAnalyticsConsent(true);
+    await analytics.startBaitlyAnalytics();
     analytics.baitlyAnalytics.capture('reservation_created', { nights: 2 });
     mocks.init.mock.calls[0][1].loaded();
+    expect(mocks.capture).not.toHaveBeenCalled();
+    mocks.init.mock.calls[1][1].loaded();
     expect(mocks.capture).toHaveBeenCalledExactlyOnceWith('reservation_created', { nights: 2 });
     expect(mocks.identify).toHaveBeenLastCalledWith('bt_' + 'c'.repeat(64));
   });

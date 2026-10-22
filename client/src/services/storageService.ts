@@ -27,7 +27,7 @@ const LEGACY_TOKEN_KEYS = [
 ] as const;
 
 export const STORAGE_KEYS = {
-  // Session outbox for withdrawals only. Absence never means consent.
+  // Device outbox for withdrawals only. Absence never means consent.
   ANALYTICS_WITHDRAWALS: 'baitly_analytics_withdrawals',
   // Anonymous, browser-specific cookie choice; never an account preference or identifier.
   SITE_COOKIE_CHOICE: 'baitly_site_cookie_choice',
@@ -353,18 +353,29 @@ const storageService = {
 
 export default storageService;
 
-/** A pending withdrawal survives reload; the backend remains the source of truth.
- * Only scoped pseudonyms, never tokens or a positive consent, enter this outbox. */
+/** A failed withdrawal survives tab closure; the backend remains the source of truth.
+ * Device storage is only a safety outbox until the refusal is acknowledged by the API.
+ * Only scoped pseudonyms, never tokens, positive consent or event payloads, enter it.
+ * Read the former session outbox too, so upgrading cannot lose an unsaved refusal. */
 export function hasPendingAnalyticsWithdrawal(scope: string): boolean {
-  try { return JSON.parse(sessionStorage.getItem(STORAGE_KEYS.ANALYTICS_WITHDRAWALS) || '{}')[scope] === true; }
-  catch { return true; }
+  for (const kind of ['localStorage', 'sessionStorage'] as const) {
+    try {
+      const entries = JSON.parse(window[kind].getItem(STORAGE_KEYS.ANALYTICS_WITHDRAWALS) || '{}');
+      if (!entries || typeof entries !== 'object' || Array.isArray(entries)) return true;
+      if (entries[scope] === true) return true;
+    } catch { return true; }
+  }
+  return false;
 }
 
 export function setPendingAnalyticsWithdrawal(scope: string, pending: boolean): void {
-  try {
-    const entries = JSON.parse(sessionStorage.getItem(STORAGE_KEYS.ANALYTICS_WITHDRAWALS) || '{}');
-    if (pending) entries[scope] = true;
-    else delete entries[scope];
-    sessionStorage.setItem(STORAGE_KEYS.ANALYTICS_WITHDRAWALS, JSON.stringify(entries));
-  } catch { /* The live consent gate still stays closed. */ }
+  for (const kind of ['localStorage', 'sessionStorage'] as const) {
+    try {
+      const store = window[kind];
+      const entries = JSON.parse(store.getItem(STORAGE_KEYS.ANALYTICS_WITHDRAWALS) || '{}');
+      if (pending) entries[scope] = true;
+      else delete entries[scope];
+      store.setItem(STORAGE_KEYS.ANALYTICS_WITHDRAWALS, JSON.stringify(entries));
+    } catch { /* Other storage and the live gate still protect a failed withdrawal. */ }
+  }
 }
