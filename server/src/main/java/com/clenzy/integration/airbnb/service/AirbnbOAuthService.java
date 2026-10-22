@@ -1,5 +1,6 @@
 package com.clenzy.integration.airbnb.service;
 
+import com.clenzy.integration.oauth.BaitlyOAuthTokenResponse;
 import com.clenzy.integration.airbnb.config.AirbnbConfig;
 import com.clenzy.integration.airbnb.model.AirbnbConnection;
 import com.clenzy.integration.airbnb.repository.AirbnbConnectionRepository;
@@ -118,9 +119,10 @@ public class AirbnbOAuthService {
             if (response.getStatusCode().is2xxSuccessful() && response.getBody() != null) {
                 Map<String, Object> tokenData = response.getBody();
 
-                String accessToken = (String) tokenData.get("access_token");
-                String refreshToken = (String) tokenData.get("refresh_token");
-                Integer expiresIn = (Integer) tokenData.get("expires_in");
+                var tokens = BaitlyOAuthTokenResponse.parse(tokenData, null);
+                String accessToken = tokens.accessToken();
+                String refreshToken = tokens.refreshToken();
+                Integer expiresIn = tokens.expiresIn();
                 String airbnbUserId = String.valueOf(tokenData.get("user_id"));
 
                 // Creer ou mettre a jour la connexion
@@ -200,9 +202,10 @@ public class AirbnbOAuthService {
             if (response.getStatusCode().is2xxSuccessful() && response.getBody() != null) {
                 Map<String, Object> tokenData = response.getBody();
 
-                String newAccessToken = (String) tokenData.get("access_token");
-                String newRefreshToken = (String) tokenData.get("refresh_token");
-                Integer expiresIn = (Integer) tokenData.get("expires_in");
+                var tokens = BaitlyOAuthTokenResponse.parse(tokenData, null);
+                String newAccessToken = tokens.accessToken();
+                String newRefreshToken = tokens.refreshToken();
+                Integer expiresIn = tokens.expiresIn();
 
                 connection.setAccessTokenEncrypted(encryptionService.encrypt(newAccessToken));
                 if (newRefreshToken != null) {
