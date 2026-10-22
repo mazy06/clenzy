@@ -69,7 +69,7 @@ public class BaitlyOAuthConnectionGuard {
                     "SELECT pg_try_advisory_xact_lock(hashtextextended(?, 0))", Boolean.class,
                     scope);
             if (!Boolean.TRUE.equals(locked)) {
-                throw new IllegalStateException("Opération OAuth déjà en cours ; réessayer ultérieurement");
+                throw new BaitlyOAuthBusyException();
             }
             try {
                 T value = operation.get();

@@ -23,7 +23,8 @@ class BaitlyOAuthConnectionGuardTest {
     @Test void contentionNeverRunsOperation() {
         lock(false);
         var operation = mock(java.util.function.Supplier.class);
-        assertThatThrownBy(() -> guard.execute("test", 7L, operation)).hasMessageContaining("déjà en cours");
+        assertThatThrownBy(() -> guard.execute("test", 7L, operation))
+                .isInstanceOf(BaitlyOAuthBusyException.class).hasMessageContaining("déjà en cours");
         verifyNoInteractions(operation);
         verify(manager).rollback(status);
     }
