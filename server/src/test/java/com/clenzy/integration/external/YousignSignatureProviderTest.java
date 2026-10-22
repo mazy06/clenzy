@@ -33,7 +33,29 @@ class YousignSignatureProviderTest {
     private YousignSignatureProvider provider() {
         return new YousignSignatureProvider(connectionService, tenantContext,
                 generationRepository, documentStorageService, restTemplate,
-                "https://api.yousign.app/v3");
+                "https://api.yousign.app/v3", mock(com.clenzy.service.signature.BaitlySignatureDownloads.class));
+    }
+
+    @Test
+    void signedDocumentUsesTheRestrictedDownloaderWithTheCurrentOrganizationKey() {
+        var connection = new com.clenzy.integration.external.model.ExternalServiceConnection();
+        connection.setStatus(com.clenzy.integration.external.model.ExternalServiceConnection.Status.ACTIVE);
+        connection.setServerUrl("https://sandbox.example.invalid/v3/");
+        when(tenantContext.getOrganizationId()).thenReturn(7L);
+        when(connectionService.getConnection(7L, SignatureProviderType.YOUSIGN)).thenReturn(Optional.of(connection));
+        when(connectionService.decryptApiKey(connection)).thenReturn("synthetic-private-key");
+        var downloads = mock(com.clenzy.service.signature.BaitlySignatureDownloads.class);
+        byte[] expected = "%PDF-synthetic".getBytes(java.nio.charset.StandardCharsets.UTF_8);
+        when(downloads.fetchSameOrigin(eq("https://sandbox.example.invalid/v3"),
+                eq("https://sandbox.example.invalid/v3/signature_requests/synthetic-id/documents/download"), any()))
+                .thenReturn(expected);
+        var provider = new YousignSignatureProvider(connectionService, tenantContext,
+                generationRepository, documentStorageService, restTemplate, "https://api.yousign.app/v3", downloads);
+        assertArrayEquals(expected, provider.getSignedDocument("synthetic-id"));
+        var headers = org.mockito.ArgumentCaptor.forClass(org.springframework.http.HttpHeaders.class);
+        verify(downloads).fetchSameOrigin(anyString(), anyString(), headers.capture());
+        assertEquals("Bearer synthetic-private-key", headers.getValue().getFirst("Authorization"));
+        verifyNoInteractions(restTemplate, generationRepository, documentStorageService);
     }
 
     @Test

@@ -40,7 +40,9 @@ class BaitlySignatureProviderPrivacyTest {
         var connection = new ExternalServiceConnection();connection.setStatus(ExternalServiceConnection.Status.ACTIVE);
         when(connections.getConnection(7L, SignatureProviderType.YOUSIGN)).thenReturn(Optional.of(connection));
         when(connections.decryptApiKey(connection)).thenReturn("synthetic-key");
-        return new YousignSignatureProvider(connections, tenant, documents, storage, http, "https://sign.example.invalid");
+        var downloads = mock(BaitlySignatureDownloads.class);
+        when(downloads.fetchSameOrigin(anyString(), anyString(), any())).thenThrow(failure);
+        return new YousignSignatureProvider(connections, tenant, documents, storage, http, "https://sign.example.invalid", downloads);
     }
 
     @ParameterizedTest @ValueSource(strings={"docuseal", "yousign"})

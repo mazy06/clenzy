@@ -7,6 +7,7 @@ import com.clenzy.repository.DocumentGenerationRepository;
 import com.clenzy.service.DocumentStorageService;
 import com.clenzy.service.signature.SignatureProvider;
 import com.clenzy.service.signature.BaitlySignatureSafety;
+import com.clenzy.service.signature.BaitlySignatureDownloads;
 import com.clenzy.service.signature.SignatureProviderType;
 import com.clenzy.service.signature.SignatureRequest;
 import com.clenzy.service.signature.SignatureResult;
@@ -64,6 +65,7 @@ public class YousignSignatureProvider implements SignatureProvider {
     private final DocumentStorageService documentStorageService;
     private final RestTemplate restTemplate;
     private final String defaultApiBaseUrl;
+    private final BaitlySignatureDownloads downloads;
 
     public YousignSignatureProvider(ExternalServiceConnectionService connectionService,
                                      TenantContext tenantContext,
@@ -71,13 +73,14 @@ public class YousignSignatureProvider implements SignatureProvider {
                                      DocumentStorageService documentStorageService,
                                      RestTemplate restTemplate,
                                      @Value("${clenzy.signature.yousign.api-base-url:https://api.yousign.app/v3}")
-                                     String defaultApiBaseUrl) {
+                                     String defaultApiBaseUrl, BaitlySignatureDownloads downloads) {
         this.connectionService = connectionService;
         this.tenantContext = tenantContext;
         this.generationRepository = generationRepository;
         this.documentStorageService = documentStorageService;
         this.restTemplate = restTemplate;
         this.defaultApiBaseUrl = defaultApiBaseUrl;
+        this.downloads = downloads;
     }
 
     @Override
@@ -167,13 +170,9 @@ public class YousignSignatureProvider implements SignatureProvider {
         ExternalServiceConnection connection = requireCurrentOrgConnection();
         HttpHeaders headers = new HttpHeaders();
         headers.setBearerAuth(connectionService.decryptApiKey(connection));
-        byte[] document = restTemplate.exchange(
-                apiBaseUrl(connection) + "/signature_requests/" + signatureRequestId + "/documents/download",
-                org.springframework.http.HttpMethod.GET,
-                new HttpEntity<>(headers),
-                byte[].class).getBody();
-        if (document == null || document.length == 0) throw BaitlySignatureSafety.invalidResponse();
-        return document;
+        String base = apiBaseUrl(connection);
+        return downloads.fetchSameOrigin(base,
+                base + "/signature_requests/" + signatureRequestId + "/documents/download", headers);
         } catch (Exception ignored) {throw BaitlySignatureSafety.unavailable();}
     }
 
