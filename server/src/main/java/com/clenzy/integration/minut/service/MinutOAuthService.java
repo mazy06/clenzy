@@ -3,6 +3,7 @@ package com.clenzy.integration.minut.service;
 import com.clenzy.integration.oauth.BaitlyOAuthDiagnostics;
 import static com.clenzy.integration.oauth.BaitlyOAuthDiagnostics.Operation.*;
 
+import com.clenzy.integration.oauth.BaitlyOAuthTokenResponse;
 import com.clenzy.integration.minut.config.MinutConfig;
 import com.clenzy.integration.minut.model.MinutConnection;
 import com.clenzy.integration.minut.model.MinutConnection.MinutConnectionStatus;
@@ -117,10 +118,10 @@ public class MinutOAuthService {
             if (response.getStatusCode().is2xxSuccessful() && response.getBody() != null) {
                 Map<String, Object> tokenData = response.getBody();
 
-                String accessToken = (String) tokenData.get("access_token");
-                String refreshToken = (String) tokenData.get("refresh_token");
-                Integer expiresIn = tokenData.get("expires_in") != null
-                        ? ((Number) tokenData.get("expires_in")).intValue() : 3600;
+                var tokens = BaitlyOAuthTokenResponse.parse(tokenData, 3600);
+                String accessToken = tokens.accessToken();
+                String refreshToken = tokens.refreshToken();
+                Integer expiresIn = tokens.expiresIn();
                 String minutUserId = tokenData.get("user_id") != null
                         ? String.valueOf(tokenData.get("user_id")) : null;
 
@@ -182,10 +183,10 @@ public class MinutOAuthService {
             if (response.getStatusCode().is2xxSuccessful() && response.getBody() != null) {
                 Map<String, Object> tokenData = response.getBody();
 
-                String newAccessToken = (String) tokenData.get("access_token");
-                String newRefreshToken = (String) tokenData.get("refresh_token");
-                Integer expiresIn = tokenData.get("expires_in") != null
-                        ? ((Number) tokenData.get("expires_in")).intValue() : 3600;
+                var tokens = BaitlyOAuthTokenResponse.parse(tokenData, 3600);
+                String newAccessToken = tokens.accessToken();
+                String newRefreshToken = tokens.refreshToken();
+                Integer expiresIn = tokens.expiresIn();
 
                 connection.setAccessTokenEncrypted(encryptionService.encrypt(newAccessToken));
                 if (newRefreshToken != null) {

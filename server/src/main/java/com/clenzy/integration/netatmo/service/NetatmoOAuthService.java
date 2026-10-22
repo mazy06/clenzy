@@ -3,6 +3,7 @@ package com.clenzy.integration.netatmo.service;
 import com.clenzy.integration.oauth.BaitlyOAuthDiagnostics;
 import static com.clenzy.integration.oauth.BaitlyOAuthDiagnostics.Operation.*;
 
+import com.clenzy.integration.oauth.BaitlyOAuthTokenResponse;
 import com.clenzy.integration.netatmo.config.NetatmoConfig;
 import com.clenzy.integration.netatmo.model.NetatmoConnection;
 import com.clenzy.integration.netatmo.model.NetatmoConnection.NetatmoConnectionStatus;
@@ -133,10 +134,10 @@ public class NetatmoOAuthService {
             if (response.getStatusCode().is2xxSuccessful() && response.getBody() != null) {
                 Map<String, Object> tokenData = response.getBody();
 
-                String accessToken = (String) tokenData.get("access_token");
-                String refreshToken = (String) tokenData.get("refresh_token");
-                Integer expiresIn = tokenData.get("expires_in") != null
-                        ? ((Number) tokenData.get("expires_in")).intValue() : 10800;
+                var tokens = BaitlyOAuthTokenResponse.parse(tokenData, 10800);
+                String accessToken = tokens.accessToken();
+                String refreshToken = tokens.refreshToken();
+                Integer expiresIn = tokens.expiresIn();
 
                 NetatmoConnection connection = connectionRepository.findByUserId(userId)
                         .orElse(new NetatmoConnection());
@@ -195,10 +196,10 @@ public class NetatmoOAuthService {
             if (response.getStatusCode().is2xxSuccessful() && response.getBody() != null) {
                 Map<String, Object> tokenData = response.getBody();
 
-                String newAccessToken = (String) tokenData.get("access_token");
-                String newRefreshToken = (String) tokenData.get("refresh_token");
-                Integer expiresIn = tokenData.get("expires_in") != null
-                        ? ((Number) tokenData.get("expires_in")).intValue() : 10800;
+                var tokens = BaitlyOAuthTokenResponse.parse(tokenData, 10800);
+                String newAccessToken = tokens.accessToken();
+                String newRefreshToken = tokens.refreshToken();
+                Integer expiresIn = tokens.expiresIn();
 
                 connection.setAccessTokenEncrypted(encryptionService.encrypt(newAccessToken));
                 if (newRefreshToken != null) {
