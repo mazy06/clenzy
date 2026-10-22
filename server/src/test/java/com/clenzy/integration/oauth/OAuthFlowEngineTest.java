@@ -172,6 +172,47 @@ class OAuthFlowEngineTest {
         org.mockito.Mockito.verifyNoInteractions(restTemplate);
     }
 
+    @org.junit.jupiter.params.ParameterizedTest
+    @org.junit.jupiter.params.provider.CsvSource({"false,at-1", "false,rt-1", "true,at-1", "true,rt-1"})
+    void preparationFailureNeverMixesOldAndNewSecrets(boolean refresh, String failingToken) {
+        var connection = new TestConnection();
+        connection.setOrganizationId(100L);
+        connection.setUserId(5L);
+        connection.setAccessTokenEncrypted("old-encrypted-access");
+        connection.setRefreshTokenEncrypted("old-encrypted-refresh");
+        Instant oldExpiry = Instant.parse("2030-01-01T00:00:00Z");
+        connection.setTokenExpiresAt(oldExpiry);
+        connection.setRefreshTokenExpiresAt(oldExpiry);
+        connection.setScopes("old-scope");
+        connection.setOAuthStatus(OAuthConnectionStatus.ACTIVE);
+        when(restTemplate.exchange(anyString(), eq(HttpMethod.POST), any(HttpEntity.class), eq(Map.class)))
+                .thenReturn(ResponseEntity.ok(Map.of("access_token", "at-1", "refresh_token", "rt-1", "expires_in", 3600)));
+        when(encryptionService.encrypt(anyString())).thenAnswer(call -> {
+            String token = call.getArgument(0);
+            if (token.equals(failingToken)) throw new IllegalStateException("Synthetic encryption failure");
+            return "encrypted-" + token;
+        });
+        if (refresh) {
+            when(persistence.findActiveByOrganizationId(100L)).thenReturn(Optional.of(connection));
+            when(encryptionService.decrypt("old-encrypted-refresh")).thenReturn("synthetic-refresh");
+            assertThatThrownBy(() -> engine.refreshToken(providerConfig, persistence, 100L))
+                    .isInstanceOf(RuntimeException.class);
+            verify(persistence).save(connection);
+            assertThat(connection.getOAuthStatus()).isEqualTo(OAuthConnectionStatus.ERROR);
+        } else {
+            when(persistence.findByOrganizationId(100L)).thenReturn(Optional.of(connection));
+            assertThatThrownBy(() -> engine.exchangeCodeForToken(providerConfig, persistence, "synthetic-code", 1L, 100L))
+                    .isInstanceOf(RuntimeException.class);
+            org.mockito.Mockito.verify(persistence, org.mockito.Mockito.never()).save(any());
+            assertThat(connection.getUserId()).isEqualTo(5L);
+        }
+        assertThat(connection.getAccessTokenEncrypted()).isEqualTo("old-encrypted-access");
+        assertThat(connection.getRefreshTokenEncrypted()).isEqualTo("old-encrypted-refresh");
+        assertThat(connection.getTokenExpiresAt()).isEqualTo(oldExpiry);
+        assertThat(connection.getRefreshTokenExpiresAt()).isEqualTo(oldExpiry);
+        assertThat(connection.getScopes()).isEqualTo("old-scope");
+    }
+
     @Nested
     @DisplayName("buildAuthorizationUrl")
     class AuthUrl {

@@ -132,12 +132,16 @@ public class AirbnbOAuthService {
                 AirbnbConnection connection = connectionRepository.findByUserId(userId)
                         .orElse(new AirbnbConnection());
 
+                // Préparer tous les secrets et dates avant de modifier la connexion Baitly.
+                String encryptedAccess = encryptionService.encrypt(accessToken);
+                String encryptedRefresh = refreshToken != null ? encryptionService.encrypt(refreshToken) : null;
+                LocalDateTime tokenExpiresAt = expiresIn != null ? LocalDateTime.now().plusSeconds(expiresIn) : null;
+
                 connection.setUserId(userId);
                 connection.setAirbnbUserId(airbnbUserId);
-                connection.setAccessTokenEncrypted(encryptionService.encrypt(accessToken));
-                connection.setRefreshTokenEncrypted(encryptionService.encrypt(refreshToken));
-                connection.setTokenExpiresAt(
-                        expiresIn != null ? LocalDateTime.now().plusSeconds(expiresIn) : null);
+                connection.setAccessTokenEncrypted(encryptedAccess);
+                connection.setRefreshTokenEncrypted(encryptedRefresh);
+                connection.setTokenExpiresAt(tokenExpiresAt);
                 connection.setScopes(config.getScopes());
                 connection.setStatus(AirbnbConnection.AirbnbConnectionStatus.ACTIVE);
                 connection.setErrorMessage(null);
@@ -209,12 +213,16 @@ public class AirbnbOAuthService {
                 String newRefreshToken = tokens.refreshToken();
                 Integer expiresIn = tokens.expiresIn();
 
-                connection.setAccessTokenEncrypted(encryptionService.encrypt(newAccessToken));
+                // Préparer tous les secrets et dates avant de modifier la connexion Baitly.
+                String encryptedAccess = encryptionService.encrypt(newAccessToken);
+                String encryptedRefresh = newRefreshToken != null ? encryptionService.encrypt(newRefreshToken) : null;
+                LocalDateTime tokenExpiresAt = expiresIn != null ? LocalDateTime.now().plusSeconds(expiresIn) : null;
+
+                connection.setAccessTokenEncrypted(encryptedAccess);
                 if (newRefreshToken != null) {
-                    connection.setRefreshTokenEncrypted(encryptionService.encrypt(newRefreshToken));
+                    connection.setRefreshTokenEncrypted(encryptedRefresh);
                 }
-                connection.setTokenExpiresAt(
-                        expiresIn != null ? LocalDateTime.now().plusSeconds(expiresIn) : null);
+                connection.setTokenExpiresAt(tokenExpiresAt);
                 connection.setStatus(AirbnbConnection.AirbnbConnectionStatus.ACTIVE);
                 connection.setErrorMessage(null);
 
