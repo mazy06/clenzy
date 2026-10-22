@@ -1,5 +1,6 @@
 package com.clenzy.integration.homeaway.service;
 
+import com.clenzy.integration.oauth.BaitlyOAuthTokenResponse;
 import com.clenzy.integration.homeaway.config.HomeAwayConfig;
 import com.clenzy.integration.homeaway.model.HomeAwayConnection;
 import com.clenzy.integration.homeaway.repository.HomeAwayConnectionRepository;
@@ -120,9 +121,10 @@ public class HomeAwayOAuthService {
             if (response.getStatusCode().is2xxSuccessful() && response.getBody() != null) {
                 Map<String, Object> tokenData = response.getBody();
 
-                String accessToken = (String) tokenData.get("access_token");
-                String refreshToken = (String) tokenData.get("refresh_token");
-                Integer expiresIn = (Integer) tokenData.get("expires_in");
+                var tokens = BaitlyOAuthTokenResponse.parse(tokenData, null);
+                String accessToken = tokens.accessToken();
+                String refreshToken = tokens.refreshToken();
+                Integer expiresIn = tokens.expiresIn();
 
                 // Creer ou mettre a jour la connexion
                 HomeAwayConnection connection = connectionRepository.findByOrganizationId(orgId)
@@ -194,9 +196,10 @@ public class HomeAwayOAuthService {
             if (response.getStatusCode().is2xxSuccessful() && response.getBody() != null) {
                 Map<String, Object> tokenData = response.getBody();
 
-                String newAccessToken = (String) tokenData.get("access_token");
-                String newRefreshToken = (String) tokenData.get("refresh_token");
-                Integer expiresIn = (Integer) tokenData.get("expires_in");
+                var tokens = BaitlyOAuthTokenResponse.parse(tokenData, null);
+                String newAccessToken = tokens.accessToken();
+                String newRefreshToken = tokens.refreshToken();
+                Integer expiresIn = tokens.expiresIn();
 
                 connection.setAccessTokenEncrypted(encryptionService.encrypt(newAccessToken));
                 if (newRefreshToken != null) {
