@@ -44,7 +44,14 @@ public class BaitlyOAuthConnectionGuard {
                 throw new IllegalStateException("Opération OAuth déjà en cours ; réessayer ultérieurement");
             }
             try {
-                return new Outcome<>(operation.get(), null);
+                T value = operation.get();
+                if (status.isRollbackOnly()) throw new IllegalStateException("Transaction OAuth non confirmée");
+                // PostgreSQL peut répondre ROLLBACK à COMMIT après une erreur SQL avalée.
+                // Une sonde dans la même transaction doit réussir avant de retourner un succès.
+                if (!Integer.valueOf(1).equals(db.queryForObject("SELECT 1", Integer.class))) {
+                    throw new IllegalStateException("Transaction OAuth non confirmée");
+                }
+                return new Outcome<>(value, null);
             } catch (RuntimeException failure) {
                 // Un échec métier peut déjà avoir enregistré ERROR. Le propager après commit,
                 // sous le verrou. Une transaction condamnée ne doit jamais être acquittée.

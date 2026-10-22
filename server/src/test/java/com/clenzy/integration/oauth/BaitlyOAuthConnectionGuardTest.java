@@ -17,6 +17,7 @@ class BaitlyOAuthConnectionGuardTest {
     void lock(boolean granted) {
         when(manager.getTransaction(any())).thenReturn(status);
         when(db.queryForObject(anyString(), eq(Boolean.class), any(Object[].class))).thenReturn(granted);
+        when(db.queryForObject("SELECT 1", Integer.class)).thenReturn(1);
     }
 
     @Test void contentionNeverRunsOperation() {
@@ -63,6 +64,15 @@ class BaitlyOAuthConnectionGuardTest {
             status.setRollbackOnly();
             throw new IllegalStateException("synthetic");
         })).hasMessage("synthetic");
+        verify(manager).rollback(status);
+    }
+
+    @Test void swallowedFailureCannotReturnSuccessFromRollbackOnlyTransaction() {
+        lock(true);
+        assertThatThrownBy(() -> guard.executeRefresh("test", 7L, () -> {
+            status.setRollbackOnly();
+            return "must-not-succeed";
+        })).hasMessage("Transaction OAuth non confirmée");
         verify(manager).rollback(status);
     }
 

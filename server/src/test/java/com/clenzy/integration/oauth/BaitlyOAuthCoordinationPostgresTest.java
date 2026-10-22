@@ -93,6 +93,17 @@ class BaitlyOAuthCoordinationPostgresTest {
         assertThat(second.execute("test", 7L, () -> "released")).isEqualTo("released");
     }
 
+    @Test void swallowedSqlFailureCannotMakeAbortedPostgresCommitLookSuccessful() {
+        assertThatThrownBy(() -> first.executeRefresh("test", 7L, () -> {
+            db.update("UPDATE " + table + " SET status='ERROR' WHERE id=7");
+            try { db.execute("SELECT 1/0"); }
+            catch (org.springframework.dao.DataAccessException ignored) { /* Erreur volontairement avalée. */ }
+            return "must-not-succeed";
+        })).isInstanceOf(RuntimeException.class);
+        assertThat(db.queryForObject("SELECT status FROM " + table, String.class)).isEqualTo("ACTIVE");
+        assertThat(second.execute("test", 7L, () -> "released")).isEqualTo("released");
+    }
+
     @Test void competingRefreshAndRevokeCannotUseSameRotatingToken() throws Exception {
         var config = mock(OAuthProviderConfig.class);
         when(config.getProviderKey()).thenReturn("test");
