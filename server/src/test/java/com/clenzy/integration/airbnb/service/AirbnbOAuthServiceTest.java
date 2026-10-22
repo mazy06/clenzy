@@ -455,7 +455,7 @@ class AirbnbOAuthServiceTest {
             service.revokeToken("user-1");
 
             assertThat(conn.getStatus()).isEqualTo(AirbnbConnection.AirbnbConnectionStatus.REVOKED);
-            assertThat(conn.getAccessTokenEncrypted()).isNull();
+            assertThat(conn.getAccessTokenEncrypted()).isEmpty();
             assertThat(conn.getRefreshTokenEncrypted()).isNull();
             assertThat(conn.getTokenExpiresAt()).isNull();
             verify(auditLogService).logSync(eq("AirbnbConnection"), anyString(), anyString());

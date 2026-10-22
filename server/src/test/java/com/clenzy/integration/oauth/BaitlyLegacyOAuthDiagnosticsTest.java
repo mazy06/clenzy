@@ -116,7 +116,7 @@ class BaitlyLegacyOAuthDiagnosticsTest {
             var layout=new ch.qos.logback.classic.PatternLayout();layout.setContext(logger.getLoggerContext());layout.setPattern("%msg %ex");layout.start();
             for(var event:appender.list)assertThat(layout.doLayout(event)).doesNotContain("private-","example.invalid");layout.stop();
         }finally{logger.detachAppender(appender);appender.stop();}
-        assertThat(h.status().get()).isEqualTo("REVOKED");assertThat(h.access().get()).isNull();assertThat(h.refreshToken().get()).isNull();
+        assertThat(h.status().get()).isEqualTo("REVOKED");assertThat(h.access().get()).isEmpty();assertThat(h.refreshToken().get()).isNull();
         assertThat(h.error().get()).isEqualTo(BaitlyOAuthDiagnostics.message(BaitlyOAuthDiagnostics.Operation.REVOKE));
         if(provider.equals("netatmo"))verifyNoInteractions(http);
     }
@@ -125,7 +125,7 @@ class BaitlyLegacyOAuthDiagnosticsTest {
     void successfulRemoteRevokeClearsOldErrorAndLocalTokens(String provider) {
         var http=mock(RestTemplate.class);var h=harness(provider,http);
         when(http.postForEntity(anyString(),any(),eq(Void.class))).thenReturn(org.springframework.http.ResponseEntity.noContent().build());
-        h.revoke().run();assertThat(h.error().get()).isNull();assertThat(h.access().get()).isNull();assertThat(h.refreshToken().get()).isNull();
+        h.revoke().run();assertThat(h.error().get()).isNull();assertThat(h.access().get()).isEmpty();assertThat(h.refreshToken().get()).isNull();
     }
 
     @ParameterizedTest @ValueSource(strings={"airbnb","homeaway","minut","netatmo"})

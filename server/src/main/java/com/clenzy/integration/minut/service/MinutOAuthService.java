@@ -261,7 +261,7 @@ public class MinutOAuthService {
             }
 
             connection.setStatus(MinutConnectionStatus.REVOKED);
-            connection.setAccessTokenEncrypted(null);
+            connection.setAccessTokenEncrypted(""); // Colonne historique NOT NULL : aucun secret conservé.
             connection.setRefreshTokenEncrypted(null);
             connection.setTokenExpiresAt(null);
             connection.setErrorMessage(remoteConfirmed ? null : BaitlyOAuthDiagnostics.message(REVOKE));

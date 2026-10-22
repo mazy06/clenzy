@@ -252,7 +252,7 @@ public class NetatmoOAuthService {
     public void revokeToken(String userId) {
         connectionRepository.findByUserId(userId).ifPresent(connection -> {
             connection.setStatus(NetatmoConnectionStatus.REVOKED);
-            connection.setAccessTokenEncrypted(null);
+            connection.setAccessTokenEncrypted(""); // Colonne historique NOT NULL : aucun secret conservé.
             connection.setRefreshTokenEncrypted(null);
             connection.setTokenExpiresAt(null);
             connection.setErrorMessage(BaitlyOAuthDiagnostics.message(REVOKE));
