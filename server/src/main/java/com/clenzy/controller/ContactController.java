@@ -268,7 +268,7 @@ public class ContactController {
         return ResponseEntity.ok()
                 .header("Content-Type", attachment.contentType())
                 .header("Content-Disposition", contentDisposition)
-                .header("Cache-Control", "private, max-age=86400")
+                .header("Cache-Control", "no-cache, no-store, must-revalidate")
                 .body(new ByteArrayResource(attachment.data()));
     }
 
