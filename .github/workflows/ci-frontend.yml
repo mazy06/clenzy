@@ -68,6 +68,8 @@ jobs:
           src/providers/__tests__/PostHogProvider.privacy.test.tsx
           src/services/__tests__/baitlyAnalytics.test.ts
           src/services/__tests__/baitlyAnalytics.sdk.test.ts
+          src/services/__tests__/baitlyAnalytics.offline.test.ts
+          src/services/__tests__/baitlyAnalytics.encoding.test.ts
           src/services/__tests__/baitlyTelemetryPrivacy.test.ts
           src/services/__tests__/baitlySentry.transport.test.ts
           src/services/__tests__/apiClient.errors.test.ts

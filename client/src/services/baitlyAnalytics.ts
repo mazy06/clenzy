@@ -8,10 +8,33 @@ const pending: Array<(sdk: PostHog) => void> = [];
 let consent = false;
 let actor: BaitlyAnalyticsActor | undefined;
 let generation = 0;
+let transportSession: AbortController | undefined;
 const listeners = new Set<() => void>();
+
+function hasRevocableTransport(): boolean {
+  return typeof fetch === 'function' && typeof AbortController !== 'undefined'
+    && typeof AbortSignal !== 'undefined' && typeof AbortSignal.any === 'function'
+    && typeof AbortSignal.timeout === 'function';
+}
+
+/** This SDK instance keeps its original consent signal for its entire lifetime. */
+function revocableFetchOptions(session: AbortController) {
+  return {
+    cache: 'no-store' as const,
+    credentials: 'omit' as const,
+    keepalive: false,
+    referrerPolicy: 'no-referrer' as const,
+    // Read immediately before fetch, including after asynchronous compression.
+    // Compose our timeout too: fetch_options overrides the SDK's timeout signal.
+    get signal(): AbortSignal {
+      return AbortSignal.any([session.signal, AbortSignal.timeout(60_000)]);
+    },
+  };
+}
 
 export function isBaitlyAnalyticsEnabled(): boolean {
   return consent && !!actor && !!runtimeEnv('VITE_POSTHOG_KEY')
+    && hasRevocableTransport()
     && (typeof navigator === 'undefined' || navigator.doNotTrack !== '1');
 }
 
@@ -24,9 +47,19 @@ export function subscribeBaitlyAnalytics(listener: () => void): () => void {
 export function setBaitlyAnalyticsConsent(granted: boolean): void {
   consent = granted === true;
   if (!isBaitlyAnalyticsEnabled()) {
+    // Close the transport before touching the SDK: reset/opt-out do not cancel retries.
+    transportSession?.abort(new DOMException('Baitly analytics consent ended', 'AbortError'));
     generation++;
     pending.length = 0;
-    try { client?.reset(true); client?.opt_out_capturing(); } catch { /* Optional SDK cannot break logout. */ }
+    const previous = client;
+    client = undefined;
+    loading = undefined;
+    try {
+      previous?.reset(true); previous?.opt_out_capturing();
+      // Beacon is disabled and this instance's fetch signal is permanently aborted.
+      // A new grant must never lend a live transport to the old SDK retry queue.
+      void previous?.shutdown();
+    } catch { /* Optional SDK cannot break logout. */ }
   } else {
     void startBaitlyAnalytics();
   }
@@ -61,14 +94,23 @@ export function startBaitlyAnalytics(): Promise<void> {
   const key = runtimeEnv('VITE_POSTHOG_KEY');
   if (!key || !isBaitlyAnalyticsEnabled()) return Promise.resolve();
   if (client) {
-    try { client.opt_in_capturing({ captureEventName: false }); client.identify(actor!.id); } catch { /* Optional. */ }
+    try {
+      client.opt_in_capturing({ captureEventName: false }); client.identify(actor!.id);
+    } catch { /* Optional. */ }
     return Promise.resolve();
   }
   if (loading) return loading;
-  loading = import('posthog-js').then(({ default: sdk }) => {
-    if (!isBaitlyAnalyticsEnabled()) { loading = undefined; return; }
+  const current = generation;
+  loading = import('posthog-js').then(({ PostHog }) => {
+    if (current !== generation || !isBaitlyAnalyticsEnabled()) return;
+    const session = new AbortController();
+    transportSession = session;
+    const sdk = new PostHog();
     sdk.init(key, {
       api_host: runtimeEnvOr('VITE_POSTHOG_HOST', 'https://eu.i.posthog.com'),
+      api_transport: 'fetch',
+      disable_beacon: true,
+      fetch_options: revocableFetchOptions(session),
       person_profiles: 'identified_only',
       autocapture: false,
       capture_pageview: false,
@@ -94,12 +136,14 @@ export function startBaitlyAnalytics(): Promise<void> {
       opt_out_persistence_by_default: true,
       request_batching: false,
       advanced_disable_flags: true,
-      before_send: event => isBaitlyAnalyticsEnabled() ? baitlyPostHogBeforeSend(event, actor, key) : null,
+      before_send: event => !session.signal.aborted && current === generation && isBaitlyAnalyticsEnabled()
+        ? baitlyPostHogBeforeSend(event, actor, key) : null,
       loaded: () => {
-        client = sdk;
-        if (!isBaitlyAnalyticsEnabled()) {
-          sdk.opt_out_capturing(); sdk.reset(true); loading = undefined; return;
+        if (session.signal.aborted || current !== generation || !isBaitlyAnalyticsEnabled()) {
+          session.abort();
+          sdk.opt_out_capturing(); sdk.reset(true); void sdk.shutdown(); return;
         }
+        client = sdk;
         sdk.opt_in_capturing({ captureEventName: false });
         sdk.identify(actor!.id);
         pending.splice(0).forEach(action => action(sdk));
@@ -107,8 +151,12 @@ export function startBaitlyAnalytics(): Promise<void> {
     });
   }).catch(() => {
     // Optional analytics must not prevent the application from starting.
-    pending.length = 0;
-    loading = undefined;
+    if (current === generation) {
+      transportSession?.abort();
+      client = undefined;
+      pending.length = 0;
+      loading = undefined;
+    }
   });
   return loading;
 }
