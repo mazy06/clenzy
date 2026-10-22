@@ -1,5 +1,6 @@
 import { API_CONFIG } from '../config/api';
 import keycloak, { getAccessToken } from '../keycloak';
+import { reportBaitlyApiFailure } from './baitlySentry';
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -210,6 +211,20 @@ async function handleResponse<T>(response: Response, responseType?: 'blob'): Pro
 
 // ─── Core Request Function ───────────────────────────────────────────────────
 
+async function fetchWithTelemetry(url: string, config: RequestInit, endpoint: string): Promise<Response> {
+  let response: Response;
+  try {
+    response = await fetch(url, config);
+  } catch (error) {
+    if (!config.signal?.aborted && !(error instanceof DOMException && error.name === 'AbortError')) {
+      reportBaitlyApiFailure(config.method ?? 'GET', endpoint, 0);
+    }
+    throw error;
+  }
+  reportBaitlyApiFailure(config.method ?? 'GET', endpoint, response.status, response.headers.get('X-Request-ID'));
+  return response;
+}
+
 async function request<T>(
   method: string,
   endpoint: string,
@@ -248,7 +263,7 @@ async function request<T>(
     config.body = body instanceof FormData ? body : JSON.stringify(body);
   }
 
-  const response = await fetch(url, config);
+  const response = await fetchWithTelemetry(url, config, endpoint);
 
   // 401 Interceptor: refresh token and retry once
   if (response.status === 401 && !options.skipAuth) {
@@ -268,7 +283,7 @@ async function request<T>(
       if (body) {
         retryConfig.body = body instanceof FormData ? body : JSON.stringify(body);
       }
-      const retryResponse = await fetch(url, retryConfig);
+      const retryResponse = await fetchWithTelemetry(url, retryConfig, endpoint);
       return handleResponse<T>(retryResponse, options.responseType);
     }
   }

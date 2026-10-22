@@ -1,6 +1,4 @@
-import { addIntegration, replayIntegration } from '@sentry/react';
-
-/** Le module de capture visuelle n'entre dans le bundle qu'après le planning. */
+/** Replay deliberately unavailable until a separate consent and sensitive-screen review. */
 export function startBaitlyReplay(): void {
-  addIntegration(replayIntegration());
+  // Keep old callers harmless: a delayed import must never reactivate DOM recording.
 }

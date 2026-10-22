@@ -48,7 +48,8 @@
          En `vite dev`, le fichier de `public/` ne declare qu'un objet vide et
          `runtimeConfig.ts` retombe sur les `.env`. Doit rester AVANT le
          bundle, qui le lit des son evaluation. -->
-    <script src="/baitly-config.js"></script>
+    <!-- Une nouvelle livraison contourne aussi les anciens caches CDN de ce fichier. -->
+    <script src="/baitly-config.js?v=%VITE_APP_VERSION%"></script>
 
     <title>Baitly — PMS pour locations courte durée</title>
     <meta name="description" content="Baitly est le Property Management System (PMS) pour gestionnaires de location courte durée : synchronisation multi-OTA, automation messaging WhatsApp/email, briefings IA, comptabilité multi-pays." />

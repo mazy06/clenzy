@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useCallback, useRef, lazy, Suspense } from 'react';
 
 import { Routes, Route, Navigate, useLocation } from 'react-router-dom';
-import * as Sentry from '@sentry/react';
 import keycloak, { authReadyPromise } from '../keycloak';
 import { useAuth } from '../hooks/useAuth';
 import SmartRedirect from '../components/SmartRedirect';
@@ -9,6 +8,7 @@ import { useTokenManagement } from '../hooks/useTokenManagement';
 import { configureConsole } from '../config/console';
 import { CustomPermissionsProvider } from '../hooks/useCustomPermissions';
 import { UserUiPreferencesProvider } from '../providers/UserUiPreferencesProvider';
+import { BaitlyAnalyticsConsentProvider } from '../providers/BaitlyAnalyticsConsentProvider';
 import { usePostHogIdentify, usePostHogPageTracking } from '../providers/PostHogProvider';
 import { useCrispIdentify } from '../hooks/useCrispIdentify';
 import MainLayoutFull from './layout/MainLayoutFull';
@@ -129,26 +129,12 @@ const App: React.FC = () => {
   const [initialized, setInitialized] = useState(false);
   const location = useLocation();
 
-  // ─── Third-party user identification (PostHog, Crisp, Sentry) ──────────────
+  // ─── Optional product analytics and support identity ─────────────────────
   usePostHogIdentify();
   usePostHogPageTracking();
   useCrispIdentify();
 
-  // Sentry user context — set user for all error reports
-  useEffect(() => {
-    if (user) {
-      Sentry.setUser({
-        id: user.id,
-        email: user.email,
-        username: user.username,
-      });
-      Sentry.setTag('organization_id', String(user.organizationId || ''));
-      Sentry.setTag('platform_role', user.platformRole || '');
-      Sentry.setTag('plan', user.forfait || '');
-    } else {
-      Sentry.setUser(null);
-    }
-  }, [user]);
+  // Sentry receives technical diagnostics only; account identity stays out of its scope.
 
   // Déterminer si on est sur une route publique
   const isPublicRoute = PUBLIC_ROUTES.includes(location.pathname)
@@ -345,6 +331,7 @@ const App: React.FC = () => {
   return (
     <CustomPermissionsProvider>
       <UserUiPreferencesProvider>
+      <BaitlyAnalyticsConsentProvider>
         {/* Frontière Suspense des pages publiques lazy (AuthenticatedApp a la sienne). */}
         <Suspense fallback={<RouteFallback />}>
         <Routes>
@@ -455,6 +442,7 @@ const App: React.FC = () => {
         />
         </Routes>
         </Suspense>
+      </BaitlyAnalyticsConsentProvider>
       </UserUiPreferencesProvider>
     </CustomPermissionsProvider>
   );

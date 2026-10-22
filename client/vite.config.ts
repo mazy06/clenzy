@@ -130,8 +130,16 @@ export default defineConfig({
         // peut le servir si le reseau timeout. Avec html exclus, navigation
         // tombe sur runtimeCaching html-cache uniquement (NetworkFirst 3s).
         globPatterns: ['**/*.{js,css,ico,png,svg,woff2}'],
+        // Configuration propre a l'instance, reecrite au demarrage : jamais precachee.
+        globIgnores: ['**/baitly-config.js'],
         maximumFileSizeToCacheInBytes: 3 * 1024 * 1024, // 3 MiB — routes lazy-loadees (React.lazy) : index.js ramene de ~4.2 MB a ~1.4 MB, le module booking-engine/studio sorti dans des chunks separes. Le plus gros asset precache est desormais vendor-map (~1.7 MB).
         runtimeCaching: [
+          {
+            // Inclut aussi les URLs versionnees ; aucune ancienne destination analytique
+            // ni configuration d'auth ne doit survivre hors ligne ou apres un redeploiement.
+            urlPattern: ({ url }) => url.pathname === '/baitly-config.js',
+            handler: 'NetworkOnly',
+          },
           {
             // index.html : NetworkFirst avec fallback cache si offline.
             // Empeche le cache aggresif du SW de servir l'ancien HTML apres deploy.

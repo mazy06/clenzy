@@ -6,6 +6,7 @@ import com.clenzy.dto.keyexchange.KeyExchangeCodeDto;
 import com.clenzy.dto.keyexchange.KeyExchangeEventDto;
 import com.clenzy.dto.keyexchange.KeyExchangePointDto;
 import com.clenzy.exception.TooManyVerificationAttemptsException;
+import com.clenzy.exception.KeyExchangeProviderNotReadyException;
 import com.clenzy.model.KeyExchangeCode;
 import com.clenzy.model.KeyExchangeCode.CodeStatus;
 import com.clenzy.model.KeyExchangeCode.CodeType;
@@ -415,31 +416,24 @@ class KeyExchangeServiceTest {
             verify(eventRepository).save(eventCaptor.capture());
             assertThat(eventCaptor.getValue().getEventType()).isEqualTo(EventType.CODE_GENERATED);
             assertThat(eventCaptor.getValue().getSource()).isEqualTo(EventSource.MANUAL);
+            assertThat(eventCaptor.getValue().getNotes()).doesNotContain(result.getCode());
             assertThat(result.getId()).isEqualTo(100L);
         }
 
         @Test
-        @DisplayName("when KEYNEST - generates 'KN-' prefixed code")
-        void whenKeynest_thenPrefixedCode() {
+        @DisplayName("KeyNest non qualifie ne genere aucun code fictif")
+        void whenKeynest_thenRefusesWithoutSavingCodeOrEvent() {
             CreateKeyExchangeCodeDto dto = new CreateKeyExchangeCodeDto();
             dto.setPointId(50L);
             dto.setGuestName("Visitor");
 
             KeyExchangePoint p = point(50L, Provider.KEYNEST);
             when(pointRepository.findById(50L)).thenReturn(Optional.of(p));
-            when(codeRepository.findByCode(any())).thenReturn(Optional.empty());
-            when(codeRepository.save(any())).thenAnswer(inv -> {
-                KeyExchangeCode c = inv.getArgument(0);
-                c.setId(101L);
-                return c;
-            });
-
-            service.generateCode(USER_ID, dto);
-
-            ArgumentCaptor<KeyExchangeCode> captor = ArgumentCaptor.forClass(KeyExchangeCode.class);
-            verify(codeRepository).save(captor.capture());
-            assertThat(captor.getValue().getCode()).startsWith("KN-");
-            assertThat(captor.getValue().getCode()).matches("KN-\\d{6}");
+            assertThatThrownBy(() -> service.generateCode(USER_ID, dto))
+                    .isInstanceOf(KeyExchangeProviderNotReadyException.class)
+                    .hasMessageContaining("KeyNest");
+            verify(codeRepository, never()).save(any());
+            verify(eventRepository, never()).save(any());
         }
 
         @Test
@@ -527,6 +521,8 @@ class KeyExchangeServiceTest {
         void whenActive_thenCancels() {
             KeyExchangeCode c = code(100L, 50L, "123456", CodeStatus.ACTIVE);
             when(codeRepository.findById(100L)).thenReturn(Optional.of(c));
+            when(pointRepository.findById(50L))
+                    .thenReturn(Optional.of(point(50L, Provider.CLENZY_KEYVAULT)));
 
             service.cancelCode(USER_ID, 100L);
 
@@ -537,6 +533,64 @@ class KeyExchangeServiceTest {
             verify(eventRepository).save(captor.capture());
             assertThat(captor.getValue().getEventType()).isEqualTo(EventType.CODE_CANCELLED);
             assertThat(captor.getValue().getNotes()).contains(USER_ID);
+        }
+
+        @Test
+        void whenKeynest_thenDoesNotPretendExternalAccessWasRevoked() {
+            KeyExchangeCode c = code(100L, 50L, "KN-123456", CodeStatus.ACTIVE);
+            when(codeRepository.findById(100L)).thenReturn(Optional.of(c));
+            when(pointRepository.findById(50L)).thenReturn(Optional.of(point(50L, Provider.KEYNEST)));
+
+            assertThatThrownBy(() -> service.cancelCode(USER_ID, 100L))
+                    .isInstanceOf(KeyExchangeProviderNotReadyException.class).hasMessageContaining("KeyNest");
+
+            assertThat(c.getStatus()).isEqualTo(CodeStatus.ACTIVE);
+            verify(codeRepository, never()).save(any());
+            verify(eventRepository, never()).save(any());
+        }
+
+        @Test
+        void whenExternalReferenceExists_thenDoesNotCancelEvenIfPointProviderChanged() {
+            KeyExchangeCode c = code(100L, 50L, "external-code", CodeStatus.ACTIVE);
+            c.setProviderCodeId("external-id");
+            when(codeRepository.findById(100L)).thenReturn(Optional.of(c));
+            when(pointRepository.findById(50L))
+                    .thenReturn(Optional.of(point(50L, Provider.CLENZY_KEYVAULT)));
+
+            assertThatThrownBy(() -> service.cancelCode(USER_ID, 100L))
+                    .isInstanceOf(KeyExchangeProviderNotReadyException.class);
+
+            assertThat(c.getStatus()).isEqualTo(CodeStatus.ACTIVE);
+            verify(codeRepository, never()).save(any());
+            verify(eventRepository, never()).save(any());
+        }
+
+        @Test
+        void whenPointBelongsToAnotherOrganization_thenDoesNotCancel() {
+            KeyExchangeCode c = code(100L, 50L, "123456", CodeStatus.ACTIVE);
+            KeyExchangePoint otherPoint = point(50L, Provider.CLENZY_KEYVAULT);
+            otherPoint.setOrganizationId(999L);
+            when(codeRepository.findById(100L)).thenReturn(Optional.of(c));
+            when(pointRepository.findById(50L)).thenReturn(Optional.of(otherPoint));
+
+            assertThatThrownBy(() -> service.cancelCode(USER_ID, 100L))
+                    .isInstanceOf(org.springframework.security.access.AccessDeniedException.class);
+
+            assertThat(c.getStatus()).isEqualTo(CodeStatus.ACTIVE);
+            verify(codeRepository, never()).save(any());
+            verify(eventRepository, never()).save(any());
+        }
+
+        @Test
+        void whenPointCannotBeLoaded_thenDoesNotCancelLocally() {
+            KeyExchangeCode c = code(100L, 50L, "123456", CodeStatus.ACTIVE);
+            when(codeRepository.findById(100L)).thenReturn(Optional.of(c));
+
+            assertThatThrownBy(() -> service.cancelCode(USER_ID, 100L))
+                    .isInstanceOf(IllegalArgumentException.class);
+
+            assertThat(c.getStatus()).isEqualTo(CodeStatus.ACTIVE);
+            verify(codeRepository, never()).save(any());
         }
 
         @Test

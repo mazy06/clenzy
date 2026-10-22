@@ -7,6 +7,7 @@ import com.clenzy.dto.keyexchange.KeyExchangeEventDto;
 import com.clenzy.dto.keyexchange.KeyExchangePointDto;
 import com.clenzy.dto.keyexchange.KeyNestStoreDto;
 import com.clenzy.integration.keynest.KeyNestApiService;
+import com.clenzy.exception.KeyExchangeProviderNotReadyException;
 import com.clenzy.service.KeyExchangeService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -183,6 +184,19 @@ class KeyExchangeControllerTest {
     @DisplayName("generateCode")
     class GenerateCode {
         @Test
+        void whenProviderNotReady_returns503WithExplicitReason() {
+            CreateKeyExchangeCodeDto dto = new CreateKeyExchangeCodeDto();
+            when(keyExchangeService.generateCode("kc-user-1", dto))
+                    .thenThrow(new KeyExchangeProviderNotReadyException("KeyNest non qualifie"));
+
+            ResponseEntity<?> response = controller.generateCode(jwt, dto);
+
+            assertThat(response.getStatusCode().value()).isEqualTo(503);
+            assertThat(response.getBody()).isEqualTo(Map.of(
+                    "error", "provider_not_ready", "message", "KeyNest non qualifie"));
+        }
+
+        @Test
         void whenSuccess_returnsCode() {
             CreateKeyExchangeCodeDto dto = new CreateKeyExchangeCodeDto();
             dto.setPointId(1L);
@@ -219,6 +233,18 @@ class KeyExchangeControllerTest {
     @Nested
     @DisplayName("cancelCode")
     class CancelCode {
+        @Test
+        void whenRevocationNotConfirmed_returns503InsteadOfCancellationSuccess() {
+            doThrow(new KeyExchangeProviderNotReadyException("Revocation KeyNest non confirmee"))
+                    .when(keyExchangeService).cancelCode("kc-user-1", 5L);
+
+            ResponseEntity<?> response = controller.cancelCode(jwt, 5L);
+
+            assertThat(response.getStatusCode().value()).isEqualTo(503);
+            assertThat(response.getBody()).isEqualTo(Map.of(
+                    "error", "provider_not_ready", "message", "Revocation KeyNest non confirmee"));
+        }
+
         @Test
         void whenSuccess_returnsOk() {
             doNothing().when(keyExchangeService).cancelCode("kc-user-1", 5L);

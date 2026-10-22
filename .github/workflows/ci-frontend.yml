@@ -60,6 +60,20 @@ jobs:
           NODE_OPTIONS: --max-old-space-size=4096
         run: npx tsc --noEmit
 
+      - name: Verify telemetry privacy and persisted consent
+        working-directory: client
+        run: >-
+          npx vitest run
+          src/providers/__tests__/BaitlyAnalyticsConsentProvider.test.tsx
+          src/providers/__tests__/PostHogProvider.privacy.test.tsx
+          src/services/__tests__/baitlyAnalytics.test.ts
+          src/services/__tests__/baitlyAnalytics.sdk.test.ts
+          src/services/__tests__/baitlyTelemetryPrivacy.test.ts
+          src/services/__tests__/baitlySentry.transport.test.ts
+          src/services/__tests__/apiClient.errors.test.ts
+          src/services/__tests__/apiClient.telemetry.test.ts
+          src/services/__tests__/baitlyDeferredStartup.test.ts
+
       - name: Build production bundle
         working-directory: client
         env:
@@ -72,6 +86,10 @@ jobs:
           VITE_APP_NAME: Baitly
           VITE_APP_VERSION: ${{ github.sha }}
         run: npm run build
+
+      - name: Verify runtime configuration is never cached by the PWA
+        working-directory: client
+        run: node tooling/check-baitly-runtime-cache.mjs
 
       - name: Validate public discovery content
         working-directory: client

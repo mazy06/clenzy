@@ -1,11 +1,9 @@
 package com.clenzy.integration.channex.controller;
 
-import com.clenzy.integration.channex.dto.ChannexGenericWebhookPayload;
-import com.clenzy.integration.channex.service.ChannexImportService;
-import com.clenzy.integration.channex.config.ChannexProperties;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import com.clenzy.integration.channex.client.ChannexSignatureValidator;
+import com.clenzy.integration.channex.config.ChannexMetrics;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestHeader;
@@ -13,87 +11,41 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 /**
- * Controller pour les webhooks Channex whitelabel (events push : listing_updated,
- * content_updated, property_updated, sync_error...).
+ * Point d'entree reserve aux futurs evenements Channex Whitelabel de Baitly.
  *
- * <p><b>Toujours actif</b>. Sur un compte public Channex ne POST jamais
- * dessus (faute d'enregistrement webhook), donc aucun trafic. Le jour ou
- * l'acces whitelabel est accorde et qu'on enregistre le webhook via
- * {@link com.clenzy.integration.channex.client.ChannexClient#registerWebhook},
- * Channex POST les events ici automatiquement.</p>
+ * <p>Le header partage X-Channex-Token suit le meme contrat que le webhook de
+ * reservations. Cette route est deja publique dans SecurityConfigProd ; le
+ * fournisseur ne dispose pas d'un JWT utilisateur.</p>
  *
- * <ul>
- *   <li>Reception sur {@code POST /webhooks/channex} (URL publique a enregistrer
- *       cote Channex).</li>
- *   <li>Validation HMAC via le header {@code X-Channex-Signature} (secret
- *       partage dans {@code clenzy.channex.webhook-secret}).</li>
- *   <li>Routage par type d'event vers le service approprie (import re-sync,
- *       booking sync, etc.).</li>
- * </ul>
+ * <p>Le routage Whitelabel n'est pas qualifie. Un evenement authentifie recoit
+ * donc 503 : ne jamais acquitter un traitement absent ni journaliser le payload.
+ * Ne pas enregistrer cette URL chez le fournisseur avant qualification du
+ * contrat, du routage multi-tenant et des reprises. Le webhook de reservations
+ * reste sur son endpoint distinct.</p>
  */
 @RestController
 @RequestMapping("/api/webhooks/channex/whitelabel")
+@PreAuthorize("permitAll()")
 public class ChannexWhitelabelWebhookController {
+    private final ChannexSignatureValidator signatureValidator;
+    private final ChannexMetrics metrics;
 
-    private static final Logger log = LoggerFactory.getLogger(ChannexWhitelabelWebhookController.class);
-
-    private final ChannexImportService importService;
-    private final ChannexProperties channexProps;
-
-    public ChannexWhitelabelWebhookController(ChannexImportService importService,
-                                                 ChannexProperties channexProps) {
-        this.importService = importService;
-        this.channexProps = channexProps;
+    public ChannexWhitelabelWebhookController(ChannexSignatureValidator signatureValidator,
+                                             ChannexMetrics metrics) {
+        this.signatureValidator = signatureValidator;
+        this.metrics = metrics;
     }
 
-    /**
-     * Endpoint generique de reception des webhooks Channex whitelabel.
-     *
-     * <p>Channex POST sur cette URL pour chaque event. Le routage interne se
-     * fait sur le champ {@code event} du payload :</p>
-     * <ul>
-     *   <li>{@code listing_updated} → re-sync de la property mappee
-     *       sur cette listing</li>
-     *   <li>{@code content_updated} → re-sync content de la property</li>
-     *   <li>{@code property_updated} → idem</li>
-     *   <li>{@code sync_error} → log + notification admin</li>
-     * </ul>
-     */
     @PostMapping
     public ResponseEntity<Void> receive(
-            @RequestBody ChannexGenericWebhookPayload payload,
-            @RequestHeader(value = "X-Channex-Signature", required = false) String signature) {
-        // TODO whitelabel : valider HMAC quand l'acces est confirme
-        // String expected = hmacSha256(rawBody, channexProps.getWebhookSecret());
-        // if (!constantTimeEquals(expected, signature)) return 401;
-
-        if (payload == null || payload.event() == null) {
-            log.warn("Channex webhook : payload null ou event manquant");
-            return ResponseEntity.badRequest().build();
+            @RequestBody String rawBody,
+            @RequestHeader(value = "X-Channex-Token", required = false) String token) {
+        if (!signatureValidator.isValid(token)) {
+            metrics.recordWebhookReceived("whitelabel", "invalid_signature");
+            return ResponseEntity.status(401).build();
         }
-
-        log.info("Channex webhook recu : event={} resourceId={} resourceType={}",
-            payload.event(), payload.resourceId(), payload.resourceType());
-
-        // Routage par type d'event
-        switch (payload.event()) {
-            case "listing_updated":
-            case "content_updated":
-            case "property_updated":
-                // TODO whitelabel : identifier la Property Clenzy via le
-                // resourceId (qui est un channex_property_id ou listing_id selon
-                // l'event) puis triggerer importService.resyncPropertyContent.
-                // Pour l'instant juste un log — le code de resync est pret.
-                log.info("Channex webhook : event {} -> resync content (TODO route)",
-                    payload.event());
-                break;
-            case "sync_error":
-                log.warn("Channex webhook : sync_error sur {} : {}",
-                    payload.resourceId(), payload.payload());
-                break;
-            default:
-                log.debug("Channex webhook : event ignore (pas implemente) : {}", payload.event());
-        }
-        return ResponseEntity.ok().build();
+        // Labels fixes : ni evenement fourni par l'appelant, ni donnee personnelle.
+        metrics.recordWebhookReceived("whitelabel", "not_ready");
+        return ResponseEntity.status(503).build();
     }
 }
