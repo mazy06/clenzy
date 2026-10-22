@@ -21,7 +21,7 @@ import java.util.Map;
 
 /**
  * Moteur OAuth2 generique — UNIQUE source de verite pour le flow OAuth dans
- * Clenzy. Utilise par {@code PennylaneOAuthService}, {@code DocuSignOAuthService}
+ * Baitly. Utilise par {@code PennylaneOAuthService}, {@code DocuSignOAuthService}
  * et tout futur provider OAuth.
  *
  * <h2>Responsabilites (SRP)</h2>
@@ -66,12 +66,18 @@ public class OAuthFlowEngine {
     private final OAuthStateService stateService;
     private final TokenEncryptionService encryptionService;
     private final RestTemplate restTemplate;
+    private final BaitlyOAuthConnectionGuard connectionGuard;
 
     public OAuthFlowEngine(OAuthStateService stateService,
-                          TokenEncryptionService encryptionService) {
+                          TokenEncryptionService encryptionService,
+                          BaitlyOAuthConnectionGuard connectionGuard) {
         this.stateService = stateService;
         this.encryptionService = encryptionService;
-        this.restTemplate = new RestTemplate();
+        this.connectionGuard = connectionGuard;
+        var requests = new org.springframework.http.client.SimpleClientHttpRequestFactory();
+        requests.setConnectTimeout(5000);
+        requests.setReadTimeout(15000);
+        this.restTemplate = new RestTemplate(requests);
     }
 
     // ─── 1. Authorization URL ────────────────────────────────────────────────
@@ -107,6 +113,13 @@ public class OAuthFlowEngine {
             Long userId,
             Long orgId
     ) {
+        return connectionGuard.execute(config.getProviderKey(), orgId,
+                () -> exchangeUnderLock(config, persistence, code, userId, orgId));
+    }
+
+    private <C extends OAuthConnectionLike> C exchangeUnderLock(
+            OAuthProviderConfig config, OAuthConnectionPersistence<C> persistence,
+            String code, Long userId, Long orgId) {
         log.info("OAuth — echange code, provider={} org={}", config.getProviderKey(), orgId);
 
         MultiValueMap<String, String> body = new LinkedMultiValueMap<>();
@@ -156,9 +169,19 @@ public class OAuthFlowEngine {
             OAuthConnectionPersistence<C> persistence,
             Long orgId
     ) {
+        return connectionGuard.executeRefresh(config.getProviderKey(), orgId,
+                () -> refreshUnderLock(config, persistence, orgId, false));
+    }
+
+    private <C extends OAuthConnectionLike> C refreshUnderLock(
+            OAuthProviderConfig config, OAuthConnectionPersistence<C> persistence,
+            Long orgId, boolean onlyIfExpiring) {
         C connection = persistence.findActiveByOrganizationId(orgId)
             .orElseThrow(() -> new IllegalStateException(
                 "Pas de connexion OAuth active — provider=" + config.getProviderKey() + " org=" + orgId));
+
+        // Relire sous verrou évite de réutiliser un refresh token déjà remplacé.
+        if (onlyIfExpiring && !connection.isTokenExpiringSoon()) return connection;
 
         String refreshToken = encryptionService.decrypt(connection.getRefreshTokenEncrypted());
 
@@ -203,6 +226,14 @@ public class OAuthFlowEngine {
             OAuthConnectionPersistence<C> persistence,
             Long orgId
     ) {
+        connectionGuard.execute(config.getProviderKey(), orgId, () -> {
+            revokeUnderLock(config, persistence, orgId);
+            return null;
+        });
+    }
+
+    private <C extends OAuthConnectionLike> void revokeUnderLock(
+            OAuthProviderConfig config, OAuthConnectionPersistence<C> persistence, Long orgId) {
         C connection = persistence.findByOrganizationId(orgId)
             .orElseThrow(() -> new IllegalStateException(
                 "Pas de connexion OAuth — provider=" + config.getProviderKey() + " org=" + orgId));
@@ -255,7 +286,8 @@ public class OAuthFlowEngine {
         if (connection.isTokenExpiringSoon()) {
             log.debug("OAuth — token proche expiration, refresh — provider={} org={}",
                 config.getProviderKey(), orgId);
-            connection = refreshToken(config, persistence, orgId);
+            connection = connectionGuard.executeRefresh(config.getProviderKey(), orgId,
+                    () -> refreshUnderLock(config, persistence, orgId, true));
         }
 
         return encryptionService.decrypt(connection.getAccessTokenEncrypted());
