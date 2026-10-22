@@ -313,7 +313,7 @@ class MinutOAuthServiceTest {
 
             // Assert
             assertThat(result.getStatus()).isEqualTo(MinutConnectionStatus.ERROR);
-            assertThat(result.getErrorMessage()).contains("Echec refresh");
+            assertThat(result.getErrorMessage()).isEqualTo(com.clenzy.integration.oauth.BaitlyOAuthDiagnostics.message(com.clenzy.integration.oauth.BaitlyOAuthDiagnostics.Operation.REFRESH));
         }
 
         @SuppressWarnings("unchecked")
@@ -336,7 +336,7 @@ class MinutOAuthServiceTest {
 
             // Assert
             assertThat(result.getStatus()).isEqualTo(MinutConnectionStatus.ERROR);
-            assertThat(result.getErrorMessage()).contains("Network error");
+            assertThat(result.getErrorMessage()).isEqualTo(com.clenzy.integration.oauth.BaitlyOAuthDiagnostics.message(com.clenzy.integration.oauth.BaitlyOAuthDiagnostics.Operation.REFRESH));
         }
     }
 

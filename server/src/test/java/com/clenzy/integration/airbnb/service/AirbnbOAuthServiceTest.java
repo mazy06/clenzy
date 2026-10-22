@@ -206,7 +206,7 @@ class AirbnbOAuthServiceTest {
 
             assertThatThrownBy(() -> service.refreshToken("user-1"))
                     .isInstanceOf(RuntimeException.class)
-                    .hasMessageContaining("refresh token");
+                    .hasMessage(com.clenzy.integration.oauth.BaitlyOAuthDiagnostics.message(com.clenzy.integration.oauth.BaitlyOAuthDiagnostics.Operation.REFRESH));
         }
 
         @SuppressWarnings({"rawtypes", "unchecked"})
@@ -287,7 +287,7 @@ class AirbnbOAuthServiceTest {
             verify(connectionRepository).save(captor.capture());
             AirbnbConnection saved = captor.getValue();
             assertThat(saved.getStatus()).isEqualTo(AirbnbConnection.AirbnbConnectionStatus.EXPIRED);
-            assertThat(saved.getErrorMessage()).contains("Refresh");
+            assertThat(saved.getErrorMessage()).isEqualTo(com.clenzy.integration.oauth.BaitlyOAuthDiagnostics.message(com.clenzy.integration.oauth.BaitlyOAuthDiagnostics.Operation.REFRESH));
         }
 
         @SuppressWarnings({"rawtypes", "unchecked"})
@@ -455,7 +455,7 @@ class AirbnbOAuthServiceTest {
             service.revokeToken("user-1");
 
             assertThat(conn.getStatus()).isEqualTo(AirbnbConnection.AirbnbConnectionStatus.REVOKED);
-            assertThat(conn.getAccessTokenEncrypted()).isNull();
+            assertThat(conn.getAccessTokenEncrypted()).isEmpty();
             assertThat(conn.getRefreshTokenEncrypted()).isNull();
             assertThat(conn.getTokenExpiresAt()).isNull();
             verify(auditLogService).logSync(eq("AirbnbConnection"), anyString(), anyString());

@@ -211,7 +211,7 @@ class HomeAwayOAuthServiceTest {
 
             assertThatThrownBy(() -> service.refreshToken(ORG_ID))
                     .isInstanceOf(RuntimeException.class)
-                    .hasMessageContaining("refresh token");
+                    .hasMessage(com.clenzy.integration.oauth.BaitlyOAuthDiagnostics.message(com.clenzy.integration.oauth.BaitlyOAuthDiagnostics.Operation.REFRESH));
         }
 
         @SuppressWarnings({"unchecked", "rawtypes"})
@@ -292,7 +292,7 @@ class HomeAwayOAuthServiceTest {
             verify(connectionRepository).save(captor.capture());
             assertThat(captor.getValue().getStatus())
                 .isEqualTo(HomeAwayConnection.HomeAwayConnectionStatus.EXPIRED);
-            assertThat(captor.getValue().getErrorMessage()).contains("Refresh");
+            assertThat(captor.getValue().getErrorMessage()).isEqualTo(com.clenzy.integration.oauth.BaitlyOAuthDiagnostics.message(com.clenzy.integration.oauth.BaitlyOAuthDiagnostics.Operation.REFRESH));
         }
 
         @SuppressWarnings({"unchecked", "rawtypes"})
