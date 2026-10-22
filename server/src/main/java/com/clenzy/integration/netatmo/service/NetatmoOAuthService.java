@@ -1,5 +1,8 @@
 package com.clenzy.integration.netatmo.service;
 
+import com.clenzy.integration.oauth.BaitlyOAuthDiagnostics;
+import static com.clenzy.integration.oauth.BaitlyOAuthDiagnostics.Operation.*;
+
 import com.clenzy.integration.netatmo.config.NetatmoConfig;
 import com.clenzy.integration.netatmo.model.NetatmoConnection;
 import com.clenzy.integration.netatmo.model.NetatmoConnection.NetatmoConnectionStatus;
@@ -155,8 +158,8 @@ public class NetatmoOAuthService {
             throw new RuntimeException("Reponse non-2xx de Netatmo: " + response.getStatusCode());
 
         } catch (Exception e) {
-            log.error("Erreur echange code OAuth Netatmo: {}", e.getMessage());
-            throw new RuntimeException("Echec de l'echange de code Netatmo", e);
+            log.error("Échec OAuth netatmo", BaitlyOAuthDiagnostics.failure(EXCHANGE, e));
+            throw BaitlyOAuthDiagnostics.failure(EXCHANGE, e);
         }
     }
 
@@ -167,23 +170,23 @@ public class NetatmoOAuthService {
     public NetatmoConnection refreshToken(NetatmoConnection connection) {
         log.info("Rafraichissement du token Netatmo pour l'utilisateur: {}", connection.getUserId());
 
-        String refreshToken = encryptionService.decrypt(connection.getRefreshTokenEncrypted());
-        if (refreshToken == null || refreshToken.isEmpty()) {
-            connection.setStatus(NetatmoConnectionStatus.EXPIRED);
-            connection.setErrorMessage("Refresh token manquant");
-            return connectionRepository.save(connection);
-        }
-
-        HttpHeaders headers = new HttpHeaders();
-        headers.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
-
-        MultiValueMap<String, String> params = new LinkedMultiValueMap<>();
-        params.add("client_id", configService.getClientId());
-        params.add("client_secret", configService.getClientSecret());
-        params.add("refresh_token", refreshToken);
-        params.add("grant_type", "refresh_token");
-
         try {
+            String refreshToken = encryptionService.decrypt(connection.getRefreshTokenEncrypted());
+            if (refreshToken == null || refreshToken.isEmpty()) {
+                connection.setStatus(NetatmoConnectionStatus.EXPIRED);
+                connection.setErrorMessage("Refresh token manquant");
+                return connectionRepository.save(connection);
+            }
+
+            HttpHeaders headers = new HttpHeaders();
+            headers.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
+
+            MultiValueMap<String, String> params = new LinkedMultiValueMap<>();
+            params.add("client_id", configService.getClientId());
+            params.add("client_secret", configService.getClientSecret());
+            params.add("refresh_token", refreshToken);
+            params.add("grant_type", "refresh_token");
+
             ResponseEntity<Map> response = restTemplate.postForEntity(
                     config.getTokenUrl(),
                     new HttpEntity<>(params, headers),
@@ -209,13 +212,13 @@ public class NetatmoOAuthService {
             }
 
             connection.setStatus(NetatmoConnectionStatus.ERROR);
-            connection.setErrorMessage("Echec refresh: " + response.getStatusCode());
+            connection.setErrorMessage(BaitlyOAuthDiagnostics.message(REFRESH));
             return connectionRepository.save(connection);
 
         } catch (Exception e) {
-            log.error("Erreur refresh token Netatmo: {}", e.getMessage());
+            log.error("Échec OAuth netatmo", BaitlyOAuthDiagnostics.failure(REFRESH, e));
             connection.setStatus(NetatmoConnectionStatus.ERROR);
-            connection.setErrorMessage("Erreur refresh: " + e.getMessage());
+            connection.setErrorMessage(BaitlyOAuthDiagnostics.message(REFRESH));
             return connectionRepository.save(connection);
         }
     }
@@ -244,11 +247,15 @@ public class NetatmoOAuthService {
 
     /**
      * Revoque la connexion. Netatmo n'expose pas d'endpoint de revocation standard
-     * → on revoque localement (statut REVOKED), les tokens deviennent inutilisables.
+     * La déconnexion locale efface les jetons sans attester leur révocation distante.
      */
     public void revokeToken(String userId) {
         connectionRepository.findByUserId(userId).ifPresent(connection -> {
             connection.setStatus(NetatmoConnectionStatus.REVOKED);
+            connection.setAccessTokenEncrypted(null);
+            connection.setRefreshTokenEncrypted(null);
+            connection.setTokenExpiresAt(null);
+            connection.setErrorMessage(BaitlyOAuthDiagnostics.message(REVOKE));
             connectionRepository.save(connection);
         });
     }

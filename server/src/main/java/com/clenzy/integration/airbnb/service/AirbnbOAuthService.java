@@ -1,5 +1,8 @@
 package com.clenzy.integration.airbnb.service;
 
+import com.clenzy.integration.oauth.BaitlyOAuthDiagnostics;
+import static com.clenzy.integration.oauth.BaitlyOAuthDiagnostics.Operation.*;
+
 import com.clenzy.integration.airbnb.config.AirbnbConfig;
 import com.clenzy.integration.airbnb.model.AirbnbConnection;
 import com.clenzy.integration.airbnb.repository.AirbnbConnectionRepository;
@@ -147,8 +150,7 @@ public class AirbnbOAuthService {
                 auditLogService.logSync("AirbnbConnection", saved.getId().toString(),
                         "Connexion OAuth Airbnb etablie pour user " + userId);
 
-                log.info("Connexion Airbnb etablie pour l'utilisateur: {} (airbnbUserId: {})",
-                        userId, airbnbUserId);
+                log.info("Connexion Airbnb établie pour l'utilisateur : {}", userId);
 
                 return saved;
             } else {
@@ -156,16 +158,16 @@ public class AirbnbOAuthService {
             }
 
         } catch (Exception e) {
-            log.error("Erreur lors de l'echange du code OAuth Airbnb: {}", e.getMessage());
+            log.error("Échec OAuth airbnb", BaitlyOAuthDiagnostics.failure(EXCHANGE, e));
 
             // Enregistrer l'erreur dans la connexion si elle existe
             connectionRepository.findByUserId(userId).ifPresent(conn -> {
                 conn.setStatus(AirbnbConnection.AirbnbConnectionStatus.ERROR);
-                conn.setErrorMessage(e.getMessage());
+                conn.setErrorMessage(BaitlyOAuthDiagnostics.message(EXCHANGE));
                 connectionRepository.save(conn);
             });
 
-            throw new RuntimeException("Echec de l'echange OAuth Airbnb", e);
+            throw BaitlyOAuthDiagnostics.failure(EXCHANGE, e);
         }
     }
 
@@ -179,21 +181,21 @@ public class AirbnbOAuthService {
         AirbnbConnection connection = connectionRepository.findByUserId(userId)
                 .orElseThrow(() -> new RuntimeException("Aucune connexion Airbnb pour l'utilisateur: " + userId));
 
-        String refreshToken = encryptionService.decrypt(connection.getRefreshTokenEncrypted());
-        if (refreshToken == null) {
-            throw new RuntimeException("Pas de refresh token disponible");
-        }
-
-        HttpHeaders headers = new HttpHeaders();
-        headers.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
-
-        MultiValueMap<String, String> params = new LinkedMultiValueMap<>();
-        params.add("client_id", config.getClientId());
-        params.add("client_secret", config.getClientSecret());
-        params.add("refresh_token", refreshToken);
-        params.add("grant_type", "refresh_token");
-
         try {
+            String refreshToken = encryptionService.decrypt(connection.getRefreshTokenEncrypted());
+            if (refreshToken == null) {
+                throw new RuntimeException("Pas de refresh token disponible");
+            }
+
+            HttpHeaders headers = new HttpHeaders();
+            headers.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
+
+            MultiValueMap<String, String> params = new LinkedMultiValueMap<>();
+            params.add("client_id", config.getClientId());
+            params.add("client_secret", config.getClientSecret());
+            params.add("refresh_token", refreshToken);
+            params.add("grant_type", "refresh_token");
+
             ResponseEntity<Map> response = restTemplate.postForEntity(
                     config.getTokenUrl(), params, Map.class);
 
@@ -219,11 +221,11 @@ public class AirbnbOAuthService {
             }
 
         } catch (Exception e) {
-            log.error("Erreur lors du refresh du token Airbnb: {}", e.getMessage());
+            log.error("Échec OAuth airbnb", BaitlyOAuthDiagnostics.failure(REFRESH, e));
             connection.setStatus(AirbnbConnection.AirbnbConnectionStatus.EXPIRED);
-            connection.setErrorMessage("Refresh echoue: " + e.getMessage());
+            connection.setErrorMessage(BaitlyOAuthDiagnostics.message(REFRESH));
             connectionRepository.save(connection);
-            throw new RuntimeException("Echec du rafraichissement du token Airbnb", e);
+            throw BaitlyOAuthDiagnostics.failure(REFRESH, e);
         }
     }
 
@@ -237,6 +239,7 @@ public class AirbnbOAuthService {
         AirbnbConnection connection = connectionRepository.findByUserId(userId)
                 .orElseThrow(() -> new RuntimeException("Aucune connexion Airbnb pour l'utilisateur: " + userId));
 
+        boolean remoteConfirmed = false;
         try {
             String accessToken = encryptionService.decrypt(connection.getAccessTokenEncrypted());
 
@@ -249,10 +252,11 @@ public class AirbnbOAuthService {
             params.add("client_secret", config.getClientSecret());
             params.add("token", accessToken);
 
-            restTemplate.postForEntity(config.getApiBaseUrl() + "/oauth2/revoke", params, Void.class);
+            var response = restTemplate.postForEntity(config.getApiBaseUrl() + "/oauth2/revoke", params, Void.class);
+            remoteConfirmed = response != null && response.getStatusCode().is2xxSuccessful();
 
         } catch (Exception e) {
-            log.warn("Erreur lors de la revocation du token cote Airbnb (non-bloquant): {}", e.getMessage());
+            log.warn("Révocation OAuth airbnb non confirmée", BaitlyOAuthDiagnostics.failure(REVOKE, e));
         }
 
         // Marquer comme revoque dans tous les cas
@@ -260,13 +264,14 @@ public class AirbnbOAuthService {
         connection.setAccessTokenEncrypted(null);
         connection.setRefreshTokenEncrypted(null);
         connection.setTokenExpiresAt(null);
+        connection.setErrorMessage(remoteConfirmed ? null : BaitlyOAuthDiagnostics.message(REVOKE));
         connectionRepository.save(connection);
 
         // Audit
         auditLogService.logSync("AirbnbConnection", connection.getId().toString(),
-                "Connexion Airbnb revoquee pour user " + userId);
+                "Connexion Airbnb déconnectée localement pour user " + userId);
 
-        log.info("Connexion Airbnb revoquee pour l'utilisateur: {}", userId);
+        log.info("Connexion Airbnb déconnectée localement pour l'utilisateur : {}", userId);
     }
 
     /**

@@ -1,5 +1,8 @@
 package com.clenzy.integration.homeaway.service;
 
+import com.clenzy.integration.oauth.BaitlyOAuthDiagnostics;
+import static com.clenzy.integration.oauth.BaitlyOAuthDiagnostics.Operation.*;
+
 import com.clenzy.integration.homeaway.config.HomeAwayConfig;
 import com.clenzy.integration.homeaway.model.HomeAwayConnection;
 import com.clenzy.integration.homeaway.repository.HomeAwayConnectionRepository;
@@ -151,15 +154,15 @@ public class HomeAwayOAuthService {
             }
 
         } catch (Exception e) {
-            log.error("Erreur lors de l'echange du code OAuth HomeAway: {}", e.getMessage());
+            log.error("Échec OAuth homeaway", BaitlyOAuthDiagnostics.failure(EXCHANGE, e));
 
             connectionRepository.findByOrganizationId(orgId).ifPresent(conn -> {
                 conn.setStatus(HomeAwayConnection.HomeAwayConnectionStatus.ERROR);
-                conn.setErrorMessage(e.getMessage());
+                conn.setErrorMessage(BaitlyOAuthDiagnostics.message(EXCHANGE));
                 connectionRepository.save(conn);
             });
 
-            throw new RuntimeException("Echec de l'echange OAuth HomeAway", e);
+            throw BaitlyOAuthDiagnostics.failure(EXCHANGE, e);
         }
     }
 
@@ -173,21 +176,21 @@ public class HomeAwayOAuthService {
         HomeAwayConnection connection = connectionRepository.findByOrganizationId(orgId)
                 .orElseThrow(() -> new RuntimeException("Aucune connexion HomeAway pour org: " + orgId));
 
-        String refreshToken = encryptionService.decrypt(connection.getRefreshTokenEncrypted());
-        if (refreshToken == null) {
-            throw new RuntimeException("Pas de refresh token disponible");
-        }
-
-        HttpHeaders headers = new HttpHeaders();
-        headers.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
-
-        MultiValueMap<String, String> params = new LinkedMultiValueMap<>();
-        params.add("client_id", config.getClientId());
-        params.add("client_secret", config.getClientSecret());
-        params.add("refresh_token", refreshToken);
-        params.add("grant_type", "refresh_token");
-
         try {
+            String refreshToken = encryptionService.decrypt(connection.getRefreshTokenEncrypted());
+            if (refreshToken == null) {
+                throw new RuntimeException("Pas de refresh token disponible");
+            }
+
+            HttpHeaders headers = new HttpHeaders();
+            headers.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
+
+            MultiValueMap<String, String> params = new LinkedMultiValueMap<>();
+            params.add("client_id", config.getClientId());
+            params.add("client_secret", config.getClientSecret());
+            params.add("refresh_token", refreshToken);
+            params.add("grant_type", "refresh_token");
+
             ResponseEntity<Map> response = restTemplate.postForEntity(
                     config.getTokenUrl(), new HttpEntity<>(params, headers), Map.class);
 
@@ -214,11 +217,11 @@ public class HomeAwayOAuthService {
             }
 
         } catch (Exception e) {
-            log.error("Erreur lors du refresh du token HomeAway: {}", e.getMessage());
+            log.error("Échec OAuth homeaway", BaitlyOAuthDiagnostics.failure(REFRESH, e));
             connection.setStatus(HomeAwayConnection.HomeAwayConnectionStatus.EXPIRED);
-            connection.setErrorMessage("Refresh echoue: " + e.getMessage());
+            connection.setErrorMessage(BaitlyOAuthDiagnostics.message(REFRESH));
             connectionRepository.save(connection);
-            throw new RuntimeException("Echec du rafraichissement du token HomeAway", e);
+            throw BaitlyOAuthDiagnostics.failure(REFRESH, e);
         }
     }
 

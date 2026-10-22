@@ -1,5 +1,8 @@
 package com.clenzy.integration.minut.service;
 
+import com.clenzy.integration.oauth.BaitlyOAuthDiagnostics;
+import static com.clenzy.integration.oauth.BaitlyOAuthDiagnostics.Operation.*;
+
 import com.clenzy.integration.minut.config.MinutConfig;
 import com.clenzy.integration.minut.model.MinutConnection;
 import com.clenzy.integration.minut.model.MinutConnection.MinutConnectionStatus;
@@ -142,8 +145,8 @@ public class MinutOAuthService {
             throw new RuntimeException("Reponse non-2xx de Minut: " + response.getStatusCode());
 
         } catch (Exception e) {
-            log.error("Erreur echange code OAuth Minut: {}", e.getMessage());
-            throw new RuntimeException("Echec de l'echange de code Minut", e);
+            log.error("Échec OAuth minut", BaitlyOAuthDiagnostics.failure(EXCHANGE, e));
+            throw BaitlyOAuthDiagnostics.failure(EXCHANGE, e);
         }
     }
 
@@ -154,23 +157,23 @@ public class MinutOAuthService {
     public MinutConnection refreshToken(MinutConnection connection) {
         log.info("Rafraichissement du token Minut pour l'utilisateur: {}", connection.getUserId());
 
-        String refreshToken = encryptionService.decrypt(connection.getRefreshTokenEncrypted());
-        if (refreshToken == null || refreshToken.isEmpty()) {
-            connection.setStatus(MinutConnectionStatus.EXPIRED);
-            connection.setErrorMessage("Refresh token manquant");
-            return connectionRepository.save(connection);
-        }
-
-        HttpHeaders headers = new HttpHeaders();
-        headers.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
-
-        MultiValueMap<String, String> params = new LinkedMultiValueMap<>();
-        params.add("client_id", config.getClientId());
-        params.add("client_secret", config.getClientSecret());
-        params.add("refresh_token", refreshToken);
-        params.add("grant_type", "refresh_token");
-
         try {
+            String refreshToken = encryptionService.decrypt(connection.getRefreshTokenEncrypted());
+            if (refreshToken == null || refreshToken.isEmpty()) {
+                connection.setStatus(MinutConnectionStatus.EXPIRED);
+                connection.setErrorMessage("Refresh token manquant");
+                return connectionRepository.save(connection);
+            }
+
+            HttpHeaders headers = new HttpHeaders();
+            headers.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
+
+            MultiValueMap<String, String> params = new LinkedMultiValueMap<>();
+            params.add("client_id", config.getClientId());
+            params.add("client_secret", config.getClientSecret());
+            params.add("refresh_token", refreshToken);
+            params.add("grant_type", "refresh_token");
+
             ResponseEntity<Map> response = restTemplate.postForEntity(
                     config.getTokenUrl(),
                     new HttpEntity<>(params, headers),
@@ -196,13 +199,13 @@ public class MinutOAuthService {
             }
 
             connection.setStatus(MinutConnectionStatus.ERROR);
-            connection.setErrorMessage("Echec refresh: " + response.getStatusCode());
+            connection.setErrorMessage(BaitlyOAuthDiagnostics.message(REFRESH));
             return connectionRepository.save(connection);
 
         } catch (Exception e) {
-            log.error("Erreur refresh token Minut: {}", e.getMessage());
+            log.error("Échec OAuth minut", BaitlyOAuthDiagnostics.failure(REFRESH, e));
             connection.setStatus(MinutConnectionStatus.ERROR);
-            connection.setErrorMessage("Erreur refresh: " + e.getMessage());
+            connection.setErrorMessage(BaitlyOAuthDiagnostics.message(REFRESH));
             return connectionRepository.save(connection);
         }
     }
@@ -236,6 +239,7 @@ public class MinutOAuthService {
      */
     public void revokeToken(String userId) {
         connectionRepository.findByUserId(userId).ifPresent(connection -> {
+            boolean remoteConfirmed = false;
             try {
                 String accessToken = encryptionService.decrypt(connection.getAccessTokenEncrypted());
                 if (accessToken != null) {
@@ -246,16 +250,21 @@ public class MinutOAuthService {
                     MultiValueMap<String, String> params = new LinkedMultiValueMap<>();
                     params.add("token", accessToken);
 
-                    restTemplate.postForEntity(
+                    var response = restTemplate.postForEntity(
                             config.getApiBaseUrl() + "/oauth/revoke",
                             new HttpEntity<>(params, headers),
                             Void.class);
+                    remoteConfirmed = response != null && response.getStatusCode().is2xxSuccessful();
                 }
             } catch (Exception e) {
-                log.warn("Erreur lors de la revocation du token Minut (continue quand meme): {}", e.getMessage());
+                log.warn("Révocation OAuth minut non confirmée", BaitlyOAuthDiagnostics.failure(REVOKE, e));
             }
 
             connection.setStatus(MinutConnectionStatus.REVOKED);
+            connection.setAccessTokenEncrypted(null);
+            connection.setRefreshTokenEncrypted(null);
+            connection.setTokenExpiresAt(null);
+            connection.setErrorMessage(remoteConfirmed ? null : BaitlyOAuthDiagnostics.message(REVOKE));
             connectionRepository.save(connection);
         });
     }
