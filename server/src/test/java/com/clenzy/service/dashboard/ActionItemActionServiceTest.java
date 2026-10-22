@@ -100,7 +100,7 @@ class ActionItemActionServiceTest {
                 List.of(
                         new AcknowledgeNoiseAlertHandler(noiseAlertService),
                         new ApprovePayoutHandler(accountingService),
-                        new ReleaseDepositHandler(securityDepositPaymentService),
+                        new ReleaseDepositHandler(securityDepositPaymentService, mock(com.clenzy.service.OrganizationService.class)),
                         new ConfirmReservationHandler(reservationService),
                         new ReplayAutomationHandler(automationEvaluationService),
                         new ReplayOutboxHandler(outboxEventRepository),
