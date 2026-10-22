@@ -1,4 +1,6 @@
 package com.clenzy.integration.channel.service;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.anyLong;
 
 import com.clenzy.exception.NotFoundException;
 import com.clenzy.integration.agoda.model.AgodaConnection;
@@ -42,6 +44,48 @@ import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
 class ChannelConnectionServiceTest {
+    @Test void homeAwayReconnectReusesTheExistingOAuthRowAndClearsOldRefresh() {
+        var prior = new HomeAwayConnection(ORG_ID, "old-access");
+        prior.setId(14L); prior.setRefreshTokenEncrypted("old-refresh");
+        prior.setTokenExpiresAt(java.time.LocalDateTime.now().minusHours(1));
+        prior.setStatus(HomeAwayConnection.HomeAwayConnectionStatus.ERROR);
+        when(homeAwayConnectionRepository.findByOrganizationId(ORG_ID)).thenReturn(Optional.of(prior));
+        when(homeAwayConnectionRepository.save(any())).thenAnswer(call -> call.getArgument(0));
+        when(channelConnectionRepository.save(any())).thenAnswer(call -> call.getArgument(0));
+        when(encryptionService.encrypt("new-access")).thenReturn("new-ciphertext");
+        service.connect(ORG_ID, ChannelName.HOMEAWAY,
+                new ChannelConnectRequest(creds("listingId", "new-listing", "accessToken", "new-access")));
+        verify(homeAwayConnectionRepository).save(prior);
+        assertThat(prior.getId()).isEqualTo(14L);
+        assertThat(prior.getRefreshTokenEncrypted()).isNull();
+        assertThat(prior.getTokenExpiresAt()).isNull();
+        assertThat(prior.getAccessTokenEncrypted()).isEqualTo("new-ciphertext");
+    }
+
+    @Test void homeAwayEncryptionFailureCannotMutateTheOldPair() {
+        when(encryptionService.encrypt("access")).thenReturn("new-ciphertext");
+        when(encryptionService.encrypt("refresh")).thenThrow(new IllegalStateException("synthetic crypto failure"));
+        assertThatThrownBy(() -> service.connect(ORG_ID, ChannelName.HOMEAWAY,
+                new ChannelConnectRequest(creds("listingId", "listing", "accessToken", "access", "refreshToken", "refresh"))))
+                .isInstanceOf(IllegalStateException.class);
+        verify(homeAwayConnectionRepository, never()).findByOrganizationId(anyLong());
+        verify(homeAwayConnectionRepository, never()).save(any());
+        verify(channelConnectionRepository, never()).save(any());
+    }
+
+    @Test void homeAwayContentionRefusesConnectAndDisconnectBeforeReadingOrWriting() {
+        var guard = org.mockito.Mockito.mock(com.clenzy.integration.oauth.BaitlyOAuthConnectionGuard.class);
+        when(guard.execute(eq("homeaway"), eq(ORG_ID), any())).thenThrow(new com.clenzy.integration.oauth.BaitlyOAuthBusyException());
+        var guarded = new ChannelConnectionService(channelConnectionRepository, bookingConnectionRepository,
+                expediaConnectionRepository, hotelsComConnectionRepository, agodaConnectionRepository,
+                homeAwayConnectionRepository, encryptionService, guard);
+        assertThatThrownBy(() -> guarded.connect(ORG_ID, ChannelName.HOMEAWAY,
+                new ChannelConnectRequest(creds("listingId", "listing", "accessToken", "access"))))
+                .isInstanceOf(com.clenzy.integration.oauth.BaitlyOAuthBusyException.class);
+        assertThatThrownBy(() -> guarded.disconnect(ORG_ID, ChannelName.HOMEAWAY))
+                .isInstanceOf(com.clenzy.integration.oauth.BaitlyOAuthBusyException.class);
+        org.mockito.Mockito.verifyNoInteractions(channelConnectionRepository, homeAwayConnectionRepository, encryptionService);
+    }
 
     @Mock private ChannelConnectionRepository channelConnectionRepository;
     @Mock private BookingConnectionRepository bookingConnectionRepository;
@@ -60,7 +104,8 @@ class ChannelConnectionServiceTest {
         service = new ChannelConnectionService(
                 channelConnectionRepository, bookingConnectionRepository,
                 expediaConnectionRepository, hotelsComConnectionRepository,
-                agodaConnectionRepository, homeAwayConnectionRepository, encryptionService);
+                agodaConnectionRepository, homeAwayConnectionRepository, encryptionService,
+                com.clenzy.integration.oauth.BaitlyOAuthTestGuards.passthrough());
     }
 
     // ── Helpers ─────────────────────────────────────────────────────────────
