@@ -401,6 +401,21 @@ class StripePaymentProviderTest {
     @DisplayName("refundPayment")
     class RefundPayment {
         @Test
+        void managedRecoveryDoesNotExposePrivateExceptionOrNestedCause() throws Exception {
+            var managed=mock(com.clenzy.payment.ManagedStripeRefund.class);
+            var service=new StripePaymentProvider(mock(com.clenzy.payment.StripeGateway.class),managed);
+            var failure=new IllegalStateException("email=synthetic@example.invalid token=private-canary",
+                    new IllegalArgumentException("password=private-cause"));
+            failure.addSuppressed(new RuntimeException("address=private-suppressed"));
+            when(managed.execute(any(),any())).thenThrow(failure);
+            var context=new com.clenzy.payment.RefundContext(7L,"cs_original","TX-original","EUR",BigDecimal.TEN,
+                    "REF-case",null,java.time.LocalDateTime.now());
+            var result=service.refundPayment(context,BigDecimal.TEN,"test");
+            assertThat(result.success()).isFalse();
+            assertThat(result.errorMessage()).isEqualTo(com.clenzy.payment.BaitlyRefundDiagnostics.RECONCILIATION_REQUIRED);
+        }
+
+        @Test
         void fullRefund_returnsResult() {
             Refund refund = mock(Refund.class);
             when(refund.getId()).thenReturn("rf_test");
@@ -437,15 +452,21 @@ class StripePaymentProviderTest {
 
         @Test
         void stripeException_returnsFailure() {
+            var logger=(ch.qos.logback.classic.Logger) org.slf4j.LoggerFactory.getLogger(StripePaymentProvider.class);
+            var appender=new ch.qos.logback.core.read.ListAppender<ch.qos.logback.classic.spi.ILoggingEvent>();
+            appender.start(); logger.addAppender(appender);
             try (MockedStatic<Refund> refundStatic = mockStatic(Refund.class)) {
                 refundStatic.when(() -> Refund.create(any(RefundCreateParams.class), any()))
-                        .thenThrow(new ApiException("Refund failed", null, "c", 400, null));
+                        .thenThrow(new ApiException("email=synthetic@example.invalid token=private-canary", null, "c", 400, null));
 
                 PaymentResult result = provider.refundPayment("pi_bad", null, null);
 
                 assertThat(result.success()).isFalse();
-                assertThat(result.errorMessage()).contains("Stripe refund error");
-            }
+                assertThat(result.errorMessage()).isEqualTo(com.clenzy.payment.BaitlyRefundDiagnostics.RECONCILIATION_REQUIRED);
+                assertThat(appender.list).hasSize(1);
+                assertThat(appender.list.getFirst().getFormattedMessage()).doesNotContain("private-","example.invalid");
+                assertThat(appender.list.getFirst().getThrowableProxy()).isNull();
+            } finally { logger.detachAppender(appender); appender.stop(); }
         }
 
         @Test
