@@ -106,7 +106,7 @@ public class AirbnbOAuthService {
      */
     @CircuitBreaker(name = "airbnb-oauth")
     public AirbnbConnection exchangeCodeForToken(String code, String userId) {
-        return connectionGuard.executeUserAuthorization("airbnb", userId,
+        return connectionGuard.executeUserLegacyAuthorization("airbnb", userId,
                 () -> exchangeUnderLock(code, userId));
     }
 

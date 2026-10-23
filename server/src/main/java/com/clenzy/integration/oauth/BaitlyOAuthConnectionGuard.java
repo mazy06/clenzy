@@ -39,12 +39,21 @@ public class BaitlyOAuthConnectionGuard {
         return executeKey(userScope(provider, userId), operation, false);
     }
 
-    /** Nouvelle autorisation : conserve les erreurs métier, ne réutilise aucun refresh incertain. */
+    /** Nouvelle autorisation atomique : toute erreur annule les nouvelles informations. */
     public <T> T executeAuthorization(String provider, Long organizationId, Supplier<T> operation) {
-        return executeKey(organizationScope(provider, organizationId), operation, true, false, true);
+        return executeKey(organizationScope(provider, organizationId), operation, false, false, true);
     }
 
     public <T> T executeUserAuthorization(String provider, String userId, Supplier<T> operation) {
+        return executeKey(userScope(provider, userId), operation, false, false, true);
+    }
+
+    /** Compatibilité des connecteurs historiques qui enregistrent ERROR avant propagation. */
+    public <T> T executeLegacyAuthorization(String provider, Long organizationId, Supplier<T> operation) {
+        return executeKey(organizationScope(provider, organizationId), operation, true, false, true);
+    }
+
+    public <T> T executeUserLegacyAuthorization(String provider, String userId, Supplier<T> operation) {
         return executeKey(userScope(provider, userId), operation, true, false, true);
     }
 
