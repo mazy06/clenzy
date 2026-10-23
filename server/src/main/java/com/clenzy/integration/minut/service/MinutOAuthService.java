@@ -100,7 +100,7 @@ public class MinutOAuthService {
      */
     @SuppressWarnings("unchecked")
     public MinutConnection exchangeCodeForToken(String code, String userId) {
-        return connectionGuard.executeForUser("minut", userId,
+        return connectionGuard.executeUserAuthorization("minut", userId,
                 () -> exchangeUnderLock(code, userId));
     }
 
@@ -170,7 +170,7 @@ public class MinutOAuthService {
     @SuppressWarnings("unchecked")
     public MinutConnection refreshToken(MinutConnection connection) {
         String userId = connection.getUserId();
-        return connectionGuard.executeUserAuthorization("minut", userId,
+        return connectionGuard.executeUserRefresh("minut", userId,
                 () -> refreshUnderLock(userId, false));
     }
 

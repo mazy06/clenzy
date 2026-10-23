@@ -115,7 +115,7 @@ public class NetatmoOAuthService {
      */
     @SuppressWarnings("unchecked")
     public NetatmoConnection exchangeCodeForToken(String code, String userId, Long organizationId) {
-        return connectionGuard.executeForUser("netatmo", userId,
+        return connectionGuard.executeUserAuthorization("netatmo", userId,
                 () -> exchangeUnderLock(code, userId, organizationId));
     }
 
@@ -183,7 +183,7 @@ public class NetatmoOAuthService {
     @SuppressWarnings("unchecked")
     public NetatmoConnection refreshToken(NetatmoConnection connection) {
         String userId = connection.getUserId();
-        return connectionGuard.executeUserAuthorization("netatmo", userId,
+        return connectionGuard.executeUserRefresh("netatmo", userId,
                 () -> refreshUnderLock(userId, false));
     }
 
