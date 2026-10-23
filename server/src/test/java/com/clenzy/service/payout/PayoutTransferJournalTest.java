@@ -55,7 +55,7 @@ class PayoutTransferJournalTest {
         var provider = new PayoutTransferInstruction(7L,PayoutTransfer.Source.INTERVENTION,11L,42L,
                 new BigDecimal("30"),"EUR","acct_provider","Solde prestation #11");
         doThrow(new IllegalStateException("remboursement à rapprocher")).when(guard).requireInstruction(provider);
-        assertThatThrownBy(() -> journal.prepare(provider)).hasMessageContaining("remboursement");
+        assertThatThrownBy(() -> journal.prepare(provider)).hasMessage(BaitlyPayoutDiagnostics.FUNDS_UNAVAILABLE);
         verify(transfers,never()).insertIfAbsent(any(),any(),any(),any(),any(),any(),any(),any(),any(),any());
         verifyNoInteractions(events);
     }

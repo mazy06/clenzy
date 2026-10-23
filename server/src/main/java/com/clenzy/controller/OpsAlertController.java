@@ -55,7 +55,9 @@ public class OpsAlertController {
             "ClenzyBackendDown", "ClenzyDocGenFailures", "BaitlyBackendHigh5xx", "BaitlyBackendSlow",
             "BaitlyDatabasePoolSaturated", "BaitlyJvmHeapPressure", "BaitlyBackendDiskLow",
             "BaitlyOperationalMetricsUnavailable", "BaitlyOperationalMetricsStale", "BaitlyOutboxExhausted",
-            "BaitlyOutboxStalled", "BaitlyWebhookDeliveryStalled", "BaitlyWebhookDisabled", "BaitlyChannelSyncFailures");
+            "BaitlyOutboxStalled", "BaitlyWebhookDeliveryStalled", "BaitlyWebhookDisabled", "BaitlyChannelSyncFailures",
+            "BaitlyRecoveryMetricsUnavailable", "BaitlyRecoveryMetricsStale",
+            "BaitlyAccountingExportStalled", "BaitlyAccountingExportUncertain");
 
     private final NotificationService notificationService;
     private final String opsToken;
@@ -82,20 +84,19 @@ public class OpsAlertController {
             return ResponseEntity.badRequest().body(Map.of("error", "title_and_message_required"));
         }
 
-        String rawTitle = truncate(req.title(), MAX_TITLE);
-        String rawMessage = truncate(req.message(), MAX_MESSAGE);
-        // Lien externe (URL du run CI) -> dans le corps (la navigation in-app ne gere
-        // que les chemins internes). Un chemin interne ("/...") devient l'actionUrl cliquable.
-        String link = isBlank(req.link()) ? null : req.link().trim();
-        if (link != null && !link.startsWith("/")) {
-            rawMessage = rawMessage + "\n" + link;
-        }
-        String actionUrl = (link != null && link.startsWith("/")) ? link : null;
+        // Les anciens producteurs peuvent envoyer des diagnostics libres : ils restent
+        // acceptés, mais jamais recopiés dans les notifications, les logs ou les labels.
+        String severity = Set.of("critical", "warning", "info").contains(req.severity() == null ? "" : req.severity())
+                ? req.severity() : "critical";
+        String title = "[" + severity + "] Baitly : alerte d’exploitation";
+        String message = "Consulter le monitoring interne et le guide d’incident.";
+        String link = trustedRunLink(req.link());
+        if (link != null) message += "\n" + link;
 
         if (!notifyStrict("ci",
-                StringUtils.escapeHtml(rawTitle),
-                StringUtils.escapeHtml(rawMessage),
-                actionUrl)) return notificationUnavailable();
+                StringUtils.escapeHtml(title),
+                StringUtils.escapeHtml(message),
+                null)) return notificationUnavailable();
 
         received("ci", "firing");
         log.info("Baitly ops alert accepted for platform notification");
@@ -199,6 +200,20 @@ public class OpsAlertController {
 
     private static boolean isBlank(String s) {
         return s == null || s.isBlank();
+    }
+
+    /** Aucun accès réseau : seuls les liens de runs des dépôts Baitly connus sont diffusables. */
+    private static String trustedRunLink(String value) {
+        if (value == null || value.length() > 512) return null;
+        try {
+            var uri = java.net.URI.create(value.trim());
+            if (!"https".equals(uri.getScheme()) || !"github.com".equals(uri.getHost())
+                    || uri.getPort() != -1 || uri.getRawUserInfo() != null
+                    || uri.getRawQuery() != null || uri.getRawFragment() != null) return null;
+            String path = uri.getRawPath();
+            if (path == null || !path.matches("/mazy06/(?:clenzy|clenzy-infra|clenzy-sites)/actions/runs/[1-9][0-9]{0,19}(?:/(?:attempts|job)/[1-9][0-9]{0,19})?")) return null;
+            return "https://github.com" + path;
+        } catch (IllegalArgumentException ignored) { return null; }
     }
 
     private static String truncate(String s, int max) {

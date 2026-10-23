@@ -74,10 +74,10 @@ public class MinutWebhookConsumer {
             } else if ("device_online".equalsIgnoreCase(eventType)) {
                 processDeviceOnlineEvent(event);
             } else {
-                log.debug("Webhook Minut ignore (type={})", eventType);
+                log.debug("Webhook Minut ignore : type non pris en charge");
             }
         } catch (Exception e) {
-            log.error("Erreur traitement webhook Minut: {}", e.getMessage(), e);
+            log.error("Erreur traitement webhook Minut");
         }
     }
 
@@ -88,13 +88,12 @@ public class MinutWebhookConsumer {
         }
 
         double soundLevel = extractSoundLevel(event);
-        if (soundLevel <= 0) {
+        if (!Double.isFinite(soundLevel) || soundLevel <= 0) {
             log.debug("Pas de niveau sonore valide dans l'evenement Minut");
             return;
         }
 
-        log.info("Disturbance Minut: device={}, property={}, level={}dB",
-            device.getExternalDeviceId(), device.getPropertyId(), soundLevel);
+        log.info("Evenement bruit Minut valide");
 
         noiseAlertService.evaluateNoiseLevel(
             device.getOrganizationId(),
@@ -115,7 +114,7 @@ public class MinutWebhookConsumer {
             );
             kafkaTemplate.send(KafkaConfig.TOPIC_MINUT_NOISE_EVENTS, processedEvent);
         } catch (Exception e) {
-            log.warn("Erreur publication noise event: {}", e.getMessage());
+            log.warn("Erreur publication evenement bruit Minut");
         }
     }
 
@@ -133,8 +132,7 @@ public class MinutWebhookConsumer {
             return;
         }
         if (deviceRepository.markOffline(device.getId()) == 0) {
-            log.debug("Device Minut {} deja hors ligne (episode en cours) — pas de re-notification",
-                device.getId());
+            log.debug("Capteur Minut deja hors ligne : episode en cours");
             return;
         }
 
@@ -149,8 +147,7 @@ public class MinutWebhookConsumer {
         }
         data.put(NotifyStaffExecutor.DATA_OFFLINE_SINCE, LocalDateTime.now().toString());
 
-        log.info("Device Minut {} hors ligne (property={}) — trigger IOT_DEVICE_OFFLINE",
-            device.getId(), device.getPropertyId());
+        log.info("Debut episode hors ligne Minut : trigger IOT_DEVICE_OFFLINE");
         // Le CAS markOffline ci-dessus garantit qu'on est au DEBUT d'un episode :
         // une re-livraison Kafka est deja sortie, elle ne re-notifie pas le hub.
         realtimePublisher.publishDeviceChanged(
@@ -167,7 +164,7 @@ public class MinutWebhookConsumer {
             return;
         }
         deviceRepository.markOnline(device.getId(), LocalDateTime.now());
-        log.info("Device Minut {} de retour en ligne (episode hors-ligne clos)", device.getId());
+        log.info("Capteur Minut de retour en ligne : episode clos");
         realtimePublisher.publishDeviceChanged(
             device.getOrganizationId(), "noise", device.getId(), "de retour en ligne");
     }
@@ -187,7 +184,7 @@ public class MinutWebhookConsumer {
         }
         NoiseDevice device = deviceRepository.findByExternalDeviceId(externalDeviceId).orElse(null);
         if (device == null) {
-            log.debug("Device Minut inconnu: {}", externalDeviceId);
+            log.debug("Capteur Minut inconnu");
         }
         return device;
     }

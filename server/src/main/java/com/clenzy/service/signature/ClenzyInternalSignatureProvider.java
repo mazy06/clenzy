@@ -14,7 +14,7 @@ import java.time.LocalDateTime;
 import java.util.UUID;
 
 /**
- * Workflow de signature interne Clenzy (CLENZY_CUSTOM) — niveau SES (eIDAS art. 25).
+ * Workflow de signature interne Baitly (CLENZY_CUSTOM) — niveau SES (eIDAS art. 25).
  *
  * <p>Pas de tiers : la demande est une row {@code contract_signature_requests} avec
  * un token UUID ; l'URL de signature pointe vers la page publique {@code /sign/{token}}
@@ -89,7 +89,7 @@ public class ClenzyInternalSignatureProvider implements SignatureProvider {
         created.setExpiresAt(LocalDateTime.now().plusDays(tokenValidityDays));
         created = signatureRequestRepository.save(created);
 
-        log.info("Demande de signature interne creee — contrat {}, token {}", contractId, created.getToken());
+        log.info("Demande de signature interne creee pour le contrat {}", contractId);
         return SignatureResult.success(created.getToken().toString(), signingUrl(created.getToken()));
     }
 

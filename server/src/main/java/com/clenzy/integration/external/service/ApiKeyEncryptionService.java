@@ -42,8 +42,8 @@ public class ApiKeyEncryptionService {
         try {
             return encryptor.encrypt(plain);
         } catch (Exception e) {
-            log.error("API key encryption failed: {}", e.getMessage());
-            throw new IllegalStateException("API key encryption failed", e);
+            log.error("API key encryption failed");
+            throw new IllegalStateException("API key encryption failed");
         }
     }
 
@@ -54,8 +54,8 @@ public class ApiKeyEncryptionService {
         try {
             return encryptor.decrypt(encrypted);
         } catch (Exception e) {
-            log.error("API key decryption failed: {}", e.getMessage());
-            throw new IllegalStateException("API key decryption failed", e);
+            log.error("API key decryption failed");
+            throw new IllegalStateException("API key decryption failed");
         }
     }
 }

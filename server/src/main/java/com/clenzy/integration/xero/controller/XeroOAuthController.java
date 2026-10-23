@@ -1,5 +1,6 @@
 package com.clenzy.integration.xero.controller;
 
+import com.clenzy.integration.oauth.BaitlyOAuthHttpDiagnostics;
 import com.clenzy.integration.oauth.OAuthStateService;
 import com.clenzy.integration.xero.model.XeroConnection;
 import com.clenzy.integration.xero.service.XeroOAuthService;
@@ -58,14 +59,14 @@ public class XeroOAuthController {
     @PreAuthorize("permitAll()")
     public ResponseEntity<String> callback(@RequestParam("code") String code,
                                              @RequestParam("state") String state) {
-        Optional<OAuthStateService.StatePayload> payload = oauthService.validateAndConsumeState(state);
-        if (payload.isEmpty()) {
-            log.warn("Xero OAuth callback — state invalide: {}", state);
-            return ResponseEntity.status(302)
-                .header("Location", "/settings?tab=integrations&status=error&reason=invalid_state")
-                .build();
-        }
         try {
+            Optional<OAuthStateService.StatePayload> payload = oauthService.validateAndConsumeState(state);
+            if (payload.isEmpty()) {
+                log.warn("Xero OAuth callback — state invalide");
+                return ResponseEntity.status(302)
+                    .header("Location", "/settings?tab=integrations&status=error&reason=invalid_state")
+                    .build();
+            }
             oauthService.exchangeCodeForToken(code, payload.get().userId(), payload.get().orgId());
             // TODO post-MVP : appeler GET /connections pour recuperer la liste
             // des tenants Xero, et stocker celui choisi par l'utilisateur via
@@ -74,7 +75,7 @@ public class XeroOAuthController {
                 .header("Location", "/settings?tab=integrations&status=success")
                 .build();
         } catch (Exception e) {
-            log.error("Xero OAuth callback — erreur echange code: {}", e.getMessage(), e);
+            log.error("Xero OAuth callback — erreur echange code");
             return ResponseEntity.status(302)
                 .header("Location", "/settings?tab=integrations&status=error&reason=token_exchange")
                 .build();
@@ -88,13 +89,13 @@ public class XeroOAuthController {
             oauthService.revokeToken(orgId);
             return ResponseEntity.ok(Map.of(
                 "status", "disconnected",
-                "message", "Deconnexion Xero reussie"
+                "message", BaitlyOAuthHttpDiagnostics.LOCAL_DISCONNECT
             ));
         } catch (Exception e) {
-            log.error("Xero disconnect — erreur: {}", e.getMessage(), e);
+            log.error("Xero disconnect — erreur");
             return ResponseEntity.internalServerError().body(Map.of(
                 "status", "error",
-                "message", "Erreur lors de la deconnexion: " + e.getMessage()
+                "message", BaitlyOAuthHttpDiagnostics.DISCONNECT_UNCONFIRMED
             ));
         }
     }
@@ -117,7 +118,7 @@ public class XeroOAuthController {
             result.put("connected", false);
             if (connection.isPresent()) {
                 result.put("status", connection.get().getStatus().name());
-                result.put("errorMessage", connection.get().getErrorMessage());
+                result.put("errorMessage", BaitlyOAuthHttpDiagnostics.connectionError(connection.get().getErrorMessage()));
             }
         }
         return ResponseEntity.ok(result);

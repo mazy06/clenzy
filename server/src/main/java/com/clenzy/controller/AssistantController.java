@@ -409,7 +409,7 @@ public class AssistantController {
             byte[] data = photoStorageService.retrieve(storageKey);
             return ResponseEntity.ok()
                     .contentType(MediaType.parseMediaType(mediaType))
-                    .header("Cache-Control", "private, max-age=3600")
+                    .header("Cache-Control", "no-cache, no-store, must-revalidate")
                     .body(data);
         } catch (Exception e) {
             log.debug("serveAttachment: storage key {} introuvable en storage", storageKey);
