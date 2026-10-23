@@ -1,5 +1,7 @@
 package com.clenzy.service;
 
+import com.clenzy.util.BaitlySecretDiagnostics;
+import static com.clenzy.util.BaitlySecretDiagnostics.Operation.*;
 import org.jasypt.util.text.AES256TextEncryptor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -105,8 +107,9 @@ public class TokenEncryptionService {
 
             return GCM_VERSIONED_PREFIX + currentKeyVersion + ":" + Base64.getEncoder().encodeToString(combined);
         } catch (Exception e) {
-            log.error("Erreur lors du chiffrement AES-GCM du token: {}", e.getMessage());
-            throw new RuntimeException("Impossible de chiffrer le token", e);
+            var safe = BaitlySecretDiagnostics.failure(ENCRYPT, e);
+            log.error("Échec du chiffrement AES-GCM Baitly", safe);
+            throw safe;
         }
     }
 
@@ -119,37 +122,39 @@ public class TokenEncryptionService {
             return null;
         }
 
-        // Format versioned: "GCMv2:base64..."
-        if (encryptedToken.startsWith(GCM_VERSIONED_PREFIX)) {
-            int colonIdx = encryptedToken.indexOf(':');
-            if (colonIdx > GCM_VERSIONED_PREFIX.length()) {
-                int version = Integer.parseInt(
-                        encryptedToken.substring(GCM_VERSIONED_PREFIX.length(), colonIdx));
-                String base64Data = encryptedToken.substring(colonIdx + 1);
-                SecretKey key = keyRing.get(version);
-                if (key == null) {
-                    throw new RuntimeException("Cle non trouvee pour la version " + version
-                            + ". Configurez clenzy.encryption.previous-passwords.");
-                }
-                return decryptGcm(base64Data, key);
-            }
-        }
-
-        // Legacy GCM format (v1 implicit): "GCM:base64..."
-        if (encryptedToken.startsWith(GCM_PREFIX)) {
-            SecretKey v1Key = keyRing.getOrDefault(1, currentKey);
-            return decryptGcm(encryptedToken.substring(GCM_PREFIX.length()), v1Key);
-        }
-
-        // Legacy Jasypt (AES-CBC) fallback
         try {
+            // Format versioned: "GCMv2:base64..."
+            if (encryptedToken.startsWith(GCM_VERSIONED_PREFIX)) {
+                int colonIdx = encryptedToken.indexOf(':');
+                if (colonIdx > GCM_VERSIONED_PREFIX.length()) {
+                    int version = Integer.parseInt(
+                            encryptedToken.substring(GCM_VERSIONED_PREFIX.length(), colonIdx));
+                    String base64Data = encryptedToken.substring(colonIdx + 1);
+                    SecretKey key = keyRing.get(version);
+                    if (key == null) {
+                        throw new RuntimeException("Cle non trouvee pour la version " + version
+                                + ". Configurez clenzy.encryption.previous-passwords.");
+                    }
+                    return decryptGcm(base64Data, key);
+                }
+                // Un en-tête GCM reconnu mais invalide ne devient jamais un jeton Jasypt.
+                throw new IllegalArgumentException("En-tête de chiffrement invalide");
+            }
+
+            // Legacy GCM format (v1 implicit): "GCM:base64..."
+            if (encryptedToken.startsWith(GCM_PREFIX)) {
+                SecretKey v1Key = keyRing.getOrDefault(1, currentKey);
+                return decryptGcm(encryptedToken.substring(GCM_PREFIX.length()), v1Key);
+            }
+
+            // Legacy Jasypt (AES-CBC) fallback
             String decrypted = legacyEncryptor.decrypt(encryptedToken);
             log.debug("Token dechiffre via Jasypt legacy — a migrer vers AES-GCM v{}", currentKeyVersion);
             return decrypted;
         } catch (Exception e) {
-            log.error("Erreur lors du dechiffrement du token (ni GCM versioned, ni GCM legacy, ni Jasypt): {}",
-                    e.getMessage());
-            throw new RuntimeException("Impossible de dechiffrer le token", e);
+            var safe = BaitlySecretDiagnostics.failure(DECRYPT, e);
+            log.error("Échec du déchiffrement Baitly", safe);
+            throw safe;
         }
     }
 
@@ -187,27 +192,22 @@ public class TokenEncryptionService {
         return currentKeyVersion;
     }
 
-    private String decryptGcm(String base64Data, SecretKey key) {
-        try {
-            byte[] combined = Base64.getDecoder().decode(base64Data);
-            if (combined.length < GCM_IV_LENGTH) {
-                throw new RuntimeException("Token GCM trop court");
-            }
-
-            byte[] iv = new byte[GCM_IV_LENGTH];
-            byte[] ciphertext = new byte[combined.length - GCM_IV_LENGTH];
-            System.arraycopy(combined, 0, iv, 0, GCM_IV_LENGTH);
-            System.arraycopy(combined, GCM_IV_LENGTH, ciphertext, 0, ciphertext.length);
-
-            Cipher cipher = Cipher.getInstance(AES_GCM_ALGO);
-            cipher.init(Cipher.DECRYPT_MODE, key, new GCMParameterSpec(GCM_TAG_LENGTH, iv));
-            byte[] plaintext = cipher.doFinal(ciphertext);
-
-            return new String(plaintext, StandardCharsets.UTF_8);
-        } catch (Exception e) {
-            log.error("Erreur lors du dechiffrement AES-GCM du token: {}", e.getMessage());
-            throw new RuntimeException("Impossible de dechiffrer le token (GCM)", e);
+    private String decryptGcm(String base64Data, SecretKey key) throws java.security.GeneralSecurityException {
+        byte[] combined = Base64.getDecoder().decode(base64Data);
+        if (combined.length < GCM_IV_LENGTH + GCM_TAG_LENGTH / 8) {
+            throw new RuntimeException("Token GCM trop court");
         }
+
+        byte[] iv = new byte[GCM_IV_LENGTH];
+        byte[] ciphertext = new byte[combined.length - GCM_IV_LENGTH];
+        System.arraycopy(combined, 0, iv, 0, GCM_IV_LENGTH);
+        System.arraycopy(combined, GCM_IV_LENGTH, ciphertext, 0, ciphertext.length);
+
+        Cipher cipher = Cipher.getInstance(AES_GCM_ALGO);
+        cipher.init(Cipher.DECRYPT_MODE, key, new GCMParameterSpec(GCM_TAG_LENGTH, iv));
+        byte[] plaintext = cipher.doFinal(ciphertext);
+
+        return new String(plaintext, StandardCharsets.UTF_8);
     }
 
     private static SecretKey deriveKey(String password) {
@@ -216,7 +216,7 @@ public class TokenEncryptionService {
             byte[] keyBytes = digest.digest(password.getBytes(StandardCharsets.UTF_8));
             return new SecretKeySpec(keyBytes, "AES");
         } catch (Exception e) {
-            throw new RuntimeException("Impossible de deriver la cle AES", e);
+            throw BaitlySecretDiagnostics.failure(DERIVE_KEY, e);
         }
     }
 }
