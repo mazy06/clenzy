@@ -53,6 +53,8 @@ class SchedulerLockCoverageTest {
             // Chaque instance publie son propre snapshot Micrometer en mémoire,
             // obtenu uniquement par SELECT. Un verrou global laisserait les autres périmées.
             "BaitlyOperationalMetrics#refresh",
+            "BaitlyRecoveryJournalMetrics#refresh",
+            "BaitlyNoiseWarningMetrics#refresh",
 
             // B — at-least-once par design (voir OutboxRelay, javadoc de classe)
             "OutboxRelay#relayPendingEvents",

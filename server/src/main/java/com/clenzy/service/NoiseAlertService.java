@@ -61,6 +61,7 @@ public class NoiseAlertService {
      */
     public NoiseAlert evaluateNoiseLevel(Long orgId, Long propertyId, Long deviceId,
                                           double measuredDb, AlertSource source) {
+        if (!Double.isFinite(measuredDb) || measuredDb <= 0) return null;
         NoiseAlertConfig config = configRepository
             .findByOrgAndPropertyWithTimeWindows(orgId, propertyId)
             .orElse(null);
@@ -104,14 +105,13 @@ public class NoiseAlertService {
         alert.setSource(source);
         alert = alertRepository.save(alert);
 
-        log.warn("Alerte bruit {} creee : property={}, device={}, {}dB > {}dB ({})",
-            severity, propertyId, deviceId, measuredDb, thresholdDb, matchingWindow.getLabel());
+        log.warn("Baitly bruit : alerte {} creee, severite {}", alert.getId(), severity);
 
         // Dispatcher les notifications (en best-effort)
         try {
             notificationService.dispatch(alert, config);
         } catch (Exception e) {
-            log.error("Erreur dispatch notifications pour alerte {}: {}", alert.getId(), e.getMessage());
+            log.error("Baitly bruit : dispatch non confirme pour alerte {}", alert.getId());
         }
 
         // Moteur AutomationRule (fiche 08) : trigger NOISE_ALERT — F6a message
@@ -165,7 +165,7 @@ public class NoiseAlertService {
                     automationEngine.fireTrigger(AutomationTrigger.NOISE_ALERT, orgId,
                         new AutomationSubject(AutomationSubject.TYPE_NOISE_ALERT, alertId, data)));
             } catch (Exception e) {
-                log.error("Erreur fireTrigger NOISE_ALERT pour alerte {}: {}", alertId, e.getMessage());
+                log.error("Baitly bruit : delegation automation non confirmee pour alerte {}", alertId);
             }
         };
 
@@ -219,7 +219,7 @@ public class NoiseAlertService {
         alert.setNotes(notes);
         alert = alertRepository.save(alert);
 
-        log.info("Alerte {} acquittee par {}", alertId, acknowledgedBy);
+        log.info("Baitly bruit : alerte {} acquittee", alertId);
         return NoiseAlertDto.from(alert);
     }
 
