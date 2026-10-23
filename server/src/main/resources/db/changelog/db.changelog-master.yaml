@@ -5355,13 +5355,13 @@ databaseChangeLog:
       author: clenzy-team
       changes:
         - sqlFile:
-            path: db/changelog/changes/0601__baitly_noise_delivery_outbox.sql
-            relativeToChangelogFile: false
+            path: changes/0601__baitly_noise_delivery_outbox.sql
+            relativeToChangelogFile: true
 
   - changeSet:
       id: "0602-baitly-noise-alert-cooldown-index"
       author: clenzy-team
       changes:
         - sqlFile:
-            path: db/changelog/changes/0602__baitly_noise_alert_cooldown_index.sql
-            relativeToChangelogFile: false
+            path: changes/0602__baitly_noise_alert_cooldown_index.sql
+            relativeToChangelogFile: true
