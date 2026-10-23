@@ -57,6 +57,7 @@ class PennylaneAccountingSyncServiceTest {
     @Mock private ProviderExpenseRepository expenseRepository;
 
     private PennylaneAccountingSyncService service;
+    private BaitlyAccountingExportJournal journal;
 
     private static final Long ORG_ID = 10L;
 
@@ -91,8 +92,9 @@ class PennylaneAccountingSyncServiceTest {
 
     @BeforeEach
     void setUp() {
+        journal = BaitlyAccountingTestJournals.configure(connectionRepository, ORG_ID);
         service = new PennylaneAccountingSyncService(
-                client, oauthService, connectionRepository, invoiceRepository, expenseRepository);
+                client, oauthService, connectionRepository, invoiceRepository, expenseRepository, journal);
     }
 
     // ─── Helpers ────────────────────────────────────────────────────────────
@@ -153,7 +155,6 @@ class PennylaneAccountingSyncServiceTest {
             when(client.findCustomerByExternalRef(eq(ORG_ID), anyString()))
                     .thenReturn(Optional.of(withId(123)));
             when(client.createCustomerInvoice(eq(ORG_ID), any())).thenReturn(withId(999));
-            when(invoiceRepository.save(any(Invoice.class))).thenAnswer(inv -> inv.getArgument(0));
 
             Invoice invoice = baseInvoice(1L, "INV-001", "ISSUED");
             service.syncInvoice(invoice);
@@ -170,7 +171,6 @@ class PennylaneAccountingSyncServiceTest {
             when(client.findCustomerByExternalRef(eq(ORG_ID), anyString())).thenReturn(Optional.empty());
             when(client.createCustomer(eq(ORG_ID), any())).thenReturn(withId(555));
             when(client.createCustomerInvoice(eq(ORG_ID), any())).thenReturn(withId(777));
-            when(invoiceRepository.save(any(Invoice.class))).thenAnswer(inv -> inv.getArgument(0));
 
             Invoice invoice = baseInvoice(2L, "INV-002", "ISSUED");
             service.syncInvoice(invoice);
@@ -260,7 +260,6 @@ class PennylaneAccountingSyncServiceTest {
             when(client.findCustomerByExternalRef(eq(ORG_ID), anyString()))
                     .thenReturn(Optional.of(withId(1)));
             when(client.createCustomerInvoice(eq(ORG_ID), any())).thenReturn(withId(1));
-            when(invoiceRepository.save(any(Invoice.class))).thenAnswer(inv -> inv.getArgument(0));
 
             Invoice invoice = baseInvoice(1L, "INV-001", "ISSUED");
             invoice.setDueDate(null);
@@ -278,7 +277,6 @@ class PennylaneAccountingSyncServiceTest {
             when(client.findCustomerByExternalRef(eq(ORG_ID), anyString())).thenReturn(Optional.empty());
             when(client.createCustomer(eq(ORG_ID), any())).thenReturn(withId(2));
             when(client.createCustomerInvoice(eq(ORG_ID), any())).thenReturn(withId(3));
-            when(invoiceRepository.save(any(Invoice.class))).thenAnswer(inv -> inv.getArgument(0));
 
             Invoice invoice = baseInvoice(1L, "INV-001", "ISSUED");
             invoice.setBuyerName(null);
@@ -295,7 +293,6 @@ class PennylaneAccountingSyncServiceTest {
             when(client.findCustomerByExternalRef(eq(ORG_ID), anyString()))
                     .thenReturn(Optional.of(withId(1)));
             when(client.createCustomerInvoice(eq(ORG_ID), any())).thenReturn(withId(99));
-            when(invoiceRepository.save(any(Invoice.class))).thenAnswer(inv -> inv.getArgument(0));
 
             Invoice invoice = baseInvoice(1L, "INV-ZZ", "ISSUED");
             service.syncInvoice(invoice);
@@ -324,8 +321,6 @@ class PennylaneAccountingSyncServiceTest {
             when(client.findSupplierByExternalRef(eq(ORG_ID), anyString()))
                     .thenReturn(Optional.of(withId(321)));
             when(client.createSupplierInvoice(eq(ORG_ID), any())).thenReturn(withId(888));
-            when(expenseRepository.save(any(ProviderExpense.class)))
-                    .thenAnswer(inv -> inv.getArgument(0));
 
             ProviderExpense exp = baseExpense(10L, ExpenseStatus.APPROVED);
             service.syncExpense(exp);
@@ -341,8 +336,6 @@ class PennylaneAccountingSyncServiceTest {
             when(client.findSupplierByExternalRef(eq(ORG_ID), anyString())).thenReturn(Optional.empty());
             when(client.createSupplier(eq(ORG_ID), any())).thenReturn(withId(900));
             when(client.createSupplierInvoice(eq(ORG_ID), any())).thenReturn(withId(901));
-            when(expenseRepository.save(any(ProviderExpense.class)))
-                    .thenAnswer(inv -> inv.getArgument(0));
 
             ProviderExpense exp = baseExpense(11L, ExpenseStatus.PAID);
             service.syncExpense(exp);
@@ -356,8 +349,6 @@ class PennylaneAccountingSyncServiceTest {
             when(client.findSupplierByExternalRef(eq(ORG_ID), anyString())).thenReturn(Optional.empty());
             when(client.createSupplier(eq(ORG_ID), any())).thenReturn(withId(900));
             when(client.createSupplierInvoice(eq(ORG_ID), any())).thenReturn(withId(901));
-            when(expenseRepository.save(any(ProviderExpense.class)))
-                    .thenAnswer(inv -> inv.getArgument(0));
 
             ProviderExpense exp = baseExpense(12L, ExpenseStatus.APPROVED);
             exp.setProvider(null);
@@ -403,8 +394,6 @@ class PennylaneAccountingSyncServiceTest {
             when(client.findSupplierByExternalRef(eq(ORG_ID), anyString()))
                     .thenReturn(Optional.of(withId(1)));
             when(client.createSupplierInvoice(eq(ORG_ID), any())).thenReturn(withId(50));
-            when(expenseRepository.save(any(ProviderExpense.class)))
-                    .thenAnswer(inv -> inv.getArgument(0));
 
             ProviderExpense exp = baseExpense(14L, ExpenseStatus.APPROVED);
             service.syncExpense(exp);
@@ -459,7 +448,6 @@ class PennylaneAccountingSyncServiceTest {
             when(client.findCustomerByExternalRef(eq(ORG_ID), anyString()))
                     .thenReturn(Optional.of(withId(1)));
             when(client.createCustomerInvoice(eq(ORG_ID), any())).thenReturn(withId(100));
-            when(invoiceRepository.save(any(Invoice.class))).thenAnswer(inv -> inv.getArgument(0));
 
             PennylaneAccountingSyncService.SyncResult result = service.syncAllPendingInvoices(ORG_ID);
 
@@ -485,7 +473,6 @@ class PennylaneAccountingSyncServiceTest {
             when(client.createCustomerInvoice(eq(ORG_ID), any()))
                     .thenReturn(withId(100))
                     .thenThrow(new RuntimeException("API 500"));
-            when(invoiceRepository.save(any(Invoice.class))).thenAnswer(inv -> inv.getArgument(0));
 
             PennylaneAccountingSyncService.SyncResult result = service.syncAllPendingInvoices(ORG_ID);
 
@@ -531,8 +518,6 @@ class PennylaneAccountingSyncServiceTest {
             when(client.findSupplierByExternalRef(eq(ORG_ID), anyString()))
                     .thenReturn(Optional.of(withId(1)));
             when(client.createSupplierInvoice(eq(ORG_ID), any())).thenReturn(withId(1));
-            when(expenseRepository.save(any(ProviderExpense.class)))
-                    .thenAnswer(inv -> inv.getArgument(0));
 
             PennylaneAccountingSyncService.SyncResult result = service.syncAllPendingExpenses(ORG_ID);
 
@@ -645,8 +630,6 @@ class PennylaneAccountingSyncServiceTest {
             // 8.5% n'est pas un taux TVA français mappable : l'export DOIT échouer
             // explicitement plutôt que de retomber silencieusement sur un code par défaut.
             when(oauthService.isConnected(ORG_ID)).thenReturn(true);
-            when(client.findCustomerByExternalRef(eq(ORG_ID), anyString()))
-                    .thenReturn(Optional.of(withId(1)));
 
             Invoice invoice = baseInvoice(1L, "INV", "ISSUED");
             invoice.getLines().get(0).setTaxRate(new BigDecimal("0.085"));
@@ -675,7 +658,6 @@ class PennylaneAccountingSyncServiceTest {
             when(client.findCustomerByExternalRef(eq(ORG_ID), anyString()))
                     .thenReturn(Optional.of(withId(1)));
             when(client.createCustomerInvoice(eq(ORG_ID), any())).thenReturn(withId(100));
-            when(invoiceRepository.save(any(Invoice.class))).thenAnswer(inv -> inv.getArgument(0));
 
             PennylaneAccountingSyncService.SyncResult result = service.syncAllPendingInvoices(ORG_ID);
 
@@ -691,7 +673,6 @@ class PennylaneAccountingSyncServiceTest {
             when(client.findCustomerByExternalRef(eq(ORG_ID), anyString()))
                     .thenReturn(Optional.of(withId(1)));
             when(client.createCustomerInvoice(eq(ORG_ID), any())).thenReturn(withId(1));
-            when(invoiceRepository.save(any(Invoice.class))).thenAnswer(inv -> inv.getArgument(0));
 
             Invoice invoice = baseInvoice(1L, "INV", "ISSUED");
             invoice.getLines().get(0).setTaxRate(taxRate);

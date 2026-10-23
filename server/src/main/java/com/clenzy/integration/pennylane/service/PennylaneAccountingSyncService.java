@@ -40,17 +40,19 @@ public class PennylaneAccountingSyncService {
     private final PennylaneConnectionRepository connectionRepository;
     private final InvoiceRepository invoiceRepository;
     private final ProviderExpenseRepository expenseRepository;
+    private final BaitlyAccountingExportJournal journal;
 
     public PennylaneAccountingSyncService(PennylaneAccountingClient client,
                                            PennylaneOAuthService oauthService,
                                            PennylaneConnectionRepository connectionRepository,
                                            InvoiceRepository invoiceRepository,
-                                           ProviderExpenseRepository expenseRepository) {
+                                           ProviderExpenseRepository expenseRepository, BaitlyAccountingExportJournal journal) {
         this.client = client;
         this.oauthService = oauthService;
         this.connectionRepository = connectionRepository;
         this.invoiceRepository = invoiceRepository;
         this.expenseRepository = expenseRepository;
+        this.journal = journal;
     }
 
     // ─── Sync individuel ─────────────────────────────────────────────────────
@@ -64,11 +66,9 @@ public class PennylaneAccountingSyncService {
 
         // Chercher ou creer le client Pennylane
         String customerRef = "clenzy_customer_" + safeString(invoice.getBuyerName());
-        Number customerId = getOrCreateCustomer(orgId, customerRef, invoice.getBuyerName());
 
         // Construire le body de la facture Pennylane
         Map<String, Object> body = new LinkedHashMap<>();
-        body.put("customer_id", customerId);
         body.put("date", invoice.getInvoiceDate().toString());
         body.put("deadline", invoice.getDueDate() != null
             ? invoice.getDueDate().toString()
@@ -88,16 +88,14 @@ public class PennylaneAccountingSyncService {
         }
         body.put("invoice_lines", lines);
 
-        Map<String, Object> response = client.createCustomerInvoice(orgId, body);
-
-        // Stocker l'ID Pennylane et la date de sync
-        if (response == null || response.get("id") == null) {
-            throw BaitlyPennylaneDiagnostics.failure(BaitlyPennylaneDiagnostics.Reason.INVALID_RESPONSE);
-        }
-        String pennylaneId = externalInvoiceId(response.get("id"));
-        invoice.setPennylaneInvoiceId(pennylaneId);
-        invoice.setPennylaneSyncedAt(Instant.now());
-        invoiceRepository.save(invoice);
+        if (alreadyRecorded(invoice.getPennylaneInvoiceId(), invoice.getPennylaneSyncedAt())) return;
+        var key = new BaitlyAccountingExportJournal.Key(orgId, BaitlyAccountingExportJournal.Kind.INVOICE, invoice.getId());
+        var exported = export(key, fingerprint(body, customerRef, invoice.getBuyerName(), invoice.getCurrency(), invoice.getUpdatedAt()), version(invoice.getUpdatedAt()), () -> {
+            body.put("customer_id", getOrCreateCustomer(orgId, customerRef, invoice.getBuyerName()));
+            return client.createCustomerInvoice(orgId, body);
+        });
+        invoice.setPennylaneInvoiceId(exported.remoteId());
+        invoice.setPennylaneSyncedAt(exported.confirmedAt());
 
         log.info("Pennylane : export de facture confirmé");
     }
@@ -115,11 +113,9 @@ public class PennylaneAccountingSyncService {
             : "Fournisseur inconnu";
         String supplierRef = "clenzy_supplier_"
             + (expense.getProvider() != null ? expense.getProvider().getId() : "unknown");
-        Number supplierId = getOrCreateSupplier(orgId, supplierRef, providerName);
 
         // Construire le body (supplier invoice)
         Map<String, Object> body = new LinkedHashMap<>();
-        body.put("supplier_id", supplierId);
         body.put("date", expense.getExpenseDate().toString());
         body.put("deadline", expense.getExpenseDate().plusDays(30).toString());
         body.put("external_reference", "clenzy_exp_" + expense.getId());
@@ -134,15 +130,14 @@ public class PennylaneAccountingSyncService {
 
         body.put("invoice_lines", List.of(lineMap));
 
-        Map<String, Object> response = client.createSupplierInvoice(orgId, body);
-
-        if (response == null || response.get("id") == null) {
-            throw BaitlyPennylaneDiagnostics.failure(BaitlyPennylaneDiagnostics.Reason.INVALID_RESPONSE);
-        }
-        String pennylaneId = externalInvoiceId(response.get("id"));
-        expense.setPennylaneInvoiceId(pennylaneId);
-        expense.setPennylaneSyncedAt(Instant.now());
-        expenseRepository.save(expense);
+        if (alreadyRecorded(expense.getPennylaneInvoiceId(), expense.getPennylaneSyncedAt())) return;
+        var key = new BaitlyAccountingExportJournal.Key(orgId, BaitlyAccountingExportJournal.Kind.EXPENSE, expense.getId());
+        var exported = export(key, fingerprint(body, supplierRef, providerName, expense.getCurrency(), expense.getUpdatedAt()), version(expense.getUpdatedAt()), () -> {
+            body.put("supplier_id", getOrCreateSupplier(orgId, supplierRef, providerName));
+            return client.createSupplierInvoice(orgId, body);
+        });
+        expense.setPennylaneInvoiceId(exported.remoteId());
+        expense.setPennylaneSyncedAt(exported.confirmedAt());
 
         log.info("Pennylane : export de dépense confirmé");
     }
@@ -220,11 +215,51 @@ public class PennylaneAccountingSyncService {
         status.put("connected", oauthService.isConnected(orgId));
         status.put("pendingInvoices", pendingInvoices);
         status.put("pendingExpenses", pendingExpenses);
+        status.put("unconfirmedExports", journal.countUnconfirmed(orgId));
         status.put("lastSyncAt", conn.map(PennylaneConnection::getLastSyncAt).orElse(null));
         return status;
     }
 
     // ─── Helpers ─────────────────────────────────────────────────────────────
+
+    private record Exported(String remoteId, Instant confirmedAt) {}
+
+    private Exported export(BaitlyAccountingExportJournal.Key key, String fingerprint, String sourceVersion,
+                          java.util.function.Supplier<Map<String,Object>> create) {
+        var connection = connectionRepository.findByOrganizationIdAndStatus(key.organizationId(), PennylaneConnection.Status.ACTIVE)
+                .orElseThrow(BaitlyAccountingExportJournal::unconfirmed);
+        var ticket = journal.prepare(key, connection.getAccountingGeneration(), fingerprint, sourceVersion);
+        String remoteId = ticket.confirmedId();
+        if (remoteId == null) {
+            try {
+                var response = create.get();
+                remoteId = externalInvoiceId(response == null ? null : response.get("id"));
+                journal.confirm(ticket, remoteId);
+            } catch (RuntimeException failure) {
+                try {journal.uncertain(ticket);} catch (RuntimeException ignored) { /* SENDING reste bloquant si la base est indisponible. */ }
+                throw BaitlyPennylaneDiagnostics.failure(BaitlyPennylaneDiagnostics.reason(failure));
+            }
+        }
+        Instant confirmedAt = journal.applyLocal(ticket, remoteId);
+        return new Exported(remoteId, confirmedAt);
+    }
+
+    private boolean alreadyRecorded(String remoteId, Instant syncedAt) {
+        if (remoteId == null) return false;
+        externalInvoiceId(remoteId);
+        if (syncedAt == null) throw BaitlyAccountingExportJournal.unconfirmed();
+        return true;
+    }
+
+    private String version(Object value) {return value==null ? null : value.toString();}
+
+    private String fingerprint(Object... values) {
+        try {
+            var mapper = new com.fasterxml.jackson.databind.ObjectMapper().findAndRegisterModules();
+            byte[] encoded = mapper.writeValueAsBytes(Arrays.asList("baitly-pennylane-export-v1", Arrays.asList(values)));
+            return java.util.HexFormat.of().formatHex(java.security.MessageDigest.getInstance("SHA-256").digest(encoded));
+        } catch (Exception ignored) {throw BaitlyAccountingExportJournal.unconfirmed();}
+    }
 
     private void ensureConnected(Long orgId) {
         if (!oauthService.isConnected(orgId)) {

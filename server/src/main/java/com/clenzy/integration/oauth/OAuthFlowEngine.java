@@ -160,6 +160,7 @@ public class OAuthFlowEngine {
             connection.setConnectedAt(now);
         }
 
+        connection.authorizationEstablished();
         C saved = persistence.save(connection);
         log.info("OAuth — connexion etablie, provider={} org={}", config.getProviderKey(), orgId);
         return saved;

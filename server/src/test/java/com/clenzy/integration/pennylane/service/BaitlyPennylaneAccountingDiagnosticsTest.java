@@ -167,7 +167,12 @@ class BaitlyPennylaneAccountingDiagnosticsTest {
             when(client.findSupplierByExternalRef(eq(7L), anyString())).thenReturn(Optional.of(Map.of("id", 1)));
             when(client.createSupplierInvoice(eq(7L), any())).thenThrow(failure).thenReturn(Map.of("id", "synthetic-private-id"));
         }
-        var service = new PennylaneAccountingSyncService(client, oauth, connections, invoices, expenses);
+        var journal = BaitlyAccountingTestJournals.configure(connections, 7L);
+        if (id == null || id <= 0) {
+            if (type.equals("invoices")) doReturn(Map.of("id", "synthetic-private-id")).when(client).createCustomerInvoice(eq(7L), any());
+            else doReturn(Map.of("id", "synthetic-private-id")).when(client).createSupplierInvoice(eq(7L), any());
+        }
+        var service = new PennylaneAccountingSyncService(client, oauth, connections, invoices, expenses, journal);
         try (var logs = new Logs(PennylaneAccountingSyncService.class)) {
             var result = type.equals("invoices") ? service.syncAllPendingInvoices(7L) : service.syncAllPendingExpenses(7L);
             assertThat(result.synced()).isEqualTo(1);
@@ -189,11 +194,11 @@ class BaitlyPennylaneAccountingDiagnosticsTest {
             logs.assertPrivateDataAbsent();
             if (type.equals("invoices")) {
                 verify(invoices, never()).save(badInvoice);
-                verify(invoices).save(goodInvoice);
+                verify(journal).applyLocal(any(), eq("synthetic-private-id"));
                 assertThat(badInvoice.getPennylaneSyncedAt()).isNull();
             } else {
                 verify(expenses, never()).save(badExpense);
-                verify(expenses).save(goodExpense);
+                verify(journal).applyLocal(any(), eq("synthetic-private-id"));
                 assertThat(badExpense.getPennylaneSyncedAt()).isNull();
             }
         }

@@ -23,13 +23,15 @@ class BaitlyPennylaneResponseValidationTest {
     final PennylaneOAuthService oauth = mock(PennylaneOAuthService.class);
     final InvoiceRepository invoices = mock(InvoiceRepository.class);
     final ProviderExpenseRepository expenses = mock(ProviderExpenseRepository.class);
-    final PennylaneAccountingSyncService service = new PennylaneAccountingSyncService(client, oauth, mock(PennylaneConnectionRepository.class), invoices, expenses);
+    final PennylaneConnectionRepository connections = mock(PennylaneConnectionRepository.class);
+    final BaitlyAccountingExportJournal journal = BaitlyAccountingTestJournals.configure(connections, 7L);
+    final PennylaneAccountingSyncService service = new PennylaneAccountingSyncService(client, oauth, connections, invoices, expenses, journal);
     final Invoice invoice = new Invoice();
     final ProviderExpense expense = new ProviderExpense();
     void setup() {
         when(oauth.isConnected(7L)).thenReturn(true);
-        invoice.setOrganizationId(7L);invoice.setInvoiceDate(LocalDate.of(2026,10,22));invoice.setInvoiceNumber("synthetic-number");invoice.setLines(List.of());
-        expense.setOrganizationId(7L);expense.setExpenseDate(LocalDate.of(2026,10,22));expense.setAmountHt(BigDecimal.TEN);expense.setTaxRate(BigDecimal.ZERO);
+        invoice.setId(1L);invoice.setOrganizationId(7L);invoice.setInvoiceDate(LocalDate.of(2026,10,22));invoice.setInvoiceNumber("synthetic-number");invoice.setLines(List.of());
+        expense.setId(2L);expense.setOrganizationId(7L);expense.setExpenseDate(LocalDate.of(2026,10,22));expense.setAmountHt(BigDecimal.TEN);expense.setTaxRate(BigDecimal.ZERO);
     }
     @ParameterizedTest @MethodSource("invalidResponses")
     void malformedExportIdNeverMarksLocalDocumentSynced(String type, Object id) {
