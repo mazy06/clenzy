@@ -426,7 +426,7 @@ public class AuthController {
                             log.info("/me - Auto-provisioning reussi: {} (role: {})", email, user.getRole().name());
                             // Auto-accepter les invitations pending pour cet email
                             try {
-                                invitationService.autoAcceptPendingInvitations(email, user);
+                                invitationService.autoAcceptPendingInvitations(email, user, jwt);
                             } catch (Exception invEx) {
                                 log.warn("/me - Erreur auto-acceptation invitations: {}", invEx.getMessage());
                             }
@@ -444,7 +444,7 @@ public class AuthController {
                 try {
                     String userEmail = user.getEmail();
                     if (userEmail != null && shouldCheckPendingInvitations(userEmail)) {
-                        invitationService.autoAcceptPendingInvitations(userEmail, user);
+                        invitationService.autoAcceptPendingInvitations(userEmail, user, jwt);
                     }
                 } catch (Exception invEx) {
                     log.warn("/me - Erreur auto-acceptation invitations pour user existant: {}", invEx.getMessage());

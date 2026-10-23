@@ -196,10 +196,10 @@ public class KeyExchangeController {
         } catch (IllegalStateException e) {
             return ResponseEntity.badRequest().body(Map.of(
                     "error", "not_configured",
-                    "message", e.getMessage()
+                    "message", "Configuration KeyNest indisponible"
             ));
         } catch (Exception e) {
-            log.error("Erreur recherche stores KeyNest (lat={}, lng={}): {}", lat, lng, e.getMessage());
+            log.error("Erreur recherche stores KeyNest");
             return ResponseEntity.internalServerError().body(Map.of(
                     "error", "server_error",
                     "message", "Erreur lors de la recherche des points KeyNest"
