@@ -39,6 +39,15 @@ public class BaitlyOAuthConnectionGuard {
         return executeKey(userScope(provider, userId), operation, false);
     }
 
+    /** Une déconnexion reste bloquante, même si sa sauvegarde locale échoue. */
+    public <T> T executeRevocation(String provider, Long organizationId, Supplier<T> operation) {
+        return executeKey(organizationScope(provider, organizationId), operation, false, false, false, true, value -> true);
+    }
+
+    public <T> T executeUserRevocation(String provider, String userId, Supplier<T> operation) {
+        return executeKey(userScope(provider, userId), operation, false, false, false, true, value -> true);
+    }
+
     /** Nouvelle autorisation atomique : toute erreur annule les nouvelles informations. */
     public <T> T executeAuthorization(String provider, Long organizationId, Supplier<T> operation) {
         return executeKey(organizationScope(provider, organizationId), operation, false, false, true);
@@ -104,41 +113,60 @@ public class BaitlyOAuthConnectionGuard {
 
     private <T> T executeKey(String scope, Supplier<T> operation, boolean preserveError, boolean refresh, boolean authorization,
                              java.util.function.Predicate<T> confirmed) {
-        Outcome<T> outcome = transaction.execute(status -> {
-            // La clé ne contient aucun jeton, identifiant utilisateur en clair ou URL fournisseur.
-            Boolean locked = db.queryForObject(
-                    "SELECT pg_try_advisory_xact_lock(hashtextextended(?, 0))", Boolean.class,
-                    scope);
-            if (!Boolean.TRUE.equals(locked)) {
-                throw new BaitlyOAuthBusyException();
-            }
-            String hash = digest(scope);
-            java.util.UUID attempt = refresh ? beginRefresh(hash) : null;
-            try {
-                T value = operation.get();
-                if (status.isRollbackOnly()) throw new IllegalStateException("Transaction OAuth non confirmée");
-                // PostgreSQL peut répondre ROLLBACK à COMMIT après une erreur SQL avalée.
-                // Une sonde dans la même transaction doit réussir avant de retourner un succès.
-                if (!Integer.valueOf(1).equals(db.queryForObject("SELECT 1", Integer.class))) {
-                    throw new IllegalStateException("Transaction OAuth non confirmée");
+        return executeKey(scope, operation, preserveError, refresh, authorization, false, confirmed);
+    }
+
+    private <T> T executeKey(String scope, Supplier<T> operation, boolean preserveError, boolean refresh, boolean authorization,
+                             boolean revocation, java.util.function.Predicate<T> confirmed) {
+        Outcome<T> outcome;
+        try {
+            outcome = transaction.execute(status -> {
+                // La clé ne contient aucun jeton, identifiant utilisateur en clair ou URL fournisseur.
+                Boolean locked = db.queryForObject(
+                        "SELECT pg_try_advisory_xact_lock(hashtextextended(?, 0))", Boolean.class,
+                        scope);
+                if (!Boolean.TRUE.equals(locked)) {
+                    throw new BaitlyOAuthBusyException();
                 }
-                // Même transaction que les nouveaux jetons : rollback => intention encore présente.
-                if (refresh) {
-                    if (!confirmed.test(value)) return new Outcome<>(value, null);
-                    int removed = db.update("DELETE FROM baitly_oauth_refresh_attempts WHERE scope_hash=? AND attempt=?", hash, attempt);
-                    if (removed != 1) throw recoveryRequired();
-                } else if (authorization) {
-                    db.update("DELETE FROM baitly_oauth_refresh_attempts WHERE scope_hash=?", hash);
+                String hash = digest(scope);
+                // Une nouvelle autorisation explicite peut remplacer une tentative incertaine,
+                // sous le même verrou. Aucun ancien secret ne doit redevenir utilisable après rollback.
+                java.util.UUID attempt = authorization || revocation ? beginReplacement(hash) : refresh ? beginRefresh(hash) : null;
+                try {
+                    T value = operation.get();
+                    if (status.isRollbackOnly()) throw new IllegalStateException("Transaction OAuth non confirmée");
+                    // PostgreSQL peut répondre ROLLBACK à COMMIT après une erreur SQL avalée.
+                    // Une sonde dans la même transaction doit réussir avant de retourner un succès.
+                    if (!Integer.valueOf(1).equals(db.queryForObject("SELECT 1", Integer.class))) {
+                        throw new IllegalStateException("Transaction OAuth non confirmée");
+                    }
+                    // Même transaction que les nouveaux jetons : rollback => intention encore présente.
+                    if (refresh) {
+                        if (!confirmed.test(value)) return new Outcome<>(value, null);
+                        int removed = db.update("DELETE FROM baitly_oauth_refresh_attempts WHERE scope_hash=? AND attempt=?", hash, attempt);
+                        if (removed != 1) throw recoveryRequired();
+                    } else if (authorization) {
+                        int removed = db.update("DELETE FROM baitly_oauth_refresh_attempts WHERE scope_hash=? AND attempt=?", hash, attempt);
+                        if (removed != 1) throw recoveryRequired();
+                    }
+                    // La révocation conserve son verrou durable : seule une nouvelle autorisation
+                    // confirmée peut rouvrir l'accès, jamais une écriture locale ou un refresh.
+                    return new Outcome<>(value, null);
+                } catch (RuntimeException failure) {
+                    // Un échec métier peut déjà avoir enregistré ERROR. Le propager après commit,
+                    // sous le verrou. Une transaction condamnée ne doit jamais être acquittée.
+                    if (!preserveError || status.isRollbackOnly()) throw failure;
+                    return new Outcome<T>(null, failure);
                 }
-                return new Outcome<>(value, null);
-            } catch (RuntimeException failure) {
-                // Un échec métier peut déjà avoir enregistré ERROR. Le propager après commit,
-                // sous le verrou. Une transaction condamnée ne doit jamais être acquittée.
-                if (!preserveError || status.isRollbackOnly()) throw failure;
-                return new Outcome<T>(null, failure);
-            }
-        });
+            });
+        } catch (org.springframework.dao.DataAccessException | org.springframework.transaction.TransactionException ignored) {
+            // Le commit JPA/JDBC est hors des diagnostics HTTP fournisseur : ne jamais
+            // propager son SQL, ses paramètres, ses causes ou ses erreurs supprimées.
+            throw recoveryRequired();
+        }
         if (outcome == null) throw new IllegalStateException("Opération OAuth non confirmée");
+        if (outcome.failure instanceof org.springframework.dao.DataAccessException
+                || outcome.failure instanceof org.springframework.transaction.TransactionException) throw recoveryRequired();
         if (outcome.failure != null) throw outcome.failure;
         return outcome.value;
     }
@@ -148,6 +176,17 @@ public class BaitlyOAuthConnectionGuard {
         try {
             Integer inserted = durable.execute(status -> db.update("INSERT INTO baitly_oauth_refresh_attempts(scope_hash,attempt) VALUES (?,?) ON CONFLICT DO NOTHING", hash, attempt));
             if (!Integer.valueOf(1).equals(inserted)) throw recoveryRequired();
+            return attempt;
+        } catch (RuntimeException ignored) { throw recoveryRequired(); }
+    }
+
+    private java.util.UUID beginReplacement(String hash) {
+        java.util.UUID attempt = java.util.UUID.randomUUID();
+        try {
+            Integer written = durable.execute(status -> db.update(
+                    "INSERT INTO baitly_oauth_refresh_attempts(scope_hash,attempt) VALUES (?,?) "
+                            + "ON CONFLICT (scope_hash) DO UPDATE SET attempt=EXCLUDED.attempt,created_at=CURRENT_TIMESTAMP", hash, attempt));
+            if (!Integer.valueOf(1).equals(written)) throw recoveryRequired();
             return attempt;
         } catch (RuntimeException ignored) { throw recoveryRequired(); }
     }

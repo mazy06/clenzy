@@ -100,6 +100,64 @@ class BaitlyOAuthCoordinationPostgresTest {
         assertThat(db.queryForObject("SELECT refresh FROM " + table, String.class)).isEqualTo("new-refresh");
     }
 
+    @Test void newGrantRemoteSuccessThenLocalRollbackBlocksOldCredentialsAcrossRestart() {
+        var remoteCalls = new java.util.concurrent.atomic.AtomicInteger();
+        assertThatThrownBy(() -> first.executeAuthorization("test",7L,() -> {
+            assertThat(db.queryForObject("SELECT count(*) FROM baitly_oauth_refresh_attempts",Long.class)).isEqualTo(1);
+            remoteCalls.incrementAndGet();
+            db.update("UPDATE " + table + " SET refresh='new-grant-refresh' WHERE id=7");
+            db.execute("SELECT 1/0");
+            return "unsafe";
+        })).isInstanceOf(RuntimeException.class);
+        assertThat(db.queryForObject("SELECT refresh FROM " + table,String.class)).isEqualTo("old-refresh");
+        assertThatThrownBy(() -> second.requireSettled("test",7L)).hasNoCause();
+        assertThatThrownBy(() -> second.executeRefresh("test",7L,() -> { remoteCalls.incrementAndGet(); return "unsafe"; })).hasNoCause();
+        assertThat(remoteCalls).hasValue(1);
+        second.executeAuthorization("test",7L,() -> {
+            db.update("UPDATE " + table + " SET refresh='confirmed-grant-refresh' WHERE id=7");
+            return "ok";
+        });
+        second.requireSettled("test",7L);
+    }
+
+    @Test void revocationRollbackBlocksOldTokensAndLocalWritesCannotUnblockThem() {
+        assertThatThrownBy(() -> first.executeRevocation("test",7L,() -> {
+            assertThat(db.queryForObject("SELECT count(*) FROM baitly_oauth_refresh_attempts",Long.class)).isEqualTo(1);
+            db.update("UPDATE " + table + " SET status='REVOKED',access=NULL,refresh=NULL WHERE id=7");
+            db.execute("SELECT 1/0");
+            return null;
+        })).isInstanceOf(RuntimeException.class);
+        assertThat(db.queryForObject("SELECT status FROM " + table,String.class)).isEqualTo("ACTIVE");
+        second.execute("test",7L,() -> { db.update("UPDATE " + table + " SET access='manual-access' WHERE id=7"); return null; });
+        assertThatThrownBy(() -> second.requireSettled("test",7L)).hasNoCause();
+        assertThatThrownBy(() -> second.executeRefresh("test",7L,() -> "unsafe")).hasNoCause();
+        second.executeRevocation("test",7L,() -> {
+            db.update("UPDATE " + table + " SET status='REVOKED',access=NULL,refresh=NULL WHERE id=7"); return null;
+        });
+        assertThatThrownBy(() -> first.requireSettled("test",7L)).hasNoCause();
+        second.executeAuthorization("test",7L,() -> "explicit-confirmed-authorization");
+        first.requireSettled("test",7L);
+    }
+
+    @Test void grantCannotReplaceAnIntentWhileAnotherInstanceOwnsTheScope() throws Exception {
+        var entered = new CountDownLatch(1); var release = new CountDownLatch(1);
+        try (var executor = Executors.newSingleThreadExecutor()) {
+            var pending = executor.submit(() -> first.executeAuthorization("test",7L,() -> {
+                var attempt = db.queryForObject("SELECT attempt FROM baitly_oauth_refresh_attempts",UUID.class);
+                entered.countDown(); await(release);
+                assertThat(db.queryForObject("SELECT attempt FROM baitly_oauth_refresh_attempts",UUID.class)).isEqualTo(attempt);
+                return "ok";
+            }));
+            try {
+                await(entered);
+                assertThatThrownBy(() -> second.executeAuthorization("test",7L,() -> "unsafe")).isInstanceOf(BaitlyOAuthBusyException.class);
+                assertThatThrownBy(() -> second.executeRevocation("test",7L,() -> "unsafe")).isInstanceOf(BaitlyOAuthBusyException.class);
+            } finally { release.countDown(); }
+            assertThat(pending.get(10,TimeUnit.SECONDS)).isEqualTo("ok");
+        }
+        second.requireSettled("test",7L);
+    }
+
     @Test void userScopeFenceHasNoRawIdentityAndCannotBeClearedByAnotherUser() {
         assertThatThrownBy(() -> first.executeUserRefresh("minut", "synthetic-private@example.invalid", () -> {throw new IllegalStateException("synthetic");}));
         assertThat(db.queryForObject("SELECT scope_hash FROM baitly_oauth_refresh_attempts", String.class)).matches("[a-f0-9]{64}");
@@ -214,7 +272,8 @@ class BaitlyOAuthCoordinationPostgresTest {
         assertThat(engine2.getValidAccessToken(config, persistence, 7L)).isEqualTo("new-access");
         verify(http, times(1)).exchange(anyString(), eq(HttpMethod.POST), any(HttpEntity.class), eq(Map.class));
         engine2.revokeToken(config, persistence, 7L);
-        assertThatThrownBy(() -> engine1.refreshToken(config, persistence, 7L)).hasMessageContaining("active");
+        assertThatThrownBy(() -> engine1.refreshToken(config, persistence, 7L))
+                .hasMessage("Rotation OAuth non confirmée ; reconnexion requise").hasNoCause();
         verifyNoMoreInteractions(http);
         assertThat(db.queryForObject("SELECT status FROM " + table, String.class)).isEqualTo("REVOKED");
     }

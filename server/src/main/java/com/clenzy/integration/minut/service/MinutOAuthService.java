@@ -271,7 +271,7 @@ public class MinutOAuthService {
      * Revoque le token et deconnecte l'utilisateur.
      */
     public void revokeToken(String userId) {
-        connectionGuard.executeForUser("minut", userId, () -> {
+        connectionGuard.executeUserRevocation("minut", userId, () -> {
             revokeUnderLock(userId);
             return null;
         });

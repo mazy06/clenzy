@@ -278,8 +278,10 @@ class BaitlyNativeOAuthCoordinationPostgresTest {
     void failedExchangePreservesStoredCredentialsAndExistingErrorContract(String provider) {
         seed(provider);
         var http = mock(RestTemplate.class);
-        when(http.postForEntity(anyString(), any(), eq(Map.class)))
-                .thenThrow(new IllegalStateException("Synthetic provider failure"));
+        when(http.postForEntity(anyString(), any(), eq(Map.class))).thenAnswer(call -> {
+            assertThat(new JdbcTemplate(source).queryForObject("SELECT count(*) FROM baitly_oauth_refresh_attempts",Long.class)).isEqualTo(1);
+            throw new IllegalStateException("Synthetic provider failure");
+        });
         var service = harness(provider, http, first);
         assertThatThrownBy(service.exchange()::run).isInstanceOf(RuntimeException.class);
         Object saved = read();
@@ -287,5 +289,84 @@ class BaitlyNativeOAuthCoordinationPostgresTest {
         assertThat(ReflectionTestUtils.getField(saved, "refreshTokenEncrypted")).isEqualTo("encrypted-old-refresh");
         String expected = provider.equals("airbnb") || provider.equals("homeaway") ? "ERROR" : "ACTIVE";
         assertThat(ReflectionTestUtils.getField(saved, "status").toString()).isEqualTo(expected);
+        assertThat(new JdbcTemplate(source).queryForObject("SELECT count(*) FROM baitly_oauth_refresh_attempts",Long.class)).isEqualTo(1);
+        var restarted = harness(provider,http,second);
+        assertThatThrownBy(restarted.token()::get).isInstanceOf(RuntimeException.class);
+        assertThatThrownBy(restarted.refresh()::run).isInstanceOf(RuntimeException.class);
+        verify(http,times(1)).postForEntity(anyString(),any(),eq(Map.class));
+    }
+
+    @ParameterizedTest @ValueSource(strings = {"airbnb", "minut", "netatmo"})
+    void nativeRevocationKeepsFenceUntilNewGrantCommits(String provider) {
+        seed(provider);
+        var http = mock(RestTemplate.class);
+        var db = new JdbcTemplate(source);
+        if (!provider.equals("netatmo")) {
+            when(http.postForEntity(anyString(),any(),eq(Void.class))).thenAnswer(call -> {
+                assertThat(db.queryForObject("SELECT count(*) FROM baitly_oauth_refresh_attempts",Long.class)).isEqualTo(1);
+                return ResponseEntity.ok().build();
+            });
+        }
+        harness(provider,http,first).revoke().run();
+        assertThat(db.queryForObject("SELECT count(*) FROM baitly_oauth_refresh_attempts",Long.class)).isEqualTo(1);
+        assertThat(ReflectionTestUtils.getField(read(),"accessTokenEncrypted")).isEqualTo("");
+        var restarted = harness(provider,http,second);
+        assertThatThrownBy(restarted.token()::get).isInstanceOf(RuntimeException.class);
+        assertThatThrownBy(restarted.refresh()::run).isInstanceOf(RuntimeException.class);
+        verify(http,never()).postForEntity(anyString(),any(),eq(Map.class));
+        when(http.postForEntity(anyString(),any(),eq(Map.class))).thenReturn(ResponseEntity.ok(
+                Map.of("access_token","reauthorized-access","refresh_token","reauthorized-refresh","expires_in",3600)));
+        restarted.exchange().run();
+        assertThat(db.queryForObject("SELECT count(*) FROM baitly_oauth_refresh_attempts",Long.class)).isZero();
+        assertThat(restarted.token().get()).isEqualTo("reauthorized-access");
+    }
+
+    @ParameterizedTest @ValueSource(strings = {"airbnb", "homeaway", "minut", "netatmo"})
+    void newGrantAcceptedRemotelyButRejectedByJpaCannotReleaseOldCredentials(String provider) {
+        seed(provider);
+        var db = new JdbcTemplate(source);
+        // Schéma éphémère : nom exact fourni par l'entité, aucune migration métier.
+        String tableName = initial.getClass().getAnnotation(jakarta.persistence.Table.class).name();
+        db.execute("ALTER TABLE " + tableName + " ADD CONSTRAINT reject_new_grant CHECK (access_token_encrypted='encrypted-old-access')");
+        var http = mock(RestTemplate.class);
+        when(http.postForEntity(anyString(),any(),eq(Map.class))).thenAnswer(call -> {
+            assertThat(db.queryForObject("SELECT count(*) FROM baitly_oauth_refresh_attempts",Long.class)).isEqualTo(1);
+            return ResponseEntity.ok(Map.of("access_token","new-grant-access","refresh_token","new-grant-refresh","expires_in",3600));
+        });
+        var service = harness(provider,http,first);
+        assertThatThrownBy(service.exchange()::run).isInstanceOf(RuntimeException.class);
+        assertThat(ReflectionTestUtils.getField(read(),"accessTokenEncrypted")).isEqualTo("encrypted-old-access");
+        assertThat(db.queryForObject("SELECT count(*) FROM baitly_oauth_refresh_attempts",Long.class)).isEqualTo(1);
+        var restarted = harness(provider,http,second);
+        assertThatThrownBy(restarted.token()::get).isInstanceOf(RuntimeException.class);
+        assertThatThrownBy(restarted.refresh()::run).isInstanceOf(RuntimeException.class);
+        verify(http,times(1)).postForEntity(anyString(),any(),eq(Map.class));
+        db.execute("ALTER TABLE " + tableName + " DROP CONSTRAINT reject_new_grant");
+        restarted.exchange().run();
+        assertThat(db.queryForObject("SELECT count(*) FROM baitly_oauth_refresh_attempts",Long.class)).isZero();
+        assertThat(restarted.token().get()).isEqualTo("new-grant-access");
+    }
+
+    @ParameterizedTest @ValueSource(strings = {"airbnb", "minut", "netatmo"})
+    void revocationAcceptedRemotelyButRejectedByJpaStillBlocksOldCredentials(String provider) {
+        seed(provider);
+        var db = new JdbcTemplate(source);
+        String tableName = initial.getClass().getAnnotation(jakarta.persistence.Table.class).name();
+        db.execute("ALTER TABLE " + tableName + " ADD CONSTRAINT reject_revocation CHECK (status <> 'REVOKED')");
+        var http = mock(RestTemplate.class);
+        if (!provider.equals("netatmo")) {
+            when(http.postForEntity(anyString(),any(),eq(Void.class))).thenAnswer(call -> {
+                assertThat(db.queryForObject("SELECT count(*) FROM baitly_oauth_refresh_attempts",Long.class)).isEqualTo(1);
+                return ResponseEntity.ok().build();
+            });
+        }
+        assertThatThrownBy(harness(provider,http,first).revoke()::run).isInstanceOf(RuntimeException.class);
+        assertThat(ReflectionTestUtils.getField(read(),"status").toString()).isEqualTo("ACTIVE");
+        assertThat(ReflectionTestUtils.getField(read(),"accessTokenEncrypted")).isEqualTo("encrypted-old-access");
+        assertThat(db.queryForObject("SELECT count(*) FROM baitly_oauth_refresh_attempts",Long.class)).isEqualTo(1);
+        var restarted = harness(provider,http,second);
+        assertThatThrownBy(restarted.token()::get).isInstanceOf(RuntimeException.class);
+        assertThatThrownBy(restarted.refresh()::run).isInstanceOf(RuntimeException.class);
+        verify(http,never()).postForEntity(anyString(),any(),eq(Map.class));
     }
 }

@@ -56,14 +56,73 @@ class BaitlyOAuthConnectionGuardTest {
         lock(true);
         assertThatThrownBy(() -> guard.executeAuthorization("test",7L,() -> {throw new IllegalStateException("synthetic");})).hasMessage("synthetic");
         verify(manager).rollback(status);
-        verify(manager,never()).commit(any());
-        verify(db,never()).update(anyString(),any(Object[].class));
+        verify(manager).commit(status); // Intention indépendante, avant l'opération.
+        verify(db,never()).update(startsWith("DELETE"),any(Object[].class));
     }
     @Test void legacyAuthorizationErrorContractDoesNotClearTheFence() {
         lock(true);
         assertThatThrownBy(() -> guard.executeUserLegacyAuthorization("airbnb","synthetic-user",() -> {throw new IllegalStateException("synthetic");})).hasMessage("synthetic");
-        verify(manager).commit(status);
-        verify(db,never()).update(anyString(),any(Object[].class));
+        verify(manager,times(2)).commit(status);
+        verify(db,never()).update(startsWith("DELETE"),any(Object[].class));
+    }
+
+    @Test void unavailableAuthorizationJournalNeverCallsProviderAndHidesDatabaseDetails() {
+        lock(true);
+        when(db.update(startsWith("INSERT"),any(Object[].class)))
+                .thenThrow(new IllegalStateException("synthetic-private-database-detail"));
+        var operation = mock(java.util.function.Supplier.class);
+        assertThatThrownBy(() -> guard.executeAuthorization("test",7L,operation))
+                .hasMessage("Rotation OAuth non confirmée ; reconnexion requise").hasNoCause();
+        verifyNoInteractions(operation);
+    }
+
+    @Test void successfulRevocationNeverRemovesDurableFence() {
+        lock(true);
+        assertThat(guard.executeRevocation("test",7L,() -> "disconnected")).isEqualTo("disconnected");
+        verify(manager,times(2)).commit(status);
+        verify(db,never()).update(startsWith("DELETE"),any(Object[].class));
+    }
+
+    @Test void authorizationCannotClearAnotherAttempt() {
+        lock(true);
+        when(db.update(startsWith("DELETE"),any(Object[].class))).thenReturn(0);
+        assertThatThrownBy(() -> guard.executeAuthorization("test",7L,() -> "must-not-succeed"))
+                .hasMessage("Rotation OAuth non confirmée ; reconnexion requise").hasNoCause();
+        verify(manager).rollback(status);
+    }
+
+    @Test void storageFailureAfterRemoteGrantHasNoPrivateDiagnostic() {
+        lock(true);
+        assertThatThrownBy(() -> guard.executeAuthorization("test",7L,() -> {
+            var failure = new org.springframework.dao.DataIntegrityViolationException("synthetic-private-sql-value",
+                    new IllegalStateException("synthetic-private-cause"));
+            failure.addSuppressed(new IllegalStateException("synthetic-private-suppressed"));
+            throw failure;
+        })).isInstanceOfSatisfying(IllegalStateException.class, this::assertPrivateDiagnosticRemoved);
+    }
+
+    @Test void storageCommitFailureHasNoPrivateDiagnostic() {
+        lock(true);
+        doThrow(new org.springframework.transaction.TransactionSystemException("synthetic-private-commit",
+                new IllegalStateException("synthetic-private-secret"))).when(manager).commit(status);
+        assertThatThrownBy(() -> guard.execute("test",7L,() -> "unsafe"))
+                .isInstanceOfSatisfying(IllegalStateException.class, this::assertPrivateDiagnosticRemoved);
+    }
+
+    @Test void legacyErrorCommitCannotExposeDeferredStorageFailure() {
+        lock(true);
+        assertThatThrownBy(() -> guard.executeLegacyAuthorization("test",7L,() -> {
+            throw new org.springframework.dao.DataIntegrityViolationException("synthetic-private-deferred");
+        })).isInstanceOfSatisfying(IllegalStateException.class, this::assertPrivateDiagnosticRemoved);
+        verify(manager,times(2)).commit(status);
+        verify(db,never()).update(startsWith("DELETE"),any(Object[].class));
+    }
+
+    private void assertPrivateDiagnosticRemoved(IllegalStateException failure) {
+        assertThat(failure).hasMessage("Rotation OAuth non confirmée ; reconnexion requise").hasNoCause();
+        assertThat(failure.getSuppressed()).isEmpty();
+        var printed = new java.io.StringWriter(); failure.printStackTrace(new java.io.PrintWriter(printed));
+        assertThat(printed.toString()).doesNotContain("synthetic-private");
     }
     @Test void returnedErrorCommitsTheLocalStateButKeepsTheDurableIntent() {
         lock(true);

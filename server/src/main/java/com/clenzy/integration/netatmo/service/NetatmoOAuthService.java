@@ -283,7 +283,7 @@ public class NetatmoOAuthService {
      * La déconnexion locale efface les jetons sans attester leur révocation distante.
      */
     public void revokeToken(String userId) {
-        connectionGuard.executeForUser("netatmo", userId, () -> {
+        connectionGuard.executeUserRevocation("netatmo", userId, () -> {
             revokeUnderLock(userId);
             return null;
         });

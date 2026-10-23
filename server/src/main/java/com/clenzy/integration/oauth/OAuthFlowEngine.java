@@ -243,7 +243,7 @@ public class OAuthFlowEngine {
             OAuthConnectionPersistence<C> persistence,
             Long orgId
     ) {
-        connectionGuard.execute(config.getProviderKey(), orgId, () -> {
+        connectionGuard.executeRevocation(config.getProviderKey(), orgId, () -> {
             revokeUnderLock(config, persistence, orgId);
             return null;
         });

@@ -262,7 +262,7 @@ public class AirbnbOAuthService {
      */
     @CircuitBreaker(name = "airbnb-oauth")
     public void revokeToken(String userId) {
-        connectionGuard.executeForUser("airbnb", userId, () -> {
+        connectionGuard.executeUserRevocation("airbnb", userId, () -> {
             revokeUnderLock(userId);
             return null;
         });

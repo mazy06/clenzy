@@ -20,6 +20,8 @@ public final class BaitlyOAuthTestGuards {
         lenient().when(guard.executeUserAuthorization(anyString(), any(), any())).thenAnswer(call -> ((Supplier<?>) call.getArgument(2)).get());
         lenient().when(guard.executeLegacyAuthorization(anyString(), any(), any())).thenAnswer(call -> ((Supplier<?>) call.getArgument(2)).get());
         lenient().when(guard.executeUserLegacyAuthorization(anyString(), any(), any())).thenAnswer(call -> ((Supplier<?>) call.getArgument(2)).get());
+        lenient().when(guard.executeRevocation(anyString(), any(), any())).thenAnswer(call -> ((Supplier<?>) call.getArgument(2)).get());
+        lenient().when(guard.executeUserRevocation(anyString(), any(), any())).thenAnswer(call -> ((Supplier<?>) call.getArgument(2)).get());
         return guard;
     }
 }
