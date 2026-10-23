@@ -69,6 +69,7 @@ public class PennylaneAccountingSyncService {
 
         // Construire le body de la facture Pennylane
         Map<String, Object> body = new LinkedHashMap<>();
+        body.put("currency", invoice.getCurrency());
         body.put("date", invoice.getInvoiceDate().toString());
         body.put("deadline", invoice.getDueDate() != null
             ? invoice.getDueDate().toString()
@@ -90,10 +91,11 @@ public class PennylaneAccountingSyncService {
 
         if (alreadyRecorded(invoice.getPennylaneInvoiceId(), invoice.getPennylaneSyncedAt())) return;
         var key = new BaitlyAccountingExportJournal.Key(orgId, BaitlyAccountingExportJournal.Kind.INVOICE, invoice.getId());
-        var exported = export(key, fingerprint(body, customerRef, invoice.getBuyerName(), invoice.getCurrency(), invoice.getUpdatedAt()), version(invoice.getUpdatedAt()), () -> {
+        var totals = new BaitlyPennylaneRemoteProof.Totals(invoice.getTotalHt(), invoice.getTotalTax(), invoice.getTotalTtc());
+        var exported = export(key, fingerprint(body, customerRef, invoice.getBuyerName(), invoice.getCurrency(), invoice.getUpdatedAt(), totals), version(invoice.getUpdatedAt()), body, totals, () -> {
             body.put("customer_id", getOrCreateCustomer(orgId, customerRef, invoice.getBuyerName()));
             return client.createCustomerInvoice(orgId, body);
-        });
+        }, () -> client.findCustomerByExternalRef(orgId, customerRef).map(item -> partyId(item.get("id"))).orElseThrow(BaitlyAccountingExportJournal::unconfirmed));
         invoice.setPennylaneInvoiceId(exported.remoteId());
         invoice.setPennylaneSyncedAt(exported.confirmedAt());
 
@@ -116,6 +118,7 @@ public class PennylaneAccountingSyncService {
 
         // Construire le body (supplier invoice)
         Map<String, Object> body = new LinkedHashMap<>();
+        body.put("currency", expense.getCurrency());
         body.put("date", expense.getExpenseDate().toString());
         body.put("deadline", expense.getExpenseDate().plusDays(30).toString());
         body.put("external_reference", "clenzy_exp_" + expense.getId());
@@ -132,10 +135,11 @@ public class PennylaneAccountingSyncService {
 
         if (alreadyRecorded(expense.getPennylaneInvoiceId(), expense.getPennylaneSyncedAt())) return;
         var key = new BaitlyAccountingExportJournal.Key(orgId, BaitlyAccountingExportJournal.Kind.EXPENSE, expense.getId());
-        var exported = export(key, fingerprint(body, supplierRef, providerName, expense.getCurrency(), expense.getUpdatedAt()), version(expense.getUpdatedAt()), () -> {
+        var totals = new BaitlyPennylaneRemoteProof.Totals(expense.getAmountHt(), expense.getTaxAmount(), expense.getAmountTtc());
+        var exported = export(key, fingerprint(body, supplierRef, providerName, expense.getCurrency(), expense.getUpdatedAt(), totals), version(expense.getUpdatedAt()), body, totals, () -> {
             body.put("supplier_id", getOrCreateSupplier(orgId, supplierRef, providerName));
             return client.createSupplierInvoice(orgId, body);
-        });
+        }, () -> client.findSupplierByExternalRef(orgId, supplierRef).map(item -> partyId(item.get("id"))).orElseThrow(BaitlyAccountingExportJournal::unconfirmed));
         expense.setPennylaneInvoiceId(exported.remoteId());
         expense.setPennylaneSyncedAt(exported.confirmedAt());
 
@@ -225,18 +229,31 @@ public class PennylaneAccountingSyncService {
     private record Exported(String remoteId, Instant confirmedAt) {}
 
     private Exported export(BaitlyAccountingExportJournal.Key key, String fingerprint, String sourceVersion,
-                          java.util.function.Supplier<Map<String,Object>> create) {
+                          Map<String, Object> body, BaitlyPennylaneRemoteProof.Totals totals, java.util.function.Supplier<Map<String,Object>> create, java.util.function.Supplier<Number> readParty) {
         var connection = connectionRepository.findByOrganizationIdAndStatus(key.organizationId(), PennylaneConnection.Status.ACTIVE)
                 .orElseThrow(BaitlyAccountingExportJournal::unconfirmed);
-        var ticket = journal.prepare(key, connection.getAccountingGeneration(), fingerprint, sourceVersion);
+        var ticket = journal.prepareRecoverable(key, connection.getAccountingGeneration(), fingerprint, sourceVersion);
+        String reference = "baitly_export_" + ticket.attempt();
+        body.put("external_reference", reference);
         String remoteId = ticket.confirmedId();
         if (remoteId == null) {
             try {
-                var response = create.get();
-                remoteId = externalInvoiceId(response == null ? null : response.get("id"));
-                journal.confirm(ticket, remoteId);
+                if (ticket.firstAttempt()) {
+                    var response = create.get();
+                    remoteId = externalInvoiceId(response == null ? null : response.get("id"));
+                    journal.confirm(ticket, remoteId);
+                } else {
+                    var remote = key.kind() == BaitlyAccountingExportJournal.Kind.INVOICE
+                            ? client.findCustomerInvoiceByExternalRef(key.organizationId(), reference)
+                            : client.findSupplierInvoiceByExternalRef(key.organizationId(), reference);
+                    remoteId = BaitlyPennylaneRemoteProof.verify(remote.orElseThrow(BaitlyAccountingExportJournal::unconfirmed), body, key.kind(), readParty.get(), totals);
+                    journal.confirmReconciled(ticket, remoteId);
+                }
             } catch (RuntimeException failure) {
-                try {journal.uncertain(ticket);} catch (RuntimeException ignored) { /* SENDING reste bloquant si la base est indisponible. */ }
+                // Une lecture concurrente infructueuse ne condamne pas l'envoi encore actif.
+                if (ticket.firstAttempt()) {
+                    try {journal.uncertain(ticket);} catch (RuntimeException ignored) { /* SENDING reste bloquant si la base est indisponible. */ }
+                }
                 throw BaitlyPennylaneDiagnostics.failure(BaitlyPennylaneDiagnostics.reason(failure));
             }
         }
@@ -256,7 +273,7 @@ public class PennylaneAccountingSyncService {
     private String fingerprint(Object... values) {
         try {
             var mapper = new com.fasterxml.jackson.databind.ObjectMapper().findAndRegisterModules();
-            byte[] encoded = mapper.writeValueAsBytes(Arrays.asList("baitly-pennylane-export-v1", Arrays.asList(values)));
+            byte[] encoded = mapper.writeValueAsBytes(Arrays.asList("baitly-pennylane-export-v2", Arrays.asList(values)));
             return java.util.HexFormat.of().formatHex(java.security.MessageDigest.getInstance("SHA-256").digest(encoded));
         } catch (Exception ignored) {throw BaitlyAccountingExportJournal.unconfirmed();}
     }

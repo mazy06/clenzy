@@ -170,6 +170,63 @@ class BaitlyAccountingExportPostgresTest {
         assertThat(state(Kind.EXPENSE)).isEqualTo("CONFIRMED");
         assertThat(db.queryForObject("SELECT pennylane_invoice_id FROM provider_expenses WHERE id=42",String.class)).isEqualTo("420");
     }
+    @Test void remoteAcceptanceWithLostResponseCanBeReconciledWithoutASecondCreation() {
+        var reference = new java.util.concurrent.atomic.AtomicReference<String>();
+        when(client.createSupplierInvoice(eq(7L),any())).thenAnswer(call -> {
+            Map<String,Object> sent = call.getArgument(1);
+            reference.set((String) sent.get("external_reference"));
+            assertThat(reference.get()).matches("baitly_export_[a-f0-9-]{36}");
+            throw new IllegalStateException("synthetic lost response");
+        });
+        var item = expense(); item.setAmountTtc(BigDecimal.TEN);
+        assertThatThrownBy(() -> service().syncExpense(item)).hasNoCause();
+        assertThat(state(Kind.EXPENSE)).isEqualTo("UNKNOWN");
+        when(client.findSupplierInvoiceByExternalRef(7L, reference.get())).thenAnswer(call -> {
+            var remote = new HashMap<String,Object>();
+            remote.putAll(Map.of("id",420,"external_reference",reference.get(),"currency","EUR","date","2026-10-23","deadline","2026-11-22",
+                    "currency_amount_before_tax","10.00","currency_tax","0.00","currency_amount","10.00","supplier",Map.of("id",1),"accounting_status","complete"));
+            remote.put("archived_at",null);return Optional.of(remote);
+        });
+        service().syncExpense(item);
+        assertThat(state(Kind.EXPENSE)).isEqualTo("CONFIRMED");
+        assertThat(item.getPennylaneInvoiceId()).isEqualTo("420");
+        verify(client,times(1)).createSupplierInvoice(eq(7L),any());
+        verify(client,never()).createSupplier(anyLong(),any());
+    }
+
+    @Test void emptyRemoteSearchNeverRearmsAnUncertainCreation() {
+        when(client.createSupplierInvoice(eq(7L),any())).thenThrow(new IllegalStateException("synthetic timeout"));
+        var item = expense(); item.setAmountTtc(BigDecimal.TEN);
+        assertThatThrownBy(() -> service().syncExpense(item));
+        when(client.findSupplierInvoiceByExternalRef(eq(7L),anyString())).thenReturn(Optional.empty());
+        assertThatThrownBy(() -> service().syncExpense(item)).hasNoCause();
+        assertThat(state(Kind.EXPENSE)).isEqualTo("UNKNOWN");
+        verify(client,times(1)).createSupplierInvoice(eq(7L),any());
+    }
+    @Test void recoveryTicketCannotRearmTheCreationOrChangeItsOwner() {
+        var first = journal.prepareRecoverable(key(Kind.INVOICE),generation,hash,null);
+        var second = journal.prepareRecoverable(key(Kind.INVOICE),generation,hash,null);
+        assertThat(first.firstAttempt()).isTrue(); assertThat(second.firstAttempt()).isFalse();
+        assertThat(second.attempt()).isEqualTo(first.attempt());
+        assertThatThrownBy(() -> journal.confirmReconciled(first,"420")).hasNoCause();
+        var forged = new Ticket(second.key(),generation,UUID.randomUUID(),hash,null,false);
+        assertThatThrownBy(() -> journal.confirmReconciled(forged,"420")).hasNoCause();
+        assertThat(state(Kind.INVOICE)).isEqualTo("SENDING");
+        journal.uncertain(first);journal.confirmReconciled(second,"420");
+        assertThat(state(Kind.INVOICE)).isEqualTo("CONFIRMED");
+    }
+    @Test void concurrentEmptyLookupCannotCondemnTheActiveCreation() {
+        var item = expense(); item.setAmountTtc(BigDecimal.TEN);
+        when(client.findSupplierInvoiceByExternalRef(eq(7L),anyString())).thenReturn(Optional.empty());
+        when(client.createSupplierInvoice(eq(7L),any())).thenAnswer(call -> {
+            assertThatThrownBy(() -> service().syncExpense(item)).hasNoCause();
+            assertThat(state(Kind.EXPENSE)).isEqualTo("SENDING");
+            return Map.of("id",420);
+        });
+        service().syncExpense(item);
+        assertThat(state(Kind.EXPENSE)).isEqualTo("CONFIRMED");
+        verify(client,times(1)).createSupplierInvoice(eq(7L),any());
+    }
     @Test void wrongOrganizationAndWrongOwnerCannotConfirmOrModifyAnotherAttempt() {
         var ticket=prepare(Kind.INVOICE);
         var forged=new Ticket(ticket.key(),ticket.generation(),UUID.randomUUID(),ticket.fingerprint(),null);

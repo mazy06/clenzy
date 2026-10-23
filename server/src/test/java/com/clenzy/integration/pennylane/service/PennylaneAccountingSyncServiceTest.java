@@ -300,7 +300,7 @@ class PennylaneAccountingSyncServiceTest {
             ArgumentCaptor<Map<String, Object>> captor = ArgumentCaptor.forClass(Map.class);
             verify(client).createCustomerInvoice(eq(ORG_ID), captor.capture());
             Map<String, Object> body = captor.getValue();
-            assertThat(body.get("external_reference")).isEqualTo("clenzy_inv_INV-ZZ");
+            assertThat(body.get("external_reference").toString()).matches("baitly_export_[a-f0-9-]{36}");
             @SuppressWarnings("unchecked")
             List<Map<String, Object>> lines = (List<Map<String, Object>>) body.get("invoice_lines");
             assertThat(lines).hasSize(1);
@@ -401,7 +401,7 @@ class PennylaneAccountingSyncServiceTest {
             ArgumentCaptor<Map<String, Object>> captor = ArgumentCaptor.forClass(Map.class);
             verify(client).createSupplierInvoice(eq(ORG_ID), captor.capture());
             Map<String, Object> body = captor.getValue();
-            assertThat(body.get("external_reference")).isEqualTo("clenzy_exp_14");
+            assertThat(body.get("external_reference").toString()).matches("baitly_export_[a-f0-9-]{36}");
             @SuppressWarnings("unchecked")
             List<Map<String, Object>> lines = (List<Map<String, Object>>) body.get("invoice_lines");
             assertThat(lines).hasSize(1);

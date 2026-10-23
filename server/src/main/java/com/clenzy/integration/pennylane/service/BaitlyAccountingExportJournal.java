@@ -18,7 +18,10 @@ public class BaitlyAccountingExportJournal {
             if (organizationId==null || organizationId<=0 || kind==null || documentId==null || documentId<=0) throw unconfirmed();
         }
     }
-    public record Ticket(Key key, UUID generation, UUID attempt, String fingerprint, String confirmedId) {
+    public record Ticket(Key key, UUID generation, UUID attempt, String fingerprint, String confirmedId, boolean firstAttempt) {
+        public Ticket(Key key, UUID generation, UUID attempt, String fingerprint, String confirmedId) {
+            this(key, generation, attempt, fingerprint, confirmedId, true);
+        }
         @Override public String toString() {return "BaitlyAccountingExportTicket";}
     }
     private final JdbcTemplate db;
@@ -29,6 +32,12 @@ public class BaitlyAccountingExportJournal {
         transaction.setTimeout(10);
     }
     public Ticket prepare(Key key, UUID generation, String fingerprint, String sourceVersion) {
+        return prepare(key, generation, fingerprint, sourceVersion, false);
+    }
+    public Ticket prepareRecoverable(Key key, UUID generation, String fingerprint, String sourceVersion) {
+        return prepare(key, generation, fingerprint, sourceVersion, true);
+    }
+    private Ticket prepare(Key key, UUID generation, String fingerprint, String sourceVersion, boolean recoverable) {
         if (generation==null || fingerprint==null || !fingerprint.matches("[a-f0-9]{64}")) throw unconfirmed();
         return committed(() -> {
             db.execute("SET LOCAL lock_timeout = '2s'");
@@ -45,7 +54,11 @@ public class BaitlyAccountingExportJournal {
             if ("CONFIRMED".equals(row.get("state"))) {
                 return new Ticket(key,generation,(UUID)row.get("attempt"),fingerprint,BaitlyExternalIds.require(row.get("remote_id"),50));
             }
-            if (inserted!=1 || !attempt.equals(row.get("attempt"))) throw unconfirmed();
+            if (inserted != 1) {
+                if (!recoverable || !("SENDING".equals(row.get("state")) || "UNKNOWN".equals(row.get("state")))) throw unconfirmed();
+                return new Ticket(key, generation, (UUID) row.get("attempt"), fingerprint, null, false);
+            }
+            if (!attempt.equals(row.get("attempt"))) throw unconfirmed();
             return new Ticket(key,generation,attempt,fingerprint,null);
         });
     }
@@ -67,6 +80,21 @@ public class BaitlyAccountingExportJournal {
                 UPDATE baitly_accounting_exports SET state='UNKNOWN',uncertain_at=COALESCE(uncertain_at,CURRENT_TIMESTAMP)
                 WHERE organization_id=? AND document_kind=? AND document_id=? AND attempt=? AND state='SENDING'
                 """,ticket.key().organizationId(),ticket.key().kind().name(),ticket.key().documentId(),ticket.attempt());
+            return null;
+        });
+    }
+    /** Preuve distante contrôlée par le service ; ne réarme jamais une tentative. */
+    public void confirmReconciled(Ticket ticket, String remoteId) {
+        if (ticket.firstAttempt()) throw unconfirmed();
+        String valid = BaitlyExternalIds.require(remoteId, 50);
+        committed(() -> {
+            requireGeneration(ticket.key().organizationId(), ticket.generation());
+            int changed = db.update("""
+                UPDATE baitly_accounting_exports SET state='CONFIRMED',remote_id=?,confirmed_at=CURRENT_TIMESTAMP
+                WHERE organization_id=? AND document_kind=? AND document_id=? AND generation=? AND attempt=? AND fingerprint=?
+                AND state IN ('SENDING','UNKNOWN')
+                """, valid, ticket.key().organizationId(), ticket.key().kind().name(), ticket.key().documentId(), ticket.generation(), ticket.attempt(), ticket.fingerprint());
+            if (changed != 1) throw unconfirmed();
             return null;
         });
     }

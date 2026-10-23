@@ -55,7 +55,7 @@ class BaitlyPennylaneAccountingDiagnosticsTest {
             })
             .withUserConfiguration(BaitlyOAuthCircuitBreakerConfiguration.class, ClientConfig.class);
 
-    @ParameterizedTest @ValueSource(strings = {"find-customer", "find-supplier", "list-invoices"})
+    @ParameterizedTest @ValueSource(strings = {"find-customer", "find-supplier", "find-customer-invoice", "find-supplier-invoice", "list-invoices"})
     void queryValuesRemainDataAfterOneStrictEncoding(String action) {
         runner.run(context -> {
             var client = context.getBean(PennylaneAccountingClient.class);
@@ -84,13 +84,15 @@ class BaitlyPennylaneAccountingDiagnosticsTest {
             switch (action) {
                 case "find-customer" -> assertThat(client.findCustomerByExternalRef(7L, value)).isEmpty();
                 case "find-supplier" -> assertThat(client.findSupplierByExternalRef(7L, value)).isEmpty();
+                case "find-customer-invoice" -> assertThat(client.findCustomerInvoiceByExternalRef(7L, value)).isEmpty();
+                case "find-supplier-invoice" -> assertThat(client.findSupplierInvoiceByExternalRef(7L, value)).isEmpty();
                 default -> assertThat(client.listCustomerInvoices(7L, value, 10)).containsKey("customer_invoices");
             }
             server.verify();
         });
     }
 
-    @ParameterizedTest @ValueSource(strings = {"find-customer", "find-supplier"})
+    @ParameterizedTest @ValueSource(strings = {"find-customer", "find-supplier", "find-customer-invoice", "find-supplier-invoice"})
     void malformedSuccessRemainsInvalidThroughTheActualCircuitBreaker(String action) {
         runner.run(context -> {
             var client = context.getBean(PennylaneAccountingClient.class);
@@ -101,7 +103,9 @@ class BaitlyPennylaneAccountingDiagnosticsTest {
                 .andRespond(withSuccess("{\"unexpected\":\"" + PRIVATE + "\"}", MediaType.APPLICATION_JSON));
             assertThatThrownBy(() -> {
                 if (action.equals("find-customer")) client.findCustomerByExternalRef(7L, PRIVATE);
-                else client.findSupplierByExternalRef(7L, PRIVATE);
+                else if (action.equals("find-supplier")) client.findSupplierByExternalRef(7L, PRIVATE);
+                else if (action.equals("find-customer-invoice")) client.findCustomerInvoiceByExternalRef(7L, PRIVATE);
+                else client.findSupplierInvoiceByExternalRef(7L, PRIVATE);
             }).isInstanceOf(BaitlyPennylaneDiagnostics.Failure.class).hasNoCause().satisfies(error -> {
                 assertThat(BaitlyPennylaneDiagnostics.reason(error)).isEqualTo(BaitlyPennylaneDiagnostics.Reason.INVALID_RESPONSE);
                 assertThat(error.getMessage()).doesNotContain(PRIVATE);
@@ -112,7 +116,7 @@ class BaitlyPennylaneAccountingDiagnosticsTest {
     }
 
     @ParameterizedTest
-    @ValueSource(strings = {"customer-invoice", "supplier-invoice", "customer", "supplier", "find-customer", "find-supplier", "list-invoices", "journals"})
+    @ValueSource(strings = {"customer-invoice", "supplier-invoice", "customer", "supplier", "find-customer", "find-supplier", "find-customer-invoice", "find-supplier-invoice", "list-invoices", "journals"})
     void everyActualFallbackProtectsHttpErrorsAndPreservesOAuthContention(String action) {
         runner.run(context -> {
             assertThat(context).hasNotFailed();
@@ -129,6 +133,8 @@ class BaitlyPennylaneAccountingDiagnosticsTest {
                 case "supplier" -> client.createSupplier(7L, Map.of("name", PRIVATE));
                 case "find-customer" -> client.findCustomerByExternalRef(7L, PRIVATE);
                 case "find-supplier" -> client.findSupplierByExternalRef(7L, PRIVATE);
+                case "find-customer-invoice" -> client.findCustomerInvoiceByExternalRef(7L, PRIVATE);
+                case "find-supplier-invoice" -> client.findSupplierInvoiceByExternalRef(7L, PRIVATE);
                 case "list-invoices" -> client.listCustomerInvoices(7L, PRIVATE, 10);
                 default -> client.listJournals(7L);
             };

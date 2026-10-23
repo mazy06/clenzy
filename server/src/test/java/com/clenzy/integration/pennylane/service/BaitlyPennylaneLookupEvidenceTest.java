@@ -15,7 +15,7 @@ import static org.springframework.test.web.client.response.MockRestResponseCreat
 
 /** Réponses API v2 synthétiques : une réponse ambiguë ne prouve jamais une absence. */
 class BaitlyPennylaneLookupEvidenceTest {
-    static Stream<String> parties() { return Stream.of("customers", "suppliers"); }
+    static Stream<String> parties() { return Stream.of("customers", "suppliers", "customer_invoices", "supplier_invoices"); }
     static Stream<org.junit.jupiter.params.provider.Arguments> invalidPages() {
         return parties().flatMap(party -> Stream.of(
             "null", "{}", "{\"customers\":[],\"suppliers\":[]}",
@@ -75,8 +75,12 @@ class BaitlyPennylaneLookupEvidenceTest {
             }).andRespond(withSuccess(body, MediaType.APPLICATION_JSON));
         }
         Optional<Map<String,Object>> lookup(String party) {
-            return party.equals("customers") ? client.findCustomerByExternalRef(7L,"synthetic-reference")
-                : client.findSupplierByExternalRef(7L,"synthetic-reference");
+            return switch (party) {
+                case "customers" -> client.findCustomerByExternalRef(7L, "synthetic-reference");
+                case "suppliers" -> client.findSupplierByExternalRef(7L, "synthetic-reference");
+                case "customer_invoices" -> client.findCustomerInvoiceByExternalRef(7L, "synthetic-reference");
+                default -> client.findSupplierInvoiceByExternalRef(7L, "synthetic-reference");
+            };
         }
     }
 }

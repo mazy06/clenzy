@@ -36,7 +36,7 @@ class BaitlyAccountingExportFlowTest {
     void intentPrecedesAllRemoteEffectsAndProofPrecedesLocalApplication(String type) {
         run(type);
         var order=inOrder(journal,client);
-        order.verify(journal).prepare(any(),any(),anyString(),isNull());
+        order.verify(journal).prepareRecoverable(any(),any(),anyString(),isNull());
         if(type.equals("invoice")) {
             order.verify(client).findCustomerByExternalRef(eq(7L),anyString());
             order.verify(client).createCustomerInvoice(eq(7L),any());
@@ -49,14 +49,14 @@ class BaitlyAccountingExportFlowTest {
     }
     @ParameterizedTest @ValueSource(strings={"invoice","expense"})
     void existingDurableProofRepairsWithoutAnyRemoteCall(String type) {
-        when(journal.prepare(any(),any(),anyString(),isNull())).thenAnswer(call -> new BaitlyAccountingExportJournal.Ticket(
+        when(journal.prepareRecoverable(any(),any(),anyString(),isNull())).thenAnswer(call -> new BaitlyAccountingExportJournal.Ticket(
                 call.getArgument(0),call.getArgument(1),UUID.randomUUID(),call.getArgument(2),"420"));
         run(type);verifyNoInteractions(client,invoices,expenses);
         verify(journal).applyLocal(any(),eq("420"));verify(journal,never()).confirm(any(),any());
     }
     @ParameterizedTest @ValueSource(strings={"invoice","expense"})
     void refusalOfReservationPreventsEveryRemoteSideEffect(String type) {
-        when(journal.prepare(any(),any(),anyString(),isNull())).thenThrow(BaitlyAccountingExportJournal.unconfirmed());
+        when(journal.prepareRecoverable(any(),any(),anyString(),isNull())).thenThrow(BaitlyAccountingExportJournal.unconfirmed());
         assertThatThrownBy(() -> run(type)).hasNoCause();verifyNoInteractions(client,invoices,expenses);
     }
     @ParameterizedTest @ValueSource(strings={"invoice","expense"})

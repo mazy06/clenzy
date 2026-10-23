@@ -100,6 +100,22 @@ public class PennylaneAccountingClient {
         return exactParty(response, externalRef);
     }
 
+    @CircuitBreaker(name = "pennylane-accounting", fallbackMethod = "apiFallbackOptional")
+    public Optional<Map<String, Object>> findCustomerInvoiceByExternalRef(Long orgId, String reference) {
+        return findInvoice(orgId, "/customer_invoices", reference);
+    }
+
+    @CircuitBreaker(name = "pennylane-accounting", fallbackMethod = "apiFallbackOptional")
+    public Optional<Map<String, Object>> findSupplierInvoiceByExternalRef(Long orgId, String reference) {
+        return findInvoice(orgId, "/supplier_invoices", reference);
+    }
+
+    private Optional<Map<String, Object>> findInvoice(Long orgId, String path, String reference) {
+        var builder = UriComponentsBuilder.fromUriString(config.getAccountingApiBaseUrl() + path)
+                .queryParam("filter", "{filter}").queryParam("limit", 2);
+        return exactParty(get(orgId, builder, Map.of("filter", externalReferenceFilter(reference))), reference);
+    }
+
     /** API v2 : seule une page terminale complète et non ambiguë prouve une absence. */
     private Optional<Map<String, Object>> exactParty(Map<String, Object> response, String reference) {
         if (response == null || response.containsKey("error") || !Boolean.FALSE.equals(response.get("has_more"))
