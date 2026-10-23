@@ -72,19 +72,41 @@ class BaitlyPennylaneAccountingDiagnosticsTest {
                     assertThat(params.keySet()).containsExactlyInAnyOrder("limit", "cursor");
                     assertThat(decoded).isEqualTo(value);
                 } else {
-                    assertThat(params.keySet()).containsExactly("filter");
+                    assertThat(params.keySet()).containsExactlyInAnyOrder("filter", "limit");
+                    assertThat(params.getFirst("limit")).isEqualTo("2");
                     var json = new ObjectMapper().readTree(decoded);
                     assertThat(json.size()).isEqualTo(1);
                     assertThat(json.get(0).get("field").asText()).isEqualTo("external_reference");
                     assertThat(json.get(0).get("operator").asText()).isEqualTo("eq");
                     assertThat(json.get(0).get("value").asText()).isEqualTo(value);
                 }
-            }).andRespond(withSuccess("{\"customers\":[],\"suppliers\":[],\"customer_invoices\":[]}", MediaType.APPLICATION_JSON));
+            }).andRespond(withSuccess("{\"items\":[],\"has_more\":false,\"next_cursor\":null,\"customer_invoices\":[]}", MediaType.APPLICATION_JSON));
             switch (action) {
                 case "find-customer" -> assertThat(client.findCustomerByExternalRef(7L, value)).isEmpty();
                 case "find-supplier" -> assertThat(client.findSupplierByExternalRef(7L, value)).isEmpty();
                 default -> assertThat(client.listCustomerInvoices(7L, value, 10)).containsKey("customer_invoices");
             }
+            server.verify();
+        });
+    }
+
+    @ParameterizedTest @ValueSource(strings = {"find-customer", "find-supplier"})
+    void malformedSuccessRemainsInvalidThroughTheActualCircuitBreaker(String action) {
+        runner.run(context -> {
+            var client = context.getBean(PennylaneAccountingClient.class);
+            var raw = (PennylaneAccountingClient) AopTestUtils.getUltimateTargetObject(client);
+            var server = MockRestServiceServer.bindTo((RestTemplate) ReflectionTestUtils.getField(raw, "restTemplate")).build();
+            doReturn("synthetic-access-token").when(context.getBean(PennylaneOAuthService.class)).getValidAccessToken(7L);
+            server.expect(requestTo(org.hamcrest.Matchers.startsWith("https://accounting.example.invalid/")))
+                .andRespond(withSuccess("{\"unexpected\":\"" + PRIVATE + "\"}", MediaType.APPLICATION_JSON));
+            assertThatThrownBy(() -> {
+                if (action.equals("find-customer")) client.findCustomerByExternalRef(7L, PRIVATE);
+                else client.findSupplierByExternalRef(7L, PRIVATE);
+            }).isInstanceOf(BaitlyPennylaneDiagnostics.Failure.class).hasNoCause().satisfies(error -> {
+                assertThat(BaitlyPennylaneDiagnostics.reason(error)).isEqualTo(BaitlyPennylaneDiagnostics.Reason.INVALID_RESPONSE);
+                assertThat(error.getMessage()).doesNotContain(PRIVATE);
+                assertThat(error.getSuppressed()).isEmpty();
+            });
             server.verify();
         });
     }

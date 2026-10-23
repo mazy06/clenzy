@@ -77,15 +77,10 @@ public class PennylaneAccountingClient {
     @CircuitBreaker(name = "pennylane-accounting", fallbackMethod = "apiFallbackOptional")
     public Optional<Map<String, Object>> findCustomerByExternalRef(Long orgId, String externalRef) {
         var builder = UriComponentsBuilder.fromUriString(config.getAccountingApiBaseUrl() + "/customers")
-            .queryParam("filter", "{filter}");
+            .queryParam("filter", "{filter}").queryParam("limit", 2);
         Map<String, Object> response = get(orgId, builder, Map.of("filter", externalReferenceFilter(externalRef)));
 
-        @SuppressWarnings("unchecked")
-        List<Map<String, Object>> items = (List<Map<String, Object>>) response.get("customers");
-        if (items != null && !items.isEmpty()) {
-            return Optional.of(items.get(0));
-        }
-        return Optional.empty();
+        return exactParty(response, externalRef);
     }
 
     // ─── Suppliers ───────────────────────────────────────────────────────────
@@ -99,15 +94,35 @@ public class PennylaneAccountingClient {
     @CircuitBreaker(name = "pennylane-accounting", fallbackMethod = "apiFallbackOptional")
     public Optional<Map<String, Object>> findSupplierByExternalRef(Long orgId, String externalRef) {
         var builder = UriComponentsBuilder.fromUriString(config.getAccountingApiBaseUrl() + "/suppliers")
-            .queryParam("filter", "{filter}");
+            .queryParam("filter", "{filter}").queryParam("limit", 2);
         Map<String, Object> response = get(orgId, builder, Map.of("filter", externalReferenceFilter(externalRef)));
 
-        @SuppressWarnings("unchecked")
-        List<Map<String, Object>> items = (List<Map<String, Object>>) response.get("suppliers");
-        if (items != null && !items.isEmpty()) {
-            return Optional.of(items.get(0));
+        return exactParty(response, externalRef);
+    }
+
+    /** API v2 : seule une page terminale complète et non ambiguë prouve une absence. */
+    private Optional<Map<String, Object>> exactParty(Map<String, Object> response, String reference) {
+        if (response == null || response.containsKey("error") || !Boolean.FALSE.equals(response.get("has_more"))
+                || !response.containsKey("next_cursor") || response.get("next_cursor") != null
+                || !(response.get("items") instanceof List<?> items) || items.size() > 1) {
+            throw invalidLookup();
         }
-        return Optional.empty();
+        if (items.isEmpty()) return Optional.empty();
+        if (!(items.get(0) instanceof Map<?, ?> item) || !reference.equals(item.get("external_reference"))
+                || !(item.get("id") instanceof Number number)) {
+            throw invalidLookup();
+        }
+        try {
+            com.clenzy.util.BaitlyExternalIds.require(number, 50);
+        } catch (IllegalArgumentException ignored) {
+            throw invalidLookup();
+        }
+        var result = new java.util.LinkedHashMap<String, Object>();
+        item.forEach((key, value) -> { if (key instanceof String text) result.put(text, value); });
+        return Optional.of(result);
+    }
+    private BaitlyPennylaneDiagnostics.Failure invalidLookup() {
+        return BaitlyPennylaneDiagnostics.failure(BaitlyPennylaneDiagnostics.Reason.INVALID_RESPONSE);
     }
 
     // ─── Journals ────────────────────────────────────────────────────────────
@@ -183,6 +198,9 @@ public class PennylaneAccountingClient {
 
     private RuntimeException protectedFailure(Throwable failure) {
         if (failure instanceof BaitlyOAuthBusyException busy) return busy;
+        if (failure instanceof BaitlyPennylaneDiagnostics.Failure) {
+            return BaitlyPennylaneDiagnostics.failure(BaitlyPennylaneDiagnostics.reason(failure));
+        }
         log.error("Pennylane : appel comptable indisponible");
         return BaitlyPennylaneDiagnostics.failure(BaitlyPennylaneDiagnostics.Reason.UNAVAILABLE);
     }

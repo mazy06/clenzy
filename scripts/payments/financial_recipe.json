@@ -1,6 +1,7 @@
 {
   "backend": [
     "BaitlyAccountingExportFlowTest",
+    "BaitlyPennylaneLookupEvidenceTest",
     "BaitlyAccountingExportPostgresTest",
     "BaitlyPennylaneAccountingAccessTest",
     "PennylaneAccountingControllerTest",
