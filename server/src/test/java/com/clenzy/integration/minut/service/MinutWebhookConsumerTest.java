@@ -1,109 +1,43 @@
 package com.clenzy.integration.minut.service;
 
-import com.clenzy.model.NoiseAlert;
-import com.clenzy.model.NoiseAlert.AlertSource;
-import com.clenzy.model.NoiseDevice;
-import com.clenzy.repository.NoiseDeviceRepository;
-import com.clenzy.service.NoiseAlertService;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.InjectMocks;
-import org.mockito.Mock;
-import org.mockito.Spy;
-import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.kafka.core.KafkaTemplate;
-
-import java.util.Optional;
-
+import java.util.UUID;
+import static org.assertj.core.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 
-@ExtendWith(MockitoExtension.class)
 class MinutWebhookConsumerTest {
+    final BaitlyMinutEventJournal journal=mock(BaitlyMinutEventJournal.class);
+    final BaitlyMinutRecoveryWorker worker=mock(BaitlyMinutRecoveryWorker.class);
+    final MinutWebhookConsumer consumer=new MinutWebhookConsumer(new BaitlyMinutEventParser(new ObjectMapper()),journal,worker);
 
-    @Spy private ObjectMapper objectMapper = new ObjectMapper();
-    @Mock private NoiseDeviceRepository deviceRepository;
-    @Mock private NoiseAlertService noiseAlertService;
-    @Mock private KafkaTemplate<String, Object> kafkaTemplate;
-
-    @InjectMocks
-    private MinutWebhookConsumer consumer;
-
-    private NoiseDevice device;
-
-    @BeforeEach
-    void setUp() {
-        device = new NoiseDevice();
-        device.setId(5L);
-        device.setOrganizationId(10L);
-        device.setPropertyId(100L);
-        device.setExternalDeviceId("minut-abc-123");
+    @Test void whenDisturbanceEvent_thenEvaluatesAfterDurableAdmission() {
+        UUID id=UUID.randomUUID(); when(journal.admit(any())).thenReturn(id);
+        consumer.handleMinutWebhook("{\"id\":\"test-1\",\"event_type\":\"disturbance\",\"device_id\":\"d1\",\"sound_level\":82.5,\"created_at\":\"2026-10-23T10:00:00Z\"}");
+        var order=inOrder(journal,worker);
+        order.verify(journal).admit(argThat(input -> input.kind()==BaitlyMinutEventParser.Kind.DISTURBANCE && input.measuredDb()==82.5));
+        order.verify(worker).process(id);
     }
-
-    @Test
-    void whenDisturbanceEvent_thenEvaluatesNoiseLevel() {
-        String payload = """
-            {"event_type": "disturbance", "device_id": "minut-abc-123", "sound_level": 82.5}
-            """;
-
-        when(deviceRepository.findByExternalDeviceId("minut-abc-123"))
-            .thenReturn(Optional.of(device));
-
-        consumer.handleMinutWebhook(payload);
-
-        verify(noiseAlertService).evaluateNoiseLevel(
-            eq(10L), eq(100L), eq(5L), eq(82.5), eq(AlertSource.WEBHOOK));
+    @Test void whenOfflineEvent_thenJournalOwnsTheTransition() {
+        when(journal.admit(any())).thenReturn(UUID.randomUUID());
+        consumer.handleMinutWebhook("{\"id\":\"test-2\",\"event_type\":\"device_offline\",\"device_id\":\"d1\",\"created_at\":\"2026-10-23T10:00:00Z\"}");
+        verify(journal).admit(argThat(input -> input.kind()==BaitlyMinutEventParser.Kind.OFFLINE));
+        verify(worker).process(any());
     }
-
-    @Test
-    void whenNonDisturbanceEvent_thenIgnored() {
-        String payload = """
-            {"event_type": "device_offline", "device_id": "minut-abc-123"}
-            """;
-
-        consumer.handleMinutWebhook(payload);
-
-        verifyNoInteractions(noiseAlertService);
+    @Test void whenUnknownDevice_thenNoAcknowledgementWithoutAdmission() {
+        when(journal.admit(any())).thenThrow(new IllegalStateException("synthetic-private"));
+        assertThatThrownBy(() -> consumer.handleMinutWebhook("{\"id\":\"test-3\",\"event_type\":\"disturbance\",\"device_id\":\"unknown\",\"sound_level\":80,\"created_at\":\"2026-10-23T10:00:00Z\"}"))
+                .hasNoCause().hasMessageContaining("non confirme");
+        verifyNoInteractions(worker);
     }
-
-    @Test
-    void whenUnknownDevice_thenSkipped() {
-        String payload = """
-            {"event_type": "disturbance", "device_id": "unknown-device", "sound_level": 80.0}
-            """;
-
-        when(deviceRepository.findByExternalDeviceId("unknown-device"))
-            .thenReturn(Optional.empty());
-
-        consumer.handleMinutWebhook(payload);
-
-        verifyNoInteractions(noiseAlertService);
+    @Test void whenInvalidPayload_thenKafkaMayRetryOrQuarantine() {
+        assertThatThrownBy(() -> consumer.handleMinutWebhook("not-valid-json")).hasNoCause();
+        verifyNoInteractions(journal,worker);
     }
-
-    @Test
-    void whenInvalidPayload_thenHandledGracefully() {
-        String payload = "not-valid-json{{{";
-
-        // Should not throw
-        consumer.handleMinutWebhook(payload);
-
-        verifyNoInteractions(noiseAlertService);
-    }
-
-    @Test
-    void whenDisturbanceInNestedData_thenExtractsCorrectly() {
-        String payload = """
-            {"event_type": "disturbance", "data": {"device_id": "minut-abc-123", "sound_level": 78.0}}
-            """;
-
-        when(deviceRepository.findByExternalDeviceId("minut-abc-123"))
-            .thenReturn(Optional.of(device));
-
-        consumer.handleMinutWebhook(payload);
-
-        verify(noiseAlertService).evaluateNoiseLevel(
-            eq(10L), eq(100L), eq(5L), eq(78.0), eq(AlertSource.WEBHOOK));
+    @Test void whenDisturbanceInNestedData_thenExtractsCorrectly() {
+        when(journal.admit(any())).thenReturn(UUID.randomUUID());
+        consumer.handleMinutWebhook("{\"event_id\":\"test-4\",\"event_type\":\"disturbance\",\"created_at\":\"2026-10-23T10:00:00Z\",\"data\":{\"device_id\":\"d1\",\"sound_level\":78}}");
+        verify(journal).admit(argThat(input -> input.externalDevice().equals("d1") && input.measuredDb()==78));
     }
 }
