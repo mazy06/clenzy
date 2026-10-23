@@ -155,7 +155,9 @@ online, last_seen_at et updated_at seulement. Un snapshot immuable precede le GE
 le CAS exige encore le meme ID, organisation, logement, type, identifiant externe,
 etat online et date de rafraichissement, avec capteur ACTIVE non simule. Une reponse
 retardee est refusee si ces champs ont change ; aucune metadata du capteur n'est
-refusionnee et aucun snapshot JPA n'est modifie apres le CAS. Le verrou SQL couvre
+refusionnee et aucun snapshot JPA n'est modifie apres le CAS. updated_at ne recule
+pas si une modification de metadata est plus recente que le debut du GET.
+Le verrou SQL couvre
 uniquement l'ecriture, jamais l'appel fournisseur. Une horloge reculee ne fait pas
 reculer la date. Le parcours Baitly IoT conserve son contrat et sa persistance
 existante ; sa concurrence reste distincte de ce lot Minut/Tuya.

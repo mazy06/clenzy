@@ -41,12 +41,13 @@ public class BaitlyNoiseStatusWriter {
                     || before.type() != NoiseDevice.DeviceType.MINUT && before.type() != NoiseDevice.DeviceType.TUYA
                     || observedAt == null) throw unavailable();
             Integer changed = transaction.execute(status -> db.update("""
-                UPDATE noise_devices SET online=?, last_seen_at=?, updated_at=?
+                UPDATE noise_devices SET online=?, last_seen_at=?,
+                    updated_at=CASE WHEN updated_at IS NULL OR updated_at < ? THEN ? ELSE updated_at END
                 WHERE id=? AND organization_id=? AND property_id=? AND device_type=? AND external_device_id=?
                 AND status='ACTIVE' AND simulation=false
                 AND online IS NOT DISTINCT FROM ? AND last_seen_at IS NOT DISTINCT FROM ?
                 AND (last_seen_at IS NULL OR last_seen_at <= ?)
-                """, online, Timestamp.valueOf(observedAt), Timestamp.valueOf(observedAt),
+                """, online, Timestamp.valueOf(observedAt), Timestamp.valueOf(observedAt), Timestamp.valueOf(observedAt),
                 before.id(), before.organization(), before.property(), before.type().name(), before.externalId(),
                 before.online(), before.refreshedAt() == null ? null : Timestamp.valueOf(before.refreshedAt()),
                 Timestamp.valueOf(observedAt)));

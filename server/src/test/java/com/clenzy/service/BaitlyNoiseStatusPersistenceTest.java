@@ -102,12 +102,15 @@ class BaitlyNoiseStatusPersistenceTest {
     }
 
     @Test void partialWritePreservesMetadataChangedDuringHttp() {
-        db.update("UPDATE noise_devices SET name='new', room_name='new room', user_id='new owner' WHERE id=1");
+        db.update("UPDATE noise_devices SET name='new', room_name='new room', user_id='new owner', updated_at=? WHERE id=1",
+            Timestamp.valueOf(observed.plusMinutes(1)));
         writer.record(snapshot(), false, observed);
         var row = db.queryForMap("SELECT * FROM noise_devices WHERE id=1");
         assertThat(row).containsEntry("online", false).containsEntry("name", "new")
             .containsEntry("room_name", "new room").containsEntry("user_id", "new owner");
         assertThat(db.queryForObject("SELECT last_seen_at FROM noise_devices WHERE id=1", Timestamp.class).toLocalDateTime()).isEqualTo(observed);
+        assertThat(db.queryForObject("SELECT updated_at FROM noise_devices WHERE id=1", Timestamp.class).toLocalDateTime())
+            .isEqualTo(observed.plusMinutes(1));
     }
 
     @ParameterizedTest @ValueSource(strings = {"organization", "property", "external", "type", "inactive", "simulation", "online", "time", "deleted"})
