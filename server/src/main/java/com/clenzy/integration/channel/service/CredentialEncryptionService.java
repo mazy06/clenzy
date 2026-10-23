@@ -1,5 +1,7 @@
 package com.clenzy.integration.channel.service;
 
+import com.clenzy.util.BaitlySecretDiagnostics;
+import static com.clenzy.util.BaitlySecretDiagnostics.Operation.*;
 import org.jasypt.util.text.AES256TextEncryptor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -36,8 +38,9 @@ public class CredentialEncryptionService {
         try {
             return encryptor.encrypt(plainText);
         } catch (Exception e) {
-            log.error("Erreur lors du chiffrement: {}", e.getMessage());
-            throw new RuntimeException("Impossible de chiffrer la valeur", e);
+            var safe = BaitlySecretDiagnostics.failure(ENCRYPT, e);
+            log.error("Échec du chiffrement des identifiants de canal", safe);
+            throw safe;
         }
     }
 
@@ -51,8 +54,9 @@ public class CredentialEncryptionService {
         try {
             return encryptor.decrypt(cipherText);
         } catch (Exception e) {
-            log.error("Erreur lors du dechiffrement: {}", e.getMessage());
-            throw new RuntimeException("Impossible de dechiffrer la valeur", e);
+            var safe = BaitlySecretDiagnostics.failure(DECRYPT, e);
+            log.error("Échec du déchiffrement des identifiants de canal", safe);
+            throw safe;
         }
     }
 }

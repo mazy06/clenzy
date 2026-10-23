@@ -7,6 +7,7 @@ import com.clenzy.model.PaymentTransaction;
 import com.clenzy.model.TransactionStatus;
 import com.clenzy.model.TransactionType;
 import com.clenzy.payment.PaymentResult;
+import com.clenzy.payment.BaitlyRefundDiagnostics;
 import com.clenzy.repository.PaymentTransactionRepository;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -252,25 +253,26 @@ public class PaymentPersistence {
         PaymentTransaction refundTx = transactionRepository.lockByReference(orgId, refundTransactionRef).orElseThrow();
         if (refundTx.getPaymentType() != TransactionType.REFUND) throw new IllegalStateException("Remboursement introuvable");
         if (refundTx.getStatus() == TransactionStatus.COMPLETED) return refundTx;
-        if (!result.success() && refundTx.getStatus() == TransactionStatus.FAILED
-                && !"REFUND_REJECTED".equals(result.status())) return refundTx;
-        if (result.providerTxId() != null) {
+        if (!result.success() && refundTx.getStatus() == TransactionStatus.FAILED) return refundTx;
+        if (result.providerTxId() != null && !result.providerTxId().isBlank()) {
             if (refundTx.getProviderTxId() != null && !refundTx.getProviderTxId().equals(result.providerTxId())) {
                 throw new IllegalStateException("Preuve d'un autre remboursement");
             }
             refundTx.setProviderTxId(result.providerTxId());
         }
         if (result.success()) {
-            if (managedRefund(refundTx) && (result.providerTxId() == null || !"REFUNDED".equals(result.status()))) {
+            if (managedRefund(refundTx) && (result.providerTxId() == null || result.providerTxId().isBlank() || !"REFUNDED".equals(result.status()))) {
                 throw new IllegalStateException("Remboursement non confirmé par le PSP");
             }
             refundTx.setStatus(TransactionStatus.COMPLETED);
             refundTx.setErrorMessage(null);
         } else {
             // Un timeout ou pending ne libère jamais le montant réservé au remboursement.
-            refundTx.setStatus(managedRefund(refundTx) && !"REFUND_REJECTED".equals(result.status())
-                    ? TransactionStatus.PROCESSING : TransactionStatus.FAILED);
-            refundTx.setErrorMessage(result.errorMessage());
+            boolean rejected = "REFUND_REJECTED".equals(result.status())
+                    && result.providerTxId() != null && !result.providerTxId().isBlank();
+            refundTx.setStatus(managedRefund(refundTx) && !rejected ? TransactionStatus.PROCESSING : TransactionStatus.FAILED);
+            refundTx.setErrorMessage(managedRefund(refundTx)
+                    ? (rejected ? BaitlyRefundDiagnostics.REJECTED : BaitlyRefundDiagnostics.PENDING) : result.errorMessage());
         }
         refundTx = transactionRepository.save(refundTx);
         if (refundTx.getStatus() == TransactionStatus.COMPLETED) publishEvent(refundTx, "PAYMENT_REFUNDED", orgId);
@@ -284,7 +286,7 @@ public class PaymentPersistence {
         PaymentTransaction refundTx = transactionRepository.lockByReference(located.getOrganizationId(), refundTransactionRef).orElseThrow();
         if (refundTx.getStatus() == TransactionStatus.COMPLETED || refundTx.getStatus() == TransactionStatus.FAILED) return refundTx;
         refundTx.setStatus(managedRefund(refundTx) ? TransactionStatus.PROCESSING : TransactionStatus.FAILED);
-        refundTx.setErrorMessage(errorMessage);
+        refundTx.setErrorMessage(managedRefund(refundTx) ? BaitlyRefundDiagnostics.RECONCILIATION_REQUIRED : errorMessage);
         return transactionRepository.save(refundTx);
     }
 
