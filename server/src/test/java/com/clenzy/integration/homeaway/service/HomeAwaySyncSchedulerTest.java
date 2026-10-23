@@ -36,6 +36,11 @@ import static org.mockito.Mockito.when;
  */
 @ExtendWith(MockitoExtension.class)
 class HomeAwaySyncSchedulerTest {
+    @Test void unfinishedInboundNeverCallsTheProviderOrUpdatesMetadata() {
+        when(syncService.isInboundReady()).thenReturn(false);
+        scheduler.syncReservations();
+        org.mockito.Mockito.verifyNoInteractions(connectionRepository, apiClient, oAuthService);
+    }
 
     @Mock private HomeAwayConfig config;
     @Mock private HomeAwayConnectionRepository connectionRepository;
@@ -47,6 +52,7 @@ class HomeAwaySyncSchedulerTest {
 
     @BeforeEach
     void setUp() {
+        org.mockito.Mockito.lenient().when(syncService.isInboundReady()).thenReturn(true);
         scheduler = new HomeAwaySyncScheduler(
                 config, connectionRepository, apiClient, oAuthService, syncService);
     }
@@ -163,7 +169,7 @@ class HomeAwaySyncSchedulerTest {
             scheduler.syncReservations();
 
             verify(apiClient, never()).getReservations(anyString(), any(), any(), anyString());
-            verify(connectionRepository).save(any(HomeAwayConnection.class));
+            verify(connectionRepository).recordSyncSuccess(eq(1L), eq(1L), org.mockito.ArgumentMatchers.isNull(), any());
         }
 
         @Test
@@ -181,10 +187,10 @@ class HomeAwaySyncSchedulerTest {
             scheduler.syncReservations();
 
             verify(syncService, times(2)).handleReservationCreated(anyMap(), eq(1L));
-            ArgumentCaptor<HomeAwayConnection> captor = ArgumentCaptor.forClass(HomeAwayConnection.class);
-            verify(connectionRepository).save(captor.capture());
-            assertThat(captor.getValue().getErrorMessage()).isNull();
-            assertThat(captor.getValue().getLastSyncAt()).isNotNull();
+            verify(connectionRepository).recordSyncSuccess(eq(1L), eq(1L), eq("listing-1"), any());
+            verify(connectionRepository, never()).save(any());
+            assertThat(conn.getErrorMessage()).isEqualTo("previous");
+            assertThat(conn.getLastSyncAt()).isNull();
         }
 
         @Test
@@ -203,6 +209,8 @@ class HomeAwaySyncSchedulerTest {
             scheduler.syncReservations();
 
             verify(syncService, times(2)).handleReservationCreated(anyMap(), eq(1L));
+            verify(connectionRepository).recordSyncFailure(eq(1L), eq(1L), eq("listing-1"), any());
+            verify(connectionRepository, never()).recordSyncSuccess(any(), any(), any(), any());
         }
 
         @Test
@@ -215,9 +223,9 @@ class HomeAwaySyncSchedulerTest {
 
             scheduler.syncReservations();
 
-            ArgumentCaptor<HomeAwayConnection> captor = ArgumentCaptor.forClass(HomeAwayConnection.class);
-            verify(connectionRepository).save(captor.capture());
-            assertThat(captor.getValue().getErrorMessage()).contains("token revoked");
+            verify(connectionRepository).recordSyncFailure(eq(1L), eq(1L), eq("listing-1"), any());
+            verify(connectionRepository, never()).save(any());
+            assertThat(conn.getErrorMessage()).isNull();
         }
 
         @Test
@@ -235,7 +243,8 @@ class HomeAwaySyncSchedulerTest {
 
             scheduler.syncReservations();
 
-            verify(connectionRepository, times(2)).save(any(HomeAwayConnection.class));
+            verify(connectionRepository).recordSyncSuccess(eq(1L), eq(1L), eq("listing-1"), any());
+            verify(connectionRepository).recordSyncFailure(eq(2L), eq(2L), eq("listing-2"), any());
         }
 
         @Test
@@ -256,5 +265,52 @@ class HomeAwaySyncSchedulerTest {
                     eq("listing-1"), fromCaptor.capture(), any(), eq("token"));
             assertThat(fromCaptor.getValue()).isEqualTo(lastSync.toLocalDate());
         }
+    }
+
+    @Test void oauthContentionDoesNotPersistAnErrorOrMergeTheSnapshot() {
+        var conn = createConnection(1L, "listing-1", HomeAwayConnection.HomeAwayConnectionStatus.ACTIVE);
+        when(connectionRepository.findAllActive()).thenReturn(List.of(conn));
+        when(oAuthService.getValidAccessToken(1L)).thenThrow(new com.clenzy.integration.oauth.BaitlyOAuthBusyException());
+        scheduler.syncReservations();
+        verify(connectionRepository, never()).recordSyncFailure(any(), any(), any(), any());
+        verify(connectionRepository, never()).recordSyncSuccess(any(), any(), any(), any());
+        verify(connectionRepository, never()).save(any());
+    }
+
+    @Test void diagnosticPersistenceFailureDoesNotStopOtherOrganizations() {
+        var first = createConnection(1L, "listing-1", HomeAwayConnection.HomeAwayConnectionStatus.ACTIVE);
+        var next = createConnection(2L, "listing-2", HomeAwayConnection.HomeAwayConnectionStatus.ACTIVE);
+        when(connectionRepository.findAllActive()).thenReturn(List.of(first, next));
+        when(oAuthService.getValidAccessToken(1L)).thenThrow(new IllegalStateException("synthetic failure"));
+        when(connectionRepository.recordSyncFailure(eq(1L), eq(1L), eq("listing-1"), any()))
+                .thenThrow(new IllegalStateException("synthetic database failure"));
+        when(oAuthService.getValidAccessToken(2L)).thenReturn("synthetic-token");
+        when(apiClient.getReservations(eq("listing-2"), any(), any(), eq("synthetic-token"))).thenReturn(List.of());
+        scheduler.syncReservations();
+        verify(connectionRepository).recordSyncSuccess(eq(2L), eq(2L), eq("listing-2"), any());
+    }
+
+    @Test void providerDiagnosticsNeverReachSchedulerLogsOrStoredError() {
+        var conn = createConnection(1L, "listing-1", HomeAwayConnection.HomeAwayConnectionStatus.ACTIVE);
+        conn.setTokenExpiresAt(LocalDateTime.now().minusMinutes(1));
+        when(connectionRepository.findAllActive()).thenReturn(List.of(conn));
+        var failure = new IllegalStateException("access_token=synthetic-private",
+                new RuntimeException("email=synthetic@example.invalid"));
+        failure.addSuppressed(new RuntimeException("refresh_token=synthetic-private"));
+        doThrow(failure).when(oAuthService).refreshToken(1L);
+        when(oAuthService.getValidAccessToken(1L)).thenThrow(failure);
+        var logger = (ch.qos.logback.classic.Logger) org.slf4j.LoggerFactory.getLogger(HomeAwaySyncScheduler.class);
+        var logs = new ch.qos.logback.core.read.ListAppender<ch.qos.logback.classic.spi.ILoggingEvent>();
+        logs.start(); logger.addAppender(logs);
+        try {
+            scheduler.refreshExpiringTokens();
+            scheduler.syncReservations();
+            assertThat(logs.list).isNotEmpty().allSatisfy(event -> {
+                assertThat(event.getFormattedMessage()).doesNotContain("synthetic-private", "example.invalid", "access_token", "refresh_token");
+                assertThat(event.getThrowableProxy()).isNull();
+            });
+            verify(connectionRepository).recordSyncFailure(eq(1L), eq(1L), eq("listing-1"), any());
+            verify(connectionRepository, never()).save(any());
+        } finally {logger.detachAppender(logs); logs.stop();}
     }
 }

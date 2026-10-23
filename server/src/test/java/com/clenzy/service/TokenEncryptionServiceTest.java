@@ -82,7 +82,8 @@ class TokenEncryptionServiceTest {
 
             assertThatThrownBy(() -> encryptionService.decrypt(tampered))
                     .isInstanceOf(RuntimeException.class)
-                    .hasMessageContaining("Cle non trouvee pour la version 99");
+                    .hasMessage("Déchiffrement du secret indisponible ; vérification requise")
+                    .hasNoCause();
         }
 
         @Test

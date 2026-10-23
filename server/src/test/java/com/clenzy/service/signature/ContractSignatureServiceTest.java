@@ -105,6 +105,64 @@ class ContractSignatureServiceTest {
         return g;
     }
 
+    @org.junit.jupiter.params.ParameterizedTest
+    @org.junit.jupiter.params.provider.ValueSource(strings = {"cancelled", "expired", "missing-expiry"})
+    void unusablePublicLinksExposeOnlyStatusAndNeverLoadPrivateData(String scenario) {
+        ContractSignatureRequest request = pendingRequest();
+        if (scenario.equals("cancelled")) request.setStatus(ContractSignatureRequest.Status.CANCELLED);
+        else request.setExpiresAt(scenario.equals("missing-expiry") ? null : LocalDateTime.now().minusSeconds(1));
+        when(signatureRequestRepository.findByToken(TOKEN)).thenReturn(Optional.of(request));
+
+        var view = service.getPublicView(TOKEN);
+        assertEquals(scenario.equals("cancelled") ? "CANCELLED" : "EXPIRED", view.status());
+        assertNull(view.contractNumber());
+        assertNull(view.ownerName());
+        assertNull(view.propertyName());
+        assertNull(view.commissionRate());
+        assertNull(view.signedByName());
+        assertFalse(view.documentAvailable());
+        ResponseStatusException failure = assertThrows(ResponseStatusException.class, () -> service.getDocument(TOKEN));
+        assertEquals(HttpStatus.GONE, failure.getStatusCode());
+        verifyNoInteractions(contractRepository, generationRepository, documentStorageService, propertyRepository, userRepository);
+    }
+
+    @Test
+    void pendingLinkForContractNoLongerDraftRevealsNoDetailsOrPdf() {
+        when(signatureRequestRepository.findByToken(TOKEN)).thenReturn(Optional.of(pendingRequest()));
+        when(contractRepository.findById(1L)).thenReturn(Optional.of(contract(ContractStatus.TERMINATED)));
+        var view = service.getPublicView(TOKEN);
+        assertEquals("CANCELLED", view.status());
+        assertNull(view.contractNumber());
+        assertNull(view.ownerName());
+        assertFalse(view.documentAvailable());
+        assertEquals(HttpStatus.GONE, assertThrows(ResponseStatusException.class,
+                () -> service.getDocument(TOKEN)).getStatusCode());
+        verifyNoInteractions(generationRepository, documentStorageService, propertyRepository, userRepository);
+    }
+
+    @Test
+    void legitimatePendingLinkStillServesItsDocument() {
+        when(signatureRequestRepository.findByToken(TOKEN)).thenReturn(Optional.of(pendingRequest()));
+        when(contractRepository.findById(1L)).thenReturn(Optional.of(contract(ContractStatus.DRAFT)));
+        when(generationRepository.findById(7L)).thenReturn(Optional.of(mandateGeneration()));
+        when(documentStorageService.loadAsBytes(anyString())).thenReturn("SYNTHETIC-PDF".getBytes());
+        assertArrayEquals("SYNTHETIC-PDF".getBytes(), service.getDocument(TOKEN).bytes());
+    }
+
+    @Test
+    void signedDocumentAccessRemainsAvailableWithoutReopeningSignature() {
+        ContractSignatureRequest request = pendingRequest();
+        request.setStatus(ContractSignatureRequest.Status.SIGNED);
+        request.setSignedDocumentPath("synthetic-signed.pdf");
+        request.setExpiresAt(LocalDateTime.now().minusDays(1));
+        when(signatureRequestRepository.findByToken(TOKEN)).thenReturn(Optional.of(request));
+        when(documentStorageService.loadAsBytes("synthetic-signed.pdf")).thenReturn("SIGNED".getBytes());
+        assertArrayEquals("SIGNED".getBytes(), service.getDocument(TOKEN).bytes());
+        assertEquals(HttpStatus.CONFLICT, assertThrows(ResponseStatusException.class,
+                () -> service.sign(TOKEN, "Synthetic", true, "127.0.0.1", "test")).getStatusCode());
+        verify(signatureRequestRepository, never()).markSigned(any());
+    }
+
     // ─── sign() ───────────────────────────────────────────────────────────────
 
     @Test

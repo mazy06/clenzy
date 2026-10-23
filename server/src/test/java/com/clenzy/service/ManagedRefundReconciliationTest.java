@@ -65,7 +65,7 @@ class ManagedRefundReconciliationTest {
         var confirmed = PaymentResult.success("re_test", null, "REFUNDED");
         when(stripe.execute(any(), any())).thenThrow(new IllegalStateException("network")).thenReturn(confirmed);
         service.resumePending();
-        verify(persistence).markRefundFailed("REF-case", "network");
+        verify(persistence).markRefundFailed("REF-case", BaitlyRefundDiagnostics.RECONCILIATION_REQUIRED);
         verify(persistence).finalizeRefund("REF-next", confirmed, 7L);
     }
     @Test void anotherTenantCannotUseOriginalPayment() {
@@ -120,7 +120,7 @@ class ManagedRefundReconciliationTest {
     }
     @Test void allocationTimeoutKeepsDurableReservationForRecovery() throws Exception {
         allocation(); when(stripe.executeAllocation(any(),any(),anyMap())).thenThrow(new IllegalStateException("timeout"));
-        when(persistence.markRefundFailed("REF-case","timeout")).thenReturn(refund);
+        when(persistence.markRefundFailed("REF-case",BaitlyRefundDiagnostics.RECONCILIATION_REQUIRED)).thenReturn(refund);
         assertThat(service.resumeAllocation("REF-case",7L)).isSameAs(refund);
         verify(persistence,never()).finalizeRefund(any(),any(),any());
     }
@@ -171,5 +171,50 @@ class ManagedRefundReconciliationTest {
         assertThatThrownBy(() -> service.resumeSeries("REF-case",7L)).hasMessageContaining("inaccessible");
         assertThatThrownBy(() -> service.reconcile(refund,"re_external")).hasMessageContaining("externe");
         verifyNoInteractions(stripe,persistence);
+    }
+
+    RuntimeException privateFailure() {
+        var failure = new IllegalStateException("email=synthetic@example.invalid token=private-canary",
+                new RuntimeException("password=private-cause"));
+        failure.addSuppressed(new RuntimeException("address=private-suppressed"));
+        return failure;
+    }
+
+    @Test void workerNeverLogsOrPersistsPrivateProviderDiagnostics() throws Exception {
+        var logger = (ch.qos.logback.classic.Logger) org.slf4j.LoggerFactory.getLogger(ManagedRefundReconciliation.class);
+        var appender = new ch.qos.logback.core.read.ListAppender<ch.qos.logback.classic.spi.ILoggingEvent>();
+        appender.start(); logger.addAppender(appender);
+        try {
+            when(payments.findPendingStripeRefunds(any())).thenReturn(List.of(refund));
+            when(stripe.execute(any(),any())).thenThrow(privateFailure());
+            service.resumePending();
+            verify(persistence).markRefundFailed("REF-case", BaitlyRefundDiagnostics.RECONCILIATION_REQUIRED);
+            assertThat(appender.list).hasSize(1);
+            assertThat(appender.list.getFirst().getFormattedMessage())
+                    .contains("REF-case", BaitlyRefundDiagnostics.RECONCILIATION_REQUIRED)
+                    .doesNotContain("private-", "example.invalid", "password=", "address=");
+            assertThat(appender.list.getFirst().getThrowableProxy()).isNull();
+        } finally { logger.detachAppender(appender); appender.stop(); }
+    }
+
+    @Test void allocationRetryNeverPersistsPrivateProviderDiagnostics() throws Exception {
+        allocation();
+        when(stripe.executeAllocation(any(),any(),anyMap())).thenThrow(privateFailure());
+        when(persistence.markRefundFailed("REF-case",BaitlyRefundDiagnostics.RECONCILIATION_REQUIRED)).thenReturn(refund);
+        assertThat(service.resumeAllocation("REF-case",7L)).isSameAs(refund);
+        verify(persistence).markRefundFailed("REF-case",BaitlyRefundDiagnostics.RECONCILIATION_REQUIRED);
+        verify(persistence,never()).finalizeRefund(any(),any(),any());
+    }
+
+    @Test void seriesRetryNeverPersistsPrivateProviderDiagnostics() throws Exception {
+        refund.setId(2L); refund.setAmount(BigDecimal.TEN);
+        refund.setMetadata(Map.of("managedRefund",true,"cumulativeRefund",true,"refundBefore","0","originalTransactionRef","TX-original"));
+        when(payments.findByOrganizationIdAndSourceTypeAndSourceId(7L,"INTERVENTION",3L)).thenReturn(List.of(refund));
+        when(stripe.executeSeries(any(),any(),anyMap(),anyMap())).thenThrow(privateFailure());
+        when(persistence.markRefundFailed("REF-case",BaitlyRefundDiagnostics.RECONCILIATION_REQUIRED)).thenReturn(refund);
+        assertThat(service.resumeSeries("REF-case",7L)).isSameAs(refund);
+        verify(stripe).executeSeries(any(),eq(BigDecimal.TEN),anyMap(),anyMap());
+        verify(persistence).markRefundFailed("REF-case",BaitlyRefundDiagnostics.RECONCILIATION_REQUIRED);
+        verify(persistence,never()).finalizeRefund(any(),any(),any());
     }
 }

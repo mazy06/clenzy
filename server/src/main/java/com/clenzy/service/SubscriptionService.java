@@ -20,6 +20,8 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Map;
 import java.util.Set;
+import java.util.Locale;
+import java.util.Objects;
 
 /**
  * Service de gestion des abonnements (upgrade de forfait).
@@ -85,7 +87,7 @@ public class SubscriptionService {
                     + "Forfait actuel: " + currentForfait + ", demande: " + target);
         }
 
-        log.info("Upgrade forfait demande pour user {} : {} -> {}", user.getEmail(), currentForfait, target);
+        log.info("Upgrade forfait demande : {} -> {}", currentForfait, target);
 
         // Prix PMS mensuel + supplément IA du forfait cible (campagne X5) —
         // source unique : PricingConfig
@@ -127,7 +129,7 @@ public class SubscriptionService {
         if (!result.success()) {
             throw new RuntimeException("Echec de creation de la session d'abonnement: " + result.errorMessage());
         }
-        log.info("Session d'abonnement upgrade creee: {} pour user {}", result.providerTxId(), user.getEmail());
+        log.info("Session d'abonnement upgrade creee");
         return Map.of("checkoutUrl", result.redirectUrl());
     }
 
@@ -137,6 +139,10 @@ public class SubscriptionService {
     public void completeUpgrade(String sessionId) {
         try {
             Session session = stripeGateway.retrieveSession(sessionId);
+
+            if (session == null || !Objects.equals(sessionId, session.getId()) || session.getMetadata() == null) {
+                throw new IllegalStateException("Preuve de session d'abonnement absente");
+            }
 
             String type = session.getMetadata().get("type");
             if (!"upgrade".equals(type)) {
@@ -149,12 +155,11 @@ public class SubscriptionService {
             String previousForfait = session.getMetadata().get("previousForfait");
 
             if (userIdStr == null || targetForfait == null) {
-                log.error("Metadata incompletes pour la session upgrade {}", sessionId);
-                return;
+                throw new IllegalStateException("Preuve d'abonnement incomplete");
             }
 
             Long userId = Long.parseLong(userIdStr);
-            User user = userRepository.findById(userId)
+            User user = userRepository.lockSubscriptionPayer(userId)
                     .orElseThrow(() -> new RuntimeException("Utilisateur id=" + userId + " introuvable"));
 
             if (!"complete".equals(session.getStatus()) || !"paid".equals(session.getPaymentStatus())
@@ -162,10 +167,36 @@ public class SubscriptionService {
                     || session.getCustomer()==null || !VALID_FORFAITS.contains(targetForfait)
                     || (user.getStripeCustomerId()!=null && !user.getStripeCustomerId().equals(session.getCustomer())))
                 throw new IllegalStateException("Paiement d'abonnement historique non confirmé");
-            String previousSubscription=session.getMetadata().get("previousSubscriptionId");
-            if(previousSubscription!=null && !previousSubscription.equals(session.getSubscription())) {
+
+            verifyAmount(session);
+
+            // Un rejeu n'annule rien et ne repete ni l'ecriture ni l'audit.
+            if (Objects.equals(user.getStripeSubscriptionId(), session.getSubscription())) return;
+
+            String previousSubscription = nonBlank(session.getMetadata().get("previousSubscriptionId"));
+            String currentSubscription = nonBlank(user.getStripeSubscriptionId());
+            String currentForfait = user.getForfait() == null ? "essentiel" : user.getForfait().toLowerCase(Locale.ROOT);
+            if (!Objects.equals(currentSubscription, previousSubscription)
+                    || !Objects.equals(currentForfait, previousForfait)) {
+                log.warn("Confirmation upgrade historique obsolete, abonnement courant conserve");
+                return;
+            }
+            if (!VALID_FORFAITS.contains(previousForfait)
+                    || FORFAIT_ORDER.get(targetForfait) <= FORFAIT_ORDER.get(previousForfait)) {
+                throw new IllegalStateException("Transition de forfait historique incompatible");
+            }
+
+            Subscription replacement = stripeGateway.retrieveSubscription(session.getSubscription());
+            if (replacement == null || !Objects.equals(replacement.getId(), session.getSubscription())
+                    || !Objects.equals(replacement.getCustomer(), session.getCustomer())
+                    || !"active".equals(replacement.getStatus())) {
+                throw new IllegalStateException("Abonnement de remplacement non confirme");
+            }
+
+            if(previousSubscription!=null) {
                 var previous=stripeGateway.retrieveSubscription(previousSubscription);
-                if(!session.getCustomer().equals(previous.getCustomer()))
+                if(previous == null || !Objects.equals(previousSubscription, previous.getId())
+                        || !session.getCustomer().equals(previous.getCustomer()))
                     throw new IllegalStateException("Ancien abonnement étranger au payeur");
                 if(!"canceled".equals(previous.getStatus()))stripeGateway.cancelSubscription(previous,SubscriptionCancelParams.builder().setProrate(true).build());
             }
@@ -188,14 +219,32 @@ public class SubscriptionService {
             // Audit log
             auditLogService.logSync("SubscriptionUpgrade", userId.toString(),
                     "Upgrade forfait: " + previousForfait + " -> " + targetForfait
-                            + " pour " + user.getEmail() + " (session " + sessionId + ")");
+                            + " (session " + sessionId + ")");
 
-            log.info("Upgrade forfait termine: {} -> {} pour user {} ({})",
-                    previousForfait, targetForfait, user.getEmail(), userId);
+            log.info("Upgrade forfait termine: {} -> {}", previousForfait, targetForfait);
 
         } catch (StripeException e) {
-            log.error("Erreur Stripe lors de la completion de l'upgrade (session {}): {}", sessionId, e.getMessage());
-            throw new RuntimeException("Erreur Stripe: " + e.getMessage());
+            log.error("Erreur Stripe lors de la confirmation de l'upgrade historique");
+            throw new RuntimeException("Erreur Stripe lors de la confirmation de l'abonnement");
         }
+    }
+
+    private void verifyAmount(Session session) {
+        try {
+            long expected = Long.parseLong(session.getMetadata().get("expectedAmount"));
+            String expectedCurrency = session.getMetadata().get("currency");
+            if (expected <= 0 || !Objects.equals(expected, session.getAmountTotal())
+                    || !Objects.equals(expected, session.getAmountSubtotal())
+                    || expectedCurrency == null || expectedCurrency.isBlank()
+                    || !expectedCurrency.equalsIgnoreCase(session.getCurrency())) {
+                throw new IllegalStateException("Montant ou devise de l'abonnement incompatible");
+            }
+        } catch (NumberFormatException failure) {
+            throw new IllegalStateException("Montant attendu de l'abonnement absent ou invalide");
+        }
+    }
+
+    private String nonBlank(String value) {
+        return value == null || value.isBlank() ? null : value;
     }
 }
