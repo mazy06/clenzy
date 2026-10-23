@@ -1,5 +1,8 @@
 {
   "backend": [
+    "BaitlyOpsAlertControllerTest",
+    "BaitlyOperationalNotificationTest",
+    "BaitlyOperationalMetricsTest",
     "BaitlyAccountingExportFlowTest",
     "BaitlyPennylaneLookupEvidenceTest",
     "BaitlyPennylaneHttpTransportTest",
