@@ -8,7 +8,6 @@ import com.clenzy.service.DocumentComplianceService;
 import com.clenzy.service.DocumentGeneratorService;
 import com.clenzy.service.DocumentStorageService;
 import com.clenzy.service.PropertyService;
-import com.clenzy.util.JwtRoleExtractor;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import org.slf4j.Logger;
@@ -291,10 +290,7 @@ public class DocumentController {
             @PathVariable Long id
     ) {
         DocumentGeneration generation = generatorService.getGeneration(id);
-        documentAccessService.requireSameOrganization(generation);
-        if (generation.getReferenceType() == ReferenceType.INTERVENTION && generation.getReferenceId() != null) {
-            documentAccessService.validateInterventionOwnership(jwt, generation.getReferenceId());
-        }
+        documentAccessService.requireReadAccess(jwt, generation);
         // La conversion repasse par le service : `template` est LAZY et
         // `open-in-view` vaut false — la faire ici toucherait le proxy hors
         // session.
@@ -316,6 +312,7 @@ public class DocumentController {
             throw new DocumentValidationException("Type de reference inconnu: " + referenceType);
         }
 
+        documentAccessService.requireReader(jwt);
         // Ownership check pour les interventions
         if (refType == ReferenceType.INTERVENTION) {
             documentAccessService.validateInterventionOwnership(jwt, referenceId);
@@ -323,17 +320,7 @@ public class DocumentController {
 
         List<DocumentGenerationDto> generations = generatorService.getGenerationsByReference(refType, referenceId);
 
-        // Operational roles only see documents addressed to them (by email).
-        // Platform staff and supervisors see all documents.
-        final UserRole role = JwtRoleExtractor.extractUserRole(jwt);
-        if (!role.isPlatformStaff() && role != UserRole.SUPERVISOR) {
-            final String userEmail = jwt.getClaimAsString("email");
-            if (userEmail != null) {
-                generations = generations.stream()
-                        .filter(g -> userEmail.equalsIgnoreCase(g.emailTo()))
-                        .toList();
-            }
-        }
+        generations = documentAccessService.filterReferenceResults(jwt, generations);
 
         return ResponseEntity.ok(generations);
     }
@@ -349,12 +336,7 @@ public class DocumentController {
 
         // Isolation multi-tenant : valider l'org AVANT de servir le binaire
         // (getGeneration → findById bypasse le filtre Hibernate).
-        documentAccessService.requireSameOrganization(generation);
-
-        // Ownership check : si le document reference une intervention
-        if (generation.getReferenceType() == ReferenceType.INTERVENTION && generation.getReferenceId() != null) {
-            documentAccessService.validateInterventionOwnership(jwt, generation.getReferenceId());
-        }
+        documentAccessService.requireReadAccess(jwt, generation);
 
         if (generation.getFilePath() == null || generation.getFilePath().isBlank()) {
             throw new DocumentNotFoundException("Fichier non disponible pour cette generation");
@@ -368,7 +350,7 @@ public class DocumentController {
                 .header("Content-Type", "application/pdf")
                 .header("Content-Disposition", "attachment; filename=\"" + filename + "\"; "
                         + "filename*=UTF-8''" + encodedFilename)
-                .header("Cache-Control", "private, max-age=86400")
+                .header("Cache-Control", "no-cache, no-store, must-revalidate")
                 .body(resource);
     }
 

@@ -120,7 +120,6 @@ public class ContractSignatureRequest {
 
     public boolean isExpired() {
         return status == Status.PENDING
-                && expiresAt != null
-                && !expiresAt.isAfter(LocalDateTime.now());
+                && (expiresAt == null || !expiresAt.isAfter(LocalDateTime.now()));
     }
 }

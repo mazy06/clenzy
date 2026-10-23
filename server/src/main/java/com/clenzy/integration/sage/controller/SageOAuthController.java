@@ -1,5 +1,6 @@
 package com.clenzy.integration.sage.controller;
 
+import com.clenzy.integration.oauth.BaitlyOAuthHttpDiagnostics;
 import com.clenzy.integration.oauth.OAuthStateService;
 import com.clenzy.integration.sage.model.SageConnection;
 import com.clenzy.integration.sage.service.SageOAuthService;
@@ -59,14 +60,14 @@ public class SageOAuthController {
     @PreAuthorize("permitAll()")
     public ResponseEntity<String> callback(@RequestParam("code") String code,
                                              @RequestParam("state") String state) {
-        Optional<OAuthStateService.StatePayload> payload = oauthService.validateAndConsumeState(state);
-        if (payload.isEmpty()) {
-            log.warn("Sage OAuth callback — state invalide: {}", state);
-            return ResponseEntity.status(302)
-                .header("Location", "/settings?tab=integrations&status=error&reason=invalid_state")
-                .build();
-        }
         try {
+            Optional<OAuthStateService.StatePayload> payload = oauthService.validateAndConsumeState(state);
+            if (payload.isEmpty()) {
+                log.warn("Sage OAuth callback — state invalide");
+                return ResponseEntity.status(302)
+                    .header("Location", "/settings?tab=integrations&status=error&reason=invalid_state")
+                    .build();
+            }
             oauthService.exchangeCodeForToken(code, payload.get().userId(), payload.get().orgId());
             // TODO post-MVP : appeler GET /businesses pour stocker la business
             // Sage selectionnee via oauthService.saveBusiness(orgId, id, name).
@@ -74,7 +75,7 @@ public class SageOAuthController {
                 .header("Location", "/settings?tab=integrations&status=success")
                 .build();
         } catch (Exception e) {
-            log.error("Sage OAuth callback — erreur echange code: {}", e.getMessage(), e);
+            log.error("Sage OAuth callback — erreur echange code");
             return ResponseEntity.status(302)
                 .header("Location", "/settings?tab=integrations&status=error&reason=token_exchange")
                 .build();
@@ -88,13 +89,13 @@ public class SageOAuthController {
             oauthService.revokeToken(orgId);
             return ResponseEntity.ok(Map.of(
                 "status", "disconnected",
-                "message", "Deconnexion Sage reussie"
+                "message", BaitlyOAuthHttpDiagnostics.LOCAL_DISCONNECT
             ));
         } catch (Exception e) {
-            log.error("Sage disconnect — erreur: {}", e.getMessage(), e);
+            log.error("Sage disconnect — erreur");
             return ResponseEntity.internalServerError().body(Map.of(
                 "status", "error",
-                "message", "Erreur lors de la deconnexion: " + e.getMessage()
+                "message", BaitlyOAuthHttpDiagnostics.DISCONNECT_UNCONFIRMED
             ));
         }
     }
@@ -117,7 +118,7 @@ public class SageOAuthController {
             result.put("connected", false);
             if (connection.isPresent()) {
                 result.put("status", connection.get().getStatus().name());
-                result.put("errorMessage", connection.get().getErrorMessage());
+                result.put("errorMessage", BaitlyOAuthHttpDiagnostics.connectionError(connection.get().getErrorMessage()));
             }
         }
         return ResponseEntity.ok(result);

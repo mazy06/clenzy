@@ -1,6 +1,7 @@
 package com.clenzy.integration.pennylane.service;
 
 import com.clenzy.integration.oauth.OAuthFlowEngine;
+import com.clenzy.integration.oauth.BaitlyOAuthBusyException;
 import com.clenzy.integration.oauth.OAuthStateService;
 import com.clenzy.integration.pennylane.config.PennylaneOAuthProviderConfig;
 import com.clenzy.integration.pennylane.model.PennylaneConnection;
@@ -120,13 +121,15 @@ public class PennylaneOAuthService {
 
     @SuppressWarnings("unused")
     private PennylaneConnection exchangeCodeFallback(String code, Long userId, Long orgId, Throwable t) {
-        log.error("Pennylane OAuth — circuit breaker ouvert sur exchange: {}", t.getMessage());
-        throw new RuntimeException("Service Pennylane temporairement indisponible", t);
+        if (t instanceof BaitlyOAuthBusyException busy) throw busy;
+        log.error("Pennylane OAuth : opération exchange indisponible");
+        throw new RuntimeException("Service Pennylane temporairement indisponible");
     }
 
     @SuppressWarnings("unused")
     private PennylaneConnection refreshTokenFallback(Long orgId, Throwable t) {
-        log.error("Pennylane OAuth — circuit breaker ouvert sur refresh: {}", t.getMessage());
-        throw new RuntimeException("Service Pennylane temporairement indisponible", t);
+        if (t instanceof BaitlyOAuthBusyException busy) throw busy;
+        log.error("Pennylane OAuth : opération refresh indisponible");
+        throw new RuntimeException("Service Pennylane temporairement indisponible");
     }
 }
