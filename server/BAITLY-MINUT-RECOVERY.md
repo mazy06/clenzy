@@ -89,6 +89,15 @@ Références primaires : [événements](https://developer.minut.com/events/event
 
 ## Validation
 
+Le contrôleur publie le corps HTTP comme chaîne via le JsonSerializer commun.
+Le listener Minut force donc `spring.json.value.default.type=java.lang.String` :
+le défaut Map des autres consumers ne peut pas décoder cette chaîne. Les en-têtes
+de type restent ignorés ; le retry/DLT et le groupe Kafka restent inchangés.
+`BaitlyMinutKafkaContractTest` reproduit le rejet avec le défaut global puis vérifie
+le passage des octets sérialisés à l’admission, avec les codecs réels verrouillés.
+Ce test sans broker ne remplace pas la qualification Kafka de la campagne staging.
+L’override est prévu par [Spring Kafka 3.1](https://docs.spring.io/spring-kafka/reference/3.1/kafka/receiving-messages/listener-annotation.html).
+
 Le collecteur privé des journaux expose cinq agrégats Minut sans label client :
 `minut.ready`, `minut.uncertain`, `minut.review` et les deux âges READY/incertain
 en secondes, sous `baitly.recovery.*`. STARTED et UNKNOWN sont comptés ensemble.

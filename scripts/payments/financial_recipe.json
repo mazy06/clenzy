@@ -1,5 +1,6 @@
 {
   "backend": [
+    "BaitlyMinutKafkaContractTest",
     "BaitlyMinutRecoveryPostgresTest",
     "BaitlyMinutEventParserTest",
     "BaitlyMinutRecoveryWorkerTest",

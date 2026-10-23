@@ -4,6 +4,7 @@ import com.clenzy.config.KafkaConfig;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.kafka.annotation.KafkaListener;
+import org.springframework.kafka.support.serializer.JsonDeserializer;
 import org.springframework.stereotype.Service;
 
 /**
@@ -21,7 +22,9 @@ public class MinutWebhookConsumer {
         this.parser=parser; this.journal=journal; this.worker=worker;
     }
 
-    @KafkaListener(topics=KafkaConfig.TOPIC_MINUT_WEBHOOKS,groupId="clenzy-minut-noise")
+    // The HTTP controller publishes a JSON-encoded String; the shared factory defaults to Map.
+    @KafkaListener(topics=KafkaConfig.TOPIC_MINUT_WEBHOOKS,groupId="clenzy-minut-noise",
+            properties=JsonDeserializer.VALUE_DEFAULT_TYPE+"=java.lang.String")
     public void handleMinutWebhook(String payload) {
         try {
             var event=parser.parse(payload);
