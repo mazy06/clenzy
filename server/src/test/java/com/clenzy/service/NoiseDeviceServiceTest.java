@@ -43,6 +43,7 @@ class NoiseDeviceServiceTest {
     @Mock private TuyaApiService tuyaApiService;
     @Mock private TuyaDeviceClaimService claimService;
     @Mock private BaitlyIotClient baitlyIotClient;
+    @Mock private BaitlyNoiseStatusWriter statusWriter;
 
     private TenantContext tenantContext;
     private NoiseDeviceService service;
@@ -55,7 +56,7 @@ class NoiseDeviceServiceTest {
         tenantContext.setOrganizationId(ORG_ID);
         service = new NoiseDeviceService(noiseDeviceRepository, propertyRepository,
                 minutApiService, tuyaApiService, tenantContext, claimService,
-                new com.clenzy.service.access.OrganizationAccessGuard(tenantContext), baitlyIotClient);
+                new com.clenzy.service.access.OrganizationAccessGuard(tenantContext), baitlyIotClient, statusWriter);
     }
 
     private static final String PRIVATE = "synthetic-secret guest@example.invalid";
@@ -140,8 +141,9 @@ class NoiseDeviceServiceTest {
         var device = statusDevice(DeviceType.MINUT);
         when(minutApiService.getDevice(USER_ID, PRIVATE)).thenReturn(response);
         assertThat(service.getDeviceStatus(USER_ID, 1L)).containsEntry("online", expected);
-        assertThat(device.getOnline()).isEqualTo(expected);
-        verify(noiseDeviceRepository).save(device);
+        assertThat(device.getOnline()).isTrue(); // snapshot jamais refusionne
+        verify(statusWriter).record(any(), eq(expected), any());
+        verify(noiseDeviceRepository, never()).save(any());
     }
 
     @org.junit.jupiter.params.ParameterizedTest
@@ -176,7 +178,8 @@ class NoiseDeviceServiceTest {
         var device = statusDevice(DeviceType.TUYA);
         when(tuyaApiService.getDeviceInfo(PRIVATE)).thenReturn(Map.of("online", online));
         assertThat(service.getDeviceStatus(USER_ID, 1L)).containsEntry("online", online);
-        verify(noiseDeviceRepository).save(device);
+        verify(statusWriter).record(any(), eq(online), any());
+        verify(noiseDeviceRepository, never()).save(any());
     }
 
     @Test void whenTuyaStatusMissing_thenDoesNotWrite() {
@@ -196,6 +199,30 @@ class NoiseDeviceServiceTest {
         var device = statusDevice(DeviceType.MINUT);
         service.deleteDevice(PRIVATE, 1L);
         verify(noiseDeviceRepository).delete(device);
+    }
+
+    @Test void whenStatusWriteIsRefused_thenDoesNotMutateSnapshotOrMergeIt() {
+        var device = statusDevice(DeviceType.MINUT);
+        var previousTime = device.getLastSeenAt();
+        when(minutApiService.getDevice(USER_ID, PRIVATE)).thenReturn(Map.of("online", false));
+        doThrow(new IllegalStateException("Actualisation du capteur non confirmee"))
+            .when(statusWriter).record(any(), eq(false), any());
+        assertThatThrownBy(() -> service.getDeviceStatus(USER_ID, 1L))
+            .hasMessage("Actualisation du capteur non confirmee");
+        assertThat(device.getOnline()).isTrue();
+        assertThat(device.getLastSeenAt()).isEqualTo(previousTime);
+        verify(noiseDeviceRepository, never()).save(any());
+    }
+
+    @org.junit.jupiter.params.ParameterizedTest
+    @org.junit.jupiter.params.provider.ValueSource(booleans = {true, false})
+    void whenInactiveOrSimulated_thenNoStatusTransport(boolean simulated) {
+        var device = statusDevice(DeviceType.MINUT);
+        if (simulated) device.setSimulation(true);
+        else device.setStatus(DeviceStatus.INACTIVE);
+        assertThatThrownBy(() -> service.getDeviceStatus(USER_ID, 1L)).hasNoCause();
+        verifyNoInteractions(minutApiService, statusWriter);
+        verify(noiseDeviceRepository, never()).save(any());
     }
 
     private NoiseDevice buildDevice(Long id, String name, DeviceType type) {

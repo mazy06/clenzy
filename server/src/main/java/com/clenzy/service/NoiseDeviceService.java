@@ -42,6 +42,7 @@ public class NoiseDeviceService {
     private final TenantContext tenantContext;
     private final TuyaDeviceClaimService claimService;
     private final BaitlyIotClient baitlyIotClient;
+    private final BaitlyNoiseStatusWriter statusWriter;
 
     public NoiseDeviceService(NoiseDeviceRepository noiseDeviceRepository,
                               PropertyRepository propertyRepository,
@@ -50,7 +51,8 @@ public class NoiseDeviceService {
                               TenantContext tenantContext,
                               TuyaDeviceClaimService claimService,
                                     OrganizationAccessGuard organizationAccessGuard,
-                                    BaitlyIotClient baitlyIotClient) {
+                                    BaitlyIotClient baitlyIotClient,
+                                    BaitlyNoiseStatusWriter statusWriter) {
         this.noiseDeviceRepository = noiseDeviceRepository;
         this.propertyRepository = propertyRepository;
         this.minutApiService = minutApiService;
@@ -59,6 +61,7 @@ public class NoiseDeviceService {
         this.claimService = claimService;
         this.organizationAccessGuard = organizationAccessGuard;
         this.baitlyIotClient = baitlyIotClient;
+        this.statusWriter = statusWriter;
     }
 
     // ─── CRUD ───────────────────────────────────────────────────
@@ -195,10 +198,11 @@ public class NoiseDeviceService {
             return Map.of("online", status.online(), "revoked", status.revoked());
         }
 
+        var before = BaitlyNoiseStatusWriter.Snapshot.capture(device);
+        LocalDateTime observedAt = LocalDateTime.now(java.time.ZoneOffset.UTC);
         boolean online = fetchOnline(userId, device);
-        device.setOnline(online);
-        device.setLastSeenAt(LocalDateTime.now(java.time.ZoneOffset.UTC));
-        noiseDeviceRepository.save(device);
+        statusWriter.record(before, online, observedAt);
+        // Le snapshot JPA reste intact : aucun dirty checking ne doit le refusionner.
 
         return Map.of("online", online);
     }

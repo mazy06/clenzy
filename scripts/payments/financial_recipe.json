@@ -1,5 +1,6 @@
 {
   "backend": [
+    "BaitlyNoiseStatusPersistenceTest",
     "NoiseDeviceControllerTest",
     "NoiseDeviceServiceTest",
     "NoiseAlertSchedulerTest",

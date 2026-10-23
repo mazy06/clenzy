@@ -150,10 +150,15 @@ last_heard_from_at ne prouvent pas un statut courant. Dans ces cas l'appel echou
 avec un diagnostic fixe, avant toute mutation de online ou last_seen_at. La lecture
 suivante peut retenter le GET ; aucune commande ni notification externe n'est ajoutee.
 
-Les lectures MINUT/TUYA reussies gardent le chemin de persistance existant. La
-concurrence entre cette sauvegarde de snapshot et les autres mutations du capteur
-reste a revoir ; ce lot ne garantit pas l'ordre de toutes les sources de statut.
-Le parcours Baitly IoT conserve sa verification de rattachement et son contrat.
+Les lectures MINUT/TUYA reussies utilisent une ecriture partielle independante :
+online, last_seen_at et updated_at seulement. Un snapshot immuable precede le GET ;
+le CAS exige encore le meme ID, organisation, logement, type, identifiant externe,
+etat online et date de rafraichissement, avec capteur ACTIVE non simule. Une reponse
+retardee est refusee si ces champs ont change ; aucune metadata du capteur n'est
+refusionnee et aucun snapshot JPA n'est modifie apres le CAS. Le verrou SQL couvre
+uniquement l'ecriture, jamais l'appel fournisseur. Une horloge reculee ne fait pas
+reculer la date. Le parcours Baitly IoT conserve son contrat et sa persistance
+existante ; sa concurrence reste distincte de ce lot Minut/Tuya.
 
 Le controller bruit ne renvoie plus le message brut d'une IllegalArgumentException,
 meme nul. Les erreurs gardent leurs codes 400/500 et les refus AccessDeniedException
@@ -169,3 +174,9 @@ reponses Minut/Tuya ambigues, refus inter-organisation et reprise apres statut
 explicite. Les tests locaux de ces chemins emploient des doubles, sans fournisseur,
 broker ni notification reelle. Le test RedisOutageSemanticsIT a ete aligne, mais
 son exercice Testcontainers n'est pas execute dans cette vague locale.
+
+BaitlyNoiseStatusPersistenceTest execute le vrai SQL avec H2 localement et la base
+PostgreSQL dediee de CI : metadata preservee, portee modifiee, desactivation,
+simulation, suppression, episode et date concurrente, etat initial NULL, deux
+resultats concurrents et commit independant du rollback appelant. Il ne valide
+pas le schema Liquibase complet : aucune migration n'est ajoutee dans ce lot.
