@@ -9,6 +9,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import javax.crypto.Mac;
@@ -26,10 +27,10 @@ import java.util.Map;
  * - Validation de la signature HMAC dans le header
  * - Rate limiting au niveau Nginx
  *
- * IMPORTANT : Repondre 200 OK le plus vite possible (< 5s)
- * pour eviter les retries de HomeAway.
+ * Un 2xx atteste un traitement terminé. Les chemins PMS non implémentés restent en 503.
  */
 @RestController
+@PreAuthorize("permitAll()")
 @RequestMapping("/api/webhooks/homeaway")
 @Tag(name = "HomeAway Webhooks", description = "Reception des evenements HomeAway/Abritel")
 public class HomeAwayWebhookController {
@@ -74,7 +75,7 @@ public class HomeAwayWebhookController {
         // erreur de deploiement, pas une permission.
         //
         // Meme regime que les webhooks Airbnb, Booking.com et TripAdvisor.
-        if (config.getWebhookSecret() == null || config.getWebhookSecret().isEmpty()) {
+        if (config.getWebhookSecret() == null || config.getWebhookSecret().isBlank()) {
             log.error("HOMEAWAY_WEBHOOK_SECRET non configure — webhook rejete par securite");
             return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE).body(Map.of(
                     "status", "error",
@@ -89,62 +90,49 @@ public class HomeAwayWebhookController {
             ));
         }
 
+        if (payload.length() > 1_048_576) {
+            return ResponseEntity.status(HttpStatus.PAYLOAD_TOO_LARGE).body(Map.of("status", "error", "message", "Payload too large"));
+        }
         try {
-            // Parser le payload et router vers le bon handler
-            @SuppressWarnings("unchecked")
-            Map<String, Object> event = new com.fasterxml.jackson.databind.ObjectMapper()
-                    .readValue(payload, Map.class);
-
-            String eventType = (String) event.get("event_type");
-            @SuppressWarnings("unchecked")
-            Map<String, Object> data = (Map<String, Object>) event.get("data");
-            String listingId = data != null ? (String) data.get("listing_id") : null;
-
-            if (eventType == null || data == null) {
-                return ResponseEntity.badRequest().body(Map.of(
-                        "status", "error",
-                        "message", "Missing event_type or data"
-                ));
+            var mapper = new com.fasterxml.jackson.databind.ObjectMapper();
+            var event = mapper.readTree(payload);
+            if (event == null || !event.isObject() || !event.path("event_type").isTextual()
+                    || event.path("event_type").asText().isBlank() || !event.path("data").isObject()
+                    || !event.path("data").path("listing_id").isTextual()
+                    || event.path("data").path("listing_id").asText().isBlank()) {
+                return ResponseEntity.badRequest().body(Map.of("status", "error", "message", "Invalid event structure"));
             }
-
-            // Resoudre l'orgId depuis le listing (lookup sans org : flux signe HMAC)
+            String eventType = event.path("event_type").asText();
+            String listingId = event.path("data").path("listing_id").asText();
             Long orgId = connectionQueryService.resolveOrganizationId(listingId);
-            if (orgId == null) {
-                log.warn("Listing HomeAway {} non liee, webhook ignore", listingId);
-                return ResponseEntity.ok(Map.of(
-                        "status", "ok",
-                        "message", "Listing not linked, event ignored"
-                ));
-            }
-
-            // Router l'evenement
+            if (orgId == null) return unavailable();
+            Map<String, Object> data = mapper.convertValue(event.path("data"), new com.fasterxml.jackson.core.type.TypeReference<Map<String, Object>>() {});
             switch (eventType) {
                 case "reservation.created" -> syncService.handleReservationCreated(data, orgId);
                 case "reservation.updated" -> syncService.handleReservationUpdated(data, orgId);
                 case "reservation.cancelled" -> syncService.handleReservationCancelled(data, orgId);
                 case "availability.updated" -> syncService.handleAvailabilityUpdate(data, orgId);
-                default -> log.warn("Type d'evenement webhook HomeAway inconnu: {}", eventType);
+                default -> {return unavailable();}
             }
-
-            return ResponseEntity.ok(Map.of(
-                    "status", "ok",
-                    "message", "Event received"
-            ));
-
-        } catch (Exception e) {
-            log.error("Erreur traitement webhook HomeAway: {}", e.getMessage(), e);
-            return ResponseEntity.ok(Map.of(
-                    "status", "ok",
-                    "message", "Event received (processing failed, will retry)"
-            ));
+            return ResponseEntity.ok(Map.of("status", "ok", "message", "Event processed"));
+        } catch (com.fasterxml.jackson.core.JsonProcessingException ignored) {
+            return ResponseEntity.badRequest().body(Map.of("status", "error", "message", "Invalid JSON"));
+        } catch (Exception ignored) {
+            log.error("Traitement du webhook HomeAway indisponible");
+            return unavailable();
         }
+    }
+
+    private ResponseEntity<Map<String, String>> unavailable() {
+        return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE)
+                .body(Map.of("status", "error", "message", "Event processing unavailable"));
     }
 
     /**
      * Verifie la signature HMAC-SHA256 du webhook.
      */
     private boolean verifySignature(String payload, String signature) {
-        if (signature == null || payload == null) {
+        if (signature == null || !signature.matches("[A-Fa-f0-9]{64}") || payload == null) {
             return false;
         }
 
@@ -158,9 +146,9 @@ public class HomeAwayWebhookController {
             // Comparaison constant-time pour eviter une timing attack sur la signature.
             return MessageDigest.isEqual(
                     expectedSignature.getBytes(StandardCharsets.UTF_8),
-                    signature.toLowerCase().getBytes(StandardCharsets.UTF_8));
+                    signature.toLowerCase(java.util.Locale.ROOT).getBytes(StandardCharsets.UTF_8));
         } catch (Exception e) {
-            log.error("Erreur verification signature webhook HomeAway: {}", e.getMessage());
+            log.error("Vérification de signature HomeAway indisponible");
             return false;
         }
     }

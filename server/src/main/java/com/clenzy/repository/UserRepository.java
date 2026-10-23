@@ -36,6 +36,11 @@ public interface UserRepository extends JpaRepository<User, Long>, JpaSpecificat
     boolean existsByEmailHash(String emailHash);
     Optional<User> findByKeycloakId(String keycloakId);
 
+    /** Serialise les confirmations d'abonnement historique pour un meme payeur. */
+    @org.springframework.data.jpa.repository.Lock(jakarta.persistence.LockModeType.PESSIMISTIC_WRITE)
+    @Query("select u from User u where u.id = :id")
+    Optional<User> lockSubscriptionPayer(@Param("id") Long id);
+
     @org.springframework.data.jpa.repository.Lock(jakarta.persistence.LockModeType.PESSIMISTIC_WRITE)
     @org.springframework.data.jpa.repository.Query("select u from User u where u.id = :id")
     Optional<User> findForMarketplaceReconciliation(@org.springframework.data.repository.query.Param("id") Long id);

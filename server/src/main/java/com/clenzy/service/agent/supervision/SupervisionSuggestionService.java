@@ -49,6 +49,7 @@ public class SupervisionSuggestionService {
     private final SupervisionActivityService activityService;
     private final Clock clock;
     private final TransactionTemplate transactionTemplate;
+    private final com.clenzy.service.OrganizationService organizationAccess;
 
     public SupervisionSuggestionService(SupervisionSuggestionRepository repository,
                                         SuggestionActionExecutor actionExecutor,
@@ -57,7 +58,8 @@ public class SupervisionSuggestionService {
                                         com.clenzy.service.UnpaidServiceRequestCardService unpaidServiceRequestCardService,
                                         SupervisionActivityService activityService,
                                         Clock clock,
-                                        PlatformTransactionManager transactionManager) {
+                                        PlatformTransactionManager transactionManager,
+                                        com.clenzy.service.OrganizationService organizationAccess) {
         this.repository = repository;
         this.actionExecutor = actionExecutor;
         this.notificationService = notificationService;
@@ -66,6 +68,7 @@ public class SupervisionSuggestionService {
         this.activityService = activityService;
         this.clock = clock;
         this.transactionTemplate = new TransactionTemplate(transactionManager);
+        this.organizationAccess = organizationAccess;
     }
 
     /** Enregistre une suggestion (best-effort, dédupliquée). */
@@ -563,6 +566,15 @@ public class SupervisionSuggestionService {
                     .orElseThrow(() -> new NotFoundException("Suggestion introuvable : " + suggestionId));
             if (s.getActionType() == null) {
                 throw new IllegalArgumentException("Cette suggestion n'est pas actionnable");
+            }
+            if (java.util.Set.of(SupervisionActionType.DEPOSIT_REFUND, SupervisionActionType.DEPOSIT_RELEASE,
+                    SupervisionActionType.DEPOSIT_WITHHOLD, SupervisionActionType.GOODWILL_REFUND).contains(s.getActionType())
+                    && !SupervisionSuggestion.APPLIED_BY_AUTO.equals(appliedBy)) {
+                if (appliedBy == null || !appliedBy.startsWith(SupervisionSuggestion.APPLIED_BY_USER_PREFIX)) {
+                    throw new org.springframework.security.access.AccessDeniedException("Gestionnaire authentifie requis");
+                }
+                organizationAccess.validateOrgManagement(
+                        appliedBy.substring(SupervisionSuggestion.APPLIED_BY_USER_PREFIX.length()), organizationId);
             }
             int transitioned = repository.markApplied(suggestionId, organizationId, clock.instant(), appliedBy);
             if (transitioned == 0) {

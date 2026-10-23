@@ -30,6 +30,7 @@ public class HomeAwayConnectionQueryService {
     public Long resolveOrganizationId(String listingId) {
         if (listingId == null) return null;
         return connectionRepository.findByListingId(listingId)
+                .filter(HomeAwayConnection::isActive)
                 .map(HomeAwayConnection::getOrganizationId)
                 .orElse(null);
     }

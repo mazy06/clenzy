@@ -20,6 +20,7 @@ import org.springframework.test.util.ReflectionTestUtils;
 import org.springframework.web.client.RestTemplate;
 
 import java.util.List;
+import java.net.URI;
 import java.util.Map;
 import java.util.Optional;
 
@@ -52,6 +53,9 @@ class PennylaneAccountingClientTest {
 
     @SuppressWarnings({"unchecked", "rawtypes"})
     private void mockSuccessfulExchange(Map<String, Object> body) {
+        when(restTemplate.exchange(any(URI.class), any(HttpMethod.class), any(HttpEntity.class),
+                any(ParameterizedTypeReference.class)))
+            .thenReturn(new ResponseEntity<>(body, HttpStatus.OK));
         when(restTemplate.exchange(anyString(), any(HttpMethod.class), any(HttpEntity.class),
                 any(ParameterizedTypeReference.class)))
             .thenReturn(new ResponseEntity<>(body, HttpStatus.OK));
@@ -77,7 +81,7 @@ class PennylaneAccountingClientTest {
             ArgumentCaptor<String> urlCaptor = ArgumentCaptor.forClass(String.class);
             verify(restTemplate).exchange(urlCaptor.capture(), eq(HttpMethod.POST),
                 any(HttpEntity.class), any(ParameterizedTypeReference.class));
-            assertThat(urlCaptor.getValue()).isEqualTo(BASE_URL + "/customer_invoices");
+            assertThat(urlCaptor.getValue().toString()).isEqualTo(BASE_URL + "/customer_invoices");
         }
 
         @Test
@@ -110,11 +114,11 @@ class PennylaneAccountingClientTest {
 
             client.listCustomerInvoices(ORG_ID, null, 50);
 
-            ArgumentCaptor<String> urlCaptor = ArgumentCaptor.forClass(String.class);
+            ArgumentCaptor<URI> urlCaptor = ArgumentCaptor.forClass(URI.class);
             verify(restTemplate).exchange(urlCaptor.capture(), eq(HttpMethod.GET),
                 any(HttpEntity.class), any(ParameterizedTypeReference.class));
-            assertThat(urlCaptor.getValue()).contains("limit=50");
-            assertThat(urlCaptor.getValue()).doesNotContain("cursor=");
+            assertThat(urlCaptor.getValue().toString()).contains("limit=50");
+            assertThat(urlCaptor.getValue().toString()).doesNotContain("cursor=");
         }
 
         @Test
@@ -124,11 +128,11 @@ class PennylaneAccountingClientTest {
 
             client.listCustomerInvoices(ORG_ID, "next-page", 25);
 
-            ArgumentCaptor<String> urlCaptor = ArgumentCaptor.forClass(String.class);
+            ArgumentCaptor<URI> urlCaptor = ArgumentCaptor.forClass(URI.class);
             verify(restTemplate).exchange(urlCaptor.capture(), eq(HttpMethod.GET),
                 any(HttpEntity.class), any(ParameterizedTypeReference.class));
-            assertThat(urlCaptor.getValue()).contains("cursor=next-page");
-            assertThat(urlCaptor.getValue()).contains("limit=25");
+            assertThat(urlCaptor.getValue().toString()).contains("cursor=next-page");
+            assertThat(urlCaptor.getValue().toString()).contains("limit=25");
         }
     }
 
@@ -147,7 +151,7 @@ class PennylaneAccountingClientTest {
         ArgumentCaptor<String> urlCaptor = ArgumentCaptor.forClass(String.class);
         verify(restTemplate).exchange(urlCaptor.capture(), eq(HttpMethod.POST),
             any(HttpEntity.class), any(ParameterizedTypeReference.class));
-        assertThat(urlCaptor.getValue()).endsWith("/supplier_invoices");
+        assertThat(urlCaptor.getValue().toString()).endsWith("/supplier_invoices");
     }
 
     // ===================================================================
@@ -165,7 +169,7 @@ class PennylaneAccountingClientTest {
         ArgumentCaptor<String> urlCaptor = ArgumentCaptor.forClass(String.class);
         verify(restTemplate).exchange(urlCaptor.capture(), eq(HttpMethod.POST),
             any(HttpEntity.class), any(ParameterizedTypeReference.class));
-        assertThat(urlCaptor.getValue()).endsWith("/customers");
+        assertThat(urlCaptor.getValue().toString()).endsWith("/customers");
     }
 
     // ===================================================================
@@ -179,7 +183,7 @@ class PennylaneAccountingClientTest {
         @Test
         @DisplayName("returns Optional.empty when no customers")
         void noResults_empty() {
-            mockSuccessfulExchange(Map.of("customers", List.of()));
+            mockSuccessfulExchange(page(List.of()));
 
             Optional<Map<String, Object>> result = client.findCustomerByExternalRef(ORG_ID, "ref-123");
 
@@ -189,8 +193,8 @@ class PennylaneAccountingClientTest {
         @Test
         @DisplayName("returns first customer when present")
         void found_returnsFirst() {
-            Map<String, Object> customer = Map.of("id", 1L, "name", "Alice");
-            mockSuccessfulExchange(Map.of("customers", List.of(customer)));
+            Map<String, Object> customer = Map.of("id", 1L, "name", "Alice", "external_reference", "ref-123");
+            mockSuccessfulExchange(page(List.of(customer)));
 
             Optional<Map<String, Object>> result = client.findCustomerByExternalRef(ORG_ID, "ref-123");
 
@@ -198,27 +202,25 @@ class PennylaneAccountingClientTest {
         }
 
         @Test
-        @DisplayName("returns empty when 'customers' key missing")
+        @DisplayName("rejects malformed response when 'customers' key missing")
         void missingKey_empty() {
             mockSuccessfulExchange(Map.of());
 
-            Optional<Map<String, Object>> result = client.findCustomerByExternalRef(ORG_ID, "ref");
-
-            assertThat(result).isEmpty();
+            org.assertj.core.api.Assertions.assertThatThrownBy(() -> client.findCustomerByExternalRef(ORG_ID, "ref")).isInstanceOf(BaitlyPennylaneDiagnostics.Failure.class);
         }
 
         @Test
         @DisplayName("URL includes the filter parameter with external_reference")
         void buildsFilterUrl() {
-            mockSuccessfulExchange(Map.of("customers", List.of()));
+            mockSuccessfulExchange(page(List.of()));
 
             client.findCustomerByExternalRef(ORG_ID, "ext-42");
 
-            ArgumentCaptor<String> urlCaptor = ArgumentCaptor.forClass(String.class);
+            ArgumentCaptor<URI> urlCaptor = ArgumentCaptor.forClass(URI.class);
             verify(restTemplate).exchange(urlCaptor.capture(), eq(HttpMethod.GET),
                 any(HttpEntity.class), any(ParameterizedTypeReference.class));
-            assertThat(urlCaptor.getValue()).contains("/customers");
-            assertThat(urlCaptor.getValue()).contains("filter=");
+            assertThat(urlCaptor.getValue().toString()).contains("/customers");
+            assertThat(urlCaptor.getValue().toString()).contains("filter=");
         }
     }
 
@@ -237,7 +239,7 @@ class PennylaneAccountingClientTest {
         ArgumentCaptor<String> urlCaptor = ArgumentCaptor.forClass(String.class);
         verify(restTemplate).exchange(urlCaptor.capture(), eq(HttpMethod.POST),
             any(HttpEntity.class), any(ParameterizedTypeReference.class));
-        assertThat(urlCaptor.getValue()).endsWith("/suppliers");
+        assertThat(urlCaptor.getValue().toString()).endsWith("/suppliers");
     }
 
     // ===================================================================
@@ -251,7 +253,7 @@ class PennylaneAccountingClientTest {
         @Test
         @DisplayName("returns Optional.empty when none")
         void none_empty() {
-            mockSuccessfulExchange(Map.of("suppliers", List.of()));
+            mockSuccessfulExchange(page(List.of()));
 
             Optional<Map<String, Object>> result = client.findSupplierByExternalRef(ORG_ID, "ref-x");
 
@@ -261,8 +263,8 @@ class PennylaneAccountingClientTest {
         @Test
         @DisplayName("returns first supplier when present")
         void found_returnsFirst() {
-            Map<String, Object> supplier = Map.of("id", 10L, "name", "Acme");
-            mockSuccessfulExchange(Map.of("suppliers", List.of(supplier)));
+            Map<String, Object> supplier = Map.of("id", 10L, "name", "Acme", "external_reference", "ref-y");
+            mockSuccessfulExchange(page(List.of(supplier)));
 
             Optional<Map<String, Object>> result = client.findSupplierByExternalRef(ORG_ID, "ref-y");
 
@@ -270,11 +272,11 @@ class PennylaneAccountingClientTest {
         }
 
         @Test
-        @DisplayName("returns empty when 'suppliers' missing")
+        @DisplayName("rejects malformed response when 'suppliers' missing")
         void missing_empty() {
             mockSuccessfulExchange(Map.of());
 
-            assertThat(client.findSupplierByExternalRef(ORG_ID, "ref")).isEmpty();
+            org.assertj.core.api.Assertions.assertThatThrownBy(() -> client.findSupplierByExternalRef(ORG_ID, "ref")).isInstanceOf(BaitlyPennylaneDiagnostics.Failure.class);
         }
     }
 
@@ -291,10 +293,14 @@ class PennylaneAccountingClientTest {
         Map<String, Object> result = client.listJournals(ORG_ID);
 
         assertThat(result).isEqualTo(body);
-        ArgumentCaptor<String> urlCaptor = ArgumentCaptor.forClass(String.class);
+        ArgumentCaptor<URI> urlCaptor = ArgumentCaptor.forClass(URI.class);
         verify(restTemplate).exchange(urlCaptor.capture(), eq(HttpMethod.GET),
             any(HttpEntity.class), any(ParameterizedTypeReference.class));
-        assertThat(urlCaptor.getValue()).endsWith("/journals");
+        assertThat(urlCaptor.getValue().toString()).endsWith("/journals");
+    }
+
+    private static Map<String,Object> page(List<Map<String,Object>> items) {
+        var result=new java.util.HashMap<String,Object>(); result.put("items",items);result.put("has_more",false);result.put("next_cursor",null);return result;
     }
 
     @SuppressWarnings({"unchecked", "rawtypes"})

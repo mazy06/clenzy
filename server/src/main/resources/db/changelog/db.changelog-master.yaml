@@ -5317,3 +5317,51 @@ databaseChangeLog:
         - sqlFile:
             path: changes/0596__baitly_crm_follow_up.sql
             relativeToChangelogFile: true
+
+  - changeSet:
+      id: "0597-baitly-accounting-export-journal"
+      author: clenzy-team
+      changes:
+        - sqlFile:
+            path: changes/0597__baitly_accounting_export_journal.sql
+            relativeToChangelogFile: true
+
+  - changeSet:
+      id: "0598-baitly-oauth-refresh-attempts"
+      author: clenzy-team
+      changes:
+        - sqlFile:
+            path: changes/0598__baitly_oauth_refresh_attempts.sql
+            relativeToChangelogFile: true
+
+  - changeSet:
+      id: "0599-baitly-minut-event-journal"
+      author: clenzy-team
+      changes:
+        - sqlFile:
+            path: changes/0599__baitly_minut_event_journal.sql
+            relativeToChangelogFile: true
+
+  - changeSet:
+      id: "0600-baitly-noise-warning-attempts"
+      author: clenzy-team
+      changes:
+        - sqlFile:
+            path: changes/0600__baitly_noise_warning_attempts.sql
+            relativeToChangelogFile: true
+
+  - changeSet:
+      id: "0601-baitly-noise-delivery-outbox"
+      author: clenzy-team
+      changes:
+        - sqlFile:
+            path: changes/0601__baitly_noise_delivery_outbox.sql
+            relativeToChangelogFile: true
+
+  - changeSet:
+      id: "0602-baitly-noise-alert-cooldown-index"
+      author: clenzy-team
+      changes:
+        - sqlFile:
+            path: changes/0602__baitly_noise_alert_cooldown_index.sql
+            relativeToChangelogFile: true
