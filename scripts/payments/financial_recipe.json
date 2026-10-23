@@ -1,5 +1,7 @@
 {
   "backend": [
+    "NoiseAlertServiceTest",
+    "NoiseAlertNotificationServiceTest",
     "BaitlyMinutKafkaContractTest",
     "BaitlyMinutRecoveryPostgresTest",
     "BaitlyMinutEventParserTest",

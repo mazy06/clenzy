@@ -120,3 +120,24 @@ indépendantes, concurrence, redémarrage, preuve perdue, identités et ownershi
 changement d’épisode, cutover et publication incertaine sans second envoi.
 La présence des tests PostgreSQL et l’absence de cas ignorés doivent être vérifiées
 dans les XML de la révision finale. Les tests staging restent différés.
+
+## Avertissements voyageurs : protection des canaux
+
+Le fan-out bruit prepare le canal avant d'acquerir la fenetre Redis. Sans canal,
+aucun claim n'est pris. Sans Redis, ou avec un retour SETNX nul, aucun message
+n'est tente ; une lecture de l'historique seule ne serialise pas les envois.
+
+OpenWA est selectionne avant l'envoi pour le texte, Meta pour le template.
+Une exception, meme UnsupportedOperationException, apres une tentative ne
+declenche ni texte de secours, ni email, ni liberation de la fenetre. Un
+identifiant WhatsApp vide est un resultat incertain. Un echec de sauvegarde
+apres delegation conserve egalement la fenetre. Les diagnostics ne contiennent
+ni email, libelle libre, exception fournisseur, cause ou exception supprimee.
+
+Cette protection reste une fenetre Redis de 24 heures : expiration, perte de Redis,
+crash et rollback de la transaction initiale exigent encore un journal durable des
+avertissements. Le journal Minut ne prouve pas chaque effet du fan-out. Le retour
+normal de l'email signifie delegation au service existant, pas reception en boite.
+Aucun UNKNOWN ne doit etre rejoue sur la seule absence de marqueur notified_*.
+La concurrence du cooldown entre sources bruit et la sortie des envois de la
+transaction initiale restent a traiter avant de declarer ce sous-lot durable.

@@ -477,4 +477,12 @@ class NoiseAlertServiceTest {
 
         verifyNoInteractions(automationEngine);
     }
+    @org.junit.jupiter.params.ParameterizedTest
+    @org.junit.jupiter.params.provider.ValueSource(doubles = {Double.NaN, Double.POSITIVE_INFINITY, Double.NEGATIVE_INFINITY, 0, -1})
+    void invalidMeasurementNeverReadsConfigOrCreatesAnAlert(double value) {
+        for (AlertSource source : AlertSource.values()) {
+            assertNull(service.evaluateNoiseLevel(10L, 100L, 1L, value, source));
+        }
+        verifyNoInteractions(configRepository, alertRepository, notificationService, automationEngine);
+    }
 }

@@ -78,6 +78,12 @@ class NoiseAlertNotificationServiceTest {
             .when(valueOperations.setIfAbsent(anyString(), anyString(), any(Duration.class)))
             .thenReturn(true);
 
+        lenient().when(whatsAppProvider.getProviderType()).thenReturn(WhatsAppProviderType.META);
+        lenient().when(whatsAppProvider.sendTemplateMessage(any(), anyString(), anyString(), anyString(), anyList()))
+            .thenReturn("synthetic-message");
+        lenient().when(whatsAppProvider.sendTextMessage(any(), anyString(), anyString()))
+            .thenReturn("synthetic-message");
+
         // Config WhatsApp active par defaut (lenient — seuls les tests guest-message
         // l'utilisent). Re-stubbable a Optional.empty() pour le cas "non configure".
         whatsAppConfig = new WhatsAppConfig();
@@ -322,7 +328,7 @@ class NoiseAlertNotificationServiceTest {
     }
 
     @Test
-    void whenProviderDoesNotSupportTemplates_thenFallsBackToText() {
+    void whenOpenWaSelected_thenPreparesTextWithoutAttemptingTemplate() {
         config.setNotifyInApp(false);
         config.setNotifyEmail(false);
         config.setNotifyGuestMessage(true);
@@ -338,13 +344,12 @@ class NoiseAlertNotificationServiceTest {
 
         when(reservationRepository.findActiveByPropertyIdAndDate(eq(100L), any(LocalDate.class), eq(10L)))
             .thenReturn(Optional.of(reservation));
-        // Provider type OpenWA : les templates Meta ne sont pas supportes -> fallback texte.
-        when(whatsAppProvider.sendTemplateMessage(any(), anyString(), anyString(), anyString(), anyList()))
-            .thenThrow(new UnsupportedOperationException("OpenWA"));
+        when(whatsAppProvider.getProviderType()).thenReturn(WhatsAppProviderType.OPENWA);
 
         service.dispatch(alert, config);
 
         verify(whatsAppProvider).sendTextMessage(any(), eq("+33612345678"), anyString());
+        verify(whatsAppProvider, never()).sendTemplateMessage(any(), anyString(), anyString(), anyString(), anyList());
         assertTrue(alert.isNotifiedWhatsapp());
     }
 
@@ -369,16 +374,14 @@ class NoiseAlertNotificationServiceTest {
     }
 
     @Test
-    void whenRedisDown_thenFallsBackToDbDedup() {
+    void whenRedisDown_thenRefusesWithoutRacyDatabaseFallback() {
         when(propertyRepository.findById(100L)).thenReturn(Optional.of(property));
         Reservation reservation = reservationWithGuest("marie@guest.com", null);
         when(reservationRepository.findActiveByPropertyIdAndDate(eq(100L), any(LocalDate.class), eq(10L)))
             .thenReturn(Optional.of(reservation));
         when(valueOperations.setIfAbsent(anyString(), anyString(), any(Duration.class)))
             .thenThrow(new RuntimeException("Redis down"));
-        // La base atteste qu'un message voyageur est deja parti dans les 24 h.
-        when(noiseAlertRepository.existsGuestNotifiedSince(eq(100L), any(LocalDateTime.class)))
-            .thenReturn(true);
+
 
         var outcome = service.sendGuestWarning(alert);
 
@@ -387,7 +390,7 @@ class NoiseAlertNotificationServiceTest {
     }
 
     @Test
-    void whenNoChannelAvailable_thenReleasesClaim() {
+    void whenNoChannelAvailable_thenNeverClaimsOrReleases() {
         when(propertyRepository.findById(100L)).thenReturn(Optional.of(property));
         // Voyageur sans telephone ni email : aucun canal possible.
         Reservation reservation = reservationWithGuest(null, null);
@@ -397,8 +400,7 @@ class NoiseAlertNotificationServiceTest {
         var outcome = service.sendGuestWarning(alert);
 
         assertFalse(outcome.sent());
-        // Le claim est relache pour ne pas bloquer la prochaine alerte du sejour.
-        verify(redisTemplate).delete(NoiseAlertNotificationService.GUEST_WARNING_KEY_PREFIX + "50");
+        verifyNoInteractions(redisTemplate, valueOperations);
     }
 
     @Test
@@ -414,6 +416,126 @@ class NoiseAlertNotificationServiceTest {
         assertEquals("whatsapp", outcome.channel());
         assertTrue(alert.isNotifiedWhatsapp());
         verify(noiseAlertRepository).save(alert);
+    }
+
+    private static final String PRIVATE = "synthetic-secret guest@example.invalid";
+    private final ch.qos.logback.classic.Logger logger =
+        (ch.qos.logback.classic.Logger) org.slf4j.LoggerFactory.getLogger(NoiseAlertNotificationService.class);
+    private final ch.qos.logback.core.read.ListAppender<ch.qos.logback.classic.spi.ILoggingEvent> logs =
+        new ch.qos.logback.core.read.ListAppender<>();
+    private ch.qos.logback.classic.Level previous;
+
+    @BeforeEach void capturePrivateDiagnostics() {
+        previous = logger.getLevel();
+        logger.setLevel(ch.qos.logback.classic.Level.DEBUG);
+        logs.start();
+        logger.addAppender(logs);
+    }
+
+    @org.junit.jupiter.api.AfterEach void verifyPrivateDiagnostics() {
+        try {
+            for (var event : logs.list) {
+                assertFalse(event.getFormattedMessage().contains("example.invalid"));
+                assertFalse(event.getFormattedMessage().contains("synthetic-secret"));
+                assertNull(event.getThrowableProxy());
+                if (event.getArgumentArray() != null) {
+                    assertFalse(java.util.Arrays.toString(event.getArgumentArray()).contains(PRIVATE));
+                }
+            }
+        } finally {
+            logger.detachAppender(logs);
+            logger.setLevel(previous);
+            logs.stop();
+        }
+    }
+
+    private RuntimeException privateFailure() {
+        var failure = new IllegalStateException(PRIVATE, new IllegalArgumentException(PRIVATE));
+        failure.addSuppressed(new IllegalStateException(PRIVATE));
+        return failure;
+    }
+
+    private void prepareWarning(String phone) {
+        when(propertyRepository.findById(100L)).thenReturn(Optional.of(property));
+        when(reservationRepository.findActiveByPropertyIdAndDate(eq(100L), any(LocalDate.class), eq(10L)))
+            .thenReturn(Optional.of(reservationWithGuest("guest@example.invalid", phone)));
+    }
+
+    @org.junit.jupiter.params.ParameterizedTest
+    @org.junit.jupiter.params.provider.NullAndEmptySource
+    @org.junit.jupiter.params.provider.ValueSource(strings = {" "})
+    void whenProviderReturnsNoReceipt_thenNoEmailOrClaimRelease(String receipt) {
+        prepareWarning("+33612345678");
+        when(whatsAppProvider.sendTemplateMessage(any(), anyString(), anyString(), anyString(), anyList()))
+            .thenReturn(receipt);
+        var result = service.sendGuestWarning(alert);
+        assertFalse(result.sent());
+        assertEquals("resultat incertain : rapprochement necessaire", result.skipReason());
+        verifyNoInteractions(emailService);
+        verify(redisTemplate, never()).delete(anyString());
+        verifyNoInteractions(noiseAlertRepository);
+    }
+
+    @org.junit.jupiter.params.ParameterizedTest
+    @org.junit.jupiter.params.provider.ValueSource(booleans = {false, true})
+    void whenWhatsAppAttemptFails_thenNeitherTextNorEmail(boolean unsupported) {
+        prepareWarning("+33612345678");
+        when(whatsAppProvider.sendTemplateMessage(any(), anyString(), anyString(), anyString(), anyList()))
+            .thenThrow(unsupported ? new UnsupportedOperationException(PRIVATE) : privateFailure());
+        assertFalse(service.sendGuestWarning(alert).sent());
+        verify(whatsAppProvider, never()).sendTextMessage(any(), anyString(), anyString());
+        verifyNoInteractions(emailService, noiseAlertRepository);
+        verify(redisTemplate, never()).delete(anyString());
+    }
+
+    @Test void whenEmailAttemptFails_thenClaimRetainedAndDiagnosticPrivate() {
+        prepareWarning(null);
+        doThrow(privateFailure()).when(emailService)
+            .sendContactMessage(anyString(), any(), any(), any(), anyString(), anyString(), anyList());
+        assertFalse(service.sendGuestWarning(alert).sent());
+        verify(redisTemplate, never()).delete(anyString());
+        verifyNoInteractions(noiseAlertRepository);
+    }
+
+    @Test void whenLocalProofSaveFails_thenNoFallbackOrRelease() {
+        prepareWarning("+33612345678");
+        when(noiseAlertRepository.save(alert)).thenThrow(privateFailure());
+        assertFalse(service.sendGuestWarning(alert).sent());
+        verifyNoInteractions(emailService);
+        verify(redisTemplate, never()).delete(anyString());
+        verify(whatsAppProvider, times(1)).sendTemplateMessage(any(), anyString(), anyString(), anyString(), anyList());
+    }
+
+    @Test void whenRedisReplyIsNull_thenNoAttempt() {
+        prepareWarning("+33612345678");
+        when(valueOperations.setIfAbsent(anyString(), anyString(), any(Duration.class))).thenReturn(null);
+        assertFalse(service.sendGuestWarning(alert).sent());
+        verify(whatsAppProvider, never()).sendTemplateMessage(any(), anyString(), anyString(), anyString(), anyList());
+        verifyNoInteractions(emailService, noiseAlertRepository);
+    }
+
+    @Test void whenPreparationFails_thenNoClaimOrFallback() {
+        prepareWarning("+33612345678");
+        when(whatsAppProviderResolver.resolve(any())).thenThrow(privateFailure());
+        assertFalse(service.sendGuestWarning(alert).sent());
+        verifyNoInteractions(redisTemplate, emailService, noiseAlertRepository);
+    }
+
+    @Test void whenOwnerEmailFails_thenDiagnosticPrivate() {
+        when(propertyRepository.findById(100L)).thenReturn(Optional.of(property));
+        doThrow(privateFailure()).when(emailService)
+            .sendContactMessage(anyString(), any(), any(), any(), anyString(), anyString(), anyList());
+        service.dispatch(alert, config);
+        assertFalse(alert.isNotifiedEmail());
+    }
+
+    @Test void whenInAppFails_thenDiagnosticPrivateAndEmailStillIndependent() {
+        when(propertyRepository.findById(100L)).thenReturn(Optional.of(property));
+        doThrow(privateFailure()).when(notificationService)
+            .notify(anyString(), any(), anyString(), anyString(), anyString(), any());
+        service.dispatch(alert, config);
+        assertFalse(alert.isNotifiedInApp());
+        assertTrue(alert.isNotifiedEmail());
     }
 
     private Reservation reservationWithGuest(String email, String phone) {
