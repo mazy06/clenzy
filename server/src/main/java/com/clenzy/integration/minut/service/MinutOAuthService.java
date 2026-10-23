@@ -1,5 +1,10 @@
 package com.clenzy.integration.minut.service;
 
+import com.clenzy.integration.oauth.BaitlyOAuthDiagnostics;
+import com.clenzy.integration.oauth.BaitlyOAuthConnectionGuard;
+import static com.clenzy.integration.oauth.BaitlyOAuthDiagnostics.Operation.*;
+
+import com.clenzy.integration.oauth.BaitlyOAuthTokenResponse;
 import com.clenzy.integration.minut.config.MinutConfig;
 import com.clenzy.integration.minut.model.MinutConnection;
 import com.clenzy.integration.minut.model.MinutConnection.MinutConnectionStatus;
@@ -38,19 +43,21 @@ public class MinutOAuthService {
     private final TenantContext tenantContext;
     private final StringRedisTemplate redisTemplate;
     private final RestTemplate restTemplate;
+    private final BaitlyOAuthConnectionGuard connectionGuard;
 
     public MinutOAuthService(MinutConfig config,
                              MinutConnectionRepository connectionRepository,
                              TokenEncryptionService encryptionService,
                              TenantContext tenantContext,
                              StringRedisTemplate redisTemplate,
-                             RestTemplate restTemplate) {
+                             RestTemplate restTemplate, BaitlyOAuthConnectionGuard connectionGuard) {
         this.config = config;
         this.connectionRepository = connectionRepository;
         this.encryptionService = encryptionService;
         this.tenantContext = tenantContext;
         this.redisTemplate = redisTemplate;
         this.restTemplate = restTemplate;
+        this.connectionGuard = connectionGuard;
     }
 
     /**
@@ -76,15 +83,15 @@ public class MinutOAuthService {
 
     /**
      * Valide le state OAuth et retourne le userId associe.
-     * Supprime le state de Redis apres validation (usage unique).
+     * Consomme atomiquement le state Redis (usage unique).
      */
     public String validateAndConsumeState(String state) {
+        if (state == null || state.isBlank()) throw new SecurityException("Invalid or expired OAuth state parameter");
         String key = OAUTH_STATE_PREFIX + state;
-        String userId = redisTemplate.opsForValue().get(key);
+        String userId = redisTemplate.opsForValue().getAndDelete(key);
         if (userId == null) {
             throw new SecurityException("Invalid or expired OAuth state parameter");
         }
-        redisTemplate.delete(key);
         return userId;
     }
 
@@ -93,6 +100,11 @@ public class MinutOAuthService {
      */
     @SuppressWarnings("unchecked")
     public MinutConnection exchangeCodeForToken(String code, String userId) {
+        return connectionGuard.executeUserAuthorization("minut", userId,
+                () -> exchangeUnderLock(code, userId));
+    }
+
+    private MinutConnection exchangeUnderLock(String code, String userId) {
         log.info("Echange du code OAuth Minut pour l'utilisateur: {}", userId);
 
         HttpHeaders headers = new HttpHeaders();
@@ -114,21 +126,26 @@ public class MinutOAuthService {
             if (response.getStatusCode().is2xxSuccessful() && response.getBody() != null) {
                 Map<String, Object> tokenData = response.getBody();
 
-                String accessToken = (String) tokenData.get("access_token");
-                String refreshToken = (String) tokenData.get("refresh_token");
-                Integer expiresIn = tokenData.get("expires_in") != null
-                        ? ((Number) tokenData.get("expires_in")).intValue() : 3600;
+                var tokens = BaitlyOAuthTokenResponse.parse(tokenData, 3600);
+                String accessToken = tokens.accessToken();
+                String refreshToken = tokens.refreshToken();
+                Integer expiresIn = tokens.expiresIn();
                 String minutUserId = tokenData.get("user_id") != null
                         ? String.valueOf(tokenData.get("user_id")) : null;
 
                 MinutConnection connection = connectionRepository.findByUserId(userId)
                         .orElse(new MinutConnection());
 
+                // Préparer tous les secrets et dates avant de modifier la connexion Baitly.
+                String encryptedAccess = encryptionService.encrypt(accessToken);
+                String encryptedRefresh = refreshToken != null ? encryptionService.encrypt(refreshToken) : null;
+                LocalDateTime tokenExpiresAt = LocalDateTime.now().plusSeconds(expiresIn);
+
                 connection.setUserId(userId);
                 connection.setMinutUserId(minutUserId);
-                connection.setAccessTokenEncrypted(encryptionService.encrypt(accessToken));
-                connection.setRefreshTokenEncrypted(encryptionService.encrypt(refreshToken));
-                connection.setTokenExpiresAt(LocalDateTime.now().plusSeconds(expiresIn));
+                connection.setAccessTokenEncrypted(encryptedAccess);
+                connection.setRefreshTokenEncrypted(encryptedRefresh);
+                connection.setTokenExpiresAt(tokenExpiresAt);
                 connection.setScopes(config.getScopes());
                 connection.setStatus(MinutConnectionStatus.ACTIVE);
                 connection.setErrorMessage(null);
@@ -142,8 +159,8 @@ public class MinutOAuthService {
             throw new RuntimeException("Reponse non-2xx de Minut: " + response.getStatusCode());
 
         } catch (Exception e) {
-            log.error("Erreur echange code OAuth Minut: {}", e.getMessage());
-            throw new RuntimeException("Echec de l'echange de code Minut", e);
+            log.error("Échec OAuth minut", BaitlyOAuthDiagnostics.failure(EXCHANGE, e));
+            throw BaitlyOAuthDiagnostics.failure(EXCHANGE, e);
         }
     }
 
@@ -152,25 +169,37 @@ public class MinutOAuthService {
      */
     @SuppressWarnings("unchecked")
     public MinutConnection refreshToken(MinutConnection connection) {
+        String userId = connection.getUserId();
+        return connectionGuard.executeUserRefresh("minut", userId,
+                () -> refreshUnderLock(userId, false), value -> value != null && value.isActive());
+    }
+
+    private MinutConnection refreshUnderLock(String userId, boolean onlyIfExpiring) {
+        MinutConnection connection = connectionRepository.findByUserId(userId)
+                .orElseThrow(() -> new IllegalStateException("Connexion OAuth indisponible"));
         log.info("Rafraichissement du token Minut pour l'utilisateur: {}", connection.getUserId());
 
-        String refreshToken = encryptionService.decrypt(connection.getRefreshTokenEncrypted());
-        if (refreshToken == null || refreshToken.isEmpty()) {
-            connection.setStatus(MinutConnectionStatus.EXPIRED);
-            connection.setErrorMessage("Refresh token manquant");
-            return connectionRepository.save(connection);
-        }
-
-        HttpHeaders headers = new HttpHeaders();
-        headers.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
-
-        MultiValueMap<String, String> params = new LinkedMultiValueMap<>();
-        params.add("client_id", config.getClientId());
-        params.add("client_secret", config.getClientSecret());
-        params.add("refresh_token", refreshToken);
-        params.add("grant_type", "refresh_token");
+        if (!connection.isActive()) throw new IllegalStateException("Connexion OAuth inactive ; reconnexion requise");
+        if (onlyIfExpiring && (connection.getTokenExpiresAt() == null
+                || !connection.getTokenExpiresAt().isBefore(LocalDateTime.now().plusMinutes(5)))) return connection;
 
         try {
+            String refreshToken = encryptionService.decrypt(connection.getRefreshTokenEncrypted());
+            if (refreshToken == null || refreshToken.isEmpty()) {
+                connection.setStatus(MinutConnectionStatus.EXPIRED);
+                connection.setErrorMessage("Refresh token manquant");
+                return connectionRepository.save(connection);
+            }
+
+            HttpHeaders headers = new HttpHeaders();
+            headers.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
+
+            MultiValueMap<String, String> params = new LinkedMultiValueMap<>();
+            params.add("client_id", config.getClientId());
+            params.add("client_secret", config.getClientSecret());
+            params.add("refresh_token", refreshToken);
+            params.add("grant_type", "refresh_token");
+
             ResponseEntity<Map> response = restTemplate.postForEntity(
                     config.getTokenUrl(),
                     new HttpEntity<>(params, headers),
@@ -179,16 +208,21 @@ public class MinutOAuthService {
             if (response.getStatusCode().is2xxSuccessful() && response.getBody() != null) {
                 Map<String, Object> tokenData = response.getBody();
 
-                String newAccessToken = (String) tokenData.get("access_token");
-                String newRefreshToken = (String) tokenData.get("refresh_token");
-                Integer expiresIn = tokenData.get("expires_in") != null
-                        ? ((Number) tokenData.get("expires_in")).intValue() : 3600;
+                var tokens = BaitlyOAuthTokenResponse.parse(tokenData, 3600);
+                String newAccessToken = tokens.accessToken();
+                String newRefreshToken = tokens.refreshToken();
+                Integer expiresIn = tokens.expiresIn();
 
-                connection.setAccessTokenEncrypted(encryptionService.encrypt(newAccessToken));
+                // Préparer tous les secrets et dates avant de modifier la connexion Baitly.
+                String encryptedAccess = encryptionService.encrypt(newAccessToken);
+                String encryptedRefresh = newRefreshToken != null ? encryptionService.encrypt(newRefreshToken) : null;
+                LocalDateTime tokenExpiresAt = LocalDateTime.now().plusSeconds(expiresIn);
+
+                connection.setAccessTokenEncrypted(encryptedAccess);
                 if (newRefreshToken != null) {
-                    connection.setRefreshTokenEncrypted(encryptionService.encrypt(newRefreshToken));
+                    connection.setRefreshTokenEncrypted(encryptedRefresh);
                 }
-                connection.setTokenExpiresAt(LocalDateTime.now().plusSeconds(expiresIn));
+                connection.setTokenExpiresAt(tokenExpiresAt);
                 connection.setStatus(MinutConnectionStatus.ACTIVE);
                 connection.setErrorMessage(null);
 
@@ -196,13 +230,13 @@ public class MinutOAuthService {
             }
 
             connection.setStatus(MinutConnectionStatus.ERROR);
-            connection.setErrorMessage("Echec refresh: " + response.getStatusCode());
+            connection.setErrorMessage(BaitlyOAuthDiagnostics.message(REFRESH));
             return connectionRepository.save(connection);
 
         } catch (Exception e) {
-            log.error("Erreur refresh token Minut: {}", e.getMessage());
+            log.error("Échec OAuth minut", BaitlyOAuthDiagnostics.failure(REFRESH, e));
             connection.setStatus(MinutConnectionStatus.ERROR);
-            connection.setErrorMessage("Erreur refresh: " + e.getMessage());
+            connection.setErrorMessage(BaitlyOAuthDiagnostics.message(REFRESH));
             return connectionRepository.save(connection);
         }
     }
@@ -222,12 +256,14 @@ public class MinutOAuthService {
         // Refresh si expire dans moins de 5 minutes
         if (connection.getTokenExpiresAt() != null
                 && connection.getTokenExpiresAt().minusMinutes(5).isBefore(LocalDateTime.now())) {
-            connection = refreshToken(connection);
+            connection = connectionGuard.executeUserRefresh("minut", userId,
+                    () -> refreshUnderLock(userId, true), value -> value != null && value.isActive());
             if (!connection.isActive()) {
                 throw new IllegalStateException("Echec du rafraichissement du token Minut");
             }
         }
 
+        connectionGuard.requireUserSettled("minut", userId);
         return encryptionService.decrypt(connection.getAccessTokenEncrypted());
     }
 
@@ -235,7 +271,15 @@ public class MinutOAuthService {
      * Revoque le token et deconnecte l'utilisateur.
      */
     public void revokeToken(String userId) {
+        connectionGuard.executeUserRevocation("minut", userId, () -> {
+            revokeUnderLock(userId);
+            return null;
+        });
+    }
+
+    private void revokeUnderLock(String userId) {
         connectionRepository.findByUserId(userId).ifPresent(connection -> {
+            boolean remoteConfirmed = false;
             try {
                 String accessToken = encryptionService.decrypt(connection.getAccessTokenEncrypted());
                 if (accessToken != null) {
@@ -246,16 +290,21 @@ public class MinutOAuthService {
                     MultiValueMap<String, String> params = new LinkedMultiValueMap<>();
                     params.add("token", accessToken);
 
-                    restTemplate.postForEntity(
+                    var response = restTemplate.postForEntity(
                             config.getApiBaseUrl() + "/oauth/revoke",
                             new HttpEntity<>(params, headers),
                             Void.class);
+                    remoteConfirmed = response != null && response.getStatusCode().is2xxSuccessful();
                 }
             } catch (Exception e) {
-                log.warn("Erreur lors de la revocation du token Minut (continue quand meme): {}", e.getMessage());
+                log.warn("Révocation OAuth minut non confirmée", BaitlyOAuthDiagnostics.failure(REVOKE, e));
             }
 
             connection.setStatus(MinutConnectionStatus.REVOKED);
+            connection.setAccessTokenEncrypted(""); // Colonne historique NOT NULL : aucun secret conservé.
+            connection.setRefreshTokenEncrypted(null);
+            connection.setTokenExpiresAt(null);
+            connection.setErrorMessage(remoteConfirmed ? null : BaitlyOAuthDiagnostics.message(REVOKE));
             connectionRepository.save(connection);
         });
     }

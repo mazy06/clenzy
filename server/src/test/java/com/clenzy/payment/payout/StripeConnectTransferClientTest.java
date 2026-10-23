@@ -77,6 +77,30 @@ class StripeConnectTransferClientTest {
         verify(journal, never()).transferred(any(), any(), any(), any());
     }
 
+    @Test void lostTransferResponseAndJournalFailureNeverExposePrivateDiagnostics() throws Exception {
+        when(stripeGateway.createTransfer(any(),anyString())).thenThrow(new ApiConnectionException("token=private-psp"));
+        doThrow(new IllegalStateException("password=private-database")).when(journal).uncertain(instruction);
+        assertThatThrownBy(() -> client.createTransfer(instruction))
+                .isInstanceOfSatisfying(PayoutReconciliationRequiredException.class, failure -> {
+                    var rendered=new java.io.StringWriter(); failure.printStackTrace(new java.io.PrintWriter(rendered));
+                    assertThat(rendered.toString()).doesNotContain("private-", "token=", "password=");
+                    assertThat(failure.getCause().getSuppressed()).hasSize(1);
+                    assertThat(failure.getTransferReference()).isNull();
+                });
+        verify(journal).uncertain(instruction);
+        verify(stripeGateway,times(1)).createTransfer(any(),anyString());
+    }
+
+    @Test void failedBalanceReadHasSafeDiagnosticsAndNeverClaimsOrEmits() throws Exception {
+        when(stripeGateway.retrievePlatformBalance()).thenThrow(new ApiConnectionException("email=synthetic@example.invalid token=private-canary"));
+        assertThatThrownBy(() -> client.createTransfer(instruction)).isInstanceOfSatisfying(PayoutFundsUnavailableException.class, failure -> {
+            var rendered=new java.io.StringWriter(); failure.printStackTrace(new java.io.PrintWriter(rendered));
+            assertThat(rendered.toString()).doesNotContain("private-", "example.invalid");
+        });
+        verify(journal,never()).prepare(any()); verify(journal,never()).uncertain(any());
+        verify(stripeGateway,never()).createTransfer(any(),any());
+    }
+
     @Test
     void databaseFailureAfterMoneyMovedKeepsKnownReferenceInAlert() throws Exception {
         Transfer transfer = new Transfer();
@@ -118,7 +142,7 @@ class StripeConnectTransferClientTest {
     @Test void balanceOutageIsSafeToRetryAndDoesNotClaimAnEmission() throws Exception {
         when(stripeGateway.retrievePlatformBalance()).thenThrow(new ApiConnectionException("Offline"));
         assertThatThrownBy(() -> client.createTransfer(instruction)).isInstanceOf(PayoutFundsUnavailableException.class)
-                .hasCauseInstanceOf(ApiConnectionException.class);
+                .hasCauseInstanceOf(IllegalStateException.class);
         verify(journal, never()).prepare(any());
         verify(journal, never()).uncertain(any());
     }

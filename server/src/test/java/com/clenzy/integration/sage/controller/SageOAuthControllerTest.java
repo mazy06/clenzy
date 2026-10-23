@@ -218,7 +218,7 @@ class SageOAuthControllerTest {
             assertThat(body).isNotNull();
             assertThat(body).containsEntry("connected", false);
             assertThat(body).containsEntry("status", "ERROR");
-            assertThat(body).containsEntry("errorMessage", "Unexpected error");
+            assertThat(body).containsEntry("errorMessage", com.clenzy.integration.oauth.BaitlyOAuthHttpDiagnostics.CONNECTION_ERROR);
         }
     }
 }

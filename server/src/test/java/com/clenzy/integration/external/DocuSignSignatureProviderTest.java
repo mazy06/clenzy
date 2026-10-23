@@ -31,32 +31,10 @@ class DocuSignSignatureProviderTest {
     }
 
     @Test
-    void isAvailable_notConfigured_returnsFalse() {
-        when(config.isConfigured()).thenReturn(false);
-        assertFalse(provider.isAvailable());
-        verifyNoInteractions(tenantContext, oauthService);
-    }
-
-    @Test
-    void isAvailable_configuredButNoOrg_returnsFalse() {
-        when(config.isConfigured()).thenReturn(true);
-        when(tenantContext.getOrganizationId()).thenReturn(null);
-        assertFalse(provider.isAvailable());
-    }
-
-    @Test
-    void isAvailable_configuredAndConnected_returnsTrue() {
-        when(config.isConfigured()).thenReturn(true);
-        when(tenantContext.getOrganizationId()).thenReturn(7L);
-        when(oauthService.isConnected(7L)).thenReturn(true);
-        assertTrue(provider.isAvailable());
-    }
-
-    @Test
-    void isAvailable_configuredButNotConnected_returnsFalse() {
-        when(config.isConfigured()).thenReturn(true);
-        when(tenantContext.getOrganizationId()).thenReturn(7L);
-        when(oauthService.isConnected(7L)).thenReturn(false);
+    void oauthConnectionDoesNotMakeUnimplementedSignaturesAvailable() {
+        lenient().when(config.isConfigured()).thenReturn(true);
+        lenient().when(tenantContext.getOrganizationId()).thenReturn(7L);
+        lenient().when(oauthService.isConnected(7L)).thenReturn(true);
         assertFalse(provider.isAvailable());
     }
 
