@@ -47,6 +47,7 @@ class SupervisionSuggestionServiceApplyTest {
     @Mock private com.clenzy.service.UnpaidServiceRequestCardService unpaidServiceRequestCardService;
     @Mock private PlatformTransactionManager transactionManager;
     @Mock private SupervisionActivityService activityService;
+    @Mock private com.clenzy.service.OrganizationService organizationAccess;
 
     private final Clock clock = Clock.fixed(Instant.parse("2026-07-02T10:00:00Z"), ZoneId.of("UTC"));
 
@@ -56,7 +57,7 @@ class SupervisionSuggestionServiceApplyTest {
     void setUp() {
         service = new SupervisionSuggestionService(
                 repository, actionExecutor, notificationService, realtimePublisher,
-                unpaidServiceRequestCardService, activityService, clock, transactionManager);
+                unpaidServiceRequestCardService, activityService, clock, transactionManager, organizationAccess);
     }
 
     private static SupervisionSuggestion suggestion(String actionType) {
@@ -65,6 +66,28 @@ class SupervisionSuggestionServiceApplyTest {
         s.setId(SUGGESTION_ID);
         s.setActionType(actionType);
         return s;
+    }
+
+    @org.junit.jupiter.params.ParameterizedTest
+    @org.junit.jupiter.params.provider.ValueSource(strings = {"DEPOSIT_REFUND", "DEPOSIT_RELEASE", "DEPOSIT_WITHHOLD", "GOODWILL_REFUND"})
+    void financialHumanSuggestionRequiresManagementBeforeClaimOrExternalEffect(String actionType) {
+        when(repository.findByIdAndOrganizationId(SUGGESTION_ID, ORG_ID))
+                .thenReturn(Optional.of(suggestion(actionType)));
+        org.mockito.Mockito.doThrow(new org.springframework.security.access.AccessDeniedException("Gestionnaire requis"))
+                .when(organizationAccess).validateOrgManagement("test", ORG_ID);
+        assertThatThrownBy(() -> service.apply(ORG_ID, SUGGESTION_ID, APPLIED_BY))
+                .isInstanceOf(org.springframework.security.access.AccessDeniedException.class);
+        verify(repository, never()).markApplied(any(), any(), any(), any());
+        verify(actionExecutor, never()).execute(any(), any());
+    }
+
+    @Test void financialSuggestionWithoutIdentifiedHumanCannotBeApplied() {
+        when(repository.findByIdAndOrganizationId(SUGGESTION_ID, ORG_ID))
+                .thenReturn(Optional.of(suggestion(SupervisionActionType.DEPOSIT_RELEASE)));
+        assertThatThrownBy(() -> service.apply(ORG_ID, SUGGESTION_ID, "unknown"))
+                .isInstanceOf(org.springframework.security.access.AccessDeniedException.class);
+        verify(repository, never()).markApplied(any(), any(), any(), any());
+        verify(actionExecutor, never()).execute(any(), any());
     }
 
     @Test

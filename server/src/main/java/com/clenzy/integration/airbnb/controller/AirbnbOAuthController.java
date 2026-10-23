@@ -1,5 +1,6 @@
 package com.clenzy.integration.airbnb.controller;
 
+import com.clenzy.integration.oauth.BaitlyOAuthHttpDiagnostics;
 import com.clenzy.integration.airbnb.dto.AirbnbConnectionStatusDto;
 import com.clenzy.integration.airbnb.model.AirbnbConnection;
 import com.clenzy.integration.airbnb.service.AirbnbListingMappingQueryService;
@@ -78,7 +79,7 @@ public class AirbnbOAuthController {
         } catch (IllegalStateException e) {
             Map<String, String> error = new HashMap<>();
             error.put("error", "configuration_missing");
-            error.put("message", e.getMessage());
+            error.put("message", BaitlyOAuthHttpDiagnostics.CONFIGURATION_UNAVAILABLE);
             return ResponseEntity.badRequest().body(error);
         }
     }
@@ -107,7 +108,7 @@ public class AirbnbOAuthController {
             return ResponseEntity.ok(response);
 
         } catch (Exception e) {
-            log.error("Erreur callback OAuth Airbnb: {}", e.getMessage());
+            log.error("Erreur callback OAuth Airbnb");
             Map<String, Object> error = new HashMap<>();
             error.put("status", "error");
             error.put("message", "Echec de la connexion Airbnb");
@@ -130,7 +131,7 @@ public class AirbnbOAuthController {
             return ResponseEntity.ok(response);
 
         } catch (Exception e) {
-            log.error("Erreur deconnexion Airbnb: {}", e.getMessage());
+            log.error("Erreur deconnexion Airbnb");
             Map<String, String> error = new HashMap<>();
             error.put("status", "error");
             error.put("message", "Erreur lors de la deconnexion");
@@ -155,7 +156,7 @@ public class AirbnbOAuthController {
             statusDto.setConnectedAt(connection.getConnectedAt());
             statusDto.setLastSyncAt(connection.getLastSyncAt());
             statusDto.setScopes(connection.getScopes());
-            statusDto.setErrorMessage(connection.getErrorMessage());
+            statusDto.setErrorMessage(BaitlyOAuthHttpDiagnostics.connectionError(connection.getErrorMessage()));
 
             // Compter les listings lies
             statusDto.setLinkedListingsCount(listingMappingQueryService.countSyncEnabledMappings());

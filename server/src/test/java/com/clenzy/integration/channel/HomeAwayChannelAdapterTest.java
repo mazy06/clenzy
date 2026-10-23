@@ -218,7 +218,8 @@ class HomeAwayChannelAdapterTest {
         @Test
         @DisplayName("does not call any sync method for unknown event types")
         void handleInboundEvent_unknownType() {
-            adapter.handleInboundEvent("unknown.event", Map.of(), 1L);
+            org.assertj.core.api.Assertions.assertThatThrownBy(() -> adapter.handleInboundEvent("unknown.event", Map.of(), 1L))
+                    .isInstanceOf(UnsupportedOperationException.class);
 
             verifyNoInteractions(homeAwaySyncService);
         }
