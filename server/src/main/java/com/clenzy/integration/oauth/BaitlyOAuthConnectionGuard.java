@@ -61,6 +61,12 @@ public class BaitlyOAuthConnectionGuard {
         return executeKey(userScope(provider, userId), operation, true);
     }
 
+    /** Certains connecteurs retournent ERROR/EXPIRED sans exception : leur intention reste bloquée. */
+    public <T> T executeUserRefresh(String provider, String userId, Supplier<T> operation,
+                                    java.util.function.Predicate<T> confirmed) {
+        return executeKey(userScope(provider, userId), operation, true, true, false, confirmed);
+    }
+
     private String userScope(String provider, String userId) {
         if (provider == null || !provider.matches("[a-z0-9_-]{1,48}")
                 || userId == null || userId.isBlank() || userId.length() > 512) {
@@ -93,6 +99,11 @@ public class BaitlyOAuthConnectionGuard {
     }
 
     private <T> T executeKey(String scope, Supplier<T> operation, boolean preserveError, boolean refresh, boolean authorization) {
+        return executeKey(scope, operation, preserveError, refresh, authorization, value -> true);
+    }
+
+    private <T> T executeKey(String scope, Supplier<T> operation, boolean preserveError, boolean refresh, boolean authorization,
+                             java.util.function.Predicate<T> confirmed) {
         Outcome<T> outcome = transaction.execute(status -> {
             // La clé ne contient aucun jeton, identifiant utilisateur en clair ou URL fournisseur.
             Boolean locked = db.queryForObject(
@@ -113,6 +124,7 @@ public class BaitlyOAuthConnectionGuard {
                 }
                 // Même transaction que les nouveaux jetons : rollback => intention encore présente.
                 if (refresh) {
+                    if (!confirmed.test(value)) return new Outcome<>(value, null);
                     int removed = db.update("DELETE FROM baitly_oauth_refresh_attempts WHERE scope_hash=? AND attempt=?", hash, attempt);
                     if (removed != 1) throw recoveryRequired();
                 } else if (authorization) {

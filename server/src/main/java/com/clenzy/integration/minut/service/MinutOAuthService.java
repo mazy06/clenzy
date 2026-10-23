@@ -171,7 +171,7 @@ public class MinutOAuthService {
     public MinutConnection refreshToken(MinutConnection connection) {
         String userId = connection.getUserId();
         return connectionGuard.executeUserRefresh("minut", userId,
-                () -> refreshUnderLock(userId, false));
+                () -> refreshUnderLock(userId, false), value -> value != null && value.isActive());
     }
 
     private MinutConnection refreshUnderLock(String userId, boolean onlyIfExpiring) {
@@ -257,7 +257,7 @@ public class MinutOAuthService {
         if (connection.getTokenExpiresAt() != null
                 && connection.getTokenExpiresAt().minusMinutes(5).isBefore(LocalDateTime.now())) {
             connection = connectionGuard.executeUserRefresh("minut", userId,
-                    () -> refreshUnderLock(userId, true));
+                    () -> refreshUnderLock(userId, true), value -> value != null && value.isActive());
             if (!connection.isActive()) {
                 throw new IllegalStateException("Echec du rafraichissement du token Minut");
             }
