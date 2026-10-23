@@ -52,6 +52,19 @@ class BaitlyOAuthConnectionGuardTest {
         verify(manager).rollback(status);
         verify(manager, never()).commit(any());
     }
+    @Test void newAuthorizationFailureRollsBackAndNeverClearsTheFence() {
+        lock(true);
+        assertThatThrownBy(() -> guard.executeAuthorization("test",7L,() -> {throw new IllegalStateException("synthetic");})).hasMessage("synthetic");
+        verify(manager).rollback(status);
+        verify(manager,never()).commit(any());
+        verify(db,never()).update(anyString(),any(Object[].class));
+    }
+    @Test void legacyAuthorizationErrorContractDoesNotClearTheFence() {
+        lock(true);
+        assertThatThrownBy(() -> guard.executeUserLegacyAuthorization("airbnb","synthetic-user",() -> {throw new IllegalStateException("synthetic");})).hasMessage("synthetic");
+        verify(manager).commit(status);
+        verify(db,never()).update(anyString(),any(Object[].class));
+    }
 
     @Test void operationalRefreshErrorCommitsBeforePropagating() {
         lock(true);

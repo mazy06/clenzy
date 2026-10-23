@@ -108,7 +108,7 @@ public class HomeAwayOAuthService {
      */
     @CircuitBreaker(name = "homeaway-oauth")
     public HomeAwayConnection exchangeCodeForToken(String code, Long orgId) {
-        return connectionGuard.executeAuthorization("homeaway", orgId,
+        return connectionGuard.executeLegacyAuthorization("homeaway", orgId,
                 () -> exchangeUnderLock(code, orgId));
     }
 
