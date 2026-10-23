@@ -54,6 +54,7 @@ class SchedulerLockCoverageTest {
             // obtenu uniquement par SELECT. Un verrou global laisserait les autres périmées.
             "BaitlyOperationalMetrics#refresh",
             "BaitlyRecoveryJournalMetrics#refresh",
+            "BaitlyNoiseWarningMetrics#refresh",
 
             // B — at-least-once par design (voir OutboxRelay, javadoc de classe)
             "OutboxRelay#relayPendingEvents",

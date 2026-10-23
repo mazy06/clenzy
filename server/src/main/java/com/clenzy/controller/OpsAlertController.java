@@ -57,7 +57,7 @@ public class OpsAlertController {
             "BaitlyOperationalMetricsUnavailable", "BaitlyOperationalMetricsStale", "BaitlyOutboxExhausted",
             "BaitlyOutboxStalled", "BaitlyWebhookDeliveryStalled", "BaitlyWebhookDisabled", "BaitlyChannelSyncFailures",
             "BaitlyRecoveryMetricsUnavailable", "BaitlyRecoveryMetricsStale",
-            "BaitlyAccountingExportStalled", "BaitlyAccountingExportUncertain", "BaitlyMinutRecoveryStalled", "BaitlyMinutRecoveryUncertain");
+            "BaitlyAccountingExportStalled", "BaitlyAccountingExportUncertain", "BaitlyMinutRecoveryStalled", "BaitlyMinutRecoveryUncertain", "BaitlyNoiseWarningMetricsUnavailable", "BaitlyNoiseWarningUncertain", "BaitlyNoiseWarningRepairStalled");
 
     private final NotificationService notificationService;
     private final String opsToken;

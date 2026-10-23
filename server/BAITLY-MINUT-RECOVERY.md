@@ -134,7 +134,8 @@ identifiant WhatsApp vide est un resultat incertain. Un echec de sauvegarde
 apres delegation conserve egalement la fenetre. Les diagnostics ne contiennent
 ni email, libelle libre, exception fournisseur, cause ou exception supprimee.
 
-Cette protection reste une fenetre Redis de 24 heures : expiration, perte de Redis,
+Limite historique de la candidate #503, remplacee par le journal durable ci-dessous :
+la protection reposait sur une fenetre Redis de 24 heures. Expiration, perte de Redis,
 crash et rollback de la transaction initiale exigent encore un journal durable des
 avertissements. Le journal Minut ne prouve pas chaque effet du fan-out. Le retour
 normal de l'email signifie delegation au service existant, pas reception en boite.
@@ -182,3 +183,58 @@ PostgreSQL dediee de CI : metadata preservee, portee modifiee, desactivation,
 simulation, suppression, episode et date concurrente, etat initial NULL, deux
 resultats concurrents et commit independant du rollback appelant. Il ne valide
 pas le schema Liquibase complet : aucune migration n'est ajoutee dans ce lot.
+
+## Avertissements voyageurs durables : suite de la candidate #503
+
+La migration 0600 ajoute un journal PostgreSQL partage. Redis n'arbitre plus
+les avertissements. Chaque tentative a un proprietaire UUID et une reference
+d'alerte unique. La reservation est verrouillee puis l'alerte ; l'organisation,
+le logement, le voyageur et sa date de mise a jour sont revalides, ainsi que
+le sejour actif, la date et le sens de l'alerte. Les messages, coordonnees,
+noms et corps fournisseurs ne sont jamais stockes dans ce journal.
+
+Les alertes precedant la borne MAX(id) prise par la migration, ou deja marquees
+notifiees, passent en REVIEW et ne sont pas envoyees. Les versions anciennes
+doivent cesser de traiter le flux avant cette bascule ; un rollback vers un
+binaire qui ignore le journal ne garantit pas la deduplication.
+
+STARTED est commis avant le provider. Un crash ou timeout conserve STARTED/UNKNOWN
+sans expiration ; aucun nouveau canal ni nouvelle alerte du meme sejour ne
+peut contourner ce blocage. Un recu WhatsApp non vide est requis et seule son
+empreinte SHA-256 est stockee. Pour l'email, ACCEPTED signifie delegation au
+service existant, pas reception en boite. Une meme alerte n'est jamais reenvoyee,
+meme apres 24 h. Une nouvelle alerte du sejour peut etre admise apres la fenetre
+d'une delegation acceptee ; un resultat inconnu ne se debloque jamais ainsi.
+
+L'acceptation est commitee avant la reparation locale des flags. Une reparation
+perdue ne degrade pas la preuve. Le worker ne traite que les preuves ACCEPTED
+dont le marqueur manque, par lots de 50 ; il n'appelle jamais un provider,
+n'efface pas d'intention et ne rearme ni STARTED ni UNKNOWN. Les updates sont
+partiels et preservent acquittement et notes. Une erreur est repoussee dans
+la file sans modifier accepted_at, pour ne pas affamer les preuves suivantes.
+
+Le chemin configure envoie au voyageur apres commit de l'alerte uniquement.
+Tout envoi voyageur suspend la transaction de son appelant : aucune transaction
+ni verrou SQL n'entoure l'appel provider. Le journal ne garantit pas une livraison
+automatique si le processus s'arrete entre le commit de l'alerte et le premier
+callback ; ce cas n'a encore aucun effet externe et reste a traiter par une
+outbox de delegation distincte. Les notifications proprietaire/in-app et le
+cooldown de creation des alertes entre sources restent hors de ce sous-lot.
+
+Cinq jauges privees sous baitly.noise.warning suivent l'incertitude, son age,
+les reparations en attente et la sante/fraicheur du snapshot. Collecte hors
+scrape, timeout SQL 5 s, aucune etiquette client. Une panne conserve les anciennes
+valeurs et leur date, avec sante invalide. Les trois regles operationnelles
+associees necessitent ce backend avant activation ; aucun test de notification
+reelle ni rechargement de monitoring n'est execute dans ce lot.
+
+Aucune purge, retention legale ou operation de rearmement n'est ajoutee.
+La perte du journal PostgreSQL lui-meme reste dependante de FR09, en attente.
+Reconciliation d'un inconnu uniquement avec preuve et par voie PR/CI/CD,
+jamais par une mutation SQL manuelle suggeree en production.
+
+Validation locale de cette extension au 24 octobre 2026 : 214 tests Java cibles,
+aucun echec, erreur ou ignore. Le journal execute 32 cas, avec la migration 0600
+rejouee pour verifier son idempotence. H2 local ne remplace pas PostgreSQL :
+la recette financiere CI inclut obligatoirement ces tests sur PostgreSQL dedie.
+Les IT gates, fournisseurs et la campagne staging restent a executer en fin de lot.

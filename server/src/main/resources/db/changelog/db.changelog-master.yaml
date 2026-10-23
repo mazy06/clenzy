@@ -5341,3 +5341,11 @@ databaseChangeLog:
         - sqlFile:
             path: changes/0599__baitly_minut_event_journal.sql
             relativeToChangelogFile: true
+
+  - changeSet:
+      id: "0600-baitly-noise-warning-attempts"
+      author: clenzy-team
+      changes:
+        - sqlFile:
+            path: changes/0600__baitly_noise_warning_attempts.sql
+            relativeToChangelogFile: true

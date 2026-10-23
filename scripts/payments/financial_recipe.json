@@ -1,5 +1,7 @@
 {
   "backend": [
+    "BaitlyNoiseWarningRepairWorkerTest",
+    "BaitlyNoiseWarningJournalTest",
     "BaitlyNoiseStatusPersistenceTest",
     "NoiseDeviceControllerTest",
     "NoiseDeviceServiceTest",
