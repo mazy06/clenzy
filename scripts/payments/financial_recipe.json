@@ -1,5 +1,7 @@
 {
   "backend": [
+    "BaitlyMinutConsumerPrivacyTest",
+    "MinutWebhookConsumerTest",
     "BaitlyMinutWebhookReceiptTest",
     "MinutWebhookControllerTest",
     "BaitlyIoTApiDiagnosticsPrivacyTest",
