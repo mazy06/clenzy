@@ -307,3 +307,9 @@ zero echec/erreur/ignore ; 30 cas de file et admission avec migrations 0600/0601
 reelles et rejouees, concurrence et parcours voyageur complet. Six tests Python
 du manifeste passes. Ces preuves H2 locales doivent etre completees par la
 recette PostgreSQL CI, puis la campagne staging finale. Aucun fournisseur reel.
+
+Le bail ShedLock du worker est borne a une minute, inferieure aux quinze minutes
+de fraicheur PENDING : un crash avant premier appel ne doit pas consommer toute
+la fenetre de reprise. L'exclusion d'effet est portee par les intentions durables
+par item, pas par le bail scheduler. Plusieurs workers peuvent donc se chevaucher
+sans renvoyer une tentative deja commencee. Qualifier ce redemarrage reel en staging.

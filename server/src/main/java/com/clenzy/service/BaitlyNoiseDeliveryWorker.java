@@ -38,7 +38,9 @@ public class BaitlyNoiseDeliveryWorker {
     record Prepared(BaitlyNoiseDeliveryOutbox.Snapshot scope,NoiseAlert alert,Runnable email,Supplier<Boolean> inApp) {}
 
     @Scheduled(fixedDelayString="${baitly.noise.delivery-ms:5000}",initialDelayString="${baitly.noise.delivery-initial-ms:30000}")
-    @SchedulerLock(name="baitly-noise-delivery",lockAtMostFor="PT15M",lockAtLeastFor="PT1S")
+    // A crashed worker must release its scheduler lease well before unattempted work expires.
+    // Per-item committed intent, not this lease, prevents duplicate external effects.
+    @SchedulerLock(name="baitly-noise-delivery",lockAtMostFor="PT1M",lockAtLeastFor="PT1S")
     public void run() {
         try {
             outside.executeWithoutResult(ignored -> {
