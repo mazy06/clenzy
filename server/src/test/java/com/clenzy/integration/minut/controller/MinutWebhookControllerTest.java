@@ -11,11 +11,13 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.http.ResponseEntity;
 import org.springframework.kafka.core.KafkaTemplate;
+import org.springframework.kafka.support.SendResult;
 
 import javax.crypto.Mac;
 import javax.crypto.spec.SecretKeySpec;
 import java.nio.charset.StandardCharsets;
 import java.util.Map;
+import java.util.concurrent.CompletableFuture;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
@@ -33,6 +35,8 @@ class MinutWebhookControllerTest {
     @BeforeEach
     void setUp() {
         controller = new MinutWebhookController(config, kafkaTemplate);
+        lenient().when(kafkaTemplate.send(anyString(), any()))
+                .thenReturn(CompletableFuture.completedFuture(mock(SendResult.class)));
     }
 
     private String hmacSha256(String secret, String payload) throws Exception {
@@ -49,24 +53,25 @@ class MinutWebhookControllerTest {
     class SignatureValidation {
 
         @Test
-        void noSecretConfigured_acceptsWithoutSignature() {
+        void noSecretConfigured_rejectsWithoutPublication() {
             when(config.getWebhookSecret()).thenReturn(null);
 
             ResponseEntity<Map<String, String>> response =
                     controller.receiveWebhook("{}", null);
 
-            assertThat(response.getStatusCode().value()).isEqualTo(200);
-            verify(kafkaTemplate).send(eq(KafkaConfig.TOPIC_MINUT_WEBHOOKS), eq("{}"));
+            assertThat(response.getStatusCode().value()).isEqualTo(503);
+            verifyNoInteractions(kafkaTemplate);
         }
 
         @Test
-        void emptySecret_acceptsWithoutSignature() {
+        void emptySecret_rejectsWithoutPublication() {
             when(config.getWebhookSecret()).thenReturn("");
 
             ResponseEntity<Map<String, String>> response =
                     controller.receiveWebhook("{}", null);
 
-            assertThat(response.getStatusCode().value()).isEqualTo(200);
+            assertThat(response.getStatusCode().value()).isEqualTo(503);
+            verifyNoInteractions(kafkaTemplate);
         }
 
         @Test
@@ -138,7 +143,7 @@ class MinutWebhookControllerTest {
         }
 
         @Test
-        void publishFails_stillReturns200_avoidingRetries() throws Exception {
+        void publishFails_returns503InsteadOfFalseReceipt() throws Exception {
             String secret = "shh";
             String payload = "{}";
             when(config.getWebhookSecret()).thenReturn(secret);
@@ -149,8 +154,8 @@ class MinutWebhookControllerTest {
             ResponseEntity<Map<String, String>> response =
                     controller.receiveWebhook(payload, sig);
 
-            assertThat(response.getStatusCode().value()).isEqualTo(200);
-            assertThat(response.getBody().get("message")).contains("delayed");
+            assertThat(response.getStatusCode().value()).isEqualTo(503);
+            assertThat(response.getBody().get("status")).isEqualTo("error");
         }
 
         @Test
@@ -160,7 +165,8 @@ class MinutWebhookControllerTest {
             ResponseEntity<Map<String, String>> response =
                     controller.receiveWebhook(null, null);
 
-            assertThat(response.getStatusCode().value()).isEqualTo(200);
+            assertThat(response.getStatusCode().value()).isEqualTo(503);
+            verifyNoInteractions(kafkaTemplate);
         }
     }
 }

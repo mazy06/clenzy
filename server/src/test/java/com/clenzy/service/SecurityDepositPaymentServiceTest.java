@@ -87,6 +87,11 @@ class SecurityDepositPaymentServiceTest {
         PaymentIntent pi = new PaymentIntent();
         pi.setId("pi_1");
         pi.setStatus(status);
+        pi.setCurrency("eur");
+        pi.setCaptureMethod("manual");
+        pi.setAmount(30000L);
+        pi.setAmountCapturable(30000L);
+        pi.setMetadata(java.util.Map.of("depositId", String.valueOf(DEPOSIT_ID)));
         return pi;
     }
 
@@ -181,6 +186,87 @@ class SecurityDepositPaymentServiceTest {
     }
 
     // ─── Libération / capture ──────────────────────────────────────────────────
+
+    @org.junit.jupiter.params.ParameterizedTest
+    @org.junit.jupiter.params.provider.ValueSource(strings = {"id", "currency", "missing-currency", "metadata", "other-deposit",
+            "automatic", "insufficient-total", "missing-total", "insufficient-capturable", "status"})
+    void inconsistentAuthorizationCannotBeCapturedOrConfirmed(String scenario) throws Exception {
+        var instruction = new BaitlyDepositOperationStore.Instruction(DEPOSIT_ID, ORG, "pi_1", new BigDecimal("120"), "EUR");
+        when(operations.claimCapture(DEPOSIT_ID, ORG, new BigDecimal("120"), "synthetic")).thenReturn(instruction);
+        PaymentIntent pi = paymentIntent("requires_capture");
+        switch (scenario) {
+            case "id" -> pi.setId("pi_other");
+            case "currency" -> pi.setCurrency("usd");
+            case "missing-currency" -> pi.setCurrency(null);
+            case "metadata" -> pi.setMetadata(null);
+            case "other-deposit" -> pi.setMetadata(java.util.Map.of("depositId", "999"));
+            case "automatic" -> pi.setCaptureMethod("automatic");
+            case "insufficient-total" -> pi.setAmount(100L);
+            case "missing-total" -> pi.setAmount(null);
+            case "insufficient-capturable" -> pi.setAmountCapturable(100L);
+            case "status" -> pi.setStatus("requires_action");
+        }
+        when(stripeGateway.retrievePaymentIntent("pi_1")).thenReturn(pi);
+        assertThatThrownBy(() -> service.captureHold(ORG, DEPOSIT_ID, new BigDecimal("120"), "synthetic"))
+                .isInstanceOf(IllegalStateException.class);
+        verify(stripeGateway, never()).capturePaymentIntent(any(), any(), any());
+        verify(operations, never()).captured(any());
+    }
+
+    @org.junit.jupiter.params.ParameterizedTest
+    @org.junit.jupiter.params.provider.ValueSource(strings = {"id", "currency", "other-deposit", "received"})
+    void captureResponseMustMatchAuthorizationBeforeLocalConfirmation(String scenario) throws Exception {
+        var instruction = new BaitlyDepositOperationStore.Instruction(DEPOSIT_ID, ORG, "pi_1", new BigDecimal("120"), "EUR");
+        when(operations.claimCapture(DEPOSIT_ID, ORG, new BigDecimal("120"), "synthetic")).thenReturn(instruction);
+        PaymentIntent pi = paymentIntent("requires_capture");
+        PaymentIntent response = paymentIntent("succeeded"); response.setAmountReceived(12000L);
+        switch (scenario) {
+            case "id" -> response.setId("pi_other");
+            case "currency" -> response.setCurrency("usd");
+            case "other-deposit" -> response.setMetadata(java.util.Map.of("depositId", "999"));
+            case "received" -> response.setAmountReceived(100L);
+        }
+        when(stripeGateway.retrievePaymentIntent("pi_1")).thenReturn(pi);
+        when(stripeGateway.capturePaymentIntent(eq(pi), any(), any())).thenReturn(response);
+        assertThatThrownBy(() -> service.captureHold(ORG, DEPOSIT_ID, new BigDecimal("120"), "synthetic"))
+                .isInstanceOf(IllegalStateException.class);
+        verify(operations, never()).captured(any());
+    }
+
+    @Test void lostCaptureResponseCanBeReconciledWithoutAnotherDebit() throws Exception {
+        var instruction = new BaitlyDepositOperationStore.Instruction(DEPOSIT_ID, ORG, "pi_1", new BigDecimal("120"), "EUR");
+        when(operations.claimCapture(DEPOSIT_ID, ORG, new BigDecimal("120"), "synthetic")).thenReturn(instruction);
+        PaymentIntent pi = paymentIntent("succeeded"); pi.setAmountReceived(12000L);
+        when(stripeGateway.retrievePaymentIntent("pi_1")).thenReturn(pi);
+        service.captureHold(ORG, DEPOSIT_ID, new BigDecimal("120"), "synthetic");
+        verify(stripeGateway, never()).capturePaymentIntent(any(), any(), any());
+        verify(operations).captured(instruction);
+    }
+
+    @org.junit.jupiter.params.ParameterizedTest
+    @org.junit.jupiter.params.provider.ValueSource(strings = {"capture", "release"})
+    void providerTimeoutNeverLeaksPrivateDetailsOrConfirmsFinancialEffect(String operation) throws Exception {
+        String privateDetail = "private@example.invalid token=SECRET-TOKEN password=SECRET-PASSWORD";
+        var failure = new com.stripe.exception.ApiConnectionException(privateDetail);
+        var instruction = new BaitlyDepositOperationStore.Instruction(DEPOSIT_ID, ORG, "pi_1", new BigDecimal("120"), "EUR");
+        if (operation.equals("capture")) {
+            when(operations.claimCapture(DEPOSIT_ID, ORG, new BigDecimal("120"), "synthetic")).thenReturn(instruction);
+            when(stripeGateway.retrievePaymentIntent("pi_1")).thenThrow(failure);
+        } else {
+            when(operations.claimRelease(DEPOSIT_ID, ORG)).thenReturn(Optional.of(instruction));
+            org.mockito.Mockito.doThrow(failure).when(holdService).cancelAuthorization("pi_1", "deposit-release-5");
+        }
+        Throwable error = org.assertj.core.api.Assertions.catchThrowable(() -> {
+            if (operation.equals("capture")) service.captureHold(ORG, DEPOSIT_ID, new BigDecimal("120"), "synthetic");
+            else service.releaseHold(ORG, DEPOSIT_ID);
+        });
+        assertThat(error).isInstanceOf(IllegalStateException.class);
+        var trace = new java.io.StringWriter();
+        error.printStackTrace(new java.io.PrintWriter(trace));
+        assertThat(trace.toString()).doesNotContain("private@", "SECRET", "token=", "password=");
+        verify(operations, never()).captured(any());
+        verify(operations, never()).released(any());
+    }
 
     @Test
     void releaseHold_cancelsAuthorization_andReleases() throws Exception {

@@ -27,6 +27,7 @@ import java.time.ZoneOffset;
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.contains;
@@ -57,9 +58,12 @@ class SecurityDepositHoldServiceTest {
     @Mock private BaitlyDepositReleasePolicy releasePolicy;
 
     @org.junit.jupiter.api.BeforeEach void stripeCancellationProof() throws Exception {
-        PaymentIntent cancelled = new PaymentIntent();
-        cancelled.setStatus("canceled");
-        org.mockito.Mockito.lenient().when(stripeGateway.cancelPaymentIntent(any(), anyString())).thenReturn(cancelled);
+        org.mockito.Mockito.lenient().when(stripeGateway.cancelPaymentIntent(any(), anyString())).thenAnswer(invocation -> {
+            PaymentIntent cancelled = new PaymentIntent();
+            cancelled.setId(((PaymentIntent) invocation.getArgument(0)).getId());
+            cancelled.setStatus("canceled");
+            return cancelled;
+        });
     }
 
     private SecurityDepositHoldService serviceAt(Instant now) {
@@ -105,6 +109,7 @@ class SecurityDepositHoldServiceTest {
         PaymentIntent pi = new PaymentIntent();
         pi.setId(id);
         pi.setStatus(status);
+        pi.setCaptureMethod("manual");
         if (captureBefore != null) {
             Charge.PaymentMethodDetails.Card card = new Charge.PaymentMethodDetails.Card();
             card.setCaptureBefore(captureBefore);
@@ -347,5 +352,26 @@ class SecurityDepositHoldServiceTest {
 
         assertThat(alreadyLapsed).isTrue();
         verify(stripeGateway, never()).cancelPaymentIntent(any(), anyString());
+    }
+
+    @org.junit.jupiter.params.ParameterizedTest
+    @org.junit.jupiter.params.provider.ValueSource(strings = {"id", "automatic", "missing"})
+    void cancellingAnUnrelatedAuthorizationIsRefusedBeforeStripeMutation(String scenario) throws Exception {
+        PaymentIntent hold = paymentIntent("pi_old", "requires_capture", null);
+        if (scenario.equals("id")) hold.setId("pi_other");
+        if (scenario.equals("automatic")) hold.setCaptureMethod("automatic");
+        when(stripeGateway.retrievePaymentIntent("pi_old")).thenReturn(scenario.equals("missing") ? null : hold);
+        assertThatThrownBy(() -> serviceAt(ARRIVAL_DAY).cancelAuthorization("pi_old", "synthetic"))
+                .isInstanceOf(IllegalStateException.class);
+        verify(stripeGateway, never()).cancelPaymentIntent(any(), anyString());
+    }
+
+    @Test void cancellationResponseForAnotherAuthorizationCannotConfirmRelease() throws Exception {
+        PaymentIntent hold = paymentIntent("pi_old", "requires_capture", null);
+        when(stripeGateway.retrievePaymentIntent("pi_old")).thenReturn(hold);
+        when(stripeGateway.cancelPaymentIntent(hold, "synthetic"))
+                .thenReturn(paymentIntent("pi_other", "canceled", null));
+        assertThatThrownBy(() -> serviceAt(ARRIVAL_DAY).cancelAuthorization("pi_old", "synthetic"))
+                .isInstanceOf(IllegalStateException.class);
     }
 }

@@ -1,6 +1,8 @@
 package com.clenzy.controller;
 
 import com.clenzy.service.AccountingExportService;
+import com.clenzy.service.OrganizationService;
+import org.springframework.security.oauth2.jwt.Jwt;
 import com.clenzy.tenant.TenantContext;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -25,12 +27,14 @@ class AccountingExportControllerTest {
 
     @Mock private AccountingExportService exportService;
     @Mock private TenantContext tenantContext;
+    @Mock private OrganizationService organizationAccess;
+    private final Jwt jwt = Jwt.withTokenValue("test").header("alg", "none").subject("manager").build();
 
     private AccountingExportController controller;
 
     @BeforeEach
     void setUp() {
-        controller = new AccountingExportController(exportService, tenantContext);
+        controller = new AccountingExportController(exportService, tenantContext, organizationAccess);
     }
 
     private LocalDate from = LocalDate.of(2026, 5, 1);
@@ -43,10 +47,10 @@ class AccountingExportControllerTest {
     class ExportFec {
         @Test
         void returnsContentWithCorrectHeaders() {
-            when(tenantContext.getOrganizationId()).thenReturn(1L);
+            when(tenantContext.getRequiredOrganizationId()).thenReturn(1L);
             when(exportService.exportFec(1L, from, to)).thenReturn("JournalCode\tEcritureNum\n");
 
-            ResponseEntity<byte[]> response = controller.exportFec(from, to);
+            ResponseEntity<byte[]> response = controller.exportFec(from, to, jwt);
 
             assertThat(response.getStatusCode().value()).isEqualTo(200);
             assertThat(response.getHeaders().getContentType()).isEqualTo(MediaType.TEXT_PLAIN);
@@ -63,11 +67,11 @@ class AccountingExportControllerTest {
     class ExportReservations {
         @Test
         void returnsCsv() {
-            when(tenantContext.getOrganizationId()).thenReturn(1L);
+            when(tenantContext.getRequiredOrganizationId()).thenReturn(1L);
             when(exportService.exportReservationsCsv(1L, from, to))
                     .thenReturn("id;guest\n1;John");
 
-            ResponseEntity<byte[]> response = controller.exportReservationsCsv(from, to);
+            ResponseEntity<byte[]> response = controller.exportReservationsCsv(from, to, jwt);
 
             assertThat(response.getStatusCode().value()).isEqualTo(200);
             assertThat(response.getHeaders().getContentType().toString()).isEqualTo("text/csv");
@@ -83,10 +87,10 @@ class AccountingExportControllerTest {
     class ExportPayouts {
         @Test
         void returnsCsv() {
-            when(tenantContext.getOrganizationId()).thenReturn(1L);
+            when(tenantContext.getRequiredOrganizationId()).thenReturn(1L);
             when(exportService.exportPayoutsCsv(1L, from, to)).thenReturn("id;net\n1;100");
 
-            ResponseEntity<byte[]> response = controller.exportPayoutsCsv(from, to);
+            ResponseEntity<byte[]> response = controller.exportPayoutsCsv(from, to, jwt);
 
             assertThat(response.getStatusCode().value()).isEqualTo(200);
             assertThat(response.getHeaders().getFirst(HttpHeaders.CONTENT_DISPOSITION))
@@ -101,10 +105,10 @@ class AccountingExportControllerTest {
     class ExportExpenses {
         @Test
         void returnsCsv() {
-            when(tenantContext.getOrganizationId()).thenReturn(1L);
+            when(tenantContext.getRequiredOrganizationId()).thenReturn(1L);
             when(exportService.exportExpensesCsv(1L, from, to)).thenReturn("id;amount\n1;50");
 
-            ResponseEntity<byte[]> response = controller.exportExpensesCsv(from, to);
+            ResponseEntity<byte[]> response = controller.exportExpensesCsv(from, to, jwt);
 
             assertThat(response.getStatusCode().value()).isEqualTo(200);
             assertThat(response.getHeaders().getFirst(HttpHeaders.CONTENT_DISPOSITION))
@@ -119,10 +123,10 @@ class AccountingExportControllerTest {
     class ExportInvoices {
         @Test
         void returnsCsv() {
-            when(tenantContext.getOrganizationId()).thenReturn(1L);
+            when(tenantContext.getRequiredOrganizationId()).thenReturn(1L);
             when(exportService.exportInvoicesCsv(1L, from, to)).thenReturn("id;num\n1;F-001");
 
-            ResponseEntity<byte[]> response = controller.exportInvoicesCsv(from, to);
+            ResponseEntity<byte[]> response = controller.exportInvoicesCsv(from, to, jwt);
 
             assertThat(response.getStatusCode().value()).isEqualTo(200);
             assertThat(response.getHeaders().getFirst(HttpHeaders.CONTENT_DISPOSITION))
@@ -141,10 +145,10 @@ class AccountingExportControllerTest {
     class ExportSepaXml {
         @Test
         void valid_returnsXml() {
-            when(tenantContext.getOrganizationId()).thenReturn(1L);
+            when(tenantContext.getRequiredOrganizationId()).thenReturn(1L);
             when(exportService.generateSepaXml(List.of(1L), 1L)).thenReturn("<xml>test</xml>");
 
-            ResponseEntity<byte[]> response = controller.exportSepaXml(List.of(1L));
+            ResponseEntity<byte[]> response = controller.exportSepaXml(List.of(1L), jwt);
 
             assertThat(response.getStatusCode().value()).isEqualTo(200);
             assertThat(response.getHeaders().getContentType()).isEqualTo(MediaType.APPLICATION_XML);
@@ -154,11 +158,11 @@ class AccountingExportControllerTest {
 
         @Test
         void serviceError_propagates() {
-            when(tenantContext.getOrganizationId()).thenReturn(1L);
+            when(tenantContext.getRequiredOrganizationId()).thenReturn(1L);
             when(exportService.generateSepaXml(List.of(1L), 1L))
                     .thenThrow(new IllegalArgumentException("Organisation introuvable"));
 
-            assertThatThrownBy(() -> controller.exportSepaXml(List.of(1L)))
+            assertThatThrownBy(() -> controller.exportSepaXml(List.of(1L), jwt))
                     .isInstanceOf(IllegalArgumentException.class)
                     .hasMessageContaining("Organisation introuvable");
         }
