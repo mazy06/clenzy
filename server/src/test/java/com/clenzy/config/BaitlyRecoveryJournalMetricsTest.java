@@ -25,6 +25,7 @@ class BaitlyRecoveryJournalMetricsTest {
         db = new JdbcTemplate(new DriverManagerDataSource("jdbc:h2:mem:"+UUID.randomUUID()+";MODE=PostgreSQL;DB_CLOSE_DELAY=-1","sa",""));
         db.execute("CREATE TABLE baitly_accounting_exports (state varchar, fingerprint varchar(64), created_at timestamp with time zone)");
         db.execute("CREATE TABLE baitly_oauth_refresh_attempts (scope_hash varchar(64), attempt uuid, created_at timestamp with time zone)");
+        db.execute("CREATE TABLE baitly_minut_events (state varchar, updated_at timestamp with time zone)");
         clock = new MockClock(); registry = new SimpleMeterRegistry(SimpleConfig.DEFAULT,clock);
         metrics = new BaitlyRecoveryJournalMetrics(db,registry);
     }
@@ -112,11 +113,37 @@ class BaitlyRecoveryJournalMetricsTest {
             String text = prometheus.scrape();
             for (String suffix : java.util.List.of("accounting_inflight","accounting_unknown","accounting_historical_review",
                     "accounting_oldest_inflight_seconds","accounting_oldest_unknown_seconds","oauth_blocked_scopes",
+                    "minut_ready","minut_uncertain","minut_review","minut_oldest_ready_seconds","minut_oldest_uncertain_seconds",
                     "snapshot_healthy","snapshot_last_success_timestamp_seconds")) {
                 assertThat(text).contains("baitly_recovery_"+suffix);
             }
             assertThat(text).contains("baitly_recovery_oauth_blocked_scopes 1.0","baitly_recovery_snapshot_healthy 1.0")
                     .doesNotContain("e".repeat(64),"organization_id","scope_hash","attempt=");
         } finally { prometheus.close(); }
+    }
+    @Test void separatesMinutReadyAndUncertainFromHistoricalReviewAndCompletedEpisodes() {
+        for(String state : java.util.List.of("READY","STARTED","UNKNOWN","REVIEW","DONE","SUPERSEDED")) {
+            db.update("INSERT INTO baitly_minut_events VALUES (?,?)",state,Timestamp.from(Instant.now().minusSeconds(600)));
+        }
+        metrics.refresh();
+        assertThat(value("snapshot.healthy")).isEqualTo(1);
+        assertThat(value("minut.ready")).isEqualTo(1);assertThat(value("minut.uncertain")).isEqualTo(2);
+        assertThat(value("minut.review")).isEqualTo(1);
+        assertThat(value("minut.oldest.ready.seconds")).isBetween(590.0,620.0);
+        assertThat(value("minut.oldest.uncertain.seconds")).isBetween(590.0,620.0);
+        assertThat(registry.getMeters()).allSatisfy(meter -> assertThat(meter.getId().getTags()).isEmpty());
+    }
+    @Test void missingMinutMigrationRetainsAllPreviousSamplesAndTheirFreshness() {
+        row("SENDING","a".repeat(64),600);
+        db.update("INSERT INTO baitly_minut_events VALUES ('READY',?)",Timestamp.from(Instant.now().minusSeconds(600)));
+        metrics.refresh();double last=value("snapshot.last.success.timestamp.seconds");clock.add(Duration.ofMinutes(1));
+        db.update("UPDATE baitly_accounting_exports SET state='UNKNOWN'");db.execute("DROP TABLE baitly_minut_events");
+        metrics.refresh();assertThat(value("snapshot.healthy")).isZero();
+        assertThat(value("snapshot.last.success.timestamp.seconds")).isEqualTo(last);
+        assertThat(value("accounting.inflight")).isEqualTo(1);assertThat(value("accounting.unknown")).isZero();
+        assertThat(value("minut.ready")).isEqualTo(1);
+        db.execute("CREATE TABLE baitly_minut_events (state varchar, updated_at timestamp with time zone)");metrics.refresh();
+        assertThat(value("snapshot.healthy")).isEqualTo(1);assertThat(value("minut.ready")).isZero();
+        assertThat(value("accounting.inflight")).isZero();assertThat(value("accounting.unknown")).isEqualTo(1);
     }
 }

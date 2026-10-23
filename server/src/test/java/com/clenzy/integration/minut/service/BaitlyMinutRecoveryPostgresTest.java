@@ -254,4 +254,23 @@ class BaitlyMinutRecoveryPostgresTest {
         assertThat(observer.queryForObject("SELECT online FROM noise_devices WHERE id=31",Boolean.class)).isTrue();
         verify(automation,times(1)).fireTrigger(any(),anyLong(),any());
     }
+    @Test void aggregateMetricsUseTheRealMinutSchemaWithoutPrivateLabelsOrFalseHealthyZeros() {
+        db.execute("CREATE TABLE baitly_accounting_exports (state VARCHAR(20),fingerprint VARCHAR(64),created_at TIMESTAMPTZ)");
+        db.execute("CREATE TABLE baitly_oauth_refresh_attempts (scope_hash VARCHAR(64))");
+        UUID ready=journal.admit(offline());
+        UUID blocked=journal.admit(input("other","device_offline","d2"));journal.uncertain(journal.claim(blocked).orElseThrow());
+        eventTime=eventTime.minusSeconds(2);journal.admit(input("historical","device_online","d1"));
+        db.update("UPDATE baitly_minut_events SET updated_at=CURRENT_TIMESTAMP-INTERVAL '10 minutes' WHERE id=?",ready);
+        var registry=new io.micrometer.core.instrument.simple.SimpleMeterRegistry();
+        var metrics=new com.clenzy.config.BaitlyRecoveryJournalMetrics(db,registry);metrics.refresh();
+        assertThat(metric(registry,"snapshot.healthy")).isEqualTo(1);
+        assertThat(metric(registry,"minut.ready")).isEqualTo(1);assertThat(metric(registry,"minut.uncertain")).isEqualTo(1);
+        assertThat(metric(registry,"minut.review")).isEqualTo(1);assertThat(metric(registry,"minut.oldest.ready.seconds")).isBetween(590.0,620.0);
+        assertThat(registry.getMeters()).allSatisfy(meter -> assertThat(meter.getId().getTags()).isEmpty());
+        db.execute("DROP TABLE baitly_minut_events CASCADE");metrics.refresh();
+        assertThat(metric(registry,"snapshot.healthy")).isZero();assertThat(metric(registry,"minut.ready")).isEqualTo(1);
+    }
+    double metric(io.micrometer.core.instrument.simple.SimpleMeterRegistry registry,String name) {
+        return registry.get("baitly.recovery."+name).gauge().value();
+    }
 }

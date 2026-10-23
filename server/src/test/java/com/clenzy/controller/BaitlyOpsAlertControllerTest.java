@@ -169,7 +169,7 @@ class BaitlyOpsAlertControllerTest {
 
     @org.junit.jupiter.params.ParameterizedTest
     @org.junit.jupiter.params.provider.ValueSource(strings = {"BaitlyRecoveryMetricsUnavailable","BaitlyRecoveryMetricsStale",
-            "BaitlyAccountingExportStalled","BaitlyAccountingExportUncertain"})
+            "BaitlyAccountingExportStalled","BaitlyAccountingExportUncertain", "BaitlyMinutRecoveryStalled", "BaitlyMinutRecoveryUncertain"})
     void recoveryRulesKeepControlledNamesForFiringAndResolutionWithoutPrivateLabels(String name) throws Exception {
         when(notifications.notifyPlatformOpsStrict(anyString(),anyString(),isNull())).thenReturn(1);
         for (String state : java.util.List.of("firing","resolved")) {

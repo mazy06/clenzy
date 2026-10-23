@@ -87,6 +87,16 @@ Références primaires : [événements](https://developer.minut.com/events/event
 
 ## Validation
 
+Le collecteur privé des journaux expose cinq agrégats Minut sans label client :
+`minut.ready`, `minut.uncertain`, `minut.review` et les deux âges READY/incertain
+en secondes, sous `baitly.recovery.*`. STARTED et UNKNOWN sont comptés ensemble.
+Un défaut d’une des trois lectures SQL conserve l’échantillon précédent et sa
+date, tout en invalidant la santé ; un ancien zéro ne devient pas une preuve de
+bonne santé. Les résultats historiques REVIEW ne sont pas des incidents à rejouer.
+Les règles opérationnelles associées n’activent aucun traitement : elles demandent
+examen du worker ou rapprochement de preuve. Elles doivent être livrées après ce
+backend, uniquement lors de la campagne finale approuvée.
+
 Les suites locales couvrent parsing, confidentialité, ordre d’appel, confirmation,
 time-out et interruption. La recette CI impose `BaitlyMinutRecoveryPostgresTest` :
 migration réelle sélectionnée depuis le master et appliquée deux fois, transactions

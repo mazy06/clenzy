@@ -97,6 +97,7 @@ class BaitlyAccountingExportPostgresTest {
     }
 
     @Test void recoveryMetricsReadActualMigrationsWithoutConflatingLegacyAndLiveUncertainty() {
+        new ResourceDatabasePopulator(new ClassPathResource("db/changelog/changes/0599__baitly_minut_event_journal.sql")).execute(source);
         com.clenzy.integration.oauth.BaitlyOAuthTestGuards.installRefreshJournal(source);
         var registry = new io.micrometer.core.instrument.simple.SimpleMeterRegistry();
         var metrics = new com.clenzy.config.BaitlyRecoveryJournalMetrics(db,registry);
@@ -127,6 +128,7 @@ class BaitlyAccountingExportPostgresTest {
     }
 
     @Test void recoveryMetricsFailurePreservesWholePostgresSnapshotAndItsFreshness() {
+        new ResourceDatabasePopulator(new ClassPathResource("db/changelog/changes/0599__baitly_minut_event_journal.sql")).execute(source);
         com.clenzy.integration.oauth.BaitlyOAuthTestGuards.installRefreshJournal(source);
         var clock = new io.micrometer.core.instrument.MockClock();
         var registry = new io.micrometer.core.instrument.simple.SimpleMeterRegistry(
