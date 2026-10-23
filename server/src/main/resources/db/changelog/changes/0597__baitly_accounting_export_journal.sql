@@ -27,10 +27,10 @@ CREATE INDEX idx_baitly_accounting_export_review ON baitly_accounting_exports (o
 -- Avant le journal, une ligne sans marqueur pouvait déjà avoir été envoyée.
 -- Ne jamais convertir cette absence de preuve historique en autorisation de recréer.
 INSERT INTO baitly_accounting_exports (organization_id,document_kind,document_id,generation,attempt,fingerprint,state,uncertain_at)
-SELECT i.organization_id,INVOICE,i.id,COALESCE(c.accounting_generation,gen_random_uuid()),gen_random_uuid(),repeat(0,64),UNKNOWN,CURRENT_TIMESTAMP
+SELECT i.organization_id,'INVOICE',i.id,COALESCE(c.accounting_generation,gen_random_uuid()),gen_random_uuid(),repeat('0',64),'UNKNOWN',CURRENT_TIMESTAMP
 FROM invoices i LEFT JOIN pennylane_connections c ON c.organization_id=i.organization_id
-WHERE i.organization_id>0 AND i.pennylane_invoice_id IS NULL AND i.status IN (ISSUED,SENT,PAID);
+WHERE i.organization_id>0 AND i.pennylane_invoice_id IS NULL AND i.status IN ('ISSUED','SENT','PAID');
 INSERT INTO baitly_accounting_exports (organization_id,document_kind,document_id,generation,attempt,fingerprint,state,uncertain_at)
-SELECT e.organization_id,EXPENSE,e.id,COALESCE(c.accounting_generation,gen_random_uuid()),gen_random_uuid(),repeat(0,64),UNKNOWN,CURRENT_TIMESTAMP
+SELECT e.organization_id,'EXPENSE',e.id,COALESCE(c.accounting_generation,gen_random_uuid()),gen_random_uuid(),repeat('0',64),'UNKNOWN',CURRENT_TIMESTAMP
 FROM provider_expenses e LEFT JOIN pennylane_connections c ON c.organization_id=e.organization_id
-WHERE e.organization_id>0 AND e.pennylane_invoice_id IS NULL AND e.status IN (APPROVED,INCLUDED,PAID);
+WHERE e.organization_id>0 AND e.pennylane_invoice_id IS NULL AND e.status IN ('APPROVED','INCLUDED','PAID');
