@@ -70,11 +70,12 @@ public class HousekeeperPayoutRecorder {
         return recordRepository.transitionStatus(recordId, Status.PENDING, Status.SENT, transferId, null);
     }
 
-    /** CAS PENDING → FAILED avec raison tronquée. */
+    /** CAS PENDING → FAILED avec diagnostic borné, jamais une réponse privée du PSP. */
     @Transactional(propagation = Propagation.REQUIRES_NEW)
     public int markFailed(Long recordId, String reason) {
-        String truncated = reason != null && reason.length() > 250 ? reason.substring(0, 250) : reason;
-        return recordRepository.transitionStatus(recordId, Status.PENDING, Status.FAILED, null, truncated);
+        String safe = BaitlyPayoutDiagnostics.FUNDS_UNAVAILABLE.equals(reason)
+                ? BaitlyPayoutDiagnostics.FUNDS_UNAVAILABLE : BaitlyPayoutDiagnostics.PREPARATION_FAILED;
+        return recordRepository.transitionStatus(recordId, Status.PENDING, Status.FAILED, null, safe);
     }
 
     /** Une réponse PSP inconnue exige une vérification, jamais une nouvelle émission. */

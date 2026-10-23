@@ -92,11 +92,15 @@ public class EmailChannel implements MessageChannel {
             mailSender.send(message);
 
             String messageId = message.getMessageID();
-            log.info("Email envoye a {} (subject={})", request.recipientEmail(), request.subject());
+            log.info("Email de messagerie accepte par le relais SMTP");
             return MessageDeliveryResult.success(messageId);
         } catch (Exception e) {
-            log.error("Erreur envoi email a {}: {}", request.recipientEmail(), e.getMessage(), e);
-            return MessageDeliveryResult.failure(e.getMessage());
+            // Les erreurs SMTP peuvent contenir adresses, corps, liens avec token et
+            // identifiants d'authentification, y compris dans leurs causes imbriquees.
+            // Le resultat est persiste par la messagerie : ne jamais y recopier le fournisseur.
+            String category = com.clenzy.service.email.BaitlyEmailDiagnostics.category(e);
+            log.error("Echec envoi email de messagerie (categorie={})", category);
+            return MessageDeliveryResult.failure("Envoi email impossible (" + category + ").");
         }
     }
 

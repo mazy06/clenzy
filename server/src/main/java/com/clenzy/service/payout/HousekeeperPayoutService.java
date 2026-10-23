@@ -281,7 +281,8 @@ public class HousekeeperPayoutService {
         } catch (RuntimeException failure) {
             // La mission ou le choix du bénéficiaire est déjà commité : une lecture
             // indisponible ne doit pas faire croire à l'appelant que sa validation a échoué.
-            log.error("Lecture du versement de l'intervention {} impossible après validation", missionId, failure);
+            log.error("Lecture du versement de l'intervention {} impossible après validation", missionId,
+                    BaitlyPayoutDiagnostics.technicalCause(failure));
             notifyAdminsFailure(missionId, "#" + missionId, null,
                     "Impossible de vérifier la mission après validation. Aucun transfert émis par cette tentative");
             return;
@@ -364,8 +365,8 @@ public class HousekeeperPayoutService {
         } catch (Exception e) {
             // Jamais bloquer la complétion — mais tracer + alerter (pas de catch avaleur
             // silencieux : les admins sont notifiés qu'une réconciliation est requise).
-            log.error("Payout intervention {} : erreur inattendue : {}", intervention.getId(), e.getMessage(), e);
-            notifyAdminsFailure(intervention.getId(), intervention.getTitle(), null, e.getMessage());
+            log.error("Payout intervention {} : préparation indisponible", intervention.getId(), BaitlyPayoutDiagnostics.technicalCause(e));
+            notifyAdminsFailure(intervention.getId(), intervention.getTitle(), null, BaitlyPayoutDiagnostics.PREPARATION_FAILED);
         }
     }
 
@@ -482,7 +483,7 @@ public class HousekeeperPayoutService {
                             .divide(BigDecimal.valueOf(100), 2, RoundingMode.HALF_UP))
                     .orElse(BigDecimal.ZERO);
         } catch (Exception e) {
-            throw new IllegalStateException("Commission indisponible, versement suspendu.", e);
+            throw new IllegalStateException("Commission indisponible, versement suspendu.", BaitlyPayoutDiagnostics.technicalCause(e));
         }
     }
 
@@ -546,27 +547,34 @@ public class HousekeeperPayoutService {
             }
             log.info("Payout intervention {} : transfert {} envoyé ({} EUR)", interventionId, transferId, net);
         } catch (PayoutFundsUnavailableException e) {
-            recorder.markFailed(recordId, e.getMessage());
-            notifyAdminsFailure(recordId, interventionId, title, net, e.getMessage());
+            recorder.markFailed(recordId, BaitlyPayoutDiagnostics.FUNDS_UNAVAILABLE);
+            notifyAdminsFailure(recordId, interventionId, title, net, BaitlyPayoutDiagnostics.FUNDS_UNAVAILABLE);
         } catch (PayoutReconciliationRequiredException e) {
-            notifyAdminsFailure(recordId, interventionId, title, net, e.getMessage());
-            try {
-                recorder.markReconciliationRequired(recordId);
-            } catch (RuntimeException persistenceFailure) {
-                // Le journal a déjà réservé l'ordre : même si ce statut local échoue,
-                // il interdit une nouvelle émission et l'alerte doit rester tentée.
-                e.addSuppressed(persistenceFailure);
-                throw e;
-            }
+            notifyAdminsFailure(recordId, interventionId, title, net, BaitlyPayoutDiagnostics.RECONCILIATION_REQUIRED);
+            markUncertain(recordId, e.getTransferReference(), e);
         } catch (StripeException e) {
-            log.error("Payout intervention {} : transfert Stripe en échec : {}", interventionId, e.getMessage());
-            recorder.markFailed(recordId, e.getMessage());
-            notifyAdminsFailure(recordId, interventionId, title, net, e.getMessage());
+            // Sans preuve de non-émission, une exception PSP ne rend pas le versement relançable.
+            log.error("Payout intervention {} : résultat Stripe incertain", interventionId, BaitlyPayoutDiagnostics.technicalCause(e));
+            notifyAdminsFailure(recordId, interventionId, title, net, BaitlyPayoutDiagnostics.RECONCILIATION_REQUIRED);
+            markUncertain(recordId, null, e);
         } catch (RuntimeException e) {
             // Le journal peut déjà contenir un transfert confirmé alors que markSent a échoué.
             notifyAdminsFailure(recordId, interventionId, title, net,
                     "Enregistrement du versement à rapprocher. Aucune réémission automatique.");
-            throw e;
+            throw new PayoutReconciliationRequiredException(BaitlyPayoutDiagnostics.RECONCILIATION_REQUIRED,
+                    null, BaitlyPayoutDiagnostics.technicalCause(e));
+        }
+    }
+
+    private void markUncertain(Long recordId, String reference, Throwable failure) {
+        try {
+            recorder.markReconciliationRequired(recordId);
+        } catch (RuntimeException persistenceFailure) {
+            // Le journal garde sa réservation même si le statut métier n'a pas pu être écrit.
+            var safe = new PayoutReconciliationRequiredException(BaitlyPayoutDiagnostics.RECONCILIATION_REQUIRED,
+                    reference, BaitlyPayoutDiagnostics.technicalCause(failure));
+            safe.addSuppressed(BaitlyPayoutDiagnostics.technicalCause(persistenceFailure));
+            throw safe;
         }
     }
 
@@ -595,7 +603,8 @@ public class HousekeeperPayoutService {
                             + ") nécessite une vérification : " + reason + ". Vérifiez son état avant toute relance.",
                     actionUrl);
         } catch (Exception e) {
-            log.error("Notification PAYOUT_FAILED impossible pour l'intervention {} : {}", interventionId, e.getMessage());
+            log.error("Notification PAYOUT_FAILED impossible pour l'intervention {}", interventionId,
+                    BaitlyPayoutDiagnostics.technicalCause(e));
         }
     }
 }

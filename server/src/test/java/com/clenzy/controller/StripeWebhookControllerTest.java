@@ -124,6 +124,55 @@ class StripeWebhookControllerTest {
         return s;
     }
 
+    @org.junit.jupiter.params.ParameterizedTest
+    @org.junit.jupiter.params.provider.ValueSource(strings = {"checkout-ok", "checkout-fail", "intent-ok", "intent-fail", "parse-fail"})
+    void webhookDiagnosticsExcludePrivateMetadataAndNestedExceptions(String scenario) throws Exception {
+        String privateDetail = "private@example.invalid SECRET-CONTENT token=SECRET-TOKEN password=SECRET-PASSWORD";
+        Event event;
+        if (scenario.equals("parse-fail")) {
+            event = null;
+        } else if (scenario.startsWith("intent")) {
+            PaymentIntent intent = new PaymentIntent();
+            intent.setId("pi_synthetic");
+            intent.setMetadata(Map.of("type", "mobile_upgrade", "private", privateDetail));
+            event = mockEvent("payment_intent.succeeded", intent);
+            if (scenario.endsWith("fail")) org.mockito.Mockito.doThrow(new IllegalStateException(privateDetail,
+                    new RuntimeException(privateDetail))).when(mobilePaymentService).completeSubscriptionUpgrade(intent);
+        } else {
+            event = mockEvent("checkout.session.completed", mockSession("cs_synthetic", "paid", "subscription",
+                    Map.of("type", "upgrade", "private", privateDetail)));
+            if (scenario.equals("checkout-fail")) org.mockito.Mockito.doThrow(new IllegalStateException(privateDetail,
+                    new RuntimeException(privateDetail))).when(subscriptionService).completeUpgrade("cs_synthetic");
+        }
+        var logger = (ch.qos.logback.classic.Logger) org.slf4j.LoggerFactory.getLogger(StripeWebhookController.class);
+        var logs = new ch.qos.logback.core.read.ListAppender<ch.qos.logback.classic.spi.ILoggingEvent>();
+        logs.start(); logger.addAppender(logs);
+        try (MockedStatic<Webhook> webhook = mockStatic(Webhook.class)) {
+            if (scenario.equals("parse-fail")) {
+                webhook.when(() -> Webhook.constructEvent(anyString(), anyString(), anyString()))
+                        .thenThrow(new IllegalArgumentException(privateDetail));
+            } else {
+                webhook.when(() -> Webhook.constructEvent(anyString(), anyString(), anyString())).thenReturn(event);
+            }
+            var response = controller.handleStripeWebhook("synthetic-payload", "synthetic-signature");
+            assertThat(response.getStatusCode().value()).isEqualTo(scenario.equals("parse-fail") ? 400 : scenario.endsWith("fail") ? 500 : 200);
+            assertThat(response.getBody()).doesNotContain("private@", "SECRET", "token=", "password=");
+            assertThat(logs.list).isNotEmpty().allSatisfy(entry -> {
+                assertThat(entry.getFormattedMessage()).doesNotContain("private@", "SECRET", "token=", "password=");
+                if (entry.getThrowableProxy() != null) {
+                    assertThat(ch.qos.logback.classic.spi.ThrowableProxyUtil.asString(entry.getThrowableProxy()))
+                            .doesNotContain("private@", "SECRET", "token=", "password=");
+                }
+            });
+            if (scenario.endsWith("fail")) assertThat(logs.list).anySatisfy(entry -> {
+                assertThat(entry.getThrowableProxy()).isNotNull();
+                assertThat(entry.getThrowableProxy().getStackTraceElementProxyArray()).isNotEmpty();
+            });
+        } finally {
+            logger.detachAppender(logs); logs.stop();
+        }
+    }
+
 
     @org.junit.jupiter.params.ParameterizedTest
     @org.junit.jupiter.params.provider.ValueSource(strings={"checkout.session.completed","checkout.session.async_payment_succeeded","checkout.session.async_payment_failed","checkout.session.expired"})

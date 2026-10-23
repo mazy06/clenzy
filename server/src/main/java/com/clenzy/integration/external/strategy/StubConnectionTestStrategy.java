@@ -6,8 +6,8 @@ import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
 /**
- * Strategie stub utilisee tant que l'organisation Clenzy n'a pas de compte
- * chez le provider. Accepte n'importe quelles credentials non-vides.
+ * Strategie stub utilisee tant que l'organisation Baitly n'a pas de compte
+ * chez le provider. Aucun contrôle de champs ne confirme une connexion distante.
  *
  * <h2>Pourquoi pas une seule @Service stub instance</h2>
  * Pour respecter le principe de stricte unicite des strategies par provider
@@ -24,12 +24,8 @@ abstract class StubConnectionTestStrategy implements ConnectionTestStrategy {
 
     @Override
     public boolean testConnection(String serverUrl, String accountIdentifier, String apiKey) {
-        if (serverUrl == null || serverUrl.isBlank()
-                || apiKey == null || apiKey.length() < 8) {
-            return false;
-        }
-        log.info("Stub testConnection {} accepting credentials (no real API call yet)", providerType());
-        return true;
+        log.warn("Vérification fournisseur indisponible pour {}", providerType());
+        return false;
     }
 }
 

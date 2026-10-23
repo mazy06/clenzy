@@ -21,6 +21,9 @@ import java.time.Instant;
  */
 public interface OAuthConnectionLike {
 
+    /** Appelé uniquement après une nouvelle autorisation, jamais pendant un refresh. */
+    default void authorizationEstablished() {}
+
     Long getOrganizationId();
     void setOrganizationId(Long organizationId);
 
