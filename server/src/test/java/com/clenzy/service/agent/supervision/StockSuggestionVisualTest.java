@@ -16,7 +16,7 @@ class StockSuggestionVisualTest {
         var repository = mock(SupervisionSuggestionRepository.class);
         var clock = Clock.fixed(Instant.parse("2026-10-01T10:00:00Z"), ZoneOffset.UTC);
         var service = new SupervisionSuggestionService(repository, null, null, null, null, null, clock,
-                mock(org.springframework.transaction.PlatformTransactionManager.class));
+                mock(org.springframework.transaction.PlatformTransactionManager.class), mock(com.clenzy.service.OrganizationService.class));
         var card = new SupervisionSuggestion(3L, 7L, "ops", "stock_low", "Stock bas : Café (1 restant)", "Motif", clock.instant().plusSeconds(3600));
         when(repository.existsByOrganizationIdAndPropertyIdAndModuleKeyAndTitleAndStatusAndExpiresAtAfter(
                 eq(3L), eq(7L), eq("ops"), eq(card.getTitle()), eq("PENDING"), any())).thenReturn(true);

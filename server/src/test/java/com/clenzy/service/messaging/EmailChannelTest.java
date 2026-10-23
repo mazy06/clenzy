@@ -135,7 +135,7 @@ class EmailChannelTest {
         var result = emailChannel.send(request);
 
         assertFalse(result.success());
-        assertTrue(result.errorMessage().contains("SMTP error"));
+        assertEquals("Envoi email impossible (EMAIL_DELIVERY).", result.errorMessage());
     }
 
     // ═══════════════════════════════════════════════════════════════

@@ -353,6 +353,7 @@ class ContactControllerTest {
             assertThat(response.getBody()).isNotNull();
             assertThat(response.getHeaders().getFirst("Content-Type")).isEqualTo("application/pdf");
             assertThat(response.getHeaders().getFirst("Content-Disposition")).contains("rapport.pdf");
+            assertThat(response.getHeaders().getCacheControl()).isEqualTo("no-cache, no-store, must-revalidate");
         }
 
         @Test

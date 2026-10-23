@@ -54,6 +54,7 @@ class DocumentControllerTest {
                 .header("alg", "RS256")
                 .claim("sub", "user-123")
                 .claim("email", "admin@test.com")
+                .claim("role", "HOST")
                 .issuedAt(Instant.now())
                 .expiresAt(Instant.now().plusSeconds(3600))
                 .build();
