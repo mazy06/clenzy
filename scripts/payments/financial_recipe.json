@@ -1,5 +1,9 @@
 {
   "backend": [
+    "BaitlyAutomationRecoveryTest",
+    "GuestMessageExecutorsTest",
+    "SendOwnerStatementExecutorTest",
+    "RevokeAccessCodeExecutorTest",
     "BaitlyNoiseDeliveryOutboxTest",
     "NoiseAlertConfigServiceTest",
     "BaitlyNoiseWarningRepairWorkerTest",

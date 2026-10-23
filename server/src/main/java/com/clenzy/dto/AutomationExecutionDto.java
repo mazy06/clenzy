@@ -24,11 +24,20 @@ public record AutomationExecutionDto(
             // Null pour les sujets non-reservation (facture, payout, device...).
             e.getReservation() != null ? e.getReservation().getId() : null,
             e.getStatus(),
-            e.getErrorMessage(),
+            safeDiagnostic(e.getErrorMessage()),
             e.getScheduledAt(),
             e.getExecutedAt(),
             e.getSubjectType(),
             e.getSubjectId()
         );
+    }
+
+    private static String safeDiagnostic(String value) {
+        if(value==null) return null;
+        return switch(value) {
+            case "AUTOMATION_ATTEMPT_UNCERTAIN", "AUTOMATION_SCOPE_REVIEW", "AUTOMATION_LEGACY_REVIEW",
+                 "AUTOMATION_DEFERRED", "AUTOMATION_SKIPPED" -> value;
+            default -> "AUTOMATION_LEGACY_REVIEW";
+        };
     }
 }

@@ -97,6 +97,7 @@ class AutomationConcurrencyIT extends AbstractIntegrationTest {
     @Autowired private TenantScopedExecutor tenantScopedExecutor;
 
     @Autowired private OrganizationRepository organizationRepository;
+    @Autowired private com.clenzy.service.messaging.AutomationEvaluationService durableEngine;
     @Autowired private UserRepository userRepository;
     @Autowired private PropertyRepository propertyRepository;
     @Autowired private ReservationRepository reservationRepository;
@@ -147,6 +148,7 @@ class AutomationConcurrencyIT extends AbstractIntegrationTest {
 
         List<Throwable> failures = runSimultaneously(2,
                 () -> automationEngine.fireTrigger(AutomationTrigger.RESERVATION_BOOKED, orgId, subject));
+        durableEngine.processScheduledExecutions();
 
         // Invariant METIER : une seule demande de menage pour le sejour.
         String key = ServiceRequestService.buildAutoCleaningKey(property.getId(), CHECK_IN, CHECK_OUT);
@@ -224,6 +226,7 @@ class AutomationConcurrencyIT extends AbstractIntegrationTest {
         List<Throwable> failures = runSimultaneously(2,
                 () -> automationEngine.fireTrigger(
                         AutomationTrigger.OWNER_MONTHLY_STATEMENT, orgId, subject));
+        durableEngine.processScheduledExecutions();
 
         assertThat(failures)
                 .as("Le perdant de la course sort en SKIPPED via le verrou advisory — pas en "

@@ -5365,3 +5365,11 @@ databaseChangeLog:
         - sqlFile:
             path: changes/0602__baitly_noise_alert_cooldown_index.sql
             relativeToChangelogFile: true
+
+  - changeSet:
+      id: "0603-baitly-automation-durable-recovery"
+      author: clenzy-team
+      changes:
+        - sqlFile:
+            path: changes/0603__baitly_automation_durable_recovery.sql
+            relativeToChangelogFile: true

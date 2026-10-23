@@ -27,18 +27,12 @@ import java.time.ZoneId;
  *
  * <p><b>Filet d'idempotence metier</b> (en plus de l'idempotence generique du
  * moteur, qui ne porte pas la periode) : claim {@link OwnerStatementDispatch}
- * unique (org, owner, periode) pose AVANT l'envoi, sous verrou advisory
- * transactionnel (course concurrente = skip propre) — un mois n'est JAMAIS
+ * unique (org, owner, periode) validé AVANT l'envoi — un mois n'est JAMAIS
  * envoye deux fois, meme sur re-livraison ou re-execution.</p>
  *
- * <p><b>Attention</b> : cet executeur tourne DANS la transaction du moteur
- * ({@code AutomationEvaluationService.fireTrigger @Transactional}) — les appels
- * repository ne committent PAS independamment. Un echec de l'envoi marque la
- * transaction rollback-only (proxy {@code @Transactional} de
- * {@link OwnerStatementService#sendStatement}) : tout est annule, claim
- * compris, et le releve sera re-tente au prochain declenchement (at-least-once
- * par periode jusqu'a un envoi reussi ; jamais deux envois grace au verrou +
- * contrainte unique).</p>
+ * <p>Le claim métier est validé dans la transaction courte du repository avant
+ * l'envoi. Un échec ultérieur ne supprime pas ce claim ; le moteur conserve sa
+ * tentative incertaine sans renvoi automatique.</p>
  */
 @Service
 public class SendOwnerStatementExecutor implements AutomationActionExecutor {
@@ -87,14 +81,8 @@ public class SendOwnerStatementExecutor implements AutomationActionExecutor {
         LocalDate from = periodStart(ctx);
         LocalDate to = periodEnd(ctx, from);
 
-        // Course 2 declenchements simultanes (double tick scheduler, re-livraison) :
-        // verrou advisory transactionnel AVANT le check d'existence. Sans lui, les
-        // deux passent le check, le perdant percute la contrainte unique et la
-        // transaction englobante du moteur — marquee rollback-only par le save() —
-        // n'est plus commitable : le catch ci-dessous ne peut pas la sauver
-        // (UnexpectedRollbackException au commit, meme bug que le menage auto,
-        // revele par AutomationConcurrencyIT vague T3).
-        dispatchRepository.acquireDispatchClaimLock(claimKey(ctx.orgId(), ownerId, from));
+        // The engine holds no enclosing transaction: the repository commits the unique
+        // claim before SMTP. A later error must never erase that claim.
 
         if (dispatchRepository.existsByOrganizationIdAndOwnerIdAndPeriodStart(ctx.orgId(), ownerId, from)) {
             return ExecutionResult.skipped("Releve deja traite pour owner " + ownerId
@@ -105,21 +93,14 @@ public class SendOwnerStatementExecutor implements AutomationActionExecutor {
         try {
             dispatch = dispatchRepository.save(dispatch);
         } catch (DataIntegrityViolationException e) {
-            // Dernier filet (createur passe HORS du verrou advisory ci-dessus, ex.
-            // insertion manuelle) : la contrainte unique tranche. Attention : la
-            // transaction englobante est alors deja marquee rollback-only — ce skip
-            // n'empeche pas un UnexpectedRollbackException au commit du moteur.
-            return ExecutionResult.skipped("Claim concurrent du releve owner " + ownerId
-                    + " periode " + from);
+            throw new IllegalStateException("AUTOMATION_CLAIM_UNCONFIRMED");
         }
 
         String conciergerieName = organizationRepository.findById(ctx.orgId())
                 .map(Organization::getName)
                 .orElse(null);
 
-        // Un echec ici remonte au moteur et — l'executeur tournant dans la
-        // transaction du moteur — annule aussi le claim (cf. javadoc de classe) :
-        // le releve sera re-tente au prochain declenchement.
+        // An uncertain send keeps the committed claim and the engine attempt fenced.
         ownerStatementService.sendStatement(ownerId, ctx.orgId(), from, to, conciergerieName);
 
         dispatch.setSuccess(true);
@@ -127,11 +108,6 @@ public class SendOwnerStatementExecutor implements AutomationActionExecutor {
         log.info("Releve proprietaire envoye : org={}, owner={}, periode {} -> {}",
                 ctx.orgId(), ownerId, from, to);
         return ExecutionResult.executed();
-    }
-
-    /** Cle du verrou advisory de claim — meme granularite que la contrainte unique 0306. */
-    static String claimKey(Long orgId, Long ownerId, LocalDate periodStart) {
-        return "OWNER_STATEMENT:" + orgId + ":" + ownerId + ":" + periodStart;
     }
 
     private LocalDate periodStart(AutomationActionContext ctx) {

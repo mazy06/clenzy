@@ -29,6 +29,9 @@ import java.util.Set;
  */
 abstract class AbstractGuestMessageExecutor implements AutomationActionExecutor {
 
+    @Override
+    public final boolean permitsPreEffectDeferral() { return true; }
+
     /** Types de template toujours urgents, quel que soit l'executeur porteur. */
     private static final Set<MessageTemplateType> URGENT_TEMPLATE_TYPES = Set.of(
             MessageTemplateType.ACCESS_CODE, MessageTemplateType.CHECK_IN,
@@ -85,7 +88,11 @@ abstract class AbstractGuestMessageExecutor implements AutomationActionExecutor 
         // /guest-messaging/preview/{logId}).
         GuestMessageLog sent = messagingService.sendForReservationViaChannel(
             reservation, template, ctx.orgId(), channel, extraVariables(reservation));
-        return ExecutionResult.executed(sent != null ? sent.getId() : null);
+        if(sent==null || (sent.getStatus()!=com.clenzy.model.MessageStatus.SENT
+                && sent.getStatus()!=com.clenzy.model.MessageStatus.DELIVERED)) {
+            throw new IllegalStateException("AUTOMATION_DELIVERY_UNCONFIRMED");
+        }
+        return ExecutionResult.executed(sent.getId());
     }
 
     /** Hook pre-envoi : retourner un resultat SKIPPED pour sauter l'envoi, null pour continuer. */

@@ -16,8 +16,6 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.transaction.support.TransactionSynchronization;
-import org.springframework.transaction.support.TransactionSynchronizationManager;
 
 import java.time.LocalDateTime;
 import java.time.LocalTime;
@@ -35,7 +33,6 @@ public class NoiseAlertService {
     private final NoiseAlertRepository alertRepository;
     private final NoiseAlertNotificationService notificationService;
     private final AutomationEngine automationEngine;
-    private final org.springframework.transaction.support.TransactionTemplate requiresNewTx;
 
     public NoiseAlertService(BaitlyNoiseAlertAdmission admission,
                              NoiseAlertRepository alertRepository,
@@ -46,11 +43,7 @@ public class NoiseAlertService {
         this.alertRepository = alertRepository;
         this.notificationService = notificationService;
         this.automationEngine = automationEngine;
-        // REQUIRES_NEW : le fireTrigger post-commit doit avoir SA transaction
-        // (cf. commentaire dans fireAutomationTrigger).
-        this.requiresNewTx = new org.springframework.transaction.support.TransactionTemplate(transactionManager);
-        this.requiresNewTx.setPropagationBehavior(
-                org.springframework.transaction.TransactionDefinition.PROPAGATION_REQUIRES_NEW);
+
     }
 
     /**
@@ -103,9 +96,7 @@ public class NoiseAlertService {
      * jamais d'appel HTTP dans une transaction DB ; et l'alerte doit etre
      * visible en base quand l'executeur la recharge).
      *
-     * <p>Best-effort assume (deviation justifiee a la regle « pas de catch
-     * avaleur ») : l'alerte et sa file de notifications configurees existent deja — un
-     * rate du fan-out moteur est logue en erreur mais n'annule pas l'alerte.</p>
+     * <p>La file du moteur rejoint la transaction de création ; aucun effet externe ici.</p>
      */
     private void fireNoiseAlertTrigger(NoiseAlert alert) {
         // Pas de valeur null dans data : le contexte moteur copie la map via Map.copyOf.
@@ -124,36 +115,8 @@ public class NoiseAlertService {
 
         Long orgId = alert.getOrganizationId();
         Long alertId = alert.getId();
-        Runnable fire = () -> {
-            try {
-                // BUG REEL revele par ScenarioNoiseIncidentIT (vague T2, 2026-07) :
-                // dans un callback afterCommit, la transaction d'origine est deja
-                // commitee mais reste liee au thread. Un @Transactional REQUIRED
-                // (AutomationEvaluationService.fireTrigger) REJOINT cette transaction
-                // morte : ses ecritures (automation_execution, notified_guest,
-                // suggestions) etaient flushees mais JAMAIS commitees — effets
-                // externes partis (email guest), zero trace en base. REQUIRES_NEW
-                // force une transaction reelle pour les effets DB du moteur
-                // (pattern documente Spring : le travail post-commit doit ouvrir
-                // sa propre transaction).
-                requiresNewTx.executeWithoutResult(tx ->
-                    automationEngine.fireTrigger(AutomationTrigger.NOISE_ALERT, orgId,
-                        new AutomationSubject(AutomationSubject.TYPE_NOISE_ALERT, alertId, data)));
-            } catch (Exception e) {
-                log.error("Baitly bruit : delegation automation non confirmee pour alerte {}", alertId);
-            }
-        };
-
-        if (TransactionSynchronizationManager.isSynchronizationActive()) {
-            TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
-                @Override
-                public void afterCommit() {
-                    fire.run();
-                }
-            });
-        } else {
-            fire.run();
-        }
+        automationEngine.fireTrigger(AutomationTrigger.NOISE_ALERT, orgId,
+            new AutomationSubject(AutomationSubject.TYPE_NOISE_ALERT, alertId, data));
     }
 
     // ─── Lecture historique ─────────────────────────────────────────────────────
