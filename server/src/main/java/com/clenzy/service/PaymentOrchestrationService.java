@@ -11,6 +11,7 @@ import com.clenzy.payment.PaymentProvider;
 import com.clenzy.payment.PaymentProviderRegistry;
 import com.clenzy.payment.PaymentRequest;
 import com.clenzy.payment.PaymentResult;
+import com.clenzy.payment.BaitlyRefundDiagnostics;
 import com.clenzy.payment.RefundContext;
 import com.clenzy.tenant.TenantContext;
 import io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker;
@@ -209,9 +210,9 @@ public class PaymentOrchestrationService {
                 init.refundAmount(), reason);
         } catch (Exception e) {
             PaymentTransaction failed = paymentPersistence.markRefundFailed(
-                init.refundTransactionRef(), e.getMessage());
+                init.refundTransactionRef(), BaitlyRefundDiagnostics.RECONCILIATION_REQUIRED);
             return new PaymentOrchestrationResult(failed,
-                PaymentResult.failure(e.getMessage()), init.providerType());
+                PaymentResult.failure(BaitlyRefundDiagnostics.RECONCILIATION_REQUIRED), init.providerType());
         }
 
         // 3. Persist résultat + outbox (tx courte)
@@ -225,7 +226,7 @@ public class PaymentOrchestrationService {
                                                                BigDecimal amount, String reason, Throwable t) {
         // Un refus métier n'est pas une indisponibilité réseau : conserver son explication.
         if (t instanceof com.clenzy.exception.PaymentValidationException validation) throw validation;
-        log.error("Refund circuit breaker open for {}: {}", transactionRef, t.getMessage());
+        log.error("Circuit de remboursement indisponible : {}", BaitlyRefundDiagnostics.RECONCILIATION_REQUIRED);
         return new PaymentOrchestrationResult(null,
             PaymentResult.failure("Service de remboursement temporairement indisponible."), null);
     }
