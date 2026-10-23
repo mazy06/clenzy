@@ -37,7 +37,7 @@ public class PennylaneApiService {
 
     public PennylaneApiService(PennylaneConfig config) {
         this.config = config;
-        this.restTemplate = new RestTemplate();
+        this.restTemplate = BaitlyPennylaneHttpTransport.create();
     }
 
     /**
@@ -69,7 +69,7 @@ public class PennylaneApiService {
 
         @SuppressWarnings("unchecked")
         Map<String, Object> responseBody = response.getBody();
-        if (responseBody == null) throw BaitlySignatureSafety.invalidResponse();
+        if (!response.getStatusCode().is2xxSuccessful() || responseBody == null) throw BaitlySignatureSafety.invalidResponse();
         String requestId = BaitlySignatureSafety.remoteId(responseBody.get("id"));
         String signingUrl = BaitlySignatureSafety.signingUrl(responseBody.get("signing_url"));
 
@@ -95,7 +95,7 @@ public class PennylaneApiService {
             Map.class
         );
 
-        if (response.getBody() == null || !(response.getBody().get("status") instanceof String)) throw BaitlySignatureSafety.unknownStatus();
+        if (!response.getStatusCode().is2xxSuccessful() || response.getBody() == null || !(response.getBody().get("status") instanceof String)) throw BaitlySignatureSafety.unknownStatus();
         String status = (String) response.getBody().get("status");
         return mapStatus(status);
     }
@@ -118,7 +118,7 @@ public class PennylaneApiService {
             byte[].class
         );
 
-        if (response.getBody() == null || response.getBody().length == 0) throw BaitlySignatureSafety.invalidResponse();
+        if (!response.getStatusCode().is2xxSuccessful() || response.getBody() == null || response.getBody().length == 0) throw BaitlySignatureSafety.invalidResponse();
         return response.getBody();
     }
 

@@ -39,7 +39,7 @@ public class PennylaneAccountingClient {
                                       PennylaneOAuthService oauthService) {
         this.config = config;
         this.oauthService = oauthService;
-        this.restTemplate = new RestTemplate();
+        this.restTemplate = BaitlyPennylaneHttpTransport.create();
     }
 
     // ─── Customer Invoices ───────────────────────────────────────────────────
@@ -161,6 +161,7 @@ public class PennylaneAccountingClient {
         ResponseEntity<Map<String, Object>> response = restTemplate.exchange(
             uri, HttpMethod.GET, new HttpEntity<>(headers), MAP_TYPE);
 
+        if (!response.getStatusCode().is2xxSuccessful()) throw invalidLookup();
         return response.getBody();
     }
 
@@ -179,6 +180,7 @@ public class PennylaneAccountingClient {
         ResponseEntity<Map<String, Object>> response = restTemplate.exchange(
             url, HttpMethod.POST, new HttpEntity<>(body, headers), MAP_TYPE);
 
+        if (!response.getStatusCode().is2xxSuccessful()) throw invalidLookup();
         return response.getBody();
     }
 
