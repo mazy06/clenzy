@@ -244,7 +244,10 @@ class BaitlyNativeOAuthCoordinationPostgresTest {
             throw new IllegalStateException("synthetic-timeout");
         });
         var one = harness(provider,http,first); var two = harness(provider,http,second);
-        assertThatThrownBy(one.refresh()::run).isInstanceOf(RuntimeException.class);
+        if (provider.equals("minut") || provider.equals("netatmo")) {
+            one.refresh().run();
+            assertThat(ReflectionTestUtils.getField(read(),"status").toString()).isEqualTo("ERROR");
+        } else assertThatThrownBy(one.refresh()::run).isInstanceOf(RuntimeException.class);
         assertThatThrownBy(two.refresh()::run).hasMessage("Rotation OAuth non confirmée ; reconnexion requise").hasNoCause();
         verify(http,times(1)).postForEntity(anyString(),any(),eq(Map.class));
         assertThat(db.queryForObject("SELECT count(*) FROM baitly_oauth_refresh_attempts", Long.class)).isEqualTo(1);

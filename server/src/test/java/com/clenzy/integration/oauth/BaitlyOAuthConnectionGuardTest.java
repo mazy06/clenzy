@@ -65,6 +65,12 @@ class BaitlyOAuthConnectionGuardTest {
         verify(manager).commit(status);
         verify(db,never()).update(anyString(),any(Object[].class));
     }
+    @Test void returnedErrorCommitsTheLocalStateButKeepsTheDurableIntent() {
+        lock(true);
+        assertThat(guard.executeUserRefresh("minut","synthetic-user",() -> "ERROR",value -> false)).isEqualTo("ERROR");
+        verify(manager,times(2)).commit(status);
+        verify(db,never()).update(startsWith("DELETE"),any(Object[].class));
+    }
 
     @Test void operationalRefreshErrorCommitsBeforePropagating() {
         lock(true);

@@ -184,7 +184,7 @@ public class NetatmoOAuthService {
     public NetatmoConnection refreshToken(NetatmoConnection connection) {
         String userId = connection.getUserId();
         return connectionGuard.executeUserRefresh("netatmo", userId,
-                () -> refreshUnderLock(userId, false));
+                () -> refreshUnderLock(userId, false), value -> value != null && value.isActive());
     }
 
     private NetatmoConnection refreshUnderLock(String userId, boolean onlyIfExpiring) {
@@ -268,7 +268,7 @@ public class NetatmoOAuthService {
         if (connection.getTokenExpiresAt() != null
                 && connection.getTokenExpiresAt().minusMinutes(5).isBefore(LocalDateTime.now())) {
             connection = connectionGuard.executeUserRefresh("netatmo", userId,
-                    () -> refreshUnderLock(userId, true));
+                    () -> refreshUnderLock(userId, true), value -> value != null && value.isActive());
             if (!connection.isActive()) {
                 throw new IllegalStateException("Echec du rafraichissement du token Netatmo");
             }
