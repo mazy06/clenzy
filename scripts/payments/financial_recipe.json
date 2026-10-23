@@ -1,5 +1,9 @@
 {
   "backend": [
+    "BaitlyMinutRecoveryPostgresTest",
+    "BaitlyMinutEventParserTest",
+    "BaitlyMinutRecoveryWorkerTest",
+    "BaitlyDeviceRealtimeConfirmationTest",
     "BaitlyMinutConsumerPrivacyTest",
     "MinutWebhookConsumerTest",
     "BaitlyMinutWebhookReceiptTest",
