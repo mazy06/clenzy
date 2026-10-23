@@ -1,5 +1,8 @@
 {
   "backend": [
+    "BaitlyIoTApiDiagnosticsPrivacyTest",
+    "MinutApiServiceTest",
+    "NetatmoApiServiceTest",
     "BaitlyKeyNestDiagnosticsPrivacyTest",
     "BaitlyApiKeyEncryptionPrivacyTest",
     "KeyNestApiServiceTest",

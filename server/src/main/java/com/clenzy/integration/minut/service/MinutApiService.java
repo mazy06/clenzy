@@ -158,8 +158,8 @@ public class MinutApiService {
 
             return response.getBody();
         } catch (Exception e) {
-            log.error("Erreur API Minut GET {}: {}", path, e.getMessage());
-            throw new RuntimeException("Erreur appel API Minut: " + e.getMessage(), e);
+            log.error("Erreur API Minut GET");
+            throw new RuntimeException("Erreur appel API Minut");
         }
     }
 
@@ -178,8 +178,8 @@ public class MinutApiService {
 
             return response.getBody();
         } catch (Exception e) {
-            log.error("Erreur API Minut POST {}: {}", path, e.getMessage());
-            throw new RuntimeException("Erreur appel API Minut: " + e.getMessage(), e);
+            log.error("Erreur API Minut POST");
+            throw new RuntimeException("Erreur appel API Minut");
         }
     }
 
@@ -198,8 +198,8 @@ public class MinutApiService {
 
             return response.getBody();
         } catch (Exception e) {
-            log.error("Erreur API Minut PUT {}: {}", path, e.getMessage());
-            throw new RuntimeException("Erreur appel API Minut: " + e.getMessage(), e);
+            log.error("Erreur API Minut PUT");
+            throw new RuntimeException("Erreur appel API Minut");
         }
     }
 
