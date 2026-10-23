@@ -115,7 +115,7 @@ public class OAuthFlowEngine {
             Long userId,
             Long orgId
     ) {
-        return connectionGuard.execute(config.getProviderKey(), orgId,
+        return connectionGuard.executeAuthorization(config.getProviderKey(), orgId,
                 () -> exchangeUnderLock(config, persistence, code, userId, orgId));
     }
 
@@ -311,6 +311,7 @@ public class OAuthFlowEngine {
                     () -> refreshUnderLock(config, persistence, orgId, true));
         }
 
+        connectionGuard.requireSettled(config.getProviderKey(), orgId);
         return encryptionService.decrypt(connection.getAccessTokenEncrypted());
     }
 

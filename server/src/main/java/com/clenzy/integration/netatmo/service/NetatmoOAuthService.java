@@ -183,7 +183,7 @@ public class NetatmoOAuthService {
     @SuppressWarnings("unchecked")
     public NetatmoConnection refreshToken(NetatmoConnection connection) {
         String userId = connection.getUserId();
-        return connectionGuard.executeUserRefresh("netatmo", userId,
+        return connectionGuard.executeUserAuthorization("netatmo", userId,
                 () -> refreshUnderLock(userId, false));
     }
 
@@ -274,6 +274,7 @@ public class NetatmoOAuthService {
             }
         }
 
+        connectionGuard.requireUserSettled("netatmo", userId);
         return encryptionService.decrypt(connection.getAccessTokenEncrypted());
     }
 

@@ -27,6 +27,8 @@ class BaitlyOAuthCoordinationPostgresTest {
     JdbcTemplate db;
     BaitlyOAuthConnectionGuard first, second;
     String table;
+    String schema;
+    JdbcTemplate admin;
 
     @BeforeEach void setup() {
         String url = System.getProperty("baitly.test.jdbc");
@@ -34,7 +36,11 @@ class BaitlyOAuthCoordinationPostgresTest {
                 && !url.equals("jdbc:postgresql://127.0.0.1:55439/postgres")) {
             throw new IllegalArgumentException("Base de recette locale dédiée requise");
         }
-        var source = new DriverManagerDataSource(url, "postgres", "");
+        admin = new JdbcTemplate(new DriverManagerDataSource(url, "postgres", ""));
+        schema = "baitly_oauth_journal_" + UUID.randomUUID().toString().replace("-", "");
+        admin.execute("CREATE SCHEMA " + schema);
+        var source = new DriverManagerDataSource(url + "?currentSchema=" + schema, "postgres", "");
+        BaitlyOAuthTestGuards.installRefreshJournal(source);
         db = new JdbcTemplate(source);
         first = new BaitlyOAuthConnectionGuard(db, new DataSourceTransactionManager(source));
         second = new BaitlyOAuthConnectionGuard(db, new DataSourceTransactionManager(source));
@@ -43,11 +49,81 @@ class BaitlyOAuthCoordinationPostgresTest {
         db.update("INSERT INTO " + table + " VALUES (7, 'old-access', 'old-refresh', 'ACTIVE', now()-interval '1 hour')");
     }
 
-    @AfterEach void cleanup() { if (db != null && table != null) db.execute("DROP TABLE IF EXISTS " + table); }
+    @AfterEach void cleanup() { if (admin != null && schema != null) admin.execute("DROP SCHEMA IF EXISTS " + schema + " CASCADE"); }
 
     static void await(CountDownLatch latch) {
         try { if (!latch.await(10, TimeUnit.SECONDS)) throw new IllegalStateException("Test synchronization timeout"); }
         catch (InterruptedException failure) { Thread.currentThread().interrupt(); throw new IllegalStateException("Test interrupted"); }
+    }
+
+    @Test void rotationFollowedByLocalRollbackSurvivesRestartAndRequiresNewAuthorization() {
+        var calls = new java.util.concurrent.atomic.AtomicInteger();
+        assertThatThrownBy(() -> first.executeRefresh("test", 7L, () -> {
+            calls.incrementAndGet();
+            db.update("UPDATE " + table + " SET access='rotated-access',refresh='rotated-refresh' WHERE id=7");
+            db.execute("SELECT 1/0");
+            return "must-not-succeed";
+        })).isInstanceOf(RuntimeException.class);
+        assertThat(db.queryForObject("SELECT refresh FROM " + table, String.class)).isEqualTo("old-refresh");
+        assertThat(db.queryForObject("SELECT count(*) FROM baitly_oauth_refresh_attempts", Long.class)).isEqualTo(1);
+        assertThatThrownBy(() -> second.executeRefresh("test", 7L, () -> {calls.incrementAndGet(); return "unsafe";}))
+                .hasMessage("Rotation OAuth non confirmée ; reconnexion requise").hasNoCause();
+        assertThatThrownBy(() -> second.requireSettled("test", 7L)).hasNoCause();
+        assertThat(calls).hasValue(1);
+        assertThat(second.executeAuthorization("test", 7L, () -> {
+            db.update("UPDATE " + table + " SET access='reauthorized-access',refresh='reauthorized-refresh' WHERE id=7");
+            return "reconnected";
+        })).isEqualTo("reconnected");
+        second.requireSettled("test", 7L);
+        assertThat(db.queryForObject("SELECT refresh FROM " + table, String.class)).isEqualTo("reauthorized-refresh");
+    }
+
+    @Test void failedReconnectionCannotClearTheDurableFenceAndAgeNeverRearmsIt() {
+        assertThatThrownBy(() -> first.executeRefresh("test", 7L, () -> {throw new IllegalStateException("synthetic");}));
+        db.update("UPDATE baitly_oauth_refresh_attempts SET created_at=CURRENT_TIMESTAMP-INTERVAL '100 days'");
+        assertThatThrownBy(() -> second.executeAuthorization("test", 7L, () -> {
+            db.execute("SELECT 1/0"); return "unsafe";
+        }));
+        assertThatThrownBy(() -> second.executeRefresh("test", 7L, () -> "unsafe"))
+                .hasMessage("Rotation OAuth non confirmée ; reconnexion requise").hasNoCause();
+        assertThat(second.executeRefresh("other", 7L, () -> "independent-provider")).isEqualTo("independent-provider");
+        assertThat(second.executeRefresh("test", 8L, () -> "independent-organization")).isEqualTo("independent-organization");
+    }
+
+    @Test void successfulRefreshCommitsCredentialsAndFenceRemovalAtomically() {
+        assertThat(first.executeRefresh("test", 7L, () -> {
+            assertThat(db.queryForObject("SELECT count(*) FROM baitly_oauth_refresh_attempts", Long.class)).isEqualTo(1);
+            db.update("UPDATE " + table + " SET refresh='new-refresh' WHERE id=7");
+            return "ok";
+        })).isEqualTo("ok");
+        assertThat(db.queryForObject("SELECT count(*) FROM baitly_oauth_refresh_attempts", Long.class)).isZero();
+        assertThat(db.queryForObject("SELECT refresh FROM " + table, String.class)).isEqualTo("new-refresh");
+    }
+
+    @Test void userScopeFenceHasNoRawIdentityAndCannotBeClearedByAnotherUser() {
+        assertThatThrownBy(() -> first.executeUserRefresh("minut", "synthetic-private@example.invalid", () -> {throw new IllegalStateException("synthetic");}));
+        assertThat(db.queryForObject("SELECT scope_hash FROM baitly_oauth_refresh_attempts", String.class)).matches("[a-f0-9]{64}");
+        second.executeUserAuthorization("minut", "other-user", () -> "ok");
+        assertThatThrownBy(() -> second.requireUserSettled("minut", "synthetic-private@example.invalid")).hasNoCause();
+        second.executeUserAuthorization("minut", "synthetic-private@example.invalid", () -> "ok");
+        second.requireUserSettled("minut", "synthetic-private@example.invalid");
+    }
+
+    @Test void refreshJournalMigrationIsRegisteredAndReplaysThroughLiquibase() throws Exception {
+        db.execute("DROP TABLE baitly_oauth_refresh_attempts");
+        for (int run=0; run<2; run++) {
+            try (var connection = db.getDataSource().getConnection()) {
+                var database = liquibase.database.DatabaseFactory.getInstance().findCorrectDatabaseImplementation(new liquibase.database.jvm.JdbcConnection(connection));
+                var resources = new liquibase.resource.ClassLoaderResourceAccessor();
+                try (var master = new liquibase.Liquibase("db/changelog/db.changelog-master.yaml", resources, database)) {
+                    var selected = new liquibase.changelog.DatabaseChangeLog("db/changelog/db.changelog-master.yaml");
+                    master.getDatabaseChangeLog().getChangeSets().stream().filter(change -> change.getId().equals("0598-baitly-oauth-refresh-attempts")).forEach(selected::addChangeSet);
+                    assertThat(selected.getChangeSets()).hasSize(1);
+                    new liquibase.Liquibase(selected, resources, database).update("");
+                }
+            }
+        }
+        assertThat(first.executeRefresh("test", 7L, () -> "migrated")).isEqualTo("migrated");
     }
 
     @Test void independentGuardsExcludeSameScopeAndReleaseAfterCommit() throws Exception {

@@ -108,7 +108,7 @@ public class HomeAwayOAuthService {
      */
     @CircuitBreaker(name = "homeaway-oauth")
     public HomeAwayConnection exchangeCodeForToken(String code, Long orgId) {
-        return connectionGuard.executeRefresh("homeaway", orgId,
+        return connectionGuard.executeAuthorization("homeaway", orgId,
                 () -> exchangeUnderLock(code, orgId));
     }
 
@@ -272,6 +272,7 @@ public class HomeAwayOAuthService {
                     () -> refreshUnderLock(orgId, true));
         }
 
+        connectionGuard.requireSettled("homeaway", orgId);
         return encryptionService.decrypt(connection.getAccessTokenEncrypted());
     }
 

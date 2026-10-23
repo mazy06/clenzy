@@ -45,6 +45,8 @@ class OAuthFlowEngineTest {
         engine = new OAuthFlowEngine(stateService, encryptionService, connectionGuard);
         lenient().when(connectionGuard.execute(anyString(), any(), any())).thenAnswer(call ->
                 ((java.util.function.Supplier<?>) call.getArgument(2)).get());
+        lenient().when(connectionGuard.executeAuthorization(anyString(), any(), any())).thenAnswer(call ->
+                ((java.util.function.Supplier<?>) call.getArgument(2)).get());
         lenient().when(connectionGuard.executeRefresh(anyString(), any(), any())).thenAnswer(call ->
                 ((java.util.function.Supplier<?>) call.getArgument(2)).get());
         // Replace inner restTemplate with mocked one

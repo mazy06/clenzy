@@ -5325,3 +5325,11 @@ databaseChangeLog:
         - sqlFile:
             path: changes/0597__baitly_accounting_export_journal.sql
             relativeToChangelogFile: true
+
+  - changeSet:
+      id: "0598-baitly-oauth-refresh-attempts"
+      author: clenzy-team
+      changes:
+        - sqlFile:
+            path: changes/0598__baitly_oauth_refresh_attempts.sql
+            relativeToChangelogFile: true

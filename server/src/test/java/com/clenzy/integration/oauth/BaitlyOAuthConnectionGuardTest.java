@@ -18,6 +18,7 @@ class BaitlyOAuthConnectionGuardTest {
         when(manager.getTransaction(any())).thenReturn(status);
         when(db.queryForObject(anyString(), eq(Boolean.class), any(Object[].class))).thenReturn(granted);
         when(db.queryForObject("SELECT 1", Integer.class)).thenReturn(1);
+        when(db.update(anyString(), any(Object[].class))).thenReturn(1);
     }
 
     @Test void contentionNeverRunsOperation() {
@@ -41,7 +42,7 @@ class BaitlyOAuthConnectionGuardTest {
     @Test void successCommitsBeforeReturning() {
         lock(true);
         assertThat(guard.execute("test", 7L, () -> "ok")).isEqualTo("ok");
-        verify(manager).commit(status);
+        verify(manager, atLeastOnce()).commit(status);
     }
 
     @Test void exchangeFailureRollsBack() {
@@ -56,7 +57,7 @@ class BaitlyOAuthConnectionGuardTest {
         lock(true);
         assertThatThrownBy(() -> guard.executeRefresh("test", 7L, () -> {throw new IllegalStateException("synthetic");}))
                 .hasMessage("synthetic");
-        verify(manager).commit(status);
+        verify(manager, atLeastOnce()).commit(status);
     }
 
     @Test void condemnedTransactionCannotCommitError() {

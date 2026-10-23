@@ -13,6 +13,7 @@ import java.util.function.Supplier;
 public class BaitlyOAuthConnectionGuard {
     private final JdbcTemplate db;
     private final TransactionTemplate transaction;
+    private final TransactionTemplate durable;
 
     public BaitlyOAuthConnectionGuard(JdbcTemplate db, PlatformTransactionManager manager) {
         this.db = db;
@@ -20,6 +21,9 @@ public class BaitlyOAuthConnectionGuard {
         transaction.setPropagationBehavior(TransactionDefinition.PROPAGATION_REQUIRES_NEW);
         // Clients historiques : connexion 10 s + lecture 30 s, puis marge de commit.
         transaction.setTimeout(60);
+        durable = new TransactionTemplate(manager);
+        durable.setPropagationBehavior(TransactionDefinition.PROPAGATION_REQUIRES_NEW);
+        durable.setTimeout(10);
     }
 
     public <T> T execute(String provider, Long organizationId, Supplier<T> operation) {
@@ -33,6 +37,15 @@ public class BaitlyOAuthConnectionGuard {
 
     public <T> T executeForUser(String provider, String userId, Supplier<T> operation) {
         return executeKey(userScope(provider, userId), operation, false);
+    }
+
+    /** Nouvelle autorisation : conserve les erreurs métier, ne réutilise aucun refresh incertain. */
+    public <T> T executeAuthorization(String provider, Long organizationId, Supplier<T> operation) {
+        return executeKey(organizationScope(provider, organizationId), operation, true, false, true);
+    }
+
+    public <T> T executeUserAuthorization(String provider, String userId, Supplier<T> operation) {
+        return executeKey(userScope(provider, userId), operation, true, false, true);
     }
 
     public <T> T executeUserRefresh(String provider, String userId, Supplier<T> operation) {
@@ -55,14 +68,22 @@ public class BaitlyOAuthConnectionGuard {
     }
 
     private <T> T execute(String provider, Long organizationId, Supplier<T> operation, boolean preserveError) {
+        return executeKey(organizationScope(provider, organizationId), operation, preserveError);
+    }
+
+    private String organizationScope(String provider, Long organizationId) {
         if (provider == null || !provider.matches("[a-z0-9_-]{1,48}")
                 || organizationId == null || organizationId <= 0) {
             throw new IllegalArgumentException("Périmètre OAuth invalide");
         }
-        return executeKey("baitly:oauth:" + provider + ":" + organizationId, operation, preserveError);
+        return "baitly:oauth:" + provider + ":" + organizationId;
     }
 
     private <T> T executeKey(String scope, Supplier<T> operation, boolean preserveError) {
+        return executeKey(scope, operation, preserveError, preserveError, false);
+    }
+
+    private <T> T executeKey(String scope, Supplier<T> operation, boolean preserveError, boolean refresh, boolean authorization) {
         Outcome<T> outcome = transaction.execute(status -> {
             // La clé ne contient aucun jeton, identifiant utilisateur en clair ou URL fournisseur.
             Boolean locked = db.queryForObject(
@@ -71,6 +92,8 @@ public class BaitlyOAuthConnectionGuard {
             if (!Boolean.TRUE.equals(locked)) {
                 throw new BaitlyOAuthBusyException();
             }
+            String hash = digest(scope);
+            java.util.UUID attempt = refresh ? beginRefresh(hash) : null;
             try {
                 T value = operation.get();
                 if (status.isRollbackOnly()) throw new IllegalStateException("Transaction OAuth non confirmée");
@@ -78,6 +101,13 @@ public class BaitlyOAuthConnectionGuard {
                 // Une sonde dans la même transaction doit réussir avant de retourner un succès.
                 if (!Integer.valueOf(1).equals(db.queryForObject("SELECT 1", Integer.class))) {
                     throw new IllegalStateException("Transaction OAuth non confirmée");
+                }
+                // Même transaction que les nouveaux jetons : rollback => intention encore présente.
+                if (refresh) {
+                    int removed = db.update("DELETE FROM baitly_oauth_refresh_attempts WHERE scope_hash=? AND attempt=?", hash, attempt);
+                    if (removed != 1) throw recoveryRequired();
+                } else if (authorization) {
+                    db.update("DELETE FROM baitly_oauth_refresh_attempts WHERE scope_hash=?", hash);
                 }
                 return new Outcome<>(value, null);
             } catch (RuntimeException failure) {
@@ -91,6 +121,34 @@ public class BaitlyOAuthConnectionGuard {
         if (outcome.failure != null) throw outcome.failure;
         return outcome.value;
     }
+
+    private java.util.UUID beginRefresh(String hash) {
+        java.util.UUID attempt = java.util.UUID.randomUUID();
+        try {
+            Integer inserted = durable.execute(status -> db.update("INSERT INTO baitly_oauth_refresh_attempts(scope_hash,attempt) VALUES (?,?) ON CONFLICT DO NOTHING", hash, attempt));
+            if (!Integer.valueOf(1).equals(inserted)) throw recoveryRequired();
+            return attempt;
+        } catch (RuntimeException ignored) { throw recoveryRequired(); }
+    }
+
+    public void requireSettled(String provider, Long organizationId) { requireSettledKey(organizationScope(provider, organizationId)); }
+    public void requireUserSettled(String provider, String userId) { requireSettledKey(userScope(provider, userId)); }
+
+    private void requireSettledKey(String scope) {
+        try {
+            Long count = db.queryForObject("SELECT count(*) FROM baitly_oauth_refresh_attempts WHERE scope_hash=?", Long.class, digest(scope));
+            if (count == null || count != 0) throw recoveryRequired();
+        } catch (RuntimeException ignored) { throw recoveryRequired(); }
+    }
+
+    private String digest(String scope) {
+        try {
+            return java.util.HexFormat.of().formatHex(java.security.MessageDigest.getInstance("SHA-256")
+                    .digest(scope.getBytes(java.nio.charset.StandardCharsets.UTF_8)));
+        } catch (java.security.NoSuchAlgorithmException ignored) { throw recoveryRequired(); }
+    }
+
+    private IllegalStateException recoveryRequired() { return new IllegalStateException("Rotation OAuth non confirmée ; reconnexion requise"); }
 
     private static final class Outcome<T> {
         final T value;

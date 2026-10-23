@@ -170,7 +170,7 @@ public class MinutOAuthService {
     @SuppressWarnings("unchecked")
     public MinutConnection refreshToken(MinutConnection connection) {
         String userId = connection.getUserId();
-        return connectionGuard.executeUserRefresh("minut", userId,
+        return connectionGuard.executeUserAuthorization("minut", userId,
                 () -> refreshUnderLock(userId, false));
     }
 
@@ -263,6 +263,7 @@ public class MinutOAuthService {
             }
         }
 
+        connectionGuard.requireUserSettled("minut", userId);
         return encryptionService.decrypt(connection.getAccessTokenEncrypted());
     }
 

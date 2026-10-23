@@ -72,6 +72,7 @@ class BaitlyNativeOAuthCoordinationPostgresTest {
         schema = "baitly_native_oauth_" + UUID.randomUUID().toString().replace("-", "");
         admin.execute("CREATE SCHEMA " + schema);
         source = new DriverManagerDataSource(url + "?currentSchema=" + schema, "postgres", "");
+        com.clenzy.integration.oauth.BaitlyOAuthTestGuards.installRefreshJournal(source);
         var config = new Configuration().addAnnotatedClass(AirbnbConnection.class).addAnnotatedClass(HomeAwayConnection.class)
                 .addAnnotatedClass(MinutConnection.class).addAnnotatedClass(NetatmoConnection.class)
                 .setProperty("hibernate.hbm2ddl.auto", "create-drop");

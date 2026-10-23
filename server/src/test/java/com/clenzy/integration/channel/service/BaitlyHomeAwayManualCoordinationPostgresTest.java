@@ -52,6 +52,7 @@ class BaitlyHomeAwayManualCoordinationPostgresTest {
         schema = "baitly_manual_" + UUID.randomUUID().toString().replace("-", "");
         admin.execute("CREATE SCHEMA " + schema);
         var source = new DriverManagerDataSource(jdbc + "?currentSchema=" + schema, "postgres", "");
+        com.clenzy.integration.oauth.BaitlyOAuthTestGuards.installRefreshJournal(source);
         var config = new Configuration().addAnnotatedClass(HomeAwayConnection.class).addAnnotatedClass(ChannelConnection.class)
                 .setProperty("hibernate.hbm2ddl.auto", "create-drop");
         config.getProperties().put("hibernate.connection.datasource", source);
