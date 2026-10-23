@@ -1,5 +1,7 @@
 {
   "backend": [
+    "BaitlyRecoveryJournalMetricsTest",
+    "SchedulerLockCoverageTest",
     "BaitlyOpsAlertControllerTest",
     "BaitlyOperationalNotificationTest",
     "BaitlyOperationalMetricsTest",

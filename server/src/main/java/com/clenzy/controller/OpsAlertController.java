@@ -55,7 +55,9 @@ public class OpsAlertController {
             "ClenzyBackendDown", "ClenzyDocGenFailures", "BaitlyBackendHigh5xx", "BaitlyBackendSlow",
             "BaitlyDatabasePoolSaturated", "BaitlyJvmHeapPressure", "BaitlyBackendDiskLow",
             "BaitlyOperationalMetricsUnavailable", "BaitlyOperationalMetricsStale", "BaitlyOutboxExhausted",
-            "BaitlyOutboxStalled", "BaitlyWebhookDeliveryStalled", "BaitlyWebhookDisabled", "BaitlyChannelSyncFailures");
+            "BaitlyOutboxStalled", "BaitlyWebhookDeliveryStalled", "BaitlyWebhookDisabled", "BaitlyChannelSyncFailures",
+            "BaitlyRecoveryMetricsUnavailable", "BaitlyRecoveryMetricsStale",
+            "BaitlyAccountingExportStalled", "BaitlyAccountingExportUncertain");
 
     private final NotificationService notificationService;
     private final String opsToken;

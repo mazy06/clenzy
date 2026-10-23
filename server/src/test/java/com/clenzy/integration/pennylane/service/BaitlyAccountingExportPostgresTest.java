@@ -95,6 +95,60 @@ class BaitlyAccountingExportPostgresTest {
         assertThatThrownBy(() -> journal.prepare(new Key(7L,Kind.INVOICE,999L),generation,hash,null)).hasNoCause();
         assertThat(db.queryForObject("SELECT pennylane_invoice_id FROM invoices WHERE id=999",String.class)).isNull();
     }
+
+    @Test void recoveryMetricsReadActualMigrationsWithoutConflatingLegacyAndLiveUncertainty() {
+        com.clenzy.integration.oauth.BaitlyOAuthTestGuards.installRefreshJournal(source);
+        var registry = new io.micrometer.core.instrument.simple.SimpleMeterRegistry();
+        var metrics = new com.clenzy.config.BaitlyRecoveryJournalMetrics(db,registry);
+        metrics.refresh();
+        assertThat(metric(registry,"snapshot.healthy")).isEqualTo(1);
+        assertThat(metric(registry,"accounting.historical.review")).isEqualTo(2);
+        assertThat(metric(registry,"accounting.unknown")).isZero();
+        var ticket = prepare(Kind.INVOICE);
+        db.update("UPDATE baitly_accounting_exports SET created_at=CURRENT_TIMESTAMP-INTERVAL '1 hour' WHERE document_id=42");
+        metrics.refresh();
+        assertThat(metric(registry,"accounting.inflight")).isEqualTo(1);
+        assertThat(metric(registry,"accounting.oldest.inflight.seconds")).isBetween(3590.0,3630.0);
+        journal.uncertain(ticket);
+        new com.clenzy.integration.oauth.BaitlyOAuthConnectionGuard(db,manager).executeRevocation("test",7L,() -> null);
+        metrics.refresh();
+        assertThat(metric(registry,"accounting.inflight")).isZero();
+        assertThat(metric(registry,"accounting.unknown")).isEqualTo(1);
+        assertThat(metric(registry,"accounting.oldest.unknown.seconds")).isBetween(3590.0,3630.0);
+        assertThat(metric(registry,"oauth.blocked.scopes")).isEqualTo(1);
+        var recovery = journal.prepareRecoverable(key(Kind.INVOICE),generation,hash,null);
+        journal.confirmReconciled(recovery,"123");
+        metrics.refresh();
+        assertThat(metric(registry,"accounting.unknown")).isZero();
+        assertThat(metric(registry,"accounting.oldest.unknown.seconds")).isZero();
+        assertThat(metric(registry,"accounting.historical.review")).isEqualTo(2);
+        assertThat(metric(registry,"oauth.blocked.scopes")).isEqualTo(1);
+        assertThat(registry.getMeters()).allSatisfy(meter -> assertThat(meter.getId().getTags()).isEmpty());
+    }
+
+    @Test void recoveryMetricsFailurePreservesWholePostgresSnapshotAndItsFreshness() {
+        com.clenzy.integration.oauth.BaitlyOAuthTestGuards.installRefreshJournal(source);
+        var clock = new io.micrometer.core.instrument.MockClock();
+        var registry = new io.micrometer.core.instrument.simple.SimpleMeterRegistry(
+                io.micrometer.core.instrument.simple.SimpleConfig.DEFAULT,clock);
+        var metrics = new com.clenzy.config.BaitlyRecoveryJournalMetrics(db,registry);
+        var ticket = prepare(Kind.INVOICE);
+        metrics.refresh();
+        double heartbeat = metric(registry,"snapshot.last.success.timestamp.seconds");
+        journal.uncertain(ticket);
+        clock.add(java.time.Duration.ofMinutes(5));
+        db.execute("DROP TABLE baitly_oauth_refresh_attempts");
+        metrics.refresh();
+        assertThat(metric(registry,"snapshot.healthy")).isZero();
+        assertThat(metric(registry,"snapshot.last.success.timestamp.seconds")).isEqualTo(heartbeat);
+        assertThat(metric(registry,"accounting.inflight")).isEqualTo(1);
+        assertThat(metric(registry,"accounting.unknown")).isZero();
+        assertThat(metric(registry,"accounting.historical.review")).isEqualTo(2);
+    }
+
+    double metric(io.micrometer.core.instrument.MeterRegistry registry, String name) {
+        return registry.get("baitly.recovery."+name).gauge().value();
+    }
     @ParameterizedTest @EnumSource(Kind.class)
     void committedIntentSurvivesCallerRollbackAndPreventsRestartResubmission(Kind kind) {
         assertThatThrownBy(() -> new TransactionTemplate(manager).execute(status -> {prepare(kind);throw new IllegalStateException("synthetic rollback");}))

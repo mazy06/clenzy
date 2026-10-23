@@ -166,4 +166,22 @@ class BaitlyOpsAlertControllerTest {
         assertThat(response.getBody().toString()).doesNotContain("synthetic-private");
         assertThat(registry.find("baitly.ops.alerts.received").counter()).isNull();
     }
+
+    @org.junit.jupiter.params.ParameterizedTest
+    @org.junit.jupiter.params.provider.ValueSource(strings = {"BaitlyRecoveryMetricsUnavailable","BaitlyRecoveryMetricsStale",
+            "BaitlyAccountingExportStalled","BaitlyAccountingExportUncertain"})
+    void recoveryRulesKeepControlledNamesForFiringAndResolutionWithoutPrivateLabels(String name) throws Exception {
+        when(notifications.notifyPlatformOpsStrict(anyString(),anyString(),isNull())).thenReturn(1);
+        for (String state : java.util.List.of("firing","resolved")) {
+            var payload = json.createObjectNode().put("status",state);
+            var alert = payload.putArray("alerts").addObject();
+            alert.putObject("labels").put("alertname",name).put("severity","warning").put("organization","synthetic-private");
+            alert.putObject("annotations").put("description","token=synthetic-private");
+            assertThat(controller.receiveAlertmanager(payload,"test-ops-token",null).getStatusCode().value()).isEqualTo(202);
+        }
+        var titles = ArgumentCaptor.forClass(String.class); var messages = ArgumentCaptor.forClass(String.class);
+        verify(notifications,times(2)).notifyPlatformOpsStrict(titles.capture(),messages.capture(),isNull());
+        assertThat(titles.getAllValues()).allSatisfy(title -> assertThat(title).contains(name).doesNotContain("synthetic-private"));
+        assertThat(messages.getAllValues()).allSatisfy(message -> assertThat(message).contains(name).doesNotContain("synthetic-private"));
+    }
 }
