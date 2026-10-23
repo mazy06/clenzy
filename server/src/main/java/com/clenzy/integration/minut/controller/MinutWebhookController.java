@@ -8,6 +8,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.ResponseEntity;
 import org.springframework.kafka.core.KafkaTemplate;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import javax.crypto.Mac;
@@ -15,6 +16,8 @@ import javax.crypto.spec.SecretKeySpec;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.util.Map;
+import java.util.Objects;
+import java.util.concurrent.TimeUnit;
 
 /**
  * Controller pour les webhooks Minut.
@@ -24,12 +27,13 @@ import java.util.Map;
  * - Validation de la signature HMAC-SHA256 dans le header
  * - Traitement asynchrone via Kafka
  *
- * IMPORTANT : Repondre 200 OK le plus vite possible (< 5s)
- * pour eviter les retries de Minut. Le traitement reel est
- * asynchrone via Kafka.
+ * Un succes HTTP confirme uniquement la publication acquittee par Kafka,
+ * jamais le traitement metier asynchrone. Une publication non confirmee
+ * retourne 503 ; elle peut toutefois avoir atteint le broker avant le timeout.
  */
 @RestController
 @RequestMapping("/api/webhooks")
+@PreAuthorize("permitAll()") // Route publique deja declaree dans SecurityConfigProd, HMAC obligatoire.
 @Tag(name = "Minut Webhooks", description = "Reception des evenements Minut")
 public class MinutWebhookController {
 
@@ -60,44 +64,46 @@ public class MinutWebhookController {
         log.debug("Webhook Minut recu ({} bytes)", payload != null ? payload.length() : 0);
 
         // Valider la signature HMAC si le secret est configure
-        if (config.getWebhookSecret() != null && !config.getWebhookSecret().isEmpty()) {
-            if (signature == null || !validateSignature(payload, signature)) {
-                log.warn("Signature webhook Minut invalide");
-                return ResponseEntity.badRequest().body(Map.of(
-                        "status", "error",
-                        "message", "Invalid signature"
-                ));
-            }
+        String secret = config.getWebhookSecret();
+        if (secret == null || secret.isBlank()) {
+            log.error("Webhook Minut indisponible : secret HMAC non configure");
+            return ResponseEntity.status(503).body(Map.of("status", "error", "message", "Webhook unavailable"));
+        }
+        if (payload == null || payload.isBlank()) {
+            return ResponseEntity.badRequest().body(Map.of("status", "error", "message", "Invalid payload"));
+        }
+        if (signature == null || !signature.matches("[a-fA-F0-9]{64}") || !validateSignature(payload, signature, secret)) {
+            log.warn("Signature webhook Minut invalide");
+            return ResponseEntity.badRequest().body(Map.of("status", "error", "message", "Invalid signature"));
         }
 
         try {
-            // Publier dans Kafka pour traitement asynchrone
-            kafkaTemplate.send(KafkaConfig.TOPIC_MINUT_WEBHOOKS, payload);
-            log.info("Webhook Minut publie dans Kafka");
-
-            return ResponseEntity.ok(Map.of(
-                    "status", "ok",
-                    "message", "Event received"
-            ));
-
+            // Le delai borne l'attente de l'ACK, pas l'acquisition des metadonnees dans send().
+            Objects.requireNonNull(kafkaTemplate.send(KafkaConfig.TOPIC_MINUT_WEBHOOKS, payload)
+                    .get(3, TimeUnit.SECONDS));
+            log.info("Publication webhook Minut acquittee par Kafka");
+            return ResponseEntity.ok(Map.of("status", "ok", "message", "Event received"));
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            return publicationUnconfirmed();
         } catch (Exception e) {
-            log.error("Erreur publication webhook Minut dans Kafka: {}", e.getMessage());
-            // Retourner 200 quand meme pour eviter les retries de Minut
-            return ResponseEntity.ok(Map.of(
-                    "status", "ok",
-                    "message", "Event received (processing delayed)"
-            ));
+            return publicationUnconfirmed();
         }
+    }
+
+    private ResponseEntity<Map<String, String>> publicationUnconfirmed() {
+        log.error("Publication webhook Minut non confirmee par Kafka");
+        return ResponseEntity.status(503).body(Map.of("status", "error", "message", "Event receipt unconfirmed"));
     }
 
     /**
      * Valide la signature HMAC-SHA256 du payload.
      */
-    private boolean validateSignature(String payload, String expectedSignature) {
+    private boolean validateSignature(String payload, String expectedSignature, String secret) {
         try {
             Mac mac = Mac.getInstance("HmacSHA256");
             SecretKeySpec secretKeySpec = new SecretKeySpec(
-                    config.getWebhookSecret().getBytes(StandardCharsets.UTF_8), "HmacSHA256");
+                    secret.getBytes(StandardCharsets.UTF_8), "HmacSHA256");
             mac.init(secretKeySpec);
             byte[] hash = mac.doFinal(payload.getBytes(StandardCharsets.UTF_8));
 
@@ -113,7 +119,7 @@ public class MinutWebhookController {
                     expectedSignature.toLowerCase().getBytes(StandardCharsets.UTF_8));
 
         } catch (Exception e) {
-            log.error("Erreur validation signature webhook Minut: {}", e.getMessage());
+            log.error("Erreur validation signature webhook Minut");
             return false;
         }
     }

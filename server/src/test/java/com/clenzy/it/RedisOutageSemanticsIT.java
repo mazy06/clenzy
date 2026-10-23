@@ -53,9 +53,9 @@ import static org.assertj.core.api.Assertions.assertThat;
  *       operateur — jamais de budget non compte) ;</li>
  *   <li>(b) {@link EmbeddingOrgQuota#tryConsume} → <b>FAIL-OPEN</b> : sans Redis
  *       le RAG continue (fonctionnalite utilisateur, quota = garde-fou de cout) ;</li>
- *   <li>(c) claim bruit {@link NoiseAlertNotificationService} → <b>repli base</b> :
- *       sans Redis, l'idempotence « 1 avertissement voyageur / sejour / 24 h »
- *       est arbitree par {@code NoiseAlertRepository.existsGuestNotifiedSince}.</li>
+ *   <li>(c) claim bruit {@link NoiseAlertNotificationService} → <b>FAIL-CLOSED</b> :
+ *       sans Redis, aucun avertissement voyageur n'est tente. Une lecture base
+ *       seule ne garantit pas l'exclusion entre deux envois concurrents.</li>
  * </ul>
  *
  * <p><b>Choix d'implementation documente</b> : on ne coupe PAS le container Redis
@@ -65,7 +65,7 @@ import static org.assertj.core.api.Assertions.assertThat;
  * demarre, un {@link StringRedisTemplate} pointe dessus (timeouts courts), les
  * services testes sont instancies avec CE template (constructeurs publics — les
  * quotas sont autonomes, le service bruit recoit les beans REELS du contexte pour
- * exercer le vrai repli base sur le vrai Postgres Testcontainers). La panne est
+ * verifier le refus sans envoi malgre une base disponible). La panne est
  * simulee en STOPPANT le container dedie — connexion refusee, exception rapide.</p>
  */
 @EnabledIfEnvironmentVariable(named = "CLENZY_IT", matches = "true")
@@ -79,7 +79,7 @@ class RedisOutageSemanticsIT extends AbstractIntegrationTest {
     private static StringRedisTemplate dedicatedTemplate;
     private static LettuceConnectionFactory dedicatedFactory;
 
-    // Beans reels pour le repli base du claim bruit (chemin Postgres reel).
+    // Beans reels du contexte pour verifier le refus du claim bruit.
     @Autowired private OrganizationRepository organizationRepository;
     @Autowired private UserRepository userRepository;
     @Autowired private PropertyRepository propertyRepository;
@@ -143,7 +143,7 @@ class RedisOutageSemanticsIT extends AbstractIntegrationTest {
     // ─── (a) + (b) : quotas — fail-closed vs fail-open ──────────────────────
 
     @Test
-    void redisOutage_scanQuotaFailsClosed_embeddingQuotaFailsOpen_noiseClaimFallsBackToDb() {
+    void redisOutage_scanQuotaFailsClosed_embeddingQuotaFailsOpen_noiseClaimFailsClosed() {
         StringRedisTemplate template = dedicatedRedisTemplate();
         SupervisionScanQuota scanQuota = new SupervisionScanQuota(template);
         EmbeddingOrgQuota embeddingQuota = new EmbeddingOrgQuota(template, 100);
@@ -175,31 +175,25 @@ class RedisOutageSemanticsIT extends AbstractIntegrationTest {
                 .as("Panne Redis : EmbeddingOrgQuota doit ACCORDER (fail-open)")
                 .isTrue();
 
-        // (c) claim bruit : service REEL construit avec le template mort +
-        // les beans reels du contexte → le claim Redis echoue, le repli base
-        // (existsGuestNotifiedSince, vrai Postgres) arbitre.
+        // Le claim bruit refuse sans Redis : une lecture SQL seule ne
+        // serialise pas deux envois concurrents. Aucun message n'est tente.
         NoiseAlertNotificationService noiseService = new NoiseAlertNotificationService(
                 notificationService, emailService, propertyRepository, reservationRepository,
                 systemEmailTemplateService, templateInterpolationService,
                 new EmailWrapperService(), whatsAppProviderResolver, whatsAppConfigRepository,
                 noiseAlertRepository, template);
 
-        // c-1 : AUCUN message voyageur en base < 24 h → le repli base accorde,
-        // l'avertissement part (email via le template seede, SMTP mocke).
         var firstOutcome = noiseService.sendGuestWarning(fixture.freshAlert());
-        assertThat(firstOutcome.sent())
-                .as("Panne Redis + base vierge : le repli base accorde le claim "
-                        + "(raison=%s)", firstOutcome.skipReason())
-                .isTrue();
-        assertThat(firstOutcome.channel()).isEqualTo("email");
-
-        // c-2 : l'envoi c-1 a trace notified_guest=true en base → une nouvelle
-        // alerte < 24 h est REFUSEE par le repli base (une seule notification).
         var secondOutcome = noiseService.sendGuestWarning(fixture.secondAlert());
-        assertThat(secondOutcome.sent())
-                .as("Panne Redis + voyageur deja averti en base : repli base refuse")
-                .isFalse();
-        assertThat(secondOutcome.skipReason()).contains("deja averti");
+        assertThat(firstOutcome.sent()).isFalse();
+        assertThat(secondOutcome.sent()).isFalse();
+        assertThat(firstOutcome.skipReason()).contains("exclusivite non acquise");
+        assertThat(secondOutcome.skipReason()).contains("exclusivite non acquise");
+        org.mockito.Mockito.verify(emailService, org.mockito.Mockito.never()).sendContactMessage(
+                org.mockito.ArgumentMatchers.anyString(), org.mockito.ArgumentMatchers.any(),
+                org.mockito.ArgumentMatchers.any(), org.mockito.ArgumentMatchers.any(),
+                org.mockito.ArgumentMatchers.anyString(), org.mockito.ArgumentMatchers.anyString(),
+                org.mockito.ArgumentMatchers.anyList());
     }
 
     // ─── Fixture bruit ───────────────────────────────────────────────────────

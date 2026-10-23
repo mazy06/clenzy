@@ -101,7 +101,7 @@ public class OrganizationInvitation {
     public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }
 
     public boolean isExpired() {
-        return LocalDateTime.now().isAfter(expiresAt);
+        return expiresAt == null || !expiresAt.isAfter(LocalDateTime.now());
     }
 
     public boolean isPending() {

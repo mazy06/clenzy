@@ -73,6 +73,33 @@ class NoiseAlertServiceTest {
         config.getTimeWindows().addAll(List.of(dayWindow, nightWindow));
     }
 
+    private final ch.qos.logback.classic.Logger logger =
+        (ch.qos.logback.classic.Logger) org.slf4j.LoggerFactory.getLogger(NoiseAlertService.class);
+    private final ch.qos.logback.core.read.ListAppender<ch.qos.logback.classic.spi.ILoggingEvent> logs =
+        new ch.qos.logback.core.read.ListAppender<>();
+    private ch.qos.logback.classic.Level previous;
+
+    @BeforeEach void captureDiagnostics() {
+        previous = logger.getLevel();
+        logger.setLevel(ch.qos.logback.classic.Level.DEBUG);
+        logs.start();
+        logger.addAppender(logs);
+    }
+
+    @org.junit.jupiter.api.AfterEach void checkDiagnostics() {
+        try {
+            org.assertj.core.api.Assertions.assertThat(logs.list).allSatisfy(event -> {
+                org.assertj.core.api.Assertions.assertThat(event.getFormattedMessage())
+                    .doesNotContain("synthetic-secret", "example.invalid", "private-cause");
+                org.assertj.core.api.Assertions.assertThat(event.getThrowableProxy()).isNull();
+            });
+        } finally {
+            logger.detachAppender(logs);
+            logger.setLevel(previous);
+            logs.stop();
+        }
+    }
+
     // ─── evaluateNoiseLevel ────────────────────────────────────────────────────
 
     @Test
@@ -313,7 +340,7 @@ class NoiseAlertServiceTest {
                 a.setId(99L);
                 return a;
             });
-        org.mockito.Mockito.doThrow(new RuntimeException("smtp down"))
+        org.mockito.Mockito.doThrow(new RuntimeException("synthetic-secret guest@example.invalid", new IllegalArgumentException("private-cause")))
             .when(notificationService).dispatch(any(), any());
 
         NoiseAlert result = service.evaluateNoiseLevel(10L, 100L, 5L, 88.0, AlertSource.WEBHOOK);
@@ -476,5 +503,13 @@ class NoiseAlertServiceTest {
         service.evaluateNoiseLevel(10L, 100L, 1L, 80.0, AlertSource.WEBHOOK);
 
         verifyNoInteractions(automationEngine);
+    }
+    @org.junit.jupiter.params.ParameterizedTest
+    @org.junit.jupiter.params.provider.ValueSource(doubles = {Double.NaN, Double.POSITIVE_INFINITY, Double.NEGATIVE_INFINITY, 0, -1})
+    void invalidMeasurementNeverReadsConfigOrCreatesAnAlert(double value) {
+        for (AlertSource source : AlertSource.values()) {
+            assertNull(service.evaluateNoiseLevel(10L, 100L, 1L, value, source));
+        }
+        verifyNoInteractions(configRepository, alertRepository, notificationService, automationEngine);
     }
 }

@@ -219,7 +219,7 @@ public class NetatmoApiService {
         return null;
     }
 
-    /** Mappe un type de module sécurité Netatmo vers un kind Clenzy (null si non géré). */
+    /** Mappe un type de module sécurité Netatmo vers un kind Baitly (null si non géré). */
     private static String securityKind(String type) {
         if ("NSD".equals(type)) return "smoke";
         if ("NACamDoorTag".equals(type)) return "contact";
@@ -291,8 +291,8 @@ public class NetatmoApiService {
                     config.getApiBaseUrl() + path, HttpMethod.GET, new HttpEntity<>(headers), responseType);
             return response.getBody();
         } catch (Exception e) {
-            log.error("Erreur API Netatmo GET {}: {}", path, e.getMessage());
-            throw new RuntimeException("Erreur appel API Netatmo: " + e.getMessage(), e);
+            log.error("Erreur API Netatmo GET");
+            throw new RuntimeException("Erreur appel API Netatmo");
         }
     }
 
@@ -307,8 +307,8 @@ public class NetatmoApiService {
                     config.getApiBaseUrl() + path, HttpMethod.POST, new HttpEntity<>(headers), responseType);
             return response.getBody();
         } catch (Exception e) {
-            log.error("Erreur API Netatmo POST {}: {}", path, e.getMessage());
-            throw new RuntimeException("Erreur appel API Netatmo: " + e.getMessage(), e);
+            log.error("Erreur API Netatmo POST");
+            throw new RuntimeException("Erreur appel API Netatmo");
         }
     }
 }

@@ -17,7 +17,6 @@ import org.springframework.stereotype.Service;
 
 import java.time.Duration;
 import java.time.LocalDate;
-import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.HashMap;
 import java.util.List;
@@ -95,7 +94,7 @@ public class NoiseAlertNotificationService {
         }
 
         // 3. Message au voyageur (si reservation active) — WhatsApp d'abord,
-        //    repli email, 1 avertissement max par sejour par 24 h (F6a).
+        //    email si aucun canal WhatsApp n’est prepare ; pas de repli apres tentative.
         if (config.isNotifyGuestMessage()) {
             GuestWarningOutcome outcome = sendGuestWarning(alert);
             if (!outcome.sent()) {
@@ -139,7 +138,7 @@ public class NoiseAlertNotificationService {
                 alert.setNotifiedInApp(true);
             }
         } catch (Exception e) {
-            log.error("Erreur notification in-app pour alerte {}: {}", alert.getId(), e.getMessage());
+            log.error("Baitly bruit : notification interne non confirmee pour alerte {}", alert.getId());
         }
     }
 
@@ -174,7 +173,7 @@ public class NoiseAlertNotificationService {
             }
             alert.setNotifiedEmail(true);
         } catch (Exception e) {
-            log.error("Erreur notification email pour alerte {}: {}", alert.getId(), e.getMessage());
+            log.error("Baitly bruit : notification email non confirmee pour alerte {}", alert.getId());
         }
     }
 
@@ -227,178 +226,105 @@ public class NoiseAlertNotificationService {
     }
 
     /**
-     * Avertit le voyageur du sejour EN COURS sur la propriete de l'alerte :
-     * WhatsApp (template Meta {@value #NOISE_ALERT_TEMPLATE}) si disponible,
-     * repli email sinon.
-     *
-     * <p><b>Idempotence F6a</b> : UN avertissement maximum par sejour par 24 h,
-     * claim Redis atomique ({@code SETNX} + TTL 24 h) partage entre le chemin
-     * historique (config bruit {@code notifyGuestMessage}) et l'executeur
-     * SEND_NOISE_WARNING du moteur — les deux actives ne produisent qu'un
-     * message. Si Redis est indisponible, repli sur la trace en base
-     * ({@code notified_guest}/{@code notified_whatsapp} des alertes des
-     * dernieres 24 h). Le claim est relache si aucun canal n'a pu envoyer.</p>
+     * Prepare le canal avant le claim. Une fois un envoi tente, une erreur est
+     * incertaine : aucun second canal et aucune liberation du claim.
+     * Redis indisponible ou reponse nulle : refus, jamais lecture DB non exclusive.
+     * La fenetre Redis de 24 h reste une limite ; elle ne constitue pas un journal durable.
      */
     public GuestWarningOutcome sendGuestWarning(NoiseAlert alert) {
         Property property = propertyRepository.findById(alert.getPropertyId()).orElse(null);
         String propertyName = property != null ? property.getName() : "Logement #" + alert.getPropertyId();
-
         Reservation reservation = reservationRepository
             .findActiveByPropertyIdAndDate(
                 alert.getPropertyId(), LocalDate.now(), alert.getOrganizationId())
             .orElse(null);
-        if (reservation == null) {
-            return GuestWarningOutcome.skipped("aucune reservation en cours sur la propriete "
-                + alert.getPropertyId());
-        }
-        Guest guest = reservation.getGuest();
-        if (guest == null) {
-            return GuestWarningOutcome.skipped("reservation " + reservation.getId() + " sans voyageur");
+        if (reservation == null || reservation.getGuest() == null) {
+            return GuestWarningOutcome.skipped("aucun voyageur sur un sejour actif");
         }
 
+        final GuestDelivery delivery;
+        try {
+            delivery = prepareGuestDelivery(alert, reservation.getGuest(), propertyName);
+        } catch (Exception preparationFailure) {
+            log.warn("Baitly bruit : preparation du canal indisponible pour alerte {}", alert.getId());
+            return GuestWarningOutcome.skipped("preparation du canal indisponible");
+        }
+        if (delivery == null) {
+            return GuestWarningOutcome.skipped("aucun canal disponible");
+        }
         if (!claimGuestWarningWindow(alert, reservation)) {
-            return GuestWarningOutcome.skipped("voyageur deja averti il y a moins de 24 h (sejour "
-                + reservation.getId() + ")");
+            return GuestWarningOutcome.skipped("avertissement bloque : exclusivite non acquise");
         }
 
-        boolean sentWhatsApp = trySendWhatsApp(alert, guest, propertyName, reservation.getId());
-        if (sentWhatsApp) {
-            alert.setNotifiedWhatsapp(true);
-            noiseAlertRepository.save(alert);
-            return GuestWarningOutcome.sentVia("whatsapp");
-        }
-
-        boolean sentEmail = trySendEmail(alert, guest, propertyName, reservation.getId());
-        if (sentEmail) {
-            alert.setNotifiedGuest(true);
-            noiseAlertRepository.save(alert);
-            return GuestWarningOutcome.sentVia("email");
-        }
-
-        // Aucun canal n'a pu envoyer : relacher la fenetre pour ne pas bloquer
-        // une prochaine alerte du meme sejour.
-        releaseGuestWarningWindow(reservation.getId());
-        return GuestWarningOutcome.skipped("aucun canal disponible (ni WhatsApp ni email) pour la reservation "
-            + reservation.getId());
-    }
-
-    /**
-     * Claim atomique de la fenetre « 1 avertissement / sejour / 24 h ».
-     * Redis SETNX + TTL ; repli lecture base si Redis est indisponible.
-     */
-    private boolean claimGuestWarningWindow(NoiseAlert alert, Reservation reservation) {
-        String key = GUEST_WARNING_KEY_PREFIX + reservation.getId();
         try {
-            Boolean claimed = redisTemplate.opsForValue()
-                .setIfAbsent(key, String.valueOf(alert.getId()), GUEST_WARNING_TTL);
-            return Boolean.TRUE.equals(claimed);
-        } catch (Exception redisDown) {
-            log.warn("Redis indisponible pour l'idempotence avertissement voyageur ({}) — repli base",
-                redisDown.getMessage());
-            return !noiseAlertRepository.existsGuestNotifiedSince(
-                alert.getPropertyId(), LocalDateTime.now().minusHours(24));
-        }
-    }
-
-    private void releaseGuestWarningWindow(Long reservationId) {
-        try {
-            redisTemplate.delete(GUEST_WARNING_KEY_PREFIX + reservationId);
-        } catch (Exception e) {
-            log.debug("Liberation claim avertissement voyageur impossible ({}) — expirera par TTL",
-                e.getMessage());
-        }
-    }
-
-    /**
-     * Tente l'envoi WhatsApp (template Meta approuve, obligatoire hors fenetre de
-     * session 24 h ; repli texte libre pour les providers sans templates type OpenWA).
-     *
-     * @return true si un message est parti — false si non configure/numero absent/erreur
-     *         provider (le repli email prend alors la main)
-     */
-    private boolean trySendWhatsApp(NoiseAlert alert, Guest guest, String propertyName, Long reservationId) {
-        try {
-            // WhatsApp via Meta Cloud API (ou OpenWA) selon la config de l'org.
-            // Resolution par orgId explicite : hors HTTP, pas de TenantContext.
-            WhatsAppConfig waConfig = whatsAppConfigRepository
-                .findByOrganizationId(alert.getOrganizationId()).orElse(null);
-            if (waConfig == null || !waConfig.isEnabled()) {
-                log.debug("WhatsApp non configure/desactive pour org {} — repli email (alerte {})",
-                    alert.getOrganizationId(), alert.getId());
-                return false;
+            delivery.send().run();
+            if ("whatsapp".equals(delivery.channel())) {
+                alert.setNotifiedWhatsapp(true);
+            } else {
+                alert.setNotifiedGuest(true);
             }
-            if (guest.getPhone() == null || guest.getPhone().isBlank()) {
-                log.debug("Pas de telephone voyageur pour reservation {} — repli email", reservationId);
-                return false;
-            }
+            noiseAlertRepository.save(alert);
+            log.info("Baitly bruit : avertissement delegue pour alerte {}", alert.getId());
+            return GuestWarningOutcome.sentVia(delivery.channel());
+        } catch (Exception uncertain) {
+            // Le provider a pu accepter le message, ou l'ecriture locale a echoue.
+            // Conserver la fenetre meme si l'exception semble etre un refus.
+            log.error("Baitly bruit : avertissement non confirme pour alerte {}", alert.getId());
+            return GuestWarningOutcome.skipped("resultat incertain : rapprochement necessaire");
+        }
+    }
 
-            String guestName = guest.getFullName() != null ? guest.getFullName() : "Cher voyageur";
+    private record GuestDelivery(String channel, Runnable send) {}
+
+    private GuestDelivery prepareGuestDelivery(NoiseAlert alert, Guest guest, String propertyName) {
+        WhatsAppConfig waConfig = whatsAppConfigRepository
+            .findByOrganizationId(alert.getOrganizationId()).orElse(null);
+        if (waConfig != null && waConfig.isEnabled()
+                && guest.getPhone() != null && !guest.getPhone().isBlank()) {
             WhatsAppProvider provider = whatsAppProviderResolver.resolve(waConfig);
-            List<String> templateParams = List.of(
-                guestName,
-                String.format("%.0f", alert.getMeasuredDb()),
-                String.valueOf(alert.getThresholdDb()),
-                propertyName);
-
-            try {
-                // Template approuve Meta (obligatoire hors fenetre 24h), variables {{1}}..{{4}}.
-                provider.sendTemplateMessage(waConfig, guest.getPhone(),
-                    NOISE_ALERT_TEMPLATE, toMetaLocale(guest.getLanguage()), templateParams);
-            } catch (UnsupportedOperationException templateNotSupported) {
-                // Provider sans templates Meta (OpenWA) : repli sur texte libre.
+            WhatsAppProviderType type = provider.getProviderType();
+            if (type == null) throw new IllegalStateException("Canal non qualifie");
+            String guestName = guest.getFullName() != null ? guest.getFullName() : "Cher voyageur";
+            if (type == WhatsAppProviderType.OPENWA) {
                 String body = String.format(
                     "Bonjour %s, un niveau sonore eleve (%.0f dB, seuil %d dB) a ete detecte au logement "
                     + "\"%s\". Merci de veiller a preserver le calme afin de ne pas gener le voisinage.",
                     guestName, alert.getMeasuredDb(), alert.getThresholdDb(), propertyName);
-                provider.sendTextMessage(waConfig, guest.getPhone(), body);
+                return new GuestDelivery("whatsapp", () ->
+                    requireMessageId(provider.sendTextMessage(waConfig, guest.getPhone(), body)));
             }
-            log.info("WhatsApp voyageur envoye pour alerte {} (reservation {})",
-                alert.getId(), reservationId);
-            return true;
-        } catch (Exception e) {
-            log.error("Erreur WhatsApp voyageur pour alerte {} — repli email: {}",
-                alert.getId(), e.getMessage());
-            return false;
+            List<String> parameters = List.of(guestName, String.format("%.0f", alert.getMeasuredDb()),
+                String.valueOf(alert.getThresholdDb()), propertyName);
+            String language = toMetaLocale(guest.getLanguage());
+            return new GuestDelivery("whatsapp", () ->
+                requireMessageId(provider.sendTemplateMessage(waConfig, guest.getPhone(),
+                    NOISE_ALERT_TEMPLATE, language, parameters)));
         }
+        if (guest.getEmail() == null || guest.getEmail().isBlank()) return null;
+        var template = systemEmailTemplateService.resolve(
+            alert.getOrganizationId(), "noise_alert_guest", "fr").orElse(null);
+        if (template == null) return null;
+        String guestName = guest.getFullName() != null ? guest.getFullName() : "Cher voyageur";
+        Map<String, String> vars = Map.of("guestName", guestName, "propertyName", propertyName);
+        String subject = templateInterpolationService.interpolate(template.getSubject(), vars, false);
+        String body = templateInterpolationService.interpolate(template.getBody(), vars, true);
+        String htmlBody = emailWrapperService.wrap(template.getWrapperStyle(), body);
+        return new GuestDelivery("email", () ->
+            emailService.sendContactMessage(
+                guest.getEmail(), guestName, null, null, subject, htmlBody, List.of()));
     }
 
-    /**
-     * Envoi email au voyageur via le template systeme {@code noise_alert_guest}
-     * (override per-org &gt; systeme).
-     *
-     * @return true si l'email est parti
-     */
-    private boolean trySendEmail(NoiseAlert alert, Guest guest, String propertyName, Long reservationId) {
+    private static void requireMessageId(String id) {
+        if (id == null || id.isBlank()) throw new IllegalStateException("Envoi non confirme");
+    }
+
+    private boolean claimGuestWarningWindow(NoiseAlert alert, Reservation reservation) {
+        if (alert.getId() == null || reservation.getId() == null) return false;
         try {
-            if (guest.getEmail() == null || guest.getEmail().isBlank()) {
-                log.debug("Pas d'email voyageur pour reservation {} — message impossible", reservationId);
-                return false;
-            }
-
-            var template = systemEmailTemplateService.resolve(
-                alert.getOrganizationId(), "noise_alert_guest", "fr").orElse(null);
-            if (template == null) {
-                log.warn("Template systeme noise_alert_guest introuvable — alerte {} non envoyee", alert.getId());
-                return false;
-            }
-
-            String guestName = guest.getFullName() != null ? guest.getFullName() : "Cher voyageur";
-            Map<String, String> vars = Map.of(
-                "guestName", guestName,
-                "propertyName", propertyName
-            );
-            String subject = templateInterpolationService.interpolate(template.getSubject(), vars, false);
-            String interpolatedBody = templateInterpolationService.interpolate(template.getBody(), vars, true);
-            String htmlBody = emailWrapperService.wrap(template.getWrapperStyle(), interpolatedBody);
-
-            emailService.sendContactMessage(
-                guest.getEmail(), guestName, null, null, subject, htmlBody, List.of());
-
-            log.info("Message voyageur envoye a {} pour alerte {} (reservation {})",
-                guest.getEmail(), alert.getId(), reservationId);
-            return true;
-        } catch (Exception e) {
-            log.error("Erreur message voyageur pour alerte {}: {}", alert.getId(), e.getMessage());
+            return Boolean.TRUE.equals(redisTemplate.opsForValue().setIfAbsent(
+                GUEST_WARNING_KEY_PREFIX + reservation.getId(), String.valueOf(alert.getId()), GUEST_WARNING_TTL));
+        } catch (Exception unavailable) {
+            log.warn("Baitly bruit : controle exclusif indisponible");
             return false;
         }
     }

@@ -264,7 +264,7 @@ class AuthControllerTest {
 
             assertThat(result.get("id")).isEqualTo(99L);
             // Called twice: once during auto-provisioning, once for user without org
-            verify(invitationService, times(2)).autoAcceptPendingInvitations(eq("test@example.com"), any(User.class));
+            verify(invitationService, times(2)).autoAcceptPendingInvitations(eq("test@example.com"), any(User.class), eq(jwt));
         }
 
         @org.junit.jupiter.params.ParameterizedTest
