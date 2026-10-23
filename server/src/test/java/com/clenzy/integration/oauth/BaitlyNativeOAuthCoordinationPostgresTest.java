@@ -192,6 +192,7 @@ class BaitlyNativeOAuthCoordinationPostgresTest {
         var entered = new CountDownLatch(1);
         var release = new CountDownLatch(1);
         when(http.postForEntity(anyString(), any(), eq(Map.class))).thenAnswer(call -> {
+            assertThat(new JdbcTemplate(source).queryForObject("SELECT count(*) FROM baitly_oauth_refresh_attempts", Long.class)).isEqualTo(1);
             Object body = call.getArgument(1);
             if (body instanceof HttpEntity<?> entity) body = entity.getBody();
             assertThat(body.toString()).contains("old-refresh");
@@ -231,6 +232,27 @@ class BaitlyNativeOAuthCoordinationPostgresTest {
         assertThatThrownBy(service.refresh()::run).hasMessageContaining("inactive");
         assertThat(ReflectionTestUtils.getField(read(), "status").toString()).isIn("REVOKED", "INACTIVE");
         verifyNoInteractions(http);
+    }
+
+    @ParameterizedTest @ValueSource(strings = {"airbnb", "homeaway", "minut", "netatmo"})
+    void uncertainExplicitRefreshCannotRepeatAndOnlyNewAuthorizationClearsIt(String provider) {
+        seed(provider);
+        var http = mock(RestTemplate.class);
+        var db = new JdbcTemplate(source);
+        when(http.postForEntity(anyString(), any(), eq(Map.class))).thenAnswer(call -> {
+            assertThat(db.queryForObject("SELECT count(*) FROM baitly_oauth_refresh_attempts", Long.class)).isEqualTo(1);
+            throw new IllegalStateException("synthetic-timeout");
+        });
+        var one = harness(provider,http,first); var two = harness(provider,http,second);
+        assertThatThrownBy(one.refresh()::run).isInstanceOf(RuntimeException.class);
+        assertThatThrownBy(two.refresh()::run).hasMessage("Rotation OAuth non confirmée ; reconnexion requise").hasNoCause();
+        verify(http,times(1)).postForEntity(anyString(),any(),eq(Map.class));
+        assertThat(db.queryForObject("SELECT count(*) FROM baitly_oauth_refresh_attempts", Long.class)).isEqualTo(1);
+        doReturn(ResponseEntity.ok(Map.of("access_token","reauthorized-access","refresh_token","reauthorized-refresh","expires_in",3600)))
+                .when(http).postForEntity(anyString(),any(),eq(Map.class));
+        two.exchange().run();
+        assertThat(db.queryForObject("SELECT count(*) FROM baitly_oauth_refresh_attempts", Long.class)).isZero();
+        assertThat(two.token().get()).isEqualTo("reauthorized-access");
     }
 
     @ParameterizedTest @ValueSource(strings = {"airbnb", "homeaway", "minut", "netatmo"})
