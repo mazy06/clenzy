@@ -89,15 +89,24 @@ public class BaitlyMinutEventJournal {
 
     public Optional<Ticket> claim(UUID id) {
         return safe(() -> tx.execute(status -> {
-            var rows = db.query("SELECT * FROM baitly_minut_events WHERE id=? FOR UPDATE", BaitlyMinutEventJournal::read, id);
+            var rows = db.query("SELECT * FROM baitly_minut_events WHERE id=?", BaitlyMinutEventJournal::read, id);
             if (rows.isEmpty()) throw unavailable();
             Event event = rows.getFirst();
             if (!event.state().equals("READY")) return Optional.empty();
             var names = db.queryForList("""
                 SELECT name,online FROM noise_devices WHERE id=? AND organization_id=? AND property_id=?
-                AND device_type='MINUT' AND status='ACTIVE' AND simulation=false
+                AND device_type='MINUT' AND status='ACTIVE' AND simulation=false FOR UPDATE
                 """, event.device(),event.organization(),event.property());
-            if (names.size() != 1 || event.nextStep() >= event.plan().size()) throw unavailable();
+            if (names.size() != 1) throw unavailable();
+            // Same lock order as admission: device, then event. Re-read progress after waiting.
+            var locked=db.query("SELECT * FROM baitly_minut_events WHERE id=? FOR UPDATE",BaitlyMinutEventJournal::read,id);
+            if (locked.size()!=1) throw unavailable();
+            Event current=locked.getFirst();
+            if (!current.organization().equals(event.organization()) || !current.device().equals(event.device())
+                    || !current.property().equals(event.property())) throw unavailable();
+            event=current;
+            if (!event.state().equals("READY")) return Optional.empty();
+            if (event.nextStep() >= event.plan().size()) throw unavailable();
             boolean staleState=event.kind()==Kind.OFFLINE && !Boolean.FALSE.equals(names.getFirst().get("online"))
                     || event.kind()==Kind.ONLINE && !Boolean.TRUE.equals(names.getFirst().get("online"));
             if (event.kind() != Kind.DISTURBANCE && (staleState || !Objects.equals(event.id(),db.queryForObject("""

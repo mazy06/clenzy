@@ -57,6 +57,8 @@ du producer sur ses métadonnées. Aucun message de succès global n’en est d�
 Le curseur d’épisode empêche un travail READY d’un ancien épisode de notifier après
 une nouvelle transition. L’état online courant est aussi contrôlé avant chaque étape :
 un rafraîchissement par une autre source peut rendre une alerte en attente obsolète.
+Admission et démarrage verrouillent dans le même ordre appareil puis événement ;
+la progression est relue après attente. Le verrou est libéré avant l’appel externe.
 Un événement de connectivité strictement plus ancien que
 la transition conservée est placé en REVIEW. Une action déjà STARTED/en vol lors
 d’une transition, suppression ou réaffectation ne peut pas être rappelée.
@@ -71,6 +73,9 @@ restent refusés ; ils ne doivent pas être rejoués en masse en inventant ces c
 La campagne finale doit vérifier que les anciennes versions du consumer ne traitent
 plus en parallèle pendant l’activation du journal. Le nouveau code ne peut pas
 dédupliquer un effet réalisé par une ancienne instance qui ignore ce journal.
+Un rollback vers cet ancien consumer après création de la borne doit donc être
+traité comme un nouveau cutover à qualifier ; ne pas réactiver ce flux en supposant
+que la borne prouve les effets réalisés pendant le rollback.
 Déploiement uniquement par PR/CI/CD ; aucun changement manuel de schéma ou d’état.
 Ni réarmement SQL ni appel générique de replay des automatisations ne constitue une
 réconciliation des UNKNOWN. Une future opération de rapprochement devra exiger

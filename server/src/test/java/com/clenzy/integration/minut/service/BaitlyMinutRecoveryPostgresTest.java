@@ -46,7 +46,7 @@ class BaitlyMinutRecoveryPostgresTest {
             throw new IllegalArgumentException("Base PostgreSQL de recette dediee requise");
         admin=new JdbcTemplate(new DriverManagerDataSource(jdbc,"postgres",""));
         schema="baitly_minut_"+UUID.randomUUID().toString().replace("-","");admin.execute("CREATE SCHEMA "+schema);
-        source=new DriverManagerDataSource(jdbc+"?currentSchema="+schema,"postgres","");
+        source=new DriverManagerDataSource(jdbc+"?currentSchema="+schema+"&ApplicationName="+schema,"postgres","");
         db=new JdbcTemplate(source);observer=new JdbcTemplate(new DriverManagerDataSource(jdbc+"?currentSchema="+schema,"postgres",""));
         // Names checked against NoiseDevice @Table/@Column and changesets 0036/0037/0186/0561.
         db.execute("""
@@ -276,6 +276,27 @@ class BaitlyMinutRecoveryPostgresTest {
         db.update("UPDATE noise_devices SET online=true WHERE id=31");
         worker(journal).process(id);assertThat(state(id)).isEqualTo("SUPERSEDED");assertThat(step(id)).isEqualTo(1);
         verifyNoInteractions(realtime,automation,noise,kafka);
+    }
+    @Test void claimWaitsForConcurrentDeviceTransitionBeforeStartingAnyEffect() throws Exception {
+        UUID id=journal.admit(offline());
+        try(var pool=Executors.newSingleThreadExecutor()) {
+            var work=new java.util.concurrent.atomic.AtomicReference<Future<?>>();
+            new TransactionTemplate(manager).execute(status -> {
+                db.update("UPDATE noise_devices SET online=true WHERE id=31");
+                work.set(pool.submit(() -> worker(new BaitlyMinutEventJournal(new JdbcTemplate(source),new DataSourceTransactionManager(source))).process(id)));
+                long deadline=System.nanoTime()+TimeUnit.SECONDS.toNanos(5);boolean waiting=false;
+                while(System.nanoTime()<deadline && !work.get().isDone()) {
+                    Long locks=observer.queryForObject("SELECT count(*) FROM pg_stat_activity WHERE application_name=? AND wait_event_type='Lock' AND query LIKE '%noise_devices%'",Long.class,schema);
+                    if(locks!=null && locks>0) {waiting=true;break;}
+                    try {Thread.sleep(10);} catch(InterruptedException failure) {Thread.currentThread().interrupt();throw new IllegalStateException(failure);}
+                }
+                assertThat(waiting).as("claim must wait for the actual device row lock").isTrue();
+                assertThat(state(id)).isEqualTo("READY");verifyNoInteractions(realtime,automation,noise,kafka);
+                return true;
+            });
+            work.get().get(10,TimeUnit.SECONDS);
+        }
+        assertThat(state(id)).isEqualTo("SUPERSEDED");verifyNoInteractions(realtime,automation,noise,kafka);
     }
     double metric(io.micrometer.core.instrument.simple.SimpleMeterRegistry registry,String name) {
         return registry.get("baitly.recovery."+name).gauge().value();
