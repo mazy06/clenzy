@@ -55,7 +55,9 @@ Le délai de trois secondes borne l’attente de l’ACK Kafka, pas le blocage i
 du producer sur ses métadonnées. Aucun message de succès global n’en est déduit.
 
 Le curseur d’épisode empêche un travail READY d’un ancien épisode de notifier après
-une nouvelle transition. Un événement de connectivité strictement plus ancien que
+une nouvelle transition. L’état online courant est aussi contrôlé avant chaque étape :
+un rafraîchissement par une autre source peut rendre une alerte en attente obsolète.
+Un événement de connectivité strictement plus ancien que
 la transition conservée est placé en REVIEW. Une action déjà STARTED/en vol lors
 d’une transition, suppression ou réaffectation ne peut pas être rappelée.
 

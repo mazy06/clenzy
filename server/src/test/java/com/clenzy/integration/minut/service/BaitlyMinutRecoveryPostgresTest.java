@@ -270,6 +270,13 @@ class BaitlyMinutRecoveryPostgresTest {
         db.execute("DROP TABLE baitly_minut_events CASCADE");metrics.refresh();
         assertThat(metric(registry,"snapshot.healthy")).isZero();assertThat(metric(registry,"minut.ready")).isEqualTo(1);
     }
+    @Test void aDeviceRefreshOutsideTheWebhookPipelineAlsoSuppressesAStalePendingAlert() {
+        UUID id=journal.admit(offline());
+        var first=journal.claim(id).orElseThrow();journal.complete(first);
+        db.update("UPDATE noise_devices SET online=true WHERE id=31");
+        worker(journal).process(id);assertThat(state(id)).isEqualTo("SUPERSEDED");assertThat(step(id)).isEqualTo(1);
+        verifyNoInteractions(realtime,automation,noise,kafka);
+    }
     double metric(io.micrometer.core.instrument.simple.SimpleMeterRegistry registry,String name) {
         return registry.get("baitly.recovery."+name).gauge().value();
     }

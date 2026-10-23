@@ -94,13 +94,15 @@ public class BaitlyMinutEventJournal {
             Event event = rows.getFirst();
             if (!event.state().equals("READY")) return Optional.empty();
             var names = db.queryForList("""
-                SELECT name FROM noise_devices WHERE id=? AND organization_id=? AND property_id=?
+                SELECT name,online FROM noise_devices WHERE id=? AND organization_id=? AND property_id=?
                 AND device_type='MINUT' AND status='ACTIVE' AND simulation=false
                 """, event.device(),event.organization(),event.property());
             if (names.size() != 1 || event.nextStep() >= event.plan().size()) throw unavailable();
-            if (event.kind() != Kind.DISTURBANCE && !Objects.equals(event.id(),db.queryForObject("""
+            boolean staleState=event.kind()==Kind.OFFLINE && !Boolean.FALSE.equals(names.getFirst().get("online"))
+                    || event.kind()==Kind.ONLINE && !Boolean.TRUE.equals(names.getFirst().get("online"));
+            if (event.kind() != Kind.DISTURBANCE && (staleState || !Objects.equals(event.id(),db.queryForObject("""
                     SELECT event_id FROM baitly_minut_device_cursor WHERE device_id=? AND organization_id=? AND property_id=?
-                    """,UUID.class,event.device(),event.organization(),event.property()))) {
+                    """,UUID.class,event.device(),event.organization(),event.property())))) {
                 db.update("UPDATE baitly_minut_events SET state='SUPERSEDED',updated_at=CURRENT_TIMESTAMP WHERE id=?",id);
                 return Optional.empty();
             }
