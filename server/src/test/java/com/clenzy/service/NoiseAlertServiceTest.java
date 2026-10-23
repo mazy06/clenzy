@@ -29,7 +29,7 @@ import static org.mockito.Mockito.*;
 @ExtendWith(MockitoExtension.class)
 class NoiseAlertServiceTest {
 
-    @Mock private NoiseAlertConfigRepository configRepository;
+    @Mock private BaitlyNoiseAlertAdmission admission;
     @Mock private NoiseAlertRepository alertRepository;
     @Mock private NoiseAlertNotificationService notificationService;
     @Mock private AutomationEngine automationEngine;
@@ -71,6 +71,15 @@ class NoiseAlertServiceTest {
         nightWindow.setConfig(config);
 
         config.getTimeWindows().addAll(List.of(dayWindow, nightWindow));
+        lenient().when(admission.admit(any(),any(),anyDouble())).thenAnswer(call -> {
+            if(!config.isEnabled()) return Optional.empty();
+            var w=NoiseAlertService.findMatchingWindow(config.getTimeWindows(),LocalTime.now());
+            if(w==null) return Optional.empty();
+            var severity=NoiseAlertService.determineSeverity(call.getArgument(2),w);
+            return severity==null ? Optional.empty() : Optional.of(new BaitlyNoiseAlertAdmission.Admission(
+                1L,severity,severity==AlertSeverity.CRITICAL ? w.getCriticalThresholdDb() : w.getWarningThresholdDb(),w.getLabel()));
+        });
+
     }
 
     private final ch.qos.logback.classic.Logger logger =
@@ -104,8 +113,7 @@ class NoiseAlertServiceTest {
 
     @Test
     void whenConfigAbsent_thenReturnsNull() {
-        when(configRepository.findByOrgAndPropertyWithTimeWindows(10L, 100L))
-            .thenReturn(Optional.empty());
+        when(admission.admit(any(),any(),anyDouble())).thenReturn(Optional.empty());
 
         NoiseAlert result = service.evaluateNoiseLevel(10L, 100L, 1L, 80.0, AlertSource.WEBHOOK);
 
@@ -116,8 +124,6 @@ class NoiseAlertServiceTest {
     @Test
     void whenConfigDisabled_thenReturnsNull() {
         config.setEnabled(false);
-        when(configRepository.findByOrgAndPropertyWithTimeWindows(10L, 100L))
-            .thenReturn(Optional.of(config));
 
         NoiseAlert result = service.evaluateNoiseLevel(10L, 100L, 1L, 80.0, AlertSource.WEBHOOK);
 
@@ -127,8 +133,6 @@ class NoiseAlertServiceTest {
 
     @Test
     void whenBelowThreshold_thenReturnsNull() {
-        when(configRepository.findByOrgAndPropertyWithTimeWindows(10L, 100L))
-            .thenReturn(Optional.of(config));
 
         // 40 dB is below ALL windows (night warning=55, day warning=70)
         NoiseAlert result = service.evaluateNoiseLevel(10L, 100L, 1L, 40.0, AlertSource.SCHEDULER);
@@ -150,10 +154,6 @@ class NoiseAlertServiceTest {
         allDay.setConfig(config);
         config.getTimeWindows().add(allDay);
 
-        when(configRepository.findByOrgAndPropertyWithTimeWindows(10L, 100L))
-            .thenReturn(Optional.of(config));
-        when(alertRepository.existsRecentAlert(anyLong(), any(AlertSeverity.class), any()))
-            .thenReturn(false);
         when(alertRepository.save(any(NoiseAlert.class)))
             .thenAnswer(inv -> {
                 NoiseAlert a = inv.getArgument(0);
@@ -167,7 +167,7 @@ class NoiseAlertServiceTest {
         assertEquals(AlertSeverity.WARNING, result.getSeverity());
         assertEquals(75.0, result.getMeasuredDb());
         assertEquals(70, result.getThresholdDb());
-        verify(notificationService).dispatch(any(), eq(config));
+        verify(notificationService).dispatch(any(), argThat(c -> c.getId().equals(1L)));
     }
 
     @Test
@@ -183,10 +183,6 @@ class NoiseAlertServiceTest {
         allDay.setConfig(config);
         config.getTimeWindows().add(allDay);
 
-        when(configRepository.findByOrgAndPropertyWithTimeWindows(10L, 100L))
-            .thenReturn(Optional.of(config));
-        when(alertRepository.existsRecentAlert(anyLong(), any(AlertSeverity.class), any()))
-            .thenReturn(false);
         when(alertRepository.save(any(NoiseAlert.class)))
             .thenAnswer(inv -> {
                 NoiseAlert a = inv.getArgument(0);
@@ -203,10 +199,7 @@ class NoiseAlertServiceTest {
 
     @Test
     void whenCooldownActive_thenReturnsNull() {
-        when(configRepository.findByOrgAndPropertyWithTimeWindows(10L, 100L))
-            .thenReturn(Optional.of(config));
-        when(alertRepository.existsRecentAlert(anyLong(), any(AlertSeverity.class), any()))
-            .thenReturn(true);
+        when(admission.admit(any(),any(),anyDouble())).thenReturn(Optional.empty());
 
         NoiseAlert result = service.evaluateNoiseLevel(10L, 100L, 1L, 75.0, AlertSource.WEBHOOK);
 
@@ -300,26 +293,16 @@ class NoiseAlertServiceTest {
 
     // ─── isCooldownActive ──────────────────────────────────────────────────────
 
-    @Test
-    void isCooldownActive_returnsTrue_whenRecentAlertExists() {
-        when(alertRepository.existsRecentAlert(eq(100L), eq(AlertSeverity.WARNING), any()))
-            .thenReturn(true);
 
-        assertTrue(service.isCooldownActive(100L, AlertSeverity.WARNING, 30));
-    }
 
-    @Test
-    void isCooldownActive_returnsFalse_whenNoRecentAlert() {
-        when(alertRepository.existsRecentAlert(eq(100L), eq(AlertSeverity.CRITICAL), any()))
-            .thenReturn(false);
 
-        assertFalse(service.isCooldownActive(100L, AlertSeverity.CRITICAL, 60));
-    }
+
+
 
     // ─── evaluateNoiseLevel - additional paths ─────────────────────────────────
 
     @Test
-    void whenNotificationDispatchFails_thenAlertStillReturned() {
+    void whenEnqueueFails_thenCreationFails() {
         config.getTimeWindows().clear();
         NoiseAlertTimeWindow allDay = new NoiseAlertTimeWindow();
         allDay.setLabel("24h");
@@ -330,10 +313,6 @@ class NoiseAlertServiceTest {
         allDay.setConfig(config);
         config.getTimeWindows().add(allDay);
 
-        when(configRepository.findByOrgAndPropertyWithTimeWindows(10L, 100L))
-            .thenReturn(Optional.of(config));
-        when(alertRepository.existsRecentAlert(anyLong(), any(AlertSeverity.class), any()))
-            .thenReturn(false);
         when(alertRepository.save(any(NoiseAlert.class)))
             .thenAnswer(inv -> {
                 NoiseAlert a = inv.getArgument(0);
@@ -343,10 +322,8 @@ class NoiseAlertServiceTest {
         org.mockito.Mockito.doThrow(new RuntimeException("synthetic-secret guest@example.invalid", new IllegalArgumentException("private-cause")))
             .when(notificationService).dispatch(any(), any());
 
-        NoiseAlert result = service.evaluateNoiseLevel(10L, 100L, 5L, 88.0, AlertSource.WEBHOOK);
-
-        assertNotNull(result);
-        assertEquals(AlertSeverity.CRITICAL, result.getSeverity());
+        assertThrows(RuntimeException.class,() -> service.evaluateNoiseLevel(10L,100L,5L,88.0,AlertSource.WEBHOOK));
+        verifyNoInteractions(automationEngine);
     }
 
     // ─── getAlerts (paged read) ─────────────────────────────────────────────────
@@ -469,10 +446,6 @@ class NoiseAlertServiceTest {
         allDay.setConfig(config);
         config.getTimeWindows().add(allDay);
 
-        when(configRepository.findByOrgAndPropertyWithTimeWindows(10L, 100L))
-            .thenReturn(Optional.of(config));
-        when(alertRepository.existsRecentAlert(anyLong(), any(AlertSeverity.class), any()))
-            .thenReturn(false);
         when(alertRepository.save(any(NoiseAlert.class)))
             .thenAnswer(inv -> {
                 NoiseAlert a = inv.getArgument(0);
@@ -480,7 +453,7 @@ class NoiseAlertServiceTest {
                 return a;
             });
         // 3e alerte en 24 h : donnee d'escalade F6b exposee aux conditions des regles.
-        when(alertRepository.countByPropertyIdAndCreatedAtAfter(eq(100L), any()))
+        when(alertRepository.countByOrganizationIdAndPropertyIdAndCreatedAtAfter(eq(10L),eq(100L), any()))
             .thenReturn(3L);
 
         service.evaluateNoiseLevel(10L, 100L, 1L, 75.0, AlertSource.WEBHOOK);
@@ -497,8 +470,7 @@ class NoiseAlertServiceTest {
 
     @Test
     void whenNoAlertCreated_thenNoTriggerFired() {
-        when(configRepository.findByOrgAndPropertyWithTimeWindows(10L, 100L))
-            .thenReturn(Optional.empty());
+        when(admission.admit(any(),any(),anyDouble())).thenReturn(Optional.empty());
 
         service.evaluateNoiseLevel(10L, 100L, 1L, 80.0, AlertSource.WEBHOOK);
 
@@ -510,6 +482,6 @@ class NoiseAlertServiceTest {
         for (AlertSource source : AlertSource.values()) {
             assertNull(service.evaluateNoiseLevel(10L, 100L, 1L, value, source));
         }
-        verifyNoInteractions(configRepository, alertRepository, notificationService, automationEngine);
+        verifyNoInteractions(admission, alertRepository, notificationService, automationEngine);
     }
 }

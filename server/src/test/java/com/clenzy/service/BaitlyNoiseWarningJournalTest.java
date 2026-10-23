@@ -56,8 +56,11 @@ class BaitlyNoiseWarningJournalTest {
             CREATE TABLE noise_alerts (id BIGINT PRIMARY KEY,organization_id BIGINT,property_id BIGINT,
                 measured_db DOUBLE PRECISION,threshold_db INTEGER,severity VARCHAR(20),created_at TIMESTAMP DEFAULT LOCALTIMESTAMP,
                 notified_guest BOOLEAN DEFAULT false,notified_whatsapp BOOLEAN DEFAULT false,
-                acknowledged BOOLEAN DEFAULT false,notes VARCHAR(255))
+                acknowledged BOOLEAN DEFAULT false,notes VARCHAR(255),notified_email BOOLEAN DEFAULT false,notified_in_app BOOLEAN DEFAULT false)
             """);
+        // Full delivery schema/migration is covered by BaitlyNoiseDeliveryOutboxTest.
+        db.execute("CREATE TABLE baitly_noise_delivery_items (alert_id BIGINT,channel VARCHAR(20),state VARCHAR(20),created_at TIMESTAMP WITH TIME ZONE,updated_at TIMESTAMP WITH TIME ZONE)");
+        db.execute("CREATE TABLE baitly_noise_deliveries (alert_id BIGINT,organization_id BIGINT,property_id BIGINT)");
         db.update("INSERT INTO properties VALUES (91,7),(92,8)");
         db.update("INSERT INTO guests VALUES (70,7,?)",Timestamp.valueOf(guestVersion));
         db.update("INSERT INTO reservations VALUES (100,7,91,70,?,?,'confirmed')",LocalDate.now().minusDays(1),LocalDate.now().plusDays(1));
@@ -207,7 +210,7 @@ class BaitlyNoiseWarningJournalTest {
             return "synthetic-receipt";
         }).when(provider).sendTemplateMessage(any(),anyString(),anyString(),anyString(),anyList());
         return new NoiseAlertNotificationService(mock(NotificationService.class),mock(EmailService.class),properties,reservations,
-            mock(SystemEmailTemplateService.class),mock(TemplateInterpolationService.class),new EmailWrapperService(),resolver,configs,store,manager);
+            mock(SystemEmailTemplateService.class),mock(TemplateInterpolationService.class),new EmailWrapperService(),resolver,configs,store,manager,mock(BaitlyNoiseDeliveryOutbox.class));
     }
     NoiseAlert model() {
         NoiseAlert a=new NoiseAlert();a.setId(11L);a.setOrganizationId(7L);a.setPropertyId(91L);a.setMeasuredDb(82.5);
@@ -245,30 +248,21 @@ class BaitlyNoiseWarningJournalTest {
         assertThat(service(new BaitlyNoiseWarningJournal(db,manager)).sendGuestWarning(model()).sent()).isFalse();
         verify(provider,times(1)).sendTemplateMessage(any(),anyString(),anyString(),anyString(),anyList());
     }
-    @Test void configuredGuestDispatchWaitsUntilRealCommit() {
+    @Test void queuedWarningCannotTargetAnotherReservation() {
         var service=service(journal);
-        var config=new NoiseAlertConfig();config.setNotifyGuestMessage(true);
-        config.setNotifyInApp(false);config.setNotifyEmail(false);
-        new TransactionTemplate(manager).executeWithoutResult(status -> {
-            service.dispatch(model(),config);
-            verify(provider,never()).sendTemplateMessage(any(),anyString(),anyString(),anyString(),anyList());
-            assertThat(attempts()).isZero();
-        });
-        assertThat(state(11)).isEqualTo("ACCEPTED");
-        verify(provider,times(1)).sendTemplateMessage(any(),anyString(),anyString(),anyString(),anyList());
-    }
-
-    @Test void rollbackDoesNotAdmitOrSendConfiguredGuestDispatch() {
-        var service=service(journal);
-        var config=new NoiseAlertConfig();config.setNotifyGuestMessage(true);
-        config.setNotifyInApp(false);config.setNotifyEmail(false);
-        assertThatThrownBy(() -> new TransactionTemplate(manager).execute(status -> {
-            service.dispatch(model(),config);
-            throw new IllegalStateException("synthetic-rollback");
-        })).hasMessage("synthetic-rollback");
+        assertThat(service.sendQueuedGuestWarning(model(),new BaitlyNoiseDeliveryOutbox.Snapshot(1L,999L,70L,guestVersion)).sent()).isFalse();
         assertThat(attempts()).isZero();
         verify(provider,never()).sendTemplateMessage(any(),anyString(),anyString(),anyString(),anyList());
     }
+
+
+    @Test void queuedWarningCannotTargetAChangedGuestVersion() {
+        var service=service(journal);
+        assertThat(service.sendQueuedGuestWarning(model(),new BaitlyNoiseDeliveryOutbox.Snapshot(1L,100L,70L,guestVersion.minusDays(1))).sent()).isFalse();
+        assertThat(attempts()).isZero();
+        verify(provider,never()).sendTemplateMessage(any(),anyString(),anyString(),anyString(),anyList());
+    }
+
 
     @Test void failedLocalRepairKeepsProofForRecoveryWithoutAnotherSend() {
         var store=spy(journal);

@@ -23,12 +23,10 @@ import java.util.function.Supplier;
 import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.TransactionDefinition;
 import org.springframework.transaction.support.TransactionTemplate;
-import org.springframework.transaction.support.TransactionSynchronization;
-import org.springframework.transaction.support.TransactionSynchronizationManager;
 
 /**
  * Fan-out de notifications pour les alertes bruit.
- * Best-effort : chaque canal est independant, une erreur n'empeche pas les autres.
+ * Baitly : travail durable par canal ; aucun effet externe dans la transaction de creation.
  */
 @Service
 public class NoiseAlertNotificationService {
@@ -50,6 +48,7 @@ public class NoiseAlertNotificationService {
     private final WhatsAppProviderResolver whatsAppProviderResolver;
     private final WhatsAppConfigRepository whatsAppConfigRepository;
     private final BaitlyNoiseWarningJournal warningJournal;
+    private final BaitlyNoiseDeliveryOutbox deliveryOutbox;
     private final TransactionTemplate withoutTransaction;
 
     public NoiseAlertNotificationService(NotificationService notificationService,
@@ -62,7 +61,7 @@ public class NoiseAlertNotificationService {
                                           WhatsAppProviderResolver whatsAppProviderResolver,
                                           WhatsAppConfigRepository whatsAppConfigRepository,
                                           BaitlyNoiseWarningJournal warningJournal,
-                                          PlatformTransactionManager transactionManager) {
+                                          PlatformTransactionManager transactionManager, BaitlyNoiseDeliveryOutbox deliveryOutbox) {
         this.whatsAppProviderResolver = whatsAppProviderResolver;
         this.whatsAppConfigRepository = whatsAppConfigRepository;
         this.notificationService = notificationService;
@@ -73,6 +72,7 @@ public class NoiseAlertNotificationService {
         this.templateInterpolationService = templateInterpolationService;
         this.emailWrapperService = emailWrapperService;
         this.warningJournal = warningJournal;
+        this.deliveryOutbox = deliveryOutbox;
         this.withoutTransaction = new TransactionTemplate(transactionManager);
         this.withoutTransaction.setPropagationBehavior(TransactionDefinition.PROPAGATION_NOT_SUPPORTED);
     }
@@ -81,103 +81,36 @@ public class NoiseAlertNotificationService {
      * Dispatche toutes les notifications configurees pour cette alerte.
      */
     public void dispatch(NoiseAlert alert, NoiseAlertConfig config) {
-        Property property = propertyRepository.findById(alert.getPropertyId()).orElse(null);
-        String propertyName = property != null ? property.getName() : "Logement #" + alert.getPropertyId();
-
-        // 1. Notification in-app
-        if (config.isNotifyInApp()) {
-            dispatchInApp(alert, config, property, propertyName);
-        }
-
-        // 2. Email au proprietaire
-        if (config.isNotifyEmail()) {
-            dispatchEmail(alert, config, property, propertyName);
-        }
-
-        // L'alerte doit etre commitee avant l'intention independante et l'envoi voyageur.
-        if (config.isNotifyGuestMessage()) {
-            Runnable send = () -> sendGuestWarning(alert);
-            if (TransactionSynchronizationManager.isSynchronizationActive()) {
-                TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
-                    @Override public void afterCommit() { send.run(); }
-                });
-            } else {
-                send.run();
-            }
-        }
+        // No provider or notification here. Failure propagates and rolls the alert back.
+        deliveryOutbox.enqueue(alert.getId(),alert.getOrganizationId(),config.getId());
     }
 
-    // ─── In-App ────────────────────────────────────────────────────────────────
-
-    private void dispatchInApp(NoiseAlert alert, NoiseAlertConfig config,
-                                Property property, String propertyName) {
-        try {
-            NotificationKey key = alert.getSeverity() == NoiseAlert.AlertSeverity.CRITICAL
-                ? NotificationKey.NOISE_ALERT_CRITICAL
-                : NotificationKey.NOISE_ALERT_WARNING;
-
-            String title = alert.getSeverity() == NoiseAlert.AlertSeverity.CRITICAL
-                ? "Alerte bruit critique — " + propertyName
-                : "Alerte bruit — " + propertyName;
-
-            String message = String.format("Niveau sonore de %.0f dB detecte (seuil: %d dB, creneau: %s)",
-                alert.getMeasuredDb(), alert.getThresholdDb(),
-                alert.getTimeWindowLabel() != null ? alert.getTimeWindowLabel() : "—");
-
-            if (property != null && property.getOwner() != null
-                    && property.getOwner().getKeycloakId() != null) {
-                String actionUrl = "/connected-objects/property/" + alert.getPropertyId()
-                        + "?highlight=" + alert.getId();
-                notificationService.notify(
-                    property.getOwner().getKeycloakId(), key, title, message, actionUrl,
-                    // Mesure et seuil voyagent avec l'alerte : la fiche les
-                    // dessine en jauge, la ou le message les enfermait dans une
-                    // phrase. Rien de plus a lire en base — ils sont deja la.
-                    NotificationMetadata.of()
-                        .property(propertyName)
-                        .propertyId(alert.getPropertyId())
-                        .noise(alert.getMeasuredDb(), alert.getThresholdDb())
-                        .build());
-                alert.setNotifiedInApp(true);
-            }
-        } catch (Exception e) {
-            log.error("Baitly bruit : notification interne non confirmee pour alerte {}", alert.getId());
-        }
+    Supplier<Boolean> prepareOwnerInApp(NoiseAlert alert, Property property) {
+        if(property.getOwner()==null || property.getOwner().getKeycloakId()==null) return null;
+        String recipient=property.getOwner().getKeycloakId();
+        NotificationKey key=alert.getSeverity()==NoiseAlert.AlertSeverity.CRITICAL
+            ? NotificationKey.NOISE_ALERT_CRITICAL : NotificationKey.NOISE_ALERT_WARNING;
+        String title=(alert.getSeverity()==NoiseAlert.AlertSeverity.CRITICAL ? "Alerte bruit critique : " : "Alerte bruit : ")+property.getName();
+        String message=String.format("Niveau sonore de %.0f dB detecte (seuil : %d dB, creneau : %s)",
+            alert.getMeasuredDb(),alert.getThresholdDb(),alert.getTimeWindowLabel()==null ? "" : alert.getTimeWindowLabel());
+        String url="/connected-objects/property/"+alert.getPropertyId()+"?highlight="+alert.getId();
+        Long organization=alert.getOrganizationId();
+        Map<String,Object> metadata=NotificationMetadata.of().property(property.getName()).propertyId(alert.getPropertyId())
+            .noise(alert.getMeasuredDb(),alert.getThresholdDb()).build();
+        return () -> notificationService.sendByOrgIdStrict(recipient,key,title,message,url,organization,metadata)!=null;
     }
 
-    // ─── Email ─────────────────────────────────────────────────────────────────
-
-    private void dispatchEmail(NoiseAlert alert, NoiseAlertConfig config,
-                                Property property, String propertyName) {
-        try {
-            List<String> recipients = resolveEmailRecipients(config, property);
-            if (recipients.isEmpty()) {
-                log.debug("Pas de destinataire email pour alerte {}", alert.getId());
-                return;
-            }
-
-            // Resolution du template depuis system_email_template avec fallback
-            // systeme si l'org n'a pas d'override (cf. SystemEmailTemplateService).
-            var template = systemEmailTemplateService.resolve(
-                alert.getOrganizationId(), "noise_alert_owner", "fr").orElse(null);
-            if (template == null) {
-                log.warn("Template systeme noise_alert_owner introuvable — alerte {} non envoyee", alert.getId());
-                return;
-            }
-
-            Map<String, String> vars = buildNoiseAlertVariables(alert, propertyName);
-            String subject = templateInterpolationService.interpolate(template.getSubject(), vars, false);
-            String interpolatedBody = templateInterpolationService.interpolate(template.getBody(), vars, true);
-            String htmlBody = emailWrapperService.wrap(template.getWrapperStyle(), interpolatedBody);
-
-            for (String recipient : recipients) {
-                emailService.sendContactMessage(
-                    recipient, null, null, null, subject, htmlBody, List.of());
-            }
-            alert.setNotifiedEmail(true);
-        } catch (Exception e) {
-            log.error("Baitly bruit : notification email non confirmee pour alerte {}", alert.getId());
-        }
+    Runnable prepareOwnerEmail(NoiseAlert alert, NoiseAlertConfig config, Property property, int ordinal) {
+        List<String> recipients=resolveEmailRecipients(config,property);
+        if(ordinal<0 || ordinal>=recipients.size()) return null;
+        String recipient=recipients.get(ordinal);
+        var template=systemEmailTemplateService.resolve(alert.getOrganizationId(),"noise_alert_owner","fr")
+            .orElseThrow(() -> new IllegalStateException("Template bruit indisponible"));
+        Map<String,String> vars=buildNoiseAlertVariables(alert,property.getName());
+        String subject=templateInterpolationService.interpolate(template.getSubject(),vars,false);
+        String body=emailWrapperService.wrap(template.getWrapperStyle(),
+            templateInterpolationService.interpolate(template.getBody(),vars,true));
+        return () -> emailService.sendContactMessage(recipient,null,null,null,subject,body,List.of());
     }
 
     /**
@@ -203,7 +136,7 @@ public class NoiseAlertNotificationService {
     private List<String> resolveEmailRecipients(NoiseAlertConfig config, Property property) {
         // Priorite : destinataires configures > email du proprietaire
         if (config.getEmailRecipients() != null && !config.getEmailRecipients().isBlank()) {
-            return List.of(config.getEmailRecipients().split("[,;\\s]+"));
+            return BaitlyNoiseDeliveryOutbox.recipients(config.getEmailRecipients());
         }
         if (property != null && property.getOwner() != null
                 && property.getOwner().getEmail() != null) {
@@ -234,14 +167,19 @@ public class NoiseAlertNotificationService {
      */
     public GuestWarningOutcome sendGuestWarning(NoiseAlert alert) {
         try {
-            return withoutTransaction.execute(status -> sendOutsideTransaction(alert));
+            return withoutTransaction.execute(status -> sendOutsideTransaction(alert,null));
         } catch (Exception failure) {
             log.error("Baitly bruit : avertissement non confirme");
             return GuestWarningOutcome.skipped("traitement non confirme : rapprochement necessaire");
         }
     }
 
-    private GuestWarningOutcome sendOutsideTransaction(NoiseAlert alert) {
+    GuestWarningOutcome sendQueuedGuestWarning(NoiseAlert alert,BaitlyNoiseDeliveryOutbox.Snapshot expected) {
+        try {return withoutTransaction.execute(status -> sendOutsideTransaction(alert,expected));}
+        catch(Exception failure) {return GuestWarningOutcome.skipped("delegation non confirmee");}
+    }
+
+    private GuestWarningOutcome sendOutsideTransaction(NoiseAlert alert,BaitlyNoiseDeliveryOutbox.Snapshot expected) {
         try {
             if (warningJournal.repairAccepted(alert.getOrganizationId(), alert.getId()).isPresent()) {
                 return GuestWarningOutcome.skipped("avertissement deja delegue");
@@ -258,6 +196,11 @@ public class NoiseAlertNotificationService {
         if (reservation == null || reservation.getGuest() == null
                 || !alert.getOrganizationId().equals(reservation.getGuest().getOrganizationId())) {
             return GuestWarningOutcome.skipped("aucun voyageur sur un sejour actif");
+        }
+        if(expected!=null && (!java.util.Objects.equals(expected.reservation(),reservation.getId())
+                || !java.util.Objects.equals(expected.guest(),reservation.getGuest().getId())
+                || !java.util.Objects.equals(expected.guestVersion(),reservation.getGuest().getUpdatedAt()))) {
+            return GuestWarningOutcome.skipped("sejour ou voyageur modifie");
         }
         final GuestDelivery delivery;
         try {

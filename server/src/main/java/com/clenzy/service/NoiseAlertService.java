@@ -7,7 +7,6 @@ import com.clenzy.model.NoiseAlert.AlertSeverity;
 import com.clenzy.model.NoiseAlert.AlertSource;
 import com.clenzy.model.NoiseAlertConfig;
 import com.clenzy.model.NoiseAlertTimeWindow;
-import com.clenzy.repository.NoiseAlertConfigRepository;
 import com.clenzy.repository.NoiseAlertRepository;
 import com.clenzy.service.automation.AutomationEngine;
 import com.clenzy.service.automation.AutomationSubject;
@@ -32,18 +31,18 @@ public class NoiseAlertService {
 
     private static final Logger log = LoggerFactory.getLogger(NoiseAlertService.class);
 
-    private final NoiseAlertConfigRepository configRepository;
+    private final BaitlyNoiseAlertAdmission admission;
     private final NoiseAlertRepository alertRepository;
     private final NoiseAlertNotificationService notificationService;
     private final AutomationEngine automationEngine;
     private final org.springframework.transaction.support.TransactionTemplate requiresNewTx;
 
-    public NoiseAlertService(NoiseAlertConfigRepository configRepository,
+    public NoiseAlertService(BaitlyNoiseAlertAdmission admission,
                              NoiseAlertRepository alertRepository,
                              NoiseAlertNotificationService notificationService,
                              AutomationEngine automationEngine,
                              org.springframework.transaction.PlatformTransactionManager transactionManager) {
-        this.configRepository = configRepository;
+        this.admission = admission;
         this.alertRepository = alertRepository;
         this.notificationService = notificationService;
         this.automationEngine = automationEngine;
@@ -59,39 +58,19 @@ public class NoiseAlertService {
      *
      * @return l'alerte creee, ou null si aucun depassement ou cooldown actif
      */
+    @Transactional(timeout = 10)
     public NoiseAlert evaluateNoiseLevel(Long orgId, Long propertyId, Long deviceId,
                                           double measuredDb, AlertSource source) {
         if (!Double.isFinite(measuredDb) || measuredDb <= 0) return null;
-        NoiseAlertConfig config = configRepository
-            .findByOrgAndPropertyWithTimeWindows(orgId, propertyId)
-            .orElse(null);
-
-        if (config == null || !config.isEnabled()) {
-            return null;
-        }
-
-        LocalTime now = LocalTime.now();
-        NoiseAlertTimeWindow matchingWindow = findMatchingWindow(config.getTimeWindows(), now);
-        if (matchingWindow == null) {
-            log.debug("Aucun creneau horaire actif pour property {} a {}", propertyId, now);
-            return null;
-        }
-
-        // Determiner la severite
-        AlertSeverity severity = determineSeverity(measuredDb, matchingWindow);
-        if (severity == null) {
-            return null; // Sous le seuil warning
-        }
-
-        int thresholdDb = severity == AlertSeverity.CRITICAL
-            ? matchingWindow.getCriticalThresholdDb()
-            : matchingWindow.getWarningThresholdDb();
-
-        // Verifier le cooldown
-        if (isCooldownActive(propertyId, severity, config.getCooldownMinutes())) {
-            log.debug("Cooldown actif pour property {} severity {}", propertyId, severity);
-            return null;
-        }
+        var decision=admission.admit(orgId,propertyId,measuredDb);
+        if(decision.isEmpty()) return null;
+        var admitted=decision.orElseThrow();
+        AlertSeverity severity=admitted.severity();
+        int thresholdDb=admitted.threshold();
+        NoiseAlertConfig config=new NoiseAlertConfig();
+        config.setId(admitted.config());
+        config.setOrganizationId(orgId);
+        config.setPropertyId(propertyId);
 
         // Creer l'alerte
         NoiseAlert alert = new NoiseAlert();
@@ -101,18 +80,14 @@ public class NoiseAlertService {
         alert.setSeverity(severity);
         alert.setMeasuredDb(measuredDb);
         alert.setThresholdDb(thresholdDb);
-        alert.setTimeWindowLabel(matchingWindow.getLabel());
+        alert.setTimeWindowLabel(admitted.label());
         alert.setSource(source);
         alert = alertRepository.save(alert);
 
         log.warn("Baitly bruit : alerte {} creee, severite {}", alert.getId(), severity);
 
-        // Dispatcher les notifications (en best-effort)
-        try {
-            notificationService.dispatch(alert, config);
-        } catch (Exception e) {
-            log.error("Baitly bruit : dispatch non confirme pour alerte {}", alert.getId());
-        }
+        // Baitly: the queue must commit atomically with the alert. Never swallow enqueue failure.
+        notificationService.dispatch(alert, config);
 
         // Moteur AutomationRule (fiche 08) : trigger NOISE_ALERT — F6a message
         // voyageur (SEND_NOISE_WARNING), F6b escalade (NOTIFY_STAFF /
@@ -129,7 +104,7 @@ public class NoiseAlertService {
      * visible en base quand l'executeur la recharge).
      *
      * <p>Best-effort assume (deviation justifiee a la regle « pas de catch
-     * avaleur ») : l'alerte et ses notifications directes existent deja — un
+     * avaleur ») : l'alerte et sa file de notifications configurees existent deja — un
      * rate du fan-out moteur est logue en erreur mais n'annule pas l'alerte.</p>
      */
     private void fireNoiseAlertTrigger(NoiseAlert alert) {
@@ -144,8 +119,8 @@ public class NoiseAlertService {
         // Compteur d'escalade F6b : alertes (toutes severites) sur 24 h glissantes,
         // exploitable par les conditions JSON des regles NOISE_ALERT.
         data.put(AutomationSubject.DATA_ALERTS_LAST_24H,
-            alertRepository.countByPropertyIdAndCreatedAtAfter(
-                alert.getPropertyId(), LocalDateTime.now().minusHours(24)));
+            alertRepository.countByOrganizationIdAndPropertyIdAndCreatedAtAfter(
+                alert.getOrganizationId(),alert.getPropertyId(), LocalDateTime.now().minusHours(24)));
 
         Long orgId = alert.getOrganizationId();
         Long alertId = alert.getId();
@@ -225,14 +200,14 @@ public class NoiseAlertService {
 
     // ─── Helpers internes ──────────────────────────────────────────────────────
 
-    NoiseAlertTimeWindow findMatchingWindow(List<NoiseAlertTimeWindow> windows, LocalTime time) {
+    static NoiseAlertTimeWindow findMatchingWindow(List<NoiseAlertTimeWindow> windows, LocalTime time) {
         return windows.stream()
             .filter(tw -> tw.contains(time))
             .findFirst()
             .orElse(null);
     }
 
-    AlertSeverity determineSeverity(double measuredDb, NoiseAlertTimeWindow window) {
+    static AlertSeverity determineSeverity(double measuredDb, NoiseAlertTimeWindow window) {
         if (measuredDb >= window.getCriticalThresholdDb()) {
             return AlertSeverity.CRITICAL;
         }
@@ -242,8 +217,4 @@ public class NoiseAlertService {
         return null;
     }
 
-    boolean isCooldownActive(Long propertyId, AlertSeverity severity, int cooldownMinutes) {
-        LocalDateTime since = LocalDateTime.now().minusMinutes(cooldownMinutes);
-        return alertRepository.existsRecentAlert(propertyId, severity, since);
-    }
 }

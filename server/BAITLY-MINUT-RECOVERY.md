@@ -238,3 +238,72 @@ aucun echec, erreur ou ignore. Le journal execute 32 cas, avec la migration 0600
 rejouee pour verifier son idempotence. H2 local ne remplace pas PostgreSQL :
 la recette financiere CI inclut obligatoirement ces tests sur PostgreSQL dedie.
 Les IT gates, fournisseurs et la campagne staging restent a executer en fin de lot.
+
+## File durable de premiere delegation, fan-out proprietaire et cooldown
+
+Suite cumulative de #504. La migration 0601 ajoute une file transactionnelle
+avant tout premier envoi des canaux configures. Une erreur d'enqueue remonte :
+l'alerte et la file sont annulees ensemble. Aucun effet externe ne part de
+dispatch. Le worker peut reprendre une ligne PENDING apres redemarrage sans
+dependre du callback afterCommit ni de Redis.
+
+La file conserve uniquement des references internes, versions et faits de
+l'alerte, jamais adresse, texte, nom, template rendu ou recu brut. Le sejour
+et le voyageur presents a la creation sont figes par ID et version. Un sejour
+absent/ambigu ne devient pas un nouveau destinataire plus tard. La configuration,
+le logement et le proprietaire sont revalides ; changement de version, de portee,
+de proprietaire, suppression, desactivation ou compte inactif refusent l'ancien
+travail. Les contacts prepares restent en memoire et sont figes avant l'intention.
+
+Seuls les travaux jamais tentes expirent apres quinze minutes : pas de message
+ancien envoye tardivement. STARTED/UNKNOWN n'expirent jamais. La borne de migration
+exclut les alertes historiques, sans backfill. Arreter les anciens producteurs
+avant la bascule ; un ancien binaire ignorant ces journaux ne doit pas etre relance
+comme rollback de deduplication.
+
+Chaque destinataire email proprietaire a une ligne distincte, avec deduplication
+conservative insensible a la casse et conservation de la premiere adresse de
+la configuration pour l'envoi. STARTED + UUID est commis avant SMTP, hors
+transaction. Le retour normal prouve delegation SMTP, pas remise en boite. Une
+erreur de retour ou de preuve conserve STARTED/UNKNOWN et ne renvoie jamais
+les destinataires ACCEPTED ou incertains ; les autres destinataires restent
+independants. Aucun identifiant SMTP local fabrique n'est utilise comme preuve.
+
+Pour l'in-app, la methode stricte existante ne fait que des ecritures locales.
+Notification et preuve ACCEPTED sont commises ensemble sous verrou de ligne.
+Preference desactivee donne SKIPPED, sans pretendre une notification. L'org est
+explicite pour le scheduler ; seuls le proprietaire actif du scope ou un
+proprietaire platform staff autorise est admissible. Les marqueurs agreges
+notified_email/notified_in_app ne passent a vrai que si toutes les lignes du
+canal sont acceptees, par update partiel preservant notes et acquittement.
+Les reparations et lectures de file sont bornees a 25 par passage.
+
+Les cinq jauges privees existantes incluent maintenant l'incertitude email
+proprietaire et les reparations proprietaire effectivement possibles. La file
+voyageur ne double pas le compte du journal voyageur. Pas de tag client.
+La collecte echoue fermee si la migration de file manque, sans publier un faux zero.
+
+La migration 0602 indexe le cooldown par organisation/logement/severite/date.
+Toutes les sources passent par un verrou de configuration ; seuils et creneaux
+sont relus en SQL apres acquisition, sans se fier a un snapshot JPA anterieur.
+Creation, file et cooldown partagent la transaction, avec timeout 10 s. Les
+modifications et suppressions de configuration prennent le meme verrou, et la
+revision avance meme pour les modifications de creneaux seules. Aucun
+fournisseur n'est appele sous ce verrou. Le compteur d'escalade est aussi
+explicitement borne a l'organisation.
+
+Limites distinctes : les autres actions du moteur d'automatisation restent
+dans leur cycle existant ; leur callback global n'est pas transforme en outbox
+generique par ce lot. SEND_NOISE_WARNING autonome conserve le journal #504
+et refuse les doublons/incertitudes, sans promesse de reprise de tout le moteur.
+Les travaux expirant avant tentative sont conserves en SKIPPED, pas declares
+livres. Conservation/retention, preuve distante d'un UNKNOWN, perte de PostgreSQL
+(FR09) et qualification materielle/fournisseur restent des sujets separes.
+Aucun rejeu, purge ni correction SQL manuelle de production n'est prescrit.
+Les tests staging restent pour la campagne finale.
+
+Validation locale de cette vague : 216 tests Java cibles (dont neuf cas scheduler imbriques),
+zero echec/erreur/ignore ; 30 cas de file et admission avec migrations 0600/0601/0602
+reelles et rejouees, concurrence et parcours voyageur complet. Six tests Python
+du manifeste passes. Ces preuves H2 locales doivent etre completees par la
+recette PostgreSQL CI, puis la campagne staging finale. Aucun fournisseur reel.

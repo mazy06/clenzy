@@ -39,6 +39,7 @@ class NoiseAlertNotificationServiceTest {
     @Mock private WhatsAppConfigRepository whatsAppConfigRepository;
     @Mock private WhatsAppProvider whatsAppProvider;
     @Mock private BaitlyNoiseWarningJournal warningJournal;
+    @Mock private BaitlyNoiseDeliveryOutbox outbox;
     @Mock private org.springframework.transaction.PlatformTransactionManager transactionManager;
 
     // Pas un mock — service pur sans IO, on l'instancie avec un TranslationService
@@ -65,7 +66,7 @@ class NoiseAlertNotificationServiceTest {
             systemEmailTemplateService, templateInterpolationService,
             new com.clenzy.service.messaging.EmailWrapperService(),
             whatsAppProviderResolver, whatsAppConfigRepository,
-            warningJournal, transactionManager);
+            warningJournal, transactionManager, outbox);
 
         lenient().when(warningJournal.repairAccepted(any(),any())).thenReturn(Optional.empty());
         lenient().when(warningJournal.claim(any())).thenAnswer(call ->
@@ -130,60 +131,35 @@ class NoiseAlertNotificationServiceTest {
         alert.setSource(AlertSource.WEBHOOK);
 
         config = new NoiseAlertConfig();
+        config.setId(42L);
         config.setNotifyInApp(true);
         config.setNotifyEmail(true);
         config.setNotifyGuestMessage(false);
     }
 
-    @Test
-    void whenNotifyInAppEnabled_thenSendsInAppNotification() {
-        when(propertyRepository.findById(100L)).thenReturn(Optional.of(property));
-
-        service.dispatch(alert, config);
-
-        verify(notificationService).notify(
-            eq("owner-kc-id"),
-            eq(NotificationKey.NOISE_ALERT_WARNING),
-            contains("Studio Paris"),
-            contains("75 dB"),
-            contains("/connected-objects/property/")
-        , any());
-        assertTrue(alert.isNotifiedInApp());
+    @Test void whenNotifyInAppEnabled_thenSendsInAppNotification() {
+        service.prepareOwnerInApp(alert,property).get();
+        verify(notificationService).sendByOrgIdStrict(eq("owner-kc-id"),eq(NotificationKey.NOISE_ALERT_WARNING),
+            contains("Studio Paris"),contains("75 dB"),contains("/connected-objects/property/"),eq(10L),any());
+        assertFalse(alert.isNotifiedInApp());
     }
 
-    @Test
-    void whenCriticalAlert_thenUsesCriticalNotificationKey() {
+
+    @Test void whenCriticalAlert_thenUsesCriticalNotificationKey() {
         alert.setSeverity(AlertSeverity.CRITICAL);
-        when(propertyRepository.findById(100L)).thenReturn(Optional.of(property));
-
-        service.dispatch(alert, config);
-
-        verify(notificationService).notify(
-            eq("owner-kc-id"),
-            eq(NotificationKey.NOISE_ALERT_CRITICAL),
-            contains("critique"),
-            anyString(),
-            contains("/connected-objects/property/")
-        , any());
+        service.prepareOwnerInApp(alert,property).get();
+        verify(notificationService).sendByOrgIdStrict(eq("owner-kc-id"),eq(NotificationKey.NOISE_ALERT_CRITICAL),
+            contains("critique"),anyString(),contains("/connected-objects/property/"),eq(10L),any());
     }
 
-    @Test
-    void whenNotifyEmailEnabled_thenSendsEmail() {
-        when(propertyRepository.findById(100L)).thenReturn(Optional.of(property));
 
-        service.dispatch(alert, config);
-
-        verify(emailService).sendContactMessage(
-            eq("owner@example.com"),
-            isNull(),
-            isNull(),
-            isNull(),
-            contains("Studio Paris"),
-            contains("75"),
-            anyList()
-        );
-        assertTrue(alert.isNotifiedEmail());
+    @Test void whenNotifyEmailEnabled_thenSendsEmail() {
+        service.prepareOwnerEmail(alert,config,property,0).run();
+        verify(emailService).sendContactMessage(eq("owner@example.com"),isNull(),isNull(),isNull(),
+            contains("Studio Paris"),contains("75"),anyList());
+        assertFalse(alert.isNotifiedEmail());
     }
+
 
     @Test
     void whenGuestMessageEnabled_andActiveReservation_thenSendsGuestEmail() {
@@ -204,7 +180,7 @@ class NoiseAlertNotificationServiceTest {
         when(reservationRepository.findActiveByPropertyIdAndDate(eq(100L), any(LocalDate.class), eq(10L)))
             .thenReturn(Optional.of(reservation));
 
-        service.dispatch(alert, config);
+        service.sendGuestWarning(alert);
 
         verify(emailService).sendContactMessage(
             eq("marie@guest.com"),
@@ -226,27 +202,19 @@ class NoiseAlertNotificationServiceTest {
         when(reservationRepository.findActiveByPropertyIdAndDate(eq(100L), any(LocalDate.class), eq(10L)))
             .thenReturn(Optional.empty());
 
-        service.dispatch(alert, config);
+        service.sendGuestWarning(alert);
 
         assertFalse(alert.isNotifiedGuest());
-        // Email to owner should still work
-        verify(emailService).sendContactMessage(
-            eq("owner@example.com"),
-            isNull(), isNull(), isNull(),
-            anyString(), anyString(), anyList()
-        );
+        verifyNoInteractions(emailService);
     }
 
-    @Test
-    void whenNotifyInAppDisabled_thenSkipsInApp() {
+    @Test void dispatchOnlyQueuesAndNeverRunsAProvider() {
         config.setNotifyInApp(false);
-        when(propertyRepository.findById(100L)).thenReturn(Optional.of(property));
-
-        service.dispatch(alert, config);
-
-        verifyNoInteractions(notificationService);
-        assertFalse(alert.isNotifiedInApp());
+        service.dispatch(alert,config);
+        verify(outbox).enqueue(1L,10L,42L);
+        verifyNoInteractions(notificationService,emailService,propertyRepository,warningJournal,whatsAppProvider);
     }
+
 
     @Test
     void whenGuestMessageEnabled_andGuestHasPhone_thenSendsWhatsApp() {
@@ -269,7 +237,7 @@ class NoiseAlertNotificationServiceTest {
         when(reservationRepository.findActiveByPropertyIdAndDate(eq(100L), any(LocalDate.class), eq(10L)))
             .thenReturn(Optional.of(reservation));
 
-        service.dispatch(alert, config);
+        service.sendGuestWarning(alert);
 
         verify(whatsAppProvider).sendTemplateMessage(
             any(WhatsAppConfig.class), eq("+33612345678"), eq("clenzy_noise_alert_v1"), anyString(), anyList());
@@ -296,7 +264,7 @@ class NoiseAlertNotificationServiceTest {
         when(reservationRepository.findActiveByPropertyIdAndDate(eq(100L), any(LocalDate.class), eq(10L)))
             .thenReturn(Optional.of(reservation));
 
-        service.dispatch(alert, config);
+        service.sendGuestWarning(alert);
 
         verify(whatsAppProvider, never()).sendTemplateMessage(any(), anyString(), anyString(), anyString(), anyList());
     }
@@ -324,7 +292,7 @@ class NoiseAlertNotificationServiceTest {
             .thenReturn(Optional.of(reservation));
 
         // Ne doit pas lever : WhatsApp est simplement ignore.
-        service.dispatch(alert, config);
+        service.sendGuestWarning(alert);
 
         verify(whatsAppProvider, never()).sendTemplateMessage(any(), anyString(), anyString(), anyString(), anyList());
         verify(whatsAppProvider, never()).sendTextMessage(any(), anyString(), anyString());
@@ -352,7 +320,7 @@ class NoiseAlertNotificationServiceTest {
             .thenReturn(Optional.of(reservation));
         when(whatsAppProvider.getProviderType()).thenReturn(WhatsAppProviderType.OPENWA);
 
-        service.dispatch(alert, config);
+        service.sendGuestWarning(alert);
 
         verify(whatsAppProvider).sendTextMessage(any(), eq("+33612345678"), anyString());
         verify(whatsAppProvider, never()).sendTemplateMessage(any(), anyString(), anyString(), anyString(), anyList());
@@ -528,39 +496,29 @@ class NoiseAlertNotificationServiceTest {
         verify(warningJournal,never()).claim(any());
     }
 
-    @Test void whenOwnerEmailFails_thenDiagnosticPrivate() {
-        when(propertyRepository.findById(100L)).thenReturn(Optional.of(property));
-        doThrow(privateFailure()).when(emailService)
-            .sendContactMessage(anyString(), any(), any(), any(), anyString(), anyString(), anyList());
-        service.dispatch(alert, config);
+    @Test void ownerEmailFailureIsLeftToTheDurableWorker() {
+        doThrow(privateFailure()).when(emailService).sendContactMessage(anyString(),any(),any(),any(),anyString(),anyString(),anyList());
+        assertThrows(RuntimeException.class,() -> service.prepareOwnerEmail(alert,config,property,0).run());
         assertFalse(alert.isNotifiedEmail());
     }
 
-    @Test void whenInAppFails_thenDiagnosticPrivateAndEmailStillIndependent() {
-        when(propertyRepository.findById(100L)).thenReturn(Optional.of(property));
-        doThrow(privateFailure()).when(notificationService)
-            .notify(anyString(), any(), anyString(), anyString(), anyString(), any());
-        service.dispatch(alert, config);
+
+    @Test void ownerChannelsRemainIndependentDuringPreparation() {
+        doThrow(privateFailure()).when(notificationService).sendByOrgIdStrict(anyString(),any(),anyString(),anyString(),anyString(),any(),any());
+        assertThrows(RuntimeException.class,() -> service.prepareOwnerInApp(alert,property).get());
+        service.prepareOwnerEmail(alert,config,property,0).run();
+        verify(emailService).sendContactMessage(eq("owner@example.com"),any(),any(),any(),anyString(),anyString(),anyList());
         assertFalse(alert.isNotifiedInApp());
-        assertTrue(alert.isNotifiedEmail());
+        assertFalse(alert.isNotifiedEmail());
     }
 
-    @Test void guestWarningWaitsForCommitAndRollbackDoesNotSend() {
-        config.setNotifyInApp(false); config.setNotifyEmail(false); config.setNotifyGuestMessage(true);
-        when(propertyRepository.findById(100L)).thenReturn(Optional.of(property));
-        org.springframework.transaction.support.TransactionSynchronizationManager.initSynchronization();
-        try {
-            service.dispatch(alert,config);
-            verifyNoInteractions(warningJournal,whatsAppProvider);
-            var callbacks=org.springframework.transaction.support.TransactionSynchronizationManager.getSynchronizations();
-            assertEquals(1,callbacks.size());
-            callbacks.forEach(callback -> callback.afterCompletion(
-                org.springframework.transaction.support.TransactionSynchronization.STATUS_ROLLED_BACK));
-            verifyNoInteractions(warningJournal,whatsAppProvider);
-        } finally {
-            org.springframework.transaction.support.TransactionSynchronizationManager.clearSynchronization();
-        }
+
+    @Test void enqueueFailurePropagatesWithoutAnyExternalEffect() {
+        doThrow(new IllegalStateException("Queue unavailable")).when(outbox).enqueue(any(),any(),any());
+        assertThrows(IllegalStateException.class,() -> service.dispatch(alert,config));
+        verifyNoInteractions(warningJournal,whatsAppProvider,emailService,notificationService);
     }
+
 
     @Test void durableIntentPrecedesProviderAndProofPrecedesLocalRepair() {
         prepareWarning("+33612345678");

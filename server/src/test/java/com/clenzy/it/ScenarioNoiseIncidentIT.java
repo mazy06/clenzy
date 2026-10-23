@@ -99,7 +99,7 @@ class ScenarioNoiseIncidentIT extends AbstractIntegrationTest {
             try(var master=new liquibase.Liquibase("db/changelog/db.changelog-master.yaml",resources,database)) {
                 var selected=new liquibase.changelog.DatabaseChangeLog("db/changelog/db.changelog-master.yaml");
                 master.getDatabaseChangeLog().getChangeSets().stream()
-                    .filter(set -> set.getId().equals("0600-baitly-noise-warning-attempts")).forEach(selected::addChangeSet);
+                    .filter(set -> java.util.Set.of("0600-baitly-noise-warning-attempts","0601-baitly-noise-delivery-outbox","0602-baitly-noise-alert-cooldown-index").contains(set.getId())).forEach(selected::addChangeSet);
                 if(selected.getChangeSets().size()!=1) throw new IllegalStateException("Changeset de recette requis");
                 new liquibase.Liquibase(selected,resources,database).update("");
             }
@@ -220,7 +220,7 @@ class ScenarioNoiseIncidentIT extends AbstractIntegrationTest {
         assertThat(second).isNotNull();
         assertThat(third).isNotNull();
 
-        // ── UN SEUL message voyageur (claim Redis) : 1 EXECUTED, 2 SKIPPED. ──
+        // ── UN SEUL message voyageur (journal PostgreSQL durable) : 1 EXECUTED, 2 SKIPPED. ──
         List<AutomationExecution> warnings = executionsFor(orgAId, AutomationAction.SEND_NOISE_WARNING);
         assertThat(warnings).hasSize(3);
         assertThat(warnings.stream()
