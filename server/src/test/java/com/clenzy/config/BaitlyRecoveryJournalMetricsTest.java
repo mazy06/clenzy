@@ -103,4 +103,20 @@ class BaitlyRecoveryJournalMetricsTest {
         assertThat(value("snapshot.healthy")).isZero();
         assertThat(value("snapshot.last.success.timestamp.seconds")).isZero();
     }
+
+    @Test void prometheusExpositionMatchesRuleNamesWithoutJournalKeysOrCustomerLabels() {
+        db.update("INSERT INTO baitly_oauth_refresh_attempts VALUES (?,?,CURRENT_TIMESTAMP)","e".repeat(64),UUID.randomUUID());
+        var prometheus = new io.micrometer.prometheusmetrics.PrometheusMeterRegistry(io.micrometer.prometheusmetrics.PrometheusConfig.DEFAULT);
+        try {
+            new BaitlyRecoveryJournalMetrics(db,prometheus).refresh();
+            String text = prometheus.scrape();
+            for (String suffix : java.util.List.of("accounting_inflight","accounting_unknown","accounting_historical_review",
+                    "accounting_oldest_inflight_seconds","accounting_oldest_unknown_seconds","oauth_blocked_scopes",
+                    "snapshot_healthy","snapshot_last_success_timestamp_seconds")) {
+                assertThat(text).contains("baitly_recovery_"+suffix);
+            }
+            assertThat(text).contains("baitly_recovery_oauth_blocked_scopes 1.0","baitly_recovery_snapshot_healthy 1.0")
+                    .doesNotContain("e".repeat(64),"organization_id","scope_hash","attempt=");
+        } finally { prometheus.close(); }
+    }
 }
