@@ -1,5 +1,13 @@
 {
   "backend": [
+    "BaitlyKeyNestDiagnosticsPrivacyTest",
+    "BaitlyApiKeyEncryptionPrivacyTest",
+    "KeyNestApiServiceTest",
+    "KeyNestWebhookHandlerTest",
+    "KeyExchangeControllerTest",
+    "KeyExchangeServiceTest",
+    "KeyExchangeServiceCrossTenantTest",
+    "ExternalServiceConnectionServiceTest",
     "BaitlyRecoveryJournalMetricsTest",
     "SchedulerLockCoverageTest",
     "BaitlyOpsAlertControllerTest",

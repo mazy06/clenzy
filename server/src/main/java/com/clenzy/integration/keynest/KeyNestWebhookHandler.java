@@ -102,7 +102,7 @@ public class KeyNestWebhookHandler {
                     computed.getBytes(StandardCharsets.UTF_8),
                     signature.toLowerCase().getBytes(StandardCharsets.UTF_8));
         } catch (Exception e) {
-            log.error("Erreur verification signature webhook KeyNest: {}", e.getMessage());
+            log.error("Erreur verification signature webhook KeyNest");
             return false;
         }
     }
@@ -115,12 +115,12 @@ public class KeyNestWebhookHandler {
         String codeId = String.valueOf(payload.getOrDefault("code_id", ""));
         String actorName = String.valueOf(payload.getOrDefault("actor_name", ""));
 
-        log.info("Webhook KeyNest recu: event={}, code_id={}", eventType, codeId);
+        log.info("Webhook KeyNest recu");
 
         // Trouver le code dans notre base
         Optional<KeyExchangeCode> codeOpt = codeRepository.findByProviderCodeId(codeId);
         if (codeOpt.isEmpty()) {
-            log.warn("Code KeyNest inconnu: {} — webhook ignore", codeId);
+            log.warn("Code KeyNest inconnu : webhook ignore");
             return;
         }
 
@@ -141,7 +141,7 @@ public class KeyNestWebhookHandler {
                 mappedType = EventType.KEY_DEPOSITED;
             }
             default -> {
-                log.warn("Type d'evenement KeyNest inconnu: {}", eventType);
+                log.warn("Type d'evenement KeyNest inconnu");
                 return;
             }
         }
@@ -160,7 +160,7 @@ public class KeyNestWebhookHandler {
         event.setSource(EventSource.WEBHOOK);
         eventRepository.save(event);
 
-        log.info("Evenement KeyNest traite: {} pour code {} (id={})", mappedType, code.getCode(), code.getId());
+        log.info("Evenement KeyNest traite: {}", mappedType);
     }
 
     // ─── Private helpers ────────────────────────────────────────────────
