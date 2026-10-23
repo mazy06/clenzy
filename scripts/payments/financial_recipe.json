@@ -1,5 +1,8 @@
 {
   "backend": [
+    "NoiseDeviceControllerTest",
+    "NoiseDeviceServiceTest",
+    "NoiseAlertSchedulerTest",
     "NoiseAlertServiceTest",
     "NoiseAlertNotificationServiceTest",
     "BaitlyMinutKafkaContractTest",

@@ -141,3 +141,31 @@ normal de l'email signifie delegation au service existant, pas reception en boit
 Aucun UNKNOWN ne doit etre rejoue sur la seule absence de marqueur notified_*.
 La concurrence du cooldown entre sources bruit et la sortie des envois de la
 transaction initiale restent a traiter avant de declarer ce sous-lot durable.
+
+## Statut capteur et diagnostics HTTP
+
+Le polling Minut/Tuya exige un champ online/offline booleen explicite et coherent.
+Une panne, un corps vide, une forme invalide, des flags contradictoires ou le seul
+last_heard_from_at ne prouvent pas un statut courant. Dans ces cas l'appel echoue
+avec un diagnostic fixe, avant toute mutation de online ou last_seen_at. La lecture
+suivante peut retenter le GET ; aucune commande ni notification externe n'est ajoutee.
+
+Les lectures MINUT/TUYA reussies gardent le chemin de persistance existant. La
+concurrence entre cette sauvegarde de snapshot et les autres mutations du capteur
+reste a revoir ; ce lot ne garantit pas l'ordre de toutes les sources de statut.
+Le parcours Baitly IoT conserve sa verification de rattachement et son contrat.
+
+Le controller bruit ne renvoie plus le message brut d'une IllegalArgumentException,
+meme nul. Les erreurs gardent leurs codes 400/500 et les refus AccessDeniedException
+sont transmis au gestionnaire de securite. Logs du CRUD, polling, evaluation et
+notifications sans nom de capteur, adresse email, identite utilisateur, libelle
+horaire libre, message fournisseur ou graphe d'exception. Les donnees necessaires
+au contenu du message continuent a etre envoyees au destinataire autorise ; elles
+ne sont pas ajoutees aux diagnostics.
+
+La campagne staging finale doit verifier panne Redis, delai/perte de reponse
+WhatsApp, absence de repli apres tentative, confirmation vide, echec de sauvegarde,
+reponses Minut/Tuya ambigues, refus inter-organisation et reprise apres statut
+explicite. Les tests locaux de ces chemins emploient des doubles, sans fournisseur,
+broker ni notification reelle. Le test RedisOutageSemanticsIT a ete aligne, mais
+son exercice Testcontainers n'est pas execute dans cette vague locale.

@@ -103,8 +103,7 @@ public class NoiseDeviceService {
         }
 
         NoiseDevice saved = noiseDeviceRepository.save(device);
-        log.info("Capteur cree: {} (type={}, property={}) pour user={}",
-                saved.getName(), saved.getDeviceType(), saved.getPropertyId(), userId);
+        log.info("Baitly bruit : capteur {} cree, type {}", saved.getId(), saved.getDeviceType());
 
         return toDto(saved);
     }
@@ -130,7 +129,7 @@ public class NoiseDeviceService {
             claimService.release(device.getExternalDeviceId());
         }
         noiseDeviceRepository.delete(device);
-        log.info("Capteur supprime: {} (id={}) pour user={}", device.getName(), deviceId, userId);
+        log.info("Baitly bruit : capteur {} supprime", deviceId);
     }
 
     // ─── Noise Data ─────────────────────────────────────────────
@@ -167,7 +166,7 @@ public class NoiseDeviceService {
                     return Collections.emptyList();
             }
         } catch (Exception e) {
-            log.error("Erreur recuperation donnees bruit pour device {}: {}", deviceId, e.getMessage());
+            log.error("Baitly bruit : lecture non confirmee pour capteur {}", deviceId);
             return Collections.emptyList();
         }
     }
@@ -204,45 +203,47 @@ public class NoiseDeviceService {
         return Map.of("online", online);
     }
 
-    /** Connectivite reelle d'un capteur (Tuya getDeviceInfo / Minut getDevice), false si indispo. */
-    @SuppressWarnings("unchecked")
+    /** Une panne fournisseur n'est pas une preuve que le capteur est hors ligne. */
     private boolean fetchOnline(String userId, NoiseDevice device) {
-        String ext = device.getExternalDeviceId();
-        if (ext == null || ext.isBlank()) {
-            return false;
-        }
+        String externalId = device.getExternalDeviceId();
+        if (externalId == null || externalId.isBlank()) throw statusUnavailable();
         try {
-            switch (device.getDeviceType()) {
-                case TUYA: {
-                    Map<String, Object> info = tuyaApiService.getDeviceInfo(ext);
-                    return info != null && Boolean.TRUE.equals(info.get("online"));
+            return switch (device.getDeviceType()) {
+                case TUYA -> {
+                    Map<String, Object> info = tuyaApiService.getDeviceInfo(externalId);
+                    if (info == null || !(info.get("online") instanceof Boolean online)) throw statusUnavailable();
+                    yield online;
                 }
-                case MINUT:
-                    return parseMinutOnline(minutApiService.getDevice(userId, ext));
-                default:
-                    return false;
-            }
-        } catch (Exception e) {
-            log.warn("Statut online indisponible pour capteur {}: {}", device.getId(), e.getMessage());
-            return false;
+                case MINUT -> parseMinutOnline(minutApiService.getDevice(userId, externalId));
+                default -> throw statusUnavailable();
+            };
+        } catch (Exception unavailable) {
+            log.warn("Baitly bruit : statut non confirme pour capteur {}", device.getId());
+            throw statusUnavailable();
         }
     }
 
-    @SuppressWarnings("unchecked")
     private boolean parseMinutOnline(Map<String, Object> info) {
-        if (info == null) {
-            return false;
+        if (info == null) throw statusUnavailable();
+        Object nested = info.get("device");
+        if (info.containsKey("device") && !(nested instanceof Map)) throw statusUnavailable();
+        Map<?, ?> values = nested instanceof Map<?, ?> map ? map : info;
+        Object offline = values.get("offline");
+        Object online = values.get("online");
+        if (values.containsKey("offline") && !(offline instanceof Boolean)
+                || values.containsKey("online") && !(online instanceof Boolean)) throw statusUnavailable();
+        if (offline instanceof Boolean off && online instanceof Boolean on) {
+            if (off.booleanValue() == on.booleanValue()) throw statusUnavailable();
+            return on;
         }
-        Object dev = info.get("device");
-        Map<String, Object> m = dev instanceof Map ? (Map<String, Object>) dev : info;
-        if (m.get("offline") instanceof Boolean b) {
-            return !b;
-        }
-        if (m.get("online") instanceof Boolean b) {
-            return b;
-        }
-        // A defaut : un dernier contact connu => considere en ligne.
-        return m.get("last_heard_from_at") != null;
+        if (offline instanceof Boolean off) return !off;
+        if (online instanceof Boolean on) return on;
+        // last_heard_from_at est historique : ce n'est pas une preuve de statut courant.
+        throw statusUnavailable();
+    }
+
+    private static IllegalStateException statusUnavailable() {
+        return new IllegalStateException("Statut du capteur non confirme");
     }
 
     /**

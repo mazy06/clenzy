@@ -58,6 +58,146 @@ class NoiseDeviceServiceTest {
                 new com.clenzy.service.access.OrganizationAccessGuard(tenantContext), baitlyIotClient);
     }
 
+    private static final String PRIVATE = "synthetic-secret guest@example.invalid";
+    private final ch.qos.logback.classic.Logger logger =
+        (ch.qos.logback.classic.Logger) org.slf4j.LoggerFactory.getLogger(NoiseDeviceService.class);
+    private final ch.qos.logback.core.read.ListAppender<ch.qos.logback.classic.spi.ILoggingEvent> logs =
+        new ch.qos.logback.core.read.ListAppender<>();
+    private ch.qos.logback.classic.Level previous;
+
+    @BeforeEach void captureDiagnostics() {
+        previous = logger.getLevel();
+        logger.setLevel(ch.qos.logback.classic.Level.DEBUG);
+        logs.start();
+        logger.addAppender(logs);
+    }
+
+    @org.junit.jupiter.api.AfterEach void checkDiagnostics() {
+        try {
+            for (var event : logs.list) {
+                assertThat(event.getFormattedMessage()).doesNotContain(PRIVATE, "example.invalid", "synthetic-secret");
+                assertThat(event.getThrowableProxy()).isNull();
+                if (event.getArgumentArray() != null)
+                    assertThat(java.util.Arrays.toString(event.getArgumentArray())).doesNotContain(PRIVATE);
+            }
+        } finally {
+            logger.detachAppender(logs);
+            logger.setLevel(previous);
+            logs.stop();
+            tenantContext.clear();
+        }
+    }
+
+    private RuntimeException privateFailure() {
+        var failure = new IllegalStateException(PRIVATE, new IllegalArgumentException(PRIVATE));
+        failure.addSuppressed(new IllegalArgumentException(PRIVATE));
+        return failure;
+    }
+
+    private NoiseDevice statusDevice(DeviceType type) {
+        var device = buildDevice(1L, PRIVATE, type);
+        device.setExternalDeviceId(PRIVATE);
+        device.setOnline(true);
+        device.setLastSeenAt(java.time.LocalDateTime.of(2026, 10, 20, 12, 0));
+        when(noiseDeviceRepository.findById(1L)).thenReturn(Optional.of(device));
+        return device;
+    }
+
+    static java.util.stream.Stream<org.junit.jupiter.params.provider.Arguments> unknownMinutStatus() {
+        return java.util.stream.Stream.of(null, Map.of(), Map.of("last_heard_from_at", PRIVATE),
+            Map.of("online", "false"), Map.of("offline", 1), Map.of("offline", true, "online", true),
+            Map.of("offline", false, "online", false), Map.of("device", PRIVATE),
+            Map.of("device", Map.of()), Map.of("device", Map.of("last_heard_from_at", PRIVATE)))
+            .map(value -> org.junit.jupiter.params.provider.Arguments.of(value));
+    }
+
+    @org.junit.jupiter.params.ParameterizedTest
+    @org.junit.jupiter.params.provider.MethodSource("unknownMinutStatus")
+    void whenMinutStatusUnproven_thenPreviousStateAndFreshnessRemain(Map<String, Object> response) {
+        var device = statusDevice(DeviceType.MINUT);
+        var previousTime = device.getLastSeenAt();
+        when(minutApiService.getDevice(USER_ID, PRIVATE)).thenReturn(response);
+        assertThatThrownBy(() -> service.getDeviceStatus(USER_ID, 1L))
+            .hasMessage("Statut du capteur non confirme").hasNoCause()
+            .satisfies(error -> assertThat(error.getSuppressed()).isEmpty());
+        assertThat(device.getOnline()).isTrue();
+        assertThat(device.getLastSeenAt()).isEqualTo(previousTime);
+        verify(noiseDeviceRepository, never()).save(any());
+    }
+
+    static java.util.stream.Stream<org.junit.jupiter.params.provider.Arguments> provenMinutStatus() {
+        return java.util.stream.Stream.of(
+            org.junit.jupiter.params.provider.Arguments.of(Map.of("online", true), true),
+            org.junit.jupiter.params.provider.Arguments.of(Map.of("offline", true), false),
+            org.junit.jupiter.params.provider.Arguments.of(Map.of("online", false, "offline", true), false),
+            org.junit.jupiter.params.provider.Arguments.of(Map.of("device", Map.of("online", true)), true),
+            org.junit.jupiter.params.provider.Arguments.of(Map.of("device", Map.of("offline", false)), true));
+    }
+
+    @org.junit.jupiter.params.ParameterizedTest
+    @org.junit.jupiter.params.provider.MethodSource("provenMinutStatus")
+    void whenMinutExplicitStatus_thenPersistsThatStatus(Map<String, Object> response, boolean expected) {
+        var device = statusDevice(DeviceType.MINUT);
+        when(minutApiService.getDevice(USER_ID, PRIVATE)).thenReturn(response);
+        assertThat(service.getDeviceStatus(USER_ID, 1L)).containsEntry("online", expected);
+        assertThat(device.getOnline()).isEqualTo(expected);
+        verify(noiseDeviceRepository).save(device);
+    }
+
+    @org.junit.jupiter.params.ParameterizedTest
+    @org.junit.jupiter.params.provider.EnumSource(value = DeviceType.class, names = {"MINUT", "TUYA"})
+    void whenStatusTransportFails_thenDoesNotInventOffline(DeviceType type) {
+        var device = statusDevice(type);
+        var previousTime = device.getLastSeenAt();
+        if (type == DeviceType.MINUT) when(minutApiService.getDevice(USER_ID, PRIVATE)).thenThrow(privateFailure());
+        else when(tuyaApiService.getDeviceInfo(PRIVATE)).thenThrow(privateFailure());
+        assertThatThrownBy(() -> service.getDeviceStatus(USER_ID, 1L))
+            .hasMessage("Statut du capteur non confirme").hasNoCause()
+            .satisfies(error -> assertThat(error.getSuppressed()).isEmpty());
+        assertThat(device.getOnline()).isTrue();
+        assertThat(device.getLastSeenAt()).isEqualTo(previousTime);
+        verify(noiseDeviceRepository, never()).save(any());
+    }
+
+    @org.junit.jupiter.params.ParameterizedTest
+    @org.junit.jupiter.params.provider.NullAndEmptySource
+    @org.junit.jupiter.params.provider.ValueSource(strings = {" "})
+    void whenExternalIdentityAbsent_thenNoTransportOrWrite(String external) {
+        var device = statusDevice(DeviceType.MINUT);
+        device.setExternalDeviceId(external);
+        assertThatThrownBy(() -> service.getDeviceStatus(USER_ID, 1L)).hasNoCause();
+        verifyNoInteractions(minutApiService, tuyaApiService);
+        verify(noiseDeviceRepository, never()).save(any());
+    }
+
+    @org.junit.jupiter.params.ParameterizedTest
+    @org.junit.jupiter.params.provider.ValueSource(booleans = {true, false})
+    void whenTuyaExplicitStatus_thenPersists(boolean online) {
+        var device = statusDevice(DeviceType.TUYA);
+        when(tuyaApiService.getDeviceInfo(PRIVATE)).thenReturn(Map.of("online", online));
+        assertThat(service.getDeviceStatus(USER_ID, 1L)).containsEntry("online", online);
+        verify(noiseDeviceRepository).save(device);
+    }
+
+    @Test void whenTuyaStatusMissing_thenDoesNotWrite() {
+        statusDevice(DeviceType.TUYA);
+        when(tuyaApiService.getDeviceInfo(PRIVATE)).thenReturn(Map.of("online", PRIVATE));
+        assertThatThrownBy(() -> service.getDeviceStatus(USER_ID, 1L)).hasNoCause();
+        verify(noiseDeviceRepository, never()).save(any());
+    }
+
+    @Test void whenHistoryFails_thenProviderDiagnosticIsPrivate() {
+        statusDevice(DeviceType.MINUT);
+        when(minutApiService.getSoundLevels(any(), any(), any(), any(), anyInt())).thenThrow(privateFailure());
+        assertThat(service.getNoiseData(USER_ID, 1L, "start", "end")).isEmpty();
+    }
+
+    @Test void deletingDeviceDoesNotLogItsNameOrUser() {
+        var device = statusDevice(DeviceType.MINUT);
+        service.deleteDevice(PRIVATE, 1L);
+        verify(noiseDeviceRepository).delete(device);
+    }
+
     private NoiseDevice buildDevice(Long id, String name, DeviceType type) {
         NoiseDevice device = new NoiseDevice();
         device.setOrganizationId(ORG_ID);
