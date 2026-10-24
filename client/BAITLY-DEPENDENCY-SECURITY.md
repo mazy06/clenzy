@@ -49,6 +49,16 @@ correctif compatible des éditeurs ou préparer une migration distincte avec
 contrats assistant/AG-UI et revue de compatibilité. Ne pas considérer ces avis
 comme corrigés, inexploitables ou acceptés pour le lancement.
 
+## Préparation de la migration dédiée
+
+La [migration Zod 3](BAITLY-ZOD3-MIGRATION.md) distingue le frontend AG-UI
+1.0.2 et le relais Node AG-UI 0.0.57, inventorie les fonctions à préserver et
+définit les critères de bascule/repli. Neuf nouveaux cas exercent le vrai SDK
+frontend installé, y compris interruption, refus, coupure et annulation.
+Ils portent les contrats obligatoires à 39, sans modifier les dépendances ou
+les traitements de production. Un défaut CRLF préexistant est caractérisé et
+devra être corrigé par le candidat. La préparation ne corrige pas les douze avis.
+
 ## Validation et campagne finale
 
 Le lockfile est installé avec npm ci. La CI conserve son seuil d'audit critique
