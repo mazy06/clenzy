@@ -54,8 +54,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  * reels, pas de mocks du moteur.
  *
  * <p>Couvre : creation du menage post-checkout (F1a), idempotence one-shot
- * (re-livraison = zero doublon), absence de dedup moteur pour les declencheurs
- * recurrents (INVOICE_OVERDUE — la cle metier de l'executeur prend le relais),
+ * (re-livraison = zero doublon), déduplication par occurrence pour les déclencheurs récurrents,
  * persistance EXECUTED/SKIPPED, conditions numeriques (alertsLast24h) et
  * etancheite cross-organisation.</p>
  */

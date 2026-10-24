@@ -276,6 +276,7 @@ public class AutomationEvaluationService implements AutomationEngine {
         var data=recoveryContext.decode(work.org(),execution.getSubjectType(),execution.getSubjectId(),execution.getDurableContext());
         var subject=new AutomationSubject(execution.getSubjectType(),execution.getSubjectId(),data);
         Reservation stay=resolveReservationSubject(subject,work.org());
+        validateStayRelations(stay,work.org());
         if(AutomationSubject.TYPE_RESERVATION.equals(subject.subjectType()) && stay==null)
             return new Prepared(rule,null,null,AutomationActionExecutor.ExecutionResult.skipped("SUBJECT_UNAVAILABLE"));
         if(stay!=null && "cancelled".equalsIgnoreCase(stay.getStatus())
@@ -303,9 +304,16 @@ public class AutomationEvaluationService implements AutomationEngine {
         // Match the rounding of PostgreSQL TIMESTAMP(6) for a guest saved by the producer.
         return version==null?"null":version.plusNanos(500).truncatedTo(java.time.temporal.ChronoUnit.MICROS).toString();
     }
+    private static void validateStayRelations(Reservation stay, Long org) {
+        if(stay==null) return;
+        if((stay.getProperty()!=null && !org.equals(stay.getProperty().getOrganizationId()))
+            || (stay.getGuest()!=null && !org.equals(stay.getGuest().getOrganizationId())))
+            throw new AccessDeniedException("AUTOMATION_SCOPE_REVIEW");
+    }
     private void enqueue(AutomationExecution execution, AutomationRule rule, Map<String,Object> input) {
         var captured=new java.util.HashMap<String,Object>(input);
         Reservation stay=execution.getReservation();
+        validateStayRelations(stay,execution.getOrganizationId());
         if(stay!=null) {
             captured.put("_baitlyProperty",String.valueOf(stay.getProperty()==null?null:stay.getProperty().getId()));
             captured.put("_baitlyGuest",String.valueOf(stay.getGuest()==null?null:stay.getGuest().getId()));

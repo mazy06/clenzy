@@ -26,7 +26,7 @@ import java.time.ZoneId;
  * org-level pour des conciergeries francaises, OwnerStatementService est FR).</p>
  *
  * <p><b>Filet d'idempotence metier</b> (en plus de l'idempotence generique du
- * moteur, qui ne porte pas la periode) : claim {@link OwnerStatementDispatch}
+ * moteur par occurrence) : claim {@link OwnerStatementDispatch}
  * unique (org, owner, periode) validé AVANT l'envoi — un mois n'est JAMAIS
  * envoye deux fois, meme sur re-livraison ou re-execution.</p>
  *
@@ -40,9 +40,9 @@ public class SendOwnerStatementExecutor implements AutomationActionExecutor {
     /**
      * Type de sujet attendu par cet executeur. Sujet STABLE (ownerId) :
      * OWNER_MONTHLY_STATEMENT est un declencheur recurrent
-     * ({@code dedupePerSubject=false}), le moteur ne deduplique pas — c'est le
-     * claim {@code owner_statement_dispatch} (org x owner x periode) qui porte
-     * l'idempotence par mois.
+     * ({@code dedupePerSubject=false}) : sa clé durable inclut désormais le mois.
+     * Le claim {@code owner_statement_dispatch} protège aussi les autres chemins
+     * d'appel pour le même propriétaire et la même période.
      */
     public static final String SUBJECT_OWNER = "OWNER";
 

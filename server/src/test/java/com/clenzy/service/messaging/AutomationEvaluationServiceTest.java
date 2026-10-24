@@ -181,6 +181,7 @@ class AutomationEvaluationServiceTest {
 
         Property property = new Property();
         property.setId(42L);
+        property.setOrganizationId(1L);
         property.setTimezone("Pacific/Auckland");
 
         Reservation reservation = new Reservation();
@@ -300,6 +301,7 @@ class AutomationEvaluationServiceTest {
 
         Property property = new Property();
         property.setId(42L);
+        property.setOrganizationId(1L);
         property.setTimezone("Pacific/Auckland");
         property.setDefaultCheckOutTime("11:00");
 

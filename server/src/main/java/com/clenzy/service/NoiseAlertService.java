@@ -91,10 +91,8 @@ public class NoiseAlertService {
     }
 
     /**
-     * Tire le trigger NOISE_ALERT vers le moteur d'automatisation, APRES commit
-     * de la transaction courante (les executeurs font des envois externes —
-     * jamais d'appel HTTP dans une transaction DB ; et l'alerte doit etre
-     * visible en base quand l'executeur la recharge).
+     * Enregistre NOISE_ALERT dans la file du moteur, dans la transaction courante.
+     * Seul le drain voit les lignes commitées et peut appeler les exécuteurs.
      *
      * <p>La file du moteur rejoint la transaction de création ; aucun effet externe ici.</p>
      */

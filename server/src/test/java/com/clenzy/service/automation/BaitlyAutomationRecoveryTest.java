@@ -182,7 +182,7 @@ class BaitlyAutomationRecoveryTest {
         queue();assertThat(journal.claim(new BaitlyAutomationJournal.Work(11,8),now)).isEmpty();assertThat(state()).isEqualTo("PENDING");
     }
     @Test void changedGuestCannotReceiveAnOldQueuedMessage() {
-        queue();var guest=new Guest();guest.setId(70L);stay.setGuest(guest);
+        queue();var guest=new Guest();guest.setId(70L);guest.setOrganizationId(7L);stay.setGuest(guest);
         worker(journal).processScheduledExecutions();assertThat(state()).isEqualTo("UNKNOWN");verifyNoInteractions(executor);
     }
     @Test void reservationTransferredToAnotherTenantCannotExecute() {
@@ -278,7 +278,7 @@ class BaitlyAutomationRecoveryTest {
 
     @Test void timestampPrecisionDoesNotBlockAFreshlySavedGuest() {
         queue();
-        var guest=new Guest();guest.setId(70L);guest.setUpdatedAt(LocalDateTime.parse("2026-10-24T10:00:00.123456789"));stay.setGuest(guest);
+        var guest=new Guest();guest.setId(70L);guest.setOrganizationId(7L);guest.setUpdatedAt(LocalDateTime.parse("2026-10-24T10:00:00.123456789"));stay.setGuest(guest);
         var encrypted=codec.encode(7L,"RESERVATION",100L,Map.of("_baitlyProperty","null","_baitlyGuest","70","_baitlyGuestVersion","2026-10-24T10:00:00.123457"));
         db.update("UPDATE automation_executions SET durable_context=?",encrypted);
         worker(journal).processScheduledExecutions();assertThat(status()).isEqualTo("EXECUTED");
@@ -287,6 +287,15 @@ class BaitlyAutomationRecoveryTest {
         var e=new AutomationExecution();e.setAutomationRule(rule);e.setStatus(AutomationExecutionStatus.FAILED);
         e.setErrorMessage("private@example.invalid Bearer secret");
         assertThat(com.clenzy.dto.AutomationExecutionDto.from(e).errorMessage()).isEqualTo("AUTOMATION_LEGACY_REVIEW");
+    }
+
+    @Test void aForeignGuestCannotBeReadEvenIfAnOldReservationLinksToIt() {
+        queue();var guest=new Guest();guest.setId(70L);guest.setOrganizationId(8L);stay.setGuest(guest);
+        worker(journal).processScheduledExecutions();assertThat(state()).isEqualTo("UNKNOWN");verifyNoInteractions(executor);
+    }
+    @Test void aForeignPropertyCannotSupplyContentToAnAutomation() {
+        queue();var property=new Property();property.setId(91L);property.setOrganizationId(8L);stay.setProperty(property);
+        worker(journal).processScheduledExecutions();assertThat(state()).isEqualTo("UNKNOWN");verifyNoInteractions(executor);
     }
 
 }
