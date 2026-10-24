@@ -79,6 +79,18 @@ public class DeviceRealtimePublisher {
         publish(organizationId, event);
     }
 
+    /** Broker acknowledgement for a fenced workflow; no claim of delivery to every open screen. */
+    public void publishDeviceChangedConfirmed(Long organizationId, String kind, Long deviceId, String reason) {
+        if (organizationId == null || kind == null || deviceId == null) throw new IllegalStateException("Publication objet non confirmee");
+        try {
+            Map<String,Object> event=new HashMap<>();
+            event.put("type","device.changed"); event.put("kind",kind); event.put("id",deviceId);
+            if (reason!=null) event.put("reason",reason);
+            String message=objectMapper.writeValueAsString(Map.of("organizationId",organizationId,"event",event));
+            if (redisTemplate.convertAndSend(CHANNEL,message)==null) throw new IllegalStateException();
+        } catch (Exception failure) { throw new IllegalStateException("Publication objet non confirmee"); }
+    }
+
     private void publish(Long organizationId, Map<String, Object> event) {
         try {
             final Map<String, Object> message = new HashMap<>();
@@ -86,8 +98,7 @@ public class DeviceRealtimePublisher {
             message.put("event", event);
             redisTemplate.convertAndSend(CHANNEL, objectMapper.writeValueAsString(message));
         } catch (Exception e) {
-            log.debug("SSE objets connectés : publication échouée (org={}) : {}",
-                    organizationId, e.getMessage());
+            log.debug("SSE objets connectés : publication échouée");
         }
     }
 }

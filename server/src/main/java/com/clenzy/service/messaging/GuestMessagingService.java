@@ -14,6 +14,10 @@ import org.slf4j.LoggerFactory;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.annotation.Propagation;
+import org.springframework.transaction.PlatformTransactionManager;
+import org.springframework.transaction.support.TransactionTemplate;
+import org.hibernate.Hibernate;
 
 import java.time.LocalDateTime;
 import java.util.LinkedHashMap;
@@ -43,6 +47,7 @@ public class GuestMessagingService {
     private final AccessCodeResolverService accessCodeResolverService;
     private final BaitlyStaticMapService staticMapService;
     private final WelcomeGuideService welcomeGuideService;
+    private final TransactionTemplate preparation;
 
     public GuestMessagingService(
             List<MessageChannel> channels,
@@ -55,7 +60,8 @@ public class GuestMessagingService {
             NotificationService notificationService,
             AccessCodeResolverService accessCodeResolverService,
             BaitlyStaticMapService staticMapService,
-            WelcomeGuideService welcomeGuideService
+            WelcomeGuideService welcomeGuideService,
+            PlatformTransactionManager transactionManager
     ) {
         this.channels = channels;
         this.interpolationService = interpolationService;
@@ -68,6 +74,9 @@ public class GuestMessagingService {
         this.accessCodeResolverService = accessCodeResolverService;
         this.staticMapService = staticMapService;
         this.welcomeGuideService = welcomeGuideService;
+        this.preparation = new TransactionTemplate(transactionManager);
+        this.preparation.setReadOnly(true);
+        this.preparation.setTimeout(30);
     }
 
     /**
@@ -104,7 +113,7 @@ public class GuestMessagingService {
     /**
      * Envoi manuel d'un message pour une reservation avec un template donne.
      */
-    @Transactional
+    @Transactional(propagation = Propagation.NOT_SUPPORTED)
     public GuestMessageLog sendMessage(Long reservationId, Long templateId, Long orgId) {
         return sendMessage(reservationId, templateId, orgId, MessageChannelType.EMAIL);
     }
@@ -117,9 +126,17 @@ public class GuestMessagingService {
      * iCal anonymise (Airbnb / Booking.com) — l'historique reste propre et l'UI
      * peut afficher un message clair via le 400 renvoye par le controller.
      */
-    @Transactional
+    @Transactional(propagation = Propagation.NOT_SUPPORTED)
     public GuestMessageLog sendMessage(Long reservationId, Long templateId, Long orgId,
                                         MessageChannelType channelType) {
+        MessageInputs inputs = preparation.execute(status -> loadInputs(reservationId, templateId, orgId));
+        ensureRecipientResolvable(inputs.reservation(), channelType);
+        return sendForReservationViaChannel(inputs.reservation(), inputs.template(), orgId, channelType, Map.of());
+    }
+
+    private record MessageInputs(Reservation reservation, MessageTemplate template) {}
+
+    private MessageInputs loadInputs(Long reservationId, Long templateId, Long orgId) {
         Reservation reservation = reservationRepository.findById(reservationId)
             .orElseThrow(() -> new IllegalArgumentException("Reservation introuvable: " + reservationId));
 
@@ -135,9 +152,18 @@ public class GuestMessagingService {
         MessageTemplate template = templateRepository.findByIdAndOrganizationId(templateId, orgId)
             .orElseThrow(() -> new IllegalArgumentException("Template introuvable: " + templateId));
 
-        ensureRecipientResolvable(reservation, channelType);
+        initializeDeliveryGraph(reservation);
+        return new MessageInputs(reservation, template);
+    }
 
-        return sendForReservationViaChannel(reservation, template, orgId, channelType, Map.of());
+    // HTTP has no open session in view. Load only the associations consumed by delivery
+    // before releasing the connection, including the owner used by notifications.
+    private void initializeDeliveryGraph(Reservation reservation) {
+        Hibernate.initialize(reservation);
+        Hibernate.initialize(reservation.getGuest());
+        Property property = reservation.getProperty();
+        Hibernate.initialize(property);
+        if (property != null) Hibernate.initialize(property.getOwner());
     }
 
     /**
@@ -176,7 +202,7 @@ public class GuestMessagingService {
      * Envoie un message pour une reservation chargee (utilise par le scheduler).
      * Utilise le canal email par defaut.
      */
-    @Transactional
+    @Transactional(propagation = Propagation.NOT_SUPPORTED)
     public GuestMessageLog sendForReservation(Reservation reservation, MessageTemplate template, Long orgId) {
         return sendForReservationViaChannel(reservation, template, orgId, MessageChannelType.EMAIL, Map.of());
     }
@@ -184,16 +210,21 @@ public class GuestMessagingService {
     /**
      * Envoie un message via un canal specifique avec variables supplementaires.
      */
-    @Transactional
+    @Transactional(propagation = Propagation.NOT_SUPPORTED)
     public GuestMessageLog sendForReservationViaChannel(Reservation reservation, MessageTemplate template,
                                                          Long orgId, MessageChannelType channelType,
                                                          Map<String, String> extraVars) {
+        CheckInInstructions instructions = preparation.execute(status -> {
+            initializeDeliveryGraph(reservation);
+            Hibernate.initialize(template);
+            if (reservation.getOrganizationId() != null && !orgId.equals(reservation.getOrganizationId())) {
+                throw new AccessDeniedException("Reservation hors de l'organisation demandee");
+            }
+            return instructionsRepository.findByPropertyIdAndOrganizationId(
+                reservation.getProperty().getId(), orgId).orElse(null);
+        });
         Property property = reservation.getProperty();
         Guest guest = reservation.getGuest();
-
-        CheckInInstructions instructions = instructionsRepository
-            .findByPropertyIdAndOrganizationId(property.getId(), orgId)
-            .orElse(null);
 
         // Resoudre le code d'acces dynamique (serrure connectee, echange de cles, ou manuel)
         Map<String, String> resolvedVars = new LinkedHashMap<>(extraVars);
@@ -204,8 +235,7 @@ public class GuestMessagingService {
             log.debug("Code d'acces resolu: method={}, property={}, reservation={}",
                     accessResult.method(), property.getId(), reservation.getId());
         } catch (Exception e) {
-            log.error("Erreur resolution code d'acces pour reservation={}: {}",
-                    reservation.getId(), e.getMessage(), e);
+            log.warn("Baitly access code resolution unavailable");
             // Continue sans code dynamique — le code statique de CheckInInstructions sera utilise
         }
 
@@ -251,8 +281,7 @@ public class GuestMessagingService {
             }
             resolvedVars.put("locationMap", mapImageTag);
         } catch (Exception e) {
-            log.warn("Erreur generation carte de localisation pour reservation={}: {}",
-                    reservation.getId(), e.getMessage());
+            log.warn("Baitly location map unavailable");
             resolvedVars.put("locationMap", "");
         }
 
@@ -327,18 +356,25 @@ public class GuestMessagingService {
         try {
             result = channel.send(request);
         } catch (RuntimeException e) {
-            // L'appel lui-meme a echoue : rien n'est parti, la trace le dit.
-            attemptLog.complete(logEntry.getId(), MessageStatus.FAILED, e.getMessage());
-            throw e;
+            // A timeout may follow remote acceptance. Keep the pending fence and never
+            // expose the provider exception (it may contain a recipient or credentials).
+            recordOutcome(logEntry.getId(), MessageStatus.PENDING, "DELIVERY_UNCONFIRMED");
+            throw new IllegalStateException("AUTOMATION_DELIVERY_UNCONFIRMED");
         }
 
-        MessageStatus status = result.success() ? MessageStatus.SENT : MessageStatus.FAILED;
+        if (result == null) {
+            throw new IllegalStateException("AUTOMATION_DELIVERY_UNCONFIRMED");
+        }
+        // Legacy channels do not distinguish rejection from acceptance followed by a
+        // timeout. A non-success return after invocation cannot release the send fence.
+        MessageStatus status = result.success() ? MessageStatus.SENT : MessageStatus.PENDING;
         // Si CE processus meurt ici, la ligne reste PENDING — c'est-a-dire
         // exactement « parti, issue inconnue ». C'est l'etat qu'on veut pouvoir
         // lire plus tard.
-        attemptLog.complete(logEntry.getId(), status, result.errorMessage());
+        String diagnostic = result.success() ? null : "DELIVERY_UNCONFIRMED";
+        recordOutcome(logEntry.getId(), status, diagnostic);
         logEntry.setStatus(status);
-        logEntry.setErrorMessage(result.errorMessage());
+        logEntry.setErrorMessage(diagnostic);
 
         // Notification interne : succes → owner seul (information) ; echec → owner
         // + admins/managers (alerte, meme circuit que les echecs de generation de document).
@@ -355,10 +391,18 @@ public class GuestMessagingService {
             }
         } else {
             notifyDeliveryFailure(NotificationKey.GUEST_MESSAGE_FAILED, reservation, property,
-                template, orgId, "Erreur d'envoi a " + request.recipientName() + " : " + result.errorMessage());
+                template, orgId, "DELIVERY_UNCONFIRMED");
         }
 
         return logEntry;
+    }
+
+    private void recordOutcome(Long id, MessageStatus status, String diagnostic) {
+        try {
+            attemptLog.complete(id, status, diagnostic);
+        } catch (RuntimeException exception) {
+            throw new IllegalStateException("AUTOMATION_DELIVERY_UNCONFIRMED");
+        }
     }
 
     public boolean alreadySent(Long reservationId, MessageTemplateType type) {
@@ -434,8 +478,7 @@ public class GuestMessagingService {
                     title, message, actionUrl, orgId, facts);
             }
         } catch (Exception e) {
-            log.error("Notification d'echec d'envoi impossible (reservation={}) : {}",
-                reservation.getId(), e.getMessage());
+            log.warn("Baitly delivery failure notification unavailable");
         }
     }
 

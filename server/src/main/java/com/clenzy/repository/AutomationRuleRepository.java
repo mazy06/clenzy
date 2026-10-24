@@ -21,5 +21,10 @@ public interface AutomationRuleRepository extends JpaRepository<AutomationRule, 
     /** Toutes orgs confondues — reserve au sweep du scheduler (regroupe ensuite par org). */
     List<AutomationRule> findByEnabledTrue();
 
+    @org.springframework.data.jpa.repository.Lock(jakarta.persistence.LockModeType.PESSIMISTIC_WRITE)
+    @org.springframework.data.jpa.repository.Query("select r from AutomationRule r where r.id = :id and r.organizationId = :org")
+    Optional<AutomationRule> lockForAdmission(@org.springframework.data.repository.query.Param("id") Long id,
+                                             @org.springframework.data.repository.query.Param("org") Long org);
+
     Optional<AutomationRule> findByIdAndOrganizationId(Long id, Long organizationId);
 }

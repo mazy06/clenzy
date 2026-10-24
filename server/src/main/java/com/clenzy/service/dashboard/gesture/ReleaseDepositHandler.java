@@ -2,6 +2,7 @@ package com.clenzy.service.dashboard.gesture;
 
 import com.clenzy.dto.DashboardOperationsDto.ActionItemKind;
 import com.clenzy.service.SecurityDepositPaymentService;
+import com.clenzy.service.OrganizationService;
 import org.springframework.stereotype.Component;
 
 import java.util.Set;
@@ -17,9 +18,11 @@ import java.util.Set;
 public class ReleaseDepositHandler implements ActionGestureHandler {
 
     private final SecurityDepositPaymentService securityDepositPaymentService;
+    private final OrganizationService organizationAccess;
 
-    public ReleaseDepositHandler(SecurityDepositPaymentService securityDepositPaymentService) {
+    public ReleaseDepositHandler(SecurityDepositPaymentService securityDepositPaymentService, OrganizationService organizationAccess) {
         this.securityDepositPaymentService = securityDepositPaymentService;
+        this.organizationAccess = organizationAccess;
     }
 
     @Override
@@ -34,6 +37,7 @@ public class ReleaseDepositHandler implements ActionGestureHandler {
 
     @Override
     public void handle(GestureContext context) {
+        organizationAccess.validateOrgManagement(context.actorId(), context.orgId());
         securityDepositPaymentService.releaseHold(context.orgId(), context.targetId());
     }
 }

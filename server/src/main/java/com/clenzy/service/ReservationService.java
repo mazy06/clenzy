@@ -934,15 +934,10 @@ public class ReservationService {
 
     /**
      * Amorce les regles d'automatisation pour une reservation nouvellement creee.
-     * L'echec ne doit jamais empecher la creation de la reservation.
+     * La réservation et sa file d'automatisation doivent être validées ensemble.
      */
     private void seedAutomations(Reservation reservation, Long orgId) {
-        try {
-            reservationAutomationStarter.schedule(reservation.getId(), orgId);
-        } catch (Exception e) {
-            log.warn("Erreur amorcage automatisations pour reservation {}: {}",
-                    reservation.getId(), e.getMessage());
-        }
+        reservationAutomationStarter.schedule(reservation.getId(), orgId);
     }
 
     // ── Notification helpers ─────────────────────────────────────────────

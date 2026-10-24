@@ -1,5 +1,6 @@
 package com.clenzy.integration.netatmo.controller;
 
+import com.clenzy.integration.oauth.BaitlyOAuthHttpDiagnostics;
 import com.clenzy.dto.netatmo.NetatmoConfigStatusDto;
 import com.clenzy.dto.netatmo.NetatmoConnectionStatusDto;
 import com.clenzy.dto.netatmo.NetatmoModuleDto;
@@ -62,7 +63,7 @@ public class NetatmoController {
             List<NetatmoModuleDto> modules = apiService.listWeatherModules(jwt.getSubject());
             return ResponseEntity.ok(modules);
         } catch (Exception e) {
-            log.error("Erreur liste devices Netatmo: {}", e.getMessage());
+            log.error("Erreur liste devices Netatmo");
             return ResponseEntity.internalServerError().body(Map.of(
                     "error", "api_error", "message", "Compte Netatmo non relié ou indisponible"));
         }
@@ -75,7 +76,7 @@ public class NetatmoController {
             List<NetatmoModuleDto> thermostats = apiService.listThermostats(jwt.getSubject());
             return ResponseEntity.ok(thermostats);
         } catch (Exception e) {
-            log.error("Erreur liste thermostats Netatmo: {}", e.getMessage());
+            log.error("Erreur liste thermostats Netatmo");
             return ResponseEntity.internalServerError().body(Map.of(
                     "error", "api_error", "message", "Compte Netatmo non relié ou indisponible"));
         }
@@ -88,7 +89,7 @@ public class NetatmoController {
             List<NetatmoModuleDto> modules = apiService.listSecurityModules(jwt.getSubject());
             return ResponseEntity.ok(modules);
         } catch (Exception e) {
-            log.error("Erreur liste sécurité Netatmo: {}", e.getMessage());
+            log.error("Erreur liste sécurité Netatmo");
             return ResponseEntity.internalServerError().body(Map.of(
                     "error", "api_error", "message", "Compte Netatmo non relié ou indisponible"));
         }
@@ -138,7 +139,7 @@ public class NetatmoController {
         } catch (IllegalStateException e) {
             Map<String, String> error = new HashMap<>();
             error.put("error", "configuration_missing");
-            error.put("message", e.getMessage());
+            error.put("message", BaitlyOAuthHttpDiagnostics.CONFIGURATION_UNAVAILABLE);
             return ResponseEntity.badRequest().body(error);
         }
     }
@@ -161,7 +162,7 @@ public class NetatmoController {
             oAuthService.exchangeCodeForToken(code, st.userId(), st.organizationId());
             target = "/properties?tab=connected-objects&netatmo=connected";
         } catch (Exception e) {
-            log.error("Erreur callback OAuth Netatmo: {}", e.getMessage());
+            log.error("Erreur callback OAuth Netatmo");
             target = "/properties?tab=connected-objects&netatmo=error";
         }
         return ResponseEntity.status(HttpStatus.FOUND).location(URI.create(target)).build();
@@ -178,7 +179,7 @@ public class NetatmoController {
             response.put("message", "Compte Netatmo deconnecte");
             return ResponseEntity.ok(response);
         } catch (Exception e) {
-            log.error("Erreur deconnexion Netatmo: {}", e.getMessage());
+            log.error("Erreur deconnexion Netatmo");
             Map<String, String> error = new HashMap<>();
             error.put("status", "error");
             error.put("message", "Erreur lors de la deconnexion");
@@ -199,7 +200,7 @@ public class NetatmoController {
             statusDto.setStatus(connection.getStatus().name());
             statusDto.setConnectedAt(connection.getConnectedAt());
             statusDto.setLastSyncAt(connection.getLastSyncAt());
-            statusDto.setErrorMessage(connection.getErrorMessage());
+            statusDto.setErrorMessage(BaitlyOAuthHttpDiagnostics.connectionError(connection.getErrorMessage()));
             statusDto.setDeviceCount(0); // P1+ : nombre de devices Netatmo synchronises
         } else {
             statusDto.setConnected(false);

@@ -68,10 +68,11 @@ public class NoiseDeviceController {
         } catch (IllegalArgumentException e) {
             return ResponseEntity.badRequest().body(Map.of(
                     "error", "validation_error",
-                    "message", e.getMessage()
+                    "message", "Capteur introuvable ou configuration invalide"
             ));
         } catch (Exception e) {
-            log.error("Erreur creation capteur pour user {}: {}", userId, e.getMessage());
+            if (e instanceof org.springframework.security.access.AccessDeniedException denied) throw denied;
+            log.error("Baitly bruit : creation du capteur non confirmee");
             return ResponseEntity.internalServerError().body(Map.of(
                     "error", "server_error",
                     "message", "Erreur lors de la creation du capteur"
@@ -94,10 +95,11 @@ public class NoiseDeviceController {
         } catch (IllegalArgumentException e) {
             return ResponseEntity.badRequest().body(Map.of(
                     "error", "not_found",
-                    "message", e.getMessage()
+                    "message", "Capteur introuvable ou configuration invalide"
             ));
         } catch (Exception e) {
-            log.error("Erreur suppression capteur {} pour user {}: {}", id, userId, e.getMessage());
+            if (e instanceof org.springframework.security.access.AccessDeniedException denied) throw denied;
+            log.error("Baitly bruit : suppression du capteur non confirmee");
             return ResponseEntity.internalServerError().body(Map.of(
                     "error", "server_error",
                     "message", "Erreur lors de la suppression du capteur"
@@ -122,10 +124,11 @@ public class NoiseDeviceController {
         } catch (IllegalArgumentException e) {
             return ResponseEntity.badRequest().body(Map.of(
                     "error", "not_found",
-                    "message", e.getMessage()
+                    "message", "Capteur introuvable ou configuration invalide"
             ));
         } catch (Exception e) {
-            log.error("Erreur recuperation donnees bruit capteur {} pour user {}: {}", id, userId, e.getMessage());
+            if (e instanceof org.springframework.security.access.AccessDeniedException denied) throw denied;
+            log.error("Baitly bruit : lecture du capteur non confirmee");
             return ResponseEntity.internalServerError().body(Map.of(
                     "error", "server_error",
                     "message", "Erreur lors de la recuperation des donnees"
@@ -141,9 +144,10 @@ public class NoiseDeviceController {
         try {
             return ResponseEntity.ok(noiseDeviceService.getDeviceStatus(userId, id));
         } catch (IllegalArgumentException e) {
-            return ResponseEntity.badRequest().body(Map.of("error", "not_found", "message", e.getMessage()));
+            return ResponseEntity.badRequest().body(Map.of("error", "not_found", "message", "Capteur introuvable ou configuration invalide"));
         } catch (Exception e) {
-            log.error("Erreur statut capteur {} pour user {}: {}", id, userId, e.getMessage());
+            if (e instanceof org.springframework.security.access.AccessDeniedException denied) throw denied;
+            log.error("Baitly bruit : statut du capteur non confirme");
             return ResponseEntity.internalServerError().body(Map.of(
                     "error", "server_error",
                     "message", "Erreur lors de la recuperation du statut"
@@ -163,7 +167,8 @@ public class NoiseDeviceController {
             NoiseChartDataDto chartData = noiseDeviceService.getAllNoiseData(userId, start, end);
             return ResponseEntity.ok(chartData);
         } catch (Exception e) {
-            log.error("Erreur recuperation donnees bruit agregees pour user {}: {}", userId, e.getMessage());
+            if (e instanceof org.springframework.security.access.AccessDeniedException denied) throw denied;
+            log.error("Baitly bruit : lecture agregee non confirmee");
             return ResponseEntity.internalServerError().body(Map.of(
                     "error", "server_error",
                     "message", "Erreur lors de la recuperation des donnees agregees"
