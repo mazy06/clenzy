@@ -37,6 +37,7 @@ class GuestMessagingServiceTest {
     @Mock private AccessCodeResolverService accessCodeResolverService;
     @Mock private BaitlyStaticMapService staticMapService;
     @Mock private WelcomeGuideService welcomeGuideService;
+    @Mock private org.springframework.transaction.PlatformTransactionManager transactionManager;
 
     private GuestMessagingService service;
 
@@ -46,7 +47,7 @@ class GuestMessagingServiceTest {
         service = new GuestMessagingService(channels, interpolationService, messageLogRepository,
                 attemptLog,
             instructionsRepository, templateRepository, reservationRepository, notificationService,
-            accessCodeResolverService, staticMapService, welcomeGuideService);
+            accessCodeResolverService, staticMapService, welcomeGuideService, transactionManager);
 
         // Default : resolution manuelle (pas de code dynamique)
         lenient().when(accessCodeResolverService.resolveForReservation(any(), any(), any()))
@@ -642,7 +643,7 @@ class GuestMessagingServiceTest {
         }
 
         @Test
-        void sendForReservationViaChannel_sendFails_logsFailedAndNotifies() {
+        void sendForReservationViaChannel_sendUnconfirmed_keepsFenceAndNotifies() {
             Property property = new Property();
             property.setId(10L);
             property.setName("P");
@@ -681,15 +682,17 @@ class GuestMessagingServiceTest {
 
             // Echec = owner notifie (surcharge orgId explicite : contexte scheduler)
             // + admins/managers (meme circuit que les echecs de generation de document).
-            // Les deux portent les memes faits, dont le motif d'echec : la fiche
-            // de notification dit pourquoi rien n'est parti sans ouvrir l'historique.
+            // The legacy channel cannot establish whether the remote side accepted.
+            // Diagnostics stay fixed and the pending attempt continues to block replay.
+            assertThat(log.getStatus()).isEqualTo(MessageStatus.PENDING);
+            verify(attemptLog).complete(1L, MessageStatus.PENDING, "DELIVERY_UNCONFIRMED");
             ArgumentCaptor<Map<String, Object>> facts = ArgumentCaptor.forClass(Map.class);
             verify(notificationService).send(eq("owner-kc"), eq(NotificationKey.GUEST_MESSAGE_FAILED),
                 anyString(), anyString(), any(), eq(1L), facts.capture());
             assertThat(facts.getValue())
                 .containsEntry("property", "P")
                 .containsEntry("template", "T")
-                .containsEntry("error", "Erreur d'envoi a G Test : smtp error");
+                .containsEntry("error", "DELIVERY_UNCONFIRMED");
             verify(notificationService).notifyAdminsAndManagers(eq(NotificationKey.GUEST_MESSAGE_FAILED),
                 anyString(), anyString(), any(), eq(1L), any(Map.class));
         }

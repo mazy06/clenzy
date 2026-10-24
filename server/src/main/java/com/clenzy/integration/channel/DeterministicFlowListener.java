@@ -54,12 +54,10 @@ public class DeterministicFlowListener {
     public void onCalendarUpdate(Object payload) {
         Map<String, Object> event = coerceToMap(payload);
         if (event == null) {
-            log.debug("Flux deterministes: payload calendrier de type {} non exploitable — ignore",
-                    payload != null ? payload.getClass().getName() : "null");
+            log.debug("Baitly calendrier : payload non exploitable [CALENDAR_PAYLOAD_UNSUPPORTED]");
             return;
         }
-        log.debug("Flux deterministes: event calendrier recu action={} orgId={} propertyId={} reservationId={}",
-                event.get("action"), event.get("orgId"), event.get("propertyId"), event.get("reservationId"));
+        log.debug("Baitly calendrier : evenement recu [CALENDAR_EVENT_RECEIVED]");
 
         Object action = event.get("action");
         if (action == null) {
@@ -78,15 +76,14 @@ public class DeterministicFlowListener {
         Long propertyId = asLong(event.get("propertyId"));
         Long reservationId = asLong(event.get("reservationId"));
         if (orgId == null || propertyId == null) {
-            log.debug("Flux deterministes: event {} sans orgId/propertyId — ignore", action);
+            log.debug("Baitly calendrier : perimetre incomplet [CALENDAR_SCOPE_INCOMPLETE]");
             return;
         }
         if (reservationId == null) {
             // Le sujet d'idempotence du moteur est la reservation : sans elle un
             // BOOKED re-dedupliquerait toutes les resas futures de la propriete.
             // Le filet quotidien (CleaningBackfillScheduler) rattrape ces cas.
-            log.info("Flux deterministes: event {} propriete {} sans reservationId — delegue au filet quotidien",
-                    action, propertyId);
+            log.info("Baitly calendrier : reservation absente, filet quotidien conserve [CALENDAR_RESERVATION_MISSING]");
             return;
         }
 
@@ -122,7 +119,7 @@ public class DeterministicFlowListener {
             try {
                 return objectMapper.readValue(s, Map.class);
             } catch (Exception e) {
-                log.warn("Flux deterministes: payload calendrier illisible — ignore ({})", e.getMessage());
+                log.warn("Baitly calendrier : payload illisible [CALENDAR_PAYLOAD_UNREADABLE]");
                 return null;
             }
         }

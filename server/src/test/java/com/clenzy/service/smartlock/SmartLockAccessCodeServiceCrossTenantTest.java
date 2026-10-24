@@ -99,7 +99,10 @@ class SmartLockAccessCodeServiceCrossTenantTest {
 
         service = new SmartLockAccessCodeService(
                 codeRepo, deviceRepo, new OrganizationAccessGuard(tenantContext),
-                provisioner, journal, delivery, stayContext);
+                provisioner, journal, delivery, stayContext,
+                com.clenzy.service.automation.BaitlyExternalEffectTestSupport.journal(),
+                org.mockito.Mockito.mock(org.springframework.transaction.PlatformTransactionManager.class),
+                org.mockito.Mockito.mock(com.clenzy.repository.ReservationRepository.class));
 
         // La serrure ciblee appartient a une AUTRE organisation.
         SmartLockDevice deviceVictime = new SmartLockDevice();
