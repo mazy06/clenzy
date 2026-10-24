@@ -40,8 +40,11 @@ public class BaitlyAutomationJournal {
                 """,token,now,work.execution(),work.org(),now,now,work.org());
             if(count==0) {
                 db.update("""
-                    UPDATE automation_executions SET durable_state='REVIEW',status='FAILED',
-                        error_message='AUTOMATION_SCOPE_REVIEW',durable_context=NULL
+                    UPDATE automation_executions SET
+                        durable_state=CASE WHEN EXISTS (SELECT 1 FROM baitly_automation_outcome_proofs p WHERE p.execution_id=automation_executions.id)
+                            THEN 'UNKNOWN' ELSE 'REVIEW' END,status='FAILED',
+                        error_message=CASE WHEN EXISTS (SELECT 1 FROM baitly_automation_outcome_proofs p WHERE p.execution_id=automation_executions.id)
+                            THEN 'AUTOMATION_ATTEMPT_UNCERTAIN' ELSE 'AUTOMATION_SCOPE_REVIEW' END,durable_context=NULL
                     WHERE id=? AND organization_id=? AND durable_state='PENDING' AND status='PENDING'
                         AND scheduled_at<=?
                     """,work.execution(),work.org(),now);

@@ -192,12 +192,15 @@ class BaitlyAutomationReconciliationTest extends BaitlyAutomationFixture {
             .isInstanceOf(org.springframework.dao.DataIntegrityViolationException.class);
         assertThat(state()).isEqualTo("STARTED");assertThat(proofs()).isEqualTo(1);
     }
-    @Test void aStalePendingSnapshotCannotReplayAnExecutionThatAlreadyHasProof() {
+    @ParameterizedTest @ValueSource(booleans={false,true})
+    void aStalePendingSnapshotCannotReplayOrUnfenceAnExecutionThatAlreadyHasProof(boolean disputed) {
         var t=claim();journal.recordTerminalProof(t,AutomationActionExecutor.ExecutionResult.executed(),now);
+        if(disputed) assertThat(journal.recordTerminalProof(t,AutomationActionExecutor.ExecutionResult.skipped("private"),now)).isFalse();
         db.update("UPDATE automation_executions SET durable_state='PENDING',status='PENDING' WHERE id=11");
         worker(journal).processScheduledExecutions();worker(journal).processScheduledExecutions();reconcile();
         verifyNoInteractions(executor);
-        assertThat(state()).isEqualTo("REVIEW");assertThat(proofs()).isEqualTo(1);
+        assertThat(state()).isEqualTo(disputed?"UNKNOWN":"DONE");assertThat(proofs()).isEqualTo(1);
+        assertThat(journal.due(now.plusDays(90))).isEmpty();
     }
     @Test void failuresProduceOnlyFixedDiagnosticAndUnlabelledCounters() {
         var logger=(ch.qos.logback.classic.Logger)org.slf4j.LoggerFactory.getLogger(BaitlyAutomationReconciler.class);
