@@ -56,6 +56,7 @@ class SchedulerLockCoverageTest {
             "BaitlyRecoveryJournalMetrics#refresh",
             "BaitlyNoiseWarningMetrics#refresh",
             "BaitlyAutomationMetrics#refresh",
+            "BaitlyExternalEffectMetrics#refresh",
 
             // B — at-least-once par design (voir OutboxRelay, javadoc de classe)
             "OutboxRelay#relayPendingEvents",
