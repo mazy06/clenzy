@@ -9,6 +9,7 @@ import java.time.LocalDateTime;
 import java.util.List;
 
 public interface AssistantMessageRepository extends JpaRepository<AssistantMessage, Long> {
+    boolean existsByOrganizationIdAndConversationId(Long organizationId, Long conversationId);
 
     /**
      * Tous les messages d'une conversation, ordonnes chronologiquement.

@@ -475,13 +475,12 @@ public class AgentOrchestrator {
                                          AgentContext context,
                                          Consumer<AgentSseEvent> consumer) {
         PendingToolStore.PendingTool pending = pendingToolStore
-                .consume(toolCallId, context.keycloakId())
+                .consume(toolCallId, context.keycloakId(), context.organizationId(), confirmed)
                 .orElseThrow(() -> new IllegalArgumentException(
-                        "Tool en attente " + toolCallId + " introuvable / expire / non autorise"));
+                        "Baitly pending decision unavailable"));
 
-        // Journal des resolutions (X1) : l'outcome CONFIRMED/REFUSED nourrit les
-        // Regles de Confiance (X2). Best-effort, hors chemin critique.
-        pendingToolStore.markResolved(toolCallId, confirmed);
+        // The durable decision was claimed above, before any effect. Its status
+        // records consent/refusal, never proof that the tool completed.
 
         // Recharger la conv pour update updatedAt en fin de boucle. La validation
         // d'ownership est double : consume() (keycloakId du pending) + findByIdAndUser

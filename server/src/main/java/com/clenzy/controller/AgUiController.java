@@ -130,7 +130,7 @@ public class AgUiController {
     public Map<String, Object> info() {
         return Map.of("agents", List.of(Map.of(
                 "name", AGENT_NAME,
-                "description", "Superviseur multi-agent Clenzy (orchestrateur + spécialistes)")));
+                "description", "Superviseur multi-agent Baitly (orchestrateur + spécialistes)")));
     }
 
     /**
@@ -210,7 +210,7 @@ public class AgUiController {
                 };
 
                 if (resumeEntry != null && !resumeEntry.isNull()) {
-                    log.info("AG-UI resume reçu (forme à confirmer) : {}", resumeEntry);
+                    log.debug("Baitly AG-UI decision received");
                     String toolCallId = firstText(resumeEntry, "interruptId", "id", "toolCallId");
                     String status = resumeEntry.path("status").asText("");
                     boolean confirmed = "cancelled".equals(status)

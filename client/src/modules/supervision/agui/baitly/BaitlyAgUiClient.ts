@@ -31,6 +31,18 @@ export class BaitlyAgUiClient {
   get state(): BaitlyAgUiState { return this.phase; }
   abortRun(): void { this.controller?.abort(); }
 
+  /** Adopt IDs only after a fresh authenticated recovery read. Never resets uncertainty. */
+  restorePending(threadId: string, runId: string, ids: string[]): void {
+    if (this.controller || this.phase !== 'idle' || this.sentRuns.size || this.pending) {
+      throw new BaitlyAgUiError('RECONCILIATION_REQUIRED');
+    }
+    if (!threadId || !runId || !ids.length || ids.some(id => !id) || new Set(ids).size !== ids.length) {
+      throw new BaitlyAgUiError('INVALID_INPUT');
+    }
+    this.pending = { threadId, runId, ids: [...ids] };
+    this.phase = 'awaiting_decision';
+  }
+
   async run(input: BaitlyRunInput, onEvent: (event: BaitlyAgUiEvent) => void | Promise<void>): Promise<BaitlyRunOutcome> {
     if (this.controller || this.phase === 'running') throw new BaitlyAgUiError('BUSY');
     if (this.phase === 'uncertain') throw new BaitlyAgUiError('RECONCILIATION_REQUIRED');

@@ -1,5 +1,12 @@
 {
   "backend": [
+    "BaitlyChatRecoverySecurityTest",
+    "BaitlyChatRecoveryTest",
+    "BaitlyChatDecisionSqlTest",
+    "PendingToolStoreDurableTest",
+    "PendingToolStorePersistenceTest",
+    "AgentOrchestratorTest",
+    "AgUiControllerSecurityTest",
     "BaitlyBrokerDiagnosticsPrivacyTest",
     "KafkaConfigTest",
     "TenantIsolatingRecordInterceptorTest",

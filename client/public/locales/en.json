@@ -21778,5 +21778,21 @@
     "open": "Find a manager for this property",
     "services": "Requested services",
     "fee": "Requested commission limit"
+  },
+  "baitlyChatCandidate": {
+    "title": "Baitly assistant",
+    "messages": "Messages",
+    "you": "You",
+    "assistant": "Assistant",
+    "restoring": "Checking pending actions…",
+    "blocked": "This request needs review before continuing. Previous submissions will not be sent again.",
+    "pending": "Your approval",
+    "unavailable": "The context for this action is no longer available. Resuming it remains blocked.",
+    "approve": "Approve",
+    "refuse": "Decline",
+    "message": "Your message",
+    "send": "Send",
+    "stop": "Stop",
+    "check": "Check status"
   }
 }

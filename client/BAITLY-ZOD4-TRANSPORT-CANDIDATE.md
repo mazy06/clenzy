@@ -97,3 +97,10 @@ Tests et seuil critique sont maintenant obligatoires dans sa CI.
 4. Qualification de l’ensemble, retrait des anciens SDK seulement après
    équivalence démontrée et audits des deux graphes ; campagne staging finale
    regroupée puis promotion habituelle par PR. Aucun déploiement ici.
+
+## Étape suivante : adaptateur et pending
+
+Le candidat est complété par un adaptateur React inactif et un contrôle durable
+des décisions. Voir [le contrat de restauration](BAITLY-CHAT-PENDING-RESTORATION.md).
+Les limites ci-dessus décrivent le transport de #517 ; le remplacement du SDK
+reste soumis aux portes de qualification, sans activation ni retrait ici.

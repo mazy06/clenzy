@@ -95,8 +95,8 @@ avec XML `baitly-dependency-compatibility`. Localement : 39 cas réussis, zéro
 - Vérifier JSON Schema et consommateurs avant suppression. Calibrer les bornes
   trames/collections/profondeur sur les usages réels avant parsing, sans limite
   arbitraire tronquant les outils. Erreur visible sans logs d’args, prompts,
-  résultats, cookies ou localisation. Le log Java actuel de `resumeEntry` brut
-  est un point de confidentialité à traiter avant qualification du candidat.
+  résultats, cookies ou localisation. Le log Java brut de `resumeEntry` est remplacé par un code fixe dans
+  la candidate suivante, documentée dans BAITLY-CHAT-PENDING-RESTORATION.md.
 - Qualifier le relais AG-UI 0.0.57 séparément et le contrat useInterrupt/runtime/Java.
   Conserver les tests Java de sécurité/traduction ; compléter avec fixtures
   partagées générées côté Java, sans inventer un format client divergent.
