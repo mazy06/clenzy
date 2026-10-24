@@ -111,6 +111,12 @@ jobs:
         working-directory: client
         run: python3 tooling/check_baitly_discovery.py --nginx /usr/sbin/nginx
 
+      - name: Verify internal proxy log privacy and unchanged HTTP behavior
+        working-directory: client
+        env:
+          NGINX_BINARY: /usr/sbin/nginx
+        run: python3 -B tooling/check_baitly_proxy_logs.py
+
       - name: Check bundle size
         working-directory: client
         run: |
