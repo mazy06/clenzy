@@ -245,11 +245,20 @@ public class ContractSignatureService {
 
     public ContractSignaturePublicDto getPublicView(UUID token) {
         ContractSignatureRequest request = requireByToken(token);
+        if (request.getStatus() == ContractSignatureRequest.Status.CANCELLED) {
+            return unavailableView("CANCELLED");
+        }
+        if (request.isExpired()) {
+            return unavailableView("EXPIRED");
+        }
         ManagementContract contract = contractRepository.findById(request.getContractId())
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
 
+        String status = publicStatus(request, contract);
+        if ("CANCELLED".equals(status)) return unavailableView(status);
+
         return new ContractSignaturePublicDto(
-                publicStatus(request, contract),
+                status,
                 contract.getContractNumber(),
                 contract.getContractType() != null ? contract.getContractType().name() : null,
                 resolvePropertyName(contract.getPropertyId()),
@@ -277,6 +286,13 @@ public class ContractSignatureService {
         }
         if (request.isExpired()) {
             throw new ResponseStatusException(HttpStatus.GONE, "Lien de signature expiré");
+        }
+        if (request.getStatus() == ContractSignatureRequest.Status.PENDING) {
+            ManagementContract contract = contractRepository.findById(request.getContractId())
+                    .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
+            if (contract.getStatus() != ContractStatus.DRAFT) {
+                throw new ResponseStatusException(HttpStatus.GONE, "Le contrat n'est plus signable");
+            }
         }
         byte[] bytes = resolveDocumentBytes(request)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Document indisponible"));
@@ -432,6 +448,12 @@ public class ContractSignatureService {
     }
 
     // ─── Helpers ──────────────────────────────────────────────────────────────
+
+    /** Le statut suffit a afficher l'ecran de lien indisponible, sans donnees du contrat. */
+    private ContractSignaturePublicDto unavailableView(String status) {
+        return new ContractSignaturePublicDto(status, null, null, null, null, null,
+                null, null, null, null, null, null, false, null, null, null, null);
+    }
 
     private ContractSignatureRequest requireByToken(UUID token) {
         return signatureRequestRepository.findByToken(token)

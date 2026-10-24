@@ -3,6 +3,7 @@ package com.clenzy.integration.docusign.service;
 import com.clenzy.integration.docusign.config.DocuSignOAuthProviderConfig;
 import com.clenzy.integration.docusign.model.DocuSignConnection;
 import com.clenzy.integration.oauth.OAuthFlowEngine;
+import com.clenzy.integration.oauth.BaitlyOAuthBusyException;
 import com.clenzy.integration.oauth.OAuthStateService;
 import io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker;
 import org.slf4j.Logger;
@@ -90,13 +91,15 @@ public class DocuSignOAuthService {
 
     @SuppressWarnings("unused")
     private DocuSignConnection exchangeCodeFallback(String code, Long userId, Long orgId, Throwable t) {
-        log.error("DocuSign OAuth — circuit breaker ouvert sur exchange: {}", t.getMessage());
-        throw new RuntimeException("Service DocuSign temporairement indisponible", t);
+        if (t instanceof BaitlyOAuthBusyException busy) throw busy;
+        log.error("DocuSign OAuth : opération exchange indisponible");
+        throw new RuntimeException("Service DocuSign temporairement indisponible");
     }
 
     @SuppressWarnings("unused")
     private DocuSignConnection refreshTokenFallback(Long orgId, Throwable t) {
-        log.error("DocuSign OAuth — circuit breaker ouvert sur refresh: {}", t.getMessage());
-        throw new RuntimeException("Service DocuSign temporairement indisponible", t);
+        if (t instanceof BaitlyOAuthBusyException busy) throw busy;
+        log.error("DocuSign OAuth : opération refresh indisponible");
+        throw new RuntimeException("Service DocuSign temporairement indisponible");
     }
 }
