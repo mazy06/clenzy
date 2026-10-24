@@ -75,8 +75,8 @@ public class GuestMessageAttemptLog {
      */
     @Transactional(propagation = Propagation.REQUIRES_NEW)
     public GuestMessageLog complete(Long logId, MessageStatus status, String errorMessage) {
-        final GuestMessageLog entry = repository.findById(logId).orElse(null);
-        if (entry == null) return null;
+        final GuestMessageLog entry = repository.findById(logId)
+            .orElseThrow(() -> new IllegalStateException("DELIVERY_JOURNAL_MISSING"));
         entry.setStatus(status);
         entry.setErrorMessage(errorMessage);
         if (status == MessageStatus.SENT || status == MessageStatus.DELIVERED) {

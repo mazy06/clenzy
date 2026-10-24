@@ -14,6 +14,7 @@ import com.stripe.param.PaymentIntentCaptureParams;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
+import java.util.Objects;
 
 /**
  * Effet Stripe RÉEL de la caution / damage protection (CLZ Domaine 2 — anti-fraude) : pré-autorisation
@@ -100,7 +101,7 @@ public class SecurityDepositPaymentService {
             operations.released(instruction);
             return true;
         } catch (StripeException e) {
-            throw new IllegalStateException("Echec de la liberation Stripe pour la caution " + depositId, e);
+            throw new IllegalStateException("Echec de la liberation Stripe pour la caution " + depositId);
         }
     }
 
@@ -112,23 +113,40 @@ public class SecurityDepositPaymentService {
         var instruction = operations.claimCapture(depositId, orgId, amount, reason);
         try {
             PaymentIntent pi = stripeGateway.retrievePaymentIntent(instruction.authorization());
+            requireCaptureEvidence(instruction, pi);
             if (SecurityDepositHoldService.PI_CANCELED.equals(pi.getStatus())) {
                 operations.expiredCapture(instruction);
                 throw new IllegalStateException("La pré-autorisation de la caution " + depositId
                     + " a expiré chez la banque du voyageur : plus aucun fonds à capturer");
             }
             PaymentIntentCaptureParams captureParams = PaymentIntentCaptureParams.builder()
-                .setAmountToCapture(StripeAmounts.toMinorUnits(amount))
+                .setAmountToCapture(StripeAmounts.toMinorUnits(instruction.amount()))
                 .build();
             if (!"succeeded".equals(pi.getStatus())) {
+                if (!"requires_capture".equals(pi.getStatus()) || pi.getAmountCapturable() == null
+                        || pi.getAmountCapturable() < StripeAmounts.toMinorUnits(instruction.amount())) {
+                    throw new IllegalStateException("Préautorisation insuffisante ou non capturable.");
+                }
                 pi = stripeGateway.capturePaymentIntent(pi, captureParams, "deposit-capture-" + depositId);
             }
+            requireCaptureEvidence(instruction, pi);
             if (!"succeeded".equals(pi.getStatus()) || pi.getAmountReceived() == null
                     || pi.getAmountReceived() != StripeAmounts.toMinorUnits(instruction.amount()))
                 throw new IllegalStateException("Capture Stripe à rapprocher avant de confirmer l'encaissement.");
             operations.captured(instruction);
         } catch (StripeException e) {
-            throw new IllegalStateException("Echec de la capture Stripe pour la caution " + depositId, e);
+            throw new IllegalStateException("Echec de la capture Stripe pour la caution " + depositId);
+        }
+    }
+
+    private void requireCaptureEvidence(BaitlyDepositOperationStore.Instruction instruction, PaymentIntent pi) {
+        if (pi == null || !Objects.equals(instruction.authorization(), pi.getId())
+                || instruction.currency() == null || instruction.currency().isBlank()
+                || !instruction.currency().equalsIgnoreCase(pi.getCurrency())
+                || !"manual".equals(pi.getCaptureMethod())
+                || pi.getMetadata() == null || !String.valueOf(instruction.id()).equals(pi.getMetadata().get("depositId"))
+                || pi.getAmount() == null || pi.getAmount() < StripeAmounts.toMinorUnits(instruction.amount())) {
+            throw new IllegalStateException("La preuve Stripe ne correspond pas a cette caution.");
         }
     }
 

@@ -98,8 +98,7 @@ public class SecurityDepositHoldService {
             recordHoldRefusal(deposit, reservation, from, describeRefusal(e));
             return HoldOutcome.DECLINED;
         } catch (StripeException e) {
-            log.error("Caution {} : Stripe indisponible pour la pré-autorisation ({}) — nouvel essai au prochain passage",
-                deposit.getId(), e.getMessage());
+            log.error("Caution {} : Stripe indisponible pour la pré-autorisation, nouvel essai au prochain passage", deposit.getId());
             return HoldOutcome.UNAVAILABLE;
         }
         if (!PI_REQUIRES_CAPTURE.equals(hold.getStatus())) {
@@ -130,8 +129,8 @@ public class SecurityDepositHoldService {
             recordRenewalRefusal(deposit, reservation, describeRefusal(e));
             return;
         } catch (StripeException e) {
-            log.error("Caution {} : Stripe indisponible pour le renouvellement du hold {} ({}) — nouvel essai au prochain passage",
-                deposit.getId(), previousRef, e.getMessage());
+            log.error("Caution {} : Stripe indisponible pour le renouvellement du hold {}, nouvel essai au prochain passage",
+                deposit.getId(), previousRef);
             return;
         }
         if (!PI_REQUIRES_CAPTURE.equals(renewed.getStatus())) {
@@ -150,8 +149,8 @@ public class SecurityDepositHoldService {
             // Sans cette annulation, la caution serait bloquée deux fois sur la carte du voyageur.
             cancelAuthorization(previousRef, "deposit-release-" + previousRef);
         } catch (StripeException e) {
-            log.error("Caution {} : ancien hold {} non annulé ({}) — il échoira de lui-même le {}",
-                deposit.getId(), previousRef, e.getMessage(), deposit.getHoldExpiresAt());
+            log.error("Caution {} : ancien hold {} non annulé, rapprochement requis avant son echeance {}",
+                deposit.getId(), previousRef, deposit.getHoldExpiresAt());
         }
     }
 
@@ -161,8 +160,8 @@ public class SecurityDepositHoldService {
         try {
             hold = stripeGateway.retrievePaymentIntent(deposit.getExternalRef());
         } catch (StripeException e) {
-            log.error("Caution {} : lecture du hold {} impossible ({}) — nouvel essai au prochain passage",
-                deposit.getId(), deposit.getExternalRef(), e.getMessage());
+            log.error("Caution {} : lecture du hold {} impossible, nouvel essai au prochain passage",
+                deposit.getId(), deposit.getExternalRef());
             return;
         }
         if (PI_CANCELED.equals(hold.getStatus())) {
@@ -209,11 +208,16 @@ public class SecurityDepositHoldService {
      */
     public boolean cancelAuthorization(String paymentIntentId, String idempotencyKey) throws StripeException {
         final PaymentIntent hold = stripeGateway.retrievePaymentIntent(paymentIntentId);
+        if (hold == null || !java.util.Objects.equals(paymentIntentId, hold.getId())
+                || !"manual".equals(hold.getCaptureMethod())) {
+            throw new IllegalStateException("Preuve de preautorisation Stripe incoherente.");
+        }
         if (PI_CANCELED.equals(hold.getStatus())) {
             return true;
         }
         PaymentIntent cancelled = stripeGateway.cancelPaymentIntent(hold, idempotencyKey);
-        if (cancelled == null || !PI_CANCELED.equals(cancelled.getStatus()))
+        if (cancelled == null || !java.util.Objects.equals(paymentIntentId, cancelled.getId())
+                || !PI_CANCELED.equals(cancelled.getStatus()))
             throw new IllegalStateException("Libération de préautorisation non confirmée par Stripe.");
         return false;
     }
@@ -321,8 +325,7 @@ public class SecurityDepositHoldService {
         try {
             cancelAuthorization(paymentIntentId, "deposit-orphan-" + paymentIntentId);
         } catch (StripeException e) {
-            log.error("Caution {} : hold orphelin {} non annulé ({}) — fonds du voyageur bloqués jusqu'à son échéance",
-                deposit.getId(), paymentIntentId, e.getMessage());
+            log.error("Caution {} : hold orphelin {} non annulé, rapprochement requis", deposit.getId(), paymentIntentId);
         }
     }
 

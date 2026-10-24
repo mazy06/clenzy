@@ -4,6 +4,7 @@ import com.clenzy.dto.MaintenanceRequestDto;
 import com.clenzy.dto.QuoteRequestDto;
 import com.clenzy.model.WaitlistSignup;
 import com.clenzy.service.email.AccountEmailComposer;
+import com.clenzy.service.email.BaitlyEmailDiagnostics;
 import com.clenzy.service.email.ContactEmailComposer;
 import com.clenzy.service.email.MaintenanceEmailComposer;
 import com.clenzy.service.email.QuoteEmailComposer;
@@ -108,7 +109,7 @@ public class EmailService {
         this.contactEmailComposer = contactEmailComposer;
         this.accountEmailComposer = accountEmailComposer;
         if (this.mailSender == null) {
-            log.warn("JavaMailSender non configure: l'envoi d'emails est desactive. Configurez spring.mail.host (ou spring.mail.jndi-name) pour l'activer.");
+            log.warn("Baitly email : JavaMailSender absent, envoi desactive");
         }
     }
 
@@ -150,8 +151,7 @@ public class EmailService {
                     ? java.util.List.of(notificationTo) : java.util.List.<String>of());
         String sender = resolveFromAddress();
         if (sender != null && recipients.stream().anyMatch(r -> r.equalsIgnoreCase(sender))) {
-            log.warn("Notification interne adressee a l'expediteur lui-meme ({}) : self-send "
-                    + "expose aux soft bounces. Configurez d'autres destinataires dans les Settings du PMS.", sender);
+            log.warn("Baitly email : notification interne adressee a son expediteur, verifier la configuration");
         }
         return recipients.toArray(new String[0]);
     }
@@ -245,16 +245,14 @@ public class EmailService {
             }
 
             ms.send(message);
-            log.info("Email de notification devis envoyé pour : {} ({}) [PDF={}]",
-                    dto.getFullName(), dto.getEmail(),
-                    pdfAttachment != null && pdfAttachment.length > 0 ? "oui" : "non");
+            log.info("Baitly email : sendQuoteRequestNotification (SMTP accepte)");
 
         } catch (MessagingException e) {
-            log.error("Erreur d'envoi email devis pour {} : {}", dto.getFullName(), e.getMessage(), e);
-            throw new RuntimeException("Erreur d'envoi de l'email de notification", e);
+            log.error("Baitly email : sendQuoteRequestNotification (echec, categorie={})", BaitlyEmailDiagnostics.category(e));
+            throw new RuntimeException("Erreur d'envoi de l'email de notification", BaitlyEmailDiagnostics.safeCause(e));
         } catch (Exception e) {
-            log.error("Erreur d'envoi email devis pour {} : {}", dto.getFullName(), e.getMessage(), e);
-            throw new RuntimeException("Erreur d'envoi de l'email de notification", e);
+            log.error("Baitly email : sendQuoteRequestNotification (echec, categorie={})", BaitlyEmailDiagnostics.category(e));
+            throw new RuntimeException("Erreur d'envoi de l'email de notification", BaitlyEmailDiagnostics.safeCause(e));
         }
     }
 
@@ -275,11 +273,10 @@ public class EmailService {
 
             helper.setText(waitlistEmailComposer.renderWaitlistHtml(s, position), true);
             mailSender.send(message);
-            log.info("Notif waitlist envoyée (inscrit position {} : {})", position, s.getEmail());
+            log.info("Baitly email : sendWaitlistNotification (SMTP accepte)");
         } catch (Exception e) {
-            // Best-effort documente (l'inscription ne doit pas echouer), mais trace
-            // complete pour diagnostic SMTP (T-SOLID-7 : avant, message seul).
-            log.warn("Notif waitlist KO pour {} : {}", s.getEmail(), e.getMessage(), e);
+            // L'inscription reste valide ; diagnostic sans details SMTP prives.
+            log.warn("Baitly email : sendWaitlistNotification (echec, categorie={})", BaitlyEmailDiagnostics.category(e));
         }
     }
 
@@ -328,14 +325,14 @@ public class EmailService {
             helper.setSubject(sanitizeHeaderValue(subject));
             helper.setText(htmlToPlainText(htmlBody), htmlBody);
             ms.send(message);
-            log.info("Email de notification maintenance envoyé pour : {} ({})", dto.getFullName(), dto.getEmail());
+            log.info("Baitly email : sendMaintenanceNotification (SMTP accepte)");
 
         } catch (MessagingException e) {
-            log.error("Erreur d'envoi email maintenance pour {} : {}", dto.getFullName(), e.getMessage(), e);
-            throw new RuntimeException("Erreur d'envoi de l'email de notification maintenance", e);
+            log.error("Baitly email : sendMaintenanceNotification (echec, categorie={})", BaitlyEmailDiagnostics.category(e));
+            throw new RuntimeException("Erreur d'envoi de l'email de notification maintenance", BaitlyEmailDiagnostics.safeCause(e));
         } catch (Exception e) {
-            log.error("Erreur d'envoi email maintenance pour {} : {}", dto.getFullName(), e.getMessage(), e);
-            throw new RuntimeException("Erreur d'envoi de l'email de notification maintenance", e);
+            log.error("Baitly email : sendMaintenanceNotification (echec, categorie={})", BaitlyEmailDiagnostics.category(e));
+            throw new RuntimeException("Erreur d'envoi de l'email de notification maintenance", BaitlyEmailDiagnostics.safeCause(e));
         }
     }
 
@@ -360,7 +357,7 @@ public class EmailService {
             sender.send(message);
             return message.getMessageID();
         } catch(Exception failure) {
-            throw new IllegalStateException("Accusé SMTP de campagne indisponible",failure);
+            throw new IllegalStateException("Accusé SMTP de campagne indisponible", BaitlyEmailDiagnostics.safeCause(failure));
         }
     }
 
@@ -416,11 +413,11 @@ public class EmailService {
                 providerMessageId = "local-" + UUID.randomUUID();
             }
 
-            log.info("Email contact envoye vers {} (subject={})", toEmail, normalizedSubject);
+            log.info("Baitly email : sendContactMessage (SMTP accepte)");
             return providerMessageId;
         } catch (Exception e) {
-            log.error("Erreur envoi email contact vers {} : {}", toEmail, e.getMessage(), e);
-            throw new RuntimeException("Erreur d'envoi email contact", e);
+            log.error("Baitly email : sendContactMessage (echec, categorie={})", BaitlyEmailDiagnostics.category(e));
+            throw new RuntimeException("Erreur d'envoi email contact", BaitlyEmailDiagnostics.safeCause(e));
         }
     }
 
@@ -467,8 +464,7 @@ public class EmailService {
                 try {
                     helper.setFrom(resolveFromAddress(), sanitizeHeaderValue(senderName));
                 } catch (Exception e) {
-                    log.warn("Nom d'emetteur non applique ({}), repli sur celui de la plateforme",
-                            e.getMessage());
+                    log.warn("Baitly email : nom expediteur non applique, repli plateforme (categorie={})", BaitlyEmailDiagnostics.category(e));
                 }
             }
             if (replyTo != null && !replyTo.isBlank()) {
@@ -482,13 +478,13 @@ public class EmailService {
             helper.addAttachment(pdfFilename, new ByteArrayResource(pdfBytes), "application/pdf");
 
             ms.send(message);
-            log.info("Document email sent to {} (attachment: {})", toEmail, pdfFilename);
+            log.info("Baitly email : sendDocumentEmail (SMTP accepte)");
         } catch (MessagingException e) {
-            log.error("Failed to send document email to {}: {}", toEmail, e.getMessage(), e);
-            throw new RuntimeException("Erreur d'envoi de l'email avec document", e);
+            log.error("Baitly email : sendDocumentEmail (echec, categorie={})", BaitlyEmailDiagnostics.category(e));
+            throw new RuntimeException("Erreur d'envoi de l'email avec document", BaitlyEmailDiagnostics.safeCause(e));
         } catch (Exception e) {
-            log.error("Failed to send document email to {}: {}", toEmail, e.getMessage(), e);
-            throw new RuntimeException("Erreur d'envoi de l'email avec document", e);
+            log.error("Baitly email : sendDocumentEmail (echec, categorie={})", BaitlyEmailDiagnostics.category(e));
+            throw new RuntimeException("Erreur d'envoi de l'email avec document", BaitlyEmailDiagnostics.safeCause(e));
         }
     }
 
@@ -549,13 +545,13 @@ public class EmailService {
             helper.addAttachment(pdfFilename, new ByteArrayResource(pdfBytes), "application/pdf");
 
             ms.send(message);
-            log.info("Email devis (prospect) envoyé à {} (PJ: {})", toEmail, pdfFilename);
+            log.info("Baitly email : sendQuoteToProspect (SMTP accepte)");
         } catch (MessagingException e) {
-            log.error("Échec envoi email devis prospect à {} : {}", toEmail, e.getMessage(), e);
-            throw new RuntimeException("Erreur d'envoi du devis au prospect", e);
+            log.error("Baitly email : sendQuoteToProspect (echec, categorie={})", BaitlyEmailDiagnostics.category(e));
+            throw new RuntimeException("Erreur d'envoi du devis au prospect", BaitlyEmailDiagnostics.safeCause(e));
         } catch (Exception e) {
-            log.error("Échec envoi email devis prospect à {} : {}", toEmail, e.getMessage(), e);
-            throw new RuntimeException("Erreur d'envoi du devis au prospect", e);
+            log.error("Baitly email : sendQuoteToProspect (echec, categorie={})", BaitlyEmailDiagnostics.category(e));
+            throw new RuntimeException("Erreur d'envoi du devis au prospect", BaitlyEmailDiagnostics.safeCause(e));
         }
     }
 
@@ -582,7 +578,7 @@ public class EmailService {
         // d'autres adresses.
         String[] recipients = internalRecipients();
         if (recipients.length == 0) {
-            log.warn("Copie interne devis ignorée : aucun destinataire de notification configuré.");
+            log.warn("Baitly email : copie devis non envoyee, aucun destinataire interne configure");
             return;
         }
         try {
@@ -609,12 +605,11 @@ public class EmailService {
             }
 
             ms.send(message);
-            log.info("Copie interne devis envoyée à {} (prospect: {}, PJ: {})",
-                    String.join(",", recipients), prospectEmail, pdfFilename);
+            log.info("Baitly email : sendQuoteInternalCopy (SMTP accepte)");
         } catch (Exception e) {
             // Best-effort : ne JAMAIS faire echouer/annuler l'envoi deja fait au prospect.
-            // Trace complete pour diagnostic SMTP (T-SOLID-7 : avant, message seul).
-            log.warn("Copie interne devis KO (prospect {}) : {}", prospectEmail, e.getMessage(), e);
+            // Diagnostic borne : aucune cause SMTP brute dans les journaux.
+            log.warn("Baitly email : sendQuoteInternalCopy (echec, categorie={})", BaitlyEmailDiagnostics.category(e));
         }
     }
 
@@ -716,7 +711,7 @@ public class EmailService {
             } else {
                 String[] recipients = internalRecipients();
                 if (recipients.length == 0) {
-                    log.warn("Aucun destinataire interne configure : « {} » non envoye", templateKey);
+                    log.warn("Baitly email : modele non envoye, aucun destinataire interne configure");
                     return;
                 }
                 helper.setTo(recipients);
@@ -727,10 +722,10 @@ public class EmailService {
             helper.setSubject(sanitizeHeaderValue(subject));
             helper.setText(htmlToPlainText(htmlBody), htmlBody);
             ms.send(message);
-            log.info("Courriel « {} » envoye", templateKey);
+            log.info("Baitly email : sendSystemTemplateEmail (SMTP accepte)");
         } catch (MessagingException e) {
-            log.error("Envoi de « {} » impossible : {}", templateKey, e.getMessage(), e);
-            throw new RuntimeException("Erreur d'envoi de l'email", e);
+            log.error("Baitly email : sendSystemTemplateEmail (echec, categorie={})", BaitlyEmailDiagnostics.category(e));
+            throw new RuntimeException("Erreur d'envoi de l'email", BaitlyEmailDiagnostics.safeCause(e));
         }
     }
 
@@ -738,7 +733,7 @@ public class EmailService {
         try {
             String[] recipients = internalRecipients();
             if (recipients.length == 0) {
-                log.warn("Aucun destinataire interne configure : courriel « {} » non envoye", subject);
+                log.warn("Baitly email : message non envoye, aucun destinataire interne configure");
                 return;
             }
             JavaMailSender ms = requireMailSender();
@@ -752,9 +747,9 @@ public class EmailService {
             helper.setSubject(sanitizeHeaderValue(subject));
             helper.setText(htmlBody, true);
             ms.send(message);
-            log.info("Courriel interne envoye ({} destinataires, sujet={})", recipients.length, subject);
+            log.info("Baitly email : sendInternalHtmlEmail (SMTP accepte)");
         } catch (Exception e) {
-            log.warn("Courriel interne « {} » non envoye : {}", subject, e.getMessage(), e);
+            log.warn("Baitly email : sendInternalHtmlEmail (echec, categorie={})", BaitlyEmailDiagnostics.category(e));
         }
     }
 
@@ -770,13 +765,13 @@ public class EmailService {
             helper.setText(htmlToPlainText(htmlBody), htmlBody);
 
             ms.send(message);
-            log.info("Simple HTML email sent to {} (subject: {})", toEmail, subject);
+            log.info("Baitly email : sendSimpleHtmlEmail (SMTP accepte)");
         } catch (MessagingException e) {
-            log.error("Failed to send simple HTML email to {}: {}", toEmail, e.getMessage(), e);
-            throw new RuntimeException("Erreur d'envoi de l'email", e);
+            log.error("Baitly email : sendSimpleHtmlEmail (echec, categorie={})", BaitlyEmailDiagnostics.category(e));
+            throw new RuntimeException("Erreur d'envoi de l'email", BaitlyEmailDiagnostics.safeCause(e));
         } catch (Exception e) {
-            log.error("Failed to send simple HTML email to {}: {}", toEmail, e.getMessage(), e);
-            throw new RuntimeException("Erreur d'envoi de l'email", e);
+            log.error("Baitly email : sendSimpleHtmlEmail (echec, categorie={})", BaitlyEmailDiagnostics.category(e));
+            throw new RuntimeException("Erreur d'envoi de l'email", BaitlyEmailDiagnostics.safeCause(e));
         }
     }
 
@@ -866,10 +861,10 @@ public class EmailService {
             try {
                 helper.setFrom(from);
             } catch (MessagingException me) {
-                log.warn("Impossible de setter From {}: {}", from, me.getMessage());
+                log.warn("Baitly email : applyDeliverabilityHeaders (avertissement)");
             }
         } catch (MessagingException e) {
-            log.warn("Impossible de setter From {}: {}", from, e.getMessage());
+            log.warn("Baitly email : applyDeliverabilityHeaders (avertissement)");
         }
         try {
             String listUnsubscribe = "<mailto:" + unsubscribeMailto + ">, <" + unsubscribeUrl + ">";
@@ -885,7 +880,7 @@ public class EmailService {
             // documentes, donc inutiles — testes precedemment sans effet.)
             message.setHeader("X-Mailin-Track", "0");
         } catch (MessagingException e) {
-            log.warn("Impossible d'ajouter les headers deliverability: {}", e.getMessage());
+            log.warn("Baitly email : applyDeliverabilityHeaders (avertissement)");
         }
     }
 
@@ -933,13 +928,13 @@ public class EmailService {
             helper.setSubject(sanitizeHeaderValue(subject));
             helper.setText(htmlToPlainText(htmlBody), htmlBody);
             ms.send(message);
-            log.info("Email d'invitation envoye a {} pour l'organisation {}", toEmail, orgName);
+            log.info("Baitly email : sendInvitationEmail (SMTP accepte)");
         } catch (MessagingException e) {
-            log.error("Erreur d'envoi email d'invitation a {}: {}", toEmail, e.getMessage(), e);
-            throw new RuntimeException("Erreur d'envoi de l'email d'invitation", e);
+            log.error("Baitly email : sendInvitationEmail (echec, categorie={})", BaitlyEmailDiagnostics.category(e));
+            throw new RuntimeException("Erreur d'envoi de l'email d'invitation", BaitlyEmailDiagnostics.safeCause(e));
         } catch (Exception e) {
-            log.error("Erreur d'envoi email d'invitation a {}: {}", toEmail, e.getMessage(), e);
-            throw new RuntimeException("Erreur d'envoi de l'email d'invitation", e);
+            log.error("Baitly email : sendInvitationEmail (echec, categorie={})", BaitlyEmailDiagnostics.category(e));
+            throw new RuntimeException("Erreur d'envoi de l'email d'invitation", BaitlyEmailDiagnostics.safeCause(e));
         }
     }
 
@@ -990,13 +985,13 @@ public class EmailService {
             helper.setSubject(sanitizeHeaderValue(subject));
             helper.setText(htmlToPlainText(htmlBody), htmlBody);
             ms.send(message);
-            log.info("Email lien de signature envoye a {} pour le contrat {}", toEmail, contractNumber);
+            log.info("Baitly email : sendContractSignatureEmail (SMTP accepte)");
         } catch (MessagingException e) {
-            log.error("Erreur d'envoi du lien de signature a {}: {}", toEmail, e.getMessage(), e);
-            throw new RuntimeException("Erreur d'envoi de l'email de signature", e);
+            log.error("Baitly email : sendContractSignatureEmail (echec, categorie={})", BaitlyEmailDiagnostics.category(e));
+            throw new RuntimeException("Erreur d'envoi de l'email de signature", BaitlyEmailDiagnostics.safeCause(e));
         } catch (Exception e) {
-            log.error("Erreur d'envoi du lien de signature a {}: {}", toEmail, e.getMessage(), e);
-            throw new RuntimeException("Erreur d'envoi de l'email de signature", e);
+            log.error("Baitly email : sendContractSignatureEmail (echec, categorie={})", BaitlyEmailDiagnostics.category(e));
+            throw new RuntimeException("Erreur d'envoi de l'email de signature", BaitlyEmailDiagnostics.safeCause(e));
         }
     }
 
@@ -1016,9 +1011,9 @@ public class EmailService {
             String welcomeHtml = accountEmailComposer.renderWelcomeHtml(firstName, lastName, toEmail, roleName, loginUrl);
             helper.setText(htmlToPlainText(welcomeHtml), welcomeHtml);
             ms.send(message);
-            log.info("Email de bienvenue envoye a {}", toEmail);
+            log.info("Baitly email : sendWelcomeEmail (SMTP accepte)");
         } catch (Exception e) {
-            log.error("Erreur d'envoi email de bienvenue a {}: {}", toEmail, e.getMessage(), e);
+            log.error("Baitly email : sendWelcomeEmail (echec, categorie={})", BaitlyEmailDiagnostics.category(e));
             // Ne pas propager — la creation de l'utilisateur ne doit pas echouer si l'email echoue
         }
     }
@@ -1038,13 +1033,13 @@ public class EmailService {
             String confirmationHtml = accountEmailComposer.renderInscriptionConfirmationHtml(fullName, confirmationLink, expiresAt);
             helper.setText(htmlToPlainText(confirmationHtml), confirmationHtml);
             ms.send(message);
-            log.info("Email de confirmation d'inscription envoye a {}", toEmail);
+            log.info("Baitly email : sendInscriptionConfirmationEmail (SMTP accepte)");
         } catch (MessagingException e) {
-            log.error("Erreur d'envoi email de confirmation a {}: {}", toEmail, e.getMessage(), e);
-            throw new RuntimeException("Erreur d'envoi de l'email de confirmation", e);
+            log.error("Baitly email : sendInscriptionConfirmationEmail (echec, categorie={})", BaitlyEmailDiagnostics.category(e));
+            throw new RuntimeException("Erreur d'envoi de l'email de confirmation", BaitlyEmailDiagnostics.safeCause(e));
         } catch (Exception e) {
-            log.error("Erreur d'envoi email de confirmation a {}: {}", toEmail, e.getMessage(), e);
-            throw new RuntimeException("Erreur d'envoi de l'email de confirmation", e);
+            log.error("Baitly email : sendInscriptionConfirmationEmail (echec, categorie={})", BaitlyEmailDiagnostics.category(e));
+            throw new RuntimeException("Erreur d'envoi de l'email de confirmation", BaitlyEmailDiagnostics.safeCause(e));
         }
     }
 

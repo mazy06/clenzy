@@ -2,6 +2,8 @@ package com.clenzy.service;
 
 import com.clenzy.model.DocumentGeneration;
 import com.clenzy.model.UserRole;
+import com.clenzy.dto.DocumentGenerationDto;
+import com.clenzy.model.ReferenceType;
 import com.clenzy.repository.InterventionRepository;
 import com.clenzy.service.access.OrganizationAccessGuard;
 import com.clenzy.util.JwtRoleExtractor;
@@ -9,6 +11,9 @@ import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
+import java.util.List;
+import java.util.Map;
 
 /**
  * Politique d'acces aux documents generes : isolation d'organisation et
@@ -40,6 +45,64 @@ public class DocumentAccessService {
                 generation.getOrganizationId(), "Document hors de votre organisation");
     }
 
+    /** A missing/unknown role must never inherit the legacy HOST fallback. */
+    public UserRole requireReader(Jwt jwt) {
+        if (jwt == null || jwt.getSubject() == null || jwt.getSubject().isBlank()) {
+            throw new AccessDeniedException("Identite documentaire requise");
+        }
+        Object realm = jwt.getClaim("realm_access");
+        Object roles = realm instanceof Map<?, ?> claims ? claims.get("roles") : null;
+        if ((realm != null && !(realm instanceof Map<?, ?>))
+                || (roles != null && !(roles instanceof List<?>))
+                || (jwt.getClaim("role") != null && !(jwt.getClaim("role") instanceof String))) {
+            throw new AccessDeniedException("Role documentaire invalide");
+        }
+        UserRole role = JwtRoleExtractor.extractUserRole(jwt);
+        if (role == UserRole.HOST) {
+            boolean explicitHost = roles instanceof List<?> values && values.stream()
+                    .anyMatch(value -> value instanceof String name && "HOST".equalsIgnoreCase(name));
+            if (!explicitHost && !"HOST".equalsIgnoreCase(jwt.getClaimAsString("role"))) {
+                throw new AccessDeniedException("Role documentaire requis");
+            }
+        }
+        return role;
+    }
+
+    /** Check every direct read before mapping metadata or loading the binary. */
+    @Transactional(readOnly = true)
+    public void requireReadAccess(Jwt jwt, DocumentGeneration generation) {
+        requireSameOrganization(generation);
+        UserRole role = requireReader(jwt);
+        if (generation.getReferenceType() == ReferenceType.INTERVENTION) {
+            if (generation.getReferenceId() == null && !managesDocuments(role)) {
+                throw new AccessDeniedException("Intervention documentaire requise");
+            }
+            if (generation.getReferenceId() != null) {
+                validateInterventionOwnership(jwt, generation.getReferenceId());
+            }
+        }
+        if (!managesDocuments(role) && !matchesRecipient(jwt, generation.getEmailTo())) {
+            throw new AccessDeniedException("Document non adresse a cet utilisateur");
+        }
+    }
+
+    /** Preserve the existing reference-list scope, with no fail-open email case. */
+    public List<DocumentGenerationDto> filterReferenceResults(Jwt jwt, List<DocumentGenerationDto> documents) {
+        UserRole role = requireReader(jwt);
+        if (role.isPlatformStaff() || role == UserRole.SUPERVISOR) return documents;
+        return documents.stream().filter(document -> matchesRecipient(jwt, document.emailTo())).toList();
+    }
+
+    private boolean managesDocuments(UserRole role) {
+        return role.isPlatformStaff() || role == UserRole.SUPERVISOR || role == UserRole.HOST;
+    }
+
+    private boolean matchesRecipient(Jwt jwt, String recipient) {
+        String email = jwt.getClaimAsString("email");
+        return email != null && !email.isBlank() && recipient != null && !recipient.isBlank()
+                && email.strip().equalsIgnoreCase(recipient.strip());
+    }
+
     /**
      * Verifie que l'utilisateur a le droit d'acceder aux documents d'une intervention.
      * Staff plateforme et superviseurs voient tout (dans leur org via le filtre Hibernate).
@@ -51,7 +114,7 @@ public class DocumentAccessService {
      */
     @Transactional(readOnly = true)
     public void validateInterventionOwnership(Jwt jwt, Long interventionId) {
-        final UserRole role = JwtRoleExtractor.extractUserRole(jwt);
+        final UserRole role = requireReader(jwt);
 
         // Staff plateforme + superviseurs : acces a toute l'org
         if (role.isPlatformStaff() || role == UserRole.SUPERVISOR || role == UserRole.HOST) return;

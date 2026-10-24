@@ -26,7 +26,7 @@ import org.springframework.stereotype.Service;
  *   <li><b>API eSignature (create envelope / status / download) :</b> stubs
  *       qui jetent {@code UnsupportedOperationException}. A cabler quand on
  *       aura un Integration Key DocuSign actif + scenarios de signature
- *       cotes par les utilisateurs Clenzy.</li>
+ *       cotes par les utilisateurs Baitly.</li>
  * </ul>
  *
  * <h2>Activation</h2>
@@ -82,16 +82,12 @@ public class DocuSignSignatureProvider implements SignatureProvider {
     }
 
     /**
-     * Indique si le provider est utilisable : config presente ET connexion
-     * etablie pour l'organisation courante.
+     * Le provider reste indisponible tant que les opérations de signature ne sont pas implémentées.
      */
     @Override
     public boolean isAvailable() {
-        if (!config.isConfigured()) {
-            return false;
-        }
-        Long orgId = tenantContext.getOrganizationId();
-        return orgId != null && oauthService.isConnected(orgId);
+        // OAuth connecté ne signifie pas que les opérations de signature sont implémentées.
+        return false;
     }
 
     private void ensureConnected() {

@@ -57,6 +57,39 @@ public class AutomationExecution {
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
 
+    @Column(name = "attempt_token")
+    private java.util.UUID attemptToken;
+    @Column(name = "attempted_at")
+    private LocalDateTime attemptedAt;
+
+    // Baitly recovery metadata is internal and absent from the execution DTO.
+    @Column(name = "durable_state", length = 20)
+    private String durableState;
+    @Column(name = "durable_context", columnDefinition = "TEXT")
+    private String durableContext;
+    @Column(name = "durable_key", length = 160, unique = true)
+    private String durableKey;
+    @Column(name = "rule_revision")
+    private LocalDateTime ruleRevision;
+    @Column(name = "durable_expires_at")
+    private LocalDateTime durableExpiresAt;
+
+    @com.fasterxml.jackson.annotation.JsonIgnore
+    public String getDurableState() { return durableState; }
+    public void setDurableState(String value) { durableState=value; }
+    @com.fasterxml.jackson.annotation.JsonIgnore
+    public String getDurableContext() { return durableContext; }
+    public void setDurableContext(String value) { durableContext=value; }
+    @com.fasterxml.jackson.annotation.JsonIgnore
+    public String getDurableKey() { return durableKey; }
+    public void setDurableKey(String value) { durableKey=value; }
+    @com.fasterxml.jackson.annotation.JsonIgnore
+    public LocalDateTime getRuleRevision() { return ruleRevision; }
+    public void setRuleRevision(LocalDateTime value) { ruleRevision=value; }
+    @com.fasterxml.jackson.annotation.JsonIgnore
+    public LocalDateTime getDurableExpiresAt() { return durableExpiresAt; }
+    public void setDurableExpiresAt(LocalDateTime value) { durableExpiresAt=value; }
+
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
     public Long getOrganizationId() { return organizationId; }

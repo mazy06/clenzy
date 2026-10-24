@@ -1,5 +1,6 @@
 package com.clenzy.integration.quickbooks.controller;
 
+import com.clenzy.integration.oauth.BaitlyOAuthHttpDiagnostics;
 import com.clenzy.integration.oauth.OAuthStateService;
 import com.clenzy.integration.quickbooks.model.QuickBooksConnection;
 import com.clenzy.integration.quickbooks.service.QuickBooksOAuthService;
@@ -66,15 +67,15 @@ public class QuickBooksOAuthController {
     public ResponseEntity<String> callback(@RequestParam("code") String code,
                                              @RequestParam("state") String state,
                                              @RequestParam(value = "realmId", required = false) String realmId) {
-        Optional<OAuthStateService.StatePayload> payload = oauthService.validateAndConsumeState(state);
-        if (payload.isEmpty()) {
-            log.warn("QuickBooks OAuth callback — state invalide: {}", state);
-            return ResponseEntity.status(302)
-                .header("Location", "/settings?tab=integrations&status=error&reason=invalid_state")
-                .build();
-        }
-
         try {
+            Optional<OAuthStateService.StatePayload> payload = oauthService.validateAndConsumeState(state);
+            if (payload.isEmpty()) {
+                log.warn("QuickBooks OAuth callback — state invalide");
+                return ResponseEntity.status(302)
+                    .header("Location", "/settings?tab=integrations&status=error&reason=invalid_state")
+                    .build();
+            }
+
             oauthService.exchangeCodeForToken(code, payload.get().userId(), payload.get().orgId());
             if (realmId != null && !realmId.isBlank()) {
                 oauthService.saveRealmId(payload.get().orgId(), realmId);
@@ -83,7 +84,7 @@ public class QuickBooksOAuthController {
                 .header("Location", "/settings?tab=integrations&status=success")
                 .build();
         } catch (Exception e) {
-            log.error("QuickBooks OAuth callback — erreur echange code: {}", e.getMessage(), e);
+            log.error("QuickBooks OAuth callback — erreur echange code");
             return ResponseEntity.status(302)
                 .header("Location", "/settings?tab=integrations&status=error&reason=token_exchange")
                 .build();
@@ -97,13 +98,13 @@ public class QuickBooksOAuthController {
             oauthService.revokeToken(orgId);
             return ResponseEntity.ok(Map.of(
                 "status", "disconnected",
-                "message", "Deconnexion QuickBooks reussie"
+                "message", BaitlyOAuthHttpDiagnostics.LOCAL_DISCONNECT
             ));
         } catch (Exception e) {
-            log.error("QuickBooks disconnect — erreur: {}", e.getMessage(), e);
+            log.error("QuickBooks disconnect — erreur");
             return ResponseEntity.internalServerError().body(Map.of(
                 "status", "error",
-                "message", "Erreur lors de la deconnexion: " + e.getMessage()
+                "message", BaitlyOAuthHttpDiagnostics.DISCONNECT_UNCONFIRMED
             ));
         }
     }
@@ -125,7 +126,7 @@ public class QuickBooksOAuthController {
             result.put("connected", false);
             if (connection.isPresent()) {
                 result.put("status", connection.get().getStatus().name());
-                result.put("errorMessage", connection.get().getErrorMessage());
+                result.put("errorMessage", BaitlyOAuthHttpDiagnostics.connectionError(connection.get().getErrorMessage()));
             }
         }
         return ResponseEntity.ok(result);

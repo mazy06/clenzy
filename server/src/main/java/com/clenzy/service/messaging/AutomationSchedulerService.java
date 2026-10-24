@@ -78,6 +78,12 @@ public class AutomationSchedulerService {
         this.self = self;
     }
 
+    @Scheduled(fixedDelayString = "${baitly.automation.recovery-delay-ms:10000}")
+    @SchedulerLock(name = "baitly-automation-durable-drain", lockAtMostFor = "PT1M")
+    public void drainDurableAutomations() {
+        evaluationService.processScheduledExecutions();
+    }
+
     @Scheduled(cron = "0 0 * * * *") // Every hour
     @SchedulerLock(name = "messaging-automations-hourly", lockAtMostFor = "PT30M")
     public void processScheduledAutomations() {
@@ -119,7 +125,7 @@ public class AutomationSchedulerService {
                     () -> self.getObject().sweepOrganization(orgId, entry.getValue()));
             } catch (Exception e) {
                 // Isolation par org (pattern ICalSyncScheduler).
-                log.error("Sweep automation en erreur pour org={}: {}", orgId, e.getMessage(), e);
+                log.error("Baitly automation: sweep non confirme");
             }
         }
     }

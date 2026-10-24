@@ -31,6 +31,7 @@ import java.security.NoSuchAlgorithmException;
 import java.time.LocalDateTime;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
@@ -110,7 +111,7 @@ public class OrganizationInvitationService {
             try {
                 role = OrgMemberRole.valueOf(roleStr.toUpperCase());
             } catch (IllegalArgumentException e) {
-                log.warn("Role invalide '{}', utilisation de MEMBER par defaut", roleStr);
+                log.warn("Role invitation invalide, utilisation de MEMBER par defaut");
             }
         }
         // Interdire d'inviter en tant que OWNER
@@ -119,7 +120,7 @@ public class OrganizationInvitationService {
         }
 
         // 3. Verifier que l'email n'est pas deja membre
-        String emailLower = email.toLowerCase().trim();
+        String emailLower = email.strip().toLowerCase(Locale.ROOT);
         if (isAlreadyMember(orgId, emailLower)) {
             throw new IllegalStateException("Cet utilisateur est deja membre de l'organisation");
         }
@@ -158,7 +159,7 @@ public class OrganizationInvitationService {
                     INVITATION_TTL_DAYS, TimeUnit.DAYS
             );
         } catch (Exception e) {
-            log.warn("Impossible de stocker l'invitation dans Redis, fallback DB only: {}", e.getMessage());
+            log.warn("Cache invitation indisponible, validation en base conservee");
         }
 
         // 8. Envoyer l'email
@@ -167,10 +168,10 @@ public class OrganizationInvitationService {
         boolean emailSent = true;
         try {
             emailService.sendInvitationEmail(emailLower, org.getName(), inviterName, role.name(), invitationLink, invitation.getExpiresAt());
-            log.info("Invitation envoyee: email={}, org={}, role={}, by={}", emailLower, org.getName(), role, inviterName);
+            log.info("Invitation envoyee: orgId={}, role={}", orgId, role);
         } catch (Exception e) {
             emailSent = false;
-            log.error("Erreur envoi email d'invitation a {}: {}", emailLower, e.getMessage());
+            log.error("Erreur envoi email invitation, lien disponible pour le gestionnaire");
             // L'invitation est quand meme creee, le lien peut etre copie
         }
 
@@ -215,7 +216,7 @@ public class OrganizationInvitationService {
         String tokenHash = sha256(rawToken);
 
         // 1. Trouver l'invitation
-        OrganizationInvitation invitation = invitationRepository.findByTokenHash(tokenHash)
+        OrganizationInvitation invitation = invitationRepository.findByTokenHashForUpdate(tokenHash)
                 .orElseThrow(() -> new IllegalArgumentException("Invitation non trouvee"));
 
         if (invitation.getStatus() != InvitationStatus.PENDING) {
@@ -227,9 +228,20 @@ public class OrganizationInvitationService {
             throw new IllegalStateException("Cette invitation a expire");
         }
 
+        // Le lien ne permet pas de rattacher un autre compte que son destinataire.
+        String jwtEmail = jwt != null ? jwt.getClaimAsString("email") : null;
+        if (jwt == null || jwt.getSubject() == null || jwt.getSubject().isBlank()
+                || !sameEmail(jwtEmail, invitation.getInvitedEmail())) {
+            throw new AccessDeniedException("Cette invitation est reservee a son destinataire");
+        }
+
         // 2. Resoudre l'utilisateur depuis le JWT
         String keycloakId = jwt.getSubject();
         User user = userRepository.findByKeycloakId(keycloakId).orElse(null);
+
+        if (user != null && !sameEmail(user.getEmail(), invitation.getInvitedEmail())) {
+            throw new AccessDeniedException("Cette invitation est reservee a son destinataire");
+        }
 
         if (user == null) {
             // Auto-provisioner si necessaire
@@ -249,7 +261,7 @@ public class OrganizationInvitationService {
             // Aucun mot de passe persiste en base : l'auth passe exclusivement par Keycloak.
             user.setOrganizationId(invitation.getOrganization().getId());
             user = userRepository.save(user);
-            log.info("Auto-provisioning via invitation: userId={}, email={}", user.getId(), user.getEmail());
+            log.info("Auto-provisioning via invitation termine");
         }
 
         // 3. Rattacher a l'organisation
@@ -274,7 +286,7 @@ public class OrganizationInvitationService {
         try {
             redisTemplate.delete(REDIS_PREFIX + rawToken);
         } catch (Exception e) {
-            log.debug("Erreur suppression Redis invitation: {}", e.getMessage());
+            log.debug("Cache invitation non supprime, statut valide en base");
         }
 
         log.info("Invitation acceptee: invitationId={}, userId={}, orgId={}", invitation.getId(), user.getId(), orgId);
@@ -295,7 +307,7 @@ public class OrganizationInvitationService {
      *
      * <p>Permet aux invites de finaliser leur inscription sans passer par la page
      * d'inscription Keycloak (qui peut etre desactivee — {@code Registration not
-     * allowed}). Le user remplit ses infos sur la page Clenzy, on cree le compte
+     * allowed}). Le user remplit ses infos sur la page Baitly, on cree le compte
      * cote Keycloak via l'API Admin, on l'ajoute a l'organisation et on lui
      * retourne directement les JWT tokens (auto-login).</p>
      *
@@ -308,7 +320,7 @@ public class OrganizationInvitationService {
     public Map<String, Object> registerAndAcceptInvitation(InvitationRegisterRequest dto) {
         // 1. Charger et valider l'invitation
         String tokenHash = sha256(dto.getToken());
-        OrganizationInvitation invitation = invitationRepository.findByTokenHash(tokenHash)
+        OrganizationInvitation invitation = invitationRepository.findByTokenHashForUpdate(tokenHash)
                 .orElseThrow(() -> new IllegalArgumentException("Invitation non trouvee"));
 
         if (invitation.getStatus() != InvitationStatus.PENDING) {
@@ -341,7 +353,7 @@ public class OrganizationInvitationService {
         kcUser.setRole(mappedRole.name());
 
         String keycloakId = keycloakService.createUser(kcUser);
-        log.info("Compte Keycloak cree via invitation: keycloakId={}, email={}", keycloakId, email);
+        log.info("Compte Keycloak cree via invitation");
 
         // 4. Creer l'utilisateur en base
         User user = new User();
@@ -374,7 +386,7 @@ public class OrganizationInvitationService {
         try {
             redisTemplate.delete(REDIS_PREFIX + dto.getToken());
         } catch (Exception e) {
-            log.debug("Erreur suppression Redis invitation: {}", e.getMessage());
+            log.debug("Cache invitation non supprime, statut valide en base");
         }
 
         log.info("Inscription via invitation OK: orgId={}, userId={}, role={}",
@@ -424,13 +436,20 @@ public class OrganizationInvitationService {
 
     // ─── Auto-accepter les invitations pending pour un email (hook /me) ───────
 
-    public void autoAcceptPendingInvitations(String email, User user) {
-        if (email == null || user == null) return;
-        String emailLower = email.toLowerCase().trim();
+    public void autoAcceptPendingInvitations(String email, User user, Jwt jwt) {
+        // Sans le lien, seule l'identite email verifiee par l'IdP autorise l'adhesion.
+        // Le booléen local peut provenir d'un auto-provisioning et ne suffit pas.
+        if (user == null || user.getId() == null || jwt == null
+                || !Boolean.TRUE.equals(jwt.getClaim("email_verified"))
+                || jwt.getSubject() == null || !jwt.getSubject().equals(user.getKeycloakId())
+                || !sameEmail(email, user.getEmail())
+                || !sameEmail(email, jwt.getClaimAsString("email"))) return;
+        String emailLower = email.strip().toLowerCase(Locale.ROOT);
 
         List<OrganizationInvitation> pending = invitationRepository.findPendingByEmail(emailLower);
         for (OrganizationInvitation inv : pending) {
             try {
+                if (!inv.isPending() || !sameEmail(emailLower, inv.getInvitedEmail())) continue;
                 Long orgId = inv.getOrganization().getId();
                 if (!memberRepository.existsByOrganizationIdAndUserId(orgId, user.getId())) {
                     organizationService.addMember(orgId, user.getId(), inv.getRoleInvited());
@@ -439,9 +458,9 @@ public class OrganizationInvitationService {
                 inv.setAcceptedByUser(user);
                 inv.setAcceptedAt(LocalDateTime.now());
                 invitationRepository.save(inv);
-                log.info("Invitation auto-acceptee: email={}, orgId={}, role={}", emailLower, orgId, inv.getRoleInvited());
+                log.info("Invitation auto-acceptee: orgId={}, role={}", orgId, inv.getRoleInvited());
             } catch (Exception e) {
-                log.warn("Erreur auto-acceptation invitation id={}: {}", inv.getId(), e.getMessage());
+                log.warn("Erreur auto-acceptation invitation id={}", inv.getId());
             }
         }
     }
@@ -481,7 +500,7 @@ public class OrganizationInvitationService {
         User user = resolveUser(jwt);
         validateInvitePermission(user, orgId, jwt);
 
-        OrganizationInvitation invitation = invitationRepository.findById(invitationId)
+        OrganizationInvitation invitation = invitationRepository.findByIdForUpdate(invitationId)
                 .orElseThrow(() -> new IllegalArgumentException("Invitation non trouvee"));
 
         if (!invitation.getOrganization().getId().equals(orgId)) {
@@ -492,12 +511,11 @@ public class OrganizationInvitationService {
             case PENDING -> {
                 invitation.setStatus(InvitationStatus.CANCELLED);
                 invitationRepository.save(invitation);
-                log.info("Invitation annulee: id={}, email={}", invitationId, invitation.getInvitedEmail());
+                log.info("Invitation annulee: id={}", invitationId);
             }
             case CANCELLED, EXPIRED -> {
                 invitationRepository.delete(invitation);
-                log.info("Invitation supprimee: id={}, status={}, email={}",
-                        invitationId, invitation.getStatus(), invitation.getInvitedEmail());
+                log.info("Invitation supprimee: id={}, status={}", invitationId, invitation.getStatus());
             }
             case ACCEPTED -> throw new IllegalStateException(
                     "Une invitation acceptee ne peut etre supprimee (utilisateur deja membre)");
@@ -510,11 +528,15 @@ public class OrganizationInvitationService {
         User user = resolveUser(jwt);
         validateInvitePermission(user, orgId, jwt);
 
-        OrganizationInvitation invitation = invitationRepository.findById(invitationId)
+        OrganizationInvitation invitation = invitationRepository.findByIdForUpdate(invitationId)
                 .orElseThrow(() -> new IllegalArgumentException("Invitation non trouvee"));
 
         if (!invitation.getOrganization().getId().equals(orgId)) {
             throw new AccessDeniedException("Cette invitation n'appartient pas a cette organisation");
+        }
+
+        if (invitation.getStatus() == InvitationStatus.ACCEPTED) {
+            throw new IllegalStateException("Une invitation acceptee ne peut etre renvoyee");
         }
 
         // Annuler l'ancienne et creer une nouvelle
@@ -525,6 +547,11 @@ public class OrganizationInvitationService {
     }
 
     // ─── Helpers ──────────────────────────────────────────────────────────────
+
+    private static boolean sameEmail(String first, String second) {
+        return first != null && second != null && !first.isBlank() && !second.isBlank()
+                && first.strip().equalsIgnoreCase(second.strip());
+    }
 
     private User resolveUser(Jwt jwt) {
         String keycloakId = jwt.getSubject();
@@ -593,6 +620,9 @@ public class OrganizationInvitationService {
     }
 
     private static String sha256(String input) {
+        if (input == null || input.isBlank() || input.length() > 4096) {
+            throw new IllegalArgumentException("Invitation non trouvee ou expiree");
+        }
         try {
             MessageDigest digest = MessageDigest.getInstance("SHA-256");
             byte[] hash = digest.digest(input.getBytes(StandardCharsets.UTF_8));
