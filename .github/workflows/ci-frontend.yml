@@ -82,7 +82,7 @@ jobs:
         working-directory: client
         run: |
           npx tsc --noEmit -p tsconfig.dependency-tests.json
-          npx vitest run src/schemas/baitlyDependencyCompatibility.test.ts src/schemas/serviceReference.test.ts src/modules/supervision/provider/__tests__/AgUiSupervisionProvider.test.ts src/modules/supervision/core/__tests__/applyStreamEvent.test.ts src/modules/supervision/agui/baitlySdkMigration.test.ts --reporter=default --reporter=junit --outputFile=test-results/baitly-dependency-compatibility.xml
+          npx vitest run src/schemas/baitlyDependencyCompatibility.test.ts src/schemas/serviceReference.test.ts src/modules/supervision/provider/__tests__/AgUiSupervisionProvider.test.ts src/modules/supervision/core/__tests__/applyStreamEvent.test.ts src/modules/supervision/agui/baitlySdkMigration.test.ts src/modules/supervision/agui/baitly/BaitlyAgUiClient.test.ts --reporter=default --reporter=junit --outputFile=test-results/baitly-dependency-compatibility.xml
 
       - name: Upload dependency compatibility evidence
         if: always() && steps.dependency-contracts.outcome != 'skipped'

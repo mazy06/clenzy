@@ -3,9 +3,10 @@
   "private": true,
   "version": "0.1.0",
   "type": "module",
-  "description": "Runtime CopilotKit (Node) mince : routeur AG-UI + frontière de sécurité devant le backend Java Clenzy (POST /api/agui/run). Expose /api/copilotkit au front.",
+  "description": "Runtime CopilotKit (Node) mince : routeur AG-UI + frontière de sécurité devant le backend Java Baitly (POST /api/agui/run). Expose /api/copilotkit au front.",
   "scripts": {
-    "dev": "node server.mjs"
+    "dev": "node server.mjs",
+    "test:security": "node --test test/baitly-proxy-trust.test.mjs"
   },
   "dependencies": {
     "@ag-ui/client": "^0.0.57",

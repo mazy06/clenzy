@@ -1,8 +1,9 @@
 # Migration dédiée Zod 3 : contrats assistant Baitly
 
 État au 24 octobre 2026 : **préparation et caractérisation**, pas de bascule.
-Les douze avis élevés restent ouverts. Lockfiles et imports de production
-inchangés dans cette préparation. Dépendance : candidate #515.
+Les douze avis élevés restent ouverts. La référence #516 conservait les
+lockfiles et imports de production de #515 ; les changements du candidat
+suivant sont décrits séparément ci-dessous.
 
 ## Périmètre réel
 
@@ -18,7 +19,7 @@ inchangés dans cette préparation. Dépendance : candidate #515.
 Le frontend contient cinq copies Zod 3.25.76 sous A2UI web_core, AG-UI
 client/proto et CopilotKit a2ui-renderer/shared. Le relais Node contient aussi
 Zod 3.25.76. Les douze entrées de l’audit frontend ne constituent pas un audit
-du relais : son audit indépendant reste à produire.
+du relais : son audit indépendant et ses suites sont détaillés dans le document du candidat.
 
 L’[avis éditeur](https://github.com/advisories/GHSA-mrhx-c7xc-m3w5)
 indique un correctif à partir de 4.6.6. Les dernières versions parentes vérifiées
@@ -27,6 +28,12 @@ node_modules, downgrade ou suppression de fonction pour rendre l’audit vert.
 Les avis ne sont pas déclarés inexploitables.
 
 ## Trajectoire et critères de sortie
+
+Étape suivante préparée : [candidat de transport Zod 4](BAITLY-ZOD4-TRANSPORT-CANDIDATE.md),
+inactif, 27 nouveaux cas de comparaison et de sécurité. Il ne remplace pas
+encore le chat React ni le relais. L’audit séparé du relais est désormais
+produit : 19 high, 7 moderate, 9 low et un critique proxy-addr corrigé par la
+résolution compatible 2.0.8 ; aucun critique après, autres avis ouverts.
 
 Préparer un adaptateur Baitly du protocole puis comparer un candidat corrigé
 aux contrats. Deux voies admissibles : versions amont réellement corrigées ou

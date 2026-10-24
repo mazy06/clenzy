@@ -4,6 +4,7 @@
     "types": ["vite/client", "node", "vitest/globals", "@testing-library/jest-dom/vitest"]
   },
   "include": [
+    "src/modules/supervision/agui/baitly/BaitlyAgUiClient.test.ts",
     "src/modules/supervision/agui/baitlySdkMigration.test.ts",
     "src/schemas/baitlyDependencyCompatibility.test.ts",
     "src/schemas/serviceReference.test.ts",
