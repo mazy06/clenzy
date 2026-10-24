@@ -32,6 +32,7 @@ import static org.mockito.Mockito.when;
 class OAuthFlowEngineTest {
 
     @Mock private OAuthStateService stateService;
+    @Mock private BaitlyOAuthConnectionGuard connectionGuard;
     @Mock private TokenEncryptionService encryptionService;
     @Mock private RestTemplate restTemplate;
     @Mock private OAuthProviderConfig providerConfig;
@@ -41,7 +42,15 @@ class OAuthFlowEngineTest {
 
     @BeforeEach
     void setUp() {
-        engine = new OAuthFlowEngine(stateService, encryptionService);
+        engine = new OAuthFlowEngine(stateService, encryptionService, connectionGuard);
+        lenient().when(connectionGuard.execute(anyString(), any(), any())).thenAnswer(call ->
+                ((java.util.function.Supplier<?>) call.getArgument(2)).get());
+        lenient().when(connectionGuard.executeAuthorization(anyString(), any(), any())).thenAnswer(call ->
+                ((java.util.function.Supplier<?>) call.getArgument(2)).get());
+        lenient().when(connectionGuard.executeRefresh(anyString(), any(), any())).thenAnswer(call ->
+                ((java.util.function.Supplier<?>) call.getArgument(2)).get());
+        lenient().when(connectionGuard.executeRevocation(anyString(), any(), any())).thenAnswer(call ->
+                ((java.util.function.Supplier<?>) call.getArgument(2)).get());
         // Replace inner restTemplate with mocked one
         ReflectionTestUtils.setField(engine, "restTemplate", restTemplate);
 
@@ -55,6 +64,73 @@ class OAuthFlowEngineTest {
         lenient().when(providerConfig.getScopes()).thenReturn("read write");
         lenient().when(providerConfig.getRefreshTokenValidityDays()).thenReturn(90);
         lenient().when(providerConfig.useHttpBasicAuth()).thenReturn(false);
+    }
+
+    @Test void tokenEndpointFailureDoesNotExposeProviderBodyOrSecrets() {
+        var failure=new org.springframework.web.client.HttpClientErrorException(org.springframework.http.HttpStatus.BAD_REQUEST,
+                "private-status", "email=synthetic@example.invalid access_token=private-canary".getBytes(java.nio.charset.StandardCharsets.UTF_8),
+                java.nio.charset.StandardCharsets.UTF_8);
+        when(restTemplate.exchange(anyString(),eq(HttpMethod.POST),any(HttpEntity.class),eq(Map.class))).thenThrow(failure);
+        assertThatThrownBy(() -> engine.exchangeCodeForToken(providerConfig,persistence,"private-code",1L,100L))
+                .isInstanceOfSatisfying(IllegalStateException.class,safe -> {
+                    var rendered=new java.io.StringWriter();safe.printStackTrace(new java.io.PrintWriter(rendered));
+                    assertThat(rendered.toString()).doesNotContain("private-","example.invalid");
+                    assertThat(safe).hasMessage(OAuthFlowEngine.TOKEN_UNCONFIRMED).hasNoCause();
+                });
+        org.mockito.Mockito.verifyNoInteractions(persistence,encryptionService);
+    }
+
+    @org.junit.jupiter.params.ParameterizedTest
+    @org.junit.jupiter.params.provider.ValueSource(strings={"blank-access","wrong-access-type","blank-refresh","zero-expiry","negative-expiry","fractional-expiry","wrong-expiry-type"})
+    void malformedTokenResponseNeverActivatesOrPersistsConnection(String scenario) {
+        var response=new HashMap<String,Object>(Map.of("access_token","test-access","expires_in",3600));
+        switch(scenario) {
+            case "blank-access" -> response.put("access_token"," ");
+            case "wrong-access-type" -> response.put("access_token",123);
+            case "blank-refresh" -> response.put("refresh_token","");
+            case "zero-expiry" -> response.put("expires_in",0);
+            case "negative-expiry" -> response.put("expires_in",-1);
+            case "fractional-expiry" -> response.put("expires_in",0.5);
+            case "wrong-expiry-type" -> response.put("expires_in","private-expiry");
+        }
+        when(restTemplate.exchange(anyString(),eq(HttpMethod.POST),any(HttpEntity.class),eq(Map.class))).thenReturn(ResponseEntity.ok(response));
+        assertThatThrownBy(() -> engine.exchangeCodeForToken(providerConfig,persistence,"code",1L,100L))
+                .hasMessage(OAuthFlowEngine.TOKEN_UNCONFIRMED);
+        org.mockito.Mockito.verifyNoInteractions(persistence,encryptionService);
+    }
+
+    @Test void failedRefreshPersistsSafeErrorAndNeverExposesNestedSecrets() {
+        var existing=new TestConnection();existing.setRefreshTokenEncrypted("encrypted-refresh");
+        existing.setOAuthStatus(OAuthConnectionStatus.ACTIVE);
+        when(persistence.findActiveByOrganizationId(100L)).thenReturn(Optional.of(existing));
+        when(encryptionService.decrypt("encrypted-refresh")).thenThrow(new IllegalStateException("token=private-canary",
+                new RuntimeException("password=private-cause")));
+        assertThatThrownBy(() -> engine.refreshToken(providerConfig,persistence,100L))
+                .hasMessage(OAuthFlowEngine.TOKEN_UNCONFIRMED).hasNoCause();
+        assertThat(existing.getOAuthStatus()).isEqualTo(OAuthConnectionStatus.ERROR);
+        assertThat(existing.getErrorMessage()).isEqualTo(OAuthFlowEngine.TOKEN_UNCONFIRMED);
+        verify(persistence).save(existing);org.mockito.Mockito.verifyNoInteractions(restTemplate);
+    }
+
+    @Test void failedRevokeClearsLocalTokensWithoutClaimingRemoteConfirmationOrLoggingSecrets() {
+        var existing=new TestConnection();existing.setAccessTokenEncrypted("encrypted-access");
+        existing.setRefreshTokenEncrypted("encrypted-refresh");existing.setOAuthStatus(OAuthConnectionStatus.ACTIVE);
+        when(persistence.findByOrganizationId(100L)).thenReturn(Optional.of(existing));
+        when(encryptionService.decrypt("encrypted-access")).thenReturn("test-access");
+        when(restTemplate.exchange(anyString(),eq(HttpMethod.POST),any(HttpEntity.class),eq(Void.class)))
+                .thenThrow(new IllegalStateException("token=private-canary"));
+        var logger=(ch.qos.logback.classic.Logger) org.slf4j.LoggerFactory.getLogger(OAuthFlowEngine.class);
+        var appender=new ch.qos.logback.core.read.ListAppender<ch.qos.logback.classic.spi.ILoggingEvent>();
+        appender.start();logger.addAppender(appender);
+        try {
+            engine.revokeToken(providerConfig,persistence,100L);
+            assertThat(existing.getOAuthStatus()).isEqualTo(OAuthConnectionStatus.REVOKED);
+            assertThat(existing.getAccessTokenEncrypted()).isNull();assertThat(existing.getRefreshTokenEncrypted()).isNull();
+            assertThat(existing.getErrorMessage()).isEqualTo(OAuthFlowEngine.REVOCATION_UNCONFIRMED);
+            assertThat(appender.list).hasSize(1);
+            assertThat(appender.list.getFirst().getFormattedMessage()).doesNotContain("private-","test-access");
+            assertThat(appender.list.getFirst().getThrowableProxy()).isNull();
+        } finally {logger.detachAppender(appender);appender.stop();}
     }
 
     /** Simple stub OAuth connection. */
@@ -84,6 +160,61 @@ class OAuthFlowEngineTest {
         @Override public void setErrorMessage(String m) { errorMessage = m; }
         @Override public Instant getConnectedAt() { return connectedAt; }
         @Override public void setConnectedAt(Instant a) { connectedAt = a; }
+    }
+
+    @Test
+    void automaticRefreshRechecksLatestConnectionUnderGuard() {
+        var stale = new TestConnection();
+        stale.setTokenExpiresAt(Instant.now().minusSeconds(60));
+        var latest = new TestConnection();
+        latest.setTokenExpiresAt(Instant.now().plusSeconds(3600));
+        latest.setAccessTokenEncrypted("latest-encrypted-access");
+        when(persistence.findActiveByOrganizationId(100L)).thenReturn(Optional.of(stale), Optional.of(latest));
+        when(encryptionService.decrypt("latest-encrypted-access")).thenReturn("synthetic-access");
+        assertThat(engine.getValidAccessToken(providerConfig, persistence, 100L)).isEqualTo("synthetic-access");
+        verify(connectionGuard).executeRefresh(eq("test"), eq(100L), any());
+        org.mockito.Mockito.verifyNoInteractions(restTemplate);
+    }
+
+    @org.junit.jupiter.params.ParameterizedTest
+    @org.junit.jupiter.params.provider.CsvSource({"false,at-1", "false,rt-1", "true,at-1", "true,rt-1"})
+    void preparationFailureNeverMixesOldAndNewSecrets(boolean refresh, String failingToken) {
+        var connection = new TestConnection();
+        connection.setOrganizationId(100L);
+        connection.setUserId(5L);
+        connection.setAccessTokenEncrypted("old-encrypted-access");
+        connection.setRefreshTokenEncrypted("old-encrypted-refresh");
+        Instant oldExpiry = Instant.parse("2030-01-01T00:00:00Z");
+        connection.setTokenExpiresAt(oldExpiry);
+        connection.setRefreshTokenExpiresAt(oldExpiry);
+        connection.setScopes("old-scope");
+        connection.setOAuthStatus(OAuthConnectionStatus.ACTIVE);
+        when(restTemplate.exchange(anyString(), eq(HttpMethod.POST), any(HttpEntity.class), eq(Map.class)))
+                .thenReturn(ResponseEntity.ok(Map.of("access_token", "at-1", "refresh_token", "rt-1", "expires_in", 3600)));
+        when(encryptionService.encrypt(anyString())).thenAnswer(call -> {
+            String token = call.getArgument(0);
+            if (token.equals(failingToken)) throw new IllegalStateException("Synthetic encryption failure");
+            return "encrypted-" + token;
+        });
+        if (refresh) {
+            when(persistence.findActiveByOrganizationId(100L)).thenReturn(Optional.of(connection));
+            when(encryptionService.decrypt("old-encrypted-refresh")).thenReturn("synthetic-refresh");
+            assertThatThrownBy(() -> engine.refreshToken(providerConfig, persistence, 100L))
+                    .isInstanceOf(RuntimeException.class);
+            verify(persistence).save(connection);
+            assertThat(connection.getOAuthStatus()).isEqualTo(OAuthConnectionStatus.ERROR);
+        } else {
+            when(persistence.findByOrganizationId(100L)).thenReturn(Optional.of(connection));
+            assertThatThrownBy(() -> engine.exchangeCodeForToken(providerConfig, persistence, "synthetic-code", 1L, 100L))
+                    .isInstanceOf(RuntimeException.class);
+            org.mockito.Mockito.verify(persistence, org.mockito.Mockito.never()).save(any());
+            assertThat(connection.getUserId()).isEqualTo(5L);
+        }
+        assertThat(connection.getAccessTokenEncrypted()).isEqualTo("old-encrypted-access");
+        assertThat(connection.getRefreshTokenEncrypted()).isEqualTo("old-encrypted-refresh");
+        assertThat(connection.getTokenExpiresAt()).isEqualTo(oldExpiry);
+        assertThat(connection.getRefreshTokenExpiresAt()).isEqualTo(oldExpiry);
+        assertThat(connection.getScopes()).isEqualTo("old-scope");
     }
 
     @Nested
@@ -145,7 +276,7 @@ class OAuthFlowEngineTest {
 
             assertThatThrownBy(() -> engine.exchangeCodeForToken(providerConfig, persistence, "code", 1L, 100L))
                     .isInstanceOf(IllegalStateException.class)
-                    .hasMessageContaining("access_token");
+                    .hasMessage(OAuthFlowEngine.TOKEN_UNCONFIRMED);
         }
 
         @Test
@@ -219,7 +350,7 @@ class OAuthFlowEngineTest {
             assertThatThrownBy(() -> engine.refreshToken(providerConfig, persistence, 100L))
                     .isInstanceOf(RuntimeException.class);
             assertThat(existing.getOAuthStatus()).isEqualTo(OAuthConnectionStatus.ERROR);
-            assertThat(existing.getErrorMessage()).contains("Refresh failed");
+            assertThat(existing.getErrorMessage()).isEqualTo(OAuthFlowEngine.TOKEN_UNCONFIRMED);
         }
     }
 

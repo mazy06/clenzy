@@ -14,8 +14,8 @@ import java.util.Map;
  *
  * @param reservation resolue par le moteur quand le sujet est TYPE_RESERVATION,
  *                    null sinon — construite ici, jamais par les capteurs
- * @param data        donnees volatiles du declenchement : NON persistees, map vide
- *                    sur le chemin planifie (PENDING draine plus tard)
+ * @param data        données du déclenchement chiffrées pour la reprise durable, jamais exposées
+ *                    par le DTO public
  */
 public record AutomationActionContext(Long orgId,
                                       String subjectType,

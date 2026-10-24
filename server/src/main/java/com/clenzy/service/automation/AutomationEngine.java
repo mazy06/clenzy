@@ -9,7 +9,7 @@ import com.clenzy.model.AutomationTrigger;
  * schedulers, services capteurs) appellent {@link #fireTrigger} ; le moteur
  * evalue les regles actives de l'organisation pour ce declencheur (conditions
  * JSON sur {@link AutomationSubject#data()}), applique l'idempotence generique
- * {@code AutomationExecution} (regle x subjectType x subjectId) et execute les
+ * {@code AutomationExecution} (regle x subjectType x subjectId) et met en file durable les
  * actions via le registre des {@link AutomationActionExecutor}.</p>
  *
  * <p>L'implementation appartient au moteur central (agent moteur) — les sources

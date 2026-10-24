@@ -92,24 +92,21 @@ class SendOwnerStatementExecutorTest {
         when(dispatchRepository.existsByOrganizationIdAndOwnerIdAndPeriodStart(ORG_ID, OWNER_ID, FROM))
                 .thenReturn(true);
 
-        ExecutionResult result = executor.execute(rule(), ctxWithPeriod());
-
+        ExecutionResult result=executor.execute(rule(),ctxWithPeriod());
         assertThat(result.skipped()).isTrue();
         verifyNoInteractions(ownerStatementService);
         verify(dispatchRepository, times(0)).save(any());
     }
 
     @Test
-    @DisplayName("dernier filet : claim pose hors verrou (contrainte unique) -> SKIPPED, aucun envoi")
-    void concurrentClaim_skips() {
+    @DisplayName("claim non confirmé : résultat incertain, aucun envoi")
+    void concurrentClaim_requiresReconciliation() {
         when(dispatchRepository.existsByOrganizationIdAndOwnerIdAndPeriodStart(ORG_ID, OWNER_ID, FROM))
                 .thenReturn(false);
         when(dispatchRepository.save(any(OwnerStatementDispatch.class)))
                 .thenThrow(new DataIntegrityViolationException("duplicate"));
 
-        ExecutionResult result = executor.execute(rule(), ctxWithPeriod());
-
-        assertThat(result.skipped()).isTrue();
+        assertThatThrownBy(() -> executor.execute(rule(),ctxWithPeriod())).hasMessage("AUTOMATION_CLAIM_UNCONFIRMED");
         verifyNoInteractions(ownerStatementService);
     }
 
@@ -127,10 +124,7 @@ class SendOwnerStatementExecutorTest {
         ExecutionResult result = executor.execute(rule(), ctxWithPeriod());
 
         assertThat(result.skipped()).isFalse();
-        // Le verrou advisory serialise les claims concurrents AVANT le check d'existence.
         InOrder inOrder = inOrder(dispatchRepository);
-        inOrder.verify(dispatchRepository)
-                .acquireDispatchClaimLock("OWNER_STATEMENT:1:100:" + FROM);
         inOrder.verify(dispatchRepository)
                 .existsByOrganizationIdAndOwnerIdAndPeriodStart(ORG_ID, OWNER_ID, FROM);
         verify(ownerStatementService).sendStatement(OWNER_ID, ORG_ID, FROM, TO, "Conciergerie Sud");

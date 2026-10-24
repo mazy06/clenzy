@@ -83,6 +83,29 @@ class ClenzyInternalSignatureProviderTest {
 
     // -- createSignatureRequest ------------------------------------------------
 
+    @Test
+    void creatingPublicSigningLinkDoesNotLogItsBearerToken() {
+        when(generationRepository.findById(GENERATION_ID)).thenReturn(Optional.of(generation()));
+        when(signatureRequestRepository.save(any(ContractSignatureRequest.class)))
+                .thenAnswer(invocation -> invocation.getArgument(0));
+        var logger = (ch.qos.logback.classic.Logger) org.slf4j.LoggerFactory.getLogger(ClenzyInternalSignatureProvider.class);
+        var logs = new ch.qos.logback.core.read.ListAppender<ch.qos.logback.classic.spi.ILoggingEvent>();
+        logs.start();
+        logger.addAppender(logs);
+        try {
+            SignatureResult result = provider.createSignatureRequest(nominalRequest());
+            assertThat(result.success()).isTrue();
+            assertThat(result.signingUrl()).contains(result.signatureRequestId());
+            assertThat(logs.list).isNotEmpty().allSatisfy(event -> {
+                assertThat(event.getFormattedMessage()).doesNotContain(result.signatureRequestId(), result.signingUrl(), "owner@test.com");
+                assertThat(event.getThrowableProxy()).isNull();
+            });
+        } finally {
+            logger.detachAppender(logs);
+            logs.stop();
+        }
+    }
+
     @Nested
     @DisplayName("createSignatureRequest")
     class CreateSignatureRequest {

@@ -1,5 +1,6 @@
 package com.clenzy.integration.docusign.controller;
 
+import com.clenzy.integration.oauth.BaitlyOAuthHttpDiagnostics;
 import com.clenzy.integration.docusign.model.DocuSignConnection;
 import com.clenzy.integration.docusign.service.DocuSignOAuthService;
 import com.clenzy.integration.oauth.OAuthStateService;
@@ -68,21 +69,21 @@ public class DocuSignOAuthController {
     @PreAuthorize("permitAll()")
     public ResponseEntity<String> callback(@RequestParam("code") String code,
                                              @RequestParam("state") String state) {
-        Optional<OAuthStateService.StatePayload> payload = oauthService.validateAndConsumeState(state);
-        if (payload.isEmpty()) {
-            log.warn("DocuSign OAuth callback — state invalide: {}", state);
-            return ResponseEntity.status(302)
-                .header("Location", "/settings?tab=integrations&status=error&reason=invalid_state")
-                .build();
-        }
-
         try {
+            Optional<OAuthStateService.StatePayload> payload = oauthService.validateAndConsumeState(state);
+            if (payload.isEmpty()) {
+                log.warn("DocuSign OAuth callback — state invalide");
+                return ResponseEntity.status(302)
+                    .header("Location", "/settings?tab=integrations&status=error&reason=invalid_state")
+                    .build();
+            }
+
             oauthService.exchangeCodeForToken(code, payload.get().userId(), payload.get().orgId());
             return ResponseEntity.status(302)
                 .header("Location", "/settings?tab=integrations&status=success")
                 .build();
         } catch (Exception e) {
-            log.error("DocuSign OAuth callback — erreur echange code: {}", e.getMessage(), e);
+            log.error("DocuSign OAuth callback — erreur echange code");
             return ResponseEntity.status(302)
                 .header("Location", "/settings?tab=integrations&status=error&reason=token_exchange")
                 .build();
@@ -96,13 +97,13 @@ public class DocuSignOAuthController {
             oauthService.revokeToken(orgId);
             return ResponseEntity.ok(Map.of(
                 "status", "disconnected",
-                "message", "Deconnexion DocuSign reussie"
+                "message", BaitlyOAuthHttpDiagnostics.LOCAL_DISCONNECT
             ));
         } catch (Exception e) {
-            log.error("DocuSign disconnect — erreur: {}", e.getMessage(), e);
+            log.error("DocuSign disconnect — erreur");
             return ResponseEntity.internalServerError().body(Map.of(
                 "status", "error",
-                "message", "Erreur lors de la deconnexion: " + e.getMessage()
+                "message", BaitlyOAuthHttpDiagnostics.DISCONNECT_UNCONFIRMED
             ));
         }
     }
@@ -124,7 +125,7 @@ public class DocuSignOAuthController {
             result.put("connected", false);
             if (connection.isPresent()) {
                 result.put("status", connection.get().getStatus().name());
-                result.put("errorMessage", connection.get().getErrorMessage());
+                result.put("errorMessage", BaitlyOAuthHttpDiagnostics.connectionError(connection.get().getErrorMessage()));
             }
         }
         return ResponseEntity.ok(result);

@@ -5,6 +5,7 @@ import com.clenzy.service.signature.SignatureRequest;
 import com.clenzy.service.signature.SignatureResult;
 import com.clenzy.service.signature.SignatureStatus;
 import com.clenzy.service.signature.Signer;
+import com.clenzy.service.signature.BaitlySignatureSafety;
 import io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -36,7 +37,7 @@ public class PennylaneApiService {
 
     public PennylaneApiService(PennylaneConfig config) {
         this.config = config;
-        this.restTemplate = new RestTemplate();
+        this.restTemplate = BaitlyPennylaneHttpTransport.create();
     }
 
     /**
@@ -47,7 +48,7 @@ public class PennylaneApiService {
      */
     @CircuitBreaker(name = "pennylane-api", fallbackMethod = "createSignatureRequestFallback")
     public SignatureResult createSignatureRequest(SignatureRequest request) {
-        log.info("Pennylane — creation demande de signature pour document: {}", request.documentId());
+        log.info("Pennylane : création de demande de signature");
 
         Map<String, Object> body = new HashMap<>();
         body.put("document_id", request.documentId());
@@ -68,10 +69,11 @@ public class PennylaneApiService {
 
         @SuppressWarnings("unchecked")
         Map<String, Object> responseBody = response.getBody();
-        String requestId = String.valueOf(responseBody.get("id"));
-        String signingUrl = (String) responseBody.get("signing_url");
+        if (!response.getStatusCode().is2xxSuccessful() || responseBody == null) throw BaitlySignatureSafety.invalidResponse();
+        String requestId = BaitlySignatureSafety.remoteId(responseBody.get("id"));
+        String signingUrl = BaitlySignatureSafety.signingUrl(responseBody.get("signing_url"));
 
-        log.info("Pennylane — demande de signature creee: {}", requestId);
+        log.info("Pennylane : demande de signature créée");
         return SignatureResult.success(requestId, signingUrl);
     }
 
@@ -83,7 +85,8 @@ public class PennylaneApiService {
      */
     @CircuitBreaker(name = "pennylane-api", fallbackMethod = "getSignatureStatusFallback")
     public SignatureStatus getSignatureStatus(String signatureRequestId) {
-        log.debug("Pennylane — recuperation statut signature: {}", signatureRequestId);
+        signatureRequestId = BaitlySignatureSafety.remoteId(signatureRequestId);
+        log.debug("Pennylane : lecture du statut de signature");
 
         ResponseEntity<Map> response = restTemplate.exchange(
             config.getApiUrl() + "/api/v1/signature_requests/" + signatureRequestId,
@@ -92,6 +95,7 @@ public class PennylaneApiService {
             Map.class
         );
 
+        if (!response.getStatusCode().is2xxSuccessful() || response.getBody() == null || !(response.getBody().get("status") instanceof String)) throw BaitlySignatureSafety.unknownStatus();
         String status = (String) response.getBody().get("status");
         return mapStatus(status);
     }
@@ -104,7 +108,8 @@ public class PennylaneApiService {
      */
     @CircuitBreaker(name = "pennylane-api", fallbackMethod = "downloadDocumentFallback")
     public byte[] downloadDocument(String signatureRequestId) {
-        log.info("Pennylane — telechargement document signe: {}", signatureRequestId);
+        signatureRequestId = BaitlySignatureSafety.remoteId(signatureRequestId);
+        log.info("Pennylane : téléchargement de document signé");
 
         ResponseEntity<byte[]> response = restTemplate.exchange(
             config.getApiUrl() + "/api/v1/signature_requests/" + signatureRequestId + "/document",
@@ -113,6 +118,7 @@ public class PennylaneApiService {
             byte[].class
         );
 
+        if (!response.getStatusCode().is2xxSuccessful() || response.getBody() == null || response.getBody().length == 0) throw BaitlySignatureSafety.invalidResponse();
         return response.getBody();
     }
 
@@ -129,9 +135,9 @@ public class PennylaneApiService {
 
     private SignatureStatus mapStatus(String pennylaneStatus) {
         if (pennylaneStatus == null) {
-            return SignatureStatus.PENDING;
+            throw BaitlySignatureSafety.unknownStatus();
         }
-        return switch (pennylaneStatus.toLowerCase()) {
+        return switch (pennylaneStatus.toLowerCase(java.util.Locale.ROOT)) {
             case "pending" -> SignatureStatus.PENDING;
             case "sent" -> SignatureStatus.SENT;
             case "viewed" -> SignatureStatus.VIEWED;
@@ -140,8 +146,7 @@ public class PennylaneApiService {
             case "expired" -> SignatureStatus.EXPIRED;
             case "cancelled" -> SignatureStatus.CANCELLED;
             default -> {
-                log.warn("Pennylane — statut inconnu: {}, fallback sur PENDING", pennylaneStatus);
-                yield SignatureStatus.PENDING;
+                throw BaitlySignatureSafety.unknownStatus();
             }
         };
     }
@@ -157,19 +162,19 @@ public class PennylaneApiService {
 
     @SuppressWarnings("unused")
     private SignatureResult createSignatureRequestFallback(SignatureRequest request, Throwable t) {
-        log.error("Circuit breaker Pennylane ouvert — fallback createSignatureRequest: {}", t.getMessage());
-        return SignatureResult.failure("Service Pennylane temporairement indisponible: " + t.getMessage());
+        log.error("Pennylane : création de signature non confirmée");
+        return SignatureResult.failure(BaitlySignatureSafety.CREATION_UNCONFIRMED);
     }
 
     @SuppressWarnings("unused")
     private SignatureStatus getSignatureStatusFallback(String signatureRequestId, Throwable t) {
-        log.error("Circuit breaker Pennylane ouvert — fallback getSignatureStatus: {}", t.getMessage());
-        throw new RuntimeException("Service Pennylane temporairement indisponible", t);
+        log.error("Pennylane : statut de signature indisponible");
+        throw BaitlySignatureSafety.unavailable();
     }
 
     @SuppressWarnings("unused")
     private byte[] downloadDocumentFallback(String signatureRequestId, Throwable t) {
-        log.error("Circuit breaker Pennylane ouvert — fallback downloadDocument: {}", t.getMessage());
-        throw new RuntimeException("Service Pennylane temporairement indisponible", t);
+        log.error("Pennylane : document signé indisponible");
+        throw BaitlySignatureSafety.unavailable();
     }
 }

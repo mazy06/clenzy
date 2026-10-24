@@ -75,6 +75,9 @@ class GuestMessageExecutorsTest {
         reservation.setCheckOut(LocalDate.of(2026, 7, 1));
 
         context = AutomationActionContext.forReservation(ORG_ID, reservation);
+        var accepted=new com.clenzy.model.GuestMessageLog();
+        accepted.setId(99L);accepted.setStatus(com.clenzy.model.MessageStatus.SENT);
+        org.mockito.Mockito.lenient().when(messagingService.sendForReservationViaChannel(any(),any(),any(),any(),anyMap())).thenReturn(accepted);
     }
 
     private AutomationRule rule(AutomationAction action, AutomationTrigger trigger) {
@@ -250,4 +253,14 @@ class GuestMessageExecutorsTest {
         verify(messagingService).sendForReservationViaChannel(
             eq(reservation), eq(template), eq(ORG_ID), any(), anyMap());
     }
+    @org.junit.jupiter.params.ParameterizedTest
+    @org.junit.jupiter.params.provider.EnumSource(value=com.clenzy.model.MessageStatus.class,names={"FAILED","BOUNCED","PENDING"})
+    void failedOrUncertainDeliveryCannotBeReportedAsExecuted(com.clenzy.model.MessageStatus status) {
+        var unconfirmed=new com.clenzy.model.GuestMessageLog();unconfirmed.setStatus(status);
+        unconfirmed.setErrorMessage("private@example.invalid Bearer secret");
+        when(messagingService.sendForReservationViaChannel(any(),any(),any(),any(),anyMap())).thenReturn(unconfirmed);
+        assertThatThrownBy(()->sendMessage.execute(rule(AutomationAction.SEND_MESSAGE,AutomationTrigger.CHECK_IN_DAY),context))
+            .hasMessage("AUTOMATION_DELIVERY_UNCONFIRMED").hasCause(null);
+    }
+
 }

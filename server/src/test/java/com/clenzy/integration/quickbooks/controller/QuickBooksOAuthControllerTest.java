@@ -239,7 +239,7 @@ class QuickBooksOAuthControllerTest {
             assertThat(body).isNotNull();
             assertThat(body).containsEntry("connected", false);
             assertThat(body).containsEntry("status", "REVOKED");
-            assertThat(body).containsEntry("errorMessage", "User revoked access");
+            assertThat(body).containsEntry("errorMessage", com.clenzy.integration.oauth.BaitlyOAuthHttpDiagnostics.CONNECTION_ERROR);
         }
     }
 }

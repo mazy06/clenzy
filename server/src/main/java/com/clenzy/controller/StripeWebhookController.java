@@ -157,7 +157,7 @@ public class StripeWebhookController {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST)
                 .body("Signature invalide");
         } catch (Exception e) {
-            logger.error("Erreur lors du traitement du webhook Stripe", e);
+            logger.error("Erreur lors du traitement du webhook Stripe", safeFailure(e));
             return ResponseEntity.status(HttpStatus.BAD_REQUEST)
                 .body("Evenement Stripe invalide");
         }
@@ -269,7 +269,7 @@ public class StripeWebhookController {
             }
         } catch (Exception e) {
             logger.error("Echec du traitement du webhook Stripe eventId={}, type={} -> retour 500 pour re-livraison",
-                    event.getId(), event.getType(), e);
+                    event.getId(), event.getType(), safeFailure(e));
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                 .body("Erreur lors du traitement de l'evenement");
         }
@@ -311,8 +311,8 @@ public class StripeWebhookController {
         String paymentStatus = session.getPaymentStatus();
         String mode = session.getMode();
 
-        logger.info("checkout.session.completed: sessionId={}, paymentStatus={}, mode={}, metadata={}",
-                sessionId, paymentStatus, mode, session.getMetadata());
+        logger.info("checkout.session.completed: sessionId={}, paymentStatus={}, mode={}",
+                sessionId, paymentStatus, mode);
 
         // Pour les subscriptions, le paymentStatus est "paid" quand le premier paiement reussit
         // Pour les paiements uniques, le paymentStatus est "paid"
@@ -328,7 +328,6 @@ public class StripeWebhookController {
             type = session.getMetadata().get("type");
         }
 
-        logger.info("Type determine pour session {}: type={}", sessionId, type);
         if(com.clenzy.service.BaitlyMonthlySubscriptionService.TYPE.equals(type)) {
             if(event.getAccount()==null)monthlySubscriptions.complete(sessionId);
             return;
@@ -372,7 +371,7 @@ public class StripeWebhookController {
         } else if ("grouped_deferred".equals(type)) {
             // Paiement groupe differe : confirmer toutes les interventions incluses
             String interventionIds = session.getMetadata().get("intervention_ids");
-            logger.info("Paiement groupe differe reussi pour session: {}, interventions: {}", sessionId, interventionIds);
+            logger.info("Paiement groupe differe reussi pour session: {}", sessionId);
             paymentTenantScope.forGroupedInterventions(sessionId, interventionIds, () -> stripeService.confirmGroupedPayment(sessionId, interventionIds));
         } else if ("reservation".equals(type)) {
             // Paiement de reservation (envoye par email au guest)
@@ -390,8 +389,7 @@ public class StripeWebhookController {
             publicBookingService.confirmBookingEngineBalance(session);
         } else if ("service_request".equals(type)) {
             // Paiement de demande de service → confirmation + creation intervention automatique
-            String srId = session.getMetadata().get("service_request_id");
-            logger.info("Paiement SR reussi pour session: {}, srId: {}", sessionId, srId);
+            logger.info("Paiement SR reussi pour session: {}", sessionId);
             paymentTenantScope.forServiceRequest(sessionId, () -> stripeService.confirmServiceRequestPayment(sessionId));
         } else if ("upsell".equals(type)) {
             // Paiement d'un upsell du livret (early check-in, ménage, transfert…)
@@ -569,8 +567,7 @@ public class StripeWebhookController {
         String type = paymentIntent.getMetadata() != null
                 ? paymentIntent.getMetadata().get("type") : null;
 
-        logger.info("payment_intent.succeeded: id={}, type={}, metadata={}",
-                paymentIntent.getId(), type, paymentIntent.getMetadata());
+        logger.info("payment_intent.succeeded: id={}", paymentIntent.getId());
 
         if ("mobile_upgrade".equals(type)) {
             // Upgrade de forfait via Payment Sheet mobile
@@ -584,7 +581,7 @@ public class StripeWebhookController {
             confirmDirectBooking(paymentIntent);
         } else {
             // PaymentIntent non gere par le mobile (peut etre un PI d'un Checkout Session web)
-            logger.debug("payment_intent.succeeded ignore (type={})", type);
+            logger.debug("payment_intent.succeeded ignore, parcours non gere");
         }
     }
 
@@ -607,8 +604,7 @@ public class StripeWebhookController {
         try {
             orgId = Long.parseLong(orgIdStr);
         } catch (NumberFormatException e) {
-            logger.error("org_id invalide '{}' sur PaymentIntent direct_booking {}",
-                    orgIdStr, paymentIntent.getId());
+            logger.error("org_id invalide sur PaymentIntent direct_booking {}", paymentIntent.getId());
             return;
         }
         directBookingService.confirmPaidBookingFromWebhook(bookingId, orgId);
@@ -627,8 +623,7 @@ public class StripeWebhookController {
         String type = paymentIntent.getMetadata() != null
                 ? paymentIntent.getMetadata().get("type") : null;
 
-        logger.warn("payment_intent.payment_failed: id={}, type={}",
-                paymentIntent.getId(), type);
+        logger.warn("payment_intent.payment_failed: id={}", paymentIntent.getId());
 
         if ("mobile_intervention".equals(type)) {
             String interventionIdStr = paymentIntent.getMetadata().get("interventionId");
@@ -637,8 +632,7 @@ public class StripeWebhookController {
                     Long.parseLong(interventionIdStr);
                 } catch (NumberFormatException e) {
                     // Metadata corrompue : deterministe, une re-livraison echouerait pareil — on acquitte.
-                    logger.error("interventionId invalide '{}' sur PaymentIntent {}",
-                            interventionIdStr, paymentIntent.getId());
+                    logger.error("interventionId invalide sur PaymentIntent {}", paymentIntent.getId());
                     return;
                 }
                 // Reutiliser la logique existante via le session ID stocke.
@@ -758,5 +752,12 @@ public class StripeWebhookController {
                 session.getId(),
                 session.getAmountTotal() == null ? null : BigDecimal.valueOf(session.getAmountTotal(), 2),
                 session.getCurrency());
+    }
+    /** Conserve la localisation technique pour Sentry sans message ni cause PSP privee. */
+    private RuntimeException safeFailure(Exception failure) {
+        String category = failure instanceof StripeException ? "STRIPE_API" : "PAYMENT_PROCESSING";
+        RuntimeException safe = new IllegalStateException("Echec webhook Stripe (" + category + ")");
+        safe.setStackTrace(failure.getStackTrace());
+        return safe;
     }
 }

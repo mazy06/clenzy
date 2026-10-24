@@ -36,27 +36,9 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * Coeur du moteur d'automatisation (registre central des flux deterministes, fiche 08).
- *
- * <p>Deux chemins d'entree, un seul pipeline d'execution :</p>
- * <ul>
- *   <li><b>Temporel</b> — {@link #onReservationCreated} amorce les declencheurs du cycle de
- *       vie reservation (J-X / jour J / J+X, planification PENDING) ; le scheduler draine
- *       ({@link #processScheduledExecutions}) et re-evalue par sweep ;</li>
- *   <li><b>Evenementiel</b> — {@link #fireTrigger} (SPI {@link AutomationEngine}) appele par
- *       les capteurs (consumers Kafka, webhooks, crons), execution immediate.</li>
- * </ul>
- *
- * <p>Idempotence : pour les declencheurs one-shot ({@link AutomationTrigger#isDedupePerSubject()}),
- * au plus UNE {@link AutomationExecution} par (regle x subjectType x subjectId), verifiee avant
- * toute creation — re-livraison Kafka, sweep ou re-evaluation ne provoquent jamais de double
- * effet ; un statut FAILED est terminal pour ce couple (pas de retry automatique — visible en
- * UI, choix v1). Pour les declencheurs recurrents (releve mensuel, relances), l'idempotence
- * est portee par la cle metier de l'executeur.</p>
- *
- * <p>L'execution des actions est routee vers les beans {@code AutomationActionExecutor}
- * via {@link AutomationActionRegistry} ; chaque succes incremente la metrique
- * {@value AutomationEngine#EXECUTED_METRIC} taguee par action.</p>
+ * Baitly automation admission and durable recovery. Evaluation only queues work in its
+ * business transaction. The drain commits a STARTED fence before invoking an executor.
+ * Uncertain and historical attempts require reconciliation, never automatic replay.
  */
 @Service
 public class AutomationEvaluationService implements AutomationEngine {
@@ -88,6 +70,9 @@ public class AutomationEvaluationService implements AutomationEngine {
         Map.entry(AutomationAction.SUGGEST_CALENDAR_BLOCK, "rev")
     );
 
+    private final com.clenzy.service.automation.BaitlyAutomationContext recoveryContext;
+    private final com.clenzy.service.automation.BaitlyAutomationJournal journal;
+    private final org.springframework.transaction.support.TransactionTemplate actionTransaction;
     private final AutomationRuleRepository ruleRepository;
     private final AutomationExecutionRepository executionRepository;
     private final AutomationConditionEvaluator conditionEvaluator;
@@ -110,7 +95,14 @@ public class AutomationEvaluationService implements AutomationEngine {
                                         MeterRegistry meterRegistry,
                                         SupervisionActivityService supervisionActivityService,
                                         Clock clock,
-                                        com.clenzy.repository.GuestMessageLogRepository guestMessageLogRepository) {
+                                        com.clenzy.repository.GuestMessageLogRepository guestMessageLogRepository,
+                                        com.clenzy.service.automation.BaitlyAutomationContext recoveryContext,
+                                        com.clenzy.service.automation.BaitlyAutomationJournal journal,
+                                        org.springframework.transaction.PlatformTransactionManager manager) {
+        this.recoveryContext=recoveryContext; this.journal=journal;
+        this.actionTransaction=new org.springframework.transaction.support.TransactionTemplate(manager);
+        this.actionTransaction.setPropagationBehavior(org.springframework.transaction.TransactionDefinition.PROPAGATION_REQUIRES_NEW);
+        this.actionTransaction.setTimeout(60);
         this.ruleRepository = ruleRepository;
         this.executionRepository = executionRepository;
         this.conditionEvaluator = conditionEvaluator;
@@ -129,7 +121,7 @@ public class AutomationEvaluationService implements AutomationEngine {
     /**
      * {@inheritDoc}
      *
-     * <p>Execution immediate ({@code triggerOffsetDays}/{@code triggerTime} ne s'appliquent
+     * <p>Admission durable ({@code triggerOffsetDays}/{@code triggerTime} ne s'appliquent
      * qu'aux declencheurs temporels du cycle de vie reservation). Pour un sujet
      * {@code TYPE_RESERVATION}, la reservation est resolue ici (ownership org verifie —
      * {@code findById} contourne le filtre Hibernate) et fournie aux executeurs via le
@@ -155,9 +147,10 @@ public class AutomationEvaluationService implements AutomationEngine {
             AutomationActionContext context = new AutomationActionContext(
                 orgId, subject.subjectType(), subject.subjectId(), subject.data(), reservation);
 
-            for (AutomationRule rule : rules) {
-                // Declencheur recurrent (releve mensuel, relance facture...) : pas de dedup
-                // moteur — l'executeur porte sa cle metier (cf. AutomationTrigger).
+            for (AutomationRule candidate : rules.stream().sorted(java.util.Comparator.comparing(AutomationRule::getId)).toList()) {
+                AutomationRule rule=ruleRepository.lockForAdmission(candidate.getId(),orgId).orElse(null);
+                if(rule==null || !rule.isEnabled() || rule.getTriggerType()!=trigger) continue;
+                // One-shot subjects and recurring occurrences use distinct durable deduplication keys.
                 if (trigger.isDedupePerSubject()
                         && executionRepository.existsByAutomationRuleIdAndSubjectTypeAndSubjectId(
                             rule.getId(), subject.subjectType(), subject.subjectId())) {
@@ -173,71 +166,25 @@ public class AutomationEvaluationService implements AutomationEngine {
                 }
                 AutomationExecution execution = newExecution(rule, orgId,
                     subject.subjectType(), subject.subjectId(), reservation, now());
-                executeAction(execution, rule, context);
+                enqueue(execution, rule, context.data());
             }
         });
     }
 
-    /**
-     * Rejoue une exécution en échec, et <b>elle seule</b>.
-     *
-     * <p>{@link #fireTrigger} réévalue toutes les règles actives du
-     * déclencheur : l'appeler pour réparer un échec renverrait les messages des
-     * règles voisines, qui, elles, avaient abouti. Ce chemin reprend donc la
-     * ligne d'exécution existante et ne réexécute que son action.</p>
-     *
-     * <p>La déduplication par sujet est volontairement contournée : elle sert à
-     * empêcher une seconde exécution, or c'est exactement ce qu'on demande ici.
-     * Le garde-fou n'est pas technique mais humain — l'écran annonce que
-     * l'action va repartir, et c'est une personne qui décide.</p>
-     *
-     * @throws IllegalArgumentException si l'exécution est introuvable ou d'une
-     *                                  autre organisation
-     * @throws IllegalStateException    si elle n'est pas en échec
-     */
-    @Transactional
+    /** An attempted or historical failure cannot prove absence of effects. Never re-arm it. */
+    @Transactional(readOnly = true)
     public void replayExecution(Long executionId, Long orgId) {
-        final AutomationExecution execution = executionRepository.findById(executionId)
-            .filter(e -> orgId.equals(e.getOrganizationId()))
-            .orElseThrow(() -> new IllegalArgumentException("Execution introuvable : " + executionId));
-
-        if (execution.getStatus() != AutomationExecutionStatus.FAILED) {
-            // Rejouer une execution reussie doublerait son effet sans qu'aucune
-            // panne ne le justifie.
-            throw new IllegalStateException(
-                "Seule une execution en echec se rejoue (statut : " + execution.getStatus() + ")");
-        }
-
-        final AutomationRule rule = execution.getAutomationRule();
-        withTenantScope(orgId, () -> {
-            final AutomationSubject subject = new AutomationSubject(
-                execution.getSubjectType(), execution.getSubjectId(), Map.of());
-            final Reservation reservation = resolveReservationSubject(subject, orgId);
-            if (AutomationSubject.TYPE_RESERVATION.equals(execution.getSubjectType())
-                    && reservation == null) {
-                throw new IllegalStateException(
-                    "La reservation " + execution.getSubjectId() + " n'existe plus : rien a rejouer");
-            }
-            final AutomationActionContext context = new AutomationActionContext(
-                orgId, execution.getSubjectType(), execution.getSubjectId(),
-                subject.data(), reservation);
-
-            execution.setErrorMessage(null);
-            executeAction(execution, rule, context);
-            log.info("Automation {} rejouee manuellement pour sujet {}/{} — statut {}",
-                rule.getName(), execution.getSubjectType(), execution.getSubjectId(),
-                execution.getStatus());
-        });
+        executionRepository.findById(executionId).filter(e -> orgId.equals(e.getOrganizationId()))
+            .orElseThrow(() -> new IllegalArgumentException("Execution introuvable"));
+        throw new IllegalStateException("AUTOMATION_RECONCILIATION_REQUIRED");
     }
-
-    // ── Chemin temporel (cycle de vie reservation) ──────────────────────────────
 
     /**
      * Amorce les automatisations du cycle de vie d'une reservation a sa creation.
      *
      * <p>F1b : le declencheur RESERVATION_CONFIRMED est evenementiel — il s'execute ici,
-     * de facon synchrone apres le commit de creation, via
-     * {@link BaitlyReservationAutomationStarter}, pas au prochain tick du scheduler.
+     * par mise en file dans la transaction de creation, via
+     * {@link BaitlyReservationAutomationStarter}, puis traitée par le drain rapide du scheduler.
      * Les declencheurs temporels sont
      * planifies (PENDING) pour leur date cible et draines par
      * {@link #processScheduledExecutions()}. Les reservations creees hors de ce chemin
@@ -259,7 +206,10 @@ public class AutomationEvaluationService implements AutomationEngine {
         List<AutomationRule> rules = ruleRepository
             .findByOrganizationIdAndTriggerTypeAndEnabledTrue(orgId, trigger);
 
-        for (AutomationRule rule : rules) {
+        if(!orgId.equals(reservation.getOrganizationId())) throw new AccessDeniedException("AUTOMATION_SCOPE_REVIEW");
+        for (AutomationRule candidate : rules.stream().sorted(java.util.Comparator.comparing(AutomationRule::getId)).toList()) {
+            AutomationRule rule=ruleRepository.lockForAdmission(candidate.getId(),orgId).orElse(null);
+            if(rule==null || !rule.isEnabled() || rule.getTriggerType()!=trigger) continue;
             if (executionRepository.existsByAutomationRuleIdAndSubjectTypeAndSubjectId(
                     rule.getId(), AutomationSubject.TYPE_RESERVATION, reservation.getId())) {
                 log.debug("Rule {} deja executee pour reservation {}", rule.getId(), reservation.getId());
@@ -277,45 +227,112 @@ public class AutomationEvaluationService implements AutomationEngine {
 
             // <= : une echeance egale a maintenant (RESERVATION_CONFIRMED) s'execute tout de
             // suite au lieu d'attendre le prochain tick horaire du drain.
-            if (!scheduledAt.isAfter(now())) {
-                executeAction(execution, rule,
-                    AutomationActionContext.forReservation(orgId, reservation));
-            } else {
-                execution.setStatus(AutomationExecutionStatus.PENDING);
-                executionRepository.save(execution);
-                log.info("Automation {} planifiee pour {} (reservation {})",
-                    rule.getName(), scheduledAt, reservation.getId());
+            enqueue(execution, rule, Map.of());
+        }
+    }
+
+    /** Only committed, never-attempted work can be drained after a restart. */
+    @Transactional(propagation = org.springframework.transaction.annotation.Propagation.NOT_SUPPORTED)
+    public void processScheduledExecutions() {
+        for(var work : journal.due(now())) {
+            try {
+                withTenantScope(work.org(), () -> {
+                    var ticket=journal.claim(work,now());
+                    if(ticket.isEmpty()) return;
+                    AutomationActionExecutor.ExecutionResult result=null;
+                    boolean allowDeferral=false;
+                    AutomationAction action=null;
+                    try {
+                        var prepared=actionTransaction.execute(status -> prepare(work));
+                        if(prepared!=null) {
+                            // No engine transaction may surround a provider or an executor.
+                            result=prepared.terminal()!=null?prepared.terminal():prepared.executor().execute(prepared.rule(),prepared.context());
+                            allowDeferral=prepared.executor()!=null && prepared.executor().permitsPreEffectDeferral();
+                            action=prepared.rule().getActionType();
+                            if(result!=null && !result.skipped() && result.rescheduledAt()==null) {
+                                try { recordConstellationActivity(prepared.rule(),prepared.context(),result.refId()); }
+                                catch(RuntimeException ignored) { log.warn("Baitly automation: activite secondaire non confirmee"); }
+                            }
+                        }
+                    } catch(RuntimeException failure) {
+                        log.warn("Baitly automation: resultat incertain, execution={}, aucun rejeu automatique",work.execution());
+                    }
+                    boolean committed=journal.finish(ticket.orElseThrow(),result,now(),allowDeferral);
+                    if(committed && result!=null && !result.skipped() && result.rescheduledAt()==null)
+                        meterRegistry.counter(EXECUTED_METRIC,"action",action.name()).increment();
+                });
+            } catch(RuntimeException failure) {
+                log.warn("Baitly automation: reprise interrompue, execution={}, tentative protegee",work.execution());
             }
         }
     }
-
-    /**
-     * Draine les executions PENDING dont l'echeance est passee (appele par le scheduler,
-     * hors contexte HTTP). Chaque execution tourne sous le contexte tenant de SON org
-     * (Z2-EFFETS : TenantScopedExecutor, jamais de contexte nu hors HTTP). Le contexte
-     * d'action est reconstruit depuis le sujet persiste — {@code data} volatile perdu,
-     * par contrat du SPI.
-     */
-    @Transactional
-    public void processScheduledExecutions() {
-        List<AutomationExecution> pending = executionRepository
-            .findByStatusAndScheduledAtBefore(AutomationExecutionStatus.PENDING, now());
-
-        for (AutomationExecution execution : pending) {
-            tenantScopedExecutor.runAsOrganization(execution.getOrganizationId(), () -> {
-                AutomationActionContext context = new AutomationActionContext(
-                    execution.getOrganizationId(), execution.getSubjectType(),
-                    execution.getSubjectId(), Map.of(), execution.getReservation());
-                executeAction(execution, execution.getAutomationRule(), context);
-            });
-        }
-
-        if (!pending.isEmpty()) {
-            log.info("Traitement de {} executions d'automatisation planifiees", pending.size());
-        }
+    private Prepared prepare(com.clenzy.service.automation.BaitlyAutomationJournal.Work work) {
+        AutomationExecution execution=executionRepository.findById(work.execution()).orElseThrow();
+        AutomationRule rule=execution.getAutomationRule();
+        if(!Long.valueOf(work.org()).equals(execution.getOrganizationId())
+                || !Long.valueOf(work.org()).equals(rule.getOrganizationId()) || !rule.isEnabled()
+                || !sameRevision(rule.getUpdatedAt(),execution.getRuleRevision()))
+            throw new IllegalStateException("AUTOMATION_SCOPE_REVIEW");
+        var data=recoveryContext.decode(work.org(),execution.getSubjectType(),execution.getSubjectId(),execution.getDurableContext());
+        var subject=new AutomationSubject(execution.getSubjectType(),execution.getSubjectId(),data);
+        Reservation stay=resolveReservationSubject(subject,work.org());
+        validateStayRelations(stay,work.org());
+        if(AutomationSubject.TYPE_RESERVATION.equals(subject.subjectType()) && stay==null)
+            return new Prepared(rule,null,null,AutomationActionExecutor.ExecutionResult.skipped("SUBJECT_UNAVAILABLE"));
+        if(stay!=null && "cancelled".equalsIgnoreCase(stay.getStatus())
+                && rule.getTriggerType()!=AutomationTrigger.RESERVATION_CANCELLED)
+            return new Prepared(rule,null,null,AutomationActionExecutor.ExecutionResult.skipped("SUBJECT_CANCELLED"));
+        if(stay!=null && (!String.valueOf(stay.getProperty()==null?null:stay.getProperty().getId()).equals(data.get("_baitlyProperty"))
+            || !String.valueOf(stay.getGuest()==null?null:stay.getGuest().getId()).equals(data.get("_baitlyGuest"))
+            || !guestVersion(stay).equals(data.get("_baitlyGuestVersion"))))
+            throw new IllegalStateException("AUTOMATION_SCOPE_REVIEW");
+        var context=new AutomationActionContext(work.org(),subject.subjectType(),subject.subjectId(),data,stay);
+        boolean match=stay!=null?conditionEvaluator.matches(rule.getConditions(),stay)
+            :conditionEvaluator.matchesSubjectData(rule.getConditions(),data);
+        if(!match) return new Prepared(rule,context,null,AutomationActionExecutor.ExecutionResult.skipped("CONDITION_CHANGED"));
+        var executor=actionRegistry.executorFor(rule.getActionType());
+        return new Prepared(rule,context,executor,null);
     }
-
-    // ── Pipeline d'execution commun ─────────────────────────────────────────────
+    private record Prepared(AutomationRule rule, AutomationActionContext context, AutomationActionExecutor executor,
+                            AutomationActionExecutor.ExecutionResult terminal) {}
+    private static boolean sameRevision(LocalDateTime left,LocalDateTime right) {
+        return left==null?right==null:right!=null && left.truncatedTo(java.time.temporal.ChronoUnit.MICROS)
+            .equals(right.truncatedTo(java.time.temporal.ChronoUnit.MICROS));
+    }
+    private static String guestVersion(Reservation stay) {
+        LocalDateTime version=stay.getGuest()==null?null:stay.getGuest().getUpdatedAt();
+        // Match the rounding of PostgreSQL TIMESTAMP(6) for a guest saved by the producer.
+        return version==null?"null":version.plusNanos(500).truncatedTo(java.time.temporal.ChronoUnit.MICROS).toString();
+    }
+    private static void validateStayRelations(Reservation stay, Long org) {
+        if(stay==null) return;
+        if((stay.getProperty()!=null && !org.equals(stay.getProperty().getOrganizationId()))
+            || (stay.getGuest()!=null && !org.equals(stay.getGuest().getOrganizationId())))
+            throw new AccessDeniedException("AUTOMATION_SCOPE_REVIEW");
+    }
+    private void enqueue(AutomationExecution execution, AutomationRule rule, Map<String,Object> input) {
+        var captured=new java.util.HashMap<String,Object>(input);
+        Reservation stay=execution.getReservation();
+        validateStayRelations(stay,execution.getOrganizationId());
+        if(stay!=null) {
+            captured.put("_baitlyProperty",String.valueOf(stay.getProperty()==null?null:stay.getProperty().getId()));
+            captured.put("_baitlyGuest",String.valueOf(stay.getGuest()==null?null:stay.getGuest().getId()));
+            captured.put("_baitlyGuestVersion",guestVersion(stay));
+        }
+        var data=recoveryContext.freeze(rule,captured);
+        String key=recoveryContext.key(rule,execution.getSubjectType(),execution.getSubjectId(),data);
+        if(executionRepository.existsByAutomationRuleIdAndOrganizationIdAndSubjectTypeAndSubjectIdAndStatusAndDurableStateIsNull(
+                rule.getId(),execution.getOrganizationId(),execution.getSubjectType(),execution.getSubjectId(),AutomationExecutionStatus.FAILED)
+            || executionRepository.existsByDurableKey(key)
+            || executionRepository.existsByAutomationRuleIdAndOrganizationIdAndSubjectTypeAndSubjectIdAndDurableStateIn(
+                rule.getId(),execution.getOrganizationId(),execution.getSubjectType(),execution.getSubjectId(),List.of("STARTED","UNKNOWN"))) return;
+        execution.setDurableKey(key);execution.setDurableState("PENDING");
+        execution.setRuleRevision(rule.getUpdatedAt());
+        execution.setDurableExpiresAt(rule.getTriggerType()==AutomationTrigger.NOISE_ALERT
+            ? execution.getScheduledAt().plusMinutes(15):execution.getScheduledAt().plusDays(1));
+        execution.setDurableContext(recoveryContext.encode(execution.getOrganizationId(),execution.getSubjectType(),execution.getSubjectId(),data));
+        executionRepository.save(execution);
+    }
 
     private AutomationExecution newExecution(AutomationRule rule, Long orgId, String subjectType,
                                              Long subjectId, Reservation reservation,
@@ -328,47 +345,6 @@ public class AutomationEvaluationService implements AutomationEngine {
         execution.setReservation(reservation);
         execution.setScheduledAt(scheduledAt);
         return execution;
-    }
-
-    private void executeAction(AutomationExecution execution, AutomationRule rule,
-                                AutomationActionContext context) {
-        try {
-            AutomationActionExecutor.ExecutionResult result =
-                actionRegistry.executorFor(rule.getActionType()).execute(rule, context);
-            if (result.rescheduledAt() != null) {
-                // Guard temporel non atteint (ex. REVOKE_ACCESS_CODE avant check-out +
-                // grace) : statut NON-terminal — l'execution repart en PENDING a la
-                // nouvelle echeance et sera re-drainee. L'idempotence generique voit la
-                // ligne existante : pas de doublon cree par le sweep entre-temps.
-                execution.setStatus(AutomationExecutionStatus.PENDING);
-                execution.setScheduledAt(result.rescheduledAt());
-                execution.setErrorMessage(result.detail());
-                log.info("Automation {} re-planifiee au {} pour sujet {}/{} : {}",
-                    rule.getName(), result.rescheduledAt(),
-                    context.subjectType(), context.subjectId(), result.detail());
-            } else if (result.skipped()) {
-                execution.setStatus(AutomationExecutionStatus.SKIPPED);
-                execution.setErrorMessage(result.detail());
-                log.info("Automation {} sautee pour sujet {}/{} : {}",
-                    rule.getName(), context.subjectType(), context.subjectId(), result.detail());
-            } else {
-                execution.setStatus(AutomationExecutionStatus.EXECUTED);
-                execution.setExecutedAt(now());
-                meterRegistry.counter(EXECUTED_METRIC, "action", rule.getActionType().name()).increment();
-                recordConstellationActivity(rule, context, result.refId());
-                log.info("Automation {} ({}) executee pour sujet {}/{}",
-                    rule.getName(), rule.getActionType(), context.subjectType(), context.subjectId());
-            }
-        } catch (Exception e) {
-            // Pas un catch avaleur : l'echec devient un statut FAILED persiste (visible dans
-            // l'UI des executions de la regle, avec le message d'erreur) et n'empeche pas le
-            // traitement des executions suivantes.
-            execution.setStatus(AutomationExecutionStatus.FAILED);
-            execution.setErrorMessage(e.getMessage());
-            log.error("Erreur automation {} pour sujet {}/{}: {}",
-                rule.getName(), context.subjectType(), context.subjectId(), e.getMessage(), e);
-        }
-        executionRepository.save(execution);
     }
 
     /**
@@ -403,15 +379,13 @@ public class AutomationEvaluationService implements AutomationEngine {
         // dans le feed (toolName suffixé _FAILED + motif) — avant, il apparaissait
         // comme un envoi abouti banal, invisible en tant qu'échec.
         String toolName = rule.getActionType().name();
-        String summary = rule.getName();
+        String summary = "Automatisation Baitly : " + rule.getActionType().name();
         if (messageLogId != null) {
             try {
                 var sentLog = guestMessageLogRepository.findById(messageLogId).orElse(null);
                 if (sentLog != null && sentLog.getStatus() == com.clenzy.model.MessageStatus.FAILED) {
                     toolName = toolName + "_FAILED";
-                    String detail = sentLog.getErrorMessage() != null && !sentLog.getErrorMessage().isBlank()
-                        ? sentLog.getErrorMessage() : "erreur d'envoi";
-                    summary = rule.getName() + " — échec : " + detail;
+                    summary = "AUTOMATION_DELIVERY_UNCONFIRMED";
                 }
             } catch (Exception ignore) {
                 // best-effort : le feed reste renseigné avec le libellé nominal
@@ -434,7 +408,7 @@ public class AutomationEvaluationService implements AutomationEngine {
         if (reservation == null || reservation.isMigrationAutomationPaused()) {
             return null;
         }
-        if (reservation.getOrganizationId() != null && !reservation.getOrganizationId().equals(orgId)) {
+        if (!orgId.equals(reservation.getOrganizationId())) {
             throw new AccessDeniedException("Reservation " + subject.subjectId()
                 + " hors de l'organisation " + orgId);
         }

@@ -56,8 +56,8 @@ public class ManagedRefundReconciliation {
             if (!PaymentPersistence.managedRefund(tx)) continue;
             try { reconcile(tx, tx.getProviderTxId()); }
             catch (Exception failure) {
-                persistence.markRefundFailed(tx.getTransactionRef(), failure.getMessage());
-                log.warn("Remboursement {} à rapprocher : {}", tx.getTransactionRef(), failure.getMessage());
+                persistence.markRefundFailed(tx.getTransactionRef(), BaitlyRefundDiagnostics.RECONCILIATION_REQUIRED);
+                log.warn("Remboursement {} à rapprocher : {}", tx.getTransactionRef(), BaitlyRefundDiagnostics.RECONCILIATION_REQUIRED);
             }
         }
     }
@@ -77,7 +77,7 @@ public class ManagedRefundReconciliation {
         if (tx.getStatus() == TransactionStatus.COMPLETED || tx.getStatus() == TransactionStatus.FAILED
                 || tx.getStatus() == TransactionStatus.CANCELLED) return tx;
         try { return reconcile(tx, tx.getProviderTxId()); }
-        catch (Exception failure) { return persistence.markRefundFailed(ref, failure.getMessage()); }
+        catch (Exception failure) { return persistence.markRefundFailed(ref, BaitlyRefundDiagnostics.RECONCILIATION_REQUIRED); }
     }
 
     PaymentTransaction reconcile(PaymentTransaction tx, String providerRefundId) throws com.stripe.exception.StripeException {
