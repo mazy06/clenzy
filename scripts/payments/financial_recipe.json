@@ -1,5 +1,6 @@
 {
   "backend": [
+    "BaitlyAutomationMetricsTest",
     "BaitlyAutomationRecoveryTest",
     "GuestMessageExecutorsTest",
     "SendOwnerStatementExecutorTest",

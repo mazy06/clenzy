@@ -38,8 +38,22 @@ Le moteur prépare le contexte en transaction courte puis appelle l'exécuteur h
 
 Les autres producteurs événementiels conservent leurs propres contrats de réception/reprise. Ce lot ne transforme pas chaque callback de chaque intégration en outbox universelle. La reprise Minut existante confirme la délégation au moteur ; elle ne doit pas inventer le succès de ses actions.
 
-## Validation
+## Métriques et alertes privées
+
+Le collecteur `BaitlyAutomationMetrics` publie neuf jauges plateforme sans label métier : `baitly_automation_ready`, `oldest_ready_seconds`, `uncertain`, `oldest_uncertain_seconds`, `expired`, `review`, `legacy_review`, `snapshot_healthy` et `snapshot_last_success_timestamp_seconds` (toutes préfixées `baitly_automation_`). Il ne sélectionne que les états, statuts et horodatages ; aucun nom de règle, organisation, sujet, destinataire, contexte chiffré ou diagnostic. Les échantillons ne quittent pas le réseau privé de monitoring existant.
+
+Une lecture SQL agrégée toutes les minutes, avec délai maximal de cinq secondes, prépare le snapshot ; un scrape n’interroge jamais la base. Les actions futures ne sont pas prêtes. Les actions expirées jamais tentées sont distinguées des tentatives `STARTED`/`UNKNOWN`, qui restent incertaines quel que soit leur âge. `legacy_review` inclut les échecs historiques sans état durable, y compris les anciennes lignes mises en quarantaine par 0603. Une ligne active incohérente invalide la collecte. Aucun changement d’état, réparation ou renvoi ne résulte de cette observation.
+
+L’âge est calculé avec la convention `TIMESTAMP` du journal (heure locale du serveur), indépendamment du fuseau SQL. Échec ou table absente : conservation des derniers chiffres et de leur date, santé à zéro ; aucun faux zéro fraîchement publié. L’actualisation est propre à chaque réplique. Les compteurs lisent la même base : maximum entre répliques, jamais somme. La lecture agrégée doit être mesurée sur le volume réel lors de la campagne finale ; le délai maximal protège le collecteur, sans constituer une preuve de performance.
+
+La candidate infra ajoute quatre alertes : collecte absente/invalide/périmée (trois minutes), action prête âgée de plus de deux minutes (trois minutes supplémentaires), tentative incertaine de plus de cinq minutes (cinq minutes supplémentaires), stock expiré/en revue/historique continuellement non vide (quinze minutes). Les alertes métier exigent neuf valeurs finies, non négatives et fraîches sur la réplique concernée, santé égale à un, horloge raisonnable et backend disponible. Ce sont des seuils initiaux à calibrer, pas une garantie de délai métier. Le précontrôle refuse l’activation si une seule réplique est incomplète. Les messages sont fixes et ne réarment aucune action.
+
+La candidate applicative cumulative incluant 0603 doit précéder la candidate infra cumulative incluant #138 ; les branches précédentes ne doivent pas être livrées séparément. La conservation, la réconciliation sur preuve et les transactions internes legacy restent des sujets distincts.
+
+## Validation locale et campagne finale
 
 `BaitlyAutomationRecoveryTest` applique le changeset réel, vérifie sa réexécution, les courses SQL, rollback, redémarrage, résultat perdu, jetons périmés, scopes, reports et données sensibles synthétiques. La recette obligatoire `ci-payout-recipe.yml` le lance sur PostgreSQL éphémère. Tests voyageurs, échéances/fuseaux, réservations et verrouillage scheduler complètent cette suite.
 
 Les tests réels de coupure/redémarrage du staging, les fournisseurs et les notifications sont réservés à la campagne finale. Cette documentation ne constitue pas une validation staging et ne clôture pas FR10/FR11. FR09 reste en attente du coffre-fort et du stockage hors site approuvés.
+
+`BaitlyAutomationMetricsTest`, inclus dans la recette PostgreSQL CI, vérifie les partitions SQL, le changeset réel, les frontières d’échéance, l’absence d’écriture/rejeu et de donnée privée, les fuseaux, la conservation des derniers chiffres en panne et les neuf noms Prometheus réels. Les scénarios promtool et précontrôles infra simulent défaut, rétablissement et répliques partielles sans notification. À qualifier seulement lors de la campagne staging finale : métriques de chaque réplique, coût SQL sur volume pilote, déclenchement/rétablissement de ces quatre alertes avec destinataires de recette autorisés et contrôle des données émises.
