@@ -34,7 +34,7 @@ Migration Liquibase **0603**, tables vérifiées contre les entités et 0305. Le
 
 Lors de la campagne finale, arrêter l'admission des anciens producteurs et terminer leur retrait avant de rendre la nouvelle candidate active, exclusivement via la procédure CI/CD approuvée. Ne pas faire cohabiter un ancien moteur qui ignore les protections avec le nouveau. Les colonnes doivent être présentes sur toutes les répliques avant activation du drain.
 
-Le moteur prépare le contexte en transaction courte puis appelle l'exécuteur hors transaction. La session tenant reste ouverte pour les relations différées. Le claim de relevé propriétaire est validé par sa transaction repository avant l'envoi, sans verrou SQL pendant SMTP. Les frontières de messagerie et de relevé sont décrites ci-dessous ; les services de serrures legacy restent à traiter séparément. Un échec après effet reste incertain sans renvoi.
+Le moteur prépare le contexte en transaction courte puis appelle l'exécuteur hors transaction. La session tenant reste ouverte pour les relations différées. Le claim de relevé propriétaire est validé par sa transaction repository avant l'envoi, sans verrou SQL pendant SMTP. Les frontières de messagerie, de relevé, de serrure et de rapport sont décrites ci-dessous. Un échec après effet reste incertain sans renvoi.
 
 ### Transactions internes : messages et relevés
 
@@ -44,7 +44,7 @@ Le journal voyageur ouvre son intention `PENDING` dans une transaction indépend
 
 `OwnerStatementService` suspend également la transaction appelante. Le rendu HTML, les calculs et les conseils sont préparés en transaction courte en lecture seule ; seuls sujet, HTML et résultat immuables en sortent. SMTP s'exécute après libération de cette transaction. Une erreur est remontée avec un code fixe sans cause privée ; le claim propriétaire et la tentative du moteur restent protégés, sans renvoi. Le feed secondaire reste best-effort après le retour SMTP.
 
-Ces changements n'introduisent ni nouveau rejeu ni nouvelle réconciliation. Ils ne convertissent pas les échecs historiques, n'infèrent pas une livraison depuis une notification et ne modifient pas le contrat des services d'accès. Restent explicitement à extraire : création/révocation des serrures (dont le résultat best-effort historique), génération/envoi des rapports et autres adaptateurs internes non audités. Le retrait des transactions englobantes de messagerie/relevé ne vaut pas validation de ces chemins. Les tests locaux et PostgreSQL CI utilisent des fournisseurs synthétiques ; coupures, interruptions réelles et réception restent réservées à la campagne staging finale.
+Ces changements n'introduisent ni nouveau rejeu ni nouvelle réconciliation. Ils ne convertissent pas les échecs historiques et n'infèrent pas une livraison depuis une notification. L'extraction des serrures et rapports est décrite ci-dessous ; les autres adaptateurs non audités restent distincts. Les tests locaux et PostgreSQL CI utilisent des fournisseurs synthétiques ; coupures, interruptions réelles et réception restent réservées à la campagne staging finale.
 
 Les autres producteurs événementiels conservent leurs propres contrats de réception/reprise. Ce lot ne transforme pas chaque callback de chaque intégration en outbox universelle. La reprise Minut existante confirme la délégation au moteur ; elle ne doit pas inventer le succès de ses actions.
 
@@ -73,6 +73,34 @@ Le reçu contient uniquement les références internes de périmètre (organisat
 Un reçu identique reste idempotent et garde son observation d'origine. Un résultat ou une référence contradictoire marque le reçu comme contesté sans écraser le résultat initial ; aucune application ni remise en attente n'est alors permise. Un report pré-effet n'est pas un reçu terminal. Une tentative portant déjà un reçu ne peut plus être reportée ou réarmée. Les tentatives anciennes, étrangères, futures incohérentes ou déjà terminées ne sont pas appliquées. Une modification ultérieure de la règle courante n'annule pas la preuve historique de la règle/version exécutée.
 
 Si un snapshot périmé remet l'exécution en `PENDING` malgré son reçu, le claim refuse tout appel et rétablit `UNKNOWN`, pas une simple revue pré-effet. Cela conserve aussi le blocage des admissions récurrentes sur le sujet. Un reçu valide peut ensuite terminer le statut sans effet ; un reçu contesté laisse ce blocage intact.
+
+## Transactions et garde durable : serrures et rapports
+
+La migration **0605** ajoute deux tables JDBC privées : `baitly_external_effect_guards` et `baitly_external_effect_attempts`. Le périmètre est l'organisation, le type et l'identifiant interne de serrure ou de document. Le verrou de garde est libéré avant fournisseur. L'unicité opération/occurrence et le UUID de tentative protègent le résultat. Aucun PIN, identifiant fournisseur, adresse, contenu, PDF ni exception brute dans ces tables. Aucun historique n'est backfillé.
+
+`STARTED` est commité avant fournisseur et reste bloqué après interruption ; `UNKNOWN` conserve explicitement une issue ambiguë. Ni âge ni nouvelle opération ne libère le même périmètre. `DONE` et les écritures métier sont commités atomiquement après résultat contractuel positif. Une erreur de commit conserve le blocage ; un résultat déjà commité n'est pas rétrogradé. Ce journal n'a ni worker de renvoi ni endpoint de réarmement. Son compteur de destinataires acceptés ne prouve jamais qu'un destinataire non compté n'a rien reçu.
+
+### Serrures
+
+Création, rotation et révocation suspendent les transactions appelantes. Préparation et écritures sont courtes ; `SmartLockCodeProvisioner` refuse aussi explicitement toute transaction active. Révocation Tuya : retour booléen positif exigé ; Web API : résultat positif exigé. Absence, réponse négative ou exception ne devient plus une révocation locale réussie. Le code conserve son dernier état connu et le périmètre reste bloqué pour examen.
+
+Une création est liée au séjour, à sa fenêtre et au dernier cycle local de révocation. Répéter la même création confirmée retourne la référence native sans fournisseur ni nouvelle diffusion. Un changement de fenêtre ou un cycle de révocation terminé permet une nouvelle opération seulement si aucune tentative incertaine n'existe sur la serrure. Les états historiques best-effort ne deviennent pas une preuve distante : ils doivent être inventoriés lors de la bascule.
+
+La garde d'une rotation manuelle couvre toute la séquence : retrait des anciens codes puis création. Chaque retrait positif est enregistré séparément ; une création ensuite ambiguë bloque la séquence entière. Aucun effet partiel n'est rejoué automatiquement. L'organisation du device et du code est revalidée ; un séjour manuel fourni doit appartenir à la même organisation et au même logement.
+
+### Rapports
+
+La génération prépare les snapshots en transaction de lecture bornée puis appelle éventuellement le LLM hors transaction. Chaque brouillon est persisté dans une transaction courte. Seules les valeurs utiles quittent la préparation ; les relations JPA de périmètre ne sont pas conservées pour le rendu. PDF et HTML suspendent également la transaction appelante.
+
+L'envoi prépare une liste de destinataires figée puis réserve durablement le document. PDF et SMTP sont synchrones hors transaction, sans callback `afterCommit`. Chaque retour SMTP positif augmente un compteur privé d'acceptation. Au premier résultat ambigu ou échec de commit, la suite s'arrête et la tentative reste bloquée : aucun destinataire accepté ni restant n'est renvoyé automatiquement. Le document devient `SENT` seulement après tous les retours positifs et le commit final, lié au snapshot et au commentaire d'origine. Cela prouve une acceptation SMTP, pas une réception finale.
+
+Suppression et admission utilisent le même verrou. Tout historique, y compris incertain ou partiel, interdit la suppression ; chargement et contrôle d'organisation restent obligatoires. Une préparation périmée ne peut admettre un document déjà supprimé. Aucun diagnostic ajouté ne reprend les adresses, causes SMTP ou données du commentaire.
+
+### Limites et campagne finale
+
+La suspension d'une transaction appelante ne constitue pas son commit. Si le producteur historique échoue ensuite, les effets constatés et leur garde restent conservés : ne pas les déclarer annulés ni les effacer. L'admission durable depuis les producteurs natifs encore non audités, la réconciliation des états historiques et les preuves distantes manquantes restent distinctes. Le modèle interdit le rejeu ; il ne résout pas une ambiguïté sans preuve.
+
+La recette finale vérifiera les vrais adaptateurs Tuya/Web API, la bascule sans ancien producteur, les connexions/verrous pendant fournisseur lent, les interruptions avant/après effet et commit, les rotations partielles, les destinataires multiples, la lecture HTTP et l'isolation tenant. Contrôler aussi les journaux manuels incertains : les jauges du moteur couvrent ses exécutions, pas un inventaire universel des effets natifs. Aucun de ces tests réels n'a été lancé pendant la préparation.
 
 Le journal d'exécution est protégé contre une suppression en cascade qui détruirait sa preuve ; une suppression de règle rencontrant cette contrainte retourne `409 AUTOMATION_HISTORY_PROTECTED`, sans diagnostic SQL. Désactiver une règle reste possible. Les politiques d'archivage et de rétention doivent être définies séparément, sans purger une ambiguïté pour libérer une nouvelle action.
 

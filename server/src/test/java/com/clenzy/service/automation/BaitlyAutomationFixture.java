@@ -77,8 +77,8 @@ abstract class BaitlyAutomationFixture {
             try(var master=new liquibase.Liquibase("db/changelog/db.changelog-master.yaml",resources,database)) {
                 var selected=new liquibase.changelog.DatabaseChangeLog("db/changelog/db.changelog-master.yaml");
                 master.getDatabaseChangeLog().getChangeSets().stream().filter(set->Set.of("0603-baitly-automation-durable-recovery",
-                    "0604-baitly-automation-outcome-proofs").contains(set.getId())).forEach(selected::addChangeSet);
-                assertThat(selected.getChangeSets()).hasSize(2);
+                    "0604-baitly-automation-outcome-proofs", "0605-baitly-external-effect-fences").contains(set.getId())).forEach(selected::addChangeSet);
+                assertThat(selected.getChangeSets()).hasSize(3);
                 new liquibase.Liquibase(selected,resources,database).update("");
             }
         } catch(Exception failure) {throw new IllegalStateException("Migration de recette moteur échouée",failure);}

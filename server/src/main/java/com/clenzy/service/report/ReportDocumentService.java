@@ -15,14 +15,16 @@ import com.clenzy.service.report.narrative.ReportNarrativeService;
 import com.clenzy.service.report.render.ReportPdfService;
 import com.clenzy.service.report.snapshot.ReportScope;
 import com.clenzy.service.report.snapshot.ReportSnapshotBuilder;
-import com.clenzy.util.PiiMasker;
+import com.clenzy.service.automation.BaitlyExternalEffectJournal;
+import static com.clenzy.service.automation.BaitlyExternalEffectJournal.*;
+import org.springframework.transaction.PlatformTransactionManager;
+import org.springframework.transaction.annotation.Propagation;
+import org.springframework.transaction.support.TransactionTemplate;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.transaction.support.TransactionSynchronization;
-import org.springframework.transaction.support.TransactionSynchronizationManager;
 
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
@@ -54,6 +56,9 @@ public class ReportDocumentService {
     private final OrganizationAccessGuard accessGuard;
     private final EmailService emailService;
     private final ObjectMapper objectMapper;
+    private final BaitlyExternalEffectJournal effects;
+    private final TransactionTemplate read;
+    private final TransactionTemplate write;
 
     public ReportDocumentService(ReportSnapshotBuilder snapshotBuilder,
                                  ReportNarrativeService narrativeService,
@@ -64,7 +69,8 @@ public class ReportDocumentService {
                                  OrganizationRepository organizationRepository,
                                  OrganizationAccessGuard accessGuard,
                                  EmailService emailService,
-                                 ObjectMapper objectMapper) {
+                                 ObjectMapper objectMapper, BaitlyExternalEffectJournal effects,
+                                 PlatformTransactionManager manager) {
         this.snapshotBuilder = snapshotBuilder;
         this.narrativeService = narrativeService;
         this.pdfService = pdfService;
@@ -75,6 +81,9 @@ public class ReportDocumentService {
         this.accessGuard = accessGuard;
         this.emailService = emailService;
         this.objectMapper = objectMapper;
+        this.effects = effects;
+        read = new TransactionTemplate(manager); read.setReadOnly(true); read.setTimeout(30);
+        write = new TransactionTemplate(manager); write.setTimeout(10);
     }
 
     // ── Apercu ──────────────────────────────────────────────────────────────
@@ -98,33 +107,27 @@ public class ReportDocumentService {
 
     // ── Generation ──────────────────────────────────────────────────────────
 
-    /**
-     * Produit les documents d'une demande.
-     *
-     * <p>Le commentaire de l'agent est demande hors transaction d'ecriture n'est
-     * PAS possible ici sans compliquer le flux : l'appel reste dans la
-     * transaction, mais il ne leve jamais (voir {@link ReportNarrativeService}).
-     * Une panne de LLM produit un rapport sans commentaire, pas un echec.</p>
-     */
-    @Transactional
+    /** Snapshot preparation, optional LLM and document persistence have separate boundaries. */
+    @Transactional(propagation = Propagation.NOT_SUPPORTED)
     public List<ReportDocument> generate(ReportRequest request, Long orgId, String keycloakId) {
-        final List<ReportScope> scopes = resolveScopes(request, orgId);
-        if (scopes.isEmpty()) {
-            throw new IllegalArgumentException("Aucun bien dans le perimetre demande");
-        }
-
-        final String issuer = issuerName(orgId);
-        final String logo = issuerLogo(orgId);
-        final List<ReportDocument> produced = new ArrayList<>(scopes.size());
-        for (ReportScope scope : scopes) {
-            final ReportSnapshot snapshot = snapshotBuilder.build(request, scope, orgId, issuer, logo);
-            final ReportNarrative narrative = request.withNarrative()
-                    ? narrativeService.narrate(snapshot, orgId)
-                    : ReportNarrative.empty();
-            produced.add(persist(request, scope, snapshot, narrative, orgId, keycloakId));
+        List<GenerationPlan> plans = read.execute(status -> {
+            List<ReportScope> scopes = resolveScopes(request, orgId);
+            if (scopes.isEmpty()) throw new IllegalArgumentException("Aucun bien dans le perimetre demande");
+            String issuer = issuerName(orgId); String logo = issuerLogo(orgId);
+            return scopes.stream().map(scope -> new GenerationPlan(
+                new ReportScope(scope.ownerId(), scope.ownerKeycloakId(), scope.recipientName(), scope.recipientEmail(), List.of()),
+                snapshotBuilder.build(request, scope, orgId, issuer, logo))).toList();
+        });
+        List<ReportDocument> produced = new ArrayList<>(plans.size());
+        for (GenerationPlan plan : plans) {
+            ReportNarrative narrative = request.withNarrative()
+                ? narrativeService.narrate(plan.snapshot(), orgId) : ReportNarrative.empty();
+            produced.add(write.execute(status -> persist(request, plan.scope(), plan.snapshot(), narrative, orgId, keycloakId)));
         }
         return produced;
     }
+
+    private record GenerationPlan(ReportScope scope, ReportSnapshot snapshot) {}
 
     private ReportDocument persist(ReportRequest request, ReportScope scope, ReportSnapshot snapshot,
                                    ReportNarrative narrative, Long orgId, String keycloakId) {
@@ -293,14 +296,16 @@ public class ReportDocumentService {
      * n°2) — et un document de seize pages retiendrait la connexion pendant
      * tout son assemblage. Le chargement, lui, a sa propre transaction.</p>
      */
+    @Transactional(propagation = Propagation.NOT_SUPPORTED)
     public byte[] pdf(Long id, Long orgId) {
-        final ReportDocument document = load(id, orgId);
+        final ReportDocument document = read.execute(status -> load(id, orgId));
         return pdfService.toPdf(readSnapshot(document), readNarrative(document),
                 document.getStatus() == ReportDocumentStatus.DRAFT);
     }
 
+    @Transactional(propagation = Propagation.NOT_SUPPORTED)
     public String html(Long id, Long orgId) {
-        final ReportDocument document = load(id, orgId);
+        final ReportDocument document = read.execute(status -> load(id, orgId));
         return pdfService.toHtml(readSnapshot(document), readNarrative(document),
                 document.getStatus() == ReportDocumentStatus.DRAFT);
     }
@@ -313,81 +318,66 @@ public class ReportDocumentService {
      * l'envoi. Ce qu'on supprime, ce sont les brouillons et les relus — les
      * essais, pas les preuves.</p>
      */
-    @Transactional
+    @Transactional(propagation = Propagation.NOT_SUPPORTED)
     public void delete(Long id, Long orgId) {
-        final ReportDocument document = load(id, orgId);
-        if (document.getSentAt() != null) {
-            throw new IllegalStateException(
-                    "Un rapport transmis à son destinataire ne se supprime pas : il fait foi de l'envoi");
-        }
-        repository.delete(document);
+        effects.deleteIfUnused(new Scope(orgId, Kind.REPORT, id, Operation.SEND, "once"), () -> {
+            ReportDocument document = load(id, orgId);
+            if (document.getSentAt() != null) throw new IllegalStateException("Un rapport transmis ne se supprime pas");
+            repository.delete(document);
+        });
     }
 
-    /**
-     * Transmet le rapport a son destinataire.
-     *
-     * <p>L'ENVOI VAUT RELECTURE. Il y avait auparavant une etape « marquer
-     * relu » distincte, que l'envoi exigeait : deux clics pour un seul acte,
-     * puisque personne n'envoie un document a un proprietaire sans l'avoir
-     * regarde. La garantie qui comptait — qu'un commentaire redige
-     * automatiquement n'atteigne personne sans decision humaine — tient au geste
-     * d'envoi lui-meme, qui est explicite et trace : on enregistre ici qui a
-     * envoye, et donc qui a valide.</p>
-     *
-     * <p>Un document deja transmis est fige : toute reprise cree une version,
-     * jamais une modification en place — sans quoi l'emetteur et le destinataire
-     * discutent de deux documents portant le meme numero.</p>
-     *
-     * <p>L'envoi est repousse APRES le commit — jamais d'appel externe dans une
-     * transaction.</p>
-     */
-    @Transactional
+    /** Intention commits before PDF/SMTP; SENT means every SMTP call returned successfully.
+     * Partial or ambiguous outcomes stay fenced permanently, without callback or replay. */
+    @Transactional(propagation = Propagation.NOT_SUPPORTED)
     public ReportDocument send(Long id, Long orgId, String keycloakId, List<String> recipients) {
-        final ReportDocument document = load(id, orgId);
-        if (document.getStatus() == ReportDocumentStatus.SENT) {
-            throw new IllegalStateException(
-                    "Ce rapport a déjà été transmis : produisez une nouvelle version");
-        }
-        final List<String> addresses = addressees(document, recipients);
-        if (addresses.isEmpty()) {
-            throw new IllegalStateException("Aucune adresse pour ce destinataire");
-        }
-
-        final ReportSnapshot snapshot = readSnapshot(document);
-        final String issuer = snapshot.meta().issuerName();
-        final byte[] pdf = pdfService.toPdf(snapshot, readNarrative(document), false);
-        final String subject = document.getTitle() + " — "
-                + ReportFormats.period(document.getPeriodStart(), document.getPeriodEnd());
-        final String filename = document.getDocumentNumber() + ".pdf";
-        final String body = coverEmail(snapshot, document);
-
-        document.setStatus(ReportDocumentStatus.SENT);
-        document.setSentAt(LocalDateTime.now());
-        // Qui envoie valide : c'est la trace de la decision humaine.
-        document.setReviewedAt(LocalDateTime.now());
-        document.setReviewedByKeycloakId(keycloakId);
-        final ReportDocument saved = repository.save(document);
-
-        TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
-            @Override
-            public void afterCommit() {
-                // Un envoi par adresse, et l'echec de l'un n'emporte pas les
-                // autres : un carnet d'adresses comporte toujours une adresse
-                // morte, et le co-indivisaire n'a pas a payer pour elle.
-                for (String address : addresses) {
-                    try {
-                        // Marque blanche : le proprietaire voit le nom de SA
-                        // conciergerie, et sa reponse lui parvient.
-                        emailService.sendDocumentEmail(address, subject, body, filename, pdf,
-                                issuer, null);
-                    } catch (Exception e) {
-                        log.error("Envoi du rapport {} a {} impossible",
-                                saved.getDocumentNumber(), PiiMasker.maskEmail(address), e);
-                    }
-                }
-            }
+        DeliveryPlan plan = read.execute(status -> {
+            ReportDocument document = load(id, orgId);
+            if (document.getStatus() == ReportDocumentStatus.SENT)
+                throw new IllegalStateException("Ce rapport a deja ete transmis : produisez une nouvelle version");
+            List<String> addresses = addressees(document, recipients);
+            if (addresses.isEmpty()) throw new IllegalStateException("Aucune adresse pour ce destinataire");
+            ReportSnapshot snapshot = readSnapshot(document);
+            return new DeliveryPlan(snapshot, readNarrative(document), addresses,
+                document.getTitle() + " — " + ReportFormats.period(document.getPeriodStart(), document.getPeriodEnd()),
+                document.getDocumentNumber() + ".pdf", coverEmail(snapshot, document),
+                document.getSnapshotJson(), document.getNarrativeJson());
         });
-        return saved;
+        Ticket ticket = effects.claim(new Scope(orgId, Kind.REPORT, id, Operation.SEND, "once"), () -> {
+            ReportDocument current = load(id, orgId);
+            requireSameSnapshot(current, plan);
+        });
+        if (ticket.done()) throw new IllegalStateException("REPORT_ALREADY_TRANSMITTED");
+        try {
+            byte[] pdf = pdfService.toPdf(plan.snapshot(), plan.narrative(), false);
+            if (pdf == null || pdf.length == 0) throw new IllegalStateException("REPORT_PDF_UNCONFIRMED");
+            for (String address : plan.addresses()) {
+                emailService.sendDocumentEmail(address, plan.subject(), plan.body(), plan.filename(), pdf,
+                    plan.snapshot().meta().issuerName(), null);
+                effects.progress(ticket);
+            }
+            return effects.complete(ticket, () -> {
+                ReportDocument current = load(id, orgId);
+                requireSameSnapshot(current, plan);
+                current.setStatus(ReportDocumentStatus.SENT); current.setSentAt(LocalDateTime.now());
+                current.setReviewedAt(LocalDateTime.now()); current.setReviewedByKeycloakId(keycloakId);
+                return repository.save(current);
+            }, ReportDocument::getId);
+        } catch (RuntimeException failure) {
+            try { effects.uncertain(ticket); }
+            catch (RuntimeException unavailable) { log.warn("Baitly report delivery remains fenced"); }
+            throw new IllegalStateException("REPORT_DELIVERY_UNCONFIRMED");
+        }
+    }
+
+    private record DeliveryPlan(ReportSnapshot snapshot, ReportNarrative narrative, List<String> addresses,
+                                String subject, String filename, String body, String snapshotJson, String narrativeJson) {}
+
+    private static void requireSameSnapshot(ReportDocument current, DeliveryPlan plan) {
+        if (current.getStatus() == ReportDocumentStatus.SENT
+                || !Objects.equals(current.getSnapshotJson(), plan.snapshotJson())
+                || !Objects.equals(current.getNarrativeJson(), plan.narrativeJson()))
+            throw new IllegalStateException("REPORT_SNAPSHOT_CHANGED");
     }
 
     /**
@@ -416,7 +406,7 @@ public class ReportDocumentService {
             // norme est un piege, et c'est le serveur SMTP qui tranche pour de
             // bon. On barre ici ce qui ne peut PAS etre une adresse.
             if (!address.matches("[^@\\s]+@[^@\\s.]+\\.[^@\\s]+")) {
-                throw new IllegalArgumentException("Adresse invalide : " + address);
+                throw new IllegalArgumentException("Adresse invalide");
             }
             addresses.add(address);
         }
@@ -504,7 +494,7 @@ public class ReportDocumentService {
         try {
             return objectMapper.readValue(document.getSnapshotJson(), ReportSnapshot.class);
         } catch (Exception e) {
-            throw new IllegalStateException("Snapshot du rapport illisible : " + document.getId(), e);
+            throw new IllegalStateException("REPORT_SNAPSHOT_UNREADABLE");
         }
     }
 
@@ -524,7 +514,7 @@ public class ReportDocumentService {
         try {
             return objectMapper.writeValueAsString(value);
         } catch (Exception e) {
-            throw new IllegalStateException("Serialisation du rapport impossible", e);
+            throw new IllegalStateException("REPORT_SERIALIZATION_FAILED");
         }
     }
 

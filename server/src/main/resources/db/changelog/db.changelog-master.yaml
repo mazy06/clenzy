@@ -5381,3 +5381,11 @@ databaseChangeLog:
         - sqlFile:
             path: changes/0604__baitly_automation_outcome_proofs.sql
             relativeToChangelogFile: true
+
+  - changeSet:
+      id: "0605-baitly-external-effect-fences"
+      author: clenzy-team
+      changes:
+        - sqlFile:
+            path: changes/0605__baitly_external_effect_fences.sql
+            relativeToChangelogFile: true

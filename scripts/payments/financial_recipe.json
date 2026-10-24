@@ -1,5 +1,9 @@
 {
   "backend": [
+    "BaitlyLockReportTransactionsTest",
+    "SmartLockAccessCodeServiceTest",
+    "SmartLockAccessCodeServiceCrossTenantTest",
+    "ReportDocumentLifecycleTest",
     "BaitlyAutomationLegacyTransactionsTest",
     "GuestMessagingServiceTest",
     "OwnerStatementServiceTest",

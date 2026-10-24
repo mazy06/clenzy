@@ -90,12 +90,11 @@ public class ReportNarrativeService {
                     .response();
             final ReportNarrative narrative = parse(response, snapshot);
             if (narrative.rejected()) {
-                log.warn("Commentaire de rapport rejete, le document part sans : {}",
-                        narrative.rejectionReason());
+                log.warn("Baitly report narrative rejected; continuing without commentary");
             }
             return narrative;
         } catch (Exception e) {
-            log.warn("Commentaire de rapport indisponible, le document part sans : {}", e.toString());
+            log.warn("Baitly report narrative unavailable; continuing without commentary");
             return ReportNarrative.empty();
         }
     }
