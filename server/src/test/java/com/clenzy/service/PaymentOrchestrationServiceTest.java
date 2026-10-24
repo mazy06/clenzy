@@ -11,6 +11,7 @@ import com.clenzy.payment.PaymentProvider;
 import com.clenzy.payment.PaymentProviderRegistry;
 import com.clenzy.payment.PaymentRequest;
 import com.clenzy.payment.PaymentResult;
+import com.clenzy.payment.BaitlyRefundDiagnostics;
 import com.clenzy.payment.RefundContext;
 import com.clenzy.tenant.TenantContext;
 import org.junit.jupiter.api.BeforeEach;
@@ -430,23 +431,24 @@ class PaymentOrchestrationServiceTest {
         }
 
         @Test
-        @DisplayName("marks refund FAILED when provider throws")
-        void whenProviderThrows_thenFailed() {
+        @DisplayName("keeps uncertain refund reserved without exposing provider diagnostics")
+        void whenProviderThrows_thenPrivateAndReserved() {
             PaymentPersistence.RefundInit init = new PaymentPersistence.RefundInit(
                     "REF-1", PaymentProviderType.STRIPE, "pi_orig", "TX-ORIG", "EUR", BigDecimal.valueOf(100), BigDecimal.valueOf(100), TransactionStatus.PROCESSING, null, java.time.LocalDateTime.now());
             when(paymentPersistence.createRefundPending(eq(ORG_ID), eq("TX-ORIG"), any()))
                     .thenReturn(init);
             when(providerRegistry.get(PaymentProviderType.STRIPE)).thenReturn(stripeProvider);
             when(stripeProvider.refundPayment(any(RefundContext.class), any(BigDecimal.class), anyString()))
-                    .thenThrow(new RuntimeException("boom"));
+                    .thenThrow(new RuntimeException("email=synthetic@example.invalid token=private-canary",
+                            new RuntimeException("password=private-cause")));
             when(paymentPersistence.markRefundFailed(eq("REF-1"), anyString()))
-                    .thenReturn(buildTx("REF-1", TransactionStatus.FAILED, PaymentProviderType.STRIPE));
+                    .thenReturn(buildTx("REF-1", TransactionStatus.PROCESSING, PaymentProviderType.STRIPE));
 
             PaymentOrchestrationResult result = service.processRefund("TX-ORIG", null, "reason");
 
             assertThat(result.isSuccess()).isFalse();
-            assertThat(result.paymentResult().errorMessage()).contains("boom");
-            verify(paymentPersistence).markRefundFailed(eq("REF-1"), anyString());
+            assertThat(result.paymentResult().errorMessage()).isEqualTo(BaitlyRefundDiagnostics.RECONCILIATION_REQUIRED);
+            verify(paymentPersistence).markRefundFailed("REF-1", BaitlyRefundDiagnostics.RECONCILIATION_REQUIRED);
             verify(paymentPersistence, never()).finalizeRefund(any(), any(), any());
         }
     }

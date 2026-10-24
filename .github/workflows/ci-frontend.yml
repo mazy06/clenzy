@@ -77,6 +77,21 @@ jobs:
           src/services/__tests__/apiClient.telemetry.test.ts
           src/services/__tests__/baitlyDeferredStartup.test.ts
 
+      - name: Verify compatible dependency contracts
+        id: dependency-contracts
+        working-directory: client
+        run: |
+          npx tsc --noEmit -p tsconfig.dependency-tests.json
+          npx vitest run src/schemas/baitlyDependencyCompatibility.test.ts src/schemas/serviceReference.test.ts src/modules/supervision/provider/__tests__/AgUiSupervisionProvider.test.ts src/modules/supervision/core/__tests__/applyStreamEvent.test.ts --reporter=default --reporter=junit --outputFile=test-results/baitly-dependency-compatibility.xml
+
+      - name: Upload dependency compatibility evidence
+        if: always() && steps.dependency-contracts.outcome != 'skipped'
+        uses: actions/upload-artifact@v4
+        with:
+          name: baitly-dependency-compatibility
+          path: client/test-results/baitly-dependency-compatibility.xml
+          if-no-files-found: error
+
       - name: Build production bundle
         working-directory: client
         env:
@@ -110,6 +125,12 @@ jobs:
       - name: Check discovery HTTP responses and PMS isolation
         working-directory: client
         run: python3 tooling/check_baitly_discovery.py --nginx /usr/sbin/nginx
+
+      - name: Verify internal proxy log privacy and unchanged HTTP behavior
+        working-directory: client
+        env:
+          NGINX_BINARY: /usr/sbin/nginx
+        run: python3 -B tooling/check_baitly_proxy_logs.py
 
       - name: Check bundle size
         working-directory: client

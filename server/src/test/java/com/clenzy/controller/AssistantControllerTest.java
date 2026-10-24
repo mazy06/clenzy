@@ -256,6 +256,7 @@ class AssistantControllerTest {
         assertArrayEquals("hello".getBytes(), ok.getBody());
         // Le MIME extrait du JSON DOIT etre utilise (pas le hardcoded image/jpeg)
         assertEquals("image/png", ok.getHeaders().getContentType().toString());
+        assertEquals("no-cache, no-store, must-revalidate", ok.getHeaders().getCacheControl());
     }
 
     @Test

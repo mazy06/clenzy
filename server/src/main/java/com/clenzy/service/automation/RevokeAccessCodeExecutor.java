@@ -57,6 +57,9 @@ import java.time.ZonedDateTime;
 @Service
 public class RevokeAccessCodeExecutor implements AutomationActionExecutor {
 
+    @Override
+    public boolean permitsPreEffectDeferral() { return true; }
+
     public static final int DEFAULT_GRACE_HOURS = 4;
     static final int MAX_GRACE_HOURS = 72;
     /** Cle de {@code AutomationRule.actionConfig} portant la grace en heures. */

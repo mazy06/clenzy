@@ -1,12 +1,15 @@
 package com.clenzy.controller;
 
 import com.clenzy.service.AccountingExportService;
+import com.clenzy.service.OrganizationService;
 import com.clenzy.tenant.TenantContext;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.*;
 
 import java.nio.charset.StandardCharsets;
@@ -16,28 +19,31 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/api/accounting/export")
-@PreAuthorize("isAuthenticated()")
+@PreAuthorize("hasAnyRole('SUPER_ADMIN', 'SUPER_MANAGER', 'HOST')")
 public class AccountingExportController {
 
     private final AccountingExportService exportService;
     private final TenantContext tenantContext;
+    private final OrganizationService organizationAccess;
 
     public AccountingExportController(AccountingExportService exportService,
-                                      TenantContext tenantContext) {
+                                      TenantContext tenantContext, OrganizationService organizationAccess) {
         this.exportService = exportService;
         this.tenantContext = tenantContext;
+        this.organizationAccess = organizationAccess;
     }
 
     @GetMapping("/fec")
     public ResponseEntity<byte[]> exportFec(
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate from,
-            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate to) {
-        Long orgId = tenantContext.getOrganizationId();
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate to, @AuthenticationPrincipal Jwt jwt) {
+        Long orgId = requireManager(jwt);
         String content = exportService.exportFec(orgId, from, to);
         String filename = "FEC_" + from + "_" + to + ".txt";
 
         return ResponseEntity.ok()
             .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + filename + "\"")
+            .header(HttpHeaders.CACHE_CONTROL, "no-cache, no-store, must-revalidate")
             .contentType(MediaType.TEXT_PLAIN)
             .body(content.getBytes());
     }
@@ -45,13 +51,14 @@ public class AccountingExportController {
     @GetMapping("/reservations-csv")
     public ResponseEntity<byte[]> exportReservationsCsv(
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate from,
-            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate to) {
-        Long orgId = tenantContext.getOrganizationId();
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate to, @AuthenticationPrincipal Jwt jwt) {
+        Long orgId = requireManager(jwt);
         String content = exportService.exportReservationsCsv(orgId, from, to);
         String filename = "reservations_" + from + "_" + to + ".csv";
 
         return ResponseEntity.ok()
             .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + filename + "\"")
+            .header(HttpHeaders.CACHE_CONTROL, "no-cache, no-store, must-revalidate")
             .contentType(MediaType.parseMediaType("text/csv"))
             .body(content.getBytes());
     }
@@ -59,13 +66,14 @@ public class AccountingExportController {
     @GetMapping("/payouts-csv")
     public ResponseEntity<byte[]> exportPayoutsCsv(
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate from,
-            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate to) {
-        Long orgId = tenantContext.getOrganizationId();
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate to, @AuthenticationPrincipal Jwt jwt) {
+        Long orgId = requireManager(jwt);
         String content = exportService.exportPayoutsCsv(orgId, from, to);
         String filename = "payouts_" + from + "_" + to + ".csv";
 
         return ResponseEntity.ok()
             .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + filename + "\"")
+            .header(HttpHeaders.CACHE_CONTROL, "no-cache, no-store, must-revalidate")
             .contentType(MediaType.parseMediaType("text/csv"))
             .body(content.getBytes());
     }
@@ -73,13 +81,14 @@ public class AccountingExportController {
     @GetMapping("/expenses-csv")
     public ResponseEntity<byte[]> exportExpensesCsv(
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate from,
-            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate to) {
-        Long orgId = tenantContext.getOrganizationId();
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate to, @AuthenticationPrincipal Jwt jwt) {
+        Long orgId = requireManager(jwt);
         String content = exportService.exportExpensesCsv(orgId, from, to);
         String filename = "depenses_" + from + "_" + to + ".csv";
 
         return ResponseEntity.ok()
             .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + filename + "\"")
+            .header(HttpHeaders.CACHE_CONTROL, "no-cache, no-store, must-revalidate")
             .contentType(MediaType.parseMediaType("text/csv"))
             .body(content.getBytes());
     }
@@ -87,27 +96,34 @@ public class AccountingExportController {
     @GetMapping("/invoices-csv")
     public ResponseEntity<byte[]> exportInvoicesCsv(
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate from,
-            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate to) {
-        Long orgId = tenantContext.getOrganizationId();
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate to, @AuthenticationPrincipal Jwt jwt) {
+        Long orgId = requireManager(jwt);
         String content = exportService.exportInvoicesCsv(orgId, from, to);
         String filename = "factures_" + from + "_" + to + ".csv";
 
         return ResponseEntity.ok()
             .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + filename + "\"")
+            .header(HttpHeaders.CACHE_CONTROL, "no-cache, no-store, must-revalidate")
             .contentType(MediaType.parseMediaType("text/csv"))
             .body(content.getBytes());
     }
 
     @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'SUPER_MANAGER')")
     @PostMapping("/sepa-xml")
-    public ResponseEntity<byte[]> exportSepaXml(@RequestBody List<Long> payoutIds) {
-        Long orgId = tenantContext.getOrganizationId();
+    public ResponseEntity<byte[]> exportSepaXml(@RequestBody List<Long> payoutIds, @AuthenticationPrincipal Jwt jwt) {
+        Long orgId = requireManager(jwt);
         String xml = exportService.generateSepaXml(payoutIds, orgId);
         String filename = "SEPA_" + LocalDate.now().format(DateTimeFormatter.BASIC_ISO_DATE) + ".xml";
 
         return ResponseEntity.ok()
                 .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + filename + "\"")
+                .header(HttpHeaders.CACHE_CONTROL, "no-cache, no-store, must-revalidate")
                 .contentType(MediaType.APPLICATION_XML)
                 .body(xml.getBytes(StandardCharsets.UTF_8));
+    }
+    private Long requireManager(Jwt jwt) {
+        Long orgId = tenantContext.getRequiredOrganizationId();
+        organizationAccess.validateOrgManagement(jwt.getSubject(), orgId);
+        return orgId;
     }
 }

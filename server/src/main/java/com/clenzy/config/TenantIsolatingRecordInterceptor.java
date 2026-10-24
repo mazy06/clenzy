@@ -64,9 +64,7 @@ public class TenantIsolatingRecordInterceptor implements RecordInterceptor<Strin
     private void clearLeakedContext(ConsumerRecord<String, Object> record, String moment) {
         Long leaked = tenantContext.getOrganizationId();
         if (leaked != null) {
-            log.warn("Contexte tenant residuel (org={}) {} le traitement de {}[{}] — nettoyage. "
-                    + "Un traitement Kafka ne doit pas laisser de TenantContext sur son thread.",
-                    leaked, moment, record.topic(), record.partition());
+            log.warn("BAITLY_BROKER_TENANT_CONTEXT_CLEARED");
         }
         tenantContext.clear();
     }

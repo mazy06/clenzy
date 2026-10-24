@@ -10,6 +10,7 @@ import com.clenzy.service.payout.PayoutTransferInstruction;
 import com.clenzy.service.payout.PayoutTransferJournal;
 import com.clenzy.service.payout.PayoutReconciliationRequiredException;
 import com.clenzy.service.payout.PayoutFundsUnavailableException;
+import com.clenzy.service.payout.BaitlyPayoutDiagnostics;
 
 import java.util.Locale;
 
@@ -70,11 +71,12 @@ public class StripeConnectTransferClient {
             return reference;
         } catch (Exception failure) {
             // Une erreur réseau ou de persistance ne prouve jamais que l'argent n'est pas parti.
+            var diagnostic = BaitlyPayoutDiagnostics.technicalCause(failure);
             try { journal.uncertain(instruction); }
-            catch (RuntimeException journalFailure) { failure.addSuppressed(journalFailure); }
+            catch (RuntimeException journalFailure) { diagnostic.addSuppressed(BaitlyPayoutDiagnostics.technicalCause(journalFailure)); }
             throw new PayoutReconciliationRequiredException(
                     "Résultat du transfert à rapprocher auprès du PSP. Aucune nouvelle émission automatique autorisée.",
-                    reference, failure);
+                    reference, diagnostic);
         }
     }
 
@@ -85,7 +87,8 @@ public class StripeConnectTransferClient {
             balance = stripeGateway.retrievePlatformBalance();
         } catch (StripeException | RuntimeException unavailable) {
             // Aucun appel d'émission n'a encore eu lieu, y compris si le client PSP est mal configuré.
-            throw new PayoutFundsUnavailableException("Solde Stripe indisponible. Aucun transfert émis ; vérification à relancer.", unavailable);
+            throw new PayoutFundsUnavailableException(BaitlyPayoutDiagnostics.FUNDS_UNAVAILABLE,
+                    BaitlyPayoutDiagnostics.technicalCause(unavailable));
         }
         if (balance == null || balance.getAvailable() == null) {
             throw new PayoutFundsUnavailableException("Solde Stripe disponible non vérifiable. Aucun transfert émis.");
