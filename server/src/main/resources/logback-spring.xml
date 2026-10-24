@@ -1,8 +1,22 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <configuration>
 
+    <appender name="BROKER_DIAGNOSTICS" class="com.clenzy.config.BaitlyBrokerDiagnosticsAppender" />
+    <logger name="org.apache.kafka" additivity="false">
+        <appender-ref ref="BROKER_DIAGNOSTICS" />
+    </logger>
+    <logger name="org.springframework.kafka" additivity="false">
+        <appender-ref ref="BROKER_DIAGNOSTICS" />
+    </logger>
+    <logger name="com.clenzy.config.TenantIsolatingRecordInterceptor" additivity="false">
+        <appender-ref ref="BROKER_DIAGNOSTICS" />
+    </logger>
+    <logger name="com.clenzy.tenant.KafkaTenantScope" additivity="false">
+        <appender-ref ref="BROKER_DIAGNOSTICS" />
+    </logger>
+
     <!--
-        Configuration Logback pour Clenzy PMS.
+        Configuration Logback pour Baitly PMS.
 
         Profil dev     : sortie console lisible avec requestId pour le tracing
         Profil prod    : sortie JSON structuree pour ingestion Loki/ELK

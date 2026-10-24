@@ -1,5 +1,9 @@
 {
   "backend": [
+    "BaitlyBrokerDiagnosticsPrivacyTest",
+    "KafkaConfigTest",
+    "TenantIsolatingRecordInterceptorTest",
+    "KafkaTenantScopeTest",
     "BaitlyExternalEffectMetricsTest",
     "BaitlyLockReportTransactionsTest",
     "SmartLockAccessCodeServiceTest",

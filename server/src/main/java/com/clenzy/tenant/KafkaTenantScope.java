@@ -79,15 +79,11 @@ public class KafkaTenantScope {
     public boolean run(String eventLabel, Long trustedOrganizationId,
                        Long declaredOrganizationId, Runnable action) {
         if (trustedOrganizationId == null) {
-            log.error("{} : organisation introuvable — traitement refuse. Le contexte tenant ne "
-                    + "peut pas etre pose, et executer hors scope exposerait les autres tenants.",
-                    eventLabel);
+            log.error("BAITLY_BROKER_SCOPE_MISSING");
             return false;
         }
         if (declaredOrganizationId != null && !declaredOrganizationId.equals(trustedOrganizationId)) {
-            log.error("SECURITE : {} annonce l'organisation {} alors que l'entite appartient a {}. "
-                    + "Evenement rejete (signature d'un payload forge).",
-                    eventLabel, declaredOrganizationId, trustedOrganizationId);
+            log.error("BAITLY_BROKER_SCOPE_REJECTED");
             return false;
         }
         tenantScopedExecutor.runAsOrganization(trustedOrganizationId, action);
