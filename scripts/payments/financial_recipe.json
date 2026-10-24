@@ -1,5 +1,6 @@
 {
   "backend": [
+    "BaitlyExternalEffectMetricsTest",
     "BaitlyLockReportTransactionsTest",
     "SmartLockAccessCodeServiceTest",
     "SmartLockAccessCodeServiceCrossTenantTest",
