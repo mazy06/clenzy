@@ -169,7 +169,8 @@ class BaitlyOpsAlertControllerTest {
 
     @org.junit.jupiter.params.ParameterizedTest
     @org.junit.jupiter.params.provider.ValueSource(strings = {"BaitlyRecoveryMetricsUnavailable","BaitlyRecoveryMetricsStale",
-            "BaitlyAccountingExportStalled","BaitlyAccountingExportUncertain", "BaitlyMinutRecoveryStalled", "BaitlyMinutRecoveryUncertain", "BaitlyNoiseWarningMetricsUnavailable", "BaitlyNoiseWarningUncertain", "BaitlyNoiseWarningRepairStalled"})
+            "BaitlyAccountingExportStalled","BaitlyAccountingExportUncertain", "BaitlyMinutRecoveryStalled", "BaitlyMinutRecoveryUncertain", "BaitlyNoiseWarningMetricsUnavailable", "BaitlyNoiseWarningUncertain", "BaitlyNoiseWarningRepairStalled",
+            "BaitlyAutomationMetricsUnavailable", "BaitlyAutomationStalled", "BaitlyAutomationUncertain", "BaitlyAutomationReviewRequired"})
     void recoveryRulesKeepControlledNamesForFiringAndResolutionWithoutPrivateLabels(String name) throws Exception {
         when(notifications.notifyPlatformOpsStrict(anyString(),anyString(),isNull())).thenReturn(1);
         for (String state : java.util.List.of("firing","resolved")) {
@@ -183,5 +184,7 @@ class BaitlyOpsAlertControllerTest {
         verify(notifications,times(2)).notifyPlatformOpsStrict(titles.capture(),messages.capture(),isNull());
         assertThat(titles.getAllValues()).allSatisfy(title -> assertThat(title).contains(name).doesNotContain("synthetic-private"));
         assertThat(messages.getAllValues()).allSatisfy(message -> assertThat(message).contains(name).doesNotContain("synthetic-private"));
+        assertThat(registry.getMeters()).allSatisfy(meter ->
+            assertThat(meter.getId().toString()).doesNotContain("synthetic-private","token=","organization"));
     }
 }
