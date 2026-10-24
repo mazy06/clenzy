@@ -99,7 +99,7 @@ class AirbnbOAuthControllerTest {
             assertThat(response.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
             assertThat(response.getBody())
                     .containsEntry("error", "configuration_missing")
-                    .containsEntry("message", "Client ID not configured");
+                    .containsEntry("message", com.clenzy.integration.oauth.BaitlyOAuthHttpDiagnostics.CONFIGURATION_UNAVAILABLE);
         }
     }
 

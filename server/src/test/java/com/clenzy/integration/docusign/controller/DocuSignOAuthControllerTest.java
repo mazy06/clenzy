@@ -217,7 +217,7 @@ class DocuSignOAuthControllerTest {
             assertThat(body).isNotNull();
             assertThat(body).containsEntry("connected", false);
             assertThat(body).containsEntry("status", "EXPIRED");
-            assertThat(body).containsEntry("errorMessage", "Token expired");
+            assertThat(body).containsEntry("errorMessage", com.clenzy.integration.oauth.BaitlyOAuthHttpDiagnostics.CONNECTION_ERROR);
         }
     }
 }
