@@ -129,8 +129,15 @@ class BaitlyExternalEffectMetricsTest extends BaitlyAutomationFixture {
         var scope = new BaitlyExternalEffectJournal.Scope(7, BaitlyExternalEffectJournal.Kind.LOCK, 1,
             BaitlyExternalEffectJournal.Operation.ROTATE, "once");
         var ticket = effects.claim(scope); effects.uncertain(ticket);
+        // The journal uses wall time; this fixture's collector uses a fixed clock.
+        // Align only this synthetic row, rather than weakening the future-time guard.
+        assertThat(db.update("UPDATE baitly_external_effect_attempts SET attempted_at=? WHERE attempt_token=?",
+            now, ticket.token())).isEqualTo(1);
+        var before = db.queryForList("SELECT * FROM baitly_external_effect_attempts");
         metrics.refresh(); metrics.refresh();
+        assertThat(value("snapshot.healthy")).isEqualTo(1);
         assertThat(value("lock.unknown")).isEqualTo(1);
+        assertThat(db.queryForList("SELECT * FROM baitly_external_effect_attempts")).isEqualTo(before);
         assertThatThrownBy(() -> effects.claim(scope)).hasMessage("EXTERNAL_EFFECT_RECONCILIATION_REQUIRED");
     }
 }
