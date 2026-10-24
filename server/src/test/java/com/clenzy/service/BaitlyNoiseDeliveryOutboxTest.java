@@ -68,8 +68,8 @@ class BaitlyNoiseDeliveryOutboxTest {
             var resources=new liquibase.resource.ClassLoaderResourceAccessor();
             try(var master=new liquibase.Liquibase("db/changelog/db.changelog-master.yaml",resources,database)) {
                 var selected=new liquibase.changelog.DatabaseChangeLog("db/changelog/db.changelog-master.yaml");
-                master.getDatabaseChangeLog().getChangeSets().stream().filter(set -> java.util.Set.of("0600-baitly-noise-warning-attempts","0601-baitly-noise-delivery-outbox","0602-baitly-noise-alert-cooldown-index").contains(set.getId())).forEach(selected::addChangeSet);
-                assertThat(selected.getChangeSets()).hasSize(3);
+                master.getDatabaseChangeLog().getChangeSets().stream().filter(set -> java.util.Set.of("0600-baitly-noise-warning-attempts","0601-baitly-noise-delivery-outbox","0602-baitly-noise-alert-cooldown-index","0606-baitly-noise-delivery-expiry-observation").contains(set.getId())).forEach(selected::addChangeSet);
+                assertThat(selected.getChangeSets()).hasSize(4);
                 new liquibase.Liquibase(selected,resources,database).update("");
             }
         } catch(Exception failure) { throw new IllegalStateException("Migration de recette avertissements echouee",failure); }
@@ -150,6 +150,94 @@ class BaitlyNoiseDeliveryOutboxTest {
         assertThat(state("OWNER_EMAIL",0)).isEqualTo("UNKNOWN");
         assertThat(outbox.startEmail(work("OWNER_EMAIL",1))).isEmpty();
         assertThat(state("OWNER_EMAIL",1)).isEqualTo("SKIPPED");
+    }
+    double metric(io.micrometer.core.instrument.MeterRegistry registry,String suffix) {
+        return registry.get("baitly.noise.warning."+suffix).gauge().value();
+    }
+    void expire(long minutes) {
+        db.update("UPDATE baitly_noise_deliveries SET expires_at=CURRENT_TIMESTAMP-INTERVAL '1' MINUTE*CAST(? AS BIGINT)",minutes);
+    }
+    @Test void expiryRemainsObservableAfterWorkerAndRestartWithoutDelegation() {
+        queue(11);expire(1);
+        var registry=new io.micrometer.core.instrument.simple.SimpleMeterRegistry();
+        var metrics=new com.clenzy.config.BaitlyNoiseWarningMetrics(db,registry);
+        metrics.refresh();
+        assertThat(metric(registry,"expired.unattempted")).isEqualTo(5);
+        assertThat(metric(registry,"expired.unattempted.recent")).isEqualTo(5);
+        var notifications=mock(NoiseAlertNotificationService.class);
+        worker(new BaitlyNoiseDeliveryOutbox(db,manager),notifications).run();
+        assertThat(db.queryForObject("SELECT COUNT(*) FROM baitly_noise_delivery_items WHERE expired_unattempted=true",Long.class)).isEqualTo(5);
+        assertThat(outbox.pending()).isEmpty();
+        var restartedRegistry=new io.micrometer.core.instrument.simple.SimpleMeterRegistry();
+        var restarted=new com.clenzy.config.BaitlyNoiseWarningMetrics(db,restartedRegistry);
+        restarted.refresh();
+        assertThat(metric(restartedRegistry,"snapshot.healthy")).isEqualTo(1);
+        assertThat(metric(restartedRegistry,"expired.unattempted")).isEqualTo(5);
+        metrics.refresh();
+        assertThat(metric(registry,"expired.unattempted")).isEqualTo(5);
+        assertThat(metric(registry,"expired.unattempted.recent")).isEqualTo(5);
+        assertThat(count("baitly_noise_warning_attempts")).isZero();
+        verifyNoInteractions(notifications);
+        expire(16);metrics.refresh();
+        assertThat(metric(registry,"expired.unattempted")).isEqualTo(5);
+        assertThat(metric(registry,"expired.unattempted.recent")).isZero();
+    }
+    @Test void guestProofAndAttemptedOwnerAreNeverClassifiedAsUnattemptedExpiry() {
+        queue(11);
+        var owner=work("OWNER_EMAIL",0);
+        outbox.finishEmail(owner,outbox.startEmail(owner).orElseThrow(),false);
+        var journal=new BaitlyNoiseWarningJournal(db,manager);
+        journal.claim(new BaitlyNoiseWarningJournal.Scope(11L,7L,91L,100L,70L,guestVersion,
+            BaitlyNoiseWarningJournal.Channel.WHATSAPP_META,82.5,70,"WARNING")).orElseThrow();
+        expire(1);
+        var registry=new io.micrometer.core.instrument.simple.SimpleMeterRegistry();
+        var metrics=new com.clenzy.config.BaitlyNoiseWarningMetrics(db,registry);metrics.refresh();
+        assertThat(metric(registry,"expired.unattempted")).isEqualTo(3);
+        assertThat(metric(registry,"uncertain")).isEqualTo(2);
+        worker(new BaitlyNoiseDeliveryOutbox(db,manager),mock(NoiseAlertNotificationService.class)).run();
+        metrics.refresh();
+        assertThat(metric(registry,"expired.unattempted")).isEqualTo(3);
+        assertThat(metric(registry,"uncertain")).isEqualTo(2);
+        assertThat(state("OWNER_EMAIL",0)).isEqualTo("UNKNOWN");
+        assertThat(db.queryForObject("SELECT expired_unattempted FROM baitly_noise_delivery_items WHERE alert_id=11 AND channel='GUEST'",Boolean.class)).isFalse();
+    }
+    @Test void freshIneligibleAndHistoricalSkippedItemsAreNotInventedExpirations() {
+        queue(11);
+        outbox.skip(work("OWNER_EMAIL",0));
+        db.update("UPDATE noise_alert_configs SET enabled=false");
+        worker(outbox,mock(NoiseAlertNotificationService.class)).run();
+        expire(1);
+        var registry=new io.micrometer.core.instrument.simple.SimpleMeterRegistry();
+        new com.clenzy.config.BaitlyNoiseWarningMetrics(db,registry).refresh();
+        assertThat(metric(registry,"expired.unattempted")).isZero();
+        assertThat(db.queryForObject("SELECT COUNT(*) FROM baitly_noise_delivery_items WHERE expired_unattempted=true",Long.class)).isZero();
+        assertThatThrownBy(() -> db.update("UPDATE baitly_noise_delivery_items SET expired_unattempted=true,state='PENDING'")).isInstanceOf(org.springframework.dao.DataIntegrityViolationException.class);
+    }
+    @Test void guestProofCommittedAfterExpiryObservationOverridesTheMarker() {
+        queue(11);expire(1);
+        worker(outbox,mock(NoiseAlertNotificationService.class)).run();
+        var registry=new io.micrometer.core.instrument.simple.SimpleMeterRegistry();
+        var metrics=new com.clenzy.config.BaitlyNoiseWarningMetrics(db,registry);metrics.refresh();
+        assertThat(metric(registry,"expired.unattempted")).isEqualTo(5);
+        new BaitlyNoiseWarningJournal(db,manager).claim(new BaitlyNoiseWarningJournal.Scope(11L,7L,91L,100L,70L,
+            guestVersion,BaitlyNoiseWarningJournal.Channel.WHATSAPP_META,82.5,70,"WARNING")).orElseThrow();
+        metrics.refresh();
+        assertThat(metric(registry,"expired.unattempted")).isEqualTo(4);
+        assertThat(metric(registry,"uncertain")).isEqualTo(1);
+        assertThat(db.queryForObject("SELECT expired_unattempted FROM baitly_noise_delivery_items WHERE alert_id=11 AND channel='GUEST'",Boolean.class)).isTrue();
+    }
+    @Test void missingExpirySchemaInvalidatesSnapshotWithoutClearingPreviousNumbers() {
+        queue(11);expire(1);
+        var registry=new io.micrometer.core.instrument.simple.SimpleMeterRegistry();
+        var metrics=new com.clenzy.config.BaitlyNoiseWarningMetrics(db,registry);metrics.refresh();
+        double timestamp=metric(registry,"snapshot.last.success.timestamp.seconds");
+        db.execute("ALTER TABLE baitly_noise_delivery_items DROP CONSTRAINT ck_baitly_noise_expired_unattempted");
+        db.execute("ALTER TABLE baitly_noise_delivery_items DROP COLUMN expired_unattempted");
+        metrics.refresh();
+        assertThat(metric(registry,"expired.unattempted")).isEqualTo(5);
+        assertThat(metric(registry,"snapshot.healthy")).isZero();
+        assertThat(metric(registry,"snapshot.last.success.timestamp.seconds")).isEqualTo(timestamp);
+        assertThat(registry.getMeters()).allSatisfy(m -> assertThat(m.getId().getTags()).isEmpty());
     }
     @Test void wrongAttemptOrOrganizationCannotCompleteOrReleaseEmail() {
         queue(11);var w=work("OWNER_EMAIL",0);UUID ticket=outbox.startEmail(w).orElseThrow();

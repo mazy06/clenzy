@@ -140,8 +140,15 @@ public class BaitlyNoiseDeliveryOutbox {
             """,w.alert(),w.organization(),w.channel(),w.ordinal()).size()==1;
     }
     private void state(Work w,String state) {
-        db.update("UPDATE baitly_noise_delivery_items SET state=?,updated_at=CURRENT_TIMESTAMP WHERE alert_id=? AND channel=? AND ordinal=?",
-            state,w.alert(),w.channel(),w.ordinal());
+        db.update("""
+            UPDATE baitly_noise_delivery_items SET state=?,updated_at=CURRENT_TIMESTAMP,
+                expired_unattempted=(?='SKIPPED' AND state='PENDING' AND attempt IS NULL
+                    AND EXISTS (SELECT 1 FROM baitly_noise_deliveries h WHERE h.alert_id=?
+                        AND h.organization_id=? AND h.expires_at<=CURRENT_TIMESTAMP)
+                    AND (channel<>'GUEST' OR NOT EXISTS (SELECT 1 FROM baitly_noise_warning_attempts w
+                        WHERE w.alert_id=?)))
+            WHERE alert_id=? AND channel=? AND ordinal=?
+            """,state,state,w.alert(),w.organization(),w.alert(),w.alert(),w.channel(),w.ordinal());
     }
     public void skip(Work w) {
         safe(() -> tx.execute(status -> {if(lockPending(w)) state(w,"SKIPPED"); return true;}));

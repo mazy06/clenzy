@@ -169,7 +169,7 @@ class BaitlyOpsAlertControllerTest {
 
     @org.junit.jupiter.params.ParameterizedTest
     @org.junit.jupiter.params.provider.ValueSource(strings = {"BaitlyRecoveryMetricsUnavailable","BaitlyRecoveryMetricsStale",
-            "BaitlyAccountingExportStalled","BaitlyAccountingExportUncertain", "BaitlyMinutRecoveryStalled", "BaitlyMinutRecoveryUncertain", "BaitlyNoiseWarningMetricsUnavailable", "BaitlyNoiseWarningUncertain", "BaitlyNoiseWarningRepairStalled",
+            "BaitlyAccountingExportStalled","BaitlyAccountingExportUncertain", "BaitlyMinutRecoveryStalled", "BaitlyMinutRecoveryUncertain", "BaitlyNoiseWarningMetricsUnavailable", "BaitlyNoiseWarningUncertain", "BaitlyNoiseWarningRepairStalled", "BaitlyNoiseWarningExpiredBeforeAttempt",
             "BaitlyAutomationMetricsUnavailable", "BaitlyAutomationStalled", "BaitlyAutomationUncertain", "BaitlyAutomationReviewRequired",
             "BaitlyExternalEffectMetricsUnavailable", "BaitlyLockEffectUncertain", "BaitlyReportEffectUncertain", "BaitlyReportEffectPartial"})
     void recoveryRulesKeepControlledNamesForFiringAndResolutionWithoutPrivateLabels(String name) throws Exception {

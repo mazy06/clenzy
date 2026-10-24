@@ -11,10 +11,10 @@ import org.springframework.stereotype.Component;
 public class BaitlyNoiseWarningMetrics {
     private final JdbcTemplate db;
     private final MeterRegistry registry;
-    private volatile Snapshot snapshot=new Snapshot(0,0,0);
+    private volatile Snapshot snapshot=new Snapshot(0,0,0,0,0);
     private volatile double lastSuccess;
     private volatile boolean healthy;
-    record Snapshot(long uncertain,double age,long repair) {}
+    record Snapshot(long uncertain,double age,long repair,long expired,long recentlyExpired) {}
 
     public BaitlyNoiseWarningMetrics(JdbcTemplate source,MeterRegistry registry) {
         db=new JdbcTemplate(java.util.Objects.requireNonNull(source.getDataSource()));
@@ -23,6 +23,8 @@ public class BaitlyNoiseWarningMetrics {
         gauge("uncertain",() -> snapshot.uncertain());
         gauge("oldest.uncertain.seconds",() -> snapshot.age());
         gauge("repair.pending",() -> snapshot.repair());
+        gauge("expired.unattempted",() -> snapshot.expired());
+        gauge("expired.unattempted.recent",() -> snapshot.recentlyExpired());
         gauge("snapshot.healthy",() -> healthy?1:0);
         gauge("snapshot.last.success.timestamp.seconds",() -> lastSuccess);
     }
@@ -37,7 +39,14 @@ public class BaitlyNoiseWarningMetrics {
     public void refresh() {
         try {
             Snapshot next=db.queryForObject("""
-                SELECT
+                WITH expired AS (
+                    SELECT h.expires_at FROM baitly_noise_delivery_items i
+                    JOIN baitly_noise_deliveries h ON h.alert_id=i.alert_id
+                    WHERE h.expires_at<=CURRENT_TIMESTAMP
+                        AND (i.expired_unattempted=true OR (i.state='PENDING' AND i.attempt IS NULL))
+                        AND (i.channel<>'GUEST' OR NOT EXISTS (SELECT 1 FROM baitly_noise_warning_attempts w
+                            WHERE w.alert_id=i.alert_id))
+                ) SELECT
                   ((SELECT COUNT(*) FROM baitly_noise_warning_attempts WHERE state IN ('STARTED','UNKNOWN'))
                     +(SELECT COUNT(*) FROM baitly_noise_delivery_items WHERE channel='OWNER_EMAIL' AND state IN ('STARTED','UNKNOWN'))),
                   (SELECT COALESCE(EXTRACT(EPOCH FROM (CURRENT_TIMESTAMP-MIN(created_at))),0) FROM (
@@ -54,8 +63,10 @@ public class BaitlyNoiseWarningMetrics {
                         JOIN baitly_noise_delivery_items i ON i.alert_id=h.alert_id AND i.state='ACCEPTED'
                         WHERE ((i.channel='OWNER_EMAIL' AND a.notified_email=false) OR (i.channel='OWNER_IN_APP' AND a.notified_in_app=false))
                         AND NOT EXISTS (SELECT 1 FROM baitly_noise_delivery_items other WHERE other.alert_id=i.alert_id AND other.channel=i.channel AND other.state<>'ACCEPTED')
-                    ) ready))
-                """,(row,index) -> new Snapshot(row.getLong(1),Math.max(0,row.getDouble(2)),row.getLong(3)));
+                    ) ready)),
+                  (SELECT COUNT(*) FROM expired),
+                  (SELECT COUNT(*) FROM expired WHERE expires_at>CURRENT_TIMESTAMP-INTERVAL '15' MINUTE)
+                """,(row,index) -> new Snapshot(row.getLong(1),Math.max(0,row.getDouble(2)),row.getLong(3),row.getLong(4),row.getLong(5)));
             snapshot=java.util.Objects.requireNonNull(next);
             lastSuccess=registry.config().clock().wallTime()/1000.0;
             healthy=true;

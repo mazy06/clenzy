@@ -59,8 +59,8 @@ class BaitlyNoiseWarningJournalTest {
                 acknowledged BOOLEAN DEFAULT false,notes VARCHAR(255),notified_email BOOLEAN DEFAULT false,notified_in_app BOOLEAN DEFAULT false)
             """);
         // Full delivery schema/migration is covered by BaitlyNoiseDeliveryOutboxTest.
-        db.execute("CREATE TABLE baitly_noise_delivery_items (alert_id BIGINT,channel VARCHAR(20),state VARCHAR(20),created_at TIMESTAMP WITH TIME ZONE,updated_at TIMESTAMP WITH TIME ZONE)");
-        db.execute("CREATE TABLE baitly_noise_deliveries (alert_id BIGINT,organization_id BIGINT,property_id BIGINT)");
+        db.execute("CREATE TABLE baitly_noise_delivery_items (alert_id BIGINT,channel VARCHAR(20),state VARCHAR(20),attempt UUID,expired_unattempted BOOLEAN DEFAULT false,created_at TIMESTAMP WITH TIME ZONE,updated_at TIMESTAMP WITH TIME ZONE)");
+        db.execute("CREATE TABLE baitly_noise_deliveries (alert_id BIGINT,organization_id BIGINT,property_id BIGINT,expires_at TIMESTAMP WITH TIME ZONE)");
         db.update("INSERT INTO properties VALUES (91,7),(92,8)");
         db.update("INSERT INTO guests VALUES (70,7,?)",Timestamp.valueOf(guestVersion));
         db.update("INSERT INTO reservations VALUES (100,7,91,70,?,?,'confirmed')",LocalDate.now().minusDays(1),LocalDate.now().plusDays(1));
