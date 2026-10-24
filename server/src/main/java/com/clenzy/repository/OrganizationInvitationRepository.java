@@ -4,6 +4,8 @@ import com.clenzy.model.InvitationStatus;
 import com.clenzy.model.OrganizationInvitation;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.jpa.repository.Lock;
+import jakarta.persistence.LockModeType;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
@@ -16,6 +18,14 @@ public interface OrganizationInvitationRepository extends JpaRepository<Organiza
 
     Optional<OrganizationInvitation> findByTokenHash(String tokenHash);
 
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("SELECT i FROM OrganizationInvitation i WHERE i.tokenHash = :tokenHash")
+    Optional<OrganizationInvitation> findByTokenHashForUpdate(@Param("tokenHash") String tokenHash);
+
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("SELECT i FROM OrganizationInvitation i WHERE i.id = :id")
+    Optional<OrganizationInvitation> findByIdForUpdate(@Param("id") Long id);
+
     List<OrganizationInvitation> findByOrganizationIdOrderByCreatedAtDesc(Long organizationId);
 
     List<OrganizationInvitation> findByOrganizationIdAndStatusOrderByCreatedAtDesc(
@@ -24,7 +34,8 @@ public interface OrganizationInvitationRepository extends JpaRepository<Organiza
     boolean existsByOrganizationIdAndInvitedEmailAndStatus(
             Long organizationId, String invitedEmail, InvitationStatus status);
 
-    @Query("SELECT i FROM OrganizationInvitation i WHERE i.invitedEmail = :email AND i.status = 'PENDING' AND i.expiresAt > CURRENT_TIMESTAMP")
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("SELECT i FROM OrganizationInvitation i WHERE i.invitedEmail = :email AND i.status = 'PENDING' AND i.expiresAt > CURRENT_TIMESTAMP ORDER BY i.id")
     List<OrganizationInvitation> findPendingByEmail(@Param("email") String email);
 
     @Query("SELECT i FROM OrganizationInvitation i WHERE i.organizationId = :orgId AND i.status = 'PENDING' AND i.expiresAt > CURRENT_TIMESTAMP")

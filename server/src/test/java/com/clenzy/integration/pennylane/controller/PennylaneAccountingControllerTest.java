@@ -28,6 +28,8 @@ class PennylaneAccountingControllerTest {
 
     @Mock private PennylaneAccountingSyncService syncService;
     @Mock private TenantContext tenantContext;
+    @Mock private com.clenzy.service.OrganizationService organizationAccess;
+    private final org.springframework.security.oauth2.jwt.Jwt jwt = org.springframework.security.oauth2.jwt.Jwt.withTokenValue("synthetic").header("alg","RS256").subject("synthetic-manager").build();
 
     private PennylaneAccountingController controller;
 
@@ -35,7 +37,7 @@ class PennylaneAccountingControllerTest {
 
     @BeforeEach
     void setUp() {
-        controller = new PennylaneAccountingController(syncService, tenantContext);
+        controller = new PennylaneAccountingController(syncService, tenantContext, organizationAccess);
     }
 
     @Test
@@ -45,7 +47,7 @@ class PennylaneAccountingControllerTest {
         when(tenantContext.getRequiredOrganizationId()).thenReturn(ORG_ID);
         when(syncService.syncAllPendingInvoices(ORG_ID)).thenReturn(result);
 
-        ResponseEntity<SyncResult> response = controller.syncInvoices();
+        ResponseEntity<SyncResult> response = controller.syncInvoices(jwt);
 
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
         assertThat(response.getBody()).isSameAs(result);
@@ -61,7 +63,7 @@ class PennylaneAccountingControllerTest {
         when(tenantContext.getRequiredOrganizationId()).thenReturn(ORG_ID);
         when(syncService.syncAllPendingInvoices(ORG_ID)).thenReturn(result);
 
-        ResponseEntity<SyncResult> response = controller.syncInvoices();
+        ResponseEntity<SyncResult> response = controller.syncInvoices(jwt);
 
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
         assertThat(response.getBody().failed()).isEqualTo(2);
@@ -75,7 +77,7 @@ class PennylaneAccountingControllerTest {
         when(tenantContext.getRequiredOrganizationId()).thenReturn(ORG_ID);
         when(syncService.syncAllPendingExpenses(ORG_ID)).thenReturn(result);
 
-        ResponseEntity<SyncResult> response = controller.syncExpenses();
+        ResponseEntity<SyncResult> response = controller.syncExpenses(jwt);
 
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
         assertThat(response.getBody()).isSameAs(result);
@@ -94,7 +96,7 @@ class PennylaneAccountingControllerTest {
         when(syncService.syncAllPendingInvoices(ORG_ID)).thenReturn(invoices);
         when(syncService.syncAllPendingExpenses(ORG_ID)).thenReturn(expenses);
 
-        ResponseEntity<Map<String, Object>> response = controller.syncAll();
+        ResponseEntity<Map<String, Object>> response = controller.syncAll(jwt);
 
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
         assertThat(response.getBody())
@@ -116,7 +118,7 @@ class PennylaneAccountingControllerTest {
         when(tenantContext.getRequiredOrganizationId()).thenReturn(ORG_ID);
         when(syncService.getSyncStatus(ORG_ID)).thenReturn(statusMap);
 
-        ResponseEntity<Map<String, Object>> response = controller.syncStatus();
+        ResponseEntity<Map<String, Object>> response = controller.syncStatus(jwt);
 
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
         assertThat(response.getBody())
@@ -138,7 +140,7 @@ class PennylaneAccountingControllerTest {
         when(tenantContext.getRequiredOrganizationId()).thenReturn(ORG_ID);
         when(syncService.getSyncStatus(ORG_ID)).thenReturn(statusMap);
 
-        ResponseEntity<Map<String, Object>> response = controller.syncStatus();
+        ResponseEntity<Map<String, Object>> response = controller.syncStatus(jwt);
 
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
         assertThat(response.getBody()).containsEntry("connected", false);
@@ -152,7 +154,7 @@ class PennylaneAccountingControllerTest {
 
         org.junit.jupiter.api.Assertions.assertThrows(
             IllegalStateException.class,
-            () -> controller.syncInvoices()
+            () -> controller.syncInvoices(jwt)
         );
         verify(syncService, never()).syncAllPendingInvoices(org.mockito.ArgumentMatchers.any());
     }

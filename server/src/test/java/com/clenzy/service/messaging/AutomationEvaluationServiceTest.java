@@ -50,6 +50,8 @@ class AutomationEvaluationServiceTest {
     private final SimpleMeterRegistry meterRegistry = new SimpleMeterRegistry();
     private final Clock clock = Clock.fixed(Instant.now(), ZoneId.systemDefault());
 
+    @Mock private com.clenzy.service.automation.BaitlyAutomationContext recoveryContext;
+    @Mock private com.clenzy.service.automation.BaitlyAutomationJournal journal;
     private AutomationEvaluationService service;
 
     @BeforeEach
@@ -57,7 +59,20 @@ class AutomationEvaluationServiceTest {
         service = new AutomationEvaluationService(ruleRepository, executionRepository,
             new AutomationConditionEvaluator(new com.fasterxml.jackson.databind.ObjectMapper()),
             actionRegistry, reservationRepository, tenantScopedExecutor, tenantContext,
-            meterRegistry, supervisionActivityService, clock, guestMessageLogRepository);
+            meterRegistry, supervisionActivityService, clock, guestMessageLogRepository,
+            recoveryContext, journal, mock(org.springframework.transaction.PlatformTransactionManager.class));
+        lenient().when(ruleRepository.lockForAdmission(anyLong(),anyLong())).thenAnswer(call -> {
+            Long ruleId=call.getArgument(0);Long org=call.getArgument(1);
+            for(var trigger:AutomationTrigger.values()) {
+                for(var rule:ruleRepository.findByOrganizationIdAndTriggerTypeAndEnabledTrue(org,trigger)) {
+                    if(ruleId.equals(rule.getId())) {rule.setOrganizationId(org);return Optional.of(rule);}
+                }
+            }
+            return Optional.empty();
+        });
+        lenient().when(recoveryContext.freeze(any(),any())).thenAnswer(c->c.getArgument(1));
+        lenient().when(recoveryContext.key(any(),any(),any(),any())).thenReturn("synthetic-key");
+        lenient().when(recoveryContext.encode(any(),any(),any(),any())).thenReturn("GCMv1:synthetic");
     }
 
     /** Le moteur enveloppe l'execution hors HTTP dans le contexte tenant de l'org. */
@@ -89,6 +104,7 @@ class AutomationEvaluationServiceTest {
 
         Reservation reservation = new Reservation();
         reservation.setId(100L);
+        reservation.setOrganizationId(1L);
 
         service.evaluateRulesForReservation(reservation, AutomationTrigger.RESERVATION_CONFIRMED, 1L);
 
@@ -109,6 +125,7 @@ class AutomationEvaluationServiceTest {
 
         Reservation reservation = new Reservation();
         reservation.setId(100L);
+        reservation.setOrganizationId(1L);
 
         service.evaluateRulesForReservation(reservation, AutomationTrigger.RESERVATION_CONFIRMED, 1L);
 
@@ -133,6 +150,7 @@ class AutomationEvaluationServiceTest {
 
         Reservation reservation = new Reservation();
         reservation.setId(100L);
+        reservation.setOrganizationId(1L);
         reservation.setCheckIn(LocalDate.now().plusDays(10));
 
         service.evaluateRulesForReservation(reservation, AutomationTrigger.CHECK_IN_APPROACHING, 1L);
@@ -163,10 +181,12 @@ class AutomationEvaluationServiceTest {
 
         Property property = new Property();
         property.setId(42L);
+        property.setOrganizationId(1L);
         property.setTimezone("Pacific/Auckland");
 
         Reservation reservation = new Reservation();
         reservation.setId(100L);
+        reservation.setOrganizationId(1L);
         reservation.setProperty(property);
         reservation.setCheckIn(LocalDate.now().plusDays(10));
 
@@ -199,6 +219,7 @@ class AutomationEvaluationServiceTest {
 
         Reservation reservation = new Reservation();
         reservation.setId(100L);
+        reservation.setOrganizationId(1L);
         reservation.setCheckIn(LocalDate.now().plusDays(10));
 
         service.evaluateRulesForReservation(reservation, AutomationTrigger.CHECK_IN_APPROACHING, 1L);
@@ -209,32 +230,7 @@ class AutomationEvaluationServiceTest {
             .isEqualTo(reservation.getCheckIn().minusDays(3));
     }
 
-    @Test
-    void reservationConfirmed_executesImmediatelyAndIncrementsMetric() {
-        registryReturnsExecutor();
-        AutomationRule rule = new AutomationRule();
-        rule.setId(10L);
-        rule.setName("Bienvenue");
-        rule.setTriggerType(AutomationTrigger.RESERVATION_CONFIRMED);
-        rule.setActionType(AutomationAction.SEND_MESSAGE);
 
-        when(ruleRepository.findByOrganizationIdAndTriggerTypeAndEnabledTrue(1L, AutomationTrigger.RESERVATION_CONFIRMED))
-            .thenReturn(List.of(rule));
-        when(executionRepository.existsByAutomationRuleIdAndSubjectTypeAndSubjectId(
-            10L, AutomationSubject.TYPE_RESERVATION, 100L)).thenReturn(false);
-        when(actionExecutor.execute(eq(rule), any())).thenReturn(ExecutionResult.executed());
-
-        Reservation reservation = new Reservation();
-        reservation.setId(100L);
-
-        service.evaluateRulesForReservation(reservation, AutomationTrigger.RESERVATION_CONFIRMED, 1L);
-
-        ArgumentCaptor<AutomationExecution> captor = ArgumentCaptor.forClass(AutomationExecution.class);
-        verify(executionRepository).save(captor.capture());
-        assertThat(captor.getValue().getStatus()).isEqualTo(AutomationExecutionStatus.EXECUTED);
-        assertThat(meterRegistry.counter("automation.flow.executed", "action", "SEND_MESSAGE").count())
-            .isEqualTo(1.0);
-    }
 
     @Test
     void evaluateRulesForReservation_conditionsNotMatched_skips() {
@@ -251,6 +247,7 @@ class AutomationEvaluationServiceTest {
 
         Reservation reservation = new Reservation();
         reservation.setId(100L);
+        reservation.setOrganizationId(1L);
         reservation.setCheckIn(LocalDate.now());
         reservation.setCheckOut(LocalDate.now().plusDays(2)); // 2 nuits < 5
 
@@ -266,6 +263,7 @@ class AutomationEvaluationServiceTest {
 
         Reservation reservation = new Reservation();
         reservation.setId(100L);
+        reservation.setOrganizationId(1L);
 
         service.onReservationCreated(reservation, 1L);
 
@@ -279,95 +277,11 @@ class AutomationEvaluationServiceTest {
 
     // ── Drain (executions planifiees) ───────────────────────────────────────────
 
-    @Test
-    void processScheduledExecutions_executesReadyUnderTenantContext() {
-        tenantExecutorRunsInline();
-        registryReturnsExecutor();
 
-        AutomationRule rule = new AutomationRule();
-        rule.setId(10L);
-        rule.setName("Auto message");
-        rule.setActionType(AutomationAction.SEND_MESSAGE);
 
-        Reservation reservation = new Reservation();
-        reservation.setId(100L);
 
-        AutomationExecution exec = pendingExecution(rule, reservation);
-        when(executionRepository.findByStatusAndScheduledAtBefore(
-            eq(AutomationExecutionStatus.PENDING), any()))
-            .thenReturn(List.of(exec));
-        when(actionExecutor.execute(eq(rule), any())).thenReturn(ExecutionResult.executed());
 
-        service.processScheduledExecutions();
 
-        assertThat(exec.getStatus()).isEqualTo(AutomationExecutionStatus.EXECUTED);
-        assertThat(exec.getExecutedAt()).isNotNull();
-        verify(executionRepository).save(exec);
-        // Z2-EFFETS : hors HTTP, l'action tourne sous le contexte tenant de SON org.
-        verify(tenantScopedExecutor).runAsOrganization(eq(1L), any(Runnable.class));
-    }
-
-    @Test
-    void processScheduledExecutions_failedAction_setsFailedStatus() {
-        tenantExecutorRunsInline();
-        registryReturnsExecutor();
-
-        AutomationRule rule = new AutomationRule();
-        rule.setId(10L);
-        rule.setName("Failing rule");
-        rule.setActionType(AutomationAction.SEND_MESSAGE);
-
-        Reservation reservation = new Reservation();
-        reservation.setId(100L);
-
-        AutomationExecution exec = pendingExecution(rule, reservation);
-        when(executionRepository.findByStatusAndScheduledAtBefore(
-            eq(AutomationExecutionStatus.PENDING), any()))
-            .thenReturn(List.of(exec));
-        when(actionExecutor.execute(eq(rule), any()))
-            .thenThrow(new RuntimeException("Email service down"));
-
-        service.processScheduledExecutions();
-
-        assertThat(exec.getStatus()).isEqualTo(AutomationExecutionStatus.FAILED);
-        assertThat(exec.getErrorMessage()).contains("Email service down");
-    }
-
-    @Test
-    void processScheduledExecutions_rescheduledByExecutor_staysPendingAtNewDeadline() {
-        tenantExecutorRunsInline();
-        registryReturnsExecutor();
-
-        AutomationRule rule = new AutomationRule();
-        rule.setId(13L);
-        rule.setName("Revocation code");
-        rule.setTriggerType(AutomationTrigger.CHECK_OUT_DAY);
-        rule.setActionType(AutomationAction.REVOKE_ACCESS_CODE);
-
-        Reservation reservation = new Reservation();
-        reservation.setId(103L);
-
-        AutomationExecution exec = pendingExecution(rule, reservation);
-        when(executionRepository.findByStatusAndScheduledAtBefore(
-            eq(AutomationExecutionStatus.PENDING), any()))
-            .thenReturn(List.of(exec));
-        LocalDateTime newDeadline = LocalDateTime.now().plusHours(3);
-        when(actionExecutor.execute(eq(rule), any()))
-            .thenReturn(ExecutionResult.rescheduled(newDeadline, "Check-out + grace non atteint"));
-
-        service.processScheduledExecutions();
-
-        // Statut NON-terminal : l'execution one-shot n'est PAS consommee, elle repart
-        // en PENDING a la nouvelle echeance (guard temporel F4b).
-        assertThat(exec.getStatus()).isEqualTo(AutomationExecutionStatus.PENDING);
-        assertThat(exec.getScheduledAt()).isEqualTo(newDeadline);
-        assertThat(exec.getErrorMessage()).contains("grace");
-        assertThat(exec.getExecutedAt()).isNull();
-        verify(executionRepository).save(exec);
-        // Pas de metrique executed pour une re-planification.
-        assertThat(meterRegistry.counter("automation.flow.executed", "action", "REVOKE_ACCESS_CODE").count())
-            .isEqualTo(0.0);
-    }
 
     @Test
     void revokeAccessCodeRule_scheduledAtCheckOutMomentPlusGrace() {
@@ -387,11 +301,13 @@ class AutomationEvaluationServiceTest {
 
         Property property = new Property();
         property.setId(42L);
+        property.setOrganizationId(1L);
         property.setTimezone("Pacific/Auckland");
         property.setDefaultCheckOutTime("11:00");
 
         Reservation reservation = new Reservation();
         reservation.setId(100L);
+        reservation.setOrganizationId(1L);
         reservation.setProperty(property);
         reservation.setCheckOut(LocalDate.now().plusDays(10));
 
@@ -409,69 +325,11 @@ class AutomationEvaluationServiceTest {
         assertThat(captor.getValue().getScheduledAt()).isEqualTo(expected);
     }
 
-    @Test
-    void processScheduledExecutions_skippedByExecutor_setsSkippedStatusWithReason() {
-        tenantExecutorRunsInline();
-        registryReturnsExecutor();
 
-        AutomationRule rule = new AutomationRule();
-        rule.setId(12L);
-        rule.setName("Relance avis J+7");
-        rule.setTriggerType(AutomationTrigger.REVIEW_REMINDER);
-        rule.setActionType(AutomationAction.SEND_REVIEW_REQUEST);
-
-        Reservation reservation = new Reservation();
-        reservation.setId(102L);
-
-        AutomationExecution exec = pendingExecution(rule, reservation);
-        when(executionRepository.findByStatusAndScheduledAtBefore(
-            eq(AutomationExecutionStatus.PENDING), any()))
-            .thenReturn(List.of(exec));
-        when(actionExecutor.execute(eq(rule), any()))
-            .thenReturn(ExecutionResult.skipped("Avis deja recu"));
-
-        service.processScheduledExecutions();
-
-        assertThat(exec.getStatus()).isEqualTo(AutomationExecutionStatus.SKIPPED);
-        assertThat(exec.getErrorMessage()).contains("Avis deja recu");
-        verify(executionRepository).save(exec);
-    }
 
     // ── Chemin evenementiel (fireTrigger) ───────────────────────────────────────
 
-    @Test
-    void fireTrigger_matchingRule_executesImmediately() {
-        tenantExecutorRunsInline();
-        registryReturnsExecutor();
 
-        AutomationRule rule = new AutomationRule();
-        rule.setId(20L);
-        rule.setName("Relance facture");
-        rule.setTriggerType(AutomationTrigger.INVOICE_OVERDUE);
-        rule.setActionType(AutomationAction.SEND_INVOICE_REMINDER);
-
-        when(ruleRepository.findByOrganizationIdAndTriggerTypeAndEnabledTrue(1L, AutomationTrigger.INVOICE_OVERDUE))
-            .thenReturn(List.of(rule));
-        // INVOICE_OVERDUE est RECURRENT (dedupePerSubject=false) : pas de check exists moteur.
-        when(actionExecutor.execute(eq(rule), any())).thenReturn(ExecutionResult.executed());
-
-        service.fireTrigger(AutomationTrigger.INVOICE_OVERDUE, 1L,
-            new AutomationSubject(AutomationSubject.TYPE_INVOICE, 55L, Map.of("daysOverdue", 3)));
-
-        ArgumentCaptor<AutomationExecution> execCaptor = ArgumentCaptor.forClass(AutomationExecution.class);
-        verify(executionRepository).save(execCaptor.capture());
-        AutomationExecution saved = execCaptor.getValue();
-        assertThat(saved.getStatus()).isEqualTo(AutomationExecutionStatus.EXECUTED);
-        assertThat(saved.getSubjectType()).isEqualTo(AutomationSubject.TYPE_INVOICE);
-        assertThat(saved.getSubjectId()).isEqualTo(55L);
-        assertThat(saved.getReservation()).isNull();
-
-        ArgumentCaptor<AutomationActionContext> ctxCaptor = ArgumentCaptor.forClass(AutomationActionContext.class);
-        verify(actionExecutor).execute(eq(rule), ctxCaptor.capture());
-        assertThat(ctxCaptor.getValue().dataAsLong("daysOverdue")).isEqualTo(3L);
-        assertThat(meterRegistry.counter("automation.flow.executed", "action", "SEND_INVOICE_REMINDER").count())
-            .isEqualTo(1.0);
-    }
 
     @Test
     void fireTrigger_sameSubjectTwice_isIdempotent() {
@@ -497,35 +355,7 @@ class AutomationEvaluationServiceTest {
         verify(executionRepository, never()).save(any());
     }
 
-    @Test
-    void fireTrigger_reservationSubject_resolvesReservationIntoContext() {
-        tenantExecutorRunsInline();
-        registryReturnsExecutor();
 
-        AutomationRule rule = new AutomationRule();
-        rule.setId(21L);
-        rule.setName("Menage post-checkout");
-        rule.setTriggerType(AutomationTrigger.RESERVATION_BOOKED);
-        rule.setActionType(AutomationAction.CREATE_CLEANING_REQUEST);
-
-        Reservation reservation = new Reservation();
-        reservation.setId(100L);
-        reservation.setOrganizationId(1L);
-
-        when(ruleRepository.findByOrganizationIdAndTriggerTypeAndEnabledTrue(1L, AutomationTrigger.RESERVATION_BOOKED))
-            .thenReturn(List.of(rule));
-        when(reservationRepository.findById(100L)).thenReturn(Optional.of(reservation));
-        when(executionRepository.existsByAutomationRuleIdAndSubjectTypeAndSubjectId(
-            21L, AutomationSubject.TYPE_RESERVATION, 100L)).thenReturn(false);
-        when(actionExecutor.execute(eq(rule), any())).thenReturn(ExecutionResult.executed());
-
-        service.fireTrigger(AutomationTrigger.RESERVATION_BOOKED, 1L,
-            new AutomationSubject(AutomationSubject.TYPE_RESERVATION, 100L, Map.of()));
-
-        ArgumentCaptor<AutomationActionContext> ctxCaptor = ArgumentCaptor.forClass(AutomationActionContext.class);
-        verify(actionExecutor).execute(eq(rule), ctxCaptor.capture());
-        assertThat(ctxCaptor.getValue().reservation()).isSameAs(reservation);
-    }
 
     @Test
     void fireTrigger_reservationMissing_executesNothing() {
@@ -568,62 +398,9 @@ class AutomationEvaluationServiceTest {
         verify(executionRepository, never()).save(any());
     }
 
-    @Test
-    void fireTrigger_conditionsEvaluatedOnSubjectData() {
-        tenantExecutorRunsInline();
-        registryReturnsExecutor();
 
-        AutomationRule matching = new AutomationRule();
-        matching.setId(30L);
-        matching.setName("Propriete 42 uniquement");
-        matching.setTriggerType(AutomationTrigger.NOISE_ALERT);
-        matching.setActionType(AutomationAction.SEND_NOISE_WARNING);
-        matching.setConditions("{\"propertyIds\": [42]}");
 
-        when(ruleRepository.findByOrganizationIdAndTriggerTypeAndEnabledTrue(1L, AutomationTrigger.NOISE_ALERT))
-            .thenReturn(List.of(matching));
-        when(executionRepository.existsByAutomationRuleIdAndSubjectTypeAndSubjectId(
-            eq(30L), eq(AutomationSubject.TYPE_NOISE_ALERT), anyLong())).thenReturn(false);
-        when(actionExecutor.execute(eq(matching), any())).thenReturn(ExecutionResult.executed());
 
-        // Alerte sur la propriete 42 → la regle matche.
-        service.fireTrigger(AutomationTrigger.NOISE_ALERT, 1L,
-            new AutomationSubject(AutomationSubject.TYPE_NOISE_ALERT, 7L,
-                Map.of(AutomationSubject.DATA_PROPERTY_ID, 42L)));
-        verify(actionExecutor, times(1)).execute(eq(matching), any());
-
-        // Alerte sur une autre propriete → conditions non satisfaites, rien n'est execute.
-        service.fireTrigger(AutomationTrigger.NOISE_ALERT, 1L,
-            new AutomationSubject(AutomationSubject.TYPE_NOISE_ALERT, 8L,
-                Map.of(AutomationSubject.DATA_PROPERTY_ID, 99L)));
-        verify(actionExecutor, times(1)).execute(eq(matching), any());
-    }
-
-    @Test
-    void fireTrigger_recurringTrigger_isNotDedupedBySubject() {
-        tenantExecutorRunsInline();
-        registryReturnsExecutor();
-
-        // Releve mensuel : sujet stable (owner) declenche chaque mois — l'idempotence
-        // moteur est deleguee a la cle metier de l'executeur (owner_statement_dispatch).
-        AutomationRule rule = new AutomationRule();
-        rule.setId(40L);
-        rule.setName("Releve mensuel");
-        rule.setTriggerType(AutomationTrigger.OWNER_MONTHLY_STATEMENT);
-        rule.setActionType(AutomationAction.SEND_OWNER_STATEMENT);
-
-        when(ruleRepository.findByOrganizationIdAndTriggerTypeAndEnabledTrue(1L, AutomationTrigger.OWNER_MONTHLY_STATEMENT))
-            .thenReturn(List.of(rule));
-        when(actionExecutor.execute(eq(rule), any())).thenReturn(ExecutionResult.executed());
-
-        AutomationSubject owner = new AutomationSubject("OWNER", 7L, Map.of());
-        service.fireTrigger(AutomationTrigger.OWNER_MONTHLY_STATEMENT, 1L, owner);
-        service.fireTrigger(AutomationTrigger.OWNER_MONTHLY_STATEMENT, 1L, owner);
-
-        verify(actionExecutor, times(2)).execute(eq(rule), any());
-        verify(executionRepository, never())
-            .existsByAutomationRuleIdAndSubjectTypeAndSubjectId(anyLong(), anyString(), anyLong());
-    }
 
     @Test
     void fireTrigger_noEnabledRules_doesNotTouchTenantScope() {
@@ -636,16 +413,54 @@ class AutomationEvaluationServiceTest {
         verify(tenantScopedExecutor, never()).runAsOrganization(anyLong(), any(Runnable.class));
     }
 
-    private AutomationExecution pendingExecution(AutomationRule rule, Reservation reservation) {
-        AutomationExecution exec = new AutomationExecution();
-        exec.setId(1L);
-        exec.setOrganizationId(1L);
-        exec.setAutomationRule(rule);
-        exec.setSubjectType(AutomationSubject.TYPE_RESERVATION);
-        exec.setSubjectId(reservation.getId());
-        exec.setReservation(reservation);
-        exec.setStatus(AutomationExecutionStatus.PENDING);
-        exec.setScheduledAt(LocalDateTime.now().minusHours(1));
-        return exec;
+    @Test void confirmedReservationQueuesBeforeAnyExecutorAndEncryptsContext() {
+        var rule=new AutomationRule();rule.setId(10L);rule.setOrganizationId(1L);
+        rule.setTriggerType(AutomationTrigger.RESERVATION_CONFIRMED);
+        when(ruleRepository.findByOrganizationIdAndTriggerTypeAndEnabledTrue(1L,rule.getTriggerType())).thenReturn(List.of(rule));
+        var stay=new Reservation();stay.setId(100L);stay.setOrganizationId(1L);
+        service.evaluateRulesForReservation(stay,rule.getTriggerType(),1L);
+        var captor=ArgumentCaptor.forClass(AutomationExecution.class);
+        verify(executionRepository).save(captor.capture());
+        assertThat(captor.getValue().getDurableState()).isEqualTo("PENDING");
+        assertThat(captor.getValue().getDurableContext()).isEqualTo("GCMv1:synthetic");
+        verifyNoInteractions(actionRegistry);
     }
+    @Test void anUncertainPriorOccurrenceBlocksRecurringAdmission() {
+        tenantExecutorRunsInline();
+        var rule=new AutomationRule();rule.setId(10L);rule.setOrganizationId(1L);
+        rule.setTriggerType(AutomationTrigger.INVOICE_OVERDUE);
+        when(ruleRepository.findByOrganizationIdAndTriggerTypeAndEnabledTrue(1L,rule.getTriggerType())).thenReturn(List.of(rule));
+        when(executionRepository.existsByAutomationRuleIdAndOrganizationIdAndSubjectTypeAndSubjectIdAndDurableStateIn(
+            eq(10L),eq(1L),eq("INVOICE"),eq(7L),anyList())).thenReturn(true);
+        service.fireTrigger(rule.getTriggerType(),1L,new AutomationSubject("INVOICE",7L,Map.of()));
+        verify(executionRepository,never()).save(any());verifyNoInteractions(actionRegistry);
+    }
+    @Test void replayRequiresEvidenceAndCannotRearmAnUnknownOrHistoricalFailure() {
+        var execution=new AutomationExecution();execution.setOrganizationId(1L);execution.setStatus(AutomationExecutionStatus.FAILED);
+        when(executionRepository.findById(7L)).thenReturn(Optional.of(execution));
+        assertThatThrownBy(()->service.replayExecution(7L,1L)).hasMessage("AUTOMATION_RECONCILIATION_REQUIRED");
+        assertThatThrownBy(()->service.replayExecution(7L,2L)).hasMessage("Execution introuvable");
+        verifyNoInteractions(actionRegistry);verify(executionRepository,never()).save(any());
+    }
+    @Test void historicalFailureCannotBeReintroducedAsANewRecurringOccurrence() {
+        tenantExecutorRunsInline();
+        var rule=new AutomationRule();rule.setId(10L);rule.setOrganizationId(1L);rule.setTriggerType(AutomationTrigger.INVOICE_OVERDUE);
+        when(ruleRepository.findByOrganizationIdAndTriggerTypeAndEnabledTrue(1L,rule.getTriggerType())).thenReturn(List.of(rule));
+        when(executionRepository.existsByAutomationRuleIdAndOrganizationIdAndSubjectTypeAndSubjectIdAndStatusAndDurableStateIsNull(
+            10L,1L,"INVOICE",7L,AutomationExecutionStatus.FAILED)).thenReturn(true);
+        service.fireTrigger(rule.getTriggerType(),1L,new AutomationSubject("INVOICE",7L,Map.of()));
+        verify(executionRepository,never()).save(any());verifyNoInteractions(actionRegistry);
+    }
+
+    @Test void competingTriggerAdmissionsTakeRuleLocksInAStableOrder() {
+        tenantExecutorRunsInline();
+        var first=new AutomationRule();first.setId(10L);first.setOrganizationId(1L);first.setTriggerType(AutomationTrigger.NOISE_ALERT);
+        var second=new AutomationRule();second.setId(20L);second.setOrganizationId(1L);second.setTriggerType(AutomationTrigger.NOISE_ALERT);
+        when(ruleRepository.findByOrganizationIdAndTriggerTypeAndEnabledTrue(1L,AutomationTrigger.NOISE_ALERT)).thenReturn(List.of(second,first));
+        service.fireTrigger(AutomationTrigger.NOISE_ALERT,1L,new AutomationSubject("NOISE_ALERT",7L,Map.of()));
+        var ordered=inOrder(ruleRepository);ordered.verify(ruleRepository).lockForAdmission(10L,1L);
+        ordered.verify(ruleRepository).lockForAdmission(20L,1L);
+        verifyNoInteractions(actionRegistry);
+    }
+
 }

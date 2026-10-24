@@ -77,6 +77,33 @@ class NoiseAlertSchedulerTest {
         tenantContext.clear();
     }
 
+    private final ch.qos.logback.classic.Logger logger =
+        (ch.qos.logback.classic.Logger) org.slf4j.LoggerFactory.getLogger(NoiseAlertScheduler.class);
+    private final ch.qos.logback.core.read.ListAppender<ch.qos.logback.classic.spi.ILoggingEvent> logs =
+        new ch.qos.logback.core.read.ListAppender<>();
+    private ch.qos.logback.classic.Level previous;
+
+    @BeforeEach void captureDiagnostics() {
+        previous = logger.getLevel();
+        logger.setLevel(ch.qos.logback.classic.Level.DEBUG);
+        logs.start();
+        logger.addAppender(logs);
+    }
+
+    @AfterEach void checkDiagnostics() {
+        try {
+            org.assertj.core.api.Assertions.assertThat(logs.list).allSatisfy(event -> {
+                org.assertj.core.api.Assertions.assertThat(event.getFormattedMessage())
+                    .doesNotContain("synthetic-secret", "example.invalid", "private-cause");
+                org.assertj.core.api.Assertions.assertThat(event.getThrowableProxy()).isNull();
+            });
+        } finally {
+            logger.detachAppender(logs);
+            logger.setLevel(previous);
+            logs.stop();
+        }
+    }
+
     private NoiseAlertConfig createConfig(Long propertyId, Long orgId) {
         NoiseAlertConfig config = new NoiseAlertConfig();
         config.setPropertyId(propertyId);
@@ -187,7 +214,7 @@ class NoiseAlertSchedulerTest {
                     .thenReturn(List.of(device1, device2));
 
             when(deviceService.getNoiseData(eq("user-1"), eq(100L), anyString(), anyString()))
-                    .thenThrow(new RuntimeException("API error"));
+                    .thenThrow(new RuntimeException("synthetic-secret guest@example.invalid", new IllegalStateException("private-cause")));
 
             NoiseDataPointDto dataPoint = new NoiseDataPointDto();
             dataPoint.setDecibels(70.0);
@@ -223,7 +250,7 @@ class NoiseAlertSchedulerTest {
 
             when(configRepository.findAllEnabledWithTimeWindows()).thenReturn(List.of(config1, config2));
             when(deviceRepository.findByPropertyIdAndStatus(1L, DeviceStatus.ACTIVE))
-                    .thenThrow(new RuntimeException("DB error"));
+                    .thenThrow(new RuntimeException("synthetic-secret guest@example.invalid", new IllegalStateException("private-cause")));
             when(deviceRepository.findByPropertyIdAndStatus(2L, DeviceStatus.ACTIVE))
                     .thenReturn(List.of());
 

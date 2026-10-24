@@ -297,7 +297,7 @@ public class StripePaymentProvider implements PaymentProvider {
     public PaymentResult refundPayment(RefundContext context, BigDecimal amount, String reason) {
         if (context.refundTransactionRef() != null) {
             try { return managedRefund.execute(context, amount); }
-            catch (Exception failure) { return PaymentResult.failure(failure.getMessage()); }
+            catch (Exception failure) { return PaymentResult.failure(com.clenzy.payment.BaitlyRefundDiagnostics.RECONCILIATION_REQUIRED); }
         }
         // Un remboursement total rejoue la même opération après une panne de persistance.
         String key = (amount == null || amount.compareTo(context.originalAmount()) == 0)
@@ -337,13 +337,13 @@ public class StripePaymentProvider implements PaymentProvider {
                     com.stripe.net.RequestOptions.builder().setApiKey(secretKey).build());
             }
             if (!"succeeded".equals(refund.getStatus())) {
-                return PaymentResult.failure("Remboursement non confirmé par Stripe : " + refund.getStatus());
+                return PaymentResult.failure(com.clenzy.payment.BaitlyRefundDiagnostics.PENDING);
             }
 
             return PaymentResult.success(refund.getId(), null, "REFUNDED");
         } catch (com.stripe.exception.StripeException e) {
-            log.error("Stripe refundPayment failed: {}", e.getMessage());
-            return PaymentResult.failure("Stripe refund error: " + e.getMessage());
+            log.error("Remboursement Stripe à rapprocher : {}", com.clenzy.payment.BaitlyRefundDiagnostics.RECONCILIATION_REQUIRED);
+            return PaymentResult.failure(com.clenzy.payment.BaitlyRefundDiagnostics.RECONCILIATION_REQUIRED);
         }
     }
 

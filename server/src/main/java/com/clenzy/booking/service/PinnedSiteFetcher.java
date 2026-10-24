@@ -79,11 +79,29 @@ public class PinnedSiteFetcher {
      * @throws IOException erreur reseau, reponse non-200 ou corps trop volumineux
      */
     public FetchedResource fetch(String url, long maxBytes) throws IOException {
+        return fetchAuthenticated(url, maxBytes, java.util.Map.of());
+    }
+
+    /** Même transport épinglé pour les PDF privés : seuls les en-têtes de signature sont admis. */
+    public FetchedResource fetchAuthenticated(String url, long maxBytes, java.util.Map<String, String> authentication) throws IOException {
+        if (maxBytes <= 0 || maxBytes > Integer.MAX_VALUE || authentication == null || authentication.size() > 2) {
+            throw new IllegalArgumentException("Requête de téléchargement invalide");
+        }
+        URI uri = URI.create(url == null ? "" : url.trim());
+        if (uri.getUserInfo() != null || uri.getFragment() != null) throw new IllegalArgumentException("URL invalide");
+        StringBuilder extraHeaders = new StringBuilder();
+        for (var entry : authentication.entrySet()) {
+            if (!("Authorization".equalsIgnoreCase(entry.getKey()) || "X-Auth-Token".equalsIgnoreCase(entry.getKey()))
+                    || entry.getValue() == null || entry.getValue().isBlank() || entry.getValue().length() > 8192
+                    || !entry.getValue().chars().allMatch(c -> c >= 32 && c <= 126)) {
+                throw new IllegalArgumentException("En-tête de téléchargement invalide");
+            }
+            extraHeaders.append(entry.getKey()).append(": ").append(entry.getValue()).append("\r\n");
+        }
         InetAddress pinnedAddress = validatePublicHttpsUrl(url);
-        URI uri = URI.create(url.trim());
         Socket socket = openPinnedTlsSocket(uri, pinnedAddress);
         try (socket) {
-            writeGetRequest(socket.getOutputStream(), uri);
+            writeGetRequest(socket.getOutputStream(), uri, extraHeaders.toString());
             return readResponse(new BufferedInputStream(socket.getInputStream()), maxBytes);
         }
     }
@@ -112,7 +130,7 @@ public class PinnedSiteFetcher {
         }
     }
 
-    private static void writeGetRequest(OutputStream out, URI uri) throws IOException {
+    private static void writeGetRequest(OutputStream out, URI uri, String authenticationHeaders) throws IOException {
         String path = (uri.getRawPath() == null || uri.getRawPath().isEmpty()) ? "/" : uri.getRawPath();
         String target = uri.getRawQuery() != null ? path + "?" + uri.getRawQuery() : path;
         String request = "GET " + target + " HTTP/1.1\r\n"
@@ -120,6 +138,7 @@ public class PinnedSiteFetcher {
                 + "User-Agent: Clenzy-Preview/1.0\r\n"
                 + "Accept: */*\r\n"
                 + "Accept-Encoding: identity\r\n"
+                + authenticationHeaders
                 + "Connection: close\r\n"
                 + "\r\n";
         out.write(request.getBytes(StandardCharsets.US_ASCII));
@@ -184,6 +203,7 @@ public class PinnedSiteFetcher {
                 break;
             }
         }
+        if (contentLength >= 0 && total != contentLength) throw new IOException("Corps HTTP tronqué");
         return out.toByteArray();
     }
 

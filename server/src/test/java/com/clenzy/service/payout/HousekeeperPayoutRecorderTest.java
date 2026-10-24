@@ -107,4 +107,9 @@ class HousekeeperPayoutRecorderTest {
                 isNull(), any())).thenReturn(0);
         assertThat(recorder.markFailed(77L, "boom")).isEqualTo(0); // concurrent déjà passé → no-op
     }
+
+    @Test void privateFailureIsReplacedInsteadOfMerelyTruncated() {
+        recorder.markFailed(77L,"email=synthetic@example.invalid token=private-canary");
+        verify(recordRepository).transitionStatus(77L,Status.PENDING,Status.FAILED,null,BaitlyPayoutDiagnostics.PREPARATION_FAILED);
+    }
 }

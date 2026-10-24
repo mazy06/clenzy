@@ -6,10 +6,10 @@ package com.clenzy.dto;
  * {@code POST /api/ops/alerts}.
  *
  * @param severity "critical" | "warning" | "info" (indicatif ; defaut "critical")
- * @param title    titre court de l'alerte (obligatoire)
- * @param message  detail de l'alerte (obligatoire)
- * @param source   origine ("cd-deploy", "alertmanager", ...) — facultatif
- * @param link     lien d'action (URL du run CI / dashboard) — facultatif
+ * @param title    champ historique obligatoire, jamais recopié dans la notification Baitly
+ * @param message  champ historique obligatoire, jamais recopié dans la notification Baitly
+ * @param source   origine historique facultative, jamais utilisée comme label libre
+ * @param link     URL HTTPS d'un run GitHub Baitly connu, sans query ni fragment ; sinon ignorée
  */
 public record OpsAlertRequest(
         String severity,

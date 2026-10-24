@@ -69,7 +69,7 @@ public class KeyNestWebhookController {
             webhookHandler.handleWebhookEvent(body);
             return ResponseEntity.ok(Map.of("status", "processed"));
         } catch (Exception e) {
-            log.error("Erreur traitement webhook KeyNest: {}", e.getMessage());
+            log.error("Erreur traitement webhook KeyNest");
             return ResponseEntity.internalServerError().body(Map.of(
                     "error", "processing_error",
                     "message", "Erreur lors du traitement du webhook"
