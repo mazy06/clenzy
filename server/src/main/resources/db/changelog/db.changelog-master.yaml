@@ -5373,3 +5373,11 @@ databaseChangeLog:
         - sqlFile:
             path: changes/0603__baitly_automation_durable_recovery.sql
             relativeToChangelogFile: true
+
+  - changeSet:
+      id: "0604-baitly-automation-outcome-proofs"
+      author: clenzy-team
+      changes:
+        - sqlFile:
+            path: changes/0604__baitly_automation_outcome_proofs.sql
+            relativeToChangelogFile: true

@@ -14,7 +14,7 @@ Un drain toutes les dix secondes sélectionne au plus 25 lignes validées. Il r�
 | `DONE` | Résultat terminal enregistré (`EXECUTED` ou `SKIPPED`). Aucun rejeu de cette occurrence. |
 | `REVIEW` | Périmètre, version de règle ou fraîcheur invalides avant tentative. Aucune action externe. |
 
-Le statut public `FAILED` ne prouve pas l'absence d'effet. Il inclut les tentatives réservées/incertaines et les lignes à examiner ; les diagnostics sont des codes fixes. L'endpoint de rejeu exige désormais une réconciliation et ne réarme aucune exécution. Aucun outil de réconciliation automatique n'est prétendu disponible.
+Le statut public `FAILED` ne prouve pas l'absence d'effet. Il inclut les tentatives réservées/incertaines et les lignes à examiner ; les diagnostics sont des codes fixes. L'endpoint de rejeu exige une réconciliation et ne réarme aucune exécution. La réconciliation décrite ci-dessous applique seulement un reçu terminal correspondant exactement à la tentative ; elle ne rappelle jamais un exécuteur.
 
 Les seuls reports autorisés proviennent des guards avant envoi des exécuteurs voyageurs et du guard avant révocation des accès. Un report doit viser une date future et ne porter aucune référence d'effet. Un autre exécuteur ne peut pas se réarmer par un simple résultat « reporté ».
 
@@ -48,11 +48,29 @@ L’âge est calculé avec la convention `TIMESTAMP` du journal (heure locale du
 
 La candidate infra ajoute quatre alertes : collecte absente/invalide/périmée (trois minutes), action prête âgée de plus de deux minutes (trois minutes supplémentaires), tentative incertaine de plus de cinq minutes (cinq minutes supplémentaires), stock expiré/en revue/historique continuellement non vide (quinze minutes). Les alertes métier exigent neuf valeurs finies, non négatives et fraîches sur la réplique concernée, santé égale à un, horloge raisonnable et backend disponible. Ce sont des seuils initiaux à calibrer, pas une garantie de délai métier. Le précontrôle refuse l’activation si une seule réplique est incomplète. Les messages sont fixes et ne réarment aucune action. Le récepteur OPS reconnaît ces quatre noms contrôlés au déclenchement et au rétablissement ; il ignore toujours les annotations et labels privés distants. Les compteurs d’acceptation ne portent que source et statut, jamais le nom de règle métier.
 
-La candidate applicative cumulative incluant 0603 doit précéder la candidate infra cumulative incluant #138 ; les branches précédentes ne doivent pas être livrées séparément. La conservation, la réconciliation sur preuve et les transactions internes legacy restent des sujets distincts.
+La candidate applicative cumulative incluant 0603/0604 doit précéder la candidate infra cumulative #139 ; les branches précédentes ne doivent pas être livrées séparément. La conservation, les preuves distantes manquantes et les transactions internes legacy restent des sujets distincts.
+
+## Réconciliation sur reçu terminal durable
+
+La migration **0604** ajoute `baitly_automation_outcome_proofs`, journal JDBC privé sans backfill. Après le retour terminal de l'exécuteur et le commit de ses services transactionnels, le moteur enregistre un reçu dans une transaction indépendante. Il applique ensuite ce reçu au statut d'exécution dans une autre transaction courte. Un arrêt après le premier commit ne perd plus le résultat observé. Un arrêt avant ce reçu, même après effet réel, reste ambigu et bloqué.
+
+Le reçu contient uniquement les références internes de périmètre (organisation, exécution, règle/version, sujet), le UUID et la date de tentative, le résultat `EXECUTED` ou `SKIPPED`, une éventuelle référence interne et la date d'observation. Aucun nom, email, contenu, contexte déchiffré, message d'exception ou reçu brut du fournisseur. Il n'existe aucun endpoint permettant d'injecter un reçu ni de déclarer manuellement un succès. Les résultats mixtes ou références invalides sont refusés.
+
+**Ce reçu atteste le résultat explicitement retourné et observé par le moteur. Il n'atteste pas une livraison finale chez le destinataire.** Les contrats des adaptateurs continuent de s'appliquer (par exemple `SENT`/`DELIVERED` pour les messages voyageurs). Un simple marqueur, une proximité de date ou un message récent sur le même séjour ne servent jamais à fabriquer une preuve. Les anciens `STARTED`/`UNKNOWN` et échecs historiques sans reçu restent bloqués ; aucun historique n'est réinterprété.
+
+`BaitlyAutomationReconciler` examine au maximum 25 reçus éligibles par minute, sous ShedLock et verrou SQL par exécution. La comparaison organisation/exécution/règle/version/sujet/UUID/date de tentative précède tout changement. Elle ne fait que terminer `STARTED`/`UNKNOWN` en `DONE`, avec le statut exact et la date de résultat d'origine ; elle ne retourne jamais à `PENDING`. Le changement de statut et l'audit d'application (`NORMAL` ou `RECOVERY`) sont atomiques. Des workers concurrents ne consomment qu'une seule fois le reçu.
+
+Un reçu identique reste idempotent et garde son observation d'origine. Un résultat ou une référence contradictoire marque le reçu comme contesté sans écraser le résultat initial ; aucune application ni remise en attente n'est alors permise. Un report pré-effet n'est pas un reçu terminal. Une tentative portant déjà un reçu ne peut plus être reportée ou réarmée. Les tentatives anciennes, étrangères, futures incohérentes ou déjà terminées ne sont pas appliquées. Une modification ultérieure de la règle courante n'annule pas la preuve historique de la règle/version exécutée.
+
+Le journal d'exécution est protégé contre une suppression en cascade qui détruirait sa preuve ; une suppression de règle rencontrant cette contrainte retourne `409 AUTOMATION_HISTORY_PROTECTED`, sans diagnostic SQL. Désactiver une règle reste possible. Les politiques d'archivage et de rétention doivent être définies séparément, sans purger une ambiguïté pour libérer une nouvelle action.
+
+La constellation secondaire est écrite après la preuve et le statut primaires. Elle reste best-effort et n'est pas rejouée par la réconciliation. Les compteurs `baitly_automation_reconciled_total` et `baitly_automation_reconciliation_failures_total` sont globaux, sans labels métier ; les alertes existantes continuent de couvrir les tentatives durablement incertaines et les travaux retardés. Une erreur du réconciliateur n'expose aucun diagnostic arbitraire.
 
 ## Validation locale et campagne finale
 
 `BaitlyAutomationRecoveryTest` applique le changeset réel, vérifie sa réexécution, les courses SQL, rollback, redémarrage, résultat perdu, jetons périmés, scopes, reports et données sensibles synthétiques. La recette obligatoire `ci-payout-recipe.yml` le lance sur PostgreSQL éphémère. Tests voyageurs, échéances/fuseaux, réservations et verrouillage scheduler complètent cette suite.
+
+`BaitlyAutomationReconciliationTest` applique les changesets réels 0603/0604 et vérifie le reçu commité visible d'une autre connexion avant la panne du statut, la reprise sans deuxième appel, l'atomicité statut/audit, les courses, les scopes complets, les preuves absentes/contestées, les reports, le quota de 25, les suppressions et les diagnostics minimisés. `BaitlyAutomationHistoryProtectionTest` vérifie le conflit contrôlé et le refus cross-org. Les deux suites sont obligatoires dans la recette PostgreSQL CI ; leur succès local/CI ne vaut pas qualification staging.
 
 Les tests réels de coupure/redémarrage du staging, les fournisseurs et les notifications sont réservés à la campagne finale. Cette documentation ne constitue pas une validation staging et ne clôture pas FR10/FR11. FR09 reste en attente du coffre-fort et du stockage hors site approuvés.
 

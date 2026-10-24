@@ -242,24 +242,25 @@ public class AutomationEvaluationService implements AutomationEngine {
                     AutomationActionExecutor.ExecutionResult result=null;
                     boolean allowDeferral=false;
                     AutomationAction action=null;
+                    Prepared prepared=null;
                     try {
-                        var prepared=actionTransaction.execute(status -> prepare(work));
+                        prepared=actionTransaction.execute(status -> prepare(work));
                         if(prepared!=null) {
                             // No engine transaction may surround a provider or an executor.
                             result=prepared.terminal()!=null?prepared.terminal():prepared.executor().execute(prepared.rule(),prepared.context());
                             allowDeferral=prepared.executor()!=null && prepared.executor().permitsPreEffectDeferral();
                             action=prepared.rule().getActionType();
-                            if(result!=null && !result.skipped() && result.rescheduledAt()==null) {
-                                try { recordConstellationActivity(prepared.rule(),prepared.context(),result.refId()); }
-                                catch(RuntimeException ignored) { log.warn("Baitly automation: activite secondaire non confirmee"); }
-                            }
                         }
                     } catch(RuntimeException failure) {
                         log.warn("Baitly automation: resultat incertain, execution={}, aucun rejeu automatique",work.execution());
                     }
                     boolean committed=journal.finish(ticket.orElseThrow(),result,now(),allowDeferral);
-                    if(committed && result!=null && !result.skipped() && result.rescheduledAt()==null)
+                    if(committed && result!=null && !result.skipped() && result.rescheduledAt()==null) {
                         meterRegistry.counter(EXECUTED_METRIC,"action",action.name()).increment();
+                        // The primary receipt and journal commit precede this optional secondary feed.
+                        try { recordConstellationActivity(prepared.rule(),prepared.context(),result.refId()); }
+                        catch(RuntimeException ignored) { log.warn("Baitly automation: activite secondaire non confirmee"); }
+                    }
                 });
             } catch(RuntimeException failure) {
                 log.warn("Baitly automation: reprise interrompue, execution={}, tentative protegee",work.execution());

@@ -1,5 +1,7 @@
 {
   "backend": [
+    "BaitlyAutomationReconciliationTest",
+    "BaitlyAutomationHistoryProtectionTest",
     "BaitlyAutomationMetricsTest",
     "BaitlyAutomationRecoveryTest",
     "GuestMessageExecutorsTest",
