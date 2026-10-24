@@ -100,6 +100,11 @@ class OrganizationInvitationServiceTest {
         return builder.build();
     }
 
+    private Jwt recipientJwt(String subject, String email) {
+        return Jwt.withTokenValue("synthetic").header("alg", "none").subject(subject)
+                .claim("email", email).claim("email_verified", true).build();
+    }
+
     private OrganizationInvitation buildInvitation(Long id, Organization org, String email) {
         OrganizationInvitation inv = new OrganizationInvitation();
         inv.setId(id);
@@ -109,6 +114,139 @@ class OrganizationInvitationServiceTest {
         inv.setStatus(InvitationStatus.PENDING);
         inv.setExpiresAt(LocalDateTime.now().plusDays(7));
         return inv;
+    }
+
+    @Nested
+    class RecipientAndLifecycleSecurity {
+        private OrganizationInvitation pending() {
+            return buildInvitation(100L, buildOrg(ORG_ID, "Synthetic"), "recipient@example.invalid");
+        }
+
+        @org.junit.jupiter.params.ParameterizedTest
+        @org.junit.jupiter.params.provider.NullAndEmptySource
+        @org.junit.jupiter.params.provider.ValueSource(strings = {"other@example.invalid", " "})
+        void anotherOrMissingJwtEmailNeverJoinsTheOrganization(String email) {
+            OrganizationInvitation invitation = pending();
+            when(invitationRepository.findByTokenHashForUpdate(any())).thenReturn(Optional.of(invitation));
+            Jwt.Builder builder = Jwt.withTokenValue("synthetic").header("alg", "none").subject("kc-1");
+            if (email != null) builder.claim("email", email);
+            assertThatThrownBy(() -> invitationService.acceptInvitation("synthetic", builder.build()))
+                    .isInstanceOf(AccessDeniedException.class);
+            verifyNoInteractions(userRepository, organizationService, memberRepository, keycloakService);
+            verify(invitationRepository, never()).save(any());
+            assertThat(invitation.getStatus()).isEqualTo(InvitationStatus.PENDING);
+        }
+
+        @Test void jwtMatchingButLocalAccountEmailDifferentIsRejected() {
+            OrganizationInvitation invitation = pending();
+            when(invitationRepository.findByTokenHashForUpdate(any())).thenReturn(Optional.of(invitation));
+            when(userRepository.findByKeycloakId("kc-1")).thenReturn(Optional.of(buildUser(1L, UserRole.HOST)));
+            assertThatThrownBy(() -> invitationService.acceptInvitation("synthetic",
+                    recipientJwt("kc-1", invitation.getInvitedEmail())))
+                    .isInstanceOf(AccessDeniedException.class);
+            verifyNoInteractions(organizationService, memberRepository, keycloakService);
+            verify(userRepository, never()).save(any());
+            verify(invitationRepository, never()).save(any());
+        }
+
+        @Test void legitimateRecipientCanAcceptOnceWithCaseAndWhitespaceNormalization() {
+            OrganizationInvitation invitation = pending();
+            User recipient = buildUser(1L, UserRole.HOST);
+            recipient.setEmail(" RECIPIENT@example.invalid ");
+            when(invitationRepository.findByTokenHashForUpdate(any())).thenReturn(Optional.of(invitation));
+            when(userRepository.findByKeycloakId("kc-1")).thenReturn(Optional.of(recipient));
+            Jwt jwt = recipientJwt("kc-1", "Recipient@example.invalid");
+            assertThat(invitationService.acceptInvitation("synthetic", jwt).getStatus()).isEqualTo("ACCEPTED");
+            assertThatThrownBy(() -> invitationService.acceptInvitation("synthetic", jwt))
+                    .isInstanceOf(IllegalStateException.class);
+            verify(organizationService, times(1)).addMember(ORG_ID, 1L, OrgMemberRole.MEMBER);
+        }
+
+        @org.junit.jupiter.params.ParameterizedTest
+        @org.junit.jupiter.params.provider.ValueSource(booleans = {false, true})
+        void autoAcceptanceCannotTrustLocalVerifiedFlagWithoutVerifiedJwt(boolean localVerified) {
+            User recipient = buildUser(1L, UserRole.HOST);
+            recipient.setEmail("recipient@example.invalid");
+            recipient.setEmailVerified(localVerified);
+            Jwt jwt = Jwt.withTokenValue("synthetic").header("alg", "none").subject("kc-1")
+                    .claim("email", recipient.getEmail()).claim("email_verified", false).build();
+            invitationService.autoAcceptPendingInvitations(recipient.getEmail(), recipient, jwt);
+            verifyNoInteractions(invitationRepository, organizationService, memberRepository);
+        }
+
+        @org.junit.jupiter.params.ParameterizedTest
+        @org.junit.jupiter.params.provider.ValueSource(strings = {"missing-verification", "other-subject", "other-email"})
+        void autoAcceptanceRequiresCompleteMatchingIdentity(String scenario) {
+            User recipient = buildUser(1L, UserRole.HOST);
+            recipient.setEmail("recipient@example.invalid");
+            Jwt.Builder builder = Jwt.withTokenValue("synthetic").header("alg", "none")
+                    .subject(scenario.equals("other-subject") ? "kc-other" : "kc-1")
+                    .claim("email", scenario.equals("other-email") ? "other@example.invalid" : recipient.getEmail());
+            if (!scenario.equals("missing-verification")) builder.claim("email_verified", true);
+            invitationService.autoAcceptPendingInvitations(recipient.getEmail(), recipient, builder.build());
+            verifyNoInteractions(invitationRepository, organizationService, memberRepository);
+        }
+
+        @org.junit.jupiter.params.ParameterizedTest
+        @org.junit.jupiter.params.provider.EnumSource(value = InvitationStatus.class, names = {"ACCEPTED", "CANCELLED", "EXPIRED"})
+        void registerNeverCreatesAccountsForConsumedOrRevokedTokens(InvitationStatus status) {
+            OrganizationInvitation invitation = pending();
+            invitation.setStatus(status);
+            when(invitationRepository.findByTokenHashForUpdate(any())).thenReturn(Optional.of(invitation));
+            var request = new com.clenzy.dto.InvitationRegisterRequest();
+            request.setToken("synthetic");
+            assertThatThrownBy(() -> invitationService.registerAndAcceptInvitation(request))
+                    .isInstanceOf(IllegalStateException.class);
+            verifyNoInteractions(keycloakService, userRepository, organizationService, memberRepository, restTemplate);
+        }
+
+        @Test void missingExpiryFailsClosedForInfoAcceptAndRegistration() {
+            OrganizationInvitation invitation = pending();
+            invitation.setExpiresAt(null);
+            when(invitationRepository.findByTokenHash(any())).thenReturn(Optional.of(invitation));
+            when(invitationRepository.findByTokenHashForUpdate(any())).thenReturn(Optional.of(invitation));
+            assertThatThrownBy(() -> invitationService.getInvitationInfo("synthetic"))
+                    .isInstanceOf(IllegalStateException.class);
+            assertThatThrownBy(() -> invitationService.acceptInvitation("synthetic",
+                    recipientJwt("kc-1", invitation.getInvitedEmail())))
+                    .isInstanceOf(IllegalStateException.class);
+            invitation.setStatus(InvitationStatus.PENDING);
+            var request = new com.clenzy.dto.InvitationRegisterRequest();
+            request.setToken("synthetic");
+            assertThatThrownBy(() -> invitationService.registerAndAcceptInvitation(request))
+                    .isInstanceOf(IllegalStateException.class);
+            verifyNoInteractions(keycloakService, userRepository, organizationService, memberRepository);
+        }
+
+        @Test void acceptedInvitationCannotBeReissuedOrHaveItsAuditStateErased() {
+            OrganizationInvitation invitation = pending();
+            invitation.setStatus(InvitationStatus.ACCEPTED);
+            User admin = buildUser(1L, UserRole.SUPER_ADMIN);
+            when(userRepository.findByKeycloakId("kc-1")).thenReturn(Optional.of(admin));
+            when(invitationRepository.findByIdForUpdate(100L)).thenReturn(Optional.of(invitation));
+            assertThatThrownBy(() -> invitationService.resendInvitation(ORG_ID, 100L,
+                    buildJwt("kc-1", "SUPER_ADMIN"))).isInstanceOf(IllegalStateException.class);
+            assertThat(invitation.getStatus()).isEqualTo(InvitationStatus.ACCEPTED);
+            verify(invitationRepository, never()).save(any());
+            verifyNoInteractions(emailService, keycloakService, organizationRepository);
+        }
+
+        @Test void autoAcceptanceRechecksStatusExpiryAndRecipientBeforeJoining() {
+            User recipient = buildUser(1L, UserRole.HOST);
+            recipient.setEmail("recipient@example.invalid");
+            OrganizationInvitation cancelled = pending();
+            cancelled.setStatus(InvitationStatus.CANCELLED);
+            OrganizationInvitation expired = pending();
+            expired.setExpiresAt(LocalDateTime.now().minusSeconds(1));
+            OrganizationInvitation other = pending();
+            other.setInvitedEmail("other@example.invalid");
+            when(invitationRepository.findPendingByEmail(recipient.getEmail()))
+                    .thenReturn(List.of(cancelled, expired, other));
+            invitationService.autoAcceptPendingInvitations(recipient.getEmail(), recipient,
+                    recipientJwt("kc-1", recipient.getEmail()));
+            verifyNoInteractions(organizationService, memberRepository);
+            verify(invitationRepository, never()).save(any());
+        }
     }
 
     // ===== SEND INVITATION =====
@@ -379,14 +517,15 @@ class OrganizationInvitationServiceTest {
             Organization org = buildOrg(ORG_ID, "Test Org");
             OrganizationInvitation inv = buildInvitation(1L, org, "accept@test.com");
             User user = buildUser(10L, UserRole.HOST);
+            user.setEmail(inv.getInvitedEmail());
 
-            when(invitationRepository.findByTokenHash(any())).thenReturn(Optional.of(inv));
+            when(invitationRepository.findByTokenHashForUpdate(any())).thenReturn(Optional.of(inv));
             when(userRepository.findByKeycloakId("kc-10")).thenReturn(Optional.of(user));
             when(memberRepository.existsByOrganizationIdAndUserId(ORG_ID, 10L)).thenReturn(false);
             when(invitationRepository.save(any())).thenAnswer(i -> i.getArgument(0));
             lenient().when(redisTemplate.delete(anyString())).thenReturn(true);
 
-            Jwt jwt = buildJwt("kc-10");
+            Jwt jwt = recipientJwt("kc-10", inv.getInvitedEmail());
 
             // Act
             InvitationDto result = invitationService.acceptInvitation("raw-token", jwt);
@@ -405,7 +544,7 @@ class OrganizationInvitationServiceTest {
             Organization org = buildOrg(ORG_ID, "Test Org");
             OrganizationInvitation inv = buildInvitation(1L, org, "new@test.com");
 
-            when(invitationRepository.findByTokenHash(any())).thenReturn(Optional.of(inv));
+            when(invitationRepository.findByTokenHashForUpdate(any())).thenReturn(Optional.of(inv));
             when(userRepository.findByKeycloakId("kc-new")).thenReturn(Optional.empty());
             when(userRepository.save(any(User.class))).thenAnswer(i -> {
                 User u = i.getArgument(0);
@@ -449,7 +588,7 @@ class OrganizationInvitationServiceTest {
             Organization org = buildOrg(ORG_ID, "Test Org");
             OrganizationInvitation inv = buildInvitation(1L, org, "test@test.com");
             inv.setStatus(InvitationStatus.ACCEPTED);
-            when(invitationRepository.findByTokenHash(any())).thenReturn(Optional.of(inv));
+            when(invitationRepository.findByTokenHashForUpdate(any())).thenReturn(Optional.of(inv));
 
             Jwt jwt = buildJwt("kc-1");
 
@@ -466,7 +605,7 @@ class OrganizationInvitationServiceTest {
             Organization org = buildOrg(ORG_ID, "Test Org");
             OrganizationInvitation inv = buildInvitation(1L, org, "test@test.com");
             inv.setExpiresAt(LocalDateTime.now().minusDays(1));
-            when(invitationRepository.findByTokenHash(any())).thenReturn(Optional.of(inv));
+            when(invitationRepository.findByTokenHashForUpdate(any())).thenReturn(Optional.of(inv));
             when(invitationRepository.save(any())).thenAnswer(i -> i.getArgument(0));
 
             Jwt jwt = buildJwt("kc-1");
@@ -483,7 +622,7 @@ class OrganizationInvitationServiceTest {
         @DisplayName("when token not found then throws IllegalArgumentException")
         void whenTokenNotFound_thenThrows() {
             // Arrange
-            when(invitationRepository.findByTokenHash(any())).thenReturn(Optional.empty());
+            when(invitationRepository.findByTokenHashForUpdate(any())).thenReturn(Optional.empty());
             Jwt jwt = buildJwt("kc-1");
 
             // Act & Assert
@@ -498,14 +637,15 @@ class OrganizationInvitationServiceTest {
             Organization org = buildOrg(ORG_ID, "Test Org");
             OrganizationInvitation inv = buildInvitation(1L, org, "member@test.com");
             User user = buildUser(10L, UserRole.HOST);
+            user.setEmail(inv.getInvitedEmail());
 
-            when(invitationRepository.findByTokenHash(any())).thenReturn(Optional.of(inv));
+            when(invitationRepository.findByTokenHashForUpdate(any())).thenReturn(Optional.of(inv));
             when(userRepository.findByKeycloakId("kc-10")).thenReturn(Optional.of(user));
             when(memberRepository.existsByOrganizationIdAndUserId(ORG_ID, 10L)).thenReturn(true);
             when(invitationRepository.save(any())).thenAnswer(i -> i.getArgument(0));
             lenient().when(redisTemplate.delete(anyString())).thenReturn(true);
 
-            Jwt jwt = buildJwt("kc-10");
+            Jwt jwt = recipientJwt("kc-10", inv.getInvitedEmail());
 
             // Act
             InvitationDto result = invitationService.acceptInvitation("token", jwt);
@@ -529,12 +669,13 @@ class OrganizationInvitationServiceTest {
             User user = buildUser(1L, UserRole.HOST);
             Organization org = buildOrg(ORG_ID, "Test Org");
             OrganizationInvitation inv = buildInvitation(100L, org, "auto@test.com");
+            user.setEmail(inv.getInvitedEmail());
 
             when(invitationRepository.findPendingByEmail("auto@test.com")).thenReturn(List.of(inv));
             when(memberRepository.existsByOrganizationIdAndUserId(ORG_ID, 1L)).thenReturn(false);
 
             // Act
-            invitationService.autoAcceptPendingInvitations("auto@test.com", user);
+            invitationService.autoAcceptPendingInvitations("auto@test.com", user, recipientJwt(user.getKeycloakId(), user.getEmail()));
 
             // Assert
             assertThat(inv.getStatus()).isEqualTo(InvitationStatus.ACCEPTED);
@@ -546,7 +687,7 @@ class OrganizationInvitationServiceTest {
         @DisplayName("when null email then does nothing")
         void whenNullEmail_thenDoesNothing() {
             // Act
-            invitationService.autoAcceptPendingInvitations(null, buildUser(1L, UserRole.HOST));
+            invitationService.autoAcceptPendingInvitations(null, buildUser(1L, UserRole.HOST), null);
 
             // Assert
             verify(invitationRepository, never()).findPendingByEmail(any());
@@ -556,7 +697,7 @@ class OrganizationInvitationServiceTest {
         @DisplayName("when null user then does nothing")
         void whenNullUser_thenDoesNothing() {
             // Act
-            invitationService.autoAcceptPendingInvitations("test@test.com", null);
+            invitationService.autoAcceptPendingInvitations("test@test.com", null, null);
 
             // Assert
             verify(invitationRepository, never()).findPendingByEmail(any());
@@ -569,12 +710,13 @@ class OrganizationInvitationServiceTest {
             User user = buildUser(1L, UserRole.HOST);
             Organization org = buildOrg(ORG_ID, "Test Org");
             OrganizationInvitation inv = buildInvitation(100L, org, "member@test.com");
+            user.setEmail(inv.getInvitedEmail());
 
             when(invitationRepository.findPendingByEmail("member@test.com")).thenReturn(List.of(inv));
             when(memberRepository.existsByOrganizationIdAndUserId(ORG_ID, 1L)).thenReturn(true);
 
             // Act
-            invitationService.autoAcceptPendingInvitations("member@test.com", user);
+            invitationService.autoAcceptPendingInvitations("member@test.com", user, recipientJwt(user.getKeycloakId(), user.getEmail()));
 
             // Assert
             verify(organizationService, never()).addMember(anyLong(), anyLong(), any());
@@ -587,10 +729,11 @@ class OrganizationInvitationServiceTest {
             // Arrange
             User user = buildUser(1L, UserRole.HOST);
 
+            user.setEmail("upper@test.com");
             when(invitationRepository.findPendingByEmail("upper@test.com")).thenReturn(List.of());
 
             // Act
-            invitationService.autoAcceptPendingInvitations("UPPER@test.com", user);
+            invitationService.autoAcceptPendingInvitations("UPPER@test.com", user, recipientJwt(user.getKeycloakId(), user.getEmail()));
 
             // Assert
             verify(invitationRepository).findPendingByEmail("upper@test.com");
@@ -677,7 +820,7 @@ class OrganizationInvitationServiceTest {
             OrganizationInvitation inv = buildInvitation(100L, org, "cancel@test.com");
 
             when(userRepository.findByKeycloakId("kc-1")).thenReturn(Optional.of(admin));
-            when(invitationRepository.findById(100L)).thenReturn(Optional.of(inv));
+            when(invitationRepository.findByIdForUpdate(100L)).thenReturn(Optional.of(inv));
 
             // Act
             invitationService.cancelInvitation(ORG_ID, 100L, jwt);
@@ -697,7 +840,7 @@ class OrganizationInvitationServiceTest {
             OrganizationInvitation inv = buildInvitation(100L, otherOrg, "cancel@test.com");
 
             when(userRepository.findByKeycloakId("kc-1")).thenReturn(Optional.of(admin));
-            when(invitationRepository.findById(100L)).thenReturn(Optional.of(inv));
+            when(invitationRepository.findByIdForUpdate(100L)).thenReturn(Optional.of(inv));
 
             // Act & Assert
             assertThatThrownBy(() -> invitationService.cancelInvitation(ORG_ID, 100L, jwt))
@@ -715,7 +858,7 @@ class OrganizationInvitationServiceTest {
             inv.setStatus(InvitationStatus.ACCEPTED);
 
             when(userRepository.findByKeycloakId("kc-1")).thenReturn(Optional.of(admin));
-            when(invitationRepository.findById(100L)).thenReturn(Optional.of(inv));
+            when(invitationRepository.findByIdForUpdate(100L)).thenReturn(Optional.of(inv));
 
             // Act & Assert
             assertThatThrownBy(() -> invitationService.cancelInvitation(ORG_ID, 100L, jwt))
@@ -729,7 +872,7 @@ class OrganizationInvitationServiceTest {
             Jwt jwt = buildJwt("kc-1", "SUPER_ADMIN");
             User admin = buildUser(1L, UserRole.SUPER_ADMIN);
             when(userRepository.findByKeycloakId("kc-1")).thenReturn(Optional.of(admin));
-            when(invitationRepository.findById(999L)).thenReturn(Optional.empty());
+            when(invitationRepository.findByIdForUpdate(999L)).thenReturn(Optional.empty());
 
             // Act & Assert
             assertThatThrownBy(() -> invitationService.cancelInvitation(ORG_ID, 999L, jwt))
@@ -747,7 +890,7 @@ class OrganizationInvitationServiceTest {
             inv.setStatus(InvitationStatus.CANCELLED);
 
             when(userRepository.findByKeycloakId("kc-1")).thenReturn(Optional.of(admin));
-            when(invitationRepository.findById(100L)).thenReturn(Optional.of(inv));
+            when(invitationRepository.findByIdForUpdate(100L)).thenReturn(Optional.of(inv));
 
             // Act
             invitationService.cancelInvitation(ORG_ID, 100L, jwt);
@@ -768,7 +911,7 @@ class OrganizationInvitationServiceTest {
             inv.setStatus(InvitationStatus.EXPIRED);
 
             when(userRepository.findByKeycloakId("kc-1")).thenReturn(Optional.of(admin));
-            when(invitationRepository.findById(100L)).thenReturn(Optional.of(inv));
+            when(invitationRepository.findByIdForUpdate(100L)).thenReturn(Optional.of(inv));
 
             // Act
             invitationService.cancelInvitation(ORG_ID, 100L, jwt);
@@ -796,7 +939,7 @@ class OrganizationInvitationServiceTest {
             oldInv.setRoleInvited(OrgMemberRole.ADMIN);
 
             when(userRepository.findByKeycloakId("kc-1")).thenReturn(Optional.of(admin));
-            when(invitationRepository.findById(100L)).thenReturn(Optional.of(oldInv));
+            when(invitationRepository.findByIdForUpdate(100L)).thenReturn(Optional.of(oldInv));
             when(organizationRepository.findById(ORG_ID)).thenReturn(Optional.of(org));
             when(invitationRepository.existsByOrganizationIdAndInvitedEmailAndStatus(
                     any(), any(), any())).thenReturn(false);
@@ -826,7 +969,7 @@ class OrganizationInvitationServiceTest {
             OrganizationInvitation inv = buildInvitation(100L, otherOrg, "test@test.com");
 
             when(userRepository.findByKeycloakId("kc-1")).thenReturn(Optional.of(admin));
-            when(invitationRepository.findById(100L)).thenReturn(Optional.of(inv));
+            when(invitationRepository.findByIdForUpdate(100L)).thenReturn(Optional.of(inv));
 
             // Act & Assert
             assertThatThrownBy(() -> invitationService.resendInvitation(ORG_ID, 100L, jwt))

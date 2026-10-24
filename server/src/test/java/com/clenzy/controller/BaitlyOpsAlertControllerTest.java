@@ -110,4 +110,82 @@ class BaitlyOpsAlertControllerTest {
                 .getStatusCode().value()).isEqualTo(202);
         assertThat(registry.get("baitly.ops.alerts.received").tag("source","ci").counter().count()).isEqualTo(1);
     }
+
+    @org.junit.jupiter.params.ParameterizedTest
+    @org.junit.jupiter.params.provider.NullAndEmptySource
+    @org.junit.jupiter.params.provider.ValueSource(strings = {
+            "https://github.com/mazy06/clenzy/actions/runs/123?token=synthetic-private",
+            "https://github.com/mazy06/clenzy/actions/runs/123#synthetic-private",
+            "https://synthetic-private@github.com/mazy06/clenzy/actions/runs/123",
+            "http://github.com/mazy06/clenzy/actions/runs/123",
+            "https://github.com:443/mazy06/clenzy/actions/runs/123",
+            "https://github.com.evil.invalid/mazy06/clenzy/actions/runs/123",
+            "https://github.com/other/clenzy/actions/runs/123",
+            "https://github.com/mazy06/unknown/actions/runs/123",
+            "https://github.com/mazy06/clenzy/actions/runs/0",
+            "https://github.com/mazy06/clenzy/actions/runs/123/../synthetic-private",
+            "https://github.com/mazy06/clenzy/actions/runs/%31%32%33",
+            "/settings?token=synthetic-private", "//evil.invalid/synthetic-private",
+            "javascript:synthetic-private", "synthetic-private\ninvalid-uri"})
+    void ciPrivatePayloadAndUnsafeLinksAreNeverPersisted(String link) {
+        when(notifications.notifyPlatformOpsStrict(anyString(),anyString(),isNull())).thenReturn(1);
+        var req = new OpsAlertRequest("synthetic-private", "synthetic-private@example.invalid",
+                "token=synthetic-private SQL <script>", "synthetic-private-source",link);
+        var response = controller.receive(req,"test-ops-token");
+        assertThat(response.getStatusCode().value()).isEqualTo(202);
+        var title = ArgumentCaptor.forClass(String.class); var message = ArgumentCaptor.forClass(String.class);
+        verify(notifications).notifyPlatformOpsStrict(title.capture(),message.capture(),isNull());
+        assertThat(title.getValue()).isEqualTo("[critical] Baitly : alerte d’exploitation");
+        assertThat(message.getValue()).isEqualTo("Consulter le monitoring interne et le guide d’incident.");
+        assertThat(registry.getMeters()).allSatisfy(meter ->
+                assertThat(meter.getId().toString()).doesNotContain("synthetic-private","token=","example.invalid"));
+    }
+
+    @org.junit.jupiter.params.ParameterizedTest
+    @org.junit.jupiter.params.provider.ValueSource(strings = {
+            "https://github.com/mazy06/clenzy/actions/runs/123",
+            "https://github.com/mazy06/clenzy-infra/actions/runs/123/attempts/2",
+            "https://github.com/mazy06/clenzy-sites/actions/runs/123/job/456"})
+    void trustedPublicRunLinkSurvivesWithoutFreeDiagnostic(String link) {
+        when(notifications.notifyPlatformOpsStrict(anyString(),anyString(),isNull())).thenReturn(1);
+        controller.receive(new OpsAlertRequest("warning","synthetic-private","synthetic-private","synthetic-private",link),"test-ops-token");
+        var title = ArgumentCaptor.forClass(String.class); var message = ArgumentCaptor.forClass(String.class);
+        verify(notifications).notifyPlatformOpsStrict(title.capture(),message.capture(),isNull());
+        assertThat(title.getValue()).isEqualTo("[warning] Baitly : alerte d’exploitation");
+        assertThat(message.getValue()).endsWith(link).doesNotContain("synthetic-private");
+    }
+
+    @Test void ciAuthenticationAndRecipientFailureStayClosedWithPrivatePayload() {
+        var req = new OpsAlertRequest("info","synthetic-private","synthetic-private","ci",null);
+        assertThat(controller.receive(req,"wrong").getStatusCode().value()).isEqualTo(401);
+        verifyNoInteractions(notifications);
+        when(notifications.notifyPlatformOpsStrict(anyString(),anyString(),isNull()))
+                .thenThrow(new IllegalStateException("synthetic-private SQL token"));
+        var response = controller.receive(req,"test-ops-token");
+        assertThat(response.getStatusCode().value()).isEqualTo(503);
+        assertThat(response.getBody().toString()).doesNotContain("synthetic-private");
+        assertThat(registry.find("baitly.ops.alerts.received").counter()).isNull();
+    }
+
+    @org.junit.jupiter.params.ParameterizedTest
+    @org.junit.jupiter.params.provider.ValueSource(strings = {"BaitlyRecoveryMetricsUnavailable","BaitlyRecoveryMetricsStale",
+            "BaitlyAccountingExportStalled","BaitlyAccountingExportUncertain", "BaitlyMinutRecoveryStalled", "BaitlyMinutRecoveryUncertain", "BaitlyNoiseWarningMetricsUnavailable", "BaitlyNoiseWarningUncertain", "BaitlyNoiseWarningRepairStalled", "BaitlyNoiseWarningExpiredBeforeAttempt",
+            "BaitlyAutomationMetricsUnavailable", "BaitlyAutomationStalled", "BaitlyAutomationUncertain", "BaitlyAutomationReviewRequired",
+            "BaitlyExternalEffectMetricsUnavailable", "BaitlyLockEffectUncertain", "BaitlyReportEffectUncertain", "BaitlyReportEffectPartial"})
+    void recoveryRulesKeepControlledNamesForFiringAndResolutionWithoutPrivateLabels(String name) throws Exception {
+        when(notifications.notifyPlatformOpsStrict(anyString(),anyString(),isNull())).thenReturn(1);
+        for (String state : java.util.List.of("firing","resolved")) {
+            var payload = json.createObjectNode().put("status",state);
+            var alert = payload.putArray("alerts").addObject();
+            alert.putObject("labels").put("alertname",name).put("severity","warning").put("organization","synthetic-private");
+            alert.putObject("annotations").put("description","token=synthetic-private");
+            assertThat(controller.receiveAlertmanager(payload,"test-ops-token",null).getStatusCode().value()).isEqualTo(202);
+        }
+        var titles = ArgumentCaptor.forClass(String.class); var messages = ArgumentCaptor.forClass(String.class);
+        verify(notifications,times(2)).notifyPlatformOpsStrict(titles.capture(),messages.capture(),isNull());
+        assertThat(titles.getAllValues()).allSatisfy(title -> assertThat(title).contains(name).doesNotContain("synthetic-private"));
+        assertThat(messages.getAllValues()).allSatisfy(message -> assertThat(message).contains(name).doesNotContain("synthetic-private"));
+        assertThat(registry.getMeters()).allSatisfy(meter ->
+            assertThat(meter.getId().toString()).doesNotContain("synthetic-private","token=","organization"));
+    }
 }

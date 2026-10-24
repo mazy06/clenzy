@@ -29,7 +29,7 @@ class NoiseAlertConfigServiceTest {
 
     @Test
     void whenSaveNewConfig_thenCreatesNewEntity() {
-        when(configRepository.findByOrganizationIdAndPropertyId(10L, 100L))
+        when(configRepository.findForUpdate(10L, 100L))
             .thenReturn(Optional.empty());
         when(configRepository.save(any(NoiseAlertConfig.class)))
             .thenAnswer(inv -> {
@@ -60,7 +60,7 @@ class NoiseAlertConfigServiceTest {
         existing.setPropertyId(100L);
         existing.setEnabled(false);
 
-        when(configRepository.findByOrganizationIdAndPropertyId(10L, 100L))
+        when(configRepository.findForUpdate(10L, 100L))
             .thenReturn(Optional.of(existing));
         when(configRepository.save(any(NoiseAlertConfig.class)))
             .thenAnswer(inv -> inv.getArgument(0));
@@ -94,7 +94,7 @@ class NoiseAlertConfigServiceTest {
     void whenDelete_thenRemovesConfig() {
         NoiseAlertConfig existing = new NoiseAlertConfig();
         existing.setId(1L);
-        when(configRepository.findByOrganizationIdAndPropertyId(10L, 100L))
+        when(configRepository.findForUpdate(10L, 100L))
             .thenReturn(Optional.of(existing));
 
         service.delete(10L, 100L);
@@ -104,7 +104,7 @@ class NoiseAlertConfigServiceTest {
 
     @Test
     void whenDeleteNonExistent_thenDoesNothing() {
-        when(configRepository.findByOrganizationIdAndPropertyId(10L, 100L))
+        when(configRepository.findForUpdate(10L, 100L))
             .thenReturn(Optional.empty());
 
         service.delete(10L, 100L);

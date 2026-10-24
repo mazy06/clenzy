@@ -29,7 +29,15 @@ public interface AutomationExecutionRepository extends JpaRepository<AutomationE
     Page<AutomationExecution> findByAutomationRuleIdAndOrganizationIdOrderByCreatedAtDesc(
         Long ruleId, Long organizationId, Pageable pageable);
 
-    /** Automatisations en échec : l'action promise n'a pas eu lieu. */
+    boolean existsByDurableKey(String key);
+
+    boolean existsByAutomationRuleIdAndOrganizationIdAndSubjectTypeAndSubjectIdAndStatusAndDurableStateIsNull(
+        Long rule, Long org, String type, Long subject, AutomationExecutionStatus status);
+
+    boolean existsByAutomationRuleIdAndOrganizationIdAndSubjectTypeAndSubjectIdAndDurableStateIn(
+        Long rule, Long org, String type, Long subject, List<String> states);
+
+    /** Échecs et résultats incertains à réconcilier, jamais une preuve d'absence d'effet. */
     @Query("""
             SELECT e FROM AutomationExecution e
             WHERE e.organizationId = :orgId

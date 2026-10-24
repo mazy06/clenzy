@@ -13,15 +13,15 @@ import org.springframework.stereotype.Service;
  * Executeur {@code SEND_NOISE_WARNING} du moteur AutomationRule (fiche 08, F6a) :
  * sur alerte bruit (trigger NOISE_ALERT), avertit le voyageur du sejour EN COURS
  * sur la propriete — WhatsApp (template Meta {@code clenzy_noise_alert_v1}) si
- * disponible, repli email sinon.
+ * disponible, email si aucun canal WhatsApp n’a ete prepare.
  *
  * <p>Sujet attendu : TYPE_NOISE_ALERT (subjectId = id de l'alerte). L'executeur
  * recharge l'alerte depuis la base (le contexte {@code data} est volatile) et
  * delegue l'envoi + l'idempotence « 1 avertissement / sejour / 24 h » (claim
- * Redis atomique, repli base) a
+ * journal PostgreSQL durable) a
  * {@link NoiseAlertNotificationService#sendGuestWarning} — filet partage avec le
  * chemin historique {@code notifyGuestMessage} de la config bruit : les deux
- * actives ne produisent qu'un seul message.</p>
+ * actives partagent la meme intention. Un resultat incertain ne se rearme jamais par TTL.</p>
  */
 @Service
 public class SendNoiseWarningExecutor implements AutomationActionExecutor {

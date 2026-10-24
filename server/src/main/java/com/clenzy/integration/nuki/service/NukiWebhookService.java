@@ -94,13 +94,13 @@ public class NukiWebhookService {
     public boolean applyBridgeEvent(Map<String, Object> payload, Long orgId) {
         final String nukiId = asString(payload.get("nukiId"));
         if (nukiId == null || nukiId.isBlank()) {
-            log.warn("Webhook Nuki : nukiId absent du payload");
+            log.warn("Baitly Nuki : reference absente [NUKI_DEVICE_REFERENCE_MISSING]");
             return false;
         }
 
         final SmartLockDevice device = deviceRepository.findByExternalDeviceId(nukiId).orElse(null);
         if (device == null) {
-            log.debug("Webhook Nuki : serrure inconnue externalDeviceId={}", nukiId);
+            log.debug("Baitly Nuki : serrure inconnue [NUKI_DEVICE_UNKNOWN]");
             return false;
         }
 
@@ -108,8 +108,7 @@ public class NukiWebhookService {
         // webhook. Sans cette garde, un secret valide d'une org permettrait de piloter
         // l'etat d'une serrure d'une autre org (findByExternalDeviceId est cross-org).
         if (orgId == null || !orgId.equals(device.getOrganizationId())) {
-            log.warn("Webhook Nuki : serrure {} (org={}) hors du perimetre du secret (org={}) — rejete",
-                    nukiId, device.getOrganizationId(), orgId);
+            log.warn("Baitly Nuki : perimetre refuse [NUKI_SCOPE_REJECTED]");
             return false;
         }
 
@@ -129,8 +128,7 @@ public class NukiWebhookService {
 
         if (changed) {
             deviceRepository.save(device);
-            log.info("Webhook Nuki : serrure {} mise a jour (lockState={}, battery={}%)",
-                    device.getId(), device.getLockState(), device.getBatteryLevel());
+            log.info("Baitly Nuki : etat mis a jour [NUKI_STATE_UPDATED]");
             // Push vers les hubs ouverts : emis SUR CHANGEMENT (le garde ci-dessus),
             // jamais a chaque webhook — Nuki en emet aussi sans transition d'etat.
             realtimePublisher.publishDeviceChanged(

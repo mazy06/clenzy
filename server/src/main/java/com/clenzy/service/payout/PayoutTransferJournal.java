@@ -48,13 +48,15 @@ public class PayoutTransferJournal {
         if (instruction.source() == PayoutTransfer.Source.INTERVENTION) {
             try { providerGuard.requireInstruction(instruction); }
             catch (IllegalStateException changed) {
-                throw new PayoutFundsUnavailableException("Financement du solde à rapprocher. Aucun transfert émis. " + changed.getMessage(), changed);
+                throw new PayoutFundsUnavailableException(BaitlyPayoutDiagnostics.FUNDS_UNAVAILABLE,
+                        BaitlyPayoutDiagnostics.technicalCause(changed));
             }
         }
         if (instruction.source() == PayoutTransfer.Source.OWNER_PAYOUT) {
             try { ownerGuard.requireInstruction(instruction); }
             catch (IllegalStateException changed) {
-                throw new PayoutFundsUnavailableException("Financement propriétaire à rapprocher. Aucun transfert émis. " + changed.getMessage(), changed);
+                throw new PayoutFundsUnavailableException(BaitlyPayoutDiagnostics.FUNDS_UNAVAILABLE,
+                        BaitlyPayoutDiagnostics.technicalCause(changed));
             }
         }
         if (instruction.source() == PayoutTransfer.Source.PROVIDER_EXPENSE) expenses.requireInstruction(instruction);

@@ -26,6 +26,7 @@ import java.util.List;
 import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.contains;
@@ -219,16 +220,16 @@ class PennylaneApiServiceTest {
         @DisplayName("falls back to PENDING for unknown status")
         void whenUnknown_thenFallsBackToPending() {
             stubStatus("frobulating");
-            assertThat(service.getSignatureStatus("req-1"))
-                    .isEqualTo(SignatureStatus.PENDING);
+            assertThatThrownBy(() -> service.getSignatureStatus("req-1"))
+                    .isInstanceOf(IllegalStateException.class).hasNoCause();
         }
 
         @Test
         @DisplayName("falls back to PENDING when status is null")
         void whenStatusNull_thenReturnsPending() {
             stubStatus(null);
-            assertThat(service.getSignatureStatus("req-1"))
-                    .isEqualTo(SignatureStatus.PENDING);
+            assertThatThrownBy(() -> service.getSignatureStatus("req-1"))
+                    .isInstanceOf(IllegalStateException.class).hasNoCause();
         }
 
         @Test

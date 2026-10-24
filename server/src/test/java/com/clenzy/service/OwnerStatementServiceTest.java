@@ -40,6 +40,7 @@ class OwnerStatementServiceTest {
     @Mock private OwnerPayoutRepository payoutRepository;
     @Mock private UserRepository userRepository;
     @Mock private EmailService emailService;
+    @Mock private org.springframework.transaction.PlatformTransactionManager transactionManager;
     @Mock private ProviderExpenseRepository providerExpenseRepository;
     @Mock private com.clenzy.repository.PropertyRepository propertyRepository;
     @Mock private com.clenzy.service.agent.supervision.SupervisionActivityService supervisionActivityService;
@@ -49,7 +50,7 @@ class OwnerStatementServiceTest {
     @BeforeEach
     void setUp() {
         service = new OwnerStatementService(payoutRepository, userRepository, emailService,
-                providerExpenseRepository, propertyRepository, supervisionActivityService);
+                providerExpenseRepository, propertyRepository, supervisionActivityService, transactionManager);
     }
 
     private User user(Long id, String email, String first, String last) {

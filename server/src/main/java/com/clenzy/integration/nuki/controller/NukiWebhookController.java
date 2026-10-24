@@ -69,7 +69,7 @@ public class NukiWebhookController {
         // traitement. Token absent/vide ou non reconnu → 401 (rejet, pas de fail-open).
         NukiConnection connection = nukiWebhookService.resolveConnectionByToken(token);
         if (connection == null) {
-            log.warn("Webhook Nuki Bridge rejete : secret de callback absent ou invalide");
+            log.warn("Baitly Nuki : secret de callback refuse [NUKI_CALLBACK_UNAUTHORIZED]");
             return ResponseEntity.status(401).body(Map.of(
                     "status", "error",
                     "message", "Invalid webhook secret"
@@ -77,16 +77,14 @@ public class NukiWebhookController {
         }
 
         if (payload == null || payload.isEmpty()) {
-            log.warn("Webhook Nuki Bridge recu avec payload vide (org={})", connection.getOrganizationId());
+            log.warn("Baitly Nuki : payload vide [NUKI_CALLBACK_EMPTY]");
             return ResponseEntity.badRequest().body(Map.of(
                     "status", "error",
                     "message", "Empty payload"
             ));
         }
 
-        log.info("Webhook Nuki Bridge (org={}): nukiId={}, state={} ({}), battery={}%, critical={}",
-                connection.getOrganizationId(), payload.get("nukiId"), payload.get("state"),
-                payload.get("stateName"), payload.get("batteryCharge"), payload.get("batteryCritical"));
+        log.info("Baitly Nuki : evenement recu [NUKI_CALLBACK_RECEIVED]");
 
         // Persiste l'etat de verrou + batterie, borne a l'org du secret. On ne propage
         // jamais d'erreur au Bridge (toujours 200 une fois authentifie) pour eviter les
@@ -94,8 +92,7 @@ public class NukiWebhookController {
         try {
             nukiWebhookService.applyBridgeEvent(payload, connection.getOrganizationId());
         } catch (Exception e) {
-            log.error("Webhook Nuki : echec de traitement (nukiId={}): {}",
-                    payload.get("nukiId"), e.getMessage(), e);
+            log.error("Baitly Nuki : traitement non confirme [NUKI_CALLBACK_PROCESSING_FAILED]");
         }
 
         return ResponseEntity.ok(Map.of(

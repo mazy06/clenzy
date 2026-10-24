@@ -13,6 +13,9 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.annotation.Propagation;
+import org.springframework.transaction.PlatformTransactionManager;
+import org.springframework.transaction.support.TransactionTemplate;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
@@ -30,7 +33,7 @@ import java.util.stream.Collectors;
  * <p>Le releve est un email HTML auto-portant (pas de piece jointe) qui resume
  * les reversements effectues sur une periode pour un proprietaire donne.</p>
  *
- * <p>C'est un differenciateur cle de Clenzy pour les conciergeries : leurs
+ * <p>C'est un differenciateur cle de Baitly pour les conciergeries : leurs
  * proprietaires recoivent un rapport mensuel transparent et professionnel,
  * sans que la conciergerie ait a le construire manuellement.</p>
  */
@@ -58,19 +61,24 @@ public class OwnerStatementService {
     private final ProviderExpenseRepository providerExpenseRepository;
     private final com.clenzy.repository.PropertyRepository propertyRepository;
     private final com.clenzy.service.agent.supervision.SupervisionActivityService supervisionActivityService;
+    private final TransactionTemplate preparation;
 
     public OwnerStatementService(OwnerPayoutRepository payoutRepository,
                                   UserRepository userRepository,
                                   EmailService emailService,
                                   ProviderExpenseRepository providerExpenseRepository,
                                   com.clenzy.repository.PropertyRepository propertyRepository,
-                                  com.clenzy.service.agent.supervision.SupervisionActivityService supervisionActivityService) {
+                                  com.clenzy.service.agent.supervision.SupervisionActivityService supervisionActivityService,
+                                  PlatformTransactionManager transactionManager) {
         this.payoutRepository = payoutRepository;
         this.userRepository = userRepository;
         this.emailService = emailService;
         this.providerExpenseRepository = providerExpenseRepository;
         this.propertyRepository = propertyRepository;
         this.supervisionActivityService = supervisionActivityService;
+        this.preparation = new TransactionTemplate(transactionManager);
+        this.preparation.setReadOnly(true);
+        this.preparation.setTimeout(30);
     }
 
     /**
@@ -83,10 +91,27 @@ public class OwnerStatementService {
      * @param conciergerieName Nom de l'organisation (a inclure dans la signature)
      * @return resume des donnees envoyees pour confirmation API
      */
-    @Transactional(readOnly = true)
+    @Transactional(propagation = Propagation.NOT_SUPPORTED)
     public OwnerStatementResult sendStatement(Long ownerId, Long orgId,
                                                 LocalDate from, LocalDate to,
                                                 String conciergerieName) {
+        PreparedStatement prepared = preparation.execute(status ->
+            prepareStatement(ownerId, orgId, from, to, conciergerieName));
+        try {
+            emailService.sendSimpleHtmlEmail(prepared.result().emailSentTo(), prepared.subject(), prepared.html());
+        } catch (RuntimeException exception) {
+            throw new IllegalStateException("OWNER_STATEMENT_DELIVERY_UNCONFIRMED");
+        }
+        log.info("Baitly owner statement delivery returned successfully");
+        recordConstellationActivity(ownerId, orgId, from, to, prepared.result().ownerName());
+        return prepared.result();
+    }
+
+    // Only immutable values leave the read transaction; SMTP never holds its connection.
+    private record PreparedStatement(String subject, String html, OwnerStatementResult result) {}
+
+    private PreparedStatement prepareStatement(Long ownerId, Long orgId,
+                                               LocalDate from, LocalDate to, String conciergerieName) {
         User owner = userRepository.findById(ownerId)
             .orElseThrow(() -> new IllegalArgumentException("Proprietaire introuvable : " + ownerId));
         String email = owner.getEmail();
@@ -140,16 +165,9 @@ public class OwnerStatementService {
             payouts, totalPaid, totalGross, totalCommission, totalExpenses,
             buildCleaningAdvisories(payouts, orgId));
 
-        emailService.sendSimpleHtmlEmail(email, subject, html);
-
-        log.info("Owner statement sent: ownerId={}, orgId={}, period={}-{}, payouts={}, totalPaid={}",
-            ownerId, orgId, from, to, payouts.size(), totalPaid);
-
-        recordConstellationActivity(ownerId, orgId, from, to, ownerName);
-
-        return new OwnerStatementResult(
+        return new PreparedStatement(subject, html, new OwnerStatementResult(
             email, ownerName, payouts.size(), totalPaid, totalGross, totalCommission, totalExpenses
-        );
+        ));
     }
 
     /**
@@ -163,15 +181,13 @@ public class OwnerStatementService {
         try {
             String summary = "Releve proprietaire " + from.format(SHORT_DATE) + " → "
                 + to.format(SHORT_DATE) + " envoye a " + ownerName;
-            // REQUIRES_NEW : sendStatement est @Transactional(readOnly=true) — un
-            // record standard rejoindrait la transaction lecture seule et échouerait.
+            // Each activity has its own write transaction, after SMTP has returned.
             propertyRepository.findByOwnerId(ownerId).stream()
                 .filter(p -> orgId.equals(p.getOrganizationId()))
                 .forEach(p -> supervisionActivityService.recordModuleActNewTx(
                     orgId, p.getId(), "fin", "owner_statement_sent", summary));
         } catch (Exception e) {
-            log.debug("Releve proprietaire: activite constellation non enregistree (owner {}): {}",
-                ownerId, e.getMessage());
+            log.debug("Baitly owner statement activity could not be recorded");
         }
     }
 
@@ -280,7 +296,7 @@ public class OwnerStatementService {
             +           "Pour toute question sur ce releve, n'hesitez pas a contacter " + conciergerieName + "."
             +         "</p>"
             +         "<p style='font-size:12px;color:#A0AEC0;margin:18px 0 0 0;'>"
-            +           "Email genere automatiquement via Clenzy."
+            +           "Email genere automatiquement via Baitly."
             +         "</p>"
             +       "</td></tr>"
             +     "</table>"

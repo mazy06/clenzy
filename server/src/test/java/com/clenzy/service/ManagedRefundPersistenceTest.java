@@ -2,6 +2,7 @@ package com.clenzy.service;
 
 import com.clenzy.model.*;
 import com.clenzy.payment.PaymentResult;
+import com.clenzy.payment.BaitlyRefundDiagnostics;
 import com.clenzy.repository.PaymentTransactionRepository;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.hibernate.SessionFactory;
@@ -77,6 +78,42 @@ class ManagedRefundPersistenceTest {
         assertThat(state.getStatus()).isEqualTo(TransactionStatus.PROCESSING); assertThat(state.getProviderTxId()).isEqualTo("re_test");
         verifyNoInteractions(outbox);
     }
+    @org.junit.jupiter.params.ParameterizedTest
+    @org.junit.jupiter.params.provider.ValueSource(strings={"REFUND_PENDING","UNKNOWN","FAILED","REFUND_REJECTED"})
+    void unprovenResultRetainsTheSameBudgetAndNeverPersistsPrivateDiagnostics(String status) {
+        var init=tx(this::start);
+        var result=new PaymentResult(false,null,null,null,null,status,"email=synthetic@example.invalid token=private-canary");
+        tx(em -> service(em).finalizeRefund(init.refundTransactionRef(),result,7L));
+        var saved=read(init.refundTransactionRef());
+        assertThat(saved.getStatus()).isEqualTo(TransactionStatus.PROCESSING);
+        assertThat(saved.getErrorMessage()).isEqualTo(BaitlyRefundDiagnostics.PENDING);
+        assertThat(tx(this::start).refundTransactionRef()).isEqualTo(init.refundTransactionRef());
+        assertThat(read(init.refundTransactionRef()).getAmount()).isEqualByComparingTo("35");
+        verifyNoInteractions(outbox);
+    }
+    @Test void timeoutCannotEraseTheStoredProofOrItsReservation() {
+        var init=tx(this::start);
+        tx(em -> service(em).finalizeRefund(init.refundTransactionRef(),
+                new PaymentResult(false,"re_test",null,null,null,"REFUND_PENDING","private-response"),7L));
+        tx(em -> service(em).markRefundFailed(init.refundTransactionRef(),"password=private-canary"));
+        var saved=read(init.refundTransactionRef());
+        assertThat(saved.getStatus()).isEqualTo(TransactionStatus.PROCESSING);
+        assertThat(saved.getProviderTxId()).isEqualTo("re_test");
+        assertThat(saved.getErrorMessage()).isEqualTo(BaitlyRefundDiagnostics.RECONCILIATION_REQUIRED);
+        assertThat(tx(this::start).refundTransactionRef()).isEqualTo(init.refundTransactionRef());
+        verifyNoInteractions(outbox);
+    }
+    @Test void blankProofCannotReleaseTheReservationOrConfirmSuccess() {
+        var init=tx(this::start);
+        tx(em -> service(em).finalizeRefund(init.refundTransactionRef(),
+                new PaymentResult(false," ",null,null,null,"REFUND_REJECTED","private-response"),7L));
+        assertThat(read(init.refundTransactionRef()).getStatus()).isEqualTo(TransactionStatus.PROCESSING);
+        assertThat(read(init.refundTransactionRef()).getProviderTxId()).isNull();
+        assertThatThrownBy(() -> tx(em -> service(em).finalizeRefund(init.refundTransactionRef(),
+                PaymentResult.success(" ",null,"REFUNDED"),7L))).hasMessageContaining("non confirmé");
+        assertThat(read(init.refundTransactionRef()).getStatus()).isEqualTo(TransactionStatus.PROCESSING);
+        verifyNoInteractions(outbox);
+    }
     @Test void successReplayAndLateLocalFailureNeverDuplicateOrDowngrade() {
         var init=tx(this::start); var result=PaymentResult.success("re_test",null,"REFUNDED");
         tx(em -> service(em).finalizeRefund(init.refundTransactionRef(),result,7L));
@@ -100,6 +137,18 @@ class ManagedRefundPersistenceTest {
         tx(em -> service(em).finalizeRefund(init.refundTransactionRef(),new PaymentResult(false,"re_test",null,null,null,"REFUND_REJECTED","failed"),7L));
         assertThat(read(init.refundTransactionRef()).getStatus()).isEqualTo(TransactionStatus.FAILED);
         assertThat(tx(this::start).refundTransactionRef()).isEqualTo(init.refundTransactionRef()); verifyNoInteractions(outbox);
+    }
+    @Test void uncertainReplayCannotReopenACanonicalRefusalOrEraseItsProof() {
+        var init=tx(this::start);
+        tx(em -> service(em).finalizeRefund(init.refundTransactionRef(),
+                new PaymentResult(false,"re_test",null,null,null,"REFUND_REJECTED","private-response"),7L));
+        tx(em -> service(em).finalizeRefund(init.refundTransactionRef(),
+                new PaymentResult(false,null,null,null,null,"REFUND_REJECTED","private-response"),7L));
+        var saved=read(init.refundTransactionRef());
+        assertThat(saved.getStatus()).isEqualTo(TransactionStatus.FAILED);
+        assertThat(saved.getProviderTxId()).isEqualTo("re_test");
+        assertThat(saved.getErrorMessage()).isEqualTo(BaitlyRefundDiagnostics.REJECTED);
+        verifyNoInteractions(outbox);
     }
     @Test void overRefundAndPartialRefundAreRefusedBeforeExternalEmission() {
         for (String amount : new String[]{"0","-1","36"})
