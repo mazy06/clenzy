@@ -122,14 +122,14 @@ public class KeyNestApiService {
                     .toList();
 
         } catch (Exception e) {
-            log.error("Erreur recherche stores KeyNest (lat={}, lng={}): {}", lat, lng, e.getMessage());
-            throw e;
+            log.error("Erreur recherche stores KeyNest");
+            throw new RuntimeException("Service KeyNest temporairement indisponible");
         }
     }
 
     @SuppressWarnings("unused")
     private List<KeyNestStoreDto> searchStoresFallback(double lat, double lng, double radiusKm, Throwable t) {
-        log.warn("Fallback recherche stores KeyNest: {}", t.getMessage());
+        log.warn("Recherche stores KeyNest temporairement indisponible");
         return List.of();
     }
 
@@ -176,15 +176,15 @@ public class KeyNestApiService {
             );
 
         } catch (Exception e) {
-            log.error("Erreur creation cle KeyNest (store={}): {}", storeId, e.getMessage());
-            throw e;
+            log.error("Erreur creation cle KeyNest");
+            throw new RuntimeException("Service KeyNest temporairement indisponible");
         }
     }
 
     @SuppressWarnings("unused")
     private Map<String, String> createKeyFallback(String storeId, String keyLabel, Throwable t) {
-        log.warn("Fallback creation cle KeyNest: {}", t.getMessage());
-        throw new RuntimeException("Service KeyNest temporairement indisponible", t);
+        log.warn("Creation cle KeyNest temporairement indisponible");
+        throw new RuntimeException("Service KeyNest temporairement indisponible");
     }
 
     /**
@@ -221,15 +221,15 @@ public class KeyNestApiService {
             );
 
         } catch (Exception e) {
-            log.error("Erreur creation code KeyNest (key={}): {}", keyId, e.getMessage());
-            throw e;
+            log.error("Erreur creation code KeyNest");
+            throw new RuntimeException("Service KeyNest temporairement indisponible");
         }
     }
 
     @SuppressWarnings("unused")
     private Map<String, String> createCodeFallback(String keyId, Throwable t) {
-        log.warn("Fallback creation code KeyNest: {}", t.getMessage());
-        throw new RuntimeException("Service KeyNest temporairement indisponible", t);
+        log.warn("Creation code KeyNest temporairement indisponible");
+        throw new RuntimeException("Service KeyNest temporairement indisponible");
     }
 
     /**
@@ -252,11 +252,11 @@ public class KeyNestApiService {
         try {
             HttpEntity<Void> request = new HttpEntity<>(buildHeaders());
             restTemplate.exchange(url, HttpMethod.DELETE, request, Void.class);
-            log.info("Code KeyNest annule: {}", codeId);
+            log.info("Annulation code KeyNest confirmee");
 
         } catch (Exception e) {
-            log.error("Erreur annulation code KeyNest (code={}): {}", codeId, e.getMessage());
-            throw e;
+            log.error("Erreur annulation code KeyNest");
+            throw new RuntimeException("Service KeyNest temporairement indisponible");
         }
     }
 
@@ -287,8 +287,8 @@ public class KeyNestApiService {
             return response.getBody() != null ? response.getBody() : Map.of();
 
         } catch (Exception e) {
-            log.error("Erreur statut cle KeyNest (key={}): {}", keyId, e.getMessage());
-            return Map.of("status", "ERROR", "error", e.getMessage());
+            log.error("Erreur statut cle KeyNest");
+            return Map.of("status", "ERROR", "error", "Service KeyNest temporairement indisponible");
         }
     }
 
@@ -315,7 +315,7 @@ public class KeyNestApiService {
             dto.setType(String.valueOf(raw.getOrDefault("type", "")));
             return dto;
         } catch (Exception e) {
-            log.warn("Erreur mapping store KeyNest: {}", e.getMessage());
+            log.warn("Reponse store KeyNest illisible");
             return null;
         }
     }

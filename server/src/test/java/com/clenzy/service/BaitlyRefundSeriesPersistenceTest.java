@@ -67,6 +67,32 @@ class BaitlyRefundSeriesPersistenceTest {
         tx(em->prepare(em,"5",UUID.randomUUID()));
         assertThatThrownBy(()->tx(em->prepare(em,"5",UUID.randomUUID()))).hasMessageContaining("en cours");
     }
+    @org.junit.jupiter.params.ParameterizedTest
+    @org.junit.jupiter.params.provider.ValueSource(strings={"timeout","REFUND_PENDING","UNKNOWN","REFUND_REJECTED"})
+    void uncertainRecoveryCannotFreeBudgetForAnotherIntent(String outcome) {
+        var key=UUID.randomUUID(); String ref=tx(em -> prepare(em,"5",key));
+        var outbox=mock(OutboxPublisher.class);
+        tx(em -> {
+            var persistence=new PaymentPersistence(new JpaRepositoryFactory(em).getRepository(PaymentTransactionRepository.class),
+                    outbox,new com.fasterxml.jackson.databind.ObjectMapper(),mock(DepositReconciler.class),coordination,
+                    mock(InvoicePaymentCoordination.class),recoveries);
+            return outcome.equals("timeout") ? persistence.markRefundFailed(ref,"private-timeout")
+                    : persistence.finalizeRefund(ref,new com.clenzy.payment.PaymentResult(false,
+                            outcome.equals("REFUND_REJECTED")?null:"re_test",null,null,null,outcome,"private-response"),7L);
+        });
+        String replay=tx(em -> prepare(em,"5",key));
+        assertThat(replay).isEqualTo(ref);
+        assertThatThrownBy(() -> tx(em -> prepare(em,"30",UUID.randomUUID()))).hasMessageContaining("en cours");
+        tx(em -> {
+            var refund=new JpaRepositoryFactory(em).getRepository(PaymentTransactionRepository.class).findByTransactionRef(ref).orElseThrow();
+            assertThat(refund.getStatus()).isEqualTo(TransactionStatus.PROCESSING);
+            assertThat(refund.getAmount()).isEqualByComparingTo("5");
+            assertThat(refund.getErrorMessage()).doesNotContain("private-");
+            return null;
+        });
+        verify(recoveries,times(1)).prepareSeriesInterventionRefund(any(),any());
+        verifyNoInteractions(outbox);
+    }
     @Test void expiredCheckoutDoesNotConsumeTheRefundBudgetOfItsReplacement() {
         tx(em -> {
             var expired=new PaymentTransaction(); expired.setOrganizationId(7L); expired.setSourceType("INTERVENTION");

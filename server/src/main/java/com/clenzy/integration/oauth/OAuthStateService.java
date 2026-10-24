@@ -8,6 +8,7 @@ import org.springframework.stereotype.Service;
 import java.time.Duration;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.Locale;
 
 /**
  * Gestion du parametre {@code state} OAuth2 (RFC 6749 section 10.12) :
@@ -19,7 +20,7 @@ import java.util.UUID;
  * collisions entre providers.
  *
  * <h2>Securite</h2>
- * Conforme aux Security Rules Clenzy : state = UUID.randomUUID(), single-use,
+ * Conforme aux Security Rules Baitly : state = UUID.randomUUID(), single-use,
  * jamais un identifiant predictible. Voir
  * {@code AirbnbOAuthService.validateAndConsumeState()} pour le pattern.
  *
@@ -64,35 +65,33 @@ public class OAuthStateService {
         }
 
         String key = buildKey(providerKey, state);
-        String value = redisTemplate.opsForValue().get(key);
+        // Lecture et consommation atomiques : deux callbacks ne peuvent pas accepter le même state.
+        String value = redisTemplate.opsForValue().getAndDelete(key);
 
         if (value == null) {
-            log.warn("OAuth state invalide ou expire — provider={}, state={}", providerKey, state);
+            log.warn("OAuth state invalide ou expiré, provider={}", providerKey);
             return Optional.empty();
         }
 
-        // Single-use : supprimer immediatement
-        redisTemplate.delete(key);
-
-        String[] parts = value.split(":");
+        String[] parts = value.split(":", -1);
         if (parts.length != 2) {
-            log.error("OAuth state format invalide — provider={}, payload={}", providerKey, value);
+            log.warn("OAuth state mal formé, provider={}", providerKey);
             return Optional.empty();
         }
 
         try {
-            return Optional.of(new StatePayload(
-                Long.parseLong(parts[0]),
-                Long.parseLong(parts[1])
-            ));
+            long userId = Long.parseLong(parts[0]);
+            long orgId = Long.parseLong(parts[1]);
+            if (userId <= 0 || orgId <= 0) return Optional.empty();
+            return Optional.of(new StatePayload(userId, orgId));
         } catch (NumberFormatException e) {
-            log.error("OAuth state — IDs non numeriques — provider={}, payload={}", providerKey, value);
+            log.warn("OAuth state sans identité valide, provider={}", providerKey);
             return Optional.empty();
         }
     }
 
     private String buildKey(String providerKey, String state) {
-        return KEY_PREFIX + providerKey.toLowerCase() + ":state:" + state;
+        return KEY_PREFIX + providerKey.toLowerCase(Locale.ROOT) + ":state:" + state;
     }
 
     /** Charge utile encodee dans le state Redis. */

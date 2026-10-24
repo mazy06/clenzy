@@ -9,6 +9,10 @@ import java.util.List;
 import java.util.Optional;
 
 public interface NoiseAlertConfigRepository extends JpaRepository<NoiseAlertConfig, Long> {
+    @org.springframework.data.jpa.repository.Lock(jakarta.persistence.LockModeType.PESSIMISTIC_WRITE)
+    @Query("SELECT c FROM NoiseAlertConfig c WHERE c.organizationId=:orgId AND c.propertyId=:propertyId")
+    Optional<NoiseAlertConfig> findForUpdate(@Param("orgId") Long orgId,@Param("propertyId") Long propertyId);
+
 
     Optional<NoiseAlertConfig> findByOrganizationIdAndPropertyId(Long organizationId, Long propertyId);
 
