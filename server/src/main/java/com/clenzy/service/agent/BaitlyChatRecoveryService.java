@@ -51,7 +51,13 @@ public class BaitlyChatRecoveryService {
                            boolean canStart, List<Action> actions, List<HistoryEntry> history,
                            List<Reconciliation> reconciliation, BaitlyChatCompletionJournal.Proof completion,
                            List<BaitlyChatCompletionJournal.ToolEvidence> toolEvidence,
-                           List<BaitlyChatCompletionJournal.WriteEvidence> writeEvidence) {
+                           List<BaitlyChatCompletionJournal.WriteEvidence> writeEvidence,
+                           List<BaitlyChatCompletionJournal.WriteTurnEvidence> writeTurnEvidence) {
+        public Recovery(int version,String policy,Long conversation,boolean canStart,List<Action> actions,
+                        List<HistoryEntry> history,List<Reconciliation> reconciliation,BaitlyChatCompletionJournal.Proof completion,
+                        List<BaitlyChatCompletionJournal.ToolEvidence> tools,List<BaitlyChatCompletionJournal.WriteEvidence> writes) {
+            this(version,policy,conversation,canStart,actions,history,reconciliation,completion,tools,writes,List.of());
+        }
         public Recovery(int version,String policy,Long conversation,boolean canStart,List<Action> actions,
                         List<HistoryEntry> history,List<Reconciliation> reconciliation,BaitlyChatCompletionJournal.Proof completion,
                         List<BaitlyChatCompletionJournal.ToolEvidence> tools) {
@@ -109,7 +115,9 @@ public class BaitlyChatRecoveryService {
                 :completionJournal.toolEvidence(organizationId,userId,conversationId);
         var writeEvidence=completionJournal==null?List.<BaitlyChatCompletionJournal.WriteEvidence>of()
                 :completionJournal.writeEvidence(organizationId,userId,conversationId);
-        return new Recovery(1, "durable-decision-v1", conversationId, canStart, actions, transcript, evidence,completion,toolEvidence,writeEvidence);
+        var writeTurns=completionJournal==null?List.<BaitlyChatCompletionJournal.WriteTurnEvidence>of()
+                :completionJournal.writeTurnEvidence(organizationId,userId,conversationId);
+        return new Recovery(1, "durable-decision-v1", conversationId, canStart, actions, transcript, evidence,completion,toolEvidence,writeEvidence,writeTurns);
     }
 
     private Reconciliation reconcile(AgentPendingAction row, List<AssistantMessage> results, Instant now) {

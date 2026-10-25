@@ -1,5 +1,10 @@
 # Preuves métier des écritures internes du chat
 
+Suite : [preuve complète des tours d’écriture et des reprises](BAITLY-CHAT-COMPLETE-WRITE-TURNS.md).
+La CI #523 est désormais entièrement verte sur 186e416e86eb6117ce7d583d68e992f0cdd5a72f ;
+artefact PostgreSQL/JSONB 40180536402 vérifié : 89 cas SQL, zéro échec/erreur/ignoré.
+Le reste de ce document décrit le périmètre historique de #523.
+
 Suite cumulative de #522, dont toutes les CI sont vertes sur
 `7732f2070bb684c81d22dfcba9d07993c608c199`, scan compris. L’artefact de recette
 PostgreSQL/JSONB 40176446516 confirme 71 cas SQL sans échec ni test ignoré.

@@ -11,6 +11,12 @@ final class BaitlyChatTurnCoverage {
     private BaitlyChatTurnCoverage() {}
 
     static Set<String> prove(List<Frame> frames,List<Read> reads) {
+        return prove(frames,reads,false);
+    }
+    static Set<String> proveWrites(List<Frame> frames,List<Read> reads) {
+        return prove(frames,reads,true);
+    }
+    private static Set<String> prove(List<Frame> frames,List<Read> reads,boolean writes) {
         if(frames.size()<4 || reads.isEmpty() || frames.stream().anyMatch(Frame::attachments)) return Set.of();
         var first=frames.getFirst(); var last=frames.getLast();
         if(!"user".equals(first.role()) || !first.content() || present(first.calls()) || first.callId()!=null
@@ -35,6 +41,8 @@ final class BaitlyChatTurnCoverage {
                     String id=call.path("id").textValue(); String kind=switch(call.path("name").textValue()) {
                         case "suggest_navigation" -> "NAVIGATION_ONLY_V1";
                         case "compute_tourist_tax" -> "TAX_READ_ONLY_V1";
+                        case "update_property_status" -> writes?"PROPERTY_STATUS_V1":"UNVERIFIED";
+                        case "forget_fact" -> writes?"MEMORY_DELETE_V1":"UNVERIFIED";
                         default -> "UNVERIFIED";
                     };
                     var read=byId.get(id);

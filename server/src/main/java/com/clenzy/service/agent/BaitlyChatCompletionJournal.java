@@ -38,6 +38,15 @@ public class BaitlyChatCompletionJournal {
     public record ToolEvidence(String toolCallId, String proofKind, String status, String resultMessageId) {}
     public record WriteEvidence(String toolCallId,String proofKind,String outcome,String proofId,
                                 String resultState,String resultMessageId) {}
+    public record WriteTurnEvidence(String policy,String requestId,String status,String lastMessageId,boolean resumed) {}
+    public List<WriteTurnEvidence> writeTurnEvidence(Long org,String user,Long conversation) {
+        try {
+            if(TransactionSynchronizationManager.isActualTransactionActive()
+                    && !TransactionSynchronizationManager.isCurrentTransactionReadOnly()) throw writeUnavailable();
+            return new BaitlyChatWriteTurnEvidence(jdbc).read(org,user,conversation).stream()
+                .map(e->new WriteTurnEvidence(e.policy(),e.requestId(),e.status(),e.lastMessageId(),e.resumed())).toList();
+        } catch(org.springframework.dao.DataAccessException failure) { throw writeUnavailable(); }
+    }
 
     /** Participate in the mutation transaction. Never open an independent proof transaction. */
     void recordWrite(Ticket ticket,String callId,String kind,Long resource,String targetState) {
@@ -257,6 +266,7 @@ public class BaitlyChatCompletionJournal {
                 """,status,lastId(history),history.size(),Timestamp.from(Instant.now()),ticket.id(),ticket.organizationId(),
                     ticket.userId(),ticket.conversationId());
             if (changed!=1) throw unavailable();
+            new BaitlyChatWriteTurnEvidence(jdbc).record(ticket,observation);
             if(ticket.toolsPolicy() && !ticket.resume() && observation.safeToolsCandidate()
                     && history.size()==ticket.baselineCount()+added.size()
                     && Objects.equals(lastId(history),observation.assistantMessageId)

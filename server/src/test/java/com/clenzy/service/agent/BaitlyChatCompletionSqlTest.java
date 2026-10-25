@@ -54,7 +54,7 @@ class BaitlyChatCompletionSqlTest {
         String json=postgres?"JSONB":"TEXT";
         jdbc.execute("CREATE TABLE assistant_message(id BIGINT PRIMARY KEY,organization_id BIGINT,conversation_id BIGINT,role VARCHAR(20),content TEXT,tool_calls "+json+",attachments "+json+",finish_reason VARCHAR(40),tool_call_id VARCHAR(120))");
         jdbc.execute("CREATE TABLE agent_run(id UUID PRIMARY KEY,organization_id BIGINT,conversation_id BIGINT)");
-        jdbc.execute("CREATE TABLE agent_pending_action(organization_id BIGINT,keycloak_user_id VARCHAR(255),conversation_id BIGINT,tool_call_id VARCHAR(96),status VARCHAR(16),expires_at TIMESTAMP WITH TIME ZONE)");
+        jdbc.execute("CREATE TABLE agent_pending_action(organization_id BIGINT,keycloak_user_id VARCHAR(255),conversation_id BIGINT,tool_call_id VARCHAR(96),status VARCHAR(16),expires_at TIMESTAMP WITH TIME ZONE,tool_name VARCHAR(96),multi_agent BOOLEAN DEFAULT FALSE,resolved_at TIMESTAMP WITH TIME ZONE,args_json TEXT)");
         jdbc.update("INSERT INTO assistant_conversation(id,organization_id,keycloak_id) VALUES (9,7,'recipe-user')");
         migrate();
         journal=new BaitlyChatCompletionJournal(jdbc,new DataSourceTransactionManager(source));
@@ -68,8 +68,9 @@ class BaitlyChatCompletionSqlTest {
             try(var master=new Liquibase("db/changelog/db.changelog-master.yaml",resources,database)) {
                 var selected=new DatabaseChangeLog("db/changelog/db.changelog-master.yaml");
                 master.getDatabaseChangeLog().getChangeSets().stream().filter(c->Set.of("0607-baitly-chat-turn-receipts",
-                    "0608-baitly-chat-tool-evidence","0609-baitly-chat-tool-turn-proofs","0610-baitly-chat-write-business-proofs").contains(c.getId())).forEach(selected::addChangeSet);
-                assertThat(selected.getChangeSets()).hasSize(4);
+                    "0608-baitly-chat-tool-evidence","0609-baitly-chat-tool-turn-proofs","0610-baitly-chat-write-business-proofs",
+                    "0611-baitly-chat-complete-write-turns").contains(c.getId())).forEach(selected::addChangeSet);
+                assertThat(selected.getChangeSets()).hasSize(5);
                 new Liquibase(selected,resources,database).update("");
             }
         }
@@ -108,7 +109,8 @@ class BaitlyChatCompletionSqlTest {
         assertThat(jdbc.queryForObject("SELECT count(*) FROM databasechangelog WHERE id='0609-baitly-chat-tool-turn-proofs'",Integer.class)).isEqualTo(1);
         assertThat(jdbc.queryForObject("SELECT count(*) FROM databasechangelog WHERE id='0610-baitly-chat-write-business-proofs'",Integer.class)).isEqualTo(1);
         var config=new Configuration().addAnnotatedClass(BaitlyChatTurn.class).addAnnotatedClass(com.clenzy.model.BaitlyChatToolEvidence.class)
-            .addAnnotatedClass(com.clenzy.model.BaitlyChatToolTurnProof.class).addAnnotatedClass(com.clenzy.model.BaitlyChatWriteBusinessProof.class);
+            .addAnnotatedClass(com.clenzy.model.BaitlyChatToolTurnProof.class).addAnnotatedClass(com.clenzy.model.BaitlyChatWriteBusinessProof.class)
+            .addAnnotatedClass(com.clenzy.model.BaitlyChatCompleteWriteTurn.class);
         config.getProperties().put("hibernate.connection.datasource",source);
         config.setProperty("hibernate.hbm2ddl.auto","validate");
         try(var factory=config.buildSessionFactory()) { assertThat(factory.isOpen()).isTrue(); }
@@ -228,7 +230,7 @@ class BaitlyChatCompletionSqlTest {
         executor.execute(UUID.randomUUID(),7L,"recipe-user",9L,null,out->{
             message("user","Synthetic question",null); message("assistant","Synthetic request","tool_use");
             BaitlyChatTurnObservation.toolsRequested();
-            jdbc.update("INSERT INTO agent_pending_action VALUES (7,'recipe-user',9,'pending','PENDING',?)",Timestamp.from(Instant.now().plusSeconds(600)));
+            jdbc.update("INSERT INTO agent_pending_action (organization_id,keycloak_user_id,conversation_id,tool_call_id,status,expires_at) VALUES (7,'recipe-user',9,'pending','PENDING',?)",Timestamp.from(Instant.now().plusSeconds(600)));
             out.accept(AgentSseEvent.pausedAwaitingConfirmation()); return 9L;
         },e->{});
         assertThat(state()).isEqualTo("PAUSED");
@@ -704,6 +706,112 @@ class BaitlyChatCompletionSqlTest {
             new org.springframework.transaction.annotation.AnnotationTransactionAttributeSource()));
         return (T)proxy.getProxy();
     }
+    private void completeWriteTurn(String kind,String variant,boolean resumed) {
+        var handler=writeHandler(kind,"rollback".equals(variant)?"rollback":"success");
+
+        var mapper=new com.fasterxml.jackson.databind.ObjectMapper();
+        var loop=new AgentToolLoopRunner(mock(ChatLLMProvider.class),new ToolRegistry(List.of(handler)),
+            mock(com.clenzy.repository.AssistantMessageRepository.class),new PendingToolStore(),mapper,
+            mock(com.clenzy.service.AiTokenBudgetService.class),null,null,null,null,null,null);
+        String args="property".equals(kind)?"{\"propertyId\":11,\"status\":\"INACTIVE\"}":"{\"key\":\"synthetic-private-key\"}";
+        var pending=new PendingToolStore.PendingTool("write-call",9L,7L,"recipe-user",handler.name(),args,List.of(),null,Instant.now().plusSeconds(60));
+        String callJson;
+        try { callJson=mapper.writeValueAsString(List.of(new ChatMessage.ToolCall("write-call",handler.name(),args))); }
+        catch(Exception error) { throw new IllegalStateException("Synthetic serialization failed"); }
+        java.util.function.Consumer<java.util.function.Consumer<AgentSseEvent>> request=out->{
+            message("user","Synthetic write request",null);
+            long call=message("assistant",null,"tool_use");
+            jdbc.update("UPDATE assistant_message SET tool_calls="+(postgres?"CAST(? AS JSONB)":"?")+" WHERE id=?",callJson,call);
+            jdbc.update("INSERT INTO agent_pending_action (organization_id,keycloak_user_id,conversation_id,tool_call_id,status,expires_at,tool_name) VALUES (7,'recipe-user',9,'write-call','PENDING',?,?)",Timestamp.from(pending.expiresAt()),handler.name());
+            jdbc.update("UPDATE agent_pending_action SET args_json=?",args);
+            BaitlyChatTurnObservation.toolsRequested();
+        };
+        if(resumed) executor.executeWithTools(UUID.randomUUID(),7L,"recipe-user",9L,null,out->{
+            request.accept(out); out.accept(AgentSseEvent.pausedAwaitingConfirmation()); return 9L;
+        },e->{});
+        executor.executeWithTools(UUID.randomUUID(),7L,"recipe-user",9L,resumed?"write-call":null,out->{
+            if(!resumed) request.accept(out);
+            jdbc.update("UPDATE agent_pending_action SET status='CONFIRMED',resolved_at=?",Timestamp.from(Instant.now().minusSeconds(1)));
+            var result=loop.executeConfirmed(pending,AgentContext.minimal(7L,"recipe-user"));
+            if("crash".equals(variant)) throw new IllegalStateException("synthetic-private-crash");
+            out.accept(AgentSseEvent.toolCallExecuted(handler.name(),"write-call",result.isError(),null,null));
+            long id=message("tool",result.content(),null);
+            jdbc.update("UPDATE assistant_message SET tool_call_id='write-call' WHERE id=?",id);
+            BaitlyChatTurnObservation.toolPersisted("write-call",id,result.isError());
+            long last=message("assistant","Synthetic final answer","stop");
+            if(!"missing-hook".equals(variant)) BaitlyChatTurnObservation.textPersisted(last,"stop");
+            switch(variant) {
+                case "missing-proof" -> jdbc.update("DELETE FROM baitly_chat_write_business_proofs");
+                case "missing-result" -> jdbc.update("DELETE FROM assistant_message WHERE role='tool'");
+                case "duplicate-result" -> toolMessage("write-call");
+                case "decision-pending" -> jdbc.update("UPDATE agent_pending_action SET status='PENDING'");
+                case "decision-refused" -> jdbc.update("UPDATE agent_pending_action SET status='REFUSED'");
+                case "decision-foreign" -> jdbc.update("UPDATE agent_pending_action SET keycloak_user_id='foreign'");
+                case "decision-late" -> jdbc.update("UPDATE agent_pending_action SET resolved_at=?",Timestamp.from(Instant.now().plusSeconds(600)));
+                case "decision-multi" -> jdbc.update("UPDATE agent_pending_action SET multi_agent=TRUE");
+                case "decision-name" -> jdbc.update("UPDATE agent_pending_action SET tool_name='unreviewed_write'");
+                case "args-changed" -> jdbc.update("UPDATE agent_pending_action SET args_json='{}'");
+                case "blank-final" -> jdbc.update("UPDATE assistant_message SET content=' ' WHERE id=?",last);
+                case "extra-event" -> out.accept(AgentSseEvent.toolCallExecuted(handler.name(),"extra",false,null,null));
+                case "error-event" -> out.accept(AgentSseEvent.error("synthetic-private-error"));
+                case "multi-agent" -> BaitlyChatTurnObservation.multiAgent();
+                case "outage" -> jdbc.execute("DROP TABLE baitly_chat_complete_write_turns");
+                default -> { }
+            }
+            out.accept(AgentSseEvent.done("stop"));
+            if("duplicate-done".equals(variant)) out.accept(AgentSseEvent.done("stop"));
+            return 9L;
+        },e->{});
+    }
+    @ParameterizedTest @ValueSource(strings={"property","memory"})
+    void completeConfirmedResumeHasDurableRevalidatedTurnEvidenceWithoutReopeningAdmission(String kind) throws Exception {
+        completeWriteTurn(kind,"success",true);
+        var reboot=new BaitlyChatCompletionJournal(jdbc,new DataSourceTransactionManager(source));
+        var evidence=reboot.writeTurnEvidence(7L,"recipe-user",9L);
+        assertThat(evidence).hasSize(1); assertThat(evidence.getFirst().status()).isEqualTo("TURN_PROVEN");
+        assertThat(evidence.getFirst().resumed()).isTrue(); assertThat(evidence.getFirst().lastMessageId()).isEqualTo("history-4");
+        assertThat(state()).isEqualTo("UNCERTAIN");
+        assertThatThrownBy(()->journal.begin(7L,"recipe-user",9L,UUID.randomUUID(),null)).hasMessage("Baitly chat completion unavailable");
+        assertThatThrownBy(()->journal.begin(7L,"recipe-user",9L,UUID.randomUUID(),"write-call")).hasMessage("Baitly chat completion unavailable");
+        assertThat(reboot.writeTurnEvidence(8L,"recipe-user",9L)).isEmpty();
+        assertThat(reboot.writeTurnEvidence(7L,"foreign",9L)).isEmpty();
+        assertThat(new com.fasterxml.jackson.databind.ObjectMapper().writeValueAsString(evidence))
+            .doesNotContain("synthetic-private","recipe-user","resource","target","args","content");
+    }
+    @Test void completeNonResumeWriteIsAlsoCoveredWithoutWeakeningV2() {
+        completeWriteTurn("property","success",false);
+        assertThat(journal.writeTurnEvidence(7L,"recipe-user",9L).getFirst().resumed()).isFalse();
+        assertThat(journal.proof(7L,"recipe-user",9L,history()).status()).isEqualTo("UNCERTAIN");
+    }
+    @ParameterizedTest @ValueSource(strings={"missing-proof","missing-result","duplicate-result","decision-pending","decision-refused",
+        "decision-foreign","decision-late","decision-multi","decision-name","args-changed","blank-final","extra-event","error-event","multi-agent","missing-hook","duplicate-done","rollback"})
+    void incompleteWriteResumeNeverObtainsWholeTurnEvidence(String variant) {
+        completeWriteTurn("property",variant,true);
+        assertThat(journal.writeTurnEvidence(7L,"recipe-user",9L)).isEmpty();
+        assertThat(state()).isEqualTo("UNCERTAIN");
+    }
+    @ParameterizedTest @ValueSource(strings={"crash","outage"})
+    void committedEffectButLostCompletionRemainsFenced(String variant) {
+        assertThatThrownBy(()->completeWriteTurn("property",variant,true)).hasMessage("Baitly chat completion unavailable");
+        assertThat(journal.writeEvidence(7L,"recipe-user",9L).getFirst().outcome()).isEqualTo("COMMITTED");
+        assertThatThrownBy(()->journal.begin(7L,"recipe-user",9L,UUID.randomUUID(),"write-call")).hasMessage("Baitly chat completion unavailable");
+    }
+    @ParameterizedTest @ValueSource(strings={"proof","decision","result","root","owner","archive"})
+    void completeWriteEvidenceIsRevalidatedOnEveryRead(String mutation) {
+        completeWriteTurn("property","success",true);
+        switch(mutation) {
+            case "proof" -> jdbc.update("DELETE FROM baitly_chat_write_business_proofs");
+            case "decision" -> jdbc.update("UPDATE agent_pending_action SET status='REFUSED'");
+            case "result" -> toolMessage("write-call");
+            case "root" -> jdbc.update("UPDATE baitly_chat_turns SET status='UNCERTAIN' WHERE turn_sequence=1");
+            case "owner" -> jdbc.update("UPDATE assistant_conversation SET keycloak_id='foreign'");
+            case "archive" -> jdbc.update("UPDATE assistant_conversation SET archived_at=CURRENT_TIMESTAMP");
+        }
+        var evidence=journal.writeTurnEvidence(7L,"recipe-user",9L);
+        if(Set.of("owner","archive").contains(mutation)) assertThat(evidence).isEmpty();
+        else { assertThat(evidence.getFirst().status()).isEqualTo("UNCERTAIN"); assertThat(evidence.getFirst().lastMessageId()).isNull(); }
+    }
+
     private void executeWrite(String kind,String variant) {
         var concrete=writeHandler(kind,variant);
         ToolHandler handler="unreviewed".equals(variant)?new ToolHandler() {
