@@ -27,7 +27,7 @@ on:
         description: 'All integrations or the fixture regression subset (isolated CI only)'
         type: choice
         default: all
-        options: [all, fixture-smoke]
+        options: [all, fixture-smoke, caution-migration]
 
 permissions:
   contents: read
@@ -71,10 +71,26 @@ jobs:
         run: |
           case "$INTEGRATION_SUITE" in
             all) tests='*IT' ;;
-            fixture-smoke) tests='RlsBootIT,KafkaFlowIT,AutomationEngineIT,StripeWebhookReplayIT,ScenarioReservationLifecycleIT' ;;
+            fixture-smoke) tests='RlsBootIT,KafkaFlowIT,AutomationEngineIT,StripeWebhookReplayIT,ScenarioReservationLifecycleIT,BaitlyCautionLiquibasePostgresIT' ;;
+            caution-migration) tests='BaitlyCautionLiquibasePostgresIT' ;;
             *) echo 'Unknown integration suite'; exit 1 ;;
           esac
           mvn test -Dtest="$tests" -DfailIfNoTests=true -B -q
+
+      - name: Require the PostgreSQL caution migration proof
+        working-directory: server
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          import xml.etree.ElementTree as ET
+
+          report = Path('target/surefire-reports/TEST-com.clenzy.service.BaitlyCautionLiquibasePostgresIT.xml')
+          suite = ET.parse(report).getroot()
+          counts = {key: int(suite.get(key, '0')) for key in ('tests', 'failures', 'errors', 'skipped')}
+          if counts != {'tests': 1, 'failures': 0, 'errors': 0, 'skipped': 0}:
+              raise SystemExit(f'Caution migration proof is missing or unsuccessful: {counts}')
+          print('PostgreSQL caution migration: 1 executed, 0 failures/errors/skips')
+          PY
 
       - name: Upload test results
         if: always()
