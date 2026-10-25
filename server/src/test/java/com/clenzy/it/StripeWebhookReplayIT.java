@@ -59,8 +59,6 @@ class StripeWebhookReplayIT extends AbstractIntegrationTest {
     @Autowired private com.fasterxml.jackson.databind.ObjectMapper mapper;
     // Only remote reads are synthetic. Signature, persistence and reconciliation stay real.
     @org.springframework.boot.test.mock.mockito.MockBean private com.clenzy.payment.StripeGateway stripe;
-    @org.springframework.boot.test.mock.mockito.MockBean
-    private com.clenzy.service.assignment.AssignmentDeadlineDispatcher assignmentTimer;
 
     private Long orgId;
     private String salt;

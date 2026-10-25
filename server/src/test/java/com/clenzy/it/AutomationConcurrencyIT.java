@@ -72,6 +72,7 @@ class AutomationConcurrencyIT extends AbstractIntegrationTest {
     @Autowired private TenantScopedExecutor tenantScopedExecutor;
 
     @Autowired private OrganizationRepository organizationRepository;
+    @Autowired private com.clenzy.service.assignment.AssignmentPolicyStore assignmentPolicies;
     @Autowired private com.clenzy.service.messaging.AutomationEvaluationService durableEngine;
     @Autowired private UserRepository userRepository;
     @Autowired private PropertyRepository propertyRepository;
@@ -94,6 +95,7 @@ class AutomationConcurrencyIT extends AbstractIntegrationTest {
         String salt = UUID.randomUUID().toString().substring(0, 8);
         orgId = organizationRepository.save(new Organization(
                 "Concurrency " + salt, OrganizationType.INDIVIDUAL, "concurrency-" + salt)).getId();
+        com.clenzy.config.BaitlyAutomationIntegrationSchema.manualAssignment(assignmentPolicies, orgId);
 
         owner = new User("Cora", "Concurrent", "cora." + salt + "@test.com", "password123");
         owner.setOrganizationId(orgId);

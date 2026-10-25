@@ -68,6 +68,7 @@ import static org.mockito.Mockito.verify;
 class ScenarioNoiseIncidentIT extends AbstractIntegrationTest {
 
     @Autowired private NoiseAlertService noiseAlertService;
+    @Autowired private com.clenzy.service.messaging.AutomationEvaluationService durableEngine;
     @Autowired private javax.sql.DataSource dataSource;
     @Autowired private SupervisionSuggestionService suggestionService;
 
@@ -219,6 +220,7 @@ class ScenarioNoiseIncidentIT extends AbstractIntegrationTest {
         assertThat(first).isNotNull();
         assertThat(second).isNotNull();
         assertThat(third).isNotNull();
+        durableEngine.processScheduledExecutions();
 
         // ── UN SEUL message voyageur (journal PostgreSQL durable) : 1 EXECUTED, 2 SKIPPED. ──
         List<AutomationExecution> warnings = executionsFor(orgAId, AutomationAction.SEND_NOISE_WARNING);

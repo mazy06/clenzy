@@ -4,9 +4,11 @@ import javax.sql.DataSource;
 
 /** Installs the JDBC-only Baitly proof journal beside Hibernate's integration schema. */
 public final class BaitlyAutomationIntegrationSchema {
+    private static final java.util.Set<DataSource> INSTALLED = java.util.Collections.newSetFromMap(new java.util.WeakHashMap<>());
     private BaitlyAutomationIntegrationSchema() {}
 
-    public static void install(DataSource source) {
+    public static synchronized void install(DataSource source) {
+        if (INSTALLED.contains(source)) return;
         installAssignmentTables(source);
         try (var connection = source.getConnection()) {
             var database = liquibase.database.DatabaseFactory.getInstance()
@@ -15,14 +17,16 @@ public final class BaitlyAutomationIntegrationSchema {
             try (var master = new liquibase.Liquibase("db/changelog/db.changelog-master.yaml", resources, database)) {
                 var selected = new liquibase.changelog.DatabaseChangeLog("db/changelog/db.changelog-master.yaml");
                 master.getDatabaseChangeLog().getChangeSets().stream()
-                        .filter(set -> "0604-baitly-automation-outcome-proofs".equals(set.getId()))
+                        .filter(set -> java.util.Set.of("0359-create-shedlock-table", "0604-baitly-automation-outcome-proofs",
+                                "0605-baitly-external-effect-fences").contains(set.getId()))
                         .forEach(selected::addChangeSet);
-                if (selected.getChangeSets().size() != 1) throw new IllegalStateException("Proof changeset required");
+                if (selected.getChangeSets().size() != 3) throw new IllegalStateException("Three worker changesets required");
                 new liquibase.Liquibase(selected, resources, database).update("");
             }
         } catch (Exception failure) {
             throw new IllegalStateException("Baitly integration proof journal migration failed", failure);
         }
+        INSTALLED.add(source);
     }
 
     private static void installAssignmentTables(DataSource source) {

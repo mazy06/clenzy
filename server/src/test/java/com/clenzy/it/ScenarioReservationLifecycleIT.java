@@ -111,6 +111,8 @@ class ScenarioReservationLifecycleIT extends AbstractIntegrationTest {
     }
 
     @Autowired private AutomationEngine automationEngine;
+    @Autowired private com.clenzy.service.messaging.AutomationEvaluationService durableEngine;
+    @Autowired private com.clenzy.service.assignment.AssignmentPolicyStore assignmentPolicies;
     @Autowired private AutomationSchedulerService automationSchedulerService;
     @Autowired private MutableClock clock;
 
@@ -144,6 +146,7 @@ class ScenarioReservationLifecycleIT extends AbstractIntegrationTest {
         String salt = UUID.randomUUID().toString().substring(0, 8);
         orgAId = organizationRepository.save(new Organization(
                 "Lifecycle A " + salt, OrganizationType.INDIVIDUAL, "lifecycle-a-" + salt)).getId();
+        com.clenzy.config.BaitlyAutomationIntegrationSchema.manualAssignment(assignmentPolicies, orgAId);
         orgBId = organizationRepository.save(new Organization(
                 "Lifecycle B " + salt, OrganizationType.INDIVIDUAL, "lifecycle-b-" + salt)).getId();
 
@@ -214,6 +217,7 @@ class ScenarioReservationLifecycleIT extends AbstractIntegrationTest {
     private void fire(AutomationTrigger trigger, Long orgId, Long reservationId) {
         automationEngine.fireTrigger(trigger, orgId,
                 new AutomationSubject(AutomationSubject.TYPE_RESERVATION, reservationId, Map.of()));
+        durableEngine.processScheduledExecutions();
     }
 
     private List<AutomationExecution> executionsFor(Long orgId, AutomationAction action) {
@@ -368,6 +372,7 @@ class ScenarioReservationLifecycleIT extends AbstractIntegrationTest {
         //    avant checkout 10:00 + grace 4h = 14:00). ──
         clock.setInstant(ZonedDateTime.of(CHECK_OUT, LocalTime.of(13, 0), AUCKLAND).toInstant());
         automationSchedulerService.processScheduledAutomations();
+        durableEngine.processScheduledExecutions();
 
         // Avis : SKIPPED pour la resa avec avis, EXECUTED (envoi reel via le
         // pipeline mocke en frontiere) pour l'autre.
@@ -395,6 +400,7 @@ class ScenarioReservationLifecycleIT extends AbstractIntegrationTest {
         // ── T2 : 15:00 Auckland (checkout+5h > grace) → drain → revocation executee. ──
         clock.setInstant(ZonedDateTime.of(CHECK_OUT, LocalTime.of(15, 0), AUCKLAND).toInstant());
         automationSchedulerService.processScheduledAutomations();
+        durableEngine.processScheduledExecutions();
 
         AutomationExecution revokeForReviewed = executionsFor(orgAId, AutomationAction.REVOKE_ACCESS_CODE)
                 .stream().filter(e -> reviewed.getId().equals(e.getSubjectId()))
@@ -414,6 +420,7 @@ class ScenarioReservationLifecycleIT extends AbstractIntegrationTest {
         // ── T3 : J+2 10:00 Auckland → drain → suggestion de liberation creee. ──
         clock.setInstant(ZonedDateTime.of(CHECK_OUT.plusDays(2), LocalTime.of(10, 0), AUCKLAND).toInstant());
         automationSchedulerService.processScheduledAutomations();
+        durableEngine.processScheduledExecutions();
 
         List<SupervisionSuggestion> depositSuggestions = suggestionRepository.findAll().stream()
                 .filter(s -> orgAId.equals(s.getOrganizationId()))

@@ -60,8 +60,19 @@ import static org.mockito.Mockito.verify;
 @EnabledIfEnvironmentVariable(named = "CLENZY_IT", matches = "true")
 class ScenarioInvoiceRemindersIT extends AbstractIntegrationTest {
 
+    @org.springframework.boot.test.context.TestConfiguration
+    static class BaitlyReminderClockConfig {
+        @org.springframework.context.annotation.Bean
+        @org.springframework.context.annotation.Primary
+        com.clenzy.testkit.MutableClock reminderClock() {
+            return com.clenzy.testkit.MutableClock.utc(java.time.Instant.now());
+        }
+    }
+
     @Autowired private InvoiceOverdueScheduler invoiceOverdueScheduler;
     @Autowired private AutomationEngine automationEngine;
+    @Autowired private com.clenzy.service.messaging.AutomationEvaluationService durableEngine;
+    @Autowired private com.clenzy.testkit.MutableClock clock;
 
     @Autowired private OrganizationRepository organizationRepository;
     @Autowired private UserRepository userRepository;
@@ -81,6 +92,7 @@ class ScenarioInvoiceRemindersIT extends AbstractIntegrationTest {
 
     @BeforeEach
     void seedInvoiceSetup() {
+        clock.setInstant(java.time.Instant.now());
         salt = UUID.randomUUID().toString().substring(0, 8);
         orgAId = organizationRepository.save(new Organization(
                 "Facturation A " + salt, OrganizationType.INDIVIDUAL, "invoice-a-" + salt)).getId();
@@ -170,6 +182,7 @@ class ScenarioInvoiceRemindersIT extends AbstractIntegrationTest {
         refreshed.setOverdueNotifiedAt(LocalDateTime.now().minusDays(3));
         invoiceRepository.save(refreshed);
         invoiceOverdueScheduler.fireOverdueReminders();
+        durableEngine.processScheduledExecutions();
 
         refreshed = invoiceRepository.findById(invoice.getId()).orElseThrow();
         assertThat(refreshed.getOverdueReminderCount()).isEqualTo(1);
@@ -178,6 +191,7 @@ class ScenarioInvoiceRemindersIT extends AbstractIntegrationTest {
 
         // ── Rejeu immediat : anti-rafale (< 24 h) → aucune 2e relance. ──
         invoiceOverdueScheduler.fireOverdueReminders();
+        durableEngine.processScheduledExecutions();
         refreshed = invoiceRepository.findById(invoice.getId()).orElseThrow();
         assertThat(refreshed.getOverdueReminderCount()).isEqualTo(1);
 
@@ -185,14 +199,17 @@ class ScenarioInvoiceRemindersIT extends AbstractIntegrationTest {
         refreshed.setOverdueLastReminderAt(LocalDateTime.now().minusDays(2));
         invoiceRepository.save(refreshed);
         invoiceOverdueScheduler.fireOverdueReminders();
+        durableEngine.processScheduledExecutions();
         refreshed = invoiceRepository.findById(invoice.getId()).orElseThrow();
         assertThat(refreshed.getOverdueReminderCount()).isEqualTo(1);
 
         // ── J+7 : relance 2. ──
+        clock.advance(java.time.Duration.ofDays(4));
         refreshed.setOverdueNotifiedAt(LocalDateTime.now().minusDays(7));
         refreshed.setOverdueLastReminderAt(LocalDateTime.now().minusDays(2));
         invoiceRepository.save(refreshed);
         invoiceOverdueScheduler.fireOverdueReminders();
+        durableEngine.processScheduledExecutions();
 
         refreshed = invoiceRepository.findById(invoice.getId()).orElseThrow();
         assertThat(refreshed.getOverdueReminderCount()).isEqualTo(2);
@@ -203,13 +220,16 @@ class ScenarioInvoiceRemindersIT extends AbstractIntegrationTest {
         refreshed.setOverdueLastReminderAt(LocalDateTime.now().minusDays(2));
         invoiceRepository.save(refreshed);
         invoiceOverdueScheduler.fireOverdueReminders();
+        durableEngine.processScheduledExecutions();
         refreshed = invoiceRepository.findById(invoice.getId()).orElseThrow();
         assertThat(refreshed.getOverdueReminderCount()).isEqualTo(2);
 
         // …ni par un declenchement direct du moteur (garde MAX_REMINDERS de l'executeur).
+        clock.advance(java.time.Duration.ofDays(1));
         automationEngine.fireTrigger(AutomationTrigger.INVOICE_OVERDUE, orgAId,
                 new AutomationSubject(AutomationSubject.TYPE_INVOICE, invoice.getId(),
                         Map.of(AutomationSubject.DATA_DAYS_OVERDUE, 9L)));
+        durableEngine.processScheduledExecutions();
         refreshed = invoiceRepository.findById(invoice.getId()).orElseThrow();
         assertThat(refreshed.getOverdueReminderCount()).isEqualTo(2);
         verify(emailService, times(2)).sendContactMessage(
@@ -237,6 +257,7 @@ class ScenarioInvoiceRemindersIT extends AbstractIntegrationTest {
         automationEngine.fireTrigger(AutomationTrigger.INVOICE_OVERDUE, orgAId,
                 new AutomationSubject(AutomationSubject.TYPE_INVOICE, paid.getId(),
                         Map.of(AutomationSubject.DATA_DAYS_OVERDUE, 7L)));
+        durableEngine.processScheduledExecutions();
 
         Invoice refreshed = invoiceRepository.findById(paid.getId()).orElseThrow();
         assertThat(refreshed.getOverdueReminderCount()).isZero();
