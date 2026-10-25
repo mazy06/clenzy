@@ -149,6 +149,13 @@ class RlsBootIT extends AbstractIntegrationTest {
         }
     }
 
+    @org.junit.jupiter.api.AfterEach
+    void retirerPolitiquesDeFixture() {
+        // The singleton database is reused by other integration contexts that
+        // intentionally do not enable RLS. Never leave these test policies active.
+        retirerPolitiqueRls();
+    }
+
 
     @BeforeEach
     void seed() {
