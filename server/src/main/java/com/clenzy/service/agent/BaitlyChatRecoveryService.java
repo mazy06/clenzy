@@ -50,7 +50,13 @@ public class BaitlyChatRecoveryService {
     public record Recovery(int version, String resumePolicy, Long conversationId,
                            boolean canStart, List<Action> actions, List<HistoryEntry> history,
                            List<Reconciliation> reconciliation, BaitlyChatCompletionJournal.Proof completion,
-                           List<BaitlyChatCompletionJournal.ToolEvidence> toolEvidence) {
+                           List<BaitlyChatCompletionJournal.ToolEvidence> toolEvidence,
+                           List<BaitlyChatCompletionJournal.WriteEvidence> writeEvidence) {
+        public Recovery(int version,String policy,Long conversation,boolean canStart,List<Action> actions,
+                        List<HistoryEntry> history,List<Reconciliation> reconciliation,BaitlyChatCompletionJournal.Proof completion,
+                        List<BaitlyChatCompletionJournal.ToolEvidence> tools) {
+            this(version,policy,conversation,canStart,actions,history,reconciliation,completion,tools,List.of());
+        }
         public Recovery(int version, String resumePolicy, Long conversationId, boolean canStart, List<Action> actions,
                         List<HistoryEntry> history, List<Reconciliation> reconciliation,
                         BaitlyChatCompletionJournal.Proof completion) {
@@ -101,7 +107,9 @@ public class BaitlyChatRecoveryService {
         var evidence = rows.stream().map(a -> reconcile(a, results.getOrDefault(a.getToolCallId(), List.of()), now)).toList();
         var toolEvidence=completionJournal==null?List.<BaitlyChatCompletionJournal.ToolEvidence>of()
                 :completionJournal.toolEvidence(organizationId,userId,conversationId);
-        return new Recovery(1, "durable-decision-v1", conversationId, canStart, actions, transcript, evidence,completion,toolEvidence);
+        var writeEvidence=completionJournal==null?List.<BaitlyChatCompletionJournal.WriteEvidence>of()
+                :completionJournal.writeEvidence(organizationId,userId,conversationId);
+        return new Recovery(1, "durable-decision-v1", conversationId, canStart, actions, transcript, evidence,completion,toolEvidence,writeEvidence);
     }
 
     private Reconciliation reconcile(AgentPendingAction row, List<AssistantMessage> results, Instant now) {

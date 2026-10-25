@@ -72,11 +72,11 @@ public class UpdatePropertyStatusTool implements ToolHandler {
             throw new ToolExecutionException(NAME, "Failed to serialize result", e);
         } catch (IllegalArgumentException e) {
             throw new ToolExecutionException(NAME,
-                    "Statut invalide : '" + status + "' — valeurs : ACTIVE, INACTIVE, UNDER_MAINTENANCE, ARCHIVED");
+                    "Statut invalide : valeurs autorisees ACTIVE, INACTIVE, UNDER_MAINTENANCE, ARCHIVED");
         } catch (Exception e) {
-            log.warn("update_property_status failed: {}", e.getMessage());
+            log.warn("Property status update unavailable");
             throw new ToolExecutionException(NAME,
-                    "Mise a jour impossible (" + e.getMessage() + ")", e);
+                    "Mise a jour du statut indisponible");
         }
     }
 

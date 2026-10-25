@@ -12,6 +12,13 @@ import java.util.List;
 import java.util.Optional;
 
 public interface AssistantMemoryRepository extends JpaRepository<AssistantMemory, Long> {
+    @org.springframework.data.jpa.repository.Lock(jakarta.persistence.LockModeType.PESSIMISTIC_WRITE)
+    @Query("SELECT m FROM AssistantMemory m WHERE m.organizationId=:org AND m.keycloakId=:user AND m.memoryKey=:key")
+    Optional<AssistantMemory> findOwnedForDeletion(@Param("org") Long org,@Param("user") String user,@Param("key") String key);
+
+    @Modifying
+    @Query("DELETE FROM AssistantMemory m WHERE m.organizationId=:org AND m.keycloakId=:user AND m.id=:id")
+    int deleteOwnedById(@Param("org") Long org,@Param("user") String user,@Param("id") Long id);
 
     /**
      * Liste de toutes les memoires d'un user, triees par scope ASC puis updatedAt DESC.

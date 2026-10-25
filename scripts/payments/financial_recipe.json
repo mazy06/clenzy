@@ -1,6 +1,10 @@
 {
   "backend": [
     "BaitlyChatCompletionSqlTest",
+    "AssistantMemoryServiceTest",
+    "PropertyServiceTest",
+    "ForgetFactToolTest",
+    "UpdatePropertyStatusToolTest",
     "BaitlyChatCompletionHttpTest",
     "BaitlyChatHistoryTest",
     "AgentConfirmationFlowTest",

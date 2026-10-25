@@ -68,8 +68,8 @@ class BaitlyChatCompletionSqlTest {
             try(var master=new Liquibase("db/changelog/db.changelog-master.yaml",resources,database)) {
                 var selected=new DatabaseChangeLog("db/changelog/db.changelog-master.yaml");
                 master.getDatabaseChangeLog().getChangeSets().stream().filter(c->Set.of("0607-baitly-chat-turn-receipts",
-                    "0608-baitly-chat-tool-evidence","0609-baitly-chat-tool-turn-proofs").contains(c.getId())).forEach(selected::addChangeSet);
-                assertThat(selected.getChangeSets()).hasSize(3);
+                    "0608-baitly-chat-tool-evidence","0609-baitly-chat-tool-turn-proofs","0610-baitly-chat-write-business-proofs").contains(c.getId())).forEach(selected::addChangeSet);
+                assertThat(selected.getChangeSets()).hasSize(4);
                 new Liquibase(selected,resources,database).update("");
             }
         }
@@ -106,8 +106,9 @@ class BaitlyChatCompletionSqlTest {
         assertThat(jdbc.queryForObject("SELECT count(*) FROM databasechangelog WHERE id='0607-baitly-chat-turn-receipts'",Integer.class)).isEqualTo(1);
         assertThat(jdbc.queryForObject("SELECT count(*) FROM databasechangelog WHERE id='0608-baitly-chat-tool-evidence'",Integer.class)).isEqualTo(1);
         assertThat(jdbc.queryForObject("SELECT count(*) FROM databasechangelog WHERE id='0609-baitly-chat-tool-turn-proofs'",Integer.class)).isEqualTo(1);
+        assertThat(jdbc.queryForObject("SELECT count(*) FROM databasechangelog WHERE id='0610-baitly-chat-write-business-proofs'",Integer.class)).isEqualTo(1);
         var config=new Configuration().addAnnotatedClass(BaitlyChatTurn.class).addAnnotatedClass(com.clenzy.model.BaitlyChatToolEvidence.class)
-            .addAnnotatedClass(com.clenzy.model.BaitlyChatToolTurnProof.class);
+            .addAnnotatedClass(com.clenzy.model.BaitlyChatToolTurnProof.class).addAnnotatedClass(com.clenzy.model.BaitlyChatWriteBusinessProof.class);
         config.getProperties().put("hibernate.connection.datasource",source);
         config.setProperty("hibernate.hbm2ddl.auto","validate");
         try(var factory=config.buildSessionFactory()) { assertThat(factory.isOpen()).isTrue(); }
@@ -638,5 +639,213 @@ class BaitlyChatCompletionSqlTest {
             var first=pool.submit(claim); var second=pool.submit(claim); latch.countDown();
             assertThat(List.of(first.get(10,TimeUnit.SECONDS),second.get(10,TimeUnit.SECONDS))).containsExactlyInAnyOrder(true,false);
         } finally { pool.shutdownNow(); }
+    }
+
+    private com.clenzy.service.agent.ToolHandler writeHandler(String kind,String variant) {
+        jdbc.execute("CREATE TABLE properties(id BIGINT PRIMARY KEY,organization_id BIGINT,status VARCHAR(32))");
+        jdbc.update("INSERT INTO properties VALUES (11,7,'ACTIVE')");
+        jdbc.execute("CREATE TABLE assistant_memory(id BIGINT PRIMARY KEY,organization_id BIGINT,keycloak_id VARCHAR(255),memory_key VARCHAR(120),memory_value TEXT)");
+        jdbc.update("INSERT INTO assistant_memory VALUES (12,7,'recipe-user','synthetic-private-key','synthetic-private-value')");
+        var mapper=new com.fasterxml.jackson.databind.ObjectMapper();
+        if("property".equals(kind)) {
+            var property=new com.clenzy.model.Property(); property.setId(11L); property.setOrganizationId(7L);
+            property.setName("synthetic-private-name"); property.setStatus(com.clenzy.model.PropertyStatus.ACTIVE);
+            var repository=mock(com.clenzy.repository.PropertyRepository.class);
+            when(repository.findById(11L)).thenReturn(Optional.of(property));
+            when(repository.save(any())).thenAnswer(call->{
+                var saved=(com.clenzy.model.Property)call.getArgument(0);
+                assertThat(TransactionSynchronizationManager.isActualTransactionActive()).isTrue();
+                jdbc.update("UPDATE properties SET status=? WHERE id=? AND organization_id=?",saved.getStatus().name(),saved.getId(),saved.getOrganizationId());
+                if("rollback".equals(variant)) failBeforeCommit();
+                return saved;
+            });
+            var tenant=mock(com.clenzy.tenant.TenantContext.class); when(tenant.getOrganizationId()).thenReturn(7L);
+            var service=new com.clenzy.service.PropertyService(repository,mock(com.clenzy.repository.UserRepository.class),
+                mock(com.clenzy.repository.ManagerPropertyRepository.class),mock(com.clenzy.repository.PortfolioClientRepository.class),
+                mock(com.clenzy.repository.PortfolioRepository.class),mock(com.clenzy.repository.CheckInInstructionsRepository.class),
+                mock(com.clenzy.repository.PropertyPhotoRepository.class),mock(com.clenzy.integration.airbnb.repository.AirbnbListingMappingRepository.class),
+                mock(com.clenzy.service.NotificationService.class),tenant,new com.clenzy.service.access.OrganizationAccessGuard(tenant),
+                mock(com.clenzy.service.regulatory.FrCommuneResolver.class),mock(com.clenzy.service.TouristTaxService.class));
+            if("cross-org".equals(variant)) property.setOrganizationId(8L);
+            if("staff-cross-org".equals(variant)) {
+                property.setOrganizationId(8L); when(tenant.isSuperAdmin()).thenReturn(true);
+                jdbc.update("UPDATE properties SET organization_id=8");
+            }
+            return new com.clenzy.service.agent.tools.UpdatePropertyStatusTool(transactional(service),mapper);
+        }
+        var repository=mock(com.clenzy.repository.AssistantMemoryRepository.class);
+        when(repository.findOwnedForDeletion(any(),any(),any())).thenAnswer(call->{
+            var rows=jdbc.query("SELECT * FROM assistant_memory WHERE organization_id=? AND keycloak_id=? AND memory_key=?",
+                (rs,n)->{var memory=new com.clenzy.model.AssistantMemory(rs.getLong("organization_id"),rs.getString("keycloak_id"),
+                    rs.getString("memory_key"),rs.getString("memory_value"),com.clenzy.model.AssistantMemory.Scope.FACT);
+                    memory.setId(rs.getLong("id")); return memory;},call.getArgument(0),call.getArgument(1),call.getArgument(2));
+            return rows.stream().findFirst();
+        });
+        when(repository.deleteOwnedById(any(),any(),any())).thenAnswer(call->{
+            assertThat(TransactionSynchronizationManager.isActualTransactionActive()).isTrue();
+            int changed=jdbc.update("DELETE FROM assistant_memory WHERE organization_id=? AND keycloak_id=? AND id=?",
+                call.getArgument(0),call.getArgument(1),call.getArgument(2));
+            if("rollback".equals(variant)) failBeforeCommit();
+            return changed;
+        });
+        if("missing".equals(variant)) jdbc.update("DELETE FROM assistant_memory");
+        if("cross-org".equals(variant)) jdbc.update("UPDATE assistant_memory SET organization_id=8");
+        var service=new com.clenzy.service.AssistantMemoryService(repository,Optional.empty(),false);
+        return new com.clenzy.service.agent.tools.ForgetFactTool(transactional(service),mapper);
+    }
+    private void failBeforeCommit() {
+        TransactionSynchronizationManager.registerSynchronization(new org.springframework.transaction.support.TransactionSynchronization() {
+            @Override public void beforeCommit(boolean readOnly) { throw new IllegalStateException("synthetic-private-commit-failure"); }
+        });
+    }
+    @SuppressWarnings("unchecked") private <T> T transactional(T target) {
+        var proxy=new org.springframework.aop.framework.ProxyFactory(target); proxy.setProxyTargetClass(true);
+        proxy.addAdvice(new org.springframework.transaction.interceptor.TransactionInterceptor(new DataSourceTransactionManager(source),
+            new org.springframework.transaction.annotation.AnnotationTransactionAttributeSource()));
+        return (T)proxy.getProxy();
+    }
+    private void executeWrite(String kind,String variant) {
+        var concrete=writeHandler(kind,variant);
+        ToolHandler handler="unreviewed".equals(variant)?new ToolHandler() {
+            public String name() { return concrete.name(); }
+            public ToolDescriptor descriptor() { return concrete.descriptor(); }
+            public ToolResult execute(com.fasterxml.jackson.databind.JsonNode args,AgentContext context) { return concrete.execute(args,context); }
+        }:concrete;
+        var mapper=new com.fasterxml.jackson.databind.ObjectMapper();
+        var loop=new AgentToolLoopRunner(mock(ChatLLMProvider.class),new ToolRegistry(List.of(handler)),
+            mock(com.clenzy.repository.AssistantMessageRepository.class),new PendingToolStore(),mapper,
+            mock(com.clenzy.service.AiTokenBudgetService.class),null,null,null,null,null,null);
+        String args="property".equals(kind)?"{\"propertyId\":11,\"status\":\"INACTIVE\"}":"{\"key\":\"synthetic-private-key\"}";
+        var pending=new PendingToolStore.PendingTool("write-call",9L,7L,"recipe-user",handler.name(),args,List.of(),null,Instant.now().plusSeconds(60));
+        executor.executeWithTools(UUID.randomUUID(),7L,"recipe-user",9L,null,out->{
+            if("proof-outage".equals(variant)) jdbc.execute("DROP TABLE baitly_chat_write_business_proofs");
+            var result=loop.executeConfirmed(pending,AgentContext.minimal(7L,"recipe-user"));
+            if("crash-after-effect".equals(variant)) throw new IllegalStateException("synthetic-private-crash");
+            out.accept(AgentSseEvent.toolCallExecuted(handler.name(),"write-call",result.isError(),null,null));
+            long id=message("tool",result.content(),null);
+            jdbc.update("UPDATE assistant_message SET tool_call_id='write-call' WHERE id=?",id);
+            BaitlyChatTurnObservation.toolPersisted("write-call",id,result.isError());
+            out.accept(AgentSseEvent.done("stop")); return 9L;
+        },e->{});
+    }
+    @ParameterizedTest @ValueSource(strings={"property","memory"})
+    void internalWriteProofCommitsWithBusinessMutationButDoesNotReleaseConversation(String kind) throws Exception {
+        executeWrite(kind,"success");
+        var proof=journal.writeEvidence(7L,"recipe-user",9L).getFirst();
+        assertThat(proof.outcome()).isEqualTo("COMMITTED"); assertThat(proof.resultState()).isEqualTo("RECORDED");
+        assertThat(proof.proofKind()).isEqualTo("property".equals(kind)?"PROPERTY_STATUS_V1":"MEMORY_DELETE_V1");
+        assertThat(journal.proof(7L,"recipe-user",9L,history()).status()).isEqualTo("UNCERTAIN");
+        assertThat(journal.toolEvidence(7L,"recipe-user",9L).getFirst().status()).isEqualTo("UNCERTAIN");
+        String json=new com.fasterxml.jackson.databind.ObjectMapper().writeValueAsString(proof);
+        assertThat(json).doesNotContain("synthetic-private","resourceId","targetState","recipe-user");
+        assertThat(journal.writeEvidence(8L,"recipe-user",9L)).isEmpty();
+        assertThat(journal.writeEvidence(7L,"other-user",9L)).isEmpty();
+        assertThat(journal.writeEvidence(7L,"recipe-user",10L)).isEmpty();
+        var conversations=mock(com.clenzy.repository.AssistantConversationRepository.class);
+        var messages=mock(com.clenzy.repository.AssistantMessageRepository.class);
+        when(conversations.findByIdAndUser(9L,"recipe-user")).thenReturn(Optional.of(new com.clenzy.model.AssistantConversation(7L,"recipe-user")));
+        when(messages.findByOrganizationIdAndConversationIdOrderByCreatedAtAscIdAsc(7L,9L)).thenReturn(history());
+        var recovery=new BaitlyChatRecoveryService(mock(com.clenzy.repository.AgentPendingActionRepository.class),conversations,messages,
+            mock(com.clenzy.repository.AgentRunRepository.class),mock(PendingToolStore.class),journal).read(9L,"recipe-user",7L);
+        assertThat(recovery.canStart()).isFalse(); assertThat(recovery.writeEvidence()).hasSize(1);
+        assertThatThrownBy(()->journal.begin(7L,"recipe-user",9L,UUID.randomUUID(),null,true)).hasMessage("Baitly chat completion unavailable");
+        if("property".equals(kind)) assertThat(jdbc.queryForObject("SELECT status FROM properties",String.class)).isEqualTo("INACTIVE");
+        else assertThat(jdbc.queryForObject("SELECT count(*) FROM assistant_memory",Integer.class)).isZero();
+    }
+    @ParameterizedTest @ValueSource(strings={"property","memory"})
+    void businessRollbackAlsoRollsBackProof(String kind) {
+        executeWrite(kind,"rollback");
+        assertThat(journal.writeEvidence(7L,"recipe-user",9L)).isEmpty();
+        if("property".equals(kind)) assertThat(jdbc.queryForObject("SELECT status FROM properties",String.class)).isEqualTo("ACTIVE");
+        else assertThat(jdbc.queryForObject("SELECT count(*) FROM assistant_memory",Integer.class)).isEqualTo(1);
+    }
+    @ParameterizedTest @ValueSource(strings={"property","memory"})
+    void proofOutagePreventsBusinessCommit(String kind) {
+        executeWrite(kind,"proof-outage");
+        if("property".equals(kind)) assertThat(jdbc.queryForObject("SELECT status FROM properties",String.class)).isEqualTo("ACTIVE");
+        else assertThat(jdbc.queryForObject("SELECT count(*) FROM assistant_memory",Integer.class)).isEqualTo(1);
+        assertThatThrownBy(()->journal.writeEvidence(7L,"recipe-user",9L)).hasMessage("Baitly write proof unavailable").hasNoCause();
+    }
+    @ParameterizedTest @ValueSource(strings={"property","memory"})
+    void committedEffectSurvivesMissingResultWithoutReplay(String kind) {
+        assertThatThrownBy(()->executeWrite(kind,"crash-after-effect")).hasMessage("Baitly chat completion unavailable");
+        var reboot=new BaitlyChatCompletionJournal(jdbc,new DataSourceTransactionManager(source));
+        var proof=reboot.writeEvidence(7L,"recipe-user",9L).getFirst();
+        assertThat(proof.outcome()).isEqualTo("COMMITTED"); assertThat(proof.resultState()).isEqualTo("MISSING");
+        assertThatThrownBy(()->reboot.begin(7L,"recipe-user",9L,UUID.randomUUID(),null,true)).hasMessage("Baitly chat completion unavailable");
+        assertThat(jdbc.queryForObject("SELECT count(*) FROM baitly_chat_write_business_proofs",Integer.class)).isEqualTo(1);
+    }
+    @ParameterizedTest @ValueSource(strings={"property","memory"})
+    void crossOrganizationMutationNeverProducesProof(String kind) {
+        executeWrite(kind,"cross-org"); assertThat(journal.writeEvidence(7L,"recipe-user",9L)).isEmpty();
+    }
+    @Test void absentMemoryIsNotInventedIntoADeletionProof() {
+        executeWrite("memory","missing"); assertThat(journal.writeEvidence(7L,"recipe-user",9L)).isEmpty();
+    }
+    @Test void recordingOutsideBusinessTransactionIsRefused() {
+        var ticket=journal.begin(7L,"recipe-user",9L,UUID.randomUUID(),null);
+        assertThatThrownBy(()->journal.recordWrite(ticket,"write-call","PROPERTY_STATUS_V1",11L,"INACTIVE"))
+            .hasMessage("Baitly write proof unavailable").hasNoCause();
+        assertThat(journal.writeEvidence(7L,"recipe-user",9L)).isEmpty();
+    }
+    @Test void duplicateResultDoesNotEraseCommittedBusinessEvidenceOrAuthorizeReplay() {
+        executeWrite("property","success"); toolMessage("write-call");
+        var proof=journal.writeEvidence(7L,"recipe-user",9L).getFirst();
+        assertThat(proof.outcome()).isEqualTo("COMMITTED"); assertThat(proof.resultState()).isEqualTo("CONFLICT");
+        assertThat(proof.resultMessageId()).isNull();
+        assertThatThrownBy(()->journal.begin(7L,"recipe-user",9L,UUID.randomUUID(),null,true)).hasMessage("Baitly chat completion unavailable");
+    }
+    @Test void unrelatedTransactionCannotAutocommitAnIndependentProof() {
+        var ticket=journal.begin(7L,"recipe-user",9L,UUID.randomUUID(),null);
+        var unrelated=new DriverManagerDataSource("jdbc:h2:mem:unrelated"+UUID.randomUUID(),"sa","");
+        var tx=new org.springframework.transaction.support.TransactionTemplate(new DataSourceTransactionManager(unrelated));
+        tx.executeWithoutResult(status->assertThatThrownBy(()->journal.recordWrite(ticket,"write-call","PROPERTY_STATUS_V1",11L,"INACTIVE"))
+            .hasMessage("Baitly write proof unavailable").hasNoCause());
+        assertThat(journal.writeEvidence(7L,"recipe-user",9L)).isEmpty();
+    }
+    @Test void borrowedNameAndPositiveReturnDoNotCreateBusinessProof() {
+        executeWrite("property","unreviewed");
+        assertThat(jdbc.queryForObject("SELECT status FROM properties",String.class)).isEqualTo("INACTIVE");
+        assertThat(journal.writeEvidence(7L,"recipe-user",9L)).isEmpty();
+        assertThat(state()).isEqualTo("UNCERTAIN");
+    }
+    @Test void authorizedCrossOrganizationStaffWriteRemainsAllowedButUnqualified() {
+        executeWrite("property","staff-cross-org");
+        assertThat(jdbc.queryForObject("SELECT status FROM properties",String.class)).isEqualTo("INACTIVE");
+        assertThat(journal.writeEvidence(7L,"recipe-user",9L)).isEmpty();
+        assertThat(state()).isEqualTo("UNCERTAIN");
+    }
+    @jakarta.persistence.Entity(name="BaitlyWriteFixture")
+    @jakarta.persistence.Table(name="baitly_write_fixture")
+    public static class BaitlyWriteFixture {
+        @jakarta.persistence.Id Long id;
+        @jakarta.persistence.Column(nullable=false,length=32) String status;
+        public BaitlyWriteFixture() {}
+    }
+    @ParameterizedTest @ValueSource(booleans={false,true})
+    void actualJpaCommitAndLateFlushRollbackShareTheProofConnection(boolean failAtFlush) {
+        jdbc.execute("CREATE TABLE baitly_write_fixture(id BIGINT PRIMARY KEY,status VARCHAR(32) NOT NULL CHECK(status IN ('ACTIVE','INACTIVE')))");
+        jdbc.update("INSERT INTO baitly_write_fixture VALUES (11,'ACTIVE')");
+        var config=new Configuration().addAnnotatedClass(BaitlyWriteFixture.class);
+        config.getProperties().put("hibernate.connection.datasource",source);
+        config.setProperty("hibernate.hbm2ddl.auto","validate");
+        try(var factory=config.buildSessionFactory()) {
+            var manager=new org.springframework.orm.jpa.JpaTransactionManager(factory);
+            manager.setDataSource(source); manager.setJpaDialect(new org.springframework.orm.jpa.vendor.HibernateJpaDialect()); manager.afterPropertiesSet();
+            var ticket=journal.begin(7L,"recipe-user",9L,UUID.randomUUID(),null);
+            journal.startTool(ticket,"jpa-write",mock(ToolHandler.class));
+            var tx=new org.springframework.transaction.support.TransactionTemplate(manager);
+            Runnable mutation=()->tx.executeWithoutResult(status->{
+                var entityManager=org.springframework.orm.jpa.EntityManagerFactoryUtils.getTransactionalEntityManager(factory);
+                var entity=entityManager.find(BaitlyWriteFixture.class,11L);
+                entity.status=failAtFlush?"INVALID":"INACTIVE";
+                journal.recordWrite(ticket,"jpa-write","PROPERTY_STATUS_V1",11L,"INACTIVE");
+                assertThatThrownBy(()->journal.writeEvidence(7L,"recipe-user",9L)).hasMessage("Baitly write proof unavailable");
+            });
+            if(failAtFlush) assertThatThrownBy(mutation::run).isInstanceOf(RuntimeException.class);
+            else mutation.run();
+            assertThat(jdbc.queryForObject("SELECT status FROM baitly_write_fixture",String.class)).isEqualTo(failAtFlush?"ACTIVE":"INACTIVE");
+            assertThat(journal.writeEvidence(7L,"recipe-user",9L)).hasSize(failAtFlush?0:1);
+        }
     }
 }

@@ -5421,3 +5421,11 @@ databaseChangeLog:
         - sqlFile:
             path: changes/0609__baitly_chat_tool_turn_proofs.sql
             relativeToChangelogFile: true
+
+  - changeSet:
+      id: "0610-baitly-chat-write-business-proofs"
+      author: clenzy-team
+      changes:
+        - sqlFile:
+            path: changes/0610__baitly_chat_write_business_proofs.sql
+            relativeToChangelogFile: true

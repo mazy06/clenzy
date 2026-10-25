@@ -7,6 +7,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.TransactionDefinition;
 import org.springframework.transaction.support.TransactionTemplate;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 
 import java.sql.Timestamp;
 import java.time.Instant;
@@ -35,6 +36,59 @@ public class BaitlyChatCompletionJournal {
     public record Proof(String policy, String status, String lastMessageId, String requestId) {}
     /** Evidence of a bounded read, never an execution or replay permit. */
     public record ToolEvidence(String toolCallId, String proofKind, String status, String resultMessageId) {}
+    public record WriteEvidence(String toolCallId,String proofKind,String outcome,String proofId,
+                                String resultState,String resultMessageId) {}
+
+    /** Participate in the mutation transaction. Never open an independent proof transaction. */
+    void recordWrite(Ticket ticket,String callId,String kind,Long resource,String targetState) {
+      try {
+        if(!TransactionSynchronizationManager.isActualTransactionActive()
+                || TransactionSynchronizationManager.isCurrentTransactionReadOnly()
+                || !TransactionSynchronizationManager.hasResource(jdbc.getDataSource())
+                || resource==null || resource<=0) throw writeUnavailable();
+        var ids=jdbc.queryForList("""
+            SELECT e.id FROM baitly_chat_tool_evidence e JOIN baitly_chat_turns t ON t.id=e.turn_id
+                AND t.organization_id=e.organization_id AND t.conversation_id=e.conversation_id
+            JOIN assistant_conversation c ON c.id=t.conversation_id AND c.organization_id=t.organization_id
+            WHERE e.turn_id=? AND e.organization_id=? AND e.conversation_id=? AND e.tool_call_id=?
+                AND e.status='STARTED' AND e.proof_kind='UNVERIFIED' AND t.status='RUNNING'
+                AND t.keycloak_user_id=? AND c.keycloak_id=? AND c.archived_at IS NULL FOR UPDATE
+            """,UUID.class,ticket.id(),ticket.organizationId(),ticket.conversationId(),callId,ticket.userId(),ticket.userId());
+        if(ids.size()!=1) throw writeUnavailable();
+        jdbc.update("""
+            INSERT INTO baitly_chat_write_business_proofs
+                (id,tool_evidence_id,organization_id,conversation_id,proof_kind,resource_id,target_state,committed_at)
+            VALUES (?,?,?,?,?,?,?,?)
+            """,UUID.randomUUID(),ids.getFirst(),ticket.organizationId(),ticket.conversationId(),kind,resource,targetState,Timestamp.from(Instant.now()));
+      } catch(org.springframework.dao.DataAccessException failure) { throw writeUnavailable(); }
+    }
+
+    public List<WriteEvidence> writeEvidence(Long org,String user,Long conversation) {
+      try {
+        if(TransactionSynchronizationManager.isActualTransactionActive()
+                && !TransactionSynchronizationManager.isCurrentTransactionReadOnly())
+            throw writeUnavailable(); // Never publish a pending local transaction as committed.
+        return jdbc.query("""
+            SELECT p.id,p.proof_kind,e.tool_call_id,
+                (SELECT count(*) FROM assistant_message m WHERE m.organization_id=e.organization_id
+                    AND m.conversation_id=e.conversation_id AND m.role='tool' AND m.tool_call_id=e.tool_call_id) AS result_count,
+                (SELECT min(m.id) FROM assistant_message m WHERE m.organization_id=e.organization_id
+                    AND m.conversation_id=e.conversation_id AND m.role='tool' AND m.tool_call_id=e.tool_call_id) AS result_id
+            FROM baitly_chat_write_business_proofs p JOIN baitly_chat_tool_evidence e ON e.id=p.tool_evidence_id
+                AND e.organization_id=p.organization_id AND e.conversation_id=p.conversation_id
+            JOIN baitly_chat_turns t ON t.id=e.turn_id AND t.organization_id=e.organization_id AND t.conversation_id=e.conversation_id
+            JOIN assistant_conversation c ON c.id=t.conversation_id AND c.organization_id=t.organization_id
+            WHERE t.organization_id=? AND t.keycloak_user_id=? AND t.conversation_id=?
+                AND c.keycloak_id=? AND c.archived_at IS NULL ORDER BY t.turn_sequence,p.committed_at,p.id
+            """,(rs,n)->{
+                int count=rs.getInt("result_count"); Long id=rs.getObject("result_id",Long.class);
+                return new WriteEvidence(rs.getString("tool_call_id"),rs.getString("proof_kind"),"COMMITTED",
+                    rs.getObject("id",UUID.class).toString(),count==0?"MISSING":count==1?"RECORDED":"CONFLICT",
+                    count==1 && id!=null?"history-"+id:null);
+            },org,user,conversation,user);
+      } catch(org.springframework.dao.DataAccessException failure) { throw writeUnavailable(); }
+    }
+    private static IllegalStateException writeUnavailable() { return new IllegalStateException("Baitly write proof unavailable"); }
     private record Receipt(UUID id, UUID requestId, long sequence, String status, Long baselineId,Long endId,int covered,
                            String certificate,Long certificateEnd,Integer certificateCount) {}
     private record Message(Long id, String role, boolean toolCalls, boolean attachments,
@@ -127,7 +181,7 @@ public class BaitlyChatCompletionJournal {
         if(!Integer.valueOf(1).equals(count)) throw unavailable();
     }
     private static void requireNoOuterTransaction() {
-        if(org.springframework.transaction.support.TransactionSynchronizationManager.isActualTransactionActive()) throw unavailable();
+        if(TransactionSynchronizationManager.isActualTransactionActive()) throw unavailable();
     }
     private static String proofKind(ToolHandler handler) {
         // Explicit implementation review, never trust a model name or requiresConfirmation=false.

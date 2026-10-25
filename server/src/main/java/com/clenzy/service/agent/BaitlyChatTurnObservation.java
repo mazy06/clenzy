@@ -17,6 +17,8 @@ public final class BaitlyChatTurnObservation implements AutoCloseable {
     boolean conflictingExecution;
     private BaitlyChatCompletionJournal journal;
     private BaitlyChatCompletionJournal.Ticket ticket;
+    private String writeCallId;
+    private String writeKind;
 
     void bind(BaitlyChatCompletionJournal journal, BaitlyChatCompletionJournal.Ticket ticket) {
         this.journal=journal; this.ticket=ticket;
@@ -31,14 +33,32 @@ public final class BaitlyChatTurnObservation implements AutoCloseable {
                     || !current.ticket.conversationId().equals(conversationId))
                 throw new IllegalStateException("Baitly chat completion unavailable");
             current.journal.startTool(current.ticket,id,handler);
+            current.writeCallId=id;
+            current.writeKind=handler!=null && handler.getClass()==com.clenzy.service.agent.tools.UpdatePropertyStatusTool.class
+                ?"PROPERTY_STATUS_V1":handler!=null && handler.getClass()==com.clenzy.service.agent.tools.ForgetFactTool.class
+                ?"MEMORY_DELETE_V1":null;
         }
     }
     static void toolPersisted(String id, Long messageId, boolean error) {
         var current=CURRENT.get();
         if(current!=null) {
             if(current.journal==null || current.ticket==null) throw new IllegalStateException("Baitly chat completion unavailable");
-            current.journal.finishTool(current.ticket,id,messageId,error);
+            try { current.journal.finishTool(current.ticket,id,messageId,error); }
+            finally { current.writeCallId=null; current.writeKind=null; }
         }
+    }
+    /** Called at the business mutation boundary, inside its own database transaction. */
+    public static void internalWriteCommitted(String kind,Long org,String user,Long resource,String targetState) {
+        var current=CURRENT.get();
+        if(current==null || current.writeKind==null) return;
+        if(!current.writeKind.equals(kind) || !current.ticket.organizationId().equals(org)
+                || (user!=null && !current.ticket.userId().equals(user))) {
+            // Existing business authorization remains authoritative (including staff).
+            // A different scope cannot obtain a certificate for this conversation.
+            current.writeKind=null;
+            return;
+        }
+        current.journal.recordWrite(current.ticket,current.writeCallId,kind,resource,targetState);
     }
 
     private BaitlyChatTurnObservation() { CURRENT.set(this); }

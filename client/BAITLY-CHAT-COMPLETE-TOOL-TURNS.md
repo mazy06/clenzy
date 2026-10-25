@@ -90,3 +90,6 @@ Validation locale finale : 145 tests backend ciblés, dont 71 cas SQL et 7 cas
 HTTP/SSE, et 94 contrats frontend réussis, sans échec/erreur/test ignoré. Typage
 strict et builds PMS/SDK réussis ; candidat absent du bundle actif. La CI de
 la nouvelle tête, notamment PostgreSQL/JSONB, doit être confirmée séparément.
+
+Suite : [preuves métier des écritures internes](BAITLY-CHAT-WRITE-BUSINESS-PROOFS.md).
+Ces reçus de commit ne modifient pas la politique v2 de fin des tours de lecture.
