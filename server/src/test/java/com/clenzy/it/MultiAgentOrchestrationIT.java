@@ -65,6 +65,9 @@ import static org.mockito.Mockito.lenient;
 })
 class MultiAgentOrchestrationIT extends AbstractIntegrationTest {
 
+    @Autowired private com.clenzy.repository.PaymentTransactionRepository recipePayments;
+    @Autowired private com.clenzy.service.ai.BaitlyCreditFunding recipeCredits;
+
     @Autowired private AgentOrchestrator agentOrchestrator;
     @Autowired private AgentRunRepository agentRunRepository;
     @Autowired private AgentStepRepository agentStepRepository;
@@ -107,6 +110,7 @@ class MultiAgentOrchestrationIT extends AbstractIntegrationTest {
         Organization orgB = organizationRepository.save(
                 new Organization("Constellation B " + salt, OrganizationType.INDIVIDUAL, "constellation-b-" + salt));
         orgAId = orgA.getId();
+        com.clenzy.config.BaitlyIntegrationCreditFixture.fund(recipePayments, recipeCredits, orgAId);
         orgBId = orgB.getId();
 
         User ownerA = new User("Alice", "Hote", "alice." + salt + "@test.com", "password123");

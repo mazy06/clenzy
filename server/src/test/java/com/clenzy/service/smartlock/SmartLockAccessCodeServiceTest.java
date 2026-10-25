@@ -78,7 +78,10 @@ class SmartLockAccessCodeServiceTest {
 
         service = new SmartLockAccessCodeService(codeRepo, deviceRepo,
                 new com.clenzy.service.access.OrganizationAccessGuard(tenantContext),
-                provisioner, journal, delivery, stayContext);
+                provisioner, journal, delivery, stayContext,
+                com.clenzy.service.automation.BaitlyExternalEffectTestSupport.journal(),
+                mock(org.springframework.transaction.PlatformTransactionManager.class),
+                mock(com.clenzy.repository.ReservationRepository.class));
     }
 
     private SmartLockDevice device() {
@@ -93,6 +96,8 @@ class SmartLockAccessCodeServiceTest {
     private Reservation reservation() {
         Reservation r = new Reservation();
         r.setId(7L);
+        r.setOrganizationId(99L);
+        com.clenzy.model.Property property = new com.clenzy.model.Property(); property.setId(5L); r.setProperty(property);
         r.setGuestName("Jean Dupont");
         r.setCheckIn(LocalDate.of(2026, 7, 1));
         r.setCheckOut(LocalDate.of(2026, 7, 5));
@@ -164,6 +169,8 @@ class SmartLockAccessCodeServiceTest {
         when(deviceRepo.findById(10L)).thenReturn(Optional.of(device()));
         when(codeRepo.save(any(SmartLockAccessCode.class))).thenAnswer(inv -> inv.getArgument(0));
 
+        when(tuyaApiService.deleteTemporaryPassword("dev123", "tp1")).thenReturn(Map.of("result", true));
+
         service.revokeForDevice(10L, "user-1");
 
         verify(tuyaApiService).deleteTemporaryPassword("dev123", "tp1");
@@ -172,16 +179,16 @@ class SmartLockAccessCodeServiceTest {
     }
 
     @Test
-    void revokeForDevice_tuyaDeleteFails_stillRevokesLocally() {
+    void revokeForDevice_tuyaDeleteFails_doesNotClaimLocalRevocation() {
         SmartLockAccessCode code = activeCode("tp1");
         when(codeRepo.findByDeviceIdAndStatus(10L, CodeStatus.ACTIVE)).thenReturn(List.of(code));
         when(deviceRepo.findById(10L)).thenReturn(Optional.of(device()));
-        when(codeRepo.save(any(SmartLockAccessCode.class))).thenAnswer(inv -> inv.getArgument(0));
         doThrow(new RuntimeException("Tuya down")).when(tuyaApiService).deleteTemporaryPassword(anyString(), anyString());
 
-        service.revokeForDevice(10L, "user-1");
+        assertThrows(IllegalStateException.class, () -> service.revokeForDevice(10L, "user-1"));
 
-        assertEquals(CodeStatus.REVOKED, code.getStatus());
+        assertEquals(CodeStatus.ACTIVE, code.getStatus());
+        verify(codeRepo, never()).save(any());
     }
 
     private SmartLockAccessCode activeCode(String tuyaPasswordId) {

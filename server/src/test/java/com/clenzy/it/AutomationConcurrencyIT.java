@@ -55,34 +55,9 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 
 /**
- * Concurrence du registre central des flux deterministes (vague T3) : deux
- * evenements STRICTEMENT simultanes (2 threads + barriere) ne produisent jamais
- * de double effet metier.
- *
- * <p>(a) 2 {@code fireTrigger} simultanes sur le MEME sujet one-shot : la dedup
- * moteur ({@code existsBy...}) est un check-then-act — c'est le filet METIER
- * (index unique {@code service_requests.auto_flow_key}, migration 0307, +
- * catch {@code DataIntegrityViolationException} dans
- * {@link ServiceRequestService#createAutomaticCleaningRequest}) qui garantit
- * l'invariant : UNE seule demande de menage, UNE seule execution EXECUTED.
- * (Nota : il n'existe volontairement PAS de contrainte unique sur
- * {@code automation_executions(rule, subject_type, subject_id)} — les
- * declencheurs RECURRENTS (relances factures) ecrivent plusieurs lignes pour le
- * meme couple ; l'index 0305 est non-unique par design.)</p>
- *
- * <p>(b) 2 creations simultanees du menage auto pour le MEME sejour (appel
- * direct service, chemin moteur + filet backfill) : une seule SR — la course
- * est tranchee par l'index unique, le perdant sort en {@code skipped}.</p>
- *
- * <p>(c) 2 {@code fireTrigger} OWNER_MONTHLY_STATEMENT simultanes pour le MEME
- * (owner, periode) : le claim {@code owner_statement_dispatch} (contrainte
- * unique 0306) est pose DANS la transaction du moteur — sans verrou advisory,
- * le perdant percuterait la contrainte, sa transaction serait marquee
- * rollback-only par le {@code save()} et le catch de l'executeur ne pourrait
- * plus la sauver ({@code UnexpectedRollbackException} au commit, meme bug que
- * le menage auto). Invariant : UN claim, UN envoi, zero exception.
- * {@link OwnerStatementService} est mocke : le test cible la course sur le
- * claim, pas l'email.</p>
+ * Concurrence Baitly : deux admissions du même sujet réservent une seule occurrence
+ * durable, puis le drain produit un seul effet. Le filet métier du ménage protège
+ * également les appels directs ; le claim mensuel propriétaire est validé avant envoi.
  */
 @EnabledIfEnvironmentVariable(named = "CLENZY_IT", matches = "true")
 class AutomationConcurrencyIT extends AbstractIntegrationTest {
@@ -97,6 +72,8 @@ class AutomationConcurrencyIT extends AbstractIntegrationTest {
     @Autowired private TenantScopedExecutor tenantScopedExecutor;
 
     @Autowired private OrganizationRepository organizationRepository;
+    @Autowired private com.clenzy.service.assignment.AssignmentPolicyStore assignmentPolicies;
+    @Autowired private com.clenzy.service.messaging.AutomationEvaluationService durableEngine;
     @Autowired private UserRepository userRepository;
     @Autowired private PropertyRepository propertyRepository;
     @Autowired private ReservationRepository reservationRepository;
@@ -118,6 +95,7 @@ class AutomationConcurrencyIT extends AbstractIntegrationTest {
         String salt = UUID.randomUUID().toString().substring(0, 8);
         orgId = organizationRepository.save(new Organization(
                 "Concurrency " + salt, OrganizationType.INDIVIDUAL, "concurrency-" + salt)).getId();
+        com.clenzy.config.BaitlyAutomationIntegrationSchema.manualAssignment(assignmentPolicies, orgId);
 
         owner = new User("Cora", "Concurrent", "cora." + salt + "@test.com", "password123");
         owner.setOrganizationId(orgId);
@@ -147,6 +125,7 @@ class AutomationConcurrencyIT extends AbstractIntegrationTest {
 
         List<Throwable> failures = runSimultaneously(2,
                 () -> automationEngine.fireTrigger(AutomationTrigger.RESERVATION_BOOKED, orgId, subject));
+        durableEngine.processScheduledExecutions();
 
         // Invariant METIER : une seule demande de menage pour le sejour.
         String key = ServiceRequestService.buildAutoCleaningKey(property.getId(), CHECK_IN, CHECK_OUT);
@@ -224,6 +203,7 @@ class AutomationConcurrencyIT extends AbstractIntegrationTest {
         List<Throwable> failures = runSimultaneously(2,
                 () -> automationEngine.fireTrigger(
                         AutomationTrigger.OWNER_MONTHLY_STATEMENT, orgId, subject));
+        durableEngine.processScheduledExecutions();
 
         assertThat(failures)
                 .as("Le perdant de la course sort en SKIPPED via le verrou advisory — pas en "

@@ -7,6 +7,7 @@ export const LEGAL_MESSAGES = {
     countries: 'Choisir le pays du logement',
     scope: 'Ce guide concerne',
     reviewed: 'Sources vérifiées le',
+    product: 'Découvrir Baitly dans ce pays',
     date: '1er octobre 2026',
     contents: 'Dans ce guide',
     stages: {
@@ -90,6 +91,7 @@ export const LEGAL_MESSAGES = {
     countries: 'Choose the property country',
     scope: 'This guide covers',
     reviewed: 'Sources checked on',
+    product: 'Discover Baitly in this country',
     date: '1 October 2026',
     contents: 'In this guide',
     stages: {
@@ -173,6 +175,7 @@ export const LEGAL_MESSAGES = {
     countries: 'اختر بلد العقار',
     scope: 'نطاق هذا الدليل',
     reviewed: 'تاريخ مراجعة المصادر:',
+    product: 'اكتشف بيتلي في هذا البلد',
     date: '1 أكتوبر 2026',
     contents: 'في هذا الدليل',
     stages: {

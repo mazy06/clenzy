@@ -41,6 +41,14 @@ import { BAITLY_ACADEMY_MESSAGES } from '../site/lib/messages/baitlyAcademy';
 import { legalDocs } from '../src/modules/legal/corpus';
 import type { SiteLanguage } from '../site/lib/siteLanguage';
 import { legalDocuments } from '../site/data/legal/publication';
+import {
+  articlePath,
+  articlesForCountry,
+  guidePath,
+  legalCountry,
+} from '../site/data/legal';
+import { BAITLY_COUNTRY_PAGES } from '../site/data/baitlyCountries';
+import { BAITLY_COUNTRY_MESSAGES } from '../site/lib/messages/baitlyCountries';
 
 export const DISCOVERY_LANGUAGES = ['fr', 'en', 'ar'] as const;
 export const PRIVATE_SITE_PATHS = [
@@ -336,6 +344,31 @@ export function siteDocuments(
     ),
     section(compare.closingTitle, compare.closingCopy),
   );
+  const countries = BAITLY_COUNTRY_MESSAGES[language];
+  for (const slug of BAITLY_COUNTRY_PAGES) {
+    const page = countries.countries[slug];
+    const code = legalCountry(slug)!.code;
+    add(
+      `/${slug}`,
+      page.title,
+      page.intro,
+      section(page.pointsTitle, page.pointsCopy, features(page.points)),
+      countries.note,
+      section(
+        page.rulesTitle,
+        page.rulesCopy,
+        list(
+          articlesForCountry(code, language).map(
+            (article) =>
+              `[${language === 'en' ? article.guide.en.title : article.title}](${articlePath(article)}?lang=${language})`,
+          ),
+        ),
+        `[${countries.guide}](${guidePath(code)}?lang=${language})`,
+      ),
+      faq(page.faq),
+      `[${countries.demo}](/demo?lang=${language})`,
+    );
+  }
   const contact = BAITLY_CONTACT_MESSAGES[language];
   add(
     '/contact',

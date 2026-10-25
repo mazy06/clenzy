@@ -198,26 +198,26 @@ jobs:
           #   ~/.m2/repository/org/owasp/dependency-check-data, donc sous une cle de
           #   cache indexee sur le hash des pom.xml — invalidee des qu'une dependance
           #   bouge. Repertoire dedie, duree de vie independante des dependances.
-          # -DfailBuildOnCVSS=7 : bloque sur une vraie CVE (>= 7) quand les données NVD sont dispo.
-          # -DfailOnError=false : tolère un echec d'infrastructure (NVD 403/rate-limit sans clé API) —
-          #   sans donnees, aucun finding => le step passe (pas de faux rouge), au lieu de casser le CI.
-          #   Ne couvre QUE les erreurs de l'analyse : un echec de resolution du plugin survient
-          #   avant, et reste bloquant — d'ou le point ci-dessus.
-          # NVD_API_KEY : depuis qu'il est renseigne, l'analyse tourne pour de vrai. Avant,
-          #   le NVD repondait 403, l'analyse s'arretait avant la premiere dependance, et le
-          #   step passait au vert sans rien avoir verifie.
+          # Le contrôle Baitly reste bloquant pour CVSS >= 7 ET en cas d’analyse
+          # indisponible. Une panne NVD, un rapport absent ou une analyse interrompue
+          # ne doivent pas devenir une preuve de sécurité verte.
           mvn org.owasp:dependency-check-maven:check -B -q \
             -DdataDirectory="$HOME/.dependency-check-data" \
             -DfailBuildOnCVSS=7 \
-            -DfailOnError=false \
+            -DfailOnError=true \
             ${NVD_API_KEY:+-DnvdApiKey=$NVD_API_KEY}
+          test -s target/dependency-check-report.html
+          test -s target/dependency-check-report.json
 
       - name: Upload dependency check report
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: dependency-check-report
-          path: server/target/dependency-check-report.html
+          path: |
+            server/target/dependency-check-report.html
+            server/target/dependency-check-report.json
+          if-no-files-found: error
           retention-days: 30
 
   security-checks:

@@ -50,6 +50,13 @@ class SchedulerLockCoverageTest {
             "ContactFileStorageService#updateStorageMetrics",
             "TokenCleanupService#scheduledTokenCleanup",
             "ChannexAriBatcher#flush",
+            // Chaque instance publie son propre snapshot Micrometer en mémoire,
+            // obtenu uniquement par SELECT. Un verrou global laisserait les autres périmées.
+            "BaitlyOperationalMetrics#refresh",
+            "BaitlyRecoveryJournalMetrics#refresh",
+            "BaitlyNoiseWarningMetrics#refresh",
+            "BaitlyAutomationMetrics#refresh",
+            "BaitlyExternalEffectMetrics#refresh",
 
             // B — at-least-once par design (voir OutboxRelay, javadoc de classe)
             "OutboxRelay#relayPendingEvents",

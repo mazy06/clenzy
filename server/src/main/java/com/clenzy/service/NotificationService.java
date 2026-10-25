@@ -521,6 +521,24 @@ public class NotificationService {
     }
 
     /**
+     * Operational receivers must acknowledge only committed notifications. Unlike
+     * best-effort business notifications, storage failure must reach Alertmanager
+     * so its durable retry remains active. Preferences and recipient orgs are preserved.
+     */
+    public int notifyPlatformOpsStrict(String title, String message, String actionUrl) {
+        List<User> staff = userRepository.findByStatusAndRoleInAndKeycloakIdIsNotNullOrderByFirstNameAscLastNameAsc(
+                UserStatus.ACTIVE, Arrays.asList(UserRole.SUPER_ADMIN, UserRole.SUPER_MANAGER));
+        int created = 0;
+        for (User user : staff) {
+            if (user.getKeycloakId() == null) continue;
+            if (sendByOrgIdStrict(user.getKeycloakId(), NotificationKey.OPS_ALERT, title, message,
+                    actionUrl, user.getOrganizationId(), null) != null) created++;
+        }
+        if (created == 0) throw new IllegalStateException("No operational notification persisted");
+        return created;
+    }
+
+    /**
      * Notifie tous les SUPER_ADMIN et SUPER_MANAGER de la plateforme,
      * SANS contrainte d'organisation. Utile pour les evenements publics qui
      * n'ont pas de TenantContext (ex : reception d'un formulaire de devis

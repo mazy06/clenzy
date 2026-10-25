@@ -172,6 +172,7 @@ public class OutboxRelay {
                 .handle((result, ex) -> {
                     if (ex == null) {
                         sample.stop(Timer.builder("pms.outbox.relay.latency")
+                                .tag("result", "success")
                                 .description("Outbox event relay latency to Kafka")
                                 .register(syncMetrics.getRegistry()));
 

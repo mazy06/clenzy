@@ -7,6 +7,8 @@ import org.springframework.stereotype.Component;
 
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.Set;
+import com.clenzy.integration.channel.ChannelName;
 
 /**
  * Bean central de metriques Micrometer pour le monitoring du PMS.
@@ -23,6 +25,22 @@ import java.util.concurrent.atomic.AtomicLong;
  */
 @Component
 public class SyncMetrics {
+
+    private static final Set<String> OPERATIONS = Set.of("book", "cancel", "move", "block", "unblock",
+            "reconcileImportedBlocks", "updatePrice");
+    private static final Set<String> ERRORS = Set.of("TimeoutException", "SocketTimeoutException",
+            "HttpTimeoutException", "ConnectException", "IOException", "RestClientException",
+            "HttpServerErrorException", "HttpClientErrorException", "IllegalStateException",
+            "RuntimeException", "ChannexException", "unknown");
+
+    private static String channel(String value) {
+        if (value != null) for (ChannelName name : ChannelName.values()) if (name.name().equals(value)) return value;
+        return "OTHER";
+    }
+
+    private static String source(String value) {
+        return "MANUAL".equals(value) ? value : channel(value);
+    }
 
     private final MeterRegistry registry;
 
@@ -88,13 +106,13 @@ public class SyncMetrics {
      */
     public void recordSyncSuccess(String channel, long durationMs) {
         Counter.builder("pms.sync.success")
-                .tag("channel", channel)
+                .tag("channel", channel(channel))
                 .description("Successful channel synchronizations")
                 .register(registry)
                 .increment();
 
         Timer.builder("pms.sync.latency")
-                .tag("channel", channel)
+                .tag("channel", channel(channel))
                 .description("Channel sync latency")
                 .publishPercentiles(0.5, 0.95, 0.99)
                 .register(registry)
@@ -110,14 +128,14 @@ public class SyncMetrics {
      */
     public void recordSyncFailure(String channel, String errorType, long durationMs) {
         Counter.builder("pms.sync.failure")
-                .tag("channel", channel)
-                .tag("error_type", errorType != null ? errorType : "unknown")
+                .tag("channel", channel(channel))
+                .tag("error_type", errorType != null && ERRORS.contains(errorType) ? errorType : "unknown")
                 .description("Failed channel synchronizations")
                 .register(registry)
                 .increment();
 
         Timer.builder("pms.sync.latency")
-                .tag("channel", channel)
+                .tag("channel", channel(channel))
                 .description("Channel sync latency")
                 .publishPercentiles(0.5, 0.95, 0.99)
                 .register(registry)
@@ -134,7 +152,7 @@ public class SyncMetrics {
      */
     public void recordCalendarOperation(String operation, Timer.Sample sample) {
         sample.stop(Timer.builder("pms.calendar.update.latency")
-                .tag("operation", operation)
+                .tag("operation", operation != null && OPERATIONS.contains(operation) ? operation : "other")
                 .description("Calendar update processing time")
                 .publishPercentiles(0.5, 0.95, 0.99)
                 .register(registry));
@@ -171,7 +189,7 @@ public class SyncMetrics {
      */
     public void recordReservationCreation(String source, Timer.Sample sample) {
         sample.stop(Timer.builder("pms.reservation.creation.latency")
-                .tag("source", source)
+                .tag("source", source(source))
                 .description("Reservation creation time including availability check")
                 .publishPercentiles(0.5, 0.95, 0.99)
                 .register(registry));

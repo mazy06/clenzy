@@ -365,6 +365,12 @@ public interface InterventionRepository extends JpaRepository<Intervention, Long
     @EntityGraph(attributePaths = {"requestor"})
     List<Intervention> findAllByStripeSessionIdAndOrganizationId(String stripeSessionId, Long organizationId);
 
+    /** Baitly invoice reminder recipient loaded before leaving the read transaction. */
+    @EntityGraph(attributePaths = {"requestor"})
+    @Query("SELECT i FROM Intervention i WHERE i.id = :id AND i.organizationId = :orgId")
+    java.util.Optional<Intervention> findReminderRecipientByIdAndOrganizationId(
+            @Param("id") Long id, @Param("orgId") Long organizationId);
+
     /**
      * Interventions impayees d'un host (paymentStatus != PAID et estimatedCost > 0)
      */

@@ -69,6 +69,13 @@ public class PennylaneConnection implements OAuthConnectionLike {
     @Column(name = "updated_at")
     private Instant updatedAt;
 
+    @Column(name = "accounting_generation", nullable = false)
+    private java.util.UUID accountingGeneration = java.util.UUID.randomUUID();
+
+    public java.util.UUID getAccountingGeneration() { return accountingGeneration; }
+
+    @Override public void authorizationEstablished() { accountingGeneration = java.util.UUID.randomUUID(); }
+
     // ─── Lifecycle ───────────────────────────────────────────────────────────
 
     @PrePersist

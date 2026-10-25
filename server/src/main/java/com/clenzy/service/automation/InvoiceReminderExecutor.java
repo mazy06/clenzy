@@ -159,7 +159,9 @@ public class InvoiceReminderExecutor implements AutomationActionExecutor {
     /** Email du client : voyageur de la reservation liee, sinon demandeur de l'intervention liee. */
     private Recipient resolveRecipient(Invoice invoice) {
         if (invoice.getReservationId() != null) {
-            Reservation reservation = reservationRepository.findById(invoice.getReservationId()).orElse(null);
+            // Resolve the recipient while reading, never by extending a transaction
+            // around the provider call. findById leaves the guest as a detached proxy.
+            Reservation reservation = reservationRepository.findByIdWithGuestAndProperty(invoice.getReservationId()).orElse(null);
             if (reservation != null
                     && invoice.getOrganizationId().equals(reservation.getOrganizationId())
                     && reservation.getGuest() != null
@@ -169,7 +171,8 @@ public class InvoiceReminderExecutor implements AutomationActionExecutor {
             }
         }
         if (invoice.getInterventionId() != null) {
-            Intervention intervention = interventionRepository.findById(invoice.getInterventionId()).orElse(null);
+            Intervention intervention = interventionRepository.findReminderRecipientByIdAndOrganizationId(
+                    invoice.getInterventionId(), invoice.getOrganizationId()).orElse(null);
             if (intervention != null
                     && invoice.getOrganizationId().equals(intervention.getOrganizationId())
                     && intervention.getRequestor() != null

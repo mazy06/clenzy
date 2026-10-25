@@ -11,6 +11,21 @@ import java.util.List;
 
 public interface AgentPendingActionRepository extends JpaRepository<AgentPendingAction, String> {
 
+    List<AgentPendingAction> findByOrganizationIdAndKeycloakUserIdAndConversationIdOrderByCreatedAtAsc(
+            Long organizationId, String keycloakUserId, Long conversationId);
+
+    /** One durable decision winner, committed before any tool/provider call. */
+    @Modifying
+    @org.springframework.transaction.annotation.Transactional
+    @Query("""
+            update AgentPendingAction a set a.status = :decision, a.resolvedAt = :now
+            where a.toolCallId = :id and a.organizationId = :orgId
+              and a.keycloakUserId = :userId and a.status = 'PENDING' and a.expiresAt > :now
+            """)
+    int claimDecision(@Param("id") String id, @Param("orgId") Long orgId,
+                      @Param("userId") String userId, @Param("decision") String decision,
+                      @Param("now") Instant now);
+
     /** Actions en attente d'un user (fallback d'affichage si l'index Redis est perdu). */
     List<AgentPendingAction> findByKeycloakUserIdAndStatusAndExpiresAtAfterOrderByCreatedAtAsc(
             String keycloakUserId, String status, Instant now);

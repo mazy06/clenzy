@@ -82,8 +82,7 @@ public class AssistantMemoryService {
             // (theoriquement impossible vu l'unique key (keycloak_id, memory_key)
             //  mais on coupe court en cas de derive).
             if (!memory.getOrganizationId().equals(organizationId)) {
-                log.warn("Memory key '{}' belongs to org {} but caller is {} — refusing cross-org update",
-                        normalizedKey, memory.getOrganizationId(), organizationId);
+                log.warn("Cross-organization memory update refused");
                 throw new IllegalStateException("Cross-org memory mismatch");
             }
             return repository.save(memory);
@@ -105,12 +104,19 @@ public class AssistantMemoryService {
         if (key == null || key.isBlank()) {
             return false;
         }
-        // organizationId reserve pour la coherence d'API ; le filtre se fait via
-        // keycloak_id (ownership user-level) + filtre Hibernate (tenant).
-        int deleted = repository.deleteByUserAndKey(keycloakId, normalizeKey(key));
+        if(organizationId==null || keycloakId==null || keycloakId.isBlank())
+            throw new IllegalArgumentException("Memory owner required");
+        var existing=repository.findOwnedForDeletion(organizationId,keycloakId,normalizeKey(key));
+        if(existing.isEmpty()) return false;
+        var memory=existing.get();
+        if(!organizationId.equals(memory.getOrganizationId()) || !keycloakId.equals(memory.getKeycloakId()) || memory.getId()==null)
+            throw new IllegalStateException("Memory ownership unavailable");
+        int deleted = repository.deleteOwnedById(organizationId,keycloakId,memory.getId());
+        if(deleted!=1) throw new IllegalStateException("Memory deletion unavailable");
         if (deleted > 0) {
-            log.info("Forgot memory key '{}' for user {} (org {})",
-                    key, keycloakId, organizationId);
+            com.clenzy.service.agent.BaitlyChatTurnObservation.internalWriteCommitted(
+                "MEMORY_DELETE_V1",organizationId,keycloakId,memory.getId(),null);
+            log.info("Assistant memory deletion completed");
         }
         return deleted > 0;
     }
@@ -168,7 +174,7 @@ public class AssistantMemoryService {
         try {
             queryEmbedding = embeddingService.embedQueryAsVectorString(userMessage);
         } catch (Exception e) {
-            log.debug("Memory relevance search : embedding failed ({}), fallback recency", e.getMessage());
+            log.debug("Memory relevance embedding unavailable, using recency");
             return listForUser(keycloakId, safeLimit);
         }
 
@@ -177,7 +183,7 @@ public class AssistantMemoryService {
             rows = repository.searchByCosineSimilarity(queryEmbedding, keycloakId,
                     organizationId, safeLimit);
         } catch (Exception e) {
-            log.warn("Memory relevance search failed ({}), fallback recency", e.getMessage());
+            log.warn("Memory relevance search unavailable, using recency");
             return listForUser(keycloakId, safeLimit);
         }
 
@@ -217,7 +223,7 @@ public class AssistantMemoryService {
             String text = key + ": " + value;
             return embeddingService.embedDocumentAsVectorString(text);
         } catch (Exception e) {
-            log.debug("Memory embedding failed for key '{}' : {}", key, e.getMessage());
+            log.debug("Memory embedding unavailable");
             return null;
         }
     }
@@ -239,7 +245,7 @@ public class AssistantMemoryService {
             // Sync in-memory pour les callers qui lisent immediatement after
             for (AssistantMemory m : memories) m.setLastAccessedAt(now);
         } catch (Exception e) {
-            log.debug("touchLastAccessed failed : {}", e.getMessage());
+            log.debug("Memory access timestamp update unavailable");
         }
     }
 

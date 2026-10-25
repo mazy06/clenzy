@@ -96,8 +96,7 @@ public class SecretColumnEncryptionBackfill implements ApplicationRunner {
                 // Non bloquant : une table absente (env partiel) ou une colonne déjà
                 // entièrement chiffrée ne doit pas empêcher le démarrage. L'échec reste
                 // visible (ERROR) — on ne masque jamais un problème de chiffrement.
-                log.error("Backfill de chiffrement échoué pour {}.{} (non bloquant) : {}",
-                        col.table(), col.column(), e.getMessage(), e);
+                log.error("Baitly secret backfill unavailable for {}.{}",col.table(),col.column());
             }
         }
         if (totalEncrypted > 0) {
@@ -120,7 +119,7 @@ public class SecretColumnEncryptionBackfill implements ApplicationRunner {
                 + " WHERE " + col.column() + " IS NOT NULL AND " + col.column() + " <> ''";
         List<Map<String, Object>> rows = jdbcTemplate.queryForList(selectSql);
 
-        String updateSql = "UPDATE " + col.table() + " SET " + col.column() + " = ? WHERE id = ?";
+        String updateSql = "UPDATE " + col.table() + " SET " + col.column() + " = ? WHERE id = ? AND " + col.column() + " = ?";
         int encrypted = 0;
         for (Map<String, Object> row : rows) {
             Object raw = row.get("val");
@@ -132,8 +131,7 @@ public class SecretColumnEncryptionBackfill implements ApplicationRunner {
                 continue; // idempotence : valeur déjà chiffrée, on ne re-chiffre pas
             }
             String cipher = encryption.encrypt(value);
-            jdbcTemplate.update(updateSql, cipher, row.get("id"));
-            encrypted++;
+            encrypted+=jdbcTemplate.update(updateSql, cipher, row.get("id"),value);
         }
         if (encrypted > 0) {
             log.info("Backfill {}.{} : {} valeur(s) en clair chiffrée(s) (sur {} ligne(s)).",
@@ -148,10 +146,18 @@ public class SecretColumnEncryptionBackfill implements ApplicationRunner {
      * déchiffrement. On ne re-chiffre que ce qui n'est pas déjà chiffré.
      */
     private boolean isAlreadyEncrypted(String value) {
+        if(com.clenzy.util.BaitlyFieldCipher.isAuthenticated(value)) {
+            encryption.decrypt(value); // Broken authenticated data is never classified as plaintext.
+            return true;
+        }
         try {
             encryption.decrypt(value);
             return true;
         } catch (RuntimeException e) {
+            // CBC under an unknown key cannot safely be distinguished from plaintext by retrying keys.
+            try {
+                if(java.util.Base64.getDecoder().decode(value).length>=48) throw new IllegalStateException("Baitly ambiguous legacy ciphertext");
+            } catch(IllegalArgumentException notBase64) { /* Clearly non-Base64 legacy plaintext. */ }
             return false;
         }
     }

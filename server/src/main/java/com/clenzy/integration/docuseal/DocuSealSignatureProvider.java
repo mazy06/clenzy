@@ -4,6 +4,8 @@ import com.clenzy.model.DocumentGeneration;
 import com.clenzy.repository.DocumentGenerationRepository;
 import com.clenzy.service.DocumentStorageService;
 import com.clenzy.service.signature.SignatureProvider;
+import com.clenzy.service.signature.BaitlySignatureSafety;
+import com.clenzy.service.signature.BaitlySignatureDownloads;
 import com.clenzy.service.signature.SignatureProviderType;
 import com.clenzy.service.signature.SignatureRequest;
 import com.clenzy.service.signature.SignatureResult;
@@ -39,7 +41,7 @@ import java.util.Optional;
  * <ol>
  *   <li>POST /api/templates/pdf (PDF en base64) → template</li>
  *   <li>POST /api/submissions (template_id + signataire, send_email=false —
- *       l'email part de Clenzy) → slug du signataire</li>
+ *       l'email part de Baitly) → slug du signataire</li>
  *   <li>URL de signature : {@code {base}/s/{slug}}</li>
  * </ol>
  */
@@ -52,15 +54,17 @@ public class DocuSealSignatureProvider implements SignatureProvider {
     private final DocumentGenerationRepository generationRepository;
     private final DocumentStorageService documentStorageService;
     private final RestTemplate restTemplate;
+    private final BaitlySignatureDownloads downloads;
 
     public DocuSealSignatureProvider(DocuSealConfig config,
                                       DocumentGenerationRepository generationRepository,
                                       DocumentStorageService documentStorageService,
-                                      RestTemplate restTemplate) {
+                                      RestTemplate restTemplate, BaitlySignatureDownloads downloads) {
         this.config = config;
         this.generationRepository = generationRepository;
         this.documentStorageService = documentStorageService;
         this.restTemplate = restTemplate;
+        this.downloads = downloads;
     }
 
     @Override
@@ -83,7 +87,7 @@ public class DocuSealSignatureProvider implements SignatureProvider {
 
         String base = config.normalizedBaseUrl();
         Signer signer = request.signers().get(0);
-        String documentName = request.documentName() != null ? request.documentName() : "Document Clenzy";
+        String documentName = request.documentName() != null ? request.documentName() : "Document Baitly";
 
         try {
             // 1. Template depuis le PDF
@@ -93,8 +97,9 @@ public class DocuSealSignatureProvider implements SignatureProvider {
                             "name", documentName,
                             "file", Base64.getEncoder().encodeToString(pdf)))));
             Object templateId = template.get("id");
+            BaitlySignatureSafety.remoteId(templateId);
 
-            // 2. Soumission. send_email=false : c'est Clenzy qui envoie le lien.
+            // 2. Soumission. send_email=false : c'est Baitly qui envoie le lien.
             List<Map<String, Object>> submitters = postJsonList(base + "/api/submissions", Map.of(
                     "template_id", templateId,
                     "send_email", false,
@@ -107,38 +112,43 @@ public class DocuSealSignatureProvider implements SignatureProvider {
             }
 
             Map<String, Object> submitter = submitters.get(0);
-            String submissionId = String.valueOf(submitter.get("submission_id"));
-            String slug = String.valueOf(submitter.get("slug"));
+            String submissionId = BaitlySignatureSafety.remoteId(submitter.get("submission_id"));
+            String slug = BaitlySignatureSafety.remoteId(submitter.get("slug"));
 
-            log.info("Soumission DocuSeal créée — submissionId={}, org={}", submissionId, request.orgId());
+            log.info("DocuSeal : soumission de signature créée");
             return SignatureResult.success(submissionId, base + "/s/" + slug);
         } catch (Exception e) {
-            log.error("Création de la soumission DocuSeal échouée : {}", e.getMessage());
-            return SignatureResult.failure("DocuSeal: " + e.getMessage());
+            log.error("DocuSeal : création de signature non confirmée");
+            return SignatureResult.failure(BaitlySignatureSafety.CREATION_UNCONFIRMED);
         }
     }
 
     @Override
     public SignatureStatus getStatus(String signatureRequestId) {
+        signatureRequestId = BaitlySignatureSafety.remoteId(signatureRequestId);
+        try {
         Map<String, Object> submission = getJson(
                 config.normalizedBaseUrl() + "/api/submissions/" + signatureRequestId);
-        return mapStatus(submission != null ? String.valueOf(submission.get("status")) : null);
+        return mapStatus(submission != null && submission.get("status") instanceof String status ? status : null);
+        } catch (Exception ignored) {throw BaitlySignatureSafety.unavailable();}
     }
 
     @Override
     @SuppressWarnings("unchecked")
     public byte[] getSignedDocument(String signatureRequestId) {
+        signatureRequestId = BaitlySignatureSafety.remoteId(signatureRequestId);
+        try {
         Map<String, Object> submission = getJson(
                 config.normalizedBaseUrl() + "/api/submissions/" + signatureRequestId);
         Object documents = submission != null ? submission.get("documents") : null;
         if (documents instanceof List<?> list && !list.isEmpty() && list.get(0) instanceof Map<?, ?> first) {
             Object url = ((Map<String, Object>) first).get("url");
-            if (url != null) {
-                return restTemplate.exchange(url.toString(), HttpMethod.GET,
-                        new HttpEntity<>(authHeaders()), byte[].class).getBody();
+            if (url instanceof String target) {
+                return downloads.fetchSameOrigin(config.normalizedBaseUrl(), target, authHeaders());
             }
         }
-        throw new IllegalStateException("Document signé non disponible pour la soumission " + signatureRequestId);
+        throw BaitlySignatureSafety.invalidResponse();
+        } catch (Exception ignored) {throw BaitlySignatureSafety.unavailable();}
     }
 
     /** Disponible dès que l'instance self-hosted est configurée (config globale plateforme). */
@@ -151,22 +161,25 @@ public class DocuSealSignatureProvider implements SignatureProvider {
 
     /** Statuts DocuSeal : pending, completed, expired, archived/canceled, declined. */
     static SignatureStatus mapStatus(String docusealStatus) {
-        if (docusealStatus == null) return SignatureStatus.PENDING;
+        if (docusealStatus == null) throw BaitlySignatureSafety.unknownStatus();
         return switch (docusealStatus) {
             case "completed" -> SignatureStatus.SIGNED;
             case "expired" -> SignatureStatus.EXPIRED;
             case "archived", "canceled" -> SignatureStatus.CANCELLED;
             case "declined" -> SignatureStatus.DECLINED;
-            default -> SignatureStatus.PENDING;
+            case "pending" -> SignatureStatus.PENDING;
+            default -> throw BaitlySignatureSafety.unknownStatus();
         };
     }
 
     private byte[] loadDocumentBytes(Long generationId) {
+        try {
         return generationRepository.findById(generationId)
                 .map(DocumentGeneration::getFilePath)
                 .filter(path -> path != null && !path.isBlank())
                 .map(documentStorageService::loadAsBytes)
                 .orElse(null);
+        } catch (Exception ignored) {log.error("DocuSeal : lecture du document indisponible");return null;}
     }
 
     private HttpHeaders authHeaders() {

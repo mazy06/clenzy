@@ -51,6 +51,9 @@ import static org.mockito.Mockito.lenient;
 })
 class ScenarioAssistantRoutingIT extends AbstractIntegrationTest {
 
+    @Autowired private com.clenzy.repository.PaymentTransactionRepository recipePayments;
+    @Autowired private com.clenzy.service.ai.BaitlyCreditFunding recipeCredits;
+
     private static final String TIER_SMALL_MODEL = "claude-tiny-tier-it";
 
     @Autowired private AgentOrchestrator agentOrchestrator;
@@ -83,6 +86,7 @@ class ScenarioAssistantRoutingIT extends AbstractIntegrationTest {
         orgId = organizationRepository.save(
                 new Organization("Routing Org " + salt, OrganizationType.INDIVIDUAL, "routing-" + salt))
                 .getId();
+        com.clenzy.config.BaitlyIntegrationCreditFixture.fund(recipePayments, recipeCredits, orgId);
         setupTenantContext(orgId, false);
 
         // Tiering T-03 : un modele ASSISTANT_SMALL assigne en base (provider

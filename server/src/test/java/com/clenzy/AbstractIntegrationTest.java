@@ -85,14 +85,37 @@ public abstract class AbstractIntegrationTest {
     @MockBean
     protected KafkaTemplate<String, Object> kafkaTemplate;
 
+    /**
+     * Scenarios invoke durable workers explicitly. This independent dispatcher
+     * schedules against wall time; a scenario Clock fixed in the past would
+     * turn its recovery backoff into an immediate loop on the hybrid schema.
+     * Its own dispatcher/assignment tests exercise delivery separately.
+     */
+    @MockBean
+    protected com.clenzy.service.assignment.AssignmentDeadlineDispatcher assignmentTimer;
+
     @Autowired
     protected TenantContext tenantContext;
 
+    @Autowired
+    private javax.sql.DataSource integrationDataSource;
+
     @DynamicPropertySource
     static void configureProperties(DynamicPropertyRegistry registry) {
+        // Spring caches several contexts with different mocks/clocks. Sharing a
+        // container is safe; sharing a create-drop schema and JDBC journals is not.
+        String schema = "baitly_it_" + java.util.UUID.randomUUID().toString().replace("-", "");
+        try (var connection = java.sql.DriverManager.getConnection(
+                postgres.getJdbcUrl(), postgres.getUsername(), postgres.getPassword());
+             var statement = connection.createStatement()) {
+            statement.execute("CREATE SCHEMA " + schema);
+        } catch (java.sql.SQLException failure) {
+            throw new IllegalStateException("Baitly integration schema initialization failed", failure);
+        }
         // PostgreSQL (stringtype=unspecified : permet le cast implicite varchar -> jsonb)
         registry.add("spring.datasource.url",
-                () -> postgres.getJdbcUrl() + "&stringtype=unspecified");
+                () -> postgres.getJdbcUrl() + "&stringtype=unspecified&currentSchema=" + schema + ",public");
+        registry.add("spring.jpa.properties.hibernate.default_schema", () -> schema);
         registry.add("spring.datasource.username", postgres::getUsername);
         registry.add("spring.datasource.password", postgres::getPassword);
 
@@ -117,6 +140,7 @@ public abstract class AbstractIntegrationTest {
         } catch (Exception ignored) {
             // TenantContext peut ne pas etre injecte dans certains tests
         }
+        com.clenzy.config.BaitlyAutomationIntegrationSchema.install(integrationDataSource);
     }
 
     /**

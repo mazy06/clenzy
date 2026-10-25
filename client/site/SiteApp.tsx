@@ -12,6 +12,7 @@ const loaders = {
   PricingPage: () => import('./pages/PricingPage'),
   MigrationPage: () => import('./pages/MigrationPage'),
   ComparePage: () => import('./pages/ComparePage'),
+  CountryPage: () => import('./pages/CountryPage'),
   ResourcesPage: () => import('./pages/ResourcesPage'),
   BaitlyResourcePage: () => import('./pages/BaitlyResourcePage'),
   BaitlyLegalPage: () => import('./pages/BaitlyLegalPage'),
@@ -46,6 +47,7 @@ const lazyPages = {
   PricingPage: lazy(loaders.PricingPage),
   MigrationPage: lazy(loaders.MigrationPage),
   ComparePage: lazy(loaders.ComparePage),
+  CountryPage: lazy(loaders.CountryPage),
   ResourcesPage: lazy(loaders.ResourcesPage),
   BaitlyResourcePage: lazy(loaders.BaitlyResourcePage),
   BaitlyLegalPage: lazy(loaders.BaitlyLegalPage),
@@ -83,6 +85,9 @@ export function initialPageKey(pathname: string): PageKey {
     '/tarifs': 'PricingPage',
     '/migration': 'MigrationPage',
     '/comparer': 'ComparePage',
+    '/maroc': 'CountryPage',
+    '/arabie-saoudite': 'CountryPage',
+    '/france': 'CountryPage',
     '/ressources': 'ResourcesPage',
     '/prestataires': 'ProvidersPage',
     '/prestataires/inscription': 'ProviderSignupPage',
@@ -129,6 +134,7 @@ export default function SiteApp({
     PricingPage,
     MigrationPage,
     ComparePage,
+    CountryPage,
     ResourcesPage,
     BaitlyResourcePage,
     BaitlyLegalPage,
@@ -157,6 +163,12 @@ export default function SiteApp({
             <Route path="/tarifs" element={<PricingPage />} />
             <Route path="/migration" element={<MigrationPage />} />
             <Route path="/comparer" element={<ComparePage />} />
+            <Route path="/maroc" element={<CountryPage country="maroc" />} />
+            <Route
+              path="/arabie-saoudite"
+              element={<CountryPage country="arabie-saoudite" />}
+            />
+            <Route path="/france" element={<CountryPage country="france" />} />
             <Route path="/ressources" element={<ResourcesPage />} />
             <Route
               path="/ressources/calculateur"

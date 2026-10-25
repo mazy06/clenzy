@@ -148,8 +148,12 @@ class EncryptedFieldConverterTest {
 
         @Test
         void whenDecryptionFailsWithWrongKey_thenThrowsTypedException() {
-            // Simule une rotation de cle ratee : chiffre avec une cle, lit avec une autre
-            String encrypted = converter.convertToDatabaseColumn("+33612345678");
+            // Public synthetic fixture encrypted under the setup key. CBC/PBE is
+            // not authenticated: random wrong-key output can have valid padding.
+            // This known-rejected fixture tests the error path deterministically;
+            // it does not claim that every wrong key is detectable by legacy PBE.
+            String encrypted = "LWmQMouSA8ZoYJCQzADuFzFwdpONef4clzp07i2F8sDNZgr6Qei/npMaKCQxTohosU7/dwNw1kjKDXAUI+wCdA==";
+            assertThat(converter.convertToEntityAttribute(encrypted)).isEqualTo("synthetic-cipher-contract");
             EncryptedFieldConverter otherKeyConverter = new EncryptedFieldConverter();
             otherKeyConverter.setEncryptorPassword("another-password-after-bad-rotation");
 

@@ -112,7 +112,11 @@ export default function SolutionsPage() {
                   {country.code}
                 </span>
                 <div>
-                  <h3>{m.countries[i].name}</h3>
+                  <h3>
+                    <Link to={`/${country.id}?lang=${language}`}>
+                      {m.countries[i].name}
+                    </Link>
+                  </h3>
                   <p>{m.countries[i].copy}</p>
                 </div>
                 <span className="bjy-currency">

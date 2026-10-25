@@ -164,15 +164,20 @@ public class AgentToolLoopRunner {
 
             // No tool calls → done
             if (outcome.toolCalls == null || outcome.toolCalls.isEmpty()) {
+                BaitlyChatTurnObservation.textPersisted(assistantMsg.getId(), outcome.finishReason);
                 consumer.accept(AgentSseEvent.done(outcome.finishReason));
                 return;
             }
 
+            BaitlyChatTurnObservation.toolsRequested();
+
             // Check if any tool requires confirmation → suspend
             // (X2 : une Regle de Confiance ACTIVE court-circuite la pause).
+            boolean stagedBatch=BaitlyChatTurnObservation.writesPolicy() && outcome.toolCalls.stream().anyMatch(c ->
+                toolRegistry.find(c.name()).map(h->needsConfirmation(h,context)).orElse(false));
             for (ChatMessage.ToolCall call : outcome.toolCalls) {
                 Optional<ToolHandler> handler = toolRegistry.find(call.name());
-                if (handler.isPresent() && needsConfirmation(handler.get(), context)) {
+                if (handler.isPresent() && (stagedBatch || needsConfirmation(handler.get(), context))) {
                     // Build the "future history" : current request + this assistant turn
                     // (avec TOUS les tool_calls). Quand le user confirme/refuse, on
                     // appendera les tool results et reprendre la boucle.
@@ -217,6 +222,8 @@ public class AgentToolLoopRunner {
             // Execute each tool, persist result, push SSE
             List<ChatMessage> toolResults = new ArrayList<>();
             for (ChatMessage.ToolCall call : outcome.toolCalls) {
+                // Commit the invocation fence before dispatch, outside the handler's catch block.
+                BaitlyChatTurnObservation.toolStarted(call.id(), toolRegistry.find(call.name()).orElse(null),context,conversation.getId());
                 ToolResult result = executeTool(call, context);
                 consumer.accept(AgentSseEvent.toolCallExecuted(call.name(), call.id(),
                         result.isError(), result.displayHint(),
@@ -226,6 +233,7 @@ public class AgentToolLoopRunner {
                         conversation.getId(), context.organizationId(),
                         call.id(), result.content());
                 messageRepository.save(toolMsg);
+                BaitlyChatTurnObservation.toolPersisted(call.id(),toolMsg.getId(),result.isError());
 
                 // Copie ENVOYÉE au LLM : tronquée si volumineuse (lever #2). La copie
                 // persistée ci-dessus et le widget frontend restent complets.
@@ -283,6 +291,7 @@ public class AgentToolLoopRunner {
      */
     public ToolResult executeConfirmed(PendingToolStore.PendingTool pending, AgentContext context) {
         Optional<ToolHandler> handler = toolRegistry.find(pending.toolName());
+        BaitlyChatTurnObservation.toolStarted(pending.toolCallId(),handler.orElse(null),context,pending.conversationId());
         if (handler.isEmpty()) {
             recordMetric(pending.toolName(), false);
             return ToolResult.error("Tool '" + pending.toolName() + "' n'est plus disponible");

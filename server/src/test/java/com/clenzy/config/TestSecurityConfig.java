@@ -18,6 +18,23 @@ import java.time.Instant;
 @TestConfiguration
 public class TestSecurityConfig {
 
+    /**
+     * Integration scenarios drive workers explicitly. Pool size zero does not
+     * disable custom schedulers: their background polls would race schema
+     * create/drop and unrelated fixtures. Keep the actual worker beans available.
+     * This configuration exists only in test sources and is explicitly imported.
+     */
+    @Bean
+    public static org.springframework.beans.factory.config.BeanFactoryPostProcessor baitlyDisableScheduledCallbacks() {
+        return factory -> {
+            String name = org.springframework.scheduling.config.TaskManagementConfigUtils.SCHEDULED_ANNOTATION_PROCESSOR_BEAN_NAME;
+            if (factory instanceof org.springframework.beans.factory.support.BeanDefinitionRegistry registry
+                    && registry.containsBeanDefinition(name)) {
+                registry.removeBeanDefinition(name);
+            }
+        };
+    }
+
     @Bean
     @Primary
     public JwtDecoder jwtDecoder() {
