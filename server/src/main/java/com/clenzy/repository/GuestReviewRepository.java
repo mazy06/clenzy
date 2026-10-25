@@ -95,7 +95,11 @@ public interface GuestReviewRepository extends JpaRepository<GuestReview, Long> 
 
     // ─── Relance d'avis automatique (SendReviewRequestExecutor, F4a) ────────────
 
+    // The durable executor deliberately has no surrounding transaction. Give
+    // each lookup its own read session; do not wrap the subsequent provider call.
+
     /** Vrai si un avis est deja rattache a la reservation (lien direct). */
+    @org.springframework.transaction.annotation.Transactional(readOnly = true)
     boolean existsByReservationIdAndOrganizationId(Long reservationId, Long organizationId);
 
     /**
@@ -103,6 +107,7 @@ public interface GuestReviewRepository extends JpaRepository<GuestReview, Long> 
      * importes des OTA n'ont pas de lien reservation : un avis poste apres le check-out
      * du sejour compte comme recu).
      */
+    @org.springframework.transaction.annotation.Transactional(readOnly = true)
     boolean existsByPropertyIdAndOrganizationIdAndReviewDateGreaterThanEqual(
         Long propertyId, Long organizationId, LocalDate reviewDate);
 

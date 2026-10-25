@@ -163,6 +163,8 @@ class ScenarioReservationLifecycleIT extends AbstractIntegrationTest {
         // null default (which correctly represents an unconfirmed delivery).
         org.mockito.Mockito.when(guestMessagingService.sendForReservationViaChannel(
                 any(), any(), anyLong(), any(), anyMap())).thenAnswer(call -> {
+            assertThat(org.springframework.transaction.support.TransactionSynchronizationManager
+                    .isActualTransactionActive()).as("provider boundary stays outside SQL").isFalse();
             var receipt = new com.clenzy.model.GuestMessageLog();
             receipt.setOrganizationId(call.getArgument(2));
             receipt.setReservation(call.getArgument(0));
