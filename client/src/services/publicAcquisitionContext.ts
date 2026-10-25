@@ -24,9 +24,10 @@ export function acquisitionSearch(
   context: AcquisitionContext,
   language: string,
 ) {
-  const params = new URLSearchParams({
-    lang: ['fr', 'en', 'ar'].includes(language) ? language : 'fr',
-  });
+  // French is the default: no `lang=fr`, so Google keeps the canonical URL.
+  const params = new URLSearchParams(
+    ['en', 'ar'].includes(language) ? { lang: language } : {},
+  );
   // Reuse the whitelist even when a caller constructs its own object.
   const input = new URLSearchParams();
   for (const [key, value] of Object.entries(context))
@@ -35,5 +36,6 @@ export function acquisitionSearch(
     readAcquisitionContext(input.toString()),
   ))
     params.set(key, String(value));
-  return `?${params}`;
+  const query = params.toString();
+  return query ? `?${query}` : '';
 }

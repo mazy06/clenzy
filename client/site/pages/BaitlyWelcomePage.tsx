@@ -10,6 +10,7 @@ import ScrollGuideSection from '../components/ScrollGuideSection';
 import { BAITLY_JOURNEY_MESSAGES } from '../lib/messages/baitlyJourneys';
 import { useSiteLanguage } from '../lib/siteLanguage';
 import { SITE_PHOTOS, sitePhotoAlt } from '../data/baitlyPhotography';
+import { langQuery } from '../lib/siteSeo';
 
 const { guideCatalog: food } = SITE_PHOTOS;
 
@@ -32,7 +33,7 @@ export default function BaitlyWelcomePage() {
               {m.demo}
               <ArrowRightIcon size={18} aria-hidden="true" />
             </a>
-            <Link className="baitly-text-link" to={`/tarifs?lang=${language}`}>
+            <Link className="baitly-text-link" to={`/tarifs${langQuery(language)}`}>
               {m.pricing}
             </Link>
           </div>
@@ -73,7 +74,7 @@ export default function BaitlyWelcomePage() {
           <p className="bjy-lead">{m.catalogCopy}</p>
           <Link
             className="baitly-text-link"
-            to={`/produit/booking-engine?lang=${language}#booking-upsells`}
+            to={`/produit/booking-engine${langQuery(language)}#booking-upsells`}
           >
             {m.bookingLink}
             <ArrowRightIcon size={18} aria-hidden="true" />
@@ -99,7 +100,7 @@ export default function BaitlyWelcomePage() {
         </div>
         <SiteAcquisitionLink
           className="baitly-button"
-          to={`/demo?lang=${language}`}
+          to={`/demo${langQuery(language)}`}
         >
           {m.contact}
           <ArrowRightIcon size={18} aria-hidden="true" />

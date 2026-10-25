@@ -34,6 +34,7 @@ import { moduleText } from '../lib/messages/modules';
 import { resourceText, solutionText } from '../lib/messages/solutions';
 import { MODULES, RESOURCES, SOLUTIONS } from '../data/catalog';
 import { LEGAL_COUNTRIES, guidePath } from '../data/legal/countries';
+import { langQuery } from '../lib/siteSeo';
 
 function DesktopNav({ entries }: { entries: readonly BaitlySiteNavEntry[] }) {
   const { language } = useSiteLanguage();
@@ -212,7 +213,7 @@ export function SiteHeader() {
           {!location.pathname.startsWith('/prestataires/') && (
             <Button size="sm" className="site-header-cta" asChild>
               {location.pathname === '/prestataires' ? (
-                <Link to={`/prestataires/inscription?lang=${language}`}>
+                <Link to={`/prestataires/inscription${langQuery(language)}`}>
                   {PROVIDERS_MESSAGES[language].ctaJoin} <ArrowRightIcon />
                 </Link>
               ) : (
@@ -276,7 +277,7 @@ function footerColumns(language: SiteLanguage) {
         })),
         ...LEGAL_COUNTRIES.map((country) => ({
           label: `Baitly · ${country.name[language]}`,
-          to: `/${country.slug}?lang=${language}`,
+          to: `/${country.slug}${langQuery(language)}`,
         })),
       ],
     },
@@ -285,11 +286,11 @@ function footerColumns(language: SiteLanguage) {
       links: [
         ...RESOURCES.map(({ id }) => ({
           label: resourceText(id, language).name,
-          to: `/ressources/${id}?lang=${language}`,
+          to: `/ressources/${id}${langQuery(language)}`,
         })),
         ...LEGAL_COUNTRIES.map((country) => ({
           label: `${resourceText('obligations', language).name} · ${country.name[language]}`,
-          to: `${guidePath(country.code)}?lang=${language}`,
+          to: `${guidePath(country.code)}${langQuery(language)}`,
         })),
       ],
     },
@@ -328,7 +329,7 @@ function SiteFooter() {
             {/* Le choix de langue vit ici depuis qu'il a quitte l'en-tete :
                 dans la colonne d'identite, il se trouve a toute largeur — il
                 etait masque sous 640 px la-haut. */}
-            <Link className="mt-4 block text-sm text-muted-foreground underline" to={`/conciergeries?lang=${language}`}>{language === 'fr' ? 'Trouver une conciergerie' : language === 'ar' ? 'ابحث عن شركة لإدارة عقارك' : 'Find a property manager'}</Link>
+            <Link className="mt-4 block text-sm text-muted-foreground underline" to={`/conciergeries${langQuery(language)}`}>{language === 'fr' ? 'Trouver une conciergerie' : language === 'ar' ? 'ابحث عن شركة لإدارة عقارك' : 'Find a property manager'}</Link>
             <PublicLanguagePicker
               value={language}
               onChange={changeLanguage}
@@ -347,7 +348,7 @@ function SiteFooter() {
                     <Link
                       to={
                         paused && link.to === '/demo'
-                          ? `/bientot-disponible?lang=${language}`
+                          ? `/bientot-disponible${langQuery(language)}`
                           : link.to
                       }
                       className="text-sm text-muted-foreground transition-colors hover:text-foreground"
@@ -375,7 +376,7 @@ function SiteFooter() {
                 label: { fr: 'Contact', en: 'Contact', ar: 'تواصل معنا' }[
                   language
                 ],
-                to: `/contact?lang=${language}`,
+                to: `/contact${langQuery(language)}`,
               },
             ].map((link) => (
               <Link

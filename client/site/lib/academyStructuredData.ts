@@ -13,6 +13,7 @@ import {
 import { academyTranscript } from './academyTranscript';
 import { BAITLY_ACADEMY_MESSAGES } from './messages/baitlyAcademy';
 import type { SiteLanguage } from './siteLanguage';
+import { langQuery } from './siteSeo';
 
 export interface AcademyVideoMetadata {
   /** Objet JSON-LD prêt à sérialiser. */
@@ -34,7 +35,7 @@ export function academyVideoMetadata(
 ): AcademyVideoMetadata {
   const text = BAITLY_ACADEMY_MESSAGES[language].episodes[episode.slug];
   const page = `${origin}/ressources/academie/${episode.slug}`;
-  const canonical = `${page}${language === 'fr' ? '' : `?lang=${language}`}`;
+  const canonical = `${page}${langQuery(language)}`;
   const at = (seconds: number) =>
     `${page}?${language === 'fr' ? '' : `lang=${language}&`}t=${Math.round(seconds)}`;
   const poster = origin + academyPosterUrl(episode, '16x9');

@@ -6,6 +6,7 @@ import { BAITLY_ACADEMY_MESSAGES, fillAcademyText } from '../../lib/messages/bai
 import type { SiteLanguage } from '../../lib/siteLanguage';
 import { formatClock } from './BaitlyVideoPlayer';
 import { ACADEMY_PROGRAM_ID } from './AcademyProgram';
+import { langQuery } from '../../lib/siteSeo';
 
 /** Ancre du lecteur : la page de l'épisode suivant s'ouvre directement sur la vidéo. */
 export const ACADEMY_PLAYER_ID = 'academie-lecteur';
@@ -33,7 +34,7 @@ export default function AcademyUpNext({ next, language, onReplay }: Props) {
 
   const playNext = () => {
     if (!next) return;
-    navigate(`/ressources/academie/${next.slug}?lang=${language}#${ACADEMY_PLAYER_ID}`, {
+    navigate(`/ressources/academie/${next.slug}${langQuery(language)}#${ACADEMY_PLAYER_ID}`, {
       state: { academyAutoplay: true },
     });
   };

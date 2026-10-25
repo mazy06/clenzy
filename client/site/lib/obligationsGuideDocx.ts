@@ -9,6 +9,7 @@ import {
 import type { LegalArticle } from '../data/legal/types';
 import type { LEGAL_MESSAGES } from './messages/baitlyLegal';
 import type { SiteLanguage } from './siteLanguage';
+import { langQuery } from './siteSeo';
 
 const STAGES: LegalStage[] = ['ouvrir', 'accueillir', 'suivre'];
 const SITE = 'https://baitly.fr';
@@ -110,7 +111,7 @@ export function buildObligationsGuide({
         runs: [
           {
             text: language === 'en' ? m.readFr : m.docxOnline,
-            link: `${SITE}${articlePath(article)}?lang=${language}`,
+            link: `${SITE}${articlePath(article)}${langQuery(language)}`,
           },
         ],
       });

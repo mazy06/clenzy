@@ -5,6 +5,7 @@ import { moduleText } from '../lib/messages/modules';
 import { resourceText, solutionText } from '../lib/messages/solutions';
 import { MODULES, RESOURCES, SOLUTIONS } from './catalog';
 import { BAITLY_NAV_PREVIEWS } from './navVisuals';
+import { langQuery } from '../lib/siteSeo';
 
 export type BaitlySiteNavEntry = {
   key: string;
@@ -59,7 +60,7 @@ export function buildBaitlySiteNavigation(
     const text = resourceText(resource.id, language);
     return {
       key: resource.id,
-      to: `/ressources/${resource.id}?lang=${language}`,
+      to: `/ressources/${resource.id}${langQuery(language)}`,
       icon: resource.icon,
       title: text.name,
       copy: text.copy,

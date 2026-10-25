@@ -20,6 +20,7 @@ import {
 import { PMS_PORTABILITY_MESSAGES } from '../lib/messages/pmsPortability';
 import { HOME_HIGHLIGHT_MESSAGES } from '../lib/messages/homeHighlights';
 import { downloadText } from '../lib/downloadText';
+import { langQuery } from '../lib/siteSeo';
 
 vi.mock('../lib/downloadText', () => ({ downloadText: vi.fn() }));
 afterEach(() => {
@@ -168,7 +169,7 @@ describe('PMS portability evidence', () => {
       expect(screen.getByText(m.note)).toBeVisible();
       expect(screen.getByRole('link', { name: m.link })).toHaveAttribute(
         'href',
-        `/migration?lang=${language}`,
+        `/migration${langQuery(language)}`,
       );
     },
   );

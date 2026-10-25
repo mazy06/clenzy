@@ -26,6 +26,7 @@ import { useBaitlyDemoVisibility } from '../components/useBaitlyDemoVisibility';
 import { SITE_PHOTOS, sitePhotoAlt } from '../data/baitlyPhotography';
 import { AGENTS_PAGE_MESSAGES } from '../lib/messages/baitlyAgentsPage';
 import { useSiteLanguage, type SiteLanguage } from '../lib/siteLanguage';
+import { langQuery } from '../lib/siteSeo';
 
 export function AgentsConstellation({ language }: { language: SiteLanguage }) {
   const m = AGENTS_PAGE_MESSAGES[language];
@@ -198,7 +199,7 @@ export default function BaitlyAgentsPage() {
             <div className="bap-hero-actions">
               <SiteAcquisitionLink
                 className="bap-button"
-                to={`/demo?lang=${language}`}
+                to={`/demo${langQuery(language)}`}
               >
                 {m.cta}
                 <ArrowRightIcon size={19} />
@@ -276,7 +277,7 @@ export default function BaitlyAgentsPage() {
             </ol>
             <Link
               className="bap-link"
-              to={`/produit/pms-channel-manager?lang=${language}`}
+              to={`/produit/pms-channel-manager${langQuery(language)}`}
             >
               {m.workflow.link}
               <ArrowRightIcon size={18} />
@@ -309,12 +310,12 @@ export default function BaitlyAgentsPage() {
         <div>
           <SiteAcquisitionLink
             className="bap-button"
-            to={`/demo?lang=${language}`}
+            to={`/demo${langQuery(language)}`}
           >
             {m.cta}
             <ArrowRightIcon size={18} />
           </SiteAcquisitionLink>
-          <Link className="bap-link" to={`/tarifs?lang=${language}`}>
+          <Link className="bap-link" to={`/tarifs${langQuery(language)}`}>
             {m.pricing}
             <ArrowRightIcon size={18} />
           </Link>

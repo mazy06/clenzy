@@ -8,6 +8,7 @@ import { SiteCookieSettingsButton } from '../../components/SiteCookieNotice';
 // Source UNIQUE, partagee avec le PMS : les deux applications portaient chacune
 // leur texte, et ils se contredisaient sur le droit applicable.
 import { legalDocs, getLegalDoc } from '../../../src/modules/legal/corpus';
+import { langQuery } from '../../lib/siteSeo';
 
 /** Gabarit des documents juridiques : sommaire latéral + corps typographié. */
 export default function LegalPage() {
@@ -33,7 +34,7 @@ export default function LegalPage() {
           {legalDocs(language).map((entry) => (
             <Link
               key={entry.slug}
-              to={`/legal/${entry.slug}?lang=${language}`}
+              to={`/legal/${entry.slug}${langQuery(language)}`}
               aria-current={entry.slug === doc.slug ? 'page' : undefined}
               className={
                 entry.slug === doc.slug
@@ -45,13 +46,13 @@ export default function LegalPage() {
             </Link>
           ))}
           <Link
-            to={`/statut?lang=${language}`}
+            to={`/statut${langQuery(language)}`}
             className="rounded-md px-3 py-2 text-sm text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
           >
             {m.status}
           </Link>
           <Link
-            to={`/contact?lang=${language}`}
+            to={`/contact${langQuery(language)}`}
             className="rounded-md px-3 py-2 text-sm text-muted-foreground underline"
           >
             {m.contact}

@@ -4,6 +4,7 @@ import { BaitlyOptionVisual } from './BaitlyPricingVisual';
 import { useSiteLanguage } from '../lib/siteLanguage';
 import { PRICING_MESSAGES } from '../lib/messages/pricing';
 import { BAITLY_LOYALTY_MESSAGES } from '../lib/messages/baitlyLoyalty';
+import { langQuery } from '../lib/siteSeo';
 
 const ADDON_LINKS = [
   '/produit/objets-connectes',
@@ -98,7 +99,7 @@ export default function BaitlyPricingDetails() {
                 <div>
                   <Link
                     className="bp-text-link"
-                    to={`${ADDON_LINKS[i]}?lang=${language}`}
+                    to={`${ADDON_LINKS[i]}${langQuery(language)}`}
                   >
                     <h3>{addon.name}</h3>
                     <ArrowUpRightIcon />

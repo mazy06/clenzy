@@ -73,7 +73,7 @@ describe('Guide et journal réglementaire', () => {
     for (const article of LEGAL_ARTICLES) {
       const link = links.find(
         (link) =>
-          link.getAttribute('href') === `${articlePath(article)}?lang=fr`,
+          link.getAttribute('href') === articlePath(article),
       );
       expect(link?.querySelector('img')).toHaveAttribute(
         'src',
@@ -244,7 +244,7 @@ describe('Guide et journal réglementaire', () => {
     expect(screen.getByText(article.scope, { exact: false })).toBeVisible();
     expect(
       screen.getByRole('link', { name: /Le guide du pays · Arabie saoudite/ }),
-    ).toHaveAttribute('href', `${guidePath('SA')}?lang=fr`);
+    ).toHaveAttribute('href', guidePath('SA'));
     expect(
       screen.getAllByRole('link', { name: /Umm Al-Qura/ }).length,
     ).toBeGreaterThan(0);

@@ -33,6 +33,7 @@ import {
 import { RESOURCE_GLOSSARY } from '../data/baitlyResourceGlossary';
 import { downloadText } from '../lib/downloadText';
 import { SITE_PHOTOS } from '../data/baitlyPhotography';
+import { langQuery } from '../lib/siteSeo';
 
 const {
   articleDirect: terrace,
@@ -431,7 +432,7 @@ export function MarketBarometer({ language }: Props) {
           <p>{c.useCopy}</p>
           <Link
             className="brs-text-link"
-            to={`/ressources/calculateur?lang=${language}`}
+            to={`/ressources/calculateur${langQuery(language)}`}
           >
             {m.hero.secondary}
             <ArrowRight size={18} />

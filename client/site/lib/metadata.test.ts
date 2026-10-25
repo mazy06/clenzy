@@ -12,7 +12,7 @@ import { scriptSafeJson } from './academyStructuredData';
 import { siteStaticHtml } from '../../tooling/baitlySiteStatic';
 import { siteDocuments } from '../../tooling/baitlySiteContent';
 import { HOME_MESSAGES } from './messages/home';
-import { PAGE_SEARCH } from './siteSeo';
+import { PAGE_SEARCH, langQuery } from './siteSeo';
 
 const catalogSource = readFileSync('site/data/catalog.tsx', 'utf8');
 const pages = metadataCatalog(discoveryCatalog(catalogSource));
@@ -87,7 +87,7 @@ describe('Public metadata', () => {
       for (const country of ['maroc', 'france', 'arabie-saoudite']) {
         expect(
           homeDoc.querySelector(
-            `a[href="/ressources/obligations/${country}?lang=${language}"]`,
+            `a[href="/ressources/obligations/${country}${langQuery(language)}"]`,
           ),
         ).not.toBeNull();
       }

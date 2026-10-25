@@ -11,6 +11,7 @@ import {
 import { BAITLY_JOURNEY_MESSAGES } from '../lib/messages/baitlyJourneys';
 import { moduleText } from '../lib/messages/modules';
 import { useSiteLanguage } from '../lib/siteLanguage';
+import { langQuery } from '../lib/siteSeo';
 
 export default function SolutionsPage() {
   const { language } = useSiteLanguage();
@@ -40,7 +41,7 @@ export default function SolutionsPage() {
             <Link
               key={item.id}
               id={item.id}
-              to={`?lang=${language}#${item.id}`}
+              to={`${langQuery(language)}#${item.id}`}
               aria-current={i === index ? 'true' : undefined}
             >
               <span>{m.stories[i].name}</span>
@@ -86,7 +87,7 @@ export default function SolutionsPage() {
             <p>{m.modules}</p>
             <div>
               {journey.modules.map((slug) => (
-                <Link key={slug} to={`/produit/${slug}?lang=${language}`}>
+                <Link key={slug} to={`/produit/${slug}${langQuery(language)}`}>
                   {moduleText(slug, language).name}
                   <ArrowRightIcon size={16} aria-hidden="true" />
                 </Link>
@@ -113,7 +114,7 @@ export default function SolutionsPage() {
                 </span>
                 <div>
                   <h3>
-                    <Link to={`/${country.id}?lang=${language}`}>
+                    <Link to={`/${country.id}${langQuery(language)}`}>
                       {m.countries[i].name}
                     </Link>
                   </h3>
@@ -125,7 +126,7 @@ export default function SolutionsPage() {
                   />
                 </span>
                 <Link
-                  to={`/ressources/obligations?lang=${language}&country=${country.code}`}
+                  to={`/ressources/obligations?${language === 'fr' ? '' : `lang=${language}&`}country=${country.code}`}
                 >
                   {m.guide}
                   <ArrowRightIcon size={17} aria-hidden="true" />
@@ -141,11 +142,11 @@ export default function SolutionsPage() {
           <p>{m.closingCopy}</p>
         </div>
         <div className="bjy-actions">
-          <Link className="baitly-button" to={`/tarifs?lang=${language}`}>
+          <Link className="baitly-button" to={`/tarifs${langQuery(language)}`}>
             {m.pricing}
             <ArrowRightIcon size={18} aria-hidden="true" />
           </Link>
-          <Link className="baitly-text-link" to={`/migration?lang=${language}`}>
+          <Link className="baitly-text-link" to={`/migration${langQuery(language)}`}>
             {m.migration}
             <ArrowRightIcon size={17} aria-hidden="true" />
           </Link>

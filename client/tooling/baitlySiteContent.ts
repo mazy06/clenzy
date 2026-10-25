@@ -49,6 +49,7 @@ import {
 } from '../site/data/legal';
 import { BAITLY_COUNTRY_PAGES } from '../site/data/baitlyCountries';
 import { BAITLY_COUNTRY_MESSAGES } from '../site/lib/messages/baitlyCountries';
+import { langQuery } from '../site/lib/siteSeo';
 
 export const DISCOVERY_LANGUAGES = ['fr', 'en', 'ar'] as const;
 export const PRIVATE_SITE_PATHS = [
@@ -113,11 +114,11 @@ export function siteDocuments(
       ...home.local.points.map(([title, copy]) => section(title, copy)),
     ),
     faq(home.faq.items.map(([q, a]) => ({ q, a }))),
-    `[${home.hero.demo}](/demo?lang=${language})`,
+    `[${home.hero.demo}](/demo${langQuery(language)})`,
     list(
       catalog.modules.map(
         (slug) =>
-          `[${moduleText(slug, language).name}](/produit/${slug}?lang=${language})`,
+          `[${moduleText(slug, language).name}](/produit/${slug}${langQuery(language)})`,
       ),
     ),
   );
@@ -154,7 +155,7 @@ export function siteDocuments(
       return section(
         item.name,
         item.copy,
-        `[${resources.open}](/ressources/${id}?lang=${language})`,
+        `[${resources.open}](/ressources/${id}${langQuery(language)})`,
       );
     }),
   );
@@ -189,7 +190,7 @@ export function siteDocuments(
           list(
             ACADEMY_EPISODES.map(
               (episode) =>
-                `[${academy.ui.episode} ${episode.number} · ${academy.episodes[episode.slug].title}](/ressources/academie/${episode.slug}?lang=${language}) · ${clock(episode.duration)}`,
+                `[${academy.ui.episode} ${episode.number} · ${academy.episodes[episode.slug].title}](/ressources/academie/${episode.slug}${langQuery(language)}) · ${clock(episode.duration)}`,
             ),
           ),
         ),
@@ -251,7 +252,7 @@ export function siteDocuments(
         academy.ui.transcript,
         academyTranscript(episode.slug, language)?.text ?? '',
       ),
-      `[${resources.modules.academie.name}](/ressources/academie?lang=${language})`,
+      `[${resources.modules.academie.name}](/ressources/academie${langQuery(language)})`,
     );
   }
   add(
@@ -338,7 +339,7 @@ export function siteDocuments(
           item.title,
           item.question,
           item.copy,
-          `[${item.action}](${BAITLY_COMPARISON_ROUTES[index]}?lang=${language})`,
+          `[${item.action}](${BAITLY_COMPARISON_ROUTES[index]}${langQuery(language)})`,
         ),
       ),
     ),
@@ -360,13 +361,13 @@ export function siteDocuments(
         list(
           articlesForCountry(code, language).map(
             (article) =>
-              `[${language === 'en' ? article.guide.en.title : article.title}](${articlePath(article)}?lang=${language})`,
+              `[${language === 'en' ? article.guide.en.title : article.title}](${articlePath(article)}${langQuery(language)})`,
           ),
         ),
-        `[${countries.guide}](${guidePath(code)}?lang=${language})`,
+        `[${countries.guide}](${guidePath(code)}${langQuery(language)})`,
       ),
       faq(page.faq),
-      `[${countries.demo}](/demo?lang=${language})`,
+      `[${countries.demo}](/demo${langQuery(language)})`,
     );
   }
   const contact = BAITLY_CONTACT_MESSAGES[language];
@@ -397,11 +398,11 @@ export function siteDocuments(
       section(
         next.explore,
         next.copy,
-        `[${next.planning}](/produit/pms-channel-manager?lang=${language})`,
-        `[${next.booking}](/produit/booking-engine?lang=${language})`,
+        `[${next.planning}](/produit/pms-channel-manager${langQuery(language)})`,
+        `[${next.booking}](/produit/booking-engine${langQuery(language)})`,
       ),
-      `[${prelaunch.cta}](/bientot-disponible?lang=${language})`,
-      `[${prelaunch.privacy}](/legal/confidentialite?lang=${language})`,
+      `[${prelaunch.cta}](/bientot-disponible${langQuery(language)})`,
+      `[${prelaunch.privacy}](/legal/confidentialite${langQuery(language)})`,
     );
   }
   add(
@@ -429,7 +430,7 @@ export function siteDocuments(
         section(item.name, item.copy, list(item.examples)),
       ),
     ),
-    `[${providers.ctaJoin}](/prestataires/inscription?lang=${language})`,
+    `[${providers.ctaJoin}](/prestataires/inscription${langQuery(language)})`,
   );
   for (const slug of catalog.modules) {
     const text = moduleText(slug, language);

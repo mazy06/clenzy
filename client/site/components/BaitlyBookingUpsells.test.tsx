@@ -125,7 +125,7 @@ describe('Baitly booking upsell showcase', () => {
     expect(total()).toBe('0€');
     expect(screen.getByText('Essayez d’ajouter une option')).toBeTruthy();
     expect(screen.getByRole('link').getAttribute('href')).toBe(
-      '/produit/livret-accueil?lang=fr',
+      '/produit/livret-accueil',
     );
   });
 

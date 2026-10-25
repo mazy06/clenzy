@@ -17,6 +17,7 @@ import BaitlyProductProofs from '../components/BaitlyProductProofs';
 import { BAITLY_READINESS_MESSAGES } from '../lib/messages/baitlyReadiness';
 import { SITE_PHOTOS, sitePhotoAlt } from '../data/baitlyPhotography';
 import '../prelaunch.css';
+import { langQuery } from '../lib/siteSeo';
 
 const { prelaunchReception: terracePhoto } = SITE_PHOTOS;
 
@@ -303,7 +304,7 @@ export default function PrelaunchPage({
               </section>
             )}
             <BaitlyProductProofs />
-            <Link className="prelaunch-back" to={`/?lang=${language}`}>
+            <Link className="prelaunch-back" to={`/${langQuery(language)}`}>
               {m.back}
               <ArrowRightIcon aria-hidden="true" />
             </Link>

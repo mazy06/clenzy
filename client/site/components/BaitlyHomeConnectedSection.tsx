@@ -6,13 +6,14 @@ import { CONNECTED_HOME_MESSAGES } from '../lib/messages/connectedHome';
 import connectedHome from '../assets/photos/editorial/baitlyConnectedHome.webp';
 import Reveal from './Reveal';
 import '../baitly-home-highlights.css';
+import { langQuery } from '../lib/siteSeo';
 
 const DEVICE_ICONS = [KeyRound, Volume2, Video];
 
 export default function BaitlyHomeConnectedSection() {
   const { language } = useSiteLanguage();
   const m = HOME_HIGHLIGHT_MESSAGES[language].connected;
-  const destination = `/produit/objets-connectes?lang=${language}`;
+  const destination = `/produit/objets-connectes${langQuery(language)}`;
   return (
     <section className="site-shell bh-connected" aria-labelledby="home-connected-title">
       <Reveal className="bh-connected-visual">

@@ -4,7 +4,7 @@ import Markdown from 'react-markdown';
 import type { SiteLanguage } from '../site/lib/siteLanguage';
 import { LAYOUT_MESSAGES } from '../site/lib/messages/layout';
 import { LEGAL_COUNTRIES, guidePath } from '../site/data/legal/countries';
-import { canonicalUrl } from '../site/lib/siteSeo';
+import { canonicalUrl, langQuery } from '../site/lib/siteSeo';
 import { academyEpisode } from '../site/data/baitlyAcademyVideos';
 import { academyVideoMetadata } from '../site/lib/academyStructuredData';
 import { SITE_ORIGIN } from '../site/lib/siteSeo';
@@ -23,15 +23,15 @@ export function siteStaticHtml(
     : undefined;
   const video = episode && academyVideoMetadata(episode, language, SITE_ORIGIN);
   const nav = [
-    { label: 'Baitly', href: `/?lang=${language}` },
-    { label: m.footer.columns.resources, href: `/ressources?lang=${language}` },
+    { label: 'Baitly', href: `/${langQuery(language)}` },
+    { label: m.footer.columns.resources, href: `/ressources${langQuery(language)}` },
     {
       label: { fr: 'Le journal', en: 'Journal', ar: 'المجلة' }[language],
-      href: `/ressources/blog?lang=${language}`,
+      href: `/ressources/blog${langQuery(language)}`,
     },
     ...LEGAL_COUNTRIES.map((country) => ({
       label: country.name[language],
-      href: `${guidePath(country.code)}?lang=${language}`,
+      href: `${guidePath(country.code)}${langQuery(language)}`,
     })),
   ];
   return renderToStaticMarkup(
@@ -103,7 +103,7 @@ export function siteStaticHtml(
         { className: 'site-shell baitly-static-footer' },
         createElement(
           'a',
-          { href: `/contact?lang=${language}` },
+          { href: `/contact${langQuery(language)}` },
           { fr: 'Contact', en: 'Contact', ar: 'تواصل معنا' }[language],
         ),
         createElement('p', null, m.footer.rights),

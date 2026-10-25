@@ -2,6 +2,7 @@ import { Link } from 'react-router-dom';
 import { ArrowRightIcon } from '../../src/icons/glyphs';
 import { useSiteLanguage } from '../lib/siteLanguage';
 import { BAITLY_CONTACT_MESSAGES } from '../lib/messages/baitlyContact';
+import { langQuery } from '../lib/siteSeo';
 
 export default function NotFoundPage() {
   const { language } = useSiteLanguage();
@@ -12,7 +13,7 @@ export default function NotFoundPage() {
         <p className="bct-eyebrow">404 · Baitly</p>
         <h1>{m.notFound}</h1>
         <p className="bct-lead">{m.notFoundCopy}</p>
-        <Link className="bct-explore" to={`/?lang=${language}`}>
+        <Link className="bct-explore" to={`/${langQuery(language)}`}>
           {m.back}
           <ArrowRightIcon size={18} aria-hidden="true" />
         </Link>
@@ -21,13 +22,13 @@ export default function NotFoundPage() {
         <h2>{m.explore}</h2>
         <Link
           className="bct-explore"
-          to={`/produit/pms-channel-manager?lang=${language}`}
+          to={`/produit/pms-channel-manager${langQuery(language)}`}
         >
           {m.products}
           <ArrowRightIcon size={18} aria-hidden="true" />
         </Link>
         <br />
-        <Link className="bct-explore" to={`/contact?lang=${language}`}>
+        <Link className="bct-explore" to={`/contact${langQuery(language)}`}>
           {m.contact}
           <ArrowRightIcon size={18} aria-hidden="true" />
         </Link>

@@ -49,6 +49,7 @@ import {
 } from "../lib/uploadToken";
 
 import { PROVIDER_PRICING_MODELS } from "../../src/types/providerPricing";
+import { langQuery } from '../lib/siteSeo';
 
 const LANGUAGES = ["fr", "ar", "en", "es"] as const;
 
@@ -116,7 +117,7 @@ export default function ProviderSignupPage() {
         dir={direction}
       >
         <div className="bpr-signup-topline">
-          <Link to={`/prestataires?lang=${language}`}>
+          <Link to={`/prestataires${langQuery(language)}`}>
             <ArrowLeftIcon size={16} aria-hidden="true" />
             {PROVIDER_MARKETPLACE_MESSAGES[language].signupBack}
           </Link>

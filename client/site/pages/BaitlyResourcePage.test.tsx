@@ -53,7 +53,7 @@ describe('Page Académie', () => {
     for (const episode of ACADEMY_EPISODES) {
       expect(
         screen.getByRole('link', { name: new RegExp(academy.episodes[episode.slug].title.replace(/[?]/g, '\\?')) }),
-      ).toHaveAttribute('href', `/ressources/academie/${episode.slug}?lang=fr`);
+      ).toHaveAttribute('href', `/ressources/academie/${episode.slug}`);
     }
   });
 

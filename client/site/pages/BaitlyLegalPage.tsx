@@ -31,6 +31,7 @@ import BaitlyLegalJournal, {
 } from '../components/BaitlyLegalJournal';
 import SiteAcquisitionLink from '../components/SiteAcquisitionLink';
 import NotFoundPage from './NotFoundPage';
+import { langQuery } from '../lib/siteSeo';
 
 function Article({ article }: { article: LegalArticle }) {
   const { language: navigationLanguage } = useSiteLanguage();
@@ -53,12 +54,12 @@ function Article({ article }: { article: LegalArticle }) {
       className="blg-article-page"
     >
       <header className="blg-article-header">
-        <Link className="blg-back" to={`/ressources/blog?lang=${language}`}>
+        <Link className="blg-back" to={`/ressources/blog${langQuery(language)}`}>
           <ArrowLeft size={16} aria-hidden="true" />
           {m.back}
         </Link>
         <div className="blg-article-meta">
-          <Link to={`${guidePath(article.country)}?lang=${language}`}>
+          <Link to={`${guidePath(article.country)}${langQuery(language)}`}>
             {country.name[language]}
           </Link>
           <span>{m.topics[article.topic]}</span>
@@ -102,7 +103,7 @@ function Article({ article }: { article: LegalArticle }) {
           </nav>
           <Link
             className="blg-country-back"
-            to={`${guidePath(article.country)}?lang=${language}`}
+            to={`${guidePath(article.country)}${langQuery(language)}`}
           >
             {m.countryGuide} · {country.name[language]}
             <ArrowRight size={16} aria-hidden="true" />
@@ -203,7 +204,7 @@ function Article({ article }: { article: LegalArticle }) {
           {m.further} · {country.name[language]}
         </p>
         {related.map((a) => (
-          <Link key={a.slug} to={`${articlePath(a)}?lang=${language}`}>
+          <Link key={a.slug} to={`${articlePath(a)}${langQuery(language)}`}>
             {a.title}
             <ArrowRight size={20} aria-hidden="true" />
           </Link>
@@ -232,7 +233,7 @@ export default function BaitlyLegalPage({
     return (
       <Navigate
         replace
-        to={`${guidePath(queryCountry.code)}?lang=${language}`}
+        to={`${guidePath(queryCountry.code)}${langQuery(language)}`}
       />
     );
   return (
@@ -253,7 +254,7 @@ export default function BaitlyLegalPage({
             <header className="blg-hero">
               <div>
                 <Link
-                  to={`/ressources?lang=${language}`}
+                  to={`/ressources${langQuery(language)}`}
                   className="blg-back"
                 >
                   <ArrowLeft size={16} aria-hidden="true" />
@@ -272,7 +273,7 @@ export default function BaitlyLegalPage({
                 <p className="blg-hero-lead">{m.intro}</p>
                 <div className="blg-hero-foot">
                   <span>{m.sources}</span>
-                  <Link to={`/ressources/blog?lang=${language}`}>
+                  <Link to={`/ressources/blog${langQuery(language)}`}>
                     {m.open}
                     <ArrowRight size={16} aria-hidden="true" />
                   </Link>
@@ -310,7 +311,7 @@ export default function BaitlyLegalPage({
             <p>{m.productCopy}</p>
           </div>
           <SiteAcquisitionLink
-            to={`/demo?lang=${language}`}
+            to={`/demo${langQuery(language)}`}
             className="blg-button"
           >
             {m.productLink}

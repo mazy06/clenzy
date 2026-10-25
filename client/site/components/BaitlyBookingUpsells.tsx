@@ -20,6 +20,7 @@ import desert from '../assets/photos/excursion.jpg';
 import { useBaitlyDemoVisibility } from './useBaitlyDemoVisibility';
 import BaitlyDemoPointer from './BaitlyDemoPointer';
 import { SITE_PHOTOS } from '../data/baitlyPhotography';
+import { langQuery } from '../lib/siteSeo';
 
 const {
   bookingChef: chef,
@@ -200,7 +201,7 @@ export default function BaitlyBookingUpsells() {
         <div className="bb-upsell-continuation">
           <p>{m.continuation}</p>
           <Link
-            to={`/produit/livret-accueil?lang=${language}`}
+            to={`/produit/livret-accueil${langQuery(language)}`}
             className="bb-explore"
           >
             {m.guideLink}
