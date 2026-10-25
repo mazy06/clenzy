@@ -91,7 +91,7 @@ public class BaitlyChatRecoveryService {
         // Empty pending alone is NOT evidence that a previous request never ran.
         // Only an untouched conversation may start without reviewing server history.
         var completion=completionJournal==null?null:completionJournal.proof(organizationId,userId,conversationId,history);
-        boolean canStart = rows.isEmpty() && ((completion!=null && "SAFE_TEXT".equals(completion.status()))
+        boolean canStart = rows.isEmpty() && ((completion!=null && List.of("SAFE_TEXT","SAFE_TOOLS").contains(completion.status()))
                 || (completion==null && history.isEmpty()
                 && !messages.existsByOrganizationIdAndConversationId(organizationId, conversationId)
                 && !runs.existsByOrganizationIdAndConversationId(organizationId, conversationId)));

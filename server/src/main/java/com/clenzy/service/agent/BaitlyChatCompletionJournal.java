@@ -18,6 +18,7 @@ import java.util.UUID;
 @Service
 public class BaitlyChatCompletionJournal {
     public static final String POLICY = "durable-text-v1";
+    public static final String TOOLS_POLICY = "durable-tools-v2";
     private final JdbcTemplate jdbc;
     private final TransactionTemplate transaction;
     public BaitlyChatCompletionJournal(JdbcTemplate jdbc, PlatformTransactionManager manager) {
@@ -26,13 +27,18 @@ public class BaitlyChatCompletionJournal {
         transaction.setPropagationBehavior(TransactionDefinition.PROPAGATION_REQUIRES_NEW);
     }
     public record Ticket(UUID id, Long organizationId, String userId, Long conversationId,
-                         Long baselineId, int baselineCount, boolean resume) {}
+                         Long baselineId, int baselineCount, boolean resume, boolean toolsPolicy) {
+        public Ticket(UUID id,Long org,String user,Long conversation,Long baseline,int count,boolean resume) {
+            this(id,org,user,conversation,baseline,count,resume,false);
+        }
+    }
     public record Proof(String policy, String status, String lastMessageId, String requestId) {}
     /** Evidence of a bounded read, never an execution or replay permit. */
     public record ToolEvidence(String toolCallId, String proofKind, String status, String resultMessageId) {}
-    private record Receipt(UUID id, UUID requestId, long sequence, String status, Long endId, int covered) {}
+    private record Receipt(UUID id, UUID requestId, long sequence, String status, Long baselineId,Long endId,int covered,
+                           String certificate,Long certificateEnd,Integer certificateCount) {}
     private record Message(Long id, String role, boolean toolCalls, boolean attachments,
-                           boolean content, String finishReason) {}
+                           boolean content, String finishReason,String calls,String callId) {}
 
     public void startTool(Ticket ticket,String callId,ToolHandler handler) {
       try {
@@ -136,6 +142,9 @@ public class BaitlyChatCompletionJournal {
     }
 
     public Ticket begin(Long org, String user, Long conversation, UUID request, String pendingId) {
+        return begin(org,user,conversation,request,pendingId,false);
+    }
+    public Ticket begin(Long org, String user, Long conversation, UUID request, String pendingId,boolean toolsPolicy) {
         return transaction.execute(tx -> {
             lockOwned(org,user,conversation);
             var latest=latest(org,user,conversation);
@@ -156,8 +165,8 @@ public class BaitlyChatCompletionJournal {
                         || count("SELECT count(*) FROM agent_run WHERE organization_id=? AND conversation_id=?",org,conversation)>0) {
                     throw unavailable();
                 }
-            } else if (!"SAFE_TEXT".equals(latest.status()) || !covers(latest,history)
-                    || !textOnly(history) || hasPending(org,conversation)) {
+            } else if (!safeChain(org,user,conversation,history) || (!toolsPolicy && !textOnly(history))
+                    || hasPending(org,conversation)) {
                 throw unavailable();
             }
             UUID id=UUID.randomUUID();
@@ -167,7 +176,7 @@ public class BaitlyChatCompletionJournal {
                     turn_sequence,status,baseline_message_id,covered_message_count,started_at)
                 VALUES (?,?,?,?,?,?,'RUNNING',?,0,?)
                 """,id,org,user,conversation,request,latest==null?1:latest.sequence()+1,baseline,Timestamp.from(Instant.now()));
-            return new Ticket(id,org,user,conversation,baseline,history.size(),resume);
+            return new Ticket(id,org,user,conversation,baseline,history.size(),resume,toolsPolicy);
         });
     }
 
@@ -194,6 +203,20 @@ public class BaitlyChatCompletionJournal {
                 """,status,lastId(history),history.size(),Timestamp.from(Instant.now()),ticket.id(),ticket.organizationId(),
                     ticket.userId(),ticket.conversationId());
             if (changed!=1) throw unavailable();
+            if(ticket.toolsPolicy() && !ticket.resume() && observation.safeToolsCandidate()
+                    && history.size()==ticket.baselineCount()+added.size()
+                    && Objects.equals(lastId(history),observation.assistantMessageId)
+                    && Objects.equals(history.getLast().finishReason(),observation.finishReason)
+                    && !hasPending(ticket.organizationId(),ticket.conversationId())) {
+                var covered=toolCoverage(ticket.organizationId(),ticket.conversationId(),ticket.id(),added);
+                if(!covered.isEmpty() && covered.equals(observation.executedIds)) {
+                    jdbc.update("""
+                        INSERT INTO baitly_chat_tool_turn_proofs
+                        (turn_id,organization_id,conversation_id,policy,end_message_id,covered_message_count)
+                        VALUES (?,?,?,?,?,?)
+                        """,ticket.id(),ticket.organizationId(),ticket.conversationId(),TOOLS_POLICY,lastId(history),history.size());
+                }
+            }
         });
     }
 
@@ -211,11 +234,14 @@ public class BaitlyChatCompletionJournal {
         var row=latest(org,user,conversation);
         if (row==null) return null;
         Long last=history.stream().map(AssistantMessage::getId).max(Long::compareTo).orElse(null);
-        boolean matches=row.covered()==history.size() && Objects.equals(row.endId(),last);
-        boolean textOnly=history.stream().allMatch(m -> ("user".equals(m.getRole()) || "assistant".equals(m.getRole()))
-                && !present(m.getToolCalls()) && !present(m.getAttachments()));
-        String status="SAFE_TEXT".equals(row.status()) && (!matches || !textOnly)?"UNCERTAIN":row.status();
-        return new Proof(POLICY,status,"SAFE_TEXT".equals(status) && last!=null?"history-"+last:null,row.requestId().toString());
+        var metadata=metadata(org,conversation);
+        boolean matches=row.covered()==history.size() && Objects.equals(row.endId(),last)
+                && history.stream().map(AssistantMessage::getId).sorted().toList().equals(metadata.stream().map(Message::id).toList());
+        boolean safe=matches && safeChain(org,user,conversation,metadata);
+        String status=safe?(textOnly(metadata)?"SAFE_TEXT":"SAFE_TOOLS"):
+            ("SAFE_TEXT".equals(row.status()) || row.certificate()!=null)?"UNCERTAIN":row.status();
+        String policy=!textOnly(metadata) && safe?TOOLS_POLICY:POLICY;
+        return new Proof(policy,status,safe && last!=null?"history-"+last:null,row.requestId().toString());
       } catch(org.springframework.dao.DataAccessException storageFailure) { throw unavailable(); }
     }
 
@@ -243,20 +269,63 @@ public class BaitlyChatCompletionJournal {
         if (ids.size()!=1) throw new AccessDeniedException("Baitly conversation unavailable");
     }
     private Receipt latest(Long org,String user,Long conversation) {
+        var rows=receipts(org,user,conversation);
+        return rows.isEmpty()?null:rows.getLast();
+    }
+    private List<Receipt> receipts(Long org,String user,Long conversation) {
         var rows=jdbc.query("""
-            SELECT id,request_id,turn_sequence,status,end_message_id,covered_message_count FROM baitly_chat_turns
-            WHERE organization_id=? AND keycloak_user_id=? AND conversation_id=? ORDER BY turn_sequence DESC LIMIT 1
+            SELECT t.id,t.request_id,t.turn_sequence,t.status,t.baseline_message_id,t.end_message_id,t.covered_message_count,
+                p.policy,p.end_message_id AS proof_end,p.covered_message_count AS proof_count
+            FROM baitly_chat_turns t LEFT JOIN baitly_chat_tool_turn_proofs p ON p.turn_id=t.id
+                AND p.organization_id=t.organization_id AND p.conversation_id=t.conversation_id
+            WHERE t.organization_id=? AND t.keycloak_user_id=? AND t.conversation_id=? ORDER BY t.turn_sequence
             """,(rs,n)->new Receipt(rs.getObject("id",UUID.class),rs.getObject("request_id",UUID.class),rs.getLong("turn_sequence"),rs.getString("status"),
-                rs.getObject("end_message_id",Long.class),rs.getInt("covered_message_count")),org,user,conversation);
-        return rows.isEmpty()?null:rows.getFirst();
+                rs.getObject("baseline_message_id",Long.class),rs.getObject("end_message_id",Long.class),rs.getInt("covered_message_count"),
+                rs.getString("policy"),rs.getObject("proof_end",Long.class),rs.getObject("proof_count",Integer.class)),org,user,conversation);
+        return rows;
+    }
+    private boolean safeChain(Long org,String user,Long conversation,List<Message> history) {
+        var receipts=receipts(org,user,conversation);
+        int count=0; long sequence=0; Long end=null;
+        for(var receipt:receipts) {
+            if(receipt.sequence()!=++sequence || !Objects.equals(end,receipt.baselineId())
+                    || receipt.covered()<=count || receipt.covered()>history.size()) return false;
+            var segment=history.subList(count,receipt.covered());
+            if(!Objects.equals(receipt.endId(),lastId(segment))) return false;
+            if(receipt.certificate()==null) {
+                if(!"SAFE_TEXT".equals(receipt.status()) || !safeTextSegment(segment)
+                        || !reads(org,conversation,receipt.id()).isEmpty()) return false;
+            } else if(!"UNCERTAIN".equals(receipt.status()) || !TOOLS_POLICY.equals(receipt.certificate())
+                    || !Objects.equals(receipt.endId(),receipt.certificateEnd())
+                    || !Objects.equals(receipt.covered(),receipt.certificateCount())
+                    || toolCoverage(org,conversation,receipt.id(),segment).isEmpty()) return false;
+            count=receipt.covered(); end=receipt.endId();
+        }
+        return !receipts.isEmpty() && count==history.size();
+    }
+    private static boolean safeTextSegment(List<Message> messages) {
+        return messages.size()==2 && textOnly(messages) && messages.stream().allMatch(m->m.content() && m.callId()==null)
+            && "user".equals(messages.getFirst().role()) && "assistant".equals(messages.getLast().role())
+            && java.util.Set.of("stop","end_turn").contains(Objects.toString(messages.getLast().finishReason(),""));
+    }
+    private java.util.Set<String> toolCoverage(Long org,Long conversation,UUID turn,List<Message> messages) {
+        return BaitlyChatTurnCoverage.prove(messages.stream().map(m->new BaitlyChatTurnCoverage.Frame(
+            m.id(),m.role(),m.calls(),m.callId(),m.attachments(),m.content(),m.finishReason())).toList(),reads(org,conversation,turn));
+    }
+    private List<BaitlyChatTurnCoverage.Read> reads(Long org,Long conversation,UUID turn) {
+        return jdbc.query("""
+            SELECT tool_call_id,proof_kind,status,result_message_id FROM baitly_chat_tool_evidence
+            WHERE organization_id=? AND conversation_id=? AND turn_id=?
+            """,(rs,n)->new BaitlyChatTurnCoverage.Read(rs.getString("tool_call_id"),rs.getString("proof_kind"),
+                rs.getString("status"),rs.getObject("result_message_id",Long.class)),org,conversation,turn);
     }
     private List<Message> metadata(Long org,Long conversation) {
         return jdbc.query("""
             SELECT id,role,CAST(tool_calls AS VARCHAR) AS calls,CAST(attachments AS VARCHAR) AS files,
-                CASE WHEN content IS NULL OR length(trim(content))=0 THEN FALSE ELSE TRUE END AS has_content,finish_reason
+                CASE WHEN content IS NULL OR length(trim(content))=0 THEN FALSE ELSE TRUE END AS has_content,finish_reason,tool_call_id
             FROM assistant_message WHERE organization_id=? AND conversation_id=? ORDER BY id
             """,(rs,n)->new Message(rs.getLong("id"),rs.getString("role"),present(rs.getString("calls")),
-                present(rs.getString("files")),rs.getBoolean("has_content"),rs.getString("finish_reason")),org,conversation);
+                present(rs.getString("files")),rs.getBoolean("has_content"),rs.getString("finish_reason"),rs.getString("calls"),rs.getString("tool_call_id")),org,conversation);
     }
     private static boolean present(String json) { return json!=null && !json.isBlank() && !"[]".equals(json) && !"null".equals(json); }
     private static Long lastId(List<Message> history) { return history.isEmpty()?null:history.getLast().id(); }

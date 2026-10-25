@@ -58,6 +58,16 @@ class BaitlyChatCompletionHttpTest {
         verify(executor).execute(eq(request),eq(7L),eq("recipe-user"),eq(9L),isNull(),any(),any());
         verifyNoInteractions(orchestrator);
     }
+    @Test void versionTwoUsesExplicitToolsBoundaryWithoutDowngrading() throws Exception {
+        var body=input(); body.put("forwardedProps",Map.of("conversationId",9,"completionPolicy",BaitlyChatCompletionJournal.TOOLS_POLICY));
+        when(executor.executeWithTools(eq(request),eq(7L),eq("recipe-user"),eq(9L),isNull(),any(),any())).thenAnswer(call->{
+            Consumer<AgentSseEvent> downstream=call.getArgument(6); downstream.accept(AgentSseEvent.done("stop")); return 9L;
+        });
+        assertThat(performRun(body)).contains("RUN_FINISHED");
+        verify(executor).executeWithTools(eq(request),eq(7L),eq("recipe-user"),eq(9L),isNull(),any(),any());
+        verify(executor,never()).execute(any(),any(),any(),any(),any(),any(),any());
+        verifyNoInteractions(orchestrator);
+    }
     @Test void unknownPolicyAndInvalidRequestIdentityNeverFallBackToLegacyExecution() throws Exception {
         var wrong=input(); wrong.put("forwardedProps",Map.of("conversationId",9,"completionPolicy","unsupported"));
         assertThat(performRun(wrong)).contains("RUN_ERROR");

@@ -5413,3 +5413,11 @@ databaseChangeLog:
         - sqlFile:
             path: changes/0608__baitly_chat_tool_evidence.sql
             relativeToChangelogFile: true
+
+  - changeSet:
+      id: "0609-baitly-chat-tool-turn-proofs"
+      author: clenzy-team
+      changes:
+        - sqlFile:
+            path: changes/0609__baitly_chat_tool_turn_proofs.sql
+            relativeToChangelogFile: true

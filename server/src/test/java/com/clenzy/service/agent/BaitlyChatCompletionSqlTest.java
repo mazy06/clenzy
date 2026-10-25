@@ -68,8 +68,8 @@ class BaitlyChatCompletionSqlTest {
             try(var master=new Liquibase("db/changelog/db.changelog-master.yaml",resources,database)) {
                 var selected=new DatabaseChangeLog("db/changelog/db.changelog-master.yaml");
                 master.getDatabaseChangeLog().getChangeSets().stream().filter(c->Set.of("0607-baitly-chat-turn-receipts",
-                    "0608-baitly-chat-tool-evidence").contains(c.getId())).forEach(selected::addChangeSet);
-                assertThat(selected.getChangeSets()).hasSize(2);
+                    "0608-baitly-chat-tool-evidence","0609-baitly-chat-tool-turn-proofs").contains(c.getId())).forEach(selected::addChangeSet);
+                assertThat(selected.getChangeSets()).hasSize(3);
                 new Liquibase(selected,resources,database).update("");
             }
         }
@@ -105,7 +105,9 @@ class BaitlyChatCompletionSqlTest {
         migrate();
         assertThat(jdbc.queryForObject("SELECT count(*) FROM databasechangelog WHERE id='0607-baitly-chat-turn-receipts'",Integer.class)).isEqualTo(1);
         assertThat(jdbc.queryForObject("SELECT count(*) FROM databasechangelog WHERE id='0608-baitly-chat-tool-evidence'",Integer.class)).isEqualTo(1);
-        var config=new Configuration().addAnnotatedClass(BaitlyChatTurn.class).addAnnotatedClass(com.clenzy.model.BaitlyChatToolEvidence.class);
+        assertThat(jdbc.queryForObject("SELECT count(*) FROM databasechangelog WHERE id='0609-baitly-chat-tool-turn-proofs'",Integer.class)).isEqualTo(1);
+        var config=new Configuration().addAnnotatedClass(BaitlyChatTurn.class).addAnnotatedClass(com.clenzy.model.BaitlyChatToolEvidence.class)
+            .addAnnotatedClass(com.clenzy.model.BaitlyChatToolTurnProof.class);
         config.getProperties().put("hibernate.connection.datasource",source);
         config.setProperty("hibernate.hbm2ddl.auto","validate");
         try(var factory=config.buildSessionFactory()) { assertThat(factory.isOpen()).isTrue(); }
@@ -506,5 +508,135 @@ class BaitlyChatCompletionSqlTest {
         assertThatThrownBy(()->journal.startTool(ticket,"legacy-result",navigation()))
             .hasMessage("Baitly chat completion unavailable").hasNoCause();
         assertThat(journal.toolEvidence(7L,"recipe-user",9L)).isEmpty();
+    }
+    private void toolTurn(String variant,UUID request) {
+        var mapper=new com.fasterxml.jackson.databind.ObjectMapper();
+        var tax=mock(com.clenzy.service.TouristTaxService.class);
+        when(tax.computeForReservationId(1L,7L)).thenReturn(Optional.empty());
+        ToolHandler navigation=navigation(); ToolHandler taxHandler=new com.clenzy.service.agent.tools.ComputeTouristTaxTool(tax,mapper);
+        var provider=mock(ChatLLMProvider.class); var step=new AtomicInteger();
+        var repository=mock(com.clenzy.repository.AssistantMessageRepository.class);
+        when(repository.save(any())).thenAnswer(call->{
+            AssistantMessage row=call.getArgument(0); long id=message(row.getRole(),row.getContent(),row.getFinishReason());
+            jdbc.update("UPDATE assistant_message SET tool_calls="+(postgres?"CAST(? AS JSONB)":"?")+",tool_call_id=? WHERE id=?",row.getToolCalls(),row.getToolCallId(),id);
+            row.setId(id); return row;
+        });
+        String navigationArgs="{\"path\":\"/reports\",\"label\":\"Synthetic\",\"reason\":\"Synthetic\"}";
+        doAnswer(call->{
+            assertThat(TransactionSynchronizationManager.isActualTransactionActive()).isFalse();
+            java.util.function.Consumer<ChatEvent> output=call.getArgument(1);
+            int current=step.getAndIncrement();
+            var first=new ChatMessage.ToolCall("nav-call",navigation.name(),navigationArgs);
+            var second=new ChatMessage.ToolCall("tax-call",taxHandler.name(),"{\"reservationId\":1}");
+            if(current==0 || ("iterations".equals(variant) && current==1)) {
+                var calls="iterations".equals(variant)?List.of(current==0?first:second):List.of(first,second);
+                output.accept(new ChatEvent.ToolCallRequest(calls));
+                output.accept(new ChatEvent.Done(0,0,"synthetic","tool_use",""));
+            } else {
+                output.accept(new ChatEvent.TextDelta("Synthetic final answer"));
+                output.accept(new ChatEvent.Done(0,0,"synthetic","stop","Synthetic final answer"));
+            }
+            return null;
+        }).when(provider).streamChat(any(ChatRequest.class),any());
+        var registry=new ToolRegistry(List.of(navigation,taxHandler));
+        var loop=new AgentToolLoopRunner(provider,registry,repository,new PendingToolStore(),mapper,
+            mock(com.clenzy.service.AiTokenBudgetService.class),null,null,null,null,null,null);
+        var conversation=new com.clenzy.model.AssistantConversation(7L,"recipe-user"); conversation.setId(9L);
+        executor.executeWithTools(request,7L,"recipe-user",9L,null,out->{
+            message("user","Synthetic question",null);
+            loop.runToolLoop(new ChatRequest("Synthetic system",List.of(ChatMessage.user("Synthetic question")),registry.listDescriptors(),
+                "synthetic",0,128),conversation,AgentContext.minimal(7L,"recipe-user"),null,event->{
+                    if("missing-event".equals(variant) && "tool_call_executed".equals(event.type())) return;
+                    out.accept(event);
+                    if("duplicate-event".equals(variant) && "tool_call_executed".equals(event.type())) out.accept(event);
+                });
+            switch(variant) {
+                case "missing-result" -> jdbc.update("DELETE FROM assistant_message WHERE role='tool' AND tool_call_id='nav-call'");
+                case "extra-result" -> toolMessage("uncovered-call");
+                case "unknown-proof" -> jdbc.update("UPDATE baitly_chat_tool_evidence SET proof_kind='UNVERIFIED',status='UNCERTAIN' WHERE tool_call_id='nav-call'");
+                case "attachment" -> jdbc.update("UPDATE assistant_message SET attachments="+(postgres?"CAST(? AS JSONB)":"?")+" WHERE id=?","[{}]",nextMessage);
+                case "multi-agent" -> BaitlyChatTurnObservation.multiAgent();
+                case "error-event" -> out.accept(AgentSseEvent.error("synthetic-private-canary"));
+                case "missing-evidence" -> jdbc.update("DELETE FROM baitly_chat_tool_evidence WHERE tool_call_id='nav-call'");
+                case "extra-evidence" -> journal.startTool(jdbcTicket(),"uncovered",navigation);
+                case "certificate-outage" -> jdbc.execute("DROP TABLE baitly_chat_tool_turn_proofs");
+                case "blank-final" -> jdbc.update("UPDATE assistant_message SET content=' ' WHERE id=?",nextMessage);
+                case "wrong-finish" -> jdbc.update("UPDATE assistant_message SET finish_reason='length' WHERE id=?",nextMessage);
+                case "extra-user" -> message("user","Uncovered concurrent question",null);
+                case "wrong-name" -> jdbc.update("UPDATE assistant_message SET tool_calls="+(postgres?"CAST(? AS JSONB)":"?")
+                    +" WHERE role='assistant' AND tool_calls IS NOT NULL","[{\"id\":\"nav-call\",\"name\":\"unreviewed_write\"}]");
+                default -> { }
+            }
+            return 9L;
+        },event->{
+            if("done".equals(event.type()) && Set.of("batch","iterations").contains(variant))
+                assertThat(journal.proof(7L,"recipe-user",9L,history()).status()).isEqualTo("SAFE_TOOLS");
+        });
+    }
+    private BaitlyChatCompletionJournal.Ticket jdbcTicket() {
+        UUID id=jdbc.queryForObject("SELECT id FROM baitly_chat_turns ORDER BY turn_sequence DESC LIMIT 1",UUID.class);
+        return new BaitlyChatCompletionJournal.Ticket(id,7L,"recipe-user",9L,null,0,false,true);
+    }
+    @ParameterizedTest @ValueSource(strings={"batch","iterations"})
+    void completeReadToolTurnCommitsCertificateBeforeTerminalAndRestoresWithoutReplay(String variant) {
+        UUID request=UUID.randomUUID(); toolTurn(variant,request);
+        var reboot=new BaitlyChatCompletionJournal(jdbc,new DataSourceTransactionManager(source));
+        var proof=reboot.proof(7L,"recipe-user",9L,history());
+        assertThat(proof.status()).isEqualTo("SAFE_TOOLS"); assertThat(proof.policy()).isEqualTo(BaitlyChatCompletionJournal.TOOLS_POLICY);
+        assertThat(proof.requestId()).isEqualTo(request.toString());
+        assertThat(state()).isEqualTo("UNCERTAIN"); // Old implementations remain fail-closed on rollback.
+        assertThatThrownBy(()->journal.begin(7L,"recipe-user",9L,UUID.randomUUID(),null)).hasMessage("Baitly chat completion unavailable");
+        executor.executeWithTools(UUID.randomUUID(),7L,"recipe-user",9L,null,out->{
+            message("user","Next explicit question",null); long end=message("assistant","Next response","stop");
+            BaitlyChatTurnObservation.textPersisted(end,"stop"); out.accept(AgentSseEvent.done("stop")); return 9L;
+        },e->{});
+        assertThat(reboot.proof(7L,"recipe-user",9L,history()).status()).isEqualTo("SAFE_TOOLS");
+        assertThatThrownBy(()->executor.executeWithTools(request,7L,"recipe-user",9L,null,out->{throw new AssertionError("Must never replay");},e->{}))
+            .hasMessage("Baitly chat completion unavailable");
+    }
+    @ParameterizedTest @ValueSource(strings={"missing-result","extra-result","unknown-proof","attachment","multi-agent",
+        "error-event","missing-evidence","extra-evidence","missing-event","duplicate-event","blank-final","wrong-finish","extra-user","wrong-name"})
+    void partialOrAmbiguousToolTurnNeverReceivesACompletionCertificate(String variant) {
+        toolTurn(variant,UUID.randomUUID());
+        assertThat(journal.proof(7L,"recipe-user",9L,history()).status()).isEqualTo("UNCERTAIN");
+        assertThat(jdbc.queryForObject("SELECT count(*) FROM baitly_chat_tool_turn_proofs",Integer.class)).isZero();
+        assertThatThrownBy(()->journal.begin(7L,"recipe-user",9L,UUID.randomUUID(),null,true)).hasMessage("Baitly chat completion unavailable");
+    }
+    @Test void certificateOutageCannotFlushTerminalOrReleaseUncertainty() {
+        assertThatThrownBy(()->toolTurn("certificate-outage",UUID.randomUUID())).hasMessage("Baitly chat completion unavailable").hasNoCause();
+        assertThat(state()).isEqualTo("UNCERTAIN");
+    }
+    @ParameterizedTest @ValueSource(strings={"result","calls","certificate","evidence"})
+    void readProofRechecksEntireCoveredToolHistory(String variant) {
+        toolTurn("batch",UUID.randomUUID());
+        switch(variant) {
+            case "result" -> jdbc.update("DELETE FROM assistant_message WHERE tool_call_id='nav-call'");
+            case "calls" -> jdbc.update("UPDATE assistant_message SET tool_calls="+(postgres?"CAST(? AS JSONB)":"?")+" WHERE role='assistant' AND tool_calls IS NOT NULL","[]");
+            case "certificate" -> jdbc.update("UPDATE baitly_chat_tool_turn_proofs SET end_message_id=999");
+            case "evidence" -> jdbc.update("UPDATE baitly_chat_tool_evidence SET result_message_id=999");
+            default -> throw new AssertionError();
+        }
+        assertThat(journal.proof(7L,"recipe-user",9L,history()).status()).isEqualTo("UNCERTAIN");
+        assertThatThrownBy(()->journal.begin(7L,"recipe-user",9L,UUID.randomUUID(),null,true)).hasMessage("Baitly chat completion unavailable");
+    }
+    @Test void laterTextReceiptCannotHideCorruptionInEarlierToolTurn() {
+        toolTurn("batch",UUID.randomUUID());
+        executor.executeWithTools(UUID.randomUUID(),7L,"recipe-user",9L,null,out->{
+            message("user","Next explicit question",null); long end=message("assistant","Next response","stop");
+            BaitlyChatTurnObservation.textPersisted(end,"stop"); out.accept(AgentSseEvent.done("stop")); return 9L;
+        },e->{});
+        jdbc.update("UPDATE baitly_chat_tool_evidence SET result_message_id=999 WHERE tool_call_id='nav-call'");
+        assertThat(journal.proof(7L,"recipe-user",9L,history()).status()).isEqualTo("UNCERTAIN");
+        assertThatThrownBy(()->journal.begin(7L,"recipe-user",9L,UUID.randomUUID(),null,true)).hasMessage("Baitly chat completion unavailable");
+    }
+    @Test void certifiedToolsPermitOnlyOneConcurrentNewAdmission() throws Exception {
+        toolTurn("batch",UUID.randomUUID());
+        var pool=Executors.newFixedThreadPool(2); var latch=new CountDownLatch(1);
+        try {
+            Callable<Boolean> claim=()->{ latch.await(); try { journal.begin(7L,"recipe-user",9L,UUID.randomUUID(),null,true); return true; }
+                catch(IllegalStateException unavailable) { return false; } };
+            var first=pool.submit(claim); var second=pool.submit(claim); latch.countDown();
+            assertThat(List.of(first.get(10,TimeUnit.SECONDS),second.get(10,TimeUnit.SECONDS))).containsExactlyInAnyOrder(true,false);
+        } finally { pool.shutdownNow(); }
     }
 }

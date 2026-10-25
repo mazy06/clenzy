@@ -13,6 +13,8 @@ public final class BaitlyChatTurnObservation implements AutoCloseable {
     String finishReason;
     int doneCount;
     String doneReason;
+    final java.util.Set<String> executedIds=new java.util.HashSet<>();
+    boolean conflictingExecution;
     private BaitlyChatCompletionJournal journal;
     private BaitlyChatCompletionJournal.Ticket ticket;
 
@@ -53,13 +55,21 @@ public final class BaitlyChatTurnObservation implements AutoCloseable {
     }
     void observe(AgentSseEvent event) {
         if ("error".equals(event.type())) error=true;
-        if ("tool_call_executed".equals(event.type())) executed=true;
+        if ("tool_call_executed".equals(event.type())) {
+            executed=true;
+            if(event.toolCallId()==null || !Boolean.FALSE.equals(event.toolError()) || !executedIds.add(event.toolCallId())) conflictingExecution=true;
+        }
         if ("paused_awaiting_confirmation".equals(event.type())) paused=true;
         if ("done".equals(event.type())) { doneCount++; doneReason=event.finishReason(); }
     }
     boolean safeTextCandidate() {
         return !toolsRequested && !executed && !multiAgent && !error && !paused && completions==1
                 && doneCount==1 && java.util.Objects.equals(finishReason,doneReason)
+                && assistantMessageId!=null && ("end_turn".equals(finishReason) || "stop".equals(finishReason));
+    }
+    boolean safeToolsCandidate() {
+        return toolsRequested && executed && !conflictingExecution && !multiAgent && !error && !paused
+                && completions==1 && doneCount==1 && java.util.Objects.equals(finishReason,doneReason)
                 && assistantMessageId!=null && ("end_turn".equals(finishReason) || "stop".equals(finishReason));
     }
     @Override public void close() { CURRENT.remove(); }

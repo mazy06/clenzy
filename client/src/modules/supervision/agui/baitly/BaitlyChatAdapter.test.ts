@@ -33,6 +33,58 @@ function setup(proof: () => Promise<unknown> = async () => fresh()) {
 }
 
 describe('Baitly chat adapter restoration', () => {
+  const toolProof=():ChatRecovery=>({...fresh(),history:[
+    {id:'history-1',role:'user',content:'Synthetic question',toolCallId:null,hasAttachments:false},
+    {id:'history-2',role:'assistant',content:null,toolCallId:null,hasAttachments:false},
+    {id:'history-3',role:'tool',content:null,toolCallId:'read-call',hasAttachments:false},
+    {id:'history-4',role:'assistant',content:'Synthetic final answer',toolCallId:null,hasAttachments:false}],
+    toolEvidence:[{toolCallId:'read-call',proofKind:'NAVIGATION_ONLY_V1',status:'READ_ONLY_COMPLETED',resultMessageId:'history-3'}],
+    completion:{policy:'durable-tools-v2',status:'SAFE_TOOLS',lastMessageId:'history-4',requestId:'previous-request'}});
+  it('restores a complete tool turn without replay and sends only the next explicit question',async()=>{
+    let proof=toolProof(); const {adapter,fetch}=setup(async()=>proof);
+    await adapter.restore(); await adapter.restore();
+    expect(adapter.getSnapshot().phase).toBe('ready'); expect(fetch).not.toHaveBeenCalled();
+    expect(adapter.getSnapshot().model.messages).toEqual([]);
+    fetch.mockImplementationOnce(async(_url,init)=>{
+      const input=JSON.parse(String(init.body));
+      expect(input.messages).toEqual([expect.objectContaining({role:'user',content:'Next explicit question'})]);
+      expect(input.forwardedProps.completionPolicy).toBe('durable-tools-v2');
+      proof={...proof,history:[...proof.history,
+        {id:'history-5',role:'user',content:'Next explicit question',toolCallId:null,hasAttachments:false},
+        {id:'history-6',role:'assistant',content:'New answer',toolCallId:null,hasAttachments:false}],
+        completion:{policy:'durable-tools-v2',status:'SAFE_TOOLS',lastMessageId:'history-6',requestId:input.runId}};
+      return response([{type:'RUN_STARTED',threadId:input.threadId,runId:'server-proof'},
+        {type:'RUN_FINISHED',threadId:input.threadId,runId:'server-proof',outcome:{type:'success'}}]);
+    });
+    await adapter.send('Next explicit question'); expect(fetch).toHaveBeenCalledTimes(1);
+    expect(adapter.getSnapshot().phase).toBe('ready');
+  });
+  it('rejects missing, ambiguous, duplicated or foreign tool coverage without any execution',async()=>{
+    const base=toolProof();
+    const contradictions:unknown[]=[
+      {...base,toolEvidence:undefined}, {...base,toolEvidence:[]},
+      {...base,toolEvidence:[{...base.toolEvidence![0],status:'STARTED'}]},
+      {...base,toolEvidence:[{...base.toolEvidence![0],proofKind:'UNVERIFIED'}]},
+      {...base,toolEvidence:[{...base.toolEvidence![0],resultMessageId:'foreign'}]},
+      {...base,toolEvidence:[base.toolEvidence![0],base.toolEvidence![0]]},
+      {...base,completion:{...base.completion,policy:'durable-text-v1'}},
+      {...base,history:base.history.map(m=>m.role==='tool'?{...m,content:'private-result-canary'}:m)},
+      {...base,history:base.history.map(m=>m.id==='history-4'?{...m,hasAttachments:true}:m)},
+      {...base,actions:[action]},
+      {...base,reconciliation:[{toolCallId:'read-call',toolName:'synthetic',evidence:'UNCERTAIN',resultMessageId:null}]},
+    ];
+    for(const proof of contradictions) {
+      const {adapter,fetch}=setup(async()=>proof); await adapter.restore();
+      expect(adapter.getSnapshot().phase).toBe('blocked');
+      await expect(adapter.send('Must not run')).rejects.toBeDefined();
+      expect(fetch).not.toHaveBeenCalled(); expect(adapter.getSnapshot().failure).not.toContain('private-result-canary');
+    }
+  });
+  it('does not turn bounded tool evidence alone into a completed conversation',async()=>{
+    const proof={...toolProof(),canStart:false,completion:{policy:'durable-text-v1',status:'UNCERTAIN',lastMessageId:null,requestId:'fixture'}};
+    const {adapter,fetch}=setup(async()=>proof); await adapter.restore();
+    expect(adapter.getSnapshot().phase).toBe('blocked'); expect(fetch).not.toHaveBeenCalled();
+  });
   it('restores a proved pure text conversation without resending it, then requires proof of the new request', async () => {
     let proof:ChatRecovery={...fresh(),history:[
       {id:'history-1',role:'user',content:'Synthetic question',toolCallId:null,hasAttachments:false},
@@ -42,7 +94,7 @@ describe('Baitly chat adapter restoration', () => {
     await adapter.restore(); expect(adapter.getSnapshot().phase).toBe('ready'); expect(fetch).not.toHaveBeenCalled();
     fetch.mockImplementationOnce(async(_url,init)=>{
       const input=JSON.parse(String(init.body));
-      expect(input.forwardedProps.completionPolicy).toBe('durable-text-v1');
+      expect(input.forwardedProps.completionPolicy).toBe('durable-tools-v2');
       expect(input.messages).toHaveLength(1); // Restored messages are never replayed.
       proof={...proof,history:[...proof.history,
         {id:'history-3',role:'user',content:'Next synthetic question',toolCallId:null,hasAttachments:false},

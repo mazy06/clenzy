@@ -74,3 +74,7 @@ déploiement, notification ou donnée personnelle de recette n’est utilisé.
 Validation locale sur les sources figées : 121 tests backend ciblés, dont
 48 cas SQL, sans échec, erreur ou test ignoré. La nouvelle tête doit encore
 passer sa CI, notamment la recette PostgreSQL/JSONB. Aucun code frontend modifié.
+
+Suite : [preuve complète des tours de lecture](BAITLY-CHAT-COMPLETE-TOOL-TURNS.md).
+Elle ajoute un certificat v2 de couverture de tour, sans réinterpréter les
+anciens reçus v1 ou débloquer les écritures incertaines.

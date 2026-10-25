@@ -244,8 +244,10 @@ public class AgUiController {
                             conversationId, lastUserMessage, List.<AttachmentRef>of(), context, output);
                 };
                 if(durableRequested) {
-                    if(completionExecutor==null || !com.clenzy.service.agent.BaitlyChatCompletionJournal.POLICY.equals(
-                            nodeText(forwarded,"completionPolicy"))) throw new IllegalArgumentException("Baitly chat completion unavailable");
+                    String completionPolicy=nodeText(forwarded,"completionPolicy");
+                    if(completionExecutor==null || !java.util.Set.of(com.clenzy.service.agent.BaitlyChatCompletionJournal.POLICY,
+                            com.clenzy.service.agent.BaitlyChatCompletionJournal.TOOLS_POLICY).contains(completionPolicy))
+                        throw new IllegalArgumentException("Baitly chat completion unavailable");
                     if((resumeRoot!=null && !resumeRoot.isNull() && (!resumeRoot.isArray() || resumeRoot.size()!=1))
                             || forwarded.hasNonNull("resume")) throw new IllegalArgumentException("Baitly chat completion unavailable");
                     String pendingId=resumeEntry==null || resumeEntry.isNull()?null:firstText(resumeEntry,"interruptId","id","toolCallId");
@@ -256,8 +258,11 @@ public class AgUiController {
                             || (resumeRoot!=null && resumeRoot.isArray() && resumeRoot.size()!=1))) {
                         throw new IllegalArgumentException("Baitly chat completion unavailable");
                     }
-                    completionExecutor.execute(UUID.fromString(input.path("runId").asText()),orgId,keycloakId,conversationId,
+                    if(com.clenzy.service.agent.BaitlyChatCompletionJournal.TOOLS_POLICY.equals(completionPolicy)) {
+                        completionExecutor.executeWithTools(UUID.fromString(input.path("runId").asText()),orgId,keycloakId,conversationId,
                             pendingId,work,consumer);
+                    } else completionExecutor.execute(UUID.fromString(input.path("runId").asText()),orgId,keycloakId,conversationId,
+                        pendingId,work,consumer);
                 } else {
                     if(completionExecutor!=null) completionExecutor.requireLegacyUntracked(orgId,keycloakId,conversationId,
                             resumeEntry==null || resumeEntry.isNull()?null:firstText(resumeEntry,"interruptId","id","toolCallId"));

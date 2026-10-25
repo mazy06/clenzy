@@ -12,8 +12,10 @@ const recoverySchema = z.object({ version: z.literal(1), resumePolicy: z.literal
   reconciliation: z.array(z.object({ toolCallId: z.string().min(1), toolName: z.string().min(1),
     evidence: z.enum(['AWAITING_DECISION', 'EXPIRED', 'DECLINED', 'RESULT_RECORDED', 'UNCERTAIN', 'CONFLICT']),
     resultMessageId: z.string().nullable() })).default([]),
-  completion: z.object({policy:z.literal('durable-text-v1'),status:z.enum(['RUNNING','SAFE_TEXT','PAUSED','UNCERTAIN']),
-    lastMessageId:z.string().nullable(),requestId:z.string().min(1)}).nullable().default(null) });
+  completion: z.object({policy:z.enum(['durable-text-v1','durable-tools-v2']),status:z.enum(['RUNNING','SAFE_TEXT','SAFE_TOOLS','PAUSED','UNCERTAIN']),
+    lastMessageId:z.string().nullable(),requestId:z.string().min(1)}).nullable().default(null),
+  toolEvidence:z.array(z.object({toolCallId:z.string().min(1),proofKind:z.enum(['NAVIGATION_ONLY_V1','TAX_READ_ONLY_V1','UNVERIFIED']),
+    status:z.enum(['STARTED','READ_ONLY_COMPLETED','UNCERTAIN']),resultMessageId:z.string().nullable()})).optional() });
 export type ChatRecovery = z.infer<typeof recoverySchema>;
 export interface ChatSnapshot {
   phase: 'restoring' | 'ready' | 'running' | 'review' | 'blocked';
@@ -62,16 +64,31 @@ export class BaitlyChatAdapter {
         || (r.resultMessageId !== null && !result.data.history.some(m => m.id === r.resultMessageId
           && m.role === 'tool' && m.toolCallId === r.toolCallId)))
       || (result.data.canStart && (result.data.reconciliation.length > 0 || result.data.actions.length > 0))
-      || (result.data.canStart && result.data.history.length > 0 && (result.data.completion?.status !== 'SAFE_TEXT'
-        || result.data.completion.lastMessageId !== result.data.history.at(-1)?.id
-        || result.data.history.some(m => m.role === 'tool' || m.hasAttachments)))
-      || (result.data.canStart && result.data.completion !== null && result.data.completion.status !== 'SAFE_TEXT')
+      || (result.data.completion?.status==='SAFE_TOOLS' && !this.completeToolProof(result.data))
+      || (result.data.canStart && result.data.completion?.status!=='SAFE_TOOLS' && (result.data.toolEvidence?.length ?? 0)>0)
+      || (result.data.canStart && result.data.history.length > 0 && ((!['SAFE_TEXT','SAFE_TOOLS'].includes(result.data.completion?.status ?? ''))
+        || result.data.completion?.lastMessageId !== result.data.history.at(-1)?.id
+        || result.data.history.some(m => m.hasAttachments)
+        || (result.data.completion?.status==='SAFE_TEXT' && result.data.history.some(m=>m.role==='tool'))))
+      || (result.data.canStart && result.data.completion !== null && !['SAFE_TEXT','SAFE_TOOLS'].includes(result.data.completion.status))
       || result.data.actions.some(a => result.data.history.some(m => m.role === 'tool' && m.toolCallId === a.toolCallId))
       || result.data.actions.some(a => result.data.reconciliation.some(r => r.toolCallId === a.toolCallId
         && r.evidence !== 'AWAITING_DECISION'))) {
       throw new BaitlyAgUiError('PROTOCOL');
     }
     return { ...result.data, actions: result.data.actions.filter(a => Date.parse(a.expiresAt) > this.now()) };
+  }
+  private completeToolProof(proof:ChatRecovery): boolean {
+    if(proof.completion?.policy!=='durable-tools-v2' || proof.completion.lastMessageId!==proof.history.at(-1)?.id
+      || proof.history.length<4 || proof.history[0]?.role!=='user' || !proof.history.at(-1)?.content?.trim()
+      || proof.history.at(-1)?.role!=='assistant' || proof.history.some(m=>m.hasAttachments)
+      || proof.actions.length || proof.reconciliation.length) return false;
+    const tools=proof.history.filter(m=>m.role==='tool'); const evidence=proof.toolEvidence ?? [];
+    if(!tools.length || tools.length!==evidence.length || new Set(tools.map(m=>m.toolCallId)).size!==tools.length
+      || new Set(evidence.map(e=>e.toolCallId)).size!==evidence.length) return false;
+    const results=new Map(tools.map(message=>[message.toolCallId,message]));
+    return evidence.every(e=>e.status==='READ_ONLY_COMPLETED' && e.proofKind!=='UNVERIFIED'
+      && results.get(e.toolCallId)?.id===e.resultMessageId && results.get(e.toolCallId)?.content===null);
   }
   private recoveredPhase(proof: ChatRecovery, requireCompletion=false): ChatSnapshot['phase'] {
     if (requireCompletion && proof.completion === null) return 'blocked';
@@ -131,7 +148,7 @@ export class BaitlyChatAdapter {
       this.update({ phase: 'running', failure: null });
       const outcome = await client.run({ threadId, runId, messages: this.snapshot.model.messages,
         state: this.snapshot.model.state, tools: [], context: [],
-        forwardedProps: { conversationId: this.options.conversationId, completionPolicy:'durable-text-v1' },
+        forwardedProps: { conversationId: this.options.conversationId, completionPolicy:'durable-tools-v2' },
         ...(decision ? { resume: [{ interruptId: decision.id,
           status: decision.confirmed ? 'resolved' as const : 'cancelled' as const,
           payload: { confirmed: decision.confirmed } }] } : {}),
