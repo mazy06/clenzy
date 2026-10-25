@@ -69,7 +69,7 @@ describe("Public service status", () => {
     expect(screen.getAllByText(m.unmeasured)).toHaveLength(m.components.length);
     expect(
       screen.getByRole("link", { name: PRELAUNCH_MESSAGES.fr.register }),
-    ).toHaveAttribute("href", "/bientot-disponible?lang=fr");
+    ).toHaveAttribute("href", "/bientot-disponible");
   });
 
   it("does not announce opening while the server is still loading", () => {

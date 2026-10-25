@@ -87,10 +87,10 @@ describe('Baitly loyalty simulator', () => {
         .getAllByRole('link', { name: /Rejoindre le pré-lancement/ })
         .map((link) => link.getAttribute('href')),
     ).toEqual([
-      '/bientot-disponible?lang=fr&plan=essential&market=EU&properties=3',
-      '/bientot-disponible?lang=fr&plan=pro&market=EU&properties=3',
-      '/bientot-disponible?lang=fr&plan=custom&market=EU',
-      '/bientot-disponible?lang=fr&plan=essential&market=EU&properties=3',
+      '/bientot-disponible?plan=essential&market=EU&properties=3',
+      '/bientot-disponible?plan=pro&market=EU&properties=3',
+      '/bientot-disponible?plan=custom&market=EU',
+      '/bientot-disponible?plan=essential&market=EU&properties=3',
     ]);
   });
   it('plays all four tiers once, stops at the stable tier and can replay', () => {

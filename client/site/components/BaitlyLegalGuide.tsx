@@ -16,6 +16,7 @@ import {
 import { LEGAL_MESSAGES } from '../lib/messages/baitlyLegal';
 import { downloadBlob } from '../lib/downloadText';
 import type { SiteLanguage } from '../lib/siteLanguage';
+import { langQuery } from '../lib/siteSeo';
 
 const STAGES: LegalStage[] = ['ouvrir', 'accueillir', 'suivre'];
 
@@ -48,7 +49,7 @@ export default function BaitlyLegalGuide({
         {LEGAL_COUNTRIES.map((c) => (
           <Link
             key={c.code}
-            to={`${guidePath(c.code)}?lang=${language}`}
+            to={`${guidePath(c.code)}${langQuery(language)}`}
             aria-current={c.code === country.code ? 'page' : undefined}
           >
             <span className="blg-country-code" aria-hidden="true">
@@ -67,7 +68,7 @@ export default function BaitlyLegalGuide({
             <p>{country.scope[language]}</p>
             <Link
               className="baitly-text-link"
-              to={`/${country.slug}?lang=${language}`}
+              to={`/${country.slug}${langQuery(language)}`}
             >
               {m.product}
               <ArrowRight size={16} aria-hidden="true" />
@@ -169,7 +170,7 @@ export default function BaitlyLegalGuide({
                           </dl>
                         )}
                         <div className="blg-row-links">
-                          <Link to={`${articlePath(a)}?lang=${language}`}>
+                          <Link to={`${articlePath(a)}${langQuery(language)}`}>
                             {language === 'en' ? m.readFr : m.read}
                             <ArrowRight size={16} aria-hidden="true" />
                           </Link>

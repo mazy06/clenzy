@@ -10,6 +10,7 @@ import BaitlyLegalJournal, {
 import { LAYOUT_MESSAGES } from '../../lib/messages/layout';
 import { PRELAUNCH_MESSAGES } from '../../lib/messages/prelaunch';
 import type { SiteLanguage } from '../../lib/siteLanguage';
+import { langQuery } from '../../lib/siteSeo';
 
 const cannotNavigate = () => {
   throw new Error(
@@ -40,7 +41,7 @@ export function journalStaticHtml(language: SiteLanguage): string {
   ];
   return renderToStaticMarkup(
     <Router
-      location={`/ressources/blog?lang=${language}`}
+      location={`/ressources/blog${langQuery(language)}`}
       navigator={staticNavigator}
       static
     >
@@ -51,7 +52,7 @@ export function journalStaticHtml(language: SiteLanguage): string {
         <header className="site-header sticky top-0 z-40 border-b border-border bg-background">
           <div className="site-shell site-header-inner flex h-16 items-center gap-5">
             <a
-              href={`/?lang=${language}`}
+              href={`/${langQuery(language)}`}
               className="flex items-center gap-2.5"
               aria-label={m.header.homeAria}
             >
@@ -71,7 +72,7 @@ export function journalStaticHtml(language: SiteLanguage): string {
                   >
                     <a
                       className={navigationMenuTriggerStyle()}
-                      href={`${entry.to}?lang=${language}`}
+                      href={`${entry.to}${langQuery(language)}`}
                     >
                       {entry.label}
                       {entry.group && (
@@ -87,7 +88,7 @@ export function journalStaticHtml(language: SiteLanguage): string {
             </nav>
             <div className="ms-auto flex items-center gap-2">
               <Button size="sm" className="site-header-cta" asChild>
-                <a href={`/demo?lang=${language}`}>
+                <a href={`/demo${langQuery(language)}`}>
                   {PRELAUNCH_MESSAGES[language].cta}
                   <ArrowRight aria-hidden="true" />
                 </a>
@@ -99,7 +100,7 @@ export function journalStaticHtml(language: SiteLanguage): string {
                 asChild
               >
                 <a
-                  href={`/ressources?lang=${language}`}
+                  href={`/ressources${langQuery(language)}`}
                   aria-label={m.nav.resources}
                 >
                   <Menu aria-hidden="true" />

@@ -6,6 +6,7 @@ import {
   BAITLY_COMPARISON_ROUTES,
   BAITLY_READINESS_MESSAGES,
 } from "../lib/messages/baitlyReadiness";
+import { langQuery } from '../lib/siteSeo';
 
 export default function ComparePage() {
   const { language } = useSiteLanguage();
@@ -43,7 +44,7 @@ export default function ComparePage() {
                 <p>{criterion.copy}</p>
                 <Link
                   className="baitly-text-link"
-                  to={`${BAITLY_COMPARISON_ROUTES[index]}?lang=${language}`}
+                  to={`${BAITLY_COMPARISON_ROUTES[index]}${langQuery(language)}`}
                 >
                   {criterion.action}
                   <ArrowRightIcon size={17} aria-hidden="true" />
@@ -57,11 +58,11 @@ export default function ComparePage() {
         <h2>{m.closingTitle}</h2>
         <p>{m.closingCopy}</p>
         <div className="baitly-readiness-actions">
-          <Link className="baitly-button" to={`/tarifs?lang=${language}`}>
+          <Link className="baitly-button" to={`/tarifs${langQuery(language)}`}>
             {m.pricing}
             <ArrowRightIcon size={18} aria-hidden="true" />
           </Link>
-          <Link className="baitly-text-link" to={`/migration?lang=${language}`}>
+          <Link className="baitly-text-link" to={`/migration${langQuery(language)}`}>
             {m.migration}
             <ArrowRightIcon size={17} aria-hidden="true" />
           </Link>

@@ -5,8 +5,16 @@ export const SITE_ORIGIN = 'https://baitly.fr';
 export const canonicalPath = (path: string) =>
   path === '/pre-lancement' ? '/bientot-disponible' : path;
 
+/**
+ * Query string for an internal link. French, the default language, stays
+ * parameter-free: links to `?lang=fr` led Google to index those duplicates and
+ * override the canonical URL.
+ */
+export const langQuery = (language: SiteLanguage) =>
+  language === 'fr' ? '' : `?lang=${language}`;
+
 export const canonicalUrl = (path: string, language: SiteLanguage = 'fr') =>
-  `${SITE_ORIGIN}${canonicalPath(path)}${language === 'fr' ? '' : `?lang=${language}`}`;
+  `${SITE_ORIGIN}${canonicalPath(path)}${langQuery(language)}`;
 
 export const robotsDirective = (index: boolean, video = false) =>
   index

@@ -6,6 +6,7 @@ import { STORAGE_KEYS } from '../../src/services/storageService';
 import { useSiteLanguage } from '../lib/siteLanguage';
 import { SITE_COOKIES_MESSAGES } from '../lib/messages/siteCookies';
 import { readSiteCookieChoice, saveSiteCookieChoice, type SiteCookieChoice, type SiteCookieDecision } from '../lib/siteCookieChoice';
+import { langQuery } from '../lib/siteSeo';
 
 const CookieNoticeContext = createContext<(() => void) | null>(null);
 
@@ -117,7 +118,7 @@ export default function SiteCookieNoticeProvider({ children }: { children: React
           <footer>
             <span><ShieldCheck size={16} aria-hidden="true" />{m.necessary}</span>
             <p>{m.duration}</p>
-            <Link to={`/legal/confidentialite?lang=${language}#cookies`} onClick={close}>{m.policy}</Link>
+            <Link to={`/legal/confidentialite${langQuery(language)}#cookies`} onClick={close}>{m.policy}</Link>
           </footer>
         </section>
       )}

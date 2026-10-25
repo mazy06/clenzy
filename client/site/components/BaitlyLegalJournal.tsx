@@ -17,6 +17,7 @@ import {
   type JournalArticle,
 } from '../data/baitlyJournal';
 import { BAITLY_RESOURCE_MESSAGES } from '../lib/messages/baitlyResources';
+import { langQuery } from '../lib/siteSeo';
 
 /** The initial HTML and the interactive journal share the same editorial layout. */
 export function BaitlyJournalHeader({
@@ -28,7 +29,7 @@ export function BaitlyJournalHeader({
   return (
     <header className="blg-hero">
       <div>
-        <Link to={`/ressources?lang=${language}`} className="blg-back">
+        <Link to={`/ressources${langQuery(language)}`} className="blg-back">
           <ArrowLeft size={16} aria-hidden="true" />
           {{ fr: 'Ressources', en: 'Resources', ar: 'الموارد' }[language]}
         </Link>
@@ -39,7 +40,7 @@ export function BaitlyJournalHeader({
           <span>
             {JOURNAL_ARTICLE_COUNT} {m.count}
           </span>
-          <Link to={`/ressources/obligations?lang=${language}`}>
+          <Link to={`/ressources/obligations${langQuery(language)}`}>
             {m.eyebrow}
             <ArrowRight size={16} aria-hidden="true" />
           </Link>
@@ -93,7 +94,7 @@ export default function BaitlyLegalJournal({
       {m.french && <p className="blg-language-note">{m.french}</p>}
       {featured && (
         <Link
-          to={`${articlePath(featured)}?lang=${language}`}
+          to={`${articlePath(featured)}${langQuery(language)}`}
           className="blg-featured"
           lang={articleLanguage(language)}
           dir={language === 'ar' ? 'rtl' : 'ltr'}
@@ -212,7 +213,7 @@ export default function BaitlyLegalJournal({
                 </details>
               ) : (
                 <Link
-                  to={`${a.href}?lang=${language}`}
+                  to={`${a.href}${langQuery(language)}`}
                   className="blg-article-link"
                 >
                   <ArticlePreview article={a} />

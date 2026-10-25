@@ -7,6 +7,7 @@ import { BAITLY_OWNER_SERVICES,BAITLY_OWNER_PROPERTY_TYPES,ownerCriteria,ownerCr
 import { baitlyConciergeApi,conciergeProfilePath,type BaitlyConciergeResults } from '../lib/baitlyConciergeApi';
 import PagePagination from '../../src/components/PagePagination';
 import ProviderCountrySelect from './ProviderCountrySelect';
+import { langQuery } from '../lib/siteSeo';
 
 export default function BaitlyConciergeFinder() {
   const { language }=useSiteLanguage(), { search }=useLocation(),navigate=useNavigate();
@@ -41,7 +42,7 @@ export default function BaitlyConciergeFinder() {
         <input type="checkbox" name="service" value={service} defaultChecked={criteria.services.includes(service)} />{labels[service]}</label>)}</fieldset>
       <details className="bct-privacy"><summary>{m.explain}</summary><p>{m.help}</p><p>{m.countryHelp} {m.feeHelp}</p></details>
       <div className="bci-filter-actions"><button className="baitly-button" type="submit">{m.search}</button>
-        <Link className="baitly-text-link" to={`/conciergeries?lang=${language}`}>{m.reset}</Link></div>
+        <Link className="baitly-text-link" to={`/conciergeries${langQuery(language)}`}>{m.reset}</Link></div>
     </form>
     {error ? <div role="alert"><p>{labels.error}</p><button className="baitly-button" onClick={() => setRetry(value => value+1)}>{labels.retry}</button></div>
       : !result ? <p role="status" aria-busy="true">{labels.loading}</p> : <>

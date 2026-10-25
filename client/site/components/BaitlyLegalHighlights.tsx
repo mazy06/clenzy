@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { legalArticleImage } from '../data/legal/articleImages';
 import { LEGAL_MESSAGES } from '../lib/messages/baitlyLegal';
 import type { SiteLanguage } from '../lib/siteLanguage';
+import { langQuery } from '../lib/siteSeo';
 
 // Curated teaser copy keeps the homepage independent of the full article corpus.
 const HIGHLIGHTS = [
@@ -65,7 +66,7 @@ export default function BaitlyLegalHighlights({
         </div>
         <div>
           <p>{m.homeCopy}</p>
-          <Link to={`/ressources/blog?lang=${language}`}>
+          <Link to={`/ressources/blog${langQuery(language)}`}>
             {m.open}
             <ArrowRight size={17} aria-hidden="true" />
           </Link>
@@ -75,7 +76,7 @@ export default function BaitlyLegalHighlights({
         {HIGHLIGHTS.map((a, index) => (
           <Link
             key={a.slug}
-            to={`/ressources/blog/${a.slug}?lang=${language}`}
+            to={`/ressources/blog/${a.slug}${langQuery(language)}`}
             className={index === 0 ? 'blg-home-lead' : 'blg-home-story'}
           >
             <img

@@ -21,6 +21,7 @@ import gardenArtwork from "../assets/providers/trades/garden.webp";
 import welcomeArtwork from "../assets/providers/trades/welcome.webp";
 import chefArtwork from "../assets/providers/trades/chef.webp";
 import "../provider-marketplace.css";
+import { langQuery } from '../lib/siteSeo';
 
 const TRADE_ARTWORK = [
   cleaningArtwork,
@@ -57,7 +58,7 @@ export default function ProvidersPage() {
           <div className="baitly-readiness-actions">
             <Link
               className="baitly-button"
-              to={`/prestataires/inscription?lang=${language}`}
+              to={`/prestataires/inscription${langQuery(language)}`}
             >
               {m.ctaJoin}
               <ArrowRightIcon size={18} aria-hidden="true" />
@@ -128,7 +129,7 @@ export default function ProvidersPage() {
                   <p>{category.copy}</p>
                   <Link
                     className="bpr-category-link"
-                    to={`/prestataires/inscription?lang=${language}`}
+                    to={`/prestataires/inscription${langQuery(language)}`}
                   >
                     {marketplace.offerService}
                     <ArrowRightIcon size={16} aria-hidden="true" />
@@ -167,7 +168,7 @@ export default function ProvidersPage() {
           </div>
           <div>
             <p className="baitly-readiness-lead">{m.appCopy}</p>
-            <Link className="baitly-text-link" to={`/produit/operations-menage?lang=${language}`}>
+            <Link className="baitly-text-link" to={`/produit/operations-menage${langQuery(language)}`}>
               {m.appAction}<ArrowRightIcon size={17} aria-hidden="true" />
             </Link>
           </div>
@@ -190,7 +191,7 @@ export default function ProvidersPage() {
           <div className="baitly-readiness-actions">
             <Link
               className="baitly-button"
-              to={`/prestataires/inscription?lang=${language}`}
+              to={`/prestataires/inscription${langQuery(language)}`}
             >
               {m.ctaJoin}
               <ArrowRightIcon size={18} aria-hidden="true" />

@@ -4,6 +4,7 @@ import { BAITLY_ACADEMY_MESSAGES, fillAcademyText } from '../../lib/messages/bai
 import type { SiteLanguage } from '../../lib/siteLanguage';
 import { formatClock } from './BaitlyVideoPlayer';
 import { ACADEMY_THEME_ORDER } from './academyOrder';
+import { langQuery } from '../../lib/siteSeo';
 
 /** Ancre du programme (lien « Voir le programme » de la fin du dernier épisode). */
 export const ACADEMY_PROGRAM_ID = 'academie-programme';
@@ -56,7 +57,7 @@ export default function AcademyProgram({ language, current }: Props) {
                   return (
                     <li key={item.number} className="bac-ep">
                       <Link
-                        to={`/ressources/academie/${episode.slug}?lang=${language}`}
+                        to={`/ressources/academie/${episode.slug}${langQuery(language)}`}
                         aria-current={episode.slug === current ? 'page' : undefined}
                       >
                         <img src={academyPosterUrl(episode, '16x9')} alt="" loading="lazy" width={128} height={72} />

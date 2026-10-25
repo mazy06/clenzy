@@ -41,7 +41,7 @@ describe('Commercial context', () => {
     );
     expect(screen.getByRole('link')).toHaveAttribute(
       'href',
-      '/bientot-disponible?lang=fr&plan=essential&market=EU&properties=8',
+      '/bientot-disponible?plan=essential&market=EU&properties=8',
     );
   });
 });

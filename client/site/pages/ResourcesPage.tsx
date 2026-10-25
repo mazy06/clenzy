@@ -15,6 +15,7 @@ import { SITE_PHOTOS, sitePhotoAlt } from '../data/baitlyPhotography';
 import { ACADEMY_EPISODES, academyPosterUrl } from '../data/baitlyAcademyVideos';
 import { BAITLY_ACADEMY_MESSAGES } from '../lib/messages/baitlyAcademy';
 import { formatClock } from '../components/academy/BaitlyVideoPlayer';
+import { langQuery } from '../lib/siteSeo';
 
 const {
   resourcesReading: terrace,
@@ -65,7 +66,7 @@ export default function ResourcesPage() {
             </a>
             <Link
               className="brs-text-link"
-              to={`/ressources/calculateur?lang=${language}`}
+              to={`/ressources/calculateur${langQuery(language)}`}
             >
               {m.hero.secondary}
               <ArrowRight size={17} />
@@ -128,7 +129,7 @@ export default function ResourcesPage() {
                 <Reveal key={id} className={`brs-entry-wrap brs-entry-${id}`}>
                   <Link
                     className={`brs-entry brs-entry-${id}`}
-                    to={`/ressources/${id}?lang=${language}`}
+                    to={`/ressources/${id}${langQuery(language)}`}
                   >
                     <div className="brs-entry-copy">
                       <span className="brs-eyebrow">
@@ -277,7 +278,7 @@ export default function ResourcesPage() {
           </div>
           <SiteAcquisitionLink
             className="brs-button"
-            to={`/demo?lang=${language}`}
+            to={`/demo${langQuery(language)}`}
           >
             {m.cta.action}
             <ArrowRight size={18} />

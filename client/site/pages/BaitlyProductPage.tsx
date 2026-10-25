@@ -32,6 +32,7 @@ import { SiteAgentPortrait } from '../components/SiteProductVisuals';
 import type { AgentId } from '../../src/modules/supervision/types';
 import { SITE_PHOTOS, sitePhotoAlt } from '../data/baitlyPhotography';
 import ConnectedHomeScenarios from '../components/ConnectedHomeScenarios';
+import { langQuery } from '../lib/siteSeo';
 
 const PHOTO_KEYS = {
   agents: 'agentsWork',
@@ -131,7 +132,7 @@ function AgentDirectory({ language }: { language: SiteLanguage }) {
           <strong>{m.pricingTitle}</strong>
           <p>{m.pricingCopy}</p>
         </div>
-        <Link to={`/tarifs?lang=${language}#offres`}>
+        <Link to={`/tarifs${langQuery(language)}#offres`}>
           {m.pricingCta}
           <ArrowRightIcon aria-hidden="true" />
         </Link>
@@ -260,7 +261,7 @@ export default function BaitlyProductPage({
             <div className="bps-actions">
               <SiteAcquisitionLink
                 className="bps-button"
-                to={`/demo?lang=${language}`}
+                to={`/demo${langQuery(language)}`}
               >
                 {m.cta}
                 <ArrowRightIcon aria-hidden="true" />
@@ -420,17 +421,17 @@ export default function BaitlyProductPage({
           <div className="bps-final-actions">
             <SiteAcquisitionLink
               className="bps-button"
-              to={`/demo?lang=${language}`}
+              to={`/demo${langQuery(language)}`}
             >
               {m.cta}
               <ArrowRightIcon aria-hidden="true" />
             </SiteAcquisitionLink>
-            <Link to={`/tarifs?lang=${language}`} className="bps-text-link">
+            <Link to={`/tarifs${langQuery(language)}`} className="bps-text-link">
               {m.pricing}
               <ArrowRightIcon aria-hidden="true" />
             </Link>
             <Link
-              to={`/migration?lang=${language}`}
+              to={`/migration${langQuery(language)}`}
               className="bps-subtle-link"
             >
               {m.migration}
@@ -445,7 +446,7 @@ export default function BaitlyProductPage({
           {(Object.entries(PRODUCT_STORY_SLUGS) as [ProductStoryKind, string][])
             .filter(([key]) => key !== kind)
             .map(([key, path]) => (
-              <Link key={key} to={`/produit/${path}?lang=${language}`}>
+              <Link key={key} to={`/produit/${path}${langQuery(language)}`}>
                 {moduleText(path, language).name}
                 <ArrowRightIcon aria-hidden="true" />
               </Link>

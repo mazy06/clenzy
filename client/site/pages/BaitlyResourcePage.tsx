@@ -17,6 +17,7 @@ import AcademyProgram from '../components/academy/AcademyProgram';
 import { ACADEMY_EPISODES, academyEpisode } from '../data/baitlyAcademyVideos';
 import { BAITLY_ACADEMY_MESSAGES } from '../lib/messages/baitlyAcademy';
 import NotFoundPage from './NotFoundPage';
+import { langQuery } from '../lib/siteSeo';
 
 const TOOLS = {
   calculateur: RevenueCalculator,
@@ -57,7 +58,7 @@ export default function BaitlyResourcePage({ kind }: { kind: ResourceKind }) {
       <header className="brs-tool-header site-shell">
         <Link
           className="brs-back"
-          to={episodeText ? `/ressources/academie?lang=${language}` : `/ressources?lang=${language}`}
+          to={episodeText ? `/ressources/academie${langQuery(language)}` : `/ressources${langQuery(language)}`}
         >
           <Back size={16} />
           {episodeText ? module.name : m.back}
@@ -101,7 +102,7 @@ export default function BaitlyResourcePage({ kind }: { kind: ResourceKind }) {
         <span className="brs-eyebrow">{m.related}</span>
         <div>
           {RELATED[kind].map((id) => (
-            <Link key={id} to={`/ressources/${id}?lang=${language}`}>
+            <Link key={id} to={`/ressources/${id}${langQuery(language)}`}>
               <span>
                 <strong>{m.modules[id].name}</strong>
                 <small>{m.modules[id].copy}</small>
@@ -119,7 +120,7 @@ export default function BaitlyResourcePage({ kind }: { kind: ResourceKind }) {
           </div>
           <SiteAcquisitionLink
             className="brs-button"
-            to={`/demo?lang=${language}`}
+            to={`/demo${langQuery(language)}`}
           >
             {m.cta.action}
             <ArrowRight size={18} />

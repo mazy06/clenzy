@@ -16,6 +16,7 @@ import {
   submitContact,
   type ContactSubject,
 } from '../lib/publicContactApi';
+import { langQuery } from '../lib/siteSeo';
 
 const SUBJECTS: ContactSubject[] = ['contact', 'demo', 'migration', 'privacy'];
 
@@ -121,7 +122,7 @@ export default function ContactPage({
         </div>
         <Link
           className="bct-explore"
-          to={`/produit/pms-channel-manager?lang=${language}`}
+          to={`/produit/pms-channel-manager${langQuery(language)}`}
         >
           {m.explore}
           <ArrowRightIcon size={17} aria-hidden="true" />
@@ -240,7 +241,7 @@ export default function ContactPage({
               </button>
               <p className="bct-privacy">
                 {m.privacy}{' '}
-                <Link to={`/legal/confidentialite?lang=${language}`}>
+                <Link to={`/legal/confidentialite${langQuery(language)}`}>
                   {m.privacyLink}
                 </Link>
               </p>

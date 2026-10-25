@@ -103,7 +103,7 @@ export function legalDocuments(
       m.intro,
       ...LEGAL_COUNTRIES.map(
         (c) =>
-          `[${c.name[language]}](${guidePath(c.code)}?lang=${language})\n\n${c.scope[language]}`,
+          `[${c.name[language]}](${localizedPath(guidePath(c.code), language)})\n\n${c.scope[language]}`,
       ),
       docs.get(guidePath('MA'))!.replace(/^# .+\n\n/, ''),
     ].join('\n\n'),
@@ -267,7 +267,7 @@ export function legalStaticHtml(
   );
   const contentLanguage = a ? articleLanguage(language) : language;
   const m = LEGAL_MESSAGES[contentLanguage];
-  const countryLinks = `<nav class="blg-countries" aria-label="${e(m.countries)}">${LEGAL_COUNTRIES.map((c) => link(`${guidePath(c.code)}?lang=${language}`, c.name[language])).join('')}</nav>`;
+  const countryLinks = `<nav class="blg-countries" aria-label="${e(m.countries)}">${LEGAL_COUNTRIES.map((c) => link(localizedPath(guidePath(c.code), language), c.name[language])).join('')}</nav>`;
   let body: string;
   if (a) {
     body = `<article lang="${contentLanguage}" dir="${contentLanguage === 'ar' ? 'rtl' : 'ltr'}" class="blg-article-page"><header class="blg-article-header">${link(localizedPath('/ressources/blog', contentLanguage), m.back)}<h1>${e(a.title)}</h1><p>${e(a.description)}</p><p class="blg-byline">${e(m.byline)} · ${e(m.reviewed)} <time datetime="${LEGAL_REVIEWED_AT}">${e(m.date)}</time></p><img class="blg-article-cover" src="${e(legalArticleImage(a.slug).src)}" srcset="${e(legalArticleImage(a.slug).thumbnail)} 480w, ${e(legalArticleImage(a.slug).src)} 1200w" sizes="(max-width: 960px) calc(100vw - 40px), 920px" alt="${e(contentLanguage === 'ar' ? ARABIC_ARTICLES[a.slug].imageAlt : legalArticleImage(a.slug).alt)}" width="1200" height="800"></header><div class="blg-reading-body" style="max-width:760px;margin:auto"><section class="blg-essentials"><h2>${e(m.summary)}</h2><dl class="blg-facts">${a.facts.map((f) => `<div><dt>${e(f.label)}</dt><dd>${e(f.value)}</dd></div>`).join('')}</dl><p>${e(a.scope)}</p></section>${a.sections.map((s, i) => `<section id="partie-${i + 1}" class="blg-prose-section"><h2>${e(s.title)}</h2>${s.paragraphs.map((p) => `<p>${e(p)}</p>`).join('')}<ul class="blg-inline-sources">${s.sources.map((id) => `<li>${sourceHtml(id, language)}</li>`).join('')}</ul></section>`).join('')}<section class="blg-action-list"><h2>${e(m.actions)}</h2><ol>${a.checklist.map((t) => `<li>${e(t)}</li>`).join('')}</ol></section>${a.faq.map((f) => `<section class="blg-faq"><h2>${e(f.q)}</h2><p>${e(f.a)}</p></section>`).join('')}<section class="blg-article-references"><h2>${e(m.sourcesMethod)}</h2><p>${e(m.methodCopy)}</p><ul>${articleSources(

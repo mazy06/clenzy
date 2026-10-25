@@ -18,7 +18,7 @@ import { getLegalDoc } from '../../src/modules/legal/corpus';
 import { ACADEMY_EPISODES } from '../data/baitlyAcademyVideos';
 import { ACADEMY_TRANSCRIPTS } from '../data/baitlyAcademyTranscripts';
 import { BAITLY_ACADEMY_MESSAGES } from './messages/baitlyAcademy';
-import { canonicalPath, canonicalUrl, isIndexablePath } from './siteSeo';
+import { canonicalPath, canonicalUrl, isIndexablePath, langQuery } from './siteSeo';
 import { LEGAL_ARTICLES, LEGAL_REVIEWED_AT, articlePath } from '../data/legal';
 import { metadataCatalog } from '../../tooling/baitlySiteSeo';
 import { discoveryCatalog } from '../../tooling/baitlySiteDiscovery';
@@ -341,7 +341,7 @@ describe('Baitly public discovery build', () => {
         );
         expect(
           assets.get(`_baitly-markdown/${language}/ressources/academie.md`),
-        ).toContain(`/ressources/academie/${episode.slug}?lang=${language}`);
+        ).toContain(`/ressources/academie/${episode.slug}${langQuery(language)}`);
       }
     }
   });

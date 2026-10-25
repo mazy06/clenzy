@@ -9,6 +9,7 @@ import '../baitly-contact.css';
 import { ownerCriteria,BAITLY_OWNER_SERVICES,BAITLY_OWNER_PROPERTY_TYPES } from '../../src/services/baitlyOwnerCriteria';
 import { BAITLY_OWNER_MATCH } from '../lib/messages/baitlyOwnerMatch';
 import ProviderCountrySelect from './ProviderCountrySelect';
+import { langQuery } from '../lib/siteSeo';
 
 export default function BaitlyManagementInquiryForm({ profile }: { profile: BaitlyConciergeProfile }) {
   const { language } = useSiteLanguage(); const m = BAITLY_CONCIERGES[language];
@@ -65,7 +66,7 @@ export default function BaitlyManagementInquiryForm({ profile }: { profile: Bait
         <label>{m.message}<textarea name="message" maxLength={3000} rows={3} /></label>
         <label className="bct-trap" aria-hidden="true">Website<input name="website" tabIndex={-1} autoComplete="off" maxLength={100} /></label>
         <label className="bci-consent"><input type="checkbox" name="requestContact" required />{m.consent.replace('{name}',organization)}</label>
-        <p className="bct-privacy">{m.privacy.replace('{name}',organization)} <Link to={`/legal/confidentialite?lang=${language}`}>{m.policy}</Link></p>
+        <p className="bct-privacy">{m.privacy.replace('{name}',organization)} <Link to={`/legal/confidentialite${langQuery(language)}`}>{m.policy}</Link></p>
         {captchaEnabled && <BaitlyTurnstile siteKey={siteKey} action="management-inquiry" language={language} onToken={setCaptcha} resetKey={reset} />}
         {error !== null && <p className="bct-error" role="alert">{error === 429 ? m.limited : m.failed}</p>}
         <button className="baitly-button bct-submit" type="submit" disabled={pending || !requestId || (captchaEnabled && !captcha)}>{pending ? m.sending : m.send}</button>

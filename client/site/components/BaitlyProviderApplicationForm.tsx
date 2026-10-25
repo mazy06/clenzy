@@ -9,6 +9,7 @@ import { runtimeEnvOr } from '../../src/config/runtimeConfig';
 import BaitlyTurnstile from '../../src/components/BaitlyTurnstile';
 import ProviderCountrySelect from './ProviderCountrySelect';
 import '../baitly-contact.css';
+import { langQuery } from '../lib/siteSeo';
 
 export default function BaitlyProviderApplicationForm({page}:{page:BaitlyRecruitmentPage & {id:string}}){
   const {language}=useSiteLanguage();const m=recruitmentMessages(language);const {search}=useLocation();
@@ -50,7 +51,7 @@ export default function BaitlyProviderApplicationForm({page}:{page:BaitlyRecruit
         <label>{m.message}<textarea name="message" maxLength={3000} rows={3} /></label>
         <label className="bct-trap" aria-hidden="true">Website<input name="website" maxLength={100} autoComplete="off" tabIndex={-1} /></label>
         <label className="bci-consent"><input name="requestContact" type="checkbox" required />{m.consent.replace('{name}',page.recipientName)}</label>
-        <p className="bct-privacy">{m.privacy.replace('{name}',page.recipientName)} <Link to={`/legal/confidentialite?lang=${language}`}>{m.policy}</Link></p>
+        <p className="bct-privacy">{m.privacy.replace('{name}',page.recipientName)} <Link to={`/legal/confidentialite${langQuery(language)}`}>{m.policy}</Link></p>
         {captchaEnabled&&<BaitlyTurnstile siteKey={runtimeEnvOr('VITE_TURNSTILE_SITE_KEY','')} action="provider-recruitment" language={language} onToken={setCaptcha} resetKey={reset} />}
         {error!==null&&<p role="alert" className="bct-error">{error===429?m.limited:error===404?m.closed:m.error}</p>}
         <button className="baitly-button bct-submit" type="submit" disabled={pending||!ready||(captchaEnabled&&!captcha)}>{pending?m.sending:m.send}</button>

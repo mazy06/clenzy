@@ -25,6 +25,7 @@ import { BAITLY_MIGRATION_MESSAGES } from '../lib/messages/baitlyMigration';
 import { downloadText } from '../lib/downloadText';
 import { BaitlyPortabilityCommitment } from '../components/BaitlyPmsPortability';
 import { SITE_PHOTOS, sitePhotoAlt } from '../data/baitlyPhotography';
+import { langQuery } from '../lib/siteSeo';
 
 const { migrationProperty: riad } = SITE_PHOTOS;
 
@@ -54,7 +55,7 @@ export default function MigrationPage() {
             <p className="bm-intro">{m.intro}</p>
             <div className="bm-actions">
               <SiteAcquisitionLink
-                to={`/demo?lang=${language}`}
+                to={`/demo${langQuery(language)}`}
                 className="bm-button"
               >
                 {m.cta}
@@ -215,13 +216,13 @@ export default function MigrationPage() {
             <p>{m.supportCopy}</p>
             <div className="bm-actions">
               <SiteAcquisitionLink
-                to={`/demo?lang=${language}`}
+                to={`/demo${langQuery(language)}`}
                 className="bm-button"
               >
                 {m.cta}
                 <ArrowRightIcon aria-hidden="true" />
               </SiteAcquisitionLink>
-              <Link to={`/tarifs?lang=${language}`} className="bm-text-link">
+              <Link to={`/tarifs${langQuery(language)}`} className="bm-text-link">
                 {m.pricing}
                 <ArrowRightIcon aria-hidden="true" />
               </Link>

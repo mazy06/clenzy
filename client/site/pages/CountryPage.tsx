@@ -10,6 +10,7 @@ import {
 import type { BaitlyCountryPage } from '../data/baitlyCountries';
 import { BAITLY_COUNTRY_MESSAGES } from '../lib/messages/baitlyCountries';
 import { useSiteLanguage } from '../lib/siteLanguage';
+import { langQuery } from '../lib/siteSeo';
 
 /** Commercial landing page for one market, linked to its regulation articles. */
 export default function CountryPage({ country }: { country: BaitlyCountryPage }) {
@@ -30,12 +31,12 @@ export default function CountryPage({ country }: { country: BaitlyCountryPage })
           <div className="bjy-actions">
             <SiteAcquisitionLink
               className="baitly-button"
-              to={`/demo?lang=${language}`}
+              to={`/demo${langQuery(language)}`}
             >
               {m.demo}
               <ArrowRightIcon size={18} aria-hidden="true" />
             </SiteAcquisitionLink>
-            <Link className="baitly-text-link" to={`/tarifs?lang=${language}`}>
+            <Link className="baitly-text-link" to={`/tarifs${langQuery(language)}`}>
               {m.pricing}
               <ArrowRightIcon size={17} aria-hidden="true" />
             </Link>
@@ -83,7 +84,7 @@ export default function CountryPage({ country }: { country: BaitlyCountryPage })
                   </p>
                 </div>
                 <span aria-hidden="true" />
-                <Link to={`${articlePath(article)}?lang=${language}`}>
+                <Link to={`${articlePath(article)}${langQuery(language)}`}>
                   {m.read}
                   <ArrowRightIcon size={17} aria-hidden="true" />
                 </Link>
@@ -93,7 +94,7 @@ export default function CountryPage({ country }: { country: BaitlyCountryPage })
           <div className="bjy-actions">
             <Link
               className="baitly-text-link"
-              to={`${guidePath(code)}?lang=${language}`}
+              to={`${guidePath(code)}${langQuery(language)}`}
             >
               {m.guide}
               <ArrowRightIcon size={17} aria-hidden="true" />
@@ -120,12 +121,12 @@ export default function CountryPage({ country }: { country: BaitlyCountryPage })
         <div className="bjy-actions">
           <SiteAcquisitionLink
             className="baitly-button"
-            to={`/demo?lang=${language}`}
+            to={`/demo${langQuery(language)}`}
           >
             {m.demo}
             <ArrowRightIcon size={18} aria-hidden="true" />
           </SiteAcquisitionLink>
-          <Link className="baitly-text-link" to={`/tarifs?lang=${language}`}>
+          <Link className="baitly-text-link" to={`/tarifs${langQuery(language)}`}>
             {m.pricing}
             <ArrowRightIcon size={17} aria-hidden="true" />
           </Link>

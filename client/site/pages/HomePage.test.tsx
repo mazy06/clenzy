@@ -6,6 +6,7 @@ import { HOME_MESSAGES } from '../lib/messages/home';
 import { HOME_RESOURCE_MESSAGES } from '../lib/messages/homeResources';
 import { HOME_HIGHLIGHT_MESSAGES } from '../lib/messages/homeHighlights';
 import HomePage from './HomePage';
+import { langQuery } from '../lib/siteSeo';
 
 vi.mock('../lib/siteLaunch', () => ({
   useSiteLaunch: () => ({ paused: false }),
@@ -49,13 +50,13 @@ describe('Accueil du site public', () => {
     mount(`?lang=${language}`);
     const m = HOME_HIGHLIGHT_MESSAGES[language];
     const migration = within(screen.getByRole('region', { name: m.migration.title }));
-    expect(migration.getByRole('link', { name: m.migration.link })).toHaveAttribute('href', `/migration?lang=${language}`);
+    expect(migration.getByRole('link', { name: m.migration.link })).toHaveAttribute('href', `/migration${langQuery(language)}`);
     expect(migration.queryByRole('combobox')).not.toBeInTheDocument();
     const connected = within(screen.getByRole('region', { name: m.connected.title }));
     const links = connected.getAllByRole('link', { name: m.connected.link });
     expect(links).toHaveLength(2);
     for (const link of links) {
-      expect(link).toHaveAttribute('href', `/produit/objets-connectes?lang=${language}`);
+      expect(link).toHaveAttribute('href', `/produit/objets-connectes${langQuery(language)}`);
     }
     expect(connected.getByRole('img')).toHaveAttribute('src', expect.stringContaining('baitlyConnectedHome.webp'));
   });
@@ -69,17 +70,17 @@ describe('Accueil du site public', () => {
         section
           .getByRole('link', { name: m.library.title })
           .getAttribute('href'),
-      ).toBe(`/ressources?lang=${language}`);
+      ).toBe(`/ressources${langQuery(language)}`);
       expect(
         section
           .getByRole('link', { name: m.calculator.title })
           .getAttribute('href'),
-      ).toBe(`/ressources/calculateur?lang=${language}`);
+      ).toBe(`/ressources/calculateur${langQuery(language)}`);
       expect(
         section
           .getByRole('link', { name: m.obligations.title })
           .getAttribute('href'),
-      ).toBe(`/ressources/obligations?lang=${language}`);
+      ).toBe(`/ressources/obligations${langQuery(language)}`);
     },
   );
   it('sert l’arabe quand le lien le demande, et bascule en RTL', () => {

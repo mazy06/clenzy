@@ -6,6 +6,7 @@ import { useSiteLanguage } from '../lib/siteLanguage';
 import Reveal from './Reveal';
 import SiteMoney from './SiteMoney';
 import BaitlyLegalHighlights from './BaitlyLegalHighlights';
+import { langQuery } from '../lib/siteSeo';
 
 export default function BaitlyHomeResources() {
   const { language } = useSiteLanguage();
@@ -25,7 +26,7 @@ export default function BaitlyHomeResources() {
           <Reveal className="bhr-library-wrap">
             <Link
               className="bhr-library"
-              to={`/ressources?lang=${language}`}
+              to={`/ressources${langQuery(language)}`}
               aria-labelledby="home-library-title"
             >
               <div className="bhr-photo">
@@ -61,7 +62,7 @@ export default function BaitlyHomeResources() {
             <Reveal delay={1}>
               <Link
                 className="bhr-tool bhr-calculator"
-                to={`/ressources/calculateur?lang=${language}`}
+                to={`/ressources/calculateur${langQuery(language)}`}
                 aria-labelledby="home-calculator-title"
               >
                 <div className="bhr-tool-copy">
@@ -97,7 +98,7 @@ export default function BaitlyHomeResources() {
             <Reveal delay={2}>
               <Link
                 className="bhr-tool bhr-obligations"
-                to={`/ressources/obligations?lang=${language}`}
+                to={`/ressources/obligations${langQuery(language)}`}
                 aria-labelledby="home-obligations-title"
               >
                 <div className="bhr-tool-copy">

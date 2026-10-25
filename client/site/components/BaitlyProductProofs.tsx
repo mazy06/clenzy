@@ -4,6 +4,7 @@ import { useSiteLanguage } from "../lib/siteLanguage";
 import { BAITLY_READINESS_MESSAGES } from "../lib/messages/baitlyReadiness";
 import BaitlyNavPreview from "./BaitlyNavPreview";
 import BaitlyBookingPreview from "./BaitlyBookingPreview";
+import { langQuery } from '../lib/siteSeo';
 
 /** Product demonstrations provide evidence without implying customer adoption. */
 export default function BaitlyProductProofs() {
@@ -21,7 +22,7 @@ export default function BaitlyProductProofs() {
       <div className="baitly-proof-grid">
         <Link
           className="baitly-proof"
-          to={`/produit/pms-channel-manager?lang=${language}`}
+          to={`/produit/pms-channel-manager${langQuery(language)}`}
         >
           <div className="baitly-proof-preview" aria-hidden="true">
             <BaitlyNavPreview kind="sync" />
@@ -37,7 +38,7 @@ export default function BaitlyProductProofs() {
         </Link>
         <Link
           className="baitly-proof"
-          to={`/produit/booking-engine?lang=${language}`}
+          to={`/produit/booking-engine${langQuery(language)}`}
         >
           <div className="baitly-proof-preview" aria-hidden="true">
             <BaitlyBookingPreview compact />

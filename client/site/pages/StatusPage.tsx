@@ -5,6 +5,7 @@ import { useSiteLanguage } from "../lib/siteLanguage";
 import { useSiteLaunch } from "../lib/siteLaunch";
 import { PRELAUNCH_MESSAGES } from "../lib/messages/prelaunch";
 import { BAITLY_READINESS_MESSAGES } from "../lib/messages/baitlyReadiness";
+import { langQuery } from '../lib/siteSeo';
 
 export default function StatusPage() {
   const { language } = useSiteLanguage();
@@ -31,7 +32,7 @@ export default function StatusPage() {
           <div className="baitly-readiness-actions">
             <Link
               className="baitly-button"
-              to={`/bientot-disponible?lang=${language}`}
+              to={`/bientot-disponible${langQuery(language)}`}
             >
               {paused || uncertain
                 ? m.action
@@ -40,7 +41,7 @@ export default function StatusPage() {
             </Link>
             <Link
               className="baitly-text-link"
-              to={`/produit/pms-channel-manager?lang=${language}`}
+              to={`/produit/pms-channel-manager${langQuery(language)}`}
             >
               {m.explore}
             </Link>
@@ -87,7 +88,7 @@ export default function StatusPage() {
           <span>{m.targetLabel}</span>
           <h3>{m.measurementTitle}</h3>
           <p>{m.measurementCopy}</p>
-          <Link className="baitly-text-link" to={`/legal/cgv?lang=${language}`}>
+          <Link className="baitly-text-link" to={`/legal/cgv${langQuery(language)}`}>
             {m.terms}
             <ArrowRightIcon size={17} aria-hidden="true" />
           </Link>

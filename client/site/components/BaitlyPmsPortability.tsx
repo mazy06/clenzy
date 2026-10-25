@@ -25,6 +25,7 @@ import '../baitly-home-highlights.css';
 import type { SiteLanguage } from '../lib/siteLanguage';
 import { downloadText } from '../lib/downloadText';
 import type { PortabilityMessages } from '../lib/messages/pmsPortability';
+import { langQuery } from '../lib/siteSeo';
 
 const SIGNAL_ICONS: Record<ExitSignal, typeof CheckIcon> = {
   yes: CheckIcon,
@@ -298,7 +299,7 @@ export function BaitlyPmsHomeSection({ language }: { language: SiteLanguage }) {
         <p className="baitly-section-label">{m.label}</p>
         <h2 id="home-portability-title">{m.title}</h2>
         <p className="bh-intro">{m.intro}</p>
-        <Link to={`/migration?lang=${language}`} className="baitly-button">
+        <Link to={`/migration${langQuery(language)}`} className="baitly-button">
           {m.link}<ArrowRightIcon aria-hidden="true" />
         </Link>
       </div>
