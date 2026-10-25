@@ -20,6 +20,7 @@ import {
 } from '../site/data/legal';
 import {
   HOME_SEARCH,
+  PAGE_SEARCH,
   SITE_ORIGIN,
   canonicalUrl,
   isIndexablePath,
@@ -94,15 +95,18 @@ export function metadataCatalog(catalog: DiscoveryCatalog): MetadataCatalog {
             }[language]
           : undefined;
         const editorialData = legalStructuredData(path, language);
+        const search = PAGE_SEARCH[language][path];
         result[path] = {
           title:
             path === '/'
               ? HOME_SEARCH[language].title
-              : (countryTitle ?? `${title.replace(/^Baitly · /, '')} | Baitly`),
+              : (search?.title ??
+                countryTitle ??
+                `${title.replace(/^Baitly · /, '')} | Baitly`),
           description:
             path === '/'
               ? HOME_SEARCH[language].description
-              : (country?.scope[language] ?? description)
+              : (search?.description ?? country?.scope[language] ?? description)
                   .replace(/\s+/g, ' ')
                   .slice(0, 190),
           index: isIndexablePath(path),
