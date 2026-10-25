@@ -70,6 +70,7 @@ public class AgUiController {
     private final ObjectMapper objectMapper;
     private final PendingToolStore pendingToolStore;
     private final com.clenzy.service.agent.supervision.SupervisionActivityService supervisionActivityService;
+    private final com.clenzy.service.agent.BaitlyChatTurnExecutor completionExecutor;
 
     /** Pool SSE borné, même politique que {@code AssistantController}. */
     private final Executor sseExecutor = new ThreadPoolExecutor(
@@ -82,18 +83,29 @@ public class AgUiController {
             },
             new ThreadPoolExecutor.CallerRunsPolicy());
 
+    @org.springframework.beans.factory.annotation.Autowired
     public AgUiController(AgentOrchestrator orchestrator,
                           TenantContext tenantContext,
                           ObjectMapper objectMapper,
                           PendingToolStore pendingToolStore,
                           com.clenzy.service.agent.supervision.SupervisionActivityService supervisionActivityService,
-                          com.clenzy.service.agent.AgentRunQueryService agentRunQueryService) {
+                          com.clenzy.service.agent.AgentRunQueryService agentRunQueryService,
+                          com.clenzy.service.agent.BaitlyChatTurnExecutor completionExecutor) {
         this.orchestrator = orchestrator;
         this.tenantContext = tenantContext;
         this.objectMapper = objectMapper;
         this.pendingToolStore = pendingToolStore;
         this.supervisionActivityService = supervisionActivityService;
         this.agentRunQueryService = agentRunQueryService;
+        this.completionExecutor = completionExecutor;
+    }
+
+    /** Explicit legacy test constructor; production always injects the durable boundary. */
+    public AgUiController(AgentOrchestrator orchestrator, TenantContext tenantContext, ObjectMapper objectMapper,
+                          PendingToolStore pendingToolStore,
+                          com.clenzy.service.agent.supervision.SupervisionActivityService supervisionActivityService,
+                          com.clenzy.service.agent.AgentRunQueryService agentRunQueryService) {
+        this(orchestrator,tenantContext,objectMapper,pendingToolStore,supervisionActivityService,agentRunQueryService,null);
     }
 
     private final com.clenzy.service.agent.AgentRunQueryService agentRunQueryService;
@@ -130,7 +142,7 @@ public class AgUiController {
     public Map<String, Object> info() {
         return Map.of("agents", List.of(Map.of(
                 "name", AGENT_NAME,
-                "description", "Superviseur multi-agent Clenzy (orchestrateur + spécialistes)")));
+                "description", "Superviseur multi-agent Baitly (orchestrateur + spécialistes)")));
     }
 
     /**
@@ -161,6 +173,7 @@ public class AgUiController {
                 ? input.get("threadId").asText() : "thread-" + UUID.randomUUID();
 
         JsonNode forwarded = input.get("forwardedProps");
+        boolean durableRequested = forwarded!=null && forwarded.hasNonNull("completionPolicy");
         Long conversationId = nodeLong(forwarded, "conversationId");
         String currentPage = nodeText(forwarded, "currentPage");
         Long selectedPropertyId = nodeLong(forwarded, "selectedPropertyId");
@@ -209,8 +222,9 @@ public class AgUiController {
                     translator.translate(e).forEach(ev -> send(emitter, ev));
                 };
 
-                if (resumeEntry != null && !resumeEntry.isNull()) {
-                    log.info("AG-UI resume reçu (forme à confirmer) : {}", resumeEntry);
+                java.util.function.Function<Consumer<AgentSseEvent>,Long> work = output -> {
+                  if (resumeEntry != null && !resumeEntry.isNull()) {
+                    log.debug("Baitly AG-UI decision received");
                     String toolCallId = firstText(resumeEntry, "interruptId", "id", "toolCallId");
                     String status = resumeEntry.path("status").asText("");
                     boolean confirmed = "cancelled".equals(status)
@@ -219,22 +233,53 @@ public class AgUiController {
                                     ? resumeEntry.path("payload").path("confirmed").asBoolean(true)
                                     : resumeEntry.path("confirmed").asBoolean(false);
                     if (toolCallId != null) {
-                        orchestrator.resumeAfterConfirmation(toolCallId, confirmed, context, consumer);
+                        return orchestrator.resumeAfterConfirmation(toolCallId, confirmed, context, output);
                     } else {
-                        orchestrator.handleMessage(
-                                conversationId, lastUserMessage, List.<AttachmentRef>of(), context, consumer);
+                        if(durableRequested) throw new IllegalArgumentException("Baitly chat completion unavailable");
+                        return orchestrator.handleMessage(
+                                conversationId, lastUserMessage, List.<AttachmentRef>of(), context, output);
                     }
+                  }
+                  return orchestrator.handleMessage(
+                            conversationId, lastUserMessage, List.<AttachmentRef>of(), context, output);
+                };
+                if(durableRequested) {
+                    String completionPolicy=nodeText(forwarded,"completionPolicy");
+                    if(completionExecutor==null || !java.util.Set.of(com.clenzy.service.agent.BaitlyChatCompletionJournal.POLICY,
+                            com.clenzy.service.agent.BaitlyChatCompletionJournal.TOOLS_POLICY,
+                            com.clenzy.service.agent.BaitlyChatCompletionJournal.WRITES_POLICY).contains(completionPolicy))
+                        throw new IllegalArgumentException("Baitly chat completion unavailable");
+                    if((resumeRoot!=null && !resumeRoot.isNull() && (!resumeRoot.isArray() || resumeRoot.size()!=1))
+                            || forwarded.hasNonNull("resume")) throw new IllegalArgumentException("Baitly chat completion unavailable");
+                    String pendingId=resumeEntry==null || resumeEntry.isNull()?null:firstText(resumeEntry,"interruptId","id","toolCallId");
+                    if(resumeEntry!=null && !resumeEntry.isNull() && (pendingId==null
+                            || !("resolved".equals(resumeEntry.path("status").asText()) || "cancelled".equals(resumeEntry.path("status").asText()))
+                            || !resumeEntry.path("payload").path("confirmed").isBoolean()
+                            || ("resolved".equals(resumeEntry.path("status").asText()) != resumeEntry.path("payload").path("confirmed").asBoolean())
+                            || (resumeRoot!=null && resumeRoot.isArray() && resumeRoot.size()!=1))) {
+                        throw new IllegalArgumentException("Baitly chat completion unavailable");
+                    }
+                    if(com.clenzy.service.agent.BaitlyChatCompletionJournal.WRITES_POLICY.equals(completionPolicy)) {
+                        completionExecutor.executeWithWrites(UUID.fromString(input.path("runId").asText()),orgId,keycloakId,conversationId,
+                            pendingId,work,consumer);
+                    } else if(com.clenzy.service.agent.BaitlyChatCompletionJournal.TOOLS_POLICY.equals(completionPolicy)) {
+                        completionExecutor.executeWithTools(UUID.fromString(input.path("runId").asText()),orgId,keycloakId,conversationId,
+                            pendingId,work,consumer);
+                    } else completionExecutor.execute(UUID.fromString(input.path("runId").asText()),orgId,keycloakId,conversationId,
+                        pendingId,work,consumer);
                 } else {
-                    orchestrator.handleMessage(
-                            conversationId, lastUserMessage, List.<AttachmentRef>of(), context, consumer);
+                    if(completionExecutor!=null) completionExecutor.requireLegacyUntracked(orgId,keycloakId,conversationId,
+                            resumeEntry==null || resumeEntry.isNull()?null:firstText(resumeEntry,"interruptId","id","toolCallId"));
+                    work.apply(consumer);
                 }
                 emitter.complete();
             } catch (IllegalArgumentException e) {
-                send(emitter, AgUiEvent.runError(e.getMessage()));
+                send(emitter, AgUiEvent.runError(durableRequested?"Baitly chat completion unavailable":e.getMessage()));
                 emitter.complete();
             } catch (Exception e) {
-                log.error("AgUiController.run failed", e);
-                send(emitter, AgUiEvent.runError("Erreur interne : " + e.getMessage()));
+                if(durableRequested) log.warn("Baitly chat completion unavailable");
+                else log.error("AgUiController.run failed", e);
+                send(emitter, AgUiEvent.runError(durableRequested?"Baitly chat completion unavailable":"Erreur interne : " + e.getMessage()));
                 emitter.complete();
             } finally {
                 tenantContext.clear();

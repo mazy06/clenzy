@@ -74,10 +74,9 @@ public class ForgetFactTool implements ToolHandler {
         } catch (JsonProcessingException e) {
             throw new ToolExecutionException(NAME, "Failed to serialize result", e);
         } catch (Exception e) {
-            log.warn("forget_fact failed for user {} key {}: {}",
-                    context.keycloakId(), key, e.getMessage());
+            log.warn("Assistant memory deletion unavailable");
             throw new ToolExecutionException(NAME,
-                    "Suppression impossible (" + e.getMessage() + ")", e);
+                    "Suppression de memoire indisponible");
         }
     }
 

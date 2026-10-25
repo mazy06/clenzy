@@ -217,7 +217,7 @@ class HomeAwayWebhookControllerTest {
 
             ResponseEntity<Map<String, String>> resp = controller.receiveWebhook(payload, sign(payload, WEBHOOK_SECRET));
 
-            assertThat(resp.getStatusCode()).isEqualTo(HttpStatus.OK);
+            assertThat(resp.getStatusCode()).isEqualTo(HttpStatus.SERVICE_UNAVAILABLE);
             verify(syncService, never()).handleReservationCreated(any(), anyLong());
         }
     }
@@ -261,9 +261,9 @@ class HomeAwayWebhookControllerTest {
 
             ResponseEntity<Map<String, String>> resp = controller.receiveWebhook(payload, sign(payload, WEBHOOK_SECRET));
 
-            assertThat(resp.getStatusCode()).isEqualTo(HttpStatus.OK);
-            assertThat(resp.getBody()).containsEntry("status", "ok");
-            assertThat(resp.getBody().get("message")).contains("not linked");
+            assertThat(resp.getStatusCode()).isEqualTo(HttpStatus.SERVICE_UNAVAILABLE);
+            assertThat(resp.getBody()).containsEntry("status", "error");
+            assertThat(resp.getBody().get("message")).contains("unavailable");
             verify(syncService, never()).handleReservationCreated(any(), anyLong());
         }
 
@@ -275,7 +275,7 @@ class HomeAwayWebhookControllerTest {
 
             ResponseEntity<Map<String, String>> resp = controller.receiveWebhook(payload, sign(payload, WEBHOOK_SECRET));
 
-            assertThat(resp.getStatusCode()).isEqualTo(HttpStatus.OK);
+            assertThat(resp.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
             verify(syncService, never()).handleReservationCreated(any(), anyLong());
         }
 
@@ -286,8 +286,8 @@ class HomeAwayWebhookControllerTest {
 
             ResponseEntity<Map<String, String>> resp = controller.receiveWebhook("not json", sign("not json", WEBHOOK_SECRET));
 
-            assertThat(resp.getStatusCode()).isEqualTo(HttpStatus.OK);
-            assertThat(resp.getBody().get("message")).contains("processing failed");
+            assertThat(resp.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
+            assertThat(resp.getBody().get("message")).doesNotContain("kafka down");
         }
 
         @Test
@@ -302,8 +302,8 @@ class HomeAwayWebhookControllerTest {
 
             ResponseEntity<Map<String, String>> resp = controller.receiveWebhook(payload, sign(payload, WEBHOOK_SECRET));
 
-            assertThat(resp.getStatusCode()).isEqualTo(HttpStatus.OK);
-            assertThat(resp.getBody().get("message")).contains("processing failed");
+            assertThat(resp.getStatusCode()).isEqualTo(HttpStatus.SERVICE_UNAVAILABLE);
+            assertThat(resp.getBody().get("message")).doesNotContain("kafka down");
         }
 
         @Test

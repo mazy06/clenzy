@@ -35,6 +35,18 @@ import static org.mockito.Mockito.when;
  */
 @ExtendWith(MockitoExtension.class)
 class SecretColumnEncryptionBackfillTest {
+    @Test void authenticatedValuesAreVerifiedAndNeverWrappedAgainEvenWhenCorrupt() {
+        var codec=new com.clenzy.util.BaitlySecretValueCodec("synthetic-backfill-gcm",1,"","",true);
+        var service=org.mockito.Mockito.spy(new ApiKeyEncryptionService(codec));
+        var runner=new SecretColumnEncryptionBackfill(jdbcTemplate,service,transactionManager);
+        ReflectionTestUtils.setField(runner,"enabled",true);
+        for(String value:List.of(codec.encrypt("synthetic-private"),"BTF1:1:corrupt-private")) {
+            when(jdbcTemplate.queryForList(anyString())).thenReturn(List.of(Map.of("id",3L,"val",value)));
+            runner.run(new DefaultApplicationArguments());
+        }
+        verify(jdbcTemplate,never()).update(anyString(),any(),any(),any());
+        verify(service,never()).encrypt(anyString());
+    }
 
     @Mock private JdbcTemplate jdbcTemplate;
     @Mock private PlatformTransactionManager transactionManager;
@@ -79,9 +91,9 @@ class SecretColumnEncryptionBackfillTest {
         // La ligne 7 a été ré-écrite avec une valeur chiffrée (différente du clair)
         // ET déchiffrable vers le JSON d'origine.
         verify(jdbcTemplate).update(
-                eq("UPDATE check_in_instructions SET extra_access_codes = ? WHERE id = ?"),
+                eq("UPDATE check_in_instructions SET extra_access_codes = ? WHERE id = ? AND extra_access_codes = ?"),
                 argThatIsEncryptedOf("[{\"label\":\"Parking\",\"code\":\"9012\"}]"),
-                eq(7L));
+                eq(7L), eq("[{\"label\":\"Parking\",\"code\":\"9012\"}]"));
     }
 
     @Test
@@ -97,7 +109,7 @@ class SecretColumnEncryptionBackfillTest {
         backfill.run(new DefaultApplicationArguments());
 
         // Aucune écriture : la valeur est déjà chiffrée.
-        verify(jdbcTemplate, never()).update(anyString(), any(), any());
+        verify(jdbcTemplate, never()).update(anyString(), any(), any(), any());
     }
 
     @Test
@@ -109,7 +121,7 @@ class SecretColumnEncryptionBackfillTest {
         backfill.run(new DefaultApplicationArguments());
         backfill.run(new DefaultApplicationArguments());
 
-        verify(jdbcTemplate, never()).update(anyString(), any(), any());
+        verify(jdbcTemplate, never()).update(anyString(), any(), any(), any());
     }
 
     @Test

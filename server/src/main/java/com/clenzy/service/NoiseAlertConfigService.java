@@ -44,11 +44,12 @@ public class NoiseAlertConfigService {
      * Cree ou met a jour la configuration d'alertes pour une propriete.
      * Les time windows sont remplacees integralement (orphanRemoval).
      */
+    @Transactional(timeout = 10)
     public NoiseAlertConfigDto save(Long orgId, Long propertyId, SaveNoiseAlertConfigDto dto) {
         validateTimeWindows(dto.timeWindows());
 
         NoiseAlertConfig config = configRepository
-            .findByOrganizationIdAndPropertyId(orgId, propertyId)
+            .findForUpdate(orgId, propertyId)
             .orElseGet(() -> {
                 NoiseAlertConfig c = new NoiseAlertConfig();
                 c.setOrganizationId(orgId);
@@ -80,14 +81,17 @@ public class NoiseAlertConfigService {
         }
         config.getTimeWindows().addAll(windows);
 
+        // Baitly: also version window-only edits, under the same lock as admission.
+        config.preUpdate();
         config = configRepository.save(config);
         log.info("Config alertes bruit sauvegardee pour property {} (orgId={})", propertyId, orgId);
 
         return NoiseAlertConfigDto.from(config);
     }
 
+    @Transactional(timeout = 10)
     public void delete(Long orgId, Long propertyId) {
-        configRepository.findByOrganizationIdAndPropertyId(orgId, propertyId)
+        configRepository.findForUpdate(orgId, propertyId)
             .ifPresent(config -> {
                 configRepository.delete(config);
                 log.info("Config alertes bruit supprimee pour property {} (orgId={})", propertyId, orgId);

@@ -165,7 +165,15 @@ public class AutomationRuleService {
     public void delete(Long id) {
         Long orgId = tenantContext.getOrganizationId();
         AutomationRule rule = requireRule(id, orgId);
-        ruleRepository.delete(rule);
+        try {
+            ruleRepository.delete(rule);
+            // Surface a controlled conflict while the transaction can still roll back.
+            // Durable attempt proofs must never disappear through a cascade delete.
+            ruleRepository.flush();
+        } catch (org.springframework.dao.DataIntegrityViolationException protectedHistory) {
+            throw new org.springframework.web.server.ResponseStatusException(
+                org.springframework.http.HttpStatus.CONFLICT, "AUTOMATION_HISTORY_PROTECTED");
+        }
     }
 
     @Transactional

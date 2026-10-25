@@ -1,5 +1,5 @@
 # ===========================================
-# Clenzy — CI/CD Copilot Runtime (Node — routeur AG-UI CopilotKit)
+# Baitly — CI/CD Copilot Runtime (Node — routeur AG-UI CopilotKit)
 # ===========================================
 # Service Node mince qui relaie le front CopilotKit (/api/copilotkit) vers le
 # backend Java AG-UI (POST /api/agui/run). Sans ce service deploye en prod, la
@@ -59,6 +59,14 @@ jobs:
       - name: Syntax check (node --check)
         working-directory: copilot-runtime
         run: node --check server.mjs
+
+      - name: Verify proxy trust security contracts
+        working-directory: copilot-runtime
+        run: npm run test:security
+
+      - name: Reject high and critical runtime dependency advisories
+        working-directory: copilot-runtime
+        run: npm audit --omit=dev --audit-level=high
 
   docker-push:
     name: Build & Push Docker Image

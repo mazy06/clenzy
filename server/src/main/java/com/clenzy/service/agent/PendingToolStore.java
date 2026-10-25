@@ -67,13 +67,22 @@ public class PendingToolStore {
      * Nullable (tests) — toutes les ecritures sont best-effort.
      */
     private final com.clenzy.repository.AgentPendingActionRepository pendingActionRepository;
+    private final com.clenzy.repository.AssistantMessageRepository messageRepository;
 
     @Autowired
     public PendingToolStore(StringRedisTemplate redisTemplate, ObjectMapper objectMapper,
-                            com.clenzy.repository.AgentPendingActionRepository pendingActionRepository) {
+                            com.clenzy.repository.AgentPendingActionRepository pendingActionRepository,
+                            com.clenzy.repository.AssistantMessageRepository messageRepository) {
         this.redisTemplate = redisTemplate;
         this.objectMapper = objectMapper;
         this.pendingActionRepository = pendingActionRepository;
+        this.messageRepository = messageRepository;
+    }
+
+    /** Explicit unit-test constructor; production always checks durable results. */
+    public PendingToolStore(StringRedisTemplate redisTemplate, ObjectMapper objectMapper,
+                            com.clenzy.repository.AgentPendingActionRepository pendingActionRepository) {
+        this(redisTemplate, objectMapper, pendingActionRepository, null);
     }
 
     /** Retro-compat (pre-X1) : sans journal durable. */
@@ -92,6 +101,75 @@ public class PendingToolStore {
 
     private boolean redisEnabled() {
         return redisTemplate != null && objectMapper != null;
+    }
+    /** Read the remaining durable decisions of this exact batch; never consume or execute. */
+    public List<PendingTool> remainingBatch(PendingTool current) {
+        if(pendingActionRepository==null || current.isMultiAgent() || current.pendingHistory()==null) throw new IllegalStateException("Baitly pending batch unavailable");
+        var history=current.pendingHistory();
+        if(history.isEmpty() || history.getLast().toolCalls()==null) throw new IllegalStateException("Baitly pending batch unavailable");
+        var result=new ArrayList<PendingTool>();
+        for(var call:history.getLast().toolCalls()) {
+            var row=pendingActionRepository.findById(call.id()).orElseThrow(()->new IllegalStateException("Baitly pending batch unavailable"));
+            if(!current.organizationId().equals(row.getOrganizationId()) || !current.keycloakId().equals(row.getKeycloakUserId())
+                || !current.conversationId().equals(row.getConversationId()) || !call.name().equals(row.getToolName())
+                || !call.arguments().equals(row.getArgsJson()) || row.isMultiAgent()) throw new IllegalStateException("Baitly pending batch unavailable");
+            if(com.clenzy.model.AgentPendingAction.STATUS_PENDING.equals(row.getStatus())) {
+                if(!Instant.now().isBefore(row.getExpiresAt())) throw new IllegalStateException("Baitly pending batch unavailable");
+                result.add(new PendingTool(row.getToolCallId(),row.getConversationId(),row.getOrganizationId(),row.getKeycloakUserId(),
+                    row.getToolName(),row.getArgsJson(),history,null,row.getExpiresAt()));
+            }
+        }
+        return List.copyOf(result);
+    }
+
+    /** Read-only capability, never grants execution or consumes a pending tool. */
+    public boolean canResume(com.clenzy.model.AgentPendingAction row) {
+        var memory = store.get(row.getToolCallId());
+        return (memory != null && row.getOrganizationId().equals(memory.organizationId())
+                && row.getKeycloakUserId().equals(memory.keycloakId())
+                && Instant.now().isBefore(memory.expiresAt()))
+                || (!row.isMultiAgent() && row.getPayloadHistoryJson() != null);
+    }
+
+    /**
+     * Production resume path: a durable CAS records the decision before returning
+     * the tool. CONFIRMED means a decision was admitted, never effect success.
+     * Database/claim uncertainty fails closed; no tool is returned for a replay.
+     */
+    public Optional<PendingTool> consume(String id, String userId, Long organizationId, boolean confirmed) {
+        if (pendingActionRepository == null) {
+            // Explicit in-memory constructors are reserved for legacy unit tests.
+            var memory = store.get(id);
+            return memory != null && organizationId.equals(memory.organizationId())
+                    && userId.equals(memory.keycloakId()) ? consume(id, userId) : Optional.empty();
+        }
+        try {
+            var row = pendingActionRepository.findById(id).orElse(null);
+            if (row == null || !organizationId.equals(row.getOrganizationId())
+                    || !userId.equals(row.getKeycloakUserId())
+                    || !com.clenzy.model.AgentPendingAction.STATUS_PENDING.equals(row.getStatus())
+                    || !Instant.now().isBefore(row.getExpiresAt())) return Optional.empty();
+            // Legacy best-effort resolution may have left PENDING after execution.
+            // Presence of any persisted result blocks a second effect, including errors.
+            if (messageRepository != null && messageRepository
+                    .existsByOrganizationIdAndConversationIdAndRoleAndToolCallId(
+                            organizationId, row.getConversationId(), "tool", id)) return Optional.empty();
+            var pending = store.get(id);
+            if (pending == null) pending = recoverFromDatabase(id, userId).orElse(null);
+            if (pending == null || !organizationId.equals(pending.organizationId())
+                    || !userId.equals(pending.keycloakId())) return Optional.empty();
+            String decision = confirmed ? com.clenzy.model.AgentPendingAction.STATUS_CONFIRMED
+                    : com.clenzy.model.AgentPendingAction.STATUS_REFUSED;
+            if (pendingActionRepository.claimDecision(id, organizationId, userId, decision, Instant.now()) != 1) {
+                return Optional.empty();
+            }
+            store.remove(id, pending);
+            removeFromRedis(userId, id);
+            return Optional.of(pending);
+        } catch (Exception error) {
+            log.warn("Baitly pending decision unavailable");
+            return Optional.empty();
+        }
     }
 
     /**
@@ -161,8 +239,7 @@ public class PendingToolStore {
                 multiAgentContext != null ? multiAgentContext.specialistName() : null));
         persistDurable(toolCallId, conversationId, organizationId, keycloakId,
                 toolName, argsJson, description, pendingHistory, multiAgentContext, expiresAt);
-        log.debug("PendingToolStore.put toolCallId={} tool={} multiAgent={} (store size={})",
-                toolCallId, toolName, multiAgentContext != null, store.size());
+        log.debug("Baitly pending stored");
     }
 
     /**
@@ -182,7 +259,7 @@ public class PendingToolStore {
                 removeFromRedis(requestKeycloakId, toolCallId);
                 return recovered;
             }
-            log.debug("PendingToolStore.consume miss for toolCallId={}", toolCallId);
+            log.debug("Baitly pending missing");
             // Best-effort : nettoyer un eventuel residu Redis (resume apres reboot
             // ou entree orpheline) pour que le front ne re-affiche pas une action
             // qui n'est plus reprenable.
@@ -190,8 +267,7 @@ public class PendingToolStore {
             return Optional.empty();
         }
         if (!tool.keycloakId().equals(requestKeycloakId)) {
-            log.warn("PendingToolStore: ownership mismatch on consume of toolCallId={} (expected={}, actual={})",
-                    toolCallId, tool.keycloakId(), requestKeycloakId);
+            log.warn("Baitly pending ownership denied");
             // On a deja retire l'entree memoire (remove) : la remettre serait
             // racy et l'ownership a echoue de toute facon. On ne touche PAS a
             // l'index Redis du proprietaire legitime.
@@ -199,7 +275,7 @@ public class PendingToolStore {
         }
         removeFromRedis(tool.keycloakId(), toolCallId);
         if (Instant.now().isAfter(tool.expiresAt())) {
-            log.debug("PendingToolStore.consume expired for toolCallId={}", toolCallId);
+            log.debug("Baitly pending expired");
             return Optional.empty();
         }
         return Optional.of(tool);
@@ -236,16 +312,14 @@ public class PendingToolStore {
                 try {
                     result.add(objectMapper.readValue(value.toString(), PendingActionDto.class));
                 } catch (Exception parseError) {
-                    log.warn("PendingToolStore: entree Redis illisible pour user={}, ignoree : {}",
-                            keycloakId, parseError.getMessage());
+                    log.warn("Baitly pending cache entry invalid");
                 }
             }
             result.sort(Comparator.comparing(
                     PendingActionDto::createdAt, Comparator.nullsLast(Comparator.naturalOrder())));
             return result;
         } catch (Exception e) {
-            log.warn("PendingToolStore.listForUser: lecture Redis impossible (user={}) : {}",
-                    keycloakId, e.getMessage());
+            log.warn("Baitly pending cache read unavailable");
             return listFromDatabase(keycloakId);
         }
     }
@@ -268,8 +342,7 @@ public class PendingToolStore {
                 }
             });
         } catch (Exception e) {
-            log.warn("PendingToolStore.markResolved: journalisation impossible pour {} : {}",
-                    toolCallId, e.getMessage());
+            log.warn("Baitly pending legacy resolution unavailable");
         }
     }
 
@@ -296,8 +369,7 @@ public class PendingToolStore {
                     multiAgent ? multiAgentContext.specialistName() : null,
                     multiAgent, historyJson, expiresAt));
         } catch (Exception e) {
-            log.warn("PendingToolStore.persistDurable: journalisation impossible pour {} : {}",
-                    toolCallId, e.getMessage());
+            log.warn("Baitly pending journal write unavailable");
         }
     }
 
@@ -318,25 +390,22 @@ public class PendingToolStore {
                 return Optional.empty();
             }
             if (!row.getKeycloakUserId().equals(requestKeycloakId)) {
-                log.warn("PendingToolStore: ownership mismatch on DB recovery of toolCallId={}", toolCallId);
+                log.warn("Baitly pending recovery ownership denied");
                 return Optional.empty();
             }
             if (row.isMultiAgent() || row.getPayloadHistoryJson() == null) {
-                log.info("PendingToolStore: reprise post-reboot impossible pour {} (multi-agent "
-                        + "ou payload absent) — l'action expirera", toolCallId);
+                log.info("Baitly pending recovery context unavailable");
                 return Optional.empty();
             }
             List<ChatMessage> history = objectMapper.readValue(row.getPayloadHistoryJson(),
                     objectMapper.getTypeFactory().constructCollectionType(List.class, ChatMessage.class));
-            log.info("PendingToolStore: reprise post-reboot du toolCallId={} depuis le journal durable",
-                    toolCallId);
+            log.debug("Baitly pending recovered");
             return Optional.of(new PendingTool(
                     row.getToolCallId(), row.getConversationId(), row.getOrganizationId(),
                     row.getKeycloakUserId(), row.getToolName(), row.getArgsJson(),
                     history, null, row.getExpiresAt()));
         } catch (Exception e) {
-            log.warn("PendingToolStore.recoverFromDatabase: echec pour {} : {}",
-                    toolCallId, e.getMessage());
+            log.warn("Baitly pending recovery unavailable");
             return Optional.empty();
         }
     }
@@ -355,8 +424,7 @@ public class PendingToolStore {
                             a.getConversationId(), a.getCreatedAt(), a.getSpecialist()))
                     .toList();
         } catch (Exception e) {
-            log.warn("PendingToolStore.listFromDatabase: lecture impossible (user={}) : {}",
-                    keycloakId, e.getMessage());
+            log.warn("Baitly pending journal read unavailable");
             return List.of();
         }
     }
@@ -382,7 +450,7 @@ public class PendingToolStore {
                     .toList();
             return objectMapper.writeValueAsString(stripped);
         } catch (Exception e) {
-            log.warn("PendingToolStore: serialisation de l'historique impossible : {}", e.getMessage());
+            log.warn("Baitly pending history serialization unavailable");
             return null;
         }
     }
@@ -406,8 +474,7 @@ public class PendingToolStore {
             // tant que de nouvelles actions arrivent (acceptable — TTL = garde-fou).
             redisTemplate.expire(key, TTL);
         } catch (Exception e) {
-            log.warn("PendingToolStore: indexation Redis echouee pour toolCallId={} : {}",
-                    dto.toolCallId(), e.getMessage());
+            log.warn("Baitly pending cache write unavailable");
         }
     }
 
@@ -418,8 +485,7 @@ public class PendingToolStore {
         try {
             redisTemplate.opsForHash().delete(redisKey(keycloakId), toolCallId);
         } catch (Exception e) {
-            log.warn("PendingToolStore: suppression Redis echouee pour toolCallId={} : {}",
-                    toolCallId, e.getMessage());
+            log.warn("Baitly pending cache removal unavailable");
         }
     }
 

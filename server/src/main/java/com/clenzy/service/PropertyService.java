@@ -265,7 +265,7 @@ public class PropertyService {
             organizationAccessGuard.requireSameOrganization(
                     property.getOrganizationId(), "Vous n'avez pas accès à cette propriété");
         } catch (org.springframework.security.access.AccessDeniedException e) {
-            log.warn("Acces cross-organisation refuse pour la propriete {}", property.getId());
+            log.warn("Property organization access refused");
             throw e;
         }
     }
@@ -370,7 +370,10 @@ public class PropertyService {
             throw new IllegalArgumentException("Statut invalide: " + status);
         }
         property.setStatus(newStatus);
-        return toDto(propertyRepository.save(property));
+        Property saved=propertyRepository.save(property);
+        com.clenzy.service.agent.BaitlyChatTurnObservation.internalWriteCommitted(
+            "PROPERTY_STATUS_V1",saved.getOrganizationId(),null,saved.getId(),newStatus.name());
+        return toDto(saved);
     }
 
     public void delete(Long id) {
@@ -569,7 +572,7 @@ public class PropertyService {
             checkInInstructionsRepository.findByPropertyId(p.getId())
                 .ifPresent(ci -> dto.checkInInstructions = CheckInInstructionsDto.fromEntity(ci));
         } catch (Exception e) {
-            log.warn("PropertyService.toDto - Erreur lors du chargement des check-in instructions: {}", e.getMessage());
+            log.warn("Property check-in instructions unavailable");
         }
 
         return dto;
@@ -662,7 +665,7 @@ public class PropertyService {
                 try {
                     dto.amenities = objectMapper.readValue(p.getAmenities(), new TypeReference<List<String>>(){});
                 } catch (Exception e) {
-                    log.warn("PropertyService.toDto - Error deserializing amenities: {}", e.getMessage());
+                    log.warn("Property amenities unavailable");
                     dto.amenities = new ArrayList<>();
                 }
             } else {
@@ -688,7 +691,7 @@ public class PropertyService {
                     dto.ownerName = null;
                 }
             } catch (Exception e) {
-                log.warn("PropertyService.toDto - Erreur lors de l'acces a owner: {}", e.getMessage());
+                log.warn("Property owner presentation unavailable");
                 dto.ownerId = null;
                 dto.ownerName = null;
             }
@@ -704,8 +707,8 @@ public class PropertyService {
 
             return dto;
         } catch (Exception e) {
-            log.error("PropertyService.toDto - Erreur lors de la conversion Property -> PropertyDto, Property ID: {}", (p != null ? p.getId() : "null"), e);
-            throw new RuntimeException("Erreur lors de la conversion de la propriété: " + e.getMessage(), e);
+            log.error("Property presentation unavailable");
+            throw new IllegalStateException("Property presentation unavailable");
         }
     }
 

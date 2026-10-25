@@ -90,4 +90,20 @@ class ForgetFactToolTest {
                 () -> tool.execute(args, ctx));
         assertTrue(ex.getMessage().toLowerCase().contains("key"));
     }
+    @Test void diagnosticsDoNotExposeKeyUserOrProviderFailure() {
+        var logger=(ch.qos.logback.classic.Logger)org.slf4j.LoggerFactory.getLogger(ForgetFactTool.class);
+        var appender=new ch.qos.logback.core.read.ListAppender<ch.qos.logback.classic.spi.ILoggingEvent>();
+        appender.start(); logger.addAppender(appender);
+        try {
+            when(memoryService.forget(any(),any(),any())).thenThrow(new IllegalStateException("private-provider-canary"));
+            var args=om.createObjectNode().put("key","private-key-canary");
+            var error=assertThrows(ToolExecutionException.class,()->tool.execute(args,ctx));
+            assertFalse(error.getMessage().contains("canary")); assertNull(error.getCause());
+            assertFalse(appender.list.isEmpty());
+            for(var event:appender.list) {
+                assertFalse(event.getFormattedMessage().contains("canary"));
+                assertFalse(event.getFormattedMessage().contains("user-123")); assertNull(event.getThrowableProxy());
+            }
+        } finally { logger.detachAppender(appender); appender.stop(); }
+    }
 }

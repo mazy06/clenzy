@@ -2,8 +2,6 @@ package com.clenzy.service.smartlock;
 
 import com.clenzy.integration.tuya.service.TuyaApiService;
 import com.clenzy.model.SmartLockDevice;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
@@ -29,8 +27,6 @@ import java.util.Map;
  */
 @Service
 public class SmartLockCodeProvisioner {
-
-    private static final Logger log = LoggerFactory.getLogger(SmartLockCodeProvisioner.class);
 
     /** Un code pose : sa valeur, et l'identifiant que le fournisseur lui donne. */
     public record PlacedCode(String pin, String externalCodeId) {}
@@ -60,6 +56,7 @@ public class SmartLockCodeProvisioner {
      */
     public PlacedCode place(SmartLockDevice device, String name,
                             LocalDateTime validFrom, LocalDateTime validUntil, ZoneId zone) {
+        requireOutsideTransaction();
         SmartLockBrand brand = brandOf(device);
         String requestedPin = pinPolicy.requestedPin(device);
 
@@ -78,32 +75,40 @@ public class SmartLockCodeProvisioner {
                 device.getExternalDeviceId(),
                 new AccessCodeParams(pin, name, validFrom, validUntil, AccessCodeParams.AccessCodeType.TEMPORARY),
                 device.getOrganizationId());
-        if (!result.success()) {
-            throw new IllegalStateException(result.message());
+        if (result == null || !result.success()) {
+            throw new IllegalStateException("LOCK_CREATION_UNCONFIRMED");
         }
         return new PlacedCode(pin, result.externalId());
     }
 
     /**
-     * Retire un code de la serrure. Best-effort : un echec fournisseur est
-     * journalise mais ne se propage pas — la revocation LOCALE fait foi, et le
-     * code expire de toute facon a la fin de sa fenetre.
+     * Retire un code uniquement sur retour positif du fournisseur.
+     * Une absence, un refus ou une exception reste une issue non confirmee.
      */
     public void remove(SmartLockDevice device, String externalCodeId) {
-        if (device == null || externalCodeId == null) return;
-        if (device.getExternalDeviceId() == null || device.getExternalDeviceId().isBlank()) return;
+        requireOutsideTransaction();
+        if (device == null || externalCodeId == null || externalCodeId.isBlank()
+                || device.getExternalDeviceId() == null || device.getExternalDeviceId().isBlank())
+            throw new IllegalStateException("LOCK_REVOCATION_UNCONFIRMED");
         try {
             SmartLockBrand brand = brandOf(device);
             if (brand == SmartLockBrand.TUYA) {
-                tuyaApiService.deleteTemporaryPassword(device.getExternalDeviceId(), externalCodeId);
+                Map<String, Object> result = tuyaApiService.deleteTemporaryPassword(device.getExternalDeviceId(), externalCodeId);
+                if (result == null || !Boolean.TRUE.equals(result.get("result")))
+                    throw new IllegalStateException("LOCK_REVOCATION_UNCONFIRMED");
             } else {
-                providerRegistry.getRequiredProvider(brand)
+                var result = providerRegistry.getRequiredProvider(brand)
                         .revokeAccessCode(device.getExternalDeviceId(), externalCodeId, device.getOrganizationId());
+                if (result == null || !result.success()) throw new IllegalStateException("LOCK_REVOCATION_UNCONFIRMED");
             }
         } catch (Exception e) {
-            log.warn("Revocation provider echouee pour code externe={} (revocation locale conservee): {}",
-                    externalCodeId, e.getMessage());
+            throw new IllegalStateException("LOCK_REVOCATION_UNCONFIRMED");
         }
+    }
+
+    private static void requireOutsideTransaction() {
+        if (org.springframework.transaction.support.TransactionSynchronizationManager.isActualTransactionActive())
+            throw new IllegalStateException("EXTERNAL_EFFECT_TRANSACTION_FORBIDDEN");
     }
 
     private static long epoch(LocalDateTime dt, ZoneId zone) {

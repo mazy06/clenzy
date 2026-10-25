@@ -37,7 +37,7 @@ import static org.mockito.Mockito.*;
 /**
  * Versements Baitly des prestataires de tous les métiers et de la marketplace.
  * Gate (preuve/onboarding), montants (commission via StripeAmounts), idempotence
- * (record unique + CAS), échec Stripe → FAILED + notif admins, relance admin.
+ * (record unique + CAS), résultat Stripe incertain → BLOCKED + notif admins, relance admin.
  * AUCUN appel Stripe ne part quand le gate est KO ou le record déjà traité.
  */
 @ExtendWith(MockitoExtension.class)
@@ -346,9 +346,69 @@ class HousekeeperPayoutServiceTest {
             stubPendingRecord(77L);
             when(transferClient.createTransfer(any())).thenThrow(new PayoutFundsUnavailableException("Solde insuffisant. Aucun transfert émis."));
             service.executeTransfer(77L,11L,"Prestation",new BigDecimal("95"),"acct_123","kc-pro",7L);
-            verify(recorder).markFailed(eq(77L),contains("Solde insuffisant"));
+            verify(recorder).markFailed(77L,BaitlyPayoutDiagnostics.FUNDS_UNAVAILABLE);
             verify(recorder,never()).markSent(any(),any());
             verify(recorder,never()).markReconciliationRequired(any());
+        }
+
+        @org.junit.jupiter.params.ParameterizedTest
+        @org.junit.jupiter.params.provider.ValueSource(strings={"funds","uncertain","stripe","persistence"})
+        void privateDiagnosticsNeverReachLogsPersistenceOrNotifications(String scenario) throws Exception {
+            stubPendingRecord(77L);
+            var privateCause=new IllegalStateException("password=private-cause");
+            Exception failure=switch(scenario) {
+                case "funds" -> new PayoutFundsUnavailableException("email=synthetic@example.invalid private-canary",privateCause);
+                case "uncertain" -> new PayoutReconciliationRequiredException("token=private-canary","tr_known",privateCause);
+                case "stripe" -> new com.stripe.exception.ApiConnectionException("token=private-canary");
+                default -> new IllegalStateException("token=private-canary",privateCause);
+            };
+            when(transferClient.createTransfer(any())).thenThrow(failure);
+            var logger=(ch.qos.logback.classic.Logger) org.slf4j.LoggerFactory.getLogger(HousekeeperPayoutService.class);
+            var appender=new ch.qos.logback.core.read.ListAppender<ch.qos.logback.classic.spi.ILoggingEvent>();
+            appender.start(); logger.addAppender(appender);
+            try {
+                if(scenario.equals("persistence")) assertThatThrownBy(() -> service.executeTransfer(77L,11L,"Prestation",new BigDecimal("95"),"acct_123","kc-pro",7L))
+                        .isInstanceOfSatisfying(PayoutReconciliationRequiredException.class, safe -> {
+                            var rendered=new java.io.StringWriter(); safe.printStackTrace(new java.io.PrintWriter(rendered));
+                            assertThat(rendered.toString()).doesNotContain("private-","example.invalid");
+                        });
+                else service.executeTransfer(77L,11L,"Prestation",new BigDecimal("95"),"acct_123","kc-pro",7L);
+                var message=ArgumentCaptor.forClass(String.class);
+                verify(notificationService).notifyAdminsAndManagers(eq(NotificationKey.PAYOUT_FAILED),anyString(),message.capture(),anyString());
+                assertThat(message.getValue()).doesNotContain("private-","example.invalid");
+                for(var event:appender.list) {
+                    var rendered=new ch.qos.logback.classic.PatternLayout(); rendered.setContext(logger.getLoggerContext());
+                    rendered.setPattern("%msg %ex"); rendered.start();
+                    assertThat(rendered.doLayout(event)).doesNotContain("private-","example.invalid"); rendered.stop();
+                }
+                if(scenario.equals("funds")) verify(recorder).markFailed(77L,BaitlyPayoutDiagnostics.FUNDS_UNAVAILABLE);
+                else verify(recorder,never()).markFailed(any(),any());
+                verify(recorder,never()).markSent(any(),any());
+            } finally {logger.detachAppender(appender);appender.stop();}
+        }
+
+        @Test void unavailableNotificationDoesNotPreventBlockingAnUncertainTransfer() throws Exception {
+            stubPendingRecord(77L);
+            when(transferClient.createTransfer(any())).thenThrow(new PayoutReconciliationRequiredException("uncertain",null,null));
+            doThrow(new IllegalStateException("token=private-notification")).when(notificationService)
+                    .notifyAdminsAndManagers(any(),any(),any(),any());
+            service.executeTransfer(77L,11L,"Prestation",new BigDecimal("95"),"acct_123","kc-pro",7L);
+            verify(recorder).markReconciliationRequired(77L);
+            verify(recorder,never()).markSent(any(),any()); verify(recorder,never()).markFailed(any(),any());
+        }
+
+        @Test void rawStripeFailureAndUnavailableDatabaseKeepBothPrivateCausesProtected() throws Exception {
+            stubPendingRecord(77L);
+            when(transferClient.createTransfer(any())).thenThrow(new com.stripe.exception.ApiConnectionException("token=private-psp"));
+            when(recorder.markReconciliationRequired(77L)).thenThrow(new IllegalStateException("password=private-database"));
+            assertThatThrownBy(() -> service.executeTransfer(77L,11L,"Prestation",new BigDecimal("95"),"acct_123","kc-pro",7L))
+                    .isInstanceOfSatisfying(PayoutReconciliationRequiredException.class,safe -> {
+                        var rendered=new java.io.StringWriter(); safe.printStackTrace(new java.io.PrintWriter(rendered));
+                        assertThat(rendered.toString()).doesNotContain("private-","token=","password=");
+                        assertThat(safe.getSuppressed()).hasSize(1);
+                    });
+            verify(notificationService).notifyAdminsAndManagers(eq(NotificationKey.PAYOUT_FAILED),any(),contains(BaitlyPayoutDiagnostics.RECONCILIATION_REQUIRED),any());
+            verify(recorder,never()).markFailed(any(),any()); verify(recorder,never()).markSent(any(),any());
         }
 
         @Test
@@ -372,11 +432,15 @@ class HousekeeperPayoutServiceTest {
             when(recorder.markReconciliationRequired(77L)).thenThrow(databaseFailure);
 
             assertThatThrownBy(() -> service.executeTransfer(77L, 11L, "Prestation", new BigDecimal("95"),
-                    "acct_123", "kc-pro", 7L)).isSameAs(uncertain);
+                    "acct_123", "kc-pro", 7L)).isInstanceOfSatisfying(PayoutReconciliationRequiredException.class, safe -> {
+                        assertThat(safe.getCause()).isNotSameAs(uncertain);
+                        assertThat(safe.getSuppressed()).hasSize(1);
+                        assertThat(safe.getSuppressed()[0]).hasMessage(BaitlyPayoutDiagnostics.RECONCILIATION_REQUIRED)
+                                .hasNoCause();
+                    });
 
             verify(notificationService).notifyAdminsAndManagers(eq(NotificationKey.PAYOUT_FAILED),
-                    any(), contains("À rapprocher"), any());
-            assertThat(uncertain.getSuppressed()).containsExactly(databaseFailure);
+                    any(), contains(BaitlyPayoutDiagnostics.RECONCILIATION_REQUIRED), any());
             verify(recorder, never()).markSent(any(), any());
         }
 
@@ -487,7 +551,7 @@ class HousekeeperPayoutServiceTest {
         }
 
         @Test
-        void whenStripeFails_thenRecordFailed_andAdminsNotified() throws Exception {
+        void whenStripeResultIsUnknown_thenRecordBlocked_andAdminsNotified() throws Exception {
             Intervention intervention = okIntervention();
             when(recorder.insertRecord(any(), any(), any(), any(), eq(Status.PENDING), isNull()))
                     .thenReturn(true);
@@ -497,7 +561,8 @@ class HousekeeperPayoutServiceTest {
 
             service.processPayoutForIntervention(intervention);
 
-            verify(recorder).markFailed(eq(77L), contains("insufficient funds"));
+            verify(recorder).markReconciliationRequired(77L);
+            verify(recorder,never()).markFailed(any(),any());
             verify(notificationService).notifyAdminsAndManagers(eq(NotificationKey.PAYOUT_FAILED),
                     any(), contains("Vérifiez son état"), any());
             verify(notificationService, never()).send(any(), eq(NotificationKey.PAYOUT_SENT),

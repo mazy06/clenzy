@@ -39,6 +39,43 @@ import static org.mockito.Mockito.*;
 @ExtendWith(MockitoExtension.class)
 class EmailServiceTest {
 
+    @Test
+    void smtpFailuresDoNotExposePrivateContentThroughLogsOrExceptionCauses() {
+        String privateDetail = "private@example.invalid token=SECRET-TOKEN password=SECRET-PASSWORD";
+        doThrow(new org.springframework.mail.MailSendException(privateDetail,
+                new jakarta.mail.MessagingException(privateDetail)))
+                .when(mailSender).send(any(MimeMessage.class));
+        when(mailSender.createMimeMessage()).thenAnswer(inv -> new MimeMessage(Session.getInstance(new Properties())));
+        var logger = (ch.qos.logback.classic.Logger) org.slf4j.LoggerFactory.getLogger(EmailService.class);
+        var logs = new ch.qos.logback.core.read.ListAppender<ch.qos.logback.classic.spi.ILoggingEvent>();
+        logs.start();
+        logger.addAppender(logs);
+        try {
+            for (Runnable operation : List.<Runnable>of(
+                    () -> emailService.sendSimpleHtmlEmail("private@example.invalid", privateDetail, privateDetail),
+                    () -> emailService.sendDocumentEmail("private@example.invalid", privateDetail, privateDetail,
+                            "SECRET-FILE.pdf", new byte[]{1}),
+                    () -> emailService.sendCrmCampaignMessage("private@example.invalid", privateDetail,
+                            privateDetail, null, privateDetail, privateDetail,
+                            "https://example.invalid/?token=SECRET-TOKEN", "https://example.invalid", "fr"))) {
+                Throwable failure = catchThrowable(operation::run);
+                assertThat(failure).isInstanceOf(RuntimeException.class);
+                var trace = new java.io.StringWriter();
+                failure.printStackTrace(new java.io.PrintWriter(trace));
+                assertThat(trace.toString()).doesNotContain("private@", "SECRET", "token=", "password=");
+            }
+            // Best-effort notifications preserve their contract without exposing SMTP details.
+            emailService.sendInternalHtmlEmail(privateDetail, privateDetail, null);
+            assertThat(logs.list).isNotEmpty().allSatisfy(event -> {
+                assertThat(event.getFormattedMessage()).doesNotContain("private@", "SECRET", "token=", "password=");
+                assertThat(event.getThrowableProxy()).isNull();
+            });
+        } finally {
+            logger.detachAppender(logs);
+            logs.stop();
+        }
+    }
+
     @Mock
     private ObjectProvider<JavaMailSender> mailSenderProvider;
 

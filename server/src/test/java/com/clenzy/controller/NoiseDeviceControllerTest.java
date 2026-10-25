@@ -40,6 +40,94 @@ class NoiseDeviceControllerTest {
         controller = new NoiseDeviceController(noiseDeviceService);
     }
 
+    private final ch.qos.logback.classic.Logger logger =
+        (ch.qos.logback.classic.Logger) org.slf4j.LoggerFactory.getLogger(NoiseDeviceController.class);
+    private final ch.qos.logback.core.read.ListAppender<ch.qos.logback.classic.spi.ILoggingEvent> logs =
+        new ch.qos.logback.core.read.ListAppender<>();
+    private ch.qos.logback.classic.Level previous;
+
+    @BeforeEach void captureDiagnostics() {
+        previous = logger.getLevel();
+        logger.setLevel(ch.qos.logback.classic.Level.DEBUG);
+        logs.start();
+        logger.addAppender(logs);
+    }
+
+    @AfterEach void checkDiagnostics() {
+        try {
+            assertThat(logs.list).allSatisfy(event -> {
+                assertThat(event.getFormattedMessage()).doesNotContain("synthetic-secret", "example.invalid", "user-123");
+                assertThat(event.getThrowableProxy()).isNull();
+                if (event.getArgumentArray() != null)
+                    assertThat(java.util.Arrays.toString(event.getArgumentArray())).doesNotContain("synthetic-secret", "example.invalid", "user-123");
+            });
+        } finally {
+            logger.detachAppender(logs);
+            logger.setLevel(previous);
+            logs.stop();
+        }
+    }
+
+    private ResponseEntity<?> invokeFailure(String action, RuntimeException failure) {
+        var jwt = createJwt();
+        return switch (action) {
+            case "create" -> {
+                var input = new CreateNoiseDeviceDto();
+                when(noiseDeviceService.createDevice("user-123", input)).thenThrow(failure);
+                yield controller.createDevice(jwt, input);
+            }
+            case "delete" -> {
+                doThrow(failure).when(noiseDeviceService).deleteDevice("user-123", 1L);
+                yield controller.deleteDevice(jwt, 1L);
+            }
+            case "data" -> {
+                when(noiseDeviceService.getNoiseData("user-123", 1L, null, null)).thenThrow(failure);
+                yield controller.getNoiseData(jwt, 1L, null, null);
+            }
+            case "status" -> {
+                when(noiseDeviceService.getDeviceStatus("user-123", 1L)).thenThrow(failure);
+                yield controller.getDeviceStatus(jwt, 1L);
+            }
+            default -> {
+                when(noiseDeviceService.getAllNoiseData("user-123", null, null)).thenThrow(failure);
+                yield controller.getAllNoiseData(jwt, null, null);
+            }
+        };
+    }
+
+    @org.junit.jupiter.params.ParameterizedTest
+    @org.junit.jupiter.params.provider.ValueSource(strings = {"create", "delete", "data", "status", "all"})
+    void providerFailuresNeverExposeContext(String action) {
+        var failure = new IllegalStateException("synthetic-secret guest@example.invalid",
+            new IllegalArgumentException("synthetic-secret"));
+        failure.addSuppressed(new IllegalArgumentException("synthetic-secret"));
+        var response = invokeFailure(action, failure);
+        assertThat(response.getStatusCode().value()).isEqualTo(500);
+        assertThat(response.getBody().toString()).doesNotContain("synthetic-secret", "example.invalid");
+    }
+
+    @org.junit.jupiter.params.ParameterizedTest
+    @org.junit.jupiter.params.provider.ValueSource(strings = {"create", "delete", "data", "status"})
+    void privateValidationErrorsAreNotReturned(String action) {
+        var response = invokeFailure(action, new IllegalArgumentException("synthetic-secret guest@example.invalid"));
+        assertThat(response.getStatusCode().value()).isEqualTo(400);
+        assertThat(response.getBody().toString()).doesNotContain("synthetic-secret", "example.invalid");
+    }
+
+    @org.junit.jupiter.params.ParameterizedTest
+    @org.junit.jupiter.params.provider.ValueSource(strings = {"create", "delete", "data", "status"})
+    void validationWithoutMessageStillReturns400(String action) {
+        assertThat(invokeFailure(action, new IllegalArgumentException()).getStatusCode().value()).isEqualTo(400);
+    }
+
+    @org.junit.jupiter.params.ParameterizedTest
+    @org.junit.jupiter.params.provider.ValueSource(strings = {"create", "delete", "data", "status", "all"})
+    void organizationDenialIsPreservedForSecurityHandler(String action) {
+        var denied = new org.springframework.security.access.AccessDeniedException("synthetic-secret");
+        org.assertj.core.api.Assertions.assertThatThrownBy(() -> invokeFailure(action, denied)).isSameAs(denied);
+        assertThat(logs.list).isEmpty();
+    }
+
     @Nested
     @DisplayName("getUserDevices")
     class GetDevices {

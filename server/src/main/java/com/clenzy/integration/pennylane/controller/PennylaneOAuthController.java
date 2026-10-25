@@ -1,5 +1,6 @@
 package com.clenzy.integration.pennylane.controller;
 
+import com.clenzy.integration.oauth.BaitlyOAuthHttpDiagnostics;
 import com.clenzy.integration.pennylane.model.PennylaneConnection;
 import com.clenzy.integration.pennylane.service.PennylaneOAuthService;
 import com.clenzy.tenant.TenantContext;
@@ -70,26 +71,26 @@ public class PennylaneOAuthController {
             @RequestParam("code") String code,
             @RequestParam("state") String state) {
 
-        Optional<Map<String, Long>> stateData = oauthService.validateAndConsumeState(state);
-
-        if (stateData.isEmpty()) {
-            log.warn("Pennylane OAuth callback — state invalide: {}", state);
-            return ResponseEntity.status(302)
-                .header("Location", "/settings?tab=integrations&status=error&reason=invalid_state")
-                .build();
-        }
-
-        Long userId = stateData.get().get("userId");
-        Long orgId = stateData.get().get("orgId");
-
         try {
+            Optional<Map<String, Long>> stateData = oauthService.validateAndConsumeState(state);
+
+            if (stateData.isEmpty()) {
+                log.warn("Pennylane OAuth callback — state invalide");
+                return ResponseEntity.status(302)
+                    .header("Location", "/settings?tab=integrations&status=error&reason=invalid_state")
+                    .build();
+            }
+
+            Long userId = stateData.get().get("userId");
+            Long orgId = stateData.get().get("orgId");
+
             oauthService.exchangeCodeForToken(code, userId, orgId);
 
             return ResponseEntity.status(302)
                 .header("Location", "/settings?tab=integrations&status=success")
                 .build();
         } catch (Exception e) {
-            log.error("Pennylane OAuth callback — erreur echange code: {}", e.getMessage(), e);
+            log.error("Pennylane OAuth callback — erreur echange code");
             return ResponseEntity.status(302)
                 .header("Location", "/settings?tab=integrations&status=error&reason=token_exchange")
                 .build();
@@ -107,13 +108,13 @@ public class PennylaneOAuthController {
             oauthService.revokeToken(orgId);
             return ResponseEntity.ok(Map.of(
                 "status", "disconnected",
-                "message", "Deconnexion Pennylane reussie"
+                "message", BaitlyOAuthHttpDiagnostics.LOCAL_DISCONNECT
             ));
         } catch (Exception e) {
-            log.error("Pennylane disconnect — erreur: {}", e.getMessage(), e);
+            log.error("Pennylane disconnect — erreur");
             return ResponseEntity.internalServerError().body(Map.of(
                 "status", "error",
-                "message", "Erreur lors de la deconnexion: " + e.getMessage()
+                "message", BaitlyOAuthHttpDiagnostics.DISCONNECT_UNCONFIRMED
             ));
         }
     }
@@ -140,7 +141,7 @@ public class PennylaneOAuthController {
             result.put("connected", false);
             if (connection.isPresent()) {
                 result.put("status", connection.get().getStatus().name());
-                result.put("errorMessage", connection.get().getErrorMessage());
+                result.put("errorMessage", BaitlyOAuthHttpDiagnostics.connectionError(connection.get().getErrorMessage()));
             }
         }
 

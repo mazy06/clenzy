@@ -21765,5 +21765,38 @@
     "open": "Trouver une conciergerie pour ce bien",
     "services": "Services demandés",
     "fee": "Plafond de commission demandé"
+  },
+  "baitlyChatCandidate": {
+    "title": "Assistant Baitly",
+    "messages": "Messages",
+    "you": "Vous",
+    "assistant": "Assistant",
+    "restoring": "Vérification des actions en attente…",
+    "blocked": "Cette demande nécessite une vérification avant de poursuivre. Aucun envoi précédent ne sera relancé.",
+    "pending": "À valider",
+    "unavailable": "Le contexte de cette action n’est plus disponible. Sa reprise reste bloquée.",
+    "approve": "Approuver",
+    "refuse": "Refuser",
+    "message": "Votre message",
+    "send": "Envoyer",
+    "stop": "Arrêter",
+    "check": "Vérifier l’état",
+    "recordedTool": "Un résultat d’outil est enregistré. Son contenu historique n’est pas chargé ici.",
+    "historicalAttachment": "Ce message contient une pièce jointe historique non chargée.",
+    "reconciliation": "Décisions et preuves enregistrées",
+    "evidenceNotice": "Ces informations décrivent le journal Baitly. Elles ne confirment pas le succès chez un fournisseur et ne relancent aucune action.",
+    "evidence": {
+      "AWAITING_DECISION": "Décision attendue",
+      "EXPIRED": "Décision expirée",
+      "DECLINED": "Refus enregistré",
+      "RESULT_RECORDED": "Résultat enregistré",
+      "UNCERTAIN": "Résultat à vérifier",
+      "CONFLICT": "Preuves incohérentes, reprise bloquée"
+    },
+    "accessDenied": "Accès réservé aux gestionnaires autorisés.",
+    "conversations": "Conversations",
+    "newConversation": "Nouvelle conversation",
+    "conversation": "Conversation",
+    "historyUnavailable": "Historique indisponible. Les actions en cours ne sont pas relancées."
   }
 }

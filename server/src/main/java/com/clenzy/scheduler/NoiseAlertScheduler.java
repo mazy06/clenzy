@@ -80,8 +80,7 @@ public class NoiseAlertScheduler {
                 if (result > 0) alerts += result;
             } catch (Exception e) {
                 errors++;
-                log.error("Erreur verification bruit pour property={} org={}: {}",
-                    config.getPropertyId(), config.getOrganizationId(), e.getMessage());
+                log.error("Baitly bruit : verification non confirmee pour configuration {}", config.getId());
             }
         }
 
@@ -125,7 +124,7 @@ public class NoiseAlertScheduler {
                     recordConstellationActivity(config, alert.getId());
                 }
             } catch (Exception e) {
-                log.warn("Erreur lecture capteur device={}: {}", device.getId(), e.getMessage());
+                log.warn("Baitly bruit : lecture non confirmee pour capteur {}", device.getId());
             }
         }
         return alertCount;
@@ -145,19 +144,18 @@ public class NoiseAlertScheduler {
                     config.getOrganizationId(), propertyId, "ops", "noise_alert",
                     "Bruit détecté au-dessus du seuil sur ce logement");
                 // Carte HITL ACTIONNABLE en plus du feed (constellation métiers Phase 2) :
-                // « Envoyer » avertit le voyageur du séjour en cours (WhatsApp, repli email,
+                // « Envoyer » avertit le voyageur du séjour en cours (WhatsApp, email si aucun canal WhatsApp,
                 // idempotence 1 avertissement / séjour / 24 h côté service d'envoi).
                 supervisionSuggestionService.recordActionable(
                     config.getOrganizationId(), propertyId, "ops",
                     "Alerte de bruit à traiter",
                     "Niveau sonore au-dessus du seuil. « Envoyer » avertit le voyageur du séjour "
-                        + "en cours (WhatsApp, repli email) — un seul avertissement par 24 h.",
+                        + "en cours via le canal disponible. Un resultat incertain exige un rapprochement.",
                     com.clenzy.service.agent.supervision.SupervisionActionType.NOISE_WARNING_SEND,
                     "{\"alertId\":" + alertId + "}", null, "warning");
             }
         } catch (Exception e) {
-            log.debug("Alerte bruit: activite constellation non enregistree (property={}): {}",
-                config.getPropertyId(), e.getMessage());
+            log.debug("Baitly bruit : activite non confirmee pour configuration {}", config.getId());
         }
     }
 }
