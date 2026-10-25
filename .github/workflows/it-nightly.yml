@@ -21,7 +21,13 @@ on:
   schedule:
     # 02:30 UTC chaque nuit (creux CI).
     - cron: '30 2 * * *'
-  workflow_dispatch: {}
+  workflow_dispatch:
+    inputs:
+      suite:
+        description: 'All integrations or the fixture regression subset (isolated CI only)'
+        type: choice
+        default: all
+        options: [all, fixture-smoke]
 
 permissions:
   contents: read
@@ -61,7 +67,14 @@ jobs:
           SPRING_PROFILES_ACTIVE: test
           # Ryuk (reaper Testcontainers) inutile en CI : le runner detruit tout.
           TESTCONTAINERS_RYUK_DISABLED: "true"
-        run: mvn test -Dtest='*IT' -DfailIfNoTests=false -B
+          INTEGRATION_SUITE: ${{ inputs.suite || 'all' }}
+        run: |
+          case "$INTEGRATION_SUITE" in
+            all) tests='*IT' ;;
+            fixture-smoke) tests='RlsBootIT,KafkaFlowIT,AutomationEngineIT,StripeWebhookReplayIT' ;;
+            *) echo 'Unknown integration suite'; exit 1 ;;
+          esac
+          mvn test -Dtest="$tests" -DfailIfNoTests=true -B -q
 
       - name: Upload test results
         if: always()
