@@ -137,7 +137,9 @@ class ScenarioReservationLifecycleIT extends AbstractIntegrationTest {
 
     @org.springframework.boot.test.mock.mockito.SpyBean
     private com.clenzy.service.automation.SendReviewRequestExecutor reviewRequestExecutor;
-    private final java.util.concurrent.atomic.AtomicReference<Throwable> reviewFailure =
+    @org.springframework.boot.test.mock.mockito.SpyBean
+    private com.clenzy.service.automation.SuggestDepositReleaseExecutor depositReleaseExecutor;
+    private final java.util.concurrent.atomic.AtomicReference<Throwable> executorFailure =
             new java.util.concurrent.atomic.AtomicReference<>();
 
     private Long orgAId;
@@ -148,17 +150,25 @@ class ScenarioReservationLifecycleIT extends AbstractIntegrationTest {
     @BeforeEach
     void seedOrganizationsAndProperty() {
         clock.setInstant(T0);
-        reviewFailure.set(null);
+        executorFailure.set(null);
         // Preserve the real executor and its durable failure semantics. Only this
         // synthetic scenario retains the cause for an actionable test assertion.
         org.mockito.Mockito.doAnswer(call -> {
             try {
                 return call.callRealMethod();
             } catch (Throwable failure) {
-                reviewFailure.compareAndSet(null, failure);
+                executorFailure.compareAndSet(null, failure);
                 throw failure;
             }
         }).when(reviewRequestExecutor).execute(any(), any());
+        org.mockito.Mockito.doAnswer(call -> {
+            try {
+                return call.callRealMethod();
+            } catch (Throwable failure) {
+                executorFailure.compareAndSet(null, failure);
+                throw failure;
+            }
+        }).when(depositReleaseExecutor).execute(any(), any());
         // The scripted boundary must return a committed receipt, not Mockito's
         // null default (which correctly represents an unconfirmed delivery).
         org.mockito.Mockito.when(guestMessagingService.sendForReservationViaChannel(
@@ -410,8 +420,8 @@ class ScenarioReservationLifecycleIT extends AbstractIntegrationTest {
         // Avis : SKIPPED pour la resa avec avis, EXECUTED (envoi reel via le
         // pipeline mocke en frontiere) pour l'autre.
         List<AutomationExecution> reviewExecs = executionsFor(orgAId, AutomationAction.SEND_REVIEW_REQUEST);
-        if (reviewFailure.get() != null) {
-            throw new AssertionError("Synthetic review request failed before its confirmed receipt", reviewFailure.get());
+        if (executorFailure.get() != null) {
+            throw new AssertionError("Synthetic review request failed before its confirmed receipt", executorFailure.get());
         }
         assertThat(reviewExecs).hasSize(2);
         Map<Long, AutomationExecutionStatus> reviewBySubject = Map.of(
@@ -462,6 +472,9 @@ class ScenarioReservationLifecycleIT extends AbstractIntegrationTest {
                 .filter(s -> orgAId.equals(s.getOrganizationId()))
                 .filter(s -> SupervisionActionType.DEPOSIT_RELEASE.equals(s.getActionType()))
                 .toList();
+        if (executorFailure.get() != null) {
+            throw new AssertionError("Synthetic deposit suggestion failed", executorFailure.get());
+        }
         assertThat(depositSuggestions).hasSize(1);
         SupervisionSuggestion suggestion = depositSuggestions.get(0);
         assertThat(suggestion.getStatus()).isEqualTo(SupervisionSuggestion.STATUS_PENDING);
