@@ -21780,6 +21780,18 @@
     "message": "Votre message",
     "send": "Envoyer",
     "stop": "Arrêter",
-    "check": "Vérifier l’état"
+    "check": "Vérifier l’état",
+    "recordedTool": "Un résultat d’outil est enregistré. Son contenu historique n’est pas chargé ici.",
+    "historicalAttachment": "Ce message contient une pièce jointe historique non chargée.",
+    "reconciliation": "Décisions et preuves enregistrées",
+    "evidenceNotice": "Ces informations décrivent le journal Baitly. Elles ne confirment pas le succès chez un fournisseur et ne relancent aucune action.",
+    "evidence": {
+      "AWAITING_DECISION": "Décision attendue",
+      "EXPIRED": "Décision expirée",
+      "DECLINED": "Refus enregistré",
+      "RESULT_RECORDED": "Résultat enregistré",
+      "UNCERTAIN": "Résultat à vérifier",
+      "CONFLICT": "Preuves incohérentes, reprise bloquée"
+    }
   }
 }

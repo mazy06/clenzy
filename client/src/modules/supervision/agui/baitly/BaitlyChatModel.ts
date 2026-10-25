@@ -9,6 +9,8 @@ export interface ChatItem {
   toolName?: string;
   result?: string;
   complete: boolean;
+  historical?: boolean;
+  hasAttachments?: boolean;
 }
 export interface WireMessage {
   [key: string]: unknown;
@@ -18,6 +20,13 @@ export interface WireMessage {
 }
 export interface ChatModel { items: ChatItem[]; messages: WireMessage[]; state: unknown }
 export const emptyChat = (): ChatModel => ({ items: [], messages: [], state: {} });
+
+/** Server history is presentation, never an outgoing request or executable tool call. */
+export function restoreBaitlyHistory(history: Array<{ id: string; role: 'user' | 'assistant' | 'tool';
+  content: string | null; hasAttachments: boolean }>): ChatModel {
+  return { items: history.map(entry => ({ id: entry.id, kind: entry.role, text: entry.content ?? '',
+    complete: true, historical: true, hasAttachments: entry.hasAttachments })), messages: [], state: {} };
+}
 
 /** Immutable presentation reduction, never executes tools or applies navigation. */
 export function reduceBaitlyChat(model: ChatModel, event: BaitlyAgUiEvent): ChatModel {

@@ -10,6 +10,10 @@ import java.util.List;
 
 public interface AssistantMessageRepository extends JpaRepository<AssistantMessage, Long> {
     boolean existsByOrganizationIdAndConversationId(Long organizationId, Long conversationId);
+    List<AssistantMessage> findByOrganizationIdAndConversationIdOrderByCreatedAtAscIdAsc(
+            Long organizationId, Long conversationId);
+    boolean existsByOrganizationIdAndConversationIdAndRoleAndToolCallId(
+            Long organizationId, Long conversationId, String role, String toolCallId);
 
     /**
      * Tous les messages d'une conversation, ordonnes chronologiquement.

@@ -67,13 +67,22 @@ public class PendingToolStore {
      * Nullable (tests) — toutes les ecritures sont best-effort.
      */
     private final com.clenzy.repository.AgentPendingActionRepository pendingActionRepository;
+    private final com.clenzy.repository.AssistantMessageRepository messageRepository;
 
     @Autowired
     public PendingToolStore(StringRedisTemplate redisTemplate, ObjectMapper objectMapper,
-                            com.clenzy.repository.AgentPendingActionRepository pendingActionRepository) {
+                            com.clenzy.repository.AgentPendingActionRepository pendingActionRepository,
+                            com.clenzy.repository.AssistantMessageRepository messageRepository) {
         this.redisTemplate = redisTemplate;
         this.objectMapper = objectMapper;
         this.pendingActionRepository = pendingActionRepository;
+        this.messageRepository = messageRepository;
+    }
+
+    /** Explicit unit-test constructor; production always checks durable results. */
+    public PendingToolStore(StringRedisTemplate redisTemplate, ObjectMapper objectMapper,
+                            com.clenzy.repository.AgentPendingActionRepository pendingActionRepository) {
+        this(redisTemplate, objectMapper, pendingActionRepository, null);
     }
 
     /** Retro-compat (pre-X1) : sans journal durable. */
@@ -121,6 +130,11 @@ public class PendingToolStore {
                     || !userId.equals(row.getKeycloakUserId())
                     || !com.clenzy.model.AgentPendingAction.STATUS_PENDING.equals(row.getStatus())
                     || !Instant.now().isBefore(row.getExpiresAt())) return Optional.empty();
+            // Legacy best-effort resolution may have left PENDING after execution.
+            // Presence of any persisted result blocks a second effect, including errors.
+            if (messageRepository != null && messageRepository
+                    .existsByOrganizationIdAndConversationIdAndRoleAndToolCallId(
+                            organizationId, row.getConversationId(), "tool", id)) return Optional.empty();
             var pending = store.get(id);
             if (pending == null) pending = recoverFromDatabase(id, userId).orElse(null);
             if (pending == null || !organizationId.equals(pending.organizationId())

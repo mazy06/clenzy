@@ -12,7 +12,7 @@ const base = { version:1, resumePolicy:'durable-decision-v1', conversationId:9, 
 function setup(pending = true, tools: Array<{ hint: string; data: unknown }> = []) {
   let proof = { ...base, canStart:!pending, actions:pending ? [action] : [] };
   let id = 0;
-  const read = vi.fn(async () => proof);
+  const read = vi.fn<() => Promise<unknown>>(async () => proof);
   const fetch = vi.fn<(url:string,init:RequestInit)=>Promise<Response>>(async (_url, init) => {
     const input = JSON.parse(String(init.body));
     proof = { ...base, actions:[] };
@@ -33,6 +33,26 @@ beforeEach(async () => { await i18n.changeLanguage('fr'); });
 afterEach(cleanup);
 
 describe('inactive native chat candidate view', () => {
+  it('shows restored history and uncertainty without a replay action, including under StrictMode', async () => {
+    const {adapter,read,fetch}=setup();
+    read.mockResolvedValue({...base,actions:[],history:[
+      {id:'history-1',role:'user',content:'Question historique de recette',toolCallId:null,hasAttachments:true},
+      {id:'history-2',role:'assistant',content:'Réponse historique de recette',toolCallId:null,hasAttachments:false},
+      {id:'history-3',role:'tool',content:null,toolCallId:'synthetic-decision',hasAttachments:false},
+    ],reconciliation:[{toolCallId:'synthetic-decision',toolName:'synthetic_tool',evidence:'CONFLICT',resultMessageId:'history-3'}]});
+    render(<StrictMode><BaitlyChatCandidate adapter={adapter}/></StrictMode>);
+    await screen.findByText('Question historique de recette');
+    expect(screen.getByText('Réponse historique de recette')).toBeVisible();
+    expect(screen.getByText('Preuves incohérentes, reprise bloquée')).toBeVisible();
+    expect(screen.getByText(/pièce jointe historique/)).toBeVisible();
+    expect(screen.getByText(/Son contenu historique/)).toBeVisible();
+    expect(screen.queryByRole('button',{name:'Approuver'})).toBeNull();
+    expect(screen.getByRole('button',{name:'Envoyer'})).toBeDisabled();
+    fireEvent(window,new Event('online'));
+    fireEvent.click(screen.getByRole('button',{name:'Vérifier l’état'}));
+    await waitFor(()=>expect(screen.getAllByText('Question historique de recette')).toHaveLength(1));
+    expect(fetch).not.toHaveBeenCalled();
+  });
   it.each([true,false])('StrictMode mount only restores, explicit decision confirmed=%s sends once', async confirmed => {
     const { adapter, read, fetch } = setup();
     render(<StrictMode><BaitlyChatCandidate adapter={adapter}/></StrictMode>);

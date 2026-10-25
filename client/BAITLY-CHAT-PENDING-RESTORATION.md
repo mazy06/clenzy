@@ -1,5 +1,9 @@
 # Adaptateur Baitly et restauration des décisions en attente
 
+Suite du 25 octobre : [historique et réconciliation en lecture seule](BAITLY-CHAT-HISTORY-RECONCILIATION.md).
+La limitation de rechargement reste conservée ; aucune observation de résultat
+n'est convertie en succès fournisseur ni en permission de rejouer un effet.
+
 24 octobre 2026. Suite de la candidate #517, dont toutes les CI sont vertes
 sur `244428988a5a5e744b1492ef88247e6ae42d2fc7`, scan backend inclus.
 Le nouvel adaptateur et sa vue React restent **inactifs** : aucune route

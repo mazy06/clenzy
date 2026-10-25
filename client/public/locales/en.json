@@ -21793,6 +21793,18 @@
     "message": "Your message",
     "send": "Send",
     "stop": "Stop",
-    "check": "Check status"
+    "check": "Check status",
+    "recordedTool": "A tool result is recorded. Its historical content is not loaded here.",
+    "historicalAttachment": "This message contains a historical attachment that is not loaded.",
+    "reconciliation": "Recorded decisions and evidence",
+    "evidenceNotice": "This information describes the Baitly journal. It does not confirm success at a provider and never reruns an action.",
+    "evidence": {
+      "AWAITING_DECISION": "Decision required",
+      "EXPIRED": "Decision expired",
+      "DECLINED": "Decline recorded",
+      "RESULT_RECORDED": "Result recorded",
+      "UNCERTAIN": "Result needs verification",
+      "CONFLICT": "Conflicting evidence, resume blocked"
+    }
   }
 }

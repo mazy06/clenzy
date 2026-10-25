@@ -1,19 +1,24 @@
 import { z } from 'zod';
 import { BaitlyAgUiClient } from './BaitlyAgUiClient';
 import { BaitlyAgUiError, type BaitlyAgUiEvent } from './BaitlyAgUiProtocol';
-import { emptyChat, reduceBaitlyChat, type ChatModel } from './BaitlyChatModel';
+import { emptyChat, reduceBaitlyChat, restoreBaitlyHistory, type ChatModel } from './BaitlyChatModel';
 
 const recoverySchema = z.object({ version: z.literal(1), resumePolicy: z.literal('durable-decision-v1'),
   conversationId: z.number().int().positive(), canStart: z.boolean(), actions: z.array(z.object({
     toolCallId: z.string().min(1), toolName: z.string().min(1), description: z.string().nullable(),
     expiresAt: z.iso.datetime({ offset: true }), resumable: z.boolean(),
-  })) });
+  })), history: z.array(z.object({ id: z.string().min(1), role: z.enum(['user', 'assistant', 'tool']),
+    content: z.string().nullable(), toolCallId: z.string().nullable(), hasAttachments: z.boolean() })).default([]),
+  reconciliation: z.array(z.object({ toolCallId: z.string().min(1), toolName: z.string().min(1),
+    evidence: z.enum(['AWAITING_DECISION', 'EXPIRED', 'DECLINED', 'RESULT_RECORDED', 'UNCERTAIN', 'CONFLICT']),
+    resultMessageId: z.string().nullable() })).default([]) });
 export type ChatRecovery = z.infer<typeof recoverySchema>;
 export interface ChatSnapshot {
   phase: 'restoring' | 'ready' | 'running' | 'review' | 'blocked';
   model: ChatModel;
   pending: ChatRecovery['actions'];
   failure: string | null;
+  reconciliation: ChatRecovery['reconciliation'];
 }
 export interface ChatAdapterOptions {
   conversationId: number;
@@ -25,7 +30,7 @@ export interface ChatAdapterOptions {
 
 /** Inactive UI seam. No effect on subscribe, reconnect, restore or mount. */
 export class BaitlyChatAdapter {
-  private snapshot: ChatSnapshot = { phase: 'restoring', model: emptyChat(), pending: [], failure: null };
+  private snapshot: ChatSnapshot = { phase: 'restoring', model: emptyChat(), pending: [], failure: null, reconciliation: [] };
   private readonly listeners = new Set<() => void>();
   private busy = false;
   private generation = 0;
@@ -47,10 +52,24 @@ export class BaitlyChatAdapter {
   private async proof(): Promise<ChatRecovery> {
     const result = recoverySchema.safeParse(await this.options.loadRecovery());
     if (!result.success || result.data.conversationId !== this.options.conversationId
-      || new Set(result.data.actions.map(a => a.toolCallId)).size !== result.data.actions.length) {
+      || new Set(result.data.actions.map(a => a.toolCallId)).size !== result.data.actions.length
+      || new Set(result.data.history.map(m => m.id)).size !== result.data.history.length
+      || new Set(result.data.reconciliation.map(r => r.toolCallId)).size !== result.data.reconciliation.length
+      || result.data.history.some(m => m.role === 'tool' && m.content !== null)
+      || result.data.reconciliation.some(r => (r.evidence === 'RESULT_RECORDED' && r.resultMessageId === null)
+        || (r.resultMessageId !== null && !result.data.history.some(m => m.id === r.resultMessageId
+          && m.role === 'tool' && m.toolCallId === r.toolCallId)))
+      || (result.data.canStart && (result.data.history.length > 0 || result.data.reconciliation.length > 0))
+      || result.data.actions.some(a => result.data.history.some(m => m.role === 'tool' && m.toolCallId === a.toolCallId))
+      || result.data.actions.some(a => result.data.reconciliation.some(r => r.toolCallId === a.toolCallId
+        && r.evidence !== 'AWAITING_DECISION'))) {
       throw new BaitlyAgUiError('PROTOCOL');
     }
     return { ...result.data, actions: result.data.actions.filter(a => Date.parse(a.expiresAt) > this.now()) };
+  }
+  private recoveredPhase(proof: ChatRecovery, completedLive = false): ChatSnapshot['phase'] {
+    if (proof.reconciliation.some(row => row.evidence === 'UNCERTAIN' || row.evidence === 'CONFLICT')) return 'blocked';
+    return proof.actions.length ? 'review' : proof.canStart || completedLive ? 'ready' : 'blocked';
   }
   async restore(): Promise<void> {
     if (this.busy || this.disposed) return;
@@ -59,8 +78,8 @@ export class BaitlyChatAdapter {
     try {
       const proof = await this.proof();
       if (this.disposed || generation !== this.generation) return;
-      this.update({ pending: proof.actions,
-        phase: proof.actions.length ? 'review' : proof.canStart ? 'ready' : 'blocked' });
+      this.update({ pending: proof.actions, model: restoreBaitlyHistory(proof.history), reconciliation: proof.reconciliation,
+        phase: this.recoveredPhase(proof) });
     } catch {
       if (generation === this.generation) this.update({ phase: 'blocked', pending: [], failure: 'RECOVERY_UNAVAILABLE' });
     }
@@ -85,8 +104,10 @@ export class BaitlyChatAdapter {
       const proof = await this.proof();
       if (this.disposed) return;
       const action = proof.actions.find(a => a.toolCallId === id && a.resumable);
-      if (!action) { this.update({ phase: 'blocked', pending: proof.actions, failure: 'DECISION_UNAVAILABLE' }); return; }
-      this.update({ pending: proof.actions });
+      if (!action || this.recoveredPhase(proof) === 'blocked') {
+        this.update({ phase: 'blocked', pending: proof.actions, reconciliation: proof.reconciliation, failure: 'DECISION_UNAVAILABLE' }); return;
+      }
+      this.update({ pending: proof.actions, reconciliation: proof.reconciliation });
       await this.run({ id, confirmed });
     } catch {
       this.update({ phase: 'blocked', failure: 'RECOVERY_UNAVAILABLE' });
@@ -111,10 +132,10 @@ export class BaitlyChatAdapter {
       // Only a finished, observed run may allow another explicit live message.
       if (outcome.type === 'interrupt') {
         const proof = await this.proof();
-        this.update({ phase: proof.actions.length ? 'review' : 'blocked', pending: proof.actions });
+        this.update({ phase: this.recoveredPhase(proof), pending: proof.actions, reconciliation: proof.reconciliation });
       } else {
         const proof = await this.proof();
-        this.update({ phase: proof.actions.length ? 'review' : 'ready', pending: proof.actions });
+        this.update({ phase: this.recoveredPhase(proof, true), pending: proof.actions, reconciliation: proof.reconciliation });
       }
     } catch (error) {
       this.update({ phase: 'blocked', failure: error instanceof BaitlyAgUiError ? error.code : 'RUN_UNCERTAIN' });

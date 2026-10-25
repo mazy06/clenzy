@@ -6,7 +6,7 @@ import { reduceBaitlyChat, emptyChat } from './BaitlyChatModel';
 
 const action = { toolCallId: 'fixture-action', toolName: 'synthetic_tool', description: 'Synthetic decision',
   expiresAt: '2099-01-01T00:00:00Z', resumable: true };
-export const fresh = (): ChatRecovery => ({ version: 1, resumePolicy: 'durable-decision-v1', conversationId: 9, canStart: true, actions: [] });
+export const fresh = (): ChatRecovery => ({ version: 1, resumePolicy: 'durable-decision-v1', conversationId: 9, canStart: true, actions: [], history: [], reconciliation: [] });
 function response(frames: unknown[], cut = false): Response {
   return new Response(new ReadableStream<Uint8Array>({
     start(controller) {
@@ -33,6 +33,54 @@ function setup(proof: () => Promise<unknown> = async () => fresh()) {
 }
 
 describe('Baitly chat adapter restoration', () => {
+  it('restores authoritative text and result receipts idempotently without outgoing messages or automatic tools', async () => {
+    const history: ChatRecovery['history'] = [
+      { id:'history-1', role:'user', content:'Question de recette', toolCallId:null, hasAttachments:true },
+      { id:'history-2', role:'assistant', content:'Réponse العربية', toolCallId:null, hasAttachments:false },
+      { id:'history-3', role:'tool', content:null, toolCallId:'fixture-action', hasAttachments:false },
+    ];
+    const proof: ChatRecovery = { ...fresh(), canStart:false, history, reconciliation:[
+      {toolCallId:'fixture-action',toolName:'synthetic_tool',evidence:'RESULT_RECORDED',resultMessageId:'history-3'}] };
+    const {adapter,fetch} = setup(async()=>proof);
+    await adapter.restore(); await adapter.restore();
+    expect(adapter.getSnapshot().model.items.map(item=>item.id)).toEqual(['history-1','history-2','history-3']);
+    expect(adapter.getSnapshot().model.messages).toEqual([]);
+    expect(adapter.getSnapshot().phase).toBe('blocked');
+    await expect(adapter.send('duplicate')).rejects.toBeDefined();
+    await expect(adapter.decide('fixture-action',true)).rejects.toBeDefined();
+    expect(fetch).not.toHaveBeenCalled();
+  });
+  it('new uncertainty discovered just before a decision blocks the POST', async () => {
+    const {adapter,fetch,load} = setup(async()=>({...fresh(),canStart:false,actions:[action]}));
+    await adapter.restore();
+    load.mockResolvedValueOnce({...fresh(),canStart:false,actions:[action],reconciliation:[
+      {toolCallId:'other-effect',toolName:'synthetic_tool',evidence:'UNCERTAIN',resultMessageId:null}]});
+    await adapter.decide(action.toolCallId,true);
+    expect(adapter.getSnapshot().phase).toBe('blocked'); expect(fetch).not.toHaveBeenCalled();
+  });
+  it('an observed stream finish cannot clear uncertainty returned by the journal', async () => {
+    const {adapter,fetch,load}=setup(); await adapter.restore();
+    load.mockResolvedValueOnce({...fresh(),canStart:false,reconciliation:[
+      {toolCallId:'other-effect',toolName:'synthetic_tool',evidence:'UNCERTAIN',resultMessageId:null}]});
+    await adapter.send('Synthetic request');
+    expect(adapter.getSnapshot().phase).toBe('blocked');
+    await expect(adapter.send('duplicate')).rejects.toBeDefined();
+    expect(fetch).toHaveBeenCalledTimes(1);
+  });
+  it('rejects contradictory history, raw tool payloads and foreign result references without exposing them', async () => {
+    const tool = {id:'history-1',role:'tool',content:null,toolCallId:'fixture-action',hasAttachments:false};
+    for (const proof of [
+      {...fresh(),history:[tool]}, // Existing history cannot be called untouched.
+      {...fresh(),canStart:false,history:[tool,tool]},
+      {...fresh(),canStart:false,history:[{...tool,content:'private-canary'}]},
+      {...fresh(),canStart:false,reconciliation:[{toolCallId:'fixture-action',toolName:'synthetic_tool',evidence:'RESULT_RECORDED',resultMessageId:'foreign'}]},
+      {...fresh(),canStart:false,actions:[action],history:[tool]},
+    ]) {
+      const {adapter,fetch}=setup(async()=>proof); await adapter.restore();
+      expect(adapter.getSnapshot().phase).toBe('blocked'); expect(fetch).not.toHaveBeenCalled();
+      expect(JSON.stringify(adapter.getSnapshot())).not.toContain('private-canary');
+    }
+  });
   it('mount/subscription/restoration perform reads only; an explicit message sends once', async () => {
     const { adapter, fetch, load } = setup();
     const unsubscribe = adapter.subscribe(() => {});
