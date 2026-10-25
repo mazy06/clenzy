@@ -67,8 +67,9 @@ class BaitlyChatCompletionSqlTest {
             var resources=new ClassLoaderResourceAccessor();
             try(var master=new Liquibase("db/changelog/db.changelog-master.yaml",resources,database)) {
                 var selected=new DatabaseChangeLog("db/changelog/db.changelog-master.yaml");
-                master.getDatabaseChangeLog().getChangeSets().stream().filter(c->"0607-baitly-chat-turn-receipts".equals(c.getId())).forEach(selected::addChangeSet);
-                assertThat(selected.getChangeSets()).hasSize(1);
+                master.getDatabaseChangeLog().getChangeSets().stream().filter(c->Set.of("0607-baitly-chat-turn-receipts",
+                    "0608-baitly-chat-tool-evidence").contains(c.getId())).forEach(selected::addChangeSet);
+                assertThat(selected.getChangeSets()).hasSize(2);
                 new Liquibase(selected,resources,database).update("");
             }
         }
@@ -103,7 +104,8 @@ class BaitlyChatCompletionSqlTest {
     @Test void migrationIsReplayableAndJpaMappingMatchesActualSchema() throws Exception {
         migrate();
         assertThat(jdbc.queryForObject("SELECT count(*) FROM databasechangelog WHERE id='0607-baitly-chat-turn-receipts'",Integer.class)).isEqualTo(1);
-        var config=new Configuration().addAnnotatedClass(BaitlyChatTurn.class);
+        assertThat(jdbc.queryForObject("SELECT count(*) FROM databasechangelog WHERE id='0608-baitly-chat-tool-evidence'",Integer.class)).isEqualTo(1);
+        var config=new Configuration().addAnnotatedClass(BaitlyChatTurn.class).addAnnotatedClass(com.clenzy.model.BaitlyChatToolEvidence.class);
         config.getProperties().put("hibernate.connection.datasource",source);
         config.setProperty("hibernate.hbm2ddl.auto","validate");
         try(var factory=config.buildSessionFactory()) { assertThat(factory.isOpen()).isTrue(); }
@@ -277,8 +279,9 @@ class BaitlyChatCompletionSqlTest {
         assertThat(recovery.read(9L,"recipe-user",7L).canStart()).isFalse();
         verify(pending,never()).claimDecision(any(),any(),any(),any(),any());
     }
-    @ParameterizedTest @ValueSource(booleans={false,true})
-    void realMonoLoopProvesTextButNeverCertifiesAToolCall(boolean withTool) {
+    @ParameterizedTest @ValueSource(strings={"none","synthetic","navigation","tax","duplicate","outage"})
+    void realMonoLoopProvesTextAndRecordsBoundedToolEvidence(String variant) {
+        boolean withTool=!"none".equals(variant);
         var provider=mock(ChatLLMProvider.class);
         var repository=mock(com.clenzy.repository.AssistantMessageRepository.class);
         when(repository.save(any())).thenAnswer(call->{
@@ -289,18 +292,36 @@ class BaitlyChatCompletionSqlTest {
         });
         var effects=new AtomicInteger(); var providerCalls=new AtomicInteger();
         var mapper=new com.fasterxml.jackson.databind.ObjectMapper();
-        var handler=mock(ToolHandler.class);
-        when(handler.name()).thenReturn("synthetic_tool");
-        when(handler.descriptor()).thenReturn(ToolDescriptor.readOnly("synthetic_tool","Synthetic fixture",mapper.createObjectNode()));
-        when(handler.execute(any(),any())).thenAnswer(call->{
+        var fake=mock(ToolHandler.class);
+        when(fake.name()).thenReturn("synthetic_tool");
+        when(fake.descriptor()).thenReturn(ToolDescriptor.readOnly("synthetic_tool","Synthetic fixture",mapper.createObjectNode()));
+        when(fake.execute(any(),any())).thenAnswer(call->{
             assertThat(TransactionSynchronizationManager.isActualTransactionActive()).isFalse();
+            assertThat(jdbc.queryForObject("SELECT status FROM baitly_chat_tool_evidence",String.class)).isEqualTo("STARTED");
             effects.incrementAndGet(); return ToolResult.success("{}");
         });
+        var tax=mock(com.clenzy.service.TouristTaxService.class);
+        when(tax.computeForReservationId(1L,7L)).thenAnswer(call->{
+            assertThat(TransactionSynchronizationManager.isActualTransactionActive()).isFalse();
+            assertThat(jdbc.queryForObject("SELECT status FROM baitly_chat_tool_evidence",String.class)).isEqualTo("STARTED");
+            return Optional.empty();
+        });
+        ToolHandler handler=switch(variant) {
+            case "navigation" -> new com.clenzy.service.agent.tools.SuggestNavigationTool(mapper);
+            case "tax" -> new com.clenzy.service.agent.tools.ComputeTouristTaxTool(tax,mapper);
+            default -> fake;
+        };
+        String args=switch(variant) {
+            case "navigation" -> "{\"path\":\"/reports\",\"label\":\"Synthetic\",\"reason\":\"Synthetic\"}";
+            case "tax" -> "{\"reservationId\":1}";
+            default -> "{}";
+        };
         doAnswer(call->{
             assertThat(TransactionSynchronizationManager.isActualTransactionActive()).isFalse();
             java.util.function.Consumer<ChatEvent> output=call.getArgument(1);
             if(withTool && providerCalls.getAndIncrement()==0) {
-                output.accept(new ChatEvent.ToolCallRequest(List.of(new ChatMessage.ToolCall("fixture-tool","synthetic_tool","{}"))));
+                var toolCall=new ChatMessage.ToolCall("fixture-tool",handler.name(),args);
+                output.accept(new ChatEvent.ToolCallRequest("duplicate".equals(variant)?List.of(toolCall,toolCall):List.of(toolCall)));
                 output.accept(new ChatEvent.Done(0,0,"synthetic-model","tool_use",""));
             } else {
                 output.accept(new ChatEvent.TextDelta("Synthetic response"));
@@ -312,13 +333,178 @@ class BaitlyChatCompletionSqlTest {
         var loop=new AgentToolLoopRunner(provider,registry,repository,new PendingToolStore(),mapper,
                 mock(com.clenzy.service.AiTokenBudgetService.class),null,null,null,null,null,null);
         var conversation=new com.clenzy.model.AssistantConversation(7L,"recipe-user"); conversation.setId(9L);
-        executor.execute(UUID.randomUUID(),7L,"recipe-user",9L,null,out->{
+        Runnable run=()->executor.execute(UUID.randomUUID(),7L,"recipe-user",9L,null,out->{
             message("user","Synthetic question",null);
+            if("outage".equals(variant)) jdbc.execute("DROP TABLE baitly_chat_tool_evidence");
             loop.runToolLoop(new ChatRequest("Synthetic system",List.of(ChatMessage.user("Synthetic question")),
                     registry.listDescriptors(),"synthetic-model",0,128),conversation,AgentContext.minimal(7L,"recipe-user"),null,out);
             return 9L;
         },e->{});
+        if(Set.of("duplicate","outage").contains(variant)) {
+            assertThatThrownBy(run::run).hasMessage("Baitly chat completion unavailable").hasNoCause();
+            assertThat(effects.get()).isEqualTo("duplicate".equals(variant)?1:0);
+            assertThat(state()).isEqualTo("UNCERTAIN");
+            return;
+        }
+        run.run();
         assertThat(state()).isEqualTo(withTool?"UNCERTAIN":"SAFE_TEXT");
-        assertThat(effects.get()).isEqualTo(withTool?1:0);
+        assertThat(effects.get()).isEqualTo("synthetic".equals(variant)?1:0);
+        var proofs=new BaitlyChatCompletionJournal(jdbc,new DataSourceTransactionManager(source)).toolEvidence(7L,"recipe-user",9L);
+        if(!withTool) assertThat(proofs).isEmpty();
+        else {
+            assertThat(proofs).hasSize(1);
+            assertThat(proofs.getFirst().status()).isEqualTo("synthetic".equals(variant)?"UNCERTAIN":"READ_ONLY_COMPLETED");
+            assertThat(proofs.getFirst().proofKind()).isEqualTo(switch(variant) {
+                case "tax" -> "TAX_READ_ONLY_V1"; case "navigation" -> "NAVIGATION_ONLY_V1"; default -> "UNVERIFIED";
+            });
+        }
+    }
+
+    private BaitlyChatCompletionJournal.Ticket startedTool(String id,ToolHandler handler) {
+        var ticket=journal.begin(7L,"recipe-user",9L,UUID.randomUUID(),null);
+        journal.startTool(ticket,id,handler);
+        return ticket;
+    }
+    private long toolMessage(String id) {
+        long message=message("tool","synthetic-private-result",null);
+        jdbc.update("UPDATE assistant_message SET tool_call_id=? WHERE id=?",id,message);
+        return message;
+    }
+    private ToolHandler navigation() {
+        return new com.clenzy.service.agent.tools.SuggestNavigationTool(new com.fasterxml.jackson.databind.ObjectMapper());
+    }
+    @Test void startedInvocationSurvivesCrashAndCannotBeClaimedTwice() {
+        var ticket=startedTool("invocation",navigation());
+        var reboot=new BaitlyChatCompletionJournal(jdbc,new DataSourceTransactionManager(source));
+        assertThat(reboot.toolEvidence(7L,"recipe-user",9L).getFirst().status()).isEqualTo("STARTED");
+        assertThatThrownBy(()->reboot.startTool(ticket,"invocation",navigation())).hasMessage("Baitly chat completion unavailable").hasNoCause();
+        assertThat(state()).isEqualTo("RUNNING");
+    }
+    @Test void successfulWriteReturnNeverBecomesBusinessSuccess() {
+        var handler=mock(ToolHandler.class);
+        when(handler.name()).thenReturn("suggest_navigation"); // Even a borrowed name/read-only descriptor proves nothing.
+        when(handler.descriptor()).thenReturn(navigation().descriptor());
+        var ticket=startedTool("write",handler);
+        journal.finishTool(ticket,"write",toolMessage("write"),false);
+        var proof=journal.toolEvidence(7L,"recipe-user",9L).getFirst();
+        assertThat(proof.status()).isEqualTo("UNCERTAIN"); assertThat(proof.proofKind()).isEqualTo("UNVERIFIED");
+        assertThat(proof.resultMessageId()).isNull();
+        verify(handler,never()).descriptor(); // Unreviewed code is not invoked to classify evidence.
+        assertThatThrownBy(()->journal.startTool(ticket,"write",handler)).hasMessage("Baitly chat completion unavailable");
+    }
+    @ParameterizedTest @ValueSource(strings={"error","missing","wrong-call","duplicate"})
+    void incompleteReadEvidenceCannotBeQualified(String variant) {
+        var ticket=startedTool("read",navigation());
+        Long id="missing".equals(variant)?999L:toolMessage("wrong-call".equals(variant)?"other":"read");
+        if("duplicate".equals(variant)) toolMessage("read");
+        journal.finishTool(ticket,"read",id,"error".equals(variant));
+        assertThat(journal.toolEvidence(7L,"recipe-user",9L).getFirst().status()).isEqualTo("UNCERTAIN");
+    }
+    @Test void proofReadRevalidatesResultAndNeverLeaksPayloadOrOtherScope() throws Exception {
+        var ticket=startedTool("read",navigation()); long id=toolMessage("read");
+        journal.finishTool(ticket,"read",id,false);
+        assertThat(journal.toolEvidence(7L,"recipe-user",9L).getFirst().resultMessageId()).isEqualTo("history-"+id);
+        String json=new com.fasterxml.jackson.databind.ObjectMapper().writeValueAsString(journal.toolEvidence(7L,"recipe-user",9L));
+        assertThat(json).doesNotContain("synthetic-private-result","arguments","content","recipe-user");
+        assertThat(journal.toolEvidence(8L,"recipe-user",9L)).isEmpty();
+        assertThat(journal.toolEvidence(7L,"other-user",9L)).isEmpty();
+        assertThat(journal.toolEvidence(7L,"recipe-user",10L)).isEmpty();
+        toolMessage("read");
+        assertThat(journal.toolEvidence(7L,"recipe-user",9L).getFirst().status()).isEqualTo("UNCERTAIN");
+    }
+    @Test void journalOutageAndOuterTransactionsFailClosedWithoutDiagnostics() {
+        var ticket=journal.begin(7L,"recipe-user",9L,UUID.randomUUID(),null);
+        var tx=new org.springframework.transaction.support.TransactionTemplate(new DataSourceTransactionManager(source));
+        tx.executeWithoutResult(status->assertThatThrownBy(()->journal.startTool(ticket,"read",navigation()))
+            .hasMessage("Baitly chat completion unavailable").hasNoCause());
+        jdbc.execute("DROP TABLE baitly_chat_tool_evidence");
+        assertThatThrownBy(()->journal.startTool(ticket,"read",navigation())).hasMessage("Baitly chat completion unavailable").hasNoCause();
+        assertThatThrownBy(()->journal.toolEvidence(7L,"recipe-user",9L)).hasMessage("Baitly chat completion unavailable").hasNoCause();
+    }
+    @Test void finishedTurnCannotAdmitAnotherToolOrRequalifyAnUncertainResult() {
+        var ticket=startedTool("read",navigation());
+        journal.finishTool(ticket,"read",toolMessage("read"),true);
+        assertThatThrownBy(()->journal.finishTool(ticket,"read",1L,false)).hasMessage("Baitly chat completion unavailable");
+        journal.uncertain(ticket);
+        assertThatThrownBy(()->journal.startTool(ticket,"another",navigation())).hasMessage("Baitly chat completion unavailable");
+    }
+    @Test void concurrentToolClaimsHaveOneWinner() throws Exception {
+        var ticket=journal.begin(7L,"recipe-user",9L,UUID.randomUUID(),null);
+        var pool=Executors.newFixedThreadPool(2); var latch=new CountDownLatch(1);
+        try {
+            Callable<Boolean> claim=()->{ latch.await(); try { journal.startTool(ticket,"same-call",navigation()); return true; }
+                catch(IllegalStateException unavailable) { return false; } };
+            var first=pool.submit(claim); var second=pool.submit(claim); latch.countDown();
+            assertThat(List.of(first.get(10,TimeUnit.SECONDS),second.get(10,TimeUnit.SECONDS))).containsExactlyInAnyOrder(true,false);
+            assertThat(journal.toolEvidence(7L,"recipe-user",9L)).hasSize(1);
+        } finally { pool.shutdownNow(); }
+    }
+    @Test void confirmedEffectInterruptedBeforeResultRemainsFencedWithoutReplay() {
+        var mapper=new com.fasterxml.jackson.databind.ObjectMapper();
+        var handler=mock(ToolHandler.class); var effects=new AtomicInteger();
+        when(handler.name()).thenReturn("synthetic_write");
+        when(handler.descriptor()).thenReturn(ToolDescriptor.write("synthetic_write","Synthetic",mapper.createObjectNode()));
+        when(handler.execute(any(),any())).thenAnswer(call->{
+            assertThat(TransactionSynchronizationManager.isActualTransactionActive()).isFalse();
+            assertThat(journal.toolEvidence(7L,"recipe-user",9L).getFirst().status()).isEqualTo("STARTED");
+            effects.incrementAndGet(); return ToolResult.success("synthetic-private-result");
+        });
+        var loop=new AgentToolLoopRunner(mock(ChatLLMProvider.class),new ToolRegistry(List.of(handler)),
+            mock(com.clenzy.repository.AssistantMessageRepository.class),new PendingToolStore(),mapper,
+            mock(com.clenzy.service.AiTokenBudgetService.class),null,null,null,null,null,null);
+        var pending=new PendingToolStore.PendingTool("confirmed-call",9L,7L,"recipe-user","synthetic_write","{}",
+            List.of(),null,Instant.now().plusSeconds(60));
+        assertThatThrownBy(()->executor.execute(UUID.randomUUID(),7L,"recipe-user",9L,null,out->{
+            loop.executeConfirmed(pending,AgentContext.minimal(7L,"recipe-user"));
+            throw new IllegalStateException("synthetic-crash-after-effect");
+        },e->{})).hasMessage("Baitly chat completion unavailable").hasNoCause();
+        assertThat(effects.get()).isEqualTo(1);
+        assertThat(state()).isEqualTo("UNCERTAIN");
+        assertThat(journal.toolEvidence(7L,"recipe-user",9L).getFirst().status()).isEqualTo("STARTED");
+        assertThatThrownBy(()->executor.execute(UUID.randomUUID(),7L,"recipe-user",9L,null,out->{
+            loop.executeConfirmed(pending,AgentContext.minimal(7L,"recipe-user")); return 9L;
+        },e->{})).hasMessage("Baitly chat completion unavailable");
+        assertThat(effects.get()).isEqualTo(1);
+    }
+    @Test void recoveryExposesReadEvidenceWithoutPromotingToolTurnToAdmission() {
+        var ticket=startedTool("read",navigation()); toolMessage("read");
+        journal.finishTool(ticket,"read",nextMessage,false); journal.uncertain(ticket);
+        var pending=mock(com.clenzy.repository.AgentPendingActionRepository.class);
+        var conversations=mock(com.clenzy.repository.AssistantConversationRepository.class);
+        var messages=mock(com.clenzy.repository.AssistantMessageRepository.class);
+        when(conversations.findByIdAndUser(9L,"recipe-user"))
+            .thenReturn(Optional.of(new com.clenzy.model.AssistantConversation(7L,"recipe-user")));
+        when(messages.findByOrganizationIdAndConversationIdOrderByCreatedAtAscIdAsc(7L,9L)).thenReturn(history());
+        var recovery=new BaitlyChatRecoveryService(pending,conversations,messages,
+            mock(com.clenzy.repository.AgentRunRepository.class),mock(PendingToolStore.class),journal).read(9L,"recipe-user",7L);
+        assertThat(recovery.canStart()).isFalse();
+        assertThat(recovery.toolEvidence().getFirst().status()).isEqualTo("READ_ONLY_COMPLETED");
+        assertThat(recovery.history().getFirst().content()).isNull();
+        verify(pending,never()).claimDecision(any(),any(),any(),any(),any());
+    }
+    @ParameterizedTest @ValueSource(strings={"organization","user","conversation"})
+    void invocationContextMustMatchAdmittedTurnBeforeDispatch(String variant) {
+        var ticket=journal.begin(7L,"recipe-user",9L,UUID.randomUUID(),null);
+        try(var observation=BaitlyChatTurnObservation.open()) {
+            observation.bind(journal,ticket);
+            var context=AgentContext.minimal("organization".equals(variant)?8L:7L,
+                "user".equals(variant)?"other-user":"recipe-user");
+            assertThatThrownBy(()->BaitlyChatTurnObservation.toolStarted("read",navigation(),context,
+                "conversation".equals(variant)?10L:9L)).hasMessage("Baitly chat completion unavailable").hasNoCause();
+            assertThat(journal.toolEvidence(7L,"recipe-user",9L)).isEmpty();
+        }
+    }
+    @Test void unstructuredInvocationIdentifiersAreRejectedWithoutStoringThem() {
+        var ticket=journal.begin(7L,"recipe-user",9L,UUID.randomUUID(),null);
+        assertThatThrownBy(()->journal.startTool(ticket,"https://private-canary.invalid/?token=canary",navigation()))
+            .hasMessage("Baitly chat completion unavailable").hasNoCause();
+        assertThat(journal.toolEvidence(7L,"recipe-user",9L)).isEmpty();
+    }
+    @Test void resultAlreadyRecordedWithoutInvocationReceiptStillPreventsDispatch() {
+        var ticket=journal.begin(7L,"recipe-user",9L,UUID.randomUUID(),null);
+        toolMessage("legacy-result");
+        assertThatThrownBy(()->journal.startTool(ticket,"legacy-result",navigation()))
+            .hasMessage("Baitly chat completion unavailable").hasNoCause();
+        assertThat(journal.toolEvidence(7L,"recipe-user",9L)).isEmpty();
     }
 }

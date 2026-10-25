@@ -86,3 +86,7 @@ refus/reprises, pièces jointes ou multi-agent ; qualification des neuf rendus
 historiques, de l'état et du contrat découverte/relais. Aucun effet incertain
 n'est réconcilié par supposition. Les avis de dépendances et FR10/FR11 restent
 ouverts ; tests staging réservés à la campagne finale regroupée.
+
+Suite : [preuves bornées des appels d’outils](BAITLY-CHAT-TOOL-EVIDENCE.md).
+Le journal d’invocation 0608 ne modifie ni SAFE_TEXT ni la politique v1 ; une
+preuve de lecture isolée ne débloque pas un tour contenant des outils.

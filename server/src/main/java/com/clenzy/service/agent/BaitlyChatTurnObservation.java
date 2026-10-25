@@ -13,6 +13,31 @@ public final class BaitlyChatTurnObservation implements AutoCloseable {
     String finishReason;
     int doneCount;
     String doneReason;
+    private BaitlyChatCompletionJournal journal;
+    private BaitlyChatCompletionJournal.Ticket ticket;
+
+    void bind(BaitlyChatCompletionJournal journal, BaitlyChatCompletionJournal.Ticket ticket) {
+        this.journal=journal; this.ticket=ticket;
+    }
+    static void toolStarted(String id, ToolHandler handler, AgentContext context, Long conversationId) {
+        var current=CURRENT.get();
+        if(current!=null) {
+            current.toolsRequested=true;
+            if(current.journal==null || current.ticket==null) throw new IllegalStateException("Baitly chat completion unavailable");
+            if(context==null || !current.ticket.organizationId().equals(context.organizationId())
+                    || !current.ticket.userId().equals(context.keycloakId())
+                    || !current.ticket.conversationId().equals(conversationId))
+                throw new IllegalStateException("Baitly chat completion unavailable");
+            current.journal.startTool(current.ticket,id,handler);
+        }
+    }
+    static void toolPersisted(String id, Long messageId, boolean error) {
+        var current=CURRENT.get();
+        if(current!=null) {
+            if(current.journal==null || current.ticket==null) throw new IllegalStateException("Baitly chat completion unavailable");
+            current.journal.finishTool(current.ticket,id,messageId,error);
+        }
+    }
 
     private BaitlyChatTurnObservation() { CURRENT.set(this); }
     static BaitlyChatTurnObservation open() {

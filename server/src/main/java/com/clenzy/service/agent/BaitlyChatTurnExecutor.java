@@ -29,11 +29,13 @@ public class BaitlyChatTurnExecutor {
                 target=owned;
             }
             if(target!=null) ticket.set(journal.begin(organization,user,target,request,pendingId));
+            if(ticket.get()!=null) observation.bind(journal,ticket.get());
             var terminal=new ArrayList<AgentSseEvent>();
             Long result=work.apply(event -> {
                 if("conversation_created".equals(event.type())) {
                     if(ticket.get()!=null || event.conversationId()==null) throw unavailable();
                     ticket.set(journal.begin(organization,user,event.conversationId(),request,pendingId));
+                    observation.bind(journal,ticket.get());
                 }
                 observation.observe(event);
                 if("done".equals(event.type()) || "paused_awaiting_confirmation".equals(event.type()) || "error".equals(event.type())) {

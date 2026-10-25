@@ -551,6 +551,7 @@ public class AgentOrchestrator {
                 conversation.getId(), context.organizationId(),
                 pending.toolCallId(), result.content());
         messageRepository.save(toolMsg);
+        if(confirmed) BaitlyChatTurnObservation.toolPersisted(pending.toolCallId(),toolMsg.getId(),result.isError());
 
         // ─── Branche HITL multi-agent : re-entrer dans le flow multi-agent ───
         if (pending.isMultiAgent()) {
