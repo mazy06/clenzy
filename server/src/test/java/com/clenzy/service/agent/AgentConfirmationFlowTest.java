@@ -245,7 +245,7 @@ class AgentConfirmationFlowTest {
         AgentContext otherUser = AgentContext.minimal(1L, "different-user");
         IllegalArgumentException ex = assertThrows(IllegalArgumentException.class,
                 () -> orchestrator.resumeAfterConfirmation("toolu_OWN", true, otherUser, e -> {}));
-        assertTrue(ex.getMessage().contains("toolu_OWN"));
+        assertEquals("Baitly pending decision unavailable", ex.getMessage());
 
         // Le tool n'a PAS ete execute
         assertEquals(0, fakeWriteTool.execCount.get());
