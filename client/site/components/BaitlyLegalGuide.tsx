@@ -65,6 +65,13 @@ export default function BaitlyLegalGuide({
             <p className="blg-kicker">{m.scope}</p>
             <h2>{country.name[language]}</h2>
             <p>{country.scope[language]}</p>
+            <Link
+              className="baitly-text-link"
+              to={`/${country.slug}?lang=${language}`}
+            >
+              {m.product}
+              <ArrowRight size={16} aria-hidden="true" />
+            </Link>
           </div>
           <span className="blg-review">
             <Check size={16} aria-hidden="true" />

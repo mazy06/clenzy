@@ -24,6 +24,7 @@ import { BAITLY_JOURNEY_MESSAGES } from './baitlyJourneys';
 import { BAITLY_CONTACT_MESSAGES } from './baitlyContact';
 import { SITE_COOKIES_MESSAGES } from './siteCookies';
 import { CONNECTED_HOME_MESSAGES } from './connectedHome';
+import { BAITLY_COUNTRY_MESSAGES } from './baitlyCountries';
 
 /**
  * Parite de FORME entre les trois langues.
@@ -40,6 +41,7 @@ import { CONNECTED_HOME_MESSAGES } from './connectedHome';
  */
 const DICTIONARIES: Record<string, Record<SiteLanguage, unknown>> = {
   connectedHome: CONNECTED_HOME_MESSAGES,
+  baitlyCountries: BAITLY_COUNTRY_MESSAGES,
   cookies: SITE_COOKIES_MESSAGES,
   baitlyReadiness: BAITLY_READINESS_MESSAGES,
   baitlyJourneys: BAITLY_JOURNEY_MESSAGES,

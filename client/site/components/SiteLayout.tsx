@@ -269,10 +269,16 @@ function footerColumns(language: SiteLanguage) {
     },
     {
       title: m.columns.solutions,
-      links: SOLUTIONS.map((solution) => ({
-        label: solutionText(solution.slug, language).name,
-        to: `/solutions#${solution.slug}`,
-      })),
+      links: [
+        ...SOLUTIONS.map((solution) => ({
+          label: solutionText(solution.slug, language).name,
+          to: `/solutions#${solution.slug}`,
+        })),
+        ...LEGAL_COUNTRIES.map((country) => ({
+          label: `Baitly · ${country.name[language]}`,
+          to: `/${country.slug}?lang=${language}`,
+        })),
+      ],
     },
     {
       title: m.columns.resources,
