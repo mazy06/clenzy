@@ -135,6 +135,11 @@ class ScenarioReservationLifecycleIT extends AbstractIntegrationTest {
     /** Frontiere externe (emails/WhatsApp guests) : mockee, le pipeline reste reel. */
     @MockBean private GuestMessagingService guestMessagingService;
 
+    @org.springframework.boot.test.mock.mockito.SpyBean
+    private com.clenzy.service.automation.SendReviewRequestExecutor reviewRequestExecutor;
+    private final java.util.concurrent.atomic.AtomicReference<Throwable> reviewFailure =
+            new java.util.concurrent.atomic.AtomicReference<>();
+
     private Long orgAId;
     private Long orgBId;
     private User ownerA;
@@ -143,6 +148,17 @@ class ScenarioReservationLifecycleIT extends AbstractIntegrationTest {
     @BeforeEach
     void seedOrganizationsAndProperty() {
         clock.setInstant(T0);
+        reviewFailure.set(null);
+        // Preserve the real executor and its durable failure semantics. Only this
+        // synthetic scenario retains the cause for an actionable test assertion.
+        org.mockito.Mockito.doAnswer(call -> {
+            try {
+                return call.callRealMethod();
+            } catch (Throwable failure) {
+                reviewFailure.compareAndSet(null, failure);
+                throw failure;
+            }
+        }).when(reviewRequestExecutor).execute(any(), any());
         // The scripted boundary must return a committed receipt, not Mockito's
         // null default (which correctly represents an unconfirmed delivery).
         org.mockito.Mockito.when(guestMessagingService.sendForReservationViaChannel(
@@ -392,6 +408,9 @@ class ScenarioReservationLifecycleIT extends AbstractIntegrationTest {
         // Avis : SKIPPED pour la resa avec avis, EXECUTED (envoi reel via le
         // pipeline mocke en frontiere) pour l'autre.
         List<AutomationExecution> reviewExecs = executionsFor(orgAId, AutomationAction.SEND_REVIEW_REQUEST);
+        if (reviewFailure.get() != null) {
+            throw new AssertionError("Synthetic review request failed before its confirmed receipt", reviewFailure.get());
+        }
         assertThat(reviewExecs).hasSize(2);
         Map<Long, AutomationExecutionStatus> reviewBySubject = Map.of(
                 reviewExecs.get(0).getSubjectId(), reviewExecs.get(0).getStatus(),

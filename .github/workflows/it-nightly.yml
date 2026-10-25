@@ -71,7 +71,7 @@ jobs:
         run: |
           case "$INTEGRATION_SUITE" in
             all) tests='*IT' ;;
-            fixture-smoke) tests='RlsBootIT,KafkaFlowIT,AutomationEngineIT,StripeWebhookReplayIT' ;;
+            fixture-smoke) tests='RlsBootIT,KafkaFlowIT,AutomationEngineIT,StripeWebhookReplayIT,ScenarioReservationLifecycleIT' ;;
             *) echo 'Unknown integration suite'; exit 1 ;;
           esac
           mvn test -Dtest="$tests" -DfailIfNoTests=true -B -q
