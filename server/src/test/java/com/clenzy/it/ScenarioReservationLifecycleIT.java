@@ -130,6 +130,7 @@ class ScenarioReservationLifecycleIT extends AbstractIntegrationTest {
     @Autowired private MessageTemplateRepository messageTemplateRepository;
     @Autowired private CheckInInstructionsRepository checkInInstructionsRepository;
     @Autowired private com.clenzy.repository.WelcomeGuideRepository welcomeGuideRepository;
+    @Autowired private com.clenzy.repository.GuestMessageLogRepository receiptRepository;
 
     /** Frontiere externe (emails/WhatsApp guests) : mockee, le pipeline reste reel. */
     @MockBean private GuestMessagingService guestMessagingService;
@@ -142,6 +143,20 @@ class ScenarioReservationLifecycleIT extends AbstractIntegrationTest {
     @BeforeEach
     void seedOrganizationsAndProperty() {
         clock.setInstant(T0);
+        // The scripted boundary must return a committed receipt, not Mockito's
+        // null default (which correctly represents an unconfirmed delivery).
+        org.mockito.Mockito.when(guestMessagingService.sendForReservationViaChannel(
+                any(), any(), anyLong(), any(), anyMap())).thenAnswer(call -> {
+            var receipt = new com.clenzy.model.GuestMessageLog();
+            receipt.setOrganizationId(call.getArgument(2));
+            receipt.setReservation(call.getArgument(0));
+            receipt.setTemplate(call.getArgument(1));
+            receipt.setChannel(call.getArgument(3));
+            receipt.setRecipient("recipe@example.invalid");
+            receipt.setStatus(com.clenzy.model.MessageStatus.SENT);
+            receipt.setSentAt(LocalDateTime.now(clock));
+            return receiptRepository.saveAndFlush(receipt);
+        });
 
         String salt = UUID.randomUUID().toString().substring(0, 8);
         orgAId = organizationRepository.save(new Organization(

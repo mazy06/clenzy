@@ -65,7 +65,7 @@ class ScenarioInvoiceRemindersIT extends AbstractIntegrationTest {
         @org.springframework.context.annotation.Bean
         @org.springframework.context.annotation.Primary
         com.clenzy.testkit.MutableClock reminderClock() {
-            return com.clenzy.testkit.MutableClock.utc(java.time.Instant.now());
+            return com.clenzy.testkit.MutableClock.utc(java.time.Instant.now().truncatedTo(java.time.temporal.ChronoUnit.MICROS));
         }
     }
 
@@ -92,7 +92,7 @@ class ScenarioInvoiceRemindersIT extends AbstractIntegrationTest {
 
     @BeforeEach
     void seedInvoiceSetup() {
-        clock.setInstant(java.time.Instant.now());
+        clock.setInstant(java.time.Instant.now().truncatedTo(java.time.temporal.ChronoUnit.MICROS));
         salt = UUID.randomUUID().toString().substring(0, 8);
         orgAId = organizationRepository.save(new Organization(
                 "Facturation A " + salt, OrganizationType.INDIVIDUAL, "invoice-a-" + salt)).getId();

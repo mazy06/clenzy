@@ -291,6 +291,13 @@ public class AutomationEvaluationService implements AutomationEngine {
         boolean match=stay!=null?conditionEvaluator.matches(rule.getConditions(),stay)
             :conditionEvaluator.matchesSubjectData(rule.getConditions(),data);
         if(!match) return new Prepared(rule,context,null,AutomationActionExecutor.ExecutionResult.skipped("CONDITION_CHANGED"));
+        // Executors run after this preparation transaction closes. Materialize
+        // the delivery graph here, without moving any provider call into SQL.
+        org.hibernate.Hibernate.initialize(rule.getTemplate());
+        if(rule.getTemplate()!=null && !Long.valueOf(work.org()).equals(rule.getTemplate().getOrganizationId()))
+            throw new AccessDeniedException("AUTOMATION_SCOPE_REVIEW");
+        if(stay!=null && stay.getProperty()!=null)
+            org.hibernate.Hibernate.initialize(stay.getProperty().getOwner());
         var executor=actionRegistry.executorFor(rule.getActionType());
         return new Prepared(rule,context,executor,null);
     }
