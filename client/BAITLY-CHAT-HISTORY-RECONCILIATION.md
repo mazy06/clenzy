@@ -1,5 +1,10 @@
 # Historique du chat et réconciliation en lecture seule
 
+Suite : [preuve durable de fin](BAITLY-CHAT-DURABLE-COMPLETION.md). Le nouveau
+reçu qualifie uniquement les tours purement textuels démontrés ; les effets
+d'outils, les anciennes conversations sans reçu et les contradictions restent
+bloqués, sans rejeu.
+
 25 octobre 2026. Suite cumulative de #518, toujours sans activation du candidat
 React, retrait de SDK, modification de route active ou déploiement.
 

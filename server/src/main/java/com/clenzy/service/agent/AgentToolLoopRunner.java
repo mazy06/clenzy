@@ -164,9 +164,12 @@ public class AgentToolLoopRunner {
 
             // No tool calls → done
             if (outcome.toolCalls == null || outcome.toolCalls.isEmpty()) {
+                BaitlyChatTurnObservation.textPersisted(assistantMsg.getId(), outcome.finishReason);
                 consumer.accept(AgentSseEvent.done(outcome.finishReason));
                 return;
             }
+
+            BaitlyChatTurnObservation.toolsRequested();
 
             // Check if any tool requires confirmation → suspend
             // (X2 : une Regle de Confiance ACTIVE court-circuite la pause).

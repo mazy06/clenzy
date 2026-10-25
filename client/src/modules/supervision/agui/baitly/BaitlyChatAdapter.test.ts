@@ -6,7 +6,7 @@ import { reduceBaitlyChat, emptyChat } from './BaitlyChatModel';
 
 const action = { toolCallId: 'fixture-action', toolName: 'synthetic_tool', description: 'Synthetic decision',
   expiresAt: '2099-01-01T00:00:00Z', resumable: true };
-export const fresh = (): ChatRecovery => ({ version: 1, resumePolicy: 'durable-decision-v1', conversationId: 9, canStart: true, actions: [], history: [], reconciliation: [] });
+export const fresh = (): ChatRecovery => ({ version: 1, resumePolicy: 'durable-decision-v1', conversationId: 9, canStart: true, actions: [], history: [], reconciliation: [],completion:null });
 function response(frames: unknown[], cut = false): Response {
   return new Response(new ReadableStream<Uint8Array>({
     start(controller) {
@@ -33,6 +33,49 @@ function setup(proof: () => Promise<unknown> = async () => fresh()) {
 }
 
 describe('Baitly chat adapter restoration', () => {
+  it('restores a proved pure text conversation without resending it, then requires proof of the new request', async () => {
+    let proof:ChatRecovery={...fresh(),history:[
+      {id:'history-1',role:'user',content:'Synthetic question',toolCallId:null,hasAttachments:false},
+      {id:'history-2',role:'assistant',content:'Synthetic response',toolCallId:null,hasAttachments:false}],
+      completion:{policy:'durable-text-v1',status:'SAFE_TEXT',lastMessageId:'history-2',requestId:'older-request'}};
+    const {adapter,fetch}=setup(async()=>proof);
+    await adapter.restore(); expect(adapter.getSnapshot().phase).toBe('ready'); expect(fetch).not.toHaveBeenCalled();
+    fetch.mockImplementationOnce(async(_url,init)=>{
+      const input=JSON.parse(String(init.body));
+      expect(input.forwardedProps.completionPolicy).toBe('durable-text-v1');
+      expect(input.messages).toHaveLength(1); // Restored messages are never replayed.
+      proof={...proof,history:[...proof.history,
+        {id:'history-3',role:'user',content:'Next synthetic question',toolCallId:null,hasAttachments:false},
+        {id:'history-4',role:'assistant',content:'Next synthetic response',toolCallId:null,hasAttachments:false}],
+        completion:{policy:'durable-text-v1',status:'SAFE_TEXT',lastMessageId:'history-4',requestId:input.runId}};
+      return response([{type:'RUN_STARTED',threadId:input.threadId,runId:'server-proof'},
+        {type:'RUN_FINISHED',threadId:input.threadId,runId:'server-proof',outcome:{type:'success'}}]);
+    });
+    await adapter.send('Next synthetic question');
+    expect(fetch).toHaveBeenCalledTimes(1); expect(adapter.getSnapshot().phase).toBe('ready');
+  });
+  it('rejects stale completion after a finished stream and never submits again automatically', async () => {
+    const {adapter,fetch,load}=setup(); await adapter.restore();
+    load.mockResolvedValueOnce({...fresh(),history:[
+      {id:'history-1',role:'user',content:'Old question',toolCallId:null,hasAttachments:false},
+      {id:'history-2',role:'assistant',content:'Old answer',toolCallId:null,hasAttachments:false}],
+      completion:{policy:'durable-text-v1',status:'SAFE_TEXT',lastMessageId:'history-2',requestId:'old-request'}});
+    await adapter.send('New synthetic question');
+    expect(adapter.getSnapshot().phase).toBe('blocked'); expect(fetch).toHaveBeenCalledTimes(1);
+  });
+  it('does not clear active, uncertain, unsupported or mismatched durable proof', async () => {
+    for(const completion of [
+      {policy:'durable-text-v1',status:'RUNNING',lastMessageId:null,requestId:'fixture'},
+      {policy:'durable-text-v1',status:'UNCERTAIN',lastMessageId:null,requestId:'fixture'},
+      {policy:'unsupported',status:'SAFE_TEXT',lastMessageId:'history-2',requestId:'fixture'},
+      {policy:'durable-text-v1',status:'SAFE_TEXT',lastMessageId:'foreign',requestId:'fixture'},
+    ]) {
+      const {adapter,fetch}=setup(async()=>({...fresh(),history:[
+        {id:'history-1',role:'user',content:'Synthetic question',toolCallId:null,hasAttachments:false},
+        {id:'history-2',role:'assistant',content:'Synthetic answer',toolCallId:null,hasAttachments:false}],completion}));
+      await adapter.restore(); expect(adapter.getSnapshot().phase).toBe('blocked'); expect(fetch).not.toHaveBeenCalled();
+    }
+  });
   it('restores authoritative text and result receipts idempotently without outgoing messages or automatic tools', async () => {
     const history: ChatRecovery['history'] = [
       { id:'history-1', role:'user', content:'Question de recette', toolCallId:null, hasAttachments:true },
@@ -89,7 +132,7 @@ describe('Baitly chat adapter restoration', () => {
     await adapter.send('Recette synthétique');
     expect(fetch).toHaveBeenCalledTimes(1);
     expect(adapter.getSnapshot().model.items.map(i => i.text)).toEqual(['Recette synthétique','Réponse العربية']);
-    expect(adapter.getSnapshot().phase).toBe('ready');
+    expect(adapter.getSnapshot().phase).toBe('blocked'); // Terminal SSE without a receipt is insufficient.
     unsubscribe(); adapter.dispose();
   });
   it.each([true,false])('restores an action without executing it, then explicitly decides confirmed=%s', async confirmed => {

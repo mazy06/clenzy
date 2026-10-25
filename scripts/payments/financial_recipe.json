@@ -1,5 +1,7 @@
 {
   "backend": [
+    "BaitlyChatCompletionSqlTest",
+    "BaitlyChatCompletionHttpTest",
     "BaitlyChatHistoryTest",
     "AgentConfirmationFlowTest",
     "BaitlyChatRecoverySecurityTest",

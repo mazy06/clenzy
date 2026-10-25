@@ -5397,3 +5397,11 @@ databaseChangeLog:
         - sqlFile:
             path: changes/0606__baitly_noise_delivery_expiry_observation.sql
             relativeToChangelogFile: true
+
+  - changeSet:
+      id: "0607-baitly-chat-turn-receipts"
+      author: clenzy-team
+      changes:
+        - sqlFile:
+            path: changes/0607__baitly_chat_turn_receipts.sql
+            relativeToChangelogFile: true

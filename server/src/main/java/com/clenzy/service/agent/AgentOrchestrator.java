@@ -110,6 +110,10 @@ public class AgentOrchestrator {
      * Null sur le chemin legacy test-only.
      */
     private final ConversationSummaryService conversationSummaryService;
+    private BaitlyChatCompletionJournal completionJournal;
+
+    /** Explicit test seam; production uses the mandatory constructor dependency. */
+    void configureBaitlyChatCompletionJournal(BaitlyChatCompletionJournal journal) { this.completionJournal=journal; }
 
     /** Constructeur Spring : injection des collaborateurs extraits. */
     @Autowired
@@ -126,7 +130,8 @@ public class AgentOrchestrator {
                               IntentRouter intentRouter,
                               AgentRunRecorder agentRunRecorder,
                               com.clenzy.service.ai.RunCreditGuard runCreditGuard,
-                              ConversationSummaryService conversationSummaryService) {
+                              ConversationSummaryService conversationSummaryService,
+                              BaitlyChatCompletionJournal completionJournal) {
         this.toolRegistry = toolRegistry;
         this.conversationRepository = conversationRepository;
         this.messageRepository = messageRepository;
@@ -141,6 +146,21 @@ public class AgentOrchestrator {
         this.agentRunRecorder = agentRunRecorder;
         this.runCreditGuard = runCreditGuard;
         this.conversationSummaryService = conversationSummaryService;
+        this.completionJournal=completionJournal;
+    }
+
+    /** Compatibility constructor for existing explicit unit fixtures. */
+    public AgentOrchestrator(ToolRegistry toolRegistry, AssistantConversationRepository conversationRepository,
+                              AssistantMessageRepository messageRepository, PendingToolStore pendingToolStore,
+                              AgentPromptComposer promptComposer, AiTargetResolver targetResolver,
+                              AgentToolLoopRunner toolLoopRunner, ConversationHistoryMapper historyMapper,
+                              MultiAgentFlowRunner multiAgentFlowRunner, AiTokenBudgetService tokenBudgetService,
+                              IntentRouter intentRouter, AgentRunRecorder agentRunRecorder,
+                              com.clenzy.service.ai.RunCreditGuard runCreditGuard,
+                              ConversationSummaryService conversationSummaryService) {
+        this(toolRegistry,conversationRepository,messageRepository,pendingToolStore,promptComposer,targetResolver,
+                toolLoopRunner,historyMapper,multiAgentFlowRunner,tokenBudgetService,intentRouter,agentRunRecorder,
+                runCreditGuard,conversationSummaryService,null);
     }
 
     /**
@@ -251,6 +271,9 @@ public class AgentOrchestrator {
 
         // 1. Resoudre la conversation (creer si null)
         AssistantConversation conversation = resolveOrCreateConversation(conversationId, context);
+        if(completionJournal!=null && !BaitlyChatTurnObservation.active()) {
+            completionJournal.requireLegacyUntracked(context.organizationId(),context.keycloakId(),conversation.getId(),null);
+        }
         if (conversationId == null) {
             consumer.accept(AgentSseEvent.conversationCreated(conversation.getId()));
         }
@@ -365,6 +388,7 @@ public class AgentOrchestrator {
         //    Pas de spécialiste → impossible, fallback aussi.
         //    Si multi-agent throw, on log et fallback automatiquement.
         if (multiAgentEligible) {
+            BaitlyChatTurnObservation.multiAgent();
             try {
                 com.clenzy.service.agent.multiagent.OrchestrationContext orchestrationCtx =
                         new com.clenzy.service.agent.multiagent.OrchestrationContext(memories, kbHits);
@@ -474,6 +498,9 @@ public class AgentOrchestrator {
                                          boolean confirmed,
                                          AgentContext context,
                                          Consumer<AgentSseEvent> consumer) {
+        if(completionJournal!=null && !BaitlyChatTurnObservation.active()) {
+            completionJournal.requireLegacyUntracked(context.organizationId(),context.keycloakId(),null,toolCallId);
+        }
         PendingToolStore.PendingTool pending = pendingToolStore
                 .consume(toolCallId, context.keycloakId(), context.organizationId(), confirmed)
                 .orElseThrow(() -> new IllegalArgumentException(

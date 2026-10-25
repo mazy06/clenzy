@@ -11,7 +11,9 @@ const recoverySchema = z.object({ version: z.literal(1), resumePolicy: z.literal
     content: z.string().nullable(), toolCallId: z.string().nullable(), hasAttachments: z.boolean() })).default([]),
   reconciliation: z.array(z.object({ toolCallId: z.string().min(1), toolName: z.string().min(1),
     evidence: z.enum(['AWAITING_DECISION', 'EXPIRED', 'DECLINED', 'RESULT_RECORDED', 'UNCERTAIN', 'CONFLICT']),
-    resultMessageId: z.string().nullable() })).default([]) });
+    resultMessageId: z.string().nullable() })).default([]),
+  completion: z.object({policy:z.literal('durable-text-v1'),status:z.enum(['RUNNING','SAFE_TEXT','PAUSED','UNCERTAIN']),
+    lastMessageId:z.string().nullable(),requestId:z.string().min(1)}).nullable().default(null) });
 export type ChatRecovery = z.infer<typeof recoverySchema>;
 export interface ChatSnapshot {
   phase: 'restoring' | 'ready' | 'running' | 'review' | 'blocked';
@@ -59,7 +61,11 @@ export class BaitlyChatAdapter {
       || result.data.reconciliation.some(r => (r.evidence === 'RESULT_RECORDED' && r.resultMessageId === null)
         || (r.resultMessageId !== null && !result.data.history.some(m => m.id === r.resultMessageId
           && m.role === 'tool' && m.toolCallId === r.toolCallId)))
-      || (result.data.canStart && (result.data.history.length > 0 || result.data.reconciliation.length > 0))
+      || (result.data.canStart && (result.data.reconciliation.length > 0 || result.data.actions.length > 0))
+      || (result.data.canStart && result.data.history.length > 0 && (result.data.completion?.status !== 'SAFE_TEXT'
+        || result.data.completion.lastMessageId !== result.data.history.at(-1)?.id
+        || result.data.history.some(m => m.role === 'tool' || m.hasAttachments)))
+      || (result.data.canStart && result.data.completion !== null && result.data.completion.status !== 'SAFE_TEXT')
       || result.data.actions.some(a => result.data.history.some(m => m.role === 'tool' && m.toolCallId === a.toolCallId))
       || result.data.actions.some(a => result.data.reconciliation.some(r => r.toolCallId === a.toolCallId
         && r.evidence !== 'AWAITING_DECISION'))) {
@@ -67,9 +73,11 @@ export class BaitlyChatAdapter {
     }
     return { ...result.data, actions: result.data.actions.filter(a => Date.parse(a.expiresAt) > this.now()) };
   }
-  private recoveredPhase(proof: ChatRecovery, completedLive = false): ChatSnapshot['phase'] {
+  private recoveredPhase(proof: ChatRecovery, requireCompletion=false): ChatSnapshot['phase'] {
+    if (requireCompletion && proof.completion === null) return 'blocked';
+    if (proof.completion?.status === 'RUNNING' || proof.completion?.status === 'UNCERTAIN') return 'blocked';
     if (proof.reconciliation.some(row => row.evidence === 'UNCERTAIN' || row.evidence === 'CONFLICT')) return 'blocked';
-    return proof.actions.length ? 'review' : proof.canStart || completedLive ? 'ready' : 'blocked';
+    return proof.actions.length ? 'review' : proof.canStart ? 'ready' : 'blocked';
   }
   async restore(): Promise<void> {
     if (this.busy || this.disposed) return;
@@ -123,19 +131,19 @@ export class BaitlyChatAdapter {
       this.update({ phase: 'running', failure: null });
       const outcome = await client.run({ threadId, runId, messages: this.snapshot.model.messages,
         state: this.snapshot.model.state, tools: [], context: [],
-        forwardedProps: { conversationId: this.options.conversationId },
+        forwardedProps: { conversationId: this.options.conversationId, completionPolicy:'durable-text-v1' },
         ...(decision ? { resume: [{ interruptId: decision.id,
           status: decision.confirmed ? 'resolved' as const : 'cancelled' as const,
           payload: { confirmed: decision.confirmed } }] } : {}),
       }, (event: BaitlyAgUiEvent) => { this.update({ model: reduceBaitlyChat(this.snapshot.model, event) }); });
       if (this.disposed) return;
-      // Only a finished, observed run may allow another explicit live message.
+      // Terminal SSE alone never authorizes another message; require server proof.
       if (outcome.type === 'interrupt') {
         const proof = await this.proof();
-        this.update({ phase: this.recoveredPhase(proof), pending: proof.actions, reconciliation: proof.reconciliation });
+        this.update({ phase: proof.completion?.requestId===runId?this.recoveredPhase(proof,true):'blocked', pending: proof.actions, reconciliation: proof.reconciliation });
       } else {
         const proof = await this.proof();
-        this.update({ phase: this.recoveredPhase(proof, true), pending: proof.actions, reconciliation: proof.reconciliation });
+        this.update({ phase: proof.completion?.requestId===runId?this.recoveredPhase(proof,true):'blocked', pending: proof.actions, reconciliation: proof.reconciliation });
       }
     } catch (error) {
       this.update({ phase: 'blocked', failure: error instanceof BaitlyAgUiError ? error.code : 'RUN_UNCERTAIN' });

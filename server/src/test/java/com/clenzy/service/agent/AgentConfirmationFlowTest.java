@@ -55,6 +55,26 @@ class AgentConfirmationFlowTest {
     private AgentContext ctx;
     private FakeWriteTool fakeWriteTool;
 
+    @Test void legacyChatCannotBypassAnExistingDurableFenceBeforeSavingOrCallingProvider() {
+        var journal=mock(BaitlyChatCompletionJournal.class);
+        orchestrator.configureBaitlyChatCompletionJournal(journal);
+        doThrow(new IllegalStateException("Baitly chat completion unavailable")).when(journal)
+                .requireLegacyUntracked(1L,"user-confirm-test",50L,null);
+        assertThrows(IllegalStateException.class,()->orchestrator.handleMessage(50L,"Synthetic retry",ctx,e->{}));
+        verify(msgRepo,never()).save(any()); verify(chatProvider,never()).streamChat(any(),any());
+        assertEquals(0,fakeWriteTool.execCount.get());
+    }
+
+    @Test void legacyConfirmationCannotBypassAnExistingDurableFence() {
+        var journal=mock(BaitlyChatCompletionJournal.class);
+        orchestrator.configureBaitlyChatCompletionJournal(journal);
+        doThrow(new IllegalStateException("Baitly chat completion unavailable")).when(journal)
+                .requireLegacyUntracked(1L,"user-confirm-test",null,"synthetic-pending");
+        assertThrows(IllegalStateException.class,()->orchestrator.resumeAfterConfirmation("synthetic-pending",true,ctx,e->{}));
+        verify(chatProvider,never()).streamChat(any(),any());
+        assertEquals(0,fakeWriteTool.execCount.get());
+    }
+
     @BeforeEach
     void setUp() {
         om = new ObjectMapper();

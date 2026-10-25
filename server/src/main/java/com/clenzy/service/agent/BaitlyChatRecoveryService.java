@@ -24,12 +24,20 @@ public class BaitlyChatRecoveryService {
     private final AssistantMessageRepository messages;
     private final AgentRunRepository runs;
     private final PendingToolStore store;
+    private final BaitlyChatCompletionJournal completionJournal;
 
+    @org.springframework.beans.factory.annotation.Autowired
+    public BaitlyChatRecoveryService(AgentPendingActionRepository pending,
+            AssistantConversationRepository conversations, AssistantMessageRepository messages,
+            AgentRunRepository runs, PendingToolStore store, BaitlyChatCompletionJournal completionJournal) {
+        this.pending = pending; this.conversations = conversations; this.messages = messages;
+        this.runs = runs; this.store = store;
+        this.completionJournal=completionJournal;
+    }
     public BaitlyChatRecoveryService(AgentPendingActionRepository pending,
             AssistantConversationRepository conversations, AssistantMessageRepository messages,
             AgentRunRepository runs, PendingToolStore store) {
-        this.pending = pending; this.conversations = conversations; this.messages = messages;
-        this.runs = runs; this.store = store;
+        this(pending,conversations,messages,runs,store,null);
     }
 
     public record Action(String toolCallId, String toolName, String description,
@@ -41,9 +49,9 @@ public class BaitlyChatRecoveryService {
     public record Reconciliation(String toolCallId, String toolName, Evidence evidence, String resultMessageId) {}
     public record Recovery(int version, String resumePolicy, Long conversationId,
                            boolean canStart, List<Action> actions, List<HistoryEntry> history,
-                           List<Reconciliation> reconciliation) {
+                           List<Reconciliation> reconciliation, BaitlyChatCompletionJournal.Proof completion) {
         public Recovery(int version, String resumePolicy, Long conversationId, boolean canStart, List<Action> actions) {
-            this(version, resumePolicy, conversationId, canStart, actions, List.of(), List.of());
+            this(version, resumePolicy, conversationId, canStart, actions, List.of(), List.of(),null);
         }
     }
 
@@ -76,14 +84,16 @@ public class BaitlyChatRecoveryService {
                 .toList();
         // Empty pending alone is NOT evidence that a previous request never ran.
         // Only an untouched conversation may start without reviewing server history.
-        boolean canStart = rows.isEmpty() && history.isEmpty()
+        var completion=completionJournal==null?null:completionJournal.proof(organizationId,userId,conversationId,history);
+        boolean canStart = rows.isEmpty() && ((completion!=null && "SAFE_TEXT".equals(completion.status()))
+                || (completion==null && history.isEmpty()
                 && !messages.existsByOrganizationIdAndConversationId(organizationId, conversationId)
-                && !runs.existsByOrganizationIdAndConversationId(organizationId, conversationId);
+                && !runs.existsByOrganizationIdAndConversationId(organizationId, conversationId)));
         var transcript = history.stream().map(m -> new HistoryEntry("history-" + m.getId(), m.getRole(),
                 "tool".equals(m.getRole()) ? null : m.getContent(), m.getToolCallId(),
                 m.getAttachments() != null && !"[]".equals(m.getAttachments()))).toList();
         var evidence = rows.stream().map(a -> reconcile(a, results.getOrDefault(a.getToolCallId(), List.of()), now)).toList();
-        return new Recovery(1, "durable-decision-v1", conversationId, canStart, actions, transcript, evidence);
+        return new Recovery(1, "durable-decision-v1", conversationId, canStart, actions, transcript, evidence,completion);
     }
 
     private Reconciliation reconcile(AgentPendingAction row, List<AssistantMessage> results, Instant now) {
