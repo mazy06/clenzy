@@ -93,7 +93,21 @@ class LiquibaseVirginReplayIT {
         LocalContainerEntityManagerFactoryBean factory = new LocalContainerEntityManagerFactoryBean();
         factory.setDataSource(new DriverManagerDataSource(
                 url + "&stringtype=unspecified", postgres.getUsername(), postgres.getPassword()));
-        factory.setPackagesToScan("com.clenzy");
+        // The test classpath also contains @Entity fixtures. Production does not
+        // ship those classes; requiring their tables would invalidate this oracle.
+        var root = ClenzyApplication.class.getProtectionDomain().getCodeSource().getLocation();
+        var scanner = new org.springframework.orm.jpa.persistenceunit.PersistenceManagedTypesScanner(
+                new org.springframework.core.io.DefaultResourceLoader(), name -> {
+                    try {
+                        return root.equals(Class.forName(name, false, ClenzyApplication.class.getClassLoader())
+                                .getProtectionDomain().getCodeSource().getLocation());
+                    } catch (ClassNotFoundException failure) {
+                        throw new IllegalStateException("Baitly production entity could not be inspected", failure);
+                    }
+                });
+        var managed = scanner.scan("com.clenzy");
+        assertTrue(managed.getManagedClassNames().contains(com.clenzy.model.User.class.getName()));
+        factory.setManagedTypes(managed);
         factory.setJpaVendorAdapter(new HibernateJpaVendorAdapter());
         Map<String, Object> props = new HashMap<>();
         props.put("hibernate.hbm2ddl.auto", "validate");

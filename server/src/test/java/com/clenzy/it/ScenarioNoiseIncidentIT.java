@@ -68,6 +68,7 @@ import static org.mockito.Mockito.verify;
 class ScenarioNoiseIncidentIT extends AbstractIntegrationTest {
 
     @Autowired private NoiseAlertService noiseAlertService;
+    @Autowired private com.clenzy.service.messaging.AutomationEvaluationService durableEngine;
     @Autowired private javax.sql.DataSource dataSource;
     @Autowired private SupervisionSuggestionService suggestionService;
 
@@ -100,7 +101,7 @@ class ScenarioNoiseIncidentIT extends AbstractIntegrationTest {
                 var selected=new liquibase.changelog.DatabaseChangeLog("db/changelog/db.changelog-master.yaml");
                 master.getDatabaseChangeLog().getChangeSets().stream()
                     .filter(set -> java.util.Set.of("0600-baitly-noise-warning-attempts","0601-baitly-noise-delivery-outbox","0602-baitly-noise-alert-cooldown-index").contains(set.getId())).forEach(selected::addChangeSet);
-                if(selected.getChangeSets().size()!=1) throw new IllegalStateException("Changeset de recette requis");
+                if(selected.getChangeSets().size()!=3) throw new IllegalStateException("Trois changesets de recette requis");
                 new liquibase.Liquibase(selected,resources,database).update("");
             }
         } catch(Exception failure) { throw new IllegalStateException("Migration de recette avertissements echouee",failure); }
@@ -219,6 +220,7 @@ class ScenarioNoiseIncidentIT extends AbstractIntegrationTest {
         assertThat(first).isNotNull();
         assertThat(second).isNotNull();
         assertThat(third).isNotNull();
+        durableEngine.processScheduledExecutions();
 
         // ── UN SEUL message voyageur (journal PostgreSQL durable) : 1 EXECUTED, 2 SKIPPED. ──
         List<AutomationExecution> warnings = executionsFor(orgAId, AutomationAction.SEND_NOISE_WARNING);

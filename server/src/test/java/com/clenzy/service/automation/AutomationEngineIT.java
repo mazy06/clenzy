@@ -76,6 +76,8 @@ class AutomationEngineIT extends AbstractIntegrationTest {
     @Autowired private UserRepository userRepository;
     @Autowired private InvoiceRepository invoiceRepository;
     @Autowired private Clock clock;
+    @Autowired private javax.sql.DataSource dataSource;
+    @Autowired private com.clenzy.service.assignment.AssignmentPolicyStore assignmentPolicies;
 
     private Long orgAId;
     private Long orgBId;
@@ -84,9 +86,11 @@ class AutomationEngineIT extends AbstractIntegrationTest {
 
     @BeforeEach
     void createTestData() {
+        com.clenzy.config.BaitlyAutomationIntegrationSchema.install(dataSource);
         Organization orgA = organizationRepository.save(
             new Organization("Automation Org A", OrganizationType.INDIVIDUAL, "automation-org-a-"+java.util.UUID.randomUUID()));
         orgAId = orgA.getId();
+        com.clenzy.config.BaitlyAutomationIntegrationSchema.manualAssignment(assignmentPolicies, orgAId);
         Organization orgB = organizationRepository.save(
             new Organization("Automation Org B", OrganizationType.INDIVIDUAL, "automation-org-b-"+java.util.UUID.randomUUID()));
         orgBId = orgB.getId();
@@ -123,6 +127,7 @@ class AutomationEngineIT extends AbstractIntegrationTest {
         Optional<ServiceRequest> sr = serviceRequestRepository.findByAutoFlowKey(key, orgAId);
         assertTrue(sr.isPresent(), "La demande de menage automatique doit etre creee");
         assertNotNull(sr.get().getDesiredDate());
+        assertEquals("MANUAL", sr.get().getAssignmentPhase(), "La politique manuelle réelle doit être appliquée");
         assertEquals(CHECK_OUT, sr.get().getDesiredDate().toLocalDate(),
             "Le menage doit etre planifie au jour du check-out");
 
@@ -185,9 +190,13 @@ class AutomationEngineIT extends AbstractIntegrationTest {
         List<AutomationExecution> executions = executionsOf(rule);
         assertEquals(1, executions.size());
         assertEquals(AutomationExecutionStatus.SKIPPED, executions.get(0).getStatus());
-        assertNotNull(executions.get(0).getErrorMessage(), "La raison du skip doit etre persistee");
-        assertTrue(executions.get(0).getErrorMessage().contains("frequence"),
-            "Raison inattendue : " + executions.get(0).getErrorMessage());
+        assertEquals("AUTOMATION_SKIPPED", executions.get(0).getErrorMessage(),
+            "Le diagnostic durable est un code fixe, sans texte métier libre");
+        assertEquals(1, new org.springframework.jdbc.core.JdbcTemplate(dataSource).queryForObject(
+            "SELECT count(*) FROM baitly_automation_outcome_proofs WHERE execution_id=? AND organization_id=? "
+                + "AND outcome='SKIPPED' AND disputed=false AND applied_at IS NOT NULL AND apply_mode='NORMAL'",
+            Integer.class, executions.get(0).getId(), orgAId),
+            "Le statut doit avoir une preuve durable appliquée au même périmètre");
         assertEquals(0, cleaningRequestCount(orgAId), "Aucune demande de menage pour une frequence WEEKLY");
     }
 

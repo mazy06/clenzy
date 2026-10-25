@@ -23,8 +23,10 @@ import javax.crypto.spec.SecretKeySpec;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.UUID;
+import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.Mockito.*;
 
 /**
  * Webhook Stripe SIGNE et REJOUE (strategie de tests, vague T3) : idempotence de
@@ -35,6 +37,8 @@ import static org.assertj.core.api.Assertions.assertThat;
  * <p>Bout en bout REEL : le payload JSON passe par {@code Webhook.constructEvent}
  * (verification de signature HMAC-SHA256 contre le secret {@code stripe.webhook-secret}
  * du profil test) puis par la deserialisation SDK Stripe — pas de mock du SDK.
+ * Les lectures distantes du gateway utilisent des preuves synthétiques ; aucun
+ * appel au réseau Stripe. Le consumer réel est drainé depuis l'outbox commitée.
  * La signature est calculee comme Stripe la calcule : {@code v1 = HMAC(secret,
  * "{timestamp}.{payload}")}.</p>
  */
@@ -49,6 +53,12 @@ class StripeWebhookReplayIT extends AbstractIntegrationTest {
     @Autowired private UserRepository userRepository;
     @Autowired private AiCreditGrantRepository grantRepository;
     @Autowired private AiUsageLedgerRepository ledgerRepository;
+    @Autowired private com.clenzy.repository.PaymentTransactionRepository payments;
+    @Autowired private com.clenzy.repository.OutboxEventRepository outbox;
+    @Autowired private com.clenzy.service.PaymentEventConsumer consumer;
+    @Autowired private com.fasterxml.jackson.databind.ObjectMapper mapper;
+    // Only remote reads are synthetic. Signature, persistence and reconciliation stay real.
+    @org.springframework.boot.test.mock.mockito.MockBean private com.clenzy.payment.StripeGateway stripe;
 
     private Long orgId;
     private String salt;
@@ -59,10 +69,11 @@ class StripeWebhookReplayIT extends AbstractIntegrationTest {
         orgId = organizationRepository.save(new Organization(
                 "Stripe Replay " + salt, OrganizationType.INDIVIDUAL, "stripe-replay-" + salt)).getId();
 
-        User payer = new User("Paul", "Payeur", "paul." + salt + "@test.com", "password123");
+        User payer = new User("Paul", "Payeur", "paul." + salt + "@example.invalid", "password123");
         payer.setOrganizationId(orgId);
         payer.setKeycloakId("kc-stripe-" + salt);
         payer.setStripeSubscriptionId("sub_IT_" + salt);
+        payer.setStripeCustomerId("cus_IT_" + salt);
         payer.setForfait("premium");
         userRepository.save(payer);
     }
@@ -70,8 +81,9 @@ class StripeWebhookReplayIT extends AbstractIntegrationTest {
     // ─── invoice.paid rejoue : une seule dotation SUBSCRIPTION ──────────────
 
     @Test
-    void invoicePaid_deliveredTwice_grantsCreditsOnlyOnce() {
+    void invoicePaid_deliveredTwice_grantsCreditsOnlyOnce() throws Exception {
         String invoiceId = "in_IT_" + salt;
+        prepareInvoiceProof(invoiceId);
         String payload = invoicePaidPayload(invoiceId, "sub_IT_" + salt);
 
         ResponseEntity<String> first = deliverSigned(payload);
@@ -103,16 +115,41 @@ class StripeWebhookReplayIT extends AbstractIntegrationTest {
     // ─── checkout.session.completed top-up rejoue : un seul grant TOPUP ─────
 
     @Test
-    void checkoutTopUp_deliveredTwice_grantsCreditsOnlyOnce() {
+    void checkoutTopUp_deliveredTwice_grantsCreditsOnlyOnce() throws Exception {
         String sessionId = "cs_IT_" + salt;
-        long millicredits = 2_500_000L;
-        String payload = topUpCheckoutPayload(sessionId, orgId, millicredits);
+        long millicredits = 500_000L;
+        String ref = "BAITLY-IT-" + salt;
+        var tx = new com.clenzy.model.PaymentTransaction();
+        tx.setOrganizationId(orgId);
+        tx.setTransactionRef(ref);
+        tx.setProviderType(com.clenzy.model.PaymentProviderType.STRIPE);
+        tx.setProviderTxId(sessionId);
+        tx.setPaymentType(com.clenzy.model.TransactionType.CHECKOUT);
+        tx.setSourceType(com.clenzy.service.ai.AiCreditPurchaseService.SOURCE_TYPE);
+        tx.setSourceId(orgId);
+        tx.setAmount(new java.math.BigDecimal("12.00"));
+        tx.setCurrency("EUR");
+        tx.setMetadata(Map.of("pack_key", "pack_500", "millicredits", millicredits));
+        payments.saveAndFlush(tx);
+        String payload = topUpCheckoutPayload(sessionId, orgId, ref);
 
         ResponseEntity<String> first = deliverSigned(payload);
         ResponseEntity<String> replay = deliverSigned(payload);
 
         assertThat(first.getStatusCode()).isEqualTo(HttpStatus.OK);
         assertThat(replay.getStatusCode()).isEqualTo(HttpStatus.OK);
+
+        assertThat(payments.findByTransactionRef(ref).orElseThrow().getStatus())
+                .isEqualTo(com.clenzy.model.TransactionStatus.COMPLETED);
+        var events = outbox.findAll().stream()
+                .filter(e -> ref.equals(e.getAggregateId()) && "PAYMENT_COMPLETED".equals(e.getEventType())).toList();
+        assertThat(events).as("One durable event despite the signed webhook replay").hasSize(1);
+        Map<String, Object> event = mapper.readValue(events.getFirst().getPayload(),
+                new com.fasterxml.jackson.core.type.TypeReference<>() {});
+        // The shared IT fixture has no Kafka broker: drive the real consumer explicitly,
+        // including duplicate delivery of the actual committed outbox payload.
+        consumer.handlePaymentEvent(event);
+        consumer.handlePaymentEvent(event);
 
         List<AiCreditGrant> grants = grantRepository.findAll().stream()
                 .filter(g -> sessionId.equals(g.getStripeRef()))
@@ -139,6 +176,16 @@ class StripeWebhookReplayIT extends AbstractIntegrationTest {
         assertThat(grantRepository.findAll().stream()
                 .filter(g -> ("in_IT_tampered_" + salt).equals(g.getStripeRef())))
                 .isEmpty();
+        verifyNoInteractions(stripe);
+    }
+
+    @Test
+    void legacyTopUpMetadata_doesNotProveFunding() {
+        String payload = topUpCheckoutPayload("cs_unverified_" + salt, orgId, "unknown")
+                .replace("\"sourceType\": \"AI_CREDIT_TOPUP\",", "");
+        assertThat(deliverSigned(payload).getStatusCode()).isEqualTo(HttpStatus.INTERNAL_SERVER_ERROR);
+        assertThat(grantLedgerLines()).isEmpty();
+        verifyNoInteractions(stripe);
     }
 
     // ─── Payloads + signature Stripe ─────────────────────────────────────────
@@ -173,7 +220,7 @@ class StripeWebhookReplayIT extends AbstractIntegrationTest {
                     "object": {
                       "id": "%s",
                       "object": "invoice",
-                      "subscription": "%s"
+                      "parent": {"subscription_details": {"subscription": "%s"}}
                     }
                   }
                 }
@@ -181,7 +228,7 @@ class StripeWebhookReplayIT extends AbstractIntegrationTest {
                 com.stripe.Stripe.API_VERSION, invoiceId, subscriptionId);
     }
 
-    private static String topUpCheckoutPayload(String sessionId, Long orgId, long millicredits) {
+    private static String topUpCheckoutPayload(String sessionId, Long orgId, String ref) {
         return """
                 {
                   "id": "evt_%s",
@@ -193,17 +240,56 @@ class StripeWebhookReplayIT extends AbstractIntegrationTest {
                       "id": "%s",
                       "object": "checkout.session",
                       "mode": "payment",
+                      "status": "complete",
                       "payment_status": "paid",
+                      "payment_intent": "pi_recipe",
+                      "amount_total": 1200,
+                      "currency": "eur",
                       "metadata": {
                         "type": "ai_credit_topup",
-                        "org_id": "%d",
-                        "millicredits": "%d"
+                        "orgId": "%d",
+                        "sourceId": "%d",
+                        "sourceType": "AI_CREDIT_TOPUP",
+                        "transactionRef": "%s"
                       }
                     }
                   }
                 }
                 """.formatted(UUID.randomUUID().toString().substring(0, 12),
-                com.stripe.Stripe.API_VERSION, sessionId, orgId, millicredits);
+                com.stripe.Stripe.API_VERSION, sessionId, orgId, orgId, ref);
+    }
+
+    private void prepareInvoiceProof(String invoiceId) throws Exception {
+        String customer = "cus_IT_" + salt, subscription = "sub_IT_" + salt;
+        long now = java.time.Instant.now().getEpochSecond();
+        var invoice = stripeObject(Map.ofEntries(
+                Map.entry("id", invoiceId), Map.entry("object", "invoice"), Map.entry("customer", customer),
+                Map.entry("parent", Map.of("subscription_details", Map.of("subscription", subscription))),
+                Map.entry("status", "paid"), Map.entry("amount_paid", 1200), Map.entry("amount_remaining", 0),
+                Map.entry("currency", "eur"), Map.entry("billing_reason", "subscription_cycle"),
+                Map.entry("lines", Map.of("has_more", false, "data", List.of(Map.of(
+                        "parent", Map.of("subscription_item_details", Map.of("subscription", subscription, "proration", false)),
+                        "period", Map.of("start", now - 60, "end", now + 86400 * 30L)))))
+        ), com.stripe.model.Invoice.class);
+        when(stripe.retrieveInvoice(invoiceId)).thenReturn(invoice);
+        when(stripe.retrieveSubscription(subscription)).thenReturn(stripeObject(
+                Map.of("id", subscription, "metadata", Map.of()), com.stripe.model.Subscription.class));
+        when(stripe.invoicePayments(invoiceId, null)).thenReturn(List.of(stripeObject(Map.of(
+                "id", "inpay_" + salt, "invoice", invoiceId, "status", "paid", "amount_paid", 1200,
+                "currency", "eur", "payment", Map.of("type", "payment_intent", "payment_intent", "pi_" + salt)),
+                com.stripe.model.InvoicePayment.class)));
+        when(stripe.retrievePaymentIntent("pi_" + salt)).thenReturn(stripeObject(Map.of(
+                "id", "pi_" + salt, "customer", customer, "status", "succeeded", "latest_charge", "ch_" + salt),
+                com.stripe.model.PaymentIntent.class));
+        when(stripe.retrieveCharge("ch_" + salt)).thenReturn(stripeObject(Map.of(
+                "object", "charge", "id", "ch_" + salt, "customer", customer, "amount", 1200, "amount_captured", 1200,
+                "amount_refunded", 0, "paid", true, "captured", true, "currency", "eur"), com.stripe.model.Charge.class));
+        when(stripe.refundsForCharge("ch_" + salt)).thenReturn(List.of());
+        when(stripe.disputesForCharge("ch_" + salt)).thenReturn(List.of());
+    }
+
+    private static <T> T stripeObject(Map<String, ?> fields, Class<T> type) {
+        return com.stripe.net.ApiResource.GSON.fromJson(com.stripe.net.ApiResource.GSON.toJson(fields), type);
     }
 
     private static String hmacSha256(String secret, String message) {

@@ -180,6 +180,13 @@ public class ReportSnapshotBuilder {
         final List<ReportSection> sections = new ArrayList<>();
 
         final List<Reservation> stays = staysOf(from, to, orgId, propertyIds);
+        // The headline and the detailed cascade use the same monetary basis,
+        // including tax and the existing reconciled-payout policy.
+        final PnlAmounts currentPnl = pnlAmounts(from, to, orgId, scope, current, stays);
+        final PnlAmounts previousPnl = pnlAmounts(previousFrom, previousTo, orgId, scope, previous,
+                staysOf(previousFrom, previousTo, orgId, propertyIds));
+        final PnlAmounts lastYearPnl = pnlAmounts(lastYearFrom, lastYearTo, orgId, scope, lastYear,
+                staysOf(lastYearFrom, lastYearTo, orgId, propertyIds));
 
         // Un rapport vide doit DIRE pourquoi il l'est. Aligner des zeros et des
         // « aucune donnee » laisse le lecteur croire a une panne, alors que la
@@ -195,7 +202,7 @@ public class ReportSnapshotBuilder {
             sections.add(distribution(from, to, orgId, propertyIds, currency));
         }
         if (request.wants(S_PNL)) {
-            sections.add(profitAndLoss(from, to, orgId, scope, current, currency, stays));
+            sections.add(profitAndLoss(currentPnl, currency));
         }
         if (request.wants(S_OCCUPANCY) && !stays.isEmpty()) {
             sections.add(occupancy(from, to, orgId, scope, current));
@@ -275,7 +282,8 @@ public class ReportSnapshotBuilder {
         // un seul point de passage garantit qu'aucune section future n'echappe
         // au traitement en etant simplement oubliee.
         return ReportAnonymiser.anonymise(
-                new ReportSnapshot(meta, headlineKpis(current, previous, lastYear, currency), sections));
+                new ReportSnapshot(meta, headlineKpis(current, previous, lastYear,
+                        currentPnl, previousPnl, lastYearPnl, currency), sections));
     }
 
     // ── Chiffres cles ───────────────────────────────────────────────────────
@@ -286,7 +294,9 @@ public class ReportSnapshotBuilder {
      * <p>C'est la seule page que la plupart des destinataires liront. Cinq
      * chiffres, chacun avec ses deux ecarts — au-dela, on ne retient plus rien.</p>
      */
-    private List<ReportKpi> headlineKpis(Totals current, Totals previous, Totals lastYear, String currency) {
+    private List<ReportKpi> headlineKpis(Totals current, Totals previous, Totals lastYear,
+                                        PnlAmounts currentPnl, PnlAmounts previousPnl, PnlAmounts lastYearPnl,
+                                        String currency) {
         return List.of(
                 new ReportKpi("revenue", "Revenus", money(current.revenue, currency), current.revenue,
                         growth(current.revenue, previous.revenue), growth(current.revenue, lastYear.revenue),
@@ -302,9 +312,10 @@ public class ReportSnapshotBuilder {
                 new ReportKpi("adr", "Prix moyen par nuit", money(current.adr(), currency), current.adr(),
                         growth(current.adr(), previous.adr()), growth(current.adr(), lastYear.adr()),
                         true, "ADR — revenus divisés par les nuits vendues"),
-                new ReportKpi("net", "Net propriétaire", money(current.net(), currency), current.net(),
-                        growth(current.net(), previous.net()), growth(current.net(), lastYear.net()),
-                        true, "Après commissions et charges"));
+                new ReportKpi("net", "Net propriétaire", money(currentPnl.net(), currency), currentPnl.net(),
+                        growth(currentPnl.net(), previousPnl.net()), growth(currentPnl.net(), lastYearPnl.net()),
+                        true, currentPnl.reconciled() ? "Issu des reversements réconciliés de la période"
+                                : "Estimation après taxe de séjour, commissions et charges"));
     }
 
     // ── Sections ────────────────────────────────────────────────────────────
@@ -429,9 +440,12 @@ public class ReportSnapshotBuilder {
      * estimation comme un montant arrete est la faute la plus couteuse d'un
      * rapport financier.</p>
      */
-    private ReportSection profitAndLoss(LocalDate from, LocalDate to, Long orgId,
-                                        ReportScope scope, Totals current, String currency,
-                                        List<Reservation> stays) {
+    private record PnlAmounts(boolean reconciled, BigDecimal gross, BigDecimal otaFees,
+                              BigDecimal management, BigDecimal expenses, BigDecimal touristTax,
+                              BigDecimal net) {}
+
+    private PnlAmounts pnlAmounts(LocalDate from, LocalDate to, Long orgId,
+                                  ReportScope scope, Totals current, List<Reservation> stays) {
         final List<OwnerPayout> payouts = scope.ownerId() == null ? List.of()
                 : payoutRepository.findByOwnerId(scope.ownerId(), orgId).stream()
                         .filter(p -> p.getPeriodStart() != null && p.getPeriodEnd() != null)
@@ -454,6 +468,13 @@ public class ReportSnapshotBuilder {
         final BigDecimal touristTax = touristTaxOf(stays, from, to);
         final BigDecimal net = reconciled ? sum(payouts, OwnerPayout::getNetAmount)
                 : gross.subtract(touristTax).subtract(otaFees).subtract(expenses);
+        return new PnlAmounts(reconciled, gross, otaFees, management, expenses, touristTax, net);
+    }
+
+    private ReportSection profitAndLoss(PnlAmounts amounts, String currency) {
+        final boolean reconciled = amounts.reconciled();
+        final BigDecimal gross = amounts.gross(), otaFees = amounts.otaFees(), management = amounts.management();
+        final BigDecimal expenses = amounts.expenses(), touristTax = amounts.touristTax(), net = amounts.net();
 
         final List<List<String>> rows = new ArrayList<>();
         rows.add(List.of("Revenus bruts", money(gross, currency), ""));
@@ -1749,9 +1770,6 @@ public class ReportSnapshotBuilder {
                     : revenue.divide(BigDecimal.valueOf(nights), 2, RoundingMode.HALF_UP);
         }
 
-        BigDecimal net() {
-            return revenue.subtract(fees).subtract(costs);
-        }
     }
 
     /** Biens ACTIFS du perimetre — le denominateur d'occupation du moteur. */

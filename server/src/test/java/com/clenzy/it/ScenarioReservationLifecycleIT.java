@@ -111,6 +111,8 @@ class ScenarioReservationLifecycleIT extends AbstractIntegrationTest {
     }
 
     @Autowired private AutomationEngine automationEngine;
+    @Autowired private com.clenzy.service.messaging.AutomationEvaluationService durableEngine;
+    @Autowired private com.clenzy.service.assignment.AssignmentPolicyStore assignmentPolicies;
     @Autowired private AutomationSchedulerService automationSchedulerService;
     @Autowired private MutableClock clock;
 
@@ -128,9 +130,17 @@ class ScenarioReservationLifecycleIT extends AbstractIntegrationTest {
     @Autowired private MessageTemplateRepository messageTemplateRepository;
     @Autowired private CheckInInstructionsRepository checkInInstructionsRepository;
     @Autowired private com.clenzy.repository.WelcomeGuideRepository welcomeGuideRepository;
+    @Autowired private com.clenzy.repository.GuestMessageLogRepository receiptRepository;
 
     /** Frontiere externe (emails/WhatsApp guests) : mockee, le pipeline reste reel. */
     @MockBean private GuestMessagingService guestMessagingService;
+
+    @org.springframework.boot.test.mock.mockito.SpyBean
+    private com.clenzy.service.automation.SendReviewRequestExecutor reviewRequestExecutor;
+    @org.springframework.boot.test.mock.mockito.SpyBean
+    private com.clenzy.service.automation.SuggestDepositReleaseExecutor depositReleaseExecutor;
+    private final java.util.concurrent.atomic.AtomicReference<Throwable> executorFailure =
+            new java.util.concurrent.atomic.AtomicReference<>();
 
     private Long orgAId;
     private Long orgBId;
@@ -140,10 +150,46 @@ class ScenarioReservationLifecycleIT extends AbstractIntegrationTest {
     @BeforeEach
     void seedOrganizationsAndProperty() {
         clock.setInstant(T0);
+        executorFailure.set(null);
+        // Preserve the real executor and its durable failure semantics. Only this
+        // synthetic scenario retains the cause for an actionable test assertion.
+        org.mockito.Mockito.doAnswer(call -> {
+            try {
+                return call.callRealMethod();
+            } catch (Throwable failure) {
+                executorFailure.compareAndSet(null, failure);
+                throw failure;
+            }
+        }).when(reviewRequestExecutor).execute(any(), any());
+        org.mockito.Mockito.doAnswer(call -> {
+            try {
+                return call.callRealMethod();
+            } catch (Throwable failure) {
+                executorFailure.compareAndSet(null, failure);
+                throw failure;
+            }
+        }).when(depositReleaseExecutor).execute(any(), any());
+        // The scripted boundary must return a committed receipt, not Mockito's
+        // null default (which correctly represents an unconfirmed delivery).
+        org.mockito.Mockito.when(guestMessagingService.sendForReservationViaChannel(
+                any(), any(), anyLong(), any(), anyMap())).thenAnswer(call -> {
+            assertThat(org.springframework.transaction.support.TransactionSynchronizationManager
+                    .isActualTransactionActive()).as("provider boundary stays outside SQL").isFalse();
+            var receipt = new com.clenzy.model.GuestMessageLog();
+            receipt.setOrganizationId(call.getArgument(2));
+            receipt.setReservation(call.getArgument(0));
+            receipt.setTemplate(call.getArgument(1));
+            receipt.setChannel(call.getArgument(3));
+            receipt.setRecipient("recipe@example.invalid");
+            receipt.setStatus(com.clenzy.model.MessageStatus.SENT);
+            receipt.setSentAt(LocalDateTime.now(clock));
+            return receiptRepository.saveAndFlush(receipt);
+        });
 
         String salt = UUID.randomUUID().toString().substring(0, 8);
         orgAId = organizationRepository.save(new Organization(
                 "Lifecycle A " + salt, OrganizationType.INDIVIDUAL, "lifecycle-a-" + salt)).getId();
+        com.clenzy.config.BaitlyAutomationIntegrationSchema.manualAssignment(assignmentPolicies, orgAId);
         orgBId = organizationRepository.save(new Organization(
                 "Lifecycle B " + salt, OrganizationType.INDIVIDUAL, "lifecycle-b-" + salt)).getId();
 
@@ -214,6 +260,7 @@ class ScenarioReservationLifecycleIT extends AbstractIntegrationTest {
     private void fire(AutomationTrigger trigger, Long orgId, Long reservationId) {
         automationEngine.fireTrigger(trigger, orgId,
                 new AutomationSubject(AutomationSubject.TYPE_RESERVATION, reservationId, Map.of()));
+        durableEngine.processScheduledExecutions();
     }
 
     private List<AutomationExecution> executionsFor(Long orgId, AutomationAction action) {
@@ -368,10 +415,14 @@ class ScenarioReservationLifecycleIT extends AbstractIntegrationTest {
         //    avant checkout 10:00 + grace 4h = 14:00). ──
         clock.setInstant(ZonedDateTime.of(CHECK_OUT, LocalTime.of(13, 0), AUCKLAND).toInstant());
         automationSchedulerService.processScheduledAutomations();
+        durableEngine.processScheduledExecutions();
 
         // Avis : SKIPPED pour la resa avec avis, EXECUTED (envoi reel via le
         // pipeline mocke en frontiere) pour l'autre.
         List<AutomationExecution> reviewExecs = executionsFor(orgAId, AutomationAction.SEND_REVIEW_REQUEST);
+        if (executorFailure.get() != null) {
+            throw new AssertionError("Synthetic review request failed before its confirmed receipt", executorFailure.get());
+        }
         assertThat(reviewExecs).hasSize(2);
         Map<Long, AutomationExecutionStatus> reviewBySubject = Map.of(
                 reviewExecs.get(0).getSubjectId(), reviewExecs.get(0).getStatus(),
@@ -395,6 +446,7 @@ class ScenarioReservationLifecycleIT extends AbstractIntegrationTest {
         // ── T2 : 15:00 Auckland (checkout+5h > grace) → drain → revocation executee. ──
         clock.setInstant(ZonedDateTime.of(CHECK_OUT, LocalTime.of(15, 0), AUCKLAND).toInstant());
         automationSchedulerService.processScheduledAutomations();
+        durableEngine.processScheduledExecutions();
 
         AutomationExecution revokeForReviewed = executionsFor(orgAId, AutomationAction.REVOKE_ACCESS_CODE)
                 .stream().filter(e -> reviewed.getId().equals(e.getSubjectId()))
@@ -414,11 +466,15 @@ class ScenarioReservationLifecycleIT extends AbstractIntegrationTest {
         // ── T3 : J+2 10:00 Auckland → drain → suggestion de liberation creee. ──
         clock.setInstant(ZonedDateTime.of(CHECK_OUT.plusDays(2), LocalTime.of(10, 0), AUCKLAND).toInstant());
         automationSchedulerService.processScheduledAutomations();
+        durableEngine.processScheduledExecutions();
 
         List<SupervisionSuggestion> depositSuggestions = suggestionRepository.findAll().stream()
                 .filter(s -> orgAId.equals(s.getOrganizationId()))
                 .filter(s -> SupervisionActionType.DEPOSIT_RELEASE.equals(s.getActionType()))
                 .toList();
+        if (executorFailure.get() != null) {
+            throw new AssertionError("Synthetic deposit suggestion failed", executorFailure.get());
+        }
         assertThat(depositSuggestions).hasSize(1);
         SupervisionSuggestion suggestion = depositSuggestions.get(0);
         assertThat(suggestion.getStatus()).isEqualTo(SupervisionSuggestion.STATUS_PENDING);

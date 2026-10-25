@@ -63,6 +63,9 @@ import static org.mockito.Mockito.lenient;
 })
 class ScenarioAutonomyPremiumIT extends AbstractIntegrationTest {
 
+    @Autowired private com.clenzy.repository.PaymentTransactionRepository recipePayments;
+    @Autowired private com.clenzy.service.ai.BaitlyCreditFunding recipeCredits;
+
     private static final String SCRIPTED_MODEL = "scripted-model";
     private static final long CAP_MILLICREDITS = 100_000L;
 
@@ -103,6 +106,7 @@ class ScenarioAutonomyPremiumIT extends AbstractIntegrationTest {
         salt = UUID.randomUUID().toString().substring(0, 8);
         orgId = organizationRepository.save(new Organization(
                 "Autonomy " + salt, OrganizationType.INDIVIDUAL, "autonomy-" + salt)).getId();
+        com.clenzy.config.BaitlyIntegrationCreditFixture.fund(recipePayments, recipeCredits, orgId);
 
         User owner = new User("Otto", "Autonome", "otto." + salt + "@test.com", "password123");
         owner.setOrganizationId(orgId);

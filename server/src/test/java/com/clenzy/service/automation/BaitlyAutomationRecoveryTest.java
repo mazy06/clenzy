@@ -36,6 +36,24 @@ class BaitlyAutomationRecoveryTest extends BaitlyAutomationFixture {
         verify(executor,times(1)).execute(any(),any());assertThat(state()).isEqualTo("DONE");assertThat(status()).isEqualTo("EXECUTED");
         assertThat(db.queryForObject("SELECT durable_context FROM automation_executions WHERE id=11",String.class)).isNull();
     }
+    @Test void deliveryTemplateFromAnotherOrganizationBlocksWithoutCallingTheExecutor() {
+        queue();var template=new MessageTemplate();template.setOrganizationId(8L);rule.setTemplate(template);
+        worker(journal).processScheduledExecutions();worker(journal).processScheduledExecutions();
+        assertThat(state()).isEqualTo("UNKNOWN");verifyNoInteractions(executor);
+    }
+    @Test void deliveryOwnerIsInitializedDuringPreparationAndExecutorRemainsOutsideTransaction() {
+        queue();var owner=mock(User.class,withSettings().extraInterfaces(org.hibernate.proxy.HibernateProxy.class).defaultAnswer(CALLS_REAL_METHODS));
+        var lazy=mock(org.hibernate.proxy.LazyInitializer.class);
+        when(((org.hibernate.proxy.HibernateProxy)owner).getHibernateLazyInitializer()).thenReturn(lazy);
+        doAnswer(call->{assertThat(org.springframework.transaction.support.TransactionSynchronizationManager.isActualTransactionActive()).isTrue();return null;})
+            .when(lazy).initialize();
+        var property=new Property();property.setOrganizationId(7L);property.setOwner(owner);stay.setProperty(property);
+        when(executor.execute(any(),any())).thenAnswer(call->{
+            assertThat(org.springframework.transaction.support.TransactionSynchronizationManager.isActualTransactionActive()).isFalse();
+            return AutomationActionExecutor.ExecutionResult.executed();
+        });
+        worker(journal).processScheduledExecutions();verify(lazy).initialize();assertThat(status()).isEqualTo("EXECUTED");
+    }
     @Test void attemptIsVisibleFromAnotherConnectionBeforeEffects() {
         queue();when(executor.execute(any(),any())).thenAnswer(c->{
             assertThat(org.springframework.transaction.support.TransactionSynchronizationManager.isActualTransactionActive()).isFalse();
